@@ -1605,11 +1605,18 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             >
               <span ref={clockFlashRef} class="inline-flex relative">
                 <IconClock size={14} class={historyIconClass()} />
-                <Show when={props.hasUnreadHistoryItems}>
+                <Show
+                  when={
+                    props.hasUnreadHistoryItems &&
+                    (props.historyItemCount ?? 0) > 0
+                  }
+                >
                   <span
                     data-react-grab-unread-indicator
-                    class="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-[#404040]"
-                  />
+                    class="absolute -top-1 -right-1 min-w-2.5 h-2.5 px-0.5 flex items-center justify-center rounded-full bg-black text-white text-[8px] font-semibold leading-none"
+                  >
+                    {props.historyItemCount}
+                  </span>
                 </Show>
               </span>
             </button>

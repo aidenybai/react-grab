@@ -4,6 +4,7 @@ import {
   createSignal,
   createEffect,
   createMemo,
+  on,
   onMount,
   onCleanup,
 } from "solid-js";
@@ -67,6 +68,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const [viewportVersion, setViewportVersion] = createSignal(0);
   const [hadValidBounds, setHadValidBounds] = createSignal(false);
   const [isInternalFading, setIsInternalFading] = createSignal(false);
+  const [isShaking, setIsShaking] = createSignal(false);
 
   const canInteract = () =>
     props.status !== "copying" &&
@@ -149,6 +151,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     }
     window.addEventListener("scroll", handleViewportChange, true);
     window.addEventListener("resize", handleViewportChange);
+    window.visualViewport?.addEventListener("resize", handleViewportChange);
+    window.visualViewport?.addEventListener("scroll", handleViewportChange);
     window.addEventListener("keydown", handleGlobalKeyDown, { capture: true });
   });
 
@@ -156,6 +160,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     resizeObserver?.disconnect();
     window.removeEventListener("scroll", handleViewportChange, true);
     window.removeEventListener("resize", handleViewportChange);
+    window.visualViewport?.removeEventListener("resize", handleViewportChange);
+    window.visualViewport?.removeEventListener("scroll", handleViewportChange);
     window.removeEventListener("keydown", handleGlobalKeyDown, {
       capture: true,
     });
@@ -200,14 +206,19 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       };
     }
 
-    const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
-    const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+    const visualViewport = window.visualViewport;
+    const viewportLeft = visualViewport?.offsetLeft ?? 0;
+    const viewportTop = visualViewport?.offsetTop ?? 0;
+    const viewportRight =
+      viewportLeft + (visualViewport?.width ?? window.innerWidth);
+    const viewportBottom =
+      viewportTop + (visualViewport?.height ?? window.innerHeight);
 
     const isSelectionVisibleInViewport =
-      bounds.x + bounds.width > 0 &&
-      bounds.x < viewportWidth &&
-      bounds.y + bounds.height > 0 &&
-      bounds.y < viewportHeight;
+      bounds.x + bounds.width > viewportLeft &&
+      bounds.x < viewportRight &&
+      bounds.y + bounds.height > viewportTop &&
+      bounds.y < viewportBottom;
 
     if (!isSelectionVisibleInViewport) {
       return {
@@ -233,24 +244,24 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       const labelLeft = anchorX - labelWidth / 2;
       const labelRight = anchorX + labelWidth / 2;
 
-      if (labelRight > viewportWidth - VIEWPORT_MARGIN_PX) {
-        edgeOffsetX = viewportWidth - VIEWPORT_MARGIN_PX - labelRight;
+      if (labelRight > viewportRight - VIEWPORT_MARGIN_PX) {
+        edgeOffsetX = viewportRight - VIEWPORT_MARGIN_PX - labelRight;
       }
-      if (labelLeft + edgeOffsetX < VIEWPORT_MARGIN_PX) {
-        edgeOffsetX = VIEWPORT_MARGIN_PX - labelLeft;
+      if (labelLeft + edgeOffsetX < viewportLeft + VIEWPORT_MARGIN_PX) {
+        edgeOffsetX = viewportLeft + VIEWPORT_MARGIN_PX - labelLeft;
       }
     }
 
     const totalHeightNeeded = labelHeight + actualArrowHeight + LABEL_GAP_PX;
     const fitsBelow =
-      positionTop + labelHeight <= viewportHeight - VIEWPORT_MARGIN_PX;
+      positionTop + labelHeight <= viewportBottom - VIEWPORT_MARGIN_PX;
 
     if (!fitsBelow) {
       positionTop = selectionTop - totalHeightNeeded;
     }
 
-    if (positionTop < VIEWPORT_MARGIN_PX) {
-      positionTop = VIEWPORT_MARGIN_PX;
+    if (positionTop < viewportTop + VIEWPORT_MARGIN_PX) {
+      positionTop = viewportTop + VIEWPORT_MARGIN_PX;
     }
 
     const arrowLeftPercent = ARROW_CENTER_PERCENT;
@@ -289,6 +300,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       setArrowPosition(result.computedArrowPosition);
     }
   });
+
+  createEffect(
+    on(
+      () => props.selectionLabelShakeCount,
+      () => setIsShaking(true),
+      { defer: true },
+    ),
+  );
 
   const handleKeyDown = (event: KeyboardEvent) => {
     if (event.isComposing || event.keyCode === IME_COMPOSING_KEY_CODE) {
@@ -418,10 +437,12 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           class={cn(
             "contain-layout flex items-center gap-[5px] rounded-[10px] antialiased w-fit h-fit p-0 [font-synthesis:none] [corner-shape:superellipse(1.25)]",
             PANEL_STYLES,
+            isShaking() && "animate-shake",
           )}
           style={{
             display: isCompletedStatus() && !props.error ? "none" : undefined,
           }}
+          onAnimationEnd={() => setIsShaking(false)}
         >
           <Show when={props.status === "copying" && !props.isPendingAbort}>
             <div
@@ -612,7 +633,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           <Show when={props.isPendingDismiss}>
             <DiscardPrompt
               onConfirm={props.onConfirmDismiss}
-              onCancel={props.onCancelDismiss}
+              onCancel={() => {
+                props.onCancelDismiss?.();
+                inputRef?.focus();
+              }}
             />
           </Show>
 

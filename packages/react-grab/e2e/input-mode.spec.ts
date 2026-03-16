@@ -246,6 +246,7 @@ test.describe("Input Mode", () => {
       await reactGrab.enterPromptMode("li:first-child");
 
       await reactGrab.page.mouse.click(10, 10);
+      await reactGrab.page.mouse.click(10, 10);
 
       await expect.poll(() => reactGrab.isPromptModeActive()).toBe(false);
     });

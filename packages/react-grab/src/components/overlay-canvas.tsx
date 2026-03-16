@@ -14,7 +14,6 @@ import {
   FADE_OUT_BUFFER_MS,
   MIN_DEVICE_PIXEL_RATIO,
   Z_INDEX_OVERLAY_CANVAS,
-  OVERLAY_CROSSHAIR_COLOR,
   OVERLAY_BORDER_COLOR_DRAG,
   OVERLAY_FILL_COLOR_DRAG,
   OVERLAY_BORDER_COLOR_DEFAULT,
@@ -24,6 +23,7 @@ import {
   nativeCancelAnimationFrame,
   nativeRequestAnimationFrame,
 } from "../utils/native-raf.js";
+import { supportsDisplayP3 } from "../utils/supports-display-p3.js";
 
 const LAYER_STYLES = {
   drag: {
@@ -48,7 +48,7 @@ const LAYER_STYLES = {
   },
 } as const;
 
-type LayerName = "crosshair" | "drag" | "selection" | "grabbed" | "processing";
+type LayerName = "drag" | "selection" | "grabbed" | "processing";
 
 interface OffscreenLayer {
   canvas: OffscreenCanvas | null;
@@ -66,14 +66,7 @@ interface AnimatedBounds {
   isInitialized: boolean;
 }
 
-interface Position {
-  x: number;
-  y: number;
-}
-
 export interface OverlayCanvasProps {
-  crosshairVisible?: boolean;
-
   selectionVisible?: boolean;
   selectionBounds?: OverlayBounds;
   selectionBoundsMultiple?: OverlayBounds[];
@@ -103,19 +96,20 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
   let animationFrameId: number | null = null;
 
   const layers: Record<LayerName, OffscreenLayer> = {
-    crosshair: { canvas: null, context: null },
     drag: { canvas: null, context: null },
     selection: { canvas: null, context: null },
     grabbed: { canvas: null, context: null },
     processing: { canvas: null, context: null },
   };
 
-  const crosshairCurrentPosition: Position = { x: 0, y: 0 };
-
   let selectionAnimations: AnimatedBounds[] = [];
   let dragAnimation: AnimatedBounds | null = null;
   let grabbedAnimations: AnimatedBounds[] = [];
   let processingAnimations: AnimatedBounds[] = [];
+
+  const canvasColorSpace: PredefinedColorSpace = supportsDisplayP3()
+    ? "display-p3"
+    : "srgb";
 
   const createOffscreenLayer = (
     layerWidth: number,
@@ -126,7 +120,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
       layerWidth * scaleFactor,
       layerHeight * scaleFactor,
     );
-    const context = canvas.getContext("2d");
+    const context = canvas.getContext("2d", { colorSpace: canvasColorSpace });
     if (context) {
       context.scale(scaleFactor, scaleFactor);
     }
@@ -148,7 +142,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     canvasRef.style.width = `${canvasWidth}px`;
     canvasRef.style.height = `${canvasHeight}px`;
 
-    mainContext = canvasRef.getContext("2d");
+    mainContext = canvasRef.getContext("2d", { colorSpace: canvasColorSpace });
     if (mainContext) {
       mainContext.scale(devicePixelRatio, devicePixelRatio);
     }
@@ -251,26 +245,6 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     context.globalAlpha = 1;
   };
 
-  const renderCrosshairLayer = () => {
-    const layer = layers.crosshair;
-    if (!layer.context) return;
-
-    const context = layer.context;
-    context.clearRect(0, 0, canvasWidth, canvasHeight);
-
-    if (!props.crosshairVisible) return;
-
-    context.strokeStyle = OVERLAY_CROSSHAIR_COLOR;
-    context.lineWidth = 1;
-
-    context.beginPath();
-    context.moveTo(crosshairCurrentPosition.x, 0);
-    context.lineTo(crosshairCurrentPosition.x, canvasHeight);
-    context.moveTo(0, crosshairCurrentPosition.y);
-    context.lineTo(canvasWidth, crosshairCurrentPosition.y);
-    context.stroke();
-  };
-
   const renderDragLayer = () => {
     const layer = layers.drag;
     if (!layer.context) return;
@@ -354,14 +328,12 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     mainContext.clearRect(0, 0, canvasRef.width, canvasRef.height);
     mainContext.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
 
-    renderCrosshairLayer();
     renderDragLayer();
     renderSelectionLayer();
     renderBoundsLayer("grabbed", grabbedAnimations);
     renderBoundsLayer("processing", processingAnimations);
 
     const layerRenderOrder: LayerName[] = [
-      "crosshair",
       "drag",
       "selection",
       "grabbed",
@@ -516,15 +488,6 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     initializeCanvas();
     scheduleAnimationFrame();
   };
-
-  createEffect(
-    on(
-      () => props.crosshairVisible,
-      () => {
-        scheduleAnimationFrame();
-      },
-    ),
-  );
 
   createEffect(
     on(
@@ -726,16 +689,6 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     initializeCanvas();
     scheduleAnimationFrame();
 
-    const handlePointerMove = (event: PointerEvent) => {
-      if (!event.isPrimary) return;
-      crosshairCurrentPosition.x = event.clientX;
-      crosshairCurrentPosition.y = event.clientY;
-      scheduleAnimationFrame();
-    };
-
-    window.addEventListener("pointermove", handlePointerMove, {
-      passive: true,
-    });
     window.addEventListener("resize", handleWindowResize);
 
     let currentDprMediaQuery: MediaQueryList | null = null;
@@ -770,7 +723,6 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     setupDprMediaQuery();
 
     onCleanup(() => {
-      window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("resize", handleWindowResize);
       if (currentDprMediaQuery) {
         currentDprMediaQuery.removeEventListener(

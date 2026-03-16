@@ -88,24 +88,6 @@ test.describe("Toolbar Selection Hover", () => {
         .poll(() => reactGrab.isSelectionBoxVisible(), { timeout: 2000 })
         .toBe(true);
     });
-
-    test("should hide crosshair when hovering toolbar", async ({
-      reactGrab,
-    }) => {
-      await reactGrab.activate();
-      await reactGrab.hoverElement("li");
-      await reactGrab.waitForSelectionBox();
-
-      await expect
-        .poll(() => reactGrab.isCrosshairVisible(), { timeout: 2000 })
-        .toBe(true);
-
-      await hoverToolbar(reactGrab.page);
-
-      await expect
-        .poll(() => reactGrab.isCrosshairVisible(), { timeout: 2000 })
-        .toBe(false);
-    });
   });
 
   test.describe("Frozen Mode", () => {

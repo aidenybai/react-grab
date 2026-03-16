@@ -1,3 +1,5 @@
+import { overlayColor } from "./utils/overlay-color.js";
+
 export const VERSION = process.env.VERSION as string;
 
 export const VIEWPORT_MARGIN_PX = 8;
@@ -45,13 +47,11 @@ export const LERP_CONVERGENCE_THRESHOLD_PX = 0.5;
 export const FADE_OUT_BUFFER_MS = 100;
 export const MIN_DEVICE_PIXEL_RATIO = 2;
 
-const GRAB_PURPLE_RGB = "210, 57, 192";
-export const OVERLAY_CROSSHAIR_COLOR = `rgba(${GRAB_PURPLE_RGB}, 1)`;
-export const OVERLAY_BORDER_COLOR_DRAG = `rgba(${GRAB_PURPLE_RGB}, 0.4)`;
-export const OVERLAY_FILL_COLOR_DRAG = `rgba(${GRAB_PURPLE_RGB}, 0.05)`;
-export const OVERLAY_BORDER_COLOR_DEFAULT = `rgba(${GRAB_PURPLE_RGB}, 0.5)`;
-export const OVERLAY_FILL_COLOR_DEFAULT = `rgba(${GRAB_PURPLE_RGB}, 0.08)`;
-export const FROZEN_GLOW_COLOR = `rgba(${GRAB_PURPLE_RGB}, 0.15)`;
+export const OVERLAY_BORDER_COLOR_DRAG = overlayColor(0.4);
+export const OVERLAY_FILL_COLOR_DRAG = overlayColor(0.05);
+export const OVERLAY_BORDER_COLOR_DEFAULT = overlayColor(0.5);
+export const OVERLAY_FILL_COLOR_DEFAULT = overlayColor(0.08);
+export const FROZEN_GLOW_COLOR = overlayColor(0.15);
 export const FROZEN_GLOW_EDGE_PX = 50;
 
 export const ARROW_HEIGHT_PX = 8;

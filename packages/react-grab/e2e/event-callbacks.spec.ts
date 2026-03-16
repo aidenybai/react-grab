@@ -361,23 +361,6 @@ test.describe("Event Callbacks", () => {
       expect(dragBoxCalls.length).toBeGreaterThan(0);
     });
 
-    test("onCrosshair should fire when crosshair moves", async ({
-      reactGrab,
-    }) => {
-      await reactGrab.activate();
-      await reactGrab.clearCallbackHistory();
-
-      await reactGrab.page.mouse.move(200, 200);
-      await reactGrab.page.waitForTimeout(50);
-      await reactGrab.page.mouse.move(300, 300);
-      await reactGrab.page.waitForTimeout(100);
-
-      const history = await reactGrab.getCallbackHistory();
-      const crosshairCalls = history.filter((c) => c.name === "onCrosshair");
-
-      expect(crosshairCalls.length).toBeGreaterThan(0);
-    });
-
     test("onGrabbedBox should fire when element is grabbed", async ({
       reactGrab,
     }) => {

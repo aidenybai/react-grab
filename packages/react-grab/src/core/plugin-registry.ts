@@ -14,7 +14,6 @@ import type {
   DragRect,
   ElementLabelVariant,
   ElementLabelContext,
-  CrosshairContext,
   ActivationMode,
   ActivationKey,
   SettableOptions,
@@ -333,8 +332,6 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       variant: ElementLabelVariant,
       context: ElementLabelContext,
     ) => callHook("onElementLabel", visible, variant, context),
-    onCrosshair: (visible: boolean, context: CrosshairContext) =>
-      callHook("onCrosshair", visible, context),
     onContextMenu: (element: Element, position: { x: number; y: number }) =>
       callHook("onContextMenu", element, position),
     cancelPendingToolbarActions: () => callHook("cancelPendingToolbarActions"),

@@ -70,11 +70,6 @@ interface ReactGrabState {
   labelInstances: LabelInstanceInfo[];
 }
 
-interface CrosshairInfo {
-  isVisible: boolean;
-  position: { x: number; y: number } | null;
-}
-
 interface GrabbedBoxInfo {
   count: number;
   boxes: Array<{
@@ -184,8 +179,6 @@ export interface ReactGrabPageObject {
   waitForSelectionLabel: () => Promise<void>;
   getLabelStatusText: () => Promise<string | null>;
 
-  getCrosshairInfo: () => Promise<CrosshairInfo>;
-  isCrosshairVisible: () => Promise<boolean>;
   getGrabbedBoxInfo: () => Promise<GrabbedBoxInfo>;
   getLabelInstancesInfo: () => Promise<LabelInstanceInfo[]>;
   isGrabbedBoxVisible: () => Promise<boolean>;
@@ -1531,57 +1524,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     }, ATTRIBUTE_NAME);
   };
 
-  const getCrosshairInfo = async (): Promise<CrosshairInfo> => {
-    return page.evaluate((attrName) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      if (!shadowRoot) return { isVisible: false, position: null };
-      const root = shadowRoot.querySelector(`[${attrName}]`);
-      if (!root) return { isVisible: false, position: null };
-
-      const crosshairElements = Array.from(
-        root.querySelectorAll("div[style*='pointer-events: none']"),
-      );
-      for (let i = 0; i < crosshairElements.length; i++) {
-        const element = crosshairElements[i] as HTMLElement;
-        const style = element.style;
-        if (
-          style.position === "fixed" &&
-          (style.width === "1px" ||
-            style.height === "1px" ||
-            style.width === "100%" ||
-            style.height === "100%")
-        ) {
-          const transform = style.transform;
-          const match = transform?.match(/translate\(([^,]+)px,\s*([^)]+)px\)/);
-          if (match) {
-            return {
-              isVisible: true,
-              position: { x: parseFloat(match[1]), y: parseFloat(match[2]) },
-            };
-          }
-        }
-      }
-      return { isVisible: false, position: null };
-    }, ATTRIBUTE_NAME);
-  };
-
-  const isCrosshairVisible = async (): Promise<boolean> => {
-    return page.evaluate(() => {
-      const api = (
-        window as {
-          __REACT_GRAB__?: {
-            getState: () => {
-              isCrosshairVisible: boolean;
-            };
-          };
-        }
-      ).__REACT_GRAB__;
-
-      return api?.getState()?.isCrosshairVisible ?? false;
-    });
-  };
-
   const getGrabbedBoxInfo = async (): Promise<GrabbedBoxInfo> => {
     return page.evaluate(() => {
       const api = (
@@ -1826,7 +1768,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         "onPromptModeChange",
         "onSelectionBox",
         "onDragBox",
-        "onCrosshair",
         "onGrabbedBox",
         "onContextMenu",
         "onOpenFile",
@@ -2353,7 +2294,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
           onPromptModeChange: trackCallback("onPromptModeChange"),
           onSelectionBox: trackCallback("onSelectionBox"),
           onDragBox: trackCallback("onDragBox"),
-          onCrosshair: trackCallback("onCrosshair"),
           onGrabbedBox: trackCallback("onGrabbedBox"),
           onContextMenu: trackCallback("onContextMenu"),
           onOpenFile: trackCallback("onOpenFile"),
@@ -2496,8 +2436,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     waitForSelectionLabel,
     getLabelStatusText,
 
-    getCrosshairInfo,
-    isCrosshairVisible,
     getGrabbedBoxInfo,
     getLabelInstancesInfo,
     isGrabbedBoxVisible,
