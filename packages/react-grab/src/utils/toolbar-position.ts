@@ -102,7 +102,7 @@ export const getRatioFromPosition = (
   );
 };
 
-export interface SnapResult extends Position {
+interface SnapResult extends Position {
   edge: SnapEdge;
 }
 

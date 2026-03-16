@@ -37,12 +37,8 @@ import {
   TOOLBAR_DEFAULT_HEIGHT_PX,
   TOOLBAR_DEFAULT_POSITION_RATIO,
   TOOLBAR_SHAKE_TOOLTIP_DURATION_MS,
-  SELECTION_HINT_CYCLE_INTERVAL_MS,
-  SELECTION_HINT_COUNT,
-  HINT_FLIP_IN_ANIMATION,
   FEEDBACK_DURATION_MS,
   SAFE_POLYGON_BUFFER_PX,
-  PANEL_STYLES,
   Z_INDEX_HOST,
 } from "../../constants.js";
 import { freezeUpdates } from "../../utils/freeze-updates.js";
@@ -72,6 +68,11 @@ import {
   getRatioFromPosition,
   getSnapPosition,
 } from "../../utils/toolbar-position.js";
+
+const SELECTION_HINT_CYCLE_INTERVAL_MS = 3000;
+const SELECTION_HINT_COUNT = 3;
+const HINT_FLIP_IN_ANIMATION =
+  "animate-[hint-flip-in_var(--transition-normal)_ease-out]";
 
 interface ToolbarProps {
   isActive?: boolean;
@@ -1548,7 +1549,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               <div
                 class={cn(
                   "absolute whitespace-nowrap flex items-center gap-1 px-1.5 py-0.5 rounded-[10px] text-[10px] text-black/60 pointer-events-none animate-tooltip-fade-in [animation-fill-mode:backwards] overflow-hidden [corner-shape:superellipse(1.25)]",
-                  PANEL_STYLES,
+                  "bg-white",
                   shakeTooltipPositionClass(),
                 )}
                 style={{ "z-index": String(Z_INDEX_HOST) }}
@@ -1594,7 +1595,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               <div
                 class={cn(
                   "absolute whitespace-nowrap px-1.5 py-0.5 rounded-[10px] text-[10px] text-black/60 pointer-events-none animate-tooltip-fade-in [corner-shape:superellipse(1.25)]",
-                  PANEL_STYLES,
+                  "bg-white",
                   shakeTooltipPositionClass(),
                 )}
                 style={{ "z-index": String(Z_INDEX_HOST) }}

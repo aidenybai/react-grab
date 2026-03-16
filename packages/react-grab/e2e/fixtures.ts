@@ -105,6 +105,7 @@ export interface ReactGrabPageObject {
   rightClickAtPosition: (x: number, y: number) => Promise<void>;
   dragSelect: (startSelector: string, endSelector: string) => Promise<void>;
   getClipboardContent: () => Promise<string>;
+  captureNextClipboardWrites: () => Promise<Record<string, string>>;
   waitForSelectionBox: () => Promise<void>;
   waitForSelectionSource: () => Promise<void>;
   isContextMenuVisible: () => Promise<boolean>;
@@ -344,6 +345,35 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const getClipboardContent = async () => {
     return page.evaluate(() => navigator.clipboard.readText());
+  };
+
+  const captureNextClipboardWrites = async () => {
+    return page.evaluate(() => {
+      return new Promise<Record<string, string>>((resolve) => {
+        const originalSetData = DataTransfer.prototype.setData;
+        const clipboardWrites: Record<string, string> = {};
+        DataTransfer.prototype.setData = function (type: string, value: string) {
+          clipboardWrites[type] = value;
+          return originalSetData.call(this, type, value);
+        };
+
+        const cleanup = () => {
+          DataTransfer.prototype.setData = originalSetData;
+          resolve(clipboardWrites);
+        };
+
+        const safetyTimeout = setTimeout(cleanup, 5000);
+
+        document.addEventListener(
+          "copy",
+          () => {
+            clearTimeout(safetyTimeout);
+            queueMicrotask(cleanup);
+          },
+          { once: true, capture: true },
+        );
+      });
+    });
   };
 
   const waitForSelectionBox = async () => {
@@ -2396,6 +2426,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     rightClickAtPosition,
     dragSelect,
     getClipboardContent,
+    captureNextClipboardWrites,
     waitForSelectionBox,
     waitForSelectionSource,
     isContextMenuVisible,

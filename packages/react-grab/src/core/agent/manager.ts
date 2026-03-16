@@ -27,6 +27,7 @@ import {
   RECENT_THRESHOLD_MS,
 } from "../../constants.js";
 import { getTagName } from "../../utils/get-tag-name.js";
+import { normalizeErrorMessage } from "../../utils/normalize-error.js";
 
 interface StartSessionParams {
   elements: Element[];
@@ -437,10 +438,10 @@ export const createAgentManager = (
         ? await hooks.transformAgentContext(contextWithSessionId, elements)
         : contextWithSessionId;
     } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Context transformation failed";
+      const errorMessage = normalizeErrorMessage(
+        error,
+        "Context transformation failed",
+      );
       const errorSession = updateSession(
         session,
         {

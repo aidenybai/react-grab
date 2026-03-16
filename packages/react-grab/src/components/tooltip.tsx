@@ -2,7 +2,6 @@ import { createSignal, createEffect, on, onCleanup, Show } from "solid-js";
 import type { Component, JSX } from "solid-js";
 import { cn } from "../utils/cn.js";
 import {
-  PANEL_STYLES,
   TOOLTIP_DELAY_MS,
   TOOLTIP_GRACE_PERIOD_MS,
   Z_INDEX_LABEL,
@@ -68,7 +67,7 @@ export const Tooltip: Component<TooltipProps> = (props) => {
       <div
         class={cn(
           "absolute whitespace-nowrap px-1.5 py-0.5 rounded-[10px] text-[10px] text-black/60 pointer-events-none [corner-shape:superellipse(1.25)]",
-          PANEL_STYLES,
+          "bg-white",
           props.position === "left" || props.position === "right"
             ? "top-1/2 -translate-y-1/2"
             : "left-1/2 -translate-x-1/2",

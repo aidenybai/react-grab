@@ -3,7 +3,6 @@ import type { Component } from "solid-js";
 import type { ToolbarMenuAction, DropdownAnchor } from "../../types.js";
 import {
   DROPDOWN_EDGE_TRANSFORM_ORIGIN,
-  PANEL_STYLES,
   TOOLBAR_MENU_MIN_WIDTH_PX,
   Z_INDEX_LABEL,
 } from "../../constants.js";
@@ -124,7 +123,7 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
         <div
           class={cn(
             "contain-layout flex flex-col rounded-[10px] antialiased w-fit h-fit overflow-hidden [font-synthesis:none] [corner-shape:superellipse(1.25)]",
-            PANEL_STYLES,
+            "bg-white",
           )}
           style={{ "min-width": `${TOOLBAR_MENU_MIN_WIDTH_PX}px` }}
         >

@@ -5,7 +5,6 @@ import {
   FEEDBACK_DURATION_MS,
   FADE_DURATION_MS,
   IME_COMPOSING_KEY_CODE,
-  PANEL_STYLES,
   TEXTAREA_MAX_HEIGHT_PX,
 } from "../../constants.js";
 import { autoResizeTextarea } from "../../utils/auto-resize-textarea.js";
@@ -164,7 +163,7 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
       data-react-grab-completion
       class={cn(
         "contain-layout shrink-0 flex flex-col justify-center items-end rounded-[10px] antialiased w-fit h-fit max-w-[280px] transition-opacity duration-100 ease-out [font-synthesis:none] [corner-shape:superellipse(1.25)]",
-        PANEL_STYLES,
+        "bg-white",
       )}
       style={{ opacity: isFading() ? 0 : 1 }}
       onPointerDown={handleFocus}

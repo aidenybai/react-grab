@@ -46,6 +46,7 @@ import { createElementBounds } from "../utils/create-element-bounds.js";
 import { createElementSelector } from "../utils/create-element-selector.js";
 import { getVisibleBoundsCenter } from "../utils/get-visible-bounds-center.js";
 import { clearAllCaches } from "../utils/clear-all-caches.js";
+import { normalizeErrorMessage } from "../utils/normalize-error.js";
 import {
   createBoundsFromDragRect,
   createFlatOverlayBounds,
@@ -76,7 +77,6 @@ import {
   WINDOW_REFOCUS_GRACE_PERIOD_MS,
   DROPDOWN_HOVER_OPEN_DELAY_MS,
   PREVIEW_TEXT_MAX_LENGTH,
-  DEFERRED_EXECUTION_DELAY_MS,
   NEXTJS_REVALIDATION_DELAY_MS,
   TOOLBAR_DEFAULT_POSITION_RATIO,
 } from "../constants.js";
@@ -544,7 +544,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       bounds: OverlayBounds,
       element: Element,
     ) => {
-      const boxId = `grabbed-${Date.now()}-${Math.random()}`;
+      const boxId = `grabbed-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const createdAt = Date.now();
       const newBox: GrabbedBox = { id: boxId, bounds, createdAt, element };
 
@@ -737,10 +737,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         await operation();
         didSucceed = true;
       } catch (error) {
-        errorMessage =
-          error instanceof Error && error.message
-            ? error.message
-            : "Action failed";
+        errorMessage = normalizeErrorMessage(error, "Action failed");
       }
 
       if (instanceId) {
@@ -3345,10 +3342,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               errorMessage = "Failed to copy";
             }
           } catch (error) {
-            errorMessage =
-              error instanceof Error && error.message
-                ? error.message
-                : "Action failed";
+            errorMessage = normalizeErrorMessage(error, "Action failed");
           }
 
           actions.updateLabelInstance(
@@ -3377,7 +3371,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const deferHideContextMenu = () => {
       setTimeout(() => {
         actions.hideContextMenu();
-      }, DEFERRED_EXECUTION_DELAY_MS);
+      }, 0);
     };
 
     interface BuildActionContextOptions {
@@ -3516,7 +3510,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setTimeout(() => {
         actions.hideContextMenu();
         deactivateRenderer();
-      }, DEFERRED_EXECUTION_DELAY_MS);
+      }, 0);
     };
 
     const clearHistoryHoverPreviews = () => {
@@ -3927,7 +3921,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.setFrozenElement(element);
         actions.freeze();
         actions.showContextMenu(session.position, element);
-      }, DEFERRED_EXECUTION_DELAY_MS);
+      }, 0);
     };
 
     const handleShowContextMenuInstance = (instanceId: string) => {
@@ -3963,7 +3957,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
         actions.freeze();
         actions.showContextMenu(position, instance.element!);
-      }, DEFERRED_EXECUTION_DELAY_MS);
+      }, 0);
     };
 
     createEffect(() => {

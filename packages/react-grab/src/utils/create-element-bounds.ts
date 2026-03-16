@@ -83,16 +83,16 @@ export const createElementBounds = (element: Element): OverlayBounds => {
     const oh = element.offsetHeight;
 
     if (ow > 0 && oh > 0) {
-      const cx = rect.left + rect.width * 0.5;
-      const cy = rect.top + rect.height * 0.5;
+      const centerX = rect.left + rect.width * 0.5;
+      const centerY = rect.top + rect.height * 0.5;
 
       bounds = {
         borderRadius: style.borderRadius || "0px",
         height: oh,
         transform,
         width: ow,
-        x: cx - ow * 0.5,
-        y: cy - oh * 0.5,
+        x: centerX - ow * 0.5,
+        y: centerY - oh * 0.5,
       };
     } else {
       bounds = {

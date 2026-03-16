@@ -44,6 +44,27 @@ test.describe("Element Selection", () => {
       .toContain("Todo List");
   });
 
+  test("should write React Grab clipboard metadata on copy", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverElement("[data-testid='todo-list'] h1");
+    await reactGrab.waitForSelectionBox();
+
+    const copyPayloadPromise = reactGrab.captureNextClipboardWrites();
+    await reactGrab.clickElement("[data-testid='todo-list'] h1");
+    const copyPayload = await copyPayloadPromise;
+    const clipboardMetadataText = copyPayload["application/x-react-grab"];
+    if (!clipboardMetadataText) {
+      throw new Error("Missing React Grab clipboard metadata");
+    }
+
+    const clipboardMetadata = JSON.parse(clipboardMetadataText);
+    expect(clipboardMetadata.content).toContain("Todo List");
+    expect(clipboardMetadata.entries).toHaveLength(1);
+    expect(clipboardMetadata.entries[0].content).toContain("Todo List");
+  });
+
   test("should highlight different elements when hovering", async ({
     reactGrab,
   }) => {

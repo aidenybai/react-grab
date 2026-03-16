@@ -18,7 +18,6 @@ import {
   ARROW_HEIGHT_PX,
   DROPDOWN_OFFSCREEN_POSITION,
   LABEL_GAP_PX,
-  PANEL_STYLES,
   Z_INDEX_LABEL,
 } from "../constants.js";
 import { cn } from "../utils/cn.js";
@@ -284,7 +283,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
         <div
           class={cn(
             "contain-layout flex flex-col justify-center items-start rounded-[10px] antialiased w-fit h-fit min-w-[100px] [font-synthesis:none] [corner-shape:superellipse(1.25)]",
-            PANEL_STYLES,
+            "bg-white",
           )}
         >
           <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 w-fit h-fit px-2">

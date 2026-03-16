@@ -11,13 +11,11 @@ import {
 import type { Component } from "solid-js";
 import type { ArrowPosition, SelectionLabelProps } from "../../types.js";
 import {
-  DEFERRED_EXECUTION_DELAY_MS,
   IME_COMPOSING_KEY_CODE,
   VIEWPORT_MARGIN_PX,
   ARROW_CENTER_PERCENT,
   ARROW_LABEL_MARGIN_PX,
   LABEL_GAP_PX,
-  PANEL_STYLES,
   SELECTION_LABEL_OFFSCREEN_PX,
   TEXTAREA_MAX_HEIGHT_PX,
   Z_INDEX_LABEL,
@@ -191,7 +189,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           inputRef.focus();
           autoResizeTextarea(inputRef, TEXTAREA_MAX_HEIGHT_PX);
         }
-      }, DEFERRED_EXECUTION_DELAY_MS);
+      }, 0);
       onCleanup(() => {
         clearTimeout(focusTimeout);
       });
@@ -467,7 +465,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           ref={panelRef}
           class={cn(
             "contain-layout flex items-center gap-[5px] rounded-[10px] antialiased w-fit h-fit p-0 [font-synthesis:none] [corner-shape:superellipse(1.25)]",
-            PANEL_STYLES,
+            "bg-white",
             isShaking() && "animate-shake",
           )}
           style={{
