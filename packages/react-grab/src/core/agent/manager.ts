@@ -1,6 +1,7 @@
 import { createSignal } from "solid-js";
 import type { Accessor } from "solid-js";
 import type {
+  Position,
   AgentContext,
   AgentSession,
   AgentOptions,
@@ -30,7 +31,7 @@ import { getTagName } from "../../utils/get-tag-name.js";
 interface StartSessionParams {
   elements: Element[];
   prompt: string;
-  position: { x: number; y: number };
+  position: Position;
   selectionBounds: OverlayBounds[];
   sessionId?: string;
   agent?: AgentOptions;

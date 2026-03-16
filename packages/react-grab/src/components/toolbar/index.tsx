@@ -7,7 +7,7 @@ import {
   Show,
 } from "solid-js";
 import type { Component } from "solid-js";
-import type { ToolbarMenuAction } from "../../types.js";
+import type { Position, ToolbarMenuAction } from "../../types.js";
 import { cn } from "../../utils/cn.js";
 import { formatShortcut } from "../../utils/format-shortcut.js";
 import {
@@ -29,7 +29,6 @@ import {
   TOOLBAR_FADE_IN_DELAY_MS,
   TOOLBAR_SNAP_ANIMATION_DURATION_MS,
   TOOLBAR_DRAG_THRESHOLD_PX,
-  TOOLBAR_VELOCITY_MULTIPLIER_MS,
   TOOLBAR_COLLAPSED_SHORT_PX,
   TOOLBAR_COLLAPSED_LONG_PX,
   TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS,
@@ -66,6 +65,13 @@ import {
   nativeCancelAnimationFrame,
   nativeRequestAnimationFrame,
 } from "../../utils/native-raf.js";
+import { getVisualViewport } from "../../utils/get-visual-viewport.js";
+import {
+  clampToRange,
+  getPositionFromEdgeAndRatio,
+  getRatioFromPosition,
+  getSnapPosition,
+} from "../../utils/toolbar-position.js";
 
 interface ToolbarProps {
   isActive?: boolean;
@@ -372,7 +378,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           rect.width -
           TOOLBAR_SNAP_MARGIN_PX,
       );
-      clampedX = clampToViewport(currentPos.x, minX, maxX);
+      clampedX = clampToRange(currentPos.x, minX, maxX);
       clampedY =
         edge === "top"
           ? viewport.offsetTop + TOOLBAR_SNAP_MARGIN_PX
@@ -389,7 +395,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           rect.height -
           TOOLBAR_SNAP_MARGIN_PX,
       );
-      clampedY = clampToViewport(currentPos.y, minY, maxY);
+      clampedY = clampToRange(currentPos.y, minY, maxY);
       clampedX =
         edge === "left"
           ? viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX
@@ -485,31 +491,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     height: TOOLBAR_COLLAPSED_SHORT_PX,
   });
 
-  const clampToViewport = (value: number, min: number, max: number): number =>
-    Math.max(min, Math.min(value, max));
-
-  const getVisualViewport = () => {
-    const visualViewport = window.visualViewport;
-    if (visualViewport) {
-      return {
-        width: visualViewport.width,
-        height: visualViewport.height,
-        offsetLeft: visualViewport.offsetLeft,
-        offsetTop: visualViewport.offsetTop,
-      };
-    }
-    return {
-      width: window.innerWidth,
-      height: window.innerHeight,
-      offsetLeft: 0,
-      offsetTop: 0,
-    };
-  };
-
   const calculateExpandedPositionFromCollapsed = (
-    collapsedPosition: { x: number; y: number },
+    collapsedPosition: Position,
     edge: SnapEdge,
-  ): { position: { x: number; y: number }; ratio: number } => {
+  ): { position: Position; ratio: number } => {
     const viewport = getVisualViewport();
     const viewportWidth = viewport.width;
     const viewportHeight = viewport.height;
@@ -520,12 +505,12 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     const actualCollapsedHeight =
       actualRect?.height ?? TOOLBAR_COLLAPSED_SHORT_PX;
 
-    let newPosition: { x: number; y: number };
+    let newPosition: Position;
 
     if (edge === "top" || edge === "bottom") {
       const xOffset = (expandedWidth - actualCollapsedWidth) / 2;
       const newExpandedX = collapsedPosition.x - xOffset;
-      const clampedX = clampToViewport(
+      const clampedX = clampToRange(
         newExpandedX,
         viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX,
         viewport.offsetLeft +
@@ -544,7 +529,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     } else {
       const yOffset = (expandedHeight - actualCollapsedHeight) / 2;
       const newExpandedY = collapsedPosition.y - yOffset;
-      const clampedY = clampToViewport(
+      const clampedY = clampToRange(
         newExpandedY,
         viewport.offsetTop + TOOLBAR_SNAP_MARGIN_PX,
         viewport.offsetTop +
@@ -571,101 +556,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     );
 
     return { position: newPosition, ratio };
-  };
-
-  const getPositionFromEdgeAndRatio = (
-    edge: SnapEdge,
-    ratio: number,
-    elementWidth: number,
-    elementHeight: number,
-  ) => {
-    const viewport = getVisualViewport();
-    const viewportWidth = viewport.width;
-    const viewportHeight = viewport.height;
-
-    const minX = viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX;
-    const maxX = Math.max(
-      minX,
-      viewport.offsetLeft +
-        viewportWidth -
-        elementWidth -
-        TOOLBAR_SNAP_MARGIN_PX,
-    );
-    const minY = viewport.offsetTop + TOOLBAR_SNAP_MARGIN_PX;
-    const maxY = Math.max(
-      minY,
-      viewport.offsetTop +
-        viewportHeight -
-        elementHeight -
-        TOOLBAR_SNAP_MARGIN_PX,
-    );
-
-    if (edge === "top" || edge === "bottom") {
-      const availableWidth = Math.max(
-        0,
-        viewportWidth - elementWidth - TOOLBAR_SNAP_MARGIN_PX * 2,
-      );
-      const positionX = Math.min(
-        maxX,
-        Math.max(
-          minX,
-          viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX + availableWidth * ratio,
-        ),
-      );
-      const positionY = edge === "top" ? minY : maxY;
-      return { x: positionX, y: positionY };
-    }
-
-    const availableHeight = Math.max(
-      0,
-      viewportHeight - elementHeight - TOOLBAR_SNAP_MARGIN_PX * 2,
-    );
-    const positionY = Math.min(
-      maxY,
-      Math.max(
-        minY,
-        viewport.offsetTop + TOOLBAR_SNAP_MARGIN_PX + availableHeight * ratio,
-      ),
-    );
-    const positionX = edge === "left" ? minX : maxX;
-    return { x: positionX, y: positionY };
-  };
-
-  const getRatioFromPosition = (
-    edge: SnapEdge,
-    positionX: number,
-    positionY: number,
-    elementWidth: number,
-    elementHeight: number,
-  ) => {
-    const viewport = getVisualViewport();
-    const viewportWidth = viewport.width;
-    const viewportHeight = viewport.height;
-
-    if (edge === "top" || edge === "bottom") {
-      const availableWidth =
-        viewportWidth - elementWidth - TOOLBAR_SNAP_MARGIN_PX * 2;
-      if (availableWidth <= 0) return TOOLBAR_DEFAULT_POSITION_RATIO;
-      return Math.max(
-        0,
-        Math.min(
-          1,
-          (positionX - viewport.offsetLeft - TOOLBAR_SNAP_MARGIN_PX) /
-            availableWidth,
-        ),
-      );
-    }
-    const availableHeight =
-      viewportHeight - elementHeight - TOOLBAR_SNAP_MARGIN_PX * 2;
-    if (availableHeight <= 0) return TOOLBAR_DEFAULT_POSITION_RATIO;
-    return Math.max(
-      0,
-      Math.min(
-        1,
-        (positionY - viewport.offsetTop - TOOLBAR_SNAP_MARGIN_PX) /
-          availableHeight,
-      ),
-    );
   };
 
   const recalculatePosition = () => {
@@ -839,9 +729,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         ? preTogglePosition.y + currentRenderedDimension
         : preTogglePosition.x + currentRenderedDimension;
 
-      const computeClampedPosition = (
-        expandDimension: number,
-      ): { x: number; y: number } => {
+      const computeClampedPosition = (expandDimension: number): Position => {
         const viewport = getVisualViewport();
         const targetAxisPosition = collapsedAxisPosition - expandDimension;
         if (isVerticalEdge) {
@@ -853,7 +741,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             TOOLBAR_SNAP_MARGIN_PX;
           return {
             x: preTogglePosition.x,
-            y: clampToViewport(targetAxisPosition, clampMin, clampMax),
+            y: clampToRange(targetAxisPosition, clampMin, clampMax),
           };
         }
         const clampMin = viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX;
@@ -863,7 +751,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           expandedDimensions.width -
           TOOLBAR_SNAP_MARGIN_PX;
         return {
-          x: clampToViewport(targetAxisPosition, clampMin, clampMax),
+          x: clampToRange(targetAxisPosition, clampMin, clampMax),
           y: preTogglePosition.y,
         };
       };
@@ -941,107 +829,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       });
     }
   });
-
-  const getSnapPosition = (
-    currentX: number,
-    currentY: number,
-    elementWidth: number,
-    elementHeight: number,
-    velocityX: number,
-    velocityY: number,
-  ): { edge: SnapEdge; x: number; y: number } => {
-    const viewport = getVisualViewport();
-    const viewportWidth = viewport.width;
-    const viewportHeight = viewport.height;
-
-    const projectedX = currentX + velocityX * TOOLBAR_VELOCITY_MULTIPLIER_MS;
-    const projectedY = currentY + velocityY * TOOLBAR_VELOCITY_MULTIPLIER_MS;
-
-    const distanceToTop = projectedY - viewport.offsetTop + elementHeight / 2;
-    const distanceToBottom =
-      viewport.offsetTop + viewportHeight - projectedY - elementHeight / 2;
-    const distanceToLeft = projectedX - viewport.offsetLeft + elementWidth / 2;
-    const distanceToRight =
-      viewport.offsetLeft + viewportWidth - projectedX - elementWidth / 2;
-
-    const minDistance = Math.min(
-      distanceToTop,
-      distanceToBottom,
-      distanceToLeft,
-      distanceToRight,
-    );
-
-    if (minDistance === distanceToTop) {
-      return {
-        edge: "top",
-        x: Math.max(
-          viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX,
-          Math.min(
-            projectedX,
-            viewport.offsetLeft +
-              viewportWidth -
-              elementWidth -
-              TOOLBAR_SNAP_MARGIN_PX,
-          ),
-        ),
-        y: viewport.offsetTop + TOOLBAR_SNAP_MARGIN_PX,
-      };
-    }
-    if (minDistance === distanceToLeft) {
-      return {
-        edge: "left",
-        x: viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX,
-        y: Math.max(
-          viewport.offsetTop + TOOLBAR_SNAP_MARGIN_PX,
-          Math.min(
-            projectedY,
-            viewport.offsetTop +
-              viewportHeight -
-              elementHeight -
-              TOOLBAR_SNAP_MARGIN_PX,
-          ),
-        ),
-      };
-    }
-    if (minDistance === distanceToRight) {
-      return {
-        edge: "right",
-        x:
-          viewport.offsetLeft +
-          viewportWidth -
-          elementWidth -
-          TOOLBAR_SNAP_MARGIN_PX,
-        y: Math.max(
-          viewport.offsetTop + TOOLBAR_SNAP_MARGIN_PX,
-          Math.min(
-            projectedY,
-            viewport.offsetTop +
-              viewportHeight -
-              elementHeight -
-              TOOLBAR_SNAP_MARGIN_PX,
-          ),
-        ),
-      };
-    }
-    return {
-      edge: "bottom",
-      x: Math.max(
-        viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX,
-        Math.min(
-          projectedX,
-          viewport.offsetLeft +
-            viewportWidth -
-            elementWidth -
-            TOOLBAR_SNAP_MARGIN_PX,
-        ),
-      ),
-      y:
-        viewport.offsetTop +
-        viewportHeight -
-        elementHeight -
-        TOOLBAR_SNAP_MARGIN_PX,
-    };
-  };
 
   const handleWindowPointerMove = (event: PointerEvent) => {
     if (!isDragging()) return;
@@ -1192,7 +979,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       case "bottom": {
         const xOffset = (expandedWidth - collapsedWidth) / 2;
         const centeredX = pos.x + xOffset;
-        const clampedX = clampToViewport(
+        const clampedX = clampToRange(
           centeredX,
           viewport.offsetLeft,
           viewport.offsetLeft + viewport.width - collapsedWidth,
@@ -1209,7 +996,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       case "right": {
         const yOffset = (expandedHeight - collapsedHeight) / 2;
         const centeredY = pos.y + yOffset;
-        const clampedY = clampToViewport(
+        const clampedY = clampToRange(
           centeredY,
           viewport.offsetTop,
           viewport.offsetTop + viewport.height - collapsedHeight,

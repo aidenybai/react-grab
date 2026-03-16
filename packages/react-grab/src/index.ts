@@ -19,6 +19,7 @@ export type {
   GrabbedBox,
   DragRect,
   Rect,
+  Position,
   DeepPartial,
   ElementLabelVariant,
   PromptModeContext,

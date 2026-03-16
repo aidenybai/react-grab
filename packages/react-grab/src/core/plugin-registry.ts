@@ -1,5 +1,6 @@
 import { createStore } from "solid-js/store";
 import type {
+  Position,
   Plugin,
   PluginConfig,
   PluginHooks,
@@ -332,7 +333,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       variant: ElementLabelVariant,
       context: ElementLabelContext,
     ) => callHook("onElementLabel", visible, variant, context),
-    onContextMenu: (element: Element, position: { x: number; y: number }) =>
+    onContextMenu: (element: Element, position: Position) =>
       callHook("onContextMenu", element, position),
     cancelPendingToolbarActions: () => callHook("cancelPendingToolbarActions"),
     onOpenFile: (filePath: string, lineNumber?: number) =>

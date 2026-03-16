@@ -1,5 +1,6 @@
 import { createStore, produce } from "solid-js/store";
 import type {
+  Position,
   Theme,
   GrabbedBox,
   SelectionLabelInstance,
@@ -10,11 +11,6 @@ import { OFFSCREEN_POSITION } from "../constants.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
 import { recalculateSessionPosition } from "../utils/recalculate-session-position.js";
-
-interface Position {
-  x: number;
-  y: number;
-}
 
 interface PendingClickData {
   clientX: number;
@@ -159,7 +155,7 @@ const createInitialStore = (input: GrabStoreInput): GrabStore => ({
 
 interface GrabActions {
   startHold: (duration?: number) => void;
-  release: () => void;
+  releaseHold: () => void;
   activate: () => void;
   deactivate: () => void;
   toggle: () => void;
@@ -256,7 +252,7 @@ const createGrabStore = (input: GrabStoreInput) => {
       setStore("current", { state: "holding", startedAt: Date.now() });
     },
 
-    release: () => {
+    releaseHold: () => {
       if (store.current.state === "holding") {
         setStore("current", { state: "idle" });
       }

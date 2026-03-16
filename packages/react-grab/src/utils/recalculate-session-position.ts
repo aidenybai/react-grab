@@ -1,10 +1,5 @@
-import type { OverlayBounds } from "../types.js";
+import type { Position, OverlayBounds } from "../types.js";
 import { getBoundsCenter } from "./get-bounds-center.js";
-
-interface Position {
-  x: number;
-  y: number;
-}
 
 interface RecalculateSessionPositionOptions {
   currentPosition: Position;
