@@ -94,21 +94,17 @@ export const NEXT_PAGES_ROUTER_SCRIPT_WITH_AGENT = (
         )}`;
 };
 
-export const VITE_SCRIPT = `<script type="module">
-      if (import.meta.env.DEV) {
-        import("react-grab");
-      }
-    </script>`;
+export const VITE_IMPORT = `if (import.meta.env.DEV) {
+  import("react-grab");
+}`;
 
-export const VITE_SCRIPT_WITH_AGENT = (agent: AgentIntegration): string => {
-  if (agent === "none") return VITE_SCRIPT;
+export const VITE_IMPORT_WITH_AGENT = (agent: AgentIntegration): string => {
+  if (agent === "none") return VITE_IMPORT;
 
-  return `<script type="module">
-      if (import.meta.env.DEV) {
-        import("react-grab");
-        import("@react-grab/${agent}/client");
-      }
-    </script>`;
+  return `if (import.meta.env.DEV) {
+  import("react-grab");
+  import("@react-grab/${agent}/client");
+}`;
 };
 
 export const WEBPACK_IMPORT = `if (process.env.NODE_ENV === "development") {

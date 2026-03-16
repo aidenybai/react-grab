@@ -228,23 +228,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 });
 
 describe("previewTransform - Vite", () => {
-  const indexContent = `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>My App</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>`;
+  const entryContent = `import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
 
-  it("should add React Grab to index.html", () => {
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);`;
+
+  it("should add React Grab to entry file", () => {
     mockExistsSync.mockImplementation((path) =>
-      String(path).endsWith("index.html"),
+      String(path).endsWith("main.tsx"),
     );
-    mockReadFileSync.mockReturnValue(indexContent);
+    mockReadFileSync.mockReturnValue(entryContent);
 
     const result = previewTransform("/test", "vite", "unknown", "none", false);
 
@@ -253,11 +251,11 @@ describe("previewTransform - Vite", () => {
     expect(result.newContent).toContain("import.meta.env.DEV");
   });
 
-  it("should add React Grab with agent to index.html", () => {
+  it("should add React Grab with agent to entry file", () => {
     mockExistsSync.mockImplementation((path) =>
-      String(path).endsWith("index.html"),
+      String(path).endsWith("main.tsx"),
     );
-    mockReadFileSync.mockReturnValue(indexContent);
+    mockReadFileSync.mockReturnValue(entryContent);
 
     const result = previewTransform(
       "/test",
@@ -273,24 +271,17 @@ describe("previewTransform - Vite", () => {
   });
 
   it("should add agent to existing React Grab installation", () => {
-    const indexWithReactGrab = `<!doctype html>
-<html lang="en">
-  <head>
-    <script type="module">
-      if (import.meta.env.DEV) {
-        import("react-grab");
-      }
-    </script>
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
-</html>`;
+    const entryWithReactGrab = `if (import.meta.env.DEV) {
+  import("react-grab");
+}
+
+import React from "react";
+import ReactDOM from "react-dom/client";`;
 
     mockExistsSync.mockImplementation((path) =>
-      String(path).endsWith("index.html"),
+      String(path).endsWith("main.tsx"),
     );
-    mockReadFileSync.mockReturnValue(indexWithReactGrab);
+    mockReadFileSync.mockReturnValue(entryWithReactGrab);
 
     const result = previewTransform(
       "/test",
@@ -306,9 +297,9 @@ describe("previewTransform - Vite", () => {
 
   it("should add base script without agent client when agent is mcp", () => {
     mockExistsSync.mockImplementation((path) =>
-      String(path).endsWith("index.html"),
+      String(path).endsWith("main.tsx"),
     );
-    mockReadFileSync.mockReturnValue(indexContent);
+    mockReadFileSync.mockReturnValue(entryContent);
 
     const result = previewTransform("/test", "vite", "unknown", "mcp", false);
 
@@ -438,35 +429,109 @@ export default function Document() {
 });
 
 describe("previewTransform - Vite edge cases", () => {
-  it("should handle uppercase HEAD tag", () => {
-    const indexContent = `<!doctype html>
-<html lang="en">
-  <HEAD>
-    <meta charset="UTF-8" />
-  </HEAD>
-  <body>
-    <div id="root"></div>
-  </body>
-</html>`;
-
-    mockExistsSync.mockImplementation((path) =>
-      String(path).endsWith("index.html"),
-    );
-    mockReadFileSync.mockReturnValue(indexContent);
-
-    const result = previewTransform("/test", "vite", "unknown", "none", false);
-
-    expect(result.success).toBe(true);
-    expect(result.newContent).toContain('import("react-grab")');
-  });
-
-  it("should fail when index.html not found", () => {
+  it("should fail when entry file not found", () => {
     mockExistsSync.mockReturnValue(false);
 
     const result = previewTransform("/test", "vite", "unknown", "none", false);
 
     expect(result.success).toBe(false);
-    expect(result.message).toContain("Could not find index.html");
+    expect(result.message).toContain("Could not find entry file");
+  });
+
+  it("should add agent to existing Vite installation", () => {
+    const entryWithReactGrab = `if (import.meta.env.DEV) {
+  import("react-grab");
+}
+
+import React from "react";
+import ReactDOM from "react-dom/client";`;
+
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("main.tsx"),
+    );
+    mockReadFileSync.mockReturnValue(entryWithReactGrab);
+
+    const result = previewTransform(
+      "/test",
+      "vite",
+      "unknown",
+      "opencode",
+      true,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).toContain("@react-grab/opencode");
+  });
+
+  it("should detect existing React Grab in index.html as already installed", () => {
+    const indexWithReactGrab = `<!doctype html>
+<html lang="en">
+  <head>
+    <script type="module">
+      if (import.meta.env.DEV) {
+        import("react-grab");
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>`;
+
+    mockExistsSync.mockImplementation((path) => {
+      const pathStr = String(path);
+      return (
+        pathStr.endsWith("index.html") || pathStr.endsWith("main.tsx")
+      );
+    });
+    mockReadFileSync.mockImplementation((path) => {
+      if (String(path).endsWith("index.html")) return indexWithReactGrab;
+      return `import React from "react";`;
+    });
+
+    const result = previewTransform("/test", "vite", "unknown", "none", false);
+
+    expect(result.success).toBe(true);
+    expect(result.noChanges).toBe(true);
+  });
+
+  it("should add agent to existing React Grab in index.html", () => {
+    const indexWithReactGrab = `<!doctype html>
+<html lang="en">
+  <head>
+    <script type="module">
+      if (import.meta.env.DEV) {
+        import("react-grab");
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>`;
+
+    mockExistsSync.mockImplementation((path) => {
+      const pathStr = String(path);
+      return (
+        pathStr.endsWith("index.html") || pathStr.endsWith("main.tsx")
+      );
+    });
+    mockReadFileSync.mockImplementation((path) => {
+      if (String(path).endsWith("index.html")) return indexWithReactGrab;
+      return `import React from "react";`;
+    });
+
+    const result = previewTransform(
+      "/test",
+      "vite",
+      "unknown",
+      "cursor",
+      true,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).toContain("@react-grab/cursor");
+    expect(result.filePath).toContain("index.html");
   });
 });
 

@@ -333,26 +333,18 @@ export default function Document() {
 });
 
 describe("previewOptionsTransform - Vite", () => {
-  const indexWithReactGrab = `<!doctype html>
-<html lang="en">
-  <head>
-    <script type="module">
-      if (import.meta.env.DEV) {
-        import("react-grab");
-      }
-    </script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>`;
+  const entryWithReactGrab = `if (import.meta.env.DEV) {
+  import("react-grab");
+}
+
+import React from "react";
+import ReactDOM from "react-dom/client";`;
 
   it("should add options to Vite import", () => {
     mockExistsSync.mockImplementation((path) =>
-      String(path).endsWith("index.html"),
+      String(path).endsWith("main.tsx"),
     );
-    mockReadFileSync.mockReturnValue(indexWithReactGrab);
+    mockReadFileSync.mockReturnValue(entryWithReactGrab);
 
     const options: ReactGrabOptions = {
       activationKey: "Space",
@@ -366,24 +358,17 @@ describe("previewOptionsTransform - Vite", () => {
   });
 
   it("should update existing options in Vite import without duplicating", () => {
-    const indexWithExistingOptions = `<!doctype html>
-<html lang="en">
-  <head>
-    <script type="module">
-      if (import.meta.env.DEV) {
-        import("react-grab").then((m) => m.init({"activationKey":"g"}));
-      }
-    </script>
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
-</html>`;
+    const entryWithExistingOptions = `if (import.meta.env.DEV) {
+  import("react-grab").then((m) => m.init({"activationKey":"g"}));
+}
+
+import React from "react";
+import ReactDOM from "react-dom/client";`;
 
     mockExistsSync.mockImplementation((path) =>
-      String(path).endsWith("index.html"),
+      String(path).endsWith("main.tsx"),
     );
-    mockReadFileSync.mockReturnValue(indexWithExistingOptions);
+    mockReadFileSync.mockReturnValue(entryWithExistingOptions);
 
     const options: ReactGrabOptions = {
       activationKey: "Meta+K",
@@ -400,9 +385,9 @@ describe("previewOptionsTransform - Vite", () => {
 
   it("should add multiple options to Vite import", () => {
     mockExistsSync.mockImplementation((path) =>
-      String(path).endsWith("index.html"),
+      String(path).endsWith("main.tsx"),
     );
-    mockReadFileSync.mockReturnValue(indexWithReactGrab);
+    mockReadFileSync.mockReturnValue(entryWithReactGrab);
 
     const options: ReactGrabOptions = {
       activationKey: "Alt+E",
@@ -420,18 +405,13 @@ describe("previewOptionsTransform - Vite", () => {
   });
 
   it("should fail when React Grab import not found", () => {
-    const indexWithoutReactGrab = `<!doctype html>
-<html lang="en">
-  <head></head>
-  <body>
-    <div id="root"></div>
-  </body>
-</html>`;
+    const entryWithoutReactGrab = `import React from "react";
+import ReactDOM from "react-dom/client";`;
 
     mockExistsSync.mockImplementation((path) =>
-      String(path).endsWith("index.html"),
+      String(path).endsWith("main.tsx"),
     );
-    mockReadFileSync.mockReturnValue(indexWithoutReactGrab);
+    mockReadFileSync.mockReturnValue(entryWithoutReactGrab);
 
     const options: ReactGrabOptions = {
       activationKey: "Space",

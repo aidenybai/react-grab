@@ -103,33 +103,13 @@ export default function Document() {
 
 #### Vite
 
-Add this to your `index.html`:
+Add this at the top of your main entry file (e.g., `src/main.tsx`):
 
-```html
-<!doctype html>
-<html lang="en">
-  <head>
-    <script type="module">
-      if (import.meta.env.DEV) {
-        import("react-grab");
-      }
-    </script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
+```tsx
+if (import.meta.env.DEV) {
+  import("react-grab");
+}
 ```
-
-> **Note:** If you use Vite in [Express middleware mode](https://vite.dev/guide/ssr#setting-up-the-dev-server) (e.g. Replit starter templates), the inline script can cause `Failed to parse JSON file` errors when Chromium DevTools is open. For these setups, import from your entry file instead:
->
-> ```tsx
-> // src/main.tsx
-> if (import.meta.env.DEV) {
->   import("react-grab");
-> }
-> ```
 
 #### Webpack
 

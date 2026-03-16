@@ -2,9 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   NEXT_APP_ROUTER_SCRIPT,
   NEXT_APP_ROUTER_SCRIPT_WITH_AGENT,
-  TANSTACK_EFFECT_WITH_AGENT,
-  VITE_SCRIPT,
-  VITE_SCRIPT_WITH_AGENT,
+  VITE_IMPORT,
+  VITE_IMPORT_WITH_AGENT,
   WEBPACK_IMPORT,
   WEBPACK_IMPORT_WITH_AGENT,
 } from "../src/utils/templates.js";
@@ -43,23 +42,23 @@ describe("Next.js App Router templates", () => {
 });
 
 describe("Vite templates", () => {
-  it("should generate basic script without agent", () => {
-    expect(VITE_SCRIPT).toContain('import("react-grab")');
-    expect(VITE_SCRIPT).toContain("import.meta.env.DEV");
+  it("should generate basic import without agent", () => {
+    expect(VITE_IMPORT).toContain('import("react-grab")');
+    expect(VITE_IMPORT).toContain("import.meta.env.DEV");
   });
 
-  it("should generate script with agent", () => {
-    const script = VITE_SCRIPT_WITH_AGENT("opencode");
+  it("should generate import with agent", () => {
+    const importBlock = VITE_IMPORT_WITH_AGENT("opencode");
 
-    expect(script).toContain("react-grab");
-    expect(script).toContain("@react-grab/opencode");
+    expect(importBlock).toContain("react-grab");
+    expect(importBlock).toContain("@react-grab/opencode");
   });
 
-  it("should return basic script when agent is none", () => {
-    const script = VITE_SCRIPT_WITH_AGENT("none");
+  it("should return basic import when agent is none", () => {
+    const importBlock = VITE_IMPORT_WITH_AGENT("none");
 
-    expect(script).toContain("react-grab");
-    expect(script).not.toContain("@react-grab/");
+    expect(importBlock).toContain("react-grab");
+    expect(importBlock).not.toContain("@react-grab/");
   });
 });
 
