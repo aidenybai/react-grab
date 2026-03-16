@@ -13,6 +13,7 @@ import {
   uninstallPackages,
 } from "../utils/install.js";
 import {
+  installMcpServers,
   promptConnectionMode,
   promptMcpInstall,
 } from "../utils/install-mcp.js";
@@ -91,11 +92,36 @@ export const add = new Command()
       let agentIntegration: AgentIntegration;
       let agentsToRemove: Agent[] = [];
 
-      if (agentArg) {
+      if (agentArg === "mcp") {
+        if (isNonInteractive) {
+          const results = installMcpServers();
+          const hasSuccess = results.some((result) => result.success);
+          if (!hasSuccess) {
+            logger.break();
+            logger.error("Failed to install MCP server.");
+            logger.break();
+            process.exit(1);
+          }
+        } else {
+          const didInstall = await promptMcpInstall();
+          if (!didInstall) {
+            logger.break();
+            process.exit(0);
+          }
+        }
+        logger.break();
+        logger.log(
+          `${highlighter.success("Success!")} MCP server has been configured.`,
+        );
+        logger.log("Restart your agents to activate.");
+        logger.break();
+        agentIntegration = "mcp";
+        projectInfo.installedAgents = [...projectInfo.installedAgents, "mcp"];
+      } else if (agentArg) {
         if (!AGENTS.includes(agentArg as (typeof AGENTS)[number])) {
           logger.break();
           logger.error(`Invalid agent: ${agentArg}`);
-          logger.error(`Available agents: ${AGENTS.join(", ")}`);
+          logger.error(`Available agents: ${AGENTS.join(", ")}, mcp`);
           logger.break();
           process.exit(1);
         }

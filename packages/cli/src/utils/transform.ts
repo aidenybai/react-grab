@@ -175,7 +175,7 @@ const addAgentToExistingNextApp = (
   agent: AgentIntegration,
   filePath: string,
 ): TransformResult => {
-  if (agent === "none") {
+  if (agent === "none" || agent === "mcp") {
     return {
       success: true,
       filePath,
@@ -249,7 +249,7 @@ const addAgentToExistingVite = (
   agent: AgentIntegration,
   filePath: string,
 ): TransformResult => {
-  if (agent === "none") {
+  if (agent === "none" || agent === "mcp") {
     return {
       success: true,
       filePath,
@@ -301,7 +301,7 @@ const addAgentToExistingWebpack = (
   agent: AgentIntegration,
   filePath: string,
 ): TransformResult => {
-  if (agent === "none") {
+  if (agent === "none" || agent === "mcp") {
     return {
       success: true,
       filePath,
@@ -353,7 +353,7 @@ const addAgentToExistingTanStack = (
   agent: AgentIntegration,
   filePath: string,
 ): TransformResult => {
-  if (agent === "none") {
+  if (agent === "none" || agent === "mcp") {
     return {
       success: true,
       filePath,

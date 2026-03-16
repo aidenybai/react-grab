@@ -41,12 +41,11 @@ describe("Next.js App Router templates", () => {
     }
   });
 
-  it("should generate script with mcp agent", () => {
+  it("should return basic script when agent is mcp", () => {
     const script = NEXT_APP_ROUTER_SCRIPT_WITH_AGENT("mcp");
 
     expect(script).toContain("react-grab");
-    expect(script).toContain("@react-grab/mcp");
-    expect(script).toContain("lazyOnload");
+    expect(script).not.toContain("@react-grab/");
   });
 });
 
