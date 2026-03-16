@@ -2,7 +2,6 @@ import { createSignal, createEffect, on, onCleanup, Show } from "solid-js";
 import type { Component, JSX } from "solid-js";
 import { cn } from "../utils/cn.js";
 import {
-  PANEL_STYLES,
   TOOLTIP_DELAY_MS,
   TOOLTIP_GRACE_PERIOD_MS,
   Z_INDEX_LABEL,

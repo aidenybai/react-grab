@@ -111,11 +111,6 @@ export const TOOLBAR_DEFAULT_WIDTH_PX = 78;
 export const TOOLBAR_DEFAULT_HEIGHT_PX = 28;
 export const TOOLBAR_DEFAULT_POSITION_RATIO = 0.5;
 export const TOOLBAR_SHAKE_TOOLTIP_DURATION_MS = 1500;
-export const SELECTION_HINT_CYCLE_INTERVAL_MS = 3000;
-export const SELECTION_HINT_COUNT = 3;
-
-export const HINT_FLIP_IN_ANIMATION =
-  "animate-[hint-flip-in_var(--transition-normal)_ease-out]";
 
 export const DRAG_SELECTION_COVERAGE_THRESHOLD = 0.75;
 export const DRAG_SELECTION_SAMPLE_SPACING_PX = 32;

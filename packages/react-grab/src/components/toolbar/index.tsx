@@ -36,10 +36,7 @@ import {
   TOOLBAR_DEFAULT_POSITION_RATIO,
   TOOLBAR_SHAKE_TOOLTIP_DURATION_MS,
   FEEDBACK_DURATION_MS,
-  HINT_FLIP_IN_ANIMATION,
   SAFE_POLYGON_BUFFER_PX,
-  SELECTION_HINT_COUNT,
-  SELECTION_HINT_CYCLE_INTERVAL_MS,
   Z_INDEX_HOST,
 } from "../../constants.js";
 import { freezeUpdates } from "../../utils/freeze-updates.js";
@@ -71,6 +68,11 @@ import {
   getRatioFromPosition,
 } from "../../utils/toolbar-position.js";
 import { createToolbarDrag } from "../../utils/create-toolbar-drag.js";
+
+const SELECTION_HINT_CYCLE_INTERVAL_MS = 3000;
+const SELECTION_HINT_COUNT = 3;
+const HINT_FLIP_IN_ANIMATION =
+  "animate-[hint-flip-in_var(--transition-normal)_ease-out]";
 
 interface ToolbarProps {
   isActive?: boolean;
