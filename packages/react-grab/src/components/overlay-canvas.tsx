@@ -23,6 +23,7 @@ import {
   nativeCancelAnimationFrame,
   nativeRequestAnimationFrame,
 } from "../utils/native-raf.js";
+import { supportsDisplayP3 } from "../utils/supports-display-p3.js";
 
 const LAYER_STYLES = {
   drag: {
@@ -106,6 +107,10 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
   let grabbedAnimations: AnimatedBounds[] = [];
   let processingAnimations: AnimatedBounds[] = [];
 
+  const canvasColorSpace: PredefinedColorSpace = supportsDisplayP3()
+    ? "display-p3"
+    : "srgb";
+
   const createOffscreenLayer = (
     layerWidth: number,
     layerHeight: number,
@@ -115,7 +120,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
       layerWidth * scaleFactor,
       layerHeight * scaleFactor,
     );
-    const context = canvas.getContext("2d");
+    const context = canvas.getContext("2d", { colorSpace: canvasColorSpace });
     if (context) {
       context.scale(scaleFactor, scaleFactor);
     }
@@ -137,7 +142,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     canvasRef.style.width = `${canvasWidth}px`;
     canvasRef.style.height = `${canvasHeight}px`;
 
-    mainContext = canvasRef.getContext("2d");
+    mainContext = canvasRef.getContext("2d", { colorSpace: canvasColorSpace });
     if (mainContext) {
       mainContext.scale(devicePixelRatio, devicePixelRatio);
     }

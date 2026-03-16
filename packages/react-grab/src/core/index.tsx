@@ -1262,10 +1262,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 clearSource();
                 return;
               }
-              actions.setSelectionSource(
-                source.filePath,
-                source.lineNumber,
-              );
+              actions.setSelectionSource(source.filePath, source.lineNumber);
             })
             .catch(() => {
               if (selectionSourceRequestVersion === currentVersion) {
@@ -2920,6 +2917,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     eventListenerManager.addWindowListener("focus", () => {
       lastWindowFocusTimestamp = Date.now();
     });
+
+    eventListenerManager.addWindowListener(
+      "focusin",
+      (event: FocusEvent) => {
+        if (isEventFromOverlay(event, "data-react-grab")) {
+          event.stopPropagation();
+        }
+      },
+      { capture: true },
+    );
 
     const redetectElementUnderPointer = () => {
       if (store.isTouchMode && !isHoldingKeys() && !isActivated()) return;

@@ -88,7 +88,6 @@ test.describe("Toolbar Selection Hover", () => {
         .poll(() => reactGrab.isSelectionBoxVisible(), { timeout: 2000 })
         .toBe(true);
     });
-
   });
 
   test.describe("Frozen Mode", () => {

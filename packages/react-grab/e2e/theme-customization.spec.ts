@@ -212,6 +212,5 @@ test.describe("Theme Customization", () => {
       });
       expect(hasFilter).toBe(true);
     });
-
   });
 });
