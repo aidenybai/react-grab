@@ -102,6 +102,125 @@ export const getRatioFromPosition = (
   );
 };
 
+interface Dimensions {
+  width: number;
+  height: number;
+}
+
+export const calculateExpandedPositionFromCollapsed = (
+  collapsedPosition: Position,
+  edge: SnapEdge,
+  expandedDimensions: Dimensions,
+  actualCollapsedWidth: number,
+  actualCollapsedHeight: number,
+): { position: Position; ratio: number } => {
+  const viewport = getVisualViewport();
+  const viewportWidth = viewport.width;
+  const viewportHeight = viewport.height;
+  const { width: expandedWidth, height: expandedHeight } = expandedDimensions;
+
+  let newPosition: Position;
+
+  if (edge === "top" || edge === "bottom") {
+    const xOffset = (expandedWidth - actualCollapsedWidth) / 2;
+    const newExpandedX = collapsedPosition.x - xOffset;
+    const clampedX = clampToRange(
+      newExpandedX,
+      viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX,
+      viewport.offsetLeft +
+        viewportWidth -
+        expandedWidth -
+        TOOLBAR_SNAP_MARGIN_PX,
+    );
+    const newExpandedY =
+      edge === "top"
+        ? viewport.offsetTop + TOOLBAR_SNAP_MARGIN_PX
+        : viewport.offsetTop +
+          viewportHeight -
+          expandedHeight -
+          TOOLBAR_SNAP_MARGIN_PX;
+    newPosition = { x: clampedX, y: newExpandedY };
+  } else {
+    const yOffset = (expandedHeight - actualCollapsedHeight) / 2;
+    const newExpandedY = collapsedPosition.y - yOffset;
+    const clampedY = clampToRange(
+      newExpandedY,
+      viewport.offsetTop + TOOLBAR_SNAP_MARGIN_PX,
+      viewport.offsetTop +
+        viewportHeight -
+        expandedHeight -
+        TOOLBAR_SNAP_MARGIN_PX,
+    );
+    const newExpandedX =
+      edge === "left"
+        ? viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX
+        : viewport.offsetLeft +
+          viewportWidth -
+          expandedWidth -
+          TOOLBAR_SNAP_MARGIN_PX;
+    newPosition = { x: newExpandedX, y: clampedY };
+  }
+
+  const ratio = getRatioFromPosition(
+    edge,
+    newPosition.x,
+    newPosition.y,
+    expandedWidth,
+    expandedHeight,
+  );
+
+  return { position: newPosition, ratio };
+};
+
+export const getCollapsedPosition = (
+  edge: SnapEdge,
+  expandedPosition: Position,
+  expandedDimensions: Dimensions,
+  collapsedDimensions: Dimensions,
+): Position => {
+  const viewport = getVisualViewport();
+  const { width: expandedWidth, height: expandedHeight } = expandedDimensions;
+  const { width: collapsedWidth, height: collapsedHeight } =
+    collapsedDimensions;
+
+  switch (edge) {
+    case "top":
+    case "bottom": {
+      const xOffset = (expandedWidth - collapsedWidth) / 2;
+      const centeredX = expandedPosition.x + xOffset;
+      const clampedX = clampToRange(
+        centeredX,
+        viewport.offsetLeft,
+        viewport.offsetLeft + viewport.width - collapsedWidth,
+      );
+      return {
+        x: clampedX,
+        y:
+          edge === "top"
+            ? viewport.offsetTop
+            : viewport.offsetTop + viewport.height - collapsedHeight,
+      };
+    }
+    case "left":
+    case "right": {
+      const yOffset = (expandedHeight - collapsedHeight) / 2;
+      const centeredY = expandedPosition.y + yOffset;
+      const clampedY = clampToRange(
+        centeredY,
+        viewport.offsetTop,
+        viewport.offsetTop + viewport.height - collapsedHeight,
+      );
+      return {
+        x:
+          edge === "left"
+            ? viewport.offsetLeft
+            : viewport.offsetLeft + viewport.width - collapsedWidth,
+        y: clampedY,
+      };
+    }
+  }
+};
+
 interface SnapResult extends Position {
   edge: SnapEdge;
 }

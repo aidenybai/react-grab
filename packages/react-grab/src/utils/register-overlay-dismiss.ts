@@ -10,6 +10,7 @@ interface RegisterOverlayDismissOptions {
   onDismiss: () => void;
   onConfirm?: () => void;
   shouldIgnoreInputEvents?: boolean;
+  shouldIgnoreRightClick?: boolean;
 }
 
 export const registerOverlayDismiss = (
@@ -43,7 +44,12 @@ export const registerOverlayDismiss = (
   const handleClickOutside = (event: MouseEvent | TouchEvent) => {
     if (!options.isOpen()) return;
     if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-    if (event instanceof MouseEvent && event.button === 2) return;
+    if (
+      options.shouldIgnoreRightClick &&
+      event instanceof MouseEvent &&
+      event.button === 2
+    )
+      return;
     options.onDismiss();
   };
 

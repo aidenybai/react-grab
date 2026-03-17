@@ -215,6 +215,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     const unregisterOverlayDismiss = registerOverlayDismiss({
       isOpen: isVisible,
       onDismiss: props.onDismiss,
+      shouldIgnoreRightClick: true,
     });
     window.addEventListener("keydown", handleKeyDown, { capture: true });
 
