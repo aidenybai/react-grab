@@ -100,3 +100,36 @@ pnpm lint
 pnpm typecheck # runs type checking
 pnpm format
 ```
+
+## Cursor Cloud specific instructions
+
+This is a pnpm + Turborepo monorepo (19 packages under `packages/`). No external services (databases, Docker, etc.) are required.
+
+### Build before test
+
+`pnpm build` must complete before `pnpm test` or `pnpm lint` — Turborepo `dependsOn` enforces this, but be aware that `pnpm test` will rebuild if the build cache is cold. After modifying source files, always rebuild before running tests.
+
+### Approved build scripts
+
+The root `package.json` has `pnpm.onlyBuiltDependencies` configured for `@parcel/watcher`, `esbuild`, `sharp`, `spawn-sync`, and `unrs-resolver`. Without this, `pnpm install` silently skips their native builds and downstream packages may fail.
+
+### Playwright
+
+E2E tests (`pnpm test` at root) run Playwright against the `e2e-playground` Vite dev server on port 5175 (auto-started by the Playwright config). Chromium must be installed: `npx --prefix packages/react-grab playwright install chromium --with-deps`.
+
+### Known flaky test
+
+`e2e/history-items.spec.ts` > "should reposition when toolbar is dragged to top edge" intermittently times out in headless CI environments. This is a pre-existing issue.
+
+### Key commands reference
+
+See root `package.json` scripts and `CONTRIBUTING.md` for the full list. Quick reference:
+- **Install**: `ni` (or `pnpm install`)
+- **Build**: `nr build` (or `pnpm build`)
+- **Dev watch**: `nr dev` (or `pnpm dev`) — watches core packages
+- **Test**: `pnpm test` — runs Playwright E2E + Vitest CLI tests
+- **Lint**: `pnpm lint` — oxlint on react-grab package
+- **Typecheck**: `pnpm typecheck` — tsc on react-grab package
+- **Format**: `pnpm format` — oxfmt
+- **CLI dev**: `npm_command=exec node packages/cli/dist/cli.js`
+- **E2E playground**: `pnpm --filter @react-grab/e2e-playground dev` (port 5175)

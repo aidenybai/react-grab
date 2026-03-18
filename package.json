@@ -29,5 +29,13 @@
     "pnpm": ">=8"
   },
   "packageManager": "pnpm@10.24.0",
-  "pnpm": {}
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@parcel/watcher",
+      "esbuild",
+      "sharp",
+      "spawn-sync",
+      "unrs-resolver"
+    ]
+  }
 }
