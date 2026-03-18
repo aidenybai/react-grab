@@ -4,6 +4,7 @@ import {
   extractElementCss,
   disposeBaselineStyles,
 } from "../../utils/extract-element-css.js";
+import { logRecoverableError } from "../../utils/log-recoverable-error.js";
 import { createPendingSelectionPlugin } from "./create-pending-selection-plugin.js";
 
 export const copyStylesPlugin = createPendingSelectionPlugin({
@@ -15,8 +16,9 @@ export const copyStylesPlugin = createPendingSelectionPlugin({
       .then((stackContext) => {
         copyContent(appendStackContext(extractedCss, stackContext));
       })
-      // HACK: Best-effort copy from element select; failure is non-critical
-      .catch(() => {});
+      .catch((error) => {
+        logRecoverableError("Failed to copy styles on element select", error);
+      });
   },
   contextMenuAction: (api) => ({
     id: "copy-styles",

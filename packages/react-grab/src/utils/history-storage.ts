@@ -3,6 +3,8 @@ import {
   MAX_SESSION_STORAGE_SIZE_BYTES,
 } from "../constants.js";
 import type { HistoryItem } from "../types.js";
+import { generateId } from "./generate-id.js";
+import { logRecoverableError } from "./log-recoverable-error.js";
 
 const SESSION_STORAGE_KEY = "react-grab-history-items";
 
@@ -19,7 +21,8 @@ const loadFromSessionStorage = (): HistoryItem[] => {
       previewBounds: historyItem.previewBounds ?? [],
       elementSelectors: historyItem.elementSelectors ?? [],
     }));
-  } catch {
+  } catch (error) {
+    logRecoverableError("Failed to load history from sessionStorage", error);
     return [];
   }
 };
@@ -40,14 +43,13 @@ const saveToSessionStorage = (items: HistoryItem[]): void => {
   try {
     const trimmedItems = trimToSizeLimit(items);
     sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(trimmedItems));
+  } catch (error) {
     // HACK: sessionStorage can throw in private browsing or when quota is exceeded
-  } catch {}
+    logRecoverableError("Failed to save history to sessionStorage", error);
+  }
 };
 
 let historyItems: HistoryItem[] = loadFromSessionStorage();
-
-const generateHistoryItemId = (): string =>
-  `history-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
 export const loadHistory = (): HistoryItem[] => historyItems;
 
@@ -56,7 +58,7 @@ export const addHistoryItem = (
 ): HistoryItem[] => {
   const newItem: HistoryItem = {
     ...item,
-    id: generateHistoryItemId(),
+    id: generateId("history"),
   };
   historyItems = [newItem, ...historyItems].slice(0, MAX_HISTORY_ITEMS);
   saveToSessionStorage(historyItems);
