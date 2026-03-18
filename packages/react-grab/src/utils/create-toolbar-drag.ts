@@ -33,12 +33,12 @@ interface ToolbarDragResult {
   isDragging: Accessor<boolean>;
   isSnapping: Accessor<boolean>;
   handlePointerDown: (event: PointerEvent) => void;
-  createDragAwareHandler: (
-    callback: () => void,
-  ) => (event: MouseEvent) => void;
+  createDragAwareHandler: (callback: () => void) => (event: MouseEvent) => void;
 }
 
-export const createToolbarDrag = (config: ToolbarDragConfig): ToolbarDragResult => {
+export const createToolbarDrag = (
+  config: ToolbarDragConfig,
+): ToolbarDragResult => {
   const [isDragging, setIsDragging] = createSignal(false);
   const [isSnapping, setIsSnapping] = createSignal(false);
   const [hasDragMoved, setHasDragMoved] = createSignal(false);
@@ -69,10 +69,8 @@ export const createToolbarDrag = (config: ToolbarDragConfig): ToolbarDragResult 
     const deltaTime = now - lastPointerPosition.time;
 
     if (deltaTime > 0) {
-      const newVelocityX =
-        (event.clientX - lastPointerPosition.x) / deltaTime;
-      const newVelocityY =
-        (event.clientY - lastPointerPosition.y) / deltaTime;
+      const newVelocityX = (event.clientX - lastPointerPosition.x) / deltaTime;
+      const newVelocityY = (event.clientY - lastPointerPosition.y) / deltaTime;
       setVelocity({ x: newVelocityX, y: newVelocityY });
     }
 

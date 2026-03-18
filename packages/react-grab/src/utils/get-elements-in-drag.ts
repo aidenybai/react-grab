@@ -128,10 +128,10 @@ const createSamplePoints = (dragRect: DragRect): SamplePoint[] => {
   addPoint(centerX, centerY);
 
   for (let xIndex = 0; xIndex < scaledXCount; xIndex += 1) {
-    const x = left + ((xIndex + 0.5) / scaledXCount) * dragRect.width;
+    const sampleX = left + ((xIndex + 0.5) / scaledXCount) * dragRect.width;
     for (let yIndex = 0; yIndex < scaledYCount; yIndex += 1) {
-      const y = top + ((yIndex + 0.5) / scaledYCount) * dragRect.height;
-      addPoint(x, y);
+      const sampleY = top + ((yIndex + 0.5) / scaledYCount) * dragRect.height;
+      addPoint(sampleX, sampleY);
     }
   }
 

@@ -352,7 +352,10 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       return new Promise<Record<string, string>>((resolve) => {
         const originalSetData = DataTransfer.prototype.setData;
         const clipboardWrites: Record<string, string> = {};
-        DataTransfer.prototype.setData = function (type: string, value: string) {
+        DataTransfer.prototype.setData = function (
+          type: string,
+          value: string,
+        ) {
           clipboardWrites[type] = value;
           return originalSetData.call(this, type, value);
         };
