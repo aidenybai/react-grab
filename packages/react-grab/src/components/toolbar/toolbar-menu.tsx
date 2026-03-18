@@ -99,7 +99,8 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
             <For each={props.actions}>
               {(action) => {
                 const isToggleAction = action.isActive !== undefined;
-                const isActionEnabled = () => resolveToolbarActionEnabled(action);
+                const isActionEnabled = () =>
+                  resolveToolbarActionEnabled(action);
                 const isToggleActive = () => {
                   void toggleRefreshCounter();
                   return Boolean(action.isActive?.());

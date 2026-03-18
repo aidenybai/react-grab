@@ -562,8 +562,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     let newRatio = positionRatio();
 
     if (wasCollapsed) {
-      const { position: newPos, ratio } =
-        getExpandedFromCollapsed(currentPosition(), snapEdge());
+      const { position: newPos, ratio } = getExpandedFromCollapsed(
+        currentPosition(),
+        snapEdge(),
+      );
       newRatio = ratio;
       setPosition(newPos);
       setPositionRatio(newRatio);

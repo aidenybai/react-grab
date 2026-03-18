@@ -192,7 +192,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     (previousResult: PositionResult): PositionResult => {
       viewportVersion();
       const currentElementIdentity = elementIdentity();
-      const didReset = currentElementIdentity !== previousResult.elementIdentity;
+      const didReset =
+        currentElementIdentity !== previousResult.elementIdentity;
       const cached = didReset
         ? {
             position: DEFAULT_OFFSCREEN_POSITION,

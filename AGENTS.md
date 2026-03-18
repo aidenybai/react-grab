@@ -124,6 +124,7 @@ E2E tests (`pnpm test` at root) run Playwright against the `e2e-playground` Vite
 ### Key commands reference
 
 See root `package.json` scripts and `CONTRIBUTING.md` for the full list. Quick reference:
+
 - **Install**: `ni` (or `pnpm install`)
 - **Build**: `nr build` (or `pnpm build`)
 - **Dev watch**: `nr dev` (or `pnpm dev`) — watches core packages

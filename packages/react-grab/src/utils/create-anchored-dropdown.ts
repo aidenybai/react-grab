@@ -54,7 +54,9 @@ export const createAnchoredDropdown = (
   };
 
   const handleViewportChange = () => {
-    setViewportVersion((previousViewportVersion) => previousViewportVersion + 1);
+    setViewportVersion(
+      (previousViewportVersion) => previousViewportVersion + 1,
+    );
     measure();
   };
 
@@ -93,8 +95,14 @@ export const createAnchoredDropdown = (
 
     onCleanup(() => {
       window.removeEventListener("resize", handleViewportChange);
-      window.visualViewport?.removeEventListener("resize", handleViewportChange);
-      window.visualViewport?.removeEventListener("scroll", handleViewportChange);
+      window.visualViewport?.removeEventListener(
+        "resize",
+        handleViewportChange,
+      );
+      window.visualViewport?.removeEventListener(
+        "scroll",
+        handleViewportChange,
+      );
     });
   });
 

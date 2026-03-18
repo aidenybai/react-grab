@@ -78,13 +78,13 @@ export const stripTranslateFromTransformString = (
       const values = parseMatrixValues(transform.slice(start, end), 6);
 
       if (values) {
-        const a = values[0];
-        const b = values[1];
-        const c = values[2];
-        const d = values[3];
+        const scaleX = values[0];
+        const skewY = values[1];
+        const skewX = values[2];
+        const scaleY = values[3];
 
-        if (isIdentityMatrix2d(a, b, c, d)) return "none";
-        return `matrix(${a}, ${b}, ${c}, ${d}, 0, 0)`;
+        if (isIdentityMatrix2d(scaleX, skewY, skewX, scaleY)) return "none";
+        return `matrix(${scaleX}, ${skewY}, ${skewX}, ${scaleY}, 0, 0)`;
       }
     }
   }

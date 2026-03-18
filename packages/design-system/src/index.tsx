@@ -2572,7 +2572,6 @@ const StateCard = (props: StateCardProps) => {
               visible={true}
               status={currentProps().status}
               hasAgent={currentProps().hasAgent}
-
               isPromptMode={currentProps().isPromptMode}
               inputValue={currentProps().inputValue}
               replyToPrompt={currentProps().replyToPrompt}

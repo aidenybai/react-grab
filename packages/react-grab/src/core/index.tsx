@@ -236,8 +236,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const didJustCopy = createMemo(() => store.current.state === "justCopied");
     const isPromptMode = createMemo(
       () =>
-        store.current.state === "active" &&
-        Boolean(store.current.isPromptMode),
+        store.current.state === "active" && Boolean(store.current.isPromptMode),
     );
     const isCommentMode = createMemo(
       () => store.pendingCommentMode || isPromptMode(),
@@ -3143,7 +3142,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!isThemeEnabled()) return [];
       if (!pluginRegistry.store.theme.grabbedBoxes.enabled) return [];
       void store.viewportVersion;
-      const currentIds = new Set(store.labelInstances.map((i) => i.id));
+      const currentIds = new Set(
+        store.labelInstances.map((instance) => instance.id),
+      );
       for (const cachedId of labelInstanceCache.keys()) {
         if (!currentIds.has(cachedId)) {
           labelInstanceCache.delete(cachedId);

@@ -79,20 +79,20 @@ export const createElementBounds = (element: Element): OverlayBounds => {
   let bounds: OverlayBounds;
 
   if (transform !== "none" && element instanceof HTMLElement) {
-    const ow = element.offsetWidth;
-    const oh = element.offsetHeight;
+    const offsetWidth = element.offsetWidth;
+    const offsetHeight = element.offsetHeight;
 
-    if (ow > 0 && oh > 0) {
+    if (offsetWidth > 0 && offsetHeight > 0) {
       const centerX = rect.left + rect.width * 0.5;
       const centerY = rect.top + rect.height * 0.5;
 
       bounds = {
         borderRadius: style.borderRadius || "0px",
-        height: oh,
+        height: offsetHeight,
         transform,
-        width: ow,
-        x: centerX - ow * 0.5,
-        y: centerY - oh * 0.5,
+        width: offsetWidth,
+        x: centerX - offsetWidth * 0.5,
+        y: centerY - offsetHeight * 0.5,
       };
     } else {
       bounds = {
