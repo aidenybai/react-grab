@@ -1,8 +1,7 @@
 import {
   Show,
   For,
-  onMount,
-  onCleanup,
+  onSettled,
   createSignal,
   createEffect,
   createMemo,
@@ -80,11 +79,14 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     }
   };
 
-  createEffect(() => {
-    if (isVisible()) {
-      nativeRequestAnimationFrame(measureContainer);
-    }
-  });
+  createEffect(
+    () => isVisible(),
+    (visible) => {
+      if (visible) {
+        nativeRequestAnimationFrame(measureContainer);
+      }
+    },
+  );
 
   const computedPosition = createMemo(() => {
     const bounds = props.selectionBounds;
@@ -165,7 +167,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     }
   };
 
-  onMount(() => {
+  onSettled(() => {
     measureContainer();
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -219,10 +221,10 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     });
     window.addEventListener("keydown", handleKeyDown, { capture: true });
 
-    onCleanup(() => {
+    return () => {
       unregisterOverlayDismiss();
       window.removeEventListener("keydown", handleKeyDown, { capture: true });
-    });
+    };
   });
 
   return (
@@ -283,33 +285,36 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
                 class="pointer-events-none absolute bg-black/5 opacity-0 transition-[top,left,width,height,opacity] duration-75 ease-out"
               />
               <For each={menuItems()}>
-                {(item) => (
-                  <button
-                    data-react-grab-ignore-events
-                    data-react-grab-menu-item={item.label.toLowerCase()}
-                    class="relative z-1 contain-layout flex items-center justify-between w-full px-2 py-1 cursor-pointer text-left border-none bg-transparent disabled:opacity-40 disabled:cursor-default"
-                    disabled={!item.enabled}
-                    onPointerDown={(event) => event.stopPropagation()}
-                    onPointerEnter={(event) => {
-                      if (item.enabled) {
-                        updateHighlight(event.currentTarget);
-                      }
-                    }}
-                    onPointerLeave={clearHighlight}
-                    onClick={(event) => handleAction(item, event)}
-                  >
-                    <span class="text-[13px] leading-4 font-sans font-medium text-black">
-                      {item.label}
-                    </span>
-                    <Show when={item.shortcut}>
-                      {(shortcut) => (
-                        <span class="text-[11px] font-sans text-black/50 ml-4">
-                          {formatShortcut(shortcut())}
-                        </span>
-                      )}
-                    </Show>
-                  </button>
-                )}
+                {(itemAccessor) => {
+                  const menuItem = () => itemAccessor();
+                  return (
+                    <button
+                      data-react-grab-ignore-events
+                      data-react-grab-menu-item={menuItem().label.toLowerCase()}
+                      class="relative z-1 contain-layout flex items-center justify-between w-full px-2 py-1 cursor-pointer text-left border-none bg-transparent disabled:opacity-40 disabled:cursor-default"
+                      disabled={!menuItem().enabled}
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onPointerEnter={(event) => {
+                        if (menuItem().enabled) {
+                          updateHighlight(event.currentTarget);
+                        }
+                      }}
+                      onPointerLeave={clearHighlight}
+                      onClick={(event) => handleAction(menuItem(), event)}
+                    >
+                      <span class="text-[13px] leading-4 font-sans font-medium text-black">
+                        {menuItem().label}
+                      </span>
+                      <Show when={menuItem().shortcut}>
+                        {(shortcut) => (
+                          <span class="text-[11px] font-sans text-black/50 ml-4">
+                            {formatShortcut(shortcut())}
+                          </span>
+                        )}
+                      </Show>
+                    </button>
+                  );
+                }}
               </For>
             </div>
           </BottomSection>

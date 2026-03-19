@@ -4,9 +4,7 @@ import {
   createSignal,
   createEffect,
   createMemo,
-  on,
-  onMount,
-  onCleanup,
+  onSettled,
 } from "solid-js";
 import type { Component } from "solid-js";
 import type { ArrowPosition, SelectionLabelProps } from "../../types.js";
@@ -130,7 +128,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     }
   };
 
-  onMount(() => {
+  onSettled(() => {
     resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const rect = entry.target.getBoundingClientRect();
@@ -157,36 +155,42 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     window.visualViewport?.addEventListener("resize", handleViewportChange);
     window.visualViewport?.addEventListener("scroll", handleViewportChange);
     window.addEventListener("keydown", handleGlobalKeyDown, { capture: true });
-  });
-
-  onCleanup(() => {
-    resizeObserver?.disconnect();
-    window.removeEventListener("scroll", handleViewportChange, true);
-    window.removeEventListener("resize", handleViewportChange);
-    window.visualViewport?.removeEventListener("resize", handleViewportChange);
-    window.visualViewport?.removeEventListener("scroll", handleViewportChange);
-    window.removeEventListener("keydown", handleGlobalKeyDown, {
-      capture: true,
-    });
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener("scroll", handleViewportChange, true);
+      window.removeEventListener("resize", handleViewportChange);
+      window.visualViewport?.removeEventListener(
+        "resize",
+        handleViewportChange,
+      );
+      window.visualViewport?.removeEventListener(
+        "scroll",
+        handleViewportChange,
+      );
+      window.removeEventListener("keydown", handleGlobalKeyDown, {
+        capture: true,
+      });
+    };
   });
 
   const elementIdentity = () =>
     `${props.tagName ?? ""}:${props.componentName ?? ""}`;
 
-  createEffect(() => {
-    if (props.isPromptMode && inputRef && props.onSubmit) {
-      // HACK: Defer focus one tick so the textarea is fully mounted.
-      const focusTimeout = setTimeout(() => {
-        if (inputRef) {
-          inputRef.focus();
-          autoResizeTextarea(inputRef, TEXTAREA_MAX_HEIGHT_PX);
-        }
-      }, 0);
-      onCleanup(() => {
-        clearTimeout(focusTimeout);
-      });
-    }
-  });
+  createEffect(
+    () => [props.isPromptMode, Boolean(props.onSubmit)] as const,
+    ([isPromptMode, hasSubmit]) => {
+      if (isPromptMode && inputRef && hasSubmit) {
+        // HACK: Defer focus one tick so the textarea is fully mounted.
+        const focusTimeout = setTimeout(() => {
+          if (inputRef) {
+            inputRef.focus();
+            autoResizeTextarea(inputRef, TEXTAREA_MAX_HEIGHT_PX);
+          }
+        }, 0);
+        return () => clearTimeout(focusTimeout);
+      }
+    },
+  );
 
   const positionComputation = createMemo(
     (previousResult: PositionResult): PositionResult => {
@@ -324,11 +328,12 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const hadValidBounds = () => positionComputation().hadValidBounds;
 
   createEffect(
-    on(
-      () => props.selectionLabelShakeCount,
-      () => setIsShaking(true),
-      { defer: true },
-    ),
+    () => props.selectionLabelShakeCount,
+    () => {
+      setIsShaking(true);
+    },
+    undefined,
+    { defer: true },
   );
 
   const handleKeyDown = (event: KeyboardEvent) => {
@@ -460,10 +465,12 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         >
           <Show when={props.status === "copying" && !props.isPendingAbort}>
             <div
-              class="contain-layout shrink-0 flex flex-col justify-center items-start w-fit h-fit max-w-[280px]"
-              classList={{
-                "min-w-[150px]": Boolean(props.hasAgent && props.inputValue),
-              }}
+              class={[
+                "contain-layout shrink-0 flex flex-col justify-center items-start w-fit h-fit max-w-[280px]",
+                {
+                  "min-w-[150px]": Boolean(props.hasAgent && props.inputValue),
+                },
+              ]}
             >
               <div class="contain-layout shrink-0 flex items-center gap-1 py-1.5 px-2 w-full h-fit">
                 <IconLoader size={13} class="text-[#71717a] shrink-0" />
@@ -518,15 +525,19 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
           <Show when={canInteract() && !props.isPromptMode}>
             <div
-              class="contain-layout shrink-0 flex flex-col items-start w-fit h-fit"
-              classList={{ "min-w-[100px]": isArrowNavigationVisible() }}
+              class={[
+                "contain-layout shrink-0 flex flex-col items-start w-fit h-fit",
+                { "min-w-[100px]": isArrowNavigationVisible() },
+              ]}
             >
               <div
-                class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit px-2"
-                classList={{
-                  "py-1.5": !isArrowNavigationVisible(),
-                  "pt-1.5 pb-1": isArrowNavigationVisible(),
-                }}
+                class={[
+                  "contain-layout shrink-0 flex items-center gap-1 w-fit h-fit px-2",
+                  {
+                    "py-1.5": !isArrowNavigationVisible(),
+                    "pt-1.5 pb-1": isArrowNavigationVisible(),
+                  },
+                ]}
               >
                 <TagBadge
                   tagName={tagDisplayResult().tagName}
@@ -558,29 +569,35 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 <BottomSection>
                   <div class="flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5">
                     <For each={props.actionCycleState?.items ?? []}>
-                      {(item, itemIndex) => (
-                        <div
-                          data-react-grab-action-cycle-item={item.label.toLowerCase()}
-                          class="contain-layout flex items-center justify-between w-full px-2 py-1 transition-colors"
-                          classList={{
-                            "bg-black/5":
-                              itemIndex() ===
-                              (props.actionCycleState?.activeIndex ?? 0),
-                            "rounded-b-[6px]":
-                              itemIndex() ===
-                              (props.actionCycleState?.items ?? []).length - 1,
-                          }}
-                        >
-                          <span class="text-[13px] leading-4 font-sans font-medium text-black">
-                            {item.label}
-                          </span>
-                          <Show when={item.shortcut}>
-                            <span class="text-[11px] font-sans text-black/50 ml-4">
-                              {formatShortcut(item.shortcut!)}
+                      {(itemAccessor, itemIndex) => {
+                        const cycleItem = () => itemAccessor();
+                        return (
+                          <div
+                            data-react-grab-action-cycle-item={cycleItem().label.toLowerCase()}
+                            class={[
+                              "contain-layout flex items-center justify-between w-full px-2 py-1 transition-colors",
+                              {
+                                "bg-black/5":
+                                  itemIndex() ===
+                                  (props.actionCycleState?.activeIndex ?? 0),
+                                "rounded-b-[6px]":
+                                  itemIndex() ===
+                                  (props.actionCycleState?.items ?? []).length -
+                                    1,
+                              },
+                            ]}
+                          >
+                            <span class="text-[13px] leading-4 font-sans font-medium text-black">
+                              {cycleItem().label}
                             </span>
-                          </Show>
-                        </div>
-                      )}
+                            <Show when={cycleItem().shortcut}>
+                              <span class="text-[11px] font-sans text-black/50 ml-4">
+                                {formatShortcut(cycleItem().shortcut!)}
+                              </span>
+                            </Show>
+                          </div>
+                        );
+                      }}
                     </For>
                   </div>
                 </BottomSection>
@@ -633,7 +650,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     onKeyDown={handleKeyDown}
                     placeholder="Add context"
                     rows={1}
-                    readOnly={!props.onSubmit}
+                    readonly={!props.onSubmit}
                   />
                   <Show when={props.onSubmit}>
                     <button

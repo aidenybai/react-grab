@@ -1,4 +1,4 @@
-import { createEffect, onCleanup, onMount, on } from "solid-js";
+import { createEffect, onSettled } from "solid-js";
 import type { Component } from "solid-js";
 import type {
   OverlayBounds,
@@ -492,202 +492,192 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
   };
 
   createEffect(
-    on(
-      () =>
-        [
-          props.selectionVisible,
-          props.selectionBounds,
-          props.selectionBoundsMultiple,
-          props.selectionIsFading,
-          props.selectionShouldSnap,
-        ] as const,
-      ([isVisible, singleBounds, multipleBounds, , shouldSnap]) => {
-        if (
-          !isVisible ||
-          (!singleBounds && (!multipleBounds || multipleBounds.length === 0))
-        ) {
-          selectionAnimations = [];
-          scheduleAnimationFrame();
-          return;
+    () =>
+      [
+        props.selectionVisible,
+        props.selectionBounds,
+        props.selectionBoundsMultiple,
+        props.selectionIsFading,
+        props.selectionShouldSnap,
+      ] as const,
+    ([isVisible, singleBounds, multipleBounds, , shouldSnap]) => {
+      if (
+        !isVisible ||
+        (!singleBounds && (!multipleBounds || multipleBounds.length === 0))
+      ) {
+        selectionAnimations = [];
+        scheduleAnimationFrame();
+        return;
+      }
+
+      const boundsToRender =
+        multipleBounds && multipleBounds.length > 0
+          ? multipleBounds
+          : singleBounds
+            ? [singleBounds]
+            : [];
+
+      selectionAnimations = boundsToRender.map((bounds, index) => {
+        const animationId = `selection-${index}`;
+        const existingAnimation = selectionAnimations.find(
+          (animation) => animation.id === animationId,
+        );
+
+        if (existingAnimation) {
+          updateAnimationTarget(existingAnimation, bounds);
+          if (shouldSnap) {
+            existingAnimation.current = { ...existingAnimation.target };
+          }
+          return existingAnimation;
         }
 
-        const boundsToRender =
-          multipleBounds && multipleBounds.length > 0
-            ? multipleBounds
-            : singleBounds
-              ? [singleBounds]
-              : [];
+        return createAnimatedBounds(animationId, bounds);
+      });
 
-        selectionAnimations = boundsToRender.map((bounds, index) => {
-          const animationId = `selection-${index}`;
-          const existingAnimation = selectionAnimations.find(
+      scheduleAnimationFrame();
+    },
+  );
+
+  createEffect(
+    () => [props.dragVisible, props.dragBounds] as const,
+    ([isVisible, bounds]) => {
+      if (!isVisible || !bounds) {
+        dragAnimation = null;
+        scheduleAnimationFrame();
+        return;
+      }
+
+      if (dragAnimation) {
+        updateAnimationTarget(dragAnimation, bounds);
+      } else {
+        dragAnimation = createAnimatedBounds("drag", bounds);
+      }
+
+      scheduleAnimationFrame();
+    },
+  );
+
+  createEffect(
+    () => props.grabbedBoxes,
+    (grabbedBoxes) => {
+      const boxesToProcess = grabbedBoxes ?? [];
+      const activeBoxIds = new Set(boxesToProcess.map((box) => box.id));
+      const existingAnimationIds = new Set(
+        grabbedAnimations.map((animation) => animation.id),
+      );
+
+      for (const box of boxesToProcess) {
+        if (!existingAnimationIds.has(box.id)) {
+          grabbedAnimations.push(
+            createAnimatedBounds(box.id, box.bounds, {
+              createdAt: box.createdAt,
+            }),
+          );
+        }
+      }
+
+      for (const animation of grabbedAnimations) {
+        const matchingBox = boxesToProcess.find(
+          (box) => box.id === animation.id,
+        );
+        if (matchingBox) {
+          updateAnimationTarget(animation, matchingBox.bounds);
+        }
+      }
+
+      grabbedAnimations = grabbedAnimations.filter((animation) => {
+        if (animation.id.startsWith("label-")) {
+          return true;
+        }
+        return activeBoxIds.has(animation.id);
+      });
+
+      scheduleAnimationFrame();
+    },
+  );
+
+  createEffect(
+    () => props.agentSessions,
+    (agentSessions) => {
+      if (!agentSessions || agentSessions.size === 0) {
+        processingAnimations = [];
+        scheduleAnimationFrame();
+        return;
+      }
+
+      const updatedAnimations: AnimatedBounds[] = [];
+
+      for (const [sessionId, session] of agentSessions) {
+        for (let index = 0; index < session.selectionBounds.length; index++) {
+          const bounds = session.selectionBounds[index];
+          const animationId = `processing-${sessionId}-${index}`;
+          const existingAnimation = processingAnimations.find(
             (animation) => animation.id === animationId,
           );
 
           if (existingAnimation) {
             updateAnimationTarget(existingAnimation, bounds);
-            if (shouldSnap) {
-              existingAnimation.current = { ...existingAnimation.target };
-            }
-            return existingAnimation;
+            updatedAnimations.push(existingAnimation);
+          } else {
+            updatedAnimations.push(createAnimatedBounds(animationId, bounds));
           }
+        }
+      }
 
-          return createAnimatedBounds(animationId, bounds);
-        });
-
-        scheduleAnimationFrame();
-      },
-    ),
+      processingAnimations = updatedAnimations;
+      scheduleAnimationFrame();
+    },
   );
 
   createEffect(
-    on(
-      () => [props.dragVisible, props.dragBounds] as const,
-      ([isVisible, bounds]) => {
-        if (!isVisible || !bounds) {
-          dragAnimation = null;
-          scheduleAnimationFrame();
-          return;
-        }
+    () => props.labelInstances,
+    (labelInstances) => {
+      const instancesToProcess = labelInstances ?? [];
 
-        if (dragAnimation) {
-          updateAnimationTarget(dragAnimation, bounds);
-        } else {
-          dragAnimation = createAnimatedBounds("drag", bounds);
-        }
+      for (const instance of instancesToProcess) {
+        const boundsToRender = resolveBoundsArray(instance);
+        const targetOpacity = instance.status === "fading" ? 0 : 1;
 
-        scheduleAnimationFrame();
-      },
-    ),
-  );
+        for (let index = 0; index < boundsToRender.length; index++) {
+          const bounds = boundsToRender[index];
+          const animationId = `label-${instance.id}-${index}`;
+          const existingAnimation = grabbedAnimations.find(
+            (animation) => animation.id === animationId,
+          );
 
-  createEffect(
-    on(
-      () => props.grabbedBoxes,
-      (grabbedBoxes) => {
-        const boxesToProcess = grabbedBoxes ?? [];
-        const activeBoxIds = new Set(boxesToProcess.map((box) => box.id));
-        const existingAnimationIds = new Set(
-          grabbedAnimations.map((animation) => animation.id),
-        );
-
-        for (const box of boxesToProcess) {
-          if (!existingAnimationIds.has(box.id)) {
+          if (existingAnimation) {
+            updateAnimationTarget(existingAnimation, bounds, targetOpacity);
+          } else {
             grabbedAnimations.push(
-              createAnimatedBounds(box.id, box.bounds, {
-                createdAt: box.createdAt,
+              createAnimatedBounds(animationId, bounds, {
+                opacity: 1,
+                targetOpacity,
               }),
             );
           }
         }
+      }
 
-        for (const animation of grabbedAnimations) {
-          const matchingBox = boxesToProcess.find(
-            (box) => box.id === animation.id,
-          );
-          if (matchingBox) {
-            updateAnimationTarget(animation, matchingBox.bounds);
-          }
+      const activeLabelIds = new Set<string>();
+      for (const instance of instancesToProcess) {
+        const boundsToRender = resolveBoundsArray(instance);
+        for (let index = 0; index < boundsToRender.length; index++) {
+          activeLabelIds.add(`label-${instance.id}-${index}`);
         }
+      }
 
-        grabbedAnimations = grabbedAnimations.filter((animation) => {
-          if (animation.id.startsWith("label-")) {
-            return true;
-          }
-          return activeBoxIds.has(animation.id);
-        });
+      grabbedAnimations = grabbedAnimations.filter((animation) => {
+        if (animation.id.startsWith("label-")) {
+          return activeLabelIds.has(animation.id);
+        }
+        return true;
+      });
 
-        scheduleAnimationFrame();
-      },
-    ),
+      scheduleAnimationFrame();
+    },
   );
 
-  createEffect(
-    on(
-      () => props.agentSessions,
-      (agentSessions) => {
-        if (!agentSessions || agentSessions.size === 0) {
-          processingAnimations = [];
-          scheduleAnimationFrame();
-          return;
-        }
-
-        const updatedAnimations: AnimatedBounds[] = [];
-
-        for (const [sessionId, session] of agentSessions) {
-          for (let index = 0; index < session.selectionBounds.length; index++) {
-            const bounds = session.selectionBounds[index];
-            const animationId = `processing-${sessionId}-${index}`;
-            const existingAnimation = processingAnimations.find(
-              (animation) => animation.id === animationId,
-            );
-
-            if (existingAnimation) {
-              updateAnimationTarget(existingAnimation, bounds);
-              updatedAnimations.push(existingAnimation);
-            } else {
-              updatedAnimations.push(createAnimatedBounds(animationId, bounds));
-            }
-          }
-        }
-
-        processingAnimations = updatedAnimations;
-        scheduleAnimationFrame();
-      },
-    ),
-  );
-
-  createEffect(
-    on(
-      () => props.labelInstances,
-      (labelInstances) => {
-        const instancesToProcess = labelInstances ?? [];
-
-        for (const instance of instancesToProcess) {
-          const boundsToRender = resolveBoundsArray(instance);
-          const targetOpacity = instance.status === "fading" ? 0 : 1;
-
-          for (let index = 0; index < boundsToRender.length; index++) {
-            const bounds = boundsToRender[index];
-            const animationId = `label-${instance.id}-${index}`;
-            const existingAnimation = grabbedAnimations.find(
-              (animation) => animation.id === animationId,
-            );
-
-            if (existingAnimation) {
-              updateAnimationTarget(existingAnimation, bounds, targetOpacity);
-            } else {
-              grabbedAnimations.push(
-                createAnimatedBounds(animationId, bounds, {
-                  opacity: 1,
-                  targetOpacity,
-                }),
-              );
-            }
-          }
-        }
-
-        const activeLabelIds = new Set<string>();
-        for (const instance of instancesToProcess) {
-          const boundsToRender = resolveBoundsArray(instance);
-          for (let index = 0; index < boundsToRender.length; index++) {
-            activeLabelIds.add(`label-${instance.id}-${index}`);
-          }
-        }
-
-        grabbedAnimations = grabbedAnimations.filter((animation) => {
-          if (animation.id.startsWith("label-")) {
-            return activeLabelIds.has(animation.id);
-          }
-          return true;
-        });
-
-        scheduleAnimationFrame();
-      },
-    ),
-  );
-
-  onMount(() => {
+  onSettled(() => {
     initializeCanvas();
     scheduleAnimationFrame();
 
@@ -724,7 +714,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
     setupDprMediaQuery();
 
-    onCleanup(() => {
+    return () => {
       window.removeEventListener("resize", handleWindowResize);
       if (currentDprMediaQuery) {
         currentDprMediaQuery.removeEventListener(
@@ -735,7 +725,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
       if (animationFrameId !== null) {
         nativeCancelAnimationFrame(animationFrameId);
       }
-    });
+    };
   });
 
   return (

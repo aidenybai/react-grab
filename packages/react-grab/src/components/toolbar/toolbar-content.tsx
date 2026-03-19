@@ -92,7 +92,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
       data-react-grab-ignore-events
       data-react-grab-toolbar-toggle
       aria-label={props.isActive ? "Stop selecting element" : "Select element"}
-      aria-pressed={Boolean(props.isActive)}
+      aria-pressed={props.isActive ? "true" : "false"}
       class={cn(
         "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
         buttonSpacingClass(),
@@ -173,7 +173,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
       data-react-grab-ignore-events
       data-react-grab-toolbar-enabled
       aria-label={props.enabled ? "Disable React Grab" : "Enable React Grab"}
-      aria-pressed={Boolean(props.enabled)}
+      aria-pressed={props.enabled ? "true" : "false"}
       class={cn(
         "contain-layout flex items-center justify-center cursor-pointer interactive-scale outline-none",
         isVertical() ? "my-0.5" : "mx-0.5",

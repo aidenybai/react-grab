@@ -1,4 +1,4 @@
-import { onMount, onCleanup, Show } from "solid-js";
+import { onSettled, Show } from "solid-js";
 import type { Component } from "solid-js";
 import type { ErrorViewProps } from "../../types.js";
 import { confirmationFocusManager } from "../../utils/confirmation-focus-manager.js";
@@ -31,14 +31,13 @@ export const ErrorView: Component<ErrorViewProps> = (props) => {
     confirmationFocusManager.claim(instanceId);
   };
 
-  onMount(() => {
+  onSettled(() => {
     confirmationFocusManager.claim(instanceId);
     window.addEventListener("keydown", handleKeyDown, { capture: true });
-  });
-
-  onCleanup(() => {
-    confirmationFocusManager.release(instanceId);
-    window.removeEventListener("keydown", handleKeyDown, { capture: true });
+    return () => {
+      confirmationFocusManager.release(instanceId);
+      window.removeEventListener("keydown", handleKeyDown, { capture: true });
+    };
   });
 
   const hasActions = () => Boolean(props.onRetry || props.onAcknowledge);
@@ -51,8 +50,10 @@ export const ErrorView: Component<ErrorViewProps> = (props) => {
       onClick={handleFocus}
     >
       <div
-        class="contain-layout shrink-0 flex items-start gap-1 px-2 w-full h-fit"
-        classList={{ "pt-1.5 pb-1": hasActions(), "py-1.5": !hasActions() }}
+        class={[
+          "contain-layout shrink-0 flex items-start gap-1 px-2 w-full h-fit",
+          { "pt-1.5 pb-1": hasActions(), "py-1.5": !hasActions() },
+        ]}
       >
         <span
           class="text-[#B91C1C] text-[13px] leading-4 font-sans font-medium overflow-hidden line-clamp-5"

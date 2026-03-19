@@ -474,6 +474,9 @@ importers:
       '@react-grab/cli':
         specifier: workspace:*
         version: link:../cli
+      '@solidjs/web':
+        specifier: 2.0.0-beta.3
+        version: 2.0.0-beta.3(@solidjs/signals@0.13.3)(solid-js@2.0.0-beta.3)
       bippy:
         specifier: ^0.5.32
         version: 0.5.32(@types/react@19.2.11)(react@19.2.3)
@@ -484,8 +487,8 @@ importers:
         specifier: '>=17.0.0'
         version: 19.2.3
       solid-js:
-        specifier: ^1.9.10
-        version: 1.9.10
+        specifier: 2.0.0-beta.3
+        version: 2.0.0-beta.3
     devDependencies:
       '@babel/core':
         specifier: ^7.28.5
@@ -506,8 +509,8 @@ importers:
         specifier: ^19.2.11
         version: 19.2.11
       babel-preset-solid:
-        specifier: ^1.9.10
-        version: 1.9.10(@babel/core@7.28.5)(solid-js@1.9.10)
+        specifier: 2.0.0-beta.3
+        version: 2.0.0-beta.3(@babel/core@7.28.5)(solid-js@2.0.0-beta.3)
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -2974,12 +2977,21 @@ packages:
     resolution: {integrity: sha512-tlqY9xq5ukxTUZBmoOp+m61cqwQD5pHJtFY3Mn8CA8ps6yghLH/Hw8UPdqg4OLmFW3IFlcXnQNmo/dh8HzXYIQ==}
     engines: {node: '>=18'}
 
+  '@solidjs/signals@0.13.3':
+    resolution: {integrity: sha512-Rlq8Kc0WtuhPv8SDNT1ANh45OUIbFKnY7AOiNmCSeOaGKlFaaYPPDxXN8qJtojykwGGwWXV6ZmHwCb1ZeY0b/A==}
+
+  '@solidjs/web@2.0.0-beta.3':
+    resolution: {integrity: sha512-DpTIbba7pLTKIXxUblok4n1rQscBLbjhJKhk+eUoODOnAS4TVDV4OmZ6qhC+VEuyPAbIbqzfoZsectFNEhak3w==}
+    peerDependencies:
+      '@solidjs/signals': ^0.13.3
+      solid-js: ^2.0.0-beta.3
+
   '@sourcegraph/amp-sdk@0.1.0-20251210081226-g90e3892':
     resolution: {integrity: sha512-y9/ltK2TY+0HD1H2Sz7MvU3zFh4SjER6eQVNQfBx/0gK9N7S0QwHW6cmhHLx3CP25zN190LKHXPieMGqsVvrOQ==}
     engines: {node: '>=18'}
 
-  '@sourcegraph/amp@0.0.1773792340-gded184':
-    resolution: {integrity: sha512-Kj7jBcX7KbED1fMl+YnrHFOTj89pxIZT8Ipir7sZP2++oQ/IiQnaddv4H3foEYW+UNREWr0sD2tDk7tlB5mBWQ==}
+  '@sourcegraph/amp@0.0.1773907698-g6757dd':
+    resolution: {integrity: sha512-yCY1M8D42FBRdq3MwNHHmrKngH/nNKOWRHLgBehR9gt3w7cv9BaD2cPA/+eQgjcNMCpL7w7YcGGkXapOc1EiqA==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -3785,6 +3797,11 @@ packages:
     peerDependencies:
       '@babel/core': ^7.20.12
 
+  babel-plugin-jsx-dom-expressions@0.41.0-next.11:
+    resolution: {integrity: sha512-m0yus4+XLNENjhpJNtZtjHXQLPepT3y0bmgAeceoSOgKGKeGfE8A6fOoObUHpz+mRd25dn4wJHa6wqO4JvQMWQ==}
+    peerDependencies:
+      '@babel/core': ^7.20.12
+
   babel-plugin-react-compiler@1.0.0:
     resolution: {integrity: sha512-Ixm8tFfoKKIPYdCCKYTsqv+Fd4IJ0DQqMyEimo+pxUOMUR9cVPlwTrFt9Avu+3cb6Zp3mAzl+t1MrG2fxxKsxw==}
 
@@ -3793,6 +3810,15 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0
       solid-js: ^1.9.10
+    peerDependenciesMeta:
+      solid-js:
+        optional: true
+
+  babel-preset-solid@2.0.0-beta.3:
+    resolution: {integrity: sha512-hV8Gi0Akolju1ydXNZNmt/SWcvGSWX5mqg+HHQFU2/iz22MDMflRSJrhaqrmN0gxJin9s3A/x3A20HqmcGhkBg==}
+    peerDependencies:
+      '@babel/core': ^7.0.0
+      solid-js: ^2.0.0-beta.3
     peerDependenciesMeta:
       solid-js:
         optional: true
@@ -6305,8 +6331,18 @@ packages:
     peerDependencies:
       seroval: ^1.0
 
+  seroval-plugins@1.5.1:
+    resolution: {integrity: sha512-4FbuZ/TMl02sqv0RTFexu0SP6V+ywaIe5bAWCCEik0fk17BhALgwvUDVF7e3Uvf9pxmwCEJsRPmlkUE6HdzLAw==}
+    engines: {node: '>=10'}
+    peerDependencies:
+      seroval: ^1.0
+
   seroval@1.3.2:
     resolution: {integrity: sha512-RbcPH1n5cfwKrru7v7+zrZvjLurgHhGyso3HTyGtRivGWgYjbOmGuivCQaORNELjNONoK35nj28EoWul9sb1zQ==}
+    engines: {node: '>=10'}
+
+  seroval@1.5.1:
+    resolution: {integrity: sha512-OwrZRZAfhHww0WEnKHDY8OM0U/Qs8OTfIDWhUD4BLpNJUfXK4cGmjiagGze086m+mhI+V2nD0gfbHEnJjb9STA==}
     engines: {node: '>=10'}
 
   serve-static@2.2.1:
@@ -6399,6 +6435,9 @@ packages:
 
   solid-js@1.9.10:
     resolution: {integrity: sha512-Coz956cos/EPDlhs6+jsdTxKuJDPT7B5SVIWgABwROyxjY7Xbr8wkzD68Et+NxnV7DLJ3nJdAC2r9InuV/4Jew==}
+
+  solid-js@2.0.0-beta.3:
+    resolution: {integrity: sha512-s2UT66v1UpmM1QybhNrQlJUiSG1HYl2TM7ah2d0TETy5U4fLxIYbyVECB3YOw7GwOTzaGjjJjlg4A7hkYqCQ+g==}
 
   sonic-boom@4.2.0:
     resolution: {integrity: sha512-INb7TM37/mAcsGmc9hyyI6+QR3rR1zVRu36B0NeGXKnOOLiZOfER5SA+N7X7k3yUYRzLWafduTDvJAfDswwEww==}
@@ -6945,6 +6984,9 @@ packages:
     resolution: {integrity: sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==}
     hasBin: true
 
+  validate-html-nesting@1.2.4:
+    resolution: {integrity: sha512-doQi7e8EJ2OWneSG1aZpJluS6A49aZM0+EICXWKm1i6WvqTLmq0tpUcImc4KTWG50mORO0C4YDBtOCSYvElftw==}
+
   vary@1.1.2:
     resolution: {integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==}
     engines: {node: '>= 0.8'}
@@ -7467,7 +7509,6 @@ snapshots:
     dependencies:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.28.5
-    optional: true
 
   '@base-ui/react@1.2.0(@types/react@19.2.2)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)':
     dependencies:
@@ -9157,12 +9198,21 @@ snapshots:
 
   '@sindresorhus/merge-streams@4.0.0': {}
 
+  '@solidjs/signals@0.13.3': {}
+
+  '@solidjs/web@2.0.0-beta.3(@solidjs/signals@0.13.3)(solid-js@2.0.0-beta.3)':
+    dependencies:
+      '@solidjs/signals': 0.13.3
+      seroval: 1.5.1
+      seroval-plugins: 1.5.1(seroval@1.5.1)
+      solid-js: 2.0.0-beta.3
+
   '@sourcegraph/amp-sdk@0.1.0-20251210081226-g90e3892':
     dependencies:
-      '@sourcegraph/amp': 0.0.1773792340-gded184
+      '@sourcegraph/amp': 0.0.1773907698-g6757dd
       zod: 3.25.76
 
-  '@sourcegraph/amp@0.0.1773792340-gded184':
+  '@sourcegraph/amp@0.0.1773907698-g6757dd':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
@@ -9929,6 +9979,16 @@ snapshots:
       html-entities: 2.3.3
       parse5: 7.3.0
 
+  babel-plugin-jsx-dom-expressions@0.41.0-next.11(@babel/core@7.28.5):
+    dependencies:
+      '@babel/core': 7.28.5
+      '@babel/helper-module-imports': 7.18.6
+      '@babel/plugin-syntax-jsx': 7.27.1(@babel/core@7.28.5)
+      '@babel/types': 7.29.0
+      html-entities: 2.3.3
+      parse5: 7.3.0
+      validate-html-nesting: 1.2.4
+
   babel-plugin-react-compiler@1.0.0:
     dependencies:
       '@babel/types': 7.29.0
@@ -9940,6 +10000,13 @@ snapshots:
       babel-plugin-jsx-dom-expressions: 0.40.3(@babel/core@7.28.5)
     optionalDependencies:
       solid-js: 1.9.10
+
+  babel-preset-solid@2.0.0-beta.3(@babel/core@7.28.5)(solid-js@2.0.0-beta.3):
+    dependencies:
+      '@babel/core': 7.28.5
+      babel-plugin-jsx-dom-expressions: 0.41.0-next.11(@babel/core@7.28.5)
+    optionalDependencies:
+      solid-js: 2.0.0-beta.3
 
   balanced-match@1.0.2: {}
 
@@ -10676,8 +10743,8 @@ snapshots:
       '@typescript-eslint/parser': 8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3)
       eslint: 9.37.0(jiti@2.6.1)
       eslint-import-resolver-node: 0.3.9
-      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@9.37.0(jiti@2.6.1))
-      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.37.0(jiti@2.6.1))
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1))
+      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1))
       eslint-plugin-jsx-a11y: 6.10.2(eslint@9.37.0(jiti@2.6.1))
       eslint-plugin-react: 7.37.5(eslint@9.37.0(jiti@2.6.1))
       eslint-plugin-react-hooks: 5.2.0(eslint@9.37.0(jiti@2.6.1))
@@ -10693,8 +10760,8 @@ snapshots:
       '@next/eslint-plugin-next': 16.0.7
       eslint: 9.37.0(jiti@2.6.1)
       eslint-import-resolver-node: 0.3.9
-      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@9.37.0(jiti@2.6.1))
-      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.37.0(jiti@2.6.1))
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1))
+      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1))
       eslint-plugin-jsx-a11y: 6.10.2(eslint@9.37.0(jiti@2.6.1))
       eslint-plugin-react: 7.37.5(eslint@9.37.0(jiti@2.6.1))
       eslint-plugin-react-hooks: 7.0.1(eslint@9.37.0(jiti@2.6.1))
@@ -10716,7 +10783,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@9.37.0(jiti@2.6.1)):
+  eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1)):
     dependencies:
       '@nolyfill/is-core-module': 1.0.39
       debug: 4.4.3
@@ -10727,22 +10794,22 @@ snapshots:
       tinyglobby: 0.2.15
       unrs-resolver: 1.11.1
     optionalDependencies:
-      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.37.0(jiti@2.6.1))
+      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1))
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.12.1(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1)(eslint@9.37.0(jiti@2.6.1)):
+  eslint-module-utils@2.12.1(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1)):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
       '@typescript-eslint/parser': 8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3)
       eslint: 9.37.0(jiti@2.6.1)
       eslint-import-resolver-node: 0.3.9
-      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@9.37.0(jiti@2.6.1))
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1))
     transitivePeerDependencies:
       - supports-color
 
-  eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.37.0(jiti@2.6.1)):
+  eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1)):
     dependencies:
       '@rtsao/scc': 1.1.0
       array-includes: 3.1.9
@@ -10753,7 +10820,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 9.37.0(jiti@2.6.1)
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.12.1(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1)(eslint@9.37.0(jiti@2.6.1))
+      eslint-module-utils: 2.12.1(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1))
       hasown: 2.0.2
       is-core-module: 2.16.1
       is-glob: 4.0.3
@@ -12736,7 +12803,13 @@ snapshots:
     dependencies:
       seroval: 1.3.2
 
+  seroval-plugins@1.5.1(seroval@1.5.1):
+    dependencies:
+      seroval: 1.5.1
+
   seroval@1.3.2: {}
+
+  seroval@1.5.1: {}
 
   serve-static@2.2.1:
     dependencies:
@@ -12876,6 +12949,13 @@ snapshots:
       csstype: 3.2.3
       seroval: 1.3.2
       seroval-plugins: 1.3.3(seroval@1.3.2)
+
+  solid-js@2.0.0-beta.3:
+    dependencies:
+      '@solidjs/signals': 0.13.3
+      csstype: 3.2.3
+      seroval: 1.5.1
+      seroval-plugins: 1.5.1(seroval@1.5.1)
 
   sonic-boom@4.2.0:
     dependencies:
@@ -13452,6 +13532,8 @@ snapshots:
   util-deprecate@1.0.2: {}
 
   uuid@8.3.2: {}
+
+  validate-html-nesting@1.2.4: {}
 
   vary@1.1.2: {}
 

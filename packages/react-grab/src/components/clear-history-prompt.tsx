@@ -1,4 +1,4 @@
-import { Show, onMount, onCleanup } from "solid-js";
+import { Show, onSettled } from "solid-js";
 import type { Component } from "solid-js";
 import type { DropdownAnchor } from "../types.js";
 import { DROPDOWN_EDGE_TRANSFORM_ORIGIN, Z_INDEX_LABEL } from "../constants.js";
@@ -24,7 +24,7 @@ export const ClearHistoryPrompt: Component<ClearHistoryPromptProps> = (
     () => props.position,
   );
 
-  onMount(() => {
+  onSettled(() => {
     dropdown.measure();
     const unregisterOverlayDismiss = registerOverlayDismiss({
       isOpen: () => Boolean(props.position),
@@ -33,10 +33,10 @@ export const ClearHistoryPrompt: Component<ClearHistoryPromptProps> = (
       shouldIgnoreInputEvents: true,
     });
 
-    onCleanup(() => {
+    return () => {
       dropdown.clearAnimationHandles();
       unregisterOverlayDismiss();
-    });
+    };
   });
 
   return (

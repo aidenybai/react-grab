@@ -1,8 +1,7 @@
 import {
   createSignal,
   createEffect,
-  on,
-  onMount,
+  onSettled,
   onCleanup,
   Show,
 } from "solid-js";
@@ -206,22 +205,21 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const hasLearnedSelectionHints = () => (props.clockFlashTrigger ?? 0) > 0;
 
   createEffect(
-    on(
-      () => [props.isActive, hasLearnedSelectionHints()] as const,
-      ([isActive, hasLearned]) => {
-        setSelectionHintIndex(0);
-        setHasHintCycled(false);
-        if (!isActive || hasLearned) return;
-        const intervalId = setInterval(() => {
-          if (!hasHintCycled()) setHasHintCycled(true);
-          setSelectionHintIndex(
-            (previousIndex) => (previousIndex + 1) % SELECTION_HINT_COUNT,
-          );
-        }, SELECTION_HINT_CYCLE_INTERVAL_MS);
-        onCleanup(() => clearInterval(intervalId));
-      },
-      { defer: true },
-    ),
+    () => [props.isActive, hasLearnedSelectionHints()] as const,
+    ([isActive, hasLearned]) => {
+      setSelectionHintIndex(0);
+      setHasHintCycled(false);
+      if (!isActive || hasLearned) return;
+      const intervalId = setInterval(() => {
+        if (!hasHintCycled()) setHasHintCycled(true);
+        setSelectionHintIndex(
+          (previousIndex) => (previousIndex + 1) % SELECTION_HINT_COUNT,
+        );
+      }, SELECTION_HINT_CYCLE_INTERVAL_MS);
+      return () => clearInterval(intervalId);
+    },
+    undefined,
+    { defer: true },
   );
 
   const hasToolbarActions = () => (props.toolbarActions ?? []).length > 0;
@@ -342,47 +340,39 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   };
 
   createEffect(
-    on(
-      () => props.shakeCount,
-      (count) => {
-        if (count && !props.enabled) {
-          setIsShaking(true);
-          setIsShakeTooltipVisible(true);
+    () => props.shakeCount,
+    (count) => {
+      if (count && !props.enabled) {
+        setIsShaking(true);
+        setIsShakeTooltipVisible(true);
 
-          clearShakeTooltipTimeout();
-          shakeTooltipTimeout = setTimeout(() => {
-            setIsShakeTooltipVisible(false);
-          }, TOOLBAR_SHAKE_TOOLTIP_DURATION_MS);
-          onCleanup(() => {
-            clearShakeTooltipTimeout();
-          });
-        }
-      },
-    ),
-  );
-
-  createEffect(
-    on(
-      () => props.enabled,
-      (enabled) => {
-        if (enabled && isShakeTooltipVisible()) {
+        clearShakeTooltipTimeout();
+        shakeTooltipTimeout = setTimeout(() => {
           setIsShakeTooltipVisible(false);
-          clearShakeTooltipTimeout();
-        }
-      },
-    ),
+        }, TOOLBAR_SHAKE_TOOLTIP_DURATION_MS);
+        return () => clearShakeTooltipTimeout();
+      }
+    },
   );
 
   createEffect(
-    on(
-      () => [props.isActive, props.isContextMenuOpen] as const,
-      ([isActive, isContextMenuOpen]) => {
-        if (!isActive && !isContextMenuOpen && unfreezeUpdatesCallback) {
-          unfreezeUpdatesCallback();
-          unfreezeUpdatesCallback = null;
-        }
-      },
-    ),
+    () => props.enabled,
+    (enabled) => {
+      if (enabled && isShakeTooltipVisible()) {
+        setIsShakeTooltipVisible(false);
+        clearShakeTooltipTimeout();
+      }
+    },
+  );
+
+  createEffect(
+    () => [props.isActive, props.isContextMenuOpen] as const,
+    ([isActive, isContextMenuOpen]) => {
+      if (!isActive && !isContextMenuOpen && unfreezeUpdatesCallback) {
+        unfreezeUpdatesCallback();
+        unfreezeUpdatesCallback = null;
+      }
+    },
   );
 
   const reclampToolbarToViewport = () => {
@@ -460,51 +450,49 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   };
 
   createEffect(
-    on(
-      () => props.clockFlashTrigger ?? 0,
-      () => {
-        if (props.isHistoryDropdownOpen) return;
-        if (clockFlashRef) {
-          clockFlashRef.classList.remove("animate-clock-flash");
-          // HACK: force reflow between class removal/addition to restart the CSS animation
-          void clockFlashRef.offsetHeight;
-          clockFlashRef.classList.add("animate-clock-flash");
-        }
-        setIsHistoryTooltipVisible(true);
-        const timerId = setTimeout(() => {
-          clockFlashRef?.classList.remove("animate-clock-flash");
-          setIsHistoryTooltipVisible(false);
-        }, FEEDBACK_DURATION_MS);
-        onCleanup(() => {
-          clearTimeout(timerId);
-          setIsHistoryTooltipVisible(false);
-        });
-      },
-      { defer: true },
-    ),
+    () => props.clockFlashTrigger ?? 0,
+    () => {
+      if (props.isHistoryDropdownOpen) return;
+      if (clockFlashRef) {
+        clockFlashRef.classList.remove("animate-clock-flash");
+        // HACK: force reflow between class removal/addition to restart the CSS animation
+        void clockFlashRef.offsetHeight;
+        clockFlashRef.classList.add("animate-clock-flash");
+      }
+      setIsHistoryTooltipVisible(true);
+      const timerId = setTimeout(() => {
+        clockFlashRef?.classList.remove("animate-clock-flash");
+        setIsHistoryTooltipVisible(false);
+      }, FEEDBACK_DURATION_MS);
+      return () => {
+        clearTimeout(timerId);
+        setIsHistoryTooltipVisible(false);
+      };
+    },
+    undefined,
+    { defer: true },
   );
 
   createEffect(
-    on(
-      () => props.historyItemCount ?? 0,
-      () => {
-        if (isCollapsed()) return;
-        // HACK: Wait for grid-cols CSS transition to complete, then re-measure and clamp to viewport
+    () => props.historyItemCount ?? 0,
+    () => {
+      if (isCollapsed()) return;
+      // HACK: Wait for grid-cols CSS transition to complete, then re-measure and clamp to viewport
+      if (historyItemCountTimeout) {
+        clearTimeout(historyItemCountTimeout);
+      }
+      historyItemCountTimeout = setTimeout(() => {
+        measureExpandableDimension();
+        reclampToolbarToViewport();
+      }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
+      return () => {
         if (historyItemCountTimeout) {
           clearTimeout(historyItemCountTimeout);
         }
-        historyItemCountTimeout = setTimeout(() => {
-          measureExpandableDimension();
-          reclampToolbarToViewport();
-        }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
-        onCleanup(() => {
-          if (historyItemCountTimeout) {
-            clearTimeout(historyItemCountTimeout);
-          }
-        });
-      },
-      { defer: true },
-    ),
+      };
+    },
+    undefined,
+    { defer: true },
   );
 
   let expandedDimensions = {
@@ -849,7 +837,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     props.onStateChange?.(state);
   };
 
-  onMount(() => {
+  onSettled(() => {
     if (containerRef) {
       props.onContainerRef?.(containerRef);
     }
@@ -908,52 +896,49 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       measureExpandableDimension();
     }
 
+    let unsubscribe: (() => void) | undefined;
     if (props.onSubscribeToStateChanges) {
-      const unsubscribe = props.onSubscribeToStateChanges(
-        (state: ToolbarState) => {
-          if (isCollapseAnimating() || isToggleAnimating()) return;
+      unsubscribe = props.onSubscribeToStateChanges((state: ToolbarState) => {
+        if (isCollapseAnimating() || isToggleAnimating()) return;
 
-          const rect = containerRef?.getBoundingClientRect();
-          if (!rect) return;
+        const rect = containerRef?.getBoundingClientRect();
+        if (!rect) return;
 
-          const didCollapsedChange = isCollapsed() !== state.collapsed;
+        const didCollapsedChange = isCollapsed() !== state.collapsed;
 
-          setSnapEdge(state.edge);
+        setSnapEdge(state.edge);
 
-          if (didCollapsedChange && !state.collapsed) {
-            const collapsedPos = currentPosition();
+        if (didCollapsedChange && !state.collapsed) {
+          const collapsedPos = currentPosition();
+          setIsCollapseAnimating(true);
+          setIsCollapsed(state.collapsed);
+          const { position: newPos, ratio: newRatio } =
+            getExpandedFromCollapsed(collapsedPos, state.edge);
+          setPosition(newPos);
+          setPositionRatio(newRatio);
+          clearTimeout(collapseAnimationTimeout);
+          collapseAnimationTimeout = setTimeout(() => {
+            setIsCollapseAnimating(false);
+          }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
+        } else {
+          if (didCollapsedChange) {
             setIsCollapseAnimating(true);
-            setIsCollapsed(state.collapsed);
-            const { position: newPos, ratio: newRatio } =
-              getExpandedFromCollapsed(collapsedPos, state.edge);
-            setPosition(newPos);
-            setPositionRatio(newRatio);
             clearTimeout(collapseAnimationTimeout);
             collapseAnimationTimeout = setTimeout(() => {
               setIsCollapseAnimating(false);
             }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
-          } else {
-            if (didCollapsedChange) {
-              setIsCollapseAnimating(true);
-              clearTimeout(collapseAnimationTimeout);
-              collapseAnimationTimeout = setTimeout(() => {
-                setIsCollapseAnimating(false);
-              }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
-            }
-            setIsCollapsed(state.collapsed);
-            const newPosition = getPositionFromEdgeAndRatio(
-              state.edge,
-              state.ratio,
-              expandedDimensions.width,
-              expandedDimensions.height,
-            );
-            setPosition(newPosition);
-            setPositionRatio(state.ratio);
           }
-        },
-      );
-
-      onCleanup(unsubscribe);
+          setIsCollapsed(state.collapsed);
+          const newPosition = getPositionFromEdgeAndRatio(
+            state.edge,
+            state.ratio,
+            expandedDimensions.width,
+            expandedDimensions.height,
+          );
+          setPosition(newPosition);
+          setPositionRatio(state.ratio);
+        }
+      });
     }
 
     window.addEventListener("resize", handleResize);
@@ -964,9 +949,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       setIsVisible(true);
     }, TOOLBAR_FADE_IN_DELAY_MS);
 
-    onCleanup(() => {
+    return () => {
       clearTimeout(fadeInTimeout);
-    });
+      unsubscribe?.();
+    };
   });
 
   onCleanup(() => {
@@ -1109,7 +1095,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               aria-label={
                 props.isActive ? "Stop selecting element" : "Select element"
               }
-              aria-pressed={Boolean(props.isActive)}
+              aria-pressed={props.isActive ? "true" : "false"}
               class={cn(
                 "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
                 buttonSpacingClass(),
@@ -1148,7 +1134,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                   : ""
               }`}
               aria-haspopup="menu"
-              aria-expanded={Boolean(props.isHistoryDropdownOpen)}
+              aria-expanded={props.isHistoryDropdownOpen ? "true" : "false"}
               class={cn(
                 "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
                 buttonSpacingClass(),
@@ -1250,7 +1236,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                   : "Open more actions menu"
               }
               aria-haspopup="menu"
-              aria-expanded={Boolean(props.isMenuOpen)}
+              aria-expanded={props.isMenuOpen ? "true" : "false"}
               class={cn(
                 "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
                 buttonSpacingClass(),
@@ -1292,7 +1278,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               aria-label={
                 props.enabled ? "Disable React Grab" : "Enable React Grab"
               }
-              aria-pressed={Boolean(props.enabled)}
+              aria-pressed={props.enabled ? "true" : "false"}
               class={cn(
                 "contain-layout flex items-center justify-center cursor-pointer interactive-scale outline-none",
                 isVertical() ? "my-0.5" : "mx-0.5",
