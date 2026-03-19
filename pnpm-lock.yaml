@@ -523,9 +523,6 @@ importers:
       publint:
         specifier: ^0.2.12
         version: 0.2.12
-      tailwind-merge:
-        specifier: ^2.5.5
-        version: 2.6.0
       tailwindcss:
         specifier: ^4.1.0
         version: 4.1.15

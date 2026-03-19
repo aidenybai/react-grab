@@ -14,3 +14,4 @@ playwright-report
 .vercel
 .cursor/debug.log
 .cursor
+meta.json

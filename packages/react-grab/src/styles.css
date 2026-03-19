@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import "tailwindcss" source(".");
 
 @theme {
   --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
