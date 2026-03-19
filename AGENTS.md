@@ -101,7 +101,7 @@ pnpm typecheck # runs type checking
 pnpm format
 ```
 
-## Cursor Cloud specific instructions
+## Development instructions
 
 This is a pnpm + Turborepo monorepo (19 packages under `packages/`). No external services (databases, Docker, etc.) are required.
 
@@ -116,10 +116,6 @@ The root `package.json` has `pnpm.onlyBuiltDependencies` configured for `@parcel
 ### Playwright
 
 E2E tests (`pnpm test` at root) run Playwright against the `e2e-playground` Vite dev server on port 5175 (auto-started by the Playwright config). Chromium must be installed: `npx --prefix packages/react-grab playwright install chromium --with-deps`.
-
-### Known flaky test
-
-`e2e/history-items.spec.ts` > "should reposition when toolbar is dragged to top edge" intermittently times out in headless CI environments. This is a pre-existing issue.
 
 ### Key commands reference
 
