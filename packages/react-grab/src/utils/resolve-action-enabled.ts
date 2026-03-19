@@ -1,7 +1,8 @@
-import type { ActionContext, ContextMenuAction, ToolbarMenuAction } from "../types.js";
-
-const resolveBooleanEnabled = (enabled: boolean | undefined): boolean =>
-  enabled ?? true;
+import type {
+  ActionContext,
+  ContextMenuAction,
+  ToolbarMenuAction,
+} from "../types.js";
 
 const resolveBooleanEnabled = (enabled: boolean | undefined): boolean =>
   enabled ?? true;
