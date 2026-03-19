@@ -3290,10 +3290,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           setContextMenuComponentName(undefined);
           return;
         }
-        getNearestComponentName(element).then((name) => {
-          if (contextMenuComponentNameVersion !== requestVersion) return;
-          setContextMenuComponentName(name ?? undefined);
-        });
+        getNearestComponentName(element)
+          .then((name) => {
+            if (contextMenuComponentNameVersion !== requestVersion) return;
+            setContextMenuComponentName(name ?? undefined);
+          })
+          .catch(() => {
+            if (contextMenuComponentNameVersion !== requestVersion) return;
+            setContextMenuComponentName(undefined);
+          });
       },
     );
 
@@ -3311,10 +3316,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           setContextMenuFilePath(null);
           return;
         }
-        resolveSource(element).then((source) => {
-          if (contextMenuFilePathVersion !== requestVersion) return;
-          setContextMenuFilePath(source);
-        });
+        resolveSource(element)
+          .then((source) => {
+            if (contextMenuFilePathVersion !== requestVersion) return;
+            setContextMenuFilePath(source);
+          })
+          .catch(() => {
+            if (contextMenuFilePathVersion !== requestVersion) return;
+            setContextMenuFilePath(null);
+          });
       },
     );
 
