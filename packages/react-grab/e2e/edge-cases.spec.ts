@@ -324,8 +324,10 @@ test.describe("Edge Cases", () => {
   test.describe("Viewport Edge Cases", () => {
     test("should handle elements outside viewport", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.scrollPage(1000);
-      await reactGrab.page.waitForTimeout(500);
+
+      const footer = reactGrab.page.locator("[data-testid='footer']");
+      await footer.scrollIntoViewIfNeeded();
+      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.hoverElement("[data-testid='footer']");
       await reactGrab.waitForSelectionBox();

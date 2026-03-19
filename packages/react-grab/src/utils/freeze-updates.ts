@@ -7,6 +7,7 @@ import {
   type ReactRenderer,
   type FiberRoot,
 } from "bippy";
+import { logRecoverableError } from "./log-recoverable-error.js";
 
 interface FiberRootLike extends FiberRoot {
   current: Fiber | null;
@@ -515,14 +516,19 @@ const scheduleReactUpdate = (fiberRoots: Set<FiberRootLike>): void => {
           if (fiberRoot.current) {
             try {
               renderer.scheduleUpdate(fiberRoot.current);
-            } catch {
-              // HACK: Swallow errors during cleanup
+            } catch (error) {
+              // HACK: React internals may throw during unfreeze cleanup
+              logRecoverableError(
+                "scheduleUpdate failed during unfreeze",
+                error,
+              );
             }
           }
         }
       }
-    } catch {
-      // HACK: Swallow errors during cleanup
+    } catch (error) {
+      // HACK: React internals may throw during unfreeze cleanup
+      logRecoverableError("scheduleReactUpdate failed", error);
     }
   });
 };
@@ -531,8 +537,9 @@ const invokeCallbacks = (callbacks: Array<() => void>): void => {
   for (const callback of callbacks) {
     try {
       callback();
-    } catch {
-      // HACK: Swallow errors during replay
+    } catch (error) {
+      // HACK: React internals may throw during state replay
+      logRecoverableError("Callback failed during state replay", error);
     }
   }
 };

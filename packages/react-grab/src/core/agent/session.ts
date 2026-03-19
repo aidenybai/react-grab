@@ -6,11 +6,10 @@ import type {
   AgentSessionStorage,
   OverlayBounds,
 } from "../../types.js";
+import { generateId } from "../../utils/generate-id.js";
+import { logRecoverableError } from "../../utils/log-recoverable-error.js";
 
 const STORAGE_KEY = "react-grab:agent-sessions";
-
-const generateSessionId = (): string =>
-  `session-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
 export const createSession = (
   context: AgentContext,
@@ -21,7 +20,7 @@ export const createSession = (
 ): AgentSession => {
   const now = Date.now();
   return {
-    id: generateSessionId(),
+    id: generateId("session"),
     context,
     lastStatus: "",
     isStreaming: true,
@@ -59,7 +58,11 @@ export const saveSessions = (
   try {
     const sessionsObject = Object.fromEntries(sessions);
     storage.setItem(STORAGE_KEY, JSON.stringify(sessionsObject));
-  } catch {
+  } catch (error) {
+    logRecoverableError(
+      "Failed to save sessions to storage, falling back to memory",
+      error,
+    );
     memorySessions.clear();
     sessions.forEach((session, id) => memorySessions.set(id, session));
     evictOldestMemorySessions();
@@ -87,7 +90,8 @@ export const loadSessions = (
     if (!data) return new Map();
     const sessionsObject = JSON.parse(data) as Record<string, AgentSession>;
     return new Map(Object.entries(sessionsObject));
-  } catch {
+  } catch (error) {
+    logRecoverableError("Failed to load sessions from storage", error);
     return new Map();
   }
 };
@@ -100,7 +104,8 @@ export const clearSessions = (storage?: AgentSessionStorage | null): void => {
 
   try {
     storage.removeItem(STORAGE_KEY);
-  } catch {
+  } catch (error) {
+    logRecoverableError("Failed to clear sessions from storage", error);
     memorySessions.clear();
   }
 };

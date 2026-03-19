@@ -80,6 +80,7 @@ import {
   TOOLBAR_DEFAULT_POSITION_RATIO,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
+import { getElementCenter } from "../utils/get-element-center.js";
 import { isCLikeKey } from "../utils/is-c-like-key.js";
 import { isTargetKeyCombination } from "../utils/is-target-key-combination.js";
 import { parseActivationKey } from "../utils/parse-activation-key.js";
@@ -155,9 +156,8 @@ import {
 } from "../utils/history-storage.js";
 import { copyContent } from "../utils/copy-content.js";
 import { joinSnippets } from "../utils/join-snippets.js";
-
-const generateLabelId = (): string =>
-  `label-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+import { generateId } from "../utils/generate-id.js";
+import { logRecoverableError } from "../utils/log-recoverable-error.js";
 
 const builtInPlugins = [
   copyPlugin,
@@ -459,10 +459,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const detectionState = {
-      lastTime: 0,
-      pendingScheduledAt: 0,
-      latestX: 0,
-      latestY: 0,
+      lastDetectionTimestamp: 0,
+      pendingDetectionScheduledAt: 0,
+      latestPointerX: 0,
+      latestPointerY: 0,
     };
     let dragPreviewDebounceTimerId: number | null = null;
     const [debouncedDragPointer, setDebouncedDragPointer] = createSignal<{
@@ -535,7 +535,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       bounds: OverlayBounds,
       element: Element,
     ) => {
-      const boxId = `grabbed-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const boxId = generateId("grabbed");
       const createdAt = Date.now();
       const newBox: GrabbedBox = { id: boxId, bounds, createdAt, element };
 
@@ -591,54 +591,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       );
     };
 
-    const createLabelInstance = (
-      bounds: OverlayBounds,
-      tagName: string,
-      componentName: string | undefined,
-      status: SelectionLabelInstance["status"],
-      options?: {
-        element?: Element;
-        mouseX?: number;
-        elements?: Element[];
-        boundsMultiple?: OverlayBounds[];
-        hideArrow?: boolean;
-      },
-    ): string => {
-      actions.clearLabelInstances();
-      const instanceId = generateLabelId();
-      const boundsCenterX = bounds.x + bounds.width / 2;
-      const boundsHalfWidth = bounds.width / 2;
-      const mouseX = options?.mouseX;
-      const mouseXOffset =
-        mouseX !== undefined ? mouseX - boundsCenterX : undefined;
-
-      const instance: SelectionLabelInstance = {
-        id: instanceId,
-        bounds,
-        boundsMultiple: options?.boundsMultiple,
-        tagName,
-        componentName,
-        status,
-        createdAt: Date.now(),
-        element: options?.element,
-        elements: options?.elements,
-        mouseX,
-        mouseXOffsetFromCenter: mouseXOffset,
-        mouseXOffsetRatio:
-          mouseXOffset !== undefined && boundsHalfWidth > 0
-            ? mouseXOffset / boundsHalfWidth
-            : undefined,
-        hideArrow: options?.hideArrow,
-      };
-      actions.addLabelInstance(instance);
-      return instanceId;
-    };
-
-    const removeLabelInstance = (instanceId: string) => {
-      labelFadeTimeouts.delete(instanceId);
-      actions.removeLabelInstance(instanceId);
-    };
-
     const labelFadeTimeouts = new Map<string, number>();
 
     const cancelLabelFade = (instanceId: string) => {
@@ -647,6 +599,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         window.clearTimeout(existingTimeout);
         labelFadeTimeouts.delete(instanceId);
       }
+    };
+
+    const cancelAllLabelFades = () => {
+      for (const timeoutId of labelFadeTimeouts.values()) {
+        window.clearTimeout(timeoutId);
+      }
+      labelFadeTimeouts.clear();
+    };
+
+    const removeLabelInstance = (instanceId: string) => {
+      labelFadeTimeouts.delete(instanceId);
+      actions.removeLabelInstance(instanceId);
     };
 
     const scheduleLabelFade = (instanceId: string) => {
@@ -677,6 +641,55 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           scheduleLabelFade(instanceId);
         }
       }
+    };
+
+    const createLabelInstance = (
+      bounds: OverlayBounds,
+      tagName: string,
+      componentName: string | undefined,
+      status: SelectionLabelInstance["status"],
+      options?: {
+        element?: Element;
+        mouseX?: number;
+        elements?: Element[];
+        boundsMultiple?: OverlayBounds[];
+        hideArrow?: boolean;
+      },
+    ): string => {
+      actions.clearLabelInstances();
+      cancelAllLabelFades();
+      const instanceId = generateId("label");
+      const boundsCenterX = bounds.x + bounds.width / 2;
+      const boundsHalfWidth = bounds.width / 2;
+      const mouseX = options?.mouseX;
+      const mouseXOffset =
+        mouseX !== undefined ? mouseX - boundsCenterX : undefined;
+
+      const instance: SelectionLabelInstance = {
+        id: instanceId,
+        bounds,
+        boundsMultiple: options?.boundsMultiple,
+        tagName,
+        componentName,
+        status,
+        createdAt: Date.now(),
+        element: options?.element,
+        elements: options?.elements,
+        mouseX,
+        mouseXOffsetFromCenter: mouseXOffset,
+        mouseXOffsetRatio:
+          mouseXOffset !== undefined && boundsHalfWidth > 0
+            ? mouseXOffset / boundsHalfWidth
+            : undefined,
+        hideArrow: options?.hideArrow,
+      };
+      actions.addLabelInstance(instance);
+      return instanceId;
+    };
+
+    const clearAllLabels = () => {
+      cancelAllLabelFades();
+      actions.clearLabelInstances();
     };
 
     interface ExecuteCopyOptions {
@@ -1744,29 +1757,30 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       actions.setPointer({ x: clientX, y: clientY });
 
-      detectionState.latestX = clientX;
-      detectionState.latestY = clientY;
+      detectionState.latestPointerX = clientX;
+      detectionState.latestPointerY = clientY;
 
       const now = performance.now();
       const isDetectionPending =
-        detectionState.pendingScheduledAt > 0 &&
-        now - detectionState.pendingScheduledAt <
+        detectionState.pendingDetectionScheduledAt > 0 &&
+        now - detectionState.pendingDetectionScheduledAt <
           PENDING_DETECTION_STALENESS_MS;
       if (
-        now - detectionState.lastTime >= ELEMENT_DETECTION_THROTTLE_MS &&
+        now - detectionState.lastDetectionTimestamp >=
+          ELEMENT_DETECTION_THROTTLE_MS &&
         !isDetectionPending
       ) {
-        detectionState.lastTime = now;
-        detectionState.pendingScheduledAt = now;
+        detectionState.lastDetectionTimestamp = now;
+        detectionState.pendingDetectionScheduledAt = now;
         onIdle(() => {
           const candidate = getElementAtPosition(
-            detectionState.latestX,
-            detectionState.latestY,
+            detectionState.latestPointerX,
+            detectionState.latestPointerY,
           );
           if (candidate !== store.detectedElement) {
             actions.setDetectedElement(candidate);
           }
-          detectionState.pendingScheduledAt = 0;
+          detectionState.pendingDetectionScheduledAt = 0;
         });
       }
 
@@ -1828,7 +1842,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       pluginRegistry.hooks.onDragEnd(selectedElements, dragSelectionRect);
       const firstElement = selectedElements[0];
-      const center = getBoundsCenter(createElementBounds(firstElement));
+      const center = getElementCenter(firstElement);
 
       actions.setPointer(center);
       actions.setFrozenElements(selectedElements);
@@ -1894,7 +1908,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         positionX = store.pointer.x;
         positionY = store.pointer.y;
       } else if (didSelectViaKeyboard) {
-        const elementCenter = getBoundsCenter(createElementBounds(element));
+        const elementCenter = getElementCenter(element);
         positionX = elementCenter.x;
         positionY = elementCenter.y;
       } else {
@@ -2162,7 +2176,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         event.preventDefault();
         event.stopImmediatePropagation();
 
-        const center = getBoundsCenter(createElementBounds(copiedElement));
+        const center = getElementCenter(copiedElement);
 
         actions.setPointer(center);
         preparePromptMode(copiedElement, center.x, center.y);
@@ -3064,6 +3078,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
       grabbedBoxTimeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
       grabbedBoxTimeouts.clear();
+      cancelAllLabelFades();
       autoScroller.stop();
       document.body.style.userSelect = "";
       document.body.style.touchAction = "";
@@ -3349,7 +3364,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           // HACK: Fire-and-forget when no label bounds to display feedback on
           try {
             await action();
-          } catch {}
+          } catch (error) {
+            logRecoverableError("Action failed without feedback bounds", error);
+          }
         }
 
         if (shouldDeactivateAfter) {
@@ -3420,7 +3437,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (agent) {
           actions.setSelectedAgent(agent);
         }
-        actions.clearLabelInstances();
+        clearAllLabels();
         onBeforePrompt?.();
         preparePromptMode(element, position.x, position.y);
         actions.setPointer({ x: position.x, y: position.y });
@@ -3490,7 +3507,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             if (agent) {
               actions.setSelectedAgent(agent);
             }
-            actions.clearLabelInstances();
+            clearAllLabels();
             actions.clearInputText();
             actions.enterPromptMode(position, element);
             deferHideContextMenu();
@@ -3736,7 +3753,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const element = getFirstConnectedHistoryElement(item);
       if (!element) return;
 
-      actions.clearLabelInstances();
+      clearAllLabels();
 
       // HACK: defer to next frame so idle preview label clears visually before "copied" appears
       nativeRequestAnimationFrame(() => {
@@ -3804,7 +3821,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       showClearPrompt();
 
-      actions.clearLabelInstances();
+      clearAllLabels();
 
       // HACK: defer to next frame so idle preview labels clear visually before "copied" appears
       nativeRequestAnimationFrame(() => {
@@ -3813,7 +3830,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             const connectedElements = getConnectedHistoryElements(historyItem);
             for (const element of connectedElements) {
               const bounds = createElementBounds(element);
-              const labelId = generateLabelId();
+              const labelId = generateId("label");
 
               actions.addLabelInstance({
                 id: labelId,
@@ -4108,8 +4125,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 isAgentConnected: isConnected,
               });
             })
-            .catch(() => {
-              // Connection check failed - leave isAgentConnected as false
+            .catch((error) => {
+              logRecoverableError("Agent connection check failed", error);
             });
         }
 
