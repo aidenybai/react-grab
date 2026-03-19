@@ -533,6 +533,12 @@ importers:
         specifier: ^8.2.4
         version: 8.3.5(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
 
+  packages/registry:
+    dependencies:
+      react-grab:
+        specifier: workspace:*
+        version: link:../react-grab
+
   packages/relay:
     dependencies:
       '@react-grab/utils':
@@ -2981,8 +2987,8 @@ packages:
     resolution: {integrity: sha512-y9/ltK2TY+0HD1H2Sz7MvU3zFh4SjER6eQVNQfBx/0gK9N7S0QwHW6cmhHLx3CP25zN190LKHXPieMGqsVvrOQ==}
     engines: {node: '>=18'}
 
-  '@sourcegraph/amp@0.0.1773792340-gded184':
-    resolution: {integrity: sha512-Kj7jBcX7KbED1fMl+YnrHFOTj89pxIZT8Ipir7sZP2++oQ/IiQnaddv4H3foEYW+UNREWr0sD2tDk7tlB5mBWQ==}
+  '@sourcegraph/amp@0.0.1773894994-gdee123':
+    resolution: {integrity: sha512-IzE6CUrk4PC6AmNXbGl3z9jtN2LWpF2ZP+sdpwmGWEK5NIE4spe+N/0dPEwRDlD1AuZOp9vIUwVDF/FuaSKeKA==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -9162,10 +9168,10 @@ snapshots:
 
   '@sourcegraph/amp-sdk@0.1.0-20251210081226-g90e3892':
     dependencies:
-      '@sourcegraph/amp': 0.0.1773792340-gded184
+      '@sourcegraph/amp': 0.0.1773894994-gdee123
       zod: 3.25.76
 
-  '@sourcegraph/amp@0.0.1773792340-gded184':
+  '@sourcegraph/amp@0.0.1773894994-gdee123':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
