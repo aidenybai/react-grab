@@ -1,4 +1,4 @@
-import { Show, For, onMount, onCleanup, createSignal } from "solid-js";
+import { Show, For, onSettled, createSignal } from "solid-js";
 import type { Component } from "solid-js";
 import type { ToolbarMenuAction, DropdownAnchor } from "../../types.js";
 import {
@@ -49,17 +49,17 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
     }
   };
 
-  onMount(() => {
+  onSettled(() => {
     dropdown.measure();
     const unregisterOverlayDismiss = registerOverlayDismiss({
       isOpen: () => Boolean(props.position),
       onDismiss: props.onDismiss,
     });
 
-    onCleanup(() => {
+    return () => {
       dropdown.clearAnimationHandles();
       unregisterOverlayDismiss();
-    });
+    };
   });
 
   return (
@@ -97,19 +97,20 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
               class="pointer-events-none absolute bg-black/5 opacity-0 transition-[top,left,width,height,opacity] duration-75 ease-out"
             />
             <For each={props.actions}>
-              {(action) => {
-                const isToggleAction = action.isActive !== undefined;
+              {(actionAccessor) => {
+                const action = () => actionAccessor();
+                const isToggleAction = () => action().isActive !== undefined;
                 const isActionEnabled = () =>
-                  resolveToolbarActionEnabled(action);
+                  resolveToolbarActionEnabled(action());
                 const isToggleActive = () => {
                   void toggleRefreshCounter();
-                  return Boolean(action.isActive?.());
+                  return Boolean(action().isActive?.());
                 };
 
                 return (
                   <button
                     data-react-grab-ignore-events
-                    data-react-grab-menu-item={action.id}
+                    data-react-grab-menu-item={action().id}
                     class="relative z-1 contain-layout flex items-center justify-between w-full px-2 py-1 cursor-pointer text-left border-none bg-transparent disabled:opacity-40 disabled:cursor-default"
                     disabled={!isActionEnabled()}
                     onPointerDown={(event) => event.stopPropagation()}
@@ -119,19 +120,19 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
                       }
                     }}
                     onPointerLeave={clearHighlight}
-                    onClick={(event) => handleActionClick(action, event)}
+                    onClick={(event) => handleActionClick(action(), event)}
                   >
                     <span class="text-[13px] leading-4 font-sans font-medium text-black">
-                      {action.label}
+                      {action().label}
                     </span>
-                    <Show when={!isToggleAction && action.shortcut}>
+                    <Show when={!isToggleAction() && action().shortcut}>
                       {(shortcutKey) => (
                         <span class="text-[11px] font-sans text-black/50 ml-4">
                           {formatShortcut(shortcutKey())}
                         </span>
                       )}
                     </Show>
-                    <Show when={isToggleAction}>
+                    <Show when={isToggleAction()}>
                       <div
                         class={cn(
                           "relative rounded-full transition-colors ml-4 shrink-0 w-5 h-3",

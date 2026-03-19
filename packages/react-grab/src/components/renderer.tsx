@@ -1,4 +1,4 @@
-import { Show, Index } from "solid-js";
+import { Show, For } from "solid-js";
 import type { Component } from "solid-js";
 import type { AgentSession, ReactGrabRendererProps } from "../types.js";
 import {
@@ -64,10 +64,11 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         }}
       />
 
-      <Index
+      <For
         each={
           props.agentSessions ? Array.from(props.agentSessions.values()) : []
         }
+        keyed={false}
       >
         {(session) => (
           <Show when={session().selectionBounds.length > 0}>
@@ -116,7 +117,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
             />
           </Show>
         )}
-      </Index>
+      </For>
 
       <Show when={props.selectionLabelVisible && props.selectionBounds}>
         <SelectionLabel
@@ -151,7 +152,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         />
       </Show>
 
-      <Index each={props.labelInstances ?? []}>
+      <For each={props.labelInstances ?? []} keyed={false}>
         {(instance) => (
           <SelectionLabel
             tagName={instance().tagName}
@@ -186,7 +187,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
             }
           />
         )}
-      </Index>
+      </For>
 
       <Show when={props.toolbarVisible !== false}>
         <Toolbar

@@ -1,4 +1,4 @@
-import { createSignal, createEffect, on, onCleanup, Show } from "solid-js";
+import { createSignal, createEffect, onCleanup, Show } from "solid-js";
 import type { Component, JSX } from "solid-js";
 import { cn } from "../utils/cn.js";
 import {
@@ -25,32 +25,30 @@ export const Tooltip: Component<TooltipProps> = (props) => {
   let delayTimeoutId: ReturnType<typeof setTimeout> | undefined;
 
   createEffect(
-    on(
-      () => props.visible,
-      (isVisible) => {
-        if (delayTimeoutId !== undefined) {
-          clearTimeout(delayTimeoutId);
-          delayTimeoutId = undefined;
-        }
+    () => props.visible,
+    (isVisible) => {
+      if (delayTimeoutId !== undefined) {
+        clearTimeout(delayTimeoutId);
+        delayTimeoutId = undefined;
+      }
 
-        if (isVisible) {
-          if (wasTooltipRecentlyVisible()) {
-            setShouldAnimate(false);
-            setDelayedVisible(true);
-          } else {
-            setShouldAnimate(true);
-            delayTimeoutId = setTimeout(() => {
-              setDelayedVisible(true);
-            }, TOOLTIP_DELAY_MS);
-          }
+      if (isVisible) {
+        if (wasTooltipRecentlyVisible()) {
+          setShouldAnimate(false);
+          setDelayedVisible(true);
         } else {
-          if (delayedVisible()) {
-            lastCloseTimestamp = Date.now();
-          }
-          setDelayedVisible(false);
+          setShouldAnimate(true);
+          delayTimeoutId = setTimeout(() => {
+            setDelayedVisible(true);
+          }, TOOLTIP_DELAY_MS);
         }
-      },
-    ),
+      } else {
+        if (delayedVisible()) {
+          lastCloseTimestamp = Date.now();
+        }
+        setDelayedVisible(false);
+      }
+    },
   );
 
   onCleanup(() => {

@@ -1,12 +1,4 @@
-import {
-  Show,
-  For,
-  onMount,
-  onCleanup,
-  createSignal,
-  createEffect,
-  on,
-} from "solid-js";
+import { Show, For, onSettled, createSignal, createEffect } from "solid-js";
 import type { Component } from "solid-js";
 import type { HistoryItem, DropdownAnchor } from "../types.js";
 import {
@@ -102,15 +94,14 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
 
   // HACK: mouseenter doesn't fire when an element appears under the cursor, so we check :hover after the enter animation commits
   createEffect(
-    on(
-      () => dropdown.isAnimatedIn(),
-      (animatedIn) => {
-        if (animatedIn && containerRef?.matches(":hover")) {
-          props.onDropdownHover?.(true);
-        }
-      },
-      { defer: true },
-    ),
+    () => dropdown.isAnimatedIn(),
+    (animatedIn) => {
+      if (animatedIn && containerRef?.matches(":hover")) {
+        props.onDropdownHover?.(true);
+      }
+    },
+    undefined,
+    { defer: true },
   );
 
   const clampedMaxWidth = () =>
@@ -129,7 +120,7 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
   const panelMinWidth = () =>
     Math.max(DROPDOWN_MIN_WIDTH_PX, props.position?.toolbarWidth ?? 0);
 
-  onMount(() => {
+  onSettled(() => {
     dropdown.measure();
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -143,13 +134,13 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
 
     window.addEventListener("keydown", handleKeyDown, { capture: true });
 
-    onCleanup(() => {
+    return () => {
       clearTimeout(copyAllFeedbackTimeout);
       clearTimeout(copyItemFeedbackTimeout);
       dropdown.clearAnimationHandles();
       window.removeEventListener("keydown", handleKeyDown, { capture: true });
       safePolygonTracker.stop();
-    });
+    };
   });
 
   return (
@@ -284,104 +275,114 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
                 class="pointer-events-none absolute bg-black/5 opacity-0 transition-[top,left,width,height,opacity] duration-75 ease-out"
               />
               <For each={props.items}>
-                {(item) => (
-                  <div
-                    data-react-grab-ignore-events
-                    data-react-grab-history-item
-                    class="group relative z-1 contain-layout flex items-start justify-between w-full px-2 py-1 cursor-pointer text-left gap-2"
-                    classList={{
-                      "opacity-40 hover:opacity-100": Boolean(
-                        props.disconnectedItemIds?.has(item.id),
-                      ),
-                    }}
-                    tabindex="0"
-                    onPointerDown={(event) => event.stopPropagation()}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      props.onSelectItem?.(item);
-                      setConfirmedCopyItemId(item.id);
-                      clearTimeout(copyItemFeedbackTimeout);
-                      copyItemFeedbackTimeout = setTimeout(() => {
-                        setConfirmedCopyItemId(null);
-                      }, FEEDBACK_DURATION_MS);
-                    }}
-                    onKeyDown={(event) => {
-                      if (
-                        event.code === "Space" &&
-                        event.currentTarget === event.target
-                      ) {
-                        event.preventDefault();
+                {(itemAccessor) => {
+                  const historyItem = () => itemAccessor();
+                  return (
+                    <div
+                      data-react-grab-ignore-events
+                      data-react-grab-history-item
+                      class={[
+                        "group relative z-1 contain-layout flex items-start justify-between w-full px-2 py-1 cursor-pointer text-left gap-2",
+                        {
+                          "opacity-40 hover:opacity-100": Boolean(
+                            props.disconnectedItemIds?.has(historyItem().id),
+                          ),
+                        },
+                      ]}
+                      tabindex="0"
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onClick={(event) => {
                         event.stopPropagation();
-                        props.onSelectItem?.(item);
-                      }
-                    }}
-                    onMouseEnter={(event) => {
-                      if (!props.disconnectedItemIds?.has(item.id)) {
-                        props.onItemHover?.(item.id);
-                      }
-                      updateHighlight(event.currentTarget);
-                    }}
-                    onMouseLeave={() => {
-                      props.onItemHover?.(null);
-                      clearHighlight();
-                    }}
-                    onFocus={(event) => updateHighlight(event.currentTarget)}
-                    onBlur={clearHighlight}
-                  >
-                    <span class="flex flex-col min-w-0 flex-1">
-                      <span class="text-[12px] leading-4 font-sans font-medium text-black truncate">
-                        {getHistoryItemDisplayName(item)}
-                      </span>
-                      <Show when={item.commentText}>
-                        <span class="text-[11px] leading-3 font-sans text-black/40 truncate mt-0.5">
-                          {item.commentText}
+                        props.onSelectItem?.(historyItem());
+                        setConfirmedCopyItemId(historyItem().id);
+                        clearTimeout(copyItemFeedbackTimeout);
+                        copyItemFeedbackTimeout = setTimeout(() => {
+                          setConfirmedCopyItemId(null);
+                        }, FEEDBACK_DURATION_MS);
+                      }}
+                      onKeyDown={(event) => {
+                        if (
+                          event.code === "Space" &&
+                          event.currentTarget === event.target
+                        ) {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          props.onSelectItem?.(historyItem());
+                        }
+                      }}
+                      onMouseEnter={(event) => {
+                        if (!props.disconnectedItemIds?.has(historyItem().id)) {
+                          props.onItemHover?.(historyItem().id);
+                        }
+                        updateHighlight(event.currentTarget);
+                      }}
+                      onMouseLeave={() => {
+                        props.onItemHover?.(null);
+                        clearHighlight();
+                      }}
+                      onFocus={(event) => updateHighlight(event.currentTarget)}
+                      onBlur={clearHighlight}
+                    >
+                      <span class="flex flex-col min-w-0 flex-1">
+                        <span class="text-[12px] leading-4 font-sans font-medium text-black truncate">
+                          {getHistoryItemDisplayName(historyItem())}
                         </span>
-                      </Show>
-                    </span>
-                    <span class="shrink-0 grid">
-                      <span class="text-[10px] font-sans text-black/25 group-hover:invisible group-focus-within:invisible [grid-area:1/1] flex items-center justify-end">
-                        {formatRelativeTime(item.timestamp)}
+                        <Show when={historyItem().commentText}>
+                          <span class="text-[11px] leading-3 font-sans text-black/40 truncate mt-0.5">
+                            {historyItem().commentText}
+                          </span>
+                        </Show>
                       </span>
-                      <span class="invisible group-hover:visible group-focus-within:visible [grid-area:1/1] flex items-center justify-end gap-1.5">
-                        <button
-                          data-react-grab-ignore-events
-                          data-react-grab-history-item-remove
-                          class={cn(ITEM_ACTION_CLASS, "hover:text-[#B91C1C]")}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            props.onRemoveItem?.(item);
-                          }}
-                        >
-                          <IconTrash size={DROPDOWN_ICON_SIZE_PX} />
-                        </button>
-                        <button
-                          data-react-grab-ignore-events
-                          data-react-grab-history-item-copy
-                          class={cn(ITEM_ACTION_CLASS, "hover:text-black/60")}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            props.onCopyItem?.(item);
-                            setConfirmedCopyItemId(item.id);
-                            clearTimeout(copyItemFeedbackTimeout);
-                            copyItemFeedbackTimeout = setTimeout(() => {
-                              setConfirmedCopyItemId(null);
-                            }, FEEDBACK_DURATION_MS);
-                          }}
-                        >
-                          <Show
-                            when={confirmedCopyItemId() === item.id}
-                            fallback={<IconCopy size={DROPDOWN_ICON_SIZE_PX} />}
+                      <span class="shrink-0 grid">
+                        <span class="text-[10px] font-sans text-black/25 group-hover:invisible group-focus-within:invisible [grid-area:1/1] flex items-center justify-end">
+                          {formatRelativeTime(historyItem().timestamp)}
+                        </span>
+                        <span class="invisible group-hover:visible group-focus-within:visible [grid-area:1/1] flex items-center justify-end gap-1.5">
+                          <button
+                            data-react-grab-ignore-events
+                            data-react-grab-history-item-remove
+                            class={cn(
+                              ITEM_ACTION_CLASS,
+                              "hover:text-[#B91C1C]",
+                            )}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              props.onRemoveItem?.(historyItem());
+                            }}
                           >
-                            <IconCheck
-                              size={DROPDOWN_ICON_SIZE_PX}
-                              class="text-black"
-                            />
-                          </Show>
-                        </button>
+                            <IconTrash size={DROPDOWN_ICON_SIZE_PX} />
+                          </button>
+                          <button
+                            data-react-grab-ignore-events
+                            data-react-grab-history-item-copy
+                            class={cn(ITEM_ACTION_CLASS, "hover:text-black/60")}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              props.onCopyItem?.(historyItem());
+                              setConfirmedCopyItemId(historyItem().id);
+                              clearTimeout(copyItemFeedbackTimeout);
+                              copyItemFeedbackTimeout = setTimeout(() => {
+                                setConfirmedCopyItemId(null);
+                              }, FEEDBACK_DURATION_MS);
+                            }}
+                          >
+                            <Show
+                              when={confirmedCopyItemId() === historyItem().id}
+                              fallback={
+                                <IconCopy size={DROPDOWN_ICON_SIZE_PX} />
+                              }
+                            >
+                              <IconCheck
+                                size={DROPDOWN_ICON_SIZE_PX}
+                                class="text-black"
+                              />
+                            </Show>
+                          </button>
+                        </span>
                       </span>
-                    </span>
-                  </div>
-                )}
+                    </div>
+                  );
+                }}
               </For>
             </div>
           </div>

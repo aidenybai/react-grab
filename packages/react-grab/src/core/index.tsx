@@ -6,11 +6,8 @@ import {
   createSignal,
   onCleanup,
   createEffect,
-  createResource,
-  on,
-  batch,
 } from "solid-js";
-import { render } from "solid-js/web";
+import { render } from "@solidjs/web";
 import { createGrabStore } from "./store.js";
 import {
   isKeyboardEventTriggeredByInput,
@@ -249,7 +246,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     createEffect(
-      on(isActivated, (activated, previousActivated) => {
+      () => isActivated(),
+      (activated, previousActivated) => {
         if (activated && !previousActivated) {
           freezePseudoStates();
           freezeGlobalAnimations();
@@ -260,7 +258,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           unfreezeGlobalAnimations();
           document.body.style.touchAction = "";
         }
-      }),
+      },
     );
 
     const savedToolbarState = loadToolbarState();
@@ -381,45 +379,56 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       holdState.startTimestamp = null;
     };
 
-    createEffect(() => {
-      if (store.current.state !== "holding") {
-        clearHoldTimer();
-        return;
-      }
-      holdState.startTimestamp = Date.now();
-      holdState.timerId = window.setTimeout(() => {
-        holdState.timerId = null;
-        if (holdState.copyWaiting) {
-          holdState.holdTimerFired = true;
+    createEffect(
+      () => store.current.state,
+      (currentState) => {
+        if (currentState !== "holding") {
+          clearHoldTimer();
           return;
         }
-        actions.activate();
-      }, store.keyHoldDuration);
-      onCleanup(clearHoldTimer);
-    });
-
-    createEffect(() => {
-      if (
-        store.current.state !== "active" ||
-        store.current.phase !== "justDragged"
-      )
-        return;
-      const timerId = setTimeout(() => {
-        actions.finishJustDragged();
-      }, FEEDBACK_DURATION_MS);
-      onCleanup(() => clearTimeout(timerId));
-    });
-
-    createEffect(() => {
-      if (store.current.state !== "justCopied") return;
-      const timerId = setTimeout(() => {
-        actions.finishJustCopied();
-      }, FEEDBACK_DURATION_MS);
-      onCleanup(() => clearTimeout(timerId));
-    });
+        holdState.startTimestamp = Date.now();
+        holdState.timerId = window.setTimeout(() => {
+          holdState.timerId = null;
+          if (holdState.copyWaiting) {
+            holdState.holdTimerFired = true;
+            return;
+          }
+          actions.activate();
+        }, store.keyHoldDuration);
+        return () => clearHoldTimer();
+      },
+    );
 
     createEffect(
-      on(isHoldingKeys, (currentlyHolding, previouslyHolding = false) => {
+      () => {
+        const currentState = store.current.state;
+        const currentPhase =
+          currentState === "active" ? store.current.phase : null;
+        return [currentState, currentPhase] as const;
+      },
+      ([currentState, currentPhase]) => {
+        if (currentState !== "active" || currentPhase !== "justDragged") return;
+        const timerId = setTimeout(() => {
+          actions.finishJustDragged();
+        }, FEEDBACK_DURATION_MS);
+        return () => clearTimeout(timerId);
+      },
+    );
+
+    createEffect(
+      () => store.current.state,
+      (currentState) => {
+        if (currentState !== "justCopied") return;
+        const timerId = setTimeout(() => {
+          actions.finishJustCopied();
+        }, FEEDBACK_DURATION_MS);
+        return () => clearTimeout(timerId);
+      },
+    );
+
+    createEffect(
+      () => isHoldingKeys(),
+      (currentlyHolding, previouslyHolding = false) => {
         if (!previouslyHolding || currentlyHolding || !isActivated()) {
           return;
         }
@@ -427,7 +436,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           actions.setWasActivatedByToggle(true);
         }
         pluginRegistry.hooks.onActivate();
-      }),
+      },
     );
 
     const preparePromptMode = (
@@ -1004,21 +1013,24 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       () => store.frozenElement || (isFrozenPhase() ? null : targetElement()),
     );
 
-    createEffect(() => {
-      const element = store.detectedElement;
-      if (!element) return;
+    createEffect(
+      () => store.detectedElement,
+      (element) => {
+        if (!element) return;
 
-      const intervalId = setInterval(() => {
-        if (!isElementConnected(element)) {
-          actions.setDetectedElement(null);
-        }
-      }, BOUNDS_RECALC_INTERVAL_MS);
+        const intervalId = setInterval(() => {
+          if (!isElementConnected(element)) {
+            actions.setDetectedElement(null);
+          }
+        }, BOUNDS_RECALC_INTERVAL_MS);
 
-      onCleanup(() => clearInterval(intervalId));
-    });
+        return () => clearInterval(intervalId);
+      },
+    );
 
     createEffect(
-      on(effectiveElement, (element) => {
+      () => effectiveElement(),
+      (element) => {
         if (componentNameDebounceTimerId !== null) {
           clearTimeout(componentNameDebounceTimerId);
           componentNameDebounceTimerId = null;
@@ -1033,7 +1045,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           componentNameDebounceTimerId = null;
           setDebouncedElementForComponentName(element);
         }, COMPONENT_NAME_DEBOUNCE_MS);
-      }),
+      },
     );
 
     onCleanup(() => {
@@ -1043,19 +1055,20 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     });
 
-    createEffect(() => {
-      const elements = store.frozenElements;
-      const cleanup = freezeAnimations(elements);
-      onCleanup(cleanup);
-    });
+    createEffect(
+      () => store.frozenElements,
+      (elements) => {
+        return freezeAnimations(elements);
+      },
+    );
 
     createEffect(
-      on(isActivated, (activated) => {
+      () => isActivated(),
+      (activated) => {
         if (!activated) return;
         if (!pluginRegistry.store.options.freezeReactUpdates) return;
-        const unfreezeUpdates = freezeUpdates();
-        onCleanup(unfreezeUpdates);
-      }),
+        return freezeUpdates();
+      },
     );
 
     // HACK: In touch mode during drag, effectiveElement() is null so we use detectedElement
@@ -1228,59 +1241,55 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     createEffect(
-      on(
-        () => [targetElement(), store.lastGrabbedElement] as const,
-        ([currentElement, lastElement]) => {
-          if (lastElement && currentElement && lastElement !== currentElement) {
-            actions.setLastGrabbed(null);
-          }
-          if (currentElement) {
-            pluginRegistry.hooks.onElementHover(currentElement);
-          }
-        },
-      ),
+      () => [targetElement(), store.lastGrabbedElement] as const,
+      ([currentElement, lastElement]) => {
+        if (lastElement && currentElement && lastElement !== currentElement) {
+          actions.setLastGrabbed(null);
+        }
+        if (currentElement) {
+          pluginRegistry.hooks.onElementHover(currentElement);
+        }
+      },
     );
 
     createEffect(
-      on(
-        () => targetElement(),
-        (element) => {
-          const currentVersion = ++selectionSourceRequestVersion;
+      () => targetElement(),
+      (element) => {
+        const currentVersion = ++selectionSourceRequestVersion;
 
-          const clearSource = () => {
+        const clearSource = () => {
+          if (selectionSourceRequestVersion === currentVersion) {
+            actions.setSelectionSource(null, null);
+          }
+        };
+
+        if (!element) {
+          clearSource();
+          return;
+        }
+
+        resolveSource(element)
+          .then((source) => {
+            if (selectionSourceRequestVersion !== currentVersion) return;
+            if (!source) {
+              clearSource();
+              return;
+            }
+            actions.setSelectionSource(source.filePath, source.lineNumber);
+          })
+          .catch(() => {
             if (selectionSourceRequestVersion === currentVersion) {
               actions.setSelectionSource(null, null);
             }
-          };
-
-          if (!element) {
-            clearSource();
-            return;
-          }
-
-          resolveSource(element)
-            .then((source) => {
-              if (selectionSourceRequestVersion !== currentVersion) return;
-              if (!source) {
-                clearSource();
-                return;
-              }
-              actions.setSelectionSource(source.filePath, source.lineNumber);
-            })
-            .catch(() => {
-              if (selectionSourceRequestVersion === currentVersion) {
-                actions.setSelectionSource(null, null);
-              }
-            });
-        },
-      ),
+          });
+      },
     );
 
     createEffect(
-      on(
-        () => store.viewportVersion,
-        () => agentManager._internal.updateBoundsOnViewportChange(),
-      ),
+      () => store.viewportVersion,
+      () => {
+        agentManager._internal.updateBoundsOnViewportChange();
+      },
     );
 
     const stateChangeGrabbedBoxes = createMemo(() =>
@@ -1352,75 +1361,68 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     createEffect(
-      on(derivedStateForHook, (state) => {
+      () => derivedStateForHook(),
+      (state) => {
         pluginRegistry.hooks.onStateChange(state);
-      }),
+      },
     );
 
     createEffect(
-      on(
-        () =>
-          [
-            isPromptMode(),
-            store.pointer.x,
-            store.pointer.y,
-            targetElement(),
-          ] as const,
-        ([inputMode, x, y, target]) => {
-          pluginRegistry.hooks.onPromptModeChange(inputMode, {
-            x,
-            y,
-            targetElement: target,
-          });
-        },
-      ),
+      () =>
+        [
+          isPromptMode(),
+          store.pointer.x,
+          store.pointer.y,
+          targetElement(),
+        ] as const,
+      ([inputMode, x, y, target]) => {
+        pluginRegistry.hooks.onPromptModeChange(inputMode, {
+          x,
+          y,
+          targetElement: target,
+        });
+      },
     );
 
     createEffect(
-      on(
-        () => [selectionVisible(), selectionBounds(), targetElement()] as const,
-        ([visible, bounds, element]) => {
-          pluginRegistry.hooks.onSelectionBox(
-            Boolean(visible),
-            bounds ?? null,
-            element,
-          );
-        },
-      ),
+      () => [selectionVisible(), selectionBounds(), targetElement()] as const,
+      ([visible, bounds, element]) => {
+        pluginRegistry.hooks.onSelectionBox(
+          Boolean(visible),
+          bounds ?? null,
+          element,
+        );
+      },
     );
 
     createEffect(
-      on(
-        () => [dragVisible(), dragBounds()] as const,
-        ([visible, bounds]) => {
-          pluginRegistry.hooks.onDragBox(Boolean(visible), bounds ?? null);
-        },
-      ),
+      () => [dragVisible(), dragBounds()] as const,
+      ([visible, bounds]) => {
+        pluginRegistry.hooks.onDragBox(Boolean(visible), bounds ?? null);
+      },
     );
 
     createEffect(
-      on(
-        () =>
-          [
-            labelVisible(),
-            labelVariant(),
-            cursorPosition(),
-            targetElement(),
-            store.selectionFilePath,
-            store.selectionLineNumber,
-          ] as const,
-        ([visible, variant, position, element, filePath, lineNumber]) => {
-          pluginRegistry.hooks.onElementLabel(Boolean(visible), variant, {
-            x: position.x,
-            y: position.y,
-            content: "",
-            element: element ?? undefined,
-            tagName: element ? getTagName(element) || undefined : undefined,
-            filePath: filePath ?? undefined,
-            lineNumber: lineNumber ?? undefined,
-          });
-        },
-      ),
+      () =>
+        [
+          labelVisible(),
+          labelVariant(),
+          cursorPosition(),
+          targetElement(),
+          store.selectionFilePath,
+          store.selectionLineNumber,
+        ] as const,
+      ([visible, variant, position, element, filePath, lineNumber]) => {
+        pluginRegistry.hooks.onElementLabel(Boolean(visible), variant, {
+          x: position.x,
+          y: position.y,
+          content: "",
+          element: element ?? undefined,
+          tagName: element ? getTagName(element) || undefined : undefined,
+          filePath: filePath ?? undefined,
+          lineNumber: lineNumber ?? undefined,
+        });
+      },
     );
 
     let cursorStyleElement: HTMLStyleElement | null = null;
@@ -1440,18 +1442,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     createEffect(
-      on(
-        () => [isActivated(), isCopying(), isPromptMode()] as const,
-        ([activated, copying, promptMode]) => {
-          if (copying) {
-            setCursorOverride("progress");
-          } else if (activated && !promptMode) {
-            setCursorOverride("crosshair");
-          } else {
-            setCursorOverride(null);
-          }
-        },
-      ),
+      () => [isActivated(), isCopying(), isPromptMode()] as const,
+      ([activated, copying, promptMode]) => {
+        if (copying) {
+          setCursorOverride("progress");
+        } else if (activated && !promptMode) {
+          setCursorOverride("crosshair");
+        } else {
+          setCursorOverride(null);
+        }
+      },
     );
 
     const activateRenderer = () => {
@@ -2292,17 +2292,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     }));
 
     createEffect(
-      on(selectionElement, () => {
+      () => selectionElement(),
+      () => {
         resetActionCycle();
-      }),
+      },
     );
 
     createEffect(
-      on(canCycleActions, (isEnabled) => {
+      () => canCycleActions(),
+      (isEnabled) => {
         if (!isEnabled) {
           resetActionCycle();
         }
-      }),
+      },
     );
 
     const getActionById = (actionId: string): ContextMenuAction | undefined =>
@@ -3009,34 +3011,35 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       });
     };
 
-    createEffect(() => {
-      const shouldRunInterval =
+    createEffect(
+      () =>
         pluginRegistry.store.theme.enabled &&
         (isActivated() ||
           isCopying() ||
           store.labelInstances.length > 0 ||
           store.grabbedBoxes.length > 0 ||
-          agentManager.sessions().size > 0);
+          agentManager.sessions().size > 0),
+      (shouldRunInterval) => {
+        if (shouldRunInterval) {
+          if (boundsRecalcIntervalId !== null) return;
 
-      if (shouldRunInterval) {
-        if (boundsRecalcIntervalId !== null) return;
+          boundsRecalcIntervalId = window.setInterval(() => {
+            scheduleBoundsSync();
+          }, BOUNDS_RECALC_INTERVAL_MS);
+          return;
+        }
 
-        boundsRecalcIntervalId = window.setInterval(() => {
-          scheduleBoundsSync();
-        }, BOUNDS_RECALC_INTERVAL_MS);
-        return;
-      }
+        if (boundsRecalcIntervalId !== null) {
+          window.clearInterval(boundsRecalcIntervalId);
+          boundsRecalcIntervalId = null;
+        }
 
-      if (boundsRecalcIntervalId !== null) {
-        window.clearInterval(boundsRecalcIntervalId);
-        boundsRecalcIntervalId = null;
-      }
-
-      if (viewportChangeFrameId !== null) {
-        nativeCancelAnimationFrame(viewportChangeFrameId);
-        viewportChangeFrameId = null;
-      }
-    });
+        if (viewportChangeFrameId !== null) {
+          nativeCancelAnimationFrame(viewportChangeFrameId);
+          viewportChangeFrameId = null;
+        }
+      },
+    );
 
     onCleanup(() => {
       if (boundsRecalcIntervalId !== null) {
@@ -3121,27 +3124,25 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     createEffect(
-      on(
-        () => debouncedElementForComponentName(),
-        (element) => {
-          const currentVersion = ++componentNameRequestVersion;
+      () => debouncedElementForComponentName(),
+      (element) => {
+        const currentVersion = ++componentNameRequestVersion;
 
-          if (!element) {
+        if (!element) {
+          setResolvedComponentName(undefined);
+          return;
+        }
+
+        getNearestComponentName(element)
+          .then((name) => {
+            if (componentNameRequestVersion !== currentVersion) return;
+            setResolvedComponentName(name ?? undefined);
+          })
+          .catch(() => {
+            if (componentNameRequestVersion !== currentVersion) return;
             setResolvedComponentName(undefined);
-            return;
-          }
-
-          getNearestComponentName(element)
-            .then((name) => {
-              if (componentNameRequestVersion !== currentVersion) return;
-              setResolvedComponentName(name ?? undefined);
-            })
-            .catch(() => {
-              if (componentNameRequestVersion !== currentVersion) return;
-              setResolvedComponentName(undefined);
-            });
-        },
-      ),
+          });
+      },
     );
 
     const selectionLabelVisible = createMemo(() => {
@@ -3273,24 +3274,57 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return getTagName(element) || undefined;
     });
 
-    const [contextMenuComponentName] = createResource(
+    const [contextMenuComponentName, setContextMenuComponentName] =
+      createSignal<string | undefined>(undefined);
+
+    let contextMenuComponentNameVersion = 0;
+
+    createEffect(
       () => ({
         element: store.contextMenuElement,
         frozenCount: store.frozenElements.length,
       }),
-      async ({ element, frozenCount }) => {
-        if (!element) return undefined;
-        if (frozenCount > 1) return undefined;
-        const name = await getNearestComponentName(element);
-        return name ?? undefined;
+      ({ element, frozenCount }) => {
+        const requestVersion = ++contextMenuComponentNameVersion;
+        if (!element || frozenCount > 1) {
+          setContextMenuComponentName(undefined);
+          return;
+        }
+        getNearestComponentName(element)
+          .then((name) => {
+            if (contextMenuComponentNameVersion !== requestVersion) return;
+            setContextMenuComponentName(name ?? undefined);
+          })
+          .catch(() => {
+            if (contextMenuComponentNameVersion !== requestVersion) return;
+            setContextMenuComponentName(undefined);
+          });
       },
     );
 
-    const [contextMenuFilePath] = createResource(
+    const [contextMenuFilePath, setContextMenuFilePath] = createSignal<Awaited<
+      ReturnType<typeof resolveSource>
+    > | null>(null);
+
+    let contextMenuFilePathVersion = 0;
+
+    createEffect(
       () => store.contextMenuElement,
-      async (element) => {
-        if (!element) return null;
-        return resolveSource(element);
+      (element) => {
+        const requestVersion = ++contextMenuFilePathVersion;
+        if (!element) {
+          setContextMenuFilePath(null);
+          return;
+        }
+        resolveSource(element)
+          .then((source) => {
+            if (contextMenuFilePathVersion !== requestVersion) return;
+            setContextMenuFilePath(source);
+          })
+          .catch(() => {
+            if (contextMenuFilePathVersion !== requestVersion) return;
+            setContextMenuFilePath(null);
+          });
       },
     );
 
@@ -3825,27 +3859,25 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       // HACK: defer to next frame so idle preview labels clear visually before "copied" appears
       nativeRequestAnimationFrame(() => {
-        batch(() => {
-          for (const historyItem of currentHistoryItems) {
-            const connectedElements = getConnectedHistoryElements(historyItem);
-            for (const element of connectedElements) {
-              const bounds = createElementBounds(element);
-              const labelId = generateId("label");
+        for (const historyItem of currentHistoryItems) {
+          const connectedElements = getConnectedHistoryElements(historyItem);
+          for (const element of connectedElements) {
+            const bounds = createElementBounds(element);
+            const labelId = generateId("label");
 
-              actions.addLabelInstance({
-                id: labelId,
-                bounds,
-                tagName: historyItem.tagName,
-                componentName: historyItem.componentName,
-                status: "copied",
-                createdAt: Date.now(),
-                element,
-                mouseX: bounds.x + bounds.width / 2,
-              });
-              scheduleLabelFade(labelId);
-            }
+            actions.addLabelInstance({
+              id: labelId,
+              bounds,
+              tagName: historyItem.tagName,
+              componentName: historyItem.componentName,
+              status: "copied",
+              createdAt: Date.now(),
+              element,
+              mouseX: bounds.x + bounds.width / 2,
+            });
+            scheduleLabelFade(labelId);
           }
-        });
+        }
       });
     };
 
@@ -3949,14 +3981,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }, 0);
     };
 
-    createEffect(() => {
-      const hue = pluginRegistry.store.theme.hue;
-      if (hue !== 0) {
-        rendererRoot.style.filter = `hue-rotate(${hue}deg)`;
-      } else {
-        rendererRoot.style.filter = "";
-      }
-    });
+    createEffect(
+      () => pluginRegistry.store.theme.hue,
+      (hue) => {
+        rendererRoot.style.filter = hue !== 0 ? `hue-rotate(${hue}deg)` : "";
+      },
+    );
 
     if (pluginRegistry.store.theme.enabled) {
       render(() => {

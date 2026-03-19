@@ -50,7 +50,7 @@ const DEFAULT_OPTIONS: Options = {
     ".css": "text",
   },
   minify: process.env.NODE_ENV === "production",
-  noExternal: ["clsx", "solid-js", "bippy"],
+  noExternal: ["clsx", "solid-js", "@solidjs/web", "bippy"],
   onSuccess: process.env.COPY ? "pbcopy < ./dist/index.global.js" : undefined,
   outDir: "./dist",
   sourcemap: false,

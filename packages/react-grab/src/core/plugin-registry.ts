@@ -1,4 +1,4 @@
-import { createStore } from "solid-js/store";
+import { createStore, storePath } from "solid-js";
 import type {
   Position,
   Plugin,
@@ -110,10 +110,12 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
 
     mergedOptions = { ...mergedOptions, ...directOptionOverrides };
 
-    setStore("theme", mergedTheme);
-    setStore("options", mergedOptions);
-    setStore("actions", allContextMenuActions);
-    setStore("toolbarActions", allToolbarActions);
+    setStore((draft) => {
+      draft.theme = mergedTheme;
+      draft.options = mergedOptions;
+      draft.actions = allContextMenuActions;
+      draft.toolbarActions = allToolbarActions;
+    });
   };
 
   const setOption = <OptionKey extends keyof OptionsState>(
@@ -121,7 +123,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     optionValue: OptionsState[OptionKey],
   ) => {
     directOptionOverrides[optionKey] = optionValue;
-    setStore("options", optionKey, optionValue);
+    setStore(storePath("options", optionKey, optionValue));
   };
 
   const SETTABLE_OPTION_KEYS: Array<keyof OptionsState> = [

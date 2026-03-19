@@ -24,13 +24,14 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@solidjs/web": "2.0.0-beta.3",
     "react-grab": "workspace:*",
-    "solid-js": "^1.9.10"
+    "solid-js": "2.0.0-beta.3"
   },
   "devDependencies": {
     "@babel/core": "^7.28.5",
     "@babel/preset-typescript": "^7.28.5",
-    "babel-preset-solid": "^1.9.10",
+    "babel-preset-solid": "2.0.0-beta.3",
     "esbuild-plugin-babel": "^0.2.3",
     "tsup": "^8.2.4"
   }

@@ -100,9 +100,10 @@
   "dependencies": {
     "@medv/finder": "^4.0.2",
     "@react-grab/cli": "workspace:*",
+    "@solidjs/web": "2.0.0-beta.3",
     "bippy": "^0.5.32",
     "element-source": "^0.0.3",
-    "solid-js": "^1.9.10"
+    "solid-js": "2.0.0-beta.3"
   },
   "devDependencies": {
     "@babel/core": "^7.28.5",
@@ -111,7 +112,7 @@
     "@tailwindcss/cli": "^4.1.17",
     "@types/node": "^20.19.23",
     "@types/react": "^19.2.11",
-    "babel-preset-solid": "^1.9.10",
+    "babel-preset-solid": "2.0.0-beta.3",
     "clsx": "^2.1.1",
     "concurrently": "^9.1.2",
     "esbuild-plugin-babel": "^0.2.3",

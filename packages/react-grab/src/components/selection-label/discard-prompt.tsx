@@ -1,4 +1,4 @@
-import { onMount, onCleanup } from "solid-js";
+import { onSettled } from "solid-js";
 import type { Component } from "solid-js";
 import type { DiscardPromptProps } from "../../types.js";
 import { confirmationFocusManager } from "../../utils/confirmation-focus-manager.js";
@@ -30,14 +30,13 @@ export const DiscardPrompt: Component<DiscardPromptProps> = (props) => {
     confirmationFocusManager.claim(instanceId);
   };
 
-  onMount(() => {
+  onSettled(() => {
     confirmationFocusManager.claim(instanceId);
     window.addEventListener("keydown", handleKeyDown, { capture: true });
-  });
-
-  onCleanup(() => {
-    confirmationFocusManager.release(instanceId);
-    window.removeEventListener("keydown", handleKeyDown, { capture: true });
+    return () => {
+      confirmationFocusManager.release(instanceId);
+      window.removeEventListener("keydown", handleKeyDown, { capture: true });
+    };
   });
 
   return (

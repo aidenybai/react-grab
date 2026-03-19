@@ -1,4 +1,4 @@
-import { Show, createSignal, onMount, onCleanup } from "solid-js";
+import { Show, createSignal, onSettled } from "solid-js";
 import type { Component } from "solid-js";
 import type { CompletionViewProps } from "../../types.js";
 import {
@@ -142,20 +142,20 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
     confirmationFocusManager.claim(instanceId);
   };
 
-  onMount(() => {
+  onSettled(() => {
     confirmationFocusManager.claim(instanceId);
     window.addEventListener("keydown", handleKeyDown, { capture: true });
 
     if (props.supportsFollowUp && props.onFollowUpSubmit && inputRef) {
       inputRef.focus();
     }
-  });
 
-  onCleanup(() => {
-    confirmationFocusManager.release(instanceId);
-    window.removeEventListener("keydown", handleKeyDown, { capture: true });
-    if (fadeTimeoutId !== undefined) window.clearTimeout(fadeTimeoutId);
-    if (dismissTimeoutId !== undefined) window.clearTimeout(dismissTimeoutId);
+    return () => {
+      confirmationFocusManager.release(instanceId);
+      window.removeEventListener("keydown", handleKeyDown, { capture: true });
+      if (fadeTimeoutId !== undefined) window.clearTimeout(fadeTimeoutId);
+      if (dismissTimeoutId !== undefined) window.clearTimeout(dismissTimeoutId);
+    };
   });
 
   return (

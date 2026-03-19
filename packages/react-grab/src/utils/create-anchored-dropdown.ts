@@ -1,4 +1,4 @@
-import { createSignal, createEffect, createMemo, onCleanup } from "solid-js";
+import { createSignal, createEffect, createMemo } from "solid-js";
 import type { Accessor } from "solid-js";
 import type { DropdownAnchor } from "../types.js";
 import {
@@ -60,51 +60,55 @@ export const createAnchoredDropdown = (
     measure();
   };
 
-  createEffect(() => {
-    const anchor = anchorAccessor();
-    if (anchor) {
-      setLastAnchorEdge(anchor.edge);
-      clearTimeout(exitAnimationTimeout);
-      setShouldMount(true);
-      if (enterAnimationFrameId !== undefined)
-        nativeCancelAnimationFrame(enterAnimationFrameId);
-      // HACK: rAF measures then forces reflow so the browser commits the correct position before transitioning in
-      enterAnimationFrameId = nativeRequestAnimationFrame(() => {
-        measure();
-        void containerRef()?.offsetHeight;
-        setIsAnimatedIn(true);
-      });
-    } else {
-      if (enterAnimationFrameId !== undefined)
-        nativeCancelAnimationFrame(enterAnimationFrameId);
-      setIsAnimatedIn(false);
-      exitAnimationTimeout = setTimeout(() => {
-        setShouldMount(false);
-      }, DROPDOWN_ANIMATION_DURATION_MS);
-    }
-    onCleanup(clearAnimationHandles);
-  });
+  createEffect(
+    () => anchorAccessor(),
+    (anchor) => {
+      if (anchor) {
+        setLastAnchorEdge(anchor.edge);
+        clearTimeout(exitAnimationTimeout);
+        setShouldMount(true);
+        if (enterAnimationFrameId !== undefined)
+          nativeCancelAnimationFrame(enterAnimationFrameId);
+        // HACK: rAF measures then forces reflow so the browser commits the correct position before transitioning in
+        enterAnimationFrameId = nativeRequestAnimationFrame(() => {
+          measure();
+          void containerRef()?.offsetHeight;
+          setIsAnimatedIn(true);
+        });
+      } else {
+        if (enterAnimationFrameId !== undefined)
+          nativeCancelAnimationFrame(enterAnimationFrameId);
+        setIsAnimatedIn(false);
+        exitAnimationTimeout = setTimeout(() => {
+          setShouldMount(false);
+        }, DROPDOWN_ANIMATION_DURATION_MS);
+      }
+      return () => clearAnimationHandles();
+    },
+  );
 
-  createEffect(() => {
-    const anchor = anchorAccessor();
-    if (!anchor) return;
+  createEffect(
+    () => anchorAccessor(),
+    (anchor) => {
+      if (!anchor) return;
 
-    window.addEventListener("resize", handleViewportChange);
-    window.visualViewport?.addEventListener("resize", handleViewportChange);
-    window.visualViewport?.addEventListener("scroll", handleViewportChange);
+      window.addEventListener("resize", handleViewportChange);
+      window.visualViewport?.addEventListener("resize", handleViewportChange);
+      window.visualViewport?.addEventListener("scroll", handleViewportChange);
 
-    onCleanup(() => {
-      window.removeEventListener("resize", handleViewportChange);
-      window.visualViewport?.removeEventListener(
-        "resize",
-        handleViewportChange,
-      );
-      window.visualViewport?.removeEventListener(
-        "scroll",
-        handleViewportChange,
-      );
-    });
-  });
+      return () => {
+        window.removeEventListener("resize", handleViewportChange);
+        window.visualViewport?.removeEventListener(
+          "resize",
+          handleViewportChange,
+        );
+        window.visualViewport?.removeEventListener(
+          "scroll",
+          handleViewportChange,
+        );
+      };
+    },
+  );
 
   const displayPosition = createMemo(
     (previousPosition: { left: number; top: number }) => {

@@ -1,7 +1,7 @@
 // @ts-expect-error - CSS imported as text via tsup loader
 import cssText from "react-grab/dist/styles.css";
-import { render } from "solid-js/web";
-import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
+import { render } from "@solidjs/web";
+import { createSignal, For, onCleanup, onSettled, Show } from "solid-js";
 import { SelectionLabel } from "react-grab/src/components/selection-label/index.js";
 import { ContextMenu } from "react-grab/src/components/context-menu.js";
 import { ToolbarContent } from "react-grab/src/components/toolbar/toolbar-content.js";
@@ -2721,14 +2721,13 @@ const FpsMeter = (props: FpsMeterProps) => {
     animationFrameId = requestAnimationFrame(measureFps);
   };
 
-  onMount(() => {
+  onSettled(() => {
     animationFrameId = requestAnimationFrame(measureFps);
-  });
-
-  onCleanup(() => {
-    if (animationFrameId) {
-      cancelAnimationFrame(animationFrameId);
-    }
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
   });
 
   return (
@@ -3110,19 +3109,22 @@ const DesignSystemGrid = () => {
             </span>
             <div style={gridStyle()}>
               <For each={starredStates()}>
-                {(state) => (
-                  <StateCard
-                    state={state}
-                    theme={theme()}
-                    getBounds={() => getBoundsForCell(state.id)}
-                    registerCell={(element) => registerCell(state.id, element)}
-                    onRefresh={createRefreshHandler(state.id)}
-                    getTargetDisplayText={() => getTargetDisplayText(state)}
-                    isStarred={isStarred(state.id)}
-                    onToggleStar={() => handleToggleStar(state.id)}
-                    isScrambled={isScrambled()}
-                  />
-                )}
+                {(stateAccessor) => {
+                  const state = stateAccessor();
+                  return (
+                    <StateCard
+                      state={state}
+                      theme={theme()}
+                      getBounds={() => getBoundsForCell(state.id)}
+                      registerCell={(element) => registerCell(state.id, element)}
+                      onRefresh={createRefreshHandler(state.id)}
+                      getTargetDisplayText={() => getTargetDisplayText(state)}
+                      isStarred={isStarred(state.id)}
+                      onToggleStar={() => handleToggleStar(state.id)}
+                      isScrambled={isScrambled()}
+                    />
+                  );
+                }}
               </For>
             </div>
           </div>
@@ -3134,19 +3136,22 @@ const DesignSystemGrid = () => {
             <span style={sectionTitleStyle()}>Flows</span>
             <div style={gridStyle()}>
               <For each={flowStates()}>
-                {(state) => (
-                  <StateCard
-                    state={state}
-                    theme={theme()}
-                    getBounds={() => getBoundsForCell(state.id)}
-                    registerCell={(element) => registerCell(state.id, element)}
-                    onRefresh={createRefreshHandler(state.id)}
-                    getTargetDisplayText={() => getTargetDisplayText(state)}
-                    isStarred={isStarred(state.id)}
-                    onToggleStar={() => handleToggleStar(state.id)}
-                    isScrambled={isScrambled()}
-                  />
-                )}
+                {(stateAccessor) => {
+                  const state = stateAccessor();
+                  return (
+                    <StateCard
+                      state={state}
+                      theme={theme()}
+                      getBounds={() => getBoundsForCell(state.id)}
+                      registerCell={(element) => registerCell(state.id, element)}
+                      onRefresh={createRefreshHandler(state.id)}
+                      getTargetDisplayText={() => getTargetDisplayText(state)}
+                      isStarred={isStarred(state.id)}
+                      onToggleStar={() => handleToggleStar(state.id)}
+                      isScrambled={isScrambled()}
+                    />
+                  );
+                }}
               </For>
             </div>
           </div>
@@ -3158,19 +3163,22 @@ const DesignSystemGrid = () => {
             <span style={sectionTitleStyle()}>Selection Label</span>
             <div style={gridStyle()}>
               <For each={labelStates()}>
-                {(state) => (
-                  <StateCard
-                    state={state}
-                    theme={theme()}
-                    getBounds={() => getBoundsForCell(state.id)}
-                    registerCell={(element) => registerCell(state.id, element)}
-                    onRefresh={createRefreshHandler(state.id)}
-                    getTargetDisplayText={() => getTargetDisplayText(state)}
-                    isStarred={isStarred(state.id)}
-                    onToggleStar={() => handleToggleStar(state.id)}
-                    isScrambled={isScrambled()}
-                  />
-                )}
+                {(stateAccessor) => {
+                  const state = stateAccessor();
+                  return (
+                    <StateCard
+                      state={state}
+                      theme={theme()}
+                      getBounds={() => getBoundsForCell(state.id)}
+                      registerCell={(element) => registerCell(state.id, element)}
+                      onRefresh={createRefreshHandler(state.id)}
+                      getTargetDisplayText={() => getTargetDisplayText(state)}
+                      isStarred={isStarred(state.id)}
+                      onToggleStar={() => handleToggleStar(state.id)}
+                      isScrambled={isScrambled()}
+                    />
+                  );
+                }}
               </For>
             </div>
           </div>
@@ -3182,19 +3190,22 @@ const DesignSystemGrid = () => {
             <span style={sectionTitleStyle()}>Context Menu (Right-Click)</span>
             <div style={gridStyle()}>
               <For each={contextMenuStates()}>
-                {(state) => (
-                  <StateCard
-                    state={state}
-                    theme={theme()}
-                    getBounds={() => getBoundsForCell(state.id)}
-                    registerCell={(element) => registerCell(state.id, element)}
-                    onRefresh={createRefreshHandler(state.id)}
-                    getTargetDisplayText={() => getTargetDisplayText(state)}
-                    isStarred={isStarred(state.id)}
-                    onToggleStar={() => handleToggleStar(state.id)}
-                    isScrambled={isScrambled()}
-                  />
-                )}
+                {(stateAccessor) => {
+                  const state = stateAccessor();
+                  return (
+                    <StateCard
+                      state={state}
+                      theme={theme()}
+                      getBounds={() => getBoundsForCell(state.id)}
+                      registerCell={(element) => registerCell(state.id, element)}
+                      onRefresh={createRefreshHandler(state.id)}
+                      getTargetDisplayText={() => getTargetDisplayText(state)}
+                      isStarred={isStarred(state.id)}
+                      onToggleStar={() => handleToggleStar(state.id)}
+                      isScrambled={isScrambled()}
+                    />
+                  );
+                }}
               </For>
             </div>
           </div>
@@ -3206,19 +3217,22 @@ const DesignSystemGrid = () => {
             <span style={sectionTitleStyle()}>Toolbar</span>
             <div style={gridStyle()}>
               <For each={toolbarStates()}>
-                {(state) => (
-                  <StateCard
-                    state={state}
-                    theme={theme()}
-                    getBounds={() => getBoundsForCell(state.id)}
-                    registerCell={(element) => registerCell(state.id, element)}
-                    onRefresh={createRefreshHandler(state.id)}
-                    getTargetDisplayText={() => getTargetDisplayText(state)}
-                    isStarred={isStarred(state.id)}
-                    onToggleStar={() => handleToggleStar(state.id)}
-                    isScrambled={isScrambled()}
-                  />
-                )}
+                {(stateAccessor) => {
+                  const state = stateAccessor();
+                  return (
+                    <StateCard
+                      state={state}
+                      theme={theme()}
+                      getBounds={() => getBoundsForCell(state.id)}
+                      registerCell={(element) => registerCell(state.id, element)}
+                      onRefresh={createRefreshHandler(state.id)}
+                      getTargetDisplayText={() => getTargetDisplayText(state)}
+                      isStarred={isStarred(state.id)}
+                      onToggleStar={() => handleToggleStar(state.id)}
+                      isScrambled={isScrambled()}
+                    />
+                  );
+                }}
               </For>
             </div>
           </div>
@@ -3230,19 +3244,22 @@ const DesignSystemGrid = () => {
             <span style={sectionTitleStyle()}>History Dropdown</span>
             <div style={gridStyle()}>
               <For each={historyDropdownStates()}>
-                {(state) => (
-                  <StateCard
-                    state={state}
-                    theme={theme()}
-                    getBounds={() => getBoundsForCell(state.id)}
-                    registerCell={(element) => registerCell(state.id, element)}
-                    onRefresh={createRefreshHandler(state.id)}
-                    getTargetDisplayText={() => getTargetDisplayText(state)}
-                    isStarred={isStarred(state.id)}
-                    onToggleStar={() => handleToggleStar(state.id)}
-                    isScrambled={isScrambled()}
-                  />
-                )}
+                {(stateAccessor) => {
+                  const state = stateAccessor();
+                  return (
+                    <StateCard
+                      state={state}
+                      theme={theme()}
+                      getBounds={() => getBoundsForCell(state.id)}
+                      registerCell={(element) => registerCell(state.id, element)}
+                      onRefresh={createRefreshHandler(state.id)}
+                      getTargetDisplayText={() => getTargetDisplayText(state)}
+                      isStarred={isStarred(state.id)}
+                      onToggleStar={() => handleToggleStar(state.id)}
+                      isScrambled={isScrambled()}
+                    />
+                  );
+                }}
               </For>
             </div>
           </div>
@@ -3254,19 +3271,22 @@ const DesignSystemGrid = () => {
             <span style={sectionTitleStyle()}>Agent States</span>
             <div style={gridStyle()}>
               <For each={agentLabelStates()}>
-                {(state) => (
-                  <StateCard
-                    state={state}
-                    theme={theme()}
-                    getBounds={() => getBoundsForCell(state.id)}
-                    registerCell={(element) => registerCell(state.id, element)}
-                    onRefresh={createRefreshHandler(state.id)}
-                    getTargetDisplayText={() => getTargetDisplayText(state)}
-                    isStarred={isStarred(state.id)}
-                    onToggleStar={() => handleToggleStar(state.id)}
-                    isScrambled={isScrambled()}
-                  />
-                )}
+                {(stateAccessor) => {
+                  const state = stateAccessor();
+                  return (
+                    <StateCard
+                      state={state}
+                      theme={theme()}
+                      getBounds={() => getBoundsForCell(state.id)}
+                      registerCell={(element) => registerCell(state.id, element)}
+                      onRefresh={createRefreshHandler(state.id)}
+                      getTargetDisplayText={() => getTargetDisplayText(state)}
+                      isStarred={isStarred(state.id)}
+                      onToggleStar={() => handleToggleStar(state.id)}
+                      isScrambled={isScrambled()}
+                    />
+                  );
+                }}
               </For>
             </div>
           </div>

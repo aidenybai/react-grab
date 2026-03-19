@@ -33,17 +33,22 @@ export const ArrowNavigationMenu: Component<ArrowNavigationMenuProps> = (
     return activeMenuButton ?? undefined;
   };
 
-  createEffect(() => {
-    void props.items;
-    didPointerMove = false;
-  });
+  createEffect(
+    () => props.items,
+    () => {
+      didPointerMove = false;
+    },
+  );
 
-  createEffect(() => {
-    const activeMenuItem = getMenuItemByIndex(props.activeIndex);
-    if (activeMenuItem) {
-      updateHighlight(activeMenuItem);
-    }
-  });
+  createEffect(
+    () => props.activeIndex,
+    (activeIndex) => {
+      const activeMenuItem = getMenuItemByIndex(activeIndex);
+      if (activeMenuItem) {
+        updateHighlight(activeMenuItem);
+      }
+    },
+  );
 
   return (
     <BottomSection>
@@ -62,47 +67,52 @@ export const ArrowNavigationMenu: Component<ArrowNavigationMenuProps> = (
           class="pointer-events-none absolute bg-black/5 opacity-0 transition-[top,left,width,height,opacity] duration-75 ease-out"
         />
         <For each={props.items}>
-          {(item, itemIndex) => (
-            <button
-              data-react-grab-ignore-events
-              data-react-grab-arrow-nav-item={item.tagName}
-              data-react-grab-arrow-nav-index={itemIndex()}
-              class="relative z-1 contain-layout flex items-center w-full px-2 py-1 cursor-pointer text-left border-none bg-transparent"
-              onPointerDown={(event) => event.stopPropagation()}
-              onPointerEnter={(event) => {
-                updateHighlight(event.currentTarget);
-                if (didPointerMove) {
+          {(itemAccessor, itemIndex) => {
+            const navItem = () => itemAccessor();
+            return (
+              <button
+                data-react-grab-ignore-events
+                data-react-grab-arrow-nav-item={navItem().tagName}
+                data-react-grab-arrow-nav-index={itemIndex()}
+                class="relative z-1 contain-layout flex items-center w-full px-2 py-1 cursor-pointer text-left border-none bg-transparent"
+                onPointerDown={(event) => event.stopPropagation()}
+                onPointerEnter={(event) => {
+                  updateHighlight(event.currentTarget);
+                  if (didPointerMove) {
+                    props.onSelect(itemIndex());
+                  }
+                }}
+                onPointerLeave={() => {
+                  const activeMenuItem = getMenuItemByIndex(props.activeIndex);
+                  if (activeMenuItem) {
+                    updateHighlight(activeMenuItem);
+                  } else {
+                    clearHighlight();
+                  }
+                }}
+                onClick={(event) => {
+                  event.stopPropagation();
                   props.onSelect(itemIndex());
-                }
-              }}
-              onPointerLeave={() => {
-                const activeMenuItem = getMenuItemByIndex(props.activeIndex);
-                if (activeMenuItem) {
-                  updateHighlight(activeMenuItem);
-                } else {
-                  clearHighlight();
-                }
-              }}
-              onClick={(event) => {
-                event.stopPropagation();
-                props.onSelect(itemIndex());
-              }}
-            >
-              <span
-                class="text-[13px] leading-4 h-fit font-medium overflow-hidden text-ellipsis whitespace-nowrap min-w-0 transition-colors"
-                classList={{
-                  "text-black": itemIndex() === props.activeIndex,
-                  "text-black/30": itemIndex() !== props.activeIndex,
                 }}
               >
-                <Show when={item.componentName}>
-                  {item.componentName}
-                  <span class="text-black/40">.</span>
-                </Show>
-                {item.tagName}
-              </span>
-            </button>
-          )}
+                <span
+                  class={[
+                    "text-[13px] leading-4 h-fit font-medium overflow-hidden text-ellipsis whitespace-nowrap min-w-0 transition-colors",
+                    {
+                      "text-black": itemIndex() === props.activeIndex,
+                      "text-black/30": itemIndex() !== props.activeIndex,
+                    },
+                  ]}
+                >
+                  <Show when={navItem().componentName}>
+                    {navItem().componentName}
+                    <span class="text-black/40">.</span>
+                  </Show>
+                  {navItem().tagName}
+                </span>
+              </button>
+            );
+          }}
         </For>
       </div>
     </BottomSection>

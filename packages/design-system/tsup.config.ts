@@ -13,7 +13,7 @@ const options: Options = {
     ".css": "text",
   },
   minify: process.env.NODE_ENV === "production",
-  noExternal: ["solid-js", /^react-grab\/src/, "react-grab/dist/styles.css"],
+  noExternal: ["solid-js", "@solidjs/web", /^react-grab\/src/, "react-grab/dist/styles.css"],
   outDir: "./dist",
   platform: "browser",
   sourcemap: false,
