@@ -56,6 +56,7 @@ import { getTagName } from "../utils/get-tag-name.js";
 import {
   ARROW_KEYS,
   FEEDBACK_DURATION_MS,
+  FADE_COMPLETE_BUFFER_MS,
   KEYDOWN_SPAM_TIMEOUT_MS,
   DRAG_THRESHOLD_PX,
   ELEMENT_DETECTION_THROTTLE_MS,
@@ -157,8 +158,6 @@ import { copyContent } from "../utils/copy-content.js";
 import { joinSnippets } from "../utils/join-snippets.js";
 import { generateId } from "../utils/generate-id.js";
 import { logRecoverableError } from "../utils/log-recoverable-error.js";
-import { createLabelManager } from "./label-manager.js";
-import { createDropdownController } from "./dropdown-controller.js";
 
 const builtInPlugins = [
   copyPlugin,
@@ -284,7 +283,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [clearPromptPosition, setClearPromptPosition] =
       createSignal<DropdownAnchor | null>(null);
     let toolbarElement: HTMLDivElement | undefined;
-    const dropdownController = createDropdownController(() => toolbarElement);
+    let dropdownTrackingFrameId: number | null = null;
     const historyElementMap = new Map<string, Element[]>();
     const [hasUnreadHistoryItems, setHasUnreadHistoryItems] =
       createSignal(false);
@@ -592,15 +591,106 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       );
     };
 
-    const labelManager = createLabelManager(
-      {
-        addLabelInstance: actions.addLabelInstance,
-        removeLabelInstance: actions.removeLabelInstance,
-        updateLabelInstance: actions.updateLabelInstance,
-        clearLabelInstances: actions.clearLabelInstances,
+    const labelFadeTimeouts = new Map<string, number>();
+
+    const cancelLabelFade = (instanceId: string) => {
+      const existingTimeout = labelFadeTimeouts.get(instanceId);
+      if (existingTimeout !== undefined) {
+        window.clearTimeout(existingTimeout);
+        labelFadeTimeouts.delete(instanceId);
+      }
+    };
+
+    const cancelAllLabelFades = () => {
+      for (const timeoutId of labelFadeTimeouts.values()) {
+        window.clearTimeout(timeoutId);
+      }
+      labelFadeTimeouts.clear();
+    };
+
+    const removeLabelInstance = (instanceId: string) => {
+      labelFadeTimeouts.delete(instanceId);
+      actions.removeLabelInstance(instanceId);
+    };
+
+    const scheduleLabelFade = (instanceId: string) => {
+      cancelLabelFade(instanceId);
+
+      const timeoutId = window.setTimeout(() => {
+        labelFadeTimeouts.delete(instanceId);
+        actions.updateLabelInstance(instanceId, "fading");
+        setTimeout(() => {
+          removeLabelInstance(instanceId);
+        }, FADE_COMPLETE_BUFFER_MS);
+      }, FEEDBACK_DURATION_MS);
+
+      labelFadeTimeouts.set(instanceId, timeoutId);
+    };
+
+    const handleLabelInstanceHoverChange = (
+      instanceId: string,
+      isHovered: boolean,
+    ) => {
+      if (isHovered) {
+        cancelLabelFade(instanceId);
+      } else {
+        const instance = store.labelInstances.find(
+          (labelInstance) => labelInstance.id === instanceId,
+        );
+        if (instance && instance.status === "copied") {
+          scheduleLabelFade(instanceId);
+        }
+      }
+    };
+
+    const createLabelInstance = (
+      bounds: OverlayBounds,
+      tagName: string,
+      componentName: string | undefined,
+      status: SelectionLabelInstance["status"],
+      options?: {
+        element?: Element;
+        mouseX?: number;
+        elements?: Element[];
+        boundsMultiple?: OverlayBounds[];
+        hideArrow?: boolean;
       },
-      store,
-    );
+    ): string => {
+      actions.clearLabelInstances();
+      cancelAllLabelFades();
+      const instanceId = generateId("label");
+      const boundsCenterX = bounds.x + bounds.width / 2;
+      const boundsHalfWidth = bounds.width / 2;
+      const mouseX = options?.mouseX;
+      const mouseXOffset =
+        mouseX !== undefined ? mouseX - boundsCenterX : undefined;
+
+      const instance: SelectionLabelInstance = {
+        id: instanceId,
+        bounds,
+        boundsMultiple: options?.boundsMultiple,
+        tagName,
+        componentName,
+        status,
+        createdAt: Date.now(),
+        element: options?.element,
+        elements: options?.elements,
+        mouseX,
+        mouseXOffsetFromCenter: mouseXOffset,
+        mouseXOffsetRatio:
+          mouseXOffset !== undefined && boundsHalfWidth > 0
+            ? mouseXOffset / boundsHalfWidth
+            : undefined,
+        hideArrow: options?.hideArrow,
+      };
+      actions.addLabelInstance(instance);
+      return instanceId;
+    };
+
+    const clearAllLabels = () => {
+      cancelAllLabelFades();
+      actions.clearLabelInstances();
+    };
 
     interface ExecuteCopyOptions {
       positionX: number;
@@ -631,7 +721,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
       let instanceId = existingInstanceId ?? null;
       if (!instanceId && bounds && tagName) {
-        instanceId = labelManager.create(
+        instanceId = createLabelInstance(
           bounds,
           tagName,
           componentName,
@@ -664,7 +754,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             errorMessage || "Unknown error",
           );
         }
-        labelManager.scheduleFade(instanceId);
+        scheduleLabelFade(instanceId);
       }
 
       if (store.current.state === "copying") {
@@ -873,7 +963,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.startCopy();
 
       const labelInstanceId = tagName
-        ? labelManager.create(overlayBounds, tagName, undefined, "copying", {
+        ? createLabelInstance(overlayBounds, tagName, undefined, "copying", {
             element,
             mouseX: labelPositionX,
             elements,
@@ -2983,10 +3073,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (actionCycleIdleTimeoutId) {
         window.clearTimeout(actionCycleIdleTimeoutId);
       }
-      dropdownController.dispose();
+      if (dropdownTrackingFrameId !== null) {
+        nativeCancelAnimationFrame(dropdownTrackingFrameId);
+      }
       grabbedBoxTimeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
       grabbedBoxTimeouts.clear();
-      labelManager.dispose();
+      cancelAllLabelFades();
       autoScroller.stop();
       document.body.style.userSelect = "";
       document.body.style.touchAction = "";
@@ -3236,7 +3328,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             ? labelBounds.x + labelBounds.width / 2
             : position.x;
 
-          const labelInstanceId = labelManager.create(
+          const labelInstanceId = createLabelInstance(
             labelBounds,
             tagName || "element",
             componentName,
@@ -3267,7 +3359,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             didSucceed ? undefined : errorMessage || "Unknown error",
           );
 
-          labelManager.scheduleFade(labelInstanceId);
+          scheduleLabelFade(labelInstanceId);
         } else {
           // HACK: Fire-and-forget when no label bounds to display feedback on
           try {
@@ -3345,7 +3437,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (agent) {
           actions.setSelectedAgent(agent);
         }
-        labelManager.clearAll();
+        clearAllLabels();
         onBeforePrompt?.();
         preparePromptMode(element, position.x, position.y);
         actions.setPointer({ x: position.x, y: position.y });
@@ -3415,7 +3507,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             if (agent) {
               actions.setSelectedAgent(agent);
             }
-            labelManager.clearAll();
+            clearAllLabels();
             actions.clearInputText();
             actions.enterPromptMode(position, element);
             deferHideContextMenu();
@@ -3494,10 +3586,67 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       addHistoryItemPreview(item, previewBounds, connectedElements, idPrefix);
     };
 
+    const stopTrackingDropdownPosition = () => {
+      if (dropdownTrackingFrameId !== null) {
+        nativeCancelAnimationFrame(dropdownTrackingFrameId);
+        dropdownTrackingFrameId = null;
+      }
+    };
+
+    const startTrackingDropdownPosition = (computePosition: () => void) => {
+      stopTrackingDropdownPosition();
+      const updatePosition = () => {
+        computePosition();
+        dropdownTrackingFrameId = nativeRequestAnimationFrame(updatePosition);
+      };
+      updatePosition();
+    };
+
+    const getNearestEdge = (rect: DOMRect): ToolbarState["edge"] => {
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const distanceToTop = centerY;
+      const distanceToBottom = window.innerHeight - centerY;
+      const distanceToLeft = centerX;
+      const distanceToRight = window.innerWidth - centerX;
+      const minimumDistance = Math.min(
+        distanceToTop,
+        distanceToBottom,
+        distanceToLeft,
+        distanceToRight,
+      );
+      if (minimumDistance === distanceToTop) return "top";
+      if (minimumDistance === distanceToLeft) return "left";
+      if (minimumDistance === distanceToRight) return "right";
+      return "bottom";
+    };
+
+    const computeDropdownAnchor = (): DropdownAnchor | null => {
+      if (!toolbarElement) return null;
+      const toolbarRect = toolbarElement.getBoundingClientRect();
+      const edge = getNearestEdge(toolbarRect);
+
+      if (edge === "left" || edge === "right") {
+        return {
+          x: edge === "left" ? toolbarRect.right : toolbarRect.left,
+          y: toolbarRect.top + toolbarRect.height / 2,
+          edge,
+          toolbarWidth: toolbarRect.width,
+        };
+      }
+
+      return {
+        x: toolbarRect.left + toolbarRect.width / 2,
+        y: edge === "top" ? toolbarRect.bottom : toolbarRect.top,
+        edge,
+        toolbarWidth: toolbarRect.width,
+      };
+    };
+
     const dismissHistoryDropdown = () => {
       cancelHistoryHoverOpenTimeout();
       cancelHistoryHoverCloseTimeout();
-      dropdownController.stopTracking();
+      stopTrackingDropdownPosition();
       clearHistoryHoverPreviews();
       setHistoryDropdownPosition(null);
       setIsHistoryHoverOpen(false);
@@ -3509,8 +3658,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       dismissClearPrompt();
       setHistoryItems(loadHistory());
       setHasUnreadHistoryItems(false);
-      dropdownController.startTracking(() => {
-        const anchor = dropdownController.computeAnchor();
+      startTrackingDropdownPosition(() => {
+        const anchor = computeDropdownAnchor();
         if (anchor) setHistoryDropdownPosition(anchor);
       });
     };
@@ -3540,21 +3689,21 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const dismissToolbarMenu = () => {
-      dropdownController.stopTracking();
+      stopTrackingDropdownPosition();
       setToolbarMenuPosition(null);
     };
 
     const showClearPrompt = () => {
       dismissHistoryDropdown();
       dismissToolbarMenu();
-      dropdownController.startTracking(() => {
-        const anchor = dropdownController.computeAnchor();
+      startTrackingDropdownPosition(() => {
+        const anchor = computeDropdownAnchor();
         if (anchor) setClearPromptPosition(anchor);
       });
     };
 
     const dismissClearPrompt = () => {
-      dropdownController.stopTracking();
+      stopTrackingDropdownPosition();
       setClearPromptPosition(null);
     };
 
@@ -3571,8 +3720,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.hideContextMenu();
         dismissHistoryDropdown();
         dismissClearPrompt();
-        dropdownController.startTracking(() => {
-          const anchor = dropdownController.computeAnchor();
+        startTrackingDropdownPosition(() => {
+          const anchor = computeDropdownAnchor();
           if (anchor) setToolbarMenuPosition(anchor);
         });
       }
@@ -3604,20 +3753,20 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const element = getFirstConnectedHistoryElement(item);
       if (!element) return;
 
-      labelManager.clearAll();
+      clearAllLabels();
 
       // HACK: defer to next frame so idle preview label clears visually before "copied" appears
       nativeRequestAnimationFrame(() => {
         if (!isElementConnected(element)) return;
         const bounds = createElementBounds(element);
-        const instanceId = labelManager.create(
+        const instanceId = createLabelInstance(
           bounds,
           item.tagName,
           item.componentName,
           "copied",
           { element, mouseX: bounds.x + bounds.width / 2 },
         );
-        labelManager.scheduleFade(instanceId);
+        scheduleLabelFade(instanceId);
       });
     };
 
@@ -3672,7 +3821,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       showClearPrompt();
 
-      labelManager.clearAll();
+      clearAllLabels();
 
       // HACK: defer to next frame so idle preview labels clear visually before "copied" appears
       nativeRequestAnimationFrame(() => {
@@ -3693,7 +3842,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 element,
                 mouseX: bounds.x + bounds.width / 2,
               });
-              labelManager.scheduleFade(labelId);
+              scheduleLabelFade(labelId);
             }
           }
         });
@@ -3852,7 +4001,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onAcknowledgeSessionError={handleAcknowledgeError}
             onRetrySession={agentManager.session.retry}
             onShowContextMenuInstance={handleShowContextMenuInstance}
-            onLabelInstanceHoverChange={labelManager.handleHoverChange}
+            onLabelInstanceHoverChange={handleLabelInstanceHoverChange}
             onInputChange={actions.setInputText}
             onInputSubmit={() => void handleInputSubmit()}
             onToggleExpand={handleToggleExpand}
@@ -4050,7 +4199,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         hasInited = false;
         cancelHistoryHoverOpenTimeout();
         cancelHistoryHoverCloseTimeout();
-        dropdownController.stopTracking();
+        stopTrackingDropdownPosition();
         toolbarStateChangeCallbacks.clear();
         dispose();
       },
