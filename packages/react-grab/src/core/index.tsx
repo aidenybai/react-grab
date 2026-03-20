@@ -956,26 +956,41 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           })
         : null;
 
-      void getNearestComponentName(element).then((componentName) => {
-        void executeCopyOperation({
-          positionX: labelPositionX,
-          operation: () =>
-            copyElementsToClipboard(
-              allElements,
-              extraPrompt,
-              componentName ?? undefined,
-            ),
-          bounds: overlayBounds,
-          tagName,
-          componentName: componentName ?? undefined,
-          element,
-          shouldDeactivateAfter,
-          elements,
-          existingInstanceId: labelInstanceId,
-        }).then(() => {
-          onComplete?.();
+      void getNearestComponentName(element)
+        .then((componentName) =>
+          executeCopyOperation({
+            positionX: labelPositionX,
+            operation: () =>
+              copyElementsToClipboard(
+                allElements,
+                extraPrompt,
+                componentName ?? undefined,
+              ),
+            bounds: overlayBounds,
+            tagName,
+            componentName: componentName ?? undefined,
+            element,
+            shouldDeactivateAfter,
+            elements,
+            existingInstanceId: labelInstanceId,
+          }).then(() => {
+            onComplete?.();
+          }),
+        )
+        .catch((error) => {
+          const errorMessage = normalizeErrorMessage(error, "Copy failed");
+          if (labelInstanceId) {
+            actions.updateLabelInstance(
+              labelInstanceId,
+              "error",
+              errorMessage,
+            );
+            scheduleLabelFade(labelInstanceId);
+          }
+          if (store.current.state === "copying") {
+            actions.unfreeze();
+          }
         });
-      });
     };
 
     const targetElement = createMemo(() => {
