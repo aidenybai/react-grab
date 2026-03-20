@@ -4072,8 +4072,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             );
           }, rendererRoot);
         })
-        .catch(() => {
-          // Renderer failed to load — UI will not mount but app continues
+        .catch((error) => {
+          console.warn("[react-grab] Failed to load renderer:", error);
         });
     }
 
