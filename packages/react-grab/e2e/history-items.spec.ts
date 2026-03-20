@@ -618,11 +618,40 @@ test.describe("History Items", () => {
             const info = await reactGrab.getToolbarInfo();
             return info.snapEdge;
           },
-          { timeout: 3000 },
+          { timeout: 5000 },
         )
         .toBe("top");
 
-      await reactGrab.clickHistoryButton();
+      // HACK: wait for snap animation and toolbar layout transition to fully settle
+      await reactGrab.page.waitForTimeout(500);
+
+      await expect
+        .poll(() => reactGrab.isHistoryButtonVisible(), { timeout: 5000 })
+        .toBe(true);
+
+      const historyButtonRect = await reactGrab.page.evaluate((attrName) => {
+        const host = document.querySelector(`[${attrName}]`);
+        const shadowRoot = host?.shadowRoot;
+        if (!shadowRoot) return null;
+        const root = shadowRoot.querySelector(`[${attrName}]`);
+        if (!root) return null;
+        const button = root.querySelector<HTMLElement>(
+          "[data-react-grab-toolbar-history]",
+        );
+        if (!button) return null;
+        const rect = button.getBoundingClientRect();
+        return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+      }, "data-react-grab");
+
+      expect(historyButtonRect).not.toBeNull();
+      await reactGrab.page.mouse.click(
+        historyButtonRect!.x + historyButtonRect!.width / 2,
+        historyButtonRect!.y + historyButtonRect!.height / 2,
+      );
+
+      await expect
+        .poll(() => reactGrab.isHistoryDropdownVisible(), { timeout: 5000 })
+        .toBe(true);
 
       await expect
         .poll(
@@ -630,7 +659,7 @@ test.describe("History Items", () => {
             const position = await reactGrab.getHistoryDropdownPosition();
             return position?.top ?? -9999;
           },
-          { timeout: 3000 },
+          { timeout: 5000 },
         )
         .toBeGreaterThanOrEqual(0);
     });

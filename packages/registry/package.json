@@ -1,0 +1,12 @@
+{
+  "name": "@react-grab/registry",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.js"
+  },
+  "dependencies": {
+    "react-grab": "workspace:*"
+  }
+}

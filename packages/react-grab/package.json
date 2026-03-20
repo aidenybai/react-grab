@@ -118,7 +118,8 @@
     "oxlint": "^1.42.0",
     "publint": "^0.2.12",
     "tailwindcss": "^4.1.0",
-    "tsup": "^8.2.4"
+    "tsup": "^8.2.4",
+    "tsx": "^4.21.0"
   },
   "peerDependencies": {
     "react": ">=17.0.0"
