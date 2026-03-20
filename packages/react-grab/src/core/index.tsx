@@ -23,7 +23,10 @@ import {
   nativeRequestAnimationFrame,
   waitUntilNextFrame,
 } from "../utils/native-raf.js";
-import { ReactGrabRenderer } from "../components/renderer.js";
+// HACK: ReactGrabRenderer is dynamically imported inside init() to avoid
+// solid-js/web's delegateEvents() calls running at module evaluation time,
+// which would crash during SSR (window is not defined).
+
 import {
   getStackContext,
   getNearestComponentName,
@@ -3942,127 +3945,130 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     if (pluginRegistry.store.theme.enabled) {
-      render(() => {
-        return (
-          <ReactGrabRenderer
-            selectionVisible={selectionVisible()}
-            selectionBounds={selectionBounds()}
-            selectionBoundsMultiple={selectionBoundsMultiple()}
-            selectionShouldSnap={
-              store.frozenElements.length > 0 || dragPreviewBounds().length > 0
-            }
-            selectionElementsCount={frozenElementsCount()}
-            selectionFilePath={store.selectionFilePath ?? undefined}
-            selectionLineNumber={store.selectionLineNumber ?? undefined}
-            selectionTagName={selectionTagName()}
-            selectionComponentName={resolvedComponentName()}
-            selectionLabelVisible={selectionLabelVisible()}
-            selectionLabelStatus="idle"
-            selectionActionCycleState={actionCycleState()}
-            selectionArrowNavigationState={arrowNavigationState()}
-            onArrowNavigationSelect={handleArrowNavigationSelect}
-            labelInstances={computedLabelInstances()}
-            dragVisible={dragVisible()}
-            dragBounds={dragBounds()}
-            grabbedBoxes={computedGrabbedBoxes()}
-            mouseX={
-              store.frozenElements.length > 1 ? undefined : cursorPosition().x
-            }
-            isFrozen={
-              isFrozenPhase() || isActivated() || isToolbarSelectHovered()
-            }
-            inputValue={store.inputText}
-            isPromptMode={isPromptMode()}
-            hasAgent={hasAgentProvider()}
-            agentSessions={agentManager.sessions()}
-            supportsUndo={store.supportsUndo}
-            supportsFollowUp={store.supportsFollowUp}
-            dismissButtonText={store.dismissButtonText}
-            onDismissSession={agentManager.session.dismiss}
-            onUndoSession={agentManager.session.undo}
-            onFollowUpSubmitSession={handleFollowUpSubmit}
-            onAcknowledgeSessionError={handleAcknowledgeError}
-            onRetrySession={agentManager.session.retry}
-            onShowContextMenuInstance={handleShowContextMenuInstance}
-            onLabelInstanceHoverChange={handleLabelInstanceHoverChange}
-            onInputChange={actions.setInputText}
-            onInputSubmit={() => void handleInputSubmit()}
-            onToggleExpand={handleToggleExpand}
-            isPendingDismiss={isPendingDismiss()}
-            selectionLabelShakeCount={selectionLabelShakeCount()}
-            onConfirmDismiss={handleConfirmDismiss}
-            onCancelDismiss={handleCancelDismiss}
-            pendingAbortSessionId={pendingAbortSessionId()}
-            onRequestAbortSession={(sessionId) =>
-              actions.setPendingAbortSessionId(sessionId)
-            }
-            onAbortSession={handleAgentAbort}
-            toolbarVisible={pluginRegistry.store.theme.toolbar.enabled}
-            isActive={isActivated()}
-            onToggleActive={handleToggleActive}
-            enabled={isEnabled()}
-            onToggleEnabled={handleToggleEnabled}
-            shakeCount={toolbarShakeCount()}
-            onToolbarStateChange={(state) => {
-              setCurrentToolbarState(state);
-              toolbarStateChangeCallbacks.forEach((callback) =>
-                callback(state),
-              );
-            }}
-            onSubscribeToToolbarStateChanges={(callback) => {
-              toolbarStateChangeCallbacks.add(callback);
-              return () => {
-                toolbarStateChangeCallbacks.delete(callback);
-              };
-            }}
-            onToolbarSelectHoverChange={setIsToolbarSelectHovered}
-            onToolbarRef={(element) => {
-              toolbarElement = element;
-            }}
-            contextMenuPosition={contextMenuPosition()}
-            contextMenuBounds={contextMenuBounds()}
-            contextMenuTagName={contextMenuTagName()}
-            contextMenuComponentName={contextMenuComponentName()}
-            contextMenuHasFilePath={Boolean(contextMenuFilePath()?.filePath)}
-            actions={pluginRegistry.store.actions}
-            toolbarActions={pluginRegistry.store.toolbarActions}
-            actionContext={contextMenuActionContext()}
-            onContextMenuDismiss={handleContextMenuDismiss}
-            onContextMenuHide={deferHideContextMenu}
-            historyItems={historyItems()}
-            historyDisconnectedItemIds={historyDisconnectedItemIds()}
-            historyItemCount={historyItems().length}
-            clockFlashTrigger={clockFlashTrigger()}
-            hasUnreadHistoryItems={hasUnreadHistoryItems()}
-            historyDropdownPosition={historyDropdownPosition()}
-            isHistoryPinned={
-              historyDropdownPosition() !== null && !isHistoryHoverOpen()
-            }
-            onToggleHistory={handleToggleHistory}
-            onCopyAll={handleHistoryCopyAll}
-            onCopyAllHover={handleHistoryCopyAllHover}
-            onHistoryButtonHover={handleHistoryButtonHover}
-            onHistoryItemSelect={handleHistoryItemSelect}
-            onHistoryItemRemove={handleHistoryItemRemove}
-            onHistoryItemCopy={copyHistoryItemContent}
-            onHistoryItemHover={handleHistoryItemHover}
-            onHistoryCopyAll={handleHistoryCopyAll}
-            onHistoryCopyAllHover={handleHistoryCopyAllHover}
-            onHistoryClear={handleHistoryClear}
-            onHistoryDismiss={dismissHistoryDropdown}
-            onHistoryDropdownHover={handleHistoryDropdownHover}
-            toolbarMenuPosition={toolbarMenuPosition()}
-            onToggleMenu={handleToggleMenu}
-            onToolbarMenuDismiss={dismissToolbarMenu}
-            clearPromptPosition={clearPromptPosition()}
-            onClearHistoryConfirm={() => {
-              dismissClearPrompt();
-              handleHistoryClear();
-            }}
-            onClearHistoryCancel={dismissClearPrompt}
-          />
-        );
-      }, rendererRoot);
+      void import("../components/renderer.js").then(({ ReactGrabRenderer }) => {
+        render(() => {
+          return (
+            <ReactGrabRenderer
+              selectionVisible={selectionVisible()}
+              selectionBounds={selectionBounds()}
+              selectionBoundsMultiple={selectionBoundsMultiple()}
+              selectionShouldSnap={
+                store.frozenElements.length > 0 ||
+                dragPreviewBounds().length > 0
+              }
+              selectionElementsCount={frozenElementsCount()}
+              selectionFilePath={store.selectionFilePath ?? undefined}
+              selectionLineNumber={store.selectionLineNumber ?? undefined}
+              selectionTagName={selectionTagName()}
+              selectionComponentName={resolvedComponentName()}
+              selectionLabelVisible={selectionLabelVisible()}
+              selectionLabelStatus="idle"
+              selectionActionCycleState={actionCycleState()}
+              selectionArrowNavigationState={arrowNavigationState()}
+              onArrowNavigationSelect={handleArrowNavigationSelect}
+              labelInstances={computedLabelInstances()}
+              dragVisible={dragVisible()}
+              dragBounds={dragBounds()}
+              grabbedBoxes={computedGrabbedBoxes()}
+              mouseX={
+                store.frozenElements.length > 1 ? undefined : cursorPosition().x
+              }
+              isFrozen={
+                isFrozenPhase() || isActivated() || isToolbarSelectHovered()
+              }
+              inputValue={store.inputText}
+              isPromptMode={isPromptMode()}
+              hasAgent={hasAgentProvider()}
+              agentSessions={agentManager.sessions()}
+              supportsUndo={store.supportsUndo}
+              supportsFollowUp={store.supportsFollowUp}
+              dismissButtonText={store.dismissButtonText}
+              onDismissSession={agentManager.session.dismiss}
+              onUndoSession={agentManager.session.undo}
+              onFollowUpSubmitSession={handleFollowUpSubmit}
+              onAcknowledgeSessionError={handleAcknowledgeError}
+              onRetrySession={agentManager.session.retry}
+              onShowContextMenuInstance={handleShowContextMenuInstance}
+              onLabelInstanceHoverChange={handleLabelInstanceHoverChange}
+              onInputChange={actions.setInputText}
+              onInputSubmit={() => void handleInputSubmit()}
+              onToggleExpand={handleToggleExpand}
+              isPendingDismiss={isPendingDismiss()}
+              selectionLabelShakeCount={selectionLabelShakeCount()}
+              onConfirmDismiss={handleConfirmDismiss}
+              onCancelDismiss={handleCancelDismiss}
+              pendingAbortSessionId={pendingAbortSessionId()}
+              onRequestAbortSession={(sessionId) =>
+                actions.setPendingAbortSessionId(sessionId)
+              }
+              onAbortSession={handleAgentAbort}
+              toolbarVisible={pluginRegistry.store.theme.toolbar.enabled}
+              isActive={isActivated()}
+              onToggleActive={handleToggleActive}
+              enabled={isEnabled()}
+              onToggleEnabled={handleToggleEnabled}
+              shakeCount={toolbarShakeCount()}
+              onToolbarStateChange={(state) => {
+                setCurrentToolbarState(state);
+                toolbarStateChangeCallbacks.forEach((callback) =>
+                  callback(state),
+                );
+              }}
+              onSubscribeToToolbarStateChanges={(callback) => {
+                toolbarStateChangeCallbacks.add(callback);
+                return () => {
+                  toolbarStateChangeCallbacks.delete(callback);
+                };
+              }}
+              onToolbarSelectHoverChange={setIsToolbarSelectHovered}
+              onToolbarRef={(element) => {
+                toolbarElement = element;
+              }}
+              contextMenuPosition={contextMenuPosition()}
+              contextMenuBounds={contextMenuBounds()}
+              contextMenuTagName={contextMenuTagName()}
+              contextMenuComponentName={contextMenuComponentName()}
+              contextMenuHasFilePath={Boolean(contextMenuFilePath()?.filePath)}
+              actions={pluginRegistry.store.actions}
+              toolbarActions={pluginRegistry.store.toolbarActions}
+              actionContext={contextMenuActionContext()}
+              onContextMenuDismiss={handleContextMenuDismiss}
+              onContextMenuHide={deferHideContextMenu}
+              historyItems={historyItems()}
+              historyDisconnectedItemIds={historyDisconnectedItemIds()}
+              historyItemCount={historyItems().length}
+              clockFlashTrigger={clockFlashTrigger()}
+              hasUnreadHistoryItems={hasUnreadHistoryItems()}
+              historyDropdownPosition={historyDropdownPosition()}
+              isHistoryPinned={
+                historyDropdownPosition() !== null && !isHistoryHoverOpen()
+              }
+              onToggleHistory={handleToggleHistory}
+              onCopyAll={handleHistoryCopyAll}
+              onCopyAllHover={handleHistoryCopyAllHover}
+              onHistoryButtonHover={handleHistoryButtonHover}
+              onHistoryItemSelect={handleHistoryItemSelect}
+              onHistoryItemRemove={handleHistoryItemRemove}
+              onHistoryItemCopy={copyHistoryItemContent}
+              onHistoryItemHover={handleHistoryItemHover}
+              onHistoryCopyAll={handleHistoryCopyAll}
+              onHistoryCopyAllHover={handleHistoryCopyAllHover}
+              onHistoryClear={handleHistoryClear}
+              onHistoryDismiss={dismissHistoryDropdown}
+              onHistoryDropdownHover={handleHistoryDropdownHover}
+              toolbarMenuPosition={toolbarMenuPosition()}
+              onToggleMenu={handleToggleMenu}
+              onToolbarMenuDismiss={dismissToolbarMenu}
+              clearPromptPosition={clearPromptPosition()}
+              onClearHistoryConfirm={() => {
+                dismissClearPrompt();
+                handleHistoryClear();
+              }}
+              onClearHistoryCancel={dismissClearPrompt}
+            />
+          );
+        }, rendererRoot);
+      });
     }
 
     if (hasAgentProvider()) {
