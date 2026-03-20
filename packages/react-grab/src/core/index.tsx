@@ -166,6 +166,35 @@ const builtInPlugins = [
   openPlugin,
 ];
 
+interface CopyWithLabelOptions {
+  element: Element;
+  cursorX: number;
+  selectedElements?: Element[];
+  extraPrompt?: string;
+  shouldDeactivateAfter?: boolean;
+  onComplete?: () => void;
+  dragRect?: {
+    pageX: number;
+    pageY: number;
+    width: number;
+    height: number;
+  };
+}
+
+interface BuildActionContextOptions {
+  element: Element;
+  filePath: string | undefined;
+  lineNumber: number | undefined;
+  tagName: string | undefined;
+  componentName: string | undefined;
+  position: Position;
+  performWithFeedbackOptions?: PerformWithFeedbackOptions;
+  shouldDeferHideContextMenu: boolean;
+  onBeforeCopy?: () => void;
+  onBeforePrompt?: () => void;
+  customEnterPromptMode?: (agent?: AgentOptions) => void;
+}
+
 let hasInited = false;
 const toolbarStateChangeCallbacks = new Set<(state: ToolbarState) => void>();
 
@@ -694,71 +723,21 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.clearLabelInstances();
     };
 
-    interface CopyResult {
-      didSucceed: boolean;
-      errorMessage?: string;
-    }
-
-    const runWithErrorCapture = async (
-      operation: () => Promise<void>,
-    ): Promise<CopyResult> => {
-      try {
-        await operation();
-        return { didSucceed: true };
-      } catch (error) {
-        return {
-          didSucceed: false,
-          errorMessage: normalizeErrorMessage(error, "Action failed"),
-        };
-      }
-    };
-
     const updateLabelAfterCopy = (
       labelInstanceId: string,
-      result: CopyResult,
+      didSucceed: boolean,
+      errorMessage?: string,
     ) => {
-      if (result.didSucceed) {
+      if (didSucceed) {
         actions.updateLabelInstance(labelInstanceId, "copied");
       } else {
         actions.updateLabelInstance(
           labelInstanceId,
           "error",
-          result.errorMessage || "Unknown error",
+          errorMessage || "Unknown error",
         );
       }
       scheduleLabelFade(labelInstanceId);
-    };
-
-    const startFeedbackCooldown = () => {
-      feedbackState.isInCopyFeedbackCooldown = true;
-      if (feedbackState.timerId !== null) {
-        window.clearTimeout(feedbackState.timerId);
-      }
-      feedbackState.timerId = window.setTimeout(() => {
-        feedbackState.isInCopyFeedbackCooldown = false;
-        feedbackState.timerId = null;
-      }, FEEDBACK_DURATION_MS);
-    };
-
-    const transitionStateAfterCopy = (
-      result: CopyResult,
-      copiedElement?: Element,
-      shouldDeactivateAfter?: boolean,
-    ) => {
-      if (store.current.state !== "copying") return;
-
-      if (result.didSucceed) {
-        actions.completeCopy(copiedElement);
-      }
-
-      if (shouldDeactivateAfter) {
-        deactivateRenderer();
-      } else if (result.didSucceed) {
-        actions.activate();
-        startFeedbackCooldown();
-      } else {
-        actions.unfreeze();
-      }
     };
 
     const executeCopyOperation = async (
@@ -772,13 +751,41 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.startCopy();
       }
 
-      const result = await runWithErrorCapture(clipboardOperation);
+      let didSucceed = false;
+      let errorMessage: string | undefined;
 
-      if (labelInstanceId) {
-        updateLabelAfterCopy(labelInstanceId, result);
+      try {
+        await clipboardOperation();
+        didSucceed = true;
+      } catch (error) {
+        errorMessage = normalizeErrorMessage(error, "Action failed");
       }
 
-      transitionStateAfterCopy(result, copiedElement, shouldDeactivateAfter);
+      if (labelInstanceId) {
+        updateLabelAfterCopy(labelInstanceId, didSucceed, errorMessage);
+      }
+
+      if (store.current.state !== "copying") return;
+
+      if (didSucceed) {
+        actions.completeCopy(copiedElement);
+      }
+
+      if (shouldDeactivateAfter) {
+        deactivateRenderer();
+      } else if (didSucceed) {
+        actions.activate();
+        feedbackState.isInCopyFeedbackCooldown = true;
+        if (feedbackState.timerId !== null) {
+          window.clearTimeout(feedbackState.timerId);
+        }
+        feedbackState.timerId = window.setTimeout(() => {
+          feedbackState.isInCopyFeedbackCooldown = false;
+          feedbackState.timerId = null;
+        }, FEEDBACK_DURATION_MS);
+      } else {
+        actions.unfreeze();
+      }
     };
 
     const copyWithFallback = (
@@ -919,21 +926,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
       void notifyElementsSelected(targetElements);
     };
-
-    interface CopyWithLabelOptions {
-      element: Element;
-      cursorX: number;
-      selectedElements?: Element[];
-      extraPrompt?: string;
-      shouldDeactivateAfter?: boolean;
-      onComplete?: () => void;
-      dragRect?: {
-        pageX: number;
-        pageY: number;
-        width: number;
-        height: number;
-      };
-    }
 
     const performCopyWithLabel = async ({
       element,
@@ -3340,12 +3332,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             },
           );
 
-          const result = await runWithErrorCapture(async () => {
-            const didSucceed = await action();
-            if (!didSucceed) throw new Error("Failed to copy");
-          });
+          let didSucceed = false;
+          let errorMessage: string | undefined;
 
-          updateLabelAfterCopy(labelInstanceId, result);
+          try {
+            didSucceed = await action();
+            if (!didSucceed) {
+              errorMessage = "Failed to copy";
+            }
+          } catch (error) {
+            errorMessage = normalizeErrorMessage(error, "Action failed");
+          }
+
+          updateLabelAfterCopy(labelInstanceId, didSucceed, errorMessage);
         } else {
           // HACK: Fire-and-forget when no label bounds to display feedback on
           try {
@@ -3369,20 +3368,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.hideContextMenu();
       }, 0);
     };
-
-    interface BuildActionContextOptions {
-      element: Element;
-      filePath: string | undefined;
-      lineNumber: number | undefined;
-      tagName: string | undefined;
-      componentName: string | undefined;
-      position: Position;
-      performWithFeedbackOptions?: PerformWithFeedbackOptions;
-      shouldDeferHideContextMenu: boolean;
-      onBeforeCopy?: () => void;
-      onBeforePrompt?: () => void;
-      customEnterPromptMode?: (agent?: AgentOptions) => void;
-    }
 
     const buildActionContext = (
       options: BuildActionContextOptions,
