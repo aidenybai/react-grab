@@ -533,12 +533,6 @@ importers:
         specifier: ^4.21.0
         version: 4.21.0
 
-  packages/registry:
-    dependencies:
-      react-grab:
-        specifier: workspace:*
-        version: link:../react-grab
-
   packages/relay:
     dependencies:
       '@react-grab/utils':
@@ -563,6 +557,12 @@ importers:
       tsup:
         specifier: ^8.4.0
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.1)
+
+  packages/shadcn-registry:
+    dependencies:
+      react-grab:
+        specifier: workspace:*
+        version: link:../react-grab
 
   packages/utils:
     devDependencies:
@@ -2831,8 +2831,8 @@ packages:
     resolution: {integrity: sha512-y9/ltK2TY+0HD1H2Sz7MvU3zFh4SjER6eQVNQfBx/0gK9N7S0QwHW6cmhHLx3CP25zN190LKHXPieMGqsVvrOQ==}
     engines: {node: '>=18'}
 
-  '@sourcegraph/amp@0.0.1773965070-g233ce5':
-    resolution: {integrity: sha512-RpEIlhXXyeLodpPlOcDJVR2kAHked02zmSD2FCCrlKUq6JChcZU0UmECarWTe/QBfYIPZMrXROsm5zAD5mmPTw==}
+  '@sourcegraph/amp@0.0.1773994045-ge5da52':
+    resolution: {integrity: sha512-poUO2Imyi1poV2LUS+lWaYIIeVsILaOGzqLtt62szh8C3Jbwp4oSMsRp6wKaYN+kT4c6TbIdolnQBZJsx5Wt6g==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -8926,10 +8926,10 @@ snapshots:
 
   '@sourcegraph/amp-sdk@0.1.0-20251210081226-g90e3892':
     dependencies:
-      '@sourcegraph/amp': 0.0.1773965070-g233ce5
+      '@sourcegraph/amp': 0.0.1773994045-ge5da52
       zod: 3.25.76
 
-  '@sourcegraph/amp@0.0.1773965070-g233ce5':
+  '@sourcegraph/amp@0.0.1773994045-ge5da52':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
@@ -10468,7 +10468,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.12.1(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1)):
+  eslint-module-utils@2.12.1(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1)(eslint@9.37.0(jiti@2.6.1)):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
@@ -10490,7 +10490,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 9.37.0(jiti@2.6.1)
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.12.1(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1))
+      eslint-module-utils: 2.12.1(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1)(eslint@9.37.0(jiti@2.6.1))
       hasown: 2.0.2
       is-core-module: 2.16.1
       is-glob: 4.0.3

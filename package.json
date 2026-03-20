@@ -5,7 +5,7 @@
   ],
   "type": "module",
   "scripts": {
-    "build": "cp README.md packages/react-grab/README.md && turbo run build --filter=react-grab --filter=@react-grab/cursor --filter=@react-grab/claude-code --filter=@react-grab/opencode --filter=@react-grab/codex --filter=@react-grab/gemini --filter=@react-grab/amp --filter=@react-grab/droid --filter=@react-grab/copilot --filter=@react-grab/cli --filter=@react-grab/utils --filter=@react-grab/registry && pnpm --filter grab build",
+    "build": "cp README.md packages/react-grab/README.md && turbo run build --filter=react-grab --filter=@react-grab/cursor --filter=@react-grab/claude-code --filter=@react-grab/opencode --filter=@react-grab/codex --filter=@react-grab/gemini --filter=@react-grab/amp --filter=@react-grab/droid --filter=@react-grab/copilot --filter=@react-grab/cli --filter=@react-grab/utils --filter=@react-grab/shadcn-registry && pnpm --filter grab build",
     "dev": "turbo dev --filter=react-grab --filter=@react-grab/cursor --filter=@react-grab/claude-code --filter=@react-grab/opencode --filter=@react-grab/codex --filter=@react-grab/gemini --filter=@react-grab/amp --filter=@react-grab/droid --filter=@react-grab/copilot --filter=@react-grab/cli --filter=@react-grab/utils",
     "test": "turbo run test --filter=react-grab --filter=@react-grab/cli",
     "typecheck": "pnpm --filter react-grab typecheck",

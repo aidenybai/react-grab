@@ -1,5 +1,5 @@
 {
-  "name": "@react-grab/registry",
+  "name": "@react-grab/shadcn-registry",
   "version": "0.0.1",
   "private": true,
   "type": "module",
