@@ -7,34 +7,75 @@ const DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
 const TYPES_PATH = path.resolve(DIRECTORY, "../src/types.ts");
 const OUTPUT_PATH = path.resolve(DIRECTORY, "../src/core/noop-api.ts");
 
-const resolveReturnDefault = (
-  returnType: ts.TypeNode,
-  sourceFile: ts.SourceFile,
-): string => {
-  const text = returnType.getText(sourceFile).trim();
+const isNullKeyword = (node: ts.TypeNode): boolean =>
+  node.kind === ts.SyntaxKind.NullKeyword ||
+  (ts.isLiteralTypeNode(node) &&
+    node.literal.kind === ts.SyntaxKind.NullKeyword);
 
-  if (text === "void") return "undefined";
-  if (text === "boolean") return "false";
-  if (text === "number") return "0";
-  if (text === "string") return '""';
-  if (text === "string[]") return "[]";
-  if (text.endsWith("| null")) return "null";
-  if (text.endsWith("| undefined")) return "undefined";
-  if (text.startsWith("Promise<")) {
-    const inner = text.slice("Promise<".length, -1);
-    if (inner === "void") return "Promise.resolve()";
-    if (inner === "boolean") return "Promise.resolve(false)";
-    if (inner === "string") return 'Promise.resolve("")';
-    if (inner.endsWith("| null")) return "Promise.resolve(null)";
-    return "Promise.resolve(undefined as never)";
+const isUndefinedKeyword = (node: ts.TypeNode): boolean =>
+  node.kind === ts.SyntaxKind.UndefinedKeyword ||
+  (ts.isLiteralTypeNode(node) &&
+    node.literal.kind === ts.SyntaxKind.UndefinedKeyword);
+
+const isNullableUnion = (node: ts.TypeNode): boolean => {
+  if (!ts.isUnionTypeNode(node)) return false;
+  return node.types.some(
+    (typeNode) => isNullKeyword(typeNode) || isUndefinedKeyword(typeNode),
+  );
+};
+
+const isArrayType = (node: ts.TypeNode): boolean =>
+  ts.isArrayTypeNode(node) ||
+  (ts.isTypeReferenceNode(node) &&
+    ts.isIdentifier(node.typeName) &&
+    node.typeName.text === "Array");
+
+const isPromiseType = (node: ts.TypeNode): boolean =>
+  ts.isTypeReferenceNode(node) &&
+  ts.isIdentifier(node.typeName) &&
+  node.typeName.text === "Promise";
+
+const getPromiseInner = (node: ts.TypeNode): ts.TypeNode | undefined =>
+  isPromiseType(node) && ts.isTypeReferenceNode(node)
+    ? node.typeArguments?.[0]
+    : undefined;
+
+const resolveDefault = (node: ts.TypeNode): string => {
+  if (node.kind === ts.SyntaxKind.VoidKeyword) return "undefined";
+  if (node.kind === ts.SyntaxKind.BooleanKeyword) return "false";
+  if (node.kind === ts.SyntaxKind.NumberKeyword) return "0";
+  if (node.kind === ts.SyntaxKind.StringKeyword) return '""';
+  if (node.kind === ts.SyntaxKind.NullKeyword) return "null";
+  if (node.kind === ts.SyntaxKind.UndefinedKeyword) return "undefined";
+
+  if (isNullableUnion(node)) return "null";
+  if (isArrayType(node)) return "[]";
+  if (ts.isFunctionTypeNode(node)) return "NOOP";
+
+  if (isPromiseType(node)) {
+    const inner = getPromiseInner(node);
+    if (!inner) return "Promise.resolve()";
+    const innerDefault = resolveDefault(inner);
+    return innerDefault === "undefined"
+      ? "Promise.resolve()"
+      : `Promise.resolve(${innerDefault})`;
   }
-  if (text === "ReactGrabState") return "NOOP_STATE";
 
-  if (returnType.kind === ts.SyntaxKind.FunctionType || text.startsWith("(")) {
-    return "NOOP";
+  if (ts.isTypeReferenceNode(node) && ts.isIdentifier(node.typeName)) {
+    const referenceName = node.typeName.text;
+    if (referenceName === "ReactGrabState") return "NOOP_STATE";
   }
 
   return "undefined as never";
+};
+
+const resolvePropertyDefault = (node: ts.TypeNode): string => {
+  if (node.kind === ts.SyntaxKind.BooleanKeyword) return "false";
+  if (node.kind === ts.SyntaxKind.NumberKeyword) return "0";
+  if (node.kind === ts.SyntaxKind.StringKeyword) return '""';
+  if (isNullableUnion(node)) return "null";
+  if (isArrayType(node)) return "[]";
+  return "null as never";
 };
 
 const source = fs.readFileSync(TYPES_PATH, "utf-8");
@@ -45,41 +86,27 @@ const sourceFile = ts.createSourceFile(
   true,
 );
 
-let reactGrabApiInterface: ts.InterfaceDeclaration | undefined;
-let reactGrabStateInterface: ts.InterfaceDeclaration | undefined;
+const findInterface = (name: string): ts.InterfaceDeclaration => {
+  let found: ts.InterfaceDeclaration | undefined;
+  ts.forEachChild(sourceFile, (node) => {
+    if (ts.isInterfaceDeclaration(node) && node.name.text === name) {
+      found = node;
+    }
+  });
+  if (!found) throw new Error(`Could not find interface ${name} in types.ts`);
+  return found;
+};
 
-ts.forEachChild(sourceFile, (node) => {
-  if (ts.isInterfaceDeclaration(node) && node.name.text === "ReactGrabAPI") {
-    reactGrabApiInterface = node;
-  }
-  if (ts.isInterfaceDeclaration(node) && node.name.text === "ReactGrabState") {
-    reactGrabStateInterface = node;
-  }
-});
-
-if (!reactGrabApiInterface) {
-  throw new Error("Could not find ReactGrabAPI interface in types.ts");
-}
-if (!reactGrabStateInterface) {
-  throw new Error("Could not find ReactGrabState interface in types.ts");
-}
+const reactGrabApiInterface = findInterface("ReactGrabAPI");
+const reactGrabStateInterface = findInterface("ReactGrabState");
 
 const stateDefaults: string[] = [];
 for (const member of reactGrabStateInterface.members) {
   if (!ts.isPropertySignature(member) || !member.name || !member.type) continue;
   const propertyName = member.name.getText(sourceFile);
-  const typeText = member.type.getText(sourceFile).trim();
-
-  let defaultValue: string;
-  if (typeText === "boolean") defaultValue = "false";
-  else if (typeText === "number") defaultValue = "0";
-  else if (typeText === "string") defaultValue = '""';
-  else if (typeText.endsWith("| null")) defaultValue = "null";
-  else if (typeText.startsWith("Array<") || typeText.endsWith("[]"))
-    defaultValue = "[]";
-  else defaultValue = "null as never";
-
-  stateDefaults.push(`  ${propertyName}: ${defaultValue},`);
+  stateDefaults.push(
+    `  ${propertyName}: ${resolvePropertyDefault(member.type)},`,
+  );
 }
 
 const methodEntries: string[] = [];
@@ -89,23 +116,20 @@ for (const member of reactGrabApiInterface.members) {
   const methodName = member.name.getText(sourceFile);
   const typeNode = member.type;
 
-  if (!ts.isFunctionTypeNode(typeNode)) continue;
+  if (!ts.isFunctionTypeNode(typeNode) || !typeNode.type) continue;
 
-  const returnType = typeNode.type;
-  if (!returnType) continue;
-
-  const defaultValue = resolveReturnDefault(returnType, sourceFile);
+  const defaultValue = resolveDefault(typeNode.type);
 
   if (defaultValue === "undefined") {
-    methodEntries.push(`    ${methodName}: NOOP,`);
+    methodEntries.push(`  ${methodName}: NOOP,`);
   } else if (defaultValue === "NOOP_STATE") {
     methodEntries.push(
-      `    ${methodName}: () => ({ ...NOOP_STATE }) as ReactGrabState,`,
+      `  ${methodName}: () => ({ ...NOOP_STATE }) as ReactGrabState,`,
     );
   } else if (defaultValue === "NOOP") {
-    methodEntries.push(`    ${methodName}: () => NOOP,`);
+    methodEntries.push(`  ${methodName}: () => NOOP,`);
   } else {
-    methodEntries.push(`    ${methodName}: () => ${defaultValue},`);
+    methodEntries.push(`  ${methodName}: () => ${defaultValue},`);
   }
 }
 
