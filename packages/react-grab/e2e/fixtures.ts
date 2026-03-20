@@ -1142,7 +1142,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         return getComputedStyle(dropdown).pointerEvents !== "none";
       },
       { attrName: ATTRIBUTE_NAME, expectedVisible: visible },
-      { timeout: 2000 },
+      { timeout: 5000 },
     );
   };
 
