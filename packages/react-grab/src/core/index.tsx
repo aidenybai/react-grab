@@ -3945,6 +3945,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       // at module evaluation time, which crashes during SSR (window is not defined).
       void import("../components/renderer.js")
         .then(({ ReactGrabRenderer }) => {
+          if (!hasInited) return;
           render(() => {
             return (
               <ReactGrabRenderer

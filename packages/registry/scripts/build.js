@@ -21,7 +21,7 @@ for (const item of registry.items) {
     description: item.description,
     dependencies: item.dependencies,
     files: item.files.map((file) => ({
-      path: file.target,
+      path: file.target ?? file.path,
       content: readFileSync(resolve(ROOT_DIRECTORY, file.path), "utf-8"),
       type: file.type,
       target: file.target,
