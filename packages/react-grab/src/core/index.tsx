@@ -395,10 +395,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
     );
 
-    const pendingAbortSessionId = () => store.pendingAbortSessionId;
-
-    const hasAgentProvider = () => store.hasAgentProvider;
-
     const clearHoldTimer = () => {
       if (holdState.timerId !== null) {
         clearTimeout(holdState.timerId);
@@ -656,11 +652,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       labelFadeTimeouts.clear();
     };
 
-    const removeLabelInstance = (instanceId: string) => {
-      labelFadeTimeouts.delete(instanceId);
-      actions.removeLabelInstance(instanceId);
-    };
-
     const scheduleLabelFade = (instanceId: string) => {
       cancelLabelFade(instanceId);
 
@@ -668,7 +659,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         labelFadeTimeouts.delete(instanceId);
         actions.updateLabelInstance(instanceId, "fading");
         setTimeout(() => {
-          removeLabelInstance(instanceId);
+          labelFadeTimeouts.delete(instanceId);
+          actions.removeLabelInstance(instanceId);
         }, FADE_COMPLETE_BUFFER_MS);
       }, FEEDBACK_DURATION_MS);
 
@@ -1120,8 +1112,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return createElementBounds(element);
     });
 
-    const frozenElementsCount = () => store.frozenElements.length;
-
     const calculateDragDistance = (endX: number, endY: number) => {
       const endPageX = endX + window.scrollX;
       const endPageY = endY + window.scrollY;
@@ -1570,7 +1560,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const { x: currentX, y: currentY } = getBoundsCenter(firstBounds);
       const labelPositionX = currentX + store.copyOffsetFromCenterX;
 
-      if ((store.selectedAgent || hasAgentProvider()) && prompt) {
+      if ((store.selectedAgent || store.hasAgentProvider) && prompt) {
         const currentReplySessionId = store.replySessionId;
         const selectedAgent = store.selectedAgent;
 
@@ -2561,7 +2551,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         if (isPromptMode() || isFromOverlay) {
           if (event.key === "Escape") {
-            if (pendingAbortSessionId()) {
+            if (store.pendingAbortSessionId) {
               event.preventDefault();
               event.stopPropagation();
               actions.setPendingAbortSessionId(null);
@@ -2580,7 +2570,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
 
         if (event.key === "Escape") {
-          if (pendingAbortSessionId()) {
+          if (store.pendingAbortSessionId) {
             event.preventDefault();
             event.stopPropagation();
             actions.setPendingAbortSessionId(null);
@@ -3946,7 +3936,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                   store.frozenElements.length > 0 ||
                   dragPreviewBounds().length > 0
                 }
-                selectionElementsCount={frozenElementsCount()}
+                selectionElementsCount={store.frozenElements.length}
                 selectionFilePath={store.selectionFilePath ?? undefined}
                 selectionLineNumber={store.selectionLineNumber ?? undefined}
                 selectionTagName={selectionTagName()}
@@ -3970,7 +3960,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 }
                 inputValue={store.inputText}
                 isPromptMode={isPromptMode()}
-                hasAgent={hasAgentProvider()}
+                hasAgent={store.hasAgentProvider}
                 agentSessions={agentManager.sessions()}
                 supportsUndo={store.supportsUndo}
                 supportsFollowUp={store.supportsFollowUp}
@@ -3989,7 +3979,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 selectionLabelShakeCount={selectionLabelShakeCount()}
                 onConfirmDismiss={handleConfirmDismiss}
                 onCancelDismiss={handleCancelDismiss}
-                pendingAbortSessionId={pendingAbortSessionId()}
+                pendingAbortSessionId={store.pendingAbortSessionId}
                 onRequestAbortSession={(sessionId) =>
                   actions.setPendingAbortSessionId(sessionId)
                 }
@@ -4068,7 +4058,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         });
     }
 
-    if (hasAgentProvider()) {
+    if (store.hasAgentProvider) {
       agentManager.session.tryResume();
     }
 
