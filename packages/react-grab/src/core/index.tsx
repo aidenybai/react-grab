@@ -972,26 +972,30 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           })
         : null;
 
-      void getNearestComponentName(element).then((componentName) => {
-        void executeCopyOperation({
-          positionX: labelPositionX,
-          operation: () =>
-            copyElementsToClipboard(
-              allElements,
-              extraPrompt,
-              componentName ?? undefined,
-            ),
-          bounds: overlayBounds,
-          tagName,
-          componentName: componentName ?? undefined,
-          element,
-          shouldDeactivateAfter,
-          elements,
-          existingInstanceId: labelInstanceId,
-        }).then(() => {
-          onComplete?.();
+      void getNearestComponentName(element)
+        .then((componentName) => {
+          return executeCopyOperation({
+            positionX: labelPositionX,
+            operation: () =>
+              copyElementsToClipboard(
+                allElements,
+                extraPrompt,
+                componentName ?? undefined,
+              ),
+            bounds: overlayBounds,
+            tagName,
+            componentName: componentName ?? undefined,
+            element,
+            shouldDeactivateAfter,
+            elements,
+            existingInstanceId: labelInstanceId,
+          }).then(() => {
+            onComplete?.();
+          });
+        })
+        .catch((error) => {
+          logRecoverableError("Copy operation failed", error);
         });
-      });
     };
 
     const targetElement = createMemo(() => {
@@ -1346,8 +1350,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         dragBounds: drag
           ? { x: drag.x, y: drag.y, width: drag.width, height: drag.height }
           : null,
-        grabbedBoxes: stateChangeGrabbedBoxes(),
-        labelInstances: stateChangeLabelInstances(),
+        grabbedBoxes: [...stateChangeGrabbedBoxes()],
+        labelInstances: [...stateChangeLabelInstances()],
         selectionFilePath: store.selectionFilePath,
         toolbarState: currentToolbarState(),
       };
@@ -4241,8 +4245,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         isDragBoxVisible: Boolean(dragVisible()),
         targetElement: targetElement(),
         dragBounds: dragBounds() ?? null,
-        grabbedBoxes: stateChangeGrabbedBoxes(),
-        labelInstances: stateChangeLabelInstances(),
+        grabbedBoxes: [...stateChangeGrabbedBoxes()],
+        labelInstances: [...stateChangeLabelInstances()],
         selectionFilePath: store.selectionFilePath,
         toolbarState: currentToolbarState(),
       }),
