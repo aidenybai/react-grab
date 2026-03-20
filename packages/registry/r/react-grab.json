@@ -4,13 +4,11 @@
   "type": "registry:component",
   "title": "React Grab",
   "description": "Loads React Grab as early as possible — select context for coding agents directly from your website.",
-  "dependencies": [
-    "react-grab"
-  ],
+  "dependencies": ["react-grab"],
   "files": [
     {
       "path": "components/react-grab.tsx",
-      "content": "\"use client\";\n\nimport { useEffect } from \"react\";\n\nconst SCRIPT_ID = \"react-grab-script\";\nconst SCRIPT_SRC = \"//unpkg.com/react-grab/dist/index.global.js\";\n\nexport const ReactGrab = () => {\n  useEffect(() => {\n    if (process.env.NODE_ENV !== \"development\") return;\n    if (document.getElementById(SCRIPT_ID)) return;\n    const script = document.createElement(\"script\");\n    script.id = SCRIPT_ID;\n    script.src = SCRIPT_SRC;\n    script.crossOrigin = \"anonymous\";\n    document.head.appendChild(script);\n  }, []);\n  return null;\n};\n",
+      "content": "\"use client\";\n\nimport { useEffect } from \"react\";\n\nconst SCRIPT_ID = \"react-grab-script\";\nconst SCRIPT_SRC = \"https://unpkg.com/react-grab/dist/index.global.js\";\n\nexport const ReactGrab = () => {\n  useEffect(() => {\n    if (process.env.NODE_ENV !== \"development\") return;\n    if (document.getElementById(SCRIPT_ID)) return;\n    const script = document.createElement(\"script\");\n    script.id = SCRIPT_ID;\n    script.src = SCRIPT_SRC;\n    script.crossOrigin = \"anonymous\";\n    document.head.appendChild(script);\n  }, []);\n  return null;\n};\n",
       "type": "registry:component",
       "target": "components/react-grab.tsx"
     }

@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 const SCRIPT_ID = "react-grab-script";
-const SCRIPT_SRC = "//unpkg.com/react-grab/dist/index.global.js";
+const SCRIPT_SRC = "https://unpkg.com/react-grab/dist/index.global.js";
 
 export const ReactGrab = () => {
   useEffect(() => {
