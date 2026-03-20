@@ -4,11 +4,13 @@
   "type": "registry:component",
   "title": "React Grab",
   "description": "Loads React Grab as early as possible — select context for coding agents directly from your website.",
-  "dependencies": ["react-grab"],
+  "dependencies": [
+    "react-grab"
+  ],
   "files": [
     {
       "path": "components/react-grab.tsx",
-      "content": "\"use client\";\n\nimport \"react-grab\";\nimport \"react-grab/styles.css\";\n\nexport const ReactGrab = () => {\n  return null;\n};\n",
+      "content": "\"use client\";\n\nimport \"react-grab\";\n\nexport const ReactGrab = () => {\n  return null;\n};\n",
       "type": "registry:component",
       "target": "components/react-grab.tsx"
     }
