@@ -5,8 +5,5 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build.js"
-  },
-  "dependencies": {
-    "react-grab": "workspace:*"
   }
 }

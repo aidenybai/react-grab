@@ -8,7 +8,7 @@
       "type": "registry:component",
       "title": "React Grab",
       "description": "Loads React Grab as early as possible — select context for coding agents directly from your website.",
-      "dependencies": ["react-grab"],
+      "dependencies": [],
       "files": [
         {
           "path": "registry/react-grab.tsx",

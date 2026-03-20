@@ -1,7 +1,14 @@
 "use client";
 
-import "react-grab";
+import Script from "next/script";
 
 export const ReactGrab = () => {
-  return null;
+  if (process.env.NODE_ENV !== "development") return null;
+  return (
+    <Script
+      src="//unpkg.com/react-grab/dist/index.global.js"
+      crossOrigin="anonymous"
+      strategy="beforeInteractive"
+    />
+  );
 };
