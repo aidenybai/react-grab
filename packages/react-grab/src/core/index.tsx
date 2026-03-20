@@ -954,6 +954,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         : cursorX;
 
       const tagName = getTagName(element);
+      copyFeedbackCooldown.clear();
       actions.startCopy();
 
       const labelInstanceId = tagName
