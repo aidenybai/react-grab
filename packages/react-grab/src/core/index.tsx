@@ -197,6 +197,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
   const { enabled: _enabled, ...settableOptions } = initialOptions;
 
   return createRoot((dispose) => {
+    let disposed = false;
+    let disposeRenderer: (() => void) | undefined;
+
     const pluginRegistry = createPluginRegistry(settableOptions);
 
     const getAgentFromActions = () => {
@@ -3945,8 +3948,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       // at module evaluation time, which crashes during SSR (window is not defined).
       void import("../components/renderer.js")
         .then(({ ReactGrabRenderer }) => {
-          if (!hasInited) return;
-          render(() => {
+          if (disposed) return;
+          disposeRenderer = render(() => {
             return (
               <ReactGrabRenderer
                 selectionVisible={selectionVisible()}
@@ -4192,7 +4195,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         };
       },
       dispose: () => {
+        disposed = true;
         hasInited = false;
+        disposeRenderer?.();
         cancelHistoryHoverOpenTimeout();
         cancelHistoryHoverCloseTimeout();
         stopTrackingDropdownPosition();
