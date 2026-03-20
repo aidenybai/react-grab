@@ -1,8 +1,10 @@
 "use client";
 
-import "react-grab";
-import "react-grab/styles.css";
+import { useEffect } from "react";
 
 export const ReactGrab = () => {
+  useEffect(() => {
+    import("react-grab");
+  }, []);
   return null;
 };
