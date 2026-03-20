@@ -694,88 +694,91 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.clearLabelInstances();
     };
 
+    interface CopyResult {
+      didSucceed: boolean;
+      errorMessage?: string;
+    }
+
+    const runWithErrorCapture = async (
+      operation: () => Promise<void>,
+    ): Promise<CopyResult> => {
+      try {
+        await operation();
+        return { didSucceed: true };
+      } catch (error) {
+        return {
+          didSucceed: false,
+          errorMessage: normalizeErrorMessage(error, "Action failed"),
+        };
+      }
+    };
+
     const updateLabelAfterCopy = (
       labelInstanceId: string,
-      didSucceed: boolean,
-      errorMessage?: string,
+      result: CopyResult,
     ) => {
-      if (didSucceed) {
+      if (result.didSucceed) {
         actions.updateLabelInstance(labelInstanceId, "copied");
       } else {
         actions.updateLabelInstance(
           labelInstanceId,
           "error",
-          errorMessage || "Unknown error",
+          result.errorMessage || "Unknown error",
         );
       }
       scheduleLabelFade(labelInstanceId);
     };
 
+    const startFeedbackCooldown = () => {
+      feedbackState.isInCopyFeedbackCooldown = true;
+      if (feedbackState.timerId !== null) {
+        window.clearTimeout(feedbackState.timerId);
+      }
+      feedbackState.timerId = window.setTimeout(() => {
+        feedbackState.isInCopyFeedbackCooldown = false;
+        feedbackState.timerId = null;
+      }, FEEDBACK_DURATION_MS);
+    };
+
     const transitionStateAfterCopy = (
-      didSucceed: boolean,
+      result: CopyResult,
       copiedElement?: Element,
       shouldDeactivateAfter?: boolean,
     ) => {
       if (store.current.state !== "copying") return;
 
-      if (didSucceed) {
+      if (result.didSucceed) {
         actions.completeCopy(copiedElement);
       }
 
       if (shouldDeactivateAfter) {
         deactivateRenderer();
-      } else if (didSucceed) {
+      } else if (result.didSucceed) {
         actions.activate();
-        feedbackState.isInCopyFeedbackCooldown = true;
-        if (feedbackState.timerId !== null) {
-          window.clearTimeout(feedbackState.timerId);
-        }
-        feedbackState.timerId = window.setTimeout(() => {
-          feedbackState.isInCopyFeedbackCooldown = false;
-          feedbackState.timerId = null;
-        }, FEEDBACK_DURATION_MS);
+        startFeedbackCooldown();
       } else {
         actions.unfreeze();
       }
     };
 
-    interface CopyOperationOptions {
-      clipboardOperation: () => Promise<void>;
-      labelInstanceId: string | null;
-      copiedElement?: Element;
-      shouldDeactivateAfter?: boolean;
-    }
-
-    const executeCopyOperation = async ({
-      clipboardOperation,
-      labelInstanceId,
-      copiedElement,
-      shouldDeactivateAfter,
-    }: CopyOperationOptions) => {
+    const executeCopyOperation = async (
+      clipboardOperation: () => Promise<void>,
+      labelInstanceId: string | null,
+      copiedElement?: Element,
+      shouldDeactivateAfter?: boolean,
+    ) => {
       feedbackState.isInCopyFeedbackCooldown = false;
       if (store.current.state !== "copying") {
         actions.startCopy();
       }
 
-      let didSucceed = false;
-      let errorMessage: string | undefined;
-
-      try {
-        await clipboardOperation();
-        didSucceed = true;
-      } catch (error) {
-        errorMessage = normalizeErrorMessage(error, "Action failed");
-      }
+      const result = await runWithErrorCapture(clipboardOperation);
 
       if (labelInstanceId) {
-        updateLabelAfterCopy(labelInstanceId, didSucceed, errorMessage);
+        updateLabelAfterCopy(labelInstanceId, result);
       }
 
-      transitionStateAfterCopy(
-        didSucceed,
-        copiedElement,
-        shouldDeactivateAfter,
-      );
+      transitionStateAfterCopy(result, copiedElement, shouldDeactivateAfter);
     };
 
     const copyWithFallback = (
@@ -932,7 +935,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       };
     }
 
-    const performCopyWithLabel = ({
+    const performCopyWithLabel = async ({
       element,
       cursorX,
       selectedElements,
@@ -943,19 +946,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     }: CopyWithLabelOptions) => {
       const allTargetElements = selectedElements ?? [element];
       const dragRect = passedDragRect ?? store.frozenDragRect;
+      const isMultiSelect = allTargetElements.length > 1;
 
       const selectionBounds =
-        dragRect && allTargetElements.length > 1
+        dragRect && isMultiSelect
           ? createBoundsFromDragRect(dragRect)
           : createFlatOverlayBounds(createElementBounds(element));
 
-      const labelCursorX =
-        allTargetElements.length > 1
-          ? selectionBounds.x + selectionBounds.width / 2
-          : cursorX;
+      const labelCursorX = isMultiSelect
+        ? selectionBounds.x + selectionBounds.width / 2
+        : cursorX;
 
       const tagName = getTagName(element);
-      feedbackState.isInCopyFeedbackCooldown = false;
       actions.startCopy();
 
       const labelInstanceId = tagName
@@ -966,25 +968,21 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           })
         : null;
 
-      void getNearestComponentName(element)
-        .then((componentName) =>
-          executeCopyOperation({
-            clipboardOperation: () =>
-              copyElementsToClipboard(
-                allTargetElements,
-                extraPrompt,
-                componentName ?? undefined,
-              ),
-            labelInstanceId,
-            copiedElement: element,
-            shouldDeactivateAfter,
-          }).then(() => {
-            onComplete?.();
-          }),
-        )
-        .catch((error) => {
-          logRecoverableError("Copy operation failed", error);
-        });
+      const componentName = await getNearestComponentName(element);
+
+      await executeCopyOperation(
+        () =>
+          copyElementsToClipboard(
+            allTargetElements,
+            extraPrompt,
+            componentName ?? undefined,
+          ),
+        labelInstanceId,
+        element,
+        shouldDeactivateAfter,
+      );
+
+      onComplete?.();
     };
 
     const targetElement = createMemo(() => {
@@ -1601,12 +1599,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.clearInputText();
       actions.clearReplySessionId();
 
-      performCopyWithLabel({
+      void performCopyWithLabel({
         element,
         cursorX: labelPositionX,
         selectedElements: elements,
         extraPrompt: prompt || undefined,
         onComplete: deactivateRenderer,
+      }).catch((error) => {
+        logRecoverableError("Copy operation failed", error);
       });
     };
 
@@ -1860,12 +1860,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const shouldDeactivateAfter =
         store.wasActivatedByToggle && !hasModifierKeyHeld;
 
-      performCopyWithLabel({
+      void performCopyWithLabel({
         element: firstElement,
         cursorX: center.x,
         selectedElements,
         shouldDeactivateAfter,
         dragRect,
+      }).catch((error) => {
+        logRecoverableError("Copy operation failed", error);
       });
     };
 
@@ -1938,10 +1940,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       actions.setLastGrabbed(element);
 
-      performCopyWithLabel({
+      void performCopyWithLabel({
         element,
         cursorX: positionX,
         shouldDeactivateAfter,
+      }).catch((error) => {
+        logRecoverableError("Copy operation failed", error);
       });
     };
 
@@ -3319,7 +3323,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.hideContextMenu();
 
         if (labelBounds) {
-          const labelPositionX = hasMultipleElements
+          const labelCursorX = hasMultipleElements
             ? labelBounds.x + labelBounds.width / 2
             : position.x;
 
@@ -3330,25 +3334,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             "copying",
             {
               element,
-              mouseX: labelPositionX,
+              mouseX: labelCursorX,
               elements: hasMultipleElements ? elements : undefined,
               boundsMultiple: selectionBoundsForLabel,
             },
           );
 
-          let didSucceed = false;
-          let errorMessage: string | undefined;
+          const result = await runWithErrorCapture(async () => {
+            const didSucceed = await action();
+            if (!didSucceed) throw new Error("Failed to copy");
+          });
 
-          try {
-            didSucceed = await action();
-            if (!didSucceed) {
-              errorMessage = "Failed to copy";
-            }
-          } catch (error) {
-            errorMessage = normalizeErrorMessage(error, "Action failed");
-          }
-
-          updateLabelAfterCopy(labelInstanceId, didSucceed, errorMessage);
+          updateLabelAfterCopy(labelInstanceId, result);
         } else {
           // HACK: Fire-and-forget when no label bounds to display feedback on
           try {
@@ -3413,11 +3410,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const copyAction = () => {
         onBeforeCopy?.();
-        performCopyWithLabel({
+        void performCopyWithLabel({
           element,
           cursorX: position.x,
           selectedElements: elements.length > 1 ? elements : undefined,
           shouldDeactivateAfter: store.wasActivatedByToggle,
+        }).catch((error) => {
+          logRecoverableError("Copy operation failed", error);
         });
         hideContextMenuAction();
       };
