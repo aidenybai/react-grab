@@ -981,6 +981,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         })
         .catch((error) => {
           logRecoverableError("Copy operation failed", error);
+          if (labelInstanceId) {
+            updateLabelAfterCopy(
+              labelInstanceId,
+              false,
+              normalizeErrorMessage(error, "Action failed"),
+            );
+          }
+          if (store.current.state === "copying") {
+            actions.unfreeze();
+          }
         });
     };
 
