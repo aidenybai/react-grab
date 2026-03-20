@@ -36,6 +36,7 @@ interface OptionsState {
   activationMode: ActivationMode;
   keyHoldDuration: number;
   allowActivationInsideInput: boolean;
+  allowExternalCommunication: boolean;
   maxContextLines: number;
   activationKey: ActivationKey | undefined;
   getContent: ((elements: Element[]) => Promise<string> | string) | undefined;
@@ -46,6 +47,7 @@ const DEFAULT_OPTIONS: OptionsState = {
   activationMode: "toggle",
   keyHoldDuration: DEFAULT_KEY_HOLD_DURATION_MS,
   allowActivationInsideInput: true,
+  allowExternalCommunication: true,
   maxContextLines: DEFAULT_MAX_CONTEXT_LINES,
   activationKey: undefined,
   getContent: undefined,
@@ -128,6 +130,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     "activationMode",
     "keyHoldDuration",
     "allowActivationInsideInput",
+    "allowExternalCommunication",
     "maxContextLines",
     "activationKey",
     "getContent",

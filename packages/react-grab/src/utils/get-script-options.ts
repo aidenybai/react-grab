@@ -28,6 +28,10 @@ const parseOptionsFromJson = (rawValue: unknown): Partial<Options> | null => {
     parsedOptions.allowActivationInsideInput =
       rawValue.allowActivationInsideInput;
   }
+  if (typeof rawValue.allowExternalCommunication === "boolean") {
+    parsedOptions.allowExternalCommunication =
+      rawValue.allowExternalCommunication;
+  }
   if (
     typeof rawValue.maxContextLines === "number" &&
     Number.isFinite(rawValue.maxContextLines)

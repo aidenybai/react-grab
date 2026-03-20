@@ -18,8 +18,13 @@ const loadFonts = () => {
   document.head.appendChild(link);
 };
 
-export const mountRoot = (cssText?: string) => {
-  loadFonts();
+export const mountRoot = (
+  cssText?: string,
+  allowExternalCommunication = true,
+) => {
+  if (allowExternalCommunication) {
+    loadFonts();
+  }
 
   const mountedHost = document.querySelector(`[${ATTRIBUTE_NAME}]`);
   if (mountedHost) {
