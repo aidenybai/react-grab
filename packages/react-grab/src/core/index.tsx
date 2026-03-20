@@ -23,10 +23,6 @@ import {
   nativeRequestAnimationFrame,
   waitUntilNextFrame,
 } from "../utils/native-raf.js";
-// HACK: ReactGrabRenderer is dynamically imported inside init() to avoid
-// solid-js/web's delegateEvents() calls running at module evaluation time,
-// which would crash during SSR (window is not defined).
-
 import {
   getStackContext,
   getNearestComponentName,
@@ -3945,6 +3941,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     if (pluginRegistry.store.theme.enabled) {
+      // HACK: Dynamically imported to avoid solid-js/web's delegateEvents() running
+      // at module evaluation time, which crashes during SSR (window is not defined).
       void import("../components/renderer.js").then(({ ReactGrabRenderer }) => {
         render(() => {
           return (
@@ -4068,6 +4066,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             />
           );
         }, rendererRoot);
+      }).catch(() => {
+        // Renderer failed to load — UI will not mount but app continues
       });
     }
 
