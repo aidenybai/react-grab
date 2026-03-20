@@ -1,43 +1,37 @@
-import type { ReactGrabAPI, ReactGrabState } from "../types.js";
+import type { ReactGrabAPI } from "../types.js";
+
+const NOOP_STATE = Object.freeze({
+  isActive: false,
+  isDragging: false,
+  isCopying: false,
+  isPromptMode: false,
+  isSelectionBoxVisible: false,
+  isDragBoxVisible: false,
+  targetElement: null,
+  dragBounds: null,
+  grabbedBoxes: [],
+  labelInstances: [],
+  selectionFilePath: null,
+  toolbarState: null,
+});
+
+const NOOP = () => {};
+const NOOP_UNSUB = () => NOOP;
 
 export const createNoopApi = (): ReactGrabAPI => {
-  const getState = (): ReactGrabState => {
-    return {
-      isActive: false,
-      isDragging: false,
-      isCopying: false,
-      isPromptMode: false,
-      isSelectionBoxVisible: false,
-      isDragBoxVisible: false,
-      targetElement: null,
-      dragBounds: null,
-      grabbedBoxes: [],
-      labelInstances: [],
-      selectionFilePath: null,
-      toolbarState: null,
-    };
-  };
-
-  return {
-    activate: () => {},
-    deactivate: () => {},
-    toggle: () => {},
-    comment: () => {},
-    isActive: () => false,
-    isEnabled: () => false,
-    setEnabled: () => {},
-    getToolbarState: () => null,
-    setToolbarState: () => {},
-    onToolbarStateChange: () => () => {},
-    dispose: () => {},
-    copyElement: () => Promise.resolve(false),
-    getSource: () => Promise.resolve(null),
-    getStackContext: () => Promise.resolve(""),
-    getState,
-    setOptions: () => {},
-    registerPlugin: () => {},
-    unregisterPlugin: () => {},
-    getPlugins: () => [],
-    getDisplayName: () => null,
-  };
+  return new Proxy({} as ReactGrabAPI, {
+    get(_target, property) {
+      if (property === "getState") return () => ({ ...NOOP_STATE });
+      if (property === "onToolbarStateChange") return NOOP_UNSUB;
+      if (property === "getPlugins") return () => [];
+      if (property === "copyElement") return () => Promise.resolve(false);
+      if (property === "getSource") return () => Promise.resolve(null);
+      if (property === "getStackContext") return () => Promise.resolve("");
+      if (property === "isActive" || property === "isEnabled")
+        return () => false;
+      if (property === "getToolbarState" || property === "getDisplayName")
+        return () => null;
+      return NOOP;
+    },
+  });
 };
