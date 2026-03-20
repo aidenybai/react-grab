@@ -533,7 +533,11 @@ importers:
         specifier: ^8.2.4
         version: 8.3.5(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
 
-  packages/registry: {}
+  packages/registry:
+    dependencies:
+      react-grab:
+        specifier: workspace:*
+        version: link:../react-grab
 
   packages/relay:
     dependencies:

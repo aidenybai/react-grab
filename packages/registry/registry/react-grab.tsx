@@ -1,14 +1,19 @@
 "use client";
 
-import Script from "next/script";
+import { useEffect } from "react";
+
+const SCRIPT_ID = "react-grab-script";
+const SCRIPT_SRC = "//unpkg.com/react-grab/dist/index.global.js";
 
 export const ReactGrab = () => {
-  if (process.env.NODE_ENV !== "development") return null;
-  return (
-    <Script
-      src="//unpkg.com/react-grab/dist/index.global.js"
-      crossOrigin="anonymous"
-      strategy="beforeInteractive"
-    />
-  );
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development") return;
+    if (document.getElementById(SCRIPT_ID)) return;
+    const script = document.createElement("script");
+    script.id = SCRIPT_ID;
+    script.src = SCRIPT_SRC;
+    script.crossOrigin = "anonymous";
+    document.head.appendChild(script);
+  }, []);
+  return null;
 };
