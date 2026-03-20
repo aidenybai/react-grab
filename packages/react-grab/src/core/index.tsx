@@ -518,9 +518,26 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       holdTimerFired: false,
     };
     let lastWindowFocusTimestamp = 0;
-    const feedbackState = {
-      isInCopyFeedbackCooldown: false,
+    const copyFeedbackCooldown = {
+      isActive: false,
       timerId: null as number | null,
+      start() {
+        this.isActive = true;
+        if (this.timerId !== null) {
+          window.clearTimeout(this.timerId);
+        }
+        this.timerId = window.setTimeout(() => {
+          this.isActive = false;
+          this.timerId = null;
+        }, FEEDBACK_DURATION_MS);
+      },
+      clear() {
+        if (this.timerId !== null) {
+          window.clearTimeout(this.timerId);
+          this.timerId = null;
+        }
+        this.isActive = false;
+      },
     };
     let actionCycleIdleTimeoutId: number | null = null;
     let selectionSourceRequestVersion = 0;
@@ -746,7 +763,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       copiedElement?: Element,
       shouldDeactivateAfter?: boolean,
     ) => {
-      feedbackState.isInCopyFeedbackCooldown = false;
+      copyFeedbackCooldown.clear();
       if (store.current.state !== "copying") {
         actions.startCopy();
       }
@@ -775,14 +792,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         deactivateRenderer();
       } else if (didSucceed) {
         actions.activate();
-        feedbackState.isInCopyFeedbackCooldown = true;
-        if (feedbackState.timerId !== null) {
-          window.clearTimeout(feedbackState.timerId);
-        }
-        feedbackState.timerId = window.setTimeout(() => {
-          feedbackState.isInCopyFeedbackCooldown = false;
-          feedbackState.timerId = null;
-        }, FEEDBACK_DURATION_MS);
+        copyFeedbackCooldown.start();
       } else {
         actions.unfreeze();
       }
@@ -1455,14 +1465,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
-    const clearToggleFeedbackState = () => {
-      if (feedbackState.timerId !== null) {
-        window.clearTimeout(feedbackState.timerId);
-        feedbackState.timerId = null;
-      }
-      feedbackState.isInCopyFeedbackCooldown = false;
-    };
-
     const deactivateRenderer = () => {
       const wasDragging = isDragging();
       const previousFocused = store.previouslyFocusedElement;
@@ -1491,7 +1493,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isActivated()) {
         deactivateRenderer();
       }
-      clearToggleFeedbackState();
+      copyFeedbackCooldown.clear();
     };
 
     const toggleActivate = () => {
@@ -2636,9 +2638,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               )
           : isCLikeKey(event.key, event.code);
 
-        if (didJustCopy() || feedbackState.isInCopyFeedbackCooldown) {
+        if (didJustCopy() || copyFeedbackCooldown.isActive) {
           if (isReleasingActivationKey || isReleasingModifier) {
-            feedbackState.isInCopyFeedbackCooldown = false;
+            copyFeedbackCooldown.clear();
             deactivateRenderer();
           }
           return;
@@ -3059,7 +3061,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         window.clearTimeout(dragPreviewDebounceTimerId);
       }
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
-      if (feedbackState.timerId) window.clearTimeout(feedbackState.timerId);
+      copyFeedbackCooldown.clear();
       if (actionCycleIdleTimeoutId) {
         window.clearTimeout(actionCycleIdleTimeoutId);
       }
