@@ -17,7 +17,6 @@ interface PendingSelectionPluginConfig {
     hooks: ActionContextHooks,
   ) => void;
   contextMenuAction: ContextMenuActionFactory;
-  toolbarAction: { id: string; label: string; shortcut?: string };
   cleanup?: () => void;
 }
 
@@ -44,23 +43,8 @@ export const createPendingSelectionPlugin = (
         onDeactivate: () => {
           isPendingSelection = false;
         },
-        cancelPendingToolbarActions: () => {
-          isPendingSelection = false;
-        },
       },
-      actions: [
-        resolvedContextMenuAction,
-        {
-          id: config.toolbarAction.id,
-          label: config.toolbarAction.label,
-          shortcut: config.toolbarAction.shortcut,
-          target: "toolbar" as const,
-          onAction: () => {
-            isPendingSelection = true;
-            api.activate();
-          },
-        },
-      ],
+      actions: [resolvedContextMenuAction],
       cleanup: config.cleanup,
     };
   },

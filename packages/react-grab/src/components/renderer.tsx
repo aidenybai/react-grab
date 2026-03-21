@@ -2,6 +2,7 @@ import { Show, Index } from "solid-js";
 import type { Component } from "solid-js";
 import type { AgentSession, ReactGrabRendererProps } from "../types.js";
 import {
+  DEFAULT_ACTION_ID,
   FROZEN_GLOW_COLOR,
   FROZEN_GLOW_EDGE_PX,
   Z_INDEX_OVERLAY_CANVAS,
@@ -11,10 +12,10 @@ import { isElementConnected } from "../utils/is-element-connected.js";
 import { OverlayCanvas } from "./overlay-canvas.js";
 import { SelectionLabel } from "./selection-label/index.js";
 import { Toolbar } from "./toolbar/index.js";
-import { ToolbarMenu } from "./toolbar/toolbar-menu.js";
 import { ContextMenu } from "./context-menu.js";
-import { HistoryDropdown } from "./history-dropdown.js";
-import { ClearHistoryPrompt } from "./clear-history-prompt.js";
+import { ToolbarMenu } from "./toolbar/toolbar-menu.js";
+import { CommentsDropdown } from "./comments-dropdown.js";
+import { ClearCommentsPrompt } from "./clear-comments-prompt.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
   const getSessionStatus = (
@@ -200,18 +201,16 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           onSubscribeToStateChanges={props.onSubscribeToToolbarStateChanges}
           onSelectHoverChange={props.onToolbarSelectHoverChange}
           onContainerRef={props.onToolbarRef}
-          historyItemCount={props.historyItemCount}
+          commentItemCount={props.commentItemCount}
           clockFlashTrigger={props.clockFlashTrigger}
-          hasUnreadHistoryItems={props.hasUnreadHistoryItems}
-          onToggleHistory={props.onToggleHistory}
+          onToggleComments={props.onToggleComments}
           onCopyAll={props.onCopyAll}
           onCopyAllHover={props.onCopyAllHover}
-          onHistoryButtonHover={props.onHistoryButtonHover}
-          isHistoryDropdownOpen={Boolean(props.historyDropdownPosition)}
-          isHistoryPinned={props.isHistoryPinned}
-          toolbarActions={props.toolbarActions}
-          onToggleMenu={props.onToggleMenu}
-          isMenuOpen={Boolean(props.toolbarMenuPosition)}
+          onCommentsButtonHover={props.onCommentsButtonHover}
+          isCommentsDropdownOpen={Boolean(props.commentsDropdownPosition)}
+          isCommentsPinned={props.isCommentsPinned}
+          onToggleToolbarMenu={props.onToggleToolbarMenu}
+          isToolbarMenuOpen={Boolean(props.toolbarMenuPosition)}
           isClearPromptOpen={Boolean(props.clearPromptPosition)}
         />
       </Show>
@@ -230,29 +229,29 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
 
       <ToolbarMenu
         position={props.toolbarMenuPosition ?? null}
-        actions={props.toolbarActions ?? []}
+        actions={props.toolbarMenuActions ?? []}
+        defaultActionId={props.defaultActionId ?? DEFAULT_ACTION_ID}
+        onSetDefaultAction={props.onSetDefaultAction ?? (() => {})}
         onDismiss={props.onToolbarMenuDismiss ?? (() => {})}
       />
 
-      <ClearHistoryPrompt
+      <ClearCommentsPrompt
         position={props.clearPromptPosition ?? null}
-        onConfirm={props.onClearHistoryConfirm ?? (() => {})}
-        onCancel={props.onClearHistoryCancel ?? (() => {})}
+        onConfirm={props.onClearCommentsConfirm ?? (() => {})}
+        onCancel={props.onClearCommentsCancel ?? (() => {})}
       />
 
-      <HistoryDropdown
-        position={props.historyDropdownPosition ?? null}
-        items={props.historyItems ?? []}
-        disconnectedItemIds={props.historyDisconnectedItemIds}
-        onSelectItem={props.onHistoryItemSelect}
-        onRemoveItem={props.onHistoryItemRemove}
-        onCopyItem={props.onHistoryItemCopy}
-        onItemHover={props.onHistoryItemHover}
-        onCopyAll={props.onHistoryCopyAll}
-        onCopyAllHover={props.onHistoryCopyAllHover}
-        onClearAll={props.onHistoryClear}
-        onDismiss={props.onHistoryDismiss}
-        onDropdownHover={props.onHistoryDropdownHover}
+      <CommentsDropdown
+        position={props.commentsDropdownPosition ?? null}
+        items={props.commentItems ?? []}
+        disconnectedItemIds={props.commentsDisconnectedItemIds}
+        onSelectItem={props.onCommentItemSelect}
+        onItemHover={props.onCommentItemHover}
+        onCopyAll={props.onCommentsCopyAll}
+        onCopyAllHover={props.onCommentsCopyAllHover}
+        onClearAll={props.onCommentsClear}
+        onDismiss={props.onCommentsDismiss}
+        onDropdownHover={props.onCommentsDropdownHover}
       />
     </>
   );

@@ -7,7 +7,7 @@ import {
   Show,
 } from "solid-js";
 import type { Component } from "solid-js";
-import type { Position, ToolbarMenuAction } from "../../types.js";
+import type { Position } from "../../types.js";
 import { cn } from "../../utils/cn.js";
 import { formatShortcut } from "../../utils/format-shortcut.js";
 import {
@@ -17,9 +17,8 @@ import {
   type ToolbarState,
 } from "./state.js";
 import { IconSelect } from "../icons/icon-select.jsx";
-import { IconClock } from "../icons/icon-clock.jsx";
+import { IconComment } from "../icons/icon-comment.jsx";
 import { IconCopy } from "../icons/icon-copy.jsx";
-import { IconEllipsis } from "../icons/icon-ellipsis.jsx";
 import {
   createSafePolygonTracker,
   type TargetRect,
@@ -85,19 +84,17 @@ interface ToolbarProps {
   ) => () => void;
   onSelectHoverChange?: (isHovered: boolean) => void;
   onContainerRef?: (element: HTMLDivElement) => void;
-  historyItemCount?: number;
+  commentItemCount?: number;
   clockFlashTrigger?: number;
-  hasUnreadHistoryItems?: boolean;
-  onToggleHistory?: () => void;
+  onToggleComments?: () => void;
   onCopyAll?: () => void;
   onCopyAllHover?: (isHovered: boolean) => void;
-  onHistoryButtonHover?: (isHovered: boolean) => void;
-  isHistoryDropdownOpen?: boolean;
+  onCommentsButtonHover?: (isHovered: boolean) => void;
+  isCommentsDropdownOpen?: boolean;
   isClearPromptOpen?: boolean;
-  isHistoryPinned?: boolean;
-  toolbarActions?: ToolbarMenuAction[];
-  onToggleMenu?: () => void;
-  isMenuOpen?: boolean;
+  isCommentsPinned?: boolean;
+  onToggleToolbarMenu?: () => void;
+  isToolbarMenuOpen?: boolean;
 }
 
 interface FreezeHandlersOptions {
@@ -161,9 +158,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [isShakeTooltipVisible, setIsShakeTooltipVisible] = createSignal(false);
   const [isToggleAnimating, setIsToggleAnimating] = createSignal(false);
   const [isRapidRetoggle, setIsRapidRetoggle] = createSignal(false);
-  const [isHistoryTooltipVisible, setIsHistoryTooltipVisible] =
+  const [isCommentsTooltipVisible, setIsCommentsTooltipVisible] =
     createSignal(false);
-  const [isMenuTooltipVisible, setIsMenuTooltipVisible] = createSignal(false);
   const [isCopyAllTooltipVisible, setIsCopyAllTooltipVisible] =
     createSignal(false);
   let clockFlashRef: HTMLSpanElement | undefined;
@@ -224,17 +220,15 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     ),
   );
 
-  const hasToolbarActions = () => (props.toolbarActions ?? []).length > 0;
-
-  const historyTooltipLabel = () => {
-    const count = props.historyItemCount ?? 0;
-    return count > 0 ? `History (${count})` : "History";
+  const commentsTooltipLabel = () => {
+    const count = props.commentItemCount ?? 0;
+    return count > 0 ? `Comments (${count})` : "Comments";
   };
 
-  const historyIconClass = () =>
+  const commentsIconClass = () =>
     cn(
       "transition-colors",
-      props.isHistoryPinned ? "text-black/80" : "text-[#B3B3B3]",
+      props.isCommentsPinned ? "text-black/80" : "text-[#B3B3B3]",
     );
 
   const isVertical = () => snapEdge() === "left" || snapEdge() === "right";
@@ -251,8 +245,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const isTooltipAllowed = () =>
     !isCollapsed() &&
-    !props.isHistoryDropdownOpen &&
-    !props.isMenuOpen &&
+    !props.isCommentsDropdownOpen &&
+    !props.isToolbarMenuOpen &&
     !props.isClearPromptOpen;
 
   const tooltipPosition = (): "top" | "bottom" | "left" | "right" => {
@@ -463,21 +457,21 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     on(
       () => props.clockFlashTrigger ?? 0,
       () => {
-        if (props.isHistoryDropdownOpen) return;
+        if (props.isCommentsDropdownOpen) return;
         if (clockFlashRef) {
           clockFlashRef.classList.remove("animate-clock-flash");
           // HACK: force reflow between class removal/addition to restart the CSS animation
           void clockFlashRef.offsetHeight;
           clockFlashRef.classList.add("animate-clock-flash");
         }
-        setIsHistoryTooltipVisible(true);
+        setIsCommentsTooltipVisible(true);
         const timerId = setTimeout(() => {
           clockFlashRef?.classList.remove("animate-clock-flash");
-          setIsHistoryTooltipVisible(false);
+          setIsCommentsTooltipVisible(false);
         }, FEEDBACK_DURATION_MS);
         onCleanup(() => {
           clearTimeout(timerId);
-          setIsHistoryTooltipVisible(false);
+          setIsCommentsTooltipVisible(false);
         });
       },
       { defer: true },
@@ -486,20 +480,20 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   createEffect(
     on(
-      () => props.historyItemCount ?? 0,
+      () => props.commentItemCount ?? 0,
       () => {
         if (isCollapsed()) return;
         // HACK: Wait for grid-cols CSS transition to complete, then re-measure and clamp to viewport
-        if (historyItemCountTimeout) {
-          clearTimeout(historyItemCountTimeout);
+        if (commentItemCountTimeout) {
+          clearTimeout(commentItemCountTimeout);
         }
-        historyItemCountTimeout = setTimeout(() => {
+        commentItemCountTimeout = setTimeout(() => {
           measureExpandableDimension();
           reclampToolbarToViewport();
         }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
         onCleanup(() => {
-          if (historyItemCountTimeout) {
-            clearTimeout(historyItemCountTimeout);
+          if (commentItemCountTimeout) {
+            clearTimeout(commentItemCountTimeout);
           }
         });
       },
@@ -546,15 +540,11 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const handleToggle = drag.createDragAwareHandler(() => props.onToggle?.());
 
-  const handleHistory = drag.createDragAwareHandler(() =>
-    props.onToggleHistory?.(),
+  const handleComments = drag.createDragAwareHandler(() =>
+    props.onToggleComments?.(),
   );
 
   const handleCopyAll = drag.createDragAwareHandler(() => props.onCopyAll?.());
-
-  const handleToggleMenu = drag.createDragAwareHandler(() =>
-    props.onToggleMenu?.(),
-  );
 
   const handleToggleCollapse = drag.createDragAwareHandler(() => {
     const rect = containerRef?.getBoundingClientRect();
@@ -634,19 +624,15 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       expandableDimension === 0 &&
       expandableButtonsRef
     ) {
-      const hasHistoryItems = (props.historyItemCount ?? 0) > 0;
-      const hasMenuActions = hasToolbarActions();
+      const hasCommentItems = (props.commentItemCount ?? 0) > 0;
       const expandedWrappers = Array.from(expandableButtonsRef.children).filter(
         (child): child is HTMLElement => {
           if (!(child instanceof HTMLElement)) return false;
-          if (child.querySelector("[data-react-grab-toolbar-history]")) {
-            return hasHistoryItems;
+          if (child.querySelector("[data-react-grab-toolbar-comments]")) {
+            return hasCommentItems;
           }
           if (child.querySelector("[data-react-grab-toolbar-copy-all]")) {
-            return Boolean(props.isHistoryDropdownOpen);
-          }
-          if (child.querySelector("[data-react-grab-toolbar-menu]")) {
-            return hasMenuActions;
+            return Boolean(props.isCommentsDropdownOpen);
           }
           return true;
         },
@@ -812,7 +798,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   let collapseAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
   let toggleAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
   let toggleAnimationRafId: number | undefined;
-  let historyItemCountTimeout: ReturnType<typeof setTimeout> | undefined;
+  let commentItemCountTimeout: ReturnType<typeof setTimeout> | undefined;
 
   const handleResize = () => {
     if (drag.isDragging()) return;
@@ -977,7 +963,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     clearTimeout(collapseAnimationTimeout);
     clearShakeTooltipTimeout();
     clearTimeout(toggleAnimationTimeout);
-    clearTimeout(historyItemCountTimeout);
+    clearTimeout(commentItemCountTimeout);
     if (toggleAnimationRafId !== undefined) {
       nativeCancelAnimationFrame(toggleAnimationRafId);
     }
@@ -1066,11 +1052,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         isCollapsed={isCollapsed()}
         snapEdge={snapEdge()}
         isShaking={isShaking()}
-        isHistoryExpanded={(props.historyItemCount ?? 0) > 0}
-        isCopyAllExpanded={Boolean(props.isHistoryDropdownOpen)}
-        isMenuExpanded={hasToolbarActions()}
-        isMenuOpen={props.isMenuOpen}
-        isHistoryPinned={props.isHistoryPinned}
+        isCommentsExpanded={(props.commentItemCount ?? 0) > 0}
+        isCopyAllExpanded={Boolean(props.isCommentsDropdownOpen)}
+        isCommentsPinned={props.isCommentsPinned}
         disableGridTransitions={isRapidRetoggle()}
         transformOrigin={getTransformOrigin()}
         onAnimationEnd={() => setIsShaking(false)}
@@ -1119,6 +1103,12 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                 setIsSelectTooltipVisible(false);
                 handleToggle(event);
               }}
+              onContextMenu={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setIsSelectTooltipVisible(false);
+                props.onToggleToolbarMenu?.();
+              }}
               {...createFreezeHandlers(setIsSelectTooltipVisible)}
             >
               <IconSelect
@@ -1137,40 +1127,40 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             </Tooltip>
           </>
         }
-        historyButton={
+        commentsButton={
           <>
             <button
               data-react-grab-ignore-events
-              data-react-grab-toolbar-history
-              aria-label={`Open history${
-                (props.historyItemCount ?? 0) > 0
-                  ? ` (${props.historyItemCount ?? 0} items)`
+              data-react-grab-toolbar-comments
+              aria-label={`Open comments${
+                (props.commentItemCount ?? 0) > 0
+                  ? ` (${props.commentItemCount ?? 0} items)`
                   : ""
               }`}
               aria-haspopup="menu"
-              aria-expanded={Boolean(props.isHistoryDropdownOpen)}
+              aria-expanded={Boolean(props.isCommentsDropdownOpen)}
               class={cn(
                 "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
                 buttonSpacingClass(),
                 hitboxConstraintClass(),
               )}
               onClick={(event) => {
-                setIsHistoryTooltipVisible(false);
-                handleHistory(event);
+                setIsCommentsTooltipVisible(false);
+                handleComments(event);
               }}
               {...createFreezeHandlers(
                 (visible) => {
-                  if (visible && props.isHistoryDropdownOpen) return;
-                  setIsHistoryTooltipVisible(visible);
+                  if (visible && props.isCommentsDropdownOpen) return;
+                  setIsCommentsTooltipVisible(visible);
                 },
                 {
                   onHoverChange: (isHovered) =>
-                    props.onHistoryButtonHover?.(isHovered),
+                    props.onCommentsButtonHover?.(isHovered),
                   shouldFreezeInteractions: false,
                   safePolygonTargets: () =>
-                    props.isHistoryDropdownOpen
+                    props.isCommentsDropdownOpen
                       ? getSafePolygonTargets(
-                          "[data-react-grab-history-dropdown]",
+                          "[data-react-grab-comments-dropdown]",
                           "[data-react-grab-toolbar-copy-all]",
                         )
                       : null,
@@ -1178,27 +1168,22 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               )}
             >
               <span ref={clockFlashRef} class="inline-flex relative">
-                <IconClock size={14} class={historyIconClass()} />
-                <Show
-                  when={
-                    props.hasUnreadHistoryItems &&
-                    (props.historyItemCount ?? 0) > 0
-                  }
-                >
+                <IconComment size={14} class={commentsIconClass()} />
+                <Show when={(props.commentItemCount ?? 0) > 0}>
                   <span
                     data-react-grab-unread-indicator
                     class="absolute -top-1 -right-1 min-w-2.5 h-2.5 px-0.5 flex items-center justify-center rounded-full bg-black text-white text-[8px] font-semibold leading-none"
                   >
-                    {props.historyItemCount}
+                    {props.commentItemCount}
                   </span>
                 </Show>
               </span>
             </button>
             <Tooltip
-              visible={isHistoryTooltipVisible() && isTooltipAllowed()}
+              visible={isCommentsTooltipVisible() && isTooltipAllowed()}
               position={tooltipPosition()}
             >
-              {historyTooltipLabel()}
+              {commentsTooltipLabel()}
             </Tooltip>
           </>
         }
@@ -1207,7 +1192,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             <button
               data-react-grab-ignore-events
               data-react-grab-toolbar-copy-all
-              aria-label="Copy all history items"
+              aria-label="Copy all comments"
               class={cn(
                 "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
                 buttonSpacingClass(),
@@ -1221,10 +1206,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                 onHoverChange: (isHovered) => props.onCopyAllHover?.(isHovered),
                 shouldFreezeInteractions: false,
                 safePolygonTargets: () =>
-                  props.isHistoryDropdownOpen
+                  props.isCommentsDropdownOpen
                     ? getSafePolygonTargets(
-                        "[data-react-grab-history-dropdown]",
-                        "[data-react-grab-toolbar-history]",
+                        "[data-react-grab-comments-dropdown]",
+                        "[data-react-grab-toolbar-comments]",
                       )
                     : null,
               })}
@@ -1236,51 +1221,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               position={tooltipPosition()}
             >
               Copy all
-            </Tooltip>
-          </>
-        }
-        menuButton={
-          <>
-            <button
-              data-react-grab-ignore-events
-              data-react-grab-toolbar-menu
-              aria-label={
-                props.isMenuOpen
-                  ? "Close more actions menu"
-                  : "Open more actions menu"
-              }
-              aria-haspopup="menu"
-              aria-expanded={Boolean(props.isMenuOpen)}
-              class={cn(
-                "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
-                buttonSpacingClass(),
-                hitboxConstraintClass(),
-              )}
-              onClick={(event) => {
-                setIsMenuTooltipVisible(false);
-                handleToggleMenu(event);
-              }}
-              {...createFreezeHandlers(
-                (visible) => {
-                  if (visible && props.isMenuOpen) return;
-                  setIsMenuTooltipVisible(visible);
-                },
-                { shouldFreezeInteractions: false },
-              )}
-            >
-              <IconEllipsis
-                size={14}
-                class={cn(
-                  "transition-colors",
-                  props.isMenuOpen ? "text-black/80" : "text-[#B3B3B3]",
-                )}
-              />
-            </button>
-            <Tooltip
-              visible={isMenuTooltipVisible() && isTooltipAllowed()}
-              position={tooltipPosition()}
-            >
-              More actions
             </Tooltip>
           </>
         }

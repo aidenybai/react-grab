@@ -77,6 +77,7 @@ import {
   PREVIEW_TEXT_MAX_LENGTH,
   NEXTJS_REVALIDATION_DELAY_MS,
   TOOLBAR_DEFAULT_POSITION_RATIO,
+  DEFAULT_ACTION_ID,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { getElementCenter } from "../utils/get-element-center.js";
@@ -86,10 +87,7 @@ import { parseActivationKey } from "../utils/parse-activation-key.js";
 import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
 import { openFile } from "../utils/open-file.js";
 import { combineBounds } from "../utils/combine-bounds.js";
-import {
-  resolveActionEnabled,
-  resolveToolbarActionEnabled,
-} from "../utils/resolve-action-enabled.js";
+import { resolveActionEnabled } from "../utils/resolve-action-enabled.js";
 import type {
   Position,
   Options,
@@ -110,7 +108,7 @@ import type {
   SourceInfo,
   Plugin,
   ToolbarState,
-  HistoryItem,
+  CommentItem,
   DropdownAnchor,
 } from "../types.js";
 import { DEFAULT_THEME } from "./theme.js";
@@ -148,11 +146,11 @@ import {
 } from "../utils/freeze-pseudo-states.js";
 import { freezeUpdates } from "../utils/freeze-updates.js";
 import {
-  loadHistory,
-  addHistoryItem,
-  removeHistoryItem,
-  clearHistory,
-} from "../utils/history-storage.js";
+  loadComments,
+  addCommentItem,
+  removeCommentItem,
+  clearComments,
+} from "../utils/comment-storage.js";
 import { copyContent } from "../utils/copy-content.js";
 import { joinSnippets } from "../utils/join-snippets.js";
 import { generateId } from "../utils/generate-id.js";
@@ -305,9 +303,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       createSignal<ToolbarState | null>(savedToolbarState);
     const [isToolbarSelectHovered, setIsToolbarSelectHovered] =
       createSignal(false);
-    const [historyItems, setHistoryItems] =
-      createSignal<HistoryItem[]>(loadHistory());
-    const [historyDropdownPosition, setHistoryDropdownPosition] =
+    const [commentItems, setCommentItems] =
+      createSignal<CommentItem[]>(loadComments());
+    const [commentsDropdownPosition, setCommentsDropdownPosition] =
       createSignal<DropdownAnchor | null>(null);
     const [toolbarMenuPosition, setToolbarMenuPosition] =
       createSignal<DropdownAnchor | null>(null);
@@ -315,18 +313,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       createSignal<DropdownAnchor | null>(null);
     let toolbarElement: HTMLDivElement | undefined;
     let dropdownTrackingFrameId: number | null = null;
-    const historyElementMap = new Map<string, Element[]>();
-    const [hasUnreadHistoryItems, setHasUnreadHistoryItems] =
-      createSignal(false);
+    const commentElementMap = new Map<string, Element[]>();
     const [clockFlashTrigger, setClockFlashTrigger] = createSignal(0);
-    const [isHistoryHoverOpen, setIsHistoryHoverOpen] = createSignal(false);
-    let historyHoverPreviews: { boxId: string; labelId: string | null }[] = [];
+    const [isCommentsHoverOpen, setIsCommentsHoverOpen] = createSignal(false);
+    let commentsHoverPreviews: { boxId: string; labelId: string | null }[] = [];
 
-    const getMappedHistoryElements = (historyItemId: string): Element[] =>
-      historyElementMap.get(historyItemId) ?? [];
+    const getMappedCommentElements = (commentItemId: string): Element[] =>
+      commentElementMap.get(commentItemId) ?? [];
 
-    const reacquireHistoryElements = (historyItem: HistoryItem): Element[] => {
-      const selectors = historyItem.elementSelectors ?? [];
+    const reacquireCommentElements = (commentItem: CommentItem): Element[] => {
+      const selectors = commentItem.elementSelectors ?? [];
       if (selectors.length === 0) return [];
 
       const reacquiredElements: Element[] = [];
@@ -343,10 +339,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return reacquiredElements;
     };
 
-    const getConnectedHistoryElements = (
-      historyItem: HistoryItem,
+    const getConnectedCommentElements = (
+      commentItem: CommentItem,
     ): Element[] => {
-      const mappedElements = getMappedHistoryElements(historyItem.id);
+      const mappedElements = getMappedCommentElements(commentItem.id);
       const connectedMappedElements = mappedElements.filter((mappedElement) =>
         isElementConnected(mappedElement),
       );
@@ -358,26 +354,26 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return connectedMappedElements;
       }
 
-      const reacquiredElements = reacquireHistoryElements(historyItem);
+      const reacquiredElements = reacquireCommentElements(commentItem);
       if (reacquiredElements.length > 0) {
-        historyElementMap.set(historyItem.id, reacquiredElements);
+        commentElementMap.set(commentItem.id, reacquiredElements);
         return reacquiredElements;
       }
 
       return connectedMappedElements;
     };
 
-    const getFirstConnectedHistoryElement = (
-      historyItem: HistoryItem,
-    ): Element | undefined => getConnectedHistoryElements(historyItem)[0];
+    const getFirstConnectedCommentElement = (
+      commentItem: CommentItem,
+    ): Element | undefined => getConnectedCommentElements(commentItem)[0];
 
-    const historyDisconnectedItemIds = createMemo(
+    const commentsDisconnectedItemIds = createMemo(
       () => {
         // HACK: subscribe to dropdown position so connectivity refreshes when dropdown opens
-        void historyDropdownPosition();
+        void commentsDropdownPosition();
         const disconnectedIds = new Set<string>();
-        for (const item of historyItems()) {
-          if (getConnectedHistoryElements(item).length === 0) {
+        for (const item of commentItems()) {
+          if (getConnectedCommentElements(item).length === 0) {
             disconnectedIds.add(item.id);
           }
         }
@@ -541,6 +537,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let componentNameDebounceTimerId: number | null = null;
     let keyboardSelectedElement: Element | null = null;
     let isPendingContextMenuSelect = false;
+    let pendingDefaultActionId: string | null = null;
     const [
       debouncedElementForComponentName,
       setDebouncedElementForComponentName,
@@ -816,15 +813,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           onCopySuccess: (copiedElements: Element[], content: string) => {
             pluginRegistry.hooks.onCopySuccess(copiedElements, content);
 
+            if (!extraPrompt) return;
+
             const hasCopiedElements = copiedElements.length > 0;
-            const isComment = Boolean(extraPrompt);
 
             if (hasCopiedElements) {
-              const currentItems = historyItems();
+              const currentItems = commentItems();
               for (const [
                 existingItemId,
                 mappedElements,
-              ] of historyElementMap.entries()) {
+              ] of commentElementMap.entries()) {
                 const isSameSelection =
                   mappedElements.length === copiedElements.length &&
                   mappedElements.every(
@@ -836,14 +834,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 );
                 if (!existingItem) continue;
 
-                const shouldDedup = isComment
-                  ? existingItem.isComment &&
-                    existingItem.commentText === extraPrompt
-                  : !existingItem.isComment;
+                const isDuplicateComment =
+                  existingItem.isComment &&
+                  existingItem.commentText === extraPrompt;
 
-                if (shouldDedup) {
-                  removeHistoryItem(existingItemId);
-                  historyElementMap.delete(existingItemId);
+                if (isDuplicateComment) {
+                  removeCommentItem(existingItemId);
+                  commentElementMap.delete(existingItemId);
                   break;
                 }
               }
@@ -853,7 +850,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               createElementSelector(element, index === 0),
             );
 
-            const updatedHistoryItems = addHistoryItem({
+            const updatedCommentItems = addCommentItem({
               content,
               elementName: elementName ?? "element",
               tagName: tagName ?? "div",
@@ -863,24 +860,23 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 createElementBounds(element),
               ),
               elementSelectors,
-              isComment,
-              commentText: extraPrompt ?? undefined,
+              isComment: true,
+              commentText: extraPrompt,
               timestamp: Date.now(),
             });
-            setHistoryItems(updatedHistoryItems);
-            setHasUnreadHistoryItems(true);
+            setCommentItems(updatedCommentItems);
             setClockFlashTrigger((previous) => previous + 1);
-            const newestHistoryItem = updatedHistoryItems[0];
-            if (newestHistoryItem && hasCopiedElements) {
-              historyElementMap.set(newestHistoryItem.id, [...copiedElements]);
+            const newestCommentItem = updatedCommentItems[0];
+            if (newestCommentItem && hasCopiedElements) {
+              commentElementMap.set(newestCommentItem.id, [...copiedElements]);
             }
 
             const currentItemIds = new Set(
-              updatedHistoryItems.map((item) => item.id),
+              updatedCommentItems.map((item) => item.id),
             );
-            for (const mapItemId of historyElementMap.keys()) {
+            for (const mapItemId of commentElementMap.keys()) {
               if (!currentItemIds.has(mapItemId)) {
-                historyElementMap.delete(mapItemId);
+                commentElementMap.delete(mapItemId);
               }
             }
           },
@@ -1683,7 +1679,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isActivated()) {
         deactivateRenderer();
       } else if (isEnabled()) {
-        isPendingContextMenuSelect = true;
+        const defaultActionId =
+          currentToolbarState()?.defaultAction ?? DEFAULT_ACTION_ID;
+        if (defaultActionId === DEFAULT_ACTION_ID) {
+          actions.setPendingCommentMode(true);
+        } else {
+          pendingDefaultActionId = defaultActionId;
+          isPendingContextMenuSelect = true;
+        }
         toggleActivate();
       }
     };
@@ -1703,6 +1706,38 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       clearArrowNavigation();
       dismissAllPopups();
       pluginRegistry.hooks.onContextMenu(element, position);
+    };
+
+    const runPendingDefaultAction = (element: Element, position: Position) => {
+      const actionId = pendingDefaultActionId;
+      pendingDefaultActionId = null;
+      if (!actionId) return;
+
+      const action = pluginRegistry.store.actions.find(
+        (registeredAction) => registeredAction.id === actionId,
+      );
+      if (!action) {
+        handleSetDefaultAction(DEFAULT_ACTION_ID);
+        openContextMenu(element, position);
+        return;
+      }
+
+      const elementBounds = createElementBounds(element);
+      const context = buildActionContext({
+        element,
+        filePath: store.selectionFilePath ?? undefined,
+        lineNumber: store.selectionLineNumber ?? undefined,
+        tagName: getTagName(element) || undefined,
+        componentName: resolvedComponentName(),
+        position,
+        shouldDeferHideContextMenu: false,
+        performWithFeedbackOptions: {
+          fallbackBounds: elementBounds,
+          fallbackSelectionBounds: [elementBounds],
+          position,
+        },
+      });
+      action.onAction(context);
     };
 
     const handleComment = () => {
@@ -1851,7 +1886,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (isPendingContextMenuSelect) {
         isPendingContextMenuSelect = false;
-        openContextMenu(firstElement, center);
+        if (pendingDefaultActionId) {
+          runPendingDefaultAction(firstElement, center);
+        } else {
+          openContextMenu(firstElement, center);
+        }
         return;
       }
 
@@ -1927,7 +1966,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const position = { x: positionX, y: positionY };
         actions.setPointer(position);
         actions.freeze();
-        openContextMenu(element, position);
+        if (pendingDefaultActionId) {
+          runPendingDefaultAction(element, position);
+        } else {
+          openContextMenu(element, position);
+        }
         return;
       }
 
@@ -2524,35 +2567,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
-        if (event.key === "Escape" && historyDropdownPosition() !== null) {
-          dismissHistoryDropdown();
+        if (event.key === "Escape" && commentsDropdownPosition() !== null) {
+          dismissCommentsDropdown();
           return;
         }
 
-        if (toolbarMenuPosition() !== null) {
-          if (event.key === "Escape") {
-            dismissToolbarMenu();
-            return;
-          }
-
-          const toolbarActions = pluginRegistry.store.toolbarActions;
-          const isModifierPressed =
-            (event.metaKey || event.ctrlKey) && !event.repeat;
-          const matchedAction = toolbarActions.find((action) => {
-            if (!action.shortcut) return false;
-            if (event.key === "Enter") return action.shortcut === "Enter";
-            return (
-              isModifierPressed &&
-              event.key.toLowerCase() === action.shortcut.toLowerCase()
-            );
-          });
-
-          if (matchedAction && resolveToolbarActionEnabled(matchedAction)) {
-            event.preventDefault();
-            event.stopPropagation();
-            matchedAction.onAction();
-            dismissToolbarMenu();
-          }
+        if (event.key === "Escape" && toolbarMenuPosition() !== null) {
+          dismissToolbarMenu();
           return;
         }
 
@@ -3187,12 +3208,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
         const newBoundsCenterX = newBounds.x + newBounds.width / 2;
         const newBoundsHalfWidth = newBounds.width / 2;
-        const newMouseX =
-          instance.mouseXOffsetRatio !== undefined && newBoundsHalfWidth > 0
-            ? newBoundsCenterX + instance.mouseXOffsetRatio * newBoundsHalfWidth
-            : instance.mouseXOffsetFromCenter !== undefined
-              ? newBoundsCenterX + instance.mouseXOffsetFromCenter
-              : instance.mouseX;
+        let newMouseX: number;
+        if (
+          instance.mouseXOffsetRatio !== undefined &&
+          newBoundsHalfWidth > 0
+        ) {
+          newMouseX =
+            newBoundsCenterX + instance.mouseXOffsetRatio * newBoundsHalfWidth;
+        } else if (instance.mouseXOffsetFromCenter !== undefined) {
+          newMouseX = newBoundsCenterX + instance.mouseXOffsetFromCenter;
+        } else {
+          newMouseX = instance.mouseX ?? newBoundsCenterX;
+        }
         const newCached = { ...instance, bounds: newBounds, mouseX: newMouseX };
         labelInstanceCache.set(instance.id, newCached);
         return newCached;
@@ -3308,11 +3335,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           : singleElementBounds;
 
         const shouldDeactivateAfter = store.wasActivatedByToggle;
-        const selectionBoundsForLabel = hasMultipleElements
-          ? frozenBounds
-          : singleElementBounds
-            ? [singleElementBounds]
-            : fallbackSelectionBounds;
+        let selectionBoundsForLabel: OverlayBounds[];
+        if (hasMultipleElements) {
+          selectionBoundsForLabel = frozenBounds;
+        } else if (singleElementBounds) {
+          selectionBoundsForLabel = [singleElementBounds];
+        } else {
+          selectionBoundsForLabel = fallbackSelectionBounds;
+        }
 
         actions.hideContextMenu();
 
@@ -3496,18 +3526,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }, 0);
     };
 
-    const clearHistoryHoverPreviews = () => {
-      for (const { boxId, labelId } of historyHoverPreviews) {
+    const clearCommentsHoverPreviews = () => {
+      for (const { boxId, labelId } of commentsHoverPreviews) {
         actions.removeGrabbedBox(boxId);
         if (labelId) {
           actions.removeLabelInstance(labelId);
         }
       }
-      historyHoverPreviews = [];
+      commentsHoverPreviews = [];
     };
 
-    const addHistoryItemPreview = (
-      item: HistoryItem,
+    const addCommentItemPreview = (
+      item: CommentItem,
       previewBounds: OverlayBounds[],
       previewElements: Element[],
       idPrefix: string,
@@ -3544,19 +3574,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           });
         }
 
-        historyHoverPreviews.push({ boxId, labelId });
+        commentsHoverPreviews.push({ boxId, labelId });
       }
     };
 
-    const showHistoryItemPreview = (
-      item: HistoryItem,
+    const showCommentItemPreview = (
+      item: CommentItem,
       idPrefix: string,
     ): void => {
-      const connectedElements = getConnectedHistoryElements(item);
+      const connectedElements = getConnectedCommentElements(item);
       const previewBounds = connectedElements.map((element) =>
         createElementBounds(element),
       );
-      addHistoryItemPreview(item, previewBounds, connectedElements, idPrefix);
+      addCommentItemPreview(item, previewBounds, connectedElements, idPrefix);
     };
 
     const stopTrackingDropdownPosition = () => {
@@ -3616,49 +3646,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       };
     };
 
-    const dismissHistoryDropdown = () => {
-      cancelHistoryHoverOpenTimeout();
-      cancelHistoryHoverCloseTimeout();
+    const dismissCommentsDropdown = () => {
+      cancelCommentsHoverOpenTimeout();
+      cancelCommentsHoverCloseTimeout();
       stopTrackingDropdownPosition();
-      clearHistoryHoverPreviews();
-      setHistoryDropdownPosition(null);
-      setIsHistoryHoverOpen(false);
-    };
-
-    const openHistoryDropdown = () => {
-      actions.hideContextMenu();
-      dismissToolbarMenu();
-      dismissClearPrompt();
-      setHistoryItems(loadHistory());
-      setHasUnreadHistoryItems(false);
-      startTrackingDropdownPosition(() => {
-        const anchor = computeDropdownAnchor();
-        if (anchor) setHistoryDropdownPosition(anchor);
-      });
-    };
-
-    let historyHoverOpenTimeoutId: ReturnType<typeof setTimeout> | null = null;
-    let historyHoverCloseTimeoutId: ReturnType<typeof setTimeout> | null = null;
-
-    const cancelHistoryHoverOpenTimeout = () => {
-      if (historyHoverOpenTimeoutId !== null) {
-        clearTimeout(historyHoverOpenTimeoutId);
-        historyHoverOpenTimeoutId = null;
-      }
-    };
-
-    const cancelHistoryHoverCloseTimeout = () => {
-      if (historyHoverCloseTimeoutId !== null) {
-        clearTimeout(historyHoverCloseTimeoutId);
-        historyHoverCloseTimeoutId = null;
-      }
-    };
-
-    const scheduleHistoryHoverClose = () => {
-      historyHoverCloseTimeoutId = setTimeout(() => {
-        historyHoverCloseTimeoutId = null;
-        dismissHistoryDropdown();
-      }, DROPDOWN_HOVER_OPEN_DELAY_MS);
+      clearCommentsHoverPreviews();
+      setCommentsDropdownPosition(null);
+      setIsCommentsHoverOpen(false);
     };
 
     const dismissToolbarMenu = () => {
@@ -3666,8 +3660,44 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setToolbarMenuPosition(null);
     };
 
+    const openCommentsDropdown = () => {
+      actions.hideContextMenu();
+      dismissToolbarMenu();
+      dismissClearPrompt();
+      setCommentItems(loadComments());
+      startTrackingDropdownPosition(() => {
+        const anchor = computeDropdownAnchor();
+        if (anchor) setCommentsDropdownPosition(anchor);
+      });
+    };
+
+    let commentsHoverOpenTimeoutId: ReturnType<typeof setTimeout> | null = null;
+    let commentsHoverCloseTimeoutId: ReturnType<typeof setTimeout> | null =
+      null;
+
+    const cancelCommentsHoverOpenTimeout = () => {
+      if (commentsHoverOpenTimeoutId !== null) {
+        clearTimeout(commentsHoverOpenTimeoutId);
+        commentsHoverOpenTimeoutId = null;
+      }
+    };
+
+    const cancelCommentsHoverCloseTimeout = () => {
+      if (commentsHoverCloseTimeoutId !== null) {
+        clearTimeout(commentsHoverCloseTimeoutId);
+        commentsHoverCloseTimeoutId = null;
+      }
+    };
+
+    const scheduleCommentsHoverClose = () => {
+      commentsHoverCloseTimeoutId = setTimeout(() => {
+        commentsHoverCloseTimeoutId = null;
+        dismissCommentsDropdown();
+      }, DROPDOWN_HOVER_OPEN_DELAY_MS);
+    };
+
     const showClearPrompt = () => {
-      dismissHistoryDropdown();
+      dismissCommentsDropdown();
       dismissToolbarMenu();
       startTrackingDropdownPosition(() => {
         const anchor = computeDropdownAnchor();
@@ -3681,17 +3711,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const dismissAllPopups = () => {
-      dismissHistoryDropdown();
+      dismissCommentsDropdown();
       dismissToolbarMenu();
       dismissClearPrompt();
     };
 
-    const handleToggleMenu = () => {
+    const handleToggleToolbarMenu = () => {
       if (toolbarMenuPosition() !== null) {
         dismissToolbarMenu();
       } else {
         actions.hideContextMenu();
-        dismissHistoryDropdown();
+        dismissCommentsDropdown();
         dismissClearPrompt();
         startTrackingDropdownPosition(() => {
           const anchor = computeDropdownAnchor();
@@ -3700,30 +3730,48 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
-    const handleToggleHistory = () => {
-      cancelHistoryHoverOpenTimeout();
-      cancelHistoryHoverCloseTimeout();
-      const isCurrentlyOpen = historyDropdownPosition() !== null;
-      if (isCurrentlyOpen) {
-        if (isHistoryHoverOpen()) {
-          clearHistoryHoverPreviews();
-          setIsHistoryHoverOpen(false);
-        } else {
-          dismissHistoryDropdown();
-        }
-      } else {
-        clearHistoryHoverPreviews();
-        openHistoryDropdown();
+    const handleSetDefaultAction = (actionId: string) => {
+      const currentState = currentToolbarState() ?? loadToolbarState();
+      const newState: ToolbarState = {
+        ...(currentState ?? {
+          edge: "bottom",
+          ratio: TOOLBAR_DEFAULT_POSITION_RATIO,
+          collapsed: false,
+          enabled: true,
+        }),
+        defaultAction: actionId,
+      };
+      saveToolbarState(newState);
+      setCurrentToolbarState(newState);
+      for (const callback of toolbarStateChangeCallbacks) {
+        callback(newState);
       }
     };
 
-    const copyHistoryItemContent = (item: HistoryItem) => {
+    const handleToggleComments = () => {
+      cancelCommentsHoverOpenTimeout();
+      cancelCommentsHoverCloseTimeout();
+      const isCurrentlyOpen = commentsDropdownPosition() !== null;
+      if (isCurrentlyOpen) {
+        if (isCommentsHoverOpen()) {
+          clearCommentsHoverPreviews();
+          setIsCommentsHoverOpen(false);
+        } else {
+          dismissCommentsDropdown();
+        }
+      } else {
+        clearCommentsHoverPreviews();
+        openCommentsDropdown();
+      }
+    };
+
+    const copyCommentItemContent = (item: CommentItem) => {
       copyContent(item.content, {
         tagName: item.tagName,
         componentName: item.componentName ?? item.elementName,
         commentText: item.commentText,
       });
-      const element = getFirstConnectedHistoryElement(item);
+      const element = getFirstConnectedCommentElement(item);
       if (!element) return;
 
       clearAllLabels();
@@ -3743,13 +3791,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       });
     };
 
-    const handleHistoryItemSelect = (item: HistoryItem) => {
-      clearHistoryHoverPreviews();
+    const handleCommentItemSelect = (item: CommentItem) => {
+      clearCommentsHoverPreviews();
       if (isPromptMode()) {
         actions.exitPromptMode();
         actions.clearInputText();
       }
-      const element = getFirstConnectedHistoryElement(item);
+      const element = getFirstConnectedCommentElement(item);
 
       if (item.isComment && item.commentText && element) {
         const bounds = createElementBounds(element);
@@ -3757,38 +3805,27 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.enterPromptMode({ x: centerX, y: centerY }, element);
         actions.setInputText(item.commentText);
       } else {
-        copyHistoryItemContent(item);
+        copyCommentItemContent(item);
       }
     };
 
-    const handleHistoryItemRemove = (item: HistoryItem) => {
-      clearHistoryHoverPreviews();
-      historyElementMap.delete(item.id);
-      const updatedHistoryItems = removeHistoryItem(item.id);
-      setHistoryItems(updatedHistoryItems);
-      if (updatedHistoryItems.length === 0) {
-        setHasUnreadHistoryItems(false);
-        dismissHistoryDropdown();
-      }
-    };
-
-    const handleHistoryCopyAll = () => {
-      clearHistoryHoverPreviews();
-      const currentHistoryItems = historyItems();
-      if (currentHistoryItems.length === 0) return;
+    const handleCommentsCopyAll = () => {
+      clearCommentsHoverPreviews();
+      const currentCommentItems = commentItems();
+      if (currentCommentItems.length === 0) return;
 
       const combinedContent = joinSnippets(
-        currentHistoryItems.map((historyItem) => historyItem.content),
+        currentCommentItems.map((commentItem) => commentItem.content),
       );
 
-      const firstItem = currentHistoryItems[0];
+      const firstItem = currentCommentItems[0];
       copyContent(combinedContent, {
         componentName: firstItem.componentName ?? firstItem.tagName,
-        entries: currentHistoryItems.map((historyItem) => ({
-          tagName: historyItem.tagName,
-          componentName: historyItem.componentName ?? historyItem.elementName,
-          content: historyItem.content,
-          commentText: historyItem.commentText,
+        entries: currentCommentItems.map((commentItem) => ({
+          tagName: commentItem.tagName,
+          componentName: commentItem.componentName ?? commentItem.elementName,
+          content: commentItem.content,
+          commentText: commentItem.commentText,
         })),
       });
 
@@ -3799,8 +3836,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       // HACK: defer to next frame so idle preview labels clear visually before "copied" appears
       nativeRequestAnimationFrame(() => {
         batch(() => {
-          for (const historyItem of currentHistoryItems) {
-            const connectedElements = getConnectedHistoryElements(historyItem);
+          for (const commentItem of currentCommentItems) {
+            const connectedElements = getConnectedCommentElements(commentItem);
             for (const element of connectedElements) {
               const bounds = createElementBounds(element);
               const labelId = generateId("label");
@@ -3808,8 +3845,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               actions.addLabelInstance({
                 id: labelId,
                 bounds,
-                tagName: historyItem.tagName,
-                componentName: historyItem.componentName,
+                tagName: commentItem.tagName,
+                componentName: commentItem.componentName,
                 status: "copied",
                 createdAt: Date.now(),
                 element,
@@ -3822,68 +3859,67 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       });
     };
 
-    const handleHistoryItemHover = (historyItemId: string | null) => {
-      clearHistoryHoverPreviews();
-      if (!historyItemId) return;
+    const handleCommentItemHover = (commentItemId: string | null) => {
+      clearCommentsHoverPreviews();
+      if (!commentItemId) return;
 
-      const item = historyItems().find(
-        (innerItem) => innerItem.id === historyItemId,
+      const item = commentItems().find(
+        (innerItem) => innerItem.id === commentItemId,
       );
       if (!item) return;
-      showHistoryItemPreview(item, "history-hover");
+      showCommentItemPreview(item, "comment-hover");
     };
 
-    const handleHistoryButtonHover = (isHovered: boolean) => {
-      cancelHistoryHoverOpenTimeout();
-      clearHistoryHoverPreviews();
+    const handleCommentsButtonHover = (isHovered: boolean) => {
+      cancelCommentsHoverOpenTimeout();
+      clearCommentsHoverPreviews();
       if (isHovered) {
-        cancelHistoryHoverCloseTimeout();
+        cancelCommentsHoverCloseTimeout();
         if (
-          historyDropdownPosition() === null &&
+          commentsDropdownPosition() === null &&
           clearPromptPosition() === null
         ) {
-          showAllHistoryItemPreviews();
-          historyHoverOpenTimeoutId = setTimeout(() => {
-            historyHoverOpenTimeoutId = null;
-            setIsHistoryHoverOpen(true);
-            openHistoryDropdown();
+          showAllCommentItemPreviews();
+          commentsHoverOpenTimeoutId = setTimeout(() => {
+            commentsHoverOpenTimeoutId = null;
+            setIsCommentsHoverOpen(true);
+            openCommentsDropdown();
           }, DROPDOWN_HOVER_OPEN_DELAY_MS);
         }
-      } else if (isHistoryHoverOpen()) {
-        scheduleHistoryHoverClose();
+      } else if (isCommentsHoverOpen()) {
+        scheduleCommentsHoverClose();
       }
     };
 
-    const handleHistoryDropdownHover = (isHovered: boolean) => {
+    const handleCommentsDropdownHover = (isHovered: boolean) => {
       if (isHovered) {
-        cancelHistoryHoverCloseTimeout();
-      } else if (isHistoryHoverOpen()) {
-        scheduleHistoryHoverClose();
+        cancelCommentsHoverCloseTimeout();
+      } else if (isCommentsHoverOpen()) {
+        scheduleCommentsHoverClose();
       }
     };
 
-    const handleHistoryCopyAllHover = (isHovered: boolean) => {
-      clearHistoryHoverPreviews();
+    const handleCommentsCopyAllHover = (isHovered: boolean) => {
+      clearCommentsHoverPreviews();
       if (isHovered) {
-        cancelHistoryHoverCloseTimeout();
-        showAllHistoryItemPreviews();
-      } else if (isHistoryHoverOpen()) {
-        scheduleHistoryHoverClose();
+        cancelCommentsHoverCloseTimeout();
+        showAllCommentItemPreviews();
+      } else if (isCommentsHoverOpen()) {
+        scheduleCommentsHoverClose();
       }
     };
 
-    const showAllHistoryItemPreviews = () => {
-      for (const item of historyItems()) {
-        showHistoryItemPreview(item, "history-all-hover");
+    const showAllCommentItemPreviews = () => {
+      for (const item of commentItems()) {
+        showCommentItemPreview(item, "comment-all-hover");
       }
     };
 
-    const handleHistoryClear = () => {
-      historyElementMap.clear();
-      const updatedHistoryItems = clearHistory();
-      setHistoryItems(updatedHistoryItems);
-      setHasUnreadHistoryItems(false);
-      dismissHistoryDropdown();
+    const handleCommentsClear = () => {
+      commentElementMap.clear();
+      const updatedCommentItems = clearComments();
+      setCommentItems(updatedCommentItems);
+      dismissCommentsDropdown();
     };
 
     const handleShowContextMenuInstance = (instanceId: string) => {
@@ -4025,41 +4061,44 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                   contextMenuFilePath()?.filePath,
                 )}
                 actions={pluginRegistry.store.actions}
-                toolbarActions={pluginRegistry.store.toolbarActions}
                 actionContext={contextMenuActionContext()}
                 onContextMenuDismiss={handleContextMenuDismiss}
                 onContextMenuHide={deferHideContextMenu}
-                historyItems={historyItems()}
-                historyDisconnectedItemIds={historyDisconnectedItemIds()}
-                historyItemCount={historyItems().length}
+                commentItems={commentItems()}
+                commentsDisconnectedItemIds={commentsDisconnectedItemIds()}
+                commentItemCount={commentItems().length}
                 clockFlashTrigger={clockFlashTrigger()}
-                hasUnreadHistoryItems={hasUnreadHistoryItems()}
-                historyDropdownPosition={historyDropdownPosition()}
-                isHistoryPinned={
-                  historyDropdownPosition() !== null && !isHistoryHoverOpen()
+                commentsDropdownPosition={commentsDropdownPosition()}
+                isCommentsPinned={
+                  commentsDropdownPosition() !== null && !isCommentsHoverOpen()
                 }
-                onToggleHistory={handleToggleHistory}
-                onCopyAll={handleHistoryCopyAll}
-                onCopyAllHover={handleHistoryCopyAllHover}
-                onHistoryButtonHover={handleHistoryButtonHover}
-                onHistoryItemSelect={handleHistoryItemSelect}
-                onHistoryItemRemove={handleHistoryItemRemove}
-                onHistoryItemCopy={copyHistoryItemContent}
-                onHistoryItemHover={handleHistoryItemHover}
-                onHistoryCopyAll={handleHistoryCopyAll}
-                onHistoryCopyAllHover={handleHistoryCopyAllHover}
-                onHistoryClear={handleHistoryClear}
-                onHistoryDismiss={dismissHistoryDropdown}
-                onHistoryDropdownHover={handleHistoryDropdownHover}
+                onToggleComments={handleToggleComments}
+                onCopyAll={handleCommentsCopyAll}
+                onCopyAllHover={handleCommentsCopyAllHover}
+                onCommentsButtonHover={handleCommentsButtonHover}
+                onCommentItemSelect={handleCommentItemSelect}
+                onCommentItemHover={handleCommentItemHover}
+                onCommentsCopyAll={handleCommentsCopyAll}
+                onCommentsCopyAllHover={handleCommentsCopyAllHover}
+                onCommentsClear={handleCommentsClear}
+                onCommentsDismiss={dismissCommentsDropdown}
+                onCommentsDropdownHover={handleCommentsDropdownHover}
                 toolbarMenuPosition={toolbarMenuPosition()}
-                onToggleMenu={handleToggleMenu}
+                toolbarMenuActions={pluginRegistry.store.actions.filter(
+                  (action) => action.showInToolbarMenu === true,
+                )}
+                defaultActionId={
+                  currentToolbarState()?.defaultAction ?? DEFAULT_ACTION_ID
+                }
+                onSetDefaultAction={handleSetDefaultAction}
+                onToggleToolbarMenu={handleToggleToolbarMenu}
                 onToolbarMenuDismiss={dismissToolbarMenu}
                 clearPromptPosition={clearPromptPosition()}
-                onClearHistoryConfirm={() => {
+                onClearCommentsConfirm={() => {
                   dismissClearPrompt();
-                  handleHistoryClear();
+                  handleCommentsClear();
                 }}
-                onClearHistoryCancel={dismissClearPrompt}
+                onClearCommentsCancel={dismissClearPrompt}
               />
             );
           }, rendererRoot);
@@ -4186,8 +4225,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         disposed = true;
         hasInited = false;
         disposeRenderer?.();
-        cancelHistoryHoverOpenTimeout();
-        cancelHistoryHoverCloseTimeout();
+        cancelCommentsHoverOpenTimeout();
+        cancelCommentsHoverCloseTimeout();
         stopTrackingDropdownPosition();
         toolbarStateChangeCallbacks.clear();
         dispose();

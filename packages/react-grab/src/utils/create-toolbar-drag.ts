@@ -54,9 +54,9 @@ export const createToolbarDrag = (
     if (!isDragging()) return;
 
     if (!hasDragMoved()) {
-      const distanceMoved = Math.sqrt(
-        Math.pow(event.clientX - pointerStartPosition.x, 2) +
-          Math.pow(event.clientY - pointerStartPosition.y, 2),
+      const distanceMoved = Math.hypot(
+        event.clientX - pointerStartPosition.x,
+        event.clientY - pointerStartPosition.y,
       );
       if (distanceMoved <= TOOLBAR_DRAG_THRESHOLD_PX) {
         return;

@@ -54,7 +54,7 @@ const copyElement = async (
   await expect
     .poll(() => reactGrab.getClipboardContent(), { timeout: 5000 })
     .toBeTruthy();
-  // HACK: Wait for copy feedback transition and history item addition
+  // HACK: Wait for copy feedback transition and comment item addition
   await reactGrab.page.waitForTimeout(300);
 };
 
@@ -237,16 +237,16 @@ test.describe("Toggle Position Stability", () => {
   });
 
   test.describe("Position Drift Prevention", () => {
-    test("should not drift after history button appears then disappears", async ({
+    test("should not drift after comments button appears then disappears", async ({
       reactGrab,
     }) => {
       await copyElement(reactGrab, "li:first-child");
       await expect
-        .poll(() => reactGrab.isHistoryButtonVisible(), { timeout: 2000 })
+        .poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 })
         .toBe(true);
 
-      const withHistoryPosition = await getToggleButtonCenter(reactGrab);
-      expect(withHistoryPosition).not.toBeNull();
+      const withCommentsPosition = await getToggleButtonCenter(reactGrab);
+      expect(withCommentsPosition).not.toBeNull();
 
       await reactGrab.clickToolbarEnabled();
       // HACK: Wait for toggle animation to settle
@@ -255,20 +255,20 @@ test.describe("Toggle Position Stability", () => {
       // HACK: Wait for toggle animation to settle
       await reactGrab.page.waitForTimeout(TOGGLE_ANIMATION_SETTLE_MS);
 
-      const afterCycleWithHistory = await getToggleButtonCenter(reactGrab);
-      expect(afterCycleWithHistory).not.toBeNull();
-      expectPositionStable(withHistoryPosition!, afterCycleWithHistory!);
+      const afterCycleWithComments = await getToggleButtonCenter(reactGrab);
+      expect(afterCycleWithComments).not.toBeNull();
+      expectPositionStable(withCommentsPosition!, afterCycleWithComments!);
 
-      await reactGrab.clickHistoryButton();
-      await reactGrab.clickHistoryClear();
+      await reactGrab.clickCommentsButton();
+      await reactGrab.clickCommentsClear();
       await expect
-        .poll(() => reactGrab.isHistoryButtonVisible(), { timeout: 2000 })
+        .poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 })
         .toBe(false);
-      // HACK: Wait for history button hide animation
+      // HACK: Wait for comments button hide animation
       await reactGrab.page.waitForTimeout(200);
 
-      const withoutHistoryPosition = await getToggleButtonCenter(reactGrab);
-      expect(withoutHistoryPosition).not.toBeNull();
+      const withoutCommentsPosition = await getToggleButtonCenter(reactGrab);
+      expect(withoutCommentsPosition).not.toBeNull();
 
       await reactGrab.clickToolbarEnabled();
       // HACK: Wait for toggle animation to settle
@@ -277,9 +277,12 @@ test.describe("Toggle Position Stability", () => {
       // HACK: Wait for toggle animation to settle
       await reactGrab.page.waitForTimeout(TOGGLE_ANIMATION_SETTLE_MS);
 
-      const afterCycleWithoutHistory = await getToggleButtonCenter(reactGrab);
-      expect(afterCycleWithoutHistory).not.toBeNull();
-      expectPositionStable(withoutHistoryPosition!, afterCycleWithoutHistory!);
+      const afterCycleWithoutComments = await getToggleButtonCenter(reactGrab);
+      expect(afterCycleWithoutComments).not.toBeNull();
+      expectPositionStable(
+        withoutCommentsPosition!,
+        afterCycleWithoutComments!,
+      );
     });
 
     test("should not accumulate drift over multiple toggle cycles", async ({
@@ -302,7 +305,7 @@ test.describe("Toggle Position Stability", () => {
       expectPositionStable(initialPosition!, finalPosition!);
     });
 
-    test("should not drift on vertical edge after history changes", async ({
+    test("should not drift on vertical edge after comments changes", async ({
       reactGrab,
     }) => {
       await seedToolbarEdge(reactGrab.page, "right");
@@ -310,7 +313,7 @@ test.describe("Toggle Position Stability", () => {
 
       await copyElement(reactGrab, "li:first-child");
       await expect
-        .poll(() => reactGrab.isHistoryButtonVisible(), { timeout: 2000 })
+        .poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 })
         .toBe(true);
 
       const beforeCyclePosition = await getToggleButtonCenter(reactGrab);
@@ -327,12 +330,12 @@ test.describe("Toggle Position Stability", () => {
       expect(afterCyclePosition).not.toBeNull();
       expectPositionStable(beforeCyclePosition!, afterCyclePosition!);
 
-      await reactGrab.clickHistoryButton();
-      await reactGrab.clickHistoryClear();
+      await reactGrab.clickCommentsButton();
+      await reactGrab.clickCommentsClear();
       await expect
-        .poll(() => reactGrab.isHistoryButtonVisible(), { timeout: 2000 })
+        .poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 })
         .toBe(false);
-      // HACK: Wait for history button hide animation
+      // HACK: Wait for comments button hide animation
       await reactGrab.page.waitForTimeout(200);
 
       const afterClearPosition = await getToggleButtonCenter(reactGrab);

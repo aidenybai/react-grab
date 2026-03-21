@@ -5,9 +5,7 @@ import type {
   PluginConfig,
   PluginHooks,
   Theme,
-  PluginAction,
   ContextMenuAction,
-  ToolbarMenuAction,
   ReactGrabAPI,
   ReactGrabState,
   PromptModeContext,
@@ -56,7 +54,6 @@ interface PluginStoreState {
   theme: Required<Theme>;
   options: OptionsState;
   actions: ContextMenuAction[];
-  toolbarActions: ToolbarMenuAction[];
 }
 
 type HookName = keyof PluginHooks;
@@ -69,17 +66,12 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     theme: DEFAULT_THEME,
     options: { ...DEFAULT_OPTIONS, ...initialOptions },
     actions: [],
-    toolbarActions: [],
   });
-
-  const isToolbarAction = (action: PluginAction): action is ToolbarMenuAction =>
-    action.target === "toolbar";
 
   const recomputeStore = () => {
     let mergedTheme: Required<Theme> = DEFAULT_THEME;
     let mergedOptions: OptionsState = { ...DEFAULT_OPTIONS, ...initialOptions };
     const allContextMenuActions: ContextMenuAction[] = [];
-    const allToolbarActions: ToolbarMenuAction[] = [];
 
     for (const { config } of plugins.values()) {
       if (config.theme) {
@@ -92,18 +84,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
 
       if (config.actions) {
         for (const action of config.actions) {
-          if (isToolbarAction(action)) {
-            const originalOnAction = action.onAction;
-            allToolbarActions.push({
-              ...action,
-              onAction: () => {
-                callHook("cancelPendingToolbarActions");
-                originalOnAction();
-              },
-            });
-          } else {
-            allContextMenuActions.push(action);
-          }
+          allContextMenuActions.push(action);
         }
       }
     }
@@ -113,7 +94,6 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     setStore("theme", mergedTheme);
     setStore("options", mergedOptions);
     setStore("actions", allContextMenuActions);
-    setStore("toolbarActions", allToolbarActions);
   };
 
   const setOption = <OptionKey extends keyof OptionsState>(
@@ -335,7 +315,6 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     ) => callHook("onElementLabel", visible, variant, context),
     onContextMenu: (element: Element, position: Position) =>
       callHook("onContextMenu", element, position),
-    cancelPendingToolbarActions: () => callHook("cancelPendingToolbarActions"),
     onOpenFile: (filePath: string, lineNumber?: number) =>
       callHookWithHandled("onOpenFile", filePath, lineNumber),
     transformHtmlContent: async (html: string, elements: Element[]) =>

@@ -8,13 +8,13 @@ import { suppressMenuEvent } from "../utils/suppress-menu-event.js";
 import { createAnchoredDropdown } from "../utils/create-anchored-dropdown.js";
 import { registerOverlayDismiss } from "../utils/register-overlay-dismiss.js";
 
-interface ClearHistoryPromptProps {
+interface ClearCommentsPromptProps {
   position: DropdownAnchor | null;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
-export const ClearHistoryPrompt: Component<ClearHistoryPromptProps> = (
+export const ClearCommentsPrompt: Component<ClearCommentsPromptProps> = (
   props,
 ) => {
   let containerRef: HTMLDivElement | undefined;
@@ -44,7 +44,7 @@ export const ClearHistoryPrompt: Component<ClearHistoryPromptProps> = (
       <div
         ref={containerRef}
         data-react-grab-ignore-events
-        data-react-grab-clear-history-prompt
+        data-react-grab-clear-comments-prompt
         class="fixed font-sans text-[13px] antialiased filter-[drop-shadow(0px_1px_2px_#51515140)] select-none transition-[opacity,transform] duration-100 ease-out will-change-[opacity,transform]"
         style={{
           top: `${dropdown.displayPosition().top}px`,
@@ -68,7 +68,7 @@ export const ClearHistoryPrompt: Component<ClearHistoryPromptProps> = (
           )}
         >
           <DiscardPrompt
-            label="Clear history?"
+            label="Clear comments?"
             cancelOnEscape
             onConfirm={props.onConfirm}
             onCancel={props.onCancel}

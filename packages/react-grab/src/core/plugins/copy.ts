@@ -9,13 +9,9 @@ export const copyPlugin = createPendingSelectionPlugin({
     id: "copy",
     label: "Copy",
     shortcut: "C",
+    showInToolbarMenu: true,
     onAction: (context) => {
       context.copy?.();
     },
-  },
-  toolbarAction: {
-    id: "copy-toolbar",
-    label: "Copy element",
-    shortcut: "C",
   },
 });

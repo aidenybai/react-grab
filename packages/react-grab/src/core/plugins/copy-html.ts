@@ -21,6 +21,7 @@ export const copyHtmlPlugin = createPendingSelectionPlugin({
   contextMenuAction: (api) => ({
     id: "copy-html",
     label: "Copy HTML",
+    showInToolbarMenu: true,
     onAction: async (context) => {
       await context.performWithFeedback(async () => {
         const combinedHtml = context.elements
@@ -42,8 +43,4 @@ export const copyHtmlPlugin = createPendingSelectionPlugin({
       });
     },
   }),
-  toolbarAction: {
-    id: "copy-html-toolbar",
-    label: "Copy HTML",
-  },
 });

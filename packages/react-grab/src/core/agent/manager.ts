@@ -1,4 +1,4 @@
-import { createSignal } from "solid-js";
+import { createMemo, createSignal } from "solid-js";
 import type { Accessor } from "solid-js";
 import type {
   Position,
@@ -129,8 +129,9 @@ export const createAgentManager = (
     return agentOptions;
   };
 
-  const isProcessing = (): boolean =>
-    Array.from(sessions().values()).some((session) => session.isStreaming);
+  const isProcessing = createMemo(() =>
+    Array.from(sessions().values()).some((session) => session.isStreaming),
+  );
 
   const executeSessionStream = async (
     session: AgentSession,

@@ -228,8 +228,8 @@ export interface ContextMenuActionContext extends ActionContext {
 export interface ContextMenuAction {
   id: string;
   label: string;
-  target?: "context-menu";
   shortcut?: string;
+  showInToolbarMenu?: boolean;
   enabled?: boolean | ((context: ActionContext) => boolean);
   onAction: (context: ContextMenuActionContext) => void | Promise<void>;
   agent?: AgentOptions;
@@ -267,7 +267,6 @@ export interface PerformWithFeedbackOptions {
 export interface PluginHooks {
   onActivate?: () => void;
   onDeactivate?: () => void;
-  cancelPendingToolbarActions?: () => void;
   onElementHover?: (element: Element) => void;
   onElementSelect?: (element: Element) => boolean | void | Promise<boolean>;
   onDragStart?: (startX: number, startY: number) => void;
@@ -319,22 +318,10 @@ export interface PluginHooks {
   ) => string | Promise<string>;
 }
 
-export interface ToolbarMenuAction {
-  id: string;
-  label: string;
-  shortcut?: string;
-  target: "toolbar";
-  enabled?: boolean | (() => boolean);
-  isActive?: () => boolean;
-  onAction: () => void | Promise<void>;
-}
-
-export type PluginAction = ContextMenuAction | ToolbarMenuAction;
-
 export interface PluginConfig {
   theme?: DeepPartial<Theme>;
   options?: SettableOptions;
-  actions?: PluginAction[];
+  actions?: ContextMenuAction[];
   hooks?: PluginHooks;
   cleanup?: () => void;
 }
@@ -343,7 +330,7 @@ export interface Plugin {
   name: string;
   theme?: DeepPartial<Theme>;
   options?: SettableOptions;
-  actions?: PluginAction[];
+  actions?: ContextMenuAction[];
   hooks?: PluginHooks;
   setup?: (api: ReactGrabAPI, hooks: ActionContextHooks) => PluginConfig | void;
 }
@@ -379,6 +366,7 @@ export interface ToolbarState {
   ratio: number;
   collapsed: boolean;
   enabled: boolean;
+  defaultAction?: string;
 }
 
 export interface DropdownAnchor {
@@ -448,7 +436,7 @@ export interface SelectionLabelInstance {
   hideArrow?: boolean;
 }
 
-export interface HistoryItem {
+export interface CommentItem {
   id: string;
   content: string;
   elementName: string;
@@ -530,36 +518,35 @@ export interface ReactGrabRendererProps {
   contextMenuComponentName?: string;
   contextMenuHasFilePath?: boolean;
   actions?: ContextMenuAction[];
-  toolbarActions?: ToolbarMenuAction[];
   actionContext?: ActionContext;
   onContextMenuDismiss?: () => void;
   onContextMenuHide?: () => void;
-  historyItems?: HistoryItem[];
-  historyDisconnectedItemIds?: Set<string>;
-  historyItemCount?: number;
+  commentItems?: CommentItem[];
+  commentsDisconnectedItemIds?: Set<string>;
+  commentItemCount?: number;
   clockFlashTrigger?: number;
-  hasUnreadHistoryItems?: boolean;
-  historyDropdownPosition?: DropdownAnchor | null;
-  isHistoryPinned?: boolean;
-  onToggleHistory?: () => void;
+  commentsDropdownPosition?: DropdownAnchor | null;
+  isCommentsPinned?: boolean;
+  onToggleComments?: () => void;
   onCopyAll?: () => void;
   onCopyAllHover?: (isHovered: boolean) => void;
-  onHistoryButtonHover?: (isHovered: boolean) => void;
-  onHistoryItemSelect?: (item: HistoryItem) => void;
-  onHistoryItemRemove?: (item: HistoryItem) => void;
-  onHistoryItemCopy?: (item: HistoryItem) => void;
-  onHistoryItemHover?: (historyItemId: string | null) => void;
-  onHistoryCopyAll?: () => void;
-  onHistoryCopyAllHover?: (isHovered: boolean) => void;
-  onHistoryClear?: () => void;
-  onHistoryDismiss?: () => void;
-  onHistoryDropdownHover?: (isHovered: boolean) => void;
+  onCommentsButtonHover?: (isHovered: boolean) => void;
+  onCommentItemSelect?: (item: CommentItem) => void;
+  onCommentItemHover?: (commentItemId: string | null) => void;
+  onCommentsCopyAll?: () => void;
+  onCommentsCopyAllHover?: (isHovered: boolean) => void;
+  onCommentsClear?: () => void;
+  onCommentsDismiss?: () => void;
+  onCommentsDropdownHover?: (isHovered: boolean) => void;
   toolbarMenuPosition?: DropdownAnchor | null;
-  onToggleMenu?: () => void;
+  toolbarMenuActions?: ContextMenuAction[];
+  defaultActionId?: string;
+  onSetDefaultAction?: (actionId: string) => void;
+  onToggleToolbarMenu?: () => void;
   onToolbarMenuDismiss?: () => void;
   clearPromptPosition?: DropdownAnchor | null;
-  onClearHistoryConfirm?: () => void;
-  onClearHistoryCancel?: () => void;
+  onClearCommentsConfirm?: () => void;
+  onClearCommentsCancel?: () => void;
 }
 
 export interface GrabbedBox {

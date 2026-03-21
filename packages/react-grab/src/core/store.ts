@@ -8,6 +8,7 @@ import type {
 } from "../types.js";
 import { OFFSCREEN_POSITION } from "../constants.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
+import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
 
 interface PendingClickData {
@@ -391,7 +392,7 @@ const createGrabStore = (input: GrabStoreInput) => {
 
     enterPromptMode: (position: Position, element: Element) => {
       const bounds = createElementBounds(element);
-      const selectionCenterX = bounds.x + bounds.width / 2;
+      const { x: selectionCenterX } = getBoundsCenter(bounds);
 
       setStore("copyStart", position);
       setStore("copyOffsetFromCenterX", position.x - selectionCenterX);
@@ -500,7 +501,7 @@ const createGrabStore = (input: GrabStoreInput) => {
 
     setCopyStart: (position: Position, element: Element) => {
       const bounds = createElementBounds(element);
-      const selectionCenterX = bounds.x + bounds.width / 2;
+      const { x: selectionCenterX } = getBoundsCenter(bounds);
       setStore("copyStart", position);
       setStore("copyOffsetFromCenterX", position.x - selectionCenterX);
     },
@@ -620,8 +621,7 @@ const createGrabStore = (input: GrabStoreInput) => {
 
     showContextMenu: (position: Position, element: Element) => {
       const bounds = createElementBounds(element);
-      const centerX = bounds.x + bounds.width / 2;
-      const centerY = bounds.y + bounds.height / 2;
+      const { x: centerX, y: centerY } = getBoundsCenter(bounds);
       setStore(
         produce((draft) => {
           draft.contextMenuPosition = position;
@@ -652,8 +652,7 @@ const createGrabStore = (input: GrabStoreInput) => {
       if (!isElementConnected(element)) return;
 
       const newBounds = createElementBounds(element);
-      const newCenterX = newBounds.x + newBounds.width / 2;
-      const newCenterY = newBounds.y + newBounds.height / 2;
+      const { x: newCenterX, y: newCenterY } = getBoundsCenter(newBounds);
 
       setStore("contextMenuPosition", {
         x: newCenterX + clickOffset.x,

@@ -23,6 +23,7 @@ export const copyStylesPlugin = createPendingSelectionPlugin({
   contextMenuAction: (api) => ({
     id: "copy-styles",
     label: "Copy styles",
+    showInToolbarMenu: true,
     onAction: async (context) => {
       await context.performWithFeedback(async () => {
         const combinedCss = context.elements
@@ -37,9 +38,5 @@ export const copyStylesPlugin = createPendingSelectionPlugin({
       });
     },
   }),
-  toolbarAction: {
-    id: "copy-styles-toolbar",
-    label: "Copy styles",
-  },
   cleanup: disposeBaselineStyles,
 });

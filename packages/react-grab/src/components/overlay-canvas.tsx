@@ -26,27 +26,21 @@ import {
 } from "../utils/native-raf.js";
 import { supportsDisplayP3 } from "../utils/supports-display-p3.js";
 
+const DEFAULT_LAYER_STYLE = {
+  borderColor: OVERLAY_BORDER_COLOR_DEFAULT,
+  fillColor: OVERLAY_FILL_COLOR_DEFAULT,
+  lerpFactor: SELECTION_LERP_FACTOR,
+} as const;
+
 const LAYER_STYLES = {
   drag: {
     borderColor: OVERLAY_BORDER_COLOR_DRAG,
     fillColor: OVERLAY_FILL_COLOR_DRAG,
     lerpFactor: DRAG_LERP_FACTOR,
   },
-  selection: {
-    borderColor: OVERLAY_BORDER_COLOR_DEFAULT,
-    fillColor: OVERLAY_FILL_COLOR_DEFAULT,
-    lerpFactor: SELECTION_LERP_FACTOR,
-  },
-  grabbed: {
-    borderColor: OVERLAY_BORDER_COLOR_DEFAULT,
-    fillColor: OVERLAY_FILL_COLOR_DEFAULT,
-    lerpFactor: SELECTION_LERP_FACTOR,
-  },
-  processing: {
-    borderColor: OVERLAY_BORDER_COLOR_DEFAULT,
-    fillColor: OVERLAY_FILL_COLOR_DEFAULT,
-    lerpFactor: SELECTION_LERP_FACTOR,
-  },
+  selection: DEFAULT_LAYER_STYLE,
+  grabbed: DEFAULT_LAYER_STYLE,
+  processing: DEFAULT_LAYER_STYLE,
 } as const;
 
 type LayerName = "drag" | "selection" | "grabbed" | "processing";
@@ -511,12 +505,14 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
           return;
         }
 
-        const boundsToRender =
-          multipleBounds && multipleBounds.length > 0
-            ? multipleBounds
-            : singleBounds
-              ? [singleBounds]
-              : [];
+        let boundsToRender: readonly OverlayBounds[];
+        if (multipleBounds && multipleBounds.length > 0) {
+          boundsToRender = multipleBounds;
+        } else if (singleBounds) {
+          boundsToRender = [singleBounds];
+        } else {
+          boundsToRender = [];
+        }
 
         selectionAnimations = boundsToRender.map((bounds, index) => {
           const animationId = `selection-${index}`;
@@ -563,8 +559,8 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
   createEffect(
     on(
-      () => props.grabbedBoxes,
-      (grabbedBoxes) => {
+      () => [props.grabbedBoxes, props.labelInstances] as const,
+      ([grabbedBoxes, labelInstances]) => {
         const boxesToProcess = grabbedBoxes ?? [];
         const activeBoxIds = new Set(boxesToProcess.map((box) => box.id));
         const existingAnimationIds = new Set(
@@ -590,9 +586,43 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
           }
         }
 
+        const instancesToProcess = labelInstances ?? [];
+
+        for (const instance of instancesToProcess) {
+          const boundsToRender = resolveBoundsArray(instance);
+          const targetOpacity = instance.status === "fading" ? 0 : 1;
+
+          for (let index = 0; index < boundsToRender.length; index++) {
+            const bounds = boundsToRender[index];
+            const animationId = `label-${instance.id}-${index}`;
+            const existingAnimation = grabbedAnimations.find(
+              (animation) => animation.id === animationId,
+            );
+
+            if (existingAnimation) {
+              updateAnimationTarget(existingAnimation, bounds, targetOpacity);
+            } else {
+              grabbedAnimations.push(
+                createAnimatedBounds(animationId, bounds, {
+                  opacity: 1,
+                  targetOpacity,
+                }),
+              );
+            }
+          }
+        }
+
+        const activeLabelIds = new Set<string>();
+        for (const instance of instancesToProcess) {
+          const boundsToRender = resolveBoundsArray(instance);
+          for (let index = 0; index < boundsToRender.length; index++) {
+            activeLabelIds.add(`label-${instance.id}-${index}`);
+          }
+        }
+
         grabbedAnimations = grabbedAnimations.filter((animation) => {
           if (animation.id.startsWith("label-")) {
-            return true;
+            return activeLabelIds.has(animation.id);
           }
           return activeBoxIds.has(animation.id);
         });
@@ -632,56 +662,6 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
         }
 
         processingAnimations = updatedAnimations;
-        scheduleAnimationFrame();
-      },
-    ),
-  );
-
-  createEffect(
-    on(
-      () => props.labelInstances,
-      (labelInstances) => {
-        const instancesToProcess = labelInstances ?? [];
-
-        for (const instance of instancesToProcess) {
-          const boundsToRender = resolveBoundsArray(instance);
-          const targetOpacity = instance.status === "fading" ? 0 : 1;
-
-          for (let index = 0; index < boundsToRender.length; index++) {
-            const bounds = boundsToRender[index];
-            const animationId = `label-${instance.id}-${index}`;
-            const existingAnimation = grabbedAnimations.find(
-              (animation) => animation.id === animationId,
-            );
-
-            if (existingAnimation) {
-              updateAnimationTarget(existingAnimation, bounds, targetOpacity);
-            } else {
-              grabbedAnimations.push(
-                createAnimatedBounds(animationId, bounds, {
-                  opacity: 1,
-                  targetOpacity,
-                }),
-              );
-            }
-          }
-        }
-
-        const activeLabelIds = new Set<string>();
-        for (const instance of instancesToProcess) {
-          const boundsToRender = resolveBoundsArray(instance);
-          for (let index = 0; index < boundsToRender.length; index++) {
-            activeLabelIds.add(`label-${instance.id}-${index}`);
-          }
-        }
-
-        grabbedAnimations = grabbedAnimations.filter((animation) => {
-          if (animation.id.startsWith("label-")) {
-            return activeLabelIds.has(animation.id);
-          }
-          return true;
-        });
-
         scheduleAnimationFrame();
       },
     ),

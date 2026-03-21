@@ -8,7 +8,7 @@ import {
   on,
 } from "solid-js";
 import type { Component } from "solid-js";
-import type { HistoryItem, DropdownAnchor } from "../types.js";
+import type { CommentItem, DropdownAnchor } from "../types.js";
 import {
   DROPDOWN_EDGE_TRANSFORM_ORIGIN,
   DROPDOWN_ICON_SIZE_PX,
@@ -22,7 +22,6 @@ import {
 import { createSafePolygonTracker } from "../utils/safe-polygon.js";
 import { cn } from "../utils/cn.js";
 import { IconTrash } from "./icons/icon-trash.jsx";
-import { IconCopy } from "./icons/icon-copy.jsx";
 import { IconCheck } from "./icons/icon-check.jsx";
 import { Tooltip } from "./tooltip.jsx";
 import { createMenuHighlight } from "../utils/create-menu-highlight.js";
@@ -30,17 +29,12 @@ import { suppressMenuEvent } from "../utils/suppress-menu-event.js";
 import { createAnchoredDropdown } from "../utils/create-anchored-dropdown.js";
 import { formatRelativeTime } from "../utils/format-relative-time.js";
 
-const ITEM_ACTION_CLASS =
-  "flex items-center justify-center cursor-pointer text-black/25 transition-colors press-scale";
-
-interface HistoryDropdownProps {
+interface CommentsDropdownProps {
   position: DropdownAnchor | null;
-  items: HistoryItem[];
+  items: CommentItem[];
   disconnectedItemIds?: Set<string>;
-  onSelectItem?: (item: HistoryItem) => void;
-  onRemoveItem?: (item: HistoryItem) => void;
-  onCopyItem?: (item: HistoryItem) => void;
-  onItemHover?: (historyItemId: string | null) => void;
+  onSelectItem?: (item: CommentItem) => void;
+  onItemHover?: (commentItemId: string | null) => void;
   onCopyAll?: () => void;
   onCopyAllHover?: (isHovered: boolean) => void;
   onClearAll?: () => void;
@@ -48,14 +42,14 @@ interface HistoryDropdownProps {
   onDropdownHover?: (isHovered: boolean) => void;
 }
 
-const getHistoryItemDisplayName = (item: HistoryItem): string => {
+const getCommentItemDisplayName = (item: CommentItem): string => {
   if (item.elementsCount && item.elementsCount > 1) {
     return `${item.elementsCount} elements`;
   }
   return item.componentName ?? item.tagName;
 };
 
-export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
+export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
   const {
     containerRef: highlightContainerRef,
@@ -93,12 +87,8 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
     "clear" | "copy" | null
   >(null);
   const [isCopyAllConfirmed, setIsCopyAllConfirmed] = createSignal(false);
-  const [confirmedCopyItemId, setConfirmedCopyItemId] = createSignal<
-    string | null
-  >(null);
 
   let copyAllFeedbackTimeout: ReturnType<typeof setTimeout> | undefined;
-  let copyItemFeedbackTimeout: ReturnType<typeof setTimeout> | undefined;
 
   // HACK: mouseenter doesn't fire when an element appears under the cursor, so we check :hover after the enter animation commits
   createEffect(
@@ -145,7 +135,6 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
 
     onCleanup(() => {
       clearTimeout(copyAllFeedbackTimeout);
-      clearTimeout(copyItemFeedbackTimeout);
       dropdown.clearAnimationHandles();
       window.removeEventListener("keydown", handleKeyDown, { capture: true });
       safePolygonTracker.stop();
@@ -157,7 +146,7 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
       <div
         ref={containerRef}
         data-react-grab-ignore-events
-        data-react-grab-history-dropdown
+        data-react-grab-comments-dropdown
         class="fixed font-sans text-[13px] antialiased filter-[drop-shadow(0px_1px_2px_#51515140)] select-none transition-[opacity,transform] duration-100 ease-out will-change-[opacity,transform]"
         style={{
           top: `${dropdown.displayPosition().top}px`,
@@ -202,13 +191,13 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
           }}
         >
           <div class="contain-layout shrink-0 flex items-center justify-between px-2 pt-1.5 pb-1">
-            <span class="text-[11px] font-medium text-black/40">History</span>
+            <span class="text-[11px] font-medium text-black/40">Comments</span>
             <Show when={props.items.length > 0}>
               <div class="flex items-center gap-[5px]">
                 <div class="relative">
                   <button
                     data-react-grab-ignore-events
-                    data-react-grab-history-clear
+                    data-react-grab-comments-clear
                     class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[#FEF2F2] cursor-pointer transition-all hover:bg-[#FEE2E2] press-scale h-[17px] text-[#B91C1C]"
                     onClick={(event) => {
                       event.stopPropagation();
@@ -230,8 +219,8 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
                 <div class="relative">
                   <button
                     data-react-grab-ignore-events
-                    data-react-grab-history-copy-all
-                    class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] press-scale h-[17px] text-black/60"
+                    data-react-grab-comments-copy-all
+                    class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] press-scale h-[17px]"
                     onClick={(event) => {
                       event.stopPropagation();
                       setActiveHeaderTooltip(null);
@@ -255,7 +244,11 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
                   >
                     <Show
                       when={isCopyAllConfirmed()}
-                      fallback={<IconCopy size={DROPDOWN_ICON_SIZE_PX} />}
+                      fallback={
+                        <span class="text-black text-[13px] leading-3.5 font-sans font-medium">
+                          Copy
+                        </span>
+                      }
                     >
                       <IconCheck
                         size={DROPDOWN_ICON_SIZE_PX}
@@ -287,7 +280,7 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
                 {(item) => (
                   <div
                     data-react-grab-ignore-events
-                    data-react-grab-history-item
+                    data-react-grab-comment-item
                     class="group relative z-1 contain-layout flex items-start justify-between w-full px-2 py-1 cursor-pointer text-left gap-2"
                     classList={{
                       "opacity-40 hover:opacity-100": Boolean(
@@ -299,11 +292,6 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
                     onClick={(event) => {
                       event.stopPropagation();
                       props.onSelectItem?.(item);
-                      setConfirmedCopyItemId(item.id);
-                      clearTimeout(copyItemFeedbackTimeout);
-                      copyItemFeedbackTimeout = setTimeout(() => {
-                        setConfirmedCopyItemId(null);
-                      }, FEEDBACK_DURATION_MS);
                     }}
                     onKeyDown={(event) => {
                       if (
@@ -330,7 +318,7 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
                   >
                     <span class="flex flex-col min-w-0 flex-1">
                       <span class="text-[12px] leading-4 font-sans font-medium text-black truncate">
-                        {getHistoryItemDisplayName(item)}
+                        {getCommentItemDisplayName(item)}
                       </span>
                       <Show when={item.commentText}>
                         <span class="text-[11px] leading-3 font-sans text-black/40 truncate mt-0.5">
@@ -338,47 +326,8 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
                         </span>
                       </Show>
                     </span>
-                    <span class="shrink-0 grid">
-                      <span class="text-[10px] font-sans text-black/25 group-hover:invisible group-focus-within:invisible [grid-area:1/1] flex items-center justify-end">
-                        {formatRelativeTime(item.timestamp)}
-                      </span>
-                      <span class="invisible group-hover:visible group-focus-within:visible [grid-area:1/1] flex items-center justify-end gap-1.5">
-                        <button
-                          data-react-grab-ignore-events
-                          data-react-grab-history-item-remove
-                          class={cn(ITEM_ACTION_CLASS, "hover:text-[#B91C1C]")}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            props.onRemoveItem?.(item);
-                          }}
-                        >
-                          <IconTrash size={DROPDOWN_ICON_SIZE_PX} />
-                        </button>
-                        <button
-                          data-react-grab-ignore-events
-                          data-react-grab-history-item-copy
-                          class={cn(ITEM_ACTION_CLASS, "hover:text-black/60")}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            props.onCopyItem?.(item);
-                            setConfirmedCopyItemId(item.id);
-                            clearTimeout(copyItemFeedbackTimeout);
-                            copyItemFeedbackTimeout = setTimeout(() => {
-                              setConfirmedCopyItemId(null);
-                            }, FEEDBACK_DURATION_MS);
-                          }}
-                        >
-                          <Show
-                            when={confirmedCopyItemId() === item.id}
-                            fallback={<IconCopy size={DROPDOWN_ICON_SIZE_PX} />}
-                          >
-                            <IconCheck
-                              size={DROPDOWN_ICON_SIZE_PX}
-                              class="text-black"
-                            />
-                          </Show>
-                        </button>
-                      </span>
+                    <span class="shrink-0 text-[10px] font-sans text-black/25 flex items-center justify-end">
+                      {formatRelativeTime(item.timestamp)}
                     </span>
                   </div>
                 )}
