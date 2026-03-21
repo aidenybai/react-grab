@@ -1103,7 +1103,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                 setIsSelectTooltipVisible(false);
                 handleToggle(event);
               }}
-              onContextMenu={(event) => {
+              on:contextmenu={(event: MouseEvent) => {
                 event.preventDefault();
                 event.stopPropagation();
                 setIsSelectTooltipVisible(false);

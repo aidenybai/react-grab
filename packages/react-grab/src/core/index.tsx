@@ -813,9 +813,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           onCopySuccess: (copiedElements: Element[], content: string) => {
             pluginRegistry.hooks.onCopySuccess(copiedElements, content);
 
-            if (!extraPrompt) return;
-
             const hasCopiedElements = copiedElements.length > 0;
+            const isComment = Boolean(extraPrompt);
 
             if (hasCopiedElements) {
               const currentItems = commentItems();
@@ -834,11 +833,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 );
                 if (!existingItem) continue;
 
-                const isDuplicateComment =
-                  existingItem.isComment &&
-                  existingItem.commentText === extraPrompt;
+                const shouldDedup = isComment
+                  ? existingItem.isComment &&
+                    existingItem.commentText === extraPrompt
+                  : !existingItem.isComment;
 
-                if (isDuplicateComment) {
+                if (shouldDedup) {
                   removeCommentItem(existingItemId);
                   commentElementMap.delete(existingItemId);
                   break;
@@ -860,8 +860,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 createElementBounds(element),
               ),
               elementSelectors,
-              isComment: true,
-              commentText: extraPrompt,
+              isComment,
+              commentText: extraPrompt ?? undefined,
               timestamp: Date.now(),
             });
             setCommentItems(updatedCommentItems);
