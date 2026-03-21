@@ -54,14 +54,15 @@ const trimToSizeLimit = (items: CommentItem[]): CommentItem[] => {
   return trimmedItems;
 };
 
-const saveToSessionStorage = (items: CommentItem[]): void => {
+const saveToSessionStorage = (items: CommentItem[]): CommentItem[] => {
+  const trimmedItems = trimToSizeLimit(items);
   try {
-    const trimmedItems = trimToSizeLimit(items);
     sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(trimmedItems));
   } catch (error) {
     // HACK: sessionStorage can throw in private browsing or when quota is exceeded
     logRecoverableError("Failed to save comments to sessionStorage", error);
   }
+  return trimmedItems;
 };
 
 let commentItems: CommentItem[] = loadFromSessionStorage();
@@ -75,19 +76,20 @@ export const addCommentItem = (
     ...item,
     id: generateId("comment"),
   };
-  commentItems = [newItem, ...commentItems].slice(0, MAX_COMMENT_ITEMS);
-  saveToSessionStorage(commentItems);
+  commentItems = saveToSessionStorage(
+    [newItem, ...commentItems].slice(0, MAX_COMMENT_ITEMS),
+  );
   return commentItems;
 };
 
 export const removeCommentItem = (itemId: string): CommentItem[] => {
-  commentItems = commentItems.filter((item) => item.id !== itemId);
-  saveToSessionStorage(commentItems);
+  commentItems = saveToSessionStorage(
+    commentItems.filter((item) => item.id !== itemId),
+  );
   return commentItems;
 };
 
 export const clearComments = (): CommentItem[] => {
-  commentItems = [];
-  saveToSessionStorage(commentItems);
+  commentItems = saveToSessionStorage([]);
   return commentItems;
 };

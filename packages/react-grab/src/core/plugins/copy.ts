@@ -2,9 +2,6 @@ import { createPendingSelectionPlugin } from "./create-pending-selection-plugin.
 
 export const copyPlugin = createPendingSelectionPlugin({
   name: "copy",
-  onPendingSelect: (element, api) => {
-    api.copyElement(element);
-  },
   contextMenuAction: {
     id: "copy",
     label: "Copy",

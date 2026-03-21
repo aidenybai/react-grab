@@ -4,22 +4,10 @@ import {
   extractElementCss,
   disposeBaselineStyles,
 } from "../../utils/extract-element-css.js";
-import { logRecoverableError } from "../../utils/log-recoverable-error.js";
 import { createPendingSelectionPlugin } from "./create-pending-selection-plugin.js";
 
 export const copyStylesPlugin = createPendingSelectionPlugin({
   name: "copy-styles",
-  onPendingSelect: (element, api) => {
-    const extractedCss = extractElementCss(element);
-    void api
-      .getStackContext(element)
-      .then((stackContext) => {
-        copyContent(appendStackContext(extractedCss, stackContext));
-      })
-      .catch((error) => {
-        logRecoverableError("Failed to copy styles on element select", error);
-      });
-  },
   contextMenuAction: (api) => ({
     id: "copy-styles",
     label: "Copy styles",

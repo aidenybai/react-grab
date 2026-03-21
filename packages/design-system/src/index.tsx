@@ -5,14 +5,14 @@ import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { SelectionLabel } from "react-grab/src/components/selection-label/index.js";
 import { ContextMenu } from "react-grab/src/components/context-menu.js";
 import { ToolbarContent } from "react-grab/src/components/toolbar/toolbar-content.js";
-import { HistoryDropdown } from "react-grab/src/components/history-dropdown.js";
+import { CommentsDropdown } from "react-grab/src/components/comments-dropdown.js";
 import type {
   OverlayBounds,
   SelectionLabelStatus,
-  HistoryItem,
+  CommentItem,
 } from "react-grab/src/types.js";
 
-type ComponentType = "label" | "context-menu" | "toolbar" | "history-dropdown";
+type ComponentType = "label" | "context-menu" | "toolbar" | "comments-dropdown";
 
 interface DesignSystemStateProps {
   tagName?: string;
@@ -44,9 +44,8 @@ interface DesignSystemStateProps {
   isToolbarEnabled?: boolean;
   isToolbarCollapsed?: boolean;
   toolbarSnapEdge?: "top" | "bottom" | "left" | "right";
-  toolbarHistoryItemCount?: number;
-  toolbarHasUnreadHistoryItems?: boolean;
-  historyItems?: HistoryItem[];
+  toolbarCommentItemCount?: number;
+  commentItems?: CommentItem[];
 }
 
 interface AnimationFrame {
@@ -798,7 +797,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
     props: {
       isToolbarActive: true,
       isToolbarEnabled: true,
-      toolbarHistoryItemCount: 3,
+      toolbarCommentItemCount: 3,
     },
   },
   {
@@ -870,51 +869,49 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
     },
   },
   {
-    id: "toolbar-history-read",
-    label: "Toolbar (History Read)",
+    id: "toolbar-comments-read",
+    label: "Toolbar (Comments Read)",
     description: "Inbox icon, no unread items",
     component: "toolbar",
     props: {
       isToolbarActive: true,
       isToolbarEnabled: true,
-      toolbarHistoryItemCount: 5,
-      toolbarHasUnreadHistoryItems: false,
+      toolbarCommentItemCount: 5,
     },
   },
   {
-    id: "toolbar-history-unread",
-    label: "Toolbar (History Unread)",
+    id: "toolbar-comments-unread",
+    label: "Toolbar (Comments Unread)",
     description: "Inbox icon with unread indicator",
     component: "toolbar",
     props: {
       isToolbarActive: true,
       isToolbarEnabled: true,
-      toolbarHistoryItemCount: 3,
-      toolbarHasUnreadHistoryItems: true,
+      toolbarCommentItemCount: 3,
     },
   },
 
   // ══════════════════════════════════════════════════════════════════════════
-  // HISTORY DROPDOWN STATES
+  // COMMENTS DROPDOWN STATES
   // ══════════════════════════════════════════════════════════════════════════
   {
-    id: "history-empty",
-    label: "History (Empty)",
+    id: "comments-empty",
+    label: "Comments (Empty)",
     description: "No copied elements yet",
-    component: "history-dropdown",
+    component: "comments-dropdown",
     props: {
-      historyItems: [],
+      commentItems: [],
     },
   },
   {
-    id: "history-single-item",
-    label: "History (Single Item)",
+    id: "comments-single-item",
+    label: "Comments (Single Item)",
     description: "One copied element",
-    component: "history-dropdown",
+    component: "comments-dropdown",
     props: {
-      historyItems: [
+      commentItems: [
         {
-          id: "history-1",
+          id: "comment-1",
           content: "<Button />",
           elementName: "Button",
           tagName: "button",
@@ -926,14 +923,14 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
     },
   },
   {
-    id: "history-multiple-items",
-    label: "History (Multiple Items)",
+    id: "comments-multiple-items",
+    label: "Comments (Multiple Items)",
     description: "Several copied elements",
-    component: "history-dropdown",
+    component: "comments-dropdown",
     props: {
-      historyItems: [
+      commentItems: [
         {
-          id: "history-1",
+          id: "comment-1",
           content: "<Header />",
           elementName: "Header",
           tagName: "header",
@@ -942,7 +939,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           timestamp: Date.now() - 15_000,
         },
         {
-          id: "history-2",
+          id: "comment-2",
           content: "<Navigation />",
           elementName: "Navigation",
           tagName: "nav",
@@ -951,7 +948,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           timestamp: Date.now() - 120_000,
         },
         {
-          id: "history-3",
+          id: "comment-3",
           content: "<Footer />",
           elementName: "Footer",
           tagName: "footer",
@@ -963,14 +960,14 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
     },
   },
   {
-    id: "history-with-comments",
-    label: "History (With Comments)",
+    id: "comments-with-annotations",
+    label: "Comments (With Annotations)",
     description: "Items with comment annotations",
-    component: "history-dropdown",
+    component: "comments-dropdown",
     props: {
-      historyItems: [
+      commentItems: [
         {
-          id: "history-1",
+          id: "comment-1",
           content: "<Card />",
           elementName: "Card",
           tagName: "div",
@@ -980,7 +977,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           timestamp: Date.now() - 10_000,
         },
         {
-          id: "history-2",
+          id: "comment-2",
           content: "<Sidebar />",
           elementName: "Sidebar",
           tagName: "aside",
@@ -990,7 +987,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           timestamp: Date.now() - 300_000,
         },
         {
-          id: "history-3",
+          id: "comment-3",
           content: "<Button />",
           elementName: "Button",
           tagName: "button",
@@ -1002,14 +999,14 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
     },
   },
   {
-    id: "history-tag-only",
-    label: "History (Tag Only)",
+    id: "comments-tag-only",
+    label: "Comments (Tag Only)",
     description: "Items without component names",
-    component: "history-dropdown",
+    component: "comments-dropdown",
     props: {
-      historyItems: [
+      commentItems: [
         {
-          id: "history-1",
+          id: "comment-1",
           content: "<section />",
           elementName: "section",
           tagName: "section",
@@ -1017,7 +1014,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           timestamp: Date.now() - 60_000,
         },
         {
-          id: "history-2",
+          id: "comment-2",
           content: "<div />",
           elementName: "div",
           tagName: "div",
@@ -1028,14 +1025,14 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
     },
   },
   {
-    id: "history-long-names",
-    label: "History (Long Names)",
+    id: "comments-long-names",
+    label: "Comments (Long Names)",
     description: "Long component names truncation",
-    component: "history-dropdown",
+    component: "comments-dropdown",
     props: {
-      historyItems: [
+      commentItems: [
         {
-          id: "history-1",
+          id: "comment-1",
           content: "<InteractiveDataVisualizationChart />",
           elementName: "InteractiveDataVisualizationChart",
           tagName: "div",
@@ -1045,7 +1042,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           timestamp: Date.now() - 5_000,
         },
         {
-          id: "history-2",
+          id: "comment-2",
           content: "<SuperLongComponentNameWrapper />",
           elementName: "SuperLongComponentNameWrapper",
           tagName: "custom-interactive-element",
@@ -1057,14 +1054,14 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
     },
   },
   {
-    id: "history-many-items",
-    label: "History (Many Items)",
+    id: "comments-many-items",
+    label: "Comments (Many Items)",
     description: "Scrollable list with many items",
-    component: "history-dropdown",
+    component: "comments-dropdown",
     props: {
-      historyItems: [
+      commentItems: [
         {
-          id: "history-1",
+          id: "comment-1",
           content: "<Header />",
           elementName: "Header",
           tagName: "header",
@@ -1073,7 +1070,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           timestamp: Date.now() - 10_000,
         },
         {
-          id: "history-2",
+          id: "comment-2",
           content: "<Navigation />",
           elementName: "Navigation",
           tagName: "nav",
@@ -1083,7 +1080,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           timestamp: Date.now() - 60_000,
         },
         {
-          id: "history-3",
+          id: "comment-3",
           content: "<Card />",
           elementName: "Card",
           tagName: "div",
@@ -1092,7 +1089,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           timestamp: Date.now() - 300_000,
         },
         {
-          id: "history-4",
+          id: "comment-4",
           content: "<Button />",
           elementName: "Button",
           tagName: "button",
@@ -1102,7 +1099,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           timestamp: Date.now() - 600_000,
         },
         {
-          id: "history-5",
+          id: "comment-5",
           content: "<Footer />",
           elementName: "Footer",
           tagName: "footer",
@@ -1111,7 +1108,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           timestamp: Date.now() - 1_800_000,
         },
         {
-          id: "history-6",
+          id: "comment-6",
           content: "<Sidebar />",
           elementName: "Sidebar",
           tagName: "aside",
@@ -1120,7 +1117,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           timestamp: Date.now() - 3_600_000,
         },
         {
-          id: "history-7",
+          id: "comment-7",
           content: "<Modal />",
           elementName: "Modal",
           tagName: "dialog",
@@ -1130,7 +1127,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           timestamp: Date.now() - 7_200_000,
         },
         {
-          id: "history-8",
+          id: "comment-8",
           content: "<Form />",
           elementName: "Form",
           tagName: "form",
@@ -2551,7 +2548,7 @@ const StateCard = (props: StateCardProps) => {
           <Show
             when={
               props.state.component !== "toolbar" &&
-              props.state.component !== "history-dropdown"
+              props.state.component !== "comments-dropdown"
             }
           >
             <div
@@ -2655,13 +2652,13 @@ const StateCard = (props: StateCardProps) => {
               enabled={currentProps().isToolbarEnabled ?? true}
               isCollapsed={currentProps().isToolbarCollapsed}
               snapEdge={currentProps().toolbarSnapEdge}
-              isHistoryExpanded={
-                (currentProps().toolbarHistoryItemCount ?? 0) > 0
+              isCommentsExpanded={
+                (currentProps().toolbarCommentItemCount ?? 0) > 0
               }
             />
           </Show>
 
-          <Show when={props.state.component === "history-dropdown"}>
+          <Show when={props.state.component === "comments-dropdown"}>
             <div
               style={{
                 position: "absolute",
@@ -2674,11 +2671,11 @@ const StateCard = (props: StateCardProps) => {
                 <ToolbarContent
                   isActive={true}
                   enabled={true}
-                  isHistoryExpanded={true}
+                  isCommentsExpanded={true}
                 />
               </div>
             </div>
-            <HistoryDropdown
+            <CommentsDropdown
               position={
                 boundsAnchor()
                   ? {
@@ -2688,7 +2685,7 @@ const StateCard = (props: StateCardProps) => {
                     }
                   : null
               }
-              items={currentProps().historyItems ?? []}
+              items={currentProps().commentItems ?? []}
             />
           </Show>
         </Show>
@@ -2917,10 +2914,10 @@ const DesignSystemGrid = () => {
         !hasAnimation(state) &&
         matchesSearch(state),
     );
-  const historyDropdownStates = () =>
+  const commentsDropdownStates = () =>
     DESIGN_SYSTEM_STATES.filter(
       (state) =>
-        state.component === "history-dropdown" &&
+        state.component === "comments-dropdown" &&
         !hasAnimation(state) &&
         matchesSearch(state),
     );
@@ -3224,12 +3221,12 @@ const DesignSystemGrid = () => {
           </div>
         </Show>
 
-        {/* History Dropdown Section */}
-        <Show when={historyDropdownStates().length > 0}>
+        {/* Comments Dropdown Section */}
+        <Show when={commentsDropdownStates().length > 0}>
           <div style={{ padding: `${GAP_PX}px 24px` }}>
-            <span style={sectionTitleStyle()}>History Dropdown</span>
+            <span style={sectionTitleStyle()}>Comments Dropdown</span>
             <div style={gridStyle()}>
-              <For each={historyDropdownStates()}>
+              <For each={commentsDropdownStates()}>
                 {(state) => (
                   <StateCard
                     state={state}
@@ -3281,7 +3278,7 @@ const DesignSystemGrid = () => {
               labelStates().length +
               contextMenuStates().length +
               toolbarStates().length +
-              historyDropdownStates().length +
+              commentsDropdownStates().length +
               agentLabelStates().length ===
               0
           }
