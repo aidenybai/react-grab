@@ -869,20 +869,9 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
     },
   },
   {
-    id: "toolbar-comments-read",
-    label: "Toolbar (Comments Read)",
-    description: "Inbox icon, no unread items",
-    component: "toolbar",
-    props: {
-      isToolbarActive: true,
-      isToolbarEnabled: true,
-      toolbarCommentItemCount: 5,
-    },
-  },
-  {
-    id: "toolbar-comments-unread",
-    label: "Toolbar (Comments Unread)",
-    description: "Inbox icon with unread indicator",
+    id: "toolbar-with-comments",
+    label: "Toolbar (With Comments)",
+    description: "Comments badge visible with item count",
     component: "toolbar",
     props: {
       isToolbarActive: true,
