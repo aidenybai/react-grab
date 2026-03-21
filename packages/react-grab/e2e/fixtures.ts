@@ -999,10 +999,19 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       if (!shadowRoot) return [];
       const root = shadowRoot.querySelector(`[${attrName}]`);
       if (!root) return [];
-      const items = root.querySelectorAll<HTMLButtonElement>(
-        "[data-react-grab-menu-item]",
+      const dropdowns = root.querySelectorAll<HTMLElement>(
+        "[data-react-grab-toolbar-menu]",
       );
-      return Array.from(items).map((item) => item.textContent?.trim() ?? "");
+      for (const dropdown of dropdowns) {
+        if (!dropdown.classList.contains("fixed")) continue;
+        const items = dropdown.querySelectorAll<HTMLButtonElement>(
+          "[data-react-grab-menu-item]",
+        );
+        return Array.from(items).map(
+          (item) => item.textContent?.trim() ?? "",
+        );
+      }
+      return [];
     }, ATTRIBUTE_NAME);
   };
 
@@ -1014,10 +1023,17 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         if (!shadowRoot) return;
         const root = shadowRoot.querySelector(`[${attrName}]`);
         if (!root) return;
-        const button = root.querySelector<HTMLButtonElement>(
-          `[data-react-grab-menu-item="${itemId}"]`,
+        const dropdowns = root.querySelectorAll<HTMLElement>(
+          "[data-react-grab-toolbar-menu]",
         );
-        button?.click();
+        for (const dropdown of dropdowns) {
+          if (!dropdown.classList.contains("fixed")) continue;
+          const button = dropdown.querySelector<HTMLButtonElement>(
+            `[data-react-grab-menu-item="${itemId}"]`,
+          );
+          button?.click();
+          return;
+        }
       },
       { attrName: ATTRIBUTE_NAME, itemId: actionId },
     );
