@@ -55,7 +55,7 @@ const copyElementViaApi = async (
   await expect
     .poll(() => reactGrab.getClipboardContent(), { timeout: 5000 })
     .toBeTruthy();
-  // HACK: allow history item to be persisted + mapped
+  // HACK: allow comment item to be persisted + mapped
   await reactGrab.page.waitForTimeout(300);
 };
 
@@ -67,7 +67,7 @@ const expectCloseTo = (
   expect(Math.abs(actual - expected)).toBeLessThanOrEqual(tolerancePx);
 };
 
-test.describe("History selector reacquire", () => {
+test.describe("Comment selector reacquire", () => {
   test("should reacquire a remounted element and update hover preview bounds", async ({
     reactGrab,
   }) => {
@@ -83,7 +83,7 @@ test.describe("History selector reacquire", () => {
     await copyElementViaApi(reactGrab, toggleableSelector);
 
     await expect
-      .poll(() => reactGrab.isHistoryButtonVisible(), { timeout: 2000 })
+      .poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 })
       .toBe(true);
 
     await toggleToggleableElement(reactGrab);
@@ -99,22 +99,22 @@ test.describe("History selector reacquire", () => {
     expect(afterRect).not.toBeNull();
     expect(Math.abs(afterRect!.y - beforeRect!.y)).toBeGreaterThan(40);
 
-    await reactGrab.clickHistoryButton();
-    expect((await reactGrab.getHistoryDropdownInfo()).itemCount).toBe(1);
+    await reactGrab.clickCommentsButton();
+    expect((await reactGrab.getCommentsDropdownInfo()).itemCount).toBe(1);
 
-    await reactGrab.hoverHistoryItem(0);
+    await reactGrab.hoverCommentItem(0);
 
     await expect
       .poll(async () => {
         const info = await reactGrab.getGrabbedBoxInfo();
-        return info.boxes.filter((box) => box.id.startsWith("history-hover-"))
+        return info.boxes.filter((box) => box.id.startsWith("comment-hover-"))
           .length;
       })
       .toBeGreaterThan(0);
 
     const grabbedBoxes = await reactGrab.getGrabbedBoxInfo();
     const hoverBox = grabbedBoxes.boxes.find((box) =>
-      box.id.startsWith("history-hover-"),
+      box.id.startsWith("comment-hover-"),
     );
     expect(hoverBox).toBeTruthy();
 
@@ -124,7 +124,7 @@ test.describe("History selector reacquire", () => {
     expectCloseTo(hoverBox!.bounds.height, afterRect!.height, 8);
   });
 
-  test("should show copied label feedback when selecting a reacquired history item", async ({
+  test("should show copied label feedback when selecting a reacquired comment item", async ({
     reactGrab,
   }) => {
     const toggleableSelector = '[data-testid="toggleable-element"]';
@@ -143,8 +143,8 @@ test.describe("History selector reacquire", () => {
     await toggleToggleableElement(reactGrab);
     await expect(reactGrab.page.locator(toggleableSelector)).toHaveCount(1);
 
-    await reactGrab.clickHistoryButton();
-    await reactGrab.clickHistoryItem(0);
+    await reactGrab.clickCommentsButton();
+    await reactGrab.clickCommentItem(0);
 
     await expect
       .poll(async () => {

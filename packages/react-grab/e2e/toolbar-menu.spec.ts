@@ -1,69 +1,19 @@
 import { test, expect } from "./fixtures.js";
 
 test.describe("Toolbar Menu", () => {
-  test.describe("Visibility", () => {
-    test("menu button should be visible when toolbar actions are registered", async ({
-      reactGrab,
-    }) => {
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
-        .toBe(true);
-
-      await expect
-        .poll(() => reactGrab.isToolbarMenuButtonVisible(), { timeout: 2000 })
-        .toBe(true);
-    });
-
-    test("menu dropdown should not be visible by default", async ({
-      reactGrab,
-    }) => {
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
-        .toBe(true);
-
-      const isMenuVisible = await reactGrab.isToolbarMenuVisible();
-      expect(isMenuVisible).toBe(false);
-    });
-
-    test("menu button should be hidden when toolbar is disabled", async ({
-      reactGrab,
-    }) => {
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
-        .toBe(true);
-
-      await reactGrab.clickToolbarEnabled();
-      await reactGrab.page.waitForTimeout(200);
-
-      const isMenuButtonVisible = await reactGrab.isToolbarMenuButtonVisible();
-      expect(isMenuButtonVisible).toBe(false);
-    });
-  });
-
   test.describe("Open and Close", () => {
-    test("clicking menu button should open the menu", async ({ reactGrab }) => {
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
-        .toBe(true);
-
-      await reactGrab.clickToolbarMenuButton();
-
-      const isMenuVisible = await reactGrab.isToolbarMenuVisible();
-      expect(isMenuVisible).toBe(true);
-    });
-
-    test("clicking menu button again should close the menu", async ({
+    test("right-clicking select button should open the menu", async ({
       reactGrab,
     }) => {
       await expect
         .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
         .toBe(true);
 
-      await reactGrab.clickToolbarMenuButton();
-      await reactGrab.clickToolbarMenuButton();
+      await reactGrab.rightClickToolbarToggle();
 
-      const isMenuVisible = await reactGrab.isToolbarMenuVisible();
-      expect(isMenuVisible).toBe(false);
+      await expect
+        .poll(() => reactGrab.isToolbarMenuVisible(), { timeout: 2000 })
+        .toBe(true);
     });
 
     test("pressing Escape should close the menu", async ({ reactGrab }) => {
@@ -71,33 +21,55 @@ test.describe("Toolbar Menu", () => {
         .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
         .toBe(true);
 
-      await reactGrab.clickToolbarMenuButton();
+      await reactGrab.rightClickToolbarToggle();
       await expect
         .poll(() => reactGrab.isToolbarMenuVisible(), { timeout: 2000 })
         .toBe(true);
 
       await reactGrab.pressEscape();
-      await reactGrab.page.waitForTimeout(200);
 
-      const isMenuVisible = await reactGrab.isToolbarMenuVisible();
-      expect(isMenuVisible).toBe(false);
+      await expect
+        .poll(() => reactGrab.isToolbarMenuVisible(), { timeout: 2000 })
+        .toBe(false);
     });
   });
 
   test.describe("Menu Items", () => {
-    test("menu should display registered toolbar actions", async ({
+    test("menu should display registered actions", async ({ reactGrab }) => {
+      await expect
+        .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
+        .toBe(true);
+
+      await reactGrab.rightClickToolbarToggle();
+
+      await expect
+        .poll(() => reactGrab.isToolbarMenuVisible(), { timeout: 2000 })
+        .toBe(true);
+
+      const labels = await reactGrab.getToolbarMenuItemLabels();
+      expect(labels.length).toBeGreaterThan(0);
+    });
+
+    test("clicking a menu item should close the menu", async ({
       reactGrab,
     }) => {
       await expect
         .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
         .toBe(true);
 
-      await reactGrab.clickToolbarMenuButton();
+      await reactGrab.rightClickToolbarToggle();
+      await expect
+        .poll(() => reactGrab.isToolbarMenuVisible(), { timeout: 2000 })
+        .toBe(true);
 
-      const menuInfo = await reactGrab.getToolbarMenuInfo();
-      expect(menuInfo.isVisible).toBe(true);
-      expect(menuInfo.itemCount).toBeGreaterThan(0);
-      expect(menuInfo.itemLabels.length).toBeGreaterThan(0);
+      const labels = await reactGrab.getToolbarMenuItemLabels();
+      expect(labels.length).toBeGreaterThan(0);
+
+      await reactGrab.clickToolbarMenuItem("comment");
+
+      await expect
+        .poll(() => reactGrab.isToolbarMenuVisible(), { timeout: 2000 })
+        .toBe(false);
     });
   });
 
@@ -109,7 +81,7 @@ test.describe("Toolbar Menu", () => {
         .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
         .toBe(true);
 
-      await reactGrab.clickToolbarMenuButton();
+      await reactGrab.rightClickToolbarToggle();
       await expect
         .poll(() => reactGrab.isToolbarMenuVisible(), { timeout: 2000 })
         .toBe(true);
@@ -124,7 +96,7 @@ test.describe("Toolbar Menu", () => {
         .toBe(false);
     });
 
-    test("opening toolbar menu should dismiss history dropdown", async ({
+    test("opening toolbar menu should dismiss comments dropdown", async ({
       reactGrab,
     }) => {
       await reactGrab.activate();
@@ -134,18 +106,18 @@ test.describe("Toolbar Menu", () => {
       await reactGrab.page.waitForTimeout(300);
 
       await expect
-        .poll(() => reactGrab.isHistoryButtonVisible(), { timeout: 2000 })
+        .poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 })
         .toBe(true);
 
-      await reactGrab.clickHistoryButton();
+      await reactGrab.clickCommentsButton();
       await expect
-        .poll(() => reactGrab.isHistoryDropdownVisible(), { timeout: 2000 })
+        .poll(() => reactGrab.isCommentsDropdownVisible(), { timeout: 2000 })
         .toBe(true);
 
-      await reactGrab.clickToolbarMenuButton();
+      await reactGrab.rightClickToolbarToggle();
 
       await expect
-        .poll(() => reactGrab.isHistoryDropdownVisible(), { timeout: 2000 })
+        .poll(() => reactGrab.isCommentsDropdownVisible(), { timeout: 2000 })
         .toBe(false);
       await expect
         .poll(() => reactGrab.isToolbarMenuVisible(), { timeout: 2000 })

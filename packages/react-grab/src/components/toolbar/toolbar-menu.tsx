@@ -1,6 +1,6 @@
-import { Show, For, onMount, onCleanup, createSignal } from "solid-js";
+import { Show, For, onMount, onCleanup } from "solid-js";
 import type { Component } from "solid-js";
-import type { ToolbarMenuAction, DropdownAnchor } from "../../types.js";
+import type { ContextMenuAction, DropdownAnchor } from "../../types.js";
 import {
   DROPDOWN_EDGE_TRANSFORM_ORIGIN,
   TOOLBAR_MENU_MIN_WIDTH_PX,
@@ -8,7 +8,6 @@ import {
 } from "../../constants.js";
 import { cn } from "../../utils/cn.js";
 import { formatShortcut } from "../../utils/format-shortcut.js";
-import { resolveToolbarActionEnabled } from "../../utils/resolve-action-enabled.js";
 import { createMenuHighlight } from "../../utils/create-menu-highlight.js";
 import { suppressMenuEvent } from "../../utils/suppress-menu-event.js";
 import { createAnchoredDropdown } from "../../utils/create-anchored-dropdown.js";
@@ -16,7 +15,9 @@ import { registerOverlayDismiss } from "../../utils/register-overlay-dismiss.js"
 
 interface ToolbarMenuProps {
   position: DropdownAnchor | null;
-  actions: ToolbarMenuAction[];
+  actions: ContextMenuAction[];
+  defaultActionId: string;
+  onSetDefaultAction: (actionId: string) => void;
   onDismiss: () => void;
 }
 
@@ -34,19 +35,10 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
     () => props.position,
   );
 
-  const [toggleRefreshCounter, setToggleRefreshCounter] = createSignal(0);
-
-  const handleActionClick = (action: ToolbarMenuAction, event: Event) => {
+  const handleActionClick = (action: ContextMenuAction, event: Event) => {
     event.stopPropagation();
-    if (!resolveToolbarActionEnabled(action)) return;
-
-    action.onAction();
-
-    if (action.isActive !== undefined) {
-      setToggleRefreshCounter((previous) => previous + 1);
-    } else {
-      props.onDismiss();
-    }
+    props.onSetDefaultAction(action.id);
+    props.onDismiss();
   };
 
   onMount(() => {
@@ -98,53 +90,34 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
             />
             <For each={props.actions}>
               {(action) => {
-                const isToggleAction = action.isActive !== undefined;
-                const isActionEnabled = () =>
-                  resolveToolbarActionEnabled(action);
-                const isToggleActive = () => {
-                  void toggleRefreshCounter();
-                  return Boolean(action.isActive?.());
-                };
+                const isDefault = () => action.id === props.defaultActionId;
 
                 return (
                   <button
                     data-react-grab-ignore-events
                     data-react-grab-menu-item={action.id}
-                    class="relative z-1 contain-layout flex items-center justify-between w-full px-2 py-1 cursor-pointer text-left border-none bg-transparent disabled:opacity-40 disabled:cursor-default"
-                    disabled={!isActionEnabled()}
+                    class="relative z-1 contain-layout flex items-center justify-between w-full px-2 py-1 cursor-pointer text-left border-none bg-transparent"
                     onPointerDown={(event) => event.stopPropagation()}
-                    onPointerEnter={(event) => {
-                      if (isActionEnabled()) {
-                        updateHighlight(event.currentTarget);
-                      }
-                    }}
+                    onPointerEnter={(event) =>
+                      updateHighlight(event.currentTarget)
+                    }
                     onPointerLeave={clearHighlight}
                     onClick={(event) => handleActionClick(action, event)}
                   >
-                    <span class="text-[13px] leading-4 font-sans font-medium text-black">
+                    <span
+                      class={cn(
+                        "text-[13px] leading-4 font-sans font-medium",
+                        isDefault() ? "text-black" : "text-black/60",
+                      )}
+                    >
                       {action.label}
                     </span>
-                    <Show when={!isToggleAction && action.shortcut}>
+                    <Show when={action.shortcut}>
                       {(shortcutKey) => (
                         <span class="text-[11px] font-sans text-black/50 ml-4">
                           {formatShortcut(shortcutKey())}
                         </span>
                       )}
-                    </Show>
-                    <Show when={isToggleAction}>
-                      <div
-                        class={cn(
-                          "relative rounded-full transition-colors ml-4 shrink-0 w-5 h-3",
-                          isToggleActive() ? "bg-black" : "bg-black/25",
-                        )}
-                      >
-                        <div
-                          class={cn(
-                            "absolute top-0.5 rounded-full bg-white transition-transform w-2 h-2",
-                            isToggleActive() ? "left-2.5" : "left-0.5",
-                          )}
-                        />
-                      </div>
                     </Show>
                   </button>
                 );

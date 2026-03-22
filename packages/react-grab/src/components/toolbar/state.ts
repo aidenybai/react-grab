@@ -1,5 +1,8 @@
 import type { ToolbarState } from "../../types.js";
-import { TOOLBAR_DEFAULT_POSITION_RATIO } from "../../constants.js";
+import {
+  DEFAULT_ACTION_ID,
+  TOOLBAR_DEFAULT_POSITION_RATIO,
+} from "../../constants.js";
 
 export type { ToolbarState };
 export type SnapEdge = "top" | "bottom" | "left" | "right";
@@ -29,6 +32,10 @@ export const loadToolbarState = (): ToolbarState | null => {
       collapsed:
         typeof record.collapsed === "boolean" ? record.collapsed : false,
       enabled: typeof record.enabled === "boolean" ? record.enabled : true,
+      defaultAction:
+        typeof record.defaultAction === "string"
+          ? record.defaultAction
+          : DEFAULT_ACTION_ID,
     };
   } catch (error) {
     console.warn(

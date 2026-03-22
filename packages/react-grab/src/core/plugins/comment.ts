@@ -2,23 +2,15 @@ import type { Plugin } from "../../types.js";
 
 export const commentPlugin: Plugin = {
   name: "comment",
-  setup: (api) => ({
+  setup: () => ({
     actions: [
       {
         id: "comment",
         label: "Comment",
         shortcut: "Enter",
+        showInToolbarMenu: true,
         onAction: (context) => {
           context.enterPromptMode?.();
-        },
-      },
-      {
-        id: "comment-toolbar",
-        label: "Comment",
-        shortcut: "Enter",
-        target: "toolbar",
-        onAction: () => {
-          api.comment();
         },
       },
     ],

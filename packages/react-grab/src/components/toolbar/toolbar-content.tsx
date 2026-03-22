@@ -2,9 +2,8 @@ import type { Component, JSX } from "solid-js";
 import { cn } from "../../utils/cn.js";
 import { IconSelect } from "../icons/icon-select.jsx";
 import { IconChevron } from "../icons/icon-chevron.jsx";
-import { IconClock } from "../icons/icon-clock.jsx";
+import { IconComment } from "../icons/icon-comment.jsx";
 import { IconCopy } from "../icons/icon-copy.jsx";
-import { IconEllipsis } from "../icons/icon-ellipsis.jsx";
 import {
   getExpandGridClass,
   getButtonSpacingClass,
@@ -18,20 +17,17 @@ export interface ToolbarContentProps {
   isCollapsed?: boolean;
   snapEdge?: "top" | "bottom" | "left" | "right";
   isShaking?: boolean;
-  isHistoryExpanded?: boolean;
+  isCommentsExpanded?: boolean;
   isCopyAllExpanded?: boolean;
-  isMenuExpanded?: boolean;
-  isMenuOpen?: boolean;
-  isHistoryPinned?: boolean;
+  isCommentsPinned?: boolean;
   disableGridTransitions?: boolean;
   onAnimationEnd?: () => void;
   onPanelClick?: (event: MouseEvent) => void;
   onCollapseClick?: (event: MouseEvent) => void;
   onExpandableButtonsRef?: (element: HTMLDivElement) => void;
   selectButton?: JSX.Element;
-  historyButton?: JSX.Element;
+  commentsButton?: JSX.Element;
   copyAllButton?: JSX.Element;
-  menuButton?: JSX.Element;
   toggleButton?: JSX.Element;
   collapseButton?: JSX.Element;
   shakeTooltip?: JSX.Element;
@@ -109,22 +105,22 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
     </button>
   );
 
-  const defaultHistoryButton = () => (
+  const defaultCommentsButton = () => (
     <button
       data-react-grab-ignore-events
-      data-react-grab-toolbar-history
-      aria-label="Open history"
+      data-react-grab-toolbar-comments
+      aria-label="Open comments"
       class={cn(
         "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
         buttonSpacingClass(),
         hitboxConstraintClass(),
       )}
     >
-      <IconClock
+      <IconComment
         size={14}
         class={cn(
           "transition-colors",
-          props.isHistoryPinned ? "text-black/80" : "text-[#B3B3B3]",
+          props.isCommentsPinned ? "text-black/50" : "text-[#B3B3B3]",
         )}
       />
     </button>
@@ -134,7 +130,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
     <button
       data-react-grab-ignore-events
       data-react-grab-toolbar-copy-all
-      aria-label="Copy all history items"
+      aria-label="Copy all comments"
       class={cn(
         "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
         buttonSpacingClass(),
@@ -142,29 +138,6 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
       )}
     >
       <IconCopy size={14} class="text-[#B3B3B3] transition-colors" />
-    </button>
-  );
-
-  const defaultMenuButton = () => (
-    <button
-      data-react-grab-ignore-events
-      data-react-grab-toolbar-menu
-      aria-label={
-        props.isMenuOpen ? "Close more actions menu" : "Open more actions menu"
-      }
-      class={cn(
-        "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
-        buttonSpacingClass(),
-        hitboxConstraintClass(),
-      )}
-    >
-      <IconEllipsis
-        size={14}
-        class={cn(
-          "transition-colors",
-          props.isMenuOpen ? "text-black/80" : "text-[#B3B3B3]",
-        )}
-      />
     </button>
   );
 
@@ -266,13 +239,13 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
                 "grid",
                 gridTransitionClass(),
                 expandGridClass(
-                  Boolean(props.enabled) && Boolean(props.isHistoryExpanded),
+                  Boolean(props.enabled) && Boolean(props.isCommentsExpanded),
                   "pointer-events-none",
                 ),
               )}
             >
               <div class={cn("relative overflow-visible", minDimensionClass())}>
-                {props.historyButton ?? defaultHistoryButton()}
+                {props.commentsButton ?? defaultCommentsButton()}
               </div>
             </div>
             <div
@@ -287,20 +260,6 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
             >
               <div class={cn("relative overflow-visible", minDimensionClass())}>
                 {props.copyAllButton ?? defaultCopyAllButton()}
-              </div>
-            </div>
-            <div
-              class={cn(
-                "grid",
-                gridTransitionClass(),
-                expandGridClass(
-                  Boolean(props.enabled) && Boolean(props.isMenuExpanded),
-                  "pointer-events-none",
-                ),
-              )}
-            >
-              <div class={cn("relative overflow-visible", minDimensionClass())}>
-                {props.menuButton ?? defaultMenuButton()}
               </div>
             </div>
           </div>
