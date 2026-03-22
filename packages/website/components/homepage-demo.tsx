@@ -163,10 +163,10 @@ const ToolsList = (): ReactElement => (
   <span className="text-pretty">
     Get <CyclingAgent /> to the right code{" "}
     <BenchmarkTooltip
-      href="/"
+      href="https://react-bench.com"
       className="shimmer-text-pink inline-block touch-manipulation py-1"
     >
-      <span className="font-bold">3×</span>&nbsp;faster
+      <span className="font-bold">2×</span>&nbsp;faster
     </BenchmarkTooltip>
   </span>
 );

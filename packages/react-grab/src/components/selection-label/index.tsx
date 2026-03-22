@@ -606,8 +606,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     ref={(element) => {
                       inputRef = element;
                       if (props.onSubmit) {
-                        element.focus();
-                        autoResizeTextarea(element, TEXTAREA_MAX_HEIGHT_PX);
+                        queueMicrotask(() => {
+                          element.focus();
+                          autoResizeTextarea(element, TEXTAREA_MAX_HEIGHT_PX);
+                        });
                       }
                     }}
                     data-react-grab-ignore-events
