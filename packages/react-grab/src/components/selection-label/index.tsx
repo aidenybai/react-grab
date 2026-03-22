@@ -369,7 +369,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       !props.isPendingDismiss &&
       props.onSubmit;
     if (isEditableInputVisible && inputRef) {
-      inputRef.focus();
+      inputRef.focus({ preventScroll: true });
     }
   };
 
@@ -607,7 +607,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                       inputRef = element;
                       if (props.onSubmit) {
                         queueMicrotask(() => {
-                          element.focus();
+                          element.focus({ preventScroll: true });
                           autoResizeTextarea(element, TEXTAREA_MAX_HEIGHT_PX);
                         });
                       }
@@ -647,7 +647,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               onConfirm={props.onConfirmDismiss}
               onCancel={() => {
                 props.onCancelDismiss?.();
-                inputRef?.focus();
+                inputRef?.focus({ preventScroll: true });
               }}
             />
           </Show>

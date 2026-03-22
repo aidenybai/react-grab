@@ -147,7 +147,7 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
     window.addEventListener("keydown", handleKeyDown, { capture: true });
 
     if (props.supportsFollowUp && props.onFollowUpSubmit && inputRef) {
-      inputRef.focus();
+      inputRef.focus({ preventScroll: true });
     }
   });
 
