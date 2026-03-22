@@ -821,6 +821,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           onCopySuccess: (copiedElements: Element[], content: string) => {
             pluginRegistry.hooks.onCopySuccess(copiedElements, content);
 
+            if (!extraPrompt) return;
+
             const hasCopiedElements = copiedElements.length > 0;
 
             if (hasCopiedElements) {
@@ -862,7 +864,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 createElementBounds(element),
               ),
               elementSelectors,
-              commentText: extraPrompt ?? undefined,
+              commentText: extraPrompt,
               timestamp: Date.now(),
             });
             setCommentItems(updatedCommentItems);
