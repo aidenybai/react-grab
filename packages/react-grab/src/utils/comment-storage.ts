@@ -30,12 +30,14 @@ const loadFromSessionStorage = (): CommentItem[] => {
     const parsedCommentItems = JSON.parse(
       serializedCommentItems,
     ) as CommentItem[];
-    return parsedCommentItems.map((commentItem) => ({
-      ...commentItem,
-      elementsCount: Math.max(1, commentItem.elementsCount ?? 1),
-      previewBounds: commentItem.previewBounds ?? [],
-      elementSelectors: commentItem.elementSelectors ?? [],
-    }));
+    return parsedCommentItems
+      .filter((commentItem) => Boolean(commentItem.commentText))
+      .map((commentItem) => ({
+        ...commentItem,
+        elementsCount: Math.max(1, commentItem.elementsCount ?? 1),
+        previewBounds: commentItem.previewBounds ?? [],
+        elementSelectors: commentItem.elementSelectors ?? [],
+      }));
   } catch (error) {
     logRecoverableError("Failed to load comments from sessionStorage", error);
     return [];

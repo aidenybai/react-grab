@@ -120,7 +120,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
         size={14}
         class={cn(
           "transition-colors",
-          props.isCommentsPinned ? "text-black/80" : "text-[#B3B3B3]",
+          props.isCommentsPinned ? "text-black/50" : "text-[#B3B3B3]",
         )}
       />
     </button>

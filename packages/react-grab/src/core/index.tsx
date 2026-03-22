@@ -813,8 +813,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           onCopySuccess: (copiedElements: Element[], content: string) => {
             pluginRegistry.hooks.onCopySuccess(copiedElements, content);
 
+            if (!extraPrompt) return;
+
             const hasCopiedElements = copiedElements.length > 0;
-            const isComment = Boolean(extraPrompt);
 
             if (hasCopiedElements) {
               const currentItems = commentItems();
@@ -833,12 +834,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 );
                 if (!existingItem) continue;
 
-                const shouldDedup = isComment
-                  ? existingItem.isComment &&
-                    existingItem.commentText === extraPrompt
-                  : !existingItem.isComment;
-
-                if (shouldDedup) {
+                if (existingItem.commentText === extraPrompt) {
                   removeCommentItem(existingItemId);
                   commentElementMap.delete(existingItemId);
                   break;
@@ -860,8 +856,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 createElementBounds(element),
               ),
               elementSelectors,
-              isComment,
-              commentText: extraPrompt ?? undefined,
+              commentText: extraPrompt,
               timestamp: Date.now(),
             });
             setCommentItems(updatedCommentItems);
@@ -3544,7 +3539,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     ) => {
       if (previewBounds.length === 0) return;
 
-      const hasCommentText = Boolean(item.commentText);
       for (const [index, bounds] of previewBounds.entries()) {
         const previewElement = previewElements[index];
         const boxId = `${idPrefix}-${item.id}-${index}`;
@@ -3566,8 +3560,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             componentName: item.componentName,
             elementsCount: item.elementsCount,
             status: "idle",
-            isPromptMode: Boolean(hasCommentText),
-            inputValue: hasCommentText ? item.commentText : undefined,
+            isPromptMode: true,
+            inputValue: item.commentText,
             createdAt: 0,
             element: previewElement,
             mouseX: bounds.x + bounds.width / 2,
@@ -3765,32 +3759,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
-    const copyCommentItemContent = (item: CommentItem) => {
-      copyContent(item.content, {
-        tagName: item.tagName,
-        componentName: item.componentName ?? item.elementName,
-        commentText: item.commentText,
-      });
-      const element = getFirstConnectedCommentElement(item);
-      if (!element) return;
-
-      clearAllLabels();
-
-      // HACK: defer to next frame so idle preview label clears visually before "copied" appears
-      nativeRequestAnimationFrame(() => {
-        if (!isElementConnected(element)) return;
-        const bounds = createElementBounds(element);
-        const labelId = createLabelInstance(
-          bounds,
-          item.tagName,
-          item.componentName,
-          "copied",
-          { element, mouseX: bounds.x + bounds.width / 2 },
-        );
-        if (labelId) scheduleLabelFade(labelId);
-      });
-    };
-
     const handleCommentItemSelect = (item: CommentItem) => {
       clearCommentsHoverPreviews();
       if (isPromptMode()) {
@@ -3798,15 +3766,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.clearInputText();
       }
       const element = getFirstConnectedCommentElement(item);
+      if (!element) return;
 
-      if (item.isComment && item.commentText && element) {
-        const bounds = createElementBounds(element);
-        const { x: centerX, y: centerY } = getBoundsCenter(bounds);
-        actions.enterPromptMode({ x: centerX, y: centerY }, element);
-        actions.setInputText(item.commentText);
-      } else {
-        copyCommentItemContent(item);
-      }
+      const bounds = createElementBounds(element);
+      const { x: centerX, y: centerY } = getBoundsCenter(bounds);
+      actions.enterPromptMode({ x: centerX, y: centerY }, element);
+      actions.setInputText(item.commentText);
     };
 
     const handleCommentsCopyAll = () => {

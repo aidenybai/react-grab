@@ -445,8 +445,7 @@ export interface CommentItem {
   elementsCount?: number;
   previewBounds?: OverlayBounds[];
   elementSelectors?: string[];
-  isComment: boolean;
-  commentText?: string;
+  commentText: string;
   timestamp: number;
 }
 

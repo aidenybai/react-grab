@@ -228,7 +228,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const commentsIconClass = () =>
     cn(
       "transition-colors",
-      props.isCommentsPinned ? "text-black/80" : "text-[#B3B3B3]",
+      props.isCommentsPinned ? "text-black/50" : "text-[#B3B3B3]",
     );
 
   const isVertical = () => snapEdge() === "left" || snapEdge() === "right";

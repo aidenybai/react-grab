@@ -320,11 +320,9 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
                       <span class="text-[12px] leading-4 font-sans font-medium text-black truncate">
                         {getCommentItemDisplayName(item)}
                       </span>
-                      <Show when={item.commentText}>
-                        <span class="text-[11px] leading-3 font-sans text-black/40 truncate mt-0.5">
-                          {item.commentText}
-                        </span>
-                      </Show>
+                      <span class="text-[11px] leading-3 font-sans text-black/40 truncate mt-0.5">
+                        {item.commentText}
+                      </span>
                     </span>
                     <span class="shrink-0 text-[10px] font-sans text-black/25 flex items-center justify-end">
                       {formatRelativeTime(item.timestamp)}
