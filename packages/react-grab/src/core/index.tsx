@@ -161,6 +161,7 @@ import { copyContent } from "../utils/copy-content.js";
 import { joinSnippets } from "../utils/join-snippets.js";
 import { generateId } from "../utils/generate-id.js";
 import { logRecoverableError } from "../utils/log-recoverable-error.js";
+import { lockViewportZoom } from "../utils/lock-viewport-zoom.js";
 
 const builtInPlugins = [
   copyPlugin,
@@ -283,6 +284,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         Boolean(store.current.isPendingDismiss),
     );
 
+    let unlockViewportZoom: (() => void) | null = null;
+
     createEffect(
       on(isActivated, (activated, previousActivated) => {
         if (activated && !previousActivated) {
@@ -290,10 +293,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           freezeGlobalAnimations();
           // HACK: Prevent browser from taking over touch gestures
           document.body.style.touchAction = "none";
+          // HACK: Prevent iOS Safari from auto-zooming on sub-16px inputs
+          unlockViewportZoom = lockViewportZoom();
         } else if (!activated && previousActivated) {
           unfreezePseudoStates();
           unfreezeGlobalAnimations();
           document.body.style.touchAction = "";
+          unlockViewportZoom?.();
+          unlockViewportZoom = null;
         }
       }),
     );
@@ -3111,6 +3118,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       autoScroller.stop();
       document.body.style.userSelect = "";
       document.body.style.touchAction = "";
+      unlockViewportZoom?.();
+      unlockViewportZoom = null;
       setCursorOverride(null);
       keyboardClaimer.restore();
     });
