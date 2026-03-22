@@ -154,8 +154,8 @@ import {
   addCommentItem,
   removeCommentItem,
   clearComments,
-  shouldSkipClearPrompt,
-  confirmClearPreference,
+  isClearConfirmed,
+  confirmClear,
 } from "../utils/comment-storage.js";
 import { copyContent } from "../utils/copy-content.js";
 import { joinSnippets } from "../utils/join-snippets.js";
@@ -3841,7 +3841,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         })),
       });
 
-      if (shouldSkipClearPrompt()) {
+      if (isClearConfirmed()) {
         handleCommentsClear();
       } else {
         showClearPrompt();
@@ -4112,7 +4112,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 onToolbarMenuDismiss={dismissToolbarMenu}
                 clearPromptPosition={clearPromptPosition()}
                 onClearCommentsConfirm={() => {
-                  confirmClearPreference();
+                  confirmClear();
                   dismissClearPrompt();
                   handleCommentsClear();
                 }}
