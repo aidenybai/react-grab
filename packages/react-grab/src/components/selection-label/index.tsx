@@ -173,21 +173,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const elementIdentity = () =>
     `${props.tagName ?? ""}:${props.componentName ?? ""}`;
 
-  createEffect(() => {
-    if (props.isPromptMode && inputRef && props.onSubmit) {
-      // HACK: Defer focus one tick so the textarea is fully mounted.
-      const focusTimeout = setTimeout(() => {
-        if (inputRef) {
-          inputRef.focus();
-          autoResizeTextarea(inputRef, TEXTAREA_MAX_HEIGHT_PX);
-        }
-      }, 0);
-      onCleanup(() => {
-        clearTimeout(focusTimeout);
-      });
-    }
-  });
-
   const positionComputation = createMemo(
     (previousResult: PositionResult): PositionResult => {
       viewportVersion();
@@ -618,7 +603,13 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   style={{ "padding-left": props.replyToPrompt ? "14px" : "0" }}
                 >
                   <textarea
-                    ref={inputRef}
+                    ref={(element) => {
+                      inputRef = element;
+                      if (props.onSubmit) {
+                        element.focus();
+                        autoResizeTextarea(element, TEXTAREA_MAX_HEIGHT_PX);
+                      }
+                    }}
                     data-react-grab-ignore-events
                     data-react-grab-input
                     class="text-black text-[13px] leading-4 font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 wrap-break-word overflow-y-auto"
