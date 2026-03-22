@@ -83,7 +83,11 @@ import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { getElementCenter } from "../utils/get-element-center.js";
 import { isCLikeKey } from "../utils/is-c-like-key.js";
 import { isTargetKeyCombination } from "../utils/is-target-key-combination.js";
-import { parseActivationKey } from "../utils/parse-activation-key.js";
+import {
+  parseActivationKey,
+  getModifiersFromActivationKey,
+} from "../utils/parse-activation-key.js";
+import { keyMatchesCode } from "../utils/key-matches-code.js";
 import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
 import { openFile } from "../utils/open-file.js";
 import { combineBounds } from "../utils/combine-bounds.js";
@@ -150,6 +154,8 @@ import {
   addCommentItem,
   removeCommentItem,
   clearComments,
+  shouldSkipClearPrompt,
+  confirmClearPreference,
 } from "../utils/comment-storage.js";
 import { copyContent } from "../utils/copy-content.js";
 import { joinSnippets } from "../utils/join-snippets.js";
@@ -2303,6 +2309,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       );
     });
 
+    const activationBaseKey = createMemo(() => {
+      const { key } = getModifiersFromActivationKey(
+        pluginRegistry.store.options.activationKey,
+      );
+      return (key ?? "c").toUpperCase();
+    });
+
     const actionCycleState = createMemo<ActionCycleState>(() => ({
       items: actionCycleItems(),
       activeIndex: actionCycleActiveIndex(),
@@ -2370,6 +2383,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const isStaticallyDisabled =
           typeof action.enabled === "boolean" && !action.enabled;
         if (isStaticallyDisabled) continue;
+        const hasNonMatchingShortcut =
+          action.shortcut &&
+          action.shortcut.toUpperCase() !== activationBaseKey();
+        if (hasNonMatchingShortcut) continue;
         cycleItems.push({
           id: action.id,
           label: action.label,
@@ -2426,7 +2443,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleActionCycleKey = (event: KeyboardEvent): boolean => {
-      if (event.code !== "KeyC") return false;
+      if (!keyMatchesCode(activationBaseKey(), event.code)) return false;
       if (event.altKey || event.repeat) return false;
       if (isKeyboardEventTriggeredByInput(event)) return false;
       if (!advanceActionCycle()) return false;
@@ -3824,7 +3841,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         })),
       });
 
-      showClearPrompt();
+      if (shouldSkipClearPrompt()) {
+        handleCommentsClear();
+      } else {
+        showClearPrompt();
+      }
 
       clearAllLabels();
 
@@ -4091,6 +4112,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 onToolbarMenuDismiss={dismissToolbarMenu}
                 clearPromptPosition={clearPromptPosition()}
                 onClearCommentsConfirm={() => {
+                  confirmClearPreference();
                   dismissClearPrompt();
                   handleCommentsClear();
                 }}

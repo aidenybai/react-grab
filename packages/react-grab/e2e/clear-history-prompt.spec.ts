@@ -176,6 +176,38 @@ test.describe("Clear History Prompt", () => {
         .poll(() => reactGrab.isClearCommentsPromptVisible(), { timeout: 2000 })
         .toBe(false);
     });
+
+    test("should skip prompt on subsequent copy-all after confirming once", async ({
+      reactGrab,
+    }) => {
+      await copyElement(reactGrab, "li:first-child");
+
+      await reactGrab.clickCommentsButton();
+      await reactGrab.clickToolbarCopyAll();
+
+      await expect
+        .poll(() => reactGrab.isClearCommentsPromptVisible(), { timeout: 2000 })
+        .toBe(true);
+
+      await reactGrab.confirmClearCommentsPrompt();
+
+      await expect
+        .poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 })
+        .toBe(false);
+
+      await copyElement(reactGrab, "li:last-child");
+
+      await reactGrab.clickCommentsButton();
+      await reactGrab.clickToolbarCopyAll();
+
+      await expect
+        .poll(() => reactGrab.isClearCommentsPromptVisible(), { timeout: 2000 })
+        .toBe(false);
+
+      await expect
+        .poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 })
+        .toBe(false);
+    });
   });
 
   test.describe("Cancel", () => {

@@ -8,6 +8,9 @@ import { logRecoverableError } from "./log-recoverable-error.js";
 
 const SESSION_STORAGE_KEY = "react-grab-comment-items";
 const LEGACY_SESSION_STORAGE_KEY = "react-grab-history-items";
+const CLEAR_CONFIRMED_KEY = "react-grab-clear-confirmed";
+
+let didConfirmClear = false;
 
 const migrateFromLegacyStorage = (): void => {
   try {
@@ -25,6 +28,8 @@ migrateFromLegacyStorage();
 
 const loadFromSessionStorage = (): CommentItem[] => {
   try {
+    didConfirmClear = sessionStorage.getItem(CLEAR_CONFIRMED_KEY) === "1";
+
     const serializedCommentItems = sessionStorage.getItem(SESSION_STORAGE_KEY);
     if (!serializedCommentItems) return [];
     const parsedCommentItems = JSON.parse(
@@ -92,4 +97,16 @@ export const removeCommentItem = (itemId: string): CommentItem[] => {
 export const clearComments = (): CommentItem[] => {
   commentItems = saveToSessionStorage([]);
   return commentItems;
+};
+
+export const shouldSkipClearPrompt = (): boolean => didConfirmClear;
+
+export const confirmClearPreference = (): void => {
+  didConfirmClear = true;
+  try {
+    sessionStorage.setItem(CLEAR_CONFIRMED_KEY, "1");
+  } catch (error) {
+    // HACK: sessionStorage can throw in private browsing or when quota is exceeded
+    logRecoverableError("Failed to save clear preference to sessionStorage", error);
+  }
 };
