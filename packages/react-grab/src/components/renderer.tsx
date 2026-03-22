@@ -3,6 +3,7 @@ import type { Component } from "solid-js";
 import type { AgentSession, ReactGrabRendererProps } from "../types.js";
 import {
   DEFAULT_ACTION_ID,
+  FADE_DURATION_MS,
   FROZEN_GLOW_COLOR,
   FROZEN_GLOW_EDGE_PX,
   Z_INDEX_OVERLAY_CANVAS,
@@ -57,7 +58,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           "pointer-events": "none",
           "z-index": Z_INDEX_OVERLAY_CANVAS,
           opacity: props.isFrozen ? 1 : 0,
-          transition: "opacity 100ms ease-out",
+          transition: `opacity ${FADE_DURATION_MS}ms ease-out`,
           "will-change": "opacity",
           contain: "strict",
           transform: "translateZ(0)",

@@ -538,7 +538,7 @@ export const InstallTabs = ({
       {showAgentNote && activeTab.variant === "code" && (
         <span className="mt-2 block text-sm text-muted-foreground sm:text-base">
           Want to connect directly to your coding agent?{" "}
-          <a href="/blog/agent" className="underline hover:text-foreground/70">
+          <a href="/docs" className="underline hover:text-foreground/70">
             See our agent connection guide
           </a>
         </span>

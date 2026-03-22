@@ -51,12 +51,11 @@ const sitemap = (): MetadataRoute.Sitemap => {
 
   for (const route of routes) {
     const isTopLevel = !route.includes("/");
-    const isBlogPost = route.startsWith("blog/") && route !== "blog";
 
     sitemapEntries.push({
       url: `${BASE_URL}/${route}`,
       lastModified: new Date(),
-      changeFrequency: isBlogPost ? "monthly" : "weekly",
+      changeFrequency: "weekly",
       priority: isTopLevel ? 0.8 : 0.6,
     });
   }

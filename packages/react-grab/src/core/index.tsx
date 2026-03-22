@@ -334,7 +334,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             reacquiredElements.push(reacquiredElement);
           }
           // HACK: querySelector can throw on invalid selectors stored from previous sessions
-        } catch {}
+        } catch (error) {
+          logRecoverableError("Invalid stored selector", error);
+        }
       }
       return reacquiredElements;
     };
@@ -3638,6 +3640,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       };
     };
 
+    const openTrackedDropdown = (
+      setPosition: (anchor: DropdownAnchor) => void,
+    ) => {
+      startTrackingDropdownPosition(() => {
+        const anchor = computeDropdownAnchor();
+        if (anchor) setPosition(anchor);
+      });
+    };
+
     const dismissCommentsDropdown = () => {
       cancelCommentsHoverOpenTimeout();
       cancelCommentsHoverCloseTimeout();
@@ -3657,10 +3668,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       dismissToolbarMenu();
       dismissClearPrompt();
       setCommentItems(loadComments());
-      startTrackingDropdownPosition(() => {
-        const anchor = computeDropdownAnchor();
-        if (anchor) setCommentsDropdownPosition(anchor);
-      });
+      openTrackedDropdown(setCommentsDropdownPosition);
     };
 
     let commentsHoverOpenTimeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -3691,10 +3699,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const showClearPrompt = () => {
       dismissCommentsDropdown();
       dismissToolbarMenu();
-      startTrackingDropdownPosition(() => {
-        const anchor = computeDropdownAnchor();
-        if (anchor) setClearPromptPosition(anchor);
-      });
+      openTrackedDropdown(setClearPromptPosition);
     };
 
     const dismissClearPrompt = () => {
@@ -3715,10 +3720,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.hideContextMenu();
         dismissCommentsDropdown();
         dismissClearPrompt();
-        startTrackingDropdownPosition(() => {
-          const anchor = computeDropdownAnchor();
-          if (anchor) setToolbarMenuPosition(anchor);
-        });
+        openTrackedDropdown(setToolbarMenuPosition);
       }
     };
 
@@ -3921,7 +3923,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!instance?.element) return;
       if (!isElementConnected(instance.element)) return;
 
-      const elementBounds = createElementBounds(instance.element);
+      const contextMenuElement = instance.element;
+      const elementBounds = createElementBounds(contextMenuElement);
       const center = getBoundsCenter(elementBounds);
       const position = {
         x: instance.mouseX ?? center.x,
@@ -3931,7 +3934,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const elementsToFreeze =
         instance.elements && instance.elements.length > 0
           ? instance.elements.filter((element) => isElementConnected(element))
-          : [instance.element];
+          : [contextMenuElement];
 
       // HACK: Defer context menu display to avoid event interference
       setTimeout(() => {
@@ -3946,7 +3949,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           actions.setFrozenDragRect(createPageRectFromBounds(instance.bounds));
         }
         actions.freeze();
-        actions.showContextMenu(position, instance.element!);
+        actions.showContextMenu(position, contextMenuElement);
       }, 0);
     };
 

@@ -30,13 +30,6 @@ export const DemoFooter = (): ReactElement => {
       </Button>
       <span className="hidden sm:inline"> &middot; </span>
       <a
-        href="/blog"
-        className="underline underline-offset-4 hover:text-foreground"
-      >
-        blog
-      </a>{" "}
-      &middot;{" "}
-      <a
         href="/changelog"
         className="underline underline-offset-4 hover:text-foreground"
       >
