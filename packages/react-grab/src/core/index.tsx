@@ -1754,11 +1754,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const newEnabled = !isEnabled();
       setIsEnabled(newEnabled);
       const currentState = loadToolbarState();
-      const newState = {
+      const newState: ToolbarState = {
         edge: currentState?.edge ?? "bottom",
         ratio: currentState?.ratio ?? TOOLBAR_DEFAULT_POSITION_RATIO,
         collapsed: currentState?.collapsed ?? false,
         enabled: newEnabled,
+        defaultAction: currentState?.defaultAction ?? DEFAULT_ACTION_ID,
       };
       saveToolbarState(newState);
       setCurrentToolbarState(newState);
@@ -4194,7 +4195,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       getToolbarState: () => loadToolbarState(),
       setToolbarState: (state: Partial<ToolbarState>) => {
         const currentState = loadToolbarState();
-        const newState = {
+        const newState: ToolbarState = {
           edge: state.edge ?? currentState?.edge ?? "bottom",
           ratio:
             state.ratio ??
@@ -4202,6 +4203,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             TOOLBAR_DEFAULT_POSITION_RATIO,
           collapsed: state.collapsed ?? currentState?.collapsed ?? false,
           enabled: state.enabled ?? currentState?.enabled ?? true,
+          defaultAction:
+            state.defaultAction ??
+            currentState?.defaultAction ??
+            DEFAULT_ACTION_ID,
         };
         saveToolbarState(newState);
         setCurrentToolbarState(newState);
