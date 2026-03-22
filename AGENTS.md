@@ -47,6 +47,19 @@
 - NEVER: Derive state via `createEffect(() => setX(y()))` — use memo or derived function.
 - NEVER: Place side effects inside `createMemo` — causes infinite loops/crashes.
 
+### Effect Taxonomy
+
+Before writing `createEffect`, classify the work and pick the right primitive:
+
+- MUST: Use `createMemo` when the result is pure derived state from other signals/stores. If no external system is touched, it is not an effect.
+- MUST: Use event handlers and direct action calls when work happens because a user clicked, selected, or navigated. Do not watch a flag/token in an effect to trigger imperative logic.
+- MUST: Use `onMount`/`onCleanup` for one-time lifecycle setup and teardown (subscriptions, timers, imperative DOM wiring) that should not rerun for reactive changes.
+- MUST: Keep `createEffect` single-purpose — one effect, one external bridge. Split mixed-responsibility effects.
+- SHOULD: Use keyed ownership boundaries (keyed `<Show>`/`<For>`, or keyed `createRoot`) when local state should reset because an identity changed. Do not write a "watch key, clear state" effect.
+- SHOULD: Normalize state at the write boundary, not via a repair effect that rewrites after the fact.
+- NEVER: Use `createEffect` just to copy one store/signal into another — find the single source of truth.
+- NEVER: Use `createEffect` as an event bus (watching a trigger signal to run a command). Call the action directly from the event source.
+
 ### Props
 
 - MUST: Access props via `props.title`, not destructuring.

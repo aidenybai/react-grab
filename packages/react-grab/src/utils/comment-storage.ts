@@ -30,9 +30,7 @@ const loadFromSessionStorage = (): CommentItem[] => {
     const parsedCommentItems = JSON.parse(
       serializedCommentItems,
     ) as CommentItem[];
-    return parsedCommentItems
-      .filter((commentItem) => Boolean(commentItem.commentText))
-      .map((commentItem) => ({
+    return parsedCommentItems.map((commentItem) => ({
         ...commentItem,
         elementsCount: Math.max(1, commentItem.elementsCount ?? 1),
         previewBounds: commentItem.previewBounds ?? [],

@@ -813,8 +813,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           onCopySuccess: (copiedElements: Element[], content: string) => {
             pluginRegistry.hooks.onCopySuccess(copiedElements, content);
 
-            if (!extraPrompt) return;
-
             const hasCopiedElements = copiedElements.length > 0;
 
             if (hasCopiedElements) {
@@ -856,7 +854,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 createElementBounds(element),
               ),
               elementSelectors,
-              commentText: extraPrompt,
+              commentText: extraPrompt ?? undefined,
               timestamp: Date.now(),
             });
             setCommentItems(updatedCommentItems);
@@ -3560,8 +3558,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             componentName: item.componentName,
             elementsCount: item.elementsCount,
             status: "idle",
-            isPromptMode: true,
-            inputValue: item.commentText,
+            isPromptMode: Boolean(item.commentText),
+            inputValue: item.commentText ?? undefined,
             createdAt: 0,
             element: previewElement,
             mouseX: bounds.x + bounds.width / 2,
@@ -3759,6 +3757,32 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
+    const copyCommentItemContent = (item: CommentItem) => {
+      copyContent(item.content, {
+        tagName: item.tagName,
+        componentName: item.componentName ?? item.elementName,
+        commentText: item.commentText,
+      });
+      const element = getFirstConnectedCommentElement(item);
+      if (!element) return;
+
+      clearAllLabels();
+
+      // HACK: defer to next frame so idle preview label clears visually before "copied" appears
+      nativeRequestAnimationFrame(() => {
+        if (!isElementConnected(element)) return;
+        const bounds = createElementBounds(element);
+        const labelId = createLabelInstance(
+          bounds,
+          item.tagName,
+          item.componentName,
+          "copied",
+          { element, mouseX: bounds.x + bounds.width / 2 },
+        );
+        if (labelId) scheduleLabelFade(labelId);
+      });
+    };
+
     const handleCommentItemSelect = (item: CommentItem) => {
       clearCommentsHoverPreviews();
       if (isPromptMode()) {
@@ -3766,12 +3790,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.clearInputText();
       }
       const element = getFirstConnectedCommentElement(item);
-      if (!element) return;
 
-      const bounds = createElementBounds(element);
-      const { x: centerX, y: centerY } = getBoundsCenter(bounds);
-      actions.enterPromptMode({ x: centerX, y: centerY }, element);
-      actions.setInputText(item.commentText);
+      if (item.commentText && element) {
+        const bounds = createElementBounds(element);
+        const { x: centerX, y: centerY } = getBoundsCenter(bounds);
+        actions.enterPromptMode({ x: centerX, y: centerY }, element);
+        actions.setInputText(item.commentText);
+      } else {
+        copyCommentItemContent(item);
+      }
     };
 
     const handleCommentsCopyAll = () => {
