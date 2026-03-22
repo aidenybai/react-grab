@@ -1610,7 +1610,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         cursorX: labelPositionX,
         selectedElements: elements,
         extraPrompt: prompt || undefined,
-        onComplete: deactivateRenderer,
+        shouldDeactivateAfter: true,
       });
     };
 
