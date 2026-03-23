@@ -51,6 +51,14 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
     return "transition-[grid-template-columns,opacity] duration-150 ease-out";
   };
 
+  const gridSizeTransitionClass = (): string => {
+    if (props.disableGridTransitions) return "";
+    if (isVertical()) {
+      return "transition-[grid-template-rows] duration-150 ease-out";
+    }
+    return "transition-[grid-template-columns] duration-150 ease-out";
+  };
+
   const buttonSpacingClass = () => getButtonSpacingClass(isVertical());
   const minDimensionClass = () => getMinDimensionClass(isVertical());
   const hitboxConstraintClass = () => getHitboxConstraintClass(isVertical());
@@ -206,9 +214,13 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
     >
       <div
         class={cn(
-          "grid",
-          gridTransitionClass(),
-          expandGridClass(!props.isCollapsed, "pointer-events-none"),
+          "grid relative overflow-visible",
+          gridSizeTransitionClass(),
+          props.isCollapsed
+            ? (isVertical()
+                ? "grid-rows-[0fr] pointer-events-none"
+                : "grid-cols-[0fr] pointer-events-none")
+            : (isVertical() ? "grid-rows-[1fr]" : "grid-cols-[1fr]"),
         )}
       >
         <div
@@ -217,6 +229,9 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
             isVertical()
               ? "flex-col items-center min-h-0"
               : "items-center min-w-0",
+            props.isCollapsed ? "opacity-0" : "opacity-100",
+            !props.disableGridTransitions &&
+              "transition-opacity duration-150 ease-out",
           )}
         >
           <div
@@ -267,9 +282,9 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
             {props.toggleButton ?? defaultToggleButton()}
           </div>
         </div>
+        {props.shakeTooltip}
       </div>
       {props.collapseButton ?? defaultCollapseButton()}
-      {props.shakeTooltip}
     </div>
   );
 };
