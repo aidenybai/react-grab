@@ -24,8 +24,10 @@ export const copyImagePlugin = createPendingSelectionPlugin({
         const stackContext = await api.getStackContext(context.element);
         const fullContent = appendStackContext(combinedContent, stackContext);
         const imageBlob = await renderTextToImage(fullContent);
+        const displayName =
+          context.componentName ?? context.tagName ?? "element";
 
-        return copyImageToClipboard(imageBlob);
+        return copyImageToClipboard(imageBlob, displayName);
       });
     },
   }),
