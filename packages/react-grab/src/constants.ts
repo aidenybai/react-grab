@@ -160,6 +160,14 @@ export const DROPDOWN_EDGE_TRANSFORM_ORIGIN = {
   bottom: "center bottom",
 };
 
+export const TEXT_IMAGE_FONT_SIZE_PX = 12;
+export const TEXT_IMAGE_LINE_HEIGHT_PX = 15;
+export const TEXT_IMAGE_PADDING_PX = 8;
+export const TEXT_IMAGE_FONT_FAMILY = "monospace";
+export const TEXT_IMAGE_BACKGROUND_COLOR = "#ffffff";
+export const TEXT_IMAGE_TEXT_COLOR = "#000000";
+export const TEXT_IMAGE_TAB_SIZE_SPACES = 2;
+
 export const NEXTJS_REVALIDATION_DELAY_MS = 1000;
 
 export const TEXTAREA_MAX_HEIGHT_PX = 95;
