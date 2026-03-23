@@ -47,10 +47,10 @@ const copyElement = async (
   reactGrab: ReactGrabPageObject,
   selector: string,
 ) => {
-  await reactGrab.activate();
-  await reactGrab.hoverElement(selector);
-  await reactGrab.waitForSelectionBox();
-  await reactGrab.clickElement(selector);
+  await reactGrab.registerCommentAction();
+  await reactGrab.enterPromptMode(selector);
+  await reactGrab.typeInInput("comment");
+  await reactGrab.submitInput();
   await expect
     .poll(() => reactGrab.getClipboardContent(), { timeout: 5000 })
     .toBeTruthy();

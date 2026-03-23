@@ -99,10 +99,13 @@ test.describe("Toolbar Menu", () => {
     test("opening toolbar menu should dismiss comments dropdown", async ({
       reactGrab,
     }) => {
-      await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
-      await reactGrab.clickElement("li:first-child");
+      await reactGrab.registerCommentAction();
+      await reactGrab.enterPromptMode("li:first-child");
+      await reactGrab.typeInInput("comment");
+      await reactGrab.submitInput();
+      await expect
+        .poll(() => reactGrab.getClipboardContent(), { timeout: 5000 })
+        .toBeTruthy();
       await reactGrab.page.waitForTimeout(300);
 
       await expect

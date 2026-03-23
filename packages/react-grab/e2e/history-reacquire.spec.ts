@@ -45,13 +45,14 @@ const toggleToggleableElement = async (reactGrab: ReactGrabPageObject) => {
     .click({ force: true });
 };
 
-const copyElementViaApi = async (
+const copyElementWithComment = async (
   reactGrab: ReactGrabPageObject,
   selector: string,
 ) => {
-  await reactGrab.page.evaluate(() => navigator.clipboard.writeText(""));
-  const didCopy = await reactGrab.copyElementViaApi(selector);
-  expect(didCopy).toBe(true);
+  await reactGrab.registerCommentAction();
+  await reactGrab.enterPromptMode(selector);
+  await reactGrab.typeInInput("comment");
+  await reactGrab.submitInput();
   await expect
     .poll(() => reactGrab.getClipboardContent(), { timeout: 5000 })
     .toBeTruthy();
@@ -80,7 +81,7 @@ test.describe("Comment selector reacquire", () => {
     const beforeRect = await getViewportRect(reactGrab, toggleableSelector);
     expect(beforeRect).not.toBeNull();
 
-    await copyElementViaApi(reactGrab, toggleableSelector);
+    await copyElementWithComment(reactGrab, toggleableSelector);
 
     await expect
       .poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 })
@@ -133,7 +134,7 @@ test.describe("Comment selector reacquire", () => {
       .locator('[data-testid="hidden-toggle-section"]')
       .scrollIntoViewIfNeeded();
 
-    await copyElementViaApi(reactGrab, toggleableSelector);
+    await copyElementWithComment(reactGrab, toggleableSelector);
 
     await toggleToggleableElement(reactGrab);
     await expect(reactGrab.page.locator(toggleableSelector)).toHaveCount(0);

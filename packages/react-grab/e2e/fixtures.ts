@@ -190,6 +190,7 @@ export interface ReactGrabPageObject {
   toggle: () => Promise<void>;
   dispose: () => Promise<void>;
   copyElementViaApi: (selector: string) => Promise<boolean>;
+  registerCommentAction: () => Promise<void>;
   setAgent: (options: Record<string, unknown>) => Promise<void>;
   updateOptions: (options: Record<string, unknown>) => Promise<void>;
   reinitialize: (options?: Record<string, unknown>) => Promise<void>;
@@ -1660,6 +1661,38 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     }, selector);
   };
 
+  const registerCommentAction = async () => {
+    await page.evaluate(() => {
+      const api = (
+        window as {
+          __REACT_GRAB__?: {
+            unregisterPlugin: (name: string) => void;
+            registerPlugin: (plugin: {
+              name: string;
+              actions: Array<Record<string, unknown>>;
+            }) => void;
+          };
+        }
+      ).__REACT_GRAB__;
+      api?.unregisterPlugin("comment-action");
+      api?.registerPlugin({
+        name: "comment-action",
+        actions: [
+          {
+            id: "comment-action",
+            label: "Edit",
+            shortcut: "Enter",
+            onAction: (context: {
+              enterPromptMode?: () => void;
+            }) => {
+              context.enterPromptMode?.();
+            },
+          },
+        ],
+      });
+    });
+  };
+
   const setAgent = async (options: Record<string, unknown>) => {
     await page.evaluate((opts) => {
       const api = (
@@ -2398,6 +2431,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     toggle,
     dispose,
     copyElementViaApi,
+    registerCommentAction,
     setAgent,
     updateOptions,
     reinitialize,

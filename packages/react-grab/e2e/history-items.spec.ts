@@ -5,10 +5,10 @@ const copyElement = async (
   reactGrab: ReactGrabPageObject,
   selector: string,
 ) => {
-  await reactGrab.activate();
-  await reactGrab.hoverElement(selector);
-  await reactGrab.waitForSelectionBox();
-  await reactGrab.clickElement(selector);
+  await reactGrab.registerCommentAction();
+  await reactGrab.enterPromptMode(selector);
+  await reactGrab.typeInInput("comment");
+  await reactGrab.submitInput();
   await expect
     .poll(() => reactGrab.getClipboardContent(), { timeout: 5000 })
     .toBeTruthy();
@@ -134,25 +134,20 @@ test.describe("Comment Items", () => {
   });
 
   test.describe("Item Selection", () => {
-    test("should copy content to clipboard when clicking a regular item", async ({
+    test("should enter prompt mode with comment text when clicking a comment item", async ({
       reactGrab,
     }) => {
       await copyElement(reactGrab, "li:first-child");
-
-      const originalClipboard = await reactGrab.getClipboardContent();
-      expect(originalClipboard).toBeTruthy();
-
-      await reactGrab.page.evaluate(() => navigator.clipboard.writeText(""));
 
       await reactGrab.clickCommentsButton();
       await reactGrab.clickCommentItem(0);
 
       await expect
-        .poll(() => reactGrab.getClipboardContent(), { timeout: 3000 })
-        .toBeTruthy();
+        .poll(() => reactGrab.isPromptModeActive(), { timeout: 3000 })
+        .toBe(true);
 
-      const newClipboard = await reactGrab.getClipboardContent();
-      expect(newClipboard).toBe(originalClipboard);
+      const inputValue = await reactGrab.getInputValue();
+      expect(inputValue).toBe("comment");
     });
 
     test("should keep the dropdown open after selecting an item", async ({
