@@ -1269,69 +1269,65 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             </Tooltip>
           </>
         }
-        shakeTooltip={
-          <>
-            <Show when={props.isActive && !hasLearnedSelectionHints()}>
-              <div
-                class={cn(
-                  "absolute whitespace-nowrap flex items-center gap-1 px-1.5 py-0.5 rounded-[10px] text-[10px] text-black/60 pointer-events-none animate-tooltip-fade-in [animation-fill-mode:backwards] [corner-shape:superellipse(1.25)]",
-                  "bg-white",
-                  shakeTooltipPositionClass(),
-                )}
-                style={{ "z-index": String(Z_INDEX_HOST) }}
-              >
-                <Show when={selectionHintIndex() === 0}>
-                  <span
-                    class={cn(
-                      "flex items-center gap-1",
-                      hasHintCycled() && HINT_FLIP_IN_ANIMATION,
-                    )}
-                  >
-                    Click or
-                    <Kbd>↵</Kbd>
-                    to capture
-                  </span>
-                </Show>
-                <Show when={selectionHintIndex() === 1}>
-                  <span
-                    class={cn(
-                      "flex items-center gap-1",
-                      HINT_FLIP_IN_ANIMATION,
-                    )}
-                  >
-                    <Kbd>↑</Kbd>
-                    <Kbd>↓</Kbd>
-                    to fine-tune target
-                  </span>
-                </Show>
-                <Show when={selectionHintIndex() === 2}>
-                  <span
-                    class={cn(
-                      "flex items-center gap-1",
-                      HINT_FLIP_IN_ANIMATION,
-                    )}
-                  >
-                    <Kbd>esc</Kbd>
-                    to cancel
-                  </span>
-                </Show>
-              </div>
-            </Show>
-            <Show when={isShakeTooltipVisible()}>
-              <div
-                class={cn(
-                  "absolute whitespace-nowrap px-1.5 py-0.5 rounded-[10px] text-[10px] text-black/60 pointer-events-none animate-tooltip-fade-in [corner-shape:superellipse(1.25)]",
-                  "bg-white",
-                  shakeTooltipPositionClass(),
-                )}
-                style={{ "z-index": String(Z_INDEX_HOST) }}
-              >
-                Enable to continue
-              </div>
-            </Show>
-          </>
-        }
       />
+      <Show when={props.isActive && !hasLearnedSelectionHints()}>
+        <div
+          class={cn(
+            "absolute whitespace-nowrap flex items-center gap-1 px-1.5 py-0.5 rounded-[10px] text-[10px] text-black/60 pointer-events-none animate-tooltip-fade-in [animation-fill-mode:backwards] [corner-shape:superellipse(1.25)]",
+            "bg-white",
+            shakeTooltipPositionClass(),
+          )}
+          style={{ "z-index": String(Z_INDEX_HOST) }}
+        >
+          <Show when={selectionHintIndex() === 0}>
+            <span
+              class={cn(
+                "flex items-center gap-1",
+                hasHintCycled() && HINT_FLIP_IN_ANIMATION,
+              )}
+            >
+              Click or
+              <Kbd>↵</Kbd>
+              to capture
+            </span>
+          </Show>
+          <Show when={selectionHintIndex() === 1}>
+            <span
+              class={cn(
+                "flex items-center gap-1",
+                HINT_FLIP_IN_ANIMATION,
+              )}
+            >
+              <Kbd>↑</Kbd>
+              <Kbd>↓</Kbd>
+              to fine-tune target
+            </span>
+          </Show>
+          <Show when={selectionHintIndex() === 2}>
+            <span
+              class={cn(
+                "flex items-center gap-1",
+                HINT_FLIP_IN_ANIMATION,
+              )}
+            >
+              <Kbd>esc</Kbd>
+              to cancel
+            </span>
+          </Show>
+        </div>
+      </Show>
+      <Show when={isShakeTooltipVisible()}>
+        <div
+          class={cn(
+            "absolute whitespace-nowrap px-1.5 py-0.5 rounded-[10px] text-[10px] text-black/60 pointer-events-none animate-tooltip-fade-in [corner-shape:superellipse(1.25)]",
+            "bg-white",
+            shakeTooltipPositionClass(),
+          )}
+          style={{ "z-index": String(Z_INDEX_HOST) }}
+        >
+          Enable to continue
+        </div>
+      </Show>
     </div>
   );
 };

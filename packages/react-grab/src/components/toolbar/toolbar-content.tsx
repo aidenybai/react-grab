@@ -30,7 +30,6 @@ export interface ToolbarContentProps {
   copyAllButton?: JSX.Element;
   toggleButton?: JSX.Element;
   collapseButton?: JSX.Element;
-  shakeTooltip?: JSX.Element;
   transformOrigin?: string;
 }
 
@@ -284,7 +283,6 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
         </div>
       </div>
       {props.collapseButton ?? defaultCollapseButton()}
-      {props.shakeTooltip}
     </div>
   );
 };
