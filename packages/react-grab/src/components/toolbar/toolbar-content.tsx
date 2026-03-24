@@ -282,9 +282,9 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
             {props.toggleButton ?? defaultToggleButton()}
           </div>
         </div>
-        {props.shakeTooltip}
       </div>
       {props.collapseButton ?? defaultCollapseButton()}
+      {props.shakeTooltip}
     </div>
   );
 };
