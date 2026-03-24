@@ -1274,7 +1274,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             <Show when={props.isActive && !hasLearnedSelectionHints()}>
               <div
                 class={cn(
-                  "absolute whitespace-nowrap flex items-center gap-1 px-1.5 py-0.5 rounded-[10px] text-[10px] text-black/60 pointer-events-none animate-tooltip-fade-in [animation-fill-mode:backwards] overflow-hidden [corner-shape:superellipse(1.25)]",
+                  "absolute whitespace-nowrap flex items-center gap-1 px-1.5 py-0.5 rounded-[10px] text-[10px] text-black/60 pointer-events-none animate-tooltip-fade-in [animation-fill-mode:backwards] [corner-shape:superellipse(1.25)]",
                   "bg-white",
                   shakeTooltipPositionClass(),
                 )}
