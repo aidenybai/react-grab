@@ -845,8 +845,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           const isSameSelection =
             mappedElements.length === copiedElements.length &&
             mappedElements.every(
-              (mappedElement, index) =>
-                mappedElement === copiedElements[index],
+              (mappedElement, index) => mappedElement === copiedElements[index],
             );
           if (!isSameSelection) continue;
           const existingItem = currentItems.find(
@@ -862,9 +861,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
       }
 
-      const elementSelectors = copiedElements.map(
-        (copiedElement, index) =>
-          createElementSelector(copiedElement, index === 0),
+      const elementSelectors = copiedElements.map((copiedElement, index) =>
+        createElementSelector(copiedElement, index === 0),
       );
 
       const updatedCommentItems = addCommentItem({
@@ -3262,10 +3260,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const newBoundsCenterX = newBounds.x + newBounds.width / 2;
       const newBoundsHalfWidth = newBounds.width / 2;
       let newMouseX: number;
-      if (
-        instance.mouseXOffsetRatio !== undefined &&
-        newBoundsHalfWidth > 0
-      ) {
+      if (instance.mouseXOffsetRatio !== undefined && newBoundsHalfWidth > 0) {
         newMouseX =
           newBoundsCenterX + instance.mouseXOffsetRatio * newBoundsHalfWidth;
       } else if (instance.mouseXOffsetFromCenter !== undefined) {
