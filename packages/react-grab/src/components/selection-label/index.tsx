@@ -179,10 +179,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       const currentElementIdentity = elementIdentity();
       const didReset =
         currentElementIdentity !== previousResult.elementIdentity;
-      const cached = didReset
+      const cached: PositionResult = didReset
         ? {
             position: DEFAULT_OFFSCREEN_POSITION,
-            computedArrowPosition: null as ArrowPosition | null,
+            computedArrowPosition: null,
             hadValidBounds: false,
             elementIdentity: currentElementIdentity,
           }
@@ -298,10 +298,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     },
     {
       position: DEFAULT_OFFSCREEN_POSITION,
-      computedArrowPosition: null as ArrowPosition | null,
+      computedArrowPosition: null,
       hadValidBounds: false,
       elementIdentity: "",
-    },
+    } satisfies PositionResult,
   );
 
   const arrowPosition = () =>
