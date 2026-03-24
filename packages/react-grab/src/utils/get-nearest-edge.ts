@@ -1,6 +1,6 @@
-type ViewportEdge = "top" | "bottom" | "left" | "right";
+import type { ToolbarState } from "../types.js";
 
-export const getNearestEdge = (rect: DOMRect): ViewportEdge => {
+export const getNearestEdge = (rect: DOMRect): ToolbarState["edge"] => {
   const centerX = rect.left + rect.width / 2;
   const centerY = rect.top + rect.height / 2;
   const distanceToTop = centerY;
