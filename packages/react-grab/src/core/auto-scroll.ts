@@ -65,10 +65,6 @@ export const createAutoScroller = (
     }
   };
 
-  const start = () => {
-    scroll();
-  };
-
   const stop = () => {
     if (animationId !== null) {
       nativeCancelAnimationFrame(animationId);
@@ -79,7 +75,7 @@ export const createAutoScroller = (
   const isActive = () => animationId !== null;
 
   return {
-    start,
+    start: scroll,
     stop,
     isActive,
   };
