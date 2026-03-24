@@ -22,7 +22,7 @@ export const copyHtmlPlugin = createPendingSelectionPlugin({
         if (!transformedHtml) return false;
 
         const stackContext = await api.getStackContext(context.element);
-        return copyContent(appendStackContext(transformedHtml, stackContext), {
+        return await copyContent(appendStackContext(transformedHtml, stackContext), {
           componentName: context.componentName,
           tagName: context.tagName,
         });

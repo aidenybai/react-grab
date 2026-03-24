@@ -2831,8 +2831,8 @@ packages:
     resolution: {integrity: sha512-y9/ltK2TY+0HD1H2Sz7MvU3zFh4SjER6eQVNQfBx/0gK9N7S0QwHW6cmhHLx3CP25zN190LKHXPieMGqsVvrOQ==}
     engines: {node: '>=18'}
 
-  '@sourcegraph/amp@0.0.1773994045-ge5da52':
-    resolution: {integrity: sha512-poUO2Imyi1poV2LUS+lWaYIIeVsILaOGzqLtt62szh8C3Jbwp4oSMsRp6wKaYN+kT4c6TbIdolnQBZJsx5Wt6g==}
+  '@sourcegraph/amp@0.0.1774341467-g86d7fe':
+    resolution: {integrity: sha512-/9bCV055ryBeDwBkX0tEzyMpDv62RKfSiBh32WVnA0sR7+C/k29TVUYpK0tZBTb7S/iPlFQ4w99lQcoy//GwNA==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -8046,7 +8046,7 @@ snapshots:
 
   '@manypkg/find-root@1.1.0':
     dependencies:
-      '@babel/runtime': 7.28.4
+      '@babel/runtime': 7.28.6
       '@types/node': 12.20.55
       find-up: 4.1.0
       fs-extra: 8.1.0
@@ -8926,10 +8926,10 @@ snapshots:
 
   '@sourcegraph/amp-sdk@0.1.0-20251210081226-g90e3892':
     dependencies:
-      '@sourcegraph/amp': 0.0.1773994045-ge5da52
+      '@sourcegraph/amp': 0.0.1774341467-g86d7fe
       zod: 3.25.76
 
-  '@sourcegraph/amp@0.0.1773994045-ge5da52':
+  '@sourcegraph/amp@0.0.1774341467-g86d7fe':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 

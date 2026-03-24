@@ -1,6 +1,5 @@
 import { VERSION } from "../constants.js";
-
-const REACT_GRAB_MIME_TYPE = "application/x-react-grab";
+import { renderTextToImage } from "./render-text-to-image.js";
 
 export interface ReactGrabEntry {
   tagName?: string;
@@ -31,10 +30,13 @@ const escapeHtml = (text: string): string =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 
-export const copyContent = (
+const buildHtmlPayload = (content: string): string =>
+  `<meta charset='utf-8'><pre><code>${escapeHtml(content)}</code></pre>`;
+
+const buildMetadata = (
   content: string,
   options?: CopyContentOptions,
-): boolean => {
+): ReactGrabMetadata => {
   const elementName = options?.componentName ?? "div";
   const entries = options?.entries ?? [
     {
@@ -44,23 +46,37 @@ export const copyContent = (
       commentText: options?.commentText,
     },
   ];
-  const reactGrabMetadata: ReactGrabMetadata = {
-    version: VERSION,
-    content,
-    entries,
-    timestamp: Date.now(),
-  };
+  return { version: VERSION, content, entries, timestamp: Date.now() };
+};
 
+const isModernClipboardAvailable = (): boolean =>
+  Boolean(navigator.clipboard?.write) && typeof ClipboardItem !== "undefined";
+
+/**
+ * Modern path: writes text/plain + text/html + image/png in a single ClipboardItem.
+ * Cannot carry custom MIME types like application/x-react-grab.
+ */
+const modernCopy = async (content: string): Promise<void> => {
+  const item = new ClipboardItem({
+    "text/plain": new Blob([content], { type: "text/plain" }),
+    "text/html": new Blob([buildHtmlPayload(content)], { type: "text/html" }),
+    "image/png": renderTextToImage(content),
+  });
+  await navigator.clipboard.write([item]);
+};
+
+/**
+ * Legacy path: execCommand("copy") with text/plain + text/html + metadata.
+ * Must run synchronously within a user gesture call stack.
+ */
+const legacyCopy = (content: string, metadata: ReactGrabMetadata): boolean => {
   const copyHandler = (event: ClipboardEvent) => {
     event.preventDefault();
     event.clipboardData?.setData("text/plain", content);
+    event.clipboardData?.setData("text/html", buildHtmlPayload(content));
     event.clipboardData?.setData(
-      "text/html",
-      `<meta charset='utf-8'><pre><code>${escapeHtml(content)}</code></pre>`,
-    );
-    event.clipboardData?.setData(
-      REACT_GRAB_MIME_TYPE,
-      JSON.stringify(reactGrabMetadata),
+      "application/x-react-grab",
+      JSON.stringify(metadata),
     );
   };
 
@@ -78,13 +94,30 @@ export const copyContent = (
     if (typeof document.execCommand !== "function") {
       return false;
     }
-    const didCopySucceed = document.execCommand("copy");
-    if (didCopySucceed) {
-      options?.onSuccess?.();
-    }
-    return didCopySucceed;
+    return document.execCommand("copy");
   } finally {
     document.removeEventListener("copy", copyHandler);
     textarea.remove();
   }
+};
+
+export const copyContent = async (
+  content: string,
+  options?: CopyContentOptions,
+): Promise<boolean> => {
+  let didCopy: boolean;
+
+  if (isModernClipboardAvailable()) {
+    try {
+      await modernCopy(content);
+      didCopy = true;
+    } catch {
+      didCopy = false;
+    }
+  } else {
+    didCopy = legacyCopy(content, buildMetadata(content, options));
+  }
+
+  if (didCopy) options?.onSuccess?.();
+  return didCopy;
 };

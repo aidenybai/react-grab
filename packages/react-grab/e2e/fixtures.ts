@@ -340,8 +340,10 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   const captureNextClipboardWrites = async () => {
     return page.evaluate(() => {
       return new Promise<Record<string, string>>((resolve) => {
-        const originalSetData = DataTransfer.prototype.setData;
         const clipboardWrites: Record<string, string> = {};
+        let didCleanup = false;
+
+        const originalSetData = DataTransfer.prototype.setData;
         DataTransfer.prototype.setData = function (
           type: string,
           value: string,
@@ -350,8 +352,31 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
           return originalSetData.call(this, type, value);
         };
 
+        const originalWrite = navigator.clipboard.write.bind(
+          navigator.clipboard,
+        );
+        navigator.clipboard.write = async function (data: ClipboardItem[]) {
+          for (const item of data) {
+            for (const type of item.types) {
+              if (type.startsWith("text/")) {
+                const blob = await item.getType(type);
+                clipboardWrites[type] = await blob.text();
+              }
+            }
+          }
+          try {
+            return await originalWrite(data);
+          } finally {
+            clearTimeout(safetyTimeout);
+            queueMicrotask(cleanup);
+          }
+        };
+
         const cleanup = () => {
+          if (didCleanup) return;
+          didCleanup = true;
           DataTransfer.prototype.setData = originalSetData;
+          navigator.clipboard.write = originalWrite;
           resolve(clipboardWrites);
         };
 
