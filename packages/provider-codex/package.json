@@ -1,6 +1,6 @@
 {
   "name": "@react-grab/codex",
-  "version": "0.1.28",
+  "version": "0.1.29",
   "bin": {
     "react-grab-codex": "./dist/cli.cjs"
   },

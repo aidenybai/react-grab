@@ -1,5 +1,13 @@
 # @react-grab/mcp
 
+## 0.1.29
+
+### Patch Changes
+
+- cleanup toolbar
+- Updated dependencies
+  - react-grab@0.1.29
+
 ## 0.1.28
 
 ### Patch Changes
