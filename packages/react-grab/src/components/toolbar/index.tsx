@@ -272,18 +272,11 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     if (isVertical()) {
       const placementClass =
         tooltipSide === "left" ? "right-full mr-0.5" : "left-full ml-0.5";
-      return `top-1/2 ${placementClass}`;
+      return `top-1/2 -translate-y-1/2 ${placementClass}`;
     }
     const placementClass =
       tooltipSide === "top" ? "bottom-full mb-0.5" : "top-full mt-0.5";
-    return `left-1/2 ${placementClass}`;
-  };
-
-  const hintTranslateStyle = (): string => {
-    if (isVertical()) {
-      return `0 calc(-50% - ${TOOLBAR_HINT_CENTER_OFFSET_PX}px)`;
-    }
-    return `calc(-50% - ${TOOLBAR_HINT_CENTER_OFFSET_PX}px) 0`;
+    return `left-1/2 -translate-x-1/2 ${placementClass}`;
   };
 
   const stopEventPropagation = (event: Event) => {
@@ -1287,7 +1280,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           )}
           style={{
             "z-index": String(Z_INDEX_HOST),
-            translate: hintTranslateStyle(),
+            [isVertical() ? "top" : "left"]:
+              `calc(50% - ${TOOLBAR_HINT_CENTER_OFFSET_PX}px)`,
           }}
         >
           <Show when={selectionHintIndex() === 0}>
@@ -1336,7 +1330,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           )}
           style={{
             "z-index": String(Z_INDEX_HOST),
-            translate: hintTranslateStyle(),
+            [isVertical() ? "top" : "left"]:
+              `calc(50% - ${TOOLBAR_HINT_CENTER_OFFSET_PX}px)`,
           }}
         >
           Enable to continue
