@@ -66,7 +66,7 @@ export const Tooltip: Component<TooltipProps> = (props) => {
     <Show when={delayedVisible()}>
       <div
         class={cn(
-          "absolute whitespace-nowrap px-1.5 py-0.5 rounded-[10px] text-[10px] text-black/60 pointer-events-none [corner-shape:superellipse(1.25)]",
+          "absolute whitespace-nowrap px-1.5 py-0.5 rounded-[10px] text-[10px] text-black/60 pointer-events-none [corner-shape:superellipse(1.25)] filter-[drop-shadow(0px_1px_2px_#51515140)]",
           "bg-white",
           props.position === "left" || props.position === "right"
             ? "top-1/2 -translate-y-1/2"
