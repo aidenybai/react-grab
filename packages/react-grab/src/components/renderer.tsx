@@ -41,6 +41,8 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         selectionBoundsMultiple={props.selectionBoundsMultiple}
         selectionShouldSnap={props.selectionShouldSnap}
         selectionIsFading={props.selectionLabelStatus === "fading"}
+        inspectVisible={props.inspectVisible}
+        inspectBounds={props.inspectBounds}
         dragVisible={props.dragVisible}
         dragBounds={props.dragBounds}
         grabbedBoxes={props.grabbedBoxes}
@@ -136,6 +138,8 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           actionCycleState={props.selectionActionCycleState}
           arrowNavigationState={props.selectionArrowNavigationState}
           onArrowNavigationSelect={props.onArrowNavigationSelect}
+          inspectNavigationState={props.inspectNavigationState}
+          onInspectSelect={props.onInspectSelect}
           filePath={props.selectionFilePath}
           onInputChange={props.onInputChange}
           onSubmit={props.onInputSubmit}

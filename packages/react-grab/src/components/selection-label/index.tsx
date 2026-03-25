@@ -95,6 +95,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       return true;
     }
     if (props.arrowNavigationState?.isVisible) return true;
+    if (props.inspectNavigationState?.isVisible) return true;
     return false;
   };
 
@@ -354,6 +355,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const isArrowNavigationVisible = () =>
     Boolean(props.arrowNavigationState?.isVisible);
 
+  const isInspectNavigationVisible = () =>
+    Boolean(props.inspectNavigationState?.isVisible);
+
   const handleTagClick = (event: MouseEvent) => {
     event.stopImmediatePropagation();
     if (props.filePath && props.onOpen) {
@@ -504,13 +508,19 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           <Show when={canInteract() && !props.isPromptMode}>
             <div
               class="contain-layout shrink-0 flex flex-col items-start w-fit h-fit"
-              classList={{ "min-w-[100px]": isArrowNavigationVisible() }}
+              classList={{
+                "min-w-[100px]":
+                  isArrowNavigationVisible() || isInspectNavigationVisible(),
+              }}
             >
               <div
                 class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit px-2"
                 classList={{
-                  "py-1.5": !isArrowNavigationVisible(),
-                  "pt-1.5 pb-1": isArrowNavigationVisible(),
+                  "py-1.5":
+                    !isArrowNavigationVisible() &&
+                    !isInspectNavigationVisible(),
+                  "pt-1.5 pb-1":
+                    isArrowNavigationVisible() || isInspectNavigationVisible(),
                 }}
               >
                 <TagBadge
@@ -521,7 +531,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   onHoverChange={handleTagHoverChange}
                   shrink
                   forceShowIcon={
-                    isArrowNavigationVisible()
+                    isArrowNavigationVisible() || isInspectNavigationVisible()
                       ? Boolean(props.filePath && props.onOpen)
                       : Boolean(props.isContextMenuOpen)
                   }
@@ -537,6 +547,22 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               <Show
                 when={
                   !isArrowNavigationVisible() &&
+                  isInspectNavigationVisible() &&
+                  props.inspectNavigationState
+                }
+              >
+                {(state) => (
+                  <ArrowNavigationMenu
+                    items={state().items}
+                    activeIndex={state().activeIndex}
+                    onSelect={(index) => props.onInspectSelect?.(index)}
+                  />
+                )}
+              </Show>
+              <Show
+                when={
+                  !isArrowNavigationVisible() &&
+                  !isInspectNavigationVisible() &&
                   Boolean(props.actionCycleState?.isVisible)
                 }
               >

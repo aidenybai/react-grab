@@ -34,6 +34,7 @@ import {
   TOOLBAR_DEFAULT_HEIGHT_PX,
   TOOLBAR_DEFAULT_POSITION_RATIO,
   TOOLBAR_SHAKE_TOOLTIP_DURATION_MS,
+  TOOLBAR_HINT_CENTER_OFFSET_PX,
   FEEDBACK_DURATION_MS,
   HINT_FLIP_IN_ANIMATION,
   SAFE_POLYGON_BUFFER_PX,
@@ -271,11 +272,18 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     if (isVertical()) {
       const placementClass =
         tooltipSide === "left" ? "right-full mr-0.5" : "left-full ml-0.5";
-      return `top-1/2 -translate-y-1/2 ${placementClass}`;
+      return `top-1/2 ${placementClass}`;
     }
     const placementClass =
       tooltipSide === "top" ? "bottom-full mb-0.5" : "top-full mt-0.5";
-    return `left-1/2 -translate-x-1/2 ${placementClass}`;
+    return `left-1/2 ${placementClass}`;
+  };
+
+  const hintTranslateStyle = (): string => {
+    if (isVertical()) {
+      return `0 calc(-50% - ${TOOLBAR_HINT_CENTER_OFFSET_PX}px)`;
+    }
+    return `calc(-50% - ${TOOLBAR_HINT_CENTER_OFFSET_PX}px) 0`;
   };
 
   const stopEventPropagation = (event: Event) => {
@@ -1277,7 +1285,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             "bg-white",
             shakeTooltipPositionClass(),
           )}
-          style={{ "z-index": String(Z_INDEX_HOST) }}
+          style={{
+            "z-index": String(Z_INDEX_HOST),
+            translate: hintTranslateStyle(),
+          }}
         >
           <Show when={selectionHintIndex() === 0}>
             <span
@@ -1323,7 +1334,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             "bg-white",
             shakeTooltipPositionClass(),
           )}
-          style={{ "z-index": String(Z_INDEX_HOST) }}
+          style={{
+            "z-index": String(Z_INDEX_HOST),
+            translate: hintTranslateStyle(),
+          }}
         >
           Enable to continue
         </div>

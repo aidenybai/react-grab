@@ -41,6 +41,7 @@ import { isValidGrabbableElement } from "../utils/is-valid-grabbable-element.js"
 import { isRootElement } from "../utils/is-root-element.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
 import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
+import { getAncestorElements } from "../utils/get-ancestor-elements.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
 import { createElementSelector } from "../utils/create-element-selector.js";
 import { getVisibleBoundsCenter } from "../utils/get-visible-bounds-center.js";
@@ -544,6 +545,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       copyWaiting: false,
       holdTimerFired: false,
     };
+    const [isInspectMode, setIsInspectMode] = createSignal(false);
     let lastWindowFocusTimestamp = 0;
     let isCopyFeedbackCooldownActive = false;
     let copyFeedbackCooldownTimerId: number | null = null;
@@ -1267,6 +1269,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return frozenElementsBounds();
     });
 
+    const inspectBounds = createMemo((): OverlayBounds[] => {
+      if (!isInspectMode()) return [];
+
+      const element = effectiveElement();
+      if (!element) return [];
+
+      void store.viewportVersion;
+
+      return [...getAncestorElements(element), element].map((ancestor) =>
+        createElementBounds(ancestor),
+      );
+    });
+
     const cursorPosition = createMemo(() => {
       if (isCopying() || isPromptMode()) {
         void store.viewportVersion;
@@ -1531,6 +1546,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const wasDragging = isDragging();
       const previousFocused = store.previouslyFocusedElement;
       actions.deactivate();
+      setIsInspectMode(false);
       clearArrowNavigation();
       keyboardSelectedElement = null;
       isPendingContextMenuSelect = false;
@@ -2389,6 +2405,41 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       isVisible: arrowNavigationElements().length > 0,
     }));
 
+    const inspectAncestorElements = createMemo((): Element[] => {
+      if (!isInspectMode()) return [];
+      const element = effectiveElement();
+      if (!element) return [];
+      return [...getAncestorElements(element).reverse(), element];
+    });
+
+    const inspectNavigationItems = createMemo(() =>
+      inspectAncestorElements().map((element) => ({
+        tagName: getTagName(element) || "element",
+        componentName: getComponentDisplayName(element) ?? undefined,
+      })),
+    );
+
+    const [inspectActiveIndex, setInspectActiveIndex] = createSignal(-1);
+
+    createEffect(
+      on(inspectAncestorElements, (elements) => {
+        setInspectActiveIndex(elements.length - 1);
+      }),
+    );
+
+    const inspectNavigationState = createMemo<ArrowNavigationState>(() => {
+      const elements = inspectAncestorElements();
+      return {
+        items: inspectNavigationItems(),
+        activeIndex: inspectActiveIndex(),
+        isVisible: isInspectMode() && elements.length > 0,
+      };
+    });
+
+    const handleInspectSelect = (index: number) => {
+      setInspectActiveIndex(index);
+    };
+
     createEffect(
       on(selectionElement, () => {
         resetActionCycle();
@@ -2598,6 +2649,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (event: KeyboardEvent) => {
         blockEnterIfNeeded(event);
 
+        if (event.key === "Shift" && !event.repeat && isActivated()) {
+          setIsInspectMode(true);
+          if (isFrozenPhase()) {
+            actions.unfreeze();
+            clearArrowNavigation();
+          }
+        }
+
         if (!isEnabled()) {
           if (
             isTargetKeyCombination(event, pluginRegistry.store.options) &&
@@ -2705,6 +2764,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       "keyup",
       (event: KeyboardEvent) => {
         if (blockEnterIfNeeded(event)) return;
+
+        if (event.key === "Shift") {
+          setIsInspectMode(false);
+        }
 
         const requiredModifiers = getRequiredModifiers(
           pluginRegistry.store.options,
@@ -4022,6 +4085,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                   store.frozenElements.length > 0 ||
                   dragPreviewBounds().length > 0
                 }
+                inspectVisible={isInspectMode() && inspectBounds().length > 0}
+                inspectBounds={inspectBounds()}
                 selectionElementsCount={store.frozenElements.length}
                 selectionFilePath={store.selectionFilePath ?? undefined}
                 selectionLineNumber={store.selectionLineNumber ?? undefined}
@@ -4032,6 +4097,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 selectionActionCycleState={actionCycleState()}
                 selectionArrowNavigationState={arrowNavigationState()}
                 onArrowNavigationSelect={handleArrowNavigationSelect}
+                inspectNavigationState={inspectNavigationState()}
+                onInspectSelect={handleInspectSelect}
                 labelInstances={computedLabelInstances()}
                 dragVisible={dragVisible()}
                 dragBounds={dragBounds()}
