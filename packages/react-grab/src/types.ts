@@ -258,6 +258,41 @@ export interface ArrowNavigationState {
   isVisible: boolean;
 }
 
+export interface InspectPropertyRow {
+  label: string;
+  value: string;
+  colorHex?: string;
+}
+
+export interface InspectContrastInfo {
+  ratio: number;
+  aa: boolean;
+  aaa: boolean;
+}
+
+export interface InspectPropertiesState {
+  width: number;
+  height: number;
+  className: string;
+  properties: InspectPropertyRow[];
+  reactProps: InspectPropertyRow[];
+  accessibility: InspectPropertyRow[];
+  contrast?: InspectContrastInfo;
+  boxModel?: InspectBoxModel;
+  isVisible: boolean;
+}
+
+export interface InspectBoxModel {
+  paddingTop: number;
+  paddingRight: number;
+  paddingBottom: number;
+  paddingLeft: number;
+  marginTop: number;
+  marginRight: number;
+  marginBottom: number;
+  marginLeft: number;
+}
+
 export interface PerformWithFeedbackOptions {
   fallbackBounds?: OverlayBounds;
   fallbackSelectionBounds?: OverlayBounds[];
@@ -454,8 +489,6 @@ export interface ReactGrabRendererProps {
   selectionBounds?: OverlayBounds;
   selectionBoundsMultiple?: OverlayBounds[];
   selectionShouldSnap?: boolean;
-  inspectVisible?: boolean;
-  inspectBounds?: OverlayBounds[];
   selectionElementsCount?: number;
   selectionFilePath?: string;
   selectionLineNumber?: number;
@@ -466,8 +499,7 @@ export interface ReactGrabRendererProps {
   selectionActionCycleState?: ActionCycleState;
   selectionArrowNavigationState?: ArrowNavigationState;
   onArrowNavigationSelect?: (index: number) => void;
-  inspectNavigationState?: ArrowNavigationState;
-  onInspectSelect?: (index: number) => void;
+  inspectPropertiesState?: InspectPropertiesState;
   labelInstances?: SelectionLabelInstance[];
   dragVisible?: boolean;
   dragBounds?: OverlayBounds;
@@ -645,8 +677,7 @@ export interface SelectionLabelProps {
   actionCycleState?: ActionCycleState;
   arrowNavigationState?: ArrowNavigationState;
   onArrowNavigationSelect?: (index: number) => void;
-  inspectNavigationState?: ArrowNavigationState;
-  onInspectSelect?: (index: number) => void;
+  inspectPropertiesState?: InspectPropertiesState;
   onInputChange?: (value: string) => void;
   onSubmit?: () => void;
   onToggleExpand?: () => void;

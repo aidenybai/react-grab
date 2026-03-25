@@ -4,6 +4,7 @@ import type {
   OverlayBounds,
   SelectionLabelInstance,
   AgentSession,
+  InspectBoxModel,
 } from "../types.js";
 import { lerp } from "../utils/lerp.js";
 import {
@@ -19,8 +20,8 @@ import {
   OPACITY_CONVERGENCE_THRESHOLD,
   OVERLAY_BORDER_COLOR_DEFAULT,
   OVERLAY_FILL_COLOR_DEFAULT,
-  OVERLAY_BORDER_COLOR_INSPECT,
-  OVERLAY_FILL_COLOR_INSPECT,
+  OVERLAY_FILL_COLOR_MARGIN,
+  OVERLAY_FILL_COLOR_PADDING,
 } from "../constants.js";
 import {
   nativeCancelAnimationFrame,
@@ -34,12 +35,6 @@ const DEFAULT_LAYER_STYLE = {
   lerpFactor: SELECTION_LERP_FACTOR,
 } as const;
 
-const INSPECT_LAYER_STYLE = {
-  borderColor: OVERLAY_BORDER_COLOR_INSPECT,
-  fillColor: OVERLAY_FILL_COLOR_INSPECT,
-  lerpFactor: SELECTION_LERP_FACTOR,
-} as const;
-
 const LAYER_STYLES = {
   drag: {
     borderColor: OVERLAY_BORDER_COLOR_DRAG,
@@ -49,10 +44,9 @@ const LAYER_STYLES = {
   selection: DEFAULT_LAYER_STYLE,
   grabbed: DEFAULT_LAYER_STYLE,
   processing: DEFAULT_LAYER_STYLE,
-  inspect: INSPECT_LAYER_STYLE,
 } as const;
 
-type LayerName = "drag" | "selection" | "grabbed" | "processing" | "inspect";
+type LayerName = "drag" | "selection" | "grabbed" | "processing";
 
 interface OffscreenLayer {
   canvas: OffscreenCanvas | null;
@@ -77,9 +71,6 @@ export interface OverlayCanvasProps {
   selectionIsFading?: boolean;
   selectionShouldSnap?: boolean;
 
-  inspectVisible?: boolean;
-  inspectBounds?: OverlayBounds[];
-
   dragVisible?: boolean;
   dragBounds?: OverlayBounds;
 
@@ -88,6 +79,8 @@ export interface OverlayCanvasProps {
     bounds: OverlayBounds;
     createdAt: number;
   }>;
+
+  inspectBoxModel?: InspectBoxModel;
 
   agentSessions?: Map<string, AgentSession>;
 
@@ -107,14 +100,12 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     selection: { canvas: null, context: null },
     grabbed: { canvas: null, context: null },
     processing: { canvas: null, context: null },
-    inspect: { canvas: null, context: null },
   };
 
   let selectionAnimations: AnimatedBounds[] = [];
   let dragAnimation: AnimatedBounds | null = null;
   let grabbedAnimations: AnimatedBounds[] = [];
   let processingAnimations: AnimatedBounds[] = [];
-  let inspectAnimations: AnimatedBounds[] = [];
 
   const canvasColorSpace: PredefinedColorSpace = supportsDisplayP3()
     ? "display-p3"
@@ -276,6 +267,30 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     );
   };
 
+  const drawBoxModelZone = (
+    context: OffscreenCanvasRenderingContext2D,
+    outerX: number,
+    outerY: number,
+    outerWidth: number,
+    outerHeight: number,
+    innerX: number,
+    innerY: number,
+    innerWidth: number,
+    innerHeight: number,
+    fillColor: string,
+    opacity: number,
+  ) => {
+    if (outerWidth <= 0 || outerHeight <= 0) return;
+
+    context.globalAlpha = opacity;
+    context.beginPath();
+    context.rect(outerX, outerY, outerWidth, outerHeight);
+    context.rect(innerX, innerY, innerWidth, innerHeight);
+    context.fillStyle = fillColor;
+    context.fill("evenodd");
+    context.globalAlpha = 1;
+  };
+
   const renderSelectionLayer = () => {
     const layer = layers.selection;
     if (!layer.context) return;
@@ -286,15 +301,64 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     if (!props.selectionVisible) return;
 
     const style = LAYER_STYLES.selection;
+    const boxModel = props.inspectBoxModel;
 
     for (const animation of selectionAnimations) {
       const effectiveOpacity = props.selectionIsFading ? 0 : animation.opacity;
+      const { x, y, width, height } = animation.current;
+
+      if (boxModel) {
+        const hasMargin =
+          boxModel.marginTop > 0 ||
+          boxModel.marginRight > 0 ||
+          boxModel.marginBottom > 0 ||
+          boxModel.marginLeft > 0;
+
+        if (hasMargin) {
+          drawBoxModelZone(
+            context,
+            x - boxModel.marginLeft,
+            y - boxModel.marginTop,
+            width + boxModel.marginLeft + boxModel.marginRight,
+            height + boxModel.marginTop + boxModel.marginBottom,
+            x,
+            y,
+            width,
+            height,
+            OVERLAY_FILL_COLOR_MARGIN,
+            effectiveOpacity,
+          );
+        }
+
+        const hasPadding =
+          boxModel.paddingTop > 0 ||
+          boxModel.paddingRight > 0 ||
+          boxModel.paddingBottom > 0 ||
+          boxModel.paddingLeft > 0;
+
+        if (hasPadding) {
+          drawBoxModelZone(
+            context,
+            x,
+            y,
+            width,
+            height,
+            x + boxModel.paddingLeft,
+            y + boxModel.paddingTop,
+            width - boxModel.paddingLeft - boxModel.paddingRight,
+            height - boxModel.paddingTop - boxModel.paddingBottom,
+            OVERLAY_FILL_COLOR_PADDING,
+            effectiveOpacity,
+          );
+        }
+      }
+
       drawRoundedRectangle(
         context,
-        animation.current.x,
-        animation.current.y,
-        animation.current.width,
-        animation.current.height,
+        x,
+        y,
+        width,
+        height,
         animation.borderRadius,
         style.fillColor,
         style.borderColor,
@@ -341,10 +405,8 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     renderSelectionLayer();
     renderBoundsLayer("grabbed", grabbedAnimations);
     renderBoundsLayer("processing", processingAnimations);
-    renderBoundsLayer("inspect", inspectAnimations);
 
     const layerRenderOrder: LayerName[] = [
-      "inspect",
       "drag",
       "selection",
       "grabbed",
@@ -477,14 +539,6 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     for (const animation of processingAnimations) {
       if (animation.isInitialized) {
         if (interpolateBounds(animation, LAYER_STYLES.processing.lerpFactor)) {
-          shouldContinueAnimating = true;
-        }
-      }
-    }
-
-    for (const animation of inspectAnimations) {
-      if (animation.isInitialized) {
-        if (interpolateBounds(animation, LAYER_STYLES.inspect.lerpFactor)) {
           shouldContinueAnimating = true;
         }
       }
@@ -686,35 +740,6 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
         }
 
         processingAnimations = updatedAnimations;
-        scheduleAnimationFrame();
-      },
-    ),
-  );
-
-  createEffect(
-    on(
-      () => [props.inspectVisible, props.inspectBounds] as const,
-      ([isVisible, bounds]) => {
-        if (!isVisible || !bounds || bounds.length === 0) {
-          inspectAnimations = [];
-          scheduleAnimationFrame();
-          return;
-        }
-
-        inspectAnimations = bounds.map((ancestorBounds, index) => {
-          const animationId = `inspect-${index}`;
-          const existingAnimation = inspectAnimations.find(
-            (animation) => animation.id === animationId,
-          );
-
-          if (existingAnimation) {
-            updateAnimationTarget(existingAnimation, ancestorBounds);
-            return existingAnimation;
-          }
-
-          return createAnimatedBounds(animationId, ancestorBounds);
-        });
-
         scheduleAnimationFrame();
       },
     ),

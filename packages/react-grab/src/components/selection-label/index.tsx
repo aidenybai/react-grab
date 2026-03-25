@@ -36,6 +36,7 @@ import { DiscardPrompt } from "./discard-prompt.js";
 import { ErrorView } from "./error-view.js";
 import { CompletionView } from "./completion-view.js";
 import { ArrowNavigationMenu } from "./arrow-navigation-menu.js";
+import { ElementPropertiesPanel } from "./element-properties-panel.js";
 
 interface LabelPosition {
   left: number;
@@ -95,7 +96,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       return true;
     }
     if (props.arrowNavigationState?.isVisible) return true;
-    if (props.inspectNavigationState?.isVisible) return true;
+    if (props.inspectPropertiesState?.isVisible) return true;
     return false;
   };
 
@@ -356,7 +357,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     Boolean(props.arrowNavigationState?.isVisible);
 
   const isInspectNavigationVisible = () =>
-    Boolean(props.inspectNavigationState?.isVisible);
+    Boolean(props.inspectPropertiesState?.isVisible);
 
   const handleTagClick = (event: MouseEvent) => {
     event.stopImmediatePropagation();
@@ -548,16 +549,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 when={
                   !isArrowNavigationVisible() &&
                   isInspectNavigationVisible() &&
-                  props.inspectNavigationState
+                  props.inspectPropertiesState
                 }
               >
-                {(state) => (
-                  <ArrowNavigationMenu
-                    items={state().items}
-                    activeIndex={state().activeIndex}
-                    onSelect={(index) => props.onInspectSelect?.(index)}
-                  />
-                )}
+                {(state) => <ElementPropertiesPanel state={state()} />}
               </Show>
               <Show
                 when={
