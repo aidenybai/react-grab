@@ -118,6 +118,9 @@ export const TOOLBAR_HINT_CENTER_OFFSET_PX = 0;
 export const SELECTION_HINT_CYCLE_INTERVAL_MS = 3000;
 export const SELECTION_HINT_COUNT = 3;
 
+export const TOOLTIP_BASE_CLASS =
+  "absolute whitespace-nowrap px-1.5 py-0.5 rounded-[10px] text-[10px] text-black/60 pointer-events-none [corner-shape:superellipse(1.25)] filter-[drop-shadow(0px_1px_2px_#51515140)]";
+
 export const HINT_FLIP_IN_ANIMATION =
   "animate-[hint-flip-in_var(--transition-normal)_ease-out]";
 

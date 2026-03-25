@@ -35,6 +35,7 @@ import {
   TOOLBAR_DEFAULT_POSITION_RATIO,
   TOOLBAR_SHAKE_TOOLTIP_DURATION_MS,
   TOOLBAR_HINT_CENTER_OFFSET_PX,
+  TOOLTIP_BASE_CLASS,
   FEEDBACK_DURATION_MS,
   HINT_FLIP_IN_ANIMATION,
   SAFE_POLYGON_BUFFER_PX,
@@ -1274,7 +1275,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       <Show when={props.isActive && !hasLearnedSelectionHints()}>
         <div
           class={cn(
-            "absolute whitespace-nowrap flex items-center gap-1 px-1.5 py-0.5 rounded-[10px] text-[10px] text-black/60 pointer-events-none animate-tooltip-fade-in [animation-fill-mode:backwards] [corner-shape:superellipse(1.25)] filter-[drop-shadow(0px_1px_2px_#51515140)]",
+            TOOLTIP_BASE_CLASS,
+            "flex items-center gap-1 animate-tooltip-fade-in [animation-fill-mode:backwards]",
             "bg-white",
             shakeTooltipPositionClass(),
           )}
@@ -1324,7 +1326,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       <Show when={isShakeTooltipVisible()}>
         <div
           class={cn(
-            "absolute whitespace-nowrap px-1.5 py-0.5 rounded-[10px] text-[10px] text-black/60 pointer-events-none animate-tooltip-fade-in [corner-shape:superellipse(1.25)]",
+            TOOLTIP_BASE_CLASS,
+            "animate-tooltip-fade-in",
             "bg-white",
             shakeTooltipPositionClass(),
           )}
