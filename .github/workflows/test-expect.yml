@@ -38,7 +38,7 @@ jobs:
 
       - name: Run expect tests
         run: >-
-          pnpm dlx expect-cli@latest -y -m
+          pnpm dlx expect-cli@0.0.10 -y -m
           "Test the element properties panel feature at http://localhost:5175.
           react-grab is a browser overlay tool that lets you inspect React elements.
           You activate it by holding the Meta/Ctrl key, then hovering over elements
