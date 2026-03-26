@@ -40,6 +40,8 @@ jobs:
         run: pnpm dlx wait-on http://localhost:5175 --timeout 30000
 
       - name: Run expect tests
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: >-
           pnpm dlx expect-cli@0.0.10 -y -m
           "Test the element properties panel feature at http://localhost:5175.
