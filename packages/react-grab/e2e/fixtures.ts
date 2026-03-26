@@ -1008,9 +1008,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         const items = dropdown.querySelectorAll<HTMLButtonElement>(
           "[data-react-grab-menu-item]",
         );
-        return Array.from(items).map(
-          (item) => item.textContent?.trim() ?? "",
-        );
+        return Array.from(items).map((item) => item.textContent?.trim() ?? "");
       }
       return [];
     }, ATTRIBUTE_NAME);
@@ -1682,9 +1680,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
             id: "comment-action",
             label: "Edit",
             shortcut: "Enter",
-            onAction: (context: {
-              enterPromptMode?: () => void;
-            }) => {
+            onAction: (context: { enterPromptMode?: () => void }) => {
               context.enterPromptMode?.();
             },
           },

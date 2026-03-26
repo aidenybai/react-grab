@@ -5,7 +5,9 @@ const nextConfig: NextConfig = {
   // HACK: disable react compiler to avoid issues with source mangling
   reactCompiler: false,
   productionBrowserSourceMaps: true,
-  turbopack: {},
+  turbopack: {
+    root: "../..",
+  },
   experimental: {
     optimizeCss: true,
     inlineCss: true,
