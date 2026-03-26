@@ -21,7 +21,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: pnpm
 
       - name: Install dependencies
@@ -34,11 +34,11 @@ jobs:
         run: pnpm --filter @react-grab/e2e-playground dev &
 
       - name: Wait for dev server
-        run: npx wait-on http://localhost:5175 --timeout 30000
+        run: pnpm dlx wait-on http://localhost:5175 --timeout 30000
 
       - name: Run expect tests
         run: >-
-          npx expect-cli --target branch -y -m
+          pnpm dlx expect-cli@latest -y -m
           "Test the element properties panel feature at http://localhost:5175.
           react-grab is a browser overlay tool that lets you inspect React elements.
           You activate it by holding the Meta/Ctrl key, then hovering over elements
