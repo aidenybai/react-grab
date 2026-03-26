@@ -30,6 +30,9 @@ jobs:
       - name: Build packages
         run: pnpm build
 
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
       - name: Start e2e-playground dev server
         run: pnpm --filter @react-grab/e2e-playground dev &
 
