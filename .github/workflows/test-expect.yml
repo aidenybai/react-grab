@@ -1,0 +1,71 @@
+name: Test Expect
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-expect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Start e2e-playground dev server
+        run: pnpm --filter @react-grab/e2e-playground dev &
+
+      - name: Wait for dev server
+        run: npx wait-on http://localhost:5175 --timeout 30000
+
+      - name: Run expect tests
+        run: >-
+          npx expect-cli --target branch -y -m
+          "Test the element properties panel feature at http://localhost:5175.
+          react-grab is a browser overlay tool that lets you inspect React elements.
+          You activate it by holding the Meta/Ctrl key, then hovering over elements
+          shows a selection label with the element tag name and component name.
+
+          How to activate react-grab:
+          1. Hold the Meta key (Cmd on Mac, Ctrl on Linux) for ~200ms to activate the overlay.
+          2. While holding Meta, hover over elements to see the selection highlight.
+          3. Click an element to select it — a selection label appears below it.
+          4. Press arrow keys (Up/Down) to navigate the DOM tree (parent/child).
+
+          What changed in this branch:
+          The old inspect stack (a list of ancestor elements you could arrow-navigate through)
+          has been replaced with an element properties panel that appears below the selection
+          label when you arrow-navigate. This panel shows:
+          - Size: width x height in pixels.
+          - CSS Properties: color (with color swatch), background color (with swatch), font size + family, margin, padding, display, flex direction, gap, grid columns, position, overflow.
+          - className: the elements CSS classes (line-clamped to 3 lines).
+          - React Props section: props from the nearest React composite fiber (excluding children, key, ref). Values are formatted (strings quoted, functions as fn(), arrays as [length], objects as {count}).
+          - Accessibility section: accessible name (aria-label / aria-labelledby / alt), role (explicit or implicit), keyboard-focusable indicator (check/X icon).
+          - Contrast badge: when both foreground color and non-transparent background exist, shows the WCAG contrast ratio with AA/AAA pass/fail badges (green = pass, red = fail).
+          - Box model overlay: margin regions rendered as semi-transparent overlay around the selection, padding regions rendered inside.
+
+          Test scenarios:
+          1. Activate react-grab (hold Meta), hover over the Todo List heading, click to select it, then press ArrowUp to navigate to parent — verify the properties panel appears showing size, font info, and class names.
+          2. Select a button element (e.g. Submit button in the form section) — navigate with arrows and verify the panel shows the buttons role as button and keyboard-focusable as Yes.
+          3. Select a text element and check that color swatches appear next to Color and Background values.
+          4. Select a table cell and verify the accessibility section shows role cell.
+          5. Select an input element and verify it shows role textbox and is keyboard-focusable.
+          6. Navigate between elements with arrow keys and verify the panel updates with new element properties each time."
