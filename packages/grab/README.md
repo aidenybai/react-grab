@@ -44,6 +44,115 @@ This copies the element's context (file name, React component, and HTML source c
 in LoginForm at components/login-form.tsx:46:19
 ```
 
+## Plugins
+
+Extend React Grab with custom toolbar buttons, context menu actions, lifecycle hooks, and theme overrides via the plugin API.
+
+```js
+import { registerPlugin, unregisterPlugin } from "grab";
+```
+
+### Toolbar Entries
+
+Add custom buttons directly to the toolbar. Each entry can be a simple action button or open a dropdown panel:
+
+```js
+registerPlugin({
+  name: "my-devtools",
+  toolbarEntries: [
+    {
+      id: "fps",
+      icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/></svg>',
+      tooltip: "FPS Monitor",
+      // Action-only button (no dropdown), just toggle FPS tracking
+      onClick: (handle) => {
+        if (tracking) {
+          stopTracking();
+          handle.setBadge(undefined);
+        } else {
+          startTracking((fps) => handle.setBadge(fps));
+        }
+      },
+    },
+    {
+      id: "render-monitor",
+      icon: "🔍",
+      tooltip: "Render Monitor",
+      // Dropdown button: onRender receives a raw DOM container
+      onRender: (container, handle) => {
+        container.innerHTML = `<div style="padding:12px">
+          <strong>Renders: 0</strong>
+          <button id="clear">Clear</button>
+        </div>`;
+
+        container.querySelector("#clear").addEventListener("click", () => {
+          handle.setBadge(undefined);
+        });
+
+        // Return a cleanup function (called when dropdown closes)
+        return () => { /* teardown */ };
+      },
+    },
+  ],
+});
+```
+
+The `handle` passed to callbacks provides:
+- `handle.setBadge(value)` / `handle.setIcon(html)` / `handle.setTooltip(text)` to update the button at runtime
+- `handle.open()` / `handle.close()` / `handle.toggle()` to control the dropdown
+- `handle.api` for full React Grab API access
+
+### Context Menu Actions
+
+Add items to the right-click context menu or the toolbar dropdown menu:
+
+```js
+registerPlugin({
+  name: "my-plugin",
+  actions: [
+    {
+      id: "inspect",
+      label: "Inspect",
+      shortcut: "I",
+      onAction: (ctx) => console.dir(ctx.element),
+    },
+    {
+      id: "toggle-freeze",
+      label: "Freeze",
+      target: "toolbar",
+      isActive: () => isFrozen,
+      onAction: () => toggleFreeze(),
+    },
+  ],
+});
+```
+
+### Hooks
+
+Listen to lifecycle events:
+
+```js
+registerPlugin({
+  name: "my-plugin",
+  hooks: {
+    onElementSelect: (element) => {
+      console.log("Selected:", element.tagName);
+    },
+  },
+});
+```
+
+In React, register inside a `useEffect` and clean up on unmount:
+
+```jsx
+useEffect(() => {
+  registerPlugin({ name: "my-plugin", /* ... */ });
+  return () => unregisterPlugin("my-plugin");
+}, []);
+```
+
+See [`packages/react-grab/src/types.ts`](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/types.ts) for the full `Plugin`, `PluginHooks`, `PluginConfig`, `ToolbarEntry`, and `ToolbarEntryHandle` interfaces.
+
 ## Manual Installation
 
 If you're using a React framework or build tool, view instructions below:
@@ -126,72 +235,6 @@ if (process.env.NODE_ENV === "development") {
   import("grab");
 }
 ```
-
-## Plugins
-
-Use plugins to extend React Grab's built-in UI with context menu actions, toolbar menu items, lifecycle hooks, and theme overrides. Plugins run within React Grab.
-
-Register a plugin using the `registerPlugin` and `unregisterPlugin` exports:
-
-```js
-import { registerPlugin } from "grab";
-
-registerPlugin({
-  name: "my-plugin",
-  hooks: {
-    onElementSelect: (element) => {
-      console.log("Selected:", element.tagName);
-    },
-  },
-});
-```
-
-In React, register inside a `useEffect`:
-
-```jsx
-import { registerPlugin, unregisterPlugin } from "grab";
-
-useEffect(() => {
-  registerPlugin({
-    name: "my-plugin",
-    actions: [
-      {
-        id: "my-action",
-        label: "My Action",
-        shortcut: "M",
-        onAction: (context) => {
-          console.log("Action on:", context.element);
-          context.hideContextMenu();
-        },
-      },
-    ],
-  });
-
-  return () => unregisterPlugin("my-plugin");
-}, []);
-```
-
-Actions use a `target` field to control where they appear. Omit `target` (or set `"context-menu"`) for the right-click menu, or set `"toolbar"` for the toolbar dropdown:
-
-```js
-actions: [
-  {
-    id: "inspect",
-    label: "Inspect",
-    shortcut: "I",
-    onAction: (ctx) => console.dir(ctx.element),
-  },
-  {
-    id: "toggle-freeze",
-    label: "Freeze",
-    target: "toolbar",
-    isActive: () => isFrozen,
-    onAction: () => toggleFreeze(),
-  },
-];
-```
-
-See [`packages/react-grab/src/types.ts`](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/types.ts) for the full `Plugin`, `PluginHooks`, and `PluginConfig` interfaces.
 
 ## Resources & Contributing Back
 

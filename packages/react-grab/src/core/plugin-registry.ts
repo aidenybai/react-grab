@@ -1,4 +1,4 @@
-import { createStore } from "solid-js/store";
+import { createStore, reconcile } from "solid-js/store";
 import type {
   Position,
   Plugin,
@@ -201,7 +201,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
           ([entryId]) => !removedEntryIds.has(entryId),
         ),
       );
-      setStore("toolbarEntryOverrides", filteredOverrides);
+      setStore("toolbarEntryOverrides", reconcile(filteredOverrides));
     }
 
     plugins.delete(name);
