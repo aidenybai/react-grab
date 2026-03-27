@@ -48,16 +48,18 @@ jobs:
         run: pnpm dlx wait-on http://localhost:5175 --timeout 30000
 
       - name: Run expect tests
+        id: expect
+        continue-on-error: true
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: >-
           pnpm dlx expect-cli@latest --verbose -y -m
-          "Test only the element properties panel feature at http://localhost:5175.
+          "Test the arrow-key navigation and selection label feature at http://localhost:5175.
           Do not explore unrelated flows. If a step is blocked after one retry, fail with evidence.
 
           react-grab is a browser overlay tool that lets you inspect React elements.
           When active, hovering over elements shows a selection label with the element
-          tag name and component name.
+          tag name and component name (e.g. 'h1' or 'MyComponent.div').
 
           Important repo-specific testing notes:
           1. This GitHub Actions run is on Linux, so the default activation shortcut is Ctrl+C.
@@ -73,27 +75,32 @@ jobs:
              document.querySelector('[data-react-grab]')?.shadowRoot, especially
              [data-react-grab-selection-label].
           6. After activation, hover an element, click it to select it, then use ArrowUp / ArrowDown
-             to navigate and verify the panel updates.
+             to navigate between elements. ArrowUp moves to a parent/stacked element,
+             ArrowDown reverses that. ArrowLeft navigates to parent, ArrowRight to child.
+          7. When arrow navigation is active, an arrow navigation menu appears inside the
+             selection label showing the list of stacked/ancestor elements. Each item shows
+             the tag name and optionally the React component name. The active item is fully
+             opaque while inactive items are dimmed.
 
-          What changed in this branch:
-          The old inspect stack (a list of ancestor elements you could arrow-navigate through)
-          has been replaced with an element properties panel that appears below the selection
-          label when you arrow-navigate. This panel shows:
-          - Size: width x height in pixels.
-          - CSS Properties: color (with color swatch), background color (with swatch), font size + family, margin, padding, display, flex direction, gap, grid columns, position, overflow.
-          - className: the elements CSS classes (line-clamped to 3 lines).
-          - React Props section: props from the nearest React composite fiber (excluding children, key, ref). Values are formatted (strings quoted, functions as fn(), arrays as [length], objects as {count}).
-          - Accessibility section: accessible name (aria-label / aria-labelledby / alt), role (explicit or implicit), keyboard-focusable indicator (check/X icon).
-          - Contrast badge: when both foreground color and non-transparent background exist, shows the WCAG contrast ratio with AA/AAA pass/fail badges (green = pass, red = fail).
-          - Box model overlay: margin regions rendered as semi-transparent overlay around the selection, padding regions rendered inside.
+          IMPORTANT: Run every test scenario to completion. If a step fails, record the failure
+          with evidence (screenshot or error) but continue testing remaining steps. Do not bail early.
 
           Test scenarios:
-          1. Activate react-grab with Ctrl+C, hover over the Todo List heading, click to select it, then press ArrowUp to navigate to parent — verify the properties panel appears showing size, font info, and class names.
-          2. Select a button element (e.g. Submit button in the form section) — navigate with arrows and verify the panel shows the buttons role as button and keyboard-focusable as Yes.
-          3. Select a text element and check that color swatches appear next to Color and Background values.
-          4. Select a table cell and verify the accessibility section shows role cell.
-          5. Select an input element and verify it shows role textbox and is keyboard-focusable.
-          6. Navigate between elements with arrow keys and verify the panel updates with new element properties each time."
+          1. Activate react-grab with Ctrl+C, hover over a list item, click to select it — verify the selection label appears showing the element tag name.
+          2. Press ArrowUp — verify the selection box moves to a parent or stacked element and the selection label updates to show the new element tag name.
+          3. Press ArrowDown to reverse the ArrowUp navigation — verify the selection returns to the previous element.
+          4. Press ArrowLeft from a child element — verify navigation moves to the parent element and the selection box grows larger.
+          5. Press ArrowRight from a container element — verify navigation moves to a child element.
+          6. Navigate between multiple elements with arrow keys — verify the selection label updates with the correct tag name each time and the overlay remains visible throughout."
+
+      - name: Upload session recording
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: expect-session-recording
+          path: /tmp/expect-replays/
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Print expect debug logs
         if: always()
@@ -103,3 +110,9 @@ jobs:
           else
             echo "No .expect/logs.md file found"
           fi
+
+      - name: Fail if expect tests failed
+        if: steps.expect.outcome == 'failure'
+        run: |
+          echo "::error::expect tests failed — see logs and artifacts above"
+          exit 1
