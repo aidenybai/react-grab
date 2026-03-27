@@ -1,0 +1,23 @@
+.github/workflows/test-expect.yml
+  5c337486d0bf2c15 38-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.20",
+  "base_commit_sha": "f2cddef198b475d651a2fe0133204cfaf15c02b0",
+  "prompts": {
+    "5c337486d0bf2c15": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "74baae21-1955-4bbd-b23c-c748594c908d",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Nisarg Patel <awesomenisarg@gmail.com>",
+      "messages": [],
+      "total_additions": 7,
+      "total_deletions": 10,
+      "accepted_lines": 6,
+      "overriden_lines": 0
+    }
+  }
+}
