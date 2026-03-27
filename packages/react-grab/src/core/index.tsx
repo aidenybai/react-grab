@@ -3794,6 +3794,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.hideContextMenu();
       dismissToolbarMenu();
       dismissClearPrompt();
+      dismissToolbarEntry();
       setCommentItems(loadComments());
       openTrackedDropdown(setCommentsDropdownPosition);
     };
@@ -3826,6 +3827,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const showClearPrompt = () => {
       dismissCommentsDropdown();
       dismissToolbarMenu();
+      dismissToolbarEntry();
       openTrackedDropdown(setClearPromptPosition);
     };
 
@@ -3905,6 +3907,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.hideContextMenu();
         dismissCommentsDropdown();
         dismissClearPrompt();
+        dismissToolbarEntry();
         openTrackedDropdown(setToolbarMenuPosition);
       }
     };

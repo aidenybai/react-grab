@@ -293,8 +293,12 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
                   props.toolbarEntryOverrides?.[toolbarEntry.id];
                 const resolvedIcon = () =>
                   overrides()?.icon ?? toolbarEntry.icon;
-                const resolvedBadge = () =>
-                  overrides()?.badge ?? toolbarEntry.badge;
+                const resolvedBadge = () => {
+                  const entryOverrides = overrides();
+                  return entryOverrides && "badge" in entryOverrides
+                    ? entryOverrides.badge
+                    : toolbarEntry.badge;
+                };
                 const resolvedIsVisible = () =>
                   overrides()?.isVisible ?? toolbarEntry.isVisible;
 
