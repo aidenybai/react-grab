@@ -1,50 +1,23 @@
 import { Command } from "commander";
 import pc from "picocolors";
 import { detectNonInteractive } from "../utils/is-non-interactive.js";
-import { prompts } from "../utils/prompts.js";
 import { detectProject } from "../utils/detect.js";
-import { printDiff } from "../utils/diff.js";
 import { handleError } from "../utils/handle-error.js";
 import { highlighter } from "../utils/highlighter.js";
 import {
-  getPackagesToInstall,
-  getPackagesToUninstall,
-  installPackages,
-  uninstallPackages,
-} from "../utils/install.js";
-import {
   installMcpServers,
-  promptConnectionMode,
   promptMcpInstall,
 } from "../utils/install-mcp.js";
 import { logger } from "../utils/logger.js";
 import { spinner } from "../utils/spinner.js";
-import {
-  AGENTS,
-  AGENT_NAMES,
-  type Agent,
-  type AgentIntegration,
-  getAgentDisplayName,
-} from "../utils/templates.js";
-import {
-  applyPackageJsonTransform,
-  applyTransform,
-  previewAgentRemoval,
-  previewPackageJsonAgentRemoval,
-  previewPackageJsonTransform,
-  previewTransform,
-} from "../utils/transform.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
-
-const formatInstalledAgentNames = (agents: string[]): string =>
-  agents.map((agent) => AGENT_NAMES[agent as Agent] || agent).join(", ");
 
 export const add = new Command()
   .name("add")
   .alias("install")
-  .description("connect React Grab to your agent")
-  .argument("[agent]", `agent to connect (${AGENTS.join(", ")}, mcp)`)
+  .description("connect React Grab to your agent via MCP")
+  .argument("[agent]", "agent to connect (mcp)")
   .option("-y, --yes", "skip confirmation prompts", false)
   .option(
     "-c, --cwd <cwd>",
@@ -77,22 +50,19 @@ export const add = new Command()
 
       preflightSpinner.succeed();
 
-      const availableAgents = AGENTS.filter(
-        (agent) => !projectInfo.installedAgents.includes(agent),
-      );
-
-      if (availableAgents.length === 0 && isNonInteractive && !agentArg) {
+      if (agentArg && agentArg !== "mcp") {
         logger.break();
-        logger.success("All legacy agents are already installed.");
-        logger.log("Run without -y to add MCP.");
+        logger.warn(
+          `Legacy agent packages are deprecated. Use ${highlighter.info("mcp")} instead.`,
+        );
+        logger.log(
+          `Run ${highlighter.info("grab add mcp")} to install the MCP server.`,
+        );
         logger.break();
-        process.exit(0);
+        process.exit(1);
       }
 
-      let agentIntegration: AgentIntegration;
-      let agentsToRemove: Agent[] = [];
-
-      if (agentArg === "mcp") {
+      if (agentArg === "mcp" || isNonInteractive) {
         if (isNonInteractive) {
           const results = installMcpServers();
           const hasSuccess = results.some((result) => result.success);
@@ -115,375 +85,19 @@ export const add = new Command()
         );
         logger.log("Restart your agents to activate.");
         logger.break();
-        agentIntegration = "mcp";
-        projectInfo.installedAgents = [...projectInfo.installedAgents, "mcp"];
-      } else if (agentArg) {
-        if (!AGENTS.includes(agentArg as (typeof AGENTS)[number])) {
-          logger.break();
-          logger.error(`Invalid agent: ${agentArg}`);
-          logger.error(`Available agents: ${AGENTS.join(", ")}, mcp`);
-          logger.break();
-          process.exit(1);
-        }
-
-        const validAgent = agentArg as Agent;
-
-        if (projectInfo.installedAgents.includes(validAgent)) {
-          logger.break();
-          logger.warn(`${AGENT_NAMES[validAgent]} is already installed.`);
+      } else {
+        const didInstall = await promptMcpInstall();
+        if (!didInstall) {
           logger.break();
           process.exit(0);
         }
-
-        agentIntegration = validAgent;
-
-        if (projectInfo.installedAgents.length > 0 && !isNonInteractive) {
-          const installedNames = formatInstalledAgentNames(
-            projectInfo.installedAgents,
-          );
-
-          logger.break();
-          logger.warn(`${installedNames} is already installed.`);
-
-          const { action } = await prompts({
-            type: "select",
-            name: "action",
-            message: "How would you like to proceed?",
-            choices: [
-              {
-                title: `Replace with ${getAgentDisplayName(agentIntegration)}`,
-                value: "replace",
-              },
-              {
-                title: `Add ${getAgentDisplayName(agentIntegration)} alongside existing`,
-                value: "add",
-              },
-              { title: "Cancel", value: "cancel" },
-            ],
-          });
-
-          if (!action || action === "cancel") {
-            logger.break();
-            logger.log("Changes cancelled.");
-            logger.break();
-            process.exit(0);
-          }
-
-          if (action === "replace") {
-            agentsToRemove = [...projectInfo.installedAgents] as Agent[];
-          }
-        }
-      } else if (!isNonInteractive) {
-        if (projectInfo.installedAgents.length > 0) {
-          const installedNames = formatInstalledAgentNames(
-            projectInfo.installedAgents,
-          );
-          logger.warn(`Currently installed: ${installedNames}`);
-          logger.break();
-        }
-
-        const connectionMode = await promptConnectionMode();
-
-        if (connectionMode === undefined) {
-          logger.break();
-          process.exit(1);
-        }
-
-        if (connectionMode === "mcp") {
-          const didInstall = await promptMcpInstall();
-          if (!didInstall) {
-            logger.break();
-            process.exit(0);
-          }
-          logger.break();
-          logger.log(
-            `${highlighter.success("Success!")} MCP server has been configured.`,
-          );
-          logger.log("Restart your agents to activate.");
-          logger.break();
-          agentIntegration = "mcp";
-          projectInfo.installedAgents = [...projectInfo.installedAgents, "mcp"];
-        } else {
-          const { agent } = await prompts({
-            type: "select",
-            name: "agent",
-            message: `Which ${highlighter.info("agent")} would you like to connect?`,
-            choices: [
-              ...availableAgents.map((availableAgent) => ({
-                title: AGENT_NAMES[availableAgent],
-                value: availableAgent,
-              })),
-              { title: "Skip", value: "skip" },
-            ],
-          });
-
-          if (!agent || agent === "skip") {
-            logger.break();
-            process.exit(0);
-          }
-
-          agentIntegration = agent as AgentIntegration;
-
-          if (projectInfo.installedAgents.length > 0) {
-            const installedNames = formatInstalledAgentNames(
-              projectInfo.installedAgents,
-            );
-
-            const { action } = await prompts({
-              type: "select",
-              name: "action",
-              message: "How would you like to proceed?",
-              choices: [
-                {
-                  title: `Replace ${installedNames} with ${getAgentDisplayName(agentIntegration)}`,
-                  value: "replace",
-                },
-                {
-                  title: `Add ${getAgentDisplayName(agentIntegration)} alongside existing`,
-                  value: "add",
-                },
-                { title: "Cancel", value: "cancel" },
-              ],
-            });
-
-            if (!action || action === "cancel") {
-              logger.break();
-              logger.log("Changes cancelled.");
-              logger.break();
-              process.exit(0);
-            }
-
-            if (action === "replace") {
-              agentsToRemove = [...projectInfo.installedAgents] as Agent[];
-            }
-          }
-        }
-      } else {
         logger.break();
-        logger.error("Please specify an agent to connect.");
-        logger.error("Available agents: " + availableAgents.join(", "));
-        logger.break();
-        process.exit(1);
-      }
-
-      if (agentsToRemove.length > 0) {
-        for (const agentToRemove of agentsToRemove) {
-          const removalResult = previewAgentRemoval(
-            projectInfo.projectRoot,
-            projectInfo.framework,
-            projectInfo.nextRouterType,
-            agentToRemove,
-          );
-
-          const removalPackageJsonResult = previewPackageJsonAgentRemoval(
-            projectInfo.projectRoot,
-            agentToRemove,
-          );
-
-          const packagesToRemove = getPackagesToUninstall(agentToRemove);
-
-          if (packagesToRemove.length > 0) {
-            const uninstallSpinner = spinner(
-              `Removing ${packagesToRemove.join(", ")}.`,
-            ).start();
-
-            try {
-              uninstallPackages(
-                packagesToRemove,
-                projectInfo.packageManager,
-                projectInfo.projectRoot,
-              );
-              uninstallSpinner.succeed();
-            } catch (error) {
-              uninstallSpinner.fail();
-              handleError(error);
-            }
-          }
-
-          if (
-            removalResult.success &&
-            !removalResult.noChanges &&
-            removalResult.newContent
-          ) {
-            const removeWriteSpinner = spinner(
-              `Removing ${AGENT_NAMES[agentToRemove]} from ${removalResult.filePath}.`,
-            ).start();
-            const writeResult = applyTransform(removalResult);
-            if (!writeResult.success) {
-              removeWriteSpinner.fail();
-              logger.break();
-              logger.error(writeResult.error || "Failed to write file.");
-              logger.break();
-              process.exit(1);
-            }
-            removeWriteSpinner.succeed();
-          }
-
-          if (
-            removalPackageJsonResult.success &&
-            !removalPackageJsonResult.noChanges &&
-            removalPackageJsonResult.newContent
-          ) {
-            const removePackageJsonSpinner = spinner(
-              `Removing ${AGENT_NAMES[agentToRemove]} from ${removalPackageJsonResult.filePath}.`,
-            ).start();
-            const packageJsonWriteResult = applyPackageJsonTransform(
-              removalPackageJsonResult,
-            );
-            if (!packageJsonWriteResult.success) {
-              removePackageJsonSpinner.fail();
-              logger.break();
-              logger.error(
-                packageJsonWriteResult.error || "Failed to write file.",
-              );
-              logger.break();
-              process.exit(1);
-            }
-            removePackageJsonSpinner.succeed();
-          }
-        }
-
-        projectInfo.installedAgents = projectInfo.installedAgents.filter(
-          (installedAgent) => !agentsToRemove.includes(installedAgent as Agent),
+        logger.log(
+          `${highlighter.success("Success!")} MCP server has been configured.`,
         );
-      }
-
-      const addingSpinner = spinner(
-        `Adding ${getAgentDisplayName(agentIntegration)}.`,
-      ).start();
-      addingSpinner.succeed();
-
-      const result = previewTransform(
-        projectInfo.projectRoot,
-        projectInfo.framework,
-        projectInfo.nextRouterType,
-        agentIntegration,
-        true,
-      );
-
-      const packageJsonResult = previewPackageJsonTransform(
-        projectInfo.projectRoot,
-        agentIntegration,
-        projectInfo.installedAgents,
-        projectInfo.packageManager,
-      );
-
-      if (!result.success) {
+        logger.log("Restart your agents to activate.");
         logger.break();
-        logger.error(result.message);
-        logger.break();
-        process.exit(1);
       }
-
-      const hasLayoutChanges =
-        !result.noChanges && result.originalContent && result.newContent;
-      const hasPackageJsonChanges =
-        packageJsonResult.success &&
-        !packageJsonResult.noChanges &&
-        packageJsonResult.originalContent &&
-        packageJsonResult.newContent;
-
-      if (hasLayoutChanges || hasPackageJsonChanges) {
-        logger.break();
-
-        if (hasLayoutChanges) {
-          printDiff(
-            result.filePath,
-            result.originalContent!,
-            result.newContent!,
-          );
-        }
-
-        if (hasPackageJsonChanges) {
-          if (hasLayoutChanges) {
-            logger.break();
-          }
-          printDiff(
-            packageJsonResult.filePath,
-            packageJsonResult.originalContent!,
-            packageJsonResult.newContent!,
-          );
-        }
-
-        if (!isNonInteractive && agentsToRemove.length === 0) {
-          logger.break();
-          const { proceed } = await prompts({
-            type: "confirm",
-            name: "proceed",
-            message: "Apply these changes?",
-            initial: true,
-          });
-
-          if (!proceed) {
-            logger.break();
-            logger.log("Changes cancelled.");
-            logger.break();
-            process.exit(0);
-          }
-        }
-      }
-
-      const packages = getPackagesToInstall(agentIntegration, false);
-
-      if (packages.length > 0) {
-        const installSpinner = spinner(
-          `Installing ${packages.join(", ")}.`,
-        ).start();
-
-        try {
-          installPackages(
-            packages,
-            projectInfo.packageManager,
-            projectInfo.projectRoot,
-          );
-          installSpinner.succeed();
-        } catch (error) {
-          installSpinner.fail();
-          handleError(error);
-        }
-      }
-
-      if (hasLayoutChanges) {
-        const writeSpinner = spinner(
-          `Applying changes to ${result.filePath}.`,
-        ).start();
-        const writeResult = applyTransform(result);
-        if (!writeResult.success) {
-          writeSpinner.fail();
-          logger.break();
-          logger.error(writeResult.error || "Failed to write file.");
-          logger.break();
-          process.exit(1);
-        }
-        writeSpinner.succeed();
-      }
-
-      if (hasPackageJsonChanges) {
-        const packageJsonSpinner = spinner(
-          `Applying changes to ${packageJsonResult.filePath}.`,
-        ).start();
-        const packageJsonWriteResult =
-          applyPackageJsonTransform(packageJsonResult);
-        if (!packageJsonWriteResult.success) {
-          packageJsonSpinner.fail();
-          logger.break();
-          logger.error(packageJsonWriteResult.error || "Failed to write file.");
-          logger.break();
-          process.exit(1);
-        }
-        packageJsonSpinner.succeed();
-      }
-
-      logger.break();
-      logger.log(
-        `${highlighter.success("Success!")} ${getAgentDisplayName(agentIntegration)} has been added.`,
-      );
-      if (packageJsonResult.warning) {
-        logger.warn(packageJsonResult.warning);
-      } else {
-        logger.log("Make sure to start the agent server before using it.");
-      }
-      logger.break();
     } catch (error) {
       handleError(error);
     }

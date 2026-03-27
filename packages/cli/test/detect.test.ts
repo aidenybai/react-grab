@@ -6,7 +6,6 @@ import {
   detectReactGrab,
   detectInstalledAgents,
   detectUnsupportedFramework,
-  detectAvailableAgentCLIs,
 } from "../src/utils/detect.js";
 
 vi.mock("node:fs", () => ({
@@ -14,16 +13,10 @@ vi.mock("node:fs", () => ({
   readFileSync: vi.fn(),
 }));
 
-vi.mock("node:child_process", () => ({
-  execSync: vi.fn(),
-}));
-
 import { existsSync, readFileSync } from "node:fs";
-import { execSync } from "node:child_process";
 
 const mockExistsSync = vi.mocked(existsSync);
 const mockReadFileSync = vi.mocked(readFileSync);
-const mockExecSync = vi.mocked(execSync);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -224,21 +217,20 @@ describe("detectReactGrab", () => {
 });
 
 describe("detectInstalledAgents", () => {
-  it("should detect installed agents", () => {
+  it("should detect mcp agent (legacy providers removed)", () => {
     mockExistsSync.mockReturnValue(true);
     mockReadFileSync.mockReturnValue(
       JSON.stringify({
         devDependencies: {
+          "@react-grab/mcp": "0.1.0",
           "@react-grab/cursor": "1.0.0",
-          "@react-grab/claude-code": "1.0.0",
         },
       }),
     );
 
     const agents = detectInstalledAgents("/test");
-    expect(agents).toContain("cursor");
-    expect(agents).toContain("claude-code");
-    expect(agents).not.toContain("opencode");
+    expect(agents).toContain("mcp");
+    expect(agents).not.toContain("cursor");
   });
 
   it("should return empty array when no agents installed", () => {
@@ -349,39 +341,3 @@ describe("detectUnsupportedFramework", () => {
   });
 });
 
-describe("detectAvailableAgentCLIs", () => {
-  it("should return all available CLIs", () => {
-    mockExecSync.mockImplementation(() => Buffer.from(""));
-
-    const available = detectAvailableAgentCLIs();
-    expect(available).toContain("claude");
-    expect(available).toContain("cursor-agent");
-    expect(available).toContain("opencode");
-  });
-
-  it("should return only available CLIs", () => {
-    mockExecSync.mockImplementation((command) => {
-      const commandString = String(command);
-      if (commandString.includes("claude")) {
-        return Buffer.from("/usr/local/bin/claude");
-      }
-      if (commandString.includes("opencode")) {
-        return Buffer.from("/usr/local/bin/opencode");
-      }
-      throw new Error("Command not found");
-    });
-
-    const available = detectAvailableAgentCLIs();
-    expect(available).toContain("claude");
-    expect(available).toContain("opencode");
-    expect(available).not.toContain("cursor-agent");
-  });
-
-  it("should return empty array when no CLIs are available", () => {
-    mockExecSync.mockImplementation(() => {
-      throw new Error("Command not found");
-    });
-
-    expect(detectAvailableAgentCLIs()).toEqual([]);
-  });
-});

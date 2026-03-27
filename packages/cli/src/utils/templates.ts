@@ -1,34 +1,7 @@
-export const AGENTS = [
-  "claude-code",
-  "cursor",
-  "opencode",
-  "codex",
-  "gemini",
-  "amp",
-  "droid",
-  "copilot",
-] as const;
-
-export type Agent = (typeof AGENTS)[number];
-
-export type AgentIntegration = Agent | "mcp" | "none";
-
-export const AGENT_NAMES: Record<Agent, string> = {
-  "claude-code": "Claude Code",
-  cursor: "Cursor",
-  opencode: "OpenCode",
-  codex: "Codex",
-  gemini: "Gemini",
-  amp: "Amp",
-  droid: "Droid",
-  copilot: "Copilot",
-};
+export type AgentIntegration = "mcp" | "none";
 
 export const getAgentDisplayName = (agent: string): string => {
   if (agent === "mcp") return "MCP";
-  if (agent in AGENT_NAMES) {
-    return AGENT_NAMES[agent as Agent];
-  }
   return agent;
 };
 
@@ -41,23 +14,9 @@ export const NEXT_APP_ROUTER_SCRIPT = `{process.env.NODE_ENV === "development" &
         )}`;
 
 export const NEXT_APP_ROUTER_SCRIPT_WITH_AGENT = (
-  agent: AgentIntegration,
+  _agent: AgentIntegration,
 ): string => {
-  if (agent === "none") return NEXT_APP_ROUTER_SCRIPT;
-
-  return `{process.env.NODE_ENV === "development" && (
-          <Script
-            src="//unpkg.com/react-grab/dist/index.global.js"
-            crossOrigin="anonymous"
-            strategy="beforeInteractive"
-          />
-        )}
-        {process.env.NODE_ENV === "development" && (
-          <Script
-            src="//unpkg.com/@react-grab/${agent}/dist/client.global.js"
-            strategy="lazyOnload"
-          />
-        )}`;
+  return NEXT_APP_ROUTER_SCRIPT;
 };
 
 export const NEXT_PAGES_ROUTER_SCRIPT = `{process.env.NODE_ENV === "development" && (
@@ -69,49 +28,25 @@ export const NEXT_PAGES_ROUTER_SCRIPT = `{process.env.NODE_ENV === "development"
         )}`;
 
 export const NEXT_PAGES_ROUTER_SCRIPT_WITH_AGENT = (
-  agent: AgentIntegration,
+  _agent: AgentIntegration,
 ): string => {
-  if (agent === "none") return NEXT_PAGES_ROUTER_SCRIPT;
-
-  return `{process.env.NODE_ENV === "development" && (
-          <Script
-            src="//unpkg.com/react-grab/dist/index.global.js"
-            crossOrigin="anonymous"
-            strategy="beforeInteractive"
-          />
-        )}
-        {process.env.NODE_ENV === "development" && (
-          <Script
-            src="//unpkg.com/@react-grab/${agent}/dist/client.global.js"
-            strategy="lazyOnload"
-          />
-        )}`;
+  return NEXT_PAGES_ROUTER_SCRIPT;
 };
 
 export const VITE_IMPORT = `if (import.meta.env.DEV) {
   import("react-grab");
 }`;
 
-export const VITE_IMPORT_WITH_AGENT = (agent: AgentIntegration): string => {
-  if (agent === "none") return VITE_IMPORT;
-
-  return `if (import.meta.env.DEV) {
-  import("react-grab");
-  import("@react-grab/${agent}/client");
-}`;
+export const VITE_IMPORT_WITH_AGENT = (_agent: AgentIntegration): string => {
+  return VITE_IMPORT;
 };
 
 export const WEBPACK_IMPORT = `if (process.env.NODE_ENV === "development") {
   import("react-grab");
 }`;
 
-export const WEBPACK_IMPORT_WITH_AGENT = (agent: AgentIntegration): string => {
-  if (agent === "none") return WEBPACK_IMPORT;
-
-  return `if (process.env.NODE_ENV === "development") {
-  import("react-grab");
-  import("@react-grab/${agent}/client");
-}`;
+export const WEBPACK_IMPORT_WITH_AGENT = (_agent: AgentIntegration): string => {
+  return WEBPACK_IMPORT;
 };
 
 export const TANSTACK_EFFECT = `useEffect(() => {
@@ -120,15 +55,8 @@ export const TANSTACK_EFFECT = `useEffect(() => {
     }
   }, []);`;
 
-export const TANSTACK_EFFECT_WITH_AGENT = (agent: AgentIntegration): string => {
-  if (agent === "none") return TANSTACK_EFFECT;
-
-  return `useEffect(() => {
-    if (import.meta.env.DEV) {
-      void import("react-grab");
-      void import("@react-grab/${agent}/client");
-    }
-  }, []);`;
+export const TANSTACK_EFFECT_WITH_AGENT = (_agent: AgentIntegration): string => {
+  return TANSTACK_EFFECT;
 };
 
 export const SCRIPT_IMPORT = 'import Script from "next/script";';

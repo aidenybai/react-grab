@@ -1,4 +1,3 @@
-import { execSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { detect } from "@antfu/ni";
@@ -419,14 +418,6 @@ export const detectReactGrab = (projectRoot: string): boolean => {
 };
 
 const AGENT_PACKAGES = [
-  "@react-grab/claude-code",
-  "@react-grab/cursor",
-  "@react-grab/opencode",
-  "@react-grab/codex",
-  "@react-grab/gemini",
-  "@react-grab/amp",
-  "@react-grab/droid",
-  "@react-grab/copilot",
   "@react-grab/mcp",
 ];
 
@@ -488,40 +479,6 @@ export const detectInstalledAgents = (projectRoot: string): string[] => {
   } catch {
     return [];
   }
-};
-
-export type AgentCLI =
-  | "claude"
-  | "cursor-agent"
-  | "opencode"
-  | "codex"
-  | "gemini"
-  | "amp"
-  | "copilot"
-  | "droid";
-
-const AGENT_CLI_COMMANDS: AgentCLI[] = [
-  "claude",
-  "cursor-agent",
-  "opencode",
-  "codex",
-  "gemini",
-  "amp",
-  "copilot",
-  "droid",
-];
-
-const isCommandAvailable = (command: string): boolean => {
-  try {
-    execSync(`which ${command}`, { stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
-};
-
-export const detectAvailableAgentCLIs = (): AgentCLI[] => {
-  return AGENT_CLI_COMMANDS.filter(isCommandAvailable);
 };
 
 export const detectProject = async (

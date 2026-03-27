@@ -51,13 +51,6 @@ const STATUS_TRUNCATE_LENGTH = 60;
 const RELAY_CHECK_INTERVAL_MS = 100;
 
 const PROVIDER_SCRIPTS: Record<string, string> = {
-  claude: "/@provider-claude-code/client.global.js",
-  cursor: "/@provider-cursor/client.global.js",
-  opencode: "/@provider-opencode/client.global.js",
-  amp: "/@provider-amp/client.global.js",
-  codex: "/@provider-codex/client.global.js",
-  gemini: "/@provider-gemini/client.global.js",
-  droid: "/@provider-droid/client.global.js",
   mcp: "/@provider-mcp/client.global.js",
 };
 

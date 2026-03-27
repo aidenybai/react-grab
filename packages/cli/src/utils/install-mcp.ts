@@ -262,30 +262,6 @@ export const installMcpServers = (
   return results;
 };
 
-export const promptConnectionMode = async (): Promise<
-  "mcp" | "legacy" | undefined
-> => {
-  const { connectionMode } = await prompts({
-    type: "select",
-    name: "connectionMode",
-    message: "How would you like to connect?",
-    choices: [
-      {
-        title: `MCP ${highlighter.dim("(recommended)")}`,
-        description: "Installs to all supported agents at once",
-        value: "mcp",
-      },
-      {
-        title: "Legacy",
-        description: "Install a per-project agent package",
-        value: "legacy",
-      },
-    ],
-  });
-
-  return connectionMode as "mcp" | "legacy" | undefined;
-};
-
 export const promptMcpInstall = async (): Promise<boolean> => {
   const clientNames = getMcpClientNames();
   const { selectedAgents } = await prompts({

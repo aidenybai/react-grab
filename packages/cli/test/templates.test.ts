@@ -16,12 +16,11 @@ describe("Next.js App Router templates", () => {
     expect(NEXT_APP_ROUTER_SCRIPT).toContain("beforeInteractive");
   });
 
-  it("should generate script with agent", () => {
-    const script = NEXT_APP_ROUTER_SCRIPT_WITH_AGENT("cursor");
+  it("should return basic script for any agent (providers deprecated)", () => {
+    const script = NEXT_APP_ROUTER_SCRIPT_WITH_AGENT("mcp");
 
     expect(script).toContain("react-grab");
-    expect(script).toContain("@react-grab/cursor");
-    expect(script).toContain("lazyOnload");
+    expect(script).not.toContain("@react-grab/");
   });
 
   it("should return basic script when agent is none", () => {
@@ -29,15 +28,6 @@ describe("Next.js App Router templates", () => {
 
     expect(script).toContain("react-grab");
     expect(script).not.toContain("@react-grab/");
-  });
-
-  it("should include all agent types correctly", () => {
-    const agents = ["claude-code", "cursor", "opencode"] as const;
-
-    for (const agent of agents) {
-      const script = NEXT_APP_ROUTER_SCRIPT_WITH_AGENT(agent);
-      expect(script).toContain(`@react-grab/${agent}`);
-    }
   });
 });
 
@@ -47,11 +37,11 @@ describe("Vite templates", () => {
     expect(VITE_IMPORT).toContain("import.meta.env.DEV");
   });
 
-  it("should generate import with agent", () => {
-    const importBlock = VITE_IMPORT_WITH_AGENT("opencode");
+  it("should return basic import for any agent (providers deprecated)", () => {
+    const importBlock = VITE_IMPORT_WITH_AGENT("mcp");
 
     expect(importBlock).toContain("react-grab");
-    expect(importBlock).toContain("@react-grab/opencode");
+    expect(importBlock).not.toContain("@react-grab/");
   });
 
   it("should return basic import when agent is none", () => {
@@ -69,11 +59,11 @@ describe("Webpack templates", () => {
     expect(WEBPACK_IMPORT).toContain("development");
   });
 
-  it("should generate import with agent", () => {
-    const importBlock = WEBPACK_IMPORT_WITH_AGENT("claude-code");
+  it("should return basic import for any agent (providers deprecated)", () => {
+    const importBlock = WEBPACK_IMPORT_WITH_AGENT("mcp");
 
     expect(importBlock).toContain("react-grab");
-    expect(importBlock).toContain("@react-grab/claude-code");
+    expect(importBlock).not.toContain("@react-grab/");
   });
 
   it("should return basic import when agent is none", () => {

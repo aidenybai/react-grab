@@ -5,13 +5,9 @@ import type {
 } from "./transform.js";
 import { applyPackageJsonTransform, applyTransform } from "./transform.js";
 import { handleError } from "./handle-error.js";
-import { installPackages, uninstallPackages } from "./install.js";
+import { installPackages } from "./install.js";
 import { logger } from "./logger.js";
 import { spinner } from "./spinner.js";
-import { getAgentDisplayName } from "./templates.js";
-
-export const formatInstalledAgentNames = (agents: string[]): string =>
-  agents.map(getAgentDisplayName).join(", ");
 
 export const applyTransformWithFeedback = (
   result: TransformResult,
@@ -61,22 +57,6 @@ export const installPackagesWithFeedback = (
     installSpinner.succeed();
   } catch (error) {
     installSpinner.fail();
-    handleError(error);
-  }
-};
-
-export const uninstallPackagesWithFeedback = (
-  packages: string[],
-  packageManager: PackageManager,
-  projectRoot: string,
-): void => {
-  if (packages.length === 0) return;
-  const uninstallSpinner = spinner(`Removing ${packages.join(", ")}.`).start();
-  try {
-    uninstallPackages(packages, packageManager, projectRoot);
-    uninstallSpinner.succeed();
-  } catch (error) {
-    uninstallSpinner.fail();
     handleError(error);
   }
 };

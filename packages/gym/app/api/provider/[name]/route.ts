@@ -3,14 +3,6 @@ import { join } from "node:path";
 import { NextResponse, type NextRequest } from "next/server";
 
 const PROVIDER_MAP: Record<string, string> = {
-  "claude-code": "provider-claude-code",
-  cursor: "provider-cursor",
-  opencode: "provider-opencode",
-  amp: "provider-amp",
-  codex: "provider-codex",
-  gemini: "provider-gemini",
-  droid: "provider-droid",
-  copilot: "provider-copilot",
   mcp: "mcp",
 };
 

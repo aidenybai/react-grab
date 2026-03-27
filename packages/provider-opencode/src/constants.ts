@@ -1,2 +1,0 @@
-export const OPENCODE_SDK_PORT = 4096;
-export const STATUS_TEXT_TRUNCATE_LENGTH = 100;

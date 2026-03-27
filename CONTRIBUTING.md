@@ -43,14 +43,7 @@ packages/
 ├── react-grab/          # Core library
 ├── grab/                # Bundled package (library + CLI, published as `grab`)
 ├── cli/                 # CLI implementation (@react-grab/cli)
-├── provider-cursor/     # Cursor agent integration
-├── provider-claude-code/  # Claude Code integration
-├── provider-opencode/   # OpenCode integration
-├── provider-codex/      # OpenAI Codex integration
-├── provider-gemini/     # Google Gemini CLI integration
-├── provider-amp/        # Amp SDK integration
-├── provider-droid/      # Droid integration
-├── provider-copilot/    # Copilot integration
+├── mcp/                 # MCP server (@react-grab/mcp)
 ├── website/             # Documentation site (react-grab.com)
 ├── e2e-playground/      # E2E test target app
 ├── gym/                 # Agent testing playground

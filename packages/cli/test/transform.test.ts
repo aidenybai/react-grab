@@ -123,7 +123,7 @@ export default function RootLayout({
     expect(result.newContent).toContain("react-grab");
   });
 
-  it("should add React Grab with agent to layout.tsx", () => {
+  it("should add React Grab with agent to layout.tsx (no provider package)", () => {
     const layoutWithHead = `export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
@@ -138,11 +138,11 @@ export default function RootLayout({
     );
     mockReadFileSync.mockReturnValue(layoutWithHead);
 
-    const result = previewTransform("/test", "next", "app", "cursor", false);
+    const result = previewTransform("/test", "next", "app", "mcp", false);
 
     expect(result.success).toBe(true);
     expect(result.newContent).toContain("react-grab");
-    expect(result.newContent).toContain("@react-grab/cursor");
+    expect(result.newContent).not.toContain("@react-grab/");
   });
 
   it("should not duplicate if React Grab already exists", () => {
@@ -251,7 +251,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     expect(result.newContent).toContain("import.meta.env.DEV");
   });
 
-  it("should add React Grab with agent to entry file", () => {
+  it("should add React Grab with agent to entry file (no provider package)", () => {
     mockExistsSync.mockImplementation((path) =>
       String(path).endsWith("main.tsx"),
     );
@@ -261,13 +261,13 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       "/test",
       "vite",
       "unknown",
-      "opencode",
+      "mcp",
       false,
     );
 
     expect(result.success).toBe(true);
     expect(result.newContent).toContain("react-grab");
-    expect(result.newContent).toContain("@react-grab/opencode");
+    expect(result.newContent).not.toContain("@react-grab/");
   });
 
   it("should add agent to existing React Grab installation", () => {
@@ -339,7 +339,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     expect(result.newContent).toContain("process.env.NODE_ENV");
   });
 
-  it("should add React Grab with agent to entry file", () => {
+  it("should add React Grab with agent to entry file (no provider package)", () => {
     mockExistsSync.mockImplementation((path) =>
       String(path).endsWith("main.tsx"),
     );
@@ -349,13 +349,13 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       "/test",
       "webpack",
       "unknown",
-      "cursor",
+      "mcp",
       false,
     );
 
     expect(result.success).toBe(true);
     expect(result.newContent).toContain("react-grab");
-    expect(result.newContent).toContain("@react-grab/cursor");
+    expect(result.newContent).not.toContain("@react-grab/");
   });
 });
 

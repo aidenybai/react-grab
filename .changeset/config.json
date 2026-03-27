@@ -7,14 +7,6 @@
     [
       "react-grab",
       "grab",
-      "@react-grab/claude-code",
-      "@react-grab/cursor",
-      "@react-grab/opencode",
-      "@react-grab/codex",
-      "@react-grab/gemini",
-      "@react-grab/amp",
-      "@react-grab/droid",
-      "@react-grab/copilot",
       "@react-grab/cli",
       "@react-grab/utils",
       "@react-grab/relay"
