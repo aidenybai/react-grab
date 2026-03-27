@@ -7,26 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import type { ReactGrabAPI } from "react-grab";
 
-interface RelayClient {
-  onMessage: (callback: (message: RelayMessage) => void) => () => void;
-  onConnectionChange: (callback: (connected: boolean) => void) => () => void;
-  onHandlersChange: (callback: (handlers: string[]) => void) => () => void;
-  getAvailableHandlers: () => string[];
-  isConnected: () => boolean;
-}
-
-interface RelayMessage {
-  type: string;
-  agentId?: string;
-  sessionId?: string;
-  content?: string;
-  handlers?: string[];
-}
-
 declare global {
   interface Window {
     __REACT_GRAB__?: ReactGrabAPI;
-    __REACT_GRAB_RELAY__?: RelayClient;
   }
 }
 
@@ -47,8 +30,6 @@ const LOG_TYPE_STYLES: Record<string, { icon: string; color: string }> = {
 };
 
 const MAX_LOG_ENTRIES = 50;
-const STATUS_TRUNCATE_LENGTH = 60;
-const RELAY_CHECK_INTERVAL_MS = 100;
 
 const PROVIDER_SCRIPTS: Record<string, string> = {
   mcp: "/@provider-mcp/client.global.js",
@@ -84,8 +65,6 @@ export const AgentPlaygroundContent = ({
   availableProviders,
 }: AgentPlaygroundProps) => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [relayConnected, setRelayConnected] = useState(false);
-  const [relayHandlers, setRelayHandlers] = useState<string[]>([]);
   const didInit = useRef(false);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
@@ -133,78 +112,6 @@ export const AgentPlaygroundContent = ({
     });
   }, [loadedProviders, failedProviders, addLog]);
 
-  useEffect(() => {
-    let relayCleanup: (() => void) | false = false;
-
-    const checkForRelay = () => {
-      const relayClient = window.__REACT_GRAB_RELAY__;
-      if (!relayClient) return false;
-
-      const isConnected = relayClient.isConnected();
-      setRelayConnected(isConnected);
-      setRelayHandlers(relayClient.getAvailableHandlers());
-
-      const unsubscribeConnection = relayClient.onConnectionChange(
-        (connected) => {
-          setRelayConnected(connected);
-          addLog(
-            connected ? "connect" : "disconnect",
-            connected ? "Relay connected" : "Relay disconnected",
-          );
-        },
-      );
-
-      const unsubscribeHandlers = relayClient.onHandlersChange((handlers) => {
-        setRelayHandlers(handlers);
-        if (handlers.length > 0) {
-          addLog("handlers", `Available: ${handlers.join(", ")}`);
-        }
-      });
-
-      const unsubscribeMessage = relayClient.onMessage((message) => {
-        if (
-          message.type === "agent-status" &&
-          message.content &&
-          message.agentId
-        ) {
-          const truncatedContent =
-            message.content.length > STATUS_TRUNCATE_LENGTH
-              ? `${message.content.slice(0, STATUS_TRUNCATE_LENGTH)}…`
-              : message.content;
-          addLog("status", `[${message.agentId}] ${truncatedContent}`);
-        } else if (message.type === "agent-done" && message.agentId) {
-          addLog("done", `[${message.agentId}] Completed`);
-        } else if (message.type === "agent-error" && message.agentId) {
-          const errorContent = message.content || "Unknown error";
-          addLog("error", `[${message.agentId}] ${errorContent}`);
-        }
-      });
-
-      return () => {
-        unsubscribeConnection();
-        unsubscribeHandlers();
-        unsubscribeMessage();
-      };
-    };
-
-    const cleanup = checkForRelay();
-    if (cleanup) return cleanup;
-
-    const intervalId = setInterval(() => {
-      const result = checkForRelay();
-      if (result) {
-        relayCleanup = result;
-        clearInterval(intervalId);
-      }
-    }, RELAY_CHECK_INTERVAL_MS);
-
-    return () => {
-      clearInterval(intervalId);
-      if (relayCleanup) {
-        relayCleanup();
-      }
-    };
-  }, [addLog]);
 
   const handleAddProvider = (provider: string) => {
     const currentProviders =
@@ -254,21 +161,9 @@ export const AgentPlaygroundContent = ({
             Select any element and choose an agent from the context menu
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5">
-            <span
-              className={`w-2 h-2 rounded-full ${
-                relayConnected ? "bg-green-500" : "bg-red-500"
-              }`}
-            />
-            <span className="text-xs text-muted-foreground">
-              {relayConnected ? "Connected" : "Disconnected"}
-            </span>
-          </div>
-          <Button onClick={() => window.__REACT_GRAB__?.activate()}>
-            Grab Element
-          </Button>
-        </div>
+        <Button onClick={() => window.__REACT_GRAB__?.activate()}>
+          Grab Element
+        </Button>
       </div>
 
       <Card>
@@ -294,15 +189,7 @@ export const AgentPlaygroundContent = ({
 
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-medium">Providers</CardTitle>
-            {relayHandlers.length > 0 && (
-              <span className="text-xs text-muted-foreground">
-                ({relayHandlers.length} handler
-                {relayHandlers.length !== 1 ? "s" : ""} ready)
-              </span>
-            )}
-          </div>
+          <CardTitle className="text-sm font-medium">Providers</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">

@@ -1,5 +1,5 @@
 {
-  "name": "@react-grab/e2e-playground",
+  "name": "@react-grab/e2e-app",
   "private": true,
   "type": "module",
   "scripts": {

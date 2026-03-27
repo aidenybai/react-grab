@@ -45,7 +45,7 @@ packages/
 ├── cli/                 # CLI implementation (@react-grab/cli)
 ├── mcp/                 # MCP server (@react-grab/mcp)
 ├── website/             # Documentation site (react-grab.com)
-├── e2e-playground/      # E2E test target app
+├── e2e-app/             # E2E test target app (Vite)
 ├── gym/                 # Agent testing playground
 └── web-extension/       # Browser extension
 ```
@@ -54,20 +54,13 @@ packages/
 
 ### Running the Gym
 
-Test agent provider integrations in the gym:
+Test the MCP agent integration in the gym:
 
 ```bash
-pnpm --filter @react-grab/gym dev:claude   # Claude Code
-pnpm --filter @react-grab/gym dev:cursor   # Cursor
-pnpm --filter @react-grab/gym dev:opencode # OpenCode
-pnpm --filter @react-grab/gym dev:codex    # Codex
-pnpm --filter @react-grab/gym dev:gemini   # Gemini
-pnpm --filter @react-grab/gym dev:amp      # Amp
-pnpm --filter @react-grab/gym dev:droid    # Droid
-pnpm --filter @react-grab/gym dev:copilot  # Copilot
+pnpm --filter @react-grab/gym dev:mcp
 ```
 
-The gym runs at `http://localhost:5174` and lets you test react-grab's agent provider API with multiple backends.
+The gym runs at `http://localhost:5174` and lets you test react-grab's agent integration via MCP.
 
 ### Running Tests
 

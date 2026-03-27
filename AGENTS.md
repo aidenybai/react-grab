@@ -128,7 +128,7 @@ The root `package.json` has `pnpm.onlyBuiltDependencies` configured for `@parcel
 
 ### Playwright
 
-E2E tests (`pnpm test` at root) run Playwright against the `e2e-playground` Vite dev server on port 5175 (auto-started by the Playwright config). Chromium must be installed: `npx --prefix packages/react-grab playwright install chromium --with-deps`.
+E2E tests (`pnpm test` at root) run Playwright against the `e2e-app` Vite dev server on port 5175 (auto-started by the Playwright config). Chromium must be installed: `npx --prefix packages/react-grab playwright install chromium --with-deps`.
 
 ### Key commands reference
 
@@ -142,4 +142,4 @@ See root `package.json` scripts and `CONTRIBUTING.md` for the full list. Quick r
 - **Typecheck**: `pnpm typecheck` — tsc on react-grab package
 - **Format**: `pnpm format` — oxfmt
 - **CLI dev**: `npm_command=exec node packages/cli/dist/cli.js`
-- **E2E playground**: `pnpm --filter @react-grab/e2e-playground dev` (port 5175)
+- **Test app**: `pnpm --filter @react-grab/e2e-app dev` (port 5175)

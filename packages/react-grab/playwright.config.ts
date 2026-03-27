@@ -36,7 +36,7 @@ export default defineConfig({
     command: "pnpm --filter react-grab build && pnpm dev",
     url: "http://localhost:5175",
     reuseExistingServer: !process.env.CI,
-    cwd: path.resolve(__dirname, "../e2e-playground"),
+    cwd: path.resolve(__dirname, "../e2e-app"),
     timeout: 30000,
   },
 });

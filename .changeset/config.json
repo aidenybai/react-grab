@@ -7,9 +7,7 @@
     [
       "react-grab",
       "grab",
-      "@react-grab/cli",
-      "@react-grab/utils",
-      "@react-grab/relay"
+      "@react-grab/cli"
     ]
   ],
   "access": "public",
