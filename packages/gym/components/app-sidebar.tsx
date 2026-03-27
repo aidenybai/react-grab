@@ -38,6 +38,10 @@ const data = {
           title: "Login",
           url: "/login",
         },
+        {
+          title: "Toolbar Entries",
+          url: "/toolbar-entries",
+        },
       ],
     },
     {

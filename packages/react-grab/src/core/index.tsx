@@ -116,6 +116,7 @@ import type {
   ToolbarState,
   CommentItem,
   DropdownAnchor,
+  ToolbarEntryHandle,
 } from "../types.js";
 import { DEFAULT_THEME } from "./theme.js";
 import { createPluginRegistry } from "./plugin-registry.js";
@@ -326,6 +327,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [toolbarMenuPosition, setToolbarMenuPosition] =
       createSignal<DropdownAnchor | null>(null);
     const [clearPromptPosition, setClearPromptPosition] =
+      createSignal<DropdownAnchor | null>(null);
+    const [activeToolbarEntryId, setActiveToolbarEntryId] = createSignal<
+      string | null
+    >(null);
+    const [toolbarEntryDropdownPosition, setToolbarEntryDropdownPosition] =
       createSignal<DropdownAnchor | null>(null);
     let toolbarElement: HTMLDivElement | undefined;
     let dropdownTrackingFrameId: number | null = null;
@@ -3828,10 +3834,102 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setClearPromptPosition(null);
     };
 
+    const toolbarEntryHandleCache = new Map<string, ToolbarEntryHandle>();
+
+    const activeToolbarEntryHandle = (): ToolbarEntryHandle | null => {
+      const currentEntryId = activeToolbarEntryId();
+      return currentEntryId ? getToolbarEntryHandle(currentEntryId) : null;
+    };
+
+    const getToolbarEntryHandle = (entryId: string): ToolbarEntryHandle => {
+      const cached = toolbarEntryHandleCache.get(entryId);
+      if (cached) return cached;
+
+      const handle: ToolbarEntryHandle = {
+        api,
+        isOpen: () => activeToolbarEntryId() === entryId,
+        open: () => {
+          if (activeToolbarEntryId() !== entryId)
+            handleToggleToolbarEntry(entryId);
+        },
+        close: () => {
+          if (activeToolbarEntryId() === entryId) dismissToolbarEntry();
+        },
+        toggle: () => handleToggleToolbarEntry(entryId),
+        setIcon: (icon) => pluginRegistry.updateToolbarEntry(entryId, { icon }),
+        setTooltip: (tooltip) =>
+          pluginRegistry.updateToolbarEntry(entryId, { tooltip }),
+        setBadge: (badge) =>
+          pluginRegistry.updateToolbarEntry(entryId, { badge }),
+        setVisible: (isVisible) =>
+          pluginRegistry.updateToolbarEntry(entryId, { isVisible }),
+      };
+      toolbarEntryHandleCache.set(entryId, handle);
+      return handle;
+    };
+
+    const dismissToolbarEntry = () => {
+      const currentEntryId = activeToolbarEntryId();
+      if (currentEntryId) {
+        const entry = pluginRegistry.store.toolbarEntries.find(
+          (toolbarEntry) => toolbarEntry.id === currentEntryId,
+        );
+        entry?.onClose?.();
+      }
+      stopTrackingDropdownPosition();
+      setToolbarEntryDropdownPosition(null);
+      setActiveToolbarEntryId(null);
+    };
+
+    const handleToggleToolbarEntry = (entryId: string) => {
+      const entry = pluginRegistry.store.toolbarEntries.find(
+        (toolbarEntry) => toolbarEntry.id === entryId,
+      );
+      if (!entry) return;
+
+      const handle = getToolbarEntryHandle(entryId);
+
+      if (!entry.onRender) {
+        entry.onClick?.(handle);
+        return;
+      }
+
+      if (activeToolbarEntryId() === entryId) {
+        dismissToolbarEntry();
+      } else {
+        actions.hideContextMenu();
+        dismissCommentsDropdown();
+        dismissToolbarMenu();
+        dismissClearPrompt();
+        entry.onClick?.(handle);
+        setActiveToolbarEntryId(entryId);
+        openTrackedDropdown(setToolbarEntryDropdownPosition);
+        entry.onOpen?.(handle);
+      }
+    };
+
+    const cleanupStaleToolbarEntryHandles = () => {
+      const currentEntryIds = new Set(
+        pluginRegistry.store.toolbarEntries.map(
+          (toolbarEntry) => toolbarEntry.id,
+        ),
+      );
+      for (const cachedEntryId of toolbarEntryHandleCache.keys()) {
+        if (!currentEntryIds.has(cachedEntryId)) {
+          toolbarEntryHandleCache.delete(cachedEntryId);
+        }
+      }
+      const activeEntryId = activeToolbarEntryId();
+      if (activeEntryId && !currentEntryIds.has(activeEntryId)) {
+        dismissToolbarEntry();
+      }
+    };
+
     const dismissAllPopups = () => {
       dismissCommentsDropdown();
       dismissToolbarMenu();
       dismissClearPrompt();
+      dismissToolbarEntry();
     };
 
     const handleToggleToolbarMenu = () => {
@@ -4208,6 +4306,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                   handleCommentsClear();
                 }}
                 onClearCommentsCancel={dismissClearPrompt}
+                toolbarEntries={pluginRegistry.store.toolbarEntries}
+                toolbarEntryOverrides={
+                  pluginRegistry.store.toolbarEntryOverrides
+                }
+                activeToolbarEntryId={activeToolbarEntryId()}
+                activeToolbarEntryHandle={activeToolbarEntryHandle()}
+                toolbarEntryDropdownPosition={toolbarEntryDropdownPosition()}
+                onToggleToolbarEntry={handleToggleToolbarEntry}
+                onToolbarEntryDismiss={dismissToolbarEntry}
               />
             );
           }, rendererRoot);
@@ -4341,6 +4448,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         cancelCommentsHoverOpenTimeout();
         cancelCommentsHoverCloseTimeout();
         stopTrackingDropdownPosition();
+        toolbarEntryHandleCache.clear();
         toolbarStateChangeCallbacks.clear();
         dispose();
       },
@@ -4374,14 +4482,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
       registerPlugin: (plugin: Plugin) => {
         pluginRegistry.register(plugin, api);
+        cleanupStaleToolbarEntryHandles();
         syncAgentFromRegistry();
       },
       unregisterPlugin: (name: string) => {
         pluginRegistry.unregister(name);
+        cleanupStaleToolbarEntryHandles();
         syncAgentFromRegistry();
       },
       getPlugins: () => pluginRegistry.getPluginNames(),
       getDisplayName: getComponentDisplayName,
+      toggleToolbarEntry: (entryId: string) =>
+        handleToggleToolbarEntry(entryId),
+      closeToolbarEntry: () => dismissToolbarEntry(),
     };
 
     for (const plugin of builtInPlugins) {
@@ -4420,6 +4533,8 @@ export type {
   Plugin,
   PluginConfig,
   PluginHooks,
+  ToolbarEntry,
+  ToolbarEntryHandle,
 } from "../types.js";
 
 export { generateSnippet } from "../utils/generate-snippet.js";

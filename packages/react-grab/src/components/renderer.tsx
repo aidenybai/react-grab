@@ -15,6 +15,7 @@ import { SelectionLabel } from "./selection-label/index.js";
 import { Toolbar } from "./toolbar/index.js";
 import { ContextMenu } from "./context-menu.js";
 import { ToolbarMenu } from "./toolbar/toolbar-menu.js";
+import { ToolbarEntryContainer } from "./toolbar/toolbar-entry-container.js";
 import { CommentsDropdown } from "./comments-dropdown.js";
 import { ClearCommentsPrompt } from "./clear-comments-prompt.js";
 
@@ -217,6 +218,11 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           onToggleToolbarMenu={props.onToggleToolbarMenu}
           isToolbarMenuOpen={Boolean(props.toolbarMenuPosition)}
           isClearPromptOpen={Boolean(props.clearPromptPosition)}
+          toolbarEntries={props.toolbarEntries}
+          toolbarEntryOverrides={props.toolbarEntryOverrides}
+          activeToolbarEntryId={props.activeToolbarEntryId}
+          onToggleToolbarEntry={props.onToggleToolbarEntry}
+          isToolbarEntryOpen={Boolean(props.toolbarEntryDropdownPosition)}
         />
       </Show>
 
@@ -244,6 +250,17 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         position={props.clearPromptPosition ?? null}
         onConfirm={props.onClearCommentsConfirm ?? (() => {})}
         onCancel={props.onClearCommentsCancel ?? (() => {})}
+      />
+
+      <ToolbarEntryContainer
+        position={props.toolbarEntryDropdownPosition ?? null}
+        entry={
+          props.toolbarEntries?.find(
+            (toolbarEntry) => toolbarEntry.id === props.activeToolbarEntryId,
+          ) ?? null
+        }
+        handle={props.activeToolbarEntryHandle ?? null}
+        onDismiss={props.onToolbarEntryDismiss ?? (() => {})}
       />
 
       <CommentsDropdown

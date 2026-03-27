@@ -6,6 +6,7 @@ import type {
   PluginHooks,
   Theme,
   ContextMenuAction,
+  ToolbarEntry,
   ReactGrabAPI,
   ReactGrabState,
   PromptModeContext,
@@ -54,6 +55,11 @@ interface PluginStoreState {
   theme: Required<Theme>;
   options: OptionsState;
   actions: ContextMenuAction[];
+  toolbarEntries: ToolbarEntry[];
+  toolbarEntryOverrides: Record<
+    string,
+    Partial<Pick<ToolbarEntry, "icon" | "tooltip" | "badge" | "isVisible">>
+  >;
 }
 
 type HookName = keyof PluginHooks;
@@ -66,12 +72,15 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     theme: DEFAULT_THEME,
     options: { ...DEFAULT_OPTIONS, ...initialOptions },
     actions: [],
+    toolbarEntries: [],
+    toolbarEntryOverrides: {},
   });
 
   const recomputeStore = () => {
     let mergedTheme: Required<Theme> = DEFAULT_THEME;
     let mergedOptions: OptionsState = { ...DEFAULT_OPTIONS, ...initialOptions };
     const allContextMenuActions: ContextMenuAction[] = [];
+    const allToolbarEntries: ToolbarEntry[] = [];
 
     for (const { config } of plugins.values()) {
       if (config.theme) {
@@ -87,6 +96,12 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
           allContextMenuActions.push(action);
         }
       }
+
+      if (config.toolbarEntries) {
+        for (const toolbarEntry of config.toolbarEntries) {
+          allToolbarEntries.push(toolbarEntry);
+        }
+      }
     }
 
     mergedOptions = { ...mergedOptions, ...directOptionOverrides };
@@ -94,6 +109,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     setStore("theme", mergedTheme);
     setStore("options", mergedOptions);
     setStore("actions", allContextMenuActions);
+    setStore("toolbarEntries", allToolbarEntries);
   };
 
   const setOption = <OptionKey extends keyof OptionsState>(
@@ -142,6 +158,13 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       config.actions = [...plugin.actions, ...(config.actions ?? [])];
     }
 
+    if (plugin.toolbarEntries) {
+      config.toolbarEntries = [
+        ...plugin.toolbarEntries,
+        ...(config.toolbarEntries ?? []),
+      ];
+    }
+
     if (plugin.hooks) {
       config.hooks = config.hooks
         ? { ...plugin.hooks, ...config.hooks }
@@ -165,6 +188,20 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
 
     if (registered.config.cleanup) {
       registered.config.cleanup();
+    }
+
+    const removedEntryIds = new Set(
+      (registered.config.toolbarEntries ?? []).map(
+        (toolbarEntry) => toolbarEntry.id,
+      ),
+    );
+    if (removedEntryIds.size > 0) {
+      const filteredOverrides = Object.fromEntries(
+        Object.entries(store.toolbarEntryOverrides).filter(
+          ([entryId]) => !removedEntryIds.has(entryId),
+        ),
+      );
+      setStore("toolbarEntryOverrides", filteredOverrides);
     }
 
     plugins.delete(name);
@@ -332,11 +369,24 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       callHookReduce("transformSnippet", snippet, element),
   };
 
+  const updateToolbarEntry = (
+    entryId: string,
+    updates: Partial<
+      Pick<ToolbarEntry, "icon" | "tooltip" | "badge" | "isVisible">
+    >,
+  ) => {
+    setStore("toolbarEntryOverrides", entryId, (prev) => ({
+      ...prev,
+      ...updates,
+    }));
+  };
+
   return {
     register,
     unregister,
     getPluginNames,
     setOptions,
+    updateToolbarEntry,
     store,
     hooks,
   };

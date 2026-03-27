@@ -36,4 +36,6 @@ export const createNoopApi = (): ReactGrabAPI => ({
   unregisterPlugin: NOOP,
   getPlugins: () => [],
   getDisplayName: () => null,
+  toggleToolbarEntry: NOOP,
+  closeToolbarEntry: NOOP,
 });

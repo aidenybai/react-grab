@@ -7,7 +7,7 @@ import {
   Show,
 } from "solid-js";
 import type { Component } from "solid-js";
-import type { Position } from "../../types.js";
+import type { Position, ToolbarEntry } from "../../types.js";
 import { cn } from "../../utils/cn.js";
 import { formatShortcut } from "../../utils/format-shortcut.js";
 import {
@@ -97,6 +97,14 @@ interface ToolbarProps {
   isCommentsPinned?: boolean;
   onToggleToolbarMenu?: () => void;
   isToolbarMenuOpen?: boolean;
+  toolbarEntries?: ToolbarEntry[];
+  toolbarEntryOverrides?: Record<
+    string,
+    Partial<Pick<ToolbarEntry, "icon" | "tooltip" | "badge" | "isVisible">>
+  >;
+  activeToolbarEntryId?: string | null;
+  onToggleToolbarEntry?: (entryId: string) => void;
+  isToolbarEntryOpen?: boolean;
 }
 
 interface FreezeHandlersOptions {
@@ -249,7 +257,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     !isCollapsed() &&
     !props.isCommentsDropdownOpen &&
     !props.isToolbarMenuOpen &&
-    !props.isClearPromptOpen;
+    !props.isClearPromptOpen &&
+    !props.isToolbarEntryOpen;
 
   const tooltipPosition = (): "top" | "bottom" | "left" | "right" => {
     const edge = snapEdge();
@@ -1059,6 +1068,13 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         isCommentsPinned={props.isCommentsPinned}
         disableGridTransitions={isRapidRetoggle()}
         transformOrigin={getTransformOrigin()}
+        toolbarEntries={props.toolbarEntries}
+        toolbarEntryOverrides={props.toolbarEntryOverrides}
+        activeToolbarEntryId={props.activeToolbarEntryId}
+        onToolbarEntryClick={(entryId, event) => {
+          event.stopPropagation();
+          props.onToggleToolbarEntry?.(entryId);
+        }}
         onAnimationEnd={() => setIsShaking(false)}
         onCollapseClick={handleToggleCollapse}
         onExpandableButtonsRef={(element) => {
@@ -1299,24 +1315,14 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             </span>
           </Show>
           <Show when={selectionHintIndex() === 1}>
-            <span
-              class={cn(
-                "flex items-center gap-1",
-                HINT_FLIP_IN_ANIMATION,
-              )}
-            >
+            <span class={cn("flex items-center gap-1", HINT_FLIP_IN_ANIMATION)}>
               <Kbd>↑</Kbd>
               <Kbd>↓</Kbd>
               to fine-tune target
             </span>
           </Show>
           <Show when={selectionHintIndex() === 2}>
-            <span
-              class={cn(
-                "flex items-center gap-1",
-                HINT_FLIP_IN_ANIMATION,
-              )}
-            >
+            <span class={cn("flex items-center gap-1", HINT_FLIP_IN_ANIMATION)}>
               <Kbd>esc</Kbd>
               to cancel
             </span>

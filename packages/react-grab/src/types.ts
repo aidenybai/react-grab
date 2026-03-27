@@ -318,10 +318,55 @@ export interface PluginHooks {
   ) => string | Promise<string>;
 }
 
+export interface ToolbarEntry {
+  id: string;
+  /**
+   * HTML content for the button icon. Can be:
+   * - An emoji string: "🔍"
+   * - SVG markup: "<svg>...</svg>"
+   * - Any HTML: "<span style='color:red'>X</span>"
+   * Rendered via innerHTML inside the button.
+   */
+  icon: string;
+  tooltip?: string;
+  badge?: string | number;
+  isVisible?: boolean;
+  /**
+   * Called on button click. If onRender is NOT defined,
+   * this is a simple action button (no dropdown).
+   * If onRender IS defined, onClick fires before the dropdown opens.
+   */
+  onClick?: (handle: ToolbarEntryHandle) => void;
+  /**
+   * Called when the dropdown container opens.
+   * Receives a raw HTMLElement to render into (framework-agnostic).
+   * Return an optional cleanup function called when the dropdown closes.
+   */
+  onRender?: (
+    container: HTMLElement,
+    handle: ToolbarEntryHandle,
+  ) => (() => void) | void;
+  onOpen?: (handle: ToolbarEntryHandle) => void;
+  onClose?: () => void;
+}
+
+export interface ToolbarEntryHandle {
+  api: ReactGrabAPI;
+  isOpen: () => boolean;
+  open: () => void;
+  close: () => void;
+  toggle: () => void;
+  setIcon: (icon: string) => void;
+  setTooltip: (tooltip: string) => void;
+  setBadge: (badge: string | number | undefined) => void;
+  setVisible: (isVisible: boolean) => void;
+}
+
 export interface PluginConfig {
   theme?: DeepPartial<Theme>;
   options?: SettableOptions;
   actions?: ContextMenuAction[];
+  toolbarEntries?: ToolbarEntry[];
   hooks?: PluginHooks;
   cleanup?: () => void;
 }
@@ -331,6 +376,7 @@ export interface Plugin {
   theme?: DeepPartial<Theme>;
   options?: SettableOptions;
   actions?: ContextMenuAction[];
+  toolbarEntries?: ToolbarEntry[];
   hooks?: PluginHooks;
   setup?: (api: ReactGrabAPI, hooks: ActionContextHooks) => PluginConfig | void;
 }
@@ -397,6 +443,8 @@ export interface ReactGrabAPI {
   unregisterPlugin: (name: string) => void;
   getPlugins: () => string[];
   getDisplayName: (element: Element) => string | null;
+  toggleToolbarEntry: (entryId: string) => void;
+  closeToolbarEntry: () => void;
 }
 
 export interface OverlayBounds {
@@ -550,6 +598,16 @@ export interface ReactGrabRendererProps {
   clearPromptPosition?: DropdownAnchor | null;
   onClearCommentsConfirm?: () => void;
   onClearCommentsCancel?: () => void;
+  toolbarEntries?: ToolbarEntry[];
+  toolbarEntryOverrides?: Record<
+    string,
+    Partial<Pick<ToolbarEntry, "icon" | "tooltip" | "badge" | "isVisible">>
+  >;
+  activeToolbarEntryId?: string | null;
+  activeToolbarEntryHandle?: ToolbarEntryHandle | null;
+  toolbarEntryDropdownPosition?: DropdownAnchor | null;
+  onToggleToolbarEntry?: (entryId: string) => void;
+  onToolbarEntryDismiss?: () => void;
 }
 
 export interface GrabbedBox {

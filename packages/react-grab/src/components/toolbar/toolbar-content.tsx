@@ -1,4 +1,6 @@
+import { For, Show } from "solid-js";
 import type { Component, JSX } from "solid-js";
+import type { ToolbarEntry } from "../../types.js";
 import { cn } from "../../utils/cn.js";
 import { IconSelect } from "../icons/icon-select.jsx";
 import { IconChevron } from "../icons/icon-chevron.jsx";
@@ -31,6 +33,13 @@ export interface ToolbarContentProps {
   toggleButton?: JSX.Element;
   collapseButton?: JSX.Element;
   transformOrigin?: string;
+  toolbarEntries?: ToolbarEntry[];
+  toolbarEntryOverrides?: Record<
+    string,
+    Partial<Pick<ToolbarEntry, "icon" | "tooltip" | "badge" | "isVisible">>
+  >;
+  activeToolbarEntryId?: string | null;
+  onToolbarEntryClick?: (entryId: string, event: MouseEvent) => void;
 }
 
 export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
@@ -216,10 +225,12 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
           "grid relative overflow-visible",
           gridSizeTransitionClass(),
           props.isCollapsed
-            ? (isVertical()
-                ? "grid-rows-[0fr] pointer-events-none"
-                : "grid-cols-[0fr] pointer-events-none")
-            : (isVertical() ? "grid-rows-[1fr]" : "grid-cols-[1fr]"),
+            ? isVertical()
+              ? "grid-rows-[0fr] pointer-events-none"
+              : "grid-cols-[0fr] pointer-events-none"
+            : isVertical()
+              ? "grid-rows-[1fr]"
+              : "grid-cols-[1fr]",
         )}
       >
         <div
@@ -276,6 +287,71 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
                 {props.copyAllButton ?? defaultCopyAllButton()}
               </div>
             </div>
+            <For each={props.toolbarEntries ?? []}>
+              {(toolbarEntry) => {
+                const overrides = () =>
+                  props.toolbarEntryOverrides?.[toolbarEntry.id];
+                const resolvedIcon = () =>
+                  overrides()?.icon ?? toolbarEntry.icon;
+                const resolvedBadge = () =>
+                  overrides()?.badge ?? toolbarEntry.badge;
+                const resolvedIsVisible = () =>
+                  overrides()?.isVisible ?? toolbarEntry.isVisible;
+                const isEntryVisible = () => resolvedIsVisible() !== false;
+
+                return (
+                  <div
+                    class={cn(
+                      "grid",
+                      gridTransitionClass(),
+                      expandGridClass(
+                        Boolean(props.enabled) && isEntryVisible(),
+                      ),
+                    )}
+                  >
+                    <div
+                      class={cn(
+                        "relative overflow-visible",
+                        minDimensionClass(),
+                      )}
+                    >
+                      <button
+                        data-react-grab-ignore-events
+                        data-react-grab-toolbar-entry={toolbarEntry.id}
+                        aria-label={
+                          overrides()?.tooltip ??
+                          toolbarEntry.tooltip ??
+                          "Plugin action"
+                        }
+                        class={cn(
+                          "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox relative",
+                          buttonSpacingClass(),
+                          hitboxConstraintClass(),
+                        )}
+                        onClick={(event) =>
+                          props.onToolbarEntryClick?.(toolbarEntry.id, event)
+                        }
+                      >
+                        <span
+                          class={cn(
+                            "inline-flex items-center justify-center [&>svg]:w-3.5 [&>svg]:h-3.5 text-sm leading-none select-none transition-opacity",
+                            props.activeToolbarEntryId === toolbarEntry.id
+                              ? "opacity-100"
+                              : "opacity-70",
+                          )}
+                          innerHTML={resolvedIcon()}
+                        />
+                        <Show when={resolvedBadge() != null}>
+                          <span class="absolute -top-1 -right-1 min-w-2.5 h-2.5 px-0.5 flex items-center justify-center rounded-full bg-black text-white text-[8px] font-semibold leading-none">
+                            {resolvedBadge()}
+                          </span>
+                        </Show>
+                      </button>
+                    </div>
+                  </div>
+                );
+              }}
+            </For>
           </div>
           <div class="relative shrink-0 overflow-visible">
             {props.toggleButton ?? defaultToggleButton()}
