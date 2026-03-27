@@ -12,19 +12,30 @@ const PLUGIN_NAME = "devtools-toolbar";
 const ICON_RENDER = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>`;
 const ICON_FPS = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`;
 
+interface FiberNode {
+  child?: FiberNode | null;
+  sibling?: FiberNode | null;
+  type?: unknown;
+  elementType?: unknown;
+  alternate?: FiberNode | null;
+  memoizedProps?: unknown;
+  memoizedState?: unknown;
+  flags?: number;
+  stateNode?: unknown;
+}
+
 interface RenderRecord {
   componentName: string;
   count: number;
   lastTimestamp: number;
 }
 
-const createRenderMonitorEntry = (): ToolbarEntry => {
+const createRenderMonitorEntry = (): ToolbarEntry & { dispose: () => void } => {
   const renderCounts = new Map<string, RenderRecord>();
   let totalRenderCount = 0;
   let isMonitoring = false;
-  let patchedRoots = new WeakSet<object>();
 
-  const getComponentName = (fiber: { type?: unknown; elementType?: unknown }): string | null => {
+  const getComponentName = (fiber: FiberNode): string | null => {
     const type = fiber.type ?? fiber.elementType;
     if (!type) return null;
     if (typeof type === "string") return null;
@@ -40,10 +51,18 @@ const createRenderMonitorEntry = (): ToolbarEntry => {
     return null;
   };
 
-  const traverseFiber = (fiber: { child?: unknown; sibling?: unknown; type?: unknown; elementType?: unknown; alternate?: unknown; stateNode?: unknown } | null | undefined) => {
+  const didFiberRender = (fiber: FiberNode): boolean => {
+    if (!fiber.alternate) return true;
+    return (
+      fiber.memoizedProps !== fiber.alternate.memoizedProps ||
+      fiber.memoizedState !== fiber.alternate.memoizedState
+    );
+  };
+
+  const traverseFiber = (fiber: FiberNode | null | undefined) => {
     if (!fiber) return;
-    const componentName = getComponentName(fiber as { type?: unknown; elementType?: unknown });
-    if (componentName) {
+    const componentName = getComponentName(fiber);
+    if (componentName && didFiberRender(fiber)) {
       const existing = renderCounts.get(componentName);
       if (existing) {
         existing.count++;
@@ -57,8 +76,8 @@ const createRenderMonitorEntry = (): ToolbarEntry => {
       }
       totalRenderCount++;
     }
-    traverseFiber(fiber.child as typeof fiber);
-    traverseFiber(fiber.sibling as typeof fiber);
+    traverseFiber(fiber.child);
+    traverseFiber(fiber.sibling);
   };
 
   const startMonitoring = (handle: { setBadge: (badge: string | number | undefined) => void }) => {
@@ -68,43 +87,41 @@ const createRenderMonitorEntry = (): ToolbarEntry => {
     totalRenderCount = 0;
 
     const hook = (window as unknown as Record<string, unknown>).__REACT_DEVTOOLS_GLOBAL_HOOK__ as {
-      onCommitFiberRoot?: (
-        rendererID: number,
-        fiberRoot: { current?: unknown },
-      ) => void;
-      _originalOnCommitFiberRoot?: typeof Function.prototype;
+      onCommitFiberRoot?: (...args: unknown[]) => void;
+      _originalOnCommitFiberRoot?: (...args: unknown[]) => void;
     } | undefined;
 
     if (!hook) return;
 
     if (!hook._originalOnCommitFiberRoot) {
-      hook._originalOnCommitFiberRoot = hook.onCommitFiberRoot as typeof Function.prototype;
+      hook._originalOnCommitFiberRoot = hook.onCommitFiberRoot;
     }
 
     const originalOnCommit = hook._originalOnCommitFiberRoot;
 
-    hook.onCommitFiberRoot = (rendererID: number, fiberRoot: { current?: unknown }) => {
+    hook.onCommitFiberRoot = (...args: unknown[]) => {
       if (typeof originalOnCommit === "function") {
-        originalOnCommit.call(hook, rendererID, fiberRoot);
+        originalOnCommit.call(hook, ...args);
       }
 
       if (!isMonitoring) return;
-      if (patchedRoots.has(fiberRoot)) return;
 
-      traverseFiber(fiberRoot.current as Parameters<typeof traverseFiber>[0]);
-      handle.setBadge(totalRenderCount);
+      const fiberRoot = args[1] as { current?: FiberNode } | undefined;
+      if (fiberRoot?.current) {
+        traverseFiber(fiberRoot.current);
+        handle.setBadge(totalRenderCount);
+      }
     };
   };
 
   const stopMonitoring = () => {
     isMonitoring = false;
-    patchedRoots = new WeakSet<object>();
     const hook = (window as unknown as Record<string, unknown>).__REACT_DEVTOOLS_GLOBAL_HOOK__ as {
       onCommitFiberRoot?: unknown;
-      _originalOnCommitFiberRoot?: typeof Function.prototype;
+      _originalOnCommitFiberRoot?: (...args: unknown[]) => void;
     } | undefined;
     if (hook?._originalOnCommitFiberRoot) {
-      hook.onCommitFiberRoot = hook._originalOnCommitFiberRoot as typeof hook.onCommitFiberRoot;
+      hook.onCommitFiberRoot = hook._originalOnCommitFiberRoot;
     }
   };
 
@@ -112,6 +129,9 @@ const createRenderMonitorEntry = (): ToolbarEntry => {
     id: "render-monitor",
     icon: ICON_RENDER,
     tooltip: "Render Monitor",
+    dispose: () => {
+      if (isMonitoring) stopMonitoring();
+    },
     onClick: (handle) => {
       if (isMonitoring) {
         stopMonitoring();
@@ -196,7 +216,7 @@ const createRenderMonitorEntry = (): ToolbarEntry => {
   };
 };
 
-const createFpsMonitorEntry = (): ToolbarEntry => {
+const createFpsMonitorEntry = (): ToolbarEntry & { dispose: () => void } => {
   let isRunning = false;
   let animationFrameId: number | null = null;
   let lastFrameTimestamp = 0;
@@ -278,6 +298,9 @@ const createFpsMonitorEntry = (): ToolbarEntry => {
     id: "fps-monitor",
     icon: ICON_FPS,
     tooltip: "FPS Monitor",
+    dispose: () => {
+      if (isRunning) stopMeasuring();
+    },
     onClick: (handle) => {
       if (isRunning) {
         stopMeasuring();
@@ -374,12 +397,17 @@ const createFpsMonitorEntry = (): ToolbarEntry => {
 
 export function ToolbarEntriesProvider() {
   useEffect(() => {
+    const renderEntry = createRenderMonitorEntry();
+    const fpsEntry = createFpsMonitorEntry();
+
     registerPlugin({
       name: PLUGIN_NAME,
-      toolbarEntries: [createRenderMonitorEntry(), createFpsMonitorEntry()],
+      toolbarEntries: [renderEntry, fpsEntry],
     });
 
     return () => {
+      renderEntry.dispose();
+      fpsEntry.dispose();
       unregisterPlugin(PLUGIN_NAME);
     };
   }, []);
