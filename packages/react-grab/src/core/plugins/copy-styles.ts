@@ -19,7 +19,7 @@ export const copyStylesPlugin = createPendingSelectionPlugin({
           .join("\n\n");
 
         const stackContext = await api.getStackContext(context.element);
-        return copyContent(appendStackContext(combinedCss, stackContext), {
+        return await copyContent(appendStackContext(combinedCss, stackContext), {
           componentName: context.componentName,
           tagName: context.tagName,
         });

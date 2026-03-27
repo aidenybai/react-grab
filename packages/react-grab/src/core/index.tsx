@@ -3864,8 +3864,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
-    const copyCommentItemContent = (item: CommentItem) => {
-      copyContent(item.content, {
+    const copyCommentItemContent = async (item: CommentItem) => {
+      await copyContent(item.content, {
         tagName: item.tagName,
         componentName: item.componentName ?? item.elementName,
         commentText: item.commentText,
@@ -3907,7 +3907,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
-    const handleCommentsCopyAll = () => {
+    const handleCommentsCopyAll = async () => {
       clearCommentsHoverPreviews();
       const currentCommentItems = commentItems();
       if (currentCommentItems.length === 0) return;
@@ -3917,7 +3917,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       );
 
       const firstItem = currentCommentItems[0];
-      copyContent(combinedContent, {
+      await copyContent(combinedContent, {
         componentName: firstItem.componentName ?? firstItem.tagName,
         entries: currentCommentItems.map((commentItem) => ({
           tagName: commentItem.tagName,

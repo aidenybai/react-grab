@@ -73,7 +73,7 @@ export const tryCopyWithFallback = async (
         ? `${extraPrompt}\n\n${transformedContent}`
         : transformedContent;
 
-      didCopy = copyContent(copiedContent, {
+      didCopy = await copyContent(copiedContent, {
         componentName: options.componentName,
         entries,
       });
