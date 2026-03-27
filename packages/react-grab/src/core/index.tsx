@@ -2389,7 +2389,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       items: actionCycleItems(),
       activeIndex: actionCycleActiveIndex(),
       isVisible:
-        actionCycleActiveIndex() !== null && actionCycleItems().length > 0,
+        actionCycleActiveIndex() !== null &&
+        actionCycleItems().length > 0 &&
+        !isCommentMode(),
     }));
 
     const arrowNavigationItems = createMemo(() =>
