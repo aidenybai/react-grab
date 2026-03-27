@@ -59,8 +59,8 @@ export const mountRoot = (cssText?: string) => {
   // HACK: re-append after a delay to ensure we're the last child of body.
   // This handles two cases:
   //   1. Hydration blew away the DOM and the host was removed
-  //   2. Another tool (e.g. react-scan) appended at the same max z-index —
-  //      being last in DOM order wins the stacking tiebreaker
+  //   2. Another tool (e.g. react-scan) appended at the same max z-index,
+  //      so being last in DOM order wins the stacking tiebreaker
   // appendChild of an existing node is an atomic move (no flash, no reflow).
   setTimeout(() => {
     doc.appendChild(host);

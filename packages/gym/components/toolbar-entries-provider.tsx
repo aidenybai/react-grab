@@ -335,9 +335,9 @@ const createFpsMonitorEntry = (): ToolbarEntry => {
                 ${fpsHistory.length > 1 ? `<polyline points="${sparklinePoints}" fill="none" stroke="${fpsColor}" stroke-width="1.5"/>` : ""}
               </svg>
               <div style="display:flex;gap:12px;font-size:11px;color:#666">
-                <span>Min <strong style="color:black">${minFps === Infinity ? "—" : minFps}</strong></span>
-                <span>Avg <strong style="color:black">${avgFps || "—"}</strong></span>
-                <span>Max <strong style="color:black">${maxFps || "—"}</strong></span>
+                <span>Min <strong style="color:black">${minFps === Infinity ? "-" : minFps}</strong></span>
+                <span>Avg <strong style="color:black">${avgFps || "-"}</strong></span>
+                <span>Max <strong style="color:black">${maxFps || "-"}</strong></span>
                 <span>Drops <strong style="color:${longFrameCount > 0 ? "#e53e3e" : "black"}">${longFrameCount}</strong></span>
               </div>
             `

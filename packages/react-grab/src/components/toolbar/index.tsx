@@ -610,7 +610,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     const readExpandableDimension = () =>
       isVerticalEdge ? lastKnownExpandableHeight : lastKnownExpandableWidth;
 
-    // HACK: Skip measuring during an active toggle animation — the CSS grid transition is
+    // HACK: Skip measuring during an active toggle animation. The CSS grid transition is
     // mid-flight so getBoundingClientRect returns a partial value that contaminates
     // lastKnownExpandableWidth and causes permanent position drift.
     if (isCurrentlyEnabled && expandableButtonsRef && !isToggleAnimating()) {

@@ -82,7 +82,7 @@ nr format      # Format code with oxfmt
 - **Use TypeScript interfaces** over types
 - **Use arrow functions** over function declarations
 - **Use kebab-case** for file names
-- **Use descriptive variable names** — avoid shorthands or 1-2 character names
+- **Use descriptive variable names**:avoid shorthands or 1-2 character names
   - Example: `innerElement` instead of `el`
   - Example: `didPositionChange` instead of `moved`
 - **Avoid type casting** (`as`) unless absolutely necessary
@@ -113,12 +113,12 @@ git commit -m "feat: add new feature"
 
 We use conventional commits:
 
-- `feat:` — New feature
-- `fix:` — Bug fix
-- `docs:` — Documentation changes
-- `chore:` — Maintenance tasks
-- `refactor:` — Code refactoring
-- `test:` — Test additions or changes
+- `feat:`:New feature
+- `fix:`:Bug fix
+- `docs:`:Documentation changes
+- `chore:`:Maintenance tasks
+- `refactor:`:Code refactoring
+- `test:`:Test additions or changes
 
 ### Adding a Changeset
 
