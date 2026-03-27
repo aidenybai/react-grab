@@ -51,7 +51,7 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: >-
-          pnpm dlx https://pkg.pr.new/expect-cli@588e8c6 --verbose -y -m
+          pnpm dlx https://pkg.pr.new/expect-cli@0b196b8 --verbose -y -m
           "Test only the element properties panel feature at http://localhost:5175.
           Do not explore unrelated flows. If a step is blocked after one retry, fail with evidence.
 
