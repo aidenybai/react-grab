@@ -44,17 +44,29 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: >-
-          pnpm dlx expect-cli@0.0.10 -y -m
-          "Test the element properties panel feature at http://localhost:5175.
-          react-grab is a browser overlay tool that lets you inspect React elements.
-          You activate it by holding the Meta/Ctrl key, then hovering over elements
-          shows a selection label with the element tag name and component name.
+          pnpm dlx https://pkg.pr.new/expect-cli@eec6884 -y -m
+          "Test only the element properties panel feature at http://localhost:5175.
+          Do not explore unrelated flows. If a step is blocked after one retry, fail with evidence.
 
-          How to activate react-grab:
-          1. Hold the Meta key (Cmd on Mac, Ctrl on Linux) for ~200ms to activate the overlay.
-          2. While holding Meta, hover over elements to see the selection highlight.
-          3. Click an element to select it — a selection label appears below it.
-          4. Press arrow keys (Up/Down) to navigate the DOM tree (parent/child).
+          react-grab is a browser overlay tool that lets you inspect React elements.
+          When active, hovering over elements shows a selection label with the element
+          tag name and component name.
+
+          Important repo-specific testing notes:
+          1. This GitHub Actions run is on Linux, so the default activation shortcut is Ctrl+C.
+             Do not try to activate react-grab by holding only Ctrl.
+          2. React Grab is in toggle mode by default. Press Ctrl+C once to activate it,
+             then hover elements and click to select them.
+          3. If keyboard activation is flaky in CI, you may call window.__REACT_GRAB__.activate()
+             from a Playwright evaluation instead.
+          4. For assertions, prefer Playwright evaluation against the app state and shadow DOM
+             over ARIA snapshots for the overlay UI.
+          5. The overlay renders inside the shadow root of the element matching [data-react-grab].
+             Helpful assertions can use window.__REACT_GRAB__.getState() and
+             document.querySelector('[data-react-grab]')?.shadowRoot, especially
+             [data-react-grab-selection-label].
+          6. After activation, hover an element, click it to select it, then use ArrowUp / ArrowDown
+             to navigate and verify the panel updates.
 
           What changed in this branch:
           The old inspect stack (a list of ancestor elements you could arrow-navigate through)
@@ -69,7 +81,7 @@ jobs:
           - Box model overlay: margin regions rendered as semi-transparent overlay around the selection, padding regions rendered inside.
 
           Test scenarios:
-          1. Activate react-grab (hold Meta), hover over the Todo List heading, click to select it, then press ArrowUp to navigate to parent — verify the properties panel appears showing size, font info, and class names.
+          1. Activate react-grab with Ctrl+C, hover over the Todo List heading, click to select it, then press ArrowUp to navigate to parent — verify the properties panel appears showing size, font info, and class names.
           2. Select a button element (e.g. Submit button in the form section) — navigate with arrows and verify the panel shows the buttons role as button and keyboard-focusable as Yes.
           3. Select a text element and check that color swatches appear next to Color and Background values.
           4. Select a table cell and verify the accessibility section shows role cell.
