@@ -191,7 +191,57 @@ actions: [
 ];
 ```
 
-See [`packages/react-grab/src/types.ts`](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/types.ts) for the full `Plugin`, `PluginHooks`, and `PluginConfig` interfaces.
+### Toolbar Entries
+
+Add custom buttons directly to the toolbar with `toolbarEntries`. Each entry can be a simple action button or open a dropdown panel:
+
+```js
+registerPlugin({
+  name: "fps-monitor",
+  toolbarEntries: [
+    {
+      id: "fps",
+      icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/></svg>',
+      tooltip: "FPS Monitor",
+      // Action-only button (no dropdown) — just toggle FPS tracking
+      onClick: (handle) => {
+        if (tracking) {
+          stopTracking();
+          handle.setBadge(undefined);
+        } else {
+          startTracking((fps) => handle.setBadge(fps));
+        }
+      },
+    },
+    {
+      id: "render-monitor",
+      icon: "🔍",
+      tooltip: "Render Monitor",
+      // Dropdown button — onRender receives a raw DOM container
+      onRender: (container, handle) => {
+        container.innerHTML = `<div style="padding:12px">
+          <strong>Renders: 0</strong>
+          <button id="clear">Clear</button>
+        </div>`;
+
+        container.querySelector("#clear").addEventListener("click", () => {
+          handle.setBadge(undefined);
+        });
+
+        // Return a cleanup function (called when dropdown closes)
+        return () => { /* teardown */ };
+      },
+    },
+  ],
+});
+```
+
+The `handle` passed to callbacks provides:
+- `handle.setBadge(value)` / `handle.setIcon(html)` / `handle.setTooltip(text)` — update the button at runtime
+- `handle.open()` / `handle.close()` / `handle.toggle()` — control the dropdown
+- `handle.api` — full React Grab API access
+
+See [`packages/react-grab/src/types.ts`](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/types.ts) for the full `Plugin`, `PluginHooks`, `PluginConfig`, `ToolbarEntry`, and `ToolbarEntryHandle` interfaces.
 
 ## Resources & Contributing Back
 
