@@ -35,15 +35,14 @@ export const ToolbarEntryContainer: Component<ToolbarEntryContainerProps> = (
   createEffect(
     on(
       () => ({
-        toolbarEntry: props.entry,
-        handle: props.handle,
+        entry: props.entry,
         isAnimatedIn: dropdown.isAnimatedIn(),
       }),
-      ({ toolbarEntry, handle, isAnimatedIn }) => {
-        if (!toolbarEntry?.onRender || !handle || !isAnimatedIn || !contentRef)
-          return;
+      ({ entry, isAnimatedIn }) => {
+        const handle = props.handle;
+        if (!entry?.onRender || !handle || !isAnimatedIn || !contentRef) return;
         contentRef.innerHTML = "";
-        const cleanup = toolbarEntry.onRender(contentRef, handle);
+        const cleanup = entry.onRender(contentRef, handle);
         dropdown.measure();
         if (cleanup) {
           onCleanup(cleanup);

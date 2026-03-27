@@ -3834,48 +3834,32 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setClearPromptPosition(null);
     };
 
-    const toolbarEntryHandleCache = new Map<string, ToolbarEntryHandle>();
+    const getToolbarEntryHandle = (entryId: string): ToolbarEntryHandle => ({
+      api,
+      isOpen: () => activeToolbarEntryId() === entryId,
+      open: () => {
+        if (activeToolbarEntryId() !== entryId)
+          handleToggleToolbarEntry(entryId);
+      },
+      close: () => {
+        if (activeToolbarEntryId() === entryId) dismissToolbarEntry();
+      },
+      toggle: () => handleToggleToolbarEntry(entryId),
+      setIcon: (icon) => pluginRegistry.updateToolbarEntry(entryId, { icon }),
+      setTooltip: (tooltip) =>
+        pluginRegistry.updateToolbarEntry(entryId, { tooltip }),
+      setBadge: (badge) =>
+        pluginRegistry.updateToolbarEntry(entryId, { badge }),
+      setVisible: (isVisible) =>
+        pluginRegistry.updateToolbarEntry(entryId, { isVisible }),
+    });
 
     const activeToolbarEntryHandle = (): ToolbarEntryHandle | null => {
-      const currentEntryId = activeToolbarEntryId();
-      return currentEntryId ? getToolbarEntryHandle(currentEntryId) : null;
-    };
-
-    const getToolbarEntryHandle = (entryId: string): ToolbarEntryHandle => {
-      const cached = toolbarEntryHandleCache.get(entryId);
-      if (cached) return cached;
-
-      const handle: ToolbarEntryHandle = {
-        api,
-        isOpen: () => activeToolbarEntryId() === entryId,
-        open: () => {
-          if (activeToolbarEntryId() !== entryId)
-            handleToggleToolbarEntry(entryId);
-        },
-        close: () => {
-          if (activeToolbarEntryId() === entryId) dismissToolbarEntry();
-        },
-        toggle: () => handleToggleToolbarEntry(entryId),
-        setIcon: (icon) => pluginRegistry.updateToolbarEntry(entryId, { icon }),
-        setTooltip: (tooltip) =>
-          pluginRegistry.updateToolbarEntry(entryId, { tooltip }),
-        setBadge: (badge) =>
-          pluginRegistry.updateToolbarEntry(entryId, { badge }),
-        setVisible: (isVisible) =>
-          pluginRegistry.updateToolbarEntry(entryId, { isVisible }),
-      };
-      toolbarEntryHandleCache.set(entryId, handle);
-      return handle;
+      const activeEntryId = activeToolbarEntryId();
+      return activeEntryId ? getToolbarEntryHandle(activeEntryId) : null;
     };
 
     const dismissToolbarEntry = () => {
-      const currentEntryId = activeToolbarEntryId();
-      if (currentEntryId) {
-        const entry = pluginRegistry.store.toolbarEntries.find(
-          (toolbarEntry) => toolbarEntry.id === currentEntryId,
-        );
-        entry?.onClose?.();
-      }
       stopTrackingDropdownPosition();
       setToolbarEntryDropdownPosition(null);
       setActiveToolbarEntryId(null);
@@ -3904,24 +3888,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         entry.onClick?.(handle);
         setActiveToolbarEntryId(entryId);
         openTrackedDropdown(setToolbarEntryDropdownPosition);
-        entry.onOpen?.(handle);
-      }
-    };
-
-    const cleanupStaleToolbarEntryHandles = () => {
-      const currentEntryIds = new Set(
-        pluginRegistry.store.toolbarEntries.map(
-          (toolbarEntry) => toolbarEntry.id,
-        ),
-      );
-      for (const cachedEntryId of toolbarEntryHandleCache.keys()) {
-        if (!currentEntryIds.has(cachedEntryId)) {
-          toolbarEntryHandleCache.delete(cachedEntryId);
-        }
-      }
-      const activeEntryId = activeToolbarEntryId();
-      if (activeEntryId && !currentEntryIds.has(activeEntryId)) {
-        dismissToolbarEntry();
       }
     };
 
@@ -4306,10 +4272,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                   handleCommentsClear();
                 }}
                 onClearCommentsCancel={dismissClearPrompt}
-                toolbarEntries={pluginRegistry.store.toolbarEntries}
-                toolbarEntryOverrides={
-                  pluginRegistry.store.toolbarEntryOverrides
-                }
+                toolbarEntries={pluginRegistry.resolvedToolbarEntries()}
                 activeToolbarEntryId={activeToolbarEntryId()}
                 activeToolbarEntryHandle={activeToolbarEntryHandle()}
                 toolbarEntryDropdownPosition={toolbarEntryDropdownPosition()}
@@ -4448,7 +4411,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         cancelCommentsHoverOpenTimeout();
         cancelCommentsHoverCloseTimeout();
         stopTrackingDropdownPosition();
-        toolbarEntryHandleCache.clear();
         toolbarStateChangeCallbacks.clear();
         dispose();
       },
@@ -4482,12 +4444,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
       registerPlugin: (plugin: Plugin) => {
         pluginRegistry.register(plugin, api);
-        cleanupStaleToolbarEntryHandles();
         syncAgentFromRegistry();
       },
       unregisterPlugin: (name: string) => {
         pluginRegistry.unregister(name);
-        cleanupStaleToolbarEntryHandles();
+        const activeEntryId = activeToolbarEntryId();
+        if (
+          activeEntryId &&
+          !pluginRegistry.store.toolbarEntries.some(
+            (toolbarEntry) => toolbarEntry.id === activeEntryId,
+          )
+        ) {
+          dismissToolbarEntry();
+        }
         syncAgentFromRegistry();
       },
       getPlugins: () => pluginRegistry.getPluginNames(),

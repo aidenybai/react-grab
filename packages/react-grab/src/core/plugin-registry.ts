@@ -190,20 +190,6 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       registered.config.cleanup();
     }
 
-    const removedEntryIds = new Set(
-      (registered.config.toolbarEntries ?? []).map(
-        (toolbarEntry) => toolbarEntry.id,
-      ),
-    );
-    if (removedEntryIds.size > 0) {
-      const filteredOverrides = Object.fromEntries(
-        Object.entries(store.toolbarEntryOverrides).filter(
-          ([entryId]) => !removedEntryIds.has(entryId),
-        ),
-      );
-      setStore("toolbarEntryOverrides", filteredOverrides);
-    }
-
     plugins.delete(name);
     recomputeStore();
   };
@@ -381,12 +367,20 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     }));
   };
 
+  const resolvedToolbarEntries = (): ToolbarEntry[] =>
+    store.toolbarEntries.map((toolbarEntry) => {
+      const overrides = store.toolbarEntryOverrides[toolbarEntry.id];
+      if (!overrides) return toolbarEntry;
+      return { ...toolbarEntry, ...overrides };
+    });
+
   return {
     register,
     unregister,
     getPluginNames,
     setOptions,
     updateToolbarEntry,
+    resolvedToolbarEntries,
     store,
     hooks,
   };
