@@ -98,6 +98,10 @@ interface ToolbarProps {
   onToggleToolbarMenu?: () => void;
   isToolbarMenuOpen?: boolean;
   toolbarEntries?: ToolbarEntry[];
+  toolbarEntryOverrides?: Record<
+    string,
+    Partial<Pick<ToolbarEntry, "icon" | "tooltip" | "badge" | "isVisible">>
+  >;
   activeToolbarEntryId?: string | null;
   onToggleToolbarEntry?: (entryId: string) => void;
   isToolbarEntryOpen?: boolean;
@@ -1065,6 +1069,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         disableGridTransitions={isRapidRetoggle()}
         transformOrigin={getTransformOrigin()}
         toolbarEntries={props.toolbarEntries}
+        toolbarEntryOverrides={props.toolbarEntryOverrides}
         activeToolbarEntryId={props.activeToolbarEntryId}
         onToolbarEntryClick={(entryId, event) => {
           event.stopPropagation();

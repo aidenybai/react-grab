@@ -367,20 +367,12 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     }));
   };
 
-  const resolvedToolbarEntries = (): ToolbarEntry[] =>
-    store.toolbarEntries.map((toolbarEntry) => {
-      const overrides = store.toolbarEntryOverrides[toolbarEntry.id];
-      if (!overrides) return toolbarEntry;
-      return { ...toolbarEntry, ...overrides };
-    });
-
   return {
     register,
     unregister,
     getPluginNames,
     setOptions,
     updateToolbarEntry,
-    resolvedToolbarEntries,
     store,
     hooks,
   };

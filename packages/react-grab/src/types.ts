@@ -597,6 +597,10 @@ export interface ReactGrabRendererProps {
   onClearCommentsConfirm?: () => void;
   onClearCommentsCancel?: () => void;
   toolbarEntries?: ToolbarEntry[];
+  toolbarEntryOverrides?: Record<
+    string,
+    Partial<Pick<ToolbarEntry, "icon" | "tooltip" | "badge" | "isVisible">>
+  >;
   activeToolbarEntryId?: string | null;
   activeToolbarEntryHandle?: ToolbarEntryHandle | null;
   toolbarEntryDropdownPosition?: DropdownAnchor | null;

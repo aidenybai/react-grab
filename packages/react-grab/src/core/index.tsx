@@ -4272,7 +4272,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                   handleCommentsClear();
                 }}
                 onClearCommentsCancel={dismissClearPrompt}
-                toolbarEntries={pluginRegistry.resolvedToolbarEntries()}
+                toolbarEntries={pluginRegistry.store.toolbarEntries}
+                toolbarEntryOverrides={
+                  pluginRegistry.store.toolbarEntryOverrides
+                }
                 activeToolbarEntryId={activeToolbarEntryId()}
                 activeToolbarEntryHandle={activeToolbarEntryHandle()}
                 toolbarEntryDropdownPosition={toolbarEntryDropdownPosition()}

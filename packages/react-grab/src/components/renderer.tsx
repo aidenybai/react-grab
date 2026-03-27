@@ -219,6 +219,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           isToolbarMenuOpen={Boolean(props.toolbarMenuPosition)}
           isClearPromptOpen={Boolean(props.clearPromptPosition)}
           toolbarEntries={props.toolbarEntries}
+          toolbarEntryOverrides={props.toolbarEntryOverrides}
           activeToolbarEntryId={props.activeToolbarEntryId}
           onToggleToolbarEntry={props.onToggleToolbarEntry}
           isToolbarEntryOpen={Boolean(props.toolbarEntryDropdownPosition)}
