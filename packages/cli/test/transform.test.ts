@@ -257,13 +257,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     );
     mockReadFileSync.mockReturnValue(entryContent);
 
-    const result = previewTransform(
-      "/test",
-      "vite",
-      "unknown",
-      "mcp",
-      false,
-    );
+    const result = previewTransform("/test", "vite", "unknown", "mcp", false);
 
     expect(result.success).toBe(true);
     expect(result.newContent).toContain("react-grab");
