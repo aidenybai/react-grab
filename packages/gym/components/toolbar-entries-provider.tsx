@@ -53,6 +53,8 @@ const createRenderMonitorEntry = (): ToolbarEntry & { dispose: () => void } => {
 
   const didFiberRender = (fiber: FiberNode): boolean => {
     if (!fiber.alternate) return true;
+    // Check flags for context-driven and parent-driven updates
+    if (fiber.flags && fiber.flags > 0) return true;
     return (
       fiber.memoizedProps !== fiber.alternate.memoizedProps ||
       fiber.memoizedState !== fiber.alternate.memoizedState
