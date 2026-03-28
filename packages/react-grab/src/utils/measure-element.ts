@@ -4,86 +4,73 @@ import {
   nativeCancelAnimationFrame,
 } from "./native-raf.js";
 
-interface MeasureElementHandle {
+interface ElementMeasurerHandle {
   observe: (element: Element) => void;
   unobserve: (element: Element) => void;
   disconnect: () => void;
 }
 
 export const createElementMeasurer = (
-  onMeasure: (element: Element, measurement: ElementMeasurement) => void,
-): MeasureElementHandle => {
+  onMeasurement: (element: Element, measurement: ElementMeasurement) => void,
+): ElementMeasurerHandle => {
   const trackedElements = new Set<Element>();
-  let frameId: number | undefined;
-  let isDisconnected = false;
+  let pendingFrameId: number | undefined;
+  let didDisconnect = false;
 
-  const observer = new IntersectionObserver(
-    (entries) => {
-      for (const entry of entries) {
-        observer.unobserve(entry.target);
-
-        if (!trackedElements.has(entry.target)) continue;
-
-        const { boundingClientRect } = entry;
-        onMeasure(entry.target, {
-          x: boundingClientRect.x,
-          y: boundingClientRect.y,
-          width: boundingClientRect.width,
-          height: boundingClientRect.height,
-          isIntersecting: entry.isIntersecting,
-          intersectionRatio: entry.intersectionRatio,
-        });
-      }
-
-      scheduleNextFrame();
-    },
-    { threshold: [0, 0.01, 0.1, 0.25, 0.5, 0.75, 1] },
-  );
-
-  const observeTrackedElements = () => {
-    for (const element of trackedElements) {
-      observer.observe(element);
-    }
+  const cancelPendingFrame = () => {
+    if (pendingFrameId === undefined) return;
+    nativeCancelAnimationFrame(pendingFrameId);
+    pendingFrameId = undefined;
   };
 
   const scheduleNextFrame = () => {
-    if (isDisconnected || trackedElements.size === 0) return;
+    if (didDisconnect || trackedElements.size === 0) return;
+    cancelPendingFrame();
 
-    if (frameId !== undefined) {
-      nativeCancelAnimationFrame(frameId);
-    }
-
-    frameId = nativeRequestAnimationFrame(() => {
-      frameId = undefined;
-      observeTrackedElements();
+    pendingFrameId = nativeRequestAnimationFrame(() => {
+      pendingFrameId = undefined;
+      for (const element of trackedElements) {
+        intersectionObserver.observe(element);
+      }
     });
   };
 
+  const intersectionObserver = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      intersectionObserver.unobserve(entry.target);
+      if (!trackedElements.has(entry.target)) continue;
+
+      const { boundingClientRect } = entry;
+      onMeasurement(entry.target, {
+        x: boundingClientRect.x,
+        y: boundingClientRect.y,
+        width: boundingClientRect.width,
+        height: boundingClientRect.height,
+        isIntersecting: entry.isIntersecting,
+        intersectionRatio: entry.intersectionRatio,
+      });
+    }
+
+    scheduleNextFrame();
+  });
+
   const observe = (element: Element) => {
-    if (isDisconnected) return;
+    if (didDisconnect) return;
     trackedElements.add(element);
     scheduleNextFrame();
   };
 
   const unobserve = (element: Element) => {
     trackedElements.delete(element);
-    observer.unobserve(element);
-
-    if (trackedElements.size === 0 && frameId !== undefined) {
-      nativeCancelAnimationFrame(frameId);
-      frameId = undefined;
-    }
+    intersectionObserver.unobserve(element);
+    if (trackedElements.size === 0) cancelPendingFrame();
   };
 
   const disconnect = () => {
-    isDisconnected = true;
+    didDisconnect = true;
     trackedElements.clear();
-    observer.disconnect();
-
-    if (frameId !== undefined) {
-      nativeCancelAnimationFrame(frameId);
-      frameId = undefined;
-    }
+    intersectionObserver.disconnect();
+    cancelPendingFrame();
   };
 
   return { observe, unobserve, disconnect };
