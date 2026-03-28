@@ -56,6 +56,14 @@ export const OVERLAY_FILL_COLOR_INSPECT = overlayColor(0.04);
 export const FROZEN_GLOW_COLOR = overlayColor(0.15);
 export const FROZEN_GLOW_EDGE_PX = 50;
 
+export const PLUGIN_PRIORITY_KEYBOARD = 10;
+export const PLUGIN_PRIORITY_NAVIGATION = 20;
+export const PLUGIN_PRIORITY_POINTER = 30;
+export const PLUGIN_PRIORITY_COPY_PIPELINE = 40;
+export const PLUGIN_PRIORITY_MENUS = 50;
+export const PLUGIN_PRIORITY_PROMPT = 60;
+export const PLUGIN_PRIORITY_TOOLBAR = 80;
+
 export const ARROW_HEIGHT_PX = 8;
 export const ARROW_MIN_SIZE_PX = 4;
 export const ARROW_MAX_LABEL_WIDTH_RATIO = 0.2;

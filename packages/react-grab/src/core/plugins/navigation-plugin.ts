@@ -7,7 +7,11 @@ import {
 } from "solid-js";
 import { resolveSource } from "element-source";
 import type { InternalPlugin, ArrowNavigationState } from "../../types.js";
-import { ARROW_KEYS, COMPONENT_NAME_DEBOUNCE_MS } from "../../constants.js";
+import {
+  ARROW_KEYS,
+  COMPONENT_NAME_DEBOUNCE_MS,
+  PLUGIN_PRIORITY_NAVIGATION,
+} from "../../constants.js";
 import { createArrowNavigator } from "../arrow-navigation.js";
 import {
   getNearestComponentName,
@@ -26,7 +30,7 @@ import { getTagName } from "../../utils/get-tag-name.js";
 
 export const navigationPlugin: InternalPlugin = {
   name: "navigation",
-  priority: 20,
+  priority: PLUGIN_PRIORITY_NAVIGATION,
   setup: (ctx) => {
     const { store, actions, derived } = ctx;
     const {
@@ -52,7 +56,6 @@ export const navigationPlugin: InternalPlugin = {
     let componentNameDebounceTimerId: number | null = null;
     let componentNameRequestVersion = 0;
     let selectionSourceRequestVersion = 0;
-    let _keyboardSelectedElement: Element | null = null;
 
     const [
       debouncedElementForComponentName,
@@ -241,7 +244,6 @@ export const navigationPlugin: InternalPlugin = {
     const selectAndFocusElement = (element: Element) => {
       actions.setFrozenElement(element);
       actions.freeze();
-      _keyboardSelectedElement = element;
 
       const { center } = getElementBoundsCenter(element);
       actions.setPointer(center);
@@ -379,7 +381,7 @@ export const navigationPlugin: InternalPlugin = {
         clearTimeout(componentNameDebounceTimerId);
         componentNameDebounceTimerId = null;
       }
-      _keyboardSelectedElement = null;
+
       ctx.shared.clearArrowNavigation = undefined;
     };
   },

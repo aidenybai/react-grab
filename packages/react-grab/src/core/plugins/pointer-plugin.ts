@@ -7,6 +7,7 @@ import {
   DRAG_PREVIEW_DEBOUNCE_MS,
   FEEDBACK_DURATION_MS,
   DEFAULT_ACTION_ID,
+  PLUGIN_PRIORITY_POINTER,
 } from "../../constants.js";
 import { createAutoScroller, getAutoScrollDirection } from "../auto-scroll.js";
 import { getElementAtPosition } from "../../utils/get-element-at-position.js";
@@ -28,7 +29,7 @@ import { combineBounds } from "../../utils/combine-bounds.js";
 
 export const pointerPlugin: InternalPlugin = {
   name: "pointer",
-  priority: 30,
+  priority: PLUGIN_PRIORITY_POINTER,
   setup: (ctx) => {
     const { store, actions, registry, derived } = ctx;
 
@@ -62,8 +63,8 @@ export const pointerPlugin: InternalPlugin = {
         }
         const dragRect = store.frozenDragRect;
         if (dragRect) {
-          const dragBoundsVal = frozenBounds[0];
-          return dragBoundsVal ?? createBoundsFromDragRect(dragRect);
+          const firstFrozenBounds = frozenBounds[0];
+          return firstFrozenBounds ?? createBoundsFromDragRect(dragRect);
         }
         return createFlatOverlayBounds(combineBounds(frozenBounds));
       }

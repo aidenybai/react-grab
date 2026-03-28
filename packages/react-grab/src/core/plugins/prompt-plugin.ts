@@ -27,11 +27,14 @@ import { getBoundsCenter } from "../../utils/get-bounds-center.js";
 import { generateId } from "../../utils/generate-id.js";
 import { logRecoverableError } from "../../utils/log-recoverable-error.js";
 import { nativeRequestAnimationFrame } from "../../utils/native-raf.js";
-import { DROPDOWN_HOVER_OPEN_DELAY_MS } from "../../constants.js";
+import {
+  DROPDOWN_HOVER_OPEN_DELAY_MS,
+  PLUGIN_PRIORITY_PROMPT,
+} from "../../constants.js";
 
 export const promptPlugin: InternalPlugin = {
   name: "prompt",
-  priority: 60,
+  priority: PLUGIN_PRIORITY_PROMPT,
   setup: (ctx) => {
     const { store, actions, registry, shared, derived } = ctx;
     const { isActivated, isPromptMode, targetElement } = derived;

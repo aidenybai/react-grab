@@ -38,13 +38,13 @@ import { getModifiersFromActivationKey } from "../../utils/parse-activation-key.
 import { generateId } from "../../utils/generate-id.js";
 import {
   ACTION_CYCLE_IDLE_TRIGGER_MS,
-  FEEDBACK_DURATION_MS,
-  FADE_COMPLETE_BUFFER_MS,
+  PLUGIN_PRIORITY_MENUS,
 } from "../../constants.js";
+import { createLabelFadeManager } from "../../utils/label-fade-manager.js";
 
 export const menusPlugin: InternalPlugin = {
   name: "menus",
-  priority: 50,
+  priority: PLUGIN_PRIORITY_MENUS,
   setup: (ctx) => {
     const { store, actions, registry, shared, derived } = ctx;
     const {
@@ -92,37 +92,7 @@ export const menusPlugin: InternalPlugin = {
       number | null
     >(null);
 
-    const labelFadeTimeouts = new Map<string, number>();
-
-    const cancelLabelFade = (instanceId: string) => {
-      const timeoutId = labelFadeTimeouts.get(instanceId);
-      if (timeoutId !== undefined) {
-        window.clearTimeout(timeoutId);
-        labelFadeTimeouts.delete(instanceId);
-      }
-    };
-
-    const cancelAllLabelFades = () => {
-      for (const timeoutId of labelFadeTimeouts.values()) {
-        window.clearTimeout(timeoutId);
-      }
-      labelFadeTimeouts.clear();
-    };
-
-    const scheduleLabelFade = (instanceId: string) => {
-      cancelLabelFade(instanceId);
-
-      const timeoutId = window.setTimeout(() => {
-        labelFadeTimeouts.delete(instanceId);
-        actions.updateLabelInstance(instanceId, "fading");
-        setTimeout(() => {
-          labelFadeTimeouts.delete(instanceId);
-          actions.removeLabelInstance(instanceId);
-        }, FADE_COMPLETE_BUFFER_MS);
-      }, FEEDBACK_DURATION_MS);
-
-      labelFadeTimeouts.set(instanceId, timeoutId);
-    };
+    const labelFade = createLabelFadeManager(actions);
 
     const createLabelInstanceWithBounds = (
       bounds: OverlayBounds,
@@ -138,7 +108,7 @@ export const menusPlugin: InternalPlugin = {
       },
     ): string => {
       actions.clearLabelInstances();
-      cancelAllLabelFades();
+      labelFade.cancelAll();
       const instanceId = generateId("label");
       const boundsCenterX = bounds.x + bounds.width / 2;
       const boundsHalfWidth = bounds.width / 2;
@@ -182,7 +152,7 @@ export const menusPlugin: InternalPlugin = {
           errorMessage || "Unknown error",
         );
       }
-      scheduleLabelFade(labelInstanceId);
+      labelFade.schedule(labelInstanceId);
     };
 
     const clearActionCycleIdleTimeout = () => {
@@ -651,7 +621,7 @@ export const menusPlugin: InternalPlugin = {
 
     return () => {
       clearActionCycleIdleTimeout();
-      cancelAllLabelFades();
+      labelFade.cancelAll();
       shared.openContextMenu = undefined;
       shared.buildActionContext = undefined;
       shared.createPerformWithFeedback = undefined;

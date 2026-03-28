@@ -27,11 +27,12 @@ import {
   MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS,
   WINDOW_REFOCUS_GRACE_PERIOD_MS,
   BLUR_DEACTIVATION_THRESHOLD_MS,
+  PLUGIN_PRIORITY_KEYBOARD,
 } from "../../constants.js";
 
 export const keyboardPlugin: InternalPlugin = {
   name: "keyboard",
-  priority: 10,
+  priority: PLUGIN_PRIORITY_KEYBOARD,
   setup: (ctx) => {
     const { store, actions, events, registry, derived } = ctx;
     const {
@@ -66,7 +67,6 @@ export const keyboardPlugin: InternalPlugin = {
       activationHoldState.startTimestamp = null;
     };
 
-    // When entering "holding" state, start a timer that fires activation
     createEffect(() => {
       if (store.current.state !== "holding") {
         clearHoldTimer();
@@ -305,17 +305,9 @@ export const keyboardPlugin: InternalPlugin = {
       }
     };
 
-    // Registered via ctx.onKeyDown at priority 10 (runs first in the interceptor chain).
-    // Handles early concerns (disabled shake, prompt-mode activation key cancel, Escape)
-    // and late catch-all concerns (Enter activation, open file, activation keys).
-    //
-    // In the interceptor chain, returning true claims the event so later plugins don't see it.
-    // Returning false lets the event continue to the next plugin (e.g., navigation at 20).
     ctx.onKeyDown((event) => {
-      // Always try to block Enter propagation when overlay is active
       blockEnterIfNeeded(event);
 
-      // If disabled, shake the toolbar on activation key press
       if (!ctx.shared.isEnabled?.()) {
         if (
           isTargetKeyCombination(event, registry.store.options) &&
@@ -323,10 +315,9 @@ export const keyboardPlugin: InternalPlugin = {
         ) {
           ctx.shared.shakeToolbar?.();
         }
-        return true; // Claim the event — nothing else should handle keys while disabled
+        return true;
       }
 
-      // Prompt mode: activation key cancels input
       const isEnterToActivateInput =
         isEnterCode(event.code) && isHoldingKeys() && !isPromptMode();
 
@@ -346,22 +337,17 @@ export const keyboardPlugin: InternalPlugin = {
         return true;
       }
 
-      // Escape handling: dismiss popups, abort pending sessions, deactivate
-      if (event.key === "Escape") {
-        // Let popup-owning plugins handle Escape for their own dropdowns first
-        // (they run at higher priority numbers, but if they're not present,
-        //  the keyboard plugin handles Escape as the catch-all)
+      const isFromOverlay =
+        isEventFromOverlay(event, "data-react-grab-ignore-events") &&
+        !isEnterToActivateInput;
 
+      if (event.key === "Escape") {
         if (store.pendingAbortSessionId) {
           event.preventDefault();
           event.stopPropagation();
           actions.setPendingAbortSessionId(null);
           return true;
         }
-
-        const isFromOverlay =
-          isEventFromOverlay(event, "data-react-grab-ignore-events") &&
-          !isEnterToActivateInput;
 
         if (isPromptMode() || isFromOverlay) {
           if (isPromptMode()) {
@@ -382,47 +368,20 @@ export const keyboardPlugin: InternalPlugin = {
         }
       }
 
-      // If from overlay (but not Enter-to-activate), let the event pass through
-      // for overlay-specific handlers (arrow navigation in overlay, etc.)
-      const isFromOverlay =
-        isEventFromOverlay(event, "data-react-grab-ignore-events") &&
-        !isEnterToActivateInput;
-
       if (isPromptMode() || isFromOverlay) {
-        // Don't claim — let other plugins (navigation) handle arrow keys in overlay
         return false;
       }
 
-      // Window refocus grace period check
       const didWindowJustRegainFocus =
         Date.now() - lastWindowFocusTimestamp < WINDOW_REFOCUS_GRACE_PERIOD_MS;
 
-      // Let navigation and action cycle plugins handle their keys first
-      // by not claiming — return false so they get a chance.
-      // These handlers (Enter activation, open file, activation keys) are
-      // catch-all handlers that should only run if no other plugin claimed the event.
-      // But since keyboard is priority 10 (runs first), we need to let the event
-      // pass through for navigation (20) and action cycle (50) to handle.
-      //
-      // However, the interceptor chain means if we return false here, every plugin
-      // sees the event. Only the last unclaimed event falls through without handling.
-      //
-      // The solution: Don't try to claim events that other plugins should handle.
-      // Only claim events that are definitively keyboard plugin's responsibility.
-
-      // Enter key activation (prompt mode from last copied or from hold)
       if (handleEnterKeyActivation(event)) return true;
-
-      // Open file shortcut (Cmd/Ctrl+O)
       if (handleOpenFileShortcut(event)) return true;
 
-      // Activation keys (hold to activate) — this is the catch-all
       if (!didWindowJustRegainFocus) {
         handleActivationKeys(event);
       }
 
-      // Don't claim — let other plugins see the event too
-      // (activation keys handler doesn't always need to claim)
       return false;
     });
 

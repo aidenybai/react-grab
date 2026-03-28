@@ -12,6 +12,7 @@ import {
 import {
   TOOLBAR_DEFAULT_POSITION_RATIO,
   DEFAULT_ACTION_ID,
+  PLUGIN_PRIORITY_TOOLBAR,
 } from "../../constants.js";
 import {
   freezePseudoStates,
@@ -35,7 +36,7 @@ const toolbarStateChangeCallbacks = new Set<(state: ToolbarState) => void>();
 
 export const toolbarPlugin: InternalPlugin = {
   name: "toolbar",
-  priority: 80,
+  priority: PLUGIN_PRIORITY_TOOLBAR,
   setup: (ctx) => {
     const { store, actions, registry, api, derived } = ctx;
     const {

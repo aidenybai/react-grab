@@ -30,14 +30,14 @@ import {
   createPageRectFromBounds,
 } from "../../utils/create-bounds-from-drag-rect.js";
 import {
-  FEEDBACK_DURATION_MS,
-  FADE_COMPLETE_BUFFER_MS,
   PREVIEW_TEXT_MAX_LENGTH,
+  PLUGIN_PRIORITY_COPY_PIPELINE,
 } from "../../constants.js";
+import { createLabelFadeManager } from "../../utils/label-fade-manager.js";
 
 export const copyPipelinePlugin: InternalPlugin = {
   name: "copy-pipeline",
-  priority: 40,
+  priority: PLUGIN_PRIORITY_COPY_PIPELINE,
   setup: (ctx) => {
     const { store, actions, registry, events, derived } = ctx;
     const {
@@ -129,50 +129,20 @@ export const copyPipelinePlugin: InternalPlugin = {
       grabbedBoxTimeouts.set(boxId, timeoutId);
     };
 
-    const labelFadeTimeouts = new Map<string, number>();
-
-    const cancelLabelFade = (instanceId: string) => {
-      const existingTimeout = labelFadeTimeouts.get(instanceId);
-      if (existingTimeout !== undefined) {
-        window.clearTimeout(existingTimeout);
-        labelFadeTimeouts.delete(instanceId);
-      }
-    };
-
-    const cancelAllLabelFades = () => {
-      for (const timeoutId of labelFadeTimeouts.values()) {
-        window.clearTimeout(timeoutId);
-      }
-      labelFadeTimeouts.clear();
-    };
-
-    const scheduleLabelFade = (instanceId: string) => {
-      cancelLabelFade(instanceId);
-
-      const timeoutId = window.setTimeout(() => {
-        labelFadeTimeouts.delete(instanceId);
-        actions.updateLabelInstance(instanceId, "fading");
-        setTimeout(() => {
-          labelFadeTimeouts.delete(instanceId);
-          actions.removeLabelInstance(instanceId);
-        }, FADE_COMPLETE_BUFFER_MS);
-      }, FEEDBACK_DURATION_MS);
-
-      labelFadeTimeouts.set(instanceId, timeoutId);
-    };
+    const labelFade = createLabelFadeManager(actions);
 
     const handleLabelInstanceHoverChange = (
       instanceId: string,
       isHovered: boolean,
     ) => {
       if (isHovered) {
-        cancelLabelFade(instanceId);
+        labelFade.cancel(instanceId);
       } else {
         const instance = store.labelInstances.find(
           (labelInstance) => labelInstance.id === instanceId,
         );
         if (instance && instance.status === "copied") {
-          scheduleLabelFade(instanceId);
+          labelFade.schedule(instanceId);
         }
       }
     };
@@ -191,7 +161,7 @@ export const copyPipelinePlugin: InternalPlugin = {
       },
     ): string => {
       actions.clearLabelInstances();
-      cancelAllLabelFades();
+      labelFade.cancelAll();
       const instanceId = generateId("label");
       const boundsCenterX = bounds.x + bounds.width / 2;
       const boundsHalfWidth = bounds.width / 2;
@@ -222,7 +192,7 @@ export const copyPipelinePlugin: InternalPlugin = {
     };
 
     const clearAllLabels = () => {
-      cancelAllLabelFades();
+      labelFade.cancelAll();
       actions.clearLabelInstances();
     };
 
@@ -240,7 +210,7 @@ export const copyPipelinePlugin: InternalPlugin = {
           errorMessage || "Unknown error",
         );
       }
-      scheduleLabelFade(labelInstanceId);
+      labelFade.schedule(labelInstanceId);
     };
 
     const notifyElementsSelected = async (
@@ -761,7 +731,7 @@ export const copyPipelinePlugin: InternalPlugin = {
       }
       grabbedBoxTimeouts.clear();
 
-      cancelAllLabelFades();
+      labelFade.cancelAll();
 
       if (cursorStyleElement) {
         cursorStyleElement.remove();
