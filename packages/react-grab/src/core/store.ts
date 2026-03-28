@@ -669,3 +669,4 @@ const createGrabStore = (input: GrabStoreInput) => {
 };
 
 export { createGrabStore };
+export type { GrabStore, GrabActions, GrabState, GrabPhase };

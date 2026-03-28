@@ -381,6 +381,56 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     }));
   };
 
+  // Interceptor chain: priority-ordered handlers for each event type
+  type InterceptorEntry = { priority: number; handler: (event: never) => boolean };
+  const interceptors = {
+    keydown: [] as InterceptorEntry[],
+    keyup: [] as InterceptorEntry[],
+    pointerdown: [] as InterceptorEntry[],
+    pointermove: [] as InterceptorEntry[],
+    pointerup: [] as InterceptorEntry[],
+    contextmenu: [] as InterceptorEntry[],
+  };
+
+  const addInterceptor = (
+    eventType: keyof typeof interceptors,
+    priority: number,
+    handler: (event: never) => boolean,
+  ) => {
+    const chain = interceptors[eventType];
+    chain.push({ priority, handler });
+    chain.sort((first, second) => first.priority - second.priority);
+  };
+
+  const dispatchInterceptor = <E extends Event>(
+    eventType: keyof typeof interceptors,
+    event: E,
+  ): boolean => {
+    for (const { handler } of interceptors[eventType]) {
+      if ((handler as (event: E) => boolean)(event)) return true;
+    }
+    return false;
+  };
+
+  // Renderer prop contributions: plugins register reactive accessors
+  const rendererContributions = new Map<string, () => unknown>();
+
+  const provideRendererProp = (key: string, accessor: () => unknown) => {
+    rendererContributions.set(key, accessor);
+  };
+
+  const getRendererContributions = (): Record<string, unknown> => {
+    const result: Record<string, unknown> = {};
+    for (const [key, accessor] of rendererContributions) {
+      Object.defineProperty(result, key, {
+        get: accessor,
+        enumerable: true,
+        configurable: true,
+      });
+    }
+    return result;
+  };
+
   return {
     register,
     unregister,
@@ -389,7 +439,15 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     updateToolbarEntry,
     store,
     hooks,
+    addInterceptor,
+    dispatchInterceptor,
+    provideRendererProp,
+    getRendererContributions,
   };
 };
 
 export { createPluginRegistry };
+export type { OptionsState, PluginStoreState };
+
+type PluginRegistryReturn = ReturnType<typeof createPluginRegistry>;
+export type PluginRegistryHooks = PluginRegistryReturn["hooks"];

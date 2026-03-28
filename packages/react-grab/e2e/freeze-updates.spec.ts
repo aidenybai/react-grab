@@ -212,7 +212,16 @@ test.describe("Freeze Updates", () => {
       const countBefore = await getElementCount();
 
       await reactGrab.page.click("[data-testid='add-element-button']");
-      await reactGrab.page.waitForTimeout(100);
+      await reactGrab.page.waitForFunction(
+        (expected) => {
+          return (
+            document.querySelectorAll("[data-testid^='dynamic-element-']")
+              .length === expected
+          );
+        },
+        countBefore + 1,
+        { timeout: 5000 },
+      );
 
       const countAfter = await getElementCount();
       expect(countAfter).toBe(countBefore + 1);
