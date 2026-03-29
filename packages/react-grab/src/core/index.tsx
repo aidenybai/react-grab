@@ -827,6 +827,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const handleCopySuccessWithComments = (options: {
       copiedElements: Element[];
       content: string;
+      clipboardText: string;
       extraPrompt: string | undefined;
       elementName: string | undefined;
       tagName: string | null;
@@ -835,12 +836,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const {
         copiedElements,
         content,
+        clipboardText,
         extraPrompt,
         elementName,
         tagName,
         componentName,
       } = options;
-      pluginRegistry.hooks.onCopySuccess(copiedElements, content);
+      pluginRegistry.hooks.onCopySuccess(copiedElements, clipboardText);
 
       if (!extraPrompt) return;
 
@@ -928,10 +930,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           transformSnippet: pluginRegistry.hooks.transformSnippet,
           transformCopyContent: pluginRegistry.hooks.transformCopyContent,
           onAfterCopy: pluginRegistry.hooks.onAfterCopy,
-          onCopySuccess: (copiedElements: Element[], content: string) => {
+          onCopySuccess: (
+            copiedElements: Element[],
+            content: string,
+            clipboardText: string,
+          ) => {
             handleCopySuccessWithComments({
               copiedElements,
               content,
+              clipboardText,
               extraPrompt,
               elementName,
               tagName,

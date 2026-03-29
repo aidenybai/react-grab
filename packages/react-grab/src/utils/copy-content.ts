@@ -33,6 +33,11 @@ const escapeHtml = (text: string): string =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 
+export const buildClipboardText = (
+  content: string,
+  url?: string,
+): string => (url != null ? `${content}\n\nURL: ${url}` : content);
+
 export const copyContent = (
   content: string,
   options?: CopyContentOptions,
@@ -47,9 +52,7 @@ export const copyContent = (
     },
   ];
   const url = options?.url ?? window.location.href;
-  const clipboardText = options?.url != null
-    ? `${content}\n\nURL: ${url}`
-    : content;
+  const clipboardText = buildClipboardText(content, options?.url != null ? url : undefined);
   const reactGrabMetadata: ReactGrabMetadata = {
     version: VERSION,
     url,

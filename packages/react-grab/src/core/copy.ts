@@ -1,4 +1,8 @@
-import { copyContent, type ReactGrabEntry } from "../utils/copy-content.js";
+import {
+  buildClipboardText,
+  copyContent,
+  type ReactGrabEntry,
+} from "../utils/copy-content.js";
 import { generateSnippet } from "../utils/generate-snippet.js";
 import { joinSnippets } from "../utils/join-snippets.js";
 import { normalizeError } from "../utils/normalize-error.js";
@@ -17,7 +21,11 @@ interface CopyHooks {
     elements: Element[],
   ) => Promise<string>;
   onAfterCopy: (elements: Element[], success: boolean) => void;
-  onCopySuccess: (elements: Element[], content: string) => void;
+  onCopySuccess: (
+    elements: Element[],
+    content: string,
+    clipboardText: string,
+  ) => void;
   onCopyError: (error: Error) => void;
 }
 
@@ -29,6 +37,7 @@ export const tryCopyWithFallback = async (
 ): Promise<boolean> => {
   let didCopy = false;
   let copiedContent = "";
+  let url = "";
 
   await hooks.onBeforeCopy(elements);
 
@@ -69,7 +78,7 @@ export const tryCopyWithFallback = async (
         elements,
       );
 
-      const url = window.location.href;
+      url = window.location.href;
 
       copiedContent = extraPrompt
         ? `${extraPrompt}\n\n${transformedContent}`
@@ -86,7 +95,11 @@ export const tryCopyWithFallback = async (
   }
 
   if (didCopy) {
-    hooks.onCopySuccess(elements, copiedContent);
+    hooks.onCopySuccess(
+      elements,
+      copiedContent,
+      buildClipboardText(copiedContent, url),
+    );
   }
   hooks.onAfterCopy(elements, didCopy);
 
