@@ -219,6 +219,7 @@ export const toolbarPlugin: InternalPlugin = {
       if (activeToolbarEntryId() === entryId) {
         dismissToolbarEntry();
       } else {
+        dismissToolbarEntry();
         actions.hideContextMenu();
         ctx.shared.dismissAllPopups?.();
         entry.onClick?.(handle);

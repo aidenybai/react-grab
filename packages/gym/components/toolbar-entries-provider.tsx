@@ -39,12 +39,18 @@ const createRenderMonitorEntry = (): ToolbarEntry & { dispose: () => void } => {
     const type = fiber.type ?? fiber.elementType;
     if (!type) return null;
     if (typeof type === "string") return null;
-    if (typeof type === "function") return (type as { displayName?: string }).displayName ?? type.name ?? null;
+    if (typeof type === "function")
+      return (
+        (type as { displayName?: string }).displayName ?? type.name ?? null
+      );
     if (typeof type === "object" && type !== null) {
       const objectType = type as Record<string, unknown>;
       if (objectType.displayName) return objectType.displayName as string;
       if (objectType.render && typeof objectType.render === "function") {
-        const renderFunction = objectType.render as { displayName?: string; name?: string };
+        const renderFunction = objectType.render as {
+          displayName?: string;
+          name?: string;
+        };
         return renderFunction.displayName ?? renderFunction.name ?? null;
       }
     }
@@ -82,16 +88,21 @@ const createRenderMonitorEntry = (): ToolbarEntry & { dispose: () => void } => {
     traverseFiber(fiber.sibling);
   };
 
-  const startMonitoring = (handle: { setBadge: (badge: string | number | undefined) => void }) => {
+  const startMonitoring = (handle: {
+    setBadge: (badge: string | number | undefined) => void;
+  }) => {
     if (isMonitoring) return;
     isMonitoring = true;
     renderCounts.clear();
     totalRenderCount = 0;
 
-    const hook = (window as unknown as Record<string, unknown>).__REACT_DEVTOOLS_GLOBAL_HOOK__ as {
-      onCommitFiberRoot?: (...args: unknown[]) => void;
-      _originalOnCommitFiberRoot?: (...args: unknown[]) => void;
-    } | undefined;
+    const hook = (window as unknown as Record<string, unknown>)
+      .__REACT_DEVTOOLS_GLOBAL_HOOK__ as
+      | {
+          onCommitFiberRoot?: (...args: unknown[]) => void;
+          _originalOnCommitFiberRoot?: (...args: unknown[]) => void;
+        }
+      | undefined;
 
     if (!hook) return;
 
@@ -118,10 +129,13 @@ const createRenderMonitorEntry = (): ToolbarEntry & { dispose: () => void } => {
 
   const stopMonitoring = () => {
     isMonitoring = false;
-    const hook = (window as unknown as Record<string, unknown>).__REACT_DEVTOOLS_GLOBAL_HOOK__ as {
-      onCommitFiberRoot?: unknown;
-      _originalOnCommitFiberRoot?: (...args: unknown[]) => void;
-    } | undefined;
+    const hook = (window as unknown as Record<string, unknown>)
+      .__REACT_DEVTOOLS_GLOBAL_HOOK__ as
+      | {
+          onCommitFiberRoot?: unknown;
+          _originalOnCommitFiberRoot?: (...args: unknown[]) => void;
+        }
+      | undefined;
     if (hook?._originalOnCommitFiberRoot) {
       hook.onCommitFiberRoot = hook._originalOnCommitFiberRoot;
     }
@@ -131,9 +145,7 @@ const createRenderMonitorEntry = (): ToolbarEntry & { dispose: () => void } => {
     id: "render-monitor",
     icon: ICON_RENDER,
     tooltip: "Render Monitor",
-    dispose: () => {
-      if (isMonitoring) stopMonitoring();
-    },
+    dispose: stopMonitoring,
     onClick: (handle) => {
       if (isMonitoring) {
         stopMonitoring();
@@ -184,19 +196,24 @@ const createRenderMonitorEntry = (): ToolbarEntry & { dispose: () => void } => {
           </div>
         `;
 
-        container.querySelector("#toggle-btn")?.addEventListener("click", () => {
-          if (isMonitoring) {
-            stopMonitoring();
-            handle.setBadge(undefined);
-            handle.setIcon(ICON_RENDER);
-          } else {
-            startMonitoring(handle);
-            handle.setIcon(
-              ICON_RENDER.replace('stroke="currentColor"', 'stroke="#e53e3e"'),
-            );
-          }
-          renderDropdownContent();
-        });
+        container
+          .querySelector("#toggle-btn")
+          ?.addEventListener("click", () => {
+            if (isMonitoring) {
+              stopMonitoring();
+              handle.setBadge(undefined);
+              handle.setIcon(ICON_RENDER);
+            } else {
+              startMonitoring(handle);
+              handle.setIcon(
+                ICON_RENDER.replace(
+                  'stroke="currentColor"',
+                  'stroke="#e53e3e"',
+                ),
+              );
+            }
+            renderDropdownContent();
+          });
 
         container.querySelector("#clear-btn")?.addEventListener("click", () => {
           renderCounts.clear();
@@ -300,9 +317,7 @@ const createFpsMonitorEntry = (): ToolbarEntry & { dispose: () => void } => {
     id: "fps-monitor",
     icon: ICON_FPS,
     tooltip: "FPS Monitor",
-    dispose: () => {
-      if (isRunning) stopMeasuring();
-    },
+    dispose: stopMeasuring,
     onClick: (handle) => {
       if (isRunning) {
         stopMeasuring();
@@ -338,7 +353,11 @@ const createFpsMonitorEntry = (): ToolbarEntry & { dispose: () => void } => {
           .join(" ");
 
         const fpsColor =
-          currentFps >= 55 ? "#38a169" : currentFps >= 30 ? "#d69e2e" : "#e53e3e";
+          currentFps >= 55
+            ? "#38a169"
+            : currentFps >= 30
+              ? "#d69e2e"
+              : "#e53e3e";
 
         container.innerHTML = `
           <div style="padding:12px;min-width:220px;color:black;font-family:system-ui,sans-serif">
@@ -371,19 +390,21 @@ const createFpsMonitorEntry = (): ToolbarEntry & { dispose: () => void } => {
           </div>
         `;
 
-        container.querySelector("#toggle-btn")?.addEventListener("click", () => {
-          if (isRunning) {
-            stopMeasuring();
-            handle.setBadge(undefined);
-            handle.setIcon(ICON_FPS);
-          } else {
-            startMeasuring(handle);
-            handle.setIcon(
-              ICON_FPS.replace('stroke="currentColor"', 'stroke="#38a169"'),
-            );
-          }
-          renderDropdownContent();
-        });
+        container
+          .querySelector("#toggle-btn")
+          ?.addEventListener("click", () => {
+            if (isRunning) {
+              stopMeasuring();
+              handle.setBadge(undefined);
+              handle.setIcon(ICON_FPS);
+            } else {
+              startMeasuring(handle);
+              handle.setIcon(
+                ICON_FPS.replace('stroke="currentColor"', 'stroke="#38a169"'),
+              );
+            }
+            renderDropdownContent();
+          });
       };
 
       renderDropdownContent();
@@ -397,7 +418,7 @@ const createFpsMonitorEntry = (): ToolbarEntry & { dispose: () => void } => {
   };
 };
 
-export function ToolbarEntriesProvider() {
+export const ToolbarEntriesProvider = () => {
   useEffect(() => {
     const renderEntry = createRenderMonitorEntry();
     const fpsEntry = createFpsMonitorEntry();
@@ -415,4 +436,4 @@ export function ToolbarEntriesProvider() {
   }, []);
 
   return null;
-}
+};

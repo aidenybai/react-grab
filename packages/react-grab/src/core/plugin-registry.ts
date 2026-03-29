@@ -212,6 +212,14 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     return Array.from(plugins.keys());
   };
 
+  const getPluginToolbarEntryIds = (name: string): string[] => {
+    const registered = plugins.get(name);
+    if (!registered) return [];
+    return (registered.config.toolbarEntries ?? []).map(
+      (toolbarEntry) => toolbarEntry.id,
+    );
+  };
+
   const callHook = <K extends HookName>(
     hookName: K,
     ...args: Parameters<NonNullable<PluginHooks[K]>>
@@ -382,7 +390,10 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
   };
 
   // Interceptor chain: priority-ordered handlers for each event type
-  type InterceptorEntry = { priority: number; handler: (event: never) => boolean };
+  type InterceptorEntry = {
+    priority: number;
+    handler: (event: never) => boolean;
+  };
   const interceptors = {
     keydown: [] as InterceptorEntry[],
     keyup: [] as InterceptorEntry[],
@@ -435,6 +446,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     register,
     unregister,
     getPluginNames,
+    getPluginToolbarEntryIds,
     setOptions,
     updateToolbarEntry,
     store,

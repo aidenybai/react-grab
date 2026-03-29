@@ -353,17 +353,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         shared.syncAgentFromRegistry?.();
       },
       unregisterPlugin: (name: string) => {
-        pluginRegistry.unregister(name);
         const activeEntryId =
           pluginRegistry.getRendererContributions().activeToolbarEntryId;
-        if (
-          activeEntryId &&
-          !pluginRegistry.store.toolbarEntries.some(
-            (entry) => entry.id === activeEntryId,
-          )
-        ) {
-          shared.closeToolbarEntry?.();
+        if (activeEntryId) {
+          const pluginEntryIds = pluginRegistry.getPluginToolbarEntryIds(name);
+          if (pluginEntryIds.includes(activeEntryId as string)) {
+            shared.closeToolbarEntry?.();
+          }
         }
+        pluginRegistry.unregister(name);
         shared.syncAgentFromRegistry?.();
       },
       getPlugins: () => pluginRegistry.getPluginNames(),
