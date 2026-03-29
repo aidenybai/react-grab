@@ -69,6 +69,8 @@ export const tryCopyWithFallback = async (
         elements,
       );
 
+      const url = window.location.href;
+
       copiedContent = extraPrompt
         ? `${extraPrompt}\n\n${transformedContent}`
         : transformedContent;
@@ -76,6 +78,7 @@ export const tryCopyWithFallback = async (
       didCopy = copyContent(copiedContent, {
         componentName: options.componentName,
         entries,
+        url,
       });
     }
   } catch (error) {

@@ -116,7 +116,8 @@ test.describe("Element Context Fallback", () => {
 
       const clipboard = await reactGrab.getClipboardContent();
       expect(clipboard).toContain("long-dom-element");
-      expect(clipboard.length).toBeLessThanOrEqual(510);
+      const snippetPortion = clipboard.split("\n\nURL:")[0];
+      expect(snippetPortion.length).toBeLessThanOrEqual(510);
     });
   });
 });
