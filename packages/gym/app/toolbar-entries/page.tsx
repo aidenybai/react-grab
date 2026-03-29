@@ -5,7 +5,7 @@ import { useState, useEffect, useLayoutEffect } from "react";
 const blockMainThread = (ms: number) => {
   const start = performance.now();
   while (performance.now() - start < ms) {
-    /* intentionally blocking */
+    // HACK: intentionally blocking to simulate slow render
   }
 };
 
@@ -54,7 +54,7 @@ const SlowEffectComponent = ({ delay }: { delay: number }) => {
           cursor: "pointer",
           fontSize: 12,
         }}
-        onClick={() => setCount((previous) => previous + 1)}
+        onClick={() => setCount((previousCount) => previousCount + 1)}
       >
         Trigger ({count})
       </button>
@@ -91,7 +91,7 @@ const SlowLayoutEffectComponent = ({ delay }: { delay: number }) => {
           cursor: "pointer",
           fontSize: 12,
         }}
-        onClick={() => setCount((previous) => previous + 1)}
+        onClick={() => setCount((previousCount) => previousCount + 1)}
       >
         Trigger ({count})
       </button>
@@ -129,7 +129,7 @@ const CascadeRenderComponent = () => {
             cursor: "pointer",
             fontSize: 12,
           }}
-          onClick={() => setCount((previous) => previous + 1)}
+          onClick={() => setCount((previousCount) => previousCount + 1)}
         >
           Trigger ({count})
         </button>
@@ -162,7 +162,7 @@ const RapidUpdatesComponent = () => {
 
     const tick = () => {
       if (frame < maxFrames) {
-        setCount((previous) => previous + 1);
+        setCount((previousCount) => previousCount + 1);
         blockMainThread(5);
         frame++;
         requestAnimationFrame(tick);
@@ -206,7 +206,7 @@ const RapidUpdatesComponent = () => {
   );
 };
 
-export default function ToolbarEntriesPage() {
+const ToolbarEntriesPage = () => {
   const [showSlowRender, setShowSlowRender] = useState(false);
 
   return (
@@ -258,4 +258,6 @@ export default function ToolbarEntriesPage() {
       </div>
     </div>
   );
-}
+};
+
+export default ToolbarEntriesPage;
