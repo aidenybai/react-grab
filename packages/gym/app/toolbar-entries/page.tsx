@@ -112,7 +112,12 @@ const CascadeRenderComponent = () => {
       }}
     >
       <div
-        style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          marginBottom: 4,
+        }}
       >
         <span>Cascade render (5 children x 10ms)</span>
         <button
@@ -129,7 +134,14 @@ const CascadeRenderComponent = () => {
           Trigger ({count})
         </button>
       </div>
-      <div style={{ paddingLeft: 16, display: "flex", flexDirection: "column", gap: 4 }}>
+      <div
+        style={{
+          paddingLeft: 16,
+          display: "flex",
+          flexDirection: "column",
+          gap: 4,
+        }}
+      >
         {[...Array(5)].map((_, index) => (
           <SlowRenderChild key={`${count}-${index}`} delay={10} />
         ))}
@@ -208,10 +220,17 @@ export default function ToolbarEntriesPage() {
       <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>
         Performance Test Zone
       </h1>
-      <p style={{ color: "#666", marginBottom: 24, lineHeight: 1.6, fontSize: 14 }}>
+      <p
+        style={{
+          color: "#666",
+          marginBottom: 24,
+          lineHeight: 1.6,
+          fontSize: 14,
+        }}
+      >
         Intentionally laggy components to exercise the toolbar devtools. Use the{" "}
-        <strong>Render Monitor</strong> (pulse icon) and <strong>FPS Monitor</strong>{" "}
-        (monitor icon) in the toolbar.
+        <strong>Render Monitor</strong> (pulse icon) and{" "}
+        <strong>FPS Monitor</strong> (monitor icon) in the toolbar.
       </p>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

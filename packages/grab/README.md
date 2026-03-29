@@ -90,7 +90,9 @@ registerPlugin({
         });
 
         // Return a cleanup function (called when dropdown closes)
-        return () => { /* teardown */ };
+        return () => {
+          /* teardown */
+        };
       },
     },
   ],
@@ -98,6 +100,7 @@ registerPlugin({
 ```
 
 The `handle` passed to callbacks provides:
+
 - `handle.setBadge(value)` / `handle.setIcon(html)` / `handle.setTooltip(text)` to update the button at runtime
 - `handle.open()` / `handle.close()` / `handle.toggle()` to control the dropdown
 - `handle.api` for full React Grab API access
@@ -146,7 +149,7 @@ In React, register inside a `useEffect` and clean up on unmount:
 
 ```jsx
 useEffect(() => {
-  registerPlugin({ name: "my-plugin", /* ... */ });
+  registerPlugin({ name: "my-plugin" /* ... */ });
   return () => unregisterPlugin("my-plugin");
 }, []);
 ```
