@@ -1,6 +1,13 @@
 // @ts-expect-error - CSS imported as text via tsup loader
 import cssText from "../../dist/styles.css";
-import { createMemo, createRoot, onCleanup, createEffect, on } from "solid-js";
+import {
+  createSignal,
+  createMemo,
+  createRoot,
+  onCleanup,
+  createEffect,
+  on,
+} from "solid-js";
 import { render } from "solid-js/web";
 import { createGrabStore } from "./store.js";
 import { createNoopApi } from "./noop-api.js";
@@ -136,6 +143,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     const shared: SharedPluginApi = {};
+
+    const [isToolbarSelectHovered, setIsToolbarSelectHovered] =
+      createSignal(false);
+    shared.isToolbarSelectHovered = () => isToolbarSelectHovered();
+    shared.setIsToolbarSelectHovered = setIsToolbarSelectHovered;
+
+    const [hasDragPreviewBounds, setHasDragPreviewBounds] =
+      createSignal(false);
+    shared.hasDragPreviewBounds = () => hasDragPreviewBounds();
+    shared.setHasDragPreviewBounds = setHasDragPreviewBounds;
 
     const isHoldingKeys = createMemo(() => store.current.state === "holding");
     const isActivated = createMemo(() => store.current.state === "active");
@@ -324,13 +341,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         isCopying: isCopying(),
         isPromptMode: isPromptMode(),
         isSelectionBoxVisible: Boolean(selectionVisible()),
-        isDragBoxVisible: Boolean(
-          isDragging() &&
-          pluginRegistry.store.theme.enabled &&
-          pluginRegistry.store.theme.dragBox.enabled,
-        ),
+        isDragBoxVisible: Boolean(shared.isDragBoxVisible?.()),
         targetElement: targetElement(),
-        dragBounds: null,
+        dragBounds: shared.getDragBounds?.() ?? null,
         grabbedBoxes: store.grabbedBoxes.map((box) => ({
           id: box.id,
           bounds: box.bounds,
@@ -620,6 +633,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
       { capture: true },
     );
+    eventListenerManager.addWindowListener(
+      "contextmenu",
+      (event: MouseEvent) => {
+        pluginRegistry.dispatchInterceptor("contextmenu", event);
+      },
+      { capture: true },
+    );
 
     eventListenerManager.addWindowListener(
       "focusin",
@@ -655,13 +675,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         isCopying: isCopying(),
         isPromptMode: isPromptMode(),
         isSelectionBoxVisible: Boolean(selectionVisible()),
-        isDragBoxVisible: Boolean(
-          isDragging() &&
-          pluginRegistry.store.theme.enabled &&
-          pluginRegistry.store.theme.dragBox.enabled,
-        ),
+        isDragBoxVisible: Boolean(shared.isDragBoxVisible?.()),
         targetElement: targetElement(),
-        dragBounds: null,
+        dragBounds: shared.getDragBounds?.() ?? null,
         grabbedBoxes: [...publicGrabbedBoxes()],
         labelInstances: [...publicLabelInstances()],
         selectionFilePath: store.selectionFilePath,

@@ -458,12 +458,20 @@ export interface SharedPluginApi {
   isCopyFeedbackCooldownActive?: () => boolean;
   clearCopyFeedbackCooldown?: () => void;
   cancelActiveDrag?: () => void;
+  getDragBounds?: () => OverlayBounds | null;
+  isDragBoxVisible?: () => boolean;
   clearHoldTimer?: () => void;
   resetCopyConfirmation?: () => void;
   isHoldingKeys?: () => boolean;
   // Kernel-facing accessors
   isToolbarSelectHovered?: () => boolean;
+  setIsToolbarSelectHovered?: (value: boolean) => void;
   hasDragPreviewBounds?: () => boolean;
+  setHasDragPreviewBounds?: (value: boolean) => void;
+  openTrackedDropdown?: (
+    setPosition: (anchor: DropdownAnchor) => void,
+  ) => void;
+  stopTrackingDropdownPosition?: () => void;
   getCurrentToolbarState?: () => ToolbarState | null;
   getAgentSessionCount?: () => number;
   syncAgentFromRegistry?: () => void;

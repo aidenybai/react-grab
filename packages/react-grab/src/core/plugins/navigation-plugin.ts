@@ -174,9 +174,17 @@ export const navigationPlugin: InternalPlugin = {
       () => ctx.registry.store.theme.elementLabel.enabled,
     );
 
+    const isSelectionSuppressed = createMemo(
+      () =>
+        derived.didJustCopy() ||
+        ((ctx.shared.isToolbarSelectHovered?.() ?? false) &&
+          !isFrozenPhase()),
+    );
+
     const selectionLabelVisible = createMemo(() => {
       if (store.contextMenuPosition !== null) return false;
       if (!isElementLabelThemeEnabled()) return false;
+      if (isSelectionSuppressed()) return false;
       return isSelectionElementVisible();
     });
 

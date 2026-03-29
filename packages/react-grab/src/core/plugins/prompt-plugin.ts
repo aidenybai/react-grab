@@ -594,20 +594,13 @@ export const promptPlugin: InternalPlugin = {
       actions.hideContextMenu();
       shared.dismissAllPopups?.();
       setCommentItems(loadComments());
-      // Reopen the comments dropdown after popups are dismissed
-      const anchor = computeCommentsAnchor();
-      if (anchor) setCommentsDropdownPosition(anchor);
-    };
-
-    const computeCommentsAnchor = (): DropdownAnchor | null => {
-      // Comments dropdown position is derived from toolbar via shared
-      // We return a simple anchor; the toolbar plugin's tracked dropdown will supply the actual position
-      return commentsDropdownPosition();
+      shared.openTrackedDropdown?.(setCommentsDropdownPosition);
     };
 
     const dismissCommentsDropdown = () => {
       cancelCommentsHoverOpenTimeout();
       cancelCommentsHoverCloseTimeout();
+      shared.stopTrackingDropdownPosition?.();
       clearCommentsHoverPreviews();
       setCommentsDropdownPosition(null);
       setIsCommentsHoverOpen(false);
@@ -616,14 +609,11 @@ export const promptPlugin: InternalPlugin = {
     const showClearPrompt = () => {
       dismissCommentsDropdown();
       shared.dismissAllPopups?.();
-      // Re-set clear prompt position; toolbar plugin tracks position
-      const pos = clearPromptPosition();
-      if (!pos) {
-        setClearPromptPosition(null);
-      }
+      shared.openTrackedDropdown?.(setClearPromptPosition);
     };
 
     const dismissClearPrompt = () => {
+      shared.stopTrackingDropdownPosition?.();
       setClearPromptPosition(null);
     };
 

@@ -616,7 +616,7 @@ export const menusPlugin: InternalPlugin = {
     ctx.provide("actions", () => registry.store.actions);
     ctx.provide("actionContext", () => contextMenuActionContext());
     ctx.provide("onContextMenuDismiss", () => handleContextMenuDismiss);
-    ctx.provide("onContextMenuHide", () => actions.hideContextMenu);
+    ctx.provide("onContextMenuHide", () => deferHideContextMenu);
     ctx.provide("selectionActionCycleState", () => actionCycleState());
 
     return () => {

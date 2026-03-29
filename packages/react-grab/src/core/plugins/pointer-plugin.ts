@@ -668,8 +668,12 @@ export const pointerPlugin: InternalPlugin = {
     ctx.shared.openContextMenu = (position: Position, element: Element) => {
       openContextMenu(element, position);
     };
-    ctx.shared.hasDragPreviewBounds = () => dragPreviewBounds().length > 0;
+    createEffect(() => {
+      ctx.shared.setHasDragPreviewBounds?.(dragPreviewBounds().length > 0);
+    });
     ctx.shared.cancelActiveDrag = () => cancelActiveDrag();
+    ctx.shared.getDragBounds = () => dragBounds() ?? null;
+    ctx.shared.isDragBoxVisible = () => Boolean(dragVisible());
 
     ctx.provide("dragVisible", () => dragVisible());
     ctx.provide("dragBounds", () => dragBounds());
@@ -690,7 +694,7 @@ export const pointerPlugin: InternalPlugin = {
       pendingDefaultActionId = null;
       document.body.style.userSelect = "";
       ctx.shared.openContextMenu = undefined;
-      ctx.shared.hasDragPreviewBounds = undefined;
+      ctx.shared.setHasDragPreviewBounds?.(false);
       ctx.shared.cancelActiveDrag = undefined;
     };
   },

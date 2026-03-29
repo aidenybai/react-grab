@@ -55,8 +55,10 @@ export const toolbarPlugin: InternalPlugin = {
     const [toolbarShakeCount, setToolbarShakeCount] = createSignal(0);
     const [currentToolbarState, setCurrentToolbarState] =
       createSignal<ToolbarState | null>(savedToolbarState);
-    const [isToolbarSelectHovered, setIsToolbarSelectHovered] =
-      createSignal(false);
+    const isToolbarSelectHovered = () =>
+      ctx.shared.isToolbarSelectHovered?.() ?? false;
+    const setIsToolbarSelectHovered = (value: boolean) =>
+      ctx.shared.setIsToolbarSelectHovered?.(value);
     const [toolbarMenuPosition, setToolbarMenuPosition] =
       createSignal<DropdownAnchor | null>(null);
     const [activeToolbarEntryId, setActiveToolbarEntryId] = createSignal<
@@ -321,7 +323,6 @@ export const toolbarPlugin: InternalPlugin = {
     ctx.shared.handleSetDefaultAction = handleSetDefaultAction;
     ctx.shared.updateToolbarState = updateToolbarState;
     ctx.shared.isRendererActive = () => isRendererActive();
-    ctx.shared.isToolbarSelectHovered = () => isToolbarSelectHovered();
     ctx.shared.getCurrentToolbarState = () => currentToolbarState();
     ctx.shared.subscribeToToolbarStateChanges = (
       callback: (state: ToolbarState) => void,
@@ -345,6 +346,8 @@ export const toolbarPlugin: InternalPlugin = {
       }
     };
     ctx.shared.isEnabled = () => isEnabled();
+    ctx.shared.openTrackedDropdown = openTrackedDropdown;
+    ctx.shared.stopTrackingDropdownPosition = stopTrackingDropdownPosition;
 
     // Chain into dismissAllPopups so other plugins' popups are also dismissed
     const previousDismissAllPopups = ctx.shared.dismissAllPopups;
