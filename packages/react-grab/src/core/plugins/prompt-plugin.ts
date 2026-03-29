@@ -592,7 +592,8 @@ export const promptPlugin: InternalPlugin = {
 
     const openCommentsDropdown = () => {
       actions.hideContextMenu();
-      shared.dismissAllPopups?.();
+      shared.dismissToolbarPopups?.();
+      dismissClearPrompt();
       setCommentItems(loadComments());
       shared.openTrackedDropdown?.(setCommentsDropdownPosition);
     };
@@ -608,7 +609,7 @@ export const promptPlugin: InternalPlugin = {
 
     const showClearPrompt = () => {
       dismissCommentsDropdown();
-      shared.dismissAllPopups?.();
+      shared.dismissToolbarPopups?.();
       shared.openTrackedDropdown?.(setClearPromptPosition);
     };
 

@@ -348,6 +348,7 @@ export const toolbarPlugin: InternalPlugin = {
     ctx.shared.isEnabled = () => isEnabled();
     ctx.shared.openTrackedDropdown = openTrackedDropdown;
     ctx.shared.stopTrackingDropdownPosition = stopTrackingDropdownPosition;
+    ctx.shared.dismissToolbarPopups = dismissToolbarPopups;
 
     // Chain into dismissAllPopups so other plugins' popups are also dismissed
     const previousDismissAllPopups = ctx.shared.dismissAllPopups;

@@ -230,7 +230,9 @@ test.describe("Focus Trap Resistance", () => {
       await reactGrab.typeInInput("Test prompt");
       await reactGrab.submitInput();
 
-      await expect.poll(() => reactGrab.isPromptModeActive()).toBe(false);
+      await expect
+        .poll(() => reactGrab.isPromptModeActive(), { timeout: 5000 })
+        .toBe(false);
     });
 
     test("Escape should dismiss prompt mode despite focus trap", async ({

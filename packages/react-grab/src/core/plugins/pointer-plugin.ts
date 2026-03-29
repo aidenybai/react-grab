@@ -603,8 +603,9 @@ export const pointerPlugin: InternalPlugin = {
         event,
         "data-react-grab-ignore-events",
       );
-      if (isFromOverlay) {
+      if (isFromOverlay && ctx.shared.hasArrowNavigation?.()) {
         ctx.shared.clearArrowNavigation?.();
+      } else if (isFromOverlay) {
         return false;
       }
 

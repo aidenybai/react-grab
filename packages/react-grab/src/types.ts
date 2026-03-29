@@ -421,7 +421,9 @@ export interface SharedPluginApi {
     options?: PerformWithFeedbackOptions,
   ) => (action: () => Promise<boolean>) => Promise<void>;
   dismissAllPopups?: () => void;
+  dismissToolbarPopups?: () => void;
   clearArrowNavigation?: () => void;
+  hasArrowNavigation?: () => boolean;
   showTemporaryGrabbedBox?: (element: Element) => void;
   createLabelInstance?: (
     element: Element,

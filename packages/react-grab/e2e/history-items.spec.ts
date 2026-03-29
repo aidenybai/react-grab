@@ -379,13 +379,18 @@ test.describe("Comment Items", () => {
         .toBe(2);
 
       await reactGrab.page.mouse.move(0, 0);
-      await reactGrab.page.waitForTimeout(200);
 
-      const grabbedBoxesAfter = await reactGrab.getGrabbedBoxInfo();
-      const remainingHoverBoxes = grabbedBoxesAfter.boxes.filter((box) =>
-        box.id.startsWith("comment-all-hover-"),
-      );
-      expect(remainingHoverBoxes.length).toBe(0);
+      await expect
+        .poll(
+          async () => {
+            const info = await reactGrab.getGrabbedBoxInfo();
+            return info.boxes.filter((box) =>
+              box.id.startsWith("comment-all-hover-"),
+            ).length;
+          },
+          { timeout: 3000 },
+        )
+        .toBe(0);
     });
 
     test("should clear button hover boxes when pinning the dropdown", async ({

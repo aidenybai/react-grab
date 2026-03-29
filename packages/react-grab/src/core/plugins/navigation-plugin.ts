@@ -337,6 +337,7 @@ export const navigationPlugin: InternalPlugin = {
     };
 
     ctx.shared.clearArrowNavigation = clearArrowNavigation;
+    ctx.shared.hasArrowNavigation = () => arrowNavigationElements().length > 0;
 
     ctx.provide("selectionArrowNavigationState", () => arrowNavigationState());
     ctx.provide("onArrowNavigationSelect", () => handleArrowNavigationSelect);
@@ -391,6 +392,7 @@ export const navigationPlugin: InternalPlugin = {
       }
 
       ctx.shared.clearArrowNavigation = undefined;
+      ctx.shared.hasArrowNavigation = undefined;
     };
   },
 };
