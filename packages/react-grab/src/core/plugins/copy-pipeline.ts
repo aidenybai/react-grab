@@ -30,6 +30,7 @@ import {
   createPageRectFromBounds,
 } from "../../utils/create-bounds-from-drag-rect.js";
 import {
+  FEEDBACK_DURATION_MS,
   PREVIEW_TEXT_MAX_LENGTH,
   PLUGIN_PRIORITY_COPY_PIPELINE,
 } from "../../constants.js";
