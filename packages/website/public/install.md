@@ -19,7 +19,7 @@ Install React Grab in a React project to enable element grabbing for AI coding a
 Run this command at your project root. Use the `-y` flag to skip interactive prompts:
 
 ```bash
-npx -y grab@latest init -y
+npx grab@latest init -y
 ```
 
 The CLI will auto-detect your framework and configure everything automatically.
@@ -39,9 +39,9 @@ Options:
 ### Examples
 
 ```bash
-npx -y grab@latest init -y                         # Auto-detect and install without prompts
-npx -y grab@latest init -f next -r app -y          # Configure for Next.js App Router
-npx -y grab@latest init -k "Meta+K" -y             # Set activation key to Cmd+K / Win+K
+npx grab@latest init -y                         # Auto-detect and install without prompts
+npx grab@latest init -f next -r app -y          # Configure for Next.js App Router
+npx grab@latest init -k "Meta+K" -y             # Set activation key to Cmd+K / Win+K
 ```
 
 ## MANUAL INSTALLATION
@@ -153,9 +153,9 @@ in LoginForm at components/login-form.tsx:46:19
 Customize React Grab behavior:
 
 ```bash
-npx -y grab@latest config -k "Meta+K"              # Set activation key to Cmd+K / Win+K
-npx -y grab@latest config -m hold --hold-duration 150   # Use hold mode with 150ms delay
-npx -y grab@latest config --context-lines 5        # Include 5 lines of context
+npx grab@latest config -k "Meta+K"              # Set activation key to Cmd+K / Win+K
+npx grab@latest config -m hold --hold-duration 150   # Use hold mode with 150ms delay
+npx grab@latest config --context-lines 5        # Include 5 lines of context
 ```
 
 ## TROUBLESHOOTING

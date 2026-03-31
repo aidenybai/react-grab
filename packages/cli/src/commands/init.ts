@@ -127,7 +127,7 @@ const printSubprojects = (
   );
   logger.break();
   logger.log(
-    `  ${highlighter.dim("$")} npx -y grab@latest init -c ${relative(searchRoot, sortedProjects[0].path)}`,
+    `  ${highlighter.dim("$")} npx grab@latest init -c ${relative(searchRoot, sortedProjects[0].path)}`,
   );
   logger.break();
 };

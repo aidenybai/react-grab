@@ -25,7 +25,7 @@ in LoginForm at components/login-form.tsx:46:19
 Run this command at your project root. Use the `-y` flag to skip interactive prompts (required for non-interactive environments):
 
 ```bash
-npx -y grab@latest init -y
+npx grab@latest init -y
 ```
 
 Init Options:
@@ -39,10 +39,10 @@ Options:
   -c, --cwd <cwd>        Working directory (defaults to current directory)
 
 Examples:
-  npx -y grab@latest init -y                         # Auto-detect and install without prompts
-  npx -y grab@latest init -a cursor -y               # Connect to Cursor agent
-  npx -y grab@latest init -a mcp -y                  # Connect via MCP
-  npx -y grab@latest init -k "Meta+K" -y             # Set activation key to Cmd+K / Win+K
+  npx grab@latest init -y                         # Auto-detect and install without prompts
+  npx grab@latest init -a cursor -y               # Connect to Cursor agent
+  npx grab@latest init -a mcp -y                  # Connect via MCP
+  npx grab@latest init -k "Meta+K" -y             # Set activation key to Cmd+K / Win+K
 ```
 
 The CLI will detect your framework and add the necessary scripts automatically.
@@ -52,7 +52,7 @@ The CLI will detect your framework and add the necessary scripts automatically.
 Connect React Grab to your coding agent:
 
 ```bash
-npx -y grab@latest add [agent]
+npx grab@latest add [agent]
 ```
 
 Add Options:
@@ -64,15 +64,15 @@ Options:
 Agents: claude-code, cursor, opencode, codex, gemini, amp, ami, droid, mcp
 
 Examples:
-  npx -y grab@latest add cursor                      # Connect to Cursor
-  npx -y grab@latest add claude-code                  # Connect to Claude Code
-  npx -y grab@latest add mcp                          # Connect via MCP
+  npx grab@latest add cursor                      # Connect to Cursor
+  npx grab@latest add claude-code                  # Connect to Claude Code
+  npx grab@latest add mcp                          # Connect via MCP
 ```
 
 Disconnect an agent:
 
 ```bash
-npx -y grab@latest remove [agent]
+npx grab@latest remove [agent]
 ```
 
 ### Configuration
@@ -80,7 +80,7 @@ npx -y grab@latest remove [agent]
 Configure React Grab options (activation key, mode, etc.):
 
 ```bash
-npx -y grab@latest config
+npx grab@latest config
 ```
 
 Config Options:
@@ -96,19 +96,19 @@ Options:
   -c, --cwd <cwd>            Working directory (defaults to current directory)
 
 Examples:
-  npx -y grab@latest config -k "Meta+K"              # Set activation key to Cmd+K / Win+K
-  npx -y grab@latest config -k "Ctrl+Shift+G"        # Set activation key to Ctrl+Shift+G
-  npx -y grab@latest config -m hold --hold-duration 150   # Use hold mode with 150ms delay
-  npx -y grab@latest config --context-lines 5         # Include 5 lines of context
+  npx grab@latest config -k "Meta+K"              # Set activation key to Cmd+K / Win+K
+  npx grab@latest config -k "Ctrl+Shift+G"        # Set activation key to Ctrl+Shift+G
+  npx grab@latest config -m hold --hold-duration 150   # Use hold mode with 150ms delay
+  npx grab@latest config --context-lines 5         # Include 5 lines of context
 ```
 
 To discover all available commands and flags:
 
 ```bash
-npx -y grab@latest --help
-npx -y grab@latest init --help
-npx -y grab@latest add --help
-npx -y grab@latest config --help
+npx grab@latest --help
+npx grab@latest init --help
+npx grab@latest add --help
+npx grab@latest config --help
 ```
 
 ### Manual Installation

@@ -74,7 +74,7 @@ const createPromptInstallInstructions = (
 6. Keep all React Grab setup development-only.
 7. Show me the edited files and the exact install command you ran.
 8. If the setup does not work, suggest running the React Grab CLI:
-\`npx -y grab@latest init\`.`;
+\`npx grab@latest init\`.`;
 };
 
 const installTabsData: InstallTab[] = [
@@ -86,9 +86,9 @@ const installTabsData: InstallTab[] = [
     lang: "bash",
     getCode: (hotkey) => {
       if (hotkey) {
-        return `npx -y grab@latest init --key "${hotkeyToString(hotkey)}"`;
+        return `npx grab@latest init --key "${hotkeyToString(hotkey)}"`;
       }
-      return `npx -y grab@latest init`;
+      return `npx grab@latest init`;
     },
     getChangedLines: () => [],
   },

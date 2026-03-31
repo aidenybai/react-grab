@@ -28,7 +28,6 @@
   "files": [
     "bin",
     "dist",
-    "scripts/postinstall.cjs",
     "package.json",
     "README.md",
     "LICENSE"
@@ -86,7 +85,6 @@
     "css:watch": "tailwindcss -i ./src/styles.css -o ./dist/styles.css -w",
     "prebuild": "mkdir -p dist && tailwindcss -i ./src/styles.css -o ./dist/styles.css -m && node scripts/css-rem-to-px.mjs",
     "build": "NODE_ENV=production tsup",
-    "postinstall": "node ./scripts/postinstall.cjs",
     "dev": "concurrently \"pnpm:css:watch\" \"tsup --watch --ignore-watch dist\"",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
