@@ -216,10 +216,12 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
           "grid relative overflow-visible",
           gridSizeTransitionClass(),
           props.isCollapsed
-            ? (isVertical()
-                ? "grid-rows-[0fr] pointer-events-none"
-                : "grid-cols-[0fr] pointer-events-none")
-            : (isVertical() ? "grid-rows-[1fr]" : "grid-cols-[1fr]"),
+            ? isVertical()
+              ? "grid-rows-[0fr] pointer-events-none"
+              : "grid-cols-[0fr] pointer-events-none"
+            : isVertical()
+              ? "grid-rows-[1fr]"
+              : "grid-cols-[1fr]",
         )}
       >
         <div

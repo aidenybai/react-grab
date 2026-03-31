@@ -1299,24 +1299,14 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             </span>
           </Show>
           <Show when={selectionHintIndex() === 1}>
-            <span
-              class={cn(
-                "flex items-center gap-1",
-                HINT_FLIP_IN_ANIMATION,
-              )}
-            >
+            <span class={cn("flex items-center gap-1", HINT_FLIP_IN_ANIMATION)}>
               <Kbd>↑</Kbd>
               <Kbd>↓</Kbd>
               to fine-tune target
             </span>
           </Show>
           <Show when={selectionHintIndex() === 2}>
-            <span
-              class={cn(
-                "flex items-center gap-1",
-                HINT_FLIP_IN_ANIMATION,
-              )}
-            >
+            <span class={cn("flex items-center gap-1", HINT_FLIP_IN_ANIMATION)}>
               <Kbd>esc</Kbd>
               to cancel
             </span>

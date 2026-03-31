@@ -559,6 +559,15 @@ export interface GrabbedBox {
   element?: Element;
 }
 
+export interface ElementMeasurement {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  isIntersecting: boolean;
+  intersectionRatio: number;
+}
+
 export interface Rect {
   left: number;
   top: number;

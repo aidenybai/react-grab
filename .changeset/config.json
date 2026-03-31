@@ -3,13 +3,7 @@
   "changelog": "@changesets/cli/changelog",
   "commit": false,
   "fixed": [],
-  "linked": [
-    [
-      "react-grab",
-      "grab",
-      "@react-grab/cli"
-    ]
-  ],
+  "linked": [["react-grab", "grab", "@react-grab/cli"]],
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",

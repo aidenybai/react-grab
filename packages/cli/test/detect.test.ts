@@ -340,4 +340,3 @@ describe("detectUnsupportedFramework", () => {
     expect(detectUnsupportedFramework("/test")).toBe(null);
   });
 });
-
