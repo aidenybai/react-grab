@@ -53,7 +53,7 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: >-
-          pnpm dlx expect-cli@latest --verbose -y -m
+          pnpm dlx https://pkg.pr.new/expect-cli@43eaab4 --verbose -y -m
           "Comprehensive test of react-grab at http://localhost:5175.
           If a step is blocked after one retry, fail with evidence.
 
