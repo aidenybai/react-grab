@@ -399,20 +399,18 @@ const transformNextAppRouter = (
     }
   }
 
-  const scriptBlock = NEXT_APP_ROUTER_SCRIPT;
-
   const headMatch = newContent.match(/<head[^>]*>/);
   if (headMatch) {
     newContent = newContent.replace(
       headMatch[0],
-      `${headMatch[0]}\n        ${scriptBlock}`,
+      `${headMatch[0]}\n        ${NEXT_APP_ROUTER_SCRIPT}`,
     );
   } else {
     const htmlMatch = newContent.match(/<html[^>]*>/);
     if (htmlMatch) {
       newContent = newContent.replace(
         htmlMatch[0],
-        `${htmlMatch[0]}\n      <head>\n        ${scriptBlock}\n      </head>`,
+        `${htmlMatch[0]}\n      <head>\n        ${NEXT_APP_ROUTER_SCRIPT}\n      </head>`,
       );
     }
   }
@@ -495,13 +493,11 @@ const transformNextPagesRouter = (
     }
   }
 
-  const scriptBlock = NEXT_PAGES_ROUTER_SCRIPT;
-
   const headMatch = newContent.match(/<Head[^>]*>/);
   if (headMatch) {
     newContent = newContent.replace(
       headMatch[0],
-      `${headMatch[0]}\n        ${scriptBlock}`,
+      `${headMatch[0]}\n        ${NEXT_PAGES_ROUTER_SCRIPT}`,
     );
   }
 
@@ -572,8 +568,7 @@ const transformVite = (
   }
 
   const originalContent = readFileSync(entryPath, "utf-8");
-  const importBlock = VITE_IMPORT;
-  const newContent = `${importBlock}\n\n${originalContent}`;
+  const newContent = `${VITE_IMPORT}\n\n${originalContent}`;
 
   return {
     success: true,
@@ -611,8 +606,7 @@ const transformWebpack = (
   }
 
   const originalContent = readFileSync(entryPath, "utf-8");
-  const importBlock = WEBPACK_IMPORT;
-  const newContent = `${importBlock}\n\n${originalContent}`;
+  const newContent = `${WEBPACK_IMPORT}\n\n${originalContent}`;
 
   return {
     success: true,
@@ -692,15 +686,13 @@ const transformTanStack = (
     }
   }
 
-  const effectBlock = TANSTACK_EFFECT;
-
   const componentMatch = newContent.match(/function\s+(\w+)\s*\([^)]*\)\s*\{/);
 
   if (componentMatch) {
     const insertPosition = componentMatch.index! + componentMatch[0].length;
     newContent =
       newContent.slice(0, insertPosition) +
-      `\n  ${effectBlock}\n` +
+      `\n  ${TANSTACK_EFFECT}\n` +
       newContent.slice(insertPosition);
   } else {
     return {
