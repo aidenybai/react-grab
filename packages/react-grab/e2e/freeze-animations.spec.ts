@@ -601,12 +601,12 @@ test.describe("Freeze Animations", () => {
       expect(tickCountBeforeFreeze).toBeGreaterThan(0);
 
       await activateViaApi(page);
-      await page.waitForTimeout(200);
+      await page.waitForTimeout(500);
 
       const tickCountAtFreeze = await page.evaluate(
         () => (window as unknown as Record<string, number>).__RAF_TICK_COUNT__,
       );
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(500);
       const tickCountAfterWaiting = await page.evaluate(
         () => (window as unknown as Record<string, number>).__RAF_TICK_COUNT__,
       );
@@ -633,12 +633,12 @@ test.describe("Freeze Animations", () => {
       await activateViaApi(page);
       await page.waitForTimeout(200);
       await deactivateViaApi(page);
-      await page.waitForTimeout(100);
+      await page.waitForTimeout(300);
 
       const tickCountAfterUnfreeze = await page.evaluate(
         () => (window as unknown as Record<string, number>).__RAF_TICK_COUNT__,
       );
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(500);
       const tickCountLater = await page.evaluate(
         () => (window as unknown as Record<string, number>).__RAF_TICK_COUNT__,
       );

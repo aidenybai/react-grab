@@ -25,13 +25,13 @@ test.describe("Freeze Updates", () => {
         ) as HTMLButtonElement;
         addButton?.click();
       });
-      await reactGrab.page.waitForTimeout(100);
+      await reactGrab.page.waitForTimeout(300);
 
       const countDuringPromptMode = await getElementCount();
       expect(countDuringPromptMode).toBe(initialCount);
 
       await reactGrab.pressEscape();
-      await reactGrab.page.waitForTimeout(200);
+      await reactGrab.page.waitForTimeout(500);
 
       const countAfterExit = await getElementCount();
       expect(countAfterExit).toBe(initialCount);
@@ -88,12 +88,18 @@ test.describe("Freeze Updates", () => {
 
       await reactGrab.enterPromptMode("[data-testid='dynamic-element-1']");
       await reactGrab.pressEscape();
-      await reactGrab.page.waitForTimeout(200);
+      await reactGrab.page.waitForTimeout(500);
 
       const countBefore = await getElementCount();
 
       await reactGrab.page.click("[data-testid='add-element-button']");
-      await reactGrab.page.waitForTimeout(100);
+      await reactGrab.page.waitForFunction(
+        (expected) =>
+          document.querySelectorAll("[data-testid^='dynamic-element-']")
+            .length === expected,
+        countBefore + 1,
+        { timeout: 5000 },
+      );
 
       const countAfter = await getElementCount();
       expect(countAfter).toBe(countBefore + 1);
@@ -208,11 +214,21 @@ test.describe("Freeze Updates", () => {
       await reactGrab.hoverElement("[data-testid='dynamic-section']");
       await reactGrab.waitForSelectionBox();
       await reactGrab.deactivate();
+      await reactGrab.page.waitForTimeout(300);
 
       const countBefore = await getElementCount();
 
       await reactGrab.page.click("[data-testid='add-element-button']");
-      await reactGrab.page.waitForTimeout(100);
+      await reactGrab.page.waitForFunction(
+        (expected) => {
+          return (
+            document.querySelectorAll("[data-testid^='dynamic-element-']")
+              .length === expected
+          );
+        },
+        countBefore + 1,
+        { timeout: 5000 },
+      );
 
       const countAfter = await getElementCount();
       expect(countAfter).toBe(countBefore + 1);
@@ -241,7 +257,7 @@ test.describe("Freeze Updates", () => {
       await reactGrab.enterPromptMode("[data-testid='dynamic-element-1']");
 
       await reactGrab.deactivate();
-      await reactGrab.page.waitForTimeout(200);
+      await reactGrab.page.waitForTimeout(500);
 
       const getElementCount = async () => {
         return reactGrab.page.evaluate(() => {
@@ -253,7 +269,13 @@ test.describe("Freeze Updates", () => {
       const countBefore = await getElementCount();
 
       await reactGrab.page.click("[data-testid='add-element-button']");
-      await reactGrab.page.waitForTimeout(100);
+      await reactGrab.page.waitForFunction(
+        (expected) =>
+          document.querySelectorAll("[data-testid^='dynamic-element-']")
+            .length === expected,
+        countBefore + 1,
+        { timeout: 5000 },
+      );
 
       const countAfter = await getElementCount();
       expect(countAfter).toBe(countBefore + 1);
@@ -347,7 +369,7 @@ test.describe("Freeze Updates", () => {
         addButton?.click();
       });
       await reactGrab.pressEscape();
-      await reactGrab.page.waitForTimeout(300);
+      await reactGrab.page.waitForTimeout(500);
 
       const countAfterFirstCycle = await getElementCount();
       expect(countAfterFirstCycle).toBe(countBeforeFirstCycle);
@@ -360,7 +382,7 @@ test.describe("Freeze Updates", () => {
         addButton?.click();
       });
       await reactGrab.pressEscape();
-      await reactGrab.page.waitForTimeout(300);
+      await reactGrab.page.waitForTimeout(500);
 
       const countAfterSecondCycle = await getElementCount();
       expect(countAfterSecondCycle).toBe(countBeforeFirstCycle);

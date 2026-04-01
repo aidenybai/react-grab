@@ -55,7 +55,9 @@ export const TANSTACK_EFFECT = `useEffect(() => {
     }
   }, []);`;
 
-export const TANSTACK_EFFECT_WITH_AGENT = (_agent: AgentIntegration): string => {
+export const TANSTACK_EFFECT_WITH_AGENT = (
+  _agent: AgentIntegration,
+): string => {
   return TANSTACK_EFFECT;
 };
 

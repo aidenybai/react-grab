@@ -46,6 +46,7 @@ test.describe("Edge Cases", () => {
       await reactGrab.waitForSelectionBox();
 
       await reactGrab.removeElement("[data-testid='toggleable-element']");
+      await reactGrab.page.waitForTimeout(100);
 
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();

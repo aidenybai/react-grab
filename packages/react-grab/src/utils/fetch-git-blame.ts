@@ -18,9 +18,7 @@ export const fetchGitBlame = async (
   if (lineNumber) params.set("line", String(lineNumber));
 
   try {
-    const response = await fetch(
-      `/__react-grab/git-blame?${params}`,
-    );
+    const response = await fetch(`/__react-grab/git-blame?${params}`);
     if (!response.ok) {
       failCount++;
       return null;

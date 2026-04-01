@@ -318,12 +318,235 @@ export interface PluginHooks {
   ) => string | Promise<string>;
 }
 
+export interface ToolbarEntry {
+  id: string;
+  /**
+   * HTML content for the button icon. Can be:
+   * - An emoji string: "🔍"
+   * - SVG markup: "<svg>...</svg>"
+   * - Any HTML: "<span style='color:red'>X</span>"
+   * Rendered via innerHTML inside the button.
+   */
+  icon: string;
+  tooltip?: string;
+  badge?: string | number;
+  isVisible?: boolean;
+  /**
+   * Called on button click. If onRender is NOT defined,
+   * this is a simple action button (no dropdown).
+   * If onRender IS defined, onClick fires before the dropdown opens.
+   */
+  onClick?: (handle: ToolbarEntryHandle) => void;
+  /**
+   * Called when the dropdown container opens.
+   * Receives a raw HTMLElement to render into (framework-agnostic).
+   * Return an optional cleanup function called when the dropdown closes.
+   */
+  onRender?: (
+    container: HTMLElement,
+    handle: ToolbarEntryHandle,
+  ) => (() => void) | void;
+}
+
+export interface ToolbarEntryHandle {
+  api: ReactGrabAPI;
+  isOpen: () => boolean;
+  open: () => void;
+  close: () => void;
+  toggle: () => void;
+  setIcon: (icon: string) => void;
+  setTooltip: (tooltip: string) => void;
+  setBadge: (badge: string | number | undefined) => void;
+  setVisible: (isVisible: boolean) => void;
+}
+
 export interface PluginConfig {
   theme?: DeepPartial<Theme>;
   options?: SettableOptions;
   actions?: ContextMenuAction[];
+  toolbarEntries?: ToolbarEntry[];
   hooks?: PluginHooks;
   cleanup?: () => void;
+}
+
+export interface CopyWithLabelOptions {
+  element: Element;
+  cursorX: number;
+  selectedElements?: Element[];
+  extraPrompt?: string;
+  shouldDeactivateAfter?: boolean;
+  onComplete?: () => void;
+  dragRect?: {
+    pageX: number;
+    pageY: number;
+    width: number;
+    height: number;
+  };
+}
+
+export interface BuildActionContextOptions {
+  element: Element;
+  filePath: string | undefined;
+  lineNumber: number | undefined;
+  tagName: string | undefined;
+  componentName: string | undefined;
+  position: Position;
+  performWithFeedbackOptions?: PerformWithFeedbackOptions;
+  shouldDeferHideContextMenu: boolean;
+  onBeforeCopy?: () => void;
+  onBeforePrompt?: () => void;
+  customEnterPromptMode?: (agent?: AgentOptions) => void;
+}
+
+/**
+ * Shared mutable bag for cross-plugin function registration.
+ * Plugins write their functions during setup() and read others at runtime.
+ * By the time any event fires, all plugins have finished setup.
+ */
+export interface SharedPluginApi {
+  performCopyWithLabel?: (options: CopyWithLabelOptions) => void;
+  openContextMenu?: (position: Position, element: Element) => void;
+  activateRenderer?: () => void;
+  deactivateRenderer?: () => void;
+  toggleActivate?: () => void;
+  forceDeactivateAll?: () => void;
+  preparePromptMode?: (position: Position, element: Element) => void;
+  activatePromptMode?: () => void;
+  handleComment?: () => void;
+  enterCommentModeForElement?: (element: Element) => void;
+  buildActionContext?: (
+    options: BuildActionContextOptions,
+  ) => ContextMenuActionContext;
+  createPerformWithFeedback?: (
+    options?: PerformWithFeedbackOptions,
+  ) => (action: () => Promise<boolean>) => Promise<void>;
+  dismissAllPopups?: () => void;
+  dismissToolbarPopups?: () => void;
+  clearArrowNavigation?: () => void;
+  hasArrowNavigation?: () => boolean;
+  showTemporaryGrabbedBox?: (element: Element) => void;
+  createLabelInstance?: (
+    element: Element,
+    tagName: string,
+    componentName: string | undefined,
+    cursorX: number,
+    options?: {
+      elements?: Element[];
+      boundsMultiple?: OverlayBounds[];
+      extraPrompt?: string;
+      hideArrow?: boolean;
+    },
+  ) => string;
+  updateLabelAfterCopy?: (
+    labelId: string,
+    didSucceed: boolean,
+    errorMessage?: string,
+  ) => void;
+  clearAllLabels?: () => void;
+  handleCopySuccessWithComments?: (
+    elements: Element[],
+    commentText: string | undefined,
+  ) => void;
+  handleToggleEnabled?: () => void;
+  handleSetDefaultAction?: (actionId: string) => void;
+  updateToolbarState?: (updates: Partial<ToolbarState>) => void;
+  setCopyStartPosition?: (position: Position, element: Element) => void;
+  isRendererActive?: () => boolean;
+  isEnabled?: () => boolean;
+  shakeToolbar?: () => void;
+  handleInputSubmit?: () => void;
+  handleInputCancel?: () => void;
+  isAgentProcessing?: () => boolean;
+  isCopyFeedbackCooldownActive?: () => boolean;
+  clearCopyFeedbackCooldown?: () => void;
+  cancelActiveDrag?: () => void;
+  getDragBounds?: () => OverlayBounds | null;
+  isDragBoxVisible?: () => boolean;
+  clearHoldTimer?: () => void;
+  resetCopyConfirmation?: () => void;
+  isHoldingKeys?: () => boolean;
+  // Kernel-facing accessors
+  isToolbarSelectHovered?: () => boolean;
+  setIsToolbarSelectHovered?: (value: boolean) => void;
+  hasDragPreviewBounds?: () => boolean;
+  setHasDragPreviewBounds?: (value: boolean) => void;
+  openTrackedDropdown?: (
+    setPosition: (anchor: DropdownAnchor) => void,
+  ) => void;
+  stopTrackingDropdownPosition?: () => void;
+  getCurrentToolbarState?: () => ToolbarState | null;
+  getAgentSessionCount?: () => number;
+  syncAgentFromRegistry?: () => void;
+  subscribeToToolbarStateChanges?: (
+    callback: (state: ToolbarState) => void,
+  ) => () => void;
+  copyWithFallback?: (
+    elements: Element[],
+    extraPrompt?: string,
+  ) => Promise<boolean>;
+  toggleToolbarEntry?: (entryId: string) => void;
+  closeToolbarEntry?: () => void;
+  setEnabled?: (enabled: boolean) => void;
+}
+
+export interface DerivedState {
+  isHoldingKeys: () => boolean;
+  isActivated: () => boolean;
+  isCopying: () => boolean;
+  didJustCopy: () => boolean;
+  isPromptMode: () => boolean;
+  isDragging: () => boolean;
+  isFrozenPhase: () => boolean;
+  isRendererActive: () => boolean;
+  targetElement: () => Element | null;
+  effectiveElement: () => Element | null;
+  selectionElement: () => Element | undefined;
+  frozenElementsBounds: () => OverlayBounds[];
+}
+
+export interface PluginContext {
+  store: import("./core/store.js").GrabStore;
+  actions: import("./core/store.js").GrabActions;
+  derived: DerivedState;
+  registry: {
+    store: {
+      theme: Required<Theme>;
+      options: import("./core/plugin-registry.js").OptionsState;
+      actions: ContextMenuAction[];
+      toolbarEntries: ToolbarEntry[];
+      toolbarEntryOverrides: Record<
+        string,
+        Partial<Pick<ToolbarEntry, "icon" | "tooltip" | "badge" | "isVisible">>
+      >;
+    };
+    hooks: import("./core/plugin-registry.js").PluginRegistryHooks;
+    updateToolbarEntry: (
+      entryId: string,
+      updates: Partial<
+        Pick<ToolbarEntry, "icon" | "tooltip" | "badge" | "isVisible">
+      >,
+    ) => void;
+    setOptions: (options: SettableOptions) => void;
+  };
+  api: ReactGrabAPI;
+  events: import("./core/events.js").EventListenerManager;
+  shared: SharedPluginApi;
+  onKeyDown: (handler: (event: KeyboardEvent) => boolean) => void;
+  onKeyUp: (handler: (event: KeyboardEvent) => boolean) => void;
+  onPointerDown: (handler: (event: PointerEvent) => boolean) => void;
+  onPointerMove: (handler: (event: PointerEvent) => boolean) => void;
+  onPointerUp: (handler: (event: PointerEvent) => boolean) => void;
+  onContextMenu: (handler: (event: MouseEvent) => boolean) => void;
+  provide: <K extends keyof ReactGrabRendererProps>(
+    key: K,
+    accessor: () => ReactGrabRendererProps[K],
+  ) => void;
+}
+
+export interface InternalPlugin {
+  name: string;
+  priority?: number;
+  setup: (ctx: PluginContext) => (() => void) | void;
 }
 
 export interface Plugin {
@@ -331,6 +554,7 @@ export interface Plugin {
   theme?: DeepPartial<Theme>;
   options?: SettableOptions;
   actions?: ContextMenuAction[];
+  toolbarEntries?: ToolbarEntry[];
   hooks?: PluginHooks;
   setup?: (api: ReactGrabAPI, hooks: ActionContextHooks) => PluginConfig | void;
 }
@@ -397,6 +621,8 @@ export interface ReactGrabAPI {
   unregisterPlugin: (name: string) => void;
   getPlugins: () => string[];
   getDisplayName: (element: Element) => string | null;
+  toggleToolbarEntry: (entryId: string) => void;
+  closeToolbarEntry: () => void;
 }
 
 export interface OverlayBounds {
@@ -550,6 +776,16 @@ export interface ReactGrabRendererProps {
   clearPromptPosition?: DropdownAnchor | null;
   onClearCommentsConfirm?: () => void;
   onClearCommentsCancel?: () => void;
+  toolbarEntries?: ToolbarEntry[];
+  toolbarEntryOverrides?: Record<
+    string,
+    Partial<Pick<ToolbarEntry, "icon" | "tooltip" | "badge" | "isVisible">>
+  >;
+  activeToolbarEntryId?: string | null;
+  activeToolbarEntryHandle?: ToolbarEntryHandle | null;
+  toolbarEntryDropdownPosition?: DropdownAnchor | null;
+  onToggleToolbarEntry?: (entryId: string) => void;
+  onToolbarEntryDismiss?: () => void;
 }
 
 export interface GrabbedBox {

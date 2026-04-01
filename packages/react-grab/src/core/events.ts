@@ -1,4 +1,4 @@
-interface EventListenerManager {
+export interface EventListenerManager {
   signal: AbortSignal;
   abort: () => void;
   addWindowListener: <K extends keyof WindowEventMap>(

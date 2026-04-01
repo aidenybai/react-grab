@@ -39,6 +39,8 @@ export type {
   Plugin,
   PluginConfig,
   PluginHooks,
+  ToolbarEntry,
+  ToolbarEntryHandle,
 } from "./types.js";
 
 import { init } from "./core/index.js";

@@ -1,4 +1,4 @@
-import { createStore } from "solid-js/store";
+import { createStore, reconcile } from "solid-js/store";
 import type {
   Position,
   Plugin,
@@ -6,6 +6,7 @@ import type {
   PluginHooks,
   Theme,
   ContextMenuAction,
+  ToolbarEntry,
   ReactGrabAPI,
   ReactGrabState,
   PromptModeContext,
@@ -54,6 +55,11 @@ interface PluginStoreState {
   theme: Required<Theme>;
   options: OptionsState;
   actions: ContextMenuAction[];
+  toolbarEntries: ToolbarEntry[];
+  toolbarEntryOverrides: Record<
+    string,
+    Partial<Pick<ToolbarEntry, "icon" | "tooltip" | "badge" | "isVisible">>
+  >;
 }
 
 type HookName = keyof PluginHooks;
@@ -66,12 +72,15 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     theme: DEFAULT_THEME,
     options: { ...DEFAULT_OPTIONS, ...initialOptions },
     actions: [],
+    toolbarEntries: [],
+    toolbarEntryOverrides: {},
   });
 
   const recomputeStore = () => {
     let mergedTheme: Required<Theme> = DEFAULT_THEME;
     let mergedOptions: OptionsState = { ...DEFAULT_OPTIONS, ...initialOptions };
     const allContextMenuActions: ContextMenuAction[] = [];
+    const allToolbarEntries: ToolbarEntry[] = [];
 
     for (const { config } of plugins.values()) {
       if (config.theme) {
@@ -87,6 +96,12 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
           allContextMenuActions.push(action);
         }
       }
+
+      if (config.toolbarEntries) {
+        for (const toolbarEntry of config.toolbarEntries) {
+          allToolbarEntries.push(toolbarEntry);
+        }
+      }
     }
 
     mergedOptions = { ...mergedOptions, ...directOptionOverrides };
@@ -94,6 +109,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     setStore("theme", mergedTheme);
     setStore("options", mergedOptions);
     setStore("actions", allContextMenuActions);
+    setStore("toolbarEntries", allToolbarEntries);
   };
 
   const setOption = <OptionKey extends keyof OptionsState>(
@@ -142,6 +158,13 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       config.actions = [...plugin.actions, ...(config.actions ?? [])];
     }
 
+    if (plugin.toolbarEntries) {
+      config.toolbarEntries = [
+        ...plugin.toolbarEntries,
+        ...(config.toolbarEntries ?? []),
+      ];
+    }
+
     if (plugin.hooks) {
       config.hooks = config.hooks
         ? { ...plugin.hooks, ...config.hooks }
@@ -167,12 +190,34 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       registered.config.cleanup();
     }
 
+    const removedEntryIds = new Set(
+      (registered.config.toolbarEntries ?? []).map(
+        (toolbarEntry) => toolbarEntry.id,
+      ),
+    );
+    if (removedEntryIds.size > 0) {
+      const filteredOverrides = Object.fromEntries(
+        Object.entries(store.toolbarEntryOverrides).filter(
+          ([entryId]) => !removedEntryIds.has(entryId),
+        ),
+      );
+      setStore("toolbarEntryOverrides", reconcile(filteredOverrides));
+    }
+
     plugins.delete(name);
     recomputeStore();
   };
 
   const getPluginNames = (): string[] => {
     return Array.from(plugins.keys());
+  };
+
+  const getPluginToolbarEntryIds = (name: string): string[] => {
+    const registered = plugins.get(name);
+    if (!registered) return [];
+    return (registered.config.toolbarEntries ?? []).map(
+      (toolbarEntry) => toolbarEntry.id,
+    );
   };
 
   const callHook = <K extends HookName>(
@@ -332,14 +377,89 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       callHookReduce("transformSnippet", snippet, element),
   };
 
+  const updateToolbarEntry = (
+    entryId: string,
+    updates: Partial<
+      Pick<ToolbarEntry, "icon" | "tooltip" | "badge" | "isVisible">
+    >,
+  ) => {
+    setStore("toolbarEntryOverrides", entryId, (prev) => ({
+      ...prev,
+      ...updates,
+    }));
+  };
+
+  // Interceptor chain: priority-ordered handlers for each event type
+  type InterceptorEntry = {
+    priority: number;
+    handler: (event: never) => boolean;
+  };
+  const interceptors = {
+    keydown: [] as InterceptorEntry[],
+    keyup: [] as InterceptorEntry[],
+    pointerdown: [] as InterceptorEntry[],
+    pointermove: [] as InterceptorEntry[],
+    pointerup: [] as InterceptorEntry[],
+    contextmenu: [] as InterceptorEntry[],
+  };
+
+  const addInterceptor = (
+    eventType: keyof typeof interceptors,
+    priority: number,
+    handler: (event: never) => boolean,
+  ) => {
+    const chain = interceptors[eventType];
+    chain.push({ priority, handler });
+    chain.sort((first, second) => first.priority - second.priority);
+  };
+
+  const dispatchInterceptor = <E extends Event>(
+    eventType: keyof typeof interceptors,
+    event: E,
+  ): boolean => {
+    for (const { handler } of interceptors[eventType]) {
+      if ((handler as (event: E) => boolean)(event)) return true;
+    }
+    return false;
+  };
+
+  // Renderer prop contributions: plugins register reactive accessors
+  const rendererContributions = new Map<string, () => unknown>();
+
+  const provideRendererProp = (key: string, accessor: () => unknown) => {
+    rendererContributions.set(key, accessor);
+  };
+
+  const getRendererContributions = (): Record<string, unknown> => {
+    const result: Record<string, unknown> = {};
+    for (const [key, accessor] of rendererContributions) {
+      Object.defineProperty(result, key, {
+        get: accessor,
+        enumerable: true,
+        configurable: true,
+      });
+    }
+    return result;
+  };
+
   return {
     register,
     unregister,
     getPluginNames,
+    getPluginToolbarEntryIds,
     setOptions,
+    updateToolbarEntry,
     store,
     hooks,
+    addInterceptor,
+    dispatchInterceptor,
+    provideRendererProp,
+    getRendererContributions,
   };
 };
 
 export { createPluginRegistry };
+export type { OptionsState, PluginStoreState };
+
+type PluginRegistryReturn = ReturnType<typeof createPluginRegistry>;
+export type PluginRegistryHooks = PluginRegistryReturn["hooks"];
