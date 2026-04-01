@@ -15,7 +15,6 @@
   "ignorePatterns": [
     "node_modules/**",
     "dist/**",
-    "eslint.config.mjs",
     "bundled_*.mjs",
     "*.mjs",
     "*.cjs",

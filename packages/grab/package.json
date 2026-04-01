@@ -61,8 +61,7 @@
     },
     "./dist/*": "./dist/*.js",
     "./dist/*.js": "./dist/*.js",
-    "./dist/*.cjs": "./dist/*.cjs",
-    "./dist/*.mjs": "./dist/*.mjs"
+    "./dist/*.cjs": "./dist/*.cjs"
   },
   "publishConfig": {
     "access": "public"

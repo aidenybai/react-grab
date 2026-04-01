@@ -254,23 +254,7 @@ const CONFIG_OPTIONS: ConfigOption[] = [
   },
 ];
 
-const formatActivationKeyDisplay = (
-  activationKey: ReactGrabOptions["activationKey"],
-): string => {
-  if (!activationKey) return "Default (Option/Alt)";
-  return activationKey
-    .split("+")
-    .map((part) => {
-      const lower = part.toLowerCase();
-      if (lower === "meta") return process.platform === "darwin" ? "⌘" : "Win";
-      if (lower === "alt") return process.platform === "darwin" ? "⌥" : "Alt";
-      if (lower === "ctrl") return "Ctrl";
-      if (lower === "shift") return "Shift";
-      if (lower === "space" || lower === " ") return "Space";
-      return part.toUpperCase();
-    })
-    .join(" + ");
-};
+import { formatActivationKeyDisplay } from "../utils/format-activation-key.js";
 
 const comboToString = (combo: KeyCombo): string => {
   const parts: string[] = [];

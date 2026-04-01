@@ -21,7 +21,6 @@ const options: Options = {
   target: "esnext",
   treeshake: true,
   esbuildPlugins: [
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- babel is not typed
     babel({
       filter: /\.(tsx|jsx)$/,
       config: {
