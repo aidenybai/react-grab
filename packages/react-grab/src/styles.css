@@ -2,24 +2,8 @@
 
 @theme {
   --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
-  --font-mono:
-    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
-    monospace;
-  --color-grab-pink: #b21c8e;
-  --color-grab-pink-light: #fde7f7;
-  --color-grab-pink-border: #f7c5ec;
-  --color-grab-purple: rgb(210, 57, 192);
-  --color-label-tag-border: #730079;
-  --color-label-tag-text: #1e001f;
-  --color-label-gray-border: #b0b0b0;
-  --color-label-success-bg: #d9ffe4;
-  --color-label-success-border: #00bb69;
-  --color-label-success-text: #006e3b;
-  --color-label-divider: #dedede;
-  --color-label-muted: #767676;
   --transition-fast: 100ms;
   --transition-normal: 150ms;
-  --transition-slow: 200ms;
 }
 
 :host {
@@ -49,76 +33,6 @@
   }
   90% {
     transform: translateX(2px);
-  }
-}
-
-@keyframes pop-in {
-  0% {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  70% {
-    opacity: 1;
-    transform: scale(1.02);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes pop-out {
-  from {
-    opacity: 1;
-    transform: scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-}
-
-@keyframes slide-in-bottom {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slide-in-top {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slide-in-left {
-  from {
-    opacity: 0;
-    transform: translateX(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes slide-in-right {
-  from {
-    opacity: 0;
-    transform: translateX(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
   }
 }
 
@@ -229,36 +143,6 @@
 .animate-shake {
   animation: shake 0.3s ease-out;
   will-change: transform;
-}
-
-.animate-pop-in {
-  animation: pop-in var(--transition-normal) ease-out;
-  will-change: transform, opacity;
-}
-
-.animate-pop-out {
-  animation: pop-out var(--transition-normal) ease-out forwards;
-  will-change: transform, opacity;
-}
-
-.animate-slide-in-bottom {
-  animation: slide-in-bottom var(--transition-slow) ease-out;
-  will-change: transform, opacity;
-}
-
-.animate-slide-in-top {
-  animation: slide-in-top var(--transition-slow) ease-out;
-  will-change: transform, opacity;
-}
-
-.animate-slide-in-left {
-  animation: slide-in-left var(--transition-slow) ease-out;
-  will-change: transform, opacity;
-}
-
-.animate-slide-in-right {
-  animation: slide-in-right var(--transition-slow) ease-out;
-  will-change: transform, opacity;
 }
 
 .animate-success-pop {

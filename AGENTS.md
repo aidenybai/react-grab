@@ -116,7 +116,7 @@ pnpm format
 
 ## Development instructions
 
-This is a pnpm + Turborepo monorepo (19 packages under `packages/`). No external services (databases, Docker, etc.) are required.
+This is a pnpm + Turborepo monorepo (10 packages under `packages/`). No external services (databases, Docker, etc.) are required.
 
 ### Build before test
 

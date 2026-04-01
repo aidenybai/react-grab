@@ -1,17 +1,12 @@
 import type { Component, JSX } from "solid-js";
 import { cn } from "../../utils/cn.js";
-import { IconSelect } from "../icons/icon-select.jsx";
 import { IconChevron } from "../icons/icon-chevron.jsx";
-import { IconComment } from "../icons/icon-comment.jsx";
-import { IconCopy } from "../icons/icon-copy.jsx";
 import {
   getExpandGridClass,
-  getButtonSpacingClass,
   getMinDimensionClass,
-  getHitboxConstraintClass,
 } from "../../utils/toolbar-layout.js";
 
-export interface ToolbarContentProps {
+interface ToolbarContentProps {
   isActive?: boolean;
   enabled?: boolean;
   isCollapsed?: boolean;
@@ -58,9 +53,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
     return "transition-[grid-template-columns] duration-150 ease-out";
   };
 
-  const buttonSpacingClass = () => getButtonSpacingClass(isVertical());
   const minDimensionClass = () => getMinDimensionClass(isVertical());
-  const hitboxConstraintClass = () => getHitboxConstraintClass(isVertical());
 
   const collapsedEdgeClasses = () => {
     if (!props.isCollapsed) return "";
@@ -89,94 +82,6 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
         return "rotate-0";
     }
   };
-
-  const defaultSelectButton = () => (
-    <button
-      data-react-grab-ignore-events
-      data-react-grab-toolbar-toggle
-      aria-label={props.isActive ? "Stop selecting element" : "Select element"}
-      aria-pressed={Boolean(props.isActive)}
-      class={cn(
-        "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
-        buttonSpacingClass(),
-        hitboxConstraintClass(),
-      )}
-    >
-      <IconSelect
-        size={14}
-        class={cn(
-          "transition-colors",
-          props.isActive ? "text-black" : "text-black/70",
-        )}
-      />
-    </button>
-  );
-
-  const defaultCommentsButton = () => (
-    <button
-      data-react-grab-ignore-events
-      data-react-grab-toolbar-comments
-      aria-label="Open comments"
-      class={cn(
-        "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
-        buttonSpacingClass(),
-        hitboxConstraintClass(),
-      )}
-    >
-      <IconComment
-        size={14}
-        class={cn(
-          "transition-colors",
-          props.isCommentsPinned ? "text-black/50" : "text-[#B3B3B3]",
-        )}
-      />
-    </button>
-  );
-
-  const defaultCopyAllButton = () => (
-    <button
-      data-react-grab-ignore-events
-      data-react-grab-toolbar-copy-all
-      aria-label="Copy all comments"
-      class={cn(
-        "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
-        buttonSpacingClass(),
-        hitboxConstraintClass(),
-      )}
-    >
-      <IconCopy size={14} class="text-[#B3B3B3] transition-colors" />
-    </button>
-  );
-
-  const defaultToggleButton = () => (
-    <button
-      data-react-grab-ignore-events
-      data-react-grab-toolbar-enabled
-      aria-label={props.enabled ? "Disable React Grab" : "Enable React Grab"}
-      aria-pressed={Boolean(props.enabled)}
-      class={cn(
-        "contain-layout flex items-center justify-center cursor-pointer interactive-scale outline-none",
-        isVertical() ? "my-0.5" : "mx-0.5",
-      )}
-    >
-      <div
-        class={cn(
-          "relative rounded-full transition-colors",
-          isVertical() ? "w-3.5 h-2.5" : "w-5 h-3",
-          props.enabled ? "bg-black" : "bg-black/25",
-        )}
-      >
-        <div
-          class={cn(
-            "absolute top-0.5 rounded-full bg-white transition-transform",
-            isVertical() ? "w-1.5 h-1.5" : "w-2 h-2",
-            !props.enabled && "left-0.5",
-            props.enabled && (isVertical() ? "left-1.5" : "left-2.5"),
-          )}
-        />
-      </div>
-    </button>
-  );
 
   const defaultCollapseButton = () => (
     <button
@@ -216,10 +121,12 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
           "grid relative overflow-visible",
           gridSizeTransitionClass(),
           props.isCollapsed
-            ? (isVertical()
-                ? "grid-rows-[0fr] pointer-events-none"
-                : "grid-cols-[0fr] pointer-events-none")
-            : (isVertical() ? "grid-rows-[1fr]" : "grid-cols-[1fr]"),
+            ? isVertical()
+              ? "grid-rows-[0fr] pointer-events-none"
+              : "grid-cols-[0fr] pointer-events-none"
+            : isVertical()
+              ? "grid-rows-[1fr]"
+              : "grid-cols-[1fr]",
         )}
       >
         <div
@@ -245,7 +152,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
               )}
             >
               <div class={cn("relative overflow-visible", minDimensionClass())}>
-                {props.selectButton ?? defaultSelectButton()}
+                {props.selectButton}
               </div>
             </div>
             <div
@@ -259,7 +166,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
               )}
             >
               <div class={cn("relative overflow-visible", minDimensionClass())}>
-                {props.commentsButton ?? defaultCommentsButton()}
+                {props.commentsButton}
               </div>
             </div>
             <div
@@ -273,12 +180,12 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
               )}
             >
               <div class={cn("relative overflow-visible", minDimensionClass())}>
-                {props.copyAllButton ?? defaultCopyAllButton()}
+                {props.copyAllButton}
               </div>
             </div>
           </div>
           <div class="relative shrink-0 overflow-visible">
-            {props.toggleButton ?? defaultToggleButton()}
+            {props.toggleButton}
           </div>
         </div>
       </div>

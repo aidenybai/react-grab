@@ -1,10 +1,5 @@
 export type AgentIntegration = "mcp" | "none";
 
-export const getAgentDisplayName = (agent: string): string => {
-  if (agent === "mcp") return "MCP";
-  return agent;
-};
-
 export const NEXT_APP_ROUTER_SCRIPT = `{process.env.NODE_ENV === "development" && (
           <Script
             src="//unpkg.com/react-grab/dist/index.global.js"
@@ -19,7 +14,7 @@ export const NEXT_APP_ROUTER_SCRIPT_WITH_AGENT = (
   return NEXT_APP_ROUTER_SCRIPT;
 };
 
-export const NEXT_PAGES_ROUTER_SCRIPT = `{process.env.NODE_ENV === "development" && (
+const NEXT_PAGES_ROUTER_SCRIPT = `{process.env.NODE_ENV === "development" && (
           <Script
             src="//unpkg.com/react-grab/dist/index.global.js"
             crossOrigin="anonymous"
@@ -49,13 +44,15 @@ export const WEBPACK_IMPORT_WITH_AGENT = (_agent: AgentIntegration): string => {
   return WEBPACK_IMPORT;
 };
 
-export const TANSTACK_EFFECT = `useEffect(() => {
+const TANSTACK_EFFECT = `useEffect(() => {
     if (import.meta.env.DEV) {
       void import("react-grab");
     }
   }, []);`;
 
-export const TANSTACK_EFFECT_WITH_AGENT = (_agent: AgentIntegration): string => {
+export const TANSTACK_EFFECT_WITH_AGENT = (
+  _agent: AgentIntegration,
+): string => {
   return TANSTACK_EFFECT;
 };
 

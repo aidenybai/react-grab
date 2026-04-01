@@ -1,7 +1,4 @@
-interface Point {
-  x: number;
-  y: number;
-}
+import type { Position } from "../types.js";
 
 export interface TargetRect {
   x: number;
@@ -11,18 +8,18 @@ export interface TargetRect {
 }
 
 const computeTriangleSign = (
-  point1: Point,
-  point2: Point,
-  point3: Point,
+  point1: Position,
+  point2: Position,
+  point3: Position,
 ): number =>
   (point1.x - point3.x) * (point2.y - point3.y) -
   (point2.x - point3.x) * (point1.y - point3.y);
 
-const isPointInTriangle = (
-  point: Point,
-  vertex1: Point,
-  vertex2: Point,
-  vertex3: Point,
+const isPositionInTriangle = (
+  point: Position,
+  vertex1: Position,
+  vertex2: Position,
+  vertex3: Position,
 ): boolean => {
   const sign1 = computeTriangleSign(point, vertex1, vertex2);
   const sign2 = computeTriangleSign(point, vertex2, vertex3);
@@ -32,16 +29,16 @@ const isPointInTriangle = (
   return !hasNegative || !hasPositive;
 };
 
-const isPointInRect = (point: Point, rect: TargetRect): boolean =>
+const isPositionInRect = (point: Position, rect: TargetRect): boolean =>
   point.x >= rect.x &&
   point.x <= rect.x + rect.width &&
   point.y >= rect.y &&
   point.y <= rect.y + rect.height;
 
 const computeFarEdgeCorners = (
-  cursor: Point,
+  cursor: Position,
   targetRect: TargetRect,
-): [Point, Point] => {
+): [Position, Position] => {
   const targetBottom = targetRect.y + targetRect.height;
   const targetRight = targetRect.x + targetRect.width;
 
@@ -78,7 +75,7 @@ export const createSafePolygonTracker = () => {
   };
 
   const start = (
-    cursorPosition: Point,
+    cursorPosition: Position,
     targetRects: TargetRect[],
     onLeavePolygon: () => void,
   ) => {
@@ -87,27 +84,27 @@ export const createSafePolygonTracker = () => {
     const primaryTarget = targetRects[0];
     if (!primaryTarget) return;
 
-    if (isPointInRect(cursorPosition, primaryTarget)) return;
+    if (isPositionInRect(cursorPosition, primaryTarget)) return;
 
     const [corner1, corner2] = computeFarEdgeCorners(
       cursorPosition,
       primaryTarget,
     );
 
-    const isInAnySafeRect = (point: Point): boolean =>
-      targetRects.some((rect) => isPointInRect(point, rect));
+    const isInAnySafeRect = (point: Position): boolean =>
+      targetRects.some((rect) => isPositionInRect(point, rect));
 
     const handleMouseMove = (event: MouseEvent) => {
       const cursor = { x: event.clientX, y: event.clientY };
 
       if (isInAnySafeRect(cursor)) {
-        if (isPointInRect(cursor, primaryTarget)) {
+        if (isPositionInRect(cursor, primaryTarget)) {
           stop();
         }
         return;
       }
 
-      if (isPointInTriangle(cursor, cursorPosition, corner1, corner2)) {
+      if (isPositionInTriangle(cursor, cursorPosition, corner1, corner2)) {
         return;
       }
 

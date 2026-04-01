@@ -81,7 +81,6 @@
     "access": "public"
   },
   "scripts": {
-    "css:build": "tailwindcss -i ./src/styles.css -o ./dist/styles.css -m && node scripts/css-rem-to-px.mjs",
     "css:watch": "tailwindcss -i ./src/styles.css -o ./dist/styles.css -w",
     "prebuild": "mkdir -p dist && tailwindcss -i ./src/styles.css -o ./dist/styles.css -m && node scripts/css-rem-to-px.mjs",
     "build": "NODE_ENV=production tsup",
@@ -92,7 +91,6 @@
     "typecheck": "tsc --noEmit",
     "publint": "publint",
     "prepublishOnly": "pnpm build",
-    "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
@@ -116,8 +114,7 @@
     "oxlint": "^1.42.0",
     "publint": "^0.2.12",
     "tailwindcss": "^4.1.0",
-    "tsup": "^8.2.4",
-    "tsx": "^4.21.0"
+    "tsup": "^8.2.4"
   },
   "peerDependencies": {
     "react": ">=17.0.0"

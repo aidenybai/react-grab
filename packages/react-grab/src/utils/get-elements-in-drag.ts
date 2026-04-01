@@ -12,6 +12,7 @@ import {
   DRAG_SELECTION_EDGE_INSET_PX,
 } from "../constants.js";
 import { isRootElement } from "./is-root-element.js";
+import { clampToRange } from "./toolbar-position.js";
 
 const calculateIntersectionArea = (rect1: Rect, rect2: Rect): number => {
   const intersectionLeft = Math.max(rect1.left, rect2.left);
@@ -32,10 +33,6 @@ const hasIntersection = (rect1: Rect, rect2: Rect): boolean => {
     rect1.top < rect2.bottom &&
     rect1.bottom > rect2.top
   );
-};
-
-const clampNumber = (value: number, min: number, max: number): number => {
-  return Math.min(max, Math.max(min, value));
 };
 
 const sortByDocumentOrder = (elements: Element[]): Element[] => {
@@ -67,12 +64,12 @@ const createSamplePoints = (dragRect: DragRect): SamplePoint[] => {
   const centerX = left + dragRect.width / 2;
   const centerY = top + dragRect.height / 2;
 
-  const xCount = clampNumber(
+  const xCount = clampToRange(
     Math.ceil(dragRect.width / DRAG_SELECTION_SAMPLE_SPACING_PX),
     DRAG_SELECTION_MIN_SAMPLES_PER_AXIS,
     DRAG_SELECTION_MAX_SAMPLES_PER_AXIS,
   );
-  const yCount = clampNumber(
+  const yCount = clampToRange(
     Math.ceil(dragRect.height / DRAG_SELECTION_SAMPLE_SPACING_PX),
     DRAG_SELECTION_MIN_SAMPLES_PER_AXIS,
     DRAG_SELECTION_MAX_SAMPLES_PER_AXIS,
@@ -82,12 +79,12 @@ const createSamplePoints = (dragRect: DragRect): SamplePoint[] => {
     totalGridPoints > DRAG_SELECTION_MAX_TOTAL_SAMPLE_POINTS
       ? Math.sqrt(DRAG_SELECTION_MAX_TOTAL_SAMPLE_POINTS / totalGridPoints)
       : 1;
-  const scaledXCount = clampNumber(
+  const scaledXCount = clampToRange(
     Math.floor(xCount * scale),
     DRAG_SELECTION_MIN_SAMPLES_PER_AXIS,
     DRAG_SELECTION_MAX_SAMPLES_PER_AXIS,
   );
-  const scaledYCount = clampNumber(
+  const scaledYCount = clampToRange(
     Math.floor(yCount * scale),
     DRAG_SELECTION_MIN_SAMPLES_PER_AXIS,
     DRAG_SELECTION_MAX_SAMPLES_PER_AXIS,
@@ -97,8 +94,8 @@ const createSamplePoints = (dragRect: DragRect): SamplePoint[] => {
   const points: SamplePoint[] = [];
 
   const addPoint = (x: number, y: number) => {
-    const clampedX = clampNumber(Math.round(x), 0, viewportWidth - 1);
-    const clampedY = clampNumber(Math.round(y), 0, viewportHeight - 1);
+    const clampedX = clampToRange(Math.round(x), 0, viewportWidth - 1);
+    const clampedY = clampToRange(Math.round(y), 0, viewportHeight - 1);
     const key = `${clampedX}:${clampedY}`;
     if (pointKeys.has(key)) return;
     pointKeys.add(key);

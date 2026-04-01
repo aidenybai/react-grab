@@ -813,27 +813,6 @@ export const applyTransform = (
   return { success: true };
 };
 
-export const transformProject = (
-  projectRoot: string,
-  framework: Framework,
-  nextRouterType: NextRouterType,
-  agent: AgentIntegration,
-  reactGrabAlreadyConfigured: boolean = false,
-): TransformResult & { writeError?: string } => {
-  const result = previewTransform(
-    projectRoot,
-    framework,
-    nextRouterType,
-    agent,
-    reactGrabAlreadyConfigured,
-  );
-  const writeResult = applyTransform(result);
-  if (!writeResult.success) {
-    return { ...result, success: false, writeError: writeResult.error };
-  }
-  return result;
-};
-
 const getPackageExecutor = (packageManager: PackageManager): string => {
   switch (packageManager) {
     case "bun":
@@ -859,7 +838,7 @@ const AGENT_PACKAGES: Record<string, string> = {
   copilot: "@react-grab/copilot@latest",
 };
 
-export const getAgentPrefix = (
+const getAgentPrefix = (
   agent: string,
   packageManager: PackageManager,
 ): string | null => {

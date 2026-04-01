@@ -1,11 +1,6 @@
-import type { OverlayBounds } from "../types.js";
+import type { OverlayBounds, Position } from "../types.js";
 
-interface Point {
-  x: number;
-  y: number;
-}
-
-export const getVisibleBoundsCenter = (bounds: OverlayBounds): Point => {
+export const getVisibleBoundsCenter = (bounds: OverlayBounds): Position => {
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
 

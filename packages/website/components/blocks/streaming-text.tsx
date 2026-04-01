@@ -2,11 +2,7 @@
 
 import { motion, useReducedMotion } from "motion/react";
 import { type ReactElement, type ReactNode } from "react";
-
-interface StreamChunk {
-  id: string;
-  text: string;
-}
+import type { StreamChunk } from "@/hooks/use-stream";
 
 interface FadeInProps {
   children: ReactNode;

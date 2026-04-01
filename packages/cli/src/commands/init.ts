@@ -9,9 +9,7 @@ import {
   applyTransformWithFeedback,
   installPackagesWithFeedback,
 } from "../utils/cli-helpers.js";
-import {
-  promptMcpInstall,
-} from "../utils/install-mcp.js";
+import { promptMcpInstall } from "../utils/install-mcp.js";
 import {
   detectProject,
   findReactProjects,
@@ -23,14 +21,10 @@ import {
 import { printDiff } from "../utils/diff.js";
 import { handleError } from "../utils/handle-error.js";
 import { highlighter } from "../utils/highlighter.js";
-import {
-  getPackagesToInstall,
-} from "../utils/install.js";
+import { getPackagesToInstall } from "../utils/install.js";
 import { logger } from "../utils/logger.js";
 import { spinner } from "../utils/spinner.js";
-import {
-  type AgentIntegration,
-} from "../utils/templates.js";
+import { type AgentIntegration } from "../utils/templates.js";
 import {
   previewOptionsTransform,
   previewPackageJsonTransform,

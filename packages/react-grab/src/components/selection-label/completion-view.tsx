@@ -63,7 +63,6 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
   const handleAccept = () => {
     if (didCopy()) return;
     setDidCopy(true);
-    props.onCopyStateChange?.();
     fadeTimeoutId = window.setTimeout(() => {
       setIsFading(true);
       props.onFadingChange?.(true);

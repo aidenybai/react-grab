@@ -13,7 +13,7 @@ export type UnsupportedFramework =
   | "gatsby"
   | null;
 
-export interface ProjectInfo {
+interface ProjectInfo {
   packageManager: PackageManager;
   framework: Framework;
   nextRouterType: NextRouterType;
@@ -31,7 +31,7 @@ const VALID_PACKAGE_MANAGERS: ReadonlySet<string> = new Set([
   "bun",
 ]);
 
-export const detectPackageManager = async (
+const detectPackageManager = async (
   projectRoot: string,
 ): Promise<PackageManager> => {
   const detected = await detect({ cwd: projectRoot });
@@ -417,9 +417,7 @@ export const detectReactGrab = (projectRoot: string): boolean => {
   return filesToCheck.some(hasReactGrabInFile);
 };
 
-const AGENT_PACKAGES = [
-  "@react-grab/mcp",
-];
+const AGENT_PACKAGES = ["@react-grab/mcp"];
 
 export const detectUnsupportedFramework = (
   projectRoot: string,
