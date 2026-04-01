@@ -8,12 +8,12 @@ import {
 import { join } from "node:path";
 import type { Framework, NextRouterType, PackageManager } from "./detect.js";
 import {
-  NEXT_APP_ROUTER_SCRIPT_WITH_AGENT,
-  NEXT_PAGES_ROUTER_SCRIPT_WITH_AGENT,
+  NEXT_APP_ROUTER_SCRIPT,
+  NEXT_PAGES_ROUTER_SCRIPT,
   SCRIPT_IMPORT,
-  TANSTACK_EFFECT_WITH_AGENT,
-  VITE_IMPORT_WITH_AGENT,
-  WEBPACK_IMPORT_WITH_AGENT,
+  TANSTACK_EFFECT,
+  VITE_IMPORT,
+  WEBPACK_IMPORT,
   type AgentIntegration,
 } from "./templates.js";
 
@@ -399,7 +399,7 @@ const transformNextAppRouter = (
     }
   }
 
-  const scriptBlock = NEXT_APP_ROUTER_SCRIPT_WITH_AGENT(agent);
+  const scriptBlock = NEXT_APP_ROUTER_SCRIPT;
 
   const headMatch = newContent.match(/<head[^>]*>/);
   if (headMatch) {
@@ -495,7 +495,7 @@ const transformNextPagesRouter = (
     }
   }
 
-  const scriptBlock = NEXT_PAGES_ROUTER_SCRIPT_WITH_AGENT(agent);
+  const scriptBlock = NEXT_PAGES_ROUTER_SCRIPT;
 
   const headMatch = newContent.match(/<Head[^>]*>/);
   if (headMatch) {
@@ -572,7 +572,7 @@ const transformVite = (
   }
 
   const originalContent = readFileSync(entryPath, "utf-8");
-  const importBlock = VITE_IMPORT_WITH_AGENT(agent);
+  const importBlock = VITE_IMPORT;
   const newContent = `${importBlock}\n\n${originalContent}`;
 
   return {
@@ -611,7 +611,7 @@ const transformWebpack = (
   }
 
   const originalContent = readFileSync(entryPath, "utf-8");
-  const importBlock = WEBPACK_IMPORT_WITH_AGENT(agent);
+  const importBlock = WEBPACK_IMPORT;
   const newContent = `${importBlock}\n\n${originalContent}`;
 
   return {
@@ -692,7 +692,7 @@ const transformTanStack = (
     }
   }
 
-  const effectBlock = TANSTACK_EFFECT_WITH_AGENT(agent);
+  const effectBlock = TANSTACK_EFFECT;
 
   const componentMatch = newContent.match(/function\s+(\w+)\s*\([^)]*\)\s*\{/);
 
@@ -1278,12 +1278,6 @@ export const previewOptionsTransform = (
         message: `Unknown framework: ${framework}`,
       };
   }
-};
-
-export const applyOptionsTransform = (
-  result: TransformResult,
-): { success: boolean; error?: string } => {
-  return applyTransform(result);
 };
 
 const removeAgentFromNextApp = (

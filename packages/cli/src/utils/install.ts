@@ -1,6 +1,5 @@
 import { execSync } from "node:child_process";
 import type { PackageManager } from "./detect.js";
-import type { AgentIntegration } from "./templates.js";
 
 const INSTALL_COMMANDS: Record<PackageManager, string> = {
   npm: "npm install",
@@ -33,7 +32,6 @@ export const installPackages = (
 };
 
 export const getPackagesToInstall = (
-  _agent: AgentIntegration,
   includeReactGrab: boolean = true,
 ): string[] => {
   const packages: string[] = [];

@@ -1,7 +1,7 @@
 import { vi, describe, expect, it, beforeEach } from "vitest";
 import {
   previewOptionsTransform,
-  applyOptionsTransform,
+  applyTransform,
   type ReactGrabOptions,
 } from "../src/utils/transform.js";
 
@@ -541,7 +541,7 @@ describe("previewOptionsTransform - Unknown framework", () => {
   });
 });
 
-describe("applyOptionsTransform", () => {
+describe("applyTransform", () => {
   it("should write file when result has newContent and file is writable", () => {
     mockAccessSync.mockReturnValue(undefined);
     mockWriteFileSync.mockReturnValue(undefined);
@@ -554,7 +554,7 @@ describe("applyOptionsTransform", () => {
       newContent: "new content with options",
     };
 
-    const writeResult = applyOptionsTransform(result);
+    const writeResult = applyTransform(result);
 
     expect(writeResult.success).toBe(true);
     expect(mockWriteFileSync).toHaveBeenCalledWith(
@@ -576,7 +576,7 @@ describe("applyOptionsTransform", () => {
       newContent: "new content",
     };
 
-    const writeResult = applyOptionsTransform(result);
+    const writeResult = applyTransform(result);
 
     expect(writeResult.success).toBe(false);
     expect(writeResult.error).toContain("Cannot write to");
@@ -591,7 +591,7 @@ describe("applyOptionsTransform", () => {
       noChanges: true,
     };
 
-    const writeResult = applyOptionsTransform(result);
+    const writeResult = applyTransform(result);
 
     expect(writeResult.success).toBe(true);
     expect(mockWriteFileSync).not.toHaveBeenCalled();
@@ -604,7 +604,7 @@ describe("applyOptionsTransform", () => {
       message: "Error",
     };
 
-    const writeResult = applyOptionsTransform(result);
+    const writeResult = applyTransform(result);
 
     expect(writeResult.success).toBe(true);
     expect(mockWriteFileSync).not.toHaveBeenCalled();

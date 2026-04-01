@@ -8,7 +8,6 @@ import { highlighter } from "../utils/highlighter.js";
 import { logger } from "../utils/logger.js";
 import { spinner } from "../utils/spinner.js";
 import {
-  applyOptionsTransform,
   applyTransform,
   previewCdnTransform,
   previewOptionsTransform,
@@ -646,7 +645,7 @@ export const configure = new Command()
         const writeSpinner = spinner(
           `Applying changes to ${result.filePath}.`,
         ).start();
-        const writeResult = applyOptionsTransform(result);
+        const writeResult = applyTransform(result);
         if (!writeResult.success) {
           writeSpinner.fail();
           logger.break();

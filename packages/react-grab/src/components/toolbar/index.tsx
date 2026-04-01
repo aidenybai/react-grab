@@ -34,14 +34,13 @@ import {
   TOOLBAR_DEFAULT_HEIGHT_PX,
   TOOLBAR_DEFAULT_POSITION_RATIO,
   TOOLBAR_SHAKE_TOOLTIP_DURATION_MS,
-  TOOLBAR_HINT_CENTER_OFFSET_PX,
   TOOLTIP_BASE_CLASS,
   FEEDBACK_DURATION_MS,
   HINT_FLIP_IN_ANIMATION,
   SAFE_POLYGON_BUFFER_PX,
   SELECTION_HINT_COUNT,
   SELECTION_HINT_CYCLE_INTERVAL_MS,
-  Z_INDEX_HOST,
+  Z_INDEX_OVERLAY,
 } from "../../constants.js";
 import { freezeUpdates } from "../../utils/freeze-updates.js";
 import {
@@ -1034,7 +1033,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           : "opacity-0 pointer-events-none",
       )}
       style={{
-        "z-index": String(Z_INDEX_HOST),
+        "z-index": String(Z_INDEX_OVERLAY),
         transform: `translate(${currentPosition().x}px, ${
           currentPosition().y
         }px)`,
@@ -1281,9 +1280,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             shakeTooltipPositionClass(),
           )}
           style={{
-            "z-index": String(Z_INDEX_HOST),
-            [isVertical() ? "top" : "left"]:
-              `calc(50% - ${TOOLBAR_HINT_CENTER_OFFSET_PX}px)`,
+            "z-index": String(Z_INDEX_OVERLAY),
+            [isVertical() ? "top" : "left"]: "50%",
           }}
         >
           <Show when={selectionHintIndex() === 0}>
@@ -1322,9 +1320,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             shakeTooltipPositionClass(),
           )}
           style={{
-            "z-index": String(Z_INDEX_HOST),
-            [isVertical() ? "top" : "left"]:
-              `calc(50% - ${TOOLBAR_HINT_CENTER_OFFSET_PX}px)`,
+            "z-index": String(Z_INDEX_OVERLAY),
+            [isVertical() ? "top" : "left"]: "50%",
           }}
         >
           Enable to continue
