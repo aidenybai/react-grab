@@ -27,6 +27,4 @@ jobs:
           pnpm dlx pkg-pr-new publish \
             ./packages/react-grab \
             ./packages/cli \
-            ./packages/grab \
-            ./packages/relay \
-            ./packages/utils
+            ./packages/grab

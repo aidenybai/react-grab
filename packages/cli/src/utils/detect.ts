@@ -13,7 +13,7 @@ export type UnsupportedFramework =
   | "gatsby"
   | null;
 
-export interface ProjectInfo {
+interface ProjectInfo {
   packageManager: PackageManager;
   framework: Framework;
   nextRouterType: NextRouterType;
@@ -31,7 +31,7 @@ const VALID_PACKAGE_MANAGERS: ReadonlySet<string> = new Set([
   "bun",
 ]);
 
-export const detectPackageManager = async (
+const detectPackageManager = async (
   projectRoot: string,
 ): Promise<PackageManager> => {
   const detected = await detect({ cwd: projectRoot });
@@ -126,7 +126,6 @@ export interface WorkspaceProject {
   name: string;
   path: string;
   framework: Framework;
-  hasReact: boolean;
 }
 
 const getWorkspacePatterns = (projectRoot: string): string[] => {
@@ -230,8 +229,7 @@ const hasReactDependency = (projectPath: string): boolean => {
 
 const buildReactProject = (projectPath: string): WorkspaceProject | null => {
   const framework = detectFramework(projectPath);
-  const hasReact = hasReactDependency(projectPath);
-  if (!hasReact && framework === "unknown") return null;
+  if (!hasReactDependency(projectPath) && framework === "unknown") return null;
 
   let name = basename(projectPath);
   const packageJsonPath = join(projectPath, "package.json");
@@ -240,7 +238,7 @@ const buildReactProject = (projectPath: string): WorkspaceProject | null => {
     name = packageJson.name || name;
   } catch {}
 
-  return { name, path: projectPath, framework, hasReact };
+  return { name, path: projectPath, framework };
 };
 
 const findWorkspaceProjects = (projectRoot: string): WorkspaceProject[] => {
@@ -417,9 +415,7 @@ export const detectReactGrab = (projectRoot: string): boolean => {
   return filesToCheck.some(hasReactGrabInFile);
 };
 
-const AGENT_PACKAGES = [
-  "@react-grab/mcp",
-];
+const AGENT_PACKAGES = ["@react-grab/mcp"];
 
 export const detectUnsupportedFramework = (
   projectRoot: string,

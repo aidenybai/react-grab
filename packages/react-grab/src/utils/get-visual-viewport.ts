@@ -1,4 +1,4 @@
-export interface VisualViewportInfo {
+interface VisualViewportInfo {
   width: number;
   height: number;
   offsetLeft: number;

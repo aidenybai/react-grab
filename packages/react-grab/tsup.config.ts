@@ -74,7 +74,6 @@ const browserBuildConfig: Options = {
   outDir: "./dist",
   platform: "browser",
   esbuildPlugins: [
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- babel is not typed
     babel({
       filter: /\.(tsx|jsx)$/,
       config: {
@@ -99,7 +98,6 @@ const libraryBuildConfig: Options = {
   platform: "neutral",
   splitting: true,
   esbuildPlugins: [
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- babel is not typed
     babel({
       filter: /\.(tsx|jsx)$/,
       config: {

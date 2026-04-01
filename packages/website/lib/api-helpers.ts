@@ -30,26 +30,3 @@ export const createOptionsResponse = (
     headers: getCorsHeaders(corsOptions),
   });
 };
-
-export const createJsonResponse = (
-  data: unknown,
-  options: { status?: number; corsOptions?: CorsHeadersOptions } = {},
-): Response => {
-  const { status = 200, corsOptions } = options;
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      ...getCorsHeaders(corsOptions),
-      "Content-Type": "application/json",
-    },
-  });
-};
-
-export const createErrorResponse = (
-  error: unknown,
-  options: { status?: number; corsOptions?: CorsHeadersOptions } = {},
-): Response => {
-  const { status = 500, corsOptions } = options;
-  const errorMessage = error instanceof Error ? error.message : "Unknown error";
-  return createJsonResponse({ error: errorMessage }, { status, corsOptions });
-};

@@ -76,9 +76,7 @@ let didConfirmClear = readSessionFlag(CLEAR_CONFIRMED_KEY);
 
 export const loadComments = (): CommentItem[] => commentItems;
 
-export const addCommentItem = (
-  item: Omit<CommentItem, "id">,
-): CommentItem[] =>
+export const addCommentItem = (item: Omit<CommentItem, "id">): CommentItem[] =>
   persistCommentItems(
     [{ ...item, id: generateId("comment") }, ...commentItems].slice(
       0,
@@ -101,6 +99,9 @@ export const confirmClear = (): void => {
     sessionStorage.setItem(CLEAR_CONFIRMED_KEY, "1");
   } catch (error) {
     // HACK: sessionStorage can throw in private browsing or when quota is exceeded
-    logRecoverableError("Failed to save clear preference to sessionStorage", error);
+    logRecoverableError(
+      "Failed to save clear preference to sessionStorage",
+      error,
+    );
   }
 };

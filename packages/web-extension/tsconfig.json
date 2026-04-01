@@ -14,7 +14,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "types": ["chrome", "webextension-polyfill"],
+    "types": ["chrome"],
     "paths": {
       "@/*": ["./src/*"]
     }

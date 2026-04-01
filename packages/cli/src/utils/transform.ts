@@ -8,12 +8,12 @@ import {
 import { join } from "node:path";
 import type { Framework, NextRouterType, PackageManager } from "./detect.js";
 import {
-  NEXT_APP_ROUTER_SCRIPT_WITH_AGENT,
-  NEXT_PAGES_ROUTER_SCRIPT_WITH_AGENT,
+  NEXT_APP_ROUTER_SCRIPT,
+  NEXT_PAGES_ROUTER_SCRIPT,
   SCRIPT_IMPORT,
-  TANSTACK_EFFECT_WITH_AGENT,
-  VITE_IMPORT_WITH_AGENT,
-  WEBPACK_IMPORT_WITH_AGENT,
+  TANSTACK_EFFECT,
+  VITE_IMPORT,
+  WEBPACK_IMPORT,
   type AgentIntegration,
 } from "./templates.js";
 
@@ -399,20 +399,18 @@ const transformNextAppRouter = (
     }
   }
 
-  const scriptBlock = NEXT_APP_ROUTER_SCRIPT_WITH_AGENT(agent);
-
   const headMatch = newContent.match(/<head[^>]*>/);
   if (headMatch) {
     newContent = newContent.replace(
       headMatch[0],
-      `${headMatch[0]}\n        ${scriptBlock}`,
+      `${headMatch[0]}\n        ${NEXT_APP_ROUTER_SCRIPT}`,
     );
   } else {
     const htmlMatch = newContent.match(/<html[^>]*>/);
     if (htmlMatch) {
       newContent = newContent.replace(
         htmlMatch[0],
-        `${htmlMatch[0]}\n      <head>\n        ${scriptBlock}\n      </head>`,
+        `${htmlMatch[0]}\n      <head>\n        ${NEXT_APP_ROUTER_SCRIPT}\n      </head>`,
       );
     }
   }
@@ -495,13 +493,11 @@ const transformNextPagesRouter = (
     }
   }
 
-  const scriptBlock = NEXT_PAGES_ROUTER_SCRIPT_WITH_AGENT(agent);
-
   const headMatch = newContent.match(/<Head[^>]*>/);
   if (headMatch) {
     newContent = newContent.replace(
       headMatch[0],
-      `${headMatch[0]}\n        ${scriptBlock}`,
+      `${headMatch[0]}\n        ${NEXT_PAGES_ROUTER_SCRIPT}`,
     );
   }
 
@@ -572,8 +568,7 @@ const transformVite = (
   }
 
   const originalContent = readFileSync(entryPath, "utf-8");
-  const importBlock = VITE_IMPORT_WITH_AGENT(agent);
-  const newContent = `${importBlock}\n\n${originalContent}`;
+  const newContent = `${VITE_IMPORT}\n\n${originalContent}`;
 
   return {
     success: true,
@@ -611,8 +606,7 @@ const transformWebpack = (
   }
 
   const originalContent = readFileSync(entryPath, "utf-8");
-  const importBlock = WEBPACK_IMPORT_WITH_AGENT(agent);
-  const newContent = `${importBlock}\n\n${originalContent}`;
+  const newContent = `${WEBPACK_IMPORT}\n\n${originalContent}`;
 
   return {
     success: true,
@@ -692,15 +686,13 @@ const transformTanStack = (
     }
   }
 
-  const effectBlock = TANSTACK_EFFECT_WITH_AGENT(agent);
-
   const componentMatch = newContent.match(/function\s+(\w+)\s*\([^)]*\)\s*\{/);
 
   if (componentMatch) {
     const insertPosition = componentMatch.index! + componentMatch[0].length;
     newContent =
       newContent.slice(0, insertPosition) +
-      `\n  ${effectBlock}\n` +
+      `\n  ${TANSTACK_EFFECT}\n` +
       newContent.slice(insertPosition);
   } else {
     return {
@@ -813,27 +805,6 @@ export const applyTransform = (
   return { success: true };
 };
 
-export const transformProject = (
-  projectRoot: string,
-  framework: Framework,
-  nextRouterType: NextRouterType,
-  agent: AgentIntegration,
-  reactGrabAlreadyConfigured: boolean = false,
-): TransformResult & { writeError?: string } => {
-  const result = previewTransform(
-    projectRoot,
-    framework,
-    nextRouterType,
-    agent,
-    reactGrabAlreadyConfigured,
-  );
-  const writeResult = applyTransform(result);
-  if (!writeResult.success) {
-    return { ...result, success: false, writeError: writeResult.error };
-  }
-  return result;
-};
-
 const getPackageExecutor = (packageManager: PackageManager): string => {
   switch (packageManager) {
     case "bun":
@@ -859,7 +830,7 @@ const AGENT_PACKAGES: Record<string, string> = {
   copilot: "@react-grab/copilot@latest",
 };
 
-export const getAgentPrefix = (
+const getAgentPrefix = (
   agent: string,
   packageManager: PackageManager,
 ): string | null => {
@@ -1299,12 +1270,6 @@ export const previewOptionsTransform = (
         message: `Unknown framework: ${framework}`,
       };
   }
-};
-
-export const applyOptionsTransform = (
-  result: TransformResult,
-): { success: boolean; error?: string } => {
-  return applyTransform(result);
 };
 
 const removeAgentFromNextApp = (

@@ -20,7 +20,7 @@ const getTextContent = (content: BlockContent): string => {
   return "";
 };
 
-export type StreamStatus = "pending" | "streaming" | "complete";
+type StreamStatus = "pending" | "streaming" | "complete";
 
 export interface StreamBlock {
   id: string;
@@ -36,7 +36,7 @@ export interface StreamBlock {
   metadata?: Record<string, unknown>;
 }
 
-interface StreamChunk {
+export interface StreamChunk {
   id: string;
   text: string;
 }
@@ -120,7 +120,7 @@ export const useStream = ({
       type: block.type,
       content: "",
       chunks: [],
-      status: "pending" as StreamStatus,
+      status: "pending",
       duration: block.duration,
       metadata: block.metadata,
     })),
@@ -150,7 +150,7 @@ export const useStream = ({
             type: block.type,
             content: block.content,
             chunks: [],
-            status: "complete" as StreamStatus,
+            status: "complete",
             duration: block.duration,
             metadata: block.metadata,
           })),

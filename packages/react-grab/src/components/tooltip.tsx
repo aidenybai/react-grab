@@ -5,7 +5,7 @@ import {
   TOOLTIP_BASE_CLASS,
   TOOLTIP_DELAY_MS,
   TOOLTIP_GRACE_PERIOD_MS,
-  Z_INDEX_LABEL,
+  Z_INDEX_OVERLAY,
 } from "../constants.js";
 
 let lastCloseTimestamp = 0;
@@ -78,7 +78,7 @@ export const Tooltip: Component<TooltipProps> = (props) => {
           props.position === "right" && "left-full ml-2.5",
           shouldAnimate() && "animate-tooltip-fade-in",
         )}
-        style={{ "z-index": `${Z_INDEX_LABEL}` }}
+        style={{ "z-index": `${Z_INDEX_OVERLAY}` }}
       >
         {props.children}
       </div>

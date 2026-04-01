@@ -9,9 +9,7 @@ import {
   applyTransformWithFeedback,
   installPackagesWithFeedback,
 } from "../utils/cli-helpers.js";
-import {
-  promptMcpInstall,
-} from "../utils/install-mcp.js";
+import { promptMcpInstall } from "../utils/install-mcp.js";
 import {
   detectProject,
   findReactProjects,
@@ -23,20 +21,17 @@ import {
 import { printDiff } from "../utils/diff.js";
 import { handleError } from "../utils/handle-error.js";
 import { highlighter } from "../utils/highlighter.js";
-import {
-  getPackagesToInstall,
-} from "../utils/install.js";
+import { getPackagesToInstall } from "../utils/install.js";
 import { logger } from "../utils/logger.js";
 import { spinner } from "../utils/spinner.js";
-import {
-  type AgentIntegration,
-} from "../utils/templates.js";
+import { type AgentIntegration } from "../utils/templates.js";
 import {
   previewOptionsTransform,
   previewPackageJsonTransform,
   previewTransform,
   type ReactGrabOptions,
 } from "../utils/transform.js";
+import { formatActivationKeyDisplay } from "../utils/format-activation-key.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
 const REPORT_URL = "https://react-grab.com/api/report-cli";
@@ -130,24 +125,6 @@ const printSubprojects = (
     `  ${highlighter.dim("$")} npx grab@latest init -c ${relative(searchRoot, sortedProjects[0].path)}`,
   );
   logger.break();
-};
-
-const formatActivationKeyDisplay = (
-  activationKey: ReactGrabOptions["activationKey"],
-): string => {
-  if (!activationKey) return "Default (Option/Alt)";
-  return activationKey
-    .split("+")
-    .map((part) => {
-      const lower = part.toLowerCase();
-      if (lower === "meta") return process.platform === "darwin" ? "⌘" : "Win";
-      if (lower === "alt") return process.platform === "darwin" ? "⌥" : "Alt";
-      if (lower === "ctrl") return "Ctrl";
-      if (lower === "shift") return "Shift";
-      if (lower === "space" || lower === " ") return "Space";
-      return part.toUpperCase();
-    })
-    .join(" + ");
 };
 
 export const init = new Command()
@@ -623,7 +600,7 @@ export const init = new Command()
 
       if (!opts.skipInstall && shouldInstallReactGrab) {
         installPackagesWithFeedback(
-          getPackagesToInstall(agentIntegration, shouldInstallReactGrab),
+          getPackagesToInstall(shouldInstallReactGrab),
           finalPackageManager,
           projectInfo.projectRoot,
         );

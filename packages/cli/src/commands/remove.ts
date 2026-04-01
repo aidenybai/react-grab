@@ -1,6 +1,5 @@
 import { Command } from "commander";
 import pc from "picocolors";
-import { detectNonInteractive } from "../utils/is-non-interactive.js";
 import { prompts } from "../utils/prompts.js";
 import { detectProject } from "../utils/detect.js";
 import { handleError } from "../utils/handle-error.js";
@@ -28,7 +27,6 @@ export const remove = new Command()
 
     try {
       const cwd = opts.cwd;
-      const isNonInteractive = detectNonInteractive(opts.yes);
 
       const preflightSpinner = spinner("Preflight checks.").start();
 

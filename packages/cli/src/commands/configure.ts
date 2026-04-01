@@ -8,7 +8,6 @@ import { highlighter } from "../utils/highlighter.js";
 import { logger } from "../utils/logger.js";
 import { spinner } from "../utils/spinner.js";
 import {
-  applyOptionsTransform,
   applyTransform,
   previewCdnTransform,
   previewOptionsTransform,
@@ -19,6 +18,7 @@ import {
   MAX_KEY_HOLD_DURATION_MS,
   MAX_CONTEXT_LINES,
 } from "../utils/constants.js";
+import { formatActivationKeyDisplay } from "../utils/format-activation-key.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
 
@@ -254,24 +254,6 @@ const CONFIG_OPTIONS: ConfigOption[] = [
     description: "Number of surrounding code lines to include in context",
   },
 ];
-
-const formatActivationKeyDisplay = (
-  activationKey: ReactGrabOptions["activationKey"],
-): string => {
-  if (!activationKey) return "Default (Option/Alt)";
-  return activationKey
-    .split("+")
-    .map((part) => {
-      const lower = part.toLowerCase();
-      if (lower === "meta") return process.platform === "darwin" ? "⌘" : "Win";
-      if (lower === "alt") return process.platform === "darwin" ? "⌥" : "Alt";
-      if (lower === "ctrl") return "Ctrl";
-      if (lower === "shift") return "Shift";
-      if (lower === "space" || lower === " ") return "Space";
-      return part.toUpperCase();
-    })
-    .join(" + ");
-};
 
 const comboToString = (combo: KeyCombo): string => {
   const parts: string[] = [];
@@ -646,7 +628,7 @@ export const configure = new Command()
         const writeSpinner = spinner(
           `Applying changes to ${result.filePath}.`,
         ).start();
-        const writeResult = applyOptionsTransform(result);
+        const writeResult = applyTransform(result);
         if (!writeResult.success) {
           writeSpinner.fail();
           logger.break();

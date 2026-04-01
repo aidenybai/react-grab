@@ -18,7 +18,7 @@ import {
   LABEL_GAP_PX,
   SELECTION_LABEL_OFFSCREEN_PX,
   TEXTAREA_MAX_HEIGHT_PX,
-  Z_INDEX_LABEL,
+  Z_INDEX_OVERLAY,
 } from "../../constants.js";
 import { autoResizeTextarea } from "../../utils/auto-resize-textarea.js";
 import { getArrowSize } from "../../utils/get-arrow-size.js";
@@ -268,7 +268,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         positionTop = viewportTop + VIEWPORT_MARGIN_PX;
       }
 
-      const arrowLeftPercent = ARROW_CENTER_PERCENT;
       const labelHalfWidth = labelWidth / 2;
       const arrowCenterPx = labelHalfWidth - edgeOffsetX;
       const arrowMinPx = Math.min(ARROW_LABEL_MARGIN_PX, labelHalfWidth);
@@ -288,7 +287,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         position: {
           left: anchorX,
           top: positionTop,
-          arrowLeftPercent,
+          arrowLeftPercent: ARROW_CENTER_PERCENT,
           arrowLeftOffset,
           edgeOffsetX,
         },
@@ -398,7 +397,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           top: `${positionComputation().position.top}px`,
           left: `${positionComputation().position.left}px`,
           transform: `translateX(calc(-50% + ${positionComputation().position.edgeOffsetX}px))`,
-          "z-index": `${Z_INDEX_LABEL}`,
+          "z-index": `${Z_INDEX_OVERLAY}`,
           "pointer-events": shouldEnablePointerEvents() ? "auto" : "none",
           opacity: props.status === "fading" || isInternalFading() ? 0 : 1,
         }}

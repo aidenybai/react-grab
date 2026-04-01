@@ -18,7 +18,7 @@ import {
   ARROW_HEIGHT_PX,
   DROPDOWN_OFFSCREEN_POSITION,
   LABEL_GAP_PX,
-  Z_INDEX_LABEL,
+  Z_INDEX_OVERLAY,
 } from "../constants.js";
 import { cn } from "../utils/cn.js";
 import { Arrow } from "./selection-label/arrow.js";
@@ -235,7 +235,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
         style={{
           top: `${computedPosition().top}px`,
           left: `${computedPosition().left}px`,
-          "z-index": `${Z_INDEX_LABEL}`,
+          "z-index": `${Z_INDEX_OVERLAY}`,
           "pointer-events": "auto",
         }}
         onPointerDown={suppressMenuEvent}

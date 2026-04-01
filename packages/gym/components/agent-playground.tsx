@@ -112,7 +112,6 @@ export const AgentPlaygroundContent = ({
     });
   }, [loadedProviders, failedProviders, addLog]);
 
-
   const handleAddProvider = (provider: string) => {
     const currentProviders =
       new URLSearchParams(window.location.search).get("provider") ?? "";

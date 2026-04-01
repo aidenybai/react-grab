@@ -9,7 +9,7 @@ interface ExploredHeaderProps {
   completedCount: number;
 }
 
-export const ExploredHeader = ({
+const ExploredHeader = ({
   completedCount,
 }: ExploredHeaderProps): ReactElement => {
   const isExploring = completedCount === 0;
