@@ -268,7 +268,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         positionTop = viewportTop + VIEWPORT_MARGIN_PX;
       }
 
-      const arrowLeftPercent = ARROW_CENTER_PERCENT;
       const labelHalfWidth = labelWidth / 2;
       const arrowCenterPx = labelHalfWidth - edgeOffsetX;
       const arrowMinPx = Math.min(ARROW_LABEL_MARGIN_PX, labelHalfWidth);
@@ -288,7 +287,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         position: {
           left: anchorX,
           top: positionTop,
-          arrowLeftPercent,
+          arrowLeftPercent: ARROW_CENTER_PERCENT,
           arrowLeftOffset,
           edgeOffsetX,
         },

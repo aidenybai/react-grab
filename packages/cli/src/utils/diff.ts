@@ -18,8 +18,6 @@ export const generateDiff = (
   const newLines = newContent.split("\n");
   const diff: DiffLine[] = [];
 
-  const maxLength = Math.max(originalLines.length, newLines.length);
-
   let originalIndex = 0;
   let newIndex = 0;
 

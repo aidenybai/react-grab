@@ -400,9 +400,9 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
         animation.targetOpacity,
         lerpFactor,
       );
-      const opacityThreshold = OPACITY_CONVERGENCE_THRESHOLD;
       hasOpacityConverged =
-        Math.abs(lerpedOpacity - animation.targetOpacity) < opacityThreshold;
+        Math.abs(lerpedOpacity - animation.targetOpacity) <
+        OPACITY_CONVERGENCE_THRESHOLD;
       animation.opacity = hasOpacityConverged
         ? animation.targetOpacity
         : lerpedOpacity;

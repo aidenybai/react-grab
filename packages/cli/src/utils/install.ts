@@ -34,11 +34,5 @@ export const installPackages = (
 export const getPackagesToInstall = (
   includeReactGrab: boolean = true,
 ): string[] => {
-  const packages: string[] = [];
-
-  if (includeReactGrab) {
-    packages.push("react-grab");
-  }
-
-  return packages;
+  return includeReactGrab ? ["react-grab"] : [];
 };
