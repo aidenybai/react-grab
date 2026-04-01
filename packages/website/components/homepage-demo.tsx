@@ -10,7 +10,7 @@ import {
   type ReactElement,
   type ReactNode,
 } from "react";
-import { TextMorph } from "torph/react";
+import { Calligraph } from "calligraph";
 import { TriangleAlert } from "lucide-react";
 import {
   AGENT_CYCLE_INTERVAL_MS,
@@ -152,9 +152,9 @@ const CyclingAgent = (): ReactElement => {
           </span>
         ))}
       </span>
-      <TextMorph as="span" className="font-inherit">
+      <Calligraph as="span" className="font-inherit">
         {AGENTS[activeIndex].name}
-      </TextMorph>
+      </Calligraph>
     </span>
   );
 };
