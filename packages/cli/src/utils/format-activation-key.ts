@@ -3,7 +3,8 @@ import type { ReactGrabOptions } from "./transform.js";
 export const formatActivationKeyDisplay = (
   activationKey: ReactGrabOptions["activationKey"],
 ): string => {
-  if (!activationKey) return "Default (Option/Alt)";
+  const defaultLabel = process.platform === "darwin" ? "Option" : "Alt";
+  if (!activationKey) return `Default (${defaultLabel})`;
   return activationKey
     .split("+")
     .map((part) => {
