@@ -31,6 +31,7 @@ import {
   previewTransform,
   type ReactGrabOptions,
 } from "../utils/transform.js";
+import { formatActivationKeyDisplay } from "../utils/format-activation-key.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
 const REPORT_URL = "https://react-grab.com/api/report-cli";
@@ -125,8 +126,6 @@ const printSubprojects = (
   );
   logger.break();
 };
-
-import { formatActivationKeyDisplay } from "../utils/format-activation-key.js";
 
 export const init = new Command()
   .name("init")

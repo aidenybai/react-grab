@@ -18,6 +18,7 @@ import {
   MAX_KEY_HOLD_DURATION_MS,
   MAX_CONTEXT_LINES,
 } from "../utils/constants.js";
+import { formatActivationKeyDisplay } from "../utils/format-activation-key.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
 
@@ -253,8 +254,6 @@ const CONFIG_OPTIONS: ConfigOption[] = [
     description: "Number of surrounding code lines to include in context",
   },
 ];
-
-import { formatActivationKeyDisplay } from "../utils/format-activation-key.js";
 
 const comboToString = (combo: KeyCombo): string => {
   const parts: string[] = [];
