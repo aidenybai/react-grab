@@ -15,3 +15,5 @@ playwright-report
 .cursor/debug.log
 .cursor
 meta.json
+.agents/skills
+.claude
