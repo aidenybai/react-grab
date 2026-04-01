@@ -73,6 +73,7 @@ const FRAMEWORK_NAMES: Record<Framework, string> = {
   vite: "Vite",
   tanstack: "TanStack Start",
   webpack: "Webpack",
+  astro: "Astro",
   unknown: "Unknown",
 };
 
@@ -88,7 +89,6 @@ const UNSUPPORTED_FRAMEWORK_NAMES: Record<
   string
 > = {
   remix: "Remix",
-  astro: "Astro",
   sveltekit: "SvelteKit",
   gatsby: "Gatsby",
 };
@@ -273,7 +273,10 @@ export const init = new Command()
                 title: "Toggle (press to activate/deactivate)",
                 value: "toggle",
               },
-              { title: "Hold (hold key to keep active)", value: "hold" },
+              {
+                title: "Hold (hold key to keep active)",
+                value: "hold",
+              },
             ],
             initial: 0,
           });
@@ -484,7 +487,7 @@ export const init = new Command()
           frameworkSpinner.fail("Could not detect a supported framework.");
           logger.break();
           logger.log(
-            "React Grab supports Next.js, Vite, TanStack Start, and Webpack projects.",
+            "React Grab supports Next.js, Vite, TanStack Start, Astro, and Webpack projects.",
           );
           logger.log(`Visit ${highlighter.info(DOCS_URL)} for manual setup.`);
           logger.break();
