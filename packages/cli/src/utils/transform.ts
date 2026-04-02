@@ -6,7 +6,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
-import type { Framework, NextRouterType, PackageManager } from "./detect.js";
+import type { Framework, NextRouterType } from "./detect.js";
 import {
   NEXT_APP_ROUTER_SCRIPT,
   SCRIPT_IMPORT,
@@ -31,16 +31,6 @@ export interface ReactGrabOptions {
   keyHoldDuration?: number;
   allowActivationInsideInput?: boolean;
   maxContextLines?: number;
-}
-
-export interface PackageJsonTransformResult {
-  success: boolean;
-  filePath: string;
-  message: string;
-  originalContent?: string;
-  newContent?: string;
-  noChanges?: boolean;
-  warning?: string;
 }
 
 const hasReactGrabCode = (content: string): boolean => {
@@ -804,62 +794,6 @@ export const applyTransform = (
   return { success: true };
 };
 
-export const previewPackageJsonTransform = (
-  _projectRoot: string,
-  agent: AgentIntegration,
-  _installedAgents: string[],
-  _packageManager: PackageManager = "npm",
-): PackageJsonTransformResult => {
-  if (agent === "none") {
-    return {
-      success: true,
-      filePath: "",
-      message: "No agent selected, skipping package.json modification",
-      noChanges: true,
-    };
-  }
-
-  if (agent === "mcp") {
-    return {
-      success: true,
-      filePath: "",
-      message: "MCP does not use package.json dev script",
-      noChanges: true,
-    };
-  }
-
-  return {
-    success: true,
-    filePath: "",
-    message: "No agent integration requires package.json modification",
-    noChanges: true,
-  };
-};
-
-export const applyPackageJsonTransform = (
-  result: PackageJsonTransformResult,
-): { success: boolean; error?: string } => {
-  if (result.success && result.newContent && result.filePath) {
-    if (!canWriteToFile(result.filePath)) {
-      return {
-        success: false,
-        error: `Cannot write to ${result.filePath}. Check file permissions.`,
-      };
-    }
-
-    try {
-      writeFileSync(result.filePath, result.newContent);
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        error: `Failed to write to ${result.filePath}: ${error instanceof Error ? error.message : "Unknown error"}`,
-      };
-    }
-  }
-  return { success: true };
-};
-
 const formatOptionsForNextjs = (options: ReactGrabOptions): string => {
   const parts: string[] = [];
 
@@ -994,41 +928,7 @@ const addOptionsToNextScript = (
   };
 };
 
-const addOptionsToViteScript = (
-  originalContent: string,
-  options: ReactGrabOptions,
-  filePath: string,
-): TransformResult => {
-  const reactGrabImportWithInitMatch = originalContent.match(
-    /import\s*\(\s*["']react-grab["']\s*\)(?:\.then\s*\(\s*\(m\)\s*=>\s*m\.init\s*\([^)]*\)\s*\))?/,
-  );
-
-  if (!reactGrabImportWithInitMatch) {
-    return {
-      success: false,
-      filePath,
-      message: "Could not find React Grab import",
-    };
-  }
-
-  const optionsJson = formatOptionsAsJson(options);
-  const newImport = `import("react-grab").then((m) => m.init(${optionsJson}))`;
-
-  const newContent = originalContent.replace(
-    reactGrabImportWithInitMatch[0],
-    newImport,
-  );
-
-  return {
-    success: true,
-    filePath,
-    message: "Update React Grab options",
-    originalContent,
-    newContent,
-  };
-};
-
-const addOptionsToWebpackImport = (
+const addOptionsToDynamicImport = (
   originalContent: string,
   options: ReactGrabOptions,
   filePath: string,
@@ -1126,11 +1026,11 @@ export const previewOptionsTransform = (
     case "next":
       return addOptionsToNextScript(originalContent, options, filePath);
     case "vite":
-      return addOptionsToViteScript(originalContent, options, filePath);
+      return addOptionsToDynamicImport(originalContent, options, filePath);
     case "tanstack":
       return addOptionsToTanStackImport(originalContent, options, filePath);
     case "webpack":
-      return addOptionsToWebpackImport(originalContent, options, filePath);
+      return addOptionsToDynamicImport(originalContent, options, filePath);
     default:
       return {
         success: false,

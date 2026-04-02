@@ -5,7 +5,6 @@ import pc from "picocolors";
 import { detectNonInteractive } from "../utils/is-non-interactive.js";
 import { prompts } from "../utils/prompts.js";
 import {
-  applyPackageJsonWithFeedback,
   applyTransformWithFeedback,
   installPackagesWithFeedback,
 } from "../utils/cli-helpers.js";
@@ -27,7 +26,6 @@ import { spinner } from "../utils/spinner.js";
 import { type AgentIntegration } from "../utils/templates.js";
 import {
   previewOptionsTransform,
-  previewPackageJsonTransform,
   previewTransform,
   type ReactGrabOptions,
 } from "../utils/transform.js";
@@ -129,6 +127,7 @@ const printSubprojects = (
 
 export const init = new Command()
   .name("init")
+  .alias("setup")
   .description("initialize React Grab in your project")
   .option("-y, --yes", "skip confirmation prompts", false)
   .option("-f, --force", "force overwrite existing config", false)
@@ -529,13 +528,6 @@ export const init = new Command()
         opts.force,
       );
 
-      const packageJsonResult = previewPackageJsonTransform(
-        projectInfo.projectRoot,
-        agentIntegration,
-        projectInfo.installedAgents,
-        finalPackageManager,
-      );
-
       if (!result.success) {
         logger.break();
         logger.error(result.message);
@@ -546,33 +538,15 @@ export const init = new Command()
 
       const hasLayoutChanges =
         !result.noChanges && result.originalContent && result.newContent;
-      const hasPackageJsonChanges =
-        packageJsonResult.success &&
-        !packageJsonResult.noChanges &&
-        packageJsonResult.originalContent &&
-        packageJsonResult.newContent;
 
-      if (hasLayoutChanges || hasPackageJsonChanges) {
+      if (hasLayoutChanges) {
         logger.break();
 
-        if (hasLayoutChanges) {
-          printDiff(
-            result.filePath,
-            result.originalContent!,
-            result.newContent!,
-          );
-        }
-
-        if (hasPackageJsonChanges) {
-          if (hasLayoutChanges) {
-            logger.break();
-          }
-          printDiff(
-            packageJsonResult.filePath,
-            packageJsonResult.originalContent!,
-            packageJsonResult.newContent!,
-          );
-        }
+        printDiff(
+          result.filePath,
+          result.originalContent!,
+          result.newContent!,
+        );
 
         logger.break();
         logger.warn("Auto-detection may not be 100% accurate.");
@@ -610,21 +584,11 @@ export const init = new Command()
         applyTransformWithFeedback(result);
       }
 
-      if (hasPackageJsonChanges) {
-        applyPackageJsonWithFeedback(packageJsonResult);
-      }
-
       logger.break();
       logger.log(
         `${highlighter.success("Success!")} React Grab has been installed.`,
       );
-      if (packageJsonResult.warning) {
-        logger.break();
-        logger.warn(packageJsonResult.warning);
-        logger.break();
-      } else {
-        logger.log("You may now start your development server.");
-      }
+      logger.log("You may now start your development server.");
       logger.break();
 
       reportToCli("completed", {

@@ -1,10 +1,5 @@
 import { vi, describe, expect, it, beforeEach } from "vitest";
-import {
-  previewTransform,
-  applyTransform,
-  previewPackageJsonTransform,
-  applyPackageJsonTransform,
-} from "../src/utils/transform.js";
+import { previewTransform, applyTransform } from "../src/utils/transform.js";
 
 vi.mock("node:fs", () => ({
   existsSync: vi.fn(),
@@ -453,76 +448,3 @@ describe("applyTransform", () => {
   });
 });
 
-describe("previewPackageJsonTransform", () => {
-  it("should skip when agent is none", () => {
-    const result = previewPackageJsonTransform("/test", "none", []);
-
-    expect(result.success).toBe(true);
-    expect(result.noChanges).toBe(true);
-  });
-
-  it("should skip package.json when agent is mcp", () => {
-    const result = previewPackageJsonTransform("/test", "mcp", []);
-
-    expect(result.success).toBe(true);
-    expect(result.noChanges).toBe(true);
-    expect(result.message).toContain("MCP");
-  });
-});
-
-describe("applyPackageJsonTransform", () => {
-  it("should write file when result has newContent and file is writable", () => {
-    vi.clearAllMocks();
-    mockAccessSync.mockReturnValue(undefined);
-    mockWriteFileSync.mockReturnValue(undefined);
-
-    const result = {
-      success: true,
-      filePath: "/test/package.json",
-      message: "Test",
-      originalContent: "old",
-      newContent: "new",
-    };
-
-    const writeResult = applyPackageJsonTransform(result);
-
-    expect(writeResult.success).toBe(true);
-    expect(mockWriteFileSync).toHaveBeenCalledWith("/test/package.json", "new");
-  });
-
-  it("should return error when file is not writable", () => {
-    vi.clearAllMocks();
-    mockAccessSync.mockImplementation(() => {
-      throw new Error("EACCES");
-    });
-
-    const result = {
-      success: true,
-      filePath: "/test/package.json",
-      message: "Test",
-      originalContent: "old",
-      newContent: "new",
-    };
-
-    const writeResult = applyPackageJsonTransform(result);
-
-    expect(writeResult.success).toBe(false);
-    expect(writeResult.error).toContain("Cannot write to");
-  });
-
-  it("should not write file when result has noChanges", () => {
-    vi.clearAllMocks();
-
-    const result = {
-      success: true,
-      filePath: "/test/package.json",
-      message: "Test",
-      noChanges: true,
-    };
-
-    const writeResult = applyPackageJsonTransform(result);
-
-    expect(writeResult.success).toBe(true);
-    expect(mockWriteFileSync).not.toHaveBeenCalled();
-  });
-});

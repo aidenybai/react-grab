@@ -1,9 +1,6 @@
 import type { PackageManager } from "./detect.js";
-import type {
-  PackageJsonTransformResult,
-  TransformResult,
-} from "./transform.js";
-import { applyPackageJsonTransform, applyTransform } from "./transform.js";
+import type { TransformResult } from "./transform.js";
+import { applyTransform } from "./transform.js";
 import { handleError } from "./handle-error.js";
 import { installPackages } from "./install.js";
 import { logger } from "./logger.js";
@@ -17,24 +14,6 @@ export const applyTransformWithFeedback = (
     message ?? `Applying changes to ${result.filePath}.`,
   ).start();
   const writeResult = applyTransform(result);
-  if (!writeResult.success) {
-    writeSpinner.fail();
-    logger.break();
-    logger.error(writeResult.error || "Failed to write file.");
-    logger.break();
-    process.exit(1);
-  }
-  writeSpinner.succeed();
-};
-
-export const applyPackageJsonWithFeedback = (
-  result: PackageJsonTransformResult,
-  message?: string,
-): void => {
-  const writeSpinner = spinner(
-    message ?? `Applying changes to ${result.filePath}.`,
-  ).start();
-  const writeResult = applyPackageJsonTransform(result);
   if (!writeResult.success) {
     writeSpinner.fail();
     logger.break();
