@@ -4,7 +4,6 @@ import {
   detectMonorepo,
   detectNextRouterType,
   detectReactGrab,
-  detectInstalledAgents,
   detectUnsupportedFramework,
 } from "../src/utils/detect.js";
 
@@ -213,60 +212,6 @@ describe("detectReactGrab", () => {
     mockReadFileSync.mockReturnValue("not valid json");
 
     expect(detectReactGrab("/test")).toBe(false);
-  });
-});
-
-describe("detectInstalledAgents", () => {
-  it("should detect mcp agent (legacy providers removed)", () => {
-    mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockReturnValue(
-      JSON.stringify({
-        devDependencies: {
-          "@react-grab/mcp": "0.1.0",
-          "@react-grab/cursor": "1.0.0",
-        },
-      }),
-    );
-
-    const agents = detectInstalledAgents("/test");
-    expect(agents).toContain("mcp");
-    expect(agents).not.toContain("cursor");
-  });
-
-  it("should return empty array when no agents installed", () => {
-    mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockReturnValue(
-      JSON.stringify({ dependencies: { "react-grab": "1.0.0" } }),
-    );
-
-    expect(detectInstalledAgents("/test")).toEqual([]);
-  });
-
-  it("should return empty array when no package.json exists", () => {
-    mockExistsSync.mockReturnValue(false);
-
-    expect(detectInstalledAgents("/test")).toEqual([]);
-  });
-
-  it("should return empty array for malformed package.json", () => {
-    mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockReturnValue("{ broken }");
-
-    expect(detectInstalledAgents("/test")).toEqual([]);
-  });
-
-  it("should detect mcp when @react-grab/mcp is installed", () => {
-    mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockReturnValue(
-      JSON.stringify({
-        devDependencies: {
-          "@react-grab/mcp": "0.1.0",
-        },
-      }),
-    );
-
-    const agents = detectInstalledAgents("/test");
-    expect(agents).toContain("mcp");
   });
 });
 

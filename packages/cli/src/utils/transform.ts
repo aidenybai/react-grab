@@ -160,182 +160,37 @@ const findTanStackRootFile = (projectRoot: string): string | null => {
 };
 
 const addAgentToExistingNextApp = (
-  originalContent: string,
-  agent: AgentIntegration,
+  _originalContent: string,
+  _agent: AgentIntegration,
   filePath: string,
-): TransformResult => {
-  if (agent === "none") {
-    return {
-      success: true,
-      filePath,
-      message: "React Grab is already configured",
-      noChanges: true,
-    };
-  }
-
-  const agentPackage = `@react-grab/${agent}`;
-  if (originalContent.includes(agentPackage)) {
-    return {
-      success: true,
-      filePath,
-      message: `Agent ${agent} is already configured`,
-      noChanges: true,
-    };
-  }
-
-  const agentScript = `{process.env.NODE_ENV === "development" && (
-          <Script
-            src="//unpkg.com/${agentPackage}/dist/client.global.js"
-            strategy="lazyOnload"
-          />
-        )}`;
-
-  const reactGrabBlockMatch = originalContent.match(
-    /\{process\.env\.NODE_ENV\s*===\s*["']development["']\s*&&\s*\(\s*<Script[^>]*react-grab[^>]*\/>\s*\)\}/is,
-  );
-
-  if (reactGrabBlockMatch) {
-    const newContent = originalContent.replace(
-      reactGrabBlockMatch[0],
-      `${reactGrabBlockMatch[0]}\n        ${agentScript}`,
-    );
-    return {
-      success: true,
-      filePath,
-      message: `Add ${agent} agent`,
-      originalContent,
-      newContent,
-    };
-  }
-
-  const bareScriptMatch = originalContent.match(
-    /<Script[^>]*react-grab[^>]*\/>/i,
-  );
-
-  if (bareScriptMatch) {
-    const newContent = originalContent.replace(
-      bareScriptMatch[0],
-      `${bareScriptMatch[0]}\n        <Script src="//unpkg.com/${agentPackage}/dist/client.global.js" strategy="lazyOnload" />`,
-    );
-    return {
-      success: true,
-      filePath,
-      message: `Add ${agent} agent`,
-      originalContent,
-      newContent,
-    };
-  }
-
-  return {
-    success: false,
-    filePath,
-    message: "Could not find React Grab script to add agent after",
-  };
-};
+): TransformResult => ({
+  success: true,
+  filePath,
+  message: "React Grab is already configured",
+  noChanges: true,
+});
 
 const addAgentToExistingImport = (
-  originalContent: string,
-  agent: AgentIntegration,
+  _originalContent: string,
+  _agent: AgentIntegration,
   filePath: string,
-): TransformResult => {
-  if (agent === "none") {
-    return {
-      success: true,
-      filePath,
-      message: "React Grab is already configured",
-      noChanges: true,
-    };
-  }
-
-  const agentPackage = `@react-grab/${agent}`;
-  if (originalContent.includes(agentPackage)) {
-    return {
-      success: true,
-      filePath,
-      message: `Agent ${agent} is already configured`,
-      noChanges: true,
-    };
-  }
-
-  const agentImport = `import("${agentPackage}/client");`;
-  const reactGrabImportMatch = originalContent.match(
-    /import\s*\(\s*["']react-grab["']\s*\);?/,
-  );
-
-  if (reactGrabImportMatch) {
-    const matchedText = reactGrabImportMatch[0];
-    const hasSemicolon = matchedText.endsWith(";");
-    const newContent = originalContent.replace(
-      matchedText,
-      `${hasSemicolon ? matchedText.slice(0, -1) : matchedText};\n  ${agentImport}`,
-    );
-    return {
-      success: true,
-      filePath,
-      message: `Add ${agent} agent`,
-      originalContent,
-      newContent,
-    };
-  }
-
-  return {
-    success: false,
-    filePath,
-    message: "Could not find React Grab import to add agent after",
-  };
-};
+): TransformResult => ({
+  success: true,
+  filePath,
+  message: "React Grab is already configured",
+  noChanges: true,
+});
 
 const addAgentToExistingTanStack = (
-  originalContent: string,
-  agent: AgentIntegration,
+  _originalContent: string,
+  _agent: AgentIntegration,
   filePath: string,
-): TransformResult => {
-  if (agent === "none") {
-    return {
-      success: true,
-      filePath,
-      message: "React Grab is already configured",
-      noChanges: true,
-    };
-  }
-
-  const agentPackage = `@react-grab/${agent}`;
-  if (originalContent.includes(agentPackage)) {
-    return {
-      success: true,
-      filePath,
-      message: `Agent ${agent} is already configured`,
-      noChanges: true,
-    };
-  }
-
-  const agentImport = `void import("${agentPackage}/client");`;
-  const reactGrabImportMatch = originalContent.match(
-    /void\s+import\s*\(\s*["']react-grab["']\s*\);?/,
-  );
-
-  if (reactGrabImportMatch) {
-    const matchedText = reactGrabImportMatch[0];
-    const hasSemicolon = matchedText.endsWith(";");
-    const newContent = originalContent.replace(
-      matchedText,
-      `${hasSemicolon ? matchedText.slice(0, -1) : matchedText};\n      ${agentImport}`,
-    );
-    return {
-      success: true,
-      filePath,
-      message: `Add ${agent} agent`,
-      originalContent,
-      newContent,
-    };
-  }
-
-  return {
-    success: false,
-    filePath,
-    message: "Could not find React Grab import to add agent after",
-  };
-};
+): TransformResult => ({
+  success: true,
+  filePath,
+  message: "React Grab is already configured",
+  noChanges: true,
+});
 
 const transformNextAppRouter = (
   projectRoot: string,

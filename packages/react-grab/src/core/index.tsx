@@ -4242,27 +4242,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           supportsUndo: Boolean(capturedProvider.undo),
           supportsFollowUp: Boolean(capturedProvider.supportsFollowUp),
           dismissButtonText: capturedProvider.dismissButtonText,
-          isAgentConnected: false,
         });
 
         if (capturedProvider.checkConnection) {
-          capturedProvider
-            .checkConnection()
-            .then((isConnected) => {
-              const currentAgentOpts = getAgentOptionsWithCallbacks();
-              if (currentAgentOpts?.provider !== capturedProvider) {
-                return;
-              }
-              actions.setAgentCapabilities({
-                supportsUndo: Boolean(capturedProvider.undo),
-                supportsFollowUp: Boolean(capturedProvider.supportsFollowUp),
-                dismissButtonText: capturedProvider.dismissButtonText,
-                isAgentConnected: isConnected,
-              });
-            })
-            .catch((error) => {
-              logRecoverableError("Agent connection check failed", error);
-            });
+          capturedProvider.checkConnection().catch((error) => {
+            logRecoverableError("Agent connection check failed", error);
+          });
         }
 
         agentManager.session.tryResume();
@@ -4271,7 +4256,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           supportsUndo: false,
           supportsFollowUp: false,
           dismissButtonText: undefined,
-          isAgentConnected: false,
         });
       }
     };

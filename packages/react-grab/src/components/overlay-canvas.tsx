@@ -70,7 +70,7 @@ interface AnimatedBounds {
   isInitialized: boolean;
 }
 
-export interface OverlayCanvasProps {
+interface OverlayCanvasProps {
   selectionVisible?: boolean;
   selectionBounds?: OverlayBounds;
   selectionBoundsMultiple?: OverlayBounds[];

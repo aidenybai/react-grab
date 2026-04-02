@@ -20,7 +20,6 @@ interface ProjectInfo {
   isMonorepo: boolean;
   projectRoot: string;
   hasReactGrab: boolean;
-  installedAgents: string[];
   unsupportedFramework: UnsupportedFramework;
 }
 
@@ -415,8 +414,6 @@ export const detectReactGrab = (projectRoot: string): boolean => {
   return filesToCheck.some(hasReactGrabInFile);
 };
 
-const AGENT_PACKAGES = ["@react-grab/mcp"];
-
 export const detectUnsupportedFramework = (
   projectRoot: string,
 ): UnsupportedFramework => {
@@ -455,28 +452,6 @@ export const detectUnsupportedFramework = (
   }
 };
 
-export const detectInstalledAgents = (projectRoot: string): string[] => {
-  const packageJsonPath = join(projectRoot, "package.json");
-
-  if (!existsSync(packageJsonPath)) {
-    return [];
-  }
-
-  try {
-    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
-    const allDependencies = {
-      ...packageJson.dependencies,
-      ...packageJson.devDependencies,
-    };
-
-    return AGENT_PACKAGES.filter((agent) =>
-      Boolean(allDependencies[agent]),
-    ).map((agent) => agent.replace("@react-grab/", ""));
-  } catch {
-    return [];
-  }
-};
-
 export const detectProject = async (
   projectRoot: string = process.cwd(),
 ): Promise<ProjectInfo> => {
@@ -491,7 +466,6 @@ export const detectProject = async (
     isMonorepo: detectMonorepo(projectRoot),
     projectRoot,
     hasReactGrab: detectReactGrab(projectRoot),
-    installedAgents: detectInstalledAgents(projectRoot),
     unsupportedFramework: detectUnsupportedFramework(projectRoot),
   };
 };
