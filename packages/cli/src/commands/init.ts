@@ -542,11 +542,7 @@ export const init = new Command()
       if (hasLayoutChanges) {
         logger.break();
 
-        printDiff(
-          result.filePath,
-          result.originalContent!,
-          result.newContent!,
-        );
+        printDiff(result.filePath, result.originalContent!, result.newContent!);
 
         logger.break();
         logger.warn("Auto-detection may not be 100% accurate.");

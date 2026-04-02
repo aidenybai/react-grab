@@ -447,4 +447,3 @@ describe("applyTransform", () => {
     expect(mockWriteFileSync).not.toHaveBeenCalled();
   });
 });
-
