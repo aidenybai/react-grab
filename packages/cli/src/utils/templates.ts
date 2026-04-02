@@ -8,8 +8,6 @@ export const NEXT_APP_ROUTER_SCRIPT = `{process.env.NODE_ENV === "development" &
           />
         )}`;
 
-export const NEXT_PAGES_ROUTER_SCRIPT = NEXT_APP_ROUTER_SCRIPT;
-
 export const VITE_IMPORT = `if (import.meta.env.DEV) {
   import("react-grab");
 }`;

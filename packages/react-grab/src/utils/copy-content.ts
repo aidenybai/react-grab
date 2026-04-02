@@ -10,7 +10,6 @@ export interface ReactGrabEntry {
 }
 
 interface CopyContentOptions {
-  onSuccess?: () => void;
   componentName?: string;
   tagName?: string;
   commentText?: string;
@@ -78,11 +77,7 @@ export const copyContent = (
     if (typeof document.execCommand !== "function") {
       return false;
     }
-    const didCopySucceed = document.execCommand("copy");
-    if (didCopySucceed) {
-      options?.onSuccess?.();
-    }
-    return didCopySucceed;
+    return document.execCommand("copy");
   } finally {
     document.removeEventListener("copy", copyHandler);
     textarea.remove();

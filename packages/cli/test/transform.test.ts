@@ -4,8 +4,6 @@ import {
   applyTransform,
   previewPackageJsonTransform,
   applyPackageJsonTransform,
-  previewAgentRemoval,
-  previewPackageJsonAgentRemoval,
 } from "../src/utils/transform.js";
 
 vi.mock("node:fs", () => ({
@@ -469,55 +467,6 @@ describe("previewPackageJsonTransform", () => {
     expect(result.success).toBe(true);
     expect(result.noChanges).toBe(true);
     expect(result.message).toContain("MCP");
-  });
-});
-
-describe("previewAgentRemoval", () => {
-  it("should remove MCP script from Next.js layout", () => {
-    const layoutWithMcp = `import Script from "next/script";
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <head>
-        <Script src="//unpkg.com/react-grab/dist/index.global.js" strategy="beforeInteractive" />
-        {process.env.NODE_ENV === "development" && (
-          <Script src="//unpkg.com/@react-grab/mcp/dist/client.global.js" strategy="lazyOnload" />
-        )}
-      </head>
-      <body>{children}</body>
-    </html>
-  );
-}`;
-
-    mockExistsSync.mockImplementation((path) =>
-      String(path).endsWith("layout.tsx"),
-    );
-    mockReadFileSync.mockReturnValue(layoutWithMcp);
-
-    const result = previewAgentRemoval("/test", "next", "app", "mcp");
-
-    expect(result.success).toBe(true);
-    expect(result.newContent).not.toContain("@react-grab/mcp");
-    expect(result.newContent).toContain("react-grab");
-  });
-});
-
-describe("previewPackageJsonAgentRemoval", () => {
-  it("should return noChanges for mcp since it has no dev script prefix", () => {
-    const packageJsonContent = JSON.stringify(
-      { name: "my-app", scripts: { dev: "next dev" } },
-      null,
-      2,
-    );
-
-    mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockReturnValue(packageJsonContent);
-
-    const result = previewPackageJsonAgentRemoval("/test", "mcp");
-
-    expect(result.success).toBe(true);
-    expect(result.noChanges).toBe(true);
   });
 });
 

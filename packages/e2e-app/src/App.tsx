@@ -569,7 +569,7 @@ const PointerUpModalSection = () => {
       pointerDownTargetRef.current = event.composedPath?.()[0] ?? event.target;
     };
 
-    const handlePointerUp = (event: PointerEvent) => {
+    const handlePointerUp = (_event: PointerEvent) => {
       const downTarget = pointerDownTargetRef.current;
       pointerDownTargetRef.current = null;
       if (!downTarget) return;

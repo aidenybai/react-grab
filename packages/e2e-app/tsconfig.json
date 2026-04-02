@@ -16,10 +16,7 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
-    "paths": {
-      "@/*": ["./src/*"]
-    }
+    "esModuleInterop": true
   },
   "include": ["src"]
 }

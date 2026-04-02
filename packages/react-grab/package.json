@@ -88,7 +88,6 @@
     "lint:fix": "oxlint --fix",
     "test": "playwright test",
     "typecheck": "tsc --noEmit",
-    "publint": "publint",
     "prepublishOnly": "pnpm build",
     "test:e2e:ui": "playwright test --ui"
   },
@@ -96,6 +95,7 @@
     "@medv/finder": "^4.0.2",
     "@react-grab/cli": "workspace:*",
     "bippy": "^0.5.32",
+    "clsx": "^2.1.1",
     "element-source": "^0.0.3",
     "solid-js": "^1.9.10"
   },
@@ -107,11 +107,9 @@
     "@types/node": "^20.19.23",
     "@types/react": "^19.2.11",
     "babel-preset-solid": "^1.9.10",
-    "clsx": "^2.1.1",
     "concurrently": "^9.1.2",
     "esbuild-plugin-babel": "^0.2.3",
     "oxlint": "^1.42.0",
-    "publint": "^0.2.12",
     "tailwindcss": "^4.1.0",
     "tsup": "^8.2.4"
   },
