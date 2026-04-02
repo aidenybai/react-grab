@@ -16,7 +16,6 @@
   "devDependencies": {
     "@types/chrome": "^0.0.278",
     "@types/turndown": "^5.0.5",
-    "@vitejs/plugin-react": "^4.3.4",
     "typescript": "^5.7.3",
     "vite": "^6.0.2",
     "vite-plugin-web-extension": "^4.1.6"

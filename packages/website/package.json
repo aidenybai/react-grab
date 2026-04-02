@@ -12,6 +12,7 @@
     "@base-ui/react": "^1.2.0",
     "@react-grab/design-system": "workspace:*",
     "@vercel/analytics": "^1.5.0",
+    "calligraph": "^1.4.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.553.0",
@@ -23,7 +24,6 @@
     "react-grab": "workspace:*",
     "shiki": "^1.24.3",
     "tailwind-merge": "^3.4.0",
-    "calligraph": "^1.4.1",
     "web-haptics": "^0.0.6"
   },
   "devDependencies": {

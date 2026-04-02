@@ -6,10 +6,9 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
-import type { Framework, NextRouterType, PackageManager } from "./detect.js";
+import type { Framework, NextRouterType } from "./detect.js";
 import {
   NEXT_APP_ROUTER_SCRIPT,
-  NEXT_PAGES_ROUTER_SCRIPT,
   SCRIPT_IMPORT,
   TANSTACK_EFFECT,
   VITE_IMPORT,
@@ -32,16 +31,6 @@ export interface ReactGrabOptions {
   keyHoldDuration?: number;
   allowActivationInsideInput?: boolean;
   maxContextLines?: number;
-}
-
-export interface PackageJsonTransformResult {
-  success: boolean;
-  filePath: string;
-  message: string;
-  originalContent?: string;
-  newContent?: string;
-  noChanges?: boolean;
-  warning?: string;
 }
 
 const hasReactGrabCode = (content: string): boolean => {
@@ -497,7 +486,7 @@ const transformNextPagesRouter = (
   if (headMatch) {
     newContent = newContent.replace(
       headMatch[0],
-      `${headMatch[0]}\n        ${NEXT_PAGES_ROUTER_SCRIPT}`,
+      `${headMatch[0]}\n        ${NEXT_APP_ROUTER_SCRIPT}`,
     );
   }
 
@@ -805,193 +794,6 @@ export const applyTransform = (
   return { success: true };
 };
 
-const getPackageExecutor = (packageManager: PackageManager): string => {
-  switch (packageManager) {
-    case "bun":
-      return "bunx";
-    case "pnpm":
-      return "pnpm dlx";
-    case "yarn":
-      return "npx";
-    case "npm":
-    default:
-      return "npx";
-  }
-};
-
-const AGENT_PACKAGES: Record<string, string> = {
-  "claude-code": "@react-grab/claude-code@latest",
-  cursor: "@react-grab/cursor@latest",
-  opencode: "@react-grab/opencode@latest",
-  codex: "@react-grab/codex@latest",
-  gemini: "@react-grab/gemini@latest",
-  amp: "@react-grab/amp@latest",
-  droid: "@react-grab/droid@latest",
-  copilot: "@react-grab/copilot@latest",
-};
-
-const getAgentPrefix = (
-  agent: string,
-  packageManager: PackageManager,
-): string | null => {
-  const agentPackage = AGENT_PACKAGES[agent];
-  if (!agentPackage) return null;
-  const executor = getPackageExecutor(packageManager);
-  return `${executor} ${agentPackage} &&`;
-};
-
-const getAllAgentPrefixVariants = (agent: string): string[] => {
-  const agentPackage = AGENT_PACKAGES[agent];
-  if (!agentPackage) return [];
-  return [
-    `npx ${agentPackage} &&`,
-    `bunx ${agentPackage} &&`,
-    `pnpm dlx ${agentPackage} &&`,
-    `yarn dlx ${agentPackage} &&`,
-  ];
-};
-
-export const previewPackageJsonTransform = (
-  projectRoot: string,
-  agent: AgentIntegration,
-  installedAgents: string[],
-  packageManager: PackageManager = "npm",
-): PackageJsonTransformResult => {
-  if (agent === "none") {
-    return {
-      success: true,
-      filePath: "",
-      message: "No agent selected, skipping package.json modification",
-      noChanges: true,
-    };
-  }
-
-  if (agent === "mcp") {
-    return {
-      success: true,
-      filePath: "",
-      message: "MCP does not use package.json dev script",
-      noChanges: true,
-    };
-  }
-
-  const packageJsonPath = join(projectRoot, "package.json");
-
-  if (!existsSync(packageJsonPath)) {
-    return {
-      success: false,
-      filePath: "",
-      message: "Could not find package.json",
-    };
-  }
-
-  const originalContent = readFileSync(packageJsonPath, "utf-8");
-  const agentPrefix = getAgentPrefix(agent, packageManager);
-
-  if (!agentPrefix) {
-    return {
-      success: false,
-      filePath: packageJsonPath,
-      message: `Unknown agent: ${agent}`,
-    };
-  }
-
-  const allPrefixVariants = getAllAgentPrefixVariants(agent);
-  const hasExistingPrefix = allPrefixVariants.some((prefix) =>
-    originalContent.includes(prefix),
-  );
-
-  if (hasExistingPrefix) {
-    return {
-      success: true,
-      filePath: packageJsonPath,
-      message: `Agent ${agent} dev script is already configured`,
-      noChanges: true,
-    };
-  }
-
-  try {
-    const packageJson = JSON.parse(originalContent);
-
-    let targetScriptKey = "dev";
-    if (!packageJson.scripts?.dev) {
-      const devScriptKeys = Object.keys(packageJson.scripts || {}).filter(
-        (key) => key.startsWith("dev"),
-      );
-      if (devScriptKeys.length > 0) {
-        targetScriptKey = devScriptKeys[0];
-      } else {
-        return {
-          success: true,
-          filePath: packageJsonPath,
-          message: "No dev script found in package.json",
-          noChanges: true,
-          warning: `Could not inject agent into package.json (no dev script found).\nRun this command manually before starting your dev server:\n  ${agentPrefix} <your dev command>`,
-        };
-      }
-    }
-
-    const currentDevScript = packageJson.scripts[targetScriptKey];
-
-    for (const installedAgent of installedAgents) {
-      const installedPrefixVariants = getAllAgentPrefixVariants(installedAgent);
-      const hasInstalledAgentPrefix = installedPrefixVariants.some((prefix) =>
-        currentDevScript.includes(prefix),
-      );
-      if (hasInstalledAgentPrefix) {
-        return {
-          success: true,
-          filePath: packageJsonPath,
-          message: `Agent ${installedAgent} is already in ${targetScriptKey} script`,
-          noChanges: true,
-        };
-      }
-    }
-
-    packageJson.scripts[targetScriptKey] = `${agentPrefix} ${currentDevScript}`;
-
-    const newContent = JSON.stringify(packageJson, null, 2) + "\n";
-
-    return {
-      success: true,
-      filePath: packageJsonPath,
-      message: `Add ${agent} server to ${targetScriptKey} script`,
-      originalContent,
-      newContent,
-    };
-  } catch {
-    return {
-      success: false,
-      filePath: packageJsonPath,
-      message: "Failed to parse package.json",
-    };
-  }
-};
-
-export const applyPackageJsonTransform = (
-  result: PackageJsonTransformResult,
-): { success: boolean; error?: string } => {
-  if (result.success && result.newContent && result.filePath) {
-    if (!canWriteToFile(result.filePath)) {
-      return {
-        success: false,
-        error: `Cannot write to ${result.filePath}. Check file permissions.`,
-      };
-    }
-
-    try {
-      writeFileSync(result.filePath, result.newContent);
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        error: `Failed to write to ${result.filePath}: ${error instanceof Error ? error.message : "Unknown error"}`,
-      };
-    }
-  }
-  return { success: true };
-};
-
 const formatOptionsForNextjs = (options: ReactGrabOptions): string => {
   const parts: string[] = [];
 
@@ -1126,41 +928,7 @@ const addOptionsToNextScript = (
   };
 };
 
-const addOptionsToViteScript = (
-  originalContent: string,
-  options: ReactGrabOptions,
-  filePath: string,
-): TransformResult => {
-  const reactGrabImportWithInitMatch = originalContent.match(
-    /import\s*\(\s*["']react-grab["']\s*\)(?:\.then\s*\(\s*\(m\)\s*=>\s*m\.init\s*\([^)]*\)\s*\))?/,
-  );
-
-  if (!reactGrabImportWithInitMatch) {
-    return {
-      success: false,
-      filePath,
-      message: "Could not find React Grab import",
-    };
-  }
-
-  const optionsJson = formatOptionsAsJson(options);
-  const newImport = `import("react-grab").then((m) => m.init(${optionsJson}))`;
-
-  const newContent = originalContent.replace(
-    reactGrabImportWithInitMatch[0],
-    newImport,
-  );
-
-  return {
-    success: true,
-    filePath,
-    message: "Update React Grab options",
-    originalContent,
-    newContent,
-  };
-};
-
-const addOptionsToWebpackImport = (
+const addOptionsToDynamicImport = (
   originalContent: string,
   options: ReactGrabOptions,
   filePath: string,
@@ -1258,298 +1026,17 @@ export const previewOptionsTransform = (
     case "next":
       return addOptionsToNextScript(originalContent, options, filePath);
     case "vite":
-      return addOptionsToViteScript(originalContent, options, filePath);
+      return addOptionsToDynamicImport(originalContent, options, filePath);
     case "tanstack":
       return addOptionsToTanStackImport(originalContent, options, filePath);
     case "webpack":
-      return addOptionsToWebpackImport(originalContent, options, filePath);
+      return addOptionsToDynamicImport(originalContent, options, filePath);
     default:
       return {
         success: false,
         filePath,
         message: `Unknown framework: ${framework}`,
       };
-  }
-};
-
-const removeAgentFromNextApp = (
-  originalContent: string,
-  agent: string,
-  filePath: string,
-): TransformResult => {
-  const agentPackage = `@react-grab/${agent}`;
-
-  if (!originalContent.includes(agentPackage)) {
-    return {
-      success: true,
-      filePath,
-      message: `Agent ${agent} is not configured in this file`,
-      noChanges: true,
-    };
-  }
-
-  const agentScriptPattern = new RegExp(
-    `\\s*\\{process\\.env\\.NODE_ENV === "development" && \\(\\s*<Script[^>]*${agentPackage.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[^>]*\\/>\\s*\\)\\}`,
-    "gs",
-  );
-
-  const simpleScriptPattern = new RegExp(
-    `\\s*<Script[^>]*${agentPackage.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[^>]*\\/>`,
-    "gi",
-  );
-
-  let newContent = originalContent.replace(agentScriptPattern, "");
-
-  if (newContent === originalContent) {
-    newContent = originalContent.replace(simpleScriptPattern, "");
-  }
-
-  if (newContent === originalContent) {
-    return {
-      success: false,
-      filePath,
-      message: `Could not find agent ${agent} script to remove`,
-    };
-  }
-
-  return {
-    success: true,
-    filePath,
-    message: `Remove ${agent} agent`,
-    originalContent,
-    newContent,
-  };
-};
-
-const removeAgentFromVite = (
-  originalContent: string,
-  agent: string,
-  filePath: string,
-): TransformResult => {
-  const agentPackage = `@react-grab/${agent}`;
-
-  if (!originalContent.includes(agentPackage)) {
-    return {
-      success: true,
-      filePath,
-      message: `Agent ${agent} is not configured in this file`,
-      noChanges: true,
-    };
-  }
-
-  const agentImportPattern = new RegExp(
-    `\\s*import\\s*\\(\\s*["']${agentPackage.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/client["']\\s*\\);?`,
-    "g",
-  );
-
-  const newContent = originalContent.replace(agentImportPattern, "");
-
-  if (newContent === originalContent) {
-    return {
-      success: false,
-      filePath,
-      message: `Could not find agent ${agent} import to remove`,
-    };
-  }
-
-  return {
-    success: true,
-    filePath,
-    message: `Remove ${agent} agent`,
-    originalContent,
-    newContent,
-  };
-};
-
-const removeAgentFromWebpack = (
-  originalContent: string,
-  agent: string,
-  filePath: string,
-): TransformResult => {
-  const agentPackage = `@react-grab/${agent}`;
-
-  if (!originalContent.includes(agentPackage)) {
-    return {
-      success: true,
-      filePath,
-      message: `Agent ${agent} is not configured in this file`,
-      noChanges: true,
-    };
-  }
-
-  const agentImportPattern = new RegExp(
-    `\\s*import\\s*\\(\\s*["']${agentPackage.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/client["']\\s*\\);?`,
-    "g",
-  );
-
-  const newContent = originalContent.replace(agentImportPattern, "");
-
-  if (newContent === originalContent) {
-    return {
-      success: false,
-      filePath,
-      message: `Could not find agent ${agent} import to remove`,
-    };
-  }
-
-  return {
-    success: true,
-    filePath,
-    message: `Remove ${agent} agent`,
-    originalContent,
-    newContent,
-  };
-};
-
-const removeAgentFromTanStack = (
-  originalContent: string,
-  agent: string,
-  filePath: string,
-): TransformResult => {
-  const agentPackage = `@react-grab/${agent}`;
-
-  if (!originalContent.includes(agentPackage)) {
-    return {
-      success: true,
-      filePath,
-      message: `Agent ${agent} is not configured in this file`,
-      noChanges: true,
-    };
-  }
-
-  const agentImportPattern = new RegExp(
-    `\\s*void\\s+import\\s*\\(\\s*["']${agentPackage.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/client["']\\s*\\);?`,
-    "g",
-  );
-
-  const newContent = originalContent.replace(agentImportPattern, "");
-
-  if (newContent === originalContent) {
-    return {
-      success: false,
-      filePath,
-      message: `Could not find agent ${agent} import to remove`,
-    };
-  }
-
-  return {
-    success: true,
-    filePath,
-    message: `Remove ${agent} agent`,
-    originalContent,
-    newContent,
-  };
-};
-
-export const previewAgentRemoval = (
-  projectRoot: string,
-  framework: Framework,
-  nextRouterType: NextRouterType,
-  agent: string,
-): TransformResult => {
-  const filePath = findReactGrabFile(projectRoot, framework, nextRouterType);
-
-  if (!filePath) {
-    return {
-      success: true,
-      filePath: "",
-      message: "Could not find file containing React Grab configuration",
-      noChanges: true,
-    };
-  }
-
-  const originalContent = readFileSync(filePath, "utf-8");
-
-  switch (framework) {
-    case "next":
-      return removeAgentFromNextApp(originalContent, agent, filePath);
-    case "vite":
-      return removeAgentFromVite(originalContent, agent, filePath);
-    case "tanstack":
-      return removeAgentFromTanStack(originalContent, agent, filePath);
-    case "webpack":
-      return removeAgentFromWebpack(originalContent, agent, filePath);
-    default:
-      return {
-        success: false,
-        filePath,
-        message: `Unknown framework: ${framework}`,
-      };
-  }
-};
-
-export const previewPackageJsonAgentRemoval = (
-  projectRoot: string,
-  agent: string,
-): PackageJsonTransformResult => {
-  const packageJsonPath = join(projectRoot, "package.json");
-
-  if (!existsSync(packageJsonPath)) {
-    return {
-      success: true,
-      filePath: "",
-      message: "Could not find package.json",
-      noChanges: true,
-    };
-  }
-
-  const originalContent = readFileSync(packageJsonPath, "utf-8");
-  const allPrefixVariants = getAllAgentPrefixVariants(agent);
-
-  if (allPrefixVariants.length === 0) {
-    return {
-      success: true,
-      filePath: packageJsonPath,
-      message: `Unknown agent: ${agent}`,
-      noChanges: true,
-    };
-  }
-
-  const hasAnyPrefix = allPrefixVariants.some((prefix) =>
-    originalContent.includes(prefix),
-  );
-
-  if (!hasAnyPrefix) {
-    return {
-      success: true,
-      filePath: packageJsonPath,
-      message: `Agent ${agent} dev script is not configured`,
-      noChanges: true,
-    };
-  }
-
-  try {
-    const packageJson = JSON.parse(originalContent);
-
-    for (const scriptKey of Object.keys(packageJson.scripts || {})) {
-      let scriptValue = packageJson.scripts[scriptKey];
-      if (typeof scriptValue === "string") {
-        for (const prefix of allPrefixVariants) {
-          if (scriptValue.includes(prefix)) {
-            scriptValue = scriptValue
-              .replace(prefix + " ", "")
-              .replace(prefix, "");
-          }
-        }
-        packageJson.scripts[scriptKey] = scriptValue;
-      }
-    }
-
-    const newContent = JSON.stringify(packageJson, null, 2) + "\n";
-
-    return {
-      success: true,
-      filePath: packageJsonPath,
-      message: `Remove ${agent} server from dev script`,
-      originalContent,
-      newContent,
-    };
-  } catch {
-    return {
-      success: false,
-      filePath: packageJsonPath,
-      message: "Failed to parse package.json",
-    };
   }
 };
 
