@@ -18,7 +18,6 @@ const migrateFromLegacyStorage = (): void => {
     }
     sessionStorage.removeItem(LEGACY_COMMENT_ITEMS_KEY);
   } catch {
-    // HACK: sessionStorage can throw in private browsing or when quota is exceeded
   }
 };
 
@@ -64,7 +63,6 @@ const persistCommentItems = (nextItems: CommentItem[]): CommentItem[] => {
   try {
     sessionStorage.setItem(COMMENT_ITEMS_KEY, JSON.stringify(commentItems));
   } catch (error) {
-    // HACK: sessionStorage can throw in private browsing or when quota is exceeded
     logRecoverableError("Failed to save comments to sessionStorage", error);
   }
   return commentItems;
@@ -98,7 +96,6 @@ export const confirmClear = (): void => {
   try {
     sessionStorage.setItem(CLEAR_CONFIRMED_KEY, "1");
   } catch (error) {
-    // HACK: sessionStorage can throw in private browsing or when quota is exceeded
     logRecoverableError(
       "Failed to save clear preference to sessionStorage",
       error,

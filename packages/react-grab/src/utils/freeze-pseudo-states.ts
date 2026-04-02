@@ -1,8 +1,16 @@
 import { clearElementPositionCache } from "./get-element-at-position.js";
 import { createStyleElement } from "./create-style-element.js";
 
+// We apply pointer-events:none on `html` rather than `*` because pointer-events
+// is inherited, so toggling it on a single root element is O(1) style invalidation
+// instead of O(N) for every DOM node, which caused visible lag on dense DOMs
+// like GitHub diff viewers with 10k+ nodes.
+// @see https://github.com/aidenybai/react-grab/pull/209
 const POINTER_EVENTS_STYLES = "html { pointer-events: none !important; }";
 
+// These capture-phase blockers prevent hover and focus side effects while the
+// pointer-events freeze is briefly suspended for hit-testing. Even though the
+// stylesheet is disabled, these listeners swallow events the browser would fire.
 const MOUSE_EVENTS_TO_BLOCK = [
   "mouseenter",
   "mouseleave",
@@ -16,6 +24,9 @@ const MOUSE_EVENTS_TO_BLOCK = [
 
 const FOCUS_EVENTS_TO_BLOCK = ["focus", "blur", "focusin", "focusout"] as const;
 
+// Before disabling pointer-events we snapshot current :hover and :focus computed
+// values (background-color, box-shadow, opacity, etc.) onto inline styles so
+// elements keep their visual state (e.g. a hovered button stays highlighted).
 const HOVER_STYLE_PROPERTIES = [
   "background-color",
   "color",

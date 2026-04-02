@@ -1,14 +1,15 @@
-/**
- * GSAP rAF interception
- *
- * GSAP drives animations through an internal `_tick` function scheduled via
- * requestAnimationFrame. We wrap rAF at module load time so GSAP captures our
- * wrapper. When frozen and `window.gsapVersions` exists (set by GSAP on import),
- * we inspect the call stack for `_tick` and hold matching callbacks.
- *
- * Stack inspection is deferred until freeze, so `Error()` is never paid during
- * normal operation. Detected callbacks are cached in a WeakSet for free lookups.
- */
+// GSAP drives all animations through a single `_tick` callback scheduled via
+// requestAnimationFrame, and there is no public API to pause or resume it
+// globally. To freeze GSAP we wrap window.requestAnimationFrame at module load
+// time (before GSAP captures it) and, during freeze, inspect the call stack for
+// the `_tick` function name to identify GSAP callbacks and hold them until
+// unfreeze, at which point they are replayed.
+//
+// The stack inspection via new Error().stack is expensive but only runs during
+// freeze. Detected callbacks are cached in a WeakSet so subsequent checks are
+// O(1). Held callbacks receive fake negative IDs to distinguish them from native
+// rAF IDs, and cancelAnimationFrame handles both ID spaces transparently.
+// react-grab's own code uses native-raf.ts to bypass this wrapper entirely.
 
 import {
   nativeCancelAnimationFrame,

@@ -3,10 +3,12 @@ const isClientSide = typeof window !== "undefined";
 const noopAnimationFrame = (_callback: FrameRequestCallback): number => 0;
 const noopCancelFrame = (_id: number): void => {};
 
-// HACK: Read from Window.prototype to bypass any monkey-patching on the window
-// instance (e.g., the rAF wrapper installed by freeze-animations.ts). Assigning
-// to window.requestAnimationFrame creates an own property that shadows the
-// prototype, but the native implementation remains on Window.prototype.
+// We read requestAnimationFrame from Window.prototype rather than the window
+// instance to bypass the GSAP freeze wrapper installed by freeze-gsap.ts.
+// That wrapper does `window.requestAnimationFrame = ...` which creates an own
+// property shadowing the prototype, but the native implementation remains on
+// Window.prototype. Without this, react-grab's own overlay canvas animation
+// loop would be frozen by its own GSAP interception.
 export const nativeRequestAnimationFrame: typeof requestAnimationFrame =
   isClientSide
     ? (

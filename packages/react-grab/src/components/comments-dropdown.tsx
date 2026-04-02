@@ -90,7 +90,9 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
 
   let copyAllFeedbackTimeout: ReturnType<typeof setTimeout> | undefined;
 
-  // HACK: mouseenter doesn't fire when an element appears under the cursor, so we check :hover after the enter animation commits
+  // The browser does not fire mouseenter when an element appears under the
+  // cursor because it was not in the DOM when the cursor entered its bounds,
+  // so we check :hover manually after the enter animation commits.
   createEffect(
     on(
       () => dropdown.isAnimatedIn(),

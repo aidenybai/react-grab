@@ -516,7 +516,6 @@ export const createAgentManager = (
       return next;
     });
 
-    // HACK: Wait for CSS opacity transition + buffer before removing
     const existingTimeout = dismissTimeouts.get(sessionId);
     if (existingTimeout) clearTimeout(existingTimeout);
 

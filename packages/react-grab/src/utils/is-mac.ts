@@ -20,6 +20,10 @@ export const isMac = (): boolean => {
       return cachedIsMac;
     }
 
+    // We check navigator.platform before userAgentData because headless
+    // Chromium reports userAgentData.platform as "Windows" regardless of the
+    // actual OS, which broke 17 e2e tests on macOS CI.
+    // @see https://github.com/aidenybai/react-grab/pull/236
     const platform =
       navigator.platform ??
       getPlatformFromUserAgentData() ??

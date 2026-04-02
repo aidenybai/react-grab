@@ -50,6 +50,9 @@ export const copyContent = (
     timestamp: Date.now(),
   };
 
+  // The clipboard receives three formats: plain text for terminals and editors,
+  // HTML-escaped content for rich text fields like Notion or Google Docs, and a
+  // custom MIME type carrying full metadata for paste targets that understand it.
   const copyHandler = (event: ClipboardEvent) => {
     event.preventDefault();
     event.clipboardData?.setData("text/plain", content);
@@ -63,6 +66,11 @@ export const copyContent = (
     );
   };
 
+  // We use the deprecated but universally supported execCommand("copy") because
+  // it runs synchronously in the user's key event call stack, unlike the async
+  // Clipboard API. The hidden textarea provides the selection context that
+  // execCommand requires, and the copy handler installed above intercepts the
+  // browser's default behavior to set our custom clipboard data.
   document.addEventListener("copy", copyHandler);
 
   const textarea = document.createElement("textarea");

@@ -82,11 +82,26 @@ export const getElementAtPosition = (
     }
   }
 
+  // PERF: suspendPointerEventsFreeze toggles the html { pointer-events: none }
+  // stylesheet, which dirties the entire style tree. elementFromPoint then forces
+  // a Recalculate Style. The 100ms debounced resume (scheduleResume) ensures the
+  // toggle is a no-op on rapid subsequent calls. The expensive recalc on those
+  // calls comes from host-page CSS animations dirtying styles between frames,
+  // which is unavoidable without removing pointer-events: none entirely.
+  // Alternatives explored and rejected:
+  //   - IntersectionObserver pre-population: adds 1-frame latency to every poll
+  //   - event.target fast path: always html/document due to pointer-events: none
+  //   - bounds-check cache: ignores z-index/stacking, causes hover detection misses
+  //   - transparent overlay instead of pointer-events: none: leaks CSS-only :hover
+  //     dropdowns/tooltips during the hit-test toggle
   cancelScheduledResume();
   suspendPointerEventsFreeze();
 
   let result: Element | null = null;
 
+  // elementFromPoint returns the topmost element, but if it's not grabbable
+  // (e.g. a transparent overlay) we fall back to elementsFromPoint which
+  // returns the full z-ordered stack at that coordinate.
   const topElement = document.elementFromPoint(clientX, clientY);
   if (topElement && isValidGrabbableElement(topElement)) {
     result = topElement;

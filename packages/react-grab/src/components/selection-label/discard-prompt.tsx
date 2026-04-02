@@ -13,6 +13,10 @@ export const DiscardPrompt: Component<DiscardPromptProps> = (props) => {
     if (!confirmationFocusManager.isActive(instanceId)) return;
     if (isKeyboardEventTriggeredByInput(event)) return;
 
+    // Escape confirms the discard by default ("yes, throw it away") rather
+    // than canceling, which is intentionally opposite to most dialogs. The
+    // cancelOnEscape prop flips this when the prompt itself should be
+    // dismissible.
     const isEnter = event.code === "Enter";
     const isEscape = event.code === "Escape";
     if (isEnter || isEscape) {

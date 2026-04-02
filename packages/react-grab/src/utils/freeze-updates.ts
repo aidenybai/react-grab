@@ -1,3 +1,10 @@
+// During grab mode the page must freeze visually, but there is no public React
+// API to pause rendering. This module patches the internal dispatcher
+// (ReactCurrentDispatcher.H or .current) to intercept and buffer
+// useState/useReducer/useTransition/useSyncExternalStore calls while frozen.
+// On unfreeze the buffered updates are replayed in order (store callbacks, then
+// transitions, then state updates). The approach is inherently fragile and
+// coupled to React internals, so all replay paths use try/catch.
 import {
   _fiberRoots,
   getRDTHook,
@@ -99,6 +106,8 @@ const getFiberRoot = (fiber: Fiber): FiberRootLike | null => {
   return (current.stateNode ?? null) as FiberRootLike | null;
 };
 
+// Collects React fiber roots, preferring bippy's tracked set but falling back
+// to a DOM walk when the app mounted before bippy instrumented the renderers.
 const collectFiberRoots = (): Set<FiberRootLike> => {
   if (typedFiberRoots.size > 0) {
     return typedFiberRoots;
@@ -283,7 +292,10 @@ const pauseContextDependency = (contextDependency: ContextDependency): void => {
     },
   });
 
-  // HACK: Initialize backing field for non-getter properties
+  // Replacing a plain data property (e.g. { memoizedValue: 42 }) with a
+  // get/set descriptor via Object.defineProperty removes the original value,
+  // so we initialize a _memoizedValue backing field for the new getter to
+  // read from.
   if (!pauseState.originalDescriptor?.get) {
     (
       contextDependency as unknown as { _memoizedValue: unknown }
@@ -517,7 +529,6 @@ const scheduleReactUpdate = (fiberRoots: Set<FiberRootLike>): void => {
             try {
               renderer.scheduleUpdate(fiberRoot.current);
             } catch (error) {
-              // HACK: React internals may throw during unfreeze cleanup
               logRecoverableError(
                 "scheduleUpdate failed during unfreeze",
                 error,
@@ -527,7 +538,6 @@ const scheduleReactUpdate = (fiberRoots: Set<FiberRootLike>): void => {
         }
       }
     } catch (error) {
-      // HACK: React internals may throw during unfreeze cleanup
       logRecoverableError("scheduleReactUpdate failed", error);
     }
   });
@@ -538,7 +548,6 @@ const invokeCallbacks = (callbacks: Array<() => void>): void => {
     try {
       callback();
     } catch (error) {
-      // HACK: React internals may throw during state replay
       logRecoverableError("Callback failed during state replay", error);
     }
   }

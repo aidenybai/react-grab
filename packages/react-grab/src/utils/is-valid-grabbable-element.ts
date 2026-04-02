@@ -22,8 +22,10 @@ const isUserIgnoredElement = (element: Element): boolean =>
   element.hasAttribute(USER_IGNORE_ATTRIBUTE) ||
   element.closest(`[${USER_IGNORE_ATTRIBUTE}]`) !== null;
 
-// HACK: Dev tools like react-scan create full-viewport canvas overlays with
-// pointer-events: none that document.elementsFromPoint() still returns.
+// Dev tools like react-scan create full-viewport canvas overlays with
+// pointer-events:none that elementsFromPoint still returns. Without this
+// filter the user would select the invisible overlay instead of the actual
+// page content beneath it.
 // @see https://github.com/aidenybai/react-grab/issues/148
 const isDevToolsOverlay = (computedStyle: CSSStyleDeclaration): boolean => {
   const zIndex = parseInt(computedStyle.zIndex, 10);
