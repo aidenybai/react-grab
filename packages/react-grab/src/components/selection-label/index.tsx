@@ -26,7 +26,6 @@ import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-t
 import { cn } from "../../utils/cn.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
 import { formatShortcut } from "../../utils/format-shortcut.js";
-import { IconReply } from "../icons/icon-reply.jsx";
 import { IconSubmit } from "../icons/icon-submit.jsx";
 import { IconLoader } from "../icons/icon-loader.jsx";
 import { Arrow } from "./arrow.js";
@@ -86,7 +85,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     if (isCompletedStatus() && (props.onDismiss || props.onShowContextMenu)) {
       return true;
     }
-    if (props.status === "copying" && props.onAbort) return true;
     if (props.status === "error" && (props.onAcknowledgeError || props.onRetry)) {
       return true;
     }
@@ -109,17 +107,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     if (isKeyboardEventTriggeredByInput(event)) return;
 
     const isEnterToExpand = event.code === "Enter" && !props.isPromptMode && canInteract();
-    const isCtrlCToAbort =
-      event.code === "KeyC" && event.ctrlKey && props.status === "copying" && props.onAbort;
 
     if (isEnterToExpand) {
       event.preventDefault();
       event.stopImmediatePropagation();
       props.onToggleExpand?.();
-    } else if (isCtrlCToAbort) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      props.onAbort?.();
     }
   };
 
@@ -415,7 +407,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           }}
           onAnimationEnd={() => setIsShaking(false)}
         >
-          <Show when={props.status === "copying" && !props.isPendingAbort}>
+          <Show when={props.status === "copying"}>
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start w-fit h-fit max-w-[280px]">
               <div class="contain-layout shrink-0 flex items-center gap-1 py-1.5 px-2 w-full h-fit">
                 <IconLoader size={13} class="text-[#71717a] shrink-0" />
@@ -424,10 +416,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 </span>
               </div>
             </div>
-          </Show>
-
-          <Show when={props.status === "copying" && props.isPendingAbort}>
-            <DiscardPrompt onConfirm={props.onConfirmAbort} onCancel={props.onCancelAbort} />
           </Show>
 
           <Show when={canInteract() && !props.isPromptMode}>
@@ -531,18 +519,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 />
               </div>
               <BottomSection>
-                <Show when={props.replyToPrompt}>
-                  <div class="flex items-center gap-1 w-full mb-1 overflow-hidden">
-                    <IconReply size={10} class="text-black/30 shrink-0" />
-                    <span class="text-black/40 text-[11px] leading-3 font-medium truncate italic">
-                      {props.replyToPrompt}
-                    </span>
-                  </div>
-                </Show>
-                <div
-                  class="shrink-0 flex justify-between items-end w-full min-h-4"
-                  style={{ "padding-left": props.replyToPrompt ? "14px" : "0" }}
-                >
+                <div class="shrink-0 flex justify-between items-end w-full min-h-4">
                   <textarea
                     ref={(element) => {
                       inputRef = element;

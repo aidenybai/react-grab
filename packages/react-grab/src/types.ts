@@ -390,7 +390,6 @@ export interface ReactGrabRendererProps {
   isFrozen?: boolean;
   inputValue?: string;
   isPromptMode?: boolean;
-  replyToPrompt?: string;
   onShowContextMenuInstance?: (instanceId: string) => void;
   onLabelInstanceHoverChange?: (instanceId: string, isHovered: boolean) => void;
   onInputChange?: (value: string) => void;
@@ -521,8 +520,6 @@ export interface SelectionLabelProps {
   visible?: boolean;
   isPromptMode?: boolean;
   inputValue?: string;
-  replyToPrompt?: string;
-  previousPrompt?: string;
   status?: SelectionLabelStatus;
   statusText?: string;
   filePath?: string;
@@ -534,16 +531,12 @@ export interface SelectionLabelProps {
   onInputChange?: (value: string) => void;
   onSubmit?: () => void;
   onToggleExpand?: () => void;
-  onAbort?: () => void;
   onOpen?: () => void;
   onDismiss?: () => void;
   isPendingDismiss?: boolean;
   selectionLabelShakeCount?: number;
   onConfirmDismiss?: () => void;
   onCancelDismiss?: () => void;
-  isPendingAbort?: boolean;
-  onConfirmAbort?: () => void;
-  onCancelAbort?: () => void;
   error?: string;
   onAcknowledgeError?: () => void;
   onRetry?: () => void;

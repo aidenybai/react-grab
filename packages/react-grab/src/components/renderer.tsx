@@ -64,7 +64,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           visible={props.selectionLabelVisible}
           isPromptMode={props.isPromptMode}
           inputValue={props.inputValue}
-          replyToPrompt={props.replyToPrompt}
           status={props.selectionLabelStatus}
           actionCycleState={props.selectionActionCycleState}
           arrowNavigationState={props.selectionArrowNavigationState}
