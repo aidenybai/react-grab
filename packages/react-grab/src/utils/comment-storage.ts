@@ -17,8 +17,7 @@ const migrateFromLegacyStorage = (): void => {
       sessionStorage.setItem(COMMENT_ITEMS_KEY, legacyData);
     }
     sessionStorage.removeItem(LEGACY_COMMENT_ITEMS_KEY);
-  } catch {
-  }
+  } catch {}
 };
 
 const loadFromSessionStorage = (): CommentItem[] => {
