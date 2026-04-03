@@ -18,18 +18,14 @@ interface DesignSystemStateProps {
 
   isPromptMode?: boolean;
   inputValue?: string;
-  replyToPrompt?: string;
   statusText?: string;
   isPendingDismiss?: boolean;
-  isPendingAbort?: boolean;
   error?: string;
   isContextMenuOpen?: boolean;
   filePath?: string;
   hasFilePath?: boolean;
   showMoreOptions?: boolean;
-  previousPrompt?: string;
   hasOnDismiss?: boolean;
-  hasOnUndo?: boolean;
   hasOnRetry?: boolean;
   hasOnAcknowledge?: boolean;
   isToolbarActive?: boolean;
@@ -223,7 +219,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       status: "idle",
       isPromptMode: true,
       inputValue: "now make it blue",
-      replyToPrompt: "make the button larger",
     },
   },
   {
@@ -251,8 +246,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       status: "idle",
       isPromptMode: true,
       inputValue: "also add rounded corners",
-      replyToPrompt:
-        "make the button larger and add a hover effect with a nice shadow underneath it",
     },
   },
   {
@@ -304,7 +297,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "article",
       componentName: "Article",
       status: "copying",
-      isPendingAbort: true,
     },
   },
   {
@@ -372,7 +364,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       componentName: "Navigation",
       status: "copied",
       hasOnDismiss: false,
-      hasOnUndo: false,
     },
   },
   {
@@ -459,7 +450,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       componentName: "TopBar",
       status: "copied",
       statusText: "Done",
-      previousPrompt: "make it bigger",
     },
   },
 
@@ -501,8 +491,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       status: "idle",
       isPromptMode: true,
       inputValue: "and also fix the spacing",
-      replyToPrompt:
-        "make the card have rounded corners with a subtle shadow and increase the padding on all sides to make it feel more spacious",
     },
   },
   {
@@ -527,8 +515,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       componentName: "Navbar",
       status: "copied",
       statusText: "Done",
-      previousPrompt:
-        "make the navbar sticky with a blur background effect and add smooth scroll behavior",
     },
   },
   {
@@ -542,7 +528,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       status: "copied",
       statusText: "Applied changes",
       showMoreOptions: true,
-      previousPrompt: "add dark mode",
     },
   },
   {
@@ -1095,7 +1080,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           componentName: "Button",
           status: "copied",
           hasOnDismiss: false,
-          hasOnUndo: false,
           showMoreOptions: true,
         },
         durationMs: 2000,
@@ -1291,7 +1275,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "section",
           componentName: "Section",
           status: "copying",
-          isPendingAbort: true,
         },
         durationMs: 2000,
       },
@@ -1475,7 +1458,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           componentName: "DataTable",
           status: "copied",
           hasOnDismiss: false,
-          hasOnUndo: false,
           showMoreOptions: true,
         },
         durationMs: 2000,
@@ -1757,7 +1739,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           status: "copied",
           filePath: "src/components/Badge.tsx",
           hasOnDismiss: false,
-          hasOnUndo: false,
           showMoreOptions: true,
         },
         durationMs: 2000,
@@ -1811,7 +1792,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           status: "copied",
           elementsCount: 5,
           hasOnDismiss: false,
-          hasOnUndo: false,
           showMoreOptions: true,
         },
         durationMs: 2000,
@@ -1909,8 +1889,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           status: "idle",
           isPromptMode: true,
           inputValue: "",
-          previousPrompt: "make it bigger",
-          replyToPrompt: "make it bigger",
         },
         durationMs: 2500,
       },
@@ -1921,8 +1899,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           status: "idle",
           isPromptMode: true,
           inputValue: "also add shadow",
-          previousPrompt: "make it bigger",
-          replyToPrompt: "make it bigger",
         },
         durationMs: 1500,
       },
@@ -1992,8 +1968,6 @@ const elongateProps = (props: DesignSystemStateProps): DesignSystemStateProps =>
     statusText: elongateString(props.statusText),
     error: elongateString(props.error),
     inputValue: elongateString(props.inputValue),
-    replyToPrompt: elongateString(props.replyToPrompt),
-    previousPrompt: elongateString(props.previousPrompt),
   };
 };
 
@@ -2413,27 +2387,20 @@ const StateCard = (props: StateCardProps) => {
               status={currentProps().status}
               isPromptMode={currentProps().isPromptMode}
               inputValue={currentProps().inputValue}
-              replyToPrompt={currentProps().replyToPrompt}
               statusText={currentProps().statusText}
               isPendingDismiss={currentProps().isPendingDismiss}
-              isPendingAbort={currentProps().isPendingAbort}
               error={currentProps().error}
               isContextMenuOpen={currentProps().isContextMenuOpen}
               filePath={currentProps().filePath}
-              previousPrompt={currentProps().previousPrompt}
               onOpen={currentProps().filePath ? () => {} : undefined}
               onInputChange={() => {}}
               onSubmit={() => {}}
               onToggleExpand={() => {}}
               onConfirmDismiss={() => {}}
               onCancelDismiss={() => {}}
-              onConfirmAbort={() => {}}
-              onCancelAbort={() => {}}
               onAcknowledgeError={currentProps().hasOnAcknowledge !== false ? () => {} : undefined}
               onRetry={currentProps().hasOnRetry !== false ? () => {} : undefined}
               onDismiss={currentProps().hasOnDismiss !== false ? () => {} : undefined}
-              onUndo={currentProps().hasOnUndo !== false ? () => {} : undefined}
-              onAbort={() => {}}
               onShowContextMenu={currentProps().showMoreOptions ? () => {} : undefined}
             />
           </Show>
