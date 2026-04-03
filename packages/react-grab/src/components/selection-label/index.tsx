@@ -398,7 +398,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           <CompletionView
             statusText={props.statusText ?? "Copied"}
             onDismiss={props.onDismiss}
-            onUndo={props.onUndo}
             onFadingChange={setIsInternalFading}
             onShowContextMenu={props.onShowContextMenu}
           />

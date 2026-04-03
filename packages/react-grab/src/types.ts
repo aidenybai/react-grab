@@ -508,7 +508,6 @@ export interface ErrorViewProps {
 export interface CompletionViewProps {
   statusText: string;
   onDismiss?: () => void;
-  onUndo?: () => void;
   onFadingChange?: (isFading: boolean) => void;
   onShowContextMenu?: () => void;
 }
@@ -538,7 +537,6 @@ export interface SelectionLabelProps {
   onAbort?: () => void;
   onOpen?: () => void;
   onDismiss?: () => void;
-  onUndo?: () => void;
   isPendingDismiss?: boolean;
   selectionLabelShakeCount?: number;
   onConfirmDismiss?: () => void;
