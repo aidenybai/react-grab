@@ -5,7 +5,7 @@
   ],
   "type": "module",
   "scripts": {
-    "build": "cp README.md packages/react-grab/README.md && turbo run build --filter=react-grab --filter=@react-grab/cli --filter=@react-grab/shadcn-registry && pnpm --filter grab build",
+    "build": "cp README.md packages/react-grab/README.md && turbo run build --filter=react-grab --filter=@react-grab/cli && pnpm --filter grab build",
     "dev": "turbo dev --filter=react-grab --filter=@react-grab/cli",
     "test": "turbo run test --filter=react-grab --filter=@react-grab/cli",
     "typecheck": "pnpm --filter react-grab typecheck",

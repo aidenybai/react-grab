@@ -11,7 +11,7 @@
       "dependencies": ["react-grab"],
       "files": [
         {
-          "path": "registry/react-grab.tsx",
+          "path": "react-grab.tsx",
           "type": "registry:component",
           "target": "components/react-grab.tsx"
         }

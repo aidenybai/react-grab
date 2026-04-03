@@ -81,8 +81,8 @@
   },
   "scripts": {
     "css:watch": "tailwindcss -i ./src/styles.css -o ./dist/styles.css -w",
-    "prebuild": "mkdir -p dist && tailwindcss -i ./src/styles.css -o ./dist/styles.css -m && node scripts/css-rem-to-px.mjs",
-    "build": "NODE_ENV=production tsup",
+    "prebuild": "mkdir -p dist && tailwindcss -i ./src/styles.css -o ./dist/styles.css -m && tsx scripts/css-rem-to-px.ts",
+    "build": "NODE_ENV=production tsup && tsx scripts/build-registry.ts",
     "dev": "concurrently \"pnpm:css:watch\" \"tsup --watch --ignore-watch dist\"",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
@@ -111,7 +111,8 @@
     "esbuild-plugin-babel": "^0.2.3",
     "oxlint": "^1.42.0",
     "tailwindcss": "^4.1.0",
-    "tsup": "^8.2.4"
+    "tsup": "^8.2.4",
+    "tsx": "^4.21.0"
   },
   "peerDependencies": {
     "react": ">=17.0.0"
