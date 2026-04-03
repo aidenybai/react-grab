@@ -1,5 +1,7 @@
-// HACK: iOS Safari auto-zooms on inputs with font-size < 16px.
-// Temporarily setting maximum-scale=1 on the viewport meta tag prevents this.
+// iOS Safari auto-zooms on any focused input with a font-size below 16px, and
+// the comment/prompt inputs are smaller than that threshold. Temporarily setting
+// maximum-scale=1 on the viewport meta tag prevents the zoom, at the cost of
+// disabling pinch-to-zoom during grab activation.
 export const lockViewportZoom = (): (() => void) => {
   let meta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
   const originalContent = meta?.getAttribute("content") ?? null;

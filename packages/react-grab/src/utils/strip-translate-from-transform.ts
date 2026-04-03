@@ -1,3 +1,9 @@
+// Translation is stripped from CSS transform matrices while rotation, scale, and
+// skew are preserved. The overlay already accounts for translation via CSS
+// left/top (derived from getBoundingClientRect), so including it in the transform
+// would double-apply it. For example, transform: translate(50px, 0) rotate(10deg)
+// becomes just rotate(10deg). In 3D matrices translation lives in column-major
+// indices 12-14.
 const isValidNumber = (value: number): boolean =>
   typeof value === "number" && !Number.isNaN(value) && Number.isFinite(value);
 

@@ -13,7 +13,6 @@ import {
   TANSTACK_EFFECT,
   VITE_IMPORT,
   WEBPACK_IMPORT,
-  type AgentIntegration,
 } from "./templates.js";
 
 export interface TransformResult {
@@ -159,187 +158,15 @@ const findTanStackRootFile = (projectRoot: string): string | null => {
   return null;
 };
 
-const addAgentToExistingNextApp = (
-  originalContent: string,
-  agent: AgentIntegration,
-  filePath: string,
-): TransformResult => {
-  if (agent === "none") {
-    return {
-      success: true,
-      filePath,
-      message: "React Grab is already configured",
-      noChanges: true,
-    };
-  }
-
-  const agentPackage = `@react-grab/${agent}`;
-  if (originalContent.includes(agentPackage)) {
-    return {
-      success: true,
-      filePath,
-      message: `Agent ${agent} is already configured`,
-      noChanges: true,
-    };
-  }
-
-  const agentScript = `{process.env.NODE_ENV === "development" && (
-          <Script
-            src="//unpkg.com/${agentPackage}/dist/client.global.js"
-            strategy="lazyOnload"
-          />
-        )}`;
-
-  const reactGrabBlockMatch = originalContent.match(
-    /\{process\.env\.NODE_ENV\s*===\s*["']development["']\s*&&\s*\(\s*<Script[^>]*react-grab[^>]*\/>\s*\)\}/is,
-  );
-
-  if (reactGrabBlockMatch) {
-    const newContent = originalContent.replace(
-      reactGrabBlockMatch[0],
-      `${reactGrabBlockMatch[0]}\n        ${agentScript}`,
-    );
-    return {
-      success: true,
-      filePath,
-      message: `Add ${agent} agent`,
-      originalContent,
-      newContent,
-    };
-  }
-
-  const bareScriptMatch = originalContent.match(
-    /<Script[^>]*react-grab[^>]*\/>/i,
-  );
-
-  if (bareScriptMatch) {
-    const newContent = originalContent.replace(
-      bareScriptMatch[0],
-      `${bareScriptMatch[0]}\n        <Script src="//unpkg.com/${agentPackage}/dist/client.global.js" strategy="lazyOnload" />`,
-    );
-    return {
-      success: true,
-      filePath,
-      message: `Add ${agent} agent`,
-      originalContent,
-      newContent,
-    };
-  }
-
-  return {
-    success: false,
-    filePath,
-    message: "Could not find React Grab script to add agent after",
-  };
-};
-
-const addAgentToExistingImport = (
-  originalContent: string,
-  agent: AgentIntegration,
-  filePath: string,
-): TransformResult => {
-  if (agent === "none") {
-    return {
-      success: true,
-      filePath,
-      message: "React Grab is already configured",
-      noChanges: true,
-    };
-  }
-
-  const agentPackage = `@react-grab/${agent}`;
-  if (originalContent.includes(agentPackage)) {
-    return {
-      success: true,
-      filePath,
-      message: `Agent ${agent} is already configured`,
-      noChanges: true,
-    };
-  }
-
-  const agentImport = `import("${agentPackage}/client");`;
-  const reactGrabImportMatch = originalContent.match(
-    /import\s*\(\s*["']react-grab["']\s*\);?/,
-  );
-
-  if (reactGrabImportMatch) {
-    const matchedText = reactGrabImportMatch[0];
-    const hasSemicolon = matchedText.endsWith(";");
-    const newContent = originalContent.replace(
-      matchedText,
-      `${hasSemicolon ? matchedText.slice(0, -1) : matchedText};\n  ${agentImport}`,
-    );
-    return {
-      success: true,
-      filePath,
-      message: `Add ${agent} agent`,
-      originalContent,
-      newContent,
-    };
-  }
-
-  return {
-    success: false,
-    filePath,
-    message: "Could not find React Grab import to add agent after",
-  };
-};
-
-const addAgentToExistingTanStack = (
-  originalContent: string,
-  agent: AgentIntegration,
-  filePath: string,
-): TransformResult => {
-  if (agent === "none") {
-    return {
-      success: true,
-      filePath,
-      message: "React Grab is already configured",
-      noChanges: true,
-    };
-  }
-
-  const agentPackage = `@react-grab/${agent}`;
-  if (originalContent.includes(agentPackage)) {
-    return {
-      success: true,
-      filePath,
-      message: `Agent ${agent} is already configured`,
-      noChanges: true,
-    };
-  }
-
-  const agentImport = `void import("${agentPackage}/client");`;
-  const reactGrabImportMatch = originalContent.match(
-    /void\s+import\s*\(\s*["']react-grab["']\s*\);?/,
-  );
-
-  if (reactGrabImportMatch) {
-    const matchedText = reactGrabImportMatch[0];
-    const hasSemicolon = matchedText.endsWith(";");
-    const newContent = originalContent.replace(
-      matchedText,
-      `${hasSemicolon ? matchedText.slice(0, -1) : matchedText};\n      ${agentImport}`,
-    );
-    return {
-      success: true,
-      filePath,
-      message: `Add ${agent} agent`,
-      originalContent,
-      newContent,
-    };
-  }
-
-  return {
-    success: false,
-    filePath,
-    message: "Could not find React Grab import to add agent after",
-  };
-};
+const alreadyConfiguredResult = (filePath: string): TransformResult => ({
+  success: true,
+  filePath,
+  message: "React Grab is already configured",
+  noChanges: true,
+});
 
 const transformNextAppRouter = (
   projectRoot: string,
-  agent: AgentIntegration,
   reactGrabAlreadyConfigured: boolean,
   force: boolean = false,
 ): TransformResult => {
@@ -360,7 +187,7 @@ const transformNextAppRouter = (
     hasReactGrabInInstrumentation(projectRoot);
 
   if (!force && hasReactGrabInFile && reactGrabAlreadyConfigured) {
-    return addAgentToExistingNextApp(originalContent, agent, layoutPath);
+    return alreadyConfiguredResult(layoutPath);
   }
 
   if (!force && (hasReactGrabInFile || hasReactGrabInInstrumentationFile)) {
@@ -407,8 +234,7 @@ const transformNextAppRouter = (
   return {
     success: true,
     filePath: layoutPath,
-    message:
-      "Add React Grab" + (agent !== "none" ? ` with ${agent} agent` : ""),
+    message: "Add React Grab",
     originalContent,
     newContent,
   };
@@ -416,7 +242,6 @@ const transformNextAppRouter = (
 
 const transformNextPagesRouter = (
   projectRoot: string,
-  agent: AgentIntegration,
   reactGrabAlreadyConfigured: boolean,
   force: boolean = false,
 ): TransformResult => {
@@ -456,7 +281,7 @@ const transformNextPagesRouter = (
     hasReactGrabInInstrumentation(projectRoot);
 
   if (!force && hasReactGrabInFile && reactGrabAlreadyConfigured) {
-    return addAgentToExistingNextApp(originalContent, agent, documentPath);
+    return alreadyConfiguredResult(documentPath);
   }
 
   if (!force && (hasReactGrabInFile || hasReactGrabInInstrumentationFile)) {
@@ -493,8 +318,7 @@ const transformNextPagesRouter = (
   return {
     success: true,
     filePath: documentPath,
-    message:
-      "Add React Grab" + (agent !== "none" ? ` with ${agent} agent` : ""),
+    message: "Add React Grab",
     originalContent,
     newContent,
   };
@@ -502,26 +326,23 @@ const transformNextPagesRouter = (
 
 const checkExistingInstallation = (
   filePath: string,
-  agent: AgentIntegration,
   reactGrabAlreadyConfigured: boolean,
 ): TransformResult | null => {
   const content = readFileSync(filePath, "utf-8");
   if (!hasReactGrabCode(content)) return null;
 
-  if (reactGrabAlreadyConfigured) {
-    return addAgentToExistingImport(content, agent, filePath);
-  }
   return {
     success: true,
     filePath,
-    message: "React Grab is already installed in this file",
+    message: reactGrabAlreadyConfigured
+      ? "React Grab is already configured"
+      : "React Grab is already installed in this file",
     noChanges: true,
   };
 };
 
 const transformVite = (
   projectRoot: string,
-  agent: AgentIntegration,
   reactGrabAlreadyConfigured: boolean,
   force: boolean = false,
 ): TransformResult => {
@@ -532,7 +353,6 @@ const transformVite = (
     if (indexPath) {
       const existingResult = checkExistingInstallation(
         indexPath,
-        agent,
         reactGrabAlreadyConfigured,
       );
       if (existingResult) return existingResult;
@@ -550,7 +370,6 @@ const transformVite = (
   if (!force) {
     const existingResult = checkExistingInstallation(
       entryPath,
-      agent,
       reactGrabAlreadyConfigured,
     );
     if (existingResult) return existingResult;
@@ -562,8 +381,7 @@ const transformVite = (
   return {
     success: true,
     filePath: entryPath,
-    message:
-      "Add React Grab" + (agent !== "none" ? ` with ${agent} agent` : ""),
+    message: "Add React Grab",
     originalContent,
     newContent,
   };
@@ -571,7 +389,6 @@ const transformVite = (
 
 const transformWebpack = (
   projectRoot: string,
-  agent: AgentIntegration,
   reactGrabAlreadyConfigured: boolean,
   force: boolean = false,
 ): TransformResult => {
@@ -588,7 +405,6 @@ const transformWebpack = (
   if (!force) {
     const existingResult = checkExistingInstallation(
       entryPath,
-      agent,
       reactGrabAlreadyConfigured,
     );
     if (existingResult) return existingResult;
@@ -600,8 +416,7 @@ const transformWebpack = (
   return {
     success: true,
     filePath: entryPath,
-    message:
-      "Add React Grab" + (agent !== "none" ? ` with ${agent} agent` : ""),
+    message: "Add React Grab",
     originalContent,
     newContent,
   };
@@ -609,7 +424,6 @@ const transformWebpack = (
 
 const transformTanStack = (
   projectRoot: string,
-  agent: AgentIntegration,
   reactGrabAlreadyConfigured: boolean,
   force: boolean = false,
 ): TransformResult => {
@@ -636,7 +450,7 @@ const transformTanStack = (
   const hasReactGrabInFile = hasReactGrabCode(originalContent);
 
   if (!force && hasReactGrabInFile && reactGrabAlreadyConfigured) {
-    return addAgentToExistingTanStack(originalContent, agent, rootPath);
+    return alreadyConfiguredResult(rootPath);
   }
 
   if (!force && hasReactGrabInFile) {
@@ -694,8 +508,7 @@ const transformTanStack = (
   return {
     success: true,
     filePath: rootPath,
-    message:
-      "Add React Grab" + (agent !== "none" ? ` with ${agent} agent` : ""),
+    message: "Add React Grab",
     originalContent,
     newContent,
   };
@@ -705,52 +518,32 @@ export const previewTransform = (
   projectRoot: string,
   framework: Framework,
   nextRouterType: NextRouterType,
-  agent: AgentIntegration,
   reactGrabAlreadyConfigured: boolean = false,
   force: boolean = false,
 ): TransformResult => {
-  const resolvedAgent: AgentIntegration = agent === "mcp" ? "none" : agent;
-
   switch (framework) {
     case "next":
       if (nextRouterType === "app") {
         return transformNextAppRouter(
           projectRoot,
-          resolvedAgent,
           reactGrabAlreadyConfigured,
           force,
         );
       }
       return transformNextPagesRouter(
         projectRoot,
-        resolvedAgent,
         reactGrabAlreadyConfigured,
         force,
       );
 
     case "vite":
-      return transformVite(
-        projectRoot,
-        resolvedAgent,
-        reactGrabAlreadyConfigured,
-        force,
-      );
+      return transformVite(projectRoot, reactGrabAlreadyConfigured, force);
 
     case "tanstack":
-      return transformTanStack(
-        projectRoot,
-        resolvedAgent,
-        reactGrabAlreadyConfigured,
-        force,
-      );
+      return transformTanStack(projectRoot, reactGrabAlreadyConfigured, force);
 
     case "webpack":
-      return transformWebpack(
-        projectRoot,
-        resolvedAgent,
-        reactGrabAlreadyConfigured,
-        force,
-      );
+      return transformWebpack(projectRoot, reactGrabAlreadyConfigured, force);
 
     default:
       return {

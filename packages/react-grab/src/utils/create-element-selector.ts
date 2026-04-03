@@ -123,7 +123,8 @@ export const createElementSelector = (
             isPreferredAttributeValueSafe(attributeValue)),
       });
       if (selector) return selector;
-      // HACK: @medv/finder can throw on edge-case DOM structures
+      // @medv/finder can throw on unusual DOM structures (SVG, web components,
+      // detached nodes), so we fall back to an nth-child selector instead.
     } catch {}
   }
 

@@ -59,7 +59,7 @@ interface AgentPlaygroundProps {
   availableProviders: string[];
 }
 
-export const AgentPlaygroundContent = ({
+const AgentPlaygroundContent = ({
   loadedProviders,
   failedProviders,
   availableProviders,

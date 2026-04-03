@@ -135,6 +135,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const rect = entry.target.getBoundingClientRect();
+        // Updates are skipped during tag hover to prevent a feedback loop
+        // where hover changes the size, the size shifts the position, and the
+        // shifted position changes what the cursor is over.
         if (entry.target === containerRef && !isTagCurrentlyHovered) {
           setMeasuredWidth(rect.width);
           setMeasuredHeight(rect.height);
@@ -174,6 +177,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const elementIdentity = () =>
     `${props.tagName ?? ""}:${props.componentName ?? ""}`;
 
+  // This reducer-style memo preserves position state across reactive updates,
+  // resetting to offscreen on element identity change and keeping the last
+  // good position when measurements briefly fail (via hadValidBounds). It
+  // replaces an earlier anti-pattern of deriving state via effects.
+  // @see https://github.com/aidenybai/react-grab/pull/245
   const positionComputation = createMemo(
     (previousResult: PositionResult): PositionResult => {
       viewportVersion();
@@ -238,8 +246,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         ? 0
         : getArrowSize(panelWidth());
 
-      // HACK: Use cursorX as anchor point, CSS transform handles centering via translateX(-50%)
-      // This avoids the flicker when content changes because centering doesn't depend on JS measurement
+      // The label is cursor-anchored: left stays at cursorX and
+      // translateX(-50%) handles centering, so width changes from component
+      // name resolution or status updates never shift the anchor point.
+      // When the label would overflow the viewport, edgeOffsetX is added to
+      // the transform to push it back on-screen without moving left.
       const anchorX = cursorX;
       let edgeOffsetX = 0;
       let positionTop = selectionBottom + actualArrowHeight + LABEL_GAP_PX;
@@ -630,6 +641,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   <textarea
                     ref={(element) => {
                       inputRef = element;
+                      // This ref fires during Solid's render commit when the
+                      // surrounding DOM tree isn't fully built yet, so focusing
+                      // synchronously can fail or cause a scroll jump.
                       if (props.onSubmit) {
                         queueMicrotask(() => {
                           element.focus({ preventScroll: true });

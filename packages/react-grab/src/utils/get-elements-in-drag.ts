@@ -162,16 +162,25 @@ const filterElementsInDrag = (
     resumePointerEventsFreeze();
   }
 
+  const validCandidates: Element[] = [];
+  for (const candidateElement of candidates) {
+    if (!shouldCheckCoverage && isRootElement(candidateElement)) continue;
+    if (!isValidGrabbableElement(candidateElement)) continue;
+    validCandidates.push(candidateElement);
+  }
+
+  const candidateRects = new Map<Element, DOMRect>();
+  for (const candidateElement of validCandidates) {
+    candidateRects.set(
+      candidateElement,
+      candidateElement.getBoundingClientRect(),
+    );
+  }
+
   const matchingElements: Element[] = [];
 
-  for (const candidateElement of candidates) {
-    if (!shouldCheckCoverage) {
-      if (isRootElement(candidateElement)) continue;
-    }
-
-    if (!isValidGrabbableElement(candidateElement)) continue;
-
-    const elementRect = candidateElement.getBoundingClientRect();
+  for (const candidateElement of validCandidates) {
+    const elementRect = candidateRects.get(candidateElement)!;
     if (elementRect.width <= 0 || elementRect.height <= 0) continue;
 
     const elementBounds: Rect = {

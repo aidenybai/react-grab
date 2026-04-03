@@ -45,34 +45,12 @@ export default function RootLayout({
     );
     mockReadFileSync.mockReturnValue(layoutContent);
 
-    const result = previewTransform("/test", "next", "app", "none", false);
+    const result = previewTransform("/test", "next", "app", false);
 
     expect(result.success).toBe(true);
     expect(result.filePath).toContain("layout.tsx");
     expect(result.newContent).toContain('import Script from "next/script"');
     expect(result.newContent).toContain("react-grab");
-  });
-
-  it("should add React Grab with agent to layout.tsx (no provider package)", () => {
-    const layoutWithHead = `export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <head></head>
-      <body>{children}</body>
-    </html>
-  );
-}`;
-
-    mockExistsSync.mockImplementation((path) =>
-      String(path).endsWith("layout.tsx"),
-    );
-    mockReadFileSync.mockReturnValue(layoutWithHead);
-
-    const result = previewTransform("/test", "next", "app", "mcp", false);
-
-    expect(result.success).toBe(true);
-    expect(result.newContent).toContain("react-grab");
-    expect(result.newContent).not.toContain("@react-grab/");
   });
 
   it("should not duplicate if React Grab already exists", () => {
@@ -94,38 +72,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     );
     mockReadFileSync.mockReturnValue(layoutWithReactGrab);
 
-    const result = previewTransform("/test", "next", "app", "none", false);
+    const result = previewTransform("/test", "next", "app", false);
 
     expect(result.success).toBe(true);
     expect(result.noChanges).toBe(true);
   });
 
-  it("should add base script without agent client when agent is mcp", () => {
-    const layoutWithHead = `export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <head></head>
-      <body>{children}</body>
-    </html>
-  );
-}`;
-
-    mockExistsSync.mockImplementation((path) =>
-      String(path).endsWith("layout.tsx"),
-    );
-    mockReadFileSync.mockReturnValue(layoutWithHead);
-
-    const result = previewTransform("/test", "next", "app", "mcp", false);
-
-    expect(result.success).toBe(true);
-    expect(result.newContent).toContain("react-grab");
-    expect(result.newContent).not.toContain("@react-grab/mcp");
-  });
-
   it("should fail when layout file not found", () => {
     mockExistsSync.mockReturnValue(false);
 
-    const result = previewTransform("/test", "next", "app", "none", false);
+    const result = previewTransform("/test", "next", "app", false);
 
     expect(result.success).toBe(false);
     expect(result.message).toContain("Could not find");
@@ -149,37 +105,11 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     );
     mockReadFileSync.mockReturnValue(entryContent);
 
-    const result = previewTransform("/test", "vite", "unknown", "none", false);
+    const result = previewTransform("/test", "vite", "unknown", false);
 
     expect(result.success).toBe(true);
     expect(result.newContent).toContain('import("react-grab")');
     expect(result.newContent).toContain("import.meta.env.DEV");
-  });
-
-  it("should add React Grab with agent to entry file (no provider package)", () => {
-    mockExistsSync.mockImplementation((path) =>
-      String(path).endsWith("main.tsx"),
-    );
-    mockReadFileSync.mockReturnValue(entryContent);
-
-    const result = previewTransform("/test", "vite", "unknown", "mcp", false);
-
-    expect(result.success).toBe(true);
-    expect(result.newContent).toContain("react-grab");
-    expect(result.newContent).not.toContain("@react-grab/");
-  });
-
-  it("should add base script without agent client when agent is mcp", () => {
-    mockExistsSync.mockImplementation((path) =>
-      String(path).endsWith("main.tsx"),
-    );
-    mockReadFileSync.mockReturnValue(entryContent);
-
-    const result = previewTransform("/test", "vite", "unknown", "mcp", false);
-
-    expect(result.success).toBe(true);
-    expect(result.newContent).toContain("react-grab");
-    expect(result.newContent).not.toContain("@react-grab/mcp");
   });
 });
 
@@ -200,36 +130,11 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     );
     mockReadFileSync.mockReturnValue(entryContent);
 
-    const result = previewTransform(
-      "/test",
-      "webpack",
-      "unknown",
-      "none",
-      false,
-    );
+    const result = previewTransform("/test", "webpack", "unknown", false);
 
     expect(result.success).toBe(true);
     expect(result.newContent).toContain('import("react-grab")');
     expect(result.newContent).toContain("process.env.NODE_ENV");
-  });
-
-  it("should add React Grab with agent to entry file (no provider package)", () => {
-    mockExistsSync.mockImplementation((path) =>
-      String(path).endsWith("main.tsx"),
-    );
-    mockReadFileSync.mockReturnValue(entryContent);
-
-    const result = previewTransform(
-      "/test",
-      "webpack",
-      "unknown",
-      "mcp",
-      false,
-    );
-
-    expect(result.success).toBe(true);
-    expect(result.newContent).toContain("react-grab");
-    expect(result.newContent).not.toContain("@react-grab/");
   });
 });
 
@@ -237,7 +142,7 @@ describe("previewTransform - Next.js Pages Router", () => {
   it("should fail with helpful message when _document.tsx not found", () => {
     mockExistsSync.mockReturnValue(false);
 
-    const result = previewTransform("/test", "next", "pages", "none", false);
+    const result = previewTransform("/test", "next", "pages", false);
 
     expect(result.success).toBe(false);
     expect(result.message).toContain("Could not find pages/_document.tsx");
@@ -265,7 +170,7 @@ export default function Document() {
     );
     mockReadFileSync.mockReturnValue(documentContent);
 
-    const result = previewTransform("/test", "next", "pages", "none", false);
+    const result = previewTransform("/test", "next", "pages", false);
 
     expect(result.success).toBe(true);
     expect(result.newContent).toContain("react-grab");
@@ -277,7 +182,7 @@ describe("previewTransform - Vite edge cases", () => {
   it("should fail when entry file not found", () => {
     mockExistsSync.mockReturnValue(false);
 
-    const result = previewTransform("/test", "vite", "unknown", "none", false);
+    const result = previewTransform("/test", "vite", "unknown", false);
 
     expect(result.success).toBe(false);
     expect(result.message).toContain("Could not find entry file");
@@ -307,7 +212,7 @@ describe("previewTransform - Vite edge cases", () => {
       return `import React from "react";`;
     });
 
-    const result = previewTransform("/test", "vite", "unknown", "none", false);
+    const result = previewTransform("/test", "vite", "unknown", false);
 
     expect(result.success).toBe(true);
     expect(result.noChanges).toBe(true);
@@ -318,13 +223,7 @@ describe("previewTransform - Webpack edge cases", () => {
   it("should fail when entry file not found", () => {
     mockExistsSync.mockReturnValue(false);
 
-    const result = previewTransform(
-      "/test",
-      "webpack",
-      "unknown",
-      "none",
-      false,
-    );
+    const result = previewTransform("/test", "webpack", "unknown", false);
 
     expect(result.success).toBe(false);
     expect(result.message).toContain("Could not find entry file");
@@ -333,13 +232,7 @@ describe("previewTransform - Webpack edge cases", () => {
 
 describe("previewTransform - Unknown framework", () => {
   it("should fail for unknown framework", () => {
-    const result = previewTransform(
-      "/test",
-      "unknown",
-      "unknown",
-      "none",
-      false,
-    );
+    const result = previewTransform("/test", "unknown", "unknown", false);
 
     expect(result.success).toBe(false);
     expect(result.message).toContain("Unknown framework");

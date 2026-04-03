@@ -121,6 +121,10 @@ export const createToolbarDrag = (
     config.onSnapEdgeChange(snap.edge, ratio);
     setIsSnapping(true);
 
+    // Two nested rAFs are needed because an edge change may switch the toolbar
+    // orientation (horizontal to vertical), altering its dimensions. The first
+    // frame waits for the DOM update and the second for layout to settle so
+    // getBoundingClientRect returns the post-transition size.
     nativeRequestAnimationFrame(() => {
       const postRenderRect = containerRef?.getBoundingClientRect();
       const updatedDimensions = postRenderRect

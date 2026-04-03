@@ -10,6 +10,9 @@ const BORDER_FILTER_SIDE_MAP = new Map(
 let baselineIframe: HTMLIFrameElement | null = null;
 const defaultStylesByTag = new Map<string, Map<string, string>>();
 
+// A hidden iframe provides a clean document with no author CSS, letting us
+// compute UA default styles per tag and compare against them so we only emit
+// the CSS declarations the developer actually wrote.
 const ensureBaselineIframe = (): HTMLIFrameElement => {
   if (baselineIframe) return baselineIframe;
 

@@ -39,6 +39,9 @@ const NON_COMPONENT_PREFIXES = new Set([
   "Slot.",
 ]);
 
+// Next.js App Router internals that wrap user components but are not useful
+// as display names. Without filtering these the UI would show names like
+// "InnerLayoutRouter" instead of the user's own component.
 const NEXT_INTERNAL_COMPONENT_NAMES = new Set([
   "InnerLayoutRouter",
   "RedirectErrorBoundary",

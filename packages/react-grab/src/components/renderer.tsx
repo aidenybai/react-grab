@@ -50,6 +50,9 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         labelInstances={props.labelInstances}
       />
 
+      // The frozen glow overlay uses translateZ(0) to promote it to its own
+      // compositor layer so opacity transitions skip main-thread repaints,
+      // and contain:strict with will-change:opacity pre-allocate the layer.
       <div
         style={{
           position: "fixed",

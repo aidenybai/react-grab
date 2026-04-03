@@ -76,7 +76,6 @@ interface GrabStore {
   activationTimestamp: number | null;
   previouslyFocusedElement: Element | null;
 
-  isAgentConnected: boolean;
   supportsUndo: boolean;
   supportsFollowUp: boolean;
   dismissButtonText: string | undefined;
@@ -133,7 +132,6 @@ const createInitialStore = (input: GrabStoreInput): GrabStore => ({
   activationTimestamp: null,
   previouslyFocusedElement: null,
 
-  isAgentConnected: false,
   supportsUndo: false,
   supportsFollowUp: false,
   dismissButtonText: undefined,
@@ -201,7 +199,6 @@ interface GrabActions {
     supportsUndo: boolean;
     supportsFollowUp: boolean;
     dismissButtonText: string | undefined;
-    isAgentConnected: boolean;
   }) => void;
   setPendingAbortSessionId: (sessionId: string | null) => void;
   showContextMenu: (position: Position, element: Element) => void;
@@ -610,7 +607,6 @@ const createGrabStore = (input: GrabStoreInput) => {
           draft.supportsUndo = capabilities.supportsUndo;
           draft.supportsFollowUp = capabilities.supportsFollowUp;
           draft.dismissButtonText = capabilities.dismissButtonText;
-          draft.isAgentConnected = capabilities.isAgentConnected;
         }),
       );
     },

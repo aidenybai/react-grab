@@ -80,6 +80,9 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     }
   };
 
+  // Elements that were just mounted may not have been laid out yet, so without
+  // deferring to the next frame the measured dimensions are zero and the menu
+  // would flash at the wrong position before jumping to its correct spot.
   createEffect(() => {
     if (isVisible()) {
       nativeRequestAnimationFrame(measureContainer);

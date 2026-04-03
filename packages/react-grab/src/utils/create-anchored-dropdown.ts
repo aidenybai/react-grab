@@ -68,7 +68,9 @@ export const createAnchoredDropdown = (
       setShouldMount(true);
       if (enterAnimationFrameId !== undefined)
         nativeCancelAnimationFrame(enterAnimationFrameId);
-      // HACK: rAF measures then forces reflow so the browser commits the correct position before transitioning in
+      // The rAF waits for layout so dimensions are non-zero. The forced reflow
+      // via offsetHeight then commits the computed position before the opacity
+      // transition starts, preventing a flash at the offscreen initial position.
       enterAnimationFrameId = nativeRequestAnimationFrame(() => {
         measure();
         void containerRef()?.offsetHeight;

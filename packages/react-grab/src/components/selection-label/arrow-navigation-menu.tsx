@@ -33,6 +33,9 @@ export const ArrowNavigationMenu: Component<ArrowNavigationMenuProps> = (
     return activeMenuButton ?? undefined;
   };
 
+  // When items change we reset pointer tracking so that keyboard-driven
+  // active index changes are not overridden by phantom pointerenter events
+  // fired when the highlight element repositions under the cursor.
   createEffect(() => {
     void props.items;
     didPointerMove = false;

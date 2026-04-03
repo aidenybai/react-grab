@@ -294,9 +294,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (activated && !previousActivated) {
           freezePseudoStates();
           freezeGlobalAnimations();
-          // HACK: Prevent browser from taking over touch gestures
           document.body.style.touchAction = "none";
-          // HACK: Prevent iOS Safari from auto-zooming on sub-16px inputs
+          // iOS Safari auto-zooms on focused inputs with font-size < 16px,
+          // which would disrupt the overlay positioning.
           unlockViewportZoom = lockViewportZoom();
         } else if (!activated && previousActivated) {
           unfreezePseudoStates();
@@ -367,7 +367,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           if (isElementConnected(reacquiredElement)) {
             reacquiredElements.push(reacquiredElement);
           }
-          // HACK: querySelector can throw on invalid selectors stored from previous sessions
         } catch (error) {
           logRecoverableError("Invalid stored selector", error);
         }
@@ -405,7 +404,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const commentsDisconnectedItemIds = createMemo(
       () => {
-        // HACK: subscribe to dropdown position so connectivity refreshes when dropdown opens
         void commentsDropdownPosition();
         const disconnectedIds = new Set<string>();
         for (const item of commentItems()) {
@@ -440,6 +438,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       activationHoldState.startTimestamp = null;
     };
 
+    // The hold timer does not call activate when copyWaiting is true (the user
+    // held the activation key and pressed Ctrl+C). Instead it sets holdTimerFired
+    // so the keyup handler can activate after the clipboard operation finishes.
     createEffect(() => {
       if (store.current.state !== "holding") {
         clearHoldTimer();
@@ -1115,7 +1116,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }),
     );
 
-    // HACK: In touch mode during drag, effectiveElement() is null so we use detectedElement
+    // In touch mode during a drag, effectiveElement() is null because pointer
+    // events are captured by the drag handler. We fall back to detectedElement,
+    // which was stored before the drag started.
     const getSelectionElement = (): Element | undefined => {
       if (store.isTouchMode && isDragging()) {
         const detected = store.detectedElement;
@@ -1534,9 +1537,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const activateRenderer = () => {
       const wasInHoldingState = isHoldingKeys();
       actions.activate();
-      // HACK: Only call onActivate if we weren't in holding state.
-      // When coming from holding state, the reactive effect (previouslyHoldingKeys transition)
-      // will handle calling onActivate to avoid duplicate invocations.
       if (!wasInHoldingState) {
         pluginRegistry.hooks.onActivate();
       }
@@ -2083,7 +2083,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         dragDistance.x > DRAG_THRESHOLD_PX ||
         dragDistance.y > DRAG_THRESHOLD_PX;
 
-      // HACK: Calculate drag rectangle BEFORE ending drag, because endDrag resets dragStart
+      // The rectangle needs to be calculated before endDrag() because endDrag
+      // resets dragStart in the store, which would zero out the rectangle.
       const dragSelectionRect = wasDragGesture
         ? calculateDragRectangle(clientX, clientY)
         : null;
@@ -2604,6 +2605,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         if (event.repeat) return;
 
+        // If the overlay gets stuck active (e.g. the modifier keyup was lost
+        // during a window blur), repeated keydowns will auto-dismiss it after
+        // 200ms of idle keyboard activity.
         if (keydownSpamTimerId !== null) {
           window.clearTimeout(keydownSpamTimerId);
         }
@@ -2746,6 +2750,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           }
         }
 
+        // After the window regains focus we briefly ignore activation keys to
+        // prevent accidental activation from the modifier keys used to alt-tab.
         const didWindowJustRegainFocus =
           Date.now() - lastWindowFocusTimestamp <
           WINDOW_REFOCUS_GRACE_PERIOD_MS;
@@ -3049,6 +3055,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     });
 
+    // On blur we release the hold state (modifier keyup events are lost when
+    // the window loses focus) but do not deactivate if already active, since
+    // the user may alt-tab back.
     eventListenerManager.addWindowListener("blur", () => {
       cancelActiveDrag();
       if (isHoldingKeys()) {
@@ -3089,6 +3098,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.setDetectedElement(candidate);
       }
     };
+
+    let boundsRecalcIntervalId: number | null = null;
+    let viewportChangeFrameId: number | null = null;
 
     const handleViewportChange = () => {
       invalidateInteractionCaches();
@@ -3140,9 +3152,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         signal,
       });
     }
-
-    let boundsRecalcIntervalId: number | null = null;
-    let viewportChangeFrameId: number | null = null;
 
     const scheduleBoundsSync = () => {
       if (viewportChangeFrameId !== null) return;
@@ -3513,7 +3522,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
           updateLabelAfterCopy(labelInstanceId, didSucceed, errorMessage);
         } else {
-          // HACK: Fire-and-forget when no label bounds to display feedback on
           try {
             await action();
           } catch (error) {
@@ -3529,7 +3537,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       };
     };
 
-    // HACK: Defer hiding context menu until after click event propagates fully
+    // Hiding the context menu synchronously during a click would cause the
+    // click to fall through to whatever element was behind it.
     const deferHideContextMenu = () => {
       setTimeout(() => {
         actions.hideContextMenu();
@@ -3682,7 +3691,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       for (const [index, bounds] of previewBounds.entries()) {
         const previewElement = previewElements[index];
         const boxId = `${idPrefix}-${item.id}-${index}`;
-        // HACK: createdAt=0 is falsy, which skips the auto-fade logic in the overlay canvas animation loop
+        // A createdAt of zero is falsy, which tells the canvas animation loop
+        // to skip auto-fade and keep the preview box visible until it is
+        // explicitly removed.
         actions.addGrabbedBox({
           id: boxId,
           bounds,
@@ -3877,7 +3888,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       clearAllLabels();
 
-      // HACK: defer to next frame so idle preview label clears visually before "copied" appears
       nativeRequestAnimationFrame(() => {
         if (!isElementConnected(element)) return;
         const bounds = createElementBounds(element);
@@ -3937,7 +3947,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       clearAllLabels();
 
-      // HACK: defer to next frame so idle preview labels clear visually before "copied" appears
       nativeRequestAnimationFrame(() => {
         batch(() => {
           for (const commentItem of currentCommentItems) {
@@ -4045,7 +4054,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           ? instance.elements.filter((element) => isElementConnected(element))
           : [contextMenuElement];
 
-      // HACK: Defer context menu display to avoid event interference
       setTimeout(() => {
         if (!isActivated()) {
           actions.setWasActivatedByToggle(true);
@@ -4072,8 +4080,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     if (pluginRegistry.store.theme.enabled) {
-      // HACK: Dynamically imported to avoid solid-js/web's delegateEvents() running
-      // at module evaluation time, which crashes during SSR (window is not defined).
+      // The renderer is dynamically imported because solid-js/web's
+      // solid-js/web's delegateEvents() runs at module evaluation time and
+      // accesses document, which would crash during SSR.
       void import("../components/renderer.js")
         .then(({ ReactGrabRenderer }) => {
           if (disposed) return;
@@ -4242,27 +4251,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           supportsUndo: Boolean(capturedProvider.undo),
           supportsFollowUp: Boolean(capturedProvider.supportsFollowUp),
           dismissButtonText: capturedProvider.dismissButtonText,
-          isAgentConnected: false,
         });
 
         if (capturedProvider.checkConnection) {
-          capturedProvider
-            .checkConnection()
-            .then((isConnected) => {
-              const currentAgentOpts = getAgentOptionsWithCallbacks();
-              if (currentAgentOpts?.provider !== capturedProvider) {
-                return;
-              }
-              actions.setAgentCapabilities({
-                supportsUndo: Boolean(capturedProvider.undo),
-                supportsFollowUp: Boolean(capturedProvider.supportsFollowUp),
-                dismissButtonText: capturedProvider.dismissButtonText,
-                isAgentConnected: isConnected,
-              });
-            })
-            .catch((error) => {
-              logRecoverableError("Agent connection check failed", error);
-            });
+          capturedProvider.checkConnection().catch((error) => {
+            logRecoverableError("Agent connection check failed", error);
+          });
         }
 
         agentManager.session.tryResume();
@@ -4271,7 +4265,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           supportsUndo: false,
           supportsFollowUp: false,
           dismissButtonText: undefined,
-          isAgentConnected: false,
         });
       }
     };
@@ -4388,8 +4381,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       pluginRegistry.register(plugin, api);
     }
 
-    // HACK: Force revalidation of Next.js project detection
-    // since it's cached in the browser and not updated when the project is changed
     setTimeout(() => {
       checkIsNextProject(true);
     }, NEXTJS_REVALIDATION_DELAY_MS);

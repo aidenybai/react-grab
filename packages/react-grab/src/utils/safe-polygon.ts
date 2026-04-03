@@ -1,5 +1,11 @@
 import type { Position } from "../types.js";
 
+// Implements the "Amazon menu" safe-triangle pattern: when the cursor leaves a
+// menu trigger, a triangle is drawn from the cursor position to the far edge of
+// the dropdown, and the dropdown stays open while the cursor remains inside that
+// triangle. This prevents accidental dismissal during diagonal mouse movement.
+// @see https://bjk5.com/post/44698559168
+
 export interface TargetRect {
   x: number;
   y: number;

@@ -19,6 +19,10 @@ const isBackgroundTaskScheduler = (
   return typeof value.postTask === "function";
 };
 
+// Defers work via the best available idle-scheduling primitive: the Scheduler
+// API with background priority (Chrome 94+), then requestIdleCallback, then a
+// setTimeout(0) fallback. This is used for expensive hit-testing work that
+// should never block user-visible rendering.
 export const onIdle = (callback: () => void): void => {
   if (typeof window !== "undefined") {
     const schedulerCandidate = window.scheduler;

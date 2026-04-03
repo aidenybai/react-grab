@@ -438,6 +438,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
     const didPositionChange =
       clampedX !== currentPos.x || clampedY !== currentPos.y;
+    // Two nested rAFs defer setPosition until the browser has committed
+    // layout and paint from the preceding collapse/expand, which prevents
+    // a visible jump where the toolbar briefly appears at its old position
+    // before snapping to the new clamped coordinates.
     if (didPositionChange) {
       setIsCollapseAnimating(true);
       nativeRequestAnimationFrame(() => {
@@ -461,7 +465,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         if (props.isCommentsDropdownOpen) return;
         if (clockFlashRef) {
           clockFlashRef.classList.remove("animate-clock-flash");
-          // HACK: force reflow between class removal/addition to restart the CSS animation
+          // Reading offsetHeight forces a reflow between the class removal
+          // and re-addition, which restarts the CSS animation. Without it
+          // the browser would batch both operations as a no-op.
           void clockFlashRef.offsetHeight;
           clockFlashRef.classList.add("animate-clock-flash");
         }
@@ -484,7 +490,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       () => props.commentItemCount ?? 0,
       () => {
         if (isCollapsed()) return;
-        // HACK: Wait for grid-cols CSS transition to complete, then re-measure and clamp to viewport
         if (commentItemCountTimeout) {
           clearTimeout(commentItemCountTimeout);
         }
@@ -600,9 +605,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     const readExpandableDimension = () =>
       isVerticalEdge ? lastKnownExpandableHeight : lastKnownExpandableWidth;
 
-    // HACK: Skip measuring during an active toggle animation — the CSS grid transition is
-    // mid-flight so getBoundingClientRect returns a partial value that contaminates
-    // lastKnownExpandableWidth and causes permanent position drift.
+    // Measuring is skipped during an active toggle animation because the CSS
+    // grid transition is mid-flight and getBoundingClientRect would return a
+    // partial value (e.g. 40px instead of 78px) that contaminates the cached
+    // dimensions and makes the toolbar shift a few pixels on each toggle.
     if (isCurrentlyEnabled && expandableButtonsRef && !isToggleAnimating()) {
       measureExpandableDimension();
     }
@@ -617,9 +623,11 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         : expandableRect.width;
     }
 
-    // HACK: On first enable, expandable buttons are collapsed (0fr) so getBoundingClientRect
-    // returns 0. Temporarily force the relevant grid wrappers to 1fr without transitions to measure
-    // the real dimension synchronously, then restore. The browser never renders the intermediate state.
+    // On the first enable the buttons are collapsed (0fr) so their measured
+    // size is zero. We temporarily force the grid wrappers to 1fr with
+    // transition:none, trigger a synchronous reflow via offsetWidth, take
+    // the measurement, and restore everything. The browser never paints the
+    // intermediate state because it all happens in one synchronous block.
     if (
       !isCurrentlyEnabled &&
       expandableDimension === 0 &&
@@ -753,9 +761,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           nativeCancelAnimationFrame(toggleAnimationRafId);
           toggleAnimationRafId = undefined;
         }
-        // HACK: Under heavy system load the rAF loop may not have run enough
-        // frames to fully track the CSS grid transition. Snap to the final
-        // expected position so the toggle button never drifts.
+        // Under heavy system load the rAF loop may not have run enough frames
+        // to fully track the CSS grid transition, so we hard-snap to the final
+        // expected position. Without this the toolbar can end up a few pixels
+        // off from its snapped edge after each enable/disable toggle.
         const finalExpandDimension = isCurrentlyEnabled
           ? 0
           : expandableDimension;
@@ -844,10 +853,12 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     const rect = containerRef?.getBoundingClientRect();
     const viewport = getVisualViewport();
 
+    // Because isCollapsed defaults to false the element is always rendered
+    // expanded on initial mount, so rect reflects expanded dimensions here
+    // regardless of savedState.collapsed. Using it for collapsed dimensions
+    // would make the toolbar too wide after restoring a collapsed state.
     if (savedState) {
       if (rect) {
-        // HACK: On initial mount, the element is always rendered expanded (isCollapsed defaults to false).
-        // So rect always measures expanded dimensions, regardless of savedState.collapsed.
         expandedDimensions = { width: rect.width, height: rect.height };
       }
       if (savedState.collapsed) {

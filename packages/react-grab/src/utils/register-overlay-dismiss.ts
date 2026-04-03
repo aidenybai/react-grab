@@ -53,6 +53,8 @@ export const registerOverlayDismiss = (
     options.onDismiss();
   };
 
+  // Click registration is deferred to the next frame so the same click or
+  // touch that opened the overlay does not immediately trigger a dismiss.
   const frameId = nativeRequestAnimationFrame(() => {
     window.addEventListener("mousedown", handleClickOutside, {
       capture: true,

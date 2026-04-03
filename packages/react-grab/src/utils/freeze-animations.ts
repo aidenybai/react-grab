@@ -26,6 +26,8 @@ let lastInputElements: Element[] = [];
 
 let globalAnimationStyleElement: HTMLStyleElement | null = null;
 let globalFrozenSvgElements: SVGSVGElement[] = [];
+// An SVG can be frozen by both the element-level and global freeze, so we track
+// a depth counter per element and only unpause when all layers are removed.
 const svgFreezeDepthMap = new Map<SVGSVGElement, number>();
 let frozenWaapiAnimations: Animation[] = [];
 
@@ -191,16 +193,22 @@ export const freezeGlobalAnimations = (): void => {
 export const unfreezeGlobalAnimations = (): void => {
   if (!globalAnimationStyleElement) return;
 
-  // HACK: Finish all paused CSS animations before removing the freeze style.
-  // Simply removing the pause causes animations to resume from mid-point,
-  // creating visual "jumps" (e.g., dropdowns snapping through entry animation).
-  // Finishing advances them to their end state instead.
+  // All paused animations must be finished before the freeze stylesheet is
+  // removed, because simply removing animation-play-state:paused would resume
+  // them from their mid-point and create visual jumps (e.g. a dropdown snapping
+  // through its entry animation). finish() advances them to their end state,
+  // and the interim transition:none rule prevents any visual flash during cleanup.
   globalAnimationStyleElement.textContent = `
 *, *::before, *::after {
   transition: none !important;
 }
 `;
 
+  // Animations inside shadow roots are skipped because the freeze CSS only
+  // affects main-document elements (shadow DOM provides style encapsulation),
+  // so calling finish() on animations the freeze never paused would break
+  // react-grab's own toolbar and label animations.
+  // @see https://github.com/aidenybai/react-grab/issues/163
   const animations: Animation[] = [];
   for (const animation of document.getAnimations()) {
     if (animation.effect instanceof KeyframeEffect) {
