@@ -7,7 +7,7 @@
   "scripts": {
     "build": "cp README.md packages/react-grab/README.md && vp run @react-grab/cli#build && vp run react-grab#build && pnpm --filter grab build",
     "dev": "vp run react-grab#dev",
-    "test": "vp run react-grab#test",
+    "test": "vp run react-grab#test && vp run @react-grab/cli#test",
     "test:cli": "vp run @react-grab/cli#test",
     "typecheck": "pnpm --filter react-grab typecheck",
     "lint": "vp lint",

@@ -191,9 +191,9 @@ The registry provides several ways to call hooks, each suited to a different use
 
 `callHook` calls every registered plugin's implementation of a given hook, ignoring return values. This is used for notification-style hooks like `onActivate`, `onDeactivate`, `onElementHover`, and `onCopySuccess`.
 
-`callHookWithHandled` calls every plugin's hook but tracks whether any of them returned `true`. This is used for `onElementSelect` and `onOpenFile`, where a plugin may want to intercept the default behavior. For `onElementSelect` specifically, the return value can also be a `Promise<boolean>` to support async interception.
+`callHookWithHandled` calls every plugin's hook but tracks whether any of them returned `true`. This is used for `onOpenFile`, where a plugin may want to intercept the default behavior. `onElementSelect` has its own dedicated implementation rather than using `callHookWithHandled`, because it needs to support both synchronous `true` returns and async `Promise<boolean>` returns for interception.
 
-`callHookReduce` threads a value through every plugin's transform function sequentially, each receiving the output of the previous one. This creates a pipeline where each plugin can modify the content in turn. It's used for `transformCopyContent`, `transformSnippet`, `transformHtmlContent`, `transformAgentContext`, and `transformOpenFileUrl`. There is also a synchronous variant, `callHookReduceSync`, for transforms that don't need to be async.
+`callHookReduce` threads a value through every plugin's transform function sequentially, each receiving the output of the previous one. This creates a pipeline where each plugin can modify the content in turn. It's used for `transformCopyContent`, `transformSnippet`, `transformHtmlContent`, and `transformAgentContext`. There is also a synchronous variant, `callHookReduceSync`, used for `transformOpenFileUrl`, `transformActionContext`, and other transforms that don't need to be async.
 
 ### Built-in plugins
 
