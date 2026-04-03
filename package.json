@@ -40,6 +40,10 @@
       "sharp",
       "spawn-sync",
       "unrs-resolver"
-    ]
+    ],
+    "overrides": {
+      "vite": "npm:@voidzero-dev/vite-plus-core",
+      "vitest": "npm:@voidzero-dev/vite-plus-test"
+    }
   }
 }
