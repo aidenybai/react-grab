@@ -2,12 +2,9 @@ import { test, expect } from "./fixtures.js";
 
 test.describe("Open File", () => {
   test.describe("Keyboard Shortcut", () => {
-    test("Cmd+O should open file when source info available", async ({
-      reactGrab,
-    }) => {
+    test("Cmd+O should open file when source info available", async ({ reactGrab }) => {
       await reactGrab.page.evaluate(() => {
-        (window as { __OPEN_FILE_CALLED__?: boolean }).__OPEN_FILE_CALLED__ =
-          false;
+        (window as { __OPEN_FILE_CALLED__?: boolean }).__OPEN_FILE_CALLED__ = false;
         const api = (
           window as {
             __REACT_GRAB__?: {
@@ -19,9 +16,7 @@ test.describe("Open File", () => {
           name: "test-open-file",
           hooks: {
             onOpenFile: () => {
-              (
-                window as { __OPEN_FILE_CALLED__?: boolean }
-              ).__OPEN_FILE_CALLED__ = true;
+              (window as { __OPEN_FILE_CALLED__?: boolean }).__OPEN_FILE_CALLED__ = true;
             },
           },
         });
@@ -37,9 +32,7 @@ test.describe("Open File", () => {
           async () => {
             await reactGrab.pressKeyCombo([reactGrab.modifierKey], "o");
             return reactGrab.page.evaluate(
-              () =>
-                (window as { __OPEN_FILE_CALLED__?: boolean })
-                  .__OPEN_FILE_CALLED__ ?? false,
+              () => (window as { __OPEN_FILE_CALLED__?: boolean }).__OPEN_FILE_CALLED__ ?? false,
             );
           },
           { timeout: 5000, intervals: [500] },
@@ -47,9 +40,7 @@ test.describe("Open File", () => {
         .toBe(true);
     });
 
-    test("Cmd+O should do nothing without onOpenFile callback", async ({
-      reactGrab,
-    }) => {
+    test("Cmd+O should do nothing without onOpenFile callback", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
@@ -67,8 +58,7 @@ test.describe("Open File", () => {
       let openFileCalled = false;
 
       await reactGrab.page.evaluate(() => {
-        (window as { __OPEN_FILE_CALLED__?: boolean }).__OPEN_FILE_CALLED__ =
-          false;
+        (window as { __OPEN_FILE_CALLED__?: boolean }).__OPEN_FILE_CALLED__ = false;
         const api = (
           window as {
             __REACT_GRAB__?: {
@@ -80,9 +70,7 @@ test.describe("Open File", () => {
           name: "test-open-file",
           hooks: {
             onOpenFile: () => {
-              (
-                window as { __OPEN_FILE_CALLED__?: boolean }
-              ).__OPEN_FILE_CALLED__ = true;
+              (window as { __OPEN_FILE_CALLED__?: boolean }).__OPEN_FILE_CALLED__ = true;
             },
           },
         });
@@ -96,10 +84,7 @@ test.describe("Open File", () => {
       await reactGrab.page.waitForTimeout(200);
 
       openFileCalled = await reactGrab.page.evaluate(() => {
-        return (
-          (window as { __OPEN_FILE_CALLED__?: boolean }).__OPEN_FILE_CALLED__ ??
-          false
-        );
+        return (window as { __OPEN_FILE_CALLED__?: boolean }).__OPEN_FILE_CALLED__ ?? false;
       });
 
       expect(openFileCalled).toBe(false);
@@ -135,14 +120,11 @@ test.describe("Open File", () => {
       expect(menuInfo.menuItems).toContain("Open");
     });
 
-    test("Clicking Open in context menu should trigger onOpenFile", async ({
-      reactGrab,
-    }) => {
+    test("Clicking Open in context menu should trigger onOpenFile", async ({ reactGrab }) => {
       let openFileCalled = false;
 
       await reactGrab.page.evaluate(() => {
-        (window as { __OPEN_FILE_CALLED__?: boolean }).__OPEN_FILE_CALLED__ =
-          false;
+        (window as { __OPEN_FILE_CALLED__?: boolean }).__OPEN_FILE_CALLED__ = false;
         const api = (
           window as {
             __REACT_GRAB__?: {
@@ -154,9 +136,7 @@ test.describe("Open File", () => {
           name: "test-open-file",
           hooks: {
             onOpenFile: () => {
-              (
-                window as { __OPEN_FILE_CALLED__?: boolean }
-              ).__OPEN_FILE_CALLED__ = true;
+              (window as { __OPEN_FILE_CALLED__?: boolean }).__OPEN_FILE_CALLED__ = true;
             },
           },
         });
@@ -173,18 +153,13 @@ test.describe("Open File", () => {
       await reactGrab.page.waitForTimeout(200);
 
       openFileCalled = await reactGrab.page.evaluate(() => {
-        return (
-          (window as { __OPEN_FILE_CALLED__?: boolean }).__OPEN_FILE_CALLED__ ??
-          false
-        );
+        return (window as { __OPEN_FILE_CALLED__?: boolean }).__OPEN_FILE_CALLED__ ?? false;
       });
 
       expect(openFileCalled).toBe(true);
     });
 
-    test("Open should not be clickable without onOpenFile callback", async ({
-      reactGrab,
-    }) => {
+    test("Open should not be clickable without onOpenFile callback", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
@@ -214,8 +189,7 @@ test.describe("Open File", () => {
           name: "test-open-file",
           hooks: {
             onOpenFile: (info: unknown) => {
-              (window as { __OPEN_FILE_INFO__?: unknown }).__OPEN_FILE_INFO__ =
-                info;
+              (window as { __OPEN_FILE_INFO__?: unknown }).__OPEN_FILE_INFO__ = info;
             },
           },
         });
@@ -237,15 +211,12 @@ test.describe("Open File", () => {
       expect(receivedInfo).toBeDefined();
     });
 
-    test("callback should include source info when available", async ({
-      reactGrab,
-    }) => {
+    test("callback should include source info when available", async ({ reactGrab }) => {
       let receivedInfo: Record<string, unknown> | null | undefined = null;
 
       await reactGrab.page.evaluate(() => {
-        (
-          window as { __OPEN_FILE_INFO__?: Record<string, unknown> | null }
-        ).__OPEN_FILE_INFO__ = null;
+        (window as { __OPEN_FILE_INFO__?: Record<string, unknown> | null }).__OPEN_FILE_INFO__ =
+          null;
         const api = (
           window as {
             __REACT_GRAB__?: {
@@ -277,9 +248,8 @@ test.describe("Open File", () => {
       await reactGrab.page.waitForTimeout(200);
 
       receivedInfo = await reactGrab.page.evaluate(() => {
-        return (
-          window as { __OPEN_FILE_INFO__?: Record<string, unknown> | null }
-        ).__OPEN_FILE_INFO__;
+        return (window as { __OPEN_FILE_INFO__?: Record<string, unknown> | null })
+          .__OPEN_FILE_INFO__;
       });
 
       expect(receivedInfo).toBeDefined();
@@ -287,14 +257,11 @@ test.describe("Open File", () => {
   });
 
   test.describe("Tag Badge Click", () => {
-    test("clicking tag badge should trigger open file", async ({
-      reactGrab,
-    }) => {
+    test("clicking tag badge should trigger open file", async ({ reactGrab }) => {
       let openFileCalled = false;
 
       await reactGrab.page.evaluate(() => {
-        (window as { __OPEN_FILE_CALLED__?: boolean }).__OPEN_FILE_CALLED__ =
-          false;
+        (window as { __OPEN_FILE_CALLED__?: boolean }).__OPEN_FILE_CALLED__ = false;
         const api = (
           window as {
             __REACT_GRAB__?: {
@@ -306,9 +273,7 @@ test.describe("Open File", () => {
           name: "test-open-file",
           hooks: {
             onOpenFile: () => {
-              (
-                window as { __OPEN_FILE_CALLED__?: boolean }
-              ).__OPEN_FILE_CALLED__ = true;
+              (window as { __OPEN_FILE_CALLED__?: boolean }).__OPEN_FILE_CALLED__ = true;
             },
           },
         });
@@ -327,10 +292,7 @@ test.describe("Open File", () => {
 
         const spans = root.querySelectorAll("span");
         for (const span of spans) {
-          if (
-            span.textContent?.includes("li") ||
-            span.textContent?.includes("span")
-          ) {
+          if (span.textContent?.includes("li") || span.textContent?.includes("span")) {
             (span as HTMLElement).click();
             return;
           }
@@ -340,10 +302,7 @@ test.describe("Open File", () => {
       await reactGrab.page.waitForTimeout(200);
 
       openFileCalled = await reactGrab.page.evaluate(() => {
-        return (
-          (window as { __OPEN_FILE_CALLED__?: boolean }).__OPEN_FILE_CALLED__ ??
-          false
-        );
+        return (window as { __OPEN_FILE_CALLED__?: boolean }).__OPEN_FILE_CALLED__ ?? false;
       });
 
       expect(typeof openFileCalled).toBe("boolean");
@@ -351,9 +310,7 @@ test.describe("Open File", () => {
   });
 
   test.describe("Edge Cases", () => {
-    test("open file should work after element change", async ({
-      reactGrab,
-    }) => {
+    test("open file should work after element change", async ({ reactGrab }) => {
       await reactGrab.page.evaluate(() => {
         (window as { __OPEN_FILE_COUNT__?: number }).__OPEN_FILE_COUNT__ = 0;
         const api = (
@@ -368,8 +325,7 @@ test.describe("Open File", () => {
           hooks: {
             onOpenFile: () => {
               (window as { __OPEN_FILE_COUNT__?: number }).__OPEN_FILE_COUNT__ =
-                ((window as { __OPEN_FILE_COUNT__?: number })
-                  .__OPEN_FILE_COUNT__ ?? 0) + 1;
+                ((window as { __OPEN_FILE_COUNT__?: number }).__OPEN_FILE_COUNT__ ?? 0) + 1;
             },
           },
         });
@@ -386,9 +342,7 @@ test.describe("Open File", () => {
           async () => {
             await reactGrab.pressKeyCombo([reactGrab.modifierKey], "o");
             return reactGrab.page.evaluate(
-              () =>
-                (window as { __OPEN_FILE_COUNT__?: number })
-                  .__OPEN_FILE_COUNT__ ?? 0,
+              () => (window as { __OPEN_FILE_COUNT__?: number }).__OPEN_FILE_COUNT__ ?? 0,
             );
           },
           { timeout: 5000, intervals: [500] },
@@ -404,9 +358,7 @@ test.describe("Open File", () => {
           async () => {
             await reactGrab.pressKeyCombo([reactGrab.modifierKey], "o");
             return reactGrab.page.evaluate(
-              () =>
-                (window as { __OPEN_FILE_COUNT__?: number })
-                  .__OPEN_FILE_COUNT__ ?? 0,
+              () => (window as { __OPEN_FILE_COUNT__?: number }).__OPEN_FILE_COUNT__ ?? 0,
             );
           },
           { timeout: 5000, intervals: [500] },
@@ -414,14 +366,11 @@ test.describe("Open File", () => {
         .toBeGreaterThanOrEqual(2);
     });
 
-    test("open file should work with drag-selected elements", async ({
-      reactGrab,
-    }) => {
+    test("open file should work with drag-selected elements", async ({ reactGrab }) => {
       let openFileCalled = false;
 
       await reactGrab.page.evaluate(() => {
-        (window as { __OPEN_FILE_CALLED__?: boolean }).__OPEN_FILE_CALLED__ =
-          false;
+        (window as { __OPEN_FILE_CALLED__?: boolean }).__OPEN_FILE_CALLED__ = false;
         const api = (
           window as {
             __REACT_GRAB__?: {
@@ -433,9 +382,7 @@ test.describe("Open File", () => {
           name: "test-open-file",
           hooks: {
             onOpenFile: () => {
-              (
-                window as { __OPEN_FILE_CALLED__?: boolean }
-              ).__OPEN_FILE_CALLED__ = true;
+              (window as { __OPEN_FILE_CALLED__?: boolean }).__OPEN_FILE_CALLED__ = true;
             },
           },
         });
@@ -451,10 +398,7 @@ test.describe("Open File", () => {
       await reactGrab.page.waitForTimeout(200);
 
       openFileCalled = await reactGrab.page.evaluate(() => {
-        return (
-          (window as { __OPEN_FILE_CALLED__?: boolean }).__OPEN_FILE_CALLED__ ??
-          false
-        );
+        return (window as { __OPEN_FILE_CALLED__?: boolean }).__OPEN_FILE_CALLED__ ?? false;
       });
 
       expect(typeof openFileCalled).toBe("boolean");

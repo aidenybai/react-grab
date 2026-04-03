@@ -12,17 +12,10 @@ export const openPlugin: Plugin = {
       onAction: (context) => {
         if (!context.filePath) return;
 
-        const wasHandled = context.hooks.onOpenFile(
-          context.filePath,
-          context.lineNumber,
-        );
+        const wasHandled = context.hooks.onOpenFile(context.filePath, context.lineNumber);
 
         if (!wasHandled) {
-          openFile(
-            context.filePath,
-            context.lineNumber,
-            context.hooks.transformOpenFileUrl,
-          );
+          openFile(context.filePath, context.lineNumber, context.hooks.transformOpenFileUrl);
         }
 
         context.hideContextMenu();

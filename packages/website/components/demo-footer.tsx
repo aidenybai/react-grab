@@ -29,10 +29,7 @@ export const DemoFooter = (): ReactElement => {
         <RotateCcw size={13} className="align-middle" />
       </Button>
       <span className="hidden sm:inline"> &middot; </span>
-      <a
-        href="/changelog"
-        className="underline underline-offset-4 hover:text-foreground"
-      >
+      <a href="/changelog" className="underline underline-offset-4 hover:text-foreground">
         changelog
       </a>
     </div>

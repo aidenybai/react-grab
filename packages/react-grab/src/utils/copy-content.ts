@@ -24,16 +24,9 @@ interface ReactGrabMetadata {
 }
 
 const escapeHtml = (text: string): string =>
-  text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+  text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-export const copyContent = (
-  content: string,
-  options?: CopyContentOptions,
-): boolean => {
+export const copyContent = (content: string, options?: CopyContentOptions): boolean => {
   const elementName = options?.componentName ?? "div";
   const entries = options?.entries ?? [
     {
@@ -60,10 +53,7 @@ export const copyContent = (
       "text/html",
       `<meta charset='utf-8'><pre><code>${escapeHtml(content)}</code></pre>`,
     );
-    event.clipboardData?.setData(
-      REACT_GRAB_MIME_TYPE,
-      JSON.stringify(reactGrabMetadata),
-    );
+    event.clipboardData?.setData(REACT_GRAB_MIME_TYPE, JSON.stringify(reactGrabMetadata));
   };
 
   // We use the deprecated but universally supported execCommand("copy") because

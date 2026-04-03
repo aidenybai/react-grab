@@ -1,49 +1,34 @@
 import { test, expect } from "./fixtures.js";
 import type { ReactGrabPageObject } from "./fixtures.js";
 
-const copyElement = async (
-  reactGrab: ReactGrabPageObject,
-  selector: string,
-) => {
+const copyElement = async (reactGrab: ReactGrabPageObject, selector: string) => {
   await reactGrab.registerCommentAction();
   await reactGrab.enterPromptMode(selector);
   await reactGrab.typeInInput("comment");
   await reactGrab.submitInput();
-  await expect
-    .poll(() => reactGrab.getClipboardContent(), { timeout: 5000 })
-    .toBeTruthy();
+  await expect.poll(() => reactGrab.getClipboardContent(), { timeout: 5000 }).toBeTruthy();
   // HACK: Wait for copy feedback transition and comment item addition
   await reactGrab.page.waitForTimeout(300);
 };
 
 test.describe("Comment Items", () => {
   test.describe("Toolbar Comments Button", () => {
-    test("should not be visible before any elements are copied", async ({
-      reactGrab,
-    }) => {
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
-        .toBe(true);
+    test("should not be visible before any elements are copied", async ({ reactGrab }) => {
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
 
       const isCommentsVisible = await reactGrab.isCommentsButtonVisible();
       expect(isCommentsVisible).toBe(false);
     });
 
-    test("should become visible after copying an element", async ({
-      reactGrab,
-    }) => {
+    test("should become visible after copying an element", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
 
-      await expect
-        .poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 }).toBe(true);
     });
   });
 
   test.describe("Dropdown Open/Close", () => {
-    test("should open when clicking the comments button", async ({
-      reactGrab,
-    }) => {
+    test("should open when clicking the comments button", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
       await reactGrab.clickCommentsButton();
 
@@ -51,9 +36,7 @@ test.describe("Comment Items", () => {
       expect(isDropdownVisible).toBe(true);
     });
 
-    test("should close when clicking the comments button again", async ({
-      reactGrab,
-    }) => {
+    test("should close when clicking the comments button again", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
       await reactGrab.clickCommentsButton();
 
@@ -87,17 +70,13 @@ test.describe("Comment Items", () => {
       await reactGrab.waitForSelectionBox();
       await reactGrab.rightClickElement("li:first-child");
 
-      await expect
-        .poll(() => reactGrab.isCommentsDropdownVisible(), { timeout: 2000 })
-        .toBe(false);
+      await expect.poll(() => reactGrab.isCommentsDropdownVisible(), { timeout: 2000 }).toBe(false);
       expect(await reactGrab.isContextMenuVisible()).toBe(true);
     });
   });
 
   test.describe("Dropdown Content", () => {
-    test("should display one item after copying an element", async ({
-      reactGrab,
-    }) => {
+    test("should display one item after copying an element", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
       await reactGrab.clickCommentsButton();
 
@@ -118,16 +97,12 @@ test.describe("Comment Items", () => {
       expect(dropdownInfo.itemCount).toBe(2);
     });
 
-    test("should hide comments button after clearing all items", async ({
-      reactGrab,
-    }) => {
+    test("should hide comments button after clearing all items", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
       await reactGrab.clickCommentsButton();
       await reactGrab.clickCommentsClear();
 
-      await expect
-        .poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 })
-        .toBe(false);
+      await expect.poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 }).toBe(false);
 
       expect(await reactGrab.isCommentsDropdownVisible()).toBe(false);
     });
@@ -142,17 +117,13 @@ test.describe("Comment Items", () => {
       await reactGrab.clickCommentsButton();
       await reactGrab.clickCommentItem(0);
 
-      await expect
-        .poll(() => reactGrab.isPromptModeActive(), { timeout: 3000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isPromptModeActive(), { timeout: 3000 }).toBe(true);
 
       const inputValue = await reactGrab.getInputValue();
       expect(inputValue).toBe("comment");
     });
 
-    test("should keep the dropdown open after selecting an item", async ({
-      reactGrab,
-    }) => {
+    test("should keep the dropdown open after selecting an item", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
       await reactGrab.clickCommentsButton();
 
@@ -165,9 +136,7 @@ test.describe("Comment Items", () => {
   });
 
   test.describe("Copy All", () => {
-    test("should copy combined content of all items to clipboard", async ({
-      reactGrab,
-    }) => {
+    test("should copy combined content of all items to clipboard", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
       await copyElement(reactGrab, "li:last-child");
 
@@ -181,9 +150,7 @@ test.describe("Comment Items", () => {
       expect(clipboardContent).toContain("[2]");
     });
 
-    test("should keep the dropdown open after copy all", async ({
-      reactGrab,
-    }) => {
+    test("should keep the dropdown open after copy all", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
       await reactGrab.clickCommentsButton();
 
@@ -218,26 +185,18 @@ test.describe("Comment Items", () => {
 
       await reactGrab.clickCommentsClear();
 
-      await expect
-        .poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 })
-        .toBe(false);
+      await expect.poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 }).toBe(false);
     });
 
-    test("should hide the comments button in toolbar after clearing", async ({
-      reactGrab,
-    }) => {
+    test("should hide the comments button in toolbar after clearing", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
 
-      await expect
-        .poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 }).toBe(true);
 
       await reactGrab.clickCommentsButton();
       await reactGrab.clickCommentsClear();
 
-      await expect
-        .poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 })
-        .toBe(false);
+      await expect.poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 }).toBe(false);
     });
 
     test("should close the dropdown after clearing", async ({ reactGrab }) => {
@@ -253,9 +212,7 @@ test.describe("Comment Items", () => {
   });
 
   test.describe("Deduplication", () => {
-    test("should deduplicate when copying the same element twice", async ({
-      reactGrab,
-    }) => {
+    test("should deduplicate when copying the same element twice", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
       await copyElement(reactGrab, "li:first-child");
 
@@ -265,9 +222,7 @@ test.describe("Comment Items", () => {
       expect(dropdownInfo.itemCount).toBe(1);
     });
 
-    test("should not deduplicate when copying different elements", async ({
-      reactGrab,
-    }) => {
+    test("should not deduplicate when copying different elements", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
       await copyElement(reactGrab, "li:last-child");
 
@@ -301,9 +256,7 @@ test.describe("Comment Items", () => {
         .toBeGreaterThan(initialBoxCount);
     });
 
-    test("should remove highlight box when mouse leaves a comment item", async ({
-      reactGrab,
-    }) => {
+    test("should remove highlight box when mouse leaves a comment item", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
       await reactGrab.clickCommentsButton();
 
@@ -370,9 +323,7 @@ test.describe("Comment Items", () => {
         .poll(
           async () => {
             const info = await reactGrab.getGrabbedBoxInfo();
-            return info.boxes.filter((box) =>
-              box.id.startsWith("comment-all-hover-"),
-            ).length;
+            return info.boxes.filter((box) => box.id.startsWith("comment-all-hover-")).length;
           },
           { timeout: 2000 },
         )
@@ -388,9 +339,7 @@ test.describe("Comment Items", () => {
       expect(remainingHoverBoxes.length).toBe(0);
     });
 
-    test("should clear button hover boxes when pinning the dropdown", async ({
-      reactGrab,
-    }) => {
+    test("should clear button hover boxes when pinning the dropdown", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
 
       await reactGrab.hoverCommentsButton();
@@ -399,9 +348,7 @@ test.describe("Comment Items", () => {
         .poll(
           async () => {
             const info = await reactGrab.getGrabbedBoxInfo();
-            return info.boxes.filter((box) =>
-              box.id.startsWith("comment-all-hover-"),
-            ).length;
+            return info.boxes.filter((box) => box.id.startsWith("comment-all-hover-")).length;
           },
           { timeout: 2000 },
         )
@@ -413,11 +360,7 @@ test.describe("Comment Items", () => {
         if (!shadowRoot) return;
         const root = shadowRoot.querySelector(`[${attrName}]`);
         if (!root) return;
-        root
-          .querySelector<HTMLButtonElement>(
-            "[data-react-grab-toolbar-comments]",
-          )
-          ?.click();
+        root.querySelector<HTMLButtonElement>("[data-react-grab-toolbar-comments]")?.click();
       }, "data-react-grab");
       await reactGrab.page.waitForTimeout(200);
 
@@ -428,9 +371,7 @@ test.describe("Comment Items", () => {
       expect(remainingHoverBoxes.length).toBe(0);
     });
 
-    test("should show highlight box for a single comment item", async ({
-      reactGrab,
-    }) => {
+    test("should show highlight box for a single comment item", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
 
       await reactGrab.hoverCommentsButton();
@@ -439,9 +380,7 @@ test.describe("Comment Items", () => {
         .poll(
           async () => {
             const info = await reactGrab.getGrabbedBoxInfo();
-            return info.boxes.filter((box) =>
-              box.id.startsWith("comment-all-hover-"),
-            ).length;
+            return info.boxes.filter((box) => box.id.startsWith("comment-all-hover-")).length;
           },
           { timeout: 2000 },
         )
@@ -450,9 +389,7 @@ test.describe("Comment Items", () => {
   });
 
   test.describe("Item Row Click", () => {
-    test("should keep the dropdown open after clicking a row", async ({
-      reactGrab,
-    }) => {
+    test("should keep the dropdown open after clicking a row", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
 
       await reactGrab.clickCommentsButton();
@@ -463,9 +400,7 @@ test.describe("Comment Items", () => {
   });
 
   test.describe("Dropdown Positioning", () => {
-    test("should position the dropdown within the viewport", async ({
-      reactGrab,
-    }) => {
+    test("should position the dropdown within the viewport", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
       await reactGrab.clickCommentsButton();
 
@@ -484,9 +419,7 @@ test.describe("Comment Items", () => {
       expect(position!.top).toBeGreaterThanOrEqual(0);
     });
 
-    test("should reposition when toolbar is dragged to top edge", async ({
-      reactGrab,
-    }) => {
+    test("should reposition when toolbar is dragged to top edge", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
 
       await reactGrab.dragToolbar(0, -600);
@@ -504,9 +437,7 @@ test.describe("Comment Items", () => {
       // HACK: wait for snap animation and toolbar layout transition to fully settle
       await reactGrab.page.waitForTimeout(500);
 
-      await expect
-        .poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 5000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 5000 }).toBe(true);
 
       const commentsButtonRect = await reactGrab.page.evaluate((attrName) => {
         const host = document.querySelector(`[${attrName}]`);
@@ -514,9 +445,7 @@ test.describe("Comment Items", () => {
         if (!shadowRoot) return null;
         const root = shadowRoot.querySelector(`[${attrName}]`);
         if (!root) return null;
-        const button = root.querySelector<HTMLElement>(
-          "[data-react-grab-toolbar-comments]",
-        );
+        const button = root.querySelector<HTMLElement>("[data-react-grab-toolbar-comments]");
         if (!button) return null;
         const rect = button.getBoundingClientRect();
         return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
@@ -528,9 +457,7 @@ test.describe("Comment Items", () => {
         commentsButtonRect!.y + commentsButtonRect!.height / 2,
       );
 
-      await expect
-        .poll(() => reactGrab.isCommentsDropdownVisible(), { timeout: 5000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isCommentsDropdownVisible(), { timeout: 5000 }).toBe(true);
 
       await expect
         .poll(
@@ -545,9 +472,7 @@ test.describe("Comment Items", () => {
   });
 
   test.describe("Persistence Across Copies", () => {
-    test("should accumulate items across multiple copy operations", async ({
-      reactGrab,
-    }) => {
+    test("should accumulate items across multiple copy operations", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
       await copyElement(reactGrab, '[data-testid="card-title"]');
       await copyElement(reactGrab, '[data-testid="submit-button"]');
@@ -558,18 +483,14 @@ test.describe("Comment Items", () => {
       expect(dropdownInfo.itemCount).toBe(3);
     });
 
-    test("should maintain comment items after activation cycle", async ({
-      reactGrab,
-    }) => {
+    test("should maintain comment items after activation cycle", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
 
       await reactGrab.activate();
       await reactGrab.deactivate();
       await reactGrab.page.waitForTimeout(200);
 
-      await expect
-        .poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 }).toBe(true);
 
       await reactGrab.clickCommentsButton();
 
@@ -579,9 +500,7 @@ test.describe("Comment Items", () => {
   });
 
   test.describe("Dismiss Behavior", () => {
-    test("should not dismiss when clicking outside the dropdown", async ({
-      reactGrab,
-    }) => {
+    test("should not dismiss when clicking outside the dropdown", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
       await reactGrab.clickCommentsButton();
 
@@ -620,16 +539,12 @@ test.describe("Comment Items", () => {
   });
 
   test.describe("Hover to Open", () => {
-    test("should open dropdown when hovering the comments button", async ({
-      reactGrab,
-    }) => {
+    test("should open dropdown when hovering the comments button", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
 
       await reactGrab.hoverCommentsButton();
 
-      await expect
-        .poll(() => reactGrab.isCommentsDropdownVisible(), { timeout: 2000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isCommentsDropdownVisible(), { timeout: 2000 }).toBe(true);
     });
 
     test("should show all preview boxes when hovering the comments button", async ({
@@ -644,9 +559,7 @@ test.describe("Comment Items", () => {
         .poll(
           async () => {
             const info = await reactGrab.getGrabbedBoxInfo();
-            return info.boxes.filter((box) =>
-              box.id.startsWith("comment-all-hover-"),
-            ).length;
+            return info.boxes.filter((box) => box.id.startsWith("comment-all-hover-")).length;
           },
           { timeout: 2000 },
         )
@@ -660,9 +573,7 @@ test.describe("Comment Items", () => {
 
       await reactGrab.hoverCommentsButton();
 
-      await expect
-        .poll(() => reactGrab.isCommentsDropdownVisible(), { timeout: 2000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isCommentsDropdownVisible(), { timeout: 2000 }).toBe(true);
 
       await reactGrab.page.evaluate((attrName) => {
         const host = document.querySelector(`[${attrName}]`);
@@ -670,11 +581,7 @@ test.describe("Comment Items", () => {
         if (!shadowRoot) return;
         const root = shadowRoot.querySelector(`[${attrName}]`);
         if (!root) return;
-        root
-          .querySelector<HTMLButtonElement>(
-            "[data-react-grab-toolbar-comments]",
-          )
-          ?.click();
+        root.querySelector<HTMLButtonElement>("[data-react-grab-toolbar-comments]")?.click();
       }, "data-react-grab");
       await reactGrab.page.waitForTimeout(300);
 
@@ -686,9 +593,7 @@ test.describe("Comment Items", () => {
   });
 
   test.describe("Preview Suppression After Copy", () => {
-    test("should clear hover preview boxes after copying via row click", async ({
-      reactGrab,
-    }) => {
+    test("should clear hover preview boxes after copying via row click", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
       await reactGrab.clickCommentsButton();
 
@@ -697,16 +602,12 @@ test.describe("Comment Items", () => {
 
       const grabbedBoxes = await reactGrab.getGrabbedBoxInfo();
       const hoverBoxCount = grabbedBoxes.boxes.filter(
-        (box) =>
-          box.id.startsWith("comment-hover-") ||
-          box.id.startsWith("comment-all-hover-"),
+        (box) => box.id.startsWith("comment-hover-") || box.id.startsWith("comment-all-hover-"),
       ).length;
       expect(hoverBoxCount).toBe(0);
     });
 
-    test("should clear all hover preview boxes after copy all", async ({
-      reactGrab,
-    }) => {
+    test("should clear all hover preview boxes after copy all", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
       await copyElement(reactGrab, "li:last-child");
 
@@ -718,16 +619,12 @@ test.describe("Comment Items", () => {
 
       const grabbedBoxes = await reactGrab.getGrabbedBoxInfo();
       const allHoverBoxes = grabbedBoxes.boxes.filter(
-        (box) =>
-          box.id.startsWith("comment-all-hover-") ||
-          box.id.startsWith("comment-hover-"),
+        (box) => box.id.startsWith("comment-all-hover-") || box.id.startsWith("comment-hover-"),
       );
       expect(allHoverBoxes.length).toBe(0);
     });
 
-    test("should allow item hover after clicking a row", async ({
-      reactGrab,
-    }) => {
+    test("should allow item hover after clicking a row", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
       await copyElement(reactGrab, "li:last-child");
 
@@ -741,9 +638,7 @@ test.describe("Comment Items", () => {
         .poll(
           async () => {
             const info = await reactGrab.getGrabbedBoxInfo();
-            return info.boxes.filter((box) =>
-              box.id.startsWith("comment-hover-"),
-            ).length;
+            return info.boxes.filter((box) => box.id.startsWith("comment-hover-")).length;
           },
           { timeout: 2000 },
         )
@@ -752,9 +647,7 @@ test.describe("Comment Items", () => {
   });
 
   test.describe("Selection Label Lifecycle on Copy", () => {
-    test("should show selection label when hovering a comment item", async ({
-      reactGrab,
-    }) => {
+    test("should show selection label when hovering a comment item", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
       await reactGrab.clickCommentsButton();
       await reactGrab.page.waitForTimeout(200);
@@ -765,18 +658,15 @@ test.describe("Comment Items", () => {
         .poll(
           async () => {
             const labels = await reactGrab.getLabelInstancesInfo();
-            return labels.filter(
-              (label) => label.status === "idle" && label.createdAt === 0,
-            ).length;
+            return labels.filter((label) => label.status === "idle" && label.createdAt === 0)
+              .length;
           },
           { timeout: 5000 },
         )
         .toBeGreaterThan(0);
     });
 
-    test("should clear idle labels and show copied label after copy all", async ({
-      reactGrab,
-    }) => {
+    test("should clear idle labels and show copied label after copy all", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
       await copyElement(reactGrab, "li:last-child");
 
@@ -788,9 +678,8 @@ test.describe("Comment Items", () => {
         .poll(
           async () => {
             const labels = await reactGrab.getLabelInstancesInfo();
-            return labels.filter(
-              (label) => label.status === "idle" && label.createdAt === 0,
-            ).length;
+            return labels.filter((label) => label.status === "idle" && label.createdAt === 0)
+              .length;
           },
           { timeout: 5000 },
         )
@@ -834,9 +723,8 @@ test.describe("Comment Items", () => {
         .poll(
           async () => {
             const labels = await reactGrab.getLabelInstancesInfo();
-            return labels.filter(
-              (label) => label.status === "idle" && label.createdAt === 0,
-            ).length;
+            return labels.filter((label) => label.status === "idle" && label.createdAt === 0)
+              .length;
           },
           { timeout: 5000 },
         )
@@ -880,9 +768,8 @@ test.describe("Comment Items", () => {
         .poll(
           async () => {
             const labels = await reactGrab.getLabelInstancesInfo();
-            return labels.filter(
-              (label) => label.status === "idle" && label.createdAt === 0,
-            ).length;
+            return labels.filter((label) => label.status === "idle" && label.createdAt === 0)
+              .length;
           },
           { timeout: 5000 },
         )

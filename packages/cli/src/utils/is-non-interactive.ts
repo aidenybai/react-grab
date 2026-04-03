@@ -8,10 +8,7 @@ const AGENT_ENVIRONMENT_VARIABLES = [
   "AMI",
 ] as const;
 
-const isEnvironmentVariableSet = (variable: string): boolean =>
-  Boolean(process.env[variable]);
+const isEnvironmentVariableSet = (variable: string): boolean => Boolean(process.env[variable]);
 
 export const detectNonInteractive = (yesFlag: boolean): boolean =>
-  yesFlag ||
-  AGENT_ENVIRONMENT_VARIABLES.some(isEnvironmentVariableSet) ||
-  !process.stdin.isTTY;
+  yesFlag || AGENT_ENVIRONMENT_VARIABLES.some(isEnvironmentVariableSet) || !process.stdin.isTTY;

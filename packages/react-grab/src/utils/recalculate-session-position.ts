@@ -21,9 +21,7 @@ export const recalculateSessionPosition = ({
   const previousBoundsHalfWidth = previousBounds.width / 2;
   const positionOffsetFromCenterX = currentPosition.x - previousBoundsCenter.x;
   const positionOffsetRatio =
-    previousBoundsHalfWidth > 0
-      ? positionOffsetFromCenterX / previousBoundsHalfWidth
-      : 0;
+    previousBoundsHalfWidth > 0 ? positionOffsetFromCenterX / previousBoundsHalfWidth : 0;
   const nextBoundsHalfWidth = nextBounds.width / 2;
 
   return {

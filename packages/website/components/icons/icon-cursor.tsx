@@ -4,11 +4,7 @@ interface IconCursorProps {
   className?: string;
 }
 
-export const IconCursor = ({
-  width = 14,
-  height = 14,
-  className = "",
-}: IconCursorProps) => (
+export const IconCursor = ({ width = 14, height = 14, className = "" }: IconCursorProps) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 466.73 532.09"

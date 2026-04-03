@@ -4,13 +4,9 @@ export const getExpandGridClass = (
   collapsedExtra?: string,
 ): string => {
   if (isExpanded) {
-    return isVertical
-      ? "grid-rows-[1fr] opacity-100"
-      : "grid-cols-[1fr] opacity-100";
+    return isVertical ? "grid-rows-[1fr] opacity-100" : "grid-cols-[1fr] opacity-100";
   }
-  const base = isVertical
-    ? "grid-rows-[0fr] opacity-0"
-    : "grid-cols-[0fr] opacity-0";
+  const base = isVertical ? "grid-rows-[0fr] opacity-0" : "grid-cols-[0fr] opacity-0";
   return collapsedExtra ? `${base} ${collapsedExtra}` : base;
 };
 

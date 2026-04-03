@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 
 const title = "Design System";
-const description =
-  "Component gallery and visual reference for React Grab's UI components.";
+const description = "Component gallery and visual reference for React Grab's UI components.";
 const ogImageUrl = `https://react-grab.com/api/og?title=${encodeURIComponent(title)}&subtitle=${encodeURIComponent(description)}`;
 
 export const metadata: Metadata = {

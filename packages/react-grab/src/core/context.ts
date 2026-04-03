@@ -85,10 +85,7 @@ export const checkIsNextProject = (revalidate?: boolean): boolean => {
   }
   cachedIsNextProject ??=
     typeof document !== "undefined" &&
-    Boolean(
-      document.getElementById("__NEXT_DATA__") ||
-      document.querySelector("nextjs-portal"),
-    );
+    Boolean(document.getElementById("__NEXT_DATA__") || document.querySelector("nextjs-portal"));
   return cachedIsNextProject;
 };
 
@@ -153,9 +150,7 @@ interface NextJsRequestFrame {
   arguments: string[];
 }
 
-const symbolicateServerFrames = async (
-  frames: StackFrame[],
-): Promise<StackFrame[]> => {
+const symbolicateServerFrames = async (frames: StackFrame[]): Promise<StackFrame[]> => {
   const serverFrameIndices: number[] = [];
   const requestFrames: NextJsRequestFrame[] = [];
 
@@ -176,10 +171,7 @@ const symbolicateServerFrames = async (
   if (requestFrames.length === 0) return frames;
 
   const controller = new AbortController();
-  const timeout = setTimeout(
-    () => controller.abort(),
-    SYMBOLICATION_TIMEOUT_MS,
-  );
+  const timeout = setTimeout(() => controller.abort(), SYMBOLICATION_TIMEOUT_MS);
 
   try {
     // Next.js dev server (>=15.2) exposes a batched symbolication endpoint that
@@ -188,31 +180,24 @@ const symbolicateServerFrames = async (
     // "rsc://React/Server/webpack-internal:///..." that have no real file on disk.
     // We POST an array of frames and get back PromiseSettledResult[].
     // getNextBasePath() is required for apps deployed with a basePath.
-    const response = await fetch(
-      `${getNextBasePath()}/__nextjs_original-stack-frames`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          frames: requestFrames,
-          isServer: true,
-          isEdgeServer: false,
-          isAppDirectory: true,
-        }),
-        signal: controller.signal,
-      },
-    );
+    const response = await fetch(`${getNextBasePath()}/__nextjs_original-stack-frames`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        frames: requestFrames,
+        isServer: true,
+        isEdgeServer: false,
+        isAppDirectory: true,
+      }),
+      signal: controller.signal,
+    });
 
     if (!response.ok) return frames;
 
     const results = (await response.json()) as NextJsFrameResult[];
     const resolvedFrames = [...frames];
 
-    for (
-      let resultIndex = 0;
-      resultIndex < serverFrameIndices.length;
-      resultIndex++
-    ) {
+    for (let resultIndex = 0; resultIndex < serverFrameIndices.length; resultIndex++) {
       const result = results[resultIndex];
       if (result?.status !== "fulfilled") continue;
 
@@ -237,9 +222,7 @@ const symbolicateServerFrames = async (
   }
 };
 
-const extractServerFramesFromDebugStack = (
-  rootFiber: Fiber,
-): Map<string, StackFrame> => {
+const extractServerFramesFromDebugStack = (rootFiber: Fiber): Map<string, StackFrame> => {
   const serverFramesByName = new Map<string, StackFrame>();
 
   traverseFiber(
@@ -268,10 +251,7 @@ const extractServerFramesFromDebugStack = (
   return serverFramesByName;
 };
 
-const enrichServerFrameLocations = (
-  rootFiber: Fiber,
-  frames: StackFrame[],
-): StackFrame[] => {
+const enrichServerFrameLocations = (rootFiber: Fiber, frames: StackFrame[]): StackFrame[] => {
   const hasUnresolvedServerFrames = frames.some(
     (frame) => frame.isServer && !frame.fileName && frame.functionName,
   );
@@ -305,9 +285,7 @@ const findNearestFiberElement = (element: Element): Element => {
 
 const stackCache = new WeakMap<Element, Promise<StackFrame[] | null>>();
 
-const fetchStackForElement = async (
-  element: Element,
-): Promise<StackFrame[] | null> => {
+const fetchStackForElement = async (element: Element): Promise<StackFrame[] | null> => {
   try {
     const fiber = getFiberFromHostInstance(element);
     if (!fiber) return null;
@@ -337,9 +315,7 @@ export const getStack = (element: Element): Promise<StackFrame[] | null> => {
   return promise;
 };
 
-export const getNearestComponentName = async (
-  element: Element,
-): Promise<string | null> => {
+export const getNearestComponentName = async (element: Element): Promise<string | null> => {
   if (!isInstrumentationActive()) return null;
   const stack = await getStack(element);
   if (!stack) return null;
@@ -360,16 +336,12 @@ interface ResolvedSource {
   componentName: string | null;
 }
 
-export const resolveSource = async (
-  element: Element,
-): Promise<ResolvedSource | null> => {
+export const resolveSource = async (element: Element): Promise<ResolvedSource | null> => {
   const resolvedElement = findNearestFiberElement(element);
   const stack = await getStack(resolvedElement);
   if (!stack || stack.length === 0) return null;
 
-  const sourceFrames = stack.filter(
-    (frame) => frame.fileName && isSourceFile(frame.fileName),
-  );
+  const sourceFrames = stack.filter((frame) => frame.fileName && isSourceFile(frame.fileName));
 
   const namedFrame = sourceFrames.find(
     (frame) => frame.functionName && isSourceComponentName(frame.functionName),
@@ -383,8 +355,7 @@ export const resolveSource = async (
     lineNumber: resolvedFrame.lineNumber ?? null,
     columnNumber: resolvedFrame.columnNumber ?? null,
     componentName:
-      resolvedFrame.functionName &&
-      isSourceComponentName(resolvedFrame.functionName)
+      resolvedFrame.functionName && isSourceComponentName(resolvedFrame.functionName)
         ? resolvedFrame.functionName
         : null,
   };
@@ -418,20 +389,14 @@ const hasFormattableFrames = (stack: StackFrame[] | null): boolean => {
   if (!stack) return false;
   return stack.some((frame) => {
     if (frame.fileName && isSourceFile(frame.fileName)) return true;
-    if (
-      frame.isServer &&
-      (!frame.functionName || isSourceComponentName(frame.functionName))
-    ) {
+    if (frame.isServer && (!frame.functionName || isSourceComponentName(frame.functionName))) {
       return true;
     }
     return false;
   });
 };
 
-const getComponentNamesFromFiber = (
-  element: Element,
-  maxCount: number,
-): string[] => {
+const getComponentNamesFromFiber = (element: Element, maxCount: number): string[] => {
   if (!isInstrumentationActive()) return [];
   const fiber = getFiberFromHostInstance(element);
   if (!fiber) return [];
@@ -454,10 +419,7 @@ const getComponentNamesFromFiber = (
   return componentNames;
 };
 
-const formatStackContext = (
-  stack: StackFrame[],
-  options: StackContextOptions = {},
-): string => {
+const formatStackContext = (stack: StackFrame[], options: StackContextOptions = {}): string => {
   const { maxLines = DEFAULT_MAX_CONTEXT_LINES } = options;
   const isNextProject = checkIsNextProject();
   const formattedLines: string[] = [];
@@ -472,16 +434,13 @@ const formatStackContext = (
       !hasResolvedSource &&
       (!frame.functionName || isSourceComponentName(frame.functionName))
     ) {
-      formattedLines.push(
-        `\n  in ${frame.functionName || "<anonymous>"} (at Server)`,
-      );
+      formattedLines.push(`\n  in ${frame.functionName || "<anonymous>"} (at Server)`);
       continue;
     }
 
     if (hasResolvedSource) {
       let line = "\n  in ";
-      const hasComponentName =
-        frame.functionName && isSourceComponentName(frame.functionName);
+      const hasComponentName = frame.functionName && isSourceComponentName(frame.functionName);
 
       if (hasComponentName) {
         line += `${frame.functionName} (at `;
@@ -633,9 +592,7 @@ export const getHTMLPreview = (element: Element): string => {
   const formatElements = (elements: Array<Element>): string => {
     if (elements.length === 0) return "";
     if (elements.length <= 2) {
-      return elements
-        .map((childElement) => `<${getTagName(childElement)} ...>`)
-        .join("\n  ");
+      return elements.map((childElement) => `<${getTagName(childElement)} ...>`).join("\n  ");
     }
     return `(${elements.length} elements)`;
   };

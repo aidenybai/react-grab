@@ -1,8 +1,5 @@
 import type { DragRect, Rect } from "../types.js";
-import {
-  suspendPointerEventsFreeze,
-  resumePointerEventsFreeze,
-} from "./freeze-pseudo-states.js";
+import { suspendPointerEventsFreeze, resumePointerEventsFreeze } from "./freeze-pseudo-states.js";
 import {
   DRAG_SELECTION_COVERAGE_THRESHOLD,
   DRAG_SELECTION_SAMPLE_SPACING_PX,
@@ -102,22 +99,10 @@ const createSamplePoints = (dragRect: DragRect): SamplePoint[] => {
     points.push({ x: clampedX, y: clampedY });
   };
 
-  addPoint(
-    left + DRAG_SELECTION_EDGE_INSET_PX,
-    top + DRAG_SELECTION_EDGE_INSET_PX,
-  );
-  addPoint(
-    right - DRAG_SELECTION_EDGE_INSET_PX,
-    top + DRAG_SELECTION_EDGE_INSET_PX,
-  );
-  addPoint(
-    left + DRAG_SELECTION_EDGE_INSET_PX,
-    bottom - DRAG_SELECTION_EDGE_INSET_PX,
-  );
-  addPoint(
-    right - DRAG_SELECTION_EDGE_INSET_PX,
-    bottom - DRAG_SELECTION_EDGE_INSET_PX,
-  );
+  addPoint(left + DRAG_SELECTION_EDGE_INSET_PX, top + DRAG_SELECTION_EDGE_INSET_PX);
+  addPoint(right - DRAG_SELECTION_EDGE_INSET_PX, top + DRAG_SELECTION_EDGE_INSET_PX);
+  addPoint(left + DRAG_SELECTION_EDGE_INSET_PX, bottom - DRAG_SELECTION_EDGE_INSET_PX);
+  addPoint(right - DRAG_SELECTION_EDGE_INSET_PX, bottom - DRAG_SELECTION_EDGE_INSET_PX);
   addPoint(centerX, top + DRAG_SELECTION_EDGE_INSET_PX);
   addPoint(centerX, bottom - DRAG_SELECTION_EDGE_INSET_PX);
   addPoint(left + DRAG_SELECTION_EDGE_INSET_PX, centerY);
@@ -171,10 +156,7 @@ const filterElementsInDrag = (
 
   const candidateRects = new Map<Element, DOMRect>();
   for (const candidateElement of validCandidates) {
-    candidateRects.set(
-      candidateElement,
-      candidateElement.getBoundingClientRect(),
-    );
+    candidateRects.set(candidateElement, candidateElement.getBoundingClientRect());
   }
 
   const matchingElements: Element[] = [];
@@ -191,14 +173,10 @@ const filterElementsInDrag = (
     };
 
     if (shouldCheckCoverage) {
-      const intersectionArea = calculateIntersectionArea(
-        dragBounds,
-        elementBounds,
-      );
+      const intersectionArea = calculateIntersectionArea(dragBounds, elementBounds);
       const elementArea = elementRect.width * elementRect.height;
       const hasMajorityCoverage =
-        elementArea > 0 &&
-        intersectionArea / elementArea >= DRAG_SELECTION_COVERAGE_THRESHOLD;
+        elementArea > 0 && intersectionArea / elementArea >= DRAG_SELECTION_COVERAGE_THRESHOLD;
 
       if (hasMajorityCoverage) {
         matchingElements.push(candidateElement);
@@ -214,8 +192,7 @@ const filterElementsInDrag = (
 const removeNestedElements = (elements: Element[]): Element[] => {
   return elements.filter((element) => {
     return !elements.some(
-      (otherElement) =>
-        otherElement !== element && otherElement.contains(element),
+      (otherElement) => otherElement !== element && otherElement.contains(element),
     );
   });
 };
@@ -225,10 +202,6 @@ export const getElementsInDrag = (
   isValidGrabbableElement: (element: Element) => boolean,
   shouldCheckCoverage = true,
 ): Element[] => {
-  const elements = filterElementsInDrag(
-    dragRect,
-    isValidGrabbableElement,
-    shouldCheckCoverage,
-  );
+  const elements = filterElementsInDrag(dragRect, isValidGrabbableElement, shouldCheckCoverage);
   return removeNestedElements(elements);
 };

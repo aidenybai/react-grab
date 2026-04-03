@@ -1,4 +1,4 @@
-import { vi, describe, expect, it, beforeEach } from "vitest";
+import { vi, describe, expect, it, beforeEach } from "vite-plus/test";
 import { previewTransform, applyTransform } from "../src/utils/transform.js";
 
 vi.mock("node:fs", () => ({
@@ -40,9 +40,7 @@ export default function RootLayout({
 }`;
 
   it("should add React Grab to layout.tsx", () => {
-    mockExistsSync.mockImplementation((path) =>
-      String(path).endsWith("layout.tsx"),
-    );
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("layout.tsx"));
     mockReadFileSync.mockReturnValue(layoutContent);
 
     const result = previewTransform("/test", "next", "app", false);
@@ -67,9 +65,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   );
 }`;
 
-    mockExistsSync.mockImplementation((path) =>
-      String(path).endsWith("layout.tsx"),
-    );
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("layout.tsx"));
     mockReadFileSync.mockReturnValue(layoutWithReactGrab);
 
     const result = previewTransform("/test", "next", "app", false);
@@ -100,9 +96,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 );`;
 
   it("should add React Grab to entry file", () => {
-    mockExistsSync.mockImplementation((path) =>
-      String(path).endsWith("main.tsx"),
-    );
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("main.tsx"));
     mockReadFileSync.mockReturnValue(entryContent);
 
     const result = previewTransform("/test", "vite", "unknown", false);
@@ -125,9 +119,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 );`;
 
   it("should add React Grab to entry file", () => {
-    mockExistsSync.mockImplementation((path) =>
-      String(path).endsWith("index.tsx"),
-    );
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("index.tsx"));
     mockReadFileSync.mockReturnValue(entryContent);
 
     const result = previewTransform("/test", "webpack", "unknown", false);
@@ -165,9 +157,7 @@ export default function Document() {
   );
 }`;
 
-    mockExistsSync.mockImplementation((path) =>
-      String(path).endsWith("_document.tsx"),
-    );
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("_document.tsx"));
     mockReadFileSync.mockReturnValue(documentContent);
 
     const result = previewTransform("/test", "next", "pages", false);

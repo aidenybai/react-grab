@@ -1,9 +1,7 @@
 import { test, expect } from "./fixtures.js";
 
 test.describe("Drag Selection", () => {
-  test("should create drag box when clicking and dragging", async ({
-    reactGrab,
-  }) => {
+  test("should create drag box when clicking and dragging", async ({ reactGrab }) => {
     await reactGrab.activate();
 
     const firstItem = reactGrab.page.locator("li").first();
@@ -26,9 +24,7 @@ test.describe("Drag Selection", () => {
     await reactGrab.page.mouse.up();
   });
 
-  test("should select multiple elements within drag bounds", async ({
-    reactGrab,
-  }) => {
+  test("should select multiple elements within drag bounds", async ({ reactGrab }) => {
     await reactGrab.activate();
 
     await reactGrab.dragSelect("li:first-child", "li:nth-child(3)");
@@ -39,9 +35,7 @@ test.describe("Drag Selection", () => {
     expect(clipboardContent.length).toBeGreaterThan(0);
   });
 
-  test("should copy all selected elements to clipboard", async ({
-    reactGrab,
-  }) => {
+  test("should copy all selected elements to clipboard", async ({ reactGrab }) => {
     await reactGrab.activate();
 
     await reactGrab.dragSelect("li:first-child", "li:nth-child(5)");
@@ -95,9 +89,7 @@ test.describe("Drag Selection", () => {
     expect(clipboardContent).toBeTruthy();
   });
 
-  test("should deactivate after drag selection in toggle mode", async ({
-    reactGrab,
-  }) => {
+  test("should deactivate after drag selection in toggle mode", async ({ reactGrab }) => {
     await reactGrab.activate();
 
     await reactGrab.dragSelect("li:first-child", "li:nth-child(2)");
@@ -136,11 +128,9 @@ test.describe("Drag Selection", () => {
     await reactGrab.page.mouse.move(startBox.x - 10, startBox.y - 10);
     await reactGrab.page.mouse.down();
 
-    await reactGrab.page.mouse.move(
-      endBox.x + endBox.width + 10,
-      endBox.y + endBox.height + 10,
-      { steps: 10 },
-    );
+    await reactGrab.page.mouse.move(endBox.x + endBox.width + 10, endBox.y + endBox.height + 10, {
+      steps: 10,
+    });
 
     const hasContent = await reactGrab.page.evaluate(() => {
       const host = document.querySelector("[data-react-grab]");
@@ -157,9 +147,7 @@ test.describe("Drag Selection", () => {
 });
 
 test.describe("Drag Selection with Scroll", () => {
-  test("should handle drag selection with scroll offset", async ({
-    reactGrab,
-  }) => {
+  test("should handle drag selection with scroll offset", async ({ reactGrab }) => {
     await reactGrab.scrollPage(100);
     await reactGrab.page.waitForTimeout(100);
 
@@ -210,9 +198,7 @@ test.describe("Drag Selection with Scroll", () => {
     }
   });
 
-  test("drag bounds should exist during drag operation", async ({
-    reactGrab,
-  }) => {
+  test("drag bounds should exist during drag operation", async ({ reactGrab }) => {
     await reactGrab.activate();
 
     const firstItem = reactGrab.page.locator("li").first();
@@ -232,14 +218,10 @@ test.describe("Drag Selection with Scroll", () => {
     await reactGrab.page.mouse.up();
   });
 
-  test("drag selection should work in scrollable container", async ({
-    reactGrab,
-  }) => {
+  test("drag selection should work in scrollable container", async ({ reactGrab }) => {
     await reactGrab.activate();
 
-    const scrollContainer = reactGrab.page.locator(
-      "[data-testid='scroll-container']",
-    );
+    const scrollContainer = reactGrab.page.locator("[data-testid='scroll-container']");
     const box = await scrollContainer.boundingBox();
 
     if (box) {

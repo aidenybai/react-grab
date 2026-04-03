@@ -17,13 +17,7 @@ export const GET = async (
     return new NextResponse("Provider not found", { status: 404 });
   }
 
-  const scriptPath = join(
-    process.cwd(),
-    "..",
-    packageDir,
-    "dist",
-    "client.global.js",
-  );
+  const scriptPath = join(process.cwd(), "..", packageDir, "dist", "client.global.js");
 
   try {
     const content = await readFile(scriptPath, "utf-8");

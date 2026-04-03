@@ -1,8 +1,5 @@
 import type { ToolbarState } from "../../types.js";
-import {
-  DEFAULT_ACTION_ID,
-  TOOLBAR_DEFAULT_POSITION_RATIO,
-} from "../../constants.js";
+import { DEFAULT_ACTION_ID, TOOLBAR_DEFAULT_POSITION_RATIO } from "../../constants.js";
 
 export type { ToolbarState };
 export type SnapEdge = "top" | "bottom" | "left" | "right";
@@ -25,23 +22,14 @@ export const loadToolbarState = (): ToolbarState | null => {
         record.edge === "right"
           ? record.edge
           : "bottom",
-      ratio:
-        typeof record.ratio === "number"
-          ? record.ratio
-          : TOOLBAR_DEFAULT_POSITION_RATIO,
-      collapsed:
-        typeof record.collapsed === "boolean" ? record.collapsed : false,
+      ratio: typeof record.ratio === "number" ? record.ratio : TOOLBAR_DEFAULT_POSITION_RATIO,
+      collapsed: typeof record.collapsed === "boolean" ? record.collapsed : false,
       enabled: typeof record.enabled === "boolean" ? record.enabled : true,
       defaultAction:
-        typeof record.defaultAction === "string"
-          ? record.defaultAction
-          : DEFAULT_ACTION_ID,
+        typeof record.defaultAction === "string" ? record.defaultAction : DEFAULT_ACTION_ID,
     };
   } catch (error) {
-    console.warn(
-      "[react-grab] Failed to load toolbar state from localStorage:",
-      error,
-    );
+    console.warn("[react-grab] Failed to load toolbar state from localStorage:", error);
   }
   return null;
 };
@@ -50,9 +38,6 @@ export const saveToolbarState = (state: ToolbarState): void => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (error) {
-    console.warn(
-      "[react-grab] Failed to save toolbar state to localStorage:",
-      error,
-    );
+    console.warn("[react-grab] Failed to save toolbar state to localStorage:", error);
   }
 };

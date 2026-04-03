@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { generateDiff, formatDiff } from "../src/utils/diff.js";
 
 describe("generateDiff", () => {
@@ -31,9 +31,7 @@ describe("generateDiff", () => {
 
     const diff = generateDiff(original, updated);
 
-    expect(
-      diff.some((line) => line.type === "removed" && line.content === "line2"),
-    ).toBe(true);
+    expect(diff.some((line) => line.type === "removed" && line.content === "line2")).toBe(true);
   });
 
   it("should handle identical content", () => {
@@ -70,22 +68,15 @@ function App() {
 
     const diff = generateDiff(original, updated);
 
+    expect(diff.some((line) => line.type === "added" && line.content.includes("next/script"))).toBe(
+      true,
+    );
     expect(
-      diff.some(
-        (line) => line.type === "added" && line.content.includes("next/script"),
-      ),
+      diff.some((line) => line.type === "removed" && line.content.includes("Hello</div>")),
     ).toBe(true);
-    expect(
-      diff.some(
-        (line) =>
-          line.type === "removed" && line.content.includes("Hello</div>"),
-      ),
-    ).toBe(true);
-    expect(
-      diff.some(
-        (line) => line.type === "added" && line.content.includes("Hello World"),
-      ),
-    ).toBe(true);
+    expect(diff.some((line) => line.type === "added" && line.content.includes("Hello World"))).toBe(
+      true,
+    );
   });
 });
 

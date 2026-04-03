@@ -6,14 +6,8 @@ interface CorsHeadersOptions {
   origin?: string;
 }
 
-export const getCorsHeaders = (
-  options: CorsHeadersOptions = {},
-): Record<string, string> => {
-  const {
-    methods = ["GET", "OPTIONS"],
-    headers = ["Content-Type"],
-    origin = "*",
-  } = options;
+export const getCorsHeaders = (options: CorsHeadersOptions = {}): Record<string, string> => {
+  const { methods = ["GET", "OPTIONS"], headers = ["Content-Type"], origin = "*" } = options;
 
   return {
     "Access-Control-Allow-Origin": origin,
@@ -22,9 +16,7 @@ export const getCorsHeaders = (
   };
 };
 
-export const createOptionsResponse = (
-  corsOptions?: CorsHeadersOptions,
-): Response => {
+export const createOptionsResponse = (corsOptions?: CorsHeadersOptions): Response => {
   return new Response(null, {
     status: 204,
     headers: getCorsHeaders(corsOptions),

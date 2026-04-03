@@ -45,10 +45,7 @@ for (const item of registry.items) {
     dependencies: item.dependencies,
     files: item.files.map((file) => ({
       path: file.target ?? file.path,
-      content: readFileSync(
-        resolve(REGISTRY_SOURCE_DIRECTORY, file.path),
-        "utf-8",
-      ),
+      content: readFileSync(resolve(REGISTRY_SOURCE_DIRECTORY, file.path), "utf-8"),
       type: file.type,
       target: file.target,
     })),
@@ -59,9 +56,6 @@ for (const item of registry.items) {
   console.log(`Built: ${outputPath}`);
 }
 
-writeFileSync(
-  resolve(OUTPUT_DIRECTORY, "index.json"),
-  JSON.stringify(registry, null, 2) + "\n",
-);
+writeFileSync(resolve(OUTPUT_DIRECTORY, "index.json"), JSON.stringify(registry, null, 2) + "\n");
 
 console.log(`Registry build complete: ${registry.items.length} item(s)`);

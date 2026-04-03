@@ -1,10 +1,7 @@
 import type { Component, JSX } from "solid-js";
 import { cn } from "../../utils/cn.js";
 import { IconChevron } from "../icons/icon-chevron.jsx";
-import {
-  getExpandGridClass,
-  getMinDimensionClass,
-} from "../../utils/toolbar-layout.js";
+import { getExpandGridClass, getMinDimensionClass } from "../../utils/toolbar-layout.js";
 
 interface ToolbarContentProps {
   isActive?: boolean;
@@ -32,10 +29,8 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
   const edge = () => props.snapEdge ?? "bottom";
   const isVertical = () => edge() === "left" || edge() === "right";
 
-  const expandGridClass = (
-    isExpanded: boolean,
-    collapsedExtra?: string,
-  ): string => getExpandGridClass(isVertical(), isExpanded, collapsedExtra);
+  const expandGridClass = (isExpanded: boolean, collapsedExtra?: string): string =>
+    getExpandGridClass(isVertical(), isExpanded, collapsedExtra);
 
   const gridTransitionClass = (): string => {
     if (props.disableGridTransitions) return "";
@@ -93,10 +88,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
     >
       <IconChevron
         size={14}
-        class={cn(
-          "text-[#B3B3B3] transition-transform duration-150",
-          chevronRotation(),
-        )}
+        class={cn("text-[#B3B3B3] transition-transform duration-150", chevronRotation())}
       />
     </button>
   );
@@ -107,8 +99,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
         "flex items-center justify-center rounded-[10px] antialiased relative overflow-visible [font-synthesis:none] filter-[drop-shadow(0px_1px_2px_#51515140)] [corner-shape:superellipse(1.25)]",
         isVertical() && "flex-col",
         "bg-white",
-        !props.isCollapsed &&
-          (isVertical() ? "px-1.5 gap-1.5 py-2" : "py-1.5 gap-1.5 px-2"),
+        !props.isCollapsed && (isVertical() ? "px-1.5 gap-1.5 py-2" : "py-1.5 gap-1.5 px-2"),
         collapsedEdgeClasses(),
         props.isShaking && "animate-shake",
       )}
@@ -132,25 +123,16 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
         <div
           class={cn(
             "flex",
-            isVertical()
-              ? "flex-col items-center min-h-0"
-              : "items-center min-w-0",
+            isVertical() ? "flex-col items-center min-h-0" : "items-center min-w-0",
             props.isCollapsed ? "opacity-0" : "opacity-100",
-            !props.disableGridTransitions &&
-              "transition-opacity duration-150 ease-out",
+            !props.disableGridTransitions && "transition-opacity duration-150 ease-out",
           )}
         >
           <div
             ref={(element) => props.onExpandableButtonsRef?.(element)}
             class={cn("flex items-center", isVertical() && "flex-col")}
           >
-            <div
-              class={cn(
-                "grid",
-                gridTransitionClass(),
-                expandGridClass(Boolean(props.enabled)),
-              )}
-            >
+            <div class={cn("grid", gridTransitionClass(), expandGridClass(Boolean(props.enabled)))}>
               <div class={cn("relative overflow-visible", minDimensionClass())}>
                 {props.selectButton}
               </div>
@@ -173,10 +155,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
               class={cn(
                 "grid",
                 gridTransitionClass(),
-                expandGridClass(
-                  Boolean(props.isCopyAllExpanded),
-                  "pointer-events-none",
-                ),
+                expandGridClass(Boolean(props.isCopyAllExpanded), "pointer-events-none"),
               )}
             >
               <div class={cn("relative overflow-visible", minDimensionClass())}>
@@ -184,9 +163,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
               </div>
             </div>
           </div>
-          <div class="relative shrink-0 overflow-visible">
-            {props.toggleButton}
-          </div>
+          <div class="relative shrink-0 overflow-visible">{props.toggleButton}</div>
         </div>
       </div>
       {props.collapseButton ?? defaultCollapseButton()}

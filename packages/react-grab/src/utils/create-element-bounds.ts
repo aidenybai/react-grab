@@ -42,8 +42,7 @@ const getAncestorTransformValue = (ancestor: Element, now: number): string => {
   }
 
   const transformValue = window.getComputedStyle(ancestor).transform;
-  const resolvedTransform =
-    transformValue && transformValue !== "none" ? transformValue : "none";
+  const resolvedTransform = transformValue && transformValue !== "none" ? transformValue : "none";
   ancestorTransformCache.set(ancestor, {
     transform: resolvedTransform,
     timestamp: now,
@@ -51,32 +50,20 @@ const getAncestorTransformValue = (ancestor: Element, now: number): string => {
   return resolvedTransform;
 };
 
-const getAccumulatedTransform = (
-  element: Element,
-  selfTransform: string,
-  now: number,
-): string => {
+const getAccumulatedTransform = (element: Element, selfTransform: string, now: number): string => {
   const hasSelfTransform = selfTransform && selfTransform !== "none";
 
   let accumulated: DOMMatrix | null = null;
   let current = element.parentElement;
   let depth = 0;
 
-  while (
-    current &&
-    current !== document.documentElement &&
-    depth < MAX_TRANSFORM_ANCESTOR_DEPTH
-  ) {
+  while (current && current !== document.documentElement && depth < MAX_TRANSFORM_ANCESTOR_DEPTH) {
     const transformValue = getAncestorTransformValue(current, now);
     if (transformValue !== "none") {
       accumulated = accumulated
         ? new DOMMatrix(transformValue).multiply(accumulated)
         : new DOMMatrix(transformValue);
-    } else if (
-      !hasSelfTransform &&
-      !accumulated &&
-      depth >= TRANSFORM_EARLY_BAIL_DEPTH
-    ) {
+    } else if (!hasSelfTransform && !accumulated && depth >= TRANSFORM_EARLY_BAIL_DEPTH) {
       return "none";
     }
     current = current.parentElement;
@@ -84,9 +71,7 @@ const getAccumulatedTransform = (
   }
 
   if (!accumulated) {
-    return hasSelfTransform
-      ? stripTranslateFromTransformString(selfTransform)
-      : "none";
+    return hasSelfTransform ? stripTranslateFromTransformString(selfTransform) : "none";
   }
 
   if (hasSelfTransform) {

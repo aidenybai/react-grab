@@ -41,9 +41,7 @@ export interface ReactGrabElementContext {
  * console.log(context.stackString);   // "\n  in SubmitButton (at Button.tsx:12:5)"
  * console.log(context.stack[0]);      // { functionName: "SubmitButton", fileName: "Button.tsx", lineNumber: 12, columnNumber: 5 }
  */
-export const getElementContext = async (
-  element: Element,
-): Promise<ReactGrabElementContext> => {
+export const getElementContext = async (element: Element): Promise<ReactGrabElementContext> => {
   const stack = (await getStack(element)) ?? [];
   const stackString = await getStackContext(element);
   const htmlPreview = getHTMLPreview(element);
@@ -124,9 +122,6 @@ export const isFreezeActive = (): boolean => {
  * openFile("/src/components/Button.tsx");
  * openFile("/src/components/Button.tsx", 42);
  */
-export const openFile = async (
-  filePath: string,
-  lineNumber?: number,
-): Promise<void> => {
+export const openFile = async (filePath: string, lineNumber?: number): Promise<void> => {
   await openFileAsync(filePath, lineNumber);
 };

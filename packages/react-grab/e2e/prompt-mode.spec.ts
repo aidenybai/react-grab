@@ -28,9 +28,7 @@ test.describe("Prompt Mode", () => {
       await expect.poll(() => reactGrab.getClipboardContent()).toBeTruthy();
     });
 
-    test("should focus input textarea when entering prompt mode", async ({
-      reactGrab,
-    }) => {
+    test("should focus input textarea when entering prompt mode", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.enterPromptMode("li:first-child");
 
@@ -41,10 +39,7 @@ test.describe("Prompt Mode", () => {
         const root = shadowRoot.querySelector(`[${attrName}]`);
         if (!root) return false;
         const textarea = root.querySelector("textarea");
-        return (
-          document.activeElement === textarea ||
-          shadowRoot.activeElement === textarea
-        );
+        return document.activeElement === textarea || shadowRoot.activeElement === textarea;
       }, "data-react-grab");
 
       expect(isFocused).toBe(true);
@@ -74,9 +69,7 @@ test.describe("Prompt Mode", () => {
 
       await reactGrab.toggle();
 
-      await expect
-        .poll(() => reactGrab.isOverlayVisible(), { timeout: 2000 })
-        .toBe(false);
+      await expect.poll(() => reactGrab.isOverlayVisible(), { timeout: 2000 }).toBe(false);
       expect(await reactGrab.isPromptModeActive()).toBe(false);
     });
   });
@@ -117,9 +110,7 @@ test.describe("Prompt Mode", () => {
       expect(inputValue).toBe(longText);
     });
 
-    test("should handle multiline input with shift+enter", async ({
-      reactGrab,
-    }) => {
+    test("should handle multiline input with shift+enter", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.enterPromptMode("li:first-child");
 
@@ -155,9 +146,7 @@ test.describe("Prompt Mode", () => {
       await expect.poll(() => reactGrab.isPromptModeActive()).toBe(false);
     });
 
-    test("Escape in textarea should dismiss prompt mode directly", async ({
-      reactGrab,
-    }) => {
+    test("Escape in textarea should dismiss prompt mode directly", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.enterPromptMode("li:first-child");
 
@@ -170,9 +159,7 @@ test.describe("Prompt Mode", () => {
       await expect.poll(() => reactGrab.isPromptModeActive()).toBe(false);
     });
 
-    test("confirming dismiss should close prompt mode", async ({
-      reactGrab,
-    }) => {
+    test("confirming dismiss should close prompt mode", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.enterPromptMode("li:first-child");
 
@@ -183,9 +170,7 @@ test.describe("Prompt Mode", () => {
       await expect.poll(() => reactGrab.isOverlayVisible()).toBe(false);
     });
 
-    test("empty input should cancel without confirmation", async ({
-      reactGrab,
-    }) => {
+    test("empty input should cancel without confirmation", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.enterPromptMode("li:first-child");
 
@@ -197,9 +182,7 @@ test.describe("Prompt Mode", () => {
   });
 
   test.describe("Prompt Mode with Selection", () => {
-    test("should freeze selection while in prompt mode", async ({
-      reactGrab,
-    }) => {
+    test("should freeze selection while in prompt mode", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.enterPromptMode("li:first-child");
 
@@ -211,9 +194,7 @@ test.describe("Prompt Mode", () => {
   });
 
   test.describe("Keyboard Shortcuts in Prompt Mode", () => {
-    test("arrow keys should not navigate elements in prompt mode", async ({
-      reactGrab,
-    }) => {
+    test("arrow keys should not navigate elements in prompt mode", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.enterPromptMode("li:first-child");
 
@@ -238,9 +219,7 @@ test.describe("Prompt Mode", () => {
   });
 
   test.describe("Input Preservation", () => {
-    test("input should be cleared after dismissing prompt mode", async ({
-      reactGrab,
-    }) => {
+    test("input should be cleared after dismissing prompt mode", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.enterPromptMode("li:first-child");
 
@@ -255,9 +234,7 @@ test.describe("Prompt Mode", () => {
   });
 
   test.describe("Edge Cases", () => {
-    test("clicking outside should cancel prompt mode", async ({
-      reactGrab,
-    }) => {
+    test("clicking outside should cancel prompt mode", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.enterPromptMode("li:first-child");
 
@@ -267,9 +244,7 @@ test.describe("Prompt Mode", () => {
       await expect.poll(() => reactGrab.isPromptModeActive()).toBe(false);
     });
 
-    test("context menu edit maintains overlay in prompt mode", async ({
-      reactGrab,
-    }) => {
+    test("context menu edit maintains overlay in prompt mode", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.enterPromptMode("li:first-child");
 

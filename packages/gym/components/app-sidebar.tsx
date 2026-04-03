@@ -103,10 +103,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar {...props}>
       <SidebarHeader>
-        <VersionSwitcher
-          versions={data.versions}
-          defaultVersion={data.versions[0]}
-        />
+        <VersionSwitcher versions={data.versions} defaultVersion={data.versions[0]} />
         <SearchForm />
       </SidebarHeader>
       <SidebarContent>
@@ -122,9 +119,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     <SidebarMenuItem key={navItem.title}>
                       <SidebarMenuButton
                         asChild
-                        className={
-                          isDisabled ? "opacity-50 cursor-not-allowed" : ""
-                        }
+                        className={isDisabled ? "opacity-50 cursor-not-allowed" : ""}
                       >
                         <a href={navItem.url}>{navItem.title}</a>
                       </SidebarMenuButton>

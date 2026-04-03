@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { getPackagesToInstall } from "../src/utils/install.js";
 
 describe("getPackagesToInstall", () => {

@@ -102,10 +102,7 @@ const collectPseudoStates = (
 
     const computed = getComputedStyle(element);
     let frozenStyles = element.style.cssText;
-    const originalPropertyValues = collectOriginalPropertyValues(
-      element,
-      properties,
-    );
+    const originalPropertyValues = collectOriginalPropertyValues(element, properties);
 
     for (const prop of properties) {
       const computedValue = computed.getPropertyValue(prop);
@@ -176,10 +173,7 @@ export const freezePseudoStates = (): void => {
   applyFrozenStates(hoverStates, frozenHoverElements);
   applyFrozenStates(focusStates, frozenFocusElements);
 
-  pointerEventsStyle = createStyleElement(
-    "data-react-grab-frozen-pseudo",
-    POINTER_EVENTS_STYLES,
-  );
+  pointerEventsStyle = createStyleElement("data-react-grab-frozen-pseudo", POINTER_EVENTS_STYLES);
 };
 
 export const unfreezePseudoStates = (): void => {

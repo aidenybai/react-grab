@@ -1,8 +1,5 @@
 interface BackgroundTaskScheduler {
-  postTask: (
-    callback: () => void,
-    options: { priority: "background" },
-  ) => unknown;
+  postTask: (callback: () => void, options: { priority: "background" }) => unknown;
 }
 
 declare global {
@@ -11,9 +8,7 @@ declare global {
   }
 }
 
-const isBackgroundTaskScheduler = (
-  value: unknown,
-): value is BackgroundTaskScheduler => {
+const isBackgroundTaskScheduler = (value: unknown): value is BackgroundTaskScheduler => {
   if (typeof value !== "object" || value === null) return false;
   if (!("postTask" in value)) return false;
   return typeof value.postTask === "function";

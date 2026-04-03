@@ -20,12 +20,8 @@ export const Arrow: Component<ArrowProps> = (props) => {
           : "translateX(-50%) translateY(100%)",
         "border-left": `${arrowSize()}px solid transparent`,
         "border-right": `${arrowSize()}px solid transparent`,
-        "border-bottom": isBottom()
-          ? `${arrowSize()}px solid ${arrowColor()}`
-          : undefined,
-        "border-top": isBottom()
-          ? undefined
-          : `${arrowSize()}px solid ${arrowColor()}`,
+        "border-bottom": isBottom() ? `${arrowSize()}px solid ${arrowColor()}` : undefined,
+        "border-top": isBottom() ? undefined : `${arrowSize()}px solid ${arrowColor()}`,
       }}
     />
   );

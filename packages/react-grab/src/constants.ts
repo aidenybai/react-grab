@@ -77,19 +77,9 @@ export const PREVIEW_PRIORITY_ATTRS: readonly string[] = [
   "title",
 ];
 
-export const MODIFIER_KEYS: readonly string[] = [
-  "Meta",
-  "Control",
-  "Shift",
-  "Alt",
-];
+export const MODIFIER_KEYS: readonly string[] = ["Meta", "Control", "Shift", "Alt"];
 
-export const ARROW_KEYS = new Set([
-  "ArrowUp",
-  "ArrowDown",
-  "ArrowLeft",
-  "ArrowRight",
-]);
+export const ARROW_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
 
 export const FROZEN_ELEMENT_ATTRIBUTE = "data-react-grab-frozen";
 
@@ -122,8 +112,7 @@ export const SELECTION_HINT_COUNT = 3;
 export const TOOLTIP_BASE_CLASS =
   "absolute whitespace-nowrap px-1.5 py-0.5 rounded-[10px] text-[10px] text-black/60 pointer-events-none [corner-shape:superellipse(1.25)] filter-[drop-shadow(0px_1px_2px_#51515140)]";
 
-export const HINT_FLIP_IN_ANIMATION =
-  "animate-[hint-flip-in_var(--transition-normal)_ease-out]";
+export const HINT_FLIP_IN_ANIMATION = "animate-[hint-flip-in_var(--transition-normal)_ease-out]";
 
 export const DRAG_SELECTION_COVERAGE_THRESHOLD = 0.75;
 export const DRAG_SELECTION_SAMPLE_SPACING_PX = 32;

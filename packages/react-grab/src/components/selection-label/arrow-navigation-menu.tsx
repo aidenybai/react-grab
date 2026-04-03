@@ -10,9 +10,7 @@ interface ArrowNavigationMenuProps {
   onSelect: (index: number) => void;
 }
 
-export const ArrowNavigationMenu: Component<ArrowNavigationMenuProps> = (
-  props,
-) => {
+export const ArrowNavigationMenu: Component<ArrowNavigationMenuProps> = (props) => {
   const {
     containerRef: highlightContainerRef,
     highlightRef,
@@ -23,9 +21,7 @@ export const ArrowNavigationMenu: Component<ArrowNavigationMenuProps> = (
   let menuItemsRef: HTMLDivElement | undefined;
   let didPointerMove = false;
 
-  const getMenuItemByIndex = (
-    itemIndex: number,
-  ): HTMLButtonElement | undefined => {
+  const getMenuItemByIndex = (itemIndex: number): HTMLButtonElement | undefined => {
     if (!menuItemsRef) return undefined;
     const activeMenuButton = menuItemsRef.querySelector<HTMLButtonElement>(
       `[data-react-grab-arrow-nav-index="${itemIndex}"]`,

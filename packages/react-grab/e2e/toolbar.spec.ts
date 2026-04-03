@@ -2,65 +2,42 @@ import { test, expect } from "./fixtures.js";
 
 test.describe("Toolbar", () => {
   test.describe("Visibility", () => {
-    test("toolbar should be visible after initial load", async ({
-      reactGrab,
-    }) => {
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
-        .toBe(true);
+    test("toolbar should be visible after initial load", async ({ reactGrab }) => {
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
     });
 
     test("toolbar should fade in after delay", async ({ reactGrab }) => {
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
     });
 
-    test("toolbar should be visible on mobile viewport after reload", async ({
-      reactGrab,
-    }) => {
+    test("toolbar should be visible on mobile viewport after reload", async ({ reactGrab }) => {
       await reactGrab.setViewportSize(375, 667);
       await reactGrab.page.reload();
       await reactGrab.page.waitForLoadState("domcontentloaded");
       await reactGrab.page.waitForFunction(
-        () =>
-          (window as { __REACT_GRAB__?: unknown }).__REACT_GRAB__ !== undefined,
+        () => (window as { __REACT_GRAB__?: unknown }).__REACT_GRAB__ !== undefined,
         { timeout: 10000 },
       );
 
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 }).toBe(true);
 
       await reactGrab.setViewportSize(1280, 720);
     });
 
-    test("toolbar should remain visible through viewport resize cycles", async ({
-      reactGrab,
-    }) => {
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
-        .toBe(true);
+    test("toolbar should remain visible through viewport resize cycles", async ({ reactGrab }) => {
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
 
       await reactGrab.setViewportSize(375, 667);
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
 
       await reactGrab.setViewportSize(1280, 720);
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
     });
   });
 
   test.describe("Toggle Activation", () => {
-    test("clicking toolbar toggle should activate overlay", async ({
-      reactGrab,
-    }) => {
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
-        .toBe(true);
+    test("clicking toolbar toggle should activate overlay", async ({ reactGrab }) => {
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
 
       await reactGrab.clickToolbarToggle();
 
@@ -68,12 +45,8 @@ test.describe("Toolbar", () => {
       expect(isActive).toBe(true);
     });
 
-    test("clicking toolbar toggle again should deactivate overlay", async ({
-      reactGrab,
-    }) => {
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
-        .toBe(true);
+    test("clicking toolbar toggle again should deactivate overlay", async ({ reactGrab }) => {
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
 
       await reactGrab.clickToolbarToggle();
       await reactGrab.clickToolbarToggle();
@@ -82,12 +55,8 @@ test.describe("Toolbar", () => {
       expect(isActive).toBe(false);
     });
 
-    test("toolbar toggle should reflect current activation state", async ({
-      reactGrab,
-    }) => {
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
-        .toBe(true);
+    test("toolbar toggle should reflect current activation state", async ({ reactGrab }) => {
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
 
       await reactGrab.activate();
 
@@ -97,60 +66,38 @@ test.describe("Toolbar", () => {
   });
 
   test.describe("Collapse/Expand", () => {
-    test("clicking collapse button should collapse toolbar", async ({
-      reactGrab,
-    }) => {
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
-        .toBe(true);
+    test("clicking collapse button should collapse toolbar", async ({ reactGrab }) => {
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
 
       await reactGrab.clickToolbarCollapse();
 
-      await expect
-        .poll(() => reactGrab.isToolbarCollapsed(), { timeout: 2000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isToolbarCollapsed(), { timeout: 2000 }).toBe(true);
     });
 
-    test("clicking collapsed toolbar should expand it", async ({
-      reactGrab,
-    }) => {
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
-        .toBe(true);
+    test("clicking collapsed toolbar should expand it", async ({ reactGrab }) => {
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
 
       await reactGrab.clickToolbarCollapse();
-      await expect
-        .poll(() => reactGrab.isToolbarCollapsed(), { timeout: 2000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isToolbarCollapsed(), { timeout: 2000 }).toBe(true);
 
       await reactGrab.page.evaluate((attrName) => {
         const host = document.querySelector(`[${attrName}]`);
         const shadowRoot = host?.shadowRoot;
         if (!shadowRoot) return;
         const root = shadowRoot.querySelector(`[${attrName}]`);
-        const toolbar = root?.querySelector<HTMLElement>(
-          "[data-react-grab-toolbar]",
-        );
+        const toolbar = root?.querySelector<HTMLElement>("[data-react-grab-toolbar]");
         const innerDiv = toolbar?.querySelector("div");
         innerDiv?.click();
       }, "data-react-grab");
 
-      await expect
-        .poll(() => reactGrab.isToolbarCollapsed(), { timeout: 2000 })
-        .toBe(false);
+      await expect.poll(() => reactGrab.isToolbarCollapsed(), { timeout: 2000 }).toBe(false);
     });
 
-    test("collapsed toolbar should not allow activation toggle", async ({
-      reactGrab,
-    }) => {
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
-        .toBe(true);
+    test("collapsed toolbar should not allow activation toggle", async ({ reactGrab }) => {
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
 
       await reactGrab.clickToolbarCollapse();
-      await expect
-        .poll(() => reactGrab.isToolbarCollapsed(), { timeout: 2000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isToolbarCollapsed(), { timeout: 2000 }).toBe(true);
 
       await reactGrab.clickToolbarToggle();
 
@@ -168,9 +115,7 @@ test.describe("Toolbar", () => {
       });
       await reactGrab.page.reload();
       await reactGrab.page.waitForLoadState("domcontentloaded");
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 }).toBe(true);
       // HACK: Wait for toolbar fade-in animation to complete
       await reactGrab.page.waitForTimeout(600);
     });
@@ -245,9 +190,7 @@ test.describe("Toolbar", () => {
 
     test("should not drag when collapsed", async ({ reactGrab }) => {
       await reactGrab.clickToolbarCollapse();
-      await expect
-        .poll(() => reactGrab.isToolbarCollapsed(), { timeout: 2000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isToolbarCollapsed(), { timeout: 2000 }).toBe(true);
 
       const initialInfo = await reactGrab.getToolbarInfo();
       const initialPosition = initialInfo.position;
@@ -268,11 +211,7 @@ test.describe("Toolbar", () => {
       const initialPosition = initialInfo.position;
       expect(initialPosition).not.toBeNull();
 
-      await reactGrab.dragToolbarFromButton(
-        "[data-react-grab-toolbar-toggle]",
-        100,
-        0,
-      );
+      await reactGrab.dragToolbarFromButton("[data-react-grab-toolbar-toggle]", 100, 0);
 
       await expect
         .poll(
@@ -286,9 +225,7 @@ test.describe("Toolbar", () => {
         .toBeGreaterThan(0);
     });
 
-    test("should not close page dropdown when clicking select button", async ({
-      reactGrab,
-    }) => {
+    test("should not close page dropdown when clicking select button", async ({ reactGrab }) => {
       await reactGrab.openDropdown();
       expect(await reactGrab.isDropdownOpen()).toBe(true);
 
@@ -303,23 +240,15 @@ test.describe("Toolbar", () => {
       await reactGrab.openDropdown();
       expect(await reactGrab.isDropdownOpen()).toBe(true);
 
-      await reactGrab.dragToolbarFromButton(
-        "[data-react-grab-toolbar-toggle]",
-        50,
-        0,
-      );
+      await reactGrab.dragToolbarFromButton("[data-react-grab-toolbar-toggle]", 50, 0);
 
       expect(await reactGrab.isDropdownOpen()).toBe(true);
     });
   });
 
   test.describe("State Persistence", () => {
-    test("toolbar position should persist across page reloads", async ({
-      reactGrab,
-    }) => {
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
-        .toBe(true);
+    test("toolbar position should persist across page reloads", async ({ reactGrab }) => {
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
 
       await reactGrab.dragToolbar(200, -200);
       // HACK: Wait for snap animation
@@ -329,40 +258,26 @@ test.describe("Toolbar", () => {
 
       await reactGrab.page.reload();
       await reactGrab.page.waitForLoadState("domcontentloaded");
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
 
       const positionAfterReload = await reactGrab.getToolbarInfo();
 
       if (positionBeforeReload.snapEdge && positionAfterReload.snapEdge) {
-        expect(positionAfterReload.snapEdge).toBe(
-          positionBeforeReload.snapEdge,
-        );
+        expect(positionAfterReload.snapEdge).toBe(positionBeforeReload.snapEdge);
       }
     });
 
-    test("collapsed state should persist across page reloads", async ({
-      reactGrab,
-    }) => {
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
-        .toBe(true);
+    test("collapsed state should persist across page reloads", async ({ reactGrab }) => {
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
 
       await reactGrab.clickToolbarCollapse();
-      await expect
-        .poll(() => reactGrab.isToolbarCollapsed(), { timeout: 2000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isToolbarCollapsed(), { timeout: 2000 }).toBe(true);
 
       await reactGrab.page.reload();
       await reactGrab.page.waitForLoadState("domcontentloaded");
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
 
-      await expect
-        .poll(() => reactGrab.isToolbarCollapsed(), { timeout: 2000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isToolbarCollapsed(), { timeout: 2000 }).toBe(true);
     });
   });
 
@@ -373,9 +288,7 @@ test.describe("Toolbar", () => {
       });
       await reactGrab.page.reload();
       await reactGrab.page.waitForLoadState("domcontentloaded");
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 }).toBe(true);
       // HACK: Wait for toolbar fade-in animation to complete
       await reactGrab.page.waitForTimeout(600);
     });
@@ -411,12 +324,8 @@ test.describe("Toolbar", () => {
   });
 
   test.describe("Viewport Resize Handling", () => {
-    test("toolbar should recalculate position on viewport resize", async ({
-      reactGrab,
-    }) => {
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
-        .toBe(true);
+    test("toolbar should recalculate position on viewport resize", async ({ reactGrab }) => {
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
 
       await reactGrab.setViewportSize(1920, 1080);
 
@@ -433,20 +342,14 @@ test.describe("Toolbar", () => {
       await reactGrab.setViewportSize(1280, 720);
     });
 
-    test("toolbar should remain visible after rapid resize", async ({
-      reactGrab,
-    }) => {
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
-        .toBe(true);
+    test("toolbar should remain visible after rapid resize", async ({ reactGrab }) => {
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
 
       for (let i = 0; i < 3; i++) {
         await reactGrab.setViewportSize(1000 + i * 100, 700 + i * 50);
       }
 
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
 
       await reactGrab.setViewportSize(1280, 720);
     });
@@ -454,9 +357,7 @@ test.describe("Toolbar", () => {
 
   test.describe("Edge Cases", () => {
     test("toolbar should handle very small viewport", async ({ reactGrab }) => {
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
 
       await reactGrab.setViewportSize(320, 480);
 
@@ -466,12 +367,8 @@ test.describe("Toolbar", () => {
       await reactGrab.setViewportSize(1280, 720);
     });
 
-    test("toolbar should handle rapid collapse/expand", async ({
-      reactGrab,
-    }) => {
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
-        .toBe(true);
+    test("toolbar should handle rapid collapse/expand", async ({ reactGrab }) => {
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
 
       for (let i = 0; i < 5; i++) {
         await reactGrab.clickToolbarCollapse();
@@ -481,12 +378,8 @@ test.describe("Toolbar", () => {
       expect(info.isVisible).toBe(true);
     });
 
-    test("toolbar should maintain position ratio on resize", async ({
-      reactGrab,
-    }) => {
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
-        .toBe(true);
+    test("toolbar should maintain position ratio on resize", async ({ reactGrab }) => {
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
 
       await reactGrab.dragToolbar(-200, 0);
 
@@ -535,20 +428,14 @@ test.describe("Toolbar", () => {
       });
       await reactGrab.page.reload();
       await reactGrab.page.waitForLoadState("domcontentloaded");
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 }).toBe(true);
       // HACK: Wait for toolbar fade-in animation to complete
       await reactGrab.page.waitForTimeout(600);
     });
 
-    test("should render vertically when snapped to right edge", async ({
-      reactGrab,
-    }) => {
+    test("should render vertically when snapped to right edge", async ({ reactGrab }) => {
       await seedVerticalState(reactGrab.page, "right");
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 }).toBe(true);
 
       const info = await reactGrab.getToolbarInfo();
       expect(info.snapEdge).toBe("right");
@@ -557,13 +444,9 @@ test.describe("Toolbar", () => {
       expect(info.dimensions!.height).toBeGreaterThan(info.dimensions!.width);
     });
 
-    test("should render vertically when snapped to left edge", async ({
-      reactGrab,
-    }) => {
+    test("should render vertically when snapped to left edge", async ({ reactGrab }) => {
       await seedVerticalState(reactGrab.page, "left");
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 }).toBe(true);
 
       const info = await reactGrab.getToolbarInfo();
       expect(info.snapEdge).toBe("left");
@@ -572,65 +455,45 @@ test.describe("Toolbar", () => {
       expect(info.dimensions!.height).toBeGreaterThan(info.dimensions!.width);
     });
 
-    test("should render horizontally when snapped to top or bottom", async ({
-      reactGrab,
-    }) => {
+    test("should render horizontally when snapped to top or bottom", async ({ reactGrab }) => {
       const info = await reactGrab.getToolbarInfo();
       expect(info.isVertical).toBe(false);
       expect(info.dimensions).not.toBeNull();
       expect(info.dimensions!.width).toBeGreaterThan(info.dimensions!.height);
     });
 
-    test("should allow toggle activation in vertical mode", async ({
-      reactGrab,
-    }) => {
+    test("should allow toggle activation in vertical mode", async ({ reactGrab }) => {
       await seedVerticalState(reactGrab.page, "right");
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 }).toBe(true);
 
       await reactGrab.clickToolbarToggle();
       const isActive = await reactGrab.isOverlayVisible();
       expect(isActive).toBe(true);
     });
 
-    test("should collapse and expand in vertical mode", async ({
-      reactGrab,
-    }) => {
+    test("should collapse and expand in vertical mode", async ({ reactGrab }) => {
       await seedVerticalState(reactGrab.page, "right");
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 }).toBe(true);
 
       await reactGrab.clickToolbarCollapse();
-      await expect
-        .poll(() => reactGrab.isToolbarCollapsed(), { timeout: 2000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isToolbarCollapsed(), { timeout: 2000 }).toBe(true);
 
       await reactGrab.page.evaluate((attrName) => {
         const host = document.querySelector(`[${attrName}]`);
         const shadowRoot = host?.shadowRoot;
         if (!shadowRoot) return;
         const root = shadowRoot.querySelector(`[${attrName}]`);
-        const toolbar = root?.querySelector<HTMLElement>(
-          "[data-react-grab-toolbar]",
-        );
+        const toolbar = root?.querySelector<HTMLElement>("[data-react-grab-toolbar]");
         const innerDiv = toolbar?.querySelector("div");
         innerDiv?.click();
       }, "data-react-grab");
 
-      await expect
-        .poll(() => reactGrab.isToolbarCollapsed(), { timeout: 2000 })
-        .toBe(false);
+      await expect.poll(() => reactGrab.isToolbarCollapsed(), { timeout: 2000 }).toBe(false);
     });
 
-    test("should toggle enabled state in vertical mode", async ({
-      reactGrab,
-    }) => {
+    test("should toggle enabled state in vertical mode", async ({ reactGrab }) => {
       await seedVerticalState(reactGrab.page, "right");
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 }).toBe(true);
 
       await reactGrab.clickToolbarEnabled();
       // HACK: Wait for toggle animation to complete
@@ -645,40 +508,28 @@ test.describe("Toolbar", () => {
       expect(info.snapEdge).toBe("right");
     });
 
-    test("vertical edge state should persist across page reloads", async ({
-      reactGrab,
-    }) => {
+    test("vertical edge state should persist across page reloads", async ({ reactGrab }) => {
       await seedVerticalState(reactGrab.page, "right");
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 }).toBe(true);
 
       await reactGrab.page.reload();
       await reactGrab.page.waitForLoadState("domcontentloaded");
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 }).toBe(true);
 
       const infoAfterReload = await reactGrab.getToolbarInfo();
       expect(infoAfterReload.snapEdge).toBe("right");
       expect(infoAfterReload.isVertical).toBe(true);
     });
 
-    test("vertical toolbar should be snapped to edge after reload", async ({
-      reactGrab,
-    }) => {
+    test("vertical toolbar should be snapped to edge after reload", async ({ reactGrab }) => {
       const viewportSize = await reactGrab.getViewportSize();
 
       await seedVerticalState(reactGrab.page, "right");
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 }).toBe(true);
 
       await reactGrab.page.reload();
       await reactGrab.page.waitForLoadState("domcontentloaded");
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 }).toBe(true);
 
       const info = await reactGrab.getToolbarInfo();
       expect(info.position).not.toBeNull();
@@ -692,9 +543,7 @@ test.describe("Toolbar", () => {
       reactGrab,
     }) => {
       await seedVerticalState(reactGrab.page, "right");
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 }).toBe(true);
       // HACK: Wait for toolbar fade-in animation to complete
       await reactGrab.page.waitForTimeout(600);
 
@@ -717,13 +566,9 @@ test.describe("Toolbar", () => {
       expect(horizontalInfo.isVertical).toBe(false);
     });
 
-    test("should be draggable from vertical position", async ({
-      reactGrab,
-    }) => {
+    test("should be draggable from vertical position", async ({ reactGrab }) => {
       await seedVerticalState(reactGrab.page, "right");
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 }).toBe(true);
       // HACK: Wait for toolbar fade-in animation to complete
       await reactGrab.page.waitForTimeout(600);
 

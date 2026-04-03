@@ -1,7 +1,3 @@
-export default function FreezeDemoLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function FreezeDemoLayout({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }

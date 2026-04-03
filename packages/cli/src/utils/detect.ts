@@ -6,12 +6,7 @@ import ignore from "ignore";
 export type PackageManager = "npm" | "yarn" | "pnpm" | "bun";
 export type Framework = "next" | "vite" | "tanstack" | "webpack" | "unknown";
 export type NextRouterType = "app" | "pages" | "unknown";
-export type UnsupportedFramework =
-  | "remix"
-  | "astro"
-  | "sveltekit"
-  | "gatsby"
-  | null;
+export type UnsupportedFramework = "remix" | "astro" | "sveltekit" | "gatsby" | null;
 
 interface ProjectInfo {
   packageManager: PackageManager;
@@ -23,16 +18,9 @@ interface ProjectInfo {
   unsupportedFramework: UnsupportedFramework;
 }
 
-const VALID_PACKAGE_MANAGERS: ReadonlySet<string> = new Set([
-  "npm",
-  "yarn",
-  "pnpm",
-  "bun",
-]);
+const VALID_PACKAGE_MANAGERS: ReadonlySet<string> = new Set(["npm", "yarn", "pnpm", "bun"]);
 
-const detectPackageManager = async (
-  projectRoot: string,
-): Promise<PackageManager> => {
+const detectPackageManager = async (projectRoot: string): Promise<PackageManager> => {
   const detected = await detect({ cwd: projectRoot });
   if (detected) {
     // @antfu/ni returns versioned agents like "pnpm@6" or "yarn@berry"
@@ -179,10 +167,7 @@ const getWorkspacePatterns = (projectRoot: string): string[] => {
   return [...new Set(patterns)];
 };
 
-const expandWorkspacePattern = (
-  projectRoot: string,
-  pattern: string,
-): string[] => {
+const expandWorkspacePattern = (projectRoot: string, pattern: string): string[] => {
   const isGlob = pattern.endsWith("/*");
   const cleanPattern = pattern.replace(/\/\*$/, "");
   const basePath = join(projectRoot, cleanPattern);
@@ -305,14 +290,7 @@ const scanDirectoryForProjects = (
         }
       }
 
-      projects.push(
-        ...scanDirectoryForProjects(
-          entryPath,
-          ignorer,
-          maxDepth,
-          currentDepth + 1,
-        ),
-      );
+      projects.push(...scanDirectoryForProjects(entryPath, ignorer, maxDepth, currentDepth + 1));
     }
   } catch {
     return projects;
@@ -332,11 +310,7 @@ export const findReactProjects = (projectRoot: string): WorkspaceProject[] => {
   }
 
   const ignorer = loadGitignore(projectRoot);
-  const scannedProjects = scanDirectoryForProjects(
-    projectRoot,
-    ignorer,
-    MAX_SCAN_DEPTH,
-  );
+  const scannedProjects = scanDirectoryForProjects(projectRoot, ignorer, MAX_SCAN_DEPTH);
   if (scannedProjects.length > 0) {
     return scannedProjects;
   }
@@ -414,9 +388,7 @@ export const detectReactGrab = (projectRoot: string): boolean => {
   return filesToCheck.some(hasReactGrabInFile);
 };
 
-export const detectUnsupportedFramework = (
-  projectRoot: string,
-): UnsupportedFramework => {
+export const detectUnsupportedFramework = (projectRoot: string): UnsupportedFramework => {
   const packageJsonPath = join(projectRoot, "package.json");
 
   if (!existsSync(packageJsonPath)) {
@@ -452,17 +424,14 @@ export const detectUnsupportedFramework = (
   }
 };
 
-export const detectProject = async (
-  projectRoot: string = process.cwd(),
-): Promise<ProjectInfo> => {
+export const detectProject = async (projectRoot: string = process.cwd()): Promise<ProjectInfo> => {
   const framework = detectFramework(projectRoot);
   const packageManager = await detectPackageManager(projectRoot);
 
   return {
     packageManager,
     framework,
-    nextRouterType:
-      framework === "next" ? detectNextRouterType(projectRoot) : "unknown",
+    nextRouterType: framework === "next" ? detectNextRouterType(projectRoot) : "unknown",
     isMonorepo: detectMonorepo(projectRoot),
     projectRoot,
     hasReactGrab: detectReactGrab(projectRoot),

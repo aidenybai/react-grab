@@ -11,10 +11,7 @@
 // rAF IDs, and cancelAnimationFrame handles both ID spaces transparently.
 // react-grab's own code uses native-raf.ts to bypass this wrapper entirely.
 
-import {
-  nativeCancelAnimationFrame,
-  nativeRequestAnimationFrame,
-} from "./native-raf.js";
+import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "./native-raf.js";
 
 let isRafFrozen = false;
 const pendingRafCallbacks = new Map<number, FrameRequestCallback>();
@@ -26,9 +23,7 @@ const replayedFakeToNativeId = new Map<
   { nativeId: number; callback: FrameRequestCallback }
 >();
 
-const isAnimationLibraryCallback = (
-  callback: FrameRequestCallback,
-): boolean => {
+const isAnimationLibraryCallback = (callback: FrameRequestCallback): boolean => {
   if (knownAnimationCallbacks.has(callback)) return true;
   if (!isRafFrozen || !("gsapVersions" in window)) return false;
 
@@ -51,17 +46,15 @@ if (typeof window !== "undefined") {
       return identifier;
     }
 
-    const nativeId = nativeRequestAnimationFrame(
-      (timestamp: DOMHighResTimeStamp) => {
-        if (isRafFrozen) {
-          const identifier = nextFakeRafId--;
-          pendingRafCallbacks.set(identifier, callback);
-          nativeIdToHeldId.set(nativeId, identifier);
-          return;
-        }
-        callback(timestamp);
-      },
-    );
+    const nativeId = nativeRequestAnimationFrame((timestamp: DOMHighResTimeStamp) => {
+      if (isRafFrozen) {
+        const identifier = nextFakeRafId--;
+        pendingRafCallbacks.set(identifier, callback);
+        nativeIdToHeldId.set(nativeId, identifier);
+        return;
+      }
+      callback(timestamp);
+    });
     return nativeId;
   };
 

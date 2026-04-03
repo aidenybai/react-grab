@@ -14,9 +14,7 @@ interface BaseBounds {
   height: number;
 }
 
-export const createBoundsFromDragRect = (
-  dragRect: DragRectWithPageCoords,
-): OverlayBounds => ({
+export const createBoundsFromDragRect = (dragRect: DragRectWithPageCoords): OverlayBounds => ({
   x: dragRect.pageX - window.scrollX,
   y: dragRect.pageY - window.scrollY,
   width: dragRect.width,
@@ -25,9 +23,7 @@ export const createBoundsFromDragRect = (
   transform: "none",
 });
 
-export const createPageRectFromBounds = (
-  bounds: BaseBounds,
-): DragRectWithPageCoords => ({
+export const createPageRectFromBounds = (bounds: BaseBounds): DragRectWithPageCoords => ({
   pageX: bounds.x + window.scrollX,
   pageY: bounds.y + window.scrollY,
   width: bounds.width,

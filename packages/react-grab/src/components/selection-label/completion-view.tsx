@@ -86,8 +86,7 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
       return;
     }
 
-    const isUndoRedo =
-      event.code === "KeyZ" && (event.metaKey || event.ctrlKey);
+    const isUndoRedo = event.code === "KeyZ" && (event.metaKey || event.ctrlKey);
     const isEnterWithoutShift = event.code === "Enter" && !event.shiftKey;
     const isEscape = event.code === "Escape";
 
@@ -112,10 +111,7 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
   const handleKeyDown = (event: KeyboardEvent) => {
     if (!confirmationFocusManager.isActive(instanceId)) return;
 
-    const isUndo =
-      event.code === "KeyZ" &&
-      (event.metaKey || event.ctrlKey) &&
-      !event.shiftKey;
+    const isUndo = event.code === "KeyZ" && (event.metaKey || event.ctrlKey) && !event.shiftKey;
     const isEnter = event.code === "Enter";
     const isEscape = event.code === "Escape";
 
@@ -210,10 +206,7 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
       </Show>
       <Show when={didCopy() || (!props.onDismiss && !props.onUndo)}>
         <div class="contain-layout shrink-0 flex items-center gap-0.5 py-1.5 px-2 w-full h-fit">
-          <IconCheck
-            size={14}
-            class="text-black/85 shrink-0 animate-success-pop"
-          />
+          <IconCheck size={14} class="text-black/85 shrink-0 animate-success-pop" />
           <span class="text-black text-[13px] leading-4 font-sans font-medium h-fit tabular-nums overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
             {displayStatusText()}
           </span>
@@ -222,9 +215,7 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
           </Show>
         </div>
       </Show>
-      <Show
-        when={!didCopy() && props.supportsFollowUp && props.onFollowUpSubmit}
-      >
+      <Show when={!didCopy() && props.supportsFollowUp && props.onFollowUpSubmit}>
         <BottomSection>
           <Show when={props.previousPrompt}>
             <div class="flex items-center gap-1 w-full mb-1 overflow-hidden">

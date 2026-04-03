@@ -10,10 +10,7 @@ const setGlobalEnabled = async (enabled: boolean): Promise<void> => {
   await chrome.storage.local.set({ [STORAGE_KEY]: enabled });
 };
 
-const updateActionIcon = async (
-  tabId: number,
-  enabled: boolean,
-): Promise<void> => {
+const updateActionIcon = async (tabId: number, enabled: boolean): Promise<void> => {
   const title = enabled ? "React Grab (Active)" : "React Grab (Inactive)";
   const badgeText = enabled ? "" : "OFF";
   const badgeColor = "#FF40E0";

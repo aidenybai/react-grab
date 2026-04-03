@@ -77,10 +77,7 @@ const getClients = (): ClientDefinition[] => {
     },
     {
       name: "Codex",
-      configPath: path.join(
-        process.env.CODEX_HOME || path.join(homeDir, ".codex"),
-        "config.toml",
-      ),
+      configPath: path.join(process.env.CODEX_HOME || path.join(homeDir, ".codex"), "config.toml"),
       configKey: "mcp_servers",
       format: "toml",
       serverConfig: stdioConfig,
@@ -172,40 +169,26 @@ export const installJsonClient = (client: ClientDefinition): void => {
     ? fs.readFileSync(client.configPath, "utf8")
     : "{}";
 
-  upsertIntoJsonc(
-    client.configPath,
-    content,
-    client.configKey,
-    SERVER_NAME,
-    client.serverConfig,
-  );
+  upsertIntoJsonc(client.configPath, content, client.configKey, SERVER_NAME, client.serverConfig);
 };
 
 export const installTomlClient = (client: ClientDefinition): void => {
   ensureDirectory(client.configPath);
 
-  const existingConfig: Record<string, unknown> = fs.existsSync(
-    client.configPath,
-  )
+  const existingConfig: Record<string, unknown> = fs.existsSync(client.configPath)
     ? TOML.parse(fs.readFileSync(client.configPath, "utf8"))
     : {};
 
-  const serverSection = (existingConfig[client.configKey] ?? {}) as Record<
-    string,
-    unknown
-  >;
+  const serverSection = (existingConfig[client.configKey] ?? {}) as Record<string, unknown>;
   serverSection[SERVER_NAME] = client.serverConfig;
   existingConfig[client.configKey] = serverSection;
 
   fs.writeFileSync(client.configPath, TOML.stringify(existingConfig));
 };
 
-export const getMcpClientNames = (): string[] =>
-  getClients().map((client) => client.name);
+export const getMcpClientNames = (): string[] => getClients().map((client) => client.name);
 
-export const installMcpServers = (
-  selectedClients?: string[],
-): InstallResult[] => {
+export const installMcpServers = (selectedClients?: string[]): InstallResult[] => {
   const allClients = getClients();
   const clients = selectedClients
     ? allClients.filter((client) => selectedClients.includes(client.name))
@@ -240,9 +223,7 @@ export const installMcpServers = (
   const successCount = results.filter((result) => result.success).length;
 
   if (successCount < results.length) {
-    installSpinner.warn(
-      `Installed to ${successCount}/${results.length} agents.`,
-    );
+    installSpinner.warn(`Installed to ${successCount}/${results.length} agents.`);
   } else {
     installSpinner.succeed(`Installed to ${successCount} agents.`);
   }

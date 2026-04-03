@@ -12,26 +12,16 @@ const parseOptionsFromJson = (rawValue: unknown): Partial<Options> | null => {
   if (typeof rawValue.enabled === "boolean") {
     parsedOptions.enabled = rawValue.enabled;
   }
-  if (
-    rawValue.activationMode === "toggle" ||
-    rawValue.activationMode === "hold"
-  ) {
+  if (rawValue.activationMode === "toggle" || rawValue.activationMode === "hold") {
     parsedOptions.activationMode = rawValue.activationMode;
   }
-  if (
-    typeof rawValue.keyHoldDuration === "number" &&
-    Number.isFinite(rawValue.keyHoldDuration)
-  ) {
+  if (typeof rawValue.keyHoldDuration === "number" && Number.isFinite(rawValue.keyHoldDuration)) {
     parsedOptions.keyHoldDuration = rawValue.keyHoldDuration;
   }
   if (typeof rawValue.allowActivationInsideInput === "boolean") {
-    parsedOptions.allowActivationInsideInput =
-      rawValue.allowActivationInsideInput;
+    parsedOptions.allowActivationInsideInput = rawValue.allowActivationInsideInput;
   }
-  if (
-    typeof rawValue.maxContextLines === "number" &&
-    Number.isFinite(rawValue.maxContextLines)
-  ) {
+  if (typeof rawValue.maxContextLines === "number" && Number.isFinite(rawValue.maxContextLines)) {
     parsedOptions.maxContextLines = rawValue.maxContextLines;
   }
   if (typeof rawValue.activationKey === "string") {
@@ -49,9 +39,7 @@ export const getScriptOptions = (): Partial<Options> | null => {
   if (typeof window === "undefined") return null;
   try {
     const currentScript =
-      document.currentScript instanceof HTMLScriptElement
-        ? document.currentScript
-        : null;
+      document.currentScript instanceof HTMLScriptElement ? document.currentScript : null;
     const dataOptions = currentScript?.getAttribute("data-options");
     if (!dataOptions) return null;
     return parseOptionsFromJson(JSON.parse(dataOptions));

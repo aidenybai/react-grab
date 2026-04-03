@@ -34,10 +34,7 @@ export const POST = async (request: Request): Promise<Response> => {
     });
   }
 
-  console.log(
-    `[CLI Report] ${payload.type}:`,
-    JSON.stringify(payload, null, 2),
-  );
+  console.log(`[CLI Report] ${payload.type}:`, JSON.stringify(payload, null, 2));
 
   return new Response("OK", { headers: getCorsHeaders(corsOptions) });
 };

@@ -1,2 +1,1 @@
-export const isEnterCode = (code: string): boolean =>
-  code === "Enter" || code === "NumpadEnter";
+export const isEnterCode = (code: string): boolean => code === "Enter" || code === "NumpadEnter";

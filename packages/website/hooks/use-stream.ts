@@ -13,9 +13,7 @@ type BlockContent = string | ReactNode | Array<string | ReactNode>;
 const getTextContent = (content: BlockContent): string => {
   if (typeof content === "string") return content;
   if (Array.isArray(content)) {
-    return content
-      .filter((item): item is string => typeof item === "string")
-      .join("");
+    return content.filter((item): item is string => typeof item === "string").join("");
   }
   return "";
 };
@@ -24,13 +22,7 @@ type StreamStatus = "pending" | "streaming" | "complete";
 
 export interface StreamBlock {
   id: string;
-  type:
-    | "thought"
-    | "message"
-    | "tool_call"
-    | "planning"
-    | "user_message"
-    | "code_block";
+  type: "thought" | "message" | "tool_call" | "planning" | "user_message" | "code_block";
   content: string | ReactNode | Array<string | ReactNode>;
   duration?: number;
   metadata?: Record<string, unknown>;
@@ -43,13 +35,7 @@ export interface StreamChunk {
 
 export interface StreamRenderedBlock {
   id: string;
-  type:
-    | "thought"
-    | "message"
-    | "tool_call"
-    | "planning"
-    | "user_message"
-    | "code_block";
+  type: "thought" | "message" | "tool_call" | "planning" | "user_message" | "code_block";
   content: string | ReactNode | Array<string | ReactNode>;
   chunks: StreamChunk[];
   status: StreamStatus;
@@ -173,8 +159,7 @@ export const useStream = ({
   }, [blocks]);
 
   useEffect(() => {
-    if (streamingRef.current || blocks.length === 0 || !hasCheckedStorage)
-      return;
+    if (streamingRef.current || blocks.length === 0 || !hasCheckedStorage) return;
 
     if (hasCompletedStream(storageKey)) return;
 
@@ -222,8 +207,7 @@ export const useStream = ({
       const isArray = Array.isArray(blockContent);
       const textContent = getTextContent(blockContent);
       const isReactNode = typeof blockContent !== "string" && !isArray;
-      const isInstantBlock =
-        currentBlock.type === "user_message" || isReactNode;
+      const isInstantBlock = currentBlock.type === "user_message" || isReactNode;
 
       if (currentCharIdx === 0) {
         setState((prev) => {
@@ -314,9 +298,7 @@ export const useStream = ({
         const newTextContent = existingTextContent + chunk;
 
         const newContent = isArray
-          ? blockContent.map((item) =>
-              typeof item === "string" ? newTextContent : item,
-            )
+          ? blockContent.map((item) => (typeof item === "string" ? newTextContent : item))
           : newTextContent;
 
         newBlocks[currentBlockIdx] = {

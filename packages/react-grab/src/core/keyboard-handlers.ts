@@ -34,16 +34,12 @@ interface KeyboardEventClaimer {
 export const setupKeyboardEventClaimer = (): KeyboardEventClaimer => {
   const claimedEvents = new WeakSet<KeyboardEvent>();
 
-  const originalKeyDescriptor = Object.getOwnPropertyDescriptor(
-    KeyboardEvent.prototype,
-    "key",
-  ) as KeyDescriptor | undefined;
+  const originalKeyDescriptor = Object.getOwnPropertyDescriptor(KeyboardEvent.prototype, "key") as
+    | KeyDescriptor
+    | undefined;
 
   let didPatch = false;
-  if (
-    originalKeyDescriptor?.get &&
-    !originalKeyDescriptor.get.__reactGrabPatched
-  ) {
+  if (originalKeyDescriptor?.get && !originalKeyDescriptor.get.__reactGrabPatched) {
     didPatch = true;
     const originalGetter = originalKeyDescriptor.get;
     const patchedGetter: PatchableGetter = function (this: KeyboardEvent) {
@@ -61,11 +57,7 @@ export const setupKeyboardEventClaimer = (): KeyboardEventClaimer => {
 
   const restore = () => {
     if (didPatch && originalKeyDescriptor) {
-      Object.defineProperty(
-        KeyboardEvent.prototype,
-        "key",
-        originalKeyDescriptor,
-      );
+      Object.defineProperty(KeyboardEvent.prototype, "key", originalKeyDescriptor);
     }
   };
 

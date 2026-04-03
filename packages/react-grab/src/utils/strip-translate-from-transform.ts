@@ -15,10 +15,7 @@ const parseMatrixValue = (value: string): number | null => {
   return isValidNumber(parsedValue) ? parsedValue : null;
 };
 
-const parseMatrixValues = (
-  valuesString: string,
-  expectedLength: number,
-): number[] | null => {
+const parseMatrixValues = (valuesString: string, expectedLength: number): number[] | null => {
   const rawValues = valuesString.split(",");
 
   if (rawValues.length !== expectedLength) {
@@ -37,12 +34,8 @@ const parseMatrixValues = (
   return parsedValues;
 };
 
-const isIdentityMatrix2d = (
-  a: number,
-  b: number,
-  c: number,
-  d: number,
-): boolean => a === 1 && b === 0 && c === 0 && d === 1;
+const isIdentityMatrix2d = (a: number, b: number, c: number, d: number): boolean =>
+  a === 1 && b === 0 && c === 0 && d === 1;
 
 const isIdentityMatrix3d = (values: number[]): boolean =>
   values[0] === 1 &&
@@ -59,9 +52,7 @@ const isIdentityMatrix3d = (values: number[]): boolean =>
   values[11] === 0 &&
   values[15] === 1;
 
-export const stripTranslateFromTransformString = (
-  transform: string,
-): string => {
+export const stripTranslateFromTransformString = (transform: string): string => {
   if (!transform || transform === "none") return "none";
 
   if (transform.startsWith("matrix")) {
@@ -102,8 +93,7 @@ export const stripTranslateFromMatrix = (matrix: DOMMatrix): string => {
   if (matrix.isIdentity) return "none";
 
   if (matrix.is2D) {
-    if (isIdentityMatrix2d(matrix.a, matrix.b, matrix.c, matrix.d))
-      return "none";
+    if (isIdentityMatrix2d(matrix.a, matrix.b, matrix.c, matrix.d)) return "none";
     return `matrix(${matrix.a}, ${matrix.b}, ${matrix.c}, ${matrix.d}, 0, 0)`;
   }
 

@@ -59,11 +59,7 @@ interface PausedContextState {
 
 let isUpdatesPaused = false;
 
-const getOrCache = <K extends object, V>(
-  cache: WeakMap<K, V>,
-  key: K,
-  create: () => V,
-): V => {
+const getOrCache = <K extends object, V>(cache: WeakMap<K, V>, key: K, create: () => V): V => {
   const cached = cache.get(key);
   if (cached) return cached;
   const value = create();
@@ -83,18 +79,12 @@ interface OriginalHooks {
 
 const patchedDispatchers = new WeakMap<object, OriginalHooks>();
 const wrappedDispatchCache = new WeakMap<DispatchFunction, DispatchFunction>();
-const wrappedStartTransitionCache = new WeakMap<
-  TransitionFunction,
-  TransitionFunction
->();
+const wrappedStartTransitionCache = new WeakMap<TransitionFunction, TransitionFunction>();
 const pendingStoreCallbacks = new Set<() => void>();
 const pendingTransitionCallbacks: Array<() => void> = [];
 const pendingStateUpdates: Array<() => void> = [];
 const pausedQueueStates = new WeakMap<HookQueue, PausedQueueState>();
-const pausedContextStates = new WeakMap<
-  ContextDependency,
-  PausedContextState
->();
+const pausedContextStates = new WeakMap<ContextDependency, PausedContextState>();
 const renderersWithPatchedDispatcher = new WeakSet<ReactRenderer>();
 const typedFiberRoots = _fiberRoots as Set<FiberRootLike>;
 
@@ -166,10 +156,7 @@ const pauseHookQueue = (queue: HookQueue): void => {
   if (!queue || pausedQueueStates.has(queue)) return;
 
   const pauseState: PausedQueueState = {
-    originalPendingDescriptor: Object.getOwnPropertyDescriptor(
-      queue,
-      "pending",
-    ),
+    originalPendingDescriptor: Object.getOwnPropertyDescriptor(queue, "pending"),
     pendingValueAtPause: queue.pending as PendingUpdate | null,
     bufferedPending: null,
   };
@@ -178,9 +165,7 @@ const pauseHookQueue = (queue: HookQueue): void => {
     pauseState.originalGetSnapshot = queue.getSnapshot;
     pauseState.snapshotValueAtPause = queue.getSnapshot();
     queue.getSnapshot = () =>
-      isUpdatesPaused
-        ? pauseState.snapshotValueAtPause
-        : pauseState.originalGetSnapshot!();
+      isUpdatesPaused ? pauseState.snapshotValueAtPause : pauseState.originalGetSnapshot!();
   }
 
   let currentPendingValue = pauseState.pendingValueAtPause;
@@ -230,11 +215,7 @@ const resumeHookQueue = (queue: HookQueue): void => {
   }
 
   if (pauseState.originalPendingDescriptor) {
-    Object.defineProperty(
-      queue,
-      "pending",
-      pauseState.originalPendingDescriptor,
-    );
+    Object.defineProperty(queue, "pending", pauseState.originalPendingDescriptor);
   } else {
     delete (queue as Record<string, unknown>).pending;
   }
@@ -243,12 +224,8 @@ const resumeHookQueue = (queue: HookQueue): void => {
 
   const dispatch = queue.dispatch;
   if (typeof dispatch === "function") {
-    const pendingActions = extractActionsFromChain(
-      pauseState.pendingValueAtPause ?? null,
-    );
-    const bufferedActions = extractActionsFromChain(
-      pauseState.bufferedPending ?? null,
-    );
+    const pendingActions = extractActionsFromChain(pauseState.pendingValueAtPause ?? null);
+    const bufferedActions = extractActionsFromChain(pauseState.bufferedPending ?? null);
     for (const action of [...pendingActions, ...bufferedActions]) {
       pendingStateUpdates.push(() => dispatch(action));
     }
@@ -261,10 +238,7 @@ const pauseContextDependency = (contextDependency: ContextDependency): void => {
   if (pausedContextStates.has(contextDependency)) return;
 
   const pauseState: PausedContextState = {
-    originalDescriptor: Object.getOwnPropertyDescriptor(
-      contextDependency,
-      "memoizedValue",
-    ),
+    originalDescriptor: Object.getOwnPropertyDescriptor(contextDependency, "memoizedValue"),
     frozenValue: contextDependency.memoizedValue,
   };
 
@@ -297,29 +271,21 @@ const pauseContextDependency = (contextDependency: ContextDependency): void => {
   // so we initialize a _memoizedValue backing field for the new getter to
   // read from.
   if (!pauseState.originalDescriptor?.get) {
-    (
-      contextDependency as unknown as { _memoizedValue: unknown }
-    )._memoizedValue = pauseState.frozenValue;
+    (contextDependency as unknown as { _memoizedValue: unknown })._memoizedValue =
+      pauseState.frozenValue;
   }
 
   pausedContextStates.set(contextDependency, pauseState);
 };
 
-const resumeContextDependency = (
-  contextDependency: ContextDependency,
-): void => {
+const resumeContextDependency = (contextDependency: ContextDependency): void => {
   const pauseState = pausedContextStates.get(contextDependency);
   if (!pauseState) return;
 
   if (pauseState.originalDescriptor) {
-    Object.defineProperty(
-      contextDependency,
-      "memoizedValue",
-      pauseState.originalDescriptor,
-    );
+    Object.defineProperty(contextDependency, "memoizedValue", pauseState.originalDescriptor);
   } else {
-    delete (contextDependency as unknown as Record<string, unknown>)
-      .memoizedValue;
+    delete (contextDependency as unknown as Record<string, unknown>).memoizedValue;
   }
 
   if (pauseState.didReceivePendingValue) {
@@ -329,10 +295,7 @@ const resumeContextDependency = (
   pausedContextStates.delete(contextDependency);
 };
 
-const forEachHookQueue = (
-  fiber: Fiber,
-  callback: (queue: HookQueue) => void,
-): void => {
+const forEachHookQueue = (fiber: Fiber, callback: (queue: HookQueue) => void): void => {
   let hookState = fiber.memoizedState as unknown as HookState | null;
   while (hookState) {
     if (hookState.queue && typeof hookState.queue === "object") {
@@ -346,8 +309,7 @@ const forEachContextDependency = (
   fiber: Fiber,
   callback: (contextDependency: ContextDependency) => void,
 ): void => {
-  let contextDependency = fiber.dependencies
-    ?.firstContext as ContextDependency | null;
+  let contextDependency = fiber.dependencies?.firstContext as ContextDependency | null;
   while (
     contextDependency &&
     typeof contextDependency === "object" &&
@@ -393,8 +355,7 @@ const patchDispatcher = (dispatcher: object): void => {
   typedDispatcher.useState = (...args: unknown[]) => {
     const result = originalHooks.useState.apply(dispatcher, args) as unknown;
     if (!isUpdatesPaused) return result;
-    if (!Array.isArray(result) || typeof result[1] !== "function")
-      return result;
+    if (!Array.isArray(result) || typeof result[1] !== "function") return result;
     const [state, dispatch] = result as [unknown, DispatchFunction];
     const wrappedDispatch = getOrCache(
       wrappedDispatchCache,
@@ -414,8 +375,7 @@ const patchDispatcher = (dispatcher: object): void => {
   typedDispatcher.useReducer = (...args: unknown[]) => {
     const result = originalHooks.useReducer.apply(dispatcher, args) as unknown;
     if (!isUpdatesPaused) return result;
-    if (!Array.isArray(result) || typeof result[1] !== "function")
-      return result;
+    if (!Array.isArray(result) || typeof result[1] !== "function") return result;
     const [state, dispatch] = result as [unknown, DispatchFunction];
     const wrappedDispatch = getOrCache(
       wrappedDispatchCache,
@@ -433,25 +393,16 @@ const patchDispatcher = (dispatcher: object): void => {
   };
 
   typedDispatcher.useTransition = (...args: unknown[]) => {
-    const result = originalHooks.useTransition.apply(
-      dispatcher,
-      args,
-    ) as unknown;
+    const result = originalHooks.useTransition.apply(dispatcher, args) as unknown;
     if (!isUpdatesPaused) return result;
-    if (!Array.isArray(result) || typeof result[1] !== "function")
-      return result;
-    const [isPending, startTransition] = result as [
-      boolean,
-      TransitionFunction,
-    ];
+    if (!Array.isArray(result) || typeof result[1] !== "function") return result;
+    const [isPending, startTransition] = result as [boolean, TransitionFunction];
     const wrappedStartTransition = getOrCache(
       wrappedStartTransitionCache,
       startTransition,
       () => (transitionCallback: () => void) => {
         if (isUpdatesPaused) {
-          pendingTransitionCallbacks.push(() =>
-            startTransition(transitionCallback),
-          );
+          pendingTransitionCallbacks.push(() => startTransition(transitionCallback));
         } else {
           startTransition(transitionCallback);
         }
@@ -529,10 +480,7 @@ const scheduleReactUpdate = (fiberRoots: Set<FiberRootLike>): void => {
             try {
               renderer.scheduleUpdate(fiberRoot.current);
             } catch (error) {
-              logRecoverableError(
-                "scheduleUpdate failed during unfreeze",
-                error,
-              );
+              logRecoverableError("scheduleUpdate failed during unfreeze", error);
             }
           }
         }

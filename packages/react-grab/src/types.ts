@@ -147,10 +147,7 @@ export interface AgentSession {
 }
 
 export interface AgentProvider<T = unknown> {
-  send: (
-    context: AgentContext<T>,
-    signal: AbortSignal,
-  ) => AsyncIterable<string>;
+  send: (context: AgentContext<T>, signal: AbortSignal) => AsyncIterable<string>;
   resume?: (
     sessionId: string,
     signal: AbortSignal,
@@ -200,11 +197,7 @@ export type ActivationMode = "toggle" | "hold";
 export interface ActionContextHooks {
   transformHtmlContent: (html: string, elements: Element[]) => Promise<string>;
   onOpenFile: (filePath: string, lineNumber?: number) => boolean | void;
-  transformOpenFileUrl: (
-    url: string,
-    filePath: string,
-    lineNumber?: number,
-  ) => string;
+  transformOpenFileUrl: (url: string, filePath: string, lineNumber?: number) => string;
 }
 
 export interface ActionContext {
@@ -272,18 +265,12 @@ export interface PluginHooks {
   onDragStart?: (startX: number, startY: number) => void;
   onDragEnd?: (elements: Element[], bounds: DragRect) => void;
   onBeforeCopy?: (elements: Element[]) => void | Promise<void>;
-  transformCopyContent?: (
-    content: string,
-    elements: Element[],
-  ) => string | Promise<string>;
+  transformCopyContent?: (content: string, elements: Element[]) => string | Promise<string>;
   onAfterCopy?: (elements: Element[], success: boolean) => void;
   onCopySuccess?: (elements: Element[], content: string) => void;
   onCopyError?: (error: Error) => void;
   onStateChange?: (state: ReactGrabState) => void;
-  onPromptModeChange?: (
-    isPromptMode: boolean,
-    context: PromptModeContext,
-  ) => void;
+  onPromptModeChange?: (isPromptMode: boolean, context: PromptModeContext) => void;
   onSelectionBox?: (
     visible: boolean,
     bounds: OverlayBounds | null,
@@ -298,24 +285,14 @@ export interface PluginHooks {
   ) => void;
   onContextMenu?: (element: Element, position: Position) => void;
   onOpenFile?: (filePath: string, lineNumber?: number) => boolean | void;
-  transformHtmlContent?: (
-    html: string,
-    elements: Element[],
-  ) => string | Promise<string>;
+  transformHtmlContent?: (html: string, elements: Element[]) => string | Promise<string>;
   transformAgentContext?: (
     context: AgentContext,
     elements: Element[],
   ) => AgentContext | Promise<AgentContext>;
   transformActionContext?: (context: ActionContext) => ActionContext;
-  transformOpenFileUrl?: (
-    url: string,
-    filePath: string,
-    lineNumber?: number,
-  ) => string;
-  transformSnippet?: (
-    snippet: string,
-    element: Element,
-  ) => string | Promise<string>;
+  transformOpenFileUrl?: (url: string, filePath: string, lineNumber?: number) => string;
+  transformSnippet?: (snippet: string, element: Element) => string | Promise<string>;
 }
 
 export interface PluginConfig {
@@ -408,12 +385,7 @@ export interface OverlayBounds {
   y: number;
 }
 
-export type SelectionLabelStatus =
-  | "idle"
-  | "copying"
-  | "copied"
-  | "fading"
-  | "error";
+export type SelectionLabelStatus = "idle" | "copying" | "copied" | "fading" | "error";
 
 export interface SelectionLabelInstance {
   id: string;
@@ -510,9 +482,7 @@ export interface ReactGrabRendererProps {
   onToggleEnabled?: () => void;
   shakeCount?: number;
   onToolbarStateChange?: (state: ToolbarState) => void;
-  onSubscribeToToolbarStateChanges?: (
-    callback: (state: ToolbarState) => void,
-  ) => () => void;
+  onSubscribeToToolbarStateChanges?: (callback: (state: ToolbarState) => void) => () => void;
   onToolbarSelectHoverChange?: (isHovered: boolean) => void;
   onToolbarRef?: (element: HTMLDivElement) => void;
   contextMenuPosition?: Position | null;

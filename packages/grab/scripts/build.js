@@ -57,18 +57,9 @@ const transformReadme = () => {
       '# <img src="https://github.com/aidenybai/react-grab/blob/main/.github/public/logo.png?raw=true" width="60" align="center" /> Grab',
     )
     .replace(/bundlephobia\/minzip\/react-grab/g, "bundlephobia/minzip/grab")
-    .replace(
-      /bundlephobia\.com\/package\/react-grab/g,
-      "bundlephobia.com/package/grab",
-    )
-    .replace(
-      /img\.shields\.io\/npm\/v\/react-grab/g,
-      "img.shields.io/npm/v/grab",
-    )
-    .replace(
-      /img\.shields\.io\/npm\/dt\/react-grab/g,
-      "img.shields.io/npm/dt/grab",
-    )
+    .replace(/bundlephobia\.com\/package\/react-grab/g, "bundlephobia.com/package/grab")
+    .replace(/img\.shields\.io\/npm\/v\/react-grab/g, "img.shields.io/npm/v/grab")
+    .replace(/img\.shields\.io\/npm\/dt\/react-grab/g, "img.shields.io/npm/dt/grab")
     .replace(/npmjs\.com\/package\/react-grab/g, "npmjs.com/package/grab")
     .replace(/npm install react-grab/g, "npm install grab")
     .replace(/npm i react-grab/g, "npm i grab")
@@ -99,10 +90,7 @@ const syncPackageJson = () => {
   destPackage.author = sourcePackage.author;
   destPackage.license = sourcePackage.license;
 
-  fs.writeFileSync(
-    destPackageJson,
-    JSON.stringify(destPackage, null, 2) + "\n",
-  );
+  fs.writeFileSync(destPackageJson, JSON.stringify(destPackage, null, 2) + "\n");
   console.log(`Synced package.json (version: ${destPackage.version})`);
 };
 

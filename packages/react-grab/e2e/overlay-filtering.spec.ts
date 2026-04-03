@@ -22,9 +22,7 @@ test.describe("Overlay Filtering", () => {
       expect(selectedElement).toBe(false);
     });
 
-    test("should not select elements inside react-grab shadow DOM", async ({
-      reactGrab,
-    }) => {
+    test("should not select elements inside react-grab shadow DOM", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
@@ -51,9 +49,7 @@ test.describe("Overlay Filtering", () => {
       expect(isInsideShadowDom).toBe(false);
     });
 
-    test("should select page elements through react-grab overlay", async ({
-      reactGrab,
-    }) => {
+    test("should select page elements through react-grab overlay", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
@@ -82,10 +78,7 @@ test.describe("Overlay Filtering", () => {
 
       const toolbarInfo = await reactGrab.getToolbarInfo();
       if (toolbarInfo.position) {
-        await reactGrab.page.mouse.move(
-          toolbarInfo.position.x + 10,
-          toolbarInfo.position.y + 10,
-        );
+        await reactGrab.page.mouse.move(toolbarInfo.position.x + 10, toolbarInfo.position.y + 10);
         await reactGrab.page.waitForTimeout(200);
 
         const state = await reactGrab.getState();
@@ -93,22 +86,16 @@ test.describe("Overlay Filtering", () => {
       }
     });
 
-    test("clicking through overlay should copy correct element", async ({
-      reactGrab,
-    }) => {
+    test("clicking through overlay should copy correct element", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement("[data-testid='todo-list'] h1");
       await reactGrab.waitForSelectionBox();
       await reactGrab.clickElement("[data-testid='todo-list'] h1");
 
-      await expect
-        .poll(() => reactGrab.getClipboardContent())
-        .toContain("Todo List");
+      await expect.poll(() => reactGrab.getClipboardContent()).toContain("Todo List");
     });
 
-    test("drag selection should work through overlay canvas", async ({
-      reactGrab,
-    }) => {
+    test("drag selection should work through overlay canvas", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.dragSelect("li:first-child", "li:nth-child(3)");
       await reactGrab.page.waitForTimeout(500);
@@ -119,9 +106,7 @@ test.describe("Overlay Filtering", () => {
   });
 
   test.describe("Shadow DOM isolation", () => {
-    test("should only filter elements inside react-grab shadow DOM", async ({
-      reactGrab,
-    }) => {
+    test("should only filter elements inside react-grab shadow DOM", async ({ reactGrab }) => {
       const shadowHostExists = await reactGrab.page.evaluate(() => {
         const host = document.querySelector("[data-react-grab]");
         return host !== null && host.shadowRoot !== null;
@@ -149,9 +134,7 @@ test.describe("Overlay Filtering", () => {
       expect(isReactGrabHostFiltered).toBe(true);
     });
 
-    test("should verify react-grab host has correct attribute", async ({
-      reactGrab,
-    }) => {
+    test("should verify react-grab host has correct attribute", async ({ reactGrab }) => {
       const hostHasAttribute = await reactGrab.page.evaluate(() => {
         const host = document.querySelector("[data-react-grab]");
         return host?.hasAttribute("data-react-grab") ?? false;

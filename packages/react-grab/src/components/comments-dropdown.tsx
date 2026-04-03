@@ -1,12 +1,4 @@
-import {
-  Show,
-  For,
-  onMount,
-  onCleanup,
-  createSignal,
-  createEffect,
-  on,
-} from "solid-js";
+import { Show, For, onMount, onCleanup, createSignal, createEffect, on } from "solid-js";
 import type { Component } from "solid-js";
 import type { CommentItem, DropdownAnchor } from "../types.js";
 import {
@@ -63,9 +55,7 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
   const getToolbarTargetRects = () => {
     if (!containerRef) return null;
     const rootNode = containerRef.getRootNode() as Document | ShadowRoot;
-    const toolbar = rootNode.querySelector<HTMLElement>(
-      "[data-react-grab-toolbar]",
-    );
+    const toolbar = rootNode.querySelector<HTMLElement>("[data-react-grab-toolbar]");
     if (!toolbar) return null;
     const rect = toolbar.getBoundingClientRect();
     return [
@@ -83,9 +73,7 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
     () => props.position,
   );
 
-  const [activeHeaderTooltip, setActiveHeaderTooltip] = createSignal<
-    "clear" | "copy" | null
-  >(null);
+  const [activeHeaderTooltip, setActiveHeaderTooltip] = createSignal<"clear" | "copy" | null>(null);
   const [isCopyAllConfirmed, setIsCopyAllConfirmed] = createSignal(false);
 
   let copyAllFeedbackTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -108,18 +96,13 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
   const clampedMaxWidth = () =>
     Math.min(
       DROPDOWN_MAX_WIDTH_PX,
-      window.innerWidth -
-        dropdown.displayPosition().left -
-        DROPDOWN_VIEWPORT_PADDING_PX,
+      window.innerWidth - dropdown.displayPosition().left - DROPDOWN_VIEWPORT_PADDING_PX,
     );
 
   const clampedMaxHeight = () =>
-    window.innerHeight -
-    dropdown.displayPosition().top -
-    DROPDOWN_VIEWPORT_PADDING_PX;
+    window.innerHeight - dropdown.displayPosition().top - DROPDOWN_VIEWPORT_PADDING_PX;
 
-  const panelMinWidth = () =>
-    Math.max(DROPDOWN_MIN_WIDTH_PX, props.position?.toolbarWidth ?? 0);
+  const panelMinWidth = () => Math.max(DROPDOWN_MIN_WIDTH_PX, props.position?.toolbarWidth ?? 0);
 
   onMount(() => {
     dropdown.measure();
@@ -155,8 +138,7 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
           left: `${dropdown.displayPosition().left}px`,
           "z-index": `${Z_INDEX_OVERLAY}`,
           "pointer-events": dropdown.isAnimatedIn() ? "auto" : "none",
-          "transform-origin":
-            DROPDOWN_EDGE_TRANSFORM_ORIGIN[dropdown.lastAnchorEdge()],
+          "transform-origin": DROPDOWN_EDGE_TRANSFORM_ORIGIN[dropdown.lastAnchorEdge()],
           opacity: dropdown.isAnimatedIn() ? "1" : "0",
           transform: dropdown.isAnimatedIn() ? "scale(1)" : "scale(0.95)",
         }}
@@ -171,10 +153,8 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
         onMouseLeave={(event: MouseEvent) => {
           const targetRects = getToolbarTargetRects();
           if (targetRects) {
-            safePolygonTracker.start(
-              { x: event.clientX, y: event.clientY },
-              targetRects,
-              () => props.onDropdownHover?.(false),
+            safePolygonTracker.start({ x: event.clientX, y: event.clientY }, targetRects, () =>
+              props.onDropdownHover?.(false),
             );
             return;
           }
@@ -211,10 +191,7 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
                   >
                     <IconTrash size={DROPDOWN_ICON_SIZE_PX} />
                   </button>
-                  <Tooltip
-                    visible={activeHeaderTooltip() === "clear"}
-                    position="top"
-                  >
+                  <Tooltip visible={activeHeaderTooltip() === "clear"} position="top">
                     Clear all
                   </Tooltip>
                 </div>
@@ -252,16 +229,10 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
                         </span>
                       }
                     >
-                      <IconCheck
-                        size={DROPDOWN_ICON_SIZE_PX}
-                        class="text-black"
-                      />
+                      <IconCheck size={DROPDOWN_ICON_SIZE_PX} class="text-black" />
                     </Show>
                   </button>
-                  <Tooltip
-                    visible={activeHeaderTooltip() === "copy"}
-                    position="top"
-                  >
+                  <Tooltip visible={activeHeaderTooltip() === "copy"} position="top">
                     Copy all
                   </Tooltip>
                 </div>
@@ -296,10 +267,7 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
                       props.onSelectItem?.(item);
                     }}
                     onKeyDown={(event) => {
-                      if (
-                        event.code === "Space" &&
-                        event.currentTarget === event.target
-                      ) {
+                      if (event.code === "Space" && event.currentTarget === event.target) {
                         event.preventDefault();
                         event.stopPropagation();
                         props.onSelectItem?.(item);

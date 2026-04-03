@@ -4,11 +4,7 @@ interface IconNextjsProps {
   className?: string;
 }
 
-export const IconNextjs = ({
-  width = 14,
-  height = 14,
-  className = "",
-}: IconNextjsProps) => (
+export const IconNextjs = ({ width = 14, height = 14, className = "" }: IconNextjsProps) => (
   <span
     className={`inline-flex grayscale opacity-50 ${className}`}
     dangerouslySetInnerHTML={{

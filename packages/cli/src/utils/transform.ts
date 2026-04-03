@@ -1,10 +1,4 @@
-import {
-  accessSync,
-  constants,
-  existsSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
+import { accessSync, constants, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Framework, NextRouterType } from "./detect.js";
 import {
@@ -183,8 +177,7 @@ const transformNextAppRouter = (
   const originalContent = readFileSync(layoutPath, "utf-8");
   let newContent = originalContent;
   const hasReactGrabInFile = hasReactGrabCode(originalContent);
-  const hasReactGrabInInstrumentationFile =
-    hasReactGrabInInstrumentation(projectRoot);
+  const hasReactGrabInInstrumentationFile = hasReactGrabInInstrumentation(projectRoot);
 
   if (!force && hasReactGrabInFile && reactGrabAlreadyConfigured) {
     return alreadyConfiguredResult(layoutPath);
@@ -196,9 +189,7 @@ const transformNextAppRouter = (
       filePath: layoutPath,
       message:
         "React Grab is already installed" +
-        (hasReactGrabInInstrumentationFile
-          ? " in instrumentation-client"
-          : " in this file"),
+        (hasReactGrabInInstrumentationFile ? " in instrumentation-client" : " in this file"),
       noChanges: true,
     };
   }
@@ -206,10 +197,7 @@ const transformNextAppRouter = (
   if (!newContent.includes('import Script from "next/script"')) {
     const importMatch = newContent.match(/^import .+ from ['"].+['"];?\s*$/m);
     if (importMatch) {
-      newContent = newContent.replace(
-        importMatch[0],
-        `${importMatch[0]}\n${SCRIPT_IMPORT}`,
-      );
+      newContent = newContent.replace(importMatch[0], `${importMatch[0]}\n${SCRIPT_IMPORT}`);
     } else {
       newContent = `${SCRIPT_IMPORT}\n\n${newContent}`;
     }
@@ -277,8 +265,7 @@ const transformNextPagesRouter = (
   const originalContent = readFileSync(documentPath, "utf-8");
   let newContent = originalContent;
   const hasReactGrabInFile = hasReactGrabCode(originalContent);
-  const hasReactGrabInInstrumentationFile =
-    hasReactGrabInInstrumentation(projectRoot);
+  const hasReactGrabInInstrumentationFile = hasReactGrabInInstrumentation(projectRoot);
 
   if (!force && hasReactGrabInFile && reactGrabAlreadyConfigured) {
     return alreadyConfiguredResult(documentPath);
@@ -290,9 +277,7 @@ const transformNextPagesRouter = (
       filePath: documentPath,
       message:
         "React Grab is already installed" +
-        (hasReactGrabInInstrumentationFile
-          ? " in instrumentation-client"
-          : " in this file"),
+        (hasReactGrabInInstrumentationFile ? " in instrumentation-client" : " in this file"),
       noChanges: true,
     };
   }
@@ -300,10 +285,7 @@ const transformNextPagesRouter = (
   if (!newContent.includes('import Script from "next/script"')) {
     const importMatch = newContent.match(/^import .+ from ['"].+['"];?\s*$/m);
     if (importMatch) {
-      newContent = newContent.replace(
-        importMatch[0],
-        `${importMatch[0]}\n${SCRIPT_IMPORT}`,
-      );
+      newContent = newContent.replace(importMatch[0], `${importMatch[0]}\n${SCRIPT_IMPORT}`);
     }
   }
 
@@ -351,10 +333,7 @@ const transformVite = (
   if (!force) {
     const indexPath = findIndexHtml(projectRoot);
     if (indexPath) {
-      const existingResult = checkExistingInstallation(
-        indexPath,
-        reactGrabAlreadyConfigured,
-      );
+      const existingResult = checkExistingInstallation(indexPath, reactGrabAlreadyConfigured);
       if (existingResult) return existingResult;
     }
   }
@@ -368,10 +347,7 @@ const transformVite = (
   }
 
   if (!force) {
-    const existingResult = checkExistingInstallation(
-      entryPath,
-      reactGrabAlreadyConfigured,
-    );
+    const existingResult = checkExistingInstallation(entryPath, reactGrabAlreadyConfigured);
     if (existingResult) return existingResult;
   }
 
@@ -403,10 +379,7 @@ const transformWebpack = (
   }
 
   if (!force) {
-    const existingResult = checkExistingInstallation(
-      entryPath,
-      reactGrabAlreadyConfigured,
-    );
+    const existingResult = checkExistingInstallation(entryPath, reactGrabAlreadyConfigured);
     if (existingResult) return existingResult;
   }
 
@@ -462,12 +435,11 @@ const transformTanStack = (
     };
   }
 
-  const hasUseEffectImport =
-    /import\s+\{[^}]*useEffect[^}]*\}\s+from\s+["']react["']/.test(newContent);
+  const hasUseEffectImport = /import\s+\{[^}]*useEffect[^}]*\}\s+from\s+["']react["']/.test(
+    newContent,
+  );
   if (!hasUseEffectImport) {
-    const reactImportMatch = newContent.match(
-      /import\s+\{([^}]*)\}\s+from\s+["']react["'];?/,
-    );
+    const reactImportMatch = newContent.match(/import\s+\{([^}]*)\}\s+from\s+["']react["'];?/);
     if (reactImportMatch) {
       const existingImports = reactImportMatch[1];
       newContent = newContent.replace(
@@ -475,9 +447,7 @@ const transformTanStack = (
         `import { ${existingImports.trim()}, useEffect } from "react";`,
       );
     } else {
-      const firstImportMatch = newContent.match(
-        /^import .+ from ['"].+['"];?\s*$/m,
-      );
+      const firstImportMatch = newContent.match(/^import .+ from ['"].+['"];?\s*$/m);
       if (firstImportMatch) {
         newContent = newContent.replace(
           firstImportMatch[0],
@@ -524,17 +494,9 @@ export const previewTransform = (
   switch (framework) {
     case "next":
       if (nextRouterType === "app") {
-        return transformNextAppRouter(
-          projectRoot,
-          reactGrabAlreadyConfigured,
-          force,
-        );
+        return transformNextAppRouter(projectRoot, reactGrabAlreadyConfigured, force);
       }
-      return transformNextPagesRouter(
-        projectRoot,
-        reactGrabAlreadyConfigured,
-        force,
-      );
+      return transformNextPagesRouter(projectRoot, reactGrabAlreadyConfigured, force);
 
     case "vite":
       return transformVite(projectRoot, reactGrabAlreadyConfigured, force);
@@ -563,9 +525,7 @@ const canWriteToFile = (filePath: string): boolean => {
   }
 };
 
-export const applyTransform = (
-  result: TransformResult,
-): { success: boolean; error?: string } => {
+export const applyTransform = (result: TransformResult): { success: boolean; error?: string } => {
   if (result.success && result.newContent && result.filePath) {
     if (!canWriteToFile(result.filePath)) {
       return {
@@ -603,9 +563,7 @@ const formatOptionsForNextjs = (options: ReactGrabOptions): string => {
   }
 
   if (options.allowActivationInsideInput !== undefined) {
-    parts.push(
-      `allowActivationInsideInput: ${options.allowActivationInsideInput}`,
-    );
+    parts.push(`allowActivationInsideInput: ${options.allowActivationInsideInput}`);
   }
 
   if (options.maxContextLines !== undefined) {
@@ -631,8 +589,7 @@ const formatOptionsAsJson = (options: ReactGrabOptions): string => {
   }
 
   if (options.allowActivationInsideInput !== undefined) {
-    cleanOptions.allowActivationInsideInput =
-      options.allowActivationInsideInput;
+    cleanOptions.allowActivationInsideInput = options.allowActivationInsideInput;
   }
 
   if (options.maxContextLines !== undefined) {
@@ -694,18 +651,13 @@ const addOptionsToNextScript = (
   const scriptOpening = reactGrabScriptMatch[1];
   const scriptClosing = reactGrabScriptMatch[2];
 
-  const existingDataOptionsMatch = scriptTag.match(
-    /data-options=\{JSON\.stringify\([^)]+\)\}/,
-  );
+  const existingDataOptionsMatch = scriptTag.match(/data-options=\{JSON\.stringify\([^)]+\)\}/);
 
   const dataOptionsAttr = `data-options={JSON.stringify(\n              ${formatOptionsForNextjs(options)}\n            )}`;
 
   let newScriptTag: string;
   if (existingDataOptionsMatch) {
-    newScriptTag = scriptTag.replace(
-      existingDataOptionsMatch[0],
-      dataOptionsAttr,
-    );
+    newScriptTag = scriptTag.replace(existingDataOptionsMatch[0], dataOptionsAttr);
   } else {
     newScriptTag = `${scriptOpening}\n            ${dataOptionsAttr}\n          ${scriptClosing}`;
   }
@@ -741,10 +693,7 @@ const addOptionsToDynamicImport = (
   const optionsJson = formatOptionsAsJson(options);
   const newImport = `import("react-grab").then((m) => m.init(${optionsJson}))`;
 
-  const newContent = originalContent.replace(
-    reactGrabImportWithInitMatch[0],
-    newImport,
-  );
+  const newContent = originalContent.replace(reactGrabImportWithInitMatch[0], newImport);
 
   return {
     success: true,
@@ -775,10 +724,7 @@ const addOptionsToTanStackImport = (
   const optionsJson = formatOptionsAsJson(options);
   const newImport = `import("react-grab/core").then(({ init }) => init(${optionsJson}))`;
 
-  const newContent = originalContent.replace(
-    reactGrabImportWithInitMatch[0],
-    newImport,
-  );
+  const newContent = originalContent.replace(reactGrabImportWithInitMatch[0], newImport);
 
   return {
     success: true,
@@ -849,10 +795,7 @@ export const previewCdnTransform = (
   }
   const originalContent = readFileSync(filePath, "utf-8");
   const newContent = originalContent
-    .replace(
-      /(https?:)?\/\/[^/\s"']+(?=\/(?:@?react-grab))/g,
-      `//${targetCdnDomain}`,
-    )
+    .replace(/(https?:)?\/\/[^/\s"']+(?=\/(?:@?react-grab))/g, `//${targetCdnDomain}`)
     .replace(
       /(https?:)?\/\/[^/\s"']*react-grab[^/\s"']*\.com(?=\/script\.js)/g,
       `//${targetCdnDomain}`,

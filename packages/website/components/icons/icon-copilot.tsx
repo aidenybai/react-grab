@@ -4,11 +4,7 @@ interface IconCopilotProps {
   className?: string;
 }
 
-export const IconCopilot = ({
-  width = 14,
-  height = 14,
-  className = "",
-}: IconCopilotProps) => (
+export const IconCopilot = ({ width = 14, height = 14, className = "" }: IconCopilotProps) => (
   <svg
     fill="currentColor"
     fillRule="evenodd"

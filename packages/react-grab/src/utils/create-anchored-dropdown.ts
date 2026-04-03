@@ -8,10 +8,7 @@ import {
   DROPDOWN_VIEWPORT_PADDING_PX,
 } from "../constants.js";
 import { getAnchoredDropdownPosition } from "./get-anchored-dropdown-position.js";
-import {
-  nativeCancelAnimationFrame,
-  nativeRequestAnimationFrame,
-} from "./native-raf.js";
+import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "./native-raf.js";
 
 interface AnchoredDropdownResult {
   shouldMount: Accessor<boolean>;
@@ -31,8 +28,7 @@ export const createAnchoredDropdown = (
   const [shouldMount, setShouldMount] = createSignal(false);
   const [isAnimatedIn, setIsAnimatedIn] = createSignal(false);
   const [viewportVersion, setViewportVersion] = createSignal(0);
-  const [lastAnchorEdge, setLastAnchorEdge] =
-    createSignal<DropdownAnchor["edge"]>("bottom");
+  const [lastAnchorEdge, setLastAnchorEdge] = createSignal<DropdownAnchor["edge"]>("bottom");
 
   let exitAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
   let enterAnimationFrameId: number | undefined;
@@ -54,9 +50,7 @@ export const createAnchoredDropdown = (
   };
 
   const handleViewportChange = () => {
-    setViewportVersion(
-      (previousViewportVersion) => previousViewportVersion + 1,
-    );
+    setViewportVersion((previousViewportVersion) => previousViewportVersion + 1);
     measure();
   };
 
@@ -66,8 +60,7 @@ export const createAnchoredDropdown = (
       setLastAnchorEdge(anchor.edge);
       clearTimeout(exitAnimationTimeout);
       setShouldMount(true);
-      if (enterAnimationFrameId !== undefined)
-        nativeCancelAnimationFrame(enterAnimationFrameId);
+      if (enterAnimationFrameId !== undefined) nativeCancelAnimationFrame(enterAnimationFrameId);
       // The rAF waits for layout so dimensions are non-zero. The forced reflow
       // via offsetHeight then commits the computed position before the opacity
       // transition starts, preventing a flash at the offscreen initial position.
@@ -77,8 +70,7 @@ export const createAnchoredDropdown = (
         setIsAnimatedIn(true);
       });
     } else {
-      if (enterAnimationFrameId !== undefined)
-        nativeCancelAnimationFrame(enterAnimationFrameId);
+      if (enterAnimationFrameId !== undefined) nativeCancelAnimationFrame(enterAnimationFrameId);
       setIsAnimatedIn(false);
       exitAnimationTimeout = setTimeout(() => {
         setShouldMount(false);
@@ -97,37 +89,28 @@ export const createAnchoredDropdown = (
 
     onCleanup(() => {
       window.removeEventListener("resize", handleViewportChange);
-      window.visualViewport?.removeEventListener(
-        "resize",
-        handleViewportChange,
-      );
-      window.visualViewport?.removeEventListener(
-        "scroll",
-        handleViewportChange,
-      );
+      window.visualViewport?.removeEventListener("resize", handleViewportChange);
+      window.visualViewport?.removeEventListener("scroll", handleViewportChange);
     });
   });
 
-  const displayPosition = createMemo(
-    (previousPosition: { left: number; top: number }) => {
-      viewportVersion();
-      const position = getAnchoredDropdownPosition({
-        anchor: anchorAccessor(),
-        measuredWidth: measuredWidth(),
-        measuredHeight: measuredHeight(),
-        viewportWidth: window.innerWidth,
-        viewportHeight: window.innerHeight,
-        anchorGapPx: DROPDOWN_ANCHOR_GAP_PX,
-        viewportPaddingPx: DROPDOWN_VIEWPORT_PADDING_PX,
-        offscreenPosition: DROPDOWN_OFFSCREEN_POSITION,
-      });
-      if (position.left !== DROPDOWN_OFFSCREEN_POSITION.left) {
-        return position;
-      }
-      return previousPosition;
-    },
-    DROPDOWN_OFFSCREEN_POSITION,
-  );
+  const displayPosition = createMemo((previousPosition: { left: number; top: number }) => {
+    viewportVersion();
+    const position = getAnchoredDropdownPosition({
+      anchor: anchorAccessor(),
+      measuredWidth: measuredWidth(),
+      measuredHeight: measuredHeight(),
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+      anchorGapPx: DROPDOWN_ANCHOR_GAP_PX,
+      viewportPaddingPx: DROPDOWN_VIEWPORT_PADDING_PX,
+      offscreenPosition: DROPDOWN_OFFSCREEN_POSITION,
+    });
+    if (position.left !== DROPDOWN_OFFSCREEN_POSITION.left) {
+      return position;
+    }
+    return previousPosition;
+  }, DROPDOWN_OFFSCREEN_POSITION);
 
   return {
     shouldMount,

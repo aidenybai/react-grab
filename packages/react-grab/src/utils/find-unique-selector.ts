@@ -15,13 +15,7 @@ const PENALTY_TAG = 5;
 const PENALTY_NTH_OF_TYPE = 10;
 const PENALTY_NTH_CHILD = 50;
 
-const ACCEPTED_ATTR_NAMES = new Set([
-  "role",
-  "name",
-  "aria-label",
-  "rel",
-  "href",
-]);
+const ACCEPTED_ATTR_NAMES = new Set(["role", "name", "aria-label", "rel", "href"]);
 
 const isWordLike = (text: string): boolean => {
   if (!/^[a-z\-]{3,}$/i.test(text)) return false;
@@ -33,16 +27,12 @@ const isWordLike = (text: string): boolean => {
   return true;
 };
 
-export const isAcceptedAttr = (
-  attributeName: string,
-  attributeValue: string,
-): boolean => {
+export const isAcceptedAttr = (attributeName: string, attributeValue: string): boolean => {
   const nameIsAccepted =
     ACCEPTED_ATTR_NAMES.has(attributeName) ||
     (attributeName.startsWith("data-") && isWordLike(attributeName));
   const valueIsAccepted =
-    (isWordLike(attributeValue) &&
-      attributeValue.length < ATTR_VALUE_MAX_LENGTH_CHARS) ||
+    (isWordLike(attributeValue) && attributeValue.length < ATTR_VALUE_MAX_LENGTH_CHARS) ||
     (attributeValue.startsWith("#") && isWordLike(attributeValue.slice(1)));
   return nameIsAccepted && valueIsAccepted;
 };
@@ -66,10 +56,7 @@ const calculatePenalty = (path: SelectorNode[]): number => {
 const comparePenalty = (pathA: SelectorNode[], pathB: SelectorNode[]): number =>
   calculatePenalty(pathA) - calculatePenalty(pathB);
 
-const getChildIndex = (
-  element: Element,
-  filterTagName?: string,
-): number | undefined => {
+const getChildIndex = (element: Element, filterTagName?: string): number | undefined => {
   const parentNode = element.parentNode;
   if (!parentNode) return undefined;
 
@@ -80,8 +67,7 @@ const getChildIndex = (
   while (sibling) {
     if (
       sibling.nodeType === Node.ELEMENT_NODE &&
-      (filterTagName === undefined ||
-        (sibling as Element).tagName.toLowerCase() === filterTagName)
+      (filterTagName === undefined || (sibling as Element).tagName.toLowerCase() === filterTagName)
     ) {
       position++;
     }
@@ -164,11 +150,7 @@ const collectCombinations = (
     const remainingBudget = budget - results.length;
     if (remainingBudget <= 0) break;
     results.push(
-      ...collectCombinations(
-        stack.slice(1),
-        remainingBudget,
-        [...currentPath, selectorNode],
-      ),
+      ...collectCombinations(stack.slice(1), remainingBudget, [...currentPath, selectorNode]),
     );
   }
   return results;
@@ -189,8 +171,7 @@ const resolveRootDocument = (
 const isSelectorUnique = (
   selectorPath: SelectorNode[],
   rootDocument: Element | Document,
-): boolean =>
-  rootDocument.querySelectorAll(buildSelectorString(selectorPath)).length === 1;
+): boolean => rootDocument.querySelectorAll(buildSelectorString(selectorPath)).length === 1;
 
 const buildFallbackPath = (
   targetElement: Element,
@@ -248,9 +229,7 @@ export const findUniqueSelector = (
         if (Date.now() - startTime > timeoutMs) {
           const fallbackPath = buildFallbackPath(targetElement, rootDocument);
           if (!fallbackPath) {
-            throw new Error(
-              `Timeout: Can't find a unique selector after ${timeoutMs}ms`,
-            );
+            throw new Error(`Timeout: Can't find a unique selector after ${timeoutMs}ms`);
           }
           return buildSelectorString(fallbackPath);
         }

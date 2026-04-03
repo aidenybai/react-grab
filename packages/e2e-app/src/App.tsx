@@ -36,13 +36,7 @@ const TodoList = () => {
   );
 };
 
-const NestedCard = ({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) => {
+const NestedCard = ({ title, children }: { title: string; children: React.ReactNode }) => {
   return (
     <div className="border rounded-lg p-4 bg-gray-50" data-testid="nested-card">
       <h3 className="font-semibold mb-2" data-testid="card-title">
@@ -82,10 +76,7 @@ const FormSection = () => {
       <h2 className="text-lg font-bold mb-4">Form Elements</h2>
       <div className="space-y-4">
         <div>
-          <label
-            htmlFor="test-input"
-            className="block text-sm font-medium mb-1"
-          >
+          <label htmlFor="test-input" className="block text-sm font-medium mb-1">
             Text Input
           </label>
           <input
@@ -99,10 +90,7 @@ const FormSection = () => {
           />
         </div>
         <div>
-          <label
-            htmlFor="test-textarea"
-            className="block text-sm font-medium mb-1"
-          >
+          <label htmlFor="test-textarea" className="block text-sm font-medium mb-1">
             Textarea
           </label>
           <textarea
@@ -145,10 +133,7 @@ const ScrollableSection = () => {
   return (
     <section className="border rounded-lg p-4" data-testid="scrollable-section">
       <h2 className="text-lg font-bold mb-4">Scrollable Content</h2>
-      <div
-        className="h-64 overflow-y-auto border rounded"
-        data-testid="scroll-container"
-      >
+      <div className="h-64 overflow-y-auto border rounded" data-testid="scroll-container">
         <ul className="divide-y">
           {items.map((item) => (
             <li
@@ -264,25 +249,15 @@ const VariousElements = () => {
         </div>
 
         <div className="flex gap-2">
-          <a
-            href="#"
-            className="text-blue-500 underline"
-            data-testid="link-element"
-          >
+          <a href="#" className="text-blue-500 underline" data-testid="link-element">
             Link Element
           </a>
-          <button
-            className="border px-2 py-1 rounded"
-            data-testid="plain-button"
-          >
+          <button className="border px-2 py-1 rounded" data-testid="plain-button">
             Plain Button
           </button>
         </div>
 
-        <table
-          className="border-collapse border w-full"
-          data-testid="table-element"
-        >
+        <table className="border-collapse border w-full" data-testid="table-element">
           <thead>
             <tr className="bg-gray-100">
               <th className="border p-2" data-testid="th-1">
@@ -335,20 +310,14 @@ const VariousElements = () => {
           />
         </div>
 
-        <article
-          className="p-3 bg-gray-50 rounded"
-          data-testid="article-element"
-        >
+        <article className="p-3 bg-gray-50 rounded" data-testid="article-element">
           <header data-testid="article-header">
             <h4 className="font-semibold">Article Title</h4>
           </header>
           <p className="text-sm text-gray-600" data-testid="article-content">
             Article content goes here. This is a semantic article element.
           </p>
-          <footer
-            className="text-xs text-gray-400 mt-2"
-            data-testid="article-footer"
-          >
+          <footer className="text-xs text-gray-400 mt-2" data-testid="article-footer">
             Article Footer
           </footer>
         </article>
@@ -366,14 +335,8 @@ const AnimatedElements = () => {
           className="w-8 h-8 bg-blue-500 rounded-full animate-pulse"
           data-testid="animated-pulse"
         />
-        <div
-          className="w-8 h-8 bg-green-500 rounded animate-spin"
-          data-testid="animated-spin"
-        />
-        <div
-          className="w-8 h-8 bg-red-500 rounded animate-bounce"
-          data-testid="animated-bounce"
-        />
+        <div className="w-8 h-8 bg-green-500 rounded animate-spin" data-testid="animated-spin" />
+        <div className="w-8 h-8 bg-red-500 rounded animate-bounce" data-testid="animated-bounce" />
       </div>
     </section>
   );
@@ -381,10 +344,7 @@ const AnimatedElements = () => {
 
 const ZeroDimensionElements = () => {
   return (
-    <section
-      className="border rounded-lg p-4"
-      data-testid="zero-dimension-section"
-    >
+    <section className="border rounded-lg p-4" data-testid="zero-dimension-section">
       <h2 className="text-lg font-bold mb-4">Edge Case Elements</h2>
       <div className="space-y-2">
         <div className="w-0 h-0" data-testid="zero-size-element" />
@@ -410,10 +370,7 @@ const DropdownSection = () => {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent | PointerEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
@@ -480,10 +437,7 @@ const ModalDialogSection = () => {
     if (!isOpen) return;
 
     const handlePointerDown = (event: PointerEvent) => {
-      if (
-        dialogRef.current &&
-        !dialogRef.current.contains(event.target as Node)
-      ) {
+      if (dialogRef.current && !dialogRef.current.contains(event.target as Node)) {
         setDismissCount((previous) => previous + 1);
         setDismissReason("pointerdown outside (capture)");
         setIsOpen(false);
@@ -502,13 +456,8 @@ const ModalDialogSection = () => {
   }, [isOpen]);
 
   return (
-    <section
-      className="border rounded-lg p-4"
-      data-testid="modal-dialog-section"
-    >
-      <h2 className="text-lg font-bold mb-4">
-        Modal Dialog (pointerdown dismiss)
-      </h2>
+    <section className="border rounded-lg p-4" data-testid="modal-dialog-section">
+      <h2 className="text-lg font-bold mb-4">Modal Dialog (pointerdown dismiss)</h2>
       <button
         onClick={() => setIsOpen(true)}
         className="bg-indigo-500 text-white px-4 py-2 rounded"
@@ -522,10 +471,7 @@ const ModalDialogSection = () => {
       </div>
       {isOpen && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center">
-          <div
-            className="fixed inset-0 bg-black/50"
-            data-testid="modal-backdrop"
-          />
+          <div className="fixed inset-0 bg-black/50" data-testid="modal-backdrop" />
           <div
             ref={dialogRef}
             className="relative bg-white rounded-lg shadow-xl p-6 w-96 z-10"
@@ -533,8 +479,7 @@ const ModalDialogSection = () => {
           >
             <h3 className="text-lg font-bold mb-2">Modal Title</h3>
             <p className="mb-4">
-              Click inside here while React Grab is active. The modal should NOT
-              close.
+              Click inside here while React Grab is active. The modal should NOT close.
             </p>
             <button
               className="bg-blue-500 text-white px-3 py-1 rounded"
@@ -574,10 +519,7 @@ const PointerUpModalSection = () => {
       pointerDownTargetRef.current = null;
       if (!downTarget) return;
 
-      if (
-        dialogRef.current &&
-        !dialogRef.current.contains(downTarget as Node)
-      ) {
+      if (dialogRef.current && !dialogRef.current.contains(downTarget as Node)) {
         setDismissCount((previous) => previous + 1);
         setIsOpen(false);
       }
@@ -599,10 +541,7 @@ const PointerUpModalSection = () => {
   }, [isOpen]);
 
   return (
-    <section
-      className="border rounded-lg p-4"
-      data-testid="pointerup-modal-section"
-    >
+    <section className="border rounded-lg p-4" data-testid="pointerup-modal-section">
       <h2 className="text-lg font-bold mb-4">
         Modal Dialog (pointerdown+pointerup dismiss, Headless UI style)
       </h2>
@@ -613,10 +552,7 @@ const PointerUpModalSection = () => {
       >
         Open Modal
       </button>
-      <div
-        className="mt-2 text-sm text-gray-600"
-        data-testid="pointerup-dismiss-info"
-      >
+      <div className="mt-2 text-sm text-gray-600" data-testid="pointerup-dismiss-info">
         Dismiss count: {dismissCount}
       </div>
       {isOpen && (
@@ -628,9 +564,7 @@ const PointerUpModalSection = () => {
             data-testid="pointerup-modal-content"
           >
             <h3 className="text-lg font-bold mb-2">Headless UI Style Modal</h3>
-            <p className="mb-4">
-              Uses pointerdown+pointerup pair for outside detection.
-            </p>
+            <p className="mb-4">Uses pointerdown+pointerup pair for outside detection.</p>
             <button
               className="bg-blue-500 text-white px-3 py-1 rounded"
               data-testid="pointerup-modal-inner-button"
@@ -656,10 +590,7 @@ const HiddenToggleSection = () => {
   const elementRef = useRef<HTMLDivElement>(null);
 
   return (
-    <section
-      className="border rounded-lg p-4"
-      data-testid="hidden-toggle-section"
-    >
+    <section className="border rounded-lg p-4" data-testid="hidden-toggle-section">
       <h2 className="text-lg font-bold mb-4">Visibility Toggle</h2>
       <button
         onClick={() => setIsVisible(!isVisible)}
@@ -726,10 +657,7 @@ export default function App() {
         <p className="text-gray-400">Spacer for scroll testing</p>
       </div>
 
-      <footer
-        className="text-center text-gray-400 text-sm"
-        data-testid="footer"
-      >
+      <footer className="text-center text-gray-400 text-sm" data-testid="footer">
         End of test page
       </footer>
     </div>

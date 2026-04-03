@@ -13,9 +13,7 @@ interface ResumeRaceAgentInstallerWindow extends Window {
 }
 
 test.describe("Agent Resume Race", () => {
-  test("keeps resumed session visible when old cleanup finishes", async ({
-    reactGrab,
-  }) => {
+  test("keeps resumed session visible when old cleanup finishes", async ({ reactGrab }) => {
     await reactGrab.page.evaluate(
       ({ oldStreamAbortDelayMs, resumeStatusIntervalMs }) => {
         const currentWindow = window as ResumeRaceAgentInstallerWindow;
@@ -27,10 +25,7 @@ test.describe("Agent Resume Race", () => {
             return abortError;
           };
 
-          const waitForAbortWithDelay = (
-            signal: AbortSignal,
-            delayMs: number,
-          ): Promise<never> =>
+          const waitForAbortWithDelay = (signal: AbortSignal, delayMs: number): Promise<never> =>
             new Promise<never>((_, reject) => {
               const rejectWithAbortError = () => {
                 setTimeout(() => {

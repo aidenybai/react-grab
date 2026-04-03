@@ -66,8 +66,7 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
           left: `${dropdown.displayPosition().left}px`,
           "z-index": `${Z_INDEX_OVERLAY}`,
           "pointer-events": dropdown.isAnimatedIn() ? "auto" : "none",
-          "transform-origin":
-            DROPDOWN_EDGE_TRANSFORM_ORIGIN[dropdown.lastAnchorEdge()],
+          "transform-origin": DROPDOWN_EDGE_TRANSFORM_ORIGIN[dropdown.lastAnchorEdge()],
           opacity: dropdown.isAnimatedIn() ? "1" : "0",
           transform: dropdown.isAnimatedIn() ? "scale(1)" : "scale(0.95)",
         }}
@@ -98,9 +97,7 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
                     data-react-grab-menu-item={action.id}
                     class="relative z-1 contain-layout flex items-center justify-between w-full px-2 py-1 cursor-pointer text-left border-none bg-transparent"
                     onPointerDown={(event) => event.stopPropagation()}
-                    onPointerEnter={(event) =>
-                      updateHighlight(event.currentTarget)
-                    }
+                    onPointerEnter={(event) => updateHighlight(event.currentTarget)}
                     onPointerLeave={clearHighlight}
                     onClick={(event) => handleActionClick(action, event)}
                   >

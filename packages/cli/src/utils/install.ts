@@ -31,8 +31,6 @@ export const installPackages = (
   });
 };
 
-export const getPackagesToInstall = (
-  includeReactGrab: boolean = true,
-): string[] => {
+export const getPackagesToInstall = (includeReactGrab: boolean = true): string[] => {
   return includeReactGrab ? ["react-grab"] : [];
 };

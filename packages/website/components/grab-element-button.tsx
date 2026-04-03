@@ -153,8 +153,7 @@ export const GrabElementButton = ({
       const keyFromCode = getKeyFromCode(event.code);
       if (!keyFromCode) return;
 
-      const hasModifier =
-        event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
+      const hasModifier = event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
       if (!hasModifier) return;
 
       handleHotkeyChange({
@@ -282,10 +281,7 @@ export const GrabElementButton = ({
       onSelect(element);
     };
 
-    window.addEventListener(
-      "react-grab:element-selected",
-      handleElementSelected as EventListener,
-    );
+    window.addEventListener("react-grab:element-selected", handleElementSelected as EventListener);
 
     return () => {
       window.removeEventListener(
@@ -298,9 +294,7 @@ export const GrabElementButton = ({
   const renderHotkeyDisplay = (): ReactElement => {
     if (isRecordingHotkey) {
       return (
-        <span className="text-sm text-muted-foreground animate-pulse px-2 py-1">
-          Press keys
-        </span>
+        <span className="text-sm text-muted-foreground animate-pulse px-2 py-1">Press keys</span>
       );
     }
 
@@ -382,8 +376,7 @@ export const GrabElementButton = ({
             aria-hidden
             className="absolute inset-0 rounded-lg"
             style={{
-              boxShadow:
-                "0 0 24px rgba(215,95,203,0.6), 0 0 48px rgba(215,95,203,0.15)",
+              boxShadow: "0 0 24px rgba(215,95,203,0.6), 0 0 48px rgba(215,95,203,0.15)",
             }}
             initial={shouldReduceMotion ? false : { opacity: 0 }}
             animate={{ opacity: [0, 1, 0] }}

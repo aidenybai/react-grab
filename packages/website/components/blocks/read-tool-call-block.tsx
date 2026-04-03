@@ -29,10 +29,7 @@ export const ReadToolCallBlock = ({
       clearTimeout(timeoutRef.current);
     }
     setIsClicked(true);
-    timeoutRef.current = setTimeout(
-      () => setIsClicked(false),
-      CLICK_FEEDBACK_DURATION_MS,
-    );
+    timeoutRef.current = setTimeout(() => setIsClicked(false), CLICK_FEEDBACK_DURATION_MS);
   };
 
   return (

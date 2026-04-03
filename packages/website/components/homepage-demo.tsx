@@ -19,11 +19,7 @@ import {
   STREAM_DEMO_CHUNK_DELAY_MS,
   STREAM_DEMO_PRELOAD_ANIMATION_DELAY_MULTIPLIER,
 } from "@/constants";
-import {
-  useStream,
-  type StreamBlock,
-  type StreamRenderedBlock,
-} from "@/hooks/use-stream";
+import { useStream, type StreamBlock, type StreamRenderedBlock } from "@/hooks/use-stream";
 import { detectMobile } from "@/utils/detect-mobile";
 import { BenchmarkTooltip } from "./benchmark-tooltip";
 import { ThoughtBlock } from "./blocks/thought-block";
@@ -33,10 +29,7 @@ import { ReadToolCallBlock } from "./blocks/read-tool-call-block";
 import { ViewDocsButton } from "./view-docs-button";
 import { DemoFooter } from "./demo-footer";
 import { GithubButton } from "./github-button";
-import {
-  GrabElementButton,
-  type SelectedElementInfo,
-} from "./grab-element-button";
+import { GrabElementButton, type SelectedElementInfo } from "./grab-element-button";
 import { HotkeyProvider } from "./hotkey-context";
 import { IconClaude } from "./icons/icon-claude";
 import { IconCodex } from "./icons/icon-codex";
@@ -62,13 +55,7 @@ interface BlockConfig {
   content: ReactNode;
   duration?: number;
   check: "visible" | "complete";
-  role?:
-    | "grep"
-    | "grepError"
-    | "elementSelect"
-    | "elementAnalysis"
-    | "elementRead"
-    | "footer";
+  role?: "grep" | "grepError" | "elementSelect" | "elementAnalysis" | "elementRead" | "footer";
   demoOnly?: boolean;
   hideOnMobile?: boolean;
   wrapperClass?: string;
@@ -92,15 +79,12 @@ const Divider = (): ReactElement => <hr className="my-4 border-border" />;
 
 const ReactGrabIntro = (): ReactElement => (
   <div className="flex flex-col gap-2">
-    <div
-      className="inline-flex"
-      style={{ padding: "2px", transform: "translateX(-3px)" }}
-    >
+    <div className="inline-flex" style={{ padding: "2px", transform: "translateX(-3px)" }}>
       <ReactGrabLogo width={44} height={44} className="logo-shimmer-once" />
     </div>
     <div className="text-pretty">
-      <span className="font-bold">React&nbsp;Grab</span> lets you select context
-      for coding agents directly from your&nbsp;website.
+      <span className="font-bold">React&nbsp;Grab</span> lets you select context for coding agents
+      directly from your&nbsp;website.
     </div>
   </div>
 );
@@ -190,13 +174,10 @@ interface ElementAnalysisContentProps {
 const shortenFilePath = (filePath: string): string => {
   const parts = filePath.split("/");
   const startIndex = parts.findIndex((p) => PATH_START_MARKERS.includes(p));
-  return startIndex !== -1
-    ? parts.slice(startIndex).join("/")
-    : parts.slice(-2).join("/");
+  return startIndex !== -1 ? parts.slice(startIndex).join("/") : parts.slice(-2).join("/");
 };
 
-const getFileName = (filePath: string): string =>
-  filePath.split("/").pop() ?? filePath;
+const getFileName = (filePath: string): string => filePath.split("/").pop() ?? filePath;
 
 const ElementAnalysisContent = ({
   displayName,
@@ -273,18 +254,12 @@ const ElementSelectContent = ({
           <span className="absolute left-0 top-full mt-1 z-50 hidden group-hover:block min-w-[180px] rounded-lg border border-border bg-popover px-2.5 py-2 text-xs shadow-xl">
             <span className="absolute -top-1.5 left-3 h-3 w-3 rotate-45 border-l border-t border-border bg-popover" />
             <span className="flex flex-col gap-1">
-              {componentName && (
-                <TooltipRow label="Component" value={componentName} />
-              )}
+              {componentName && <TooltipRow label="Component" value={componentName} />}
               {shortPath && <TooltipRow label="File" value={shortPath} />}
               {lineNumber && <TooltipRow label="Line" value={lineNumber} />}
               {id && <TooltipRow label="ID" value={`#${id}`} />}
               {className && (
-                <TooltipRow
-                  label="Class"
-                  value={`.${className.split(" ")[0]}`}
-                  truncate
-                />
+                <TooltipRow label="Class" value={`.${className.split(" ")[0]}`} truncate />
               )}
             </span>
           </span>
@@ -406,15 +381,10 @@ interface RenderBlockProps {
   wasPreloaded: boolean;
 }
 
-const RenderBlock = ({
-  config,
-  block,
-  wasPreloaded,
-}: RenderBlockProps): ReactElement | null => {
+const RenderBlock = ({ config, block, wasPreloaded }: RenderBlockProps): ReactElement | null => {
   const animationDelay =
     config.animationDelayIndex !== undefined && wasPreloaded
-      ? config.animationDelayIndex *
-        STREAM_DEMO_PRELOAD_ANIMATION_DELAY_MULTIPLIER
+      ? config.animationDelayIndex * STREAM_DEMO_PRELOAD_ANIMATION_DELAY_MULTIPLIER
       : 0;
 
   switch (config.type) {
@@ -444,10 +414,7 @@ const formatElementSelector = (element: SelectedElementInfo): string => {
 
 export const HomepageDemo = (): ReactElement => {
   const [blockConfigs, setBlockConfigs] = useState(BLOCK_CONFIGS);
-  const streamBlocks = useMemo(
-    () => toStreamBlocks(blockConfigs),
-    [blockConfigs],
-  );
+  const streamBlocks = useMemo(() => toStreamBlocks(blockConfigs), [blockConfigs]);
   const [isMobile] = useState(detectMobile);
   const [isGrepComplete, setIsGrepComplete] = useState(false);
   const shouldResumeRef = useRef(false);
@@ -461,20 +428,16 @@ export const HomepageDemo = (): ReactElement => {
     skipAnimation: isMobile,
   });
 
-  const isVisible = (index: number): boolean =>
-    stream.blocks[index]?.status !== "pending";
+  const isVisible = (index: number): boolean => stream.blocks[index]?.status !== "pending";
 
-  const isComplete = (index: number): boolean =>
-    stream.blocks[index]?.status === "complete";
+  const isComplete = (index: number): boolean => stream.blocks[index]?.status === "complete";
 
   const handleGrepComplete = useCallback(() => {
     setIsGrepComplete(true);
   }, []);
 
   useEffect(() => {
-    const elementSelectConfig = blockConfigs.find(
-      (c) => c.role === "elementSelect",
-    );
+    const elementSelectConfig = blockConfigs.find((c) => c.role === "elementSelect");
     if (shouldResumeRef.current && elementSelectConfig?.content) {
       shouldResumeRef.current = false;
       stream.resume();
@@ -483,16 +446,12 @@ export const HomepageDemo = (): ReactElement => {
 
   const handleElementSelect = useCallback(
     (element: SelectedElementInfo) => {
-      const hasReactMetadata = Boolean(
-        element.componentName || element.filePath,
-      );
+      const hasReactMetadata = Boolean(element.componentName || element.filePath);
       const useFallback = !hasReactMetadata;
       const fallbackElement = useFallback ? FALLBACK_ELEMENT : null;
-      const componentName =
-        element.componentName ?? fallbackElement?.componentName ?? null;
+      const componentName = element.componentName ?? fallbackElement?.componentName ?? null;
       const filePath = element.filePath ?? fallbackElement?.filePath ?? null;
-      const lineNumber =
-        element.lineNumber ?? fallbackElement?.lineNumber ?? null;
+      const lineNumber = element.lineNumber ?? fallbackElement?.lineNumber ?? null;
 
       const selector = formatElementSelector(element);
       const displayName = componentName || selector;
@@ -551,14 +510,12 @@ export const HomepageDemo = (): ReactElement => {
             const block = stream.blocks[index];
             if (!block) return null;
 
-            const passesCheck =
-              config.check === "visible" ? isVisible(index) : isComplete(index);
+            const passesCheck = config.check === "visible" ? isVisible(index) : isComplete(index);
             const isDynamicRole =
               config.role === "elementSelect" ||
               config.role === "elementAnalysis" ||
               config.role === "elementRead";
-            const isGatedByGrep =
-              index > GREP_INDEX && config.demoOnly && !stream.wasPreloaded;
+            const isGatedByGrep = index > GREP_INDEX && config.demoOnly && !stream.wasPreloaded;
 
             const shouldHide =
               !passesCheck ||
@@ -571,16 +528,9 @@ export const HomepageDemo = (): ReactElement => {
 
             const element =
               config.role === "grep" && !stream.wasPreloaded ? (
-                <GrepSearchGroup
-                  searches={GREP_SEARCHES}
-                  onComplete={handleGrepComplete}
-                />
+                <GrepSearchGroup searches={GREP_SEARCHES} onComplete={handleGrepComplete} />
               ) : (
-                <RenderBlock
-                  config={config}
-                  block={block}
-                  wasPreloaded={stream.wasPreloaded}
-                />
+                <RenderBlock config={config} block={block} wasPreloaded={stream.wasPreloaded} />
               );
 
             return (
@@ -594,9 +544,7 @@ export const HomepageDemo = (): ReactElement => {
                 {config.role === "grepError" &&
                   stream.isPaused &&
                   isGrepComplete &&
-                  !stream.wasPreloaded && (
-                    <GrabElementButton onSelect={handleElementSelect} />
-                  )}
+                  !stream.wasPreloaded && <GrabElementButton onSelect={handleElementSelect} />}
 
                 {config.role === "footer" && isComplete(index) && (
                   <>
@@ -605,9 +553,7 @@ export const HomepageDemo = (): ReactElement => {
                       <GrabElementButton
                         onSelect={handleElementSelect}
                         showSkip={false}
-                        animationDelay={
-                          2 * STREAM_DEMO_PRELOAD_ANIMATION_DELAY_MULTIPLIER
-                        }
+                        animationDelay={2 * STREAM_DEMO_PRELOAD_ANIMATION_DELAY_MULTIPLIER}
                       />
                     )}
                   </>

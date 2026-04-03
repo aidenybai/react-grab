@@ -20,18 +20,14 @@ export const GrepToolCallBlock = ({
     <Collapsible
       header={
         <div className="flex flex-wrap gap-1">
-          <span className={isStreaming ? "shimmer-text" : ""}>
-            {displayName}
-          </span>
+          <span className={isStreaming ? "shimmer-text" : ""}>{displayName}</span>
           {isStreaming ? (
             <span className="text-[#5b5b5b]">{parameter}</span>
           ) : (
             <>
               <span className="text-[#5b5b5b]">{parameter}</span>
               <span>and found</span>
-              <span className="text-[#5b5b5b]">
-                {hasNoMatches ? "no matches" : result}
-              </span>
+              <span className="text-[#5b5b5b]">{hasNoMatches ? "no matches" : result}</span>
             </>
           )}
         </div>

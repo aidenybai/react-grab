@@ -8,12 +8,9 @@ let cachedNextBasePath: string | undefined;
 // "/app". When unset, scripts load from "/_next/…" (index 0) → empty string.
 export const getNextBasePath = (): string => {
   if (cachedNextBasePath !== undefined) return cachedNextBasePath;
-  const source = document.querySelector<HTMLScriptElement>(
-    'script[src*="/_next/"]',
-  )?.src;
+  const source = document.querySelector<HTMLScriptElement>('script[src*="/_next/"]')?.src;
   const pathname = source ? new URL(source).pathname : "";
   const assetPathIndex = pathname.indexOf("/_next/");
-  cachedNextBasePath =
-    assetPathIndex > 0 ? pathname.slice(0, assetPathIndex) : "";
+  cachedNextBasePath = assetPathIndex > 0 ? pathname.slice(0, assetPathIndex) : "";
   return cachedNextBasePath;
 };

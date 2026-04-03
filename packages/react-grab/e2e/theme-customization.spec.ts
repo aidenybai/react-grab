@@ -178,9 +178,7 @@ test.describe("Theme Customization", () => {
   });
 
   test.describe("Global Enable/Disable", () => {
-    test("should disable entire overlay when enabled is false", async ({
-      reactGrab,
-    }) => {
+    test("should disable entire overlay when enabled is false", async ({ reactGrab }) => {
       await reactGrab.updateOptions({ theme: { enabled: false } });
 
       await reactGrab.activate();
@@ -193,9 +191,7 @@ test.describe("Theme Customization", () => {
   });
 
   test.describe("Theme Persistence", () => {
-    test("theme should persist across activation cycles", async ({
-      reactGrab,
-    }) => {
+    test("theme should persist across activation cycles", async ({ reactGrab }) => {
       await reactGrab.updateOptions({ theme: { hue: 120 } });
 
       await reactGrab.activate();
@@ -205,9 +201,7 @@ test.describe("Theme Customization", () => {
       const hasFilter = await reactGrab.page.evaluate(() => {
         const host = document.querySelector("[data-react-grab]");
         const shadowRoot = host?.shadowRoot;
-        const root = shadowRoot?.querySelector(
-          "[data-react-grab]",
-        ) as HTMLElement;
+        const root = shadowRoot?.querySelector("[data-react-grab]") as HTMLElement;
         return root?.style.filter?.includes("hue-rotate(120deg)") ?? false;
       });
       expect(hasFilter).toBe(true);

@@ -1,8 +1,5 @@
 import { isAcceptedAttr, findUniqueSelector } from "./find-unique-selector.js";
-import {
-  FINDER_TIMEOUT_MS,
-  SELECTOR_ATTR_VALUE_MAX_LENGTH_CHARS,
-} from "../constants.js";
+import { FINDER_TIMEOUT_MS, SELECTOR_ATTR_VALUE_MAX_LENGTH_CHARS } from "../constants.js";
 
 const escapeCssIdentifier = (value: string): string => {
   if (typeof CSS !== "undefined" && typeof CSS.escape === "function") {
@@ -30,10 +27,7 @@ const PREFERRED_SELECTOR_ATTRIBUTE_NAMES = new Set<string>([
 const isPreferredAttributeValueSafe = (value: string): boolean =>
   value.length > 0 && value.length <= SELECTOR_ATTR_VALUE_MAX_LENGTH_CHARS;
 
-const isSelectorUniqueForElement = (
-  element: Element,
-  selector: string,
-): boolean => {
+const isSelectorUniqueForElement = (element: Element, selector: string): boolean => {
   try {
     const matchingElements = element.ownerDocument.querySelectorAll(selector);
     return matchingElements.length === 1 && matchingElements[0] === element;
@@ -90,9 +84,7 @@ const createNthChildSelector = (element: Element): string => {
     const siblingIndex = siblings.indexOf(currentElement);
     const nthChild = siblingIndex >= 0 ? siblingIndex + 1 : 1;
 
-    segments.unshift(
-      `${currentElement.tagName.toLowerCase()}:nth-child(${nthChild})`,
-    );
+    segments.unshift(`${currentElement.tagName.toLowerCase()}:nth-child(${nthChild})`);
 
     if (parentElement === root) {
       segments.unshift(root.tagName.toLowerCase());
@@ -105,10 +97,7 @@ const createNthChildSelector = (element: Element): string => {
   return segments.join(" > ");
 };
 
-export const createElementSelector = (
-  element: Element,
-  shouldUseFinder = true,
-): string => {
+export const createElementSelector = (element: Element, shouldUseFinder = true): string => {
   const fastSelector = createFastElementSelector(element);
   if (fastSelector) return fastSelector;
 

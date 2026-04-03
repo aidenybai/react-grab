@@ -1,9 +1,6 @@
 import { isEventFromOverlay } from "./is-event-from-overlay.js";
 import { isKeyboardEventTriggeredByInput } from "./is-keyboard-event-triggered-by-input.js";
-import {
-  nativeCancelAnimationFrame,
-  nativeRequestAnimationFrame,
-} from "./native-raf.js";
+import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "./native-raf.js";
 
 interface RegisterOverlayDismissOptions {
   isOpen: () => boolean;
@@ -13,15 +10,10 @@ interface RegisterOverlayDismissOptions {
   shouldIgnoreRightClick?: boolean;
 }
 
-export const registerOverlayDismiss = (
-  options: RegisterOverlayDismissOptions,
-): (() => void) => {
+export const registerOverlayDismiss = (options: RegisterOverlayDismissOptions): (() => void) => {
   const handleKeyDown = (event: KeyboardEvent) => {
     if (!options.isOpen()) return;
-    if (
-      options.shouldIgnoreInputEvents &&
-      isKeyboardEventTriggeredByInput(event)
-    ) {
+    if (options.shouldIgnoreInputEvents && isKeyboardEventTriggeredByInput(event)) {
       return;
     }
 
@@ -44,12 +36,7 @@ export const registerOverlayDismiss = (
   const handleClickOutside = (event: MouseEvent | TouchEvent) => {
     if (!options.isOpen()) return;
     if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-    if (
-      options.shouldIgnoreRightClick &&
-      event instanceof MouseEvent &&
-      event.button === 2
-    )
-      return;
+    if (options.shouldIgnoreRightClick && event instanceof MouseEvent && event.button === 2) return;
     options.onDismiss();
   };
 

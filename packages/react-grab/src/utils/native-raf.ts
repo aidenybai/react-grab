@@ -9,29 +9,21 @@ const noopCancelFrame = (_id: number): void => {};
 // property shadowing the prototype, but the native implementation remains on
 // Window.prototype. Without this, react-grab's own overlay canvas animation
 // loop would be frozen by its own GSAP interception.
-export const nativeRequestAnimationFrame: typeof requestAnimationFrame =
-  isClientSide
-    ? (
-        Object.getOwnPropertyDescriptor(
-          Window.prototype,
-          "requestAnimationFrame",
-        )?.value ?? window.requestAnimationFrame
-      ).bind(window)
-    : noopAnimationFrame;
+export const nativeRequestAnimationFrame: typeof requestAnimationFrame = isClientSide
+  ? (
+      Object.getOwnPropertyDescriptor(Window.prototype, "requestAnimationFrame")?.value ??
+      window.requestAnimationFrame
+    ).bind(window)
+  : noopAnimationFrame;
 
-export const nativeCancelAnimationFrame: typeof cancelAnimationFrame =
-  isClientSide
-    ? (
-        Object.getOwnPropertyDescriptor(
-          Window.prototype,
-          "cancelAnimationFrame",
-        )?.value ?? window.cancelAnimationFrame
-      ).bind(window)
-    : noopCancelFrame;
+export const nativeCancelAnimationFrame: typeof cancelAnimationFrame = isClientSide
+  ? (
+      Object.getOwnPropertyDescriptor(Window.prototype, "cancelAnimationFrame")?.value ??
+      window.cancelAnimationFrame
+    ).bind(window)
+  : noopCancelFrame;
 
 export const waitUntilNextFrame = (): Promise<void> =>
   isClientSide
-    ? new Promise<void>((resolve) =>
-        nativeRequestAnimationFrame(() => resolve()),
-      )
+    ? new Promise<void>((resolve) => nativeRequestAnimationFrame(() => resolve()))
     : Promise.resolve();

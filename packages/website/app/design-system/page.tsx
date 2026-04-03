@@ -10,12 +10,10 @@ const DesignSystemPage = (): ReactElement => {
 
     let dispose: (() => void) | undefined;
 
-    import("@react-grab/design-system").then(
-      ({ renderDesignSystemPreview }) => {
-        if (!containerRef.current) return;
-        dispose = renderDesignSystemPreview(containerRef.current);
-      },
-    );
+    import("@react-grab/design-system").then(({ renderDesignSystemPreview }) => {
+      if (!containerRef.current) return;
+      dispose = renderDesignSystemPreview(containerRef.current);
+    });
 
     return () => {
       dispose?.();

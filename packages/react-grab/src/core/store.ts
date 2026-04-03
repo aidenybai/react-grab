@@ -176,10 +176,7 @@ interface GrabActions {
   setWasActivatedByToggle: (value: boolean) => void;
   setPendingCommentMode: (value: boolean) => void;
   setTouchMode: (value: boolean) => void;
-  setSelectionSource: (
-    filePath: string | null,
-    lineNumber: number | null,
-  ) => void;
+  setSelectionSource: (filePath: string | null, lineNumber: number | null) => void;
   setPendingClickData: (data: PendingClickData | null) => void;
   clearReplySessionId: () => void;
   incrementViewportVersion: () => void;
@@ -318,30 +315,21 @@ const createGrabStore = (input: GrabStoreInput) => {
     },
 
     endDrag: () => {
-      if (
-        store.current.state === "active" &&
-        store.current.phase === "dragging"
-      ) {
+      if (store.current.state === "active" && store.current.phase === "dragging") {
         setStore("dragStart", { x: OFFSCREEN_POSITION, y: OFFSCREEN_POSITION });
         setActivePhase("justDragged");
       }
     },
 
     cancelDrag: () => {
-      if (
-        store.current.state === "active" &&
-        store.current.phase === "dragging"
-      ) {
+      if (store.current.state === "active" && store.current.phase === "dragging") {
         setStore("dragStart", { x: OFFSCREEN_POSITION, y: OFFSCREEN_POSITION });
         setActivePhase("hovering");
       }
     },
 
     finishJustDragged: () => {
-      if (
-        store.current.state === "active" &&
-        store.current.phase === "justDragged"
-      ) {
+      if (store.current.state === "active" && store.current.phase === "justDragged") {
         setActivePhase("hovering");
       }
     },
@@ -360,8 +348,7 @@ const createGrabStore = (input: GrabStoreInput) => {
       if (element) {
         setStore("lastCopiedElement", element);
       }
-      const wasActive =
-        store.current.state === "copying" ? store.current.wasActive : false;
+      const wasActive = store.current.state === "copying" ? store.current.wasActive : false;
       setStore("current", {
         state: "justCopied",
         copiedAt: Date.now(),
@@ -371,8 +358,7 @@ const createGrabStore = (input: GrabStoreInput) => {
 
     finishJustCopied: () => {
       if (store.current.state === "justCopied") {
-        const shouldReturnToActive =
-          store.current.wasActive && !store.wasActivatedByToggle;
+        const shouldReturnToActive = store.current.wasActive && !store.wasActivatedByToggle;
         if (shouldReturnToActive) {
           actions.clearFrozenElement();
           setStore("current", {
@@ -523,10 +509,7 @@ const createGrabStore = (input: GrabStoreInput) => {
       setStore("isTouchMode", value);
     },
 
-    setSelectionSource: (
-      filePath: string | null,
-      lineNumber: number | null,
-    ) => {
+    setSelectionSource: (filePath: string | null, lineNumber: number | null) => {
       setStore(
         produce((draft) => {
           draft.selectionFilePath = filePath;
@@ -552,9 +535,7 @@ const createGrabStore = (input: GrabStoreInput) => {
     },
 
     removeGrabbedBox: (boxId: string) => {
-      setStore("grabbedBoxes", (boxes) =>
-        boxes.filter((box) => box.id !== boxId),
-      );
+      setStore("grabbedBoxes", (boxes) => boxes.filter((box) => box.id !== boxId));
     },
 
     clearGrabbedBoxes: () => {
@@ -570,9 +551,7 @@ const createGrabStore = (input: GrabStoreInput) => {
       status: SelectionLabelInstance["status"],
       errorMessage?: string,
     ) => {
-      const index = store.labelInstances.findIndex(
-        (instance) => instance.id === instanceId,
-      );
+      const index = store.labelInstances.findIndex((instance) => instance.id === instanceId);
       if (index !== -1) {
         setStore(
           "labelInstances",

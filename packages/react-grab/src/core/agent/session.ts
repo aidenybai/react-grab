@@ -59,10 +59,7 @@ export const saveSessions = (
     const sessionsObject = Object.fromEntries(sessions);
     storage.setItem(STORAGE_KEY, JSON.stringify(sessionsObject));
   } catch (error) {
-    logRecoverableError(
-      "Failed to save sessions to storage, falling back to memory",
-      error,
-    );
+    logRecoverableError("Failed to save sessions to storage, falling back to memory", error);
     memorySessions.clear();
     sessions.forEach((session, id) => memorySessions.set(id, session));
     evictOldestMemorySessions();
@@ -78,9 +75,7 @@ export const saveSessionById = (
   saveSessions(sessions, storage);
 };
 
-export const loadSessions = (
-  storage?: AgentSessionStorage | null,
-): Map<string, AgentSession> => {
+export const loadSessions = (storage?: AgentSessionStorage | null): Map<string, AgentSession> => {
   if (!storage) {
     return new Map(memorySessions);
   }
@@ -110,10 +105,7 @@ export const clearSessions = (storage?: AgentSessionStorage | null): void => {
   }
 };
 
-export const clearSessionById = (
-  sessionId: string,
-  storage?: AgentSessionStorage | null,
-): void => {
+export const clearSessionById = (sessionId: string, storage?: AgentSessionStorage | null): void => {
   const sessions = loadSessions(storage);
   sessions.delete(sessionId);
   saveSessions(sessions, storage);
@@ -121,9 +113,7 @@ export const clearSessionById = (
 
 export const updateSession = (
   session: AgentSession,
-  updates: Partial<
-    Pick<AgentSession, "lastStatus" | "isStreaming" | "error" | "context">
-  >,
+  updates: Partial<Pick<AgentSession, "lastStatus" | "isStreaming" | "error" | "context">>,
   storage?: AgentSessionStorage | null,
 ): AgentSession => {
   const updatedSession = { ...session, ...updates, lastUpdatedAt: Date.now() };

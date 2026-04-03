@@ -10,9 +10,7 @@ test.describe("Agent Integration", () => {
       expect(isPromptMode).toBe(true);
     });
 
-    test("should allow agent provider with custom delay", async ({
-      reactGrab,
-    }) => {
+    test("should allow agent provider with custom delay", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent({ delay: 1000 });
       await reactGrab.enterPromptMode("li:first-child");
 
@@ -45,14 +43,10 @@ test.describe("Agent Integration", () => {
       await reactGrab.submitInput();
 
       await reactGrab.waitForAgentSession(3000);
-      await expect
-        .poll(() => reactGrab.isAgentSessionVisible(), { timeout: 3000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isAgentSessionVisible(), { timeout: 3000 }).toBe(true);
     });
 
-    test("should show streaming status during processing", async ({
-      reactGrab,
-    }) => {
+    test("should show streaming status during processing", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent({ delay: 2000 });
       await reactGrab.enterPromptMode("li:first-child");
 
@@ -133,9 +127,7 @@ test.describe("Agent Integration", () => {
               const shadowRoot = host?.shadowRoot;
               if (!shadowRoot) return false;
               const root = shadowRoot.querySelector(`[${attrName}]`);
-              return (
-                root?.textContent?.toLowerCase().includes("retry") ?? false
-              );
+              return root?.textContent?.toLowerCase().includes("retry") ?? false;
             }, "data-react-grab");
           },
           { timeout: 2000 },
@@ -156,9 +148,7 @@ test.describe("Agent Integration", () => {
 
       await reactGrab.clickAgentDismiss();
 
-      await expect
-        .poll(() => reactGrab.isAgentSessionVisible(), { timeout: 2000 })
-        .toBe(false);
+      await expect.poll(() => reactGrab.isAgentSessionVisible(), { timeout: 2000 }).toBe(false);
     });
 
     test("should abort streaming session", async ({ reactGrab }) => {
@@ -181,11 +171,7 @@ test.describe("Agent Integration", () => {
               if (!shadowRoot) return false;
               const root = shadowRoot.querySelector(`[${attrName}]`);
               const text = root?.textContent?.toLowerCase() ?? "";
-              return (
-                text.includes("discard") ||
-                text.includes("abort") ||
-                text.includes("stop")
-              );
+              return text.includes("discard") || text.includes("abort") || text.includes("stop");
             }, "data-react-grab");
           },
           { timeout: 2000 },
@@ -279,9 +265,7 @@ test.describe("Agent Integration", () => {
   });
 
   test.describe("Follow-up Prompts", () => {
-    test("should support follow-up prompts after completion", async ({
-      reactGrab,
-    }) => {
+    test("should support follow-up prompts after completion", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent({ delay: 100 });
       await reactGrab.enterPromptMode("li:first-child");
 
@@ -303,9 +287,7 @@ test.describe("Agent Integration", () => {
   });
 
   test.describe("Multiple Sessions", () => {
-    test("should handle multiple elements with separate sessions", async ({
-      reactGrab,
-    }) => {
+    test("should handle multiple elements with separate sessions", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent({ delay: 500 });
       await reactGrab.enterPromptMode("li:first-child");
 

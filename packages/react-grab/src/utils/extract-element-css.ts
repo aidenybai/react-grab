@@ -32,8 +32,7 @@ const getDefaultStylesForTag = (tagName: string): Map<string, string> => {
   const baselineElement = iframeDocument.createElement(tagName);
   iframeDocument.body.appendChild(baselineElement);
 
-  const baselineComputed =
-    iframe.contentWindow!.getComputedStyle(baselineElement);
+  const baselineComputed = iframe.contentWindow!.getComputedStyle(baselineElement);
   const defaultStyles = new Map<string, string>();
 
   for (const propertyName of RELEVANT_CSS_PROPERTIES) {

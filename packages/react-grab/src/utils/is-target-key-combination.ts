@@ -7,19 +7,13 @@ interface HotkeyOptions {
   activationKey?: ActivationKey;
 }
 
-export const isTargetKeyCombination = (
-  event: KeyboardEvent,
-  options: HotkeyOptions,
-): boolean => {
+export const isTargetKeyCombination = (event: KeyboardEvent, options: HotkeyOptions): boolean => {
   if (options.activationKey) {
     const matcher = parseActivationKey(options.activationKey);
     return matcher(event);
   }
 
   const hasPlatformModifier = isMac() ? event.metaKey : event.ctrlKey;
-  const hasOnlyPlatformModifier =
-    hasPlatformModifier && !event.shiftKey && !event.altKey;
-  return Boolean(
-    event.key && hasOnlyPlatformModifier && isCLikeKey(event.key, event.code),
-  );
+  const hasOnlyPlatformModifier = hasPlatformModifier && !event.shiftKey && !event.altKey;
+  return Boolean(event.key && hasOnlyPlatformModifier && isCLikeKey(event.key, event.code));
 };

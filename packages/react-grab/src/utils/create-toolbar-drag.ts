@@ -2,10 +2,7 @@ import { createSignal, onCleanup } from "solid-js";
 import type { Accessor } from "solid-js";
 import type { Position } from "../types.js";
 import type { SnapEdge } from "../components/toolbar/state.js";
-import {
-  TOOLBAR_DRAG_THRESHOLD_PX,
-  TOOLBAR_SNAP_ANIMATION_DURATION_MS,
-} from "../constants.js";
+import { TOOLBAR_DRAG_THRESHOLD_PX, TOOLBAR_SNAP_ANIMATION_DURATION_MS } from "../constants.js";
 import { nativeRequestAnimationFrame } from "./native-raf.js";
 import {
   getRatioFromPosition,
@@ -36,9 +33,7 @@ interface ToolbarDragResult {
   createDragAwareHandler: (callback: () => void) => (event: MouseEvent) => void;
 }
 
-export const createToolbarDrag = (
-  config: ToolbarDragConfig,
-): ToolbarDragResult => {
+export const createToolbarDrag = (config: ToolbarDragConfig): ToolbarDragResult => {
   const [isDragging, setIsDragging] = createSignal(false);
   const [isSnapping, setIsSnapping] = createSignal(false);
   const [hasDragMoved, setHasDragMoved] = createSignal(false);
@@ -110,13 +105,7 @@ export const createToolbarDrag = (
       currentVelocity.x,
       currentVelocity.y,
     );
-    const ratio = getRatioFromPosition(
-      snap.edge,
-      snap.x,
-      snap.y,
-      rect.width,
-      rect.height,
-    );
+    const ratio = getRatioFromPosition(snap.edge, snap.x, snap.y, rect.width, rect.height);
 
     config.onSnapEdgeChange(snap.edge, ratio);
     setIsSnapping(true);
@@ -180,15 +169,14 @@ export const createToolbarDrag = (
     window.addEventListener("pointerup", handleWindowPointerUp);
   };
 
-  const createDragAwareHandler =
-    (callback: () => void) => (event: MouseEvent) => {
-      event.stopImmediatePropagation();
-      if (didDragOccur) {
-        didDragOccur = false;
-        return;
-      }
-      callback();
-    };
+  const createDragAwareHandler = (callback: () => void) => (event: MouseEvent) => {
+    event.stopImmediatePropagation();
+    if (didDragOccur) {
+      didDragOccur = false;
+      return;
+    }
+    callback();
+  };
 
   onCleanup(() => {
     window.removeEventListener("pointermove", handleWindowPointerMove);

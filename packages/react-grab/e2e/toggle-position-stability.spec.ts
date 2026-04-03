@@ -11,9 +11,7 @@ const getToggleButtonCenter = async (reactGrab: ReactGrabPageObject) => {
     if (!shadowRoot) return null;
     const root = shadowRoot.querySelector(`[${attrName}]`);
     if (!root) return null;
-    const button = root.querySelector<HTMLButtonElement>(
-      "[data-react-grab-toolbar-enabled]",
-    );
+    const button = root.querySelector<HTMLButtonElement>("[data-react-grab-toolbar-enabled]");
     if (!button) return null;
     const rect = button.getBoundingClientRect();
     return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
@@ -43,17 +41,12 @@ const seedToolbarEdge = async (
   await page.waitForLoadState("domcontentloaded");
 };
 
-const copyElement = async (
-  reactGrab: ReactGrabPageObject,
-  selector: string,
-) => {
+const copyElement = async (reactGrab: ReactGrabPageObject, selector: string) => {
   await reactGrab.registerCommentAction();
   await reactGrab.enterPromptMode(selector);
   await reactGrab.typeInInput("comment");
   await reactGrab.submitInput();
-  await expect
-    .poll(() => reactGrab.getClipboardContent(), { timeout: 5000 })
-    .toBeTruthy();
+  await expect.poll(() => reactGrab.getClipboardContent(), { timeout: 5000 }).toBeTruthy();
   // HACK: Wait for copy feedback transition and comment item addition
   await reactGrab.page.waitForTimeout(300);
 };
@@ -62,18 +55,12 @@ const expectPositionStable = (
   beforePosition: { x: number; y: number },
   afterPosition: { x: number; y: number },
 ) => {
-  expect(Math.abs(afterPosition.x - beforePosition.x)).toBeLessThan(
-    POSITION_TOLERANCE_PX,
-  );
-  expect(Math.abs(afterPosition.y - beforePosition.y)).toBeLessThan(
-    POSITION_TOLERANCE_PX,
-  );
+  expect(Math.abs(afterPosition.x - beforePosition.x)).toBeLessThan(POSITION_TOLERANCE_PX);
+  expect(Math.abs(afterPosition.y - beforePosition.y)).toBeLessThan(POSITION_TOLERANCE_PX);
 };
 
 const waitForToolbarReady = async (reactGrab: ReactGrabPageObject) => {
-  await expect
-    .poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 })
-    .toBe(true);
+  await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 }).toBe(true);
   // HACK: Wait for toolbar fade-in animation to complete
   await reactGrab.page.waitForTimeout(600);
 };
@@ -89,9 +76,7 @@ test.describe("Toggle Position Stability", () => {
   });
 
   test.describe("Horizontal Layout", () => {
-    test("toggle should stay in place when disabling on bottom edge", async ({
-      reactGrab,
-    }) => {
+    test("toggle should stay in place when disabling on bottom edge", async ({ reactGrab }) => {
       const beforeToggle = await getToggleButtonCenter(reactGrab);
       expect(beforeToggle).not.toBeNull();
 
@@ -104,9 +89,7 @@ test.describe("Toggle Position Stability", () => {
       expectPositionStable(beforeToggle!, afterToggle!);
     });
 
-    test("toggle should stay in place when re-enabling on bottom edge", async ({
-      reactGrab,
-    }) => {
+    test("toggle should stay in place when re-enabling on bottom edge", async ({ reactGrab }) => {
       await reactGrab.clickToolbarEnabled();
       // HACK: Wait for toggle animation to settle
       await reactGrab.page.waitForTimeout(TOGGLE_ANIMATION_SETTLE_MS);
@@ -141,9 +124,7 @@ test.describe("Toggle Position Stability", () => {
       expectPositionStable(initialPosition!, afterCycle!);
     });
 
-    test("toggle should stay in place when toggling on top edge", async ({
-      reactGrab,
-    }) => {
+    test("toggle should stay in place when toggling on top edge", async ({ reactGrab }) => {
       await seedToolbarEdge(reactGrab.page, "top");
       await waitForToolbarReady(reactGrab);
 
@@ -161,9 +142,7 @@ test.describe("Toggle Position Stability", () => {
   });
 
   test.describe("Vertical Layout", () => {
-    test("toggle should stay in place when toggling on right edge", async ({
-      reactGrab,
-    }) => {
+    test("toggle should stay in place when toggling on right edge", async ({ reactGrab }) => {
       await seedToolbarEdge(reactGrab.page, "right");
       await waitForToolbarReady(reactGrab);
 
@@ -179,9 +158,7 @@ test.describe("Toggle Position Stability", () => {
       expectPositionStable(beforeToggle!, afterToggle!);
     });
 
-    test("toggle should stay in place when toggling on left edge", async ({
-      reactGrab,
-    }) => {
+    test("toggle should stay in place when toggling on left edge", async ({ reactGrab }) => {
       await seedToolbarEdge(reactGrab.page, "left");
       await waitForToolbarReady(reactGrab);
 
@@ -199,9 +176,7 @@ test.describe("Toggle Position Stability", () => {
   });
 
   test.describe("First Enable", () => {
-    test("first enable on bottom edge should not cause position jump", async ({
-      reactGrab,
-    }) => {
+    test("first enable on bottom edge should not cause position jump", async ({ reactGrab }) => {
       await seedToolbarEdge(reactGrab.page, "bottom", false);
       await waitForToolbarReady(reactGrab);
 
@@ -217,9 +192,7 @@ test.describe("Toggle Position Stability", () => {
       expectPositionStable(beforeFirstEnable!, afterFirstEnable!);
     });
 
-    test("first enable on top edge should not cause position jump", async ({
-      reactGrab,
-    }) => {
+    test("first enable on top edge should not cause position jump", async ({ reactGrab }) => {
       await seedToolbarEdge(reactGrab.page, "top", false);
       await waitForToolbarReady(reactGrab);
 
@@ -241,9 +214,7 @@ test.describe("Toggle Position Stability", () => {
       reactGrab,
     }) => {
       await copyElement(reactGrab, "li:first-child");
-      await expect
-        .poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 }).toBe(true);
 
       const withCommentsPosition = await getToggleButtonCenter(reactGrab);
       expect(withCommentsPosition).not.toBeNull();
@@ -261,9 +232,7 @@ test.describe("Toggle Position Stability", () => {
 
       await reactGrab.clickCommentsButton();
       await reactGrab.clickCommentsClear();
-      await expect
-        .poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 })
-        .toBe(false);
+      await expect.poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 }).toBe(false);
       // HACK: Wait for comments button hide animation
       await reactGrab.page.waitForTimeout(200);
 
@@ -279,15 +248,10 @@ test.describe("Toggle Position Stability", () => {
 
       const afterCycleWithoutComments = await getToggleButtonCenter(reactGrab);
       expect(afterCycleWithoutComments).not.toBeNull();
-      expectPositionStable(
-        withoutCommentsPosition!,
-        afterCycleWithoutComments!,
-      );
+      expectPositionStable(withoutCommentsPosition!, afterCycleWithoutComments!);
     });
 
-    test("should not accumulate drift over multiple toggle cycles", async ({
-      reactGrab,
-    }) => {
+    test("should not accumulate drift over multiple toggle cycles", async ({ reactGrab }) => {
       const initialPosition = await getToggleButtonCenter(reactGrab);
       expect(initialPosition).not.toBeNull();
 
@@ -305,16 +269,12 @@ test.describe("Toggle Position Stability", () => {
       expectPositionStable(initialPosition!, finalPosition!);
     });
 
-    test("should not drift on vertical edge after comments changes", async ({
-      reactGrab,
-    }) => {
+    test("should not drift on vertical edge after comments changes", async ({ reactGrab }) => {
       await seedToolbarEdge(reactGrab.page, "right");
       await waitForToolbarReady(reactGrab);
 
       await copyElement(reactGrab, "li:first-child");
-      await expect
-        .poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 }).toBe(true);
 
       const beforeCyclePosition = await getToggleButtonCenter(reactGrab);
       expect(beforeCyclePosition).not.toBeNull();
@@ -332,9 +292,7 @@ test.describe("Toggle Position Stability", () => {
 
       await reactGrab.clickCommentsButton();
       await reactGrab.clickCommentsClear();
-      await expect
-        .poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 })
-        .toBe(false);
+      await expect.poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 }).toBe(false);
       // HACK: Wait for comments button hide animation
       await reactGrab.page.waitForTimeout(200);
 
@@ -355,9 +313,7 @@ test.describe("Toggle Position Stability", () => {
   });
 
   test.describe("Rapid Toggle", () => {
-    test("rapid toggles should maintain toolbar visibility and state", async ({
-      reactGrab,
-    }) => {
+    test("rapid toggles should maintain toolbar visibility and state", async ({ reactGrab }) => {
       for (let toggleIndex = 0; toggleIndex < 6; toggleIndex++) {
         await reactGrab.clickToolbarEnabled();
         // HACK: Brief pause between rapid toggles
@@ -375,9 +331,7 @@ test.describe("Toggle Position Stability", () => {
       expect(togglePosition).not.toBeNull();
     });
 
-    test("position should stabilize after rapid toggles settle", async ({
-      reactGrab,
-    }) => {
+    test("position should stabilize after rapid toggles settle", async ({ reactGrab }) => {
       for (let toggleIndex = 0; toggleIndex < 6; toggleIndex++) {
         await reactGrab.clickToolbarEnabled();
         // HACK: Brief pause between rapid toggles

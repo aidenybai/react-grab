@@ -79,8 +79,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     props.status !== "fading" &&
     props.status !== "error";
 
-  const isCompletedStatus = () =>
-    props.status === "copied" || props.status === "fading";
+  const isCompletedStatus = () => props.status === "copied" || props.status === "fading";
 
   const shouldEnablePointerEvents = (): boolean => {
     if (props.isPromptMode) return true;
@@ -88,10 +87,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       return true;
     }
     if (props.status === "copying" && props.onAbort) return true;
-    if (
-      props.status === "error" &&
-      (props.onAcknowledgeError || props.onRetry)
-    ) {
+    if (props.status === "error" && (props.onAcknowledgeError || props.onRetry)) {
       return true;
     }
     if (props.arrowNavigationState?.isVisible) return true;
@@ -112,13 +108,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const handleGlobalKeyDown = (event: KeyboardEvent) => {
     if (isKeyboardEventTriggeredByInput(event)) return;
 
-    const isEnterToExpand =
-      event.code === "Enter" && !props.isPromptMode && canInteract();
+    const isEnterToExpand = event.code === "Enter" && !props.isPromptMode && canInteract();
     const isCtrlCToAbort =
-      event.code === "KeyC" &&
-      event.ctrlKey &&
-      props.status === "copying" &&
-      props.onAbort;
+      event.code === "KeyC" && event.ctrlKey && props.status === "copying" && props.onAbort;
 
     if (isEnterToExpand) {
       event.preventDefault();
@@ -174,8 +166,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     });
   });
 
-  const elementIdentity = () =>
-    `${props.tagName ?? ""}:${props.componentName ?? ""}`;
+  const elementIdentity = () => `${props.tagName ?? ""}:${props.componentName ?? ""}`;
 
   // This reducer-style memo preserves position state across reactive updates,
   // resetting to offscreen on element identity change and keeping the last
@@ -186,8 +177,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     (previousResult: PositionResult): PositionResult => {
       viewportVersion();
       const currentElementIdentity = elementIdentity();
-      const didReset =
-        currentElementIdentity !== previousResult.elementIdentity;
+      const didReset = currentElementIdentity !== previousResult.elementIdentity;
       const cached: PositionResult = didReset
         ? {
             position: DEFAULT_OFFSCREEN_POSITION,
@@ -205,9 +195,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
       if (!hasMeasurements || !hasValidBounds) {
         return {
-          position: cached.hadValidBounds
-            ? cached.position
-            : DEFAULT_OFFSCREEN_POSITION,
+          position: cached.hadValidBounds ? cached.position : DEFAULT_OFFSCREEN_POSITION,
           computedArrowPosition: cached.computedArrowPosition,
           hadValidBounds: cached.hadValidBounds,
           elementIdentity: currentElementIdentity,
@@ -217,10 +205,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       const visualViewport = window.visualViewport;
       const viewportLeft = visualViewport?.offsetLeft ?? 0;
       const viewportTop = visualViewport?.offsetTop ?? 0;
-      const viewportRight =
-        viewportLeft + (visualViewport?.width ?? window.innerWidth);
-      const viewportBottom =
-        viewportTop + (visualViewport?.height ?? window.innerHeight);
+      const viewportRight = viewportLeft + (visualViewport?.width ?? window.innerWidth);
+      const viewportBottom = viewportTop + (visualViewport?.height ?? window.innerHeight);
 
       const isSelectionVisibleInViewport =
         bounds.x + bounds.width > viewportLeft &&
@@ -242,9 +228,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       const selectionBottom = bounds.y + bounds.height;
       const selectionTop = bounds.y;
 
-      const actualArrowHeight = props.hideArrow
-        ? 0
-        : getArrowSize(panelWidth());
+      const actualArrowHeight = props.hideArrow ? 0 : getArrowSize(panelWidth());
 
       // The label is cursor-anchored: left stays at cursorX and
       // translateX(-50%) handles centering, so width changes from component
@@ -268,8 +252,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       }
 
       const totalHeightNeeded = labelHeight + actualArrowHeight + LABEL_GAP_PX;
-      const fitsBelow =
-        positionTop + labelHeight <= viewportBottom - VIEWPORT_MARGIN_PX;
+      const fitsBelow = positionTop + labelHeight <= viewportBottom - VIEWPORT_MARGIN_PX;
 
       if (!fitsBelow) {
         positionTop = selectionTop - totalHeightNeeded;
@@ -282,14 +265,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       const labelHalfWidth = labelWidth / 2;
       const arrowCenterPx = labelHalfWidth - edgeOffsetX;
       const arrowMinPx = Math.min(ARROW_LABEL_MARGIN_PX, labelHalfWidth);
-      const arrowMaxPx = Math.max(
-        labelWidth - ARROW_LABEL_MARGIN_PX,
-        labelHalfWidth,
-      );
-      const clampedArrowCenterPx = Math.max(
-        arrowMinPx,
-        Math.min(arrowMaxPx, arrowCenterPx),
-      );
+      const arrowMaxPx = Math.max(labelWidth - ARROW_LABEL_MARGIN_PX, labelHalfWidth);
+      const clampedArrowCenterPx = Math.max(arrowMinPx, Math.min(arrowMaxPx, arrowCenterPx));
       const arrowLeftOffset = clampedArrowCenterPx - labelHalfWidth;
 
       const computedArrowPosition: ArrowPosition = fitsBelow ? "bottom" : "top";
@@ -315,8 +292,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     } satisfies PositionResult,
   );
 
-  const arrowPosition = () =>
-    positionComputation().computedArrowPosition ?? "bottom";
+  const arrowPosition = () => positionComputation().computedArrowPosition ?? "bottom";
   const hadValidBounds = () => positionComputation().hadValidBounds;
 
   createEffect(
@@ -362,11 +338,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       elementsCount: props.elementsCount,
     });
 
-  const isArrowNavigationVisible = () =>
-    Boolean(props.arrowNavigationState?.isVisible);
+  const isArrowNavigationVisible = () => Boolean(props.arrowNavigationState?.isVisible);
 
-  const isInspectNavigationVisible = () =>
-    Boolean(props.inspectNavigationState?.isVisible);
+  const isInspectNavigationVisible = () => Boolean(props.inspectNavigationState?.isVisible);
 
   const handleTagClick = (event: MouseEvent) => {
     event.stopImmediatePropagation();
@@ -378,10 +352,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const handleContainerPointerDown = (event: PointerEvent) => {
     event.stopImmediatePropagation();
     const isEditableInputVisible =
-      canInteract() &&
-      props.isPromptMode &&
-      !props.isPendingDismiss &&
-      props.onSubmit;
+      canInteract() && props.isPromptMode && !props.isPendingDismiss && props.onSubmit;
     if (isEditableInputVisible && inputRef) {
       inputRef.focus({ preventScroll: true });
     }
@@ -391,12 +362,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     hadValidBounds() && (isCompletedStatus() || props.status === "error");
 
   return (
-    <Show
-      when={
-        props.visible !== false &&
-        (props.selectionBounds || shouldPersistDuringFade())
-      }
-    >
+    <Show when={props.visible !== false && (props.selectionBounds || shouldPersistDuringFade())}>
       <div
         ref={containerRef}
         data-react-grab-ignore-events
@@ -430,9 +396,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
         <Show when={isCompletedStatus() && !props.error}>
           <CompletionView
-            statusText={
-              props.hasAgent ? (props.statusText ?? "Completed") : "Copied"
-            }
+            statusText={props.hasAgent ? (props.statusText ?? "Completed") : "Copied"}
             supportsUndo={props.supportsUndo}
             supportsFollowUp={props.supportsFollowUp}
             dismissButtonText={props.dismissButtonText}
@@ -509,28 +473,21 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           </Show>
 
           <Show when={props.status === "copying" && props.isPendingAbort}>
-            <DiscardPrompt
-              onConfirm={props.onConfirmAbort}
-              onCancel={props.onCancelAbort}
-            />
+            <DiscardPrompt onConfirm={props.onConfirmAbort} onCancel={props.onCancelAbort} />
           </Show>
 
           <Show when={canInteract() && !props.isPromptMode}>
             <div
               class="contain-layout shrink-0 flex flex-col items-start w-fit h-fit"
               classList={{
-                "min-w-[100px]":
-                  isArrowNavigationVisible() || isInspectNavigationVisible(),
+                "min-w-[100px]": isArrowNavigationVisible() || isInspectNavigationVisible(),
               }}
             >
               <div
                 class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit px-2"
                 classList={{
-                  "py-1.5":
-                    !isArrowNavigationVisible() &&
-                    !isInspectNavigationVisible(),
-                  "pt-1.5 pb-1":
-                    isArrowNavigationVisible() || isInspectNavigationVisible(),
+                  "py-1.5": !isArrowNavigationVisible() && !isInspectNavigationVisible(),
+                  "pt-1.5 pb-1": isArrowNavigationVisible() || isInspectNavigationVisible(),
                 }}
               >
                 <TagBadge
@@ -585,11 +542,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                           class="contain-layout flex items-center justify-between w-full px-2 py-1 transition-colors"
                           classList={{
                             "bg-black/5":
-                              itemIndex() ===
-                              (props.actionCycleState?.activeIndex ?? 0),
+                              itemIndex() === (props.actionCycleState?.activeIndex ?? 0),
                             "rounded-b-[6px]":
-                              itemIndex() ===
-                              (props.actionCycleState?.items ?? []).length - 1,
+                              itemIndex() === (props.actionCycleState?.items ?? []).length - 1,
                           }}
                         >
                           <span class="text-[13px] leading-4 font-sans font-medium text-black">
@@ -609,11 +564,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             </div>
           </Show>
 
-          <Show
-            when={
-              canInteract() && props.isPromptMode && !props.isPendingDismiss
-            }
-          >
+          <Show when={canInteract() && props.isPromptMode && !props.isPendingDismiss}>
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start w-fit h-fit min-w-[150px] max-w-[280px]">
               <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 w-fit h-fit px-2 max-w-full">
                 <TagBadge

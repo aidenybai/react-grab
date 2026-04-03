@@ -6,11 +6,7 @@ import { SelectionLabel } from "react-grab/src/components/selection-label/index.
 import { ContextMenu } from "react-grab/src/components/context-menu.js";
 import { ToolbarContent } from "react-grab/src/components/toolbar/toolbar-content.js";
 import { CommentsDropdown } from "react-grab/src/components/comments-dropdown.js";
-import type {
-  OverlayBounds,
-  SelectionLabelStatus,
-  CommentItem,
-} from "react-grab/src/types.js";
+import type { OverlayBounds, SelectionLabelStatus, CommentItem } from "react-grab/src/types.js";
 
 type ComponentType = "label" | "context-menu" | "toolbar" | "comments-dropdown";
 
@@ -163,8 +159,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       componentName: "Button",
       status: "idle",
       hasAgent: false,
-      filePath:
-        "src/components/ui/forms/inputs/buttons/primary/PrimaryButton.tsx",
+      filePath: "src/components/ui/forms/inputs/buttons/primary/PrimaryButton.tsx",
     },
   },
   {
@@ -2097,8 +2092,7 @@ const STORAGE_KEY_THEME = "react-grab-design-system-theme";
 const STORAGE_KEY_STARRED = "react-grab-design-system-starred";
 
 const generateRandomSuffix = (length: number): string => {
-  const chars =
-    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let result = "";
   for (let i = 0; i < length; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -2106,9 +2100,7 @@ const generateRandomSuffix = (length: number): string => {
   return result;
 };
 
-const elongateProps = (
-  props: DesignSystemStateProps,
-): DesignSystemStateProps => {
+const elongateProps = (props: DesignSystemStateProps): DesignSystemStateProps => {
   const elongateString = (value: string | undefined): string | undefined => {
     if (!value) return value;
     return value + generateRandomSuffix(20 + Math.floor(Math.random() * 30));
@@ -2211,9 +2203,7 @@ const LIGHT_THEME: ThemeColors = {
   sectionTitle: "rgba(0, 0, 0, 0.4)",
 };
 
-const createToggleButtonStyle = (
-  theme: ThemeColors,
-): Record<string, string> => ({
+const createToggleButtonStyle = (theme: ThemeColors): Record<string, string> => ({
   display: "flex",
   "align-items": "center",
   gap: `${TOGGLE_BUTTON_GAP_PX}px`,
@@ -2228,9 +2218,7 @@ const createToggleButtonStyle = (
   transition: `all ${TRANSITION_DURATION}`,
 });
 
-const createCardContainerStyle = (
-  theme: ThemeColors,
-): Record<string, string> => ({
+const createCardContainerStyle = (theme: ThemeColors): Record<string, string> => ({
   display: "flex",
   "flex-direction": "column",
   "background-color": theme.cardBackground,
@@ -2250,9 +2238,7 @@ const createCardHeaderStyle = (theme: ThemeColors): Record<string, string> => ({
   "border-bottom": `1px solid ${theme.cardBorder}`,
 });
 
-const createCardContentStyle = (
-  theme: ThemeColors,
-): Record<string, string> => ({
+const createCardContentStyle = (theme: ThemeColors): Record<string, string> => ({
   flex: "1",
   display: "flex",
   "flex-direction": "column",
@@ -2491,9 +2477,7 @@ const StateCard = (props: StateCardProps) => {
               "background-color": "transparent",
               border: `1px solid ${props.isStarred ? "rgba(250, 204, 21, 0.5)" : props.theme.cardBorder}`,
               "border-radius": `${REFRESH_BUTTON_BORDER_RADIUS_PX}px`,
-              color: props.isStarred
-                ? "rgba(250, 204, 21, 1)"
-                : props.theme.descriptionText,
+              color: props.isStarred ? "rgba(250, 204, 21, 1)" : props.theme.descriptionText,
               "font-size": `${TOGGLE_BUTTON_FONT_SIZE_PX}px`,
               cursor: "pointer",
               transition: `all ${TRANSITION_DURATION}`,
@@ -2530,8 +2514,7 @@ const StateCard = (props: StateCardProps) => {
         <Show when={!isCardRefreshing()}>
           <Show
             when={
-              props.state.component !== "toolbar" &&
-              props.state.component !== "comments-dropdown"
+              props.state.component !== "toolbar" && props.state.component !== "comments-dropdown"
             }
           >
             <div
@@ -2573,31 +2556,19 @@ const StateCard = (props: StateCardProps) => {
               onCancelDismiss={() => {}}
               onConfirmAbort={() => {}}
               onCancelAbort={() => {}}
-              onAcknowledgeError={
-                currentProps().hasOnAcknowledge !== false ? () => {} : undefined
-              }
-              onRetry={
-                currentProps().hasOnRetry !== false ? () => {} : undefined
-              }
-              onDismiss={
-                currentProps().hasOnDismiss !== false ? () => {} : undefined
-              }
+              onAcknowledgeError={currentProps().hasOnAcknowledge !== false ? () => {} : undefined}
+              onRetry={currentProps().hasOnRetry !== false ? () => {} : undefined}
+              onDismiss={currentProps().hasOnDismiss !== false ? () => {} : undefined}
               onUndo={currentProps().hasOnUndo !== false ? () => {} : undefined}
               onFollowUpSubmit={() => {}}
               onAbort={() => {}}
-              onShowContextMenu={
-                currentProps().showMoreOptions ? () => {} : undefined
-              }
+              onShowContextMenu={currentProps().showMoreOptions ? () => {} : undefined}
             />
           </Show>
 
           <Show when={props.state.component === "context-menu"}>
             <ContextMenu
-              position={
-                boundsAnchor()
-                  ? { x: boundsAnchor()!.x, y: boundsAnchor()!.y }
-                  : null
-              }
+              position={boundsAnchor() ? { x: boundsAnchor()!.x, y: boundsAnchor()!.y } : null}
               selectionBounds={props.getBounds() ?? null}
               tagName={currentProps().tagName}
               componentName={currentProps().componentName}
@@ -2635,9 +2606,7 @@ const StateCard = (props: StateCardProps) => {
               enabled={currentProps().isToolbarEnabled ?? true}
               isCollapsed={currentProps().isToolbarCollapsed}
               snapEdge={currentProps().toolbarSnapEdge}
-              isCommentsExpanded={
-                (currentProps().toolbarCommentItemCount ?? 0) > 0
-              }
+              isCommentsExpanded={(currentProps().toolbarCommentItemCount ?? 0) > 0}
             />
           </Show>
 
@@ -2651,11 +2620,7 @@ const StateCard = (props: StateCardProps) => {
               }}
             >
               <div ref={(element) => props.registerCell(element)}>
-                <ToolbarContent
-                  isActive={true}
-                  enabled={true}
-                  isCommentsExpanded={true}
-                />
+                <ToolbarContent isActive={true} enabled={true} isCommentsExpanded={true} />
               </div>
             </div>
             <CommentsDropdown
@@ -2734,9 +2699,7 @@ const FpsMeter = (props: FpsMeterProps) => {
 };
 
 const DesignSystemGrid = () => {
-  const [cellRefs, setCellRefs] = createSignal<Map<string, HTMLDivElement>>(
-    new Map(),
-  );
+  const [cellRefs, setCellRefs] = createSignal<Map<string, HTMLDivElement>>(new Map());
   const [boundsVersion, setBoundsVersion] = createSignal(0);
   const [isDarkMode, setIsDarkMode] = createSignal(loadTheme());
   const [isRefreshing, setIsRefreshing] = createSignal(false);
@@ -2864,9 +2827,7 @@ const DesignSystemGrid = () => {
   };
 
   const starredStates = () =>
-    DESIGN_SYSTEM_STATES.filter(
-      (state) => starredIds().has(state.id) && matchesSearch(state),
-    );
+    DESIGN_SYSTEM_STATES.filter((state) => starredIds().has(state.id) && matchesSearch(state));
   const labelStates = () =>
     DESIGN_SYSTEM_STATES.filter(
       (state) =>
@@ -2877,17 +2838,11 @@ const DesignSystemGrid = () => {
     );
   const contextMenuStates = () =>
     DESIGN_SYSTEM_STATES.filter(
-      (state) =>
-        state.component === "context-menu" &&
-        !hasAnimation(state) &&
-        matchesSearch(state),
+      (state) => state.component === "context-menu" && !hasAnimation(state) && matchesSearch(state),
     );
   const toolbarStates = () =>
     DESIGN_SYSTEM_STATES.filter(
-      (state) =>
-        state.component === "toolbar" &&
-        !hasAnimation(state) &&
-        matchesSearch(state),
+      (state) => state.component === "toolbar" && !hasAnimation(state) && matchesSearch(state),
     );
   const agentLabelStates = () =>
     DESIGN_SYSTEM_STATES.filter(
@@ -2900,14 +2855,10 @@ const DesignSystemGrid = () => {
   const commentsDropdownStates = () =>
     DESIGN_SYSTEM_STATES.filter(
       (state) =>
-        state.component === "comments-dropdown" &&
-        !hasAnimation(state) &&
-        matchesSearch(state),
+        state.component === "comments-dropdown" && !hasAnimation(state) && matchesSearch(state),
     );
   const flowStates = () =>
-    DESIGN_SYSTEM_STATES.filter(
-      (state) => hasAnimation(state) && matchesSearch(state),
-    );
+    DESIGN_SYSTEM_STATES.filter((state) => hasAnimation(state) && matchesSearch(state));
 
   const createRefreshHandler = (id: string) => () => {
     setCellRefs((prev) => {
@@ -2925,8 +2876,7 @@ const DesignSystemGrid = () => {
         "flex-direction": "column",
         "min-height": "100vh",
         "background-color": theme().background,
-        "font-family":
-          'Geist, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        "font-family": 'Geist, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
         transition: `background-color ${TRANSITION_DURATION}`,
       }}
     >
@@ -3054,23 +3004,15 @@ const DesignSystemGrid = () => {
               "background-color": isScrambled()
                 ? "rgba(215, 95, 203, 0.2)"
                 : theme().toggleBackground,
-              "border-color": isScrambled()
-                ? "rgba(215, 95, 203, 0.5)"
-                : theme().toggleBorder,
+              "border-color": isScrambled() ? "rgba(215, 95, 203, 0.5)" : theme().toggleBorder,
             }}
           >
             {isScrambled() ? "✓ Scramble" : "Scramble"}
           </button>
-          <button
-            onClick={handleRefresh}
-            style={createToggleButtonStyle(theme())}
-          >
+          <button onClick={handleRefresh} style={createToggleButtonStyle(theme())}>
             ↻ Refresh
           </button>
-          <button
-            onClick={handleToggleTheme}
-            style={createToggleButtonStyle(theme())}
-          >
+          <button onClick={handleToggleTheme} style={createToggleButtonStyle(theme())}>
             {isDarkMode() ? "Dark" : "Light"}
           </button>
         </div>
@@ -3267,9 +3209,7 @@ const DesignSystemGrid = () => {
           }
         >
           <div style={{ padding: "48px 24px", "text-align": "center" }}>
-            <span
-              style={{ color: theme().descriptionText, "font-size": "14px" }}
-            >
+            <span style={{ color: theme().descriptionText, "font-size": "14px" }}>
               No states match "{searchQuery()}"
             </span>
           </div>
@@ -3306,8 +3246,7 @@ export const renderDesignSystemPreview = (
 
   const fontLink = document.createElement("link");
   fontLink.rel = "stylesheet";
-  fontLink.href =
-    "https://fonts.googleapis.com/css2?family=Geist:wght@500&display=swap";
+  fontLink.href = "https://fonts.googleapis.com/css2?family=Geist:wght@500&display=swap";
   shadowRoot.appendChild(fontLink);
 
   const renderRoot = document.createElement("div");

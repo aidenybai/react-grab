@@ -19,9 +19,7 @@ import { CommentsDropdown } from "./comments-dropdown.js";
 import { ClearCommentsPrompt } from "./clear-comments-prompt.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
-  const getSessionStatus = (
-    session: AgentSession,
-  ): "copying" | "copied" | "fading" => {
+  const getSessionStatus = (session: AgentSession): "copying" | "copied" | "fading" => {
     if (session.isFading) {
       return "fading";
     }
@@ -69,11 +67,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           "box-shadow": `inset 0 0 ${FROZEN_GLOW_EDGE_PX}px ${FROZEN_GLOW_COLOR}`,
         }}
       />
-      <Index
-        each={
-          props.agentSessions ? Array.from(props.agentSessions.values()) : []
-        }
-      >
+      <Index each={props.agentSessions ? Array.from(props.agentSessions.values()) : []}>
         {(session) => (
           <Show when={session().selectionBounds.length > 0}>
             <SelectionLabel
@@ -92,30 +86,18 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
               dismissButtonText={props.dismissButtonText}
               onAbort={() => props.onRequestAbortSession?.(session().id)}
               onDismiss={
-                session().isStreaming
-                  ? undefined
-                  : () => props.onDismissSession?.(session().id)
+                session().isStreaming ? undefined : () => props.onDismissSession?.(session().id)
               }
-              onUndo={
-                session().isStreaming
-                  ? undefined
-                  : () => props.onUndoSession?.(session().id)
-              }
+              onUndo={session().isStreaming ? undefined : () => props.onUndoSession?.(session().id)}
               onFollowUpSubmit={
                 session().isStreaming
                   ? undefined
-                  : (prompt) =>
-                      props.onFollowUpSubmitSession?.(session().id, prompt)
+                  : (prompt) => props.onFollowUpSubmitSession?.(session().id, prompt)
               }
               error={session().error}
-              onAcknowledgeError={() =>
-                props.onAcknowledgeSessionError?.(session().id)
-              }
+              onAcknowledgeError={() => props.onAcknowledgeSessionError?.(session().id)}
               onRetry={() => props.onRetrySession?.(session().id)}
-              isPendingAbort={
-                session().isStreaming &&
-                props.pendingAbortSessionId === session().id
-              }
+              isPendingAbort={session().isStreaming && props.pendingAbortSessionId === session().id}
               onConfirmAbort={() => props.onAbortSession?.(session().id, true)}
               onCancelAbort={() => props.onAbortSession?.(session().id, false)}
             />
@@ -175,16 +157,11 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
             onShowContextMenu={(() => {
               const currentInstance = instance();
               const hasCompletedStatus =
-                currentInstance.status === "copied" ||
-                currentInstance.status === "fading";
-              if (
-                !hasCompletedStatus ||
-                !isElementConnected(currentInstance.element)
-              ) {
+                currentInstance.status === "copied" || currentInstance.status === "fading";
+              if (!hasCompletedStatus || !isElementConnected(currentInstance.element)) {
                 return undefined;
               }
-              return () =>
-                props.onShowContextMenuInstance?.(currentInstance.id);
+              return () => props.onShowContextMenuInstance?.(currentInstance.id);
             })()}
             onHoverChange={(isHovered) =>
               props.onLabelInstanceHoverChange?.(instance().id, isHovered)

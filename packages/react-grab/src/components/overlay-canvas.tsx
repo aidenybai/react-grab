@@ -1,10 +1,6 @@
 import { createEffect, onCleanup, onMount, on } from "solid-js";
 import type { Component } from "solid-js";
-import type {
-  OverlayBounds,
-  SelectionLabelInstance,
-  AgentSession,
-} from "../types.js";
+import type { OverlayBounds, SelectionLabelInstance, AgentSession } from "../types.js";
 import { lerp } from "../utils/lerp.js";
 import {
   SELECTION_LERP_FACTOR,
@@ -22,10 +18,7 @@ import {
   OVERLAY_BORDER_COLOR_INSPECT,
   OVERLAY_FILL_COLOR_INSPECT,
 } from "../constants.js";
-import {
-  nativeCancelAnimationFrame,
-  nativeRequestAnimationFrame,
-} from "../utils/native-raf.js";
+import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "../utils/native-raf.js";
 import { supportsDisplayP3 } from "../utils/supports-display-p3.js";
 
 const DEFAULT_LAYER_STYLE = {
@@ -116,19 +109,14 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
   let processingAnimations: AnimatedBounds[] = [];
   let inspectAnimations: AnimatedBounds[] = [];
 
-  const canvasColorSpace: PredefinedColorSpace = supportsDisplayP3()
-    ? "display-p3"
-    : "srgb";
+  const canvasColorSpace: PredefinedColorSpace = supportsDisplayP3() ? "display-p3" : "srgb";
 
   const createOffscreenLayer = (
     layerWidth: number,
     layerHeight: number,
     scaleFactor: number,
   ): OffscreenLayer => {
-    const canvas = new OffscreenCanvas(
-      layerWidth * scaleFactor,
-      layerHeight * scaleFactor,
-    );
+    const canvas = new OffscreenCanvas(layerWidth * scaleFactor, layerHeight * scaleFactor);
     const context = canvas.getContext("2d", { colorSpace: canvasColorSpace });
     if (context) {
       context.scale(scaleFactor, scaleFactor);
@@ -139,10 +127,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
   const initializeCanvas = () => {
     if (!canvasRef) return;
 
-    devicePixelRatio = Math.max(
-      window.devicePixelRatio || 1,
-      MIN_DEVICE_PIXEL_RATIO,
-    );
+    devicePixelRatio = Math.max(window.devicePixelRatio || 1, MIN_DEVICE_PIXEL_RATIO);
     canvasWidth = window.innerWidth;
     canvasHeight = window.innerHeight;
 
@@ -157,11 +142,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     }
 
     for (const layerName of Object.keys(layers) as LayerName[]) {
-      layers[layerName] = createOffscreenLayer(
-        canvasWidth,
-        canvasHeight,
-        devicePixelRatio,
-      );
+      layers[layerName] = createOffscreenLayer(canvasWidth, canvasHeight, devicePixelRatio);
     }
   };
 
@@ -213,9 +194,8 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     }
   };
 
-  const resolveBoundsArray = (
-    instance: SelectionLabelInstance,
-  ): OverlayBounds[] => instance.boundsMultiple ?? [instance.bounds];
+  const resolveBoundsArray = (instance: SelectionLabelInstance): OverlayBounds[] =>
+    instance.boundsMultiple ?? [instance.bounds];
 
   const drawRoundedRectangle = (
     context: OffscreenCanvasRenderingContext2D,
@@ -236,13 +216,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     context.globalAlpha = opacity;
     context.beginPath();
     if (clampedCornerRadius > 0) {
-      context.roundRect(
-        rectX,
-        rectY,
-        rectWidth,
-        rectHeight,
-        clampedCornerRadius,
-      );
+      context.roundRect(rectX, rectY, rectWidth, rectHeight, clampedCornerRadius);
     } else {
       context.rect(rectX, rectY, rectWidth, rectHeight);
     }
@@ -343,13 +317,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     renderBoundsLayer("processing", processingAnimations);
     renderBoundsLayer("inspect", inspectAnimations);
 
-    const layerRenderOrder: LayerName[] = [
-      "inspect",
-      "drag",
-      "selection",
-      "grabbed",
-      "processing",
-    ];
+    const layerRenderOrder: LayerName[] = ["inspect", "drag", "selection", "grabbed", "processing"];
     for (const layerName of layerRenderOrder) {
       const layer = layers[layerName];
       if (layer.canvas) {
@@ -365,47 +333,26 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
   ): boolean => {
     const lerpedX = lerp(animation.current.x, animation.target.x, lerpFactor);
     const lerpedY = lerp(animation.current.y, animation.target.y, lerpFactor);
-    const lerpedWidth = lerp(
-      animation.current.width,
-      animation.target.width,
-      lerpFactor,
-    );
-    const lerpedHeight = lerp(
-      animation.current.height,
-      animation.target.height,
-      lerpFactor,
-    );
+    const lerpedWidth = lerp(animation.current.width, animation.target.width, lerpFactor);
+    const lerpedHeight = lerp(animation.current.height, animation.target.height, lerpFactor);
 
     const hasBoundsConverged =
       Math.abs(lerpedX - animation.target.x) < LERP_CONVERGENCE_THRESHOLD_PX &&
       Math.abs(lerpedY - animation.target.y) < LERP_CONVERGENCE_THRESHOLD_PX &&
-      Math.abs(lerpedWidth - animation.target.width) <
-        LERP_CONVERGENCE_THRESHOLD_PX &&
-      Math.abs(lerpedHeight - animation.target.height) <
-        LERP_CONVERGENCE_THRESHOLD_PX;
+      Math.abs(lerpedWidth - animation.target.width) < LERP_CONVERGENCE_THRESHOLD_PX &&
+      Math.abs(lerpedHeight - animation.target.height) < LERP_CONVERGENCE_THRESHOLD_PX;
 
     animation.current.x = hasBoundsConverged ? animation.target.x : lerpedX;
     animation.current.y = hasBoundsConverged ? animation.target.y : lerpedY;
-    animation.current.width = hasBoundsConverged
-      ? animation.target.width
-      : lerpedWidth;
-    animation.current.height = hasBoundsConverged
-      ? animation.target.height
-      : lerpedHeight;
+    animation.current.width = hasBoundsConverged ? animation.target.width : lerpedWidth;
+    animation.current.height = hasBoundsConverged ? animation.target.height : lerpedHeight;
 
     let hasOpacityConverged = true;
     if (options?.interpolateOpacity) {
-      const lerpedOpacity = lerp(
-        animation.opacity,
-        animation.targetOpacity,
-        lerpFactor,
-      );
+      const lerpedOpacity = lerp(animation.opacity, animation.targetOpacity, lerpFactor);
       hasOpacityConverged =
-        Math.abs(lerpedOpacity - animation.targetOpacity) <
-        OPACITY_CONVERGENCE_THRESHOLD;
-      animation.opacity = hasOpacityConverged
-        ? animation.targetOpacity
-        : lerpedOpacity;
+        Math.abs(lerpedOpacity - animation.targetOpacity) < OPACITY_CONVERGENCE_THRESHOLD;
+      animation.opacity = hasOpacityConverged ? animation.targetOpacity : lerpedOpacity;
     }
 
     return !hasBoundsConverged || !hasOpacityConverged;
@@ -433,11 +380,9 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
       const isLabelAnimation = animation.id.startsWith("label-");
 
       if (animation.isInitialized) {
-        const isStillAnimating = interpolateBounds(
-          animation,
-          LAYER_STYLES.grabbed.lerpFactor,
-          { interpolateOpacity: isLabelAnimation },
-        );
+        const isStillAnimating = interpolateBounds(animation, LAYER_STYLES.grabbed.lerpFactor, {
+          interpolateOpacity: isLabelAnimation,
+        });
         if (isStillAnimating) {
           shouldContinueAnimating = true;
         }
@@ -452,8 +397,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
         }
 
         if (elapsed > FEEDBACK_DURATION_MS) {
-          const fadeProgress =
-            (elapsed - FEEDBACK_DURATION_MS) / FADE_OUT_BUFFER_MS;
+          const fadeProgress = (elapsed - FEEDBACK_DURATION_MS) / FADE_OUT_BUFFER_MS;
           animation.opacity = 1 - fadeProgress;
           shouldContinueAnimating = true;
         }
@@ -463,8 +407,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
       if (isLabelAnimation) {
         const hasOpacityConverged =
-          Math.abs(animation.opacity - animation.targetOpacity) <
-          OPACITY_CONVERGENCE_THRESHOLD;
+          Math.abs(animation.opacity - animation.targetOpacity) < OPACITY_CONVERGENCE_THRESHOLD;
         if (hasOpacityConverged && animation.targetOpacity === 0) {
           return false;
         }
@@ -520,10 +463,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
           props.selectionShouldSnap,
         ] as const,
       ([isVisible, singleBounds, multipleBounds, , shouldSnap]) => {
-        if (
-          !isVisible ||
-          (!singleBounds && (!multipleBounds || multipleBounds.length === 0))
-        ) {
+        if (!isVisible || (!singleBounds && (!multipleBounds || multipleBounds.length === 0))) {
           selectionAnimations = [];
           scheduleAnimationFrame();
           return;
@@ -587,9 +527,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
       ([grabbedBoxes, labelInstances]) => {
         const boxesToProcess = grabbedBoxes ?? [];
         const activeBoxIds = new Set(boxesToProcess.map((box) => box.id));
-        const existingAnimationIds = new Set(
-          grabbedAnimations.map((animation) => animation.id),
-        );
+        const existingAnimationIds = new Set(grabbedAnimations.map((animation) => animation.id));
 
         for (const box of boxesToProcess) {
           if (!existingAnimationIds.has(box.id)) {
@@ -602,9 +540,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
         }
 
         for (const animation of grabbedAnimations) {
-          const matchingBox = boxesToProcess.find(
-            (box) => box.id === animation.id,
-          );
+          const matchingBox = boxesToProcess.find((box) => box.id === animation.id);
           if (matchingBox) {
             updateAnimationTarget(animation, matchingBox.bounds);
           }
@@ -729,10 +665,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     let currentDprMediaQuery: MediaQueryList | null = null;
 
     const handleDevicePixelRatioChange = () => {
-      const newDevicePixelRatio = Math.max(
-        window.devicePixelRatio || 1,
-        MIN_DEVICE_PIXEL_RATIO,
-      );
+      const newDevicePixelRatio = Math.max(window.devicePixelRatio || 1, MIN_DEVICE_PIXEL_RATIO);
       if (newDevicePixelRatio !== devicePixelRatio) {
         handleWindowResize();
         setupDprMediaQuery();
@@ -741,18 +674,10 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
     const setupDprMediaQuery = () => {
       if (currentDprMediaQuery) {
-        currentDprMediaQuery.removeEventListener(
-          "change",
-          handleDevicePixelRatioChange,
-        );
+        currentDprMediaQuery.removeEventListener("change", handleDevicePixelRatioChange);
       }
-      currentDprMediaQuery = window.matchMedia(
-        `(resolution: ${window.devicePixelRatio}dppx)`,
-      );
-      currentDprMediaQuery.addEventListener(
-        "change",
-        handleDevicePixelRatioChange,
-      );
+      currentDprMediaQuery = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
+      currentDprMediaQuery.addEventListener("change", handleDevicePixelRatioChange);
     };
 
     setupDprMediaQuery();
@@ -760,10 +685,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     onCleanup(() => {
       window.removeEventListener("resize", handleWindowResize);
       if (currentDprMediaQuery) {
-        currentDprMediaQuery.removeEventListener(
-          "change",
-          handleDevicePixelRatioChange,
-        );
+        currentDprMediaQuery.removeEventListener("change", handleDevicePixelRatioChange);
       }
       if (animationFrameId !== null) {
         nativeCancelAnimationFrame(animationFrameId);

@@ -9,10 +9,7 @@ interface MessageBlockProps {
   animationDelay?: number;
 }
 
-export const MessageBlock = ({
-  block,
-  animationDelay,
-}: MessageBlockProps): ReactElement => {
+export const MessageBlock = ({ block, animationDelay }: MessageBlockProps): ReactElement => {
   return (
     <div className="text-foreground">
       <StreamingText

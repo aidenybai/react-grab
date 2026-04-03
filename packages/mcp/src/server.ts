@@ -12,13 +12,10 @@ import {
   POST_KILL_DELAY_MS,
 } from "./constants.js";
 
-const sleep = (ms: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 const agentContextSchema = z.object({
-  content: z
-    .array(z.string())
-    .describe("Array of context strings (HTML + component stack traces)"),
+  content: z.array(z.string()).describe("Array of context strings (HTML + component stack traces)"),
   prompt: z.string().optional().describe("User prompt or instruction"),
 });
 
@@ -99,14 +96,8 @@ const createHttpServer = (port: number): Server => {
     const url = new URL(request.url ?? "/", `http://localhost:${port}`);
 
     response.setHeader("Access-Control-Allow-Origin", "*");
-    response.setHeader(
-      "Access-Control-Allow-Methods",
-      "POST, GET, DELETE, OPTIONS",
-    );
-    response.setHeader(
-      "Access-Control-Allow-Headers",
-      "Content-Type, mcp-session-id",
-    );
+    response.setHeader("Access-Control-Allow-Methods", "POST, GET, DELETE, OPTIONS");
+    response.setHeader("Access-Control-Allow-Headers", "Content-Type, mcp-session-id");
     response.setHeader("Access-Control-Expose-Headers", "mcp-session-id");
 
     if (request.method === "OPTIONS") {
@@ -241,15 +232,12 @@ export const startMcpServer = async ({
     await mcpServer.server.connect(transport);
 
     startHttpServer(port).then(
-      () =>
-        console.error(`React Grab context server listening on port ${port}`),
+      () => console.error(`React Grab context server listening on port ${port}`),
       (error) => console.error(`Failed to start context server: ${error}`),
     );
     return;
   }
 
   await startHttpServer(port);
-  console.log(
-    `React Grab MCP server listening on http://localhost:${port}/mcp`,
-  );
+  console.log(`React Grab MCP server listening on http://localhost:${port}/mcp`);
 };

@@ -30,11 +30,7 @@ const EDITORS: EditorOption[] = [
 
 const STORAGE_KEY = "react-grab-preferred-editor";
 
-const getEditorUrl = (
-  editor: Editor,
-  filePath: string,
-  lineNumber?: number,
-): string => {
+const getEditorUrl = (editor: Editor, filePath: string, lineNumber?: number): string => {
   if (editor === "webstorm") {
     const lineParam = lineNumber ? `&line=${lineNumber}` : "";
     return `webstorm://open?file=${filePath}${lineParam}`;
@@ -57,8 +53,7 @@ const OpenFileContent = () => {
   const resolvedFilePath = filePath ?? filePathAlt ?? "";
 
   const getInitialEditor = (): { editor: Editor; hasSaved: boolean } => {
-    if (typeof window === "undefined")
-      return { editor: "cursor", hasSaved: false };
+    if (typeof window === "undefined") return { editor: "cursor", hasSaved: false };
     const params = new URLSearchParams(window.location.search);
     if (params.has("raw")) return { editor: "cursor", hasSaved: false };
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -69,8 +64,7 @@ const OpenFileContent = () => {
   };
 
   const [preferredEditor, setPreferredEditor] = useState<Editor>(() => {
-    if (editorParam && EDITORS.some((e) => e.id === editorParam))
-      return editorParam;
+    if (editorParam && EDITORS.some((e) => e.id === editorParam)) return editorParam;
     return getInitialEditor().editor;
   });
   const [didAttemptOpen, setDidAttemptOpen] = useState(false);
@@ -81,10 +75,7 @@ const OpenFileContent = () => {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
       }
     };
@@ -160,11 +151,7 @@ const OpenFileContent = () => {
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <div className="mb-8">
         <Link href="/">
-          <ReactGrabLogo
-            width={160}
-            height={60}
-            className="logo-shimmer-once"
-          />
+          <ReactGrabLogo width={160} height={60} className="logo-shimmer-once" />
         </Link>
       </div>
 
@@ -200,10 +187,7 @@ const OpenFileContent = () => {
               <span>{selectedEditor?.name}</span>
               <ChevronDown
                 size={14}
-                className={cn(
-                  "opacity-40 transition-transform",
-                  isDropdownOpen && "rotate-180",
-                )}
+                className={cn("opacity-40 transition-transform", isDropdownOpen && "rotate-180")}
               />
             </Button>
 
@@ -257,10 +241,7 @@ const OpenFileContent = () => {
         className="mt-8 gap-1.5 text-muted-foreground/50 hover:text-muted-foreground"
       >
         <span>What is React Grab?</span>
-        <ChevronDown
-          size={10}
-          className={cn("transition-transform", isInfoOpen && "rotate-180")}
-        />
+        <ChevronDown size={10} className={cn("transition-transform", isInfoOpen && "rotate-180")} />
       </Button>
 
       {isInfoOpen && (
