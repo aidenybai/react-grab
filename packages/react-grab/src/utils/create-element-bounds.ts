@@ -35,13 +35,6 @@ export const invalidateBoundsCache = () => {
   borderRadiusCache = new WeakMap<Element, CachedBorderRadius>();
 };
 
-export const populateBoundsCache = (
-  element: Element,
-  bounds: OverlayBounds,
-) => {
-  boundsCache.set(element, { bounds, timestamp: performance.now() });
-};
-
 const getAncestorTransformValue = (ancestor: Element, now: number): string => {
   const cached = ancestorTransformCache.get(ancestor);
   if (cached && now - cached.timestamp < BOUNDS_CACHE_TTL_MS) {
@@ -159,15 +152,6 @@ const buildBoundsFromRect = (
     x: rect.left,
     y: rect.top,
   };
-};
-
-export const createBoundsFromIOEntry = (
-  element: Element,
-  entryRect: DOMRect,
-): OverlayBounds => {
-  const now = performance.now();
-  const style = window.getComputedStyle(element);
-  return buildBoundsFromRect(element, entryRect, style, now);
 };
 
 export const createElementBounds = (element: Element): OverlayBounds => {

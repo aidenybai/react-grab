@@ -23,7 +23,6 @@ import { highlighter } from "../utils/highlighter.js";
 import { getPackagesToInstall } from "../utils/install.js";
 import { logger } from "../utils/logger.js";
 import { spinner } from "../utils/spinner.js";
-import { type AgentIntegration } from "../utils/templates.js";
 import {
   previewOptionsTransform,
   previewTransform,
@@ -489,7 +488,7 @@ export const init = new Command()
       const finalFramework = projectInfo.framework;
       const finalPackageManager = projectInfo.packageManager;
       const finalNextRouterType = projectInfo.nextRouterType;
-      let agentIntegration: AgentIntegration = "none";
+      let didInstallMcp = false;
 
       if (!isNonInteractive) {
         logger.break();
@@ -506,8 +505,8 @@ export const init = new Command()
         }
 
         if (wantAddMcp) {
-          const didInstall = await promptMcpInstall();
-          if (!didInstall) {
+          didInstallMcp = Boolean(await promptMcpInstall());
+          if (!didInstallMcp) {
             logger.break();
             process.exit(0);
           }
@@ -515,7 +514,6 @@ export const init = new Command()
           logger.success("MCP server has been configured.");
           logger.log("Continuing with React Grab installation...");
           logger.break();
-          agentIntegration = "mcp";
         }
       }
 
@@ -523,7 +521,6 @@ export const init = new Command()
         projectInfo.projectRoot,
         finalFramework,
         finalNextRouterType,
-        agentIntegration,
         false,
         opts.force,
       );
@@ -591,7 +588,7 @@ export const init = new Command()
         framework: finalFramework,
         packageManager: finalPackageManager,
         router: finalNextRouterType,
-        agent: agentIntegration !== "none" ? agentIntegration : undefined,
+        agent: didInstallMcp ? "mcp" : undefined,
         isMonorepo: projectInfo.isMonorepo,
       });
     } catch (error) {

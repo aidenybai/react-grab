@@ -34,7 +34,6 @@ export const DRAG_PREVIEW_DEBOUNCE_MS = 32;
 export const BOUNDS_CACHE_TTL_MS = 16;
 export const BORDER_RADIUS_CACHE_TTL_MS = 200;
 export const BOUNDS_RECALC_INTERVAL_MS = 100;
-export const IO_CALLBACK_TIMEOUT_MS = 50;
 
 export const AUTO_SCROLL_EDGE_THRESHOLD_PX = 25;
 export const AUTO_SCROLL_SPEED_PX = 10;
