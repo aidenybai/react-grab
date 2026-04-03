@@ -42,6 +42,7 @@ export type {
 } from "./types.js";
 
 import { init } from "./core/index.js";
+import { fetchLatestVersion } from "./utils/fetch-latest-version.js";
 import type { Plugin, ReactGrabAPI } from "./types.js";
 
 declare global {
@@ -114,4 +115,21 @@ if (typeof window !== "undefined" && !window.__REACT_GRAB_DISABLED__) {
   window.dispatchEvent(
     new CustomEvent("react-grab:init", { detail: globalApi }),
   );
+
+  if (process.env.DISTRIBUTION === "npm" && globalApi) {
+    void fetchLatestVersion().then((latestVersion) => {
+      if (!latestVersion) return;
+
+      globalApi?.dispose();
+      setGlobalApi(null);
+
+      const script = document.createElement("script");
+      script.src = `https://unpkg.com/react-grab@${latestVersion}/dist/index.global.js`;
+      script.onerror = () => {
+        script.remove();
+        setGlobalApi(init());
+      };
+      document.head.appendChild(script);
+    });
+  }
 }

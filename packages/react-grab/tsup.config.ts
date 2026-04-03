@@ -65,6 +65,7 @@ const browserBuildConfig: Options = {
   env: {
     ...DEFAULT_OPTIONS.env,
     VERSION: version,
+    DISTRIBUTION: "cdn",
   },
   format: ["iife"],
   globalName: "globalThis.__REACT_GRAB_MODULE__",
@@ -90,6 +91,10 @@ const libraryBuildConfig: Options = {
   ...DEFAULT_OPTIONS,
   clean: false,
   entry: ["./src/index.ts", "./src/core/index.tsx", "./src/primitives.ts"],
+  env: {
+    ...DEFAULT_OPTIONS.env,
+    DISTRIBUTION: "npm",
+  },
   format: ["cjs", "esm"],
   loader: {
     ".css": "text",
