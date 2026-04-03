@@ -396,56 +396,6 @@ test.describe("Context Menu", () => {
     });
   });
 
-  test.describe("Prompt Menu Item", () => {
-    test("Edit item should appear when agent is configured", async ({ reactGrab }) => {
-      await reactGrab.setupMockAgent();
-      await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
-      await reactGrab.rightClickElement("li:first-child");
-
-      const menuInfo = await reactGrab.getContextMenuInfo();
-      expect(menuInfo.isVisible).toBe(true);
-      expect(menuInfo.menuItems).toContain("Edit");
-    });
-
-    test("Edit item should enter input mode when clicked", async ({ reactGrab }) => {
-      await reactGrab.setupMockAgent();
-      await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
-      await reactGrab.rightClickElement("li:first-child");
-      await reactGrab.page.waitForTimeout(100);
-
-      await reactGrab.clickContextMenuItem("Edit");
-      await reactGrab.page.waitForTimeout(200);
-
-      const isPromptMode = await reactGrab.isPromptModeActive();
-      expect(isPromptMode).toBe(true);
-    });
-
-    test("Edit with agent keeps overlay active", async ({ reactGrab }) => {
-      await reactGrab.setupMockAgent();
-      await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
-      await reactGrab.rightClickElement("li:first-child");
-      await reactGrab.clickContextMenuItem("Edit");
-
-      await expect.poll(() => reactGrab.isOverlayVisible(), { timeout: 2000 }).toBe(true);
-    });
-
-    test("Copy without agent deactivates after action", async ({ reactGrab }) => {
-      await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
-      await reactGrab.rightClickElement("li:first-child");
-      await reactGrab.clickContextMenuItem("Copy");
-
-      await expect.poll(() => reactGrab.isOverlayVisible(), { timeout: 3000 }).toBe(false);
-    });
-  });
-
   test.describe("Context Menu Positioning", () => {
     test("context menu should appear near click position", async ({ reactGrab }) => {
       await reactGrab.activate();

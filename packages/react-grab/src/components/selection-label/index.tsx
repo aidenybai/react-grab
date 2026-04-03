@@ -396,14 +396,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
         <Show when={isCompletedStatus() && !props.error}>
           <CompletionView
-            statusText={props.hasAgent ? (props.statusText ?? "Completed") : "Copied"}
-            supportsUndo={props.supportsUndo}
-            supportsFollowUp={props.supportsFollowUp}
-            dismissButtonText={props.dismissButtonText}
-            previousPrompt={props.previousPrompt}
+            statusText={props.statusText ?? "Copied"}
             onDismiss={props.onDismiss}
             onUndo={props.onUndo}
-            onFollowUpSubmit={props.onFollowUpSubmit}
             onFadingChange={setIsInternalFading}
             onShowContextMenu={props.onShowContextMenu}
           />
@@ -422,53 +417,13 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           onAnimationEnd={() => setIsShaking(false)}
         >
           <Show when={props.status === "copying" && !props.isPendingAbort}>
-            <div
-              class="contain-layout shrink-0 flex flex-col justify-center items-start w-fit h-fit max-w-[280px]"
-              classList={{
-                "min-w-[150px]": Boolean(props.hasAgent && props.inputValue),
-              }}
-            >
+            <div class="contain-layout shrink-0 flex flex-col justify-center items-start w-fit h-fit max-w-[280px]">
               <div class="contain-layout shrink-0 flex items-center gap-1 py-1.5 px-2 w-full h-fit">
                 <IconLoader size={13} class="text-[#71717a] shrink-0" />
                 <span class="shimmer-text text-[13px] leading-4 font-sans font-medium h-fit tabular-nums overflow-hidden text-ellipsis whitespace-nowrap">
                   {props.statusText ?? "Grabbing…"}
                 </span>
               </div>
-              <Show when={props.hasAgent && props.inputValue}>
-                <BottomSection>
-                  <div class="shrink-0 flex justify-between items-end w-full min-h-4">
-                    <textarea
-                      ref={inputRef}
-                      data-react-grab-ignore-events
-                      class="text-black text-[13px] leading-4 font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 opacity-50 wrap-break-word overflow-y-auto"
-                      style={{
-                        "field-sizing": "content",
-                        "min-height": "16px",
-                        "max-height": `${TEXTAREA_MAX_HEIGHT_PX}px`,
-                        "scrollbar-width": "none",
-                      }}
-                      value={props.inputValue ?? ""}
-                      placeholder="Add context"
-                      rows={1}
-                      disabled
-                    />
-                    <Show when={props.onAbort}>
-                      <button
-                        data-react-grab-ignore-events
-                        data-react-grab-abort
-                        class="contain-layout shrink-0 flex items-center justify-center size-4 rounded-full bg-black cursor-pointer ml-1 interactive-scale"
-                        onPointerDown={(event) => event.stopPropagation()}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          props.onAbort?.();
-                        }}
-                      >
-                        <div class="size-1.5 bg-white rounded-[1px]" />
-                      </button>
-                    </Show>
-                  </div>
-                </BottomSection>
-              </Show>
             </div>
           </Show>
 

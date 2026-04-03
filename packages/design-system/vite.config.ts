@@ -1,5 +1,9 @@
 import { defineConfig } from "vite-plus";
-import { cssTextPlugin, solidBabelPlugin, solidWebBrowserPlugin } from "../react-grab/solid-babel-plugin";
+import {
+  cssTextPlugin,
+  solidBabelPlugin,
+  solidWebBrowserPlugin,
+} from "../react-grab/solid-babel-plugin";
 
 export default defineConfig({
   pack: {

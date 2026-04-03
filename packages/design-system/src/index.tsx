@@ -15,7 +15,6 @@ interface DesignSystemStateProps {
   componentName?: string;
   elementsCount?: number;
   status?: SelectionLabelStatus;
-  hasAgent?: boolean;
 
   isPromptMode?: boolean;
   inputValue?: string;
@@ -25,12 +24,9 @@ interface DesignSystemStateProps {
   isPendingAbort?: boolean;
   error?: string;
   isContextMenuOpen?: boolean;
-  supportsUndo?: boolean;
-  supportsFollowUp?: boolean;
   filePath?: string;
   hasFilePath?: boolean;
   showMoreOptions?: boolean;
-  dismissButtonText?: string;
   previousPrompt?: string;
   hasOnDismiss?: boolean;
   hasOnUndo?: boolean;
@@ -73,7 +69,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "button",
       componentName: "Button",
       status: "idle",
-      hasAgent: false,
     },
   },
   {
@@ -85,7 +80,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "div",
       componentName: "Header",
       status: "idle",
-      hasAgent: false,
       filePath: "src/components/Header.tsx",
     },
   },
@@ -98,7 +92,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "main",
       componentName: "Main",
       status: "idle",
-      hasAgent: false,
       isContextMenuOpen: true,
       filePath: "src/components/Main.tsx",
     },
@@ -112,7 +105,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "div",
       elementsCount: 3,
       status: "idle",
-      hasAgent: false,
     },
   },
   {
@@ -123,7 +115,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
     props: {
       tagName: "section",
       status: "idle",
-      hasAgent: false,
     },
   },
   {
@@ -135,7 +126,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "div",
       componentName: "SuperLongComponentNameThatShouldDefinitelyTruncate",
       status: "idle",
-      hasAgent: false,
     },
   },
   {
@@ -146,7 +136,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
     props: {
       tagName: "my-super-long-custom-web-component-element",
       status: "idle",
-      hasAgent: false,
     },
   },
   {
@@ -158,7 +147,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "div",
       componentName: "Button",
       status: "idle",
-      hasAgent: false,
       filePath: "src/components/ui/forms/inputs/buttons/primary/PrimaryButton.tsx",
     },
   },
@@ -171,7 +159,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "div",
       elementsCount: 99,
       status: "idle",
-      hasAgent: false,
     },
   },
   {
@@ -183,7 +170,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "custom-interactive-element",
       componentName: "InteractiveCustomElementWrapper",
       status: "idle",
-      hasAgent: false,
       filePath: "src/wrappers/InteractiveCustomElementWrapper.tsx",
     },
   },
@@ -196,7 +182,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "div",
       componentName: "Panel",
       status: "idle",
-      hasAgent: true,
     },
   },
 
@@ -210,7 +195,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "div",
       componentName: "Card",
       status: "idle",
-      hasAgent: true,
       isPromptMode: true,
       inputValue: "",
     },
@@ -224,7 +208,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "form",
       componentName: "Form",
       status: "idle",
-      hasAgent: true,
       isPromptMode: true,
       inputValue: "make the button larger",
     },
@@ -238,7 +221,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "span",
       componentName: "Text",
       status: "idle",
-      hasAgent: true,
       isPromptMode: true,
       inputValue: "now make it blue",
       replyToPrompt: "make the button larger",
@@ -253,7 +235,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "div",
       componentName: "Container",
       status: "idle",
-      hasAgent: true,
       isPromptMode: true,
       inputValue:
         "make the button bigger and change the background color to a nice gradient from blue to purple",
@@ -268,7 +249,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "button",
       componentName: "Submit",
       status: "idle",
-      hasAgent: true,
       isPromptMode: true,
       inputValue: "also add rounded corners",
       replyToPrompt:
@@ -284,7 +264,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "header",
       componentName: "Header",
       status: "idle",
-      hasAgent: true,
       isPromptMode: true,
       isPendingDismiss: true,
     },
@@ -300,7 +279,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "input",
       componentName: "TextField",
       status: "copying",
-      hasAgent: false,
       statusText: "Grabbing…",
     },
   },
@@ -313,7 +291,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "section",
       componentName: "Section",
       status: "copying",
-      hasAgent: true,
       inputValue: "add form validation",
       statusText: "Thinking…",
     },
@@ -327,7 +304,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "article",
       componentName: "Article",
       status: "copying",
-      hasAgent: true,
       isPendingAbort: true,
     },
   },
@@ -340,7 +316,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "form",
       componentName: "LoginForm",
       status: "copying",
-      hasAgent: true,
       inputValue: "add validation",
       statusText: "Applying changes…",
     },
@@ -354,7 +329,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "table",
       componentName: "DataTable",
       status: "copying",
-      hasAgent: true,
       inputValue: "make columns sortable",
       statusText: "Analyzing…",
     },
@@ -368,7 +342,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "div",
       componentName: "Modal",
       status: "copying",
-      hasAgent: true,
       inputValue:
         "add a close button in the top right corner with an X icon and make it dismiss the modal when clicked",
       statusText: "Thinking…",
@@ -383,7 +356,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "div",
       componentName: "InteractiveDataVisualizationChart",
       status: "copying",
-      hasAgent: true,
       inputValue: "add tooltips",
       statusText: "Applying…",
     },
@@ -399,7 +371,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "nav",
       componentName: "Navigation",
       status: "copied",
-      hasAgent: false,
       hasOnDismiss: false,
       hasOnUndo: false,
     },
@@ -413,9 +384,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "footer",
       componentName: "Footer",
       status: "copied",
-      hasAgent: true,
       statusText: "Applied changes",
-      supportsUndo: true,
     },
   },
   {
@@ -427,10 +396,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "aside",
       componentName: "Sidebar",
       status: "copied",
-      hasAgent: true,
       statusText: "Done",
-      supportsUndo: true,
-      supportsFollowUp: true,
     },
   },
   {
@@ -442,7 +408,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "span",
       componentName: "Badge",
       status: "copied",
-      hasAgent: true,
       statusText: "Applied",
       hasOnDismiss: false,
     },
@@ -456,9 +421,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "li",
       componentName: "ListItem",
       status: "copied",
-      hasAgent: true,
       statusText: "Changes saved",
-      supportsUndo: false,
     },
   },
   {
@@ -470,9 +433,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "div",
       componentName: "Widget",
       status: "copied",
-      hasAgent: true,
       statusText: "Updated",
-      supportsUndo: true,
       showMoreOptions: true,
     },
   },
@@ -485,10 +446,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "section",
       componentName: "Hero",
       status: "copied",
-      hasAgent: true,
       statusText: "Ready",
-      supportsUndo: true,
-      dismissButtonText: "Accept",
     },
   },
   {
@@ -500,10 +458,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "header",
       componentName: "TopBar",
       status: "copied",
-      hasAgent: true,
       statusText: "Done",
-      supportsUndo: true,
-      supportsFollowUp: true,
       previousPrompt: "make it bigger",
     },
   },
@@ -518,7 +473,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "div",
       componentName: "VeryLongComponentNameThatShouldTruncateInTheUI",
       status: "idle",
-      hasAgent: true,
       isPromptMode: true,
       inputValue: "",
     },
@@ -532,7 +486,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "form",
       componentName: "SearchForm",
       status: "copying",
-      hasAgent: true,
       inputValue: "add validation",
       statusText: "Analyzing component structure and dependencies…",
     },
@@ -546,7 +499,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "div",
       componentName: "Card",
       status: "idle",
-      hasAgent: true,
       isPromptMode: true,
       inputValue: "and also fix the spacing",
       replyToPrompt:
@@ -562,10 +514,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "section",
       componentName: "HeroSection",
       status: "copied",
-      hasAgent: true,
       statusText: "Successfully applied 5 changes across 3 files",
-      supportsUndo: true,
-      supportsFollowUp: true,
     },
   },
   {
@@ -577,10 +526,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "nav",
       componentName: "Navbar",
       status: "copied",
-      hasAgent: true,
       statusText: "Done",
-      supportsUndo: true,
-      supportsFollowUp: true,
       previousPrompt:
         "make the navbar sticky with a blur background effect and add smooth scroll behavior",
     },
@@ -594,10 +540,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "div",
       componentName: "Dashboard",
       status: "copied",
-      hasAgent: true,
       statusText: "Applied changes",
-      supportsUndo: true,
-      supportsFollowUp: true,
       showMoreOptions: true,
       previousPrompt: "add dark mode",
     },
@@ -611,7 +554,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "i",
       componentName: "I",
       status: "idle",
-      hasAgent: true,
       isPromptMode: true,
       inputValue: "",
     },
@@ -625,7 +567,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "div",
       componentName: "Card2024V2",
       status: "idle",
-      hasAgent: true,
       isPromptMode: true,
       inputValue: "update the styles",
     },
@@ -1129,7 +1070,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "button",
       componentName: "Button",
       status: "idle",
-      hasAgent: false,
     },
     animationSequence: [
       {
@@ -1137,7 +1077,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "button",
           componentName: "Button",
           status: "idle",
-          hasAgent: false,
         },
         durationMs: 1500,
       },
@@ -1146,7 +1085,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "button",
           componentName: "Button",
           status: "copying",
-          hasAgent: false,
           statusText: "Grabbing…",
         },
         durationMs: 2000,
@@ -1156,7 +1094,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "button",
           componentName: "Button",
           status: "copied",
-          hasAgent: false,
           hasOnDismiss: false,
           hasOnUndo: false,
           showMoreOptions: true,
@@ -1174,7 +1111,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "div",
       componentName: "Card",
       status: "idle",
-      hasAgent: true,
       isPromptMode: true,
       inputValue: "",
     },
@@ -1184,7 +1120,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "div",
           componentName: "Card",
           status: "idle",
-          hasAgent: true,
           isPromptMode: true,
           inputValue: "",
         },
@@ -1195,7 +1130,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "div",
           componentName: "Card",
           status: "idle",
-          hasAgent: true,
           isPromptMode: true,
           inputValue: "make it",
         },
@@ -1206,7 +1140,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "div",
           componentName: "Card",
           status: "idle",
-          hasAgent: true,
           isPromptMode: true,
           inputValue: "make it bigger",
         },
@@ -1217,7 +1150,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "div",
           componentName: "Card",
           status: "copying",
-          hasAgent: true,
           inputValue: "make it bigger",
           statusText: "Thinking…",
         },
@@ -1228,7 +1160,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "div",
           componentName: "Card",
           status: "copying",
-          hasAgent: true,
           inputValue: "make it bigger",
           statusText: "Applying changes…",
         },
@@ -1239,10 +1170,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "div",
           componentName: "Card",
           status: "copied",
-          hasAgent: true,
           statusText: "Applied changes",
-          supportsUndo: true,
-          supportsFollowUp: true,
           showMoreOptions: true,
         },
         durationMs: 2500,
@@ -1258,7 +1186,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "form",
       componentName: "Form",
       status: "idle",
-      hasAgent: false,
     },
     animationSequence: [
       {
@@ -1266,7 +1193,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "form",
           componentName: "Form",
           status: "idle",
-          hasAgent: false,
         },
         durationMs: 1500,
       },
@@ -1275,7 +1201,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "form",
           componentName: "Form",
           status: "copying",
-          hasAgent: false,
           statusText: "Grabbing…",
         },
         durationMs: 2000,
@@ -1302,7 +1227,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "header",
       componentName: "Header",
       status: "idle",
-      hasAgent: true,
       isPromptMode: true,
       inputValue: "change color",
     },
@@ -1312,7 +1236,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "header",
           componentName: "Header",
           status: "idle",
-          hasAgent: true,
           isPromptMode: true,
           inputValue: "change color",
         },
@@ -1323,7 +1246,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "header",
           componentName: "Header",
           status: "idle",
-          hasAgent: true,
           isPromptMode: true,
           isPendingDismiss: true,
         },
@@ -1334,7 +1256,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "header",
           componentName: "Header",
           status: "idle",
-          hasAgent: true,
           isPromptMode: true,
           inputValue: "change color",
         },
@@ -1351,7 +1272,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "section",
       componentName: "Section",
       status: "copying",
-      hasAgent: true,
       inputValue: "add animation",
       statusText: "Thinking…",
     },
@@ -1361,7 +1281,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "section",
           componentName: "Section",
           status: "copying",
-          hasAgent: true,
           inputValue: "add animation",
           statusText: "Thinking…",
         },
@@ -1372,7 +1291,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "section",
           componentName: "Section",
           status: "copying",
-          hasAgent: true,
           isPendingAbort: true,
         },
         durationMs: 2000,
@@ -1382,7 +1300,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "section",
           componentName: "Section",
           status: "idle",
-          hasAgent: true,
           isPromptMode: true,
           inputValue: "",
         },
@@ -1447,10 +1364,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "nav",
       componentName: "Navbar",
       status: "copied",
-      hasAgent: true,
       statusText: "Done",
-      supportsUndo: true,
-      supportsFollowUp: true,
       showMoreOptions: true,
     },
     animationSequence: [
@@ -1459,10 +1373,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "nav",
           componentName: "Navbar",
           status: "copied",
-          hasAgent: true,
           statusText: "Done",
-          supportsUndo: true,
-          supportsFollowUp: true,
           showMoreOptions: true,
         },
         durationMs: 2000,
@@ -1472,7 +1383,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "nav",
           componentName: "Navbar",
           status: "copying",
-          hasAgent: true,
           inputValue: "also make it sticky",
           statusText: "Thinking…",
         },
@@ -1483,10 +1393,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "nav",
           componentName: "Navbar",
           status: "copied",
-          hasAgent: true,
           statusText: "Applied 2 changes",
-          supportsUndo: true,
-          supportsFollowUp: true,
           showMoreOptions: true,
         },
         durationMs: 2000,
@@ -1502,9 +1409,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "div",
       componentName: "Modal",
       status: "copied",
-      hasAgent: true,
       statusText: "Applied changes",
-      supportsUndo: true,
       showMoreOptions: true,
     },
     animationSequence: [
@@ -1513,10 +1418,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "div",
           componentName: "Modal",
           status: "copied",
-          hasAgent: true,
           statusText: "Applied changes",
-          supportsUndo: true,
-          supportsFollowUp: true,
           showMoreOptions: true,
         },
         durationMs: 2000,
@@ -1526,7 +1428,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "div",
           componentName: "Modal",
           status: "idle",
-          hasAgent: true,
           isPromptMode: true,
           inputValue: "",
         },
@@ -1590,7 +1491,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "aside",
       componentName: "Sidebar",
       status: "idle",
-      hasAgent: true,
       isPromptMode: true,
       inputValue: "",
     },
@@ -1600,7 +1500,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "aside",
           componentName: "Sidebar",
           status: "idle",
-          hasAgent: true,
           isPromptMode: true,
           inputValue: "",
         },
@@ -1611,7 +1510,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "aside",
           componentName: "Sidebar",
           status: "idle",
-          hasAgent: true,
           isPromptMode: true,
           inputValue: "make it collapsible",
         },
@@ -1622,7 +1520,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "aside",
           componentName: "Sidebar",
           status: "copying",
-          hasAgent: true,
           statusText: "Thinking…",
         },
         durationMs: 2000,
@@ -1632,7 +1529,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "aside",
           componentName: "Sidebar",
           status: "error",
-          hasAgent: true,
           error: "Agent failed to respond",
           hasOnRetry: true,
           hasOnAcknowledge: true,
@@ -1681,7 +1577,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "footer",
       componentName: "Footer",
       status: "idle",
-      hasAgent: true,
     },
     animationSequence: [
       {
@@ -1689,7 +1584,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "footer",
           componentName: "Footer",
           status: "idle",
-          hasAgent: true,
         },
         durationMs: 2000,
       },
@@ -1698,7 +1592,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "footer",
           componentName: "Footer",
           status: "idle",
-          hasAgent: true,
           isPromptMode: true,
           inputValue: "",
         },
@@ -1934,7 +1827,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "main",
       componentName: "Dashboard",
       status: "copying",
-      hasAgent: true,
       statusText: "Starting…",
     },
     animationSequence: [
@@ -1943,7 +1835,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "main",
           componentName: "Dashboard",
           status: "idle",
-          hasAgent: true,
           isPromptMode: true,
           inputValue: "redesign the layout",
         },
@@ -1954,7 +1845,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "main",
           componentName: "Dashboard",
           status: "copying",
-          hasAgent: true,
           statusText: "Analyzing…",
         },
         durationMs: 1500,
@@ -1964,7 +1854,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "main",
           componentName: "Dashboard",
           status: "copying",
-          hasAgent: true,
           statusText: "Generating code…",
         },
         durationMs: 1500,
@@ -1974,7 +1863,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "main",
           componentName: "Dashboard",
           status: "copying",
-          hasAgent: true,
           statusText: "Applying changes…",
         },
         durationMs: 1500,
@@ -1984,10 +1872,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "main",
           componentName: "Dashboard",
           status: "copied",
-          hasAgent: true,
           statusText: "Done",
-          supportsUndo: true,
-          supportsFollowUp: true,
           showMoreOptions: true,
         },
         durationMs: 2000,
@@ -2003,9 +1888,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       tagName: "div",
       componentName: "Card",
       status: "copied",
-      hasAgent: true,
       statusText: "Done",
-      supportsFollowUp: true,
       showMoreOptions: true,
     },
     animationSequence: [
@@ -2014,10 +1897,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "div",
           componentName: "Card",
           status: "copied",
-          hasAgent: true,
           statusText: "Done",
-          supportsUndo: true,
-          supportsFollowUp: true,
           showMoreOptions: true,
         },
         durationMs: 2000,
@@ -2027,7 +1907,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "div",
           componentName: "Card",
           status: "idle",
-          hasAgent: true,
           isPromptMode: true,
           inputValue: "",
           previousPrompt: "make it bigger",
@@ -2040,7 +1919,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           tagName: "div",
           componentName: "Card",
           status: "idle",
-          hasAgent: true,
           isPromptMode: true,
           inputValue: "also add shadow",
           previousPrompt: "make it bigger",
@@ -2116,7 +1994,6 @@ const elongateProps = (props: DesignSystemStateProps): DesignSystemStateProps =>
     inputValue: elongateString(props.inputValue),
     replyToPrompt: elongateString(props.replyToPrompt),
     previousPrompt: elongateString(props.previousPrompt),
-    dismissButtonText: elongateString(props.dismissButtonText),
   };
 };
 
@@ -2534,7 +2411,6 @@ const StateCard = (props: StateCardProps) => {
               mouseX={boundsAnchor()?.x}
               visible={true}
               status={currentProps().status}
-              hasAgent={currentProps().hasAgent}
               isPromptMode={currentProps().isPromptMode}
               inputValue={currentProps().inputValue}
               replyToPrompt={currentProps().replyToPrompt}
@@ -2543,10 +2419,7 @@ const StateCard = (props: StateCardProps) => {
               isPendingAbort={currentProps().isPendingAbort}
               error={currentProps().error}
               isContextMenuOpen={currentProps().isContextMenuOpen}
-              supportsUndo={currentProps().supportsUndo}
-              supportsFollowUp={currentProps().supportsFollowUp}
               filePath={currentProps().filePath}
-              dismissButtonText={currentProps().dismissButtonText}
               previousPrompt={currentProps().previousPrompt}
               onOpen={currentProps().filePath ? () => {} : undefined}
               onInputChange={() => {}}
@@ -2560,7 +2433,6 @@ const StateCard = (props: StateCardProps) => {
               onRetry={currentProps().hasOnRetry !== false ? () => {} : undefined}
               onDismiss={currentProps().hasOnDismiss !== false ? () => {} : undefined}
               onUndo={currentProps().hasOnUndo !== false ? () => {} : undefined}
-              onFollowUpSubmit={() => {}}
               onAbort={() => {}}
               onShowContextMenu={currentProps().showMoreOptions ? () => {} : undefined}
             />
@@ -2830,11 +2702,7 @@ const DesignSystemGrid = () => {
     DESIGN_SYSTEM_STATES.filter((state) => starredIds().has(state.id) && matchesSearch(state));
   const labelStates = () =>
     DESIGN_SYSTEM_STATES.filter(
-      (state) =>
-        state.component === "label" &&
-        !state.props.hasAgent &&
-        !hasAnimation(state) &&
-        matchesSearch(state),
+      (state) => state.component === "label" && !hasAnimation(state) && matchesSearch(state),
     );
   const contextMenuStates = () =>
     DESIGN_SYSTEM_STATES.filter(
@@ -2843,14 +2711,6 @@ const DesignSystemGrid = () => {
   const toolbarStates = () =>
     DESIGN_SYSTEM_STATES.filter(
       (state) => state.component === "toolbar" && !hasAnimation(state) && matchesSearch(state),
-    );
-  const agentLabelStates = () =>
-    DESIGN_SYSTEM_STATES.filter(
-      (state) =>
-        state.component === "label" &&
-        state.props.hasAgent &&
-        !hasAnimation(state) &&
-        matchesSearch(state),
     );
   const commentsDropdownStates = () =>
     DESIGN_SYSTEM_STATES.filter(
@@ -3170,30 +3030,6 @@ const DesignSystemGrid = () => {
           </div>
         </Show>
 
-        {/* Agent States Section */}
-        <Show when={agentLabelStates().length > 0}>
-          <div style={{ padding: `${GAP_PX}px 24px` }}>
-            <span style={sectionTitleStyle()}>Agent States</span>
-            <div style={gridStyle()}>
-              <For each={agentLabelStates()}>
-                {(state) => (
-                  <StateCard
-                    state={state}
-                    theme={theme()}
-                    getBounds={() => getBoundsForCell(state.id)}
-                    registerCell={(element) => registerCell(state.id, element)}
-                    onRefresh={createRefreshHandler(state.id)}
-                    getTargetDisplayText={() => getTargetDisplayText(state)}
-                    isStarred={isStarred(state.id)}
-                    onToggleStar={() => handleToggleStar(state.id)}
-                    isScrambled={isScrambled()}
-                  />
-                )}
-              </For>
-            </div>
-          </div>
-        </Show>
-
         {/* No Results */}
         <Show
           when={
@@ -3203,8 +3039,7 @@ const DesignSystemGrid = () => {
               labelStates().length +
               contextMenuStates().length +
               toolbarStates().length +
-              commentsDropdownStates().length +
-              agentLabelStates().length ===
+              commentsDropdownStates().length ===
               0
           }
         >

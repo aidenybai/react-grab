@@ -174,7 +174,7 @@ test.describe("Focus Trap Resistance", () => {
 
   test.describe("Prompt Mode", () => {
     test("should enter prompt mode while focus trap is active", async ({ reactGrab }) => {
-      await reactGrab.setupMockAgent();
+      await reactGrab.registerCommentAction();
       await injectFocusTrap(reactGrab.page);
 
       await reactGrab.enterPromptMode("li:first-child");
@@ -184,7 +184,7 @@ test.describe("Focus Trap Resistance", () => {
     });
 
     test("textarea should receive typed input despite focus trap", async ({ reactGrab }) => {
-      await reactGrab.setupMockAgent();
+      await reactGrab.registerCommentAction();
       await injectFocusTrap(reactGrab.page);
 
       await reactGrab.enterPromptMode("li:first-child");
@@ -195,7 +195,7 @@ test.describe("Focus Trap Resistance", () => {
     });
 
     test("should submit prompt while focus trap is active", async ({ reactGrab }) => {
-      await reactGrab.setupMockAgent({ delay: 100 });
+      await reactGrab.registerCommentAction();
       await injectFocusTrap(reactGrab.page);
 
       await reactGrab.enterPromptMode("li:first-child");
@@ -206,7 +206,7 @@ test.describe("Focus Trap Resistance", () => {
     });
 
     test("Escape should dismiss prompt mode despite focus trap", async ({ reactGrab }) => {
-      await reactGrab.setupMockAgent();
+      await reactGrab.registerCommentAction();
       await injectFocusTrap(reactGrab.page);
 
       await reactGrab.enterPromptMode("li:first-child");

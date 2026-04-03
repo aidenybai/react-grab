@@ -3,7 +3,7 @@ import { test, expect } from "./fixtures.js";
 test.describe("Freeze Updates", () => {
   test.describe("State Freezing During Prompt Mode", () => {
     test("should freeze React state updates when in prompt mode", async ({ reactGrab }) => {
-      await reactGrab.setupMockAgent({ delay: 2000 });
+      await reactGrab.registerCommentAction();
 
       const getElementCount = async () => {
         return reactGrab.page.evaluate(() => {
@@ -35,7 +35,7 @@ test.describe("Freeze Updates", () => {
     });
 
     test("should freeze visibility toggle during prompt mode", async ({ reactGrab }) => {
-      await reactGrab.setupMockAgent({ delay: 2000 });
+      await reactGrab.registerCommentAction();
 
       const isToggleableVisible = async () => {
         return reactGrab.page.evaluate(() => {
@@ -67,7 +67,7 @@ test.describe("Freeze Updates", () => {
     });
 
     test("should allow state updates after exiting prompt mode", async ({ reactGrab }) => {
-      await reactGrab.setupMockAgent({ delay: 100 });
+      await reactGrab.registerCommentAction();
 
       const getElementCount = async () => {
         return reactGrab.page.evaluate(() => {
@@ -91,7 +91,7 @@ test.describe("Freeze Updates", () => {
 
   test.describe("Multiple Freeze/Unfreeze Cycles", () => {
     test("should handle multiple prompt mode cycles correctly", async ({ reactGrab }) => {
-      await reactGrab.setupMockAgent({ delay: 100 });
+      await reactGrab.registerCommentAction();
 
       const getElementCount = async () => {
         return reactGrab.page.evaluate(() => {
@@ -141,7 +141,7 @@ test.describe("Freeze Updates", () => {
 
   test.describe("Freeze State Consistency", () => {
     test("should maintain UI consistency during prompt mode", async ({ reactGrab }) => {
-      await reactGrab.setupMockAgent({ delay: 2000 });
+      await reactGrab.registerCommentAction();
 
       await reactGrab.enterPromptMode("[data-testid='dynamic-element-1']");
 
@@ -156,7 +156,7 @@ test.describe("Freeze Updates", () => {
     });
 
     test("should unfreeze all components after exiting prompt mode", async ({ reactGrab }) => {
-      await reactGrab.setupMockAgent({ delay: 100 });
+      await reactGrab.registerCommentAction();
 
       await reactGrab.enterPromptMode("[data-testid='test-input']");
       await reactGrab.pressEscape();
@@ -195,7 +195,7 @@ test.describe("Freeze Updates", () => {
 
   test.describe("Edge Cases", () => {
     test("should handle freeze when no React state is present", async ({ reactGrab }) => {
-      await reactGrab.setupMockAgent({ delay: 100 });
+      await reactGrab.registerCommentAction();
 
       await reactGrab.enterPromptMode("[data-testid='main-title']");
 
@@ -206,7 +206,7 @@ test.describe("Freeze Updates", () => {
     });
 
     test("should handle deactivation during frozen state", async ({ reactGrab }) => {
-      await reactGrab.setupMockAgent({ delay: 2000 });
+      await reactGrab.registerCommentAction();
 
       await reactGrab.enterPromptMode("[data-testid='dynamic-element-1']");
 
@@ -229,7 +229,7 @@ test.describe("Freeze Updates", () => {
     });
 
     test("should properly cleanup after multiple freeze operations", async ({ reactGrab }) => {
-      await reactGrab.setupMockAgent({ delay: 100 });
+      await reactGrab.registerCommentAction();
 
       for (let i = 0; i < 3; i++) {
         await reactGrab.enterPromptMode("[data-testid='dynamic-element-1']");
@@ -258,7 +258,7 @@ test.describe("Freeze Updates", () => {
     test("should buffer multiple clicks during freeze and apply on unfreeze", async ({
       reactGrab,
     }) => {
-      await reactGrab.setupMockAgent({ delay: 100 });
+      await reactGrab.registerCommentAction();
 
       const getElementCount = async () => {
         return reactGrab.page.evaluate(() => {
@@ -291,7 +291,7 @@ test.describe("Freeze Updates", () => {
     });
 
     test("should not accumulate state incorrectly across freeze cycles", async ({ reactGrab }) => {
-      await reactGrab.setupMockAgent({ delay: 100 });
+      await reactGrab.registerCommentAction();
 
       const getElementCount = async () => {
         return reactGrab.page.evaluate(() => {

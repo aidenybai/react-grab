@@ -1,6 +1,6 @@
 import { Show, Index } from "solid-js";
 import type { Component } from "solid-js";
-import type { AgentSession, ReactGrabRendererProps } from "../types.js";
+import type { ReactGrabRendererProps } from "../types.js";
 import {
   DEFAULT_ACTION_ID,
   FADE_DURATION_MS,
@@ -19,18 +19,6 @@ import { CommentsDropdown } from "./comments-dropdown.js";
 import { ClearCommentsPrompt } from "./clear-comments-prompt.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
-  const getSessionStatus = (session: AgentSession): "copying" | "copied" | "fading" => {
-    if (session.isFading) {
-      return "fading";
-    }
-
-    if (session.isStreaming) {
-      return "copying";
-    }
-
-    return "copied";
-  };
-
   return (
     <>
       <OverlayCanvas
@@ -44,7 +32,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         dragVisible={props.dragVisible}
         dragBounds={props.dragBounds}
         grabbedBoxes={props.grabbedBoxes}
-        agentSessions={props.agentSessions}
         labelInstances={props.labelInstances}
       />
       {/* translateZ(0) promotes to its own compositor layer so opacity
@@ -67,43 +54,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           "box-shadow": `inset 0 0 ${FROZEN_GLOW_EDGE_PX}px ${FROZEN_GLOW_COLOR}`,
         }}
       />
-      <Index each={props.agentSessions ? Array.from(props.agentSessions.values()) : []}>
-        {(session) => (
-          <Show when={session().selectionBounds.length > 0}>
-            <SelectionLabel
-              tagName={session().tagName}
-              componentName={session().componentName}
-              selectionBounds={session().selectionBounds[0]}
-              mouseX={session().position.x}
-              visible={true}
-              hasAgent={true}
-              status={getSessionStatus(session())}
-              statusText={session().lastStatus || "Thinking…"}
-              inputValue={session().context.prompt}
-              previousPrompt={session().context.prompt}
-              supportsUndo={props.supportsUndo}
-              supportsFollowUp={props.supportsFollowUp}
-              dismissButtonText={props.dismissButtonText}
-              onAbort={() => props.onRequestAbortSession?.(session().id)}
-              onDismiss={
-                session().isStreaming ? undefined : () => props.onDismissSession?.(session().id)
-              }
-              onUndo={session().isStreaming ? undefined : () => props.onUndoSession?.(session().id)}
-              onFollowUpSubmit={
-                session().isStreaming
-                  ? undefined
-                  : (prompt) => props.onFollowUpSubmitSession?.(session().id, prompt)
-              }
-              error={session().error}
-              onAcknowledgeError={() => props.onAcknowledgeSessionError?.(session().id)}
-              onRetry={() => props.onRetrySession?.(session().id)}
-              isPendingAbort={session().isStreaming && props.pendingAbortSessionId === session().id}
-              onConfirmAbort={() => props.onAbortSession?.(session().id, true)}
-              onCancelAbort={() => props.onAbortSession?.(session().id, false)}
-            />
-          </Show>
-        )}
-      </Index>
       <Show when={props.selectionLabelVisible && props.selectionBounds}>
         <SelectionLabel
           tagName={props.selectionTagName}
@@ -115,7 +65,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           isPromptMode={props.isPromptMode}
           inputValue={props.inputValue}
           replyToPrompt={props.replyToPrompt}
-          hasAgent={props.hasAgent}
           status={props.selectionLabelStatus}
           actionCycleState={props.selectionActionCycleState}
           arrowNavigationState={props.selectionArrowNavigationState}
@@ -149,7 +98,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
             visible={true}
             status={instance().status}
             statusText={instance().statusText}
-            hasAgent={Boolean(instance().statusText)}
             isPromptMode={instance().isPromptMode}
             inputValue={instance().inputValue}
             error={instance().errorMessage}

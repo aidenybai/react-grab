@@ -39,14 +39,6 @@ interface ToolbarInfo {
   snapEdge: string | null;
 }
 
-interface AgentSessionInfo {
-  id: string;
-  status: string;
-  isStreaming: boolean;
-  error: string | null;
-  prompt: string;
-}
-
 interface LabelInstanceInfo {
   id: string;
   status: string;
@@ -187,25 +179,8 @@ export interface ReactGrabPageObject {
   dispose: () => Promise<void>;
   copyElementViaApi: (selector: string) => Promise<boolean>;
   registerCommentAction: () => Promise<void>;
-  setAgent: (options: Record<string, unknown>) => Promise<void>;
   updateOptions: (options: Record<string, unknown>) => Promise<void>;
   reinitialize: (options?: Record<string, unknown>) => Promise<void>;
-
-  setupMockAgent: (options?: {
-    delay?: number;
-    error?: string;
-    statusUpdates?: string[];
-  }) => Promise<void>;
-  getAgentSessions: () => Promise<AgentSessionInfo[]>;
-  isAgentSessionVisible: () => Promise<boolean>;
-  waitForAgentSession: (timeout?: number) => Promise<void>;
-  waitForAgentComplete: (timeout?: number) => Promise<void>;
-  clickAgentDismiss: () => Promise<void>;
-  clickAgentUndo: () => Promise<void>;
-  clickAgentRetry: () => Promise<void>;
-  clickAgentAbort: () => Promise<void>;
-  confirmAgentAbort: () => Promise<void>;
-  cancelAgentAbort: () => Promise<void>;
 
   touchStart: (x: number, y: number) => Promise<void>;
   touchMove: (x: number, y: number) => Promise<void>;
@@ -1591,40 +1566,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     });
   };
 
-  const setAgent = async (options: Record<string, unknown>) => {
-    await page.evaluate((opts) => {
-      const api = (
-        window as {
-          __REACT_GRAB__?: {
-            unregisterPlugin: (name: string) => void;
-            registerPlugin: (plugin: {
-              name: string;
-              actions: Array<Record<string, unknown>>;
-            }) => void;
-          };
-        }
-      ).__REACT_GRAB__;
-      api?.unregisterPlugin("test-agent");
-      const agent = opts;
-      api?.registerPlugin({
-        name: "test-agent",
-        actions: [
-          {
-            id: "edit-with-test-agent",
-            label: "Edit",
-            shortcut: "Enter",
-            onAction: (context: {
-              enterPromptMode?: (agent?: Record<string, unknown>) => void;
-            }) => {
-              context.enterPromptMode?.(agent);
-            },
-            agent,
-          },
-        ],
-      });
-    }, options);
-  };
-
   const updateOptions = async (options: Record<string, unknown>) => {
     await page.evaluate((opts) => {
       const api = (
@@ -1705,245 +1646,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       undefined,
       { timeout: 5000 },
     );
-  };
-
-  const setupMockAgent = async (options?: {
-    delay?: number;
-    error?: string;
-    statusUpdates?: string[];
-  }) => {
-    await page.evaluate((opts) => {
-      const delay = opts?.delay ?? 500;
-      const error = opts?.error;
-      const statusUpdates = opts?.statusUpdates ?? ["Processing...", "Almost done..."];
-
-      const mockProvider = {
-        async *send() {
-          for (let i = 0; i < statusUpdates.length; i++) {
-            yield statusUpdates[i];
-            await new Promise((resolve) => setTimeout(resolve, delay / statusUpdates.length));
-          }
-          if (error) {
-            throw new Error(error);
-          }
-          yield "Completed";
-        },
-        supportsFollowUp: true,
-        undo: async () => {},
-        canUndo: () => true,
-        redo: async () => {},
-        canRedo: () => true,
-      };
-
-      const api = (
-        window as {
-          __REACT_GRAB__?: {
-            unregisterPlugin: (name: string) => void;
-            registerPlugin: (plugin: {
-              name: string;
-              actions: Array<Record<string, unknown>>;
-            }) => void;
-          };
-        }
-      ).__REACT_GRAB__;
-      api?.unregisterPlugin("mock-agent");
-      const agent = { provider: mockProvider };
-      api?.registerPlugin({
-        name: "mock-agent",
-        actions: [
-          {
-            id: "edit-with-mock-agent",
-            label: "Edit",
-            shortcut: "Enter",
-            onAction: (context: {
-              enterPromptMode?: (agent?: Record<string, unknown>) => void;
-            }) => {
-              context.enterPromptMode?.(agent);
-            },
-            agent,
-          },
-        ],
-      });
-    }, options);
-  };
-
-  const getAgentSessions = async (): Promise<AgentSessionInfo[]> => {
-    return page.evaluate((attrName) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      if (!shadowRoot) return [];
-      const root = shadowRoot.querySelector(`[${attrName}]`);
-      if (!root) return [];
-
-      const sessions: AgentSessionInfo[] = [];
-      const sessionElements = root.querySelectorAll("[data-react-grab-ignore-events]");
-
-      sessionElements.forEach((element) => {
-        const textContent = element.textContent ?? "";
-        if (
-          textContent.includes("Processing") ||
-          textContent.includes("Completed") ||
-          textContent.includes("Error")
-        ) {
-          const statusMatch = textContent.match(/(Processing|Completed|Error|Grabbing)/);
-          sessions.push({
-            id: `session-${sessions.length}`,
-            status: statusMatch?.[1] ?? "unknown",
-            isStreaming: textContent.includes("Processing") || textContent.includes("Grabbing"),
-            error: textContent.includes("Error") ? textContent : null,
-            prompt: "",
-          });
-        }
-      });
-
-      return sessions;
-    }, ATTRIBUTE_NAME);
-  };
-
-  const isAgentSessionVisible = async (): Promise<boolean> => {
-    const sessions = await getAgentSessions();
-    return sessions.length > 0;
-  };
-
-  const waitForAgentSession = async (timeout = 5000) => {
-    await page.waitForFunction(
-      (attrName) => {
-        const host = document.querySelector(`[${attrName}]`);
-        const shadowRoot = host?.shadowRoot;
-        if (!shadowRoot) return false;
-        const root = shadowRoot.querySelector(`[${attrName}]`);
-        if (!root) return false;
-        const sessionElements = Array.from(
-          root.querySelectorAll("[data-react-grab-ignore-events]"),
-        );
-        for (let i = 0; i < sessionElements.length; i++) {
-          const text = sessionElements[i].textContent ?? "";
-          if (
-            text.includes("Processing") ||
-            text.includes("Completed") ||
-            text.includes("Error") ||
-            text.includes("Grabbing")
-          ) {
-            return true;
-          }
-        }
-        return false;
-      },
-      ATTRIBUTE_NAME,
-      { timeout },
-    );
-  };
-
-  const waitForAgentComplete = async (timeout = 10000) => {
-    await page.waitForFunction(
-      (attrName) => {
-        const host = document.querySelector(`[${attrName}]`);
-        const shadowRoot = host?.shadowRoot;
-        if (!shadowRoot) return false;
-        const root = shadowRoot.querySelector(`[${attrName}]`);
-        if (!root) return false;
-        const sessionElements = Array.from(
-          root.querySelectorAll("[data-react-grab-ignore-events]"),
-        );
-        let hasSession = false;
-        let isStreaming = false;
-        for (let i = 0; i < sessionElements.length; i++) {
-          const text = sessionElements[i].textContent ?? "";
-          if (
-            text.includes("Processing") ||
-            text.includes("Completed") ||
-            text.includes("Error") ||
-            text.includes("Grabbing")
-          ) {
-            hasSession = true;
-            if (text.includes("Processing") || text.includes("Grabbing")) {
-              isStreaming = true;
-            }
-          }
-        }
-        return hasSession && !isStreaming;
-      },
-      ATTRIBUTE_NAME,
-      { timeout },
-    );
-  };
-
-  const clickAgentDismiss = async () => {
-    await page.evaluate((attrName) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      if (!shadowRoot) return;
-      const root = shadowRoot.querySelector(`[${attrName}]`);
-      if (!root) return;
-
-      const dismissButton = root.querySelector<HTMLButtonElement>("[data-react-grab-dismiss]");
-      dismissButton?.click();
-    }, ATTRIBUTE_NAME);
-  };
-
-  const clickAgentUndo = async () => {
-    await page.evaluate((attrName) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      if (!shadowRoot) return;
-      const root = shadowRoot.querySelector(`[${attrName}]`);
-      if (!root) return;
-
-      const undoButton = root.querySelector<HTMLButtonElement>("[data-react-grab-undo]");
-      undoButton?.click();
-    }, ATTRIBUTE_NAME);
-  };
-
-  const clickAgentRetry = async () => {
-    await page.evaluate((attrName) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      if (!shadowRoot) return;
-      const root = shadowRoot.querySelector(`[${attrName}]`);
-      if (!root) return;
-
-      const retryButton = root.querySelector<HTMLButtonElement>("[data-react-grab-retry]");
-      retryButton?.click();
-    }, ATTRIBUTE_NAME);
-  };
-
-  const clickAgentAbort = async () => {
-    await page.evaluate((attrName) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      if (!shadowRoot) return;
-      const root = shadowRoot.querySelector(`[${attrName}]`);
-      if (!root) return;
-
-      const abortButton = root.querySelector<HTMLButtonElement>("[data-react-grab-abort]");
-      abortButton?.click();
-    }, ATTRIBUTE_NAME);
-  };
-
-  const confirmAgentAbort = async () => {
-    await page.evaluate((attrName) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      if (!shadowRoot) return;
-      const root = shadowRoot.querySelector(`[${attrName}]`);
-      if (!root) return;
-
-      const yesButton = root.querySelector<HTMLButtonElement>("[data-react-grab-discard-yes]");
-      yesButton?.click();
-    }, ATTRIBUTE_NAME);
-  };
-
-  const cancelAgentAbort = async () => {
-    await page.evaluate((attrName) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      if (!shadowRoot) return;
-      const root = shadowRoot.querySelector(`[${attrName}]`);
-      if (!root) return;
-
-      const noButton = root.querySelector<HTMLButtonElement>("[data-react-grab-discard-no]");
-      noButton?.click();
-    }, ATTRIBUTE_NAME);
   };
 
   const dispatchPointerEvent = async (
@@ -2287,21 +1989,8 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     dispose,
     copyElementViaApi,
     registerCommentAction,
-    setAgent,
     updateOptions,
     reinitialize,
-
-    setupMockAgent,
-    getAgentSessions,
-    isAgentSessionVisible,
-    waitForAgentSession,
-    waitForAgentComplete,
-    clickAgentDismiss,
-    clickAgentUndo,
-    clickAgentRetry,
-    clickAgentAbort,
-    confirmAgentAbort,
-    cancelAgentAbort,
 
     touchStart,
     touchMove,

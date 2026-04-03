@@ -307,37 +307,6 @@ test.describe("API Methods", () => {
     });
   });
 
-  test.describe("setOptions() for agent", () => {
-    test("should configure agent provider", async ({ reactGrab }) => {
-      await reactGrab.setupMockAgent();
-
-      const state = await reactGrab.page.evaluate(() => {
-        const api = (
-          window as {
-            __REACT_GRAB__?: { getState: () => Record<string, unknown> };
-          }
-        ).__REACT_GRAB__;
-        return api?.getState();
-      });
-
-      expect(state).toBeDefined();
-    });
-
-    test("should allow agent provider with custom options", async ({ reactGrab }) => {
-      await reactGrab.setupMockAgent({
-        delay: 100,
-        statusUpdates: ["Custom status 1", "Custom status 2"],
-      });
-
-      const hasAgent = await reactGrab.page.evaluate(() => {
-        const host = document.querySelector("[data-react-grab]");
-        return host !== null;
-      });
-
-      expect(hasAgent).toBe(true);
-    });
-  });
-
   test.describe("Edge Cases", () => {
     test("API should work after multiple activation cycles", async ({ reactGrab }) => {
       for (let i = 0; i < 3; i++) {

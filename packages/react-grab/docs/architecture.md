@@ -53,8 +53,6 @@ stateDiagram-v2
     active --> idle : deactivate
 ```
 
-
-
 The user can activate react-grab either by holding a key for a configurable duration (the `holding` state) or by toggling it on and off. Once `active`, the tool enters one of several phases: `hovering` (tracking the pointer and highlighting elements under it), `frozen` (the user clicked an element to lock the selection), `dragging` (the user is drawing a rectangle to select multiple elements), or `justDragged` (a brief transitional phase after a drag ends). The `copying` state represents the brief moment while clipboard content is being generated, and `justCopied` shows the success feedback before the tool either returns to `active` or deactivates.
 
 The `wasActive` flag threaded through the `copying` and `justCopied` states controls this branching: when the user copies while in hold-to-activate mode, the tool returns to `active` after showing the copy feedback so they can continue inspecting while the key is held, but when the user copies while in toggle mode the tool deactivates because the copy action consumes the toggle.
@@ -109,7 +107,7 @@ The host attaches a shadow root in `open` mode, injects the compiled CSS as a `<
 
 ### Canvas rendering
 
-The visual highlight overlays are rendered via [components/overlay-canvas.tsx](../src/components/overlay-canvas.tsx) using a single `<canvas>` element with multiple `OffscreenCanvas` layers composited together. Each visual type — selection highlight, drag rectangle, grabbed-element flash, agent processing indicator, and inspect overlay — has its own offscreen layer with its own animated bounds.
+The visual highlight overlays are rendered via [components/overlay-canvas.tsx](../src/components/overlay-canvas.tsx) using a single `<canvas>` element with multiple `OffscreenCanvas` layers composited together. Each visual type — selection highlight, drag rectangle, grabbed-element flash, and inspect overlay — has its own offscreen layer with its own animated bounds.
 
 The bounds for each layer are lerped toward their target positions on every animation frame using `requestAnimationFrame`, with different lerp factors for different interaction types. Selection highlights use a slower factor so the overlay doesn't jitter as the user moves between elements, while drag rectangles track the pointer more aggressively. Each frame, the main canvas clears itself and composites all visible layers. When the animation has converged (the current bounds are within a small threshold of the target bounds and the opacity has settled), the animation loop stops until the next reactive update triggers it again.
 
@@ -137,7 +135,7 @@ Once we have a fiber, [bippy's](https://bippy.dev) `getOwnerStack()` constructs 
 
 In React 19+, fibers have a `_debugStack` property that contains an `Error` object whose `.stack` string encodes the owner chain. React wraps the real component frames between two sentinels: `react-stack-top-frame` at the top and `react-stack-bottom-frame` at the bottom. bippy's `formatOwnerStack` strips these sentinels and the initial JSX frame, leaving just the component frames in between.
 
-In older React versions (17–18), `_debugStack` doesn't exist, so bippy constructs a "fallback" owner stack by walking `fiber.return` up to the root. For each composite fiber it encounters, `describeNativeComponentFrame` actually *invokes the component function* (or, for class components, the constructor via `Reflect.construct`) to generate a stack trace. It then compares this "sample" stack against a "control" stack produced by throwing from the same call site without the component, and extracts the single frame that differs — which is the frame belonging to the component itself. This is the same technique React DevTools uses internally to generate component stacks. The temporary invocation is guarded carefully: the dispatcher is set to `null` to prevent hooks from running, and `console.error` and `console.warn` are temporarily silenced to suppress React's warnings about calling components outside of a render context.
+In older React versions (17–18), `_debugStack` doesn't exist, so bippy constructs a "fallback" owner stack by walking `fiber.return` up to the root. For each composite fiber it encounters, `describeNativeComponentFrame` actually _invokes the component function_ (or, for class components, the constructor via `Reflect.construct`) to generate a stack trace. It then compares this "sample" stack against a "control" stack produced by throwing from the same call site without the component, and extracts the single frame that differs — which is the frame belonging to the component itself. This is the same technique React DevTools uses internally to generate component stacks. The temporary invocation is guarded carefully: the dispatcher is set to `null` to prevent hooks from running, and `console.error` and `console.warn` are temporarily silenced to suppress React's warnings about calling components outside of a render context.
 
 The result in both cases is a flat array of `StackFrame` objects, each with a `functionName` (the component name), a `fileName` (which at this point may be a bundled URL like `http://localhost:3000/_next/static/chunks/app.js`, a `file:///` URL, or a virtual `rsc://` URL), and `lineNumber`/`columnNumber` values that still reference positions in the bundled output.
 
@@ -207,12 +205,6 @@ The five built-in plugins are registered during `init()` through the same `regis
 - **copy-html** registers "Copy HTML" which copies the element's `outerHTML` with stack context appended.
 - **copy-styles** registers "Copy styles" which extracts the element's computed CSS (compared against a baseline from a hidden iframe) and copies it with stack context.
 
-## Notes about the agent system
+## Notes about MCP integration
 
-The agent system in [core/agent/manager.ts](../src/core/agent/manager.ts) manages sessions where users can ask questions about selected elements and receive responses inline. Each session is identified by a unique ID and tracked in a reactive `Map<string, AgentSession>` signal.
-
-When the user submits a prompt, `session.start` generates a context object containing the element's snippet, component name, HTML preview, tag name, and selection bounds. This context is run through the `transformAgentContext` plugin hook before being passed to the `AgentProvider` interface, which defines `send`, `abort`, and optional `undo`/`redo` methods. In practice, the connection to AI backends goes through MCP (Model Context Protocol) rather than a custom streaming provider. The `@react-grab/mcp` package implements a plugin that hooks into `transformAgentContext` and `onCopySuccess` to POST context to a local MCP server, which in turn exposes the context as MCP resources that AI coding assistants (like Cursor or Claude Code) can read.
-
-Sessions are persisted to storage via `saveSessions` and `loadSessions` in [core/agent/session.ts](../src/core/agent/session.ts). The storage backend is either `localStorage` or an in-memory `Map` with LRU eviction when `localStorage` isn't available. On page load, `tryResumeSessions` attempts to restore any saved sessions that haven't expired, reacquiring the DOM element for each session by checking whether it's still connected to the document.
-
-Each active session is represented in the UI as a `SelectionLabelInstance` — a floating label positioned relative to the selected element's bounds. When the viewport changes (scroll, resize, zoom), `updateBoundsOnViewportChange` recalculates the position of every active session's label.
+The `@react-grab/mcp` package provides a plugin that bridges react-grab with AI coding assistants via the Model Context Protocol. The plugin hooks into `transformAgentContext` and `onCopySuccess` to POST element context to a local MCP server whenever the user copies or submits a prompt. The MCP server in turn exposes this context as MCP resources that coding assistants like Cursor and Claude Code can read. The plugin is registered like any other plugin and has no special privileges in the core.

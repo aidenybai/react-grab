@@ -9,7 +9,11 @@ export const cssTextPlugin = () => {
   return {
     name: "css-text",
     enforce: "pre" as const,
-    async resolveId(this: { resolve: (source: string, importer?: string) => Promise<{ id: string } | null> }, source: string, importer: string | undefined) {
+    async resolveId(
+      this: { resolve: (source: string, importer?: string) => Promise<{ id: string } | null> },
+      source: string,
+      importer: string | undefined,
+    ) {
       if (!source.endsWith(".css")) return;
       if (source.startsWith(".") || source.startsWith("/")) {
         const resolved = importer ? resolve(dirname(importer), source) : source;

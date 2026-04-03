@@ -99,8 +99,6 @@ import type {
   ReactGrabAPI,
   ReactGrabState,
   SelectionLabelInstance,
-  AgentSession,
-  AgentOptions,
   ContextMenuActionContext,
   ContextMenuAction,
   ActionCycleItem,
@@ -116,7 +114,6 @@ import type {
 } from "../types.js";
 import { DEFAULT_THEME } from "./theme.js";
 import { createPluginRegistry } from "./plugin-registry.js";
-import { createAgentManager } from "./agent/manager.js";
 import { createArrowNavigator } from "./arrow-navigation.js";
 import { getRequiredModifiers, setupKeyboardEventClaimer } from "./keyboard-handlers.js";
 import { createAutoScroller, getAutoScrollDirection } from "./auto-scroll.js";
@@ -182,7 +179,7 @@ interface BuildActionContextOptions {
   shouldDeferHideContextMenu: boolean;
   onBeforeCopy?: () => void;
   onBeforePrompt?: () => void;
-  customEnterPromptMode?: (agent?: AgentOptions) => void;
+  customEnterPromptMode?: () => void;
 }
 
 let hasInited = false;
@@ -221,18 +218,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const pluginRegistry = createPluginRegistry(settableOptions);
 
-    const getAgentFromActions = () => {
-      for (const action of pluginRegistry.store.actions) {
-        if (action.agent?.provider) {
-          return action.agent;
-        }
-      }
-      return undefined;
-    };
-
     const { store, actions } = createGrabStore({
       theme: DEFAULT_THEME,
-      hasAgentProvider: Boolean(getAgentFromActions()?.provider),
       keyHoldDuration: pluginRegistry.store.options.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS,
     });
 
@@ -1236,13 +1223,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       ),
     );
 
-    createEffect(
-      on(
-        () => store.viewportVersion,
-        () => agentManager._internal.updateBoundsOnViewportChange(),
-      ),
-    );
-
     const publicGrabbedBoxes = createMemo(() =>
       store.grabbedBoxes.map((box) => ({
         id: box.id,
@@ -1439,55 +1419,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       activateRenderer();
     };
 
-    const restoreInputFromSession = (
-      session: AgentSession,
-      elements: Element[],
-      agent?: AgentOptions,
-    ) => {
-      const element = elements[0];
-      if (isElementConnected(element)) {
-        const rect = element.getBoundingClientRect();
-        const centerY = rect.top + rect.height / 2;
-
-        actions.setPointer({ x: session.position.x, y: centerY });
-        actions.setFrozenElements(elements);
-        actions.setInputText(session.context.prompt);
-        actions.setWasActivatedByToggle(true);
-
-        if (agent) {
-          actions.setSelectedAgent(agent);
-        }
-
-        if (!isActivated()) {
-          activateRenderer();
-        }
-      }
-    };
-
-    const wrapAgentWithCallbacks = (agent: AgentOptions): AgentOptions => {
-      return {
-        ...agent,
-        onAbort: (session: AgentSession, elements: Element[]) => {
-          agent.onAbort?.(session, elements);
-          restoreInputFromSession(session, elements, agent);
-        },
-        onUndo: (session: AgentSession, elements: Element[]) => {
-          agent.onUndo?.(session, elements);
-          restoreInputFromSession(session, elements, agent);
-        },
-      };
-    };
-
-    const getAgentOptionsWithCallbacks = () => {
-      const agent = getAgentFromActions();
-      if (!agent) return undefined;
-      return wrapAgentWithCallbacks(agent);
-    };
-
-    const agentManager = createAgentManager(getAgentOptionsWithCallbacks(), {
-      transformAgentContext: pluginRegistry.hooks.transformAgentContext,
-    });
-
     const handleInputSubmit = () => {
       actions.clearLastCopied();
       const frozenElements = [...store.frozenElements];
@@ -1508,31 +1439,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const { x: currentX, y: currentY } = getBoundsCenter(firstBounds);
       const labelPositionX = currentX + store.copyOffsetFromCenterX;
 
-      if ((store.selectedAgent || store.hasAgentProvider) && prompt) {
-        const currentReplySessionId = store.replySessionId;
-        const selectedAgent = store.selectedAgent;
-
-        deactivateRenderer();
-
-        actions.clearReplySessionId();
-        actions.setSelectedAgent(null);
-
-        void agentManager.session.start({
-          elements,
-          prompt,
-          position: { x: labelPositionX, y: currentY },
-          selectionBounds: currentSelectionBounds,
-          sessionId: currentReplySessionId ?? undefined,
-          agent: selectedAgent ? wrapAgentWithCallbacks(selectedAgent) : undefined,
-        });
-
-        return;
-      }
-
       actions.setPointer({ x: currentX, y: currentY });
       actions.exitPromptMode();
       actions.clearInputText();
-      actions.clearReplySessionId();
 
       performCopyWithLabel({
         element,
@@ -1549,7 +1458,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (isPendingDismiss()) {
         actions.clearInputText();
-        actions.clearReplySessionId();
         deactivateRenderer();
         return;
       }
@@ -1560,19 +1468,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleConfirmDismiss = () => {
       actions.clearInputText();
-      actions.clearReplySessionId();
       deactivateRenderer();
     };
 
     const handleCancelDismiss = () => {
       actions.setPendingDismiss(false);
-    };
-
-    const handleAgentAbort = (sessionId: string, confirmed: boolean) => {
-      actions.setPendingAbortSessionId(null);
-      if (confirmed) {
-        agentManager.session.abort(sessionId);
-      }
     };
 
     const handleToggleExpand = () => {
@@ -1581,37 +1481,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         preparePromptMode(element, store.pointer.x, store.pointer.y);
       }
       activatePromptMode();
-    };
-
-    const handleFollowUpSubmit = (sessionId: string, prompt: string) => {
-      const session = agentManager.sessions().get(sessionId);
-      const elements = agentManager.session.getElements(sessionId);
-      const sessionBounds = session?.selectionBounds ?? [];
-      const firstBounds = sessionBounds[0];
-      if (session && elements.length > 0 && firstBounds) {
-        const positionX = session.position.x;
-        const followUpSessionId = session.context.sessionId ?? sessionId;
-
-        agentManager.session.dismiss(sessionId);
-
-        void agentManager.session.start({
-          elements,
-          prompt,
-          position: {
-            x: positionX,
-            y: firstBounds.y + firstBounds.height / 2,
-          },
-          selectionBounds: sessionBounds,
-          sessionId: followUpSessionId,
-        });
-      }
-    };
-
-    const handleAcknowledgeError = (sessionId: string) => {
-      const prompt = agentManager.session.acknowledgeError(sessionId);
-      if (prompt) {
-        actions.setInputText(prompt);
-      }
     };
 
     const handleToggleActive = () => {
@@ -1957,34 +1826,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     eventListenerManager.addDocumentListener("keypress", blockEnterIfNeeded, {
       capture: true,
     });
-
-    const handleUndoRedoKeys = (event: KeyboardEvent): boolean => {
-      const isUndoOrRedo = event.code === "KeyZ" && (event.metaKey || event.ctrlKey);
-
-      if (!isUndoOrRedo) return false;
-
-      const hasActiveConfirmation = Array.from(agentManager.sessions().values()).some(
-        (session) => !session.isStreaming && !session.error,
-      );
-
-      if (hasActiveConfirmation) return false;
-
-      const isRedo = event.shiftKey;
-
-      if (isRedo && agentManager.canRedo()) {
-        event.preventDefault();
-        event.stopPropagation();
-        agentManager.history.redo();
-        return true;
-      } else if (!isRedo && agentManager.canUndo()) {
-        event.preventDefault();
-        event.stopPropagation();
-        agentManager.history.undo();
-        return true;
-      }
-
-      return false;
-    };
 
     const clearArrowNavigation = () => {
       setArrowNavigationElements([]);
@@ -2456,8 +2297,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
-        if (handleUndoRedoKeys(event)) return;
-
         const isEnterToActivateInput =
           isEnterCode(event.code) && isHoldingKeys() && !isPromptMode();
 
@@ -2493,11 +2332,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         if (isPromptMode() || isFromOverlay) {
           if (event.key === "Escape") {
-            if (store.pendingAbortSessionId) {
-              event.preventDefault();
-              event.stopPropagation();
-              actions.setPendingAbortSessionId(null);
-            } else if (isPromptMode()) {
+            if (isPromptMode()) {
               handleInputCancel();
             } else if (store.wasActivatedByToggle) {
               deactivateRenderer();
@@ -2512,17 +2347,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
 
         if (event.key === "Escape") {
-          if (store.pendingAbortSessionId) {
-            event.preventDefault();
-            event.stopPropagation();
-            actions.setPendingAbortSessionId(null);
-            return;
-          }
-
-          if (agentManager.isProcessing()) {
-            return;
-          }
-
           if (isHoldingKeys() || store.wasActivatedByToggle) {
             deactivateRenderer();
             return;
@@ -2862,7 +2686,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       invalidateInteractionCaches();
       redetectElementUnderPointer();
       actions.incrementViewportVersion();
-      agentManager._internal.updateBoundsOnViewportChange();
       actions.updateContextMenuPosition();
     };
 
@@ -2914,7 +2737,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       viewportChangeFrameId = nativeRequestAnimationFrame(() => {
         viewportChangeFrameId = null;
         actions.incrementViewportVersion();
-        agentManager._internal.updateBoundsOnViewportChange();
       });
     };
 
@@ -2924,8 +2746,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         (isActivated() ||
           isCopying() ||
           store.labelInstances.length > 0 ||
-          store.grabbedBoxes.length > 0 ||
-          agentManager.sessions().size > 0);
+          store.grabbedBoxes.length > 0);
 
       if (shouldRunInterval) {
         if (boundsRecalcIntervalId !== null) return;
@@ -3314,10 +3135,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         hideContextMenuAction();
       };
 
-      const defaultEnterPromptMode = (agent?: AgentOptions) => {
-        if (agent) {
-          actions.setSelectedAgent(agent);
-        }
+      const defaultEnterPromptMode = () => {
         clearAllLabels();
         onBeforePrompt?.();
         preparePromptMode(element, position.x, position.y);
@@ -3382,10 +3200,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         onBeforeCopy: () => {
           keyboardSelectedElement = null;
         },
-        customEnterPromptMode: (agent?: AgentOptions) => {
-          if (agent) {
-            actions.setSelectedAgent(agent);
-          }
+        customEnterPromptMode: () => {
           clearAllLabels();
           actions.clearInputText();
           actions.enterPromptMode(position, element);
@@ -3832,16 +3647,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 isFrozen={isFrozenPhase() || isActivated() || isToolbarSelectHovered()}
                 inputValue={store.inputText}
                 isPromptMode={isPromptMode()}
-                hasAgent={store.hasAgentProvider}
-                agentSessions={agentManager.sessions()}
-                supportsUndo={store.supportsUndo}
-                supportsFollowUp={store.supportsFollowUp}
-                dismissButtonText={store.dismissButtonText}
-                onDismissSession={agentManager.session.dismiss}
-                onUndoSession={agentManager.session.undo}
-                onFollowUpSubmitSession={handleFollowUpSubmit}
-                onAcknowledgeSessionError={handleAcknowledgeError}
-                onRetrySession={agentManager.session.retry}
                 onShowContextMenuInstance={handleShowContextMenuInstance}
                 onLabelInstanceHoverChange={handleLabelInstanceHoverChange}
                 onInputChange={actions.setInputText}
@@ -3851,9 +3656,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 selectionLabelShakeCount={selectionLabelShakeCount()}
                 onConfirmDismiss={handleConfirmDismiss}
                 onCancelDismiss={handleCancelDismiss}
-                pendingAbortSessionId={store.pendingAbortSessionId}
-                onRequestAbortSession={(sessionId) => actions.setPendingAbortSessionId(sessionId)}
-                onAbortSession={handleAgentAbort}
                 toolbarVisible={pluginRegistry.store.theme.toolbar.enabled}
                 isActive={isActivated()}
                 onToggleActive={handleToggleActive}
@@ -3924,45 +3726,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         });
     }
 
-    if (store.hasAgentProvider) {
-      agentManager.session.tryResume();
-    }
-
     const copyElementAPI = async (elements: Element | Element[]): Promise<boolean> => {
       const elementsArray = Array.isArray(elements) ? elements : [elements];
       if (elementsArray.length === 0) return false;
       return await copyWithFallback(elementsArray);
-    };
-
-    const syncAgentFromRegistry = () => {
-      const agentOpts = getAgentOptionsWithCallbacks();
-      if (agentOpts) {
-        agentManager._internal.setOptions(agentOpts);
-      }
-      const hasProvider = Boolean(agentOpts?.provider);
-      actions.setHasAgentProvider(hasProvider);
-      if (hasProvider && agentOpts?.provider) {
-        const capturedProvider = agentOpts.provider;
-        actions.setAgentCapabilities({
-          supportsUndo: Boolean(capturedProvider.undo),
-          supportsFollowUp: Boolean(capturedProvider.supportsFollowUp),
-          dismissButtonText: capturedProvider.dismissButtonText,
-        });
-
-        if (capturedProvider.checkConnection) {
-          capturedProvider.checkConnection().catch((error) => {
-            logRecoverableError("Agent connection check failed", error);
-          });
-        }
-
-        agentManager.session.tryResume();
-      } else {
-        actions.setAgentCapabilities({
-          supportsUndo: false,
-          supportsFollowUp: false,
-          dismissButtonText: undefined,
-        });
-      }
     };
 
     const api: ReactGrabAPI = {
@@ -4057,11 +3824,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
       registerPlugin: (plugin: Plugin) => {
         pluginRegistry.register(plugin, api);
-        syncAgentFromRegistry();
       },
       unregisterPlugin: (name: string) => {
         pluginRegistry.unregister(name);
-        syncAgentFromRegistry();
       },
       getPlugins: () => pluginRegistry.getPluginNames(),
       getDisplayName: getComponentDisplayName,
@@ -4090,11 +3855,6 @@ export type {
   ReactGrabAPI,
   SourceInfo,
   AgentContext,
-  AgentSession,
-  AgentSessionStorage,
-  AgentProvider,
-  AgentCompleteResult,
-  AgentOptions,
   SettableOptions,
   ContextMenuAction,
   ActionContext,

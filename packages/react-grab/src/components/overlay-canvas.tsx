@@ -1,6 +1,6 @@
 import { createEffect, onCleanup, onMount, on } from "solid-js";
 import type { Component } from "solid-js";
-import type { OverlayBounds, SelectionLabelInstance, AgentSession } from "../types.js";
+import type { OverlayBounds, SelectionLabelInstance } from "../types.js";
 import { lerp } from "../utils/lerp.js";
 import {
   SELECTION_LERP_FACTOR,
@@ -41,11 +41,10 @@ const LAYER_STYLES = {
   },
   selection: DEFAULT_LAYER_STYLE,
   grabbed: DEFAULT_LAYER_STYLE,
-  processing: DEFAULT_LAYER_STYLE,
   inspect: INSPECT_LAYER_STYLE,
 } as const;
 
-type LayerName = "drag" | "selection" | "grabbed" | "processing" | "inspect";
+type LayerName = "drag" | "selection" | "grabbed" | "inspect";
 
 interface OffscreenLayer {
   canvas: OffscreenCanvas | null;
@@ -82,8 +81,6 @@ interface OverlayCanvasProps {
     createdAt: number;
   }>;
 
-  agentSessions?: Map<string, AgentSession>;
-
   labelInstances?: SelectionLabelInstance[];
 }
 
@@ -99,14 +96,12 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     drag: { canvas: null, context: null },
     selection: { canvas: null, context: null },
     grabbed: { canvas: null, context: null },
-    processing: { canvas: null, context: null },
     inspect: { canvas: null, context: null },
   };
 
   let selectionAnimations: AnimatedBounds[] = [];
   let dragAnimation: AnimatedBounds | null = null;
   let grabbedAnimations: AnimatedBounds[] = [];
-  let processingAnimations: AnimatedBounds[] = [];
   let inspectAnimations: AnimatedBounds[] = [];
 
   const canvasColorSpace: PredefinedColorSpace = supportsDisplayP3() ? "display-p3" : "srgb";
@@ -314,10 +309,9 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     renderDragLayer();
     renderSelectionLayer();
     renderBoundsLayer("grabbed", grabbedAnimations);
-    renderBoundsLayer("processing", processingAnimations);
     renderBoundsLayer("inspect", inspectAnimations);
 
-    const layerRenderOrder: LayerName[] = ["inspect", "drag", "selection", "grabbed", "processing"];
+    const layerRenderOrder: LayerName[] = ["inspect", "drag", "selection", "grabbed"];
     for (const layerName of layerRenderOrder) {
       const layer = layers[layerName];
       if (layer.canvas) {
@@ -416,14 +410,6 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
       return animation.opacity > 0;
     });
-
-    for (const animation of processingAnimations) {
-      if (animation.isInitialized) {
-        if (interpolateBounds(animation, LAYER_STYLES.processing.lerpFactor)) {
-          shouldContinueAnimating = true;
-        }
-      }
-    }
 
     for (const animation of inspectAnimations) {
       if (animation.isInitialized) {
@@ -587,41 +573,6 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
           return activeBoxIds.has(animation.id);
         });
 
-        scheduleAnimationFrame();
-      },
-    ),
-  );
-
-  createEffect(
-    on(
-      () => props.agentSessions,
-      (agentSessions) => {
-        if (!agentSessions || agentSessions.size === 0) {
-          processingAnimations = [];
-          scheduleAnimationFrame();
-          return;
-        }
-
-        const updatedAnimations: AnimatedBounds[] = [];
-
-        for (const [sessionId, session] of agentSessions) {
-          for (let index = 0; index < session.selectionBounds.length; index++) {
-            const bounds = session.selectionBounds[index];
-            const animationId = `processing-${sessionId}-${index}`;
-            const existingAnimation = processingAnimations.find(
-              (animation) => animation.id === animationId,
-            );
-
-            if (existingAnimation) {
-              updateAnimationTarget(existingAnimation, bounds);
-              updatedAnimations.push(existingAnimation);
-            } else {
-              updatedAnimations.push(createAnimatedBounds(animationId, bounds));
-            }
-          }
-        }
-
-        processingAnimations = updatedAnimations;
         scheduleAnimationFrame();
       },
     ),

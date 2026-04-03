@@ -165,25 +165,6 @@ test.describe("Touch Mode", () => {
     });
   });
 
-  test.describe("Touch Input Mode", () => {
-    test("double tap should enter input mode with agent", async ({ reactGrab }) => {
-      await reactGrab.setupMockAgent();
-      await reactGrab.activate();
-
-      const listItem = reactGrab.page.locator("li").first();
-      const box = await listItem.boundingBox();
-      if (!box) throw new Error("Could not get bounding box");
-
-      await reactGrab.page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
-      await reactGrab.page.waitForTimeout(100);
-      await reactGrab.page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
-      await reactGrab.page.waitForTimeout(200);
-
-      const state = await reactGrab.getState();
-      expect(state).toBeDefined();
-    });
-  });
-
   test.describe("Touch with Scroll", () => {
     test("should handle touch after scroll", async ({ reactGrab }) => {
       await reactGrab.activate();
