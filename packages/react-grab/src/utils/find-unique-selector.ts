@@ -1,3 +1,5 @@
+import { MAX_SELECTOR_COMBINATIONS } from "../constants.js";
+
 interface SelectorNode {
   name: string;
   penalty: number;
@@ -151,14 +153,22 @@ const collectCandidateNodes = (
 
 const collectCombinations = (
   stack: SelectorNode[][],
+  budget: number = MAX_SELECTOR_COMBINATIONS,
   currentPath: SelectorNode[] = [],
 ): SelectorNode[][] => {
+  if (budget <= 0) return [];
   if (stack.length === 0) return [currentPath];
 
   const results: SelectorNode[][] = [];
   for (const selectorNode of stack[0]) {
+    const remainingBudget = budget - results.length;
+    if (remainingBudget <= 0) break;
     results.push(
-      ...collectCombinations(stack.slice(1), [...currentPath, selectorNode]),
+      ...collectCombinations(
+        stack.slice(1),
+        remainingBudget,
+        [...currentPath, selectorNode],
+      ),
     );
   }
   return results;
@@ -252,10 +262,11 @@ export const findUniqueSelector = (
     }
   }
 
-  if (!foundPath) {
+  if (!foundPath && depth < SEED_MIN_LENGTH) {
     const remainingPaths = collectCombinations(ancestorStack);
     remainingPaths.sort(comparePenalty);
     for (const candidatePath of remainingPaths) {
+      if (Date.now() - startTime > timeoutMs) break;
       if (isSelectorUnique(candidatePath, rootDocument)) {
         foundPath = candidatePath;
         break;

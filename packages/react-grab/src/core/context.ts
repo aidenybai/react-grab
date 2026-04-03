@@ -492,8 +492,11 @@ const formatStackContext = (
       // HACK: bundlers like Vite produce unreliable line/column numbers from
       // owner stacks, so we only include them for Next.js where the dev
       // server symbolicates frames via source maps.
-      if (isNextProject && frame.lineNumber && frame.columnNumber) {
-        line += `:${frame.lineNumber}:${frame.columnNumber}`;
+      if (isNextProject && frame.lineNumber) {
+        line += `:${frame.lineNumber}`;
+        if (frame.columnNumber) {
+          line += `:${frame.columnNumber}`;
+        }
       }
 
       if (hasComponentName) {
