@@ -49,10 +49,9 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         agentSessions={props.agentSessions}
         labelInstances={props.labelInstances}
       />
-
-      // The frozen glow overlay uses translateZ(0) to promote it to its own
-      // compositor layer so opacity transitions skip main-thread repaints,
-      // and contain:strict with will-change:opacity pre-allocate the layer.
+      {/* translateZ(0) promotes to its own compositor layer so opacity
+          transitions skip main-thread repaints; contain:strict with
+          will-change:opacity pre-allocates the layer. */}
       <div
         style={{
           position: "fixed",
@@ -70,7 +69,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           "box-shadow": `inset 0 0 ${FROZEN_GLOW_EDGE_PX}px ${FROZEN_GLOW_COLOR}`,
         }}
       />
-
       <Index
         each={
           props.agentSessions ? Array.from(props.agentSessions.values()) : []
@@ -124,7 +122,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           </Show>
         )}
       </Index>
-
       <Show when={props.selectionLabelVisible && props.selectionBounds}>
         <SelectionLabel
           tagName={props.selectionTagName}
@@ -159,7 +156,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           isContextMenuOpen={props.contextMenuPosition !== null}
         />
       </Show>
-
       <Index each={props.labelInstances ?? []}>
         {(instance) => (
           <SelectionLabel
@@ -196,7 +192,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           />
         )}
       </Index>
-
       <Show when={props.toolbarVisible !== false}>
         <Toolbar
           isActive={props.isActive}
@@ -222,7 +217,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           isClearPromptOpen={Boolean(props.clearPromptPosition)}
         />
       </Show>
-
       <ContextMenu
         position={props.contextMenuPosition ?? null}
         selectionBounds={props.contextMenuBounds ?? null}
@@ -234,7 +228,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         onDismiss={props.onContextMenuDismiss ?? (() => {})}
         onHide={props.onContextMenuHide ?? (() => {})}
       />
-
       <ToolbarMenu
         position={props.toolbarMenuPosition ?? null}
         actions={props.toolbarMenuActions ?? []}
@@ -242,13 +235,11 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         onSetDefaultAction={props.onSetDefaultAction ?? (() => {})}
         onDismiss={props.onToolbarMenuDismiss ?? (() => {})}
       />
-
       <ClearCommentsPrompt
         position={props.clearPromptPosition ?? null}
         onConfirm={props.onClearCommentsConfirm ?? (() => {})}
         onCancel={props.onClearCommentsCancel ?? (() => {})}
       />
-
       <CommentsDropdown
         position={props.commentsDropdownPosition ?? null}
         items={props.commentItems ?? []}

@@ -1,4 +1,4 @@
-import { attr as defaultAttr, finder } from "@medv/finder";
+import { isAcceptedAttr, findUniqueSelector } from "./find-unique-selector.js";
 import {
   FINDER_TIMEOUT_MS,
   SELECTOR_ATTR_VALUE_MAX_LENGTH_CHARS,
@@ -114,14 +114,15 @@ export const createElementSelector = (
 
   if (shouldUseFinder) {
     try {
-      const selector = finder(element, {
-        root: getFinderRoot(element),
-        timeoutMs: FINDER_TIMEOUT_MS,
-        attr: (attributeName, attributeValue) =>
-          defaultAttr(attributeName, attributeValue) ||
+      const selector = findUniqueSelector(
+        element,
+        getFinderRoot(element),
+        FINDER_TIMEOUT_MS,
+        (attributeName, attributeValue) =>
+          isAcceptedAttr(attributeName, attributeValue) ||
           (PREFERRED_SELECTOR_ATTRIBUTE_NAMES.has(attributeName) &&
             isPreferredAttributeValueSafe(attributeValue)),
-      });
+      );
       if (selector) return selector;
       // @medv/finder can throw on unusual DOM structures (SVG, web components,
       // detached nodes), so we fall back to an nth-child selector instead.

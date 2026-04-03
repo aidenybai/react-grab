@@ -1,6 +1,5 @@
 # <img src="https://github.com/aidenybai/react-grab/blob/main/.github/public/logo.png?raw=true" width="60" align="center" /> Grab
 
-[![size](https://img.shields.io/bundlephobia/minzip/grab?label=gzip&style=flat&colorA=000000&colorB=000000)](https://bundlephobia.com/package/grab)
 [![version](https://img.shields.io/npm/v/grab?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/grab)
 [![downloads](https://img.shields.io/npm/dt/grab.svg?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/grab)
 

@@ -28,8 +28,8 @@ import {
   getNearestComponentName,
   getComponentDisplayName,
   checkIsNextProject,
+  resolveSource,
 } from "./context.js";
-import { resolveSource } from "element-source";
 import { createNoopApi } from "./noop-api.js";
 import { createEventListenerManager } from "./events.js";
 import { tryCopyWithFallback } from "./copy.js";

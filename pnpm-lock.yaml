@@ -263,32 +263,14 @@ importers:
         specifier: ^8.4.0
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.1)
 
-  packages/observer-bench:
-    devDependencies:
-      typescript:
-        specifier: ^5.7.3
-        version: 5.9.3
-      vite:
-        specifier: ^6.0.2
-        version: 6.4.1(@types/node@24.10.2)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.37.0)(tsx@4.21.0)(yaml@2.8.1)
-
   packages/react-grab:
     dependencies:
-      '@medv/finder':
-        specifier: ^4.0.2
-        version: 4.0.2
       '@react-grab/cli':
         specifier: workspace:*
         version: link:../cli
       bippy:
         specifier: ^0.5.32
         version: 0.5.32(@types/react@19.2.11)(react@19.2.3)
-      clsx:
-        specifier: ^2.1.1
-        version: 2.1.1
-      element-source:
-        specifier: ^0.0.3
-        version: 0.0.3(@types/react@19.2.11)(react@19.2.3)
       react:
         specifier: '>=17.0.0'
         version: 19.2.3
@@ -335,12 +317,6 @@ importers:
       tsx:
         specifier: ^4.21.0
         version: 4.21.0
-
-  packages/shadcn-registry:
-    dependencies:
-      react-grab:
-        specifier: workspace:*
-        version: link:../react-grab
 
   packages/web-extension:
     dependencies:
@@ -1391,9 +1367,6 @@ packages:
 
   '@manypkg/get-packages@1.1.3':
     resolution: {integrity: sha512-fo+QhuU3qE/2TQMQmbVMqaQ6EWbMhi4ABWP+O4AM1NqPBuy0OrApV5LO6BrrgnhtAHS2NH6RrVk9OL181tTi8A==}
-
-  '@medv/finder@4.0.2':
-    resolution: {integrity: sha512-RraNY9SCcx4KZV0Dh6BEW6XEW2swkqYca74pkFFRw6hHItSHiy+O/xMnpbofjYbzXj0tSpBGthUF1hHTsr3vIQ==}
 
   '@mixmark-io/domino@2.2.0':
     resolution: {integrity: sha512-Y28PR25bHXUg88kCV7nivXrP2Nj2RueZ3/l/jdx6J9f8J4nsEGcgX0Qe6lt7Pa+J79+kPiJU3LguR6O/6zrLOw==}
@@ -2634,9 +2607,6 @@ packages:
   '@types/node@22.19.2':
     resolution: {integrity: sha512-LPM2G3Syo1GLzXLGJAKdqoU35XvrWzGJ21/7sgZTUpbkBaOasTj8tjwn6w+hCkqaa1TfJ/w67rJSwYItlJ2mYw==}
 
-  '@types/node@24.10.2':
-    resolution: {integrity: sha512-WOhQTZ4G8xZ1tjJTvKOpyEVSGgOTvJAfDK3FNFgELyaTpzhdgHVHeqW8V+UJvzF5BT+/B54T/1S2K6gd9c7bbA==}
-
   '@types/node@25.5.0':
     resolution: {integrity: sha512-jp2P3tQMSxWugkCUKLRPVUpGaL5MVFwF8RDuSRztfwgN1wmqJeMSbKlnEtQqU8UrhTmzEmZdu2I6v2dpp7XIxw==}
 
@@ -3262,9 +3232,6 @@ packages:
 
   electron-to-chromium@1.5.237:
     resolution: {integrity: sha512-icUt1NvfhGLar5lSWH3tHNzablaA5js3HVHacQimfP8ViEBOQv+L7DKEuHdbTZ0SKCO1ogTJTIL1Gwk9S6Qvcg==}
-
-  element-source@0.0.3:
-    resolution: {integrity: sha512-o3VMv2BIfY/axhIBKlE9HrR5rNqnhjHN2PEAKxG65O0VCSfONoMi9QMQjY12XVVvMuTzr1cAg/4xLMkvh+/Wlg==}
 
   emoji-regex-xs@1.0.0:
     resolution: {integrity: sha512-LRlerrMYoIDrT6jgpeZ2YYl/L8EulRTt5hQcYjy5AInh7HWXKimpqx68aknBFpGL2+/IcogTcaydJEgaTmOpDg==}
@@ -5152,9 +5119,6 @@ packages:
   undici-types@6.21.0:
     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
 
-  undici-types@7.16.0:
-    resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
-
   undici-types@7.18.2:
     resolution: {integrity: sha512-AsuCzffGHJybSaRrmr5eHr81mwJU3kjw6M+uprWvCXiNeN9SOGwQ3Jn8jb8m3Z6izVgknn1R0FTCEAP2QrLY/w==}
 
@@ -6309,8 +6273,6 @@ snapshots:
       globby: 11.1.0
       read-yaml-file: 1.1.0
 
-  '@medv/finder@4.0.2': {}
-
   '@mixmark-io/domino@2.2.0': {}
 
   '@modelcontextprotocol/sdk@1.26.0(zod@3.25.76)':
@@ -7363,11 +7325,6 @@ snapshots:
     dependencies:
       undici-types: 6.21.0
 
-  '@types/node@24.10.2':
-    dependencies:
-      undici-types: 7.16.0
-    optional: true
-
   '@types/node@25.5.0':
     dependencies:
       undici-types: 7.18.2
@@ -7951,13 +7908,6 @@ snapshots:
   ee-first@1.1.1: {}
 
   electron-to-chromium@1.5.237: {}
-
-  element-source@0.0.3(@types/react@19.2.11)(react@19.2.3):
-    dependencies:
-      bippy: 0.5.32(@types/react@19.2.11)(react@19.2.3)
-    transitivePeerDependencies:
-      - '@types/react'
-      - react
 
   emoji-regex-xs@1.0.0: {}
 
@@ -9874,9 +9824,6 @@ snapshots:
 
   undici-types@6.21.0: {}
 
-  undici-types@7.16.0:
-    optional: true
-
   undici-types@7.18.2: {}
 
   unist-util-is@6.0.1:
@@ -10036,23 +9983,6 @@ snapshots:
       - supports-color
       - terser
       - tsx
-
-  vite@6.4.1(@types/node@24.10.2)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.37.0)(tsx@4.21.0)(yaml@2.8.1):
-    dependencies:
-      esbuild: 0.25.11
-      fdir: 6.5.0(picomatch@4.0.3)
-      picomatch: 4.0.3
-      postcss: 8.5.6
-      rollup: 4.52.5
-      tinyglobby: 0.2.15
-    optionalDependencies:
-      '@types/node': 24.10.2
-      fsevents: 2.3.3
-      jiti: 2.6.1
-      lightningcss: 1.30.2
-      terser: 5.37.0
-      tsx: 4.21.0
-      yaml: 2.8.1
 
   vite@6.4.1(@types/node@25.5.0)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.37.0)(tsx@4.21.0)(yaml@2.8.1):
     dependencies:

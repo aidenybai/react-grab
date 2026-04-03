@@ -41,6 +41,34 @@ test.describe("Element Context Fallback", () => {
       const clipboard = await reactGrab.getClipboardContent();
       expect(clipboard).toContain("NestedCard");
     });
+
+    test("should include parent components in stack, not just immediate component", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+
+      await reactGrab.hoverElement("[data-testid='nested-button']");
+      await reactGrab.waitForSelectionBox();
+      await reactGrab.clickElement("[data-testid='nested-button']");
+
+      const clipboard = await reactGrab.getClipboardContent();
+      const inMatches = clipboard.match(/in\s+\S+/g) ?? [];
+      expect(inMatches.length).toBeGreaterThanOrEqual(2);
+    });
+
+    test("should include ancestor component for todo item", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+
+      const todoItem = "[data-testid='todo-list'] ul li:first-child span";
+      await reactGrab.hoverElement(todoItem);
+      await reactGrab.waitForSelectionBox();
+      await reactGrab.clickElement(todoItem);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain("TodoItem");
+    });
   });
 
   test.describe("Non-React Elements Fallback", () => {
