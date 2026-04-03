@@ -2,7 +2,7 @@ import { test, expect } from "./fixtures.js";
 
 test.describe("Prompt Mode", () => {
   test.describe("Entering Prompt Mode", () => {
-    test("context menu edit should enter prompt mode when agent is configured", async ({
+    test("context menu edit should enter prompt mode when comment action is registered", async ({
       reactGrab,
     }) => {
       await reactGrab.registerCommentAction();
@@ -16,7 +16,7 @@ test.describe("Prompt Mode", () => {
       await expect.poll(() => reactGrab.isPromptModeActive()).toBe(true);
     });
 
-    test("single click should copy without entering prompt mode when no agent", async ({
+    test("single click should copy without entering prompt mode", async ({
       reactGrab,
     }) => {
       await reactGrab.activate();

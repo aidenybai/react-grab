@@ -438,8 +438,8 @@ test.describe("Context Menu", () => {
     });
   });
 
-  test.describe("Custom Actions with Agent", () => {
-    test("custom action with agent should appear in menu", async ({ reactGrab }) => {
+  test.describe("Custom Actions", () => {
+    test("custom action with enterPromptMode should appear in menu", async ({ reactGrab }) => {
       await reactGrab.page.evaluate(() => {
         const api = (
           window as {
@@ -450,29 +450,17 @@ test.describe("Context Menu", () => {
           }
         ).__REACT_GRAB__;
 
-        const mockProvider = {
-          *send() {
-            yield "Processing...";
-            yield "Completed";
-          },
-          supportsFollowUp: true,
-        };
-
-        api?.unregisterPlugin("custom-agent-action");
-        const agent = { provider: mockProvider };
+        api?.unregisterPlugin("custom-prompt-action");
         api?.registerPlugin({
-          name: "custom-agent-action",
+          name: "custom-prompt-action",
           actions: [
             {
               id: "custom-edit",
               label: "Custom Edit",
               shortcut: "E",
-              onAction: (context: {
-                enterPromptMode?: (agent?: Record<string, unknown>) => void;
-              }) => {
-                context.enterPromptMode?.(agent);
+              onAction: (context: { enterPromptMode?: () => void }) => {
+                context.enterPromptMode?.();
               },
-              agent,
             },
           ],
         });
@@ -499,29 +487,17 @@ test.describe("Context Menu", () => {
           }
         ).__REACT_GRAB__;
 
-        const mockProvider = {
-          *send() {
-            yield "Processing...";
-            yield "Completed";
-          },
-          supportsFollowUp: true,
-        };
-
-        api?.unregisterPlugin("custom-agent-action");
-        const agent = { provider: mockProvider };
+        api?.unregisterPlugin("custom-prompt-action");
         api?.registerPlugin({
-          name: "custom-agent-action",
+          name: "custom-prompt-action",
           actions: [
             {
               id: "custom-edit",
               label: "Custom Edit",
               shortcut: "E",
-              onAction: (context: {
-                enterPromptMode?: (agent?: Record<string, unknown>) => void;
-              }) => {
-                context.enterPromptMode?.(agent);
+              onAction: (context: { enterPromptMode?: () => void }) => {
+                context.enterPromptMode?.();
               },
-              agent,
             },
           ],
         });
@@ -540,7 +516,7 @@ test.describe("Context Menu", () => {
       expect(isPromptMode).toBe(true);
     });
 
-    test("action without agent should just execute onAction", async ({ reactGrab }) => {
+    test("action should just execute onAction", async ({ reactGrab }) => {
       await reactGrab.page.evaluate(() => {
         const api = (
           window as {
