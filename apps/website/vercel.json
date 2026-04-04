@@ -1,6 +1,5 @@
 {
-  "buildCommand": "pnpm --filter react-grab build && pnpm --filter react-grab exec cp dist/index.global.js ../../apps/website/public/script.js && pnpm --filter @react-grab/website build",
-  "installCommand": "pnpm install",
+  "buildCommand": "pnpm --filter react-grab build && pnpm --filter react-grab exec cp dist/index.global.js ../../apps/website/public/script.js && pnpm --filter @react-grab/design-system build && next build",
   "redirects": [],
   "headers": [
     {
