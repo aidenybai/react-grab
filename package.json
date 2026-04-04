@@ -6,10 +6,10 @@
   ],
   "type": "module",
   "scripts": {
-    "build": "cp README.md packages/react-grab/README.md && vp run @react-grab/cli#build && vp run react-grab#build && pnpm --filter grab build && pnpm --filter @react-grab/mcp build",
-    "dev": "vp run react-grab#dev",
-    "test": "vp run react-grab#test && vp run @react-grab/cli#test",
-    "test:cli": "vp run @react-grab/cli#test",
+    "build": "cp README.md packages/react-grab/README.md && turbo run build --filter=@react-grab/cli --filter=react-grab --filter=grab --filter=@react-grab/mcp",
+    "dev": "turbo run dev --filter=react-grab",
+    "test": "turbo run test",
+    "test:cli": "turbo run test --filter=@react-grab/cli",
     "typecheck": "pnpm --filter react-grab typecheck",
     "lint": "vp lint",
     "lint:fix": "vp lint --fix",
@@ -26,6 +26,7 @@
     "@changesets/cli": "^2.27.10",
     "@types/node": "^25.5.0",
     "@voidzero-dev/vite-plus-core": "^0.1.12",
+    "turbo": "^2.9.3",
     "typescript": "^5.9.3",
     "vite-plus": "^0.1.12"
   },
@@ -46,8 +47,5 @@
       "vite": "npm:@voidzero-dev/vite-plus-core",
       "vitest": "npm:@voidzero-dev/vite-plus-test"
     }
-  },
-  "dependencies": {
-    "bippy": "link:../bippy/packages/bippy"
   }
 }
