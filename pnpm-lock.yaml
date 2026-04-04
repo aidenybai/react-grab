@@ -360,8 +360,8 @@ importers:
         specifier: workspace:*
         version: link:../cli
       bippy:
-        specifier: ^0.5.35
-        version: 0.5.35(react@19.2.3)
+        specifier: ^0.5.37
+        version: 0.5.37(react@19.2.3)
       react:
         specifier: '>=17.0.0'
         version: 19.2.3
@@ -2945,8 +2945,8 @@ packages:
     resolution: {integrity: sha512-pbnl5XzGBdrFU/wT4jqmJVPn2B6UHPBOhzMQkY/SPUPB6QtUXtmBHBIwCbXJol93mOpGMnQyP/+BB19q04xj7g==}
     engines: {node: '>=4'}
 
-  bippy@0.5.35:
-    resolution: {integrity: sha512-hh3CnqxhVPRn1mq5Xfjhu8Kow3r/ov/w86TH94+WzmoYuddps7w+Ah9nPYohuEf5JW3woHGB3RMh7/IzLk6cIQ==}
+  bippy@0.5.37:
+    resolution: {integrity: sha512-5+Xre/yCsrTKLTeiMcrZTKPOaCB9VSPJeWQD+t2MLd0CLD3HqduCVIqXoYsqt8LpNVtTEHeH3g3+XPiR5d7piA==}
     peerDependencies:
       react: '>=17.0.1'
 
@@ -7376,7 +7376,7 @@ snapshots:
     dependencies:
       is-windows: 1.0.2
 
-  bippy@0.5.35(react@19.2.3):
+  bippy@0.5.37(react@19.2.3):
     dependencies:
       react: 19.2.3
 
