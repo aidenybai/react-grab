@@ -3,6 +3,8 @@
 // SolidJS internals, which breaks React hydration due to compile-time dead code
 // elimination. Instead, we access the global API set by the pre-built IIFE script.
 
+export {};
+
 declare global {
   interface Window {
     __REACT_GRAB__?: {
