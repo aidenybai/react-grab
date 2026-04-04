@@ -46,5 +46,8 @@
       "vite": "npm:@voidzero-dev/vite-plus-core",
       "vitest": "npm:@voidzero-dev/vite-plus-test"
     }
+  },
+  "dependencies": {
+    "bippy": "link:../bippy/packages/bippy"
   }
 }

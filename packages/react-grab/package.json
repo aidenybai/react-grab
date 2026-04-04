@@ -96,7 +96,7 @@
   },
   "dependencies": {
     "@react-grab/cli": "workspace:*",
-    "bippy": "^0.5.32",
+    "bippy": "^0.5.35",
     "solid-js": "^1.9.10"
   },
   "devDependencies": {
