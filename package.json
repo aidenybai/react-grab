@@ -6,7 +6,7 @@
   ],
   "type": "module",
   "scripts": {
-    "build": "cp README.md packages/react-grab/README.md && vp run @react-grab/cli#build && vp run react-grab#build && pnpm --filter grab build",
+    "build": "cp README.md packages/react-grab/README.md && vp run @react-grab/cli#build && vp run react-grab#build && pnpm --filter grab build && pnpm --filter @react-grab/mcp build",
     "dev": "vp run react-grab#dev",
     "test": "vp run react-grab#test && vp run @react-grab/cli#test",
     "test:cli": "vp run @react-grab/cli#test",
