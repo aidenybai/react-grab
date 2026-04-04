@@ -3,8 +3,7 @@ import { MOUNT_ROOT_RECHECK_DELAY_MS, Z_INDEX_OVERLAY } from "../constants.js";
 const ATTRIBUTE_NAME = "data-react-grab";
 
 const FONT_LINK_ID = "react-grab-fonts";
-const FONT_LINK_URL =
-  "https://fonts.googleapis.com/css2?family=Geist:wght@500&display=swap";
+const FONT_LINK_URL = "https://fonts.googleapis.com/css2?family=Geist:wght@500&display=swap";
 
 const loadFonts = () => {
   if (document.getElementById(FONT_LINK_ID)) return;
@@ -23,9 +22,7 @@ export const mountRoot = (cssText?: string) => {
 
   const mountedHost = document.querySelector(`[${ATTRIBUTE_NAME}]`);
   if (mountedHost) {
-    const mountedRoot = mountedHost.shadowRoot?.querySelector(
-      `[${ATTRIBUTE_NAME}]`,
-    );
+    const mountedRoot = mountedHost.shadowRoot?.querySelector(`[${ATTRIBUTE_NAME}]`);
     if (mountedRoot instanceof HTMLDivElement && mountedHost.shadowRoot) {
       return mountedRoot;
     }

@@ -1,9 +1,7 @@
 import { test, expect } from "./fixtures.js";
 
 test.describe("Viewport and Scroll Handling", () => {
-  test("should maintain selection after scrolling page", async ({
-    reactGrab,
-  }) => {
+  test("should maintain selection after scrolling page", async ({ reactGrab }) => {
     await reactGrab.activate();
     await reactGrab.hoverElement("li:first-child");
     await reactGrab.waitForSelectionBox();
@@ -22,9 +20,7 @@ test.describe("Viewport and Scroll Handling", () => {
   }) => {
     await reactGrab.activate();
 
-    const firstItem = reactGrab.page
-      .locator("[data-testid='todo-list'] li")
-      .first();
+    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li").first();
     const firstItemBox = await firstItem.boundingBox();
     expect(firstItemBox).not.toBeNull();
 
@@ -74,8 +70,7 @@ test.describe("Viewport and Scroll Handling", () => {
     const newBounds = await reactGrab.getSelectionBoxBounds();
     if (newBounds !== null && initialBounds !== null) {
       const boundsChanged =
-        newBounds.y !== initialBounds.y ||
-        newBounds.height !== initialBounds.height;
+        newBounds.y !== initialBounds.y || newBounds.height !== initialBounds.height;
       expect(boundsChanged).toBe(true);
     }
   });
@@ -108,9 +103,7 @@ test.describe("Viewport and Scroll Handling", () => {
     await reactGrab.setViewportSize(1280, 720);
   });
 
-  test("should not re-detect element during drag operation on scroll", async ({
-    reactGrab,
-  }) => {
+  test("should not re-detect element during drag operation on scroll", async ({ reactGrab }) => {
     await reactGrab.activate();
 
     const todoList = reactGrab.page.locator("[data-testid='todo-list'] ul");
@@ -162,9 +155,7 @@ test.describe("Viewport and Scroll Handling", () => {
     expect(labelAfterScroll.tagName).toBe(labelBeforeScroll.tagName);
   });
 
-  test("should update selection position after viewport resize", async ({
-    reactGrab,
-  }) => {
+  test("should update selection position after viewport resize", async ({ reactGrab }) => {
     await reactGrab.activate();
     await reactGrab.hoverElement("li:first-child");
     await reactGrab.waitForSelectionBox();
@@ -215,9 +206,7 @@ test.describe("Viewport and Scroll Handling", () => {
     expect(isVisible).toBe(true);
   });
 
-  test("should handle keyboard navigation after scroll", async ({
-    reactGrab,
-  }) => {
+  test("should handle keyboard navigation after scroll", async ({ reactGrab }) => {
     await reactGrab.activate();
     await reactGrab.scrollPage(50);
 
@@ -231,9 +220,7 @@ test.describe("Viewport and Scroll Handling", () => {
     expect(isVisible).toBe(true);
   });
 
-  test("should recalculate bounds after visual viewport change", async ({
-    reactGrab,
-  }) => {
+  test("should recalculate bounds after visual viewport change", async ({ reactGrab }) => {
     await reactGrab.activate();
 
     const heading = reactGrab.page.locator("[data-testid='main-title']");
@@ -263,9 +250,7 @@ test.describe("Viewport and Scroll Handling", () => {
     expect(boundsAfter).not.toBeNull();
   });
 
-  test("should copy element after resize using click", async ({
-    reactGrab,
-  }) => {
+  test("should copy element after resize using click", async ({ reactGrab }) => {
     await reactGrab.activate();
     await reactGrab.hoverElement("[data-testid='todo-list'] h1");
     await reactGrab.waitForSelectionBox();

@@ -4,11 +4,7 @@ interface IconTanstackProps {
   className?: string;
 }
 
-export const IconTanstack = ({
-  width = 14,
-  height = 14,
-  className = "",
-}: IconTanstackProps) => (
+export const IconTanstack = ({ width = 14, height = 14, className = "" }: IconTanstackProps) => (
   <span
     className={`inline-flex grayscale opacity-50 ${className}`}
     dangerouslySetInnerHTML={{

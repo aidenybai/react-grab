@@ -72,9 +72,7 @@ const ChangelogPage = () => {
 
         <div className="flex flex-col gap-1">
           <div className="text-foreground font-bold">Changelog</div>
-          <div className="text-sm text-neutral-500">
-            Release notes and version history
-          </div>
+          <div className="text-sm text-neutral-500">Release notes and version history</div>
         </div>
 
         <div className="flex flex-col mt-8 gap-8">
@@ -84,9 +82,7 @@ const ChangelogPage = () => {
                 <span className="text-foreground font-mono text-sm font-medium">
                   {entry.version}
                 </span>
-                <span className="text-neutral-600 text-xs">
-                  {entry.changeType}
-                </span>
+                <span className="text-neutral-600 text-xs">{entry.changeType}</span>
               </div>
               <ul className="flex flex-col gap-1.5">
                 {entry.changes.map((change, changeIndex) => (

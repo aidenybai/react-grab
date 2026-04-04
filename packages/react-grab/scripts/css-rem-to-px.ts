@@ -17,7 +17,6 @@ const CSS_OUTPUT_PATH = "./dist/styles.css";
 const cssContent = readFileSync(CSS_OUTPUT_PATH, "utf8");
 const transformedCss = cssContent.replace(
   /(\d*\.?\d+)rem\b/g,
-  (_, remValue: string) =>
-    `${parseFloat(remValue) * BROWSER_DEFAULT_FONT_SIZE_PX}px`,
+  (_, remValue: string) => `${parseFloat(remValue) * BROWSER_DEFAULT_FONT_SIZE_PX}px`,
 );
 writeFileSync(CSS_OUTPUT_PATH, transformedCss);

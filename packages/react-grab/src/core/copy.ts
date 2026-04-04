@@ -12,10 +12,7 @@ interface CopyOptions {
 interface CopyHooks {
   onBeforeCopy: (elements: Element[]) => Promise<void>;
   transformSnippet: (snippet: string, element: Element) => Promise<string>;
-  transformCopyContent: (
-    content: string,
-    elements: Element[],
-  ) => Promise<string>;
+  transformCopyContent: (content: string, elements: Element[]) => Promise<string>;
   onAfterCopy: (elements: Element[], success: boolean) => void;
   onCopySuccess: (elements: Element[], content: string) => void;
   onCopyError: (error: Error) => void;
@@ -44,18 +41,14 @@ export const tryCopyWithFallback = async (
       });
       const transformedSnippets = await Promise.all(
         rawSnippets.map((snippet, index) =>
-          snippet.trim()
-            ? hooks.transformSnippet(snippet, elements[index])
-            : Promise.resolve(""),
+          snippet.trim() ? hooks.transformSnippet(snippet, elements[index]) : Promise.resolve(""),
         ),
       );
       const snippetElementPairs = transformedSnippets
         .map((snippet, index) => ({ snippet, element: elements[index] }))
         .filter(({ snippet }) => snippet.trim());
 
-      generatedContent = joinSnippets(
-        snippetElementPairs.map(({ snippet }) => snippet),
-      );
+      generatedContent = joinSnippets(snippetElementPairs.map(({ snippet }) => snippet));
       entries = snippetElementPairs.map(({ snippet, element }) => ({
         tagName: element.localName,
         content: snippet,
@@ -64,14 +57,9 @@ export const tryCopyWithFallback = async (
     }
 
     if (generatedContent.trim()) {
-      const transformedContent = await hooks.transformCopyContent(
-        generatedContent,
-        elements,
-      );
+      const transformedContent = await hooks.transformCopyContent(generatedContent, elements);
 
-      copiedContent = extraPrompt
-        ? `${extraPrompt}\n\n${transformedContent}`
-        : transformedContent;
+      copiedContent = extraPrompt ? `${extraPrompt}\n\n${transformedContent}` : transformedContent;
 
       didCopy = copyContent(copiedContent, {
         componentName: options.componentName,

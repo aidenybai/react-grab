@@ -69,9 +69,7 @@ export const ErrorView: Component<ErrorViewProps> = (props) => {
               class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] press-scale h-[17px]"
               onClick={props.onRetry}
             >
-              <span class="text-black text-[13px] leading-3.5 font-sans font-medium">
-                Retry
-              </span>
+              <span class="text-black text-[13px] leading-3.5 font-sans font-medium">Retry</span>
               <IconRetry size={10} class="text-black/50" />
             </button>
             <button
@@ -79,9 +77,7 @@ export const ErrorView: Component<ErrorViewProps> = (props) => {
               class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] press-scale h-[17px]"
               onClick={props.onAcknowledge}
             >
-              <span class="text-black text-[13px] leading-3.5 font-sans font-medium">
-                Ok
-              </span>
+              <span class="text-black text-[13px] leading-3.5 font-sans font-medium">Ok</span>
             </button>
           </div>
         </BottomSection>

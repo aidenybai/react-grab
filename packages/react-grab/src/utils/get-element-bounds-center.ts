@@ -7,9 +7,7 @@ interface ElementBoundsCenter {
   center: { x: number; y: number };
 }
 
-export const getElementBoundsCenter = (
-  element: Element,
-): ElementBoundsCenter => {
+export const getElementBoundsCenter = (element: Element): ElementBoundsCenter => {
   const bounds = createElementBounds(element);
   return { bounds, center: getBoundsCenter(bounds) };
 };

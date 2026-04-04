@@ -20,10 +20,7 @@ import type {
   ActionContext,
 } from "../types.js";
 import { DEFAULT_THEME, deepMergeTheme } from "./theme.js";
-import {
-  DEFAULT_KEY_HOLD_DURATION_MS,
-  DEFAULT_MAX_CONTEXT_LINES,
-} from "../constants.js";
+import { DEFAULT_KEY_HOLD_DURATION_MS, DEFAULT_MAX_CONTEXT_LINES } from "../constants.js";
 
 interface RegisteredPlugin {
   plugin: Plugin;
@@ -131,10 +128,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
 
     if (plugin.theme) {
       config.theme = config.theme
-        ? deepMergeTheme(
-            deepMergeTheme(DEFAULT_THEME, plugin.theme),
-            config.theme,
-          )
+        ? deepMergeTheme(deepMergeTheme(DEFAULT_THEME, plugin.theme), config.theme)
         : plugin.theme;
     }
 
@@ -143,15 +137,11 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     }
 
     if (plugin.hooks) {
-      config.hooks = config.hooks
-        ? { ...plugin.hooks, ...config.hooks }
-        : plugin.hooks;
+      config.hooks = config.hooks ? { ...plugin.hooks, ...config.hooks } : plugin.hooks;
     }
 
     if (plugin.options) {
-      config.options = config.options
-        ? { ...plugin.options, ...config.options }
-        : plugin.options;
+      config.options = config.options ? { ...plugin.options, ...config.options } : plugin.options;
     }
 
     plugins.set(plugin.name, { plugin, config });
@@ -196,9 +186,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     let handled = false;
     for (const { config } of plugins.values()) {
       const hook = config.hooks?.[hookName] as
-        | ((
-            ...hookArgs: Parameters<NonNullable<PluginHooks[K]>>
-          ) => boolean | void)
+        | ((...hookArgs: Parameters<NonNullable<PluginHooks[K]>>) => boolean | void)
         | undefined;
       if (hook) {
         const result = hook(...args);
@@ -283,12 +271,9 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       }
       return { wasIntercepted, pendingResult };
     },
-    onDragStart: (startX: number, startY: number) =>
-      callHook("onDragStart", startX, startY),
-    onDragEnd: (elements: Element[], bounds: DragRect) =>
-      callHook("onDragEnd", elements, bounds),
-    onBeforeCopy: async (elements: Element[]) =>
-      callHookAsync("onBeforeCopy", elements),
+    onDragStart: (startX: number, startY: number) => callHook("onDragStart", startX, startY),
+    onDragEnd: (elements: Element[], bounds: DragRect) => callHook("onDragEnd", elements, bounds),
+    onBeforeCopy: async (elements: Element[]) => callHookAsync("onBeforeCopy", elements),
     transformCopyContent: async (content: string, elements: Element[]) =>
       callHookReduce("transformCopyContent", content, elements),
     onAfterCopy: (elements: Element[], success: boolean) =>
@@ -299,11 +284,8 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     onStateChange: (state: ReactGrabState) => callHook("onStateChange", state),
     onPromptModeChange: (isPromptMode: boolean, context: PromptModeContext) =>
       callHook("onPromptModeChange", isPromptMode, context),
-    onSelectionBox: (
-      visible: boolean,
-      bounds: OverlayBounds | null,
-      element: Element | null,
-    ) => callHook("onSelectionBox", visible, bounds, element),
+    onSelectionBox: (visible: boolean, bounds: OverlayBounds | null, element: Element | null) =>
+      callHook("onSelectionBox", visible, bounds, element),
     onDragBox: (visible: boolean, bounds: OverlayBounds | null) =>
       callHook("onDragBox", visible, bounds),
     onGrabbedBox: (bounds: OverlayBounds, element: Element) =>
@@ -323,11 +305,8 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       callHookReduce("transformAgentContext", context, elements),
     transformActionContext: (context: ActionContext) =>
       callHookReduceSync("transformActionContext", context),
-    transformOpenFileUrl: (
-      url: string,
-      filePath: string,
-      lineNumber?: number,
-    ) => callHookReduceSync("transformOpenFileUrl", url, filePath, lineNumber),
+    transformOpenFileUrl: (url: string, filePath: string, lineNumber?: number) =>
+      callHookReduceSync("transformOpenFileUrl", url, filePath, lineNumber),
     transformSnippet: async (snippet: string, element: Element) =>
       callHookReduce("transformSnippet", snippet, element),
   };

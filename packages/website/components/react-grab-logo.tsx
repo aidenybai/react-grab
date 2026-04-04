@@ -19,9 +19,7 @@ export const ReactGrabLogo = ({
   const [clickCount, setClickCount] = useState(0);
 
   const speedMultiplier = 1 + clickCount * SPEED_INCREMENT;
-  const animationDuration = Math.round(
-    BASE_ANIMATION_DURATION_MS / speedMultiplier,
-  );
+  const animationDuration = Math.round(BASE_ANIMATION_DURATION_MS / speedMultiplier);
 
   const handleClick = () => {
     setClickCount((previousCount) => previousCount + 1);

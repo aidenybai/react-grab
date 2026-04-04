@@ -16,15 +16,9 @@ export const add = new Command()
   .description("connect React Grab to your agent via MCP")
   .argument("[agent]", "agent to connect (mcp)")
   .option("-y, --yes", "skip confirmation prompts", false)
-  .option(
-    "-c, --cwd <cwd>",
-    "working directory (defaults to current directory)",
-    process.cwd(),
-  )
+  .option("-c, --cwd <cwd>", "working directory (defaults to current directory)", process.cwd())
   .action(async (agentArg, opts) => {
-    console.log(
-      `${pc.magenta("✿")} ${pc.bold("React Grab")} ${pc.gray(VERSION)}`,
-    );
+    console.log(`${pc.magenta("✿")} ${pc.bold("React Grab")} ${pc.gray(VERSION)}`);
     console.log();
 
     try {
@@ -38,9 +32,7 @@ export const add = new Command()
       if (!projectInfo.hasReactGrab) {
         preflightSpinner.fail("React Grab is not installed.");
         logger.break();
-        logger.error(
-          `Run ${highlighter.info("react-grab init")} first to install React Grab.`,
-        );
+        logger.error(`Run ${highlighter.info("react-grab init")} first to install React Grab.`);
         logger.break();
         process.exit(1);
       }
@@ -52,9 +44,7 @@ export const add = new Command()
         logger.warn(
           `Legacy agent packages are deprecated. Use ${highlighter.info("mcp")} instead.`,
         );
-        logger.log(
-          `Run ${highlighter.info("grab add mcp")} to install the MCP server.`,
-        );
+        logger.log(`Run ${highlighter.info("grab add mcp")} to install the MCP server.`);
         logger.break();
         process.exit(1);
       }
@@ -77,9 +67,7 @@ export const add = new Command()
           }
         }
         logger.break();
-        logger.log(
-          `${highlighter.success("Success!")} MCP server has been configured.`,
-        );
+        logger.log(`${highlighter.success("Success!")} MCP server has been configured.`);
         logger.log("Restart your agents to activate.");
         logger.break();
       } else {
@@ -89,9 +77,7 @@ export const add = new Command()
           process.exit(0);
         }
         logger.break();
-        logger.log(
-          `${highlighter.success("Success!")} MCP server has been configured.`,
-        );
+        logger.log(`${highlighter.success("Success!")} MCP server has been configured.`);
         logger.log("Restart your agents to activate.");
         logger.break();
       }

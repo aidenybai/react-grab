@@ -19,8 +19,12 @@
     }
   },
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "lint": "vp lint",
+    "format": "vp fmt",
+    "format:check": "vp fmt --check",
+    "check": "vp check",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -30,8 +34,6 @@
   "devDependencies": {
     "@babel/core": "^7.28.5",
     "@babel/preset-typescript": "^7.28.5",
-    "babel-preset-solid": "^1.9.10",
-    "esbuild-plugin-babel": "^0.2.3",
-    "tsup": "^8.2.4"
+    "babel-preset-solid": "^1.9.10"
   }
 }

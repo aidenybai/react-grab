@@ -27,9 +27,7 @@ export const createMcpPlugin = (options: McpPluginOptions = {}): Plugin => {
       onCopySuccess: (_elements: Element[], content: string) => {
         void sendContextToServer(contextUrl, [content]);
       },
-      transformAgentContext: async (
-        context: AgentContext,
-      ): Promise<AgentContext> => {
+      transformAgentContext: async (context: AgentContext): Promise<AgentContext> => {
         await sendContextToServer(contextUrl, context.content, context.prompt);
         return context;
       },

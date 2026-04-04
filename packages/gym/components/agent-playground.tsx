@@ -43,11 +43,7 @@ interface ProviderBadgeProps {
 
 const ProviderBadge = ({ provider, isActive, onClick }: ProviderBadgeProps) => {
   return (
-    <Badge
-      variant={isActive ? "default" : "outline"}
-      className="cursor-pointer"
-      onClick={onClick}
-    >
+    <Badge variant={isActive ? "default" : "outline"} className="cursor-pointer" onClick={onClick}>
       {provider}
     </Badge>
   );
@@ -100,10 +96,7 @@ const AgentPlaygroundContent = ({
       }
 
       if (loadedProviders.length === 0 && failedProviders.length === 0) {
-        addLog(
-          "info",
-          "No providers loaded. Add ?provider=cursor,claude to URL",
-        );
+        addLog("info", "No providers loaded. Add ?provider=cursor,claude to URL");
       } else {
         for (const provider of loadedProviders) {
           addLog("info", `Loaded: ${provider}`);
@@ -113,8 +106,7 @@ const AgentPlaygroundContent = ({
   }, [loadedProviders, failedProviders, addLog]);
 
   const handleAddProvider = (provider: string) => {
-    const currentProviders =
-      new URLSearchParams(window.location.search).get("provider") ?? "";
+    const currentProviders = new URLSearchParams(window.location.search).get("provider") ?? "";
     const providerList = currentProviders ? currentProviders.split(",") : [];
 
     if (providerList.includes(provider)) {
@@ -128,8 +120,7 @@ const AgentPlaygroundContent = ({
   };
 
   const handleRemoveProvider = (provider: string) => {
-    const currentProviders =
-      new URLSearchParams(window.location.search).get("provider") ?? "";
+    const currentProviders = new URLSearchParams(window.location.search).get("provider") ?? "";
     const providerList = currentProviders
       .split(",")
       .filter((providerInList) => providerInList !== provider);
@@ -144,25 +135,19 @@ const AgentPlaygroundContent = ({
   };
 
   const inactiveProviders = availableProviders.filter(
-    (provider) =>
-      !loadedProviders.includes(provider) &&
-      !failedProviders.includes(provider),
+    (provider) => !loadedProviders.includes(provider) && !failedProviders.includes(provider),
   );
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Agent Playground
-          </h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Agent Playground</h1>
           <p className="text-muted-foreground text-sm">
             Select any element and choose an agent from the context menu
           </p>
         </div>
-        <Button onClick={() => window.__REACT_GRAB__?.activate()}>
-          Grab Element
-        </Button>
+        <Button onClick={() => window.__REACT_GRAB__?.activate()}>Grab Element</Button>
       </div>
 
       <Card>
@@ -177,9 +162,7 @@ const AgentPlaygroundContent = ({
           <Card>
             <CardContent className="p-4">
               <div className="text-sm font-medium">User Card</div>
-              <div className="text-muted-foreground text-xs mt-1">
-                john@example.com
-              </div>
+              <div className="text-muted-foreground text-xs mt-1">john@example.com</div>
             </CardContent>
           </Card>
           <Input type="text" placeholder="Search…" />
@@ -195,9 +178,7 @@ const AgentPlaygroundContent = ({
             {loadedProviders.length === 0 &&
             failedProviders.length === 0 &&
             inactiveProviders.length === 0 ? (
-              <span className="text-muted-foreground text-sm">
-                None available
-              </span>
+              <span className="text-muted-foreground text-sm">None available</span>
             ) : (
               <>
                 {loadedProviders.map((provider) => (
@@ -246,22 +227,17 @@ const AgentPlaygroundContent = ({
         <CardContent>
           <div className="bg-muted/50 rounded-lg p-1 min-h-[180px] max-h-[300px] overflow-y-auto">
             {logs.length === 0 ? (
-              <div className="px-3 py-2 text-muted-foreground text-sm">
-                Waiting…
-              </div>
+              <div className="px-3 py-2 text-muted-foreground text-sm">Waiting…</div>
             ) : (
               <div className="flex flex-col">
                 {logs.map((log, logIndex) => {
-                  const style =
-                    LOG_TYPE_STYLES[log.type] ?? LOG_TYPE_STYLES.info;
+                  const style = LOG_TYPE_STYLES[log.type] ?? LOG_TYPE_STYLES.info;
                   return (
                     <div
                       key={logIndex}
                       className="flex items-start gap-3 px-3 py-1.5 rounded-md hover:bg-muted/50 transition-colors"
                     >
-                      <span
-                        className={`${style.color} text-xs w-3 mt-0.5 shrink-0`}
-                      >
+                      <span className={`${style.color} text-xs w-3 mt-0.5 shrink-0`}>
                         {style.icon}
                       </span>
                       <span className="text-foreground/70 text-sm flex-1 break-all font-mono">
@@ -294,8 +270,7 @@ const loadProviderScript = (provider: string): Promise<string> => {
     const script = document.createElement("script");
     script.src = scriptSrc;
     script.onload = () => resolve(provider);
-    script.onerror = () =>
-      reject(new Error(`Failed to load provider: ${provider}`));
+    script.onerror = () => reject(new Error(`Failed to load provider: ${provider}`));
     document.head.appendChild(script);
   });
 };
@@ -309,9 +284,7 @@ export const AgentPlayground = () => {
 
   useEffect(() => {
     const loadAllProviders = async () => {
-      const urlProviders = new URLSearchParams(window.location.search).get(
-        "provider",
-      );
+      const urlProviders = new URLSearchParams(window.location.search).get("provider");
       const envProviders = process.env.NEXT_PUBLIC_PROVIDER;
 
       const providerString = urlProviders ?? envProviders;
@@ -342,10 +315,7 @@ export const AgentPlayground = () => {
         if (result.status === "fulfilled") {
           loaded.push(result.value);
         } else {
-          console.error(
-            `Failed to load provider "${provider}":`,
-            result.reason,
-          );
+          console.error(`Failed to load provider "${provider}":`, result.reason);
           failed.push(provider);
         }
       });

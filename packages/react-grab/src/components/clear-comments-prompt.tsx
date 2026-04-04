@@ -1,10 +1,7 @@
 import { Show, onMount, onCleanup } from "solid-js";
 import type { Component } from "solid-js";
 import type { DropdownAnchor } from "../types.js";
-import {
-  DROPDOWN_EDGE_TRANSFORM_ORIGIN,
-  Z_INDEX_OVERLAY,
-} from "../constants.js";
+import { DROPDOWN_EDGE_TRANSFORM_ORIGIN, Z_INDEX_OVERLAY } from "../constants.js";
 import { cn } from "../utils/cn.js";
 import { DiscardPrompt } from "./selection-label/discard-prompt.js";
 import { suppressMenuEvent } from "../utils/suppress-menu-event.js";
@@ -17,9 +14,7 @@ interface ClearCommentsPromptProps {
   onCancel: () => void;
 }
 
-export const ClearCommentsPrompt: Component<ClearCommentsPromptProps> = (
-  props,
-) => {
+export const ClearCommentsPrompt: Component<ClearCommentsPromptProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
 
   const dropdown = createAnchoredDropdown(
@@ -54,8 +49,7 @@ export const ClearCommentsPrompt: Component<ClearCommentsPromptProps> = (
           left: `${dropdown.displayPosition().left}px`,
           "z-index": `${Z_INDEX_OVERLAY}`,
           "pointer-events": dropdown.isAnimatedIn() ? "auto" : "none",
-          "transform-origin":
-            DROPDOWN_EDGE_TRANSFORM_ORIGIN[dropdown.lastAnchorEdge()],
+          "transform-origin": DROPDOWN_EDGE_TRANSFORM_ORIGIN[dropdown.lastAnchorEdge()],
           opacity: dropdown.isAnimatedIn() ? "1" : "0",
           transform: dropdown.isAnimatedIn() ? "scale(1)" : "scale(0.95)",
         }}

@@ -6,13 +6,8 @@ import { installPackages } from "./install.js";
 import { logger } from "./logger.js";
 import { spinner } from "./spinner.js";
 
-export const applyTransformWithFeedback = (
-  result: TransformResult,
-  message?: string,
-): void => {
-  const writeSpinner = spinner(
-    message ?? `Applying changes to ${result.filePath}.`,
-  ).start();
+export const applyTransformWithFeedback = (result: TransformResult, message?: string): void => {
+  const writeSpinner = spinner(message ?? `Applying changes to ${result.filePath}.`).start();
   const writeResult = applyTransform(result);
   if (!writeResult.success) {
     writeSpinner.fail();

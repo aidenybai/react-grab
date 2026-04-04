@@ -28,9 +28,7 @@ const getTargetElement = (event: KeyboardEvent): HTMLElement | undefined => {
   return undefined;
 };
 
-export const isKeyboardEventTriggeredByInput = (
-  event: KeyboardEvent,
-): boolean => {
+export const isKeyboardEventTriggeredByInput = (event: KeyboardEvent): boolean => {
   if (document.designMode === "on") return true;
 
   const targetElement = getTargetElement(event);
@@ -46,10 +44,7 @@ export const isKeyboardEventTriggeredByInput = (
 
 export const hasTextSelectionInInput = (event: KeyboardEvent): boolean => {
   const target = event.target;
-  if (
-    target instanceof HTMLInputElement ||
-    target instanceof HTMLTextAreaElement
-  ) {
+  if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
     const selectionStart = target.selectionStart ?? 0;
     const selectionEnd = target.selectionEnd ?? 0;
     return selectionEnd - selectionStart > 0;

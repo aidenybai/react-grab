@@ -22,8 +22,8 @@ export const SheetDemo = () => {
         <SheetHeader>
           <SheetTitle>Sheet Test</SheetTitle>
           <SheetDescription>
-            Try to grab elements inside this sheet. Clicking the react-grab
-            cursor icon should not close the sheet.
+            Try to grab elements inside this sheet. Clicking the react-grab cursor icon should not
+            close the sheet.
           </SheetDescription>
         </SheetHeader>
         <div className="flex flex-col gap-4 p-4">

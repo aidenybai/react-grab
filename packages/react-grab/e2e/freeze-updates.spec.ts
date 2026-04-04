@@ -2,15 +2,12 @@ import { test, expect } from "./fixtures.js";
 
 test.describe("Freeze Updates", () => {
   test.describe("State Freezing During Prompt Mode", () => {
-    test("should freeze React state updates when in prompt mode", async ({
-      reactGrab,
-    }) => {
-      await reactGrab.setupMockAgent({ delay: 2000 });
+    test("should freeze React state updates when in prompt mode", async ({ reactGrab }) => {
+      await reactGrab.registerCommentAction();
 
       const getElementCount = async () => {
         return reactGrab.page.evaluate(() => {
-          return document.querySelectorAll("[data-testid^='dynamic-element-']")
-            .length;
+          return document.querySelectorAll("[data-testid^='dynamic-element-']").length;
         });
       };
 
@@ -37,17 +34,12 @@ test.describe("Freeze Updates", () => {
       expect(countAfterExit).toBe(initialCount);
     });
 
-    test("should freeze visibility toggle during prompt mode", async ({
-      reactGrab,
-    }) => {
-      await reactGrab.setupMockAgent({ delay: 2000 });
+    test("should freeze visibility toggle during prompt mode", async ({ reactGrab }) => {
+      await reactGrab.registerCommentAction();
 
       const isToggleableVisible = async () => {
         return reactGrab.page.evaluate(() => {
-          return (
-            document.querySelector("[data-testid='toggleable-element']") !==
-            null
-          );
+          return document.querySelector("[data-testid='toggleable-element']") !== null;
         });
       };
 
@@ -74,15 +66,12 @@ test.describe("Freeze Updates", () => {
       expect(visibleAfterExit).toBe(true);
     });
 
-    test("should allow state updates after exiting prompt mode", async ({
-      reactGrab,
-    }) => {
-      await reactGrab.setupMockAgent({ delay: 100 });
+    test("should allow state updates after exiting prompt mode", async ({ reactGrab }) => {
+      await reactGrab.registerCommentAction();
 
       const getElementCount = async () => {
         return reactGrab.page.evaluate(() => {
-          return document.querySelectorAll("[data-testid^='dynamic-element-']")
-            .length;
+          return document.querySelectorAll("[data-testid^='dynamic-element-']").length;
         });
       };
 
@@ -101,15 +90,12 @@ test.describe("Freeze Updates", () => {
   });
 
   test.describe("Multiple Freeze/Unfreeze Cycles", () => {
-    test("should handle multiple prompt mode cycles correctly", async ({
-      reactGrab,
-    }) => {
-      await reactGrab.setupMockAgent({ delay: 100 });
+    test("should handle multiple prompt mode cycles correctly", async ({ reactGrab }) => {
+      await reactGrab.registerCommentAction();
 
       const getElementCount = async () => {
         return reactGrab.page.evaluate(() => {
-          return document.querySelectorAll("[data-testid^='dynamic-element-']")
-            .length;
+          return document.querySelectorAll("[data-testid^='dynamic-element-']").length;
         });
       };
 
@@ -128,9 +114,7 @@ test.describe("Freeze Updates", () => {
       }
     });
 
-    test("should not leak frozen state after rapid activation cycles", async ({
-      reactGrab,
-    }) => {
+    test("should not leak frozen state after rapid activation cycles", async ({ reactGrab }) => {
       for (let i = 0; i < 5; i++) {
         await reactGrab.activate();
         await reactGrab.hoverElement("li:first-child");
@@ -141,8 +125,7 @@ test.describe("Freeze Updates", () => {
 
       const getElementCount = async () => {
         return reactGrab.page.evaluate(() => {
-          return document.querySelectorAll("[data-testid^='dynamic-element-']")
-            .length;
+          return document.querySelectorAll("[data-testid^='dynamic-element-']").length;
         });
       };
 
@@ -157,17 +140,13 @@ test.describe("Freeze Updates", () => {
   });
 
   test.describe("Freeze State Consistency", () => {
-    test("should maintain UI consistency during prompt mode", async ({
-      reactGrab,
-    }) => {
-      await reactGrab.setupMockAgent({ delay: 2000 });
+    test("should maintain UI consistency during prompt mode", async ({ reactGrab }) => {
+      await reactGrab.registerCommentAction();
 
       await reactGrab.enterPromptMode("[data-testid='dynamic-element-1']");
 
       const elementTextDuringFreeze = await reactGrab.page.evaluate(() => {
-        const element = document.querySelector(
-          "[data-testid='dynamic-element-1']",
-        );
+        const element = document.querySelector("[data-testid='dynamic-element-1']");
         return element?.textContent?.trim() ?? "";
       });
 
@@ -176,10 +155,8 @@ test.describe("Freeze Updates", () => {
       await reactGrab.pressEscape();
     });
 
-    test("should unfreeze all components after exiting prompt mode", async ({
-      reactGrab,
-    }) => {
-      await reactGrab.setupMockAgent({ delay: 100 });
+    test("should unfreeze all components after exiting prompt mode", async ({ reactGrab }) => {
+      await reactGrab.registerCommentAction();
 
       await reactGrab.enterPromptMode("[data-testid='test-input']");
       await reactGrab.pressEscape();
@@ -187,9 +164,7 @@ test.describe("Freeze Updates", () => {
 
       await reactGrab.page.fill("[data-testid='test-input']", "test value");
       const inputValue = await reactGrab.page.evaluate(() => {
-        const input = document.querySelector(
-          "[data-testid='test-input']",
-        ) as HTMLInputElement;
+        const input = document.querySelector("[data-testid='test-input']") as HTMLInputElement;
         return input?.value ?? "";
       });
 
@@ -199,8 +174,7 @@ test.describe("Freeze Updates", () => {
     test("should resume updates after deactivation", async ({ reactGrab }) => {
       const getElementCount = async () => {
         return reactGrab.page.evaluate(() => {
-          return document.querySelectorAll("[data-testid^='dynamic-element-']")
-            .length;
+          return document.querySelectorAll("[data-testid^='dynamic-element-']").length;
         });
       };
 
@@ -220,10 +194,8 @@ test.describe("Freeze Updates", () => {
   });
 
   test.describe("Edge Cases", () => {
-    test("should handle freeze when no React state is present", async ({
-      reactGrab,
-    }) => {
-      await reactGrab.setupMockAgent({ delay: 100 });
+    test("should handle freeze when no React state is present", async ({ reactGrab }) => {
+      await reactGrab.registerCommentAction();
 
       await reactGrab.enterPromptMode("[data-testid='main-title']");
 
@@ -233,10 +205,8 @@ test.describe("Freeze Updates", () => {
       await reactGrab.pressEscape();
     });
 
-    test("should handle deactivation during frozen state", async ({
-      reactGrab,
-    }) => {
-      await reactGrab.setupMockAgent({ delay: 2000 });
+    test("should handle deactivation during frozen state", async ({ reactGrab }) => {
+      await reactGrab.registerCommentAction();
 
       await reactGrab.enterPromptMode("[data-testid='dynamic-element-1']");
 
@@ -245,8 +215,7 @@ test.describe("Freeze Updates", () => {
 
       const getElementCount = async () => {
         return reactGrab.page.evaluate(() => {
-          return document.querySelectorAll("[data-testid^='dynamic-element-']")
-            .length;
+          return document.querySelectorAll("[data-testid^='dynamic-element-']").length;
         });
       };
 
@@ -259,10 +228,8 @@ test.describe("Freeze Updates", () => {
       expect(countAfter).toBe(countBefore + 1);
     });
 
-    test("should properly cleanup after multiple freeze operations", async ({
-      reactGrab,
-    }) => {
-      await reactGrab.setupMockAgent({ delay: 100 });
+    test("should properly cleanup after multiple freeze operations", async ({ reactGrab }) => {
+      await reactGrab.registerCommentAction();
 
       for (let i = 0; i < 3; i++) {
         await reactGrab.enterPromptMode("[data-testid='dynamic-element-1']");
@@ -273,8 +240,7 @@ test.describe("Freeze Updates", () => {
 
       const getElementCount = async () => {
         return reactGrab.page.evaluate(() => {
-          return document.querySelectorAll("[data-testid^='dynamic-element-']")
-            .length;
+          return document.querySelectorAll("[data-testid^='dynamic-element-']").length;
         });
       };
 
@@ -292,12 +258,11 @@ test.describe("Freeze Updates", () => {
     test("should buffer multiple clicks during freeze and apply on unfreeze", async ({
       reactGrab,
     }) => {
-      await reactGrab.setupMockAgent({ delay: 100 });
+      await reactGrab.registerCommentAction();
 
       const getElementCount = async () => {
         return reactGrab.page.evaluate(() => {
-          return document.querySelectorAll("[data-testid^='dynamic-element-']")
-            .length;
+          return document.querySelectorAll("[data-testid^='dynamic-element-']").length;
         });
       };
 
@@ -325,15 +290,12 @@ test.describe("Freeze Updates", () => {
       expect(countAfterUnfreeze).toBe(countBefore);
     });
 
-    test("should not accumulate state incorrectly across freeze cycles", async ({
-      reactGrab,
-    }) => {
-      await reactGrab.setupMockAgent({ delay: 100 });
+    test("should not accumulate state incorrectly across freeze cycles", async ({ reactGrab }) => {
+      await reactGrab.registerCommentAction();
 
       const getElementCount = async () => {
         return reactGrab.page.evaluate(() => {
-          return document.querySelectorAll("[data-testid^='dynamic-element-']")
-            .length;
+          return document.querySelectorAll("[data-testid^='dynamic-element-']").length;
         });
       };
 

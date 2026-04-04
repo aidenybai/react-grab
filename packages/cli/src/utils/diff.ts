@@ -10,10 +10,7 @@ const GRAY = "\x1b[90m";
 const RESET = "\x1b[0m";
 const BOLD = "\x1b[1m";
 
-export const generateDiff = (
-  originalContent: string,
-  newContent: string,
-): DiffLine[] => {
+export const generateDiff = (originalContent: string, newContent: string): DiffLine[] => {
   const originalLines = originalContent.split("\n");
   const newLines = newContent.split("\n");
   const diff: DiffLine[] = [];
@@ -45,8 +42,7 @@ export const generateDiff = (
 
       if (
         originalInNew !== -1 &&
-        (newInOriginal === -1 ||
-          originalInNew - newIndex < newInOriginal - originalIndex)
+        (newInOriginal === -1 || originalInNew - newIndex < newInOriginal - originalIndex)
       ) {
         while (newIndex < originalInNew) {
           diff.push({
@@ -77,10 +73,7 @@ export const generateDiff = (
   return diff;
 };
 
-export const formatDiff = (
-  diff: DiffLine[],
-  contextLines: number = 3,
-): string => {
+export const formatDiff = (diff: DiffLine[], contextLines: number = 3): string => {
   const lines: string[] = [];
   let lastPrintedIndex = -1;
   let hasChanges = false;
@@ -125,11 +118,7 @@ export const formatDiff = (
   return hasChanges ? lines.join("\n") : `${GRAY}No changes${RESET}`;
 };
 
-export const printDiff = (
-  filePath: string,
-  originalContent: string,
-  newContent: string,
-): void => {
+export const printDiff = (filePath: string, originalContent: string, newContent: string): void => {
   console.log(`\n${BOLD}File: ${filePath}${RESET}`);
   console.log("─".repeat(60));
 

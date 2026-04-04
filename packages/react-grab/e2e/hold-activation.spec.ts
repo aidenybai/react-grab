@@ -1,9 +1,7 @@
 import { test, expect } from "./fixtures.js";
 
 test.describe("Hold Activation Mode", () => {
-  test("should not activate when pressing C without Cmd/Ctrl modifier", async ({
-    reactGrab,
-  }) => {
+  test("should not activate when pressing C without Cmd/Ctrl modifier", async ({ reactGrab }) => {
     await reactGrab.page.click("body");
     await reactGrab.page.keyboard.down("c");
     await reactGrab.page.waitForTimeout(50);
@@ -13,9 +11,7 @@ test.describe("Hold Activation Mode", () => {
     expect(isVisible).toBe(false);
   });
 
-  test("should allow multiple API activations in sequence", async ({
-    reactGrab,
-  }) => {
+  test("should allow multiple API activations in sequence", async ({ reactGrab }) => {
     await reactGrab.activate();
 
     let isVisible = await reactGrab.isOverlayVisible();
@@ -83,9 +79,7 @@ test.describe("Hold Activation Mode", () => {
     await reactGrab.page.keyboard.up(reactGrab.modifierKey);
   });
 
-  test("should copy heading element after API activation", async ({
-    reactGrab,
-  }) => {
+  test("should copy heading element after API activation", async ({ reactGrab }) => {
     await reactGrab.activate();
 
     await reactGrab.hoverElement("[data-testid='main-title']");

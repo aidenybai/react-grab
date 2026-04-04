@@ -10,14 +10,10 @@ test.describe("Copy styles", () => {
 
       const menuInfo = await reactGrab.getContextMenuInfo();
       expect(menuInfo.isVisible).toBe(true);
-      expect(
-        menuInfo.menuItems.map((item: string) => item.toLowerCase()),
-      ).toContain("copy styles");
+      expect(menuInfo.menuItems.map((item: string) => item.toLowerCase())).toContain("copy styles");
     });
 
-    test("should copy CSS declarations to clipboard via context menu", async ({
-      reactGrab,
-    }) => {
+    test("should copy CSS declarations to clipboard via context menu", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement("[data-testid='todo-list'] h1");
       await reactGrab.waitForSelectionBox();
@@ -29,9 +25,7 @@ test.describe("Copy styles", () => {
         .toMatch(/[\w-]+:\s*.+;/);
     });
 
-    test("should include className header when element has a class", async ({
-      reactGrab,
-    }) => {
+    test("should include className header when element has a class", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement("[data-testid='todo-list'] h1");
       await reactGrab.waitForSelectionBox();
@@ -64,39 +58,29 @@ test.describe("Copy styles", () => {
   });
 
   test.describe("Feedback", () => {
-    test("should show Copied feedback after Copy styles", async ({
-      reactGrab,
-    }) => {
+    test("should show Copied feedback after Copy styles", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement("[data-testid='submit-button']");
       await reactGrab.waitForSelectionBox();
       await reactGrab.rightClickElement("[data-testid='submit-button']");
       await reactGrab.clickContextMenuItem("Copy styles");
 
-      await expect
-        .poll(() => reactGrab.getLabelStatusText(), { timeout: 5000 })
-        .toBe("Copied");
+      await expect.poll(() => reactGrab.getLabelStatusText(), { timeout: 5000 }).toBe("Copied");
     });
 
-    test("should dismiss context menu after Copy styles action", async ({
-      reactGrab,
-    }) => {
+    test("should dismiss context menu after Copy styles action", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
       await reactGrab.rightClickElement("li:first-child");
       await reactGrab.clickContextMenuItem("Copy styles");
 
-      await expect
-        .poll(() => reactGrab.isContextMenuVisible(), { timeout: 2000 })
-        .toBe(false);
+      await expect.poll(() => reactGrab.isContextMenuVisible(), { timeout: 2000 }).toBe(false);
     });
   });
 
   test.describe("Different Elements", () => {
-    test("should copy CSS for element with background and color styles", async ({
-      reactGrab,
-    }) => {
+    test("should copy CSS for element with background and color styles", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement("[data-testid='gradient-div']");
       await reactGrab.waitForSelectionBox();
@@ -120,14 +104,10 @@ test.describe("Copy styles", () => {
       await reactGrab.rightClickElement("[data-testid='deeply-nested-text']");
       await reactGrab.clickContextMenuItem("Copy styles");
 
-      await expect
-        .poll(() => reactGrab.getClipboardContent(), { timeout: 5000 })
-        .toBeTruthy();
+      await expect.poll(() => reactGrab.getClipboardContent(), { timeout: 5000 }).toBeTruthy();
     });
 
-    test("should copy different CSS for different elements", async ({
-      reactGrab,
-    }) => {
+    test("should copy different CSS for different elements", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement("[data-testid='submit-button']");
       await reactGrab.waitForSelectionBox();

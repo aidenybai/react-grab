@@ -21,8 +21,7 @@ if (typeof window !== "undefined" && !window.__REACT_GRAB__) {
     },
   });
 
-  const isMobile =
-    navigator.maxTouchPoints > 0 || matchMedia("(pointer: coarse)").matches;
+  const isMobile = navigator.maxTouchPoints > 0 || matchMedia("(pointer: coarse)").matches;
   if (isMobile) {
     api.registerPlugin({
       name: "mobile-no-toolbar",

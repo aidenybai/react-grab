@@ -1,4 +1,4 @@
-import { vi, describe, expect, it, beforeEach } from "vitest";
+import { vi, describe, expect, it, beforeEach } from "vite-plus/test";
 import {
   detectFramework,
   detectMonorepo,
@@ -33,27 +33,21 @@ describe("detectFramework", () => {
 
   it("should detect Vite", () => {
     mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockReturnValue(
-      JSON.stringify({ devDependencies: { vite: "5.0.0" } }),
-    );
+    mockReadFileSync.mockReturnValue(JSON.stringify({ devDependencies: { vite: "5.0.0" } }));
 
     expect(detectFramework("/test")).toBe("vite");
   });
 
   it("should detect Webpack", () => {
     mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockReturnValue(
-      JSON.stringify({ devDependencies: { webpack: "5.0.0" } }),
-    );
+    mockReadFileSync.mockReturnValue(JSON.stringify({ devDependencies: { webpack: "5.0.0" } }));
 
     expect(detectFramework("/test")).toBe("webpack");
   });
 
   it("should return unknown when no framework detected", () => {
     mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockReturnValue(
-      JSON.stringify({ dependencies: { react: "18.0.0" } }),
-    );
+    mockReadFileSync.mockReturnValue(JSON.stringify({ dependencies: { react: "18.0.0" } }));
 
     expect(detectFramework("/test")).toBe("unknown");
   });
@@ -154,9 +148,7 @@ describe("detectMonorepo", () => {
     mockExistsSync.mockImplementation((path) => {
       return String(path).endsWith("package.json");
     });
-    mockReadFileSync.mockReturnValue(
-      JSON.stringify({ workspaces: ["packages/*"] }),
-    );
+    mockReadFileSync.mockReturnValue(JSON.stringify({ workspaces: ["packages/*"] }));
 
     expect(detectMonorepo("/test")).toBe(true);
   });
@@ -165,9 +157,7 @@ describe("detectMonorepo", () => {
     mockExistsSync.mockImplementation((path) => {
       return String(path).endsWith("package.json");
     });
-    mockReadFileSync.mockReturnValue(
-      JSON.stringify({ dependencies: { react: "18.0.0" } }),
-    );
+    mockReadFileSync.mockReturnValue(JSON.stringify({ dependencies: { react: "18.0.0" } }));
 
     expect(detectMonorepo("/test")).toBe(false);
   });
@@ -176,9 +166,7 @@ describe("detectMonorepo", () => {
 describe("detectReactGrab", () => {
   it("should detect react-grab in dependencies", () => {
     mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockReturnValue(
-      JSON.stringify({ dependencies: { "react-grab": "1.0.0" } }),
-    );
+    mockReadFileSync.mockReturnValue(JSON.stringify({ dependencies: { "react-grab": "1.0.0" } }));
 
     expect(detectReactGrab("/test")).toBe(true);
   });
@@ -194,9 +182,7 @@ describe("detectReactGrab", () => {
 
   it("should return false when react-grab is not installed", () => {
     mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockReturnValue(
-      JSON.stringify({ dependencies: { react: "18.0.0" } }),
-    );
+    mockReadFileSync.mockReturnValue(JSON.stringify({ dependencies: { react: "18.0.0" } }));
 
     expect(detectReactGrab("/test")).toBe(false);
   });
@@ -238,9 +224,7 @@ describe("detectUnsupportedFramework", () => {
 
   it("should detect Astro", () => {
     mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockReturnValue(
-      JSON.stringify({ devDependencies: { astro: "4.0.0" } }),
-    );
+    mockReadFileSync.mockReturnValue(JSON.stringify({ devDependencies: { astro: "4.0.0" } }));
 
     expect(detectUnsupportedFramework("/test")).toBe("astro");
   });
@@ -256,18 +240,14 @@ describe("detectUnsupportedFramework", () => {
 
   it("should detect Gatsby", () => {
     mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockReturnValue(
-      JSON.stringify({ dependencies: { gatsby: "5.0.0" } }),
-    );
+    mockReadFileSync.mockReturnValue(JSON.stringify({ dependencies: { gatsby: "5.0.0" } }));
 
     expect(detectUnsupportedFramework("/test")).toBe("gatsby");
   });
 
   it("should return null for supported frameworks", () => {
     mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockReturnValue(
-      JSON.stringify({ dependencies: { next: "14.0.0" } }),
-    );
+    mockReadFileSync.mockReturnValue(JSON.stringify({ dependencies: { next: "14.0.0" } }));
 
     expect(detectUnsupportedFramework("/test")).toBe(null);
   });

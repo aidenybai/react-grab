@@ -18,9 +18,7 @@ const navigateAndWaitForReactGrab = async (page: Page): Promise<void> => {
 
 const activateViaApi = (page: Page): Promise<void> =>
   page.evaluate(() => {
-    (
-      window as unknown as { __REACT_GRAB__: { activate: () => void } }
-    ).__REACT_GRAB__.activate();
+    (window as unknown as { __REACT_GRAB__: { activate: () => void } }).__REACT_GRAB__.activate();
   });
 
 const deactivateViaApi = (page: Page): Promise<void> =>
@@ -32,29 +30,22 @@ const deactivateViaApi = (page: Page): Promise<void> =>
 
 test.describe("Freeze Animations", () => {
   test.describe("Page Animation Freezing", () => {
-    test("should pause page animations when activated", async ({
-      reactGrab,
-    }) => {
+    test("should pause page animations when activated", async ({ reactGrab }) => {
       const getPageAnimationStates = async () => {
         return reactGrab.page.evaluate((attrName) => {
-          return document
-            .getAnimations()
-            .reduce<string[]>((states, animation) => {
-              if (animation.effect instanceof KeyframeEffect) {
-                const target = animation.effect.target;
-                if (target instanceof Element) {
-                  const rootNode = target.getRootNode();
-                  if (
-                    rootNode instanceof ShadowRoot &&
-                    rootNode.host.hasAttribute(attrName)
-                  ) {
-                    return states;
-                  }
+          return document.getAnimations().reduce<string[]>((states, animation) => {
+            if (animation.effect instanceof KeyframeEffect) {
+              const target = animation.effect.target;
+              if (target instanceof Element) {
+                const rootNode = target.getRootNode();
+                if (rootNode instanceof ShadowRoot && rootNode.host.hasAttribute(attrName)) {
+                  return states;
                 }
               }
-              states.push(animation.playState);
-              return states;
-            }, []);
+            }
+            states.push(animation.playState);
+            return states;
+          }, []);
         }, ATTRIBUTE_NAME);
       };
 
@@ -78,26 +69,20 @@ test.describe("Freeze Animations", () => {
       await reactGrab.deactivate();
       await reactGrab.page.waitForTimeout(100);
 
-      const pausedPageAnimationCount = await reactGrab.page.evaluate(
-        (attrName) => {
-          return document.getAnimations().filter((animation) => {
-            if (animation.effect instanceof KeyframeEffect) {
-              const target = animation.effect.target;
-              if (target instanceof Element) {
-                const rootNode = target.getRootNode();
-                if (
-                  rootNode instanceof ShadowRoot &&
-                  rootNode.host.hasAttribute(attrName)
-                ) {
-                  return false;
-                }
+      const pausedPageAnimationCount = await reactGrab.page.evaluate((attrName) => {
+        return document.getAnimations().filter((animation) => {
+          if (animation.effect instanceof KeyframeEffect) {
+            const target = animation.effect.target;
+            if (target instanceof Element) {
+              const rootNode = target.getRootNode();
+              if (rootNode instanceof ShadowRoot && rootNode.host.hasAttribute(attrName)) {
+                return false;
               }
             }
-            return animation.playState === "paused";
-          }).length;
-        },
-        ATTRIBUTE_NAME,
-      );
+          }
+          return animation.playState === "paused";
+        }).length;
+      }, ATTRIBUTE_NAME);
 
       expect(pausedPageAnimationCount).toBe(0);
     });
@@ -109,9 +94,7 @@ test.describe("Freeze Animations", () => {
       await reactGrab.page.waitForTimeout(100);
 
       const hasFreezeStyleDuring = await reactGrab.page.evaluate(() => {
-        return (
-          document.querySelector("[data-react-grab-global-freeze]") !== null
-        );
+        return document.querySelector("[data-react-grab-global-freeze]") !== null;
       });
       expect(hasFreezeStyleDuring).toBe(true);
 
@@ -119,9 +102,7 @@ test.describe("Freeze Animations", () => {
       await reactGrab.page.waitForTimeout(100);
 
       const hasFreezeStyleAfter = await reactGrab.page.evaluate(() => {
-        return (
-          document.querySelector("[data-react-grab-global-freeze]") !== null
-        );
+        return document.querySelector("[data-react-grab-global-freeze]") !== null;
       });
       expect(hasFreezeStyleAfter).toBe(false);
     });
@@ -136,71 +117,51 @@ test.describe("Freeze Animations", () => {
       await reactGrab.waitForSelectionBox();
       await reactGrab.page.waitForTimeout(200);
 
-      const shadowAnimationCountBefore = await reactGrab.page.evaluate(
-        (attrName) => {
-          return document.getAnimations().filter((animation) => {
-            if (animation.effect instanceof KeyframeEffect) {
-              const target = animation.effect.target;
-              if (target instanceof Element) {
-                const rootNode = target.getRootNode();
-                return (
-                  rootNode instanceof ShadowRoot &&
-                  rootNode.host.hasAttribute(attrName)
-                );
-              }
+      const shadowAnimationCountBefore = await reactGrab.page.evaluate((attrName) => {
+        return document.getAnimations().filter((animation) => {
+          if (animation.effect instanceof KeyframeEffect) {
+            const target = animation.effect.target;
+            if (target instanceof Element) {
+              const rootNode = target.getRootNode();
+              return rootNode instanceof ShadowRoot && rootNode.host.hasAttribute(attrName);
             }
-            return false;
-          }).length;
-        },
-        ATTRIBUTE_NAME,
-      );
+          }
+          return false;
+        }).length;
+      }, ATTRIBUTE_NAME);
 
       await reactGrab.deactivate();
       await reactGrab.page.waitForTimeout(100);
 
-      const shadowAnimationCountAfter = await reactGrab.page.evaluate(
-        (attrName) => {
-          return document.getAnimations().filter((animation) => {
-            if (animation.effect instanceof KeyframeEffect) {
-              const target = animation.effect.target;
-              if (target instanceof Element) {
-                const rootNode = target.getRootNode();
-                return (
-                  rootNode instanceof ShadowRoot &&
-                  rootNode.host.hasAttribute(attrName)
-                );
-              }
+      const shadowAnimationCountAfter = await reactGrab.page.evaluate((attrName) => {
+        return document.getAnimations().filter((animation) => {
+          if (animation.effect instanceof KeyframeEffect) {
+            const target = animation.effect.target;
+            if (target instanceof Element) {
+              const rootNode = target.getRootNode();
+              return rootNode instanceof ShadowRoot && rootNode.host.hasAttribute(attrName);
             }
-            return false;
-          }).length;
-        },
-        ATTRIBUTE_NAME,
-      );
+          }
+          return false;
+        }).length;
+      }, ATTRIBUTE_NAME);
 
       if (shadowAnimationCountBefore > 0) {
         expect(shadowAnimationCountAfter).toBe(shadowAnimationCountBefore);
       }
     });
 
-    test("toolbar should remain visible after activation cycle", async ({
-      reactGrab,
-    }) => {
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
-        .toBe(true);
+    test("toolbar should remain visible after activation cycle", async ({ reactGrab }) => {
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
 
       await reactGrab.activate();
       await reactGrab.deactivate();
       await reactGrab.page.waitForTimeout(200);
 
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
     });
 
-    test("toolbar should remain functional after activation cycle", async ({
-      reactGrab,
-    }) => {
+    test("toolbar should remain functional after activation cycle", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.deactivate();
       await reactGrab.page.waitForTimeout(200);
@@ -241,9 +202,7 @@ test.describe("Freeze Animations", () => {
       }
 
       const hasFreezeStyle = await reactGrab.page.evaluate(() => {
-        return (
-          document.querySelector("[data-react-grab-global-freeze]") !== null
-        );
+        return document.querySelector("[data-react-grab-global-freeze]") !== null;
       });
       expect(hasFreezeStyle).toBe(false);
 
@@ -251,17 +210,13 @@ test.describe("Freeze Animations", () => {
       expect(toolbarVisible).toBe(true);
     });
 
-    test("should correctly freeze animations after reactivation", async ({
-      reactGrab,
-    }) => {
+    test("should correctly freeze animations after reactivation", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.deactivate();
       await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.page.evaluate(() => {
-        const element = document.querySelector(
-          "[data-testid='animated-section']",
-        );
+        const element = document.querySelector("[data-testid='animated-section']");
         if (element) {
           const child = document.createElement("div");
           child.className = "animate-ping w-4 h-4 bg-yellow-500 rounded-full";
@@ -280,10 +235,7 @@ test.describe("Freeze Animations", () => {
             const target = animation.effect.target;
             if (target instanceof Element) {
               const rootNode = target.getRootNode();
-              if (
-                rootNode instanceof ShadowRoot &&
-                rootNode.host.hasAttribute(attrName)
-              ) {
+              if (rootNode instanceof ShadowRoot && rootNode.host.hasAttribute(attrName)) {
                 return false;
               }
             }
@@ -309,29 +261,20 @@ test.describe("Freeze Animations", () => {
       await reactGrab.page.waitForTimeout(200);
 
       const hasFreezeStyle = await reactGrab.page.evaluate(() => {
-        return (
-          document.querySelector("[data-react-grab-global-freeze]") !== null
-        );
+        return document.querySelector("[data-react-grab-global-freeze]") !== null;
       });
       expect(hasFreezeStyle).toBe(false);
     });
   });
 
   test.describe("Toolbar Hover Freeze", () => {
-    test("should clean up freeze styles after toolbar hover cycle", async ({
-      reactGrab,
-    }) => {
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
-        .toBe(true);
+    test("should clean up freeze styles after toolbar hover cycle", async ({ reactGrab }) => {
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
 
       const toolbarInfo = await reactGrab.getToolbarInfo();
 
       if (toolbarInfo.position) {
-        await reactGrab.page.mouse.move(
-          toolbarInfo.position.x + 10,
-          toolbarInfo.position.y + 10,
-        );
+        await reactGrab.page.mouse.move(toolbarInfo.position.x + 10, toolbarInfo.position.y + 10);
         await reactGrab.page.waitForTimeout(200);
       }
 
@@ -339,9 +282,7 @@ test.describe("Freeze Animations", () => {
       await reactGrab.page.waitForTimeout(200);
 
       const hasFreezeStyle = await reactGrab.page.evaluate(() => {
-        return (
-          document.querySelector("[data-react-grab-global-freeze]") !== null
-        );
+        return document.querySelector("[data-react-grab-global-freeze]") !== null;
       });
       expect(hasFreezeStyle).toBe(false);
     });
@@ -354,17 +295,12 @@ test.describe("Freeze Animations", () => {
       const isWrapped = await reactGrab.page.evaluate(() => {
         const rafSource = window.requestAnimationFrame.toString();
         const cafSource = window.cancelAnimationFrame.toString();
-        return (
-          !rafSource.includes("[native code]") &&
-          !cafSource.includes("[native code]")
-        );
+        return !rafSource.includes("[native code]") && !cafSource.includes("[native code]");
       });
       expect(isWrapped).toBe(true);
     });
 
-    test("should execute non-animation rAF callbacks during freeze", async ({
-      reactGrab,
-    }) => {
+    test("should execute non-animation rAF callbacks during freeze", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.page.waitForTimeout(100);
 
@@ -378,9 +314,7 @@ test.describe("Freeze Animations", () => {
       expect(didCallbackExecute).toBe(true);
     });
 
-    test("should hold animation library callbacks during freeze", async ({
-      reactGrab,
-    }) => {
+    test("should hold animation library callbacks during freeze", async ({ reactGrab }) => {
       await simulateGsapPresence(reactGrab.page);
       await reactGrab.activate();
       await reactGrab.page.waitForTimeout(100);
@@ -403,22 +337,18 @@ test.describe("Freeze Animations", () => {
       expect(wasCallbackHeld).toBe(true);
     });
 
-    test("should release held callbacks after unfreeze", async ({
-      reactGrab,
-    }) => {
+    test("should release held callbacks after unfreeze", async ({ reactGrab }) => {
       await simulateGsapPresence(reactGrab.page);
       await reactGrab.activate();
       await reactGrab.page.waitForTimeout(100);
 
       await reactGrab.page.evaluate(() => {
-        (window as unknown as Record<string, boolean>).__GSAP_TEST_FLAG__ =
-          false;
+        (window as unknown as Record<string, boolean>).__GSAP_TEST_FLAG__ = false;
         // HACK: function named _tick simulates GSAP's internal tick,
         // detected via stack trace inspection in the rAF wrapper
         const _tick = () => {
           window.requestAnimationFrame(() => {
-            (window as unknown as Record<string, boolean>).__GSAP_TEST_FLAG__ =
-              true;
+            (window as unknown as Record<string, boolean>).__GSAP_TEST_FLAG__ = true;
           });
         };
         _tick();
@@ -426,8 +356,7 @@ test.describe("Freeze Animations", () => {
 
       await reactGrab.page.waitForTimeout(100);
       const wasHeldDuringFreeze = await reactGrab.page.evaluate(
-        () =>
-          !(window as unknown as Record<string, boolean>).__GSAP_TEST_FLAG__,
+        () => !(window as unknown as Record<string, boolean>).__GSAP_TEST_FLAG__,
       );
       expect(wasHeldDuringFreeze).toBe(true);
 
@@ -440,9 +369,7 @@ test.describe("Freeze Animations", () => {
       expect(wasReleasedAfterUnfreeze).toBe(true);
     });
 
-    test("should cancel held callbacks via cancelAnimationFrame", async ({
-      reactGrab,
-    }) => {
+    test("should cancel held callbacks via cancelAnimationFrame", async ({ reactGrab }) => {
       await simulateGsapPresence(reactGrab.page);
       await reactGrab.activate();
       await reactGrab.page.waitForTimeout(100);
@@ -474,16 +401,13 @@ test.describe("Freeze Animations", () => {
       await reactGrab.page.waitForTimeout(100);
 
       const heldId = await reactGrab.page.evaluate(() => {
-        (window as unknown as Record<string, boolean>).__RACE_CANCEL_FLAG__ =
-          false;
+        (window as unknown as Record<string, boolean>).__RACE_CANCEL_FLAG__ = false;
         let capturedId: number;
         // HACK: function named _tick simulates GSAP's internal tick,
         // detected via stack trace inspection in the rAF wrapper
         const _tick = () => {
           capturedId = window.requestAnimationFrame(() => {
-            (
-              window as unknown as Record<string, boolean>
-            ).__RACE_CANCEL_FLAG__ = true;
+            (window as unknown as Record<string, boolean>).__RACE_CANCEL_FLAG__ = true;
           });
         };
         _tick();
@@ -500,32 +424,25 @@ test.describe("Freeze Animations", () => {
       await reactGrab.page.waitForTimeout(200);
 
       const didCallbackRun = await reactGrab.page.evaluate(
-        () =>
-          (window as unknown as Record<string, boolean>).__RACE_CANCEL_FLAG__,
+        () => (window as unknown as Record<string, boolean>).__RACE_CANCEL_FLAG__,
       );
       expect(didCallbackRun).toBe(false);
     });
 
-    test("should cancel replayed callbacks via fake id after unfreeze", async ({
-      page,
-    }) => {
+    test("should cancel replayed callbacks via fake id after unfreeze", async ({ page }) => {
       await navigateAndWaitForReactGrab(page);
       await simulateGsapPresence(page);
       await activateViaApi(page);
       await page.waitForTimeout(100);
 
       const heldId = await page.evaluate(() => {
-        (
-          window as unknown as Record<string, boolean>
-        ).__POST_UNFREEZE_CANCEL_FLAG__ = false;
+        (window as unknown as Record<string, boolean>).__POST_UNFREEZE_CANCEL_FLAG__ = false;
         let capturedId: number;
         // HACK: function named _tick simulates GSAP's internal tick,
         // detected via stack trace inspection in the rAF wrapper
         const _tick = () => {
           capturedId = window.requestAnimationFrame(() => {
-            (
-              window as unknown as Record<string, boolean>
-            ).__POST_UNFREEZE_CANCEL_FLAG__ = true;
+            (window as unknown as Record<string, boolean>).__POST_UNFREEZE_CANCEL_FLAG__ = true;
           });
         };
         _tick();
@@ -544,16 +461,12 @@ test.describe("Freeze Animations", () => {
       await page.waitForTimeout(200);
 
       const didCallbackRun = await page.evaluate(
-        () =>
-          (window as unknown as Record<string, boolean>)
-            .__POST_UNFREEZE_CANCEL_FLAG__,
+        () => (window as unknown as Record<string, boolean>).__POST_UNFREEZE_CANCEL_FLAG__,
       );
       expect(didCallbackRun).toBe(false);
     });
 
-    test("should not intercept callbacks after unfreeze", async ({
-      reactGrab,
-    }) => {
+    test("should not intercept callbacks after unfreeze", async ({ reactGrab }) => {
       await simulateGsapPresence(reactGrab.page);
       await reactGrab.activate();
       await reactGrab.page.waitForTimeout(100);
@@ -577,9 +490,7 @@ test.describe("Freeze Animations", () => {
   });
 
   test.describe("rAF Tick Loop Interception (ESM without window.gsap)", () => {
-    test("should stop a _tick loop scheduled before freeze via rAF guard", async ({
-      page,
-    }) => {
+    test("should stop a _tick loop scheduled before freeze via rAF guard", async ({ page }) => {
       await navigateAndWaitForReactGrab(page);
       await simulateGsapPresence(page);
 

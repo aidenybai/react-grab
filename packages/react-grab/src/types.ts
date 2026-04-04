@@ -131,80 +131,12 @@ export interface AgentContext<T = unknown> {
   sessionId?: string;
 }
 
-export interface AgentSession {
-  id: string;
-  context: AgentContext;
-  lastStatus: string;
-  isStreaming: boolean;
-  isFading?: boolean;
-  createdAt: number;
-  lastUpdatedAt: number;
-  position: Position;
-  selectionBounds: OverlayBounds[];
-  tagName?: string;
-  componentName?: string;
-  error?: string;
-}
-
-export interface AgentProvider<T = unknown> {
-  send: (
-    context: AgentContext<T>,
-    signal: AbortSignal,
-  ) => AsyncIterable<string>;
-  resume?: (
-    sessionId: string,
-    signal: AbortSignal,
-    storage: AgentSessionStorage,
-  ) => AsyncIterable<string>;
-  abort?: (sessionId: string) => Promise<void>;
-  supportsResume?: boolean;
-  supportsFollowUp?: boolean;
-  dismissButtonText?: string;
-  checkConnection?: () => Promise<boolean>;
-  getCompletionMessage?: () => string | undefined;
-  undo?: () => Promise<void>;
-  canUndo?: () => boolean;
-  redo?: () => Promise<void>;
-  canRedo?: () => boolean;
-}
-
-export interface AgentSessionStorage {
-  getItem(key: string): string | null;
-  setItem(key: string, value: string): void;
-  removeItem(key: string): void;
-}
-
-export interface AgentCompleteResult {
-  error?: string;
-}
-
-export interface AgentOptions<T = unknown> {
-  provider?: AgentProvider<T>;
-  storage?: AgentSessionStorage | null;
-  getOptions?: () => T;
-  onStart?: (session: AgentSession, elements: Element[]) => void;
-  onStatus?: (status: string, session: AgentSession) => void;
-  onComplete?: (
-    session: AgentSession,
-    elements: Element[],
-  ) => AgentCompleteResult | void | Promise<AgentCompleteResult | void>;
-  onError?: (error: Error, session: AgentSession) => void;
-  onResume?: (session: AgentSession) => void;
-  onAbort?: (session: AgentSession, elements: Element[]) => void;
-  onUndo?: (session: AgentSession, elements: Element[]) => void;
-  onDismiss?: (session: AgentSession, elements: Element[]) => void;
-}
-
 export type ActivationMode = "toggle" | "hold";
 
 export interface ActionContextHooks {
   transformHtmlContent: (html: string, elements: Element[]) => Promise<string>;
   onOpenFile: (filePath: string, lineNumber?: number) => boolean | void;
-  transformOpenFileUrl: (
-    url: string,
-    filePath: string,
-    lineNumber?: number,
-  ) => string;
+  transformOpenFileUrl: (url: string, filePath: string, lineNumber?: number) => string;
 }
 
 export interface ActionContext {
@@ -214,7 +146,7 @@ export interface ActionContext {
   lineNumber?: number;
   componentName?: string;
   tagName?: string;
-  enterPromptMode?: (agent?: AgentOptions) => void;
+  enterPromptMode?: () => void;
   hooks: ActionContextHooks;
   performWithFeedback: (action: () => Promise<boolean>) => Promise<void>;
   hideContextMenu: () => void;
@@ -232,7 +164,6 @@ export interface ContextMenuAction {
   showInToolbarMenu?: boolean;
   enabled?: boolean | ((context: ActionContext) => boolean);
   onAction: (context: ContextMenuActionContext) => void | Promise<void>;
-  agent?: AgentOptions;
 }
 
 export interface ActionCycleItem {
@@ -272,18 +203,12 @@ export interface PluginHooks {
   onDragStart?: (startX: number, startY: number) => void;
   onDragEnd?: (elements: Element[], bounds: DragRect) => void;
   onBeforeCopy?: (elements: Element[]) => void | Promise<void>;
-  transformCopyContent?: (
-    content: string,
-    elements: Element[],
-  ) => string | Promise<string>;
+  transformCopyContent?: (content: string, elements: Element[]) => string | Promise<string>;
   onAfterCopy?: (elements: Element[], success: boolean) => void;
   onCopySuccess?: (elements: Element[], content: string) => void;
   onCopyError?: (error: Error) => void;
   onStateChange?: (state: ReactGrabState) => void;
-  onPromptModeChange?: (
-    isPromptMode: boolean,
-    context: PromptModeContext,
-  ) => void;
+  onPromptModeChange?: (isPromptMode: boolean, context: PromptModeContext) => void;
   onSelectionBox?: (
     visible: boolean,
     bounds: OverlayBounds | null,
@@ -298,24 +223,14 @@ export interface PluginHooks {
   ) => void;
   onContextMenu?: (element: Element, position: Position) => void;
   onOpenFile?: (filePath: string, lineNumber?: number) => boolean | void;
-  transformHtmlContent?: (
-    html: string,
-    elements: Element[],
-  ) => string | Promise<string>;
+  transformHtmlContent?: (html: string, elements: Element[]) => string | Promise<string>;
   transformAgentContext?: (
     context: AgentContext,
     elements: Element[],
   ) => AgentContext | Promise<AgentContext>;
   transformActionContext?: (context: ActionContext) => ActionContext;
-  transformOpenFileUrl?: (
-    url: string,
-    filePath: string,
-    lineNumber?: number,
-  ) => string;
-  transformSnippet?: (
-    snippet: string,
-    element: Element,
-  ) => string | Promise<string>;
+  transformOpenFileUrl?: (url: string, filePath: string, lineNumber?: number) => string;
+  transformSnippet?: (snippet: string, element: Element) => string | Promise<string>;
 }
 
 export interface PluginConfig {
@@ -408,12 +323,7 @@ export interface OverlayBounds {
   y: number;
 }
 
-export type SelectionLabelStatus =
-  | "idle"
-  | "copying"
-  | "copied"
-  | "fading"
-  | "error";
+export type SelectionLabelStatus = "idle" | "copying" | "copied" | "fading" | "error";
 
 export interface SelectionLabelInstance {
   id: string;
@@ -480,19 +390,6 @@ export interface ReactGrabRendererProps {
   isFrozen?: boolean;
   inputValue?: string;
   isPromptMode?: boolean;
-  replyToPrompt?: string;
-  hasAgent?: boolean;
-  agentSessions?: Map<string, AgentSession>;
-  supportsUndo?: boolean;
-  supportsFollowUp?: boolean;
-  dismissButtonText?: string;
-  onRequestAbortSession?: (sessionId: string) => void;
-  onAbortSession?: (sessionId: string, confirmed: boolean) => void;
-  onDismissSession?: (sessionId: string) => void;
-  onUndoSession?: (sessionId: string) => void;
-  onFollowUpSubmitSession?: (sessionId: string, prompt: string) => void;
-  onAcknowledgeSessionError?: (sessionId: string) => void;
-  onRetrySession?: (sessionId: string) => void;
   onShowContextMenuInstance?: (instanceId: string) => void;
   onLabelInstanceHoverChange?: (instanceId: string, isHovered: boolean) => void;
   onInputChange?: (value: string) => void;
@@ -502,7 +399,6 @@ export interface ReactGrabRendererProps {
   selectionLabelShakeCount?: number;
   onConfirmDismiss?: () => void;
   onCancelDismiss?: () => void;
-  pendingAbortSessionId?: string | null;
   toolbarVisible?: boolean;
   isActive?: boolean;
   onToggleActive?: () => void;
@@ -510,9 +406,7 @@ export interface ReactGrabRendererProps {
   onToggleEnabled?: () => void;
   shakeCount?: number;
   onToolbarStateChange?: (state: ToolbarState) => void;
-  onSubscribeToToolbarStateChanges?: (
-    callback: (state: ToolbarState) => void,
-  ) => () => void;
+  onSubscribeToToolbarStateChanges?: (callback: (state: ToolbarState) => void) => () => void;
   onToolbarSelectHoverChange?: (isHovered: boolean) => void;
   onToolbarRef?: (element: HTMLDivElement) => void;
   contextMenuPosition?: Position | null;
@@ -612,13 +506,7 @@ export interface ErrorViewProps {
 
 export interface CompletionViewProps {
   statusText: string;
-  supportsUndo?: boolean;
-  supportsFollowUp?: boolean;
-  dismissButtonText?: string;
-  previousPrompt?: string;
   onDismiss?: () => void;
-  onUndo?: () => void;
-  onFollowUpSubmit?: (prompt: string) => void;
   onFadingChange?: (isFading: boolean) => void;
   onShowContextMenu?: () => void;
 }
@@ -632,15 +520,9 @@ export interface SelectionLabelProps {
   visible?: boolean;
   isPromptMode?: boolean;
   inputValue?: string;
-  replyToPrompt?: string;
-  previousPrompt?: string;
-  hasAgent?: boolean;
   status?: SelectionLabelStatus;
   statusText?: string;
   filePath?: string;
-  supportsUndo?: boolean;
-  supportsFollowUp?: boolean;
-  dismissButtonText?: string;
   actionCycleState?: ActionCycleState;
   arrowNavigationState?: ArrowNavigationState;
   onArrowNavigationSelect?: (index: number) => void;
@@ -649,18 +531,12 @@ export interface SelectionLabelProps {
   onInputChange?: (value: string) => void;
   onSubmit?: () => void;
   onToggleExpand?: () => void;
-  onAbort?: () => void;
   onOpen?: () => void;
   onDismiss?: () => void;
-  onUndo?: () => void;
-  onFollowUpSubmit?: (prompt: string) => void;
   isPendingDismiss?: boolean;
   selectionLabelShakeCount?: number;
   onConfirmDismiss?: () => void;
   onCancelDismiss?: () => void;
-  isPendingAbort?: boolean;
-  onConfirmAbort?: () => void;
-  onCancelAbort?: () => void;
   error?: string;
   onAcknowledgeError?: () => void;
   onRetry?: () => void;

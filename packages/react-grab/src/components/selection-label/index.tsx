@@ -26,7 +26,6 @@ import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-t
 import { cn } from "../../utils/cn.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
 import { formatShortcut } from "../../utils/format-shortcut.js";
-import { IconReply } from "../icons/icon-reply.jsx";
 import { IconSubmit } from "../icons/icon-submit.jsx";
 import { IconLoader } from "../icons/icon-loader.jsx";
 import { Arrow } from "./arrow.js";
@@ -79,19 +78,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     props.status !== "fading" &&
     props.status !== "error";
 
-  const isCompletedStatus = () =>
-    props.status === "copied" || props.status === "fading";
+  const isCompletedStatus = () => props.status === "copied" || props.status === "fading";
 
   const shouldEnablePointerEvents = (): boolean => {
     if (props.isPromptMode) return true;
     if (isCompletedStatus() && (props.onDismiss || props.onShowContextMenu)) {
       return true;
     }
-    if (props.status === "copying" && props.onAbort) return true;
-    if (
-      props.status === "error" &&
-      (props.onAcknowledgeError || props.onRetry)
-    ) {
+    if (props.status === "error" && (props.onAcknowledgeError || props.onRetry)) {
       return true;
     }
     if (props.arrowNavigationState?.isVisible) return true;
@@ -112,22 +106,12 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const handleGlobalKeyDown = (event: KeyboardEvent) => {
     if (isKeyboardEventTriggeredByInput(event)) return;
 
-    const isEnterToExpand =
-      event.code === "Enter" && !props.isPromptMode && canInteract();
-    const isCtrlCToAbort =
-      event.code === "KeyC" &&
-      event.ctrlKey &&
-      props.status === "copying" &&
-      props.onAbort;
+    const isEnterToExpand = event.code === "Enter" && !props.isPromptMode && canInteract();
 
     if (isEnterToExpand) {
       event.preventDefault();
       event.stopImmediatePropagation();
       props.onToggleExpand?.();
-    } else if (isCtrlCToAbort) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      props.onAbort?.();
     }
   };
 
@@ -174,8 +158,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     });
   });
 
-  const elementIdentity = () =>
-    `${props.tagName ?? ""}:${props.componentName ?? ""}`;
+  const elementIdentity = () => `${props.tagName ?? ""}:${props.componentName ?? ""}`;
 
   // This reducer-style memo preserves position state across reactive updates,
   // resetting to offscreen on element identity change and keeping the last
@@ -186,8 +169,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     (previousResult: PositionResult): PositionResult => {
       viewportVersion();
       const currentElementIdentity = elementIdentity();
-      const didReset =
-        currentElementIdentity !== previousResult.elementIdentity;
+      const didReset = currentElementIdentity !== previousResult.elementIdentity;
       const cached: PositionResult = didReset
         ? {
             position: DEFAULT_OFFSCREEN_POSITION,
@@ -205,9 +187,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
       if (!hasMeasurements || !hasValidBounds) {
         return {
-          position: cached.hadValidBounds
-            ? cached.position
-            : DEFAULT_OFFSCREEN_POSITION,
+          position: cached.hadValidBounds ? cached.position : DEFAULT_OFFSCREEN_POSITION,
           computedArrowPosition: cached.computedArrowPosition,
           hadValidBounds: cached.hadValidBounds,
           elementIdentity: currentElementIdentity,
@@ -217,10 +197,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       const visualViewport = window.visualViewport;
       const viewportLeft = visualViewport?.offsetLeft ?? 0;
       const viewportTop = visualViewport?.offsetTop ?? 0;
-      const viewportRight =
-        viewportLeft + (visualViewport?.width ?? window.innerWidth);
-      const viewportBottom =
-        viewportTop + (visualViewport?.height ?? window.innerHeight);
+      const viewportRight = viewportLeft + (visualViewport?.width ?? window.innerWidth);
+      const viewportBottom = viewportTop + (visualViewport?.height ?? window.innerHeight);
 
       const isSelectionVisibleInViewport =
         bounds.x + bounds.width > viewportLeft &&
@@ -242,9 +220,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       const selectionBottom = bounds.y + bounds.height;
       const selectionTop = bounds.y;
 
-      const actualArrowHeight = props.hideArrow
-        ? 0
-        : getArrowSize(panelWidth());
+      const actualArrowHeight = props.hideArrow ? 0 : getArrowSize(panelWidth());
 
       // The label is cursor-anchored: left stays at cursorX and
       // translateX(-50%) handles centering, so width changes from component
@@ -268,8 +244,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       }
 
       const totalHeightNeeded = labelHeight + actualArrowHeight + LABEL_GAP_PX;
-      const fitsBelow =
-        positionTop + labelHeight <= viewportBottom - VIEWPORT_MARGIN_PX;
+      const fitsBelow = positionTop + labelHeight <= viewportBottom - VIEWPORT_MARGIN_PX;
 
       if (!fitsBelow) {
         positionTop = selectionTop - totalHeightNeeded;
@@ -282,14 +257,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       const labelHalfWidth = labelWidth / 2;
       const arrowCenterPx = labelHalfWidth - edgeOffsetX;
       const arrowMinPx = Math.min(ARROW_LABEL_MARGIN_PX, labelHalfWidth);
-      const arrowMaxPx = Math.max(
-        labelWidth - ARROW_LABEL_MARGIN_PX,
-        labelHalfWidth,
-      );
-      const clampedArrowCenterPx = Math.max(
-        arrowMinPx,
-        Math.min(arrowMaxPx, arrowCenterPx),
-      );
+      const arrowMaxPx = Math.max(labelWidth - ARROW_LABEL_MARGIN_PX, labelHalfWidth);
+      const clampedArrowCenterPx = Math.max(arrowMinPx, Math.min(arrowMaxPx, arrowCenterPx));
       const arrowLeftOffset = clampedArrowCenterPx - labelHalfWidth;
 
       const computedArrowPosition: ArrowPosition = fitsBelow ? "bottom" : "top";
@@ -315,8 +284,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     } satisfies PositionResult,
   );
 
-  const arrowPosition = () =>
-    positionComputation().computedArrowPosition ?? "bottom";
+  const arrowPosition = () => positionComputation().computedArrowPosition ?? "bottom";
   const hadValidBounds = () => positionComputation().hadValidBounds;
 
   createEffect(
@@ -362,11 +330,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       elementsCount: props.elementsCount,
     });
 
-  const isArrowNavigationVisible = () =>
-    Boolean(props.arrowNavigationState?.isVisible);
+  const isArrowNavigationVisible = () => Boolean(props.arrowNavigationState?.isVisible);
 
-  const isInspectNavigationVisible = () =>
-    Boolean(props.inspectNavigationState?.isVisible);
+  const isInspectNavigationVisible = () => Boolean(props.inspectNavigationState?.isVisible);
 
   const handleTagClick = (event: MouseEvent) => {
     event.stopImmediatePropagation();
@@ -378,10 +344,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const handleContainerPointerDown = (event: PointerEvent) => {
     event.stopImmediatePropagation();
     const isEditableInputVisible =
-      canInteract() &&
-      props.isPromptMode &&
-      !props.isPendingDismiss &&
-      props.onSubmit;
+      canInteract() && props.isPromptMode && !props.isPendingDismiss && props.onSubmit;
     if (isEditableInputVisible && inputRef) {
       inputRef.focus({ preventScroll: true });
     }
@@ -391,12 +354,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     hadValidBounds() && (isCompletedStatus() || props.status === "error");
 
   return (
-    <Show
-      when={
-        props.visible !== false &&
-        (props.selectionBounds || shouldPersistDuringFade())
-      }
-    >
+    <Show when={props.visible !== false && (props.selectionBounds || shouldPersistDuringFade())}>
       <div
         ref={containerRef}
         data-react-grab-ignore-events
@@ -430,16 +388,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
         <Show when={isCompletedStatus() && !props.error}>
           <CompletionView
-            statusText={
-              props.hasAgent ? (props.statusText ?? "Completed") : "Copied"
-            }
-            supportsUndo={props.supportsUndo}
-            supportsFollowUp={props.supportsFollowUp}
-            dismissButtonText={props.dismissButtonText}
-            previousPrompt={props.previousPrompt}
+            statusText={props.statusText ?? "Copied"}
             onDismiss={props.onDismiss}
-            onUndo={props.onUndo}
-            onFollowUpSubmit={props.onFollowUpSubmit}
             onFadingChange={setIsInternalFading}
             onShowContextMenu={props.onShowContextMenu}
           />
@@ -457,80 +407,29 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           }}
           onAnimationEnd={() => setIsShaking(false)}
         >
-          <Show when={props.status === "copying" && !props.isPendingAbort}>
-            <div
-              class="contain-layout shrink-0 flex flex-col justify-center items-start w-fit h-fit max-w-[280px]"
-              classList={{
-                "min-w-[150px]": Boolean(props.hasAgent && props.inputValue),
-              }}
-            >
+          <Show when={props.status === "copying"}>
+            <div class="contain-layout shrink-0 flex flex-col justify-center items-start w-fit h-fit max-w-[280px]">
               <div class="contain-layout shrink-0 flex items-center gap-1 py-1.5 px-2 w-full h-fit">
                 <IconLoader size={13} class="text-[#71717a] shrink-0" />
                 <span class="shimmer-text text-[13px] leading-4 font-sans font-medium h-fit tabular-nums overflow-hidden text-ellipsis whitespace-nowrap">
                   {props.statusText ?? "Grabbing…"}
                 </span>
               </div>
-              <Show when={props.hasAgent && props.inputValue}>
-                <BottomSection>
-                  <div class="shrink-0 flex justify-between items-end w-full min-h-4">
-                    <textarea
-                      ref={inputRef}
-                      data-react-grab-ignore-events
-                      class="text-black text-[13px] leading-4 font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 opacity-50 wrap-break-word overflow-y-auto"
-                      style={{
-                        "field-sizing": "content",
-                        "min-height": "16px",
-                        "max-height": `${TEXTAREA_MAX_HEIGHT_PX}px`,
-                        "scrollbar-width": "none",
-                      }}
-                      value={props.inputValue ?? ""}
-                      placeholder="Add context"
-                      rows={1}
-                      disabled
-                    />
-                    <Show when={props.onAbort}>
-                      <button
-                        data-react-grab-ignore-events
-                        data-react-grab-abort
-                        class="contain-layout shrink-0 flex items-center justify-center size-4 rounded-full bg-black cursor-pointer ml-1 interactive-scale"
-                        onPointerDown={(event) => event.stopPropagation()}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          props.onAbort?.();
-                        }}
-                      >
-                        <div class="size-1.5 bg-white rounded-[1px]" />
-                      </button>
-                    </Show>
-                  </div>
-                </BottomSection>
-              </Show>
             </div>
-          </Show>
-
-          <Show when={props.status === "copying" && props.isPendingAbort}>
-            <DiscardPrompt
-              onConfirm={props.onConfirmAbort}
-              onCancel={props.onCancelAbort}
-            />
           </Show>
 
           <Show when={canInteract() && !props.isPromptMode}>
             <div
               class="contain-layout shrink-0 flex flex-col items-start w-fit h-fit"
               classList={{
-                "min-w-[100px]":
-                  isArrowNavigationVisible() || isInspectNavigationVisible(),
+                "min-w-[100px]": isArrowNavigationVisible() || isInspectNavigationVisible(),
               }}
             >
               <div
                 class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit px-2"
                 classList={{
-                  "py-1.5":
-                    !isArrowNavigationVisible() &&
-                    !isInspectNavigationVisible(),
-                  "pt-1.5 pb-1":
-                    isArrowNavigationVisible() || isInspectNavigationVisible(),
+                  "py-1.5": !isArrowNavigationVisible() && !isInspectNavigationVisible(),
+                  "pt-1.5 pb-1": isArrowNavigationVisible() || isInspectNavigationVisible(),
                 }}
               >
                 <TagBadge
@@ -585,11 +484,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                           class="contain-layout flex items-center justify-between w-full px-2 py-1 transition-colors"
                           classList={{
                             "bg-black/5":
-                              itemIndex() ===
-                              (props.actionCycleState?.activeIndex ?? 0),
+                              itemIndex() === (props.actionCycleState?.activeIndex ?? 0),
                             "rounded-b-[6px]":
-                              itemIndex() ===
-                              (props.actionCycleState?.items ?? []).length - 1,
+                              itemIndex() === (props.actionCycleState?.items ?? []).length - 1,
                           }}
                         >
                           <span class="text-[13px] leading-4 font-sans font-medium text-black">
@@ -609,11 +506,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             </div>
           </Show>
 
-          <Show
-            when={
-              canInteract() && props.isPromptMode && !props.isPendingDismiss
-            }
-          >
+          <Show when={canInteract() && props.isPromptMode && !props.isPendingDismiss}>
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start w-fit h-fit min-w-[150px] max-w-[280px]">
               <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 w-fit h-fit px-2 max-w-full">
                 <TagBadge
@@ -626,18 +519,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 />
               </div>
               <BottomSection>
-                <Show when={props.replyToPrompt}>
-                  <div class="flex items-center gap-1 w-full mb-1 overflow-hidden">
-                    <IconReply size={10} class="text-black/30 shrink-0" />
-                    <span class="text-black/40 text-[11px] leading-3 font-medium truncate italic">
-                      {props.replyToPrompt}
-                    </span>
-                  </div>
-                </Show>
-                <div
-                  class="shrink-0 flex justify-between items-end w-full min-h-4"
-                  style={{ "padding-left": props.replyToPrompt ? "14px" : "0" }}
-                >
+                <div class="shrink-0 flex justify-between items-end w-full min-h-4">
                   <textarea
                     ref={(element) => {
                       inputRef = element;

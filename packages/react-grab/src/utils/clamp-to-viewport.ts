@@ -3,5 +3,4 @@ export const clampToViewport = (
   elementSize: number,
   viewportSize: number,
   padding: number,
-): number =>
-  Math.max(padding, Math.min(value, viewportSize - elementSize - padding));
+): number => Math.max(padding, Math.min(value, viewportSize - elementSize - padding));

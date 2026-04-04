@@ -24,22 +24,9 @@ const fetchFont = async (fontFamily: string, weight: number) => {
 };
 
 const ReactGrabLogo = () => (
-  <svg
-    width="48"
-    height="48"
-    viewBox="0 0 294 294"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
+  <svg width="48" height="48" viewBox="0 0 294 294" fill="none" xmlns="http://www.w3.org/2000/svg">
     <g clipPath="url(#clip0_og)">
-      <mask
-        id="mask0_og"
-        maskUnits="userSpaceOnUse"
-        x="0"
-        y="0"
-        width="294"
-        height="294"
-      >
+      <mask id="mask0_og" maskUnits="userSpaceOnUse" x="0" y="0" width="294" height="294">
         <path d="M294 0H0V294H294V0Z" fill="white" />
       </mask>
       <g mask="url(#mask0_og)">
@@ -48,14 +35,7 @@ const ReactGrabLogo = () => (
           fill={BRAND_PINK}
         />
       </g>
-      <mask
-        id="mask1_og"
-        maskUnits="userSpaceOnUse"
-        x="102"
-        y="84"
-        width="161"
-        height="162"
-      >
+      <mask id="mask1_og" maskUnits="userSpaceOnUse" x="102" y="84" width="161" height="162">
         <path
           d="M235.282 84.827L102.261 112.259L129.693 245.28L262.714 217.848L235.282 84.827Z"
           fill="white"

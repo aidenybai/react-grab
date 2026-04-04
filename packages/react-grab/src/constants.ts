@@ -10,7 +10,6 @@ export const SELECTION_LERP_FACTOR = 0.95;
 export const FEEDBACK_DURATION_MS = 1500;
 export const FADE_DURATION_MS = 100;
 export const FADE_COMPLETE_BUFFER_MS = 150;
-export const DISMISS_ANIMATION_BUFFER_MS = 50;
 export const KEYDOWN_SPAM_TIMEOUT_MS = 200;
 export const BLUR_DEACTIVATION_THRESHOLD_MS = 500;
 export const WINDOW_REFOCUS_GRACE_PERIOD_MS = 200;
@@ -20,7 +19,6 @@ export const DEFAULT_KEY_HOLD_DURATION_MS = 100;
 export const DEFAULT_MAX_CONTEXT_LINES = 3;
 export const SYMBOLICATION_TIMEOUT_MS = 5000;
 export const MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS = 200;
-export const RECENT_THRESHOLD_MS = 10_000;
 export const FINDER_TIMEOUT_MS = 200;
 export const MAX_SELECTOR_COMBINATIONS = 10_000;
 export const SELECTOR_ATTR_VALUE_MAX_LENGTH_CHARS = 120;
@@ -77,19 +75,9 @@ export const PREVIEW_PRIORITY_ATTRS: readonly string[] = [
   "title",
 ];
 
-export const MODIFIER_KEYS: readonly string[] = [
-  "Meta",
-  "Control",
-  "Shift",
-  "Alt",
-];
+export const MODIFIER_KEYS: readonly string[] = ["Meta", "Control", "Shift", "Alt"];
 
-export const ARROW_KEYS = new Set([
-  "ArrowUp",
-  "ArrowDown",
-  "ArrowLeft",
-  "ArrowRight",
-]);
+export const ARROW_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
 
 export const FROZEN_ELEMENT_ATTRIBUTE = "data-react-grab-frozen";
 
@@ -122,8 +110,7 @@ export const SELECTION_HINT_COUNT = 3;
 export const TOOLTIP_BASE_CLASS =
   "absolute whitespace-nowrap px-1.5 py-0.5 rounded-[10px] text-[10px] text-black/60 pointer-events-none [corner-shape:superellipse(1.25)] filter-[drop-shadow(0px_1px_2px_#51515140)]";
 
-export const HINT_FLIP_IN_ANIMATION =
-  "animate-[hint-flip-in_var(--transition-normal)_ease-out]";
+export const HINT_FLIP_IN_ANIMATION = "animate-[hint-flip-in_var(--transition-normal)_ease-out]";
 
 export const DRAG_SELECTION_COVERAGE_THRESHOLD = 0.75;
 export const DRAG_SELECTION_SAMPLE_SPACING_PX = 32;
@@ -133,8 +120,6 @@ export const DRAG_SELECTION_MAX_TOTAL_SAMPLE_POINTS = 100;
 export const DRAG_SELECTION_EDGE_INSET_PX = 1;
 
 export const MAX_ARROW_NAVIGATION_HISTORY = 50;
-export const MAX_MEMORY_SESSIONS = 50;
-
 export const MAX_TRANSFORM_ANCESTOR_DEPTH = 6;
 export const TRANSFORM_EARLY_BAIL_DEPTH = 3;
 

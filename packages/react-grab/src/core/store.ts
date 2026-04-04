@@ -1,11 +1,5 @@
 import { createStore, produce } from "solid-js/store";
-import type {
-  Position,
-  Theme,
-  GrabbedBox,
-  SelectionLabelInstance,
-  AgentOptions,
-} from "../types.js";
+import type { Position, Theme, GrabbedBox, SelectionLabelInstance } from "../types.js";
 import { OFFSCREEN_POSITION } from "../constants.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
@@ -43,7 +37,6 @@ interface GrabStore {
 
   wasActivatedByToggle: boolean;
   pendingCommentMode: boolean;
-  hasAgentProvider: boolean;
   keyHoldDuration: number;
 
   pointer: Position;
@@ -63,7 +56,6 @@ interface GrabStore {
 
   inputText: string;
   pendingClickData: PendingClickData | null;
-  replySessionId: string | null;
 
   viewportVersion: number;
   grabbedBoxes: GrabbedBox[];
@@ -76,21 +68,13 @@ interface GrabStore {
   activationTimestamp: number | null;
   previouslyFocusedElement: Element | null;
 
-  supportsUndo: boolean;
-  supportsFollowUp: boolean;
-  dismissButtonText: string | undefined;
-  pendingAbortSessionId: string | null;
-
   contextMenuPosition: Position | null;
   contextMenuElement: Element | null;
   contextMenuClickOffset: Position | null;
-
-  selectedAgent: AgentOptions | null;
 }
 
 interface GrabStoreInput {
   theme: Required<Theme>;
-  hasAgentProvider: boolean;
   keyHoldDuration: number;
 }
 
@@ -99,7 +83,6 @@ const createInitialStore = (input: GrabStoreInput): GrabStore => ({
 
   wasActivatedByToggle: false,
   pendingCommentMode: false,
-  hasAgentProvider: input.hasAgentProvider,
   keyHoldDuration: input.keyHoldDuration,
 
   pointer: { x: OFFSCREEN_POSITION, y: OFFSCREEN_POSITION },
@@ -119,7 +102,6 @@ const createInitialStore = (input: GrabStoreInput): GrabStore => ({
 
   inputText: "",
   pendingClickData: null,
-  replySessionId: null,
 
   viewportVersion: 0,
   grabbedBoxes: [],
@@ -132,16 +114,9 @@ const createInitialStore = (input: GrabStoreInput): GrabStore => ({
   activationTimestamp: null,
   previouslyFocusedElement: null,
 
-  supportsUndo: false,
-  supportsFollowUp: false,
-  dismissButtonText: undefined,
-  pendingAbortSessionId: null,
-
   contextMenuPosition: null,
   contextMenuElement: null,
   contextMenuClickOffset: null,
-
-  selectedAgent: null,
 });
 
 interface GrabActions {
@@ -176,12 +151,8 @@ interface GrabActions {
   setWasActivatedByToggle: (value: boolean) => void;
   setPendingCommentMode: (value: boolean) => void;
   setTouchMode: (value: boolean) => void;
-  setSelectionSource: (
-    filePath: string | null,
-    lineNumber: number | null,
-  ) => void;
+  setSelectionSource: (filePath: string | null, lineNumber: number | null) => void;
   setPendingClickData: (data: PendingClickData | null) => void;
-  clearReplySessionId: () => void;
   incrementViewportVersion: () => void;
   addGrabbedBox: (box: GrabbedBox) => void;
   removeGrabbedBox: (boxId: string) => void;
@@ -194,17 +165,9 @@ interface GrabActions {
   ) => void;
   removeLabelInstance: (instanceId: string) => void;
   clearLabelInstances: () => void;
-  setHasAgentProvider: (value: boolean) => void;
-  setAgentCapabilities: (capabilities: {
-    supportsUndo: boolean;
-    supportsFollowUp: boolean;
-    dismissButtonText: string | undefined;
-  }) => void;
-  setPendingAbortSessionId: (sessionId: string | null) => void;
   showContextMenu: (position: Position, element: Element) => void;
   hideContextMenu: () => void;
   updateContextMenuPosition: () => void;
-  setSelectedAgent: (agent: AgentOptions | null) => void;
 }
 
 const createGrabStore = (input: GrabStoreInput) => {
@@ -261,14 +224,11 @@ const createGrabStore = (input: GrabStoreInput) => {
           draft.frozenElements = [];
           draft.frozenDragRect = null;
           draft.pendingClickData = null;
-          draft.replySessionId = null;
-          draft.pendingAbortSessionId = null;
           draft.activationTimestamp = null;
           draft.previouslyFocusedElement = null;
           draft.contextMenuPosition = null;
           draft.contextMenuElement = null;
           draft.contextMenuClickOffset = null;
-          draft.selectedAgent = null;
           draft.lastCopiedElement = null;
         }),
       );
@@ -318,30 +278,21 @@ const createGrabStore = (input: GrabStoreInput) => {
     },
 
     endDrag: () => {
-      if (
-        store.current.state === "active" &&
-        store.current.phase === "dragging"
-      ) {
+      if (store.current.state === "active" && store.current.phase === "dragging") {
         setStore("dragStart", { x: OFFSCREEN_POSITION, y: OFFSCREEN_POSITION });
         setActivePhase("justDragged");
       }
     },
 
     cancelDrag: () => {
-      if (
-        store.current.state === "active" &&
-        store.current.phase === "dragging"
-      ) {
+      if (store.current.state === "active" && store.current.phase === "dragging") {
         setStore("dragStart", { x: OFFSCREEN_POSITION, y: OFFSCREEN_POSITION });
         setActivePhase("hovering");
       }
     },
 
     finishJustDragged: () => {
-      if (
-        store.current.state === "active" &&
-        store.current.phase === "justDragged"
-      ) {
+      if (store.current.state === "active" && store.current.phase === "justDragged") {
         setActivePhase("hovering");
       }
     },
@@ -360,8 +311,7 @@ const createGrabStore = (input: GrabStoreInput) => {
       if (element) {
         setStore("lastCopiedElement", element);
       }
-      const wasActive =
-        store.current.state === "copying" ? store.current.wasActive : false;
+      const wasActive = store.current.state === "copying" ? store.current.wasActive : false;
       setStore("current", {
         state: "justCopied",
         copiedAt: Date.now(),
@@ -371,8 +321,7 @@ const createGrabStore = (input: GrabStoreInput) => {
 
     finishJustCopied: () => {
       if (store.current.state === "justCopied") {
-        const shouldReturnToActive =
-          store.current.wasActive && !store.wasActivatedByToggle;
+        const shouldReturnToActive = store.current.wasActive && !store.wasActivatedByToggle;
         if (shouldReturnToActive) {
           actions.clearFrozenElement();
           setStore("current", {
@@ -523,10 +472,7 @@ const createGrabStore = (input: GrabStoreInput) => {
       setStore("isTouchMode", value);
     },
 
-    setSelectionSource: (
-      filePath: string | null,
-      lineNumber: number | null,
-    ) => {
+    setSelectionSource: (filePath: string | null, lineNumber: number | null) => {
       setStore(
         produce((draft) => {
           draft.selectionFilePath = filePath;
@@ -539,10 +485,6 @@ const createGrabStore = (input: GrabStoreInput) => {
       setStore("pendingClickData", data);
     },
 
-    clearReplySessionId: () => {
-      setStore("replySessionId", null);
-    },
-
     incrementViewportVersion: () => {
       setStore("viewportVersion", (version) => version + 1);
     },
@@ -552,9 +494,7 @@ const createGrabStore = (input: GrabStoreInput) => {
     },
 
     removeGrabbedBox: (boxId: string) => {
-      setStore("grabbedBoxes", (boxes) =>
-        boxes.filter((box) => box.id !== boxId),
-      );
+      setStore("grabbedBoxes", (boxes) => boxes.filter((box) => box.id !== boxId));
     },
 
     clearGrabbedBoxes: () => {
@@ -570,9 +510,7 @@ const createGrabStore = (input: GrabStoreInput) => {
       status: SelectionLabelInstance["status"],
       errorMessage?: string,
     ) => {
-      const index = store.labelInstances.findIndex(
-        (instance) => instance.id === instanceId,
-      );
+      const index = store.labelInstances.findIndex((instance) => instance.id === instanceId);
       if (index !== -1) {
         setStore(
           "labelInstances",
@@ -595,24 +533,6 @@ const createGrabStore = (input: GrabStoreInput) => {
 
     clearLabelInstances: () => {
       setStore("labelInstances", []);
-    },
-
-    setHasAgentProvider: (value: boolean) => {
-      setStore("hasAgentProvider", value);
-    },
-
-    setAgentCapabilities: (capabilities) => {
-      setStore(
-        produce((draft) => {
-          draft.supportsUndo = capabilities.supportsUndo;
-          draft.supportsFollowUp = capabilities.supportsFollowUp;
-          draft.dismissButtonText = capabilities.dismissButtonText;
-        }),
-      );
-    },
-
-    setPendingAbortSessionId: (sessionId: string | null) => {
-      setStore("pendingAbortSessionId", sessionId);
     },
 
     showContextMenu: (position: Position, element: Element) => {
@@ -654,10 +574,6 @@ const createGrabStore = (input: GrabStoreInput) => {
         x: newCenterX + clickOffset.x,
         y: newCenterY + clickOffset.y,
       });
-    },
-
-    setSelectedAgent: (agent: AgentOptions | null) => {
-      setStore("selectedAgent", agent);
     },
   };
 

@@ -36,30 +36,16 @@ export const getAnchoredDropdownPosition = ({
 
   if (anchor.edge === "left" || anchor.edge === "right") {
     rawLeft =
-      anchor.edge === "left"
-        ? anchor.x + anchorGapPx
-        : anchor.x - measuredWidth - anchorGapPx;
+      anchor.edge === "left" ? anchor.x + anchorGapPx : anchor.x - measuredWidth - anchorGapPx;
     rawTop = anchor.y - measuredHeight / 2;
   } else {
     rawLeft = anchor.x - measuredWidth / 2;
     rawTop =
-      anchor.edge === "top"
-        ? anchor.y + anchorGapPx
-        : anchor.y - measuredHeight - anchorGapPx;
+      anchor.edge === "top" ? anchor.y + anchorGapPx : anchor.y - measuredHeight - anchorGapPx;
   }
 
   return {
-    left: clampToViewport(
-      rawLeft,
-      measuredWidth,
-      viewportWidth,
-      viewportPaddingPx,
-    ),
-    top: clampToViewport(
-      rawTop,
-      measuredHeight,
-      viewportHeight,
-      viewportPaddingPx,
-    ),
+    left: clampToViewport(rawLeft, measuredWidth, viewportWidth, viewportPaddingPx),
+    top: clampToViewport(rawTop, measuredHeight, viewportHeight, viewportPaddingPx),
   };
 };

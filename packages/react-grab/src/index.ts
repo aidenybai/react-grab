@@ -25,11 +25,6 @@ export type {
   PromptModeContext,
   ElementLabelContext,
   AgentContext,
-  AgentSession,
-  AgentProvider,
-  AgentSessionStorage,
-  AgentOptions,
-  AgentCompleteResult,
   SettableOptions,
   ActivationMode,
   ContextMenuAction,
@@ -95,9 +90,7 @@ export const unregisterPlugin = (name: string): void => {
     api.unregisterPlugin(name);
     return;
   }
-  const pendingIndex = pendingPlugins.findIndex(
-    (pendingPlugin) => pendingPlugin.name === name,
-  );
+  const pendingIndex = pendingPlugins.findIndex((pendingPlugin) => pendingPlugin.name === name);
   if (pendingIndex !== -1) {
     pendingPlugins.splice(pendingIndex, 1);
   }
@@ -111,7 +104,5 @@ if (typeof window !== "undefined" && !window.__REACT_GRAB_DISABLED__) {
     window.__REACT_GRAB__ = globalApi;
   }
   flushPendingPlugins(globalApi);
-  window.dispatchEvent(
-    new CustomEvent("react-grab:init", { detail: globalApi }),
-  );
+  window.dispatchEvent(new CustomEvent("react-grab:init", { detail: globalApi }));
 }

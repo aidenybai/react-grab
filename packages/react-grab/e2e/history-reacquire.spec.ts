@@ -30,9 +30,7 @@ const setHiddenToggleSectionMarginTopPx = async (
   marginTopPx: number,
 ) => {
   await reactGrab.page.evaluate((marginTop) => {
-    const section = document.querySelector(
-      '[data-testid="hidden-toggle-section"]',
-    );
+    const section = document.querySelector('[data-testid="hidden-toggle-section"]');
     if (section instanceof HTMLElement) {
       section.style.marginTop = `${marginTop}px`;
     }
@@ -40,31 +38,20 @@ const setHiddenToggleSectionMarginTopPx = async (
 };
 
 const toggleToggleableElement = async (reactGrab: ReactGrabPageObject) => {
-  await reactGrab.page
-    .locator('[data-testid="toggle-visibility-button"]')
-    .click({ force: true });
+  await reactGrab.page.locator('[data-testid="toggle-visibility-button"]').click({ force: true });
 };
 
-const copyElementWithComment = async (
-  reactGrab: ReactGrabPageObject,
-  selector: string,
-) => {
+const copyElementWithComment = async (reactGrab: ReactGrabPageObject, selector: string) => {
   await reactGrab.registerCommentAction();
   await reactGrab.enterPromptMode(selector);
   await reactGrab.typeInInput("comment");
   await reactGrab.submitInput();
-  await expect
-    .poll(() => reactGrab.getClipboardContent(), { timeout: 5000 })
-    .toBeTruthy();
+  await expect.poll(() => reactGrab.getClipboardContent(), { timeout: 5000 }).toBeTruthy();
   // HACK: allow comment item to be persisted + mapped
   await reactGrab.page.waitForTimeout(300);
 };
 
-const expectCloseTo = (
-  actual: number,
-  expected: number,
-  tolerancePx: number,
-) => {
+const expectCloseTo = (actual: number, expected: number, tolerancePx: number) => {
   expect(Math.abs(actual - expected)).toBeLessThanOrEqual(tolerancePx);
 };
 
@@ -74,18 +61,14 @@ test.describe("Comment selector reacquire", () => {
   }) => {
     const toggleableSelector = '[data-testid="toggleable-element"]';
 
-    await reactGrab.page
-      .locator('[data-testid="hidden-toggle-section"]')
-      .scrollIntoViewIfNeeded();
+    await reactGrab.page.locator('[data-testid="hidden-toggle-section"]').scrollIntoViewIfNeeded();
 
     const beforeRect = await getViewportRect(reactGrab, toggleableSelector);
     expect(beforeRect).not.toBeNull();
 
     await copyElementWithComment(reactGrab, toggleableSelector);
 
-    await expect
-      .poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 })
-      .toBe(true);
+    await expect.poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 }).toBe(true);
 
     await toggleToggleableElement(reactGrab);
     await expect(reactGrab.page.locator(toggleableSelector)).toHaveCount(0);
@@ -108,15 +91,12 @@ test.describe("Comment selector reacquire", () => {
     await expect
       .poll(async () => {
         const info = await reactGrab.getGrabbedBoxInfo();
-        return info.boxes.filter((box) => box.id.startsWith("comment-hover-"))
-          .length;
+        return info.boxes.filter((box) => box.id.startsWith("comment-hover-")).length;
       })
       .toBeGreaterThan(0);
 
     const grabbedBoxes = await reactGrab.getGrabbedBoxInfo();
-    const hoverBox = grabbedBoxes.boxes.find((box) =>
-      box.id.startsWith("comment-hover-"),
-    );
+    const hoverBox = grabbedBoxes.boxes.find((box) => box.id.startsWith("comment-hover-"));
     expect(hoverBox).toBeTruthy();
 
     expectCloseTo(hoverBox!.bounds.x, afterRect!.x, 8);
@@ -130,9 +110,7 @@ test.describe("Comment selector reacquire", () => {
   }) => {
     const toggleableSelector = '[data-testid="toggleable-element"]';
 
-    await reactGrab.page
-      .locator('[data-testid="hidden-toggle-section"]')
-      .scrollIntoViewIfNeeded();
+    await reactGrab.page.locator('[data-testid="hidden-toggle-section"]').scrollIntoViewIfNeeded();
 
     await copyElementWithComment(reactGrab, toggleableSelector);
 

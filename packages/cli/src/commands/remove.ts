@@ -13,15 +13,9 @@ export const remove = new Command()
   .description("disconnect React Grab from your agent")
   .argument("[agent]", "agent to disconnect (mcp)")
   .option("-y, --yes", "skip confirmation prompts", false)
-  .option(
-    "-c, --cwd <cwd>",
-    "working directory (defaults to current directory)",
-    process.cwd(),
-  )
+  .option("-c, --cwd <cwd>", "working directory (defaults to current directory)", process.cwd())
   .action(async (agentArg, opts) => {
-    console.log(
-      `${pc.magenta("✿")} ${pc.bold("React Grab")} ${pc.gray(VERSION)}`,
-    );
+    console.log(`${pc.magenta("✿")} ${pc.bold("React Grab")} ${pc.gray(VERSION)}`);
     console.log();
 
     try {
@@ -34,9 +28,7 @@ export const remove = new Command()
       if (!projectInfo.hasReactGrab) {
         preflightSpinner.fail("React Grab is not installed.");
         logger.break();
-        logger.error(
-          `Run ${highlighter.info("react-grab init")} first to install React Grab.`,
-        );
+        logger.error(`Run ${highlighter.info("react-grab init")} first to install React Grab.`);
         logger.break();
         process.exit(1);
       }

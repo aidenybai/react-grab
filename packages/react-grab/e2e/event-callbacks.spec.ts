@@ -7,18 +7,14 @@ test.describe("Event Callbacks", () => {
   });
 
   test.describe("Activation Callbacks", () => {
-    test("onActivate should fire when overlay is activated", async ({
-      reactGrab,
-    }) => {
+    test("onActivate should fire when overlay is activated", async ({ reactGrab }) => {
       await reactGrab.activate();
 
       const args = await reactGrab.waitForCallback("onActivate", 2000);
       expect(args).toBeDefined();
     });
 
-    test("onDeactivate should fire when overlay is deactivated", async ({
-      reactGrab,
-    }) => {
+    test("onDeactivate should fire when overlay is deactivated", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.clearCallbackHistory();
 
@@ -36,16 +32,12 @@ test.describe("Event Callbacks", () => {
 
       const history = await reactGrab.getCallbackHistory();
       const activateIndex = history.findIndex((c) => c.name === "onActivate");
-      const deactivateIndex = history.findIndex(
-        (c) => c.name === "onDeactivate",
-      );
+      const deactivateIndex = history.findIndex((c) => c.name === "onDeactivate");
 
       expect(activateIndex).toBeLessThan(deactivateIndex);
     });
 
-    test("onActivate should only fire once per activation", async ({
-      reactGrab,
-    }) => {
+    test("onActivate should only fire once per activation", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.page.waitForTimeout(200);
 
@@ -57,9 +49,7 @@ test.describe("Event Callbacks", () => {
   });
 
   test.describe("Element Interaction Callbacks", () => {
-    test("onElementHover should fire when hovering over elements", async ({
-      reactGrab,
-    }) => {
+    test("onElementHover should fire when hovering over elements", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.clearCallbackHistory();
 
@@ -69,9 +59,7 @@ test.describe("Event Callbacks", () => {
         .poll(
           async () => {
             const history = await reactGrab.getCallbackHistory();
-            const hoverCalls = history.filter(
-              (c) => c.name === "onElementHover",
-            );
+            const hoverCalls = history.filter((c) => c.name === "onElementHover");
             return hoverCalls.length;
           },
           { timeout: 2000 },
@@ -79,9 +67,7 @@ test.describe("Event Callbacks", () => {
         .toBeGreaterThan(0);
     });
 
-    test("onElementHover should receive element as argument", async ({
-      reactGrab,
-    }) => {
+    test("onElementHover should receive element as argument", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.clearCallbackHistory();
 
@@ -91,9 +77,7 @@ test.describe("Event Callbacks", () => {
         .poll(
           async () => {
             const history = await reactGrab.getCallbackHistory();
-            const hoverCalls = history.filter(
-              (c) => c.name === "onElementHover",
-            );
+            const hoverCalls = history.filter((c) => c.name === "onElementHover");
             return hoverCalls.length;
           },
           { timeout: 5000 },
@@ -101,9 +85,7 @@ test.describe("Event Callbacks", () => {
         .toBeGreaterThan(0);
     });
 
-    test("onElementSelect should fire when element is clicked", async ({
-      reactGrab,
-    }) => {
+    test("onElementSelect should fire when element is clicked", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
@@ -118,9 +100,7 @@ test.describe("Event Callbacks", () => {
       expect(selectCalls.length).toBeGreaterThan(0);
     });
 
-    test("onElementHover should fire for different elements", async ({
-      reactGrab,
-    }) => {
+    test("onElementHover should fire for different elements", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.clearCallbackHistory();
 
@@ -195,9 +175,7 @@ test.describe("Event Callbacks", () => {
   });
 
   test.describe("Copy Callbacks", () => {
-    test("onBeforeCopy should fire before clipboard write", async ({
-      reactGrab,
-    }) => {
+    test("onBeforeCopy should fire before clipboard write", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement("h1");
       await reactGrab.waitForSelectionBox();
@@ -212,9 +190,7 @@ test.describe("Event Callbacks", () => {
       expect(beforeCopyCalls.length).toBeGreaterThan(0);
     });
 
-    test("onAfterCopy should fire after clipboard write", async ({
-      reactGrab,
-    }) => {
+    test("onAfterCopy should fire after clipboard write", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
@@ -229,9 +205,7 @@ test.describe("Event Callbacks", () => {
       expect(afterCopyCalls.length).toBeGreaterThan(0);
     });
 
-    test("onCopySuccess should fire with content on successful copy", async ({
-      reactGrab,
-    }) => {
+    test("onCopySuccess should fire with content on successful copy", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement("h1");
       await reactGrab.waitForSelectionBox();
@@ -246,9 +220,7 @@ test.describe("Event Callbacks", () => {
       expect(successCalls.length).toBeGreaterThan(0);
     });
 
-    test("copy callbacks should fire in correct order", async ({
-      reactGrab,
-    }) => {
+    test("copy callbacks should fire in correct order", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
@@ -275,9 +247,7 @@ test.describe("Event Callbacks", () => {
       await reactGrab.page.waitForTimeout(100);
 
       const history = await reactGrab.getCallbackHistory();
-      const stateChangeCalls = history.filter(
-        (c) => c.name === "onStateChange",
-      );
+      const stateChangeCalls = history.filter((c) => c.name === "onStateChange");
 
       expect(stateChangeCalls.length).toBeGreaterThan(0);
     });
@@ -290,9 +260,7 @@ test.describe("Event Callbacks", () => {
       await reactGrab.page.waitForTimeout(100);
 
       const history = await reactGrab.getCallbackHistory();
-      const stateChangeCalls = history.filter(
-        (c) => c.name === "onStateChange",
-      );
+      const stateChangeCalls = history.filter((c) => c.name === "onStateChange");
 
       expect(stateChangeCalls.length).toBeGreaterThan(0);
     });
@@ -312,18 +280,14 @@ test.describe("Event Callbacks", () => {
       await reactGrab.page.mouse.up();
 
       const history = await reactGrab.getCallbackHistory();
-      const stateChangeCalls = history.filter(
-        (c) => c.name === "onStateChange",
-      );
+      const stateChangeCalls = history.filter((c) => c.name === "onStateChange");
 
       expect(stateChangeCalls.length).toBeGreaterThan(0);
     });
   });
 
   test.describe("UI Element Callbacks", () => {
-    test("onSelectionBox should fire when selection box appears", async ({
-      reactGrab,
-    }) => {
+    test("onSelectionBox should fire when selection box appears", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.clearCallbackHistory();
 
@@ -332,16 +296,12 @@ test.describe("Event Callbacks", () => {
       await reactGrab.page.waitForTimeout(100);
 
       const history = await reactGrab.getCallbackHistory();
-      const selectionBoxCalls = history.filter(
-        (c) => c.name === "onSelectionBox",
-      );
+      const selectionBoxCalls = history.filter((c) => c.name === "onSelectionBox");
 
       expect(selectionBoxCalls.length).toBeGreaterThan(0);
     });
 
-    test("onDragBox should fire during drag selection", async ({
-      reactGrab,
-    }) => {
+    test("onDragBox should fire during drag selection", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.clearCallbackHistory();
 
@@ -361,9 +321,7 @@ test.describe("Event Callbacks", () => {
       expect(dragBoxCalls.length).toBeGreaterThan(0);
     });
 
-    test("onGrabbedBox should fire when element is grabbed", async ({
-      reactGrab,
-    }) => {
+    test("onGrabbedBox should fire when element is grabbed", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
@@ -389,18 +347,14 @@ test.describe("Event Callbacks", () => {
       await reactGrab.rightClickElement("li:first-child");
 
       const history = await reactGrab.getCallbackHistory();
-      const contextMenuCalls = history.filter(
-        (c) => c.name === "onContextMenu",
-      );
+      const contextMenuCalls = history.filter((c) => c.name === "onContextMenu");
 
       expect(contextMenuCalls.length).toBe(1);
     });
   });
 
   test.describe("Callback Integrity", () => {
-    test("callbacks should not fire when overlay is inactive", async ({
-      reactGrab,
-    }) => {
+    test("callbacks should not fire when overlay is inactive", async ({ reactGrab }) => {
       await reactGrab.clearCallbackHistory();
 
       await reactGrab.hoverElement("li:first-child");
@@ -437,9 +391,7 @@ test.describe("Event Callbacks", () => {
       const history = await reactGrab.getCallbackHistory();
 
       for (let i = 1; i < history.length; i++) {
-        expect(history[i].timestamp).toBeGreaterThanOrEqual(
-          history[i - 1].timestamp,
-        );
+        expect(history[i].timestamp).toBeGreaterThanOrEqual(history[i - 1].timestamp);
       }
     });
   });

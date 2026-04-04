@@ -33,20 +33,12 @@ let frozenWaapiAnimations: Animation[] = [];
 
 const ensureStylesInjected = (): void => {
   if (styleElement) return;
-  styleElement = createStyleElement(
-    "data-react-grab-frozen-styles",
-    FROZEN_STYLES,
-  );
+  styleElement = createStyleElement("data-react-grab-frozen-styles", FROZEN_STYLES);
 };
 
-const areElementsSame = (
-  firstElements: Element[],
-  secondElements: Element[],
-): boolean =>
+const areElementsSame = (firstElements: Element[], secondElements: Element[]): boolean =>
   firstElements.length === secondElements.length &&
-  firstElements.every(
-    (currentElement, index) => currentElement === secondElements[index],
-  );
+  firstElements.every((currentElement, index) => currentElement === secondElements[index]);
 
 const collectFrozenSvgElements = (elements: Element[]): SVGSVGElement[] => {
   const svgElements = new Set<SVGSVGElement>();

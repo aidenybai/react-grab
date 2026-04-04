@@ -1,8 +1,4 @@
-import {
-  createHighlighter,
-  type CodeToHastOptions,
-  type Highlighter,
-} from "shiki";
+import { createHighlighter, type CodeToHastOptions, type Highlighter } from "shiki";
 
 const SHIKI_COLOR_OVERRIDES: Record<string, string> = {
   "#99FFE4": "#9f9f9f",
@@ -60,19 +56,14 @@ const getHighlighter = async (): Promise<Highlighter> => {
   return globalForShiki.shikiHighlighterPromise;
 };
 
-const highlightChangedLines = (
-  html: string,
-  changedLines?: number[],
-): string => {
+const highlightChangedLines = (html: string, changedLines?: number[]): string => {
   if (!changedLines?.length) return html;
 
   const changedLinesSet = new Set(changedLines);
   let lineNumber = 0;
   return html.replace(LINE_SPAN_REGEX, (match) => {
     lineNumber += 1;
-    return changedLinesSet.has(lineNumber)
-      ? `<span class="line line-changed">`
-      : match;
+    return changedLinesSet.has(lineNumber) ? `<span class="line line-changed">` : match;
   });
 };
 

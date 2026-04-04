@@ -16,10 +16,14 @@
     }
   },
   "scripts": {
-    "dev": "tsup --watch",
-    "build": "rm -rf dist && NODE_ENV=production tsup",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "dev": "vp pack --watch",
+    "build": "rm -rf dist && NODE_ENV=production vp pack",
+    "test": "vp test run",
+    "test:watch": "vp test",
+    "lint": "vp lint",
+    "format": "vp fmt",
+    "format:check": "vp fmt --check",
+    "check": "vp check"
   },
   "dependencies": {
     "@antfu/ni": "^0.23.0",
@@ -32,8 +36,6 @@
     "smol-toml": "^1.6.0"
   },
   "devDependencies": {
-    "@types/prompts": "^2.4.9",
-    "tsup": "^8.4.0",
-    "vitest": "^3.2.4"
+    "@types/prompts": "^2.4.9"
   }
 }

@@ -1,7 +1,4 @@
-import {
-  MAX_COMMENT_ITEMS,
-  MAX_SESSION_STORAGE_SIZE_BYTES,
-} from "../constants.js";
+import { MAX_COMMENT_ITEMS, MAX_SESSION_STORAGE_SIZE_BYTES } from "../constants.js";
 import type { CommentItem } from "../types.js";
 import { generateId } from "./generate-id.js";
 import { logRecoverableError } from "./log-recoverable-error.js";
@@ -75,16 +72,11 @@ export const loadComments = (): CommentItem[] => commentItems;
 
 export const addCommentItem = (item: Omit<CommentItem, "id">): CommentItem[] =>
   persistCommentItems(
-    [{ ...item, id: generateId("comment") }, ...commentItems].slice(
-      0,
-      MAX_COMMENT_ITEMS,
-    ),
+    [{ ...item, id: generateId("comment") }, ...commentItems].slice(0, MAX_COMMENT_ITEMS),
   );
 
 export const removeCommentItem = (itemId: string): CommentItem[] =>
-  persistCommentItems(
-    commentItems.filter((innerItem) => innerItem.id !== itemId),
-  );
+  persistCommentItems(commentItems.filter((innerItem) => innerItem.id !== itemId));
 
 export const clearComments = (): CommentItem[] => persistCommentItems([]);
 
@@ -95,9 +87,6 @@ export const confirmClear = (): void => {
   try {
     sessionStorage.setItem(CLEAR_CONFIRMED_KEY, "1");
   } catch (error) {
-    logRecoverableError(
-      "Failed to save clear preference to sessionStorage",
-      error,
-    );
+    logRecoverableError("Failed to save clear preference to sessionStorage", error);
   }
 };

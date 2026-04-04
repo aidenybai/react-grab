@@ -9,10 +9,7 @@ interface UserMessageProps {
   skipAnimation?: boolean;
 }
 
-export const UserMessage = ({
-  block,
-  skipAnimation = false,
-}: UserMessageProps): ReactElement => {
+export const UserMessage = ({ block, skipAnimation = false }: UserMessageProps): ReactElement => {
   return (
     <motion.div
       initial={skipAnimation ? { opacity: 1, y: 0 } : { opacity: 0, y: 5 }}

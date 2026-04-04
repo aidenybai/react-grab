@@ -13,9 +13,7 @@ test.describe("Keyboard Shortcuts", () => {
     expect(clipboardContent).toContain("Todo List");
   });
 
-  test("should deactivate when pressing Escape while hovering", async ({
-    reactGrab,
-  }) => {
+  test("should deactivate when pressing Escape while hovering", async ({ reactGrab }) => {
     await reactGrab.activate();
     await reactGrab.hoverElement("li:first-child");
     await reactGrab.waitForSelectionBox();
@@ -27,9 +25,7 @@ test.describe("Keyboard Shortcuts", () => {
     expect(isVisible).toBe(false);
   });
 
-  test("should not activate when pressing C without Cmd/Ctrl modifier", async ({
-    reactGrab,
-  }) => {
+  test("should not activate when pressing C without Cmd/Ctrl modifier", async ({ reactGrab }) => {
     await reactGrab.page.keyboard.down("c");
     await reactGrab.page.waitForTimeout(50);
     await reactGrab.page.keyboard.up("c");
@@ -50,9 +46,7 @@ test.describe("Keyboard Shortcuts", () => {
     expect(clipboardContent).toContain("Walk the dog");
   });
 
-  test("should keep overlay active while navigating with arrow keys", async ({
-    reactGrab,
-  }) => {
+  test("should keep overlay active while navigating with arrow keys", async ({ reactGrab }) => {
     await reactGrab.activate();
     await reactGrab.hoverElement("li:first-child");
     await reactGrab.waitForSelectionBox();
@@ -66,9 +60,7 @@ test.describe("Keyboard Shortcuts", () => {
     expect(isVisible).toBe(true);
   });
 
-  test("should deactivate after successful click copy in toggle mode", async ({
-    reactGrab,
-  }) => {
+  test("should deactivate after successful click copy in toggle mode", async ({ reactGrab }) => {
     await reactGrab.activate();
     await reactGrab.hoverElement("li:first-child");
     await reactGrab.waitForSelectionBox();

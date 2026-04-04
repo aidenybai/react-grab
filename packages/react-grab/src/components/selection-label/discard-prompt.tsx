@@ -63,18 +63,14 @@ export const DiscardPrompt: Component<DiscardPromptProps> = (props) => {
             class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] press-scale h-[17px]"
             onClick={props.onCancel}
           >
-            <span class="text-black text-[13px] leading-3.5 font-sans font-medium">
-              No
-            </span>
+            <span class="text-black text-[13px] leading-3.5 font-sans font-medium">No</span>
           </button>
           <button
             data-react-grab-discard-yes
             class="contain-layout shrink-0 flex items-center justify-center gap-0.5 px-[3px] py-px rounded-sm bg-[#FEF2F2] cursor-pointer transition-all hover:bg-[#FEE2E2] press-scale h-[17px]"
             onClick={props.onConfirm}
           >
-            <span class="text-[#B91C1C] text-[13px] leading-3.5 font-sans font-medium">
-              Yes
-            </span>
+            <span class="text-[#B91C1C] text-[13px] leading-3.5 font-sans font-medium">Yes</span>
             <IconReturn size={10} class="text-[#B91C1C]/50" />
           </button>
         </div>

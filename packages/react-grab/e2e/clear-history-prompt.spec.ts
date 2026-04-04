@@ -1,65 +1,46 @@
 import { test, expect } from "./fixtures.js";
 import type { ReactGrabPageObject } from "./fixtures.js";
 
-const copyElement = async (
-  reactGrab: ReactGrabPageObject,
-  selector: string,
-) => {
+const copyElement = async (reactGrab: ReactGrabPageObject, selector: string) => {
   await reactGrab.registerCommentAction();
   await reactGrab.enterPromptMode(selector);
   await reactGrab.typeInInput("comment");
   await reactGrab.submitInput();
-  await expect
-    .poll(() => reactGrab.getClipboardContent(), { timeout: 5000 })
-    .toBeTruthy();
+  await expect.poll(() => reactGrab.getClipboardContent(), { timeout: 5000 }).toBeTruthy();
   // HACK: Wait for copy feedback transition and comments item addition
   await reactGrab.page.waitForTimeout(300);
 };
 
 test.describe("Toolbar Copy All Button", () => {
   test.describe("Visibility", () => {
-    test("should not be visible before comments dropdown is open", async ({
-      reactGrab,
-    }) => {
+    test("should not be visible before comments dropdown is open", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
 
       const isVisible = await reactGrab.isToolbarCopyAllVisible();
       expect(isVisible).toBe(false);
     });
 
-    test("should become visible when comments dropdown is open", async ({
-      reactGrab,
-    }) => {
+    test("should become visible when comments dropdown is open", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
       await reactGrab.clickCommentsButton();
 
-      await expect
-        .poll(() => reactGrab.isToolbarCopyAllVisible(), { timeout: 2000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isToolbarCopyAllVisible(), { timeout: 2000 }).toBe(true);
     });
 
-    test("should hide when comments dropdown is closed", async ({
-      reactGrab,
-    }) => {
+    test("should hide when comments dropdown is closed", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
       await reactGrab.clickCommentsButton();
 
-      await expect
-        .poll(() => reactGrab.isToolbarCopyAllVisible(), { timeout: 2000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isToolbarCopyAllVisible(), { timeout: 2000 }).toBe(true);
 
       await reactGrab.clickCommentsButton();
 
-      await expect
-        .poll(() => reactGrab.isToolbarCopyAllVisible(), { timeout: 2000 })
-        .toBe(false);
+      await expect.poll(() => reactGrab.isToolbarCopyAllVisible(), { timeout: 2000 }).toBe(false);
     });
   });
 
   test.describe("Copy Behavior", () => {
-    test("should copy all comments items to clipboard", async ({
-      reactGrab,
-    }) => {
+    test("should copy all comments items to clipboard", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
       await copyElement(reactGrab, "li:last-child");
 
@@ -73,9 +54,7 @@ test.describe("Toolbar Copy All Button", () => {
       expect(clipboardContent).toContain("[2]");
     });
 
-    test("should show clear comments prompt after copying", async ({
-      reactGrab,
-    }) => {
+    test("should show clear comments prompt after copying", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
       await reactGrab.clickCommentsButton();
       await reactGrab.clickToolbarCopyAll();
@@ -99,9 +78,7 @@ test.describe("Clear History Prompt", () => {
         .toBe(true);
     });
 
-    test("should appear after comments dropdown copy all", async ({
-      reactGrab,
-    }) => {
+    test("should appear after comments dropdown copy all", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
       await reactGrab.clickCommentsButton();
       await reactGrab.clickCommentsCopyAll();
@@ -113,9 +90,7 @@ test.describe("Clear History Prompt", () => {
   });
 
   test.describe("Confirm", () => {
-    test("should clear comments when confirmed via button click", async ({
-      reactGrab,
-    }) => {
+    test("should clear comments when confirmed via button click", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
       await copyElement(reactGrab, "li:last-child");
 
@@ -129,14 +104,10 @@ test.describe("Clear History Prompt", () => {
       await reactGrab.confirmClearCommentsPrompt();
       await reactGrab.page.waitForTimeout(200);
 
-      await expect
-        .poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 })
-        .toBe(false);
+      await expect.poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 }).toBe(false);
     });
 
-    test("should clear comments when confirmed via Enter key", async ({
-      reactGrab,
-    }) => {
+    test("should clear comments when confirmed via Enter key", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
 
       await reactGrab.clickCommentsButton();
@@ -153,14 +124,10 @@ test.describe("Clear History Prompt", () => {
         .poll(() => reactGrab.isClearCommentsPromptVisible(), { timeout: 2000 })
         .toBe(false);
 
-      await expect
-        .poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 })
-        .toBe(false);
+      await expect.poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 }).toBe(false);
     });
 
-    test("should dismiss the prompt after confirming", async ({
-      reactGrab,
-    }) => {
+    test("should dismiss the prompt after confirming", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
 
       await reactGrab.clickCommentsButton();
@@ -191,9 +158,7 @@ test.describe("Clear History Prompt", () => {
 
       await reactGrab.confirmClearCommentsPrompt();
 
-      await expect
-        .poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 })
-        .toBe(false);
+      await expect.poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 }).toBe(false);
 
       await copyElement(reactGrab, "li:last-child");
 
@@ -204,16 +169,12 @@ test.describe("Clear History Prompt", () => {
         .poll(() => reactGrab.isClearCommentsPromptVisible(), { timeout: 2000 })
         .toBe(false);
 
-      await expect
-        .poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 })
-        .toBe(false);
+      await expect.poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 }).toBe(false);
     });
   });
 
   test.describe("Cancel", () => {
-    test("should keep comments when cancelled via button click", async ({
-      reactGrab,
-    }) => {
+    test("should keep comments when cancelled via button click", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
 
       await reactGrab.clickCommentsButton();
@@ -230,14 +191,10 @@ test.describe("Clear History Prompt", () => {
         .poll(() => reactGrab.isClearCommentsPromptVisible(), { timeout: 2000 })
         .toBe(false);
 
-      await expect
-        .poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 }).toBe(true);
     });
 
-    test("should dismiss prompt when cancelled via Escape key", async ({
-      reactGrab,
-    }) => {
+    test("should dismiss prompt when cancelled via Escape key", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
 
       await reactGrab.clickCommentsButton();
@@ -254,9 +211,7 @@ test.describe("Clear History Prompt", () => {
         .poll(() => reactGrab.isClearCommentsPromptVisible(), { timeout: 2000 })
         .toBe(false);
 
-      await expect
-        .poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 })
-        .toBe(true);
+      await expect.poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 }).toBe(true);
     });
   });
 

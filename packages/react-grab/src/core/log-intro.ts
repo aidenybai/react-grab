@@ -11,21 +11,16 @@ export const logIntro = () => {
       "",
     );
     if (navigator.onLine && version && !isExtensionContext()) {
-      fetch(
-        `https://www.react-grab.com/api/version?source=browser&t=${Date.now()}`,
-        {
-          referrerPolicy: "origin",
-          keepalive: true,
-          priority: "low",
-          cache: "no-store",
-        } as RequestInit,
-      )
+      fetch(`https://www.react-grab.com/api/version?source=browser&t=${Date.now()}`, {
+        referrerPolicy: "origin",
+        keepalive: true,
+        priority: "low",
+        cache: "no-store",
+      } as RequestInit)
         .then((response) => response.text())
         .then((latestVersion) => {
           if (latestVersion && latestVersion !== version) {
-            console.warn(
-              `[React Grab] v${version} is outdated (latest: v${latestVersion})`,
-            );
+            console.warn(`[React Grab] v${version} is outdated (latest: v${latestVersion})`);
           }
         })
         .catch(() => null);

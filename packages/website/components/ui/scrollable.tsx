@@ -30,14 +30,10 @@ export const Scrollable = ({
 
       if (hasScroll) {
         const scrollRatio = element.clientHeight / element.scrollHeight;
-        const newScrollbarHeight = Math.max(
-          element.clientHeight * scrollRatio,
-          20,
-        );
+        const newScrollbarHeight = Math.max(element.clientHeight * scrollRatio, 20);
         setScrollbarHeight(newScrollbarHeight);
 
-        const scrollPercentage =
-          element.scrollTop / (element.scrollHeight - element.clientHeight);
+        const scrollPercentage = element.scrollTop / (element.scrollHeight - element.clientHeight);
         const maxScrollbarTop = element.clientHeight - newScrollbarHeight;
         setScrollbarTop(scrollPercentage * maxScrollbarTop);
       }
@@ -65,8 +61,7 @@ export const Scrollable = ({
       if (!contentRef.current) return;
 
       const deltaY = moveEvent.clientY - startY;
-      const scrollRatio =
-        contentRef.current.scrollHeight / contentRef.current.clientHeight;
+      const scrollRatio = contentRef.current.scrollHeight / contentRef.current.clientHeight;
       contentRef.current.scrollTop = startScrollTop + deltaY * scrollRatio;
     };
 

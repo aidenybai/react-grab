@@ -10,9 +10,7 @@ export const copyHtmlPlugin = createPendingSelectionPlugin({
     showInToolbarMenu: true,
     onAction: async (context) => {
       await context.performWithFeedback(async () => {
-        const combinedHtml = context.elements
-          .map((element) => element.outerHTML)
-          .join("\n\n");
+        const combinedHtml = context.elements.map((element) => element.outerHTML).join("\n\n");
 
         const transformedHtml = await context.hooks.transformHtmlContent(
           combinedHtml,

@@ -9,9 +9,7 @@ interface ExploredHeaderProps {
   completedCount: number;
 }
 
-const ExploredHeader = ({
-  completedCount,
-}: ExploredHeaderProps): ReactElement => {
+const ExploredHeader = ({ completedCount }: ExploredHeaderProps): ReactElement => {
   const isExploring = completedCount === 0;
   const label = `${completedCount} search${completedCount === 1 ? "" : "es"}`;
 
@@ -33,10 +31,7 @@ interface GrepSearchGroupProps {
   onComplete?: () => void;
 }
 
-export const GrepSearchGroup = ({
-  searches,
-  onComplete,
-}: GrepSearchGroupProps): ReactElement => {
+export const GrepSearchGroup = ({ searches, onComplete }: GrepSearchGroupProps): ReactElement => {
   const [phase, setPhase] = useState(0);
 
   useEffect(() => {

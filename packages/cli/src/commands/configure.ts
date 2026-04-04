@@ -109,18 +109,12 @@ const formatCombo = (combo: KeyCombo): string => {
   if (combo.shiftKey) parts.push("Shift");
   if (combo.altKey) parts.push(ALT_LABEL);
   const keyDisplay =
-    combo.key === " "
-      ? "Space"
-      : combo.key.length === 1
-        ? combo.key.toUpperCase()
-        : combo.key;
+    combo.key === " " ? "Space" : combo.key.length === 1 ? combo.key.toUpperCase() : combo.key;
   parts.push(keyDisplay);
   return parts.join("+");
 };
 
-const parseInput = (
-  input: string,
-): { modifiers: Set<string>; partial: string } => {
+const parseInput = (input: string): { modifiers: Set<string>; partial: string } => {
   const normalized = input.toLowerCase().replace(/\s+/g, "");
   const parts = normalized.split(/[+\-]/);
   const modifiers = new Set<string>();
@@ -186,11 +180,7 @@ const generateSuggestions = (input: string): KeyChoice[] => {
     return suggestions;
   }
 
-  const buildCombo = (
-    key: string,
-    mods: Set<string>,
-    extraMod?: string,
-  ): KeyCombo => ({
+  const buildCombo = (key: string, mods: Set<string>, extraMod?: string): KeyCombo => ({
     key,
     ...(mods.has("meta") || extraMod === "meta" ? { metaKey: true } : {}),
     ...(mods.has("ctrl") || extraMod === "ctrl" ? { ctrlKey: true } : {}),
@@ -199,9 +189,7 @@ const generateSuggestions = (input: string): KeyChoice[] => {
   });
 
   for (const baseKey of BASE_KEYS) {
-    const matches = partial
-      ? baseKey.aliases.some((alias) => alias.startsWith(partial))
-      : true;
+    const matches = partial ? baseKey.aliases.some((alias) => alias.startsWith(partial)) : true;
     if (matches) {
       const combo = buildCombo(baseKey.key, modifiers);
       suggestions.push({
@@ -273,33 +261,15 @@ export const configure = new Command()
   .alias("config")
   .description("configure React Grab options")
   .option("-y, --yes", "skip confirmation prompts", false)
-  .option(
-    "-k, --key <key>",
-    "activation key (e.g., Meta+K, Ctrl+Shift+G, Space)",
-  )
+  .option("-k, --key <key>", "activation key (e.g., Meta+K, Ctrl+Shift+G, Space)")
   .option("-m, --mode <mode>", "activation mode (toggle, hold)")
-  .option(
-    "--hold-duration <ms>",
-    "key hold duration in milliseconds (for hold mode)",
-  )
-  .option(
-    "--allow-input <boolean>",
-    "allow activation inside input fields (true/false)",
-  )
+  .option("--hold-duration <ms>", "key hold duration in milliseconds (for hold mode)")
+  .option("--allow-input <boolean>", "allow activation inside input fields (true/false)")
   .option("--context-lines <lines>", "max context lines to include")
-  .option(
-    "--cdn <domain>",
-    "CDN domain (e.g., unpkg.com, custom.react-grab.com)",
-  )
-  .option(
-    "-c, --cwd <cwd>",
-    "working directory (defaults to current directory)",
-    process.cwd(),
-  )
+  .option("--cdn <domain>", "CDN domain (e.g., unpkg.com, custom.react-grab.com)")
+  .option("-c, --cwd <cwd>", "working directory (defaults to current directory)", process.cwd())
   .action(async (opts) => {
-    console.log(
-      `${pc.magenta("✿")} ${pc.bold("React Grab")} ${pc.gray(VERSION)}`,
-    );
+    console.log(`${pc.magenta("✿")} ${pc.bold("React Grab")} ${pc.gray(VERSION)}`);
     console.log();
 
     try {
@@ -312,9 +282,7 @@ export const configure = new Command()
       if (!projectInfo.hasReactGrab) {
         preflightSpinner.fail("React Grab is not installed.");
         logger.break();
-        logger.error(
-          `Run ${highlighter.info("react-grab init")} first to install React Grab.`,
-        );
+        logger.error(`Run ${highlighter.info("react-grab init")} first to install React Grab.`);
         logger.break();
         process.exit(1);
       }
@@ -363,9 +331,7 @@ export const configure = new Command()
           }
         }
 
-        const writeSpinner = spinner(
-          `Applying changes to ${result.filePath}.`,
-        ).start();
+        const writeSpinner = spinner(`Applying changes to ${result.filePath}.`).start();
         const writeResult = applyTransform(result);
         if (!writeResult.success) {
           writeSpinner.fail();
@@ -383,11 +349,7 @@ export const configure = new Command()
       }
 
       const hasFlags =
-        opts.key ||
-        opts.mode ||
-        opts.holdDuration ||
-        opts.allowInput ||
-        opts.contextLines;
+        opts.key || opts.mode || opts.holdDuration || opts.allowInput || opts.contextLines;
 
       logger.break();
       logger.log(`Configure ${highlighter.info("React Grab")} options:`);
@@ -415,38 +377,25 @@ export const configure = new Command()
 
         if (opts.holdDuration) {
           const duration = parseInt(opts.holdDuration, 10);
-          if (
-            isNaN(duration) ||
-            duration < 0 ||
-            duration > MAX_KEY_HOLD_DURATION_MS
-          ) {
-            logger.error(
-              `Invalid hold duration. Must be 0-${MAX_KEY_HOLD_DURATION_MS}ms.`,
-            );
+          if (isNaN(duration) || duration < 0 || duration > MAX_KEY_HOLD_DURATION_MS) {
+            logger.error(`Invalid hold duration. Must be 0-${MAX_KEY_HOLD_DURATION_MS}ms.`);
             logger.break();
             process.exit(1);
           }
           collectedOptions.keyHoldDuration = duration;
-          logger.log(
-            `  Key hold duration: ${highlighter.info(`${duration}ms`)}`,
-          );
+          logger.log(`  Key hold duration: ${highlighter.info(`${duration}ms`)}`);
         }
 
         if (opts.allowInput !== undefined) {
-          const allowInput =
-            opts.allowInput === "true" || opts.allowInput === true;
+          const allowInput = opts.allowInput === "true" || opts.allowInput === true;
           collectedOptions.allowActivationInsideInput = allowInput;
-          logger.log(
-            `  Allow activation inside input: ${highlighter.info(String(allowInput))}`,
-          );
+          logger.log(`  Allow activation inside input: ${highlighter.info(String(allowInput))}`);
         }
 
         if (opts.contextLines) {
           const lines = parseInt(opts.contextLines, 10);
           if (isNaN(lines) || lines < 0 || lines > MAX_CONTEXT_LINES) {
-            logger.error(
-              `Invalid context lines. Must be 0-${MAX_CONTEXT_LINES}.`,
-            );
+            logger.error(`Invalid context lines. Must be 0-${MAX_CONTEXT_LINES}.`);
             logger.break();
             process.exit(1);
           }
@@ -468,10 +417,7 @@ export const configure = new Command()
               choices.filter(
                 (choice) =>
                   choice.title.toLowerCase().includes(input.toLowerCase()) ||
-                  (choice.description
-                    ?.toLowerCase()
-                    .includes(input.toLowerCase()) ??
-                    false),
+                  (choice.description?.toLowerCase().includes(input.toLowerCase()) ?? false),
               ),
             ),
         });
@@ -556,8 +502,7 @@ export const configure = new Command()
             process.exit(1);
           }
 
-          collectedOptions.allowActivationInsideInput =
-            allowActivationInsideInput;
+          collectedOptions.allowActivationInsideInput = allowActivationInsideInput;
         }
 
         if (selectedOption === "maxContextLines") {
@@ -601,8 +546,7 @@ export const configure = new Command()
         process.exit(1);
       }
 
-      const hasChanges =
-        !result.noChanges && result.originalContent && result.newContent;
+      const hasChanges = !result.noChanges && result.originalContent && result.newContent;
 
       if (hasChanges) {
         logger.break();
@@ -625,9 +569,7 @@ export const configure = new Command()
           }
         }
 
-        const writeSpinner = spinner(
-          `Applying changes to ${result.filePath}.`,
-        ).start();
+        const writeSpinner = spinner(`Applying changes to ${result.filePath}.`).start();
         const writeResult = applyTransform(result);
         if (!writeResult.success) {
           writeSpinner.fail();
@@ -643,9 +585,7 @@ export const configure = new Command()
       }
 
       logger.break();
-      logger.log(
-        `${highlighter.success("Success!")} React Grab options have been configured.`,
-      );
+      logger.log(`${highlighter.success("Success!")} React Grab options have been configured.`);
       logger.break();
     } catch (error) {
       handleError(error);

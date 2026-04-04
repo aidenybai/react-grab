@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useState,
-  type ReactElement,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useState, type ReactElement, type ReactNode } from "react";
 import type { RecordedHotkey } from "./grab-element-button";
 
 interface HotkeyContextValue {
@@ -20,9 +14,7 @@ interface HotkeyProviderProps {
   children: ReactNode;
 }
 
-export const HotkeyProvider = ({
-  children,
-}: HotkeyProviderProps): ReactElement => {
+export const HotkeyProvider = ({ children }: HotkeyProviderProps): ReactElement => {
   const [customHotkey, setCustomHotkey] = useState<RecordedHotkey | null>(null);
 
   return (

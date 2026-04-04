@@ -4,11 +4,7 @@ interface IconClaudeProps {
   className?: string;
 }
 
-export const IconClaude = ({
-  width = 14,
-  height = 14,
-  className = "",
-}: IconClaudeProps) => (
+export const IconClaude = ({ width = 14, height = 14, className = "" }: IconClaudeProps) => (
   <svg
     width={width}
     height={height}

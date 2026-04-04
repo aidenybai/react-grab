@@ -2,9 +2,7 @@ import { test, expect } from "./fixtures.js";
 
 test.describe("Edge Cases", () => {
   test.describe("Element Removal", () => {
-    test("should handle element removed during hover", async ({
-      reactGrab,
-    }) => {
+    test("should handle element removed during hover", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement("[data-testid='dynamic-element-1']");
       await reactGrab.waitForSelectionBox();
@@ -19,9 +17,7 @@ test.describe("Edge Cases", () => {
     test("should handle element removed during drag", async ({ reactGrab }) => {
       await reactGrab.activate();
 
-      const element = reactGrab.page.locator(
-        "[data-testid='dynamic-element-1']",
-      );
+      const element = reactGrab.page.locator("[data-testid='dynamic-element-1']");
       const box = await element.boundingBox();
       if (!box) throw new Error("Could not get bounding box");
 
@@ -38,9 +34,7 @@ test.describe("Edge Cases", () => {
       expect(typeof isActive).toBe("boolean");
     });
 
-    test("should recover after target element is removed", async ({
-      reactGrab,
-    }) => {
+    test("should recover after target element is removed", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement("[data-testid='toggleable-element']");
       await reactGrab.waitForSelectionBox();
@@ -56,9 +50,7 @@ test.describe("Edge Cases", () => {
   });
 
   test.describe("Rapid Actions", () => {
-    test("should handle rapid activation/deactivation cycles", async ({
-      reactGrab,
-    }) => {
+    test("should handle rapid activation/deactivation cycles", async ({ reactGrab }) => {
       for (let i = 0; i < 10; i++) {
         await reactGrab.activate();
         await reactGrab.page.waitForTimeout(20);
@@ -73,13 +65,7 @@ test.describe("Edge Cases", () => {
     test("should handle rapid hover changes", async ({ reactGrab }) => {
       await reactGrab.activate();
 
-      const elements = [
-        "li:first-child",
-        "li:nth-child(2)",
-        "li:nth-child(3)",
-        "h1",
-        "ul",
-      ];
+      const elements = ["li:first-child", "li:nth-child(2)", "li:nth-child(3)", "h1", "ul"];
       for (const selector of elements) {
         await reactGrab.hoverElement(selector);
         await reactGrab.page.waitForTimeout(10);
@@ -164,9 +150,7 @@ test.describe("Edge Cases", () => {
   });
 
   test.describe("Scroll and Resize", () => {
-    test("should handle scroll during drag operation", async ({
-      reactGrab,
-    }) => {
+    test("should handle scroll during drag operation", async ({ reactGrab }) => {
       await reactGrab.activate();
 
       const listItem = reactGrab.page.locator("li").first();
@@ -233,9 +217,7 @@ test.describe("Edge Cases", () => {
       expect(canReinit).toBe(true);
     });
 
-    test("should allow reinitialization after dispose", async ({
-      reactGrab,
-    }) => {
+    test("should allow reinitialization after dispose", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.dispose();
 
@@ -258,9 +240,7 @@ test.describe("Edge Cases", () => {
   });
 
   test.describe("Focus Management", () => {
-    test("should restore focus to previously focused element", async ({
-      reactGrab,
-    }) => {
+    test("should restore focus to previously focused element", async ({ reactGrab }) => {
       await reactGrab.page.click("[data-testid='test-input']");
       await reactGrab.page.waitForTimeout(100);
 
@@ -270,10 +250,7 @@ test.describe("Edge Cases", () => {
 
       await expect
         .poll(
-          () =>
-            reactGrab.page.evaluate(() =>
-              document.activeElement?.getAttribute("data-testid"),
-            ),
+          () => reactGrab.page.evaluate(() => document.activeElement?.getAttribute("data-testid")),
           { timeout: 5000 },
         )
         .toBe("test-input");
@@ -281,9 +258,7 @@ test.describe("Edge Cases", () => {
   });
 
   test.describe("Context Menu Edge Cases", () => {
-    test("should handle context menu on removed element", async ({
-      reactGrab,
-    }) => {
+    test("should handle context menu on removed element", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement("[data-testid='dynamic-element-3']");
       await reactGrab.waitForSelectionBox();
@@ -301,9 +276,7 @@ test.describe("Edge Cases", () => {
   });
 
   test.describe("Copy Edge Cases", () => {
-    test("should handle copy during visibility change", async ({
-      reactGrab,
-    }) => {
+    test("should handle copy during visibility change", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
@@ -336,9 +309,7 @@ test.describe("Edge Cases", () => {
       expect(isActive).toBe(true);
     });
 
-    test("should handle zero-dimension elements gracefully", async ({
-      reactGrab,
-    }) => {
+    test("should handle zero-dimension elements gracefully", async ({ reactGrab }) => {
       await reactGrab.activate();
 
       await reactGrab.page.mouse.move(100, 100);
@@ -360,9 +331,7 @@ test.describe("Edge Cases", () => {
   });
 
   test.describe("State Consistency", () => {
-    test("getState should be consistent across calls", async ({
-      reactGrab,
-    }) => {
+    test("getState should be consistent across calls", async ({ reactGrab }) => {
       await reactGrab.activate();
 
       const state1 = await reactGrab.getState();
@@ -373,9 +342,7 @@ test.describe("Edge Cases", () => {
       expect(state1.isCopying).toBe(state2.isCopying);
     });
 
-    test("state should be correct after complex interaction sequence", async ({
-      reactGrab,
-    }) => {
+    test("state should be correct after complex interaction sequence", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();

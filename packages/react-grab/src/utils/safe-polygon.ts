@@ -13,13 +13,8 @@ export interface TargetRect {
   height: number;
 }
 
-const computeTriangleSign = (
-  point1: Position,
-  point2: Position,
-  point3: Position,
-): number =>
-  (point1.x - point3.x) * (point2.y - point3.y) -
-  (point2.x - point3.x) * (point1.y - point3.y);
+const computeTriangleSign = (point1: Position, point2: Position, point3: Position): number =>
+  (point1.x - point3.x) * (point2.y - point3.y) - (point2.x - point3.x) * (point1.y - point3.y);
 
 const isPositionInTriangle = (
   point: Position,
@@ -41,10 +36,7 @@ const isPositionInRect = (point: Position, rect: TargetRect): boolean =>
   point.y >= rect.y &&
   point.y <= rect.y + rect.height;
 
-const computeFarEdgeCorners = (
-  cursor: Position,
-  targetRect: TargetRect,
-): [Position, Position] => {
+const computeFarEdgeCorners = (cursor: Position, targetRect: TargetRect): [Position, Position] => {
   const targetBottom = targetRect.y + targetRect.height;
   const targetRight = targetRect.x + targetRect.width;
 
@@ -92,10 +84,7 @@ export const createSafePolygonTracker = () => {
 
     if (isPositionInRect(cursorPosition, primaryTarget)) return;
 
-    const [corner1, corner2] = computeFarEdgeCorners(
-      cursorPosition,
-      primaryTarget,
-    );
+    const [corner1, corner2] = computeFarEdgeCorners(cursorPosition, primaryTarget);
 
     const isInAnySafeRect = (point: Position): boolean =>
       targetRects.some((rect) => isPositionInRect(point, rect));

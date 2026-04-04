@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useEffect,
-  useState,
-  useCallback,
-  useRef,
-  type ReactElement,
-} from "react";
+import { useEffect, useState, useCallback, useRef, type ReactElement } from "react";
 import { Copy, Check, Terminal, ChevronDown } from "lucide-react";
 import {
   COPY_FEEDBACK_DURATION_MS,
@@ -49,9 +43,7 @@ const formatInitOptions = (hotkey: RecordedHotkey): string => {
   return `{ activationKey: "${hotkeyToString(hotkey)}" }`;
 };
 
-const createPromptInstallInstructions = (
-  hotkey: RecordedHotkey | null,
-): string => {
+const createPromptInstallInstructions = (hotkey: RecordedHotkey | null): string => {
   const activationKeyInstruction = hotkey
     ? `Set the activation key to "${hotkeyToString(hotkey)}". For Next.js Script tags, set data-options='{"activationKey":"${hotkeyToString(
         hotkey,
@@ -111,9 +103,7 @@ const installTabsData: InstallTab[] = [
     variant: "code",
     getCode: (hotkey) => {
       const dataOptionsAttr = hotkey
-        ? `\n            data-options='{"activationKey":"${hotkeyToString(
-            hotkey,
-          )}"}'`
+        ? `\n            data-options='{"activationKey":"${hotkeyToString(hotkey)}"}'`
         : "";
       return `import Script from "next/script";
 
@@ -142,8 +132,7 @@ export default function RootLayout({ children }) {
     label: "Vite",
     description: (
       <>
-        Example <InlineCode>index.html</InlineCode> with React Grab enabled in
-        development
+        Example <InlineCode>index.html</InlineCode> with React Grab enabled in development
       </>
     ),
     variant: "code",
@@ -184,8 +173,7 @@ export default function RootLayout({ children }) {
   </body>
 </html>`;
     },
-    getChangedLines: (hotkey) =>
-      hotkey ? [4, 5, 6, 7, 8, 9, 10, 11] : [4, 5, 6, 7, 8, 9, 10],
+    getChangedLines: (hotkey) => (hotkey ? [4, 5, 6, 7, 8, 9, 10, 11] : [4, 5, 6, 7, 8, 9, 10]),
   },
   {
     id: "tanstack",
@@ -234,8 +222,7 @@ function RootComponent() {
   return <Outlet />;
 }`;
     },
-    getChangedLines: (hotkey) =>
-      hotkey ? [9, 10, 11, 12, 13, 14, 15] : [9, 10, 11, 12, 13],
+    getChangedLines: (hotkey) => (hotkey ? [9, 10, 11, 12, 13, 14, 15] : [9, 10, 11, 12, 13]),
   },
 ];
 
@@ -255,57 +242,48 @@ export const InstallTabs = ({
   showAgentNote = false,
 }: InstallTabsProps): ReactElement | null => {
   const { customHotkey } = useHotkey();
-  const [activeTabId, setActiveTabId] = useState<string>(
-    installTabsData[0]?.id,
-  );
+  const [activeTabId, setActiveTabId] = useState<string>(installTabsData[0]?.id);
   const [didCopy, setDidCopy] = useState(false);
   const [isPromptExpanded, setIsPromptExpanded] = useState(false);
   const [promptExpandedMaxHeightPx, setPromptExpandedMaxHeightPx] = useState(
     PROMPT_INSTALL_MAX_HEIGHT_PX,
   );
-  const [highlightedCodes, setHighlightedCodes] = useState<
-    Record<string, string>
-  >({});
+  const [highlightedCodes, setHighlightedCodes] = useState<Record<string, string>>({});
   const [isMobile, setIsMobile] = useState(false);
   const promptContentContainerRef = useRef<HTMLDivElement | null>(null);
 
-  const activeTab =
-    installTabsData.find((tab) => tab.id === activeTabId) ?? installTabsData[0];
+  const activeTab = installTabsData.find((tab) => tab.id === activeTabId) ?? installTabsData[0];
   const activeCode = activeTab.getCode(customHotkey ?? null);
   const activeChangedLines = activeTab.getChangedLines(customHotkey ?? null);
   const isPromptTab = activeTab.variant === "prompt";
   const shouldShowPromptExpandButton =
-    isPromptTab &&
-    activeCode.split("\n").length > PROMPT_INSTALL_COLLAPSE_LINE_THRESHOLD;
+    isPromptTab && activeCode.split("\n").length > PROMPT_INSTALL_COLLAPSE_LINE_THRESHOLD;
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsMobile(detectMobile());
   }, []);
 
-  const updateHighlightedCodes = useCallback(
-    async (hotkey: RecordedHotkey | null) => {
-      const results = await Promise.all(
-        installTabsData.map(async (tab) => ({
-          id: tab.id,
-          html:
-            tab.variant === "prompt"
-              ? ""
-              : await highlightCode({
-                  code: tab.getCode(hotkey),
-                  lang: tab.lang ?? "tsx",
-                  changedLines: tab.getChangedLines(hotkey),
-                }),
-        })),
-      );
-      const codes: Record<string, string> = {};
-      results.forEach((result) => {
-        codes[result.id] = result.html;
-      });
-      setHighlightedCodes(codes);
-    },
-    [],
-  );
+  const updateHighlightedCodes = useCallback(async (hotkey: RecordedHotkey | null) => {
+    const results = await Promise.all(
+      installTabsData.map(async (tab) => ({
+        id: tab.id,
+        html:
+          tab.variant === "prompt"
+            ? ""
+            : await highlightCode({
+                code: tab.getCode(hotkey),
+                lang: tab.lang ?? "tsx",
+                changedLines: tab.getChangedLines(hotkey),
+              }),
+      })),
+    );
+    const codes: Record<string, string> = {};
+    results.forEach((result) => {
+      codes[result.id] = result.html;
+    });
+    setHighlightedCodes(codes);
+  }, []);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -467,20 +445,13 @@ export const InstallTabs = ({
                   {shouldShowPromptExpandButton && (
                     <button
                       type="button"
-                      onClick={() =>
-                        setIsPromptExpanded((previous) => !previous)
-                      }
+                      onClick={() => setIsPromptExpanded((previous) => !previous)}
                       className="absolute bottom-3 right-4 z-10 inline-flex items-center gap-1 rounded-md border border-border bg-card/90 px-2 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
                     >
-                      <span>
-                        {isPromptExpanded ? "Show less" : "Show full prompt"}
-                      </span>
+                      <span>{isPromptExpanded ? "Show less" : "Show full prompt"}</span>
                       <ChevronDown
                         size={14}
-                        className={cn(
-                          "transition-transform",
-                          isPromptExpanded && "rotate-180",
-                        )}
+                        className={cn("transition-transform", isPromptExpanded && "rotate-180")}
                       />
                     </button>
                   )}

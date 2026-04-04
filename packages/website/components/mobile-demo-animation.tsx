@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-  type ReactElement,
-} from "react";
+import { useState, useEffect, useRef, useCallback, type ReactElement } from "react";
 import { useWebHaptics } from "web-haptics/react";
 import { cn } from "@/utils/cn";
 import {
@@ -21,8 +15,7 @@ import {
   IDLE_RESTART_DELAY_MS,
 } from "@/constants";
 
-const wait = (ms: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, ms));
+const wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 interface Position {
   x: number;
@@ -99,13 +92,7 @@ const getElementCenter = (position: Position): { x: number; y: number } => ({
 });
 
 const CheckIcon = (): ReactElement => (
-  <svg
-    width="14"
-    height="14"
-    viewBox="0 0 21 21"
-    fill="none"
-    className="shrink-0 text-black/85"
-  >
+  <svg width="14" height="14" viewBox="0 0 21 21" fill="none" className="shrink-0 text-black/85">
     <path
       d="M20.1767 10.0875C20.1767 15.6478 15.6576 20.175 10.0875 20.175C4.52715 20.175 0 15.6478 0 10.0875C0 4.51914 4.52715 0 10.0875 0C15.6576 0 20.1767 4.51914 20.1767 10.0875ZM13.0051 6.23867L8.96699 12.7041L7.08476 10.3143C6.83358 9.99199 6.59941 9.88828 6.28984 9.88828C5.79414 9.88828 5.39961 10.2918 5.39961 10.7893C5.39961 11.0367 5.48925 11.2621 5.66386 11.4855L8.05703 14.3967C8.33027 14.7508 8.63183 14.9103 8.99902 14.9103C9.36445 14.9103 9.68105 14.7312 9.90546 14.3896L14.4742 7.27206C14.6107 7.04765 14.7289 6.80898 14.7289 6.58359C14.7289 6.07187 14.281 5.72968 13.7934 5.72968C13.4937 5.72968 13.217 5.90527 13.0051 6.23867Z"
       fill="currentColor"
@@ -114,13 +101,7 @@ const CheckIcon = (): ReactElement => (
 );
 
 const SubmitIcon = (): ReactElement => (
-  <svg
-    width="10"
-    height="10"
-    viewBox="0 0 24 24"
-    fill="none"
-    className="shrink-0 text-white"
-  >
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" className="shrink-0 text-white">
     <path
       d="M12 19V5M5 12l7-7 7 7"
       stroke="currentColor"
@@ -143,76 +124,23 @@ const LoaderIcon = (): ReactElement => (
     strokeLinejoin="round"
     className="shrink-0 text-[#71717a]"
   >
-    <path
-      className="animate-loader-bar"
-      style={{ animationDelay: "0ms" }}
-      d="M12 2v4"
-    />
-    <path
-      className="animate-loader-bar"
-      style={{ animationDelay: "-42ms" }}
-      d="M15 6.8l2-3.5"
-    />
-    <path
-      className="animate-loader-bar"
-      style={{ animationDelay: "-83ms" }}
-      d="M17.2 9l3.5-2"
-    />
-    <path
-      className="animate-loader-bar"
-      style={{ animationDelay: "-125ms" }}
-      d="M18 12h4"
-    />
-    <path
-      className="animate-loader-bar"
-      style={{ animationDelay: "-167ms" }}
-      d="M17.2 15l3.5 2"
-    />
-    <path
-      className="animate-loader-bar"
-      style={{ animationDelay: "-208ms" }}
-      d="M15 17.2l2 3.5"
-    />
-    <path
-      className="animate-loader-bar"
-      style={{ animationDelay: "-250ms" }}
-      d="M12 18v4"
-    />
-    <path
-      className="animate-loader-bar"
-      style={{ animationDelay: "-292ms" }}
-      d="M9 17.2l-2 3.5"
-    />
-    <path
-      className="animate-loader-bar"
-      style={{ animationDelay: "-333ms" }}
-      d="M6.8 15l-3.5 2"
-    />
-    <path
-      className="animate-loader-bar"
-      style={{ animationDelay: "-375ms" }}
-      d="M2 12h4"
-    />
-    <path
-      className="animate-loader-bar"
-      style={{ animationDelay: "-417ms" }}
-      d="M6.8 9l-3.5-2"
-    />
-    <path
-      className="animate-loader-bar"
-      style={{ animationDelay: "-458ms" }}
-      d="M9 6.8l-2-3.5"
-    />
+    <path className="animate-loader-bar" style={{ animationDelay: "0ms" }} d="M12 2v4" />
+    <path className="animate-loader-bar" style={{ animationDelay: "-42ms" }} d="M15 6.8l2-3.5" />
+    <path className="animate-loader-bar" style={{ animationDelay: "-83ms" }} d="M17.2 9l3.5-2" />
+    <path className="animate-loader-bar" style={{ animationDelay: "-125ms" }} d="M18 12h4" />
+    <path className="animate-loader-bar" style={{ animationDelay: "-167ms" }} d="M17.2 15l3.5 2" />
+    <path className="animate-loader-bar" style={{ animationDelay: "-208ms" }} d="M15 17.2l2 3.5" />
+    <path className="animate-loader-bar" style={{ animationDelay: "-250ms" }} d="M12 18v4" />
+    <path className="animate-loader-bar" style={{ animationDelay: "-292ms" }} d="M9 17.2l-2 3.5" />
+    <path className="animate-loader-bar" style={{ animationDelay: "-333ms" }} d="M6.8 15l-3.5 2" />
+    <path className="animate-loader-bar" style={{ animationDelay: "-375ms" }} d="M2 12h4" />
+    <path className="animate-loader-bar" style={{ animationDelay: "-417ms" }} d="M6.8 9l-3.5-2" />
+    <path className="animate-loader-bar" style={{ animationDelay: "-458ms" }} d="M9 6.8l-2-3.5" />
   </svg>
 );
 
 const DefaultCursor = (): ReactElement => (
-  <svg
-    width="32"
-    height="32"
-    viewBox="0 0 32 32"
-    xmlns="http://www.w3.org/2000/svg"
-  >
+  <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
     <g fill="none" fillRule="evenodd" transform="translate(10 7)">
       <path
         d="m6.148 18.473 1.863-1.003 1.615-.839-2.568-4.816h4.332l-11.379-11.408v16.015l3.316-3.221z"
@@ -227,21 +155,10 @@ const DefaultCursor = (): ReactElement => (
 );
 
 const CrosshairCursor = (): ReactElement => (
-  <svg
-    width="32"
-    height="32"
-    viewBox="0 0 32 32"
-    xmlns="http://www.w3.org/2000/svg"
-  >
+  <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
     <g fill="none" transform="translate(9 9)">
-      <path
-        d="m15 6h-6.01v-6h-2.98v6h-6.01v3h6.01v6h2.98v-6h6.01z"
-        fill="#fff"
-      />
-      <path
-        d="m13.99 7.01h-6v-6.01h-.98v6.01h-6v.98h6v6.01h.98v-6.01h6z"
-        fill="#231f1f"
-      />
+      <path d="m15 6h-6.01v-6h-2.98v6h-6.01v3h6.01v6h2.98v-6h6.01z" fill="#fff" />
+      <path d="m13.99 7.01h-6v-6.01h-.98v6.01h-6v.98h6v6.01h.98v-6.01h6z" fill="#231f1f" />
     </g>
   </svg>
 );
@@ -289,10 +206,7 @@ const GrabbingCursor = (): ReactElement => (
         </g>
       </g>
       <g fillRule="nonzero">
-        <path
-          d="m0 16.422v-16.015l11.591 11.619h-7.041l-.151.124z"
-          fill="#fff"
-        />
+        <path d="m0 16.422v-16.015l11.591 11.619h-7.041l-.151.124z" fill="#fff" />
         <path d="m1 2.814v11.188l2.969-2.866.16-.139h5.036z" fill="#000" />
       </g>
     </g>
@@ -328,9 +242,7 @@ export const MobileDemoAnimation = (): ReactElement => {
   const animationLoopRef = useRef<(() => void) | null>(null);
   const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tapTimerInnerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const idleRestartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
+  const idleRestartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const metricCardPositions = useRef<(Position | null)[]>([]);
   const metricValuePosition = useRef<Position>({
@@ -370,9 +282,7 @@ export const MobileDemoAnimation = (): ReactElement => {
     measureRelativePosition(metricValueRef.current, metricValuePosition);
     measureRelativePosition(exportButtonRef.current, exportButtonPosition);
 
-    const measureRefArray = (
-      refs: (HTMLElement | null)[],
-    ): (Position | null)[] =>
+    const measureRefArray = (refs: (HTMLElement | null)[]): (Position | null)[] =>
       refs.map((ref) => {
         if (!ref) return null;
         const rect = ref.getBoundingClientRect();
@@ -457,10 +367,7 @@ export const MobileDemoAnimation = (): ReactElement => {
       setCursorType("crosshair");
     };
 
-    const simulateComment = async (
-      position: Position,
-      comment: string,
-    ): Promise<void> => {
+    const simulateComment = async (position: Position, comment: string): Promise<void> => {
       await wait(300);
       if (isCancelledRef.current) return;
 
@@ -622,8 +529,7 @@ export const MobileDemoAnimation = (): ReactElement => {
       isCancelledRef.current = true;
       if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
       if (tapTimerInnerRef.current) clearTimeout(tapTimerInnerRef.current);
-      if (idleRestartTimerRef.current)
-        clearTimeout(idleRestartTimerRef.current);
+      if (idleRestartTimerRef.current) clearTimeout(idleRestartTimerRef.current);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [resetAnimationState]);
@@ -635,8 +541,7 @@ export const MobileDemoAnimation = (): ReactElement => {
 
       if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
       if (tapTimerInnerRef.current) clearTimeout(tapTimerInnerRef.current);
-      if (idleRestartTimerRef.current)
-        clearTimeout(idleRestartTimerRef.current);
+      if (idleRestartTimerRef.current) clearTimeout(idleRestartTimerRef.current);
       isCancelledRef.current = true;
 
       triggerHaptic(VIBRATION_DURATION_MS);
@@ -655,14 +560,8 @@ export const MobileDemoAnimation = (): ReactElement => {
       const tapY = event.clientY - containerRect.top;
 
       const distanceToPosition = (position: Position): number => {
-        const clampedX = Math.max(
-          position.x,
-          Math.min(tapX, position.x + position.width),
-        );
-        const clampedY = Math.max(
-          position.y,
-          Math.min(tapY, position.y + position.height),
-        );
+        const clampedX = Math.max(position.x, Math.min(tapX, position.x + position.width));
+        const clampedY = Math.max(position.y, Math.min(tapY, position.y + position.height));
         return Math.hypot(tapX - clampedX, tapY - clampedY);
       };
 
@@ -704,15 +603,13 @@ export const MobileDemoAnimation = (): ReactElement => {
       let closestElement = allElements[0];
       let closestDistance = distanceToPosition(closestElement.position);
 
-      const areaOf = (position: Position): number =>
-        position.width * position.height;
+      const areaOf = (position: Position): number => position.width * position.height;
 
       for (let index = 1; index < allElements.length; index++) {
         const distance = distanceToPosition(allElements[index].position);
         const isSameDistance = distance === closestDistance;
         const isSmallerElement =
-          isSameDistance &&
-          areaOf(allElements[index].position) < areaOf(closestElement.position);
+          isSameDistance && areaOf(allElements[index].position) < areaOf(closestElement.position);
         if (distance < closestDistance || isSmallerElement) {
           closestDistance = distance;
           closestElement = allElements[index];
@@ -721,12 +618,8 @@ export const MobileDemoAnimation = (): ReactElement => {
 
       const targetPosition = closestElement.position;
       const labelX = getElementCenter(targetPosition).x;
-      const labelY =
-        targetPosition.y + targetPosition.height + LABEL_OFFSET_BELOW_PX;
-      const selectionBounds = createSelectionBox(
-        targetPosition,
-        SELECTION_PADDING_PX,
-      );
+      const labelY = targetPosition.y + targetPosition.height + LABEL_OFFSET_BELOW_PX;
+      const selectionBounds = createSelectionBox(targetPosition, SELECTION_PADDING_PX);
 
       setSelectionBox(selectionBounds);
       setSuccessFlash(selectionBounds);
@@ -789,19 +682,11 @@ export const MobileDemoAnimation = (): ReactElement => {
       `}</style>
 
       <div className="overflow-hidden rounded-xl border border-border bg-card shadow-lg shadow-black/20">
-        <div
-          ref={containerRef}
-          onClick={handleTap}
-          className="relative p-4 pb-14"
-        >
+        <div ref={containerRef} onClick={handleTap} className="relative p-4 pb-14">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <div className="text-[13px] font-semibold text-foreground">
-                Overview
-              </div>
-              <div className="text-[11px] text-muted-foreground">
-                Last 30 days
-              </div>
+              <div className="text-[13px] font-semibold text-foreground">Overview</div>
+              <div className="text-[11px] text-muted-foreground">Last 30 days</div>
             </div>
             <div
               ref={exportButtonRef}
@@ -818,18 +703,14 @@ export const MobileDemoAnimation = (): ReactElement => {
               }}
               className="rounded-lg border border-border bg-muted/50 p-2.5"
             >
-              <div className="mb-1 text-[10px] font-medium text-muted-foreground">
-                Revenue
-              </div>
+              <div className="mb-1 text-[10px] font-medium text-muted-foreground">Revenue</div>
               <div
                 ref={metricValueRef}
                 className="text-[18px] font-semibold tabular-nums text-foreground"
               >
                 $12.4k
               </div>
-              <div className="mt-1 text-[10px] text-muted-foreground">
-                +12.5%
-              </div>
+              <div className="mt-1 text-[10px] text-muted-foreground">+12.5%</div>
             </div>
 
             <div
@@ -838,15 +719,9 @@ export const MobileDemoAnimation = (): ReactElement => {
               }}
               className="rounded-lg border border-border bg-muted/50 p-2.5"
             >
-              <div className="mb-1 text-[10px] font-medium text-muted-foreground">
-                Users
-              </div>
-              <div className="text-[18px] font-semibold tabular-nums text-foreground">
-                2,847
-              </div>
-              <div className="mt-1 text-[10px] text-muted-foreground">
-                +8.2%
-              </div>
+              <div className="mb-1 text-[10px] font-medium text-muted-foreground">Users</div>
+              <div className="text-[18px] font-semibold tabular-nums text-foreground">2,847</div>
+              <div className="mt-1 text-[10px] text-muted-foreground">+8.2%</div>
             </div>
 
             <div
@@ -855,23 +730,15 @@ export const MobileDemoAnimation = (): ReactElement => {
               }}
               className="rounded-lg border border-border bg-muted/50 p-2.5"
             >
-              <div className="mb-1 text-[10px] font-medium text-muted-foreground">
-                Orders
-              </div>
-              <div className="text-[18px] font-semibold tabular-nums text-foreground">
-                384
-              </div>
-              <div className="mt-1 text-[10px] text-muted-foreground">
-                -2.1%
-              </div>
+              <div className="mb-1 text-[10px] font-medium text-muted-foreground">Orders</div>
+              <div className="text-[18px] font-semibold tabular-nums text-foreground">384</div>
+              <div className="mt-1 text-[10px] text-muted-foreground">-2.1%</div>
             </div>
           </div>
 
           <div className="rounded-lg border border-border">
             <div className="border-b border-border px-3 py-2">
-              <div className="text-[11px] font-medium text-muted-foreground">
-                Recent Activity
-              </div>
+              <div className="text-[11px] font-medium text-muted-foreground">Recent Activity</div>
             </div>
             <div className="divide-y divide-border">
               {ACTIVITY_DATA.map((activity, activityIndex) => (
@@ -884,13 +751,9 @@ export const MobileDemoAnimation = (): ReactElement => {
                 >
                   <div className="flex items-center gap-2">
                     <div className="h-5 w-5 rounded-full bg-muted/50" />
-                    <span className="text-[11px] text-muted-foreground">
-                      {activity.label}
-                    </span>
+                    <span className="text-[11px] text-muted-foreground">{activity.label}</span>
                   </div>
-                  <span className="text-[10px] text-muted-foreground">
-                    {activity.time}
-                  </span>
+                  <span className="text-[10px] text-muted-foreground">{activity.time}</span>
                 </div>
               ))}
             </div>
@@ -939,9 +802,7 @@ export const MobileDemoAnimation = (): ReactElement => {
           <div
             className={cn(
               "pointer-events-none absolute z-40 rounded-lg border-2 border-[#d239c0]/50 bg-[#d239c0]/8 transition-[opacity,transform] duration-150",
-              selectionBox.visible
-                ? "scale-100 opacity-100"
-                : "scale-[0.98] opacity-0",
+              selectionBox.visible ? "scale-100 opacity-100" : "scale-[0.98] opacity-0",
             )}
             style={{
               left: selectionBox.x,
@@ -954,9 +815,7 @@ export const MobileDemoAnimation = (): ReactElement => {
           <div
             className={cn(
               "pointer-events-none absolute z-42 rounded-lg border-2 border-[#d239c0] bg-[#d239c0]/15 transition-[opacity,transform] duration-200",
-              successFlash.visible
-                ? "scale-100 opacity-100"
-                : "scale-[1.02] opacity-0",
+              successFlash.visible ? "scale-100 opacity-100" : "scale-[1.02] opacity-0",
             )}
             style={{
               left: successFlash.x,
@@ -999,19 +858,13 @@ export const MobileDemoAnimation = (): ReactElement => {
             {labelMode === "grabbing" && (
               <div className="flex items-center gap-[5px] py-1.5 px-2">
                 <LoaderIcon />
-                <span className="shimmer-text text-[13px] leading-4 font-medium">
-                  Grabbing…
-                </span>
+                <span className="shimmer-text text-[13px] leading-4 font-medium">Grabbing…</span>
               </div>
             )}
-            {(labelMode === "copied" ||
-              labelMode === "submitted" ||
-              labelMode === "fading") && (
+            {(labelMode === "copied" || labelMode === "submitted" || labelMode === "fading") && (
               <div className="flex items-center gap-[5px] py-1.5 px-2">
                 <CheckIcon />
-                <span className="text-[13px] leading-4 font-medium text-black">
-                  Copied
-                </span>
+                <span className="text-[13px] leading-4 font-medium text-black">Copied</span>
               </div>
             )}
             {labelMode === "commenting" && (

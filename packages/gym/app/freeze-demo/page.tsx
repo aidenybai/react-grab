@@ -72,10 +72,7 @@ const BouncingTimer = () => {
   };
 
   return (
-    <div
-      ref={containerRef}
-      className="relative h-full w-full overflow-hidden bg-black"
-    >
+    <div ref={containerRef} className="relative h-full w-full overflow-hidden bg-black">
       <div
         ref={timerRef}
         className="absolute select-none text-6xl font-bold tabular-nums transition-colors duration-300 md:text-8xl"

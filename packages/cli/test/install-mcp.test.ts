@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import {
   type ClientDefinition,
   upsertIntoJsonc,
@@ -21,9 +21,7 @@ afterEach(() => {
   fs.rmSync(tempDir, { recursive: true, force: true });
 });
 
-const makeJsonClient = (
-  overrides: Partial<ClientDefinition> = {},
-): ClientDefinition => ({
+const makeJsonClient = (overrides: Partial<ClientDefinition> = {}): ClientDefinition => ({
   name: "TestClient",
   configPath: path.join(tempDir, "config.json"),
   configKey: "mcpServers",
@@ -32,9 +30,7 @@ const makeJsonClient = (
   ...overrides,
 });
 
-const makeTomlClient = (
-  overrides: Partial<ClientDefinition> = {},
-): ClientDefinition => ({
+const makeTomlClient = (overrides: Partial<ClientDefinition> = {}): ClientDefinition => ({
   name: "TestToml",
   configPath: path.join(tempDir, "config.toml"),
   configKey: "mcp_servers",
@@ -103,10 +99,7 @@ describe("installJsonClient", () => {
 
   it("should create the configKey when it does not exist", () => {
     const client = makeJsonClient();
-    fs.writeFileSync(
-      client.configPath,
-      JSON.stringify({ someOtherKey: "value" }),
-    );
+    fs.writeFileSync(client.configPath, JSON.stringify({ someOtherKey: "value" }));
 
     installJsonClient(client);
 
@@ -133,9 +126,7 @@ describe("installJsonClient", () => {
     installJsonClient(client);
 
     const content = JSON.parse(fs.readFileSync(client.configPath, "utf8"));
-    expect(content["amp.mcpServers"]["react-grab-mcp"]).toEqual(
-      client.serverConfig,
-    );
+    expect(content["amp.mcpServers"]["react-grab-mcp"]).toEqual(client.serverConfig);
   });
 });
 
@@ -243,10 +234,7 @@ describe("installTomlClient", () => {
 
   it("should append to an existing TOML file", () => {
     const client = makeTomlClient();
-    fs.writeFileSync(
-      client.configPath,
-      '[mcp_servers.other]\ncommand = "other"\n',
-    );
+    fs.writeFileSync(client.configPath, '[mcp_servers.other]\ncommand = "other"\n');
 
     installTomlClient(client);
 

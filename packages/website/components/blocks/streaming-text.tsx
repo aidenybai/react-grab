@@ -22,11 +22,7 @@ const FadeIn = ({
     <Component
       initial={shouldReduceMotion ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={
-        shouldReduceMotion
-          ? { duration: 0 }
-          : { duration: 0.4, ease: "easeOut", delay }
-      }
+      transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.4, ease: "easeOut", delay }}
     >
       {children}
     </Component>
@@ -48,11 +44,7 @@ const StreamingChunks = ({
         key={chunk.id}
         initial={shouldReduceMotion ? false : { opacity: 0.2 }}
         animate={{ opacity: 1 }}
-        transition={
-          shouldReduceMotion
-            ? { duration: 0 }
-            : { duration: 0.25, ease: "easeOut" }
-        }
+        transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.25, ease: "easeOut" }}
       >
         {chunk.text}
       </motion.span>
@@ -92,10 +84,7 @@ export const StreamingText = ({
             }
             return (
               <span key={`text-${index}`}>
-                <StreamingChunks
-                  chunks={chunks}
-                  shouldReduceMotion={shouldReduceMotion}
-                />
+                <StreamingChunks chunks={chunks} shouldReduceMotion={shouldReduceMotion} />
               </span>
             );
           }
@@ -108,11 +97,7 @@ export const StreamingText = ({
   if (typeof content !== "string") {
     if (isInstantContent) {
       return (
-        <FadeIn
-          delay={animationDelay}
-          as="div"
-          shouldReduceMotion={shouldReduceMotion}
-        >
+        <FadeIn delay={animationDelay} as="div" shouldReduceMotion={shouldReduceMotion}>
           {content}
         </FadeIn>
       );
@@ -128,9 +113,7 @@ export const StreamingText = ({
     );
   }
 
-  return (
-    <StreamingChunks chunks={chunks} shouldReduceMotion={shouldReduceMotion} />
-  );
+  return <StreamingChunks chunks={chunks} shouldReduceMotion={shouldReduceMotion} />;
 };
 
 StreamingText.displayName = "StreamingText";

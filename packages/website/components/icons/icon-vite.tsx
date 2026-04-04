@@ -4,11 +4,7 @@ interface IconViteProps {
   className?: string;
 }
 
-export const IconVite = ({
-  width = 14,
-  height = 14,
-  className = "",
-}: IconViteProps) => (
+export const IconVite = ({ width = 14, height = 14, className = "" }: IconViteProps) => (
   <span
     className={`inline-flex grayscale opacity-50 ${className}`}
     dangerouslySetInnerHTML={{

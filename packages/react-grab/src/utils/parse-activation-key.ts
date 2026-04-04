@@ -58,21 +58,12 @@ export const parseActivationKey = (
 
   return (event: KeyboardEvent): boolean => {
     if (targetKey === null) {
-      const metaMatches = parsed.metaKey
-        ? event.metaKey || event.key === "Meta"
-        : true;
-      const ctrlMatches = parsed.ctrlKey
-        ? event.ctrlKey || event.key === "Control"
-        : true;
-      const shiftMatches = parsed.shiftKey
-        ? event.shiftKey || event.key === "Shift"
-        : true;
-      const altMatches = parsed.altKey
-        ? event.altKey || event.key === "Alt"
-        : true;
+      const metaMatches = parsed.metaKey ? event.metaKey || event.key === "Meta" : true;
+      const ctrlMatches = parsed.ctrlKey ? event.ctrlKey || event.key === "Control" : true;
+      const shiftMatches = parsed.shiftKey ? event.shiftKey || event.key === "Shift" : true;
+      const altMatches = parsed.altKey ? event.altKey || event.key === "Alt" : true;
 
-      const allRequiredModifiersPressed =
-        metaMatches && ctrlMatches && shiftMatches && altMatches;
+      const allRequiredModifiersPressed = metaMatches && ctrlMatches && shiftMatches && altMatches;
 
       const requiredModifierCount = [
         parsed.metaKey,
@@ -88,18 +79,13 @@ export const parseActivationKey = (
         event.altKey || event.key === "Alt",
       ].filter(Boolean).length;
 
-      return (
-        allRequiredModifiersPressed &&
-        pressedModifierCount >= requiredModifierCount
-      );
+      return allRequiredModifiersPressed && pressedModifierCount >= requiredModifierCount;
     }
 
     const keyMatches =
-      event.key?.toLowerCase() === targetKey ||
-      keyMatchesCode(targetKey, event.code);
+      event.key?.toLowerCase() === targetKey || keyMatchesCode(targetKey, event.code);
 
-    const hasModifier =
-      parsed.metaKey || parsed.ctrlKey || parsed.shiftKey || parsed.altKey;
+    const hasModifier = parsed.metaKey || parsed.ctrlKey || parsed.shiftKey || parsed.altKey;
 
     const modifiersMatch = hasModifier
       ? (parsed.metaKey ? event.metaKey : true) &&

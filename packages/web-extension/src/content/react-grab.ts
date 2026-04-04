@@ -1,10 +1,7 @@
 import { init } from "react-grab/core";
 import type { Options, ReactGrabAPI } from "react-grab";
 import TurndownService from "turndown";
-import {
-  LOCALHOST_INIT_DELAY_MS,
-  STATE_QUERY_TIMEOUT_MS,
-} from "../constants.js";
+import { LOCALHOST_INIT_DELAY_MS, STATE_QUERY_TIMEOUT_MS } from "../constants.js";
 
 declare global {
   interface Window {
@@ -44,10 +41,7 @@ const handleToolbarStateFromApi = (toolbarState: ToolbarState | null): void => {
     return;
   }
   lastToolbarState = toolbarState;
-  window.postMessage(
-    { type: "__REACT_GRAB_TOOLBAR_STATE_SAVE__", state: toolbarState },
-    "*",
-  );
+  window.postMessage({ type: "__REACT_GRAB_TOOLBAR_STATE_SAVE__", state: toolbarState }, "*");
 };
 
 const subscribeToStateChanges = (api: ReactGrabAPI): void => {
@@ -64,9 +58,7 @@ const createExtensionApi = (): ReactGrabAPI => {
 
   if (!isLocalhost) {
     options.getContent = (elements) => {
-      const combinedHtml = elements
-        .map((element) => element.outerHTML)
-        .join("\n\n");
+      const combinedHtml = elements.map((element) => element.outerHTML).join("\n\n");
       return turndownService.turndown(combinedHtml);
     };
   }

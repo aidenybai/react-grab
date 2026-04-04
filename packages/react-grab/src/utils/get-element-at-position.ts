@@ -4,10 +4,7 @@ import {
   ELEMENT_POSITION_THROTTLE_MS,
   POINTER_EVENTS_RESUME_DEBOUNCE_MS,
 } from "../constants.js";
-import {
-  suspendPointerEventsFreeze,
-  resumePointerEventsFreeze,
-} from "./freeze-pseudo-states.js";
+import { suspendPointerEventsFreeze, resumePointerEventsFreeze } from "./freeze-pseudo-states.js";
 
 interface PositionCache {
   clientX: number;
@@ -36,12 +33,7 @@ const cancelScheduledResume = (): void => {
   }
 };
 
-const isWithinThreshold = (
-  x1: number,
-  y1: number,
-  x2: number,
-  y2: number,
-): boolean => {
+const isWithinThreshold = (x1: number, y1: number, x2: number, y2: number): boolean => {
   const deltaX = Math.abs(x1 - x2);
   const deltaY = Math.abs(y1 - y2);
   return (
@@ -50,10 +42,7 @@ const isWithinThreshold = (
   );
 };
 
-export const getElementsAtPoint = (
-  clientX: number,
-  clientY: number,
-): Element[] => {
+export const getElementsAtPoint = (clientX: number, clientY: number): Element[] => {
   cancelScheduledResume();
   suspendPointerEventsFreeze();
   const elements = document.elementsFromPoint(clientX, clientY);
@@ -61,21 +50,12 @@ export const getElementsAtPoint = (
   return elements;
 };
 
-export const getElementAtPosition = (
-  clientX: number,
-  clientY: number,
-): Element | null => {
+export const getElementAtPosition = (clientX: number, clientY: number): Element | null => {
   const now = performance.now();
 
   if (cache) {
-    const isPositionClose = isWithinThreshold(
-      clientX,
-      clientY,
-      cache.clientX,
-      cache.clientY,
-    );
-    const isWithinThrottle =
-      now - cache.timestamp < ELEMENT_POSITION_THROTTLE_MS;
+    const isPositionClose = isWithinThreshold(clientX, clientY, cache.clientX, cache.clientY);
+    const isWithinThrottle = now - cache.timestamp < ELEMENT_POSITION_THROTTLE_MS;
 
     if (isPositionClose || isWithinThrottle) {
       return cache.element;
@@ -108,10 +88,7 @@ export const getElementAtPosition = (
   } else {
     const elementsAtPoint = document.elementsFromPoint(clientX, clientY);
     for (const candidateElement of elementsAtPoint) {
-      if (
-        candidateElement !== topElement &&
-        isValidGrabbableElement(candidateElement)
-      ) {
+      if (candidateElement !== topElement && isValidGrabbableElement(candidateElement)) {
         result = candidateElement;
         break;
       }

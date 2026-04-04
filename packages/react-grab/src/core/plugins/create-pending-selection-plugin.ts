@@ -1,9 +1,4 @@
-import type {
-  Plugin,
-  ReactGrabAPI,
-  ActionContextHooks,
-  ContextMenuAction,
-} from "../../types.js";
+import type { Plugin, ReactGrabAPI, ActionContextHooks, ContextMenuAction } from "../../types.js";
 
 type ContextMenuActionFactory =
   | ContextMenuAction
@@ -15,9 +10,7 @@ interface PendingSelectionPluginConfig {
   cleanup?: () => void;
 }
 
-export const createPendingSelectionPlugin = (
-  config: PendingSelectionPluginConfig,
-): Plugin => ({
+export const createPendingSelectionPlugin = (config: PendingSelectionPluginConfig): Plugin => ({
   name: config.name,
   setup: (api, hooks) => {
     const resolvedContextMenuAction =

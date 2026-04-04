@@ -10,15 +10,12 @@ test.describe("API Methods", () => {
       expect(await reactGrab.isOverlayVisible()).toBe(true);
     });
 
-    test("deactivate() should deactivate the overlay", async ({
-      reactGrab,
-    }) => {
+    test("deactivate() should deactivate the overlay", async ({ reactGrab }) => {
       await reactGrab.activate();
       expect(await reactGrab.isOverlayVisible()).toBe(true);
 
       await reactGrab.page.evaluate(() => {
-        const api = (window as { __REACT_GRAB__?: { deactivate: () => void } })
-          .__REACT_GRAB__;
+        const api = (window as { __REACT_GRAB__?: { deactivate: () => void } }).__REACT_GRAB__;
         api?.deactivate();
       });
       await reactGrab.page.waitForTimeout(100);
@@ -46,9 +43,7 @@ test.describe("API Methods", () => {
       expect(state.isActive).toBe(true);
     });
 
-    test("multiple rapid activations should be handled", async ({
-      reactGrab,
-    }) => {
+    test("multiple rapid activations should be handled", async ({ reactGrab }) => {
       for (let i = 0; i < 5; i++) {
         await reactGrab.activate();
         await reactGrab.page.waitForTimeout(20);
@@ -57,9 +52,7 @@ test.describe("API Methods", () => {
       expect(await reactGrab.isOverlayVisible()).toBe(true);
     });
 
-    test("multiple rapid toggles should maintain consistency", async ({
-      reactGrab,
-    }) => {
+    test("multiple rapid toggles should maintain consistency", async ({ reactGrab }) => {
       for (let i = 0; i < 6; i++) {
         await reactGrab.toggle();
         await reactGrab.page.waitForTimeout(50);
@@ -80,9 +73,7 @@ test.describe("API Methods", () => {
       expect(state.isActive).toBe(true);
     });
 
-    test("should return isDragging correctly during drag", async ({
-      reactGrab,
-    }) => {
+    test("should return isDragging correctly during drag", async ({ reactGrab }) => {
       await reactGrab.activate();
 
       const listItem = reactGrab.page.locator("li").first();
@@ -99,9 +90,7 @@ test.describe("API Methods", () => {
       await reactGrab.page.mouse.up();
     });
 
-    test("should return isCopying correctly during copy", async ({
-      reactGrab,
-    }) => {
+    test("should return isCopying correctly during copy", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement("h1");
       await reactGrab.waitForSelectionBox();
@@ -140,9 +129,7 @@ test.describe("API Methods", () => {
 
   test.describe("copyElement()", () => {
     test("should copy single element to clipboard", async ({ reactGrab }) => {
-      const success = await reactGrab.copyElementViaApi(
-        "[data-testid='todo-list'] h1",
-      );
+      const success = await reactGrab.copyElementViaApi("[data-testid='todo-list'] h1");
       expect(success).toBe(true);
 
       await reactGrab.page.waitForTimeout(500);
@@ -159,12 +146,8 @@ test.describe("API Methods", () => {
       expect(clipboardContent).toBeTruthy();
     });
 
-    test("should return false for non-existent element", async ({
-      reactGrab,
-    }) => {
-      const success = await reactGrab.copyElementViaApi(
-        ".non-existent-element",
-      );
+    test("should return false for non-existent element", async ({ reactGrab }) => {
+      const success = await reactGrab.copyElementViaApi(".non-existent-element");
       expect(success).toBe(false);
     });
 
@@ -177,10 +160,7 @@ test.describe("API Methods", () => {
             };
           }
         ).__REACT_GRAB__;
-        const elements = Array.from(document.querySelectorAll("li")).slice(
-          0,
-          3,
-        );
+        const elements = Array.from(document.querySelectorAll("li")).slice(0, 3);
         if (!api || elements.length === 0) return false;
         return api.copyElement(elements);
       });
@@ -189,27 +169,21 @@ test.describe("API Methods", () => {
   });
 
   test.describe("Theme via setOptions", () => {
-    test("setOptions({ theme }) should apply hue rotation filter", async ({
-      reactGrab,
-    }) => {
+    test("setOptions({ theme }) should apply hue rotation filter", async ({ reactGrab }) => {
       await reactGrab.updateOptions({ theme: { hue: 90 } });
       await reactGrab.activate();
 
       const hasFilter = await reactGrab.page.evaluate(() => {
         const host = document.querySelector("[data-react-grab]");
         const shadowRoot = host?.shadowRoot;
-        const root = shadowRoot?.querySelector(
-          "[data-react-grab]",
-        ) as HTMLElement;
+        const root = shadowRoot?.querySelector("[data-react-grab]") as HTMLElement;
         return root?.style.filter?.includes("hue-rotate") ?? false;
       });
 
       expect(hasFilter).toBe(true);
     });
 
-    test("multiple theme updates via setOptions should accumulate", async ({
-      reactGrab,
-    }) => {
+    test("multiple theme updates via setOptions should accumulate", async ({ reactGrab }) => {
       await reactGrab.updateOptions({ theme: { hue: 45 } });
       await reactGrab.updateOptions({
         theme: { elementLabel: { enabled: false } },
@@ -219,9 +193,7 @@ test.describe("API Methods", () => {
       const hasFilter = await reactGrab.page.evaluate(() => {
         const host = document.querySelector("[data-react-grab]");
         const shadowRoot = host?.shadowRoot;
-        const root = shadowRoot?.querySelector(
-          "[data-react-grab]",
-        ) as HTMLElement;
+        const root = shadowRoot?.querySelector("[data-react-grab]") as HTMLElement;
         return root?.style.filter?.includes("hue-rotate(45deg)") ?? false;
       });
 
@@ -244,9 +216,7 @@ test.describe("API Methods", () => {
       expect(canReinit).toBe(true);
     });
 
-    test("should remove overlay host element on dispose", async ({
-      reactGrab,
-    }) => {
+    test("should remove overlay host element on dispose", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.dispose();
 
@@ -259,9 +229,7 @@ test.describe("API Methods", () => {
       expect(hostExists).toBe(true);
     });
 
-    test("should allow re-initialization after dispose", async ({
-      reactGrab,
-    }) => {
+    test("should allow re-initialization after dispose", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.dispose();
 
@@ -277,9 +245,7 @@ test.describe("API Methods", () => {
       let callbackCalled = false;
 
       await reactGrab.page.evaluate(() => {
-        (
-          window as { __TEST_CALLBACK_CALLED__?: boolean }
-        ).__TEST_CALLBACK_CALLED__ = false;
+        (window as { __TEST_CALLBACK_CALLED__?: boolean }).__TEST_CALLBACK_CALLED__ = false;
         const api = (
           window as {
             __REACT_GRAB__?: {
@@ -291,9 +257,7 @@ test.describe("API Methods", () => {
           name: "test-plugin",
           hooks: {
             onActivate: () => {
-              (
-                window as { __TEST_CALLBACK_CALLED__?: boolean }
-              ).__TEST_CALLBACK_CALLED__ = true;
+              (window as { __TEST_CALLBACK_CALLED__?: boolean }).__TEST_CALLBACK_CALLED__ = true;
             },
           },
         });
@@ -302,18 +266,13 @@ test.describe("API Methods", () => {
       await reactGrab.activate();
 
       callbackCalled = await reactGrab.page.evaluate(() => {
-        return (
-          (window as { __TEST_CALLBACK_CALLED__?: boolean })
-            .__TEST_CALLBACK_CALLED__ ?? false
-        );
+        return (window as { __TEST_CALLBACK_CALLED__?: boolean }).__TEST_CALLBACK_CALLED__ ?? false;
       });
 
       expect(callbackCalled).toBe(true);
     });
 
-    test("should allow registering plugin with multiple hooks", async ({
-      reactGrab,
-    }) => {
+    test("should allow registering plugin with multiple hooks", async ({ reactGrab }) => {
       await reactGrab.page.evaluate(() => {
         (window as { __CALLBACKS__?: string[] }).__CALLBACKS__ = [];
         const api = (
@@ -327,14 +286,10 @@ test.describe("API Methods", () => {
           name: "test-plugin",
           hooks: {
             onActivate: () => {
-              (window as { __CALLBACKS__?: string[] }).__CALLBACKS__?.push(
-                "activate",
-              );
+              (window as { __CALLBACKS__?: string[] }).__CALLBACKS__?.push("activate");
             },
             onDeactivate: () => {
-              (window as { __CALLBACKS__?: string[] }).__CALLBACKS__?.push(
-                "deactivate",
-              );
+              (window as { __CALLBACKS__?: string[] }).__CALLBACKS__?.push("deactivate");
             },
           },
         });
@@ -352,43 +307,8 @@ test.describe("API Methods", () => {
     });
   });
 
-  test.describe("setOptions() for agent", () => {
-    test("should configure agent provider", async ({ reactGrab }) => {
-      await reactGrab.setupMockAgent();
-
-      const state = await reactGrab.page.evaluate(() => {
-        const api = (
-          window as {
-            __REACT_GRAB__?: { getState: () => Record<string, unknown> };
-          }
-        ).__REACT_GRAB__;
-        return api?.getState();
-      });
-
-      expect(state).toBeDefined();
-    });
-
-    test("should allow agent provider with custom options", async ({
-      reactGrab,
-    }) => {
-      await reactGrab.setupMockAgent({
-        delay: 100,
-        statusUpdates: ["Custom status 1", "Custom status 2"],
-      });
-
-      const hasAgent = await reactGrab.page.evaluate(() => {
-        const host = document.querySelector("[data-react-grab]");
-        return host !== null;
-      });
-
-      expect(hasAgent).toBe(true);
-    });
-  });
-
   test.describe("Edge Cases", () => {
-    test("API should work after multiple activation cycles", async ({
-      reactGrab,
-    }) => {
+    test("API should work after multiple activation cycles", async ({ reactGrab }) => {
       for (let i = 0; i < 3; i++) {
         await reactGrab.activate();
         await reactGrab.hoverElement("li");
@@ -400,9 +320,7 @@ test.describe("API Methods", () => {
       expect(await reactGrab.isOverlayVisible()).toBe(true);
     });
 
-    test("getState should be consistent with isActive", async ({
-      reactGrab,
-    }) => {
+    test("getState should be consistent with isActive", async ({ reactGrab }) => {
       const state1 = await reactGrab.getState();
       const isActive1 = await reactGrab.isOverlayVisible();
       expect(state1.isActive).toBe(isActive1);
@@ -414,9 +332,7 @@ test.describe("API Methods", () => {
       expect(state2.isActive).toBe(isActive2);
     });
 
-    test("theme should persist across activation cycles", async ({
-      reactGrab,
-    }) => {
+    test("theme should persist across activation cycles", async ({ reactGrab }) => {
       await reactGrab.updateOptions({ theme: { hue: 120 } });
       await reactGrab.activate();
       await reactGrab.deactivate();
@@ -425,9 +341,7 @@ test.describe("API Methods", () => {
       const hasFilter = await reactGrab.page.evaluate(() => {
         const host = document.querySelector("[data-react-grab]");
         const shadowRoot = host?.shadowRoot;
-        const root = shadowRoot?.querySelector(
-          "[data-react-grab]",
-        ) as HTMLElement;
+        const root = shadowRoot?.querySelector("[data-react-grab]") as HTMLElement;
         return root?.style.filter?.includes("hue-rotate(120deg)") ?? false;
       });
       expect(hasFilter).toBe(true);

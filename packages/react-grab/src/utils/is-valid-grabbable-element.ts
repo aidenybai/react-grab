@@ -12,10 +12,7 @@ const isReactGrabElement = (element: Element): boolean => {
   if (element.hasAttribute("data-react-grab")) return true;
 
   const rootNode = element.getRootNode();
-  return (
-    rootNode instanceof ShadowRoot &&
-    rootNode.host.hasAttribute("data-react-grab")
-  );
+  return rootNode instanceof ShadowRoot && rootNode.host.hasAttribute("data-react-grab");
 };
 
 const isUserIgnoredElement = (element: Element): boolean =>
@@ -37,10 +34,7 @@ const isDevToolsOverlay = (computedStyle: CSSStyleDeclaration): boolean => {
   );
 };
 
-const isFullViewportOverlay = (
-  element: Element,
-  computedStyle: CSSStyleDeclaration,
-): boolean => {
+const isFullViewportOverlay = (element: Element, computedStyle: CSSStyleDeclaration): boolean => {
   const position = computedStyle.position;
   if (position !== "fixed" && position !== "absolute") {
     return false;

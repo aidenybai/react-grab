@@ -3,9 +3,7 @@ import { checkIsNextProject } from "../core/context.js";
 import { getNextBasePath } from "./get-next-base-path.js";
 
 const OPEN_FILE_BASE_URL =
-  process.env.NODE_ENV === "production"
-    ? "https://react-grab.com"
-    : "http://localhost:3000";
+  process.env.NODE_ENV === "production" ? "https://react-grab.com" : "http://localhost:3000";
 
 const tryDevServerOpen = async (
   filePath: string,
@@ -33,16 +31,11 @@ export const openFile = async (
 ): Promise<void> => {
   filePath = normalizeFileName(filePath);
 
-  const wasOpenedByDevServer = await tryDevServerOpen(
-    filePath,
-    lineNumber,
-  ).catch(() => false);
+  const wasOpenedByDevServer = await tryDevServerOpen(filePath, lineNumber).catch(() => false);
   if (wasOpenedByDevServer) return;
 
   const lineParam = lineNumber ? `&line=${lineNumber}` : "";
   const rawUrl = `${OPEN_FILE_BASE_URL}/open-file?url=${encodeURIComponent(filePath)}${lineParam}`;
-  const url = transformUrl
-    ? transformUrl(rawUrl, filePath, lineNumber)
-    : rawUrl;
+  const url = transformUrl ? transformUrl(rawUrl, filePath, lineNumber) : rawUrl;
   window.open(url, "_blank", "noopener,noreferrer");
 };

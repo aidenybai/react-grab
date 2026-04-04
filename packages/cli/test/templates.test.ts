@@ -1,9 +1,5 @@
-import { describe, expect, it } from "vitest";
-import {
-  NEXT_APP_ROUTER_SCRIPT,
-  VITE_IMPORT,
-  WEBPACK_IMPORT,
-} from "../src/utils/templates.js";
+import { describe, expect, it } from "vite-plus/test";
+import { NEXT_APP_ROUTER_SCRIPT, VITE_IMPORT, WEBPACK_IMPORT } from "../src/utils/templates.js";
 
 describe("Next.js App Router templates", () => {
   it("should generate basic script without agent", () => {

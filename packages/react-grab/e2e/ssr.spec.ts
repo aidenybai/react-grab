@@ -8,18 +8,18 @@ const PACKAGE_DIRECTORY = path.resolve(DIRECTORY, "..");
 
 test.describe("SSR Compatibility", () => {
   test("importing react-grab in Node.js should not throw", () => {
-    const result = execSync(
-      `node -e "require('./dist/index.cjs'); console.log('OK')"`,
-      { cwd: PACKAGE_DIRECTORY, encoding: "utf-8" },
-    );
+    const result = execSync(`node -e "require('./dist/index.cjs'); console.log('OK')"`, {
+      cwd: PACKAGE_DIRECTORY,
+      encoding: "utf-8",
+    });
     expect(result.trim()).toBe("OK");
   });
 
   test("importing react-grab/core in Node.js should not throw", () => {
-    const result = execSync(
-      `node -e "require('./dist/core/index.cjs'); console.log('OK')"`,
-      { cwd: PACKAGE_DIRECTORY, encoding: "utf-8" },
-    );
+    const result = execSync(`node -e "require('./dist/core/index.cjs'); console.log('OK')"`, {
+      cwd: PACKAGE_DIRECTORY,
+      encoding: "utf-8",
+    });
     expect(result.trim()).toBe("OK");
   });
 
@@ -40,9 +40,7 @@ test.describe("SSR Compatibility", () => {
   });
 
   test("ESM import of react-grab in Node.js should not throw", () => {
-    const esmEntryUrl = pathToFileURL(
-      path.resolve(PACKAGE_DIRECTORY, "dist/index.js"),
-    ).href;
+    const esmEntryUrl = pathToFileURL(path.resolve(PACKAGE_DIRECTORY, "dist/index.js")).href;
     const result = execSync(
       `node -e "import('${esmEntryUrl}').then(() => console.log('OK')).catch(e => { console.error(e); process.exit(1); })"`,
       { cwd: PACKAGE_DIRECTORY, encoding: "utf-8" },

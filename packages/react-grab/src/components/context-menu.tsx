@@ -1,12 +1,4 @@
-import {
-  Show,
-  For,
-  onMount,
-  onCleanup,
-  createSignal,
-  createEffect,
-  createMemo,
-} from "solid-js";
+import { Show, For, onMount, onCleanup, createSignal, createEffect, createMemo } from "solid-js";
 import type { Component } from "solid-js";
 import type {
   Position,
@@ -107,22 +99,16 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     const cursorX = clickPosition.x ?? bounds.x + bounds.width / 2;
     const positionLeft = Math.max(
       LABEL_GAP_PX,
-      Math.min(
-        cursorX - labelWidth / 2,
-        window.innerWidth - labelWidth - LABEL_GAP_PX,
-      ),
+      Math.min(cursorX - labelWidth / 2, window.innerWidth - labelWidth - LABEL_GAP_PX),
     );
     const arrowLeft = Math.max(
       ARROW_HEIGHT_PX,
       Math.min(cursorX - positionLeft, labelWidth - ARROW_HEIGHT_PX),
     );
 
-    const positionBelow =
-      bounds.y + bounds.height + ARROW_HEIGHT_PX + LABEL_GAP_PX;
-    const positionAbove =
-      bounds.y - labelHeight - ARROW_HEIGHT_PX - LABEL_GAP_PX;
-    const wouldOverflowBottom =
-      positionBelow + labelHeight > window.innerHeight;
+    const positionBelow = bounds.y + bounds.height + ARROW_HEIGHT_PX + LABEL_GAP_PX;
+    const positionAbove = bounds.y - labelHeight - ARROW_HEIGHT_PX - LABEL_GAP_PX;
+    const wouldOverflowBottom = positionBelow + labelHeight > window.innerHeight;
     const hasSpaceAbove = positionAbove >= 0;
 
     const shouldFlipAbove = wouldOverflowBottom && hasSpaceAbove;
@@ -133,10 +119,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       const cursorY = clickPosition.y ?? bounds.y + bounds.height / 2;
       positionTop = Math.max(
         LABEL_GAP_PX,
-        Math.min(
-          cursorY + LABEL_GAP_PX,
-          window.innerHeight - labelHeight - LABEL_GAP_PX,
-        ),
+        Math.min(cursorY + LABEL_GAP_PX, window.innerHeight - labelHeight - LABEL_GAP_PX),
       );
       arrowPosition = "top";
     }
@@ -192,9 +175,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       };
 
       if (isEnter) {
-        const enterAction = pluginActions.find(
-          (action) => action.shortcut === "Enter",
-        );
+        const enterAction = pluginActions.find((action) => action.shortcut === "Enter");
         if (enterAction) {
           runActionIfAllowed(enterAction);
         }
@@ -266,9 +247,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
               onClick={(event) => {
                 event.stopPropagation();
                 if (props.hasFilePath && props.actionContext) {
-                  const openAction = props.actions?.find(
-                    (action) => action.id === "open",
-                  );
+                  const openAction = props.actions?.find((action) => action.id === "open");
                   openAction?.onAction(props.actionContext);
                 }
               }}

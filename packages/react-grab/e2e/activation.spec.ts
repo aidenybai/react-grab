@@ -11,9 +11,7 @@ test.describe("Activation Flows", () => {
     expect(isVisibleAfter).toBe(true);
   });
 
-  test("should not activate when pressing C without Cmd/Ctrl modifier", async ({
-    reactGrab,
-  }) => {
+  test("should not activate when pressing C without Cmd/Ctrl modifier", async ({ reactGrab }) => {
     await reactGrab.page.keyboard.down("c");
     await reactGrab.page.keyboard.up("c");
 
@@ -21,9 +19,7 @@ test.describe("Activation Flows", () => {
     expect(isVisible).toBe(false);
   });
 
-  test("should deactivate overlay when pressing Escape", async ({
-    reactGrab,
-  }) => {
+  test("should deactivate overlay when pressing Escape", async ({ reactGrab }) => {
     await reactGrab.activate();
     expect(await reactGrab.isOverlayVisible()).toBe(true);
 
@@ -32,9 +28,7 @@ test.describe("Activation Flows", () => {
     expect(await reactGrab.isOverlayVisible()).toBe(false);
   });
 
-  test("should toggle activation state with repeated activation", async ({
-    reactGrab,
-  }) => {
+  test("should toggle activation state with repeated activation", async ({ reactGrab }) => {
     await reactGrab.activate();
     expect(await reactGrab.isOverlayVisible()).toBe(true);
 
@@ -45,9 +39,7 @@ test.describe("Activation Flows", () => {
     expect(await reactGrab.isOverlayVisible()).toBe(true);
   });
 
-  test("should maintain activation during mouse movement", async ({
-    reactGrab,
-  }) => {
+  test("should maintain activation during mouse movement", async ({ reactGrab }) => {
     await reactGrab.activate();
     expect(await reactGrab.isOverlayVisible()).toBe(true);
 
@@ -58,9 +50,7 @@ test.describe("Activation Flows", () => {
     expect(await reactGrab.isOverlayVisible()).toBe(true);
   });
 
-  test("should create overlay host element with correct attribute", async ({
-    reactGrab,
-  }) => {
+  test("should create overlay host element with correct attribute", async ({ reactGrab }) => {
     await reactGrab.activate();
 
     const hostExists = await reactGrab.page.evaluate(() => {
@@ -83,9 +73,7 @@ test.describe("Activation Flows", () => {
 });
 
 test.describe("Activation Mode Configuration", () => {
-  test("toggle mode should activate on first keyboard activation", async ({
-    reactGrab,
-  }) => {
+  test("toggle mode should activate on first keyboard activation", async ({ reactGrab }) => {
     await reactGrab.activateViaKeyboard();
     expect(await reactGrab.isOverlayVisible()).toBe(true);
   });
@@ -108,9 +96,7 @@ test.describe("Activation Mode Configuration", () => {
     expect(await reactGrab.isOverlayVisible()).toBe(false);
   });
 
-  test("should activate when focused on input element", async ({
-    reactGrab,
-  }) => {
+  test("should activate when focused on input element", async ({ reactGrab }) => {
     await reactGrab.page.click("[data-testid='test-input']");
 
     await reactGrab.page.keyboard.down(reactGrab.modifierKey);
@@ -119,9 +105,7 @@ test.describe("Activation Mode Configuration", () => {
     await reactGrab.page.keyboard.up("c");
     await reactGrab.page.keyboard.up(reactGrab.modifierKey);
 
-    await expect
-      .poll(() => reactGrab.isOverlayVisible(), { timeout: 1000 })
-      .toBe(true);
+    await expect.poll(() => reactGrab.isOverlayVisible(), { timeout: 1000 }).toBe(true);
   });
 
   test("should activate when focused on textarea", async ({ reactGrab }) => {
@@ -133,14 +117,10 @@ test.describe("Activation Mode Configuration", () => {
     await reactGrab.page.keyboard.up("c");
     await reactGrab.page.keyboard.up(reactGrab.modifierKey);
 
-    await expect
-      .poll(() => reactGrab.isOverlayVisible(), { timeout: 1000 })
-      .toBe(true);
+    await expect.poll(() => reactGrab.isOverlayVisible(), { timeout: 1000 }).toBe(true);
   });
 
-  test("activation should work after clicking outside input", async ({
-    reactGrab,
-  }) => {
+  test("activation should work after clicking outside input", async ({ reactGrab }) => {
     await reactGrab.page.click("[data-testid='test-input']");
     await reactGrab.page.click("body", { position: { x: 10, y: 10 } });
 
@@ -148,9 +128,7 @@ test.describe("Activation Mode Configuration", () => {
     expect(await reactGrab.isOverlayVisible()).toBe(true);
   });
 
-  test("API activation should work even when input is focused", async ({
-    reactGrab,
-  }) => {
+  test("API activation should work even when input is focused", async ({ reactGrab }) => {
     await reactGrab.page.click("[data-testid='test-input']");
 
     await reactGrab.activate();
@@ -166,9 +144,7 @@ test.describe("Activation Mode Configuration", () => {
     expect(await reactGrab.isOverlayVisible()).toBe(true);
   });
 
-  test("should remain activated after viewport resize", async ({
-    reactGrab,
-  }) => {
+  test("should remain activated after viewport resize", async ({ reactGrab }) => {
     await reactGrab.activate();
     expect(await reactGrab.isOverlayVisible()).toBe(true);
 
@@ -192,9 +168,7 @@ test.describe("Activation Mode Configuration", () => {
     expect(await reactGrab.isOverlayVisible()).toBe(true);
   });
 
-  test("should handle multiple rapid API toggle calls", async ({
-    reactGrab,
-  }) => {
+  test("should handle multiple rapid API toggle calls", async ({ reactGrab }) => {
     for (let i = 0; i < 5; i++) {
       await reactGrab.toggle();
     }

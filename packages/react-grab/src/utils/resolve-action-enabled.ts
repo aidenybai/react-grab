@@ -1,7 +1,6 @@
 import type { ActionContext, ContextMenuAction } from "../types.js";
 
-const resolveBooleanEnabled = (enabled: boolean | undefined): boolean =>
-  enabled ?? true;
+const resolveBooleanEnabled = (enabled: boolean | undefined): boolean => enabled ?? true;
 
 export const resolveActionEnabled = (
   action: ContextMenuAction,

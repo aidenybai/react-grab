@@ -1,13 +1,11 @@
 node_modules
 .DS_Store
 .env
-.turbo
 dist
 .next
 **/*.tgz
 coverage
 react-grab-extension.zip
-tsup.config.bundled_*.mjs
 packages/website/public/script.js
 test-results
 playwright-report

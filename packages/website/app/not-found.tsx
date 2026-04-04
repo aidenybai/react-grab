@@ -16,17 +16,13 @@ const NotFound = () => {
 
         <div className="inline-flex" style={{ padding: "2px" }}>
           <Link href="/" className="transition-opacity hover:opacity-80">
-            <ReactGrabLogo
-              width={42}
-              height={42}
-              className="logo-shimmer-once"
-            />
+            <ReactGrabLogo width={42} height={42} className="logo-shimmer-once" />
           </Link>
         </div>
 
         <div className="text-foreground mt-4">
-          <span className="font-bold shimmer-text-pink">404</span> &middot;
-          Couldn&apos;t grab this page.
+          <span className="font-bold shimmer-text-pink">404</span> &middot; Couldn&apos;t grab this
+          page.
         </div>
       </div>
     </div>

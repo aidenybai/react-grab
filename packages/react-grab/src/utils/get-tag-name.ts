@@ -1,2 +1,1 @@
-export const getTagName = (element: Element): string =>
-  (element.tagName || "").toLowerCase();
+export const getTagName = (element: Element): string => (element.tagName || "").toLowerCase();

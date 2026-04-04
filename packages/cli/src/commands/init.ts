@@ -4,10 +4,7 @@ import { Command } from "commander";
 import pc from "picocolors";
 import { detectNonInteractive } from "../utils/is-non-interactive.js";
 import { prompts } from "../utils/prompts.js";
-import {
-  applyTransformWithFeedback,
-  installPackagesWithFeedback,
-} from "../utils/cli-helpers.js";
+import { applyTransformWithFeedback, installPackagesWithFeedback } from "../utils/cli-helpers.js";
 import { promptMcpInstall } from "../utils/install-mcp.js";
 import {
   detectProject,
@@ -42,11 +39,7 @@ interface ReportConfig {
   isMonorepo: boolean;
 }
 
-const reportToCli = (
-  type: "error" | "completed",
-  config?: ReportConfig,
-  error?: Error,
-): void => {
+const reportToCli = (type: "error" | "completed", config?: ReportConfig, error?: Error): void => {
   fetch(REPORT_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -75,31 +68,21 @@ const PACKAGE_MANAGER_NAMES: Record<PackageManager, string> = {
   bun: "Bun",
 };
 
-const UNSUPPORTED_FRAMEWORK_NAMES: Record<
-  NonNullable<UnsupportedFramework>,
-  string
-> = {
+const UNSUPPORTED_FRAMEWORK_NAMES: Record<NonNullable<UnsupportedFramework>, string> = {
   remix: "Remix",
   astro: "Astro",
   sveltekit: "SvelteKit",
   gatsby: "Gatsby",
 };
 
-const sortProjectsByFramework = (
-  projects: WorkspaceProject[],
-): WorkspaceProject[] =>
+const sortProjectsByFramework = (projects: WorkspaceProject[]): WorkspaceProject[] =>
   [...projects].sort((projectA, projectB) => {
-    if (projectA.framework === "unknown" && projectB.framework !== "unknown")
-      return 1;
-    if (projectA.framework !== "unknown" && projectB.framework === "unknown")
-      return -1;
+    if (projectA.framework === "unknown" && projectB.framework !== "unknown") return 1;
+    if (projectA.framework !== "unknown" && projectB.framework === "unknown") return -1;
     return 0;
   });
 
-const printSubprojects = (
-  searchRoot: string,
-  sortedProjects: WorkspaceProject[],
-): void => {
+const printSubprojects = (searchRoot: string, sortedProjects: WorkspaceProject[]): void => {
   logger.break();
   logger.log("Found the following projects:");
   logger.break();
@@ -114,9 +97,7 @@ const printSubprojects = (
     );
   }
   logger.break();
-  logger.log(
-    `Re-run with ${highlighter.info("-c <path>")} to specify a project:`,
-  );
+  logger.log(`Re-run with ${highlighter.info("-c <path>")} to specify a project:`);
   logger.break();
   logger.log(
     `  ${highlighter.dim("$")} npx grab@latest init -c ${relative(searchRoot, sortedProjects[0].path)}`,
@@ -130,21 +111,12 @@ export const init = new Command()
   .description("initialize React Grab in your project")
   .option("-y, --yes", "skip confirmation prompts", false)
   .option("-f, --force", "force overwrite existing config", false)
-  .option(
-    "-k, --key <key>",
-    "activation key (e.g., Meta+K, Ctrl+Shift+G, Space)",
-  )
+  .option("-k, --key <key>", "activation key (e.g., Meta+K, Ctrl+Shift+G, Space)")
   .option("--skip-install", "skip package installation", false)
   .option("--pkg <pkg>", "custom package URL for CLI (e.g., grab)")
-  .option(
-    "-c, --cwd <cwd>",
-    "working directory (defaults to current directory)",
-    process.cwd(),
-  )
+  .option("-c, --cwd <cwd>", "working directory (defaults to current directory)", process.cwd())
   .action(async (opts) => {
-    console.log(
-      `${pc.magenta("✿")} ${pc.bold("React Grab")} ${pc.gray(VERSION)}`,
-    );
+    console.log(`${pc.magenta("✿")} ${pc.bold("React Grab")} ${pc.gray(VERSION)}`);
     console.log();
 
     try {
@@ -229,9 +201,7 @@ export const init = new Command()
                 process.exit(1);
               }
 
-              collectedOptions.activationKey = key
-                ? key.toLowerCase()
-                : undefined;
+              collectedOptions.activationKey = key ? key.toLowerCase() : undefined;
 
               logger.log(
                 `  Activation key: ${highlighter.info(formatActivationKeyDisplay(collectedOptions.activationKey))}`,
@@ -290,8 +260,7 @@ export const init = new Command()
             process.exit(1);
           }
 
-          collectedOptions.allowActivationInsideInput =
-            allowActivationInsideInput;
+          collectedOptions.allowActivationInsideInput = allowActivationInsideInput;
 
           const { maxContextLines } = await prompts({
             type: "number",
@@ -324,9 +293,7 @@ export const init = new Command()
           }
 
           const hasOptionsChanges =
-            !optionsResult.noChanges &&
-            optionsResult.originalContent &&
-            optionsResult.newContent;
+            !optionsResult.noChanges && optionsResult.originalContent && optionsResult.newContent;
 
           if (hasOptionsChanges) {
             logger.break();
@@ -392,8 +359,7 @@ export const init = new Command()
       const frameworkSpinner = spinner("Verifying framework.").start();
 
       if (projectInfo.unsupportedFramework) {
-        const frameworkName =
-          UNSUPPORTED_FRAMEWORK_NAMES[projectInfo.unsupportedFramework];
+        const frameworkName = UNSUPPORTED_FRAMEWORK_NAMES[projectInfo.unsupportedFramework];
         frameworkSpinner.fail(`Found ${highlighter.info(frameworkName)}.`);
         logger.break();
         logger.log(`${frameworkName} is not yet supported by automatic setup.`);
@@ -458,9 +424,7 @@ export const init = new Command()
         } else {
           frameworkSpinner.fail("Could not detect a supported framework.");
           logger.break();
-          logger.log(
-            "React Grab supports Next.js, Vite, TanStack Start, and Webpack projects.",
-          );
+          logger.log("React Grab supports Next.js, Vite, TanStack Start, and Webpack projects.");
           logger.log(`Visit ${highlighter.info(DOCS_URL)} for manual setup.`);
           logger.break();
           process.exit(1);
@@ -478,9 +442,7 @@ export const init = new Command()
         );
       }
 
-      const packageManagerSpinner = spinner(
-        "Detecting package manager.",
-      ).start();
+      const packageManagerSpinner = spinner("Detecting package manager.").start();
       packageManagerSpinner.succeed(
         `Detecting package manager. Found ${highlighter.info(PACKAGE_MANAGER_NAMES[projectInfo.packageManager])}.`,
       );
@@ -533,8 +495,7 @@ export const init = new Command()
         process.exit(1);
       }
 
-      const hasLayoutChanges =
-        !result.noChanges && result.originalContent && result.newContent;
+      const hasLayoutChanges = !result.noChanges && result.originalContent && result.newContent;
 
       if (hasLayoutChanges) {
         logger.break();
@@ -578,9 +539,7 @@ export const init = new Command()
       }
 
       logger.break();
-      logger.log(
-        `${highlighter.success("Success!")} React Grab has been installed.`,
-      );
+      logger.log(`${highlighter.success("Success!")} React Grab has been installed.`);
       logger.log("You may now start your development server.");
       logger.break();
 

@@ -65,11 +65,10 @@ const injectFocusTrap = async (page: import("@playwright/test").Page) => {
     };
     document.addEventListener("keydown", keydownHandler, true);
 
-    (window as { __FOCUS_TRAP_CLEANUP__?: () => void }).__FOCUS_TRAP_CLEANUP__ =
-      () => {
-        document.removeEventListener("focusin", focusInHandler, true);
-        document.removeEventListener("keydown", keydownHandler, true);
-      };
+    (window as { __FOCUS_TRAP_CLEANUP__?: () => void }).__FOCUS_TRAP_CLEANUP__ = () => {
+      document.removeEventListener("focusin", focusInHandler, true);
+      document.removeEventListener("keydown", keydownHandler, true);
+    };
 
     const firstInput = document.getElementById("trap-input-1");
     firstInput?.focus();
@@ -78,9 +77,7 @@ const injectFocusTrap = async (page: import("@playwright/test").Page) => {
 
 const removeFocusTrap = async (page: import("@playwright/test").Page) => {
   await page.evaluate((containerId) => {
-    (
-      window as { __FOCUS_TRAP_CLEANUP__?: () => void }
-    ).__FOCUS_TRAP_CLEANUP__?.();
+    (window as { __FOCUS_TRAP_CLEANUP__?: () => void }).__FOCUS_TRAP_CLEANUP__?.();
     document.getElementById(containerId)?.remove();
   }, FOCUS_TRAP_CONTAINER_ID);
 };
@@ -91,9 +88,7 @@ test.describe("Focus Trap Resistance", () => {
   });
 
   test.describe("Activation", () => {
-    test("should activate via API while focus trap is active", async ({
-      reactGrab,
-    }) => {
+    test("should activate via API while focus trap is active", async ({ reactGrab }) => {
       await injectFocusTrap(reactGrab.page);
       await reactGrab.activate();
 
@@ -101,9 +96,7 @@ test.describe("Focus Trap Resistance", () => {
       expect(isActive).toBe(true);
     });
 
-    test("should deactivate with Escape while focus trap is active", async ({
-      reactGrab,
-    }) => {
+    test("should deactivate with Escape while focus trap is active", async ({ reactGrab }) => {
       await injectFocusTrap(reactGrab.page);
       await reactGrab.activate();
       await reactGrab.deactivate();
@@ -114,9 +107,7 @@ test.describe("Focus Trap Resistance", () => {
   });
 
   test.describe("Element Selection", () => {
-    test("should hover and select elements behind focus trap backdrop", async ({
-      reactGrab,
-    }) => {
+    test("should hover and select elements behind focus trap backdrop", async ({ reactGrab }) => {
       await reactGrab.activate();
       await injectFocusTrap(reactGrab.page);
 
@@ -127,9 +118,7 @@ test.describe("Focus Trap Resistance", () => {
       expect(isVisible).toBe(true);
     });
 
-    test("should select elements inside the focus-trapped modal", async ({
-      reactGrab,
-    }) => {
+    test("should select elements inside the focus-trapped modal", async ({ reactGrab }) => {
       await injectFocusTrap(reactGrab.page);
       await reactGrab.activate();
 
@@ -140,9 +129,7 @@ test.describe("Focus Trap Resistance", () => {
       expect(isVisible).toBe(true);
     });
 
-    test("should update selection when hovering different elements", async ({
-      reactGrab,
-    }) => {
+    test("should update selection when hovering different elements", async ({ reactGrab }) => {
       await injectFocusTrap(reactGrab.page);
       await reactGrab.activate();
 
@@ -155,17 +142,14 @@ test.describe("Focus Trap Resistance", () => {
       const bounds2 = await reactGrab.getSelectionBoxBounds();
 
       if (bounds1 && bounds2) {
-        const didSelectionChange =
-          bounds1.y !== bounds2.y || bounds1.height !== bounds2.height;
+        const didSelectionChange = bounds1.y !== bounds2.y || bounds1.height !== bounds2.height;
         expect(didSelectionChange).toBe(true);
       }
     });
   });
 
   test.describe("Copy", () => {
-    test("should copy element while focus trap is active", async ({
-      reactGrab,
-    }) => {
+    test("should copy element while focus trap is active", async ({ reactGrab }) => {
       await injectFocusTrap(reactGrab.page);
       await reactGrab.activate();
 
@@ -173,14 +157,10 @@ test.describe("Focus Trap Resistance", () => {
       await reactGrab.waitForSelectionBox();
       await reactGrab.clickElement("#trap-button");
 
-      await expect
-        .poll(() => reactGrab.getClipboardContent(), { timeout: 2000 })
-        .toBeTruthy();
+      await expect.poll(() => reactGrab.getClipboardContent(), { timeout: 2000 }).toBeTruthy();
     });
 
-    test("should copy element outside modal while focus trap is active", async ({
-      reactGrab,
-    }) => {
+    test("should copy element outside modal while focus trap is active", async ({ reactGrab }) => {
       await reactGrab.activate();
       await injectFocusTrap(reactGrab.page);
 
@@ -188,17 +168,13 @@ test.describe("Focus Trap Resistance", () => {
       await reactGrab.waitForSelectionBox();
       await reactGrab.clickElement("h1");
 
-      await expect
-        .poll(() => reactGrab.getClipboardContent(), { timeout: 2000 })
-        .toBeTruthy();
+      await expect.poll(() => reactGrab.getClipboardContent(), { timeout: 2000 }).toBeTruthy();
     });
   });
 
   test.describe("Prompt Mode", () => {
-    test("should enter prompt mode while focus trap is active", async ({
-      reactGrab,
-    }) => {
-      await reactGrab.setupMockAgent();
+    test("should enter prompt mode while focus trap is active", async ({ reactGrab }) => {
+      await reactGrab.registerCommentAction();
       await injectFocusTrap(reactGrab.page);
 
       await reactGrab.enterPromptMode("li:first-child");
@@ -207,10 +183,8 @@ test.describe("Focus Trap Resistance", () => {
       expect(isPromptMode).toBe(true);
     });
 
-    test("textarea should receive typed input despite focus trap", async ({
-      reactGrab,
-    }) => {
-      await reactGrab.setupMockAgent();
+    test("textarea should receive typed input despite focus trap", async ({ reactGrab }) => {
+      await reactGrab.registerCommentAction();
       await injectFocusTrap(reactGrab.page);
 
       await reactGrab.enterPromptMode("li:first-child");
@@ -220,10 +194,8 @@ test.describe("Focus Trap Resistance", () => {
       expect(inputValue).toBe("Hello from inside focus trap");
     });
 
-    test("should submit prompt while focus trap is active", async ({
-      reactGrab,
-    }) => {
-      await reactGrab.setupMockAgent({ delay: 100 });
+    test("should submit prompt while focus trap is active", async ({ reactGrab }) => {
+      await reactGrab.registerCommentAction();
       await injectFocusTrap(reactGrab.page);
 
       await reactGrab.enterPromptMode("li:first-child");
@@ -233,26 +205,20 @@ test.describe("Focus Trap Resistance", () => {
       await expect.poll(() => reactGrab.isPromptModeActive()).toBe(false);
     });
 
-    test("Escape should dismiss prompt mode despite focus trap", async ({
-      reactGrab,
-    }) => {
-      await reactGrab.setupMockAgent();
+    test("Escape should dismiss prompt mode despite focus trap", async ({ reactGrab }) => {
+      await reactGrab.registerCommentAction();
       await injectFocusTrap(reactGrab.page);
 
       await reactGrab.enterPromptMode("li:first-child");
       await reactGrab.pressEscape();
       await reactGrab.pressEscape();
 
-      await expect
-        .poll(() => reactGrab.isOverlayVisible(), { timeout: 5000 })
-        .toBe(false);
+      await expect.poll(() => reactGrab.isOverlayVisible(), { timeout: 5000 }).toBe(false);
     });
   });
 
   test.describe("Context Menu", () => {
-    test("should open context menu while focus trap is active", async ({
-      reactGrab,
-    }) => {
+    test("should open context menu while focus trap is active", async ({ reactGrab }) => {
       await injectFocusTrap(reactGrab.page);
       await reactGrab.activate();
 
@@ -266,9 +232,7 @@ test.describe("Focus Trap Resistance", () => {
   });
 
   test.describe("Keyboard Navigation", () => {
-    test("arrow key navigation should work while focus trap is active", async ({
-      reactGrab,
-    }) => {
+    test("arrow key navigation should work while focus trap is active", async ({ reactGrab }) => {
       await injectFocusTrap(reactGrab.page);
       await reactGrab.activate();
 
@@ -301,9 +265,7 @@ test.describe("Focus Trap Resistance", () => {
   });
 
   test.describe("Focus Trap Lifecycle", () => {
-    test("should continue working after focus trap is removed", async ({
-      reactGrab,
-    }) => {
+    test("should continue working after focus trap is removed", async ({ reactGrab }) => {
       await injectFocusTrap(reactGrab.page);
       await reactGrab.activate();
 
@@ -320,9 +282,7 @@ test.describe("Focus Trap Resistance", () => {
       expect(isVisible).toBe(true);
     });
 
-    test("should work when focus trap appears after activation", async ({
-      reactGrab,
-    }) => {
+    test("should work when focus trap appears after activation", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
