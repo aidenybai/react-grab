@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Analytics } from "@vercel/analytics/react";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Caveat, Geist, Geist_Mono } from "next/font/google";
@@ -63,6 +64,7 @@ const RootLayout = ({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${caveat.variable} antialiased`}
       >
+        <Script src="/script.js" strategy="beforeInteractive" />
         <NuqsAdapter>{children}</NuqsAdapter>
         <Analytics />
       </body>
