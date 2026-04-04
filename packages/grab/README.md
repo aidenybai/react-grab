@@ -11,7 +11,7 @@ It makes tools like Cursor, Claude Code, Copilot run up to [**3× faster**](http
 
 ### [Try out a demo! →](https://react-grab.com)
 
-![React Grab Demo](https://github.com/aidenybai/react-grab/blob/main/packages/website/public/demo.gif?raw=true)
+![React Grab Demo](https://github.com/aidenybai/react-grab/blob/main/apps/website/public/demo.gif?raw=true)
 
 ## Install
 

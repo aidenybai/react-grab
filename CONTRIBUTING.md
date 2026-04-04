@@ -63,7 +63,7 @@ Test the MCP agent integration in the gym:
 pnpm --filter @react-grab/gym dev:mcp
 ```
 
-The gym runs at `http://localhost:5174` and lets you test react-grab's agent integration via MCP.
+The gym runs at `http://localhost:6789` and lets you test react-grab's agent integration via MCP.
 
 ### Running Tests
 
