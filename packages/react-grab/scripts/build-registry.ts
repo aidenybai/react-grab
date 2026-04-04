@@ -27,7 +27,7 @@ interface Registry {
 const SCRIPTS_DIRECTORY = dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = resolve(SCRIPTS_DIRECTORY, "..");
 const REGISTRY_SOURCE_DIRECTORY = resolve(PACKAGE_ROOT, "src", "registry");
-const OUTPUT_DIRECTORY = resolve(PACKAGE_ROOT, "..", "website", "public", "r");
+const OUTPUT_DIRECTORY = resolve(PACKAGE_ROOT, "..", "..", "apps", "website", "public", "r");
 
 const registry: Registry = JSON.parse(
   readFileSync(resolve(REGISTRY_SOURCE_DIRECTORY, "registry.json"), "utf-8"),
