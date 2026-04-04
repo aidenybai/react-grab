@@ -6,7 +6,7 @@ dist
 **/*.tgz
 coverage
 react-grab-extension.zip
-packages/website/public/script.js
+apps/website/public/script.js
 test-results
 playwright-report
 .vercel

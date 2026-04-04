@@ -39,15 +39,18 @@ nr dev
 ## Project Structure
 
 ```
-packages/
-├── react-grab/          # Core library
-├── grab/                # Bundled package (library + CLI, published as `grab`)
-├── cli/                 # CLI implementation (@react-grab/cli)
-├── mcp/                 # MCP server (@react-grab/mcp)
-├── website/             # Documentation site (react-grab.com)
+apps/
 ├── e2e-app/             # E2E test target app (Vite)
 ├── gym/                 # Agent testing playground
-└── web-extension/       # Browser extension
+├── web-extension/       # Browser extension
+└── website/             # Documentation site (react-grab.com)
+
+packages/
+├── cli/                 # CLI implementation (@react-grab/cli)
+├── design-system/       # Shared design system (@react-grab/design-system)
+├── grab/                # Bundled package (library + CLI, published as `grab`)
+├── mcp/                 # MCP server (@react-grab/mcp)
+└── react-grab/          # Core library
 ```
 
 ## Development Workflow

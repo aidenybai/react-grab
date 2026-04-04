@@ -34,7 +34,7 @@ export default defineConfig({
     },
     overrides: [
       {
-        files: ["packages/**/*.{ts,tsx}"],
+        files: ["apps/**/*.{ts,tsx}", "packages/**/*.{ts,tsx}"],
         rules: {
           "no-var": "error",
           "prefer-rest-params": "error",

@@ -115,11 +115,11 @@ pnpm format
 
 ## Development instructions
 
-This is a pnpm + Turborepo monorepo (10 packages under `packages/`). No external services (databases, Docker, etc.) are required.
+This is a pnpm monorepo with `apps/` (playgrounds, sites, extensions) and `packages/` (libraries, tools). No external services (databases, Docker, etc.) are required.
 
 ### Build before test
 
-`pnpm build` must complete before `pnpm test` or `pnpm lint` — Turborepo `dependsOn` enforces this, but be aware that `pnpm test` will rebuild if the build cache is cold. After modifying source files, always rebuild before running tests.
+`pnpm build` must complete before `pnpm test` or `pnpm lint`. After modifying source files, always rebuild before running tests.
 
 ### Approved build scripts
 
@@ -141,4 +141,4 @@ See root `package.json` scripts and `CONTRIBUTING.md` for the full list. Quick r
 - **Typecheck**: `pnpm typecheck` — tsc on react-grab package
 - **Format**: `pnpm format` — oxfmt
 - **CLI dev**: `npm_command=exec node packages/cli/dist/cli.js`
-- **Test app**: `pnpm --filter @react-grab/e2e-app dev` (port 5175)
+- **Test app**: `pnpm --filter @react-grab/e2e-app dev` (port 5175, lives in `apps/e2e-app`)
