@@ -358,9 +358,6 @@ importers:
       '@react-grab/cli':
         specifier: workspace:*
         version: link:../cli
-      bippy:
-        specifier: ^0.5.37
-        version: 0.5.37(react@19.2.3)
       react:
         specifier: '>=17.0.0'
         version: 19.2.3
@@ -392,6 +389,9 @@ importers:
       babel-preset-solid:
         specifier: ^1.9.10
         version: 1.9.10(@babel/core@7.28.5)(solid-js@1.9.10)
+      bippy:
+        specifier: ^0.5.38
+        version: 0.5.38(react@19.2.3)
       concurrently:
         specifier: ^9.1.2
         version: 9.2.1
@@ -3714,8 +3714,8 @@ packages:
   bignumber.js@9.3.1:
     resolution: {integrity: sha512-Ko0uX15oIUS7wJ3Rb30Fs6SkVbLmPBAKdlm7q9+ak9bbIeFf0MwuBsQV6z7+X768/cHsfg+WlysDWJcmthjsjQ==}
 
-  bippy@0.5.37:
-    resolution: {integrity: sha512-5+Xre/yCsrTKLTeiMcrZTKPOaCB9VSPJeWQD+t2MLd0CLD3HqduCVIqXoYsqt8LpNVtTEHeH3g3+XPiR5d7piA==}
+  bippy@0.5.38:
+    resolution: {integrity: sha512-8lDLh5XMN3XlGbBgElvmv0ZuxgjU4pJ+v22KAxboPrtYFKa9v2ozqaYkeLHHXO61yq6qxOkG2eQ3m4s9Ua7n1g==}
     peerDependencies:
       react: '>=17.0.1'
 
@@ -8053,7 +8053,7 @@ snapshots:
       fzf: 0.5.2
       glob: 12.0.0
       highlight.js: 11.11.1
-      ink: '@jrichman/ink@6.4.11(@types/react@19.2.11)(react@19.2.1)'
+      ink: '@jrichman/ink@6.4.11(@types/react@19.2.11)(react@19.2.3)'
       ink-gradient: 3.0.0(@jrichman/ink@6.4.11(@types/react@19.2.11)(react@19.2.1))
       ink-spinner: 5.0.0(@jrichman/ink@6.4.11(@types/react@19.2.11)(react@19.2.1))(react@19.2.1)
       latest-version: 9.0.0
@@ -8241,7 +8241,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@jrichman/ink@6.4.11(@types/react@19.2.11)(react@19.2.1)':
+  '@jrichman/ink@6.4.11(@types/react@19.2.11)(react@19.2.3)':
     dependencies:
       '@alcalzone/ansi-tokenize': 0.2.5
       ansi-escapes: 7.3.0
@@ -8257,7 +8257,7 @@ snapshots:
       is-in-ci: 2.0.0
       mnemonist: 0.40.3
       patch-console: 2.0.0
-      react: 19.2.1
+      react: 19.2.3
       react-reconciler: 0.32.0(react@19.2.1)
       signal-exit: 3.0.7
       slice-ansi: 7.1.2
@@ -10290,7 +10290,7 @@ snapshots:
 
   bignumber.js@9.3.1: {}
 
-  bippy@0.5.37(react@19.2.3):
+  bippy@0.5.38(react@19.2.3):
     dependencies:
       react: 19.2.3
 
@@ -11654,14 +11654,14 @@ snapshots:
     dependencies:
       '@types/gradient-string': 1.1.6
       gradient-string: 2.0.2
-      ink: '@jrichman/ink@6.4.11(@types/react@19.2.11)(react@19.2.1)'
+      ink: '@jrichman/ink@6.4.11(@types/react@19.2.11)(react@19.2.3)'
       prop-types: 15.8.1
       strip-ansi: 7.1.0
 
   ink-spinner@5.0.0(@jrichman/ink@6.4.11(@types/react@19.2.11)(react@19.2.1))(react@19.2.1):
     dependencies:
       cli-spinners: 2.9.2
-      ink: '@jrichman/ink@6.4.11(@types/react@19.2.11)(react@19.2.1)'
+      ink: '@jrichman/ink@6.4.11(@types/react@19.2.11)(react@19.2.3)'
       react: 19.2.1
 
   internmap@2.0.3: {}

@@ -1,4 +1,4 @@
-import { type Fiber, type HookType, type MemoizedState } from "bippy";
+import { type HookType, type MemoizedState } from "bippy";
 import type { InspectPropertyRow } from "../types.js";
 import { formatPropValue } from "./format-prop-value.js";
 import { findNearestCompositeFiber } from "./find-nearest-composite-fiber.js";
@@ -6,12 +6,8 @@ import { INSPECT_MAX_HOOKS } from "../constants.js";
 
 const STATEFUL_HOOK_TYPES = new Set<HookType>(["useState", "useReducer"]);
 
-interface FiberWithDebugHooks extends Fiber {
-  _debugHookTypes?: HookType[];
-}
-
 export const getHooksState = (element: Element): InspectPropertyRow[] => {
-  const compositeFiber = findNearestCompositeFiber(element) as FiberWithDebugHooks | null;
+  const compositeFiber = findNearestCompositeFiber(element);
   if (!compositeFiber) return [];
 
   const hookTypes = compositeFiber._debugHookTypes;

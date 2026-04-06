@@ -97,7 +97,6 @@
   },
   "dependencies": {
     "@react-grab/cli": "workspace:*",
-    "bippy": "^0.5.37",
     "solid-js": "^1.9.10"
   },
   "devDependencies": {
@@ -109,6 +108,7 @@
     "@types/node": "^20.19.23",
     "@types/react": "^19.2.11",
     "babel-preset-solid": "^1.9.10",
+    "bippy": "^0.5.38",
     "concurrently": "^9.1.2",
     "expect-sdk": "0.0.0-canary-20260405095424",
     "tailwindcss": "^4.1.0",
