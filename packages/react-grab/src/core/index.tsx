@@ -212,8 +212,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
   }
   hasInited = true;
 
-  initRenderTimeline();
-
   logIntro();
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- need to omit enabled from settableOptions to avoid circular dependency
@@ -2062,6 +2060,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!isInspectMode()) return undefined;
       const element = effectiveElement();
       if (!element) return undefined;
+
+      initRenderTimeline();
 
       const source = formatSourceLocation(store.selectionFilePath, store.selectionLineNumber);
       const reactProps = getReactProps(element);
