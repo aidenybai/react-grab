@@ -16,9 +16,7 @@ test.describe("Prompt Mode", () => {
       await expect.poll(() => reactGrab.isPromptModeActive()).toBe(true);
     });
 
-    test("single click should copy without entering prompt mode", async ({
-      reactGrab,
-    }) => {
+    test("single click should copy without entering prompt mode", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
