@@ -1,4 +1,5 @@
 import { MOUNT_ROOT_RECHECK_DELAY_MS, Z_INDEX_OVERLAY } from "../constants.js";
+import { markReplayPrivate } from "./mark-replay-private.js";
 
 const ATTRIBUTE_NAME = "data-react-grab";
 
@@ -14,6 +15,7 @@ const loadFonts = () => {
   link.id = FONT_LINK_ID;
   link.rel = "stylesheet";
   link.href = FONT_LINK_URL;
+  markReplayPrivate(link);
   document.head.appendChild(link);
 };
 
@@ -31,6 +33,7 @@ export const mountRoot = (cssText?: string) => {
   const host = document.createElement("div");
 
   host.setAttribute(ATTRIBUTE_NAME, "true");
+  markReplayPrivate(host);
   host.style.zIndex = String(Z_INDEX_OVERLAY);
   host.style.position = "fixed";
   host.style.inset = "0";

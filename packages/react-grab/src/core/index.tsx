@@ -78,6 +78,7 @@ import {
   DEFAULT_ACTION_ID,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
+import { markReplayPrivate } from "../utils/mark-replay-private.js";
 import { isCLikeKey } from "../utils/is-c-like-key.js";
 import { isTargetKeyCombination } from "../utils/is-target-key-combination.js";
 import {
@@ -1349,6 +1350,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (!cursorStyleElement) {
           cursorStyleElement = document.createElement("style");
           cursorStyleElement.setAttribute("data-react-grab-cursor", "");
+          markReplayPrivate(cursorStyleElement);
           document.head.appendChild(cursorStyleElement);
         }
         cursorStyleElement.textContent = `* { cursor: ${cursor} !important; }`;
