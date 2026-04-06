@@ -4,7 +4,8 @@ import { hideFromThirdParties } from "./hide-from-third-parties.js";
 
 const ATTRIBUTE_NAME = "data-react-grab";
 
-const FONT_IMPORT = '@import url("https://fonts.googleapis.com/css2?family=Geist:wght@500&display=swap");';
+const FONT_IMPORT =
+  '@import url("https://fonts.googleapis.com/css2?family=Geist:wght@500&display=swap");';
 
 export const mountRoot = (cssText?: string) => {
   const mountedHost = document.querySelector(`[${ATTRIBUTE_NAME}]`);

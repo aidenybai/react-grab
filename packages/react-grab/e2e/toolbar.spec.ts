@@ -246,6 +246,125 @@ test.describe("Toolbar", () => {
     });
   });
 
+  test.describe("Right-Click", () => {
+    test.beforeEach(async ({ reactGrab }) => {
+      await reactGrab.page.evaluate(() => {
+        localStorage.removeItem("react-grab-toolbar-state");
+      });
+      await reactGrab.page.reload();
+      await reactGrab.page.waitForLoadState("domcontentloaded");
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 }).toBe(true);
+      // HACK: Wait for toolbar fade-in animation to complete
+      await reactGrab.page.waitForTimeout(600);
+    });
+
+    test("right-clicking toolbar should not start a drag", async ({ reactGrab }) => {
+      const initialInfo = await reactGrab.getToolbarInfo();
+      const initialPosition = initialInfo.position;
+      expect(initialPosition).not.toBeNull();
+
+      const toolbarRect = await reactGrab.page.evaluate((attrName) => {
+        const host = document.querySelector(`[${attrName}]`);
+        const shadowRoot = host?.shadowRoot;
+        if (!shadowRoot) return null;
+        const root = shadowRoot.querySelector(`[${attrName}]`);
+        if (!root) return null;
+        const toolbar = root.querySelector<HTMLElement>("[data-react-grab-toolbar]");
+        if (!toolbar) return null;
+        const rect = toolbar.getBoundingClientRect();
+        return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+      }, "data-react-grab");
+
+      if (!toolbarRect) return;
+
+      const centerX = toolbarRect.x + toolbarRect.width / 2;
+      const centerY = toolbarRect.y + toolbarRect.height / 2;
+
+      await reactGrab.page.mouse.click(centerX, centerY, { button: "right" });
+      await reactGrab.page.mouse.move(centerX + 200, centerY - 200, { steps: 5 });
+      await reactGrab.page.waitForTimeout(100);
+
+      const afterMoveInfo = await reactGrab.getToolbarInfo();
+      expect(afterMoveInfo.position).not.toBeNull();
+      expect(Math.abs(afterMoveInfo.position!.x - initialPosition!.x)).toBeLessThan(5);
+      expect(Math.abs(afterMoveInfo.position!.y - initialPosition!.y)).toBeLessThan(5);
+    });
+
+    test("toolbar should remain snapped after right-click and escape", async ({ reactGrab }) => {
+      const initialInfo = await reactGrab.getToolbarInfo();
+      expect(initialInfo.snapEdge).toBeDefined();
+      const initialPosition = initialInfo.position;
+      expect(initialPosition).not.toBeNull();
+
+      const toolbarRect = await reactGrab.page.evaluate((attrName) => {
+        const host = document.querySelector(`[${attrName}]`);
+        const shadowRoot = host?.shadowRoot;
+        if (!shadowRoot) return null;
+        const root = shadowRoot.querySelector(`[${attrName}]`);
+        if (!root) return null;
+        const toolbar = root.querySelector<HTMLElement>("[data-react-grab-toolbar]");
+        if (!toolbar) return null;
+        const rect = toolbar.getBoundingClientRect();
+        return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+      }, "data-react-grab");
+
+      if (!toolbarRect) return;
+
+      const centerX = toolbarRect.x + toolbarRect.width / 2;
+      const centerY = toolbarRect.y + toolbarRect.height / 2;
+
+      await reactGrab.page.mouse.click(centerX, centerY, { button: "right" });
+      await reactGrab.pressEscape();
+      await reactGrab.page.mouse.move(centerX + 300, centerY - 300, { steps: 5 });
+      await reactGrab.page.waitForTimeout(200);
+
+      const afterEscapeInfo = await reactGrab.getToolbarInfo();
+      expect(afterEscapeInfo.snapEdge).toBeDefined();
+      expect(afterEscapeInfo.position).not.toBeNull();
+      expect(Math.abs(afterEscapeInfo.position!.x - initialPosition!.x)).toBeLessThan(5);
+      expect(Math.abs(afterEscapeInfo.position!.y - initialPosition!.y)).toBeLessThan(5);
+    });
+
+    test("left-click drag should still work after right-click", async ({ reactGrab }) => {
+      const toolbarRect = await reactGrab.page.evaluate((attrName) => {
+        const host = document.querySelector(`[${attrName}]`);
+        const shadowRoot = host?.shadowRoot;
+        if (!shadowRoot) return null;
+        const root = shadowRoot.querySelector(`[${attrName}]`);
+        if (!root) return null;
+        const toolbar = root.querySelector<HTMLElement>("[data-react-grab-toolbar]");
+        if (!toolbar) return null;
+        const rect = toolbar.getBoundingClientRect();
+        return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+      }, "data-react-grab");
+
+      if (!toolbarRect) return;
+
+      const centerX = toolbarRect.x + toolbarRect.width / 2;
+      const centerY = toolbarRect.y + toolbarRect.height / 2;
+
+      await reactGrab.page.mouse.click(centerX, centerY, { button: "right" });
+      await reactGrab.pressEscape();
+      await reactGrab.page.waitForTimeout(100);
+
+      const initialInfo = await reactGrab.getToolbarInfo();
+      const initialPosition = initialInfo.position;
+      expect(initialPosition).not.toBeNull();
+
+      await reactGrab.dragToolbar(0, -500);
+
+      await expect
+        .poll(
+          async () => {
+            const info = await reactGrab.getToolbarInfo();
+            return info.snapEdge;
+          },
+          { timeout: 3000 },
+        )
+        .toBe("top");
+    });
+  });
+
   test.describe("State Persistence", () => {
     test("toolbar position should persist across page reloads", async ({ reactGrab }) => {
       await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
