@@ -394,6 +394,7 @@ export const GrabElementButton = ({
         )}
         <Button
           onClick={toggleReactGrab}
+          data-react-grab-ignore-events
           variant={hasAdvanced ? "outline" : "default"}
           className={cn(
             "relative flex h-12 w-full items-center justify-center gap-2 rounded-lg px-3 text-sm transition-all active:scale-[0.98] sm:w-auto sm:text-base",
