@@ -27,7 +27,6 @@ export const hideFromThirdParties = (element: Element): void => {
   for (const [attributeName, attributeValue] of THIRD_PARTY_PRIVACY_ATTRIBUTES) {
     element.setAttribute(attributeName, attributeValue);
   }
-  element.setAttribute("aria-hidden", "true");
   element.setAttribute("data-testid", "react-grab-overlay");
   element.classList.add("ph-no-capture");
 };
