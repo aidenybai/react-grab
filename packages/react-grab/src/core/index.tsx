@@ -41,6 +41,7 @@ import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
 import { getReactProps } from "../utils/get-react-props.js";
 import { getHooksState } from "../utils/get-hooks-state.js";
 import { initRenderTimeline, getTimelineForElement } from "../utils/render-timeline.js";
+import { formatSourceLocation } from "../utils/format-source-location.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
 import { createElementSelector } from "../utils/create-element-selector.js";
 import { getVisibleBoundsCenter } from "../utils/get-visible-bounds-center.js";
@@ -2042,14 +2043,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const element = effectiveElement();
       if (!element) return undefined;
 
-      const filePath = store.selectionFilePath;
-      const lineNumber = store.selectionLineNumber;
-      const fileName = filePath?.split("/").pop() ?? "";
-      const isRealSourceFile =
-        Boolean(fileName) &&
-        /\.(tsx?|jsx?)$/i.test(fileName) &&
-        !/[_]{2,}|[0-9a-f]{8,}/i.test(fileName);
-      const source = isRealSourceFile ? `${fileName}${lineNumber ? `:${lineNumber}` : ""}` : "";
+      const source = formatSourceLocation(store.selectionFilePath, store.selectionLineNumber);
 
       const reactProps = getReactProps(element);
       const hooks = getHooksState(element);
@@ -2061,13 +2055,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         (timeline && timeline.commits.length > 0);
       if (!hasContent) return undefined;
 
-      return {
-        reactProps,
-        hooks,
-        source,
-        timeline,
-        isVisible: true,
-      };
+      return { reactProps, hooks, source, timeline };
     });
 
     createEffect(

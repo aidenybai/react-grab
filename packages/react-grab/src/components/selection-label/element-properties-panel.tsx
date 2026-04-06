@@ -22,46 +22,40 @@ const SectionDivider: Component = () => (
 );
 
 export const ElementPropertiesPanel: Component<ElementPropertiesPanelProps> = (props) => {
-  const hasTimeline = () =>
-    Boolean(props.state.timeline && props.state.timeline.commits.length > 0);
+  const hasTimeline = () => Boolean(props.state.timeline?.commits.length);
   const hasTopSection = () => Boolean(props.state.source) || hasTimeline();
-  const hasProps = () => props.state.reactProps.length > 0;
-  const hasHooks = () => props.state.hooks.length > 0;
-  const hasContent = () => hasTopSection() || hasProps() || hasHooks();
 
   return (
-    <Show when={hasContent()}>
-      <BottomSection>
-        <div
-          class="flex flex-col w-full max-w-[280px] gap-0.5 cursor-text select-text"
-          onPointerDown={(event) => event.stopPropagation()}
-        >
-          <Show when={props.state.source}>
-            <span class="text-[12px] leading-4 text-black/40">{props.state.source}</span>
-          </Show>
+    <BottomSection>
+      <div
+        class="flex flex-col w-full max-w-[280px] gap-0.5 cursor-text select-text"
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        <Show when={props.state.source}>
+          <span class="text-[12px] leading-4 text-black/40">{props.state.source}</span>
+        </Show>
 
-          <Show when={hasTimeline() && props.state.timeline}>
-            {(timeline) => <RenderTimelineBar timeline={timeline()} />}
-          </Show>
+        <Show when={props.state.timeline}>
+          {(timeline) => <RenderTimelineBar timeline={timeline()} />}
+        </Show>
 
-          <Show when={hasTopSection() && (hasProps() || hasHooks())}>
-            <SectionDivider />
-          </Show>
+        <Show when={hasTopSection() && props.state.reactProps.length > 0}>
+          <SectionDivider />
+        </Show>
 
-          <For each={props.state.reactProps}>
-            {(propertyRow) => (
-              <PropertyRow label={propertyRow.label} value={propertyRow.value} />
-            )}
+        <For each={props.state.reactProps}>
+          {(propertyRow) => (
+            <PropertyRow label={propertyRow.label} value={propertyRow.value} />
+          )}
+        </For>
+
+        <Show when={props.state.hooks.length > 0}>
+          <SectionDivider />
+          <For each={props.state.hooks}>
+            {(hookRow) => <PropertyRow label={hookRow.label} value={hookRow.value} />}
           </For>
-
-          <Show when={hasHooks()}>
-            <SectionDivider />
-            <For each={props.state.hooks}>
-              {(hookRow) => <PropertyRow label={hookRow.label} value={hookRow.value} />}
-            </For>
-          </Show>
-        </div>
-      </BottomSection>
-    </Show>
+        </Show>
+      </div>
+    </BottomSection>
   );
 };

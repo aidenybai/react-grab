@@ -90,7 +90,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       return true;
     }
     if (props.arrowNavigationState?.isVisible) return true;
-    if (props.inspectPropertiesState?.isVisible) return true;
+    if (props.inspectPropertiesState) return true;
     return false;
   };
 
@@ -333,7 +333,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   const isArrowNavigationVisible = () => Boolean(props.arrowNavigationState?.isVisible);
 
-  const isInspectNavigationVisible = () => Boolean(props.inspectPropertiesState?.isVisible);
+  const isInspectNavigationVisible = () => Boolean(props.inspectPropertiesState);
 
   const handleTagClick = (event: MouseEvent) => {
     event.stopImmediatePropagation();

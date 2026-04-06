@@ -208,7 +208,6 @@ export interface InspectPropertiesState {
   hooks: InspectPropertyRow[];
   source: string;
   timeline?: InspectTimelineData;
-  isVisible: boolean;
 }
 
 export interface PerformWithFeedbackOptions {
