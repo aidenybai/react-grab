@@ -232,17 +232,21 @@ export const GrabElementButton = ({
   }, [isMobile, onSelect, hasAdvanced]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    const api = window.__REACT_GRAB__;
+    if (!api) return;
 
-    const handleActivated = (): void => setIsActivated(true);
-    const handleDeactivated = (): void => setIsActivated(false);
+    api.registerPlugin({
+      name: "grab-element-button",
+      hooks: {
+        onActivate: () => setIsActivated(true),
+        onDeactivate: () => setIsActivated(false),
+      },
+    });
 
-    window.addEventListener("react-grab:activated", handleActivated);
-    window.addEventListener("react-grab:deactivated", handleDeactivated);
+    setIsActivated(api.isActive());
 
     return () => {
-      window.removeEventListener("react-grab:activated", handleActivated);
-      window.removeEventListener("react-grab:deactivated", handleDeactivated);
+      api.unregisterPlugin("grab-element-button");
     };
   }, []);
 
