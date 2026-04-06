@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/theme-provider";
-import "react-grab";
+import { ReactGrabProvider } from "@/components/react-grab-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -36,6 +36,7 @@ export default function RootLayout({
         >
           {children}
           <Toaster />
+          <ReactGrabProvider />
         </ThemeProvider>
       </body>
     </html>

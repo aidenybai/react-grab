@@ -7,11 +7,16 @@ const solidWebServerPath = require.resolve("solid-js/web");
 const solidWebBrowserPath = resolve(dirname(solidWebServerPath), "web.js");
 
 const nextConfig: NextConfig = {
+  productionBrowserSourceMaps: true,
   serverExternalPackages: ["react-grab"],
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     config.resolve ??= {};
     config.resolve.alias ??= {};
     config.resolve.alias["solid-js/web"] = solidWebBrowserPath;
+    if (!isServer) {
+      config.optimization ??= {};
+      config.optimization.minimize = false;
+    }
     return config;
   },
   async rewrites() {
