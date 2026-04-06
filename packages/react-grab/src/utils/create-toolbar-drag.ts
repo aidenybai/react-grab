@@ -44,10 +44,19 @@ export const createToolbarDrag = (config: ToolbarDragConfig): ToolbarDragResult 
   let pointerStartPosition = { x: 0, y: 0 };
   let didDragOccur = false;
   let snapAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
+  let dragAbortController: AbortController | null = null;
+
+  const teardownDragListeners = () => {
+    dragAbortController?.abort();
+    dragAbortController = null;
+  };
+
+  const cancelDrag = () => {
+    teardownDragListeners();
+    setIsDragging(false);
+  };
 
   const handleWindowPointerMove = (event: PointerEvent) => {
-    if (!isDragging()) return;
-
     if (!hasDragMoved()) {
       const distanceMoved = Math.hypot(
         event.clientX - pointerStartPosition.x,
@@ -78,10 +87,7 @@ export const createToolbarDrag = (config: ToolbarDragConfig): ToolbarDragResult 
   };
 
   const handleWindowPointerUp = () => {
-    if (!isDragging()) return;
-
-    window.removeEventListener("pointermove", handleWindowPointerMove);
-    window.removeEventListener("pointerup", handleWindowPointerUp);
+    teardownDragListeners();
 
     const didMove = hasDragMoved();
     setIsDragging(false);
@@ -144,6 +150,7 @@ export const createToolbarDrag = (config: ToolbarDragConfig): ToolbarDragResult 
   };
 
   const handlePointerDown = (event: PointerEvent) => {
+    if (event.button !== 0) return;
     if (config.isCollapsed()) return;
 
     const containerRef = config.getContainerRef();
@@ -165,8 +172,11 @@ export const createToolbarDrag = (config: ToolbarDragConfig): ToolbarDragResult 
       time: performance.now(),
     };
 
-    window.addEventListener("pointermove", handleWindowPointerMove);
-    window.addEventListener("pointerup", handleWindowPointerUp);
+    dragAbortController = new AbortController();
+    const { signal } = dragAbortController;
+    window.addEventListener("pointermove", handleWindowPointerMove, { signal });
+    window.addEventListener("pointerup", handleWindowPointerUp, { signal });
+    window.addEventListener("pointercancel", cancelDrag, { signal });
   };
 
   const createDragAwareHandler = (callback: () => void) => (event: MouseEvent) => {
@@ -179,8 +189,7 @@ export const createToolbarDrag = (config: ToolbarDragConfig): ToolbarDragResult 
   };
 
   onCleanup(() => {
-    window.removeEventListener("pointermove", handleWindowPointerMove);
-    window.removeEventListener("pointerup", handleWindowPointerUp);
+    teardownDragListeners();
     clearTimeout(snapAnimationTimeout);
   });
 
