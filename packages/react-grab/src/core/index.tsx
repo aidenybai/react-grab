@@ -2039,19 +2039,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       isVisible: arrowNavigationElements().length > 0,
     }));
 
-    const [resolvedHookRows, setResolvedHookRows] = createSignal<
-      InspectPropertyRow[] | undefined
+    const [resolvedHookState, setResolvedHookState] = createSignal<
+      { forElement: Element; rows: InspectPropertyRow[] } | undefined
     >(undefined);
 
     createEffect(
       on(
         () => (isInspectMode() ? effectiveElement() : null),
         (element) => {
-          setResolvedHookRows(undefined);
+          setResolvedHookState(undefined);
           if (!element) return;
           resolveHookNames(element).then((namedRows) => {
             if (namedRows && effectiveElement() === element) {
-              setResolvedHookRows(namedRows);
+              setResolvedHookState({ forElement: element, rows: namedRows });
             }
           });
         },
@@ -2065,7 +2065,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const source = formatSourceLocation(store.selectionFilePath, store.selectionLineNumber);
       const reactProps = getReactProps(element);
-      const hooks = resolvedHookRows() ?? getHooksState(element);
+      const resolved = resolvedHookState();
+      const hooks = resolved?.forElement === element ? resolved.rows : getHooksState(element);
       const timeline = getTimelineForElement(element);
       const hasContent =
         source ||
