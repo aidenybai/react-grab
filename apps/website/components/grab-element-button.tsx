@@ -50,39 +50,24 @@ const EMPTY_MODIFIERS: Readonly<Omit<RecordedHotkey, "key">> = {
   altKey: false,
 };
 
-type ReactGrabModule = typeof import("react-grab");
-
-const withReactGrab = (action: (module: ReactGrabModule) => void): void => {
-  if (typeof window === "undefined") return;
-  import("react-grab").then(action).catch(console.error);
+const getReactGrabApi = (): Window["__REACT_GRAB__"] => {
+  if (typeof window === "undefined") return undefined;
+  return window.__REACT_GRAB__;
 };
 
 const toggleReactGrab = (): void => {
-  withReactGrab((m) => m.getGlobalApi()?.toggle());
+  getReactGrabApi()?.toggle();
 };
 
 const deactivateReactGrab = (): void => {
-  withReactGrab((m) => m.getGlobalApi()?.deactivate());
+  getReactGrabApi()?.deactivate();
 };
 
 const updateReactGrabHotkey = (hotkey: RecordedHotkey | null): void => {
-  withReactGrab((reactGrab) => {
-    reactGrab.getGlobalApi()?.dispose();
-    const activationKey = hotkey ? hotkeyToString(hotkey) : undefined;
-    const newApi = reactGrab.init({ activationKey });
-    newApi.registerPlugin({
-      name: "website-events",
-      hooks: {
-        onActivate: () => {
-          window.dispatchEvent(new CustomEvent("react-grab:activated"));
-        },
-        onDeactivate: () => {
-          window.dispatchEvent(new CustomEvent("react-grab:deactivated"));
-        },
-      },
-    });
-    reactGrab.setGlobalApi(newApi);
-  });
+  const api = getReactGrabApi();
+  if (!api) return;
+  const activationKey = hotkey ? hotkeyToString(hotkey) : undefined;
+  api.setOptions({ activationKey });
 };
 
 interface KbdProps {
@@ -243,8 +228,6 @@ export const GrabElementButton = ({
     if (isMobile && !hasAdvanced) {
       setHasAdvanced(true);
       onSelect({ tagName: "button" });
-    } else if (typeof window !== "undefined") {
-      import("react-grab").catch(console.error);
     }
   }, [isMobile, onSelect, hasAdvanced]);
 
