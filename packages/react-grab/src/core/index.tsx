@@ -38,7 +38,10 @@ import { isValidGrabbableElement } from "../utils/is-valid-grabbable-element.js"
 import { isRootElement } from "../utils/is-root-element.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
 import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
-import { getAncestorElements } from "../utils/get-ancestor-elements.js";
+import { getReactProps } from "../utils/get-react-props.js";
+import { getHooksState, resolveHookNames } from "../utils/get-hooks-state.js";
+import { initRenderTimeline, getTimelineForElement } from "../utils/render-timeline.js";
+import { formatSourceLocation } from "../utils/format-source-location.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
 import { createElementSelector } from "../utils/create-element-selector.js";
 import { getVisibleBoundsCenter } from "../utils/get-visible-bounds-center.js";
@@ -104,6 +107,8 @@ import type {
   ActionCycleItem,
   ActionCycleState,
   ArrowNavigationState,
+  InspectPropertiesState,
+  InspectPropertyRow,
   PerformWithFeedbackOptions,
   SettableOptions,
   SourceInfo,
@@ -1137,19 +1142,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return frozenElementsBounds();
     });
 
-    const inspectBounds = createMemo((): OverlayBounds[] => {
-      if (!isInspectMode()) return [];
-
-      const element = effectiveElement();
-      if (!element) return [];
-
-      void store.viewportVersion;
-
-      return [...getAncestorElements(element), element].map((ancestor) =>
-        createElementBounds(ancestor),
-      );
-    });
-
     const cursorPosition = createMemo(() => {
       if (isCopying() || isPromptMode()) {
         void store.viewportVersion;
@@ -1615,7 +1607,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handlePointerDown = (clientX: number, clientY: number) => {
-      if (!isRendererActive() || isCopying()) return false;
+      if (!isRendererActive() || isCopying() || isInspectMode()) return false;
 
       actions.startDrag({ x: clientX, y: clientY });
       actions.setPointer({ x: clientX, y: clientY });
@@ -2045,40 +2037,47 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       isVisible: arrowNavigationElements().length > 0,
     }));
 
-    const inspectAncestorElements = createMemo((): Element[] => {
-      if (!isInspectMode()) return [];
-      const element = effectiveElement();
-      if (!element) return [];
-      return [...getAncestorElements(element).reverse(), element];
-    });
-
-    const inspectNavigationItems = createMemo(() =>
-      inspectAncestorElements().map((element) => ({
-        tagName: getTagName(element) || "element",
-        componentName: getComponentDisplayName(element) ?? undefined,
-      })),
-    );
-
-    const [inspectActiveIndex, setInspectActiveIndex] = createSignal(-1);
+    const [resolvedHookState, setResolvedHookState] = createSignal<
+      { forElement: Element; rows: InspectPropertyRow[] } | undefined
+    >(undefined);
 
     createEffect(
-      on(inspectAncestorElements, (elements) => {
-        setInspectActiveIndex(elements.length - 1);
-      }),
+      on(
+        () => (isInspectMode() ? effectiveElement() : null),
+        (element) => {
+          setResolvedHookState(undefined);
+          if (!element) return;
+          initRenderTimeline();
+          resolveHookNames(element)
+            .then((namedRows) => {
+              if (namedRows && effectiveElement() === element) {
+                setResolvedHookState({ forElement: element, rows: namedRows });
+              }
+            })
+            .catch(() => {});
+        },
+      ),
     );
 
-    const inspectNavigationState = createMemo<ArrowNavigationState>(() => {
-      const elements = inspectAncestorElements();
-      return {
-        items: inspectNavigationItems(),
-        activeIndex: inspectActiveIndex(),
-        isVisible: isInspectMode() && elements.length > 0,
-      };
-    });
+    const inspectPropertiesState = createMemo<InspectPropertiesState | undefined>(() => {
+      if (!isInspectMode()) return undefined;
+      const element = effectiveElement();
+      if (!element) return undefined;
 
-    const handleInspectSelect = (index: number) => {
-      setInspectActiveIndex(index);
-    };
+      const source = formatSourceLocation(store.selectionFilePath, store.selectionLineNumber);
+      const reactProps = getReactProps(element);
+      const resolved = resolvedHookState();
+      const hooks = resolved?.forElement === element ? resolved.rows : getHooksState(element);
+      const timeline = getTimelineForElement(element);
+      const hasContent =
+        source ||
+        reactProps.length > 0 ||
+        hooks.length > 0 ||
+        (timeline && timeline.commits.length > 0);
+      if (!hasContent) return undefined;
+
+      return { reactProps, hooks, source, timeline };
+    });
 
     createEffect(
       on(selectionElement, () => {
@@ -2491,7 +2490,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (store.contextMenuPosition !== null) return;
         if (isTouchPointer && !isHoldingKeys() && !isActivated()) return;
         const isActiveState = isTouchPointer ? isHoldingKeys() : isActivated();
-        if (isActiveState && !isPromptMode() && isFrozenPhase()) {
+        if (isActiveState && !isPromptMode() && !isInspectMode() && isFrozenPhase()) {
           actions.unfreeze();
           clearArrowNavigation();
         }
@@ -3626,8 +3625,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 selectionShouldSnap={
                   store.frozenElements.length > 0 || dragPreviewBounds().length > 0
                 }
-                inspectVisible={isInspectMode() && inspectBounds().length > 0}
-                inspectBounds={inspectBounds()}
+                inspectPropertiesState={inspectPropertiesState()}
                 selectionElementsCount={store.frozenElements.length}
                 selectionFilePath={store.selectionFilePath ?? undefined}
                 selectionLineNumber={store.selectionLineNumber ?? undefined}
@@ -3638,8 +3636,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 selectionActionCycleState={actionCycleState()}
                 selectionArrowNavigationState={arrowNavigationState()}
                 onArrowNavigationSelect={handleArrowNavigationSelect}
-                inspectNavigationState={inspectNavigationState()}
-                onInspectSelect={handleInspectSelect}
                 labelInstances={computedLabelInstances()}
                 dragVisible={dragVisible()}
                 dragBounds={dragBounds()}

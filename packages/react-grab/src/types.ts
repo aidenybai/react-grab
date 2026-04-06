@@ -189,6 +189,27 @@ export interface ArrowNavigationState {
   isVisible: boolean;
 }
 
+export interface InspectPropertyRow {
+  label: string;
+  value: string;
+}
+
+export interface InspectTimelineCommit {
+  timestamp: number;
+  duration: number;
+}
+
+export interface InspectTimelineData {
+  commits: InspectTimelineCommit[];
+}
+
+export interface InspectPropertiesState {
+  reactProps: InspectPropertyRow[];
+  hooks: InspectPropertyRow[];
+  source: string;
+  timeline?: InspectTimelineData;
+}
+
 export interface PerformWithFeedbackOptions {
   fallbackBounds?: OverlayBounds;
   fallbackSelectionBounds?: OverlayBounds[];
@@ -364,8 +385,7 @@ export interface ReactGrabRendererProps {
   selectionBounds?: OverlayBounds;
   selectionBoundsMultiple?: OverlayBounds[];
   selectionShouldSnap?: boolean;
-  inspectVisible?: boolean;
-  inspectBounds?: OverlayBounds[];
+  inspectPropertiesState?: InspectPropertiesState;
   selectionElementsCount?: number;
   selectionFilePath?: string;
   selectionLineNumber?: number;
@@ -376,8 +396,6 @@ export interface ReactGrabRendererProps {
   selectionActionCycleState?: ActionCycleState;
   selectionArrowNavigationState?: ArrowNavigationState;
   onArrowNavigationSelect?: (index: number) => void;
-  inspectNavigationState?: ArrowNavigationState;
-  onInspectSelect?: (index: number) => void;
   labelInstances?: SelectionLabelInstance[];
   dragVisible?: boolean;
   dragBounds?: OverlayBounds;
@@ -526,8 +544,7 @@ export interface SelectionLabelProps {
   actionCycleState?: ActionCycleState;
   arrowNavigationState?: ArrowNavigationState;
   onArrowNavigationSelect?: (index: number) => void;
-  inspectNavigationState?: ArrowNavigationState;
-  onInspectSelect?: (index: number) => void;
+  inspectPropertiesState?: InspectPropertiesState;
   onInputChange?: (value: string) => void;
   onSubmit?: () => void;
   onToggleExpand?: () => void;
