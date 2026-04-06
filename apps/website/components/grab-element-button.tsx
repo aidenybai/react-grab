@@ -93,7 +93,12 @@ export const GrabElementButton = ({
 }: GrabElementButtonProps): ReactElement | null => {
   const shouldReduceMotion = Boolean(useReducedMotion());
   const { customHotkey, setCustomHotkey } = useHotkey();
-  const [isActivated, setIsActivated] = useState(false);
+  const [isActivated, setIsActivatedRaw] = useState(false);
+  const isActivatedRef = useRef(false);
+  const setIsActivated = useCallback((value: boolean) => {
+    isActivatedRef.current = value;
+    setIsActivatedRaw(value);
+  }, []);
   const [isMac, setIsMac] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [hideSkip, setHideSkip] = useState(false);
@@ -232,8 +237,22 @@ export const GrabElementButton = ({
   }, [isMobile, onSelect, hasAdvanced]);
 
   useEffect(() => {
+    const buttonElement = document.querySelector<HTMLElement>(
+      "[data-react-grab-toggle-button]",
+    );
+
     const syncActivationState = () => {
-      setIsActivated(window.__REACT_GRAB__?.isActive() ?? false);
+      const activeState = window.__REACT_GRAB__?.isActive() ?? false;
+      if (isActivatedRef.current !== activeState) {
+        isActivatedRef.current = activeState;
+        if (buttonElement) {
+          const holdContent = buttonElement.querySelector("[data-hold-content]");
+          const activeContent = buttonElement.querySelector("[data-active-content]");
+          if (holdContent instanceof HTMLElement) holdContent.style.display = activeState ? "none" : "";
+          if (activeContent instanceof HTMLElement) activeContent.style.display = activeState ? "" : "none";
+        }
+        setIsActivatedRaw(activeState);
+      }
     };
 
     syncActivationState();
@@ -374,6 +393,7 @@ export const GrabElementButton = ({
         <Button
           onClick={toggleReactGrab}
           data-react-grab-ignore-events
+          data-react-grab-toggle-button
           variant={hasAdvanced ? "outline" : "default"}
           className={cn(
             "relative flex h-12 w-full items-center justify-center gap-2 rounded-lg px-3 text-sm transition-all active:scale-[0.98] sm:w-auto sm:text-base",
@@ -382,13 +402,16 @@ export const GrabElementButton = ({
           )}
           type="button"
         >
-          {!isActivated ? (
-            renderActivationPrompt()
-          ) : (
-            <span className="animate-pulse flex items-center gap-1.5">
-              Click to select an element
-            </span>
-          )}
+          <span data-hold-content style={{ display: isActivated ? "none" : undefined }}>
+            {renderActivationPrompt()}
+          </span>
+          <span
+            data-active-content
+            className="animate-pulse flex items-center gap-1.5"
+            style={{ display: isActivated ? undefined : "none" }}
+          >
+            Click to select an element
+          </span>
         </Button>
         {!hasAdvanced && !isActivated && (
           <motion.div
