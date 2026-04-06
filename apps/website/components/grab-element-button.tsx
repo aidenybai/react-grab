@@ -10,7 +10,7 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { HOTKEY_KEYUP_DELAY_MS } from "@/constants";
+import { ACTIVATION_POLL_INTERVAL_MS, HOTKEY_KEYUP_DELAY_MS } from "@/constants";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/utils/cn";
 import { detectMobile } from "@/utils/detect-mobile";
@@ -237,14 +237,9 @@ export const GrabElementButton = ({
     };
 
     syncActivationState();
+    const intervalId = setInterval(syncActivationState, ACTIVATION_POLL_INTERVAL_MS);
 
-    window.addEventListener("react-grab:activated", syncActivationState);
-    window.addEventListener("react-grab:deactivated", syncActivationState);
-
-    return () => {
-      window.removeEventListener("react-grab:activated", syncActivationState);
-      window.removeEventListener("react-grab:deactivated", syncActivationState);
-    };
+    return () => clearInterval(intervalId);
   }, []);
 
   useEffect(() => {
@@ -377,10 +372,7 @@ export const GrabElementButton = ({
           />
         )}
         <Button
-          onClick={() => {
-            toggleReactGrab();
-            setIsActivated(getReactGrabApi()?.isActive() ?? false);
-          }}
+          onClick={toggleReactGrab}
           data-react-grab-ignore-events
           variant={hasAdvanced ? "outline" : "default"}
           className={cn(
