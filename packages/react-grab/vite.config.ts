@@ -48,7 +48,7 @@ export default defineConfig({
         "process.env.VERSION": JSON.stringify(version),
       },
       deps: {
-        alwaysBundle: ["clsx", /^solid-js/, "bippy"],
+        alwaysBundle: ["clsx", /^solid-js/, /^bippy/],
       },
       plugins: [solidWebBrowserPlugin(), cssTextPlugin(), solidBabelPlugin()],
     },
@@ -66,7 +66,7 @@ export default defineConfig({
         "process.env.VERSION": JSON.stringify(version),
       },
       deps: {
-        alwaysBundle: ["clsx", "bippy"],
+        alwaysBundle: ["clsx", /^bippy/],
         neverBundle: [/^solid-js/],
       },
       plugins: [solidWebBrowserPlugin(), cssTextPlugin(), solidBabelPlugin()],
