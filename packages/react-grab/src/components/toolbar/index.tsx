@@ -228,11 +228,16 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const shakeTooltipPositionClass = (): string => {
     const tooltipSide = tooltipPosition();
     if (isVertical()) {
-      const placementClass = tooltipSide === "left" ? "right-full mr-0.5" : "left-full ml-0.5";
-      return `top-1/2 -translate-y-1/2 ${placementClass}`;
+      return tooltipSide === "left" ? "right-full mr-0.5" : "left-full ml-0.5";
     }
-    const placementClass = tooltipSide === "top" ? "bottom-full mb-0.5" : "top-full mt-0.5";
-    return `left-1/2 -translate-x-1/2 ${placementClass}`;
+    return tooltipSide === "top" ? "bottom-full mb-0.5" : "top-full mt-0.5";
+  };
+
+  const shakeTooltipPositionStyle = (): Record<string, string> => {
+    if (isVertical()) {
+      return { top: "50%", translate: "0 -50%" };
+    }
+    return { left: "50%", translate: "-50%" };
   };
 
   const stopEventPropagation = (event: Event) => {
@@ -1170,7 +1175,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             )}
             style={{
               "z-index": String(Z_INDEX_OVERLAY),
-              [isVertical() ? "top" : "left"]: "50%",
+              ...shakeTooltipPositionStyle(),
             }}
           >
             <Show when={selectionHintIndex() === 0}>
@@ -1207,7 +1212,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             )}
             style={{
               "z-index": String(Z_INDEX_OVERLAY),
-              [isVertical() ? "top" : "left"]: "50%",
+              ...shakeTooltipPositionStyle(),
             }}
           >
             Enable to continue
