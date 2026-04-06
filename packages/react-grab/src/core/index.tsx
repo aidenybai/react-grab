@@ -303,7 +303,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       for (const callback of toolbarStateChangeCallbacks) {
         callback(newState);
       }
-      return newState;
     };
 
     const getMappedCommentElements = (commentItemId: string): Element[] =>
@@ -450,7 +449,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const setCopyStartPosition = (element: Element, positionX: number, positionY: number) => {
       actions.setCopyStart({ x: positionX, y: positionY }, element);
-      return createElementBounds(element);
     };
 
     const elementDetectionState = {

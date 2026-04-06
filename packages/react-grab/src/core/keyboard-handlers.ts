@@ -27,7 +27,6 @@ interface KeyDescriptor extends PropertyDescriptor {
 interface KeyboardEventClaimer {
   claimedEvents: WeakSet<KeyboardEvent>;
   originalKeyDescriptor: KeyDescriptor | undefined;
-  didPatch: boolean;
   restore: () => void;
 }
 
@@ -64,7 +63,6 @@ export const setupKeyboardEventClaimer = (): KeyboardEventClaimer => {
   return {
     claimedEvents,
     originalKeyDescriptor,
-    didPatch,
     restore,
   };
 };

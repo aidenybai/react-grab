@@ -12,7 +12,7 @@ import { spinner } from "./spinner.js";
 const SERVER_NAME = "react-grab-mcp";
 const PACKAGE_NAME = "@react-grab/mcp";
 
-export interface ClientDefinition {
+interface ClientDefinition {
   name: string;
   configPath: string;
   configKey: string;
@@ -48,7 +48,7 @@ const getZedConfigPath = (): string => {
   return path.join(os.homedir(), ".config", "zed", "settings.json");
 };
 
-export const getOpenCodeConfigPath = (): string => {
+const getOpenCodeConfigPath = (): string => {
   const configDir = path.join(getXdgConfigHome(), "opencode");
   const jsoncPath = path.join(configDir, "opencode.jsonc");
   const jsonPath = path.join(configDir, "opencode.json");
@@ -149,7 +149,7 @@ const JSONC_FORMAT_OPTIONS: jsonc.FormattingOptions = {
   insertSpaces: true,
 };
 
-export const upsertIntoJsonc = (
+const upsertIntoJsonc = (
   filePath: string,
   content: string,
   configKey: string,
@@ -162,7 +162,7 @@ export const upsertIntoJsonc = (
   fs.writeFileSync(filePath, jsonc.applyEdits(content, edits));
 };
 
-export const installJsonClient = (client: ClientDefinition): void => {
+const installJsonClient = (client: ClientDefinition): void => {
   ensureDirectory(client.configPath);
 
   const content = fs.existsSync(client.configPath)
@@ -172,7 +172,7 @@ export const installJsonClient = (client: ClientDefinition): void => {
   upsertIntoJsonc(client.configPath, content, client.configKey, SERVER_NAME, client.serverConfig);
 };
 
-export const installTomlClient = (client: ClientDefinition): void => {
+const installTomlClient = (client: ClientDefinition): void => {
   ensureDirectory(client.configPath);
 
   const existingConfig: Record<string, unknown> = fs.existsSync(client.configPath)
@@ -186,7 +186,7 @@ export const installTomlClient = (client: ClientDefinition): void => {
   fs.writeFileSync(client.configPath, TOML.stringify(existingConfig));
 };
 
-export const getMcpClientNames = (): string[] => getClients().map((client) => client.name);
+const getMcpClientNames = (): string[] => getClients().map((client) => client.name);
 
 export const installMcpServers = (selectedClients?: string[]): InstallResult[] => {
   const allClients = getClients();

@@ -146,7 +146,6 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
 
     plugins.set(plugin.name, { plugin, config });
     recomputeStore();
-    return config;
   };
 
   const unregister = (name: string) => {

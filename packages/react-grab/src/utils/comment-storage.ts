@@ -75,8 +75,9 @@ export const addCommentItem = (item: Omit<CommentItem, "id">): CommentItem[] =>
     [{ ...item, id: generateId("comment") }, ...commentItems].slice(0, MAX_COMMENT_ITEMS),
   );
 
-export const removeCommentItem = (itemId: string): CommentItem[] =>
+export const removeCommentItem = (itemId: string): void => {
   persistCommentItems(commentItems.filter((innerItem) => innerItem.id !== itemId));
+};
 
 export const clearComments = (): CommentItem[] => persistCommentItems([]);
 
