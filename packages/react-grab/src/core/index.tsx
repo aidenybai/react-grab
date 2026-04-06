@@ -78,7 +78,6 @@ import {
   DEFAULT_ACTION_ID,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
-import { getElementCenter } from "../utils/get-element-center.js";
 import { isCLikeKey } from "../utils/is-c-like-key.js";
 import { isTargetKeyCombination } from "../utils/is-target-key-combination.js";
 import {
@@ -1640,7 +1639,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       pluginRegistry.hooks.onDragEnd(selectedElements, dragSelectionRect);
       const firstElement = selectedElements[0];
-      const center = getElementCenter(firstElement);
+      const center = getBoundsCenter(createElementBounds(firstElement));
 
       actions.setPointer(center);
       actions.setFrozenElements(selectedElements);
@@ -1700,7 +1699,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         positionX = store.pointer.x;
         positionY = store.pointer.y;
       } else if (didSelectViaKeyboard) {
-        const elementCenter = getElementCenter(element);
+        const elementCenter = getBoundsCenter(createElementBounds(element));
         positionX = elementCenter.x;
         positionY = elementCenter.y;
       } else {
@@ -1928,7 +1927,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         event.preventDefault();
         event.stopImmediatePropagation();
 
-        const center = getElementCenter(copiedElement);
+        const center = getBoundsCenter(createElementBounds(copiedElement));
 
         actions.setPointer(center);
         preparePromptMode(copiedElement, center.x, center.y);
