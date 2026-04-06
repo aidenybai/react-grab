@@ -11,7 +11,7 @@ process.on("SIGINT", () => process.exit(0));
 process.on("SIGTERM", () => process.exit(0));
 
 try {
-  fetch(`${VERSION_API_URL}?source=cli&t=${Date.now()}`).catch(() => {});
+  fetch(`${VERSION_API_URL}?source=cli&v=${VERSION}&t=${Date.now()}`).catch(() => {});
 } catch {}
 
 const program = new Command()

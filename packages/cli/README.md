@@ -25,7 +25,7 @@ npx grab@latest init
 | `--key <key>`    | `-k`  | Activation key (e.g. Meta+K, Space)      |
 | `--skip-install` |       | Skip package installation                |
 | `--pkg <pkg>`    |       | Custom package URL                       |
-| `--cwd <cwd>`   | `-c`  | Working directory (default: current dir) |
+| `--cwd <cwd>`    | `-c`  | Working directory (default: current dir) |
 
 ### `grab add`
 
@@ -35,10 +35,10 @@ Connect React Grab to your coding agent via MCP.
 npx grab@latest add mcp
 ```
 
-| Option       | Alias | Description                              |
-| ------------ | ----- | ---------------------------------------- |
-| `--yes`      | `-y`  | Skip confirmation prompts                |
-| `--cwd <cwd>`| `-c` | Working directory (default: current dir) |
+| Option        | Alias | Description                              |
+| ------------- | ----- | ---------------------------------------- |
+| `--yes`       | `-y`  | Skip confirmation prompts                |
+| `--cwd <cwd>` | `-c`  | Working directory (default: current dir) |
 
 ### `grab remove`
 
@@ -48,10 +48,10 @@ Disconnect React Grab from your coding agent.
 npx grab@latest remove mcp
 ```
 
-| Option       | Alias | Description                              |
-| ------------ | ----- | ---------------------------------------- |
-| `--yes`      | `-y`  | Skip confirmation prompts                |
-| `--cwd <cwd>`| `-c` | Working directory (default: current dir) |
+| Option        | Alias | Description                              |
+| ------------- | ----- | ---------------------------------------- |
+| `--yes`       | `-y`  | Skip confirmation prompts                |
+| `--cwd <cwd>` | `-c`  | Working directory (default: current dir) |
 
 ### `grab configure`
 
@@ -61,16 +61,16 @@ Configure React Grab options. Runs an interactive wizard when called without fla
 npx grab@latest configure
 ```
 
-| Option                  | Alias | Description                                  |
-| ----------------------- | ----- | -------------------------------------------- |
-| `--yes`                 | `-y`  | Skip confirmation prompts                    |
-| `--key <key>`           | `-k`  | Activation key (e.g. Meta+K, Ctrl+Shift+G)   |
-| `--mode <mode>`         | `-m`  | Activation mode (`toggle` or `hold`)          |
-| `--hold-duration <ms>`  |       | Key hold duration in ms (hold mode, max 2000) |
-| `--allow-input <bool>`  |       | Allow activation inside input fields          |
-| `--context-lines <n>`   |       | Max context lines (max 50)                    |
-| `--cdn <domain>`        |       | CDN domain (e.g. unpkg.com)                   |
-| `--cwd <cwd>`           | `-c`  | Working directory (default: current dir)      |
+| Option                 | Alias | Description                                   |
+| ---------------------- | ----- | --------------------------------------------- |
+| `--yes`                | `-y`  | Skip confirmation prompts                     |
+| `--key <key>`          | `-k`  | Activation key (e.g. Meta+K, Ctrl+Shift+G)    |
+| `--mode <mode>`        | `-m`  | Activation mode (`toggle` or `hold`)          |
+| `--hold-duration <ms>` |       | Key hold duration in ms (hold mode, max 2000) |
+| `--allow-input <bool>` |       | Allow activation inside input fields          |
+| `--context-lines <n>`  |       | Max context lines (max 50)                    |
+| `--cdn <domain>`       |       | CDN domain (e.g. unpkg.com)                   |
+| `--cwd <cwd>`          | `-c`  | Working directory (default: current dir)      |
 
 ## Examples
 
@@ -96,9 +96,9 @@ npx grab@latest configure
 
 ## Supported Frameworks
 
-| Framework              | Detection                            |
-| ---------------------- | ------------------------------------ |
-| Next.js (App Router)   | `next.config.ts` + `app/` directory  |
-| Next.js (Pages Router) | `next.config.ts` + `pages/` directory|
-| Vite                   | `vite.config.ts`                     |
-| Webpack                | `webpack.config.*`                   |
+| Framework              | Detection                             |
+| ---------------------- | ------------------------------------- |
+| Next.js (App Router)   | `next.config.ts` + `app/` directory   |
+| Next.js (Pages Router) | `next.config.ts` + `pages/` directory |
+| Vite                   | `vite.config.ts`                      |
+| Webpack                | `webpack.config.*`                    |

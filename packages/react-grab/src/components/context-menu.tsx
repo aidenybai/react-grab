@@ -165,13 +165,12 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       const context = props.actionContext;
 
       const runActionIfAllowed = (action: ContextMenuAction) => {
-        if (!context) return false;
-        if (!resolveActionEnabled(action, context)) return false;
+        if (!context) return;
+        if (!resolveActionEnabled(action, context)) return;
         event.preventDefault();
         event.stopPropagation();
         action.onAction(context);
         props.onHide();
-        return true;
       };
 
       if (isEnter) {

@@ -4,7 +4,7 @@
 - MUST: Use TypeScript interfaces over types.
 - MUST: Keep all types in the global scope.
 - MUST: Use arrow functions over function declarations
-- MUST: Avoid unnecessary comments, but DO add brief comments that explain non-obvious "why" — browser quirks, platform bugs, performance tradeoffs, fragile internal patching, or counter-intuitive design decisions. Skip comments that merely restate what the code does or what a well-named function/variable already conveys.
+- MUST: Default to NO comments. Only add a comment when the user explicitly asks, or when the "why" is truly non-obvious — browser quirks, platform bugs, performance tradeoffs, fragile internal patching, or counter-intuitive design decisions. Never add comments that restate what the code does or what a well-named function/variable already conveys. When in doubt, leave the comment out.
   - Do not delete descriptive comments >3 lines without confirming with the user
 - MUST: Use kebab-case for files
 - MUST: Use descriptive names for variables (avoid shorthands, or 1-2 character names).

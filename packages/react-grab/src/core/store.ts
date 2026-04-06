@@ -5,12 +5,6 @@ import { createElementBounds } from "../utils/create-element-bounds.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
 
-interface PendingClickData {
-  clientX: number;
-  clientY: number;
-  element: Element;
-}
-
 interface FrozenDragRect {
   pageX: number;
   pageY: number;
@@ -55,7 +49,6 @@ interface GrabStore {
   selectionLineNumber: number | null;
 
   inputText: string;
-  pendingClickData: PendingClickData | null;
 
   viewportVersion: number;
   grabbedBoxes: GrabbedBox[];
@@ -101,7 +94,6 @@ const createInitialStore = (input: GrabStoreInput): GrabStore => ({
   selectionLineNumber: null,
 
   inputText: "",
-  pendingClickData: null,
 
   viewportVersion: 0,
   grabbedBoxes: [],
@@ -144,7 +136,6 @@ interface GrabActions {
   setFrozenElement: (element: Element) => void;
   setFrozenElements: (elements: Element[]) => void;
   setFrozenDragRect: (rect: FrozenDragRect | null) => void;
-  clearFrozenElement: () => void;
   setCopyStart: (position: Position, element: Element) => void;
   setLastGrabbed: (element: Element | null) => void;
   clearLastCopied: () => void;
@@ -152,7 +143,6 @@ interface GrabActions {
   setPendingCommentMode: (value: boolean) => void;
   setTouchMode: (value: boolean) => void;
   setSelectionSource: (filePath: string | null, lineNumber: number | null) => void;
-  setPendingClickData: (data: PendingClickData | null) => void;
   incrementViewportVersion: () => void;
   addGrabbedBox: (box: GrabbedBox) => void;
   removeGrabbedBox: (boxId: string) => void;
@@ -172,6 +162,16 @@ interface GrabActions {
 
 const createGrabStore = (input: GrabStoreInput) => {
   const [store, setStore] = createStore<GrabStore>(createInitialStore(input));
+
+  const clearFrozenElement = () => {
+    setStore(
+      produce((draft) => {
+        draft.frozenElement = null;
+        draft.frozenElements = [];
+        draft.frozenDragRect = null;
+      }),
+    );
+  };
 
   const setActivePhase = (phase: GrabPhase) => {
     setStore(
@@ -223,7 +223,6 @@ const createGrabStore = (input: GrabStoreInput) => {
           draft.frozenElement = null;
           draft.frozenElements = [];
           draft.frozenDragRect = null;
-          draft.pendingClickData = null;
           draft.activationTimestamp = null;
           draft.previouslyFocusedElement = null;
           draft.contextMenuPosition = null;
@@ -268,7 +267,7 @@ const createGrabStore = (input: GrabStoreInput) => {
 
     startDrag: (position: Position) => {
       if (store.current.state === "active") {
-        actions.clearFrozenElement();
+        clearFrozenElement();
         setStore("dragStart", {
           x: position.x + window.scrollX,
           y: position.y + window.scrollY,
@@ -307,7 +306,6 @@ const createGrabStore = (input: GrabStoreInput) => {
     },
 
     completeCopy: (element?: Element) => {
-      setStore("pendingClickData", null);
       if (element) {
         setStore("lastCopiedElement", element);
       }
@@ -323,7 +321,7 @@ const createGrabStore = (input: GrabStoreInput) => {
       if (store.current.state === "justCopied") {
         const shouldReturnToActive = store.current.wasActive && !store.wasActivatedByToggle;
         if (shouldReturnToActive) {
-          actions.clearFrozenElement();
+          clearFrozenElement();
           setStore("current", {
             state: "active",
             phase: "hovering",
@@ -435,16 +433,6 @@ const createGrabStore = (input: GrabStoreInput) => {
       setStore("frozenDragRect", rect);
     },
 
-    clearFrozenElement: () => {
-      setStore(
-        produce((draft) => {
-          draft.frozenElement = null;
-          draft.frozenElements = [];
-          draft.frozenDragRect = null;
-        }),
-      );
-    },
-
     setCopyStart: (position: Position, element: Element) => {
       const bounds = createElementBounds(element);
       const { x: selectionCenterX } = getBoundsCenter(bounds);
@@ -479,10 +467,6 @@ const createGrabStore = (input: GrabStoreInput) => {
           draft.selectionLineNumber = lineNumber;
         }),
       );
-    },
-
-    setPendingClickData: (data: PendingClickData | null) => {
-      setStore("pendingClickData", data);
     },
 
     incrementViewportVersion: () => {

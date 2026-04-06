@@ -78,8 +78,8 @@ import {
   DEFAULT_ACTION_ID,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
-import { getElementBoundsCenter } from "../utils/get-element-bounds-center.js";
-import { getElementCenter } from "../utils/get-element-center.js";
+import { hideFromThirdParties } from "../utils/hide-from-third-parties.js";
+import { detectCspNonce } from "../utils/detect-csp-nonce.js";
 import { isCLikeKey } from "../utils/is-c-like-key.js";
 import { isTargetKeyCombination } from "../utils/is-target-key-combination.js";
 import {
@@ -303,7 +303,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       for (const callback of toolbarStateChangeCallbacks) {
         callback(newState);
       }
-      return newState;
     };
 
     const getMappedCommentElements = (commentItemId: string): Element[] =>
@@ -450,7 +449,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const setCopyStartPosition = (element: Element, positionX: number, positionY: number) => {
       actions.setCopyStart({ x: positionX, y: positionY }, element);
-      return createElementBounds(element);
     };
 
     const elementDetectionState = {
@@ -1157,7 +1155,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         void store.viewportVersion;
         const element = store.frozenElement || targetElement();
         if (element) {
-          const { center } = getElementBoundsCenter(element);
+          const center = getBoundsCenter(createElementBounds(element));
           return {
             x: center.x + store.copyOffsetFromCenterX,
             y: store.copyStart.y,
@@ -1353,6 +1351,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (!cursorStyleElement) {
           cursorStyleElement = document.createElement("style");
           cursorStyleElement.setAttribute("data-react-grab-cursor", "");
+          const nonce = detectCspNonce();
+          if (nonce) cursorStyleElement.nonce = nonce;
+          hideFromThirdParties(cursorStyleElement);
           document.head.appendChild(cursorStyleElement);
         }
         cursorStyleElement.textContent = `* { cursor: ${cursor} !important; }`;
@@ -1643,7 +1644,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       pluginRegistry.hooks.onDragEnd(selectedElements, dragSelectionRect);
       const firstElement = selectedElements[0];
-      const center = getElementCenter(firstElement);
+      const center = getBoundsCenter(createElementBounds(firstElement));
 
       actions.setPointer(center);
       actions.setFrozenElements(selectedElements);
@@ -1703,7 +1704,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         positionX = store.pointer.x;
         positionY = store.pointer.y;
       } else if (didSelectViaKeyboard) {
-        const elementCenter = getElementCenter(element);
+        const elementCenter = getBoundsCenter(createElementBounds(element));
         positionX = elementCenter.x;
         positionY = elementCenter.y;
       } else {
@@ -1838,7 +1839,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.freeze();
       keyboardSelectedElement = element;
 
-      const { center } = getElementBoundsCenter(element);
+      const center = getBoundsCenter(createElementBounds(element));
       actions.setPointer(center);
 
       if (store.contextMenuPosition !== null) {
@@ -1931,7 +1932,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         event.preventDefault();
         event.stopImmediatePropagation();
 
-        const center = getElementCenter(copiedElement);
+        const center = getBoundsCenter(createElementBounds(copiedElement));
 
         actions.setPointer(center);
         preparePromptMode(copiedElement, center.x, center.y);
@@ -3446,7 +3447,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const element = getFirstConnectedCommentElement(item);
 
       if (item.commentText && element) {
-        const { center } = getElementBoundsCenter(element);
+        const center = getBoundsCenter(createElementBounds(element));
         actions.enterPromptMode(center, element);
         actions.setInputText(item.commentText);
       } else {
@@ -3573,7 +3574,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!isElementConnected(instance.element)) return;
 
       const contextMenuElement = instance.element;
-      const { center } = getElementBoundsCenter(contextMenuElement);
+      const center = getBoundsCenter(createElementBounds(contextMenuElement));
       const position = {
         x: instance.mouseX ?? center.x,
         y: center.y,
