@@ -15,4 +15,4 @@ playwright-report
 .cursor
 meta.json
 .agents/skills
-.claude
+.claude.expect
