@@ -2047,6 +2047,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         (element) => {
           setResolvedHookState(undefined);
           if (!element) return;
+          initRenderTimeline();
           resolveHookNames(element)
             .then((namedRows) => {
               if (namedRows && effectiveElement() === element) {
@@ -2062,8 +2063,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!isInspectMode()) return undefined;
       const element = effectiveElement();
       if (!element) return undefined;
-
-      initRenderTimeline();
 
       const source = formatSourceLocation(store.selectionFilePath, store.selectionLineNumber);
       const reactProps = getReactProps(element);
