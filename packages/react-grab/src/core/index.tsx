@@ -78,7 +78,6 @@ import {
   DEFAULT_ACTION_ID,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
-import { getElementBoundsCenter } from "../utils/get-element-bounds-center.js";
 import { getElementCenter } from "../utils/get-element-center.js";
 import { isCLikeKey } from "../utils/is-c-like-key.js";
 import { isTargetKeyCombination } from "../utils/is-target-key-combination.js";
@@ -1155,7 +1154,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         void store.viewportVersion;
         const element = store.frozenElement || targetElement();
         if (element) {
-          const { center } = getElementBoundsCenter(element);
+          const center = getBoundsCenter(createElementBounds(element));
           return {
             x: center.x + store.copyOffsetFromCenterX,
             y: store.copyStart.y,
@@ -1836,7 +1835,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.freeze();
       keyboardSelectedElement = element;
 
-      const { center } = getElementBoundsCenter(element);
+      const center = getBoundsCenter(createElementBounds(element));
       actions.setPointer(center);
 
       if (store.contextMenuPosition !== null) {
@@ -3444,7 +3443,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const element = getFirstConnectedCommentElement(item);
 
       if (item.commentText && element) {
-        const { center } = getElementBoundsCenter(element);
+        const center = getBoundsCenter(createElementBounds(element));
         actions.enterPromptMode(center, element);
         actions.setInputText(item.commentText);
       } else {
@@ -3571,7 +3570,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!isElementConnected(instance.element)) return;
 
       const contextMenuElement = instance.element;
-      const { center } = getElementBoundsCenter(contextMenuElement);
+      const center = getBoundsCenter(createElementBounds(contextMenuElement));
       const position = {
         x: instance.mouseX ?? center.x,
         y: center.y,
