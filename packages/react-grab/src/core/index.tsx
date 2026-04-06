@@ -38,7 +38,9 @@ import { isValidGrabbableElement } from "../utils/is-valid-grabbable-element.js"
 import { isRootElement } from "../utils/is-root-element.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
 import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
-import { getAncestorElements } from "../utils/get-ancestor-elements.js";
+import { getReactProps } from "../utils/get-react-props.js";
+import { getHooksState } from "../utils/get-hooks-state.js";
+import { initRenderTimeline, getTimelineForElement } from "../utils/render-timeline.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
 import { createElementSelector } from "../utils/create-element-selector.js";
 import { getVisibleBoundsCenter } from "../utils/get-visible-bounds-center.js";
@@ -104,6 +106,7 @@ import type {
   ActionCycleItem,
   ActionCycleState,
   ArrowNavigationState,
+  InspectPropertiesState,
   PerformWithFeedbackOptions,
   SettableOptions,
   SourceInfo,
@@ -189,6 +192,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
   if (typeof window === "undefined") {
     return createNoopApi();
   }
+
+  initRenderTimeline();
 
   const scriptOptions = getScriptOptions();
 
@@ -1137,19 +1142,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return frozenElementsBounds();
     });
 
-    const inspectBounds = createMemo((): OverlayBounds[] => {
-      if (!isInspectMode()) return [];
-
-      const element = effectiveElement();
-      if (!element) return [];
-
-      void store.viewportVersion;
-
-      return [...getAncestorElements(element), element].map((ancestor) =>
-        createElementBounds(ancestor),
-      );
-    });
-
     const cursorPosition = createMemo(() => {
       if (isCopying() || isPromptMode()) {
         void store.viewportVersion;
@@ -1615,7 +1607,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handlePointerDown = (clientX: number, clientY: number) => {
-      if (!isRendererActive() || isCopying()) return false;
+      if (!isRendererActive() || isCopying() || isInspectMode()) return false;
 
       actions.startDrag({ x: clientX, y: clientY });
       actions.setPointer({ x: clientX, y: clientY });
@@ -2045,40 +2037,38 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       isVisible: arrowNavigationElements().length > 0,
     }));
 
-    const inspectAncestorElements = createMemo((): Element[] => {
-      if (!isInspectMode()) return [];
+    const inspectPropertiesState = createMemo<InspectPropertiesState | undefined>(() => {
+      if (!isInspectMode()) return undefined;
       const element = effectiveElement();
-      if (!element) return [];
-      return [...getAncestorElements(element).reverse(), element];
-    });
+      if (!element) return undefined;
 
-    const inspectNavigationItems = createMemo(() =>
-      inspectAncestorElements().map((element) => ({
-        tagName: getTagName(element) || "element",
-        componentName: getComponentDisplayName(element) ?? undefined,
-      })),
-    );
+      const filePath = store.selectionFilePath;
+      const lineNumber = store.selectionLineNumber;
+      const fileName = filePath?.split("/").pop() ?? "";
+      const isRealSourceFile =
+        Boolean(fileName) &&
+        /\.(tsx?|jsx?)$/i.test(fileName) &&
+        !/[_]{2,}|[0-9a-f]{8,}/i.test(fileName);
+      const source = isRealSourceFile ? `${fileName}${lineNumber ? `:${lineNumber}` : ""}` : "";
 
-    const [inspectActiveIndex, setInspectActiveIndex] = createSignal(-1);
+      const reactProps = getReactProps(element);
+      const hooks = getHooksState(element);
+      const timeline = getTimelineForElement(element);
+      const hasContent =
+        source ||
+        reactProps.length > 0 ||
+        hooks.length > 0 ||
+        (timeline && timeline.totalRenderCount > 0);
+      if (!hasContent) return undefined;
 
-    createEffect(
-      on(inspectAncestorElements, (elements) => {
-        setInspectActiveIndex(elements.length - 1);
-      }),
-    );
-
-    const inspectNavigationState = createMemo<ArrowNavigationState>(() => {
-      const elements = inspectAncestorElements();
       return {
-        items: inspectNavigationItems(),
-        activeIndex: inspectActiveIndex(),
-        isVisible: isInspectMode() && elements.length > 0,
+        reactProps,
+        hooks,
+        source,
+        timeline,
+        isVisible: true,
       };
     });
-
-    const handleInspectSelect = (index: number) => {
-      setInspectActiveIndex(index);
-    };
 
     createEffect(
       on(selectionElement, () => {
@@ -2491,7 +2481,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (store.contextMenuPosition !== null) return;
         if (isTouchPointer && !isHoldingKeys() && !isActivated()) return;
         const isActiveState = isTouchPointer ? isHoldingKeys() : isActivated();
-        if (isActiveState && !isPromptMode() && isFrozenPhase()) {
+        if (isActiveState && !isPromptMode() && !isInspectMode() && isFrozenPhase()) {
           actions.unfreeze();
           clearArrowNavigation();
         }
@@ -3626,8 +3616,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 selectionShouldSnap={
                   store.frozenElements.length > 0 || dragPreviewBounds().length > 0
                 }
-                inspectVisible={isInspectMode() && inspectBounds().length > 0}
-                inspectBounds={inspectBounds()}
+                inspectPropertiesState={inspectPropertiesState()}
                 selectionElementsCount={store.frozenElements.length}
                 selectionFilePath={store.selectionFilePath ?? undefined}
                 selectionLineNumber={store.selectionLineNumber ?? undefined}
@@ -3638,8 +3627,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 selectionActionCycleState={actionCycleState()}
                 selectionArrowNavigationState={arrowNavigationState()}
                 onArrowNavigationSelect={handleArrowNavigationSelect}
-                inspectNavigationState={inspectNavigationState()}
-                onInspectSelect={handleInspectSelect}
                 labelInstances={computedLabelInstances()}
                 dragVisible={dragVisible()}
                 dragBounds={dragBounds()}
