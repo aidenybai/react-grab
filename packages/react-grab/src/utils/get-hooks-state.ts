@@ -1,31 +1,51 @@
-import { type HookType, type MemoizedState } from "bippy";
+import {
+  getFiberHooks,
+  parseHookNames,
+  getHookSourceLocationKey,
+  type HooksTree,
+} from "bippy/source";
 import type { InspectPropertyRow } from "../types.js";
 import { formatPropValue } from "./format-prop-value.js";
 import { findNearestCompositeFiber } from "./find-nearest-composite-fiber.js";
 import { INSPECT_MAX_HOOKS } from "../constants.js";
 
-const STATEFUL_HOOK_TYPES = new Set<HookType>(["useState", "useReducer"]);
+const buildHookRows = (
+  hooksTree: HooksTree,
+  hookNames?: Map<string, string>,
+): InspectPropertyRow[] =>
+  hooksTree
+    .filter((hookNode) => hookNode.isStateEditable)
+    .slice(0, INSPECT_MAX_HOOKS)
+    .map((hookNode) => {
+      const resolvedName =
+        hookNode.hookSource && hookNames
+          ? hookNames.get(getHookSourceLocationKey(hookNode.hookSource))
+          : undefined;
+      return {
+        label: resolvedName ?? hookNode.name,
+        value: formatPropValue(hookNode.value),
+      };
+    });
 
 export const getHooksState = (element: Element): InspectPropertyRow[] => {
   const compositeFiber = findNearestCompositeFiber(element);
   if (!compositeFiber) return [];
 
-  const hookTypes = compositeFiber._debugHookTypes;
-  if (!hookTypes) return [];
+  return buildHookRows(getFiberHooks(compositeFiber));
+};
 
-  const rows: InspectPropertyRow[] = [];
-  let hookState: MemoizedState | null = compositeFiber.memoizedState;
-  let hookIndex = 0;
+export const resolveHookNames = async (
+  element: Element,
+): Promise<InspectPropertyRow[] | null> => {
+  const compositeFiber = findNearestCompositeFiber(element);
+  if (!compositeFiber) return null;
 
-  while (hookState && hookIndex < hookTypes.length) {
-    const hookType = hookTypes[hookIndex];
-    if (STATEFUL_HOOK_TYPES.has(hookType)) {
-      rows.push({ label: hookType, value: formatPropValue(hookState.memoizedState) });
-      if (rows.length >= INSPECT_MAX_HOOKS) break;
-    }
-    hookState = hookState.next;
-    hookIndex++;
-  }
+  const hooksTree = getFiberHooks(compositeFiber);
+  const editableHooks = hooksTree.filter((hookNode) => hookNode.isStateEditable);
+  if (editableHooks.length === 0) return null;
 
-  return rows;
+  const hookNames = await parseHookNames(hooksTree);
+  if (hookNames.size === 0) return null;
+
+  return buildHookRows(hooksTree, hookNames);
 };

@@ -39,7 +39,7 @@ import { isRootElement } from "../utils/is-root-element.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
 import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
 import { getReactProps } from "../utils/get-react-props.js";
-import { getHooksState } from "../utils/get-hooks-state.js";
+import { getHooksState, resolveHookNames } from "../utils/get-hooks-state.js";
 import { initRenderTimeline, getTimelineForElement } from "../utils/render-timeline.js";
 import { formatSourceLocation } from "../utils/format-source-location.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
@@ -2038,15 +2038,35 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       isVisible: arrowNavigationElements().length > 0,
     }));
 
+    const [resolvedHookRows, setResolvedHookRows] = createSignal<
+      { element: Element; rows: import("../types.js").InspectPropertyRow[] } | undefined
+    >(undefined);
+
+    createEffect(
+      on(
+        () => (isInspectMode() ? effectiveElement() : null),
+        (element) => {
+          setResolvedHookRows(undefined);
+          if (!element) return;
+          resolveHookNames(element).then((rows) => {
+            if (rows && effectiveElement() === element) {
+              setResolvedHookRows({ element, rows });
+            }
+          });
+        },
+      ),
+    );
+
     const inspectPropertiesState = createMemo<InspectPropertiesState | undefined>(() => {
       if (!isInspectMode()) return undefined;
       const element = effectiveElement();
       if (!element) return undefined;
 
       const source = formatSourceLocation(store.selectionFilePath, store.selectionLineNumber);
-
       const reactProps = getReactProps(element);
-      const hooks = getHooksState(element);
+      const resolved = resolvedHookRows();
+      const hooks =
+        resolved && resolved.element === element ? resolved.rows : getHooksState(element);
       const timeline = getTimelineForElement(element);
       const hasContent =
         source ||
