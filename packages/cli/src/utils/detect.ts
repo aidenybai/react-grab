@@ -32,7 +32,7 @@ const detectPackageManager = async (projectRoot: string): Promise<PackageManager
   return "npm";
 };
 
-const detectFramework = (projectRoot: string): Framework => {
+export const detectFramework = (projectRoot: string): Framework => {
   const packageJsonPath = join(projectRoot, "package.json");
 
   if (!existsSync(packageJsonPath)) {
@@ -68,7 +68,7 @@ const detectFramework = (projectRoot: string): Framework => {
   }
 };
 
-const detectNextRouterType = (projectRoot: string): NextRouterType => {
+export const detectNextRouterType = (projectRoot: string): NextRouterType => {
   const hasAppDir = existsSync(join(projectRoot, "app"));
   const hasSrcAppDir = existsSync(join(projectRoot, "src", "app"));
   const hasPagesDir = existsSync(join(projectRoot, "pages"));
@@ -85,7 +85,7 @@ const detectNextRouterType = (projectRoot: string): NextRouterType => {
   return "unknown";
 };
 
-const detectMonorepo = (projectRoot: string): boolean => {
+export const detectMonorepo = (projectRoot: string): boolean => {
   if (existsSync(join(projectRoot, "pnpm-workspace.yaml"))) {
     return true;
   }
@@ -346,7 +346,7 @@ const hasReactGrabInFile = (filePath: string): boolean => {
   }
 };
 
-const detectReactGrab = (projectRoot: string): boolean => {
+export const detectReactGrab = (projectRoot: string): boolean => {
   const packageJsonPath = join(projectRoot, "package.json");
 
   if (existsSync(packageJsonPath)) {
@@ -388,7 +388,7 @@ const detectReactGrab = (projectRoot: string): boolean => {
   return filesToCheck.some(hasReactGrabInFile);
 };
 
-const detectUnsupportedFramework = (projectRoot: string): UnsupportedFramework => {
+export const detectUnsupportedFramework = (projectRoot: string): UnsupportedFramework => {
   const packageJsonPath = join(projectRoot, "package.json");
 
   if (!existsSync(packageJsonPath)) {
