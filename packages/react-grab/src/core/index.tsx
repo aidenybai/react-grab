@@ -108,6 +108,7 @@ import type {
   ActionCycleState,
   ArrowNavigationState,
   InspectPropertiesState,
+  InspectPropertyRow,
   PerformWithFeedbackOptions,
   SettableOptions,
   SourceInfo,
@@ -2039,7 +2040,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     }));
 
     const [resolvedHookRows, setResolvedHookRows] = createSignal<
-      { element: Element; rows: import("../types.js").InspectPropertyRow[] } | undefined
+      InspectPropertyRow[] | undefined
     >(undefined);
 
     createEffect(
@@ -2048,9 +2049,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         (element) => {
           setResolvedHookRows(undefined);
           if (!element) return;
-          resolveHookNames(element).then((rows) => {
-            if (rows && effectiveElement() === element) {
-              setResolvedHookRows({ element, rows });
+          resolveHookNames(element).then((namedRows) => {
+            if (namedRows && effectiveElement() === element) {
+              setResolvedHookRows(namedRows);
             }
           });
         },
@@ -2064,9 +2065,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const source = formatSourceLocation(store.selectionFilePath, store.selectionLineNumber);
       const reactProps = getReactProps(element);
-      const resolved = resolvedHookRows();
-      const hooks =
-        resolved && resolved.element === element ? resolved.rows : getHooksState(element);
+      const hooks = resolvedHookRows() ?? getHooksState(element);
       const timeline = getTimelineForElement(element);
       const hasContent =
         source ||
