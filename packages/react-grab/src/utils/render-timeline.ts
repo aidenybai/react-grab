@@ -5,6 +5,7 @@ import {
   getTimings,
   isCompositeFiber,
   getDisplayName,
+  getFiberId,
   type Fiber,
   type FiberRoot,
 } from "bippy";
@@ -14,7 +15,7 @@ import { MAX_TIMELINE_COMMITS } from "../constants.js";
 
 interface TimelineEntry {
   timestamp: number;
-  componentDurations: Map<unknown, number>;
+  fiberDurations: Map<number, number>;
 }
 
 const commitBuffer: TimelineEntry[] = [];
@@ -27,19 +28,20 @@ export const initRenderTimeline = () => {
 
   instrument({
     onCommitFiberRoot: (_rendererID: number, root: FiberRoot) => {
-      const componentDurations = new Map<unknown, number>();
+      const fiberDurations = new Map<number, number>();
 
       traverseRenderedFibers(root, (fiber: Fiber) => {
         if (isCompositeFiber(fiber) && getDisplayName(fiber.type)) {
+          const fiberId = getFiberId(fiber);
           const { selfTime } = getTimings(fiber);
-          const existing = componentDurations.get(fiber.type) ?? 0;
-          componentDurations.set(fiber.type, existing + selfTime);
+          const existing = fiberDurations.get(fiberId) ?? 0;
+          fiberDurations.set(fiberId, existing + selfTime);
         }
       });
 
-      if (componentDurations.size === 0) return;
+      if (fiberDurations.size === 0) return;
 
-      commitBuffer.push({ timestamp: performance.now(), componentDurations });
+      commitBuffer.push({ timestamp: performance.now(), fiberDurations });
 
       if (commitBuffer.length > MAX_TIMELINE_COMMITS) {
         commitBuffer.splice(0, commitBuffer.length - MAX_TIMELINE_COMMITS);
@@ -56,12 +58,12 @@ export const getTimelineForElement = (element: Element): InspectTimelineData | u
   const compositeFiber = findNearestCompositeFiber(element);
   if (!compositeFiber) return undefined;
 
-  const componentType = compositeFiber.type;
+  const inspectedFiberId = getFiberId(compositeFiber);
   const commits = commitBuffer
-    .filter((entry) => entry.componentDurations.has(componentType))
+    .filter((entry) => entry.fiberDurations.has(inspectedFiberId))
     .map((entry) => ({
       timestamp: entry.timestamp,
-      duration: entry.componentDurations.get(componentType) ?? 0,
+      duration: entry.fiberDurations.get(inspectedFiberId) ?? 0,
     }));
 
   if (commits.length === 0) return undefined;
