@@ -1,27 +1,12 @@
 import { MOUNT_ROOT_RECHECK_DELAY_MS, Z_INDEX_OVERLAY } from "../constants.js";
-import { markReplayPrivate } from "./mark-replay-private.js";
+import { detectCspNonce } from "./detect-csp-nonce.js";
+import { hideFromThirdParties } from "./hide-from-third-parties.js";
 
 const ATTRIBUTE_NAME = "data-react-grab";
 
-const FONT_LINK_ID = "react-grab-fonts";
-const FONT_LINK_URL = "https://fonts.googleapis.com/css2?family=Geist:wght@500&display=swap";
-
-const loadFonts = () => {
-  if (document.getElementById(FONT_LINK_ID)) return;
-
-  if (!document.head) return;
-
-  const link = document.createElement("link");
-  link.id = FONT_LINK_ID;
-  link.rel = "stylesheet";
-  link.href = FONT_LINK_URL;
-  markReplayPrivate(link);
-  document.head.appendChild(link);
-};
+const FONT_IMPORT = '@import url("https://fonts.googleapis.com/css2?family=Geist:wght@500&display=swap");';
 
 export const mountRoot = (cssText?: string) => {
-  loadFonts();
-
   const mountedHost = document.querySelector(`[${ATTRIBUTE_NAME}]`);
   if (mountedHost) {
     const mountedRoot = mountedHost.shadowRoot?.querySelector(`[${ATTRIBUTE_NAME}]`);
@@ -33,20 +18,19 @@ export const mountRoot = (cssText?: string) => {
   const host = document.createElement("div");
 
   host.setAttribute(ATTRIBUTE_NAME, "true");
-  markReplayPrivate(host);
+  hideFromThirdParties(host);
   host.style.zIndex = String(Z_INDEX_OVERLAY);
   host.style.position = "fixed";
   host.style.inset = "0";
-  // The host covers the entire viewport, so pointer-events:none prevents it
-  // from intercepting page clicks. Child UI elements opt in individually.
   host.style.pointerEvents = "none";
+  host.style.contain = "strict";
   const shadowRoot = host.attachShadow({ mode: "open" });
 
-  if (cssText) {
-    const styleElement = document.createElement("style");
-    styleElement.textContent = cssText;
-    shadowRoot.appendChild(styleElement);
-  }
+  const styleElement = document.createElement("style");
+  const nonce = detectCspNonce();
+  if (nonce) styleElement.nonce = nonce;
+  styleElement.textContent = `${FONT_IMPORT}\n${cssText ?? ""}`;
+  shadowRoot.appendChild(styleElement);
 
   const root = document.createElement("div");
 
