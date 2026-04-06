@@ -1159,56 +1159,60 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           </>
         }
       />
-      <Show when={props.isActive && !hasLearnedSelectionHints()}>
-        <div
-          class={cn(
-            TOOLTIP_BASE_CLASS,
-            "flex items-center gap-1 animate-tooltip-fade-in [animation-fill-mode:backwards]",
-            "bg-white",
-            shakeTooltipPositionClass(),
-          )}
-          style={{
-            "z-index": String(Z_INDEX_OVERLAY),
-            [isVertical() ? "top" : "left"]: "50%",
-          }}
-        >
-          <Show when={selectionHintIndex() === 0}>
-            <span class={cn("flex items-center gap-1", hasHintCycled() && HINT_FLIP_IN_ANIMATION)}>
-              Click or
-              <Kbd>↵</Kbd>
-              to capture
-            </span>
-          </Show>
-          <Show when={selectionHintIndex() === 1}>
-            <span class={cn("flex items-center gap-1", HINT_FLIP_IN_ANIMATION)}>
-              <Kbd>↑</Kbd>
-              <Kbd>↓</Kbd>
-              to fine-tune target
-            </span>
-          </Show>
-          <Show when={selectionHintIndex() === 2}>
-            <span class={cn("flex items-center gap-1", HINT_FLIP_IN_ANIMATION)}>
-              <Kbd>esc</Kbd>
-              to cancel
-            </span>
-          </Show>
-        </div>
-      </Show>
-      <Show when={isShakeTooltipVisible()}>
-        <div
-          class={cn(
-            TOOLTIP_BASE_CLASS,
-            "animate-tooltip-fade-in",
-            "bg-white",
-            shakeTooltipPositionClass(),
-          )}
-          style={{
-            "z-index": String(Z_INDEX_OVERLAY),
-            [isVertical() ? "top" : "left"]: "50%",
-          }}
-        >
-          Enable to continue
-        </div>
+      <Show when={isTooltipAllowed()}>
+        <Show when={props.isActive && !hasLearnedSelectionHints()}>
+          <div
+            class={cn(
+              TOOLTIP_BASE_CLASS,
+              "flex items-center gap-1 animate-tooltip-fade-in [animation-fill-mode:backwards]",
+              "bg-white",
+              shakeTooltipPositionClass(),
+            )}
+            style={{
+              "z-index": String(Z_INDEX_OVERLAY),
+              [isVertical() ? "top" : "left"]: "50%",
+            }}
+          >
+            <Show when={selectionHintIndex() === 0}>
+              <span
+                class={cn("flex items-center gap-1", hasHintCycled() && HINT_FLIP_IN_ANIMATION)}
+              >
+                Click or
+                <Kbd>↵</Kbd>
+                to capture
+              </span>
+            </Show>
+            <Show when={selectionHintIndex() === 1}>
+              <span class={cn("flex items-center gap-1", HINT_FLIP_IN_ANIMATION)}>
+                <Kbd>↑</Kbd>
+                <Kbd>↓</Kbd>
+                to fine-tune target
+              </span>
+            </Show>
+            <Show when={selectionHintIndex() === 2}>
+              <span class={cn("flex items-center gap-1", HINT_FLIP_IN_ANIMATION)}>
+                <Kbd>esc</Kbd>
+                to cancel
+              </span>
+            </Show>
+          </div>
+        </Show>
+        <Show when={isShakeTooltipVisible()}>
+          <div
+            class={cn(
+              TOOLTIP_BASE_CLASS,
+              "animate-tooltip-fade-in",
+              "bg-white",
+              shakeTooltipPositionClass(),
+            )}
+            style={{
+              "z-index": String(Z_INDEX_OVERLAY),
+              [isVertical() ? "top" : "left"]: "50%",
+            }}
+          >
+            Enable to continue
+          </div>
+        </Show>
       </Show>
     </div>
   );
