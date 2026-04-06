@@ -2047,11 +2047,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         (element) => {
           setResolvedHookState(undefined);
           if (!element) return;
-          resolveHookNames(element).then((namedRows) => {
-            if (namedRows && effectiveElement() === element) {
-              setResolvedHookState({ forElement: element, rows: namedRows });
-            }
-          });
+          resolveHookNames(element)
+            .then((namedRows) => {
+              if (namedRows && effectiveElement() === element) {
+                setResolvedHookState({ forElement: element, rows: namedRows });
+              }
+            })
+            .catch(() => {});
         },
       ),
     );

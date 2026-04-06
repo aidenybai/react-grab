@@ -7,7 +7,7 @@ export const formatSourceLocation = (
 ): string => {
   if (!filePath) return "";
 
-  const fileName = filePath.split("/").pop() ?? "";
+  const fileName = filePath.split(/[/\\]/).pop() ?? "";
   if (!fileName) return "";
 
   const isBundledFile =
