@@ -51,11 +51,6 @@ export const createToolbarDrag = (config: ToolbarDragConfig): ToolbarDragResult 
     dragAbortController = null;
   };
 
-  const cancelDrag = () => {
-    teardownDragListeners();
-    setIsDragging(false);
-  };
-
   const handleWindowPointerMove = (event: PointerEvent) => {
     if (!hasDragMoved()) {
       const distanceMoved = Math.hypot(
@@ -172,11 +167,12 @@ export const createToolbarDrag = (config: ToolbarDragConfig): ToolbarDragResult 
       time: performance.now(),
     };
 
+    teardownDragListeners();
     dragAbortController = new AbortController();
     const { signal } = dragAbortController;
     window.addEventListener("pointermove", handleWindowPointerMove, { signal });
     window.addEventListener("pointerup", handleWindowPointerUp, { signal });
-    window.addEventListener("pointercancel", cancelDrag, { signal });
+    window.addEventListener("pointercancel", handleWindowPointerUp, { signal });
   };
 
   const createDragAwareHandler = (callback: () => void) => (event: MouseEvent) => {
