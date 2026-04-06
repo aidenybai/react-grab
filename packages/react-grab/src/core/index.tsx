@@ -195,8 +195,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     return createNoopApi();
   }
 
-  initRenderTimeline();
-
   const scriptOptions = getScriptOptions();
 
   const initialOptions: Options = {
@@ -213,6 +211,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     return createNoopApi();
   }
   hasInited = true;
+
+  initRenderTimeline();
 
   logIntro();
 
