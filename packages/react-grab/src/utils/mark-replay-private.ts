@@ -1,5 +1,3 @@
-// Marks an element as private across all major session replay tools so the
-// React Grab overlay, injected styles, and font links don't leak into recordings.
 const REPLAY_PRIVACY_ATTRIBUTES: ReadonlyArray<[string, string]> = [
   // rrweb / rrweb-based tools (PostHog, Highlight, etc.)
   ["data-rr-block", ""],
