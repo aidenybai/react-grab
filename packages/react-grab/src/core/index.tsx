@@ -2058,7 +2058,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         source ||
         reactProps.length > 0 ||
         hooks.length > 0 ||
-        (timeline && timeline.totalRenderCount > 0);
+        (timeline && timeline.commits.length > 0);
       if (!hasContent) return undefined;
 
       return {

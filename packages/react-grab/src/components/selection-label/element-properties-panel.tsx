@@ -23,7 +23,7 @@ const SectionDivider: Component = () => (
 
 export const ElementPropertiesPanel: Component<ElementPropertiesPanelProps> = (props) => {
   const hasTimeline = () =>
-    Boolean(props.state.timeline && props.state.timeline.totalRenderCount > 0);
+    Boolean(props.state.timeline && props.state.timeline.commits.length > 0);
   const hasTopSection = () => Boolean(props.state.source) || hasTimeline();
   const hasProps = () => props.state.reactProps.length > 0;
   const hasHooks = () => props.state.hooks.length > 0;
@@ -40,8 +40,8 @@ export const ElementPropertiesPanel: Component<ElementPropertiesPanelProps> = (p
             <span class="text-[12px] leading-4 text-black/40">{props.state.source}</span>
           </Show>
 
-          <Show when={hasTimeline()}>
-            <RenderTimelineBar timeline={props.state.timeline!} />
+          <Show when={hasTimeline() && props.state.timeline}>
+            {(timeline) => <RenderTimelineBar timeline={timeline()} />}
           </Show>
 
           <Show when={hasTopSection() && (hasProps() || hasHooks())}>
@@ -49,13 +49,15 @@ export const ElementPropertiesPanel: Component<ElementPropertiesPanelProps> = (p
           </Show>
 
           <For each={props.state.reactProps}>
-            {(row) => <PropertyRow label={row.label} value={row.value} />}
+            {(propertyRow) => (
+              <PropertyRow label={propertyRow.label} value={propertyRow.value} />
+            )}
           </For>
 
           <Show when={hasHooks()}>
             <SectionDivider />
             <For each={props.state.hooks}>
-              {(row) => <PropertyRow label={row.label} value={row.value} />}
+              {(hookRow) => <PropertyRow label={hookRow.label} value={hookRow.value} />}
             </For>
           </Show>
         </div>

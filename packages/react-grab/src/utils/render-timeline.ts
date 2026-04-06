@@ -26,7 +26,7 @@ export const initRenderTimeline = () => {
   isInitialized = true;
 
   instrument({
-    onCommitFiberRoot(_rendererID: number, root: FiberRoot) {
+    onCommitFiberRoot: (_rendererID: number, root: FiberRoot) => {
       const componentDurations = new Map<unknown, number>();
 
       traverseRenderedFibers(root, (fiber: Fiber) => {
@@ -65,5 +65,5 @@ export const getTimelineForElement = (element: Element): InspectTimelineData | u
     }));
 
   if (commits.length === 0) return undefined;
-  return { commits, totalRenderCount: commits.length };
+  return { commits };
 };

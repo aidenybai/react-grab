@@ -201,7 +201,6 @@ export interface InspectTimelineCommit {
 
 export interface InspectTimelineData {
   commits: InspectTimelineCommit[];
-  totalRenderCount: number;
 }
 
 export interface InspectPropertiesState {

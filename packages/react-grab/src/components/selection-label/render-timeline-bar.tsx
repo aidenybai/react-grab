@@ -28,13 +28,14 @@ const getBarColor = (duration: number): string => {
 };
 
 export const RenderTimelineBar: Component<RenderTimelineBarProps> = (props) => {
+  const renderCount = () => props.timeline.commits.length;
   const maxDuration = () =>
     Math.max(
-      ...props.timeline.commits.map((commit) => commit.duration),
+      ...props.timeline.commits.map((renderCommit) => renderCommit.duration),
       RENDER_DURATION_NEGLIGIBLE_MS,
     );
   const totalDuration = () =>
-    props.timeline.commits.reduce((sum, commit) => sum + commit.duration, 0);
+    props.timeline.commits.reduce((sum, renderCommit) => sum + renderCommit.duration, 0);
 
   return (
     <div class="flex flex-col gap-1 min-w-0">
@@ -43,9 +44,9 @@ export const RenderTimelineBar: Component<RenderTimelineBarProps> = (props) => {
         style={{ height: `${TIMELINE_HEIGHT_PX}px` }}
       >
         <For each={props.timeline.commits}>
-          {(commit) => {
+          {(renderCommit) => {
             const barHeight = () => {
-              const ratio = commit.duration / maxDuration();
+              const ratio = renderCommit.duration / maxDuration();
               return Math.max(ratio * (TIMELINE_HEIGHT_PX - 2), TIMELINE_BAR_MIN_HEIGHT_PX);
             };
             return (
@@ -54,7 +55,7 @@ export const RenderTimelineBar: Component<RenderTimelineBarProps> = (props) => {
                 style={{
                   width: `${TIMELINE_BAR_WIDTH_PX}px`,
                   height: `${barHeight()}px`,
-                  "background-color": getBarColor(commit.duration),
+                  "background-color": getBarColor(renderCommit.duration),
                 }}
               />
             );
@@ -62,7 +63,7 @@ export const RenderTimelineBar: Component<RenderTimelineBarProps> = (props) => {
         </For>
       </div>
       <span class="text-[11px] leading-3 text-black/40 tabular-nums">
-        {props.timeline.totalRenderCount} render{props.timeline.totalRenderCount !== 1 ? "s" : ""} ·{" "}
+        {renderCount()} render{renderCount() !== 1 ? "s" : ""} ·{" "}
         {formatDuration(totalDuration())}
       </span>
     </div>
