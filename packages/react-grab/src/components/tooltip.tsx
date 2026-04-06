@@ -63,22 +63,27 @@ export const Tooltip: Component<TooltipProps> = (props) => {
     }
   });
 
+  const positionStyle = (): Record<string, string> => {
+    const isHorizontal = props.position === "top" || props.position === "bottom";
+    if (isHorizontal) {
+      return { left: "50%", translate: "-50%", "z-index": `${Z_INDEX_OVERLAY}` };
+    }
+    return { top: "50%", translate: "0 -50%", "z-index": `${Z_INDEX_OVERLAY}` };
+  };
+
   return (
     <Show when={delayedVisible()}>
       <div
         class={cn(
           TOOLTIP_BASE_CLASS,
           "bg-white",
-          props.position === "left" || props.position === "right"
-            ? "top-1/2 -translate-y-1/2"
-            : "left-1/2 -translate-x-1/2",
           props.position === "top" && "bottom-full mb-2.5",
           props.position === "bottom" && "top-full mt-2.5",
           props.position === "left" && "right-full mr-2.5",
           props.position === "right" && "left-full ml-2.5",
           shouldAnimate() && "animate-tooltip-fade-in",
         )}
-        style={{ "z-index": `${Z_INDEX_OVERLAY}` }}
+        style={positionStyle()}
       >
         {props.children}
       </div>
