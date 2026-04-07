@@ -43,6 +43,7 @@ const isWithinThreshold = (x1: number, y1: number, x2: number, y2: number): bool
 };
 
 export const getElementsAtPoint = (clientX: number, clientY: number): Element[] => {
+  if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) return [];
   cancelScheduledResume();
   suspendPointerEventsFreeze();
   const elements = document.elementsFromPoint(clientX, clientY);
@@ -51,6 +52,7 @@ export const getElementsAtPoint = (clientX: number, clientY: number): Element[] 
 };
 
 export const getElementAtPosition = (clientX: number, clientY: number): Element | null => {
+  if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) return null;
   const now = performance.now();
 
   if (cache) {
