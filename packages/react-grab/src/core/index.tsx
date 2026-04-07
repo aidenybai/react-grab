@@ -229,7 +229,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       () => store.current.state === "active" && store.current.phase === "frozen",
     );
     const isDragging = createMemo(
-      () => store.current.state === "active" && store.current.phase === "dragging",
+      () =>
+        store.current.state === "active" &&
+        (store.current.phase === "dragging-select" || store.current.phase === "dragging-reposition"),
+    );
+    const isDragRepositioning = createMemo(
+      () => store.current.state === "active" && store.current.phase === "dragging-reposition",
     );
     const didJustDrag = createMemo(
       () => store.current.state === "active" && store.current.phase === "justDragged",
@@ -479,7 +484,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       copyWaiting: false,
       holdTimerFired: false,
     };
-    let isSpaceDragRepositioning = false;
     let previousSpaceDragPointerPage: Position | null = null;
     const [isInspectMode, setIsInspectMode] = createSignal(false);
     let lastWindowFocusTimestamp = 0;
@@ -1103,13 +1107,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const startSpaceDragRepositioning = () => {
       if (!isDragging()) return;
-      isSpaceDragRepositioning = true;
+      actions.startDragReposition();
       const { pageX, pageY } = toPageCoordinates(store.pointer.x, store.pointer.y);
       previousSpaceDragPointerPage = { x: pageX, y: pageY };
     };
 
     const stopSpaceDragRepositioning = () => {
-      isSpaceDragRepositioning = false;
+      actions.stopDragReposition();
       previousSpaceDragPointerPage = null;
     };
 
@@ -1619,7 +1623,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
 
       if (isDragging()) {
-        if (isSpaceDragRepositioning) {
+        if (isDragRepositioning()) {
           const { pageX, pageY } = toPageCoordinates(clientX, clientY);
           if (previousSpaceDragPointerPage) {
             actions.shiftDragStart({
@@ -2421,7 +2425,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (blockEnterIfNeeded(event)) return;
 
         if (isSpaceActivationKey(event)) {
-          if (isSpaceDragRepositioning) {
+          if (isDragRepositioning()) {
             stopSpaceDragRepositioning();
             event.preventDefault();
             event.stopPropagation();
