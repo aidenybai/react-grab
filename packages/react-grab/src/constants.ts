@@ -54,6 +54,22 @@ export const OVERLAY_FILL_COLOR_DEFAULT = overlayColor(0.08);
 export const OVERLAY_BORDER_COLOR_INSPECT = overlayColor(0.3);
 export const OVERLAY_FILL_COLOR_INSPECT = overlayColor(0.04);
 export const FROZEN_GLOW_COLOR = overlayColor(0.15);
+
+// Box model overlay colors
+export const BOX_MODEL_MARGIN_HATCH_COLOR = overlayColor(0.6);
+export const BOX_MODEL_PADDING_FILL_COLOR = overlayColor(0.15);
+export const BOX_MODEL_CONTENT_FILL_COLOR = overlayColor(0.04);
+export const BOX_MODEL_GAP_HATCH_COLOR = overlayColor(0.45);
+
+// Box model hatch pattern dimensions (matches Chrome DevTools)
+export const HATCH_PATTERN_WIDTH_PX = 10;
+export const HATCH_DASH_LENGTH_PX = 5;
+export const HATCH_DASH_GAP_PX = 3;
+export const HATCH_LINE_WIDTH_PX = 1;
+export const HATCH_ROTATION_DEG = -45;
+
+// Minimum gap size to consider visible
+export const BOX_MODEL_GAP_THRESHOLD_PX = 0.5;
 export const FROZEN_GLOW_EDGE_PX = 50;
 
 export const ARROW_HEIGHT_PX = 8;

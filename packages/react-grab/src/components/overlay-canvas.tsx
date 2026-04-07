@@ -1,6 +1,6 @@
 import { createEffect, onCleanup, onMount, on } from "solid-js";
 import type { Component } from "solid-js";
-import type { OverlayBounds, SelectionLabelInstance } from "../types.js";
+import type { BoxModelBounds, OverlayBounds, SelectionLabelInstance } from "../types.js";
 import { lerp } from "../utils/lerp.js";
 import {
   SELECTION_LERP_FACTOR,
@@ -15,8 +15,15 @@ import {
   OPACITY_CONVERGENCE_THRESHOLD,
   OVERLAY_BORDER_COLOR_DEFAULT,
   OVERLAY_FILL_COLOR_DEFAULT,
-  OVERLAY_BORDER_COLOR_INSPECT,
-  OVERLAY_FILL_COLOR_INSPECT,
+  BOX_MODEL_MARGIN_HATCH_COLOR,
+  BOX_MODEL_PADDING_FILL_COLOR,
+  BOX_MODEL_CONTENT_FILL_COLOR,
+  BOX_MODEL_GAP_HATCH_COLOR,
+  HATCH_PATTERN_WIDTH_PX,
+  HATCH_DASH_LENGTH_PX,
+  HATCH_DASH_GAP_PX,
+  HATCH_LINE_WIDTH_PX,
+  HATCH_ROTATION_DEG,
 } from "../constants.js";
 import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "../utils/native-raf.js";
 import { supportsDisplayP3 } from "../utils/supports-display-p3.js";
@@ -24,12 +31,6 @@ import { supportsDisplayP3 } from "../utils/supports-display-p3.js";
 const DEFAULT_LAYER_STYLE = {
   borderColor: OVERLAY_BORDER_COLOR_DEFAULT,
   fillColor: OVERLAY_FILL_COLOR_DEFAULT,
-  lerpFactor: SELECTION_LERP_FACTOR,
-} as const;
-
-const INSPECT_LAYER_STYLE = {
-  borderColor: OVERLAY_BORDER_COLOR_INSPECT,
-  fillColor: OVERLAY_FILL_COLOR_INSPECT,
   lerpFactor: SELECTION_LERP_FACTOR,
 } as const;
 
@@ -41,7 +42,6 @@ const LAYER_STYLES = {
   },
   selection: DEFAULT_LAYER_STYLE,
   grabbed: DEFAULT_LAYER_STYLE,
-  inspect: INSPECT_LAYER_STYLE,
 } as const;
 
 type LayerName = "drag" | "selection" | "grabbed" | "inspect";
@@ -71,6 +71,7 @@ interface OverlayCanvasProps {
 
   inspectVisible?: boolean;
   inspectBounds?: OverlayBounds[];
+  inspectBoxModel?: BoxModelBounds;
 
   dragVisible?: boolean;
   dragBounds?: OverlayBounds;
@@ -102,7 +103,8 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
   let selectionAnimations: AnimatedBounds[] = [];
   let dragAnimation: AnimatedBounds | null = null;
   let grabbedAnimations: AnimatedBounds[] = [];
-  let inspectAnimations: AnimatedBounds[] = [];
+  type BoxModelLayerName = "margin" | "border" | "padding" | "content";
+  let boxModelAnimations: Partial<Record<BoxModelLayerName, AnimatedBounds>> = {};
 
   const canvasColorSpace: PredefinedColorSpace = supportsDisplayP3() ? "display-p3" : "srgb";
 
@@ -299,6 +301,98 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     }
   };
 
+  const hatchPatternCache = new Map<string, CanvasPattern>();
+
+  const getOrCreateHatchPattern = (
+    context: OffscreenCanvasRenderingContext2D,
+    color: string,
+  ): CanvasPattern | null => {
+    const cached = hatchPatternCache.get(color);
+    if (cached) return cached;
+
+    const patternCanvas = new OffscreenCanvas(
+      HATCH_PATTERN_WIDTH_PX,
+      HATCH_DASH_LENGTH_PX + HATCH_DASH_GAP_PX,
+    );
+    const patternContext = patternCanvas.getContext("2d");
+    if (!patternContext) return null;
+
+    patternContext.clearRect(0, 0, patternCanvas.width, patternCanvas.height);
+    patternContext.fillStyle = color;
+    patternContext.fillRect(0, 0, HATCH_LINE_WIDTH_PX, HATCH_DASH_LENGTH_PX);
+
+    const pattern = context.createPattern(patternCanvas, "repeat");
+    if (pattern) {
+      pattern.setTransform(new DOMMatrix().rotate(0, 0, HATCH_ROTATION_DEG));
+      hatchPatternCache.set(color, pattern);
+    }
+    return pattern;
+  };
+
+  const buildBoundsPath = (animation: AnimatedBounds): Path2D => {
+    const { x, y, width, height } = animation.current;
+    const path = new Path2D();
+    if (width <= 0 || height <= 0) return path;
+    const clampedRadius = Math.min(animation.borderRadius, width / 2, height / 2);
+    if (clampedRadius > 0) {
+      path.roundRect(x, y, width, height, clampedRadius);
+    } else {
+      path.rect(x, y, width, height);
+    }
+    return path;
+  };
+
+  const buildRingPath = (outer: AnimatedBounds, inner: AnimatedBounds): Path2D => {
+    const path = new Path2D();
+    path.addPath(buildBoundsPath(outer));
+    path.addPath(buildBoundsPath(inner));
+    return path;
+  };
+
+  const fillWithHatch = (
+    context: OffscreenCanvasRenderingContext2D,
+    path: Path2D,
+    color: string,
+  ) => {
+    const pattern = getOrCreateHatchPattern(context, color);
+    if (!pattern) return;
+    context.fillStyle = pattern;
+    context.fill(path, "evenodd");
+  };
+
+  const renderInspectLayer = () => {
+    const layer = layers.inspect;
+    if (!layer.context) return;
+
+    const context = layer.context;
+    context.clearRect(0, 0, canvasWidth, canvasHeight);
+
+    if (!props.inspectVisible) return;
+
+    const { margin, border, padding, content } = boxModelAnimations;
+    if (!margin || !border || !padding || !content) return;
+
+    fillWithHatch(context, buildRingPath(margin, border), BOX_MODEL_MARGIN_HATCH_COLOR);
+
+    context.fillStyle = BOX_MODEL_PADDING_FILL_COLOR;
+    context.fill(buildRingPath(padding, content), "evenodd");
+
+    const contentPath = buildBoundsPath(content);
+    context.fillStyle = BOX_MODEL_CONTENT_FILL_COLOR;
+    context.fill(contentPath);
+
+    const gapRects = props.inspectBoxModel?.gaps;
+    if (gapRects && gapRects.length > 0) {
+      const gapPath = new Path2D();
+      for (const gapRect of gapRects) {
+        if (gapRect.width > 0 && gapRect.height > 0) {
+          gapPath.rect(gapRect.x, gapRect.y, gapRect.width, gapRect.height);
+        }
+      }
+      fillWithHatch(context, gapPath, BOX_MODEL_GAP_HATCH_COLOR);
+    }
+  };
+
   const compositeAllLayers = () => {
     if (!mainContext || !canvasRef) return;
 
@@ -309,7 +403,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     renderDragLayer();
     renderSelectionLayer();
     renderBoundsLayer("grabbed", grabbedAnimations);
-    renderBoundsLayer("inspect", inspectAnimations);
+    renderInspectLayer();
 
     const layerRenderOrder: LayerName[] = ["inspect", "drag", "selection", "grabbed"];
     for (const layerName of layerRenderOrder) {
@@ -411,9 +505,9 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
       return animation.opacity > 0;
     });
 
-    for (const animation of inspectAnimations) {
+    for (const animation of Object.values(boxModelAnimations)) {
       if (animation.isInitialized) {
-        if (interpolateBounds(animation, LAYER_STYLES.inspect.lerpFactor)) {
+        if (interpolateBounds(animation, SELECTION_LERP_FACTOR)) {
           shouldContinueAnimating = true;
         }
       }
@@ -580,27 +674,24 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
   createEffect(
     on(
-      () => [props.inspectVisible, props.inspectBounds] as const,
-      ([isVisible, bounds]) => {
-        if (!isVisible || !bounds || bounds.length === 0) {
-          inspectAnimations = [];
+      () => [props.inspectVisible, props.inspectBoxModel] as const,
+      ([isVisible, boxModel]) => {
+        if (!isVisible || !boxModel) {
+          boxModelAnimations = {};
           scheduleAnimationFrame();
           return;
         }
 
-        inspectAnimations = bounds.map((ancestorBounds, index) => {
-          const animationId = `inspect-${index}`;
-          const existingAnimation = inspectAnimations.find(
-            (animation) => animation.id === animationId,
-          );
-
-          if (existingAnimation) {
-            updateAnimationTarget(existingAnimation, ancestorBounds);
-            return existingAnimation;
+        const layers = ["margin", "border", "padding", "content"] as const;
+        for (const layer of layers) {
+          const bounds = boxModel[layer];
+          const existing = boxModelAnimations[layer];
+          if (existing) {
+            updateAnimationTarget(existing, bounds);
+          } else {
+            boxModelAnimations[layer] = createAnimatedBounds(`boxmodel-${layer}`, bounds);
           }
-
-          return createAnimatedBounds(animationId, ancestorBounds);
-        });
+        }
 
         scheduleAnimationFrame();
       },
