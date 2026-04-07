@@ -41,8 +41,10 @@ test.describe("Drag Selection", () => {
     expect(boundsAfterSpaceRelease).not.toBeNull();
     if (!boundsAfterSpaceRelease) throw new Error("Expected drag bounds after releasing space");
 
-    const didWidthGrowAfterRelease = boundsAfterSpaceRelease.width > boundsWhileSpaceHeld.width + 20;
-    const didHeightGrowAfterRelease = boundsAfterSpaceRelease.height > boundsWhileSpaceHeld.height + 20;
+    const didWidthGrowAfterRelease =
+      boundsAfterSpaceRelease.width > boundsWhileSpaceHeld.width + 20;
+    const didHeightGrowAfterRelease =
+      boundsAfterSpaceRelease.height > boundsWhileSpaceHeld.height + 20;
     expect(didWidthGrowAfterRelease || didHeightGrowAfterRelease).toBe(true);
 
     await reactGrab.page.mouse.up();
