@@ -13,8 +13,15 @@ const dispatchMalformedEvent = async (
   eventInit: Record<string, unknown>,
   propertyOverrides: Record<string, unknown>,
 ) => {
+  const undefinedPropertyNames = Object.keys(propertyOverrides).filter(
+    (propertyName) => propertyOverrides[propertyName] === undefined,
+  );
+  const definedOverrides = Object.fromEntries(
+    Object.entries(propertyOverrides).filter(([, value]) => value !== undefined),
+  );
+
   await page.evaluate(
-    ({ eventType, constructorName, eventInit, propertyOverrides }) => {
+    ({ eventType, constructorName, eventInit, definedOverrides, undefinedPropertyNames }) => {
       const EventClass = {
         KeyboardEvent,
         PointerEvent,
@@ -26,12 +33,15 @@ const dispatchMalformedEvent = async (
         cancelable: true,
         ...eventInit,
       });
-      for (const [propertyName, value] of Object.entries(propertyOverrides)) {
+      for (const propertyName of undefinedPropertyNames) {
+        Object.defineProperty(event, propertyName, { value: undefined });
+      }
+      for (const [propertyName, value] of Object.entries(definedOverrides)) {
         Object.defineProperty(event, propertyName, { value });
       }
       window.dispatchEvent(event);
     },
-    { eventType, constructorName, eventInit, propertyOverrides },
+    { eventType, constructorName, eventInit, definedOverrides, undefinedPropertyNames },
   );
 };
 
