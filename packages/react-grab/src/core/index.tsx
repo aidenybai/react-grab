@@ -2283,7 +2283,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (event: KeyboardEvent) => {
         blockEnterIfNeeded(event);
 
-        if (event.key === "Shift" && !event.repeat && isActivated()) {
+        if (event.key === "Shift" && !event.repeat && isActivated() && !isPromptMode()) {
           setIsInspectMode(true);
           if (isFrozenPhase()) {
             actions.unfreeze();
