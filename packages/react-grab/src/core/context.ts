@@ -1,6 +1,5 @@
 import {
   isSourceFile,
-  normalizeFileName,
   getOwnerStack,
   formatOwnerStack,
   hasDebugStack,
@@ -26,6 +25,7 @@ import {
 import { getTagName } from "../utils/get-tag-name.js";
 import { truncateString } from "../utils/truncate-string.js";
 import { getNextBasePath } from "../utils/get-next-base-path.js";
+import { normalizeFilePath } from "../utils/normalize-file-path.js";
 
 const NON_COMPONENT_PREFIXES = new Set([
   "_",
@@ -351,7 +351,7 @@ export const resolveSource = async (element: Element): Promise<ResolvedSource | 
   if (!resolvedFrame?.fileName) return null;
 
   return {
-    filePath: normalizeFileName(resolvedFrame.fileName),
+    filePath: normalizeFilePath(resolvedFrame.fileName),
     lineNumber: resolvedFrame.lineNumber ?? null,
     columnNumber: resolvedFrame.columnNumber ?? null,
     componentName:
@@ -446,7 +446,7 @@ const formatStackContext = (stack: StackFrame[], options: StackContextOptions = 
         line += `${frame.functionName} (at `;
       }
 
-      line += normalizeFileName(frame.fileName!);
+      line += normalizeFilePath(frame.fileName!);
 
       // HACK: bundlers like Vite produce unreliable line/column numbers from
       // owner stacks, so we only include them for Next.js where the dev

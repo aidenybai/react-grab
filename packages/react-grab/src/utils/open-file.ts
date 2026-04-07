@@ -1,6 +1,6 @@
-import { normalizeFileName } from "bippy/source";
 import { checkIsNextProject } from "../core/context.js";
 import { getNextBasePath } from "./get-next-base-path.js";
+import { normalizeFilePath } from "./normalize-file-path.js";
 
 const OPEN_FILE_BASE_URL =
   process.env.NODE_ENV === "production" ? "https://react-grab.com" : "http://localhost:3000";
@@ -29,7 +29,7 @@ export const openFile = async (
   lineNumber: number | undefined,
   transformUrl?: (url: string, filePath: string, lineNumber?: number) => string,
 ): Promise<void> => {
-  filePath = normalizeFileName(filePath);
+  filePath = normalizeFilePath(filePath);
 
   const wasOpenedByDevServer = await tryDevServerOpen(filePath, lineNumber).catch(() => false);
   if (wasOpenedByDevServer) return;
