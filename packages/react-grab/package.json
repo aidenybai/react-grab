@@ -97,12 +97,12 @@
   },
   "dependencies": {
     "@react-grab/cli": "workspace:*",
-    "bippy": "^0.5.39",
-    "solid-js": "^1.9.10"
+    "bippy": "^0.5.39"
   },
   "devDependencies": {
     "@babel/core": "^7.28.5",
     "@babel/preset-typescript": "^7.28.5",
+    "solid-js": "^1.9.10",
     "@playwright/test": "^1.40.0",
     "@tailwindcss/cli": "^4.1.17",
     "@types/babel__core": "^7.20.5",

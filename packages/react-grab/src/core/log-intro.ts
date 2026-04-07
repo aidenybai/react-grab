@@ -20,7 +20,9 @@ export const logIntro = () => {
         .then((response) => response.text())
         .then((latestVersion) => {
           if (latestVersion && latestVersion !== version) {
-            console.warn(`[React Grab] v${version} is outdated (latest: v${latestVersion})`);
+            console.warn(
+              `[React Grab] v${version} is outdated (latest: v${latestVersion}). Run \`npx grab@latest init\` to upgrade.`,
+            );
           }
         })
         .catch(() => null);
