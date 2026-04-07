@@ -13,6 +13,7 @@ playwright-report
 .vercel
 .cursor/debug.log
 .cursor
+.claude
 meta.json
 .agents/skills
 .claude.expect
