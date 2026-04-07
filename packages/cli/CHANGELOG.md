@@ -1,5 +1,11 @@
 # @react-grab/cli
 
+## 0.1.31
+
+### Patch Changes
+
+- fix: solidjs not bundling
+
 ## 0.1.30
 
 ### Patch Changes
