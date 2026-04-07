@@ -237,9 +237,7 @@ export const GrabElementButton = ({
   }, [isMobile, onSelect, hasAdvanced]);
 
   useEffect(() => {
-    const buttonElement = document.querySelector<HTMLElement>(
-      "[data-react-grab-toggle-button]",
-    );
+    const buttonElement = document.querySelector<HTMLElement>("[data-react-grab-toggle-button]");
 
     const syncActivationState = () => {
       const activeState = window.__REACT_GRAB__?.isActive() ?? false;
@@ -248,8 +246,10 @@ export const GrabElementButton = ({
         if (buttonElement) {
           const holdContent = buttonElement.querySelector("[data-hold-content]");
           const activeContent = buttonElement.querySelector("[data-active-content]");
-          if (holdContent instanceof HTMLElement) holdContent.style.display = activeState ? "none" : "";
-          if (activeContent instanceof HTMLElement) activeContent.style.display = activeState ? "" : "none";
+          if (holdContent instanceof HTMLElement)
+            holdContent.style.display = activeState ? "none" : "";
+          if (activeContent instanceof HTMLElement)
+            activeContent.style.display = activeState ? "" : "none";
         }
         setIsActivatedRaw(activeState);
       }
