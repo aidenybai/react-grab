@@ -2283,14 +2283,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (event: KeyboardEvent) => {
         blockEnterIfNeeded(event);
 
-        if (event.key === "Shift" && !event.repeat && isActivated() && !isPromptMode()) {
-          setIsInspectMode(true);
-          if (isFrozenPhase()) {
-            actions.unfreeze();
-            clearArrowNavigation();
-          }
-        }
-
         if (!isEnabled()) {
           if (isTargetKeyCombination(event, pluginRegistry.store.options) && !event.repeat) {
             setToolbarShakeCount((count) => count + 1);
@@ -2345,6 +2337,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           }
 
           return;
+        }
+
+        if (event.key === "Shift" && !event.repeat && isActivated()) {
+          setIsInspectMode(true);
+          if (isFrozenPhase()) {
+            actions.unfreeze();
+            clearArrowNavigation();
+          }
         }
 
         if (event.key === "Escape") {
