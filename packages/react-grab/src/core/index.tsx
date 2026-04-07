@@ -479,6 +479,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       copyWaiting: false,
       holdTimerFired: false,
     };
+    let isSpaceDragRepositioning = false;
+    let previousSpaceDragPointerPage: Position | null = null;
     const [isInspectMode, setIsInspectMode] = createSignal(false);
     let lastWindowFocusTimestamp = 0;
     let isCopyFeedbackCooldownActive = false;
@@ -1096,6 +1098,21 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       };
     };
 
+    const isSpaceActivationKey = (event: KeyboardEvent) =>
+      event.code === "Space" || event.key === " ";
+
+    const startSpaceDragRepositioning = () => {
+      if (!isDragging()) return;
+      isSpaceDragRepositioning = true;
+      const { pageX, pageY } = toPageCoordinates(store.pointer.x, store.pointer.y);
+      previousSpaceDragPointerPage = { x: pageX, y: pageY };
+    };
+
+    const stopSpaceDragRepositioning = () => {
+      isSpaceDragRepositioning = false;
+      previousSpaceDragPointerPage = null;
+    };
+
     const dragBounds = createMemo((): OverlayBounds | undefined => {
       void store.viewportVersion;
 
@@ -1389,6 +1406,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const deactivateRenderer = () => {
       const wasDragging = isDragging();
       const previousFocused = store.previouslyFocusedElement;
+      stopSpaceDragRepositioning();
       actions.deactivate();
       setIsInspectMode(false);
       clearArrowNavigation();
@@ -1601,6 +1619,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
 
       if (isDragging()) {
+        if (isSpaceDragRepositioning) {
+          const { pageX, pageY } = toPageCoordinates(clientX, clientY);
+          if (previousSpaceDragPointerPage) {
+            actions.shiftDragStart({
+              x: pageX - previousSpaceDragPointerPage.x,
+              y: pageY - previousSpaceDragPointerPage.y,
+            });
+          }
+          previousSpaceDragPointerPage = { x: pageX, y: pageY };
+        }
+
         scheduleDragPreviewUpdate(clientX, clientY);
 
         const direction = getAutoScrollDirection(clientX, clientY);
@@ -1750,6 +1779,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const cancelActiveDrag = () => {
       if (!isDragging()) return;
+      stopSpaceDragRepositioning();
       actions.cancelDrag();
       autoScroller.stop();
       document.body.style.userSelect = "";
@@ -1777,6 +1807,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       } else {
         actions.cancelDrag();
       }
+      stopSpaceDragRepositioning();
       autoScroller.stop();
       document.body.style.userSelect = "";
 
@@ -2339,6 +2370,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
+        if (isDragging() && isSpaceActivationKey(event)) {
+          if (!event.repeat) {
+            startSpaceDragRepositioning();
+          }
+          event.preventDefault();
+          event.stopPropagation();
+          return;
+        }
+
         if (event.key === "Shift" && !event.repeat && isActivated()) {
           setIsInspectMode(true);
           if (isFrozenPhase()) {
@@ -2379,6 +2419,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       "keyup",
       (event: KeyboardEvent) => {
         if (blockEnterIfNeeded(event)) return;
+
+        if (isSpaceActivationKey(event)) {
+          if (isSpaceDragRepositioning) {
+            stopSpaceDragRepositioning();
+            event.preventDefault();
+            event.stopPropagation();
+            return;
+          }
+        }
 
         if (event.key === "Shift") {
           setIsInspectMode(false);

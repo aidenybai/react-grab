@@ -1,6 +1,53 @@
 import { test, expect } from "./fixtures.js";
 
 test.describe("Drag Selection", () => {
+  test("should keep drag selection while moving it with held space", async ({ reactGrab }) => {
+    await reactGrab.activate();
+
+    const firstItem = reactGrab.page.locator("li").first();
+    const firstBox = await firstItem.boundingBox();
+    if (!firstBox) throw new Error("Could not get bounding box");
+
+    const startX = firstBox.x - 20;
+    const startY = firstBox.y - 20;
+
+    await reactGrab.page.mouse.move(startX, startY);
+    await reactGrab.page.mouse.down();
+    await reactGrab.page.mouse.move(startX + 220, startY + 150, { steps: 8 });
+    await reactGrab.page.waitForTimeout(100);
+
+    const boundsBeforeSpace = await reactGrab.getDragBoxBounds();
+    expect(boundsBeforeSpace).not.toBeNull();
+    if (!boundsBeforeSpace) throw new Error("Expected drag bounds before space hold");
+
+    await reactGrab.page.keyboard.down("Space");
+    await reactGrab.page.mouse.move(startX + 300, startY + 210, { steps: 6 });
+    await reactGrab.page.waitForTimeout(100);
+
+    const boundsWhileSpaceHeld = await reactGrab.getDragBoxBounds();
+    expect(boundsWhileSpaceHeld).not.toBeNull();
+    if (!boundsWhileSpaceHeld) throw new Error("Expected drag bounds while holding space");
+
+    expect(Math.abs(boundsWhileSpaceHeld.width - boundsBeforeSpace.width)).toBeLessThanOrEqual(2);
+    expect(Math.abs(boundsWhileSpaceHeld.height - boundsBeforeSpace.height)).toBeLessThanOrEqual(2);
+    expect(boundsWhileSpaceHeld.x).toBeGreaterThan(boundsBeforeSpace.x + 40);
+    expect(boundsWhileSpaceHeld.y).toBeGreaterThan(boundsBeforeSpace.y + 30);
+
+    await reactGrab.page.keyboard.up("Space");
+    await reactGrab.page.mouse.move(startX + 340, startY + 250, { steps: 4 });
+    await reactGrab.page.waitForTimeout(100);
+
+    const boundsAfterSpaceRelease = await reactGrab.getDragBoxBounds();
+    expect(boundsAfterSpaceRelease).not.toBeNull();
+    if (!boundsAfterSpaceRelease) throw new Error("Expected drag bounds after releasing space");
+
+    const didWidthGrowAfterRelease = boundsAfterSpaceRelease.width > boundsWhileSpaceHeld.width + 20;
+    const didHeightGrowAfterRelease = boundsAfterSpaceRelease.height > boundsWhileSpaceHeld.height + 20;
+    expect(didWidthGrowAfterRelease || didHeightGrowAfterRelease).toBe(true);
+
+    await reactGrab.page.mouse.up();
+  });
+
   test("should create drag box when clicking and dragging", async ({ reactGrab }) => {
     await reactGrab.activate();
 

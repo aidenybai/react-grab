@@ -120,6 +120,7 @@ interface GrabActions {
   freeze: () => void;
   unfreeze: () => void;
   startDrag: (position: Position) => void;
+  shiftDragStart: (delta: Position) => void;
   endDrag: () => void;
   cancelDrag: () => void;
   finishJustDragged: () => void;
@@ -273,6 +274,15 @@ const createGrabStore = (input: GrabStoreInput) => {
           y: position.y + window.scrollY,
         });
         setActivePhase("dragging");
+      }
+    },
+
+    shiftDragStart: (delta: Position) => {
+      if (store.current.state === "active" && store.current.phase === "dragging") {
+        setStore("dragStart", (dragStart) => ({
+          x: dragStart.x + delta.x,
+          y: dragStart.y + delta.y,
+        }));
       }
     },
 
