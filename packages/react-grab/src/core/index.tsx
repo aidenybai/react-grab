@@ -531,6 +531,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const autoScroller = createAutoScroller(
       () => store.pointer,
       () => isDragging(),
+      (scrollDelta) => {
+        if (isDragRepositioning()) {
+          actions.shiftDragStart(scrollDelta);
+        }
+      },
     );
 
     const isRendererActive = createMemo(() => isActivated() && !isCopying());
@@ -2424,13 +2429,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (event: KeyboardEvent) => {
         if (blockEnterIfNeeded(event)) return;
 
-        if (isSpaceActivationKey(event)) {
-          if (isDragRepositioning()) {
-            stopSpaceDragRepositioning();
-            event.preventDefault();
-            event.stopPropagation();
-            return;
-          }
+        if (isSpaceActivationKey(event) && isDragRepositioning()) {
+          stopSpaceDragRepositioning();
+          event.preventDefault();
+          event.stopPropagation();
         }
 
         if (event.key === "Shift") {
