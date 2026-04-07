@@ -2354,6 +2354,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           }
         }
 
+        if (isActivated() && !MODIFIER_KEYS.includes(event.key)) {
+          event.preventDefault();
+        }
+
         // After the window regains focus we briefly ignore activation keys to
         // prevent accidental activation from the modifier keys used to alt-tab.
         const didWindowJustRegainFocus =
