@@ -3,6 +3,7 @@ import { add } from "./commands/add.js";
 import { configure } from "./commands/configure.js";
 import { init } from "./commands/init.js";
 import { remove } from "./commands/remove.js";
+import { upgrade } from "./commands/upgrade.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
 const VERSION_API_URL = "https://www.react-grab.com/api/version";
@@ -23,6 +24,7 @@ program.addCommand(init);
 program.addCommand(add);
 program.addCommand(remove);
 program.addCommand(configure);
+program.addCommand(upgrade);
 
 const main = async () => {
   await program.parseAsync();

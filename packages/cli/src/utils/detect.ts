@@ -15,6 +15,7 @@ interface ProjectInfo {
   isMonorepo: boolean;
   projectRoot: string;
   hasReactGrab: boolean;
+  reactGrabVersion: string | null;
   unsupportedFramework: UnsupportedFramework;
 }
 
@@ -424,6 +425,17 @@ export const detectUnsupportedFramework = (projectRoot: string): UnsupportedFram
   }
 };
 
+const detectReactGrabVersion = (projectRoot: string): string | null => {
+  const installedPackageJsonPath = join(projectRoot, "node_modules", "react-grab", "package.json");
+  if (existsSync(installedPackageJsonPath)) {
+    try {
+      const packageJson = JSON.parse(readFileSync(installedPackageJsonPath, "utf-8"));
+      return packageJson.version ?? null;
+    } catch {}
+  }
+  return null;
+};
+
 export const detectProject = async (projectRoot: string = process.cwd()): Promise<ProjectInfo> => {
   const framework = detectFramework(projectRoot);
   const packageManager = await detectPackageManager(projectRoot);
@@ -435,6 +447,7 @@ export const detectProject = async (projectRoot: string = process.cwd()): Promis
     isMonorepo: detectMonorepo(projectRoot),
     projectRoot,
     hasReactGrab: detectReactGrab(projectRoot),
+    reactGrabVersion: detectReactGrabVersion(projectRoot),
     unsupportedFramework: detectUnsupportedFramework(projectRoot),
   };
 };

@@ -21,7 +21,7 @@ export const logIntro = () => {
         .then((latestVersion) => {
           if (latestVersion && latestVersion !== version) {
             console.warn(
-              `[React Grab] v${version} is outdated (latest: v${latestVersion}). Run \`npx grab@latest init\` to upgrade.`,
+              `[React Grab] v${version} is outdated (latest: v${latestVersion}). Run \`npx grab@latest upgrade\` to upgrade.`,
             );
           }
         })
