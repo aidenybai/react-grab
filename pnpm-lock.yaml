@@ -364,9 +364,6 @@ importers:
       react:
         specifier: '>=17.0.0'
         version: 19.2.3
-      solid-js:
-        specifier: ^1.9.10
-        version: 1.9.10
     devDependencies:
       '@babel/core':
         specifier: ^7.28.5
@@ -398,6 +395,9 @@ importers:
       expect-sdk:
         specifier: 0.0.0-canary-20260405095424
         version: 0.0.0-canary-20260405095424(@types/react@19.2.11)(express@5.2.1)(ioredis@5.10.1)(playwright@1.57.0)(zod@4.3.5)
+      solid-js:
+        specifier: ^1.9.10
+        version: 1.9.10
       tailwindcss:
         specifier: ^4.1.0
         version: 4.1.15
@@ -8105,7 +8105,7 @@ snapshots:
       '@google/gemini-cli-core': 0.35.3(express@5.2.1)
       '@google/genai': 1.30.0(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))
       '@iarna/toml': 2.2.5
-      '@modelcontextprotocol/sdk': 1.29.0(zod@4.3.5)
+      '@modelcontextprotocol/sdk': 1.29.0(zod@3.25.76)
       ansi-escapes: 7.3.0
       ansi-regex: 6.2.2
       chalk: 4.1.2
@@ -8120,7 +8120,7 @@ snapshots:
       fzf: 0.5.2
       glob: 12.0.0
       highlight.js: 11.11.1
-      ink: '@jrichman/ink@6.4.11(@types/react@19.2.11)(react@19.2.3)'
+      ink: '@jrichman/ink@6.4.11(@types/react@19.2.11)(react@19.2.1)'
       ink-gradient: 3.0.0(@jrichman/ink@6.4.11(@types/react@19.2.11)(react@19.2.1))
       ink-spinner: 5.0.0(@jrichman/ink@6.4.11(@types/react@19.2.11)(react@19.2.1))(react@19.2.1)
       latest-version: 9.0.0
@@ -8161,7 +8161,7 @@ snapshots:
       google-auth-library: 10.6.2
       ws: 8.20.0
     optionalDependencies:
-      '@modelcontextprotocol/sdk': 1.29.0(zod@4.3.5)
+      '@modelcontextprotocol/sdk': 1.29.0(zod@3.25.76)
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -8308,7 +8308,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@jrichman/ink@6.4.11(@types/react@19.2.11)(react@19.2.3)':
+  '@jrichman/ink@6.4.11(@types/react@19.2.11)(react@19.2.1)':
     dependencies:
       '@alcalzone/ansi-tokenize': 0.2.5
       ansi-escapes: 7.3.0
@@ -8324,7 +8324,7 @@ snapshots:
       is-in-ci: 2.0.0
       mnemonist: 0.40.3
       patch-console: 2.0.0
-      react: 19.2.3
+      react: 19.2.1
       react-reconciler: 0.32.0(react@19.2.1)
       signal-exit: 3.0.7
       slice-ansi: 7.1.2
@@ -11757,14 +11757,14 @@ snapshots:
     dependencies:
       '@types/gradient-string': 1.1.6
       gradient-string: 2.0.2
-      ink: '@jrichman/ink@6.4.11(@types/react@19.2.11)(react@19.2.3)'
+      ink: '@jrichman/ink@6.4.11(@types/react@19.2.11)(react@19.2.1)'
       prop-types: 15.8.1
       strip-ansi: 7.1.0
 
   ink-spinner@5.0.0(@jrichman/ink@6.4.11(@types/react@19.2.11)(react@19.2.1))(react@19.2.1):
     dependencies:
       cli-spinners: 2.9.2
-      ink: '@jrichman/ink@6.4.11(@types/react@19.2.11)(react@19.2.3)'
+      ink: '@jrichman/ink@6.4.11(@types/react@19.2.11)(react@19.2.1)'
       react: 19.2.1
 
   internmap@2.0.3: {}
