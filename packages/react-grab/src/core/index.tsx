@@ -2380,6 +2380,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           setIsInspectMode(false);
         }
 
+        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
+
         const requiredModifiers = getRequiredModifiers(pluginRegistry.store.options);
         const isReleasingModifier =
           requiredModifiers.metaKey || requiredModifiers.ctrlKey
@@ -2529,7 +2531,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         const didHandle = handlePointerDown(event.clientX, event.clientY);
         if (didHandle) {
-          document.documentElement.setPointerCapture(event.pointerId);
+          if (event.pointerId !== undefined) {
+            document.documentElement.setPointerCapture(event.pointerId);
+          }
           event.preventDefault();
           event.stopImmediatePropagation();
         }

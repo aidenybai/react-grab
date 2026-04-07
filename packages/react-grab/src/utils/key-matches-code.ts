@@ -1,4 +1,8 @@
-export const keyMatchesCode = (targetKey: string, code: string): boolean => {
+export const keyMatchesCode = (
+  targetKey: string | undefined,
+  code: string | undefined,
+): boolean => {
+  if (!targetKey || !code) return false;
   const normalizedTarget = targetKey.toLowerCase();
   if (code === "Space") {
     return normalizedTarget === "space" || normalizedTarget === " ";
