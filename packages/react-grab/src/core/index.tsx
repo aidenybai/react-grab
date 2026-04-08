@@ -229,7 +229,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       () => store.current.state === "active" && store.current.phase === "frozen",
     );
     const isDragging = createMemo(
-      () => store.current.state === "active" && store.current.phase === "dragging",
+      () =>
+        store.current.state === "active" &&
+        (store.current.phase === "dragging-select" || store.current.phase === "dragging-reposition"),
+    );
+    const isDragRepositioning = createMemo(
+      () => store.current.state === "active" && store.current.phase === "dragging-reposition",
     );
     const didJustDrag = createMemo(
       () => store.current.state === "active" && store.current.phase === "justDragged",
@@ -479,6 +484,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       copyWaiting: false,
       holdTimerFired: false,
     };
+    let previousSpaceDragPointerPage: Position | null = null;
     const [isInspectMode, setIsInspectMode] = createSignal(false);
     let lastWindowFocusTimestamp = 0;
     let isCopyFeedbackCooldownActive = false;
@@ -525,6 +531,20 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const autoScroller = createAutoScroller(
       () => store.pointer,
       () => isDragging(),
+      (scrollDelta) => {
+        if (isDragRepositioning()) {
+          actions.shiftDragStart(scrollDelta);
+          if (previousSpaceDragPointerPage) {
+            previousSpaceDragPointerPage = {
+              x: previousSpaceDragPointerPage.x + scrollDelta.x,
+              y: previousSpaceDragPointerPage.y + scrollDelta.y,
+            };
+            return;
+          }
+          const { pageX, pageY } = toPageCoordinates(store.pointer.x, store.pointer.y);
+          previousSpaceDragPointerPage = { x: pageX, y: pageY };
+        }
+      },
     );
 
     const isRendererActive = createMemo(() => isActivated() && !isCopying());
@@ -1096,6 +1116,21 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       };
     };
 
+    const isSpaceActivationKey = (event: KeyboardEvent) =>
+      event.code === "Space" || event.key === " ";
+
+    const startSpaceDragRepositioning = () => {
+      if (!isDragging()) return;
+      actions.startDragReposition();
+      const { pageX, pageY } = toPageCoordinates(store.pointer.x, store.pointer.y);
+      previousSpaceDragPointerPage = { x: pageX, y: pageY };
+    };
+
+    const stopSpaceDragRepositioning = () => {
+      actions.stopDragReposition();
+      previousSpaceDragPointerPage = null;
+    };
+
     const dragBounds = createMemo((): OverlayBounds | undefined => {
       void store.viewportVersion;
 
@@ -1389,6 +1424,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const deactivateRenderer = () => {
       const wasDragging = isDragging();
       const previousFocused = store.previouslyFocusedElement;
+      stopSpaceDragRepositioning();
       actions.deactivate();
       setIsInspectMode(false);
       clearArrowNavigation();
@@ -1601,6 +1637,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
 
       if (isDragging()) {
+        if (isDragRepositioning()) {
+          const { pageX, pageY } = toPageCoordinates(clientX, clientY);
+          if (previousSpaceDragPointerPage) {
+            actions.shiftDragStart({
+              x: pageX - previousSpaceDragPointerPage.x,
+              y: pageY - previousSpaceDragPointerPage.y,
+            });
+          }
+          previousSpaceDragPointerPage = { x: pageX, y: pageY };
+        }
+
         scheduleDragPreviewUpdate(clientX, clientY);
 
         const direction = getAutoScrollDirection(clientX, clientY);
@@ -1750,6 +1797,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const cancelActiveDrag = () => {
       if (!isDragging()) return;
+      stopSpaceDragRepositioning();
       actions.cancelDrag();
       autoScroller.stop();
       document.body.style.userSelect = "";
@@ -1777,6 +1825,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       } else {
         actions.cancelDrag();
       }
+      stopSpaceDragRepositioning();
       autoScroller.stop();
       document.body.style.userSelect = "";
 
@@ -2339,6 +2388,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
+        if (isDragging() && isSpaceActivationKey(event)) {
+          if (!event.repeat) {
+            startSpaceDragRepositioning();
+          }
+          event.preventDefault();
+          event.stopPropagation();
+          return;
+        }
+
         if (event.key === "Shift" && !event.repeat && isActivated()) {
           setIsInspectMode(true);
           if (isFrozenPhase()) {
@@ -2380,6 +2438,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (event: KeyboardEvent) => {
         if (blockEnterIfNeeded(event)) return;
 
+        if (isSpaceActivationKey(event) && isDragRepositioning()) {
+          stopSpaceDragRepositioning();
+          event.preventDefault();
+          event.stopPropagation();
+        }
+
         if (event.key === "Shift") {
           setIsInspectMode(false);
         }
@@ -2415,6 +2479,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const hasCustomShortcut = Boolean(pluginRegistry.store.options.activationKey);
 
         const isHoldMode = pluginRegistry.store.options.activationMode === "hold";
+        const isDragGestureInProgress = isDragging();
 
         if (isActivated()) {
           const hasContextMenu = store.contextMenuPosition !== null;
@@ -2432,6 +2497,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               keydownSpamTimerId = null;
             }
             if (hasContextMenu) return;
+            if (isDragGestureInProgress) return;
             deactivateRenderer();
           } else if (
             !hasCustomShortcut &&

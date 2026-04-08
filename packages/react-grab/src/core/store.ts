@@ -12,7 +12,12 @@ interface FrozenDragRect {
   height: number;
 }
 
-type GrabPhase = "hovering" | "frozen" | "dragging" | "justDragged";
+type GrabPhase =
+  | "hovering"
+  | "frozen"
+  | "dragging-select"
+  | "dragging-reposition"
+  | "justDragged";
 
 type GrabState =
   | { state: "idle" }
@@ -120,6 +125,9 @@ interface GrabActions {
   freeze: () => void;
   unfreeze: () => void;
   startDrag: (position: Position) => void;
+  startDragReposition: () => void;
+  stopDragReposition: () => void;
+  shiftDragStart: (delta: Position) => void;
   endDrag: () => void;
   cancelDrag: () => void;
   finishJustDragged: () => void;
@@ -272,19 +280,46 @@ const createGrabStore = (input: GrabStoreInput) => {
           x: position.x + window.scrollX,
           y: position.y + window.scrollY,
         });
-        setActivePhase("dragging");
+        setActivePhase("dragging-select");
+      }
+    },
+
+    startDragReposition: () => {
+      if (store.current.state === "active" && store.current.phase === "dragging-select") {
+        setActivePhase("dragging-reposition");
+      }
+    },
+
+    stopDragReposition: () => {
+      if (store.current.state === "active" && store.current.phase === "dragging-reposition") {
+        setActivePhase("dragging-select");
+      }
+    },
+
+    shiftDragStart: (delta: Position) => {
+      if (store.current.state === "active" && store.current.phase === "dragging-reposition") {
+        setStore("dragStart", (dragStart) => ({
+          x: dragStart.x + delta.x,
+          y: dragStart.y + delta.y,
+        }));
       }
     },
 
     endDrag: () => {
-      if (store.current.state === "active" && store.current.phase === "dragging") {
+      if (
+        store.current.state === "active" &&
+        (store.current.phase === "dragging-select" || store.current.phase === "dragging-reposition")
+      ) {
         setStore("dragStart", { x: OFFSCREEN_POSITION, y: OFFSCREEN_POSITION });
         setActivePhase("justDragged");
       }
     },
 
     cancelDrag: () => {
-      if (store.current.state === "active" && store.current.phase === "dragging") {
+      if (
+        store.current.state === "active" &&
+        (store.current.phase === "dragging-select" || store.current.phase === "dragging-reposition")
+      ) {
         setStore("dragStart", { x: OFFSCREEN_POSITION, y: OFFSCREEN_POSITION });
         setActivePhase("hovering");
       }

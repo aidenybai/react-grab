@@ -5,6 +5,9 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".next/**"]
     },
+    "grab#build": {
+      "dependsOn": ["react-grab#build"]
+    },
     "dev": {
       "cache": false,
       "persistent": true

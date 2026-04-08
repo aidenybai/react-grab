@@ -27,6 +27,7 @@ interface AutoScroller {
 export const createAutoScroller = (
   getMousePosition: () => Position,
   shouldContinue: () => boolean,
+  onScrollStep?: (scrollDelta: Position) => void,
 ): AutoScroller => {
   let animationId: number | null = null;
 
@@ -39,10 +40,24 @@ export const createAutoScroller = (
     const position = getMousePosition();
     const direction = getAutoScrollDirection(position.x, position.y);
 
-    if (direction.top) window.scrollBy(0, -AUTO_SCROLL_SPEED_PX);
-    if (direction.bottom) window.scrollBy(0, AUTO_SCROLL_SPEED_PX);
-    if (direction.left) window.scrollBy(-AUTO_SCROLL_SPEED_PX, 0);
-    if (direction.right) window.scrollBy(AUTO_SCROLL_SPEED_PX, 0);
+    let scrollDeltaX = 0;
+    let scrollDeltaY = 0;
+
+    if (direction.top) scrollDeltaY -= AUTO_SCROLL_SPEED_PX;
+    if (direction.bottom) scrollDeltaY += AUTO_SCROLL_SPEED_PX;
+    if (direction.left) scrollDeltaX -= AUTO_SCROLL_SPEED_PX;
+    if (direction.right) scrollDeltaX += AUTO_SCROLL_SPEED_PX;
+
+    if (scrollDeltaX !== 0 || scrollDeltaY !== 0) {
+      const previousScrollX = window.scrollX;
+      const previousScrollY = window.scrollY;
+      window.scrollBy(scrollDeltaX, scrollDeltaY);
+      const didScrollByX = window.scrollX - previousScrollX;
+      const didScrollByY = window.scrollY - previousScrollY;
+      if (didScrollByX !== 0 || didScrollByY !== 0) {
+        onScrollStep?.({ x: didScrollByX, y: didScrollByY });
+      }
+    }
 
     if (direction.top || direction.bottom || direction.left || direction.right) {
       animationId = nativeRequestAnimationFrame(scroll);
