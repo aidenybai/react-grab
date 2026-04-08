@@ -306,6 +306,49 @@ test.describe("Drag Selection with Scroll", () => {
     await reactGrab.page.mouse.up();
   });
 
+  test("drag bounds height should grow by exactly the scroll delta during auto-scroll", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+
+    const viewport = await reactGrab.getViewportSize();
+
+    // Start drag from the top of the page
+    const startX = 100;
+    const startY = 100;
+    await reactGrab.page.mouse.move(startX, startY);
+    await reactGrab.page.mouse.down();
+
+    // Move near the bottom edge to trigger auto-scroll (threshold is 25px)
+    const nearBottomY = viewport.height - 10;
+    await reactGrab.page.mouse.move(startX, nearBottomY, { steps: 5 });
+    await reactGrab.page.waitForTimeout(200);
+
+    // Capture initial state after auto-scroll has started
+    const scrollBefore = await reactGrab.page.evaluate(() => window.scrollY);
+    const boundsBefore = await reactGrab.getDragBoxBounds();
+    expect(boundsBefore).not.toBeNull();
+
+    // Wait for auto-scroll to advance several frames
+    await reactGrab.page.waitForTimeout(800);
+
+    const scrollAfter = await reactGrab.page.evaluate(() => window.scrollY);
+    const boundsAfter = await reactGrab.getDragBoxBounds();
+    expect(boundsAfter).not.toBeNull();
+
+    const scrollDelta = scrollAfter - scrollBefore;
+    // Auto-scroll should have moved the page
+    expect(scrollDelta).toBeGreaterThan(0);
+
+    // The drag height growth should match the scroll delta (not double-counted).
+    // Allow a small tolerance for RAF timing between reading scroll and bounds.
+    const heightGrowth = boundsAfter!.height - boundsBefore!.height;
+    const drift = Math.abs(heightGrowth - scrollDelta);
+    expect(drift).toBeLessThanOrEqual(20);
+
+    await reactGrab.page.mouse.up();
+  });
+
   test("drag selection should work in scrollable container", async ({ reactGrab }) => {
     await reactGrab.activate();
 
