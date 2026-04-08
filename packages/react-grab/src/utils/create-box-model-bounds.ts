@@ -46,8 +46,29 @@ const outsetBounds = (
   borderRadius,
 });
 
-const maxSide = (sides: BoxSides): number =>
-  Math.max(sides.top, sides.right, sides.bottom, sides.left);
+interface CornerRadii {
+  topLeft: number;
+  topRight: number;
+  bottomRight: number;
+  bottomLeft: number;
+}
+
+const parseCornerRadii = (style: CSSStyleDeclaration): CornerRadii => ({
+  topLeft: parseFloat(style.borderTopLeftRadius) || 0,
+  topRight: parseFloat(style.borderTopRightRadius) || 0,
+  bottomRight: parseFloat(style.borderBottomRightRadius) || 0,
+  bottomLeft: parseFloat(style.borderBottomLeftRadius) || 0,
+});
+
+const insetCornerRadii = (radii: CornerRadii, sides: BoxSides): CornerRadii => ({
+  topLeft: Math.max(0, radii.topLeft - Math.max(sides.top, sides.left)),
+  topRight: Math.max(0, radii.topRight - Math.max(sides.top, sides.right)),
+  bottomRight: Math.max(0, radii.bottomRight - Math.max(sides.bottom, sides.right)),
+  bottomLeft: Math.max(0, radii.bottomLeft - Math.max(sides.bottom, sides.left)),
+});
+
+const formatCornerRadii = (radii: CornerRadii): string =>
+  `${radii.topLeft}px ${radii.topRight}px ${radii.bottomRight}px ${radii.bottomLeft}px`;
 
 const isInFlowChild = (child: Element): boolean => {
   const childStyle = window.getComputedStyle(child);
@@ -127,13 +148,13 @@ export const createBoxModelBounds = (element: Element): BoxModelBounds => {
     left: parseFloat(style.borderLeftWidth) || 0,
   };
 
-  const outerRadius = parseFloat(style.borderRadius) || 0;
-  const paddingRadius = Math.max(0, outerRadius - maxSide(borderSides));
-  const contentRadius = Math.max(0, paddingRadius - maxSide(paddingSides));
+  const outerRadii = parseCornerRadii(style);
+  const paddingRadii = insetCornerRadii(outerRadii, borderSides);
+  const contentRadii = insetCornerRadii(paddingRadii, paddingSides);
 
   const margin = outsetBounds(borderBounds, marginSides, "0px");
-  const padding = insetBounds(borderBounds, borderSides, `${paddingRadius}px`);
-  const content = insetBounds(padding, paddingSides, `${contentRadius}px`);
+  const padding = insetBounds(borderBounds, borderSides, formatCornerRadii(paddingRadii));
+  const content = insetBounds(padding, paddingSides, formatCornerRadii(contentRadii));
   const gaps = computeChildGaps(element, style, content);
 
   return { margin, border: borderBounds, padding, content, gaps };

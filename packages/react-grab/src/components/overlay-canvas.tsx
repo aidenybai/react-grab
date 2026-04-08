@@ -56,7 +56,7 @@ interface AnimatedBounds {
   id: string;
   current: { x: number; y: number; width: number; height: number };
   target: { x: number; y: number; width: number; height: number };
-  borderRadius: number;
+  borderRadii: number[];
   opacity: number;
   targetOpacity: number;
   createdAt?: number;
@@ -143,10 +143,12 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     }
   };
 
-  const parseBorderRadiusValue = (borderRadius: string): number => {
-    if (!borderRadius) return 0;
-    const match = borderRadius.match(/^(\d+(?:\.\d+)?)/);
-    return match ? parseFloat(match[1]) : 0;
+  const parseBorderRadii = (borderRadius: string): number[] => {
+    if (!borderRadius) return [0, 0, 0, 0];
+    const radiusString = borderRadius.split("/")[0].trim();
+    const values = radiusString.split(/\s+/).map((value) => parseFloat(value) || 0);
+    const [topLeft = 0, topRight = topLeft, bottomRight = topLeft, bottomLeft = topRight] = values;
+    return [topLeft, topRight, bottomRight, bottomLeft];
   };
 
   const createAnimatedBounds = (
@@ -167,7 +169,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
       width: bounds.width,
       height: bounds.height,
     },
-    borderRadius: parseBorderRadiusValue(bounds.borderRadius),
+    borderRadii: parseBorderRadii(bounds.borderRadius),
     opacity: options?.opacity ?? 1,
     targetOpacity: options?.targetOpacity ?? options?.opacity ?? 1,
     createdAt: options?.createdAt,
@@ -185,7 +187,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
       width: bounds.width,
       height: bounds.height,
     };
-    animation.borderRadius = parseBorderRadiusValue(bounds.borderRadius);
+    animation.borderRadii = parseBorderRadii(bounds.borderRadius);
     if (targetOpacity !== undefined) {
       animation.targetOpacity = targetOpacity;
     }
@@ -194,26 +196,28 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
   const resolveBoundsArray = (instance: SelectionLabelInstance): OverlayBounds[] =>
     instance.boundsMultiple ?? [instance.bounds];
 
+  const clampRadii = (radii: number[], halfWidth: number, halfHeight: number): number[] =>
+    radii.map((radius) => Math.min(radius, halfWidth, halfHeight));
+
   const drawRoundedRectangle = (
     context: OffscreenCanvasRenderingContext2D,
     rectX: number,
     rectY: number,
     rectWidth: number,
     rectHeight: number,
-    cornerRadius: number,
+    cornerRadii: number[],
     fillColor: string,
     strokeColor: string,
     opacity: number = 1,
   ) => {
     if (rectWidth <= 0 || rectHeight <= 0) return;
 
-    const maxCornerRadius = Math.min(rectWidth / 2, rectHeight / 2);
-    const clampedCornerRadius = Math.min(cornerRadius, maxCornerRadius);
+    const clamped = clampRadii(cornerRadii, rectWidth / 2, rectHeight / 2);
 
     context.globalAlpha = opacity;
     context.beginPath();
-    if (clampedCornerRadius > 0) {
-      context.roundRect(rectX, rectY, rectWidth, rectHeight, clampedCornerRadius);
+    if (clamped.some((radius) => radius > 0)) {
+      context.roundRect(rectX, rectY, rectWidth, rectHeight, clamped);
     } else {
       context.rect(rectX, rectY, rectWidth, rectHeight);
     }
@@ -241,7 +245,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
       dragAnimation.current.y,
       dragAnimation.current.width,
       dragAnimation.current.height,
-      dragAnimation.borderRadius,
+      dragAnimation.borderRadii,
       style.fillColor,
       style.borderColor,
     );
@@ -266,7 +270,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
         animation.current.y,
         animation.current.width,
         animation.current.height,
-        animation.borderRadius,
+        animation.borderRadii,
         style.fillColor,
         style.borderColor,
         effectiveOpacity,
@@ -293,7 +297,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
         animation.current.y,
         animation.current.width,
         animation.current.height,
-        animation.borderRadius,
+        animation.borderRadii,
         style.fillColor,
         style.borderColor,
         animation.opacity,
@@ -335,9 +339,9 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
   const appendBoundsToPath = (path: Path2D, animation: AnimatedBounds) => {
     const { x, y, width, height } = animation.current;
     if (width <= 0 || height <= 0) return;
-    const clampedRadius = Math.min(animation.borderRadius, width / 2, height / 2);
-    if (clampedRadius > 0) {
-      path.roundRect(x, y, width, height, clampedRadius);
+    const clamped = clampRadii(animation.borderRadii, width / 2, height / 2);
+    if (clamped.some((radius) => radius > 0)) {
+      path.roundRect(x, y, width, height, clamped);
     } else {
       path.rect(x, y, width, height);
     }
