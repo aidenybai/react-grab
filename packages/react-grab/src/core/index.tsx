@@ -534,6 +534,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (scrollDelta) => {
         if (isDragRepositioning()) {
           actions.shiftDragStart(scrollDelta);
+          if (previousSpaceDragPointerPage) {
+            previousSpaceDragPointerPage = {
+              x: previousSpaceDragPointerPage.x + scrollDelta.x,
+              y: previousSpaceDragPointerPage.y + scrollDelta.y,
+            };
+            return;
+          }
+          const { pageX, pageY } = toPageCoordinates(store.pointer.x, store.pointer.y);
+          previousSpaceDragPointerPage = { x: pageX, y: pageY };
         }
       },
     );
