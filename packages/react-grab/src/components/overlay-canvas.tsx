@@ -329,23 +329,30 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     return pattern;
   };
 
-  const buildBoundsPath = (animation: AnimatedBounds): Path2D => {
+  // Chromium bug: combining a roundRect sub-path via addPath() breaks the
+  // "evenodd" fill rule, rendering the ring as empty. We must draw both
+  // sub-paths directly on the same Path2D instead of using addPath().
+  const appendBoundsToPath = (path: Path2D, animation: AnimatedBounds) => {
     const { x, y, width, height } = animation.current;
-    const path = new Path2D();
-    if (width <= 0 || height <= 0) return path;
+    if (width <= 0 || height <= 0) return;
     const clampedRadius = Math.min(animation.borderRadius, width / 2, height / 2);
     if (clampedRadius > 0) {
       path.roundRect(x, y, width, height, clampedRadius);
     } else {
       path.rect(x, y, width, height);
     }
+  };
+
+  const buildBoundsPath = (animation: AnimatedBounds): Path2D => {
+    const path = new Path2D();
+    appendBoundsToPath(path, animation);
     return path;
   };
 
   const buildRingPath = (outer: AnimatedBounds, inner: AnimatedBounds): Path2D => {
     const path = new Path2D();
-    path.addPath(buildBoundsPath(outer));
-    path.addPath(buildBoundsPath(inner));
+    appendBoundsToPath(path, outer);
+    appendBoundsToPath(path, inner);
     return path;
   };
 
