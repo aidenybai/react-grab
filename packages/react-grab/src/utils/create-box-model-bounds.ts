@@ -49,26 +49,35 @@ const outsetBounds = (
 const maxSide = (sides: BoxSides): number =>
   Math.max(sides.top, sides.right, sides.bottom, sides.left);
 
+const isInFlowChild = (child: Element): boolean => {
+  const childStyle = window.getComputedStyle(child);
+  return childStyle.display !== "none" && !OUT_OF_FLOW_POSITIONS.has(childStyle.position);
+};
+
+const hasVisibleSize = (rect: DOMRect): boolean => rect.width > 0 || rect.height > 0;
+
 const computeAxisGaps = (
   childRects: DOMRect[],
   contentBounds: OverlayBounds,
   axis: "row" | "column",
 ): GapRect[] => {
+  const isColumnAxis = axis === "column";
+
   const sortedRects = [...childRects].sort((a, b) =>
-    axis === "column" ? a.top - b.top : a.left - b.left,
+    isColumnAxis ? a.top - b.top : a.left - b.left,
   );
 
   const gaps: GapRect[] = [];
   for (let childIndex = 0; childIndex < sortedRects.length - 1; childIndex++) {
-    const gapStart =
-      axis === "column" ? sortedRects[childIndex].bottom : sortedRects[childIndex].right;
-    const gapEnd =
-      axis === "column" ? sortedRects[childIndex + 1].top : sortedRects[childIndex + 1].left;
+    const currentRect = sortedRects[childIndex];
+    const nextRect = sortedRects[childIndex + 1];
+    const gapStart = isColumnAxis ? currentRect.bottom : currentRect.right;
+    const gapEnd = isColumnAxis ? nextRect.top : nextRect.left;
     const gapSize = gapEnd - gapStart;
 
     if (gapSize > BOX_MODEL_GAP_THRESHOLD_PX) {
       gaps.push(
-        axis === "column"
+        isColumnAxis
           ? { x: contentBounds.x, y: gapStart, width: contentBounds.width, height: gapSize }
           : { x: gapStart, y: contentBounds.y, width: gapSize, height: contentBounds.height },
       );
@@ -87,16 +96,10 @@ const computeChildGaps = (
     return [];
   }
 
-  const childRects: DOMRect[] = [];
-  for (const child of element.children) {
-    const childStyle = window.getComputedStyle(child);
-    if (childStyle.display === "none" || OUT_OF_FLOW_POSITIONS.has(childStyle.position)) {
-      continue;
-    }
-    const rect = child.getBoundingClientRect();
-    if (rect.width === 0 && rect.height === 0) continue;
-    childRects.push(rect);
-  }
+  const childRects = Array.from(element.children)
+    .filter(isInFlowChild)
+    .map((child) => child.getBoundingClientRect())
+    .filter(hasVisibleSize);
 
   if (childRects.length < 2) return [];
 

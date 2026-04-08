@@ -45,6 +45,7 @@ const LAYER_STYLES = {
 } as const;
 
 type LayerName = "drag" | "selection" | "grabbed" | "inspect";
+type BoxModelLayerName = "margin" | "border" | "padding" | "content";
 
 interface OffscreenLayer {
   canvas: OffscreenCanvas | null;
@@ -103,7 +104,6 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
   let selectionAnimations: AnimatedBounds[] = [];
   let dragAnimation: AnimatedBounds | null = null;
   let grabbedAnimations: AnimatedBounds[] = [];
-  type BoxModelLayerName = "margin" | "border" | "padding" | "content";
   let boxModelAnimations: Partial<Record<BoxModelLayerName, AnimatedBounds>> = {};
 
   const canvasColorSpace: PredefinedColorSpace = supportsDisplayP3() ? "display-p3" : "srgb";
