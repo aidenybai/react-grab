@@ -59,7 +59,7 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
     const isPositionClose = isWithinThreshold(clientX, clientY, cache.clientX, cache.clientY);
     const isWithinThrottle = now - cache.timestamp < ELEMENT_POSITION_THROTTLE_MS;
 
-    if (isPositionClose || isWithinThrottle) {
+    if (isPositionClose && isWithinThrottle) {
       return cache.element;
     }
   }
