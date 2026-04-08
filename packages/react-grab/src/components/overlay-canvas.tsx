@@ -216,11 +216,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
     context.globalAlpha = opacity;
     context.beginPath();
-    if (clamped.some((radius) => radius > 0)) {
-      context.roundRect(rectX, rectY, rectWidth, rectHeight, clamped);
-    } else {
-      context.rect(rectX, rectY, rectWidth, rectHeight);
-    }
+    context.roundRect(rectX, rectY, rectWidth, rectHeight, clamped);
     context.fillStyle = fillColor;
     context.fill();
     context.strokeStyle = strokeColor;
@@ -333,18 +329,15 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     return pattern;
   };
 
-  // Chromium bug: combining a roundRect sub-path via addPath() breaks the
-  // "evenodd" fill rule, rendering the ring as empty. We must draw both
-  // sub-paths directly on the same Path2D instead of using addPath().
+  // Chromium bug: mixing roundRect and rect sub-paths on the same Path2D
+  // breaks the "evenodd" fill rule, clipping the top-left of the ring.
+  // Always use roundRect (even with [0,0,0,0] radii) to keep both
+  // sub-paths using the same drawing primitive.
   const appendBoundsToPath = (path: Path2D, animation: AnimatedBounds) => {
     const { x, y, width, height } = animation.current;
     if (width <= 0 || height <= 0) return;
     const clamped = clampRadii(animation.borderRadii, width / 2, height / 2);
-    if (clamped.some((radius) => radius > 0)) {
-      path.roundRect(x, y, width, height, clamped);
-    } else {
-      path.rect(x, y, width, height);
-    }
+    path.roundRect(x, y, width, height, clamped);
   };
 
   const buildBoundsPath = (animation: AnimatedBounds): Path2D => {
