@@ -9,7 +9,7 @@ interface BoxSides {
   left: number;
 }
 
-const FLEX_DISPLAYS = new Set(["flex", "inline-flex"]);
+const GRID_DISPLAYS = new Set(["grid", "inline-grid"]);
 const LAYOUT_DISPLAYS = new Set(["flex", "inline-flex", "grid", "inline-grid"]);
 
 const parseSides = (style: CSSStyleDeclaration, property: string): BoxSides => ({
@@ -48,33 +48,24 @@ const outsetBounds = (
 const maxSide = (sides: BoxSides): number =>
   Math.max(sides.top, sides.right, sides.bottom, sides.left);
 
-const computeChildGaps = (
-  element: Element,
-  style: CSSStyleDeclaration,
+const computeAxisGaps = (
+  childRects: DOMRect[],
   contentBounds: OverlayBounds,
+  axis: "row" | "column",
 ): GapRect[] => {
-  if (!LAYOUT_DISPLAYS.has(style.display) || element.children.length < 2) {
-    return [];
-  }
-
-  const isColumn = FLEX_DISPLAYS.has(style.display)
-    && (style.flexDirection === "column" || style.flexDirection === "column-reverse");
-
-  const childRects = Array.from(element.children).map((child) =>
-    child.getBoundingClientRect(),
+  const sorted = [...childRects].sort((a, b) =>
+    axis === "column" ? a.top - b.top : a.left - b.left,
   );
 
   const gaps: GapRect[] = [];
-  for (let childIndex = 0; childIndex < childRects.length - 1; childIndex++) {
-    const currentRect = childRects[childIndex];
-    const nextRect = childRects[childIndex + 1];
-    const gapStart = isColumn ? currentRect.bottom : currentRect.right;
-    const gapEnd = isColumn ? nextRect.top : nextRect.left;
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const gapStart = axis === "column" ? sorted[i].bottom : sorted[i].right;
+    const gapEnd = axis === "column" ? sorted[i + 1].top : sorted[i + 1].left;
     const gapSize = gapEnd - gapStart;
 
     if (gapSize > BOX_MODEL_GAP_THRESHOLD_PX) {
       gaps.push(
-        isColumn
+        axis === "column"
           ? { x: contentBounds.x, y: gapStart, width: contentBounds.width, height: gapSize }
           : { x: gapStart, y: contentBounds.y, width: gapSize, height: contentBounds.height },
       );
@@ -84,13 +75,42 @@ const computeChildGaps = (
   return gaps;
 };
 
+const computeChildGaps = (
+  element: Element,
+  style: CSSStyleDeclaration,
+  contentBounds: OverlayBounds,
+): GapRect[] => {
+  if (!LAYOUT_DISPLAYS.has(style.display) || element.children.length < 2) {
+    return [];
+  }
+
+  const childRects = Array.from(element.children).map((child) =>
+    child.getBoundingClientRect(),
+  );
+
+  if (GRID_DISPLAYS.has(style.display)) {
+    return [
+      ...computeAxisGaps(childRects, contentBounds, "row"),
+      ...computeAxisGaps(childRects, contentBounds, "column"),
+    ];
+  }
+
+  const isColumn = style.flexDirection === "column" || style.flexDirection === "column-reverse";
+  return computeAxisGaps(childRects, contentBounds, isColumn ? "column" : "row");
+};
+
 export const createBoxModelBounds = (element: Element): BoxModelBounds => {
   const borderBounds = createElementBounds(element);
   const style = window.getComputedStyle(element);
 
   const marginSides = parseSides(style, "margin");
   const paddingSides = parseSides(style, "padding");
-  const borderSides = parseSides(style, "border-width");
+  const borderSides: BoxSides = {
+    top: parseFloat(style.borderTopWidth) || 0,
+    right: parseFloat(style.borderRightWidth) || 0,
+    bottom: parseFloat(style.borderBottomWidth) || 0,
+    left: parseFloat(style.borderLeftWidth) || 0,
+  };
 
   const outerRadius = parseFloat(style.borderRadius) || 0;
   const paddingRadius = Math.max(0, outerRadius - maxSide(borderSides));
