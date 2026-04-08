@@ -53,14 +53,16 @@ const computeAxisGaps = (
   contentBounds: OverlayBounds,
   axis: "row" | "column",
 ): GapRect[] => {
-  const sorted = [...childRects].sort((a, b) =>
+  const sortedRects = [...childRects].sort((a, b) =>
     axis === "column" ? a.top - b.top : a.left - b.left,
   );
 
   const gaps: GapRect[] = [];
-  for (let i = 0; i < sorted.length - 1; i++) {
-    const gapStart = axis === "column" ? sorted[i].bottom : sorted[i].right;
-    const gapEnd = axis === "column" ? sorted[i + 1].top : sorted[i + 1].left;
+  for (let childIndex = 0; childIndex < sortedRects.length - 1; childIndex++) {
+    const gapStart =
+      axis === "column" ? sortedRects[childIndex].bottom : sortedRects[childIndex].right;
+    const gapEnd =
+      axis === "column" ? sortedRects[childIndex + 1].top : sortedRects[childIndex + 1].left;
     const gapSize = gapEnd - gapStart;
 
     if (gapSize > BOX_MODEL_GAP_THRESHOLD_PX) {
@@ -84,9 +86,7 @@ const computeChildGaps = (
     return [];
   }
 
-  const childRects = Array.from(element.children).map((child) =>
-    child.getBoundingClientRect(),
-  );
+  const childRects = Array.from(element.children).map((child) => child.getBoundingClientRect());
 
   if (GRID_DISPLAYS.has(style.display)) {
     return [
