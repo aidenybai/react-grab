@@ -1,6 +1,45 @@
 import { test, expect } from "./fixtures.js";
 
 test.describe("Drag Selection", () => {
+  test("should keep drag active when releasing Space in hold mode with Space activation key", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+    await reactGrab.updateOptions({
+      activationKey: "Space",
+      activationMode: "hold",
+      keyHoldDuration: 0,
+    });
+
+    const firstItem = reactGrab.page.locator("li").first();
+    const firstBox = await firstItem.boundingBox();
+    if (!firstBox) throw new Error("Could not get bounding box");
+
+    const startX = firstBox.x - 20;
+    const startY = firstBox.y - 20;
+
+    await reactGrab.page.mouse.move(startX, startY);
+    await reactGrab.page.mouse.down();
+    await reactGrab.page.mouse.move(startX + 220, startY + 150, { steps: 8 });
+    await reactGrab.page.waitForTimeout(100);
+
+    const boundsBeforeSpaceRelease = await reactGrab.getDragBoxBounds();
+    expect(boundsBeforeSpaceRelease).not.toBeNull();
+    if (!boundsBeforeSpaceRelease) throw new Error("Expected drag bounds before space release");
+
+    await reactGrab.page.keyboard.down("Space");
+    await reactGrab.page.keyboard.up("Space");
+    await reactGrab.page.mouse.move(startX + 280, startY + 190, { steps: 4 });
+    await reactGrab.page.waitForTimeout(100);
+    expect(await reactGrab.isOverlayVisible()).toBe(true);
+
+    const boundsAfterSpaceRelease = await reactGrab.getDragBoxBounds();
+    expect(boundsAfterSpaceRelease).not.toBeNull();
+    if (!boundsAfterSpaceRelease) throw new Error("Expected drag bounds after space release");
+
+    await reactGrab.page.mouse.up();
+  });
+
   test("should keep drag selection while moving it with held space", async ({ reactGrab }) => {
     await reactGrab.activate();
 

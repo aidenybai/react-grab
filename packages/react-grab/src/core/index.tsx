@@ -2479,6 +2479,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const hasCustomShortcut = Boolean(pluginRegistry.store.options.activationKey);
 
         const isHoldMode = pluginRegistry.store.options.activationMode === "hold";
+        const isDragGestureInProgress = isDragging();
 
         if (isActivated()) {
           const hasContextMenu = store.contextMenuPosition !== null;
@@ -2496,6 +2497,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               keydownSpamTimerId = null;
             }
             if (hasContextMenu) return;
+            if (isDragGestureInProgress) return;
             deactivateRenderer();
           } else if (
             !hasCustomShortcut &&
