@@ -3727,6 +3727,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 selectionActionCycleState={actionCycleState()}
                 selectionArrowNavigationState={arrowNavigationState()}
                 onArrowNavigationSelect={handleArrowNavigationSelect}
+                inspectNavigationState={inspectNavigationState()}
                 onInspectSelect={handleInspectSelect}
                 labelInstances={computedLabelInstances()}
                 dragVisible={dragVisible()}
