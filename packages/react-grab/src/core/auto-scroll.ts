@@ -49,8 +49,14 @@ export const createAutoScroller = (
     if (direction.right) scrollDeltaX += AUTO_SCROLL_SPEED_PX;
 
     if (scrollDeltaX !== 0 || scrollDeltaY !== 0) {
+      const previousScrollX = window.scrollX;
+      const previousScrollY = window.scrollY;
       window.scrollBy(scrollDeltaX, scrollDeltaY);
-      onScrollStep?.({ x: scrollDeltaX, y: scrollDeltaY });
+      const didScrollByX = window.scrollX - previousScrollX;
+      const didScrollByY = window.scrollY - previousScrollY;
+      if (didScrollByX !== 0 || didScrollByY !== 0) {
+        onScrollStep?.({ x: didScrollByX, y: didScrollByY });
+      }
     }
 
     if (direction.top || direction.bottom || direction.left || direction.right) {
