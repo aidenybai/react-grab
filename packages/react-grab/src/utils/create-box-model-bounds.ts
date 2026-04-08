@@ -11,6 +11,7 @@ interface BoxSides {
 
 const GRID_DISPLAYS = new Set(["grid", "inline-grid"]);
 const LAYOUT_DISPLAYS = new Set(["flex", "inline-flex", "grid", "inline-grid"]);
+const OUT_OF_FLOW_POSITIONS = new Set(["absolute", "fixed"]);
 
 const parseSides = (style: CSSStyleDeclaration, property: string): BoxSides => ({
   top: parseFloat(style.getPropertyValue(`${property}-top`)) || 0,
@@ -86,7 +87,18 @@ const computeChildGaps = (
     return [];
   }
 
-  const childRects = Array.from(element.children).map((child) => child.getBoundingClientRect());
+  const childRects: DOMRect[] = [];
+  for (const child of element.children) {
+    const childStyle = window.getComputedStyle(child);
+    if (childStyle.display === "none" || OUT_OF_FLOW_POSITIONS.has(childStyle.position)) {
+      continue;
+    }
+    const rect = child.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) continue;
+    childRects.push(rect);
+  }
+
+  if (childRects.length < 2) return [];
 
   if (GRID_DISPLAYS.has(style.display)) {
     return [

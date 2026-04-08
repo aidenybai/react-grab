@@ -323,7 +323,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
     const pattern = context.createPattern(patternCanvas, "repeat");
     if (pattern) {
-      pattern.setTransform(new DOMMatrix().rotate(0, 0, HATCH_ROTATION_DEG));
+      pattern.setTransform(new DOMMatrix().rotate(HATCH_ROTATION_DEG));
       hatchPatternCache.set(color, pattern);
     }
     return pattern;
