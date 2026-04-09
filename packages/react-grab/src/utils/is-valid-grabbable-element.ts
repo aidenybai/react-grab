@@ -76,7 +76,9 @@ export const clearVisibilityCache = (): void => {
 const hasVisualContent = (element: Element, computedStyle: CSSStyleDeclaration): boolean =>
   element.childElementCount > 0 ||
   Boolean(element.textContent?.trim()) ||
-  !hasTransparentBackground(computedStyle);
+  !hasTransparentBackground(computedStyle) ||
+  computedStyle.backgroundImage !== "none" ||
+  computedStyle.boxShadow !== "none";
 
 export const isValidGrabbableElement = (element: Element): boolean => {
   if (isRootElement(element)) {
