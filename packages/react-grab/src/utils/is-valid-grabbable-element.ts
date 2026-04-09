@@ -45,10 +45,9 @@ const isFullViewportOverlay = (element: Element, computedStyle: CSSStyleDeclarat
     return false;
   }
 
-  const rect = element.getBoundingClientRect();
   const coversViewport =
-    rect.width / window.innerWidth >= VIEWPORT_COVERAGE_THRESHOLD &&
-    rect.height / window.innerHeight >= VIEWPORT_COVERAGE_THRESHOLD;
+    element.clientWidth / window.innerWidth >= VIEWPORT_COVERAGE_THRESHOLD &&
+    element.clientHeight / window.innerHeight >= VIEWPORT_COVERAGE_THRESHOLD;
 
   if (!coversViewport) {
     return false;
