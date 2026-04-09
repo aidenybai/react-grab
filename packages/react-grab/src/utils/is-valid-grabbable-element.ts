@@ -74,6 +74,20 @@ export const clearVisibilityCache = (): void => {
   visibilityCache = new WeakMap<Element, VisibilityCache>();
 };
 
+const isDecorativeOverlay = (element: Element, computedStyle: CSSStyleDeclaration): boolean => {
+  const position = computedStyle.position;
+  if (position !== "absolute" && position !== "fixed") {
+    return false;
+  }
+
+  if (element.childElementCount > 0 || (element.textContent?.trim().length ?? 0) > 0) {
+    return false;
+  }
+
+  const backgroundColor = computedStyle.backgroundColor;
+  return backgroundColor === "transparent" || backgroundColor === "rgba(0, 0, 0, 0)";
+};
+
 export const isValidGrabbableElement = (element: Element): boolean => {
   if (isRootElement(element)) {
     return false;
@@ -98,6 +112,11 @@ export const isValidGrabbableElement = (element: Element): boolean => {
 
   const isVisible = isElementVisible(element, computedStyle);
   if (!isVisible) {
+    visibilityCache.set(element, { isVisible: false, timestamp: now });
+    return false;
+  }
+
+  if (isDecorativeOverlay(element, computedStyle)) {
     visibilityCache.set(element, { isVisible: false, timestamp: now });
     return false;
   }
