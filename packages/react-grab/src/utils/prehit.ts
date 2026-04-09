@@ -46,14 +46,19 @@ export const buildPrehitIndex = (): void => {
       for (const entry of entries) {
         observer.unobserve(entry.target);
 
+        const targetElement = entry.target as HTMLElement;
         const boundingRect = entry.boundingClientRect;
         if (boundingRect.width === 0 || boundingRect.height === 0) continue;
-        if (!isValidGrabbableElement(entry.target)) continue;
+        if (!isValidGrabbableElement(targetElement)) continue;
+
+        const elementWidth = targetElement.clientWidth;
+        const elementHeight = targetElement.clientHeight;
+        if (elementWidth === 0 || elementHeight === 0) continue;
 
         accumulatedElements.push({
-          element: entry.target,
-          area: boundingRect.width * boundingRect.height,
-          treeOrder: treeOrderMap.get(entry.target) ?? 0,
+          element: targetElement,
+          area: elementWidth * elementHeight,
+          treeOrder: treeOrderMap.get(targetElement) ?? 0,
         });
 
         accumulatedRects.push({
@@ -105,13 +110,22 @@ export const buildPrehitIndex = (): void => {
 };
 
 const CLIPPING_OVERFLOW_VALUES = new Set(["hidden", "scroll", "auto", "clip"]);
+const PAINT_CONTAIN_VALUES = new Set(["paint", "strict", "content"]);
+
+const hasPaintContainment = (containValue: string): boolean => {
+  for (const keyword of containValue.split(" ")) {
+    if (PAINT_CONTAIN_VALUES.has(keyword)) return true;
+  }
+  return false;
+};
 
 const isVisibleAtPoint = (element: Element, clientX: number, clientY: number): boolean => {
   let ancestor = element.parentElement;
   while (ancestor && ancestor !== document.documentElement) {
     const style = getComputedStyle(ancestor);
-    const clipsX = CLIPPING_OVERFLOW_VALUES.has(style.overflowX) || style.contain.includes("paint");
-    const clipsY = CLIPPING_OVERFLOW_VALUES.has(style.overflowY) || style.contain.includes("paint");
+    const isPaintContained = hasPaintContainment(style.contain);
+    const clipsX = CLIPPING_OVERFLOW_VALUES.has(style.overflowX) || isPaintContained;
+    const clipsY = CLIPPING_OVERFLOW_VALUES.has(style.overflowY) || isPaintContained;
 
     if (clipsX || clipsY) {
       const ancestorRect = ancestor.getBoundingClientRect();
