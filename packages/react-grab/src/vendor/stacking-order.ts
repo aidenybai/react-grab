@@ -7,8 +7,11 @@
 
 const STACKING_CONTEXT_PROPERTIES = /\b(?:position|zIndex|opacity|transform|mixBlendMode|filter|isolation)\b/;
 
-const getParent = (node: Element): Element | null =>
-  ((node as unknown as { parentNode: { host?: Element } }).parentNode?.host as Element | undefined) ?? node.parentElement;
+const getParent = (node: Element): Element | null => {
+  const parentNode = node.parentNode;
+  const shadowHost = parentNode && "host" in parentNode ? (parentNode as ShadowRoot).host : null;
+  return shadowHost ?? node.parentElement;
+};
 
 const getAncestors = (node: Element): Element[] => {
   const ancestors: Element[] = [];
@@ -36,7 +39,7 @@ const createsStackingContext = (node: Element): boolean => {
   if (style.transform !== "none") return true;
   if ("mixBlendMode" in style && style.mixBlendMode !== "normal") return true;
   if (style.filter !== "none") return true;
-  if ("isolation" in style && (style as CSSStyleDeclaration & { isolation: string }).isolation === "isolate") return true;
+  if ("isolation" in style && style.getPropertyValue("isolation") === "isolate") return true;
   if (STACKING_CONTEXT_PROPERTIES.test(style.willChange)) return true;
 
   return false;

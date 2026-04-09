@@ -1,10 +1,18 @@
 import { Flatbush } from "../vendor/flatbush.js";
+import { PREHIT_ROOT_MARGIN_PX } from "../constants.js";
 import { isValidGrabbableElement } from "./is-valid-grabbable-element.js";
 
 interface IndexedElement {
   element: Element;
   area: number;
   treeOrder: number;
+}
+
+interface PageRect {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
 }
 
 interface PrehitIndex {
@@ -25,10 +33,10 @@ export const buildPrehitIndex = (): void => {
 
   const treeOrderMap = new Map<Element, number>();
   let treeOrder = 0;
-  let observedCount = 0;
+  let didObserveAnyElement = false;
 
   const accumulatedElements: IndexedElement[] = [];
-  const accumulatedRects: { left: number; top: number; right: number; bottom: number }[] = [];
+  const accumulatedRects: PageRect[] = [];
 
   const observer = new IntersectionObserver(
     (entries) => {
@@ -64,9 +72,9 @@ export const buildPrehitIndex = (): void => {
       }
       tree.finish();
 
-      currentIndex = { tree, elements: [...accumulatedElements] };
+      currentIndex = { tree, elements: accumulatedElements };
     },
-    { rootMargin: "10000px" },
+    { rootMargin: `${PREHIT_ROOT_MARGIN_PX}px` },
   );
 
   pendingObserver = observer;
@@ -87,10 +95,10 @@ export const buildPrehitIndex = (): void => {
     if (element.offsetWidth === 0 && element.offsetHeight === 0) continue;
     treeOrderMap.set(element, treeOrder++);
     observer.observe(element);
-    observedCount++;
+    didObserveAnyElement = true;
   }
 
-  if (observedCount === 0) {
+  if (!didObserveAnyElement) {
     observer.disconnect();
     pendingObserver = null;
   }
