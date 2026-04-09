@@ -73,13 +73,6 @@ export const clearVisibilityCache = (): void => {
   visibilityCache = new WeakMap<Element, VisibilityCache>();
 };
 
-const hasVisualContent = (element: Element, computedStyle: CSSStyleDeclaration): boolean =>
-  element.childElementCount > 0 ||
-  Boolean(element.textContent?.trim()) ||
-  !hasTransparentBackground(computedStyle) ||
-  computedStyle.backgroundImage !== "none" ||
-  computedStyle.boxShadow !== "none";
-
 export const isValidGrabbableElement = (element: Element): boolean => {
   if (isRootElement(element)) {
     return false;
@@ -104,12 +97,6 @@ export const isValidGrabbableElement = (element: Element): boolean => {
 
   const isVisible = isElementVisible(element, computedStyle);
   if (!isVisible) {
-    visibilityCache.set(element, { isVisible: false, timestamp: now });
-    return false;
-  }
-
-  const isPositioned = computedStyle.position === "absolute" || computedStyle.position === "fixed";
-  if (isPositioned && !hasVisualContent(element, computedStyle)) {
     visibilityCache.set(element, { isVisible: false, timestamp: now });
     return false;
   }

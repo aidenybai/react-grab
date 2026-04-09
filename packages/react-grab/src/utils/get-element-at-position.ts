@@ -79,21 +79,21 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
   cancelScheduledResume();
   suspendPointerEventsFreeze();
 
+  // elementsFromPoint returns the full z-ordered stack. Among valid elements,
+  // prefer the smallest — this naturally selects the most specific content
+  // element and skips decorative overlays, container divs, and other large
+  // elements that happen to sit above the actual content at this coordinate.
+  const elementsAtPoint = document.elementsFromPoint(clientX, clientY);
   let result: Element | null = null;
+  let smallestArea = Infinity;
 
-  // elementFromPoint returns the topmost element, but if it's not grabbable
-  // (e.g. a transparent overlay) we fall back to elementsFromPoint which
-  // returns the full z-ordered stack at that coordinate.
-  const topElement = document.elementFromPoint(clientX, clientY);
-  if (topElement && isValidGrabbableElement(topElement)) {
-    result = topElement;
-  } else {
-    const elementsAtPoint = document.elementsFromPoint(clientX, clientY);
-    for (const candidateElement of elementsAtPoint) {
-      if (candidateElement !== topElement && isValidGrabbableElement(candidateElement)) {
-        result = candidateElement;
-        break;
-      }
+  for (const candidateElement of elementsAtPoint) {
+    if (!isValidGrabbableElement(candidateElement)) continue;
+    const { width, height } = candidateElement.getBoundingClientRect();
+    const area = width * height;
+    if (area < smallestArea) {
+      smallestArea = area;
+      result = candidateElement;
     }
   }
 
