@@ -105,5 +105,8 @@ export const queryPrehitIndex = (clientX: number, clientY: number): Element | nu
 export const isPrehitIndexReady = (): boolean => currentIndex !== null;
 
 export const destroyPrehitIndex = (): void => {
-  currentIndex = null;
+  if (currentIndex) {
+    currentIndex.elements.length = 0;
+    currentIndex = null;
+  }
 };
