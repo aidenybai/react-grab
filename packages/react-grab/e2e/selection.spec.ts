@@ -31,6 +31,23 @@ test.describe("Element Selection", () => {
     expect(clipboardContent.length).toBeGreaterThan(0);
   });
 
+  test("should show selection even when page blocks pointermove bubbling", async ({ reactGrab }) => {
+    await reactGrab.activate();
+
+    await reactGrab.page.evaluate(() => {
+      window.addEventListener(
+        "pointermove",
+        (event) => {
+          event.stopImmediatePropagation();
+        },
+        { capture: false },
+      );
+    });
+
+    await reactGrab.hoverElement("li");
+    await reactGrab.waitForSelectionBox();
+  });
+
   test("should copy heading element to clipboard", async ({ reactGrab }) => {
     await reactGrab.activate();
     await reactGrab.hoverElement("[data-testid='todo-list'] h1");

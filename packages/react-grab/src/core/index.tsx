@@ -231,7 +231,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const isDragging = createMemo(
       () =>
         store.current.state === "active" &&
-        (store.current.phase === "dragging-select" || store.current.phase === "dragging-reposition"),
+        (store.current.phase === "dragging-select" ||
+          store.current.phase === "dragging-reposition"),
     );
     const isDragRepositioning = createMemo(
       () => store.current.state === "active" && store.current.phase === "dragging-reposition",
@@ -2569,7 +2570,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
         handlePointerMove(event.clientX, event.clientY);
       },
-      { passive: true },
+      { passive: true, capture: true },
     );
 
     eventListenerManager.addWindowListener(
