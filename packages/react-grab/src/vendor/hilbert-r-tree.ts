@@ -1,7 +1,3 @@
-// Packed Hilbert R-tree for static spatial indexing.
-// O(n) build, O(log n) bounding-box search.
-// ISC License, https://github.com/mourner/flatbush
-
 const NODE_SIZE = 16;
 
 const upperBound = (value: number, levelBounds: number[]): number => {
