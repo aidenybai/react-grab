@@ -82,7 +82,10 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
 
   for (const candidateElement of elementsAtPoint) {
     if (!isValidGrabbableElement(candidateElement)) continue;
-    const area = candidateElement.clientWidth * candidateElement.clientHeight;
+    const candidateWidth = candidateElement.clientWidth;
+    const candidateHeight = candidateElement.clientHeight;
+    if (candidateWidth === 0 || candidateHeight === 0) continue;
+    const area = candidateWidth * candidateHeight;
     if (area < smallestArea) {
       smallestArea = area;
       result = candidateElement;
