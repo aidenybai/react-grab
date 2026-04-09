@@ -179,7 +179,7 @@ Recorded during the tree walk at index time. Later in tree = painted later = vis
 
 ### 2. `stacking-order` comparison (cheap in frozen state)
 
-[Rich Harris's `stacking-order`](https://github.com/Rich-Harris/stacking-order) (111 lines) computes pairwise visual ordering by walking ancestor chains and comparing stacking contexts. Uses `getComputedStyle`, which is a cache read (no recalc) inside the IO callback since the browser just rendered.
+[Rich Harris's `stacking-order](https://github.com/Rich-Harris/stacking-order)` (111 lines) computes pairwise visual ordering by walking ancestor chains and comparing stacking contexts. Uses `getComputedStyle`, which is a cache read (no recalc) inside the IO callback since the browser just rendered.
 
 We vendor a TypeScript port and use it only for Flatbush query results (typically 3-5 elements), not for the full element set:
 
@@ -227,13 +227,15 @@ deactivation:
 
 ## What This Eliminates
 
-| Operation | Current (per hover) | With Prehit (per hover) |
-|---|---|---|
-| pointer-events stylesheet toggle | Every 32ms | Never (only on fallback) |
-| `elementsFromPoint` | Every 32ms (forces style recalc) | Never (only on fallback) |
-| `getComputedStyle` | Per candidate element | Never (index precomputed) |
-| Style recalculation | 1-5ms per detection | 0ms |
-| **Total per-hover cost** | **1-5ms** | **~0.005ms** |
+
+| Operation                        | Current (per hover)              | With Prehit (per hover)   |
+| -------------------------------- | -------------------------------- | ------------------------- |
+| pointer-events stylesheet toggle | Every 32ms                       | Never (only on fallback)  |
+| `elementsFromPoint`              | Every 32ms (forces style recalc) | Never (only on fallback)  |
+| `getComputedStyle`               | Per candidate element            | Never (index precomputed) |
+| Style recalculation              | 1-5ms per detection              | 0ms                       |
+| **Total per-hover cost**         | **1-5ms**                        | **~0.005ms**              |
+
 
 ## Vendored Dependencies
 
@@ -263,11 +265,14 @@ Both libraries are small enough to vendor as TypeScript ports rather than adding
 
 ## Comparison to pretext
 
-| Aspect | pretext | prehit |
-|---|---|---|
-| **"prepare" phase** | Canvas `measureText` per word segment | IO `boundingClientRect` per element |
-| **"layout" phase** | Walk cached widths, count lines (arithmetic) | Flatbush `search()`, pick smallest (arithmetic) |
-| **Immutability guarantee** | Text doesn't change between prepare and layout | DOM is frozen between index and query |
-| **Cache granularity** | Per segment x font (`Map<string, Map<string, Metrics>>`) | Per element (`Float64Array` in Flatbush) |
-| **Invalidation** | `clearCache()` on locale/font change | Discard index on deactivation |
-| **Hot path cost** | ~0.0002ms per text block | ~0.005ms per point query |
+
+| Aspect                     | pretext                                                  | prehit                                          |
+| -------------------------- | -------------------------------------------------------- | ----------------------------------------------- |
+| **"prepare" phase**        | Canvas `measureText` per word segment                    | IO `boundingClientRect` per element             |
+| **"layout" phase**         | Walk cached widths, count lines (arithmetic)             | Flatbush `search()`, pick smallest (arithmetic) |
+| **Immutability guarantee** | Text doesn't change between prepare and layout           | DOM is frozen between index and query           |
+| **Cache granularity**      | Per segment x font (`Map<string, Map<string, Metrics>>`) | Per element (`Float64Array` in Flatbush)        |
+| **Invalidation**           | `clearCache()` on locale/font change                     | Discard index on deactivation                   |
+| **Hot path cost**          | ~0.0002ms per text block                                 | ~0.005ms per point query                        |
+
+
