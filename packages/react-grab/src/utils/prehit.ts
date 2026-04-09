@@ -98,11 +98,21 @@ export const buildPrehitIndex = (): void => {
 
 const CLIPPING_OVERFLOW_VALUES = new Set(["hidden", "scroll", "auto", "clip"]);
 
+const clipsAtPoint = (style: CSSStyleDeclaration, rect: DOMRect, clientX: number, clientY: number): boolean => {
+  const clipsX = CLIPPING_OVERFLOW_VALUES.has(style.overflowX);
+  const clipsY = CLIPPING_OVERFLOW_VALUES.has(style.overflowY);
+  if (!clipsX && !clipsY) return false;
+  if (clipsX && (clientX < rect.left || clientX > rect.right)) return true;
+  if (clipsY && (clientY < rect.top || clientY > rect.bottom)) return true;
+  return false;
+};
+
 const isVisibleAtPoint = (element: Element, clientX: number, clientY: number): boolean => {
   let ancestor = element.parentElement;
   while (ancestor && ancestor !== document.documentElement) {
-    const overflow = getComputedStyle(ancestor).overflow;
-    if (CLIPPING_OVERFLOW_VALUES.has(overflow)) {
+    const style = getComputedStyle(ancestor);
+
+    if (style.contain.includes("paint")) {
       const ancestorRect = ancestor.getBoundingClientRect();
       if (
         clientX < ancestorRect.left ||
@@ -112,7 +122,14 @@ const isVisibleAtPoint = (element: Element, clientX: number, clientY: number): b
       ) {
         return false;
       }
+    } else if (
+      CLIPPING_OVERFLOW_VALUES.has(style.overflowX) ||
+      CLIPPING_OVERFLOW_VALUES.has(style.overflowY)
+    ) {
+      const ancestorRect = ancestor.getBoundingClientRect();
+      if (clipsAtPoint(style, ancestorRect, clientX, clientY)) return false;
     }
+
     ancestor = ancestor.parentElement;
   }
   return true;
