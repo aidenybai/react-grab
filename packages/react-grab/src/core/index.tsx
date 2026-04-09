@@ -1623,7 +1623,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       ) {
         elementDetectionState.lastDetectionTimestamp = now;
         elementDetectionState.pendingDetectionScheduledAt = now;
-        nativeRequestAnimationFrame(() => {
+        setTimeout(() => {
           const candidate = getElementAtPosition(
             elementDetectionState.latestPointerX,
             elementDetectionState.latestPointerY,
