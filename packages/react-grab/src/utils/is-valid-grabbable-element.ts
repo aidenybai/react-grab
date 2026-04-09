@@ -73,9 +73,15 @@ export const clearVisibilityCache = (): void => {
   visibilityCache = new WeakMap<Element, VisibilityCache>();
 };
 
+const REPLACED_ELEMENT_TAGS = new Set([
+  "IMG", "VIDEO", "CANVAS", "SVG", "IFRAME", "EMBED", "OBJECT",
+  "INPUT", "TEXTAREA", "SELECT",
+]);
+
 const isDecorativeOverlay = (element: Element, computedStyle: CSSStyleDeclaration): boolean => {
   const position = computedStyle.position;
   if (position !== "absolute" && position !== "fixed") return false;
+  if (REPLACED_ELEMENT_TAGS.has(element.tagName)) return false;
   if (element.childElementCount > 0) return false;
   if ((element.textContent?.trim().length ?? 0) > 0) return false;
   return hasTransparentBackground(computedStyle);
