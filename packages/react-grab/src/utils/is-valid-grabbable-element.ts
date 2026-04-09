@@ -73,23 +73,10 @@ export const clearVisibilityCache = (): void => {
   visibilityCache = new WeakMap<Element, VisibilityCache>();
 };
 
-// Hover-effect overlays: sites like nisarg.io use empty absolute-positioned
-// transparent <div>s for card border glow / transition effects. These sit on
-// top of real content in the z-order, causing elementFromPoint to return them
-// instead of the meaningful elements underneath.
-const isDecorativeOverlay = (element: Element, computedStyle: CSSStyleDeclaration): boolean => {
-  const tagName = element.tagName;
-  if (tagName !== "DIV" && tagName !== "SPAN") return false;
-
-  const position = computedStyle.position;
-  if (position !== "absolute" && position !== "fixed") return false;
-
-  return (
-    element.childElementCount === 0 &&
-    (element.textContent?.trim().length ?? 0) === 0 &&
-    hasTransparentBackground(computedStyle)
-  );
-};
+const hasVisualContent = (element: Element, computedStyle: CSSStyleDeclaration): boolean =>
+  element.childElementCount > 0 ||
+  Boolean(element.textContent?.trim()) ||
+  !hasTransparentBackground(computedStyle);
 
 export const isValidGrabbableElement = (element: Element): boolean => {
   if (isRootElement(element)) {
@@ -119,7 +106,8 @@ export const isValidGrabbableElement = (element: Element): boolean => {
     return false;
   }
 
-  if (isDecorativeOverlay(element, computedStyle)) {
+  const isPositioned = computedStyle.position === "absolute" || computedStyle.position === "fixed";
+  if (isPositioned && !hasVisualContent(element, computedStyle)) {
     visibilityCache.set(element, { isVisible: false, timestamp: now });
     return false;
   }
