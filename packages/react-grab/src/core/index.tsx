@@ -1623,6 +1623,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       ) {
         elementDetectionState.lastDetectionTimestamp = now;
         elementDetectionState.pendingDetectionScheduledAt = now;
+        // setTimeout defers the elementFromPoint hit-test into its own macrotask
+        // so the style recalculation it triggers doesn't eat the current frame's
+        // budget. Alternatives considered:
+        //   - queueMicrotask: runs before paint, blocks the frame (ivi/Preact use
+        //     microtasks for lightweight JS work, but elementFromPoint forces the
+        //     browser's layout engine which is categorically heavier)
+        //   - requestAnimationFrame: runs inside the render pipeline, same problem
+        //   - scheduler.postTask("background"): starved for 350ms–5s on pages with
+        //     continuous React renders or CSS animations
+        // setTimeout(0) fires in ~1ms as a separate task with no nesting-based
+        // clamping (each call originates from a distinct pointermove handler).
         setTimeout(() => {
           const candidate = getElementAtPosition(
             elementDetectionState.latestPointerX,
