@@ -80,7 +80,7 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
   suspendPointerEventsFreeze();
 
   // elementsFromPoint returns the full z-ordered stack. Among valid elements,
-  // prefer the smallest — this naturally selects the most specific content
+  // prefer the smallest: this naturally selects the most specific content
   // element and skips decorative overlays, container divs, and other large
   // elements that happen to sit above the actual content at this coordinate.
   const elementsAtPoint = document.elementsFromPoint(clientX, clientY);
