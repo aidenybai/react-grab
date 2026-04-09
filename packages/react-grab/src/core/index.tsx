@@ -257,7 +257,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     createEffect(
       on(isActivated, (activated, previousActivated) => {
         if (activated && !previousActivated) {
-          freezePseudoStates();
+          freezePseudoStates(store.pointer.x, store.pointer.y);
           freezeGlobalAnimations();
           buildPrehitIndex();
           document.body.style.touchAction = "none";
