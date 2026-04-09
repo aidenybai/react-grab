@@ -64,16 +64,43 @@ const indexElements = (): void => {
     buildSpatialIndex(elements)
   })
 
-  // Walk DOM tree: observe each element and record tree order
+  // Walk DOM tree: observe each visible element and record tree order.
+  // Filtering is critical -- a page can have 10k+ DOM nodes, but only
+  // 200-500 are visible content elements worth indexing.
   const treeOrderMap = new Map<Element, number>()
-  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT)
+  const SKIP_TAGS = new Set([
+    "SCRIPT", "STYLE", "HEAD", "META", "LINK",
+    "NOSCRIPT", "BR", "TEMPLATE", "SLOT",
+  ])
+
+  const walker = document.createTreeWalker(
+    document.body,
+    NodeFilter.SHOW_ELEMENT,
+    {
+      acceptNode: (node) =>
+        SKIP_TAGS.has((node as Element).tagName)
+          ? NodeFilter.FILTER_REJECT  // skip node AND its subtree
+          : NodeFilter.FILTER_ACCEPT,
+    },
+  )
+
   while (walker.nextNode()) {
-    const element = walker.currentNode as Element
+    const element = walker.currentNode as HTMLElement
+
+    // offsetWidth/offsetHeight are cached layout values (no reflow since
+    // freeze already triggered style recalc). Skips display:none, hidden
+    // elements, and zero-size wrappers.
+    if (element.offsetWidth === 0 && element.offsetHeight === 0) continue
+
     treeOrderMap.set(element, treeOrder++)
     observer.observe(element)
   }
 }
 ```
+
+**Why filtering matters:** a naive `querySelectorAll("*")` or unfiltered `TreeWalker` visits every DOM node. On a page with 10k+ nodes, observing each via IO costs 5-20ms. The two filters above (skip non-visual tags via `FILTER_REJECT`, skip zero-size elements via `offsetWidth`/`offsetHeight`) reduce the set to ~200-500 elements, bringing the observe loop under 1ms.
+
+`offsetWidth`/`offsetHeight` are safe here because the freeze already triggered a style recalc and layout pass. These properties read from the cached layout, not a forced reflow.
 
 **Why IO is free:** the IO callback fires after the browser's rendering pipeline completes (style recalc -> layout -> paint -> IO callbacks). At that point, `boundingClientRect` is just reading from the already-computed layout. No forced reflow.
 
