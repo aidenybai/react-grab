@@ -64,25 +64,17 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
     }
   }
 
-  // PERF: suspendPointerEventsFreeze toggles the html { pointer-events: none }
-  // stylesheet, which dirties the entire style tree. elementFromPoint then forces
-  // a Recalculate Style. The 100ms debounced resume (scheduleResume) ensures the
-  // toggle is a no-op on rapid subsequent calls. The expensive recalc on those
-  // calls comes from host-page CSS animations dirtying styles between frames,
-  // which is unavoidable without removing pointer-events: none entirely.
-  // Alternatives explored and rejected:
-  //   - IntersectionObserver pre-population: adds 1-frame latency to every poll
-  //   - event.target fast path: always html/document due to pointer-events: none
-  //   - bounds-check cache: ignores z-index/stacking, causes hover detection misses
-  //   - transparent overlay instead of pointer-events: none: leaks CSS-only :hover
-  //     dropdowns/tooltips during the hit-test toggle
+  // Fast path: prehit spatial index (O(log n), no DOM reads, no style recalc).
+  // Built once at activation via IntersectionObserver; valid for the entire
+  // session because the page is frozen. Falls through to elementsFromPoint
+  // when the index isn't ready yet (1-frame startup) or when the query returns
+  // no result (element off-screen or not indexed).
+  // suspendPointerEventsFreeze toggles the html { pointer-events: none }
+  // stylesheet, which dirties the entire style tree. elementsFromPoint then forces
+  // a Recalculate Style (1-5ms on dense DOMs).
   cancelScheduledResume();
   suspendPointerEventsFreeze();
 
-  // elementsFromPoint returns the full z-ordered stack. Among valid elements,
-  // prefer the smallest: this naturally selects the most specific content
-  // element and skips decorative overlays, container divs, and other large
-  // elements that happen to sit above the actual content at this coordinate.
   const elementsAtPoint = document.elementsFromPoint(clientX, clientY);
   let result: Element | null = null;
   let smallestArea = Infinity;
