@@ -118,7 +118,6 @@ import { createArrowNavigator } from "./arrow-navigation.js";
 import { getRequiredModifiers, setupKeyboardEventClaimer } from "./keyboard-handlers.js";
 import { createAutoScroller, getAutoScrollDirection } from "./auto-scroll.js";
 import { logIntro } from "./log-intro.js";
-import { onIdle } from "../utils/on-idle.js";
 import { getScriptOptions } from "../utils/get-script-options.js";
 import { isEnterCode } from "../utils/is-enter-code.js";
 import { isMac } from "../utils/is-mac.js";
@@ -1624,7 +1623,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       ) {
         elementDetectionState.lastDetectionTimestamp = now;
         elementDetectionState.pendingDetectionScheduledAt = now;
-        onIdle(() => {
+        nativeRequestAnimationFrame(() => {
           const candidate = getElementAtPosition(
             elementDetectionState.latestPointerX,
             elementDetectionState.latestPointerY,

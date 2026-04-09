@@ -34,6 +34,11 @@ const isDevToolsOverlay = (computedStyle: CSSStyleDeclaration): boolean => {
   );
 };
 
+const hasTransparentBackground = (computedStyle: CSSStyleDeclaration): boolean => {
+  const backgroundColor = computedStyle.backgroundColor;
+  return backgroundColor === "transparent" || backgroundColor === "rgba(0, 0, 0, 0)";
+};
+
 const isFullViewportOverlay = (element: Element, computedStyle: CSSStyleDeclaration): boolean => {
   const position = computedStyle.position;
   if (position !== "fixed" && position !== "absolute") {
@@ -49,13 +54,7 @@ const isFullViewportOverlay = (element: Element, computedStyle: CSSStyleDeclarat
     return false;
   }
 
-  const backgroundColor = computedStyle.backgroundColor;
-  const hasInvisibleBackground =
-    backgroundColor === "transparent" ||
-    backgroundColor === "rgba(0, 0, 0, 0)" ||
-    parseFloat(computedStyle.opacity) < 0.1;
-
-  if (hasInvisibleBackground) {
+  if (hasTransparentBackground(computedStyle) || parseFloat(computedStyle.opacity) < 0.1) {
     return true;
   }
 
@@ -76,16 +75,10 @@ export const clearVisibilityCache = (): void => {
 
 const isDecorativeOverlay = (element: Element, computedStyle: CSSStyleDeclaration): boolean => {
   const position = computedStyle.position;
-  if (position !== "absolute" && position !== "fixed") {
-    return false;
-  }
-
-  if (element.childElementCount > 0 || (element.textContent?.trim().length ?? 0) > 0) {
-    return false;
-  }
-
-  const backgroundColor = computedStyle.backgroundColor;
-  return backgroundColor === "transparent" || backgroundColor === "rgba(0, 0, 0, 0)";
+  if (position !== "absolute" && position !== "fixed") return false;
+  if (element.childElementCount > 0) return false;
+  if ((element.textContent?.trim().length ?? 0) > 0) return false;
+  return hasTransparentBackground(computedStyle);
 };
 
 export const isValidGrabbableElement = (element: Element): boolean => {
