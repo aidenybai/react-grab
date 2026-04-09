@@ -73,18 +73,22 @@ export const clearVisibilityCache = (): void => {
   visibilityCache = new WeakMap<Element, VisibilityCache>();
 };
 
-const REPLACED_ELEMENT_TAGS = new Set([
-  "IMG", "VIDEO", "CANVAS", "SVG", "IFRAME", "EMBED", "OBJECT",
-  "INPUT", "TEXTAREA", "SELECT",
-]);
-
+// Hover-effect overlays: sites like nisarg.io use empty absolute-positioned
+// transparent <div>s for card border glow / transition effects. These sit on
+// top of real content in the z-order, causing elementFromPoint to return them
+// instead of the meaningful elements underneath.
 const isDecorativeOverlay = (element: Element, computedStyle: CSSStyleDeclaration): boolean => {
+  const tagName = element.tagName;
+  if (tagName !== "DIV" && tagName !== "SPAN") return false;
+
   const position = computedStyle.position;
   if (position !== "absolute" && position !== "fixed") return false;
-  if (REPLACED_ELEMENT_TAGS.has(element.tagName)) return false;
-  if (element.childElementCount > 0) return false;
-  if ((element.textContent?.trim().length ?? 0) > 0) return false;
-  return hasTransparentBackground(computedStyle);
+
+  return (
+    element.childElementCount === 0 &&
+    (element.textContent?.trim().length ?? 0) === 0 &&
+    hasTransparentBackground(computedStyle)
+  );
 };
 
 export const isValidGrabbableElement = (element: Element): boolean => {
