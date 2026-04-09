@@ -135,6 +135,7 @@ import {
 } from "../utils/freeze-animations.js";
 import { freezePseudoStates, unfreezePseudoStates } from "../utils/freeze-pseudo-states.js";
 import { freezeUpdates } from "../utils/freeze-updates.js";
+import { destroyPrehitIndex } from "../utils/prehit.js";
 import {
   loadComments,
   addCommentItem,
@@ -2877,6 +2878,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     onCleanup(() => {
       eventListenerManager.abort();
+      destroyPrehitIndex();
       if (dragPreviewDebounceTimerId !== null) {
         window.clearTimeout(dragPreviewDebounceTimerId);
       }
