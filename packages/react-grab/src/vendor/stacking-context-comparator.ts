@@ -1,8 +1,3 @@
-// Stacking context comparator: determines which of two elements is
-// visually in front by walking ancestor chains, comparing z-index
-// within stacking contexts, and falling back to DOM sibling order.
-// MIT License, https://github.com/Rich-Harris/stacking-order
-
 const STACKING_CONTEXT_PROPERTIES = /\b(?:position|zIndex|opacity|transform|mixBlendMode|filter|isolation)\b/;
 
 const getParent = (node: Element): Element | null => {
