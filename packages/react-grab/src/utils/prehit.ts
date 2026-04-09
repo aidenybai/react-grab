@@ -1,4 +1,4 @@
-import { Flatbush } from "../vendor/flatbush.js";
+import { HilbertRTree } from "../vendor/hilbert-r-tree.js";
 import { PREHIT_ROOT_MARGIN_PX } from "../constants.js";
 import { isValidGrabbableElement } from "./is-valid-grabbable-element.js";
 
@@ -16,7 +16,7 @@ interface PageRect {
 }
 
 interface PrehitIndex {
-  tree: Flatbush;
+  tree: HilbertRTree;
   elements: IndexedElement[];
 }
 
@@ -66,7 +66,7 @@ export const buildPrehitIndex = (): void => {
 
       if (accumulatedElements.length === 0) return;
 
-      const tree = new Flatbush(accumulatedElements.length);
+      const tree = new HilbertRTree(accumulatedElements.length);
       for (const rect of accumulatedRects) {
         tree.add(rect.left, rect.top, rect.right, rect.bottom);
       }

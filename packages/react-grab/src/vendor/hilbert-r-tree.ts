@@ -1,8 +1,6 @@
-// Ported from mourner/flatbush (ISC License)
-// https://github.com/mourner/flatbush
-//
-// Stripped to add/finish/search only. Removed: from() serialization,
-// neighbors() k-nearest-neighbors (and its flatqueue dependency).
+// Packed Hilbert R-tree for static spatial indexing.
+// O(n) build, O(log n) bounding-box search.
+// ISC License, https://github.com/mourner/flatbush
 
 const NODE_SIZE = 16;
 
@@ -135,7 +133,7 @@ const hilbert = (coordX: number, coordY: number): number => {
   return ((interleaved1 << 1) | interleaved0) >>> 0;
 };
 
-export class Flatbush {
+export class HilbertRTree {
   private readonly numItems: number;
   private readonly boxes: Float64Array;
   private readonly indices: Uint16Array | Uint32Array;
