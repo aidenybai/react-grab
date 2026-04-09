@@ -135,7 +135,7 @@ import {
 } from "../utils/freeze-animations.js";
 import { freezePseudoStates, unfreezePseudoStates } from "../utils/freeze-pseudo-states.js";
 import { freezeUpdates } from "../utils/freeze-updates.js";
-import { destroyPrehitIndex } from "../utils/prehit.js";
+import { buildPrehitIndex, destroyPrehitIndex } from "../utils/prehit.js";
 import {
   loadComments,
   addCommentItem,
@@ -259,11 +259,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (activated && !previousActivated) {
           freezePseudoStates();
           freezeGlobalAnimations();
+          buildPrehitIndex();
           document.body.style.touchAction = "none";
           // iOS Safari auto-zooms on focused inputs with font-size < 16px,
           // which would disrupt the overlay positioning.
           unlockViewportZoom = lockViewportZoom();
         } else if (!activated && previousActivated) {
+          destroyPrehitIndex();
           unfreezePseudoStates();
           unfreezeGlobalAnimations();
           document.body.style.touchAction = "";

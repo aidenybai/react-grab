@@ -96,6 +96,28 @@ export const buildPrehitIndex = (): void => {
   }
 };
 
+const CLIPPING_OVERFLOW_VALUES = new Set(["hidden", "scroll", "auto", "clip"]);
+
+const isVisibleAtPoint = (element: Element, clientX: number, clientY: number): boolean => {
+  let ancestor = element.parentElement;
+  while (ancestor && ancestor !== document.documentElement) {
+    const overflow = getComputedStyle(ancestor).overflow;
+    if (CLIPPING_OVERFLOW_VALUES.has(overflow)) {
+      const ancestorRect = ancestor.getBoundingClientRect();
+      if (
+        clientX < ancestorRect.left ||
+        clientX > ancestorRect.right ||
+        clientY < ancestorRect.top ||
+        clientY > ancestorRect.bottom
+      ) {
+        return false;
+      }
+    }
+    ancestor = ancestor.parentElement;
+  }
+  return true;
+};
+
 export const queryPrehitIndex = (clientX: number, clientY: number): Element | null => {
   if (!currentIndex) return null;
 
@@ -110,6 +132,7 @@ export const queryPrehitIndex = (clientX: number, clientY: number): Element | nu
   for (const hitIndex of hitIndices) {
     const candidate = currentIndex.elements[hitIndex];
     if (!candidate.element.isConnected) continue;
+    if (!isVisibleAtPoint(candidate.element, clientX, clientY)) continue;
 
     if (!bestElement) {
       bestElement = candidate;

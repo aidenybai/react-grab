@@ -5,6 +5,7 @@ import {
   POINTER_EVENTS_RESUME_DEBOUNCE_MS,
 } from "../constants.js";
 import { suspendPointerEventsFreeze, resumePointerEventsFreeze } from "./freeze-pseudo-states.js";
+import { isPrehitIndexReady, queryPrehitIndex } from "./prehit.js";
 
 interface PositionCache {
   clientX: number;
@@ -68,8 +69,16 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
   // Built once at activation via IntersectionObserver; valid for the entire
   // session because the page is frozen. Falls through to elementsFromPoint
   // when the index isn't ready yet (1-frame startup) or when the query returns
-  // no result (element off-screen or not indexed).
-  // suspendPointerEventsFreeze toggles the html { pointer-events: none }
+  // no result (element not indexed, clipped, or newly added after activation).
+  if (isPrehitIndexReady()) {
+    const prehitResult = queryPrehitIndex(clientX, clientY);
+    if (prehitResult) {
+      cache = { clientX, clientY, element: prehitResult, timestamp: now };
+      return prehitResult;
+    }
+  }
+
+  // Slow path: suspendPointerEventsFreeze toggles the html { pointer-events: none }
   // stylesheet, which dirties the entire style tree. elementsFromPoint then forces
   // a Recalculate Style (1-5ms on dense DOMs).
   cancelScheduledResume();
