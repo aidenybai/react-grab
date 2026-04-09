@@ -18,15 +18,58 @@ const SKIP_TAGS = new Set([
 ]);
 
 let currentIndex: PrehitIndex | null = null;
+let pendingObserver: IntersectionObserver | null = null;
 
 export const buildPrehitIndex = (): void => {
   destroyPrehitIndex();
 
-  const scrollX = window.scrollX;
-  const scrollY = window.scrollY;
-  const elements: IndexedElement[] = [];
-  const rects: { left: number; top: number; right: number; bottom: number }[] = [];
+  const treeOrderMap = new Map<Element, number>();
   let treeOrder = 0;
+  let observedCount = 0;
+
+  const accumulatedElements: IndexedElement[] = [];
+  const accumulatedRects: { left: number; top: number; right: number; bottom: number }[] = [];
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      const scrollX = window.scrollX;
+      const scrollY = window.scrollY;
+
+      for (const entry of entries) {
+        observer.unobserve(entry.target);
+
+        const boundingRect = entry.boundingClientRect;
+        if (boundingRect.width === 0 || boundingRect.height === 0) continue;
+        if (!isValidGrabbableElement(entry.target)) continue;
+
+        accumulatedElements.push({
+          element: entry.target,
+          area: boundingRect.width * boundingRect.height,
+          treeOrder: treeOrderMap.get(entry.target) ?? 0,
+        });
+
+        accumulatedRects.push({
+          left: boundingRect.left + scrollX,
+          top: boundingRect.top + scrollY,
+          right: boundingRect.right + scrollX,
+          bottom: boundingRect.bottom + scrollY,
+        });
+      }
+
+      if (accumulatedElements.length === 0) return;
+
+      const tree = new Flatbush(accumulatedElements.length);
+      for (const rect of accumulatedRects) {
+        tree.add(rect.left, rect.top, rect.right, rect.bottom);
+      }
+      tree.finish();
+
+      currentIndex = { tree, elements: [...accumulatedElements] };
+    },
+    { rootMargin: "10000px" },
+  );
+
+  pendingObserver = observer;
 
   const walker = document.createTreeWalker(
     document.body,
@@ -42,34 +85,15 @@ export const buildPrehitIndex = (): void => {
   while (walker.nextNode()) {
     const element = walker.currentNode as HTMLElement;
     if (element.offsetWidth === 0 && element.offsetHeight === 0) continue;
-    if (!isValidGrabbableElement(element)) continue;
-
-    const rect = element.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) continue;
-
-    elements.push({
-      element,
-      area: rect.width * rect.height,
-      treeOrder: treeOrder++,
-    });
-
-    rects.push({
-      left: rect.left + scrollX,
-      top: rect.top + scrollY,
-      right: rect.right + scrollX,
-      bottom: rect.bottom + scrollY,
-    });
+    treeOrderMap.set(element, treeOrder++);
+    observer.observe(element);
+    observedCount++;
   }
 
-  if (elements.length === 0) return;
-
-  const tree = new Flatbush(elements.length);
-  for (const indexedRect of rects) {
-    tree.add(indexedRect.left, indexedRect.top, indexedRect.right, indexedRect.bottom);
+  if (observedCount === 0) {
+    observer.disconnect();
+    pendingObserver = null;
   }
-  tree.finish();
-
-  currentIndex = { tree, elements };
 };
 
 export const queryPrehitIndex = (clientX: number, clientY: number): Element | null => {
@@ -105,6 +129,10 @@ export const queryPrehitIndex = (clientX: number, clientY: number): Element | nu
 export const isPrehitIndexReady = (): boolean => currentIndex !== null;
 
 export const destroyPrehitIndex = (): void => {
+  if (pendingObserver) {
+    pendingObserver.disconnect();
+    pendingObserver = null;
+  }
   if (currentIndex) {
     currentIndex.elements.length = 0;
     currentIndex = null;
