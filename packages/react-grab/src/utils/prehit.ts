@@ -1,4 +1,4 @@
-import { HilbertRTree } from "../vendor/hilbert-r-tree.js";
+import { HilbertRTree } from "./hilbert-r-tree.js";
 import { PREHIT_ROOT_MARGIN_PX } from "../constants.js";
 import { isValidGrabbableElement } from "./is-valid-grabbable-element.js";
 
