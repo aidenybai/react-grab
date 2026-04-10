@@ -107,8 +107,8 @@ const hilbert = (coordX: number, coordY: number): number => {
   levelD ^= ((invertedXor & (invertedOr >> 4)) ^ ((xorXY ^ invertedXor) & (maskedAnd >> 4)));
 
   xorXY = levelA; invertedXor = levelB;
-  levelC ^= ((xorXY & (levelC >> 8)) ^ (invertedXor & (levelD >> 8)));
-  levelD ^= ((invertedXor & (levelC >> 8)) ^ ((xorXY ^ invertedXor) & (levelD >> 8)));
+  levelC ^= ((xorXY & (invertedOr >> 8)) ^ (invertedXor & (maskedAnd >> 8)));
+  levelD ^= ((invertedXor & (invertedOr >> 8)) ^ ((xorXY ^ invertedXor) & (maskedAnd >> 8)));
 
   xorXY = levelC ^ (levelC >> 1);
   invertedXor = levelD ^ (levelD >> 1);
