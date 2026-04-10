@@ -75,7 +75,7 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
 
   if (isElementAtPointIndexReady()) {
     const spatialResult = queryElementAtPointIndex(clientX, clientY);
-    if (spatialResult) {
+    if (spatialResult && isValidGrabbableElement(spatialResult) && getElementArea(spatialResult) > 0) {
       cache = { clientX, clientY, element: spatialResult, timestamp: now };
       return spatialResult;
     }

@@ -68,7 +68,7 @@ export const buildElementAtPointIndex = (): void => {
       }
       tree.finish();
 
-      currentIndex = { tree, elements: accumulatedElements };
+      currentIndex = { tree, elements: [...accumulatedElements] };
     },
     { rootMargin: `${ELEMENT_AT_POINT_INDEX_ROOT_MARGIN_PX}px` },
   );
