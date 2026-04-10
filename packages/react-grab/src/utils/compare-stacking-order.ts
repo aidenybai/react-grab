@@ -16,17 +16,17 @@ const getAncestorChain = (node: Element): Element[] => {
   return ancestors;
 };
 
-const isFlexItem = (node: Element): boolean => {
+const isFlexOrGridItem = (node: Element): boolean => {
   const parentElement = getParentElement(node);
   if (!parentElement) return false;
   const display = getComputedStyle(parentElement).display;
-  return display === "flex" || display === "inline-flex";
+  return display === "flex" || display === "inline-flex" || display === "grid" || display === "inline-grid";
 };
 
 const createsStackingContext = (node: Element): boolean => {
   const style = getComputedStyle(node);
-  if (style.position === "fixed") return true;
-  if (style.zIndex !== "auto" && (style.position !== "static" || isFlexItem(node))) return true;
+  if (style.position === "fixed" || style.position === "sticky") return true;
+  if (style.zIndex !== "auto" && (style.position !== "static" || isFlexOrGridItem(node))) return true;
   if (+style.opacity < 1) return true;
   if (style.transform !== "none") return true;
   if ("mixBlendMode" in style && style.mixBlendMode !== "normal") return true;
