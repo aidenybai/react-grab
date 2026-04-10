@@ -47,6 +47,7 @@ export const buildElementAtPointIndex = (): void => {
         const boundingRect = entry.boundingClientRect;
         if (boundingRect.width === 0 || boundingRect.height === 0) continue;
         if (!isValidGrabbableElement(targetElement)) continue;
+        if (getComputedStyle(targetElement).position === "fixed") continue;
 
         accumulatedElements.push({
           element: targetElement,
