@@ -26,7 +26,7 @@ const isFlexItem = (node: Element): boolean => {
 const createsStackingContext = (node: Element): boolean => {
   const style = getComputedStyle(node);
   if (style.position === "fixed") return true;
-  if ((style.zIndex !== "auto" && style.position !== "static") || isFlexItem(node)) return true;
+  if (style.zIndex !== "auto" && (style.position !== "static" || isFlexItem(node))) return true;
   if (+style.opacity < 1) return true;
   if (style.transform !== "none") return true;
   if ("mixBlendMode" in style && style.mixBlendMode !== "normal") return true;
