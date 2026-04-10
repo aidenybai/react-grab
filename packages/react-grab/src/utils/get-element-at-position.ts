@@ -5,7 +5,7 @@ import {
   POINTER_EVENTS_RESUME_DEBOUNCE_MS,
 } from "../constants.js";
 import { suspendPointerEventsFreeze, resumePointerEventsFreeze } from "./freeze-pseudo-states.js";
-import { isPrehitIndexReady, queryPrehitIndex } from "./prehit.js";
+import { isSpatialIndexReady, querySpatialIndex } from "./spatial-index.js";
 
 interface PositionCache {
   clientX: number;
@@ -73,11 +73,11 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
     }
   }
 
-  if (isPrehitIndexReady()) {
-    const prehitResult = queryPrehitIndex(clientX, clientY);
-    if (prehitResult) {
-      cache = { clientX, clientY, element: prehitResult, timestamp: now };
-      return prehitResult;
+  if (isSpatialIndexReady()) {
+    const spatialResult = querySpatialIndex(clientX, clientY);
+    if (spatialResult) {
+      cache = { clientX, clientY, element: spatialResult, timestamp: now };
+      return spatialResult;
     }
   }
 

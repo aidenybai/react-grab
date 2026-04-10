@@ -1,5 +1,5 @@
 import { HilbertRTree } from "./hilbert-r-tree.js";
-import { PREHIT_ROOT_MARGIN_PX } from "../constants.js";
+import { SPATIAL_INDEX_ROOT_MARGIN_PX } from "../constants.js";
 import { isValidGrabbableElement } from "./is-valid-grabbable-element.js";
 
 interface IndexedElement {
@@ -15,7 +15,7 @@ interface PageRect {
   bottom: number;
 }
 
-interface PrehitIndex {
+interface SpatialIndexState {
   tree: HilbertRTree;
   elements: IndexedElement[];
 }
@@ -25,11 +25,11 @@ const SKIP_TAGS = new Set([
   "NOSCRIPT", "BR", "TEMPLATE", "SLOT",
 ]);
 
-let currentIndex: PrehitIndex | null = null;
+let currentIndex: SpatialIndexState | null = null;
 let pendingObserver: IntersectionObserver | null = null;
 
-export const buildPrehitIndex = (): void => {
-  destroyPrehitIndex();
+export const buildSpatialIndex = (): void => {
+  destroySpatialIndex();
 
   const treeOrderMap = new Map<Element, number>();
   let treeOrder = 0;
@@ -79,7 +79,7 @@ export const buildPrehitIndex = (): void => {
 
       currentIndex = { tree, elements: accumulatedElements };
     },
-    { rootMargin: `${PREHIT_ROOT_MARGIN_PX}px` },
+    { rootMargin: `${SPATIAL_INDEX_ROOT_MARGIN_PX}px` },
   );
 
   pendingObserver = observer;
@@ -138,7 +138,7 @@ const isVisibleAtPoint = (element: Element, clientX: number, clientY: number): b
   return true;
 };
 
-export const queryPrehitIndex = (clientX: number, clientY: number): Element | null => {
+export const querySpatialIndex = (clientX: number, clientY: number): Element | null => {
   if (!currentIndex) return null;
 
   const pageX = clientX + window.scrollX;
@@ -169,9 +169,9 @@ export const queryPrehitIndex = (clientX: number, clientY: number): Element | nu
   return bestElement?.element ?? null;
 };
 
-export const isPrehitIndexReady = (): boolean => currentIndex !== null;
+export const isSpatialIndexReady = (): boolean => currentIndex !== null;
 
-export const destroyPrehitIndex = (): void => {
+export const destroySpatialIndex = (): void => {
   if (pendingObserver) {
     pendingObserver.disconnect();
     pendingObserver = null;
