@@ -30,7 +30,6 @@ let globalFrozenSvgElements: SVGSVGElement[] = [];
 // a depth counter per element and only unpause when all layers are removed.
 const svgFreezeDepthMap = new Map<SVGSVGElement, number>();
 let frozenWaapiAnimations: Animation[] = [];
-let globalFrozenAnimations: Animation[] = [];
 
 const ensureStylesInjected = (): void => {
   if (styleElement) return;
@@ -180,19 +179,6 @@ export const freezeGlobalAnimations = (): void => {
     Array.from(document.querySelectorAll(SVG_ROOT_SELECTOR)),
   );
   pauseSvgAnimations(globalFrozenSvgElements);
-
-  globalFrozenAnimations = [];
-  for (const animation of document.getAnimations()) {
-    if (animation.effect instanceof KeyframeEffect) {
-      const target = animation.effect.target;
-      if (target instanceof Element) {
-        const rootNode = target.getRootNode();
-        if (rootNode instanceof ShadowRoot) continue;
-      }
-    }
-    globalFrozenAnimations.push(animation);
-  }
-
   freezeGsap();
 };
 
@@ -210,8 +196,22 @@ export const unfreezeGlobalAnimations = (): void => {
 }
 `;
 
-  finishAnimations(globalFrozenAnimations);
-  globalFrozenAnimations = [];
+  // Animations inside shadow roots are skipped because the freeze CSS only
+  // affects main-document elements (shadow DOM provides style encapsulation),
+  // so calling finish() on animations the freeze never paused would break
+  // react-grab's own toolbar and label animations.
+  // @see https://github.com/aidenybai/react-grab/issues/163
+  const animationsToFinish: Animation[] = [];
+  for (const animation of document.getAnimations()) {
+    if (animation.effect instanceof KeyframeEffect) {
+      const target = animation.effect.target;
+      if (target instanceof Element && target.getRootNode() instanceof ShadowRoot) {
+        continue;
+      }
+    }
+    animationsToFinish.push(animation);
+  }
+  finishAnimations(animationsToFinish);
 
   globalAnimationStyleElement.remove();
   globalAnimationStyleElement = null;

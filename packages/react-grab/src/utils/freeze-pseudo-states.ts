@@ -184,7 +184,7 @@ export const freezePseudoStates = (cursorX?: number, cursorY?: number): void => 
   const hoverStates: FrozenPseudoState[] = [];
   const isCursorInViewport = cursorX !== undefined && cursorY !== undefined
     && cursorX >= 0 && cursorY >= 0
-    && cursorX <= window.innerWidth && cursorY <= window.innerHeight;
+    && cursorX < window.innerWidth && cursorY < window.innerHeight;
   const hoveredElements = isCursorInViewport
     ? collectHoveredElements(cursorX, cursorY)
     : Array.from(document.querySelectorAll(":hover")).filter(
