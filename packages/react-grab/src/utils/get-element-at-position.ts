@@ -43,6 +43,14 @@ const isWithinThreshold = (x1: number, y1: number, x2: number, y2: number): bool
   );
 };
 
+const getElementArea = (element: Element): number => {
+  const blockWidth = element.clientWidth;
+  const blockHeight = element.clientHeight;
+  if (blockWidth > 0 && blockHeight > 0) return blockWidth * blockHeight;
+  const rect = element.getBoundingClientRect();
+  return rect.width * rect.height;
+};
+
 export const getElementsAtPoint = (clientX: number, clientY: number): Element[] => {
   if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) return [];
   cancelScheduledResume();
@@ -82,15 +90,8 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
 
   for (const candidateElement of elementsAtPoint) {
     if (!isValidGrabbableElement(candidateElement)) continue;
-    let candidateWidth = candidateElement.clientWidth;
-    let candidateHeight = candidateElement.clientHeight;
-    if (candidateWidth === 0 || candidateHeight === 0) {
-      const rect = candidateElement.getBoundingClientRect();
-      candidateWidth = rect.width;
-      candidateHeight = rect.height;
-      if (candidateWidth === 0 || candidateHeight === 0) continue;
-    }
-    const area = candidateWidth * candidateHeight;
+    const area = getElementArea(candidateElement);
+    if (area === 0) continue;
     if (area < smallestArea) {
       smallestArea = area;
       result = candidateElement;
