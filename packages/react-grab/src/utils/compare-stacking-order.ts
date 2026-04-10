@@ -1,4 +1,4 @@
-const STACKING_PROPS = /\b(?:position|zIndex|opacity|transform|mixBlendMode|filter|isolation)\b/;
+const STACKING_PROPS = /\b(?:position|z-index|opacity|transform|mix-blend-mode|filter|isolation)\b/;
 
 const getParentElement = (node: Element): Element | null => {
   const parentNode = node.parentNode;
