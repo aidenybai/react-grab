@@ -1,11 +1,10 @@
 import { HilbertRTree } from "./hilbert-r-tree.js";
 import { ELEMENT_AT_POINT_INDEX_ROOT_MARGIN_PX } from "../constants.js";
 import { isValidGrabbableElement } from "./is-valid-grabbable-element.js";
+import { compareStackingOrder } from "./compare-stacking-order.js";
 
 interface IndexedElement {
   element: Element;
-  area: number;
-  treeOrder: number;
 }
 
 interface PageRect {
@@ -31,8 +30,6 @@ let pendingObserver: IntersectionObserver | null = null;
 export const buildElementAtPointIndex = (): void => {
   destroyElementAtPointIndex();
 
-  const treeOrderMap = new Map<Element, number>();
-  let treeOrder = 0;
   let didObserveAnyElement = false;
 
   const accumulatedElements: IndexedElement[] = [];
@@ -51,14 +48,8 @@ export const buildElementAtPointIndex = (): void => {
         if (boundingRect.width === 0 || boundingRect.height === 0) continue;
         if (!isValidGrabbableElement(targetElement)) continue;
 
-        const elementArea = targetElement.clientWidth * targetElement.clientHeight
-          || boundingRect.width * boundingRect.height;
-        if (elementArea === 0) continue;
-
         accumulatedElements.push({
           element: targetElement,
-          area: elementArea,
-          treeOrder: treeOrderMap.get(targetElement) ?? 0,
         });
 
         accumulatedRects.push({
@@ -98,7 +89,6 @@ export const buildElementAtPointIndex = (): void => {
   while (walker.nextNode()) {
     const element = walker.currentNode as HTMLElement;
     if (element.offsetWidth === 0 && element.offsetHeight === 0) continue;
-    treeOrderMap.set(element, treeOrder++);
     observer.observe(element);
     didObserveAnyElement = true;
   }
@@ -147,26 +137,23 @@ export const queryElementAtPointIndex = (clientX: number, clientY: number): Elem
   const hitIndices = currentIndex.tree.search(pageX, pageY, pageX, pageY);
   if (hitIndices.length === 0) return null;
 
-  let bestElement: IndexedElement | null = null;
+  const visibleCandidates: Element[] = [];
 
   for (const hitIndex of hitIndices) {
     const candidate = currentIndex.elements[hitIndex];
     if (!candidate.element.isConnected) continue;
     if (!isVisibleAtPoint(candidate.element, clientX, clientY)) continue;
-
-    if (!bestElement) {
-      bestElement = candidate;
-      continue;
-    }
-
-    if (candidate.area < bestElement.area) {
-      bestElement = candidate;
-    } else if (candidate.area === bestElement.area && candidate.treeOrder > bestElement.treeOrder) {
-      bestElement = candidate;
-    }
+    visibleCandidates.push(candidate.element);
   }
 
-  return bestElement?.element ?? null;
+  if (visibleCandidates.length === 0) return null;
+  if (visibleCandidates.length === 1) return visibleCandidates[0];
+
+  visibleCandidates.sort((elementA, elementB) =>
+    compareStackingOrder(elementB, elementA),
+  );
+
+  return visibleCandidates[0];
 };
 
 export const isElementAtPointIndexReady = (): boolean => currentIndex !== null;
