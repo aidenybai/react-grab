@@ -1,5 +1,5 @@
 import { HilbertRTree } from "./hilbert-r-tree.js";
-import { SPATIAL_INDEX_ROOT_MARGIN_PX } from "../constants.js";
+import { ELEMENT_AT_POINT_INDEX_ROOT_MARGIN_PX } from "../constants.js";
 import { isValidGrabbableElement } from "./is-valid-grabbable-element.js";
 
 interface IndexedElement {
@@ -15,7 +15,7 @@ interface PageRect {
   bottom: number;
 }
 
-interface SpatialIndexState {
+interface ElementAtPointIndexState {
   tree: HilbertRTree;
   elements: IndexedElement[];
 }
@@ -25,11 +25,11 @@ const SKIP_TAGS = new Set([
   "NOSCRIPT", "BR", "TEMPLATE", "SLOT",
 ]);
 
-let currentIndex: SpatialIndexState | null = null;
+let currentIndex: ElementAtPointIndexState | null = null;
 let pendingObserver: IntersectionObserver | null = null;
 
-export const buildSpatialIndex = (): void => {
-  destroySpatialIndex();
+export const buildElementAtPointIndex = (): void => {
+  destroyElementAtPointIndex();
 
   const treeOrderMap = new Map<Element, number>();
   let treeOrder = 0;
@@ -79,7 +79,7 @@ export const buildSpatialIndex = (): void => {
 
       currentIndex = { tree, elements: accumulatedElements };
     },
-    { rootMargin: `${SPATIAL_INDEX_ROOT_MARGIN_PX}px` },
+    { rootMargin: `${ELEMENT_AT_POINT_INDEX_ROOT_MARGIN_PX}px` },
   );
 
   pendingObserver = observer;
@@ -138,7 +138,7 @@ const isVisibleAtPoint = (element: Element, clientX: number, clientY: number): b
   return true;
 };
 
-export const querySpatialIndex = (clientX: number, clientY: number): Element | null => {
+export const queryElementAtPointIndex = (clientX: number, clientY: number): Element | null => {
   if (!currentIndex) return null;
 
   const pageX = clientX + window.scrollX;
@@ -169,9 +169,9 @@ export const querySpatialIndex = (clientX: number, clientY: number): Element | n
   return bestElement?.element ?? null;
 };
 
-export const isSpatialIndexReady = (): boolean => currentIndex !== null;
+export const isElementAtPointIndexReady = (): boolean => currentIndex !== null;
 
-export const destroySpatialIndex = (): void => {
+export const destroyElementAtPointIndex = (): void => {
   if (pendingObserver) {
     pendingObserver.disconnect();
     pendingObserver = null;
