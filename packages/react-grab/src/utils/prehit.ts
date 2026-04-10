@@ -51,9 +51,13 @@ export const buildPrehitIndex = (): void => {
         if (boundingRect.width === 0 || boundingRect.height === 0) continue;
         if (!isValidGrabbableElement(targetElement)) continue;
 
-        const elementWidth = targetElement.clientWidth;
-        const elementHeight = targetElement.clientHeight;
-        if (elementWidth === 0 || elementHeight === 0) continue;
+        let elementWidth = targetElement.clientWidth;
+        let elementHeight = targetElement.clientHeight;
+        if (elementWidth === 0 || elementHeight === 0) {
+          elementWidth = boundingRect.width;
+          elementHeight = boundingRect.height;
+          if (elementWidth === 0 || elementHeight === 0) continue;
+        }
 
         accumulatedElements.push({
           element: targetElement,

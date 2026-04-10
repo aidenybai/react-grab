@@ -78,7 +78,7 @@ export const freeze = (elements?: Element[]): void => {
   freezeCleanupFns.add(freezeUpdates());
   freezeCleanupFns.add(freezeAnimations(elements ?? [document.body]));
   freezeGlobalAnimations();
-  freezePseudoStates(window.innerWidth / 2, window.innerHeight / 2);
+  freezePseudoStates();
 };
 
 /**

@@ -170,7 +170,7 @@ export const resumePointerEventsFreeze = (): void => {
   if (pointerEventsStyle) pointerEventsStyle.disabled = false;
 };
 
-export const freezePseudoStates = (cursorX: number, cursorY: number): void => {
+export const freezePseudoStates = (cursorX?: number, cursorY?: number): void => {
   if (pointerEventsStyle) return;
 
   for (const eventType of MOUSE_EVENTS_TO_BLOCK) {
@@ -182,7 +182,12 @@ export const freezePseudoStates = (cursorX: number, cursorY: number): void => {
   }
 
   const hoverStates: FrozenPseudoState[] = [];
-  for (const element of collectHoveredElements(cursorX, cursorY)) {
+  const hoveredElements = cursorX !== undefined && cursorY !== undefined
+    ? collectHoveredElements(cursorX, cursorY)
+    : Array.from(document.querySelectorAll(":hover")).filter(
+        (element): element is HTMLElement => element instanceof HTMLElement,
+      );
+  for (const element of hoveredElements) {
     const state = freezeElement(element, HOVER_STYLE_PROPERTIES);
     if (state) hoverStates.push(state);
   }
