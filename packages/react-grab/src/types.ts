@@ -323,6 +323,21 @@ export interface OverlayBounds {
   y: number;
 }
 
+export interface GapRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface BoxModelBounds {
+  margin: OverlayBounds;
+  border: OverlayBounds;
+  padding: OverlayBounds;
+  content: OverlayBounds;
+  gaps: GapRect[];
+}
+
 export type SelectionLabelStatus = "idle" | "copying" | "copied" | "fading" | "error";
 
 export interface SelectionLabelInstance {
@@ -366,6 +381,7 @@ export interface ReactGrabRendererProps {
   selectionShouldSnap?: boolean;
   inspectVisible?: boolean;
   inspectBounds?: OverlayBounds[];
+  inspectBoxModel?: BoxModelBounds;
   selectionElementsCount?: number;
   selectionFilePath?: string;
   selectionLineNumber?: number;

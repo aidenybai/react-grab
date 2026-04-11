@@ -40,6 +40,7 @@ import { isElementConnected } from "../utils/is-element-connected.js";
 import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
 import { getAncestorElements } from "../utils/get-ancestor-elements.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
+import { createBoxModelBounds } from "../utils/create-box-model-bounds.js";
 import { createElementSelector } from "../utils/create-element-selector.js";
 import { getVisibleBoundsCenter } from "../utils/get-visible-bounds-center.js";
 import { invalidateInteractionCaches } from "../utils/invalidate-interaction-caches.js";
@@ -231,7 +232,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const isDragging = createMemo(
       () =>
         store.current.state === "active" &&
-        (store.current.phase === "dragging-select" || store.current.phase === "dragging-reposition"),
+        (store.current.phase === "dragging-select" ||
+          store.current.phase === "dragging-reposition"),
     );
     const isDragRepositioning = createMemo(
       () => store.current.state === "active" && store.current.phase === "dragging-reposition",
@@ -2125,6 +2127,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       };
     });
 
+    const inspectBoxModel = createMemo(() => {
+      if (!isInspectMode()) return undefined;
+      const ancestors = inspectAncestorElements();
+      const activeIdx = inspectActiveIndex();
+      const element =
+        activeIdx >= 0 && activeIdx < ancestors.length ? ancestors[activeIdx] : effectiveElement();
+      if (!element) return undefined;
+      void store.viewportVersion;
+      return createBoxModelBounds(element);
+    });
+
     const handleInspectSelect = (index: number) => {
       setInspectActiveIndex(index);
     };
@@ -3702,6 +3715,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 }
                 inspectVisible={isInspectMode() && inspectBounds().length > 0}
                 inspectBounds={inspectBounds()}
+                inspectBoxModel={inspectBoxModel()}
                 selectionElementsCount={store.frozenElements.length}
                 selectionFilePath={store.selectionFilePath ?? undefined}
                 selectionLineNumber={store.selectionLineNumber ?? undefined}

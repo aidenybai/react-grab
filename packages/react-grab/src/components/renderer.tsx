@@ -29,6 +29,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         selectionIsFading={props.selectionLabelStatus === "fading"}
         inspectVisible={props.inspectVisible}
         inspectBounds={props.inspectBounds}
+        inspectBoxModel={props.inspectBoxModel}
         dragVisible={props.dragVisible}
         dragBounds={props.dragBounds}
         grabbedBoxes={props.grabbedBoxes}
