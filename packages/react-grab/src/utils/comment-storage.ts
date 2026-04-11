@@ -64,9 +64,14 @@ const persistCommentItems = (nextItems: CommentItem[]): CommentItem[] => {
   return commentItems;
 };
 
-migrateFromLegacyStorage();
-let commentItems: CommentItem[] = loadFromSessionStorage();
-let didConfirmClear = readSessionFlag(CLEAR_CONFIRMED_KEY);
+let commentItems: CommentItem[] = [];
+let didConfirmClear = false;
+
+if (typeof window !== "undefined") {
+  migrateFromLegacyStorage();
+  commentItems = loadFromSessionStorage();
+  didConfirmClear = readSessionFlag(CLEAR_CONFIRMED_KEY);
+}
 
 export const loadComments = (): CommentItem[] => commentItems;
 
