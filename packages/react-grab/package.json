@@ -82,7 +82,7 @@
   "scripts": {
     "css:watch": "tailwindcss -i ./src/styles.css -o ./dist/styles.css -w",
     "prebuild": "mkdir -p dist && tailwindcss -i ./src/styles.css -o ./dist/styles.css -m && tsx scripts/css-rem-to-px.ts",
-    "build": "NODE_ENV=production vp pack && cp dist/index.iife.js dist/index.global.js && tsx scripts/build-registry.ts",
+    "build": "NODE_ENV=production vp pack && cp dist/index.iife.js dist/index.global.js",
     "dev": "concurrently \"pnpm:css:watch\" \"vp pack --watch\"",
     "lint": "vp lint",
     "lint:fix": "vp lint --fix",
