@@ -12,12 +12,7 @@ interface FrozenDragRect {
   height: number;
 }
 
-type GrabPhase =
-  | "hovering"
-  | "frozen"
-  | "dragging-select"
-  | "dragging-reposition"
-  | "justDragged";
+type GrabPhase = "hovering" | "frozen" | "dragging-select" | "dragging-reposition" | "justDragged";
 
 type GrabState =
   | { state: "idle" }

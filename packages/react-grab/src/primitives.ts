@@ -3,9 +3,8 @@ import {
   freezeGlobalAnimations,
   unfreezeGlobalAnimations,
 } from "./utils/freeze-animations.js";
-import { freezePseudoStates } from "./utils/freeze-pseudo-states.js";
+import { freezePseudoStates, unfreezePseudoStates } from "./utils/freeze-pseudo-states.js";
 import { freezeUpdates } from "./utils/freeze-updates.js";
-import { unfreezePseudoStates } from "./utils/freeze-pseudo-states.js";
 import {
   getComponentDisplayName,
   getHTMLPreview,

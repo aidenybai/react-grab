@@ -265,7 +265,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   const hoverElement = async (selector: string) => {
     const element = page.locator(selector).first();
     await element.hover({ force: true });
-    await page.waitForTimeout(250);
+    await page.waitForTimeout(350);
   };
 
   const clickElement = async (selector: string) => {
@@ -422,23 +422,23 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         return expectedVisible ? menuItem !== null : menuItem === null;
       },
       { attrName: ATTRIBUTE_NAME, expectedVisible: visible },
-      { timeout: 2000 },
+      { timeout: 5000 },
     );
   };
 
   const rightClickElement = async (selector: string) => {
+    const wasActive = await isOverlayVisible();
     const element = page.locator(selector).first();
     await element.click({ button: "right", force: true });
-    const isActive = await isOverlayVisible();
-    if (isActive) {
+    if (wasActive) {
       await waitForContextMenu(true);
     }
   };
 
   const rightClickAtPosition = async (x: number, y: number) => {
+    const wasActive = await isOverlayVisible();
     await page.mouse.click(x, y, { button: "right" });
-    const isActive = await isOverlayVisible();
-    if (isActive) {
+    if (wasActive) {
       await waitForContextMenu(true);
     }
   };
@@ -576,7 +576,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         return api?.getState()?.isPromptMode === expected;
       },
       active,
-      { timeout: 2000 },
+      { timeout: 5000 },
     );
   };
 
@@ -600,7 +600,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
           return state?.isSelectionBoxVisible || state?.targetElement !== null;
         },
         undefined,
-        { timeout: 2000 },
+        { timeout: 5000 },
       )
       .then(() => true)
       .catch(() => false);

@@ -118,7 +118,6 @@ import { createArrowNavigator } from "./arrow-navigation.js";
 import { getRequiredModifiers, setupKeyboardEventClaimer } from "./keyboard-handlers.js";
 import { createAutoScroller, getAutoScrollDirection } from "./auto-scroll.js";
 import { logIntro } from "./log-intro.js";
-import { onIdle } from "../utils/on-idle.js";
 import { getScriptOptions } from "../utils/get-script-options.js";
 import { isEnterCode } from "../utils/is-enter-code.js";
 import { isMac } from "../utils/is-mac.js";
@@ -136,6 +135,10 @@ import {
 } from "../utils/freeze-animations.js";
 import { freezePseudoStates, unfreezePseudoStates } from "../utils/freeze-pseudo-states.js";
 import { freezeUpdates } from "../utils/freeze-updates.js";
+import {
+  buildElementAtPointIndex,
+  destroyElementAtPointIndex,
+} from "../utils/element-at-point-index.js";
 import {
   loadComments,
   addCommentItem,
@@ -231,7 +234,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const isDragging = createMemo(
       () =>
         store.current.state === "active" &&
-        (store.current.phase === "dragging-select" || store.current.phase === "dragging-reposition"),
+        (store.current.phase === "dragging-select" ||
+          store.current.phase === "dragging-reposition"),
     );
     const isDragRepositioning = createMemo(
       () => store.current.state === "active" && store.current.phase === "dragging-reposition",
@@ -257,13 +261,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     createEffect(
       on(isActivated, (activated, previousActivated) => {
         if (activated && !previousActivated) {
-          freezePseudoStates();
+          freezePseudoStates(store.pointer.x, store.pointer.y);
           freezeGlobalAnimations();
+          buildElementAtPointIndex();
           document.body.style.touchAction = "none";
           // iOS Safari auto-zooms on focused inputs with font-size < 16px,
           // which would disrupt the overlay positioning.
           unlockViewportZoom = lockViewportZoom();
         } else if (!activated && previousActivated) {
+          destroyElementAtPointIndex();
           unfreezePseudoStates();
           unfreezeGlobalAnimations();
           document.body.style.touchAction = "";
@@ -1624,7 +1630,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       ) {
         elementDetectionState.lastDetectionTimestamp = now;
         elementDetectionState.pendingDetectionScheduledAt = now;
-        onIdle(() => {
+        // setTimeout defers the elementFromPoint hit-test into its own macrotask
+        // so the style recalculation it triggers doesn't eat the current frame's
+        // budget. Alternatives considered:
+        //   - queueMicrotask: runs before paint, blocks the frame (ivi/Preact use
+        //     microtasks for lightweight JS work, but elementFromPoint forces the
+        //     browser's layout engine which is categorically heavier)
+        //   - requestAnimationFrame: runs inside the render pipeline, same problem
+        //   - scheduler.postTask("background"): starved for 350ms–5s on pages with
+        //     continuous React renders or CSS animations
+        // setTimeout(0) fires in ~1ms as a separate task with no nesting-based
+        // clamping (each call originates from a distinct pointermove handler).
+        setTimeout(() => {
           const candidate = getElementAtPosition(
             elementDetectionState.latestPointerX,
             elementDetectionState.latestPointerY,
@@ -2867,6 +2884,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     onCleanup(() => {
       eventListenerManager.abort();
+      destroyElementAtPointIndex();
       if (dragPreviewDebounceTimerId !== null) {
         window.clearTimeout(dragPreviewDebounceTimerId);
       }

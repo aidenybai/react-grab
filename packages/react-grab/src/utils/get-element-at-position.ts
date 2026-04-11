@@ -5,6 +5,7 @@ import {
   POINTER_EVENTS_RESUME_DEBOUNCE_MS,
 } from "../constants.js";
 import { suspendPointerEventsFreeze, resumePointerEventsFreeze } from "./freeze-pseudo-states.js";
+import { isElementAtPointIndexReady, queryElementAtPointIndex } from "./element-at-point-index.js";
 
 interface PositionCache {
   clientX: number;
@@ -42,6 +43,14 @@ const isWithinThreshold = (x1: number, y1: number, x2: number, y2: number): bool
   );
 };
 
+const getElementArea = (element: Element): number => {
+  const blockWidth = element.clientWidth;
+  const blockHeight = element.clientHeight;
+  if (blockWidth > 0 && blockHeight > 0) return blockWidth * blockHeight;
+  const rect = element.getBoundingClientRect();
+  return rect.width * rect.height;
+};
+
 export const getElementsAtPoint = (clientX: number, clientY: number): Element[] => {
   if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) return [];
   cancelScheduledResume();
@@ -60,40 +69,39 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
     const isWithinThrottle = now - cache.timestamp < ELEMENT_POSITION_THROTTLE_MS;
 
     if (isPositionClose || isWithinThrottle) {
-      return cache.element;
+      if (cache.element === null || cache.element.isConnected) {
+        return cache.element;
+      }
+      cache = null;
     }
   }
 
-  // PERF: suspendPointerEventsFreeze toggles the html { pointer-events: none }
-  // stylesheet, which dirties the entire style tree. elementFromPoint then forces
-  // a Recalculate Style. The 100ms debounced resume (scheduleResume) ensures the
-  // toggle is a no-op on rapid subsequent calls. The expensive recalc on those
-  // calls comes from host-page CSS animations dirtying styles between frames,
-  // which is unavoidable without removing pointer-events: none entirely.
-  // Alternatives explored and rejected:
-  //   - IntersectionObserver pre-population: adds 1-frame latency to every poll
-  //   - event.target fast path: always html/document due to pointer-events: none
-  //   - bounds-check cache: ignores z-index/stacking, causes hover detection misses
-  //   - transparent overlay instead of pointer-events: none: leaks CSS-only :hover
-  //     dropdowns/tooltips during the hit-test toggle
+  if (isElementAtPointIndexReady()) {
+    const spatialResult = queryElementAtPointIndex(clientX, clientY);
+    if (
+      spatialResult &&
+      isValidGrabbableElement(spatialResult) &&
+      getElementArea(spatialResult) > 0
+    ) {
+      cache = { clientX, clientY, element: spatialResult, timestamp: now };
+      return spatialResult;
+    }
+  }
+
   cancelScheduledResume();
   suspendPointerEventsFreeze();
 
+  const elementsAtPoint = document.elementsFromPoint(clientX, clientY);
   let result: Element | null = null;
+  let smallestArea = Infinity;
 
-  // elementFromPoint returns the topmost element, but if it's not grabbable
-  // (e.g. a transparent overlay) we fall back to elementsFromPoint which
-  // returns the full z-ordered stack at that coordinate.
-  const topElement = document.elementFromPoint(clientX, clientY);
-  if (topElement && isValidGrabbableElement(topElement)) {
-    result = topElement;
-  } else {
-    const elementsAtPoint = document.elementsFromPoint(clientX, clientY);
-    for (const candidateElement of elementsAtPoint) {
-      if (candidateElement !== topElement && isValidGrabbableElement(candidateElement)) {
-        result = candidateElement;
-        break;
-      }
+  for (const candidateElement of elementsAtPoint) {
+    if (!isValidGrabbableElement(candidateElement)) continue;
+    const area = getElementArea(candidateElement);
+    if (area === 0) continue;
+    if (area < smallestArea) {
+      smallestArea = area;
+      result = candidateElement;
     }
   }
 

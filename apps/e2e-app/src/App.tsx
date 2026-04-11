@@ -585,6 +585,242 @@ const PointerUpModalSection = () => {
   );
 };
 
+const OverflowClippingSection = () => {
+  return (
+    <section className="border rounded-lg p-4" data-testid="overflow-clipping-section">
+      <h2 className="text-lg font-bold mb-4">Overflow Clipping</h2>
+      <div className="space-y-4">
+        <div
+          className="overflow-hidden w-40 h-20 border-2 border-red-400 relative"
+          data-testid="overflow-hidden-container"
+        >
+          <div className="absolute w-80 h-10 bg-blue-200 p-2" data-testid="overflow-clipped-wide">
+            Wide clipped content
+          </div>
+          <div className="p-2 bg-green-200" data-testid="overflow-visible-child">
+            Visible child
+          </div>
+        </div>
+
+        <div
+          className="overflow-auto w-40 h-24 border-2 border-orange-400"
+          data-testid="overflow-auto-container"
+        >
+          <div className="w-80 h-40 bg-yellow-100 p-2">
+            <span data-testid="overflow-auto-inner">Scrollable inner content</span>
+          </div>
+        </div>
+
+        <div
+          className="overflow-hidden border-2 border-purple-400"
+          style={{ width: "200px", height: "40px" }}
+          data-testid="overflow-nested-outer"
+        >
+          <div
+            className="overflow-hidden border border-purple-200"
+            style={{ width: "150px", height: "30px" }}
+            data-testid="overflow-nested-inner"
+          >
+            <div
+              className="bg-purple-100 p-1"
+              style={{ width: "300px", height: "60px" }}
+              data-testid="overflow-nested-content"
+            >
+              Nested clipped content
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const ContainPaintSection = () => {
+  return (
+    <section className="border rounded-lg p-4" data-testid="contain-paint-section">
+      <h2 className="text-lg font-bold mb-4">CSS Containment</h2>
+      <div className="space-y-4">
+        <div
+          style={{ contain: "paint", width: "150px", height: "40px" }}
+          className="border-2 border-teal-400 relative"
+          data-testid="contain-paint-container"
+        >
+          <div
+            className="absolute bg-teal-200 p-2"
+            style={{ width: "300px", height: "30px" }}
+            data-testid="contain-paint-clipped"
+          >
+            Paint-contained clipped
+          </div>
+        </div>
+
+        <div
+          style={{ contain: "strict", width: "150px", height: "40px" }}
+          className="border-2 border-cyan-400 relative"
+          data-testid="contain-strict-container"
+        >
+          <div className="bg-cyan-200 p-2" data-testid="contain-strict-child">
+            Strict contained
+          </div>
+        </div>
+
+        <div
+          style={{ contain: "content", width: "150px", height: "40px" }}
+          className="border-2 border-sky-400 relative"
+          data-testid="contain-content-container"
+        >
+          <div className="bg-sky-200 p-2" data-testid="contain-content-child">
+            Content contained
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const StackingOrderSection = () => {
+  return (
+    <section className="border rounded-lg p-4" data-testid="stacking-order-section">
+      <h2 className="text-lg font-bold mb-4">Stacking Order</h2>
+      <div className="relative" style={{ height: "120px" }}>
+        <div
+          className="absolute bg-red-300 p-4"
+          style={{ top: "0", left: "0", width: "200px", height: "100px", zIndex: 1 }}
+          data-testid="stacking-bottom"
+        >
+          Bottom (z-index: 1)
+        </div>
+        <div
+          className="absolute bg-green-300 p-4"
+          style={{ top: "20px", left: "20px", width: "200px", height: "100px", zIndex: 2 }}
+          data-testid="stacking-middle"
+        >
+          Middle (z-index: 2)
+        </div>
+        <div
+          className="absolute bg-blue-300 p-4"
+          style={{ top: "40px", left: "40px", width: "200px", height: "100px", zIndex: 3 }}
+          data-testid="stacking-top"
+        >
+          Top (z-index: 3)
+        </div>
+      </div>
+
+      <div className="relative mt-8" style={{ height: "80px" }}>
+        <div
+          className="absolute bg-amber-200 p-4"
+          style={{ top: "0", left: "0", width: "250px", height: "60px" }}
+          data-testid="stacking-large-behind"
+        >
+          Large element behind
+        </div>
+        <div
+          className="absolute bg-amber-500 text-white p-2"
+          style={{ top: "10px", left: "10px", width: "100px", height: "40px", zIndex: 1 }}
+          data-testid="stacking-small-front"
+        >
+          Small in front
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const DecorativeOverlaySection = () => {
+  return (
+    <section className="border rounded-lg p-4" data-testid="decorative-overlay-section">
+      <h2 className="text-lg font-bold mb-4">Decorative Overlays</h2>
+      <div className="relative" style={{ height: "80px" }}>
+        <div className="bg-indigo-200 p-4" data-testid="decorative-content">
+          This content should be selectable
+        </div>
+        <div
+          className="absolute inset-0"
+          style={{ pointerEvents: "none" }}
+          data-testid="decorative-empty-overlay"
+        />
+      </div>
+
+      <div className="relative mt-4" style={{ height: "80px" }}>
+        <p className="bg-pink-200 p-4" data-testid="decorative-text-content">
+          Text content under a positioned empty div
+        </p>
+        <div
+          className="absolute"
+          style={{ top: "0", left: "0", width: "100%", height: "100%" }}
+          data-testid="decorative-positioned-empty"
+        />
+      </div>
+    </section>
+  );
+};
+
+const InlineElementsSection = () => {
+  return (
+    <section className="border rounded-lg p-4" data-testid="inline-elements-section">
+      <h2 className="text-lg font-bold mb-4">Inline Elements</h2>
+      <p className="mb-2" data-testid="inline-paragraph">
+        This paragraph has <span data-testid="inline-span">an inline span</span> and{" "}
+        <a href="#" data-testid="inline-link" className="text-blue-500 underline">
+          an inline link
+        </a>{" "}
+        and <em data-testid="inline-em">emphasized text</em> and{" "}
+        <strong data-testid="inline-strong">strong text</strong> inside it.
+      </p>
+      <p className="mb-2">
+        <code className="bg-gray-100 px-1" data-testid="inline-code">
+          inline code element
+        </code>
+      </p>
+    </section>
+  );
+};
+
+const TransformStackingSection = () => {
+  return (
+    <section className="border rounded-lg p-4" data-testid="transform-stacking-section">
+      <h2 className="text-lg font-bold mb-4">Transform & Opacity Stacking</h2>
+      <div className="space-y-4">
+        <div
+          className="bg-rose-200 p-4"
+          style={{ transform: "translateZ(0)" }}
+          data-testid="transform-element"
+        >
+          Transformed element (creates stacking context)
+        </div>
+
+        <div className="bg-violet-200 p-4" style={{ opacity: 0.99 }} data-testid="opacity-element">
+          Opacity element (creates stacking context)
+        </div>
+
+        <div className="relative" style={{ height: "80px" }}>
+          <div
+            className="absolute bg-lime-200 p-4"
+            style={{ top: "0", left: "0", width: "200px", height: "60px" }}
+            data-testid="transform-behind"
+          >
+            Behind
+          </div>
+          <div
+            className="absolute bg-lime-500 text-white p-2"
+            style={{
+              top: "10px",
+              left: "10px",
+              width: "120px",
+              height: "40px",
+              transform: "scale(1)",
+              zIndex: 1,
+            }}
+            data-testid="transform-front"
+          >
+            Front (transform)
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
 const HiddenToggleSection = () => {
   const [isVisible, setIsVisible] = useState(true);
   const elementRef = useRef<HTMLDivElement>(null);
@@ -647,6 +883,18 @@ export default function App() {
       <ModalDialogSection />
 
       <PointerUpModalSection />
+
+      <OverflowClippingSection />
+
+      <ContainPaintSection />
+
+      <StackingOrderSection />
+
+      <DecorativeOverlaySection />
+
+      <InlineElementsSection />
+
+      <TransformStackingSection />
 
       <HiddenToggleSection />
 
