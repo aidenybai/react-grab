@@ -69,13 +69,20 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
     const isWithinThrottle = now - cache.timestamp < ELEMENT_POSITION_THROTTLE_MS;
 
     if (isPositionClose || isWithinThrottle) {
-      return cache.element;
+      if (cache.element === null || cache.element.isConnected) {
+        return cache.element;
+      }
+      cache = null;
     }
   }
 
   if (isElementAtPointIndexReady()) {
     const spatialResult = queryElementAtPointIndex(clientX, clientY);
-    if (spatialResult && isValidGrabbableElement(spatialResult) && getElementArea(spatialResult) > 0) {
+    if (
+      spatialResult &&
+      isValidGrabbableElement(spatialResult) &&
+      getElementArea(spatialResult) > 0
+    ) {
       cache = { clientX, clientY, element: spatialResult, timestamp: now };
       return spatialResult;
     }

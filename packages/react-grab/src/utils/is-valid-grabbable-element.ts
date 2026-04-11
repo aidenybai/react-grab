@@ -39,19 +39,9 @@ const hasTransparentBackground = (computedStyle: CSSStyleDeclaration): boolean =
   return backgroundColor === "transparent" || backgroundColor === "rgba(0, 0, 0, 0)";
 };
 
-const isFullViewportOverlay = (element: Element, computedStyle: CSSStyleDeclaration): boolean => {
+const isFullViewportOverlay = (computedStyle: CSSStyleDeclaration): boolean => {
   const position = computedStyle.position;
-  if (position !== "fixed" && position !== "absolute") {
-    return false;
-  }
-
-  const coversViewport =
-    element.clientWidth / window.innerWidth >= VIEWPORT_COVERAGE_THRESHOLD &&
-    element.clientHeight / window.innerHeight >= VIEWPORT_COVERAGE_THRESHOLD;
-
-  if (!coversViewport) {
-    return false;
-  }
+  if (position !== "fixed" && position !== "absolute") return false;
 
   if (hasTransparentBackground(computedStyle) || parseFloat(computedStyle.opacity) < 0.1) {
     return true;
@@ -108,7 +98,7 @@ export const isValidGrabbableElement = (element: Element): boolean => {
     if (isDevToolsOverlay(computedStyle)) {
       return false;
     }
-    if (isFullViewportOverlay(element, computedStyle)) {
+    if (isFullViewportOverlay(computedStyle)) {
       return false;
     }
   }

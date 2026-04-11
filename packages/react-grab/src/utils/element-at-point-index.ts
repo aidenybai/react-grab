@@ -1,11 +1,8 @@
 import { HilbertRTree } from "./hilbert-r-tree.js";
 import { ELEMENT_AT_POINT_INDEX_ROOT_MARGIN_PX } from "../constants.js";
 import { isValidGrabbableElement } from "./is-valid-grabbable-element.js";
+import { isDecorativeOverlay } from "./is-decorative-overlay.js";
 import { compareStackingOrder } from "./compare-stacking-order.js";
-
-interface IndexedElement {
-  element: Element;
-}
 
 interface PageRect {
   left: number;
@@ -14,14 +11,28 @@ interface PageRect {
   bottom: number;
 }
 
+interface CachedFixedElement {
+  element: Element;
+  viewportRect: PageRect;
+  zIndex: number;
+}
+
 interface ElementAtPointIndexState {
-  tree: HilbertRTree;
-  elements: IndexedElement[];
+  tree: HilbertRTree | null;
+  elements: Element[];
+  fixedElements: CachedFixedElement[];
 }
 
 const SKIP_TAGS = new Set([
-  "SCRIPT", "STYLE", "HEAD", "META", "LINK",
-  "NOSCRIPT", "BR", "TEMPLATE", "SLOT",
+  "SCRIPT",
+  "STYLE",
+  "HEAD",
+  "META",
+  "LINK",
+  "NOSCRIPT",
+  "BR",
+  "TEMPLATE",
+  "SLOT",
 ]);
 
 let currentIndex: ElementAtPointIndexState | null = null;
@@ -32,8 +43,9 @@ export const buildElementAtPointIndex = (): void => {
 
   let didObserveAnyElement = false;
 
-  const accumulatedElements: IndexedElement[] = [];
+  const accumulatedElements: Element[] = [];
   const accumulatedRects: PageRect[] = [];
+  const accumulatedFixedElements: CachedFixedElement[] = [];
 
   const observer = new IntersectionObserver(
     (entries) => {
@@ -47,17 +59,23 @@ export const buildElementAtPointIndex = (): void => {
         const boundingRect = entry.boundingClientRect;
         if (boundingRect.width === 0 || boundingRect.height === 0) continue;
         if (!isValidGrabbableElement(targetElement)) continue;
-        const computedPosition = getComputedStyle(targetElement).position;
-        if (computedPosition === "fixed") continue;
-        if (
-          (computedPosition === "absolute" || computedPosition === "sticky") &&
-          targetElement.childElementCount === 0 &&
-          (targetElement.textContent?.trim().length ?? 0) === 0
-        ) continue;
+        const computedStyle = getComputedStyle(targetElement);
+        if (computedStyle.position === "fixed") {
+          accumulatedFixedElements.push({
+            element: targetElement,
+            viewportRect: {
+              left: boundingRect.left,
+              top: boundingRect.top,
+              right: boundingRect.right,
+              bottom: boundingRect.bottom,
+            },
+            zIndex: parseInt(computedStyle.zIndex, 10) || 0,
+          });
+          continue;
+        }
+        if (isDecorativeOverlay(targetElement, computedStyle.position)) continue;
 
-        accumulatedElements.push({
-          element: targetElement,
-        });
+        accumulatedElements.push(targetElement);
 
         accumulatedRects.push({
           left: boundingRect.left + scrollX,
@@ -67,31 +85,36 @@ export const buildElementAtPointIndex = (): void => {
         });
       }
 
-      if (accumulatedElements.length === 0) return;
+      if (accumulatedElements.length === 0 && accumulatedFixedElements.length === 0) return;
 
-      const tree = new HilbertRTree(accumulatedElements.length);
-      for (const rect of accumulatedRects) {
-        tree.add(rect.left, rect.top, rect.right, rect.bottom);
+      let tree: HilbertRTree | null = null;
+      if (accumulatedElements.length > 0) {
+        tree = new HilbertRTree(accumulatedElements.length);
+        for (const rect of accumulatedRects) {
+          tree.add(rect.left, rect.top, rect.right, rect.bottom);
+        }
+        tree.finish();
       }
-      tree.finish();
 
-      currentIndex = { tree, elements: [...accumulatedElements] };
+      accumulatedFixedElements.sort((entryA, entryB) => entryA.zIndex - entryB.zIndex);
+
+      currentIndex = {
+        tree,
+        elements: [...accumulatedElements],
+        fixedElements: [...accumulatedFixedElements],
+      };
     },
     { rootMargin: `${ELEMENT_AT_POINT_INDEX_ROOT_MARGIN_PX}px` },
   );
 
   pendingObserver = observer;
 
-  const walker = document.createTreeWalker(
-    document.body,
-    NodeFilter.SHOW_ELEMENT,
-    {
-      acceptNode: (node) =>
-        SKIP_TAGS.has((node as Element).tagName)
-          ? NodeFilter.FILTER_REJECT
-          : NodeFilter.FILTER_ACCEPT,
-    },
-  );
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT, {
+    acceptNode: (node) =>
+      SKIP_TAGS.has((node as Element).tagName)
+        ? NodeFilter.FILTER_REJECT
+        : NodeFilter.FILTER_ACCEPT,
+  });
 
   while (walker.nextNode()) {
     const element = walker.currentNode as HTMLElement;
@@ -109,6 +132,11 @@ export const buildElementAtPointIndex = (): void => {
 const CLIPPING_OVERFLOW_VALUES = new Set(["hidden", "scroll", "auto", "clip"]);
 const PAINT_CONTAIN_VALUES = new Set(["paint", "strict", "content"]);
 
+const CLIPS_X = 1;
+const CLIPS_Y = 2;
+
+let clipStateCache = new WeakMap<Element, number>();
+
 const hasPaintContainment = (containValue: string): boolean => {
   for (const keyword of containValue.split(" ")) {
     if (PAINT_CONTAIN_VALUES.has(keyword)) return true;
@@ -116,23 +144,64 @@ const hasPaintContainment = (containValue: string): boolean => {
   return false;
 };
 
+const getClipState = (ancestor: Element): number => {
+  const cached = clipStateCache.get(ancestor);
+  if (cached !== undefined) return cached;
+
+  const style = getComputedStyle(ancestor);
+  const isPaintContained = hasPaintContainment(style.contain);
+  let state = 0;
+  if (CLIPPING_OVERFLOW_VALUES.has(style.overflowX) || isPaintContained) state |= CLIPS_X;
+  if (CLIPPING_OVERFLOW_VALUES.has(style.overflowY) || isPaintContained) state |= CLIPS_Y;
+  clipStateCache.set(ancestor, state);
+  return state;
+};
+
 const isVisibleAtPoint = (element: Element, clientX: number, clientY: number): boolean => {
   let ancestor = element.parentElement;
   while (ancestor && ancestor !== document.documentElement) {
-    const style = getComputedStyle(ancestor);
-    const isPaintContained = hasPaintContainment(style.contain);
-    const clipsX = CLIPPING_OVERFLOW_VALUES.has(style.overflowX) || isPaintContained;
-    const clipsY = CLIPPING_OVERFLOW_VALUES.has(style.overflowY) || isPaintContained;
+    const clipState = getClipState(ancestor);
 
-    if (clipsX || clipsY) {
+    if (clipState !== 0) {
       const ancestorRect = ancestor.getBoundingClientRect();
-      if (clipsX && (clientX < ancestorRect.left || clientX > ancestorRect.right)) return false;
-      if (clipsY && (clientY < ancestorRect.top || clientY > ancestorRect.bottom)) return false;
+      if (
+        (clipState & CLIPS_X) !== 0 &&
+        (clientX < ancestorRect.left || clientX > ancestorRect.right)
+      )
+        return false;
+      if (
+        (clipState & CLIPS_Y) !== 0 &&
+        (clientY < ancestorRect.top || clientY > ancestorRect.bottom)
+      )
+        return false;
     }
 
     ancestor = ancestor.parentElement;
   }
   return true;
+};
+
+const findTopmostFixedElement = (
+  fixedElements: CachedFixedElement[],
+  clientX: number,
+  clientY: number,
+): Element | null => {
+  let topmost: CachedFixedElement | null = null;
+
+  for (const entry of fixedElements) {
+    if (!entry.element.isConnected) continue;
+    const rect = entry.viewportRect;
+    if (
+      clientX >= rect.left &&
+      clientX <= rect.right &&
+      clientY >= rect.top &&
+      clientY <= rect.bottom
+    ) {
+      topmost = entry;
+    }
+  }
+
+  return topmost?.element ?? null;
 };
 
 export const queryElementAtPointIndex = (clientX: number, clientY: number): Element | null => {
@@ -141,24 +210,28 @@ export const queryElementAtPointIndex = (clientX: number, clientY: number): Elem
   const pageX = clientX + window.scrollX;
   const pageY = clientY + window.scrollY;
 
-  const hitIndices = currentIndex.tree.search(pageX, pageY, pageX, pageY);
-  if (hitIndices.length === 0) return null;
+  const fixedHit = findTopmostFixedElement(currentIndex.fixedElements, clientX, clientY);
+
+  const hitIndices = currentIndex.tree?.search(pageX, pageY, pageX, pageY) ?? [];
 
   const visibleCandidates: Element[] = [];
 
   for (const hitIndex of hitIndices) {
     const candidate = currentIndex.elements[hitIndex];
-    if (!candidate.element.isConnected) continue;
-    if (!isVisibleAtPoint(candidate.element, clientX, clientY)) continue;
-    visibleCandidates.push(candidate.element);
+    if (!candidate.isConnected) continue;
+    if (!isVisibleAtPoint(candidate, clientX, clientY)) continue;
+    visibleCandidates.push(candidate);
+  }
+
+  if (fixedHit) {
+    if (visibleCandidates.length === 0) return fixedHit;
+    visibleCandidates.push(fixedHit);
   }
 
   if (visibleCandidates.length === 0) return null;
   if (visibleCandidates.length === 1) return visibleCandidates[0];
 
-  visibleCandidates.sort((elementA, elementB) =>
-    compareStackingOrder(elementB, elementA),
-  );
+  visibleCandidates.sort((elementA, elementB) => compareStackingOrder(elementB, elementA));
 
   return visibleCandidates[0];
 };
@@ -172,6 +245,8 @@ export const destroyElementAtPointIndex = (): void => {
   }
   if (currentIndex) {
     currentIndex.elements.length = 0;
+    currentIndex.fixedElements.length = 0;
     currentIndex = null;
   }
+  clipStateCache = new WeakMap<Element, number>();
 };

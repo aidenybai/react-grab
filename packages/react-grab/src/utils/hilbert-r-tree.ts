@@ -59,20 +59,30 @@ const sortByHilbert = (
     const stackRight = stack.pop()!;
     const stackLeft = stack.pop()!;
 
-    if (stackRight - stackLeft <= NODE_SIZE && Math.floor(stackLeft / NODE_SIZE) >= Math.floor(stackRight / NODE_SIZE)) continue;
+    if (
+      stackRight - stackLeft <= NODE_SIZE &&
+      Math.floor(stackLeft / NODE_SIZE) >= Math.floor(stackRight / NODE_SIZE)
+    )
+      continue;
 
     const valueLeft = values[stackLeft];
     const valueMid = values[(stackLeft + stackRight) >> 1];
     const valueRight = values[stackRight];
-    const pivot = ((valueLeft > valueMid) !== (valueLeft > valueRight)) ? valueLeft :
-      ((valueMid < valueLeft) !== (valueMid < valueRight)) ? valueMid : valueRight;
+    const pivot =
+      valueLeft > valueMid !== valueLeft > valueRight
+        ? valueLeft
+        : valueMid < valueLeft !== valueMid < valueRight
+          ? valueMid
+          : valueRight;
 
     let scanLeft = stackLeft - 1;
     let scanRight = stackRight + 1;
 
     while (true) {
-      do scanLeft++; while (values[scanLeft] < pivot);
-      do scanRight--; while (values[scanRight] > pivot);
+      do scanLeft++;
+      while (values[scanLeft] < pivot);
+      do scanRight--;
+      while (values[scanRight] > pivot);
       if (scanLeft >= scanRight) break;
       swapItems(values, boxes, indices, scanLeft, scanRight);
     }
@@ -85,44 +95,51 @@ const sortByHilbert = (
 // Ported from C++ https://github.com/rawrunprotected/hilbert_curves (public domain)
 const hilbert = (coordX: number, coordY: number): number => {
   let xorXY = coordX ^ coordY;
-  let invertedXor = 0xFFFF ^ xorXY;
-  let invertedOr = 0xFFFF ^ (coordX | coordY);
-  let maskedAnd = coordX & (coordY ^ 0xFFFF);
+  let invertedXor = 0xffff ^ xorXY;
+  let invertedOr = 0xffff ^ (coordX | coordY);
+  let maskedAnd = coordX & (coordY ^ 0xffff);
 
   let levelA = xorXY | (invertedXor >> 1);
   let levelB = (xorXY >> 1) ^ xorXY;
-  let levelC = ((invertedOr >> 1) ^ (invertedXor & (maskedAnd >> 1))) ^ invertedOr;
-  let levelD = ((xorXY & (invertedOr >> 1)) ^ (maskedAnd >> 1)) ^ maskedAnd;
+  let levelC = (invertedOr >> 1) ^ (invertedXor & (maskedAnd >> 1)) ^ invertedOr;
+  let levelD = (xorXY & (invertedOr >> 1)) ^ (maskedAnd >> 1) ^ maskedAnd;
 
-  xorXY = levelA; invertedXor = levelB; invertedOr = levelC; maskedAnd = levelD;
-  levelA = ((xorXY & (xorXY >> 2)) ^ (invertedXor & (invertedXor >> 2)));
-  levelB = ((xorXY & (invertedXor >> 2)) ^ (invertedXor & ((xorXY ^ invertedXor) >> 2)));
-  levelC ^= ((xorXY & (invertedOr >> 2)) ^ (invertedXor & (maskedAnd >> 2)));
-  levelD ^= ((invertedXor & (invertedOr >> 2)) ^ ((xorXY ^ invertedXor) & (maskedAnd >> 2)));
+  xorXY = levelA;
+  invertedXor = levelB;
+  invertedOr = levelC;
+  maskedAnd = levelD;
+  levelA = (xorXY & (xorXY >> 2)) ^ (invertedXor & (invertedXor >> 2));
+  levelB = (xorXY & (invertedXor >> 2)) ^ (invertedXor & ((xorXY ^ invertedXor) >> 2));
+  levelC ^= (xorXY & (invertedOr >> 2)) ^ (invertedXor & (maskedAnd >> 2));
+  levelD ^= (invertedXor & (invertedOr >> 2)) ^ ((xorXY ^ invertedXor) & (maskedAnd >> 2));
 
-  xorXY = levelA; invertedXor = levelB; invertedOr = levelC; maskedAnd = levelD;
-  levelA = ((xorXY & (xorXY >> 4)) ^ (invertedXor & (invertedXor >> 4)));
-  levelB = ((xorXY & (invertedXor >> 4)) ^ (invertedXor & ((xorXY ^ invertedXor) >> 4)));
-  levelC ^= ((xorXY & (invertedOr >> 4)) ^ (invertedXor & (maskedAnd >> 4)));
-  levelD ^= ((invertedXor & (invertedOr >> 4)) ^ ((xorXY ^ invertedXor) & (maskedAnd >> 4)));
+  xorXY = levelA;
+  invertedXor = levelB;
+  invertedOr = levelC;
+  maskedAnd = levelD;
+  levelA = (xorXY & (xorXY >> 4)) ^ (invertedXor & (invertedXor >> 4));
+  levelB = (xorXY & (invertedXor >> 4)) ^ (invertedXor & ((xorXY ^ invertedXor) >> 4));
+  levelC ^= (xorXY & (invertedOr >> 4)) ^ (invertedXor & (maskedAnd >> 4));
+  levelD ^= (invertedXor & (invertedOr >> 4)) ^ ((xorXY ^ invertedXor) & (maskedAnd >> 4));
 
-  xorXY = levelA; invertedXor = levelB;
-  levelC ^= ((xorXY & (invertedOr >> 8)) ^ (invertedXor & (maskedAnd >> 8)));
-  levelD ^= ((invertedXor & (invertedOr >> 8)) ^ ((xorXY ^ invertedXor) & (maskedAnd >> 8)));
+  xorXY = levelA;
+  invertedXor = levelB;
+  levelC ^= (xorXY & (invertedOr >> 8)) ^ (invertedXor & (maskedAnd >> 8));
+  levelD ^= (invertedXor & (invertedOr >> 8)) ^ ((xorXY ^ invertedXor) & (maskedAnd >> 8));
 
   xorXY = levelC ^ (levelC >> 1);
   invertedXor = levelD ^ (levelD >> 1);
 
   let interleaved0 = coordX ^ coordY;
-  let interleaved1 = invertedXor | (0xFFFF ^ (interleaved0 | xorXY));
+  let interleaved1 = invertedXor | (0xffff ^ (interleaved0 | xorXY));
 
-  interleaved0 = (interleaved0 | (interleaved0 << 8)) & 0x00FF00FF;
-  interleaved0 = (interleaved0 | (interleaved0 << 4)) & 0x0F0F0F0F;
+  interleaved0 = (interleaved0 | (interleaved0 << 8)) & 0x00ff00ff;
+  interleaved0 = (interleaved0 | (interleaved0 << 4)) & 0x0f0f0f0f;
   interleaved0 = (interleaved0 | (interleaved0 << 2)) & 0x33333333;
   interleaved0 = (interleaved0 | (interleaved0 << 1)) & 0x55555555;
 
-  interleaved1 = (interleaved1 | (interleaved1 << 8)) & 0x00FF00FF;
-  interleaved1 = (interleaved1 | (interleaved1 << 4)) & 0x0F0F0F0F;
+  interleaved1 = (interleaved1 | (interleaved1 << 8)) & 0x00ff00ff;
+  interleaved1 = (interleaved1 | (interleaved1 << 4)) & 0x0f0f0f0f;
   interleaved1 = (interleaved1 | (interleaved1 << 2)) & 0x33333333;
   interleaved1 = (interleaved1 | (interleaved1 << 1)) & 0x55555555;
 
@@ -192,8 +209,8 @@ export class HilbertRTree {
       return;
     }
 
-    const width = (this.maxX - this.minX) || 1;
-    const height = (this.maxY - this.minY) || 1;
+    const width = this.maxX - this.minX || 1;
+    const height = this.maxY - this.minY || 1;
     const hilbertValues = new Uint32Array(this.numItems);
     const hilbertMax = (1 << 16) - 1;
 
@@ -202,14 +219,22 @@ export class HilbertRTree {
       const rectMinY = boxes[boxPosition++];
       const rectMaxX = boxes[boxPosition++];
       const rectMaxY = boxes[boxPosition++];
-      const normalizedX = Math.floor(hilbertMax * ((rectMinX + rectMaxX) / 2 - this.minX) / width);
-      const normalizedY = Math.floor(hilbertMax * ((rectMinY + rectMaxY) / 2 - this.minY) / height);
+      const normalizedX = Math.floor(
+        (hilbertMax * ((rectMinX + rectMaxX) / 2 - this.minX)) / width,
+      );
+      const normalizedY = Math.floor(
+        (hilbertMax * ((rectMinY + rectMaxY) / 2 - this.minY)) / height,
+      );
       hilbertValues[itemIndex] = hilbert(normalizedX, normalizedY);
     }
 
     sortByHilbert(hilbertValues, boxes, this.indices, 0, this.numItems - 1);
 
-    for (let levelIndex = 0, boxPosition = 0; levelIndex < this.levelBounds.length - 1; levelIndex++) {
+    for (
+      let levelIndex = 0, boxPosition = 0;
+      levelIndex < this.levelBounds.length - 1;
+      levelIndex++
+    ) {
       const levelEnd = this.levelBounds[levelIndex];
 
       while (boxPosition < levelEnd) {

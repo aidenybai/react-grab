@@ -1,4 +1,5 @@
-const STACKING_PROPS = /\b(?:position|z-index|opacity|transform|mix-blend-mode|filter|isolation)\b/;
+const STACKING_PROPS =
+  /\b(?:position|z-index|opacity|transform|mix-blend-mode|filter|isolation|clip-path|backdrop-filter|perspective|contain)\b/;
 
 const getParentElement = (node: Element): Element | null => {
   const parentNode = node.parentNode;
@@ -20,32 +21,47 @@ const isFlexOrGridItem = (node: Element): boolean => {
   const parentElement = getParentElement(node);
   if (!parentElement) return false;
   const display = getComputedStyle(parentElement).display;
-  return display === "flex" || display === "inline-flex" || display === "grid" || display === "inline-grid";
+  return (
+    display === "flex" ||
+    display === "inline-flex" ||
+    display === "grid" ||
+    display === "inline-grid"
+  );
 };
 
-const createsStackingContext = (node: Element): boolean => {
-  const style = getComputedStyle(node);
+const hasPaintContainment = (containValue: string): boolean => {
+  if (containValue === "none" || containValue === "size" || containValue === "layout") return false;
+  return containValue === "paint" || containValue === "strict" || containValue === "content"
+    || containValue.includes("paint");
+};
+
+const isStackingContext = (node: Element, style: CSSStyleDeclaration): boolean => {
   if (style.position === "fixed" || style.position === "sticky") return true;
-  if (style.zIndex !== "auto" && (style.position !== "static" || isFlexOrGridItem(node))) return true;
+  if (style.zIndex !== "auto" && (style.position !== "static" || isFlexOrGridItem(node)))
+    return true;
   if (+style.opacity < 1) return true;
   if (style.transform !== "none") return true;
   if ("mixBlendMode" in style && style.mixBlendMode !== "normal") return true;
   if (style.filter !== "none") return true;
   if ("isolation" in style && style.getPropertyValue("isolation") === "isolate") return true;
+  if (hasPaintContainment(style.contain)) return true;
+  if ("backdropFilter" in style && style.getPropertyValue("backdrop-filter") !== "none") return true;
+  if (style.perspective !== "none") return true;
+  if ("clipPath" in style && style.getPropertyValue("clip-path") !== "none") return true;
   if (STACKING_PROPS.test(style.willChange)) return true;
   return false;
 };
 
-const findNearestStackingContext = (ancestors: Element[]): Element | null => {
+const getNearestStackingContextZIndex = (ancestors: Element[]): number => {
   let ancestorIndex = ancestors.length;
   while (ancestorIndex--) {
-    if (createsStackingContext(ancestors[ancestorIndex])) return ancestors[ancestorIndex];
+    const style = getComputedStyle(ancestors[ancestorIndex]);
+    if (isStackingContext(ancestors[ancestorIndex], style)) {
+      return Number(style.zIndex) || 0;
+    }
   }
-  return null;
+  return 0;
 };
-
-const getZIndex = (node: Element | null): number =>
-  (node && Number(getComputedStyle(node).zIndex)) || 0;
 
 export const compareStackingOrder = (elementA: Element, elementB: Element): number => {
   if (elementA === elementB) return 0;
@@ -60,8 +76,8 @@ export const compareStackingOrder = (elementA: Element, elementB: Element): numb
     ancestorsB.pop();
   }
 
-  const zIndexA = getZIndex(findNearestStackingContext(ancestorsA));
-  const zIndexB = getZIndex(findNearestStackingContext(ancestorsB));
+  const zIndexA = getNearestStackingContextZIndex(ancestorsA);
+  const zIndexB = getNearestStackingContextZIndex(ancestorsB);
 
   if (zIndexA === zIndexB) {
     if (!commonAncestor) return 0;
