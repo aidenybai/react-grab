@@ -248,14 +248,14 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     setTooltipVisible: (visible: boolean) => void,
     options?: FreezeHandlersOptions,
   ) => ({
-    onMouseEnter: () => {
+    onMouseEnter: (event: MouseEvent) => {
       if (drag.isDragging()) return;
       safePolygonTracker.stop();
       setTooltipVisible(true);
       if (options?.shouldFreezeInteractions !== false && !unfreezeUpdatesCallback) {
         unfreezeUpdatesCallback = freezeUpdates();
         freezeGlobalAnimations();
-        freezePseudoStates();
+        freezePseudoStates(event.clientX, event.clientY);
       }
       options?.onHoverChange?.(true);
     },

@@ -118,7 +118,6 @@ import { createArrowNavigator } from "./arrow-navigation.js";
 import { getRequiredModifiers, setupKeyboardEventClaimer } from "./keyboard-handlers.js";
 import { createAutoScroller, getAutoScrollDirection } from "./auto-scroll.js";
 import { logIntro } from "./log-intro.js";
-import { onIdle } from "../utils/on-idle.js";
 import { getScriptOptions } from "../utils/get-script-options.js";
 import { isEnterCode } from "../utils/is-enter-code.js";
 import { isMac } from "../utils/is-mac.js";
@@ -231,7 +230,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const isDragging = createMemo(
       () =>
         store.current.state === "active" &&
-        (store.current.phase === "dragging-select" || store.current.phase === "dragging-reposition"),
+        (store.current.phase === "dragging-select" ||
+          store.current.phase === "dragging-reposition"),
     );
     const isDragRepositioning = createMemo(
       () => store.current.state === "active" && store.current.phase === "dragging-reposition",
@@ -257,7 +257,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     createEffect(
       on(isActivated, (activated, previousActivated) => {
         if (activated && !previousActivated) {
-          freezePseudoStates();
+          freezePseudoStates(store.pointer.x, store.pointer.y);
           freezeGlobalAnimations();
           document.body.style.touchAction = "none";
           // iOS Safari auto-zooms on focused inputs with font-size < 16px,
@@ -1624,7 +1624,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       ) {
         elementDetectionState.lastDetectionTimestamp = now;
         elementDetectionState.pendingDetectionScheduledAt = now;
-        onIdle(() => {
+        setTimeout(() => {
           const candidate = getElementAtPosition(
             elementDetectionState.latestPointerX,
             elementDetectionState.latestPointerY,
