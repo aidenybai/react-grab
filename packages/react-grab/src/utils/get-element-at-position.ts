@@ -86,12 +86,16 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
 
   const elementsAtPoint = document.elementsFromPoint(clientX, clientY);
   let result: Element | null = null;
+  let smallestArea = Infinity;
 
   for (const candidateElement of elementsAtPoint) {
     if (!isValidGrabbableElement(candidateElement)) continue;
-    if (getElementArea(candidateElement) === 0) continue;
-    result = candidateElement;
-    break;
+    const area = getElementArea(candidateElement);
+    if (area === 0) continue;
+    if (area < smallestArea) {
+      smallestArea = area;
+      result = candidateElement;
+    }
   }
 
   scheduleResume();
