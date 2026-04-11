@@ -4,9 +4,9 @@ import { detect } from "@antfu/ni";
 import ignore from "ignore";
 
 export type PackageManager = "npm" | "yarn" | "pnpm" | "bun";
-export type Framework = "next" | "vite" | "tanstack" | "webpack" | "unknown";
+export type Framework = "next" | "vite" | "tanstack" | "webpack" | "sveltekit" | "unknown";
 export type NextRouterType = "app" | "pages" | "unknown";
-export type UnsupportedFramework = "remix" | "astro" | "sveltekit" | "gatsby" | null;
+export type UnsupportedFramework = "remix" | "astro" | "gatsby" | null;
 
 interface ProjectInfo {
   packageManager: PackageManager;
@@ -53,6 +53,10 @@ export const detectFramework = (projectRoot: string): Framework => {
 
     if (allDependencies["@tanstack/react-start"]) {
       return "tanstack";
+    }
+
+    if (allDependencies["@sveltejs/kit"]) {
+      return "sveltekit";
     }
 
     if (allDependencies["vite"]) {
@@ -384,6 +388,10 @@ export const detectReactGrab = (projectRoot: string): boolean => {
     join(projectRoot, "src", "routes", "__root.jsx"),
     join(projectRoot, "app", "routes", "__root.tsx"),
     join(projectRoot, "app", "routes", "__root.jsx"),
+    join(projectRoot, "src", "hooks.client.ts"),
+    join(projectRoot, "src", "hooks.client.js"),
+    join(projectRoot, "src", "app.html"),
+    join(projectRoot, "src", "routes", "+layout.svelte"),
   ];
 
   return filesToCheck.some(hasReactGrabInFile);
@@ -409,10 +417,6 @@ export const detectUnsupportedFramework = (projectRoot: string): UnsupportedFram
 
     if (allDependencies["astro"]) {
       return "astro";
-    }
-
-    if (allDependencies["@sveltejs/kit"]) {
-      return "sveltekit";
     }
 
     if (allDependencies["gatsby"]) {

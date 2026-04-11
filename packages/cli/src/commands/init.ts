@@ -58,6 +58,7 @@ const FRAMEWORK_NAMES: Record<Framework, string> = {
   vite: "Vite",
   tanstack: "TanStack Start",
   webpack: "Webpack",
+  sveltekit: "SvelteKit",
   unknown: "Unknown",
 };
 
@@ -71,7 +72,6 @@ const PACKAGE_MANAGER_NAMES: Record<PackageManager, string> = {
 const UNSUPPORTED_FRAMEWORK_NAMES: Record<NonNullable<UnsupportedFramework>, string> = {
   remix: "Remix",
   astro: "Astro",
-  sveltekit: "SvelteKit",
   gatsby: "Gatsby",
 };
 
