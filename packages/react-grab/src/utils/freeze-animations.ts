@@ -201,20 +201,17 @@ export const unfreezeGlobalAnimations = (): void => {
   // so calling finish() on animations the freeze never paused would break
   // react-grab's own toolbar and label animations.
   // @see https://github.com/aidenybai/react-grab/issues/163
-  const animations: Animation[] = [];
+  const animationsToFinish: Animation[] = [];
   for (const animation of document.getAnimations()) {
     if (animation.effect instanceof KeyframeEffect) {
       const target = animation.effect.target;
-      if (target instanceof Element) {
-        const rootNode = target.getRootNode();
-        if (rootNode instanceof ShadowRoot) {
-          continue;
-        }
+      if (target instanceof Element && target.getRootNode() instanceof ShadowRoot) {
+        continue;
       }
     }
-    animations.push(animation);
+    animationsToFinish.push(animation);
   }
-  finishAnimations(animations);
+  finishAnimations(animationsToFinish);
 
   globalAnimationStyleElement.remove();
   globalAnimationStyleElement = null;

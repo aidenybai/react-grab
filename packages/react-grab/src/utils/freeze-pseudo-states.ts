@@ -89,32 +89,50 @@ const collectOriginalPropertyValues = (
   return originalPropertyValues;
 };
 
-const collectPseudoStates = (
-  selector: string,
+const freezeElement = (
+  element: HTMLElement,
   properties: readonly string[],
   alreadyFrozen?: Map<HTMLElement, Map<string, string>>,
-): FrozenPseudoState[] => {
-  const elementsToFreeze: FrozenPseudoState[] = [];
+): FrozenPseudoState | null => {
+  if (alreadyFrozen?.has(element)) return null;
 
-  for (const element of document.querySelectorAll(selector)) {
-    if (!(element instanceof HTMLElement)) continue;
-    if (alreadyFrozen?.has(element)) continue;
+  const computed = getComputedStyle(element);
+  let frozenStyles = element.style.cssText;
+  const originalPropertyValues = collectOriginalPropertyValues(element, properties);
 
-    const computed = getComputedStyle(element);
-    let frozenStyles = element.style.cssText;
-    const originalPropertyValues = collectOriginalPropertyValues(element, properties);
-
-    for (const prop of properties) {
-      const computedValue = computed.getPropertyValue(prop);
-      if (computedValue) {
-        frozenStyles += `${prop}: ${computedValue} !important; `;
-      }
+  for (const prop of properties) {
+    const computedValue = computed.getPropertyValue(prop);
+    if (computedValue) {
+      frozenStyles += `${prop}: ${computedValue} !important; `;
     }
-
-    elementsToFreeze.push({ element, frozenStyles, originalPropertyValues });
   }
 
-  return elementsToFreeze;
+  return { element, frozenStyles, originalPropertyValues };
+};
+
+const collectHoveredElements = (cursorX: number, cursorY: number): HTMLElement[] => {
+  const hoveredElements: HTMLElement[] = [];
+  let current = document.elementFromPoint(cursorX, cursorY);
+  while (current && current !== document.documentElement) {
+    if (current instanceof HTMLElement) {
+      hoveredElements.push(current);
+    }
+    current = current.parentElement;
+  }
+  return hoveredElements;
+};
+
+const collectFocusedElements = (): HTMLElement[] => {
+  const focusedElements: HTMLElement[] = [];
+  let current: Element | null = document.activeElement;
+  while (current && current !== document.body) {
+    if (current instanceof HTMLElement) {
+      focusedElements.push(current);
+    }
+    const shadowRoot = current.shadowRoot;
+    current = shadowRoot?.activeElement ?? null;
+  }
+  return focusedElements;
 };
 
 const applyFrozenStates = (
@@ -152,7 +170,7 @@ export const resumePointerEventsFreeze = (): void => {
   if (pointerEventsStyle) pointerEventsStyle.disabled = false;
 };
 
-export const freezePseudoStates = (): void => {
+export const freezePseudoStates = (cursorX?: number, cursorY?: number): void => {
   if (pointerEventsStyle) return;
 
   for (const eventType of MOUSE_EVENTS_TO_BLOCK) {
@@ -163,12 +181,29 @@ export const freezePseudoStates = (): void => {
     document.addEventListener(eventType, preventFocusChange, true);
   }
 
-  const hoverStates = collectPseudoStates(":hover", HOVER_STYLE_PROPERTIES);
-  const focusStates = collectPseudoStates(
-    ":focus, :focus-visible",
-    FOCUS_STYLE_PROPERTIES,
-    frozenFocusElements,
-  );
+  const hoverStates: FrozenPseudoState[] = [];
+  const isCursorInViewport =
+    cursorX !== undefined &&
+    cursorY !== undefined &&
+    cursorX >= 0 &&
+    cursorY >= 0 &&
+    cursorX < window.innerWidth &&
+    cursorY < window.innerHeight;
+  const hoveredElements = isCursorInViewport
+    ? collectHoveredElements(cursorX, cursorY)
+    : Array.from(document.querySelectorAll(":hover")).filter(
+        (element): element is HTMLElement => element instanceof HTMLElement,
+      );
+  for (const element of hoveredElements) {
+    const state = freezeElement(element, HOVER_STYLE_PROPERTIES);
+    if (state) hoverStates.push(state);
+  }
+
+  const focusStates: FrozenPseudoState[] = [];
+  for (const element of collectFocusedElements()) {
+    const state = freezeElement(element, FOCUS_STYLE_PROPERTIES, frozenFocusElements);
+    if (state) focusStates.push(state);
+  }
 
   applyFrozenStates(hoverStates, frozenHoverElements);
   applyFrozenStates(focusStates, frozenFocusElements);

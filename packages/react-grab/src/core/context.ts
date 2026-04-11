@@ -26,6 +26,7 @@ import { getTagName } from "../utils/get-tag-name.js";
 import { truncateString } from "../utils/truncate-string.js";
 import { getNextBasePath } from "../utils/get-next-base-path.js";
 import { normalizeFilePath } from "../utils/normalize-file-path.js";
+import { isInternalAttribute } from "../utils/strip-internal-attributes.js";
 
 const NON_COMPONENT_PREFIXES = new Set([
   "_",
@@ -518,6 +519,7 @@ const getFallbackContext = (element: Element): string => {
 
   let attrsText = "";
   for (const { name, value } of element.attributes) {
+    if (isInternalAttribute(name)) continue;
     attrsText += ` ${name}="${value}"`;
   }
 
@@ -565,6 +567,7 @@ export const getHTMLPreview = (element: Element): string => {
 
   let attrsText = "";
   for (const { name, value } of element.attributes) {
+    if (isInternalAttribute(name)) continue;
     attrsText += ` ${name}="${truncateAttrValue(value)}"`;
   }
 

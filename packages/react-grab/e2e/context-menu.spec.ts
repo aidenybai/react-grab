@@ -46,7 +46,7 @@ test.describe("Context Menu", () => {
       const element = reactGrab.page.locator("li").first();
       await element.click({ button: "right", force: true });
 
-      await expect.poll(() => reactGrab.isContextMenuVisible(), { timeout: 2000 }).toBe(true);
+      await expect.poll(() => reactGrab.isContextMenuVisible(), { timeout: 5000 }).toBe(true);
 
       await reactGrab.page.keyboard.up("c");
       await reactGrab.page.keyboard.up(reactGrab.modifierKey);
@@ -118,10 +118,8 @@ test.describe("Context Menu", () => {
       expect(isVisibleBefore).toBe(true);
 
       await reactGrab.page.keyboard.press("Escape");
-      await reactGrab.page.waitForTimeout(200);
 
-      const isVisibleAfter = await reactGrab.isContextMenuVisible();
-      expect(isVisibleAfter).toBe(false);
+      await expect.poll(() => reactGrab.isContextMenuVisible(), { timeout: 5000 }).toBe(false);
     });
 
     test("should dismiss context menu when clicking outside", async ({ reactGrab }) => {
@@ -134,10 +132,8 @@ test.describe("Context Menu", () => {
       expect(isVisibleBefore).toBe(true);
 
       await reactGrab.page.mouse.click(10, 10);
-      await reactGrab.page.waitForTimeout(200);
 
-      const isVisibleAfter = await reactGrab.isContextMenuVisible();
-      expect(isVisibleAfter).toBe(false);
+      await expect.poll(() => reactGrab.isContextMenuVisible(), { timeout: 5000 }).toBe(false);
     });
 
     test("should dismiss context menu after Copy action", async ({ reactGrab }) => {

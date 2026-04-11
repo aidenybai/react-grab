@@ -1,5 +1,6 @@
 import { appendStackContext } from "../../utils/append-stack-context.js";
 import { copyContent } from "../../utils/copy-content.js";
+import { stripInternalAttributes } from "../../utils/strip-internal-attributes.js";
 import { createPendingSelectionPlugin } from "./create-pending-selection-plugin.js";
 
 export const copyHtmlPlugin = createPendingSelectionPlugin({
@@ -10,7 +11,9 @@ export const copyHtmlPlugin = createPendingSelectionPlugin({
     showInToolbarMenu: true,
     onAction: async (context) => {
       await context.performWithFeedback(async () => {
-        const combinedHtml = context.elements.map((element) => element.outerHTML).join("\n\n");
+        const combinedHtml = context.elements
+          .map((element) => stripInternalAttributes(element.outerHTML))
+          .join("\n\n");
 
         const transformedHtml = await context.hooks.transformHtmlContent(
           combinedHtml,
