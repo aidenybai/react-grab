@@ -1,5 +1,13 @@
 # grab
 
+## 0.1.32
+
+### Patch Changes
+
+- fix: perf issues
+- Updated dependencies
+  - @react-grab/cli@0.1.32
+
 ## 0.1.31
 
 ### Patch Changes
