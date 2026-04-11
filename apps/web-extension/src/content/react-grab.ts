@@ -90,7 +90,11 @@ const initializeReactGrab = (): Promise<ReactGrabAPI | null> => {
           resolve(delayedApi);
           return;
         }
-        resolve(null);
+        // Fall back to creating our own API if the page never announced one.
+        // Preserves the race window for pages that do install react-grab
+        // themselves, while keeping the extension functional on dev servers
+        // that don't.
+        resolve(createExtensionApi());
       }, LOCALHOST_INIT_DELAY_MS);
     });
   }
