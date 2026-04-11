@@ -7,6 +7,7 @@ import {
 } from "../constants.js";
 import { isElementVisible } from "./is-element-visible.js";
 import { isRootElement } from "./is-root-element.js";
+import { isDecorativeOverlay } from "./is-decorative-overlay.js";
 
 const isReactGrabElement = (element: Element): boolean => {
   if (element.hasAttribute("data-react-grab")) return true;
@@ -86,6 +87,11 @@ export const isValidGrabbableElement = (element: Element): boolean => {
 
   const isVisible = isElementVisible(element, computedStyle);
   if (!isVisible) {
+    visibilityCache.set(element, { isVisible: false, timestamp: now });
+    return false;
+  }
+
+  if (isDecorativeOverlay(element, computedStyle.position)) {
     visibilityCache.set(element, { isVisible: false, timestamp: now });
     return false;
   }

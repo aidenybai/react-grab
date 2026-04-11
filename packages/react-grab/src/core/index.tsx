@@ -136,6 +136,10 @@ import {
 import { freezePseudoStates, unfreezePseudoStates } from "../utils/freeze-pseudo-states.js";
 import { freezeUpdates } from "../utils/freeze-updates.js";
 import {
+  buildElementAtPointIndex,
+  destroyElementAtPointIndex,
+} from "../utils/element-at-point-index.js";
+import {
   loadComments,
   addCommentItem,
   removeCommentItem,
@@ -259,11 +263,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (activated && !previousActivated) {
           freezePseudoStates(store.pointer.x, store.pointer.y);
           freezeGlobalAnimations();
+          buildElementAtPointIndex();
           document.body.style.touchAction = "none";
           // iOS Safari auto-zooms on focused inputs with font-size < 16px,
           // which would disrupt the overlay positioning.
           unlockViewportZoom = lockViewportZoom();
         } else if (!activated && previousActivated) {
+          destroyElementAtPointIndex();
           unfreezePseudoStates();
           unfreezeGlobalAnimations();
           document.body.style.touchAction = "";
@@ -2867,6 +2873,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     onCleanup(() => {
       eventListenerManager.abort();
+      destroyElementAtPointIndex();
       if (dragPreviewDebounceTimerId !== null) {
         window.clearTimeout(dragPreviewDebounceTimerId);
       }
