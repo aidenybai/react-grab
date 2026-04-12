@@ -403,7 +403,6 @@ export interface ReactGrabRendererProps {
   isActive?: boolean;
   onToggleActive?: () => void;
   enabled?: boolean;
-  onToggleEnabled?: () => void;
   shakeCount?: number;
   onToolbarStateChange?: (state: ToolbarState) => void;
   onSubscribeToToolbarStateChanges?: (callback: (state: ToolbarState) => void) => () => void;

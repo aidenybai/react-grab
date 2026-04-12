@@ -274,7 +274,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     const savedToolbarState = loadToolbarState();
-    const [isEnabled, setIsEnabled] = createSignal(savedToolbarState?.enabled ?? true);
+    const [isEnabled, setIsEnabled] = createSignal(
+      savedToolbarState ? !savedToolbarState.collapsed : true,
+    );
     const [toolbarShakeCount, setToolbarShakeCount] = createSignal(0);
     const [selectionLabelShakeCount, setSelectionLabelShakeCount] = createSignal(0);
     const [currentToolbarState, setCurrentToolbarState] = createSignal<ToolbarState | null>(
@@ -1592,16 +1594,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.setPendingCommentMode(true);
       if (!isActivated()) {
         toggleActivate();
-      }
-    };
-
-    const handleToggleEnabled = () => {
-      const newEnabled = !isEnabled();
-      setIsEnabled(newEnabled);
-      updateToolbarState({ enabled: newEnabled });
-      if (!newEnabled) {
-        forceDeactivateAll();
-        dismissAllPopups();
       }
     };
 
@@ -3735,10 +3727,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 isActive={isActivated()}
                 onToggleActive={handleToggleActive}
                 enabled={isEnabled()}
-                onToggleEnabled={handleToggleEnabled}
                 shakeCount={toolbarShakeCount()}
                 onToolbarStateChange={(state) => {
                   setCurrentToolbarState(state);
+                  if (state.enabled !== isEnabled()) {
+                    setIsEnabled(state.enabled);
+                    if (!state.enabled) {
+                      forceDeactivateAll();
+                      dismissAllPopups();
+                    }
+                  }
                   toolbarStateChangeCallbacks.forEach((callback) => callback(state));
                 }}
                 onSubscribeToToolbarStateChanges={(callback) => {
@@ -3832,24 +3830,31 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setEnabled: (enabled: boolean) => {
         if (enabled === isEnabled()) return;
         setIsEnabled(enabled);
+        updateToolbarState({ enabled, collapsed: !enabled });
         if (!enabled) {
           forceDeactivateAll();
+          dismissAllPopups();
         }
       },
       getToolbarState: () => loadToolbarState(),
       setToolbarState: (state: Partial<ToolbarState>) => {
         const currentState = loadToolbarState();
+        const resolvedCollapsed = state.collapsed ?? currentState?.collapsed ?? false;
         const newState: ToolbarState = {
           edge: state.edge ?? currentState?.edge ?? "bottom",
           ratio: state.ratio ?? currentState?.ratio ?? TOOLBAR_DEFAULT_POSITION_RATIO,
-          collapsed: state.collapsed ?? currentState?.collapsed ?? false,
-          enabled: state.enabled ?? currentState?.enabled ?? true,
+          collapsed: resolvedCollapsed,
+          enabled: !resolvedCollapsed,
           defaultAction: state.defaultAction ?? currentState?.defaultAction ?? DEFAULT_ACTION_ID,
         };
         saveToolbarState(newState);
         setCurrentToolbarState(newState);
-        if (state.enabled !== undefined && state.enabled !== isEnabled()) {
-          setIsEnabled(state.enabled);
+        if (newState.enabled !== isEnabled()) {
+          setIsEnabled(newState.enabled);
+          if (!newState.enabled) {
+            forceDeactivateAll();
+            dismissAllPopups();
+          }
         }
         toolbarStateChangeCallbacks.forEach((callback) => callback(newState));
       },

@@ -235,7 +235,7 @@ test.describe("Clear History Prompt", () => {
         .toBe(false);
     });
 
-    test("should dismiss when toolbar is disabled", async ({ reactGrab }) => {
+    test("should dismiss when toolbar is collapsed", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
 
       await reactGrab.clickCommentsButton();
@@ -245,7 +245,7 @@ test.describe("Clear History Prompt", () => {
         .poll(() => reactGrab.isClearCommentsPromptVisible(), { timeout: 5000 })
         .toBe(true);
 
-      await reactGrab.clickToolbarEnabled();
+      await reactGrab.clickToolbarCollapse();
       await reactGrab.page.waitForTimeout(200);
 
       await expect

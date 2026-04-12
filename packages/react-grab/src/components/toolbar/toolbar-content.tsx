@@ -4,23 +4,17 @@ import { IconChevron } from "../icons/icon-chevron.jsx";
 import { getExpandGridClass, getMinDimensionClass } from "../../utils/toolbar-layout.js";
 
 interface ToolbarContentProps {
-  isActive?: boolean;
-  enabled?: boolean;
   isCollapsed?: boolean;
   snapEdge?: "top" | "bottom" | "left" | "right";
   isShaking?: boolean;
   isCommentsExpanded?: boolean;
   isCopyAllExpanded?: boolean;
-  isCommentsPinned?: boolean;
-  disableGridTransitions?: boolean;
   onAnimationEnd?: () => void;
   onPanelClick?: (event: MouseEvent) => void;
   onCollapseClick?: (event: MouseEvent) => void;
-  onExpandableButtonsRef?: (element: HTMLDivElement) => void;
   selectButton?: JSX.Element;
   commentsButton?: JSX.Element;
   copyAllButton?: JSX.Element;
-  toggleButton?: JSX.Element;
   collapseButton?: JSX.Element;
   transformOrigin?: string;
 }
@@ -33,7 +27,6 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
     getExpandGridClass(isVertical(), isExpanded, collapsedExtra);
 
   const gridTransitionClass = (): string => {
-    if (props.disableGridTransitions) return "";
     if (isVertical()) {
       return "transition-[grid-template-rows,opacity] duration-150 ease-out";
     }
@@ -41,7 +34,6 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
   };
 
   const gridSizeTransitionClass = (): string => {
-    if (props.disableGridTransitions) return "";
     if (isVertical()) {
       return "transition-[grid-template-rows] duration-150 ease-out";
     }
@@ -96,10 +88,10 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
   return (
     <div
       class={cn(
-        "flex items-center justify-center rounded-[10px] antialiased relative overflow-visible [font-synthesis:none] filter-[drop-shadow(0px_1px_2px_#51515140)] [corner-shape:superellipse(1.25)]",
+        "flex items-center justify-center rounded-[10px] antialiased relative overflow-visible [font-synthesis:none] shadow-[0px_1px_2px_#51515140] [corner-shape:superellipse(1.25)]",
         isVertical() && "flex-col",
         "bg-white",
-        !props.isCollapsed && (isVertical() ? "px-1.5 gap-1.5 py-2" : "py-1.5 gap-1.5 px-2"),
+        !props.isCollapsed && (isVertical() ? "px-1.5 gap-1 py-2" : "py-1.5 gap-1 px-2"),
         collapsedEdgeClasses(),
         props.isShaking && "animate-shake",
       )}
@@ -125,26 +117,18 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
             "flex",
             isVertical() ? "flex-col items-center min-h-0" : "items-center min-w-0",
             props.isCollapsed ? "opacity-0" : "opacity-100",
-            !props.disableGridTransitions && "transition-opacity duration-150 ease-out",
+            "transition-opacity duration-150 ease-out",
           )}
         >
-          <div
-            ref={(element) => props.onExpandableButtonsRef?.(element)}
-            class={cn("flex items-center", isVertical() && "flex-col")}
-          >
-            <div class={cn("grid", gridTransitionClass(), expandGridClass(Boolean(props.enabled)))}>
-              <div class={cn("relative overflow-visible", minDimensionClass())}>
-                {props.selectButton}
-              </div>
+          <div class={cn("flex items-center", isVertical() && "flex-col")}>
+            <div class={cn("relative overflow-visible", minDimensionClass())}>
+              {props.selectButton}
             </div>
             <div
               class={cn(
                 "grid",
                 gridTransitionClass(),
-                expandGridClass(
-                  Boolean(props.enabled) && Boolean(props.isCommentsExpanded),
-                  "pointer-events-none",
-                ),
+                expandGridClass(Boolean(props.isCommentsExpanded), "pointer-events-none"),
               )}
             >
               <div class={cn("relative overflow-visible", minDimensionClass())}>
@@ -163,7 +147,6 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
               </div>
             </div>
           </div>
-          <div class="relative shrink-0 overflow-visible">{props.toggleButton}</div>
         </div>
       </div>
       {props.collapseButton ?? defaultCollapseButton()}

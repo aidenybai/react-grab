@@ -1,12 +1,7 @@
 import { createSignal, createEffect, on, onCleanup, Show } from "solid-js";
 import type { Component, JSX } from "solid-js";
 import { cn } from "../utils/cn.js";
-import {
-  TOOLTIP_BASE_CLASS,
-  TOOLTIP_DELAY_MS,
-  TOOLTIP_GRACE_PERIOD_MS,
-  Z_INDEX_OVERLAY,
-} from "../constants.js";
+import { TOOLTIP_DELAY_MS, TOOLTIP_GRACE_PERIOD_MS, Z_INDEX_OVERLAY } from "../constants.js";
 
 let lastCloseTimestamp = 0;
 
@@ -75,8 +70,8 @@ export const Tooltip: Component<TooltipProps> = (props) => {
     <Show when={delayedVisible()}>
       <div
         class={cn(
-          TOOLTIP_BASE_CLASS,
-          "bg-white",
+          "absolute whitespace-nowrap px-2 py-1 rounded-[10px] text-[10px] text-white/80 pointer-events-none [corner-shape:superellipse(1.25)]",
+          "bg-black",
           props.position === "top" && "bottom-full mb-2.5",
           props.position === "bottom" && "top-full mt-2.5",
           props.position === "left" && "right-full mr-2.5",

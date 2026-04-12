@@ -610,17 +610,17 @@ test.describe("Toolbar", () => {
       await expect.poll(() => reactGrab.isToolbarCollapsed(), { timeout: 2000 }).toBe(false);
     });
 
-    test("should toggle enabled state in vertical mode", async ({ reactGrab }) => {
+    test("should collapse and expand in vertical mode", async ({ reactGrab }) => {
       await seedVerticalState(reactGrab.page, "right");
       await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 }).toBe(true);
 
-      await reactGrab.clickToolbarEnabled();
-      // HACK: Wait for toggle animation to complete
+      await reactGrab.clickToolbarCollapse();
       await reactGrab.page.waitForTimeout(200);
+      await expect.poll(() => reactGrab.isToolbarCollapsed(), { timeout: 2000 }).toBe(true);
 
-      await reactGrab.clickToolbarEnabled();
-      // HACK: Wait for toggle animation to complete
+      await reactGrab.clickToolbarCollapse();
       await reactGrab.page.waitForTimeout(200);
+      await expect.poll(() => reactGrab.isToolbarCollapsed(), { timeout: 2000 }).toBe(false);
 
       const info = await reactGrab.getToolbarInfo();
       expect(info.isVisible).toBe(true);
