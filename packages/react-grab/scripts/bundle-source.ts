@@ -1,6 +1,12 @@
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { parseSync } from "oxc-parser";
+import type {
+  ExportSpecifier,
+  ImportDeclarationSpecifier,
+  Program,
+  StringLiteral,
+} from "oxc-parser";
 import { encodingForModel } from "js-tiktoken";
 
 const SOURCE_DIR = resolve(import.meta.dirname, "..", "src");
@@ -79,41 +85,46 @@ const resolveImportSpecifier = (
   return null;
 };
 
-const extractExports = (program: { body: any[] }): ExportedSymbol[] => {
+const getNodeName = (node: Record<string, unknown>): string | undefined => {
+  const identifier = node.id as Record<string, unknown> | undefined;
+  return identifier?.name as string | undefined;
+};
+
+const extractExports = (program: Program): ExportedSymbol[] => {
   const exports: ExportedSymbol[] = [];
 
   for (const node of program.body) {
     if (node.type === "ExportNamedDeclaration") {
       if (node.declaration) {
         const declaration = node.declaration;
-        if (declaration.id?.name) {
+        const name = getNodeName(declaration);
+        if (name) {
           const isTypeExport =
             declaration.type === "TSInterfaceDeclaration" ||
             declaration.type === "TSTypeAliasDeclaration" ||
             declaration.type === "TSEnumDeclaration";
           exports.push({
-            name: declaration.id.name,
+            name,
             kind: isTypeExport ? "type" : "value",
           });
         }
-        if (declaration.declarations) {
+        if ("declarations" in declaration && Array.isArray(declaration.declarations)) {
           for (const declarator of declaration.declarations) {
-            if (declarator.id?.name) {
-              exports.push({ name: declarator.id.name, kind: "value" });
+            const declaratorName = getNodeName(declarator);
+            if (declaratorName) {
+              exports.push({ name: declaratorName, kind: "value" });
             }
           }
         }
       }
-      if (node.specifiers) {
-        for (const specifier of node.specifiers) {
-          const kind = node.exportKind === "type" ? "type" : "value";
-          exports.push({ name: specifier.exported.name, kind });
-        }
+      for (const specifier of node.specifiers) {
+        const kind = node.exportKind === "type" ? "type" : "value";
+        exports.push({ name: specifier.exported.name, kind });
       }
     }
 
     if (node.type === "ExportDefaultDeclaration") {
-      const name = node.declaration?.id?.name ?? "(default)";
+      const name = getNodeName(node.declaration as Record<string, unknown>) ?? "(default)";
       exports.push({ name, kind: "default" });
     }
 
@@ -126,16 +137,48 @@ const extractExports = (program: { body: any[] }): ExportedSymbol[] => {
   return exports;
 };
 
+const specifierToSymbol = (
+  specifier: ImportDeclarationSpecifier | ExportSpecifier,
+  importKind: string,
+): ImportedSymbol => {
+  if (specifier.type === "ImportSpecifier") {
+    return {
+      localName: specifier.local.name,
+      importedName: specifier.imported?.name ?? specifier.local.name,
+      kind: importKind === "type" ? "type" : "value",
+    };
+  }
+  if (specifier.type === "ImportDefaultSpecifier") {
+    return {
+      localName: specifier.local.name,
+      importedName: "default",
+      kind: "default",
+    };
+  }
+  if (specifier.type === "ImportNamespaceSpecifier") {
+    return {
+      localName: specifier.local.name,
+      importedName: "*",
+      kind: "namespace",
+    };
+  }
+  return {
+    localName: specifier.exported?.name ?? "?",
+    importedName: specifier.local?.name ?? "?",
+    kind: importKind === "type" ? "type" : "value",
+  };
+};
+
 const extractImports = (
-  program: { body: any[] },
+  program: Program,
   importerAbsolutePath: string,
   allAbsolutePaths: Set<string>,
 ): ImportLink[] => {
   const imports: ImportLink[] = [];
 
   const processSource = (
-    source: { value: string } | null | undefined,
-    specifiers: any[],
+    source: StringLiteral | null,
+    specifiers: Array<ImportDeclarationSpecifier | ExportSpecifier>,
     importKind: string,
   ): void => {
     if (!source) return;
@@ -146,44 +189,19 @@ const extractImports = (
       ? null
       : resolveImportSpecifier(rawSpecifier, importerAbsolutePath, allAbsolutePaths);
 
-    const symbols: ImportedSymbol[] = (specifiers ?? []).map((specifier: any) => {
-      if (specifier.type === "ImportSpecifier") {
-        return {
-          localName: specifier.local.name,
-          importedName: specifier.imported?.name ?? specifier.local.name,
-          kind: importKind === "type" ? "type" : ("value" as const),
-        };
-      }
-      if (specifier.type === "ImportDefaultSpecifier") {
-        return {
-          localName: specifier.local.name,
-          importedName: "default",
-          kind: "default" as const,
-        };
-      }
-      if (specifier.type === "ImportNamespaceSpecifier") {
-        return {
-          localName: specifier.local.name,
-          importedName: "*",
-          kind: "namespace" as const,
-        };
-      }
-      return {
-        localName: specifier.local?.name ?? "?",
-        importedName: "?",
-        kind: "value" as const,
-      };
-    });
+    const symbols: ImportedSymbol[] = specifiers.map((specifier) =>
+      specifierToSymbol(specifier, importKind),
+    );
 
     imports.push({ resolvedPath, rawSpecifier, isExternal, symbols });
   };
 
   for (const node of program.body) {
     if (node.type === "ImportDeclaration") {
-      processSource(node.source, node.specifiers, node.importKind);
+      processSource(node.source, node.specifiers, node.importKind ?? "value");
     }
     if (node.type === "ExportNamedDeclaration" && node.source) {
-      processSource(node.source, node.specifiers, node.exportKind);
+      processSource(node.source, node.specifiers, node.exportKind ?? "value");
     }
     if (node.type === "ExportAllDeclaration") {
       processSource(node.source, [], "value");
