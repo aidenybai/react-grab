@@ -252,6 +252,12 @@ export interface Options {
    * @default true
    */
   freezeReactUpdates?: boolean;
+  /**
+   * Whether to skip the version check that logs a warning when a newer
+   * version of React Grab is available on npm.
+   * @default false
+   */
+  skipVersionCheck?: boolean;
 }
 
 export interface SettableOptions extends Options {
