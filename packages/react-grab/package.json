@@ -91,6 +91,7 @@
     "check": "vp check",
     "test": "playwright test",
     "test:expect": "bun e2e/react-grab.expect.ts",
+    "bundle-source": "tsx scripts/bundle-source.ts",
     "count-tokens": "tsx scripts/count-tokens.ts",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "pnpm build",
@@ -112,6 +113,7 @@
     "concurrently": "^9.1.2",
     "expect-sdk": "0.0.0-canary-20260405095424",
     "js-tiktoken": "^1.0.21",
+    "oxc-parser": "^0.125.0",
     "solid-js": "^1.9.10",
     "tailwindcss": "^4.1.0",
     "tsx": "^4.21.0"
