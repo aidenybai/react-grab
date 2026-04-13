@@ -91,6 +91,7 @@
     "check": "vp check",
     "test": "playwright test",
     "test:expect": "bun e2e/react-grab.expect.ts",
+    "count-tokens": "tsx scripts/count-tokens.ts",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "pnpm build",
     "test:e2e:ui": "playwright test --ui"
@@ -102,7 +103,6 @@
   "devDependencies": {
     "@babel/core": "^7.28.5",
     "@babel/preset-typescript": "^7.28.5",
-    "solid-js": "^1.9.10",
     "@playwright/test": "^1.40.0",
     "@tailwindcss/cli": "^4.1.17",
     "@types/babel__core": "^7.20.5",
@@ -111,6 +111,8 @@
     "babel-preset-solid": "^1.9.10",
     "concurrently": "^9.1.2",
     "expect-sdk": "0.0.0-canary-20260405095424",
+    "js-tiktoken": "^1.0.21",
+    "solid-js": "^1.9.10",
     "tailwindcss": "^4.1.0",
     "tsx": "^4.21.0"
   },
