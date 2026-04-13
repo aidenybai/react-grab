@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { basename, dirname, join, relative, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { parseSync } from "oxc-parser";
 import type {
   ExportSpecifier,
@@ -12,6 +12,7 @@ import { encodingForModel } from "js-tiktoken";
 const SOURCE_DIR = resolve(import.meta.dirname, "..", "src");
 const OUTPUT_PATH = resolve(import.meta.dirname, "..", "SOURCE.md");
 const SOURCE_EXTENSIONS = new Set([".ts", ".tsx"]);
+const ENTRY_FILES = new Set(["index.ts", "primitives.ts"]);
 
 interface ExportedSymbol {
   name: string;
@@ -42,6 +43,12 @@ interface FileInfo {
   importedBy: string[];
 }
 
+interface UnusedExport {
+  file: string;
+  symbolName: string;
+  kind: string;
+}
+
 const collectSourceFiles = (directory: string): string[] => {
   const entries = readdirSync(directory, { withFileTypes: true });
   const files: string[] = [];
@@ -67,7 +74,6 @@ const resolveImportSpecifier = (
 
   const importerDir = dirname(importerAbsolutePath);
   let resolved = resolve(importerDir, specifier);
-
   resolved = resolved.replace(/\.js$/, "").replace(/\.jsx$/, "");
 
   for (const candidate of [
@@ -103,10 +109,7 @@ const extractExports = (program: Program): ExportedSymbol[] => {
             declaration.type === "TSInterfaceDeclaration" ||
             declaration.type === "TSTypeAliasDeclaration" ||
             declaration.type === "TSEnumDeclaration";
-          exports.push({
-            name,
-            kind: isTypeExport ? "type" : "value",
-          });
+          exports.push({ name, kind: isTypeExport ? "type" : "value" });
         }
         if ("declarations" in declaration && Array.isArray(declaration.declarations)) {
           for (const declarator of declaration.declarations) {
@@ -149,18 +152,10 @@ const specifierToSymbol = (
     };
   }
   if (specifier.type === "ImportDefaultSpecifier") {
-    return {
-      localName: specifier.local.name,
-      importedName: "default",
-      kind: "default",
-    };
+    return { localName: specifier.local.name, importedName: "default", kind: "default" };
   }
   if (specifier.type === "ImportNamespaceSpecifier") {
-    return {
-      localName: specifier.local.name,
-      importedName: "*",
-      kind: "namespace",
-    };
+    return { localName: specifier.local.name, importedName: "*", kind: "namespace" };
   }
   return {
     localName: specifier.exported?.name ?? "?",
@@ -244,8 +239,99 @@ const topologicalSort = (files: Map<string, FileInfo>): FileInfo[] => {
   return ordered;
 };
 
-const fileAnchor = (relativePath: string): string =>
-  relativePath.replace(/[/.]/g, "-").toLowerCase();
+const buildConsumedSymbolsMap = (allFiles: Map<string, FileInfo>): Map<string, Set<string>> => {
+  const consumed = new Map<string, Set<string>>();
+
+  for (const file of allFiles.values()) {
+    for (const importLink of file.imports) {
+      if (!importLink.resolvedPath || !allFiles.has(importLink.resolvedPath)) continue;
+      const targetRelative = allFiles.get(importLink.resolvedPath)!.relativePath;
+
+      if (!consumed.has(targetRelative)) {
+        consumed.set(targetRelative, new Set());
+      }
+      const symbolSet = consumed.get(targetRelative)!;
+
+      for (const symbol of importLink.symbols) {
+        symbolSet.add(symbol.importedName);
+      }
+    }
+  }
+
+  return consumed;
+};
+
+const findUnusedExports = (
+  allFiles: Map<string, FileInfo>,
+  consumedSymbols: Map<string, Set<string>>,
+): UnusedExport[] => {
+  const unused: UnusedExport[] = [];
+
+  for (const file of allFiles.values()) {
+    if (ENTRY_FILES.has(file.relativePath)) continue;
+
+    const hasStarImporter = [...allFiles.values()].some((otherFile) =>
+      otherFile.imports.some(
+        (importLink) =>
+          importLink.resolvedPath === file.absolutePath &&
+          importLink.symbols.length === 0 &&
+          !importLink.isExternal,
+      ),
+    );
+    if (hasStarImporter) continue;
+
+    const consumed = consumedSymbols.get(file.relativePath) ?? new Set();
+
+    for (const exportedSymbol of file.exports) {
+      if (exportedSymbol.kind === "namespace") continue;
+
+      const isConsumed =
+        consumed.has(exportedSymbol.name) ||
+        (exportedSymbol.kind === "default" && consumed.has("default"));
+
+      if (!isConsumed) {
+        unused.push({
+          file: file.relativePath,
+          symbolName: exportedSymbol.name,
+          kind: exportedSymbol.kind,
+        });
+      }
+    }
+  }
+
+  return unused;
+};
+
+const findOrphanFiles = (allFiles: Map<string, FileInfo>): string[] => {
+  const orphans: string[] = [];
+  for (const file of allFiles.values()) {
+    if (ENTRY_FILES.has(file.relativePath)) continue;
+    if (file.importedBy.length === 0) {
+      orphans.push(file.relativePath);
+    }
+  }
+  return orphans.sort();
+};
+
+const findSingleConsumerExports = (
+  allFiles: Map<string, FileInfo>,
+): Array<{ file: string; consumer: string }> => {
+  const results: Array<{ file: string; consumer: string }> = [];
+  for (const file of allFiles.values()) {
+    if (ENTRY_FILES.has(file.relativePath)) continue;
+    if (file.importedBy.length === 1 && file.exports.length > 0) {
+      results.push({ file: file.relativePath, consumer: file.importedBy[0] });
+    }
+  }
+  return results.sort((first, second) => first.file.localeCompare(second.file));
+};
+
+const formatSymbolKind = (kind: string): string => {
+  if (kind === "type") return "type ";
+  if (kind === "default") return "default ";
+  if (kind === "namespace") return "* ";
+  return "";
+};
 
 const formatNumber = (value: number): string => value.toLocaleString("en-US");
 
@@ -253,20 +339,10 @@ const generateMarkdown = (orderedFiles: FileInfo[], allFiles: Map<string, FileIn
   const totalTokens = orderedFiles.reduce((sum, file) => sum + file.tokens, 0);
   const totalLines = orderedFiles.reduce((sum, file) => sum + file.lines, 0);
 
-  const externalDeps = new Map<string, string[]>();
-  for (const file of orderedFiles) {
-    for (const importLink of file.imports) {
-      if (importLink.isExternal) {
-        const packageName = importLink.rawSpecifier.startsWith("@")
-          ? importLink.rawSpecifier.split("/").slice(0, 2).join("/")
-          : importLink.rawSpecifier.split("/")[0];
-        if (!externalDeps.has(packageName)) {
-          externalDeps.set(packageName, []);
-        }
-        externalDeps.get(packageName)!.push(file.relativePath);
-      }
-    }
-  }
+  const consumedSymbols = buildConsumedSymbolsMap(allFiles);
+  const unusedExports = findUnusedExports(allFiles, consumedSymbols);
+  const orphanFiles = findOrphanFiles(allFiles);
+  const singleConsumerFiles = findSingleConsumerExports(allFiles);
 
   const lines: string[] = [];
   const push = (...text: string[]) => lines.push(...text);
@@ -274,206 +350,147 @@ const generateMarkdown = (orderedFiles: FileInfo[], allFiles: Map<string, FileIn
   push("# react-grab source");
   push("");
   push(
-    `> **${formatNumber(orderedFiles.length)}** files · **${formatNumber(totalLines)}** lines · **${formatNumber(totalTokens)}** tokens (cl100k_base)`,
+    `${formatNumber(orderedFiles.length)} files, ${formatNumber(totalLines)} lines, ${formatNumber(totalTokens)} tokens`,
+  );
+  push("");
+  push(
+    "Files are topologically sorted: dependencies appear before dependents. Entry points: index.ts (public API), primitives.ts (low-level primitives).",
   );
   push("");
 
-  push("## Table of contents");
+  push("## Analysis");
   push("");
 
-  const groupedFiles = new Map<string, FileInfo[]>();
-  for (const file of orderedFiles) {
-    const directory = dirname(file.relativePath);
-    const groupKey = directory === "." ? "(root)" : directory;
-    if (!groupedFiles.has(groupKey)) {
-      groupedFiles.set(groupKey, []);
-    }
-    groupedFiles.get(groupKey)!.push(file);
-  }
-
-  const directoryOrder = [
-    "(root)",
-    "core",
-    "core/plugins",
-    "components",
-    "components/icons",
-    "components/selection-label",
-    "components/toolbar",
-    "utils",
-  ];
-  const sortedGroups = [...groupedFiles.entries()].sort((first, second) => {
-    const indexFirst = directoryOrder.indexOf(first[0]);
-    const indexSecond = directoryOrder.indexOf(second[0]);
-    const orderFirst = indexFirst === -1 ? 999 : indexFirst;
-    const orderSecond = indexSecond === -1 ? 999 : indexSecond;
-    return orderFirst - orderSecond;
-  });
-
-  for (const [groupName, groupFiles] of sortedGroups) {
-    push(`### ${groupName === "(root)" ? "src/" : `src/${groupName}/`}`);
+  if (orphanFiles.length > 0) {
+    push("### Orphan files (no internal importer)");
     push("");
-    for (const file of groupFiles) {
-      const anchor = fileAnchor(file.relativePath);
-      push(`- [\`${file.relativePath}\`](#${anchor}) — ${formatNumber(file.tokens)} tokens`);
-    }
-    push("");
-  }
-
-  push("## External dependencies");
-  push("");
-  for (const [packageName, importers] of [...externalDeps.entries()].sort()) {
-    const uniqueImporters = [...new Set(importers)].sort();
     push(
-      `- **\`${packageName}\`** — imported by ${uniqueImporters.map((importer) => `[\`${importer}\`](#${fileAnchor(importer)})`).join(", ")}`,
+      "These files are not imported by any other source file. They may be entry points, dead code, or only used at runtime via side effects.",
     );
+    push("");
+    for (const orphan of orphanFiles) {
+      push(`- ${orphan}`);
+    }
+    push("");
   }
-  push("");
 
-  push("## Dependency graph");
-  push("");
-  push("```mermaid");
-  push("graph LR");
+  if (unusedExports.length > 0) {
+    push("### Unused exports (not imported by any internal file)");
+    push("");
+    push(
+      "These symbols are exported but never imported within the codebase. They may be part of the public API consumed externally, or they may be dead code.",
+    );
+    push("");
 
-  const shortName = (relativePath: string): string => {
-    const fileName = basename(relativePath, ".tsx").replace(/\.ts$/, "");
-    const directory = dirname(relativePath);
-    if (directory === ".") return fileName;
-    const parts = directory.split("/");
-    return `${parts[parts.length - 1]}/${fileName}`;
-  };
+    const groupedByFile = new Map<string, UnusedExport[]>();
+    for (const entry of unusedExports) {
+      if (!groupedByFile.has(entry.file)) {
+        groupedByFile.set(entry.file, []);
+      }
+      groupedByFile.get(entry.file)!.push(entry);
+    }
 
-  const mermaidId = (relativePath: string): string => relativePath.replace(/[/.]/g, "_");
+    for (const [filePath, symbols] of [...groupedByFile.entries()].sort()) {
+      const symbolList = symbols
+        .map((symbol) => `${formatSymbolKind(symbol.kind)}${symbol.symbolName}`)
+        .join(", ");
+      push(`- ${filePath}: ${symbolList}`);
+    }
+    push("");
+  }
 
-  const edgeSet = new Set<string>();
+  if (singleConsumerFiles.length > 0) {
+    push("### Single-consumer files (inlining candidates)");
+    push("");
+    push(
+      "These files are only imported by one other file. The code may be better inlined into the consumer.",
+    );
+    push("");
+    for (const { file, consumer } of singleConsumerFiles) {
+      push(`- ${file} → only used by ${consumer}`);
+    }
+    push("");
+  }
+
+  const externalDeps = new Map<string, Set<string>>();
   for (const file of orderedFiles) {
     for (const importLink of file.imports) {
-      if (importLink.resolvedPath && allFiles.has(importLink.resolvedPath)) {
-        const targetInfo = allFiles.get(importLink.resolvedPath)!;
-        const edgeKey = `${file.relativePath}->${targetInfo.relativePath}`;
-        if (!edgeSet.has(edgeKey)) {
-          edgeSet.add(edgeKey);
-          push(
-            `  ${mermaidId(file.relativePath)}["${shortName(file.relativePath)}"] --> ${mermaidId(targetInfo.relativePath)}["${shortName(targetInfo.relativePath)}"]`,
-          );
+      if (importLink.isExternal) {
+        const packageName = importLink.rawSpecifier.startsWith("@")
+          ? importLink.rawSpecifier.split("/").slice(0, 2).join("/")
+          : importLink.rawSpecifier.split("/")[0];
+        if (!externalDeps.has(packageName)) {
+          externalDeps.set(packageName, new Set());
         }
+        externalDeps.get(packageName)!.add(file.relativePath);
       }
     }
   }
-  push("```");
+
+  push("### External dependencies");
+  push("");
+  for (const [packageName, importers] of [...externalDeps.entries()].sort()) {
+    push(`- ${packageName}: ${[...importers].sort().join(", ")}`);
+  }
   push("");
 
   push("---");
   push("");
-  push("## Source files");
-  push("");
 
   for (const file of orderedFiles) {
-    const anchor = fileAnchor(file.relativePath);
-    push(`### ${file.relativePath}`);
-    push(`<a id="${anchor}"></a>`);
+    push(`## ${file.relativePath}`);
     push("");
-
-    push(`**${formatNumber(file.tokens)}** tokens · **${formatNumber(file.lines)}** lines`);
-    push("");
+    push(`${file.tokens} tokens, ${file.lines} lines`);
 
     const internalImports = file.imports.filter(
       (importLink) => !importLink.isExternal && importLink.resolvedPath,
     );
     const externalImports = file.imports.filter((importLink) => importLink.isExternal);
 
-    if (internalImports.length > 0 || externalImports.length > 0) {
-      push("<details>");
-      push("<summary>Imports</summary>");
-      push("");
+    if (internalImports.length > 0) {
+      const importLines = internalImports.map((importLink) => {
+        const targetInfo = allFiles.get(importLink.resolvedPath!);
+        const targetRelative = targetInfo?.relativePath ?? importLink.rawSpecifier;
+        const symbolList = importLink.symbols
+          .map(
+            (symbol) =>
+              `${formatSymbolKind(symbol.kind)}${symbol.importedName !== symbol.localName ? `${symbol.importedName} as ` : ""}${symbol.localName}`,
+          )
+          .join(", ");
+        return symbolList ? `${targetRelative} { ${symbolList} }` : targetRelative;
+      });
+      push(`imports: ${importLines.join("; ")}`);
+    }
 
-      if (internalImports.length > 0) {
-        push("**Internal:**");
-        push("");
-        for (const importLink of internalImports) {
-          const targetInfo = allFiles.get(importLink.resolvedPath!);
-          const targetRelative = targetInfo?.relativePath ?? importLink.rawSpecifier;
-          const targetAnchor = targetInfo ? fileAnchor(targetInfo.relativePath) : "";
-          const symbolList = importLink.symbols
-            .map((symbol) => {
-              const prefix =
-                symbol.kind === "type"
-                  ? "type "
-                  : symbol.kind === "default"
-                    ? "default "
-                    : symbol.kind === "namespace"
-                      ? "* as "
-                      : "";
-              return `\`${prefix}${symbol.localName}\``;
-            })
-            .join(", ");
-          const symbolSuffix = symbolList ? ` — ${symbolList}` : "";
-          if (targetInfo) {
-            push(`- [\`${targetRelative}\`](#${targetAnchor})${symbolSuffix}`);
-          } else {
-            push(`- \`${importLink.rawSpecifier}\`${symbolSuffix}`);
-          }
-        }
-        push("");
-      }
-
-      if (externalImports.length > 0) {
-        push("**External:**");
-        push("");
-        for (const importLink of externalImports) {
-          const symbolList = importLink.symbols
-            .map((symbol) => {
-              const prefix =
-                symbol.kind === "type"
-                  ? "type "
-                  : symbol.kind === "default"
-                    ? "default "
-                    : symbol.kind === "namespace"
-                      ? "* as "
-                      : "";
-              return `\`${prefix}${symbol.localName}\``;
-            })
-            .join(", ");
-          const symbolSuffix = symbolList ? ` — ${symbolList}` : "";
-          push(`- \`${importLink.rawSpecifier}\`${symbolSuffix}`);
-        }
-        push("");
-      }
-
-      push("</details>");
-      push("");
+    if (externalImports.length > 0) {
+      const importLines = externalImports.map((importLink) => {
+        const symbolList = importLink.symbols
+          .map(
+            (symbol) =>
+              `${formatSymbolKind(symbol.kind)}${symbol.importedName !== symbol.localName ? `${symbol.importedName} as ` : ""}${symbol.localName}`,
+          )
+          .join(", ");
+        return symbolList
+          ? `${importLink.rawSpecifier} { ${symbolList} }`
+          : importLink.rawSpecifier;
+      });
+      push(`external: ${importLines.join("; ")}`);
     }
 
     if (file.exports.length > 0) {
-      push("<details>");
-      push("<summary>Exports</summary>");
-      push("");
-      for (const exportedSymbol of file.exports) {
-        const prefix =
-          exportedSymbol.kind === "type"
-            ? "type "
-            : exportedSymbol.kind === "default"
-              ? "default "
-              : exportedSymbol.kind === "namespace"
-                ? "* "
-                : "";
-        push(`- \`${prefix}${exportedSymbol.name}\``);
-      }
-      push("");
-      push("</details>");
-      push("");
+      const exportList = file.exports
+        .map((symbol) => `${formatSymbolKind(symbol.kind)}${symbol.name}`)
+        .join(", ");
+      push(`exports: ${exportList}`);
     }
 
     if (file.importedBy.length > 0) {
-      push("<details>");
-      push("<summary>Imported by</summary>");
-      push("");
-      for (const importerPath of file.importedBy.sort()) {
-        push(`- [\`${importerPath}\`](#${fileAnchor(importerPath)})`);
-      }
-      push("");
-      push("</details>");
-      push("");
+      push(`imported by: ${file.importedBy.sort().join(", ")}`);
+    } else if (!ENTRY_FILES.has(file.relativePath)) {
+      push("imported by: (none — possible dead code)");
     }
+
+    push("");
 
     const extension = file.relativePath.endsWith(".tsx") ? "tsx" : "ts";
     push(`\`\`\`${extension}`);
