@@ -1,0 +1,27 @@
+packages/react-grab/src/styles.css
+  e462c1fd89cd138c 132-146
+packages/react-grab/src/components/toolbar/index.tsx
+  e462c1fd89cd138c 694,696,701-711,716
+packages/react-grab/src/components/icons/icon-record.tsx
+  e462c1fd89cd138c 20-24,41
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "be3f0a380142bd0e11af757b977296e0f5583be4",
+  "prompts": {
+    "e462c1fd89cd138c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "7efdc8b6-b09f-42f5-8db3-ee72e5a78a07",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Nisarg Patel",
+      "messages": [],
+      "total_additions": 49,
+      "total_deletions": 23,
+      "accepted_lines": 37,
+      "overriden_lines": 0
+    }
+  }
+}
