@@ -3923,20 +3923,4 @@ export { getStack, getElementContext as formatElementInfo } from "./context.js";
 export { isInstrumentationActive } from "bippy";
 export { DEFAULT_THEME } from "./theme.js";
 
-export type {
-  Options,
-  OverlayBounds,
-  ReactGrabRendererProps,
-  ReactGrabAPI,
-  SourceInfo,
-  AgentContext,
-  SettableOptions,
-  ContextMenuAction,
-  ActionContext,
-  Plugin,
-  PluginConfig,
-  PluginHooks,
-} from "../types.js";
-
-export { generateSnippet } from "../utils/generate-snippet.js";
-export { copyContent } from "../utils/copy-content.js";
+export type { Options, ReactGrabAPI, AgentContext, Plugin } from "../types.js";
