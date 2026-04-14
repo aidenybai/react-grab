@@ -17,7 +17,11 @@ export const IconRecord: Component<IconRecordProps> = (props) => {
       fill="currentColor"
       class={props.class}
     >
-      <circle cx="12" cy="12" r="8" />
+      <path
+        opacity="0.4"
+        d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"
+      />
+      <circle cx="12" cy="12" r="5" />
     </svg>
   );
 };
@@ -34,7 +38,7 @@ export const IconStop: Component<IconRecordProps> = (props) => {
       fill="currentColor"
       class={props.class}
     >
-      <rect x="6" y="6" width="12" height="12" rx="2" />
+      <rect x="4" y="4" width="16" height="16" rx="4" />
     </svg>
   );
 };

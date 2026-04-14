@@ -691,23 +691,29 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             aria-label={props.isRecording ? "Stop recording" : "Start recording"}
             aria-pressed={Boolean(props.isRecording)}
             class={cn(
-              "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox relative",
+              "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
               buttonSpacingClass(),
+              hitboxConstraintClass(),
             )}
             onClick={handleRecording}
             {...createFreezeHandlers({ shouldFreezeInteractions: false })}
           >
-            <Show
-              when={props.isRecording}
-              fallback={<IconRecord size={14} class="text-[#B3B3B3] transition-colors" />}
-            >
-              <IconStop size={14} class="text-red-500 transition-colors" />
-              <Show when={(props.recordingActionCount ?? 0) > 0}>
+            <span class="inline-flex relative">
+              <Show
+                when={props.isRecording}
+                fallback={<IconRecord size={14} class="text-[#B3B3B3] transition-colors" />}
+              >
+                <IconStop
+                  size={14}
+                  class="text-red-500 transition-colors animate-recording-pulse"
+                />
+              </Show>
+              <Show when={props.isRecording && (props.recordingActionCount ?? 0) > 0}>
                 <span class="absolute -top-1 -right-1 min-w-2.5 h-2.5 px-0.5 flex items-center justify-center rounded-full bg-red-500 text-white text-[8px] font-semibold leading-none">
                   {props.recordingActionCount}
                 </span>
               </Show>
-            </Show>
+            </span>
           </button>
         }
         commentsButton={

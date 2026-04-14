@@ -129,6 +129,21 @@
   will-change: transform;
 }
 
+@keyframes recording-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-recording-pulse {
+  animation: recording-pulse 1.5s ease-in-out infinite;
+  will-change: opacity;
+}
+
 .animate-shake {
   animation: shake 0.3s ease-out;
   will-change: transform;
