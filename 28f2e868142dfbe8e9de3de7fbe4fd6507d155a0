@@ -1,0 +1,37 @@
+packages/react-grab/src/core/index.tsx
+  e462c1fd89cd138c 152,299-314,3810-3812
+packages/react-grab/src/types.ts
+  e462c1fd89cd138c 446-448
+packages/react-grab/src/components/renderer.tsx
+  e462c1fd89cd138c 139-141
+packages/react-grab/src/constants.ts
+  e462c1fd89cd138c 153
+packages/react-grab/src/components/toolbar/index.tsx
+  e462c1fd89cd138c 9,59-61,352-353,687-712
+packages/react-grab/src/components/icons/icon-record.tsx
+  e462c1fd89cd138c 1-40
+packages/react-grab/src/core/recorder.ts
+  e462c1fd89cd138c 1-56,58-182
+packages/react-grab/src/components/toolbar/toolbar-content.tsx
+  e462c1fd89cd138c 16,128-130
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "28f2e868142dfbe8e9de3de7fbe4fd6507d155a0",
+  "prompts": {
+    "e462c1fd89cd138c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "7efdc8b6-b09f-42f5-8db3-ee72e5a78a07",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Nisarg Patel",
+      "messages": [],
+      "total_additions": 288,
+      "total_deletions": 2,
+      "accepted_lines": 284,
+      "overriden_lines": 1
+    }
+  }
+}
