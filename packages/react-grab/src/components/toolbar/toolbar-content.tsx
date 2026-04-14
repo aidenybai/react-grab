@@ -13,6 +13,7 @@ interface ToolbarContentProps {
   onPanelClick?: (event: MouseEvent) => void;
   onCollapseClick?: (event: MouseEvent) => void;
   selectButton?: JSX.Element;
+  recordButton?: JSX.Element;
   commentsButton?: JSX.Element;
   copyAllButton?: JSX.Element;
   collapseButton?: JSX.Element;
@@ -123,6 +124,9 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
           <div class={cn("flex items-center", isVertical() && "flex-col")}>
             <div class={cn("relative overflow-visible", minDimensionClass())}>
               {props.selectButton}
+            </div>
+            <div class={cn("relative overflow-visible", minDimensionClass())}>
+              {props.recordButton}
             </div>
             <div
               class={cn(

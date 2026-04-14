@@ -6,6 +6,7 @@ import { loadToolbarState, saveToolbarState, type SnapEdge, type ToolbarState } 
 import { IconSelect } from "../icons/icon-select.jsx";
 import { IconComment } from "../icons/icon-comment.jsx";
 import { IconCopy } from "../icons/icon-copy.jsx";
+import { IconRecord, IconStop } from "../icons/icon-record.jsx";
 import { createSafePolygonTracker, type TargetRect } from "../../utils/safe-polygon.js";
 import {
   TOOLBAR_SNAP_MARGIN_PX,
@@ -55,6 +56,9 @@ interface ToolbarProps {
   isCommentsDropdownOpen?: boolean;
   isCommentsPinned?: boolean;
   onToggleToolbarMenu?: () => void;
+  isRecording?: boolean;
+  recordingActionCount?: number;
+  onToggleRecording?: () => void;
 }
 
 interface FreezeHandlersOptions {
@@ -344,6 +348,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   };
 
   const handleToggle = drag.createDragAwareHandler(() => props.onToggle?.());
+
+  const handleRecording = drag.createDragAwareHandler(() => props.onToggleRecording?.());
 
   const handleComments = drag.createDragAwareHandler(() => props.onToggleComments?.());
 
@@ -676,6 +682,32 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               size={14}
               class={cn("transition-colors", props.isActive ? "text-black" : "text-black/70")}
             />
+          </button>
+        }
+        recordButton={
+          <button
+            data-react-grab-ignore-events
+            data-react-grab-toolbar-record
+            aria-label={props.isRecording ? "Stop recording" : "Start recording"}
+            aria-pressed={Boolean(props.isRecording)}
+            class={cn(
+              "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox relative",
+              buttonSpacingClass(),
+            )}
+            onClick={handleRecording}
+            {...createFreezeHandlers({ shouldFreezeInteractions: false })}
+          >
+            <Show
+              when={props.isRecording}
+              fallback={<IconRecord size={14} class="text-[#B3B3B3] transition-colors" />}
+            >
+              <IconStop size={14} class="text-red-500 transition-colors" />
+              <Show when={(props.recordingActionCount ?? 0) > 0}>
+                <span class="absolute -top-1 -right-1 min-w-2.5 h-2.5 px-0.5 flex items-center justify-center rounded-full bg-red-500 text-white text-[8px] font-semibold leading-none">
+                  {props.recordingActionCount}
+                </span>
+              </Show>
+            </Show>
           </button>
         }
         commentsButton={

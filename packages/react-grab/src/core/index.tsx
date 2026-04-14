@@ -149,6 +149,7 @@ import { generateId } from "../utils/generate-id.js";
 import { logRecoverableError } from "../utils/log-recoverable-error.js";
 import { lockViewportZoom } from "../utils/lock-viewport-zoom.js";
 import { getNearestEdge } from "../utils/get-nearest-edge.js";
+import { createRecorder } from "./recorder.js";
 
 const builtInPlugins = [copyPlugin, commentPlugin, copyHtmlPlugin, copyStylesPlugin, openPlugin];
 
@@ -294,6 +295,22 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [clockFlashTrigger, setClockFlashTrigger] = createSignal(0);
     const [isCommentsHoverOpen, setIsCommentsHoverOpen] = createSignal(false);
     let commentsHoverPreviews: { boxId: string; labelId: string | null }[] = [];
+
+    const [isRecording, setIsRecording] = createSignal(false);
+    const [recordingActionCount, setRecordingActionCount] = createSignal(0);
+
+    const recorder = createRecorder(
+      (recording) => setIsRecording(recording),
+      (count) => setRecordingActionCount(count),
+    );
+
+    const handleToggleRecording = () => {
+      if (recorder.isRecording()) {
+        void recorder.stop();
+      } else {
+        recorder.start();
+      }
+    };
 
     const updateToolbarState = (updates: Partial<ToolbarState>) => {
       const currentState = currentToolbarState() ?? loadToolbarState();
@@ -3790,6 +3807,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                   handleCommentsClear();
                 }}
                 onClearCommentsCancel={dismissClearPrompt}
+                isRecording={isRecording()}
+                recordingActionCount={recordingActionCount()}
+                onToggleRecording={handleToggleRecording}
               />
             );
           }, rendererRoot);

@@ -136,6 +136,9 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           isCommentsDropdownOpen={Boolean(props.commentsDropdownPosition)}
           isCommentsPinned={props.isCommentsPinned}
           onToggleToolbarMenu={props.onToggleToolbarMenu}
+          isRecording={props.isRecording}
+          recordingActionCount={props.recordingActionCount}
+          onToggleRecording={props.onToggleRecording}
         />
       </Show>
       <ContextMenu
