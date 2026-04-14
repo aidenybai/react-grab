@@ -106,6 +106,39 @@ test.describe("Toolbar", () => {
 
       expect(isCollapsed || !isActive).toBe(true);
     });
+
+    test("collapsing should disable and expanding should re-enable", async ({ reactGrab }) => {
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
+
+      const isEnabledViaApi = () =>
+        reactGrab.page.evaluate(() => {
+          const api = (window as { __REACT_GRAB__?: { isEnabled: () => boolean } }).__REACT_GRAB__;
+          return api?.isEnabled() ?? false;
+        });
+
+      expect(await isEnabledViaApi()).toBe(true);
+
+      await reactGrab.clickToolbarCollapse();
+      await expect.poll(() => reactGrab.isToolbarCollapsed(), { timeout: 2000 }).toBe(true);
+      await reactGrab.page.waitForTimeout(200);
+
+      expect(await isEnabledViaApi()).toBe(false);
+
+      await reactGrab.page.evaluate((attrName) => {
+        const host = document.querySelector(`[${attrName}]`);
+        const shadowRoot = host?.shadowRoot;
+        if (!shadowRoot) return;
+        const root = shadowRoot.querySelector(`[${attrName}]`);
+        const toolbar = root?.querySelector<HTMLElement>("[data-react-grab-toolbar]");
+        const innerDiv = toolbar?.querySelector("div");
+        innerDiv?.click();
+      }, "data-react-grab");
+
+      await expect.poll(() => reactGrab.isToolbarCollapsed(), { timeout: 2000 }).toBe(false);
+      await reactGrab.page.waitForTimeout(200);
+
+      expect(await isEnabledViaApi()).toBe(true);
+    });
   });
 
   test.describe("Dragging", () => {
@@ -610,7 +643,7 @@ test.describe("Toolbar", () => {
       await expect.poll(() => reactGrab.isToolbarCollapsed(), { timeout: 2000 }).toBe(false);
     });
 
-    test("should collapse and expand in vertical mode", async ({ reactGrab }) => {
+    test("should collapse and expand via chevron in vertical mode", async ({ reactGrab }) => {
       await seedVerticalState(reactGrab.page, "right");
       await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 }).toBe(true);
 
