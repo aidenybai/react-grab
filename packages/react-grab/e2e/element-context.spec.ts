@@ -72,11 +72,22 @@ test.describe("Element Context Fallback", () => {
       reactGrab,
     }) => {
       await reactGrab.page.evaluate(() => {
+        const wrapper = document.createElement("div");
+        Object.assign(wrapper.style, {
+          position: "fixed",
+          top: "200px",
+          left: "200px",
+          width: "200px",
+          height: "100px",
+          zIndex: "999",
+        });
         const plainElement = document.createElement("div");
         plainElement.id = "plain-dom-element";
         plainElement.className = "test-class";
         plainElement.textContent = "Plain DOM content";
-        document.body.appendChild(plainElement);
+        Object.assign(plainElement.style, { width: "100%", height: "100%", background: "#eee" });
+        wrapper.appendChild(plainElement);
+        document.body.appendChild(wrapper);
       });
 
       await reactGrab.activate();
@@ -92,6 +103,13 @@ test.describe("Element Context Fallback", () => {
 
     test("should include priority attrs for SVG elements", async ({ reactGrab }) => {
       await reactGrab.page.evaluate(() => {
+        const wrapper = document.createElement("div");
+        Object.assign(wrapper.style, {
+          position: "fixed",
+          top: "200px",
+          left: "200px",
+          zIndex: "999",
+        });
         const svgElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         svgElement.id = "test-svg-icon";
         svgElement.setAttribute("class", "icon-class");
@@ -99,7 +117,8 @@ test.describe("Element Context Fallback", () => {
         svgElement.setAttribute("viewBox", "0 0 24 24");
         svgElement.style.width = "50px";
         svgElement.style.height = "50px";
-        document.body.appendChild(svgElement);
+        wrapper.appendChild(svgElement);
+        document.body.appendChild(wrapper);
       });
 
       await reactGrab.activate();
@@ -118,11 +137,21 @@ test.describe("Element Context Fallback", () => {
 
     test("should truncate long outerHTML to max length", async ({ reactGrab }) => {
       await reactGrab.page.evaluate(() => {
+        const wrapper = document.createElement("div");
+        Object.assign(wrapper.style, {
+          position: "fixed",
+          top: "200px",
+          left: "200px",
+          width: "200px",
+          height: "100px",
+          zIndex: "999",
+        });
         const longElement = document.createElement("div");
         longElement.id = "long-dom-element";
         longElement.className = "a".repeat(300);
         longElement.textContent = "b".repeat(300);
-        document.body.appendChild(longElement);
+        wrapper.appendChild(longElement);
+        document.body.appendChild(wrapper);
       });
 
       await reactGrab.activate();

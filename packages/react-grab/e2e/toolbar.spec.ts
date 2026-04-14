@@ -99,12 +99,25 @@ test.describe("Toolbar", () => {
       await reactGrab.clickToolbarCollapse();
       await expect.poll(() => reactGrab.isToolbarCollapsed(), { timeout: 2000 }).toBe(true);
 
-      await reactGrab.clickToolbarToggle();
+      await reactGrab.page.evaluate((attrName) => {
+        const host = document.querySelector(`[${attrName}]`);
+        const shadowRoot = host?.shadowRoot;
+        if (!shadowRoot) return;
+        const root = shadowRoot.querySelector(`[${attrName}]`);
+        if (!root) return;
+        const toggleButton = root.querySelector<HTMLButtonElement>(
+          "[data-react-grab-toolbar-toggle]",
+        );
+        toggleButton?.click();
+      }, "data-react-grab");
+
+      await reactGrab.page.waitForTimeout(500);
 
       const isActive = await reactGrab.isOverlayVisible();
       const isCollapsed = await reactGrab.isToolbarCollapsed();
 
-      expect(isCollapsed || !isActive).toBe(true);
+      expect(isActive).toBe(false);
+      expect(isCollapsed).toBe(true);
     });
 
     test("collapsing should disable and expanding should re-enable", async ({ reactGrab }) => {
