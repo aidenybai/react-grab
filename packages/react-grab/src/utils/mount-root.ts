@@ -40,6 +40,11 @@ export const mountRoot = (cssText?: string) => {
 
   const mountTarget = document.documentElement;
   mountTarget.appendChild(host);
+  // Re-appending after a delay handles two cases: framework hydration
+  // (React/Next.js) may blow away the DOM and remove our host, and another
+  // tool (e.g. react-scan) may have appended at the same z-index where last
+  // DOM child wins the stacking tiebreaker. Moving an already-attached node
+  // via appendChild is atomic with no flash or reflow.
   setTimeout(() => {
     mountTarget.appendChild(host);
   }, MOUNT_ROOT_RECHECK_DELAY_MS);
