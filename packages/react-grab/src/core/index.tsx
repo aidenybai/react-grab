@@ -240,10 +240,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       () => store.current.state === "active" && store.current.phase === "justDragged",
     );
     const isCopying = createMemo(() => store.current.state === "copying");
+    const [selectionInteractionLockDepth, setSelectionInteractionLockDepth] = createSignal(0);
     const isSelectionInteractionLocked = createMemo(
-      () =>
-        isCopying() ||
-        store.labelInstances.some((labelInstance) => labelInstance.status === "copying"),
+      () => isCopying() || selectionInteractionLockDepth() > 0,
     );
     const didJustCopy = createMemo(() => store.current.state === "justCopied");
     const isPromptMode = createMemo(
@@ -3106,6 +3105,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
     );
 
+    const withSelectionInteractionLock = async <T,>(operation: () => Promise<T>): Promise<T> => {
+      setSelectionInteractionLockDepth((currentLockDepth) => currentLockDepth + 1);
+      try {
+        return await operation();
+      } finally {
+        setSelectionInteractionLockDepth((currentLockDepth) => Math.max(0, currentLockDepth - 1));
+      }
+    };
+
     const createPerformWithFeedback = (
       element: Element,
       elements: Element[],
@@ -3114,73 +3122,75 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       options?: PerformWithFeedbackOptions,
     ) => {
       return async (action: () => Promise<boolean>): Promise<void> => {
-        const fallbackBounds = options?.fallbackBounds ?? null;
-        const fallbackSelectionBounds = options?.fallbackSelectionBounds ?? [];
-        const position = options?.position ?? store.contextMenuPosition ?? store.pointer;
-        const frozenBounds = frozenElementsBounds();
-        const singleElementBounds = contextMenuBounds() ?? fallbackBounds;
-        const hasMultipleElements = elements.length > 1;
+        await withSelectionInteractionLock(async () => {
+          const fallbackBounds = options?.fallbackBounds ?? null;
+          const fallbackSelectionBounds = options?.fallbackSelectionBounds ?? [];
+          const position = options?.position ?? store.contextMenuPosition ?? store.pointer;
+          const frozenBounds = frozenElementsBounds();
+          const singleElementBounds = contextMenuBounds() ?? fallbackBounds;
+          const hasMultipleElements = elements.length > 1;
 
-        const labelBounds = hasMultipleElements
-          ? createFlatOverlayBounds(combineBounds(frozenBounds))
-          : singleElementBounds;
+          const labelBounds = hasMultipleElements
+            ? createFlatOverlayBounds(combineBounds(frozenBounds))
+            : singleElementBounds;
 
-        const shouldDeactivateAfter = store.wasActivatedByToggle;
-        let selectionBoundsForLabel: OverlayBounds[];
-        if (hasMultipleElements) {
-          selectionBoundsForLabel = frozenBounds;
-        } else if (singleElementBounds) {
-          selectionBoundsForLabel = [singleElementBounds];
-        } else {
-          selectionBoundsForLabel = fallbackSelectionBounds;
-        }
+          const shouldDeactivateAfter = store.wasActivatedByToggle;
+          let selectionBoundsForLabel: OverlayBounds[];
+          if (hasMultipleElements) {
+            selectionBoundsForLabel = frozenBounds;
+          } else if (singleElementBounds) {
+            selectionBoundsForLabel = [singleElementBounds];
+          } else {
+            selectionBoundsForLabel = fallbackSelectionBounds;
+          }
 
-        actions.hideContextMenu();
+          actions.hideContextMenu();
 
-        if (labelBounds) {
-          const labelCursorX = hasMultipleElements
-            ? labelBounds.x + labelBounds.width / 2
-            : position.x;
+          if (labelBounds) {
+            const labelCursorX = hasMultipleElements
+              ? labelBounds.x + labelBounds.width / 2
+              : position.x;
 
-          const labelInstanceId = createLabelInstance(
-            labelBounds,
-            tagName || "element",
-            componentName,
-            "copying",
-            {
-              element,
-              mouseX: labelCursorX,
-              elements: hasMultipleElements ? elements : undefined,
-              boundsMultiple: selectionBoundsForLabel,
-            },
-          );
+            const labelInstanceId = createLabelInstance(
+              labelBounds,
+              tagName || "element",
+              componentName,
+              "copying",
+              {
+                element,
+                mouseX: labelCursorX,
+                elements: hasMultipleElements ? elements : undefined,
+                boundsMultiple: selectionBoundsForLabel,
+              },
+            );
 
-          let didSucceed = false;
-          let errorMessage: string | undefined;
+            let didSucceed = false;
+            let errorMessage: string | undefined;
 
-          try {
-            didSucceed = await action();
-            if (!didSucceed) {
-              errorMessage = "Failed to copy";
+            try {
+              didSucceed = await action();
+              if (!didSucceed) {
+                errorMessage = "Failed to copy";
+              }
+            } catch (error) {
+              errorMessage = normalizeErrorMessage(error, "Action failed");
             }
-          } catch (error) {
-            errorMessage = normalizeErrorMessage(error, "Action failed");
+
+            updateLabelAfterCopy(labelInstanceId, didSucceed, errorMessage);
+          } else {
+            try {
+              await action();
+            } catch (error) {
+              logRecoverableError("Action failed without feedback bounds", error);
+            }
           }
 
-          updateLabelAfterCopy(labelInstanceId, didSucceed, errorMessage);
-        } else {
-          try {
-            await action();
-          } catch (error) {
-            logRecoverableError("Action failed without feedback bounds", error);
+          if (shouldDeactivateAfter) {
+            deactivateRenderer();
+          } else {
+            actions.unfreeze();
           }
-        }
-
-        if (shouldDeactivateAfter) {
-          deactivateRenderer();
-        } else {
-          actions.unfreeze();
-        }
+        });
       };
     };
 
