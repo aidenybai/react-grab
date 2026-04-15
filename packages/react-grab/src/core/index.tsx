@@ -242,7 +242,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const isCopying = createMemo(() => store.current.state === "copying");
     const isSelectionInteractionLocked = createMemo(
       () =>
-        isCopying() || store.labelInstances.some((labelInstance) => labelInstance.status === "copying"),
+        isCopying() ||
+        store.labelInstances.some((labelInstance) => labelInstance.status === "copying"),
     );
     const didJustCopy = createMemo(() => store.current.state === "justCopied");
     const isPromptMode = createMemo(

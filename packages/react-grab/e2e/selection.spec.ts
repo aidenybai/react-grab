@@ -98,7 +98,10 @@ test.describe("Element Selection", () => {
       throw new Error("Could not get main description bounds");
     }
 
-    await reactGrab.page.mouse.move(descriptionBounds.x + 5, descriptionBounds.y + descriptionBounds.height / 2);
+    await reactGrab.page.mouse.move(
+      descriptionBounds.x + 5,
+      descriptionBounds.y + descriptionBounds.height / 2,
+    );
     await reactGrab.page.mouse.down();
     await reactGrab.page.mouse.move(
       descriptionBounds.x + descriptionBounds.width - 5,
