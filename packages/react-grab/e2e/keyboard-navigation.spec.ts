@@ -168,6 +168,31 @@ test.describe("Navigation History and Wrapping", () => {
     expect(isVisible).toBe(true);
   });
 
+  test("ArrowUp at first sibling should not lock later click selection", async ({ reactGrab }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverElement("li:first-child");
+    await reactGrab.waitForSelectionBox();
+
+    await reactGrab.pressArrowUp();
+    await reactGrab.waitForSelectionBox();
+
+    const plainButton = reactGrab.page.locator("[data-testid='plain-button']");
+    const plainButtonBounds = await plainButton.boundingBox();
+    expect(plainButtonBounds).not.toBeNull();
+    if (!plainButtonBounds) {
+      throw new Error("Unable to find plain button bounds");
+    }
+
+    await reactGrab.page.mouse.click(
+      plainButtonBounds.x + plainButtonBounds.width / 2,
+      plainButtonBounds.y + plainButtonBounds.height / 2,
+    );
+
+    await expect.poll(() => reactGrab.getClipboardContent(), { timeout: 5000 }).toContain(
+      "Plain Button",
+    );
+  });
+
   test("ArrowDown at last sibling should stay on element", async ({ reactGrab }) => {
     await reactGrab.activate();
     await reactGrab.hoverElement("li:last-child");

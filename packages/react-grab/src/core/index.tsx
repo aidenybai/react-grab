@@ -1727,19 +1727,22 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         ? keyboardSelectedElement
         : null;
 
-      const element =
-        validFrozenElement ??
-        validKeyboardSelectedElement ??
+      const clickedElement =
         getElementAtPosition(clientX, clientY) ??
         (isElementConnected(store.detectedElement) ? store.detectedElement : null);
+
+      const element =
+        clickedElement ?? validFrozenElement ?? validKeyboardSelectedElement;
       if (!element) return;
 
-      const didSelectViaKeyboard = !validFrozenElement && validKeyboardSelectedElement === element;
+      const didSelectViaFrozenElement = !clickedElement && validFrozenElement === element;
+      const didSelectViaKeyboard =
+        !clickedElement && !validFrozenElement && validKeyboardSelectedElement === element;
 
       let positionX: number;
       let positionY: number;
 
-      if (validFrozenElement) {
+      if (didSelectViaFrozenElement) {
         positionX = store.pointer.x;
         positionY = store.pointer.y;
       } else if (didSelectViaKeyboard) {
