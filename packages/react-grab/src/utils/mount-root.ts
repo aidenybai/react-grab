@@ -8,18 +8,14 @@ const FONT_IMPORT =
   '@import url("https://fonts.googleapis.com/css2?family=Geist:wght@500&display=swap");';
 
 export const mountRoot = (cssText?: string) => {
-  const getMountTarget = (): HTMLElement => {
-    return document.body ?? document.documentElement;
-  };
+  const getMountTarget = (): HTMLElement => document.body ?? document.documentElement;
 
   const removeBrokenHosts = (activeHost?: HTMLElement): void => {
     const mountedHosts = document.querySelectorAll<HTMLElement>(`[${ATTRIBUTE_NAME}]`);
     for (const mountedHost of mountedHosts) {
       if (mountedHost === activeHost) continue;
       const mountedRoot = mountedHost.shadowRoot?.querySelector(`[${ATTRIBUTE_NAME}]`);
-      if (!(mountedRoot instanceof HTMLDivElement)) {
-        mountedHost.remove();
-      }
+      if (!(mountedRoot instanceof HTMLDivElement)) mountedHost.remove();
     }
   };
 
@@ -28,9 +24,7 @@ export const mountRoot = (cssText?: string) => {
   const mountedHosts = document.querySelectorAll<HTMLElement>(`[${ATTRIBUTE_NAME}]`);
   for (const mountedHost of mountedHosts) {
     const mountedRoot = mountedHost.shadowRoot?.querySelector(`[${ATTRIBUTE_NAME}]`);
-    if (mountedRoot instanceof HTMLDivElement) {
-      return mountedRoot;
-    }
+    if (mountedRoot instanceof HTMLDivElement) return mountedRoot;
   }
 
   const host = document.createElement("div");
@@ -57,11 +51,9 @@ export const mountRoot = (cssText?: string) => {
   shadowRoot.appendChild(root);
 
   const appendHostToMountTarget = () => {
-    removeBrokenHosts(host);
     const mountTarget = getMountTarget();
-    if (host.parentNode !== mountTarget || !host.isConnected) {
-      mountTarget.appendChild(host);
-    }
+    if (host.parentNode === mountTarget && host.isConnected) return;
+    mountTarget.appendChild(host);
   };
 
   appendHostToMountTarget();
@@ -71,18 +63,45 @@ export const mountRoot = (cssText?: string) => {
   // tool (e.g. react-scan) may have appended at the same z-index where last
   // DOM child wins the stacking tiebreaker. Moving an already-attached node
   // via appendChild is atomic with no flash or reflow.
-  setTimeout(() => {
+  const delayedRecheckTimeoutId = setTimeout(() => {
+    removeBrokenHosts(host);
     appendHostToMountTarget();
   }, MOUNT_ROOT_RECHECK_DELAY_MS);
 
-  const mountObserver = new MutationObserver(() => {
-    if (host.isConnected && host.parentNode === getMountTarget()) {
-      return;
-    }
+  // Observe only direct child list changes on <html> and <body> to detect
+  // host removal and body replacement without paying subtree-wide costs.
+  let observedBody: HTMLBodyElement | null = null;
+  const bodyObserver = new MutationObserver(() => {
+    if (host.isConnected && host.parentNode === getMountTarget()) return;
     appendHostToMountTarget();
   });
-  mountObserver.observe(document.documentElement, { childList: true, subtree: true });
-  window.addEventListener("beforeunload", () => mountObserver.disconnect(), { once: true });
+
+  const attachBodyObserver = () => {
+    const currentBody = document.body;
+    if (currentBody === observedBody) return;
+    bodyObserver.disconnect();
+    observedBody = currentBody;
+    if (currentBody) bodyObserver.observe(currentBody, { childList: true });
+  };
+
+  const rootObserver = new MutationObserver(() => {
+    removeBrokenHosts(host);
+    attachBodyObserver();
+    appendHostToMountTarget();
+  });
+
+  rootObserver.observe(document.documentElement, { childList: true });
+  attachBodyObserver();
+
+  window.addEventListener(
+    "beforeunload",
+    () => {
+      clearTimeout(delayedRecheckTimeoutId);
+      rootObserver.disconnect();
+      bodyObserver.disconnect();
+    },
+    { once: true },
+  );
 
   return root;
 };
