@@ -240,6 +240,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       () => store.current.state === "active" && store.current.phase === "justDragged",
     );
     const isCopying = createMemo(() => store.current.state === "copying");
+    const isSelectionInteractionLocked = createMemo(
+      () =>
+        isCopying() || store.labelInstances.some((labelInstance) => labelInstance.status === "copying"),
+    );
     const didJustCopy = createMemo(() => store.current.state === "justCopied");
     const isPromptMode = createMemo(
       () => store.current.state === "active" && Boolean(store.current.isPromptMode),
@@ -952,7 +956,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const targetElement = createMemo(() => {
       void store.viewportVersion;
-      if (!isRendererActive() || isDragging()) return null;
+      if (!isRendererActive() || isDragging() || isSelectionInteractionLocked()) return null;
       const element = store.detectedElement;
       if (!isElementConnected(element)) return null;
       return element;
@@ -1598,8 +1602,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handlePointerMove = (clientX: number, clientY: number) => {
-      if (!isEnabled() || isPromptMode() || isFrozenPhase() || store.contextMenuPosition !== null)
+      if (
+        !isEnabled() ||
+        isPromptMode() ||
+        isFrozenPhase() ||
+        isSelectionInteractionLocked() ||
+        store.contextMenuPosition !== null
+      ) {
         return;
+      }
 
       actions.setPointer({ x: clientX, y: clientY });
 
@@ -1654,7 +1665,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handlePointerDown = (clientX: number, clientY: number) => {
-      if (!isRendererActive() || isCopying()) return false;
+      if (!isRendererActive() || isSelectionInteractionLocked()) return false;
 
       actions.startDrag({ x: clientX, y: clientY });
       actions.setPointer({ x: clientX, y: clientY });
@@ -1957,6 +1968,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const handleEnterKeyActivation = (event: KeyboardEvent): boolean => {
       if (!isEnterCode(event.code)) return false;
       if (isKeyboardEventTriggeredByInput(event)) return false;
+      if (isSelectionInteractionLocked()) return false;
 
       const copiedElement = store.lastCopiedElement;
       const canActivateFromCopied =
@@ -2055,6 +2067,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return (
         Boolean(element) &&
         isRendererActive() &&
+        !isSelectionInteractionLocked() &&
         !isPromptMode() &&
         !isDragging() &&
         store.contextMenuPosition === null
@@ -2553,6 +2566,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.setTouchMode(isTouchPointer);
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
+        if (isSelectionInteractionLocked()) return;
         if (isTouchPointer && !isHoldingKeys() && !isActivated()) return;
         const isActiveState = isTouchPointer ? isHoldingKeys() : isActivated();
         if (isActiveState && !isPromptMode() && isFrozenPhase()) {
@@ -2591,6 +2605,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
+        if (isSelectionInteractionLocked()) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          return;
+        }
+
         const didHandle = handlePointerDown(event.clientX, event.clientY);
         if (didHandle) {
           if (event.pointerId !== undefined) {
@@ -2610,7 +2630,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (!event.isPrimary) return;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
-        const isActive = isRendererActive() || isCopying() || isDragging();
+        const isActive = isRendererActive() || isSelectionInteractionLocked() || isDragging();
         const hasModifierKeyHeld = event.metaKey || event.ctrlKey;
         handlePointerUp(event.clientX, event.clientY, hasModifierKeyHeld);
         if (isActive) {
@@ -2736,6 +2756,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (
         isEnabled() &&
         !isPromptMode() &&
+        !isSelectionInteractionLocked() &&
         !isFrozenPhase() &&
         !isDragging() &&
         store.contextMenuPosition === null &&

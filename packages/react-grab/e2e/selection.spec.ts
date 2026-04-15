@@ -59,6 +59,60 @@ test.describe("Element Selection", () => {
     expect(clipboardMetadata.entries[0].content).toContain("Todo List");
   });
 
+  test("should block page text selection while grabbing", async ({ reactGrab }) => {
+    await reactGrab.page.evaluate(() => {
+      const api = (
+        window as {
+          __REACT_GRAB__?: {
+            unregisterPlugin: (name: string) => void;
+            registerPlugin: (plugin: Record<string, unknown>) => void;
+          };
+        }
+      ).__REACT_GRAB__;
+      api?.unregisterPlugin("slow-copy-hook");
+      api?.registerPlugin({
+        name: "slow-copy-hook",
+        hooks: {
+          onBeforeCopy: async () => {
+            await new Promise((resolve) => setTimeout(resolve, 600));
+          },
+        },
+      });
+    });
+
+    await reactGrab.activate();
+    await reactGrab.hoverElement("[data-testid='main-description']");
+    await reactGrab.waitForSelectionBox();
+    await reactGrab.clickElement("[data-testid='main-description']");
+
+    await expect
+      .poll(async () => {
+        const state = await reactGrab.getState();
+        return state.isCopying;
+      })
+      .toBe(true);
+
+    const description = reactGrab.page.locator("[data-testid='main-description']");
+    const descriptionBounds = await description.boundingBox();
+    if (!descriptionBounds) {
+      throw new Error("Could not get main description bounds");
+    }
+
+    await reactGrab.page.mouse.move(descriptionBounds.x + 5, descriptionBounds.y + descriptionBounds.height / 2);
+    await reactGrab.page.mouse.down();
+    await reactGrab.page.mouse.move(
+      descriptionBounds.x + descriptionBounds.width - 5,
+      descriptionBounds.y + descriptionBounds.height / 2,
+      { steps: 8 },
+    );
+    await reactGrab.page.mouse.up();
+
+    const selectedText = await reactGrab.page.evaluate(() => {
+      return window.getSelection()?.toString().trim() ?? "";
+    });
+    expect(selectedText).toBe("");
+  });
+
   test("should highlight different elements when hovering", async ({ reactGrab }) => {
     await reactGrab.activate();
 
