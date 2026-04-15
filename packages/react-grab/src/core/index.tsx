@@ -44,7 +44,6 @@ import { createElementSelector } from "../utils/create-element-selector.js";
 import { getVisibleBoundsCenter } from "../utils/get-visible-bounds-center.js";
 import { invalidateInteractionCaches } from "../utils/invalidate-interaction-caches.js";
 import { normalizeErrorMessage } from "../utils/normalize-error.js";
-import { resolveSingleClickSelection } from "../utils/resolve-single-click-selection.js";
 import {
   createBoundsFromDragRect,
   createFlatOverlayBounds,
@@ -1728,27 +1727,23 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         ? keyboardSelectedElement
         : null;
 
-      const validDetectedElement = isElementConnected(store.detectedElement)
-        ? store.detectedElement
-        : null;
-      const {
-        selectedElement,
-        didResolveFromPointer,
-        didResolveFromFrozenElement,
-        didResolveFromKeyboardElement,
-      } = resolveSingleClickSelection({
-        pointerX: clientX,
-        pointerY: clientY,
-        frozenElement: validFrozenElement,
-        keyboardSelectedElement: validKeyboardSelectedElement,
-        detectedElement: validDetectedElement,
-        getElementsAtPoint,
-        isValidGrabbableElement,
-      });
+      const selectedElementUnderPointer =
+        getElementsAtPoint(clientX, clientY).find((elementAtPointer) =>
+          isValidGrabbableElement(elementAtPointer),
+        ) ?? (isElementConnected(store.detectedElement) ? store.detectedElement : null);
+      const selectedElement =
+        selectedElementUnderPointer ?? validFrozenElement ?? validKeyboardSelectedElement;
       if (!selectedElement) return;
 
       let positionX: number;
       let positionY: number;
+
+      const didResolveFromFrozenElement =
+        selectedElementUnderPointer === null && validFrozenElement === selectedElement;
+      const didResolveFromKeyboardElement =
+        selectedElementUnderPointer === null &&
+        validFrozenElement === null &&
+        validKeyboardSelectedElement === selectedElement;
 
       if (didResolveFromFrozenElement) {
         positionX = store.pointer.x;
@@ -1757,9 +1752,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const elementCenter = getBoundsCenter(createElementBounds(selectedElement));
         positionX = elementCenter.x;
         positionY = elementCenter.y;
-      } else if (didResolveFromPointer) {
-        positionX = clientX;
-        positionY = clientY;
       } else {
         positionX = clientX;
         positionY = clientY;
