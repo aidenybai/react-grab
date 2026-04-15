@@ -76,6 +76,30 @@ describe("detectFramework", () => {
 
     expect(detectFramework("/test")).toBe("next");
   });
+
+  it("should detect TanStack Start", () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(
+      JSON.stringify({
+        dependencies: { "@tanstack/react-start": "1.100.0", "@tanstack/react-router": "1.100.0" },
+        devDependencies: { vite: "6.0.0" },
+      }),
+    );
+
+    expect(detectFramework("/test")).toBe("tanstack");
+  });
+
+  it("should prioritize TanStack Start over Vite if both are present", () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(
+      JSON.stringify({
+        dependencies: { "@tanstack/react-start": "1.100.0" },
+        devDependencies: { vite: "6.0.0" },
+      }),
+    );
+
+    expect(detectFramework("/test")).toBe("tanstack");
+  });
 });
 
 describe("detectNextRouterType", () => {
