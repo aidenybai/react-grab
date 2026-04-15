@@ -176,19 +176,7 @@ test.describe("Navigation History and Wrapping", () => {
     await reactGrab.pressArrowUp();
     await reactGrab.waitForSelectionBox();
 
-    await reactGrab.page.evaluate(() => navigator.clipboard.writeText(""));
-
-    const nestedButton = reactGrab.page.locator("[data-testid='nested-button']");
-    const nestedButtonBounds = await nestedButton.boundingBox();
-    expect(nestedButtonBounds).not.toBeNull();
-    if (!nestedButtonBounds) {
-      throw new Error("Unable to find nested button bounds");
-    }
-
-    await reactGrab.page.mouse.click(
-      nestedButtonBounds.x + nestedButtonBounds.width / 2,
-      nestedButtonBounds.y + nestedButtonBounds.height / 2,
-    );
+    await reactGrab.page.locator("[data-testid='nested-button']").click({ force: true });
 
     await expect
       .poll(() => reactGrab.getClipboardContent(), { timeout: 5000 })

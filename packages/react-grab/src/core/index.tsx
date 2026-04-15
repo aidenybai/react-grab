@@ -44,6 +44,7 @@ import { createElementSelector } from "../utils/create-element-selector.js";
 import { getVisibleBoundsCenter } from "../utils/get-visible-bounds-center.js";
 import { invalidateInteractionCaches } from "../utils/invalidate-interaction-caches.js";
 import { normalizeErrorMessage } from "../utils/normalize-error.js";
+import { resolveSingleClickSelection } from "../utils/resolve-single-click-selection.js";
 import {
   createBoundsFromDragRect,
   createFlatOverlayBounds,
@@ -1727,32 +1728,38 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         ? keyboardSelectedElement
         : null;
 
-      const clickedElementAtPointer =
-        getElementsAtPoint(clientX, clientY).find((elementAtPointer) =>
-          isValidGrabbableElement(elementAtPointer),
-        ) ?? null;
-
-      const clickedElement =
-        clickedElementAtPointer ??
-        (isElementConnected(store.detectedElement) ? store.detectedElement : null);
-
-      const element = clickedElement ?? validFrozenElement ?? validKeyboardSelectedElement;
-      if (!element) return;
-
-      const didSelectViaFrozenElement = !clickedElement && validFrozenElement === element;
-      const didSelectViaKeyboard =
-        !clickedElement && !validFrozenElement && validKeyboardSelectedElement === element;
+      const validDetectedElement = isElementConnected(store.detectedElement)
+        ? store.detectedElement
+        : null;
+      const {
+        selectedElement,
+        didResolveFromPointer,
+        didResolveFromFrozenElement,
+        didResolveFromKeyboardElement,
+      } = resolveSingleClickSelection({
+        pointerX: clientX,
+        pointerY: clientY,
+        frozenElement: validFrozenElement,
+        keyboardSelectedElement: validKeyboardSelectedElement,
+        detectedElement: validDetectedElement,
+        getElementsAtPoint,
+        isValidGrabbableElement,
+      });
+      if (!selectedElement) return;
 
       let positionX: number;
       let positionY: number;
 
-      if (didSelectViaFrozenElement) {
+      if (didResolveFromFrozenElement) {
         positionX = store.pointer.x;
         positionY = store.pointer.y;
-      } else if (didSelectViaKeyboard) {
-        const elementCenter = getBoundsCenter(createElementBounds(element));
+      } else if (didResolveFromKeyboardElement) {
+        const elementCenter = getBoundsCenter(createElementBounds(selectedElement));
         positionX = elementCenter.x;
         positionY = elementCenter.y;
+      } else if (didResolveFromPointer) {
+        positionX = clientX;
+        positionY = clientY;
       } else {
         positionX = clientX;
         positionY = clientY;
@@ -1761,34 +1768,34 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       keyboardSelectedElement = null;
 
       if (store.pendingCommentMode) {
-        enterCommentModeForElement(element, positionX, positionY);
+        enterCommentModeForElement(selectedElement, positionX, positionY);
         return;
       }
 
       if (isPendingContextMenuSelect) {
         isPendingContextMenuSelect = false;
-        const { wasIntercepted } = pluginRegistry.hooks.onElementSelect(element);
+        const { wasIntercepted } = pluginRegistry.hooks.onElementSelect(selectedElement);
         if (wasIntercepted) return;
 
-        freezeAllAnimations([element]);
-        actions.setFrozenElement(element);
+        freezeAllAnimations([selectedElement]);
+        actions.setFrozenElement(selectedElement);
         const position = { x: positionX, y: positionY };
         actions.setPointer(position);
         actions.freeze();
         if (pendingDefaultActionId) {
-          runPendingDefaultAction(element, position);
+          runPendingDefaultAction(selectedElement, position);
         } else {
-          openContextMenu(element, position);
+          openContextMenu(selectedElement, position);
         }
         return;
       }
 
       const shouldDeactivateAfter = store.wasActivatedByToggle && !hasModifierKeyHeld;
 
-      actions.setLastGrabbed(element);
+      actions.setLastGrabbed(selectedElement);
 
       performCopyWithLabel({
-        element,
+        element: selectedElement,
         cursorX: positionX,
         shouldDeactivateAfter,
       });
