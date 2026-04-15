@@ -33,6 +33,17 @@ test.describe("Toolbar", () => {
       await reactGrab.setViewportSize(1280, 720);
       await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
     });
+
+    test("toolbar should recover after body replacement during startup", async ({ reactGrab }) => {
+      await reactGrab.page.evaluate(() => {
+        const originalBody = document.body;
+        if (!originalBody || !originalBody.parentNode) return;
+        const replacementBody = originalBody.cloneNode(true);
+        originalBody.parentNode.replaceChild(replacementBody, originalBody);
+      });
+
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 4000 }).toBe(true);
+    });
   });
 
   test.describe("Toggle Activation", () => {

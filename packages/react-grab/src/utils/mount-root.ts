@@ -8,6 +8,10 @@ const FONT_IMPORT =
   '@import url("https://fonts.googleapis.com/css2?family=Geist:wght@500&display=swap");';
 
 export const mountRoot = (cssText?: string) => {
+  const getMountTarget = (): HTMLElement => {
+    return document.body ?? document.documentElement;
+  };
+
   const mountedHost = document.querySelector(`[${ATTRIBUTE_NAME}]`);
   if (mountedHost) {
     const mountedRoot = mountedHost.shadowRoot?.querySelector(`[${ATTRIBUTE_NAME}]`);
@@ -39,8 +43,14 @@ export const mountRoot = (cssText?: string) => {
 
   shadowRoot.appendChild(root);
 
-  const doc = document.body ?? document.documentElement;
-  doc.appendChild(host);
+  const appendHostToMountTarget = () => {
+    const mountTarget = getMountTarget();
+    if (host.parentNode !== mountTarget || !host.isConnected) {
+      mountTarget.appendChild(host);
+    }
+  };
+
+  appendHostToMountTarget();
 
   // Re-appending after a delay handles two cases: framework hydration
   // (React/Next.js) may blow away the DOM and remove our host, and another
@@ -48,7 +58,7 @@ export const mountRoot = (cssText?: string) => {
   // DOM child wins the stacking tiebreaker. Moving an already-attached node
   // via appendChild is atomic with no flash or reflow.
   setTimeout(() => {
-    doc.appendChild(host);
+    appendHostToMountTarget();
   }, MOUNT_ROOT_RECHECK_DELAY_MS);
 
   return root;
