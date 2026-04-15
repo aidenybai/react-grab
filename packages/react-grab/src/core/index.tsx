@@ -240,6 +240,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       () => store.current.state === "active" && store.current.phase === "justDragged",
     );
     const isCopying = createMemo(() => store.current.state === "copying");
+    const isSelectionInteractionLocked = createMemo(
+      () => isCopying() || store.selectionInteractionLockDepth > 0,
+    );
     const didJustCopy = createMemo(() => store.current.state === "justCopied");
     const isPromptMode = createMemo(
       () => store.current.state === "active" && Boolean(store.current.isPromptMode),
@@ -952,7 +955,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const targetElement = createMemo(() => {
       void store.viewportVersion;
-      if (!isRendererActive() || isDragging()) return null;
+      if (!isRendererActive() || isDragging() || isSelectionInteractionLocked()) return null;
       const element = store.detectedElement;
       if (!isElementConnected(element)) return null;
       return element;
@@ -1598,8 +1601,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handlePointerMove = (clientX: number, clientY: number) => {
-      if (!isEnabled() || isPromptMode() || isFrozenPhase() || store.contextMenuPosition !== null)
+      if (
+        !isEnabled() ||
+        isPromptMode() ||
+        isFrozenPhase() ||
+        isSelectionInteractionLocked() ||
+        store.contextMenuPosition !== null
+      ) {
         return;
+      }
 
       actions.setPointer({ x: clientX, y: clientY });
 
@@ -1654,7 +1664,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handlePointerDown = (clientX: number, clientY: number) => {
-      if (!isRendererActive() || isCopying()) return false;
+      if (!isRendererActive() || isSelectionInteractionLocked()) return false;
 
       actions.startDrag({ x: clientX, y: clientY });
       actions.setPointer({ x: clientX, y: clientY });
@@ -1957,6 +1967,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const handleEnterKeyActivation = (event: KeyboardEvent): boolean => {
       if (!isEnterCode(event.code)) return false;
       if (isKeyboardEventTriggeredByInput(event)) return false;
+      if (isSelectionInteractionLocked()) return false;
 
       const copiedElement = store.lastCopiedElement;
       const canActivateFromCopied =
@@ -2055,6 +2066,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return (
         Boolean(element) &&
         isRendererActive() &&
+        !isSelectionInteractionLocked() &&
         !isPromptMode() &&
         !isDragging() &&
         store.contextMenuPosition === null
@@ -2553,6 +2565,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.setTouchMode(isTouchPointer);
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
+        if (isSelectionInteractionLocked()) return;
         if (isTouchPointer && !isHoldingKeys() && !isActivated()) return;
         const isActiveState = isTouchPointer ? isHoldingKeys() : isActivated();
         if (isActiveState && !isPromptMode() && isFrozenPhase()) {
@@ -2591,6 +2604,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
+        if (isSelectionInteractionLocked()) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          return;
+        }
+
         const didHandle = handlePointerDown(event.clientX, event.clientY);
         if (didHandle) {
           if (event.pointerId !== undefined) {
@@ -2610,7 +2629,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (!event.isPrimary) return;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
-        const isActive = isRendererActive() || isCopying() || isDragging();
+        const isActive = isRendererActive() || isSelectionInteractionLocked() || isDragging();
         const hasModifierKeyHeld = event.metaKey || event.ctrlKey;
         handlePointerUp(event.clientX, event.clientY, hasModifierKeyHeld);
         if (isActive) {
@@ -2736,6 +2755,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (
         isEnabled() &&
         !isPromptMode() &&
+        !isSelectionInteractionLocked() &&
         !isFrozenPhase() &&
         !isDragging() &&
         store.contextMenuPosition === null &&
@@ -3084,6 +3104,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
     );
 
+    const withSelectionInteractionLock = async <T,>(operation: () => Promise<T>): Promise<T> => {
+      actions.incrementSelectionInteractionLockDepth();
+      try {
+        return await operation();
+      } finally {
+        actions.decrementSelectionInteractionLockDepth();
+      }
+    };
+
     const createPerformWithFeedback = (
       element: Element,
       elements: Element[],
@@ -3092,73 +3121,75 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       options?: PerformWithFeedbackOptions,
     ) => {
       return async (action: () => Promise<boolean>): Promise<void> => {
-        const fallbackBounds = options?.fallbackBounds ?? null;
-        const fallbackSelectionBounds = options?.fallbackSelectionBounds ?? [];
-        const position = options?.position ?? store.contextMenuPosition ?? store.pointer;
-        const frozenBounds = frozenElementsBounds();
-        const singleElementBounds = contextMenuBounds() ?? fallbackBounds;
-        const hasMultipleElements = elements.length > 1;
+        await withSelectionInteractionLock(async () => {
+          const fallbackBounds = options?.fallbackBounds ?? null;
+          const fallbackSelectionBounds = options?.fallbackSelectionBounds ?? [];
+          const position = options?.position ?? store.contextMenuPosition ?? store.pointer;
+          const frozenBounds = frozenElementsBounds();
+          const singleElementBounds = contextMenuBounds() ?? fallbackBounds;
+          const hasMultipleElements = elements.length > 1;
 
-        const labelBounds = hasMultipleElements
-          ? createFlatOverlayBounds(combineBounds(frozenBounds))
-          : singleElementBounds;
+          const labelBounds = hasMultipleElements
+            ? createFlatOverlayBounds(combineBounds(frozenBounds))
+            : singleElementBounds;
 
-        const shouldDeactivateAfter = store.wasActivatedByToggle;
-        let selectionBoundsForLabel: OverlayBounds[];
-        if (hasMultipleElements) {
-          selectionBoundsForLabel = frozenBounds;
-        } else if (singleElementBounds) {
-          selectionBoundsForLabel = [singleElementBounds];
-        } else {
-          selectionBoundsForLabel = fallbackSelectionBounds;
-        }
+          const shouldDeactivateAfter = store.wasActivatedByToggle;
+          let selectionBoundsForLabel: OverlayBounds[];
+          if (hasMultipleElements) {
+            selectionBoundsForLabel = frozenBounds;
+          } else if (singleElementBounds) {
+            selectionBoundsForLabel = [singleElementBounds];
+          } else {
+            selectionBoundsForLabel = fallbackSelectionBounds;
+          }
 
-        actions.hideContextMenu();
+          actions.hideContextMenu();
 
-        if (labelBounds) {
-          const labelCursorX = hasMultipleElements
-            ? labelBounds.x + labelBounds.width / 2
-            : position.x;
+          if (labelBounds) {
+            const labelCursorX = hasMultipleElements
+              ? labelBounds.x + labelBounds.width / 2
+              : position.x;
 
-          const labelInstanceId = createLabelInstance(
-            labelBounds,
-            tagName || "element",
-            componentName,
-            "copying",
-            {
-              element,
-              mouseX: labelCursorX,
-              elements: hasMultipleElements ? elements : undefined,
-              boundsMultiple: selectionBoundsForLabel,
-            },
-          );
+            const labelInstanceId = createLabelInstance(
+              labelBounds,
+              tagName || "element",
+              componentName,
+              "copying",
+              {
+                element,
+                mouseX: labelCursorX,
+                elements: hasMultipleElements ? elements : undefined,
+                boundsMultiple: selectionBoundsForLabel,
+              },
+            );
 
-          let didSucceed = false;
-          let errorMessage: string | undefined;
+            let didSucceed = false;
+            let errorMessage: string | undefined;
 
-          try {
-            didSucceed = await action();
-            if (!didSucceed) {
-              errorMessage = "Failed to copy";
+            try {
+              didSucceed = await action();
+              if (!didSucceed) {
+                errorMessage = "Failed to copy";
+              }
+            } catch (error) {
+              errorMessage = normalizeErrorMessage(error, "Action failed");
             }
-          } catch (error) {
-            errorMessage = normalizeErrorMessage(error, "Action failed");
+
+            updateLabelAfterCopy(labelInstanceId, didSucceed, errorMessage);
+          } else {
+            try {
+              await action();
+            } catch (error) {
+              logRecoverableError("Action failed without feedback bounds", error);
+            }
           }
 
-          updateLabelAfterCopy(labelInstanceId, didSucceed, errorMessage);
-        } else {
-          try {
-            await action();
-          } catch (error) {
-            logRecoverableError("Action failed without feedback bounds", error);
+          if (shouldDeactivateAfter) {
+            deactivateRenderer();
+          } else {
+            actions.unfreeze();
           }
-        }
-
-        if (shouldDeactivateAfter) {
-          deactivateRenderer();
-        } else {
-          actions.unfreeze();
-        }
+        });
       };
     };
 

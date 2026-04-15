@@ -28,6 +28,7 @@ type GrabState =
 
 interface GrabStore {
   current: GrabState;
+  selectionInteractionLockDepth: number;
 
   wasActivatedByToggle: boolean;
   pendingCommentMode: boolean;
@@ -73,6 +74,7 @@ interface GrabStoreInput {
 
 const createInitialStore = (input: GrabStoreInput): GrabStore => ({
   current: { state: "idle" },
+  selectionInteractionLockDepth: 0,
 
   wasActivatedByToggle: false,
   pendingCommentMode: false,
@@ -145,6 +147,8 @@ interface GrabActions {
   setWasActivatedByToggle: (value: boolean) => void;
   setPendingCommentMode: (value: boolean) => void;
   setTouchMode: (value: boolean) => void;
+  incrementSelectionInteractionLockDepth: () => void;
+  decrementSelectionInteractionLockDepth: () => void;
   setSelectionSource: (filePath: string | null, lineNumber: number | null) => void;
   incrementViewportVersion: () => void;
   addGrabbedBox: (box: GrabbedBox) => void;
@@ -488,6 +492,16 @@ const createGrabStore = (input: GrabStoreInput) => {
 
     setTouchMode: (value: boolean) => {
       setStore("isTouchMode", value);
+    },
+
+    incrementSelectionInteractionLockDepth: () => {
+      setStore("selectionInteractionLockDepth", (currentLockDepth) => currentLockDepth + 1);
+    },
+
+    decrementSelectionInteractionLockDepth: () => {
+      setStore("selectionInteractionLockDepth", (currentLockDepth) =>
+        Math.max(0, currentLockDepth - 1),
+      );
     },
 
     setSelectionSource: (filePath: string | null, lineNumber: number | null) => {
