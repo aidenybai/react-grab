@@ -10,22 +10,23 @@ const FONT_IMPORT =
 export const mountRoot = (cssText?: string) => {
   const getMountTarget = (): HTMLElement => document.body ?? document.documentElement;
 
-  const removeBrokenHosts = (activeHost?: HTMLElement): void => {
+  const pruneAndGetMountedRoot = (activeHost?: HTMLElement): HTMLDivElement | null => {
+    let existingRoot: HTMLDivElement | null = null;
     const mountedHosts = document.querySelectorAll<HTMLElement>(`[${ATTRIBUTE_NAME}]`);
     for (const mountedHost of mountedHosts) {
       if (mountedHost === activeHost) continue;
       const mountedRoot = mountedHost.shadowRoot?.querySelector(`[${ATTRIBUTE_NAME}]`);
-      if (!(mountedRoot instanceof HTMLDivElement)) mountedHost.remove();
+      if (mountedRoot instanceof HTMLDivElement && !existingRoot) {
+        existingRoot = mountedRoot;
+        continue;
+      }
+      mountedHost.remove();
     }
+    return existingRoot;
   };
 
-  removeBrokenHosts();
-
-  const mountedHosts = document.querySelectorAll<HTMLElement>(`[${ATTRIBUTE_NAME}]`);
-  for (const mountedHost of mountedHosts) {
-    const mountedRoot = mountedHost.shadowRoot?.querySelector(`[${ATTRIBUTE_NAME}]`);
-    if (mountedRoot instanceof HTMLDivElement) return mountedRoot;
-  }
+  const mountedRoot = pruneAndGetMountedRoot();
+  if (mountedRoot) return mountedRoot;
 
   const host = document.createElement("div");
 
@@ -50,30 +51,22 @@ export const mountRoot = (cssText?: string) => {
 
   shadowRoot.appendChild(root);
 
-  const appendHostToMountTarget = () => {
+  const ensureHostMounted = () => {
+    pruneAndGetMountedRoot(host);
     const mountTarget = getMountTarget();
     if (host.parentNode === mountTarget && host.isConnected) return;
     mountTarget.appendChild(host);
   };
 
-  appendHostToMountTarget();
+  ensureHostMounted();
 
-  // Re-appending after a delay handles two cases: framework hydration
-  // (React/Next.js) may blow away the DOM and remove our host, and another
-  // tool (e.g. react-scan) may have appended at the same z-index where last
-  // DOM child wins the stacking tiebreaker. Moving an already-attached node
-  // via appendChild is atomic with no flash or reflow.
   const delayedRecheckTimeoutId = setTimeout(() => {
-    removeBrokenHosts(host);
-    appendHostToMountTarget();
+    ensureHostMounted();
   }, MOUNT_ROOT_RECHECK_DELAY_MS);
 
-  // Observe only direct child list changes on <html> and <body> to detect
-  // host removal and body replacement without paying subtree-wide costs.
   let observedBody: HTMLElement | null = null;
   const bodyObserver = new MutationObserver(() => {
-    if (host.isConnected && host.parentNode === getMountTarget()) return;
-    appendHostToMountTarget();
+    ensureHostMounted();
   });
 
   const attachBodyObserver = () => {
@@ -85,9 +78,8 @@ export const mountRoot = (cssText?: string) => {
   };
 
   const rootObserver = new MutationObserver(() => {
-    removeBrokenHosts(host);
     attachBodyObserver();
-    appendHostToMountTarget();
+    ensureHostMounted();
   });
 
   rootObserver.observe(document.documentElement, { childList: true });
