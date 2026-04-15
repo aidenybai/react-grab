@@ -240,9 +240,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       () => store.current.state === "active" && store.current.phase === "justDragged",
     );
     const isCopying = createMemo(() => store.current.state === "copying");
-    const [selectionInteractionLockDepth, setSelectionInteractionLockDepth] = createSignal(0);
     const isSelectionInteractionLocked = createMemo(
-      () => isCopying() || selectionInteractionLockDepth() > 0,
+      () => isCopying() || store.selectionInteractionLockDepth > 0,
     );
     const didJustCopy = createMemo(() => store.current.state === "justCopied");
     const isPromptMode = createMemo(
@@ -3106,11 +3105,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     const withSelectionInteractionLock = async <T,>(operation: () => Promise<T>): Promise<T> => {
-      setSelectionInteractionLockDepth((currentLockDepth) => currentLockDepth + 1);
+      actions.incrementSelectionInteractionLockDepth();
       try {
         return await operation();
       } finally {
-        setSelectionInteractionLockDepth((currentLockDepth) => Math.max(0, currentLockDepth - 1));
+        actions.decrementSelectionInteractionLockDepth();
       }
     };
 
