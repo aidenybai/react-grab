@@ -71,4 +71,10 @@ export default defineConfig({
       plugins: [solidWebBrowserPlugin(), cssTextPlugin(), solidBabelPlugin()],
     },
   ],
+  test: {
+    globals: true,
+    environment: "jsdom",
+    include: ["test/**/*.test.ts"],
+    testTimeout: 10000,
+  },
 });

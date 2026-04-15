@@ -124,3 +124,5 @@ export const isFreezeActive = (): boolean => {
 export const openFile = async (filePath: string, lineNumber?: number): Promise<void> => {
   await openFileAsync(filePath, lineNumber);
 };
+
+export { serializeElement } from "./utils/snapshot/serialize-element.js";

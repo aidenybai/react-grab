@@ -123,6 +123,81 @@ export const VISIBILITY_CACHE_TTL_MS = 50;
 
 export const ZOOM_DETECTION_THRESHOLD = 0.01;
 
+export const SNAPSHOT_SKIPPED_TAGS = new Set([
+  "script",
+  "style",
+  "meta",
+  "link",
+  "noscript",
+]);
+
+export const SNAPSHOT_INVISIBLE_TRANSFORMS = new Set([
+  "matrix(0, 0, 0, 1, 0, 0)",
+  "matrix(0, 0, 0, 0, 0, 0)",
+  "scaleX(0)",
+  "scale(0)",
+  "scaleY(0)",
+]);
+
+export const SNAPSHOT_LARGE_ELEMENT_THRESHOLD_PX = 200;
+export const SNAPSHOT_VIDEO_FALLBACK_WIDTH_PX = 320;
+export const SNAPSHOT_VIDEO_FALLBACK_HEIGHT_PX = 240;
+export const SNAPSHOT_DATA_ATTRIBUTE = "data-react-grab-snapshot";
+export const SNAPSHOT_FETCH_TIMEOUT_MS = 5000;
+
+export const SNAPSHOT_DEFAULT_FONT_SIZE_PX = 16;
+export const SNAPSHOT_DEFAULT_LINE_HEIGHT_RATIO = 1.2;
+export const SNAPSHOT_PLACEHOLDER_DATA_URL_MAX_LENGTH = 200;
+
+export const SNAPSHOT_MAX_USE_RECURSION_DEPTH = 10;
+export const SNAPSHOT_MAX_SERIALIZATION_DEPTH = 512;
+
+export const SNAPSHOT_VOID_ELEMENTS = new Set([
+  "area", "base", "br", "col", "embed", "hr", "img", "input",
+  "link", "meta", "param", "source", "track", "wbr",
+]);
+
+export const SNAPSHOT_TABLE_LIKE_TAGS = new Set([
+  "table", "thead", "tbody", "tfoot", "tr", "td", "th", "caption", "colgroup", "col",
+]);
+
+export const SNAPSHOT_INPUT_TAGS = new Set(["input", "textarea"]);
+
+export const SNAPSHOT_INLINE_SIZED_TAGS = new Set([
+  "span", "small", "em", "strong", "b", "i", "u", "s",
+  "code", "cite", "mark", "sub", "sup", "a", "abbr",
+  "dfn", "var", "samp", "kbd", "q", "time",
+]);
+
+export const SNAPSHOT_PRESERVED_SEMANTIC_TAGS = new Set([
+  "ruby", "rt", "rp", "abbr", "time", "mark", "wbr",
+  "sub", "sup", "small", "del", "ins", "kbd", "samp", "var",
+  "dfn", "cite", "q", "code", "pre", "blockquote",
+]);
+
+export const SNAPSHOT_SVG_SKIPPED_ATTRIBUTES = new Set(["class", "style", "display", "overflow"]);
+export const SNAPSHOT_SVG_COLOR_ATTRIBUTES = new Set(["fill", "stroke", "color"]);
+export const SNAPSHOT_SVG_DIMENSION_ATTRIBUTES = new Set(["width", "height"]);
+export const SNAPSHOT_SVG_USE_SKIPPED_ATTRIBUTES = new Set(["id", "class", "style"]);
+
+export const SNAPSHOT_PRESERVED_ATTRIBUTES = new Set([
+  "lang", "dir", "role", "inert", "hidden", "tabindex", "title", "translate",
+  "draggable", "contenteditable", "spellcheck", "inputmode", "enterkeyhint",
+  "popover", "autofocus",
+]);
+
+export const SNAPSHOT_PRESERVED_ATTRIBUTE_PREFIXES = ["aria-", "data-"];
+
+export const SNAPSHOT_PROGRESS_METER_TAGS = new Set(["progress", "meter"]);
+
+export const SNAPSHOT_EVENT_HANDLER_PATTERN = /^on[a-z]/;
+
+export const SNAPSHOT_DANGEROUS_URL_PROTOCOLS = new Set([
+  "javascript:",
+  "vbscript:",
+  "data:text/html",
+]);
+
 export const MOUNT_ROOT_RECHECK_DELAY_MS = 1000;
 
 export const MAX_COMMENT_ITEMS = 20;

@@ -110,6 +110,7 @@
     "babel-preset-solid": "^1.9.10",
     "concurrently": "^9.1.2",
     "expect-sdk": "0.0.0-canary-20260405095424",
+    "jsdom": "^29.0.2",
     "solid-js": "^1.9.10",
     "tailwindcss": "^4.1.0",
     "tsx": "^4.21.0"

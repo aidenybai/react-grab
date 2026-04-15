@@ -1,4 +1,5 @@
 import { VERSION } from "../constants.js";
+import { escapeHtml } from "./snapshot/escape-html.js";
 
 const REACT_GRAB_MIME_TYPE = "application/x-react-grab";
 
@@ -22,9 +23,6 @@ interface ReactGrabMetadata {
   entries: ReactGrabEntry[];
   timestamp: number;
 }
-
-const escapeHtml = (text: string): string =>
-  text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 export const copyContent = (content: string, options?: CopyContentOptions): boolean => {
   const elementName = options?.componentName ?? "div";
