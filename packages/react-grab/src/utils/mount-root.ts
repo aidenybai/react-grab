@@ -12,10 +12,23 @@ export const mountRoot = (cssText?: string) => {
     return document.body ?? document.documentElement;
   };
 
-  const mountedHost = document.querySelector(`[${ATTRIBUTE_NAME}]`);
-  if (mountedHost) {
+  const removeBrokenHosts = (activeHost?: HTMLElement): void => {
+    const mountedHosts = document.querySelectorAll<HTMLElement>(`[${ATTRIBUTE_NAME}]`);
+    for (const mountedHost of mountedHosts) {
+      if (mountedHost === activeHost) continue;
+      const mountedRoot = mountedHost.shadowRoot?.querySelector(`[${ATTRIBUTE_NAME}]`);
+      if (!(mountedRoot instanceof HTMLDivElement)) {
+        mountedHost.remove();
+      }
+    }
+  };
+
+  removeBrokenHosts();
+
+  const mountedHosts = document.querySelectorAll<HTMLElement>(`[${ATTRIBUTE_NAME}]`);
+  for (const mountedHost of mountedHosts) {
     const mountedRoot = mountedHost.shadowRoot?.querySelector(`[${ATTRIBUTE_NAME}]`);
-    if (mountedRoot instanceof HTMLDivElement && mountedHost.shadowRoot) {
+    if (mountedRoot instanceof HTMLDivElement) {
       return mountedRoot;
     }
   }
@@ -44,6 +57,7 @@ export const mountRoot = (cssText?: string) => {
   shadowRoot.appendChild(root);
 
   const appendHostToMountTarget = () => {
+    removeBrokenHosts(host);
     const mountTarget = getMountTarget();
     if (host.parentNode !== mountTarget || !host.isConnected) {
       mountTarget.appendChild(host);
@@ -60,6 +74,15 @@ export const mountRoot = (cssText?: string) => {
   setTimeout(() => {
     appendHostToMountTarget();
   }, MOUNT_ROOT_RECHECK_DELAY_MS);
+
+  const mountObserver = new MutationObserver(() => {
+    if (host.isConnected && host.parentNode === getMountTarget()) {
+      return;
+    }
+    appendHostToMountTarget();
+  });
+  mountObserver.observe(document.documentElement, { childList: true, subtree: true });
+  window.addEventListener("beforeunload", () => mountObserver.disconnect(), { once: true });
 
   return root;
 };
