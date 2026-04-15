@@ -8,25 +8,12 @@ const FONT_IMPORT =
   '@import url("https://fonts.googleapis.com/css2?family=Geist:wght@500&display=swap");';
 
 export const mountRoot = (cssText?: string) => {
-  const getMountTarget = (): HTMLElement => document.body ?? document.documentElement;
-
-  const pruneAndGetMountedRoot = (activeHost?: HTMLElement): HTMLDivElement | null => {
-    let existingRoot: HTMLDivElement | null = null;
-    const mountedHosts = document.querySelectorAll<HTMLElement>(`[${ATTRIBUTE_NAME}]`);
-    for (const mountedHost of mountedHosts) {
-      if (mountedHost === activeHost) continue;
-      const mountedRoot = mountedHost.shadowRoot?.querySelector(`[${ATTRIBUTE_NAME}]`);
-      if (mountedRoot instanceof HTMLDivElement && !existingRoot) {
-        existingRoot = mountedRoot;
-        continue;
-      }
-      mountedHost.remove();
-    }
-    return existingRoot;
-  };
-
-  const mountedRoot = pruneAndGetMountedRoot();
-  if (mountedRoot) return mountedRoot;
+  const mountedHosts = document.querySelectorAll<HTMLElement>(`[${ATTRIBUTE_NAME}]`);
+  for (const mountedHost of mountedHosts) {
+    const mountedRoot = mountedHost.shadowRoot?.querySelector(`[${ATTRIBUTE_NAME}]`);
+    if (mountedRoot instanceof HTMLDivElement) return mountedRoot;
+    mountedHost.remove();
+  }
 
   const host = document.createElement("div");
 
@@ -51,49 +38,11 @@ export const mountRoot = (cssText?: string) => {
 
   shadowRoot.appendChild(root);
 
-  const ensureHostMounted = () => {
-    pruneAndGetMountedRoot(host);
-    const mountTarget = getMountTarget();
-    if (host.parentNode === mountTarget && host.isConnected) return;
+  const mountTarget = document.documentElement;
+  mountTarget.appendChild(host);
+  setTimeout(() => {
     mountTarget.appendChild(host);
-  };
-
-  ensureHostMounted();
-
-  const delayedRecheckTimeoutId = setTimeout(() => {
-    ensureHostMounted();
   }, MOUNT_ROOT_RECHECK_DELAY_MS);
-
-  let observedBody: HTMLElement | null = null;
-  const bodyObserver = new MutationObserver(() => {
-    ensureHostMounted();
-  });
-
-  const attachBodyObserver = () => {
-    const currentBody = document.body;
-    if (currentBody === observedBody) return;
-    bodyObserver.disconnect();
-    observedBody = currentBody;
-    if (currentBody) bodyObserver.observe(currentBody, { childList: true });
-  };
-
-  const rootObserver = new MutationObserver(() => {
-    attachBodyObserver();
-    ensureHostMounted();
-  });
-
-  rootObserver.observe(document.documentElement, { childList: true });
-  attachBodyObserver();
-
-  window.addEventListener(
-    "beforeunload",
-    () => {
-      clearTimeout(delayedRecheckTimeoutId);
-      rootObserver.disconnect();
-      bodyObserver.disconnect();
-    },
-    { once: true },
-  );
 
   return root;
 };
