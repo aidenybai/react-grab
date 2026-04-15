@@ -176,21 +176,23 @@ test.describe("Navigation History and Wrapping", () => {
     await reactGrab.pressArrowUp();
     await reactGrab.waitForSelectionBox();
 
-    const plainButton = reactGrab.page.locator("[data-testid='plain-button']");
-    const plainButtonBounds = await plainButton.boundingBox();
-    expect(plainButtonBounds).not.toBeNull();
-    if (!plainButtonBounds) {
-      throw new Error("Unable to find plain button bounds");
+    await reactGrab.page.evaluate(() => navigator.clipboard.writeText(""));
+
+    const nestedButton = reactGrab.page.locator("[data-testid='nested-button']");
+    const nestedButtonBounds = await nestedButton.boundingBox();
+    expect(nestedButtonBounds).not.toBeNull();
+    if (!nestedButtonBounds) {
+      throw new Error("Unable to find nested button bounds");
     }
 
     await reactGrab.page.mouse.click(
-      plainButtonBounds.x + plainButtonBounds.width / 2,
-      plainButtonBounds.y + plainButtonBounds.height / 2,
+      nestedButtonBounds.x + nestedButtonBounds.width / 2,
+      nestedButtonBounds.y + nestedButtonBounds.height / 2,
     );
 
-    await expect.poll(() => reactGrab.getClipboardContent(), { timeout: 5000 }).toContain(
-      "Plain Button",
-    );
+    await expect
+      .poll(() => reactGrab.getClipboardContent(), { timeout: 5000 })
+      .toContain("Nested Button");
   });
 
   test("ArrowDown at last sibling should stay on element", async ({ reactGrab }) => {
