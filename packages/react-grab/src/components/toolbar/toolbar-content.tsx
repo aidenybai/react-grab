@@ -88,7 +88,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
   return (
     <div
       class={cn(
-        "flex items-center justify-center rounded-[10px] antialiased relative overflow-visible [font-synthesis:none] shadow-[0px_1px_2px_#51515140] [corner-shape:superellipse(1.25)]",
+        "flex items-center justify-center rounded-[10px] antialiased relative overflow-visible [font-synthesis:none] border border-[#D9D9D9] filter-[drop-shadow(0px_1px_2px_#51515140)] [corner-shape:superellipse(1.25)]",
         isVertical() && "flex-col",
         "bg-white",
         !props.isCollapsed && (isVertical() ? "px-1.5 gap-1 py-2" : "py-1.5 gap-1 px-2"),
