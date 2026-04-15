@@ -70,7 +70,7 @@ export const mountRoot = (cssText?: string) => {
 
   // Observe only direct child list changes on <html> and <body> to detect
   // host removal and body replacement without paying subtree-wide costs.
-  let observedBody: HTMLBodyElement | null = null;
+  let observedBody: HTMLElement | null = null;
   const bodyObserver = new MutationObserver(() => {
     if (host.isConnected && host.parentNode === getMountTarget()) return;
     appendHostToMountTarget();
