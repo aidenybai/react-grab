@@ -1737,23 +1737,29 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         ? keyboardSelectedElement
         : null;
 
-      const element =
-        validFrozenElement ??
-        validKeyboardSelectedElement ??
-        getElementAtPosition(clientX, clientY) ??
-        (isElementConnected(store.detectedElement) ? store.detectedElement : null);
-      if (!element) return;
-
-      const didSelectViaKeyboard = !validFrozenElement && validKeyboardSelectedElement === element;
+      const selectedElementUnderPointer =
+        getElementsAtPoint(clientX, clientY).find((elementAtPointer) =>
+          isValidGrabbableElement(elementAtPointer),
+        ) ?? (isElementConnected(store.detectedElement) ? store.detectedElement : null);
+      const selectedElement =
+        selectedElementUnderPointer ?? validFrozenElement ?? validKeyboardSelectedElement;
+      if (!selectedElement) return;
 
       let positionX: number;
       let positionY: number;
 
-      if (validFrozenElement) {
+      const didResolveFromFrozenElement =
+        selectedElementUnderPointer === null && validFrozenElement === selectedElement;
+      const didResolveFromKeyboardElement =
+        selectedElementUnderPointer === null &&
+        validFrozenElement === null &&
+        validKeyboardSelectedElement === selectedElement;
+
+      if (didResolveFromFrozenElement) {
         positionX = store.pointer.x;
         positionY = store.pointer.y;
-      } else if (didSelectViaKeyboard) {
-        const elementCenter = getBoundsCenter(createElementBounds(element));
+      } else if (didResolveFromKeyboardElement) {
+        const elementCenter = getBoundsCenter(createElementBounds(selectedElement));
         positionX = elementCenter.x;
         positionY = elementCenter.y;
       } else {
@@ -1764,34 +1770,34 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       keyboardSelectedElement = null;
 
       if (store.pendingCommentMode) {
-        enterCommentModeForElement(element, positionX, positionY);
+        enterCommentModeForElement(selectedElement, positionX, positionY);
         return;
       }
 
       if (isPendingContextMenuSelect) {
         isPendingContextMenuSelect = false;
-        const { wasIntercepted } = pluginRegistry.hooks.onElementSelect(element);
+        const { wasIntercepted } = pluginRegistry.hooks.onElementSelect(selectedElement);
         if (wasIntercepted) return;
 
-        freezeAllAnimations([element]);
-        actions.setFrozenElement(element);
+        freezeAllAnimations([selectedElement]);
+        actions.setFrozenElement(selectedElement);
         const position = { x: positionX, y: positionY };
         actions.setPointer(position);
         actions.freeze();
         if (pendingDefaultActionId) {
-          runPendingDefaultAction(element, position);
+          runPendingDefaultAction(selectedElement, position);
         } else {
-          openContextMenu(element, position);
+          openContextMenu(selectedElement, position);
         }
         return;
       }
 
       const shouldDeactivateAfter = store.wasActivatedByToggle && !hasModifierKeyHeld;
 
-      actions.setLastGrabbed(element);
+      actions.setLastGrabbed(selectedElement);
 
       performCopyWithLabel({
-        element,
+        element: selectedElement,
         cursorX: positionX,
         shouldDeactivateAfter,
       });

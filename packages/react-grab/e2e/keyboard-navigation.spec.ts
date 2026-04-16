@@ -1,3 +1,4 @@
+import type { ReactGrabPageObject } from "./fixtures.js";
 import { test, expect } from "./fixtures.js";
 
 test.describe("Keyboard Navigation", () => {
@@ -127,6 +128,34 @@ test.describe("Keyboard Navigation", () => {
 });
 
 test.describe("Navigation History and Wrapping", () => {
+  interface ArrowUpBoundaryClickSelectionScenario {
+    targetSelector: string;
+    expectedClipboardContent: string;
+    arrowUpPressCount: number;
+  }
+
+  const runArrowUpBoundaryClickSelectionScenario = async (
+    reactGrab: ReactGrabPageObject,
+    scenario: ArrowUpBoundaryClickSelectionScenario,
+  ) => {
+    await reactGrab.activate();
+    await reactGrab.hoverElement("li:first-child");
+    await reactGrab.waitForSelectionBox();
+
+    await reactGrab.page.evaluate(() => navigator.clipboard.writeText(""));
+
+    for (let pressCount = 0; pressCount < scenario.arrowUpPressCount; pressCount++) {
+      await reactGrab.pressArrowUp();
+      await reactGrab.waitForSelectionBox();
+    }
+
+    await reactGrab.page.locator(scenario.targetSelector).click({ force: true });
+
+    await expect
+      .poll(() => reactGrab.getClipboardContent(), { timeout: 5000 })
+      .toContain(scenario.expectedClipboardContent);
+  };
+
   test("ArrowLeft should go back to previous element", async ({ reactGrab }) => {
     await reactGrab.activate();
     await reactGrab.hoverElement("li:first-child");
@@ -166,6 +195,32 @@ test.describe("Navigation History and Wrapping", () => {
 
     const isVisible = await reactGrab.isSelectionBoxVisible();
     expect(isVisible).toBe(true);
+  });
+
+  test("ArrowUp at first sibling should not lock later click selection", async ({ reactGrab }) => {
+    await runArrowUpBoundaryClickSelectionScenario(reactGrab, {
+      targetSelector: "[data-testid='nested-button']",
+      expectedClipboardContent: "Nested Button",
+      arrowUpPressCount: 1,
+    });
+  });
+
+  test("repeated ArrowUp at first sibling should still allow click selection changes", async ({
+    reactGrab,
+  }) => {
+    await runArrowUpBoundaryClickSelectionScenario(reactGrab, {
+      targetSelector: "[data-testid='cancel-button']",
+      expectedClipboardContent: "Cancel",
+      arrowUpPressCount: 4,
+    });
+  });
+
+  test("ArrowUp boundary should allow selecting form controls", async ({ reactGrab }) => {
+    await runArrowUpBoundaryClickSelectionScenario(reactGrab, {
+      targetSelector: "[data-testid='submit-button']",
+      expectedClipboardContent: "Submit",
+      arrowUpPressCount: 2,
+    });
   });
 
   test("ArrowDown at last sibling should stay on element", async ({ reactGrab }) => {
