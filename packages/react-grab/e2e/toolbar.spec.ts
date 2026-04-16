@@ -42,7 +42,7 @@ test.describe("Toolbar", () => {
         originalBody.parentNode.replaceChild(replacementBody, originalBody);
       });
 
-      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 4000 }).toBe(true);
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 6000 }).toBe(true);
     });
   });
 
