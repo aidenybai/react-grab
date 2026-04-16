@@ -1,4 +1,5 @@
 import { SNAPSHOT_DEFAULT_FONT_SIZE_PX } from "../../constants.js";
+import { escapeHtml } from "./escape-html.js";
 
 const ICON_FONT_PATTERNS = [
   /font\s*awesome/i,
@@ -89,5 +90,5 @@ export const rasterizeIconFontElementToImage = async (
   const rasterized = await rasterizeIconToDataUrl(textContent, fontFamily, fontWeight, fontSize, color);
   if (!rasterized) return null;
 
-  return `<img src="${rasterized.dataUrl}" width="${rasterized.width}" height="${rasterized.height}" style="vertical-align:middle;display:inline;" alt="${textContent}">`;
+  return `<img src="${rasterized.dataUrl}" width="${rasterized.width}" height="${rasterized.height}" style="vertical-align:middle;display:inline;" alt="${escapeHtml(textContent)}"/>`;
 };

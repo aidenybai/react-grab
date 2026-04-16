@@ -175,8 +175,8 @@ export const SNAPSHOT_PRESERVED_SEMANTIC_TAGS = new Set([
   "dfn", "cite", "q", "code", "pre", "blockquote",
 ]);
 
-export const SNAPSHOT_SVG_SKIPPED_ATTRIBUTES = new Set(["class", "style", "display", "overflow"]);
-export const SNAPSHOT_SVG_COLOR_ATTRIBUTES = new Set(["fill", "stroke", "color"]);
+export const SNAPSHOT_SVG_SKIPPED_ATTRIBUTES = new Set(["class", "style", "display", "overflow", "clip-path"]);
+export const SNAPSHOT_SVG_COLOR_ATTRIBUTES = new Set(["fill", "stroke", "color", "stop-color", "flood-color", "lighting-color"]);
 export const SNAPSHOT_SVG_DIMENSION_ATTRIBUTES = new Set(["width", "height"]);
 export const SNAPSHOT_SVG_USE_SKIPPED_ATTRIBUTES = new Set(["id", "class", "style"]);
 
@@ -187,6 +187,21 @@ export const SNAPSHOT_PRESERVED_ATTRIBUTES = new Set([
 ]);
 
 export const SNAPSHOT_PRESERVED_ATTRIBUTE_PREFIXES = ["aria-", "data-"];
+
+export const SNAPSHOT_PSEUDO_VISUAL_PROPERTIES = new Set([
+  "color", "font-family", "font-size", "font-weight", "font-style",
+  "text-decoration", "text-decoration-line", "text-decoration-color", "text-decoration-style",
+  "text-transform", "letter-spacing", "line-height", "vertical-align",
+  "display", "position", "top", "right", "bottom", "left",
+  "width", "height", "min-width", "min-height", "max-width", "max-height",
+  "margin", "margin-top", "margin-right", "margin-bottom", "margin-left",
+  "padding", "padding-top", "padding-right", "padding-bottom", "padding-left",
+  "background-color", "background-image", "background-size", "background-position", "background-repeat",
+  "border", "border-radius", "border-color", "border-style", "border-width",
+  "opacity", "float", "clear", "transform",
+  "white-space", "word-break", "overflow-wrap", "text-overflow",
+  "unicode-bidi", "direction",
+]);
 
 export const SNAPSHOT_PROGRESS_METER_TAGS = new Set(["progress", "meter"]);
 

@@ -20,7 +20,6 @@ import {
   SNAPSHOT_PRESERVED_SEMANTIC_TAGS,
 } from "../../constants.js";
 import { escapeHtml } from "./escape-html.js";
-import { fetchAsDataUrl } from "./fetch-as-data-url.js";
 import { materializePseudoElement } from "./materialize-pseudo.js";
 import { resolveAncestorBackground } from "./resolve-ancestor-background.js";
 import {
@@ -231,7 +230,11 @@ const escapeAttributeValue = (value: string): string =>
     .replaceAll("\r", "&#13;");
 
 const escapeSrcAttributeValue = (value: string): string =>
-  value.replaceAll('"', "&quot;");
+  stripXmlInvalidCharacters(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
 
 const materializeListMarker = (element: Element): string | null => {
   const tagName = element.tagName.toLowerCase();
@@ -389,7 +392,7 @@ const serializeNode = async (
   }
 
   if (tagName === "br" || tagName === "hr") {
-    return { html: `<${tagName}>`, processedNodes: 1 };
+    return { html: `<${tagName}/>`, processedNodes: 1 };
   }
 
   const progressMeterHtml = captureProgressMeterAsDiv(node);
@@ -404,7 +407,7 @@ const serializeNode = async (
         const iframeWidth = node.offsetWidth || node.clientWidth;
         const iframeHeight = node.offsetHeight || node.clientHeight;
         return {
-          html: `<img src="${escapeSrcAttributeValue(iframeDataUrl)}" width="${iframeWidth}" height="${iframeHeight}" style="border:none;">`,
+          html: `<img src="${escapeSrcAttributeValue(iframeDataUrl)}" width="${iframeWidth}" height="${iframeHeight}" style="border:none;"/>`,
           processedNodes: 1,
         };
       }
@@ -494,7 +497,7 @@ const serializeNode = async (
     if (canvasDataUrl) {
       const inlineStyle = stylesToInlineString(authoredStyles);
       return {
-        html: `<img src="${escapeSrcAttributeValue(canvasDataUrl)}" width="${node.width}" height="${node.height}" style="${inlineStyle}">`,
+        html: `<img src="${escapeSrcAttributeValue(canvasDataUrl)}" width="${node.width}" height="${node.height}" style="${inlineStyle}"/>`,
         processedNodes: 1,
       };
     }
@@ -508,7 +511,7 @@ const serializeNode = async (
       authoredStyles["object-fit"] = "contain";
       const inlineStyle = stylesToInlineString(authoredStyles);
       return {
-        html: `<img src="${escapeSrcAttributeValue(videoFrameSrc)}" width="${videoWidth}" height="${videoHeight}" style="${inlineStyle}">`,
+        html: `<img src="${escapeSrcAttributeValue(videoFrameSrc)}" width="${videoWidth}" height="${videoHeight}" style="${inlineStyle}"/>`,
         processedNodes: 1,
       };
     }
@@ -698,15 +701,23 @@ const serializeNode = async (
   materializeFirstLetter(node, serializedChildFragments);
 
   if (node instanceof SVGElement) {
+    const svgComputed = getCachedComputedStyle(node, context);
     for (const attributeName of node.getAttributeNames()) {
       if (SNAPSHOT_SVG_SKIPPED_ATTRIBUTES.has(attributeName)) continue;
       const attributeValue = node.getAttribute(attributeName) || "";
       if (!attributeValue) continue;
 
       let resolvedValue = attributeValue;
+
       if (SNAPSHOT_SVG_COLOR_ATTRIBUTES.has(attributeName)) {
-        if (resolvedValue.toLowerCase() === "currentcolor") {
-          resolvedValue = authoredStyles[attributeName] || authoredStyles.color || resolvedValue;
+        const computedColorValue = svgComputed.getPropertyValue(attributeName);
+        if (computedColorValue) {
+          resolvedValue = computedColorValue;
+        }
+      } else if (resolvedValue.includes("var(")) {
+        const computedResolution = svgComputed.getPropertyValue(attributeName);
+        if (computedResolution) {
+          resolvedValue = computedResolution;
         }
       }
 
@@ -756,7 +767,7 @@ const serializeNode = async (
 
   if (isVoidElement) {
     return {
-      html: `<${outputTag} ${formattedAttributes}>`,
+      html: `<${outputTag} ${formattedAttributes}/>`,
       processedNodes: totalProcessedNodes,
     };
   }

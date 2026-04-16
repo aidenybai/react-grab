@@ -1,4 +1,4 @@
-import { SNAPSHOT_INVISIBLE_TRANSFORMS } from "../../constants.js";
+import { SNAPSHOT_INVISIBLE_TRANSFORMS, SNAPSHOT_PSEUDO_VISUAL_PROPERTIES } from "../../constants.js";
 import { escapeHtml } from "./escape-html.js";
 import { stylesToInlineString } from "./snapshot-style-diff.js";
 
@@ -31,35 +31,29 @@ export const materializePseudoElement = (
   pseudoSelector: "::before" | "::after",
 ): string | null => {
   const pseudoComputed = getComputedStyle(element, pseudoSelector);
+  const contentValue = pseudoComputed.getPropertyValue("content");
+
+  if (!contentValue || contentValue === "none" || contentValue === "normal") return null;
+
   const styles: Record<string, string> = {};
-
-  for (let index = 0; index < pseudoComputed.length; index++) {
-    const propertyName = pseudoComputed[index];
-    if (propertyName.startsWith("--")) continue;
-
+  for (const propertyName of SNAPSHOT_PSEUDO_VISUAL_PROPERTIES) {
     const propertyValue = pseudoComputed.getPropertyValue(propertyName);
     if (propertyValue) {
       styles[propertyName] = propertyValue;
     }
   }
 
-  if (!styles.content || Object.keys(styles).length === 0) return null;
   if (isPseudoElementVisuallyHidden(styles)) return null;
 
-  const rawContent = styles.content;
-  delete styles.content;
-  delete styles["mask-image"];
-  delete styles["-webkit-mask-image"];
-
-  const urlMatch = rawContent.match(/^url\(\s*["']?([^"')]+)["']?\s*\)$/);
+  const urlMatch = contentValue.match(/^url\(\s*["']?([^"')]+)["']?\s*\)$/);
   if (urlMatch) {
-    const imageUrl = urlMatch[1];
+    const escapedImageUrl = escapeHtml(urlMatch[1]);
     const fontSize = styles["font-size"] || "16px";
     const imageStyle = `width:${fontSize};height:auto;object-fit:contain;`;
-    return `<img src="${imageUrl}" style="${imageStyle}">`;
+    return `<img src="${escapedImageUrl}" style="${imageStyle}"/>`;
   }
 
-  const textContent = unquoteCssContentValue(rawContent);
+  const textContent = unquoteCssContentValue(contentValue);
   const inlineStyle = stylesToInlineString(styles);
   return `<span style="${inlineStyle}">${escapeHtml(textContent)}</span>`;
 };

@@ -25,6 +25,8 @@ import { resolveBlobUrl } from "../src/utils/snapshot/snapshot-blob-resolver.js"
 import { createIframePlaceholder } from "../src/utils/snapshot/snapshot-iframe-capture.js";
 import { collectUsedCodepoints } from "../src/utils/snapshot/snapshot-embed-fonts.js";
 import { resolveImageElementSource } from "../src/utils/snapshot/snapshot-picture-resolver.js";
+import { elementToPngBlob } from "../src/utils/snapshot/snapshot-html-to-png.js";
+import { copyPngToClipboard } from "../src/utils/snapshot/copy-png-to-clipboard.js";
 
 afterEach(() => {
   disposeSnapshotBaseline();
@@ -1401,5 +1403,19 @@ describe("serializeElement — integration tests", () => {
 
     const result = await serializeElement(container);
     expect(result.html).toContain("multi");
+  });
+});
+
+describe("elementToPngBlob", () => {
+  it("should be importable and callable", () => {
+    expect(typeof elementToPngBlob).toBe("function");
+  });
+});
+
+describe("copyPngToClipboard", () => {
+  it("should return false when clipboard API is unavailable", async () => {
+    const fakeBlob = new Blob(["test"], { type: "image/png" });
+    const result = await copyPngToClipboard(fakeBlob);
+    expect(result).toBe(false);
   });
 });
