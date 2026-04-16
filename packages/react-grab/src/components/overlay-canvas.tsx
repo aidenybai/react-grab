@@ -363,22 +363,22 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
         : REFERENCE_FRAME_DURATION_MS;
     previousFrameTimestamp = currentFrameTimestamp;
 
-    const dragFactor = deltaLerp(LAYER_STYLES.drag.lerpFactor, deltaTimeMs);
-    const selectionFactor = deltaLerp(LAYER_STYLES.selection.lerpFactor, deltaTimeMs);
-    const grabbedFactor = deltaLerp(LAYER_STYLES.grabbed.lerpFactor, deltaTimeMs);
-    const inspectFactor = deltaLerp(LAYER_STYLES.inspect.lerpFactor, deltaTimeMs);
+    const adjustedDragLerp = deltaLerp(LAYER_STYLES.drag.lerpFactor, deltaTimeMs);
+    const adjustedSelectionLerp = deltaLerp(LAYER_STYLES.selection.lerpFactor, deltaTimeMs);
+    const adjustedGrabbedLerp = deltaLerp(LAYER_STYLES.grabbed.lerpFactor, deltaTimeMs);
+    const adjustedInspectLerp = deltaLerp(LAYER_STYLES.inspect.lerpFactor, deltaTimeMs);
 
     let shouldContinueAnimating = false;
 
     if (dragAnimation?.isInitialized) {
-      if (interpolateBounds(dragAnimation, dragFactor)) {
+      if (interpolateBounds(dragAnimation, adjustedDragLerp)) {
         shouldContinueAnimating = true;
       }
     }
 
     for (const animation of selectionAnimations) {
       if (animation.isInitialized) {
-        if (interpolateBounds(animation, selectionFactor)) {
+        if (interpolateBounds(animation, adjustedSelectionLerp)) {
           shouldContinueAnimating = true;
         }
       }
@@ -389,7 +389,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
       const isLabelAnimation = animation.id.startsWith("label-");
 
       if (animation.isInitialized) {
-        const isStillAnimating = interpolateBounds(animation, grabbedFactor, {
+        const isStillAnimating = interpolateBounds(animation, adjustedGrabbedLerp, {
           interpolateOpacity: isLabelAnimation,
         });
         if (isStillAnimating) {
@@ -428,7 +428,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
     for (const animation of inspectAnimations) {
       if (animation.isInitialized) {
-        if (interpolateBounds(animation, inspectFactor)) {
+        if (interpolateBounds(animation, adjustedInspectLerp)) {
           shouldContinueAnimating = true;
         }
       }
