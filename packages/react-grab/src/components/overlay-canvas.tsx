@@ -17,11 +17,11 @@ import {
   OVERLAY_FILL_COLOR_DEFAULT,
   OVERLAY_BORDER_COLOR_INSPECT,
   OVERLAY_FILL_COLOR_INSPECT,
-  REFERENCE_FRAME_DURATION_MS,
+  BASELINE_FRAME_DURATION_MS,
 } from "../constants.js";
 import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "../utils/native-raf.js";
 import { supportsDisplayP3 } from "../utils/supports-display-p3.js";
-import { deltaLerp } from "../utils/delta-lerp.js";
+import { adjustLerpForFrameDuration } from "../utils/adjust-lerp-for-frame-duration.js";
 
 const DEFAULT_LAYER_STYLE = {
   borderColor: OVERLAY_BORDER_COLOR_DEFAULT,
@@ -357,28 +357,40 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
   const runAnimationFrame = () => {
     const currentFrameTimestamp = performance.now();
-    const deltaTimeMs =
+    const frameDurationMs =
       previousFrameTimestamp !== null
         ? currentFrameTimestamp - previousFrameTimestamp
-        : REFERENCE_FRAME_DURATION_MS;
+        : BASELINE_FRAME_DURATION_MS;
     previousFrameTimestamp = currentFrameTimestamp;
 
-    const adjustedDragLerp = deltaLerp(LAYER_STYLES.drag.lerpFactor, deltaTimeMs);
-    const adjustedSelectionLerp = deltaLerp(LAYER_STYLES.selection.lerpFactor, deltaTimeMs);
-    const adjustedGrabbedLerp = deltaLerp(LAYER_STYLES.grabbed.lerpFactor, deltaTimeMs);
-    const adjustedInspectLerp = deltaLerp(LAYER_STYLES.inspect.lerpFactor, deltaTimeMs);
+    const dragLerpForFrame = adjustLerpForFrameDuration(
+      LAYER_STYLES.drag.lerpFactor,
+      frameDurationMs,
+    );
+    const selectionLerpForFrame = adjustLerpForFrameDuration(
+      LAYER_STYLES.selection.lerpFactor,
+      frameDurationMs,
+    );
+    const grabbedLerpForFrame = adjustLerpForFrameDuration(
+      LAYER_STYLES.grabbed.lerpFactor,
+      frameDurationMs,
+    );
+    const inspectLerpForFrame = adjustLerpForFrameDuration(
+      LAYER_STYLES.inspect.lerpFactor,
+      frameDurationMs,
+    );
 
     let shouldContinueAnimating = false;
 
     if (dragAnimation?.isInitialized) {
-      if (interpolateBounds(dragAnimation, adjustedDragLerp)) {
+      if (interpolateBounds(dragAnimation, dragLerpForFrame)) {
         shouldContinueAnimating = true;
       }
     }
 
     for (const animation of selectionAnimations) {
       if (animation.isInitialized) {
-        if (interpolateBounds(animation, adjustedSelectionLerp)) {
+        if (interpolateBounds(animation, selectionLerpForFrame)) {
           shouldContinueAnimating = true;
         }
       }
@@ -389,7 +401,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
       const isLabelAnimation = animation.id.startsWith("label-");
 
       if (animation.isInitialized) {
-        const isStillAnimating = interpolateBounds(animation, adjustedGrabbedLerp, {
+        const isStillAnimating = interpolateBounds(animation, grabbedLerpForFrame, {
           interpolateOpacity: isLabelAnimation,
         });
         if (isStillAnimating) {
@@ -428,7 +440,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
     for (const animation of inspectAnimations) {
       if (animation.isInitialized) {
-        if (interpolateBounds(animation, adjustedInspectLerp)) {
+        if (interpolateBounds(animation, inspectLerpForFrame)) {
           shouldContinueAnimating = true;
         }
       }
