@@ -326,14 +326,12 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
   const interpolateBounds = (
     animation: AnimatedBounds,
     lerpFactor: number,
-    deltaTimeMs: number,
     options?: { interpolateOpacity?: boolean },
   ): boolean => {
-    const adjustedFactor = deltaLerp(lerpFactor, deltaTimeMs);
-    const lerpedX = lerp(animation.current.x, animation.target.x, adjustedFactor);
-    const lerpedY = lerp(animation.current.y, animation.target.y, adjustedFactor);
-    const lerpedWidth = lerp(animation.current.width, animation.target.width, adjustedFactor);
-    const lerpedHeight = lerp(animation.current.height, animation.target.height, adjustedFactor);
+    const lerpedX = lerp(animation.current.x, animation.target.x, lerpFactor);
+    const lerpedY = lerp(animation.current.y, animation.target.y, lerpFactor);
+    const lerpedWidth = lerp(animation.current.width, animation.target.width, lerpFactor);
+    const lerpedHeight = lerp(animation.current.height, animation.target.height, lerpFactor);
 
     const hasBoundsConverged =
       Math.abs(lerpedX - animation.target.x) < LERP_CONVERGENCE_THRESHOLD_PX &&
@@ -348,7 +346,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
     let hasOpacityConverged = true;
     if (options?.interpolateOpacity) {
-      const lerpedOpacity = lerp(animation.opacity, animation.targetOpacity, adjustedFactor);
+      const lerpedOpacity = lerp(animation.opacity, animation.targetOpacity, lerpFactor);
       hasOpacityConverged =
         Math.abs(lerpedOpacity - animation.targetOpacity) < OPACITY_CONVERGENCE_THRESHOLD;
       animation.opacity = hasOpacityConverged ? animation.targetOpacity : lerpedOpacity;
@@ -365,17 +363,22 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
         : REFERENCE_FRAME_DURATION_MS;
     previousFrameTimestamp = currentFrameTimestamp;
 
+    const dragFactor = deltaLerp(LAYER_STYLES.drag.lerpFactor, deltaTimeMs);
+    const selectionFactor = deltaLerp(LAYER_STYLES.selection.lerpFactor, deltaTimeMs);
+    const grabbedFactor = deltaLerp(LAYER_STYLES.grabbed.lerpFactor, deltaTimeMs);
+    const inspectFactor = deltaLerp(LAYER_STYLES.inspect.lerpFactor, deltaTimeMs);
+
     let shouldContinueAnimating = false;
 
     if (dragAnimation?.isInitialized) {
-      if (interpolateBounds(dragAnimation, LAYER_STYLES.drag.lerpFactor, deltaTimeMs)) {
+      if (interpolateBounds(dragAnimation, dragFactor)) {
         shouldContinueAnimating = true;
       }
     }
 
     for (const animation of selectionAnimations) {
       if (animation.isInitialized) {
-        if (interpolateBounds(animation, LAYER_STYLES.selection.lerpFactor, deltaTimeMs)) {
+        if (interpolateBounds(animation, selectionFactor)) {
           shouldContinueAnimating = true;
         }
       }
@@ -386,14 +389,9 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
       const isLabelAnimation = animation.id.startsWith("label-");
 
       if (animation.isInitialized) {
-        const isStillAnimating = interpolateBounds(
-          animation,
-          LAYER_STYLES.grabbed.lerpFactor,
-          deltaTimeMs,
-          {
-            interpolateOpacity: isLabelAnimation,
-          },
-        );
+        const isStillAnimating = interpolateBounds(animation, grabbedFactor, {
+          interpolateOpacity: isLabelAnimation,
+        });
         if (isStillAnimating) {
           shouldContinueAnimating = true;
         }
@@ -430,7 +428,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
     for (const animation of inspectAnimations) {
       if (animation.isInitialized) {
-        if (interpolateBounds(animation, LAYER_STYLES.inspect.lerpFactor, deltaTimeMs)) {
+        if (interpolateBounds(animation, inspectFactor)) {
           shouldContinueAnimating = true;
         }
       }
