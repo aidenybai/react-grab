@@ -127,6 +127,8 @@ test.describe("Keyboard Navigation", () => {
 });
 
 test.describe("Navigation History and Wrapping", () => {
+  const EMPTY_CLIPBOARD_CONTENT = "";
+
   test("ArrowLeft should go back to previous element", async ({ reactGrab }) => {
     await reactGrab.activate();
     await reactGrab.hoverElement("li:first-child");
@@ -173,6 +175,11 @@ test.describe("Navigation History and Wrapping", () => {
     await reactGrab.hoverElement("li:first-child");
     await reactGrab.waitForSelectionBox();
 
+    await reactGrab.page.evaluate(
+      (clipboardContent) => navigator.clipboard.writeText(clipboardContent),
+      EMPTY_CLIPBOARD_CONTENT,
+    );
+
     await reactGrab.pressArrowUp();
     await reactGrab.waitForSelectionBox();
 
@@ -181,6 +188,10 @@ test.describe("Navigation History and Wrapping", () => {
     await expect
       .poll(() => reactGrab.getClipboardContent(), { timeout: 5000 })
       .toContain("Nested Button");
+
+    await expect
+      .poll(() => reactGrab.getClipboardContent(), { timeout: 5000 })
+      .not.toContain("Buy groceries");
   });
 
   test("ArrowDown at last sibling should stay on element", async ({ reactGrab }) => {
