@@ -8,12 +8,11 @@ const FONT_IMPORT =
   '@import url("https://fonts.googleapis.com/css2?family=Geist:wght@500&display=swap");';
 
 export const mountRoot = (cssText?: string) => {
-  const mountedHost = document.querySelector(`[${ATTRIBUTE_NAME}]`);
-  if (mountedHost) {
+  const mountedHosts = document.querySelectorAll<HTMLElement>(`[${ATTRIBUTE_NAME}]`);
+  for (const mountedHost of mountedHosts) {
     const mountedRoot = mountedHost.shadowRoot?.querySelector(`[${ATTRIBUTE_NAME}]`);
-    if (mountedRoot instanceof HTMLDivElement && mountedHost.shadowRoot) {
-      return mountedRoot;
-    }
+    if (mountedRoot instanceof HTMLDivElement) return mountedRoot;
+    mountedHost.remove();
   }
 
   const host = document.createElement("div");
@@ -39,16 +38,15 @@ export const mountRoot = (cssText?: string) => {
 
   shadowRoot.appendChild(root);
 
-  const doc = document.body ?? document.documentElement;
-  doc.appendChild(host);
-
+  const mountTarget = document.documentElement;
+  mountTarget.appendChild(host);
   // Re-appending after a delay handles two cases: framework hydration
   // (React/Next.js) may blow away the DOM and remove our host, and another
   // tool (e.g. react-scan) may have appended at the same z-index where last
   // DOM child wins the stacking tiebreaker. Moving an already-attached node
   // via appendChild is atomic with no flash or reflow.
   setTimeout(() => {
-    doc.appendChild(host);
+    mountTarget.appendChild(host);
   }, MOUNT_ROOT_RECHECK_DELAY_MS);
 
   return root;
