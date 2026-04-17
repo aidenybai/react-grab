@@ -166,18 +166,6 @@ export interface ContextMenuAction {
   onAction: (context: ContextMenuActionContext) => void | Promise<void>;
 }
 
-export interface ActionCycleItem {
-  id: string;
-  label: string;
-  shortcut?: string;
-}
-
-export interface ActionCycleState {
-  items: ActionCycleItem[];
-  activeIndex: number | null;
-  isVisible: boolean;
-}
-
 export interface ArrowNavigationItem {
   tagName: string;
   componentName?: string;
@@ -373,7 +361,6 @@ export interface ReactGrabRendererProps {
   selectionComponentName?: string;
   selectionLabelVisible?: boolean;
   selectionLabelStatus?: SelectionLabelStatus;
-  selectionActionCycleState?: ActionCycleState;
   selectionArrowNavigationState?: ArrowNavigationState;
   onArrowNavigationSelect?: (index: number) => void;
   inspectNavigationState?: ArrowNavigationState;
@@ -522,7 +509,6 @@ export interface SelectionLabelProps {
   status?: SelectionLabelStatus;
   statusText?: string;
   filePath?: string;
-  actionCycleState?: ActionCycleState;
   arrowNavigationState?: ArrowNavigationState;
   onArrowNavigationSelect?: (index: number) => void;
   inspectNavigationState?: ArrowNavigationState;

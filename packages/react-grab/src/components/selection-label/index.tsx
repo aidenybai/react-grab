@@ -1,13 +1,4 @@
-import {
-  Show,
-  For,
-  createSignal,
-  createEffect,
-  createMemo,
-  on,
-  onMount,
-  onCleanup,
-} from "solid-js";
+import { Show, createSignal, createEffect, createMemo, on, onMount, onCleanup } from "solid-js";
 import type { Component } from "solid-js";
 import type { ArrowPosition, SelectionLabelProps } from "../../types.js";
 import {
@@ -25,7 +16,6 @@ import { getArrowSize } from "../../utils/get-arrow-size.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
 import { cn } from "../../utils/cn.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
-import { formatShortcut } from "../../utils/format-shortcut.js";
 import { IconSubmit } from "../icons/icon-submit.jsx";
 import { IconLoader } from "../icons/icon-loader.jsx";
 import { Arrow } from "./arrow.js";
@@ -467,41 +457,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     onSelect={(index) => props.onInspectSelect?.(index)}
                   />
                 )}
-              </Show>
-              <Show
-                when={
-                  !isArrowNavigationVisible() &&
-                  !isInspectNavigationVisible() &&
-                  Boolean(props.actionCycleState?.isVisible)
-                }
-              >
-                <BottomSection>
-                  <div class="flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5">
-                    <For each={props.actionCycleState?.items ?? []}>
-                      {(item, itemIndex) => (
-                        <div
-                          data-react-grab-action-cycle-item={item.label.toLowerCase()}
-                          class="contain-layout flex items-center justify-between w-full px-2 py-1 transition-colors"
-                          classList={{
-                            "bg-black/5":
-                              itemIndex() === (props.actionCycleState?.activeIndex ?? 0),
-                            "rounded-b-[6px]":
-                              itemIndex() === (props.actionCycleState?.items ?? []).length - 1,
-                          }}
-                        >
-                          <span class="text-[13px] leading-4 font-sans font-medium text-black">
-                            {item.label}
-                          </span>
-                          <Show when={item.shortcut}>
-                            <span class="text-[11px] font-sans text-black/50 ml-4">
-                              {formatShortcut(item.shortcut!)}
-                            </span>
-                          </Show>
-                        </div>
-                      )}
-                    </For>
-                  </div>
-                </BottomSection>
               </Show>
             </div>
           </Show>
