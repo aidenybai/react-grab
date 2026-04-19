@@ -116,7 +116,7 @@ const formatCombo = (combo: KeyCombo): string => {
 
 const parseInput = (input: string): { modifiers: Set<string>; partial: string } => {
   const normalized = input.toLowerCase().replace(/\s+/g, "");
-  const parts = normalized.split(/[+\-]/);
+  const parts = normalized.split(/[+-]/);
   const modifiers = new Set<string>();
   let partial = "";
 

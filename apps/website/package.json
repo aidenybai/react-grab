@@ -4,13 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "pnpm --filter react-grab build && pnpm --filter react-grab exec cp dist/index.global.js ../../apps/website/public/script.js && pnpm --filter @react-grab/design-system build && next build",
+    "build": "pnpm --filter react-grab build && pnpm --filter react-grab exec cp dist/index.global.js ../../apps/website/public/script.js && next build",
     "start": "next start",
     "lint": "oxlint"
   },
   "dependencies": {
     "@base-ui/react": "^1.2.0",
-    "@react-grab/design-system": "workspace:*",
     "@vercel/analytics": "^1.5.0",
     "calligraph": "^1.4.1",
     "class-variance-authority": "^0.7.1",

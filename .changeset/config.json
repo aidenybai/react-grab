@@ -11,6 +11,6 @@
     "@react-grab/website",
     "@react-grab/web-extension",
     "@react-grab/gym",
-    "@react-grab/design-system"
+    "@react-grab/storybook"
   ]
 }

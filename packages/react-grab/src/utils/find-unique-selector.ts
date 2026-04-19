@@ -18,7 +18,7 @@ const PENALTY_NTH_CHILD = 50;
 const ACCEPTED_ATTR_NAMES = new Set(["role", "name", "aria-label", "rel", "href"]);
 
 const isWordLike = (text: string): boolean => {
-  if (!/^[a-z\-]{3,}$/i.test(text)) return false;
+  if (!/^[a-z-]{3,}$/i.test(text)) return false;
   const segments = text.split(/-|[A-Z]/);
   for (const segment of segments) {
     if (segment.length <= 2) return false;

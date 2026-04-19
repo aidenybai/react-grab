@@ -10,7 +10,7 @@
     "dev": "turbo run dev --filter=react-grab",
     "test": "turbo run test",
     "test:cli": "turbo run test --filter=@react-grab/cli",
-    "typecheck": "pnpm --filter react-grab typecheck",
+    "typecheck": "turbo run typecheck",
     "lint": "vp lint",
     "lint:fix": "vp lint --fix",
     "format": "vp fmt",
