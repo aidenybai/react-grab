@@ -2604,12 +2604,14 @@ const DesignSystemGrid = () => {
   };
 
   const registerCell = (id: string, element: HTMLDivElement) => {
-    setCellRefs((prev) => {
-      const next = new Map(prev);
-      next.set(id, element);
-      return next;
+    queueMicrotask(() => {
+      setCellRefs((prev) => {
+        const next = new Map(prev);
+        next.set(id, element);
+        return next;
+      });
+      setBoundsVersion((version) => version + 1);
     });
-    setBoundsVersion((version) => version + 1);
   };
 
   const getBoundsForCell = (id: string): OverlayBounds | undefined => {
