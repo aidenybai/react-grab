@@ -9,7 +9,23 @@ interface ToolbarSceneProps {
   enabled: boolean;
   commentItemCount: number;
   isContextMenuOpen: boolean;
+  collapsed: boolean;
 }
+
+const TOOLBAR_STATE_KEY = "react-grab-toolbar-state";
+
+const seedToolbarState = (args: ToolbarSceneProps): void => {
+  if (typeof localStorage === "undefined") return;
+  localStorage.setItem(
+    TOOLBAR_STATE_KEY,
+    JSON.stringify({
+      edge: "top",
+      ratio: 0.5,
+      collapsed: args.collapsed,
+      enabled: !args.collapsed,
+    }),
+  );
+};
 
 const meta: Meta<ToolbarSceneProps> = {
   title: "Components/Toolbar",
@@ -31,6 +47,9 @@ const meta: Meta<ToolbarSceneProps> = {
       />
     </Canvas>
   ),
+  beforeEach: async ({ args }) => {
+    seedToolbarState(args);
+  },
   play: async ({ canvasElement }) => {
     await waitFor(() => {
       expect(canvasElement.querySelector("[data-react-grab-toolbar]")).not.toBeNull();
@@ -41,12 +60,14 @@ const meta: Meta<ToolbarSceneProps> = {
     enabled: true,
     isContextMenuOpen: false,
     commentItemCount: 0,
+    collapsed: false,
   },
   argTypes: {
     isActive: { control: "boolean" },
     enabled: { control: "boolean" },
     isContextMenuOpen: { control: "boolean" },
     commentItemCount: { control: { type: "number", min: 0, max: 99 } },
+    collapsed: { control: "boolean" },
   },
 };
 
@@ -60,6 +81,14 @@ export const Default: Story = {
 
 export const Active: Story = {
   args: { isActive: true, enabled: true, commentItemCount: 0 },
+};
+
+export const Collapsed: Story = {
+  args: { isActive: false, enabled: false, commentItemCount: 0, collapsed: true },
+};
+
+export const CollapsedWithComments: Story = {
+  args: { isActive: false, enabled: false, commentItemCount: 3, collapsed: true },
 };
 
 export const Disabled: Story = {
