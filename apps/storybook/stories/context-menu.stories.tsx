@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from "storybook-solidjs-vite";
-import { expect, waitFor } from "storybook/test";
 import { ContextMenu } from "react-grab/src/components/context-menu.js";
 import type { Position } from "react-grab/src/types.js";
+import { assertMounted } from "./assertions.js";
 import { DEMO_BOUNDS } from "./demo-bounds.js";
 import { createMenuActions } from "./fixtures.js";
-import { Canvas, TargetBox } from "./target-box.js";
+import { TargetBox } from "./target-box.js";
 import { noop } from "./noop.js";
 
 interface ContextMenuSceneProps {
@@ -21,7 +21,7 @@ const MENU_POSITION: Position = {
 const meta: Meta<ContextMenuSceneProps> = {
   title: "Components/ContextMenu",
   render: (args) => (
-    <Canvas>
+    <>
       <TargetBox />
       <ContextMenu
         position={MENU_POSITION}
@@ -33,13 +33,9 @@ const meta: Meta<ContextMenuSceneProps> = {
         onDismiss={noop}
         onHide={noop}
       />
-    </Canvas>
+    </>
   ),
-  play: async ({ canvasElement }) => {
-    await waitFor(() => {
-      expect(canvasElement.querySelector("[data-react-grab-context-menu]")).not.toBeNull();
-    });
-  },
+  play: ({ canvasElement }) => assertMounted(canvasElement, "[data-react-grab-context-menu]"),
   args: { tagName: "button", componentName: "Button", hasFilePath: false },
 };
 

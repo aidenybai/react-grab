@@ -1,10 +1,9 @@
 import type { Meta, StoryObj } from "storybook-solidjs-vite";
-import { expect, waitFor } from "storybook/test";
 import { CommentsDropdown } from "react-grab/src/components/comments-dropdown.js";
 import type { DropdownAnchor } from "react-grab/src/types.js";
+import { assertMounted } from "./assertions.js";
 import type { CommentPreset } from "./fixtures.js";
 import { COMMENT_PRESET_KEYS, getItemPresets } from "./fixtures.js";
-import { Canvas } from "./target-box.js";
 import { noop } from "./noop.js";
 
 interface CommentsDropdownSceneProps {
@@ -21,25 +20,19 @@ const DROPDOWN_ANCHOR: DropdownAnchor = {
 const meta: Meta<CommentsDropdownSceneProps> = {
   title: "Components/CommentsDropdown",
   render: (args) => (
-    <Canvas>
-      <CommentsDropdown
-        position={DROPDOWN_ANCHOR}
-        items={getItemPresets()[args.preset]}
-        onSelectItem={noop}
-        onItemHover={noop}
-        onCopyAll={noop}
-        onCopyAllHover={noop}
-        onClearAll={noop}
-        onDismiss={noop}
-        onDropdownHover={noop}
-      />
-    </Canvas>
+    <CommentsDropdown
+      position={DROPDOWN_ANCHOR}
+      items={getItemPresets()[args.preset]}
+      onSelectItem={noop}
+      onItemHover={noop}
+      onCopyAll={noop}
+      onCopyAllHover={noop}
+      onClearAll={noop}
+      onDismiss={noop}
+      onDropdownHover={noop}
+    />
   ),
-  play: async ({ canvasElement }) => {
-    await waitFor(() => {
-      expect(canvasElement.querySelector("[data-react-grab-comments-dropdown]")).not.toBeNull();
-    });
-  },
+  play: ({ canvasElement }) => assertMounted(canvasElement, "[data-react-grab-comments-dropdown]"),
   args: { preset: "multiple" },
   argTypes: {
     preset: { control: "select", options: COMMENT_PRESET_KEYS },

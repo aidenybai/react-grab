@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "storybook-solidjs-vite";
-import { expect, waitFor } from "storybook/test";
 import { SelectionLabel } from "react-grab/src/components/selection-label/index.js";
 import type { SelectionLabelProps } from "react-grab/src/types.js";
+import { assertMounted } from "./assertions.js";
 import { DEMO_BOUNDS, DEMO_MOUSE_X } from "./demo-bounds.js";
-import { Canvas, TargetBox } from "./target-box.js";
+import { TargetBox } from "./target-box.js";
 import { noop } from "./noop.js";
 
 const baseProps: SelectionLabelProps = {
@@ -27,16 +27,12 @@ const baseProps: SelectionLabelProps = {
 const meta: Meta<SelectionLabelProps> = {
   title: "Components/SelectionLabel",
   render: (args) => (
-    <Canvas>
+    <>
       <TargetBox />
       <SelectionLabel {...args} />
-    </Canvas>
+    </>
   ),
-  play: async ({ canvasElement }) => {
-    await waitFor(() => {
-      expect(canvasElement.querySelector("[data-react-grab-selection-label]")).not.toBeNull();
-    });
-  },
+  play: ({ canvasElement }) => assertMounted(canvasElement, "[data-react-grab-selection-label]"),
   args: baseProps,
 };
 

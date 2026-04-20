@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from "storybook-solidjs-vite";
-import { expect, waitFor } from "storybook/test";
 import { Toolbar } from "react-grab/src/components/toolbar/index.js";
-import { Canvas } from "./target-box.js";
+import { assertMounted } from "./assertions.js";
 import { noop } from "./noop.js";
 
 interface ToolbarSceneProps {
@@ -14,28 +13,22 @@ interface ToolbarSceneProps {
 const meta: Meta<ToolbarSceneProps> = {
   title: "Components/Toolbar",
   render: (args) => (
-    <Canvas>
-      <Toolbar
-        isActive={args.isActive}
-        enabled={args.enabled}
-        isContextMenuOpen={args.isContextMenuOpen}
-        commentItemCount={args.commentItemCount}
-        onToggle={noop}
-        onStateChange={noop}
-        onSelectHoverChange={noop}
-        onToggleComments={noop}
-        onCopyAll={noop}
-        onCopyAllHover={noop}
-        onCommentsButtonHover={noop}
-        onToggleToolbarMenu={noop}
-      />
-    </Canvas>
+    <Toolbar
+      isActive={args.isActive}
+      enabled={args.enabled}
+      isContextMenuOpen={args.isContextMenuOpen}
+      commentItemCount={args.commentItemCount}
+      onToggle={noop}
+      onStateChange={noop}
+      onSelectHoverChange={noop}
+      onToggleComments={noop}
+      onCopyAll={noop}
+      onCopyAllHover={noop}
+      onCommentsButtonHover={noop}
+      onToggleToolbarMenu={noop}
+    />
   ),
-  play: async ({ canvasElement }) => {
-    await waitFor(() => {
-      expect(canvasElement.querySelector("[data-react-grab-toolbar]")).not.toBeNull();
-    });
-  },
+  play: ({ canvasElement }) => assertMounted(canvasElement, "[data-react-grab-toolbar]"),
   args: {
     isActive: false,
     enabled: true,
