@@ -1,4 +1,4 @@
-import type { Component } from "solid-js";
+import type { Component, JSX } from "solid-js";
 import { DEMO_BOUNDS } from "./demo-bounds.js";
 
 export const TargetBox: Component = () => (
@@ -22,5 +22,21 @@ export const TargetBox: Component = () => (
     }}
   >
     Target element
+  </div>
+);
+
+interface CanvasProps {
+  children: JSX.Element;
+}
+
+export const Canvas: Component<CanvasProps> = (props) => (
+  <div
+    style={{
+      "min-height": "100vh",
+      background: "#fafafa",
+      "font-family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    }}
+  >
+    {props.children}
   </div>
 );
