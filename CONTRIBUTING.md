@@ -42,12 +42,12 @@ nr dev
 apps/
 ├── e2e-app/             # E2E test target app (Vite)
 ├── gym/                 # Agent testing playground
+├── storybook/           # Storybook gallery for UI states (@react-grab/storybook)
 ├── web-extension/       # Browser extension
 └── website/             # Documentation site (react-grab.com)
 
 packages/
 ├── cli/                 # CLI implementation (@react-grab/cli)
-├── design-system/       # Shared design system (@react-grab/design-system)
 ├── grab/                # Bundled package (library + CLI, published as `grab`)
 ├── mcp/                 # MCP server (@react-grab/mcp)
 └── react-grab/          # Core library

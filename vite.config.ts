@@ -38,6 +38,12 @@ export default defineConfig({
           "prefer-spread": "error",
         },
       },
+      {
+        files: ["**/*.tsx"],
+        rules: {
+          "no-unassigned-vars": "off",
+        },
+      },
     ],
   },
   fmt: {
