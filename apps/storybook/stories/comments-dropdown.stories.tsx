@@ -11,11 +11,20 @@ interface CommentsDropdownSceneProps {
   preset: CommentPreset;
 }
 
+const TOOLBAR_WIDTH_PX = 200;
+const FALLBACK_VIEWPORT_WIDTH = 1024;
+const FALLBACK_VIEWPORT_HEIGHT = 640;
+
+const viewportWidth =
+  typeof window === "undefined" ? FALLBACK_VIEWPORT_WIDTH : window.innerWidth;
+const viewportHeight =
+  typeof window === "undefined" ? FALLBACK_VIEWPORT_HEIGHT : window.innerHeight;
+
 const DROPDOWN_ANCHOR: DropdownAnchor = {
-  x: 32,
-  y: 64,
+  x: Math.round(viewportWidth / 2),
+  y: Math.round(viewportHeight / 3),
   edge: "top",
-  toolbarWidth: 200,
+  toolbarWidth: TOOLBAR_WIDTH_PX,
 };
 
 const meta: Meta<CommentsDropdownSceneProps> = {
