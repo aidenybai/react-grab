@@ -16,10 +16,15 @@ const TOOLBAR_STATE_KEY = "react-grab-toolbar-state";
 
 const seedToolbarState = (args: ToolbarSceneProps): void => {
   if (typeof localStorage === "undefined") return;
+  // Collapsed pills snap flush to the viewport edge (no margin), which
+  // clips the unread-comments badge's negative top offset. Using the
+  // bottom edge for collapsed states lets the badge hang upward into
+  // the viewport instead of being cut off above it.
+  const edge = args.collapsed ? "bottom" : "top";
   localStorage.setItem(
     TOOLBAR_STATE_KEY,
     JSON.stringify({
-      edge: "top",
+      edge,
       ratio: 0.5,
       collapsed: args.collapsed,
       enabled: !args.collapsed,
