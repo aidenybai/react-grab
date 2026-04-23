@@ -10,7 +10,6 @@
   "ignore": [
     "@react-grab/website",
     "@react-grab/web-extension",
-    "@react-grab/gym",
     "@react-grab/storybook"
   ]
 }

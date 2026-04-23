@@ -45,7 +45,9 @@
     ],
     "overrides": {
       "vite": "npm:@voidzero-dev/vite-plus-core",
-      "vitest": "npm:@voidzero-dev/vite-plus-test"
+      "vitest": "npm:@voidzero-dev/vite-plus-test",
+      "react": "19.2.1",
+      "react-dom": "19.2.1"
     }
   }
 }
