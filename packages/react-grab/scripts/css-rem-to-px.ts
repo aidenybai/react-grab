@@ -2,7 +2,7 @@
  * Converts all `rem` units in the built Tailwind CSS to `px`.
  *
  * The toolbar renders inside a shadow DOM for style isolation, but `rem` is
- * always relative to the document root (`<html>`) font-size — not the shadow
+ * always relative to the document root (`<html>`) font-size - not the shadow
  * host. Pages like YouTube set `html { font-size: 10px }`, which shrinks every
  * rem-based value (spacing, radii, text sizes) and breaks the toolbar layout.
  *

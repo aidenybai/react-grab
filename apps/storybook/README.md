@@ -1,6 +1,6 @@
 # @react-grab/storybook
 
-Visual playground for React Grab's overlay system — renders the full `ReactGrabRenderer` on a sample page with Storybook controls for every user-facing state.
+Visual playground for React Grab's overlay system - renders the full `ReactGrabRenderer` on a sample page with Storybook controls for every user-facing state.
 
 Uses [Storybook 10](https://storybook.js.org/) with [`storybook-solidjs-vite`](https://github.com/nicolo-ribaudo/storybook-solidjs-vite).
 
@@ -29,13 +29,24 @@ Static build output is written to `storybook-static/`.
 ```
 apps/storybook/
 ├── .storybook/
-│   ├── main.ts               ← Storybook config
-│   └── preview.tsx           ← global parameters & CSS import
+│   ├── main.ts                 ← Storybook config
+│   └── preview.tsx             ← global parameters & CSS import
 └── stories/
-    ├── constants.ts          ← shared magic numbers (ms, px)
-    ├── fixtures.ts           ← preset comment items + menu actions
-    ├── noop.ts               ← no-op callback for handlers
-    └── renderer.stories.tsx  ← single source of truth
+    ├── fixtures.ts             ← preset comment items + menu actions
+    ├── noop.ts                 ← no-op callback for handlers
+    ├── *.stories.tsx           ← Component stories (mock renderer states)
+    └── playground/             ← Ad-hoc scenarios with real init() running
+        ├── composite-dashboard.stories.tsx
+        ├── freeze-demo.stories.tsx
+        └── live-updates.stories.tsx
 ```
 
-The renderer story renders the full overlay system (selection label, toolbar, context menu, comments dropdown) on a sample page. Named stories map to real user-facing states: idle, context menu, comment input, pending dismiss, etc.
+## Two kinds of stories
+
+**Component stories** (toolbar, selection-label, context-menu, comments-dropdown, renderer) render the overlay with mocked props. They're single sources of truth for every user-facing state: idle, context menu, comment input, pending dismiss, etc.
+
+**Playground stories** import `react-grab` for its side effect, so `init()` actually runs and hooks into the story DOM. They replace the former `apps/gym` and exist for ad-hoc hover/grab testing against realistic fixtures:
+
+- **Composite Dashboard** - sidebar, metric cards, chart, and data table for dense-DOM selection testing
+- **Freeze Demo** - bouncing animated timer for verifying freeze-animations + freeze-updates
+- **Live Updates** - continuously re-rendering components for freeze-updates verification
