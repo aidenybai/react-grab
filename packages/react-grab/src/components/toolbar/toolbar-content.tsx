@@ -81,12 +81,11 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
     }
   };
 
-  // Chevron press squishes the toolbar toward its snap edge. Direction axis
-  // is perpendicular to the snap edge (vertical edges squish along x, etc.).
-  const pressSquishStyle = (): Record<string, string> => {
-    if (!props.isChevronPressed) return {};
-    const squish = isVertical() ? "scale(0.97, 1)" : "scale(1, 0.97)";
-    return { transform: squish };
+  // Chevron press squishes the toolbar toward its snap edge: the axis
+  // perpendicular to the edge compresses 3%, keeping the snapped edge flush.
+  const pressSquishTransform = (): string | undefined => {
+    if (!props.isChevronPressed) return undefined;
+    return isVertical() ? "scale(0.97, 1)" : "scale(1, 0.97)";
   };
 
   const defaultCollapseButton = () => (
@@ -129,7 +128,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
         collapsedEdgeClasses(),
         props.isShaking && "animate-shake",
       )}
-      style={{ "transform-origin": props.transformOrigin, ...pressSquishStyle() }}
+      style={{ "transform-origin": props.transformOrigin, transform: pressSquishTransform() }}
       onAnimationEnd={props.onAnimationEnd}
       onClick={props.onPanelClick}
     >

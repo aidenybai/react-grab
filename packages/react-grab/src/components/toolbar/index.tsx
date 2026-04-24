@@ -10,8 +10,6 @@ import { createSafePolygonTracker, type TargetRect } from "../../utils/safe-poly
 import {
   TOOLBAR_SNAP_MARGIN_PX,
   TOOLBAR_FADE_IN_DELAY_MS,
-  TOOLBAR_COLLAPSED_SHORT_PX,
-  TOOLBAR_COLLAPSED_LONG_PX,
   TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS,
   TOOLBAR_DEFAULT_WIDTH_PX,
   TOOLBAR_DEFAULT_HEIGHT_PX,
@@ -30,9 +28,11 @@ import { getVisualViewport } from "../../utils/get-visual-viewport.js";
 import {
   calculateExpandedPositionFromCollapsed,
   clampToRange,
+  getCollapsedDimsForEdge,
   getCollapsedPosition,
   getPositionFromEdgeAndRatio,
   getRatioFromPosition,
+  isHorizontalEdge,
 } from "../../utils/toolbar-position.js";
 import { createToolbarDrag } from "../../utils/create-toolbar-drag.js";
 
@@ -315,32 +315,22 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     width: TOOLBAR_DEFAULT_WIDTH_PX,
     height: TOOLBAR_DEFAULT_HEIGHT_PX,
   };
-  // Initial collapsed dimensions must match the snap edge orientation so the
-  // first-collapse transform target matches the real post-collapse rect.
-  // A square default would make the outer container translate to the wrong
-  // x for horizontal edges (or wrong y for vertical), then snap to the
-  // correct position when the post-animation measurement updates the signal
-  // after setIsCollapseAnimating(false) has already dropped `transform` from
-  // the transition list.
-  const isInitiallyHorizontalEdge = snapEdge() === "top" || snapEdge() === "bottom";
-  const [collapsedDimensions, setCollapsedDimensions] = createSignal({
-    width: isInitiallyHorizontalEdge ? TOOLBAR_COLLAPSED_LONG_PX : TOOLBAR_COLLAPSED_SHORT_PX,
-    height: isInitiallyHorizontalEdge ? TOOLBAR_COLLAPSED_SHORT_PX : TOOLBAR_COLLAPSED_LONG_PX,
-  });
+  // Collapsed dims track the snap edge orientation so the first collapse -
+  // and any post-reorientation collapse - computes its transform target
+  // against a correctly-oriented rect. A stale orientation would animate
+  // the toolbar to the wrong spot and then snap to correct when the
+  // post-animation measurement updates the signal.
+  const [collapsedDimensions, setCollapsedDimensions] = createSignal(
+    getCollapsedDimsForEdge(snapEdge()),
+  );
 
-  // Reset collapsedDimensions whenever the snap edge orientation flips so the
-  // next collapse computes its transform target with correctly-oriented dims.
+  // Resets dims if the edge orientation flipped (horizontal <-> vertical).
   // Called from both the drag snap-edge callback and the state-subscription
-  // effect so external consumers (multi-toolbar sync, programmatic API) get
+  // effect so external consumers (programmatic API, multi-toolbar sync) get
   // the same correctness guarantee.
   const syncCollapsedDimensionsToEdge = (oldEdge: SnapEdge, newEdge: SnapEdge): void => {
-    const isOldHorizontal = oldEdge === "top" || oldEdge === "bottom";
-    const isNewHorizontal = newEdge === "top" || newEdge === "bottom";
-    if (isOldHorizontal === isNewHorizontal) return;
-    setCollapsedDimensions({
-      width: isNewHorizontal ? TOOLBAR_COLLAPSED_LONG_PX : TOOLBAR_COLLAPSED_SHORT_PX,
-      height: isNewHorizontal ? TOOLBAR_COLLAPSED_SHORT_PX : TOOLBAR_COLLAPSED_LONG_PX,
-    });
+    if (isHorizontalEdge(oldEdge) === isHorizontalEdge(newEdge)) return;
+    setCollapsedDimensions(getCollapsedDimsForEdge(newEdge));
   };
 
   const getExpandedFromCollapsed = (
@@ -348,17 +338,13 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     edge: SnapEdge,
   ): { position: Position; ratio: number } => {
     const actualRect = containerRef?.getBoundingClientRect();
-    const isHorizontalEdge = edge === "top" || edge === "bottom";
-    const fallbackWidth = isHorizontalEdge ? TOOLBAR_COLLAPSED_LONG_PX : TOOLBAR_COLLAPSED_SHORT_PX;
-    const fallbackHeight = isHorizontalEdge ? TOOLBAR_COLLAPSED_SHORT_PX : TOOLBAR_COLLAPSED_LONG_PX;
-    const actualCollapsedWidth = actualRect?.width ?? fallbackWidth;
-    const actualCollapsedHeight = actualRect?.height ?? fallbackHeight;
+    const fallback = getCollapsedDimsForEdge(edge);
     return calculateExpandedPositionFromCollapsed(
       collapsedPosition,
       edge,
       expandedDimensions,
-      actualCollapsedWidth,
-      actualCollapsedHeight,
+      actualRect?.width ?? fallback.width,
+      actualRect?.height ?? fallback.height,
     );
   };
 
