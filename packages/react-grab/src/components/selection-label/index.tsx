@@ -350,7 +350,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         data-react-grab-ignore-events
         data-react-grab-selection-label
         class={cn(
-          "fixed font-sans text-[13px] antialiased filter-[drop-shadow(0px_1px_2px_#51515140)] select-none transition-opacity duration-100 ease-out",
+          "fixed font-sans text-[13px] antialiased select-none transition-[opacity,filter] duration-150 ease-out",
         )}
         style={{
           top: `${positionComputation().position.top}px`,
@@ -359,6 +359,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           "z-index": `${Z_INDEX_OVERLAY}`,
           "pointer-events": shouldEnablePointerEvents() ? "auto" : "none",
           opacity: props.status === "fading" || isInternalFading() ? 0 : 1,
+          // Blur-mask during fade: softens the transition into/out of visibility
+          // so the label feels like it's materializing from focus rather than
+          // popping in and out. Filter function order: drop-shadow before blur
+          // so the shadow gets blurred along with the label (more natural).
+          filter: `drop-shadow(0px 1px 2px #51515140) blur(${props.status === "fading" || isInternalFading() ? "3px" : "0"})`,
         }}
         onPointerDown={handleContainerPointerDown}
         onClick={(event) => {
