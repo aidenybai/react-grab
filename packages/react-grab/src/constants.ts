@@ -137,7 +137,10 @@ export const MOUNT_ROOT_RECHECK_DELAY_MS = 1000;
 
 export const MAX_COMMENT_ITEMS = 20;
 export const MAX_SESSION_STORAGE_SIZE_BYTES = 2 * 1024 * 1024;
-export const DROPDOWN_ANIMATION_DURATION_MS = 100;
+// Must be >= the dropdown's CSS exit transition duration (currently 120ms on
+// the 3 dropdown components) so createAnchoredDropdown doesn't unmount the
+// DOM before the close animation completes.
+export const DROPDOWN_ANIMATION_DURATION_MS = 120;
 export const DROPDOWN_HOVER_OPEN_DELAY_MS = 200;
 export const DROPDOWN_VIEWPORT_PADDING_PX = 8;
 export const DROPDOWN_ANCHOR_GAP_PX = 8;

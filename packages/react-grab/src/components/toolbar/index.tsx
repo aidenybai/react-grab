@@ -121,20 +121,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     },
     onPositionUpdate: (newPosition) => setPosition(newPosition),
     onSnapEdgeChange: (edge, ratio) => {
-      const isNewHorizontal = edge === "top" || edge === "bottom";
-      const isOldHorizontal = snapEdge() === "top" || snapEdge() === "bottom";
-      // When the edge orientation flips (horizontal <-> vertical), the
-      // previously-measured or seeded collapsedDimensions no longer match
-      // the new edge. Reset to orientation-appropriate defaults so the next
-      // collapse computes its transform target correctly instead of animating
-      // to the wrong spot then snapping 14px when the post-animation
-      // measurement corrects the signal.
-      if (isOldHorizontal !== isNewHorizontal) {
-        setCollapsedDimensions({
-          width: isNewHorizontal ? TOOLBAR_COLLAPSED_LONG_PX : TOOLBAR_COLLAPSED_SHORT_PX,
-          height: isNewHorizontal ? TOOLBAR_COLLAPSED_SHORT_PX : TOOLBAR_COLLAPSED_LONG_PX,
-        });
-      }
+      syncCollapsedDimensionsToEdge(snapEdge(), edge);
       setSnapEdge(edge);
       setPositionRatio(ratio);
     },
@@ -341,6 +328,21 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     height: isInitiallyHorizontalEdge ? TOOLBAR_COLLAPSED_SHORT_PX : TOOLBAR_COLLAPSED_LONG_PX,
   });
 
+  // Reset collapsedDimensions whenever the snap edge orientation flips so the
+  // next collapse computes its transform target with correctly-oriented dims.
+  // Called from both the drag snap-edge callback and the state-subscription
+  // effect so external consumers (multi-toolbar sync, programmatic API) get
+  // the same correctness guarantee.
+  const syncCollapsedDimensionsToEdge = (oldEdge: SnapEdge, newEdge: SnapEdge): void => {
+    const isOldHorizontal = oldEdge === "top" || oldEdge === "bottom";
+    const isNewHorizontal = newEdge === "top" || newEdge === "bottom";
+    if (isOldHorizontal === isNewHorizontal) return;
+    setCollapsedDimensions({
+      width: isNewHorizontal ? TOOLBAR_COLLAPSED_LONG_PX : TOOLBAR_COLLAPSED_SHORT_PX,
+      height: isNewHorizontal ? TOOLBAR_COLLAPSED_SHORT_PX : TOOLBAR_COLLAPSED_LONG_PX,
+    });
+  };
+
   const getExpandedFromCollapsed = (
     collapsedPosition: Position,
     edge: SnapEdge,
@@ -510,6 +512,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
         const didCollapsedChange = isCollapsed() !== state.collapsed;
 
+        syncCollapsedDimensionsToEdge(snapEdge(), state.edge);
         setSnapEdge(state.edge);
 
         if (didCollapsedChange && !state.collapsed) {
