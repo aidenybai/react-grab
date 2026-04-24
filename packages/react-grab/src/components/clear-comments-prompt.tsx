@@ -43,7 +43,12 @@ export const ClearCommentsPrompt: Component<ClearCommentsPromptProps> = (props) 
         ref={containerRef}
         data-react-grab-ignore-events
         data-react-grab-clear-comments-prompt
-        class="fixed font-sans text-[13px] antialiased filter-[drop-shadow(0px_1px_2px_#51515140)] select-none transition-[opacity,transform] duration-100 ease-out will-change-[opacity,transform]"
+        class={cn(
+          "fixed font-sans text-[13px] antialiased filter-[drop-shadow(0px_1px_2px_#51515140)] select-none will-change-[opacity,transform]",
+          dropdown.isAnimatedIn()
+            ? "transition-[opacity,transform] duration-220 ease-spring"
+            : "transition-[opacity,transform] duration-120 ease-drawer",
+        )}
         style={{
           top: `${dropdown.displayPosition().top}px`,
           left: `${dropdown.displayPosition().left}px`,
@@ -51,7 +56,7 @@ export const ClearCommentsPrompt: Component<ClearCommentsPromptProps> = (props) 
           "pointer-events": dropdown.isAnimatedIn() ? "auto" : "none",
           "transform-origin": DROPDOWN_EDGE_TRANSFORM_ORIGIN[dropdown.lastAnchorEdge()],
           opacity: dropdown.isAnimatedIn() ? "1" : "0",
-          transform: dropdown.isAnimatedIn() ? "scale(1)" : "scale(0.95)",
+          transform: dropdown.isAnimatedIn() ? "scale(1)" : "scale(0.92)",
         }}
         onPointerDown={suppressMenuEvent}
         onMouseDown={suppressMenuEvent}

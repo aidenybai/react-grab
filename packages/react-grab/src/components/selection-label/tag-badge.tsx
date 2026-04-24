@@ -41,7 +41,7 @@ export const TagBadge: Component<TagBadgeProps> = (props) => {
         <IconOpen
           size={10}
           class={cn(
-            "text-black transition-all duration-100 shrink-0",
+            "text-black shrink-0 transition-[opacity,transform,margin,width] duration-150 ease-drawer",
             isHovered() || props.forceShowIcon
               ? "opacity-100 scale-100"
               : "opacity-0 scale-75 -ml-[2px] w-0",
