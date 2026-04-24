@@ -44,6 +44,29 @@ test.describe("Toolbar", () => {
 
       await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 6000 }).toBe(true);
     });
+
+    test("overlay host should attach to <body>, never as a child of <html>", async ({
+      reactGrab,
+    }) => {
+      // Regression guard: appending a <div> directly to <html> causes Next.js's
+      // dev overlay to show a React hydration error ("In HTML, <div> cannot be
+      // a child of <html>") when react-grab loads via <Script strategy="beforeInteractive" />.
+      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
+
+      const overlayParentInfo = await reactGrab.page.evaluate(() => {
+        const hosts = Array.from(document.querySelectorAll("[data-react-grab]"));
+        return hosts.map((host) => ({
+          tagName: host.parentElement?.tagName ?? null,
+          isChildOfHtml: host.parentElement === document.documentElement,
+        }));
+      });
+
+      expect(overlayParentInfo.length).toBeGreaterThan(0);
+      for (const hostInfo of overlayParentInfo) {
+        expect(hostInfo.isChildOfHtml).toBe(false);
+        expect(hostInfo.tagName).toBe("BODY");
+      }
+    });
   });
 
   test.describe("Toggle Activation", () => {
