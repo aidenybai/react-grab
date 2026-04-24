@@ -4,6 +4,10 @@
   --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
   --transition-fast: 100ms;
   --transition-normal: 150ms;
+  /* iOS drawer curve - strong ease-out for collapse/expand morphs */
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  /* Spring curve with subtle overshoot (~12%) for dropdown/menu entrances */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 :host {
@@ -36,19 +40,14 @@
   }
 }
 
+/* Spring curve does the overshoot - simpler and more natural than
+ * multi-stop keyframes. Matches Budge's copy-success animation. */
 @keyframes success-pop {
-  0% {
-    transform: scale(0.9);
+  from {
+    transform: scale(0.85);
     opacity: 0;
   }
-  60% {
-    transform: scale(1.1);
-    opacity: 1;
-  }
-  80% {
-    transform: scale(0.95);
-  }
-  100% {
+  to {
     transform: scale(1);
     opacity: 1;
   }
@@ -135,7 +134,7 @@
 }
 
 .animate-success-pop {
-  animation: success-pop 250ms ease-out;
+  animation: success-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
   will-change: transform, opacity;
 }
 
@@ -144,20 +143,22 @@
   will-change: transform, opacity;
 }
 
+
+/* Asymmetric press/release: release is a 400ms spring so the element "bounces"
+ * back when the user lets go; press is a near-instant 60ms linear-ease-out so
+ * the interface feels responsive the moment the user commits to a click.
+ * Budge uses the same pattern on its arrow buttons. */
 @utility press-scale {
-  transition-property: transform;
-  transition-duration: var(--transition-fast);
-  transition-timing-function: ease-out;
+  transition: transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
 
   &:active {
     transform: scale(0.97);
+    transition: transform 60ms cubic-bezier(0, 0, 0.2, 1);
   }
 }
 
 @utility interactive-scale {
-  transition-property: transform;
-  transition-duration: var(--transition-normal);
-  transition-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
 
   @media (hover: hover) and (pointer: fine) {
     &:hover {
@@ -166,7 +167,8 @@
   }
 
   &:active {
-    transform: scale(0.97);
+    transform: scale(0.96);
+    transition: transform 60ms cubic-bezier(0, 0, 0.2, 1);
   }
 }
 

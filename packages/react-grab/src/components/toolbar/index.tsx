@@ -104,6 +104,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [position, setPosition] = createSignal({ x: 0, y: 0 });
   const [isShaking, setIsShaking] = createSignal(false);
   const [isCollapseAnimating, setIsCollapseAnimating] = createSignal(false);
+  const [isChevronPressed, setIsChevronPressed] = createSignal(false);
+  const [isToolbarHovered, setIsToolbarHovered] = createSignal(false);
   let clockFlashRef: HTMLSpanElement | undefined;
   const drag = createToolbarDrag({
     getContainerRef: () => containerRef,
@@ -119,6 +121,20 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     },
     onPositionUpdate: (newPosition) => setPosition(newPosition),
     onSnapEdgeChange: (edge, ratio) => {
+      const isNewHorizontal = edge === "top" || edge === "bottom";
+      const isOldHorizontal = snapEdge() === "top" || snapEdge() === "bottom";
+      // When the edge orientation flips (horizontal <-> vertical), the
+      // previously-measured or seeded collapsedDimensions no longer match
+      // the new edge. Reset to orientation-appropriate defaults so the next
+      // collapse computes its transform target correctly instead of animating
+      // to the wrong spot then snapping 14px when the post-animation
+      // measurement corrects the signal.
+      if (isOldHorizontal !== isNewHorizontal) {
+        setCollapsedDimensions({
+          width: isNewHorizontal ? TOOLBAR_COLLAPSED_LONG_PX : TOOLBAR_COLLAPSED_SHORT_PX,
+          height: isNewHorizontal ? TOOLBAR_COLLAPSED_SHORT_PX : TOOLBAR_COLLAPSED_LONG_PX,
+        });
+      }
       setSnapEdge(edge);
       setPositionRatio(ratio);
     },
@@ -312,9 +328,17 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     width: TOOLBAR_DEFAULT_WIDTH_PX,
     height: TOOLBAR_DEFAULT_HEIGHT_PX,
   };
+  // Initial collapsed dimensions must match the snap edge orientation so the
+  // first-collapse transform target matches the real post-collapse rect.
+  // A square default would make the outer container translate to the wrong
+  // x for horizontal edges (or wrong y for vertical), then snap to the
+  // correct position when the post-animation measurement updates the signal
+  // after setIsCollapseAnimating(false) has already dropped `transform` from
+  // the transition list.
+  const isInitiallyHorizontalEdge = snapEdge() === "top" || snapEdge() === "bottom";
   const [collapsedDimensions, setCollapsedDimensions] = createSignal({
-    width: TOOLBAR_COLLAPSED_SHORT_PX,
-    height: TOOLBAR_COLLAPSED_SHORT_PX,
+    width: isInitiallyHorizontalEdge ? TOOLBAR_COLLAPSED_LONG_PX : TOOLBAR_COLLAPSED_SHORT_PX,
+    height: isInitiallyHorizontalEdge ? TOOLBAR_COLLAPSED_SHORT_PX : TOOLBAR_COLLAPSED_LONG_PX,
   });
 
   const getExpandedFromCollapsed = (
@@ -322,8 +346,11 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     edge: SnapEdge,
   ): { position: Position; ratio: number } => {
     const actualRect = containerRef?.getBoundingClientRect();
-    const actualCollapsedWidth = actualRect?.width ?? TOOLBAR_COLLAPSED_SHORT_PX;
-    const actualCollapsedHeight = actualRect?.height ?? TOOLBAR_COLLAPSED_SHORT_PX;
+    const isHorizontalEdge = edge === "top" || edge === "bottom";
+    const fallbackWidth = isHorizontalEdge ? TOOLBAR_COLLAPSED_LONG_PX : TOOLBAR_COLLAPSED_SHORT_PX;
+    const fallbackHeight = isHorizontalEdge ? TOOLBAR_COLLAPSED_SHORT_PX : TOOLBAR_COLLAPSED_LONG_PX;
+    const actualCollapsedWidth = actualRect?.width ?? fallbackWidth;
+    const actualCollapsedHeight = actualRect?.height ?? fallbackHeight;
     return calculateExpandedPositionFromCollapsed(
       collapsedPosition,
       edge,
@@ -444,16 +471,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     // expanded on initial mount, so rect reflects expanded dimensions here
     // regardless of savedState.collapsed. Using it for collapsed dimensions
     // would make the toolbar too wide after restoring a collapsed state.
+    // collapsedDimensions is already seeded from snapEdge() at signal creation.
     if (savedState) {
       if (rect) {
         expandedDimensions = { width: rect.width, height: rect.height };
-      }
-      if (savedState.collapsed) {
-        const isHorizontalEdge = savedState.edge === "top" || savedState.edge === "bottom";
-        setCollapsedDimensions({
-          width: isHorizontalEdge ? TOOLBAR_COLLAPSED_LONG_PX : TOOLBAR_COLLAPSED_SHORT_PX,
-          height: isHorizontalEdge ? TOOLBAR_COLLAPSED_SHORT_PX : TOOLBAR_COLLAPSED_LONG_PX,
-        });
       }
       setIsCollapsed(savedState.collapsed);
       const newPosition = getPositionFromEdgeAndRatio(
@@ -567,17 +588,37 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     return "cursor-grab";
   };
 
+  // Dim the toolbar when grab mode is active so it recedes while the user is
+  // focused on element selection. Any direct interaction (hover, drag,
+  // context menu, collapse animation, chevron press) snaps it back to full
+  // presence - including hovering during grab, so the user can still reach
+  // the buttons without dropping out of grab mode.
+  const isInteracting = (): boolean =>
+    isToolbarHovered() ||
+    Boolean(props.isContextMenuOpen) ||
+    drag.isDragging() ||
+    drag.isSnapping() ||
+    isCollapseAnimating() ||
+    isChevronPressed();
+
+  const shouldDim = (): boolean => Boolean(props.isActive) && !isInteracting();
+
   const getTransitionClass = (): string => {
-    if (isResizing()) {
+    if (isResizing() || drag.isDragging()) {
+      // Drag must follow the pointer frame-to-frame; a transform transition
+      // here would lag the toolbar behind the cursor.
       return "";
     }
     if (drag.isSnapping()) {
       return "transition-[transform,opacity] duration-300 ease-out";
     }
     if (isCollapseAnimating()) {
-      return "transition-[transform,opacity] duration-150 ease-out";
+      const duration = isCollapsed() ? "duration-140" : "duration-220";
+      return `transition-[transform,opacity] ${duration} ease-drawer`;
     }
-    return "transition-opacity duration-300 ease-out";
+    // Breathe: transform (scale) + opacity animate in lockstep when engagement
+    // changes. Slower than a press so it reads as ambient, not reactive.
+    return "transition-[transform,opacity] duration-400 ease-drawer";
   };
 
   const getTransformOrigin = (): string => {
@@ -605,20 +646,30 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         "fixed left-0 top-0 font-sans text-[13px] antialiased select-none",
         getCursorClass(),
         getTransitionClass(),
-        isVisible() ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
+        // Explicit pointer-events-auto is required during grab mode because
+        // freeze-pseudo-states sets `html { pointer-events: none !important }`
+        // and the toolbar needs to override that to stay clickable.
+        isVisible() ? "pointer-events-auto" : "pointer-events-none",
       )}
       style={{
         "z-index": String(Z_INDEX_OVERLAY),
-        transform: `translate(${currentPosition().x}px, ${currentPosition().y}px)`,
+        transform: `translate(${currentPosition().x}px, ${currentPosition().y}px) scale(${shouldDim() ? 0.97 : 1})`,
         "transform-origin": getTransformOrigin(),
+        opacity: !isVisible() ? 0 : shouldDim() ? 0.55 : 1,
       }}
       on:pointerdown={(event) => {
         stopEventPropagation(event);
         drag.handlePointerDown(event);
       }}
       on:mousedown={stopEventPropagation}
-      onMouseEnter={() => !isCollapsed() && props.onSelectHoverChange?.(true)}
-      onMouseLeave={() => props.onSelectHoverChange?.(false)}
+      onMouseEnter={() => {
+        setIsToolbarHovered(true);
+        if (!isCollapsed()) props.onSelectHoverChange?.(true);
+      }}
+      onMouseLeave={() => {
+        setIsToolbarHovered(false);
+        props.onSelectHoverChange?.(false);
+      }}
     >
       <ToolbarContent
         isCollapsed={isCollapsed()}
@@ -626,9 +677,13 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         isShaking={isShaking()}
         isCommentsExpanded={(props.commentItemCount ?? 0) > 0}
         isCopyAllExpanded={Boolean(props.isCommentsDropdownOpen)}
+        isChevronPressed={isChevronPressed()}
         transformOrigin={getTransformOrigin()}
         onAnimationEnd={() => setIsShaking(false)}
         onCollapseClick={handleToggleCollapse}
+        onCollapsePointerDown={() => setIsChevronPressed(true)}
+        onCollapsePointerUp={() => setIsChevronPressed(false)}
+        onCollapsePointerLeave={() => setIsChevronPressed(false)}
         onPanelClick={(event) => {
           if (isCollapsed()) {
             event.stopPropagation();

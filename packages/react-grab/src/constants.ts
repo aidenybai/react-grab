@@ -88,16 +88,26 @@ export const OVERLAY_Z_INDEX_THRESHOLD = 1000;
 export const DEV_TOOLS_OVERLAY_Z_INDEX_THRESHOLD = 2147483600;
 
 export const TOOLTIP_DELAY_MS = 400;
-export const TOOLTIP_GRACE_PERIOD_MS = 100;
+// After the first tooltip closes, subsequent tooltips skip the delay + fade
+// animation for this long. Set generously (~800ms) so traversing adjacent
+// buttons on the toolbar feels snappy - 100ms was too short to reach the
+// next button in practice.
+export const TOOLTIP_GRACE_PERIOD_MS = 800;
 
 export const TOOLBAR_SNAP_MARGIN_PX = 16;
 export const TOOLBAR_FADE_IN_DELAY_MS = 500;
 export const TOOLBAR_SNAP_ANIMATION_DURATION_MS = 300;
 export const TOOLBAR_DRAG_THRESHOLD_PX = 5;
 export const TOOLBAR_VELOCITY_MULTIPLIER_MS = 150;
-export const TOOLBAR_COLLAPSED_SHORT_PX = 14;
-export const TOOLBAR_COLLAPSED_LONG_PX = 28;
-export const TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS = 150;
+export const TOOLBAR_COLLAPSED_SHORT_PX = 16;
+export const TOOLBAR_COLLAPSED_LONG_PX = 30;
+// Asymmetric collapse/expand timing: expansion is more deliberate (content
+// materializes behind the growing container), collapse is snappier (fade
+// leads, size follows). The shared "animation duration" constant must cover
+// the longer direction so downstream timeouts wait for the real end.
+export const TOOLBAR_COLLAPSE_DURATION_MS = 140;
+export const TOOLBAR_EXPAND_DURATION_MS = 220;
+export const TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS = TOOLBAR_EXPAND_DURATION_MS;
 export const TOOLBAR_DEFAULT_WIDTH_PX = 78;
 export const TOOLBAR_DEFAULT_HEIGHT_PX = 28;
 export const TOOLBAR_DEFAULT_POSITION_RATIO = 0.5;
