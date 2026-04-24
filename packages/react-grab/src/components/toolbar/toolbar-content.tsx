@@ -9,9 +9,13 @@ interface ToolbarContentProps {
   isShaking?: boolean;
   isCommentsExpanded?: boolean;
   isCopyAllExpanded?: boolean;
+  isChevronPressed?: boolean;
   onAnimationEnd?: () => void;
   onPanelClick?: (event: MouseEvent) => void;
   onCollapseClick?: (event: MouseEvent) => void;
+  onCollapsePointerDown?: (event: PointerEvent) => void;
+  onCollapsePointerUp?: (event: PointerEvent) => void;
+  onCollapsePointerLeave?: (event: PointerEvent) => void;
   selectButton?: JSX.Element;
   commentsButton?: JSX.Element;
   copyAllButton?: JSX.Element;
@@ -23,22 +27,29 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
   const edge = () => props.snapEdge ?? "bottom";
   const isVertical = () => edge() === "left" || edge() === "right";
 
+  // Asymmetric timing: opacity leads on collapse (content fades before size
+  // shrinks) and follows on expand (size grows, then content materializes).
+  // Size uses the longer curve on expand for a more deliberate reveal.
+  const sizeDurationClass = () => (props.isCollapsed ? "duration-140" : "duration-220");
+  const opacityEnterClass = "transition-opacity duration-180 ease-drawer delay-[80ms]";
+  const opacityExitClass = "transition-opacity duration-100 ease-drawer";
+
   const expandGridClass = (isExpanded: boolean, collapsedExtra?: string): string =>
     getExpandGridClass(isVertical(), isExpanded, collapsedExtra);
 
-  const gridTransitionClass = (): string => {
-    if (isVertical()) {
-      return "transition-[grid-template-rows,opacity] duration-150 ease-out";
-    }
-    return "transition-[grid-template-columns,opacity] duration-150 ease-out";
-  };
+  // Tailwind v4 scans source files for class names as literal strings.
+  // Template-interpolated classes like `transition-[${axis},opacity]` are
+  // invisible to the scanner, so keep each variant as a full static string
+  // and branch on isVertical() at usage time.
+  const gridTransitionClass = (): string =>
+    isVertical()
+      ? `transition-[grid-template-rows,opacity] ${sizeDurationClass()} ease-drawer`
+      : `transition-[grid-template-columns,opacity] ${sizeDurationClass()} ease-drawer`;
 
-  const gridSizeTransitionClass = (): string => {
-    if (isVertical()) {
-      return "transition-[grid-template-rows] duration-150 ease-out";
-    }
-    return "transition-[grid-template-columns] duration-150 ease-out";
-  };
+  const gridSizeTransitionClass = (): string =>
+    isVertical()
+      ? `transition-[grid-template-rows] ${sizeDurationClass()} ease-drawer`
+      : `transition-[grid-template-columns] ${sizeDurationClass()} ease-drawer`;
 
   const minDimensionClass = () => getMinDimensionClass(isVertical());
 
@@ -70,6 +81,14 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
     }
   };
 
+  // Chevron press squishes the toolbar toward its snap edge. Direction axis
+  // is perpendicular to the snap edge (vertical edges squish along x, etc.).
+  const pressSquishStyle = (): Record<string, string> => {
+    if (!props.isChevronPressed) return {};
+    const squish = isVertical() ? "scale(0.97, 1)" : "scale(1, 0.97)";
+    return { transform: squish };
+  };
+
   const defaultCollapseButton = () => (
     <button
       data-react-grab-ignore-events
@@ -77,25 +96,40 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
       aria-label={props.isCollapsed ? "Expand toolbar" : "Collapse toolbar"}
       class="contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale"
       onClick={props.onCollapseClick}
+      onPointerDown={props.onCollapsePointerDown}
+      onPointerUp={props.onCollapsePointerUp}
+      onPointerLeave={props.onCollapsePointerLeave}
+      onPointerCancel={props.onCollapsePointerLeave}
     >
       <IconChevron
         size={14}
-        class={cn("text-[#B3B3B3] transition-transform duration-150", chevronRotation())}
+        class={cn(
+          "text-[#B3B3B3] transition-transform duration-150 ease-drawer",
+          chevronRotation(),
+        )}
       />
     </button>
   );
 
+  // Press transition is fast (60ms linear-ease-out) for instant feedback;
+  // release is a 300ms drawer curve so the squish settles naturally.
+  const outerTransitionClass = () =>
+    props.isChevronPressed
+      ? `transition-[padding,border-radius,transform] duration-60 ease-[cubic-bezier(0,0,0.2,1)]`
+      : `transition-[padding,border-radius,transform] ${sizeDurationClass()} ease-drawer`;
+
   return (
     <div
       class={cn(
-        "flex items-center justify-center rounded-[10px] antialiased relative overflow-visible [font-synthesis:none] border border-[#D9D9D9] filter-[drop-shadow(0px_1px_2px_#51515133)] [corner-shape:superellipse(1.25)]",
+        "flex items-center justify-center rounded-[10px] antialiased relative overflow-visible [font-synthesis:none] filter-[drop-shadow(0px_1px_2px_#51515133)] [corner-shape:superellipse(1.25)]",
+        outerTransitionClass(),
         isVertical() && "flex-col",
         "bg-white",
         !props.isCollapsed && (isVertical() ? "px-1.5 gap-1 py-2" : "py-1.5 gap-1 px-2"),
         collapsedEdgeClasses(),
         props.isShaking && "animate-shake",
       )}
-      style={{ "transform-origin": props.transformOrigin }}
+      style={{ "transform-origin": props.transformOrigin, ...pressSquishStyle() }}
       onAnimationEnd={props.onAnimationEnd}
       onClick={props.onPanelClick}
     >
@@ -117,7 +151,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
             "flex",
             isVertical() ? "flex-col items-center min-h-0" : "items-center min-w-0",
             props.isCollapsed ? "opacity-0" : "opacity-100",
-            "transition-opacity duration-150 ease-out",
+            props.isCollapsed ? opacityExitClass : opacityEnterClass,
           )}
         >
           <div class={cn("flex items-center", isVertical() && "flex-col")}>
