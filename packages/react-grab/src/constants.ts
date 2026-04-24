@@ -2,6 +2,9 @@ import { overlayColor } from "./utils/overlay-color.js";
 
 export const VERSION = process.env.VERSION as string;
 
+export const REACT_GRAB_CLIPBOARD_END_MARKER = "--- /x-react-grab ---";
+export const REACT_GRAB_CLIPBOARD_START_MARKER = "--- x-react-grab ---";
+
 export const VIEWPORT_MARGIN_PX = 8;
 export const OFFSCREEN_POSITION = -1000;
 

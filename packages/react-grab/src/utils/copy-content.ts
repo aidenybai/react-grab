@@ -1,4 +1,8 @@
-import { VERSION } from "../constants.js";
+import {
+  REACT_GRAB_CLIPBOARD_END_MARKER,
+  REACT_GRAB_CLIPBOARD_START_MARKER,
+  VERSION,
+} from "../constants.js";
 
 const REACT_GRAB_MIME_TYPE = "application/x-react-grab";
 
@@ -42,13 +46,17 @@ export const copyContent = (content: string, options?: CopyContentOptions): bool
     entries,
     timestamp: Date.now(),
   };
+  const textContent = `${content}\n\n${REACT_GRAB_CLIPBOARD_START_MARKER}\n${JSON.stringify({
+    content: entries.map((entry) => entry.content),
+    prompt: entries.find((entry) => entry.commentText)?.commentText,
+  })}\n${REACT_GRAB_CLIPBOARD_END_MARKER}`;
 
   // The clipboard receives three formats: plain text for terminals and editors,
   // HTML-escaped content for rich text fields like Notion or Google Docs, and a
   // custom MIME type carrying full metadata for paste targets that understand it.
   const copyHandler = (event: ClipboardEvent) => {
     event.preventDefault();
-    event.clipboardData?.setData("text/plain", content);
+    event.clipboardData?.setData("text/plain", textContent);
     event.clipboardData?.setData(
       "text/html",
       `<meta charset='utf-8'><pre><code>${escapeHtml(content)}</code></pre>`,
