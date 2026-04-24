@@ -1,3 +1,7 @@
+import {
+  REACT_GRAB_CLIPBOARD_END_MARKER,
+  REACT_GRAB_CLIPBOARD_START_MARKER,
+} from "../src/constants.js";
 import { test, expect } from "./fixtures.js";
 
 test.describe("Element Selection", () => {
@@ -57,6 +61,10 @@ test.describe("Element Selection", () => {
     expect(clipboardMetadata.content).toContain("Todo List");
     expect(clipboardMetadata.entries).toHaveLength(1);
     expect(clipboardMetadata.entries[0].content).toContain("Todo List");
+
+    const clipboardPlainText = copyPayload["text/plain"];
+    expect(clipboardPlainText).toContain(REACT_GRAB_CLIPBOARD_START_MARKER);
+    expect(clipboardPlainText).toContain(REACT_GRAB_CLIPBOARD_END_MARKER);
   });
 
   test("should block page text selection while grabbing", async ({ reactGrab }) => {

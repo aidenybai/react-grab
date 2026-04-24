@@ -207,4 +207,4 @@ The five built-in plugins are registered during `init()` through the same `regis
 
 ## Notes about MCP integration
 
-The `@react-grab/mcp` package provides a plugin that bridges react-grab with AI coding assistants via the Model Context Protocol. The plugin hooks into `transformAgentContext` and `onCopySuccess` to POST element context to a local MCP server whenever the user copies or submits a prompt. The MCP server in turn exposes this context as MCP resources that coding assistants like Cursor and Claude Code can read. The plugin is registered like any other plugin and has no special privileges in the core.
+The `@react-grab/mcp` package bridges react-grab with AI coding assistants via the Model Context Protocol. React Grab writes an `x-react-grab` JSON envelope into the plain-text clipboard output whenever context is copied. The MCP server exposes a `get_element_context` tool that reads the clipboard with `clipboardy`, extracts that envelope, and returns the copied context to agents like Cursor and Claude Code. This avoids a browser-side MCP client and does not require the page to POST context to a local server.

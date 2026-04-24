@@ -3,13 +3,15 @@ import { createServer, type Server } from "node:http";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import clipboard from "clipboardy";
 import fkill from "fkill";
 import { z } from "zod";
 import {
-  CONTEXT_TTL_MS,
   DEFAULT_MCP_PORT,
   HEALTH_CHECK_TIMEOUT_MS,
   POST_KILL_DELAY_MS,
+  REACT_GRAB_CLIPBOARD_END_MARKER,
+  REACT_GRAB_CLIPBOARD_START_MARKER,
 } from "./constants.js";
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
@@ -19,14 +21,17 @@ const agentContextSchema = z.object({
   prompt: z.string().optional().describe("User prompt or instruction"),
 });
 
-type AgentContext = z.infer<typeof agentContextSchema>;
+interface AgentContext extends z.infer<typeof agentContextSchema> {}
 
-interface StoredContext {
-  context: AgentContext;
-  submittedAt: number;
-}
+const reactGrabEntrySchema = z.object({
+  content: z.string(),
+  commentText: z.string().optional(),
+});
 
-let latestContext: StoredContext | null = null;
+const reactGrabMetadataSchema = z.object({
+  content: z.string(),
+  entries: z.array(reactGrabEntrySchema).optional(),
+});
 
 const textResult = (text: string) => ({
   content: [{ type: "text" as const, text }],
@@ -41,6 +46,45 @@ const formatContext = (context: AgentContext): string => {
   return parts.join("\n\n");
 };
 
+const normalizeReactGrabPayload = (payload: unknown): AgentContext | null => {
+  const agentContext = agentContextSchema.safeParse(payload);
+  if (agentContext.success) return agentContext.data;
+
+  const reactGrabMetadata = reactGrabMetadataSchema.safeParse(payload);
+  if (!reactGrabMetadata.success) return null;
+
+  const entries = reactGrabMetadata.data.entries;
+  return {
+    content: entries?.map((entry) => entry.content) ?? [reactGrabMetadata.data.content],
+    prompt: entries?.find((entry) => entry.commentText)?.commentText,
+  };
+};
+
+export const parseClipboardContext = (clipboardText: string): AgentContext | null => {
+  const startIndex = clipboardText.indexOf(REACT_GRAB_CLIPBOARD_START_MARKER);
+  if (startIndex === -1) return null;
+
+  const jsonStartIndex = startIndex + REACT_GRAB_CLIPBOARD_START_MARKER.length;
+  const endIndex = clipboardText.indexOf(REACT_GRAB_CLIPBOARD_END_MARKER, jsonStartIndex);
+  if (endIndex === -1) return null;
+
+  try {
+    const jsonText = clipboardText.slice(jsonStartIndex, endIndex).trim();
+    return normalizeReactGrabPayload(JSON.parse(jsonText));
+  } catch {
+    return null;
+  }
+};
+
+const readClipboardContext = async (): Promise<AgentContext | null> => {
+  try {
+    const clipboardText = await clipboard.read();
+    return parseClipboardContext(clipboardText);
+  } catch {
+    return null;
+  }
+};
+
 const createMcpServer = (): McpServer => {
   const server = new McpServer(
     { name: "react-grab-mcp", version: "0.1.0" },
@@ -51,22 +95,15 @@ const createMcpServer = (): McpServer => {
     "get_element_context",
     {
       description:
-        "Get the latest React Grab context that was submitted. Returns the most recent UI element selection with its prompt.",
+        "Read React Grab context from the clipboard. Returns the most recent copied UI element selection with its prompt.",
     },
     async () => {
-      if (!latestContext) {
+      const clipboardContext = await readClipboardContext();
+      if (!clipboardContext) {
         return textResult("No context has been submitted yet.");
       }
 
-      const isExpired = Date.now() - latestContext.submittedAt > CONTEXT_TTL_MS;
-      if (isExpired) {
-        latestContext = null;
-        return textResult("No context has been submitted yet.");
-      }
-
-      const result = textResult(formatContext(latestContext.context));
-      latestContext = null;
-      return result;
+      return textResult(formatContext(clipboardContext));
     },
   );
 
@@ -109,29 +146,6 @@ const createHttpServer = (port: number): Server => {
       response
         .writeHead(200, { "Content-Type": "application/json" })
         .end(JSON.stringify({ status: "ok" }));
-      return;
-    }
-
-    if (url.pathname === "/context" && request.method === "POST") {
-      const chunks: Buffer[] = [];
-      for await (const chunk of request) {
-        chunks.push(chunk as Buffer);
-      }
-
-      try {
-        const body = JSON.parse(Buffer.concat(chunks).toString());
-        latestContext = {
-          context: agentContextSchema.parse(body),
-          submittedAt: Date.now(),
-        };
-        response
-          .writeHead(200, { "Content-Type": "application/json" })
-          .end(JSON.stringify({ status: "ok" }));
-      } catch {
-        response
-          .writeHead(400, { "Content-Type": "application/json" })
-          .end(JSON.stringify({ error: "Invalid context payload" }));
-      }
       return;
     }
 
@@ -230,11 +244,6 @@ export const startMcpServer = async ({
     const mcpServer = createMcpServer();
     const transport = new StdioServerTransport();
     await mcpServer.server.connect(transport);
-
-    startHttpServer(port).then(
-      () => console.error(`React Grab context server listening on port ${port}`),
-      (error) => console.error(`Failed to start context server: ${error}`),
-    );
     return;
   }
 

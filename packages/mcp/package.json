@@ -8,13 +8,7 @@
     "dist"
   ],
   "type": "module",
-  "browser": "dist/client.global.js",
   "exports": {
-    "./client": {
-      "types": "./dist/client.d.ts",
-      "import": "./dist/client.js",
-      "require": "./dist/client.cjs"
-    },
     "./server": {
       "types": "./dist/server.d.ts",
       "import": "./dist/server.js",
@@ -25,7 +19,8 @@
   },
   "scripts": {
     "dev": "vp pack --watch",
-    "build": "rm -rf dist && NODE_ENV=production vp pack && cp dist/client.iife.js dist/client.global.js",
+    "build": "rm -rf dist && NODE_ENV=production vp pack",
+    "test": "vp test run",
     "lint": "vp lint",
     "format": "vp fmt",
     "format:check": "vp fmt --check",
@@ -33,8 +28,8 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.25.0",
+    "clipboardy": "^5.3.1",
     "fkill": "^9.0.0",
-    "react-grab": "workspace:*",
     "zod": "^3.25.0"
   },
   "devDependencies": {

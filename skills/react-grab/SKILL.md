@@ -15,7 +15,7 @@ When the user asks about UI code or mentions a selected/grabbed element:
 4. Use the returned element context as the primary pointer to files, components, DOM structure, and prompt text.
 5. If no React Grab context is available, continue with normal code search and tell the user only if the missing context blocks the task.
 
-React Grab context is usually single-use. After a successful MCP read, assume the next call may be empty unless the user copies another element.
+React Grab context is clipboard-backed. After a successful MCP read, assume repeated calls may return the same context until the user copies another element or overwrites the clipboard.
 
 ## MCP polling behavior
 
@@ -36,7 +36,7 @@ For permissionless React Grab MCP implementations, prefer pull-based clipboard c
 
 ```txt
 User copies with React Grab
-  -> React Grab writes normal text plus an x-react-grab payload to the clipboard
+  -> React Grab writes normal text with an x-react-grab envelope to the clipboard
   -> MCP server reads the clipboard on get_element_context
   -> MCP returns the parsed React Grab context
 ```
@@ -49,7 +49,7 @@ import clipboard from "clipboardy";
 const clipboardText = await clipboard.read();
 ```
 
-Important: `clipboardy` reads and writes text. If the implementation needs a true custom clipboard MIME/property named `x-react-grab`, use platform-specific clipboard APIs. For the default portable path, encode `x-react-grab` inside the text payload with a stable marker.
+Important: `clipboardy` reads and writes text. React Grab MCP uses the portable text path, so `x-react-grab` is encoded inside the copied text payload with stable markers. If an implementation needs the browser's `application/x-react-grab` clipboard MIME data, use platform-specific clipboard APIs instead.
 
 Recommended text envelope:
 
