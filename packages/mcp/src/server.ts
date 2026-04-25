@@ -16,17 +16,14 @@ const textResult = (text: string): TextToolResult => ({
 });
 
 const stripLeadingPromptPrefix = (content: string, rawPrompts: string[]): string => {
-  // The browser-side producer prepends "${prompt}\n\n" to payload.content
-  // using the *untrimmed* prompt, so we match against the raw commentText
-  // (and a trimmed variant as a safety net) to avoid the prompt showing up
-  // both in the "Prompt:" section and inside the elements body.
-  const candidates = new Set<string>();
+  // The browser-side producer prepends the *untrimmed* prompt followed by
+  // "\n\n" to payload.content, so we match against the raw commentText.
+  // We deliberately do not also try a trimmed candidate: that would risk
+  // stripping legitimate element content that happens to start with the
+  // prompt text (e.g. prompt "Click me" + element body "Click me\n\n...").
   for (const rawPrompt of rawPrompts) {
-    if (rawPrompt.length > 0) candidates.add(`${rawPrompt}\n\n`);
-    const trimmed = rawPrompt.trim();
-    if (trimmed.length > 0) candidates.add(`${trimmed}\n\n`);
-  }
-  for (const candidate of candidates) {
+    if (rawPrompt.length === 0) continue;
+    const candidate = `${rawPrompt}\n\n`;
     if (content.startsWith(candidate)) {
       return content.slice(candidate.length);
     }
