@@ -9,7 +9,10 @@ $ErrorActionPreference='Stop'
 try {
   Add-Type -AssemblyName System.Windows.Forms
   $data = [System.Windows.Forms.Clipboard]::GetData('${REACT_GRAB_MIME_TYPE}')
-  [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+  # Use UTF8Encoding($false) instead of [System.Text.Encoding]::UTF8 - the
+  # singleton has emitUTF8Identifier enabled, which can prepend a BOM to the
+  # piped stdout that breaks JSON.parse on the Node side.
+  [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false
   if ($null -eq $data) {
     [Console]::Out.Write('')
   } elseif ($data -is [byte[]]) {

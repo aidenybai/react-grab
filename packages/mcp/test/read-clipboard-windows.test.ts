@@ -64,6 +64,21 @@ describe("readClipboardWindows", () => {
     expect(decodedScript).toContain("[System.Text.Encoding]::UTF8.GetString");
   });
 
+  it("configures BOM-less UTF-8 output to keep JSON.parse happy", async () => {
+    stubExecFile(mockExecFile, { stdout: "{}" });
+
+    await readClipboardWindows();
+
+    const decodedScript = getDecodedPowerShellScript();
+    // The [System.Text.Encoding]::UTF8 singleton has emitUTF8Identifier
+    // enabled; using New-Object UTF8Encoding $false avoids the BOM that
+    // would otherwise be prepended to stdout.
+    expect(decodedScript).toContain("New-Object System.Text.UTF8Encoding $false");
+    expect(decodedScript).not.toMatch(
+      /\[Console\]::OutputEncoding\s*=\s*\[System\.Text\.Encoding\]::UTF8\b/,
+    );
+  });
+
   it("returns ENOENT hint when powershell is missing", async () => {
     stubExecFile(mockExecFile, { error: enoentError() });
 

@@ -15,11 +15,23 @@ const textResult = (text: string): TextToolResult => ({
   content: [{ type: "text", text }],
 });
 
+const stripLeadingPromptPrefix = (content: string, uniquePrompts: string[]): string => {
+  // The browser-side producer prepends "${prompt}\n\n" to payload.content
+  // when a prompt is present, so we trim it back off to avoid the prompt
+  // showing up both in the "Prompt:" section and inside the elements body.
+  for (const prompt of uniquePrompts) {
+    const candidate = `${prompt}\n\n`;
+    if (content.startsWith(candidate)) {
+      return content.slice(candidate.length);
+    }
+  }
+  return content;
+};
+
 const formatPayload = (payload: ReactGrabPayload): string => {
-  // The browser-side producer assigns the same prompt to every entry's
-  // commentText *and* prepends it to payload.content, so we deduplicate
-  // prompt lines and rebuild the elements section from per-entry content
-  // to avoid surfacing the prompt multiple times to the LLM.
+  // The producer also assigns the prompt to every entry's commentText, so
+  // dedupe via a Set to surface a single Prompt: line regardless of how
+  // many elements were copied.
   const uniquePrompts = Array.from(
     new Set(
       payload.entries
@@ -27,11 +39,11 @@ const formatPayload = (payload: ReactGrabPayload): string => {
         .filter((commentText): commentText is string => Boolean(commentText)),
     ),
   );
-  const entriesBody = payload.entries
-    .map((entry) => entry.content)
-    .filter((entryContent) => entryContent.trim().length > 0)
-    .join("\n\n");
-  const elementsBody = entriesBody.length > 0 ? entriesBody : payload.content;
+  // Use payload.content as the body so we preserve canonical formatting:
+  // the [1]/[2]/[3] labels added by joinSnippets for multi-element copies
+  // and any transformCopyContent output contributed by plugins
+  // (e.g. copy-html, copy-styles).
+  const elementsBody = stripLeadingPromptPrefix(payload.content, uniquePrompts);
   const elementsSection = `Elements (${payload.entries.length}):\n${elementsBody}`;
   return uniquePrompts.length > 0
     ? `Prompt: ${uniquePrompts.join("\n")}\n\n${elementsSection}`
