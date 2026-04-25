@@ -16,12 +16,25 @@ const textResult = (text: string): TextToolResult => ({
 });
 
 const formatPayload = (payload: ReactGrabPayload): string => {
-  const promptLines = payload.entries
-    .map((entry) => entry.commentText)
-    .filter((commentText): commentText is string => Boolean(commentText));
-  const elementsSection = `Elements (${payload.entries.length}):\n${payload.content}`;
-  return promptLines.length > 0
-    ? `Prompt: ${promptLines.join("\n")}\n\n${elementsSection}`
+  // The browser-side producer assigns the same prompt to every entry's
+  // commentText *and* prepends it to payload.content, so we deduplicate
+  // prompt lines and rebuild the elements section from per-entry content
+  // to avoid surfacing the prompt multiple times to the LLM.
+  const uniquePrompts = Array.from(
+    new Set(
+      payload.entries
+        .map((entry) => entry.commentText?.trim())
+        .filter((commentText): commentText is string => Boolean(commentText)),
+    ),
+  );
+  const entriesBody = payload.entries
+    .map((entry) => entry.content)
+    .filter((entryContent) => entryContent.trim().length > 0)
+    .join("\n\n");
+  const elementsBody = entriesBody.length > 0 ? entriesBody : payload.content;
+  const elementsSection = `Elements (${payload.entries.length}):\n${elementsBody}`;
+  return uniquePrompts.length > 0
+    ? `Prompt: ${uniquePrompts.join("\n")}\n\n${elementsSection}`
     : elementsSection;
 };
 

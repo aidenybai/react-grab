@@ -85,6 +85,67 @@ describe("handleGetElementContext", () => {
     const result = await handleGetElementContext();
     expect(result.content[0].text.startsWith("Elements (1):")).toBe(true);
   });
+
+  it("deduplicates the prompt across entries and excludes it from the elements section", async () => {
+    const sharedPrompt = "Fix all the buttons";
+    mockReadClipboardPayload.mockResolvedValue({
+      env: "macos",
+      payload: {
+        version: "0.1.32",
+        // The producer prepends the prompt to payload.content, so this is
+        // exactly what would land on the clipboard for a multi-element copy.
+        content: `${sharedPrompt}\n\n<button>One</button>\n\n<button>Two</button>\n\n<button>Three</button>`,
+        entries: [
+          {
+            tagName: "button",
+            content: "<button>One</button>",
+            commentText: sharedPrompt,
+          },
+          {
+            tagName: "button",
+            content: "<button>Two</button>",
+            commentText: sharedPrompt,
+          },
+          {
+            tagName: "button",
+            content: "<button>Three</button>",
+            commentText: sharedPrompt,
+          },
+        ],
+        timestamp: Date.now(),
+      },
+    });
+
+    const result = await handleGetElementContext();
+    const text = result.content[0].text;
+
+    const promptOccurrences = text.split(sharedPrompt).length - 1;
+    expect(promptOccurrences).toBe(1);
+    expect(text).toContain(`Prompt: ${sharedPrompt}`);
+    expect(text).toContain("Elements (3):");
+    expect(text).toContain("<button>One</button>");
+    expect(text).toContain("<button>Two</button>");
+    expect(text).toContain("<button>Three</button>");
+  });
+
+  it("preserves distinct prompts when entries carry different commentText values", async () => {
+    mockReadClipboardPayload.mockResolvedValue({
+      env: "macos",
+      payload: {
+        version: "0.1.32",
+        content: "<button>One</button>\n\n<button>Two</button>",
+        entries: [
+          { tagName: "button", content: "<button>One</button>", commentText: "Make it red" },
+          { tagName: "button", content: "<button>Two</button>", commentText: "Make it blue" },
+        ],
+        timestamp: Date.now(),
+      },
+    });
+
+    const result = await handleGetElementContext();
+    const text = result.content[0].text;
+    expect(text).toContain("Prompt: Make it red\nMake it blue");
+  });
 });
 
 describe("createMcpServer", () => {
