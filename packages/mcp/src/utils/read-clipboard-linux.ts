@@ -41,9 +41,9 @@ export const readClipboardLinux = async (): Promise<ClipboardReadOutcome> => {
     if (waylandResult.stdout !== undefined) {
       return { payload: trimToPayload(waylandResult.stdout) };
     }
-    if (!isBinaryMissing(waylandResult.error)) {
-      return { payload: null };
-    }
+    // Any wl-paste failure (missing binary or runtime error) falls through to
+    // xclip - XWayland setups commonly surface custom MIME types via X11 even
+    // when wl-paste cannot complete.
   }
 
   const x11Result = await tryRead("xclip", [
