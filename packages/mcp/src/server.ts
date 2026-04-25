@@ -15,12 +15,18 @@ const textResult = (text: string): TextToolResult => ({
   content: [{ type: "text", text }],
 });
 
-const stripLeadingPromptPrefix = (content: string, uniquePrompts: string[]): string => {
+const stripLeadingPromptPrefix = (content: string, rawPrompts: string[]): string => {
   // The browser-side producer prepends "${prompt}\n\n" to payload.content
-  // when a prompt is present, so we trim it back off to avoid the prompt
-  // showing up both in the "Prompt:" section and inside the elements body.
-  for (const prompt of uniquePrompts) {
-    const candidate = `${prompt}\n\n`;
+  // using the *untrimmed* prompt, so we match against the raw commentText
+  // (and a trimmed variant as a safety net) to avoid the prompt showing up
+  // both in the "Prompt:" section and inside the elements body.
+  const candidates = new Set<string>();
+  for (const rawPrompt of rawPrompts) {
+    if (rawPrompt.length > 0) candidates.add(`${rawPrompt}\n\n`);
+    const trimmed = rawPrompt.trim();
+    if (trimmed.length > 0) candidates.add(`${trimmed}\n\n`);
+  }
+  for (const candidate of candidates) {
     if (content.startsWith(candidate)) {
       return content.slice(candidate.length);
     }
@@ -29,24 +35,30 @@ const stripLeadingPromptPrefix = (content: string, uniquePrompts: string[]): str
 };
 
 const formatPayload = (payload: ReactGrabPayload): string => {
-  // The producer also assigns the prompt to every entry's commentText, so
-  // dedupe via a Set to surface a single Prompt: line regardless of how
-  // many elements were copied.
-  const uniquePrompts = Array.from(
-    new Set(
-      payload.entries
-        .map((entry) => entry.commentText?.trim())
-        .filter((commentText): commentText is string => Boolean(commentText)),
-    ),
-  );
+  // The producer assigns the prompt to every entry's commentText, so dedupe
+  // via a Set to surface a single Prompt: line regardless of how many
+  // elements were copied. We keep the raw values around for prefix matching
+  // (the producer doesn't trim) and surface trimmed values to the LLM.
+  const rawPrompts: string[] = [];
+  const trimmedPrompts: string[] = [];
+  const seenTrimmed = new Set<string>();
+  for (const entry of payload.entries) {
+    const rawPrompt = entry.commentText;
+    if (typeof rawPrompt !== "string" || rawPrompt.length === 0) continue;
+    rawPrompts.push(rawPrompt);
+    const trimmed = rawPrompt.trim();
+    if (trimmed.length === 0 || seenTrimmed.has(trimmed)) continue;
+    seenTrimmed.add(trimmed);
+    trimmedPrompts.push(trimmed);
+  }
   // Use payload.content as the body so we preserve canonical formatting:
   // the [1]/[2]/[3] labels added by joinSnippets for multi-element copies
   // and any transformCopyContent output contributed by plugins
   // (e.g. copy-html, copy-styles).
-  const elementsBody = stripLeadingPromptPrefix(payload.content, uniquePrompts);
+  const elementsBody = stripLeadingPromptPrefix(payload.content, rawPrompts);
   const elementsSection = `Elements (${payload.entries.length}):\n${elementsBody}`;
-  return uniquePrompts.length > 0
-    ? `Prompt: ${uniquePrompts.join("\n")}\n\n${elementsSection}`
+  return trimmedPrompts.length > 0
+    ? `Prompt: ${trimmedPrompts.join("\n")}\n\n${elementsSection}`
     : elementsSection;
 };
 

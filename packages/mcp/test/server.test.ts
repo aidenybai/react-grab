@@ -165,6 +165,35 @@ describe("handleGetElementContext", () => {
     expect(text).toContain(`Elements (2):\n${transformedBody}`);
   });
 
+  it("strips the prompt prefix even when the original prompt had surrounding whitespace", async () => {
+    // The producer prepends the *untrimmed* prompt to payload.content, so
+    // the stripper must match against the raw commentText or the prompt
+    // would re-appear at the top of the elements body.
+    const rawPrompt = "  Fix this button  ";
+    mockReadClipboardPayload.mockResolvedValue({
+      env: "macos",
+      payload: {
+        version: "0.1.32",
+        content: `${rawPrompt}\n\n<button>Click me</button>`,
+        entries: [
+          {
+            tagName: "button",
+            content: "<button>Click me</button>",
+            commentText: rawPrompt,
+          },
+        ],
+        timestamp: Date.now(),
+      },
+    });
+
+    const result = await handleGetElementContext();
+    const text = result.content[0].text;
+
+    expect(text).toBe("Prompt: Fix this button\n\nElements (1):\n<button>Click me</button>");
+    const occurrences = text.split("Fix this button").length - 1;
+    expect(occurrences).toBe(1);
+  });
+
   it("preserves distinct prompts when entries carry different commentText values", async () => {
     mockReadClipboardPayload.mockResolvedValue({
       env: "macos",
