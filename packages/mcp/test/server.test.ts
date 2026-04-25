@@ -165,6 +165,31 @@ describe("handleGetElementContext", () => {
     expect(text).toContain(`Elements (2):\n${transformedBody}`);
   });
 
+  it("does not strip element content that happens to start with the prompt text", async () => {
+    // The producer uses the untrimmed prompt to build payload.content. If
+    // the user typed no prompt but their element content starts with what
+    // *looks* like a prompt, we must not try to strip it.
+    mockReadClipboardPayload.mockResolvedValue({
+      env: "macos",
+      payload: {
+        version: "0.1.32",
+        content: "Click me\n\n<button>Click me</button>",
+        entries: [
+          {
+            tagName: "button",
+            content: "<button>Click me</button>",
+            commentText: undefined,
+          },
+        ],
+        timestamp: Date.now(),
+      },
+    });
+
+    const result = await handleGetElementContext();
+    const text = result.content[0].text;
+    expect(text).toBe("Elements (1):\nClick me\n\n<button>Click me</button>");
+  });
+
   it("strips the prompt prefix even when the original prompt had surrounding whitespace", async () => {
     // The producer prepends the *untrimmed* prompt to payload.content, so
     // the stripper must match against the raw commentText or the prompt
