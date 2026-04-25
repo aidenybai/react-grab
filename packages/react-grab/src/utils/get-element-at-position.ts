@@ -5,6 +5,7 @@ import {
   POINTER_EVENTS_RESUME_DEBOUNCE_MS,
 } from "../constants.js";
 import { suspendPointerEventsFreeze, resumePointerEventsFreeze } from "./freeze-pseudo-states.js";
+import { isElementAtPointIndexReady, queryElementAtPointIndex } from "./element-at-point-index.js";
 
 interface PositionCache {
   clientX: number;
@@ -63,6 +64,28 @@ export const getElementsAtPoint = (clientX: number, clientY: number): Element[] 
   return elements;
 };
 
+// Three-tier element detection with browser-first safety:
+//
+//   Tier 1: elementFromPoint (~0.1ms)
+//     Browser-native hit-test. Handles all CSS edge cases (clip-path,
+//     pointer-events, stacking contexts, shadow DOM) correctly. Used as
+//     the primary answer whenever the topmost element is grabbable.
+//
+//   Tier 2: queryElementAtPointIndex (~0.01ms, O(log n) R-tree)
+//     Pre-built spatial index consulted when tier 1 returns a non-grabbable
+//     element (decorative overlay, dev tools canvas, root). Avoids the
+//     expensive tier 3 call in the common overlay-fallback case.
+//     Does not require pointer-events suspension. Queries cached geometry.
+//
+//   Tier 3: elementsFromPoint (1-5ms)
+//     Full z-ordered stack scan. Last resort when both tier 1 and tier 2
+//     miss (e.g. spatial index not yet ready, or element not indexed).
+//
+// All three tiers run inside a single suspend/resume window. The suspend
+// disables html { pointer-events: none } so the browser's hit-test APIs
+// can reach page elements through the overlay. The debounced resume
+// (POINTER_EVENTS_RESUME_DEBOUNCE_MS) ensures rapid sequential calls
+// don't repeatedly toggle the stylesheet.
 export const getElementAtPosition = (clientX: number, clientY: number): Element | null => {
   if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) return null;
   const now = performance.now();
@@ -86,30 +109,25 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
     }
   }
 
-  // PERF: suspendPointerEventsFreeze toggles the html { pointer-events: none }
-  // stylesheet, which dirties the entire style tree. elementFromPoint then forces
-  // a Recalculate Style. The 100ms debounced resume (scheduleResume) ensures the
-  // toggle is a no-op on rapid subsequent calls. The expensive recalc on those
-  // calls comes from host-page CSS animations dirtying styles between frames,
-  // which is unavoidable without removing pointer-events: none entirely.
-  // Alternatives explored and rejected:
-  //   - IntersectionObserver pre-population: adds 1-frame latency to every poll
-  //   - event.target fast path: always html/document due to pointer-events: none
-  //   - bounds-check cache: ignores z-index/stacking, causes hover detection misses
-  //   - transparent overlay instead of pointer-events: none: leaks CSS-only :hover
-  //     dropdowns/tooltips during the hit-test toggle
   cancelScheduledResume();
   suspendPointerEventsFreeze();
 
   let result: Element | null = null;
 
-  // elementFromPoint returns the topmost element, but if it's not grabbable
-  // (e.g. a transparent overlay) we fall back to elementsFromPoint which
-  // returns the full z-ordered stack at that coordinate.
+  // Tier 1: browser-native, always correct for z-order
   const topElement = document.elementFromPoint(clientX, clientY);
   if (topElement && isValidGrabbableElement(topElement)) {
     result = topElement;
-  } else {
+  } else if (isElementAtPointIndexReady()) {
+    // Tier 2: spatial index fallback for non-grabbable top elements
+    const spatialResult = queryElementAtPointIndex(clientX, clientY);
+    if (spatialResult && isValidGrabbableElement(spatialResult)) {
+      result = spatialResult;
+    }
+  }
+
+  if (!result) {
+    // Tier 3: full z-stack scan, skipping the already-rejected topElement
     const elementsAtPoint = document.elementsFromPoint(clientX, clientY);
     for (const candidateElement of elementsAtPoint) {
       if (candidateElement !== topElement && isValidGrabbableElement(candidateElement)) {
