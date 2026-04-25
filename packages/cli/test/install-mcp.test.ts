@@ -26,7 +26,7 @@ const makeJsonClient = (overrides: Partial<ClientDefinition> = {}): ClientDefini
   configPath: path.join(tempDir, "config.json"),
   configKey: "mcpServers",
   format: "json",
-  serverConfig: { command: "npx", args: ["-y", "@react-grab/mcp", "--stdio"] },
+  serverConfig: { command: "npx", args: ["-y", "@react-grab/mcp"] },
   ...overrides,
 });
 
@@ -35,7 +35,7 @@ const makeTomlClient = (overrides: Partial<ClientDefinition> = {}): ClientDefini
   configPath: path.join(tempDir, "config.toml"),
   configKey: "mcp_servers",
   format: "toml",
-  serverConfig: { command: "npx", args: ["-y", "@react-grab/mcp", "--stdio"] },
+  serverConfig: { command: "npx", args: ["-y", "@react-grab/mcp"] },
   ...overrides,
 });
 

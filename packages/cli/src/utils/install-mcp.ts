@@ -64,7 +64,7 @@ const getClients = (): ClientDefinition[] => {
 
   const stdioConfig = {
     command: "npx",
-    args: ["-y", PACKAGE_NAME, "--stdio"],
+    args: ["-y", PACKAGE_NAME],
   };
 
   return [
@@ -96,7 +96,7 @@ const getClients = (): ClientDefinition[] => {
       format: "json",
       serverConfig: {
         type: "local",
-        command: ["npx", "-y", PACKAGE_NAME, "--stdio"],
+        command: ["npx", "-y", PACKAGE_NAME],
       },
     },
     {
