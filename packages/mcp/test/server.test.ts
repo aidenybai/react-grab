@@ -88,13 +88,15 @@ describe("handleGetElementContext", () => {
 
   it("deduplicates the prompt across entries and excludes it from the elements section", async () => {
     const sharedPrompt = "Fix all the buttons";
+    // The producer prepends the prompt to payload.content AND adds [1]/[2]/[3]
+    // labels via joinSnippets, so this is exactly what would land on the
+    // clipboard for a multi-element copy.
+    const canonicalContent = `${sharedPrompt}\n\n[1]\n<button>One</button>\n\n[2]\n<button>Two</button>\n\n[3]\n<button>Three</button>`;
     mockReadClipboardPayload.mockResolvedValue({
       env: "macos",
       payload: {
         version: "0.1.32",
-        // The producer prepends the prompt to payload.content, so this is
-        // exactly what would land on the clipboard for a multi-element copy.
-        content: `${sharedPrompt}\n\n<button>One</button>\n\n<button>Two</button>\n\n<button>Three</button>`,
+        content: canonicalContent,
         entries: [
           {
             tagName: "button",
@@ -123,9 +125,44 @@ describe("handleGetElementContext", () => {
     expect(promptOccurrences).toBe(1);
     expect(text).toContain(`Prompt: ${sharedPrompt}`);
     expect(text).toContain("Elements (3):");
+    expect(text).toContain("[1]");
+    expect(text).toContain("[2]");
+    expect(text).toContain("[3]");
     expect(text).toContain("<button>One</button>");
     expect(text).toContain("<button>Two</button>");
     expect(text).toContain("<button>Three</button>");
+  });
+
+  it("preserves transformCopyContent output and snippet labels in the body", async () => {
+    // payload.content is the canonical, plugin-transformed copy. We must
+    // surface it verbatim (minus the leading prompt prefix) rather than
+    // reassembling the body from raw entry snippets.
+    const transformedBody = "<!-- copy-html -->\n[1]\n<button>One</button>\n\n[2]\n<button>Two</button>";
+    mockReadClipboardPayload.mockResolvedValue({
+      env: "macos",
+      payload: {
+        version: "0.1.32",
+        content: `Style as primary\n\n${transformedBody}`,
+        entries: [
+          {
+            tagName: "button",
+            content: "<button>One</button>",
+            commentText: "Style as primary",
+          },
+          {
+            tagName: "button",
+            content: "<button>Two</button>",
+            commentText: "Style as primary",
+          },
+        ],
+        timestamp: Date.now(),
+      },
+    });
+
+    const result = await handleGetElementContext();
+    const text = result.content[0].text;
+    expect(text).toContain("<!-- copy-html -->");
+    expect(text).toContain(`Elements (2):\n${transformedBody}`);
   });
 
   it("preserves distinct prompts when entries carry different commentText values", async () => {
