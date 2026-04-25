@@ -119,6 +119,7 @@ import { commentPlugin } from "./plugins/comment.js";
 import { openPlugin } from "./plugins/open.js";
 import { copyHtmlPlugin } from "./plugins/copy-html.js";
 import { copyStylesPlugin } from "./plugins/copy-styles.js";
+import { propsEditorPlugin } from "./plugins/props-editor.js";
 import {
   freezeAnimations,
   freezeAllAnimations,
@@ -142,7 +143,14 @@ import { logRecoverableError } from "../utils/log-recoverable-error.js";
 import { lockViewportZoom } from "../utils/lock-viewport-zoom.js";
 import { getNearestEdge } from "../utils/get-nearest-edge.js";
 
-const builtInPlugins = [copyPlugin, commentPlugin, copyHtmlPlugin, copyStylesPlugin, openPlugin];
+const builtInPlugins = [
+  copyPlugin,
+  commentPlugin,
+  copyHtmlPlugin,
+  copyStylesPlugin,
+  openPlugin,
+  propsEditorPlugin,
+];
 
 interface CopyWithLabelOptions {
   element: Element;
