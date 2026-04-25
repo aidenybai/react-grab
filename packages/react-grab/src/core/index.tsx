@@ -2415,7 +2415,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
         handlePointerMove(event.clientX, event.clientY);
       },
-      { passive: true },
+      { passive: true, capture: true },
     );
 
     eventListenerManager.addWindowListener(
