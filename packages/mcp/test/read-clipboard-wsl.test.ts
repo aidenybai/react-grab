@@ -65,4 +65,20 @@ describe("readClipboardWsl", () => {
     const result = await readClipboardWsl();
     expect(result.hint).toContain("xclip");
   });
+
+  it("combines WSL interop and Linux install hints when both fallbacks have guidance", async () => {
+    mockReadClipboardViaWindowsPowerShell.mockResolvedValue({
+      payload: null,
+      hint: "Cannot launch powershell.exe.",
+    });
+    mockReadClipboardLinux.mockResolvedValue({
+      payload: null,
+      hint: "Install xclip or wl-clipboard.",
+    });
+
+    const result = await readClipboardWsl();
+    expect(result.payload).toBeNull();
+    expect(result.hint).toContain("interop");
+    expect(result.hint).toContain("xclip");
+  });
 });

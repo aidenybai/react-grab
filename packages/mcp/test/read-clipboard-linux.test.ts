@@ -53,6 +53,21 @@ describe("readClipboardLinux", () => {
     expect(mockExecFile.mock.calls[1][0]).toBe("xclip");
   });
 
+  it("falls back from a runtime wl-paste failure to xclip", async () => {
+    // XWayland setups can surface custom MIME types via X11 even when the
+    // Wayland reader fails for a non-ENOENT reason (timeout, no compositor,
+    // protocol error, etc.).
+    process.env.WAYLAND_DISPLAY = "wayland-0";
+    const runtimeError = new Error("wl-paste: clipboard read failed") as NodeJS.ErrnoException;
+    runtimeError.code = "EPIPE";
+    stubExecFilePerCall(mockExecFile, [{ error: runtimeError }, { stdout: "from-xclip" }]);
+
+    const result = await readClipboardLinux();
+    expect(result.payload).toBe("from-xclip");
+    expect(mockExecFile.mock.calls[0][0]).toBe("wl-paste");
+    expect(mockExecFile.mock.calls[1][0]).toBe("xclip");
+  });
+
   it("returns install hint when xclip is missing", async () => {
     stubExecFile(mockExecFile, { error: enoentError() });
 
