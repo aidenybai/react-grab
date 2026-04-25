@@ -14,6 +14,17 @@ try {
     [Console]::Out.Write('')
   } elseif ($data -is [byte[]]) {
     [Console]::Out.Write([System.Text.Encoding]::UTF8.GetString($data))
+  } elseif ($data -is [System.IO.Stream]) {
+    # Browsers (Chromium, Edge) write web-custom-format clipboard data as a
+    # raw UTF-8 byte stream. .NET's Clipboard.GetData returns a MemoryStream
+    # for these unknown formats, so we read it to bytes and decode as UTF-8.
+    if ($data.CanSeek) { $data.Position = 0 }
+    $memoryStream = New-Object System.IO.MemoryStream
+    $data.CopyTo($memoryStream)
+    $bytes = $memoryStream.ToArray()
+    [Console]::Out.Write([System.Text.Encoding]::UTF8.GetString($bytes))
+  } elseif ($data -is [string]) {
+    [Console]::Out.Write($data)
   } else {
     [Console]::Out.Write($data.ToString())
   }
