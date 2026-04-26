@@ -48,10 +48,17 @@ describe("react-grab watch CLI", () => {
     expect(result.stderr).not.toContain("Waiting for React Grab clipboard");
   });
 
-  it("exits 1 with a click-and-retry message after a short timeout", () => {
+  it("exits with a recognizable diagnostic after a short timeout", () => {
     const result = runWatch(["--timeout", "0.5"], {});
     if (result === null) return;
 
+    // CI runners without a clipboard helper (e.g. Linux without xclip /
+    // wl-clipboard) make the reader fast-exit 2 with an install hint.
+    // Local runs on macOS reach the timeout path and exit 1.
+    if (result.status === 2) {
+      expect(result.stderr).toMatch(/xclip|wl-clipboard|osascript|powershell|SSH/);
+      return;
+    }
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("Timed out");
     expect(result.stderr).toContain("Click an element");

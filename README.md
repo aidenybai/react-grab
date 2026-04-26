@@ -7,7 +7,7 @@ Select context for coding agents directly from your website
 
 How? Point at any element and press **⌘C** (Mac) or **Ctrl+C** (Windows/Linux) to copy the file name, React component, and HTML source code.
 
-It makes tools like Cursor, Claude Code, Copilot run up to [**3× faster**](https://react-grab.com/blog/intro) and more accurate.
+It makes tools like Cursor, Claude Code, Copilot run up to [**2× faster**](https://benchmark.react-grab.com) and more accurate.
 
 ### [Try out a demo! →](https://react-grab.com)
 
@@ -31,8 +31,8 @@ Installs a `react-grab` skill into Cursor / Claude Code / Codex / OpenCode. Once
 
 Once installed, hover over any UI element in your browser and press:
 
-- **⌘C** (Cmd+C) on Mac
-- **Ctrl+C** on Windows/Linux
+- <kbd>⌘C</kbd> on Mac
+- <kbd>Ctrl+C</kbd> on Windows/Linux
 
 This copies the element's context (file name, React component, and HTML source code) to your clipboard ready to paste into your coding agent. For example:
 
