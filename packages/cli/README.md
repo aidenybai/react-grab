@@ -40,7 +40,7 @@ npx grab@latest install-skill
 | `--yes`             | `-y`  | Install to all supported agents without prompting             |
 | `--agent <name...>` | `-a`  | Install only to the named agent(s) (e.g. Cursor, Claude Code) |
 
-For an interactive flow that first verifies React Grab is installed and offers a simpler project-vs-global choice, see `grab add`. The legacy `grab add mcp` redirects to a skill install with a deprecation notice.
+For an interactive flow that first verifies React Grab is installed and offers a simpler project-vs-global choice, see `grab add`.
 
 ### `grab remove`
 
