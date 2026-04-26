@@ -76,7 +76,7 @@ describe("react-grab check-installed CLI", () => {
 
     expect(result.status).toBe(1);
     const parsed = JSON.parse(result.stdout);
-    expect(parsed).toEqual({ installed: false, cwd: workDir });
+    expect(parsed).toEqual({ installed: false, projectRoot: workDir, requestedCwd: workDir });
   });
 
   it("walks up from a subdirectory to find the project's package.json", () => {
@@ -93,14 +93,11 @@ describe("react-grab check-installed CLI", () => {
     expect(result.status).toBe(0);
     const parsed = JSON.parse(result.stdout);
     expect(parsed.installed).toBe(true);
-    expect(parsed.cwd).toBe(path.resolve(workDir));
+    expect(parsed.projectRoot).toBe(path.resolve(workDir));
+    expect(parsed.requestedCwd).toBe(path.resolve(subdir));
   });
 
   it("treats the react-grab source repo as installed (workspace named react-grab)", () => {
-    // The root package.json has no react-grab dep (it IS the workspace
-    // root) but a workspace package's name is `react-grab`. The detector
-    // must recognize this so the skill preflight doesn't suggest running
-    // `grab init` on the source repo / dogfood checkout.
     writeFileSync(
       path.join(workDir, "package.json"),
       JSON.stringify({
@@ -125,8 +122,6 @@ describe("react-grab check-installed CLI", () => {
   });
 
   it("treats a monorepo with react-grab in a workspace package as installed", () => {
-    // Common pattern: root has no react-grab dep, but apps/web depends
-    // on it. The preflight should still report installed.
     writeFileSync(
       path.join(workDir, "package.json"),
       JSON.stringify({

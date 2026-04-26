@@ -63,11 +63,9 @@ export const tryCopyWithFallback = async (
 
       didCopy = copyContent(copiedContent, {
         componentName: options.componentName,
-        // When entries is undefined (the getContent path), copy-content.ts
-        // builds a single default entry. Pass extraPrompt through so that
-        // entry's commentText is set, otherwise downstream formatters lose
-        // the Prompt: section even though the prompt is prepended to the
-        // copied content.
+        // The getContent path leaves entries undefined; commentText
+        // populates the default entry so downstream formatters can still
+        // surface a Prompt: section.
         commentText: extraPrompt,
         entries,
       });
