@@ -242,6 +242,14 @@ export const installSkills = (options: InstallSkillsOptions): InstallResult[] =>
     installSpinner.warn(
       `Installed to ${successCount}/${results.length - skippedCount} agents. ${failureCount} failed.`,
     );
+  } else if (successCount === 0) {
+    // Every selected client was skipped (e.g. unsupported / no install
+    // location). A green "Installed to 0 agents." spinner would contradict
+    // the per-client "skipped" lines printed below and the eventual non-zero
+    // exit, so flag it as a failure up front.
+    installSpinner.fail(
+      skippedCount > 0 ? `No agents installed (${skippedCount} skipped).` : "No agents installed.",
+    );
   } else {
     installSpinner.succeed(
       uniqueWriteCount === successCount
