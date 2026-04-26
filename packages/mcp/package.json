@@ -1,6 +1,7 @@
 {
   "name": "@react-grab/mcp",
-  "version": "0.1.32",
+  "version": "0.2.0",
+  "description": "Deprecated. Use @react-grab/cli (run `npx -y @react-grab/cli install-skill`).",
   "bin": {
     "react-grab-mcp": "./dist/cli.cjs"
   },
@@ -8,28 +9,18 @@
     "dist"
   ],
   "type": "module",
-  "exports": {
-    "./server": {
-      "types": "./dist/server.d.ts",
-      "import": "./dist/server.js",
-      "require": "./dist/server.cjs"
-    }
-  },
   "scripts": {
     "dev": "vp pack --watch",
     "build": "rm -rf dist && NODE_ENV=production vp pack",
     "test": "vp test run",
-    "test:watch": "vp test",
+    "typecheck": "tsc --noEmit",
     "lint": "vp lint",
     "format": "vp fmt",
     "format:check": "vp fmt --check",
     "check": "vp check"
   },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.25.0",
-    "zod": "^3.25.0"
-  },
   "devDependencies": {
     "@types/node": "^22.10.7"
-  }
+  },
+  "deprecated": "Replaced by @react-grab/cli's `react-grab watch` and the agent skill installed via `install-skill`. See https://github.com/aidenybai/react-grab"
 }

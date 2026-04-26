@@ -5,7 +5,8 @@ import pc from "picocolors";
 import { detectNonInteractive } from "../utils/is-non-interactive.js";
 import { prompts } from "../utils/prompts.js";
 import { applyTransformWithFeedback, installPackagesWithFeedback } from "../utils/cli-helpers.js";
-import { promptMcpInstall } from "../utils/install-mcp.js";
+import { installDetectedOrAllSkills, type SkillScope } from "../utils/install-skill.js";
+import { isTelemetryEnabled } from "../utils/is-telemetry-enabled.js";
 import {
   detectProject,
   findReactProjects,
@@ -40,6 +41,7 @@ interface ReportConfig {
 }
 
 const reportToCli = (type: "error" | "completed", config?: ReportConfig, error?: Error): void => {
+  if (!isTelemetryEnabled()) return;
   fetch(REPORT_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -327,27 +329,33 @@ export const init = new Command()
         }
 
         logger.break();
-        const { wantAddMcp } = await prompts({
-          type: "confirm",
-          name: "wantAddMcp",
-          message: `Would you like to ${highlighter.info("connect it to your agent via MCP")}?`,
-          initial: false,
+        const { skillChoice } = await prompts({
+          type: "select",
+          name: "skillChoice",
+          message: `Install the ${highlighter.info("React Grab skill")} into your agent?`,
+          choices: [
+            { title: "Yes, in this project (committed to repo)", value: "project" },
+            { title: "Yes, globally (per-user)", value: "global" },
+            { title: "No", value: "no" },
+          ],
+          initial: 0,
         });
 
-        if (wantAddMcp === undefined) {
+        if (skillChoice === undefined) {
           logger.break();
           process.exit(1);
         }
 
-        if (wantAddMcp) {
-          const didInstall = await promptMcpInstall();
+        if (skillChoice !== "no") {
+          const results = installDetectedOrAllSkills(skillChoice as SkillScope, cwd);
+          const didInstall = results.some((result) => result.success);
           if (!didInstall) {
             logger.break();
             process.exit(0);
           }
           logger.break();
-          logger.success("MCP server has been configured.");
-          logger.log("Restart your agents to activate.");
+          logger.success("React Grab skill has been installed.");
+          logger.log("Restart your agent(s) to pick it up.");
         }
 
         logger.break();
@@ -450,30 +458,36 @@ export const init = new Command()
       const finalFramework = projectInfo.framework;
       const finalPackageManager = projectInfo.packageManager;
       const finalNextRouterType = projectInfo.nextRouterType;
-      let didInstallMcp = false;
+      let didInstallSkill = false;
 
       if (!isNonInteractive) {
         logger.break();
-        const { wantAddMcp } = await prompts({
-          type: "confirm",
-          name: "wantAddMcp",
-          message: `Would you like to ${highlighter.info("connect it to your agent via MCP")}?`,
-          initial: false,
+        const { skillChoice } = await prompts({
+          type: "select",
+          name: "skillChoice",
+          message: `Install the ${highlighter.info("React Grab skill")} into your agent?`,
+          choices: [
+            { title: "Yes, in this project (committed to repo)", value: "project" },
+            { title: "Yes, globally (per-user)", value: "global" },
+            { title: "No", value: "no" },
+          ],
+          initial: 0,
         });
 
-        if (wantAddMcp === undefined) {
+        if (skillChoice === undefined) {
           logger.break();
           process.exit(1);
         }
 
-        if (wantAddMcp) {
-          didInstallMcp = Boolean(await promptMcpInstall());
-          if (!didInstallMcp) {
+        if (skillChoice !== "no") {
+          const results = installDetectedOrAllSkills(skillChoice as SkillScope, cwd);
+          didInstallSkill = results.some((result) => result.success);
+          if (!didInstallSkill) {
             logger.break();
             process.exit(0);
           }
           logger.break();
-          logger.success("MCP server has been configured.");
+          logger.success("React Grab skill has been installed.");
           logger.log("Continuing with React Grab installation...");
           logger.break();
         }
@@ -547,7 +561,7 @@ export const init = new Command()
         framework: finalFramework,
         packageManager: finalPackageManager,
         router: finalNextRouterType,
-        agent: didInstallMcp ? "mcp" : undefined,
+        agent: didInstallSkill ? "skill" : undefined,
         isMonorepo: projectInfo.isMonorepo,
       });
     } catch (error) {

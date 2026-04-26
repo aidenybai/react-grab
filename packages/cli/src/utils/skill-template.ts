@@ -1,10 +1,12 @@
----
+export const SKILL_TEMPLATE = `---
 name: react-grab
 description: >-
   Pull the next React Grab selection from the user's clipboard. Use when the
   user invokes /react-grab, references "this thing", "the element I clicked",
   "the component I just grabbed", or pastes content that came from the React
   Grab toolbar.
+allowed-tools:
+  - Bash
 ---
 
 # React Grab
@@ -12,11 +14,11 @@ description: >-
 When the user wants the agent to act on a UI element they're about to (or just
 did) click in the React Grab toolbar, the canonical description of that element
 travels through the system clipboard under the custom MIME type
-`application/x-react-grab`.
+\`application/x-react-grab\`.
 
 ## What to do
 
-1. Run `npx -y @react-grab/cli watch` exactly once at the top of the turn.
+1. Run \`npx -y @react-grab/cli watch\` exactly once at the top of the turn.
 2. The CLI blocks until a fresh React Grab payload appears on the clipboard
    (or 10 minutes elapse, whichever comes first). While it waits, tell the user
    to click an element in the React Grab toolbar (the box that appears when
@@ -36,16 +38,17 @@ travels through the system clipboard under the custom MIME type
 - **Exit code 2 ("Clipboard channel is unavailable in SSH sessions")** - the
   CLI is on a different machine than the browser. Tell the user to run the
   agent on the same machine as the browser.
-- **Linux missing `xclip` / `wl-clipboard`** - surface the install command
+- **Linux missing \`xclip\` / \`wl-clipboard\`** - surface the install command
   from the CLI's stderr verbatim.
 - **WSL with broken interop** - surface the WSL interop hint from stderr
   verbatim.
 
 ## Constraints
 
-- Do NOT call `react-grab watch` more than once per turn. The CLI blocks until
-  a fresh grab arrives; a second call would just block again.
+- Do NOT call \`react-grab watch\` more than once per turn. The CLI blocks
+  until a fresh grab arrives; a second call would just block again.
 - Do NOT invent element details. If the CLI failed, ask the user; do not
   fabricate.
 - Do NOT rely on the user's chat message alone when they reference "this" /
   "that" / "the thing I grabbed" - always invoke the CLI first.
+`;

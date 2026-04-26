@@ -6,18 +6,17 @@ vi.mock("node:child_process", () => ({
 
 import { execFile } from "node:child_process";
 import { readClipboardWindows } from "../src/utils/read-clipboard-windows.js";
-import { enoentError, stubExecFile } from "./helpers/mock-exec-file.js";
+import {
+  enoentError,
+  getExecFileCall,
+  getExecFileFlagValue,
+  stubExecFile,
+} from "./helpers/mock-exec-file.js";
 
 const mockExecFile = vi.mocked(execFile);
 
 const getDecodedPowerShellScript = (): string => {
-  const firstCall = mockExecFile.mock.calls[0];
-  if (!firstCall) throw new Error("expected execFile to have been called");
-  const args = firstCall[1];
-  if (!Array.isArray(args)) throw new Error("expected execFile args array");
-  const encodedIndex = args.indexOf("-EncodedCommand") + 1;
-  const encoded = args[encodedIndex];
-  if (typeof encoded !== "string") throw new Error("expected -EncodedCommand value");
+  const encoded = getExecFileFlagValue(mockExecFile, "-EncodedCommand");
   return Buffer.from(encoded, "base64").toString("utf16le");
 };
 
@@ -35,9 +34,7 @@ describe("readClipboardWindows", () => {
 
     await readClipboardWindows();
 
-    const firstCall = mockExecFile.mock.calls[0];
-    expect(firstCall).toBeDefined();
-    const [binary, args] = firstCall ?? [];
+    const { binary, args } = getExecFileCall(mockExecFile);
     expect(binary).toBe("powershell.exe");
     expect(args).toContain("-Sta");
     expect(args).toContain("-NoProfile");
@@ -54,10 +51,6 @@ describe("readClipboardWindows", () => {
     await readClipboardWindows();
 
     const decodedScript = getDecodedPowerShellScript();
-
-    // Browsers store web-custom-format data as a UTF-8 byte stream that
-    // surfaces in .NET as System.IO.MemoryStream, so the script must read
-    // the stream rather than fall back to $data.ToString().
     expect(decodedScript).toContain("[System.IO.Stream]");
     expect(decodedScript).toContain("CopyTo");
     expect(decodedScript).toContain("ToArray()");
@@ -70,9 +63,6 @@ describe("readClipboardWindows", () => {
     await readClipboardWindows();
 
     const decodedScript = getDecodedPowerShellScript();
-    // The [System.Text.Encoding]::UTF8 singleton has emitUTF8Identifier
-    // enabled; using New-Object UTF8Encoding $false avoids the BOM that
-    // would otherwise be prepended to stdout.
     expect(decodedScript).toContain("New-Object System.Text.UTF8Encoding $false");
     expect(decodedScript).not.toMatch(
       /\[Console\]::OutputEncoding\s*=\s*\[System\.Text\.Encoding\]::UTF8\b/,

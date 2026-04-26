@@ -1,6 +1,6 @@
 # @react-grab/cli
 
-Interactive CLI to install and configure React Grab in your project.
+Interactive CLI to install and configure React Grab in your project, plus a `watch` subcommand that streams the next React Grab clipboard payload to stdout for AI coding agents.
 
 ## Quick Start
 
@@ -27,31 +27,48 @@ npx grab@latest init
 | `--pkg <pkg>`    |       | Custom package URL                       |
 | `--cwd <cwd>`    | `-c`  | Working directory (default: current dir) |
 
-### `grab add`
+### `grab install-skill`
 
-Connect React Grab to your coding agent via MCP.
+Install the `react-grab` skill into known agent skill directories (Cursor, Claude Code, Codex, OpenCode). Once installed, the agent will auto-invoke it on `/react-grab` or when the user references a previously-grabbed element.
 
 ```bash
-npx grab@latest add mcp
+npx grab@latest install-skill
 ```
 
-| Option        | Alias | Description                              |
-| ------------- | ----- | ---------------------------------------- |
-| `--yes`       | `-y`  | Skip confirmation prompts                |
-| `--cwd <cwd>` | `-c`  | Working directory (default: current dir) |
+| Option              | Alias | Description                                                   |
+| ------------------- | ----- | ------------------------------------------------------------- |
+| `--yes`             | `-y`  | Install to all supported agents without prompting             |
+| `--agent <name...>` | `-a`  | Install only to the named agent(s) (e.g. Cursor, Claude Code) |
+
+Aliased as `grab add` (and the legacy `grab add mcp` redirects to skill install).
 
 ### `grab remove`
 
-Disconnect React Grab from your coding agent.
+Remove the React Grab skill from the selected agents.
 
 ```bash
-npx grab@latest remove mcp
+npx grab@latest remove
 ```
 
-| Option        | Alias | Description                              |
-| ------------- | ----- | ---------------------------------------- |
-| `--yes`       | `-y`  | Skip confirmation prompts                |
-| `--cwd <cwd>` | `-c`  | Working directory (default: current dir) |
+| Option              | Alias | Description                                        |
+| ------------------- | ----- | -------------------------------------------------- |
+| `--yes`             | `-y`  | Remove from all supported agents without prompting |
+| `--agent <name...>` | `-a`  | Remove only from the named agent(s)                |
+
+### `grab watch`
+
+Block until the next React Grab payload appears on the clipboard, print it to stdout, exit. The skill installed by `install-skill` shells out to this command — but you can also run it directly to script around grabs.
+
+```bash
+npx -y @react-grab/cli watch
+```
+
+| Option                | Alias | Description                                                     |
+| --------------------- | ----- | --------------------------------------------------------------- |
+| `--timeout <seconds>` | `-t`  | Seconds to wait before giving up (`0` = forever, default `600`) |
+| `--json`              |       | Print the raw `ReactGrabPayload` JSON instead of formatted text |
+
+Exit codes: `0` on a fresh grab printed, `1` on timeout, `2` on clipboard read error.
 
 ### `grab configure`
 
@@ -84,15 +101,23 @@ npx grab@latest init -y
 # Set a custom activation key
 npx grab@latest init -k "Meta+K"
 
-# Connect MCP to your agent
-npx grab@latest add mcp
+# Install the React Grab skill into all supported agents
+npx grab@latest install-skill -y
+
+# Wait up to 30s for the next grab and print as JSON
+npx -y @react-grab/cli watch --timeout 30 --json
 
 # Change activation mode to hold
 npx grab@latest configure --mode hold --hold-duration 500
-
-# Interactive configuration wizard
-npx grab@latest configure
 ```
+
+## Migration from @react-grab/mcp
+
+`@react-grab/mcp` is deprecated. To migrate:
+
+1. Run `npx grab@latest install-skill`.
+2. Remove the `react-grab-mcp` entry from your agent's `mcp.json` (Cursor, Claude Code, Codex, OpenCode, Windsurf, etc.).
+3. Restart your agent. Type `/react-grab` and click an element.
 
 ## Supported Frameworks
 

@@ -10,6 +10,7 @@ export interface ReadClipboardPayloadResult {
   payload: ReactGrabPayload | null;
   env: ClipboardEnv;
   hint?: string;
+  recoverable: boolean;
 }
 
 const readRawByEnv = async (env: ClipboardEnv): Promise<ClipboardReadOutcome> => {
@@ -25,13 +26,15 @@ const readRawByEnv = async (env: ClipboardEnv): Promise<ClipboardReadOutcome> =>
     case "ssh":
       return {
         payload: null,
-        hint: "Clipboard channel is unavailable in SSH sessions. Run `react-grab-mcp` on the same machine as your browser.",
+        hint: "Clipboard channel is unavailable in SSH sessions. Run `react-grab watch` on the same machine as your browser.",
+        recoverable: false,
       };
     default: {
       const exhaustiveCheck: never = env;
       return {
         payload: null,
         hint: `Unsupported clipboard environment: ${String(exhaustiveCheck)}`,
+        recoverable: false,
       };
     }
   }
@@ -44,5 +47,6 @@ export const readClipboardPayload = async (): Promise<ReadClipboardPayloadResult
     env,
     payload: parseReactGrabPayload(outcome.payload),
     hint: outcome.hint,
+    recoverable: outcome.recoverable !== false,
   };
 };

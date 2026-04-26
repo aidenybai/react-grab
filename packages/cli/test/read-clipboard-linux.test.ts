@@ -6,7 +6,12 @@ vi.mock("node:child_process", () => ({
 
 import { execFile } from "node:child_process";
 import { readClipboardLinux } from "../src/utils/read-clipboard-linux.js";
-import { enoentError, stubExecFile, stubExecFilePerCall } from "./helpers/mock-exec-file.js";
+import {
+  enoentError,
+  getExecFileCall,
+  stubExecFile,
+  stubExecFilePerCall,
+} from "./helpers/mock-exec-file.js";
 
 const mockExecFile = vi.mocked(execFile);
 
@@ -26,7 +31,7 @@ describe("readClipboardLinux", () => {
     const result = await readClipboardLinux();
     expect(result.payload).toBe("clipboard-data");
 
-    const [binary, args] = mockExecFile.mock.calls[0];
+    const { binary, args } = getExecFileCall(mockExecFile);
     expect(binary).toBe("xclip");
     expect(args).toContain("application/x-react-grab");
   });
@@ -38,7 +43,7 @@ describe("readClipboardLinux", () => {
     const result = await readClipboardLinux();
     expect(result.payload).toBe("payload-from-wayland");
 
-    const [binary, args] = mockExecFile.mock.calls[0];
+    const { binary, args } = getExecFileCall(mockExecFile);
     expect(binary).toBe("wl-paste");
     expect(args).toContain("application/x-react-grab");
   });
@@ -49,14 +54,11 @@ describe("readClipboardLinux", () => {
 
     const result = await readClipboardLinux();
     expect(result.payload).toBe("from-xclip");
-    expect(mockExecFile.mock.calls[0][0]).toBe("wl-paste");
-    expect(mockExecFile.mock.calls[1][0]).toBe("xclip");
+    expect(getExecFileCall(mockExecFile, 0).binary).toBe("wl-paste");
+    expect(getExecFileCall(mockExecFile, 1).binary).toBe("xclip");
   });
 
   it("falls back from a runtime wl-paste failure to xclip", async () => {
-    // XWayland setups can surface custom MIME types via X11 even when the
-    // Wayland reader fails for a non-ENOENT reason (timeout, no compositor,
-    // protocol error, etc.).
     process.env.WAYLAND_DISPLAY = "wayland-0";
     const runtimeError = new Error("wl-paste: clipboard read failed") as NodeJS.ErrnoException;
     runtimeError.code = "EPIPE";
@@ -64,8 +66,8 @@ describe("readClipboardLinux", () => {
 
     const result = await readClipboardLinux();
     expect(result.payload).toBe("from-xclip");
-    expect(mockExecFile.mock.calls[0][0]).toBe("wl-paste");
-    expect(mockExecFile.mock.calls[1][0]).toBe("xclip");
+    expect(getExecFileCall(mockExecFile, 0).binary).toBe("wl-paste");
+    expect(getExecFileCall(mockExecFile, 1).binary).toBe("xclip");
   });
 
   it("returns install hint when xclip is missing", async () => {
