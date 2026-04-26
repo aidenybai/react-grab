@@ -352,13 +352,18 @@ export const init = new Command()
             projectInfo.projectRoot,
           );
           const didInstall = results.some((result) => result.success);
-          if (!didInstall) {
-            logger.break();
-            process.exit(0);
-          }
           logger.break();
-          logger.success("React Grab skill has been installed.");
-          logger.log("Restart your agent(s) to pick it up.");
+          if (didInstall) {
+            logger.success("React Grab skill has been installed.");
+            logger.log("Restart your agent(s) to pick it up.");
+          } else {
+            // The user explicitly opted into skill install but no files were
+            // written. Surface the failure with a non-zero exit so wrapper
+            // scripts can detect it.
+            logger.error("React Grab skill install did not write any files.");
+            logger.break();
+            process.exit(1);
+          }
         }
 
         logger.break();

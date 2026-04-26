@@ -41,9 +41,15 @@ export const readClipboardLinux = async (): Promise<ClipboardReadOutcome> => {
     if (waylandResult.stdout !== undefined) {
       return { payload: trimToPayload(waylandResult.stdout) };
     }
-    // Any wl-paste failure (missing binary or runtime error) falls through to
-    // xclip - XWayland setups commonly surface custom MIME types via X11 even
-    // when wl-paste cannot complete.
+    // Only fall through to xclip when the wl-paste binary itself is
+    // unavailable (ENOENT). A non-zero exit with a present binary means
+    // the MIME type just isn't on the clipboard right now (common: user
+    // hasn't grabbed yet) - treat that as an empty payload instead of
+    // trying X11, which would ENOENT on Wayland-only systems and surface
+    // a misleading "install xclip" hint.
+    if (!isBinaryMissing(waylandResult.error)) {
+      return { payload: null };
+    }
   }
 
   const x11Result = await tryRead("xclip", [
