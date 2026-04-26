@@ -434,6 +434,19 @@ describe("removeSkills", () => {
     expect(results[0]?.deduped).toBeUndefined();
     expect(results[0]?.sharedWith).toBeUndefined();
   });
+
+  it("does NOT report sharedWith for a universal agent when no shared file actually exists", () => {
+    // Nothing installed at all - removing only Cursor should fall through
+    // to a plain "not installed" result, not pretend Codex/OpenCode/etc.
+    // are still using a file that doesn't exist.
+    const results = removeSkills({
+      scope: "project",
+      cwd: tempDir,
+      selectedClients: ["Cursor"],
+    });
+    expect(results[0]?.removed).toBe(false);
+    expect(results[0]?.sharedWith).toBeUndefined();
+  });
 });
 
 describe("SKILL_TEMPLATE", () => {

@@ -26,9 +26,13 @@ const tryRead = async (binary: string, binaryArgs: string[]): Promise<PlatformRe
   }
 };
 
-const isBinaryMissing = (caughtError: unknown): boolean =>
-  hasErrorCode(caughtError, "ENOENT") ||
-  (caughtError instanceof Error && /not found/i.test(caughtError.message));
+// Restrict the "binary missing" detection to ENOENT only. The previous
+// /not found/i regex over `error.message` over-matched runtime stderr -
+// `wl-paste` exits non-zero with messages like "No data found of type X" /
+// "No selection" when the requested MIME just isn't on the clipboard right
+// now, which would incorrectly route to the X11 fallback (or surface the
+// misleading "install xclip" hint on Wayland-only systems).
+const isBinaryMissing = (caughtError: unknown): boolean => hasErrorCode(caughtError, "ENOENT");
 
 const trimToPayload = (stdout: string): string | null => {
   const trimmed = stdout.trimEnd();

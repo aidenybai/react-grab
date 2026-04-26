@@ -67,7 +67,12 @@ export const watch = new Command()
 
       const initialResult = await readClipboardPayload();
       if (!initialResult.recoverable) {
-        fail(formatUnrecoverableMessage(initialResult), 2);
+        // Use `return fail(...)` not `fail(...)` so TS control-flow
+        // analysis sees this branch as terminating; the throw inside fail
+        // also halts synchronously, but the explicit return makes the
+        // contract obvious to readers and protects against fail ever being
+        // refactored to a non-throwing variant.
+        return fail(formatUnrecoverableMessage(initialResult), 2);
       }
 
       const initialTimestamp = initialResult.payload?.timestamp ?? null;
@@ -90,20 +95,17 @@ export const watch = new Command()
           printPayload(waitResult.payload, rawOptions.json);
           return;
         case "unrecoverable":
-          fail(formatUnrecoverableMessage(waitResult.result), 2);
-          break;
+          return fail(formatUnrecoverableMessage(waitResult.result), 2);
         case "timeout":
-          fail(
+          return fail(
             `Timed out after ${timeoutSeconds}s without a new React Grab clipboard payload.\nClick an element in the React Grab toolbar and re-run.`,
             1,
           );
-          break;
         case "aborted":
-          fail("Aborted before a new React Grab payload arrived.", 1);
-          break;
+          return fail("Aborted before a new React Grab payload arrived.", 1);
         default: {
           const exhaustive: never = waitResult;
-          fail(`Unhandled watch outcome: ${JSON.stringify(exhaustive)}`, 2);
+          return fail(`Unhandled watch outcome: ${JSON.stringify(exhaustive)}`, 2);
         }
       }
     } catch (caughtError) {

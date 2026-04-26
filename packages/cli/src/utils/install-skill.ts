@@ -175,6 +175,11 @@ export const writeSkillFile = (skillRoot: string): string => {
   return skillFilePath;
 };
 
+export const skillFileExists = (skillRoot: string): boolean => {
+  const skillDirectory = path.join(skillRoot, SKILL_NAME);
+  return fs.existsSync(skillDirectory);
+};
+
 export const removeSkillFile = (skillRoot: string): boolean => {
   const skillDirectory = path.join(skillRoot, SKILL_NAME);
   if (!fs.existsSync(skillDirectory)) return false;
@@ -385,11 +390,16 @@ export const removeSkills = (options: RemoveSkillsOptions): RemoveResult[] => {
     if (removedRoots.has(skillRoot)) {
       return { client: client.name, skillRoot, removed: false, deduped: true };
     }
+    // If nothing is actually installed at this root, don't dress up the
+    // result with a misleading "kept: still used by ..." note - the file
+    // doesn't exist, so there's nothing to keep. Fall through to the plain
+    // "Nothing to remove." branch in the caller.
+    const fileExists = skillFileExists(skillRoot);
     const sharers = rootToClients.get(skillRoot) ?? [];
     const stillUsing = sharers
       .filter((sharer) => !targetedNameSet.has(sharer.name))
       .map((sharer) => sharer.name);
-    if (stillUsing.length > 0) {
+    if (fileExists && stillUsing.length > 0) {
       // Refuse to remove a file other (un-targeted) agents are still relying
       // on. The user can opt back in by also targeting those agents.
       return {
