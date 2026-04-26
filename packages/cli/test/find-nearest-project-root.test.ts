@@ -27,14 +27,50 @@ describe("findNearestProjectRoot", () => {
     expect(findNearestProjectRoot(subdir)).toBe(tempDir);
   });
 
-  it("stops at the deepest package.json (workspace package over root)", () => {
+  it("returns the workspace root over a deeper package.json (pnpm-workspace.yaml)", () => {
     fs.writeFileSync(path.join(tempDir, "package.json"), "{}");
-    const workspaceRoot = path.join(tempDir, "packages", "ui");
-    fs.mkdirSync(workspaceRoot, { recursive: true });
-    fs.writeFileSync(path.join(workspaceRoot, "package.json"), "{}");
-    const subdir = path.join(workspaceRoot, "src");
+    fs.writeFileSync(path.join(tempDir, "pnpm-workspace.yaml"), "packages:\n  - 'packages/*'\n");
+    const workspacePackage = path.join(tempDir, "packages", "ui");
+    fs.mkdirSync(workspacePackage, { recursive: true });
+    fs.writeFileSync(path.join(workspacePackage, "package.json"), "{}");
+    const subdir = path.join(workspacePackage, "src");
     fs.mkdirSync(subdir);
-    expect(findNearestProjectRoot(subdir)).toBe(workspaceRoot);
+    expect(findNearestProjectRoot(subdir)).toBe(tempDir);
+  });
+
+  it("returns the workspace root for npm/yarn workspaces (workspaces field)", () => {
+    fs.writeFileSync(
+      path.join(tempDir, "package.json"),
+      JSON.stringify({ workspaces: ["packages/*"] }),
+    );
+    const workspacePackage = path.join(tempDir, "packages", "ui");
+    fs.mkdirSync(workspacePackage, { recursive: true });
+    fs.writeFileSync(path.join(workspacePackage, "package.json"), "{}");
+    expect(findNearestProjectRoot(workspacePackage)).toBe(tempDir);
+  });
+
+  it("returns the workspace root for lerna.json monorepos", () => {
+    fs.writeFileSync(path.join(tempDir, "package.json"), "{}");
+    fs.writeFileSync(
+      path.join(tempDir, "lerna.json"),
+      JSON.stringify({ packages: ["packages/*"] }),
+    );
+    const workspacePackage = path.join(tempDir, "packages", "core");
+    fs.mkdirSync(workspacePackage, { recursive: true });
+    fs.writeFileSync(path.join(workspacePackage, "package.json"), "{}");
+    expect(findNearestProjectRoot(workspacePackage)).toBe(tempDir);
+  });
+
+  it("returns the deepest package.json for non-workspace single repos", () => {
+    // A nested project inside an unrelated parent: parent has package.json
+    // but no workspaces marker. The nested project's package.json wins.
+    fs.writeFileSync(path.join(tempDir, "package.json"), "{}");
+    const nested = path.join(tempDir, "subprojects", "isolated");
+    fs.mkdirSync(nested, { recursive: true });
+    fs.writeFileSync(path.join(nested, "package.json"), "{}");
+    const subdir = path.join(nested, "src");
+    fs.mkdirSync(subdir);
+    expect(findNearestProjectRoot(subdir)).toBe(nested);
   });
 
   it("falls back to the original input when no package.json is found", () => {

@@ -24,12 +24,33 @@ afterEach(() => {
 });
 
 describe("readClipboardWsl", () => {
-  it("returns the Windows host payload when interop succeeds", async () => {
-    mockReadClipboardViaWindowsPowerShell.mockResolvedValue({ payload: "from-host" });
+  it("returns the Windows host payload when interop succeeds and the value looks like JSON", async () => {
+    mockReadClipboardViaWindowsPowerShell.mockResolvedValue({
+      payload: '{"version":"x","content":"<a/>","entries":[],"timestamp":1}',
+    });
 
     const result = await readClipboardWsl();
-    expect(result.payload).toBe("from-host");
+    expect(result.payload).toBe('{"version":"x","content":"<a/>","entries":[],"timestamp":1}');
     expect(mockReadClipboardLinux).not.toHaveBeenCalled();
+  });
+
+  it("falls through to WSLg when Windows host returns non-JSON garbage and WSLg has a real payload", async () => {
+    mockReadClipboardViaWindowsPowerShell.mockResolvedValue({ payload: "not-json-trash" });
+    mockReadClipboardLinux.mockResolvedValue({
+      payload: '{"version":"y","content":"<b/>","entries":[],"timestamp":2}',
+    });
+
+    const result = await readClipboardWsl();
+    expect(result.payload).toBe('{"version":"y","content":"<b/>","entries":[],"timestamp":2}');
+    expect(mockReadClipboardLinux).toHaveBeenCalledOnce();
+  });
+
+  it("surfaces the host garbage when no channel has a JSON-shaped payload (parser will diagnose)", async () => {
+    mockReadClipboardViaWindowsPowerShell.mockResolvedValue({ payload: "host-junk" });
+    mockReadClipboardLinux.mockResolvedValue({ payload: null });
+
+    const result = await readClipboardWsl();
+    expect(result.payload).toBe("host-junk");
   });
 
   it("falls back to WSLg Linux clipboard when Windows host returns nothing", async () => {

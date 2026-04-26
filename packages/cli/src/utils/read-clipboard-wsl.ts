@@ -10,11 +10,25 @@ const combineHints = (...hints: (string | undefined)[]): string | undefined => {
   return present.length > 0 ? present.join("\n\n") : undefined;
 };
 
+// Cheap check that a clipboard payload at least *looks* like a JSON object,
+// so we don't fast-return host garbage (partial write, unrelated app putting
+// custom data on the same MIME) and prevent the WSLg fallback from running.
+// The downstream parser still validates against the React Grab schema.
+const looksLikeJsonObject = (value: string): boolean => value.trimStart().startsWith("{");
+
 export const readClipboardWsl = async (): Promise<ClipboardReadOutcome> => {
   const hostOutcome = await readClipboardViaWindowsPowerShell("powershell.exe");
-  if (hostOutcome.payload !== null) return hostOutcome;
+  if (hostOutcome.payload !== null && looksLikeJsonObject(hostOutcome.payload)) {
+    return hostOutcome;
+  }
 
   const wslgOutcome = await readClipboardLinux();
+  if (wslgOutcome.payload !== null && looksLikeJsonObject(wslgOutcome.payload)) {
+    return wslgOutcome;
+  }
+  // If only one channel produced something (even garbage), prefer surfacing
+  // it over `null` so the parser can emit its own diagnostic. Host wins ties.
+  if (hostOutcome.payload !== null) return hostOutcome;
   if (wslgOutcome.payload !== null) return wslgOutcome;
 
   if (hostOutcome.hint) {

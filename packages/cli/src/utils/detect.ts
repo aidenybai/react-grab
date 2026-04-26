@@ -436,22 +436,59 @@ const detectReactGrabVersion = (projectRoot: string): string | null => {
   return null;
 };
 
-// Walks up from `start` looking for the nearest directory that contains a
-// `package.json`. Falls back to `start` if none is found before the
-// filesystem root. Used so commands like `install-skill` and `remove` can be
-// invoked from any subdirectory inside a project and still resolve the
-// canonical install location (`<projectRoot>/.agents/skills/...`) instead of
-// silently writing to / looking under the subdirectory.
+const hasWorkspacesField = (dir: string): boolean => {
+  const packageJsonPath = join(dir, "package.json");
+  if (!existsSync(packageJsonPath)) return false;
+  try {
+    const pkg = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
+    if (Array.isArray(pkg.workspaces)) return pkg.workspaces.length > 0;
+    if (pkg.workspaces && typeof pkg.workspaces === "object") {
+      return Array.isArray(pkg.workspaces.packages) && pkg.workspaces.packages.length > 0;
+    }
+  } catch {
+    return false;
+  }
+  return false;
+};
+
+const isWorkspaceRoot = (dir: string): boolean => {
+  if (existsSync(join(dir, "pnpm-workspace.yaml"))) return true;
+  if (existsSync(join(dir, "lerna.json"))) return true;
+  if (hasWorkspacesField(dir)) return true;
+  return false;
+};
+
+// Walks up from `start` looking for the nearest project root for skill
+// installation. Used so commands like `install-skill`, `remove`, and `add`
+// can be invoked from any subdirectory inside a project and still resolve
+// the canonical install location (`<projectRoot>/.agents/skills/...`).
+//
+// Resolution priority:
+//   1. The outermost ancestor that is a workspace root (pnpm-workspace.yaml,
+//      lerna.json, or package.json with a non-empty `workspaces` field).
+//      This handles monorepos where editor agents read from the repo root,
+//      not the workspace package the user happens to be inside.
+//   2. The nearest ancestor with a plain `package.json`.
+//   3. `start` itself, as a last-resort fallback.
+//
+// Capped at 64 levels of walking so a malformed cwd can't loop forever.
 export const findNearestProjectRoot = (start: string): string => {
   let dir = resolve(start);
-  // Cap the walk at a reasonable depth so a malformed cwd can't loop us
-  // through hundreds of synthetic parents.
+  let firstWithPackageJson: string | null = null;
+  let outermostWorkspaceRoot: string | null = null;
+
   for (let depth = 0; depth < 64; depth += 1) {
-    if (existsSync(join(dir, "package.json"))) return dir;
+    if (existsSync(join(dir, "package.json"))) {
+      if (firstWithPackageJson === null) firstWithPackageJson = dir;
+      if (isWorkspaceRoot(dir)) outermostWorkspaceRoot = dir;
+    }
     const parent = dirname(dir);
     if (parent === dir) break;
     dir = parent;
   }
+
+  if (outermostWorkspaceRoot !== null) return outermostWorkspaceRoot;
+  if (firstWithPackageJson !== null) return firstWithPackageJson;
   return start;
 };
 

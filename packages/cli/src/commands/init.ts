@@ -468,7 +468,25 @@ export const init = new Command()
       const finalNextRouterType = projectInfo.nextRouterType;
       let didInstallSkill = false;
 
-      if (!isNonInteractive) {
+      if (isNonInteractive) {
+        // Match the pre-CLI MCP behavior: `grab init -y` (used in CI /
+        // automation) also installs the React Grab skill so scripted
+        // pipelines retain agent integration after upgrading. Defaults to
+        // project scope so the skill ends up committed alongside the rest of
+        // the React Grab install.
+        const results = installDetectedOrAllSkills("project", projectInfo.projectRoot);
+        didInstallSkill = results.some((result) => result.success);
+        logger.break();
+        if (didInstallSkill) {
+          logger.success("React Grab skill has been installed.");
+        } else {
+          logger.warn(
+            `React Grab skill install did not write any files. Run ${highlighter.info("grab install-skill")} after init to retry.`,
+          );
+        }
+        logger.log("Continuing with React Grab installation...");
+        logger.break();
+      } else {
         logger.break();
         const { skillChoice } = await prompts({
           type: "select",
