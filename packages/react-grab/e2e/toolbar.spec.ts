@@ -526,10 +526,7 @@ test.describe("Toolbar", () => {
         reactGrab.page.evaluate(() => {
           const host = document.querySelector("[data-react-grab]");
           const root = host?.shadowRoot?.querySelector("[data-react-grab]");
-          const collapseButton = root?.querySelector<HTMLElement>(
-            "[data-react-grab-toolbar-collapse]",
-          );
-          const panel = collapseButton?.closest<HTMLElement>("[data-react-grab-toolbar] > div");
+          const panel = root?.querySelector<HTMLElement>("[data-react-grab-toolbar-panel]");
           return panel?.style.transform ?? "";
         });
 
@@ -550,13 +547,10 @@ test.describe("Toolbar", () => {
       expect(await readPanelTransform()).toBe("");
 
       await dispatchOnChevron("pointerdown");
-      await reactGrab.page.waitForTimeout(20);
-      const pressedTransform = await readPanelTransform();
-      expect(pressedTransform).toMatch(/scale\((0\.97,\s*1|1,\s*0\.97)\)/);
+      await expect.poll(readPanelTransform, { timeout: 1000 }).toMatch(/scale\((0\.97,\s*1|1,\s*0\.97)\)/);
 
       await dispatchOnChevron("pointerup");
-      await reactGrab.page.waitForTimeout(20);
-      expect(await readPanelTransform()).toBe("");
+      await expect.poll(readPanelTransform, { timeout: 1000 }).toBe("");
     });
   });
 
