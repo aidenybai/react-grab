@@ -1,26 +1,36 @@
-import { CLIPBOARD_READ_TIMEOUT_MS, REACT_GRAB_MIME_TYPE } from "./constants.js";
+import {
+  CHROMIUM_PICKLE_SENTINEL,
+  CLIPBOARD_READ_TIMEOUT_MS,
+  REACT_GRAB_MIME_TYPE,
+} from "./constants.js";
 import { decodeChromiumWebCustomData } from "./decode-chromium-web-custom-data.js";
 import { hasErrorCode } from "./has-error-code.js";
 import { runExecFile } from "./run-exec-file.js";
 import { surfaceStderr } from "./surface-stderr.js";
 import type { ClipboardReadOutcome } from "./read-clipboard-outcome.js";
 
-// Chromium and WebKit on macOS bundle web-custom-format clipboard data
-// (anything the page wrote via clipboardData.setData(type, data) for a
-// non-standard MIME type) into a single pasteboard entry under either
-// 'org.chromium.web-custom-data' or 'org.webkit.web-custom-data'. The
-// raw MIME type ('application/x-react-grab') is NOT exposed directly on
-// the macOS pasteboard, so a naive dataForType lookup returns nil and
-// we'd never find the payload.
+// Chromium-family browsers (Chrome, Edge, Cursor, Electron) on macOS bundle
+// web-custom-format clipboard data (anything the page wrote via
+// clipboardData.setData(type, data) for a non-standard MIME type) into a
+// single pasteboard entry under 'org.chromium.web-custom-data' rather than
+// exposing the raw MIME ('application/x-react-grab') directly. A naive
+// dataForType lookup returns nil and we'd never find the payload.
 //
-// JXA emits one of three forms for the Node side:
+// 'org.webkit.web-custom-data' is included on a best-effort basis for Safari.
+// Its exact binary layout was not verified at the time of writing; if Safari
+// uses a different format the decoder will return null cleanly and watch
+// will fall through to a normal "no payload" loop.
+//
+// JXA emits one of three forms to stdout for the Node side:
 //  - empty string: nothing on the clipboard
-//  - <utf-8 json>: direct read succeeded (Safari/Firefox direct exposure)
-//  - <PICKLE_SENTINEL><base64 of NSData>: the pasteboard exposed
-//    web-custom-data; Node decodes the base::Pickle and extracts our
-//    MIME entry.
-const PICKLE_SENTINEL = "__react_grab_chromium_pickle_b64__";
-
+//  - <utf-8 json>: direct read succeeded (Firefox / Safari direct exposure
+//    or a future browser change)
+//  - <CHROMIUM_PICKLE_SENTINEL><base64 of NSData>: the pasteboard exposed
+//    web-custom-data; Node decodes the base::Pickle and extracts our entry.
+//
+// The sentinel uses 0x01 and 0x02 control bytes so it cannot collide with
+// any direct-path payload (valid JSON cannot start with control bytes, and
+// parseReactGrabPayload validates JSON shape downstream).
 const JXA_SCRIPT = `(function(){
   ObjC.import('AppKit');
   var pb = $.NSPasteboard.generalPasteboard;
@@ -31,19 +41,19 @@ const JXA_SCRIPT = `(function(){
   }
   var chromium = pb.dataForType('org.chromium.web-custom-data');
   if (!chromium.isNil()) {
-    return '${PICKLE_SENTINEL}' + ObjC.unwrap(chromium.base64EncodedStringWithOptions(0));
+    return '${CHROMIUM_PICKLE_SENTINEL}' + ObjC.unwrap(chromium.base64EncodedStringWithOptions(0));
   }
   var webkit = pb.dataForType('org.webkit.web-custom-data');
   if (!webkit.isNil()) {
-    return '${PICKLE_SENTINEL}' + ObjC.unwrap(webkit.base64EncodedStringWithOptions(0));
+    return '${CHROMIUM_PICKLE_SENTINEL}' + ObjC.unwrap(webkit.base64EncodedStringWithOptions(0));
   }
   return '';
 })()`;
 
 const decodeJxaOutput = (raw: string): string | null => {
   if (raw.length === 0) return null;
-  if (raw.startsWith(PICKLE_SENTINEL)) {
-    const base64Pickle = raw.slice(PICKLE_SENTINEL.length);
+  if (raw.startsWith(CHROMIUM_PICKLE_SENTINEL)) {
+    const base64Pickle = raw.slice(CHROMIUM_PICKLE_SENTINEL.length);
     const buffer = Buffer.from(base64Pickle, "base64");
     return decodeChromiumWebCustomData(buffer, REACT_GRAB_MIME_TYPE);
   }
