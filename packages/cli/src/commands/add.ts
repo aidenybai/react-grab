@@ -62,7 +62,10 @@ export const add = new Command()
       }
 
       if (isNonInteractive) {
-        const results = installDetectedOrAllSkills("project", cwd);
+        // Project-scope installs anchor on the resolved project root, not
+        // the original cwd, so a subdirectory invocation in a monorepo still
+        // lands the skill in the same dir the project's agents will read.
+        const results = installDetectedOrAllSkills("project", projectInfo.projectRoot);
         const hasSuccess = results.some((result) => result.success);
         if (!hasSuccess) {
           logger.break();
@@ -88,7 +91,10 @@ export const add = new Command()
           process.exit(1);
         }
 
-        const didInstall = await promptSkillInstall(skillScope as SkillScope, cwd);
+        const didInstall = await promptSkillInstall(
+          skillScope as SkillScope,
+          projectInfo.projectRoot,
+        );
         if (!didInstall) {
           logger.break();
           process.exit(0);
