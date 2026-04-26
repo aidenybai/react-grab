@@ -6,7 +6,7 @@ export const lockViewportZoom = (): (() => void) => {
   let meta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
   const originalContent = meta?.getAttribute("content") ?? null;
 
-  if (/viewport-fit\s*=\s*cover/.test(originalContent ?? "")) {
+  if (/viewport-fit\s*=\s*cover/i.test(originalContent ?? "")) {
     return () => {};
   }
 
