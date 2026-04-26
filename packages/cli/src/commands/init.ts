@@ -488,12 +488,14 @@ export const init = new Command()
             projectInfo.projectRoot,
           );
           didInstallSkill = results.some((result) => result.success);
-          if (!didInstallSkill) {
-            logger.break();
-            process.exit(0);
-          }
           logger.break();
-          logger.success("React Grab skill has been installed.");
+          if (didInstallSkill) {
+            logger.success("React Grab skill has been installed.");
+          } else {
+            // Skill install is optional decoration on top of the React Grab
+            // install. Don't abort the main install if the skill write fails.
+            logger.warn("React Grab skill install did not write any files.");
+          }
           logger.log("Continuing with React Grab installation...");
           logger.break();
         }
