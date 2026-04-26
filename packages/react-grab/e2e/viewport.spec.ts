@@ -1,6 +1,34 @@
 import { test, expect } from "./fixtures.js";
 
 test.describe("Viewport and Scroll Handling", () => {
+  test("should not mutate viewport meta with viewport-fit cover", async ({ reactGrab }) => {
+    const viewportContent = "width=device-width, initial-scale=1, viewport-fit=cover";
+
+    await reactGrab.page.evaluate((content) => {
+      let meta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
+      if (!meta) {
+        meta = document.createElement("meta");
+        meta.name = "viewport";
+        document.head.appendChild(meta);
+      }
+      meta.content = content;
+    }, viewportContent);
+
+    await reactGrab.activate();
+
+    const activeContent = await reactGrab.page.evaluate(() => {
+      return document.querySelector<HTMLMetaElement>('meta[name="viewport"]')?.content ?? null;
+    });
+    expect(activeContent).toBe(viewportContent);
+
+    await reactGrab.deactivate();
+
+    const restoredContent = await reactGrab.page.evaluate(() => {
+      return document.querySelector<HTMLMetaElement>('meta[name="viewport"]')?.content ?? null;
+    });
+    expect(restoredContent).toBe(viewportContent);
+  });
+
   test("should maintain selection after scrolling page", async ({ reactGrab }) => {
     await reactGrab.activate();
     await reactGrab.hoverElement("li:first-child");

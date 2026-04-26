@@ -6,6 +6,10 @@ export const lockViewportZoom = (): (() => void) => {
   let meta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
   const originalContent = meta?.getAttribute("content") ?? null;
 
+  if (/viewport-fit\s*=\s*cover/.test(originalContent ?? "")) {
+    return () => {};
+  }
+
   if (!meta) {
     meta = document.createElement("meta");
     meta.name = "viewport";
@@ -13,9 +17,15 @@ export const lockViewportZoom = (): (() => void) => {
   }
 
   const content = originalContent ?? "";
-  meta.content = /maximum-scale/.test(content)
+  const nextContent = /maximum-scale/.test(content)
     ? content.replace(/maximum-scale\s*=\s*[\d.]+/, "maximum-scale=1")
     : `${content}${content ? ", " : ""}maximum-scale=1`;
+
+  if (meta.content === nextContent) {
+    return () => {};
+  }
+
+  meta.content = nextContent;
 
   return () => {
     if (originalContent !== null) {
