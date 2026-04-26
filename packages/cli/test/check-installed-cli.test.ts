@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -77,6 +77,23 @@ describe("react-grab check-installed CLI", () => {
     expect(result.status).toBe(1);
     const parsed = JSON.parse(result.stdout);
     expect(parsed).toEqual({ installed: false, cwd: workDir });
+  });
+
+  it("walks up from a subdirectory to find the project's package.json", () => {
+    writeFileSync(
+      path.join(workDir, "package.json"),
+      JSON.stringify({ name: "demo", dependencies: { "react-grab": "^0.1.0" } }),
+    );
+    const subdir = path.join(workDir, "packages", "ui", "src");
+    mkdirSync(subdir, { recursive: true });
+
+    const result = runCheck(subdir, ["--json"]);
+    if (result === null) return;
+
+    expect(result.status).toBe(0);
+    const parsed = JSON.parse(result.stdout);
+    expect(parsed.installed).toBe(true);
+    expect(parsed.cwd).toBe(path.resolve(workDir));
   });
 
   it("is reachable via the is-installed alias", () => {
