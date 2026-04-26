@@ -87,7 +87,7 @@ describe("readClipboardWsl", () => {
     expect(result.hint).toContain("xclip");
   });
 
-  it("combines WSL interop and Linux install hints when both fallbacks have guidance, marks unrecoverable when both channels are", async () => {
+  it("combines host-specific, WSL interop, and Linux install hints when both fallbacks have guidance, marks unrecoverable when both channels are", async () => {
     mockReadClipboardViaWindowsPowerShell.mockResolvedValue({
       payload: null,
       hint: "Cannot launch powershell.exe.",
@@ -101,6 +101,11 @@ describe("readClipboardWsl", () => {
 
     const result = await readClipboardWsl();
     expect(result.payload).toBeNull();
+    // Host-specific guidance must be retained, not silently dropped in
+    // favor of only the generic WSL interop hint - when the actual failure
+    // is e.g. PowerShell missing, the host hint is the most actionable
+    // diagnostic.
+    expect(result.hint).toContain("powershell.exe");
     expect(result.hint).toContain("interop");
     expect(result.hint).toContain("xclip");
     expect(result.recoverable).toBe(false);
