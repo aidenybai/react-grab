@@ -11,6 +11,13 @@ export interface ReadClipboardPayloadResult {
   env: ClipboardEnv;
   hint?: string;
   recoverable: boolean;
+  // True iff the platform clipboard reader returned a non-empty raw string,
+  // regardless of whether parseReactGrabPayload then accepted it. Lets the
+  // watch loop distinguish a genuinely empty clipboard from a transient
+  // parse failure where a real React Grab payload sits on the clipboard
+  // but the reader returned partial / corrupt output - critical so we
+  // don't return a stale grab as if it were fresh.
+  rawPayloadPresent: boolean;
 }
 
 const readRawByEnv = async (env: ClipboardEnv): Promise<ClipboardReadOutcome> => {
@@ -43,10 +50,12 @@ const readRawByEnv = async (env: ClipboardEnv): Promise<ClipboardReadOutcome> =>
 export const readClipboardPayload = async (): Promise<ReadClipboardPayloadResult> => {
   const env = detectClipboardEnv();
   const outcome = await readRawByEnv(env);
+  const rawPayloadPresent = typeof outcome.payload === "string" && outcome.payload.length > 0;
   return {
     env,
     payload: parseReactGrabPayload(outcome.payload),
     hint: outcome.hint,
     recoverable: outcome.recoverable !== false,
+    rawPayloadPresent,
   };
 };

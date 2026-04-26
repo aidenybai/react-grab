@@ -145,6 +145,23 @@ export const init = new Command()
           logger.log(
             `Use ${highlighter.info("--force")} to reconfigure, or remove ${highlighter.info("--yes")} for interactive mode.`,
           );
+          // Even on a re-run against an already-installed project, scripted
+          // pipelines still want the agent skill installed - mirroring the
+          // pre-CLI MCP behavior where `grab init -y` always wired up agent
+          // integration. Without this, CI scripts that re-run `init -y` after
+          // upgrading the CLI silently lose the skill and never see a prompt
+          // telling them to run `install-skill` separately.
+          logger.break();
+          const results = installDetectedOrAllSkills("project", projectInfo.projectRoot);
+          if (results.some((result) => result.success)) {
+            logger.success(
+              "React Grab skill installed/refreshed. Restart your agent(s) to pick it up.",
+            );
+          } else {
+            logger.warn(
+              `React Grab skill install did not write any files. Run ${highlighter.info("grab install-skill")} after init to retry.`,
+            );
+          }
           logger.break();
           process.exit(0);
         }

@@ -81,6 +81,11 @@ export const watch = new Command()
 
       const waitResult = await waitForNextGrab({
         initialTimestamp,
+        // Pass through whether initial read had raw data so the wait loop
+        // can distinguish "empty clipboard" (first non-null = match) from
+        // "transient parse failure on stale data" (first non-null = new
+        // baseline, wait for the next change).
+        initialRawPayloadPresent: initialResult.rawPayloadPresent,
         timeoutMs: timeoutSeconds * MS_PER_SECOND,
         pollIntervalMs: WATCH_POLL_INTERVAL_MS,
         read: readClipboardPayload,
