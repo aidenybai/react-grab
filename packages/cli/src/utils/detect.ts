@@ -353,9 +353,7 @@ const detectReactGrabAt = (projectRoot: string): boolean => {
   if (existsSync(packageJsonPath)) {
     try {
       const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
-      // The package itself - dogfooding inside the react-grab monorepo or
-      // working on the package source. Treat as installed so the skill
-      // preflight doesn't suggest running `grab init` on the source repo.
+      // Dogfood: working inside the react-grab source repo.
       if (packageJson.name === "react-grab") return true;
       const allDependencies = {
         ...packageJson.dependencies,
@@ -395,13 +393,11 @@ const detectReactGrabAt = (projectRoot: string): boolean => {
 
 export const detectReactGrab = (projectRoot: string): boolean => {
   if (detectReactGrabAt(projectRoot)) return true;
-
-  // Monorepo: it's common for the root package.json to have no react-grab
-  // dep while one or more workspace packages depend on it (or the
-  // workspace IS the react-grab source). Walk workspace packages so the
-  // preflight reports "installed" from anywhere inside the monorepo.
   if (!detectMonorepo(projectRoot)) return false;
 
+  // Monorepo roots often have no react-grab dep themselves while one of
+  // the workspace packages does (or IS react-grab). Without this walk the
+  // preflight misfires from anywhere inside such a repo.
   for (const pattern of getWorkspacePatterns(projectRoot)) {
     for (const workspacePath of expandWorkspacePattern(projectRoot, pattern)) {
       if (detectReactGrabAt(workspacePath)) return true;
