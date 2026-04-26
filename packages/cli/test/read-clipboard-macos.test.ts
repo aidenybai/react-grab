@@ -18,13 +18,19 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const PICKLE_SENTINEL = "__react_grab_chromium_pickle_b64__";
+import {
+  CHROMIUM_PICKLE_ALIGNMENT_BYTES,
+  CHROMIUM_PICKLE_SENTINEL,
+} from "../src/utils/constants.js";
+
+const alignTo = (offset: number, alignment: number): number =>
+  (offset + alignment - 1) & ~(alignment - 1);
 
 const buildChromiumPickleBase64 = (mime: string, data: string): string => {
   const mimeBytes = Buffer.byteLength(mime, "utf16le");
   const dataBytes = Buffer.byteLength(data, "utf16le");
-  const alignedMime = (mimeBytes + 3) & ~3;
-  const alignedData = (dataBytes + 3) & ~3;
+  const alignedMime = alignTo(mimeBytes, CHROMIUM_PICKLE_ALIGNMENT_BYTES);
+  const alignedData = alignTo(dataBytes, CHROMIUM_PICKLE_ALIGNMENT_BYTES);
   const payloadSize = 4 + 4 + alignedMime + 4 + alignedData;
   const buffer = Buffer.alloc(4 + payloadSize);
   buffer.writeUInt32LE(payloadSize, 0);
@@ -62,7 +68,7 @@ describe("readClipboardMacos", () => {
   it("decodes a Chromium web-custom-data pickle when JXA returns the sentinel-prefixed base64", async () => {
     const json = '{"version":"0.1.32","content":"<button/>","entries":[],"timestamp":1}';
     const pickle = buildChromiumPickleBase64("application/x-react-grab", json);
-    stubExecFile(mockExecFile, { stdout: `${PICKLE_SENTINEL}${pickle}\n` });
+    stubExecFile(mockExecFile, { stdout: `${CHROMIUM_PICKLE_SENTINEL}${pickle}\n` });
 
     const result = await readClipboardMacos();
     expect(result.payload).toBe(json);
@@ -70,7 +76,7 @@ describe("readClipboardMacos", () => {
 
   it("returns null when the Chromium pickle does not contain our MIME type", async () => {
     const pickle = buildChromiumPickleBase64("text/plain", "unrelated");
-    stubExecFile(mockExecFile, { stdout: `${PICKLE_SENTINEL}${pickle}\n` });
+    stubExecFile(mockExecFile, { stdout: `${CHROMIUM_PICKLE_SENTINEL}${pickle}\n` });
 
     const result = await readClipboardMacos();
     expect(result.payload).toBeNull();
