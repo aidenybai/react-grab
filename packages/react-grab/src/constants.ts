@@ -105,8 +105,14 @@ export const TOOLBAR_COLLAPSED_LONG_PX = 30;
 // materializes behind the growing container), collapse is snappier (fade
 // leads, size follows). The shared "animation duration" constant must cover
 // the longer direction so downstream timeouts wait for the real end.
+//
+// On expand, size animates over 220ms while content opacity uses an 80ms
+// delay + 180ms fade-in (260ms total). The guard timeout must cover the
+// opacity tail too, otherwise isCollapseAnimating() flips false 40ms before
+// the content finishes and shouldDim() can start a dim transition on the
+// outer container while the inner content is still materializing.
 export const TOOLBAR_EXPAND_DURATION_MS = 220;
-export const TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS = TOOLBAR_EXPAND_DURATION_MS;
+export const TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS = 260;
 export const TOOLBAR_DEFAULT_WIDTH_PX = 78;
 export const TOOLBAR_DEFAULT_HEIGHT_PX = 28;
 export const TOOLBAR_DEFAULT_POSITION_RATIO = 0.5;
