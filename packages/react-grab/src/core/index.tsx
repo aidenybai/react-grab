@@ -139,7 +139,6 @@ import { copyContent } from "../utils/copy-content.js";
 import { joinSnippets } from "../utils/join-snippets.js";
 import { generateId } from "../utils/generate-id.js";
 import { logRecoverableError } from "../utils/log-recoverable-error.js";
-import { lockViewportZoom } from "../utils/lock-viewport-zoom.js";
 import { getNearestEdge } from "../utils/get-nearest-edge.js";
 
 const builtInPlugins = [copyPlugin, commentPlugin, copyHtmlPlugin, copyStylesPlugin, openPlugin];
@@ -247,23 +246,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         Boolean(store.current.isPendingDismiss),
     );
 
-    let unlockViewportZoom: (() => void) | null = null;
-
     createEffect(
       on(isActivated, (activated, previousActivated) => {
         if (activated && !previousActivated) {
           freezePseudoStates(store.pointer.x, store.pointer.y);
           freezeGlobalAnimations();
           document.body.style.touchAction = "none";
-          // iOS Safari auto-zooms on focused inputs with font-size < 16px,
-          // which would disrupt the overlay positioning.
-          unlockViewportZoom = lockViewportZoom();
         } else if (!activated && previousActivated) {
           unfreezePseudoStates();
           unfreezeGlobalAnimations();
           document.body.style.touchAction = "";
-          unlockViewportZoom?.();
-          unlockViewportZoom = null;
         }
       }),
     );
@@ -2734,8 +2726,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       autoScroller.stop();
       document.body.style.userSelect = "";
       document.body.style.touchAction = "";
-      unlockViewportZoom?.();
-      unlockViewportZoom = null;
       setCursorOverride(null);
       keyboardClaimer.restore();
     });

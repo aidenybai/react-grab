@@ -186,3 +186,11 @@
     min-width: 44px;
   }
 }
+
+/* iOS Safari auto-zooms on focused inputs with font-size < 16px.
+ * @supports (-webkit-touch-callout) is iOS/iPadOS-only; other browsers ignore. */
+@supports (-webkit-touch-callout: none) {
+  textarea[data-react-grab-input] {
+    font-size: 16px;
+  }
+}

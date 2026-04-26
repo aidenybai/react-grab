@@ -1,6 +1,67 @@
 import { test, expect } from "./fixtures.js";
 
+interface ViewportMetaCase {
+  label: string;
+  initial: string | null;
+}
+
+const viewportMetaCases: ViewportMetaCase[] = [
+  { label: "no viewport meta", initial: null },
+  { label: "basic viewport meta", initial: "width=device-width, initial-scale=1" },
+  {
+    label: "viewport-fit=cover meta",
+    initial: "width=device-width, initial-scale=1, viewport-fit=cover",
+  },
+];
+
 test.describe("Viewport and Scroll Handling", () => {
+  for (const { label, initial } of viewportMetaCases) {
+    test(`should not mutate viewport meta during activation lifecycle (${label})`, async ({
+      reactGrab,
+    }) => {
+      await reactGrab.page.evaluate((content) => {
+        const existing = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
+        if (content === null) {
+          existing?.remove();
+          return;
+        }
+        const meta = existing ?? document.createElement("meta");
+        meta.name = "viewport";
+        meta.setAttribute("content", content);
+        if (!existing) document.head.appendChild(meta);
+      }, initial);
+
+      const readViewportContent = () =>
+        reactGrab.page.evaluate(
+          () =>
+            document
+              .querySelector<HTMLMetaElement>('meta[name="viewport"]')
+              ?.getAttribute("content") ?? null,
+        );
+
+      await reactGrab.activate();
+      expect(await readViewportContent()).toBe(initial);
+
+      await reactGrab.deactivate();
+      expect(await readViewportContent()).toBe(initial);
+    });
+  }
+
+  test("should ship iOS auto-zoom mitigation in shadow stylesheet", async ({ reactGrab }) => {
+    await reactGrab.activate();
+
+    const shadowStylesheetText = await reactGrab.page.evaluate(() => {
+      const host = document.querySelector<HTMLElement>("[data-react-grab]");
+      const styleElement = host?.shadowRoot?.querySelector("style");
+      return styleElement?.textContent ?? "";
+    });
+
+    expect(shadowStylesheetText).toMatch(/@supports\s*\(\s*-webkit-touch-callout\s*:\s*none\s*\)/);
+    expect(shadowStylesheetText).toMatch(
+      /textarea\[data-react-grab-input\][^{}]*\{[^}]*font-size:\s*16px/,
+    );
+  });
+
   test("should maintain selection after scrolling page", async ({ reactGrab }) => {
     await reactGrab.activate();
     await reactGrab.hoverElement("li:first-child");
