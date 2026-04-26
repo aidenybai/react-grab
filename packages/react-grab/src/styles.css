@@ -4,9 +4,7 @@
   --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
   --transition-fast: 100ms;
   --transition-normal: 150ms;
-  /* iOS drawer curve - strong ease-out for collapse/expand morphs */
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
-  /* Spring curve with subtle overshoot (~12%) for dropdown/menu entrances */
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -40,8 +38,6 @@
   }
 }
 
-/* Spring curve does the overshoot - simpler and more natural than
- * multi-stop keyframes. Matches Budge's copy-success animation. */
 @keyframes success-pop {
   from {
     transform: scale(0.85);
@@ -144,10 +140,6 @@
 }
 
 
-/* Asymmetric press/release: release is a 400ms spring so the element "bounces"
- * back when the user lets go; press is a near-instant 60ms linear-ease-out so
- * the interface feels responsive the moment the user commits to a click.
- * Budge uses the same pattern on its arrow buttons. */
 @utility press-scale {
   transition: transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
 

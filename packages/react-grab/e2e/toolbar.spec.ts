@@ -540,9 +540,8 @@ test.describe("Toolbar", () => {
           const collapseButton = root?.querySelector<HTMLElement>(
             "[data-react-grab-toolbar-collapse]",
           );
-          // composed: true so the synthetic event escapes the shadow root
-          // and reaches Solid's delegated listener on window.document, the
-          // way real pointer events do.
+          // composed: true so the event escapes the shadow root, like real
+          // pointer events do.
           collapseButton?.dispatchEvent(
             new PointerEvent(eventType, { bubbles: true, cancelable: true, composed: true }),
           );

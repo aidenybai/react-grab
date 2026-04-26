@@ -315,19 +315,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     width: TOOLBAR_DEFAULT_WIDTH_PX,
     height: TOOLBAR_DEFAULT_HEIGHT_PX,
   };
-  // Collapsed dims track the snap edge orientation so the first collapse -
-  // and any post-reorientation collapse - computes its transform target
-  // against a correctly-oriented rect. A stale orientation would animate
-  // the toolbar to the wrong spot and then snap to correct when the
-  // post-animation measurement updates the signal.
   const [collapsedDimensions, setCollapsedDimensions] = createSignal(
     getCollapsedDimsForEdge(snapEdge()),
   );
 
-  // Resets dims if the edge orientation flipped (horizontal <-> vertical).
-  // Called from both the drag snap-edge callback and the state-subscription
-  // effect so external consumers (programmatic API, multi-toolbar sync) get
-  // the same correctness guarantee.
   const syncCollapsedDimensionsToEdge = (oldEdge: SnapEdge, newEdge: SnapEdge): void => {
     if (isHorizontalEdge(oldEdge) === isHorizontalEdge(newEdge)) return;
     setCollapsedDimensions(getCollapsedDimsForEdge(newEdge));
@@ -459,7 +450,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     // expanded on initial mount, so rect reflects expanded dimensions here
     // regardless of savedState.collapsed. Using it for collapsed dimensions
     // would make the toolbar too wide after restoring a collapsed state.
-    // collapsedDimensions is already seeded from snapEdge() at signal creation.
     if (savedState) {
       if (rect) {
         expandedDimensions = { width: rect.width, height: rect.height };
@@ -577,11 +567,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     return "cursor-grab";
   };
 
-  // Dim the toolbar when grab mode is active so it recedes while the user is
-  // focused on element selection. Any direct interaction (hover, drag,
-  // context menu, collapse animation, chevron press) snaps it back to full
-  // presence - including hovering during grab, so the user can still reach
-  // the buttons without dropping out of grab mode.
   const isInteracting = (): boolean =>
     isToolbarHovered() ||
     Boolean(props.isContextMenuOpen) ||
@@ -593,9 +578,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const shouldDim = (): boolean => Boolean(props.isActive) && !isInteracting();
 
   const getTransitionClass = (): string => {
+    // Drag must follow the pointer frame-to-frame; any transform transition
+    // here would lag the toolbar behind the cursor.
     if (isResizing() || drag.isDragging()) {
-      // Drag must follow the pointer frame-to-frame; a transform transition
-      // here would lag the toolbar behind the cursor.
       return "";
     }
     if (drag.isSnapping()) {
@@ -605,8 +590,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       const duration = isCollapsed() ? "duration-140" : "duration-220";
       return `transition-[transform,opacity] ${duration} ease-drawer`;
     }
-    // Breathe: transform (scale) + opacity animate in lockstep when engagement
-    // changes. Slower than a press so it reads as ambient, not reactive.
     return "transition-[transform,opacity] duration-400 ease-drawer";
   };
 
@@ -635,9 +618,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         "fixed left-0 top-0 font-sans text-[13px] antialiased select-none",
         getCursorClass(),
         getTransitionClass(),
-        // Explicit pointer-events-auto is required during grab mode because
         // freeze-pseudo-states sets `html { pointer-events: none !important }`
-        // and the toolbar needs to override that to stay clickable.
+        // during grab; the toolbar must opt back in to stay clickable.
         isVisible() ? "pointer-events-auto" : "pointer-events-none",
       )}
       style={{

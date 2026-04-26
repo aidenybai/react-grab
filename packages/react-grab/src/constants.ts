@@ -88,10 +88,6 @@ export const OVERLAY_Z_INDEX_THRESHOLD = 1000;
 export const DEV_TOOLS_OVERLAY_Z_INDEX_THRESHOLD = 2147483600;
 
 export const TOOLTIP_DELAY_MS = 400;
-// After the first tooltip closes, subsequent tooltips skip the delay + fade
-// animation for this long. Set generously (~800ms) so traversing adjacent
-// buttons on the toolbar feels snappy - 100ms was too short to reach the
-// next button in practice.
 export const TOOLTIP_GRACE_PERIOD_MS = 800;
 
 export const TOOLBAR_SNAP_MARGIN_PX = 16;
@@ -101,17 +97,10 @@ export const TOOLBAR_DRAG_THRESHOLD_PX = 5;
 export const TOOLBAR_VELOCITY_MULTIPLIER_MS = 150;
 export const TOOLBAR_COLLAPSED_SHORT_PX = 16;
 export const TOOLBAR_COLLAPSED_LONG_PX = 30;
-// Asymmetric collapse/expand timing: expansion is more deliberate (content
-// materializes behind the growing container), collapse is snappier (fade
-// leads, size follows). The shared "animation duration" constant must cover
-// the longer direction so downstream timeouts wait for the real end.
-//
-// On expand, the size transition runs 220ms (encoded as `duration-220` in
-// JSX) while content opacity uses an 80ms delay + 180ms fade-in = 260ms
-// total. The guard must cover the opacity tail, otherwise
-// isCollapseAnimating() flips false 40ms before the content finishes and
-// shouldDim() can start a dim transition on the outer container while the
-// inner content is still materializing.
+// Must cover the longest expand path: size is 220ms, opacity is 80ms delay
+// + 180ms fade = 260ms. If this fires before the opacity tail, shouldDim()
+// can flip true mid-fade-in and start a dim transition on the outer
+// container while the inner content is still materializing.
 export const TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS = 260;
 export const TOOLBAR_DEFAULT_WIDTH_PX = 78;
 export const TOOLBAR_DEFAULT_HEIGHT_PX = 28;
@@ -142,9 +131,8 @@ export const MOUNT_ROOT_RECHECK_DELAY_MS = 1000;
 
 export const MAX_COMMENT_ITEMS = 20;
 export const MAX_SESSION_STORAGE_SIZE_BYTES = 2 * 1024 * 1024;
-// Must be >= the dropdown's CSS exit transition duration (currently 120ms on
-// the 3 dropdown components) so createAnchoredDropdown doesn't unmount the
-// DOM before the close animation completes.
+// Must match the CSS exit transition on dropdown components or the DOM
+// unmounts mid-animation.
 export const DROPDOWN_ANIMATION_DURATION_MS = 120;
 export const DROPDOWN_HOVER_OPEN_DELAY_MS = 200;
 export const DROPDOWN_VIEWPORT_PADDING_PX = 8;

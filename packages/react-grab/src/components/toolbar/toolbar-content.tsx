@@ -27,9 +27,6 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
   const edge = () => props.snapEdge ?? "bottom";
   const isVertical = () => edge() === "left" || edge() === "right";
 
-  // Asymmetric timing: opacity leads on collapse (content fades before size
-  // shrinks) and follows on expand (size grows, then content materializes).
-  // Size uses the longer curve on expand for a more deliberate reveal.
   const sizeDurationClass = () => (props.isCollapsed ? "duration-140" : "duration-220");
   const opacityEnterClass = "transition-opacity duration-180 ease-drawer delay-[80ms]";
   const opacityExitClass = "transition-opacity duration-100 ease-drawer";
@@ -37,10 +34,8 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
   const expandGridClass = (isExpanded: boolean, collapsedExtra?: string): string =>
     getExpandGridClass(isVertical(), isExpanded, collapsedExtra);
 
-  // Tailwind v4 scans source files for class names as literal strings.
-  // Template-interpolated classes like `transition-[${axis},opacity]` are
-  // invisible to the scanner, so keep each variant as a full static string
-  // and branch on isVertical() at usage time.
+  // Tailwind v4's class scanner only sees literal strings, so each
+  // axis variant must be a full static class - no template interpolation.
   const gridTransitionClass = (): string =>
     isVertical()
       ? `transition-[grid-template-rows,opacity] ${sizeDurationClass()} ease-drawer`
@@ -81,8 +76,6 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
     }
   };
 
-  // Chevron press squishes the toolbar toward its snap edge: the axis
-  // perpendicular to the edge compresses 3%, keeping the snapped edge flush.
   const pressSquishTransform = (): string | undefined => {
     if (!props.isChevronPressed) return undefined;
     return isVertical() ? "scale(0.97, 1)" : "scale(1, 0.97)";
@@ -95,9 +88,9 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
       aria-label={props.isCollapsed ? "Expand toolbar" : "Collapse toolbar"}
       class="contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale"
       onClick={props.onCollapseClick}
-      // Native pointerdown so the press squish handler runs before the
-      // wrapper's bubble-phase stopImmediatePropagation. Solid delegates
-      // onPointerDown to document, which never receives this event.
+      // Native pointerdown: Solid delegates onPointerDown to document, but
+      // the toolbar wrapper stops bubbling so the document handler never
+      // fires. on: bypasses delegation and runs on the button itself.
       on:pointerdown={props.onCollapsePointerDown}
       onPointerUp={props.onCollapsePointerUp}
       onPointerLeave={props.onCollapsePointerLeave}
@@ -113,8 +106,6 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
     </button>
   );
 
-  // Press transition is fast (60ms linear-ease-out) for instant feedback;
-  // release is a 300ms drawer curve so the squish settles naturally.
   const outerTransitionClass = () =>
     props.isChevronPressed
       ? `transition-[padding,border-radius,transform] duration-60 ease-[cubic-bezier(0,0,0.2,1)]`
