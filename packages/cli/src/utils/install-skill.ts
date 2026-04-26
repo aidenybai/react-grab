@@ -334,7 +334,12 @@ export const promptSkillInstall = async (
       logger.break();
       const results = installSkills({ scope, cwd, selectedClients: [onlyInstalled] });
       const ok = results.some((result) => result.success);
-      if (ok) writeLastSelectedAgents([onlyInstalled]);
+      // Don't persist when the user didn't make an active choice. The
+      // auto-route branch routes to the only detected agent without a
+      // multiselect; persisting would silently restrict every future
+      // interactive run to that single agent (see install-skill.ts which
+      // skips persistence in its symmetrical auto-route branch for the
+      // same reason).
       return ok ? "succeeded" : "failed";
     }
   }

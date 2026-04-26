@@ -17,6 +17,9 @@ const buildResult = (
   env: "macos",
   payload,
   recoverable: true,
+  // Default to "raw was non-empty when payload was non-null". Tests that
+  // exercise the parse-failure-on-stale-data scenario override this.
+  rawPayloadPresent: payload !== null,
   ...overrides,
 });
 
@@ -44,6 +47,7 @@ describe("waitForNextGrab", () => {
 
     const outcome = await waitForNextGrab({
       initialTimestamp: 1000,
+      initialRawPayloadPresent: true,
       timeoutMs: 5000,
       pollIntervalMs: 1,
       read,
@@ -70,6 +74,7 @@ describe("waitForNextGrab", () => {
 
     const outcome = await waitForNextGrab({
       initialTimestamp: 1000,
+      initialRawPayloadPresent: true,
       timeoutMs: 5000,
       pollIntervalMs: 1,
       read,
@@ -84,13 +89,14 @@ describe("waitForNextGrab", () => {
     expect(read).toHaveBeenCalledTimes(3);
   });
 
-  it("treats a null initial timestamp as 'any payload counts as fresh'", async () => {
+  it("treats a null initial timestamp as 'any payload counts as fresh' when initial clipboard was empty", async () => {
     const fresh = buildPayload(42);
     const read = vi.fn().mockResolvedValue(buildResult(fresh));
     const clock = createFakeClock();
 
     const outcome = await waitForNextGrab({
       initialTimestamp: null,
+      initialRawPayloadPresent: false,
       timeoutMs: 5000,
       pollIntervalMs: 1,
       read,
@@ -99,6 +105,60 @@ describe("waitForNextGrab", () => {
     });
 
     expect(outcome.outcome).toBe("match");
+  });
+
+  it("does NOT return a stale grab when initial parse failed on a non-empty clipboard", async () => {
+    // Bugbot scenario: a real React Grab payload was sitting on the
+    // clipboard from a prior session, but the initial reader transiently
+    // failed to parse it (timeout, partial output). The stale grab should
+    // become the new baseline; we should only match on a different
+    // timestamp arriving after.
+    const stale = buildPayload(1000);
+    const fresh = buildPayload(2000);
+    const read = vi
+      .fn<() => Promise<ReadClipboardPayloadResult>>()
+      .mockResolvedValueOnce(buildResult(stale))
+      .mockResolvedValueOnce(buildResult(stale))
+      .mockResolvedValueOnce(buildResult(fresh));
+    const clock = createFakeClock();
+
+    const outcome = await waitForNextGrab({
+      initialTimestamp: null,
+      // Initial read had raw data but parse failed - subsequent parses
+      // succeed.
+      initialRawPayloadPresent: true,
+      timeoutMs: 5000,
+      pollIntervalMs: 1,
+      read,
+      getCurrentMs: clock.getCurrentMs,
+      sleepMs: clock.sleepMs,
+    });
+
+    expect(outcome.outcome).toBe("match");
+    if (outcome.outcome === "match") {
+      // Must be the FRESH grab (2000), not the stale one (1000) that we
+      // observed first.
+      expect(outcome.payload.timestamp).toBe(2000);
+    }
+    expect(read).toHaveBeenCalledTimes(3);
+  });
+
+  it("times out (not falsely matches) when initial parse failed and clipboard never changes", async () => {
+    const stale = buildPayload(1000);
+    const read = vi.fn().mockResolvedValue(buildResult(stale));
+    const clock = createFakeClock();
+
+    const outcome = await waitForNextGrab({
+      initialTimestamp: null,
+      initialRawPayloadPresent: true,
+      timeoutMs: 50,
+      pollIntervalMs: 5,
+      read,
+      getCurrentMs: clock.getCurrentMs,
+      sleepMs: clock.sleepMs,
+    });
+
+    expect(outcome.outcome).toBe("timeout");
   });
 
   it("keeps polling when the clipboard has no payload", async () => {
@@ -112,6 +172,7 @@ describe("waitForNextGrab", () => {
 
     const outcome = await waitForNextGrab({
       initialTimestamp: null,
+      initialRawPayloadPresent: false,
       timeoutMs: 5000,
       pollIntervalMs: 1,
       read,
@@ -130,6 +191,7 @@ describe("waitForNextGrab", () => {
 
     const outcome = await waitForNextGrab({
       initialTimestamp: 1000,
+      initialRawPayloadPresent: true,
       timeoutMs: 50,
       pollIntervalMs: 5,
       read,
@@ -154,6 +216,7 @@ describe("waitForNextGrab", () => {
 
     const outcome = await waitForNextGrab({
       initialTimestamp: null,
+      initialRawPayloadPresent: false,
       timeoutMs: 0,
       pollIntervalMs: 60_000_000,
       read,
@@ -176,6 +239,7 @@ describe("waitForNextGrab", () => {
 
     const outcome = await waitForNextGrab({
       initialTimestamp: null,
+      initialRawPayloadPresent: false,
       timeoutMs: 5000,
       pollIntervalMs: 5,
       read,
@@ -200,6 +264,7 @@ describe("waitForNextGrab", () => {
 
     const outcome = await waitForNextGrab({
       initialTimestamp: 1000,
+      initialRawPayloadPresent: true,
       timeoutMs: 5000,
       pollIntervalMs: 5,
       read,
@@ -225,6 +290,7 @@ describe("waitForNextGrab", () => {
 
     const outcome = await waitForNextGrab({
       initialTimestamp: 1000,
+      initialRawPayloadPresent: true,
       timeoutMs: 0,
       pollIntervalMs: 1,
       read,
