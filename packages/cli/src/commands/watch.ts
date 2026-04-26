@@ -71,9 +71,11 @@ export const watch = new Command()
 
     switch (waitResult.outcome) {
       case "match":
+        // Don't process.exit(0) here: an immediate exit can truncate stdout
+        // when the writer is piped through another process. Returning lets
+        // Node drain the buffer and exit naturally with code 0.
         printPayload(waitResult.payload, rawOptions.json);
-        process.exit(0);
-        break;
+        return;
       case "unrecoverable":
         fail(formatUnrecoverableMessage(waitResult.result), 2);
         break;

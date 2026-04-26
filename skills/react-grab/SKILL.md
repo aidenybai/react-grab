@@ -2,9 +2,11 @@
 name: react-grab
 description: >-
   Pull the next React Grab selection from the user's clipboard. Use when the
-  user invokes /react-grab, references "this thing", "the element I clicked",
-  "the component I just grabbed", or pastes content that came from the React
-  Grab toolbar.
+  user invokes /react-grab or references "this thing", "the element I clicked",
+  or "the component I just grabbed" without having already pasted the content.
+  If the user has already pasted React Grab toolbar output into the chat, use
+  the pasted content directly - do NOT run this skill (it would block waiting
+  for a fresh clipboard timestamp that is not coming).
 ---
 
 # React Grab

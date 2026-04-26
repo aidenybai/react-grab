@@ -1,9 +1,11 @@
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vite-plus/test";
 
-const STUB_PATH = path.resolve(__dirname, "..", "dist", "cli.cjs");
+const TEST_DIR = path.dirname(fileURLToPath(import.meta.url));
+const STUB_PATH = path.resolve(TEST_DIR, "..", "dist", "cli.cjs");
 
 describe("@react-grab/mcp deprecation stub", () => {
   it("exits with code 1 and prints a migration message to stderr", () => {

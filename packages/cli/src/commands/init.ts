@@ -347,7 +347,10 @@ export const init = new Command()
         }
 
         if (skillChoice !== "no") {
-          const results = installDetectedOrAllSkills(skillChoice as SkillScope, cwd);
+          const results = installDetectedOrAllSkills(
+            skillChoice as SkillScope,
+            projectInfo.projectRoot,
+          );
           const didInstall = results.some((result) => result.success);
           if (!didInstall) {
             logger.break();
@@ -480,7 +483,10 @@ export const init = new Command()
         }
 
         if (skillChoice !== "no") {
-          const results = installDetectedOrAllSkills(skillChoice as SkillScope, cwd);
+          const results = installDetectedOrAllSkills(
+            skillChoice as SkillScope,
+            projectInfo.projectRoot,
+          );
           didInstallSkill = results.some((result) => result.success);
           if (!didInstallSkill) {
             logger.break();

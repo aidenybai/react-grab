@@ -6,6 +6,7 @@ import {
   buildAgentChoices,
   detectInstalledSkillClients,
   getSkillClientNames,
+  getSupportedSkillClientNames,
   installSkills,
   type SkillScope,
 } from "../utils/install-skill.js";
@@ -71,13 +72,21 @@ export const installSkill = new Command()
       }
 
       const allNames = getSkillClientNames();
+      const supportedNames = getSupportedSkillClientNames();
       const flagScope: SkillScope | undefined = isSkillScope(opts.scope) ? opts.scope : undefined;
 
       if (opts.agent && opts.agent.length > 0) {
         const unknown = opts.agent.filter((name) => !allNames.includes(name));
         if (unknown.length > 0) {
           logger.error(`Unknown agent(s): ${unknown.join(", ")}`);
-          logger.log(`Supported: ${allNames.join(", ")}`);
+          logger.log(`Supported: ${supportedNames.join(", ")}`);
+          logger.break();
+          process.exit(1);
+        }
+        const unsupported = opts.agent.filter((name) => !supportedNames.includes(name));
+        if (unsupported.length > 0) {
+          logger.error(`Agent(s) do not support skills yet: ${unsupported.join(", ")}`);
+          logger.log(`Supported: ${supportedNames.join(", ")}`);
           logger.break();
           process.exit(1);
         }

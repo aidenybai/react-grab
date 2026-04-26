@@ -397,4 +397,9 @@ describe("SKILL_TEMPLATE", () => {
   it("instructs the agent to run the watch CLI", () => {
     expect(SKILL_TEMPLATE).toContain("npx -y @react-grab/cli watch");
   });
+
+  it("warns the agent against running watch on already-pasted content", () => {
+    expect(SKILL_TEMPLATE).toMatch(/already pasted/i);
+    expect(SKILL_TEMPLATE).toMatch(/do NOT run this skill/i);
+  });
 });

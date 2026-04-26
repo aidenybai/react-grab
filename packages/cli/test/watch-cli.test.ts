@@ -1,9 +1,11 @@
 import { spawnSync, type SpawnSyncOptions } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vite-plus/test";
 
-const CLI_PATH = path.resolve(__dirname, "..", "dist", "cli.js");
+const TEST_DIR = path.dirname(fileURLToPath(import.meta.url));
+const CLI_PATH = path.resolve(TEST_DIR, "..", "dist", "cli.js");
 
 const SSH_DETECTION_KEYS = ["SSH_CLIENT", "SSH_TTY", "SSH_CONNECTION", "WSL_DISTRO_NAME"] as const;
 
