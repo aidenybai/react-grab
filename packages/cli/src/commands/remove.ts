@@ -5,8 +5,7 @@ import { highlighter } from "../utils/highlighter.js";
 import { logger } from "../utils/logger.js";
 import { prompts } from "../utils/prompts.js";
 import {
-  getSkillClientNames,
-  getSkillClients,
+  getSupportedSkillClientNames,
   removeSkills,
   type SkillScope,
 } from "../utils/install-skill.js";
@@ -43,16 +42,13 @@ export const remove = new Command()
         process.exit(1);
       }
 
-      const supported = getSkillClients()
-        .filter((client) => client.supported)
-        .map((client) => client.name);
-      const allNames = getSkillClientNames();
+      const supported = getSupportedSkillClientNames();
 
       let targets: string[];
       if (opts.agent && opts.agent.length > 0) {
-        const unknown = opts.agent.filter((name) => !allNames.includes(name));
-        if (unknown.length > 0) {
-          logger.error(`Unknown agent(s): ${unknown.join(", ")}`);
+        const unsupported = opts.agent.filter((name) => !supported.includes(name));
+        if (unsupported.length > 0) {
+          logger.error(`Unknown or unsupported agent(s): ${unsupported.join(", ")}`);
           logger.log(`Supported: ${supported.join(", ")}`);
           logger.break();
           process.exit(1);

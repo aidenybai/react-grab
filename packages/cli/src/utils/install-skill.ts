@@ -136,6 +136,11 @@ export const getSkillClients = (): SkillClientDefinition[] => {
 
 export const getSkillClientNames = (): string[] => getSkillClients().map((client) => client.name);
 
+export const getSupportedSkillClientNames = (): string[] =>
+  getSkillClients()
+    .filter((client) => client.supported)
+    .map((client) => client.name);
+
 export const detectInstalledSkillClients = (): string[] =>
   getSkillClients()
     .filter((client) => client.supported && client.detectInstalled())

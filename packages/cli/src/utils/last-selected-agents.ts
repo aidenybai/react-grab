@@ -9,7 +9,11 @@ import {
 
 const getStateDir = (): string => {
   const xdgStateHome = process.env.XDG_STATE_HOME?.trim();
-  if (xdgStateHome) return path.join(xdgStateHome, STATE_DIR_NAME);
+  // Per the XDG Base Directory spec, $XDG_STATE_HOME MUST be an absolute path;
+  // relative values are ignored. Falls through to ~/.local/state otherwise.
+  if (xdgStateHome && path.isAbsolute(xdgStateHome)) {
+    return path.join(xdgStateHome, STATE_DIR_NAME);
+  }
   return path.join(os.homedir(), FALLBACK_STATE_HOME_RELATIVE, STATE_DIR_NAME);
 };
 
