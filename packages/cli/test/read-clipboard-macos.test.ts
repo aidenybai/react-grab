@@ -48,4 +48,15 @@ describe("readClipboardMacos", () => {
     const result = await readClipboardMacos();
     expect(result.payload).toBeNull();
   });
+
+  it("flags ENOENT (osascript missing) as unrecoverable with an actionable hint", async () => {
+    const enoent = new Error("ENOENT") as NodeJS.ErrnoException;
+    enoent.code = "ENOENT";
+    stubExecFile(mockExecFile, { error: enoent });
+
+    const result = await readClipboardMacos();
+    expect(result.payload).toBeNull();
+    expect(result.hint).toContain("osascript");
+    expect(result.recoverable).toBe(false);
+  });
 });

@@ -70,12 +70,13 @@ describe("readClipboardLinux", () => {
     expect(getExecFileCall(mockExecFile, 1).binary).toBe("xclip");
   });
 
-  it("returns install hint when xclip is missing", async () => {
+  it("returns install hint when xclip is missing and marks the outcome unrecoverable", async () => {
     stubExecFile(mockExecFile, { error: enoentError() });
 
     const result = await readClipboardLinux();
     expect(result.payload).toBeNull();
     expect(result.hint).toContain("xclip");
+    expect(result.recoverable).toBe(false);
   });
 
   it("returns null payload when stdout is empty", async () => {

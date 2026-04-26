@@ -57,6 +57,7 @@ export const readClipboardViaWindowsPowerShell = async (
       return {
         payload: null,
         hint: `Cannot launch ${binary}. Ensure Windows PowerShell is on PATH.`,
+        recoverable: false,
       };
     }
     return { payload: null };

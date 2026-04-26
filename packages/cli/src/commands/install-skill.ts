@@ -91,10 +91,16 @@ export const installSkill = new Command()
           process.exit(1);
         }
         const scope: SkillScope = flagScope ?? "project";
-        installSkills({ scope, cwd: opts.cwd, selectedClients: opts.agent });
+        const results = installSkills({ scope, cwd: opts.cwd, selectedClients: opts.agent });
         writeLastSelectedAgents(opts.agent);
         logger.break();
-        logger.log("Restart your agent(s) to pick up the new skill.");
+        if (results.some((r) => r.success)) {
+          logger.log("Restart your agent(s) to pick up the new skill.");
+        } else {
+          logger.error("No skill files were written.");
+          logger.break();
+          process.exit(1);
+        }
         logger.break();
         return;
       }
@@ -115,11 +121,17 @@ export const installSkill = new Command()
 
       if (opts.yes) {
         const detected = detectInstalledSkillClients();
-        const targets = detected.length > 0 ? detected : allNames;
-        installSkills({ scope, cwd: opts.cwd, selectedClients: targets });
+        const targets = detected.length > 0 ? detected : supportedNames;
+        const results = installSkills({ scope, cwd: opts.cwd, selectedClients: targets });
         writeLastSelectedAgents(targets);
         logger.break();
-        logger.log("Restart your agent(s) to pick up the new skill.");
+        if (results.some((r) => r.success)) {
+          logger.log("Restart your agent(s) to pick up the new skill.");
+        } else {
+          logger.error("No skill files were written.");
+          logger.break();
+          process.exit(1);
+        }
         logger.break();
         return;
       }
@@ -131,10 +143,18 @@ export const installSkill = new Command()
           `Auto-installing to ${highlighter.info(onlyDetected)} (only detected agent). Pass ${highlighter.info("--agent")} to override.`,
         );
         logger.break();
-        installSkills({ scope, cwd: opts.cwd, selectedClients: [onlyDetected] });
+        const results = installSkills({ scope, cwd: opts.cwd, selectedClients: [onlyDetected] });
         writeLastSelectedAgents([onlyDetected]);
         logger.break();
-        logger.log(`${highlighter.success("Done.")} Restart your agent to pick up the new skill.`);
+        if (results.some((r) => r.success)) {
+          logger.log(
+            `${highlighter.success("Done.")} Restart your agent to pick up the new skill.`,
+          );
+        } else {
+          logger.error("Skill install failed.");
+          logger.break();
+          process.exit(1);
+        }
         logger.break();
         return;
       }
@@ -143,7 +163,7 @@ export const installSkill = new Command()
         type: "multiselect",
         name: "selectedAgents",
         message: `Select agents to install the React Grab skill for (${scope}):`,
-        choices: buildAgentChoices(scope, { allClients: true }),
+        choices: buildAgentChoices(scope),
       });
 
       if (selectedAgents === undefined || selectedAgents.length === 0) {
@@ -154,10 +174,18 @@ export const installSkill = new Command()
       }
 
       logger.break();
-      installSkills({ scope, cwd: opts.cwd, selectedClients: selectedAgents });
+      const results = installSkills({ scope, cwd: opts.cwd, selectedClients: selectedAgents });
       writeLastSelectedAgents(selectedAgents);
       logger.break();
-      logger.log(`${highlighter.success("Done.")} Restart your agent(s) to pick up the new skill.`);
+      if (results.some((r) => r.success)) {
+        logger.log(
+          `${highlighter.success("Done.")} Restart your agent(s) to pick up the new skill.`,
+        );
+      } else {
+        logger.error("No skill files were written.");
+        logger.break();
+        process.exit(1);
+      }
       logger.break();
     } catch (error) {
       handleError(error);

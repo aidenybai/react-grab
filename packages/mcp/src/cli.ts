@@ -12,4 +12,7 @@ See https://github.com/aidenybai/react-grab for details.
 `;
 
 process.stderr.write(DEPRECATION_NOTICE);
-process.exit(1);
+// Set exitCode and let the process finish naturally so stderr fully flushes
+// before exit. process.exit() can truncate output when piped through other
+// processes (e.g. an agent's tool harness).
+process.exitCode = 1;
