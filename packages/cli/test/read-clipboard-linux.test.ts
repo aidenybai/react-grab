@@ -58,16 +58,22 @@ describe("readClipboardLinux", () => {
     expect(getExecFileCall(mockExecFile, 1).binary).toBe("xclip");
   });
 
-  it("falls back from a runtime wl-paste failure to xclip", async () => {
+  it("treats a runtime wl-paste failure as empty payload (does not fall through to xclip)", async () => {
+    // A non-zero wl-paste exit when the binary is present is the common
+    // "MIME type not on clipboard right now" case. Falling through to xclip
+    // would surface a misleading "install xclip" hint on Wayland-only
+    // systems; instead, return an empty payload so the watch loop keeps
+    // polling.
     process.env.WAYLAND_DISPLAY = "wayland-0";
     const runtimeError = new Error("wl-paste: clipboard read failed") as NodeJS.ErrnoException;
     runtimeError.code = "EPIPE";
-    stubExecFilePerCall(mockExecFile, [{ error: runtimeError }, { stdout: "from-xclip" }]);
+    stubExecFile(mockExecFile, { error: runtimeError });
 
     const result = await readClipboardLinux();
-    expect(result.payload).toBe("from-xclip");
+    expect(result.payload).toBeNull();
+    expect(result.recoverable).not.toBe(false);
+    expect(mockExecFile.mock.calls).toHaveLength(1);
     expect(getExecFileCall(mockExecFile, 0).binary).toBe("wl-paste");
-    expect(getExecFileCall(mockExecFile, 1).binary).toBe("xclip");
   });
 
   it("returns install hint when xclip is missing and marks the outcome unrecoverable", async () => {
