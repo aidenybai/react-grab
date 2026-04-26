@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { add } from "./commands/add.js";
+import { checkInstalled } from "./commands/check-installed.js";
 import { configure } from "./commands/configure.js";
 import { init } from "./commands/init.js";
 import { installSkill } from "./commands/install-skill.js";
@@ -32,6 +33,7 @@ program.addCommand(configure);
 program.addCommand(upgrade);
 program.addCommand(installSkill);
 program.addCommand(watch);
+program.addCommand(checkInstalled);
 
 const main = async () => {
   await program.parseAsync();
