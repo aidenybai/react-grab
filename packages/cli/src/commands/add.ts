@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import pc from "picocolors";
 import { detectNonInteractive } from "../utils/is-non-interactive.js";
-import { detectProject } from "../utils/detect.js";
+import { detectProject, findNearestProjectRoot } from "../utils/detect.js";
 import { handleError } from "../utils/handle-error.js";
 import { highlighter } from "../utils/highlighter.js";
 import {
@@ -27,7 +27,10 @@ export const add = new Command()
     console.log();
 
     try {
-      const cwd = opts.cwd;
+      // Walk up from the user-provided cwd to the nearest project root so
+      // running `grab add` inside a subdirectory still anchors detection and
+      // the skill install on the actual project root rather than the subdir.
+      const cwd = findNearestProjectRoot(opts.cwd);
       const isNonInteractive = detectNonInteractive(opts.yes);
 
       const preflightSpinner = spinner("Preflight checks.").start();
