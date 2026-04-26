@@ -351,36 +351,88 @@ describe("installSkills with no selectedClients", () => {
 });
 
 describe("removeSkills", () => {
-  it("removes once and reports deduped: true for shared canonical roots", () => {
+  it("removes ALL universal agents only when ALL of them are targeted (full canonical wipe)", () => {
     installSkills({
       scope: "project",
       cwd: tempDir,
       selectedClients: ["Cursor", "Codex", "OpenCode"],
     });
 
+    const universalSupportedNames = getSkillClients()
+      .filter((c) => c.supported && c.universal)
+      .map((c) => c.name);
     const results = removeSkills({
       scope: "project",
       cwd: tempDir,
-      selectedClients: ["Cursor", "Codex", "OpenCode"],
+      selectedClients: universalSupportedNames,
     });
 
-    expect(results).toHaveLength(3);
+    expect(results).toHaveLength(universalSupportedNames.length);
     expect(results.filter((r) => r.removed)).toHaveLength(1);
     const dedupedResults = results.filter((r) => r.deduped);
-    expect(dedupedResults).toHaveLength(2);
+    expect(dedupedResults).toHaveLength(universalSupportedNames.length - 1);
     expect(
       fs.existsSync(path.join(tempDir, CANONICAL_AGENTS_DIR, CANONICAL_SKILLS_SUBDIR, SKILL_NAME)),
     ).toBe(false);
   });
 
-  it("returns removed: false (not deduped) when nothing was installed", () => {
+  it("refuses to delete a shared canonical file when other universal agents still need it", () => {
+    installSkills({
+      scope: "project",
+      cwd: tempDir,
+      selectedClients: ["Cursor", "Codex", "OpenCode"],
+    });
+
+    // Only target Cursor - Codex, OpenCode and other universal agents still
+    // share the same .agents/skills file and should keep it.
     const results = removeSkills({
       scope: "project",
       cwd: tempDir,
       selectedClients: ["Cursor"],
     });
+
+    expect(results).toHaveLength(1);
+    expect(results[0]?.removed).toBe(false);
+    expect(results[0]?.sharedWith).toEqual(expect.arrayContaining(["Codex", "OpenCode"]));
+    // File must still exist - other agents are still using it.
+    expect(
+      fs.existsSync(
+        path.join(tempDir, CANONICAL_AGENTS_DIR, CANONICAL_SKILLS_SUBDIR, SKILL_NAME, "SKILL.md"),
+      ),
+    ).toBe(true);
+  });
+
+  it("removes a non-universal agent's own file without touching the shared canonical", () => {
+    installSkills({
+      scope: "project",
+      cwd: tempDir,
+      selectedClients: ["Cursor", "Claude Code"],
+    });
+
+    const results = removeSkills({
+      scope: "project",
+      cwd: tempDir,
+      selectedClients: ["Claude Code"],
+    });
+
+    expect(results[0]?.removed).toBe(true);
+    // Claude Code's path goes away.
+    expect(fs.existsSync(path.join(tempDir, ".claude", "skills", SKILL_NAME))).toBe(false);
+    // Shared canonical stays.
+    expect(
+      fs.existsSync(path.join(tempDir, CANONICAL_AGENTS_DIR, CANONICAL_SKILLS_SUBDIR, SKILL_NAME)),
+    ).toBe(true);
+  });
+
+  it("returns removed: false (not deduped, not sharedWith) when nothing was installed", () => {
+    const results = removeSkills({
+      scope: "project",
+      cwd: tempDir,
+      selectedClients: ["Claude Code"],
+    });
     expect(results[0]?.removed).toBe(false);
     expect(results[0]?.deduped).toBeUndefined();
+    expect(results[0]?.sharedWith).toBeUndefined();
   });
 });
 

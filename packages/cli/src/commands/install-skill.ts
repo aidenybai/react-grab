@@ -127,7 +127,12 @@ export const installSkill = new Command()
         const results = installSkills({ scope, cwd: opts.cwd, selectedClients: targets });
         logger.break();
         if (results.some((r) => r.success)) {
-          writeLastSelectedAgents(targets);
+          // Only persist when the user signaled an explicit preference via
+          // detection. Wholesale fallback (no detected agents) shouldn't bias
+          // future interactive multiselects toward "every supported agent".
+          if (detected.length > 0) {
+            writeLastSelectedAgents(targets);
+          }
           logger.log("Restart your agent(s) to pick up the new skill.");
         } else {
           logger.error("No skill files were written.");
