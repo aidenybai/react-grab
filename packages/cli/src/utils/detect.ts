@@ -347,12 +347,16 @@ const hasReactGrabInFile = (filePath: string): boolean => {
   }
 };
 
-export const detectReactGrab = (projectRoot: string): boolean => {
+const detectReactGrabAt = (projectRoot: string): boolean => {
   const packageJsonPath = join(projectRoot, "package.json");
 
   if (existsSync(packageJsonPath)) {
     try {
       const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
+      // The package itself - dogfooding inside the react-grab monorepo or
+      // working on the package source. Treat as installed so the skill
+      // preflight doesn't suggest running `grab init` on the source repo.
+      if (packageJson.name === "react-grab") return true;
       const allDependencies = {
         ...packageJson.dependencies,
         ...packageJson.devDependencies,
@@ -387,6 +391,24 @@ export const detectReactGrab = (projectRoot: string): boolean => {
   ];
 
   return filesToCheck.some(hasReactGrabInFile);
+};
+
+export const detectReactGrab = (projectRoot: string): boolean => {
+  if (detectReactGrabAt(projectRoot)) return true;
+
+  // Monorepo: it's common for the root package.json to have no react-grab
+  // dep while one or more workspace packages depend on it (or the
+  // workspace IS the react-grab source). Walk workspace packages so the
+  // preflight reports "installed" from anywhere inside the monorepo.
+  if (!detectMonorepo(projectRoot)) return false;
+
+  for (const pattern of getWorkspacePatterns(projectRoot)) {
+    for (const workspacePath of expandWorkspacePattern(projectRoot, pattern)) {
+      if (detectReactGrabAt(workspacePath)) return true;
+    }
+  }
+
+  return false;
 };
 
 export const detectUnsupportedFramework = (projectRoot: string): UnsupportedFramework => {
@@ -436,19 +458,23 @@ const detectReactGrabVersion = (projectRoot: string): string | null => {
   return null;
 };
 
+// Mirror detectMonorepo's permissive "any truthy `workspaces` counts" rule so
+// the two helpers can never disagree on whether a directory is a workspace
+// root: arrays (npm/yarn classic), `{packages: [...]}` objects (yarn berry),
+// and exotic shapes other tools accept all qualify. Empty arrays /
+// empty-packages objects also count - the user explicitly opted in by
+// setting the field at all. Aligning with detectMonorepo keeps
+// findNearestProjectRoot from returning a different root than detectMonorepo
+// would imply for the same project.
 const hasWorkspacesField = (dir: string): boolean => {
   const packageJsonPath = join(dir, "package.json");
   if (!existsSync(packageJsonPath)) return false;
   try {
     const pkg = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
-    if (Array.isArray(pkg.workspaces)) return pkg.workspaces.length > 0;
-    if (pkg.workspaces && typeof pkg.workspaces === "object") {
-      return Array.isArray(pkg.workspaces.packages) && pkg.workspaces.packages.length > 0;
-    }
+    return Boolean(pkg.workspaces);
   } catch {
     return false;
   }
-  return false;
 };
 
 const isWorkspaceRoot = (dir: string): boolean => {
