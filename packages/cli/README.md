@@ -40,7 +40,7 @@ npx grab@latest install-skill
 | `--yes`             | `-y`  | Install to all supported agents without prompting             |
 | `--agent <name...>` | `-a`  | Install only to the named agent(s) (e.g. Cursor, Claude Code) |
 
-Aliased as `grab add` (and the legacy `grab add mcp` redirects to skill install).
+Also reachable through the wrapper command `grab add` (and the legacy `grab add mcp` redirects to skill install with a deprecation notice).
 
 ### `grab remove`
 

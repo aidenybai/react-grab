@@ -57,7 +57,7 @@ export const readClipboardLinux = async (): Promise<ClipboardReadOutcome> => {
     return { payload: trimToPayload(x11Result.stdout) };
   }
   if (isBinaryMissing(x11Result.error)) {
-    return { payload: null, hint: INSTALL_HINT };
+    return { payload: null, hint: INSTALL_HINT, recoverable: false };
   }
   return { payload: null };
 };

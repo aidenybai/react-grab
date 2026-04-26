@@ -69,11 +69,12 @@ describe("readClipboardWindows", () => {
     );
   });
 
-  it("returns ENOENT hint when powershell is missing", async () => {
+  it("returns ENOENT hint when powershell is missing and marks the outcome unrecoverable", async () => {
     stubExecFile(mockExecFile, { error: enoentError() });
 
     const result = await readClipboardWindows();
     expect(result.payload).toBeNull();
     expect(result.hint).toContain("powershell");
+    expect(result.recoverable).toBe(false);
   });
 });

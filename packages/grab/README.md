@@ -5,9 +5,9 @@
 
 Select context for coding agents directly from your website
 
-How? Point at any element and press **⌘C** (Mac) or **Ctrl+C** (Windows/Linux) to copy the file name, React component, and HTML source code.
+How? Point at any element and press <kbd>⌘C</kbd> (Mac) or <kbd>Ctrl+C</kbd> (Windows/Linux) to copy the file name, React component, and HTML source code.
 
-It makes tools like Cursor, Claude Code, Copilot run up to [**3× faster**](https://react-grab.com/blog/intro) and more accurate.
+It makes tools like Cursor, Claude Code, Copilot run up to [**2× faster**](https://react-grab.com/blog/intro) and more accurate.
 
 ### [Try out a demo! →](https://react-grab.com)
 

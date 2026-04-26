@@ -19,7 +19,11 @@ export const readClipboardMacos = async (): Promise<ClipboardReadOutcome> => {
   } catch (caughtError) {
     surfaceStderr("osascript", caughtError);
     if (hasErrorCode(caughtError, "ENOENT")) {
-      return { payload: null, hint: "macOS requires `osascript` (preinstalled). Check $PATH." };
+      return {
+        payload: null,
+        hint: "macOS requires `osascript` (preinstalled). Check $PATH.",
+        recoverable: false,
+      };
     }
     return { payload: null };
   }
