@@ -89,6 +89,7 @@ export const remove = new Command()
       );
 
       logger.break();
+      let sharedSkipCount = 0;
       for (const result of aggregated) {
         if (result.removed) {
           logger.log(
@@ -98,11 +99,25 @@ export const remove = new Command()
           logger.log(
             `  ${highlighter.dim("\u2212")} ${result.client} ${highlighter.dim(`(${result.scope}, shared with another agent)`)}`,
           );
+        } else if (result.sharedWith && result.sharedWith.length > 0) {
+          sharedSkipCount += 1;
+          logger.log(
+            `  ${highlighter.dim("\u2212")} ${result.client} ${highlighter.dim(`(${result.scope}, kept: still used by ${result.sharedWith.join(", ")})`)}`,
+          );
         }
       }
       const removedAny = aggregated.some((result) => result.removed);
       if (!removedAny) {
-        logger.log("Nothing to remove.");
+        if (sharedSkipCount > 0) {
+          logger.warn(
+            "Nothing removed: every targeted agent shares its skill file with another agent that wasn't targeted.",
+          );
+          logger.log(
+            `Pass ${highlighter.info("--agent")} for every agent sharing the file, or remove all agents at once.`,
+          );
+        } else {
+          logger.log("Nothing to remove.");
+        }
       }
       logger.break();
     } catch (error) {

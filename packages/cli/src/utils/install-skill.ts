@@ -36,6 +36,7 @@ export interface RemoveResult {
   skillRoot: string;
   removed: boolean;
   deduped?: boolean;
+  sharedWith?: string[];
 }
 
 export interface InstallSkillsOptions {
@@ -346,19 +347,44 @@ export const installDetectedOrAllSkills = (scope: SkillScope, cwd: string): Inst
 
 export const removeSkills = (options: RemoveSkillsOptions): RemoveResult[] => {
   const { scope, cwd, selectedClients } = options;
-  const clients = filterClientsByName(
-    getSkillClients().filter((client) => client.supported),
-    selectedClients,
-  );
+  const supportedClients = getSkillClients().filter((client) => client.supported);
+  const targetedClients = filterClientsByName(supportedClients, selectedClients);
+  const targetedNameSet = new Set(targetedClients.map((client) => client.name));
+
+  // Build a map from skillRoot -> all supported clients that share it. We
+  // need this so we don't blow away the shared canonical .agents/skills file
+  // when the user only asked to remove one of the agents using it.
+  const rootToClients = new Map<string, SkillClientDefinition[]>();
+  for (const client of supportedClients) {
+    const root = resolveSkillRoot(client, scope, cwd);
+    if (root === null) continue;
+    const sharers = rootToClients.get(root) ?? [];
+    sharers.push(client);
+    rootToClients.set(root, sharers);
+  }
 
   const removedRoots = new Set<string>();
-  return clients.map((client) => {
+  return targetedClients.map((client) => {
     const skillRoot = resolveSkillRoot(client, scope, cwd);
     if (skillRoot === null) {
       return { client: client.name, skillRoot: "", removed: false };
     }
     if (removedRoots.has(skillRoot)) {
       return { client: client.name, skillRoot, removed: false, deduped: true };
+    }
+    const sharers = rootToClients.get(skillRoot) ?? [];
+    const stillUsing = sharers
+      .filter((sharer) => !targetedNameSet.has(sharer.name))
+      .map((sharer) => sharer.name);
+    if (stillUsing.length > 0) {
+      // Refuse to remove a file other (un-targeted) agents are still relying
+      // on. The user can opt back in by also targeting those agents.
+      return {
+        client: client.name,
+        skillRoot,
+        removed: false,
+        sharedWith: stillUsing,
+      };
     }
     const removed = removeSkillFile(skillRoot);
     if (removed) removedRoots.add(skillRoot);
