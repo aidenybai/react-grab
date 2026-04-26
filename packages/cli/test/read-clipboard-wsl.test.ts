@@ -66,14 +66,16 @@ describe("readClipboardWsl", () => {
     expect(result.hint).toContain("xclip");
   });
 
-  it("combines WSL interop and Linux install hints when both fallbacks have guidance, marks unrecoverable", async () => {
+  it("combines WSL interop and Linux install hints when both fallbacks have guidance, marks unrecoverable when both channels are", async () => {
     mockReadClipboardViaWindowsPowerShell.mockResolvedValue({
       payload: null,
       hint: "Cannot launch powershell.exe.",
+      recoverable: false,
     });
     mockReadClipboardLinux.mockResolvedValue({
       payload: null,
       hint: "Install xclip or wl-clipboard.",
+      recoverable: false,
     });
 
     const result = await readClipboardWsl();
@@ -81,5 +83,22 @@ describe("readClipboardWsl", () => {
     expect(result.hint).toContain("interop");
     expect(result.hint).toContain("xclip");
     expect(result.recoverable).toBe(false);
+  });
+
+  it("stays recoverable when only the Windows host channel is unrecoverable but WSLg can still produce", async () => {
+    mockReadClipboardViaWindowsPowerShell.mockResolvedValue({
+      payload: null,
+      hint: "Cannot launch powershell.exe.",
+      recoverable: false,
+    });
+    // WSLg is healthy (clipboard is just empty right now). recoverable
+    // defaults to true (omitted).
+    mockReadClipboardLinux.mockResolvedValue({
+      payload: null,
+    });
+
+    const result = await readClipboardWsl();
+    expect(result.payload).toBeNull();
+    expect(result.recoverable).not.toBe(false);
   });
 });

@@ -92,9 +92,11 @@ export const installSkill = new Command()
         }
         const scope: SkillScope = flagScope ?? "project";
         const results = installSkills({ scope, cwd: opts.cwd, selectedClients: opts.agent });
-        writeLastSelectedAgents(opts.agent);
         logger.break();
         if (results.some((r) => r.success)) {
+          // Only persist the selection when something was actually installed,
+          // so a failed run doesn't bias future interactive multiselects.
+          writeLastSelectedAgents(opts.agent);
           logger.log("Restart your agent(s) to pick up the new skill.");
         } else {
           logger.error("No skill files were written.");
@@ -123,9 +125,9 @@ export const installSkill = new Command()
         const detected = detectInstalledSkillClients();
         const targets = detected.length > 0 ? detected : supportedNames;
         const results = installSkills({ scope, cwd: opts.cwd, selectedClients: targets });
-        writeLastSelectedAgents(targets);
         logger.break();
         if (results.some((r) => r.success)) {
+          writeLastSelectedAgents(targets);
           logger.log("Restart your agent(s) to pick up the new skill.");
         } else {
           logger.error("No skill files were written.");
@@ -144,9 +146,9 @@ export const installSkill = new Command()
         );
         logger.break();
         const results = installSkills({ scope, cwd: opts.cwd, selectedClients: [onlyDetected] });
-        writeLastSelectedAgents([onlyDetected]);
         logger.break();
         if (results.some((r) => r.success)) {
+          writeLastSelectedAgents([onlyDetected]);
           logger.log(
             `${highlighter.success("Done.")} Restart your agent to pick up the new skill.`,
           );
@@ -175,9 +177,9 @@ export const installSkill = new Command()
 
       logger.break();
       const results = installSkills({ scope, cwd: opts.cwd, selectedClients: selectedAgents });
-      writeLastSelectedAgents(selectedAgents);
       logger.break();
       if (results.some((r) => r.success)) {
+        writeLastSelectedAgents(selectedAgents);
         logger.log(
           `${highlighter.success("Done.")} Restart your agent(s) to pick up the new skill.`,
         );
