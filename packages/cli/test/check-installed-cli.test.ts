@@ -96,6 +96,60 @@ describe("react-grab check-installed CLI", () => {
     expect(parsed.cwd).toBe(path.resolve(workDir));
   });
 
+  it("treats the react-grab source repo as installed (workspace named react-grab)", () => {
+    // The root package.json has no react-grab dep (it IS the workspace
+    // root) but a workspace package's name is `react-grab`. The detector
+    // must recognize this so the skill preflight doesn't suggest running
+    // `grab init` on the source repo / dogfood checkout.
+    writeFileSync(
+      path.join(workDir, "package.json"),
+      JSON.stringify({
+        name: "react-grab-monorepo",
+        private: true,
+        workspaces: ["packages/*"],
+      }),
+    );
+    const reactGrabPkgDir = path.join(workDir, "packages", "react-grab");
+    mkdirSync(reactGrabPkgDir, { recursive: true });
+    writeFileSync(
+      path.join(reactGrabPkgDir, "package.json"),
+      JSON.stringify({ name: "react-grab", version: "0.1.0" }),
+    );
+
+    const result = runCheck(workDir, ["--json"]);
+    if (result === null) return;
+
+    expect(result.status).toBe(0);
+    const parsed = JSON.parse(result.stdout);
+    expect(parsed.installed).toBe(true);
+  });
+
+  it("treats a monorepo with react-grab in a workspace package as installed", () => {
+    // Common pattern: root has no react-grab dep, but apps/web depends
+    // on it. The preflight should still report installed.
+    writeFileSync(
+      path.join(workDir, "package.json"),
+      JSON.stringify({
+        name: "demo-monorepo",
+        private: true,
+        workspaces: ["apps/*"],
+      }),
+    );
+    const appDir = path.join(workDir, "apps", "web");
+    mkdirSync(appDir, { recursive: true });
+    writeFileSync(
+      path.join(appDir, "package.json"),
+      JSON.stringify({ name: "web", dependencies: { "react-grab": "^0.1.0" } }),
+    );
+
+    const result = runCheck(workDir, ["--json"]);
+    if (result === null) return;
+
+    expect(result.status).toBe(0);
+    const parsed = JSON.parse(result.stdout);
+    expect(parsed.installed).toBe(true);
+  });
+
   it("is reachable via the is-installed alias", () => {
     if (!existsSync(CLI_PATH)) return;
     writeFileSync(
