@@ -159,7 +159,10 @@ export const installSkill = new Command()
         const results = installSkills({ scope, cwd: projectCwd, selectedClients: [onlyDetected] });
         logger.break();
         if (results.some((r) => r.success)) {
-          writeLastSelectedAgents([onlyDetected]);
+          // Don't persist when the user didn't make an active choice. The
+          // auto-install branch routes to the only detected agent without
+          // showing a multiselect; persisting it would silently restrict
+          // every future interactive run to that single agent.
           logger.log(
             `${highlighter.success("Done.")} Restart your agent to pick up the new skill.`,
           );
@@ -180,10 +183,14 @@ export const installSkill = new Command()
       });
 
       if (selectedAgents === undefined || selectedAgents.length === 0) {
+        // Exit 1 on cancellation so wrapper scripts can distinguish a
+        // cancelled multiselect from a successful install. Consistent with
+        // the scope-prompt cancellation branch above and with `grab add`,
+        // both of which exit non-zero on user-aborted prompts.
         logger.break();
         logger.log("No agents selected. Nothing to do.");
         logger.break();
-        process.exit(0);
+        process.exit(1);
       }
 
       logger.break();

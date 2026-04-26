@@ -31,6 +31,15 @@ import type { ClipboardReadOutcome } from "./read-clipboard-outcome.js";
 // The sentinel uses 0x01 and 0x02 control bytes so it cannot collide with
 // any direct-path payload (valid JSON cannot start with control bytes, and
 // parseReactGrabPayload validates JSON shape downstream).
+// JXA's Objective-C bridge in macOS Big Sur+ (the floor for `osascript -l
+// JavaScript`) exposes Foundation selectors using camelCase for both
+// single- and multi-argument forms (no trailing underscore for the final
+// colon). The "underscore-per-colon" convention is documented in older
+// Apple references but breaks at runtime on current macOS:
+// `chromium.base64EncodedStringWithOptions_(0)` raises `is not a function`
+// and `NSString.alloc.initWithData_encoding_(...)` returns an empty string,
+// while the camelCase forms below are verified working on the macOS
+// versions we ship to.
 const JXA_SCRIPT = `(function(){
   ObjC.import('AppKit');
   var pb = $.NSPasteboard.generalPasteboard;
