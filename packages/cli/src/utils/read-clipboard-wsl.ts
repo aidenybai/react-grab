@@ -42,7 +42,7 @@ export const readClipboardWsl = async (): Promise<ClipboardReadOutcome> => {
       hostOutcome.recoverable === false && wslgOutcome.recoverable === false;
     return {
       payload: null,
-      hint: combineHints(WSL_INTEROP_HINT, wslgOutcome.hint),
+      hint: combineHints(hostOutcome.hint, WSL_INTEROP_HINT, wslgOutcome.hint),
       recoverable: !bothChannelsUnrecoverable,
     };
   }

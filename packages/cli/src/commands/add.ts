@@ -106,8 +106,13 @@ export const add = new Command()
           process.exit(1);
         }
         if (outcome === "cancelled") {
+          // Exit 1 on user-cancelled prompts so wrapper scripts can
+          // distinguish a cancellation from a successful install.
+          // Consistent with the scope-prompt cancellation branch above and
+          // with `grab install-skill`, which also exits 1 on multiselect
+          // cancel.
           logger.break();
-          process.exit(0);
+          process.exit(1);
         }
       }
 
