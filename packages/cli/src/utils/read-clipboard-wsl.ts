@@ -20,12 +20,16 @@ export const readClipboardWsl = async (): Promise<ClipboardReadOutcome> => {
   if (hostOutcome.hint) {
     // When interop is unreachable AND the WSLg fallback also has actionable
     // guidance (e.g. "install xclip"), surface both so the user can fix
-    // whichever channel they prefer. Both channels failing is unrecoverable
-    // - polling won't fix a missing binary or broken interop.
+    // whichever channel they prefer. Stay recoverable as long as either
+    // channel is still capable of producing a payload - polling can recover
+    // a transient empty clipboard on the working channel even if the other
+    // is permanently broken.
+    const bothChannelsUnrecoverable =
+      hostOutcome.recoverable === false && wslgOutcome.recoverable === false;
     return {
       payload: null,
       hint: combineHints(WSL_INTEROP_HINT, wslgOutcome.hint),
-      recoverable: false,
+      recoverable: !bothChannelsUnrecoverable,
     };
   }
   return wslgOutcome;
