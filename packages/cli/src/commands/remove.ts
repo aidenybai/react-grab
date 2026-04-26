@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import pc from "picocolors";
+import { findNearestProjectRoot } from "../utils/detect.js";
 import { handleError } from "../utils/handle-error.js";
 import { highlighter } from "../utils/highlighter.js";
 import { logger } from "../utils/logger.js";
@@ -81,8 +82,13 @@ export const remove = new Command()
         ? [opts.scope]
         : ["project", "global"];
 
+      // Walk up from cwd to the nearest project root so `grab remove` invoked
+      // from a subdirectory still finds skills installed at the canonical
+      // `<projectRoot>/.agents/skills/...` location instead of silently
+      // reporting "Nothing to remove."
+      const projectCwd = findNearestProjectRoot(opts.cwd);
       const aggregated = scopesToTry.flatMap((scope) =>
-        removeSkills({ scope, cwd: opts.cwd, selectedClients: targets }).map((result) => ({
+        removeSkills({ scope, cwd: projectCwd, selectedClients: targets }).map((result) => ({
           ...result,
           scope,
         })),

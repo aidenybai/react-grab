@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { basename, dirname, join } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { detect } from "@antfu/ni";
 import ignore from "ignore";
 
@@ -434,6 +434,25 @@ const detectReactGrabVersion = (projectRoot: string): string | null => {
     } catch {}
   }
   return null;
+};
+
+// Walks up from `start` looking for the nearest directory that contains a
+// `package.json`. Falls back to `start` if none is found before the
+// filesystem root. Used so commands like `install-skill` and `remove` can be
+// invoked from any subdirectory inside a project and still resolve the
+// canonical install location (`<projectRoot>/.agents/skills/...`) instead of
+// silently writing to / looking under the subdirectory.
+export const findNearestProjectRoot = (start: string): string => {
+  let dir = resolve(start);
+  // Cap the walk at a reasonable depth so a malformed cwd can't loop us
+  // through hundreds of synthetic parents.
+  for (let depth = 0; depth < 64; depth += 1) {
+    if (existsSync(join(dir, "package.json"))) return dir;
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return start;
 };
 
 export const detectProject = async (projectRoot: string = process.cwd()): Promise<ProjectInfo> => {

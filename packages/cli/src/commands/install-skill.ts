@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import pc from "picocolors";
+import { findNearestProjectRoot } from "../utils/detect.js";
 import { handleError } from "../utils/handle-error.js";
 import { highlighter } from "../utils/highlighter.js";
 import {
@@ -74,6 +75,11 @@ export const installSkill = new Command()
       const allNames = getSkillClientNames();
       const supportedNames = getSupportedSkillClientNames();
       const flagScope: SkillScope | undefined = isSkillScope(opts.scope) ? opts.scope : undefined;
+      // Walk up from cwd to the nearest project root so `install-skill`
+      // invoked from a subdirectory inside a repo writes to the canonical
+      // `<projectRoot>/.agents/skills/...` location instead of creating a
+      // sub-`.agents/skills` that agents won't pick up.
+      const projectCwd = findNearestProjectRoot(opts.cwd);
 
       if (opts.agent && opts.agent.length > 0) {
         const unknown = opts.agent.filter((name) => !allNames.includes(name));
@@ -91,7 +97,7 @@ export const installSkill = new Command()
           process.exit(1);
         }
         const scope: SkillScope = flagScope ?? "project";
-        const results = installSkills({ scope, cwd: opts.cwd, selectedClients: opts.agent });
+        const results = installSkills({ scope, cwd: projectCwd, selectedClients: opts.agent });
         logger.break();
         if (results.some((r) => r.success)) {
           // Only persist the selection when something was actually installed,
@@ -124,7 +130,7 @@ export const installSkill = new Command()
       if (opts.yes) {
         const detected = detectInstalledSkillClients();
         const targets = detected.length > 0 ? detected : supportedNames;
-        const results = installSkills({ scope, cwd: opts.cwd, selectedClients: targets });
+        const results = installSkills({ scope, cwd: projectCwd, selectedClients: targets });
         logger.break();
         if (results.some((r) => r.success)) {
           // Only persist when the user signaled an explicit preference via
@@ -150,7 +156,7 @@ export const installSkill = new Command()
           `Auto-installing to ${highlighter.info(onlyDetected)} (only detected agent). Pass ${highlighter.info("--agent")} to override.`,
         );
         logger.break();
-        const results = installSkills({ scope, cwd: opts.cwd, selectedClients: [onlyDetected] });
+        const results = installSkills({ scope, cwd: projectCwd, selectedClients: [onlyDetected] });
         logger.break();
         if (results.some((r) => r.success)) {
           writeLastSelectedAgents([onlyDetected]);
@@ -181,7 +187,7 @@ export const installSkill = new Command()
       }
 
       logger.break();
-      const results = installSkills({ scope, cwd: opts.cwd, selectedClients: selectedAgents });
+      const results = installSkills({ scope, cwd: projectCwd, selectedClients: selectedAgents });
       logger.break();
       if (results.some((r) => r.success)) {
         writeLastSelectedAgents(selectedAgents);
