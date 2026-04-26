@@ -305,11 +305,16 @@ export const buildAgentChoices = (
   });
 };
 
-export const promptSkillInstall = async (scope: SkillScope, cwd: string): Promise<boolean> => {
+export type SkillInstallOutcome = "cancelled" | "succeeded" | "failed";
+
+export const promptSkillInstall = async (
+  scope: SkillScope,
+  cwd: string,
+): Promise<SkillInstallOutcome> => {
   const choices = buildAgentChoices(scope);
   if (choices.length === 0) {
     logger.warn("No agents support skills at this scope.");
-    return false;
+    return "cancelled";
   }
 
   // If exactly one supported agent is installed and the user has no prior
@@ -325,7 +330,7 @@ export const promptSkillInstall = async (scope: SkillScope, cwd: string): Promis
       const results = installSkills({ scope, cwd, selectedClients: [onlyInstalled] });
       const ok = results.some((result) => result.success);
       if (ok) writeLastSelectedAgents([onlyInstalled]);
-      return ok;
+      return ok ? "succeeded" : "failed";
     }
   }
 
@@ -337,14 +342,14 @@ export const promptSkillInstall = async (scope: SkillScope, cwd: string): Promis
   });
 
   if (selectedAgents === undefined || selectedAgents.length === 0) {
-    return false;
+    return "cancelled";
   }
 
   logger.break();
   const results = installSkills({ scope, cwd, selectedClients: selectedAgents });
   const ok = results.some((result) => result.success);
   if (ok) writeLastSelectedAgents(selectedAgents);
-  return ok;
+  return ok ? "succeeded" : "failed";
 };
 
 export const installDetectedOrAllSkills = (scope: SkillScope, cwd: string): InstallResult[] => {

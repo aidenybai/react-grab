@@ -94,11 +94,18 @@ export const add = new Command()
           process.exit(1);
         }
 
-        const didInstall = await promptSkillInstall(
-          skillScope as SkillScope,
-          projectInfo.projectRoot,
-        );
-        if (!didInstall) {
+        const outcome = await promptSkillInstall(skillScope as SkillScope, projectInfo.projectRoot);
+        if (outcome === "failed") {
+          // Distinguish a real install failure (couldn't write to any agent
+          // skill dir) from a benign user cancellation. The previous boolean
+          // return collapsed both into exit 0 and silently swallowed
+          // permission errors that wrapper scripts / CI need to detect.
+          logger.break();
+          logger.error("React Grab skill install did not write any files.");
+          logger.break();
+          process.exit(1);
+        }
+        if (outcome === "cancelled") {
           logger.break();
           process.exit(0);
         }
