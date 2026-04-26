@@ -95,7 +95,10 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
       aria-label={props.isCollapsed ? "Expand toolbar" : "Collapse toolbar"}
       class="contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale"
       onClick={props.onCollapseClick}
-      onPointerDown={props.onCollapsePointerDown}
+      // Native pointerdown so the press squish handler runs before the
+      // wrapper's bubble-phase stopImmediatePropagation. Solid delegates
+      // onPointerDown to document, which never receives this event.
+      on:pointerdown={props.onCollapsePointerDown}
       onPointerUp={props.onCollapsePointerUp}
       onPointerLeave={props.onCollapsePointerLeave}
       onPointerCancel={props.onCollapsePointerLeave}
@@ -120,7 +123,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
   return (
     <div
       class={cn(
-        "flex items-center justify-center rounded-[10px] antialiased relative overflow-visible [font-synthesis:none] filter-[drop-shadow(0px_1px_2px_#51515133)] [corner-shape:superellipse(1.25)]",
+        "flex items-center justify-center rounded-[10px] antialiased relative overflow-visible [font-synthesis:none] border border-[#D9D9D9] filter-[drop-shadow(0px_1px_2px_#51515133)] [corner-shape:superellipse(1.25)]",
         outerTransitionClass(),
         isVertical() && "flex-col",
         "bg-white",

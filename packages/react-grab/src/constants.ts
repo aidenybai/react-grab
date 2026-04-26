@@ -105,7 +105,6 @@ export const TOOLBAR_COLLAPSED_LONG_PX = 30;
 // materializes behind the growing container), collapse is snappier (fade
 // leads, size follows). The shared "animation duration" constant must cover
 // the longer direction so downstream timeouts wait for the real end.
-export const TOOLBAR_COLLAPSE_DURATION_MS = 140;
 export const TOOLBAR_EXPAND_DURATION_MS = 220;
 export const TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS = TOOLBAR_EXPAND_DURATION_MS;
 export const TOOLBAR_DEFAULT_WIDTH_PX = 78;
