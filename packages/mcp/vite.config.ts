@@ -13,13 +13,14 @@ export default defineConfig({
     testTimeout: 10000,
   },
   pack: {
-    entry: ["src/server.ts", "src/cli.ts"],
+    entry: ["src/cli.ts"],
     format: ["cjs", "esm"],
     dts: true,
     clean: false,
     sourcemap: false,
     platform: "node",
     fixedExtension: false,
+    banner: "#!/usr/bin/env node",
     deps: {
       alwaysBundle: [/.*/],
       neverBundle: nodeBuiltins,

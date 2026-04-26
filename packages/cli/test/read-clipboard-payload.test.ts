@@ -84,20 +84,21 @@ describe("readClipboardPayload", () => {
     expect(mockReadClipboardWsl).toHaveBeenCalledOnce();
   });
 
-  it("returns SSH guidance hint without invoking any reader", async () => {
+  it("returns SSH guidance hint without invoking any reader and flags it unrecoverable", async () => {
     mockDetectClipboardEnv.mockReturnValue("ssh");
 
     const result = await readClipboardPayload();
     expect(result.env).toBe("ssh");
     expect(result.payload).toBeNull();
     expect(result.hint).toContain("SSH");
+    expect(result.recoverable).toBe(false);
     expect(mockReadClipboardMacos).not.toHaveBeenCalled();
     expect(mockReadClipboardLinux).not.toHaveBeenCalled();
     expect(mockReadClipboardWindows).not.toHaveBeenCalled();
     expect(mockReadClipboardWsl).not.toHaveBeenCalled();
   });
 
-  it("propagates platform hints when present", async () => {
+  it("propagates platform hints when present and stays recoverable", async () => {
     mockDetectClipboardEnv.mockReturnValue("linux");
     mockReadClipboardLinux.mockResolvedValue({
       payload: null,
@@ -107,6 +108,7 @@ describe("readClipboardPayload", () => {
     const result = await readClipboardPayload();
     expect(result.payload).toBeNull();
     expect(result.hint).toBe("Install xclip");
+    expect(result.recoverable).toBe(true);
   });
 
   it("returns null payload when raw text fails validation", async () => {

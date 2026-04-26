@@ -19,11 +19,13 @@ Run this command at your project root (where `next.config.ts` or `vite.config.ts
 npx grab@latest init
 ```
 
-## Connect to MCP
+## Install agent skill
 
 ```bash
-npx grab@latest add mcp
+npx grab@latest install-skill
 ```
+
+Installs a `react-grab` skill into Cursor / Claude Code / Codex / OpenCode. Once installed, type `/react-grab` in your agent and click any element on the page — the agent receives the file name, React component, and HTML for that element.
 
 ## Usage
 

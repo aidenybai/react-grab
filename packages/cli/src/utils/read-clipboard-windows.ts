@@ -1,4 +1,4 @@
-import { CLIPBOARD_READ_TIMEOUT_MS, REACT_GRAB_MIME_TYPE } from "../constants.js";
+import { CLIPBOARD_READ_TIMEOUT_MS, REACT_GRAB_MIME_TYPE } from "./constants.js";
 import { hasErrorCode } from "./has-error-code.js";
 import { runExecFile } from "./run-exec-file.js";
 import { surfaceStderr } from "./surface-stderr.js";

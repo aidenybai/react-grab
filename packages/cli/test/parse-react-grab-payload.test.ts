@@ -46,4 +46,34 @@ describe("parseReactGrabPayload", () => {
 
     expect(parseReactGrabPayload(JSON.stringify(payload))?.entries[0].tagName).toBeUndefined();
   });
+
+  it("rejects payloads where timestamp is not a number", () => {
+    const payload = {
+      version: "0.1.32",
+      content: "<button />",
+      entries: [{ content: "<button />" }],
+      timestamp: "1700000000000",
+    };
+    expect(parseReactGrabPayload(JSON.stringify(payload))).toBeNull();
+  });
+
+  it("rejects payloads where entries is not an array", () => {
+    const payload = {
+      version: "0.1.32",
+      content: "<button />",
+      entries: { content: "<button />" },
+      timestamp: 1700000000000,
+    };
+    expect(parseReactGrabPayload(JSON.stringify(payload))).toBeNull();
+  });
+
+  it("rejects payloads where an entry has a non-string content", () => {
+    const payload = {
+      version: "0.1.32",
+      content: "<button />",
+      entries: [{ content: 42 }],
+      timestamp: 1700000000000,
+    };
+    expect(parseReactGrabPayload(JSON.stringify(payload))).toBeNull();
+  });
 });

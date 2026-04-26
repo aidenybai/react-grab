@@ -6,7 +6,7 @@ vi.mock("node:child_process", () => ({
 
 import { execFile } from "node:child_process";
 import { readClipboardMacos } from "../src/utils/read-clipboard-macos.js";
-import { stubExecFile } from "./helpers/mock-exec-file.js";
+import { getExecFileCall, getExecFileFlagValue, stubExecFile } from "./helpers/mock-exec-file.js";
 
 const mockExecFile = vi.mocked(execFile);
 
@@ -19,17 +19,20 @@ afterEach(() => {
 });
 
 describe("readClipboardMacos", () => {
-  it("invokes osascript with the JXA snippet and returns trimmed stdout", async () => {
+  it("invokes osascript with a JXA script that reads the React Grab MIME type", async () => {
     stubExecFile(mockExecFile, { stdout: '{"hello":"world"}\n' });
 
     const result = await readClipboardMacos();
     expect(result.payload).toBe('{"hello":"world"}');
 
-    const [binary, args] = mockExecFile.mock.calls[0];
+    const { binary, args } = getExecFileCall(mockExecFile);
     expect(binary).toBe("osascript");
     expect(args).toContain("-l");
     expect(args).toContain("JavaScript");
-    expect(args.find((arg) => arg.includes("application/x-react-grab"))).toBeDefined();
+
+    const jxaScript = getExecFileFlagValue(mockExecFile, "-e");
+    expect(jxaScript).toContain("NSPasteboard");
+    expect(jxaScript).toContain("application/x-react-grab");
   });
 
   it("returns null when stdout is empty", async () => {

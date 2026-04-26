@@ -11,6 +11,6 @@ export const surfaceStderr = (binary: string, source: unknown): void => {
   if (!stderr) return;
   const trimmed = stderr.trim();
   if (trimmed.length > 0) {
-    console.error(`[react-grab-mcp] ${binary} stderr: ${trimmed}`);
+    console.error(`[react-grab] ${binary} stderr: ${trimmed}`);
   }
 };
