@@ -520,6 +520,38 @@ test.describe("Toolbar", () => {
         )
         .toBe("bottom");
     });
+
+    test("chevron pointerdown should apply press-squish transform", async ({ reactGrab }) => {
+      const readPanelTransform = () =>
+        reactGrab.page.evaluate(() => {
+          const host = document.querySelector("[data-react-grab]");
+          const root = host?.shadowRoot?.querySelector("[data-react-grab]");
+          const panel = root?.querySelector<HTMLElement>("[data-react-grab-toolbar-panel]");
+          return panel?.style.transform ?? "";
+        });
+
+      const dispatchOnChevron = (type: "pointerdown" | "pointerup") =>
+        reactGrab.page.evaluate((eventType) => {
+          const host = document.querySelector("[data-react-grab]");
+          const root = host?.shadowRoot?.querySelector("[data-react-grab]");
+          const collapseButton = root?.querySelector<HTMLElement>(
+            "[data-react-grab-toolbar-collapse]",
+          );
+          // composed: true so the event escapes the shadow root, like real
+          // pointer events do.
+          collapseButton?.dispatchEvent(
+            new PointerEvent(eventType, { bubbles: true, cancelable: true, composed: true }),
+          );
+        }, type);
+
+      expect(await readPanelTransform()).toBe("");
+
+      await dispatchOnChevron("pointerdown");
+      await expect.poll(readPanelTransform, { timeout: 1000 }).toMatch(/scale\((0\.97,\s*1|1,\s*0\.97)\)/);
+
+      await dispatchOnChevron("pointerup");
+      await expect.poll(readPanelTransform, { timeout: 1000 }).toBe("");
+    });
   });
 
   test.describe("Viewport Resize Handling", () => {

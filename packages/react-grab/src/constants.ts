@@ -87,17 +87,18 @@ export const VIEWPORT_COVERAGE_THRESHOLD = 0.9;
 export const OVERLAY_Z_INDEX_THRESHOLD = 1000;
 export const DEV_TOOLS_OVERLAY_Z_INDEX_THRESHOLD = 2147483600;
 
-export const TOOLTIP_DELAY_MS = 400;
-export const TOOLTIP_GRACE_PERIOD_MS = 100;
-
 export const TOOLBAR_SNAP_MARGIN_PX = 16;
 export const TOOLBAR_FADE_IN_DELAY_MS = 500;
 export const TOOLBAR_SNAP_ANIMATION_DURATION_MS = 300;
 export const TOOLBAR_DRAG_THRESHOLD_PX = 5;
 export const TOOLBAR_VELOCITY_MULTIPLIER_MS = 150;
-export const TOOLBAR_COLLAPSED_SHORT_PX = 14;
-export const TOOLBAR_COLLAPSED_LONG_PX = 28;
-export const TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS = 150;
+export const TOOLBAR_COLLAPSED_SHORT_PX = 16;
+export const TOOLBAR_COLLAPSED_LONG_PX = 30;
+// Must cover the longest expand path: size is 220ms, opacity is 80ms delay
+// + 180ms fade = 260ms. If this fires before the opacity tail, shouldDim()
+// can flip true mid-fade-in and start a dim transition on the outer
+// container while the inner content is still materializing.
+export const TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS = 260;
 export const TOOLBAR_DEFAULT_WIDTH_PX = 78;
 export const TOOLBAR_DEFAULT_HEIGHT_PX = 28;
 export const TOOLBAR_DEFAULT_POSITION_RATIO = 0.5;
@@ -127,7 +128,9 @@ export const MOUNT_ROOT_RECHECK_DELAY_MS = 1000;
 
 export const MAX_COMMENT_ITEMS = 20;
 export const MAX_SESSION_STORAGE_SIZE_BYTES = 2 * 1024 * 1024;
-export const DROPDOWN_ANIMATION_DURATION_MS = 100;
+// Must match the CSS exit transition on dropdown components or the DOM
+// unmounts mid-animation.
+export const DROPDOWN_ANIMATION_DURATION_MS = 120;
 export const DROPDOWN_HOVER_OPEN_DELAY_MS = 200;
 export const DROPDOWN_VIEWPORT_PADDING_PX = 8;
 export const DROPDOWN_ANCHOR_GAP_PX = 8;

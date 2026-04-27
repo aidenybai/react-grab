@@ -54,9 +54,10 @@ test.describe("Comment Items", () => {
       expect(await reactGrab.isCommentsDropdownVisible()).toBe(true);
 
       await reactGrab.pressEscape();
-      await reactGrab.page.waitForTimeout(100);
 
-      expect(await reactGrab.isCommentsDropdownVisible()).toBe(false);
+      await expect
+        .poll(() => reactGrab.isCommentsDropdownVisible(), { timeout: 1000 })
+        .toBe(false);
     });
 
     test("should close when context menu is opened", async ({ reactGrab }) => {

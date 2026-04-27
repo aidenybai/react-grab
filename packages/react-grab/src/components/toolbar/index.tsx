@@ -10,8 +10,6 @@ import { createSafePolygonTracker, type TargetRect } from "../../utils/safe-poly
 import {
   TOOLBAR_SNAP_MARGIN_PX,
   TOOLBAR_FADE_IN_DELAY_MS,
-  TOOLBAR_COLLAPSED_SHORT_PX,
-  TOOLBAR_COLLAPSED_LONG_PX,
   TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS,
   TOOLBAR_DEFAULT_WIDTH_PX,
   TOOLBAR_DEFAULT_HEIGHT_PX,
@@ -30,9 +28,11 @@ import { getVisualViewport } from "../../utils/get-visual-viewport.js";
 import {
   calculateExpandedPositionFromCollapsed,
   clampToRange,
+  getCollapsedDimsForEdge,
   getCollapsedPosition,
   getPositionFromEdgeAndRatio,
   getRatioFromPosition,
+  isHorizontalEdge,
 } from "../../utils/toolbar-position.js";
 import { createToolbarDrag } from "../../utils/create-toolbar-drag.js";
 
@@ -104,6 +104,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [position, setPosition] = createSignal({ x: 0, y: 0 });
   const [isShaking, setIsShaking] = createSignal(false);
   const [isCollapseAnimating, setIsCollapseAnimating] = createSignal(false);
+  const [isChevronPressed, setIsChevronPressed] = createSignal(false);
+  const [isToolbarHovered, setIsToolbarHovered] = createSignal(false);
   let clockFlashRef: HTMLSpanElement | undefined;
   const drag = createToolbarDrag({
     getContainerRef: () => containerRef,
@@ -119,6 +121,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     },
     onPositionUpdate: (newPosition) => setPosition(newPosition),
     onSnapEdgeChange: (edge, ratio) => {
+      syncCollapsedDimensionsToEdge(snapEdge(), edge);
       setSnapEdge(edge);
       setPositionRatio(ratio);
     },
@@ -312,24 +315,27 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     width: TOOLBAR_DEFAULT_WIDTH_PX,
     height: TOOLBAR_DEFAULT_HEIGHT_PX,
   };
-  const [collapsedDimensions, setCollapsedDimensions] = createSignal({
-    width: TOOLBAR_COLLAPSED_SHORT_PX,
-    height: TOOLBAR_COLLAPSED_SHORT_PX,
-  });
+  const [collapsedDimensions, setCollapsedDimensions] = createSignal(
+    getCollapsedDimsForEdge(snapEdge()),
+  );
+
+  const syncCollapsedDimensionsToEdge = (oldEdge: SnapEdge, newEdge: SnapEdge): void => {
+    if (isHorizontalEdge(oldEdge) === isHorizontalEdge(newEdge)) return;
+    setCollapsedDimensions(getCollapsedDimsForEdge(newEdge));
+  };
 
   const getExpandedFromCollapsed = (
     collapsedPosition: Position,
     edge: SnapEdge,
   ): { position: Position; ratio: number } => {
     const actualRect = containerRef?.getBoundingClientRect();
-    const actualCollapsedWidth = actualRect?.width ?? TOOLBAR_COLLAPSED_SHORT_PX;
-    const actualCollapsedHeight = actualRect?.height ?? TOOLBAR_COLLAPSED_SHORT_PX;
+    const fallback = getCollapsedDimsForEdge(edge);
     return calculateExpandedPositionFromCollapsed(
       collapsedPosition,
       edge,
       expandedDimensions,
-      actualCollapsedWidth,
-      actualCollapsedHeight,
+      actualRect?.width ?? fallback.width,
+      actualRect?.height ?? fallback.height,
     );
   };
 
@@ -448,13 +454,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       if (rect) {
         expandedDimensions = { width: rect.width, height: rect.height };
       }
-      if (savedState.collapsed) {
-        const isHorizontalEdge = savedState.edge === "top" || savedState.edge === "bottom";
-        setCollapsedDimensions({
-          width: isHorizontalEdge ? TOOLBAR_COLLAPSED_LONG_PX : TOOLBAR_COLLAPSED_SHORT_PX,
-          height: isHorizontalEdge ? TOOLBAR_COLLAPSED_SHORT_PX : TOOLBAR_COLLAPSED_LONG_PX,
-        });
-      }
       setIsCollapsed(savedState.collapsed);
       const newPosition = getPositionFromEdgeAndRatio(
         savedState.edge,
@@ -489,6 +488,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
         const didCollapsedChange = isCollapsed() !== state.collapsed;
 
+        syncCollapsedDimensionsToEdge(snapEdge(), state.edge);
         setSnapEdge(state.edge);
 
         if (didCollapsedChange && !state.collapsed) {
@@ -567,17 +567,30 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     return "cursor-grab";
   };
 
+  const isInteracting = (): boolean =>
+    isToolbarHovered() ||
+    Boolean(props.isContextMenuOpen) ||
+    drag.isDragging() ||
+    drag.isSnapping() ||
+    isCollapseAnimating() ||
+    isChevronPressed();
+
+  const shouldDim = (): boolean => Boolean(props.isActive) && !isInteracting();
+
   const getTransitionClass = (): string => {
-    if (isResizing()) {
+    // Drag must follow the pointer frame-to-frame; any transform transition
+    // here would lag the toolbar behind the cursor.
+    if (isResizing() || drag.isDragging()) {
       return "";
     }
     if (drag.isSnapping()) {
       return "transition-[transform,opacity] duration-300 ease-out";
     }
     if (isCollapseAnimating()) {
-      return "transition-[transform,opacity] duration-150 ease-out";
+      const duration = isCollapsed() ? "duration-140" : "duration-220";
+      return `transition-[transform,opacity] ${duration} ease-drawer`;
     }
-    return "transition-opacity duration-300 ease-out";
+    return "transition-[transform,opacity] duration-400 ease-drawer";
   };
 
   const getTransformOrigin = (): string => {
@@ -605,20 +618,29 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         "fixed left-0 top-0 font-sans text-[13px] antialiased select-none",
         getCursorClass(),
         getTransitionClass(),
-        isVisible() ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
+        // freeze-pseudo-states sets `html { pointer-events: none !important }`
+        // during grab; the toolbar must opt back in to stay clickable.
+        isVisible() ? "pointer-events-auto" : "pointer-events-none",
       )}
       style={{
         "z-index": String(Z_INDEX_OVERLAY),
-        transform: `translate(${currentPosition().x}px, ${currentPosition().y}px)`,
+        transform: `translate(${currentPosition().x}px, ${currentPosition().y}px) scale(${shouldDim() ? 0.97 : 1})`,
         "transform-origin": getTransformOrigin(),
+        opacity: !isVisible() ? 0 : shouldDim() ? 0.55 : 1,
       }}
       on:pointerdown={(event) => {
         stopEventPropagation(event);
         drag.handlePointerDown(event);
       }}
       on:mousedown={stopEventPropagation}
-      onMouseEnter={() => !isCollapsed() && props.onSelectHoverChange?.(true)}
-      onMouseLeave={() => props.onSelectHoverChange?.(false)}
+      onMouseEnter={() => {
+        setIsToolbarHovered(true);
+        if (!isCollapsed()) props.onSelectHoverChange?.(true);
+      }}
+      onMouseLeave={() => {
+        setIsToolbarHovered(false);
+        props.onSelectHoverChange?.(false);
+      }}
     >
       <ToolbarContent
         isCollapsed={isCollapsed()}
@@ -626,9 +648,13 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         isShaking={isShaking()}
         isCommentsExpanded={(props.commentItemCount ?? 0) > 0}
         isCopyAllExpanded={Boolean(props.isCommentsDropdownOpen)}
+        isChevronPressed={isChevronPressed()}
         transformOrigin={getTransformOrigin()}
         onAnimationEnd={() => setIsShaking(false)}
         onCollapseClick={handleToggleCollapse}
+        onCollapsePointerDown={() => setIsChevronPressed(true)}
+        onCollapsePointerUp={() => setIsChevronPressed(false)}
+        onCollapsePointerLeave={() => setIsChevronPressed(false)}
         onPanelClick={(event) => {
           if (isCollapsed()) {
             event.stopPropagation();

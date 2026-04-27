@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "STORYBOOK_DISABLE_TELEMETRY=1 storybook dev -p 6006 --disable-telemetry",
+    "dev": "STORYBOOK_DISABLE_TELEMETRY=1 storybook dev -p 6006 --disable-telemetry --no-open",
     "build": "STORYBOOK_DISABLE_TELEMETRY=1 storybook build --disable-telemetry",
     "typecheck": "tsc --noEmit"
   },

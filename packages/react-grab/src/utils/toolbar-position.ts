@@ -1,6 +1,8 @@
 import type { Position } from "../types.js";
 import type { SnapEdge } from "../components/toolbar/state.js";
 import {
+  TOOLBAR_COLLAPSED_LONG_PX,
+  TOOLBAR_COLLAPSED_SHORT_PX,
   TOOLBAR_SNAP_MARGIN_PX,
   TOOLBAR_VELOCITY_MULTIPLIER_MS,
   TOOLBAR_DEFAULT_POSITION_RATIO,
@@ -9,6 +11,21 @@ import { getVisualViewport } from "./get-visual-viewport.js";
 
 export const clampToRange = (value: number, min: number, max: number): number =>
   Math.max(min, Math.min(value, max));
+
+export const isHorizontalEdge = (edge: SnapEdge): boolean =>
+  edge === "top" || edge === "bottom";
+
+// Collapsed pill dimensions depend on the snap edge orientation: the LONG
+// axis runs parallel to the edge, the SHORT axis is the pill's thin side.
+export const getCollapsedDimsForEdge = (
+  edge: SnapEdge,
+): { width: number; height: number } => {
+  const horizontal = isHorizontalEdge(edge);
+  return {
+    width: horizontal ? TOOLBAR_COLLAPSED_LONG_PX : TOOLBAR_COLLAPSED_SHORT_PX,
+    height: horizontal ? TOOLBAR_COLLAPSED_SHORT_PX : TOOLBAR_COLLAPSED_LONG_PX,
+  };
+};
 
 export const getPositionFromEdgeAndRatio = (
   edge: SnapEdge,
