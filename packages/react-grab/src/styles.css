@@ -2,8 +2,6 @@
 
 @theme {
   --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
-  --transition-fast: 100ms;
-  --transition-normal: 150ms;
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -46,17 +44,6 @@
   to {
     transform: scale(1);
     opacity: 1;
-  }
-}
-
-@keyframes tooltip-fade-in {
-  from {
-    opacity: 0;
-    transform: scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
   }
 }
 
@@ -133,12 +120,6 @@
   animation: success-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
   will-change: transform, opacity;
 }
-
-.animate-tooltip-fade-in {
-  animation: tooltip-fade-in var(--transition-fast) ease-out;
-  will-change: transform, opacity;
-}
-
 
 @utility press-scale {
   transition: transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
