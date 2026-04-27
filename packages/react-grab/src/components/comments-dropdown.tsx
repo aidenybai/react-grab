@@ -15,7 +15,6 @@ import { createSafePolygonTracker } from "../utils/safe-polygon.js";
 import { cn } from "../utils/cn.js";
 import { IconTrash } from "./icons/icon-trash.jsx";
 import { IconCheck } from "./icons/icon-check.jsx";
-import { Tooltip } from "./tooltip.jsx";
 import { createMenuHighlight } from "../utils/create-menu-highlight.js";
 import { suppressMenuEvent } from "../utils/suppress-menu-event.js";
 import { createAnchoredDropdown } from "../utils/create-anchored-dropdown.js";
@@ -73,7 +72,6 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
     () => props.position,
   );
 
-  const [activeHeaderTooltip, setActiveHeaderTooltip] = createSignal<"clear" | "copy" | null>(null);
   const [isCopyAllConfirmed, setIsCopyAllConfirmed] = createSignal(false);
 
   let copyAllFeedbackTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -181,66 +179,52 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
             <span class="text-[11px] font-medium text-black/40">Comments</span>
             <Show when={props.items.length > 0}>
               <div class="flex items-center gap-[5px]">
-                <div class="relative">
-                  <button
-                    data-react-grab-ignore-events
-                    data-react-grab-comments-clear
-                    class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[#FEF2F2] cursor-pointer transition-all hover:bg-[#FEE2E2] press-scale h-[17px] text-[#B91C1C]"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setActiveHeaderTooltip(null);
-                      props.onClearAll?.();
-                    }}
-                    onMouseEnter={() => setActiveHeaderTooltip("clear")}
-                    onMouseLeave={() => setActiveHeaderTooltip(null)}
+                <button
+                  data-react-grab-ignore-events
+                  data-react-grab-comments-clear
+                  aria-label="Clear all"
+                  class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[#FEF2F2] cursor-pointer transition-all hover:bg-[#FEE2E2] press-scale h-[17px] text-[#B91C1C]"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    props.onClearAll?.();
+                  }}
+                >
+                  <IconTrash size={DROPDOWN_ICON_SIZE_PX} />
+                </button>
+                <button
+                  data-react-grab-ignore-events
+                  data-react-grab-comments-copy-all
+                  aria-label="Copy all"
+                  class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] press-scale h-[17px]"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    props.onCopyAll?.();
+                    setIsCopyAllConfirmed(true);
+                    clearTimeout(copyAllFeedbackTimeout);
+                    copyAllFeedbackTimeout = setTimeout(() => {
+                      setIsCopyAllConfirmed(false);
+                    }, FEEDBACK_DURATION_MS);
+                  }}
+                  onMouseEnter={() => {
+                    if (!isCopyAllConfirmed()) {
+                      props.onCopyAllHover?.(true);
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    props.onCopyAllHover?.(false);
+                  }}
+                >
+                  <Show
+                    when={isCopyAllConfirmed()}
+                    fallback={
+                      <span class="text-black text-[13px] leading-3.5 font-sans font-medium">
+                        Copy
+                      </span>
+                    }
                   >
-                    <IconTrash size={DROPDOWN_ICON_SIZE_PX} />
-                  </button>
-                  <Tooltip visible={activeHeaderTooltip() === "clear"} position="top">
-                    Clear all
-                  </Tooltip>
-                </div>
-                <div class="relative">
-                  <button
-                    data-react-grab-ignore-events
-                    data-react-grab-comments-copy-all
-                    class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] press-scale h-[17px]"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setActiveHeaderTooltip(null);
-                      props.onCopyAll?.();
-                      setIsCopyAllConfirmed(true);
-                      clearTimeout(copyAllFeedbackTimeout);
-                      copyAllFeedbackTimeout = setTimeout(() => {
-                        setIsCopyAllConfirmed(false);
-                      }, FEEDBACK_DURATION_MS);
-                    }}
-                    onMouseEnter={() => {
-                      setActiveHeaderTooltip("copy");
-                      if (!isCopyAllConfirmed()) {
-                        props.onCopyAllHover?.(true);
-                      }
-                    }}
-                    onMouseLeave={() => {
-                      setActiveHeaderTooltip(null);
-                      props.onCopyAllHover?.(false);
-                    }}
-                  >
-                    <Show
-                      when={isCopyAllConfirmed()}
-                      fallback={
-                        <span class="text-black text-[13px] leading-3.5 font-sans font-medium">
-                          Copy
-                        </span>
-                      }
-                    >
-                      <IconCheck size={DROPDOWN_ICON_SIZE_PX} class="text-black" />
-                    </Show>
-                  </button>
-                  <Tooltip visible={activeHeaderTooltip() === "copy"} position="top">
-                    Copy all
-                  </Tooltip>
-                </div>
+                    <IconCheck size={DROPDOWN_ICON_SIZE_PX} class="text-black" />
+                  </Show>
+                </button>
               </div>
             </Show>
           </div>
