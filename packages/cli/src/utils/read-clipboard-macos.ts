@@ -18,8 +18,8 @@ import type { ClipboardReadOutcome } from "./read-clipboard-outcome.js";
 //
 // 'org.webkit.web-custom-data' is included on a best-effort basis for Safari.
 // Its exact binary layout was not verified at the time of writing; if Safari
-// uses a different format the decoder will return null cleanly and watch
-// will fall through to a normal "no payload" loop.
+// uses a different format the decoder will return null cleanly and the
+// polling loop will fall through to a normal "no payload" iteration.
 //
 // JXA emits one of three forms to stdout for the Node side:
 //  - empty string: nothing on the clipboard

@@ -459,11 +459,11 @@ describe("SKILL_TEMPLATE", () => {
     expect(SKILL_TEMPLATE).toMatch(/allowed-tools:\s*\n\s*-\s*Bash/);
   });
 
-  it("instructs the agent to run the watch CLI", () => {
-    expect(SKILL_TEMPLATE).toContain("npx -y @react-grab/cli watch");
+  it("instructs the agent to run the log CLI", () => {
+    expect(SKILL_TEMPLATE).toContain("npx -y @react-grab/cli log");
   });
 
-  it("warns the agent against running watch on already-pasted content", () => {
+  it("warns the agent against running log on already-pasted content", () => {
     expect(SKILL_TEMPLATE).toMatch(/already pasted/i);
     expect(SKILL_TEMPLATE).toMatch(/do NOT run this skill/i);
   });

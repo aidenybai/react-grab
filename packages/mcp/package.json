@@ -22,5 +22,5 @@
   "devDependencies": {
     "@types/node": "^22.10.7"
   },
-  "deprecated": "Replaced by @react-grab/cli's `react-grab watch` and the agent skill installed via `install-skill`. See https://github.com/aidenybai/react-grab"
+  "deprecated": "Replaced by @react-grab/cli's `react-grab log` and the agent skill installed via `install-skill`. See https://github.com/aidenybai/react-grab"
 }

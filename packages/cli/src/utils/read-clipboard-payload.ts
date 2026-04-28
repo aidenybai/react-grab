@@ -13,7 +13,7 @@ export interface ReadClipboardPayloadResult {
   recoverable: boolean;
   // True iff the platform clipboard reader returned a non-empty raw string,
   // regardless of whether parseReactGrabPayload then accepted it. Lets the
-  // watch loop distinguish a genuinely empty clipboard from a transient
+  // log loop distinguish a genuinely empty clipboard from a transient
   // parse failure where a real React Grab payload sits on the clipboard
   // but the reader returned partial / corrupt output - critical so we
   // don't return a stale grab as if it were fresh.
@@ -33,7 +33,7 @@ const readRawByEnv = async (env: ClipboardEnv): Promise<ClipboardReadOutcome> =>
     case "ssh":
       return {
         payload: null,
-        hint: "Clipboard channel is unavailable in SSH sessions. Run `react-grab watch` on the same machine as your browser.",
+        hint: "Clipboard channel is unavailable in SSH sessions. Run `react-grab log` on the same machine as your browser.",
         recoverable: false,
       };
     default: {
