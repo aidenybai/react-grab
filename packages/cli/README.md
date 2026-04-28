@@ -1,6 +1,6 @@
 # @react-grab/cli
 
-Interactive CLI to install and configure React Grab in your project, plus a `watch` subcommand that streams the next React Grab clipboard payload to stdout for AI coding agents.
+Interactive CLI to install and configure React Grab in your project, plus a `log` subcommand that streams React Grab clipboard payloads as NDJSON for AI coding agents.
 
 ## Quick Start
 
@@ -55,20 +55,26 @@ npx grab@latest remove
 | `--yes`             | `-y`  | Remove from all supported agents without prompting |
 | `--agent <name...>` | `-a`  | Remove only from the named agent(s)                |
 
-### `grab watch`
+### `grab log`
 
-Block until the next React Grab payload appears on the clipboard, print it to stdout, exit. The skill installed by `install-skill` shells out to this command — but you can also run it directly to script around grabs.
+Stream every React Grab payload as NDJSON, one JSON object per line, until killed. The skill installed by `install-skill` shells out to this command — but you can also run it directly to script around grabs.
 
 ```bash
-npx -y @react-grab/cli watch
+npx -y @react-grab/cli log
 ```
 
-| Option                | Alias | Description                                                     |
-| --------------------- | ----- | --------------------------------------------------------------- |
-| `--timeout <seconds>` | `-t`  | Seconds to wait before giving up (`0` = forever, default `600`) |
-| `--json`              |       | Print the raw `ReactGrabPayload` JSON instead of formatted text |
+Each line has the shape `{"prompt":"...","content":"..."}` (the `prompt` field is omitted when the user didn't type one in the toolbar). The command takes no flags. It always mirrors every line to `.react-grab/logs` (and writes a `.react-grab/.gitignore` so the log never lands in version control).
 
-Exit codes: `0` on a fresh grab printed, `1` on timeout, `2` on clipboard read error.
+Lifecycle depends on stdout:
+
+- **Interactive (TTY)**: streams forever, exits only on SIGINT/SIGTERM or a fundamental clipboard error (exit code `2`, e.g. SSH or missing `xclip`).
+- **Piped or redirected (non-TTY)**: exits cleanly with code `0` after writing the first match. This is what makes `log | head -n 1` and `log > grabs.ndjson` terminate without manual intervention.
+
+To grab a single payload from a script, pipe to `head`:
+
+```bash
+npx -y @react-grab/cli log | head -n 1
+```
 
 ### `grab configure`
 
@@ -104,8 +110,11 @@ npx grab@latest init -k "Meta+K"
 # Install the React Grab skill into all supported agents
 npx grab@latest install-skill -y
 
-# Wait up to 30s for the next grab and print as JSON
-npx -y @react-grab/cli watch --timeout 30 --json
+# Stream every grab as NDJSON until killed
+npx -y @react-grab/cli log
+
+# Take just the first grab and exit
+npx -y @react-grab/cli log | head -n 1
 
 # Change activation mode to hold
 npx grab@latest configure --mode hold --hold-duration 500

@@ -26,24 +26,24 @@ Exit 0 → installed, continue. Exit 1 → not installed; ask the user "React Gr
 Repeat until the user says they're done.
 
 1. **Prompt.** "Click an element in the React Grab toolbar (or paste its output here) and I'll pick it up." Don't start step 2 silently.
-2. **Watch.** Once per iteration:
+2. **Read one grab.** Once per iteration:
    ```bash
-   npx -y @react-grab/cli watch
+   npx -y @react-grab/cli log | head -n 1
    ```
-   Stdout is authoritative. If it contains a `Prompt:` line, that's the user's instruction.
-3. **Ask** what to do — skip if stdout already has a `Prompt:` line.
-4. **Do it** against the captured context only.
+   Stdout is one line of NDJSON: `{"prompt":"...","content":"..."}` (`prompt` is omitted if the user didn't type one). Parse it.
+3. **Ask** what to do — skip if the parsed JSON has a non-empty `prompt`.
+4. **Do it** against `content` only.
 5. **Offer another:** "Grab another, or done?" Yes → step 1. No → end.
 
 ## Failure modes (surface stderr verbatim)
 
-- Exit 1 timeout → user didn't click; re-prompt, don't auto-retry.
 - Exit 2 SSH → run agent on same machine as browser.
 - Linux/WSL clipboard hint → pass install/interop instructions through.
+- No idle timeout: `log` does not exit on its own when piped. If the user never clicks, the `head -n 1` stays blocked until your bash tool times out. Surface that as "still waiting for a click" rather than retrying.
 
 ## Constraints
 
-- One `watch` per iteration, never concurrent.
-- Never fabricate element details. `watch` failed? Ask, don't guess.
+- One `log` per iteration, never concurrent.
+- Never fabricate element details. `log` failed? Ask, don't guess.
 - Step 1 always before step 2.
 - Finish step 4 before step 2 again.

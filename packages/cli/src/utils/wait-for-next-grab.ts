@@ -60,8 +60,8 @@ export const waitForNextGrab = async (
   // observation is adopted as the new baseline (instead of being returned
   // as a "match") so we never surface a stale grab as fresh. When initial
   // was genuinely empty (rawPayloadPresent false), the first non-null
-  // observation is a real match - the user clicked a grab after watch
-  // started, which is what they want.
+  // observation is a real match - the user clicked a grab after the
+  // polling loop started, which is what they want.
   let baselineTimestamp = initialTimestamp;
   let baselineLocked = initialTimestamp !== null || !initialRawPayloadPresent;
 

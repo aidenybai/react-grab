@@ -46,7 +46,7 @@ apps/
 └── website/             # Documentation site (react-grab.com)
 
 packages/
-├── cli/                 # CLI implementation (@react-grab/cli) including `react-grab watch` and `install-skill`
+├── cli/                 # CLI implementation (@react-grab/cli) including `react-grab log` and `install-skill`
 ├── grab/                # Bundled package (library + CLI, published as `grab`)
 ├── mcp/                 # Deprecated stub for @react-grab/mcp (prints migration notice)
 └── react-grab/          # Core library

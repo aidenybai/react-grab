@@ -129,9 +129,9 @@ export const getSkillClients = (): SkillClientDefinition[] => {
     },
     unsupportedClient(
       "VS Code",
-      "VS Code does not yet support skills. Run `react-grab watch` directly.",
+      "VS Code does not yet support skills. Run `react-grab log` directly.",
     ),
-    unsupportedClient("Zed", "Zed does not yet support skills. Run `react-grab watch` directly."),
+    unsupportedClient("Zed", "Zed does not yet support skills. Run `react-grab log` directly."),
   ];
 };
 

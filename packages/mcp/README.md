@@ -22,8 +22,8 @@ Skills auto-trigger on `/react-grab` or when the user references a grabbed eleme
 
 | Old                                 | New                                                 |
 | ----------------------------------- | --------------------------------------------------- |
-| `react-grab-mcp` (stdio MCP server) | `react-grab watch` (one-shot CLI)                   |
-| MCP tool `get_element_context`      | Skill that runs `npx -y @react-grab/cli watch`      |
+| `react-grab-mcp` (stdio MCP server) | `react-grab log` (streaming NDJSON CLI)             |
+| MCP tool `get_element_context`      | Skill that runs `npx -y @react-grab/cli log`        |
 | `npx @react-grab/cli install-mcp`   | `npx @react-grab/cli install-skill`                 |
 | Manual `mcp.json` entry per agent   | `~/.cursor/skills-cursor/react-grab/SKILL.md`, etc. |
 

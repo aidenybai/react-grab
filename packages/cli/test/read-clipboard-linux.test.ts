@@ -62,7 +62,7 @@ describe("readClipboardLinux", () => {
     // A non-zero wl-paste exit when the binary is present is the common
     // "MIME type not on clipboard right now" case. Falling through to xclip
     // would surface a misleading "install xclip" hint on Wayland-only
-    // systems; instead, return an empty payload so the watch loop keeps
+    // systems; instead, return an empty payload so the polling loop keeps
     // polling.
     process.env.WAYLAND_DISPLAY = "wayland-0";
     const runtimeError = new Error("wl-paste: clipboard read failed") as NodeJS.ErrnoException;

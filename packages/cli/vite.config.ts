@@ -11,10 +11,7 @@ const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8")) as {
 // surfaced at the repo's top-level `skills/react-grab/SKILL.md` (via symlink)
 // so it stays GitHub-visible and never drifts from what the CLI installs.
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const SKILL_TEMPLATE_MD = fs.readFileSync(
-  path.join(HERE, "src/utils/skill-template.md"),
-  "utf8",
-);
+const SKILL_TEMPLATE_MD = fs.readFileSync(path.join(HERE, "src/utils/skill-template.md"), "utf8");
 
 const sharedDefine = {
   __REACT_GRAB_SKILL_TEMPLATE__: JSON.stringify(SKILL_TEMPLATE_MD),

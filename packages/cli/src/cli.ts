@@ -4,9 +4,9 @@ import { checkInstalled } from "./commands/check-installed.js";
 import { configure } from "./commands/configure.js";
 import { init } from "./commands/init.js";
 import { installSkill } from "./commands/install-skill.js";
+import { log } from "./commands/log.js";
 import { remove } from "./commands/remove.js";
 import { upgrade } from "./commands/upgrade.js";
-import { watch } from "./commands/watch.js";
 import { isTelemetryEnabled } from "./utils/is-telemetry-enabled.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
@@ -32,7 +32,7 @@ program.addCommand(remove);
 program.addCommand(configure);
 program.addCommand(upgrade);
 program.addCommand(installSkill);
-program.addCommand(watch);
+program.addCommand(log);
 program.addCommand(checkInstalled);
 
 const main = async () => {
