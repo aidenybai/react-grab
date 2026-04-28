@@ -2,6 +2,7 @@ import { Show, createSignal, createEffect, createMemo, on, onMount, onCleanup } 
 import type { Component } from "solid-js";
 import type { ArrowPosition, SelectionLabelProps } from "../../types.js";
 import {
+  FADE_DURATION_MS,
   IME_COMPOSING_KEY_CODE,
   VIEWPORT_MARGIN_PX,
   ARROW_CENTER_PERCENT,
@@ -349,15 +350,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         ref={containerRef}
         data-react-grab-ignore-events
         data-react-grab-selection-label
-        class={cn(
-          "fixed font-sans text-[13px] antialiased select-none transition-[opacity,filter] duration-150 ease-out",
-        )}
+        class={cn("fixed font-sans text-[13px] antialiased select-none ease-out")}
         style={{
           top: `${positionComputation().position.top}px`,
           left: `${positionComputation().position.left}px`,
           transform: `translateX(calc(-50% + ${positionComputation().position.edgeOffsetX}px))`,
           "z-index": `${Z_INDEX_OVERLAY}`,
           "pointer-events": shouldEnablePointerEvents() ? "auto" : "none",
+          transition: `opacity ${FADE_DURATION_MS}ms ease-out, filter ${FADE_DURATION_MS}ms ease-out`,
           opacity: props.status === "fading" || isInternalFading() ? 0 : 1,
           filter: `drop-shadow(0px 1px 2px #51515140) blur(${props.status === "fading" || isInternalFading() ? "3px" : "0"})`,
         }}
