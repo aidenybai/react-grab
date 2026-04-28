@@ -53,22 +53,23 @@ export const UnreadCountBadge: Component<UnreadCountBadgeProps> = (props) => {
       class={cn("rg-t-badge absolute -top-1 -right-1", props.class)}
       data-open={isOpen() ? "true" : "false"}
     >
-      <span
-        ref={groupRef}
-        class="rg-t-badge-dot rg-t-digit-group is-animating min-w-2.5 h-2.5 px-0.5 flex items-center justify-center rounded-full bg-black text-white text-[8px] font-semibold leading-none"
-      >
-        <Index each={digits()}>
-          {(descriptor) => (
-            <span
-              class="rg-t-digit"
-              data-stagger={
-                descriptor().staggerIndex !== null ? String(descriptor().staggerIndex) : undefined
-              }
-            >
-              {descriptor().char}
-            </span>
-          )}
-        </Index>
+      <span class="rg-t-badge-dot min-w-2.5 h-2.5 px-0.5 flex items-center justify-center rounded-full bg-black text-white text-[8px] font-semibold leading-none">
+        <span ref={groupRef} class="rg-t-digit-group inline-flex items-baseline is-animating">
+          <Index each={digits()}>
+            {(descriptor) => (
+              <span
+                class="rg-t-digit"
+                data-stagger={
+                  descriptor().staggerIndex !== null
+                    ? String(descriptor().staggerIndex)
+                    : undefined
+                }
+              >
+                {descriptor().char}
+              </span>
+            )}
+          </Index>
+        </span>
       </span>
     </span>
   );
