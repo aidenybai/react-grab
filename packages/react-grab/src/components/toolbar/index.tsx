@@ -1,4 +1,4 @@
-import { createSignal, createEffect, on, onMount, onCleanup, Show } from "solid-js";
+import { createSignal, createEffect, on, onMount, onCleanup } from "solid-js";
 import type { Component } from "solid-js";
 import type { Position } from "../../types.js";
 import { cn } from "../../utils/cn.js";
@@ -23,6 +23,7 @@ import { freezeGlobalAnimations, unfreezeGlobalAnimations } from "../../utils/fr
 import { freezePseudoStates, unfreezePseudoStates } from "../../utils/freeze-pseudo-states.js";
 import { getButtonSpacingClass, getHitboxConstraintClass } from "../../utils/toolbar-layout.js";
 import { ToolbarContent } from "./toolbar-content.js";
+import { UnreadCountBadge } from "../unread-count-badge.js";
 import { nativeRequestAnimationFrame } from "../../utils/native-raf.js";
 import { getVisualViewport } from "../../utils/get-visual-viewport.js";
 import {
@@ -733,14 +734,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           >
             <span ref={clockFlashRef} class="inline-flex relative">
               <IconComment size={14} class={commentsIconClass()} />
-              <Show when={(props.commentItemCount ?? 0) > 0}>
-                <span
-                  data-react-grab-unread-indicator
-                  class="absolute -top-1 -right-1 min-w-2.5 h-2.5 px-0.5 flex items-center justify-center rounded-full bg-black text-white text-[8px] font-semibold leading-none"
-                >
-                  {props.commentItemCount}
-                </span>
-              </Show>
+              <UnreadCountBadge value={props.commentItemCount ?? 0} />
             </span>
           </button>
         }

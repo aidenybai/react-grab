@@ -15,6 +15,7 @@ import { createSafePolygonTracker } from "../utils/safe-polygon.js";
 import { cn } from "../utils/cn.js";
 import { IconTrash } from "./icons/icon-trash.jsx";
 import { IconCheck } from "./icons/icon-check.jsx";
+import { IconSwap } from "./icon-swap.jsx";
 import { createMenuHighlight } from "../utils/create-menu-highlight.js";
 import { suppressMenuEvent } from "../utils/suppress-menu-event.js";
 import { createAnchoredDropdown } from "../utils/create-anchored-dropdown.js";
@@ -214,16 +215,15 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
                     props.onCopyAllHover?.(false);
                   }}
                 >
-                  <Show
-                    when={isCopyAllConfirmed()}
-                    fallback={
+                  <IconSwap
+                    state={isCopyAllConfirmed() ? "b" : "a"}
+                    iconA={
                       <span class="text-black text-[13px] leading-3.5 font-sans font-medium">
                         Copy
                       </span>
                     }
-                  >
-                    <IconCheck size={DROPDOWN_ICON_SIZE_PX} class="text-black" />
-                  </Show>
+                    iconB={<IconCheck size={DROPDOWN_ICON_SIZE_PX} class="text-black" />}
+                  />
                 </button>
               </div>
             </Show>
