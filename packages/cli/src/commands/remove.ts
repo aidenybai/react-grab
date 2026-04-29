@@ -7,13 +7,13 @@ import { logger } from "../utils/logger.js";
 import { prompts } from "../utils/prompts.js";
 import {
   getSupportedSkillClientNames,
+  isSkillScope,
   removeSkills,
+  SKILL_SCOPES,
   type SkillScope,
 } from "../utils/install-skill.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
-
-const SKILL_SCOPES: readonly SkillScope[] = ["global", "project"];
 
 interface RemoveCommandOptions {
   yes?: boolean;
@@ -21,9 +21,6 @@ interface RemoveCommandOptions {
   scope?: string;
   cwd: string;
 }
-
-const isSkillScope = (value: unknown): value is SkillScope =>
-  typeof value === "string" && (SKILL_SCOPES as readonly string[]).includes(value);
 
 export const remove = new Command()
   .name("remove")

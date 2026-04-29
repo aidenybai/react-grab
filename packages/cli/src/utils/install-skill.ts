@@ -12,6 +12,11 @@ import { readLastSelectedAgents, writeLastSelectedAgents } from "./last-selected
 
 export type SkillScope = "global" | "project";
 
+export const SKILL_SCOPES: readonly SkillScope[] = ["global", "project"];
+
+export const isSkillScope = (value: unknown): value is SkillScope =>
+  typeof value === "string" && (SKILL_SCOPES as readonly string[]).includes(value);
+
 export interface SkillClientDefinition {
   name: string;
   universal: boolean;
