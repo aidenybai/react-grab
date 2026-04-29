@@ -8,6 +8,7 @@ import {
   getSkillClients,
   installDetectedOrAllSkills,
   installSkills,
+  readKnownLastSelectedAgents,
   removeSkillFile,
   removeSkills,
   resolveSkillRoot,
@@ -19,6 +20,7 @@ import {
   CANONICAL_SKILLS_SUBDIR,
   SKILL_NAME,
 } from "../src/utils/constants.js";
+import { writeLastSelectedAgents } from "../src/utils/last-selected-agents.js";
 import { SKILL_TEMPLATE } from "../src/utils/skill-template.js";
 
 let tempDir: string;
@@ -58,8 +60,8 @@ describe("getSkillClients", () => {
     expect(claudeCode.globalRoot).toContain("skills");
   });
 
-  it("includes additional universal agents (Amp, Cline, Gemini CLI, GitHub Copilot, Warp)", () => {
-    const universalAdditions = ["Amp", "Cline", "Gemini CLI", "GitHub Copilot", "Warp"];
+  it("includes additional universal agents (Gemini CLI, GitHub Copilot, Warp, Windsurf, Pi)", () => {
+    const universalAdditions = ["Gemini CLI", "GitHub Copilot", "Warp", "Windsurf", "Pi"];
     for (const name of universalAdditions) {
       const client = findClient(name);
       expect(client.universal).toBe(true);
@@ -67,10 +69,27 @@ describe("getSkillClients", () => {
     }
   });
 
-  it("flags VS Code, Zed as unsupported with reasons", () => {
+  it("flags Amp as project-canonical with Amp-specific global path", () => {
+    const amp = findClient("Amp");
+    expect(amp.universal).toBe(false);
+    expect(amp.supported).toBe(true);
+    expect(amp.projectRoot).toBe(`${CANONICAL_AGENTS_DIR}/${CANONICAL_SKILLS_SUBDIR}`);
+    expect(amp.globalRoot).toContain(path.join("agents", "skills"));
+    expect(amp.globalRoot).not.toContain(".agents");
+  });
+
+  it("flags Cline as unsupported with a migration reason that mentions .cline/skills", () => {
+    const cline = findClient("Cline");
+    expect(cline.supported).toBe(false);
+    expect(cline.projectRoot).toBeNull();
+    expect(cline.globalRoot).toBeNull();
+    expect(cline.unsupportedReason).toMatch(/\.cline\/skills/);
+  });
+
+  it("flags VS Code, Zed, Cline as unsupported with reasons", () => {
     const unsupported = getSkillClients().filter((client) => !client.supported);
     const names = unsupported.map((client) => client.name);
-    expect(names).toEqual(expect.arrayContaining(["VS Code", "Zed"]));
+    expect(names).toEqual(expect.arrayContaining(["VS Code", "Zed", "Cline"]));
     for (const client of unsupported) {
       expect(client.unsupportedReason).toBeTruthy();
       expect(client.projectRoot).toBeNull();
@@ -87,7 +106,8 @@ describe("getSkillClientNames", () => {
     expect(names).toContain("Codex");
     expect(names).toContain("OpenCode");
     expect(names).toContain("Amp");
-    expect(names).toContain("Cline");
+    expect(names).toContain("Windsurf");
+    expect(names).toContain("Pi");
   });
 });
 
@@ -138,6 +158,42 @@ describe("installSkills", () => {
     expect(fs.existsSync(path.join(tempDir, ".cursor", "skills"))).toBe(false);
     expect(fs.existsSync(path.join(tempDir, ".codex", "skills"))).toBe(false);
     expect(fs.existsSync(path.join(tempDir, ".opencode", "skills"))).toBe(false);
+  });
+
+  it("dedups Amp at project scope with universal canonical sharers", () => {
+    // Amp's universal flag is false because its global path is Amp-specific,
+    // but at project scope it must share the canonical .agents/skills root
+    // so that a Cursor + Amp install produces a single file write.
+    const results = installSkills({
+      scope: "project",
+      cwd: tempDir,
+      selectedClients: ["Cursor", "Amp"],
+    });
+
+    const successes = results.filter((result) => result.success);
+    expect(successes).toHaveLength(2);
+    expect(successes.filter((result) => result.deduped)).toHaveLength(1);
+    expect(
+      fs.existsSync(
+        path.join(tempDir, CANONICAL_AGENTS_DIR, CANONICAL_SKILLS_SUBDIR, SKILL_NAME, "SKILL.md"),
+      ),
+    ).toBe(true);
+    // Amp must NOT have written to its per-agent global path at project scope.
+    expect(fs.existsSync(path.join(tempDir, ".config", "agents", "skills"))).toBe(false);
+  });
+
+  it("skips Cline as unsupported and surfaces the migration reason", () => {
+    const results = installSkills({
+      scope: "project",
+      cwd: tempDir,
+      selectedClients: ["Cline"],
+    });
+    expect(results).toHaveLength(1);
+    expect(results[0]?.skipped).toBe(true);
+    expect(results[0]?.error).toMatch(/\.cline\/skills/);
+    // Refuses to write anywhere.
+    expect(fs.existsSync(path.join(tempDir, CANONICAL_AGENTS_DIR))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, ".cline"))).toBe(false);
   });
 
   it("writes a separate file for non-universal Claude Code", () => {
@@ -350,27 +406,74 @@ describe("installSkills with no selectedClients", () => {
   });
 });
 
+describe("readKnownLastSelectedAgents", () => {
+  let xdgStateBackup: string | undefined;
+  let stateDir: string;
+
+  beforeEach(() => {
+    xdgStateBackup = process.env.XDG_STATE_HOME;
+    stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "rkls-state-"));
+    process.env.XDG_STATE_HOME = stateDir;
+  });
+
+  afterEach(() => {
+    if (xdgStateBackup === undefined) delete process.env.XDG_STATE_HOME;
+    else process.env.XDG_STATE_HOME = xdgStateBackup;
+    fs.rmSync(stateDir, { recursive: true, force: true });
+  });
+
+  it("returns the persisted agents that still exist in the current roster", () => {
+    writeLastSelectedAgents(["Cursor", "Codex"]);
+    expect(readKnownLastSelectedAgents().sort()).toEqual(["Codex", "Cursor"]);
+  });
+
+  it("filters out names no longer in the client roster (e.g. removed agents)", () => {
+    // Simulate an old persisted state from a prior CLI version that knew
+    // about an agent we have since renamed or dropped. The unknown name
+    // must not leak into callers, otherwise the multiselect's
+    // `lastSelected.size > 0` branch would fire on a phantom selection.
+    writeLastSelectedAgents(["Cursor", "GhostAgent", "AnotherGhost"]);
+    expect(readKnownLastSelectedAgents()).toEqual(["Cursor"]);
+  });
+
+  it("returns an empty array when none of the persisted names are known", () => {
+    writeLastSelectedAgents(["GhostAgent"]);
+    expect(readKnownLastSelectedAgents()).toEqual([]);
+  });
+});
+
 describe("removeSkills", () => {
-  it("removes ALL universal agents only when ALL of them are targeted (full canonical wipe)", () => {
+  it("removes ALL canonical-sharing agents only when ALL of them are targeted (full canonical wipe)", () => {
     installSkills({
       scope: "project",
       cwd: tempDir,
       selectedClients: ["Cursor", "Codex", "OpenCode"],
     });
 
-    const universalSupportedNames = getSkillClients()
-      .filter((c) => c.supported && c.universal)
-      .map((c) => c.name);
+    // All supported clients whose project root resolves to the canonical
+    // .agents/skills (universal clients + Amp, which is project-canonical
+    // even though its global path is Amp-specific).
+    const canonicalProjectRoot = path.resolve(
+      tempDir,
+      CANONICAL_AGENTS_DIR,
+      CANONICAL_SKILLS_SUBDIR,
+    );
+    const canonicalSharers = getSkillClients()
+      .filter(
+        (client) =>
+          client.supported && resolveSkillRoot(client, "project", tempDir) === canonicalProjectRoot,
+      )
+      .map((client) => client.name);
     const results = removeSkills({
       scope: "project",
       cwd: tempDir,
-      selectedClients: universalSupportedNames,
+      selectedClients: canonicalSharers,
     });
 
-    expect(results).toHaveLength(universalSupportedNames.length);
+    expect(results).toHaveLength(canonicalSharers.length);
     expect(results.filter((r) => r.removed)).toHaveLength(1);
     const dedupedResults = results.filter((r) => r.deduped);
-    expect(dedupedResults).toHaveLength(universalSupportedNames.length - 1);
+    expect(dedupedResults).toHaveLength(canonicalSharers.length - 1);
     expect(
       fs.existsSync(path.join(tempDir, CANONICAL_AGENTS_DIR, CANONICAL_SKILLS_SUBDIR, SKILL_NAME)),
     ).toBe(false);

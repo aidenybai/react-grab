@@ -106,19 +106,24 @@ export const getSkillClients = (): SkillClientDefinition[] => {
     universalClient("Cursor", () => fs.existsSync(path.join(homeDir, ".cursor"))),
     universalClient("Codex", () => fs.existsSync(codexHome)),
     universalClient("OpenCode", () => fs.existsSync(path.join(xdgConfigHome, "opencode"))),
-    universalClient("Amp", () => fs.existsSync(path.join(xdgConfigHome, "amp"))),
-    universalClient("Cline", () => fs.existsSync(path.join(homeDir, ".cline"))),
+    // Amp is universal at project scope (`.agents/skills/`) but reads
+    // user-level skills from `~/.config/agents/skills/` rather than
+    // `~/.agents/skills/`. Set both explicitly so project installs still
+    // dedup against the canonical root, while global installs land where
+    // Amp will actually find them.
+    {
+      name: "Amp",
+      universal: false,
+      globalRoot: path.join(xdgConfigHome, "agents", "skills"),
+      projectRoot: path.join(CANONICAL_AGENTS_DIR, CANONICAL_SKILLS_SUBDIR),
+      detectInstalled: () => fs.existsSync(path.join(xdgConfigHome, "amp")),
+      supported: true,
+    },
     universalClient("Gemini CLI", () => fs.existsSync(path.join(homeDir, ".gemini"))),
     universalClient("GitHub Copilot", () => fs.existsSync(path.join(homeDir, ".copilot"))),
     universalClient("Warp", () => fs.existsSync(path.join(homeDir, ".warp"))),
-    {
-      name: "Windsurf",
-      universal: false,
-      globalRoot: path.join(homeDir, ".codeium", "windsurf", "skills"),
-      projectRoot: ".windsurf/skills",
-      detectInstalled: () => fs.existsSync(path.join(homeDir, ".codeium", "windsurf")),
-      supported: true,
-    },
+    universalClient("Windsurf", () => fs.existsSync(path.join(homeDir, ".codeium", "windsurf"))),
+    universalClient("Pi", () => fs.existsSync(path.join(homeDir, ".pi"))),
     {
       name: "Droid",
       universal: false,
@@ -132,6 +137,10 @@ export const getSkillClients = (): SkillClientDefinition[] => {
       "VS Code does not yet support skills. Run `react-grab log` directly.",
     ),
     unsupportedClient("Zed", "Zed does not yet support skills. Run `react-grab log` directly."),
+    unsupportedClient(
+      "Cline",
+      "Cline reads from .cline/skills/, not the canonical .agents/skills/. React Grab no longer auto-installs to Cline; copy the skill template into your Cline skills directory manually if needed.",
+    ),
   ];
 };
 
@@ -141,6 +150,17 @@ export const getSupportedSkillClientNames = (): string[] =>
   getSkillClients()
     .filter((client) => client.supported)
     .map((client) => client.name);
+
+// Wrap `readLastSelectedAgents` so callers always get a list pruned to the
+// currently-known client roster. Without this, a stale entry for a client
+// that has since been removed would skew the `lastSelected.length === 0`
+// short-circuits used by the install flow, and would keep the multiselect's
+// "user has a saved choice" branch active when none of the saved choices
+// map to a real agent anymore.
+export const readKnownLastSelectedAgents = (): string[] => {
+  const known = new Set(getSkillClientNames());
+  return readLastSelectedAgents().filter((name) => known.has(name));
+};
 
 export const detectInstalledSkillClients = (): string[] =>
   getSkillClients()
@@ -296,7 +316,7 @@ export const buildAgentChoices = (
   options: { allClients?: boolean } = {},
 ): AgentChoice[] => {
   const installedNames = new Set(detectInstalledSkillClients());
-  const lastSelected = new Set(readLastSelectedAgents());
+  const lastSelected = new Set(readKnownLastSelectedAgents());
   const candidates = options.allClients ? getSkillClients() : supportedAtScope(scope);
 
   return candidates.map((client) => {
@@ -326,7 +346,7 @@ export const promptSkillInstall = async (
   // history, install to it directly without a prompt - skips a redundant
   // selection step for the common single-editor case.
   const installedNames = detectInstalledSkillClients();
-  const lastSelected = readLastSelectedAgents();
+  const lastSelected = readKnownLastSelectedAgents();
   if (installedNames.length === 1 && lastSelected.length === 0) {
     const onlyInstalled = installedNames[0];
     if (onlyInstalled) {
