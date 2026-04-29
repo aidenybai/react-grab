@@ -232,7 +232,7 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
           <div class="min-h-0 [border-top-width:0.5px] border-t-solid border-t-[#D9D9D9] px-2 py-1.5">
             <div
               ref={highlightContainerRef}
-              class="relative flex flex-col max-h-[240px] overflow-y-auto -mx-2 -my-1.5 [scrollbar-width:thin] [scrollbar-color:transparent_transparent] hover:[scrollbar-color:rgba(0,0,0,0.15)_transparent]"
+              class="relative flex flex-col max-h-[240px] overflow-x-hidden overflow-y-auto -mx-2 -my-1.5 [scrollbar-width:thin] [scrollbar-color:transparent_transparent] hover:[scrollbar-color:rgba(0,0,0,0.15)_transparent]"
             >
               <div
                 ref={highlightRef}
@@ -243,7 +243,7 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
                   <div
                     data-react-grab-ignore-events
                     data-react-grab-comment-item
-                    class="group relative z-1 contain-layout flex items-start justify-between w-full px-2 py-1 cursor-pointer text-left gap-2"
+                    class="group relative z-1 contain-layout box-border flex items-start justify-between w-full px-2 py-1 cursor-pointer text-left gap-2"
                     classList={{
                       "opacity-40 hover:opacity-100": Boolean(
                         props.disconnectedItemIds?.has(item.id),
