@@ -9,9 +9,10 @@ import {
   getSkillClientNames,
   getSupportedSkillClientNames,
   installSkills,
+  readKnownLastSelectedAgents,
   type SkillScope,
 } from "../utils/install-skill.js";
-import { readLastSelectedAgents, writeLastSelectedAgents } from "../utils/last-selected-agents.js";
+import { writeLastSelectedAgents } from "../utils/last-selected-agents.js";
 import { logger } from "../utils/logger.js";
 import { prompts } from "../utils/prompts.js";
 
@@ -150,7 +151,7 @@ export const installSkill = new Command()
       }
 
       const detected = detectInstalledSkillClients();
-      if (detected.length === 1 && readLastSelectedAgents().length === 0) {
+      if (detected.length === 1 && readKnownLastSelectedAgents().length === 0) {
         const onlyDetected = detected[0]!;
         logger.log(
           `Auto-installing to ${highlighter.info(onlyDetected)} (only detected agent). Pass ${highlighter.info("--agent")} to override.`,
