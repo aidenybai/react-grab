@@ -78,9 +78,15 @@ export const remove = new Command()
         targets = selectedAgents;
       }
 
-      const scopesToTry: SkillScope[] = isSkillScope(opts.scope)
-        ? [opts.scope]
-        : ["project", "global"];
+      // Default to project-only scope when --scope is not passed. Sweeping
+      // both scopes by default would silently delete the user's per-user
+      // skill at `~/.agents/skills/react-grab` for every other project on
+      // the machine - the interactive multiselect only asks WHICH agents,
+      // never which scope, so a user cleaning up a single project would
+      // have no way to keep their global install. To remove the global
+      // copy explicitly, run `grab remove --scope global` (or pass both
+      // commands separately).
+      const scopesToTry: SkillScope[] = isSkillScope(opts.scope) ? [opts.scope] : ["project"];
 
       // Walk up from cwd to the nearest project root so `grab remove` invoked
       // from a subdirectory still finds skills installed at the canonical
