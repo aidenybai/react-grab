@@ -495,7 +495,8 @@ const isWorkspaceRoot = (dir: string): boolean => {
 //
 // Capped at 64 levels of walking so a malformed cwd can't loop forever.
 export const findNearestProjectRoot = (start: string): string => {
-  let dir = resolve(start);
+  const resolvedStart = resolve(start);
+  let dir = resolvedStart;
   let firstWithPackageJson: string | null = null;
   let outermostWorkspaceRoot: string | null = null;
 
@@ -511,7 +512,12 @@ export const findNearestProjectRoot = (start: string): string => {
 
   if (outermostWorkspaceRoot !== null) return outermostWorkspaceRoot;
   if (firstWithPackageJson !== null) return firstWithPackageJson;
-  return start;
+  // Fall back to the resolved absolute path rather than the raw `start`
+  // argument so callers like `add`/`remove`/`install-skill` (which pass it
+  // straight into `path.resolve(cwd, ...)` and JSON output) receive an
+  // absolute path on every code branch. Previously a relative `--cwd`
+  // value would leak through unresolved here.
+  return resolvedStart;
 };
 
 export const detectProject = async (projectRoot: string = process.cwd()): Promise<ProjectInfo> => {

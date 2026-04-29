@@ -78,4 +78,25 @@ describe("findNearestProjectRoot", () => {
     fs.mkdirSync(subdir, { recursive: true });
     expect(findNearestProjectRoot(subdir)).toBe(subdir);
   });
+
+  it("resolves a relative input on the no-package.json fallback path", () => {
+    // Walk into a deep subdir of the temp dir so the fallback branch fires
+    // (no package.json anywhere up the chain to the filesystem root). We
+    // call findNearestProjectRoot with a *relative* path and expect an
+    // absolute path back, otherwise downstream `path.resolve(cwd, ...)`
+    // calls would silently use the process-cwd as a base instead of the
+    // intended directory.
+    const previousCwd = process.cwd();
+    const relativeStart = path.join("no-project", "deep");
+    const absoluteStart = path.join(tempDir, relativeStart);
+    fs.mkdirSync(absoluteStart, { recursive: true });
+    process.chdir(tempDir);
+    try {
+      const result = findNearestProjectRoot(relativeStart);
+      expect(path.isAbsolute(result)).toBe(true);
+      expect(result).toBe(absoluteStart);
+    } finally {
+      process.chdir(previousCwd);
+    }
+  });
 });
