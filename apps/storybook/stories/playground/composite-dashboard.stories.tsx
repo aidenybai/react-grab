@@ -175,7 +175,9 @@ const BarChart = () => (
         "margin-bottom": "16px",
       }}
     >
-      <h3 style={{ margin: 0, "font-size": "16px", "font-weight": 600 }}>Signups (last 12 weeks)</h3>
+      <h3 style={{ margin: 0, "font-size": "16px", "font-weight": 600 }}>
+        Signups (last 12 weeks)
+      </h3>
       <span style={{ "font-size": "12px", color: "#6b6b6b" }}>Weekly</span>
     </header>
     <div
@@ -280,7 +282,13 @@ const UsersTable = () => (
                   {row.status}
                 </span>
               </td>
-              <td style={{ padding: "14px 20px", color: "#6b6b6b", "font-variant-numeric": "tabular-nums" }}>
+              <td
+                style={{
+                  padding: "14px 20px",
+                  color: "#6b6b6b",
+                  "font-variant-numeric": "tabular-nums",
+                }}
+              >
                 {row.lastActive}
               </td>
             </tr>

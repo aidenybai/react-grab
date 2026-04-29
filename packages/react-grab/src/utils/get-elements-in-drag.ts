@@ -1,5 +1,5 @@
 import type { DragRect, Rect } from "../types.js";
-import { suspendPointerEventsFreeze, resumePointerEventsFreeze } from "./freeze-pseudo-states.js";
+import { suspendPointerEventsFreeze, resumePointerEventsFreeze } from "./pointer-events-freeze.js";
 import {
   DRAG_SELECTION_COVERAGE_THRESHOLD,
   DRAG_SELECTION_SAMPLE_SPACING_PX,

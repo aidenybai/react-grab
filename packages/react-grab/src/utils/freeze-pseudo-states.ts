@@ -1,12 +1,9 @@
 import { clearElementPositionCache } from "./get-element-at-position.js";
-import { createStyleElement } from "./create-style-element.js";
-
-// We apply pointer-events:none on `html` rather than `*` because pointer-events
-// is inherited, so toggling it on a single root element is O(1) style invalidation
-// instead of O(N) for every DOM node, which caused visible lag on dense DOMs
-// like GitHub diff viewers with 10k+ nodes.
-// @see https://github.com/aidenybai/react-grab/pull/209
-const POINTER_EVENTS_STYLES = "html { pointer-events: none !important; }";
+import {
+  installPointerEventsFreeze,
+  isPointerEventsFreezeInstalled,
+  uninstallPointerEventsFreeze,
+} from "./pointer-events-freeze.js";
 
 // These capture-phase blockers prevent hover and focus side effects while the
 // pointer-events freeze is briefly suspended for hit-testing. Even though the
@@ -64,7 +61,6 @@ interface FrozenPseudoState {
 
 const frozenHoverElements = new Map<HTMLElement, Map<string, string>>();
 const frozenFocusElements = new Map<HTMLElement, Map<string, string>>();
-let pointerEventsStyle: HTMLStyleElement | null = null;
 
 const stopEvent = (event: Event): void => {
   event.stopImmediatePropagation();
@@ -162,16 +158,8 @@ const restoreFrozenStates = (
   storageMap.clear();
 };
 
-export const suspendPointerEventsFreeze = (): void => {
-  if (pointerEventsStyle) pointerEventsStyle.disabled = true;
-};
-
-export const resumePointerEventsFreeze = (): void => {
-  if (pointerEventsStyle) pointerEventsStyle.disabled = false;
-};
-
 export const freezePseudoStates = (cursorX?: number, cursorY?: number): void => {
-  if (pointerEventsStyle) return;
+  if (isPointerEventsFreezeInstalled()) return;
 
   for (const eventType of MOUSE_EVENTS_TO_BLOCK) {
     document.addEventListener(eventType, stopEvent, true);
@@ -208,7 +196,7 @@ export const freezePseudoStates = (cursorX?: number, cursorY?: number): void => 
   applyFrozenStates(hoverStates, frozenHoverElements);
   applyFrozenStates(focusStates, frozenFocusElements);
 
-  pointerEventsStyle = createStyleElement("data-react-grab-frozen-pseudo", POINTER_EVENTS_STYLES);
+  installPointerEventsFreeze();
 };
 
 export const unfreezePseudoStates = (): void => {
@@ -225,6 +213,5 @@ export const unfreezePseudoStates = (): void => {
   restoreFrozenStates(frozenHoverElements, HOVER_STYLE_PROPERTIES);
   restoreFrozenStates(frozenFocusElements, FOCUS_STYLE_PROPERTIES);
 
-  pointerEventsStyle?.remove();
-  pointerEventsStyle = null;
+  uninstallPointerEventsFreeze();
 };

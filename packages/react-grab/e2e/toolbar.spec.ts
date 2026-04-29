@@ -547,7 +547,9 @@ test.describe("Toolbar", () => {
       expect(await readPanelTransform()).toBe("");
 
       await dispatchOnChevron("pointerdown");
-      await expect.poll(readPanelTransform, { timeout: 1000 }).toMatch(/scale\((0\.97,\s*1|1,\s*0\.97)\)/);
+      await expect
+        .poll(readPanelTransform, { timeout: 1000 })
+        .toMatch(/scale\((0\.97,\s*1|1,\s*0\.97)\)/);
 
       await dispatchOnChevron("pointerup");
       await expect.poll(readPanelTransform, { timeout: 1000 }).toBe("");

@@ -5,8 +5,7 @@ const DEMO_HEIGHT = 40;
 const FALLBACK_VIEWPORT_WIDTH = 1024;
 const FALLBACK_VIEWPORT_HEIGHT = 640;
 
-const viewportWidth =
-  typeof window === "undefined" ? FALLBACK_VIEWPORT_WIDTH : window.innerWidth;
+const viewportWidth = typeof window === "undefined" ? FALLBACK_VIEWPORT_WIDTH : window.innerWidth;
 const viewportHeight =
   typeof window === "undefined" ? FALLBACK_VIEWPORT_HEIGHT : window.innerHeight;
 

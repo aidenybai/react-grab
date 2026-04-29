@@ -77,9 +77,9 @@ export const LiveCounter = () => {
       <header>
         <h1 style={{ margin: "0 0 8px", fontSize: "24px", fontWeight: 700 }}>Live Updates</h1>
         <p style={{ margin: 0, color: "#888", fontSize: "14px", maxWidth: "600px" }}>
-          Each element below re-renders every {TICK_INTERVAL_MS}ms via React useState +
-          setInterval. Activate react-grab (Alt) to verify the freeze-updates system stops these
-          React renders while you're selecting.
+          Each element below re-renders every {TICK_INTERVAL_MS}ms via React useState + setInterval.
+          Activate react-grab (Alt) to verify the freeze-updates system stops these React renders
+          while you're selecting.
         </p>
       </header>
 

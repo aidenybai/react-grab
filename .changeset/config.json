@@ -7,9 +7,5 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": [
-    "@react-grab/website",
-    "@react-grab/web-extension",
-    "@react-grab/storybook"
-  ]
+  "ignore": ["@react-grab/website", "@react-grab/web-extension", "@react-grab/storybook"]
 }
