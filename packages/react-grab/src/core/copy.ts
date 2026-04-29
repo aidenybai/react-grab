@@ -63,6 +63,10 @@ export const tryCopyWithFallback = async (
 
       didCopy = copyContent(copiedContent, {
         componentName: options.componentName,
+        // The getContent path leaves entries undefined; commentText
+        // populates the default entry so downstream formatters can still
+        // surface a Prompt: section.
+        commentText: extraPrompt,
         entries,
       });
     }

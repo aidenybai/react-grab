@@ -1,9 +1,13 @@
 import { Command } from "commander";
 import { add } from "./commands/add.js";
+import { checkInstalled } from "./commands/check-installed.js";
 import { configure } from "./commands/configure.js";
 import { init } from "./commands/init.js";
+import { installSkill } from "./commands/install-skill.js";
+import { log } from "./commands/log.js";
 import { remove } from "./commands/remove.js";
 import { upgrade } from "./commands/upgrade.js";
+import { isTelemetryEnabled } from "./utils/is-telemetry-enabled.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
 const VERSION_API_URL = "https://www.react-grab.com/api/version";
@@ -11,9 +15,11 @@ const VERSION_API_URL = "https://www.react-grab.com/api/version";
 process.on("SIGINT", () => process.exit(0));
 process.on("SIGTERM", () => process.exit(0));
 
-try {
-  fetch(`${VERSION_API_URL}?source=cli&v=${VERSION}&t=${Date.now()}`).catch(() => {});
-} catch {}
+if (isTelemetryEnabled()) {
+  try {
+    fetch(`${VERSION_API_URL}?source=cli&v=${VERSION}&t=${Date.now()}`).catch(() => {});
+  } catch {}
+}
 
 const program = new Command()
   .name("grab")
@@ -25,6 +31,9 @@ program.addCommand(add);
 program.addCommand(remove);
 program.addCommand(configure);
 program.addCommand(upgrade);
+program.addCommand(installSkill);
+program.addCommand(log);
+program.addCommand(checkInstalled);
 
 const main = async () => {
   await program.parseAsync();
