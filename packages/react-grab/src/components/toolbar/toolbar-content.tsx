@@ -115,7 +115,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
     <div
       data-react-grab-toolbar-panel
       class={cn(
-        "flex items-center justify-center rounded-[10px] antialiased relative overflow-visible [font-synthesis:none] border border-[#D9D9D9] filter-[drop-shadow(0px_1px_2px_#51515133)] [corner-shape:superellipse(1.25)]",
+        "flex items-center justify-center rounded-[10px] antialiased relative overflow-visible [font-synthesis:none] filter-[drop-shadow(0px_1px_2px_#51515133)] [corner-shape:superellipse(1.25)]",
         outerTransitionClass(),
         isVertical() && "flex-col",
         "bg-white",
