@@ -9,7 +9,9 @@ import {
   getSkillClientNames,
   getSupportedSkillClientNames,
   installSkills,
+  isSkillScope,
   readKnownLastSelectedAgents,
+  SKILL_SCOPES,
   type SkillScope,
 } from "../utils/install-skill.js";
 import { writeLastSelectedAgents } from "../utils/last-selected-agents.js";
@@ -18,17 +20,12 @@ import { prompts } from "../utils/prompts.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
 
-const SKILL_SCOPES: readonly SkillScope[] = ["global", "project"];
-
 interface InstallSkillCommandOptions {
   yes?: boolean;
   agent?: string[];
   scope?: string;
   cwd: string;
 }
-
-const isSkillScope = (value: unknown): value is SkillScope =>
-  typeof value === "string" && (SKILL_SCOPES as readonly string[]).includes(value);
 
 const promptForScope = async (): Promise<SkillScope | undefined> => {
   const { selectedScope } = await prompts({
