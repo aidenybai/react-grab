@@ -30,6 +30,9 @@ const parseOptionsFromJson = (rawValue: unknown): Partial<Options> | null => {
   if (typeof rawValue.freezeReactUpdates === "boolean") {
     parsedOptions.freezeReactUpdates = rawValue.freezeReactUpdates;
   }
+  if (typeof rawValue.silent === "boolean") {
+    parsedOptions.silent = rawValue.silent;
+  }
 
   if (Object.keys(parsedOptions).length === 0) return null;
   return parsedOptions;

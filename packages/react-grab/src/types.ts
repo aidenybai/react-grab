@@ -252,6 +252,13 @@ export interface Options {
    * @default true
    */
   freezeReactUpdates?: boolean;
+  /**
+   * Suppress the React Grab intro banner and version-check log.
+   * Useful when console output is forwarded to error tracking
+   * services like Sentry.
+   * @default false
+   */
+  silent?: boolean;
 }
 
 export interface SettableOptions extends Options {
