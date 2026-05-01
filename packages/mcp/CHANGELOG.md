@@ -1,5 +1,11 @@
 # @react-grab/mcp
 
+## 0.2.0
+
+### Major Changes
+
+- **DEPRECATED.** The MCP stdio server has been replaced by an agent skill that calls `react-grab watch` from `@react-grab/cli` directly. Run `npx -y @react-grab/cli@latest install-skill` to migrate. This release ships a stub `react-grab-mcp` binary that prints a deprecation notice and exits with code 1 so existing `mcp.json` entries surface a clear next step. See the package README for full migration instructions.
+
 ## 0.1.32
 
 ### Patch Changes

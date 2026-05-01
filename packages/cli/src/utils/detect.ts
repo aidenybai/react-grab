@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { basename, dirname, join } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { detect } from "@antfu/ni";
 import ignore from "ignore";
 
@@ -347,12 +347,14 @@ const hasReactGrabInFile = (filePath: string): boolean => {
   }
 };
 
-export const detectReactGrab = (projectRoot: string): boolean => {
+const detectReactGrabAt = (projectRoot: string): boolean => {
   const packageJsonPath = join(projectRoot, "package.json");
 
   if (existsSync(packageJsonPath)) {
     try {
       const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
+      // Dogfood: working inside the react-grab source repo.
+      if (packageJson.name === "react-grab") return true;
       const allDependencies = {
         ...packageJson.dependencies,
         ...packageJson.devDependencies,
@@ -387,6 +389,22 @@ export const detectReactGrab = (projectRoot: string): boolean => {
   ];
 
   return filesToCheck.some(hasReactGrabInFile);
+};
+
+export const detectReactGrab = (projectRoot: string): boolean => {
+  if (detectReactGrabAt(projectRoot)) return true;
+  if (!detectMonorepo(projectRoot)) return false;
+
+  // Monorepo roots often have no react-grab dep themselves while one of
+  // the workspace packages does (or IS react-grab). Without this walk the
+  // preflight misfires from anywhere inside such a repo.
+  for (const pattern of getWorkspacePatterns(projectRoot)) {
+    for (const workspacePath of expandWorkspacePattern(projectRoot, pattern)) {
+      if (detectReactGrabAt(workspacePath)) return true;
+    }
+  }
+
+  return false;
 };
 
 export const detectUnsupportedFramework = (projectRoot: string): UnsupportedFramework => {
@@ -434,6 +452,72 @@ const detectReactGrabVersion = (projectRoot: string): string | null => {
     } catch {}
   }
   return null;
+};
+
+// Mirror detectMonorepo's permissive "any truthy `workspaces` counts" rule so
+// the two helpers can never disagree on whether a directory is a workspace
+// root: arrays (npm/yarn classic), `{packages: [...]}` objects (yarn berry),
+// and exotic shapes other tools accept all qualify. Empty arrays /
+// empty-packages objects also count - the user explicitly opted in by
+// setting the field at all. Aligning with detectMonorepo keeps
+// findNearestProjectRoot from returning a different root than detectMonorepo
+// would imply for the same project.
+const hasWorkspacesField = (dir: string): boolean => {
+  const packageJsonPath = join(dir, "package.json");
+  if (!existsSync(packageJsonPath)) return false;
+  try {
+    const pkg = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
+    return Boolean(pkg.workspaces);
+  } catch {
+    return false;
+  }
+};
+
+const isWorkspaceRoot = (dir: string): boolean => {
+  if (existsSync(join(dir, "pnpm-workspace.yaml"))) return true;
+  if (existsSync(join(dir, "lerna.json"))) return true;
+  if (hasWorkspacesField(dir)) return true;
+  return false;
+};
+
+// Walks up from `start` looking for the nearest project root for skill
+// installation. Used so commands like `install-skill`, `remove`, and `add`
+// can be invoked from any subdirectory inside a project and still resolve
+// the canonical install location (`<projectRoot>/.agents/skills/...`).
+//
+// Resolution priority:
+//   1. The outermost ancestor that is a workspace root (pnpm-workspace.yaml,
+//      lerna.json, or package.json with a non-empty `workspaces` field).
+//      This handles monorepos where editor agents read from the repo root,
+//      not the workspace package the user happens to be inside.
+//   2. The nearest ancestor with a plain `package.json`.
+//   3. `start` itself, as a last-resort fallback.
+//
+// Capped at 64 levels of walking so a malformed cwd can't loop forever.
+export const findNearestProjectRoot = (start: string): string => {
+  const resolvedStart = resolve(start);
+  let dir = resolvedStart;
+  let firstWithPackageJson: string | null = null;
+  let outermostWorkspaceRoot: string | null = null;
+
+  for (let depth = 0; depth < 64; depth += 1) {
+    if (existsSync(join(dir, "package.json"))) {
+      if (firstWithPackageJson === null) firstWithPackageJson = dir;
+      if (isWorkspaceRoot(dir)) outermostWorkspaceRoot = dir;
+    }
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+
+  if (outermostWorkspaceRoot !== null) return outermostWorkspaceRoot;
+  if (firstWithPackageJson !== null) return firstWithPackageJson;
+  // Fall back to the resolved absolute path rather than the raw `start`
+  // argument so callers like `add`/`remove`/`install-skill` (which pass it
+  // straight into `path.resolve(cwd, ...)` and JSON output) receive an
+  // absolute path on every code branch. Previously a relative `--cwd`
+  // value would leak through unresolved here.
+  return resolvedStart;
 };
 
 export const detectProject = async (projectRoot: string = process.cwd()): Promise<ProjectInfo> => {

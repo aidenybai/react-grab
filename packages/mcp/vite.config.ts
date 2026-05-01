@@ -7,40 +7,23 @@ const nodeBuiltins = [
 ];
 
 export default defineConfig({
-  pack: [
-    {
-      entry: ["src/client.ts"],
-      format: ["cjs", "esm"],
-      dts: true,
-      clean: false,
-      sourcemap: false,
-      platform: "browser",
+  test: {
+    globals: true,
+    include: ["test/**/*.test.ts"],
+    testTimeout: 10000,
+  },
+  pack: {
+    entry: ["src/cli.ts"],
+    format: ["cjs", "esm"],
+    dts: true,
+    clean: false,
+    sourcemap: false,
+    platform: "node",
+    fixedExtension: false,
+    banner: "#!/usr/bin/env node",
+    deps: {
+      alwaysBundle: [/.*/],
+      neverBundle: nodeBuiltins,
     },
-    {
-      entry: ["src/client.ts"],
-      format: ["iife"],
-      globalName: "ReactGrabMcp",
-      dts: false,
-      clean: false,
-      minify: process.env.NODE_ENV === "production",
-      sourcemap: false,
-      platform: "browser",
-      deps: {
-        alwaysBundle: [/.*/],
-      },
-    },
-    {
-      entry: ["src/server.ts", "src/cli.ts"],
-      format: ["cjs", "esm"],
-      dts: true,
-      clean: false,
-      sourcemap: false,
-      platform: "node",
-      fixedExtension: false,
-      deps: {
-        alwaysBundle: [/.*/],
-        neverBundle: nodeBuiltins,
-      },
-    },
-  ],
+  },
 });

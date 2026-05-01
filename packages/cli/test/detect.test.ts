@@ -223,6 +223,57 @@ describe("detectReactGrab", () => {
 
     expect(detectReactGrab("/test")).toBe(false);
   });
+
+  it("should treat a package whose own name is react-grab as installed", () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(JSON.stringify({ name: "react-grab", version: "0.1.0" }));
+
+    expect(detectReactGrab("/test")).toBe(true);
+  });
+
+  it("should walk workspace packages to find react-grab in a monorepo", () => {
+    mockExistsSync.mockImplementation((checkedPath) => {
+      const stringPath = String(checkedPath);
+      return (
+        stringPath.endsWith("package.json") ||
+        stringPath.endsWith("/test/apps/web") ||
+        stringPath.endsWith("/test/apps/web/package.json")
+      );
+    });
+    mockReadFileSync.mockImplementation((readPath) => {
+      const stringPath = String(readPath);
+      if (stringPath.endsWith("/test/apps/web/package.json")) {
+        return JSON.stringify({ name: "web", dependencies: { "react-grab": "^0.1.0" } });
+      }
+      return JSON.stringify({ name: "demo", workspaces: ["apps/web"] });
+    });
+
+    expect(detectReactGrab("/test")).toBe(true);
+  });
+
+  it("should walk workspace packages to find a workspace named react-grab (source repo)", () => {
+    mockExistsSync.mockImplementation((checkedPath) => {
+      const stringPath = String(checkedPath);
+      return (
+        stringPath.endsWith("package.json") ||
+        stringPath.endsWith("/test/packages/react-grab") ||
+        stringPath.endsWith("/test/packages/react-grab/package.json")
+      );
+    });
+    mockReadFileSync.mockImplementation((readPath) => {
+      const stringPath = String(readPath);
+      if (stringPath.endsWith("/test/packages/react-grab/package.json")) {
+        return JSON.stringify({ name: "react-grab", version: "0.1.0" });
+      }
+      return JSON.stringify({
+        name: "react-grab-monorepo",
+        private: true,
+        workspaces: ["packages/react-grab"],
+      });
+    });
+
+    expect(detectReactGrab("/test")).toBe(true);
+  });
 });
 
 describe("detectMonorepo", () => {

@@ -5,7 +5,8 @@ import pc from "picocolors";
 import { detectNonInteractive } from "../utils/is-non-interactive.js";
 import { prompts } from "../utils/prompts.js";
 import { applyTransformWithFeedback, installPackagesWithFeedback } from "../utils/cli-helpers.js";
-import { promptMcpInstall } from "../utils/install-mcp.js";
+import { installDetectedOrAllSkills, type SkillScope } from "../utils/install-skill.js";
+import { isTelemetryEnabled } from "../utils/is-telemetry-enabled.js";
 import {
   detectProject,
   findReactProjects,
@@ -40,6 +41,7 @@ interface ReportConfig {
 }
 
 const reportToCli = (type: "error" | "completed", config?: ReportConfig, error?: Error): void => {
+  if (!isTelemetryEnabled()) return;
   fetch(REPORT_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -143,6 +145,23 @@ export const init = new Command()
           logger.log(
             `Use ${highlighter.info("--force")} to reconfigure, or remove ${highlighter.info("--yes")} for interactive mode.`,
           );
+          // Even on a re-run against an already-installed project, scripted
+          // pipelines still want the agent skill installed - mirroring the
+          // pre-CLI MCP behavior where `grab init -y` always wired up agent
+          // integration. Without this, CI scripts that re-run `init -y` after
+          // upgrading the CLI silently lose the skill and never see a prompt
+          // telling them to run `install-skill` separately.
+          logger.break();
+          const results = installDetectedOrAllSkills("project", projectInfo.projectRoot);
+          if (results.some((result) => result.success)) {
+            logger.success(
+              "React Grab skill installed/refreshed. Restart your agent(s) to pick it up.",
+            );
+          } else {
+            logger.warn(
+              `React Grab skill install did not write any files. Run ${highlighter.info("grab install-skill")} after init to retry.`,
+            );
+          }
           logger.break();
           process.exit(0);
         }
@@ -327,27 +346,41 @@ export const init = new Command()
         }
 
         logger.break();
-        const { wantAddMcp } = await prompts({
-          type: "confirm",
-          name: "wantAddMcp",
-          message: `Would you like to ${highlighter.info("connect it to your agent via MCP")}?`,
-          initial: false,
+        const { skillChoice } = await prompts({
+          type: "select",
+          name: "skillChoice",
+          message: `Install the ${highlighter.info("React Grab skill")} into your agent?`,
+          choices: [
+            { title: "Yes, in this project (committed to repo)", value: "project" },
+            { title: "Yes, globally (per-user)", value: "global" },
+            { title: "No", value: "no" },
+          ],
+          initial: 0,
         });
 
-        if (wantAddMcp === undefined) {
+        if (skillChoice === undefined) {
           logger.break();
           process.exit(1);
         }
 
-        if (wantAddMcp) {
-          const didInstall = await promptMcpInstall();
-          if (!didInstall) {
-            logger.break();
-            process.exit(0);
-          }
+        if (skillChoice !== "no") {
+          const results = installDetectedOrAllSkills(
+            skillChoice as SkillScope,
+            projectInfo.projectRoot,
+          );
+          const didInstall = results.some((result) => result.success);
           logger.break();
-          logger.success("MCP server has been configured.");
-          logger.log("Restart your agents to activate.");
+          if (didInstall) {
+            logger.success("React Grab skill has been installed.");
+            logger.log("Restart your agent(s) to pick it up.");
+          } else {
+            // The user explicitly opted into skill install but no files were
+            // written. Surface the failure with a non-zero exit so wrapper
+            // scripts can detect it.
+            logger.error("React Grab skill install did not write any files.");
+            logger.break();
+            process.exit(1);
+          }
         }
 
         logger.break();
@@ -450,30 +483,59 @@ export const init = new Command()
       const finalFramework = projectInfo.framework;
       const finalPackageManager = projectInfo.packageManager;
       const finalNextRouterType = projectInfo.nextRouterType;
-      let didInstallMcp = false;
+      let didInstallSkill = false;
 
-      if (!isNonInteractive) {
+      if (isNonInteractive) {
+        // Match the pre-CLI MCP behavior: `grab init -y` (used in CI /
+        // automation) also installs the React Grab skill so scripted
+        // pipelines retain agent integration after upgrading. Defaults to
+        // project scope so the skill ends up committed alongside the rest of
+        // the React Grab install.
+        const results = installDetectedOrAllSkills("project", projectInfo.projectRoot);
+        didInstallSkill = results.some((result) => result.success);
         logger.break();
-        const { wantAddMcp } = await prompts({
-          type: "confirm",
-          name: "wantAddMcp",
-          message: `Would you like to ${highlighter.info("connect it to your agent via MCP")}?`,
-          initial: false,
+        if (didInstallSkill) {
+          logger.success("React Grab skill has been installed.");
+        } else {
+          logger.warn(
+            `React Grab skill install did not write any files. Run ${highlighter.info("grab install-skill")} after init to retry.`,
+          );
+        }
+        logger.log("Continuing with React Grab installation...");
+        logger.break();
+      } else {
+        logger.break();
+        const { skillChoice } = await prompts({
+          type: "select",
+          name: "skillChoice",
+          message: `Install the ${highlighter.info("React Grab skill")} into your agent?`,
+          choices: [
+            { title: "Yes, in this project (committed to repo)", value: "project" },
+            { title: "Yes, globally (per-user)", value: "global" },
+            { title: "No", value: "no" },
+          ],
+          initial: 0,
         });
 
-        if (wantAddMcp === undefined) {
+        if (skillChoice === undefined) {
           logger.break();
           process.exit(1);
         }
 
-        if (wantAddMcp) {
-          didInstallMcp = Boolean(await promptMcpInstall());
-          if (!didInstallMcp) {
-            logger.break();
-            process.exit(0);
-          }
+        if (skillChoice !== "no") {
+          const results = installDetectedOrAllSkills(
+            skillChoice as SkillScope,
+            projectInfo.projectRoot,
+          );
+          didInstallSkill = results.some((result) => result.success);
           logger.break();
-          logger.success("MCP server has been configured.");
+          if (didInstallSkill) {
+            logger.success("React Grab skill has been installed.");
+          } else {
+            // Skill install is optional decoration on top of the React Grab
+            // install. Don't abort the main install if the skill write fails.
+            logger.warn("React Grab skill install did not write any files.");
+          }
           logger.log("Continuing with React Grab installation...");
           logger.break();
         }
@@ -547,7 +609,7 @@ export const init = new Command()
         framework: finalFramework,
         packageManager: finalPackageManager,
         router: finalNextRouterType,
-        agent: didInstallMcp ? "mcp" : undefined,
+        agent: didInstallSkill ? "skill" : undefined,
         isMonorepo: projectInfo.isMonorepo,
       });
     } catch (error) {

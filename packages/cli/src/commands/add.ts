@@ -1,11 +1,16 @@
 import { Command } from "commander";
 import pc from "picocolors";
 import { detectNonInteractive } from "../utils/is-non-interactive.js";
-import { detectProject } from "../utils/detect.js";
+import { detectProject, findNearestProjectRoot } from "../utils/detect.js";
 import { handleError } from "../utils/handle-error.js";
 import { highlighter } from "../utils/highlighter.js";
-import { installMcpServers, promptMcpInstall } from "../utils/install-mcp.js";
+import {
+  installDetectedOrAllSkills,
+  promptSkillInstall,
+  type SkillScope,
+} from "../utils/install-skill.js";
 import { logger } from "../utils/logger.js";
+import { prompts } from "../utils/prompts.js";
 import { spinner } from "../utils/spinner.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
@@ -13,8 +18,8 @@ const VERSION = process.env.VERSION ?? "0.0.1";
 export const add = new Command()
   .name("add")
   .alias("install")
-  .description("connect React Grab to your agent via MCP")
-  .argument("[agent]", "agent to connect (mcp)")
+  .description("connect React Grab to your agent by installing the skill")
+  .argument("[agent]", "legacy alias kept for backward compatibility (e.g. mcp, skill)")
   .option("-y, --yes", "skip confirmation prompts", false)
   .option("-c, --cwd <cwd>", "working directory (defaults to current directory)", process.cwd())
   .action(async (agentArg, opts) => {
@@ -22,7 +27,10 @@ export const add = new Command()
     console.log();
 
     try {
-      const cwd = opts.cwd;
+      // Walk up from the user-provided cwd to the nearest project root so
+      // running `grab add` inside a subdirectory still anchors detection and
+      // the skill install on the actual project root rather than the subdir.
+      const cwd = findNearestProjectRoot(opts.cwd);
       const isNonInteractive = detectNonInteractive(opts.yes);
 
       const preflightSpinner = spinner("Preflight checks.").start();
@@ -39,48 +47,79 @@ export const add = new Command()
 
       preflightSpinner.succeed();
 
-      if (agentArg && agentArg !== "mcp") {
+      const VALID_AGENT_ARGS: readonly string[] = ["mcp", "skill"];
+      if (agentArg === "mcp") {
         logger.break();
         logger.warn(
-          `Legacy agent packages are deprecated. Use ${highlighter.info("mcp")} instead.`,
+          `${highlighter.info("@react-grab/mcp")} is deprecated. Installing the React Grab skill instead.`,
         );
-        logger.log(`Run ${highlighter.info("grab add mcp")} to install the MCP server.`);
+        logger.log(`Run ${highlighter.info("grab install-skill")} directly going forward.`);
+        logger.break();
+      } else if (agentArg && !VALID_AGENT_ARGS.includes(agentArg)) {
+        logger.break();
+        logger.error(
+          `Unknown agent "${agentArg}". Valid values: ${VALID_AGENT_ARGS.join(", ")} (or omit the argument).`,
+        );
         logger.break();
         process.exit(1);
       }
 
-      if (agentArg === "mcp" || isNonInteractive) {
-        if (isNonInteractive) {
-          const results = installMcpServers();
-          const hasSuccess = results.some((result) => result.success);
-          if (!hasSuccess) {
-            logger.break();
-            logger.error("Failed to install MCP server.");
-            logger.break();
-            process.exit(1);
-          }
-        } else {
-          const didInstall = await promptMcpInstall();
-          if (!didInstall) {
-            logger.break();
-            process.exit(0);
-          }
-        }
-        logger.break();
-        logger.log(`${highlighter.success("Success!")} MCP server has been configured.`);
-        logger.log("Restart your agents to activate.");
-        logger.break();
-      } else {
-        const didInstall = await promptMcpInstall();
-        if (!didInstall) {
+      if (isNonInteractive) {
+        // Project-scope installs anchor on the resolved project root, not
+        // the original cwd, so a subdirectory invocation in a monorepo still
+        // lands the skill in the same dir the project's agents will read.
+        const results = installDetectedOrAllSkills("project", projectInfo.projectRoot);
+        const hasSuccess = results.some((result) => result.success);
+        if (!hasSuccess) {
           logger.break();
-          process.exit(0);
+          logger.error("Failed to install React Grab skill.");
+          logger.break();
+          process.exit(1);
         }
+      } else {
         logger.break();
-        logger.log(`${highlighter.success("Success!")} MCP server has been configured.`);
-        logger.log("Restart your agents to activate.");
-        logger.break();
+        const { skillScope } = await prompts({
+          type: "select",
+          name: "skillScope",
+          message: "Where should the React Grab skill be installed?",
+          choices: [
+            { title: "In this project (committed to repo)", value: "project" },
+            { title: "Globally (per-user)", value: "global" },
+          ],
+          initial: 0,
+        });
+
+        if (skillScope === undefined) {
+          logger.break();
+          process.exit(1);
+        }
+
+        const outcome = await promptSkillInstall(skillScope as SkillScope, projectInfo.projectRoot);
+        if (outcome === "failed") {
+          // Distinguish a real install failure (couldn't write to any agent
+          // skill dir) from a benign user cancellation. The previous boolean
+          // return collapsed both into exit 0 and silently swallowed
+          // permission errors that wrapper scripts / CI need to detect.
+          logger.break();
+          logger.error("React Grab skill install did not write any files.");
+          logger.break();
+          process.exit(1);
+        }
+        if (outcome === "cancelled") {
+          // Exit 1 on user-cancelled prompts so wrapper scripts can
+          // distinguish a cancellation from a successful install.
+          // Consistent with the scope-prompt cancellation branch above and
+          // with `grab install-skill`, which also exits 1 on multiselect
+          // cancel.
+          logger.break();
+          process.exit(1);
+        }
       }
+
+      logger.break();
+      logger.log(`${highlighter.success("Success!")} React Grab skill installed.`);
+      logger.log("Restart your agent(s) to pick it up.");
+      logger.break();
     } catch (error) {
       handleError(error);
     }

@@ -1,0 +1,1 @@
+../../packages/cli/src/utils/skill-template.md

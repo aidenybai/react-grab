@@ -21,6 +21,7 @@
     "build": "rm -rf dist && NODE_ENV=production vp pack",
     "test": "vp test run",
     "test:watch": "vp test",
+    "typecheck": "tsc --noEmit",
     "lint": "vp lint",
     "format": "vp fmt",
     "format:check": "vp fmt --check",
@@ -34,7 +35,8 @@
     "ora": "^8.2.0",
     "picocolors": "^1.1.1",
     "prompts": "^2.4.2",
-    "smol-toml": "^1.6.0"
+    "smol-toml": "^1.6.0",
+    "zod": "^3.25.0"
   },
   "devDependencies": {
     "@types/prompts": "^2.4.9"
