@@ -263,6 +263,7 @@ export interface Options {
 
 export interface SettableOptions extends Options {
   enabled?: never;
+  silent?: never;
 }
 
 export interface SourceInfo {
