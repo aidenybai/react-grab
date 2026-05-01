@@ -344,6 +344,7 @@ export interface CommentItem {
   previewBounds?: OverlayBounds[];
   elementSelectors?: string[];
   commentText?: string;
+  url?: string;
   timestamp: number;
 }
 
