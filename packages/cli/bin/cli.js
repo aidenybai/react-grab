@@ -9,4 +9,4 @@ if (module.enableCompileCache && !process.env.NODE_DISABLE_COMPILE_CACHE) {
   }
 }
 
-await import("@react-grab/cli");
+await import("../dist/cli.js");

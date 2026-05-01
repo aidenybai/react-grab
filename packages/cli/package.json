@@ -2,9 +2,10 @@
   "name": "@react-grab/cli",
   "version": "0.1.32",
   "bin": {
-    "react-grab": "./dist/cli.js"
+    "react-grab": "./bin/cli.js"
   },
   "files": [
+    "bin",
     "dist"
   ],
   "type": "module",
