@@ -126,7 +126,6 @@ export const ZOOM_DETECTION_THRESHOLD = 0.01;
 
 export const MOUNT_ROOT_RECHECK_DELAY_MS = 1000;
 
-export const MAX_COMMENT_ITEMS = 20;
 export const MAX_SESSION_STORAGE_SIZE_BYTES = 2 * 1024 * 1024;
 // Must match the CSS exit transition on dropdown components or the DOM
 // unmounts mid-animation.
