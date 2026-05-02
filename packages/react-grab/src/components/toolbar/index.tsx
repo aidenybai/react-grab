@@ -403,6 +403,40 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   let resizeTimeout: ReturnType<typeof setTimeout> | undefined;
   let collapseAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
   let commentItemCountTimeout: ReturnType<typeof setTimeout> | undefined;
+  let lastObservedExpandedSize: { width: number; height: number } | null = null;
+
+  // The first onMount measurement can fire before the shadow DOM host is
+  // attached to <body> (mountRoot defers attachment to DOMContentLoaded while
+  // the renderer's dynamic import can resolve earlier), or before fonts/CSS
+  // have settled - both leave getBoundingClientRect returning a 0 rect. The
+  // observer adopts the real size once layout commits and re-anchors the
+  // toolbar to its saved/default ratio so it lands on the correct edge slot
+  // instead of the off-screen position derived from a 0-width measurement.
+  const handleObservedSizeChange = (newWidth: number, newHeight: number) => {
+    if (newWidth === 0 || newHeight === 0) return;
+    if (drag.isDragging() || drag.isSnapping()) return;
+    if (isCollapseAnimating()) return;
+
+    if (isCollapsed()) {
+      const currentCollapsed = collapsedDimensions();
+      if (currentCollapsed.width === newWidth && currentCollapsed.height === newHeight) return;
+      setCollapsedDimensions({ width: newWidth, height: newHeight });
+      return;
+    }
+
+    if (
+      lastObservedExpandedSize &&
+      lastObservedExpandedSize.width === newWidth &&
+      lastObservedExpandedSize.height === newHeight
+    ) {
+      return;
+    }
+    lastObservedExpandedSize = { width: newWidth, height: newHeight };
+    expandedDimensions = { width: newWidth, height: newHeight };
+    setPosition(
+      getPositionFromEdgeAndRatio(snapEdge(), positionRatio(), newWidth, newHeight),
+    );
+  };
 
   const handleResize = () => {
     if (drag.isDragging()) return;
@@ -446,13 +480,20 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
     const rect = containerRef?.getBoundingClientRect();
     const viewport = getVisualViewport();
+    // The host's shadow DOM may still be detached from <body> when this
+    // synchronous measurement runs (mountRoot defers attachment to
+    // DOMContentLoaded, the renderer's dynamic import can resolve earlier).
+    // A detached element returns a 0 rect, which would poison
+    // expandedDimensions and place the toolbar off-screen. The ResizeObserver
+    // installed below adopts the real size as soon as layout commits.
+    const hasMeasurableRect = Boolean(rect && rect.width > 0 && rect.height > 0);
 
     // Because isCollapsed defaults to false the element is always rendered
     // expanded on initial mount, so rect reflects expanded dimensions here
     // regardless of savedState.collapsed. Using it for collapsed dimensions
     // would make the toolbar too wide after restoring a collapsed state.
     if (savedState) {
-      if (rect) {
+      if (hasMeasurableRect && rect) {
         expandedDimensions = { width: rect.width, height: rect.height };
       }
       setIsCollapsed(savedState.collapsed);
@@ -463,7 +504,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         expandedDimensions.height,
       );
       setPosition(newPosition);
-    } else if (rect) {
+    } else if (hasMeasurableRect && rect) {
       expandedDimensions = { width: rect.width, height: rect.height };
       setPosition({
         x: viewport.offsetLeft + (viewport.width - rect.width) / 2,
@@ -478,6 +519,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         expandedDimensions.height,
       );
       setPosition(defaultPosition);
+      setPositionRatio(TOOLBAR_DEFAULT_POSITION_RATIO);
     }
 
     if (props.onSubscribeToStateChanges) {
@@ -532,6 +574,17 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     window.addEventListener("resize", handleResize);
     window.visualViewport?.addEventListener("resize", handleResize);
     window.visualViewport?.addEventListener("scroll", handleResize);
+
+    if (typeof ResizeObserver !== "undefined" && containerRef) {
+      const observer = new ResizeObserver((entries) => {
+        const entry = entries[0];
+        if (!entry) return;
+        const { width, height } = entry.contentRect;
+        handleObservedSizeChange(width, height);
+      });
+      observer.observe(containerRef);
+      onCleanup(() => observer.disconnect());
+    }
 
     const fadeInTimeout = setTimeout(() => {
       setIsVisible(true);
