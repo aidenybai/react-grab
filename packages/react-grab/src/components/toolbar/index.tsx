@@ -385,15 +385,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     }
     collapseAnimationTimeout = setTimeout(() => {
       setIsCollapseAnimating(false);
-      if (isCollapsed()) {
-        const collapsedRect = containerRef?.getBoundingClientRect();
-        if (collapsedRect) {
-          setCollapsedDimensions({
-            width: collapsedRect.width,
-            height: collapsedRect.height,
-          });
-        }
-      }
+      captureDimensionsAfterAnimation();
     }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
   });
 
@@ -404,6 +396,23 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   let collapseAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
   let commentItemCountTimeout: ReturnType<typeof setTimeout> | undefined;
   let lastObservedExpandedSize: { width: number; height: number } | null = null;
+
+  // Both directions need to refresh their cached dimensions: collapsing
+  // updates collapsedDimensions for the next expand-from-collapsed offset
+  // calculation, and expanding updates expandedDimensions so handleResize
+  // and getExpandedFromCollapsed don't keep using the 78x28 default that
+  // got cached when the toolbar mounted with savedState.collapsed=true and
+  // an unmeasurable rect.
+  const captureDimensionsAfterAnimation = () => {
+    const finalRect = containerRef?.getBoundingClientRect();
+    if (!finalRect || finalRect.width === 0 || finalRect.height === 0) return;
+    if (isCollapsed()) {
+      setCollapsedDimensions({ width: finalRect.width, height: finalRect.height });
+    } else {
+      expandedDimensions = { width: finalRect.width, height: finalRect.height };
+      lastObservedExpandedSize = { width: finalRect.width, height: finalRect.height };
+    }
+  };
 
   // The first onMount measurement can fire before the shadow DOM host is
   // attached to <body> (mountRoot defers attachment to DOMContentLoaded while
@@ -547,6 +556,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           clearTimeout(collapseAnimationTimeout);
           collapseAnimationTimeout = setTimeout(() => {
             setIsCollapseAnimating(false);
+            captureDimensionsAfterAnimation();
           }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
         } else {
           if (didCollapsedChange) {
@@ -554,6 +564,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             clearTimeout(collapseAnimationTimeout);
             collapseAnimationTimeout = setTimeout(() => {
               setIsCollapseAnimating(false);
+              captureDimensionsAfterAnimation();
             }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
           }
           setIsCollapsed(state.collapsed);
@@ -579,7 +590,23 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       const observer = new ResizeObserver((entries) => {
         const entry = entries[0];
         if (!entry) return;
-        const { width, height } = entry.contentRect;
+        // entry.contentRect reports content-box, which omits padding; the rest
+        // of the toolbar measures border-box via getBoundingClientRect, so
+        // mixing them would underestimate the toolbar by its `px-2 py-1.5`
+        // padding. borderBoxSize is widely supported (Chrome 84+, Safari 15.4+,
+        // Firefox 69+); fall back to getBoundingClientRect for older runtimes.
+        const borderBox = entry.borderBoxSize?.[0];
+        let width: number;
+        let height: number;
+        if (borderBox) {
+          width = borderBox.inlineSize;
+          height = borderBox.blockSize;
+        } else {
+          const rect = containerRef?.getBoundingClientRect();
+          if (!rect) return;
+          width = rect.width;
+          height = rect.height;
+        }
         handleObservedSizeChange(width, height);
       });
       observer.observe(containerRef);
@@ -731,6 +758,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             }
             collapseAnimationTimeout = setTimeout(() => {
               setIsCollapseAnimating(false);
+              captureDimensionsAfterAnimation();
             }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
           }
         }}
