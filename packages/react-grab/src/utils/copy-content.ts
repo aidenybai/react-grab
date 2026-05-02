@@ -7,12 +7,14 @@ export interface ReactGrabEntry {
   componentName?: string;
   content: string;
   commentText?: string;
+  url?: string;
 }
 
 interface CopyContentOptions {
   componentName?: string;
   tagName?: string;
   commentText?: string;
+  url?: string;
   entries?: ReactGrabEntry[];
 }
 
@@ -34,6 +36,7 @@ export const copyContent = (content: string, options?: CopyContentOptions): bool
       componentName: elementName,
       content,
       commentText: options?.commentText,
+      url: options?.url,
     },
   ];
   const reactGrabMetadata: ReactGrabMetadata = {

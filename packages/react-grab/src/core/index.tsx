@@ -136,6 +136,7 @@ import {
   confirmClear,
 } from "../utils/comment-storage.js";
 import { copyContent } from "../utils/copy-content.js";
+import { formatContentWithSourceUrl } from "../utils/format-content-with-source-url.js";
 import { joinSnippets } from "../utils/join-snippets.js";
 import { generateId } from "../utils/generate-id.js";
 import { logRecoverableError } from "../utils/log-recoverable-error.js";
@@ -3342,14 +3343,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
-    const decorateContentWithUrl = (content: string, url: string | undefined): string =>
-      url ? `${content}\n  at ${url}` : content;
-
     const copyCommentItemContent = (item: CommentItem) => {
-      copyContent(decorateContentWithUrl(item.content, item.url), {
+      copyContent(formatContentWithSourceUrl(item.content, item.url), {
         tagName: item.tagName,
         componentName: item.componentName ?? item.elementName,
         commentText: item.commentText,
+        url: item.url,
       });
       const element = getFirstConnectedCommentElement(item);
       if (!element) return;
@@ -3391,7 +3390,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const combinedContent = joinSnippets(
         currentCommentItems.map((commentItem) =>
-          decorateContentWithUrl(commentItem.content, commentItem.url),
+          formatContentWithSourceUrl(commentItem.content, commentItem.url),
         ),
       );
 
@@ -3401,7 +3400,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         entries: currentCommentItems.map((commentItem) => ({
           tagName: commentItem.tagName,
           componentName: commentItem.componentName ?? commentItem.elementName,
-          content: decorateContentWithUrl(commentItem.content, commentItem.url),
+          content: commentItem.content,
+          url: commentItem.url,
           commentText: commentItem.commentText,
         })),
       });

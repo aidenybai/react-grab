@@ -43,13 +43,12 @@ const getCommentItemDisplayName = (item: CommentItem): string => {
 const getCommentItemUrlLabel = (item: CommentItem): string | undefined => {
   if (!item.url) return undefined;
   try {
-    const parsed = new URL(item.url);
-    const currentHost = typeof window !== "undefined" ? window.location.host : "";
-    const pathAndQuery = `${parsed.pathname}${parsed.search}`;
-    if (parsed.host && parsed.host !== currentHost) {
-      return `${parsed.host}${pathAndQuery}`;
+    const parsedUrl = new URL(item.url);
+    const pathWithQuery = `${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`;
+    if (parsedUrl.host && parsedUrl.host !== window.location.host) {
+      return `${parsedUrl.host}${pathWithQuery}`;
     }
-    return pathAndQuery || "/";
+    return pathWithQuery || "/";
   } catch {
     return item.url;
   }
