@@ -32,12 +32,12 @@
     "check": "vp check"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.25.0",
-    "fkill": "^9.0.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "fkill": "^10.0.3",
     "react-grab": "workspace:*",
-    "zod": "^3.25.0"
+    "zod": "^4.4.2"
   },
   "devDependencies": {
-    "@types/node": "^22.10.7"
+    "@types/node": "^25.6.0"
   }
 }
