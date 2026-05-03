@@ -76,7 +76,11 @@ test.describe("Element Context Fallback", () => {
 
       const clipboard = await reactGrab.getClipboardContent();
       expect(clipboard).toContain("<svg");
-      expect(clipboard).toMatch(/in\s+SquareIcon\b/);
+      // lucide-react ships the component under the display name "Square"
+      // (SquareIcon is just an export alias). Without the third-party
+      // component fix, this frame would be filtered out entirely and the
+      // stack would jump straight to LibraryIconSection.
+      expect(clipboard).toMatch(/in\s+Square\b/);
       expect(clipboard).toContain("LibraryIconSection");
     });
   });
