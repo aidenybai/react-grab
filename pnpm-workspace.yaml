@@ -3,5 +3,5 @@ packages:
   - "packages/*"
 
 overrides:
-  vite: npm:@voidzero-dev/vite-plus-core@^0.1.12
-  vitest: npm:@voidzero-dev/vite-plus-test@^0.1.12
+  vite: npm:@voidzero-dev/vite-plus-core@^0.1.20
+  vitest: npm:@voidzero-dev/vite-plus-test@^0.1.20
