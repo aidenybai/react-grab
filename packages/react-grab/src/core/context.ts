@@ -393,6 +393,7 @@ const hasFormattableFrames = (stack: StackFrame[] | null): boolean => {
     if (frame.isServer && (!frame.functionName || isSourceComponentName(frame.functionName))) {
       return true;
     }
+    if (frame.functionName && isSourceComponentName(frame.functionName)) return true;
     return false;
   });
 };
@@ -436,6 +437,16 @@ const formatStackContext = (stack: StackFrame[], options: StackContextOptions = 
       (!frame.functionName || isSourceComponentName(frame.functionName))
     ) {
       formattedLines.push(`\n  in ${frame.functionName || "<anonymous>"} (at Server)`);
+      continue;
+    }
+
+    // Library components (from node_modules, vendor bundles, etc.) get
+    // dropped by the user-source filter, so the agent loses sight of names
+    // like "SquareIcon" that the user actually selected. Emit a name-only
+    // line so the component identity survives without leaking misleading
+    // library file paths.
+    if (!hasResolvedSource && frame.functionName && isSourceComponentName(frame.functionName)) {
+      formattedLines.push(`\n  in ${frame.functionName}`);
       continue;
     }
 

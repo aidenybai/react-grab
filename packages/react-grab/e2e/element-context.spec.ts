@@ -65,6 +65,20 @@ test.describe("Element Context Fallback", () => {
       const clipboard = await reactGrab.getClipboardContent();
       expect(clipboard).toContain("TodoItem");
     });
+
+    test("should include third-party component name for library icons", async ({ reactGrab }) => {
+      await reactGrab.activate();
+
+      const icon = "[data-testid='library-icon-host'] svg";
+      await reactGrab.hoverElement(icon);
+      await reactGrab.waitForSelectionBox();
+      await reactGrab.clickElement(icon);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain("<svg");
+      expect(clipboard).toMatch(/in\s+SquareIcon\b/);
+      expect(clipboard).toContain("LibraryIconSection");
+    });
   });
 
   test.describe("Non-React Elements Fallback", () => {
