@@ -1,5 +1,5 @@
 {
-  "buildCommand": "pnpm --filter react-grab build && pnpm --filter react-grab exec cp dist/index.global.js ../../apps/website/public/script.js && next build",
+  "buildCommand": "rm -rf .next/cache/.tsbuildinfo && pnpm --filter react-grab build && pnpm --filter react-grab exec cp dist/index.global.js ../../apps/website/public/script.js && next build",
   "redirects": [],
   "headers": [
     {
