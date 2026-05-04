@@ -442,9 +442,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     }
     lastObservedExpandedSize = { width: newWidth, height: newHeight };
     expandedDimensions = { width: newWidth, height: newHeight };
-    setPosition(
-      getPositionFromEdgeAndRatio(snapEdge(), positionRatio(), newWidth, newHeight),
-    );
+    setPosition(getPositionFromEdgeAndRatio(snapEdge(), positionRatio(), newWidth, newHeight));
   };
 
   const handleResize = () => {

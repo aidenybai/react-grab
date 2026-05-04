@@ -409,7 +409,6 @@ const transformSvelteKit = (
   reactGrabAlreadyConfigured: boolean,
   force: boolean = false,
 ): TransformResult => {
-  // Check src/app.html for an existing install (e.g. via CDN script tag)
   if (!force) {
     const appHtml = join(projectRoot, "src", "app.html");
     if (existsSync(appHtml)) {
@@ -444,7 +443,6 @@ const transformSvelteKit = (
     };
   }
 
-  // Create src/hooks.client.ts — SvelteKit auto-loads this file for client bootstrapping
   const newFilePath = join(projectRoot, "src", "hooks.client.ts");
   return {
     success: true,

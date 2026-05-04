@@ -495,12 +495,13 @@ export const init = new Command()
         process.exit(1);
       }
 
-      const hasLayoutChanges = !result.noChanges && result.originalContent && result.newContent;
+      const hasLayoutChanges =
+        !result.noChanges && result.filePath && result.newContent !== undefined;
 
       if (hasLayoutChanges) {
         logger.break();
 
-        printDiff(result.filePath, result.originalContent!, result.newContent!);
+        printDiff(result.filePath, result.originalContent ?? "", result.newContent!);
 
         logger.break();
         logger.warn("Auto-detection may not be 100% accurate.");
