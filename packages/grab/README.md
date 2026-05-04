@@ -13,7 +13,7 @@ It makes tools like Cursor, Claude Code, Copilot run up to [**3× faster**](http
 
 ## Install
 
-Run this command at your project root (where `next.config.ts` or `vite.config.ts` is located):
+Run this command at your project root (where `next.config.ts`, `vite.config.ts`, or `svelte.config.js` is located):
 
 ```bash
 npx grab@latest init
@@ -103,6 +103,16 @@ export default function Document() {
 Add this at the top of your main entry file (e.g., `src/main.tsx`):
 
 ```tsx
+if (import.meta.env.DEV) {
+  import("grab");
+}
+```
+
+#### SvelteKit
+
+Add this to `src/hooks.client.ts`:
+
+```ts
 if (import.meta.env.DEV) {
   import("grab");
 }
