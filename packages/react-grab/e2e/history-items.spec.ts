@@ -1,10 +1,14 @@
 import { test, expect } from "./fixtures.js";
 import type { ReactGrabPageObject } from "./fixtures.js";
 
-const copyElement = async (reactGrab: ReactGrabPageObject, selector: string) => {
+const copyElement = async (
+  reactGrab: ReactGrabPageObject,
+  selector: string,
+  commentText = "comment",
+) => {
   await reactGrab.registerCommentAction();
   await reactGrab.enterPromptMode(selector);
-  await reactGrab.typeInInput("comment");
+  await reactGrab.typeInInput(commentText);
   await reactGrab.submitInput();
   await expect.poll(() => reactGrab.getClipboardContent(), { timeout: 5000 }).toBeTruthy();
   // HACK: Wait for copy feedback transition and comment item addition
@@ -54,9 +58,8 @@ test.describe("Comment Items", () => {
       expect(await reactGrab.isCommentsDropdownVisible()).toBe(true);
 
       await reactGrab.pressEscape();
-      await reactGrab.page.waitForTimeout(100);
 
-      expect(await reactGrab.isCommentsDropdownVisible()).toBe(false);
+      await expect.poll(() => reactGrab.isCommentsDropdownVisible(), { timeout: 1000 }).toBe(false);
     });
 
     test("should close when context menu is opened", async ({ reactGrab }) => {
@@ -95,6 +98,44 @@ test.describe("Comment Items", () => {
 
       const dropdownInfo = await reactGrab.getCommentsDropdownInfo();
       expect(dropdownInfo.itemCount).toBe(2);
+    });
+
+    test("should not expose horizontal scrolling when hovering an item", async ({ reactGrab }) => {
+      const longCommentText = "comment " + "abcdefghijklmnopqrstuvwxyz".repeat(12);
+
+      await copyElement(reactGrab, "li:first-child", longCommentText);
+      await copyElement(reactGrab, "li:last-child");
+
+      await reactGrab.clickCommentsButton();
+      await reactGrab.hoverCommentItem(0);
+
+      const scrollMetrics = await reactGrab.page.evaluate((attrName) => {
+        const host = document.querySelector(`[${attrName}]`);
+        const shadowRoot = host?.shadowRoot;
+        if (!shadowRoot) return null;
+        const root = shadowRoot.querySelector(`[${attrName}]`);
+        if (!root) return null;
+        const item = root.querySelector<HTMLElement>("[data-react-grab-comment-item]");
+        const scrollContainer = item?.parentElement;
+        if (!scrollContainer) return null;
+        const computedStyle = window.getComputedStyle(scrollContainer);
+        const itemRect = item.getBoundingClientRect();
+        const containerRect = scrollContainer.getBoundingClientRect();
+        return {
+          clientWidth: scrollContainer.clientWidth,
+          itemWidth: itemRect.width,
+          containerWidth: containerRect.width,
+          overflowX: computedStyle.overflowX,
+          scrollWidth: scrollContainer.scrollWidth,
+        };
+      }, "data-react-grab");
+
+      expect(scrollMetrics).not.toBeNull();
+      expect(scrollMetrics?.overflowX).toBe("hidden");
+      expect(scrollMetrics?.itemWidth).toBeLessThanOrEqual(
+        (scrollMetrics?.containerWidth ?? 0) + 1,
+      );
+      expect(scrollMetrics?.scrollWidth).toBeLessThanOrEqual((scrollMetrics?.clientWidth ?? 0) + 1);
     });
 
     test("should hide comments button after clearing all items", async ({ reactGrab }) => {

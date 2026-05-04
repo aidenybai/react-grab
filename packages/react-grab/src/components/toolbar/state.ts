@@ -14,6 +14,7 @@ export const loadToolbarState = (): ToolbarState | null => {
     const parsed: unknown = JSON.parse(serializedToolbarState);
     if (typeof parsed !== "object" || parsed === null) return null;
     const record = parsed as Record<string, unknown>;
+    const collapsed = typeof record.collapsed === "boolean" ? record.collapsed : false;
     return {
       edge:
         record.edge === "top" ||
@@ -23,8 +24,8 @@ export const loadToolbarState = (): ToolbarState | null => {
           ? record.edge
           : "bottom",
       ratio: typeof record.ratio === "number" ? record.ratio : TOOLBAR_DEFAULT_POSITION_RATIO,
-      collapsed: typeof record.collapsed === "boolean" ? record.collapsed : false,
-      enabled: typeof record.enabled === "boolean" ? record.enabled : true,
+      collapsed,
+      enabled: !collapsed,
       defaultAction:
         typeof record.defaultAction === "string" ? record.defaultAction : DEFAULT_ACTION_ID,
     };

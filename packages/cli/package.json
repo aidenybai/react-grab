@@ -2,9 +2,10 @@
   "name": "@react-grab/cli",
   "version": "0.1.32",
   "bin": {
-    "react-grab": "./dist/cli.js"
+    "react-grab": "./bin/cli.js"
   },
   "files": [
+    "bin",
     "dist"
   ],
   "type": "module",
@@ -26,14 +27,14 @@
     "check": "vp check"
   },
   "dependencies": {
-    "@antfu/ni": "^0.23.0",
-    "commander": "^14.0.0",
+    "@antfu/ni": "^30.1.0",
+    "commander": "^14.0.3",
     "ignore": "^7.0.5",
     "jsonc-parser": "^3.3.1",
-    "ora": "^8.2.0",
+    "ora": "^9.4.0",
     "picocolors": "^1.1.1",
     "prompts": "^2.4.2",
-    "smol-toml": "^1.6.0"
+    "smol-toml": "^1.6.1"
   },
   "devDependencies": {
     "@types/prompts": "^2.4.9"

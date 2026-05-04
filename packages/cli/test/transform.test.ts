@@ -220,6 +220,150 @@ describe("previewTransform - Webpack edge cases", () => {
   });
 });
 
+describe("previewTransform - TanStack Start", () => {
+  const rootContent = `/// <reference types="vite/client" />
+import type { ReactNode } from "react";
+import {
+  Outlet,
+  createRootRoute,
+  HeadContent,
+  Scripts,
+} from "@tanstack/react-router";
+
+export const Route = createRootRoute({
+  head: () => ({
+    meta: [
+      {
+        charSet: "utf-8",
+      },
+      {
+        name: "viewport",
+        content: "width=device-width, initial-scale=1",
+      },
+    ],
+  }),
+  component: RootComponent,
+});
+
+function RootComponent() {
+  return (
+    <RootDocument>
+      <Outlet />
+    </RootDocument>
+  );
+}
+
+function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
+  return (
+    <html>
+      <head>
+        <HeadContent />
+      </head>
+      <body>
+        {children}
+        <Scripts />
+      </body>
+    </html>
+  );
+}`;
+
+  it("should add React Grab to __root.tsx", () => {
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("__root.tsx"));
+    mockReadFileSync.mockReturnValue(rootContent);
+
+    const result = previewTransform("/test", "tanstack", "unknown", false);
+
+    expect(result.success).toBe(true);
+    expect(result.filePath).toContain("__root.tsx");
+    expect(result.newContent).toContain('import { useEffect } from "react"');
+    expect(result.newContent).toContain("react-grab");
+    expect(result.newContent).toContain("import.meta.env.DEV");
+  });
+
+  it("should add useEffect to existing react import", () => {
+    const rootWithReactImport = `import { useState } from "react";
+import { Outlet, createRootRoute } from "@tanstack/react-router";
+
+export const Route = createRootRoute({ component: RootComponent });
+
+function RootComponent() {
+  return <Outlet />;
+}`;
+
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("__root.tsx"));
+    mockReadFileSync.mockReturnValue(rootWithReactImport);
+
+    const result = previewTransform("/test", "tanstack", "unknown", false);
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).toContain("useState, useEffect");
+    expect(result.newContent).not.toContain(
+      'import { useEffect } from "react";\nimport { useState }',
+    );
+  });
+
+  it("should not duplicate if React Grab already exists", () => {
+    const rootWithReactGrab = `import { useEffect } from "react";
+import { Outlet, createRootRoute } from "@tanstack/react-router";
+
+export const Route = createRootRoute({ component: RootComponent });
+
+function RootComponent() {
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      void import("react-grab");
+    }
+  }, []);
+  return <Outlet />;
+}`;
+
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("__root.tsx"));
+    mockReadFileSync.mockReturnValue(rootWithReactGrab);
+
+    const result = previewTransform("/test", "tanstack", "unknown", false);
+
+    expect(result.success).toBe(true);
+    expect(result.noChanges).toBe(true);
+  });
+
+  it("should fail with helpful message when __root.tsx not found", () => {
+    mockExistsSync.mockReturnValue(false);
+
+    const result = previewTransform("/test", "tanstack", "unknown", false);
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("Could not find src/routes/__root.tsx");
+    expect(result.message).toContain('import { useEffect } from "react"');
+  });
+
+  it("should fail when no component function found", () => {
+    const rootWithoutComponent = `import { createRootRoute } from "@tanstack/react-router";
+
+export const Route = createRootRoute({
+  component: () => <div>Hello</div>,
+});`;
+
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("__root.tsx"));
+    mockReadFileSync.mockReturnValue(rootWithoutComponent);
+
+    const result = previewTransform("/test", "tanstack", "unknown", false);
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("Could not find a component function");
+  });
+
+  it("should not skip useEffect import when only type import from react exists", () => {
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("__root.tsx"));
+    mockReadFileSync.mockReturnValue(rootContent);
+
+    const result = previewTransform("/test", "tanstack", "unknown", false);
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).toContain('import { useEffect } from "react"');
+    expect(result.newContent).toContain('import type { ReactNode } from "react"');
+  });
+});
+
 describe("previewTransform - Unknown framework", () => {
   it("should fail for unknown framework", () => {
     const result = previewTransform("/test", "unknown", "unknown", false);

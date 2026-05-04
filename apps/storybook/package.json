@@ -1,0 +1,27 @@
+{
+  "name": "@react-grab/storybook",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "STORYBOOK_DISABLE_TELEMETRY=1 storybook dev -p 6006 --disable-telemetry --no-open",
+    "build": "STORYBOOK_DISABLE_TELEMETRY=1 storybook build --disable-telemetry",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@storybook/addon-a11y": "^10.3.6",
+    "@storybook/addon-docs": "^10.3.6",
+    "@types/node": "^25.6.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "react": "19.2.5",
+    "react-dom": "19.2.5",
+    "react-grab": "workspace:*",
+    "solid-js": "^1.9.12",
+    "storybook": "^10.3.6",
+    "storybook-solidjs-vite": "^10.0.9",
+    "typescript": "^6.0.3",
+    "vite": "^6.0.0",
+    "vite-plugin-solid": "^2.11.0"
+  }
+}

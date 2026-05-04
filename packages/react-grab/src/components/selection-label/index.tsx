@@ -1,16 +1,8 @@
-import {
-  Show,
-  For,
-  createSignal,
-  createEffect,
-  createMemo,
-  on,
-  onMount,
-  onCleanup,
-} from "solid-js";
+import { Show, createSignal, createEffect, createMemo, on, onMount, onCleanup } from "solid-js";
 import type { Component } from "solid-js";
 import type { ArrowPosition, SelectionLabelProps } from "../../types.js";
 import {
+  FADE_DURATION_MS,
   IME_COMPOSING_KEY_CODE,
   VIEWPORT_MARGIN_PX,
   ARROW_CENTER_PERCENT,
@@ -25,7 +17,6 @@ import { getArrowSize } from "../../utils/get-arrow-size.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
 import { cn } from "../../utils/cn.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
-import { formatShortcut } from "../../utils/format-shortcut.js";
 import { IconSubmit } from "../icons/icon-submit.jsx";
 import { IconLoader } from "../icons/icon-loader.jsx";
 import { Arrow } from "./arrow.js";
@@ -359,16 +350,16 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         ref={containerRef}
         data-react-grab-ignore-events
         data-react-grab-selection-label
-        class={cn(
-          "fixed font-sans text-[13px] antialiased filter-[drop-shadow(0px_1px_2px_#51515140)] select-none transition-opacity duration-100 ease-out",
-        )}
+        class={cn("fixed font-sans text-[13px] antialiased select-none ease-out")}
         style={{
           top: `${positionComputation().position.top}px`,
           left: `${positionComputation().position.left}px`,
           transform: `translateX(calc(-50% + ${positionComputation().position.edgeOffsetX}px))`,
           "z-index": `${Z_INDEX_OVERLAY}`,
           "pointer-events": shouldEnablePointerEvents() ? "auto" : "none",
+          transition: `opacity ${FADE_DURATION_MS}ms ease-out, filter ${FADE_DURATION_MS}ms ease-out`,
           opacity: props.status === "fading" || isInternalFading() ? 0 : 1,
+          filter: `drop-shadow(0px 1px 2px #51515140) blur(${props.status === "fading" || isInternalFading() ? "3px" : "0"})`,
         }}
         onPointerDown={handleContainerPointerDown}
         onClick={(event) => {
@@ -467,41 +458,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     onSelect={(index) => props.onInspectSelect?.(index)}
                   />
                 )}
-              </Show>
-              <Show
-                when={
-                  !isArrowNavigationVisible() &&
-                  !isInspectNavigationVisible() &&
-                  Boolean(props.actionCycleState?.isVisible)
-                }
-              >
-                <BottomSection>
-                  <div class="flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5">
-                    <For each={props.actionCycleState?.items ?? []}>
-                      {(item, itemIndex) => (
-                        <div
-                          data-react-grab-action-cycle-item={item.label.toLowerCase()}
-                          class="contain-layout flex items-center justify-between w-full px-2 py-1 transition-colors"
-                          classList={{
-                            "bg-black/5":
-                              itemIndex() === (props.actionCycleState?.activeIndex ?? 0),
-                            "rounded-b-[6px]":
-                              itemIndex() === (props.actionCycleState?.items ?? []).length - 1,
-                          }}
-                        >
-                          <span class="text-[13px] leading-4 font-sans font-medium text-black">
-                            {item.label}
-                          </span>
-                          <Show when={item.shortcut}>
-                            <span class="text-[11px] font-sans text-black/50 ml-4">
-                              {formatShortcut(item.shortcut!)}
-                            </span>
-                          </Show>
-                        </div>
-                      )}
-                    </For>
-                  </div>
-                </BottomSection>
               </Show>
             </div>
           </Show>

@@ -10,7 +10,7 @@
     "dev": "turbo run dev --filter=react-grab",
     "test": "turbo run test",
     "test:cli": "turbo run test --filter=@react-grab/cli",
-    "typecheck": "pnpm --filter react-grab typecheck",
+    "typecheck": "turbo run typecheck",
     "lint": "vp lint",
     "lint:fix": "vp lint --fix",
     "format": "vp fmt",
@@ -23,12 +23,12 @@
     "release": "pnpm build && changeset publish"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.30.0",
-    "@types/node": "^25.5.0",
-    "@voidzero-dev/vite-plus-core": "^0.1.12",
-    "turbo": "^2.9.3",
-    "typescript": "^5.9.3",
-    "vite-plus": "^0.1.12"
+    "@changesets/cli": "^2.31.0",
+    "@types/node": "^25.6.0",
+    "@voidzero-dev/vite-plus-core": "^0.1.20",
+    "turbo": "^2.9.7",
+    "typescript": "^6.0.3",
+    "vite-plus": "^0.1.20"
   },
   "engines": {
     "node": ">=22",
@@ -45,7 +45,9 @@
     ],
     "overrides": {
       "vite": "npm:@voidzero-dev/vite-plus-core",
-      "vitest": "npm:@voidzero-dev/vite-plus-test"
+      "vitest": "npm:@voidzero-dev/vite-plus-test",
+      "react": "19.2.5",
+      "react-dom": "19.2.5"
     }
   }
 }

@@ -23,8 +23,6 @@ export const FINDER_TIMEOUT_MS = 200;
 export const MAX_SELECTOR_COMBINATIONS = 10_000;
 export const SELECTOR_ATTR_VALUE_MAX_LENGTH_CHARS = 120;
 
-export const ACTION_CYCLE_IDLE_TRIGGER_MS = 600;
-
 export const DRAG_THRESHOLD_PX = 2;
 
 export const ELEMENT_DETECTION_THROTTLE_MS = 32;
@@ -42,6 +40,8 @@ export const Z_INDEX_OVERLAY = 2147483647;
 export const Z_INDEX_OVERLAY_CANVAS = 2147483645;
 
 export const DRAG_LERP_FACTOR = 0.7;
+export const BASELINE_FRAME_DURATION_MS = 1000 / 60;
+export const MIN_FRAME_DELTA_MS = 1;
 export const LERP_CONVERGENCE_THRESHOLD_PX = 0.5;
 export const OPACITY_CONVERGENCE_THRESHOLD = 0.01;
 export const FADE_OUT_BUFFER_MS = 100;
@@ -87,30 +87,22 @@ export const VIEWPORT_COVERAGE_THRESHOLD = 0.9;
 export const OVERLAY_Z_INDEX_THRESHOLD = 1000;
 export const DEV_TOOLS_OVERLAY_Z_INDEX_THRESHOLD = 2147483600;
 
-export const TOOLTIP_DELAY_MS = 400;
-export const TOOLTIP_GRACE_PERIOD_MS = 100;
-
 export const TOOLBAR_SNAP_MARGIN_PX = 16;
 export const TOOLBAR_FADE_IN_DELAY_MS = 500;
 export const TOOLBAR_SNAP_ANIMATION_DURATION_MS = 300;
 export const TOOLBAR_DRAG_THRESHOLD_PX = 5;
 export const TOOLBAR_VELOCITY_MULTIPLIER_MS = 150;
-export const TOOLBAR_COLLAPSED_SHORT_PX = 14;
-export const TOOLBAR_COLLAPSED_LONG_PX = 28;
-export const TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS = 150;
-export const TOGGLE_ANIMATION_BUFFER_MS = 50;
+export const TOOLBAR_COLLAPSED_SHORT_PX = 16;
+export const TOOLBAR_COLLAPSED_LONG_PX = 30;
+// Must cover the longest expand path: size is 220ms, opacity is 80ms delay
+// + 180ms fade = 260ms. If this fires before the opacity tail, shouldDim()
+// can flip true mid-fade-in and start a dim transition on the outer
+// container while the inner content is still materializing.
+export const TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS = 260;
 export const TOOLBAR_DEFAULT_WIDTH_PX = 78;
 export const TOOLBAR_DEFAULT_HEIGHT_PX = 28;
 export const TOOLBAR_DEFAULT_POSITION_RATIO = 0.5;
 export const DEFAULT_ACTION_ID = "comment";
-export const TOOLBAR_SHAKE_TOOLTIP_DURATION_MS = 1500;
-export const SELECTION_HINT_CYCLE_INTERVAL_MS = 3000;
-export const SELECTION_HINT_COUNT = 3;
-
-export const TOOLTIP_BASE_CLASS =
-  "absolute whitespace-nowrap px-1.5 py-0.5 rounded-[10px] text-[10px] text-black/60 pointer-events-none [corner-shape:superellipse(1.25)] filter-[drop-shadow(0px_1px_2px_#51515140)]";
-
-export const HINT_FLIP_IN_ANIMATION = "animate-[hint-flip-in_var(--transition-normal)_ease-out]";
 
 export const DRAG_SELECTION_COVERAGE_THRESHOLD = 0.75;
 export const DRAG_SELECTION_SAMPLE_SPACING_PX = 32;
@@ -136,7 +128,9 @@ export const MOUNT_ROOT_RECHECK_DELAY_MS = 1000;
 
 export const MAX_COMMENT_ITEMS = 20;
 export const MAX_SESSION_STORAGE_SIZE_BYTES = 2 * 1024 * 1024;
-export const DROPDOWN_ANIMATION_DURATION_MS = 100;
+// Must match the CSS exit transition on dropdown components or the DOM
+// unmounts mid-animation.
+export const DROPDOWN_ANIMATION_DURATION_MS = 120;
 export const DROPDOWN_HOVER_OPEN_DELAY_MS = 200;
 export const DROPDOWN_VIEWPORT_PADDING_PX = 8;
 export const DROPDOWN_ANCHOR_GAP_PX = 8;

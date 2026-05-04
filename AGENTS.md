@@ -4,7 +4,7 @@
 - MUST: Use TypeScript interfaces over types.
 - MUST: Keep all types in the global scope.
 - MUST: Use arrow functions over function declarations
-- MUST: Default to NO comments. Only add a comment when the user explicitly asks, or when the "why" is truly non-obvious — browser quirks, platform bugs, performance tradeoffs, fragile internal patching, or counter-intuitive design decisions. Never add comments that restate what the code does or what a well-named function/variable already conveys. When in doubt, leave the comment out.
+- MUST: Default to NO comments. Only add a comment when the user explicitly asks, or when the "why" is truly non-obvious - browser quirks, platform bugs, performance tradeoffs, fragile internal patching, or counter-intuitive design decisions. Never add comments that restate what the code does or what a well-named function/variable already conveys. When in doubt, leave the comment out.
   - Do not delete descriptive comments >3 lines without confirming with the user
 - MUST: Use kebab-case for files
 - MUST: Use descriptive names for variables (avoid shorthands, or 1-2 character names).
@@ -30,9 +30,9 @@
 
 - MUST: Call signals as functions: `count()` not `count`.
 - MUST: Use functional updates when new state depends on old: `setCount((prev) => prev + 1)`.
-- MUST: Keep signals atomic (one per value) — one big state object loses granularity.
+- MUST: Keep signals atomic (one per value) - one big state object loses granularity.
 - MUST: Use derived functions `() => count() * 2` for cheap/infrequent derivations.
-- MUST: Use `createMemo(() => ...)` for expensive/frequent derivations — caches result.
+- MUST: Use `createMemo(() => ...)` for expensive/frequent derivations - caches result.
 - MUST: Use `createEffect` for side effects only (DOM, localStorage, subscriptions).
 - MUST: Call `onCleanup(() => ...)` inside effects for subscriptions/intervals/listeners.
 - MUST: Use path syntax for store updates: `setStore("users", 0, "name", "Jane")`.
@@ -43,8 +43,8 @@
 - SHOULD: Use `untrack(() => value())` to read without subscribing.
 - SHOULD: Use `createStore({ ... })` for nested objects with fine-grained reactivity.
 - SHOULD: Use `produce(draft => { ... })` for complex store mutations.
-- NEVER: Derive state via `createEffect(() => setX(y()))` — use memo or derived function.
-- NEVER: Place side effects inside `createMemo` — causes infinite loops/crashes.
+- NEVER: Derive state via `createEffect(() => setX(y()))` - use memo or derived function.
+- NEVER: Place side effects inside `createMemo` - causes infinite loops/crashes.
 
 ### Effect Taxonomy
 
@@ -53,10 +53,10 @@ Before writing `createEffect`, classify the work and pick the right primitive:
 - MUST: Use `createMemo` when the result is pure derived state from other signals/stores. If no external system is touched, it is not an effect.
 - MUST: Use event handlers and direct action calls when work happens because a user clicked, selected, or navigated. Do not watch a flag/token in an effect to trigger imperative logic.
 - MUST: Use `onMount`/`onCleanup` for one-time lifecycle setup and teardown (subscriptions, timers, imperative DOM wiring) that should not rerun for reactive changes.
-- MUST: Keep `createEffect` single-purpose — one effect, one external bridge. Split mixed-responsibility effects.
+- MUST: Keep `createEffect` single-purpose - one effect, one external bridge. Split mixed-responsibility effects.
 - SHOULD: Use keyed ownership boundaries (keyed `<Show>`/`<For>`, or keyed `createRoot`) when local state should reset because an identity changed. Do not write a "watch key, clear state" effect.
 - SHOULD: Normalize state at the write boundary, not via a repair effect that rewrites after the fact.
-- NEVER: Use `createEffect` just to copy one store/signal into another — find the single source of truth.
+- NEVER: Use `createEffect` just to copy one store/signal into another - find the single source of truth.
 - NEVER: Use `createEffect` as an event bus (watching a trigger signal to run a command). Call the action directly from the event source.
 
 ### Props
@@ -66,12 +66,12 @@ Before writing `createEffect`, classify the work and pick the right primitive:
 - SHOULD: Use `splitProps(props, ["keys"])` to separate local from pass-through props.
 - SHOULD: Use `mergeProps(defaults, props)` for default values.
 - SHOULD: Use `children(() => props.children)` only when transforming, otherwise `{props.children}`.
-- NEVER: Destructure props `({ title })` — breaks reactivity.
+- NEVER: Destructure props `({ title })` - breaks reactivity.
 
 ### Control Flow
 
-- MUST: Use `<For each={items()}>` for object arrays — item is value, index is signal.
-- MUST: Use `<Index each={items()}>` for primitives/inputs — item is signal, index is number.
+- MUST: Use `<For each={items()}>` for object arrays - item is value, index is signal.
+- MUST: Use `<Index each={items()}>` for primitives/inputs - item is signal, index is number.
 - MUST: Use `<Suspense fallback={...}>` for async, not `<Show when={!loading}>`.
 - MUST: Access resource states via `data()`, `data.loading`, `data.error`, `data.latest`.
 - SHOULD: Use `<Show when={cond()} fallback={...}>` for conditionals.
@@ -79,8 +79,8 @@ Before writing `createEffect`, classify the work and pick the right primitive:
 - SHOULD: Use `<Switch>/<Match>` for multiple conditions.
 - SHOULD: Use `createResource(source, fetcher)` for reactive async data.
 - SHOULD: Use `<ErrorBoundary fallback={(err, reset) => ...}>` for render errors.
-- NEVER: Use `.map()` in JSX — use `<For>` or `<Index>`.
-- NEVER: Rely on ErrorBoundary for event handler or setTimeout errors — use try/catch.
+- NEVER: Use `.map()` in JSX - use `<For>` or `<Index>`.
+- NEVER: Rely on ErrorBoundary for event handler or setTimeout errors - use try/catch.
 
 ### JSX & DOM
 
@@ -88,7 +88,7 @@ Before writing `createEffect`, classify the work and pick the right primitive:
 - MUST: Combine static `class="btn"` with reactive `classList={{ active: isActive() }}`.
 - MUST: Use `onClick` for delegated events; `on:click` for native (element-level).
 - MUST: Condition inside handler since events are not reactive: `onClick={() => props.onClick?.()}`.
-- MUST: Read refs in `onMount` or effects — refs connect after render.
+- MUST: Read refs in `onMount` or effects - refs connect after render.
 - MUST: Call `onCleanup` inside directives for cleanup.
 - SHOULD: Use `on:click` for `stopPropagation`, capture, passive, or custom events.
 - SHOULD: Use `style={{ color: color(), "--css-var": value() }}` for inline styles.
@@ -135,10 +135,10 @@ See root `package.json` scripts and `CONTRIBUTING.md` for the full list. Quick r
 
 - **Install**: `ni` (or `pnpm install`)
 - **Build**: `nr build` (or `pnpm build`)
-- **Dev watch**: `nr dev` (or `pnpm dev`) — watches core packages
-- **Test**: `pnpm test` — runs Playwright E2E + Vitest CLI tests
-- **Lint**: `pnpm lint` — oxlint on react-grab package
-- **Typecheck**: `pnpm typecheck` — tsc on react-grab package
-- **Format**: `pnpm format` — oxfmt
+- **Dev watch**: `nr dev` (or `pnpm dev`) - watches core packages
+- **Test**: `pnpm test` - runs Playwright E2E + Vitest CLI tests
+- **Lint**: `pnpm lint` - oxlint on react-grab package
+- **Typecheck**: `pnpm typecheck` - tsc on react-grab package
+- **Format**: `pnpm format` - oxfmt
 - **CLI dev**: `npm_command=exec node packages/cli/dist/cli.js`
 - **Test app**: `pnpm --filter @react-grab/e2e-app dev` (port 5175, lives in `apps/e2e-app`)

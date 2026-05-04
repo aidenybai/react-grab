@@ -41,7 +41,7 @@ if (typeof window !== "undefined") {
   if (window.__REACT_GRAB__) {
     registerPlugins();
   } else {
-    // script.js may not have executed yet — wait for it
+    // script.js may not have executed yet - wait for it
     const observer = new MutationObserver(() => {
       if (window.__REACT_GRAB__) {
         observer.disconnect();

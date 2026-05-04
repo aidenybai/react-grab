@@ -41,13 +41,12 @@ nr dev
 ```
 apps/
 ├── e2e-app/             # E2E test target app (Vite)
-├── gym/                 # Agent testing playground
+├── storybook/           # Storybook gallery: UI states + ad-hoc targeting playground
 ├── web-extension/       # Browser extension
 └── website/             # Documentation site (react-grab.com)
 
 packages/
 ├── cli/                 # CLI implementation (@react-grab/cli)
-├── design-system/       # Shared design system (@react-grab/design-system)
 ├── grab/                # Bundled package (library + CLI, published as `grab`)
 ├── mcp/                 # MCP server (@react-grab/mcp)
 └── react-grab/          # Core library
@@ -55,15 +54,15 @@ packages/
 
 ## Development Workflow
 
-### Running the Gym
+### Running the Storybook Playground
 
-Test the MCP agent integration in the gym:
+Run the Storybook locally to exercise react-grab against realistic DOM fixtures (composite dashboard, freeze-demo, live-updates, and targeting edge cases):
 
 ```bash
-pnpm --filter @react-grab/gym dev:mcp
+pnpm --filter @react-grab/storybook dev
 ```
 
-The gym runs at `http://localhost:6789` and lets you test react-grab's agent integration via MCP.
+Opens at `http://localhost:6006`. The **Playground/** section hosts ad-hoc scenarios (replaces the former `apps/gym`) with real `init()` running so you can hover/grab to verify behavior.
 
 ### Running Tests
 
@@ -85,7 +84,7 @@ nr format      # Format code with oxfmt
 - **Use TypeScript interfaces** over types
 - **Use arrow functions** over function declarations
 - **Use kebab-case** for file names
-- **Use descriptive variable names** — avoid shorthands or 1-2 character names
+- **Use descriptive variable names** - avoid shorthands or 1-2 character names
   - Example: `innerElement` instead of `el`
   - Example: `didPositionChange` instead of `moved`
 - **Avoid type casting** (`as`) unless absolutely necessary
@@ -116,12 +115,12 @@ git commit -m "feat: add new feature"
 
 We use conventional commits:
 
-- `feat:` — New feature
-- `fix:` — Bug fix
-- `docs:` — Documentation changes
-- `chore:` — Maintenance tasks
-- `refactor:` — Code refactoring
-- `test:` — Test additions or changes
+- `feat:` - New feature
+- `fix:` - Bug fix
+- `docs:` - Documentation changes
+- `chore:` - Maintenance tasks
+- `refactor:` - Code refactoring
+- `test:` - Test additions or changes
 
 ### Adding a Changeset
 

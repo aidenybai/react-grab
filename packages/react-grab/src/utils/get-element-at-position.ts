@@ -4,7 +4,7 @@ import {
   ELEMENT_POSITION_THROTTLE_MS,
   POINTER_EVENTS_RESUME_DEBOUNCE_MS,
 } from "../constants.js";
-import { suspendPointerEventsFreeze, resumePointerEventsFreeze } from "./freeze-pseudo-states.js";
+import { suspendPointerEventsFreeze, resumePointerEventsFreeze } from "./pointer-events-freeze.js";
 
 interface PositionCache {
   clientX: number;
@@ -13,8 +13,17 @@ interface PositionCache {
   timestamp: number;
 }
 
+interface IFrameHoverCache {
+  element: HTMLIFrameElement;
+  rect: DOMRect;
+}
+
 let cache: PositionCache | null = null;
+let hoveredIframe: IFrameHoverCache | null = null;
 let resumeTimerId: ReturnType<typeof setTimeout> | null = null;
+
+const isPointInsideRect = (clientX: number, clientY: number, rect: DOMRect): boolean =>
+  clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
 
 const scheduleResume = (): void => {
   if (resumeTimerId !== null) {
@@ -54,6 +63,16 @@ export const getElementsAtPoint = (clientX: number, clientY: number): Element[] 
 export const getElementAtPosition = (clientX: number, clientY: number): Element | null => {
   if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) return null;
   const now = performance.now();
+
+  // elementFromPoint on the parent document cannot descend into iframes, so
+  // any point within an iframe's rect resolves to the iframe itself. Returning
+  // the cached iframe without calling suspendPointerEventsFreeze lets the
+  // pending resume timer re-enable `html { pointer-events: none }`, which stops
+  // the browser from dispatching pointer events into the iframe's document -
+  // the source of lag on srcdoc iframes running their own React/JIT pipelines.
+  if (hoveredIframe && isPointInsideRect(clientX, clientY, hoveredIframe.rect)) {
+    return hoveredIframe.element;
+  }
 
   if (cache) {
     const isPositionClose = isWithinThreshold(clientX, clientY, cache.clientX, cache.clientY);
@@ -99,6 +118,10 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
 
   scheduleResume();
 
+  hoveredIframe =
+    result instanceof HTMLIFrameElement
+      ? { element: result, rect: result.getBoundingClientRect() }
+      : null;
   cache = { clientX, clientY, element: result, timestamp: now };
   return result;
 };
@@ -107,4 +130,5 @@ export const clearElementPositionCache = (): void => {
   cancelScheduledResume();
   resumePointerEventsFreeze();
   cache = null;
+  hoveredIframe = null;
 };

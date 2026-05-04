@@ -124,7 +124,6 @@ export interface ReactGrabPageObject {
   clickToolbarToggle: () => Promise<void>;
   clickToolbarCollapse: () => Promise<void>;
   dragToolbar: (deltaX: number, deltaY: number) => Promise<void>;
-  clickToolbarEnabled: () => Promise<void>;
   dragToolbarFromButton: (buttonSelector: string, deltaX: number, deltaY: number) => Promise<void>;
 
   rightClickToolbarToggle: () => Promise<void>;
@@ -807,20 +806,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         "[data-react-grab-toolbar-collapse]",
       );
       collapseButton?.click();
-    }, ATTRIBUTE_NAME);
-  };
-
-  const clickToolbarEnabled = async () => {
-    await page.evaluate((attrName) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      if (!shadowRoot) return;
-      const root = shadowRoot.querySelector(`[${attrName}]`);
-      if (!root) return;
-      const enabledButton = root.querySelector<HTMLButtonElement>(
-        "[data-react-grab-toolbar-enabled]",
-      );
-      enabledButton?.click();
     }, ATTRIBUTE_NAME);
   };
 
@@ -1946,7 +1931,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     getToolbarInfo,
     clickToolbarToggle,
     clickToolbarCollapse,
-    clickToolbarEnabled,
     dragToolbar,
     dragToolbarFromButton,
 

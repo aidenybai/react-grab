@@ -65,7 +65,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           isPromptMode={props.isPromptMode}
           inputValue={props.inputValue}
           status={props.selectionLabelStatus}
-          actionCycleState={props.selectionActionCycleState}
           arrowNavigationState={props.selectionArrowNavigationState}
           onArrowNavigationSelect={props.onArrowNavigationSelect}
           inspectNavigationState={props.inspectNavigationState}
@@ -122,7 +121,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           isContextMenuOpen={props.contextMenuPosition !== null}
           onToggle={props.onToggleActive}
           enabled={props.enabled}
-          onToggleEnabled={props.onToggleEnabled}
           shakeCount={props.shakeCount}
           onStateChange={props.onToolbarStateChange}
           onSubscribeToStateChanges={props.onSubscribeToToolbarStateChanges}
@@ -137,8 +135,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           isCommentsDropdownOpen={Boolean(props.commentsDropdownPosition)}
           isCommentsPinned={props.isCommentsPinned}
           onToggleToolbarMenu={props.onToggleToolbarMenu}
-          isToolbarMenuOpen={Boolean(props.toolbarMenuPosition)}
-          isClearPromptOpen={Boolean(props.clearPromptPosition)}
         />
       </Show>
       <ContextMenu
