@@ -197,10 +197,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
   }
   hasInited = true;
 
-  logIntro();
+  if (!initialOptions.silent) {
+    logIntro();
+  }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- need to omit enabled from settableOptions to avoid circular dependency
-  const { enabled: _enabled, ...settableOptions } = initialOptions;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- need to omit init-only options from settableOptions to avoid circular dependency
+  const { enabled: _enabled, silent: _silent, ...settableOptions } = initialOptions;
 
   return createRoot((dispose) => {
     let disposed = false;
