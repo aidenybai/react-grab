@@ -32,6 +32,11 @@ const licenseBanner = `/**
  */`;
 
 export default defineConfig({
+  test: {
+    globals: true,
+    include: ["test/**/*.test.ts"],
+    testTimeout: 10000,
+  },
   pack: [
     {
       entry: ["./src/index.ts"],
