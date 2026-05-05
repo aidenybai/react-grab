@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { SquareIcon } from "lucide-react";
+import * as Dialog from "@radix-ui/react-dialog";
 
 interface Todo {
   id: number;
@@ -597,6 +598,24 @@ const LibraryIconSection = () => {
   );
 };
 
+const RadixDialogSection = () => {
+  return (
+    <section className="border rounded-lg p-4" data-testid="radix-dialog-section">
+      <h2 className="text-lg font-bold mb-4">Radix Dialog (scoped library)</h2>
+      <div data-testid="radix-dialog-host" className="inline-flex">
+        <Dialog.Root>
+          <Dialog.Trigger
+            data-testid="radix-dialog-trigger"
+            className="bg-blue-500 text-white px-4 py-2 rounded"
+          >
+            Open Dialog
+          </Dialog.Trigger>
+        </Dialog.Root>
+      </div>
+    </section>
+  );
+};
+
 const HiddenToggleSection = () => {
   const [isVisible, setIsVisible] = useState(true);
   const elementRef = useRef<HTMLDivElement>(null);
@@ -661,6 +680,8 @@ export default function App() {
       <PointerUpModalSection />
 
       <LibraryIconSection />
+
+      <RadixDialogSection />
 
       <HiddenToggleSection />
 

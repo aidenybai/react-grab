@@ -81,7 +81,32 @@ test.describe("Element Context Fallback", () => {
       // component fix, this frame would be filtered out entirely and the
       // stack would jump straight to LibraryIconSection.
       expect(clipboard).toMatch(/in\s+Square\b/);
+      // The library frame should also be tagged with the originating package
+      // (parsed from its node_modules file path) so the agent knows where the
+      // component came from without us leaking the bundled file path.
+      expect(clipboard).toMatch(/in\s+Square\s+\(lucide-react\)/);
       expect(clipboard).toContain("LibraryIconSection");
+    });
+
+    test("should preserve the scope when tagging frames from scoped packages", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+
+      const trigger = "[data-testid='radix-dialog-trigger']";
+      await reactGrab.hoverElement(trigger);
+      await reactGrab.waitForSelectionBox();
+      await reactGrab.clickElement(trigger);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      // Vite's optimized-deps directory flattens scoped packages
+      // (`@radix-ui_react-dialog.js`); the parser must round-trip that back
+      // to the canonical `@scope/name` form, not drop the scope or the slash.
+      expect(clipboard).toMatch(/\(@radix-ui\/react-dialog\)/);
+      // The user's wrapper component must still survive the maxLines budget
+      // even with a library frame consuming a slot — this is the coalescing
+      // guarantee in action.
+      expect(clipboard).toContain("RadixDialogSection");
     });
   });
 

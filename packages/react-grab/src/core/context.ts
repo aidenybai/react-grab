@@ -26,6 +26,7 @@ import { getTagName } from "../utils/get-tag-name.js";
 import { truncateString } from "../utils/truncate-string.js";
 import { getNextBasePath } from "../utils/get-next-base-path.js";
 import { normalizeFilePath } from "../utils/normalize-file-path.js";
+import { parsePackageName } from "../utils/parse-package-name.js";
 import { isInternalAttribute } from "../utils/strip-internal-attributes.js";
 
 const NON_COMPONENT_PREFIXES = new Set([
@@ -425,28 +426,52 @@ const formatStackContext = (stack: StackFrame[], options: StackContextOptions = 
   const { maxLines = DEFAULT_MAX_CONTEXT_LINES } = options;
   const isNextProject = checkIsNextProject();
   const formattedLines: string[] = [];
+  // Tracks the package of the last library frame we emitted so we can
+  // collapse consecutive frames from the same library into a single line.
+  // Without this, a deeply nested Radix/MUI/Chakra tree can pile up many
+  // internal wrapper frames sharing one package and exhaust the tight
+  // `maxLines` budget (default 3) before the user's own component frames
+  // ever get a chance to land.
+  let previousLibraryPackage: string | null = null;
 
   for (const frame of stack) {
     if (formattedLines.length >= maxLines) break;
 
     const hasResolvedSource = frame.fileName && isSourceFile(frame.fileName);
+    const framePackage = !hasResolvedSource ? parsePackageName(frame.fileName) : null;
+
+    if (framePackage && framePackage === previousLibraryPackage) continue;
 
     if (
       frame.isServer &&
       !hasResolvedSource &&
       (!frame.functionName || isSourceComponentName(frame.functionName))
     ) {
-      formattedLines.push(`\n  in ${frame.functionName || "<anonymous>"} (at Server)`);
+      // Server-rendered library components (e.g. a Radix or lucide frame
+      // from an RSC tree) reach this branch with a node_modules-shaped
+      // fileName but no resolved source, so we still try to recover the
+      // originating package. Format mirrors the client library branch:
+      // `(lucide-react at Server)` reads as "from lucide-react, served
+      // from Server".
+      const suffix = framePackage ? `(${framePackage} at Server)` : `(at Server)`;
+      formattedLines.push(`\n  in ${frame.functionName || "<anonymous>"} ${suffix}`);
+      previousLibraryPackage = framePackage;
       continue;
     }
 
     // Library components (from node_modules, vendor bundles, etc.) get
     // dropped by the user-source filter, so the agent loses sight of names
-    // like "SquareIcon" that the user actually selected. Emit a name-only
-    // line so the component identity survives without leaking misleading
-    // library file paths.
+    // like "SquareIcon" that the user actually selected. Emit a name line
+    // tagged with the originating package when we can recover it from the
+    // file path, so the component identity survives without leaking the
+    // (often minified or virtual) library file path itself.
     if (!hasResolvedSource && frame.functionName && isSourceComponentName(frame.functionName)) {
-      formattedLines.push(`\n  in ${frame.functionName}`);
+      formattedLines.push(
+        framePackage
+          ? `\n  in ${frame.functionName} (${framePackage})`
+          : `\n  in ${frame.functionName}`,
+      );
+      previousLibraryPackage = framePackage;
       continue;
     }
 
@@ -475,6 +500,7 @@ const formatStackContext = (stack: StackFrame[], options: StackContextOptions = 
       }
 
       formattedLines.push(line);
+      previousLibraryPackage = null;
     }
   }
 
