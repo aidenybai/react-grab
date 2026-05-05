@@ -784,6 +784,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         previewBounds: copiedElements.map((copiedElement) => createElementBounds(copiedElement)),
         elementSelectors,
         commentText: extraPrompt,
+        url: typeof window !== "undefined" ? window.location.href : undefined,
         timestamp: Date.now(),
       });
       setCommentItems(updatedCommentItems);
@@ -3341,8 +3342,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
+    const decorateContentWithUrl = (content: string, url: string | undefined): string =>
+      url ? `${content}\n  at ${url}` : content;
+
     const copyCommentItemContent = (item: CommentItem) => {
-      copyContent(item.content, {
+      copyContent(decorateContentWithUrl(item.content, item.url), {
         tagName: item.tagName,
         componentName: item.componentName ?? item.elementName,
         commentText: item.commentText,
@@ -3386,7 +3390,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (currentCommentItems.length === 0) return;
 
       const combinedContent = joinSnippets(
-        currentCommentItems.map((commentItem) => commentItem.content),
+        currentCommentItems.map((commentItem) =>
+          decorateContentWithUrl(commentItem.content, commentItem.url),
+        ),
       );
 
       const firstItem = currentCommentItems[0];
@@ -3395,7 +3401,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         entries: currentCommentItems.map((commentItem) => ({
           tagName: commentItem.tagName,
           componentName: commentItem.componentName ?? commentItem.elementName,
-          content: commentItem.content,
+          content: decorateContentWithUrl(commentItem.content, commentItem.url),
           commentText: commentItem.commentText,
         })),
       });
