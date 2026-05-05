@@ -422,89 +422,70 @@ const getComponentNamesFromFiber = (element: Element, maxCount: number): string[
   return componentNames;
 };
 
+const formatResolvedSourceLine = (
+  frame: StackFrame,
+  filePath: string,
+  componentName: string | null,
+  isNextProject: boolean,
+): string => {
+  // HACK: bundlers like Vite produce unreliable line/column numbers from
+  // owner stacks, so we only include them for Next.js where the dev server
+  // symbolicates frames via source maps.
+  const location =
+    isNextProject && frame.lineNumber
+      ? `${normalizeFilePath(filePath)}:${frame.lineNumber}${frame.columnNumber ? `:${frame.columnNumber}` : ""}`
+      : normalizeFilePath(filePath);
+  return componentName ? `\n  in ${componentName} (at ${location})` : `\n  in ${location}`;
+};
+
 const formatStackContext = (stack: StackFrame[], options: StackContextOptions = {}): string => {
   const { maxLines = DEFAULT_MAX_CONTEXT_LINES } = options;
   const isNextProject = checkIsNextProject();
-  const formattedLines: string[] = [];
-  // Tracks the package of the last library frame we emitted so we can
-  // collapse consecutive frames from the same library into a single line.
-  // Without this, a deeply nested Radix/MUI/Chakra tree can pile up many
-  // internal wrapper frames sharing one package and exhaust the tight
-  // `maxLines` budget (default 3) before the user's own component frames
-  // ever get a chance to land.
+  const lines: string[] = [];
+  // Tracks the last library we emitted so consecutive same-package frames
+  // (a deeply nested Radix/MUI tree) collapse to one line and don't evict
+  // the user's own component frames from the tight maxLines budget.
   let previousLibraryPackage: string | null = null;
 
+  const emit = (line: string, libraryPackage: string | null) => {
+    lines.push(line);
+    previousLibraryPackage = libraryPackage;
+  };
+
   for (const frame of stack) {
-    if (formattedLines.length >= maxLines) break;
+    if (lines.length >= maxLines) break;
 
-    const hasResolvedSource = frame.fileName && isSourceFile(frame.fileName);
-    const framePackage = !hasResolvedSource ? parsePackageName(frame.fileName) : null;
+    const resolvedSource = frame.fileName && isSourceFile(frame.fileName) ? frame.fileName : null;
+    const libraryPackage = resolvedSource ? null : parsePackageName(frame.fileName);
+    if (libraryPackage && libraryPackage === previousLibraryPackage) continue;
 
-    if (framePackage && framePackage === previousLibraryPackage) continue;
+    const componentName =
+      frame.functionName && isSourceComponentName(frame.functionName) ? frame.functionName : null;
 
-    if (
-      frame.isServer &&
-      !hasResolvedSource &&
-      (!frame.functionName || isSourceComponentName(frame.functionName))
-    ) {
-      // Server-rendered library components (e.g. a Radix or lucide frame
-      // from an RSC tree) reach this branch with a node_modules-shaped
-      // fileName but no resolved source, so we still try to recover the
-      // originating package. Format mirrors the client library branch:
-      // `(lucide-react at Server)` reads as "from lucide-react, served
-      // from Server".
-      const suffix = framePackage ? `(${framePackage} at Server)` : `(at Server)`;
-      formattedLines.push(`\n  in ${frame.functionName || "<anonymous>"} ${suffix}`);
-      previousLibraryPackage = framePackage;
+    if (frame.isServer && !resolvedSource && (componentName || !frame.functionName)) {
+      const tag = libraryPackage ? `${libraryPackage} at Server` : "at Server";
+      emit(`\n  in ${componentName ?? "<anonymous>"} (${tag})`, libraryPackage);
       continue;
     }
 
-    // Library components (from node_modules, vendor bundles, etc.) get
-    // dropped by the user-source filter, so the agent loses sight of names
-    // like "SquareIcon" that the user actually selected. Emit a name line
-    // tagged with the originating package when we can recover it from the
-    // file path, so the component identity survives without leaking the
-    // (often minified or virtual) library file path itself.
-    if (!hasResolvedSource && frame.functionName && isSourceComponentName(frame.functionName)) {
-      formattedLines.push(
-        framePackage
-          ? `\n  in ${frame.functionName} (${framePackage})`
-          : `\n  in ${frame.functionName}`,
+    // Library frames (from node_modules, vendor bundles, etc.) bypass the
+    // user-source filter so the agent still sees names like `SquareIcon`
+    // that the user actually selected, tagged with the originating package
+    // when we can recover it from the file path.
+    if (!resolvedSource && componentName) {
+      emit(
+        libraryPackage ? `\n  in ${componentName} (${libraryPackage})` : `\n  in ${componentName}`,
+        libraryPackage,
       );
-      previousLibraryPackage = framePackage;
       continue;
     }
 
-    if (hasResolvedSource) {
-      let line = "\n  in ";
-      const hasComponentName = frame.functionName && isSourceComponentName(frame.functionName);
-
-      if (hasComponentName) {
-        line += `${frame.functionName} (at `;
-      }
-
-      line += normalizeFilePath(frame.fileName!);
-
-      // HACK: bundlers like Vite produce unreliable line/column numbers from
-      // owner stacks, so we only include them for Next.js where the dev
-      // server symbolicates frames via source maps.
-      if (isNextProject && frame.lineNumber) {
-        line += `:${frame.lineNumber}`;
-        if (frame.columnNumber) {
-          line += `:${frame.columnNumber}`;
-        }
-      }
-
-      if (hasComponentName) {
-        line += `)`;
-      }
-
-      formattedLines.push(line);
-      previousLibraryPackage = null;
+    if (resolvedSource) {
+      emit(formatResolvedSourceLine(frame, resolvedSource, componentName, isNextProject), null);
     }
   }
 
-  return formattedLines.join("");
+  return lines.join("");
 };
 
 export const getStackContext = async (

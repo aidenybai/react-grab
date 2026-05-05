@@ -80,9 +80,11 @@ const matchAfterLastPattern = (
 // Walks a CDN URL pathname looking for the first segment shaped like
 // `<name>@<version>` (with an optional preceding `@scope` segment).
 // Tolerates path prefixes used by various CDNs: `/npm/`, `/v135/`,
-// `/stable/`, `/pin/`, etc.
+// `/stable/`, `/pin/`, etc. Returns `null` for un-versioned scoped paths
+// like `/npm/@types/foo` because we have no signal that `@types` is the
+// real package boundary versus an arbitrary directory.
 const findVersionedPackageInPath = (pathname: string): string | null => {
-  const segments = pathname.split("/").filter(Boolean);
+  const segments = splitPathSegments(pathname);
   for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
     const segment = segments[segmentIndex];
     if (segment.startsWith("@")) {
