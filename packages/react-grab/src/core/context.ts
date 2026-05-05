@@ -26,6 +26,7 @@ import { getTagName } from "../utils/get-tag-name.js";
 import { truncateString } from "../utils/truncate-string.js";
 import { getNextBasePath } from "../utils/get-next-base-path.js";
 import { normalizeFilePath } from "../utils/normalize-file-path.js";
+import { parsePackageName } from "../utils/parse-package-name.js";
 import { isInternalAttribute } from "../utils/strip-internal-attributes.js";
 
 const NON_COMPONENT_PREFIXES = new Set([
@@ -393,6 +394,7 @@ const hasFormattableFrames = (stack: StackFrame[] | null): boolean => {
     if (frame.isServer && (!frame.functionName || isSourceComponentName(frame.functionName))) {
       return true;
     }
+    if (frame.functionName && isSourceComponentName(frame.functionName)) return true;
     return false;
   });
 };
@@ -420,54 +422,70 @@ const getComponentNamesFromFiber = (element: Element, maxCount: number): string[
   return componentNames;
 };
 
+const formatResolvedSourceLine = (
+  frame: StackFrame,
+  filePath: string,
+  componentName: string | null,
+  isNextProject: boolean,
+): string => {
+  // HACK: bundlers like Vite produce unreliable line/column numbers from
+  // owner stacks, so we only include them for Next.js where the dev server
+  // symbolicates frames via source maps.
+  const location =
+    isNextProject && frame.lineNumber
+      ? `${normalizeFilePath(filePath)}:${frame.lineNumber}${frame.columnNumber ? `:${frame.columnNumber}` : ""}`
+      : normalizeFilePath(filePath);
+  return componentName ? `\n  in ${componentName} (at ${location})` : `\n  in ${location}`;
+};
+
 const formatStackContext = (stack: StackFrame[], options: StackContextOptions = {}): string => {
   const { maxLines = DEFAULT_MAX_CONTEXT_LINES } = options;
   const isNextProject = checkIsNextProject();
-  const formattedLines: string[] = [];
+  const lines: string[] = [];
+  // Tracks the last library we emitted so consecutive same-package frames
+  // (a deeply nested Radix/MUI tree) collapse to one line and don't evict
+  // the user's own component frames from the tight maxLines budget.
+  let previousLibraryPackage: string | null = null;
+
+  const emit = (line: string, libraryPackage: string | null) => {
+    lines.push(line);
+    previousLibraryPackage = libraryPackage;
+  };
 
   for (const frame of stack) {
-    if (formattedLines.length >= maxLines) break;
+    if (lines.length >= maxLines) break;
 
-    const hasResolvedSource = frame.fileName && isSourceFile(frame.fileName);
+    const resolvedSource = frame.fileName && isSourceFile(frame.fileName) ? frame.fileName : null;
+    const libraryPackage = resolvedSource ? null : parsePackageName(frame.fileName);
+    if (libraryPackage && libraryPackage === previousLibraryPackage) continue;
 
-    if (
-      frame.isServer &&
-      !hasResolvedSource &&
-      (!frame.functionName || isSourceComponentName(frame.functionName))
-    ) {
-      formattedLines.push(`\n  in ${frame.functionName || "<anonymous>"} (at Server)`);
+    const componentName =
+      frame.functionName && isSourceComponentName(frame.functionName) ? frame.functionName : null;
+
+    if (frame.isServer && !resolvedSource && (componentName || !frame.functionName)) {
+      const tag = libraryPackage ? `${libraryPackage} at Server` : "at Server";
+      emit(`\n  in ${componentName ?? "<anonymous>"} (${tag})`, libraryPackage);
       continue;
     }
 
-    if (hasResolvedSource) {
-      let line = "\n  in ";
-      const hasComponentName = frame.functionName && isSourceComponentName(frame.functionName);
+    // Library frames (from node_modules, vendor bundles, etc.) bypass the
+    // user-source filter so the agent still sees names like `SquareIcon`
+    // that the user actually selected, tagged with the originating package
+    // when we can recover it from the file path.
+    if (!resolvedSource && componentName) {
+      emit(
+        libraryPackage ? `\n  in ${componentName} (${libraryPackage})` : `\n  in ${componentName}`,
+        libraryPackage,
+      );
+      continue;
+    }
 
-      if (hasComponentName) {
-        line += `${frame.functionName} (at `;
-      }
-
-      line += normalizeFilePath(frame.fileName!);
-
-      // HACK: bundlers like Vite produce unreliable line/column numbers from
-      // owner stacks, so we only include them for Next.js where the dev
-      // server symbolicates frames via source maps.
-      if (isNextProject && frame.lineNumber) {
-        line += `:${frame.lineNumber}`;
-        if (frame.columnNumber) {
-          line += `:${frame.columnNumber}`;
-        }
-      }
-
-      if (hasComponentName) {
-        line += `)`;
-      }
-
-      formattedLines.push(line);
+    if (resolvedSource) {
+      emit(formatResolvedSourceLine(frame, resolvedSource, componentName, isNextProject), null);
     }
   }
 
-  return formattedLines.join("");
+  return lines.join("");
 };
 
 export const getStackContext = async (
