@@ -539,11 +539,18 @@ const buildContextParts = async (
 
   const componentNames = getComponentNamesFromFiber(resolvedElement, maxLines);
   if (componentNames.length > 0) {
-    return {
-      htmlPreview,
-      sourceSnippet: null,
-      stackLines: componentNames.map((name) => `in ${name}`),
-    };
+    // Without a formattable owner stack, the source snippet is unreachable —
+    // surface the fiber's memoized props on the innermost component name so
+    // the agent still gets the call shape.
+    const componentInfo = getFiberComponentInfo(resolvedElement);
+    const componentInstanceText =
+      componentInfo && componentInfo.name === componentNames[0]
+        ? formatComponentInstance({ name: componentInfo.name, props: componentInfo.props })
+        : null;
+    const stackLines = componentNames.map((name, nameIndex) =>
+      nameIndex === 0 && componentInstanceText ? `in ${componentInstanceText}` : `in ${name}`,
+    );
+    return { htmlPreview, sourceSnippet: null, stackLines };
   }
 
   return {

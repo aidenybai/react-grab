@@ -52,14 +52,16 @@ const findContentInSourceMap = (
   sourceMap: SourceMap | undefined,
   fileName: string,
 ): string | null => {
-  if (!sourceMap?.sources || !sourceMap.sourcesContent) return null;
-  const exactIndex = sourceMap.sources.indexOf(fileName);
-  if (exactIndex !== -1) {
-    const content = sourceMap.sourcesContent[exactIndex];
-    if (content) return content;
+  if (!sourceMap) return null;
+  if (sourceMap.sources && sourceMap.sourcesContent) {
+    const exactIndex = sourceMap.sources.indexOf(fileName);
+    if (exactIndex !== -1) {
+      const content = sourceMap.sourcesContent[exactIndex];
+      if (content) return content;
+    }
+    const suffixMatch = findContentBySuffixMatch(sourceMap, fileName);
+    if (suffixMatch) return suffixMatch;
   }
-  const suffixMatch = findContentBySuffixMatch(sourceMap, fileName);
-  if (suffixMatch) return suffixMatch;
   if (sourceMap.sections) {
     for (const section of sourceMap.sections) {
       const content = findContentInSourceMap(section.map, fileName);

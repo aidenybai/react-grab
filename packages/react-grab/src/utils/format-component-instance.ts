@@ -32,7 +32,9 @@ const formatPropValue = (value: unknown): string | null => {
     return value.length === 0 ? "{[]}" : `{[${value.length} items]}`;
   }
   if (typeof value === "object") {
-    if (value instanceof Date) return `{Date(${value.toISOString()})}`;
+    if (value instanceof Date) {
+      return Number.isNaN(value.getTime()) ? "{Date(Invalid)}" : `{Date(${value.toISOString()})}`;
+    }
     if (value instanceof RegExp) return `{${value.toString()}}`;
     if (typeof Element !== "undefined" && value instanceof Element) {
       return `{<${value.localName} ...>}`;
@@ -58,12 +60,12 @@ export const formatComponentInstance = (instance: ComponentInstance): string => 
 
   for (const propName of Object.keys(props)) {
     if (!isRenderablePropName(propName)) continue;
+    const formatted = formatPropValue(props[propName]);
+    if (formatted === null) continue;
     if (renderedAttrs.length >= COMPONENT_INSTANCE_MAX_PROPS) {
       truncatedCount++;
       continue;
     }
-    const formatted = formatPropValue(props[propName]);
-    if (formatted === null) continue;
     if (formatted === "{true}") {
       renderedAttrs.push(propName);
       continue;

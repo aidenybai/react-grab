@@ -125,4 +125,20 @@ describe("formatComponentInstance", () => {
       "<Comp value={null} />",
     );
   });
+
+  it("handles invalid Date props without throwing", () => {
+    const invalidDate = new Date("not-a-date");
+    expect(formatComponentInstance({ name: "Comp", props: { at: invalidDate } })).toBe(
+      "<Comp at={Date(Invalid)} />",
+    );
+  });
+
+  it("does not count undefined props past the limit toward the overflow marker", () => {
+    expect(
+      formatComponentInstance({
+        name: "Comp",
+        props: { a: 1, b: 2, c: 3, d: 4, e: undefined, f: undefined, g: 7 },
+      }),
+    ).toBe("<Comp a={1} b={2} c={3} d={4} /* +1 more */ />");
+  });
 });
