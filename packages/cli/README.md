@@ -101,4 +101,5 @@ npx grab@latest configure
 | Next.js (App Router)   | `next.config.ts` + `app/` directory   |
 | Next.js (Pages Router) | `next.config.ts` + `pages/` directory |
 | Vite                   | `vite.config.ts`                      |
+| SvelteKit              | `svelte.config.*`                     |
 | Webpack                | `webpack.config.*`                    |

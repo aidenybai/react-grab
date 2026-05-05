@@ -58,6 +58,7 @@ const FRAMEWORK_NAMES: Record<Framework, string> = {
   vite: "Vite",
   tanstack: "TanStack Start",
   webpack: "Webpack",
+  sveltekit: "SvelteKit",
   unknown: "Unknown",
 };
 
@@ -71,7 +72,6 @@ const PACKAGE_MANAGER_NAMES: Record<PackageManager, string> = {
 const UNSUPPORTED_FRAMEWORK_NAMES: Record<NonNullable<UnsupportedFramework>, string> = {
   remix: "Remix",
   astro: "Astro",
-  sveltekit: "SvelteKit",
   gatsby: "Gatsby",
 };
 
@@ -495,12 +495,13 @@ export const init = new Command()
         process.exit(1);
       }
 
-      const hasLayoutChanges = !result.noChanges && result.originalContent && result.newContent;
+      const hasLayoutChanges =
+        !result.noChanges && result.filePath && result.newContent !== undefined;
 
       if (hasLayoutChanges) {
         logger.break();
 
-        printDiff(result.filePath, result.originalContent!, result.newContent!);
+        printDiff(result.filePath, result.originalContent ?? "", result.newContent!);
 
         logger.break();
         logger.warn("Auto-detection may not be 100% accurate.");

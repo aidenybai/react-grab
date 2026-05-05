@@ -199,6 +199,16 @@ Add this to your `index.html`:
 </html>
 ```
 
+### SvelteKit
+
+Add this to `src/hooks.client.ts`:
+
+```ts
+if (import.meta.env.DEV) {
+  import("react-grab");
+}
+```
+
 ### Webpack
 
 First, install React Grab:

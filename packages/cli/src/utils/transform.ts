@@ -1,9 +1,10 @@
 import { accessSync, constants, existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import type { Framework, NextRouterType } from "./detect.js";
 import {
   NEXT_APP_ROUTER_SCRIPT,
   SCRIPT_IMPORT,
+  SVELTEKIT_IMPORT,
   TANSTACK_EFFECT,
   VITE_IMPORT,
   WEBPACK_IMPORT,
@@ -150,6 +151,14 @@ const findTanStackRootFile = (projectRoot: string): string | null => {
   }
 
   return null;
+};
+
+const findSvelteKitHooksClientFile = (projectRoot: string): string | null => {
+  const candidates = [
+    join(projectRoot, "src", "hooks.client.ts"),
+    join(projectRoot, "src", "hooks.client.js"),
+  ];
+  return candidates.find(existsSync) ?? null;
 };
 
 const alreadyConfiguredResult = (filePath: string): TransformResult => ({
@@ -395,6 +404,55 @@ const transformWebpack = (
   };
 };
 
+const transformSvelteKit = (
+  projectRoot: string,
+  reactGrabAlreadyConfigured: boolean,
+  force: boolean = false,
+): TransformResult => {
+  if (!force) {
+    const appHtml = join(projectRoot, "src", "app.html");
+    if (existsSync(appHtml)) {
+      const existing = checkExistingInstallation(appHtml, reactGrabAlreadyConfigured);
+      if (existing) return existing;
+    }
+  }
+
+  if (!existsSync(join(projectRoot, "src"))) {
+    return {
+      success: false,
+      filePath: "",
+      message: "Could not find src/ directory for SvelteKit project",
+    };
+  }
+
+  const existingHooks = findSvelteKitHooksClientFile(projectRoot);
+
+  if (existingHooks) {
+    if (!force) {
+      const existing = checkExistingInstallation(existingHooks, reactGrabAlreadyConfigured);
+      if (existing) return existing;
+    }
+    const originalContent = readFileSync(existingHooks, "utf-8");
+    const newContent = `${SVELTEKIT_IMPORT}\n\n${originalContent}`;
+    return {
+      success: true,
+      filePath: existingHooks,
+      message: "Add React Grab",
+      originalContent,
+      newContent,
+    };
+  }
+
+  const newFilePath = join(projectRoot, "src", "hooks.client.ts");
+  return {
+    success: true,
+    filePath: newFilePath,
+    message: "Create src/hooks.client.ts with React Grab",
+    originalContent: "",
+    newContent: `${SVELTEKIT_IMPORT}\n`,
+  };
+};
+
 const transformTanStack = (
   projectRoot: string,
   reactGrabAlreadyConfigured: boolean,
@@ -507,6 +565,9 @@ export const previewTransform = (
     case "webpack":
       return transformWebpack(projectRoot, reactGrabAlreadyConfigured, force);
 
+    case "sveltekit":
+      return transformSvelteKit(projectRoot, reactGrabAlreadyConfigured, force);
+
     default:
       return {
         success: false,
@@ -518,7 +579,11 @@ export const previewTransform = (
 
 const canWriteToFile = (filePath: string): boolean => {
   try {
-    accessSync(filePath, constants.W_OK);
+    if (existsSync(filePath)) {
+      accessSync(filePath, constants.W_OK);
+    } else {
+      accessSync(dirname(filePath), constants.W_OK);
+    }
     return true;
   } catch {
     return false;
@@ -625,6 +690,8 @@ const findReactGrabFile = (
       return findTanStackRootFile(projectRoot);
     case "webpack":
       return findEntryFile(projectRoot);
+    case "sveltekit":
+      return findSvelteKitHooksClientFile(projectRoot);
     default:
       return null;
   }
@@ -769,6 +836,8 @@ export const previewOptionsTransform = (
     case "tanstack":
       return addOptionsToTanStackImport(originalContent, options, filePath);
     case "webpack":
+      return addOptionsToDynamicImport(originalContent, options, filePath);
+    case "sveltekit":
       return addOptionsToDynamicImport(originalContent, options, filePath);
     default:
       return {

@@ -38,6 +38,15 @@ describe("detectFramework", () => {
     expect(detectFramework("/test")).toBe("vite");
   });
 
+  it("should detect SvelteKit", () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(
+      JSON.stringify({ devDependencies: { "@sveltejs/kit": "2.0.0", vite: "6.0.0" } }),
+    );
+
+    expect(detectFramework("/test")).toBe("sveltekit");
+  });
+
   it("should detect Webpack", () => {
     mockExistsSync.mockReturnValue(true);
     mockReadFileSync.mockReturnValue(JSON.stringify({ devDependencies: { webpack: "5.0.0" } }));
@@ -253,13 +262,13 @@ describe("detectUnsupportedFramework", () => {
     expect(detectUnsupportedFramework("/test")).toBe("astro");
   });
 
-  it("should detect SvelteKit", () => {
+  it("should not report SvelteKit as unsupported", () => {
     mockExistsSync.mockReturnValue(true);
     mockReadFileSync.mockReturnValue(
       JSON.stringify({ devDependencies: { "@sveltejs/kit": "2.0.0" } }),
     );
 
-    expect(detectUnsupportedFramework("/test")).toBe("sveltekit");
+    expect(detectUnsupportedFramework("/test")).toBe(null);
   });
 
   it("should detect Gatsby", () => {
