@@ -28,56 +28,14 @@ import { getNextBasePath } from "../utils/get-next-base-path.js";
 import { normalizeFilePath } from "../utils/normalize-file-path.js";
 import { parsePackageName } from "../utils/parse-package-name.js";
 import { isInternalAttribute } from "../utils/strip-internal-attributes.js";
-
-const NON_COMPONENT_PREFIXES = new Set([
-  "_",
-  "$",
-  "motion.",
-  "styled.",
-  "chakra.",
-  "ark.",
-  "Primitive.",
-  "Slot.",
-]);
-
-// Next.js App Router internals that wrap user components but are not useful
-// as display names. Without filtering these the UI would show names like
-// "InnerLayoutRouter" instead of the user's own component.
-const NEXT_INTERNAL_COMPONENT_NAMES = new Set([
-  "InnerLayoutRouter",
-  "RedirectErrorBoundary",
-  "RedirectBoundary",
-  "HTTPAccessFallbackErrorBoundary",
-  "HTTPAccessFallbackBoundary",
-  "LoadingBoundary",
-  "ErrorBoundary",
-  "InnerScrollAndFocusHandler",
-  "ScrollAndFocusHandler",
-  "RenderFromTemplateContext",
-  "OuterLayoutRouter",
-  "body",
-  "html",
-  "DevRootHTTPAccessFallbackBoundary",
-  "AppDevOverlayErrorBoundary",
-  "AppDevOverlay",
-  "HotReload",
-  "Router",
-  "ErrorBoundaryHandler",
-  "AppRouter",
-  "ServerRoot",
-  "SegmentStateProvider",
-  "RootErrorBoundary",
-  "LoadableComponent",
-  "MotionDOMComponent",
-]);
-
-const REACT_INTERNAL_COMPONENT_NAMES = new Set([
-  "Suspense",
-  "Fragment",
-  "StrictMode",
-  "Profiler",
-  "SuspenseList",
-]);
+import { formatComponentInstance } from "../utils/format-component-instance.js";
+import { getFiberComponentInfo } from "../utils/get-fiber-component-info.js";
+import { getSourceSnippetForFrame, type SourceSnippet } from "../utils/get-source-snippet.js";
+import { formatSourceSnippetBlock } from "../utils/format-source-snippet-block.js";
+import {
+  isInternalComponentName,
+  isUsefulComponentName,
+} from "../utils/is-useful-component-name.js";
 
 let cachedIsNextProject: boolean | undefined;
 
@@ -89,22 +47,6 @@ export const checkIsNextProject = (revalidate?: boolean): boolean => {
     typeof document !== "undefined" &&
     Boolean(document.getElementById("__NEXT_DATA__") || document.querySelector("nextjs-portal"));
   return cachedIsNextProject;
-};
-
-const isInternalComponentName = (name: string): boolean => {
-  if (NEXT_INTERNAL_COMPONENT_NAMES.has(name)) return true;
-  if (REACT_INTERNAL_COMPONENT_NAMES.has(name)) return true;
-  for (const prefix of NON_COMPONENT_PREFIXES) {
-    if (name.startsWith(prefix)) return true;
-  }
-  return false;
-};
-
-const isUsefulComponentName = (name: string): boolean => {
-  if (!name) return false;
-  if (isInternalComponentName(name)) return false;
-  if (name === "SlotClone" || name === "Slot") return false;
-  return true;
 };
 
 const isSourceComponentName = (name: string): boolean => {
@@ -387,6 +329,23 @@ interface StackContextOptions {
   maxLines?: number;
 }
 
+interface ElementContextPartsInternalOptions extends StackContextOptions {
+  includeSourceSnippet?: boolean;
+}
+
+export interface SourceSnippetInfo {
+  filePath: string;
+  snippet: SourceSnippet;
+  block: string;
+  key: string;
+}
+
+export interface ElementContextParts {
+  htmlPreview: string;
+  sourceSnippet: SourceSnippetInfo | null;
+  stackLines: string[];
+}
+
 const hasFormattableFrames = (stack: StackFrame[] | null): boolean => {
   if (!stack) return false;
   return stack.some((frame) => {
@@ -422,23 +381,44 @@ const getComponentNamesFromFiber = (element: Element, maxCount: number): string[
   return componentNames;
 };
 
-const formatResolvedSourceLine = (
+const formatResolvedSourceLocation = (
   frame: StackFrame,
   filePath: string,
-  componentName: string | null,
   isNextProject: boolean,
 ): string => {
   // HACK: bundlers like Vite produce unreliable line/column numbers from
   // owner stacks, so we only include them for Next.js where the dev server
   // symbolicates frames via source maps.
-  const location =
-    isNextProject && frame.lineNumber
-      ? `${normalizeFilePath(filePath)}:${frame.lineNumber}${frame.columnNumber ? `:${frame.columnNumber}` : ""}`
-      : normalizeFilePath(filePath);
-  return componentName ? `\n  in ${componentName} (at ${location})` : `\n  in ${location}`;
+  if (isNextProject && frame.lineNumber) {
+    const column = frame.columnNumber ? `:${frame.columnNumber}` : "";
+    return `${normalizeFilePath(filePath)}:${frame.lineNumber}${column}`;
+  }
+  return normalizeFilePath(filePath);
 };
 
-const formatStackContext = (stack: StackFrame[], options: StackContextOptions = {}): string => {
+const formatResolvedStackLine = (
+  frame: StackFrame,
+  filePath: string,
+  componentName: string | null,
+  componentInstanceText: string | null,
+  isNextProject: boolean,
+): string => {
+  const location = formatResolvedSourceLocation(frame, filePath, isNextProject);
+  if (componentInstanceText) {
+    return `in ${componentInstanceText} (at ${location})`;
+  }
+  return componentName ? `in ${componentName} (at ${location})` : `in ${location}`;
+};
+
+interface StackContextInternalOptions extends StackContextOptions {
+  innermostComponentInstanceText?: string | null;
+  innermostComponentName?: string | null;
+}
+
+const formatStackLines = (
+  stack: StackFrame[],
+  options: StackContextInternalOptions = {},
+): string[] => {
   const { maxLines = DEFAULT_MAX_CONTEXT_LINES } = options;
   const isNextProject = checkIsNextProject();
   const lines: string[] = [];
@@ -446,6 +426,7 @@ const formatStackContext = (stack: StackFrame[], options: StackContextOptions = 
   // (a deeply nested Radix/MUI tree) collapse to one line and don't evict
   // the user's own component frames from the tight maxLines budget.
   let previousLibraryPackage: string | null = null;
+  let didAttachComponentInstance = false;
 
   const emit = (line: string, libraryPackage: string | null) => {
     lines.push(line);
@@ -464,7 +445,7 @@ const formatStackContext = (stack: StackFrame[], options: StackContextOptions = 
 
     if (frame.isServer && !resolvedSource && (componentName || !frame.functionName)) {
       const tag = libraryPackage ? `${libraryPackage} at Server` : "at Server";
-      emit(`\n  in ${componentName ?? "<anonymous>"} (${tag})`, libraryPackage);
+      emit(`in ${componentName ?? "<anonymous>"} (${tag})`, libraryPackage);
       continue;
     }
 
@@ -474,52 +455,132 @@ const formatStackContext = (stack: StackFrame[], options: StackContextOptions = 
     // when we can recover it from the file path.
     if (!resolvedSource && componentName) {
       emit(
-        libraryPackage ? `\n  in ${componentName} (${libraryPackage})` : `\n  in ${componentName}`,
+        libraryPackage ? `in ${componentName} (${libraryPackage})` : `in ${componentName}`,
         libraryPackage,
       );
       continue;
     }
 
     if (resolvedSource) {
-      emit(formatResolvedSourceLine(frame, resolvedSource, componentName, isNextProject), null);
+      // Only attach props when the resolved frame name matches the fiber walk,
+      // otherwise we'd paint the wrong component's props onto the wrong line.
+      const shouldAttachInstance =
+        !didAttachComponentInstance &&
+        Boolean(options.innermostComponentInstanceText) &&
+        componentName !== null &&
+        componentName === options.innermostComponentName;
+      const componentInstanceText = shouldAttachInstance
+        ? (options.innermostComponentInstanceText ?? null)
+        : null;
+      if (shouldAttachInstance) didAttachComponentInstance = true;
+      emit(
+        formatResolvedStackLine(
+          frame,
+          resolvedSource,
+          componentName,
+          componentInstanceText,
+          isNextProject,
+        ),
+        null,
+      );
     }
   }
 
-  return lines.join("");
+  return lines;
+};
+
+const buildSourceSnippetInfo = async (
+  stack: StackFrame[],
+  componentName: string | null,
+): Promise<SourceSnippetInfo | null> => {
+  const frame = stack.find((candidate) => candidate.fileName && isSourceFile(candidate.fileName));
+  if (!frame?.fileName) return null;
+
+  const snippet = await getSourceSnippetForFrame(frame, { componentName });
+  if (!snippet) return null;
+
+  const filePath = normalizeFilePath(frame.fileName);
+  return {
+    filePath,
+    snippet,
+    block: formatSourceSnippetBlock(snippet, filePath),
+    key: `${filePath}:${snippet.highlightLine}`,
+  };
+};
+
+const buildContextParts = async (
+  element: Element,
+  options: ElementContextPartsInternalOptions,
+): Promise<ElementContextParts> => {
+  const resolvedElement = findNearestFiberElement(element);
+  const htmlPreview = getHTMLPreview(resolvedElement);
+  const maxLines = options.maxLines ?? DEFAULT_MAX_CONTEXT_LINES;
+  const stack = await getStack(resolvedElement);
+
+  if (stack && hasFormattableFrames(stack)) {
+    const componentInfo = getFiberComponentInfo(resolvedElement);
+    const sourceSnippet = options.includeSourceSnippet
+      ? await buildSourceSnippetInfo(stack, componentInfo?.name ?? null)
+      : null;
+    // When a trustworthy snippet is present its literal JSX supersedes the
+    // props line, so we drop the props to avoid near-duplicate output.
+    const hasTrustworthySnippet = Boolean(sourceSnippet) && !sourceSnippet?.snippet.isApproximate;
+    const componentInstanceText =
+      hasTrustworthySnippet || !componentInfo
+        ? null
+        : formatComponentInstance({ name: componentInfo.name, props: componentInfo.props });
+    const stackLines = formatStackLines(stack, {
+      maxLines,
+      innermostComponentInstanceText: componentInstanceText,
+      innermostComponentName: componentInfo?.name ?? null,
+    });
+    return { htmlPreview, sourceSnippet, stackLines };
+  }
+
+  const componentNames = getComponentNamesFromFiber(resolvedElement, maxLines);
+  if (componentNames.length > 0) {
+    return {
+      htmlPreview,
+      sourceSnippet: null,
+      stackLines: componentNames.map((name) => `in ${name}`),
+    };
+  }
+
+  return {
+    htmlPreview: getFallbackContext(resolvedElement),
+    sourceSnippet: null,
+    stackLines: [],
+  };
 };
 
 export const getStackContext = async (
   element: Element,
   options: StackContextOptions = {},
 ): Promise<string> => {
-  const maxLines = options.maxLines ?? DEFAULT_MAX_CONTEXT_LINES;
-  const stack = await getStack(element);
+  const parts = await buildContextParts(element, { ...options, includeSourceSnippet: false });
+  if (parts.stackLines.length === 0) return "";
+  return parts.stackLines.map((line) => `\n  ${line}`).join("");
+};
 
-  if (stack && hasFormattableFrames(stack)) {
-    return formatStackContext(stack, options);
-  }
+export const getElementContextParts = (
+  element: Element,
+  options: StackContextOptions = {},
+): Promise<ElementContextParts> =>
+  buildContextParts(element, { ...options, includeSourceSnippet: true });
 
-  const componentNames = getComponentNamesFromFiber(element, maxLines);
-  if (componentNames.length > 0) {
-    return componentNames.map((name) => `\n  in ${name}`).join("");
-  }
-
-  return "";
+export const formatElementContextParts = (parts: ElementContextParts): string => {
+  const stackText = parts.stackLines.map((line) => `\n  ${line}`).join("");
+  if (!parts.sourceSnippet) return `${parts.htmlPreview}${stackText}`;
+  const stackSection = stackText ? `\n${stackText}` : "";
+  return `${parts.htmlPreview}\n\n${parts.sourceSnippet.block}${stackSection}`;
 };
 
 export const getElementContext = async (
   element: Element,
   options: StackContextOptions = {},
 ): Promise<string> => {
-  const resolvedElement = findNearestFiberElement(element);
-  const html = getHTMLPreview(resolvedElement);
-  const stackContext = await getStackContext(resolvedElement, options);
-
-  if (stackContext) {
-    return `${html}${stackContext}`;
-  }
-
-  return getFallbackContext(resolvedElement);
+  const parts = await getElementContextParts(element, options);
+  return formatElementContextParts(parts);
 };
 
 const getFallbackContext = (element: Element): string => {
