@@ -231,12 +231,25 @@ describe("parsePackageName", () => {
       expect(parsePackageName("https://esm.sh/@types/foo")).toBeNull();
     });
 
-    it("ignores CDN-shaped URLs from hosts not on the allow-list", () => {
-      expect(parsePackageName("https://untrusted-cdn.example.com/foo@1.0.0/index.js")).toBeNull();
+    it("recognizes versioned URLs from arbitrary hosts (no allow-list)", () => {
+      expect(parsePackageName("https://my-internal-cdn.example.com/foo@1.0.0/index.js")).toBe(
+        "foo",
+      );
+    });
+
+    it("rejects pseudo-versioned segments where the suffix is not a real version", () => {
+      expect(parsePackageName("https://example.com/contact/foo@bar.com/index.js")).toBeNull();
+      expect(parsePackageName("https://twitter.com/@username/status/123")).toBeNull();
     });
 
     it("returns null when the URL is not parseable", () => {
       expect(parsePackageName("not a url ::: bogus")).toBeNull();
+    });
+
+    it("treats file:// URLs as filesystem paths, not CDN URLs", () => {
+      expect(
+        parsePackageName("file:///Users/me/proj/node_modules/lucide-react/dist/index.js"),
+      ).toBe("lucide-react");
     });
   });
 });

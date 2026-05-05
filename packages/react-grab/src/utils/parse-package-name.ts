@@ -18,19 +18,13 @@ const FILE_EXTENSION_REGEX = /\.[mc]?[jt]sx?$/i;
 const VITE_INTERNAL_CHUNK_REGEX = /^chunk-[A-Za-z0-9_-]+$/;
 const PATH_SEPARATOR_REGEX = /[/\\]/;
 
-// Hosts whose URLs follow the npm package URL convention
-// `https://<host>/[prefix/]<scope>?/<name>@<version>/<file>`.
-// Restricting to a known set avoids false positives on user paths that happen
-// to contain an `@` character (e.g. `/Users/me@work/proj/foo.js`).
-const KNOWN_PACKAGE_CDN_HOSTS = new Set([
-  "esm.sh",
-  "unpkg.com",
-  "cdn.jsdelivr.net",
-  "data.jsdelivr.com",
-  "cdn.skypack.dev",
-  "esm.run",
-  "ga.jspm.io",
-]);
+// Real npm versions in CDN URLs start with a digit (`react@19.0.0`,
+// `lodash@4`) or `v<digit>` (skypack's pinned URLs like
+// `lucide-react@v1.14.0-abcdef`). This discriminates the npm
+// `<name>@<version>` convention from incidental `@` occurrences in user
+// paths (`me@work`, `foo@bar.com`, twitter `@handle`) without needing a
+// hardcoded allow-list of CDN hosts that would rot as new CDNs appear.
+const PACKAGE_VERSION_PREFIX_REGEX = /^v?\d/;
 
 const stripFileExtension = (segment: string): string => segment.replace(FILE_EXTENSION_REGEX, "");
 
@@ -77,12 +71,21 @@ const matchAfterLastPattern = (
   return lastMatchEnd === -1 ? null : read(path.slice(lastMatchEnd));
 };
 
+// Splits `<name>@<version>` into the name, returning `null` when the `@`
+// suffix doesn't look like an npm version (so `foo@bar.com` and `me@work`
+// are correctly rejected). Returns `null` for un-versioned scoped paths
+// like `@types/foo` because the package boundary is ambiguous.
+const splitNameAtVersion = (segment: string): string | null => {
+  const versionAtIndex = segment.lastIndexOf("@");
+  if (versionAtIndex <= 0) return null;
+  if (!PACKAGE_VERSION_PREFIX_REGEX.test(segment.slice(versionAtIndex + 1))) return null;
+  return segment.slice(0, versionAtIndex);
+};
+
 // Walks a CDN URL pathname looking for the first segment shaped like
 // `<name>@<version>` (with an optional preceding `@scope` segment).
 // Tolerates path prefixes used by various CDNs: `/npm/`, `/v135/`,
-// `/stable/`, `/pin/`, etc. Returns `null` for un-versioned scoped paths
-// like `/npm/@types/foo` because we have no signal that `@types` is the
-// real package boundary versus an arbitrary directory.
+// `/stable/`, `/pin/`, etc.
 const findVersionedPackageInPath = (pathname: string): string | null => {
   const segments = splitPathSegments(pathname);
   for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
@@ -90,24 +93,27 @@ const findVersionedPackageInPath = (pathname: string): string | null => {
     if (segment.startsWith("@")) {
       const next = segments[segmentIndex + 1];
       if (!next) continue;
-      const versionAtIndex = next.lastIndexOf("@");
-      if (versionAtIndex > 0) return `${segment}/${next.slice(0, versionAtIndex)}`;
+      const name = splitNameAtVersion(next);
+      if (name) return `${segment}/${name}`;
       continue;
     }
-    const versionAtIndex = segment.lastIndexOf("@");
-    if (versionAtIndex > 0) return segment.slice(0, versionAtIndex);
+    const name = splitNameAtVersion(segment);
+    if (name) return name;
   }
   return null;
 };
 
-const matchKnownCdnUrl = (rawFileName: string): string | null => {
+const matchVersionedPackageInUrl = (rawFileName: string): string | null => {
   let url: URL;
   try {
     url = new URL(rawFileName);
   } catch {
     return null;
   }
-  if (!KNOWN_PACKAGE_CDN_HOSTS.has(url.hostname)) return null;
+  // file:// URLs have no hostname; their pathname is a real filesystem
+  // path that should fall through to the node_modules matcher rather
+  // than be treated as a CDN URL.
+  if (!url.hostname) return null;
   return findVersionedPackageInPath(url.pathname);
 };
 
@@ -120,7 +126,7 @@ const matchKnownCdnUrl = (rawFileName: string): string | null => {
 export const parsePackageName = (fileName: string | null | undefined): string | null => {
   if (!fileName) return null;
 
-  const cdnPackage = matchKnownCdnUrl(fileName);
+  const cdnPackage = matchVersionedPackageInUrl(fileName);
   if (cdnPackage) return cdnPackage;
 
   const normalized = normalizeFileName(fileName);
