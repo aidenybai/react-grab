@@ -91,6 +91,18 @@ describe("joinSnippetEntries", () => {
     expect(appMatches.length).toBe(1);
   });
 
+  it("indents every line of the shared tail consistently", () => {
+    const sharedStack = ["in TodoList (at app/todo-list.tsx:18)", "in App (at app/page.tsx:5)"];
+    const joined = joinSnippetEntries(
+      [buildEntry("<li>a</li>", sharedStack), buildEntry("<li>b</li>", sharedStack)],
+      { allowCollapse: true },
+    );
+    expect(joined).toContain(
+      "  in TodoList (at app/todo-list.tsx:18)\n  in App (at app/page.tsx:5)",
+    );
+    expect(joined).not.toMatch(/\n\nin TodoList/);
+  });
+
   it("emits diverging stack prefixes per entry above the shared tail", () => {
     const tail = ["in App (at app/page.tsx:5)"];
     const joined = joinSnippetEntries(

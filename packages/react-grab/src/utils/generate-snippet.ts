@@ -9,11 +9,11 @@ interface GenerateSnippetOptions {
   maxLines?: number;
 }
 
-const emptyParts: ElementContextParts = {
+const buildEmptyParts = (): ElementContextParts => ({
   htmlPreview: "",
   sourceSnippet: null,
   stackLines: [],
-};
+});
 
 export const generateSnippetParts = async (
   elements: Element[],
@@ -25,7 +25,7 @@ export const generateSnippetParts = async (
   return results.map((result) => {
     if (result.status === "fulfilled") return result.value;
     logRecoverableError("generateSnippetParts: failed to build element context", result.reason);
-    return emptyParts;
+    return buildEmptyParts();
   });
 };
 

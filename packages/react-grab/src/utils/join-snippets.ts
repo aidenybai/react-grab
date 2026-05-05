@@ -10,8 +10,11 @@ interface JoinSnippetEntriesOptions {
   allowCollapse: boolean;
 }
 
-const formatStackLines = (stackLines: string[]): string =>
-  stackLines.map((line) => `\n  ${line}`).join("");
+const indentStackLines = (stackLines: string[]): string =>
+  stackLines.map((line) => `  ${line}`).join("\n");
+
+const formatDivergingStackLines = (stackLines: string[]): string =>
+  stackLines.length > 0 ? `\n${indentStackLines(stackLines)}` : "";
 
 const renderLegacyMultiEntry = (snippets: string[]): string =>
   snippets.map((snippet, index) => `[${index + 1}]\n${snippet}`).join("\n\n");
@@ -51,12 +54,12 @@ export const joinSnippetEntries = (
       entry.parts.stackLines.length - sharedStack.length,
     );
     if (divergingLines.length > 0) anyDivergence = true;
-    return `[${entryIndex + 1}] ${entry.parts.htmlPreview}${formatStackLines(divergingLines)}`;
+    return `[${entryIndex + 1}] ${entry.parts.htmlPreview}${formatDivergingStackLines(divergingLines)}`;
   });
 
   const entrySeparator = anyDivergence ? "\n\n" : "\n";
   const sections: string[] = [renderedEntries.join(entrySeparator)];
   if (sharedSnippetBlock) sections.push(sharedSnippetBlock);
-  sections.push(formatStackLines(sharedStack).trimStart());
+  sections.push(indentStackLines(sharedStack));
   return sections.join("\n\n");
 };
