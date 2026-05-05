@@ -19,12 +19,6 @@ Run this command at your project root (where `next.config.ts` or `vite.config.ts
 npx grab@latest init
 ```
 
-## Connect to MCP
-
-```bash
-npx grab@latest add mcp
-```
-
 ## Usage
 
 Once installed, hover over any UI element in your browser and press:

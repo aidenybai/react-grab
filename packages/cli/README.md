@@ -27,32 +27,6 @@ npx grab@latest init
 | `--pkg <pkg>`    |       | Custom package URL                       |
 | `--cwd <cwd>`    | `-c`  | Working directory (default: current dir) |
 
-### `grab add`
-
-Connect React Grab to your coding agent via MCP.
-
-```bash
-npx grab@latest add mcp
-```
-
-| Option        | Alias | Description                              |
-| ------------- | ----- | ---------------------------------------- |
-| `--yes`       | `-y`  | Skip confirmation prompts                |
-| `--cwd <cwd>` | `-c`  | Working directory (default: current dir) |
-
-### `grab remove`
-
-Disconnect React Grab from your coding agent.
-
-```bash
-npx grab@latest remove mcp
-```
-
-| Option        | Alias | Description                              |
-| ------------- | ----- | ---------------------------------------- |
-| `--yes`       | `-y`  | Skip confirmation prompts                |
-| `--cwd <cwd>` | `-c`  | Working directory (default: current dir) |
-
 ### `grab configure`
 
 Configure React Grab options. Runs an interactive wizard when called without flags.
@@ -83,9 +57,6 @@ npx grab@latest init -y
 
 # Set a custom activation key
 npx grab@latest init -k "Meta+K"
-
-# Connect MCP to your agent
-npx grab@latest add mcp
 
 # Change activation mode to hold
 npx grab@latest configure --mode hold --hold-duration 500

@@ -204,7 +204,3 @@ The five built-in plugins are registered during `init()` through the same `regis
 - **open** registers the "Open in editor" action that calls `openFile` with the resolved source location, running the URL through the `transformOpenFileUrl` hook pipeline first.
 - **copy-html** registers "Copy HTML" which copies the element's `outerHTML` with stack context appended.
 - **copy-styles** registers "Copy styles" which extracts the element's computed CSS (compared against a baseline from a hidden iframe) and copies it with stack context.
-
-## Notes about MCP integration
-
-The `@react-grab/mcp` package provides a plugin that bridges react-grab with AI coding assistants via the Model Context Protocol. The plugin hooks into `transformAgentContext` and `onCopySuccess` to POST element context to a local MCP server whenever the user copies or submits a prompt. The MCP server in turn exposes this context as MCP resources that coding assistants like Cursor and Claude Code can read. The plugin is registered like any other plugin and has no special privileges in the core.
