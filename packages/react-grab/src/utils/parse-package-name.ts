@@ -18,15 +18,13 @@ const FILE_EXTENSION_REGEX = /\.[mc]?[jt]sx?$/i;
 const VITE_INTERNAL_CHUNK_REGEX = /^chunk-[A-Za-z0-9_-]+$/;
 const PATH_SEPARATOR_REGEX = /[/\\]/;
 
-// Real npm versions in CDN URLs start with a digit (`react@19.0.0`,
-// `lodash@4`) or `v<digit>` (skypack's pinned URLs like
-// `lucide-react@v1.14.0-abcdef`). This discriminates the npm
-// `<name>@<version>` convention from incidental `@` occurrences in user
-// paths (`me@work`, `foo@bar.com`, twitter `@handle`) without needing a
-// hardcoded allow-list of CDN hosts that would rot as new CDNs appear.
-const PACKAGE_VERSION_PREFIX_REGEX = /^v?\d/;
-
-const stripFileExtension = (segment: string): string => segment.replace(FILE_EXTENSION_REGEX, "");
+// Captures the `<name>` from a `<name>@<version>` segment, where `<version>`
+// starts with a digit (`react@19.0.0`, `lodash@4`) or `v<digit>` (skypack's
+// pinned URLs like `lucide-react@v1.14.0-abcdef`). Strict enough to reject
+// incidental `@` occurrences in user paths (`me@work`, `foo@bar.com`,
+// twitter `@handle`) without needing a hardcoded allow-list of CDN hosts
+// that would rot as new CDNs appear.
+const NAME_AT_VERSION_REGEX = /^(.+)@v?\d/;
 
 // Splits on `/` or `\` and drops empty segments, so paths with consecutive
 // separators (e.g. `/proj//node_modules//lucide-react/...` from poorly
@@ -51,8 +49,10 @@ const readNodeModulesPackage = (afterMarker: string): string | null => {
 // Internal split chunks are emitted as `chunk-<hash>.js` and have no
 // recoverable package origin, so we drop them.
 const readViteOptimizedDepPackage = (afterMarker: string): string | null => {
-  const stem = stripFileExtension(splitPathSegments(afterMarker)[0] ?? "");
-  if (!stem || VITE_INTERNAL_CHUNK_REGEX.test(stem)) return null;
+  const firstSegment = splitPathSegments(afterMarker)[0];
+  if (!firstSegment) return null;
+  const stem = firstSegment.replace(FILE_EXTENSION_REGEX, "");
+  if (VITE_INTERNAL_CHUNK_REGEX.test(stem)) return null;
   if (!stem.startsWith("@")) return stem;
   const scopeBoundary = stem.indexOf("_");
   if (scopeBoundary === -1) return null;
@@ -64,23 +64,13 @@ const matchAfterLastPattern = (
   pattern: RegExp,
   read: (afterMarker: string) => string | null,
 ): string | null => {
-  let lastMatchEnd = -1;
-  for (const match of path.matchAll(pattern)) {
-    lastMatchEnd = (match.index ?? 0) + match[0].length;
-  }
-  return lastMatchEnd === -1 ? null : read(path.slice(lastMatchEnd));
+  const lastMatch = [...path.matchAll(pattern)].at(-1);
+  if (!lastMatch) return null;
+  return read(path.slice((lastMatch.index ?? 0) + lastMatch[0].length));
 };
 
-// Splits `<name>@<version>` into the name, returning `null` when the `@`
-// suffix doesn't look like an npm version (so `foo@bar.com` and `me@work`
-// are correctly rejected). Returns `null` for un-versioned scoped paths
-// like `@types/foo` because the package boundary is ambiguous.
-const splitNameAtVersion = (segment: string): string | null => {
-  const versionAtIndex = segment.lastIndexOf("@");
-  if (versionAtIndex <= 0) return null;
-  if (!PACKAGE_VERSION_PREFIX_REGEX.test(segment.slice(versionAtIndex + 1))) return null;
-  return segment.slice(0, versionAtIndex);
-};
+const matchNameAtVersion = (segment: string | undefined): string | null =>
+  segment?.match(NAME_AT_VERSION_REGEX)?.[1] ?? null;
 
 // Walks a CDN URL pathname looking for the first segment shaped like
 // `<name>@<version>` (with an optional preceding `@scope` segment).
@@ -88,16 +78,13 @@ const splitNameAtVersion = (segment: string): string | null => {
 // `/stable/`, `/pin/`, etc.
 const findVersionedPackageInPath = (pathname: string): string | null => {
   const segments = splitPathSegments(pathname);
-  for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
-    const segment = segments[segmentIndex];
+  for (const [index, segment] of segments.entries()) {
     if (segment.startsWith("@")) {
-      const next = segments[segmentIndex + 1];
-      if (!next) continue;
-      const name = splitNameAtVersion(next);
+      const name = matchNameAtVersion(segments[index + 1]);
       if (name) return `${segment}/${name}`;
       continue;
     }
-    const name = splitNameAtVersion(segment);
+    const name = matchNameAtVersion(segment);
     if (name) return name;
   }
   return null;
