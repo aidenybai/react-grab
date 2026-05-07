@@ -197,7 +197,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
   }
   hasInited = true;
 
-  logIntro();
+  logIntro({ skipVersionCheck: initialOptions.skipVersionCheck });
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- need to omit enabled from settableOptions to avoid circular dependency
   const { enabled: _enabled, ...settableOptions } = initialOptions;
