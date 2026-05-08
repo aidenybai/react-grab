@@ -19,14 +19,6 @@ import { CommentsDropdown } from "./comments-dropdown.js";
 import { ClearCommentsPrompt } from "./clear-comments-prompt.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
-  const hasMultipleFrozenLabels = () => (props.frozenLabelEntries?.length ?? 0) > 1;
-  const shouldShowPerElementLabels = () =>
-    Boolean(props.selectionLabelVisible) && !props.isPromptMode && hasMultipleFrozenLabels();
-  const shouldShowPrimaryLabel = () =>
-    Boolean(props.selectionLabelVisible) &&
-    Boolean(props.selectionBounds) &&
-    (Boolean(props.isPromptMode) || !hasMultipleFrozenLabels());
-
   return (
     <>
       <OverlayCanvas
@@ -60,7 +52,13 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           "box-shadow": `inset 0 0 ${FROZEN_GLOW_EDGE_PX}px ${FROZEN_GLOW_COLOR}`,
         }}
       />
-      <Show when={shouldShowPerElementLabels()}>
+      <Show
+        when={
+          props.selectionLabelVisible &&
+          !props.isPromptMode &&
+          (props.frozenLabelEntries?.length ?? 0) > 1
+        }
+      >
         <Index each={props.frozenLabelEntries ?? []}>
           {(entry, entryIndex) => (
             <SelectionLabel
@@ -74,7 +72,13 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           )}
         </Index>
       </Show>
-      <Show when={shouldShowPrimaryLabel()}>
+      <Show
+        when={
+          props.selectionLabelVisible &&
+          props.selectionBounds &&
+          (props.isPromptMode || (props.frozenLabelEntries?.length ?? 0) <= 1)
+        }
+      >
         <SelectionLabel
           tagName={props.selectionTagName}
           componentName={props.selectionComponentName}

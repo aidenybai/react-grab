@@ -1665,10 +1665,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return true;
     };
 
-    const canAccumulateShiftSelection = (isShiftHeld: boolean) =>
-      isShiftHeld && !store.pendingCommentMode && !isPendingContextMenuSelect;
+    const toggleShiftMultiSelection = (element: Element, pointer: Position) => {
+      freezeAllAnimations([element]);
+      actions.toggleFrozenElement(element);
 
-    const finalizeShiftMultiSelectionStep = (anchorElement: Element, pointer: Position) => {
       if (store.frozenElements.length === 0) {
         setIsShiftMultiSelecting(false);
         actions.unfreeze();
@@ -1677,26 +1677,23 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       setIsShiftMultiSelecting(true);
       actions.setPointer(pointer);
-      actions.setLastGrabbed(anchorElement);
+      actions.setLastGrabbed(element);
       actions.freeze();
       clearArrowNavigation();
-    };
-
-    const toggleShiftMultiSelection = (element: Element, pointer: Position) => {
-      freezeAllAnimations([element]);
-      actions.toggleFrozenElement(element);
-      finalizeShiftMultiSelectionStep(element, pointer);
     };
 
     const extendShiftMultiSelection = (elements: Element[]) => {
       if (elements.length === 0) return;
       freezeAllAnimations(elements);
       actions.addFrozenElements(elements);
+
       const lastElement = elements[elements.length - 1];
-      finalizeShiftMultiSelectionStep(
-        lastElement,
-        getBoundsCenter(createElementBounds(lastElement)),
-      );
+
+      setIsShiftMultiSelecting(true);
+      actions.setPointer(getBoundsCenter(createElementBounds(lastElement)));
+      actions.setLastGrabbed(lastElement);
+      actions.freeze();
+      clearArrowNavigation();
     };
 
     const commitShiftMultiSelection = () => {
@@ -1733,7 +1730,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       pluginRegistry.hooks.onDragEnd(selectedElements, dragSelectionRect);
 
-      if (canAccumulateShiftSelection(isShiftHeld)) {
+      if (isShiftHeld && !store.pendingCommentMode && !isPendingContextMenuSelect) {
         extendShiftMultiSelection(selectedElements);
         return;
       }
@@ -1796,7 +1793,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         selectedElementUnderPointer ?? validFrozenElement ?? validKeyboardSelectedElement;
       if (!selectedElement) return;
 
-      if (canAccumulateShiftSelection(isShiftHeld)) {
+      if (isShiftHeld && !store.pendingCommentMode && !isPendingContextMenuSelect) {
         toggleShiftMultiSelection(selectedElement, { x: clientX, y: clientY });
         return;
       }
