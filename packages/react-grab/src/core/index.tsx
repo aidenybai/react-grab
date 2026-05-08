@@ -2336,6 +2336,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
 
         if (event.key === "Shift" && isShiftMultiSelecting()) {
+          // If shift is released mid-drag, abort the in-progress drag
+          // before committing. Without this, performCopyWithLabel ->
+          // startCopy moves state out of "active+dragging", which makes
+          // the subsequent pointerup early-return and silently swallows
+          // the drag gesture along with its document.body.style.userSelect
+          // cleanup.
+          if (isDragging()) {
+            cancelActiveDrag();
+          }
           commitShiftMultiSelection();
           return;
         }

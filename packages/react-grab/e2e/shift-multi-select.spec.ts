@@ -217,6 +217,51 @@ test.describe("Shift Multi-Select", () => {
     await reactGrab.page.keyboard.up("Shift");
   });
 
+  test("should not silently drop accumulated selection when shift is released mid-drag", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+
+    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(0);
+    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(1);
+    const lastItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(6);
+
+    const firstBox = await firstItem.boundingBox();
+    const secondBox = await secondItem.boundingBox();
+    const lastBox = await lastItem.boundingBox();
+    if (!firstBox || !secondBox || !lastBox) throw new Error("Could not get bounding boxes");
+
+    await reactGrab.page.keyboard.down("Shift");
+    await reactGrab.page.mouse.click(
+      firstBox.x + firstBox.width / 2,
+      firstBox.y + firstBox.height / 2,
+    );
+    await reactGrab.page.waitForTimeout(120);
+    await reactGrab.page.mouse.click(
+      secondBox.x + secondBox.width / 2,
+      secondBox.y + secondBox.height / 2,
+    );
+    await reactGrab.page.waitForTimeout(120);
+
+    await reactGrab.page.mouse.move(lastBox.x - 30, lastBox.y - 30);
+    await reactGrab.page.mouse.down();
+    await reactGrab.page.mouse.move(
+      lastBox.x + lastBox.width + 30,
+      lastBox.y + lastBox.height + 30,
+      { steps: 6 },
+    );
+
+    await reactGrab.page.keyboard.up("Shift");
+    await reactGrab.page.mouse.up();
+
+    await expect.poll(() => reactGrab.getClipboardContent()).toContain("Buy groceries");
+    const clipboardContent = await reactGrab.getClipboardContent();
+    expect(clipboardContent).toContain("Walk the dog");
+
+    const userSelectStyle = await reactGrab.page.evaluate(() => document.body.style.userSelect);
+    expect(userSelectStyle).toBe("");
+  });
+
   test("should ignore shift+click that resolves to no element under pointer", async ({
     reactGrab,
   }) => {
