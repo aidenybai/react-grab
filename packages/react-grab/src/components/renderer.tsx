@@ -52,13 +52,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           "box-shadow": `inset 0 0 ${FROZEN_GLOW_EDGE_PX}px ${FROZEN_GLOW_COLOR}`,
         }}
       />
-      <Show
-        when={
-          props.selectionLabelVisible &&
-          !props.isPromptMode &&
-          (props.frozenLabelEntries?.length ?? 0) > 1
-        }
-      >
+      <Show when={(props.frozenLabelEntries?.length ?? 0) > 0}>
         <Index each={props.frozenLabelEntries ?? []}>
           {(entry, entryIndex) => (
             <SelectionLabel
@@ -66,7 +60,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
               componentName={entry().componentName}
               selectionBounds={entry().bounds}
               visible={true}
-              isPassive={entryIndex !== 0}
               onToggleExpand={entryIndex === 0 ? props.onToggleExpand : undefined}
             />
           )}
@@ -76,7 +69,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         when={
           props.selectionLabelVisible &&
           props.selectionBounds &&
-          (props.isPromptMode || (props.frozenLabelEntries?.length ?? 0) <= 1)
+          (props.frozenLabelEntries?.length ?? 0) === 0
         }
       >
         <SelectionLabel

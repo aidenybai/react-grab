@@ -348,7 +348,6 @@ export interface CommentItem {
 }
 
 export interface FrozenLabelEntry {
-  id: string;
   tagName: string;
   componentName?: string;
   bounds: OverlayBounds;
@@ -531,5 +530,4 @@ export interface SelectionLabelProps {
   onShowContextMenu?: () => void;
   onHoverChange?: (isHovered: boolean) => void;
   hideArrow?: boolean;
-  isPassive?: boolean;
 }

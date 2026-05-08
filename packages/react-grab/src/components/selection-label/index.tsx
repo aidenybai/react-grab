@@ -134,7 +134,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     window.addEventListener("resize", handleViewportChange);
     window.visualViewport?.addEventListener("resize", handleViewportChange);
     window.visualViewport?.addEventListener("scroll", handleViewportChange);
-    if (!props.isPassive) {
+    if (props.onToggleExpand) {
       window.addEventListener("keydown", handleGlobalKeyDown, { capture: true });
     }
   });
@@ -145,7 +145,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     window.removeEventListener("resize", handleViewportChange);
     window.visualViewport?.removeEventListener("resize", handleViewportChange);
     window.visualViewport?.removeEventListener("scroll", handleViewportChange);
-    if (!props.isPassive) {
+    if (props.onToggleExpand) {
       window.removeEventListener("keydown", handleGlobalKeyDown, {
         capture: true,
       });
