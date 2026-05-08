@@ -59,6 +59,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
               tagName={entry().tagName}
               componentName={entry().componentName}
               selectionBounds={entry().bounds}
+              mouseX={entry().mouseX}
               visible={true}
               onToggleExpand={entryIndex === 0 ? props.onToggleExpand : undefined}
             />

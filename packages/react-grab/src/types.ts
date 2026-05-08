@@ -351,6 +351,7 @@ export interface FrozenLabelEntry {
   tagName: string;
   componentName?: string;
   bounds: OverlayBounds;
+  mouseX?: number;
 }
 
 export interface ReactGrabRendererProps {

@@ -28,13 +28,13 @@ import { nativeRequestAnimationFrame } from "../../utils/native-raf.js";
 import { getVisualViewport } from "../../utils/get-visual-viewport.js";
 import {
   calculateExpandedPositionFromCollapsed,
-  clampToRange,
   getCollapsedDimsForEdge,
   getCollapsedPosition,
   getPositionFromEdgeAndRatio,
   getRatioFromPosition,
   isHorizontalEdge,
 } from "../../utils/toolbar-position.js";
+import { clampToRange } from "../../utils/clamp-to-range.js";
 import { createToolbarDrag } from "../../utils/create-toolbar-drag.js";
 
 interface ToolbarProps {
