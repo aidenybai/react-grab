@@ -95,6 +95,7 @@ import type {
   ContextMenuActionContext,
   ContextMenuAction,
   ArrowNavigationState,
+  FrozenLabelEntry,
   PerformWithFeedbackOptions,
   SettableOptions,
   SourceInfo,
@@ -1154,6 +1155,22 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return previewBounds;
       }
       return frozenElementsBounds();
+    });
+
+    const frozenLabelEntries = createMemo((): FrozenLabelEntry[] => {
+      void store.viewportVersion;
+
+      const frozenElements = store.frozenElements;
+      if (frozenElements.length < 2) return [];
+
+      return frozenElements
+        .filter((element): element is Element => Boolean(element) && isElementConnected(element))
+        .map((element, elementIndex) => ({
+          id: `frozen-label-${elementIndex}`,
+          tagName: getTagName(element) || "element",
+          componentName: getComponentDisplayName(element) ?? undefined,
+          bounds: createElementBounds(element),
+        }));
     });
 
     const cursorPosition = createMemo(() => {
@@ -3596,6 +3613,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                   store.frozenElements.length > 0 || dragPreviewBounds().length > 0
                 }
                 selectionElementsCount={store.frozenElements.length}
+                frozenLabelEntries={frozenLabelEntries()}
                 selectionFilePath={store.selectionFilePath ?? undefined}
                 selectionLineNumber={store.selectionLineNumber ?? undefined}
                 selectionTagName={selectionTagName()}

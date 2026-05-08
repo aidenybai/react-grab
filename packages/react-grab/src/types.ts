@@ -347,12 +347,20 @@ export interface CommentItem {
   timestamp: number;
 }
 
+export interface FrozenLabelEntry {
+  id: string;
+  tagName: string;
+  componentName?: string;
+  bounds: OverlayBounds;
+}
+
 export interface ReactGrabRendererProps {
   selectionVisible?: boolean;
   selectionBounds?: OverlayBounds;
   selectionBoundsMultiple?: OverlayBounds[];
   selectionShouldSnap?: boolean;
   selectionElementsCount?: number;
+  frozenLabelEntries?: FrozenLabelEntry[];
   selectionFilePath?: string;
   selectionLineNumber?: number;
   selectionTagName?: string;
@@ -523,4 +531,5 @@ export interface SelectionLabelProps {
   onShowContextMenu?: () => void;
   onHoverChange?: (isHovered: boolean) => void;
   hideArrow?: boolean;
+  isPassive?: boolean;
 }

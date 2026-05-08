@@ -177,6 +177,46 @@ test.describe("Shift Multi-Select", () => {
     expect(await reactGrab.isContextMenuVisible()).toBe(true);
   });
 
+  test("should render a tag label under each accumulated element", async ({ reactGrab }) => {
+    await reactGrab.activate();
+
+    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(0);
+    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(1);
+
+    const firstBox = await firstItem.boundingBox();
+    const secondBox = await secondItem.boundingBox();
+    if (!firstBox || !secondBox) throw new Error("Could not get bounding boxes");
+
+    await reactGrab.page.keyboard.down("Shift");
+    await reactGrab.page.mouse.click(
+      firstBox.x + firstBox.width / 2,
+      firstBox.y + firstBox.height / 2,
+    );
+    await reactGrab.page.waitForTimeout(120);
+    await reactGrab.page.mouse.click(
+      secondBox.x + secondBox.width / 2,
+      secondBox.y + secondBox.height / 2,
+    );
+    await reactGrab.page.waitForTimeout(200);
+
+    const labelTexts = await reactGrab.page.evaluate(() => {
+      const host = document.querySelector("[data-react-grab]");
+      const shadowRoot = host?.shadowRoot;
+      if (!shadowRoot) return [];
+      const root = shadowRoot.querySelector("[data-react-grab]");
+      if (!root) return [];
+      const labels = root.querySelectorAll("[data-react-grab-selection-label]");
+      return Array.from(labels).map((label) => label.textContent?.trim() ?? "");
+    });
+
+    expect(labelTexts.length).toBeGreaterThanOrEqual(2);
+    const concatenatedLabelText = labelTexts.join(" ");
+    expect(concatenatedLabelText).not.toContain("elements");
+    expect(concatenatedLabelText).toContain("li");
+
+    await reactGrab.page.keyboard.up("Shift");
+  });
+
   test("should extend existing drag selection with shift+click", async ({ reactGrab }) => {
     await reactGrab.activate();
 
