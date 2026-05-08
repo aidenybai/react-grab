@@ -224,6 +224,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         (store.current.phase === "dragging-select" ||
           store.current.phase === "dragging-reposition"),
     );
+    // True only when the drag has actually moved beyond the click threshold.
+    // We use this for selection-visibility decisions so a click (which
+    // momentarily enters the dragging-select phase between pointerdown and
+    // pointerup) does not flash the selection bounds off and back on.
+    const isActivelyDragging = createMemo(() => {
+      if (!isDragging()) return false;
+      const dx = Math.abs(store.pointer.x + window.scrollX - store.dragStart.x);
+      const dy = Math.abs(store.pointer.y + window.scrollY - store.dragStart.y);
+      return dx > DRAG_THRESHOLD_PX || dy > DRAG_THRESHOLD_PX;
+    });
     const isDragRepositioning = createMemo(
       () => store.current.state === "active" && store.current.phase === "dragging-reposition",
     );
@@ -935,7 +945,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const targetElement = createMemo(() => {
       void store.viewportVersion;
-      if (!isRendererActive() || isDragging() || isSelectionInteractionLocked()) return null;
+      if (!isRendererActive() || isActivelyDragging() || isSelectionInteractionLocked())
+        return null;
       const element = store.detectedElement;
       if (!isElementConnected(element)) return null;
       return element;
@@ -1021,7 +1032,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (store.isTouchMode && isDragging()) {
         return isRendererActive();
       }
-      return isRendererActive() && !isDragging();
+      return isRendererActive() && !isActivelyDragging();
     };
 
     const frozenElementsBounds = createMemo((): OverlayBounds[] => {

@@ -83,8 +83,8 @@ const ReactGrabIntro = (): ReactElement => (
       <ReactGrabLogo width={44} height={44} className="logo-shimmer-once" />
     </div>
     <div className="text-pretty">
-      <span className="font-bold">React&nbsp;Grab</span> lets you select context for coding agents
-      directly from your&nbsp;website.
+      <span className="font-bold">React&nbsp;Grab</span>
+      {" lets you select context for coding agents directly from your\u00a0website."}
     </div>
   </div>
 );
