@@ -51,8 +51,6 @@ export const OVERLAY_BORDER_COLOR_DRAG = overlayColor(0.4);
 export const OVERLAY_FILL_COLOR_DRAG = overlayColor(0.05);
 export const OVERLAY_BORDER_COLOR_DEFAULT = overlayColor(0.5);
 export const OVERLAY_FILL_COLOR_DEFAULT = overlayColor(0.08);
-export const OVERLAY_BORDER_COLOR_INSPECT = overlayColor(0.3);
-export const OVERLAY_FILL_COLOR_INSPECT = overlayColor(0.04);
 export const FROZEN_GLOW_COLOR = overlayColor(0.15);
 export const FROZEN_GLOW_EDGE_PX = 50;
 

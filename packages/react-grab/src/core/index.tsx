@@ -38,7 +38,6 @@ import { isValidGrabbableElement } from "../utils/is-valid-grabbable-element.js"
 import { isRootElement } from "../utils/is-root-element.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
 import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
-import { getAncestorElements } from "../utils/get-ancestor-elements.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
 import { createElementSelector } from "../utils/create-element-selector.js";
 import { getVisibleBoundsCenter } from "../utils/get-visible-bounds-center.js";
@@ -474,7 +473,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       holdTimerFired: false,
     };
     let previousSpaceDragPointerPage: Position | null = null;
-    const [isInspectMode, setIsInspectMode] = createSignal(false);
     const [isShiftMultiSelecting, setIsShiftMultiSelecting] = createSignal(false);
     let lastWindowFocusTimestamp = 0;
     let isCopyFeedbackCooldownActive = false;
@@ -1158,19 +1156,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return frozenElementsBounds();
     });
 
-    const inspectBounds = createMemo((): OverlayBounds[] => {
-      if (!isInspectMode()) return [];
-
-      const element = effectiveElement();
-      if (!element) return [];
-
-      void store.viewportVersion;
-
-      return [...getAncestorElements(element), element].map((ancestor) =>
-        createElementBounds(ancestor),
-      );
-    });
-
     const cursorPosition = createMemo(() => {
       if (isCopying() || isPromptMode()) {
         void store.viewportVersion;
@@ -1412,7 +1397,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const previousFocused = store.previouslyFocusedElement;
       stopSpaceDragRepositioning();
       actions.deactivate();
-      setIsInspectMode(false);
       setIsShiftMultiSelecting(false);
       clearArrowNavigation();
       keyboardSelectedElement = null;
@@ -1678,7 +1662,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.setLastGrabbed(element);
       actions.freeze();
       clearArrowNavigation();
-      setIsInspectMode(false);
     };
 
     const addElementsToShiftMultiSelection = (elements: Element[]) => {
@@ -1694,7 +1677,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.setLastGrabbed(lastElement);
       actions.freeze();
       clearArrowNavigation();
-      setIsInspectMode(false);
     };
 
     const commitShiftMultiSelection = () => {
@@ -2136,41 +2118,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       isVisible: arrowNavigationElements().length > 0,
     }));
 
-    const inspectAncestorElements = createMemo((): Element[] => {
-      if (!isInspectMode()) return [];
-      const element = effectiveElement();
-      if (!element) return [];
-      return [...getAncestorElements(element).reverse(), element];
-    });
-
-    const inspectNavigationItems = createMemo(() =>
-      inspectAncestorElements().map((element) => ({
-        tagName: getTagName(element) || "element",
-        componentName: getComponentDisplayName(element) ?? undefined,
-      })),
-    );
-
-    const [inspectActiveIndex, setInspectActiveIndex] = createSignal(-1);
-
-    createEffect(
-      on(inspectAncestorElements, (elements) => {
-        setInspectActiveIndex(elements.length - 1);
-      }),
-    );
-
-    const inspectNavigationState = createMemo<ArrowNavigationState>(() => {
-      const elements = inspectAncestorElements();
-      return {
-        items: inspectNavigationItems(),
-        activeIndex: inspectActiveIndex(),
-        isVisible: isInspectMode() && elements.length > 0,
-      };
-    });
-
-    const handleInspectSelect = (index: number) => {
-      setInspectActiveIndex(index);
-    };
-
     const handleActivationKeys = (event: KeyboardEvent): void => {
       if (
         !pluginRegistry.store.options.allowActivationInsideInput &&
@@ -2324,17 +2271,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
-        if (event.key === "Shift" && !event.repeat && isActivated()) {
-          if (isShiftMultiSelecting()) {
-            return;
-          }
-          setIsInspectMode(true);
-          if (isFrozenPhase()) {
-            actions.unfreeze();
-            clearArrowNavigation();
-          }
-        }
-
         if (event.key === "Escape") {
           if (isHoldingKeys() || store.wasActivatedByToggle) {
             deactivateRenderer();
@@ -2373,12 +2309,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           event.stopPropagation();
         }
 
-        if (event.key === "Shift") {
-          setIsInspectMode(false);
-          if (isShiftMultiSelecting()) {
-            commitShiftMultiSelection();
-            return;
-          }
+        if (event.key === "Shift" && isShiftMultiSelecting()) {
+          commitShiftMultiSelection();
+          return;
         }
 
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
@@ -3659,8 +3592,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 selectionShouldSnap={
                   store.frozenElements.length > 0 || dragPreviewBounds().length > 0
                 }
-                inspectVisible={isInspectMode() && inspectBounds().length > 0}
-                inspectBounds={inspectBounds()}
                 selectionElementsCount={store.frozenElements.length}
                 selectionFilePath={store.selectionFilePath ?? undefined}
                 selectionLineNumber={store.selectionLineNumber ?? undefined}
@@ -3670,8 +3601,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 selectionLabelStatus="idle"
                 selectionArrowNavigationState={arrowNavigationState()}
                 onArrowNavigationSelect={handleArrowNavigationSelect}
-                inspectNavigationState={inspectNavigationState()}
-                onInspectSelect={handleInspectSelect}
                 labelInstances={computedLabelInstances()}
                 dragVisible={dragVisible()}
                 dragBounds={dragBounds()}

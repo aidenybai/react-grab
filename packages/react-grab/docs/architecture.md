@@ -107,7 +107,7 @@ The host attaches a shadow root in `open` mode, injects the compiled CSS as a `<
 
 ### Canvas rendering
 
-The visual highlight overlays are rendered via [components/overlay-canvas.tsx](../src/components/overlay-canvas.tsx) using a single `<canvas>` element with multiple `OffscreenCanvas` layers composited together. Each visual type - selection highlight, drag rectangle, grabbed-element flash, and inspect overlay - has its own offscreen layer with its own animated bounds.
+The visual highlight overlays are rendered via [components/overlay-canvas.tsx](../src/components/overlay-canvas.tsx) using a single `<canvas>` element with multiple `OffscreenCanvas` layers composited together. Each visual type - selection highlight, drag rectangle, and grabbed-element flash - has its own offscreen layer with its own animated bounds.
 
 The bounds for each layer are lerped toward their target positions on every animation frame using `requestAnimationFrame`, with different lerp factors for different interaction types. Selection highlights use a slower factor so the overlay doesn't jitter as the user moves between elements, while drag rectangles track the pointer more aggressively. Each frame, the main canvas clears itself and composites all visible layers. When the animation has converged (the current bounds are within a small threshold of the target bounds and the opacity has settled), the animation loop stops until the next reactive update triggers it again.
 

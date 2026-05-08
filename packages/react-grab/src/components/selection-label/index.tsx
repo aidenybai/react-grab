@@ -80,7 +80,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       return true;
     }
     if (props.arrowNavigationState?.isVisible) return true;
-    if (props.inspectNavigationState?.isVisible) return true;
     return false;
   };
 
@@ -323,8 +322,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   const isArrowNavigationVisible = () => Boolean(props.arrowNavigationState?.isVisible);
 
-  const isInspectNavigationVisible = () => Boolean(props.inspectNavigationState?.isVisible);
-
   const handleTagClick = (event: MouseEvent) => {
     event.stopImmediatePropagation();
     if (props.filePath && props.onOpen) {
@@ -413,14 +410,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             <div
               class="contain-layout shrink-0 flex flex-col items-start w-fit h-fit"
               classList={{
-                "min-w-[100px]": isArrowNavigationVisible() || isInspectNavigationVisible(),
+                "min-w-[100px]": isArrowNavigationVisible(),
               }}
             >
               <div
                 class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit px-2"
                 classList={{
-                  "py-1.5": !isArrowNavigationVisible() && !isInspectNavigationVisible(),
-                  "pt-1.5 pb-1": isArrowNavigationVisible() || isInspectNavigationVisible(),
+                  "py-1.5": !isArrowNavigationVisible(),
+                  "pt-1.5 pb-1": isArrowNavigationVisible(),
                 }}
               >
                 <TagBadge
@@ -431,7 +428,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   onHoverChange={handleTagHoverChange}
                   shrink
                   forceShowIcon={
-                    isArrowNavigationVisible() || isInspectNavigationVisible()
+                    isArrowNavigationVisible()
                       ? Boolean(props.filePath && props.onOpen)
                       : Boolean(props.isContextMenuOpen)
                   }
@@ -443,21 +440,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   activeIndex={props.arrowNavigationState!.activeIndex}
                   onSelect={(index) => props.onArrowNavigationSelect?.(index)}
                 />
-              </Show>
-              <Show
-                when={
-                  !isArrowNavigationVisible() &&
-                  isInspectNavigationVisible() &&
-                  props.inspectNavigationState
-                }
-              >
-                {(state) => (
-                  <ArrowNavigationMenu
-                    items={state().items}
-                    activeIndex={state().activeIndex}
-                    onSelect={(index) => props.onInspectSelect?.(index)}
-                  />
-                )}
               </Show>
             </div>
           </Show>

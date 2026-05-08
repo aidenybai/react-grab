@@ -352,8 +352,6 @@ export interface ReactGrabRendererProps {
   selectionBounds?: OverlayBounds;
   selectionBoundsMultiple?: OverlayBounds[];
   selectionShouldSnap?: boolean;
-  inspectVisible?: boolean;
-  inspectBounds?: OverlayBounds[];
   selectionElementsCount?: number;
   selectionFilePath?: string;
   selectionLineNumber?: number;
@@ -363,8 +361,6 @@ export interface ReactGrabRendererProps {
   selectionLabelStatus?: SelectionLabelStatus;
   selectionArrowNavigationState?: ArrowNavigationState;
   onArrowNavigationSelect?: (index: number) => void;
-  inspectNavigationState?: ArrowNavigationState;
-  onInspectSelect?: (index: number) => void;
   labelInstances?: SelectionLabelInstance[];
   dragVisible?: boolean;
   dragBounds?: OverlayBounds;
@@ -511,8 +507,6 @@ export interface SelectionLabelProps {
   filePath?: string;
   arrowNavigationState?: ArrowNavigationState;
   onArrowNavigationSelect?: (index: number) => void;
-  inspectNavigationState?: ArrowNavigationState;
-  onInspectSelect?: (index: number) => void;
   onInputChange?: (value: string) => void;
   onSubmit?: () => void;
   onToggleExpand?: () => void;
