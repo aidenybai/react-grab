@@ -65,6 +65,14 @@ export const LABEL_GAP_PX = 4;
 export const PREVIEW_TEXT_MAX_LENGTH = 100;
 export const PREVIEW_ATTR_VALUE_MAX_LENGTH = 15;
 export const PREVIEW_MAX_ATTRS = 3;
+
+export const SOURCE_SNIPPET_LINES_BEFORE = 3;
+export const SOURCE_SNIPPET_LINES_AFTER = 5;
+export const SOURCE_SNIPPET_MAX_LINE_LENGTH_CHARS = 200;
+export const SOURCE_SNIPPET_FETCH_TIMEOUT_MS = 1500;
+
+export const COMPONENT_INSTANCE_MAX_PROPS = 4;
+export const COMPONENT_INSTANCE_MAX_VALUE_LENGTH_CHARS = 40;
 export const PREVIEW_PRIORITY_ATTRS: readonly string[] = [
   "id",
   "class",

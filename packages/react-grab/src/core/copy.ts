@@ -1,6 +1,7 @@
+import { formatElementContextParts } from "./context.js";
 import { copyContent, type ReactGrabEntry } from "../utils/copy-content.js";
-import { generateSnippet } from "../utils/generate-snippet.js";
-import { joinSnippets } from "../utils/join-snippets.js";
+import { generateSnippetParts } from "../utils/generate-snippet.js";
+import { joinSnippetEntries, type JoinSnippetEntry } from "../utils/join-snippets.js";
 import { normalizeError } from "../utils/normalize-error.js";
 
 interface CopyOptions {
@@ -36,22 +37,36 @@ export const tryCopyWithFallback = async (
     if (options.getContent) {
       generatedContent = await options.getContent(elements);
     } else {
-      const rawSnippets = await generateSnippet(elements, {
+      const partsList = await generateSnippetParts(elements, {
         maxLines: options.maxContextLines,
       });
+      const originalSnippets = partsList.map(formatElementContextParts);
       const transformedSnippets = await Promise.all(
-        rawSnippets.map((snippet, index) =>
+        originalSnippets.map((snippet, index) =>
           snippet.trim() ? hooks.transformSnippet(snippet, elements[index]) : Promise.resolve(""),
         ),
       );
-      const snippetElementPairs = transformedSnippets
-        .map((snippet, index) => ({ snippet, element: elements[index] }))
-        .filter(({ snippet }) => snippet.trim());
 
-      generatedContent = joinSnippets(snippetElementPairs.map(({ snippet }) => snippet));
-      entries = snippetElementPairs.map(({ snippet, element }) => ({
-        tagName: element.localName,
-        content: snippet,
+      // Plugin transforms can mutate snippet text, breaking the structured
+      // `parts` invariant the collapse algorithm relies on.
+      let allowCollapse = true;
+      const joinEntries: JoinSnippetEntry[] = [];
+      const trackedElements: Element[] = [];
+      for (let entryIndex = 0; entryIndex < transformedSnippets.length; entryIndex++) {
+        const transformed = transformedSnippets[entryIndex];
+        if (!transformed.trim()) continue;
+        if (transformed !== originalSnippets[entryIndex]) allowCollapse = false;
+        joinEntries.push({
+          snippet: transformed,
+          parts: partsList[entryIndex],
+        });
+        trackedElements.push(elements[entryIndex]);
+      }
+
+      generatedContent = joinSnippetEntries(joinEntries, { allowCollapse });
+      entries = joinEntries.map((entry, entryIndex) => ({
+        tagName: trackedElements[entryIndex].localName,
+        content: entry.snippet,
         commentText: extraPrompt,
       }));
     }

@@ -1,6 +1,8 @@
 # @react-grab/cli
 
-Interactive CLI to install and configure React Grab in your project.
+CLI for installing React Grab, configuring its activation behavior, and connecting agents through MCP.
+
+The CLI detects supported React projects, applies the dev-only setup, and can reconfigure an existing installation without hand-editing framework files.
 
 ## Quick Start
 
@@ -12,7 +14,7 @@ npx grab@latest init
 
 ### `grab init`
 
-Initialize React Grab in your project. Auto-detects your framework and applies the necessary changes.
+Install React Grab in the current project. The CLI auto-detects the framework and applies the required development-only integration.
 
 ```bash
 npx grab@latest init
@@ -29,7 +31,7 @@ npx grab@latest init
 
 ### `grab add`
 
-Connect React Grab to your coding agent via MCP.
+Configure the React Grab MCP server for your agent.
 
 ```bash
 npx grab@latest add mcp
@@ -42,7 +44,7 @@ npx grab@latest add mcp
 
 ### `grab remove`
 
-Disconnect React Grab from your coding agent.
+Remove the MCP connection from your agent.
 
 ```bash
 npx grab@latest remove mcp
@@ -55,7 +57,7 @@ npx grab@latest remove mcp
 
 ### `grab configure`
 
-Configure React Grab options. Runs an interactive wizard when called without flags.
+Update React Grab options. Runs an interactive wizard when called without flags.
 
 ```bash
 npx grab@latest configure
@@ -96,9 +98,10 @@ npx grab@latest configure
 
 ## Supported Frameworks
 
-| Framework              | Detection                             |
-| ---------------------- | ------------------------------------- |
-| Next.js (App Router)   | `next.config.ts` + `app/` directory   |
-| Next.js (Pages Router) | `next.config.ts` + `pages/` directory |
-| Vite                   | `vite.config.ts`                      |
-| Webpack                | `webpack.config.*`                    |
+The CLI currently configures:
+
+- Next.js App Router
+- Next.js Pages Router
+- Vite
+- TanStack Start
+- Webpack

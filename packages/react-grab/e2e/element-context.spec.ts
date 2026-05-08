@@ -208,4 +208,67 @@ test.describe("Element Context Fallback", () => {
       expect(clipboard.length).toBeLessThanOrEqual(510);
     });
   });
+
+  test.describe("Source Snippet & Component Instance", () => {
+    test("surfaces the literal JSX call site so the agent sees the props the user wrote", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+
+      const todoItem = "[data-testid='todo-list'] ul li:first-child span";
+      await reactGrab.hoverElement(todoItem);
+      await reactGrab.waitForSelectionBox();
+      await reactGrab.clickElement(todoItem);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      // TodoItem is rendered with `<TodoItem key={todo.id} todo={todo} />`
+      // in App.tsx. Either the source-snippet block or — when the source
+      // map fetch fails — the JSX-call fallback on the stack line must
+      // surface the call signature so the agent knows it's working with
+      // a TodoItem component, not a bare `<li>`.
+      expect(clipboard).toContain("TodoItem");
+      expect(clipboard).toMatch(/<TodoItem\b|in <TodoItem\b/);
+    });
+
+    test("does not double-render the JSX-call signature when a trustworthy snippet is present", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+
+      const todoItem = "[data-testid='todo-list'] ul li:first-child span";
+      await reactGrab.hoverElement(todoItem);
+      await reactGrab.waitForSelectionBox();
+      await reactGrab.clickElement(todoItem);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      // When a trustworthy source snippet is fetched, the literal JSX
+      // already lives in the snippet block — re-emitting `in <TodoItem
+      // ... />` on the stack line below is redundant noise. The stack
+      // line should fall back to the bare component name.
+      const hasSnippetBlock = /^\/\/ .+\.tsx?:\d+/m.test(clipboard);
+      if (hasSnippetBlock) {
+        expect(clipboard).toMatch(/in TodoItem \(at /);
+        expect(clipboard).not.toMatch(/in <TodoItem/);
+      }
+    });
+
+    test("does not paint props onto library frames whose name happens to match", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+
+      const icon = "[data-testid='library-icon-host'] svg";
+      await reactGrab.hoverElement(icon);
+      await reactGrab.waitForSelectionBox();
+      await reactGrab.clickElement(icon);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      // Library frames stay in the bare `in Square (lucide-react)` shape
+      // even if the closest composite fiber is the same library component.
+      // Painting props onto a library frame would leak internal lucide-react
+      // implementation details into the agent context.
+      expect(clipboard).toMatch(/in Square \(lucide-react\)/);
+      expect(clipboard).not.toMatch(/in <Square/);
+    });
+  });
 });
