@@ -1675,21 +1675,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       freezeAllAnimations(store.frozenElements);
       setIsShiftMultiSelecting(true);
       actions.setPointer(pointer);
-      actions.setLastGrabbed(element);
-      actions.freeze();
-      clearArrowNavigation();
-    };
-
-    const extendShiftMultiSelection = (elements: Element[]) => {
-      if (elements.length === 0) return;
-      actions.addFrozenElements(elements);
-
-      const lastElement = elements[elements.length - 1];
-
-      freezeAllAnimations(store.frozenElements);
-      setIsShiftMultiSelecting(true);
-      actions.setPointer(getBoundsCenter(createElementBounds(lastElement)));
-      actions.setLastGrabbed(lastElement);
+      // After toggleFrozenElement, the most recently changed element is
+      // either added (still in frozenElements) or removed. Anchor
+      // lastGrabbed to a still-selected element rather than to one that
+      // was just deselected.
+      const isElementStillSelected = store.frozenElements.includes(element);
+      actions.setLastGrabbed(
+        isElementStillSelected ? element : store.frozenElements[store.frozenElements.length - 1],
+      );
       actions.freeze();
       clearArrowNavigation();
     };
@@ -1724,12 +1717,29 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (selectedElements.length === 0) return;
 
-      freezeAllAnimations(selectedElements);
+      const isShiftAccumulating =
+        isShiftHeld && !store.pendingCommentMode && !isPendingContextMenuSelect;
+
+      // In the shift-accumulating branch we must freeze on the COMBINED set
+      // (prior accumulated + newly dragged), because freezeAllAnimations
+      // unfreezes its prior input via finishAnimations() — which permanently
+      // advances WAAPI animations on previously selected elements past the
+      // freeze point. Calling it once with [...prior, ...new] keeps prior
+      // animations paused.
+      if (isShiftAccumulating) {
+        actions.addFrozenElements(selectedElements);
+      }
+      freezeAllAnimations(isShiftAccumulating ? store.frozenElements : selectedElements);
 
       pluginRegistry.hooks.onDragEnd(selectedElements, dragSelectionRect);
 
-      if (isShiftHeld && !store.pendingCommentMode && !isPendingContextMenuSelect) {
-        extendShiftMultiSelection(selectedElements);
+      if (isShiftAccumulating) {
+        const lastElement = selectedElements[selectedElements.length - 1];
+        setIsShiftMultiSelecting(true);
+        actions.setPointer(getBoundsCenter(createElementBounds(lastElement)));
+        actions.setLastGrabbed(lastElement);
+        actions.freeze();
+        clearArrowNavigation();
         return;
       }
 
