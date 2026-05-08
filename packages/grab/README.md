@@ -19,10 +19,7 @@ npx grab@latest init
 
 ## Usage
 
-Start your dev server, open your app, then hover any UI element and press:
-
-- **⌘C** (Cmd+C) on Mac
-- **Ctrl+C** on Windows/Linux
+Start your dev server, open your app, then hover any UI element and press **⌘C** or **Ctrl+C**.
 
 React Grab copies that context to your clipboard, ready to paste into your agent.
 
