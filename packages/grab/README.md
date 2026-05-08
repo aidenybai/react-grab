@@ -3,45 +3,51 @@
 [![version](https://img.shields.io/npm/v/grab?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/grab)
 [![downloads](https://img.shields.io/npm/dt/grab.svg?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/grab)
 
-Select context for coding agents directly from your website
+Copy any UI element for your agent.
 
-How? Point at any element and press **⌘C** (Mac) or **Ctrl+C** (Windows/Linux) to copy the file name, React component, and HTML source code.
-
-It makes tools like Cursor, Claude Code, Copilot run up to [**3× faster**](https://react-grab.com/blog/intro) and more accurate.
+React Grab points agents to the actual source behind each selection, so edits are [**2× faster**](https://benchmark.react-grab.com/) and more accurate.
 
 ### [Try out a demo! →](https://react-grab.com)
 
-## Install
+## Quick Start
 
-Run this command at your project root (where `next.config.ts` or `vite.config.ts` is located):
+Run this at your project root:
 
 ```bash
 npx grab@latest init
 ```
 
-## Usage
+## How It Works
 
-Once installed, hover over any UI element in your browser and press:
+React Grab turns a browser selection into source context your agent can use:
 
-- **⌘C** (Cmd+C) on Mac
-- **Ctrl+C** on Windows/Linux
+1. Hover any UI element in your app.
+2. Press **⌘C** or **Ctrl+C**.
+3. Paste the copied context into your agent.
 
-This copies the element's context (file name, React component, and HTML source code) to your clipboard ready to paste into your coding agent. For example:
+The copied context includes the selected element, source location, nearby code, and component stack:
 
-```js
+```txt
 <a class="ml-auto inline-block text-sm" href="#">
   Forgot your password?
 </a>
-in LoginForm at components/login-form.tsx:46:19
+
+// components/login-form.tsx:46
+  45| <div className="flex items-center">
+> 46|   <a className="ml-auto inline-block text-sm" href="#">
+  47|     Forgot your password?
+  48|   </a>
+
+  in LoginForm (at components/login-form.tsx:46:19)
 ```
 
 ## Manual Installation
 
-If you're using a React framework or build tool, view instructions below:
+If you cannot use the CLI, install React Grab manually for your framework:
 
 #### Next.js (App router)
 
-Add this inside of your `app/layout.tsx`:
+Add this inside your `app/layout.tsx`:
 
 ```jsx
 import Script from "next/script";
@@ -196,7 +202,7 @@ Find a bug? Head over to our [issue tracker](https://github.com/aidenybai/react-
 
 We expect all contributors to abide by the terms of our [Code of Conduct](https://github.com/aidenybai/react-grab/blob/main/.github/CODE_OF_CONDUCT.md).
 
-[**→ Start contributing on GitHub**](https://github.com/aidenybai/react-grab/blob/main/CONTRIBUTING.md)
+[**Start contributing on GitHub**](https://github.com/aidenybai/react-grab/blob/main/CONTRIBUTING.md)
 
 ### License
 
