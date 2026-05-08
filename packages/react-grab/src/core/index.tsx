@@ -1802,18 +1802,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         selectedElementUnderPointer ?? validFrozenElement ?? validKeyboardSelectedElement;
       if (!selectedElement) return;
 
-      // Shift+click only toggles when there is a real element under the
-      // pointer. We deliberately ignore the detectedElement fallback (which
-      // can be stale after a hover that preceded the multi-select) so a
-      // click into empty space does not silently toggle off the
-      // previously-frozen element.
-      if (
-        isShiftHeld &&
-        elementAtPointer !== null &&
-        !store.pendingCommentMode &&
-        !isPendingContextMenuSelect
-      ) {
-        toggleShiftMultiSelection(elementAtPointer, { x: clientX, y: clientY });
+      // While Shift is held we only operate on the live elementAtPointer.
+      // Falling through to the non-shift path would let the
+      // selectedElement fallback chain resolve to the previously-frozen
+      // element and fire an unintended single-element copy that races
+      // with the eventual commitShiftMultiSelection on Shift release. So
+      // we always return when Shift is held: toggle when an element is
+      // under the pointer, no-op when it isn't.
+      if (isShiftHeld && !store.pendingCommentMode && !isPendingContextMenuSelect) {
+        if (elementAtPointer !== null) {
+          toggleShiftMultiSelection(elementAtPointer, { x: clientX, y: clientY });
+        }
         return;
       }
 
@@ -2457,7 +2456,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (isSelectionInteractionLocked()) return;
         if (isTouchPointer && !isHoldingKeys() && !isActivated()) return;
         const isActiveState = isTouchPointer ? isHoldingKeys() : isActivated();
-        if (isActiveState && !isPromptMode() && isFrozenPhase() && !event.shiftKey) {
+        // The flag check covers the small window after physical Shift
+        // release but before the keyup handler commits — pointermove fires
+        // with shiftKey=false in that gap, and unfreezing here would empty
+        // frozenElements before commitShiftMultiSelection can read it.
+        if (
+          isActiveState &&
+          !isPromptMode() &&
+          isFrozenPhase() &&
+          !event.shiftKey &&
+          !isShiftMultiSelecting()
+        ) {
           actions.unfreeze();
           clearArrowNavigation();
         }
