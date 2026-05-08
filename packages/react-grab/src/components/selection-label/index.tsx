@@ -145,11 +145,13 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     window.removeEventListener("resize", handleViewportChange);
     window.visualViewport?.removeEventListener("resize", handleViewportChange);
     window.visualViewport?.removeEventListener("scroll", handleViewportChange);
-    if (props.onToggleExpand) {
-      window.removeEventListener("keydown", handleGlobalKeyDown, {
-        capture: true,
-      });
-    }
+    // removeEventListener is a no-op for a listener that was never added,
+    // so it does not need to mirror the onMount onToggleExpand guard. If
+    // props.onToggleExpand were ever reactive between mount and cleanup,
+    // mirroring would leak the listener.
+    window.removeEventListener("keydown", handleGlobalKeyDown, {
+      capture: true,
+    });
   });
 
   const elementIdentity = () => `${props.tagName ?? ""}:${props.componentName ?? ""}`;
