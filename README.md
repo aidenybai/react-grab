@@ -3,17 +3,15 @@
 [![version](https://img.shields.io/npm/v/react-grab?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/react-grab)
 [![downloads](https://img.shields.io/npm/dt/react-grab.svg?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/react-grab)
 
-Select context for coding agents directly from your website
+Copy any UI element for your agent.
 
-How? Point at any element and press **⌘C** (Mac) or **Ctrl+C** (Windows/Linux) to copy the file name, React component, and HTML source code.
-
-It makes tools like Cursor, Claude Code, Copilot run up to [**3× faster**](https://react-grab.com/blog/intro) and more accurate.
+React Grab points agents to the actual source behind each selection, so edits are [**2× faster**](https://github.com/aidenybai/react-grab-bench) and more accurate.
 
 ### [Try out a demo! →](https://react-grab.com)
 
-## Install
+## Quick Start
 
-Run this command at your project root (where `next.config.ts` or `vite.config.ts` is located):
+Run this at your project root:
 
 ```bash
 npx grab@latest init
@@ -21,27 +19,46 @@ npx grab@latest init
 
 ## Usage
 
-Once installed, hover over any UI element in your browser and press:
+Start your dev server, open your app, then hover any UI element and press:
 
 - **⌘C** (Cmd+C) on Mac
 - **Ctrl+C** on Windows/Linux
 
-This copies the element's context (file name, React component, and HTML source code) to your clipboard ready to paste into your coding agent. For example:
+React Grab copies that context to your clipboard, ready to paste into your agent.
 
-```js
+## What Agents Get
+
+React Grab includes the details agents need to edit the right file:
+
+- the rendered HTML for the element
+- the React component name
+- the source file and line number
+- the nearby source code, when available
+- the component stack
+
+Example:
+
+```txt
 <a class="ml-auto inline-block text-sm" href="#">
   Forgot your password?
 </a>
-in LoginForm at components/login-form.tsx:46:19
+
+// components/login-form.tsx:46
+  45| <div className="flex items-center">
+> 46|   <a className="ml-auto inline-block text-sm" href="#">
+  47|     Forgot your password?
+  48|   </a>
+
+  in LoginForm (at components/login-form.tsx:46:19)
 ```
 
 ## Manual Installation
 
-If you're using a React framework or build tool, view instructions below:
+If you cannot use the CLI, install React Grab manually for your framework:
 
 #### Next.js (App router)
 
-Add this inside of your `app/layout.tsx`:
+Add this inside your `app/layout.tsx`:
 
 ```jsx
 import Script from "next/script";
@@ -184,19 +201,13 @@ actions: [
 
 See [`packages/react-grab/src/types.ts`](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/types.ts) for the full `Plugin`, `PluginHooks`, and `PluginConfig` interfaces.
 
-## Resources & Contributing Back
+## Links
 
-Want to try it out? Check out [our demo](https://react-grab.com).
-
-Looking to contribute back? Check out the [Contributing Guide](https://github.com/aidenybai/react-grab/blob/main/CONTRIBUTING.md).
-
-Want to talk to the community? Hop in our [Discord](https://discord.com/invite/G7zxfUzkm7) and share your ideas and what you've built with React Grab.
-
-Find a bug? Head over to our [issue tracker](https://github.com/aidenybai/react-grab/issues) and we'll do our best to help. We love pull requests, too!
-
-We expect all contributors to abide by the terms of our [Code of Conduct](https://github.com/aidenybai/react-grab/blob/main/.github/CODE_OF_CONDUCT.md).
-
-[**→ Start contributing on GitHub**](https://github.com/aidenybai/react-grab/blob/main/CONTRIBUTING.md)
+- [Demo](https://react-grab.com)
+- [Contributing Guide](https://github.com/aidenybai/react-grab/blob/main/CONTRIBUTING.md)
+- [Discord](https://discord.com/invite/G7zxfUzkm7)
+- [Issue tracker](https://github.com/aidenybai/react-grab/issues)
+- [Code of Conduct](https://github.com/aidenybai/react-grab/blob/main/.github/CODE_OF_CONDUCT.md)
 
 ### License
 

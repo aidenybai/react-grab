@@ -1,6 +1,8 @@
 # @react-grab/cli
 
-Interactive CLI to install and configure React Grab in your project.
+CLI for installing React Grab and configuring its activation behavior.
+
+The CLI detects supported React projects, applies the dev-only setup, and can reconfigure an existing installation without hand-editing framework files.
 
 ## Quick Start
 
@@ -12,7 +14,7 @@ npx grab@latest init
 
 ### `grab init`
 
-Initialize React Grab in your project. Auto-detects your framework and applies the necessary changes.
+Install React Grab in the current project. The CLI auto-detects the framework and applies the required development-only integration.
 
 ```bash
 npx grab@latest init
@@ -29,7 +31,7 @@ npx grab@latest init
 
 ### `grab configure`
 
-Configure React Grab options. Runs an interactive wizard when called without flags.
+Update React Grab options. Runs an interactive wizard when called without flags.
 
 ```bash
 npx grab@latest configure
@@ -67,9 +69,10 @@ npx grab@latest configure
 
 ## Supported Frameworks
 
-| Framework              | Detection                             |
-| ---------------------- | ------------------------------------- |
-| Next.js (App Router)   | `next.config.ts` + `app/` directory   |
-| Next.js (Pages Router) | `next.config.ts` + `pages/` directory |
-| Vite                   | `vite.config.ts`                      |
-| Webpack                | `webpack.config.*`                    |
+The CLI currently configures:
+
+- Next.js App Router
+- Next.js Pages Router
+- Vite
+- TanStack Start
+- Webpack
