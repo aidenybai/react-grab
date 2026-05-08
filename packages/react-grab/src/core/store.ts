@@ -121,7 +121,7 @@ interface GrabActions {
   toggle: () => void;
   freeze: () => void;
   unfreeze: () => void;
-  startDrag: (position: Position) => void;
+  startDrag: (position: Position, shouldPreserveFrozenElements?: boolean) => void;
   startDragReposition: () => void;
   stopDragReposition: () => void;
   shiftDragStart: (delta: Position) => void;
@@ -140,6 +140,8 @@ interface GrabActions {
   setDetectedElement: (element: Element | null) => void;
   setFrozenElement: (element: Element) => void;
   setFrozenElements: (elements: Element[]) => void;
+  toggleFrozenElement: (element: Element) => void;
+  addFrozenElements: (elements: Element[]) => void;
   setFrozenDragRect: (rect: FrozenDragRect | null) => void;
   setCopyStart: (position: Position, element: Element) => void;
   setLastGrabbed: (element: Element | null) => void;
@@ -272,9 +274,11 @@ const createGrabStore = (input: GrabStoreInput) => {
       }
     },
 
-    startDrag: (position: Position) => {
+    startDrag: (position: Position, shouldPreserveFrozenElements?: boolean) => {
       if (store.current.state === "active") {
-        clearFrozenElement();
+        if (!shouldPreserveFrozenElements) {
+          clearFrozenElement();
+        }
         setStore("dragStart", {
           x: position.x + window.scrollX,
           y: position.y + window.scrollY,
@@ -458,6 +462,35 @@ const createGrabStore = (input: GrabStoreInput) => {
         produce((draft) => {
           draft.frozenElements = elements;
           draft.frozenElement = elements.length > 0 ? elements[0] : null;
+          draft.frozenDragRect = null;
+        }),
+      );
+    },
+
+    toggleFrozenElement: (element: Element) => {
+      setStore(
+        produce((draft) => {
+          const existingIndex = draft.frozenElements.indexOf(element);
+          if (existingIndex >= 0) {
+            draft.frozenElements.splice(existingIndex, 1);
+          } else {
+            draft.frozenElements.push(element);
+          }
+          draft.frozenElement = draft.frozenElements.length > 0 ? draft.frozenElements[0] : null;
+          draft.frozenDragRect = null;
+        }),
+      );
+    },
+
+    addFrozenElements: (elements: Element[]) => {
+      setStore(
+        produce((draft) => {
+          for (const incomingElement of elements) {
+            if (!draft.frozenElements.includes(incomingElement)) {
+              draft.frozenElements.push(incomingElement);
+            }
+          }
+          draft.frozenElement = draft.frozenElements.length > 0 ? draft.frozenElements[0] : null;
           draft.frozenDragRect = null;
         }),
       );
