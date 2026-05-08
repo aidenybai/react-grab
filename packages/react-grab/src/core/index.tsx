@@ -1665,14 +1665,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return true;
     };
 
-    const addElementToShiftMultiSelection = (
-      element: Element,
-      pointerX: number,
-      pointerY: number,
-    ) => {
-      freezeAllAnimations([element]);
-      actions.toggleFrozenElement(element);
+    const canAccumulateShiftSelection = (isShiftHeld: boolean) =>
+      isShiftHeld && !store.pendingCommentMode && !isPendingContextMenuSelect;
 
+    const finalizeShiftMultiSelectionStep = (anchorElement: Element, pointer: Position) => {
       if (store.frozenElements.length === 0) {
         setIsShiftMultiSelecting(false);
         actions.unfreeze();
@@ -1680,48 +1676,43 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
 
       setIsShiftMultiSelecting(true);
-      actions.setPointer({ x: pointerX, y: pointerY });
-      actions.setLastGrabbed(element);
+      actions.setPointer(pointer);
+      actions.setLastGrabbed(anchorElement);
       actions.freeze();
       clearArrowNavigation();
     };
 
-    const addElementsToShiftMultiSelection = (elements: Element[]) => {
+    const toggleShiftMultiSelection = (element: Element, pointer: Position) => {
+      freezeAllAnimations([element]);
+      actions.toggleFrozenElement(element);
+      finalizeShiftMultiSelectionStep(element, pointer);
+    };
+
+    const extendShiftMultiSelection = (elements: Element[]) => {
       if (elements.length === 0) return;
       freezeAllAnimations(elements);
       actions.addFrozenElements(elements);
-
       const lastElement = elements[elements.length - 1];
-      const center = getBoundsCenter(createElementBounds(lastElement));
-
-      setIsShiftMultiSelecting(true);
-      actions.setPointer(center);
-      actions.setLastGrabbed(lastElement);
-      actions.freeze();
-      clearArrowNavigation();
+      finalizeShiftMultiSelectionStep(
+        lastElement,
+        getBoundsCenter(createElementBounds(lastElement)),
+      );
     };
 
     const commitShiftMultiSelection = () => {
-      if (!isShiftMultiSelecting()) return;
       setIsShiftMultiSelecting(false);
 
-      const accumulatedElements = store.frozenElements.filter((accumulatedElement) =>
-        isElementConnected(accumulatedElement),
-      );
+      const accumulatedElements = store.frozenElements.filter(isElementConnected);
       if (accumulatedElements.length === 0) {
         actions.unfreeze();
         return;
       }
 
-      const firstElement = accumulatedElements[0];
-      const labelCursorX = store.pointer.x;
-      const shouldDeactivateAfter = store.wasActivatedByToggle;
-
       performCopyWithLabel({
-        element: firstElement,
-        cursorX: labelCursorX,
-        selectedElements: accumulatedElements.length > 1 ? accumulatedElements : undefined,
-        shouldDeactivateAfter,
+        element: accumulatedElements[0],
+        cursorX: store.pointer.x,
+        selectedElements: accumulatedElements,
+        shouldDeactivateAfter: store.wasActivatedByToggle,
       });
     };
 
@@ -1742,8 +1733,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       pluginRegistry.hooks.onDragEnd(selectedElements, dragSelectionRect);
 
-      if (isShiftHeld && !store.pendingCommentMode && !isPendingContextMenuSelect) {
-        addElementsToShiftMultiSelection(selectedElements);
+      if (canAccumulateShiftSelection(isShiftHeld)) {
+        extendShiftMultiSelection(selectedElements);
         return;
       }
 
@@ -1805,8 +1796,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         selectedElementUnderPointer ?? validFrozenElement ?? validKeyboardSelectedElement;
       if (!selectedElement) return;
 
-      if (isShiftHeld && !store.pendingCommentMode && !isPendingContextMenuSelect) {
-        addElementToShiftMultiSelection(selectedElement, clientX, clientY);
+      if (canAccumulateShiftSelection(isShiftHeld)) {
+        toggleShiftMultiSelection(selectedElement, { x: clientX, y: clientY });
         return;
       }
 
@@ -2450,13 +2441,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (isSelectionInteractionLocked()) return;
         if (isTouchPointer && !isHoldingKeys() && !isActivated()) return;
         const isActiveState = isTouchPointer ? isHoldingKeys() : isActivated();
-        if (
-          isActiveState &&
-          !isPromptMode() &&
-          isFrozenPhase() &&
-          !event.shiftKey &&
-          !isShiftMultiSelecting()
-        ) {
+        if (isActiveState && !isPromptMode() && isFrozenPhase() && !event.shiftKey) {
           actions.unfreeze();
           clearArrowNavigation();
         }
@@ -2585,13 +2570,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           event.preventDefault();
           event.stopImmediatePropagation();
 
-          if (
-            store.wasActivatedByToggle &&
-            !isCopying() &&
-            !isPromptMode() &&
-            !event.shiftKey &&
-            !isShiftMultiSelecting()
-          ) {
+          if (store.wasActivatedByToggle && !isCopying() && !isPromptMode() && !event.shiftKey) {
             if (!isHoldingKeys()) {
               deactivateRenderer();
             } else {

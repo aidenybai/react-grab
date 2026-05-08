@@ -172,14 +172,20 @@ interface GrabActions {
 const createGrabStore = (input: GrabStoreInput) => {
   const [store, setStore] = createStore<GrabStore>(createInitialStore(input));
 
-  const clearFrozenElement = () => {
+  const updateFrozenElements = (mutator: (draft: GrabStore) => void) => {
     setStore(
       produce((draft) => {
-        draft.frozenElement = null;
-        draft.frozenElements = [];
+        mutator(draft);
+        draft.frozenElement = draft.frozenElements.length > 0 ? draft.frozenElements[0] : null;
         draft.frozenDragRect = null;
       }),
     );
+  };
+
+  const clearFrozenElement = () => {
+    updateFrozenElements((draft) => {
+      draft.frozenElements = [];
+    });
   };
 
   const setActivePhase = (phase: GrabPhase) => {
@@ -448,52 +454,36 @@ const createGrabStore = (input: GrabStoreInput) => {
     },
 
     setFrozenElement: (element: Element) => {
-      setStore(
-        produce((draft) => {
-          draft.frozenElement = element;
-          draft.frozenElements = [element];
-          draft.frozenDragRect = null;
-        }),
-      );
+      updateFrozenElements((draft) => {
+        draft.frozenElements = [element];
+      });
     },
 
     setFrozenElements: (elements: Element[]) => {
-      setStore(
-        produce((draft) => {
-          draft.frozenElements = elements;
-          draft.frozenElement = elements.length > 0 ? elements[0] : null;
-          draft.frozenDragRect = null;
-        }),
-      );
+      updateFrozenElements((draft) => {
+        draft.frozenElements = elements;
+      });
     },
 
     toggleFrozenElement: (element: Element) => {
-      setStore(
-        produce((draft) => {
-          const existingIndex = draft.frozenElements.indexOf(element);
-          if (existingIndex >= 0) {
-            draft.frozenElements.splice(existingIndex, 1);
-          } else {
-            draft.frozenElements.push(element);
-          }
-          draft.frozenElement = draft.frozenElements.length > 0 ? draft.frozenElements[0] : null;
-          draft.frozenDragRect = null;
-        }),
-      );
+      updateFrozenElements((draft) => {
+        const existingIndex = draft.frozenElements.indexOf(element);
+        if (existingIndex >= 0) {
+          draft.frozenElements.splice(existingIndex, 1);
+        } else {
+          draft.frozenElements.push(element);
+        }
+      });
     },
 
     addFrozenElements: (elements: Element[]) => {
-      setStore(
-        produce((draft) => {
-          for (const incomingElement of elements) {
-            if (!draft.frozenElements.includes(incomingElement)) {
-              draft.frozenElements.push(incomingElement);
-            }
+      updateFrozenElements((draft) => {
+        for (const incomingElement of elements) {
+          if (!draft.frozenElements.includes(incomingElement)) {
+            draft.frozenElements.push(incomingElement);
           }
-          draft.frozenElement = draft.frozenElements.length > 0 ? draft.frozenElements[0] : null;
-          draft.frozenDragRect = null;
-        }),
-      );
+        }
+      });
     },
 
     setFrozenDragRect: (rect: FrozenDragRect | null) => {
