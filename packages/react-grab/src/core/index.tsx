@@ -475,6 +475,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
     let previousSpaceDragPointerPage: Position | null = null;
     const [isInspectMode, setIsInspectMode] = createSignal(false);
+    const [isShiftMultiSelecting, setIsShiftMultiSelecting] = createSignal(false);
     let lastWindowFocusTimestamp = 0;
     let isCopyFeedbackCooldownActive = false;
     let copyFeedbackCooldownTimerId: number | null = null;
@@ -1412,6 +1413,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       stopSpaceDragRepositioning();
       actions.deactivate();
       setIsInspectMode(false);
+      setIsShiftMultiSelecting(false);
       clearArrowNavigation();
       keyboardSelectedElement = null;
       isPendingContextMenuSelect = false;
@@ -1643,10 +1645,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
-    const handlePointerDown = (clientX: number, clientY: number) => {
+    const handlePointerDown = (clientX: number, clientY: number, isShiftHeld: boolean) => {
       if (!isRendererActive() || isSelectionInteractionLocked()) return false;
 
-      actions.startDrag({ x: clientX, y: clientY });
+      actions.startDrag({ x: clientX, y: clientY }, isShiftHeld);
       actions.setPointer({ x: clientX, y: clientY });
       document.body.style.userSelect = "none";
 
@@ -1657,9 +1659,75 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return true;
     };
 
+    const addElementToShiftMultiSelection = (
+      element: Element,
+      pointerX: number,
+      pointerY: number,
+    ) => {
+      freezeAllAnimations([element]);
+      actions.toggleFrozenElement(element);
+
+      if (store.frozenElements.length === 0) {
+        setIsShiftMultiSelecting(false);
+        actions.unfreeze();
+        return;
+      }
+
+      setIsShiftMultiSelecting(true);
+      actions.setPointer({ x: pointerX, y: pointerY });
+      actions.setLastGrabbed(element);
+      actions.freeze();
+      clearArrowNavigation();
+      setIsInspectMode(false);
+    };
+
+    const addElementsToShiftMultiSelection = (elements: Element[]) => {
+      if (elements.length === 0) return;
+      freezeAllAnimations(elements);
+      actions.addFrozenElements(elements);
+
+      const lastElement = elements[elements.length - 1];
+      const center = getBoundsCenter(createElementBounds(lastElement));
+
+      setIsShiftMultiSelecting(true);
+      actions.setPointer(center);
+      actions.setLastGrabbed(lastElement);
+      actions.freeze();
+      clearArrowNavigation();
+      setIsInspectMode(false);
+    };
+
+    const commitShiftMultiSelection = () => {
+      if (!isShiftMultiSelecting()) return;
+      setIsShiftMultiSelecting(false);
+
+      const accumulatedElements = store.frozenElements.filter((accumulatedElement) =>
+        isElementConnected(accumulatedElement),
+      );
+      if (accumulatedElements.length === 0) {
+        actions.unfreeze();
+        return;
+      }
+
+      const firstElement = accumulatedElements[0];
+      const center = getBoundsCenter(createElementBounds(firstElement));
+      const labelCursorX =
+        accumulatedElements.length > 1 ? center.x : center.x + store.copyOffsetFromCenterX;
+
+      const shouldDeactivateAfter = store.wasActivatedByToggle;
+
+      performCopyWithLabel({
+        element: firstElement,
+        cursorX: labelCursorX,
+        selectedElements: accumulatedElements.length > 1 ? accumulatedElements : undefined,
+        shouldDeactivateAfter,
+      });
+    };
+
     const handleDragSelection = (
       dragSelectionRect: ReturnType<typeof calculateDragRectangle>,
       hasModifierKeyHeld: boolean,
+      isShiftHeld: boolean,
     ) => {
       const elements = getElementsInDrag(dragSelectionRect, isValidGrabbableElement);
       const selectedElements =
@@ -1672,6 +1740,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       freezeAllAnimations(selectedElements);
 
       pluginRegistry.hooks.onDragEnd(selectedElements, dragSelectionRect);
+
+      if (isShiftHeld && !store.pendingCommentMode && !isPendingContextMenuSelect) {
+        addElementsToShiftMultiSelection(selectedElements);
+        return;
+      }
+
       const firstElement = selectedElements[0];
       const center = getBoundsCenter(createElementBounds(firstElement));
 
@@ -1708,7 +1782,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       });
     };
 
-    const handleSingleClick = (clientX: number, clientY: number, hasModifierKeyHeld: boolean) => {
+    const handleSingleClick = (
+      clientX: number,
+      clientY: number,
+      hasModifierKeyHeld: boolean,
+      isShiftHeld: boolean,
+    ) => {
       const validFrozenElement = isElementConnected(store.frozenElement)
         ? store.frozenElement
         : null;
@@ -1724,6 +1803,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const selectedElement =
         selectedElementUnderPointer ?? validFrozenElement ?? validKeyboardSelectedElement;
       if (!selectedElement) return;
+
+      if (isShiftHeld && !store.pendingCommentMode && !isPendingContextMenuSelect) {
+        addElementToShiftMultiSelection(selectedElement, clientX, clientY);
+        return;
+      }
 
       let positionX: number;
       let positionY: number;
@@ -1791,7 +1875,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       document.body.style.userSelect = "";
     };
 
-    const handlePointerUp = (clientX: number, clientY: number, hasModifierKeyHeld: boolean) => {
+    const handlePointerUp = (
+      clientX: number,
+      clientY: number,
+      hasModifierKeyHeld: boolean,
+      isShiftHeld: boolean,
+    ) => {
       if (!isDragging()) return;
 
       if (dragPreviewDebounceTimerId !== null) {
@@ -1818,9 +1907,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       document.body.style.userSelect = "";
 
       if (dragSelectionRect) {
-        handleDragSelection(dragSelectionRect, hasModifierKeyHeld);
+        handleDragSelection(dragSelectionRect, hasModifierKeyHeld, isShiftHeld);
       } else {
-        handleSingleClick(clientX, clientY, hasModifierKeyHeld);
+        handleSingleClick(clientX, clientY, hasModifierKeyHeld, isShiftHeld);
       }
     };
 
@@ -2236,6 +2325,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
 
         if (event.key === "Shift" && !event.repeat && isActivated()) {
+          if (isShiftMultiSelecting()) {
+            return;
+          }
           setIsInspectMode(true);
           if (isFrozenPhase()) {
             actions.unfreeze();
@@ -2283,6 +2375,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         if (event.key === "Shift") {
           setIsInspectMode(false);
+          if (isShiftMultiSelecting()) {
+            commitShiftMultiSelection();
+            return;
+          }
         }
 
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
@@ -2401,7 +2497,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (isSelectionInteractionLocked()) return;
         if (isTouchPointer && !isHoldingKeys() && !isActivated()) return;
         const isActiveState = isTouchPointer ? isHoldingKeys() : isActivated();
-        if (isActiveState && !isPromptMode() && isFrozenPhase()) {
+        if (
+          isActiveState &&
+          !isPromptMode() &&
+          isFrozenPhase() &&
+          !event.shiftKey &&
+          !isShiftMultiSelecting()
+        ) {
           actions.unfreeze();
           clearArrowNavigation();
         }
@@ -2443,7 +2545,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
-        const didHandle = handlePointerDown(event.clientX, event.clientY);
+        const didHandle = handlePointerDown(event.clientX, event.clientY, event.shiftKey);
         if (didHandle) {
           if (event.pointerId !== undefined) {
             document.documentElement.setPointerCapture(event.pointerId);
@@ -2464,7 +2566,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (store.contextMenuPosition !== null) return;
         const isActive = isRendererActive() || isSelectionInteractionLocked() || isDragging();
         const hasModifierKeyHeld = event.metaKey || event.ctrlKey;
-        handlePointerUp(event.clientX, event.clientY, hasModifierKeyHeld);
+        handlePointerUp(event.clientX, event.clientY, hasModifierKeyHeld, event.shiftKey);
         if (isActive) {
           event.preventDefault();
           event.stopImmediatePropagation();
@@ -2530,7 +2632,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           event.preventDefault();
           event.stopImmediatePropagation();
 
-          if (store.wasActivatedByToggle && !isCopying() && !isPromptMode()) {
+          if (
+            store.wasActivatedByToggle &&
+            !isCopying() &&
+            !isPromptMode() &&
+            !event.shiftKey &&
+            !isShiftMultiSelecting()
+          ) {
             if (!isHoldingKeys()) {
               deactivateRenderer();
             } else {
