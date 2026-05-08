@@ -27,8 +27,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         selectionBoundsMultiple={props.selectionBoundsMultiple}
         selectionShouldSnap={props.selectionShouldSnap}
         selectionIsFading={props.selectionLabelStatus === "fading"}
-        inspectVisible={props.inspectVisible}
-        inspectBounds={props.inspectBounds}
         dragVisible={props.dragVisible}
         dragBounds={props.dragBounds}
         grabbedBoxes={props.grabbedBoxes}
@@ -54,7 +52,26 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           "box-shadow": `inset 0 0 ${FROZEN_GLOW_EDGE_PX}px ${FROZEN_GLOW_COLOR}`,
         }}
       />
-      <Show when={props.selectionLabelVisible && props.selectionBounds}>
+      <Show when={props.selectionLabelVisible && (props.frozenLabelEntries?.length ?? 0) > 0}>
+        <Index each={props.frozenLabelEntries ?? []}>
+          {(entry, entryIndex) => (
+            <SelectionLabel
+              tagName={entry().tagName}
+              componentName={entry().componentName}
+              selectionBounds={entry().bounds}
+              visible={true}
+              onToggleExpand={entryIndex === 0 ? props.onToggleExpand : undefined}
+            />
+          )}
+        </Index>
+      </Show>
+      <Show
+        when={
+          props.selectionLabelVisible &&
+          props.selectionBounds &&
+          (props.frozenLabelEntries?.length ?? 0) === 0
+        }
+      >
         <SelectionLabel
           tagName={props.selectionTagName}
           componentName={props.selectionComponentName}
@@ -67,8 +84,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           status={props.selectionLabelStatus}
           arrowNavigationState={props.selectionArrowNavigationState}
           onArrowNavigationSelect={props.onArrowNavigationSelect}
-          inspectNavigationState={props.inspectNavigationState}
-          onInspectSelect={props.onInspectSelect}
           filePath={props.selectionFilePath}
           onInputChange={props.onInputChange}
           onSubmit={props.onInputSubmit}

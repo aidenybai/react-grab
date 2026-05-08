@@ -347,14 +347,19 @@ export interface CommentItem {
   timestamp: number;
 }
 
+export interface FrozenLabelEntry {
+  tagName: string;
+  componentName?: string;
+  bounds: OverlayBounds;
+}
+
 export interface ReactGrabRendererProps {
   selectionVisible?: boolean;
   selectionBounds?: OverlayBounds;
   selectionBoundsMultiple?: OverlayBounds[];
   selectionShouldSnap?: boolean;
-  inspectVisible?: boolean;
-  inspectBounds?: OverlayBounds[];
   selectionElementsCount?: number;
+  frozenLabelEntries?: FrozenLabelEntry[];
   selectionFilePath?: string;
   selectionLineNumber?: number;
   selectionTagName?: string;
@@ -363,8 +368,6 @@ export interface ReactGrabRendererProps {
   selectionLabelStatus?: SelectionLabelStatus;
   selectionArrowNavigationState?: ArrowNavigationState;
   onArrowNavigationSelect?: (index: number) => void;
-  inspectNavigationState?: ArrowNavigationState;
-  onInspectSelect?: (index: number) => void;
   labelInstances?: SelectionLabelInstance[];
   dragVisible?: boolean;
   dragBounds?: OverlayBounds;
@@ -511,8 +514,6 @@ export interface SelectionLabelProps {
   filePath?: string;
   arrowNavigationState?: ArrowNavigationState;
   onArrowNavigationSelect?: (index: number) => void;
-  inspectNavigationState?: ArrowNavigationState;
-  onInspectSelect?: (index: number) => void;
   onInputChange?: (value: string) => void;
   onSubmit?: () => void;
   onToggleExpand?: () => void;
