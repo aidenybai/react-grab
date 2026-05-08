@@ -217,6 +217,45 @@ test.describe("Shift Multi-Select", () => {
     await reactGrab.page.keyboard.up("Shift");
   });
 
+  test("should ignore shift+click that resolves to no element under pointer", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+
+    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(0);
+    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(1);
+
+    const firstBox = await firstItem.boundingBox();
+    const secondBox = await secondItem.boundingBox();
+    if (!firstBox || !secondBox) throw new Error("Could not get bounding boxes");
+
+    const viewport = reactGrab.page.viewportSize();
+    if (!viewport) throw new Error("No viewport");
+    const emptySpaceX = viewport.width - 5;
+    const emptySpaceY = viewport.height - 5;
+
+    await reactGrab.page.keyboard.down("Shift");
+    await reactGrab.page.mouse.click(
+      firstBox.x + firstBox.width / 2,
+      firstBox.y + firstBox.height / 2,
+    );
+    await reactGrab.page.waitForTimeout(120);
+    await reactGrab.page.mouse.click(
+      secondBox.x + secondBox.width / 2,
+      secondBox.y + secondBox.height / 2,
+    );
+    await reactGrab.page.waitForTimeout(120);
+
+    await reactGrab.page.mouse.click(emptySpaceX, emptySpaceY);
+    await reactGrab.page.waitForTimeout(150);
+
+    await reactGrab.page.keyboard.up("Shift");
+
+    await expect.poll(() => reactGrab.getClipboardContent()).toContain("Buy groceries");
+    const clipboardContent = await reactGrab.getClipboardContent();
+    expect(clipboardContent).toContain("Walk the dog");
+  });
+
   test("should extend existing drag selection with shift+click", async ({ reactGrab }) => {
     await reactGrab.activate();
 

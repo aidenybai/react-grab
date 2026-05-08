@@ -1660,7 +1660,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const toggleShiftMultiSelection = (element: Element, pointer: Position) => {
-      freezeAllAnimations([element]);
       actions.toggleFrozenElement(element);
 
       if (store.frozenElements.length === 0) {
@@ -1669,6 +1668,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return;
       }
 
+      // Animation freeze must run on the combined accumulated set, not just
+      // on the toggled element. freezeAllAnimations unfreezes its previous
+      // input before freezing its new input, so passing only [element] would
+      // resume animations on every previously shift-clicked element.
+      freezeAllAnimations(store.frozenElements);
       setIsShiftMultiSelecting(true);
       actions.setPointer(pointer);
       actions.setLastGrabbed(element);
@@ -1678,11 +1682,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const extendShiftMultiSelection = (elements: Element[]) => {
       if (elements.length === 0) return;
-      freezeAllAnimations(elements);
       actions.addFrozenElements(elements);
 
       const lastElement = elements[elements.length - 1];
 
+      freezeAllAnimations(store.frozenElements);
       setIsShiftMultiSelecting(true);
       actions.setPointer(getBoundsCenter(createElementBounds(lastElement)));
       actions.setLastGrabbed(lastElement);
@@ -1779,16 +1783,27 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         ? keyboardSelectedElement
         : null;
 
+      const elementAtPointer =
+        getElementsAtPoint(clientX, clientY).find(isValidGrabbableElement) ?? null;
       const selectedElementUnderPointer =
-        getElementsAtPoint(clientX, clientY).find((elementAtPointer) =>
-          isValidGrabbableElement(elementAtPointer),
-        ) ?? (isElementConnected(store.detectedElement) ? store.detectedElement : null);
+        elementAtPointer ??
+        (isElementConnected(store.detectedElement) ? store.detectedElement : null);
       const selectedElement =
         selectedElementUnderPointer ?? validFrozenElement ?? validKeyboardSelectedElement;
       if (!selectedElement) return;
 
-      if (isShiftHeld && !store.pendingCommentMode && !isPendingContextMenuSelect) {
-        toggleShiftMultiSelection(selectedElement, { x: clientX, y: clientY });
+      // Shift+click only toggles when there is a real element under the
+      // pointer. We deliberately ignore the detectedElement fallback (which
+      // can be stale after a hover that preceded the multi-select) so a
+      // click into empty space does not silently toggle off the
+      // previously-frozen element.
+      if (
+        isShiftHeld &&
+        elementAtPointer !== null &&
+        !store.pendingCommentMode &&
+        !isPendingContextMenuSelect
+      ) {
+        toggleShiftMultiSelection(elementAtPointer, { x: clientX, y: clientY });
         return;
       }
 
