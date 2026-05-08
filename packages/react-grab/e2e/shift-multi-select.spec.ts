@@ -262,6 +262,47 @@ test.describe("Shift Multi-Select", () => {
     expect(userSelectStyle).toBe("");
   });
 
+  test("should clear shift multi-select state when window loses focus", async ({ reactGrab }) => {
+    await reactGrab.activate();
+
+    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(0);
+    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(1);
+
+    const firstBox = await firstItem.boundingBox();
+    const secondBox = await secondItem.boundingBox();
+    if (!firstBox || !secondBox) throw new Error("Could not get bounding boxes");
+
+    await reactGrab.page.keyboard.down("Shift");
+    await reactGrab.page.mouse.click(
+      firstBox.x + firstBox.width / 2,
+      firstBox.y + firstBox.height / 2,
+    );
+    await reactGrab.page.waitForTimeout(120);
+    await reactGrab.page.mouse.click(
+      secondBox.x + secondBox.width / 2,
+      secondBox.y + secondBox.height / 2,
+    );
+    await reactGrab.page.waitForTimeout(120);
+
+    await reactGrab.page.evaluate(() => window.dispatchEvent(new Event("blur")));
+    await reactGrab.page.waitForTimeout(100);
+
+    await reactGrab.page.keyboard.press("ArrowDown");
+    await reactGrab.page.waitForTimeout(150);
+
+    const arrowNavDidWork = await reactGrab.page.evaluate(() => {
+      const host = document.querySelector("[data-react-grab]");
+      const shadowRoot = host?.shadowRoot;
+      if (!shadowRoot) return false;
+      const root = shadowRoot.querySelector("[data-react-grab]");
+      if (!root) return false;
+      return Boolean(root.querySelector("[data-react-grab-selection-label]"));
+    });
+    expect(arrowNavDidWork).toBe(true);
+
+    await reactGrab.page.keyboard.up("Shift");
+  });
+
   test("should ignore shift+click that resolves to no element under pointer", async ({
     reactGrab,
   }) => {

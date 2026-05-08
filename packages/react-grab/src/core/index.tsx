@@ -2652,6 +2652,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.releaseHold();
         resetCopyConfirmation();
       }
+      // Modifier keyup events are lost on blur, so a shift release that
+      // would have committed the multi-selection never fires. Clear the
+      // flag here so the pointermove unfreeze guard and the arrow
+      // navigation guard don't stay blocked indefinitely. Frozen elements
+      // are intentionally preserved so the user can resume on refocus.
+      setIsShiftMultiSelecting(false);
     });
 
     eventListenerManager.addWindowListener("focus", () => {
