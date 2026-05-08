@@ -1513,6 +1513,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const openContextMenu = (element: Element, position: Position) => {
+      setIsShiftMultiSelecting(false);
       actions.showContextMenu(position, element);
       clearArrowNavigation();
       dismissAllPopups();
@@ -1632,6 +1633,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const handlePointerDown = (clientX: number, clientY: number, isShiftHeld: boolean) => {
       if (!isRendererActive() || isSelectionInteractionLocked()) return false;
 
+      if (!isShiftHeld && isShiftMultiSelecting()) {
+        setIsShiftMultiSelecting(false);
+      }
+
       actions.startDrag({ x: clientX, y: clientY }, isShiftHeld);
       actions.setPointer({ x: clientX, y: clientY });
       document.body.style.userSelect = "none";
@@ -1692,10 +1697,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
 
       const firstElement = accumulatedElements[0];
-      const center = getBoundsCenter(createElementBounds(firstElement));
-      const labelCursorX =
-        accumulatedElements.length > 1 ? center.x : center.x + store.copyOffsetFromCenterX;
-
+      const labelCursorX = store.pointer.x;
       const shouldDeactivateAfter = store.wasActivatedByToggle;
 
       performCopyWithLabel({
@@ -1977,6 +1979,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleArrowNavigation = (event: KeyboardEvent): boolean => {
       if (!isActivated() || isPromptMode()) return false;
+      if (isShiftMultiSelecting()) return false;
       if (!ARROW_KEYS.has(event.key)) return false;
 
       let currentElement = effectiveElement();

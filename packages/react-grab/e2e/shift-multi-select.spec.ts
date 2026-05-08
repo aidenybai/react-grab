@@ -97,6 +97,86 @@ test.describe("Shift Multi-Select", () => {
     await expect.poll(() => reactGrab.getClipboardContent()).toContain("Buy groceries");
   });
 
+  test("should reset accumulated selection when a non-shift click follows", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+
+    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(0);
+    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(1);
+    const lastItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(6);
+
+    const firstBox = await firstItem.boundingBox();
+    const secondBox = await secondItem.boundingBox();
+    const lastBox = await lastItem.boundingBox();
+    if (!firstBox || !secondBox || !lastBox) {
+      throw new Error("Could not get bounding boxes");
+    }
+
+    await reactGrab.page.keyboard.down("Shift");
+    await reactGrab.page.mouse.click(
+      firstBox.x + firstBox.width / 2,
+      firstBox.y + firstBox.height / 2,
+    );
+    await reactGrab.page.waitForTimeout(100);
+    await reactGrab.page.mouse.click(
+      secondBox.x + secondBox.width / 2,
+      secondBox.y + secondBox.height / 2,
+    );
+    await reactGrab.page.waitForTimeout(100);
+    await reactGrab.page.keyboard.up("Shift");
+
+    await reactGrab.page.evaluate(() => navigator.clipboard.writeText("baseline"));
+
+    await reactGrab.activate();
+    await reactGrab.page.mouse.click(lastBox.x + lastBox.width / 2, lastBox.y + lastBox.height / 2);
+
+    await expect.poll(() => reactGrab.getClipboardContent()).toContain("Write tests");
+    const clipboardContent = await reactGrab.getClipboardContent();
+    expect(clipboardContent).not.toContain("Buy groceries");
+    expect(clipboardContent).not.toContain("Walk the dog");
+  });
+
+  test("should not commit accumulated selection when shift releases over an open context menu", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.page.evaluate(() => navigator.clipboard.writeText("baseline"));
+    await reactGrab.activate();
+
+    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(0);
+    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(1);
+
+    const firstBox = await firstItem.boundingBox();
+    const secondBox = await secondItem.boundingBox();
+    if (!firstBox || !secondBox) throw new Error("Could not get bounding boxes");
+
+    await reactGrab.page.keyboard.down("Shift");
+    await reactGrab.page.mouse.click(
+      firstBox.x + firstBox.width / 2,
+      firstBox.y + firstBox.height / 2,
+    );
+    await reactGrab.page.waitForTimeout(100);
+    await reactGrab.page.mouse.click(
+      secondBox.x + secondBox.width / 2,
+      secondBox.y + secondBox.height / 2,
+    );
+    await reactGrab.page.waitForTimeout(100);
+
+    await reactGrab.page.mouse.click(
+      secondBox.x + secondBox.width / 2,
+      secondBox.y + secondBox.height / 2,
+      { button: "right" },
+    );
+    await reactGrab.page.waitForTimeout(150);
+    expect(await reactGrab.isContextMenuVisible()).toBe(true);
+
+    await reactGrab.page.keyboard.up("Shift");
+    await reactGrab.page.waitForTimeout(400);
+
+    expect(await reactGrab.getClipboardContent()).toBe("baseline");
+    expect(await reactGrab.isContextMenuVisible()).toBe(true);
+  });
+
   test("should extend existing drag selection with shift+click", async ({ reactGrab }) => {
     await reactGrab.activate();
 
