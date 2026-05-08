@@ -5,7 +5,7 @@
 
 Copy any UI element for your agent.
 
-React Grab points agents to the actual source behind each selection, so edits are [**2× faster**](https://github.com/aidenybai/react-grab-bench) and more accurate.
+React Grab points agents to the actual source behind each selection, so edits are [**2× faster**](https://benchmark.react-grab.com/) and more accurate.
 
 ### [Try out a demo! →](https://react-grab.com)
 
@@ -17,15 +17,15 @@ Run this at your project root:
 npx grab@latest init
 ```
 
-## Usage
+## How It Works
 
-Start your dev server, open your app, then hover any UI element and press **⌘C** or **Ctrl+C**.
+React Grab turns a browser selection into source context your agent can use:
 
-React Grab copies that context to your clipboard, ready to paste into your agent.
+1. Hover any UI element in your app.
+2. Press **⌘C** or **Ctrl+C**.
+3. Paste the copied context into your agent.
 
-## Copied Context
-
-React Grab copies the selected element, its source location, nearby code, and component stack:
+The copied context includes the selected element, source location, nearby code, and component stack:
 
 ```txt
 <a class="ml-auto inline-block text-sm" href="#">
