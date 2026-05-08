@@ -23,17 +23,9 @@ Start your dev server, open your app, then hover any UI element and press **⌘C
 
 React Grab copies that context to your clipboard, ready to paste into your agent.
 
-## What Agents Get
+## Copied Context
 
-React Grab includes the details agents need to edit the right file:
-
-- the rendered HTML for the element
-- the React component name
-- the source file and line number
-- the nearby source code, when available
-- the component stack
-
-Example:
+React Grab copies the selected element, its source location, nearby code, and component stack:
 
 ```txt
 <a class="ml-auto inline-block text-sm" href="#">
