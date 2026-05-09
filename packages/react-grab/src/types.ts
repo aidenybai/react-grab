@@ -513,6 +513,7 @@ export interface SelectionLabelProps {
   status?: SelectionLabelStatus;
   statusText?: string;
   filePath?: string;
+  shouldToggleExpandOnClick?: boolean;
   arrowNavigationState?: ArrowNavigationState;
   onArrowNavigationSelect?: (index: number) => void;
   onInputChange?: (value: string) => void;

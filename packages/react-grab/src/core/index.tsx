@@ -118,6 +118,7 @@ import { logIntro } from "./log-intro.js";
 import { getScriptOptions } from "../utils/get-script-options.js";
 import { isEnterCode } from "../utils/is-enter-code.js";
 import { isMac } from "../utils/is-mac.js";
+import { isPositionInsideBounds } from "../utils/is-position-inside-bounds.js";
 import { loadToolbarState, saveToolbarState } from "../components/toolbar/state.js";
 import { copyPlugin } from "./plugins/copy.js";
 import { commentPlugin } from "./plugins/comment.js";
@@ -1879,6 +1880,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       });
     };
 
+    const getFrozenElementAtPosition = (position: Position): Element | null => {
+      for (const element of store.frozenElements) {
+        if (!isElementConnected(element)) continue;
+        if (isPositionInsideBounds(position, createElementBounds(element))) {
+          return element;
+        }
+      }
+      return null;
+    };
+
     const handleSingleClick = (
       clientX: number,
       clientY: number,
@@ -2653,9 +2664,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (!isRendererActive() || isCopying() || isPromptMode()) return;
 
         const isFromOverlay = isEventFromOverlay(event, "data-react-grab-ignore-events");
+        const position = { x: event.clientX, y: event.clientY };
+        const overlayFrozenElement =
+          isFromOverlay && store.frozenElements.length > 1
+            ? getFrozenElementAtPosition(position)
+            : null;
         if (isFromOverlay && arrowNavigationElements().length > 0) {
           clearArrowNavigation();
-        } else if (isFromOverlay) {
+        } else if (isFromOverlay && !overlayFrozenElement) {
           return;
         }
 
@@ -2667,7 +2683,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         event.preventDefault();
         event.stopPropagation();
 
-        const element = getElementAtPosition(event.clientX, event.clientY);
+        const element = overlayFrozenElement ?? getElementAtPosition(event.clientX, event.clientY);
         if (!element) return;
 
         const existingFrozenElements = store.frozenElements;
@@ -2681,7 +2697,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           actions.setFrozenElement(element);
         }
 
-        const position = { x: event.clientX, y: event.clientY };
         actions.setPointer(position);
         actions.freeze();
         openContextMenu(element, position);

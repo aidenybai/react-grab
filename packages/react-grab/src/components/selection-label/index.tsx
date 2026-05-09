@@ -71,8 +71,15 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   const isCompletedStatus = () => props.status === "copied" || props.status === "fading";
 
+  const canToggleExpand = () =>
+    Boolean(props.shouldToggleExpandOnClick) &&
+    Boolean(props.onToggleExpand) &&
+    canInteract() &&
+    !props.isPromptMode;
+
   const shouldEnablePointerEvents = (): boolean => {
     if (props.isPromptMode) return true;
+    if (canToggleExpand()) return true;
     if (isCompletedStatus() && (props.onDismiss || props.onShowContextMenu)) {
       return true;
     }
@@ -332,6 +339,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     event.stopImmediatePropagation();
     if (props.filePath && props.onOpen) {
       props.onOpen();
+      return;
+    }
+    if (canToggleExpand()) {
+      props.onToggleExpand?.();
     }
   };
 
