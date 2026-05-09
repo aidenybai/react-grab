@@ -107,6 +107,14 @@ test.describe("Shift Multi-Select", () => {
     await reactGrab.page.mouse.click(labelAnchorX, firstBox.y + firstBox.height / 2);
 
     await expect.poll(() => reactGrab.getSelectionLabelBounds()).not.toBeNull();
+    const firstLabelText = await reactGrab.page.evaluate(() => {
+      const host = document.querySelector("[data-react-grab]");
+      const shadowRoot = host?.shadowRoot;
+      const label = shadowRoot?.querySelector("[data-react-grab-selection-label]");
+      return label?.textContent?.replace(/\s+/g, " ").trim() ?? "";
+    });
+    expect(firstLabelText).toContain("TodoItem.li");
+
     const initialLabelBounds = await reactGrab.getSelectionLabelBounds();
     if (!initialLabelBounds) throw new Error("Could not get initial label bounds");
 

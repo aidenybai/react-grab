@@ -1215,9 +1215,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const anchorRatio = shiftSelectionLabelAnchorRatioByElement.get(element);
         const mouseX =
           anchorRatio === undefined ? undefined : bounds.x + bounds.width * anchorRatio;
+        const componentName = getComponentDisplayName(element) ?? undefined;
         return {
           tagName: getTagName(element) || "element",
-          componentName: getComponentDisplayName(element) ?? undefined,
+          componentName,
           bounds,
           mouseX,
         };
@@ -1748,11 +1749,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const toggleShiftMultiSelection = (element: Element, pointer: Position) => {
       const wasElementSelected = store.frozenElements.includes(element);
+      const isFirstFrozenElement = store.frozenElements.length === 0;
 
       if (!wasElementSelected) {
         const bounds = createElementBounds(element);
         const anchorRatio = getElementAnchorRatio(bounds, pointer);
         shiftSelectionLabelAnchorRatioByElement.set(element, anchorRatio);
+        if (isFirstFrozenElement) {
+          const componentName = getComponentDisplayName(element) ?? undefined;
+          setResolvedComponentName(componentName);
+        }
       }
 
       actions.toggleFrozenElement(element);
@@ -2966,10 +2972,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             return;
           }
 
+          const fallbackComponentName = getComponentDisplayName(element) ?? undefined;
+          setResolvedComponentName(fallbackComponentName);
+
           getNearestComponentName(element)
             .then((name) => {
               if (componentNameRequestVersion !== currentVersion) return;
-              setResolvedComponentName(name ?? undefined);
+              setResolvedComponentName(name ?? fallbackComponentName);
             })
             .catch(() => {
               if (componentNameRequestVersion !== currentVersion) return;
