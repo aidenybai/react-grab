@@ -86,7 +86,9 @@ const ChangelogPage = () => {
             <section key={entry.version} className="flex flex-col gap-2">
               <div className="flex items-center gap-3">
                 <h2 className="text-foreground font-mono text-sm font-medium">{entry.version}</h2>
-                <h3 className="text-neutral-600 text-xs font-normal">{entry.changeType}</h3>
+                {entry.changeType && (
+                  <h3 className="text-neutral-600 text-xs font-normal">{entry.changeType}</h3>
+                )}
               </div>
               <ul className="flex flex-col gap-1.5">
                 {entry.changes.map((change, changeIndex) => (
