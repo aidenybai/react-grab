@@ -33,47 +33,16 @@ Init Options:
 Options:
   -y, --yes              Skip confirmation prompts
   -f, --force            Force overwrite existing config
-  -a, --agent <agent>    Connect to your agent (claude-code, cursor, opencode, codex, gemini, amp, ami, droid, mcp)
   -k, --key <key>        Activation key (e.g., "Meta+K", "Ctrl+Shift+G", "Space")
       --skip-install     Skip package installation
   -c, --cwd <cwd>        Working directory (defaults to current directory)
 
 Examples:
   npx grab@latest init -y                         # Auto-detect and install without prompts
-  npx grab@latest init -a cursor -y               # Connect to Cursor agent
-  npx grab@latest init -a mcp -y                  # Connect via MCP
   npx grab@latest init -k "Meta+K" -y             # Set activation key to Cmd+K / Win+K
 ```
 
 The CLI will detect your framework and add the necessary scripts automatically.
-
-### Agent Connection
-
-Connect React Grab to your coding agent:
-
-```bash
-npx grab@latest add [agent]
-```
-
-Add Options:
-```
-Options:
-  -y, --yes              Skip confirmation prompts
-  -c, --cwd <cwd>        Working directory (defaults to current directory)
-
-Agents: claude-code, cursor, opencode, codex, gemini, amp, ami, droid, mcp
-
-Examples:
-  npx grab@latest add cursor                      # Connect to Cursor
-  npx grab@latest add claude-code                  # Connect to Claude Code
-  npx grab@latest add mcp                          # Connect via MCP
-```
-
-Disconnect an agent:
-
-```bash
-npx grab@latest remove [agent]
-```
 
 ### Configuration
 
@@ -107,7 +76,6 @@ To discover all available commands and flags:
 ```bash
 npx grab@latest --help
 npx grab@latest init --help
-npx grab@latest add --help
 npx grab@latest config --help
 ```
 

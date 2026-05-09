@@ -107,7 +107,7 @@ The host attaches a shadow root in `open` mode, injects the compiled CSS as a `<
 
 ### Canvas rendering
 
-The visual highlight overlays are rendered via [components/overlay-canvas.tsx](../src/components/overlay-canvas.tsx) using a single `<canvas>` element with multiple `OffscreenCanvas` layers composited together. Each visual type - selection highlight, drag rectangle, grabbed-element flash, and inspect overlay - has its own offscreen layer with its own animated bounds.
+The visual highlight overlays are rendered via [components/overlay-canvas.tsx](../src/components/overlay-canvas.tsx) using a single `<canvas>` element with multiple `OffscreenCanvas` layers composited together. Each visual type - selection highlight, drag rectangle, and grabbed-element flash - has its own offscreen layer with its own animated bounds.
 
 The bounds for each layer are lerped toward their target positions on every animation frame using `requestAnimationFrame`, with different lerp factors for different interaction types. Selection highlights use a slower factor so the overlay doesn't jitter as the user moves between elements, while drag rectangles track the pointer more aggressively. Each frame, the main canvas clears itself and composites all visible layers. When the animation has converged (the current bounds are within a small threshold of the target bounds and the opacity has settled), the animation loop stops until the next reactive update triggers it again.
 
@@ -204,7 +204,3 @@ The five built-in plugins are registered during `init()` through the same `regis
 - **open** registers the "Open in editor" action that calls `openFile` with the resolved source location, running the URL through the `transformOpenFileUrl` hook pipeline first.
 - **copy-html** registers "Copy HTML" which copies the element's `outerHTML` with stack context appended.
 - **copy-styles** registers "Copy styles" which extracts the element's computed CSS (compared against a baseline from a hidden iframe) and copies it with stack context.
-
-## Notes about MCP integration
-
-The `@react-grab/mcp` package provides a plugin that bridges react-grab with AI coding assistants via the Model Context Protocol. The plugin hooks into `transformAgentContext` and `onCopySuccess` to POST element context to a local MCP server whenever the user copies or submits a prompt. The MCP server in turn exposes this context as MCP resources that coding assistants like Cursor and Claude Code can read. The plugin is registered like any other plugin and has no special privileges in the core.

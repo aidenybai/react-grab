@@ -38,7 +38,6 @@ import { isValidGrabbableElement } from "../utils/is-valid-grabbable-element.js"
 import { isRootElement } from "../utils/is-root-element.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
 import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
-import { getAncestorElements } from "../utils/get-ancestor-elements.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
 import { createElementSelector } from "../utils/create-element-selector.js";
 import { getVisibleBoundsCenter } from "../utils/get-visible-bounds-center.js";
@@ -96,6 +95,7 @@ import type {
   ContextMenuActionContext,
   ContextMenuAction,
   ArrowNavigationState,
+  FrozenLabelEntry,
   PerformWithFeedbackOptions,
   SettableOptions,
   SourceInfo,
@@ -224,6 +224,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         (store.current.phase === "dragging-select" ||
           store.current.phase === "dragging-reposition"),
     );
+    // True only when the drag has actually moved beyond the click threshold.
+    // We use this for selection-visibility decisions so a click (which
+    // momentarily enters the dragging-select phase between pointerdown and
+    // pointerup) does not flash the selection bounds off and back on.
+    const isActivelyDragging = createMemo(() => {
+      if (!isDragging()) return false;
+      const dx = Math.abs(store.pointer.x + window.scrollX - store.dragStart.x);
+      const dy = Math.abs(store.pointer.y + window.scrollY - store.dragStart.y);
+      return dx > DRAG_THRESHOLD_PX || dy > DRAG_THRESHOLD_PX;
+    });
     const isDragRepositioning = createMemo(
       () => store.current.state === "active" && store.current.phase === "dragging-reposition",
     );
@@ -474,7 +484,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       holdTimerFired: false,
     };
     let previousSpaceDragPointerPage: Position | null = null;
-    const [isInspectMode, setIsInspectMode] = createSignal(false);
+    const [isShiftMultiSelecting, setIsShiftMultiSelecting] = createSignal(false);
     let lastWindowFocusTimestamp = 0;
     let isCopyFeedbackCooldownActive = false;
     let copyFeedbackCooldownTimerId: number | null = null;
@@ -935,7 +945,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const targetElement = createMemo(() => {
       void store.viewportVersion;
-      if (!isRendererActive() || isDragging() || isSelectionInteractionLocked()) return null;
+      if (!isRendererActive() || isActivelyDragging() || isSelectionInteractionLocked())
+        return null;
       const element = store.detectedElement;
       if (!isElementConnected(element)) return null;
       return element;
@@ -1021,7 +1032,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (store.isTouchMode && isDragging()) {
         return isRendererActive();
       }
-      return isRendererActive() && !isDragging();
+      return isRendererActive() && !isActivelyDragging();
     };
 
     const frozenElementsBounds = createMemo((): OverlayBounds[] => {
@@ -1157,17 +1168,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return frozenElementsBounds();
     });
 
-    const inspectBounds = createMemo((): OverlayBounds[] => {
-      if (!isInspectMode()) return [];
-
-      const element = effectiveElement();
-      if (!element) return [];
-
+    const frozenLabelEntries = createMemo((): FrozenLabelEntry[] => {
       void store.viewportVersion;
-
-      return [...getAncestorElements(element), element].map((ancestor) =>
-        createElementBounds(ancestor),
-      );
+      if (isPromptMode() || store.frozenElements.length < 2) return [];
+      return store.frozenElements.filter(isElementConnected).map((element) => ({
+        tagName: getTagName(element) || "element",
+        componentName: getComponentDisplayName(element) ?? undefined,
+        bounds: createElementBounds(element),
+      }));
     });
 
     const cursorPosition = createMemo(() => {
@@ -1411,7 +1419,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const previousFocused = store.previouslyFocusedElement;
       stopSpaceDragRepositioning();
       actions.deactivate();
-      setIsInspectMode(false);
+      setIsShiftMultiSelecting(false);
       clearArrowNavigation();
       keyboardSelectedElement = null;
       isPendingContextMenuSelect = false;
@@ -1527,6 +1535,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const openContextMenu = (element: Element, position: Position) => {
+      setIsShiftMultiSelecting(false);
       actions.showContextMenu(position, element);
       clearArrowNavigation();
       dismissAllPopups();
@@ -1643,10 +1652,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
-    const handlePointerDown = (clientX: number, clientY: number) => {
+    const handlePointerDown = (clientX: number, clientY: number, isShiftHeld: boolean) => {
       if (!isRendererActive() || isSelectionInteractionLocked()) return false;
 
-      actions.startDrag({ x: clientX, y: clientY });
+      if (!isShiftHeld && isShiftMultiSelecting()) {
+        setIsShiftMultiSelecting(false);
+      }
+
+      actions.startDrag({ x: clientX, y: clientY }, isShiftHeld);
       actions.setPointer({ x: clientX, y: clientY });
       document.body.style.userSelect = "none";
 
@@ -1657,9 +1670,55 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return true;
     };
 
+    const toggleShiftMultiSelection = (element: Element, pointer: Position) => {
+      actions.toggleFrozenElement(element);
+
+      if (store.frozenElements.length === 0) {
+        setIsShiftMultiSelecting(false);
+        actions.unfreeze();
+        return;
+      }
+
+      // Animation freeze must run on the combined accumulated set, not just
+      // on the toggled element. freezeAllAnimations unfreezes its previous
+      // input before freezing its new input, so passing only [element] would
+      // resume animations on every previously shift-clicked element.
+      freezeAllAnimations(store.frozenElements);
+      setIsShiftMultiSelecting(true);
+      actions.setPointer(pointer);
+      // After toggleFrozenElement, the most recently changed element is
+      // either added (still in frozenElements) or removed. Anchor
+      // lastGrabbed to a still-selected element rather than to one that
+      // was just deselected.
+      const isElementStillSelected = store.frozenElements.includes(element);
+      actions.setLastGrabbed(
+        isElementStillSelected ? element : store.frozenElements[store.frozenElements.length - 1],
+      );
+      actions.freeze();
+      clearArrowNavigation();
+    };
+
+    const commitShiftMultiSelection = () => {
+      setIsShiftMultiSelecting(false);
+
+      const accumulatedElements = store.frozenElements.filter(isElementConnected);
+      if (accumulatedElements.length === 0) {
+        actions.unfreeze();
+        return;
+      }
+
+      performCopyWithLabel({
+        element: accumulatedElements[0],
+        cursorX: store.pointer.x,
+        selectedElements: accumulatedElements,
+        shouldDeactivateAfter: store.wasActivatedByToggle,
+      });
+    };
+
     const handleDragSelection = (
       dragSelectionRect: ReturnType<typeof calculateDragRectangle>,
       hasModifierKeyHeld: boolean,
+      isShiftHeld: boolean,
     ) => {
       const elements = getElementsInDrag(dragSelectionRect, isValidGrabbableElement);
       const selectedElements =
@@ -1669,9 +1728,32 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (selectedElements.length === 0) return;
 
-      freezeAllAnimations(selectedElements);
+      const isShiftAccumulating =
+        isShiftHeld && !store.pendingCommentMode && !isPendingContextMenuSelect;
+
+      // In the shift-accumulating branch we must freeze on the COMBINED set
+      // (prior accumulated + newly dragged), because freezeAllAnimations
+      // unfreezes its prior input via finishAnimations() — which permanently
+      // advances WAAPI animations on previously selected elements past the
+      // freeze point. Calling it once with [...prior, ...new] keeps prior
+      // animations paused.
+      if (isShiftAccumulating) {
+        actions.addFrozenElements(selectedElements);
+      }
+      freezeAllAnimations(isShiftAccumulating ? store.frozenElements : selectedElements);
 
       pluginRegistry.hooks.onDragEnd(selectedElements, dragSelectionRect);
+
+      if (isShiftAccumulating) {
+        const lastElement = selectedElements[selectedElements.length - 1];
+        setIsShiftMultiSelecting(true);
+        actions.setPointer(getBoundsCenter(createElementBounds(lastElement)));
+        actions.setLastGrabbed(lastElement);
+        actions.freeze();
+        clearArrowNavigation();
+        return;
+      }
+
       const firstElement = selectedElements[0];
       const center = getBoundsCenter(createElementBounds(firstElement));
 
@@ -1708,7 +1790,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       });
     };
 
-    const handleSingleClick = (clientX: number, clientY: number, hasModifierKeyHeld: boolean) => {
+    const handleSingleClick = (
+      clientX: number,
+      clientY: number,
+      hasModifierKeyHeld: boolean,
+      isShiftHeld: boolean,
+    ) => {
       const validFrozenElement = isElementConnected(store.frozenElement)
         ? store.frozenElement
         : null;
@@ -1717,13 +1804,28 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         ? keyboardSelectedElement
         : null;
 
+      const elementAtPointer =
+        getElementsAtPoint(clientX, clientY).find(isValidGrabbableElement) ?? null;
       const selectedElementUnderPointer =
-        getElementsAtPoint(clientX, clientY).find((elementAtPointer) =>
-          isValidGrabbableElement(elementAtPointer),
-        ) ?? (isElementConnected(store.detectedElement) ? store.detectedElement : null);
+        elementAtPointer ??
+        (isElementConnected(store.detectedElement) ? store.detectedElement : null);
       const selectedElement =
         selectedElementUnderPointer ?? validFrozenElement ?? validKeyboardSelectedElement;
       if (!selectedElement) return;
+
+      // While Shift is held we only operate on the live elementAtPointer.
+      // Falling through to the non-shift path would let the
+      // selectedElement fallback chain resolve to the previously-frozen
+      // element and fire an unintended single-element copy that races
+      // with the eventual commitShiftMultiSelection on Shift release. So
+      // we always return when Shift is held: toggle when an element is
+      // under the pointer, no-op when it isn't.
+      if (isShiftHeld && !store.pendingCommentMode && !isPendingContextMenuSelect) {
+        if (elementAtPointer !== null) {
+          toggleShiftMultiSelection(elementAtPointer, { x: clientX, y: clientY });
+        }
+        return;
+      }
 
       let positionX: number;
       let positionY: number;
@@ -1791,7 +1893,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       document.body.style.userSelect = "";
     };
 
-    const handlePointerUp = (clientX: number, clientY: number, hasModifierKeyHeld: boolean) => {
+    const handlePointerUp = (
+      clientX: number,
+      clientY: number,
+      hasModifierKeyHeld: boolean,
+      isShiftHeld: boolean,
+    ) => {
       if (!isDragging()) return;
 
       if (dragPreviewDebounceTimerId !== null) {
@@ -1818,9 +1925,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       document.body.style.userSelect = "";
 
       if (dragSelectionRect) {
-        handleDragSelection(dragSelectionRect, hasModifierKeyHeld);
+        handleDragSelection(dragSelectionRect, hasModifierKeyHeld, isShiftHeld);
       } else {
-        handleSingleClick(clientX, clientY, hasModifierKeyHeld);
+        handleSingleClick(clientX, clientY, hasModifierKeyHeld, isShiftHeld);
       }
     };
 
@@ -1906,6 +2013,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleArrowNavigation = (event: KeyboardEvent): boolean => {
       if (!isActivated() || isPromptMode()) return false;
+      if (isShiftMultiSelecting()) return false;
       if (!ARROW_KEYS.has(event.key)) return false;
 
       let currentElement = effectiveElement();
@@ -2046,41 +2154,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       activeIndex: arrowNavigationActiveIndex(),
       isVisible: arrowNavigationElements().length > 0,
     }));
-
-    const inspectAncestorElements = createMemo((): Element[] => {
-      if (!isInspectMode()) return [];
-      const element = effectiveElement();
-      if (!element) return [];
-      return [...getAncestorElements(element).reverse(), element];
-    });
-
-    const inspectNavigationItems = createMemo(() =>
-      inspectAncestorElements().map((element) => ({
-        tagName: getTagName(element) || "element",
-        componentName: getComponentDisplayName(element) ?? undefined,
-      })),
-    );
-
-    const [inspectActiveIndex, setInspectActiveIndex] = createSignal(-1);
-
-    createEffect(
-      on(inspectAncestorElements, (elements) => {
-        setInspectActiveIndex(elements.length - 1);
-      }),
-    );
-
-    const inspectNavigationState = createMemo<ArrowNavigationState>(() => {
-      const elements = inspectAncestorElements();
-      return {
-        items: inspectNavigationItems(),
-        activeIndex: inspectActiveIndex(),
-        isVisible: isInspectMode() && elements.length > 0,
-      };
-    });
-
-    const handleInspectSelect = (index: number) => {
-      setInspectActiveIndex(index);
-    };
 
     const handleActivationKeys = (event: KeyboardEvent): void => {
       if (
@@ -2235,14 +2308,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
-        if (event.key === "Shift" && !event.repeat && isActivated()) {
-          setIsInspectMode(true);
-          if (isFrozenPhase()) {
-            actions.unfreeze();
-            clearArrowNavigation();
-          }
-        }
-
         if (event.key === "Escape") {
           if (isHoldingKeys() || store.wasActivatedByToggle) {
             deactivateRenderer();
@@ -2281,8 +2346,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           event.stopPropagation();
         }
 
-        if (event.key === "Shift") {
-          setIsInspectMode(false);
+        if (event.key === "Shift" && isShiftMultiSelecting()) {
+          // If shift is released mid-drag, abort the in-progress drag
+          // before committing. Without this, performCopyWithLabel ->
+          // startCopy moves state out of "active+dragging", which makes
+          // the subsequent pointerup early-return and silently swallows
+          // the drag gesture along with its document.body.style.userSelect
+          // cleanup.
+          if (isDragging()) {
+            cancelActiveDrag();
+          }
+          commitShiftMultiSelection();
+          return;
         }
 
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
@@ -2401,7 +2476,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (isSelectionInteractionLocked()) return;
         if (isTouchPointer && !isHoldingKeys() && !isActivated()) return;
         const isActiveState = isTouchPointer ? isHoldingKeys() : isActivated();
-        if (isActiveState && !isPromptMode() && isFrozenPhase()) {
+        // The flag check covers the small window after physical Shift
+        // release but before the keyup handler commits — pointermove fires
+        // with shiftKey=false in that gap, and unfreezing here would empty
+        // frozenElements before commitShiftMultiSelection can read it.
+        if (
+          isActiveState &&
+          !isPromptMode() &&
+          isFrozenPhase() &&
+          !event.shiftKey &&
+          !isShiftMultiSelecting()
+        ) {
           actions.unfreeze();
           clearArrowNavigation();
         }
@@ -2443,7 +2528,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
-        const didHandle = handlePointerDown(event.clientX, event.clientY);
+        const didHandle = handlePointerDown(event.clientX, event.clientY, event.shiftKey);
         if (didHandle) {
           if (event.pointerId !== undefined) {
             document.documentElement.setPointerCapture(event.pointerId);
@@ -2464,7 +2549,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (store.contextMenuPosition !== null) return;
         const isActive = isRendererActive() || isSelectionInteractionLocked() || isDragging();
         const hasModifierKeyHeld = event.metaKey || event.ctrlKey;
-        handlePointerUp(event.clientX, event.clientY, hasModifierKeyHeld);
+        handlePointerUp(event.clientX, event.clientY, hasModifierKeyHeld, event.shiftKey);
         if (isActive) {
           event.preventDefault();
           event.stopImmediatePropagation();
@@ -2530,7 +2615,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           event.preventDefault();
           event.stopImmediatePropagation();
 
-          if (store.wasActivatedByToggle && !isCopying() && !isPromptMode()) {
+          if (store.wasActivatedByToggle && !isCopying() && !isPromptMode() && !event.shiftKey) {
             if (!isHoldingKeys()) {
               deactivateRenderer();
             } else {
@@ -2567,6 +2652,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.releaseHold();
         resetCopyConfirmation();
       }
+      // Modifier keyup events are lost on blur, so a shift release that
+      // would have committed the multi-selection never fires. Clear the
+      // flag here so the pointermove unfreeze guard and the arrow
+      // navigation guard don't stay blocked indefinitely. Frozen elements
+      // are intentionally preserved so the user can resume on refocus.
+      setIsShiftMultiSelecting(false);
     });
 
     eventListenerManager.addWindowListener("focus", () => {
@@ -3551,9 +3642,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 selectionShouldSnap={
                   store.frozenElements.length > 0 || dragPreviewBounds().length > 0
                 }
-                inspectVisible={isInspectMode() && inspectBounds().length > 0}
-                inspectBounds={inspectBounds()}
                 selectionElementsCount={store.frozenElements.length}
+                frozenLabelEntries={frozenLabelEntries()}
                 selectionFilePath={store.selectionFilePath ?? undefined}
                 selectionLineNumber={store.selectionLineNumber ?? undefined}
                 selectionTagName={selectionTagName()}
@@ -3562,8 +3652,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 selectionLabelStatus="idle"
                 selectionArrowNavigationState={arrowNavigationState()}
                 onArrowNavigationSelect={handleArrowNavigationSelect}
-                inspectNavigationState={inspectNavigationState()}
-                onInspectSelect={handleInspectSelect}
                 labelInstances={computedLabelInstances()}
                 dragVisible={dragVisible()}
                 dragBounds={dragBounds()}

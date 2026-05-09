@@ -15,8 +15,6 @@ import {
   OPACITY_CONVERGENCE_THRESHOLD,
   OVERLAY_BORDER_COLOR_DEFAULT,
   OVERLAY_FILL_COLOR_DEFAULT,
-  OVERLAY_BORDER_COLOR_INSPECT,
-  OVERLAY_FILL_COLOR_INSPECT,
   BASELINE_FRAME_DURATION_MS,
 } from "../constants.js";
 import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "../utils/native-raf.js";
@@ -29,12 +27,6 @@ const DEFAULT_LAYER_STYLE = {
   lerpFactor: SELECTION_LERP_FACTOR,
 } as const;
 
-const INSPECT_LAYER_STYLE = {
-  borderColor: OVERLAY_BORDER_COLOR_INSPECT,
-  fillColor: OVERLAY_FILL_COLOR_INSPECT,
-  lerpFactor: SELECTION_LERP_FACTOR,
-} as const;
-
 const LAYER_STYLES = {
   drag: {
     borderColor: OVERLAY_BORDER_COLOR_DRAG,
@@ -43,10 +35,9 @@ const LAYER_STYLES = {
   },
   selection: DEFAULT_LAYER_STYLE,
   grabbed: DEFAULT_LAYER_STYLE,
-  inspect: INSPECT_LAYER_STYLE,
 } as const;
 
-type LayerName = "drag" | "selection" | "grabbed" | "inspect";
+type LayerName = "drag" | "selection" | "grabbed";
 
 interface OffscreenLayer {
   canvas: OffscreenCanvas | null;
@@ -70,9 +61,6 @@ interface OverlayCanvasProps {
   selectionBoundsMultiple?: OverlayBounds[];
   selectionIsFading?: boolean;
   selectionShouldSnap?: boolean;
-
-  inspectVisible?: boolean;
-  inspectBounds?: OverlayBounds[];
 
   dragVisible?: boolean;
   dragBounds?: OverlayBounds;
@@ -99,13 +87,11 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     drag: { canvas: null, context: null },
     selection: { canvas: null, context: null },
     grabbed: { canvas: null, context: null },
-    inspect: { canvas: null, context: null },
   };
 
   let selectionAnimations: AnimatedBounds[] = [];
   let dragAnimation: AnimatedBounds | null = null;
   let grabbedAnimations: AnimatedBounds[] = [];
-  let inspectAnimations: AnimatedBounds[] = [];
 
   const canvasColorSpace: PredefinedColorSpace = supportsDisplayP3() ? "display-p3" : "srgb";
 
@@ -312,9 +298,8 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     renderDragLayer();
     renderSelectionLayer();
     renderBoundsLayer("grabbed", grabbedAnimations);
-    renderBoundsLayer("inspect", inspectAnimations);
 
-    const layerRenderOrder: LayerName[] = ["inspect", "drag", "selection", "grabbed"];
+    const layerRenderOrder: LayerName[] = ["drag", "selection", "grabbed"];
     for (const layerName of layerRenderOrder) {
       const layer = layers[layerName];
       if (layer.canvas) {
@@ -375,10 +360,6 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
       LAYER_STYLES.grabbed.lerpFactor,
       frameDurationMs,
     );
-    const inspectLerpForFrame = adjustLerpForFrameDuration(
-      LAYER_STYLES.inspect.lerpFactor,
-      frameDurationMs,
-    );
 
     let shouldContinueAnimating = false;
 
@@ -437,14 +418,6 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
       return animation.opacity > 0;
     });
-
-    for (const animation of inspectAnimations) {
-      if (animation.isInitialized) {
-        if (interpolateBounds(animation, inspectLerpForFrame)) {
-          shouldContinueAnimating = true;
-        }
-      }
-    }
 
     compositeAllLayers();
 
@@ -599,35 +572,6 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
             return activeLabelIds.has(animation.id);
           }
           return activeBoxIds.has(animation.id);
-        });
-
-        scheduleAnimationFrame();
-      },
-    ),
-  );
-
-  createEffect(
-    on(
-      () => [props.inspectVisible, props.inspectBounds] as const,
-      ([isVisible, bounds]) => {
-        if (!isVisible || !bounds || bounds.length === 0) {
-          inspectAnimations = [];
-          scheduleAnimationFrame();
-          return;
-        }
-
-        inspectAnimations = bounds.map((ancestorBounds, index) => {
-          const animationId = `inspect-${index}`;
-          const existingAnimation = inspectAnimations.find(
-            (animation) => animation.id === animationId,
-          );
-
-          if (existingAnimation) {
-            updateAnimationTarget(existingAnimation, ancestorBounds);
-            return existingAnimation;
-          }
-
-          return createAnimatedBounds(animationId, ancestorBounds);
         });
 
         scheduleAnimationFrame();
