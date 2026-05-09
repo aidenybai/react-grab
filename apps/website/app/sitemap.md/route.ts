@@ -1,8 +1,7 @@
-import { readdirSync, statSync } from "fs";
 import { join } from "path";
+import { discoverPageRoutes } from "@/utils/discover-page-routes";
 
 const BASE_URL = "https://react-grab.com";
-const EXCLUDED_PATHS = new Set(["api", "open-file"]);
 
 interface SitemapEntry {
   url: string;
@@ -15,36 +14,11 @@ const PAGE_TITLES: Record<string, string> = {
   "/privacy": "Privacy Policy",
 };
 
-const getRoutes = (directory: string, basePath = ""): string[] => {
-  const routes: string[] = [];
-  const entries = readdirSync(directory);
-
-  for (const entry of entries) {
-    if (EXCLUDED_PATHS.has(entry)) continue;
-    if (entry.includes(".")) continue;
-
-    const fullPath = join(directory, entry);
-    const stat = statSync(fullPath);
-    if (!stat.isDirectory()) continue;
-
-    const routePath = basePath ? `${basePath}/${entry}` : entry;
-    const dirEntries = readdirSync(fullPath);
-    const hasPage = dirEntries.some((file) => file === "page.tsx" || file === "page.ts");
-
-    if (hasPage) {
-      routes.push(routePath);
-    }
-    routes.push(...getRoutes(fullPath, routePath));
-  }
-
-  return routes;
-};
-
 export const dynamic = "force-static";
 
 export const GET = (): Response => {
   const appDirectory = join(process.cwd(), "app");
-  const routes = getRoutes(appDirectory);
+  const routes = discoverPageRoutes(appDirectory);
 
   const entries: SitemapEntry[] = [{ url: BASE_URL, title: PAGE_TITLES["/"] ?? "Home" }];
   for (const route of routes) {
