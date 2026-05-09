@@ -527,8 +527,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let componentNameRequestVersion = 0;
     let componentNameDebounceTimerId: number | null = null;
     let keyboardSelectedElement: Element | null = null;
-    let isPendingContextMenuSelect = false;
     let pendingDefaultActionId: string | null = null;
+    const [isPendingContextMenuSelect, setIsPendingContextMenuSelect] = createSignal(false);
     const [debouncedElementForComponentName, setDebouncedElementForComponentName] =
       createSignal<Element | null>(null);
     const [resolvedComponentName, setResolvedComponentName] = createSignal<string | undefined>(
@@ -1069,7 +1069,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const pendingShiftSelectionElement = createMemo((): Element | null => {
       if (!isShiftMultiSelecting()) return null;
-      if (store.pendingCommentMode || isPendingContextMenuSelect) return null;
+      if (store.pendingCommentMode || isPendingContextMenuSelect()) return null;
 
       const element = store.detectedElement;
       if (!isElementConnected(element)) return null;
@@ -1484,7 +1484,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       stopShiftMultiSelecting();
       clearArrowNavigation();
       keyboardSelectedElement = null;
-      isPendingContextMenuSelect = false;
+      setIsPendingContextMenuSelect(false);
       if (wasDragging) {
         document.body.style.userSelect = "";
       }
@@ -1584,7 +1584,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           actions.setPendingCommentMode(true);
         } else {
           pendingDefaultActionId = defaultActionId;
-          isPendingContextMenuSelect = true;
+          setIsPendingContextMenuSelect(true);
         }
         toggleActivate();
       }
@@ -1657,7 +1657,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         isShiftMultiSelecting() &&
         !isDragging() &&
         !store.pendingCommentMode &&
-        !isPendingContextMenuSelect;
+        !isPendingContextMenuSelect();
 
       if (
         !isEnabled() ||
@@ -1824,7 +1824,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (selectedElements.length === 0) return;
 
       const isShiftAccumulating =
-        isShiftHeld && !store.pendingCommentMode && !isPendingContextMenuSelect;
+        isShiftHeld && !store.pendingCommentMode && !isPendingContextMenuSelect();
 
       // In the shift-accumulating branch we must freeze on the COMBINED set
       // (prior accumulated + newly dragged), because freezeAllAnimations
@@ -1865,8 +1865,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return;
       }
 
-      if (isPendingContextMenuSelect) {
-        isPendingContextMenuSelect = false;
+      if (isPendingContextMenuSelect()) {
+        setIsPendingContextMenuSelect(false);
         if (pendingDefaultActionId) {
           runPendingDefaultAction(firstElement, center);
         } else {
@@ -1926,7 +1926,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       // with the eventual commitShiftMultiSelection on Shift release. So
       // we always return when Shift is held: toggle when an element is
       // under the pointer, no-op when it isn't.
-      if (isShiftHeld && !store.pendingCommentMode && !isPendingContextMenuSelect) {
+      if (isShiftHeld && !store.pendingCommentMode && !isPendingContextMenuSelect()) {
         if (elementAtPointer !== null) {
           toggleShiftMultiSelection(elementAtPointer, { x: clientX, y: clientY });
         }
@@ -1962,8 +1962,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return;
       }
 
-      if (isPendingContextMenuSelect) {
-        isPendingContextMenuSelect = false;
+      if (isPendingContextMenuSelect()) {
+        setIsPendingContextMenuSelect(false);
         const { wasIntercepted } = pluginRegistry.hooks.onElementSelect(selectedElement);
         if (wasIntercepted) return;
 
@@ -2982,7 +2982,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             })
             .catch(() => {
               if (componentNameRequestVersion !== currentVersion) return;
-              setResolvedComponentName(undefined);
+              setResolvedComponentName(fallbackComponentName);
             });
         },
       ),
