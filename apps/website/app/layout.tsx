@@ -30,12 +30,6 @@ export const metadata: Metadata = {
   title: "React Grab",
   description:
     "Select an element → Give it to Cursor, Claude Code, etc → Make a change to your app",
-  alternates: {
-    canonical: "https://react-grab.com",
-    types: {
-      "text/markdown": "https://react-grab.com/index.md",
-    },
-  },
   icons: {
     icon: "https://react-grab.com/logo.png",
     shortcut: "https://react-grab.com/logo.png",

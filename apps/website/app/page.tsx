@@ -1,4 +1,14 @@
+import type { Metadata } from "next";
 import { HomepageDemo } from "@/components/homepage-demo";
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: "https://react-grab.com",
+    types: {
+      "text/markdown": "https://react-grab.com/index.md",
+    },
+  },
+};
 
 const Home = () => {
   return (
