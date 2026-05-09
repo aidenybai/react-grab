@@ -105,12 +105,6 @@ const RootLayout = ({
         <link
           rel="alternate"
           type="text/markdown"
-          href="https://react-grab.com/index.md"
-          title="React Grab (Markdown)"
-        />
-        <link
-          rel="alternate"
-          type="text/markdown"
           href="https://react-grab.com/llms.txt"
           title="llms.txt"
         />
