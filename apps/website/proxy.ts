@@ -42,12 +42,7 @@ const wantsMarkdown = (request: NextRequest): boolean => {
 
 export const proxy = (request: NextRequest): NextResponse => {
   const url = request.nextUrl.clone();
-  const { hostname, pathname } = url;
-
-  if (hostname.startsWith("www.")) {
-    url.hostname = hostname.slice(4);
-    return NextResponse.redirect(url, 308);
-  }
+  const { pathname } = url;
 
   if (
     pathname.startsWith("/_next") ||
