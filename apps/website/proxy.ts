@@ -59,15 +59,13 @@ export const proxy = (request: NextRequest): NextResponse => {
     pathname.endsWith(".txt") ||
     STATIC_ASSET_PATTERN.test(pathname)
   ) {
-    const response = NextResponse.next();
-    if (wantsMarkdown(request) || pathname.endsWith(".md") || pathname.endsWith(".txt")) {
-      response.headers.set("Vary", "Accept, User-Agent");
-    }
-    return response;
+    return NextResponse.next();
   }
 
   if (!wantsMarkdown(request)) {
-    return NextResponse.next();
+    const response = NextResponse.next();
+    response.headers.append("Vary", "Accept, User-Agent");
+    return response;
   }
 
   const normalizedPath = pathname.replace(/\/+$/, "") || "/";
@@ -75,7 +73,7 @@ export const proxy = (request: NextRequest): NextResponse => {
 
   url.pathname = markdownPath;
   const rewritten = NextResponse.rewrite(url);
-  rewritten.headers.set("Vary", "Accept, User-Agent");
+  rewritten.headers.append("Vary", "Accept, User-Agent");
   rewritten.headers.set("X-Robots-Tag", "noindex");
   return rewritten;
 };
