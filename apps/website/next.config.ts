@@ -20,12 +20,6 @@ const nextConfig: NextConfig = {
   redirects: async () => {
     return [
       {
-        source: "/:path*",
-        has: [{ type: "host", value: "www.react-grab.com" }],
-        destination: "https://react-grab.com/:path*",
-        permanent: true,
-      },
-      {
         source: "/docs",
         destination: "https://github.com/aidenybai/react-grab#readme",
         permanent: false,
