@@ -20,6 +20,12 @@ const nextConfig: NextConfig = {
   redirects: async () => {
     return [
       {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.react-grab.com" }],
+        destination: "https://react-grab.com/:path*",
+        permanent: true,
+      },
+      {
         source: "/docs",
         destination: "https://github.com/aidenybai/react-grab#readme",
         permanent: false,
@@ -45,12 +51,28 @@ const nextConfig: NextConfig = {
   headers: async () => {
     return [
       {
-        source: "/",
+        source: "/:path*",
+        headers: [{ key: "Vary", value: "Accept, User-Agent" }],
+      },
+      {
+        source: "/:path*\\.md",
         headers: [
-          {
-            key: "Vary",
-            value: "Accept",
-          },
+          { key: "Content-Type", value: "text/markdown; charset=utf-8" },
+          { key: "Access-Control-Allow-Origin", value: "*" },
+        ],
+      },
+      {
+        source: "/llms.txt",
+        headers: [
+          { key: "Content-Type", value: "text/markdown; charset=utf-8" },
+          { key: "Access-Control-Allow-Origin", value: "*" },
+        ],
+      },
+      {
+        source: "/llms-full.txt",
+        headers: [
+          { key: "Content-Type", value: "text/markdown; charset=utf-8" },
+          { key: "Access-Control-Allow-Origin", value: "*" },
         ],
       },
     ];
@@ -58,21 +80,10 @@ const nextConfig: NextConfig = {
   rewrites: async () => {
     return {
       beforeFiles: [
-        {
-          source: "/",
-          destination: "/llms.txt",
-          has: [
-            {
-              type: "header",
-              key: "accept",
-              value: "(.*)text/markdown(.*)",
-            },
-          ],
-        },
-        {
-          source: "/llm.txt",
-          destination: "/llms.txt",
-        },
+        { source: "/llm.txt", destination: "/llms.txt" },
+        { source: "/index.html.md", destination: "/index.md" },
+        { source: "/privacy/index.md", destination: "/privacy.md" },
+        { source: "/changelog/index.md", destination: "/changelog.md" },
       ],
     };
   },
