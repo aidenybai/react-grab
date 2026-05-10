@@ -38,6 +38,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/node": "^25.6.2"
+    "@types/node": "^25.6.2",
+    "vite-plus": "^0.1.20"
   }
 }
