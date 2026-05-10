@@ -10,6 +10,12 @@ const ogImageUrl = `https://react-grab.com/api/og?title=${encodeURIComponent(tit
 export const metadata: Metadata = {
   title: `${title} - React Grab`,
   description,
+  alternates: {
+    canonical: "https://react-grab.com/privacy",
+    types: {
+      "text/markdown": "https://react-grab.com/privacy.md",
+    },
+  },
   openGraph: {
     title: `${title} - React Grab`,
     description,
@@ -36,7 +42,7 @@ export const metadata: Metadata = {
 
 const PrivacyPage = () => {
   return (
-    <div className="min-h-screen bg-background px-4 py-6 sm:px-8 sm:py-8">
+    <main id="main-content" className="min-h-screen bg-background px-4 py-6 sm:px-8 sm:py-8">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-2 pt-4 text-base sm:pt-8 sm:text-lg">
         <Link
           href="/"
@@ -72,7 +78,7 @@ const PrivacyPage = () => {
           </section>
 
           <section>
-            <p className="text-foreground font-bold mb-2">Data Collection</p>
+            <h2 className="text-foreground font-bold mb-2">Data Collection</h2>
             <p className="mb-2">
               React Grab does NOT collect, store, or transmit any personal data. Specifically:
             </p>
@@ -86,7 +92,7 @@ const PrivacyPage = () => {
           </section>
 
           <section>
-            <p className="text-foreground font-bold mb-2">How React Grab Works</p>
+            <h2 className="text-foreground font-bold mb-2">How React Grab Works</h2>
             <p className="mb-2">
               React Grab operates entirely locally in your browser. When you use the extension:
             </p>
@@ -99,7 +105,7 @@ const PrivacyPage = () => {
           </section>
 
           <section>
-            <p className="text-foreground font-bold mb-2">Permissions</p>
+            <h2 className="text-foreground font-bold mb-2">Permissions</h2>
             <p className="mb-2">The extension requires the following permissions:</p>
             <ul className="list-disc pl-6 space-y-1">
               <li>
@@ -122,7 +128,7 @@ const PrivacyPage = () => {
           </section>
 
           <section>
-            <p className="text-foreground font-bold mb-2">Local Storage</p>
+            <h2 className="text-foreground font-bold mb-2">Local Storage</h2>
             <p>
               React Grab may store minimal settings locally on your device using browser storage
               APIs. This data never leaves your device and can be cleared by uninstalling the
@@ -131,7 +137,7 @@ const PrivacyPage = () => {
           </section>
 
           <section>
-            <p className="text-foreground font-bold mb-2">Third-Party Services</p>
+            <h2 className="text-foreground font-bold mb-2">Third-Party Services</h2>
             <p>
               React Grab does not integrate with any third-party analytics, tracking, or advertising
               services. The extension operates entirely offline and does not make any external
@@ -140,7 +146,7 @@ const PrivacyPage = () => {
           </section>
 
           <section>
-            <p className="text-foreground font-bold mb-2">Open Source</p>
+            <h2 className="text-foreground font-bold mb-2">Open Source</h2>
             <p>
               React Grab is open source software. You can review the complete source code on{" "}
               <a
@@ -156,7 +162,7 @@ const PrivacyPage = () => {
           </section>
 
           <section>
-            <p className="text-foreground font-bold mb-2">Changes to This Policy</p>
+            <h2 className="text-foreground font-bold mb-2">Changes to This Policy</h2>
             <p>
               We may update this privacy policy from time to time. Any changes will be posted on
               this page with an updated revision date.
@@ -164,7 +170,7 @@ const PrivacyPage = () => {
           </section>
 
           <section>
-            <p className="text-foreground font-bold mb-2">Contact</p>
+            <h2 className="text-foreground font-bold mb-2">Contact</h2>
             <p>
               If you have questions about this privacy policy, please open an issue on our{" "}
               <a
@@ -189,7 +195,7 @@ const PrivacyPage = () => {
           </section>
 
           <section className="pt-6 border-t border-border">
-            <p className="text-foreground font-bold mb-2">Summary</p>
+            <h2 className="text-foreground font-bold mb-2">Summary</h2>
             <p>
               React Grab respects your privacy. We don&apos;t collect, store, or transmit any of
               your personal data. The extension works entirely locally on your device.
@@ -197,7 +203,7 @@ const PrivacyPage = () => {
           </section>
         </div>
       </div>
-    </div>
+    </main>
   );
 };
 

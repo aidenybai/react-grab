@@ -1,0 +1,185 @@
+# React Grab
+
+> Grab any element in your app and give it to Cursor, Claude Code, or other AI coding agents.
+
+## Usage
+
+Once installed, hover over any UI element in your browser and press:
+
+- **⌘C** (Cmd+C) on Mac
+- **Ctrl+C** on Windows/Linux
+
+This copies the element's context (file name, React component, and HTML source code) to your clipboard ready to paste into your coding agent. For example:
+
+```
+<a class="ml-auto inline-block text-sm" href="#">
+  Forgot your password?
+</a>
+in LoginForm at components/login-form.tsx:46:19
+```
+
+## Installation
+
+### CLI (Recommended)
+
+Run this command at your project root. Use the `-y` flag to skip interactive prompts (required for non-interactive environments):
+
+```bash
+npx grab@latest init -y
+```
+
+Init Options:
+```
+Options:
+  -y, --yes              Skip confirmation prompts
+  -f, --force            Force overwrite existing config
+  -k, --key <key>        Activation key (e.g., "Meta+K", "Ctrl+Shift+G", "Space")
+      --skip-install     Skip package installation
+  -c, --cwd <cwd>        Working directory (defaults to current directory)
+
+Examples:
+  npx grab@latest init -y                         # Auto-detect and install without prompts
+  npx grab@latest init -k "Meta+K" -y             # Set activation key to Cmd+K / Win+K
+```
+
+The CLI will detect your framework and add the necessary scripts automatically.
+
+### Configuration
+
+Configure React Grab options (activation key, mode, etc.):
+
+```bash
+npx grab@latest config
+```
+
+Config Options:
+```
+Options:
+  -y, --yes                  Skip confirmation prompts
+  -k, --key <key>            Activation key (e.g., "Meta+K", "Ctrl+Shift+G", "Space")
+  -m, --mode <mode>          Activation mode (toggle, hold)
+      --hold-duration <ms>   Key hold duration in milliseconds (for hold mode)
+      --allow-input <bool>   Allow activation inside input fields (true/false)
+      --context-lines <n>    Max context lines to include
+      --cdn <domain>         CDN domain (e.g., unpkg.com, custom.react-grab.com)
+  -c, --cwd <cwd>            Working directory (defaults to current directory)
+
+Examples:
+  npx grab@latest config -k "Meta+K"              # Set activation key to Cmd+K / Win+K
+  npx grab@latest config -k "Ctrl+Shift+G"        # Set activation key to Ctrl+Shift+G
+  npx grab@latest config -m hold --hold-duration 150   # Use hold mode with 150ms delay
+  npx grab@latest config --context-lines 5         # Include 5 lines of context
+```
+
+To discover all available commands and flags:
+
+```bash
+npx grab@latest --help
+npx grab@latest init --help
+npx grab@latest config --help
+```
+
+### Manual Installation
+
+If you prefer manual installation, use the correct package manager for your project:
+
+```bash
+npm install react-grab@latest
+# or
+yarn add react-grab@latest
+# or
+pnpm add react-grab@latest
+# or
+bun add react-grab@latest
+```
+
+### Next.js (App router)
+
+Add this inside of your `app/layout.tsx`:
+
+```jsx
+import Script from "next/script";
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <head>
+        {process.env.NODE_ENV === "development" && (
+          <Script
+            src="//unpkg.com/react-grab/dist/index.global.js"
+            crossOrigin="anonymous"
+            strategy="beforeInteractive"
+          />
+        )}
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}
+```
+
+### Next.js (Pages router)
+
+Add this into your `pages/_document.tsx`:
+
+```jsx
+import { Html, Head, Main, NextScript } from "next/document";
+import Script from "next/script";
+
+export default function Document() {
+  return (
+    <Html lang="en">
+      <Head>
+        {process.env.NODE_ENV === "development" && (
+          <Script
+            src="//unpkg.com/react-grab/dist/index.global.js"
+            crossOrigin="anonymous"
+            strategy="beforeInteractive"
+          />
+        )}
+      </Head>
+      <body>
+        <Main />
+        <NextScript />
+      </body>
+    </Html>
+  );
+}
+```
+
+### Vite
+
+Add this to your `index.html`:
+
+```html
+<!doctype html>
+<html lang="en">
+  <head>
+    <script type="module">
+      if (import.meta.env.DEV) {
+        import("react-grab");
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+```
+
+### Webpack
+
+First, install React Grab:
+
+```bash
+npm install react-grab
+```
+
+Then add this at the top of your main entry file (e.g., `src/index.tsx` or `src/main.tsx`):
+
+```tsx
+if (process.env.NODE_ENV === "development") {
+  import("react-grab");
+}
+```

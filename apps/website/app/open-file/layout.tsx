@@ -7,6 +7,13 @@ const ogImageUrl = `https://react-grab.com/api/og?title=${encodeURIComponent(tit
 export const metadata: Metadata = {
   title: `${title} | React Grab`,
   description,
+  alternates: {
+    canonical: "https://react-grab.com/open-file",
+  },
+  robots: {
+    index: false,
+    follow: false,
+  },
   openGraph: {
     title: `${title} | React Grab`,
     description,

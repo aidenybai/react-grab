@@ -14,6 +14,12 @@ const ogImageUrl = `https://react-grab.com/api/og?title=${encodeURIComponent(tit
 export const metadata: Metadata = {
   title: `${title} - React Grab`,
   description,
+  alternates: {
+    canonical: "https://react-grab.com/changelog",
+    types: {
+      "text/markdown": "https://react-grab.com/changelog.md",
+    },
+  },
   openGraph: {
     title: `${title} - React Grab`,
     description,
@@ -48,7 +54,7 @@ const ChangelogPage = () => {
   const entries = getChangelog();
 
   return (
-    <div className="min-h-screen bg-background px-4 py-6 sm:px-8 sm:py-8">
+    <main id="main-content" className="min-h-screen bg-background px-4 py-6 sm:px-8 sm:py-8">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-2 pt-4 text-base sm:pt-8">
         <Link
           href="/"
@@ -71,18 +77,18 @@ const ChangelogPage = () => {
         </div>
 
         <div className="flex flex-col gap-1">
-          <div className="text-foreground font-bold">Changelog</div>
-          <div className="text-sm text-neutral-500">Release notes and version history</div>
+          <h1 className="text-foreground font-bold">Changelog</h1>
+          <p className="text-sm text-neutral-500">Release notes and version history</p>
         </div>
 
         <div className="flex flex-col mt-8 gap-8">
           {entries.map((entry) => (
-            <div key={entry.version} className="flex flex-col gap-2">
+            <section key={entry.version} className="flex flex-col gap-2">
               <div className="flex items-center gap-3">
-                <span className="text-foreground font-mono text-sm font-medium">
-                  {entry.version}
-                </span>
-                <span className="text-neutral-600 text-xs">{entry.changeType}</span>
+                <h2 className="text-foreground font-mono text-sm font-medium">{entry.version}</h2>
+                {entry.changeType && (
+                  <h3 className="text-neutral-600 text-xs font-normal">{entry.changeType}</h3>
+                )}
               </div>
               <ul className="flex flex-col gap-1.5">
                 {entry.changes.map((change, changeIndex) => (
@@ -95,11 +101,11 @@ const ChangelogPage = () => {
                   </li>
                 ))}
               </ul>
-            </div>
+            </section>
           ))}
         </div>
       </div>
-    </div>
+    </main>
   );
 };
 

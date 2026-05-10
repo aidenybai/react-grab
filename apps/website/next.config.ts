@@ -43,36 +43,31 @@ const nextConfig: NextConfig = {
     ];
   },
   headers: async () => {
+    const markdownContentType = { key: "Content-Type", value: "text/markdown; charset=utf-8" };
+    const allowAllOrigins = { key: "Access-Control-Allow-Origin", value: "*" };
+
     return [
       {
-        source: "/",
-        headers: [
-          {
-            key: "Vary",
-            value: "Accept",
-          },
-        ],
+        source: "/:path*\\.md",
+        headers: [markdownContentType, allowAllOrigins],
+      },
+      {
+        source: "/llms.txt",
+        headers: [markdownContentType, allowAllOrigins],
+      },
+      {
+        source: "/llms-full.txt",
+        headers: [markdownContentType, allowAllOrigins],
       },
     ];
   },
   rewrites: async () => {
     return {
       beforeFiles: [
-        {
-          source: "/",
-          destination: "/llms.txt",
-          has: [
-            {
-              type: "header",
-              key: "accept",
-              value: "(.*)text/markdown(.*)",
-            },
-          ],
-        },
-        {
-          source: "/llm.txt",
-          destination: "/llms.txt",
-        },
+        { source: "/llm.txt", destination: "/llms.txt" },
+        { source: "/index.html.md", destination: "/index.md" },
+        { source: "/privacy/index.md", destination: "/privacy.md" },
+        { source: "/changelog/index.md", destination: "/changelog.md" },
       ],
     };
   },
