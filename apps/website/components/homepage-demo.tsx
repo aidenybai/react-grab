@@ -84,7 +84,7 @@ const ReactGrabIntro = (): ReactElement => (
     </div>
     <div className="text-pretty">
       <span className="font-bold">React&nbsp;Grab</span>
-      {" lets you select context for coding agents directly from your\u00a0website."}
+      {" lets you copy any UI element for your\u00a0agent."}
     </div>
   </div>
 );

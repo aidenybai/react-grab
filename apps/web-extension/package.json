@@ -14,10 +14,10 @@
     "turndown": "^7.2.4"
   },
   "devDependencies": {
-    "@types/chrome": "^0.1.40",
-    "@types/turndown": "^5.0.5",
+    "@types/chrome": "^0.1.42",
+    "@types/turndown": "^5.0.6",
     "typescript": "^6.0.3",
-    "vite": "^6.0.2",
+    "vite": "npm:@voidzero-dev/vite-plus-core@^0.1.20",
     "vite-plugin-web-extension": "^4.5.1"
   }
 }
