@@ -3,11 +3,14 @@ import { createRequire } from "module";
 import { dirname, join } from "path";
 
 const require = createRequire(import.meta.url);
+const nextProjectPathToken = "[project]";
+const workspaceRoot = join(process.cwd(), "../..");
 
 export const GET = async () => {
-  const packageDirectory = dirname(
-    require.resolve("react-grab/package.json"),
-  );
+  const resolvedPackageJson = require
+    .resolve("react-grab/package.json")
+    .replace(nextProjectPathToken, workspaceRoot);
+  const packageDirectory = dirname(resolvedPackageJson);
   const script = await readFile(
     join(packageDirectory, "dist/index.global.js"),
     "utf-8",
