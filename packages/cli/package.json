@@ -37,6 +37,7 @@
     "smol-toml": "^1.6.1"
   },
   "devDependencies": {
-    "@types/prompts": "^2.4.9"
+    "@types/prompts": "^2.4.9",
+    "vite-plus": "^0.1.20"
   }
 }
