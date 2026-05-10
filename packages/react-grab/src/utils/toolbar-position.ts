@@ -8,9 +8,7 @@ import {
   TOOLBAR_DEFAULT_POSITION_RATIO,
 } from "../constants.js";
 import { getVisualViewport } from "./get-visual-viewport.js";
-
-export const clampToRange = (value: number, min: number, max: number): number =>
-  Math.max(min, Math.min(value, max));
+import { clampToRange } from "./clamp-to-range.js";
 
 export const isHorizontalEdge = (edge: SnapEdge): boolean => edge === "top" || edge === "bottom";
 

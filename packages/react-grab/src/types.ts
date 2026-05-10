@@ -351,6 +351,7 @@ export interface FrozenLabelEntry {
   tagName: string;
   componentName?: string;
   bounds: OverlayBounds;
+  mouseX?: number;
 }
 
 export interface ReactGrabRendererProps {
@@ -512,6 +513,7 @@ export interface SelectionLabelProps {
   status?: SelectionLabelStatus;
   statusText?: string;
   filePath?: string;
+  shouldToggleExpandOnClick?: boolean;
   arrowNavigationState?: ArrowNavigationState;
   onArrowNavigationSelect?: (index: number) => void;
   onInputChange?: (value: string) => void;
