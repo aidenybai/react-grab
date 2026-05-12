@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
-import { detect } from "@antfu/ni";
+import { detect } from "package-manager-detector/detect";
 import ignore from "ignore";
 
 export type PackageManager = "npm" | "yarn" | "pnpm" | "bun";
@@ -21,11 +21,10 @@ interface ProjectInfo {
 
 const VALID_PACKAGE_MANAGERS: ReadonlySet<string> = new Set(["npm", "yarn", "pnpm", "bun"]);
 
-const detectPackageManager = async (projectRoot: string): Promise<PackageManager> => {
-  const detected = await detect({ cwd: projectRoot });
-  if (detected) {
-    // @antfu/ni returns versioned agents like "pnpm@6" or "yarn@berry"
-    const managerName = detected.split("@")[0];
+export const detectPackageManager = async (projectRoot: string): Promise<PackageManager> => {
+  const result = await detect({ cwd: projectRoot });
+  if (result?.agent) {
+    const managerName = result.agent.split("@")[0];
     if (VALID_PACKAGE_MANAGERS.has(managerName)) {
       return managerName as PackageManager;
     }

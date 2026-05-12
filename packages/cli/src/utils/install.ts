@@ -1,34 +1,93 @@
-import { execSync } from "node:child_process";
-import type { PackageManager } from "./detect.js";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
+import { x } from "tinyexec";
+import { detectPackageManager, type PackageManager } from "./detect.js";
 
-const INSTALL_COMMANDS: Record<PackageManager, string> = {
-  npm: "npm install",
-  yarn: "yarn add",
-  pnpm: "pnpm add",
-  bun: "bun add",
-};
+export interface InstallPackageOptions {
+  cwd?: string;
+  isDev?: boolean;
+  silent?: boolean;
+  packageManager?: PackageManager;
+  preferOffline?: boolean;
+  additionalArgs?: string[];
+}
 
-export const installPackages = (
+export const installPackages = async (
   packages: string[],
-  packageManager: PackageManager,
-  projectRoot: string,
-  isDev: boolean = true,
-): void => {
-  if (packages.length === 0) {
-    return;
+  options: InstallPackageOptions = {},
+): Promise<void> => {
+  if (packages.length === 0) return;
+
+  const detectedAgent =
+    options.packageManager ?? (await detectPackageManager(options.cwd ?? process.cwd()));
+  const args: string[] = [];
+
+  if (options.preferOffline) {
+    args.push("--prefer-offline");
   }
 
-  const command = INSTALL_COMMANDS[packageManager];
-  const devFlag = isDev ? " -D" : "";
-  const fullCommand = `${command}${devFlag} ${packages.join(" ")}`;
+  if (detectedAgent === "pnpm") {
+    args.push("--prod=false");
+    if (existsSync(resolve(options.cwd ?? process.cwd(), "pnpm-workspace.yaml"))) {
+      args.push("-w");
+    }
+  }
 
-  console.log(`Running: ${fullCommand}\n`);
+  if (options.additionalArgs) {
+    args.push(...options.additionalArgs);
+  }
 
-  execSync(fullCommand, {
-    cwd: projectRoot,
-    stdio: "inherit",
-    env: { ...process.env, REACT_GRAB_INIT: "1" },
-  });
+  await x(
+    detectedAgent,
+    [
+      detectedAgent === "yarn" ? "add" : "install",
+      ...(options.isDev !== false ? ["-D"] : []),
+      ...args,
+      ...packages,
+    ],
+    {
+      nodeOptions: {
+        stdio: options.silent ? "ignore" : "inherit",
+        cwd: options.cwd,
+        env: { ...process.env, REACT_GRAB_INIT: "1" },
+      },
+      throwOnError: true,
+    },
+  );
+};
+
+export const uninstallPackages = async (
+  packages: string[],
+  options: Omit<InstallPackageOptions, "isDev" | "preferOffline"> = {},
+): Promise<void> => {
+  if (packages.length === 0) return;
+
+  const detectedAgent =
+    options.packageManager ?? (await detectPackageManager(options.cwd ?? process.cwd()));
+  const args: string[] = [];
+
+  if (
+    detectedAgent === "pnpm" &&
+    existsSync(resolve(options.cwd ?? process.cwd(), "pnpm-workspace.yaml"))
+  ) {
+    args.push("-w");
+  }
+
+  if (options.additionalArgs) {
+    args.push(...options.additionalArgs);
+  }
+
+  await x(
+    detectedAgent,
+    [detectedAgent === "yarn" ? "remove" : "uninstall", ...args, ...packages],
+    {
+      nodeOptions: {
+        stdio: options.silent ? "ignore" : "inherit",
+        cwd: options.cwd,
+      },
+      throwOnError: true,
+    },
+  );
 };
 
 export const getPackagesToInstall = (includeReactGrab: boolean = true): string[] => {

@@ -93,12 +93,11 @@ export const upgrade = new Command()
       const upgradeSpinner = spinner("Upgrading react-grab.").start();
 
       try {
-        installPackages(
-          ["react-grab@latest"],
-          projectInfo.packageManager,
-          projectInfo.projectRoot,
-          isDevDependency(projectInfo.projectRoot),
-        );
+        await installPackages(["react-grab@latest"], {
+          packageManager: projectInfo.packageManager,
+          cwd: projectInfo.projectRoot,
+          isDev: isDevDependency(projectInfo.projectRoot),
+        });
         upgradeSpinner.succeed();
       } catch {
         upgradeSpinner.fail();
