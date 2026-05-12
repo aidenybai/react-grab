@@ -80,6 +80,8 @@ export const getElementContext = async (element: Element): Promise<ReactGrabElem
   };
 };
 
+export { copyContent } from "./utils/copy-content.js";
+
 /**
  * Returns all elements at the given viewport coordinates, temporarily
  * suspending the pointer-events freeze so `elementsFromPoint` can
