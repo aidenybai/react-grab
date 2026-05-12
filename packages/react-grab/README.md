@@ -126,83 +126,38 @@ if (process.env.NODE_ENV === "development") {
 
 ## Primitives
 
-Low-level building blocks for tools that need to freeze the page, hit-test elements, and gather React source context independently of React Grab's built-in UI. Import from `react-grab/primitives`.
+`react-grab/primitives` exposes low-level building blocks for tools that need to freeze the page, hit-test elements, or gather React source context outside of React Grab's UI.
+
+| Export | Description |
+| --- | --- |
+| `freeze(elements?)` | Pause React updates, animations, and pseudo-states. Pass elements to scope animation freezing, or omit to freeze the whole page. |
+| `unfreeze()` | Resume everything `freeze()` paused. |
+| `isFreezeActive()` | Returns `true` while frozen. |
+| `getElementsAtPosition(x, y)` | Hit-test elements at viewport coordinates while frozen (temporarily lifts the pointer-events block). |
+| `getElementContext(element)` | Returns component name, owner stack, CSS selector, computed styles, HTML preview, and fiber for a DOM element. |
+| `openFile(path, line?)` | Open a source file in the user's editor via the dev server or `vscode://` protocol. |
 
 ```js
 import {
   freeze,
   unfreeze,
-  isFreezeActive,
   getElementsAtPosition,
   getElementContext,
-  openFile,
 } from "react-grab/primitives";
-```
 
-### `freeze(elements?)`
-
-Freezes the page: pauses React state updates, halts CSS/JS/SVG animations, and preserves pseudo-states (`:hover`, `:focus`) as inline styles. Installs `pointer-events: none` on `<html>` to prevent the user from triggering hover side-effects.
-
-Pass an array of elements to scope animation freezing; omit to freeze the entire page.
-
-```js
-freeze(); // freeze everything
-freeze([document.querySelector(".modal")]); // freeze a subtree
-```
-
-### `unfreeze()`
-
-Reverses `freeze()`: replays buffered React updates, resumes animations, and removes the pointer-events block.
-
-```js
-unfreeze();
-```
-
-### `isFreezeActive()`
-
-Returns `true` while the page is frozen.
-
-```js
-if (isFreezeActive()) {
-  // skip work until unfreeze()
-}
-```
-
-### `getElementsAtPosition(clientX, clientY)`
-
-Returns all elements at the given viewport coordinates (z-order, topmost first). Temporarily suspends the pointer-events freeze so `elementsFromPoint` can reach real elements underneath.
-
-```js
 freeze();
+
 document.addEventListener("pointermove", (e) => {
-  const elements = getElementsAtPosition(e.clientX, e.clientY);
-  console.log("topmost:", elements[0]);
+  const [topElement] = getElementsAtPosition(e.clientX, e.clientY);
+  highlight(topElement);
 });
-```
 
-### `getElementContext(element)`
-
-Gathers comprehensive context for a DOM element: React fiber, component name, owner stack with source locations, CSS selector, computed styles, and an HTML preview.
-
-```js
-const context = await getElementContext(document.querySelector(".btn"));
-
-context.componentName; // "SubmitButton"
-context.selector;      // "button.btn"
-context.stackString;   // "\n  in SubmitButton (at Button.tsx:12:5)"
-context.stack;         // [{ functionName, fileName, lineNumber, columnNumber }]
-context.htmlPreview;   // '<button class="btn">\n  Submit\n</button>'
-context.styles;        // "color: #fff; background: #000; ..."
-context.fiber;         // React Fiber node (or null outside React)
-context.element;       // the Element itself
-```
-
-### `openFile(filePath, lineNumber?)`
-
-Opens a source file in the user's editor. Tries the dev-server endpoint first (Vite / Next.js), then falls back to a protocol URL (`vscode://file/…`).
-
-```js
-await openFile("/src/components/Button.tsx", 42);
+document.addEventListener("click", async (e) => {
+  const [target] = getElementsAtPosition(e.clientX, e.clientY);
+  const context = await getElementContext(target);
+  console.log(context.componentName, context.selector);
+  unfreeze();
+});
 ```
 
 ## Plugins
