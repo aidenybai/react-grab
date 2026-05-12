@@ -527,7 +527,7 @@ export const init = new Command()
       const shouldInstallReactGrab = !projectInfo.hasReactGrab;
 
       if (!opts.skipInstall && shouldInstallReactGrab) {
-        installPackagesWithFeedback(
+        await installPackagesWithFeedback(
           getPackagesToInstall(shouldInstallReactGrab),
           finalPackageManager,
           projectInfo.projectRoot,

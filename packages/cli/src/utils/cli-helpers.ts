@@ -19,15 +19,15 @@ export const applyTransformWithFeedback = (result: TransformResult, message?: st
   writeSpinner.succeed();
 };
 
-export const installPackagesWithFeedback = (
+export const installPackagesWithFeedback = async (
   packages: string[],
   packageManager: PackageManager,
   projectRoot: string,
-): void => {
+): Promise<void> => {
   if (packages.length === 0) return;
   const installSpinner = spinner(`Installing ${packages.join(", ")}.`).start();
   try {
-    installPackages(packages, packageManager, projectRoot);
+    await installPackages(packages, { packageManager, cwd: projectRoot });
     installSpinner.succeed();
   } catch (error) {
     installSpinner.fail();
