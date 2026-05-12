@@ -10,31 +10,53 @@ const NON_COMPONENT_PREFIXES = new Set([
 ]);
 
 const NEXT_INTERNAL_COMPONENT_NAMES = new Set([
-  "InnerLayoutRouter",
-  "RedirectErrorBoundary",
-  "RedirectBoundary",
-  "HTTPAccessFallbackErrorBoundary",
-  "HTTPAccessFallbackBoundary",
-  "LoadingBoundary",
+  "AppRouter",
+  "AppRouterAnnouncer",
+  "AppDevOverlay",
+  "AppDevOverlayErrorBoundary",
+  "ClientPageRoot",
+  "ClientSegmentRoot",
+  "DevRootHTTPAccessFallbackBoundary",
   "ErrorBoundary",
+  "ErrorBoundaryHandler",
+  "GracefulDegradeBoundary",
+  "HTTPAccessErrorFallback",
+  "HTTPAccessFallbackBoundary",
+  "HTTPAccessFallbackErrorBoundary",
+  "HandleRedirect",
+  "Head",
+  "HistoryUpdater",
+  "HotReload",
+  "InnerLayoutRouter",
   "InnerScrollAndFocusHandler",
-  "ScrollAndFocusHandler",
-  "RenderFromTemplateContext",
+  "InnerScrollAndFocusHandlerOld",
+  "InnerScrollAndMaybeFocusHandler",
+  "InnerScrollHandlerNew",
+  "LoadableComponent",
+  "LoadingBoundary",
+  "LoadingBoundaryProvider",
+  "NotAllowedRootHTTPFallbackError",
+  "OfflineProvider",
   "OuterLayoutRouter",
+  "RedirectBoundary",
+  "RedirectErrorBoundary",
+  "RenderFromTemplateContext",
+  "RenderValidationBoundaryAtThisLevel",
+  "ReplaySsrOnlyErrors",
+  "RootErrorBoundary",
+  "RootLevelDevOverlayElement",
+  "Router",
+  "ScrollAndFocusHandler",
+  "ScrollAndMaybeFocusHandler",
+  "SegmentBoundaryTrigger",
+  "SegmentBoundaryTriggerNode",
+  "SegmentStateProvider",
+  "SegmentTrieNode",
+  "SegmentViewNode",
+  "SegmentViewStateNode",
+  "ServerRoot",
   "body",
   "html",
-  "DevRootHTTPAccessFallbackBoundary",
-  "AppDevOverlayErrorBoundary",
-  "AppDevOverlay",
-  "HotReload",
-  "Router",
-  "ErrorBoundaryHandler",
-  "AppRouter",
-  "ServerRoot",
-  "SegmentStateProvider",
-  "RootErrorBoundary",
-  "LoadableComponent",
-  "MotionDOMComponent",
 ]);
 
 const REACT_INTERNAL_COMPONENT_NAMES = new Set([
@@ -45,9 +67,14 @@ const REACT_INTERNAL_COMPONENT_NAMES = new Set([
   "SuspenseList",
 ]);
 
+const LIBRARY_INTERNAL_COMPONENT_NAMES = new Set([
+  "MotionDOMComponent",
+]);
+
 export const isInternalComponentName = (name: string): boolean => {
   if (NEXT_INTERNAL_COMPONENT_NAMES.has(name)) return true;
   if (REACT_INTERNAL_COMPONENT_NAMES.has(name)) return true;
+  if (LIBRARY_INTERNAL_COMPONENT_NAMES.has(name)) return true;
   for (const prefix of NON_COMPONENT_PREFIXES) {
     if (name.startsWith(prefix)) return true;
   }

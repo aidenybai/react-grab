@@ -27,6 +27,7 @@ import { truncateString } from "../utils/truncate-string.js";
 import { getNextBasePath } from "../utils/get-next-base-path.js";
 import { normalizeFilePath } from "../utils/normalize-file-path.js";
 import { parsePackageName } from "../utils/parse-package-name.js";
+import { safeDecodeURIComponent } from "../utils/safe-decode-uri-component.js";
 import { isInternalAttribute } from "../utils/strip-internal-attributes.js";
 import {
   isInternalComponentName,
@@ -62,10 +63,13 @@ const devirtualizeServerUrl = (url: string): string => {
   for (const prefix of SERVER_COMPONENT_URL_PREFIXES) {
     if (!url.startsWith(prefix)) continue;
     const environmentEndIndex = url.indexOf("/", prefix.length);
+    if (environmentEndIndex === -1) continue;
+    const pathStart = environmentEndIndex + 1;
     const querySuffixIndex = url.lastIndexOf("?");
-    if (environmentEndIndex > -1 && querySuffixIndex > -1) {
-      return decodeURI(url.slice(environmentEndIndex + 1, querySuffixIndex));
-    }
+    const rawPath = querySuffixIndex > pathStart
+      ? url.slice(pathStart, querySuffixIndex)
+      : url.slice(pathStart);
+    return safeDecodeURIComponent(rawPath);
   }
   return url;
 };

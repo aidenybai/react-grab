@@ -1,4 +1,5 @@
 import { normalizeFileName } from "bippy/source";
+import { safeDecodeURIComponent } from "./safe-decode-uri-component.js";
 
 const NODE_MODULES_PATTERN = /(?:^|[/\\])node_modules[/\\]/g;
 const VITE_OPTIMIZED_DEPS_PATTERN = /[/\\]\.vite[/\\]deps[^/\\]*[/\\]/g;
@@ -59,7 +60,7 @@ const extractVersionedPackageFromUrl = (rawFileName: string): string | null => {
   }
   if (!url.hostname) return null;
 
-  const segments = splitPathSegments(url.pathname);
+  const segments = splitPathSegments(url.pathname).map(safeDecodeURIComponent);
   for (const [index, segment] of segments.entries()) {
     if (segment.startsWith("@")) {
       const name = extractNameAtVersion(segments[index + 1]);
@@ -79,11 +80,16 @@ const extractFromLocalPath = (normalizedPath: string): string | null =>
 export const parsePackageName = (fileName: string | null | undefined): string | null => {
   if (!fileName) return null;
 
-  const cdnResult = extractVersionedPackageFromUrl(fileName);
-  if (cdnResult) return cdnResult;
-
   const normalized = normalizeFileName(fileName);
   if (!normalized) return null;
 
-  return extractFromLocalPath(normalized);
+  const decoded = safeDecodeURIComponent(normalized);
+
+  const localResult = extractFromLocalPath(decoded);
+  if (localResult) return localResult;
+
+  const cdnResult = extractVersionedPackageFromUrl(fileName);
+  if (cdnResult) return cdnResult;
+
+  return null;
 };
