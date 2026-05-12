@@ -89,7 +89,7 @@ export const parsePackageName = (fileName: string | null | undefined): string | 
   if (localResult) return localResult;
 
   const cdnResult = extractVersionedPackageFromUrl(fileName);
-  if (cdnResult) return safeDecodeURIComponent(cdnResult);
+  if (cdnResult) return cdnResult;
 
   return null;
 };
