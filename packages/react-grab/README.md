@@ -134,7 +134,7 @@ if (process.env.NODE_ENV === "development") {
 | `unfreeze()` | Resume everything `freeze()` paused. |
 | `isFreezeActive()` | Returns `true` while frozen. |
 | `getElementsAtPosition(x, y)` | Hit-test elements at viewport coordinates while frozen (temporarily lifts the pointer-events block). |
-| `getElementContext(element)` | Returns component name, owner stack, CSS selector, computed styles, HTML preview, and fiber for a DOM element. |
+| `getElementContext(element)` | Returns the same context React Grab copies to clipboard (`snippet`), plus structured source location, component name, owner stack, CSS selector, computed styles, HTML preview, and fiber. |
 | `openFile(path, line?)` | Open a source file in the user's editor via the dev server or `vscode://` protocol. |
 
 ```js
@@ -155,7 +155,9 @@ document.addEventListener("pointermove", (e) => {
 document.addEventListener("click", async (e) => {
   const [target] = getElementsAtPosition(e.clientX, e.clientY);
   const context = await getElementContext(target);
-  console.log(context.componentName, context.selector);
+  console.log(context.snippet);    // formatted text identical to clipboard output
+  console.log(context.filePath);   // "/src/components/Button.tsx"
+  console.log(context.lineNumber); // 42
   unfreeze();
 });
 ```
