@@ -28,56 +28,10 @@ import { getNextBasePath } from "../utils/get-next-base-path.js";
 import { normalizeFilePath } from "../utils/normalize-file-path.js";
 import { parsePackageName } from "../utils/parse-package-name.js";
 import { isInternalAttribute } from "../utils/strip-internal-attributes.js";
-
-const NON_COMPONENT_PREFIXES = new Set([
-  "_",
-  "$",
-  "motion.",
-  "styled.",
-  "chakra.",
-  "ark.",
-  "Primitive.",
-  "Slot.",
-]);
-
-// Next.js App Router internals that wrap user components but are not useful
-// as display names. Without filtering these the UI would show names like
-// "InnerLayoutRouter" instead of the user's own component.
-const NEXT_INTERNAL_COMPONENT_NAMES = new Set([
-  "InnerLayoutRouter",
-  "RedirectErrorBoundary",
-  "RedirectBoundary",
-  "HTTPAccessFallbackErrorBoundary",
-  "HTTPAccessFallbackBoundary",
-  "LoadingBoundary",
-  "ErrorBoundary",
-  "InnerScrollAndFocusHandler",
-  "ScrollAndFocusHandler",
-  "RenderFromTemplateContext",
-  "OuterLayoutRouter",
-  "body",
-  "html",
-  "DevRootHTTPAccessFallbackBoundary",
-  "AppDevOverlayErrorBoundary",
-  "AppDevOverlay",
-  "HotReload",
-  "Router",
-  "ErrorBoundaryHandler",
-  "AppRouter",
-  "ServerRoot",
-  "SegmentStateProvider",
-  "RootErrorBoundary",
-  "LoadableComponent",
-  "MotionDOMComponent",
-]);
-
-const REACT_INTERNAL_COMPONENT_NAMES = new Set([
-  "Suspense",
-  "Fragment",
-  "StrictMode",
-  "Profiler",
-  "SuspenseList",
-]);
+import {
+  isInternalComponentName,
+  isUsefulComponentName,
+} from "../utils/is-useful-component-name.js";
 
 let cachedIsNextProject: boolean | undefined;
 
@@ -89,22 +43,6 @@ export const checkIsNextProject = (revalidate?: boolean): boolean => {
     typeof document !== "undefined" &&
     Boolean(document.getElementById("__NEXT_DATA__") || document.querySelector("nextjs-portal"));
   return cachedIsNextProject;
-};
-
-const isInternalComponentName = (name: string): boolean => {
-  if (NEXT_INTERNAL_COMPONENT_NAMES.has(name)) return true;
-  if (REACT_INTERNAL_COMPONENT_NAMES.has(name)) return true;
-  for (const prefix of NON_COMPONENT_PREFIXES) {
-    if (name.startsWith(prefix)) return true;
-  }
-  return false;
-};
-
-const isUsefulComponentName = (name: string): boolean => {
-  if (!name) return false;
-  if (isInternalComponentName(name)) return false;
-  if (name === "SlotClone" || name === "Slot") return false;
-  return true;
 };
 
 const isSourceComponentName = (name: string): boolean => {
