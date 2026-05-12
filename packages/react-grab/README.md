@@ -135,6 +135,7 @@ if (process.env.NODE_ENV === "development") {
 | `isFreezeActive()` | Returns `true` while frozen. |
 | `getElementsAtPosition(x, y)` | Hit-test elements at viewport coordinates while frozen (temporarily lifts the pointer-events block). |
 | `getElementContext(element)` | Returns component name, owner stack, CSS selector, computed styles, HTML preview, and fiber for a DOM element. |
+| `copyContent(entry)` | Copy structured context to the clipboard in plain-text, HTML, and custom metadata formats. |
 | `openFile(path, line?)` | Open a source file in the user's editor via the dev server or `vscode://` protocol. |
 
 ```js
