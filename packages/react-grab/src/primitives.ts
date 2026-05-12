@@ -6,6 +6,10 @@ import {
 import { freezePseudoStates, unfreezePseudoStates } from "./utils/freeze-pseudo-states.js";
 import { freezeUpdates } from "./utils/freeze-updates.js";
 import {
+  suspendPointerEventsFreeze,
+  resumePointerEventsFreeze,
+} from "./utils/pointer-events-freeze.js";
+import {
   getComponentDisplayName,
   getHTMLPreview,
   getStack,
@@ -59,6 +63,24 @@ export const getElementContext = async (element: Element): Promise<ReactGrabElem
     selector,
     styles,
   };
+};
+
+/**
+ * Returns all elements at the given viewport coordinates, temporarily
+ * suspending the pointer-events freeze so `elementsFromPoint` can
+ * reach real elements underneath.
+ *
+ * @example
+ * freeze();
+ * const elements = getElementsAtPosition(e.clientX, e.clientY);
+ * // elements[0] is the topmost element under the cursor
+ */
+export const getElementsAtPosition = (clientX: number, clientY: number): Element[] => {
+  if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) return [];
+  suspendPointerEventsFreeze();
+  const elements = document.elementsFromPoint(clientX, clientY);
+  resumePointerEventsFreeze();
+  return Array.from(elements);
 };
 
 const freezeCleanupFns = new Set<() => void>();
