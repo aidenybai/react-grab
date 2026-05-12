@@ -135,6 +135,7 @@ if (process.env.NODE_ENV === "development") {
 | `isFreezeActive()` | Returns `true` while frozen. |
 | `getElementsAtPosition(x, y)` | Hit-test elements at viewport coordinates while frozen (temporarily lifts the pointer-events block). |
 | `getElementContext(element)` | Returns the same context React Grab copies to clipboard (`snippet`), plus structured source location, component name, owner stack, CSS selector, computed styles, HTML preview, and fiber. |
+| `copyElementContext(element)` | Copies an element's context to the clipboard in the same format React Grab uses. Returns `true` on success. |
 | `openFile(path, line?)` | Open a source file in the user's editor via the dev server or `vscode://` protocol. |
 
 ```js
@@ -143,6 +144,7 @@ import {
   unfreeze,
   getElementsAtPosition,
   getElementContext,
+  copyElementContext,
 } from "react-grab/primitives";
 
 freeze();
