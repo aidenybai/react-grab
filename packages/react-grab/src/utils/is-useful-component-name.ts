@@ -18,7 +18,11 @@ const NEXT_INTERNAL_COMPONENT_NAMES = new Set([
   "LoadingBoundary",
   "ErrorBoundary",
   "InnerScrollAndFocusHandler",
+  "InnerScrollAndFocusHandlerOld",
+  "InnerScrollHandlerNew",
+  "InnerScrollAndMaybeFocusHandler",
   "ScrollAndFocusHandler",
+  "ScrollAndMaybeFocusHandler",
   "RenderFromTemplateContext",
   "OuterLayoutRouter",
   "body",
@@ -32,9 +36,13 @@ const NEXT_INTERNAL_COMPONENT_NAMES = new Set([
   "AppRouter",
   "ServerRoot",
   "SegmentStateProvider",
+  "SegmentViewNode",
+  "SegmentViewStateNode",
+  "SegmentBoundaryTriggerNode",
   "RootErrorBoundary",
   "LoadableComponent",
   "MotionDOMComponent",
+  "RenderValidationBoundaryAtThisLevel",
 ]);
 
 const REACT_INTERNAL_COMPONENT_NAMES = new Set([

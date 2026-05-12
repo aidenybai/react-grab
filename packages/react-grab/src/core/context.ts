@@ -403,8 +403,11 @@ const formatStackContext = (stack: StackFrame[], options: StackContextOptions = 
       continue;
     }
 
-    if (!resolvedSource && componentName && libraryPackage) {
-      emit(`\n  in ${componentName} (${libraryPackage})`, libraryPackage);
+    if (!resolvedSource && componentName) {
+      emit(
+        libraryPackage ? `\n  in ${componentName} (${libraryPackage})` : `\n  in ${componentName}`,
+        libraryPackage,
+      );
       continue;
     }
 
