@@ -22,8 +22,6 @@ import type { StackFrame } from "bippy/source";
 export type { StackFrame };
 import { createElementSelector } from "./utils/create-element-selector.js";
 import { extractElementCss } from "./utils/extract-element-css.js";
-import { copyContent } from "./utils/copy-content.js";
-import { getTagName } from "./utils/get-tag-name.js";
 import { openFile as openFileAsync } from "./utils/open-file.js";
 
 export interface ReactGrabElementContext {
@@ -82,21 +80,7 @@ export const getElementContext = async (element: Element): Promise<ReactGrabElem
   };
 };
 
-/**
- * Copies an element's context to the clipboard in the same format
- * React Grab uses (plain text, HTML, and structured metadata).
- * Returns `true` if the copy succeeded.
- *
- * @example
- * const ok = await copyElementContext(document.querySelector('.btn')!);
- */
-export const copyElementContext = async (element: Element): Promise<boolean> => {
-  const context = await getElementContext(element);
-  return copyContent(context.snippet, {
-    componentName: context.componentName ?? undefined,
-    tagName: getTagName(element),
-  });
-};
+export { copyContent } from "./utils/copy-content.js";
 
 /**
  * Returns all elements at the given viewport coordinates, temporarily
