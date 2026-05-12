@@ -37,14 +37,11 @@ export const installPackages = async (
     args.push(...options.additionalArgs);
   }
 
+  const installVerb = detectedAgent === "npm" ? "install" : "add";
+
   await x(
     detectedAgent,
-    [
-      detectedAgent === "yarn" ? "add" : "install",
-      ...(options.isDev !== false ? ["-D"] : []),
-      ...args,
-      ...packages,
-    ],
+    [installVerb, ...(options.isDev !== false ? ["-D"] : []), ...args, ...packages],
     {
       nodeOptions: {
         stdio: options.silent ? "ignore" : "inherit",
@@ -77,17 +74,13 @@ export const uninstallPackages = async (
     args.push(...options.additionalArgs);
   }
 
-  await x(
-    detectedAgent,
-    [detectedAgent === "yarn" ? "remove" : "uninstall", ...args, ...packages],
-    {
-      nodeOptions: {
-        stdio: options.silent ? "ignore" : "inherit",
-        cwd: options.cwd,
-      },
-      throwOnError: true,
+  await x(detectedAgent, [detectedAgent === "npm" ? "uninstall" : "remove", ...args, ...packages], {
+    nodeOptions: {
+      stdio: options.silent ? "ignore" : "inherit",
+      cwd: options.cwd,
     },
-  );
+    throwOnError: true,
+  });
 };
 
 export const getPackagesToInstall = (includeReactGrab: boolean = true): string[] => {
