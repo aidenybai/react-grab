@@ -459,16 +459,11 @@ export const getElementContext = async (
 };
 
 const getFallbackContext = (element: Element): string => {
-  const tagName = getTagName(element);
-
   if (!(element instanceof HTMLElement)) {
-    const attrsHint = formatPriorityAttrs(element, {
-      truncate: false,
-      maxAttrs: PREVIEW_PRIORITY_ATTRS.length,
-    });
-    return `<${tagName}${attrsHint} />`;
+    return getInlineHTMLPreview(element);
   }
 
+  const tagName = getTagName(element);
   const attrsText = formatAttrsForPreview(element);
   const directText = getDirectTextContent(element);
   const truncatedText = truncateString(directText, PREVIEW_TEXT_MAX_LENGTH);
