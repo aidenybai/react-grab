@@ -1,7 +1,14 @@
-import { copyContent, type ReactGrabEntry } from "../utils/copy-content.js";
-import { generateSnippet } from "../utils/generate-snippet.js";
-import { joinSnippets } from "../utils/join-snippets.js";
+import {
+  resolveSource,
+  checkIsNextProject,
+  getComponentDisplayName,
+  getInlineHTMLPreview,
+} from "./context.js";
+import { COMPACT_IDENTIFYING_ATTRS, COMPACT_TEXT_MAX_LENGTH } from "../constants.js";
+import { copyContent } from "../utils/copy-content.js";
+import { getTagName } from "../utils/get-tag-name.js";
 import { normalizeError } from "../utils/normalize-error.js";
+import { truncateString } from "../utils/truncate-string.js";
 
 interface CopyOptions {
   maxContextLines?: number;
@@ -18,6 +25,44 @@ interface CopyHooks {
   onCopyError: (error: Error) => void;
 }
 
+const buildCompactContent = async (elements: Element[]): Promise<string | null> => {
+  const isNextProject = checkIsNextProject();
+  const uniqueReferences = new Set<string>();
+
+  for (const element of elements) {
+    const tagName = getTagName(element);
+    const source = await resolveSource(element);
+    const componentName = source?.componentName ?? getComponentDisplayName(element);
+
+    if (source || componentName) {
+      let identifyingAttrs = "";
+      for (const attrName of COMPACT_IDENTIFYING_ATTRS) {
+        const attrValue = element.getAttribute(attrName);
+        if (attrValue) {
+          identifyingAttrs += ` ${attrName}="${attrValue}"`;
+        }
+      }
+      const directText = element.textContent?.trim() ?? "";
+      const textSnippet = directText
+        ? ` "${truncateString(directText, COMPACT_TEXT_MAX_LENGTH)}"`
+        : "";
+      let inner = `<${tagName}${identifyingAttrs}>${textSnippet}`;
+      if (componentName) {
+        inner += ` in ${componentName}`;
+      }
+      if (source) {
+        const lineReference = isNextProject && source.lineNumber ? `:${source.lineNumber}` : "";
+        inner += ` @${source.filePath}${lineReference}`;
+      }
+      uniqueReferences.add(`[${inner}]`);
+    } else {
+      uniqueReferences.add(`[${getInlineHTMLPreview(element)}]`);
+    }
+  }
+
+  return uniqueReferences.size > 0 ? [...uniqueReferences].join("\n") : null;
+};
+
 export const tryCopyWithFallback = async (
   options: CopyOptions,
   hooks: CopyHooks,
@@ -30,40 +75,17 @@ export const tryCopyWithFallback = async (
   await hooks.onBeforeCopy(elements);
 
   try {
-    let generatedContent: string;
-    let entries: ReactGrabEntry[] | undefined;
+    const generatedContent = options.getContent
+      ? await options.getContent(elements)
+      : await buildCompactContent(elements);
 
-    if (options.getContent) {
-      generatedContent = await options.getContent(elements);
-    } else {
-      const rawSnippets = await generateSnippet(elements, {
-        maxLines: options.maxContextLines,
-      });
-      const transformedSnippets = await Promise.all(
-        rawSnippets.map((snippet, index) =>
-          snippet.trim() ? hooks.transformSnippet(snippet, elements[index]) : Promise.resolve(""),
-        ),
-      );
-      const snippetElementPairs = transformedSnippets
-        .map((snippet, index) => ({ snippet, element: elements[index] }))
-        .filter(({ snippet }) => snippet.trim());
-
-      generatedContent = joinSnippets(snippetElementPairs.map(({ snippet }) => snippet));
-      entries = snippetElementPairs.map(({ snippet, element }) => ({
-        tagName: element.localName,
-        content: snippet,
-        commentText: extraPrompt,
-      }));
-    }
-
-    if (generatedContent.trim()) {
+    if (generatedContent?.trim()) {
       const transformedContent = await hooks.transformCopyContent(generatedContent, elements);
 
-      copiedContent = extraPrompt ? `${extraPrompt}\n\n${transformedContent}` : transformedContent;
+      copiedContent = extraPrompt ? `${extraPrompt}\n${transformedContent}` : transformedContent;
 
       didCopy = copyContent(copiedContent, {
         componentName: options.componentName,
-        entries,
       });
     }
   } catch (error) {

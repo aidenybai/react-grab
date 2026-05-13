@@ -553,6 +553,27 @@ const formatChildElements = (elements: Array<Element>): string => {
   return `(${elements.length} elements)`;
 };
 
+export const getInlineHTMLPreview = (element: Element): string => {
+  const tagName = getTagName(element);
+
+  if (!(element instanceof HTMLElement)) {
+    const attrsHint = formatPriorityAttrs(element, {
+      truncate: false,
+      maxAttrs: PREVIEW_PRIORITY_ATTRS.length,
+    });
+    return `<${tagName}${attrsHint} />`;
+  }
+
+  const attrsText = formatAttrsForPreview(element);
+  const directText = getDirectTextContent(element);
+  const truncatedText = truncateString(directText, PREVIEW_TEXT_MAX_LENGTH);
+
+  if (truncatedText) {
+    return `<${tagName}${attrsText}>${truncatedText}</${tagName}>`;
+  }
+  return `<${tagName}${attrsText} />`;
+};
+
 export const getHTMLPreview = (element: Element): string => {
   const tagName = getTagName(element);
   const attrsText = formatAttrsForPreview(element);

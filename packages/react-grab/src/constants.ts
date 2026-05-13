@@ -73,6 +73,9 @@ export const PREVIEW_PRIORITY_ATTRS: readonly string[] = [
   "title",
 ];
 
+export const COMPACT_IDENTIFYING_ATTRS: readonly string[] = ["id", "data-testid"];
+export const COMPACT_TEXT_MAX_LENGTH = 20;
+
 export const PREVIEW_IDENTIFYING_ATTRS = new Set([
   "id",
   "data-testid",

@@ -22,7 +22,7 @@ export const COMMENT_PRESET_KEYS: readonly CommentPreset[] = [
 
 export const createMenuActions = (openEnabled: boolean): ContextMenuAction[] => [
   { id: "copy", label: "Copy", shortcut: "C", onAction: noop },
-  { id: "copy-html", label: "Copy HTML", onAction: noop },
+  { id: "copy-details", label: "Copy details", onAction: noop },
   { id: "open", label: "Open", shortcut: "O", enabled: openEnabled, onAction: noop },
   { id: "comment", label: "Comment", shortcut: "Enter", onAction: noop },
 ];

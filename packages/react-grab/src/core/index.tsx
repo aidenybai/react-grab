@@ -123,8 +123,7 @@ import { loadToolbarState, saveToolbarState } from "../components/toolbar/state.
 import { copyPlugin } from "./plugins/copy.js";
 import { commentPlugin } from "./plugins/comment.js";
 import { openPlugin } from "./plugins/open.js";
-import { copyHtmlPlugin } from "./plugins/copy-html.js";
-import { copyStylesPlugin } from "./plugins/copy-styles.js";
+import { copyDetailsPlugin } from "./plugins/copy-details.js";
 import {
   freezeAnimations,
   freezeAllAnimations,
@@ -147,7 +146,7 @@ import { generateId } from "../utils/generate-id.js";
 import { logRecoverableError } from "../utils/log-recoverable-error.js";
 import { getNearestEdge } from "../utils/get-nearest-edge.js";
 
-const builtInPlugins = [copyPlugin, commentPlugin, copyHtmlPlugin, copyStylesPlugin, openPlugin];
+const builtInPlugins = [copyPlugin, commentPlugin, copyDetailsPlugin, openPlugin];
 
 interface CopyWithLabelOptions {
   element: Element;

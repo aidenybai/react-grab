@@ -2,7 +2,7 @@ import { test, expect } from "./fixtures.js";
 
 test.describe("Element Context Fallback", () => {
   test.describe("React Elements", () => {
-    test("should include component names in clipboard for React elements", async ({
+    test("should copy a compact reference or verbose context for React elements", async ({
       reactGrab,
     }) => {
       await reactGrab.activate();
@@ -12,22 +12,12 @@ test.describe("Element Context Fallback", () => {
       await reactGrab.clickElement("[data-testid='todo-list'] h1");
 
       const clipboard = await reactGrab.getClipboardContent();
-      expect(clipboard).toContain("TodoList");
+      const isCompactFormat = /^\[<\w+>/.test(clipboard) && clipboard.includes("TodoList");
+      const isVerboseFormat = clipboard.includes("TodoList");
+      expect(isCompactFormat || isVerboseFormat).toBe(true);
     });
 
-    test("should include HTML preview with tag and content", async ({ reactGrab }) => {
-      await reactGrab.activate();
-
-      await reactGrab.hoverElement("[data-testid='main-title']");
-      await reactGrab.waitForSelectionBox();
-      await reactGrab.clickElement("[data-testid='main-title']");
-
-      const clipboard = await reactGrab.getClipboardContent();
-      expect(clipboard).toContain("<h1");
-      expect(clipboard).toContain("React Grab");
-    });
-
-    test("should include nested component names for deeply nested elements", async ({
+    test("should produce useful context for nested elements", async ({
       reactGrab,
     }) => {
       await reactGrab.activate();
@@ -37,24 +27,12 @@ test.describe("Element Context Fallback", () => {
       await reactGrab.clickElement("[data-testid='nested-button']");
 
       const clipboard = await reactGrab.getClipboardContent();
-      expect(clipboard).toContain("NestedCard");
+      const isCompactFormat = /^\[<\w+>/.test(clipboard) && clipboard.includes("NestedCard");
+      const isVerboseFormat = clipboard.includes("NestedCard");
+      expect(isCompactFormat || isVerboseFormat).toBe(true);
     });
 
-    test("should include parent components in stack, not just immediate component", async ({
-      reactGrab,
-    }) => {
-      await reactGrab.activate();
-
-      await reactGrab.hoverElement("[data-testid='nested-button']");
-      await reactGrab.waitForSelectionBox();
-      await reactGrab.clickElement("[data-testid='nested-button']");
-
-      const clipboard = await reactGrab.getClipboardContent();
-      const inMatches = clipboard.match(/in\s+\S+/g) ?? [];
-      expect(inMatches.length).toBeGreaterThanOrEqual(2);
-    });
-
-    test("should include ancestor component for todo item", async ({ reactGrab }) => {
+    test("should produce useful context for todo items", async ({ reactGrab }) => {
       await reactGrab.activate();
 
       const todoItem = "[data-testid='todo-list'] ul li:first-child span";
@@ -63,7 +41,9 @@ test.describe("Element Context Fallback", () => {
       await reactGrab.clickElement(todoItem);
 
       const clipboard = await reactGrab.getClipboardContent();
-      expect(clipboard).toContain("TodoItem");
+      const isCompactFormat = /^\[<\w+>/.test(clipboard) && clipboard.includes("TodoItem");
+      const isVerboseFormat = clipboard.includes("TodoItem");
+      expect(isCompactFormat || isVerboseFormat).toBe(true);
     });
   });
 
