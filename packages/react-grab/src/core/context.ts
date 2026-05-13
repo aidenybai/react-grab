@@ -516,16 +516,15 @@ const formatAttrsForPreview = (element: Element): string => {
 
   for (const { name, value } of element.attributes) {
     if (isInternalAttribute(name)) continue;
-    if (!value) continue;
     if (isClassOrStyleAttr(name)) {
-      if (name !== "style") {
+      if (name !== "style" && value) {
         classAttr = ` class="${truncateAttrValue(value)}"`;
       }
       continue;
     }
     if (PREVIEW_IDENTIFYING_ATTRS.has(name)) {
-      identifyingParts.push(` ${name}="${value}"`);
-    } else {
+      identifyingParts.push(value ? ` ${name}="${value}"` : ` ${name}`);
+    } else if (value) {
       remainingParts.push(` ${name}="${truncateAttrValue(value)}"`);
     }
   }
