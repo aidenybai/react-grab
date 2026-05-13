@@ -19,7 +19,6 @@ interface CopyOptions {
 
 interface CopyHooks {
   onBeforeCopy: (elements: Element[]) => Promise<void>;
-  transformSnippet: (snippet: string, element: Element) => Promise<string>;
   transformCopyContent: (content: string, elements: Element[]) => Promise<string>;
   onAfterCopy: (elements: Element[], success: boolean) => void;
   onCopySuccess: (elements: Element[], content: string) => void;

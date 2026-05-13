@@ -12,9 +12,8 @@ test.describe("Element Context Fallback", () => {
       await reactGrab.clickElement("[data-testid='todo-list'] h1");
 
       const clipboard = await reactGrab.getClipboardContent();
-      const isCompactFormat = /^\[<\w+>/.test(clipboard) && clipboard.includes("TodoList");
-      const isVerboseFormat = clipboard.includes("TodoList");
-      expect(isCompactFormat || isVerboseFormat).toBe(true);
+      expect(clipboard).toMatch(/^\[<\w+>/);
+      expect(clipboard).toContain("TodoList");
     });
 
     test("should produce useful context for nested elements", async ({
@@ -27,9 +26,8 @@ test.describe("Element Context Fallback", () => {
       await reactGrab.clickElement("[data-testid='nested-button']");
 
       const clipboard = await reactGrab.getClipboardContent();
-      const isCompactFormat = /^\[<\w+>/.test(clipboard) && clipboard.includes("NestedCard");
-      const isVerboseFormat = clipboard.includes("NestedCard");
-      expect(isCompactFormat || isVerboseFormat).toBe(true);
+      expect(clipboard).toMatch(/^\[<\w+>/);
+      expect(clipboard).toContain("NestedCard");
     });
 
     test("should produce useful context for todo items", async ({ reactGrab }) => {
@@ -41,9 +39,8 @@ test.describe("Element Context Fallback", () => {
       await reactGrab.clickElement(todoItem);
 
       const clipboard = await reactGrab.getClipboardContent();
-      const isCompactFormat = /^\[<\w+>/.test(clipboard) && clipboard.includes("TodoItem");
-      const isVerboseFormat = clipboard.includes("TodoItem");
-      expect(isCompactFormat || isVerboseFormat).toBe(true);
+      expect(clipboard).toMatch(/^\[<\w+>/);
+      expect(clipboard).toContain("TodoItem");
     });
   });
 
