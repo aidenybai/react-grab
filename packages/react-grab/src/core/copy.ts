@@ -2,6 +2,7 @@ import {
   resolveSource,
   checkIsNextProject,
   getComponentDisplayName,
+  getDirectTextContent,
   getInlineHTMLPreview,
 } from "./context.js";
 import { COMPACT_IDENTIFYING_ATTRS, COMPACT_TEXT_MAX_LENGTH } from "../constants.js";
@@ -42,7 +43,7 @@ const buildCompactContent = async (elements: Element[]): Promise<string | null> 
           identifyingAttrs += ` ${attrName}="${attrValue}"`;
         }
       }
-      const directText = element.textContent?.trim() ?? "";
+      const directText = getDirectTextContent(element);
       const textSnippet = directText
         ? ` "${truncateString(directText, COMPACT_TEXT_MAX_LENGTH)}"`
         : "";

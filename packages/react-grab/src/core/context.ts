@@ -532,7 +532,7 @@ const formatAttrsForPreview = (element: Element): string => {
   return identifyingParts.join("") + remainingParts.join("") + classAttr;
 };
 
-const getDirectTextContent = (element: Element): string => {
+export const getDirectTextContent = (element: Element): string => {
   let directText = "";
   for (const node of element.childNodes) {
     if (node.nodeType === Node.TEXT_NODE) {

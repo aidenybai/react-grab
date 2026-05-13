@@ -5,7 +5,7 @@ import { createPendingSelectionPlugin } from "./create-pending-selection-plugin.
 
 export const copyDetailsPlugin = createPendingSelectionPlugin({
   name: "copy-details",
-  contextMenuAction: (api, hooks) => ({
+  contextMenuAction: (_api, _hooks) => ({
     id: "copy-details",
     label: "Copy details",
     showInToolbarMenu: true,
