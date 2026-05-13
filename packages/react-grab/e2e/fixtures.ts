@@ -242,6 +242,11 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   };
 
   const activate = async () => {
+    await page.waitForFunction(
+      () => (window as { __REACT_GRAB__?: unknown }).__REACT_GRAB__ !== undefined,
+      undefined,
+      { timeout: 5000 },
+    );
     await page.evaluate(() => {
       const api = (window as { __REACT_GRAB__?: { activate: () => void } }).__REACT_GRAB__;
       api?.activate();

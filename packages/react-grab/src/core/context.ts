@@ -19,6 +19,7 @@ import {
   PREVIEW_ATTR_VALUE_MAX_LENGTH,
   PREVIEW_MAX_ATTRS,
   PREVIEW_PRIORITY_ATTRS,
+  PREVIEW_IDENTIFYING_ATTRS,
   SYMBOLICATION_TIMEOUT_MS,
   DEFAULT_MAX_CONTEXT_LINES,
 } from "../constants.js";
@@ -468,15 +469,9 @@ const getFallbackContext = (element: Element): string => {
     return `<${tagName}${attrsHint} />`;
   }
 
-  const text = element.innerText?.trim() ?? element.textContent?.trim() ?? "";
-
-  let attrsText = "";
-  for (const { name, value } of element.attributes) {
-    if (isInternalAttribute(name)) continue;
-    attrsText += ` ${name}="${value}"`;
-  }
-
-  const truncatedText = truncateString(text, PREVIEW_TEXT_MAX_LENGTH);
+  const attrsText = formatAttrsForPreview(element);
+  const directText = getDirectTextContent(element);
+  const truncatedText = truncateString(directText, PREVIEW_TEXT_MAX_LENGTH);
 
   if (truncatedText.length > 0) {
     return `<${tagName}${attrsText}>\n  ${truncatedText}\n</${tagName}>`;
@@ -511,27 +506,65 @@ const formatPriorityAttrs = (
   return priorityAttrs.length > 0 ? ` ${priorityAttrs.join(" ")}` : "";
 };
 
-export const getHTMLPreview = (element: Element): string => {
-  const tagName = getTagName(element);
-  const text =
-    element instanceof HTMLElement
-      ? (element.innerText?.trim() ?? element.textContent?.trim() ?? "")
-      : (element.textContent?.trim() ?? "");
+const isClassOrStyleAttr = (name: string): boolean =>
+  name === "class" || name === "className" || name === "style";
 
-  let attrsText = "";
+const formatAttrsForPreview = (element: Element): string => {
+  const identifyingParts: string[] = [];
+  const remainingParts: string[] = [];
+  let classAttr = "";
+
   for (const { name, value } of element.attributes) {
     if (isInternalAttribute(name)) continue;
-    attrsText += ` ${name}="${truncateAttrValue(value)}"`;
+    if (!value) continue;
+    if (isClassOrStyleAttr(name)) {
+      if (name !== "style") {
+        classAttr = ` class="${truncateAttrValue(value)}"`;
+      }
+      continue;
+    }
+    if (PREVIEW_IDENTIFYING_ATTRS.has(name)) {
+      identifyingParts.push(` ${name}="${value}"`);
+    } else {
+      remainingParts.push(` ${name}="${truncateAttrValue(value)}"`);
+    }
   }
+
+  return identifyingParts.join("") + remainingParts.join("") + classAttr;
+};
+
+const getDirectTextContent = (element: Element): string => {
+  let directText = "";
+  for (const node of element.childNodes) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const trimmed = node.textContent?.trim() ?? "";
+      if (trimmed) {
+        directText += (directText ? " " : "") + trimmed;
+      }
+    }
+  }
+  return directText;
+};
+
+const formatChildElements = (elements: Array<Element>): string => {
+  if (elements.length === 0) return "";
+  if (elements.length <= 2) {
+    return elements.map((childElement) => `<${getTagName(childElement)} ...>`).join("\n  ");
+  }
+  return `(${elements.length} elements)`;
+};
+
+export const getHTMLPreview = (element: Element): string => {
+  const tagName = getTagName(element);
+  const attrsText = formatAttrsForPreview(element);
+  const directText = getDirectTextContent(element);
 
   const topElements: Array<Element> = [];
   const bottomElements: Array<Element> = [];
   let foundFirstText = false;
 
-  const childNodes = Array.from(element.childNodes);
-  for (const node of childNodes) {
+  for (const node of element.childNodes) {
     if (node.nodeType === Node.COMMENT_NODE) continue;
-
     if (node.nodeType === Node.TEXT_NODE) {
       if (node.textContent && node.textContent.trim().length > 0) {
         foundFirstText = true;
@@ -545,21 +578,13 @@ export const getHTMLPreview = (element: Element): string => {
     }
   }
 
-  const formatElements = (elements: Array<Element>): string => {
-    if (elements.length === 0) return "";
-    if (elements.length <= 2) {
-      return elements.map((childElement) => `<${getTagName(childElement)} ...>`).join("\n  ");
-    }
-    return `(${elements.length} elements)`;
-  };
-
   let content = "";
-  const topElementsStr = formatElements(topElements);
+  const topElementsStr = formatChildElements(topElements);
   if (topElementsStr) content += `\n  ${topElementsStr}`;
-  if (text.length > 0) {
-    content += `\n  ${truncateString(text, PREVIEW_TEXT_MAX_LENGTH)}`;
+  if (directText.length > 0) {
+    content += `\n  ${truncateString(directText, PREVIEW_TEXT_MAX_LENGTH)}`;
   }
-  const bottomElementsStr = formatElements(bottomElements);
+  const bottomElementsStr = formatChildElements(bottomElements);
   if (bottomElementsStr) content += `\n  ${bottomElementsStr}`;
 
   if (content.length > 0) {

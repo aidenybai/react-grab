@@ -73,6 +73,29 @@ export const PREVIEW_PRIORITY_ATTRS: readonly string[] = [
   "title",
 ];
 
+export const PREVIEW_IDENTIFYING_ATTRS = new Set([
+  "id",
+  "data-testid",
+  "aria-label",
+  "href",
+  "src",
+  "alt",
+  "type",
+  "name",
+  "placeholder",
+  "role",
+  "for",
+  "action",
+  "method",
+  "title",
+  "disabled",
+  "checked",
+  "readonly",
+  "required",
+  "selected",
+  "open",
+]);
+
 export const MODIFIER_KEYS: readonly string[] = ["Meta", "Control", "Shift", "Alt"];
 
 export const ARROW_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
