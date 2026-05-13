@@ -839,7 +839,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       return tryCopyWithFallback(
         {
-          maxContextLines: pluginRegistry.store.options.maxContextLines,
           getContent: pluginRegistry.store.options.getContent,
           componentName: elementName,
         },

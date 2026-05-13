@@ -12,7 +12,6 @@ import { normalizeError } from "../utils/normalize-error.js";
 import { truncateString } from "../utils/truncate-string.js";
 
 interface CopyOptions {
-  maxContextLines?: number;
   getContent?: (elements: Element[]) => Promise<string> | string;
   componentName?: string;
 }
