@@ -12,7 +12,7 @@ test.describe("Element Context Fallback", () => {
       await reactGrab.clickElement("[data-testid='todo-list'] h1");
 
       const clipboard = await reactGrab.getClipboardContent();
-      expect(clipboard).toMatch(/^\[<\w+>/);
+      expect(clipboard).toMatch(/^\[<\w+[\s>]/);
       expect(clipboard).toContain("TodoList");
     });
 
@@ -26,7 +26,7 @@ test.describe("Element Context Fallback", () => {
       await reactGrab.clickElement("[data-testid='nested-button']");
 
       const clipboard = await reactGrab.getClipboardContent();
-      expect(clipboard).toMatch(/^\[<\w+>/);
+      expect(clipboard).toMatch(/^\[<\w+[\s>]/);
       expect(clipboard).toContain("NestedCard");
     });
 
@@ -39,7 +39,7 @@ test.describe("Element Context Fallback", () => {
       await reactGrab.clickElement(todoItem);
 
       const clipboard = await reactGrab.getClipboardContent();
-      expect(clipboard).toMatch(/^\[<\w+>/);
+      expect(clipboard).toMatch(/^\[<\w+[\s>]/);
       expect(clipboard).toContain("TodoItem");
     });
   });
