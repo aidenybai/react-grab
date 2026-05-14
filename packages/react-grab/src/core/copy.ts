@@ -24,40 +24,47 @@ interface CopyHooks {
   onCopyError: (error: Error) => void;
 }
 
-const buildCompactContent = async (elements: Element[]): Promise<string | null> => {
-  const isNextProject = checkIsNextProject();
-  const uniqueReferences = new Set<string>();
+const formatCompactReference = (
+  element: Element,
+  source: Awaited<ReturnType<typeof resolveSource>>,
+  isNextProject: boolean,
+): string => {
+  const tagName = getTagName(element);
+  const componentName = source?.componentName ?? getComponentDisplayName(element);
 
-  for (const element of elements) {
-    const tagName = getTagName(element);
-    const source = await resolveSource(element);
-    const componentName = source?.componentName ?? getComponentDisplayName(element);
-
-    if (source || componentName) {
-      let identifyingAttrs = "";
-      for (const attrName of COMPACT_IDENTIFYING_ATTRS) {
-        const attrValue = element.getAttribute(attrName);
-        if (attrValue) {
-          identifyingAttrs += ` ${attrName}="${attrValue}"`;
-        }
-      }
-      const directText = getDirectTextContent(element);
-      const textSnippet = directText
-        ? ` "${truncateString(directText, COMPACT_TEXT_MAX_LENGTH)}"`
-        : "";
-
-      const parts = [`<${tagName}${identifyingAttrs}>${textSnippet}`];
-      if (componentName) parts.push(`in ${componentName}`);
-      if (source) {
-        const lineReference = isNextProject && source.lineNumber ? `:${source.lineNumber}` : "";
-        parts.push(`@${source.filePath}${lineReference}`);
-      }
-      uniqueReferences.add(`[${parts.join(" ")}]`);
-    } else {
-      uniqueReferences.add(`[${getInlineHTMLPreview(element)}]`);
-    }
+  if (!source && !componentName) {
+    return `[${getInlineHTMLPreview(element)}]`;
   }
 
+  let identifyingAttrs = "";
+  for (const attrName of COMPACT_IDENTIFYING_ATTRS) {
+    const attrValue = element.getAttribute(attrName);
+    if (attrValue) {
+      identifyingAttrs += ` ${attrName}="${attrValue}"`;
+    }
+  }
+  const directText = getDirectTextContent(element);
+  const textSnippet = directText
+    ? ` "${truncateString(directText, COMPACT_TEXT_MAX_LENGTH)}"`
+    : "";
+
+  const parts = [`<${tagName}${identifyingAttrs}>${textSnippet}`];
+  if (componentName) parts.push(`in ${componentName}`);
+  if (source) {
+    const lineReference = isNextProject && source.lineNumber ? `:${source.lineNumber}` : "";
+    parts.push(`@${source.filePath}${lineReference}`);
+  }
+  return `[${parts.join(" ")}]`;
+};
+
+const buildCompactContent = async (elements: Element[]): Promise<string | null> => {
+  const isNextProject = checkIsNextProject();
+  const resolvedSources = await Promise.all(elements.map(resolveSource));
+  const uniqueReferences = new Set(
+    elements.map((element, index) =>
+      formatCompactReference(element, resolvedSources[index], isNextProject),
+    ),
+  );
   return uniqueReferences.size > 0 ? [...uniqueReferences].join("\n") : null;
 };
 
