@@ -45,15 +45,14 @@ const buildCompactContent = async (elements: Element[]): Promise<string | null> 
       const textSnippet = directText
         ? ` "${truncateString(directText, COMPACT_TEXT_MAX_LENGTH)}"`
         : "";
-      let inner = `<${tagName}${identifyingAttrs}>${textSnippet}`;
-      if (componentName) {
-        inner += ` in ${componentName}`;
-      }
+
+      const parts = [`<${tagName}${identifyingAttrs}>${textSnippet}`];
+      if (componentName) parts.push(`in ${componentName}`);
       if (source) {
         const lineReference = isNextProject && source.lineNumber ? `:${source.lineNumber}` : "";
-        inner += ` @${source.filePath}${lineReference}`;
+        parts.push(`@${source.filePath}${lineReference}`);
       }
-      uniqueReferences.add(`[${inner}]`);
+      uniqueReferences.add(`[${parts.join(" ")}]`);
     } else {
       uniqueReferences.add(`[${getInlineHTMLPreview(element)}]`);
     }
