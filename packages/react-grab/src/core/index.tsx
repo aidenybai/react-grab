@@ -70,7 +70,6 @@ import {
   INPUT_FOCUS_ACTIVATION_DELAY_MS,
   INPUT_TEXT_SELECTION_ACTIVATION_DELAY_MS,
   DEFAULT_KEY_HOLD_DURATION_MS,
-  DEFAULT_MAX_CONTEXT_LINES,
   MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS,
   ZOOM_DETECTION_THRESHOLD,
   WINDOW_REFOCUS_GRACE_PERIOD_MS,
@@ -192,7 +191,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     activationMode: "toggle",
     keyHoldDuration: DEFAULT_KEY_HOLD_DURATION_MS,
     allowActivationInsideInput: true,
-    maxContextLines: DEFAULT_MAX_CONTEXT_LINES,
     ...scriptOptions,
     ...rawOptions,
   };

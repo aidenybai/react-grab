@@ -218,7 +218,6 @@ export interface PluginHooks {
   ) => AgentContext | Promise<AgentContext>;
   transformActionContext?: (context: ActionContext) => ActionContext;
   transformOpenFileUrl?: (url: string, filePath: string, lineNumber?: number) => string;
-  transformSnippet?: (snippet: string, element: Element) => string | Promise<string>;
 }
 
 export interface PluginConfig {
@@ -243,7 +242,6 @@ export interface Options {
   activationMode?: ActivationMode;
   keyHoldDuration?: number;
   allowActivationInsideInput?: boolean;
-  maxContextLines?: number;
   activationKey?: ActivationKey;
   getContent?: (elements: Element[]) => Promise<string> | string;
   /**
