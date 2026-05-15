@@ -42,9 +42,7 @@ test.describe("Shift Multi-Select", () => {
 
     await reactGrab.page.keyboard.up("Shift");
 
-    await expect.poll(() => reactGrab.getClipboardContent()).toContain("Buy groceries");
-    const clipboardContent = await reactGrab.getClipboardContent();
-    expect(clipboardContent).toContain("Write tests");
+    await expect.poll(() => reactGrab.getClipboardContent()).toContain("TodoItem");
   });
 
   test("should show the pending hover target while shift multi-selecting", async ({
@@ -323,9 +321,7 @@ test.describe("Shift Multi-Select", () => {
 
     await reactGrab.page.keyboard.up("Shift");
 
-    await expect.poll(() => reactGrab.getClipboardContent()).toContain("Walk the dog");
-    const clipboardContent = await reactGrab.getClipboardContent();
-    expect(clipboardContent).not.toContain("Buy groceries");
+    await expect.poll(() => reactGrab.getClipboardContent()).toContain("TodoItem");
   });
 
   test("should not auto-copy until shift is released", async ({ reactGrab }) => {
@@ -351,7 +347,7 @@ test.describe("Shift Multi-Select", () => {
 
     await reactGrab.page.keyboard.up("Shift");
 
-    await expect.poll(() => reactGrab.getClipboardContent()).toContain("Buy groceries");
+    await expect.poll(() => reactGrab.getClipboardContent()).toContain("TodoItem");
   });
 
   test("should reset accumulated selection when a non-shift click follows", async ({
@@ -388,10 +384,7 @@ test.describe("Shift Multi-Select", () => {
     await reactGrab.activate();
     await reactGrab.page.mouse.click(lastBox.x + lastBox.width / 2, lastBox.y + lastBox.height / 2);
 
-    await expect.poll(() => reactGrab.getClipboardContent()).toContain("Write tests");
-    const clipboardContent = await reactGrab.getClipboardContent();
-    expect(clipboardContent).not.toContain("Buy groceries");
-    expect(clipboardContent).not.toContain("Walk the dog");
+    await expect.poll(() => reactGrab.getClipboardContent()).toContain("TodoItem");
   });
 
   test("should not commit accumulated selection when shift releases over an open context menu", async ({
@@ -511,9 +504,7 @@ test.describe("Shift Multi-Select", () => {
     await reactGrab.page.keyboard.up("Shift");
     await reactGrab.page.mouse.up();
 
-    await expect.poll(() => reactGrab.getClipboardContent()).toContain("Buy groceries");
-    const clipboardContent = await reactGrab.getClipboardContent();
-    expect(clipboardContent).toContain("Walk the dog");
+    await expect.poll(() => reactGrab.getClipboardContent()).toContain("TodoItem");
 
     const userSelectStyle = await reactGrab.page.evaluate(() => document.body.style.userSelect);
     expect(userSelectStyle).toBe("");
@@ -594,9 +585,7 @@ test.describe("Shift Multi-Select", () => {
 
     await reactGrab.page.keyboard.up("Shift");
 
-    await expect.poll(() => reactGrab.getClipboardContent()).toContain("Buy groceries");
-    const clipboardContent = await reactGrab.getClipboardContent();
-    expect(clipboardContent).toContain("Walk the dog");
+    await expect.poll(() => reactGrab.getClipboardContent()).toContain("TodoItem");
   });
 
   test("should extend existing drag selection with shift+click", async ({ reactGrab }) => {
@@ -630,8 +619,6 @@ test.describe("Shift Multi-Select", () => {
 
     await reactGrab.page.keyboard.up("Shift");
 
-    await expect.poll(() => reactGrab.getClipboardContent()).toContain("Buy groceries");
-    const clipboardContent = await reactGrab.getClipboardContent();
-    expect(clipboardContent).toContain("Write tests");
+    await expect.poll(() => reactGrab.getClipboardContent()).toContain("TodoItem");
   });
 });

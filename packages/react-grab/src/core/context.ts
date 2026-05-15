@@ -459,16 +459,11 @@ export const getElementContext = async (
 };
 
 const getFallbackContext = (element: Element): string => {
-  const tagName = getTagName(element);
-
   if (!(element instanceof HTMLElement)) {
-    const attrsHint = formatPriorityAttrs(element, {
-      truncate: false,
-      maxAttrs: PREVIEW_PRIORITY_ATTRS.length,
-    });
-    return `<${tagName}${attrsHint} />`;
+    return getInlineHTMLPreview(element);
   }
 
+  const tagName = getTagName(element);
   const attrsText = formatAttrsForPreview(element);
   const directText = getDirectTextContent(element);
   const truncatedText = truncateString(directText, PREVIEW_TEXT_MAX_LENGTH);
@@ -532,7 +527,7 @@ const formatAttrsForPreview = (element: Element): string => {
   return identifyingParts.join("") + remainingParts.join("") + classAttr;
 };
 
-const getDirectTextContent = (element: Element): string => {
+export const getDirectTextContent = (element: Element): string => {
   let directText = "";
   for (const node of element.childNodes) {
     if (node.nodeType === Node.TEXT_NODE) {
@@ -551,6 +546,27 @@ const formatChildElements = (elements: Array<Element>): string => {
     return elements.map((childElement) => `<${getTagName(childElement)} ...>`).join("\n  ");
   }
   return `(${elements.length} elements)`;
+};
+
+export const getInlineHTMLPreview = (element: Element): string => {
+  const tagName = getTagName(element);
+
+  if (!(element instanceof HTMLElement)) {
+    const attrsHint = formatPriorityAttrs(element, {
+      truncate: false,
+      maxAttrs: PREVIEW_PRIORITY_ATTRS.length,
+    });
+    return `<${tagName}${attrsHint} />`;
+  }
+
+  const attrsText = formatAttrsForPreview(element);
+  const directText = getDirectTextContent(element);
+  const truncatedText = truncateString(directText, PREVIEW_TEXT_MAX_LENGTH);
+
+  if (truncatedText) {
+    return `<${tagName}${attrsText}>${truncatedText}</${tagName}>`;
+  }
+  return `<${tagName}${attrsText} />`;
 };
 
 export const getHTMLPreview = (element: Element): string => {

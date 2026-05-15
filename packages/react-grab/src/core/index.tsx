@@ -70,7 +70,6 @@ import {
   INPUT_FOCUS_ACTIVATION_DELAY_MS,
   INPUT_TEXT_SELECTION_ACTIVATION_DELAY_MS,
   DEFAULT_KEY_HOLD_DURATION_MS,
-  DEFAULT_MAX_CONTEXT_LINES,
   MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS,
   ZOOM_DETECTION_THRESHOLD,
   WINDOW_REFOCUS_GRACE_PERIOD_MS,
@@ -123,8 +122,7 @@ import { loadToolbarState, saveToolbarState } from "../components/toolbar/state.
 import { copyPlugin } from "./plugins/copy.js";
 import { commentPlugin } from "./plugins/comment.js";
 import { openPlugin } from "./plugins/open.js";
-import { copyHtmlPlugin } from "./plugins/copy-html.js";
-import { copyStylesPlugin } from "./plugins/copy-styles.js";
+import { copyDetailsPlugin } from "./plugins/copy-details.js";
 import {
   freezeAnimations,
   freezeAllAnimations,
@@ -147,7 +145,7 @@ import { generateId } from "../utils/generate-id.js";
 import { logRecoverableError } from "../utils/log-recoverable-error.js";
 import { getNearestEdge } from "../utils/get-nearest-edge.js";
 
-const builtInPlugins = [copyPlugin, commentPlugin, copyHtmlPlugin, copyStylesPlugin, openPlugin];
+const builtInPlugins = [copyPlugin, commentPlugin, copyDetailsPlugin, openPlugin];
 
 interface CopyWithLabelOptions {
   element: Element;
@@ -193,7 +191,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     activationMode: "toggle",
     keyHoldDuration: DEFAULT_KEY_HOLD_DURATION_MS,
     allowActivationInsideInput: true,
-    maxContextLines: DEFAULT_MAX_CONTEXT_LINES,
     ...scriptOptions,
     ...rawOptions,
   };
@@ -840,13 +837,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       return tryCopyWithFallback(
         {
-          maxContextLines: pluginRegistry.store.options.maxContextLines,
           getContent: pluginRegistry.store.options.getContent,
           componentName: elementName,
         },
         {
           onBeforeCopy: pluginRegistry.hooks.onBeforeCopy,
-          transformSnippet: pluginRegistry.hooks.transformSnippet,
           transformCopyContent: pluginRegistry.hooks.transformCopyContent,
           onAfterCopy: pluginRegistry.hooks.onAfterCopy,
           onCopySuccess: (copiedElements: Element[], content: string) => {

@@ -125,7 +125,7 @@ test.describe("Disabled Element Selection", () => {
     await reactGrab.waitForSelectionBox();
 
     await reactGrab.page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
-    await expect.poll(() => reactGrab.getClipboardContent()).toContain("Pointer Events None");
+    await expect.poll(() => reactGrab.getClipboardContent()).toContain("disabled-test-container");
   });
 
   test("should select nested disabled element inside enabled parent", async ({ reactGrab }) => {

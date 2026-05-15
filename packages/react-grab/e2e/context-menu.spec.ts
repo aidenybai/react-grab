@@ -299,7 +299,7 @@ test.describe("Context Menu", () => {
       await reactGrab.page.waitForTimeout(500);
 
       const clipboardContent = await reactGrab.getClipboardContent();
-      expect(clipboardContent).toContain("Walk the dog");
+      expect(clipboardContent).toContain("TodoItem");
     });
   });
 

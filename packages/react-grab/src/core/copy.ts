@@ -1,22 +1,73 @@
-import { copyContent, type ReactGrabEntry } from "../utils/copy-content.js";
-import { generateSnippet } from "../utils/generate-snippet.js";
-import { joinSnippets } from "../utils/join-snippets.js";
+import {
+  resolveSource,
+  checkIsNextProject,
+  getComponentDisplayName,
+  getDirectTextContent,
+  getInlineHTMLPreview,
+} from "./context.js";
+import { COMPACT_IDENTIFYING_ATTRS, COMPACT_TEXT_MAX_LENGTH } from "../constants.js";
+import { copyContent } from "../utils/copy-content.js";
+import { getTagName } from "../utils/get-tag-name.js";
 import { normalizeError } from "../utils/normalize-error.js";
+import { truncateString } from "../utils/truncate-string.js";
 
 interface CopyOptions {
-  maxContextLines?: number;
   getContent?: (elements: Element[]) => Promise<string> | string;
   componentName?: string;
 }
 
 interface CopyHooks {
   onBeforeCopy: (elements: Element[]) => Promise<void>;
-  transformSnippet: (snippet: string, element: Element) => Promise<string>;
   transformCopyContent: (content: string, elements: Element[]) => Promise<string>;
   onAfterCopy: (elements: Element[], success: boolean) => void;
   onCopySuccess: (elements: Element[], content: string) => void;
   onCopyError: (error: Error) => void;
 }
+
+const formatCompactReference = (
+  element: Element,
+  source: Awaited<ReturnType<typeof resolveSource>>,
+  isNextProject: boolean,
+): string => {
+  const tagName = getTagName(element);
+  const componentName = source?.componentName ?? getComponentDisplayName(element);
+
+  if (!source && !componentName) {
+    return `[${getInlineHTMLPreview(element)}]`;
+  }
+
+  let identifyingAttrs = "";
+  for (const attrName of COMPACT_IDENTIFYING_ATTRS) {
+    const attrValue = element.getAttribute(attrName);
+    if (attrValue) {
+      identifyingAttrs += ` ${attrName}="${attrValue.replaceAll('"', "'")}"`;
+    }
+  }
+  const directText = getDirectTextContent(element);
+  const sanitizedText = directText.replaceAll('"', "'");
+  const textSnippet = sanitizedText
+    ? ` "${truncateString(sanitizedText, COMPACT_TEXT_MAX_LENGTH)}"`
+    : "";
+
+  const parts = [`<${tagName}${identifyingAttrs}>${textSnippet}`];
+  if (componentName) parts.push(`in ${componentName}`);
+  if (source) {
+    const lineReference = isNextProject && source.lineNumber ? `:${source.lineNumber}` : "";
+    parts.push(`@${source.filePath}${lineReference}`);
+  }
+  return `[${parts.join(" ")}]`;
+};
+
+const buildCompactContent = async (elements: Element[]): Promise<string | null> => {
+  const isNextProject = checkIsNextProject();
+  const resolvedSources = await Promise.all(elements.map(resolveSource));
+  const uniqueReferences = new Set(
+    elements.map((element, index) =>
+      formatCompactReference(element, resolvedSources[index], isNextProject),
+    ),
+  );
+  return uniqueReferences.size > 0 ? [...uniqueReferences].join("\n") : null;
+};
 
 export const tryCopyWithFallback = async (
   options: CopyOptions,
@@ -30,40 +81,17 @@ export const tryCopyWithFallback = async (
   await hooks.onBeforeCopy(elements);
 
   try {
-    let generatedContent: string;
-    let entries: ReactGrabEntry[] | undefined;
+    const generatedContent = options.getContent
+      ? await options.getContent(elements)
+      : await buildCompactContent(elements);
 
-    if (options.getContent) {
-      generatedContent = await options.getContent(elements);
-    } else {
-      const rawSnippets = await generateSnippet(elements, {
-        maxLines: options.maxContextLines,
-      });
-      const transformedSnippets = await Promise.all(
-        rawSnippets.map((snippet, index) =>
-          snippet.trim() ? hooks.transformSnippet(snippet, elements[index]) : Promise.resolve(""),
-        ),
-      );
-      const snippetElementPairs = transformedSnippets
-        .map((snippet, index) => ({ snippet, element: elements[index] }))
-        .filter(({ snippet }) => snippet.trim());
-
-      generatedContent = joinSnippets(snippetElementPairs.map(({ snippet }) => snippet));
-      entries = snippetElementPairs.map(({ snippet, element }) => ({
-        tagName: element.localName,
-        content: snippet,
-        commentText: extraPrompt,
-      }));
-    }
-
-    if (generatedContent.trim()) {
+    if (generatedContent?.trim()) {
       const transformedContent = await hooks.transformCopyContent(generatedContent, elements);
 
-      copiedContent = extraPrompt ? `${extraPrompt}\n\n${transformedContent}` : transformedContent;
+      copiedContent = extraPrompt ? `${extraPrompt}\n${transformedContent}` : transformedContent;
 
       didCopy = copyContent(copiedContent, {
         componentName: options.componentName,
-        entries,
       });
     }
   } catch (error) {
