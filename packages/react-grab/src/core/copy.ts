@@ -40,12 +40,13 @@ const formatCompactReference = (
   for (const attrName of COMPACT_IDENTIFYING_ATTRS) {
     const attrValue = element.getAttribute(attrName);
     if (attrValue) {
-      identifyingAttrs += ` ${attrName}="${attrValue}"`;
+      identifyingAttrs += ` ${attrName}="${attrValue.replaceAll('"', "'")}"`;
     }
   }
   const directText = getDirectTextContent(element);
-  const textSnippet = directText
-    ? ` "${truncateString(directText, COMPACT_TEXT_MAX_LENGTH)}"`
+  const sanitizedText = directText.replaceAll('"', "'");
+  const textSnippet = sanitizedText
+    ? ` "${truncateString(sanitizedText, COMPACT_TEXT_MAX_LENGTH)}"`
     : "";
 
   const parts = [`<${tagName}${identifyingAttrs}>${textSnippet}`];

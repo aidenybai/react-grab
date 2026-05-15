@@ -21,7 +21,7 @@ import { Fiber, getFiberFromHostInstance } from "bippy";
 import type { StackFrame } from "bippy/source";
 export type { StackFrame };
 import { createElementSelector } from "./utils/create-element-selector.js";
-import { extractElementCss } from "./utils/extract-element-css.js";
+import { extractElementCss, disposeBaselineStyles } from "./utils/extract-element-css.js";
 import { openFile as openFileAsync } from "./utils/open-file.js";
 
 export interface ReactGrabElementContext {
@@ -163,3 +163,5 @@ export const isFreezeActive = (): boolean => {
 export const openFile = async (filePath: string, lineNumber?: number): Promise<void> => {
   await openFileAsync(filePath, lineNumber);
 };
+
+export { disposeBaselineStyles };
