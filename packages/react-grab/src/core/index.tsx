@@ -227,8 +227,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const currentState = current();
       return (
         currentState.state === "active" &&
-        (currentState.phase === "dragging-select" ||
-          currentState.phase === "dragging-reposition")
+        (currentState.phase === "dragging-select" || currentState.phase === "dragging-reposition")
       );
     });
     // True only when the drag has actually moved beyond the click threshold.

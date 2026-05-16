@@ -634,9 +634,7 @@ export default function App() {
   const perfConfig = usePerfGridConfig();
 
   if (perfConfig) {
-    return (
-      <PerfGrid rowCount={perfConfig.rowCount} columnCount={perfConfig.columnCount} />
-    );
+    return <PerfGrid rowCount={perfConfig.rowCount} columnCount={perfConfig.columnCount} />;
   }
 
   return (

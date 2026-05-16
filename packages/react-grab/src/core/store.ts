@@ -416,9 +416,7 @@ const createGrabStore = (input: GrabStoreInput) => {
           setStore("previouslyFocusedElement", document.activeElement);
         } else {
           setCurrent((prev) =>
-            prev.state === "active"
-              ? { ...prev, isPromptMode: true, phase: "frozen" }
-              : prev,
+            prev.state === "active" ? { ...prev, isPromptMode: true, phase: "frozen" } : prev,
           );
         }
       });
@@ -426,9 +424,7 @@ const createGrabStore = (input: GrabStoreInput) => {
 
     exitPromptMode: () => {
       setCurrent((prev) =>
-        prev.state === "active"
-          ? { ...prev, isPromptMode: false, isPendingDismiss: false }
-          : prev,
+        prev.state === "active" ? { ...prev, isPromptMode: false, isPendingDismiss: false } : prev,
       );
     },
 
@@ -441,9 +437,7 @@ const createGrabStore = (input: GrabStoreInput) => {
     },
 
     setPendingDismiss: (value: boolean) => {
-      setCurrent((prev) =>
-        prev.state === "active" ? { ...prev, isPendingDismiss: value } : prev,
-      );
+      setCurrent((prev) => (prev.state === "active" ? { ...prev, isPendingDismiss: value } : prev));
     },
 
     setPointer: (position: Position) => {
