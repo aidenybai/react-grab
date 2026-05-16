@@ -1,3 +1,4 @@
+import { createEventListener } from "./create-event-listener.js";
 import { isEventFromOverlay } from "./is-event-from-overlay.js";
 import { isKeyboardEventTriggeredByInput } from "./is-keyboard-event-triggered-by-input.js";
 import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "./native-raf.js";
@@ -9,6 +10,8 @@ interface RegisterOverlayDismissOptions {
   shouldIgnoreInputEvents?: boolean;
   shouldIgnoreRightClick?: boolean;
 }
+
+const CAPTURE_OPTIONS: AddEventListenerOptions = { capture: true };
 
 export const registerOverlayDismiss = (options: RegisterOverlayDismissOptions): (() => void) => {
   const handleKeyDown = (event: KeyboardEvent) => {
@@ -40,27 +43,25 @@ export const registerOverlayDismiss = (options: RegisterOverlayDismissOptions): 
     options.onDismiss();
   };
 
+  const dismissListener = createEventListener<WindowEventMap>({
+    keydown: handleKeyDown,
+    mousedown: handleClickOutside,
+    touchstart: handleClickOutside,
+  });
+
   // Click registration is deferred to the next frame so the same click or
   // touch that opened the overlay does not immediately trigger a dismiss.
   const frameId = nativeRequestAnimationFrame(() => {
-    window.addEventListener("mousedown", handleClickOutside, {
-      capture: true,
-    });
-    window.addEventListener("touchstart", handleClickOutside, {
-      capture: true,
-    });
+    window.addEventListener("mousedown", dismissListener, CAPTURE_OPTIONS);
+    window.addEventListener("touchstart", dismissListener, CAPTURE_OPTIONS);
   });
 
-  window.addEventListener("keydown", handleKeyDown, { capture: true });
+  window.addEventListener("keydown", dismissListener, CAPTURE_OPTIONS);
 
   return () => {
     nativeCancelAnimationFrame(frameId);
-    window.removeEventListener("keydown", handleKeyDown, { capture: true });
-    window.removeEventListener("mousedown", handleClickOutside, {
-      capture: true,
-    });
-    window.removeEventListener("touchstart", handleClickOutside, {
-      capture: true,
-    });
+    window.removeEventListener("keydown", dismissListener, CAPTURE_OPTIONS);
+    window.removeEventListener("mousedown", dismissListener, CAPTURE_OPTIONS);
+    window.removeEventListener("touchstart", dismissListener, CAPTURE_OPTIONS);
   };
 };

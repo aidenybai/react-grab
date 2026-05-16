@@ -3,6 +3,7 @@ import type { Accessor } from "solid-js";
 import type { Position } from "../types.js";
 import type { SnapEdge } from "../components/toolbar/state.js";
 import { TOOLBAR_DRAG_THRESHOLD_PX, TOOLBAR_SNAP_ANIMATION_DURATION_MS } from "../constants.js";
+import { createEventListener } from "./create-event-listener.js";
 import { nativeRequestAnimationFrame } from "./native-raf.js";
 import {
   getRatioFromPosition,
@@ -144,6 +145,12 @@ export const createToolbarDrag = (config: ToolbarDragConfig): ToolbarDragResult 
     });
   };
 
+  const dragListener = createEventListener<WindowEventMap>({
+    pointermove: handleWindowPointerMove,
+    pointerup: handleWindowPointerUp,
+    pointercancel: handleWindowPointerUp,
+  });
+
   const handlePointerDown = (event: PointerEvent) => {
     if (event.button !== 0) return;
     if (config.isCollapsed()) return;
@@ -170,9 +177,9 @@ export const createToolbarDrag = (config: ToolbarDragConfig): ToolbarDragResult 
     teardownDragListeners();
     dragAbortController = new AbortController();
     const { signal } = dragAbortController;
-    window.addEventListener("pointermove", handleWindowPointerMove, { signal });
-    window.addEventListener("pointerup", handleWindowPointerUp, { signal });
-    window.addEventListener("pointercancel", handleWindowPointerUp, { signal });
+    window.addEventListener("pointermove", dragListener, { signal });
+    window.addEventListener("pointerup", dragListener, { signal });
+    window.addEventListener("pointercancel", dragListener, { signal });
   };
 
   const createDragAwareHandler = (callback: () => void) => (event: MouseEvent) => {
