@@ -1,4 +1,5 @@
 import { createStore, produce } from "solid-js/store";
+import { batch } from "solid-js";
 import type { Position, Theme, GrabbedBox, SelectionLabelInstance } from "../types.js";
 import { OFFSCREEN_POSITION } from "../constants.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
@@ -528,12 +529,10 @@ const createGrabStore = (input: GrabStoreInput) => {
     },
 
     setSelectionSource: (filePath: string | null, lineNumber: number | null) => {
-      setStore(
-        produce((draft) => {
-          draft.selectionFilePath = filePath;
-          draft.selectionLineNumber = lineNumber;
-        }),
-      );
+      batch(() => {
+        setStore("selectionFilePath", filePath);
+        setStore("selectionLineNumber", lineNumber);
+      });
     },
 
     incrementViewportVersion: () => {
@@ -563,16 +562,12 @@ const createGrabStore = (input: GrabStoreInput) => {
     ) => {
       const index = store.labelInstances.findIndex((instance) => instance.id === instanceId);
       if (index !== -1) {
-        setStore(
-          "labelInstances",
-          index,
-          produce((instance) => {
-            instance.status = status;
-            if (errorMessage !== undefined) {
-              instance.errorMessage = errorMessage;
-            }
-          }),
-        );
+        batch(() => {
+          setStore("labelInstances", index, "status", status);
+          if (errorMessage !== undefined) {
+            setStore("labelInstances", index, "errorMessage", errorMessage);
+          }
+        });
       }
     },
 
@@ -589,26 +584,22 @@ const createGrabStore = (input: GrabStoreInput) => {
     showContextMenu: (position: Position, element: Element) => {
       const bounds = createElementBounds(element);
       const { x: centerX, y: centerY } = getBoundsCenter(bounds);
-      setStore(
-        produce((draft) => {
-          draft.contextMenuPosition = position;
-          draft.contextMenuElement = element;
-          draft.contextMenuClickOffset = {
-            x: position.x - centerX,
-            y: position.y - centerY,
-          };
-        }),
-      );
+      batch(() => {
+        setStore("contextMenuPosition", position);
+        setStore("contextMenuElement", element);
+        setStore("contextMenuClickOffset", {
+          x: position.x - centerX,
+          y: position.y - centerY,
+        });
+      });
     },
 
     hideContextMenu: () => {
-      setStore(
-        produce((draft) => {
-          draft.contextMenuPosition = null;
-          draft.contextMenuElement = null;
-          draft.contextMenuClickOffset = null;
-        }),
-      );
+      batch(() => {
+        setStore("contextMenuPosition", null);
+        setStore("contextMenuElement", null);
+        setStore("contextMenuClickOffset", null);
+      });
     },
 
     updateContextMenuPosition: () => {
