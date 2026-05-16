@@ -1,6 +1,6 @@
 {
-  "label": "stage-0-baseline",
-  "timestamp": "2026-05-16T02-22-00-693Z",
+  "label": "stage-3-mapArray",
+  "timestamp": "2026-05-16T02-22-30-719Z",
   "gitSha": null,
   "gridSize": {
     "rows": 50,
@@ -10,23 +10,23 @@
   "scenarios": {
     "hoverSweep": {
       "count": 1500,
-      "total": 38.9,
-      "mean": 0.026,
+      "total": 42.6,
+      "mean": 0.028,
       "median": 0,
       "p95": 0.1,
-      "max": 1.7
+      "max": 2.3
     },
     "scrollOnly": {
       "count": 300,
-      "total": 5.9,
-      "mean": 0.02,
+      "total": 10,
+      "mean": 0.033,
       "median": 0,
       "p95": 0.1,
-      "max": 0.3
+      "max": 4.1
     },
     "getStateReadAmplification": {
       "count": 5000,
-      "total": 1.7,
+      "total": 1.3,
       "mean": 0,
       "median": 0,
       "p95": 0,
@@ -34,19 +34,19 @@
     },
     "viewportInvalidationBurst": {
       "count": 100,
-      "total": 7352.6,
-      "mean": 73.526,
-      "median": 70.4,
-      "p95": 86.7,
-      "max": 116.1
+      "total": 7204.7,
+      "mean": 72.047,
+      "median": 70,
+      "p95": 83.2,
+      "max": 96.8
     },
     "multiFreezeInvalidationBurst": {
       "count": 100,
-      "total": 7779.3,
-      "mean": 77.793,
-      "median": 77.3,
-      "p95": 88.3,
-      "max": 102.3
+      "total": 7895.1,
+      "mean": 78.951,
+      "median": 78.1,
+      "p95": 89.7,
+      "max": 110
     }
   }
 }

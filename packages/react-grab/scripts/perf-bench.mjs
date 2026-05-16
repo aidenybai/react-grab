@@ -216,6 +216,49 @@ const runScenarios = async (page) => {
     { burstCount: 100 },
   );
 
+  log("scenario: multi_freeze_invalidation (8 frozen elements, 100 bursts)");
+  await page.evaluate(() => window.__REACT_GRAB__?.activate?.());
+  const cellPositions = await page.evaluate(({ elementsToFreeze }) => {
+    const cells = Array.from(document.querySelectorAll("[data-perf-row][data-perf-column]"));
+    const stride = Math.max(1, Math.floor(cells.length / elementsToFreeze));
+    const positions = [];
+    for (let cellIndex = 0; cellIndex < elementsToFreeze; cellIndex++) {
+      const cell = cells[cellIndex * stride];
+      if (!cell) break;
+      const rect = cell.getBoundingClientRect();
+      positions.push({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+    }
+    return positions;
+  }, { elementsToFreeze: 8 });
+
+  await page.keyboard.down("Shift");
+  for (const position of cellPositions) {
+    await page.mouse.click(position.x, position.y);
+    await page.waitForTimeout(40);
+  }
+  const frozenCount = await page.evaluate(() => window.__REACT_GRAB__?.getState?.()?.targetElement ? 1 : 0);
+  log(`  ${cellPositions.length} cells shift-clicked (post-click hint: ${frozenCount})`);
+
+  results.multiFreezeInvalidationBurst = await page.evaluate(
+    async ({ burstCount }) => {
+      const samples = [];
+      for (let burstIndex = 0; burstIndex < burstCount; burstIndex++) {
+        const startedAt = performance.now();
+        for (let innerIndex = 0; innerIndex < 5; innerIndex++) {
+          window.dispatchEvent(new Event("scroll"));
+          window.dispatchEvent(new Event("resize"));
+        }
+        await new Promise((resolveTimer) => requestAnimationFrame(() => resolveTimer()));
+        samples.push(performance.now() - startedAt);
+      }
+      return samples;
+    },
+    { burstCount: 100 },
+  );
+
+  await page.keyboard.up("Shift");
+  await page.evaluate(() => window.__REACT_GRAB__?.deactivate?.());
+
   return {
     scenarios: Object.fromEntries(
       Object.entries(results).map(([scenarioName, samples]) => [scenarioName, summarize(samples)]),

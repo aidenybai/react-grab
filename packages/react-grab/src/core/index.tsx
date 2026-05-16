@@ -9,6 +9,7 @@ import {
   createResource,
   on,
   batch,
+  mapArray,
 } from "solid-js";
 import { render } from "solid-js/web";
 import { createGrabStore } from "./store.js";
@@ -1046,9 +1047,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return isRendererActive() && !isActivelyDragging();
     };
 
-    const frozenElementsBounds = createMemo((): OverlayBounds[] => {
-      void store.viewportVersion;
+    const frozenElementBoundsAccessors = mapArray(
+      () => store.frozenElements,
+      (element) =>
+        createMemo(() => {
+          void store.viewportVersion;
+          return createElementBounds(element);
+        }),
+    );
 
+    const frozenElementsBounds = createMemo((): OverlayBounds[] => {
       const frozenElements = store.frozenElements;
       if (frozenElements.length === 0) return [];
 
@@ -1057,9 +1065,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return [createBoundsFromDragRect(dragRect)];
       }
 
-      return frozenElements
-        .filter((element): element is Element => element !== null)
-        .map((element) => createElementBounds(element));
+      return frozenElementBoundsAccessors().map((readBounds) => readBounds());
     });
 
     const pendingShiftSelectionElement = createMemo((): Element | null => {
@@ -1202,22 +1208,31 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return frozenElementsBounds();
     });
 
-    const frozenLabelEntries = createMemo((): FrozenLabelEntry[] => {
-      void store.viewportVersion;
-      if (isPromptMode() || store.frozenElements.length < 2) return [];
-      return store.frozenElements.filter(isElementConnected).map((element) => {
-        const bounds = createElementBounds(element);
-        const anchorRatio = shiftSelectionLabelAnchorRatioByElement.get(element);
-        const mouseX =
-          anchorRatio === undefined ? undefined : bounds.x + bounds.width * anchorRatio;
+    const frozenLabelEntryAccessors = mapArray(
+      () => store.frozenElements,
+      (element) => {
+        const tagName = getTagName(element) || "element";
         const componentName = getComponentDisplayName(element) ?? undefined;
-        return {
-          tagName: getTagName(element) || "element",
-          componentName,
-          bounds,
-          mouseX,
-        };
-      });
+        return createMemo<FrozenLabelEntry | null>(() => {
+          void store.viewportVersion;
+          if (!isElementConnected(element)) return null;
+          const bounds = createElementBounds(element);
+          const anchorRatio = shiftSelectionLabelAnchorRatioByElement.get(element);
+          const mouseX =
+            anchorRatio === undefined ? undefined : bounds.x + bounds.width * anchorRatio;
+          return { tagName, componentName, bounds, mouseX };
+        });
+      },
+    );
+
+    const frozenLabelEntries = createMemo((): FrozenLabelEntry[] => {
+      if (isPromptMode() || store.frozenElements.length < 2) return [];
+      const entries: FrozenLabelEntry[] = [];
+      for (const readEntry of frozenLabelEntryAccessors()) {
+        const entry = readEntry();
+        if (entry !== null) entries.push(entry);
+      }
+      return entries;
     });
 
     const cursorPosition = createMemo(() => {
