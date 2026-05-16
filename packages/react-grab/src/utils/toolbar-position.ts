@@ -10,6 +10,8 @@ import {
 import { getVisualViewport } from "./get-visual-viewport.js";
 import { clampToRange } from "./clamp-to-range.js";
 
+const { max: mathMax, min: mathMin } = Math;
+
 export const isHorizontalEdge = (edge: SnapEdge): boolean => edge === "top" || edge === "bottom";
 
 // Collapsed pill dimensions depend on the snap edge orientation: the LONG
@@ -33,30 +35,30 @@ export const getPositionFromEdgeAndRatio = (
   const viewportHeight = viewport.height;
 
   const minX = viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX;
-  const maxX = Math.max(
+  const maxX = mathMax(
     minX,
     viewport.offsetLeft + viewportWidth - elementWidth - TOOLBAR_SNAP_MARGIN_PX,
   );
   const minY = viewport.offsetTop + TOOLBAR_SNAP_MARGIN_PX;
-  const maxY = Math.max(
+  const maxY = mathMax(
     minY,
     viewport.offsetTop + viewportHeight - elementHeight - TOOLBAR_SNAP_MARGIN_PX,
   );
 
   if (edge === "top" || edge === "bottom") {
-    const availableWidth = Math.max(0, viewportWidth - elementWidth - TOOLBAR_SNAP_MARGIN_PX * 2);
-    const positionX = Math.min(
+    const availableWidth = mathMax(0, viewportWidth - elementWidth - TOOLBAR_SNAP_MARGIN_PX * 2);
+    const positionX = mathMin(
       maxX,
-      Math.max(minX, viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX + availableWidth * ratio),
+      mathMax(minX, viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX + availableWidth * ratio),
     );
     const positionY = edge === "top" ? minY : maxY;
     return { x: positionX, y: positionY };
   }
 
-  const availableHeight = Math.max(0, viewportHeight - elementHeight - TOOLBAR_SNAP_MARGIN_PX * 2);
-  const positionY = Math.min(
+  const availableHeight = mathMax(0, viewportHeight - elementHeight - TOOLBAR_SNAP_MARGIN_PX * 2);
+  const positionY = mathMin(
     maxY,
-    Math.max(minY, viewport.offsetTop + TOOLBAR_SNAP_MARGIN_PX + availableHeight * ratio),
+    mathMax(minY, viewport.offsetTop + TOOLBAR_SNAP_MARGIN_PX + availableHeight * ratio),
   );
   const positionX = edge === "left" ? minX : maxX;
   return { x: positionX, y: positionY };
@@ -76,16 +78,16 @@ export const getRatioFromPosition = (
   if (edge === "top" || edge === "bottom") {
     const availableWidth = viewportWidth - elementWidth - TOOLBAR_SNAP_MARGIN_PX * 2;
     if (availableWidth <= 0) return TOOLBAR_DEFAULT_POSITION_RATIO;
-    return Math.max(
+    return mathMax(
       0,
-      Math.min(1, (positionX - viewport.offsetLeft - TOOLBAR_SNAP_MARGIN_PX) / availableWidth),
+      mathMin(1, (positionX - viewport.offsetLeft - TOOLBAR_SNAP_MARGIN_PX) / availableWidth),
     );
   }
   const availableHeight = viewportHeight - elementHeight - TOOLBAR_SNAP_MARGIN_PX * 2;
   if (availableHeight <= 0) return TOOLBAR_DEFAULT_POSITION_RATIO;
-  return Math.max(
+  return mathMax(
     0,
-    Math.min(1, (positionY - viewport.offsetTop - TOOLBAR_SNAP_MARGIN_PX) / availableHeight),
+    mathMin(1, (positionY - viewport.offsetTop - TOOLBAR_SNAP_MARGIN_PX) / availableHeight),
   );
 };
 
@@ -219,7 +221,7 @@ export const getSnapPosition = (
   const distanceToLeft = projectedX - viewport.offsetLeft + elementWidth / 2;
   const distanceToRight = viewport.offsetLeft + viewportWidth - projectedX - elementWidth / 2;
 
-  const minDistance = Math.min(distanceToTop, distanceToBottom, distanceToLeft, distanceToRight);
+  const minDistance = mathMin(distanceToTop, distanceToBottom, distanceToLeft, distanceToRight);
 
   const clampX = (rawX: number) =>
     clampToRange(
