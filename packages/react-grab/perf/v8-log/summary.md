@@ -1,0 +1,918 @@
+# React Grab — V8 deopt + IC summary
+
+Generated from a dexnode-equivalent --js-flags Chromium run. See manifest.json for flags.
+
+- total deopts: **90**
+- total IC events: **19876**
+- JS code blobs: **2748**
+- react-grab-source deopts: **72**
+- react-grab megamorphic IC sites: **62** (2713 events)
+- react-grab polymorphic IC sites: **171** (342 events)
+
+## Top deopt reasons
+- `wrong map` — 25
+- `Insufficient type feedback for generic named access` — 15
+- `Insufficient type feedback for call` — 11
+- `dependent field type constness changed` — 11
+- `(unknown)` — 9
+- `dependent prototype chain changed` — 7
+- `wrong call target` — 4
+- `prepare for on stack replacement (OSR)` — 2
+- `Insufficient type feedback for compare operation` — 1
+- `Insufficient type feedback for construct` — 1
+- `unexpected name in keyed access` — 1
+- `wrong instance type` — 1
+- `wrong feedback cell` — 1
+- `Insufficient type feedback for generic keyed access` — 1
+
+## Top deopt scripts
+- `http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js` — 31
+- `http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js` — 21
+- `http://localhost:5175/node_modules/.vite/deps/react-dom_client.js?v=90bfcce4` — 14
+- `http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js` — 14
+- `http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js` — 6
+- `unknown` — 4
+
+## React-grab deopts
+- `deopt-eager` — `wrong call target`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1671:17
+- `deopt-lazy` — `(unknown)`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1671:23
+- `deopt-lazy` — `(unknown)`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1671:23
+- `deopt-eager` — `wrong call target`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:144:11
+- `deopt-eager` — `Insufficient type feedback for generic named access`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:2036:10
+- `deopt-eager` — `wrong map`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:78:40
+- `deopt-eager` — `Insufficient type feedback for generic named access`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1303:22
+- `deopt-eager` — `Insufficient type feedback for call`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:148:22
+- `deopt-eager` — `Insufficient type feedback for generic named access`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:999:23
+- `deopt-eager` — `Insufficient type feedback for call`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:148:22
+- `deopt-eager` — `wrong map`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:228:97
+- `deopt-eager` — `wrong map`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:879:12
+- `deopt-eager` — `wrong map`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:96:22
+- `dependency-change` — `dependent field type constness changed`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:1188:9
+- `dependency-change` — `dependent field type constness changed`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:1721:10
+- `dependency-change` — `dependent field type constness changed`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:2371:12
+- `dependency-change` — `dependent field type constness changed`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1909:6
+- `dependency-change` — `dependent field type constness changed`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1883:12
+- `dependency-change` — `dependent field type constness changed`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1801:14
+- `deopt-eager` — `unexpected name in keyed access`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:257:143
+- `deopt-eager` — `Insufficient type feedback for call`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1717:17
+- `deopt-eager` — `Insufficient type feedback for generic named access`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:281:33
+- `deopt-eager` — `Insufficient type feedback for generic named access`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:381:20
+- `deopt-eager` — `Insufficient type feedback for generic named access`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:381:20
+- `deopt-eager` — `wrong call target`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:220:26
+- `deopt-eager` — `Insufficient type feedback for generic named access`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:164:14
+- `deopt-eager` — `wrong instance type`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:75:31
+- `deopt-eager` — `Insufficient type feedback for call`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1308:11
+- `deopt-eager` — `Insufficient type feedback for generic named access`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:999:23
+- `deopt-eager` — `Insufficient type feedback for call`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1915:19
+- `deopt-eager` — `wrong call target`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:220:26
+- `deopt-eager` — `Insufficient type feedback for call`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1713:18
+- `deopt-eager` — `Insufficient type feedback for call`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1780:19
+- `deopt-eager` — `wrong map`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:382:11
+- `deopt-lazy` — `(unknown)`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:381:45
+- `deopt-lazy` — `(unknown)`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:381:3
+- `deopt-lazy` — `(unknown)`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:381:3
+- `deopt-lazy` — `(unknown)`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:381:45
+- `deopt-eager` — `Insufficient type feedback for call`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1772:12
+- `deopt-eager` — `Insufficient type feedback for call`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1761:15
+- `deopt-eager` — `wrong feedback cell`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:157:25
+- `dependency-change` — `dependent prototype chain changed`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:273:11
+- `deopt-lazy` — `(unknown)`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:288:39
+- `deopt-eager` — `wrong map`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:780:16
+- `dependency-change` — `dependent field type constness changed`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:259:8
+- `dependency-change` — `dependent field type constness changed`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:76:10
+- `dependency-change` — `dependent field type constness changed`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:235:9
+- `deopt-eager` — `Insufficient type feedback for call`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1803:5
+- `deopt-eager` — `wrong map`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:39:25
+- `deopt-lazy` — `(unknown)`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:43:3
+- `deopt-lazy` — `(unknown)`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:39:60
+- `deopt-eager` — `wrong map`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:83:119
+- `deopt-eager` — `wrong map`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:78:40
+- `dependency-change` — `dependent prototype chain changed`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1701:160
+- `dependency-change` — `dependent prototype chain changed`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1793:14
+- `dependency-change` — `dependent prototype chain changed`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:984:11
+- `dependency-change` — `dependent prototype chain changed`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:866:9
+- `dependency-change` — `dependent prototype chain changed`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1783:13
+- `dependency-change` — `dependent prototype chain changed`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:15:11
+- `deopt-eager` — `wrong map`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:435:28
+- `deopt-eager` — `wrong map`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:716:78
+- `deopt-eager` — `wrong map`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:182:17
+- `deopt-eager` — `Insufficient type feedback for generic named access`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:127:8
+- `dependency-change` — `dependent field type constness changed`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:94:9
+- `deopt-eager` — `wrong map`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:110:17
+- `deopt-eager` — `Insufficient type feedback for generic keyed access`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:138:16
+- `deopt-eager` — `Insufficient type feedback for generic named access`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:2450:13
+- `deopt-eager` — `wrong map`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:959:53
+- `deopt-eager` — `Insufficient type feedback for generic named access`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:688:419
+- `deopt-eager` — `wrong map`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:992:26
+- `deopt-eager` — `Insufficient type feedback for generic named access`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:688:419
+- `dependency-change` — `dependent field type constness changed`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:2276:16
+
+## React-grab megamorphic IC sites
+- **663× KeyedLoadIC** in `B http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:366:11`
+  - key: `symbol("store-node" hash 3fb1f52b)`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:366:11
+- **629× KeyedLoadIC** in `L http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:259:8`
+  - key: `map`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:259:8
+- **629× KeyedLoadIC** in `L http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:259:8`
+  - key: `constructor`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:259:8
+- **349× KeyedLoadIC** in `get http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:70:5`
+  - key: `symbol("store-node" hash 3fb1f52b)`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:70:5
+- **120× KeyedLoadIC** in `get http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:70:5`
+  - key: `constructor`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:70:5
+- **62× KeyedLoadIC** in `get http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:70:5`
+  - key: `map`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:70:5
+- **57× KeyedLoadIC** in `get http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:70:5`
+  - key: `slice`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:70:5
+- **56× KeyedLoadIC** in `get http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:70:5`
+  - key: `symbol("solid-proxy" hash 13994585)`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:70:5
+- **41× KeyedLoadIC** in `Ve http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:33:12`
+  - key: `symbol("store-raw" hash 31565e56)`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:33:12
+- **15× KeyedLoadIC** in `Be http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:29:12`
+  - key: `symbol("solid-proxy" hash 13994585)`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:29:12
+- **11× KeyedLoadIC** in `He http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:47:12`
+  - key: `symbol("store-node" hash 3fb1f52b)`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:47:12
+- **9× KeyedLoadIC** in `Ve http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:33:12`
+  - key: `symbol("solid-proxy" hash 13994585)`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:33:12
+- **5× LoadIC** in `qe http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:94:12`
+  - key: `length`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:94:12
+- **5× KeyedLoadIC** in `qe http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:94:12`
+  - key: `symbol("store-has" hash 29b7a6a8)`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:94:12
+- **4× KeyedLoadIC** in `s http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:882:10`
+  - key: `$$pointermove`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:882:10
+- **4× LoadIC** in `http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:1052:32`
+  - key: `hasAttribute`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:1052:32
+- **3× KeyedLoadIC** in `He http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:47:12`
+  - key: `symbol("store-has" hash 29b7a6a8)`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:47:12
+- **2× KeyedLoadIC** in `Ve http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:33:12`
+  - key: `activationMode`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:33:12
+- **2× KeyedLoadIC** in `get http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:70:5`
+  - key: `enabled`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:70:5
+- **2× KeyedLoadIC** in `L http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:259:8`
+  - key: `symbol("solid-proxy" hash 13994585)`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:259:8
+- **2× KeyedLoadIC** in `s http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:882:10`
+  - key: `$$keydown`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:882:10
+- **2× KeyedLoadIC** in `ze http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:785:12`
+  - key: `pt-1.5 pb-1`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:785:12
+- **2× KeyedLoadIC** in `get when http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:779:11`
+  - key: `constructor`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:779:11
+- **1× KeyedLoadIC** in `M http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:15:11`
+  - key: `detectedElement`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:15:11
+- **1× KeyedLoadIC** in `get http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:70:5`
+  - key: `frozenElements`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:70:5
+- **1× KeyedLoadIC** in `N http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:51:11`
+  - key: `theme`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:51:11
+- **1× KeyedStoreIC** in `N http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:51:11`
+  - key: `theme`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:51:11
+- **1× KeyedLoadIC** in `M http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:15:11`
+  - key: `symbol("solid-proxy" hash 13994585)`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:15:11
+- **1× KeyedLoadIC** in `Je http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:105:12`
+  - key: `freezeReactUpdates`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:105:12
+- **1× KeyedLoadIC** in `qe http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:94:12`
+  - key: `selectionBox`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:94:12
+- **1× KeyedLoadIC** in `Xe http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:123:12`
+  - key: `options`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:123:12
+- **1× KeyedLoadIC** in `get http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:495:6`
+  - key: `ref`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:495:6
+- **1× KeyedLoadIC** in `get http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:495:6`
+  - key: `aria-label`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:495:6
+- **1× KeyedLoadIC** in `get http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:495:6`
+  - key: `aria-expanded`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:495:6
+- **1× KeyedLoadIC** in `get http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:495:6`
+  - key: `class`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:495:6
+- **1× KeyedStoreIC** in `Re http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:778:12`
+  - key: `$$pointerup`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:778:12
+- **1× KeyedStoreIC** in `Re http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:778:12`
+  - key: `$$click`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:778:12
+- **1× KeyedLoadIC** in `get http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:70:5`
+  - key: `shortcut`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:70:5
+- **1× KeyedLoadIC** in `qe http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:94:12`
+  - key: `wasActivatedByToggle`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:94:12
+- **1× KeyedStoreIC** in `qe http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:94:12`
+  - key: `wasActivatedByToggle`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:94:12
+- **1× KeyedLoadIC** in `N http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:51:11`
+  - key: `wasActivatedByToggle`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:51:11
+- **1× KeyedLoadIC** in `A http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:111:9`
+  - key: `selection`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:111:9
+- **1× KeyedLoadIC** in `L http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:259:8`
+  - key: `symbol("store-node" hash 3fb1f52b)`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:259:8
+- **1× KeyedLoadIC** in `L http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:259:8`
+  - key: `includes`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:259:8
+- **1× KeyedLoadIC** in `b http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:249:8`
+  - key: `__reactFiber$xe2x9cf90d`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:249:8
+- **1× KeyedLoadIC** in `L http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:259:8`
+  - key: `symbol("Symbol.iterator" hash 258a5929)`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:259:8
+- **1× KeyedLoadIC** in `get http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:70:5`
+  - key: `includes`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:70:5
+- **1× KeyedLoadIC** in `get http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:70:5`
+  - key: `every`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:70:5
+- **1× LoadIC** in `s http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:882:10`
+  - key: `host`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:882:10
+- **1× LoadIC** in `Je http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:877:12`
+  - key: `_$host`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:877:12
+- **1× LoadIC** in `Je http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:877:12`
+  - key: `parentNode`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:877:12
+- **1× KeyedLoadIC** in `get http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:157:5`
+  - key: `frozenElements`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:157:5
+- **1× KeyedLoadIC** in `get http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:157:5`
+  - key: `indexOf`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:157:5
+- **1× KeyedLoadIC** in `get http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:157:5`
+  - key: `push`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:157:5
+- **1× KeyedLoadIC** in `ze http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:785:12`
+  - key: `py-1.5`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:785:12
+- **1× KeyedLoadIC** in `get when http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:779:11`
+  - key: `symbol("solid-proxy" hash 13994585)`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:779:11
+- **1× KeyedLoadIC** in `get when http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:779:11`
+  - key: `slice`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:779:11
+- **1× KeyedLoadIC** in `get when http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:779:11`
+  - key: `map`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:779:11
+- **1× KeyedLoadIC** in `get http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:70:5`
+  - key: `findIndex`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:70:5
+- **1× LoadIC** in `get http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:70:5`
+  - key: `hasOwnProperty`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:70:5
+- **1× KeyedLoadIC** in `get http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:70:5`
+  - key: `symbol("Symbol.iterator" hash 258a5929)`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:70:5
+- **1× KeyedLoadIC** in `get http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:70:5`
+  - key: `errorMessage`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:70:5
+
+## React-grab polymorphic IC sites
+- **5× LoadIC** in `x http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:53:11`
+  - key: `equals`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:53:11
+- **5× LoadIC** in `get http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:70:5`
+  - key: `hasOwnProperty`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:70:5
+- **4× LoadIC** in `P http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:205:11`
+  - key: `observers`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:205:11
+- **4× LoadIC** in `B http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:366:11`
+  - key: `sourceSlots`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:366:11
+- **4× LoadIC** in `Ve http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:33:12`
+  - key: `length`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:33:12
+- **4× LoadIC** in `http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1373:14`
+  - key: `state`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1373:14
+- **4× LoadIC** in `http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1376:14`
+  - key: `state`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1376:14
+- **4× LoadIC** in `http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1382:57`
+  - key: `state`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1382:57
+- **4× LoadIC** in `http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1363:13`
+  - key: `state`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1363:13
+- **4× LoadIC** in `http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1379:109`
+  - key: `state`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1379:109
+- **4× LoadIC** in `http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1366:13`
+  - key: `state`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1366:13
+- **4× LoadIC** in `http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1363:89`
+  - key: `state`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1363:89
+- **4× LoadIC** in `http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1363:51`
+  - key: `state`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1363:51
+- **4× LoadIC** in `http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1379:13`
+  - key: `state`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1379:13
+- **4× LoadIC** in `http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1379:150`
+  - key: `state`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1379:150
+- **4× KeyedLoadIC** in `M http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1005:169`
+  - key: `0`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1005:169
+- **3× KeyedLoadIC** in `Be http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:29:12`
+  - key: `symbol("solid-proxy" hash 13994585)`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:29:12
+- **3× KeyedLoadIC** in `Ve http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:33:12`
+  - key: `symbol("store-raw" hash 31565e56)`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:33:12
+- **3× LoadIC** in `P http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:205:11`
+  - key: `sources`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:205:11
+- **3× KeyedLoadIC** in `M http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:15:11`
+  - key: `symbol("solid-proxy" hash 13994585)`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:15:11
+- **3× KeyedLoadIC** in `He http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:47:12`
+  - key: `symbol("store-node" hash 3fb1f52b)`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:47:12
+- **3× LoadIC** in `B http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:366:11`
+  - key: `sources`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:366:11
+- **3× LoadIC** in `B http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:366:11`
+  - key: `tOwned`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:366:11
+- **3× LoadIC** in `B http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:366:11`
+  - key: `owned`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:366:11
+- **3× LoadIC** in `B http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:366:11`
+  - key: `cleanups`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:366:11
+- **3× StoreIC** in `B http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:366:11`
+  - key: `state`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:366:11
+- **3× LoadIC** in `L http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:273:11`
+  - key: `state`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:273:11
+- **3× LoadIC** in `L http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:273:11`
+  - key: `owner`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:273:11
+- **3× LoadIC** in `Ne.o http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:756:65`
+  - key: `cloneNode`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:756:65
+- **3× LoadIC** in `gi http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1439:9`
+  - key: `length`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1439:9
+- **3× LoadIC** in `qe http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:94:12`
+  - key: `length`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:94:12
+- **3× KeyedLoadIC** in `qe http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:94:12`
+  - key: `symbol("store-has" hash 29b7a6a8)`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:94:12
+- **3× LoadIC** in `http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:225:42`
+  - key: `observers`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:225:42
+- **3× LoadIC** in `z http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:348:11`
+  - key: `sources`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:348:11
+- **3× LoadIC** in `ki http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1517:9`
+  - key: `style`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1517:9
+- **3× LoadIC** in `Ai http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1524:9`
+  - key: `style`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1524:9
+- **3× KeyedLoadIC** in `s http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:882:10`
+  - key: `$$pointermove`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:882:10
+- **3× LoadIC** in `s http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:882:10`
+  - key: `host`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:882:10
+- **3× LoadIC** in `http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:1052:32`
+  - key: `hasAttribute`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:1052:32
+- **3× LoadIC** in `Je http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:877:12`
+  - key: `_$host`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:877:12
+- **3× LoadIC** in `Je http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:877:12`
+  - key: `parentNode`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:877:12
+- **3× LoadIC** in `Pi http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1546:9`
+  - key: `style`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1546:9
+- **3× LoadIC** in `Ni http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1544:9`
+  - key: `style`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1544:9
+- **3× LoadIC** in `Q http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:984:11`
+  - key: `insertBefore`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:984:11
+- **3× LoadIC** in `M http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1005:169`
+  - key: `length`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1005:169
+- **3× LoadIC** in `http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1444:9`
+  - key: `state`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1444:9
+- **3× LoadIC** in `http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1451:9`
+  - key: `state`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1451:9
+- **2× LoadIC** in `w http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:74:11`
+  - key: `equals`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:74:11
+- **2× LoadIC** in `F http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:235:11`
+  - key: `fn`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:235:11
+- **2× LoadIC** in `F http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:235:11`
+  - key: `value`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:235:11
+- **2× LoadIC** in `oe http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:245:12`
+  - key: `fn`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:245:12
+- **2× StoreIC** in `P http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:205:11`
+  - key: `sources`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:205:11
+- **2× StoreIC** in `P http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:205:11`
+  - key: `sourceSlots`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:205:11
+- **2× LoadIC** in `oe http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:245:12`
+  - key: `updatedAt`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:245:12
+- **2× StoreIC** in `oe http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:245:12`
+  - key: `value`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:245:12
+- **2× StoreIC** in `oe http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:245:12`
+  - key: `updatedAt`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:245:12
+- **2× LoadIC** in `P http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:205:11`
+  - key: `sourceSlots`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:205:11
+- **2× LoadIC** in `f http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:953:41`
+  - key: `hooks`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:953:41
+- **2× LoadIC** in `I http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:257:11`
+  - key: `context`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:257:11
+- **2× LoadIC** in `I http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:257:11`
+  - key: `owned`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:257:11
+- **2× StoreIC** in `I http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:257:11`
+  - key: `owned`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:257:11
+- **2× LoadIC** in `get http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:157:5`
+  - key: `setAttribute`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:157:5
+- **2× LoadIC** in `Re http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:778:12`
+  - key: `addEventListener`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:778:12
+- **2× LoadIC** in `Yn http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1694:12`
+  - key: `nodeType`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1694:12
+- **2× KeyedLoadIC** in `gi http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1439:9`
+  - key: `0`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1439:9
+- **2× LoadIC** in `L http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:273:11`
+  - key: `updatedAt`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:273:11
+- **2× LoadIC** in `L http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:273:11`
+  - key: `suspense`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:273:11
+- **2× LoadIC** in `ue http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:359:12`
+  - key: `state`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:359:12
+- **2× StoreIC** in `ue http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:359:12`
+  - key: `state`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:359:12
+- **2× LoadIC** in `ue http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:359:12`
+  - key: `pure`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:359:12
+- **2× LoadIC** in `ue http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:359:12`
+  - key: `observers`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:359:12
+- **2× LoadIC** in `http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:225:42`
+  - key: `state`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:225:42
+- **2× LoadIC** in `http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:225:42`
+  - key: `pure`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:225:42
+- **2× StoreIC** in `http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:225:42`
+  - key: `state`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:225:42
+- **2× KeyedLoadIC** in `oe http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:245:12`
+  - key: `observers`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:245:12
+- **2× StoreIC** in `z http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:348:11`
+  - key: `state`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:348:11
+- **2× KeyedLoadIC** in `b http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:249:8`
+  - key: `_reactRootContainer`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:249:8
+- **2× LoadIC** in `Je http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:877:12`
+  - key: `composedPath`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:877:12
+- **2× LoadIC** in `Q.addWindowListener.passive http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:2316:96`
+  - key: `composedPath`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:2316:96
+- **2× LoadIC** in `at http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:1050:9`
+  - key: `composedPath`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:1050:9
+- **2× LoadIC** in `O http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:182:11`
+  - key: `cleanups`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:182:11
+- **2× StoreIC** in `O http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:182:11`
+  - key: `cleanups`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:182:11
+- **2× LoadIC** in `ft http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:274:569`
+  - key: `split`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:274:569
+- **2× LoadIC** in `an http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:727:9`
+  - key: `startsWith`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:727:9
+- **2× LoadIC** in `Q http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:984:11`
+  - key: `length`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:984:11
+- **2× LoadIC** in `nr http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:999:48`
+  - key: `startsWith`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:999:48
+- **2× LoadIC** in `http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:434:24`
+  - key: `length`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:434:24
+- **2× KeyedLoadIC** in `http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:434:24`
+  - key: `symbol("solid-track" hash 1ffdf389)`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:434:24
+- **2× StoreIC** in `B http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:366:11`
+  - key: `owned`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:366:11
+- **2× StoreIC** in `B http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:366:11`
+  - key: `cleanups`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:366:11
+- **2× KeyedLoadIC** in `http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:436:18`
+  - key: `0`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:436:18
+- **2× LoadIC** in `http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:436:18`
+  - key: `length`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:436:18
+- **2× KeyedStoreIC** in `f http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:442:13`
+  - key: `0`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:442:13
+- **2× KeyedLoadIC** in `has http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:82:5`
+  - key: `0`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:82:5
+- **2× LoadIC** in `b http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:57:9`
+  - key: `x`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:57:9
+- **2× LoadIC** in `b http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:57:9`
+  - key: `y`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:57:9
+- **2× LoadIC** in `b http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:57:9`
+  - key: `width`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:57:9
+- **2× LoadIC** in `b http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:57:9`
+  - key: `height`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:57:9
+- **2× LoadIC** in `b http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:57:9`
+  - key: `borderRadius`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:57:9
+- **2× LoadIC** in `x http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:76:10`
+  - key: `x`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:76:10
+- **2× LoadIC** in `x http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:76:10`
+  - key: `y`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:76:10
+- **2× LoadIC** in `x http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:76:10`
+  - key: `width`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:76:10
+- **2× LoadIC** in `x http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:76:10`
+  - key: `height`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:76:10
+- **2× LoadIC** in `x http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:76:10`
+  - key: `borderRadius`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:76:10
+- **2× LoadIC** in `onElementSelect http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:988:20`
+  - key: `hooks`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:988:20
+- **2× LoadIC** in `Q http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:984:11`
+  - key: `replaceChild`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:984:11
+- **1× StoreIC** in `P http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:205:11`
+  - key: `observers`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:205:11
+- **1× StoreIC** in `P http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:205:11`
+  - key: `observerSlots`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:205:11
+- **1× LoadIC** in `P http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:205:11`
+  - key: `value`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:205:11
+- **1× LoadIC** in `P http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:205:11`
+  - key: `observerSlots`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:205:11
+- **1× StoreIC** in `addWindowListener http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:656:22`
+  - key: `signal`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:656:22
+- **1× LoadIC** in `a http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:913:10`
+  - key: `theme`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:913:10
+- **1× LoadIC** in `a http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:913:10`
+  - key: `options`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:913:10
+- **1× LoadIC** in `a http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:913:10`
+  - key: `actions`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:913:10
+- **1× LoadIC** in `C http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:69:11`
+  - key: `push`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:69:11
+- **1× LoadIC** in `gi http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1439:9`
+  - key: `nodeType`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1439:9
+- **1× LoadIC** in `le http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:333:12`
+  - key: `user`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:333:12
+- **1× LoadIC** in `B http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:366:11`
+  - key: `observers`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:366:11
+- **1× LoadIC** in `B http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:366:11`
+  - key: `observerSlots`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:366:11
+- **1× LoadIC** in `ae http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:218:12`
+  - key: `value`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:218:12
+- **1× LoadIC** in `ae http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:218:12`
+  - key: `comparator`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:218:12
+- **1× StoreIC** in `ae http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:218:12`
+  - key: `value`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:218:12
+- **1× LoadIC** in `ae http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:218:12`
+  - key: `observers`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:218:12
+- **1× LoadIC** in `b http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:249:8`
+  - key: `startsWith`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:249:8
+- **1× LoadIC** in `Ni http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1544:9`
+  - key: `symbol("Symbol.iterator" hash 258a5929)`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1544:9
+- **1× LoadIC** in `la http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1730:9`
+  - key: `symbol("Symbol.iterator" hash 258a5929)`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1730:9
+- **1× LoadIC** in `Fi http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1552:9`
+  - key: `push`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1552:9
+- **1× LoadIC** in `N http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:132:9`
+  - key: `now`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:132:9
+- **1× LoadIC** in `Je http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:877:12`
+  - key: `target`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:877:12
+- **1× LoadIC** in `Je http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:877:12`
+  - key: `type`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:877:12
+- **1× LoadIC** in `Je http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:877:12`
+  - key: `currentTarget`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:877:12
+- **1× LoadIC** in `Ve http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:807:12`
+  - key: `style`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:807:12
+- **1× LoadIC** in `Xe http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:999:12`
+  - key: `isConnected`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:999:12
+- **1× LoadIC** in `Jt http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:663:9`
+  - key: `slice`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:663:9
+- **1× LoadIC** in `Di http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1513:41`
+  - key: `stopImmediatePropagation`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1513:41
+- **1× LoadIC** in `Q.addWindowListener.passive http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:2316:96`
+  - key: `isPrimary`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:2316:96
+- **1× LoadIC** in `Q.addWindowListener.passive http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:2316:96`
+  - key: `pointerType`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:2316:96
+- **1× LoadIC** in `Q.addWindowListener.passive http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:2316:96`
+  - key: `shiftKey`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:2316:96
+- **1× LoadIC** in `Q.addWindowListener.passive http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:2316:96`
+  - key: `clientX`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:2316:96
+- **1× LoadIC** in `Q.addWindowListener.passive http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:2316:96`
+  - key: `clientY`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:2316:96
+- **1× LoadIC** in `http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:705:15`
+  - key: `push`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:705:15
+- **1× KeyedLoadIC** in `ft http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:274:569`
+  - key: `0`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:274:569
+- **1× LoadIC** in `v http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:224:8`
+  - key: `displayName`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:224:8
+- **1× LoadIC** in `v http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:224:8`
+  - key: `name`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:224:8
+- **1× LoadIC** in `http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:715:18`
+  - key: `source`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:715:18
+- **1× LoadIC** in `http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:715:18`
+  - key: `includes`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:715:18
+- **1× LoadIC** in `http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:715:134`
+  - key: `functionName`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:715:134
+- **1× LoadIC** in `http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1119:19`
+  - key: `fileName`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1119:19
+- **1× LoadIC** in `tn http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:720:9`
+  - key: `split`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:720:9
+- **1× LoadIC** in `Gt http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:540:12`
+  - key: `includes`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:540:12
+- **1× LoadIC** in `http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:696:31`
+  - key: `getBoundingClientRect`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:696:31
+- **1× LoadIC** in `yn http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:2041:127`
+  - key: `match`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:2041:127
+- **1× KeyedStoreIC** in `http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:436:18`
+  - key: `0`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:436:18
+- **1× LoadIC** in `Ae http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:709:12`
+  - key: `nextSibling`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:709:12
+- **1× LoadIC** in `http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:164:55`
+  - key: `find`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:164:55
+- **1× LoadIC** in `http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1793:14`
+  - key: `push`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1793:14
+- **1× StoreIC** in `It http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:778:10`
+  - key: `borderRadius`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:778:10
+- **1× StoreIC** in `It http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:778:10`
+  - key: `transform`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:778:10
+- **1× LoadIC** in `Mt.g.e http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:1157:30`
+  - key: `width`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:1157:30
+- **1× LoadIC** in `Mt.g.e http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:1157:30`
+  - key: `height`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:1157:30
+- **1× LoadIC** in `Mt.g.e http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:1157:30`
+  - key: `x`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:1157:30
+- **1× LoadIC** in `Mt.g.e http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:1157:30`
+  - key: `y`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:1157:30
+- **1× LoadIC** in `M http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1005:169`
+  - key: `endsWith`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1005:169
+- **1× KeyedLoadIC** in `Ve http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:33:12`
+  - key: `0`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:33:12
+- **1× LoadIC** in `b http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:57:9`
+  - key: `opacity`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:57:9
+- **1× LoadIC** in `b http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:57:9`
+  - key: `targetOpacity`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:57:9
+- **1× LoadIC** in `b http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:57:9`
+  - key: `createdAt`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:57:9
+- **1× LoadIC** in `N http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:132:9`
+  - key: `symbol("Symbol.iterator" hash 258a5929)`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:132:9
+- **1× KeyedLoadIC** in `Xe http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:123:12`
+  - key: `0`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:123:12
+- **1× LoadIC** in `Q http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:984:11`
+  - key: `parentNode`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:984:11
+- **1× LoadIC** in `_i http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1446:9`
+  - key: `length`  reason: `-`
+  - http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1446:9
+
+## IC state transitions (totals)
+- `no_feedback->no_feedback` — 9132
+- `megamorphic->megamorphic` — 7699
+- `uninitialized->monomorphic` — 2430
+- `monomorphic->polymorphic` — 244
+- `polymorphic->polymorphic` — 208
+- `recompute_handler->monomorphic` — 42
+- `monomorphic->megamorphic` — 41
+- `monomorphic->monomorphic` — 38
+- `polymorphic->megamorphic` — 24
+- `recompute_handler->polymorphic` — 9
+- `polymorphic->monomorphic` — 9
+
+## IC volume by script
+- http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:259:8 — 1280
+- http://localhost:5175/src/perf-grid.tsx:5:18 — 1074
+- http://localhost:5175/@fs/workspace/packages/react-grab/dist/state-DA14_TPH.js:366:11 — 713
+- http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:70:5 — 674
+- http://localhost:5175/node_modules/.vite/deps/react-dom_client.js?v=90bfcce4:3532:21 — 494
+- http://localhost:5175/node_modules/.vite/deps/react-dom_client.js?v=90bfcce4:262:11 — 446
+- http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:540:12 — 187
+- http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:57:9 — 171
+- http://localhost:5175/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=90bfcce4:103:24 — 157
+- http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:1860:9 — 138
+- http://localhost:5175/src/perf-grid.tsx:33:17 — 134
+- http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:249:8 — 130
+- http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:2962:14 — 121
+- http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:663:9 — 118
+- http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:311:41 — 117
+- http://localhost:5175/@fs/workspace/packages/react-grab/dist/freeze-updates-x_dAhxAb.js:1298:9 — 109
+- http://localhost:5175/@fs/workspace/packages/react-grab/dist/core-B0f9Fk9r.js:33:12 — 108
+- http://localhost:5175/node_modules/.vite/deps/react-dom_client.js?v=90bfcce4:6275:24 — 103
+- http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:695:4 — 101
+- http://localhost:5175/@fs/workspace/packages/react-grab/dist/renderer-Bt7tDgnC.js:706:8 — 96

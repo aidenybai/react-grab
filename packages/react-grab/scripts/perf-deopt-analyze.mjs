@@ -13,6 +13,30 @@ const PRINT_PREFIX = "[deopt-analyze]";
 const log = (message) => console.log(`${PRINT_PREFIX} ${message}`);
 
 const REACT_GRAB_SOURCE_HINT = /react-grab|@react-grab|packages\/react-grab/i;
+const BIPPY_SOURCE_HINT = /bippy/i;
+
+const ICTYPES = new Set([
+  "LoadIC",
+  "StoreIC",
+  "KeyedLoadIC",
+  "KeyedStoreIC",
+  "LoadGlobalIC",
+  "StoreGlobalIC",
+  "StoreInArrayLiteralIC",
+  "DefineKeyedOwnIC",
+  "DefineNamedOwnIC",
+]);
+
+const IC_STATE_NAMES = {
+  X: "no_feedback",
+  "0": "uninitialized",
+  ".": "premonomorphic",
+  "1": "monomorphic",
+  "^": "recompute_handler",
+  P: "polymorphic",
+  N: "megamorphic",
+  G: "generic",
+};
 
 const parseCsvLine = (line) => {
   const parts = [];
@@ -44,218 +68,279 @@ const stripQuotes = (value) => {
   return value;
 };
 
-const summarize = async (logPath) => {
+const parseAddress = (hex) => {
+  if (!hex || typeof hex !== "string") return null;
+  return BigInt(hex);
+};
+
+const parseSourcePositionList = (text) => {
+  if (!text) return [];
+  const items = [];
+  const re = /<([^>]+)>/g;
+  let match;
+  while ((match = re.exec(text)) !== null) {
+    const raw = match[1];
+    const lastColon = raw.lastIndexOf(":");
+    const secondLastColon = raw.lastIndexOf(":", lastColon - 1);
+    if (lastColon === -1 || secondLastColon === -1) {
+      items.push({ url: raw, line: -1, column: -1 });
+      continue;
+    }
+    const column = Number(raw.slice(lastColon + 1));
+    const line = Number(raw.slice(secondLastColon + 1, lastColon));
+    const url = raw.slice(0, secondLastColon);
+    items.push({ url, line, column });
+  }
+  return items;
+};
+
+const parseFile = async (logPath) => {
   log(`parsing ${basename(logPath)} ...`);
   const text = await readFile(logPath, "utf8");
   const lines = text.split("\n");
 
-  const codeCreateByAddress = new Map();
-  const scriptSourcesById = new Map();
+  const codeIntervals = [];
   const deopts = [];
   const icRecords = [];
 
   for (const line of lines) {
     if (!line) continue;
-    const tag = line.slice(0, line.indexOf(",") === -1 ? line.length : line.indexOf(","));
-    if (
-      tag !== "code-creation" &&
-      tag !== "code-deopt" &&
-      tag !== "script-source" &&
-      tag.length > 0 &&
-      !tag.startsWith("LoadIC") &&
-      !tag.startsWith("StoreIC") &&
-      !tag.startsWith("KeyedLoadIC") &&
-      !tag.startsWith("KeyedStoreIC") &&
-      !tag.startsWith("LoadGlobalIC") &&
-      !tag.startsWith("StoreGlobalIC") &&
-      !tag.startsWith("StoreInArrayLiteralIC") &&
-      tag !== "Set" &&
-      tag !== "ic"
-    ) {
-      continue;
-    }
+    const firstCommaIndex = line.indexOf(",");
+    const tag = firstCommaIndex === -1 ? line : line.slice(0, firstCommaIndex);
 
-    const fields = parseCsvLine(line);
-
-    if (fields[0] === "script-source") {
-      const scriptId = fields[1];
-      const url = stripQuotes(fields[2] ?? "");
-      const source = stripQuotes(fields.slice(3).join(","));
-      if (scriptId) scriptSourcesById.set(scriptId, { url, source });
-      continue;
-    }
-
-    if (fields[0] === "code-creation") {
+    if (tag === "code-creation") {
+      const fields = parseCsvLine(line);
       const codeKind = fields[1];
-      const startAddress = fields[4];
-      const symbolName = stripQuotes(fields[6] ?? "");
-      const scriptId = fields[7];
-      if (startAddress) {
-        codeCreateByAddress.set(startAddress, {
-          codeKind,
-          symbolName,
-          scriptId,
-        });
+      if (codeKind === "JS" || codeKind === "LazyCompile" || codeKind === "Function" || codeKind === "Eval") {
+        const startAddress = parseAddress(fields[4]);
+        const size = Number(fields[5]);
+        const symbolName = stripQuotes(fields[6] ?? "");
+        if (startAddress !== null && Number.isFinite(size) && size > 0) {
+          codeIntervals.push({
+            start: startAddress,
+            end: startAddress + BigInt(size),
+            symbolName,
+            codeKind,
+          });
+        }
       }
       continue;
     }
 
-    if (fields[0] === "code-deopt") {
-      const [
-        ,
-        timestamp,
-        codeSize,
-        instructionStart,
-        inliningId,
-        scriptOffset,
-        bailoutType,
-        sourcePositionText,
-        deoptReasonText,
-      ] = fields;
+    if (tag === "code-deopt") {
+      const fields = parseCsvLine(line);
+      const positions = parseSourcePositionList(fields[7] ?? "");
       deopts.push({
-        timestamp: Number(timestamp),
-        codeSize: Number(codeSize),
-        instructionStart,
-        inliningId: Number(inliningId),
-        scriptOffset: Number(scriptOffset),
-        bailoutType,
-        sourcePosition: stripQuotes(sourcePositionText ?? ""),
-        reason: stripQuotes(deoptReasonText ?? ""),
+        timestamp: Number(fields[1]),
+        codeSize: Number(fields[2]),
+        instructionStart: fields[3],
+        inliningId: Number(fields[4]),
+        scriptOffset: Number(fields[5]),
+        bailoutType: fields[6],
+        rawSourcePosition: fields[7] ?? "",
+        positions,
+        reason: stripQuotes(fields[8] ?? ""),
       });
       continue;
     }
 
-    if (
-      fields[0].endsWith("IC") ||
-      fields[0] === "LoadIC" ||
-      fields[0] === "StoreIC" ||
-      fields[0] === "KeyedLoadIC" ||
-      fields[0] === "KeyedStoreIC"
-    ) {
-      const [type, pc, time, line2, column, oldState, newState, mapId, key, modifier, slowReason] =
-        fields;
+    if (ICTYPES.has(tag)) {
+      const fields = parseCsvLine(line);
       icRecords.push({
-        type,
-        pc,
-        time: Number(time),
-        line: Number(line2),
-        column: Number(column),
-        oldState,
-        newState,
-        mapId,
-        key: stripQuotes(key ?? ""),
-        modifier,
-        slowReason: stripQuotes(slowReason ?? ""),
+        type: fields[0],
+        pc: parseAddress(fields[1]),
+        time: Number(fields[2]),
+        line: Number(fields[3]),
+        column: Number(fields[4]),
+        oldState: fields[5],
+        newState: fields[6],
+        mapId: fields[7],
+        key: stripQuotes(fields[8] ?? ""),
+        modifier: fields[9] ?? "",
+        slowReason: stripQuotes(fields[10] ?? ""),
       });
       continue;
     }
   }
 
-  log(
-    `  parsed: ${deopts.length} deopts, ${icRecords.length} IC events, ${codeCreateByAddress.size} code blobs, ${scriptSourcesById.size} script sources`,
-  );
+  return { codeIntervals, deopts, icRecords };
+};
 
-  return { codeCreateByAddress, scriptSourcesById, deopts, icRecords };
+const buildCodeLookup = (codeIntervals) => {
+  const sorted = [...codeIntervals].sort((entryA, entryB) =>
+    entryA.start < entryB.start ? -1 : entryA.start > entryB.start ? 1 : 0,
+  );
+  const starts = sorted.map((entry) => entry.start);
+  const lookup = (address) => {
+    if (address === null) return null;
+    let lowIndex = 0;
+    let highIndex = sorted.length - 1;
+    while (lowIndex <= highIndex) {
+      const midIndex = (lowIndex + highIndex) >> 1;
+      const candidate = sorted[midIndex];
+      if (address < candidate.start) {
+        highIndex = midIndex - 1;
+      } else if (address >= candidate.end) {
+        lowIndex = midIndex + 1;
+      } else {
+        return candidate;
+      }
+    }
+    return null;
+  };
+  return { lookup, sorted, starts };
+};
+
+const cleanSymbolName = (symbolName) => {
+  if (!symbolName) return "(anonymous)";
+  return symbolName.replace(/^[~+]/, "").trim();
+};
+
+const extractFunctionUrl = (symbolName) => {
+  const match = / (https?:\/\/[^\s]+|file:[^\s]+|\/@fs[^\s]+)/.exec(symbolName);
+  if (!match) return null;
+  return match[1];
 };
 
 const reasonGroup = (reasonString) => reasonString || "(no-reason)";
-const positionScriptId = (sourcePosition) => {
-  const match = /^S(\d+)O(-?\d+)$/.exec(sourcePosition);
-  if (!match) return null;
-  return { scriptId: match[1], offset: Number(match[2]) };
-};
-
-const sourceLineColumn = (sourceText, offset) => {
-  if (!sourceText) return { line: -1, column: -1, snippet: "" };
-  if (offset < 0 || offset >= sourceText.length) return { line: -1, column: -1, snippet: "" };
-  let line = 1;
-  let lastNewline = -1;
-  for (let charIndex = 0; charIndex < offset; charIndex++) {
-    if (sourceText.charCodeAt(charIndex) === 10) {
-      line += 1;
-      lastNewline = charIndex;
-    }
-  }
-  const lineStart = lastNewline + 1;
-  const nextNewline = sourceText.indexOf("\n", offset);
-  const lineEnd = nextNewline === -1 ? sourceText.length : nextNewline;
-  return {
-    line,
-    column: offset - lineStart + 1,
-    snippet: sourceText.slice(lineStart, lineEnd).trim(),
-  };
-};
 
 const formatTopList = (entries, limit) =>
   entries
     .slice(0, limit)
-    .map(
-      (entry, entryIndex) =>
-        `  ${(entryIndex + 1).toString().padStart(2, " ")}. [${entry.count}]  ${entry.label}`,
-    )
+    .map((entry, entryIndex) => {
+      const indexLabel = (entryIndex + 1).toString().padStart(2, " ");
+      const countLabel = String(entry.count).padStart(5, " ");
+      return `  ${indexLabel}. [${countLabel}]  ${entry.label}`;
+    })
     .join("\n");
 
-const buildReport = ({ codeCreateByAddress, scriptSourcesById, deopts, icRecords }) => {
+const sortMapDesc = (mapValue) =>
+  Array.from(mapValue.entries())
+    .map(([label, count]) => ({ label, count }))
+    .sort((entryA, entryB) => entryB.count - entryA.count);
+
+const buildReport = ({ codeIntervals, deopts, icRecords }) => {
+  const codeLookup = buildCodeLookup(codeIntervals);
+
   const deoptByReason = new Map();
   const deoptByLocation = new Map();
   const deoptByScript = new Map();
   const deoptsReactGrab = [];
+  const deoptsBippy = [];
 
   for (const deopt of deopts) {
     const reasonKey = reasonGroup(deopt.reason);
     deoptByReason.set(reasonKey, (deoptByReason.get(reasonKey) ?? 0) + 1);
 
-    const positionInfo = positionScriptId(deopt.sourcePosition);
-    let scriptUrl = "(unknown script)";
-    let locationLabel = deopt.sourcePosition;
-    let resolvedLineColumn = null;
-    if (positionInfo) {
-      const scriptInfo = scriptSourcesById.get(positionInfo.scriptId);
-      scriptUrl = scriptInfo?.url || `(script ${positionInfo.scriptId})`;
-      resolvedLineColumn = sourceLineColumn(scriptInfo?.source ?? "", positionInfo.offset);
-      locationLabel = `${scriptUrl}:${resolvedLineColumn.line}:${resolvedLineColumn.column}`;
-    }
+    const primaryPosition = deopt.positions[0];
+    const scriptUrl = primaryPosition?.url ?? "(unknown)";
+    const locationLabel = primaryPosition
+      ? `${primaryPosition.url}:${primaryPosition.line}:${primaryPosition.column}`
+      : deopt.rawSourcePosition;
+
     deoptByLocation.set(locationLabel, (deoptByLocation.get(locationLabel) ?? 0) + 1);
     deoptByScript.set(scriptUrl, (deoptByScript.get(scriptUrl) ?? 0) + 1);
 
-    if (REACT_GRAB_SOURCE_HINT.test(scriptUrl) || REACT_GRAB_SOURCE_HINT.test(deopt.sourcePosition)) {
-      deoptsReactGrab.push({
-        ...deopt,
-        scriptUrl,
-        resolvedLineColumn,
-      });
+    if (REACT_GRAB_SOURCE_HINT.test(scriptUrl)) {
+      deoptsReactGrab.push({ ...deopt, locationLabel });
+    } else if (BIPPY_SOURCE_HINT.test(scriptUrl)) {
+      deoptsBippy.push({ ...deopt, locationLabel });
     }
   }
 
-  const megamorphicByKey = new Map();
-  const polymorphicByKey = new Map();
+  const icByLocation = new Map();
+  const icByTransition = new Map();
+  const icMegamorphicByLocation = new Map();
+  const icPolymorphicByLocation = new Map();
+  const icReactGrabMegamorphic = [];
+  const icReactGrabPolymorphic = [];
+  const icSummaryByScript = new Map();
+
   for (const icRecord of icRecords) {
-    if (!icRecord.newState) continue;
-    const target = icRecord.newState.includes("MEGAMORPHIC")
-      ? megamorphicByKey
-      : icRecord.newState.includes("POLYMORPHIC")
-        ? polymorphicByKey
-        : null;
-    if (!target) continue;
-    const codeInfo = codeCreateByAddress.get(icRecord.pc);
-    const symbolName = codeInfo?.symbolName || "(unknown)";
-    const groupKey = `${icRecord.type}  ${symbolName}  key=${icRecord.key || "?"}  reason=${icRecord.slowReason || "-"}`;
-    target.set(groupKey, (target.get(groupKey) ?? 0) + 1);
+    const codeInfo = codeLookup.lookup(icRecord.pc);
+    const cleanedSymbolName = cleanSymbolName(codeInfo?.symbolName);
+    const containingUrl = codeInfo ? extractFunctionUrl(codeInfo.symbolName) : null;
+    const baseLocationLabel = `${cleanedSymbolName}  key=${icRecord.key || "?"}  reason=${icRecord.slowReason || "-"}`;
+    const transitionLabel = `${IC_STATE_NAMES[icRecord.oldState] || icRecord.oldState}->${IC_STATE_NAMES[icRecord.newState] || icRecord.newState}`;
+
+    icByLocation.set(baseLocationLabel, (icByLocation.get(baseLocationLabel) ?? 0) + 1);
+    icByTransition.set(transitionLabel, (icByTransition.get(transitionLabel) ?? 0) + 1);
+
+    const isMegamorphic = icRecord.newState === "N";
+    const isPolymorphic = icRecord.newState === "P";
+
+    if (isMegamorphic) {
+      icMegamorphicByLocation.set(
+        baseLocationLabel,
+        (icMegamorphicByLocation.get(baseLocationLabel) ?? 0) + 1,
+      );
+    }
+    if (isPolymorphic) {
+      icPolymorphicByLocation.set(
+        baseLocationLabel,
+        (icPolymorphicByLocation.get(baseLocationLabel) ?? 0) + 1,
+      );
+    }
+
+    if (containingUrl) {
+      icSummaryByScript.set(containingUrl, (icSummaryByScript.get(containingUrl) ?? 0) + 1);
+    }
+
+    if (containingUrl && REACT_GRAB_SOURCE_HINT.test(containingUrl)) {
+      const entry = {
+        type: icRecord.type,
+        oldState: icRecord.oldState,
+        newState: icRecord.newState,
+        key: icRecord.key,
+        slowReason: icRecord.slowReason,
+        containingFunction: cleanedSymbolName,
+        containingUrl,
+        line: icRecord.line,
+        column: icRecord.column,
+      };
+      if (isMegamorphic) icReactGrabMegamorphic.push(entry);
+      if (isPolymorphic) icReactGrabPolymorphic.push(entry);
+    }
   }
 
-  const sortMapDesc = (mapValue) =>
-    Array.from(mapValue.entries())
-      .map(([label, count]) => ({ label, count }))
-      .sort((entryA, entryB) => entryB.count - entryA.count);
+  const aggregateMap = (entries, keyFn) => {
+    const accumulator = new Map();
+    for (const entry of entries) {
+      const groupKey = keyFn(entry);
+      const prior = accumulator.get(groupKey);
+      if (prior) {
+        prior.count += 1;
+      } else {
+        accumulator.set(groupKey, { ...entry, count: 1 });
+      }
+    }
+    return Array.from(accumulator.values()).sort((entryA, entryB) => entryB.count - entryA.count);
+  };
 
   return {
-    totals: { deopts: deopts.length, icEvents: icRecords.length },
+    totals: {
+      deopts: deopts.length,
+      icEvents: icRecords.length,
+      codeBlobs: codeIntervals.length,
+    },
     deoptByReason: sortMapDesc(deoptByReason),
     deoptByScript: sortMapDesc(deoptByScript),
     deoptByLocation: sortMapDesc(deoptByLocation),
     deoptsReactGrab,
-    megamorphicGroups: sortMapDesc(megamorphicByKey),
-    polymorphicGroups: sortMapDesc(polymorphicByKey),
+    deoptsBippy,
+    icByTransition: sortMapDesc(icByTransition),
+    icByLocation: sortMapDesc(icByLocation),
+    icMegamorphicByLocation: sortMapDesc(icMegamorphicByLocation),
+    icPolymorphicByLocation: sortMapDesc(icPolymorphicByLocation),
+    icSummaryByScript: sortMapDesc(icSummaryByScript),
+    icReactGrabMegamorphic: aggregateMap(
+      icReactGrabMegamorphic,
+      (entry) => `${entry.type}|${entry.containingFunction}|${entry.key}|${entry.slowReason}`,
+    ),
+    icReactGrabPolymorphic: aggregateMap(
+      icReactGrabPolymorphic,
+      (entry) => `${entry.type}|${entry.containingFunction}|${entry.key}|${entry.slowReason}`,
+    ),
   };
 };
 
@@ -272,60 +357,80 @@ const main = async () => {
     process.exit(1);
   }
 
-  const aggregated = {
-    codeCreateByAddress: new Map(),
-    scriptSourcesById: new Map(),
-    deopts: [],
-    icRecords: [],
-  };
-
+  const aggregated = { codeIntervals: [], deopts: [], icRecords: [] };
   for (const logFile of logFiles) {
-    const fileSummary = await summarize(resolve(LOG_DIR, logFile));
-    for (const [address, codeInfo] of fileSummary.codeCreateByAddress) {
-      aggregated.codeCreateByAddress.set(address, codeInfo);
-    }
-    for (const [scriptId, scriptInfo] of fileSummary.scriptSourcesById) {
-      aggregated.scriptSourcesById.set(scriptId, scriptInfo);
-    }
+    const fileSummary = await parseFile(resolve(LOG_DIR, logFile));
+    aggregated.codeIntervals.push(...fileSummary.codeIntervals);
     aggregated.deopts.push(...fileSummary.deopts);
     aggregated.icRecords.push(...fileSummary.icRecords);
   }
 
   const report = buildReport(aggregated);
 
-  log(`totals: ${report.totals.deopts} deopts, ${report.totals.icEvents} IC events`);
-  log("\n=== top deopt reasons ===\n" + formatTopList(report.deoptByReason, 20));
-  log("\n=== top deopt scripts ===\n" + formatTopList(report.deoptByScript, 20));
-  log("\n=== top deopt sites (file:line:col) ===\n" + formatTopList(report.deoptByLocation, 30));
   log(
-    `\n=== react-grab deopts: ${report.deoptsReactGrab.length} (first 25) ===\n` +
-      report.deoptsReactGrab
-        .slice(0, 25)
-        .map(
-          (entry, entryIndex) =>
-            `  ${(entryIndex + 1).toString().padStart(2, " ")}. ${entry.bailoutType}  reason=\"${entry.reason}\"\n      at ${entry.scriptUrl}` +
-            (entry.resolvedLineColumn
-              ? `:${entry.resolvedLineColumn.line}:${entry.resolvedLineColumn.column}\n      > ${entry.resolvedLineColumn.snippet}`
-              : ""),
-        )
-        .join("\n"),
+    `totals: ${report.totals.deopts} deopts, ${report.totals.icEvents} IC events, ${report.totals.codeBlobs} JS code blobs`,
   );
-  log("\n=== top megamorphic IC sites ===\n" + formatTopList(report.megamorphicGroups, 25));
-  log("\n=== top polymorphic IC sites ===\n" + formatTopList(report.polymorphicGroups, 15));
 
-  const summaryPath = resolve(LOG_DIR, "summary.json");
-  await writeFile(summaryPath, JSON.stringify(report, null, 2));
-  log(`\nwrote ${summaryPath}`);
+  log("\n=== top deopt reasons ===\n" + formatTopList(report.deoptByReason, 20));
+  log("\n=== top deopt scripts ===\n" + formatTopList(report.deoptByScript, 15));
+  log("\n=== top deopt sites (file:line:col) ===\n" + formatTopList(report.deoptByLocation, 30));
 
-  const humanPath = resolve(LOG_DIR, "summary.md");
-  const humanText = [
+  log(`\n=== react-grab deopts: ${report.deoptsReactGrab.length} ===`);
+  for (const [entryIndex, entry] of report.deoptsReactGrab.slice(0, 30).entries()) {
+    log(
+      `  ${(entryIndex + 1).toString().padStart(2, " ")}. ${entry.bailoutType}  reason="${entry.reason}"\n      at ${entry.locationLabel}`,
+    );
+  }
+
+  log(`\n=== bippy deopts: ${report.deoptsBippy.length} ===`);
+  for (const [entryIndex, entry] of report.deoptsBippy.slice(0, 15).entries()) {
+    log(
+      `  ${(entryIndex + 1).toString().padStart(2, " ")}. ${entry.bailoutType}  reason="${entry.reason}"\n      at ${entry.locationLabel}`,
+    );
+  }
+
+  log("\n=== IC state transitions (totals) ===\n" + formatTopList(report.icByTransition, 20));
+  log(
+    "\n=== top IC hot functions (any state) ===\n" + formatTopList(report.icByLocation, 25),
+  );
+  log(
+    `\n=== megamorphic IC sites in react-grab source: ${report.icReactGrabMegamorphic.length} ===`,
+  );
+  for (const [entryIndex, entry] of report.icReactGrabMegamorphic.slice(0, 25).entries()) {
+    log(
+      `  ${(entryIndex + 1).toString().padStart(2, " ")}. [${String(entry.count).padStart(5, " ")}]  ${entry.type}  ${entry.containingFunction}\n      key="${entry.key}"  reason="${entry.slowReason}"  url=${entry.containingUrl}`,
+    );
+  }
+  log(
+    `\n=== polymorphic IC sites in react-grab source: ${report.icReactGrabPolymorphic.length} ===`,
+  );
+  for (const [entryIndex, entry] of report.icReactGrabPolymorphic.slice(0, 15).entries()) {
+    log(
+      `  ${(entryIndex + 1).toString().padStart(2, " ")}. [${String(entry.count).padStart(5, " ")}]  ${entry.type}  ${entry.containingFunction}\n      key="${entry.key}"  reason="${entry.slowReason}"  url=${entry.containingUrl}`,
+    );
+  }
+
+  const writableReport = JSON.parse(
+    JSON.stringify(report, (_key, value) =>
+      typeof value === "bigint" ? value.toString() : value,
+    ),
+  );
+  const summaryJsonPath = resolve(LOG_DIR, "summary.json");
+  await writeFile(summaryJsonPath, JSON.stringify(writableReport, null, 2));
+  log(`\nwrote ${summaryJsonPath}`);
+
+  const summaryMarkdownPath = resolve(LOG_DIR, "summary.md");
+  const markdownText = [
     "# React Grab — V8 deopt + IC summary",
     "",
-    `Captured via dexnode-equivalent --js-flags: see manifest.json.`,
+    `Generated from a dexnode-equivalent --js-flags Chromium run. See manifest.json for flags.`,
     "",
     `- total deopts: **${report.totals.deopts}**`,
     `- total IC events: **${report.totals.icEvents}**`,
+    `- JS code blobs: **${report.totals.codeBlobs}**`,
     `- react-grab-source deopts: **${report.deoptsReactGrab.length}**`,
+    `- react-grab megamorphic IC sites: **${report.icReactGrabMegamorphic.length}** (${report.icReactGrabMegamorphic.reduce((accum, entry) => accum + entry.count, 0)} events)`,
+    `- react-grab polymorphic IC sites: **${report.icReactGrabPolymorphic.length}** (${report.icReactGrabPolymorphic.reduce((accum, entry) => accum + entry.count, 0)} events)`,
     "",
     "## Top deopt reasons",
     ...report.deoptByReason.slice(0, 20).map((entry) => `- \`${entry.label}\` — ${entry.count}`),
@@ -333,27 +438,33 @@ const main = async () => {
     "## Top deopt scripts",
     ...report.deoptByScript.slice(0, 20).map((entry) => `- \`${entry.label}\` — ${entry.count}`),
     "",
-    "## Top deopt sites",
-    ...report.deoptByLocation.slice(0, 30).map((entry) => `- ${entry.label} — ${entry.count}`),
+    "## React-grab deopts",
+    ...report.deoptsReactGrab.map(
+      (entry) =>
+        `- \`${entry.bailoutType}\` — \`${entry.reason}\`\n  - ${entry.locationLabel}`,
+    ),
     "",
-    "## React-grab deopts (top 25)",
-    ...report.deoptsReactGrab.slice(0, 25).map((entry) => {
-      const location = entry.resolvedLineColumn
-        ? `${entry.scriptUrl}:${entry.resolvedLineColumn.line}:${entry.resolvedLineColumn.column}`
-        : entry.scriptUrl;
-      const snippet = entry.resolvedLineColumn?.snippet ?? "";
-      return `- \`${entry.bailoutType}\` — \`${entry.reason}\`\n  - ${location}\n  - \`${snippet}\``;
-    }),
+    "## React-grab megamorphic IC sites",
+    ...report.icReactGrabMegamorphic.map(
+      (entry) =>
+        `- **${entry.count}× ${entry.type}** in \`${entry.containingFunction}\`\n  - key: \`${entry.key}\`  reason: \`${entry.slowReason || "-"}\`\n  - ${entry.containingUrl}`,
+    ),
     "",
-    "## Top megamorphic IC sites",
-    ...report.megamorphicGroups.slice(0, 25).map((entry) => `- ${entry.label} — ${entry.count}`),
+    "## React-grab polymorphic IC sites",
+    ...report.icReactGrabPolymorphic.map(
+      (entry) =>
+        `- **${entry.count}× ${entry.type}** in \`${entry.containingFunction}\`\n  - key: \`${entry.key}\`  reason: \`${entry.slowReason || "-"}\`\n  - ${entry.containingUrl}`,
+    ),
     "",
-    "## Top polymorphic IC sites",
-    ...report.polymorphicGroups.slice(0, 15).map((entry) => `- ${entry.label} — ${entry.count}`),
+    "## IC state transitions (totals)",
+    ...report.icByTransition.slice(0, 20).map((entry) => `- \`${entry.label}\` — ${entry.count}`),
+    "",
+    "## IC volume by script",
+    ...report.icSummaryByScript.slice(0, 20).map((entry) => `- ${entry.label} — ${entry.count}`),
     "",
   ].join("\n");
-  await writeFile(humanPath, humanText);
-  log(`wrote ${humanPath}`);
+  await writeFile(summaryMarkdownPath, markdownText);
+  log(`wrote ${summaryMarkdownPath}`);
 };
 
 main().catch((error) => {
