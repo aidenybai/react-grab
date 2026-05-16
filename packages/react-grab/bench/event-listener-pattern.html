@@ -1,0 +1,235 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>EventListener pattern bench</title>
+  </head>
+  <body>
+    <div id="target"></div>
+    <pre id="out"></pre>
+    <script type="module">
+      const out = document.getElementById("out");
+      const log = (line) => {
+        out.textContent += line + "\n";
+        console.log(line);
+      };
+
+      const target = document.getElementById("target");
+
+      const SCENARIOS = [
+        {
+          name: "drag-like (3 types, 2 unique handlers)",
+          eventTypes: ["pointermove", "pointerup", "pointercancel"],
+          handlerAssignment: [0, 1, 1],
+        },
+        {
+          name: "viewport-like (3 types, 1 unique handler)",
+          eventTypes: ["scroll", "resize", "wheel"],
+          handlerAssignment: [0, 0, 0],
+        },
+        {
+          name: "dismiss-like (3 types, 2 unique handlers)",
+          eventTypes: ["keydown", "mousedown", "touchstart"],
+          handlerAssignment: [0, 1, 1],
+        },
+        {
+          name: "freeze-mouse (8 types, 1 unique handler)",
+          eventTypes: [
+            "mouseenter",
+            "mouseleave",
+            "mouseover",
+            "mouseout",
+            "pointerenter",
+            "pointerleave",
+            "pointerover",
+            "pointerout",
+          ],
+          handlerAssignment: [0, 0, 0, 0, 0, 0, 0, 0],
+        },
+      ];
+
+      const DISPATCH_ITERATIONS = 200_000;
+      const ADD_REMOVE_ITERATIONS = 50_000;
+      const TRIALS_PER_RUN = 7;
+      const WARMUP_DISPATCH_ITERATIONS = 20_000;
+      const WARMUP_ADD_REMOVE_ITERATIONS = 5_000;
+
+      const createEventListenerObject = (handlers) => {
+        const dispatchByEventType = handlers;
+        return {
+          handleEvent(event) {
+            const handler = dispatchByEventType[event.type];
+            if (handler) handler(event);
+          },
+        };
+      };
+
+      const buildUniqueHandlers = (eventTypes, assignment) => {
+        const uniqueCount = Math.max(...assignment) + 1;
+        let totalCalls = 0;
+        const uniqueHandlers = [];
+        for (let handlerIndex = 0; handlerIndex < uniqueCount; handlerIndex++) {
+          uniqueHandlers.push((event) => {
+            totalCalls = (totalCalls + 1) | 0;
+            void event.type;
+          });
+        }
+        const handlersByType = {};
+        for (let typeIndex = 0; typeIndex < eventTypes.length; typeIndex++) {
+          handlersByType[eventTypes[typeIndex]] = uniqueHandlers[assignment[typeIndex]];
+        }
+        return { handlersByType, getTotalCalls: () => totalCalls };
+      };
+
+      const benchmarkDispatch = (scenario, useHandleEvent, iterations) => {
+        const { handlersByType } = buildUniqueHandlers(scenario.eventTypes, scenario.handlerAssignment);
+        const events = scenario.eventTypes.map((type) => new Event(type, { bubbles: false }));
+
+        if (useHandleEvent) {
+          const listenerObject = createEventListenerObject(handlersByType);
+          for (const type of scenario.eventTypes) {
+            target.addEventListener(type, listenerObject);
+          }
+          const start = performance.now();
+          for (let i = 0; i < iterations; i++) {
+            target.dispatchEvent(events[i % events.length]);
+          }
+          const end = performance.now();
+          for (const type of scenario.eventTypes) {
+            target.removeEventListener(type, listenerObject);
+          }
+          return end - start;
+        }
+
+        for (const type of scenario.eventTypes) {
+          target.addEventListener(type, handlersByType[type]);
+        }
+        const start = performance.now();
+        for (let i = 0; i < iterations; i++) {
+          target.dispatchEvent(events[i % events.length]);
+        }
+        const end = performance.now();
+        for (const type of scenario.eventTypes) {
+          target.removeEventListener(type, handlersByType[type]);
+        }
+        return end - start;
+      };
+
+      const benchmarkAddRemove = (scenario, useHandleEvent, iterations) => {
+        const { handlersByType } = buildUniqueHandlers(scenario.eventTypes, scenario.handlerAssignment);
+
+        if (useHandleEvent) {
+          const start = performance.now();
+          for (let i = 0; i < iterations; i++) {
+            const listenerObject = createEventListenerObject(handlersByType);
+            for (const type of scenario.eventTypes) {
+              target.addEventListener(type, listenerObject);
+            }
+            for (const type of scenario.eventTypes) {
+              target.removeEventListener(type, listenerObject);
+            }
+          }
+          return performance.now() - start;
+        }
+
+        const start = performance.now();
+        for (let i = 0; i < iterations; i++) {
+          for (const type of scenario.eventTypes) {
+            target.addEventListener(type, handlersByType[type]);
+          }
+          for (const type of scenario.eventTypes) {
+            target.removeEventListener(type, handlersByType[type]);
+          }
+        }
+        return performance.now() - start;
+      };
+
+      const computeStats = (samples) => {
+        const sorted = [...samples].sort((a, b) => a - b);
+        const median = sorted[Math.floor(sorted.length / 2)];
+        const min = sorted[0];
+        const max = sorted[sorted.length - 1];
+        const mean = sorted.reduce((sum, value) => sum + value, 0) / sorted.length;
+        return { median, min, max, mean };
+      };
+
+      const formatMs = (value) => value.toFixed(2).padStart(7, " ") + " ms";
+
+      const runBench = (label, fn, iterations) => {
+        fn(WARMUP_DISPATCH_ITERATIONS);
+        const samples = [];
+        for (let trial = 0; trial < TRIALS_PER_RUN; trial++) {
+          samples.push(fn(iterations));
+        }
+        return { label, stats: computeStats(samples) };
+      };
+
+      log("benchmark: event listener patterns");
+      log(`browser: ${navigator.userAgent}`);
+      log(`trials per measurement: ${TRIALS_PER_RUN}`);
+      log("");
+
+      for (const scenario of SCENARIOS) {
+        log(`scenario: ${scenario.name}`);
+        log(`  event types: ${scenario.eventTypes.join(", ")}`);
+        log("");
+        log(`  dispatch (${DISPATCH_ITERATIONS.toLocaleString()} events)`);
+
+        const dispatchFn = runBench(
+          "    function-per-event ",
+          (n) => benchmarkDispatch(scenario, false, n),
+          DISPATCH_ITERATIONS,
+        );
+        const dispatchObj = runBench(
+          "    EventListenerObject",
+          (n) => benchmarkDispatch(scenario, true, n),
+          DISPATCH_ITERATIONS,
+        );
+
+        log(
+          `${dispatchFn.label} median=${formatMs(dispatchFn.stats.median)} min=${formatMs(dispatchFn.stats.min)} max=${formatMs(dispatchFn.stats.max)}`,
+        );
+        log(
+          `${dispatchObj.label} median=${formatMs(dispatchObj.stats.median)} min=${formatMs(dispatchObj.stats.min)} max=${formatMs(dispatchObj.stats.max)}`,
+        );
+        const dispatchDelta = (dispatchObj.stats.median - dispatchFn.stats.median) / dispatchFn.stats.median;
+        log(`    delta: ${(dispatchDelta * 100).toFixed(1)}% (positive means handleEvent slower)`);
+        log("");
+
+        log(`  add+remove (${ADD_REMOVE_ITERATIONS.toLocaleString()} cycles)`);
+
+        const cycleFn = (() => {
+          benchmarkAddRemove(scenario, false, WARMUP_ADD_REMOVE_ITERATIONS);
+          const samples = [];
+          for (let trial = 0; trial < TRIALS_PER_RUN; trial++) {
+            samples.push(benchmarkAddRemove(scenario, false, ADD_REMOVE_ITERATIONS));
+          }
+          return { label: "    function-per-event ", stats: computeStats(samples) };
+        })();
+
+        const cycleObj = (() => {
+          benchmarkAddRemove(scenario, true, WARMUP_ADD_REMOVE_ITERATIONS);
+          const samples = [];
+          for (let trial = 0; trial < TRIALS_PER_RUN; trial++) {
+            samples.push(benchmarkAddRemove(scenario, true, ADD_REMOVE_ITERATIONS));
+          }
+          return { label: "    EventListenerObject", stats: computeStats(samples) };
+        })();
+
+        log(
+          `${cycleFn.label} median=${formatMs(cycleFn.stats.median)} min=${formatMs(cycleFn.stats.min)} max=${formatMs(cycleFn.stats.max)}`,
+        );
+        log(
+          `${cycleObj.label} median=${formatMs(cycleObj.stats.median)} min=${formatMs(cycleObj.stats.min)} max=${formatMs(cycleObj.stats.max)}`,
+        );
+        const cycleDelta = (cycleObj.stats.median - cycleFn.stats.median) / cycleFn.stats.median;
+        log(`    delta: ${(cycleDelta * 100).toFixed(1)}% (positive means handleEvent slower)`);
+        log("");
+        log("");
+      }
+
+      log("done");
+      window.__BENCH_DONE__ = true;
+    </script>
+  </body>
+</html>
