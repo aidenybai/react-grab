@@ -7,7 +7,6 @@ import {
   DROPDOWN_OFFSCREEN_POSITION,
   DROPDOWN_VIEWPORT_PADDING_PX,
 } from "../constants.js";
-import { createEventListener } from "./create-event-listener.js";
 import { getAnchoredDropdownPosition } from "./get-anchored-dropdown-position.js";
 import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "./native-raf.js";
 
@@ -84,18 +83,14 @@ export const createAnchoredDropdown = (
     const anchor = anchorAccessor();
     if (!anchor) return;
 
-    const viewportListener = createEventListener<WindowEventMap>({
-      resize: handleViewportChange,
-      scroll: handleViewportChange,
-    });
-    window.addEventListener("resize", viewportListener);
-    window.visualViewport?.addEventListener("resize", viewportListener);
-    window.visualViewport?.addEventListener("scroll", viewportListener);
+    window.addEventListener("resize", handleViewportChange);
+    window.visualViewport?.addEventListener("resize", handleViewportChange);
+    window.visualViewport?.addEventListener("scroll", handleViewportChange);
 
     onCleanup(() => {
-      window.removeEventListener("resize", viewportListener);
-      window.visualViewport?.removeEventListener("resize", viewportListener);
-      window.visualViewport?.removeEventListener("scroll", viewportListener);
+      window.removeEventListener("resize", handleViewportChange);
+      window.visualViewport?.removeEventListener("resize", handleViewportChange);
+      window.visualViewport?.removeEventListener("scroll", handleViewportChange);
     });
   });
 

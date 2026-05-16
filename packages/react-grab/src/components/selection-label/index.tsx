@@ -13,7 +13,6 @@ import {
   Z_INDEX_OVERLAY,
 } from "../../constants.js";
 import { autoResizeTextarea } from "../../utils/auto-resize-textarea.js";
-import { createEventListener } from "../../utils/create-event-listener.js";
 import { getArrowSize } from "../../utils/get-arrow-size.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
 import { cn } from "../../utils/cn.js";
@@ -138,32 +137,27 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       setPanelWidth(panelRef.getBoundingClientRect().width);
       resizeObserver.observe(panelRef);
     }
-    const viewportListener = createEventListener<WindowEventMap>({
-      scroll: handleViewportChange,
-      resize: handleViewportChange,
-      keydown: handleGlobalKeyDown,
-    });
-    window.addEventListener("scroll", viewportListener, true);
-    window.addEventListener("resize", viewportListener);
-    window.visualViewport?.addEventListener("resize", viewportListener);
-    window.visualViewport?.addEventListener("scroll", viewportListener);
+    window.addEventListener("scroll", handleViewportChange, true);
+    window.addEventListener("resize", handleViewportChange);
+    window.visualViewport?.addEventListener("resize", handleViewportChange);
+    window.visualViewport?.addEventListener("scroll", handleViewportChange);
     if (props.onToggleExpand) {
-      window.addEventListener("keydown", viewportListener, { capture: true });
+      window.addEventListener("keydown", handleGlobalKeyDown, { capture: true });
     }
+  });
 
-    onCleanup(() => {
-      resizeObserver?.disconnect();
-      window.removeEventListener("scroll", viewportListener, true);
-      window.removeEventListener("resize", viewportListener);
-      window.visualViewport?.removeEventListener("resize", viewportListener);
-      window.visualViewport?.removeEventListener("scroll", viewportListener);
-      // removeEventListener is a no-op for a listener that was never added,
-      // so it does not need to mirror the onMount onToggleExpand guard. If
-      // props.onToggleExpand were ever reactive between mount and cleanup,
-      // mirroring would leak the listener.
-      window.removeEventListener("keydown", viewportListener, {
-        capture: true,
-      });
+  onCleanup(() => {
+    resizeObserver?.disconnect();
+    window.removeEventListener("scroll", handleViewportChange, true);
+    window.removeEventListener("resize", handleViewportChange);
+    window.visualViewport?.removeEventListener("resize", handleViewportChange);
+    window.visualViewport?.removeEventListener("scroll", handleViewportChange);
+    // removeEventListener is a no-op for a listener that was never added,
+    // so it does not need to mirror the onMount onToggleExpand guard. If
+    // props.onToggleExpand were ever reactive between mount and cleanup,
+    // mirroring would leak the listener.
+    window.removeEventListener("keydown", handleGlobalKeyDown, {
+      capture: true,
     });
   });
 

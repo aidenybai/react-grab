@@ -35,7 +35,6 @@ import {
   isHorizontalEdge,
 } from "../../utils/toolbar-position.js";
 import { clampToRange } from "../../utils/clamp-to-range.js";
-import { createEventListener } from "../../utils/create-event-listener.js";
 import { createToolbarDrag } from "../../utils/create-toolbar-drag.js";
 
 interface ToolbarProps {
@@ -581,9 +580,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       onCleanup(unsubscribe);
     }
 
-    window.addEventListener("resize", resizeListener);
-    window.visualViewport?.addEventListener("resize", resizeListener);
-    window.visualViewport?.addEventListener("scroll", resizeListener);
+    window.addEventListener("resize", handleResize);
+    window.visualViewport?.addEventListener("resize", handleResize);
+    window.visualViewport?.addEventListener("scroll", handleResize);
 
     if (typeof ResizeObserver !== "undefined" && containerRef) {
       const observer = new ResizeObserver((entries) => {
@@ -621,15 +620,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     });
   });
 
-  const resizeListener = createEventListener<WindowEventMap>({
-    resize: handleResize,
-    scroll: handleResize,
-  });
-
   onCleanup(() => {
-    window.removeEventListener("resize", resizeListener);
-    window.visualViewport?.removeEventListener("resize", resizeListener);
-    window.visualViewport?.removeEventListener("scroll", resizeListener);
+    window.removeEventListener("resize", handleResize);
+    window.visualViewport?.removeEventListener("resize", handleResize);
+    window.visualViewport?.removeEventListener("scroll", handleResize);
     clearTimeout(resizeTimeout);
     clearTimeout(collapseAnimationTimeout);
     clearTimeout(commentItemCountTimeout);
