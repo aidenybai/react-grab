@@ -88,7 +88,8 @@
     "test:expect": "bun e2e/react-grab.expect.ts",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "pnpm build",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "bench:event-listener": "node bench/run.mjs"
   },
   "dependencies": {
     "@react-grab/cli": "workspace:*",
