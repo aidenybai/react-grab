@@ -212,22 +212,25 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const pluginRegistry = createPluginRegistry(settableOptions);
 
-    const { store, actions, pointer, viewportVersion } = createGrabStore({
+    const { store, actions, pointer, viewportVersion, current } = createGrabStore({
       theme: DEFAULT_THEME,
       keyHoldDuration: pluginRegistry.store.options.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS,
     });
 
-    const isHoldingKeys = createMemo(() => store.current.state === "holding");
-    const isActivated = createMemo(() => store.current.state === "active");
-    const isFrozenPhase = createMemo(
-      () => store.current.state === "active" && store.current.phase === "frozen",
-    );
-    const isDragging = createMemo(
-      () =>
-        store.current.state === "active" &&
-        (store.current.phase === "dragging-select" ||
-          store.current.phase === "dragging-reposition"),
-    );
+    const isHoldingKeys = createMemo(() => current().state === "holding");
+    const isActivated = createMemo(() => current().state === "active");
+    const isFrozenPhase = createMemo(() => {
+      const currentState = current();
+      return currentState.state === "active" && currentState.phase === "frozen";
+    });
+    const isDragging = createMemo(() => {
+      const currentState = current();
+      return (
+        currentState.state === "active" &&
+        (currentState.phase === "dragging-select" ||
+          currentState.phase === "dragging-reposition")
+      );
+    });
     // True only when the drag has actually moved beyond the click threshold.
     // We use this for selection-visibility decisions so a click (which
     // momentarily enters the dragging-select phase between pointerdown and
@@ -238,27 +241,32 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const dy = Math.abs(pointer().y + window.scrollY - store.dragStart.y);
       return dx > DRAG_THRESHOLD_PX || dy > DRAG_THRESHOLD_PX;
     });
-    const isDragRepositioning = createMemo(
-      () => store.current.state === "active" && store.current.phase === "dragging-reposition",
-    );
-    const didJustDrag = createMemo(
-      () => store.current.state === "active" && store.current.phase === "justDragged",
-    );
-    const isCopying = createMemo(() => store.current.state === "copying");
+    const isDragRepositioning = createMemo(() => {
+      const currentState = current();
+      return currentState.state === "active" && currentState.phase === "dragging-reposition";
+    });
+    const didJustDrag = createMemo(() => {
+      const currentState = current();
+      return currentState.state === "active" && currentState.phase === "justDragged";
+    });
+    const isCopying = createMemo(() => current().state === "copying");
     const isSelectionInteractionLocked = createMemo(
       () => isCopying() || store.selectionInteractionLockDepth > 0,
     );
-    const didJustCopy = createMemo(() => store.current.state === "justCopied");
-    const isPromptMode = createMemo(
-      () => store.current.state === "active" && Boolean(store.current.isPromptMode),
-    );
+    const didJustCopy = createMemo(() => current().state === "justCopied");
+    const isPromptMode = createMemo(() => {
+      const currentState = current();
+      return currentState.state === "active" && Boolean(currentState.isPromptMode);
+    });
     const isCommentMode = createMemo(() => store.pendingCommentMode || isPromptMode());
-    const isPendingDismiss = createMemo(
-      () =>
-        store.current.state === "active" &&
-        Boolean(store.current.isPromptMode) &&
-        Boolean(store.current.isPendingDismiss),
-    );
+    const isPendingDismiss = createMemo(() => {
+      const currentState = current();
+      return (
+        currentState.state === "active" &&
+        Boolean(currentState.isPromptMode) &&
+        Boolean(currentState.isPendingDismiss)
+      );
+    });
 
     createEffect(
       on(isActivated, (activated, previousActivated) => {
@@ -409,7 +417,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     // held the activation key and pressed Ctrl+C). Instead it sets holdTimerFired
     // so the keyup handler can activate after the clipboard operation finishes.
     createEffect(() => {
-      if (store.current.state !== "holding") {
+      if (current().state !== "holding") {
         clearHoldTimer();
         return;
       }
@@ -426,7 +434,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     createEffect(() => {
-      if (store.current.state !== "active" || store.current.phase !== "justDragged") return;
+      const currentState = current();
+      if (currentState.state !== "active" || currentState.phase !== "justDragged") return;
       const timerId = setTimeout(() => {
         actions.finishJustDragged();
       }, FEEDBACK_DURATION_MS);
@@ -434,7 +443,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     createEffect(() => {
-      if (store.current.state !== "justCopied") return;
+      if (current().state !== "justCopied") return;
       const timerId = setTimeout(() => {
         actions.finishJustCopied();
       }, FEEDBACK_DURATION_MS);
@@ -728,7 +737,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       shouldDeactivateAfter?: boolean,
     ) => {
       clearCopyFeedbackCooldown();
-      if (store.current.state !== "copying") {
+      if (current().state !== "copying") {
         actions.startCopy();
       }
 
@@ -746,7 +755,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         updateLabelAfterCopy(labelInstanceId, didSucceed, errorMessage);
       }
 
-      if (store.current.state !== "copying") return;
+      if (current().state !== "copying") return;
 
       if (didSucceed) {
         actions.completeCopy(copiedElement);
@@ -949,7 +958,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               normalizeErrorMessage(error, "Action failed"),
             );
           }
-          if (store.current.state === "copying") {
+          if (current().state === "copying") {
             actions.unfreeze();
           }
         });

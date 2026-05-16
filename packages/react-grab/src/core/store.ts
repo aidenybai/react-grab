@@ -28,7 +28,6 @@ type GrabState =
   | { state: "justCopied"; copiedAt: number; wasActive: boolean };
 
 interface GrabStore {
-  current: GrabState;
   selectionInteractionLockDepth: number;
 
   wasActivatedByToggle: boolean;
@@ -72,7 +71,6 @@ interface GrabStoreInput {
 }
 
 const createInitialStore = (input: GrabStoreInput): GrabStore => ({
-  current: { state: "idle" },
   selectionInteractionLockDepth: 0,
 
   wasActivatedByToggle: false,
@@ -174,6 +172,7 @@ const createGrabStore = (input: GrabStoreInput) => {
     y: OFFSCREEN_POSITION,
   });
   const [viewportVersion, setViewportVersion] = createSignal(0);
+  const [current, setCurrent] = createSignal<GrabState>({ state: "idle" });
 
   const updateFrozenElements = (mutator: (draft: GrabStore) => void) => {
     setStore(
@@ -192,14 +191,7 @@ const createGrabStore = (input: GrabStoreInput) => {
   };
 
   const setActivePhase = (phase: GrabPhase) => {
-    setStore(
-      "current",
-      produce((current) => {
-        if (current.state === "active") {
-          current.phase = phase;
-        }
-      }),
-    );
+    setCurrent((prev) => (prev.state === "active" ? { ...prev, phase } : prev));
   };
 
   const actions: GrabActions = {
@@ -207,48 +199,48 @@ const createGrabStore = (input: GrabStoreInput) => {
       if (duration !== undefined) {
         setStore("keyHoldDuration", duration);
       }
-      setStore("current", { state: "holding", startedAt: Date.now() });
+      setCurrent({ state: "holding", startedAt: Date.now() });
     },
 
     releaseHold: () => {
-      if (store.current.state === "holding") {
-        setStore("current", { state: "idle" });
+      if (current().state === "holding") {
+        setCurrent({ state: "idle" });
       }
     },
 
     activate: () => {
-      setStore(
-        produce((draft) => {
-          draft.current = {
-            state: "active",
-            phase: "hovering",
-            isPromptMode: false,
-            isPendingDismiss: false,
-          };
-          draft.activationTimestamp = Date.now();
-          draft.previouslyFocusedElement = document.activeElement;
-        }),
-      );
+      batch(() => {
+        setCurrent({
+          state: "active",
+          phase: "hovering",
+          isPromptMode: false,
+          isPendingDismiss: false,
+        });
+        setStore("activationTimestamp", Date.now());
+        setStore("previouslyFocusedElement", document.activeElement);
+      });
     },
 
     deactivate: () => {
-      setStore(
-        produce((draft) => {
-          draft.current = { state: "idle" };
-          draft.wasActivatedByToggle = false;
-          draft.pendingCommentMode = false;
-          draft.inputText = "";
-          draft.frozenElement = null;
-          draft.frozenElements = [];
-          draft.frozenDragRect = null;
-          draft.activationTimestamp = null;
-          draft.previouslyFocusedElement = null;
-          draft.contextMenuPosition = null;
-          draft.contextMenuElement = null;
-          draft.contextMenuClickOffset = null;
-          draft.lastCopiedElement = null;
-        }),
-      );
+      batch(() => {
+        setCurrent({ state: "idle" });
+        setStore(
+          produce((draft) => {
+            draft.wasActivatedByToggle = false;
+            draft.pendingCommentMode = false;
+            draft.inputText = "";
+            draft.frozenElement = null;
+            draft.frozenElements = [];
+            draft.frozenDragRect = null;
+            draft.activationTimestamp = null;
+            draft.previouslyFocusedElement = null;
+            draft.contextMenuPosition = null;
+            draft.contextMenuElement = null;
+            draft.contextMenuClickOffset = null;
+            draft.lastCopiedElement = null;
+          }),
+        );
+      });
     },
 
     toggle: () => {
@@ -261,7 +253,7 @@ const createGrabStore = (input: GrabStoreInput) => {
     },
 
     freeze: () => {
-      if (store.current.state === "active") {
+      if (current().state === "active") {
         const elementToFreeze = store.frozenElement ?? store.detectedElement;
         if (elementToFreeze) {
           setStore("frozenElement", elementToFreeze);
@@ -271,45 +263,53 @@ const createGrabStore = (input: GrabStoreInput) => {
     },
 
     unfreeze: () => {
-      if (store.current.state === "active") {
-        setStore(
-          produce((draft) => {
-            draft.frozenElement = null;
-            draft.frozenElements = [];
-            draft.frozenDragRect = null;
-          }),
-        );
-        setActivePhase("hovering");
+      if (current().state === "active") {
+        batch(() => {
+          setStore(
+            produce((draft) => {
+              draft.frozenElement = null;
+              draft.frozenElements = [];
+              draft.frozenDragRect = null;
+            }),
+          );
+          setActivePhase("hovering");
+        });
       }
     },
 
     startDrag: (position: Position, shouldPreserveFrozenElements?: boolean) => {
-      if (store.current.state === "active") {
-        if (!shouldPreserveFrozenElements) {
-          clearFrozenElement();
-        }
-        setStore("dragStart", {
-          x: position.x + window.scrollX,
-          y: position.y + window.scrollY,
+      const currentState = current();
+      if (currentState.state === "active") {
+        batch(() => {
+          if (!shouldPreserveFrozenElements) {
+            clearFrozenElement();
+          }
+          setStore("dragStart", {
+            x: position.x + window.scrollX,
+            y: position.y + window.scrollY,
+          });
+          setActivePhase("dragging-select");
         });
-        setActivePhase("dragging-select");
       }
     },
 
     startDragReposition: () => {
-      if (store.current.state === "active" && store.current.phase === "dragging-select") {
+      const currentState = current();
+      if (currentState.state === "active" && currentState.phase === "dragging-select") {
         setActivePhase("dragging-reposition");
       }
     },
 
     stopDragReposition: () => {
-      if (store.current.state === "active" && store.current.phase === "dragging-reposition") {
+      const currentState = current();
+      if (currentState.state === "active" && currentState.phase === "dragging-reposition") {
         setActivePhase("dragging-select");
       }
     },
 
     shiftDragStart: (delta: Position) => {
-      if (store.current.state === "active" && store.current.phase === "dragging-reposition") {
+      const currentState = current();
+      if (currentState.state === "active" && currentState.phase === "dragging-reposition") {
         setStore("dragStart", (dragStart) => ({
           x: dragStart.x + delta.x,
           y: dragStart.y + delta.y,
@@ -318,34 +318,41 @@ const createGrabStore = (input: GrabStoreInput) => {
     },
 
     endDrag: () => {
+      const currentState = current();
       if (
-        store.current.state === "active" &&
-        (store.current.phase === "dragging-select" || store.current.phase === "dragging-reposition")
+        currentState.state === "active" &&
+        (currentState.phase === "dragging-select" || currentState.phase === "dragging-reposition")
       ) {
-        setStore("dragStart", { x: OFFSCREEN_POSITION, y: OFFSCREEN_POSITION });
-        setActivePhase("justDragged");
+        batch(() => {
+          setStore("dragStart", { x: OFFSCREEN_POSITION, y: OFFSCREEN_POSITION });
+          setActivePhase("justDragged");
+        });
       }
     },
 
     cancelDrag: () => {
+      const currentState = current();
       if (
-        store.current.state === "active" &&
-        (store.current.phase === "dragging-select" || store.current.phase === "dragging-reposition")
+        currentState.state === "active" &&
+        (currentState.phase === "dragging-select" || currentState.phase === "dragging-reposition")
       ) {
-        setStore("dragStart", { x: OFFSCREEN_POSITION, y: OFFSCREEN_POSITION });
-        setActivePhase("hovering");
+        batch(() => {
+          setStore("dragStart", { x: OFFSCREEN_POSITION, y: OFFSCREEN_POSITION });
+          setActivePhase("hovering");
+        });
       }
     },
 
     finishJustDragged: () => {
-      if (store.current.state === "active" && store.current.phase === "justDragged") {
+      const currentState = current();
+      if (currentState.state === "active" && currentState.phase === "justDragged") {
         setActivePhase("hovering");
       }
     },
 
     startCopy: () => {
-      const wasActive = store.current.state === "active";
-      setStore("current", {
+      const wasActive = current().state === "active";
+      setCurrent({
         state: "copying",
         startedAt: Date.now(),
         wasActive,
@@ -353,27 +360,33 @@ const createGrabStore = (input: GrabStoreInput) => {
     },
 
     completeCopy: (element?: Element) => {
-      if (element) {
-        setStore("lastCopiedElement", element);
-      }
-      const wasActive = store.current.state === "copying" ? store.current.wasActive : false;
-      setStore("current", {
-        state: "justCopied",
-        copiedAt: Date.now(),
-        wasActive,
+      const currentState = current();
+      const wasActive = currentState.state === "copying" ? currentState.wasActive : false;
+      batch(() => {
+        if (element) {
+          setStore("lastCopiedElement", element);
+        }
+        setCurrent({
+          state: "justCopied",
+          copiedAt: Date.now(),
+          wasActive,
+        });
       });
     },
 
     finishJustCopied: () => {
-      if (store.current.state === "justCopied") {
-        const shouldReturnToActive = store.current.wasActive && !store.wasActivatedByToggle;
+      const currentState = current();
+      if (currentState.state === "justCopied") {
+        const shouldReturnToActive = currentState.wasActive && !store.wasActivatedByToggle;
         if (shouldReturnToActive) {
-          clearFrozenElement();
-          setStore("current", {
-            state: "active",
-            phase: "hovering",
-            isPromptMode: false,
-            isPendingDismiss: false,
+          batch(() => {
+            clearFrozenElement();
+            setCurrent({
+              state: "active",
+              phase: "hovering",
+              isPromptMode: false,
+              isPendingDismiss: false,
+            });
           });
         } else {
           actions.deactivate();
@@ -385,46 +398,38 @@ const createGrabStore = (input: GrabStoreInput) => {
       const bounds = createElementBounds(element);
       const { x: selectionCenterX } = getBoundsCenter(bounds);
 
-      setStore("copyStart", position);
-      setStore("copyOffsetFromCenterX", position.x - selectionCenterX);
-      setPointer(position);
-      setStore("frozenElement", element);
-      setStore("wasActivatedByToggle", true);
+      batch(() => {
+        setStore("copyStart", position);
+        setStore("copyOffsetFromCenterX", position.x - selectionCenterX);
+        setPointer(position);
+        setStore("frozenElement", element);
+        setStore("wasActivatedByToggle", true);
 
-      if (store.current.state !== "active") {
-        setStore("current", {
-          state: "active",
-          phase: "frozen",
-          isPromptMode: true,
-          isPendingDismiss: false,
-        });
-        setStore("activationTimestamp", Date.now());
-        setStore("previouslyFocusedElement", document.activeElement);
-      } else {
-        setStore(
-          "current",
-          produce((current) => {
-            if (current.state === "active") {
-              current.isPromptMode = true;
-              current.phase = "frozen";
-            }
-          }),
-        );
-      }
+        if (current().state !== "active") {
+          setCurrent({
+            state: "active",
+            phase: "frozen",
+            isPromptMode: true,
+            isPendingDismiss: false,
+          });
+          setStore("activationTimestamp", Date.now());
+          setStore("previouslyFocusedElement", document.activeElement);
+        } else {
+          setCurrent((prev) =>
+            prev.state === "active"
+              ? { ...prev, isPromptMode: true, phase: "frozen" }
+              : prev,
+          );
+        }
+      });
     },
 
     exitPromptMode: () => {
-      if (store.current.state === "active") {
-        setStore(
-          "current",
-          produce((current) => {
-            if (current.state === "active") {
-              current.isPromptMode = false;
-              current.isPendingDismiss = false;
-            }
-          }),
-        );
-      }
+      setCurrent((prev) =>
+        prev.state === "active"
+          ? { ...prev, isPromptMode: false, isPendingDismiss: false }
+          : prev,
+      );
     },
 
     setInputText: (value: string) => {
@@ -436,16 +441,9 @@ const createGrabStore = (input: GrabStoreInput) => {
     },
 
     setPendingDismiss: (value: boolean) => {
-      if (store.current.state === "active") {
-        setStore(
-          "current",
-          produce((current) => {
-            if (current.state === "active") {
-              current.isPendingDismiss = value;
-            }
-          }),
-        );
-      }
+      setCurrent((prev) =>
+        prev.state === "active" ? { ...prev, isPendingDismiss: value } : prev,
+      );
     },
 
     setPointer: (position: Position) => {
@@ -621,7 +619,7 @@ const createGrabStore = (input: GrabStoreInput) => {
     },
   };
 
-  return { store, actions, pointer, viewportVersion };
+  return { store, actions, pointer, viewportVersion, current };
 };
 
 export { createGrabStore };
