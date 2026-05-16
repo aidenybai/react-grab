@@ -50,13 +50,13 @@ Code extension.
 
 Captured headless Chromium 1280×720, dev build, 50×10 grid (500 cells). Single-snapshot numbers — see commit messages for variance bands across 4-run checks where they were taken.
 
-| stage | scenario `viewportInvalidationBurst` (median) | scenario `multiFreezeInvalidationBurst` (median) | `hoverSweep` (total over 1500 events) |
-|---|---|---|---|
-| `stage-0-baseline` | 70.4 | 77.3 | 38.9 |
-| `stage-3-mapArray` | 70.0 | 78.1 | 42.6 |
-| `stage-4-hoist-signals` | 74.25 | 78.7 | 35.4 |
-| `stage-5-no-produce` | 71.0 | 76.8 | 35.8 |
-| `stage-6-current-signal` | 76.15 | 81.95 | 47.2 |
+| stage                    | scenario `viewportInvalidationBurst` (median) | scenario `multiFreezeInvalidationBurst` (median) | `hoverSweep` (total over 1500 events) |
+| ------------------------ | --------------------------------------------- | ------------------------------------------------ | ------------------------------------- |
+| `stage-0-baseline`       | 70.4                                          | 77.3                                             | 38.9                                  |
+| `stage-3-mapArray`       | 70.0                                          | 78.1                                             | 42.6                                  |
+| `stage-4-hoist-signals`  | 74.25                                         | 78.7                                             | 35.4                                  |
+| `stage-5-no-produce`     | 71.0                                          | 76.8                                             | 35.8                                  |
+| `stage-6-current-signal` | 76.15                                         | 81.95                                            | 47.2                                  |
 
 The synthetic grid bench is dominated by the `incrementViewportVersion` →
 downstream-memo invalidation chain. It does not exercise per-component-name

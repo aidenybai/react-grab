@@ -29,9 +29,9 @@ const ICTYPES = new Set([
 
 const IC_STATE_NAMES = {
   X: "no_feedback",
-  "0": "uninitialized",
+  0: "uninitialized",
   ".": "premonomorphic",
-  "1": "monomorphic",
+  1: "monomorphic",
   "^": "recompute_handler",
   P: "polymorphic",
   N: "megamorphic",
@@ -111,7 +111,12 @@ const parseFile = async (logPath) => {
     if (tag === "code-creation") {
       const fields = parseCsvLine(line);
       const codeKind = fields[1];
-      if (codeKind === "JS" || codeKind === "LazyCompile" || codeKind === "Function" || codeKind === "Eval") {
+      if (
+        codeKind === "JS" ||
+        codeKind === "LazyCompile" ||
+        codeKind === "Function" ||
+        codeKind === "Eval"
+      ) {
         const startAddress = parseAddress(fields[4]);
         const size = Number(fields[5]);
         const symbolName = stripQuotes(fields[6] ?? "");
@@ -390,9 +395,7 @@ const main = async () => {
   }
 
   log("\n=== IC state transitions (totals) ===\n" + formatTopList(report.icByTransition, 20));
-  log(
-    "\n=== top IC hot functions (any state) ===\n" + formatTopList(report.icByLocation, 25),
-  );
+  log("\n=== top IC hot functions (any state) ===\n" + formatTopList(report.icByLocation, 25));
   log(
     `\n=== megamorphic IC sites in react-grab source: ${report.icReactGrabMegamorphic.length} ===`,
   );
@@ -411,9 +414,7 @@ const main = async () => {
   }
 
   const writableReport = JSON.parse(
-    JSON.stringify(report, (_key, value) =>
-      typeof value === "bigint" ? value.toString() : value,
-    ),
+    JSON.stringify(report, (_key, value) => (typeof value === "bigint" ? value.toString() : value)),
   );
   const summaryJsonPath = resolve(LOG_DIR, "summary.json");
   await writeFile(summaryJsonPath, JSON.stringify(writableReport, null, 2));
@@ -440,8 +441,7 @@ const main = async () => {
     "",
     "## React-grab deopts",
     ...report.deoptsReactGrab.map(
-      (entry) =>
-        `- \`${entry.bailoutType}\` — \`${entry.reason}\`\n  - ${entry.locationLabel}`,
+      (entry) => `- \`${entry.bailoutType}\` — \`${entry.reason}\`\n  - ${entry.locationLabel}`,
     ),
     "",
     "## React-grab megamorphic IC sites",
