@@ -1,5 +1,5 @@
 import { createStore, produce } from "solid-js/store";
-import { batch } from "solid-js";
+import { batch, createSignal } from "solid-js";
 import type { Position, Theme, GrabbedBox, SelectionLabelInstance } from "../types.js";
 import { OFFSCREEN_POSITION } from "../constants.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
@@ -35,7 +35,6 @@ interface GrabStore {
   pendingCommentMode: boolean;
   keyHoldDuration: number;
 
-  pointer: Position;
   dragStart: Position;
   copyStart: Position;
   copyOffsetFromCenterX: number;
@@ -52,7 +51,6 @@ interface GrabStore {
 
   inputText: string;
 
-  viewportVersion: number;
   grabbedBoxes: GrabbedBox[];
   labelInstances: SelectionLabelInstance[];
 
@@ -81,7 +79,6 @@ const createInitialStore = (input: GrabStoreInput): GrabStore => ({
   pendingCommentMode: false,
   keyHoldDuration: input.keyHoldDuration,
 
-  pointer: { x: OFFSCREEN_POSITION, y: OFFSCREEN_POSITION },
   dragStart: { x: OFFSCREEN_POSITION, y: OFFSCREEN_POSITION },
   copyStart: { x: OFFSCREEN_POSITION, y: OFFSCREEN_POSITION },
   copyOffsetFromCenterX: 0,
@@ -98,7 +95,6 @@ const createInitialStore = (input: GrabStoreInput): GrabStore => ({
 
   inputText: "",
 
-  viewportVersion: 0,
   grabbedBoxes: [],
   labelInstances: [],
 
@@ -172,6 +168,12 @@ interface GrabActions {
 
 const createGrabStore = (input: GrabStoreInput) => {
   const [store, setStore] = createStore<GrabStore>(createInitialStore(input));
+
+  const [pointer, setPointer] = createSignal<Position>({
+    x: OFFSCREEN_POSITION,
+    y: OFFSCREEN_POSITION,
+  });
+  const [viewportVersion, setViewportVersion] = createSignal(0);
 
   const updateFrozenElements = (mutator: (draft: GrabStore) => void) => {
     setStore(
@@ -385,7 +387,7 @@ const createGrabStore = (input: GrabStoreInput) => {
 
       setStore("copyStart", position);
       setStore("copyOffsetFromCenterX", position.x - selectionCenterX);
-      setStore("pointer", position);
+      setPointer(position);
       setStore("frozenElement", element);
       setStore("wasActivatedByToggle", true);
 
@@ -447,7 +449,7 @@ const createGrabStore = (input: GrabStoreInput) => {
     },
 
     setPointer: (position: Position) => {
-      setStore("pointer", position);
+      setPointer(position);
     },
 
     setDetectedElement: (element: Element | null) => {
@@ -536,7 +538,7 @@ const createGrabStore = (input: GrabStoreInput) => {
     },
 
     incrementViewportVersion: () => {
-      setStore("viewportVersion", (version) => version + 1);
+      setViewportVersion((version) => version + 1);
     },
 
     addGrabbedBox: (box: GrabbedBox) => {
@@ -619,7 +621,7 @@ const createGrabStore = (input: GrabStoreInput) => {
     },
   };
 
-  return { store, actions };
+  return { store, actions, pointer, viewportVersion };
 };
 
 export { createGrabStore };
