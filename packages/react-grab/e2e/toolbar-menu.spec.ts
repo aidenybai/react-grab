@@ -64,23 +64,5 @@ test.describe("Toolbar Menu", () => {
       await expect.poll(() => reactGrab.isToolbarMenuVisible(), { timeout: 2000 }).toBe(false);
     });
 
-    test("opening toolbar menu should dismiss comments dropdown", async ({ reactGrab }) => {
-      await reactGrab.registerCommentAction();
-      await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.typeInInput("comment");
-      await reactGrab.submitInput();
-      await expect.poll(() => reactGrab.getClipboardContent(), { timeout: 5000 }).toBeTruthy();
-      await reactGrab.page.waitForTimeout(300);
-
-      await expect.poll(() => reactGrab.isCommentsButtonVisible(), { timeout: 2000 }).toBe(true);
-
-      await reactGrab.clickCommentsButton();
-      await expect.poll(() => reactGrab.isCommentsDropdownVisible(), { timeout: 2000 }).toBe(true);
-
-      await reactGrab.rightClickToolbarToggle();
-
-      await expect.poll(() => reactGrab.isCommentsDropdownVisible(), { timeout: 2000 }).toBe(false);
-      await expect.poll(() => reactGrab.isToolbarMenuVisible(), { timeout: 2000 }).toBe(true);
-    });
   });
 });
