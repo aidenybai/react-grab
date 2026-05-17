@@ -40,14 +40,9 @@ const meta: Meta<ToolbarSceneProps> = {
         isActive={args.isActive}
         enabled={args.enabled}
         isContextMenuOpen={args.isContextMenuOpen}
-        commentItemCount={args.commentItemCount}
         onToggle={noop}
         onStateChange={noop}
         onSelectHoverChange={noop}
-        onToggleComments={noop}
-        onCopyAll={noop}
-        onCopyAllHover={noop}
-        onCommentsButtonHover={noop}
         onToggleToolbarMenu={noop}
       />
     </Canvas>

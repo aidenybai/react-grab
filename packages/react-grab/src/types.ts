@@ -408,14 +408,7 @@ export interface ReactGrabRendererProps {
   onContextMenuHide?: () => void;
   commentItems?: CommentItem[];
   commentsDisconnectedItemIds?: Set<string>;
-  commentItemCount?: number;
-  clockFlashTrigger?: number;
   commentsDropdownPosition?: DropdownAnchor | null;
-  isCommentsPinned?: boolean;
-  onToggleComments?: () => void;
-  onCopyAll?: () => void;
-  onCopyAllHover?: (isHovered: boolean) => void;
-  onCommentsButtonHover?: (isHovered: boolean) => void;
   onCommentItemSelect?: (item: CommentItem) => void;
   onCommentItemHover?: (commentItemId: string | null) => void;
   onCommentsCopyAll?: () => void;

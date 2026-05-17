@@ -291,7 +291,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let toolbarElement: HTMLDivElement | undefined;
     let dropdownTrackingFrameId: number | null = null;
     const commentElementMap = new Map<string, Element[]>();
-    const [clockFlashTrigger, setClockFlashTrigger] = createSignal(0);
+    const [_clockFlashTrigger, setClockFlashTrigger] = createSignal(0);
     const [isCommentsHoverOpen, setIsCommentsHoverOpen] = createSignal(false);
     let commentsHoverPreviews: { boxId: string; labelId: string | null }[] = [];
     let shiftSelectionLabelAnchorRatioByElement = new WeakMap<Element, number>();
@@ -3459,14 +3459,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setToolbarMenuPosition(null);
     };
 
-    const openCommentsDropdown = () => {
-      actions.hideContextMenu();
-      dismissToolbarMenu();
-      dismissClearPrompt();
-      setCommentItems(loadComments());
-      openTrackedDropdown(setCommentsDropdownPosition);
-    };
-
     let commentsHoverOpenTimeoutId: ReturnType<typeof setTimeout> | null = null;
     let commentsHoverCloseTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
@@ -3521,23 +3513,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleSetDefaultAction = (actionId: string) => {
       updateToolbarState({ defaultAction: actionId });
-    };
-
-    const handleToggleComments = () => {
-      cancelCommentsHoverOpenTimeout();
-      cancelCommentsHoverCloseTimeout();
-      const isCurrentlyOpen = commentsDropdownPosition() !== null;
-      if (isCurrentlyOpen) {
-        if (isCommentsHoverOpen()) {
-          clearCommentsHoverPreviews();
-          setIsCommentsHoverOpen(false);
-        } else {
-          dismissCommentsDropdown();
-        }
-      } else {
-        clearCommentsHoverPreviews();
-        openCommentsDropdown();
-      }
     };
 
     const copyCommentItemContent = (item: CommentItem) => {
@@ -3639,24 +3614,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const item = commentItems().find((innerItem) => innerItem.id === commentItemId);
       if (!item) return;
       showCommentItemPreview(item, "comment-hover");
-    };
-
-    const handleCommentsButtonHover = (isHovered: boolean) => {
-      cancelCommentsHoverOpenTimeout();
-      clearCommentsHoverPreviews();
-      if (isHovered) {
-        cancelCommentsHoverCloseTimeout();
-        if (commentsDropdownPosition() === null && clearPromptPosition() === null) {
-          showAllCommentItemPreviews();
-          commentsHoverOpenTimeoutId = setTimeout(() => {
-            commentsHoverOpenTimeoutId = null;
-            setIsCommentsHoverOpen(true);
-            openCommentsDropdown();
-          }, DROPDOWN_HOVER_OPEN_DELAY_MS);
-        }
-      } else if (isCommentsHoverOpen()) {
-        scheduleCommentsHoverClose();
-      }
     };
 
     const handleCommentsDropdownHover = (isHovered: boolean) => {
@@ -3818,14 +3775,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 onContextMenuHide={deferHideContextMenu}
                 commentItems={commentItems()}
                 commentsDisconnectedItemIds={commentsDisconnectedItemIds()}
-                commentItemCount={commentItems().length}
-                clockFlashTrigger={clockFlashTrigger()}
                 commentsDropdownPosition={commentsDropdownPosition()}
-                isCommentsPinned={commentsDropdownPosition() !== null && !isCommentsHoverOpen()}
-                onToggleComments={handleToggleComments}
-                onCopyAll={handleCommentsCopyAll}
-                onCopyAllHover={handleCommentsCopyAllHover}
-                onCommentsButtonHover={handleCommentsButtonHover}
                 onCommentItemSelect={handleCommentItemSelect}
                 onCommentItemHover={handleCommentItemHover}
                 onCommentsCopyAll={handleCommentsCopyAll}

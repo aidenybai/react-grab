@@ -67,9 +67,8 @@ const devirtualizeServerUrl = (url: string): string => {
     if (environmentEndIndex === -1) continue;
     const pathStart = environmentEndIndex + 1;
     const querySuffixIndex = url.lastIndexOf("?");
-    const rawPath = querySuffixIndex > pathStart
-      ? url.slice(pathStart, querySuffixIndex)
-      : url.slice(pathStart);
+    const rawPath =
+      querySuffixIndex > pathStart ? url.slice(pathStart, querySuffixIndex) : url.slice(pathStart);
     return safeDecodeURIComponent(rawPath);
   }
   return url;

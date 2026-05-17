@@ -26,7 +26,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         selectionBounds={props.selectionBounds}
         selectionBoundsMultiple={props.selectionBoundsMultiple}
         selectionShouldSnap={props.selectionShouldSnap}
-        selectionIsFading={props.selectionLabelStatus === "fading"}
         dragVisible={props.dragVisible}
         dragBounds={props.dragBounds}
         grabbedBoxes={props.grabbedBoxes}
@@ -143,14 +142,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           onSubscribeToStateChanges={props.onSubscribeToToolbarStateChanges}
           onSelectHoverChange={props.onToolbarSelectHoverChange}
           onContainerRef={props.onToolbarRef}
-          commentItemCount={props.commentItemCount}
-          clockFlashTrigger={props.clockFlashTrigger}
-          onToggleComments={props.onToggleComments}
-          onCopyAll={props.onCopyAll}
-          onCopyAllHover={props.onCopyAllHover}
-          onCommentsButtonHover={props.onCommentsButtonHover}
-          isCommentsDropdownOpen={Boolean(props.commentsDropdownPosition)}
-          isCommentsPinned={props.isCommentsPinned}
           onToggleToolbarMenu={props.onToggleToolbarMenu}
         />
       </Show>

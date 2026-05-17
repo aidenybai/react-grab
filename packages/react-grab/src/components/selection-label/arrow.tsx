@@ -1,9 +1,10 @@
 import type { Component } from "solid-js";
 import type { ArrowProps } from "../../types.js";
+import { PANEL_BACKGROUND } from "../../constants.js";
 import { getArrowSize } from "../../utils/get-arrow-size.js";
 
 export const Arrow: Component<ArrowProps> = (props) => {
-  const arrowColor = () => props.color ?? "white";
+  const arrowColor = () => props.color ?? PANEL_BACKGROUND;
   const isBottom = () => props.position === "bottom";
   const arrowSize = () => getArrowSize(props.labelWidth ?? 0);
 

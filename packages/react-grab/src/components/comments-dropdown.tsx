@@ -131,7 +131,7 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
         data-react-grab-ignore-events
         data-react-grab-comments-dropdown
         class={cn(
-          "fixed font-sans text-[13px] antialiased filter-[drop-shadow(0px_1px_2px_#51515140)] select-none will-change-[opacity,transform]",
+          "fixed font-sans text-[13px] antialiased [filter:drop-shadow(0px_2px_8px_rgba(0,0,0,0.08))] select-none will-change-[opacity,transform]",
           dropdown.isAnimatedIn()
             ? "transition-[opacity,transform] duration-220 ease-spring"
             : "transition-[opacity,transform] duration-120 ease-drawer",
@@ -167,7 +167,7 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
         <div
           class={cn(
             "contain-layout flex flex-col rounded-[10px] antialiased w-fit h-fit overflow-hidden [font-synthesis:none] [corner-shape:superellipse(1.25)]",
-            "bg-white border border-black/[0.08]",
+            "bg-[#161616]",
           )}
           style={{
             "min-width": `${panelMinWidth()}px`,
@@ -176,14 +176,14 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
           }}
         >
           <div class="contain-layout shrink-0 flex items-center justify-between px-2 pt-1.5 pb-1">
-            <span class="text-[11px] font-medium text-black/40">Comments</span>
+            <span class="text-[11px] font-medium text-[#A7A7A7]">Comments</span>
             <Show when={props.items.length > 0}>
               <div class="flex items-center gap-[5px]">
                 <button
                   data-react-grab-ignore-events
                   data-react-grab-comments-clear
                   aria-label="Clear all"
-                  class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[#FEF2F2] cursor-pointer transition-all hover:bg-[#FEE2E2] press-scale h-[17px] text-[#B91C1C]"
+                  class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[#3D1515] cursor-pointer transition-all hover:bg-[#4D1F1F] press-scale h-[17px] text-[#F87171]"
                   onClick={(event) => {
                     event.stopPropagation();
                     props.onClearAll?.();
@@ -195,7 +195,7 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
                   data-react-grab-ignore-events
                   data-react-grab-comments-copy-all
                   aria-label="Copy all"
-                  class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] press-scale h-[17px]"
+                  class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-white/10 [border-width:0.5px] border-solid border-white/20 cursor-pointer transition-all hover:bg-white/15 press-scale h-[17px]"
                   onClick={(event) => {
                     event.stopPropagation();
                     props.onCopyAll?.();
@@ -217,26 +217,26 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
                   <Show
                     when={isCopyAllConfirmed()}
                     fallback={
-                      <span class="text-black text-[13px] leading-3.5 font-sans font-medium">
+                      <span class="text-white text-[13px] leading-3.5 font-sans font-medium">
                         Copy
                       </span>
                     }
                   >
-                    <IconCheck size={DROPDOWN_ICON_SIZE_PX} class="text-black" />
+                    <IconCheck size={DROPDOWN_ICON_SIZE_PX} class="text-white" />
                   </Show>
                 </button>
               </div>
             </Show>
           </div>
 
-          <div class="min-h-0 [border-top-width:0.5px] border-t-solid border-t-[#D9D9D9] px-2 py-1.5">
+          <div class="min-h-0 [border-top-width:0.5px] border-t-solid border-t-white/10 px-2 py-1.5">
             <div
               ref={highlightContainerRef}
-              class="relative flex flex-col max-h-[240px] overflow-x-hidden overflow-y-auto -mx-2 -my-1.5 [scrollbar-width:thin] [scrollbar-color:transparent_transparent] hover:[scrollbar-color:rgba(0,0,0,0.15)_transparent]"
+              class="relative flex flex-col max-h-[240px] overflow-x-hidden overflow-y-auto -mx-2 -my-1.5 [scrollbar-width:thin] [scrollbar-color:transparent_transparent] hover:[scrollbar-color:rgba(255,255,255,0.15)_transparent]"
             >
               <div
                 ref={highlightRef}
-                class="pointer-events-none absolute bg-black/5 opacity-0 transition-[top,left,width,height,opacity] duration-75 ease-out"
+                class="pointer-events-none absolute bg-white/10 opacity-0 transition-[top,left,width,height,opacity] duration-75 ease-out"
               />
               <For each={props.items}>
                 {(item) => (
@@ -276,16 +276,16 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
                     onBlur={clearHighlight}
                   >
                     <span class="flex flex-col min-w-0 flex-1">
-                      <span class="text-[12px] leading-4 font-sans font-medium text-black truncate">
+                      <span class="text-[12px] leading-4 font-sans font-medium text-white truncate">
                         {getCommentItemDisplayName(item)}
                       </span>
                       <Show when={item.commentText}>
-                        <span class="text-[11px] leading-3 font-sans text-black/40 truncate mt-0.5">
+                        <span class="text-[11px] leading-3 font-sans text-[#A7A7A7] truncate mt-0.5">
                           {item.commentText}
                         </span>
                       </Show>
                     </span>
-                    <span class="shrink-0 text-[10px] font-sans text-black/25 flex items-center justify-end">
+                    <span class="shrink-0 text-[10px] font-sans text-white/25 flex items-center justify-end">
                       {formatRelativeTime(item.timestamp)}
                     </span>
                   </div>

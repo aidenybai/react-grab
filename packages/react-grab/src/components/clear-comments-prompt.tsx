@@ -44,7 +44,7 @@ export const ClearCommentsPrompt: Component<ClearCommentsPromptProps> = (props) 
         data-react-grab-ignore-events
         data-react-grab-clear-comments-prompt
         class={cn(
-          "fixed font-sans text-[13px] antialiased filter-[drop-shadow(0px_1px_2px_#51515140)] select-none will-change-[opacity,transform]",
+          "fixed font-sans text-[13px] antialiased [filter:drop-shadow(0px_2px_8px_rgba(0,0,0,0.08))] select-none will-change-[opacity,transform]",
           dropdown.isAnimatedIn()
             ? "transition-[opacity,transform] duration-220 ease-spring"
             : "transition-[opacity,transform] duration-120 ease-drawer",
@@ -66,7 +66,7 @@ export const ClearCommentsPrompt: Component<ClearCommentsPromptProps> = (props) 
         <div
           class={cn(
             "contain-layout flex flex-col rounded-[10px] antialiased w-fit h-fit [font-synthesis:none] [corner-shape:superellipse(1.25)]",
-            "bg-white border border-black/[0.08]",
+            "bg-[#161616]",
           )}
         >
           <DiscardPrompt

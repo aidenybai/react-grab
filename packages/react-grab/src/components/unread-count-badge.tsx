@@ -44,7 +44,7 @@ export const UnreadCountBadge: Component<UnreadCountBadgeProps> = (props) => {
     >
       <span
         class={cn(
-          "block min-w-2.5 h-2.5 px-0.5 rounded-full bg-black origin-center",
+          "block min-w-2.5 h-2.5 px-0.5 rounded-full bg-white origin-center",
           "will-change-[transform,opacity,filter] transition-[transform,opacity,filter]",
           "scale-100 opacity-100 blur-0 ease-badge-pop [transition-duration:500ms,400ms,500ms]",
           "group-data-[open=false]/badge:scale-0",
@@ -54,7 +54,7 @@ export const UnreadCountBadge: Component<UnreadCountBadgeProps> = (props) => {
           "group-data-[open=false]/badge:[transition-duration:180ms,180ms,180ms]",
         )}
       >
-        <span class="relative grid place-items-center w-full h-full text-white text-[8px] font-semibold leading-none tabular-nums">
+        <span class="relative grid place-items-center w-full h-full text-black text-[8px] font-semibold leading-none tabular-nums">
           <span
             class={cn(
               "[grid-area:1/1] transition-[transform,opacity,filter] duration-200 ease-text-swap will-change-[transform,opacity,filter]",

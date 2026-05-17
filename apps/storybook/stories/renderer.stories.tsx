@@ -332,7 +332,6 @@ const Scene = (props: SceneProps) => {
         isActive={props.isActive}
         enabled={props.enabled}
         commentItems={commentItems()}
-        commentItemCount={commentItems().length}
         contextMenuPosition={contextMenuPosition()}
         contextMenuBounds={props.showContextMenu ? selectionBounds() : null}
         contextMenuTagName={elementMeta().tagName}
@@ -346,8 +345,6 @@ const Scene = (props: SceneProps) => {
         onCancelDismiss={noop}
         onToggleActive={noop}
         onToolbarStateChange={noop}
-        onToggleComments={noop}
-        onCopyAll={noop}
         onContextMenuDismiss={noop}
         onContextMenuHide={noop}
       />
