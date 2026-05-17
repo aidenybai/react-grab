@@ -7,7 +7,6 @@ import { noop } from "./noop.js";
 interface ToolbarSceneProps {
   isActive: boolean;
   enabled: boolean;
-  commentItemCount: number;
   isContextMenuOpen: boolean;
   collapsed: boolean;
 }
@@ -16,10 +15,6 @@ const TOOLBAR_STATE_KEY = "react-grab-toolbar-state";
 
 const seedToolbarState = (args: ToolbarSceneProps): void => {
   if (typeof localStorage === "undefined") return;
-  // Collapsed pills snap flush to the viewport edge (no margin), which
-  // clips the unread-comments badge's negative top offset. Using the
-  // bottom edge for collapsed states lets the badge hang upward into
-  // the viewport instead of being cut off above it.
   const edge = args.collapsed ? "bottom" : "top";
   localStorage.setItem(
     TOOLBAR_STATE_KEY,
@@ -59,14 +54,12 @@ const meta: Meta<ToolbarSceneProps> = {
     isActive: false,
     enabled: true,
     isContextMenuOpen: false,
-    commentItemCount: 0,
     collapsed: false,
   },
   argTypes: {
     isActive: { control: "boolean" },
     enabled: { control: "boolean" },
     isContextMenuOpen: { control: "boolean" },
-    commentItemCount: { control: { type: "number", min: 0, max: 99 } },
     collapsed: { control: "boolean" },
   },
 };
@@ -76,37 +69,25 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  args: { isActive: false, enabled: true, commentItemCount: 0 },
+  args: { isActive: false, enabled: true },
 };
 
 export const Active: Story = {
-  args: { isActive: true, enabled: true, commentItemCount: 0 },
+  args: { isActive: true, enabled: true },
 };
 
 export const Collapsed: Story = {
-  args: { isActive: false, enabled: false, commentItemCount: 0, collapsed: true },
-};
-
-export const CollapsedWithComments: Story = {
-  args: { isActive: false, enabled: false, commentItemCount: 3, collapsed: true },
+  args: { isActive: false, enabled: false, collapsed: true },
 };
 
 export const Disabled: Story = {
-  args: { isActive: false, enabled: false, commentItemCount: 0 },
+  args: { isActive: false, enabled: false },
 };
 
 export const ActiveDisabled: Story = {
-  args: { isActive: true, enabled: false, commentItemCount: 0 },
+  args: { isActive: true, enabled: false },
 };
 
 export const ContextMenuOpen: Story = {
-  args: { isActive: true, enabled: true, commentItemCount: 0, isContextMenuOpen: true },
-};
-
-export const WithComments: Story = {
-  args: { isActive: true, enabled: true, commentItemCount: 3 },
-};
-
-export const WithManyComments: Story = {
-  args: { isActive: true, enabled: true, commentItemCount: 42 },
+  args: { isActive: true, enabled: true, isContextMenuOpen: true },
 };
