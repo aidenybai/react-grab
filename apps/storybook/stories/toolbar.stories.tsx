@@ -80,14 +80,6 @@ export const Collapsed: Story = {
   args: { isActive: false, enabled: false, collapsed: true },
 };
 
-export const Disabled: Story = {
-  args: { isActive: false, enabled: false },
-};
-
-export const ActiveDisabled: Story = {
-  args: { isActive: true, enabled: false },
-};
-
 export const ContextMenuOpen: Story = {
   args: { isActive: true, enabled: true, isContextMenuOpen: true },
 };
