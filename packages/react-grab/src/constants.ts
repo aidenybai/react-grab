@@ -8,7 +8,7 @@ export const OFFSCREEN_POSITION = -1000;
 export const SELECTION_LERP_FACTOR = 0.95;
 
 export const FEEDBACK_DURATION_MS = 1500;
-export const FADE_DURATION_MS = 250;
+export const FADE_DURATION_MS = 150;
 export const FADE_COMPLETE_BUFFER_MS = 150;
 export const KEYDOWN_SPAM_TIMEOUT_MS = 200;
 export const BLUR_DEACTIVATION_THRESHOLD_MS = 500;
@@ -44,7 +44,6 @@ export const BASELINE_FRAME_DURATION_MS = 1000 / 60;
 export const MIN_FRAME_DELTA_MS = 1;
 export const LERP_CONVERGENCE_THRESHOLD_PX = 0.5;
 export const OPACITY_CONVERGENCE_THRESHOLD = 0.01;
-export const FADE_OUT_BUFFER_MS = 100;
 export const MIN_DEVICE_PIXEL_RATIO = 2;
 
 export const OVERLAY_BORDER_COLOR_DRAG = overlayColor(0.4);

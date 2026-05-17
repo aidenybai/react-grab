@@ -32,7 +32,6 @@ export const TagBadge: Component<TagBadgeProps> = (props) => {
           <span class="text-black">{props.tagName}</span>
         </Show>
       </span>
-      
     </div>
   );
 };
