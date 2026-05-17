@@ -201,7 +201,7 @@ export default function Home() {
     new Date()
   );
   const [collapsibleOpen, setCollapsibleOpen] = useState(false);
-  const { theme, setTheme } = useTheme();
+  const { setTheme } = useTheme();
 
   return (
     <main className="mx-auto max-w-4xl space-y-10 p-8 pb-20">
