@@ -816,7 +816,7 @@ export default function Home() {
       </Section>
 
       <Section title="Resizable">
-        <ResizablePanelGroup direction="horizontal" className="min-h-[120px] rounded-lg border">
+        <ResizablePanelGroup className="min-h-[120px] rounded-lg border">
           <ResizablePanel defaultSize={50}>
             <div className="flex h-full items-center justify-center p-4">
               <span className="text-sm font-semibold">Panel A</span>
