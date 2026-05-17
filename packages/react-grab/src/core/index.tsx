@@ -711,6 +711,45 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return instanceId;
     };
 
+    const createPerElementLabelInstances = (
+      entries: Array<{
+        element: Element;
+        tagName: string;
+        componentName?: string;
+        mouseX?: number;
+      }>,
+      status: SelectionLabelInstance["status"],
+    ): string[] => {
+      actions.clearLabelInstances();
+      cancelAllLabelFades();
+      const instanceIds: string[] = [];
+      for (const entry of entries) {
+        const bounds = createElementBounds(entry.element);
+        const boundsCenterX = bounds.x + bounds.width / 2;
+        const boundsHalfWidth = bounds.width / 2;
+        const mouseXOffset = entry.mouseX !== undefined ? entry.mouseX - boundsCenterX : undefined;
+        const instanceId = generateId("label");
+        const instance: SelectionLabelInstance = {
+          id: instanceId,
+          bounds,
+          tagName: entry.tagName,
+          componentName: entry.componentName,
+          status,
+          createdAt: Date.now(),
+          element: entry.element,
+          mouseX: entry.mouseX,
+          mouseXOffsetFromCenter: mouseXOffset,
+          mouseXOffsetRatio:
+            mouseXOffset !== undefined && boundsHalfWidth > 0
+              ? mouseXOffset / boundsHalfWidth
+              : undefined,
+        };
+        actions.addLabelInstance(instance);
+        instanceIds.push(instanceId);
+      }
+      return instanceIds;
+    };
+
     const clearAllLabels = () => {
       cancelAllLabelFades();
       actions.clearLabelInstances();
@@ -731,7 +770,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const executeCopyOperation = async (
       clipboardOperation: () => Promise<void>,
-      labelInstanceId: string | null,
+      labelInstanceIds: string[] | null,
       copiedElement?: Element,
       shouldDeactivateAfter?: boolean,
     ) => {
@@ -750,8 +789,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         errorMessage = normalizeErrorMessage(error, "Action failed");
       }
 
-      if (labelInstanceId) {
-        updateLabelAfterCopy(labelInstanceId, didSucceed, errorMessage);
+      if (labelInstanceIds) {
+        for (const labelInstanceId of labelInstanceIds) {
+          updateLabelAfterCopy(labelInstanceId, didSucceed, errorMessage);
+        }
       }
 
       if (current().state !== "copying") return;
@@ -942,7 +983,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           await executeCopyOperation(
             () =>
               copyElementsToClipboard(allTargetElements, extraPrompt, componentName ?? undefined),
-            labelInstanceId,
+            labelInstanceId ? [labelInstanceId] : null,
             element,
             shouldDeactivateAfter,
           );
@@ -956,6 +997,47 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               false,
               normalizeErrorMessage(error, "Action failed"),
             );
+          }
+          if (current().state === "copying") {
+            actions.unfreeze();
+          }
+        });
+    };
+
+    const performCopyWithPerElementLabels = (options: {
+      elements: Element[];
+      labelEntries: Array<{
+        element: Element;
+        tagName: string;
+        componentName?: string;
+        mouseX?: number;
+      }>;
+      shouldDeactivateAfter?: boolean;
+      onComplete?: () => void;
+    }) => {
+      const { elements, labelEntries, shouldDeactivateAfter, onComplete } = options;
+      const primaryElement = elements[0];
+
+      clearCopyFeedbackCooldown();
+      actions.startCopy();
+
+      const labelInstanceIds = createPerElementLabelInstances(labelEntries, "copying");
+
+      void getNearestComponentName(primaryElement)
+        .then(async (componentName) => {
+          await executeCopyOperation(
+            () => copyElementsToClipboard(elements, undefined, componentName ?? undefined),
+            labelInstanceIds.length > 0 ? labelInstanceIds : null,
+            primaryElement,
+            shouldDeactivateAfter,
+          );
+          onComplete?.();
+        })
+        .catch((error) => {
+          logRecoverableError("Copy operation failed", error);
+          const normalizedMessage = normalizeErrorMessage(error, "Action failed");
+          for (const labelInstanceId of labelInstanceIds) {
+            updateLabelAfterCopy(labelInstanceId, false, normalizedMessage);
           }
           if (current().state === "copying") {
             actions.unfreeze();
@@ -1241,6 +1323,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (entry !== null) entries.push(entry);
       }
       return entries;
+    });
+
+    const pendingShiftPreviewEntry = createMemo((): FrozenLabelEntry | null => {
+      if (isPromptMode()) return null;
+      const element = pendingShiftSelectionElement();
+      if (!element) return null;
+      void viewportVersion();
+      const tagName = getTagName(element) || "element";
+      const componentName = getComponentDisplayName(element) ?? undefined;
+      const bounds = createElementBounds(element);
+      return { tagName, componentName, bounds, mouseX: pointer().x };
     });
 
     const cursorPosition = createMemo(() => {
@@ -1812,18 +1905,40 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const commitShiftMultiSelection = () => {
+      const accumulatedElements = store.frozenElements.filter(isElementConnected);
+
+      const perElementLabelEntries = accumulatedElements.map((element) => {
+        const tagName = getTagName(element) || "element";
+        const componentName = getComponentDisplayName(element) ?? undefined;
+        const anchorRatio = shiftSelectionLabelAnchorRatioByElement.get(element);
+        const bounds = createElementBounds(element);
+        const mouseX =
+          anchorRatio === undefined
+            ? bounds.x + bounds.width / 2
+            : bounds.x + bounds.width * anchorRatio;
+        return { element, tagName, componentName, mouseX };
+      });
+
       stopShiftMultiSelecting();
 
-      const accumulatedElements = store.frozenElements.filter(isElementConnected);
       if (accumulatedElements.length === 0) {
         actions.unfreeze();
         return;
       }
 
-      performCopyWithLabel({
-        element: accumulatedElements[0],
-        cursorX: pointer().x,
-        selectedElements: accumulatedElements,
+      if (accumulatedElements.length === 1) {
+        performCopyWithLabel({
+          element: accumulatedElements[0],
+          cursorX: perElementLabelEntries[0].mouseX,
+          selectedElements: accumulatedElements,
+          shouldDeactivateAfter: store.wasActivatedByToggle,
+        });
+        return;
+      }
+
+      performCopyWithPerElementLabels({
+        elements: accumulatedElements,
+        labelEntries: perElementLabelEntries,
         shouldDeactivateAfter: store.wasActivatedByToggle,
       });
     };
@@ -3775,6 +3890,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 }
                 selectionElementsCount={store.frozenElements.length}
                 frozenLabelEntries={frozenLabelEntries()}
+                pendingShiftPreviewEntry={pendingShiftPreviewEntry() ?? undefined}
                 selectionFilePath={store.selectionFilePath ?? undefined}
                 selectionLineNumber={store.selectionLineNumber ?? undefined}
                 selectionTagName={selectionTagName()}
