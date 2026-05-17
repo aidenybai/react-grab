@@ -15,8 +15,6 @@ import { SelectionLabel } from "./selection-label/index.js";
 import { Toolbar } from "./toolbar/index.js";
 import { ContextMenu } from "./context-menu.js";
 import { ToolbarMenu } from "./toolbar/toolbar-menu.js";
-import { CommentsDropdown } from "./comments-dropdown.js";
-import { ClearCommentsPrompt } from "./clear-comments-prompt.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
   return (
@@ -162,23 +160,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         defaultActionId={props.defaultActionId ?? DEFAULT_ACTION_ID}
         onSetDefaultAction={props.onSetDefaultAction ?? (() => {})}
         onDismiss={props.onToolbarMenuDismiss ?? (() => {})}
-      />
-      <ClearCommentsPrompt
-        position={props.clearPromptPosition ?? null}
-        onConfirm={props.onClearCommentsConfirm ?? (() => {})}
-        onCancel={props.onClearCommentsCancel ?? (() => {})}
-      />
-      <CommentsDropdown
-        position={props.commentsDropdownPosition ?? null}
-        items={props.commentItems ?? []}
-        disconnectedItemIds={props.commentsDisconnectedItemIds}
-        onSelectItem={props.onCommentItemSelect}
-        onItemHover={props.onCommentItemHover}
-        onCopyAll={props.onCommentsCopyAll}
-        onCopyAllHover={props.onCommentsCopyAllHover}
-        onClearAll={props.onCommentsClear}
-        onDismiss={props.onCommentsDismiss}
-        onDropdownHover={props.onCommentsDropdownHover}
       />
     </>
   );
