@@ -460,7 +460,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
           props.selectionIsFading,
           props.selectionShouldSnap,
         ] as const,
-      ([isVisible, singleBounds, multipleBounds, isFading, shouldSnap]) => {
+      ([isVisible, singleBounds, multipleBounds, _isFading, shouldSnap]) => {
         
         if (!isVisible || (!singleBounds && (!multipleBounds || multipleBounds.length === 0))) {
           selectionAnimations = [];

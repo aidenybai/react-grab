@@ -1,19 +1,14 @@
-import { Show, createSignal } from "solid-js";
+import { Show } from "solid-js";
 import type { Component } from "solid-js";
 import type { TagBadgeProps } from "../../types.js";
 import { cn } from "../../utils/cn.js";
-import { IconOpen } from "../icons/icon-open.jsx";
 
 export const TagBadge: Component<TagBadgeProps> = (props) => {
-  const [isHovered, setIsHovered] = createSignal(false);
-
   const handleMouseEnter = () => {
-    setIsHovered(true);
     props.onHoverChange?.(true);
   };
 
   const handleMouseLeave = () => {
-    setIsHovered(false);
     props.onHoverChange?.(false);
   };
 
