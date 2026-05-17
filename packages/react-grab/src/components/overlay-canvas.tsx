@@ -408,7 +408,6 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
         const elapsed = currentTimestamp - animation.createdAt;
         const fadeOutDeadline = FEEDBACK_DURATION_MS + FADE_DURATION_MS;
 
-
         if (elapsed >= fadeOutDeadline) {
           return false;
         }
@@ -461,7 +460,6 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
           props.selectionShouldSnap,
         ] as const,
       ([isVisible, singleBounds, multipleBounds, _isFading, shouldSnap]) => {
-        
         if (!isVisible || (!singleBounds && (!multipleBounds || multipleBounds.length === 0))) {
           selectionAnimations = [];
           scheduleAnimationFrame();
