@@ -83,7 +83,7 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
         <div
           class={cn(
             "contain-layout flex flex-col rounded-[10px] antialiased w-fit h-fit overflow-hidden [font-synthesis:none] [corner-shape:superellipse(1.25)]",
-            "bg-white",
+            "bg-white border border-black/[0.08]",
           )}
           style={{ "min-width": `${TOOLBAR_MENU_MIN_WIDTH_PX}px` }}
         >
