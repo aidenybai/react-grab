@@ -318,6 +318,130 @@ test.describe("Shift Multi-Select", () => {
     await reactGrab.pressEscape();
   });
 
+  test("should render a copied indicator per shift-selected element after release", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+
+    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(0);
+    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(1);
+
+    const firstBox = await firstItem.boundingBox();
+    const secondBox = await secondItem.boundingBox();
+    if (!firstBox || !secondBox) throw new Error("Could not get bounding boxes");
+
+    const firstAnchorX = firstBox.x + firstBox.width * SHIFT_LABEL_CLICK_ANCHOR_RATIO;
+    const secondAnchorX = secondBox.x + secondBox.width * SHIFT_LABEL_SECOND_CLICK_ANCHOR_RATIO;
+
+    await reactGrab.page.keyboard.up("Shift");
+    await reactGrab.page.keyboard.down("Shift");
+    await reactGrab.page.mouse.click(firstAnchorX, firstBox.y + firstBox.height / 2);
+    await reactGrab.page.waitForTimeout(120);
+    await reactGrab.page.mouse.click(secondAnchorX, secondBox.y + secondBox.height / 2);
+    await reactGrab.page.waitForTimeout(120);
+    await reactGrab.page.keyboard.up("Shift");
+
+    await expect.poll(() => reactGrab.getClipboardContent()).toContain("TodoItem");
+
+    const copiedLabelCentersBeforeScroll = await reactGrab.page.evaluate(() => {
+      const host = document.querySelector("[data-react-grab]");
+      const shadowRoot = host?.shadowRoot;
+      const labels = shadowRoot?.querySelectorAll<HTMLElement>("[data-react-grab-selection-label]");
+      return Array.from(labels ?? [])
+        .map((label) => {
+          const rect = label.getBoundingClientRect();
+          return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+        })
+        .sort((a, b) => a.y - b.y);
+    });
+
+    expect(copiedLabelCentersBeforeScroll.length).toBe(SHIFT_LABEL_ANCHORED_COUNT);
+    expect(Math.abs(copiedLabelCentersBeforeScroll[0].x - firstAnchorX)).toBeLessThan(
+      SHIFT_LABEL_POSITION_TOLERANCE_PX,
+    );
+    expect(Math.abs(copiedLabelCentersBeforeScroll[1].x - secondAnchorX)).toBeLessThan(
+      SHIFT_LABEL_POSITION_TOLERANCE_PX,
+    );
+  });
+
+  test("should keep per-element copied indicators anchored across scroll", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+
+    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(0);
+    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(1);
+
+    const firstBox = await firstItem.boundingBox();
+    const secondBox = await secondItem.boundingBox();
+    if (!firstBox || !secondBox) throw new Error("Could not get bounding boxes");
+
+    await reactGrab.page.keyboard.up("Shift");
+    await reactGrab.page.keyboard.down("Shift");
+    await reactGrab.page.mouse.click(
+      firstBox.x + firstBox.width / 2,
+      firstBox.y + firstBox.height / 2,
+    );
+    await reactGrab.page.waitForTimeout(120);
+    await reactGrab.page.mouse.click(
+      secondBox.x + secondBox.width / 2,
+      secondBox.y + secondBox.height / 2,
+    );
+    await reactGrab.page.waitForTimeout(120);
+    await reactGrab.page.keyboard.up("Shift");
+
+    await expect.poll(() => reactGrab.getClipboardContent()).toContain("TodoItem");
+
+    const labelCentersBeforeScroll = await reactGrab.page.evaluate(() => {
+      const host = document.querySelector("[data-react-grab]");
+      const shadowRoot = host?.shadowRoot;
+      const labels = shadowRoot?.querySelectorAll<HTMLElement>("[data-react-grab-selection-label]");
+      return Array.from(labels ?? [])
+        .map((label) => {
+          const rect = label.getBoundingClientRect();
+          return { y: rect.y + rect.height / 2 };
+        })
+        .sort((a, b) => a.y - b.y);
+    });
+
+    expect(labelCentersBeforeScroll.length).toBe(SHIFT_LABEL_ANCHORED_COUNT);
+
+    const firstElementCenterBefore = await firstItem.evaluate((node) => {
+      const rect = (node as Element).getBoundingClientRect();
+      return rect.y + rect.height / 2;
+    });
+
+    const scrollDeltaPx = 60;
+    await reactGrab.page.mouse.wheel(0, scrollDeltaPx);
+    await reactGrab.page.waitForTimeout(SHIFT_LABEL_SETTLE_DELAY_MS);
+
+    const firstElementCenterAfter = await firstItem.evaluate((node) => {
+      const rect = (node as Element).getBoundingClientRect();
+      return rect.y + rect.height / 2;
+    });
+    const elementShift = firstElementCenterAfter - firstElementCenterBefore;
+    expect(Math.abs(elementShift)).toBeGreaterThan(SHIFT_LABEL_POSITION_TOLERANCE_PX);
+
+    const labelCentersAfterScroll = await reactGrab.page.evaluate(() => {
+      const host = document.querySelector("[data-react-grab]");
+      const shadowRoot = host?.shadowRoot;
+      const labels = shadowRoot?.querySelectorAll<HTMLElement>("[data-react-grab-selection-label]");
+      return Array.from(labels ?? [])
+        .map((label) => {
+          const rect = label.getBoundingClientRect();
+          return { y: rect.y + rect.height / 2 };
+        })
+        .sort((a, b) => a.y - b.y);
+    });
+
+    expect(labelCentersAfterScroll.length).toBe(SHIFT_LABEL_ANCHORED_COUNT);
+    for (let labelIndex = 0; labelIndex < labelCentersBeforeScroll.length; labelIndex++) {
+      const expectedY = labelCentersBeforeScroll[labelIndex].y + elementShift;
+      const actualY = labelCentersAfterScroll[labelIndex].y;
+      expect(Math.abs(actualY - expectedY)).toBeLessThan(SHIFT_LABEL_POSITION_TOLERANCE_PX * 4);
+    }
+  });
+
   test("should preserve drag preview while shift multi-selecting", async ({ reactGrab }) => {
     await reactGrab.activate();
 
