@@ -125,15 +125,6 @@ export const Copied: Story = {
   },
 };
 
-export const CopiedWithStatus: Story = {
-  args: {
-    tagName: "footer",
-    componentName: "Footer",
-    status: "copied",
-    statusText: "Applied changes",
-  },
-};
-
 export const ErrorState: Story = {
   args: {
     tagName: "dialog",
