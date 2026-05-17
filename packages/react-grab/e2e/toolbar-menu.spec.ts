@@ -63,6 +63,5 @@ test.describe("Toolbar Menu", () => {
 
       await expect.poll(() => reactGrab.isToolbarMenuVisible(), { timeout: 2000 }).toBe(false);
     });
-
   });
 });
