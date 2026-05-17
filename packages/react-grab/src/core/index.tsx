@@ -1243,6 +1243,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return entries;
     });
 
+    const pendingShiftPreviewEntry = createMemo((): FrozenLabelEntry | null => {
+      if (isPromptMode()) return null;
+      const element = pendingShiftSelectionElement();
+      if (!element) return null;
+      void viewportVersion();
+      const tagName = getTagName(element) || "element";
+      const componentName = getComponentDisplayName(element) ?? undefined;
+      const bounds = createElementBounds(element);
+      return { tagName, componentName, bounds, mouseX: pointer().x };
+    });
+
     const cursorPosition = createMemo(() => {
       if (isCopying() || isPromptMode()) {
         void viewportVersion();
@@ -3775,6 +3786,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 }
                 selectionElementsCount={store.frozenElements.length}
                 frozenLabelEntries={frozenLabelEntries()}
+                pendingShiftPreviewEntry={pendingShiftPreviewEntry() ?? undefined}
                 selectionFilePath={store.selectionFilePath ?? undefined}
                 selectionLineNumber={store.selectionLineNumber ?? undefined}
                 selectionTagName={selectionTagName()}

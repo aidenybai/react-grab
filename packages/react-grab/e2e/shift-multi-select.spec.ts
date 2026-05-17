@@ -88,6 +88,71 @@ test.describe("Shift Multi-Select", () => {
     await reactGrab.page.keyboard.up("Shift");
   });
 
+  test("should show a preview label for the hovered second element while shift multi-selecting", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+
+    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(0);
+    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(1);
+
+    const firstBox = await firstItem.boundingBox();
+    const secondBox = await secondItem.boundingBox();
+    if (!firstBox || !secondBox) throw new Error("Could not get bounding boxes");
+
+    await reactGrab.page.keyboard.up("Shift");
+    await reactGrab.page.keyboard.down("Shift");
+    await reactGrab.page.mouse.click(
+      firstBox.x + firstBox.width / 2,
+      firstBox.y + firstBox.height / 2,
+    );
+    await expect.poll(() => reactGrab.getSelectionLabelBounds()).not.toBeNull();
+
+    await reactGrab.page.mouse.move(
+      secondBox.x + secondBox.width / 2,
+      secondBox.y + secondBox.height / 2,
+      { steps: SHIFT_PENDING_HOVER_STEP_COUNT },
+    );
+
+    await expect
+      .poll(async () =>
+        reactGrab.page.evaluate(() => {
+          const host = document.querySelector("[data-react-grab]");
+          const shadowRoot = host?.shadowRoot;
+          const labels = shadowRoot?.querySelectorAll<HTMLElement>(
+            "[data-react-grab-selection-label]",
+          );
+          return labels?.length ?? 0;
+        }),
+      )
+      .toBeGreaterThanOrEqual(2);
+
+    const labelVerticalCenters = await reactGrab.page.evaluate(() => {
+      const host = document.querySelector("[data-react-grab]");
+      const shadowRoot = host?.shadowRoot;
+      const labels = shadowRoot?.querySelectorAll<HTMLElement>("[data-react-grab-selection-label]");
+      return Array.from(labels ?? []).map((label) => {
+        const rect = label.getBoundingClientRect();
+        return rect.y + rect.height / 2;
+      });
+    });
+
+    const verticalSeparation = Math.abs(secondBox.y - firstBox.y);
+    const uniqueLabelCenters = Array.from(new Set(labelVerticalCenters.map((y) => Math.round(y))));
+    expect(uniqueLabelCenters.length).toBeGreaterThanOrEqual(2);
+    const maxLabelSeparation = uniqueLabelCenters.reduce(
+      (currentMax, centerA) =>
+        uniqueLabelCenters.reduce(
+          (innerMax, centerB) => Math.max(innerMax, Math.abs(centerA - centerB)),
+          currentMax,
+        ),
+      0,
+    );
+    expect(maxLabelSeparation).toBeGreaterThan(verticalSeparation / 2);
+
+    await reactGrab.page.keyboard.up("Shift");
+  });
+
   test("should keep the first shift-selected label anchored to the element", async ({
     reactGrab,
   }) => {

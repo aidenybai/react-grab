@@ -67,6 +67,17 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           )}
         </Index>
       </Show>
+      <Show when={props.pendingShiftPreviewEntry}>
+        {(pendingEntry) => (
+          <SelectionLabel
+            tagName={pendingEntry().tagName}
+            componentName={pendingEntry().componentName}
+            selectionBounds={pendingEntry().bounds}
+            mouseX={pendingEntry().mouseX}
+            visible={true}
+          />
+        )}
+      </Show>
       <Show
         when={
           props.selectionLabelVisible &&

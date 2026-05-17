@@ -359,6 +359,7 @@ export interface ReactGrabRendererProps {
   selectionShouldSnap?: boolean;
   selectionElementsCount?: number;
   frozenLabelEntries?: FrozenLabelEntry[];
+  pendingShiftPreviewEntry?: FrozenLabelEntry;
   selectionFilePath?: string;
   selectionLineNumber?: number;
   selectionTagName?: string;
