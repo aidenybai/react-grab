@@ -4,10 +4,10 @@ import type { OverlayBounds, SelectionLabelInstance } from "../types.js";
 import { lerp } from "../utils/lerp.js";
 import {
   SELECTION_LERP_FACTOR,
+  FADE_DURATION_MS,
   FEEDBACK_DURATION_MS,
   DRAG_LERP_FACTOR,
   LERP_CONVERGENCE_THRESHOLD_PX,
-  FADE_OUT_BUFFER_MS,
   MIN_DEVICE_PIXEL_RATIO,
   Z_INDEX_OVERLAY_CANVAS,
   OVERLAY_BORDER_COLOR_DRAG,
@@ -52,6 +52,7 @@ interface AnimatedBounds {
   opacity: number;
   targetOpacity: number;
   createdAt?: number;
+  fadeStartTimestamp: number | null;
   isInitialized: boolean;
 }
 
@@ -158,6 +159,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     opacity: options?.opacity ?? 1,
     targetOpacity: options?.targetOpacity ?? options?.opacity ?? 1,
     createdAt: options?.createdAt,
+    fadeStartTimestamp: null,
     isInitialized: true,
   });
 
@@ -246,7 +248,6 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     const style = LAYER_STYLES.selection;
 
     for (const animation of selectionAnimations) {
-      const effectiveOpacity = props.selectionIsFading ? 0 : animation.opacity;
       drawRoundedRectangle(
         context,
         animation.current.x,
@@ -256,7 +257,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
         animation.borderRadius,
         style.fillColor,
         style.borderColor,
-        effectiveOpacity,
+        animation.opacity,
       );
     }
   };
@@ -382,25 +383,40 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
       const isLabelAnimation = animation.id.startsWith("label-");
 
       if (animation.isInitialized) {
-        const isStillAnimating = interpolateBounds(animation, grabbedLerpForFrame, {
-          interpolateOpacity: isLabelAnimation,
-        });
+        const isStillAnimating = interpolateBounds(animation, grabbedLerpForFrame);
         if (isStillAnimating) {
           shouldContinueAnimating = true;
         }
       }
 
+      if (isLabelAnimation && animation.targetOpacity === 0) {
+        if (animation.fadeStartTimestamp === null) {
+          animation.fadeStartTimestamp = currentFrameTimestamp;
+        }
+        const labelElapsed = currentFrameTimestamp - animation.fadeStartTimestamp;
+        const labelProgress = Math.min(1, labelElapsed / FADE_DURATION_MS);
+        const labelEaseOut = 1 - (1 - labelProgress) * (1 - labelProgress);
+        animation.opacity = Math.max(0, 1 - labelEaseOut);
+        if (labelProgress >= 1) return false;
+        shouldContinueAnimating = true;
+        return true;
+      } else if (isLabelAnimation) {
+        animation.fadeStartTimestamp = null;
+      }
+
       if (animation.createdAt) {
         const elapsed = currentTimestamp - animation.createdAt;
-        const fadeOutDeadline = FEEDBACK_DURATION_MS + FADE_OUT_BUFFER_MS;
+        const fadeOutDeadline = FEEDBACK_DURATION_MS + FADE_DURATION_MS;
+
 
         if (elapsed >= fadeOutDeadline) {
           return false;
         }
 
         if (elapsed > FEEDBACK_DURATION_MS) {
-          const fadeProgress = (elapsed - FEEDBACK_DURATION_MS) / FADE_OUT_BUFFER_MS;
-          animation.opacity = 1 - fadeProgress;
+          const fadeProgress = Math.min(1, (elapsed - FEEDBACK_DURATION_MS) / FADE_DURATION_MS);
+          const easeOut = 1 - (1 - fadeProgress) * (1 - fadeProgress);
+          animation.opacity = 1 - easeOut;
           shouldContinueAnimating = true;
         }
 
@@ -408,11 +424,6 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
       }
 
       if (isLabelAnimation) {
-        const hasOpacityConverged =
-          Math.abs(animation.opacity - animation.targetOpacity) < OPACITY_CONVERGENCE_THRESHOLD;
-        if (hasOpacityConverged && animation.targetOpacity === 0) {
-          return false;
-        }
         return true;
       }
 
@@ -449,7 +460,8 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
           props.selectionIsFading,
           props.selectionShouldSnap,
         ] as const,
-      ([isVisible, singleBounds, multipleBounds, , shouldSnap]) => {
+      ([isVisible, singleBounds, multipleBounds, isFading, shouldSnap]) => {
+        
         if (!isVisible || (!singleBounds && (!multipleBounds || multipleBounds.length === 0))) {
           selectionAnimations = [];
           scheduleAnimationFrame();
@@ -571,7 +583,9 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
           if (animation.id.startsWith("label-")) {
             return activeLabelIds.has(animation.id);
           }
-          return activeBoxIds.has(animation.id);
+          if (activeBoxIds.has(animation.id)) return true;
+          if (animation.createdAt && animation.opacity > 0) return true;
+          return false;
         });
 
         scheduleAnimationFrame();

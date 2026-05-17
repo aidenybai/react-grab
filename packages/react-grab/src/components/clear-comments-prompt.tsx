@@ -66,7 +66,7 @@ export const ClearCommentsPrompt: Component<ClearCommentsPromptProps> = (props) 
         <div
           class={cn(
             "contain-layout flex flex-col rounded-[10px] antialiased w-fit h-fit [font-synthesis:none] [corner-shape:superellipse(1.25)]",
-            "bg-white",
+            "bg-white border border-black/[0.08]",
           )}
         >
           <DiscardPrompt

@@ -373,7 +373,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           "pointer-events": shouldEnablePointerEvents() ? "auto" : "none",
           transition: `opacity ${FADE_DURATION_MS}ms ease-out, filter ${FADE_DURATION_MS}ms ease-out`,
           opacity: props.status === "fading" || isInternalFading() ? 0 : 1,
-          filter: `drop-shadow(0px 1px 2px #51515140) blur(${props.status === "fading" || isInternalFading() ? "3px" : "0"})`,
+          filter: `drop-shadow(0 0 0.4px rgba(0,0,0,0.12)) drop-shadow(0 0 0.4px rgba(0,0,0,0.12)) drop-shadow(0px 1px 2px #51515140) blur(${props.status === "fading" || isInternalFading() ? "3px" : "0"})`,
         }}
         onPointerDown={handleContainerPointerDown}
         onClick={(event) => {
