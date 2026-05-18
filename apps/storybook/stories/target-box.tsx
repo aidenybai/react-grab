@@ -33,7 +33,6 @@ export const Canvas: Component<CanvasProps> = (props) => (
   <div
     style={{
       "min-height": "100vh",
-      background: "#fafafa",
       "font-family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
     }}
   >

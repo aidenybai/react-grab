@@ -3,8 +3,7 @@ import type { Meta, StoryContext, StoryObj } from "storybook-solidjs-vite";
 import { expect, waitFor } from "storybook/test";
 import { ReactGrabRenderer } from "react-grab/src/components/renderer.js";
 import type { OverlayBounds } from "react-grab/src/types.js";
-import { COMMENT_PRESET_KEYS, createMenuActions, getItemPresets } from "./fixtures.js";
-import type { CommentPreset } from "./fixtures.js";
+import { createMenuActions } from "./fixtures.js";
 import { noop } from "./noop.js";
 
 const ELEMENT_KEYS = [
@@ -52,7 +51,6 @@ interface SceneProps {
   showContextMenu: boolean;
   inputValue: string;
   filePath: string;
-  commentPreset: CommentPreset;
 }
 
 const Scene = (props: SceneProps) => {
@@ -125,8 +123,6 @@ const Scene = (props: SceneProps) => {
     if (!bounds) return null;
     return { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height + 4 };
   };
-
-  const commentItems = () => getItemPresets()[props.commentPreset] ?? [];
 
   return (
     <div
@@ -331,8 +327,6 @@ const Scene = (props: SceneProps) => {
         toolbarVisible={props.showToolbar}
         isActive={props.isActive}
         enabled={props.enabled}
-        commentItems={commentItems()}
-        commentItemCount={commentItems().length}
         contextMenuPosition={contextMenuPosition()}
         contextMenuBounds={props.showContextMenu ? selectionBounds() : null}
         contextMenuTagName={elementMeta().tagName}
@@ -346,8 +340,6 @@ const Scene = (props: SceneProps) => {
         onCancelDismiss={noop}
         onToggleActive={noop}
         onToolbarStateChange={noop}
-        onToggleComments={noop}
-        onCopyAll={noop}
         onContextMenuDismiss={noop}
         onContextMenuHide={noop}
       />
@@ -383,7 +375,6 @@ const meta: Meta<SceneProps> = {
     showContextMenu: false,
     inputValue: "",
     filePath: "",
-    commentPreset: "empty",
   },
   argTypes: {
     selectedElement: { control: "select", options: ELEMENT_KEYS },
@@ -395,7 +386,6 @@ const meta: Meta<SceneProps> = {
     showContextMenu: { control: "boolean" },
     inputValue: { control: "text" },
     filePath: { control: "text" },
-    commentPreset: { control: "select", options: COMMENT_PRESET_KEYS },
   },
 };
 
@@ -432,10 +422,6 @@ export const CommentWithText: Story = {
 
 export const PendingDismiss: Story = {
   args: { selectedElement: "btn-save", isPromptMode: true, isPendingDismiss: true },
-};
-
-export const WithComments: Story = {
-  args: { selectedElement: "header", commentPreset: "annotated" },
 };
 
 export const NoSelection: Story = {

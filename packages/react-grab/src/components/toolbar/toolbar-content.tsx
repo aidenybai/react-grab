@@ -1,14 +1,12 @@
 import type { Component, JSX } from "solid-js";
 import { cn } from "../../utils/cn.js";
 import { IconChevron } from "../icons/icon-chevron.jsx";
-import { getExpandGridClass, getMinDimensionClass } from "../../utils/toolbar-layout.js";
+import { getMinDimensionClass } from "../../utils/toolbar-layout.js";
 
 interface ToolbarContentProps {
   isCollapsed?: boolean;
   snapEdge?: "top" | "bottom" | "left" | "right";
   isShaking?: boolean;
-  isCommentsExpanded?: boolean;
-  isCopyAllExpanded?: boolean;
   isChevronPressed?: boolean;
   onAnimationEnd?: () => void;
   onPanelClick?: (event: MouseEvent) => void;
@@ -17,8 +15,6 @@ interface ToolbarContentProps {
   onCollapsePointerUp?: (event: PointerEvent) => void;
   onCollapsePointerLeave?: (event: PointerEvent) => void;
   selectButton?: JSX.Element;
-  commentsButton?: JSX.Element;
-  copyAllButton?: JSX.Element;
   collapseButton?: JSX.Element;
   transformOrigin?: string;
 }
@@ -30,16 +26,6 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
   const sizeDurationClass = () => (props.isCollapsed ? "duration-140" : "duration-220");
   const opacityEnterClass = "transition-opacity duration-180 ease-drawer delay-[80ms]";
   const opacityExitClass = "transition-opacity duration-100 ease-drawer";
-
-  const expandGridClass = (isExpanded: boolean, collapsedExtra?: string): string =>
-    getExpandGridClass(isVertical(), isExpanded, collapsedExtra);
-
-  // Tailwind v4's class scanner only sees literal strings, so each
-  // axis variant must be a full static class - no template interpolation.
-  const gridTransitionClass = (): string =>
-    isVertical()
-      ? `transition-[grid-template-rows,opacity] ${sizeDurationClass()} ease-drawer`
-      : `transition-[grid-template-columns,opacity] ${sizeDurationClass()} ease-drawer`;
 
   const gridSizeTransitionClass = (): string =>
     isVertical()
@@ -64,15 +50,15 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
     const collapsed = props.isCollapsed;
     switch (edge()) {
       case "top":
-        return collapsed ? "rotate-180" : "rotate-0";
-      case "bottom":
-        return collapsed ? "rotate-0" : "rotate-180";
-      case "left":
         return collapsed ? "rotate-90" : "-rotate-90";
-      case "right":
+      case "bottom":
         return collapsed ? "-rotate-90" : "rotate-90";
+      case "left":
+        return collapsed ? "rotate-0" : "rotate-180";
+      case "right":
+        return collapsed ? "rotate-180" : "rotate-0";
       default:
-        return "rotate-0";
+        return "-rotate-90";
     }
   };
 
@@ -88,18 +74,15 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
       aria-label={props.isCollapsed ? "Expand toolbar" : "Collapse toolbar"}
       class="contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale"
       onClick={props.onCollapseClick}
-      // Native pointerdown: Solid delegates onPointerDown to document, but
-      // the toolbar wrapper stops bubbling so the document handler never
-      // fires. on: bypasses delegation and runs on the button itself.
       on:pointerdown={props.onCollapsePointerDown}
       onPointerUp={props.onCollapsePointerUp}
       onPointerLeave={props.onCollapsePointerLeave}
       onPointerCancel={props.onCollapsePointerLeave}
     >
       <IconChevron
-        size={14}
+        size={18}
         class={cn(
-          "text-[#B3B3B3] transition-transform duration-150 ease-drawer",
+          "text-[var(--rg-text-secondary)] transition-transform duration-150 ease-drawer -m-0.5",
           chevronRotation(),
         )}
       />
@@ -115,11 +98,11 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
     <div
       data-react-grab-toolbar-panel
       class={cn(
-        "flex items-center justify-center rounded-[10px] antialiased relative overflow-visible [font-synthesis:none] filter-[drop-shadow(0px_1px_2px_#51515133)] [corner-shape:superellipse(1.25)]",
+        "flex items-center justify-center rounded-full antialiased relative overflow-visible [font-synthesis:none]",
         outerTransitionClass(),
         isVertical() && "flex-col",
-        "bg-white",
-        !props.isCollapsed && (isVertical() ? "px-1.5 gap-1 py-2" : "py-1.5 gap-1 px-2"),
+        "bg-[var(--rg-panel-bg)] [box-shadow:var(--rg-shadow)]",
+        !props.isCollapsed && (isVertical() ? "px-1.5 gap-0 py-2" : "py-1.5 gap-0 px-2"),
         collapsedEdgeClasses(),
         props.isShaking && "animate-shake",
       )}
@@ -148,32 +131,8 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
             props.isCollapsed ? opacityExitClass : opacityEnterClass,
           )}
         >
-          <div class={cn("flex items-center", isVertical() && "flex-col")}>
-            <div class={cn("relative overflow-visible", minDimensionClass())}>
-              {props.selectButton}
-            </div>
-            <div
-              class={cn(
-                "grid",
-                gridTransitionClass(),
-                expandGridClass(Boolean(props.isCommentsExpanded), "pointer-events-none"),
-              )}
-            >
-              <div class={cn("relative overflow-visible", minDimensionClass())}>
-                {props.commentsButton}
-              </div>
-            </div>
-            <div
-              class={cn(
-                "grid",
-                gridTransitionClass(),
-                expandGridClass(Boolean(props.isCopyAllExpanded), "pointer-events-none"),
-              )}
-            >
-              <div class={cn("relative overflow-visible", minDimensionClass())}>
-                {props.copyAllButton}
-              </div>
-            </div>
+          <div class={cn("relative overflow-visible", minDimensionClass())}>
+            {props.selectButton}
           </div>
         </div>
       </div>

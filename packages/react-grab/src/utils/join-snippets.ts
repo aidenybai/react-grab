@@ -51,10 +51,7 @@ export const joinSnippets = (snippets: string[]): string => {
       continue;
     }
 
-    const divergingLines = entry.stackLines.slice(
-      0,
-      entry.stackLines.length - sharedSuffix.length,
-    );
+    const divergingLines = entry.stackLines.slice(0, entry.stackLines.length - sharedSuffix.length);
     const divergingText = divergingLines.length > 0 ? `\n${divergingLines.join("\n")}` : "";
     sections.push(
       `[${entryIndex + 1}]\n${entry.htmlPreview}${divergingText}\n  (remaining stack same as [1])`,

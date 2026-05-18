@@ -8,7 +8,6 @@ import {
   createEffect,
   createResource,
   on,
-  batch,
   mapArray,
 } from "solid-js";
 import { render } from "solid-js/web";
@@ -19,6 +18,7 @@ import {
   hasTextSelectionOnPage,
 } from "../utils/is-keyboard-event-triggered-by-input.js";
 import { mountRoot } from "../utils/mount-root.js";
+import { watchAppTheme } from "../utils/detect-app-theme.js";
 import {
   nativeCancelAnimationFrame,
   nativeRequestAnimationFrame,
@@ -74,7 +74,6 @@ import {
   MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS,
   ZOOM_DETECTION_THRESHOLD,
   WINDOW_REFOCUS_GRACE_PERIOD_MS,
-  DROPDOWN_HOVER_OPEN_DELAY_MS,
   PREVIEW_TEXT_MAX_LENGTH,
   NEXTJS_REVALIDATION_DELAY_MS,
   TOOLBAR_DEFAULT_POSITION_RATIO,
@@ -132,16 +131,8 @@ import {
 } from "../utils/freeze-animations.js";
 import { freezePseudoStates, unfreezePseudoStates } from "../utils/freeze-pseudo-states.js";
 import { freezeUpdates } from "../utils/freeze-updates.js";
-import {
-  loadComments,
-  addCommentItem,
-  removeCommentItem,
-  clearComments,
-  isClearConfirmed,
-  confirmClear,
-} from "../utils/comment-storage.js";
+import { loadComments, addCommentItem, removeCommentItem } from "../utils/comment-storage.js";
 import { copyContent } from "../utils/copy-content.js";
-import { joinSnippets } from "../utils/join-snippets.js";
 import { generateId } from "../utils/generate-id.js";
 import { logRecoverableError } from "../utils/log-recoverable-error.js";
 import { getNearestEdge } from "../utils/get-nearest-edge.js";
@@ -292,16 +283,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
     const [isToolbarSelectHovered, setIsToolbarSelectHovered] = createSignal(false);
     const [commentItems, setCommentItems] = createSignal<CommentItem[]>(loadComments());
-    const [commentsDropdownPosition, setCommentsDropdownPosition] =
-      createSignal<DropdownAnchor | null>(null);
     const [toolbarMenuPosition, setToolbarMenuPosition] = createSignal<DropdownAnchor | null>(null);
-    const [clearPromptPosition, setClearPromptPosition] = createSignal<DropdownAnchor | null>(null);
     let toolbarElement: HTMLDivElement | undefined;
     let dropdownTrackingFrameId: number | null = null;
     const commentElementMap = new Map<string, Element[]>();
-    const [clockFlashTrigger, setClockFlashTrigger] = createSignal(0);
-    const [isCommentsHoverOpen, setIsCommentsHoverOpen] = createSignal(false);
-    let commentsHoverPreviews: { boxId: string; labelId: string | null }[] = [];
+
     let shiftSelectionLabelAnchorRatioByElement = new WeakMap<Element, number>();
 
     const clearShiftSelectionLabelAnchors = () => {
@@ -329,75 +315,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         callback(newState);
       }
     };
-
-    const getMappedCommentElements = (commentItemId: string): Element[] =>
-      commentElementMap.get(commentItemId) ?? [];
-
-    const reacquireCommentElements = (commentItem: CommentItem): Element[] => {
-      const selectors = commentItem.elementSelectors ?? [];
-      if (selectors.length === 0) return [];
-
-      const reacquiredElements: Element[] = [];
-      for (const selector of selectors) {
-        if (!selector) continue;
-        try {
-          const reacquiredElement = document.querySelector(selector);
-          if (isElementConnected(reacquiredElement)) {
-            reacquiredElements.push(reacquiredElement);
-          }
-        } catch (error) {
-          logRecoverableError("Invalid stored selector", error);
-        }
-      }
-      return reacquiredElements;
-    };
-
-    const getConnectedCommentElements = (commentItem: CommentItem): Element[] => {
-      const mappedElements = getMappedCommentElements(commentItem.id);
-      const connectedMappedElements = mappedElements.filter((mappedElement) =>
-        isElementConnected(mappedElement),
-      );
-      const areAllMappedElementsConnected =
-        mappedElements.length > 0 && connectedMappedElements.length === mappedElements.length;
-
-      if (areAllMappedElementsConnected) {
-        return connectedMappedElements;
-      }
-
-      const reacquiredElements = reacquireCommentElements(commentItem);
-      if (reacquiredElements.length > 0) {
-        commentElementMap.set(commentItem.id, reacquiredElements);
-        return reacquiredElements;
-      }
-
-      return connectedMappedElements;
-    };
-
-    const getFirstConnectedCommentElement = (commentItem: CommentItem): Element | undefined =>
-      getConnectedCommentElements(commentItem)[0];
-
-    const commentsDisconnectedItemIds = createMemo(
-      () => {
-        void commentsDropdownPosition();
-        const disconnectedIds = new Set<string>();
-        for (const item of commentItems()) {
-          if (getConnectedCommentElements(item).length === 0) {
-            disconnectedIds.add(item.id);
-          }
-        }
-        return disconnectedIds;
-      },
-      undefined,
-      {
-        equals: (prev, next) => {
-          if (prev.size !== next.size) return false;
-          for (const id of next) {
-            if (!prev.has(id)) return false;
-          }
-          return true;
-        },
-      },
-    );
 
     const clearHoldTimer = () => {
       if (activationHoldState.timerId !== null) {
@@ -860,7 +777,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         timestamp: Date.now(),
       });
       setCommentItems(updatedCommentItems);
-      setClockFlashTrigger((previous) => previous + 1);
+
       const newestCommentItem = updatedCommentItems[0];
       if (newestCommentItem && hasCopiedElements) {
         commentElementMap.set(newestCommentItem.id, [...copiedElements]);
@@ -2186,11 +2103,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const isEnterKey = originalKey === "Enter" || isEnterCode(event.code);
       const isOverlayActive = isActivated() || isHoldingKeys();
       const shouldBlockEnter =
-        isEnterKey &&
-        isOverlayActive &&
-        !isPromptMode() &&
-        !store.wasActivatedByToggle &&
-        clearPromptPosition() === null;
+        isEnterKey && isOverlayActive && !isPromptMode() && !store.wasActivatedByToggle;
 
       if (shouldBlockEnter) {
         keyboardClaimer.claimedEvents.add(event);
@@ -2502,15 +2415,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           event.preventDefault();
           event.stopPropagation();
           handleInputCancel();
-          return;
-        }
-
-        if (event.key === "Escape" && clearPromptPosition() !== null) {
-          return;
-        }
-
-        if (event.key === "Escape" && commentsDropdownPosition() !== null) {
-          dismissCommentsDropdown();
           return;
         }
 
@@ -3065,7 +2969,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     const resolvedCssText = typeof cssText === "string" ? cssText : "";
-    const rendererRoot = mountRoot(resolvedCssText);
+    const { root: rendererRoot, host: rendererHost } = mountRoot(resolvedCssText);
+
+    const themeWatcher = watchAppTheme(rendererHost);
+    onCleanup(themeWatcher.cleanup);
 
     const isThemeEnabled = createMemo(() => pluginRegistry.store.theme.enabled);
     const isSelectionBoxThemeEnabled = createMemo(
@@ -3479,79 +3386,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }, 0);
     };
 
-    const clearCommentsHoverPreviews = () => {
-      for (const { boxId, labelId } of commentsHoverPreviews) {
-        actions.removeGrabbedBox(boxId);
-        if (labelId) {
-          actions.removeLabelInstance(labelId);
-        }
-      }
-      commentsHoverPreviews = [];
-    };
-
-    const addCommentItemPreview = (
-      item: CommentItem,
-      previewBounds: OverlayBounds[],
-      previewElements: Element[],
-      idPrefix: string,
-    ) => {
-      if (previewBounds.length === 0) return;
-
-      for (const [index, bounds] of previewBounds.entries()) {
-        const previewElement = previewElements[index];
-        const boxId = `${idPrefix}-${item.id}-${index}`;
-        // A createdAt of zero is falsy, which tells the canvas animation loop
-        // to skip auto-fade and keep the preview box visible until it is
-        // explicitly removed.
-        actions.addGrabbedBox({
-          id: boxId,
-          bounds,
-          createdAt: 0,
-          element: previewElement,
-        });
-
-        let labelId: string | null = null;
-        if (index === 0) {
-          labelId = `${idPrefix}-label-${item.id}`;
-          actions.addLabelInstance({
-            id: labelId,
-            bounds,
-            tagName: item.tagName,
-            componentName: item.componentName,
-            elementsCount: item.elementsCount,
-            status: "idle",
-            isPromptMode: Boolean(item.commentText),
-            inputValue: item.commentText ?? undefined,
-            createdAt: 0,
-            element: previewElement,
-            mouseX: bounds.x + bounds.width / 2,
-          });
-        }
-
-        commentsHoverPreviews.push({ boxId, labelId });
-      }
-    };
-
-    const showCommentItemPreview = (item: CommentItem, idPrefix: string): void => {
-      const connectedElements = getConnectedCommentElements(item);
-      const previewBounds = connectedElements.map((element) => createElementBounds(element));
-      addCommentItemPreview(item, previewBounds, connectedElements, idPrefix);
-    };
-
     const stopTrackingDropdownPosition = () => {
       if (dropdownTrackingFrameId !== null) {
         nativeCancelAnimationFrame(dropdownTrackingFrameId);
         dropdownTrackingFrameId = null;
       }
-    };
-
-    const startTrackingDropdownPosition = (computePosition: () => void) => {
-      stopTrackingDropdownPosition();
-      const updatePosition = () => {
-        computePosition();
-        dropdownTrackingFrameId = nativeRequestAnimationFrame(updatePosition);
-      };
-      updatePosition();
     };
 
     const computeDropdownAnchor = (): DropdownAnchor | null => {
@@ -3577,19 +3416,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const openTrackedDropdown = (setPosition: (anchor: DropdownAnchor) => void) => {
-      startTrackingDropdownPosition(() => {
+      stopTrackingDropdownPosition();
+      const updatePosition = () => {
         const anchor = computeDropdownAnchor();
         if (anchor) setPosition(anchor);
-      });
-    };
-
-    const dismissCommentsDropdown = () => {
-      cancelCommentsHoverOpenTimeout();
-      cancelCommentsHoverCloseTimeout();
-      stopTrackingDropdownPosition();
-      clearCommentsHoverPreviews();
-      setCommentsDropdownPosition(null);
-      setIsCommentsHoverOpen(false);
+        dropdownTrackingFrameId = nativeRequestAnimationFrame(updatePosition);
+      };
+      updatePosition();
     };
 
     const dismissToolbarMenu = () => {
@@ -3597,53 +3430,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setToolbarMenuPosition(null);
     };
 
-    const openCommentsDropdown = () => {
-      actions.hideContextMenu();
-      dismissToolbarMenu();
-      dismissClearPrompt();
-      setCommentItems(loadComments());
-      openTrackedDropdown(setCommentsDropdownPosition);
-    };
-
-    let commentsHoverOpenTimeoutId: ReturnType<typeof setTimeout> | null = null;
-    let commentsHoverCloseTimeoutId: ReturnType<typeof setTimeout> | null = null;
-
-    const cancelCommentsHoverOpenTimeout = () => {
-      if (commentsHoverOpenTimeoutId !== null) {
-        clearTimeout(commentsHoverOpenTimeoutId);
-        commentsHoverOpenTimeoutId = null;
-      }
-    };
-
-    const cancelCommentsHoverCloseTimeout = () => {
-      if (commentsHoverCloseTimeoutId !== null) {
-        clearTimeout(commentsHoverCloseTimeoutId);
-        commentsHoverCloseTimeoutId = null;
-      }
-    };
-
-    const scheduleCommentsHoverClose = () => {
-      commentsHoverCloseTimeoutId = setTimeout(() => {
-        commentsHoverCloseTimeoutId = null;
-        dismissCommentsDropdown();
-      }, DROPDOWN_HOVER_OPEN_DELAY_MS);
-    };
-
-    const showClearPrompt = () => {
-      dismissCommentsDropdown();
-      dismissToolbarMenu();
-      openTrackedDropdown(setClearPromptPosition);
-    };
-
-    const dismissClearPrompt = () => {
-      stopTrackingDropdownPosition();
-      setClearPromptPosition(null);
-    };
-
     const dismissAllPopups = () => {
-      dismissCommentsDropdown();
       dismissToolbarMenu();
-      dismissClearPrompt();
     };
 
     const handleToggleToolbarMenu = () => {
@@ -3651,181 +3439,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         dismissToolbarMenu();
       } else {
         actions.hideContextMenu();
-        dismissCommentsDropdown();
-        dismissClearPrompt();
         openTrackedDropdown(setToolbarMenuPosition);
       }
     };
 
     const handleSetDefaultAction = (actionId: string) => {
       updateToolbarState({ defaultAction: actionId });
-    };
-
-    const handleToggleComments = () => {
-      cancelCommentsHoverOpenTimeout();
-      cancelCommentsHoverCloseTimeout();
-      const isCurrentlyOpen = commentsDropdownPosition() !== null;
-      if (isCurrentlyOpen) {
-        if (isCommentsHoverOpen()) {
-          clearCommentsHoverPreviews();
-          setIsCommentsHoverOpen(false);
-        } else {
-          dismissCommentsDropdown();
-        }
-      } else {
-        clearCommentsHoverPreviews();
-        openCommentsDropdown();
-      }
-    };
-
-    const copyCommentItemContent = (item: CommentItem) => {
-      copyContent(item.content, {
-        tagName: item.tagName,
-        componentName: item.componentName ?? item.elementName,
-        commentText: item.commentText,
-      });
-      const element = getFirstConnectedCommentElement(item);
-      if (!element) return;
-
-      clearAllLabels();
-
-      nativeRequestAnimationFrame(() => {
-        if (!isElementConnected(element)) return;
-        const bounds = createElementBounds(element);
-        const labelId = createLabelInstance(bounds, item.tagName, item.componentName, "copied", {
-          element,
-          mouseX: bounds.x + bounds.width / 2,
-        });
-        if (labelId) scheduleLabelFade(labelId);
-      });
-    };
-
-    const handleCommentItemSelect = (item: CommentItem) => {
-      clearCommentsHoverPreviews();
-      if (isPromptMode()) {
-        actions.exitPromptMode();
-        actions.clearInputText();
-      }
-      const element = getFirstConnectedCommentElement(item);
-
-      if (item.commentText && element) {
-        const center = getBoundsCenter(createElementBounds(element));
-        actions.enterPromptMode(center, element);
-        actions.setInputText(item.commentText);
-      } else {
-        copyCommentItemContent(item);
-      }
-    };
-
-    const handleCommentsCopyAll = () => {
-      clearCommentsHoverPreviews();
-      const currentCommentItems = commentItems();
-      if (currentCommentItems.length === 0) return;
-
-      const combinedContent = joinSnippets(
-        currentCommentItems.map((commentItem) => commentItem.content),
-      );
-
-      const firstItem = currentCommentItems[0];
-      copyContent(combinedContent, {
-        componentName: firstItem.componentName ?? firstItem.tagName,
-        entries: currentCommentItems.map((commentItem) => ({
-          tagName: commentItem.tagName,
-          componentName: commentItem.componentName ?? commentItem.elementName,
-          content: commentItem.content,
-          commentText: commentItem.commentText,
-        })),
-      });
-
-      if (isClearConfirmed()) {
-        handleCommentsClear();
-      } else {
-        showClearPrompt();
-      }
-
-      clearAllLabels();
-
-      nativeRequestAnimationFrame(() => {
-        batch(() => {
-          for (const commentItem of currentCommentItems) {
-            const connectedElements = getConnectedCommentElements(commentItem);
-            for (const element of connectedElements) {
-              const bounds = createElementBounds(element);
-              const labelId = generateId("label");
-
-              actions.addLabelInstance({
-                id: labelId,
-                bounds,
-                tagName: commentItem.tagName,
-                componentName: commentItem.componentName,
-                status: "copied",
-                createdAt: Date.now(),
-                element,
-                mouseX: bounds.x + bounds.width / 2,
-              });
-              scheduleLabelFade(labelId);
-            }
-          }
-        });
-      });
-    };
-
-    const handleCommentItemHover = (commentItemId: string | null) => {
-      clearCommentsHoverPreviews();
-      if (!commentItemId) return;
-
-      const item = commentItems().find((innerItem) => innerItem.id === commentItemId);
-      if (!item) return;
-      showCommentItemPreview(item, "comment-hover");
-    };
-
-    const handleCommentsButtonHover = (isHovered: boolean) => {
-      cancelCommentsHoverOpenTimeout();
-      clearCommentsHoverPreviews();
-      if (isHovered) {
-        cancelCommentsHoverCloseTimeout();
-        if (commentsDropdownPosition() === null && clearPromptPosition() === null) {
-          showAllCommentItemPreviews();
-          commentsHoverOpenTimeoutId = setTimeout(() => {
-            commentsHoverOpenTimeoutId = null;
-            setIsCommentsHoverOpen(true);
-            openCommentsDropdown();
-          }, DROPDOWN_HOVER_OPEN_DELAY_MS);
-        }
-      } else if (isCommentsHoverOpen()) {
-        scheduleCommentsHoverClose();
-      }
-    };
-
-    const handleCommentsDropdownHover = (isHovered: boolean) => {
-      if (isHovered) {
-        cancelCommentsHoverCloseTimeout();
-      } else if (isCommentsHoverOpen()) {
-        scheduleCommentsHoverClose();
-      }
-    };
-
-    const handleCommentsCopyAllHover = (isHovered: boolean) => {
-      clearCommentsHoverPreviews();
-      if (isHovered) {
-        cancelCommentsHoverCloseTimeout();
-        showAllCommentItemPreviews();
-      } else if (isCommentsHoverOpen()) {
-        scheduleCommentsHoverClose();
-      }
-    };
-
-    const showAllCommentItemPreviews = () => {
-      for (const item of commentItems()) {
-        showCommentItemPreview(item, "comment-all-hover");
-      }
-    };
-
-    const handleCommentsClear = () => {
-      commentElementMap.clear();
-      const updatedCommentItems = clearComments();
-      setCommentItems(updatedCommentItems);
-      dismissCommentsDropdown();
     };
 
     const handleShowContextMenuInstance = (instanceId: string) => {
@@ -3955,23 +3574,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 actionContext={contextMenuActionContext()}
                 onContextMenuDismiss={handleContextMenuDismiss}
                 onContextMenuHide={deferHideContextMenu}
-                commentItems={commentItems()}
-                commentsDisconnectedItemIds={commentsDisconnectedItemIds()}
-                commentItemCount={commentItems().length}
-                clockFlashTrigger={clockFlashTrigger()}
-                commentsDropdownPosition={commentsDropdownPosition()}
-                isCommentsPinned={commentsDropdownPosition() !== null && !isCommentsHoverOpen()}
-                onToggleComments={handleToggleComments}
-                onCopyAll={handleCommentsCopyAll}
-                onCopyAllHover={handleCommentsCopyAllHover}
-                onCommentsButtonHover={handleCommentsButtonHover}
-                onCommentItemSelect={handleCommentItemSelect}
-                onCommentItemHover={handleCommentItemHover}
-                onCommentsCopyAll={handleCommentsCopyAll}
-                onCommentsCopyAllHover={handleCommentsCopyAllHover}
-                onCommentsClear={handleCommentsClear}
-                onCommentsDismiss={dismissCommentsDropdown}
-                onCommentsDropdownHover={handleCommentsDropdownHover}
                 toolbarMenuPosition={toolbarMenuPosition()}
                 toolbarMenuActions={pluginRegistry.store.actions.filter(
                   (action) => action.showInToolbarMenu === true,
@@ -3980,13 +3582,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 onSetDefaultAction={handleSetDefaultAction}
                 onToggleToolbarMenu={handleToggleToolbarMenu}
                 onToolbarMenuDismiss={dismissToolbarMenu}
-                clearPromptPosition={clearPromptPosition()}
-                onClearCommentsConfirm={() => {
-                  confirmClear();
-                  dismissClearPrompt();
-                  handleCommentsClear();
-                }}
-                onClearCommentsCancel={dismissClearPrompt}
               />
             );
           }, rendererRoot);
@@ -4065,8 +3660,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         disposed = true;
         hasInited = false;
         disposeRenderer?.();
-        cancelCommentsHoverOpenTimeout();
-        cancelCommentsHoverCloseTimeout();
         stopTrackingDropdownPosition();
         toolbarStateChangeCallbacks.clear();
         dispose();

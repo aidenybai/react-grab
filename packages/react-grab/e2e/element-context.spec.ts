@@ -16,9 +16,7 @@ test.describe("Element Context Fallback", () => {
       expect(clipboard).toContain("TodoList");
     });
 
-    test("should produce useful context for nested elements", async ({
-      reactGrab,
-    }) => {
+    test("should produce useful context for nested elements", async ({ reactGrab }) => {
       await reactGrab.activate();
 
       await reactGrab.hoverElement("[data-testid='nested-button']");

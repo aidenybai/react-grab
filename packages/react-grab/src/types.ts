@@ -407,32 +407,12 @@ export interface ReactGrabRendererProps {
   actionContext?: ActionContext;
   onContextMenuDismiss?: () => void;
   onContextMenuHide?: () => void;
-  commentItems?: CommentItem[];
-  commentsDisconnectedItemIds?: Set<string>;
-  commentItemCount?: number;
-  clockFlashTrigger?: number;
-  commentsDropdownPosition?: DropdownAnchor | null;
-  isCommentsPinned?: boolean;
-  onToggleComments?: () => void;
-  onCopyAll?: () => void;
-  onCopyAllHover?: (isHovered: boolean) => void;
-  onCommentsButtonHover?: (isHovered: boolean) => void;
-  onCommentItemSelect?: (item: CommentItem) => void;
-  onCommentItemHover?: (commentItemId: string | null) => void;
-  onCommentsCopyAll?: () => void;
-  onCommentsCopyAllHover?: (isHovered: boolean) => void;
-  onCommentsClear?: () => void;
-  onCommentsDismiss?: () => void;
-  onCommentsDropdownHover?: (isHovered: boolean) => void;
   toolbarMenuPosition?: DropdownAnchor | null;
   toolbarMenuActions?: ContextMenuAction[];
   defaultActionId?: string;
   onSetDefaultAction?: (actionId: string) => void;
   onToggleToolbarMenu?: () => void;
   onToolbarMenuDismiss?: () => void;
-  clearPromptPosition?: DropdownAnchor | null;
-  onClearCommentsConfirm?: () => void;
-  onClearCommentsCancel?: () => void;
 }
 
 export interface GrabbedBox {

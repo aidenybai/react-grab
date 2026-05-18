@@ -71,14 +71,6 @@ export const IdleLongComponentName: Story = {
   },
 };
 
-export const IdleLongFilePath: Story = {
-  args: {
-    tagName: "div",
-    componentName: "Button",
-    filePath: "src/components/ui/forms/inputs/buttons/primary/PrimaryButton.tsx",
-  },
-};
-
 export const PromptEmpty: Story = {
   args: {
     tagName: "div",
@@ -125,30 +117,11 @@ export const Copying: Story = {
   },
 };
 
-export const CopyingWithPrompt: Story = {
-  args: {
-    tagName: "section",
-    componentName: "Section",
-    status: "copying",
-    inputValue: "add form validation",
-    statusText: "Thinking…",
-  },
-};
-
 export const Copied: Story = {
   args: {
     tagName: "nav",
     componentName: "Navigation",
     status: "copied",
-  },
-};
-
-export const CopiedWithStatus: Story = {
-  args: {
-    tagName: "footer",
-    componentName: "Footer",
-    status: "copied",
-    statusText: "Applied changes",
   },
 };
 

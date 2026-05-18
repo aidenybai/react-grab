@@ -124,46 +124,6 @@ if (process.env.NODE_ENV === "development") {
 }
 ```
 
-## Primitives
-
-`react-grab/primitives` exposes low-level building blocks for tools that need to freeze the page, hit-test elements, or gather React source context outside of React Grab's UI.
-
-| Export | Description |
-| --- | --- |
-| `freeze(elements?)` | Pause React updates, animations, and pseudo-states. Pass elements to scope animation freezing, or omit to freeze the whole page. |
-| `unfreeze()` | Resume everything `freeze()` paused. |
-| `isFreezeActive()` | Returns `true` while frozen. |
-| `getElementsAtPosition(x, y)` | Hit-test elements at viewport coordinates while frozen (temporarily lifts the pointer-events block). |
-| `getElementContext(element)` | Returns the same context React Grab copies to clipboard (`snippet`), plus structured source location, component name, owner stack, CSS selector, computed styles, HTML preview, and fiber. |
-| `copyContent(text, options?)` | Copies text to the clipboard in the same three-format layout React Grab uses (plain text, HTML, structured metadata). Returns `true` on success. |
-| `openFile(path, line?)` | Open a source file in the user's editor via the dev server or `vscode://` protocol. |
-
-```js
-import {
-  freeze,
-  unfreeze,
-  getElementsAtPosition,
-  getElementContext,
-  copyContent,
-} from "react-grab/primitives";
-
-freeze();
-
-document.addEventListener("pointermove", (e) => {
-  const [topElement] = getElementsAtPosition(e.clientX, e.clientY);
-  highlight(topElement);
-});
-
-document.addEventListener("click", async (e) => {
-  const [target] = getElementsAtPosition(e.clientX, e.clientY);
-  const context = await getElementContext(target);
-  console.log(context.snippet);    // formatted text identical to clipboard output
-  console.log(context.filePath);   // "/src/components/Button.tsx"
-  console.log(context.lineNumber); // 42
-  unfreeze();
-});
-```
-
 ## Plugins
 
 Use plugins to extend React Grab's built-in UI with context menu actions, toolbar menu items, lifecycle hooks, and theme overrides. Plugins run within React Grab.

@@ -43,6 +43,9 @@ export default defineConfig({
       sourcemap: false,
       minify: process.env.NODE_ENV === "production",
       banner: licenseBanner,
+      outputOptions: {
+        entryFileNames: "[name].global.js",
+      },
       define: {
         "process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV ?? "development"),
         "process.env.VERSION": JSON.stringify(version),
