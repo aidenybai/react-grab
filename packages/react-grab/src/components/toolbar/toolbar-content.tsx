@@ -104,7 +104,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
         "bg-[var(--rg-panel-bg)] [box-shadow:var(--rg-shadow)]",
         !props.isCollapsed && (isVertical() ? "px-1.5 gap-0 py-2" : "py-1.5 gap-0 px-2"),
         collapsedEdgeClasses(),
-        props.isShaking && "animate-shake",
+        props.isShaking && (isVertical() ? "animate-shake-vertical" : "animate-shake"),
       )}
       style={{ "transform-origin": props.transformOrigin, transform: pressSquishTransform() }}
       onAnimationEnd={props.onAnimationEnd}
