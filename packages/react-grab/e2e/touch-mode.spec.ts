@@ -93,6 +93,31 @@ test.describe("Touch Mode", () => {
 
       await expect.poll(() => reactGrab.getClipboardContent(), { timeout: 5000 }).toBeTruthy();
     });
+
+    test("re-activating after touch copy should not show stale selection", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+
+      const listItem = reactGrab.page.locator("li").nth(1);
+      const itemBox = await listItem.boundingBox();
+      if (!itemBox) throw new Error("Could not get bounding box");
+      const tapX = itemBox.x + itemBox.width / 2;
+      const tapY = itemBox.y + itemBox.height / 2;
+
+      await reactGrab.touchStart(tapX, tapY);
+      await reactGrab.touchMove(tapX, tapY);
+      await reactGrab.touchEnd(tapX, tapY);
+
+      await expect.poll(() => reactGrab.getClipboardContent(), { timeout: 5000 }).toBeTruthy();
+      await expect.poll(() => reactGrab.isOverlayVisible(), { timeout: 5000 }).toBe(false);
+
+      await reactGrab.activate();
+
+      await reactGrab.page.waitForTimeout(100);
+
+      expect(await reactGrab.isSelectionBoxVisible()).toBe(false);
+    });
   });
 
   test.describe("Touch Drag Selection", () => {
