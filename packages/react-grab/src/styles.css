@@ -101,30 +101,24 @@
   }
 }
 
-@property --rg-shake-px {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 0px;
-}
-
 @keyframes shake {
   0%,
   100% {
-    --rg-shake-px: 0px;
+    transform: translate(0, 0);
   }
   15%,
   45% {
-    --rg-shake-px: -3px;
+    transform: translate(calc(-3px * var(--rg-shake-x, 1)), calc(-3px * var(--rg-shake-y, 0)));
   }
   30%,
   60% {
-    --rg-shake-px: 3px;
+    transform: translate(calc(3px * var(--rg-shake-x, 1)), calc(3px * var(--rg-shake-y, 0)));
   }
   75% {
-    --rg-shake-px: -2px;
+    transform: translate(calc(-2px * var(--rg-shake-x, 1)), calc(-2px * var(--rg-shake-y, 0)));
   }
   90% {
-    --rg-shake-px: 2px;
+    transform: translate(calc(2px * var(--rg-shake-x, 1)), calc(2px * var(--rg-shake-y, 0)));
   }
 }
 
@@ -205,15 +199,13 @@
 
 .animate-shake,
 .animate-shake-vertical {
-  translate: calc(var(--rg-shake-axis-x, 1) * var(--rg-shake-px))
-    calc(var(--rg-shake-axis-y, 0) * var(--rg-shake-px));
   animation: shake 0.3s ease-out;
-  will-change: translate;
+  will-change: transform;
 }
 
 .animate-shake-vertical {
-  --rg-shake-axis-x: 0;
-  --rg-shake-axis-y: 1;
+  --rg-shake-x: 0;
+  --rg-shake-y: 1;
 }
 
 .animate-success-pop {
