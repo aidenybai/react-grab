@@ -14,7 +14,7 @@ export const proxy = (request: NextRequest) => {
     return response;
   }
 
-  const response = request.headers.get("accept")?.includes(markdownAcceptHeader)
+  const response = request.headers.get("accept")?.toLowerCase().includes(markdownAcceptHeader)
     ? NextResponse.rewrite(new URL(markdownPathname, request.url))
     : NextResponse.next({
         headers: {
