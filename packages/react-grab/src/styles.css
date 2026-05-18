@@ -104,21 +104,21 @@
 @keyframes shake {
   0%,
   100% {
-    transform: translate(0, 0);
+    translate: 0 0;
   }
   15%,
   45% {
-    transform: translate(calc(-3px * var(--rg-shake-x, 1)), calc(-3px * var(--rg-shake-y, 0)));
+    translate: calc(-3px * var(--rg-shake-x, 1)) calc(-3px * var(--rg-shake-y, 0));
   }
   30%,
   60% {
-    transform: translate(calc(3px * var(--rg-shake-x, 1)), calc(3px * var(--rg-shake-y, 0)));
+    translate: calc(3px * var(--rg-shake-x, 1)) calc(3px * var(--rg-shake-y, 0));
   }
   75% {
-    transform: translate(calc(-2px * var(--rg-shake-x, 1)), calc(-2px * var(--rg-shake-y, 0)));
+    translate: calc(-2px * var(--rg-shake-x, 1)) calc(-2px * var(--rg-shake-y, 0));
   }
   90% {
-    transform: translate(calc(2px * var(--rg-shake-x, 1)), calc(2px * var(--rg-shake-y, 0)));
+    translate: calc(2px * var(--rg-shake-x, 1)) calc(2px * var(--rg-shake-y, 0));
   }
 }
 
@@ -200,7 +200,7 @@
 .animate-shake,
 .animate-shake-vertical {
   animation: shake 0.3s ease-out;
-  will-change: transform;
+  will-change: translate;
 }
 
 .animate-shake-vertical {
