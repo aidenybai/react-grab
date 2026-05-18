@@ -161,7 +161,13 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       () => Boolean(props.isActive),
       (isActive) => {
         if (!isActive) {
-          setSelectIconRotationDeg(0);
+          // The accumulator can drift past ±180° while the user circles the
+          // toolbar; resetting to literal 0 would unspin those revolutions
+          // through the CSS transition. Snapping to the nearest equivalent
+          // of 0° keeps the ease-back to a shortest-path arc.
+          setSelectIconRotationDeg((previousRotationDeg) =>
+            accumulateRotationDeg(previousRotationDeg, 0),
+          );
           return;
         }
 
