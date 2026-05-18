@@ -238,6 +238,13 @@ const createGrabStore = (input: GrabStoreInput) => {
             draft.contextMenuElement = null;
             draft.contextMenuClickOffset = null;
             draft.lastCopiedElement = null;
+            // In touch mode there is no pointer movement between taps, so a
+            // stale detectedElement from the previous interaction would
+            // render its selection box the moment the user re-activates.
+            // Mouse mode refreshes this on the next pointermove.
+            if (draft.isTouchMode) {
+              draft.detectedElement = null;
+            }
           }),
         );
       });
