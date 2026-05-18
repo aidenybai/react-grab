@@ -1,15 +1,6 @@
-import {
-  resolveSource,
-  checkIsNextProject,
-  getComponentDisplayName,
-  getDirectTextContent,
-  getInlineHTMLPreview,
-} from "./context.js";
-import { COMPACT_IDENTIFYING_ATTRS, COMPACT_TEXT_MAX_LENGTH } from "../constants.js";
+import { getInlineHTMLPreview, getStackContext } from "./context.js";
 import { copyContent } from "../utils/copy-content.js";
-import { getTagName } from "../utils/get-tag-name.js";
 import { normalizeError } from "../utils/normalize-error.js";
-import { truncateString } from "../utils/truncate-string.js";
 
 interface CopyOptions {
   getContent?: (elements: Element[]) => Promise<string> | string;
@@ -24,49 +15,21 @@ interface CopyHooks {
   onCopyError: (error: Error) => void;
 }
 
-const formatCompactReference = (
-  element: Element,
-  source: Awaited<ReturnType<typeof resolveSource>>,
-  isNextProject: boolean,
-): string => {
-  const tagName = getTagName(element);
-  const componentName = source?.componentName ?? getComponentDisplayName(element);
+const flattenStackContext = (stackContext: string): string => stackContext.replace(/\n\s+/g, " ");
 
-  if (!source && !componentName) {
-    return `[${getInlineHTMLPreview(element)}]`;
+const formatDetailedReferenceLine = async (element: Element): Promise<string> => {
+  const inlinePreview = getInlineHTMLPreview(element);
+  const stackContext = await getStackContext(element);
+  if (!stackContext) {
+    return `[${inlinePreview}]`;
   }
-
-  let identifyingAttrs = "";
-  for (const attrName of COMPACT_IDENTIFYING_ATTRS) {
-    const attrValue = element.getAttribute(attrName);
-    if (attrValue) {
-      identifyingAttrs += ` ${attrName}="${attrValue.replaceAll('"', "'")}"`;
-    }
-  }
-  const directText = getDirectTextContent(element);
-  const sanitizedText = directText.replaceAll('"', "'");
-  const textSnippet = sanitizedText
-    ? ` "${truncateString(sanitizedText, COMPACT_TEXT_MAX_LENGTH)}"`
-    : "";
-
-  const parts = [`<${tagName}${identifyingAttrs}>${textSnippet}`];
-  if (componentName) parts.push(`in ${componentName}`);
-  if (source) {
-    const lineReference = isNextProject && source.lineNumber ? `:${source.lineNumber}` : "";
-    parts.push(`@${source.filePath}${lineReference}`);
-  }
-  return `[${parts.join(" ")}]`;
+  return `[${inlinePreview}${flattenStackContext(stackContext)}]`;
 };
 
-const buildCompactContent = async (elements: Element[]): Promise<string | null> => {
-  const isNextProject = checkIsNextProject();
-  const resolvedSources = await Promise.all(elements.map(resolveSource));
-  const uniqueReferences = new Set(
-    elements.map((element, index) =>
-      formatCompactReference(element, resolvedSources[index], isNextProject),
-    ),
-  );
-  return uniqueReferences.size > 0 ? [...uniqueReferences].join("\n") : null;
+const buildDetailedContent = async (elements: Element[]): Promise<string | null> => {
+  const referenceLines = await Promise.all(elements.map(formatDetailedReferenceLine));
+  const uniqueReferenceLines = [...new Set(referenceLines.filter((line) => line.length > 0))];
+  return uniqueReferenceLines.length > 0 ? uniqueReferenceLines.join("\n") : null;
 };
 
 export const tryCopyWithFallback = async (
@@ -83,7 +46,7 @@ export const tryCopyWithFallback = async (
   try {
     const generatedContent = options.getContent
       ? await options.getContent(elements)
-      : await buildCompactContent(elements);
+      : await buildDetailedContent(elements);
 
     if (generatedContent?.trim()) {
       const transformedContent = await hooks.transformCopyContent(generatedContent, elements);

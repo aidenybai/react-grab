@@ -122,7 +122,6 @@ import { loadToolbarState, saveToolbarState } from "../components/toolbar/state.
 import { copyPlugin } from "./plugins/copy.js";
 import { commentPlugin } from "./plugins/comment.js";
 import { openPlugin } from "./plugins/open.js";
-import { copyDetailsPlugin } from "./plugins/copy-details.js";
 import {
   freezeAnimations,
   freezeAllAnimations,
@@ -137,7 +136,7 @@ import { generateId } from "../utils/generate-id.js";
 import { logRecoverableError } from "../utils/log-recoverable-error.js";
 import { getNearestEdge } from "../utils/get-nearest-edge.js";
 
-const builtInPlugins = [copyPlugin, commentPlugin, copyDetailsPlugin, openPlugin];
+const builtInPlugins = [copyPlugin, commentPlugin, openPlugin];
 
 interface CopyWithLabelOptions {
   element: Element;
@@ -240,9 +239,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return currentState.state === "active" && currentState.phase === "justDragged";
     });
     const isCopying = createMemo(() => current().state === "copying");
-    const isSelectionInteractionLocked = createMemo(
-      () => store.selectionInteractionLockDepth > 0,
-    );
+    const isSelectionInteractionLocked = createMemo(() => store.selectionInteractionLockDepth > 0);
     const didJustCopy = createMemo(() => current().state === "justCopied");
     const isPromptMode = createMemo(() => {
       const currentState = current();
