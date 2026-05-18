@@ -87,7 +87,7 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
           )}
           style={{ "min-width": `${TOOLBAR_MENU_MIN_WIDTH_PX}px` }}
         >
-          <div ref={highlightContainerRef} class="relative flex flex-col py-1">
+          <div ref={highlightContainerRef} class="relative flex flex-col">
             <div
               ref={highlightRef}
               class="pointer-events-none absolute opacity-0 transition-[top,left,width,height,opacity] duration-75 ease-out bg-[var(--rg-surface-hover)]"
