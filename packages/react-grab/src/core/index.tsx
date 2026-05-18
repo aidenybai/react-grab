@@ -2213,6 +2213,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const handleEnterKeyActivation = (event: KeyboardEvent): boolean => {
       if (!isEnterCode(event.code)) return false;
       if (isKeyboardEventTriggeredByInput(event)) return false;
+      if (isCopying()) return false;
       if (isSelectionInteractionLocked()) return false;
 
       const copiedElement = store.lastCopiedElement;
