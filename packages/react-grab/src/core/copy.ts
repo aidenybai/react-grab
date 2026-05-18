@@ -2,68 +2,59 @@ import { getInlineHTMLPreview, getStackContext } from "./context.js";
 import { copyContent } from "../utils/copy-content.js";
 import { normalizeError } from "../utils/normalize-error.js";
 
-interface CopyOptions {
+interface CopyFlowOptions {
   getContent?: (elements: Element[]) => Promise<string> | string;
   componentName?: string;
 }
 
-interface CopyHooks {
+interface CopyFlowHooks {
   onBeforeCopy: (elements: Element[]) => Promise<void>;
   transformCopyContent: (content: string, elements: Element[]) => Promise<string>;
-  onAfterCopy: (elements: Element[], success: boolean) => void;
+  onAfterCopy: (elements: Element[], didCopy: boolean) => void;
   onCopySuccess: (elements: Element[], content: string) => void;
   onCopyError: (error: Error) => void;
 }
 
-const flattenStackContext = (stackContext: string): string => stackContext.replace(/\n\s+/g, " ");
-
-const formatDetailedReferenceLine = async (element: Element): Promise<string> => {
+const formatElementReference = async (element: Element): Promise<string> => {
   const inlinePreview = getInlineHTMLPreview(element);
-  const stackContext = await getStackContext(element);
-  if (!stackContext) {
-    return `[${inlinePreview}]`;
-  }
-  return `[${inlinePreview}${flattenStackContext(stackContext)}]`;
+  const inlineStack = (await getStackContext(element)).replace(/\n\s+/g, " ");
+  return `[${inlinePreview}${inlineStack}]`;
 };
 
-const buildDetailedContent = async (elements: Element[]): Promise<string | null> => {
-  const referenceLines = await Promise.all(elements.map(formatDetailedReferenceLine));
-  const uniqueReferenceLines = [...new Set(referenceLines.filter((line) => line.length > 0))];
-  return uniqueReferenceLines.length > 0 ? uniqueReferenceLines.join("\n") : null;
+const buildClipboardPayload = async (elements: Element[]): Promise<string | null> => {
+  const references = await Promise.all(elements.map(formatElementReference));
+  const uniqueReferences = [...new Set(references)];
+  return uniqueReferences.length > 0 ? uniqueReferences.join("\n") : null;
 };
 
-export const tryCopyWithFallback = async (
-  options: CopyOptions,
-  hooks: CopyHooks,
+export const runCopyFlow = async (
+  options: CopyFlowOptions,
+  hooks: CopyFlowHooks,
   elements: Element[],
-  extraPrompt?: string,
+  prependedPrompt?: string,
 ): Promise<boolean> => {
-  let didCopy = false;
-  let copiedContent = "";
-
   await hooks.onBeforeCopy(elements);
 
+  let didCopy = false;
+  let finalContent = "";
+
   try {
-    const generatedContent = options.getContent
+    const rawContent = options.getContent
       ? await options.getContent(elements)
-      : await buildDetailedContent(elements);
+      : await buildClipboardPayload(elements);
 
-    if (generatedContent?.trim()) {
-      const transformedContent = await hooks.transformCopyContent(generatedContent, elements);
-
-      copiedContent = extraPrompt ? `${extraPrompt}\n${transformedContent}` : transformedContent;
-
-      didCopy = copyContent(copiedContent, {
-        componentName: options.componentName,
-      });
+    if (rawContent?.trim()) {
+      const transformedContent = await hooks.transformCopyContent(rawContent, elements);
+      finalContent = prependedPrompt
+        ? `${prependedPrompt}\n${transformedContent}`
+        : transformedContent;
+      didCopy = copyContent(finalContent, { componentName: options.componentName });
     }
   } catch (error) {
     hooks.onCopyError(normalizeError(error));
   }
 
-  if (didCopy) {
-    hooks.onCopySuccess(elements, copiedContent);
-  }
+  if (didCopy) hooks.onCopySuccess(elements, finalContent);
   hooks.onAfterCopy(elements, didCopy);
 
   return didCopy;

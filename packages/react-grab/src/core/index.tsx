@@ -33,7 +33,7 @@ import {
 } from "./context.js";
 import { createNoopApi } from "./noop-api.js";
 import { createEventListenerManager } from "./events.js";
-import { tryCopyWithFallback } from "./copy.js";
+import { runCopyFlow } from "./copy.js";
 import {
   clearElementPositionCache,
   getElementAtPosition,
@@ -788,7 +788,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
-    const copyWithFallback = (
+    const copyResolvedElements = (
       elements: Element[],
       extraPrompt?: string,
       resolvedComponentName?: string,
@@ -799,7 +799,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const tagName = firstElement ? getTagName(firstElement) : null;
       const elementName = componentName ?? tagName ?? undefined;
 
-      return tryCopyWithFallback(
+      return runCopyFlow(
         {
           getContent: pluginRegistry.store.options.getContent,
           componentName: elementName,
@@ -848,7 +848,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
       await waitUntilNextFrame();
       if (unhandledElements.length > 0) {
-        await copyWithFallback(unhandledElements, extraPrompt, resolvedComponentName);
+        await copyResolvedElements(unhandledElements, extraPrompt, resolvedComponentName);
       } else if (pendingResults.length > 0) {
         const results = await Promise.all(pendingResults);
         if (!results.every(Boolean)) {
@@ -3592,7 +3592,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const copyElementAPI = async (elements: Element | Element[]): Promise<boolean> => {
       const elementsArray = Array.isArray(elements) ? elements : [elements];
       if (elementsArray.length === 0) return false;
-      return await copyWithFallback(elementsArray);
+      return await copyResolvedElements(elementsArray);
     };
 
     const api: ReactGrabAPI = {
