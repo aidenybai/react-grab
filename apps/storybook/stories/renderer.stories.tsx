@@ -424,10 +424,6 @@ export const PendingDismiss: Story = {
   args: { selectedElement: "btn-save", isPromptMode: true, isPendingDismiss: true },
 };
 
-export const WithComments: Story = {
-  args: { selectedElement: "header" },
-};
-
 export const NoSelection: Story = {
   args: { selectedElement: "none" },
 };
