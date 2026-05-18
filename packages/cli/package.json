@@ -1,6 +1,6 @@
 {
   "name": "@react-grab/cli",
-  "version": "0.1.36",
+  "version": "0.1.37",
   "bin": {
     "react-grab": "./bin/cli.js"
   },
