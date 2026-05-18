@@ -1,5 +1,13 @@
 # react-grab
 
+## 0.1.36
+
+### Patch Changes
+
+- fix hanging issue
+- Updated dependencies
+  - @react-grab/cli@0.1.36
+
 ## 0.1.35
 
 ### Patch Changes
