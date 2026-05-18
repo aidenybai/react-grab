@@ -8,7 +8,6 @@ import {
   createEffect,
   createResource,
   on,
-  batch,
   mapArray,
 } from "solid-js";
 import { render } from "solid-js/web";
@@ -19,6 +18,7 @@ import {
   hasTextSelectionOnPage,
 } from "../utils/is-keyboard-event-triggered-by-input.js";
 import { mountRoot } from "../utils/mount-root.js";
+import { watchAppTheme } from "../utils/detect-app-theme.js";
 import {
   nativeCancelAnimationFrame,
   nativeRequestAnimationFrame,
@@ -2969,7 +2969,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     const resolvedCssText = typeof cssText === "string" ? cssText : "";
-    const rendererRoot = mountRoot(resolvedCssText);
+    const { root: rendererRoot, host: rendererHost } = mountRoot(resolvedCssText);
+
+    const themeWatcher = watchAppTheme(rendererHost);
+    onCleanup(themeWatcher.cleanup);
 
     const isThemeEnabled = createMemo(() => pluginRegistry.store.theme.enabled);
     const isSelectionBoxThemeEnabled = createMemo(

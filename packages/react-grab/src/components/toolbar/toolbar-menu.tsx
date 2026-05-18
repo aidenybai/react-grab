@@ -61,7 +61,7 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
         data-react-grab-ignore-events
         data-react-grab-toolbar-menu
         class={cn(
-          "fixed font-sans text-[13px] antialiased [filter:drop-shadow(0px_2px_8px_rgba(0,0,0,0.08))] select-none will-change-[opacity,transform]",
+          "fixed font-sans text-[13px] antialiased [filter:var(--rg-drop-shadow)] select-none will-change-[opacity,transform]",
           dropdown.isAnimatedIn()
             ? "transition-[opacity,transform] duration-220 ease-spring"
             : "transition-[opacity,transform] duration-120 ease-drawer",
@@ -83,14 +83,14 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
         <div
           class={cn(
             "contain-layout flex flex-col rounded-[10px] antialiased w-fit h-fit overflow-hidden [font-synthesis:none] [corner-shape:superellipse(1.25)]",
-            "bg-[#161616]",
+            "bg-[var(--rg-panel-bg)]",
           )}
           style={{ "min-width": `${TOOLBAR_MENU_MIN_WIDTH_PX}px` }}
         >
           <div ref={highlightContainerRef} class="relative flex flex-col py-1">
             <div
               ref={highlightRef}
-              class="pointer-events-none absolute bg-white/10 opacity-0 transition-[top,left,width,height,opacity] duration-75 ease-out"
+              class="pointer-events-none absolute opacity-0 transition-[top,left,width,height,opacity] duration-75 ease-out bg-[var(--rg-surface-hover)]"
             />
             <For each={props.actions}>
               {(action) => {
@@ -109,7 +109,9 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
                     <span
                       class={cn(
                         "text-[13px] leading-4 font-sans font-medium",
-                        isDefault() ? "text-white" : "text-[#A7A7A7]",
+                        isDefault()
+                          ? "text-[var(--rg-text-primary)]"
+                          : "text-[var(--rg-text-secondary)]",
                       )}
                     >
                       {action.label}
@@ -118,7 +120,7 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
                       {(shortcutKey) => (
                         <ShortcutHint
                           shortcut={shortcutKey()}
-                          class="text-[11px] font-sans text-[#A7A7A7] ml-4"
+                          class="text-[11px] font-sans text-[var(--rg-text-secondary)] ml-4"
                         />
                       )}
                     </Show>

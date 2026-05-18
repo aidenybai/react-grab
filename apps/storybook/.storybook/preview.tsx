@@ -19,4 +19,32 @@ export default definePreview({
       test: "todo",
     },
   },
+  globalTypes: {
+    theme: {
+      description: "Color scheme for react-grab UI",
+      toolbar: {
+        title: "Theme",
+        icon: "mirror",
+        items: [
+          { value: "dark", title: "Dark", icon: "moon" },
+          { value: "light", title: "Light", icon: "sun" },
+        ],
+        dynamicTitle: true,
+      },
+    },
+  },
+  initialGlobals: {
+    theme: "dark",
+  },
+  decorators: [
+    (Story, context) => {
+      const theme = context.globals.theme ?? "dark";
+      const canvasBg = theme === "light" ? "#f0f0f0" : "#1a1a1a";
+      return (
+        <div data-rg-theme={theme} style={{ "min-height": "100vh", background: canvasBg }}>
+          <Story />
+        </div>
+      );
+    },
+  ],
 });

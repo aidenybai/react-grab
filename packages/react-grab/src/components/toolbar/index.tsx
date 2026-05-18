@@ -612,7 +612,12 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           >
             <IconSelect
               size={14}
-              class={cn("transition-colors", props.isActive ? "text-white" : "text-[#A7A7A7]")}
+              class={cn(
+                "transition-colors",
+                props.isActive
+                  ? "text-[var(--rg-text-primary)]"
+                  : "text-[var(--rg-text-secondary)]",
+              )}
             />
           </button>
         }

@@ -15,6 +15,75 @@
   direction: ltr;
 }
 
+/* Theme tokens — light values are duplicated across the @media fallback and
+   the explicit [data-rg-theme="light"] block because CSS has no mixin
+   mechanism that works across :host() and @media. Keep both in sync. */
+:host,
+[data-rg-theme="dark"] {
+  --rg-panel-bg: #161616;
+  --rg-text-primary: #ffffff;
+  --rg-text-secondary: #a7a7a7;
+  --rg-surface-hover: rgba(255, 255, 255, 0.1);
+  --rg-surface-active: rgba(255, 255, 255, 0.15);
+  --rg-border-subtle: rgba(255, 255, 255, 0.1);
+  --rg-border-button: rgba(255, 255, 255, 0.2);
+  --rg-submit-bg: #ffffff;
+  --rg-submit-fg: #161616;
+  --rg-error-text: #f87171;
+  --rg-error-bg: #3d1515;
+  --rg-error-bg-hover: #4d1f1f;
+  --rg-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --rg-drop-shadow: drop-shadow(0px 2px 8px rgba(0, 0, 0, 0.08));
+  --rg-shimmer-from: #a1a1aa;
+  --rg-shimmer-to: #d4d4d8;
+  --rg-text-primary-85: rgba(255, 255, 255, 0.85);
+}
+
+/* Opposite-of-system fallback: dark system → app likely dark → react-grab light.
+   JS detection overrides this via data-rg-theme once it resolves. */
+@media (prefers-color-scheme: dark) {
+  :host:not([data-rg-theme]) {
+    --rg-panel-bg: #ffffff;
+    --rg-text-primary: #171717;
+    --rg-text-secondary: #737373;
+    --rg-surface-hover: rgba(0, 0, 0, 0.05);
+    --rg-surface-active: rgba(0, 0, 0, 0.08);
+    --rg-border-subtle: rgba(0, 0, 0, 0.08);
+    --rg-border-button: rgba(0, 0, 0, 0.15);
+    --rg-submit-bg: #171717;
+    --rg-submit-fg: #ffffff;
+    --rg-error-text: #dc2626;
+    --rg-error-bg: #fee2e2;
+    --rg-error-bg-hover: #fecaca;
+    --rg-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    --rg-drop-shadow: drop-shadow(0px 2px 12px rgba(0, 0, 0, 0.1));
+    --rg-shimmer-from: #71717a;
+    --rg-shimmer-to: #a1a1aa;
+    --rg-text-primary-85: rgba(23, 23, 23, 0.85);
+  }
+}
+
+:host([data-rg-theme="light"]),
+[data-rg-theme="light"] {
+  --rg-panel-bg: #ffffff;
+  --rg-text-primary: #171717;
+  --rg-text-secondary: #737373;
+  --rg-surface-hover: rgba(0, 0, 0, 0.05);
+  --rg-surface-active: rgba(0, 0, 0, 0.08);
+  --rg-border-subtle: rgba(0, 0, 0, 0.08);
+  --rg-border-button: rgba(0, 0, 0, 0.15);
+  --rg-submit-bg: #171717;
+  --rg-submit-fg: #ffffff;
+  --rg-error-text: #dc2626;
+  --rg-error-bg: #fee2e2;
+  --rg-error-bg-hover: #fecaca;
+  --rg-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  --rg-drop-shadow: drop-shadow(0px 2px 12px rgba(0, 0, 0, 0.1));
+  --rg-shimmer-from: #71717a;
+  --rg-shimmer-to: #a1a1aa;
+  --rg-text-primary-85: rgba(23, 23, 23, 0.85);
+}
+
 @keyframes rg-badge-slide {
   from {
     transform: translate(-8.2px, 12.4px);
@@ -96,11 +165,11 @@
 .shimmer-text {
   background: linear-gradient(
     90deg,
-    #a1a1aa 0%,
-    #d4d4d8 25%,
-    #a1a1aa 50%,
-    #d4d4d8 75%,
-    #a1a1aa 100%
+    var(--rg-shimmer-from) 0%,
+    var(--rg-shimmer-to) 25%,
+    var(--rg-shimmer-from) 50%,
+    var(--rg-shimmer-to) 75%,
+    var(--rg-shimmer-from) 100%
   );
   background-size: 200% 100%;
   -webkit-background-clip: text;

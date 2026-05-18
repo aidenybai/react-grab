@@ -82,7 +82,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
       <IconChevron
         size={18}
         class={cn(
-          "text-[#A7A7A7] transition-transform duration-150 ease-drawer -m-0.5",
+          "text-[var(--rg-text-secondary)] transition-transform duration-150 ease-drawer -m-0.5",
           chevronRotation(),
         )}
       />
@@ -98,10 +98,10 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
     <div
       data-react-grab-toolbar-panel
       class={cn(
-        "flex items-center justify-center rounded-full antialiased relative overflow-visible [font-synthesis:none] [box-shadow:0_2px_8px_rgba(0,0,0,0.08)]",
+        "flex items-center justify-center rounded-full antialiased relative overflow-visible [font-synthesis:none]",
         outerTransitionClass(),
         isVertical() && "flex-col",
-        "bg-[#161616]",
+        "bg-[var(--rg-panel-bg)] [box-shadow:var(--rg-shadow)]",
         !props.isCollapsed && (isVertical() ? "px-1.5 gap-0 py-2" : "py-1.5 gap-0 px-2"),
         collapsedEdgeClasses(),
         props.isShaking && "animate-shake",

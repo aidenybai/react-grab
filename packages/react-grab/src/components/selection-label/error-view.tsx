@@ -55,7 +55,7 @@ export const ErrorView: Component<ErrorViewProps> = (props) => {
         classList={{ "pt-1.5 pb-1": hasActions(), "py-1.5": !hasActions() }}
       >
         <span
-          class="text-[#F87171] text-[13px] leading-4 font-sans font-medium overflow-hidden line-clamp-5"
+          class="text-[var(--rg-error-text)] text-[13px] leading-4 font-sans font-medium overflow-hidden line-clamp-5"
           title={props.error}
         >
           {props.error}
@@ -66,18 +66,22 @@ export const ErrorView: Component<ErrorViewProps> = (props) => {
           <div class="contain-layout shrink-0 flex items-center justify-end gap-[5px] w-full h-fit">
             <button
               data-react-grab-retry
-              class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-white/10 [border-width:0.5px] border-solid border-white/20 cursor-pointer transition-all hover:bg-white/15 press-scale h-[17px]"
+              class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-[var(--rg-surface-hover)] [border-width:0.5px] border-solid border-[var(--rg-border-button)] cursor-pointer transition-all hover:bg-[var(--rg-surface-active)] press-scale h-[17px]"
               onClick={props.onRetry}
             >
-              <span class="text-white text-[13px] leading-3.5 font-sans font-medium">Retry</span>
-              <IconRetry size={10} class="text-[#A7A7A7]" />
+              <span class="text-[var(--rg-text-primary)] text-[13px] leading-3.5 font-sans font-medium">
+                Retry
+              </span>
+              <IconRetry size={10} class="text-[var(--rg-text-secondary)]" />
             </button>
             <button
               data-react-grab-error-ok
-              class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-white/10 [border-width:0.5px] border-solid border-white/20 cursor-pointer transition-all hover:bg-white/15 press-scale h-[17px]"
+              class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-[var(--rg-surface-hover)] [border-width:0.5px] border-solid border-[var(--rg-border-button)] cursor-pointer transition-all hover:bg-[var(--rg-surface-active)] press-scale h-[17px]"
               onClick={props.onAcknowledge}
             >
-              <span class="text-white text-[13px] leading-3.5 font-sans font-medium">Ok</span>
+              <span class="text-[var(--rg-text-primary)] text-[13px] leading-3.5 font-sans font-medium">
+                Ok
+              </span>
             </button>
           </div>
         </BottomSection>
