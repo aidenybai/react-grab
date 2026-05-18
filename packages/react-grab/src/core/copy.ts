@@ -1,106 +1,60 @@
-import {
-  resolveSource,
-  checkIsNextProject,
-  getComponentDisplayName,
-  getDirectTextContent,
-  getInlineHTMLPreview,
-} from "./context.js";
-import { COMPACT_IDENTIFYING_ATTRS, COMPACT_TEXT_MAX_LENGTH } from "../constants.js";
+import { getInlineHTMLPreview, getStackContext } from "./context.js";
 import { copyContent } from "../utils/copy-content.js";
-import { getTagName } from "../utils/get-tag-name.js";
 import { normalizeError } from "../utils/normalize-error.js";
-import { truncateString } from "../utils/truncate-string.js";
 
-interface CopyOptions {
+interface CopyFlowOptions {
   getContent?: (elements: Element[]) => Promise<string> | string;
   componentName?: string;
 }
 
-interface CopyHooks {
+interface CopyFlowHooks {
   onBeforeCopy: (elements: Element[]) => Promise<void>;
   transformCopyContent: (content: string, elements: Element[]) => Promise<string>;
-  onAfterCopy: (elements: Element[], success: boolean) => void;
+  onAfterCopy: (elements: Element[], didCopy: boolean) => void;
   onCopySuccess: (elements: Element[], content: string) => void;
   onCopyError: (error: Error) => void;
 }
 
-const formatCompactReference = (
-  element: Element,
-  source: Awaited<ReturnType<typeof resolveSource>>,
-  isNextProject: boolean,
-): string => {
-  const tagName = getTagName(element);
-  const componentName = source?.componentName ?? getComponentDisplayName(element);
-
-  if (!source && !componentName) {
-    return `[${getInlineHTMLPreview(element)}]`;
-  }
-
-  let identifyingAttrs = "";
-  for (const attrName of COMPACT_IDENTIFYING_ATTRS) {
-    const attrValue = element.getAttribute(attrName);
-    if (attrValue) {
-      identifyingAttrs += ` ${attrName}="${attrValue.replaceAll('"', "'")}"`;
-    }
-  }
-  const directText = getDirectTextContent(element);
-  const sanitizedText = directText.replaceAll('"', "'");
-  const textSnippet = sanitizedText
-    ? ` "${truncateString(sanitizedText, COMPACT_TEXT_MAX_LENGTH)}"`
-    : "";
-
-  const parts = [`<${tagName}${identifyingAttrs}>${textSnippet}`];
-  if (componentName) parts.push(`in ${componentName}`);
-  if (source) {
-    const lineReference = isNextProject && source.lineNumber ? `:${source.lineNumber}` : "";
-    parts.push(`@${source.filePath}${lineReference}`);
-  }
-  return `[${parts.join(" ")}]`;
+const formatElementReference = async (element: Element): Promise<string> => {
+  const inlinePreview = getInlineHTMLPreview(element);
+  const inlineStack = (await getStackContext(element)).replace(/\n\s+/g, " ");
+  return `[${inlinePreview}${inlineStack}]`;
 };
 
-const buildCompactContent = async (elements: Element[]): Promise<string | null> => {
-  const isNextProject = checkIsNextProject();
-  const resolvedSources = await Promise.all(elements.map(resolveSource));
-  const uniqueReferences = new Set(
-    elements.map((element, index) =>
-      formatCompactReference(element, resolvedSources[index], isNextProject),
-    ),
-  );
-  return uniqueReferences.size > 0 ? [...uniqueReferences].join("\n") : null;
+const buildClipboardPayload = async (elements: Element[]): Promise<string | null> => {
+  const references = await Promise.all(elements.map(formatElementReference));
+  const uniqueReferences = [...new Set(references)];
+  return uniqueReferences.length > 0 ? uniqueReferences.join("\n") : null;
 };
 
-export const tryCopyWithFallback = async (
-  options: CopyOptions,
-  hooks: CopyHooks,
+export const runCopyFlow = async (
+  options: CopyFlowOptions,
+  hooks: CopyFlowHooks,
   elements: Element[],
-  extraPrompt?: string,
+  prependedPrompt?: string,
 ): Promise<boolean> => {
-  let didCopy = false;
-  let copiedContent = "";
-
   await hooks.onBeforeCopy(elements);
 
+  let didCopy = false;
+  let finalContent = "";
+
   try {
-    const generatedContent = options.getContent
+    const rawContent = options.getContent
       ? await options.getContent(elements)
-      : await buildCompactContent(elements);
+      : await buildClipboardPayload(elements);
 
-    if (generatedContent?.trim()) {
-      const transformedContent = await hooks.transformCopyContent(generatedContent, elements);
-
-      copiedContent = extraPrompt ? `${extraPrompt}\n${transformedContent}` : transformedContent;
-
-      didCopy = copyContent(copiedContent, {
-        componentName: options.componentName,
-      });
+    if (rawContent?.trim()) {
+      const transformedContent = await hooks.transformCopyContent(rawContent, elements);
+      finalContent = prependedPrompt
+        ? `${prependedPrompt}\n${transformedContent}`
+        : transformedContent;
+      didCopy = copyContent(finalContent, { componentName: options.componentName });
     }
   } catch (error) {
     hooks.onCopyError(normalizeError(error));
   }
 
-  if (didCopy) {
-    hooks.onCopySuccess(elements, copiedContent);
-  }
+  if (didCopy) hooks.onCopySuccess(elements, finalContent);
   hooks.onAfterCopy(elements, didCopy);
 
   return didCopy;
