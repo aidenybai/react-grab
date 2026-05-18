@@ -199,6 +199,6 @@ The registry provides several ways to call hooks, each suited to a different use
 
 The three built-in plugins are registered during `init()` through the same `register()` path that external plugins use, so there is nothing architecturally special about them:
 
-- **copy** registers the default "Copy" context-menu action that copies a single-line `[<tag …> in Component @path:line …]` reference per selected element, including the full component stack.
+- **copy** registers the default "Copy" context-menu action that copies a single-line `[<tag …> in Component (at path:line) …]` reference per selected element, including up to `DEFAULT_MAX_CONTEXT_LINES` (3) frames from the component stack.
 - **comment** registers the "Comment" action that enters prompt mode.
 - **open** registers the "Open in editor" action that calls `openFile` with the resolved source location, running the URL through the `transformOpenFileUrl` hook pipeline first.
