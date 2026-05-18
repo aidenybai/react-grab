@@ -1,2 +1,5 @@
 export { proxy as middleware } from "./proxy";
-export { config } from "./proxy";
+
+export const config = {
+  matcher: ["/", "/llm.txt"],
+};

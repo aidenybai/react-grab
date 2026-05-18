@@ -26,7 +26,3 @@ export const proxy = (request: NextRequest) => {
 
   return response;
 };
-
-export const config = {
-  matcher: ["/", "/llm.txt"],
-};
