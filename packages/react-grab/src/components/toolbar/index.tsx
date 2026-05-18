@@ -12,6 +12,8 @@ import {
   TOOLBAR_DEFAULT_HEIGHT_PX,
   TOOLBAR_DEFAULT_POSITION_RATIO,
   Z_INDEX_OVERLAY,
+  SELECT_ICON_NATURAL_POINT_ANGLE_DEG,
+  SELECT_ICON_POINT_MIN_DISTANCE_PX,
 } from "../../constants.js";
 import { freezeUpdates } from "../../utils/freeze-updates.js";
 import { freezeGlobalAnimations, unfreezeGlobalAnimations } from "../../utils/freeze-animations.js";
@@ -28,6 +30,7 @@ import {
   isHorizontalEdge,
 } from "../../utils/toolbar-position.js";
 import { createToolbarDrag } from "../../utils/create-toolbar-drag.js";
+import { accumulateRotationDeg } from "../../utils/accumulate-rotation.js";
 
 interface ToolbarProps {
   isActive?: boolean;
@@ -49,6 +52,7 @@ interface FreezeHandlersOptions {
 
 export const Toolbar: Component<ToolbarProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
+  let selectButtonRef: HTMLButtonElement | undefined;
   let unfreezeUpdatesCallback: (() => void) | null = null;
 
   const savedState = loadToolbarState();
@@ -65,6 +69,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [isCollapseAnimating, setIsCollapseAnimating] = createSignal(false);
   const [isChevronPressed, setIsChevronPressed] = createSignal(false);
   const [isToolbarHovered, setIsToolbarHovered] = createSignal(false);
+  const [selectIconRotationDeg, setSelectIconRotationDeg] = createSignal(0);
   const drag = createToolbarDrag({
     getContainerRef: () => containerRef,
     isCollapsed,
@@ -147,6 +152,38 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           unfreezeUpdatesCallback();
           unfreezeUpdatesCallback = null;
         }
+      },
+    ),
+  );
+
+  createEffect(
+    on(
+      () => Boolean(props.isActive),
+      (isActive) => {
+        if (!isActive) {
+          setSelectIconRotationDeg(0);
+          return;
+        }
+
+        const handlePointerMove = (event: PointerEvent | MouseEvent) => {
+          if (!selectButtonRef) return;
+          const rect = selectButtonRef.getBoundingClientRect();
+          const centerX = rect.left + rect.width / 2;
+          const centerY = rect.top + rect.height / 2;
+          const dx = event.clientX - centerX;
+          const dy = event.clientY - centerY;
+          if (Math.hypot(dx, dy) < SELECT_ICON_POINT_MIN_DISTANCE_PX) return;
+          const targetAngleDeg = (Math.atan2(dy, dx) * 180) / Math.PI;
+          const desiredRotationDeg = targetAngleDeg - SELECT_ICON_NATURAL_POINT_ANGLE_DEG;
+          setSelectIconRotationDeg((previousRotationDeg) =>
+            accumulateRotationDeg(previousRotationDeg, desiredRotationDeg),
+          );
+        };
+
+        window.addEventListener("pointermove", handlePointerMove, { passive: true });
+        onCleanup(() => {
+          window.removeEventListener("pointermove", handlePointerMove);
+        });
       },
     ),
   );
@@ -594,6 +631,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         }}
         selectButton={
           <button
+            ref={selectButtonRef}
             data-react-grab-ignore-events
             data-react-grab-toolbar-toggle
             aria-label={props.isActive ? "Stop selecting element" : "Select element"}
@@ -612,12 +650,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           >
             <IconSelect
               size={14}
-              class={cn(
-                "transition-colors",
-                props.isActive
-                  ? "text-[var(--rg-text-primary)]"
-                  : "text-[var(--rg-text-secondary)]",
-              )}
+              rotationDeg={selectIconRotationDeg()}
+              class={
+                props.isActive ? "text-[var(--rg-text-primary)]" : "text-[var(--rg-text-secondary)]"
+              }
             />
           </button>
         }

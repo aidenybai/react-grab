@@ -130,6 +130,14 @@ export const TOOLBAR_DEFAULT_HEIGHT_PX = 28;
 export const TOOLBAR_DEFAULT_POSITION_RATIO = 0.5;
 export const DEFAULT_ACTION_ID = "comment";
 
+// The select icon is a paper-airplane shape whose tip points toward the
+// top-right corner of its viewBox, ~45° above the +x axis. Subtracting this
+// from the mouse-relative angle yields the rotation needed to aim the tip at
+// the cursor.
+export const SELECT_ICON_NATURAL_POINT_ANGLE_DEG = -45;
+export const SELECT_ICON_ROTATION_TRANSITION_MS = 180;
+export const SELECT_ICON_POINT_MIN_DISTANCE_PX = 4;
+
 export const DRAG_SELECTION_COVERAGE_THRESHOLD = 0.75;
 export const DRAG_SELECTION_SAMPLE_SPACING_PX = 32;
 export const DRAG_SELECTION_MIN_SAMPLES_PER_AXIS = 3;
