@@ -126,6 +126,31 @@
   }
 }
 
+@keyframes shake-vertical {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  15% {
+    transform: translateY(-3px);
+  }
+  30% {
+    transform: translateY(3px);
+  }
+  45% {
+    transform: translateY(-3px);
+  }
+  60% {
+    transform: translateY(3px);
+  }
+  75% {
+    transform: translateY(-2px);
+  }
+  90% {
+    transform: translateY(2px);
+  }
+}
+
 @keyframes success-pop {
   from {
     transform: scale(0.85);
@@ -203,6 +228,11 @@
 
 .animate-shake {
   animation: shake 0.3s ease-out;
+  will-change: transform;
+}
+
+.animate-shake-vertical {
+  animation: shake-vertical 0.3s ease-out;
   will-change: transform;
 }
 
