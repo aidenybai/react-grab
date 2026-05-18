@@ -1,5 +1,13 @@
 # @react-grab/mcp
 
+## 0.1.35
+
+### Patch Changes
+
+- ui improvement
+- Updated dependencies
+  - react-grab@0.1.35
+
 ## 0.1.34
 
 ### Patch Changes
