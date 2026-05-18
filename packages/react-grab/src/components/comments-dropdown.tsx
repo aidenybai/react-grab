@@ -40,6 +40,21 @@ const getCommentItemDisplayName = (item: CommentItem): string => {
   return item.componentName ?? item.tagName;
 };
 
+const getCommentItemUrlLabel = (item: CommentItem): string | undefined => {
+  if (!item.url) return undefined;
+  try {
+    const parsed = new URL(item.url);
+    const currentHost = typeof window !== "undefined" ? window.location.host : "";
+    const pathAndQuery = `${parsed.pathname}${parsed.search}`;
+    if (parsed.host && parsed.host !== currentHost) {
+      return `${parsed.host}${pathAndQuery}`;
+    }
+    return pathAndQuery || "/";
+  } catch {
+    return item.url;
+  }
+};
+
 export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
   const {
@@ -283,6 +298,16 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
                         <span class="text-[11px] leading-3 font-sans text-black/40 truncate mt-0.5">
                           {item.commentText}
                         </span>
+                      </Show>
+                      <Show when={getCommentItemUrlLabel(item)}>
+                        {(urlLabel) => (
+                          <span
+                            class="text-[10px] leading-3 font-sans text-black/30 truncate mt-0.5"
+                            title={item.url}
+                          >
+                            {urlLabel()}
+                          </span>
+                        )}
                       </Show>
                     </span>
                     <span class="shrink-0 text-[10px] font-sans text-black/25 flex items-center justify-end">
