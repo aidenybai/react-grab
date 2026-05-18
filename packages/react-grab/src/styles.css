@@ -108,29 +108,17 @@
   }
   15%,
   45% {
-    transform: translate(
-      calc(-3px * var(--rg-shake-x, 1)),
-      calc(-3px * var(--rg-shake-y, 0))
-    );
+    transform: translate(calc(-3px * var(--rg-shake-x, 1)), calc(-3px * var(--rg-shake-y, 0)));
   }
   30%,
   60% {
-    transform: translate(
-      calc(3px * var(--rg-shake-x, 1)),
-      calc(3px * var(--rg-shake-y, 0))
-    );
+    transform: translate(calc(3px * var(--rg-shake-x, 1)), calc(3px * var(--rg-shake-y, 0)));
   }
   75% {
-    transform: translate(
-      calc(-2px * var(--rg-shake-x, 1)),
-      calc(-2px * var(--rg-shake-y, 0))
-    );
+    transform: translate(calc(-2px * var(--rg-shake-x, 1)), calc(-2px * var(--rg-shake-y, 0)));
   }
   90% {
-    transform: translate(
-      calc(2px * var(--rg-shake-x, 1)),
-      calc(2px * var(--rg-shake-y, 0))
-    );
+    transform: translate(calc(2px * var(--rg-shake-x, 1)), calc(2px * var(--rg-shake-y, 0)));
   }
 }
 
