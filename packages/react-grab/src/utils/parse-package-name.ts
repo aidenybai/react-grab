@@ -74,8 +74,11 @@ const extractVersionedPackageFromUrl = (rawFileName: string): string | null => {
 };
 
 const extractFromLocalPath = (normalizedPath: string): string | null =>
-  extractAfterLastMarker(normalizedPath, VITE_OPTIMIZED_DEPS_PATTERN, readViteOptimizedDepPackage) ??
-  extractAfterLastMarker(normalizedPath, NODE_MODULES_PATTERN, readNodeModulesPackage);
+  extractAfterLastMarker(
+    normalizedPath,
+    VITE_OPTIMIZED_DEPS_PATTERN,
+    readViteOptimizedDepPackage,
+  ) ?? extractAfterLastMarker(normalizedPath, NODE_MODULES_PATTERN, readNodeModulesPackage);
 
 export const parsePackageName = (fileName: string | null | undefined): string | null => {
   if (!fileName) return null;

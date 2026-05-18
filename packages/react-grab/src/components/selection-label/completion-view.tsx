@@ -18,7 +18,7 @@ const MoreOptionsButton: Component<MoreOptionsButtonProps> = (props) => {
     <button
       data-react-grab-ignore-events
       data-react-grab-more-options
-      class="flex items-center justify-center size-[18px] rounded-sm cursor-pointer bg-transparent hover:bg-black/10 text-black/30 hover:text-black border-none outline-none p-0 shrink-0 press-scale"
+      class="flex items-center justify-center size-4 rounded-sm cursor-pointer bg-transparent hover:bg-white/10 text-[#A7A7A7] hover:text-white border-none outline-none p-0 shrink-0 press-scale"
       // The on: prefix attaches a native event listener (rather than using
       // SolidJS delegation) so stopImmediatePropagation can beat both
       // delegated handlers and document-level capture listeners.
@@ -103,7 +103,7 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
       data-react-grab-completion
       class={cn(
         "contain-layout shrink-0 flex flex-col justify-center items-end rounded-[10px] antialiased w-fit h-fit max-w-[280px] transition-opacity duration-100 ease-out [font-synthesis:none] [corner-shape:superellipse(1.25)]",
-        "bg-white",
+        "bg-[#161616]",
       )}
       style={{ opacity: isFading() ? 0 : 1 }}
       onPointerDown={handleFocus}
@@ -111,7 +111,7 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
     >
       <Show when={!didCopy() && props.onDismiss}>
         <div class="contain-layout shrink-0 flex items-center justify-between gap-2 pt-1.5 pb-1 px-2 w-full h-fit">
-          <span class="text-black text-[13px] leading-4 font-sans font-medium h-fit tabular-nums overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
+          <span class="text-white text-[13px] leading-4 font-sans font-medium h-fit tabular-nums overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
             {displayStatusText()}
           </span>
           <div class="contain-layout shrink-0 flex items-center gap-2 h-fit">
@@ -121,13 +121,13 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
             <Show when={props.onDismiss}>
               <button
                 data-react-grab-dismiss
-                class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] press-scale h-[17px]"
+                class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-white/10 [border-width:0.5px] border-solid border-white/20 cursor-pointer transition-all hover:bg-white/15 press-scale h-[17px]"
                 onClick={handleAccept}
                 disabled={didCopy()}
               >
-                <span class="text-black text-[13px] leading-3.5 font-sans font-medium">Keep</span>
+                <span class="text-white text-[13px] leading-3.5 font-sans font-medium">Keep</span>
                 <Show when={!didCopy()}>
-                  <IconReturn size={10} class="text-black/50" />
+                  <IconReturn size={10} class="text-[#A7A7A7]" />
                 </Show>
               </button>
             </Show>
@@ -136,8 +136,8 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
       </Show>
       <Show when={didCopy() || !props.onDismiss}>
         <div class="contain-layout shrink-0 flex items-center gap-0.5 py-1.5 px-2 w-full h-fit">
-          <IconCheck size={14} class="text-black/85 shrink-0 animate-success-pop" />
-          <span class="text-black text-[13px] leading-4 font-sans font-medium h-fit tabular-nums overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
+          <IconCheck size={14} class="text-white/85 shrink-0 animate-success-pop" />
+          <span class="text-white text-[13px] leading-4 font-sans font-medium h-fit tabular-nums overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
             {displayStatusText()}
           </span>
           <Show when={props.onShowContextMenu}>

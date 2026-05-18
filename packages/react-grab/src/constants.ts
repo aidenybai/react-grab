@@ -2,6 +2,9 @@ import { overlayColor } from "./utils/overlay-color.js";
 
 export const VERSION = process.env.VERSION as string;
 
+export const PANEL_BACKGROUND = "#161616";
+export const PANEL_SHADOW = "0 2px 8px rgba(0,0,0,0.08)";
+
 export const VIEWPORT_MARGIN_PX = 8;
 export const OFFSCREEN_POSITION = -1000;
 

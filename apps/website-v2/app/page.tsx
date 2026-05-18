@@ -19,12 +19,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarGroup,
-  AvatarImage,
-} from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarGroup, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
@@ -45,11 +40,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Dialog,
   DialogContent,
@@ -87,18 +78,10 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@/components/ui/resizable";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
@@ -132,16 +115,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Toggle } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -167,26 +142,14 @@ import {
 import { useTheme } from "next-themes";
 import { useState } from "react";
 
-const Section = ({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) => (
+const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <section className="space-y-4">
     <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
     <div className="space-y-4">{children}</div>
   </section>
 );
 
-const ComponentRow = ({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) => (
+const ComponentRow = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div className="rounded-lg border p-4">
     <p className="mb-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
       {label}
@@ -197,9 +160,7 @@ const ComponentRow = ({
 
 export default function Home() {
   const [sliderValue, setSliderValue] = useState([33]);
-  const [calendarDate, setCalendarDate] = useState<Date | undefined>(
-    new Date()
-  );
+  const [calendarDate, setCalendarDate] = useState<Date | undefined>(new Date());
   const [collapsibleOpen, setCollapsibleOpen] = useState(false);
   const { setTheme } = useTheme();
 
@@ -207,9 +168,7 @@ export default function Home() {
     <main className="mx-auto max-w-4xl space-y-10 p-8 pb-20">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            shadcn/ui Components
-          </h1>
+          <h1 className="text-3xl font-bold tracking-tight">shadcn/ui Components</h1>
           <p className="mt-1 text-muted-foreground">
             All installed components laid out for preview.
           </p>
@@ -223,15 +182,9 @@ export default function Home() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setTheme("light")}>
-              Light
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setTheme("dark")}>
-              Dark
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setTheme("system")}>
-              System
-            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setTheme("light")}>Light</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setTheme("dark")}>Dark</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setTheme("system")}>System</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -284,9 +237,7 @@ export default function Home() {
         <Alert variant="destructive">
           <Info className="size-4" />
           <AlertTitle>Destructive Alert</AlertTitle>
-          <AlertDescription>
-            Something went wrong. Please try again.
-          </AlertDescription>
+          <AlertDescription>Something went wrong. Please try again.</AlertDescription>
         </Alert>
       </Section>
 
@@ -323,9 +274,7 @@ export default function Home() {
         <Card>
           <CardHeader>
             <CardTitle>Card Title</CardTitle>
-            <CardDescription>
-              Card description goes here with supporting text.
-            </CardDescription>
+            <CardDescription>Card description goes here with supporting text.</CardDescription>
           </CardHeader>
           <CardContent>
             <p>Card content with any elements inside.</p>
@@ -345,10 +294,7 @@ export default function Home() {
           <Input placeholder="Disabled" disabled className="max-w-xs" />
         </ComponentRow>
         <ComponentRow label="Textarea">
-          <Textarea
-            placeholder="Type your message here..."
-            className="max-w-sm"
-          />
+          <Textarea placeholder="Type your message here..." className="max-w-sm" />
         </ComponentRow>
       </Section>
 
@@ -424,9 +370,7 @@ export default function Home() {
             step={1}
             className="w-60"
           />
-          <span className="text-sm text-muted-foreground">
-            {sliderValue[0]}
-          </span>
+          <span className="text-sm text-muted-foreground">{sliderValue[0]}</span>
         </ComponentRow>
         <ComponentRow label="Progress">
           <Progress value={66} className="w-60" />
@@ -456,9 +400,7 @@ export default function Home() {
         <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="item-1">
             <AccordionTrigger>Is it accessible?</AccordionTrigger>
-            <AccordionContent>
-              Yes. It adheres to the WAI-ARIA design pattern.
-            </AccordionContent>
+            <AccordionContent>Yes. It adheres to the WAI-ARIA design pattern.</AccordionContent>
           </AccordionItem>
           <AccordionItem value="item-2">
             <AccordionTrigger>Is it styled?</AccordionTrigger>
@@ -468,9 +410,7 @@ export default function Home() {
           </AccordionItem>
           <AccordionItem value="item-3">
             <AccordionTrigger>Is it animated?</AccordionTrigger>
-            <AccordionContent>
-              Yes. It uses CSS animations for smooth transitions.
-            </AccordionContent>
+            <AccordionContent>Yes. It uses CSS animations for smooth transitions.</AccordionContent>
           </AccordionItem>
         </Accordion>
       </Section>
@@ -548,8 +488,7 @@ export default function Home() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete
-                  your account.
+                  This action cannot be undone. This will permanently delete your account.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -570,14 +509,10 @@ export default function Home() {
             <SheetContent>
               <SheetHeader>
                 <SheetTitle>Sheet Title</SheetTitle>
-                <SheetDescription>
-                  This is a sheet that slides in from the side.
-                </SheetDescription>
+                <SheetDescription>This is a sheet that slides in from the side.</SheetDescription>
               </SheetHeader>
               <div className="p-4">
-                <p className="text-sm text-muted-foreground">
-                  Sheet content goes here.
-                </p>
+                <p className="text-sm text-muted-foreground">Sheet content goes here.</p>
               </div>
             </SheetContent>
           </Sheet>
@@ -594,24 +529,16 @@ export default function Home() {
               <div className="grid gap-4">
                 <div className="space-y-2">
                   <h4 className="font-medium leading-none">Dimensions</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Set the dimensions for the layer.
-                  </p>
+                  <p className="text-sm text-muted-foreground">Set the dimensions for the layer.</p>
                 </div>
                 <div className="grid gap-2">
                   <div className="grid grid-cols-3 items-center gap-4">
                     <Label>Width</Label>
-                    <Input
-                      defaultValue="100%"
-                      className="col-span-2 h-8"
-                    />
+                    <Input defaultValue="100%" className="col-span-2 h-8" />
                   </div>
                   <div className="grid grid-cols-3 items-center gap-4">
                     <Label>Height</Label>
-                    <Input
-                      defaultValue="25px"
-                      className="col-span-2 h-8"
-                    />
+                    <Input defaultValue="25px" className="col-span-2 h-8" />
                   </div>
                 </div>
               </div>
@@ -728,8 +655,7 @@ export default function Home() {
                   <NavigationMenuLink className="block rounded-md p-3 hover:bg-muted">
                     <div className="text-sm font-medium">Button</div>
                     <p className="text-sm text-muted-foreground">
-                      Displays a button or a component that looks like a
-                      button.
+                      Displays a button or a component that looks like a button.
                     </p>
                   </NavigationMenuLink>
                 </div>
@@ -801,10 +727,7 @@ export default function Home() {
             <ToggleGroupItem value="italic" aria-label="Toggle italic">
               <Italic />
             </ToggleGroupItem>
-            <ToggleGroupItem
-              value="underline"
-              aria-label="Toggle underline"
-            >
+            <ToggleGroupItem value="underline" aria-label="Toggle underline">
               <Underline />
             </ToggleGroupItem>
           </ToggleGroup>
@@ -862,15 +785,9 @@ export default function Home() {
             </CollapsibleTrigger>
           </div>
           <CollapsibleContent className="space-y-2">
-            <div className="rounded-md border px-4 py-2 text-sm">
-              Item 1
-            </div>
-            <div className="rounded-md border px-4 py-2 text-sm">
-              Item 2
-            </div>
-            <div className="rounded-md border px-4 py-2 text-sm">
-              Item 3
-            </div>
+            <div className="rounded-md border px-4 py-2 text-sm">Item 1</div>
+            <div className="rounded-md border px-4 py-2 text-sm">Item 2</div>
+            <div className="rounded-md border px-4 py-2 text-sm">Item 3</div>
           </CollapsibleContent>
         </Collapsible>
       </Section>
@@ -899,10 +816,7 @@ export default function Home() {
       </Section>
 
       <Section title="Resizable">
-        <ResizablePanelGroup
-          direction="horizontal"
-          className="min-h-[120px] rounded-lg border"
-        >
+        <ResizablePanelGroup className="min-h-[120px] rounded-lg border">
           <ResizablePanel defaultSize={50}>
             <div className="flex h-full items-center justify-center p-4">
               <span className="text-sm font-semibold">Panel A</span>

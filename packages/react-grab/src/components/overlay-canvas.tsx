@@ -60,7 +60,7 @@ interface OverlayCanvasProps {
   selectionVisible?: boolean;
   selectionBounds?: OverlayBounds;
   selectionBoundsMultiple?: OverlayBounds[];
-  selectionIsFading?: boolean;
+
   selectionShouldSnap?: boolean;
 
   dragVisible?: boolean;
@@ -456,10 +456,9 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
           props.selectionVisible,
           props.selectionBounds,
           props.selectionBoundsMultiple,
-          props.selectionIsFading,
           props.selectionShouldSnap,
         ] as const,
-      ([isVisible, singleBounds, multipleBounds, _isFading, shouldSnap]) => {
+      ([isVisible, singleBounds, multipleBounds, shouldSnap]) => {
         if (!isVisible || (!singleBounds && (!multipleBounds || multipleBounds.length === 0))) {
           selectionAnimations = [];
           scheduleAnimationFrame();

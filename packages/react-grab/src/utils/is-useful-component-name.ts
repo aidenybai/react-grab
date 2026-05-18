@@ -67,9 +67,7 @@ const REACT_INTERNAL_COMPONENT_NAMES = new Set([
   "SuspenseList",
 ]);
 
-const LIBRARY_INTERNAL_COMPONENT_NAMES = new Set([
-  "MotionDOMComponent",
-]);
+const LIBRARY_INTERNAL_COMPONENT_NAMES = new Set(["MotionDOMComponent"]);
 
 export const isInternalComponentName = (name: string): boolean => {
   if (NEXT_INTERNAL_COMPONENT_NAMES.has(name)) return true;

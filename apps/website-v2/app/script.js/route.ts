@@ -11,10 +11,7 @@ export const GET = async () => {
     .resolve("react-grab/package.json")
     .replace(nextProjectPathToken, workspaceRoot);
   const packageDirectory = dirname(resolvedPackageJson);
-  const script = await readFile(
-    join(packageDirectory, "dist/index.global.js"),
-    "utf-8",
-  );
+  const script = await readFile(join(packageDirectory, "dist/index.global.js"), "utf-8");
   return new Response(script, {
     headers: { "Content-Type": "application/javascript; charset=utf-8" },
   });
