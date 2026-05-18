@@ -241,7 +241,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
     const isCopying = createMemo(() => current().state === "copying");
     const isSelectionInteractionLocked = createMemo(
-      () => isCopying() || store.selectionInteractionLockDepth > 0,
+      () => store.selectionInteractionLockDepth > 0,
     );
     const didJustCopy = createMemo(() => current().state === "justCopied");
     const isPromptMode = createMemo(() => {
@@ -2213,6 +2213,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const handleEnterKeyActivation = (event: KeyboardEvent): boolean => {
       if (!isEnterCode(event.code)) return false;
       if (isKeyboardEventTriggeredByInput(event)) return false;
+      if (isCopying()) return false;
       if (isSelectionInteractionLocked()) return false;
 
       const copiedElement = store.lastCopiedElement;
@@ -2758,11 +2759,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
 
-        if (isRendererActive() || isCopying() || didJustDrag()) {
+        if (isRendererActive() || didJustDrag()) {
           event.preventDefault();
           event.stopImmediatePropagation();
 
-          if (store.wasActivatedByToggle && !isCopying() && !isPromptMode() && !event.shiftKey) {
+          if (store.wasActivatedByToggle && !isPromptMode() && !event.shiftKey) {
             if (!isHoldingKeys()) {
               deactivateRenderer();
             } else {
@@ -2941,7 +2942,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (isPromptMode() || isEventFromOverlay(event, "data-react-grab-ignore-events")) {
           return;
         }
-        if (isRendererActive() || isCopying()) {
+        if (isRendererActive()) {
           event.preventDefault();
         }
       },
