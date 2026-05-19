@@ -3039,22 +3039,30 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const labelInstanceCache = new Map<string, SelectionLabelInstance>();
 
     const recomputeLabelInstance = (instance: SelectionLabelInstance): SelectionLabelInstance => {
-      const liveElements = instance.elements?.filter(isElementConnected);
-      const hasMultipleLiveElements = (liveElements?.length ?? 0) > 1;
+      const liveElements = instance.elements?.filter(isElementConnected) ?? [];
       const instanceElement = instance.element;
+
+      let liveBoundsList: OverlayBounds[] | null = null;
+      if (liveElements.length > 0) {
+        liveBoundsList = liveElements.map(createElementBounds);
+      } else if (instanceElement && isElementConnected(instanceElement)) {
+        liveBoundsList = [createElementBounds(instanceElement)];
+      }
 
       let newBounds = instance.bounds;
       let newBoundsMultiple = instance.boundsMultiple;
-      if (hasMultipleLiveElements && liveElements) {
-        const liveBoundsList = liveElements.map(createElementBounds);
-        const combinedBounds = createFlatOverlayBounds(combineBounds(liveBoundsList));
+      if (liveBoundsList) {
+        const combinedBounds =
+          liveBoundsList.length > 1
+            ? createFlatOverlayBounds(combineBounds(liveBoundsList))
+            : liveBoundsList[0];
         newBounds = combinedBounds;
         if (instance.boundsMultiple !== undefined) {
-          newBoundsMultiple =
-            instance.boundsMultiple.length === 1 ? [combinedBounds] : liveBoundsList;
+          const wasPerElementShape =
+            instance.boundsMultiple.length > 1 &&
+            instance.boundsMultiple.length === (instance.elements?.length ?? 0);
+          newBoundsMultiple = wasPerElementShape ? liveBoundsList : [combinedBounds];
         }
-      } else if (instanceElement && isElementConnected(instanceElement)) {
-        newBounds = createElementBounds(instanceElement);
       }
 
       const previousInstance = labelInstanceCache.get(instance.id);
