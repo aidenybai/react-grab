@@ -445,6 +445,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
     let selectionSourceRequestVersion = 0;
     let componentNameRequestVersion = 0;
+    let contextMenuComponentNameRequestVersion = 0;
     let componentNameDebounceTimerId: number | null = null;
     let keyboardSelectedElement: Element | null = null;
     let pendingDefaultActionId: string | null = null;
@@ -3153,17 +3154,38 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return getTagName(element) || undefined;
     });
 
-    const [contextMenuComponentName] = createResource(
-      () => ({
-        element: store.contextMenuElement,
-        frozenCount: store.frozenElements.length,
-      }),
-      async ({ element, frozenCount }) => {
-        if (!element) return undefined;
-        if (frozenCount > 1) return undefined;
-        const name = await getNearestComponentName(element);
-        return name ?? undefined;
-      },
+    const [contextMenuComponentName, setContextMenuComponentName] = createSignal<
+      string | undefined
+    >(undefined);
+
+    createEffect(
+      on(
+        () => ({
+          element: store.contextMenuElement,
+          frozenCount: store.frozenElements.length,
+        }),
+        ({ element, frozenCount }) => {
+          const currentVersion = ++contextMenuComponentNameRequestVersion;
+
+          if (!element || frozenCount > 1) {
+            setContextMenuComponentName(undefined);
+            return;
+          }
+
+          const fallbackComponentName = getComponentDisplayName(element) ?? undefined;
+          setContextMenuComponentName(fallbackComponentName);
+
+          getNearestComponentName(element)
+            .then((name) => {
+              if (contextMenuComponentNameRequestVersion !== currentVersion) return;
+              setContextMenuComponentName(name ?? fallbackComponentName);
+            })
+            .catch(() => {
+              if (contextMenuComponentNameRequestVersion !== currentVersion) return;
+              setContextMenuComponentName(fallbackComponentName);
+            });
+        },
+      ),
     );
 
     const [contextMenuFilePath] = createResource(
