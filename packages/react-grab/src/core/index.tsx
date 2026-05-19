@@ -3046,8 +3046,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       let newBounds = instance.bounds;
       let newBoundsMultiple = instance.boundsMultiple;
       if (hasMultipleLiveElements && liveElements) {
-        newBoundsMultiple = liveElements.map(createElementBounds);
-        newBounds = createFlatOverlayBounds(combineBounds(newBoundsMultiple));
+        const liveBoundsList = liveElements.map(createElementBounds);
+        const combinedBounds = createFlatOverlayBounds(combineBounds(liveBoundsList));
+        newBounds = combinedBounds;
+        if (instance.boundsMultiple !== undefined) {
+          newBoundsMultiple =
+            instance.boundsMultiple.length === 1 ? [combinedBounds] : liveBoundsList;
+        }
       } else if (instanceElement && isElementConnected(instanceElement)) {
         newBounds = createElementBounds(instanceElement);
       }
