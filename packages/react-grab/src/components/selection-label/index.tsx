@@ -337,10 +337,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const isArrowNavigationVisible = () => Boolean(props.arrowNavigationState?.isVisible);
 
   const isSinglePanelLine = createMemo(() => {
-    if (props.error) return false;
-    if (props.isPendingDismiss) return false;
-    if (canInteract() && props.isPromptMode) return false;
-    if (canInteract() && !props.isPromptMode && isArrowNavigationVisible()) return false;
+    if (props.error || props.isPendingDismiss) return false;
+    if (canInteract() && (props.isPromptMode || isArrowNavigationVisible())) return false;
     return true;
   });
 

@@ -17,14 +17,13 @@ export const Arrow: Component<ArrowProps> = (props) => {
   const tipPath = () => {
     const totalWidth = arrowWidth();
     const totalHeight = arrowHeight();
-    const tipRadius = ARROW_TIP_RADIUS_PX;
-    const tangentOffset = tipRadius * Math.SQRT1_2;
+    const tangentOffset = ARROW_TIP_RADIUS_PX * Math.SQRT1_2;
     const halfWidth = totalWidth / 2;
+    const baseY = isBottom() ? totalHeight : 0;
+    const tipY = isBottom() ? tangentOffset : totalHeight - tangentOffset;
+    const sweepFlag = isBottom() ? 1 : 0;
 
-    if (isBottom()) {
-      return `M0 ${totalHeight} L${halfWidth - tangentOffset} ${tangentOffset} A${tipRadius} ${tipRadius} 0 0 1 ${halfWidth + tangentOffset} ${tangentOffset} L${totalWidth} ${totalHeight} Z`;
-    }
-    return `M0 0 L${halfWidth - tangentOffset} ${totalHeight - tangentOffset} A${tipRadius} ${tipRadius} 0 0 0 ${halfWidth + tangentOffset} ${totalHeight - tangentOffset} L${totalWidth} 0 Z`;
+    return `M0 ${baseY} L${halfWidth - tangentOffset} ${tipY} A${ARROW_TIP_RADIUS_PX} ${ARROW_TIP_RADIUS_PX} 0 0 ${sweepFlag} ${halfWidth + tangentOffset} ${tipY} L${totalWidth} ${baseY} Z`;
   };
 
   return (

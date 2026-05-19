@@ -18,6 +18,7 @@ import {
   hasTextSelectionOnPage,
 } from "../utils/is-keyboard-event-triggered-by-input.js";
 import { mountRoot } from "../utils/mount-root.js";
+import { createComponentNameForElement } from "../utils/create-component-name-for-element.js";
 import { watchAppTheme } from "../utils/detect-app-theme.js";
 import {
   nativeCancelAnimationFrame,
@@ -444,16 +445,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       isCopyFeedbackCooldownActive = false;
     };
     let selectionSourceRequestVersion = 0;
-    let componentNameRequestVersion = 0;
-    let contextMenuComponentNameRequestVersion = 0;
     let componentNameDebounceTimerId: number | null = null;
     let keyboardSelectedElement: Element | null = null;
     let pendingDefaultActionId: string | null = null;
     const [isPendingContextMenuSelect, setIsPendingContextMenuSelect] = createSignal(false);
     const [debouncedElementForComponentName, setDebouncedElementForComponentName] =
       createSignal<Element | null>(null);
-    const [resolvedComponentName, setResolvedComponentName] = createSignal<string | undefined>(
-      undefined,
+    const [resolvedComponentName, setResolvedComponentName] = createComponentNameForElement(
+      debouncedElementForComponentName,
     );
     const [arrowNavigationElements, setArrowNavigationElements] = createSignal<Element[]>([]);
     const [arrowNavigationActiveIndex, setArrowNavigationActiveIndex] = createSignal(0);
@@ -3000,33 +2999,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return getTagName(element) || undefined;
     });
 
-    createEffect(
-      on(
-        () => debouncedElementForComponentName(),
-        (element) => {
-          const currentVersion = ++componentNameRequestVersion;
-
-          if (!element) {
-            setResolvedComponentName(undefined);
-            return;
-          }
-
-          const fallbackComponentName = getComponentDisplayName(element) ?? undefined;
-          setResolvedComponentName(fallbackComponentName);
-
-          getNearestComponentName(element)
-            .then((name) => {
-              if (componentNameRequestVersion !== currentVersion) return;
-              setResolvedComponentName(name ?? fallbackComponentName);
-            })
-            .catch(() => {
-              if (componentNameRequestVersion !== currentVersion) return;
-              setResolvedComponentName(fallbackComponentName);
-            });
-        },
-      ),
-    );
-
     const selectionLabelVisible = createMemo(() => {
       if (store.contextMenuPosition !== null) return false;
       if (!isElementLabelThemeEnabled()) return false;
@@ -3154,38 +3126,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return getTagName(element) || undefined;
     });
 
-    const [contextMenuComponentName, setContextMenuComponentName] = createSignal<
-      string | undefined
-    >(undefined);
-
-    createEffect(
-      on(
-        () => ({
-          element: store.contextMenuElement,
-          frozenCount: store.frozenElements.length,
-        }),
-        ({ element, frozenCount }) => {
-          const currentVersion = ++contextMenuComponentNameRequestVersion;
-
-          if (!element || frozenCount > 1) {
-            setContextMenuComponentName(undefined);
-            return;
-          }
-
-          const fallbackComponentName = getComponentDisplayName(element) ?? undefined;
-          setContextMenuComponentName(fallbackComponentName);
-
-          getNearestComponentName(element)
-            .then((name) => {
-              if (contextMenuComponentNameRequestVersion !== currentVersion) return;
-              setContextMenuComponentName(name ?? fallbackComponentName);
-            })
-            .catch(() => {
-              if (contextMenuComponentNameRequestVersion !== currentVersion) return;
-              setContextMenuComponentName(fallbackComponentName);
-            });
-        },
-      ),
+    const [contextMenuComponentName] = createComponentNameForElement(() =>
+      store.frozenElements.length > 1 ? null : store.contextMenuElement,
     );
 
     const [contextMenuFilePath] = createResource(
