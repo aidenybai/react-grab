@@ -415,7 +415,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             "contain-layout flex items-center gap-[5px] antialiased w-fit h-fit p-0 [font-synthesis:none]",
             isSinglePanelLine()
               ? "rounded-full"
-              : "rounded-[10px] [corner-shape:superellipse(1.25)]",
+              : "rounded-[14px] [corner-shape:superellipse(1.25)]",
             "bg-[var(--rg-panel-bg)]",
             isShaking() && "animate-shake",
           )}
