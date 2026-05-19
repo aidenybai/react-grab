@@ -88,6 +88,8 @@ import { parseActivationKey } from "../utils/parse-activation-key.js";
 import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
 import { openFile } from "../utils/open-file.js";
 import { combineBounds } from "../utils/combine-bounds.js";
+import { areBoundsEqual } from "../utils/are-bounds-equal.js";
+import { areBoundsListsEqual } from "../utils/are-bounds-lists-equal.js";
 import type {
   Position,
   Options,
@@ -3037,21 +3039,24 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const labelInstanceCache = new Map<string, SelectionLabelInstance>();
 
     const recomputeLabelInstance = (instance: SelectionLabelInstance): SelectionLabelInstance => {
-      const hasMultipleElements = instance.elements && instance.elements.length > 1;
+      const liveElements = instance.elements?.filter(isElementConnected);
+      const hasMultipleLiveElements = (liveElements?.length ?? 0) > 1;
       const instanceElement = instance.element;
-      const canRecalculateBounds =
-        !hasMultipleElements && instanceElement && document.body.contains(instanceElement);
-      const newBounds = canRecalculateBounds
-        ? createElementBounds(instanceElement)
-        : instance.bounds;
+
+      let newBounds = instance.bounds;
+      let newBoundsMultiple = instance.boundsMultiple;
+      if (hasMultipleLiveElements && liveElements) {
+        newBoundsMultiple = liveElements.map(createElementBounds);
+        newBounds = createFlatOverlayBounds(combineBounds(newBoundsMultiple));
+      } else if (instanceElement && isElementConnected(instanceElement)) {
+        newBounds = createElementBounds(instanceElement);
+      }
 
       const previousInstance = labelInstanceCache.get(instance.id);
       const boundsUnchanged =
         previousInstance &&
-        previousInstance.bounds.x === newBounds.x &&
-        previousInstance.bounds.y === newBounds.y &&
-        previousInstance.bounds.width === newBounds.width &&
-        previousInstance.bounds.height === newBounds.height;
+        areBoundsEqual(previousInstance.bounds, newBounds) &&
+        areBoundsListsEqual(previousInstance.boundsMultiple, newBoundsMultiple);
       if (
         previousInstance &&
         previousInstance.status === instance.status &&
@@ -3070,7 +3075,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       } else {
         newMouseX = instance.mouseX ?? newBoundsCenterX;
       }
-      const newCached = { ...instance, bounds: newBounds, mouseX: newMouseX };
+      const newCached = {
+        ...instance,
+        bounds: newBounds,
+        boundsMultiple: newBoundsMultiple,
+        mouseX: newMouseX,
+      };
       labelInstanceCache.set(instance.id, newCached);
       return newCached;
     };
