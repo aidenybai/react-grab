@@ -402,4 +402,70 @@ test.describe("Copy Feedback Behavior", () => {
       expect(state.isCopying).toBe(false);
     });
   });
+
+  test.describe("Copied Drag Region Viewport Tracking", () => {
+    test("drag region label follows page scroll while in copied state", async ({ reactGrab }) => {
+      await reactGrab.activate();
+      await reactGrab.dragSelect("li:first-child", "li:nth-child(3)");
+      await reactGrab.waitForSelectionLabel();
+
+      const labelBeforeScroll = await reactGrab.getSelectionLabelBounds();
+      expect(labelBeforeScroll).not.toBeNull();
+      if (!labelBeforeScroll) throw new Error("Expected label bounds before scroll");
+
+      const firstItem = reactGrab.page.locator("li").first();
+      const elementBeforeScroll = await firstItem.boundingBox();
+      expect(elementBeforeScroll).not.toBeNull();
+
+      await reactGrab.scrollPage(80);
+      await reactGrab.page.waitForTimeout(200);
+
+      const elementAfterScroll = await firstItem.boundingBox();
+      const labelAfterScroll = await reactGrab.getSelectionLabelBounds();
+      expect(elementAfterScroll).not.toBeNull();
+      expect(labelAfterScroll).not.toBeNull();
+      if (!elementBeforeScroll || !elementAfterScroll || !labelAfterScroll) {
+        throw new Error("Expected post-scroll bounds");
+      }
+
+      expect(elementBeforeScroll.y - elementAfterScroll.y).toBeGreaterThan(0);
+      expect(labelBeforeScroll.label.y - labelAfterScroll.label.y).toBeGreaterThan(0);
+    });
+
+    test("drag region label follows viewport resize while in copied state", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+      await reactGrab.dragSelect("li:first-child", "li:nth-child(3)");
+      await reactGrab.waitForSelectionLabel();
+
+      const firstItem = reactGrab.page.locator("li").first();
+      const elementBefore = await firstItem.boundingBox();
+      const labelBefore = await reactGrab.getSelectionLabelBounds();
+      expect(elementBefore).not.toBeNull();
+      expect(labelBefore).not.toBeNull();
+      if (!elementBefore || !labelBefore) throw new Error("Expected pre-resize bounds");
+
+      await reactGrab.page.setViewportSize({ width: 600, height: 600 });
+      await reactGrab.page.waitForTimeout(300);
+
+      const elementAfter = await firstItem.boundingBox();
+      const labelAfter = await reactGrab.getSelectionLabelBounds();
+      expect(elementAfter).not.toBeNull();
+      expect(labelAfter).not.toBeNull();
+      if (!elementAfter || !labelAfter) throw new Error("Expected post-resize bounds");
+
+      const elementCenterDelta =
+        elementAfter.x + elementAfter.width / 2 - (elementBefore.x + elementBefore.width / 2);
+      expect(Math.abs(elementCenterDelta)).toBeGreaterThan(20);
+
+      const labelCenterDelta =
+        labelAfter.label.x +
+        labelAfter.label.width / 2 -
+        (labelBefore.label.x + labelBefore.label.width / 2);
+      expect(Math.abs(labelCenterDelta - elementCenterDelta)).toBeLessThan(8);
+
+      await reactGrab.page.setViewportSize({ width: 1280, height: 720 });
+    });
+  });
 });

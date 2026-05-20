@@ -3010,26 +3010,55 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const labelInstanceCache = new Map<string, SelectionLabelInstance>();
 
     const recomputeLabelInstance = (instance: SelectionLabelInstance): SelectionLabelInstance => {
-      const hasMultipleElements = instance.elements && instance.elements.length > 1;
+      const liveElements = instance.elements?.filter(isElementConnected) ?? [];
       const instanceElement = instance.element;
-      const canRecalculateBounds =
-        !hasMultipleElements && instanceElement && document.body.contains(instanceElement);
-      const newBounds = canRecalculateBounds
-        ? createElementBounds(instanceElement)
-        : instance.bounds;
+
+      let liveBoundsList: OverlayBounds[] | null = null;
+      if (liveElements.length > 0) {
+        liveBoundsList = liveElements.map(createElementBounds);
+      } else if (instanceElement && isElementConnected(instanceElement)) {
+        liveBoundsList = [createElementBounds(instanceElement)];
+      }
+
+      let newBounds = instance.bounds;
+      let newBoundsMultiple = instance.boundsMultiple;
+      if (liveBoundsList) {
+        newBounds =
+          liveBoundsList.length > 1
+            ? createFlatOverlayBounds(combineBounds(liveBoundsList))
+            : liveBoundsList[0];
+        if (instance.boundsMultiple !== undefined) {
+          newBoundsMultiple =
+            instance.boundsMultiple.length > 1 &&
+            instance.boundsMultiple.length === instance.elements?.length
+              ? liveBoundsList
+              : [newBounds];
+        }
+      }
 
       const previousInstance = labelInstanceCache.get(instance.id);
-      const boundsUnchanged =
-        previousInstance &&
-        previousInstance.bounds.x === newBounds.x &&
-        previousInstance.bounds.y === newBounds.y &&
-        previousInstance.bounds.width === newBounds.width &&
-        previousInstance.bounds.height === newBounds.height;
+      const previousBoundsMultiple = previousInstance?.boundsMultiple;
+      const boundsMultipleUnchanged =
+        previousBoundsMultiple === newBoundsMultiple ||
+        (previousBoundsMultiple !== undefined &&
+          newBoundsMultiple !== undefined &&
+          previousBoundsMultiple.length === newBoundsMultiple.length &&
+          previousBoundsMultiple.every(
+            (bounds, index) =>
+              bounds.x === newBoundsMultiple![index].x &&
+              bounds.y === newBoundsMultiple![index].y &&
+              bounds.width === newBoundsMultiple![index].width &&
+              bounds.height === newBoundsMultiple![index].height,
+          ));
       if (
         previousInstance &&
         previousInstance.status === instance.status &&
         previousInstance.errorMessage === instance.errorMessage &&
-        boundsUnchanged
+        previousInstance.bounds.x === newBounds.x &&
+        previousInstance.bounds.y === newBounds.y &&
+        previousInstance.bounds.width === newBounds.width &&
+        previousInstance.bounds.height === newBounds.height &&
+        boundsMultipleUnchanged
       ) {
         return previousInstance;
       }
@@ -3043,7 +3072,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       } else {
         newMouseX = instance.mouseX ?? newBoundsCenterX;
       }
-      const newCached = { ...instance, bounds: newBounds, mouseX: newMouseX };
+      const newCached = {
+        ...instance,
+        bounds: newBounds,
+        boundsMultiple: newBoundsMultiple,
+        mouseX: newMouseX,
+      };
       labelInstanceCache.set(instance.id, newCached);
       return newCached;
     };
