@@ -44,24 +44,18 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
+// Idle — what the user sees on hover before any action.
+
 export const Idle: Story = {
   args: { tagName: "button", componentName: "Button" },
 };
 
-export const IdleWithFilePath: Story = {
-  args: {
-    tagName: "div",
-    componentName: "Header",
-    filePath: "src/components/Header.tsx",
-  },
+export const IdleTagOnly: Story = {
+  args: { tagName: "section", componentName: undefined },
 };
 
 export const IdleMultiElement: Story = {
   args: { tagName: "div", componentName: undefined, elementsCount: 3 },
-};
-
-export const IdleTagOnly: Story = {
-  args: { tagName: "section", componentName: undefined },
 };
 
 export const IdleLongComponentName: Story = {
@@ -70,6 +64,38 @@ export const IdleLongComponentName: Story = {
     componentName: "SuperLongComponentNameThatShouldDefinitelyTruncate",
   },
 };
+
+export const IdleWithFilePath: Story = {
+  args: {
+    tagName: "div",
+    componentName: "Header",
+    filePath: "src/components/Header.tsx",
+    onOpen: noop,
+  },
+};
+
+export const IdleArrowNavigation: Story = {
+  args: {
+    tagName: "button",
+    componentName: "Button",
+    arrowNavigationState: {
+      isVisible: true,
+      activeIndex: 1,
+      items: [
+        { tagName: "div", componentName: "Card" },
+        { tagName: "button", componentName: "Button" },
+        { tagName: "span" },
+      ],
+    },
+    onArrowNavigationSelect: noop,
+  },
+};
+
+export const IdleHiddenArrow: Story = {
+  args: { tagName: "div", componentName: "Card", hideArrow: true },
+};
+
+// Comment / prompt mode — what shows after pressing the comment shortcut.
 
 export const PromptEmpty: Story = {
   args: {
@@ -105,15 +131,17 @@ export const PendingDismiss: Story = {
     componentName: "Header",
     isPromptMode: true,
     isPendingDismiss: true,
+    inputValue: "tweak the spacing",
   },
 };
+
+// Status — copy lifecycle (defaults to "Grabbing…" and "Copied" status text).
 
 export const Copying: Story = {
   args: {
     tagName: "input",
     componentName: "TextField",
     status: "copying",
-    statusText: "Grabbing…",
   },
 };
 
@@ -125,7 +153,7 @@ export const Copied: Story = {
   },
 };
 
-export const ErrorState: Story = {
+export const Error: Story = {
   args: {
     tagName: "dialog",
     componentName: "Modal",
