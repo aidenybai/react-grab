@@ -643,7 +643,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             aria-label={props.isActive ? "Stop selecting element" : "Select element"}
             aria-pressed={Boolean(props.isActive)}
             class={cn(
-              "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
+              "group contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
               buttonSpacingClass(),
             )}
             onClick={handleToggle}
@@ -658,7 +658,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               size={14}
               rotationDeg={selectIconRotationDeg()}
               class={
-                props.isActive ? "text-[var(--rg-text-primary)]" : "text-[var(--rg-text-secondary)]"
+                props.isActive
+                  ? "text-[var(--rg-text-primary)]"
+                  : "text-[var(--rg-text-secondary)] group-hover:text-[var(--rg-text-primary)]"
               }
             />
           </button>
