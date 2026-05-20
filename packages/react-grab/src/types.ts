@@ -311,13 +311,8 @@ export interface OverlayBounds {
 
 export type SelectionLabelStatus = "idle" | "copying" | "copied" | "fading" | "error";
 
-export type LabelBoundsSource =
-  | { kind: "combined"; elements: Element[] }
-  | { kind: "per-element"; elements: Element[] };
-
 export interface SelectionLabelInstance {
   id: string;
-  source: LabelBoundsSource;
   bounds: OverlayBounds;
   boundsMultiple?: OverlayBounds[];
   tagName: string;
@@ -328,6 +323,8 @@ export interface SelectionLabelInstance {
   isPromptMode?: boolean;
   inputValue?: string;
   createdAt: number;
+  element?: Element;
+  elements?: Element[];
   mouseX?: number;
   mouseXOffsetFromCenter?: number;
   mouseXOffsetRatio?: number;
