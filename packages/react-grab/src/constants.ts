@@ -62,6 +62,12 @@ export const ARROW_MAX_LABEL_WIDTH_RATIO = 0.2;
 export const ARROW_TIP_RADIUS_PX = 1;
 export const ARROW_CENTER_PERCENT = 50;
 export const ARROW_LABEL_MARGIN_PX = 16;
+// The arrow base and the panel edge touch at the same fractional CSS
+// coordinate. Without overlap, that shared edge anti-aliases as a hairline
+// seam at certain zoom levels and devicePixelRatios. Overlapping by 1px
+// hides the seam without shifting the visual tip noticeably (both fills
+// are var(--rg-panel-bg) so the overlap is invisible).
+export const ARROW_PANEL_OVERLAP_PX = 1;
 export const LABEL_GAP_PX = 4;
 export const PREVIEW_TEXT_MAX_LENGTH = 100;
 export const PREVIEW_ATTR_VALUE_MAX_LENGTH = 15;

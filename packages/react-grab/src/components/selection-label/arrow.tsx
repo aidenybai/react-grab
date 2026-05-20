@@ -1,6 +1,6 @@
 import type { Component } from "solid-js";
 import type { ArrowProps } from "../../types.js";
-import { PANEL_BACKGROUND, ARROW_TIP_RADIUS_PX } from "../../constants.js";
+import { PANEL_BACKGROUND, ARROW_TIP_RADIUS_PX, ARROW_PANEL_OVERLAP_PX } from "../../constants.js";
 import { getArrowSize } from "../../utils/get-arrow-size.js";
 
 export const Arrow: Component<ArrowProps> = (props) => {
@@ -34,8 +34,8 @@ export const Arrow: Component<ArrowProps> = (props) => {
         top: isBottom() ? "0" : undefined,
         bottom: isBottom() ? undefined : "0",
         transform: isBottom()
-          ? "translateX(-50%) translateY(-100%)"
-          : "translateX(-50%) translateY(100%)",
+          ? `translateX(-50%) translateY(calc(-100% + ${ARROW_PANEL_OVERLAP_PX}px))`
+          : `translateX(-50%) translateY(calc(100% - ${ARROW_PANEL_OVERLAP_PX}px))`,
       }}
     >
       <path d={tipPath()} fill={arrowColor()} />
