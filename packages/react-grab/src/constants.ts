@@ -132,9 +132,6 @@ export const TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS = 260;
 export const TOOLBAR_DEFAULT_WIDTH_PX = 78;
 export const TOOLBAR_DEFAULT_HEIGHT_PX = 28;
 export const TOOLBAR_DEFAULT_POSITION_RATIO = 0.5;
-export const TOOLBAR_IDLE_OPACITY = 0.85;
-export const TOOLBAR_ACTIVE_DIM_OPACITY = 0.55;
-export const TOOLBAR_IDLE_SCALE = 0.97;
 export const DEFAULT_ACTION_ID = "comment";
 
 // The select icon is a paper-airplane shape whose tip points toward the

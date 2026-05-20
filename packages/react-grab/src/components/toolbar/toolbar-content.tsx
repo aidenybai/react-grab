@@ -72,22 +72,20 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
       data-react-grab-ignore-events
       data-react-grab-toolbar-collapse
       aria-label={props.isCollapsed ? "Expand toolbar" : "Collapse toolbar"}
-      class="contain-layout shrink-0 flex items-center justify-center cursor-pointer"
+      class="group contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale"
       onClick={props.onCollapseClick}
       on:pointerdown={props.onCollapsePointerDown}
       onPointerUp={props.onCollapsePointerUp}
       onPointerLeave={props.onCollapsePointerLeave}
       onPointerCancel={props.onCollapsePointerLeave}
     >
-      <span class="inline-flex transition-[transform,opacity] duration-300 ease-spring opacity-60 scale-90 group-hover/toolbar:opacity-100 group-hover/toolbar:scale-100">
-        <IconChevron
-          size={18}
-          class={cn(
-            "text-[var(--rg-text-secondary)] group-hover/toolbar:text-[var(--rg-text-primary)] transition-[transform,color] duration-150 ease-drawer -m-0.5",
-            chevronRotation(),
-          )}
-        />
-      </span>
+      <IconChevron
+        size={18}
+        class={cn(
+          "text-[var(--rg-text-secondary)] group-hover:text-[var(--rg-text-primary)] transition-[transform,color] duration-150 ease-drawer -m-0.5",
+          chevronRotation(),
+        )}
+      />
     </button>
   );
 
@@ -100,7 +98,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
     <div
       data-react-grab-toolbar-panel
       class={cn(
-        "group/toolbar flex items-center justify-center rounded-full antialiased relative overflow-visible [font-synthesis:none]",
+        "flex items-center justify-center rounded-full antialiased relative overflow-visible [font-synthesis:none]",
         outerTransitionClass(),
         isVertical() && "flex-col",
         "bg-[var(--rg-panel-bg)] [box-shadow:var(--rg-shadow)]",
