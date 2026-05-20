@@ -9,7 +9,7 @@ import {
   Z_INDEX_OVERLAY_CANVAS,
 } from "../constants.js";
 import { openFile } from "../utils/open-file.js";
-import { isElementConnected } from "../utils/is-element-connected.js";
+import { hasLiveSource } from "../utils/has-live-source.js";
 import { OverlayCanvas } from "./overlay-canvas.js";
 import { SelectionLabel } from "./selection-label/index.js";
 import { Toolbar } from "./toolbar/index.js";
@@ -129,7 +129,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
               const currentInstance = instance();
               const hasCompletedStatus =
                 currentInstance.status === "copied" || currentInstance.status === "fading";
-              if (!hasCompletedStatus || !isElementConnected(currentInstance.element)) {
+              if (!hasCompletedStatus || !hasLiveSource(currentInstance.source)) {
                 return undefined;
               }
               return () => props.onShowContextMenuInstance?.(currentInstance.id);

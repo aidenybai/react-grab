@@ -91,6 +91,8 @@ import { combineBounds } from "../utils/combine-bounds.js";
 import { areBoundsEqual } from "../utils/are-bounds-equal.js";
 import { areBoundsListsEqual } from "../utils/are-bounds-lists-equal.js";
 import { computeMouseXAnchor, resolveMouseX } from "../utils/mouse-x-anchor.js";
+import { resolveBoundsFromSource } from "../utils/resolve-bounds-from-source.js";
+import { getSourcePrimaryElement } from "../utils/get-source-primary-element.js";
 import type {
   Position,
   Options,
@@ -99,6 +101,7 @@ import type {
   ReactGrabAPI,
   ReactGrabState,
   SelectionLabelInstance,
+  LabelBoundsSource,
   ContextMenuActionContext,
   ContextMenuAction,
   ArrowNavigationState,
@@ -586,14 +589,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const createLabelInstance = (
+      source: LabelBoundsSource,
       bounds: OverlayBounds,
       tagName: string,
       componentName: string | undefined,
       status: SelectionLabelInstance["status"],
       options?: {
-        element?: Element;
         mouseX?: number;
-        elements?: Element[];
         boundsMultiple?: OverlayBounds[];
         hideArrow?: boolean;
       },
@@ -605,14 +607,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const instance: SelectionLabelInstance = {
         id: instanceId,
+        source,
         bounds,
         boundsMultiple: options?.boundsMultiple,
         tagName,
         componentName,
         status,
         createdAt: Date.now(),
-        element: options?.element,
-        elements: options?.elements,
         mouseX,
         ...computeMouseXAnchor(bounds, mouseX),
         hideArrow: options?.hideArrow,
@@ -638,12 +639,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const instanceId = generateId("label");
         const instance: SelectionLabelInstance = {
           id: instanceId,
+          source: { kind: "combined", elements: [entry.element] },
           bounds,
           tagName: entry.tagName,
           componentName: entry.componentName,
           status,
           createdAt: Date.now(),
-          element: entry.element,
           mouseX: entry.mouseX,
           ...computeMouseXAnchor(bounds, entry.mouseX),
         };
@@ -874,11 +875,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.startCopy();
 
       const labelInstanceId = tagName
-        ? createLabelInstance(selectionBounds, tagName, undefined, "copying", {
-            element,
-            mouseX: labelCursorX,
-            elements: selectedElements,
-          })
+        ? createLabelInstance(
+            { kind: "combined", elements: allTargetElements },
+            selectionBounds,
+            tagName,
+            undefined,
+            "copying",
+            { mouseX: labelCursorX },
+          )
         : null;
 
       void getNearestComponentName(element)
@@ -3029,46 +3033,21 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const labelInstanceCache = new Map<string, SelectionLabelInstance>();
 
     const recomputeLabelInstance = (instance: SelectionLabelInstance): SelectionLabelInstance => {
-      const liveElements = instance.elements?.filter(isElementConnected) ?? [];
-      const instanceElement = instance.element;
-
-      let liveBoundsList: OverlayBounds[] | null = null;
-      if (liveElements.length > 0) {
-        liveBoundsList = liveElements.map(createElementBounds);
-      } else if (instanceElement && isElementConnected(instanceElement)) {
-        liveBoundsList = [createElementBounds(instanceElement)];
-      }
-
-      let newBounds = instance.bounds;
-      let newBoundsMultiple = instance.boundsMultiple;
-      if (liveBoundsList) {
-        const combinedBounds =
-          liveBoundsList.length > 1
-            ? createFlatOverlayBounds(combineBounds(liveBoundsList))
-            : liveBoundsList[0];
-        newBounds = combinedBounds;
-        if (instance.boundsMultiple !== undefined) {
-          const wasPerElementShape =
-            instance.boundsMultiple.length > 1 &&
-            instance.boundsMultiple.length === (instance.elements?.length ?? 0);
-          newBoundsMultiple = wasPerElementShape ? liveBoundsList : [combinedBounds];
-        }
-      }
+      const resolved = resolveBoundsFromSource(instance.source);
+      const newBounds = resolved?.bounds ?? instance.bounds;
+      const newBoundsMultiple = resolved?.boundsMultiple ?? instance.boundsMultiple;
 
       const previousInstance = labelInstanceCache.get(instance.id);
-      const boundsUnchanged =
-        previousInstance &&
-        areBoundsEqual(previousInstance.bounds, newBounds) &&
-        areBoundsListsEqual(previousInstance.boundsMultiple, newBoundsMultiple);
       if (
         previousInstance &&
         previousInstance.status === instance.status &&
         previousInstance.errorMessage === instance.errorMessage &&
-        boundsUnchanged
+        areBoundsEqual(previousInstance.bounds, newBounds) &&
+        areBoundsListsEqual(previousInstance.boundsMultiple, newBoundsMultiple)
       ) {
         return previousInstance;
       }
-      const newCached = {
+      const newCached: SelectionLabelInstance = {
         ...instance,
         bounds: newBounds,
         boundsMultiple: newBoundsMultiple,
@@ -3219,16 +3198,22 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               ? labelBounds.x + labelBounds.width / 2
               : position.x;
 
+            const sourceElements = hasMultipleElements ? elements : [element];
+            const source: LabelBoundsSource =
+              hasMultipleElements && selectionBoundsForLabel.length === sourceElements.length
+                ? { kind: "per-element", elements: sourceElements }
+                : { kind: "combined", elements: sourceElements };
+
             const labelInstanceId = createLabelInstance(
+              source,
               labelBounds,
               tagName || "element",
               componentName,
               "copying",
               {
-                element,
                 mouseX: labelCursorX,
-                elements: hasMultipleElements ? elements : undefined,
-                boundsMultiple: selectionBoundsForLabel,
+                boundsMultiple:
+                  source.kind === "per-element" ? selectionBoundsForLabel : undefined,
               },
             );
 
@@ -3448,20 +3433,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const instance = store.labelInstances.find(
         (labelInstance) => labelInstance.id === instanceId,
       );
-      if (!instance?.element) return;
-      if (!isElementConnected(instance.element)) return;
+      if (!instance) return;
+      const contextMenuElement = getSourcePrimaryElement(instance.source);
+      if (!contextMenuElement || !isElementConnected(contextMenuElement)) return;
 
-      const contextMenuElement = instance.element;
       const center = getBoundsCenter(createElementBounds(contextMenuElement));
       const position = {
         x: instance.mouseX ?? center.x,
         y: center.y,
       };
 
-      const elementsToFreeze =
-        instance.elements && instance.elements.length > 0
-          ? instance.elements.filter((element) => isElementConnected(element))
-          : [contextMenuElement];
+      const elementsToFreeze = instance.source.elements.filter(isElementConnected);
+      if (elementsToFreeze.length === 0) elementsToFreeze.push(contextMenuElement);
 
       setTimeout(() => {
         if (!isActivated()) {
