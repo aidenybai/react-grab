@@ -43,6 +43,7 @@ declare global {
   interface Window {
     __REACT_GRAB__?: ReactGrabAPI;
     __REACT_GRAB_DISABLED__?: boolean;
+    __REACT_GRAB_DEVTOOLS__?: boolean;
   }
 }
 

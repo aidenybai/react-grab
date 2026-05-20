@@ -190,6 +190,9 @@ export const SHIFT_SELECTION_LABEL_MIN_ANCHOR_RATIO = 0;
 export const SHIFT_SELECTION_LABEL_MAX_ANCHOR_RATIO = 1;
 export const SHIFT_SELECTION_LABEL_FALLBACK_ANCHOR_RATIO = 0;
 
+export const EVENT_LOG_RING_BUFFER_SIZE = 5000;
+export const EVENT_LOG_SCHEMA_VERSION = 1;
+
 export const RELEVANT_CSS_PROPERTIES = new Set([
   "display",
   "position",
