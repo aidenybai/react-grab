@@ -11,6 +11,9 @@ import {
   TOOLBAR_DEFAULT_WIDTH_PX,
   TOOLBAR_DEFAULT_HEIGHT_PX,
   TOOLBAR_DEFAULT_POSITION_RATIO,
+  TOOLBAR_IDLE_OPACITY,
+  TOOLBAR_ACTIVE_DIM_OPACITY,
+  TOOLBAR_IDLE_SCALE,
   Z_INDEX_OVERLAY,
   SELECT_ICON_NATURAL_POINT_ANGLE_DEG,
   SELECT_ICON_POINT_MIN_DISTANCE_PX,
@@ -533,6 +536,14 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const shouldDim = (): boolean => Boolean(props.isActive) && !isInteracting();
 
+  const toolbarOpacity = (): number => {
+    if (!isVisible()) return 0;
+    if (isInteracting()) return 1;
+    return shouldDim() ? TOOLBAR_ACTIVE_DIM_OPACITY : TOOLBAR_IDLE_OPACITY;
+  };
+
+  const toolbarScale = (): number => (isInteracting() ? 1 : TOOLBAR_IDLE_SCALE);
+
   const getTransitionClass = (): string => {
     // Drag must follow the pointer frame-to-frame; any transform transition
     // here would lag the toolbar behind the cursor.
@@ -580,9 +591,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       )}
       style={{
         "z-index": String(Z_INDEX_OVERLAY),
-        transform: `translate(${currentPosition().x}px, ${currentPosition().y}px) scale(${shouldDim() ? 0.97 : 1})`,
+        transform: `translate(${currentPosition().x}px, ${currentPosition().y}px) scale(${toolbarScale()})`,
         "transform-origin": getTransformOrigin(),
-        opacity: !isVisible() ? 0 : shouldDim() ? 0.55 : 1,
+        opacity: toolbarOpacity(),
       }}
       on:pointerdown={(event) => {
         stopEventPropagation(event);
@@ -643,7 +654,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             aria-label={props.isActive ? "Stop selecting element" : "Select element"}
             aria-pressed={Boolean(props.isActive)}
             class={cn(
-              "group contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
+              "contain-layout flex items-center justify-center cursor-pointer touch-hitbox",
               buttonSpacingClass(),
             )}
             onClick={handleToggle}
@@ -654,15 +665,17 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             }}
             {...createFreezeHandlers()}
           >
-            <IconSelect
-              size={14}
-              rotationDeg={selectIconRotationDeg()}
-              class={
-                props.isActive
-                  ? "text-[var(--rg-text-primary)]"
-                  : "text-[var(--rg-text-secondary)] group-hover:text-[var(--rg-text-primary)]"
-              }
-            />
+            <span class="inline-flex transition-[transform,opacity] duration-300 ease-spring opacity-60 scale-90 group-hover/toolbar:opacity-100 group-hover/toolbar:scale-100">
+              <IconSelect
+                size={14}
+                rotationDeg={selectIconRotationDeg()}
+                class={
+                  props.isActive
+                    ? "text-[var(--rg-text-primary)]"
+                    : "text-[var(--rg-text-secondary)] group-hover/toolbar:text-[var(--rg-text-primary)]"
+                }
+              />
+            </span>
           </button>
         }
       />
