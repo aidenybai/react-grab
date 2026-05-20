@@ -91,10 +91,6 @@ export const IdleArrowNavigation: Story = {
   },
 };
 
-export const IdleHiddenArrow: Story = {
-  args: { tagName: "div", componentName: "Card", hideArrow: true },
-};
-
 // Comment / prompt mode — what shows after pressing the comment shortcut.
 
 export const PromptEmpty: Story = {
