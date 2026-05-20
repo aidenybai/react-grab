@@ -1,4 +1,5 @@
 import { MAX_SELECTOR_COMBINATIONS } from "../constants.js";
+import { NonElementNodeError, SelectorNotFoundError, SelectorTimeoutError } from "../errors.js";
 
 interface SelectorNode {
   name: string;
@@ -202,7 +203,7 @@ export const findUniqueSelector = (
   attrFilter: (name: string, value: string) => boolean,
 ): string => {
   if (targetElement.nodeType !== Node.ELEMENT_NODE) {
-    throw new Error("Can't generate CSS selector for non-element node type.");
+    throw new NonElementNodeError();
   }
   if (targetElement.tagName.toLowerCase() === "html") {
     return "html";
@@ -229,7 +230,7 @@ export const findUniqueSelector = (
         if (Date.now() - startTime > timeoutMs) {
           const fallbackPath = buildFallbackPath(targetElement, rootDocument);
           if (!fallbackPath) {
-            throw new Error(`Timeout: Can't find a unique selector after ${timeoutMs}ms`);
+            throw new SelectorTimeoutError(timeoutMs);
           }
           return buildSelectorString(fallbackPath);
         }
@@ -254,7 +255,7 @@ export const findUniqueSelector = (
   }
 
   if (!foundPath) {
-    throw new Error("Selector was not found.");
+    throw new SelectorNotFoundError();
   }
 
   return buildSelectorString(foundPath);

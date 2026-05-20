@@ -13,6 +13,7 @@ import {
 } from "solid-js";
 import { render } from "solid-js/web";
 import { createGrabStore } from "./store.js";
+import { CopyFailedError } from "../errors.js";
 import {
   isKeyboardEventTriggeredByInput,
   hasTextSelectionInInput,
@@ -854,7 +855,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       } else if (pendingResults.length > 0) {
         const results = await Promise.all(pendingResults);
         if (!results.every(Boolean)) {
-          throw new Error("Failed to copy");
+          throw new CopyFailedError();
         }
       }
       void notifyElementsSelected(targetElements);
