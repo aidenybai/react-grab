@@ -13,7 +13,6 @@ import {
 import { render } from "solid-js/web";
 import { createGrabStore } from "./store.js";
 import { createEventLog, replaySessionInto } from "./event-log.js";
-import { mountDevtoolsPanel } from "../components/devtools-panel.js";
 import {
   isKeyboardEventTriggeredByInput,
   hasTextSelectionInInput,
@@ -3719,12 +3718,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     }, NEXTJS_REVALIDATION_DELAY_MS);
 
     if (typeof window !== "undefined" && window.__REACT_GRAB_DEVTOOLS__) {
-      try {
-        const disposeDevtools = mountDevtoolsPanel(eventLog, api);
-        onCleanup(() => disposeDevtools());
-      } catch (error) {
-        console.warn("[react-grab] devtools panel failed to mount:", error);
-      }
+      let disposeDevtools: (() => void) | undefined;
+      void import("../components/devtools-panel.js")
+        .then(({ mountDevtoolsPanel }) => {
+          if (disposed) return;
+          disposeDevtools = mountDevtoolsPanel(eventLog, api);
+        })
+        .catch((error) => {
+          console.warn("[react-grab] devtools panel failed to mount:", error);
+        });
+      onCleanup(() => disposeDevtools?.());
     }
 
     return api;
