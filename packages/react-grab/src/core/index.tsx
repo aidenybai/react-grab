@@ -19,6 +19,7 @@ import {
   hasTextSelectionOnPage,
 } from "../utils/is-keyboard-event-triggered-by-input.js";
 import { mountRoot } from "../utils/mount-root.js";
+import { createComponentNameForElement } from "../utils/create-component-name-for-element.js";
 import { watchAppTheme } from "../utils/detect-app-theme.js";
 import {
   nativeCancelAnimationFrame,
@@ -448,15 +449,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       isCopyFeedbackCooldownActive = false;
     };
     let selectionSourceRequestVersion = 0;
-    let componentNameRequestVersion = 0;
     let componentNameDebounceTimerId: number | null = null;
     let keyboardSelectedElement: Element | null = null;
     let pendingDefaultActionId: string | null = null;
     const [isPendingContextMenuSelect, setIsPendingContextMenuSelect] = createSignal(false);
     const [debouncedElementForComponentName, setDebouncedElementForComponentName] =
       createSignal<Element | null>(null);
-    const [resolvedComponentName, setResolvedComponentName] = createSignal<string | undefined>(
-      undefined,
+    const [resolvedComponentName, setResolvedComponentName] = createComponentNameForElement(
+      debouncedElementForComponentName,
     );
     const [arrowNavigationElements, setArrowNavigationElements] = createSignal<Element[]>([]);
     const [arrowNavigationActiveIndex, setArrowNavigationActiveIndex] = createSignal(0);
@@ -3003,33 +3003,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return getTagName(element) || undefined;
     });
 
-    createEffect(
-      on(
-        () => debouncedElementForComponentName(),
-        (element) => {
-          const currentVersion = ++componentNameRequestVersion;
-
-          if (!element) {
-            setResolvedComponentName(undefined);
-            return;
-          }
-
-          const fallbackComponentName = getComponentDisplayName(element) ?? undefined;
-          setResolvedComponentName(fallbackComponentName);
-
-          getNearestComponentName(element)
-            .then((name) => {
-              if (componentNameRequestVersion !== currentVersion) return;
-              setResolvedComponentName(name ?? fallbackComponentName);
-            })
-            .catch(() => {
-              if (componentNameRequestVersion !== currentVersion) return;
-              setResolvedComponentName(fallbackComponentName);
-            });
-        },
-      ),
-    );
-
     const selectionLabelVisible = createMemo(() => {
       if (store.contextMenuPosition !== null) return false;
       if (!isElementLabelThemeEnabled()) return false;
@@ -3041,26 +3014,55 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const labelInstanceCache = new Map<string, SelectionLabelInstance>();
 
     const recomputeLabelInstance = (instance: SelectionLabelInstance): SelectionLabelInstance => {
-      const hasMultipleElements = instance.elements && instance.elements.length > 1;
+      const liveElements = instance.elements?.filter(isElementConnected) ?? [];
       const instanceElement = instance.element;
-      const canRecalculateBounds =
-        !hasMultipleElements && instanceElement && document.body.contains(instanceElement);
-      const newBounds = canRecalculateBounds
-        ? createElementBounds(instanceElement)
-        : instance.bounds;
+
+      let liveBoundsList: OverlayBounds[] | null = null;
+      if (liveElements.length > 0) {
+        liveBoundsList = liveElements.map(createElementBounds);
+      } else if (instanceElement && isElementConnected(instanceElement)) {
+        liveBoundsList = [createElementBounds(instanceElement)];
+      }
+
+      let newBounds = instance.bounds;
+      let newBoundsMultiple = instance.boundsMultiple;
+      if (liveBoundsList) {
+        newBounds =
+          liveBoundsList.length > 1
+            ? createFlatOverlayBounds(combineBounds(liveBoundsList))
+            : liveBoundsList[0];
+        if (instance.boundsMultiple !== undefined) {
+          newBoundsMultiple =
+            instance.boundsMultiple.length > 1 &&
+            instance.boundsMultiple.length === instance.elements?.length
+              ? liveBoundsList
+              : [newBounds];
+        }
+      }
 
       const previousInstance = labelInstanceCache.get(instance.id);
-      const boundsUnchanged =
-        previousInstance &&
-        previousInstance.bounds.x === newBounds.x &&
-        previousInstance.bounds.y === newBounds.y &&
-        previousInstance.bounds.width === newBounds.width &&
-        previousInstance.bounds.height === newBounds.height;
+      const previousBoundsMultiple = previousInstance?.boundsMultiple;
+      const boundsMultipleUnchanged =
+        previousBoundsMultiple === newBoundsMultiple ||
+        (previousBoundsMultiple !== undefined &&
+          newBoundsMultiple !== undefined &&
+          previousBoundsMultiple.length === newBoundsMultiple.length &&
+          previousBoundsMultiple.every(
+            (bounds, index) =>
+              bounds.x === newBoundsMultiple![index].x &&
+              bounds.y === newBoundsMultiple![index].y &&
+              bounds.width === newBoundsMultiple![index].width &&
+              bounds.height === newBoundsMultiple![index].height,
+          ));
       if (
         previousInstance &&
         previousInstance.status === instance.status &&
         previousInstance.errorMessage === instance.errorMessage &&
-        boundsUnchanged
+        previousInstance.bounds.x === newBounds.x &&
+        previousInstance.bounds.y === newBounds.y &&
+        previousInstance.bounds.width === newBounds.width &&
+        previousInstance.bounds.height === newBounds.height &&
+        boundsMultipleUnchanged
       ) {
         return previousInstance;
       }
@@ -3074,7 +3076,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       } else {
         newMouseX = instance.mouseX ?? newBoundsCenterX;
       }
-      const newCached = { ...instance, bounds: newBounds, mouseX: newMouseX };
+      const newCached = {
+        ...instance,
+        bounds: newBounds,
+        boundsMultiple: newBoundsMultiple,
+        mouseX: newMouseX,
+      };
       labelInstanceCache.set(instance.id, newCached);
       return newCached;
     };
@@ -3157,17 +3164,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return getTagName(element) || undefined;
     });
 
-    const [contextMenuComponentName] = createResource(
-      () => ({
-        element: store.contextMenuElement,
-        frozenCount: store.frozenElements.length,
-      }),
-      async ({ element, frozenCount }) => {
-        if (!element) return undefined;
-        if (frozenCount > 1) return undefined;
-        const name = await getNearestComponentName(element);
-        return name ?? undefined;
-      },
+    const [contextMenuComponentName] = createComponentNameForElement(() =>
+      store.frozenElements.length > 1 ? null : store.contextMenuElement,
     );
 
     const [contextMenuFilePath] = createResource(

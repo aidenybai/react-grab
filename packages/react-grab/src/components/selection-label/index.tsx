@@ -336,6 +336,12 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   const isArrowNavigationVisible = () => Boolean(props.arrowNavigationState?.isVisible);
 
+  const isSinglePanelLine = createMemo(() => {
+    if (props.error || props.isPendingDismiss) return false;
+    if (canInteract() && (props.isPromptMode || isArrowNavigationVisible())) return false;
+    return true;
+  });
+
   const handleTagClick = (event: MouseEvent) => {
     event.stopImmediatePropagation();
     if (props.filePath && props.onOpen) {
@@ -404,7 +410,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         <div
           ref={panelRef}
           class={cn(
-            "contain-layout flex items-center gap-[5px] rounded-[10px] antialiased w-fit h-fit p-0 [font-synthesis:none] [corner-shape:superellipse(1.25)]",
+            "contain-layout flex items-center gap-[5px] antialiased w-fit h-fit p-0 [font-synthesis:none]",
+            isSinglePanelLine()
+              ? "rounded-full"
+              : "rounded-[14px] [corner-shape:superellipse(1.25)]",
             "bg-[var(--rg-panel-bg)]",
             isShaking() && "animate-shake",
           )}
