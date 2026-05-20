@@ -30,7 +30,7 @@ const MoreOptionsButton: Component<MoreOptionsButtonProps> = (props) => {
         props.onClick();
       }}
     >
-      <IconEllipsis size={14} class="opacity-60 group-hover:opacity-100 transition-opacity" />
+      <IconEllipsis size={14} class="opacity-50 group-hover:opacity-100 transition-opacity" />
     </button>
   );
 };
