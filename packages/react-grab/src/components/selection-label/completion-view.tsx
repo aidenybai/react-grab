@@ -102,7 +102,7 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
     <div
       data-react-grab-completion
       class={cn(
-        "contain-layout shrink-0 flex flex-col justify-center items-end rounded-[10px] antialiased w-fit h-fit max-w-[280px] transition-opacity duration-100 ease-out [font-synthesis:none] [corner-shape:superellipse(1.25)]",
+        "contain-layout shrink-0 flex flex-col justify-center items-end rounded-full antialiased w-fit h-fit max-w-[280px] transition-opacity duration-100 ease-out [font-synthesis:none]",
         "bg-[var(--rg-panel-bg)]",
       )}
       style={{ opacity: isFading() ? 0 : 1 }}

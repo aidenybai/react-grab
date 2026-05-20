@@ -18,6 +18,7 @@ import {
   hasTextSelectionOnPage,
 } from "../utils/is-keyboard-event-triggered-by-input.js";
 import { mountRoot } from "../utils/mount-root.js";
+import { createComponentNameForElement } from "../utils/create-component-name-for-element.js";
 import { watchAppTheme } from "../utils/detect-app-theme.js";
 import {
   nativeCancelAnimationFrame,
@@ -444,15 +445,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       isCopyFeedbackCooldownActive = false;
     };
     let selectionSourceRequestVersion = 0;
-    let componentNameRequestVersion = 0;
     let componentNameDebounceTimerId: number | null = null;
     let keyboardSelectedElement: Element | null = null;
     let pendingDefaultActionId: string | null = null;
     const [isPendingContextMenuSelect, setIsPendingContextMenuSelect] = createSignal(false);
     const [debouncedElementForComponentName, setDebouncedElementForComponentName] =
       createSignal<Element | null>(null);
-    const [resolvedComponentName, setResolvedComponentName] = createSignal<string | undefined>(
-      undefined,
+    const [resolvedComponentName, setResolvedComponentName] = createComponentNameForElement(
+      debouncedElementForComponentName,
     );
     const [arrowNavigationElements, setArrowNavigationElements] = createSignal<Element[]>([]);
     const [arrowNavigationActiveIndex, setArrowNavigationActiveIndex] = createSignal(0);
@@ -2999,33 +2999,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return getTagName(element) || undefined;
     });
 
-    createEffect(
-      on(
-        () => debouncedElementForComponentName(),
-        (element) => {
-          const currentVersion = ++componentNameRequestVersion;
-
-          if (!element) {
-            setResolvedComponentName(undefined);
-            return;
-          }
-
-          const fallbackComponentName = getComponentDisplayName(element) ?? undefined;
-          setResolvedComponentName(fallbackComponentName);
-
-          getNearestComponentName(element)
-            .then((name) => {
-              if (componentNameRequestVersion !== currentVersion) return;
-              setResolvedComponentName(name ?? fallbackComponentName);
-            })
-            .catch(() => {
-              if (componentNameRequestVersion !== currentVersion) return;
-              setResolvedComponentName(fallbackComponentName);
-            });
-        },
-      ),
-    );
-
     const selectionLabelVisible = createMemo(() => {
       if (store.contextMenuPosition !== null) return false;
       if (!isElementLabelThemeEnabled()) return false;
@@ -3153,17 +3126,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return getTagName(element) || undefined;
     });
 
-    const [contextMenuComponentName] = createResource(
-      () => ({
-        element: store.contextMenuElement,
-        frozenCount: store.frozenElements.length,
-      }),
-      async ({ element, frozenCount }) => {
-        if (!element) return undefined;
-        if (frozenCount > 1) return undefined;
-        const name = await getNearestComponentName(element);
-        return name ?? undefined;
-      },
+    const [contextMenuComponentName] = createComponentNameForElement(() =>
+      store.frozenElements.length > 1 ? null : store.contextMenuElement,
     );
 
     const [contextMenuFilePath] = createResource(

@@ -1,17 +1,34 @@
 import type { Component } from "solid-js";
 import type { ArrowProps } from "../../types.js";
-import { PANEL_BACKGROUND } from "../../constants.js";
+import { PANEL_BACKGROUND, ARROW_TIP_RADIUS_PX } from "../../constants.js";
 import { getArrowSize } from "../../utils/get-arrow-size.js";
 
 export const Arrow: Component<ArrowProps> = (props) => {
   const arrowColor = () => props.color ?? PANEL_BACKGROUND;
   const isBottom = () => props.position === "bottom";
   const arrowSize = () => getArrowSize(props.labelWidth ?? 0);
+  const arrowWidth = () => arrowSize() * 2;
+  const arrowHeight = () => arrowSize();
+
+  const tipPath = () => {
+    const totalWidth = arrowWidth();
+    const totalHeight = arrowHeight();
+    const tangentOffset = ARROW_TIP_RADIUS_PX * Math.SQRT1_2;
+    const halfWidth = totalWidth / 2;
+    const baseY = isBottom() ? totalHeight : 0;
+    const tipY = isBottom() ? tangentOffset : totalHeight - tangentOffset;
+    const sweepFlag = isBottom() ? 1 : 0;
+
+    return `M0 ${baseY} L${halfWidth - tangentOffset} ${tipY} A${ARROW_TIP_RADIUS_PX} ${ARROW_TIP_RADIUS_PX} 0 0 ${sweepFlag} ${halfWidth + tangentOffset} ${tipY} L${totalWidth} ${baseY} Z`;
+  };
 
   return (
-    <div
+    <svg
       data-react-grab-arrow
-      class="absolute w-0 h-0 z-10"
+      class="absolute block z-10"
+      width={arrowWidth()}
+      height={arrowHeight()}
+      viewBox={`0 0 ${arrowWidth()} ${arrowHeight()}`}
       style={{
         left: `calc(${props.leftPercent}% + ${props.leftOffsetPx}px)`,
         top: isBottom() ? "0" : undefined,
@@ -19,11 +36,9 @@ export const Arrow: Component<ArrowProps> = (props) => {
         transform: isBottom()
           ? "translateX(-50%) translateY(-100%)"
           : "translateX(-50%) translateY(100%)",
-        "border-left": `${arrowSize()}px solid transparent`,
-        "border-right": `${arrowSize()}px solid transparent`,
-        "border-bottom": isBottom() ? `${arrowSize()}px solid ${arrowColor()}` : undefined,
-        "border-top": isBottom() ? undefined : `${arrowSize()}px solid ${arrowColor()}`,
       }}
-    />
+    >
+      <path d={tipPath()} fill={arrowColor()} />
+    </svg>
   );
 };

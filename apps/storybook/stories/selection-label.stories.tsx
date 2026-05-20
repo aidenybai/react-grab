@@ -48,26 +48,44 @@ export const Idle: Story = {
   args: { tagName: "button", componentName: "Button" },
 };
 
-export const IdleWithFilePath: Story = {
-  args: {
-    tagName: "div",
-    componentName: "Header",
-    filePath: "src/components/Header.tsx",
-  },
+export const IdleTagOnly: Story = {
+  args: { tagName: "section", componentName: undefined },
 };
 
 export const IdleMultiElement: Story = {
   args: { tagName: "div", componentName: undefined, elementsCount: 3 },
 };
 
-export const IdleTagOnly: Story = {
-  args: { tagName: "section", componentName: undefined },
-};
-
 export const IdleLongComponentName: Story = {
   args: {
     tagName: "div",
     componentName: "SuperLongComponentNameThatShouldDefinitelyTruncate",
+  },
+};
+
+export const IdleWithFilePath: Story = {
+  args: {
+    tagName: "div",
+    componentName: "Header",
+    filePath: "src/components/Header.tsx",
+    onOpen: noop,
+  },
+};
+
+export const IdleArrowNavigation: Story = {
+  args: {
+    tagName: "button",
+    componentName: "Button",
+    arrowNavigationState: {
+      isVisible: true,
+      activeIndex: 1,
+      items: [
+        { tagName: "div", componentName: "Card" },
+        { tagName: "button", componentName: "Button" },
+        { tagName: "span" },
+      ],
+    },
+    onArrowNavigationSelect: noop,
   },
 };
 
@@ -105,6 +123,7 @@ export const PendingDismiss: Story = {
     componentName: "Header",
     isPromptMode: true,
     isPendingDismiss: true,
+    inputValue: "tweak the spacing",
   },
 };
 
@@ -113,7 +132,6 @@ export const Copying: Story = {
     tagName: "input",
     componentName: "TextField",
     status: "copying",
-    statusText: "Grabbing…",
   },
 };
 
@@ -125,7 +143,7 @@ export const Copied: Story = {
   },
 };
 
-export const ErrorState: Story = {
+export const Error: Story = {
   args: {
     tagName: "dialog",
     componentName: "Modal",
