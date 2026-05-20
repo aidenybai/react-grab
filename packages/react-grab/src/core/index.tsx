@@ -9,6 +9,7 @@ import {
   createResource,
   on,
   mapArray,
+  untrack,
 } from "solid-js";
 import { render } from "solid-js/web";
 import { createGrabStore } from "./store.js";
@@ -107,6 +108,7 @@ import type {
   ToolbarState,
   CommentItem,
   DropdownAnchor,
+  ElementLabelVariant,
 } from "../types.js";
 import { DEFAULT_THEME } from "./theme.js";
 import { createPluginRegistry } from "./plugin-registry.js";
@@ -1405,11 +1407,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     createEffect(
       on(
-        () => [isPromptMode(), pointer().x, pointer().y, targetElement()] as const,
-        ([inputMode, x, y, target]) => {
+        () => {
+          const inputMode = isPromptMode();
+          return {
+            inputMode,
+            position: inputMode ? pointer() : untrack(pointer),
+            target: inputMode ? targetElement() : untrack(targetElement),
+          };
+        },
+        ({ inputMode, position, target }) => {
           pluginRegistry.hooks.onPromptModeChange(inputMode, {
-            x,
-            y,
+            x: position.x,
+            y: position.y,
             targetElement: target,
           });
         },
@@ -1436,17 +1445,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     createEffect(
       on(
-        () =>
-          [
-            labelVisible(),
+        () => {
+          const visible = labelVisible();
+          return [
+            visible,
             labelVariant(),
-            cursorPosition(),
-            targetElement(),
+            visible ? cursorPosition() : untrack(cursorPosition),
+            visible ? targetElement() : untrack(targetElement),
             store.selectionFilePath,
             store.selectionLineNumber,
-          ] as const,
+          ] as const;
+        },
         ([visible, variant, position, element, filePath, lineNumber]) => {
-          pluginRegistry.hooks.onElementLabel(Boolean(visible), variant, {
+          pluginRegistry.hooks.onElementLabel(visible, variant, {
             x: position.x,
             y: position.y,
             content: "",
@@ -3111,7 +3122,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         isDraggingBeyondThreshold(),
     );
 
-    const labelVariant = createMemo(() => (isCopying() ? "processing" : "hover"));
+    const labelVariant = createMemo<ElementLabelVariant>(() =>
+      isCopying() ? "processing" : "hover",
+    );
 
     const labelVisible = createMemo(() => {
       if (!isThemeEnabled()) return false;

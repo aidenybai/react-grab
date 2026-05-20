@@ -17,7 +17,7 @@ export const IconSelect: Component<IconSelectProps> = (props) => {
       class={cn("inline-flex items-center justify-center will-change-transform", props.class)}
       style={{
         transform: `rotate(${rotationDeg()}deg)`,
-        "transition-property": "transform, color",
+        "transition-property": "transform",
         "transition-duration": `${SELECT_ICON_ROTATION_TRANSITION_MS}ms`,
         "transition-timing-function": "cubic-bezier(0.32, 0.72, 0, 1)",
       }}
