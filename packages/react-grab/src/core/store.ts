@@ -5,6 +5,7 @@ import { OFFSCREEN_POSITION } from "../constants.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
+import type { EventLog } from "./event-log.js";
 
 interface FrozenDragRect {
   pageX: number;
@@ -68,6 +69,7 @@ interface GrabStore {
 interface GrabStoreInput {
   theme: Required<Theme>;
   keyHoldDuration: number;
+  eventLog?: EventLog;
 }
 
 const createInitialStore = (input: GrabStoreInput): GrabStore => ({
@@ -620,7 +622,29 @@ const createGrabStore = (input: GrabStoreInput) => {
     },
   };
 
-  return { store, actions, pointer, viewportVersion, current };
+  const wrappedActions = wrapActionsForLogging(actions, input.eventLog);
+
+  return { store, actions: wrappedActions, pointer, viewportVersion, current };
+};
+
+const wrapActionsForLogging = (
+  actions: GrabActions,
+  eventLog: EventLog | undefined,
+): GrabActions => {
+  if (!eventLog) return actions;
+  const wrapped: Record<string, unknown> = {};
+  for (const key of Object.keys(actions) as Array<keyof GrabActions>) {
+    const original = actions[key];
+    if (typeof original !== "function") {
+      wrapped[key] = original;
+      continue;
+    }
+    wrapped[key] = (...args: unknown[]) => {
+      eventLog.dispatch(key, args);
+      return (original as (...args: unknown[]) => unknown)(...args);
+    };
+  }
+  return wrapped as unknown as GrabActions;
 };
 
 export { createGrabStore };

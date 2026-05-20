@@ -36,4 +36,18 @@ export const createNoopApi = (): ReactGrabAPI => ({
   unregisterPlugin: NOOP,
   getPlugins: () => [],
   getDisplayName: () => null,
+  getSession: () => ({
+    version: 1,
+    createdAt: 0,
+    startedAt: null,
+    endedAt: null,
+    userAgent: "",
+    href: "",
+    viewport: { width: 0, height: 0, scrollX: 0, scrollY: 0, devicePixelRatio: 1 },
+    elements: [],
+    events: [],
+  }),
+  replaySession: () => Promise.resolve(),
+  clearEventLog: NOOP,
+  setEventLogRecording: NOOP,
 });

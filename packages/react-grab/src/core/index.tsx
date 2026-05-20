@@ -12,6 +12,8 @@ import {
 } from "solid-js";
 import { render } from "solid-js/web";
 import { createGrabStore } from "./store.js";
+import { createEventLog, replaySessionInto } from "./event-log.js";
+import { mountDevtoolsPanel } from "../components/devtools-panel.js";
 import {
   isKeyboardEventTriggeredByInput,
   hasTextSelectionInInput,
@@ -202,9 +204,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const pluginRegistry = createPluginRegistry(settableOptions);
 
+    const eventLog = createEventLog();
+
     const { store, actions, pointer, viewportVersion, current } = createGrabStore({
       theme: DEFAULT_THEME,
       keyHoldDuration: pluginRegistry.store.options.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS,
+      eventLog,
     });
 
     const isHoldingKeys = createMemo(() => current().state === "holding");
@@ -3698,6 +3703,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
       getPlugins: () => pluginRegistry.getPluginNames(),
       getDisplayName: getComponentDisplayName,
+      getSession: () => eventLog.getSession(),
+      replaySession: (session, replayOptions) =>
+        replaySessionInto(session, eventLog, actions, replayOptions),
+      clearEventLog: () => eventLog.clear(),
+      setEventLogRecording: (value: boolean) => eventLog.setRecording(value),
     };
 
     for (const plugin of builtInPlugins) {
@@ -3707,6 +3717,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     setTimeout(() => {
       checkIsNextProject(true);
     }, NEXTJS_REVALIDATION_DELAY_MS);
+
+    if (typeof window !== "undefined" && window.__REACT_GRAB_DEVTOOLS__) {
+      try {
+        const disposeDevtools = mountDevtoolsPanel(eventLog, api);
+        onCleanup(() => disposeDevtools());
+      } catch (error) {
+        console.warn("[react-grab] devtools panel failed to mount:", error);
+      }
+    }
 
     return api;
   });

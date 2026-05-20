@@ -277,6 +277,44 @@ export interface DropdownAnchor {
   toolbarWidth: number;
 }
 
+export interface ReactGrabSessionViewport {
+  width: number;
+  height: number;
+  scrollX: number;
+  scrollY: number;
+  devicePixelRatio: number;
+}
+
+export interface ReactGrabRegisteredElement {
+  handle: string;
+  selector: string;
+  tagName: string;
+}
+
+export interface ReactGrabLoggedEvent {
+  t: number;
+  name: string;
+  args: unknown[];
+  coalescedCount?: number;
+}
+
+export interface ReactGrabSession {
+  version: number;
+  createdAt: number;
+  startedAt: number | null;
+  endedAt: number | null;
+  userAgent: string;
+  href: string;
+  viewport: ReactGrabSessionViewport;
+  elements: ReactGrabRegisteredElement[];
+  events: ReactGrabLoggedEvent[];
+}
+
+export interface ReactGrabReplayOptions {
+  realtime?: boolean;
+  onEvent?: (event: ReactGrabLoggedEvent, index: number) => void;
+}
+
 export interface ReactGrabAPI {
   activate: () => void;
   deactivate: () => void;
@@ -298,6 +336,10 @@ export interface ReactGrabAPI {
   unregisterPlugin: (name: string) => void;
   getPlugins: () => string[];
   getDisplayName: (element: Element) => string | null;
+  getSession: () => ReactGrabSession;
+  replaySession: (session: ReactGrabSession, options?: ReactGrabReplayOptions) => Promise<void>;
+  clearEventLog: () => void;
+  setEventLogRecording: (value: boolean) => void;
 }
 
 export interface OverlayBounds {
