@@ -18,7 +18,7 @@ const MoreOptionsButton: Component<MoreOptionsButtonProps> = (props) => {
     <button
       data-react-grab-ignore-events
       data-react-grab-more-options
-      class="flex items-center justify-center size-4 rounded-sm cursor-pointer bg-transparent hover:bg-[var(--rg-surface-hover)] text-[var(--rg-text-secondary)] hover:text-[var(--rg-text-primary)] border-none outline-none p-0 shrink-0 press-scale"
+      class="group flex items-center justify-center size-4 rounded-sm cursor-pointer bg-transparent hover:bg-[var(--rg-surface-hover)] text-[var(--rg-text-secondary)] hover:text-[var(--rg-text-primary)] border-none outline-none p-0 shrink-0 press-scale"
       // The on: prefix attaches a native event listener (rather than using
       // SolidJS delegation) so stopImmediatePropagation can beat both
       // delegated handlers and document-level capture listeners.
@@ -30,7 +30,7 @@ const MoreOptionsButton: Component<MoreOptionsButtonProps> = (props) => {
         props.onClick();
       }}
     >
-      <IconEllipsis size={14} />
+      <IconEllipsis size={14} class="opacity-50 group-hover:opacity-100 transition-opacity" />
     </button>
   );
 };
