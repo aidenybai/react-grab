@@ -90,6 +90,7 @@ import { openFile } from "../utils/open-file.js";
 import { combineBounds } from "../utils/combine-bounds.js";
 import { areBoundsEqual } from "../utils/are-bounds-equal.js";
 import { areBoundsListsEqual } from "../utils/are-bounds-lists-equal.js";
+import { computeMouseXAnchor, resolveMouseX } from "../utils/mouse-x-anchor.js";
 import type {
   Position,
   Options,
@@ -600,10 +601,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.clearLabelInstances();
       cancelAllLabelFades();
       const instanceId = generateId("label");
-      const boundsCenterX = bounds.x + bounds.width / 2;
-      const boundsHalfWidth = bounds.width / 2;
       const mouseX = options?.mouseX;
-      const mouseXOffset = mouseX !== undefined ? mouseX - boundsCenterX : undefined;
 
       const instance: SelectionLabelInstance = {
         id: instanceId,
@@ -616,11 +614,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         element: options?.element,
         elements: options?.elements,
         mouseX,
-        mouseXOffsetFromCenter: mouseXOffset,
-        mouseXOffsetRatio:
-          mouseXOffset !== undefined && boundsHalfWidth > 0
-            ? mouseXOffset / boundsHalfWidth
-            : undefined,
+        ...computeMouseXAnchor(bounds, mouseX),
         hideArrow: options?.hideArrow,
       };
       actions.addLabelInstance(instance);
@@ -641,9 +635,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const instanceIds: string[] = [];
       for (const entry of entries) {
         const bounds = createElementBounds(entry.element);
-        const boundsCenterX = bounds.x + bounds.width / 2;
-        const boundsHalfWidth = bounds.width / 2;
-        const mouseXOffset = entry.mouseX !== undefined ? entry.mouseX - boundsCenterX : undefined;
         const instanceId = generateId("label");
         const instance: SelectionLabelInstance = {
           id: instanceId,
@@ -654,11 +645,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           createdAt: Date.now(),
           element: entry.element,
           mouseX: entry.mouseX,
-          mouseXOffsetFromCenter: mouseXOffset,
-          mouseXOffsetRatio:
-            mouseXOffset !== undefined && boundsHalfWidth > 0
-              ? mouseXOffset / boundsHalfWidth
-              : undefined,
+          ...computeMouseXAnchor(bounds, entry.mouseX),
         };
         actions.addLabelInstance(instance);
         instanceIds.push(instanceId);
@@ -2982,6 +2969,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       () => pluginRegistry.store.theme.elementLabel.enabled,
     );
     const isDragBoxThemeEnabled = createMemo(() => pluginRegistry.store.theme.dragBox.enabled);
+    const isGrabbedBoxThemeEnabled = createMemo(
+      () => pluginRegistry.store.theme.grabbedBoxes.enabled,
+    );
     const isSelectionSuppressed = createMemo(
       () => didJustCopy() || (isToolbarSelectHovered() && !isFrozenPhase()),
     );
@@ -3078,29 +3068,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       ) {
         return previousInstance;
       }
-      const newBoundsCenterX = newBounds.x + newBounds.width / 2;
-      const newBoundsHalfWidth = newBounds.width / 2;
-      let newMouseX: number;
-      if (instance.mouseXOffsetRatio !== undefined && newBoundsHalfWidth > 0) {
-        newMouseX = newBoundsCenterX + instance.mouseXOffsetRatio * newBoundsHalfWidth;
-      } else if (instance.mouseXOffsetFromCenter !== undefined) {
-        newMouseX = newBoundsCenterX + instance.mouseXOffsetFromCenter;
-      } else {
-        newMouseX = instance.mouseX ?? newBoundsCenterX;
-      }
       const newCached = {
         ...instance,
         bounds: newBounds,
         boundsMultiple: newBoundsMultiple,
-        mouseX: newMouseX,
+        mouseX: resolveMouseX(newBounds, instance),
       };
       labelInstanceCache.set(instance.id, newCached);
       return newCached;
     };
 
     const computedLabelInstances = createMemo(() => {
-      if (!isThemeEnabled()) return [];
-      if (!pluginRegistry.store.theme.grabbedBoxes.enabled) return [];
+      if (!isThemeEnabled() || !isGrabbedBoxThemeEnabled()) return [];
       void viewportVersion();
       const currentIds = new Set(store.labelInstances.map((instance) => instance.id));
       for (const cachedId of labelInstanceCache.keys()) {
@@ -3112,13 +3091,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     const computedGrabbedBoxes = createMemo(() => {
-      if (!isThemeEnabled()) return [];
-      if (!pluginRegistry.store.theme.grabbedBoxes.enabled) return [];
+      if (!isThemeEnabled() || !isGrabbedBoxThemeEnabled()) return [];
       void viewportVersion();
       return store.grabbedBoxes.map((box) => {
-        if (!box.element || !document.body.contains(box.element)) {
-          return box;
-        }
+        if (!isElementConnected(box.element)) return box;
         return {
           ...box,
           bounds: createElementBounds(box.element),
