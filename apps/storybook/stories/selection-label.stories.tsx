@@ -44,8 +44,6 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-// Idle — what the user sees on hover before any action.
-
 export const Idle: Story = {
   args: { tagName: "button", componentName: "Button" },
 };
@@ -91,8 +89,6 @@ export const IdleArrowNavigation: Story = {
   },
 };
 
-// Comment / prompt mode — what shows after pressing the comment shortcut.
-
 export const PromptEmpty: Story = {
   args: {
     tagName: "div",
@@ -130,8 +126,6 @@ export const PendingDismiss: Story = {
     inputValue: "tweak the spacing",
   },
 };
-
-// Status — copy lifecycle (defaults to "Grabbing…" and "Copied" status text).
 
 export const Copying: Story = {
   args: {

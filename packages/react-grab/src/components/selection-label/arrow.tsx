@@ -10,10 +10,6 @@ export const Arrow: Component<ArrowProps> = (props) => {
   const arrowWidth = () => arrowSize() * 2;
   const arrowHeight = () => arrowSize();
 
-  // Triangle has a 90° apex (base = 2 * size, height = size), so the two edges
-  // meet at right angles. For a tangent-arc corner radius `r` on a 90° vertex,
-  // the tangent points sit `r` away from the apex along each edge, which is
-  // `r / sqrt(2)` in both x and y when the edges are at 45° from vertical.
   const tipPath = () => {
     const totalWidth = arrowWidth();
     const totalHeight = arrowHeight();
