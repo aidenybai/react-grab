@@ -2176,6 +2176,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!isActivated() || isPromptMode()) return false;
       if (isShiftMultiSelecting()) return false;
       if (!ARROW_KEYS.has(event.key)) return false;
+      // While the context menu is open, arrow keys belong to its own
+      // roving-tabindex navigation. Both listeners fire for the same
+      // event (both window+capture), so without bowing out here arrow
+      // keys also re-select a different page element and reposition
+      // the menu over it.
+      if (store.contextMenuPosition !== null) return false;
 
       let currentElement = effectiveElement();
       const isInitialSelection = !currentElement;
@@ -2313,15 +2319,27 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const isContextMenuKey = event.key === "ContextMenu";
       if (!isShiftF10 && !isContextMenuKey) return false;
 
-      const element = store.frozenElement || targetElement();
+      const existingFrozenElements = store.frozenElements;
+      const hasMultiFrozenSelection = existingFrozenElements.length > 1;
+      const element =
+        (hasMultiFrozenSelection ? existingFrozenElements[0] : null) ||
+        store.frozenElement ||
+        targetElement();
       if (!element) return false;
 
       event.preventDefault();
       event.stopPropagation();
 
       const center = getBoundsCenter(createElementBounds(element));
-      freezeAllAnimations([element]);
-      actions.setFrozenElement(element);
+      // Preserve an existing multi-frozen selection (e.g. Shift+click)
+      // when invoking via keyboard, matching the mouse contextmenu
+      // handler's behavior on a click that lands on the existing set.
+      if (hasMultiFrozenSelection) {
+        freezeAllAnimations(existingFrozenElements);
+      } else {
+        freezeAllAnimations([element]);
+        actions.setFrozenElement(element);
+      }
       actions.setPointer(center);
       actions.freeze();
       openContextMenu(element, center);

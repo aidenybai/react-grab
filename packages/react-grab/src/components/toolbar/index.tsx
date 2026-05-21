@@ -35,6 +35,7 @@ import { accumulateRotationDeg } from "../../utils/accumulate-rotation.js";
 interface ToolbarProps {
   isActive?: boolean;
   isContextMenuOpen?: boolean;
+  isToolbarMenuOpen?: boolean;
   onToggle?: () => void;
   enabled?: boolean;
   shakeCount?: number;
@@ -643,7 +644,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             aria-label={props.isActive ? "Stop selecting element" : "Select element"}
             aria-pressed={Boolean(props.isActive)}
             aria-haspopup="menu"
-            aria-expanded={Boolean(props.isContextMenuOpen)}
+            aria-expanded={Boolean(props.isToolbarMenuOpen)}
             type="button"
             class={cn(
               "group contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
