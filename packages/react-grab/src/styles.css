@@ -108,25 +108,13 @@
   }
 }
 
-/* Restore a visible focus indicator inside the shadow root. :host { all:
-   initial } strips the UA default :focus-visible ring, so without this
-   keyboard users see nothing on tab/menu navigation. The ring is theme-
-   aware (--rg-text-primary) and uses a negative outline-offset on menu
-   items so the indicator stays inside the rounded menu panel instead of
-   clipping at the edge. */
-:host button:focus-visible,
-:host textarea:focus-visible,
-:host [tabindex]:focus-visible {
-  outline: 2px solid var(--rg-text-primary);
-  outline-offset: 1px;
-  border-radius: 4px;
-}
-
+/* Menu items get their visible focus indicator from the moving highlight
+   element (createMenuHighlight) that tracks the focused/hovered row, so an
+   additional UA :focus-visible ring on top reads as a doubled, off-palette
+   outline. Suppressing it here lets the highlight be the sole indicator. */
 :host [role="menuitem"]:focus-visible,
 :host [role="menuitemradio"]:focus-visible {
-  outline: 2px solid var(--rg-text-primary);
-  outline-offset: -2px;
-  border-radius: 0;
+  outline: none;
 }
 
 @keyframes shake {
