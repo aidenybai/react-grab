@@ -129,7 +129,7 @@ describe("detectFramework", () => {
     expect(detectFramework("/test")).toBe("next");
   });
 
-  it("should fall back to monorepo root deps when subpackage has no framework signal", () => {
+  it("should return unknown when only the monorepo root has the framework dep", () => {
     mockExistsSync.mockImplementation((path) => {
       const pathString = String(path);
       if (pathString === "/repo/apps/web/package.json") return true;
@@ -148,7 +148,7 @@ describe("detectFramework", () => {
       return "{}";
     });
 
-    expect(detectFramework("/repo/apps/web")).toBe("vite");
+    expect(detectFramework("/repo/apps/web")).toBe("unknown");
   });
 });
 

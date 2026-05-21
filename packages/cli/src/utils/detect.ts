@@ -84,17 +84,13 @@ const findEnclosingMonorepoRoot = (projectRoot: string): string | null => {
 export const detectFramework = (projectRoot: string): Framework => {
   const localFramework = detectFrameworkFromDependencies(readMergedDependencies(projectRoot));
   if (localFramework !== "unknown") return localFramework;
+  return detectFrameworkFromConfigFiles(projectRoot);
+};
 
-  const configFramework = detectFrameworkFromConfigFiles(projectRoot);
-  if (configFramework !== "unknown") return configFramework;
-
+const detectFrameworkFromMonorepoRoot = (projectRoot: string): Framework => {
   const monorepoRoot = findEnclosingMonorepoRoot(projectRoot);
-  if (monorepoRoot) {
-    const rootFramework = detectFrameworkFromDependencies(readMergedDependencies(monorepoRoot));
-    if (rootFramework !== "unknown") return rootFramework;
-  }
-
-  return "unknown";
+  if (!monorepoRoot) return "unknown";
+  return detectFrameworkFromDependencies(readMergedDependencies(monorepoRoot));
 };
 
 export const detectNextRouterType = (projectRoot: string): NextRouterType => {
@@ -417,7 +413,9 @@ const detectReactGrabVersion = (projectRoot: string): string | null => {
 };
 
 export const detectProject = async (projectRoot: string = process.cwd()): Promise<ProjectInfo> => {
-  const framework = detectFramework(projectRoot);
+  const localFramework = detectFramework(projectRoot);
+  const framework =
+    localFramework === "unknown" ? detectFrameworkFromMonorepoRoot(projectRoot) : localFramework;
   const packageManager = await detectPackageManager(projectRoot);
 
   return {
