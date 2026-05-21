@@ -38,6 +38,7 @@ export const TagBadge: Component<TagBadgeProps> = (props) => {
           )}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
+          onClick={props.onClick}
         >
           {tagLabel}
         </div>
