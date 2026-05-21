@@ -108,17 +108,12 @@
   }
 }
 
-/* Menu items get their visible focus indicator from the moving highlight
-   element (createMenuHighlight) that tracks the focused/hovered row, so a
-   UA focus ring on top reads as a doubled, off-palette outline. Both
-   :focus and :focus-visible are suppressed because Chrome can take either
-   path depending on whether the originating interaction was keyboard or
-   pointer, and the rule uses !important to defeat any utility-class
-   outline that may be applied via class attribute. */
-:host [role="menuitem"]:focus,
-:host [role="menuitem"]:focus-visible,
-:host [role="menuitemradio"]:focus,
-:host [role="menuitemradio"]:focus-visible {
+/* The react-grab overlay UI uses its own visual states (the moving menu
+   highlight, button hover transitions, etc.) as focus indicators, so any
+   UA focus ring inside the shadow root is purely visual noise. Strip all
+   :focus / :focus-visible outlines and shadows uniformly. */
+:host *:focus,
+:host *:focus-visible {
   outline: none !important;
   box-shadow: none !important;
 }
