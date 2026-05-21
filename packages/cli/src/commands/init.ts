@@ -62,13 +62,16 @@ const FRAMEWORK_NAMES: Record<Framework, string> = {
   unknown: "Unknown",
 };
 
-const SUPPORTED_FRAMEWORKS_MESSAGE = `React Grab supports ${[
+const SUPPORTED_FRAMEWORKS_MESSAGE = `React Grab supports ${new Intl.ListFormat("en", {
+  style: "long",
+  type: "conjunction",
+}).format([
   FRAMEWORK_NAMES.next,
   FRAMEWORK_NAMES.vite,
   FRAMEWORK_NAMES.tanstack,
   FRAMEWORK_NAMES.webpack,
   FRAMEWORK_NAMES.sveltekit,
-].join(", ")} projects.`;
+])} projects.`;
 
 const PACKAGE_MANAGER_NAMES: Record<PackageManager, string> = {
   npm: "npm",
