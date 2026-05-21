@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "openstory": "link:../../../ode/packages/openstory"
+    "openstory": "^0.0.5"
   },
   "devDependencies": {
     "@types/node": "^25.6.2",
