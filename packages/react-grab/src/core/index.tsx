@@ -2475,6 +2475,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
+        // When the context menu is open, its own registerOverlayDismiss
+        // listener handles Escape. Bail out so the global handler doesn't
+        // fire deactivateRenderer first via the isFromOverlay branch
+        // (the menu container now holds focus, so composedPath() includes
+        // data-react-grab-ignore-events).
+        if (event.key === "Escape" && store.contextMenuPosition !== null) {
+          return;
+        }
+
         const isFromOverlay =
           isEventFromOverlay(event, "data-react-grab-ignore-events") && !isEnterToActivateInput;
 
