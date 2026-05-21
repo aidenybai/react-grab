@@ -418,6 +418,14 @@ export const init = new Command()
           Object.assign(projectInfo, newProjectInfo);
 
           const newFrameworkSpinner = spinner("Verifying framework.").start();
+          if (newProjectInfo.framework === "unknown") {
+            newFrameworkSpinner.fail("Could not detect a supported framework in this project.");
+            logger.break();
+            logger.log("React Grab supports Next.js, Vite, TanStack Start, and Webpack projects.");
+            logger.log(`Visit ${highlighter.info(DOCS_URL)} for manual setup.`);
+            logger.break();
+            process.exit(1);
+          }
           newFrameworkSpinner.succeed(
             `Verifying framework. Found ${highlighter.info(FRAMEWORK_NAMES[newProjectInfo.framework])}.`,
           );
