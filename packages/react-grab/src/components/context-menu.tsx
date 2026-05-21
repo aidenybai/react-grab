@@ -318,6 +318,17 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     return `Actions for ${displayName}`;
   });
 
+  // Stable per-instance prefix so each open of the menu produces unique
+  // ids the active-descendant attribute can reference. Two menus mounted
+  // simultaneously (shouldn't happen today, but cheap to guard) won't
+  // collide on the same #menu-item-N id.
+  const menuIdPrefix = `react-grab-menu-${Math.random().toString(36).slice(2, 8)}`;
+  const menuItemId = (itemIndex: number) => `${menuIdPrefix}-item-${itemIndex}`;
+  const activeDescendantId = () => {
+    const index = activeItemIndex();
+    return index >= 0 ? menuItemId(index) : undefined;
+  };
+
   return (
     <Show when={isVisible()}>
       <div
@@ -370,6 +381,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
               role="menu"
               aria-orientation="vertical"
               aria-label={accessibleMenuLabel()}
+              aria-activedescendant={activeDescendantId()}
               class="relative flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5"
             >
               <div
@@ -388,11 +400,12 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
                         }
                       });
                     }}
+                    id={menuItemId(itemIndex())}
                     data-react-grab-ignore-events
                     data-react-grab-menu-item={item.label.toLowerCase()}
                     type="button"
                     role="menuitem"
-                    tabindex={-1}
+                    tabindex={activeItemIndex() === itemIndex() ? 0 : -1}
                     aria-disabled={!item.enabled}
                     class="relative z-1 contain-layout flex items-center justify-between w-full px-2 py-1 cursor-pointer text-left border-none bg-transparent disabled:opacity-40 disabled:cursor-default"
                     disabled={!item.enabled}
