@@ -519,7 +519,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   <Show when={props.onSubmit}>
                     <button
                       data-react-grab-submit
-                      type="submit"
+                      type="button"
                       aria-label="Submit context"
                       class="contain-layout shrink-0 flex items-center justify-center size-4 rounded-full bg-[var(--rg-submit-bg)] cursor-pointer ml-1 interactive-scale a11y-hitbox"
                       onClick={() => props.onSubmit?.()}
