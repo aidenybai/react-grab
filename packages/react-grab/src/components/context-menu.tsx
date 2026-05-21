@@ -47,6 +47,8 @@ interface MenuItem {
 
 export const ContextMenu: Component<ContextMenuProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
+  let menuContainerRef: HTMLDivElement | undefined;
+  let previouslyFocusedElement: Element | null = null;
   // Collected via ref callbacks during render so navigation reads from a
   // typed array instead of querying the DOM. Indices line up with menuItems().
   const menuItemRefs: (HTMLButtonElement | undefined)[] = [];
@@ -204,10 +206,38 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     }
   });
 
-  // Reset selection whenever the menu closes so reopening doesn't carry over
-  // the previous highlight position.
+  // Single, predictable focus move: focus the menu container on open so
+  // aria-activedescendant (driven by activeItemIndex) is announced by
+  // assistive tech. On close, restore focus to whatever the host page had
+  // focused — but only if nothing else has already claimed focus (e.g. the
+  // prompt-mode textarea that an action opened), so we don't yank it back.
   createEffect(() => {
-    if (!isVisible()) setActiveItemIndex(-1);
+    if (isVisible()) {
+      const previousActiveElement = document.activeElement;
+      const isPreviousInsideMenu =
+        previousActiveElement instanceof Element &&
+        containerRef instanceof Element &&
+        containerRef.contains(previousActiveElement);
+      if (!isPreviousInsideMenu) {
+        previouslyFocusedElement = previousActiveElement;
+      }
+      menuContainerRef?.focus({ preventScroll: true });
+    } else {
+      setActiveItemIndex(-1);
+      const restoreTarget = previouslyFocusedElement;
+      previouslyFocusedElement = null;
+      if (!(restoreTarget instanceof HTMLElement) || !document.contains(restoreTarget)) return;
+      // Defer to the next frame so an action-triggered focus move (e.g.
+      // the prompt textarea focusing itself via queueMicrotask) lands
+      // first. If something other than the body has focus by then, the
+      // action's side effect deserves to keep it.
+      nativeRequestAnimationFrame(() => {
+        const currentActive = document.activeElement;
+        const isOrphanedFocus = currentActive === null || currentActive === document.body;
+        if (!isOrphanedFocus) return;
+        restoreTarget.focus({ preventScroll: true });
+      });
+    }
   });
 
   const handleAction = (item: MenuItem, event: Event) => {
@@ -377,12 +407,16 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
           </div>
           <BottomSection>
             <div
-              ref={highlightContainerRef}
+              ref={(element) => {
+                menuContainerRef = element;
+                highlightContainerRef(element);
+              }}
               role="menu"
+              tabindex={-1}
               aria-orientation="vertical"
               aria-label={accessibleMenuLabel()}
               aria-activedescendant={activeDescendantId()}
-              class="relative flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5"
+              class="relative flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5 outline-none"
             >
               <div
                 ref={highlightRef}
