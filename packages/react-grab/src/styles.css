@@ -254,6 +254,25 @@
   }
 }
 
+/* Minimum 24x24 hit area for small icon buttons (WCAG 2.5.8). Use this when
+   touch-hitbox would visually push neighboring controls apart. */
+@utility a11y-hitbox {
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    display: block;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    min-height: 24px;
+    min-width: 24px;
+  }
+}
+
 /* iOS Safari auto-zooms on focused inputs with font-size < 16px.
  * @supports (-webkit-touch-callout) is iOS/iPadOS-only; other browsers ignore. */
 @supports (-webkit-touch-callout: none) {

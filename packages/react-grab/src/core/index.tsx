@@ -2304,6 +2304,30 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return true;
     };
 
+    const handleContextMenuKey = (event: KeyboardEvent): boolean => {
+      if (!isActivated()) return false;
+      if (isCopying() || isPromptMode()) return false;
+      if (store.contextMenuPosition !== null) return false;
+
+      const isShiftF10 = event.key === "F10" && event.shiftKey;
+      const isContextMenuKey = event.key === "ContextMenu";
+      if (!isShiftF10 && !isContextMenuKey) return false;
+
+      const element = store.frozenElement || targetElement();
+      if (!element) return false;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const center = getBoundsCenter(createElementBounds(element));
+      freezeAllAnimations([element]);
+      actions.setFrozenElement(element);
+      actions.setPointer(center);
+      actions.freeze();
+      openContextMenu(element, center);
+      return true;
+    };
+
     const arrowNavigationItems = createMemo(() =>
       arrowNavigationElements().map((element) => ({
         tagName: getTagName(element) || "element",
@@ -2480,6 +2504,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (handleArrowNavigation(event)) return;
         if (handleEnterKeyActivation(event)) return;
         if (handleOpenFileShortcut(event)) return;
+        if (handleContextMenuKey(event)) return;
 
         if (!didWindowJustRegainFocus) {
           handleActivationKeys(event);

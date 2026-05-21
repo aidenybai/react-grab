@@ -500,7 +500,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     }}
                     data-react-grab-ignore-events
                     data-react-grab-input
-                    class="text-[var(--rg-text-primary)] text-[13px] leading-4 font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 wrap-break-word overflow-y-auto"
+                    aria-label="Add context for selected element"
+                    aria-keyshortcuts="Enter Escape"
+                    class="text-[var(--rg-text-primary)] text-[13px] leading-4 font-medium bg-transparent border-none resize-none flex-1 p-0 m-0 wrap-break-word overflow-y-auto"
                     style={{
                       "field-sizing": "content",
                       "min-height": "16px",
@@ -517,10 +519,12 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   <Show when={props.onSubmit}>
                     <button
                       data-react-grab-submit
-                      class="contain-layout shrink-0 flex items-center justify-center size-4 rounded-full bg-[var(--rg-submit-bg)] cursor-pointer ml-1 interactive-scale"
+                      type="submit"
+                      aria-label="Submit context"
+                      class="contain-layout shrink-0 flex items-center justify-center size-4 rounded-full bg-[var(--rg-submit-bg)] cursor-pointer ml-1 interactive-scale a11y-hitbox"
                       onClick={() => props.onSubmit?.()}
                     >
-                      <IconSubmit size={10} class="text-[var(--rg-submit-fg)]" />
+                      <IconSubmit size={10} aria-hidden="true" class="text-[var(--rg-submit-fg)]" />
                     </button>
                   </Show>
                 </div>

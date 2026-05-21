@@ -47,6 +47,8 @@ interface MenuItem {
 
 export const ContextMenu: Component<ContextMenuProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
+  let menuListRef: HTMLDivElement | undefined;
+  let previouslyFocusedElement: Element | null = null;
   const {
     containerRef: highlightContainerRef,
     highlightRef,
@@ -59,6 +61,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
 
   const [measuredWidth, setMeasuredWidth] = createSignal(0);
   const [measuredHeight, setMeasuredHeight] = createSignal(0);
+  const [focusedItemIndex, setFocusedItemIndex] = createSignal(-1);
 
   const isVisible = () => props.position !== null;
 
@@ -156,15 +159,102 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     }
   };
 
+  const getMenuItemButtons = (): HTMLButtonElement[] => {
+    if (!menuListRef) return [];
+    return Array.from(
+      menuListRef.querySelectorAll<HTMLButtonElement>("[data-react-grab-menu-item]"),
+    );
+  };
+
+  const focusItemAt = (itemIndex: number): boolean => {
+    const itemButtons = getMenuItemButtons();
+    if (itemButtons.length === 0) return false;
+
+    const totalItems = itemButtons.length;
+    let normalizedIndex = ((itemIndex % totalItems) + totalItems) % totalItems;
+
+    for (let attempt = 0; attempt < totalItems; attempt++) {
+      const candidateButton = itemButtons[normalizedIndex];
+      if (candidateButton && !candidateButton.disabled) {
+        candidateButton.focus({ preventScroll: true });
+        setFocusedItemIndex(normalizedIndex);
+        updateHighlight(candidateButton);
+        return true;
+      }
+      normalizedIndex = (normalizedIndex + 1) % totalItems;
+    }
+    return false;
+  };
+
+  const focusFirstEnabledItem = (): boolean => focusItemAt(0);
+
+  const focusLastEnabledItem = (): boolean => {
+    const itemButtons = getMenuItemButtons();
+    for (let itemIndex = itemButtons.length - 1; itemIndex >= 0; itemIndex--) {
+      if (!itemButtons[itemIndex]?.disabled) {
+        return focusItemAt(itemIndex);
+      }
+    }
+    return false;
+  };
+
+  const moveFocusByOffset = (offset: 1 | -1): void => {
+    const itemButtons = getMenuItemButtons();
+    if (itemButtons.length === 0) return;
+    const currentIndex = focusedItemIndex();
+    const startIndex = currentIndex === -1 ? (offset === 1 ? -1 : 0) : currentIndex;
+    const totalItems = itemButtons.length;
+    let nextIndex = (((startIndex + offset) % totalItems) + totalItems) % totalItems;
+
+    for (let attempt = 0; attempt < totalItems; attempt++) {
+      const candidateButton = itemButtons[nextIndex];
+      if (candidateButton && !candidateButton.disabled) {
+        focusItemAt(nextIndex);
+        return;
+      }
+      nextIndex = (((nextIndex + offset) % totalItems) + totalItems) % totalItems;
+    }
+  };
+
+  const restorePreviousFocus = () => {
+    const target = previouslyFocusedElement;
+    previouslyFocusedElement = null;
+    if (target instanceof HTMLElement && document.contains(target)) {
+      target.focus({ preventScroll: true });
+    }
+  };
+
   onMount(() => {
     measureContainer();
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!isVisible()) return;
 
+      const isArrowDown = event.key === "ArrowDown";
+      const isArrowUp = event.key === "ArrowUp";
+      const isHome = event.key === "Home";
+      const isEnd = event.key === "End";
+      const isTab = event.key === "Tab";
       const isEnter = event.key === "Enter";
       const hasModifierKey = event.metaKey || event.ctrlKey;
       const keyLower = event.key.toLowerCase();
+
+      if (isArrowDown || isArrowUp || isHome || isEnd) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (isArrowDown) moveFocusByOffset(1);
+        else if (isArrowUp) moveFocusByOffset(-1);
+        else if (isHome) focusFirstEnabledItem();
+        else focusLastEnabledItem();
+        return;
+      }
+
+      if (isTab) {
+        event.preventDefault();
+        event.stopPropagation();
+        moveFocusByOffset(event.shiftKey ? -1 : 1);
+        return;
+      }
 
       const pluginActions = props.actions ?? [];
       const context = props.actionContext;
@@ -179,6 +269,14 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       };
 
       if (isEnter) {
+        const focusedIndex = focusedItemIndex();
+        if (focusedIndex >= 0) {
+          const focusedAction = pluginActions[focusedIndex];
+          if (focusedAction) {
+            runActionIfAllowed(focusedAction);
+            return;
+          }
+        }
         const enterAction = pluginActions.find((action) => action.shortcut === "Enter");
         if (enterAction) {
           runActionIfAllowed(enterAction);
@@ -211,6 +309,35 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       unregisterOverlayDismiss();
       window.removeEventListener("keydown", handleKeyDown, { capture: true });
     });
+  });
+
+  // Capture focus before the menu opens so we can return focus to the
+  // originating element when it dismisses. Restore happens on close so both
+  // outside-click/Escape (onDismiss) and item-activation (onHide) paths run
+  // through the same restore.
+  createEffect(() => {
+    if (isVisible()) {
+      const activeElement = document.activeElement;
+      const isActiveInsideMenu =
+        activeElement instanceof Element &&
+        containerRef instanceof Element &&
+        containerRef.contains(activeElement);
+      if (!isActiveInsideMenu) {
+        previouslyFocusedElement = activeElement;
+      }
+      nativeRequestAnimationFrame(() => {
+        if (isVisible()) focusFirstEnabledItem();
+      });
+    } else {
+      setFocusedItemIndex(-1);
+      restorePreviousFocus();
+    }
+  });
+
+  const accessibleMenuLabel = createMemo(() => {
+    const { tagName, componentName } = tagDisplayResult();
+    const displayName = componentName ? `${componentName}.${tagName}` : tagName;
+    return `Actions for ${displayName}`;
   });
 
   return (
@@ -261,18 +388,29 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
           </div>
           <BottomSection>
             <div
-              ref={highlightContainerRef}
+              ref={(element) => {
+                menuListRef = element;
+                highlightContainerRef(element);
+              }}
+              role="menu"
+              aria-orientation="vertical"
+              aria-label={accessibleMenuLabel()}
               class="relative flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5"
             >
               <div
                 ref={highlightRef}
+                aria-hidden="true"
                 class="pointer-events-none absolute opacity-0 transition-[top,left,width,height,opacity,border-radius] duration-75 ease-out bg-[var(--rg-surface-hover)]"
               />
               <For each={menuItems()}>
-                {(item) => (
+                {(item, itemIndex) => (
                   <button
                     data-react-grab-ignore-events
                     data-react-grab-menu-item={item.label.toLowerCase()}
+                    type="button"
+                    role="menuitem"
+                    tabindex={focusedItemIndex() === itemIndex() ? 0 : -1}
+                    aria-disabled={!item.enabled}
                     class="relative z-1 contain-layout flex items-center justify-between w-full px-2 py-1 cursor-pointer text-left border-none bg-transparent disabled:opacity-40 disabled:cursor-default"
                     disabled={!item.enabled}
                     onPointerDown={(event) => event.stopPropagation()}
@@ -282,6 +420,12 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
                       }
                     }}
                     onPointerLeave={clearHighlight}
+                    onFocus={(event) => {
+                      if (item.enabled) {
+                        updateHighlight(event.currentTarget);
+                      }
+                      setFocusedItemIndex(itemIndex());
+                    }}
                     onClick={(event) => handleAction(item, event)}
                   >
                     <span class="text-[13px] leading-4 font-sans font-medium text-[var(--rg-text-primary)]">

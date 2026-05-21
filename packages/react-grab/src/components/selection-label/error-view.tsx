@@ -46,6 +46,8 @@ export const ErrorView: Component<ErrorViewProps> = (props) => {
   return (
     <div
       data-react-grab-error
+      role="alert"
+      aria-live="assertive"
       class="contain-layout shrink-0 flex flex-col justify-center items-end w-fit h-fit max-w-[280px]"
       onPointerDown={handleFocus}
       onClick={handleFocus}
@@ -66,16 +68,20 @@ export const ErrorView: Component<ErrorViewProps> = (props) => {
           <div class="contain-layout shrink-0 flex items-center justify-end gap-[5px] w-full h-fit">
             <button
               data-react-grab-retry
+              type="button"
+              aria-keyshortcuts="Enter"
               class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-[var(--rg-surface-hover)] [border-width:0.5px] border-solid border-[var(--rg-border-button)] cursor-pointer transition-all hover:bg-[var(--rg-surface-active)] press-scale h-[17px]"
               onClick={props.onRetry}
             >
               <span class="text-[var(--rg-text-primary)] text-[13px] leading-3.5 font-sans font-medium">
                 Retry
               </span>
-              <IconRetry size={10} class="text-[var(--rg-text-secondary)]" />
+              <IconRetry size={10} aria-hidden="true" class="text-[var(--rg-text-secondary)]" />
             </button>
             <button
               data-react-grab-error-ok
+              type="button"
+              aria-keyshortcuts="Escape"
               class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-[var(--rg-surface-hover)] [border-width:0.5px] border-solid border-[var(--rg-border-button)] cursor-pointer transition-all hover:bg-[var(--rg-surface-active)] press-scale h-[17px]"
               onClick={props.onAcknowledge}
             >
