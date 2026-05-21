@@ -10,6 +10,12 @@ interface AnimatedBoundsFollowerController {
   hideFollower: () => void;
 }
 
+interface MenuHighlightOptions {
+  topCornerRadiusPx?: number;
+  bottomCornerRadiusPx?: number;
+  cornerShape?: string;
+}
+
 interface MenuHighlightController {
   containerRef: (containerElement: HTMLElement) => void;
   highlightRef: (highlightElement: HTMLElement) => void;
@@ -67,13 +73,69 @@ const createAnimatedBoundsFollower = ({
   };
 };
 
-export const createMenuHighlight = (): MenuHighlightController => {
+const isActionableSibling = (node: Element, follower: HTMLElement | undefined): boolean =>
+  node !== follower && node instanceof HTMLElement;
+
+const getActionableSiblings = (
+  parent: HTMLElement,
+  follower: HTMLElement | undefined,
+): HTMLElement[] => {
+  const siblings: HTMLElement[] = [];
+  for (const child of Array.from(parent.children)) {
+    if (isActionableSibling(child, follower)) {
+      siblings.push(child as HTMLElement);
+    }
+  }
+  return siblings;
+};
+
+export const createMenuHighlight = (
+  options: MenuHighlightOptions = {},
+): MenuHighlightController => {
+  const { topCornerRadiusPx, bottomCornerRadiusPx, cornerShape } = options;
+  const hasEdgeRadii = topCornerRadiusPx !== undefined || bottomCornerRadiusPx !== undefined;
+  let followerElement: HTMLElement | undefined;
+  let didApplyCornerShape = false;
+
+  const applyEdgeRadii = (targetElement: HTMLElement): void => {
+    if (!followerElement || !hasEdgeRadii) return;
+    const parent = targetElement.parentElement;
+    if (!parent) return;
+    const siblings = getActionableSiblings(parent, followerElement);
+    const isFirst = siblings[0] === targetElement;
+    const isLast = siblings[siblings.length - 1] === targetElement;
+    const topRadius = isFirst && topCornerRadiusPx !== undefined ? `${topCornerRadiusPx}px` : "0px";
+    const bottomRadius =
+      isLast && bottomCornerRadiusPx !== undefined ? `${bottomCornerRadiusPx}px` : "0px";
+    followerElement.style.borderTopLeftRadius = topRadius;
+    followerElement.style.borderTopRightRadius = topRadius;
+    followerElement.style.borderBottomLeftRadius = bottomRadius;
+    followerElement.style.borderBottomRightRadius = bottomRadius;
+    if (cornerShape && !didApplyCornerShape) {
+      followerElement.style.setProperty("corner-shape", cornerShape);
+      didApplyCornerShape = true;
+    }
+  };
+
   const {
     containerRef,
-    followerRef: highlightRef,
-    followElement: updateHighlight,
+    followerRef: baseFollowerRef,
+    followElement: baseFollowElement,
     hideFollower: clearHighlight,
   } = createAnimatedBoundsFollower();
+
+  const highlightRef = (highlightElement: HTMLElement): void => {
+    followerElement = highlightElement;
+    didApplyCornerShape = false;
+    baseFollowerRef(highlightElement);
+  };
+
+  const updateHighlight = (targetElement: HTMLElement | undefined): void => {
+    baseFollowElement(targetElement);
+    if (targetElement) {
+      applyEdgeRadii(targetElement);
+    }
+  };
 
   return {
     containerRef,

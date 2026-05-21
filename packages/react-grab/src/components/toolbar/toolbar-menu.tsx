@@ -3,6 +3,8 @@ import type { Component } from "solid-js";
 import type { ContextMenuAction, DropdownAnchor } from "../../types.js";
 import {
   DROPDOWN_EDGE_TRANSFORM_ORIGIN,
+  MENU_HIGHLIGHT_CORNER_SHAPE,
+  MENU_PANEL_CORNER_RADIUS_PX,
   TOOLBAR_MENU_MIN_WIDTH_PX,
   Z_INDEX_OVERLAY,
 } from "../../constants.js";
@@ -28,7 +30,11 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
     highlightRef,
     updateHighlight,
     clearHighlight,
-  } = createMenuHighlight();
+  } = createMenuHighlight({
+    topCornerRadiusPx: MENU_PANEL_CORNER_RADIUS_PX,
+    bottomCornerRadiusPx: MENU_PANEL_CORNER_RADIUS_PX,
+    cornerShape: MENU_HIGHLIGHT_CORNER_SHAPE,
+  });
 
   const dropdown = createAnchoredDropdown(
     () => containerRef,
@@ -90,7 +96,7 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
           <div ref={highlightContainerRef} class="relative flex flex-col">
             <div
               ref={highlightRef}
-              class="pointer-events-none absolute opacity-0 transition-[top,left,width,height,opacity] duration-75 ease-out bg-[var(--rg-surface-hover)]"
+              class="pointer-events-none absolute opacity-0 transition-[top,left,width,height,opacity,border-radius] duration-75 ease-out bg-[var(--rg-surface-hover)]"
             />
             <For each={props.actions}>
               {(action) => {

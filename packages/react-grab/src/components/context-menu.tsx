@@ -10,6 +10,8 @@ import {
   ARROW_HEIGHT_PX,
   DROPDOWN_OFFSCREEN_POSITION,
   LABEL_GAP_PX,
+  MENU_HIGHLIGHT_CORNER_SHAPE,
+  MENU_PANEL_CORNER_RADIUS_PX,
   Z_INDEX_OVERLAY,
 } from "../constants.js";
 import { cn } from "../utils/cn.js";
@@ -50,7 +52,10 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     highlightRef,
     updateHighlight,
     clearHighlight,
-  } = createMenuHighlight();
+  } = createMenuHighlight({
+    bottomCornerRadiusPx: MENU_PANEL_CORNER_RADIUS_PX,
+    cornerShape: MENU_HIGHLIGHT_CORNER_SHAPE,
+  });
 
   const [measuredWidth, setMeasuredWidth] = createSignal(0);
   const [measuredHeight, setMeasuredHeight] = createSignal(0);
@@ -261,7 +266,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
             >
               <div
                 ref={highlightRef}
-                class="pointer-events-none absolute opacity-0 transition-[top,left,width,height,opacity] duration-75 ease-out bg-[var(--rg-surface-hover)]"
+                class="pointer-events-none absolute opacity-0 transition-[top,left,width,height,opacity,border-radius] duration-75 ease-out bg-[var(--rg-surface-hover)]"
               />
               <For each={menuItems()}>
                 {(item) => (
