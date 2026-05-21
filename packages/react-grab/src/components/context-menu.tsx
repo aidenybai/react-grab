@@ -53,7 +53,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     updateHighlight,
     clearHighlight,
   } = createMenuHighlight({
-    cornerRadiusPx: MENU_PANEL_CORNER_RADIUS_PX,
+    bottomCornerRadiusPx: MENU_PANEL_CORNER_RADIUS_PX,
     cornerShape: MENU_HIGHLIGHT_CORNER_SHAPE,
   });
 

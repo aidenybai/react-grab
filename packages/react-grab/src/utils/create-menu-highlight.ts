@@ -11,7 +11,8 @@ interface AnimatedBoundsFollowerController {
 }
 
 interface MenuHighlightOptions {
-  cornerRadiusPx?: number;
+  topCornerRadiusPx?: number;
+  bottomCornerRadiusPx?: number;
   cornerShape?: string;
 }
 
@@ -91,19 +92,21 @@ const getActionableSiblings = (
 export const createMenuHighlight = (
   options: MenuHighlightOptions = {},
 ): MenuHighlightController => {
-  const { cornerRadiusPx, cornerShape } = options;
+  const { topCornerRadiusPx, bottomCornerRadiusPx, cornerShape } = options;
+  const hasEdgeRadii = topCornerRadiusPx !== undefined || bottomCornerRadiusPx !== undefined;
   let followerElement: HTMLElement | undefined;
   let didApplyCornerShape = false;
 
   const applyEdgeRadii = (targetElement: HTMLElement): void => {
-    if (!followerElement || cornerRadiusPx === undefined) return;
+    if (!followerElement || !hasEdgeRadii) return;
     const parent = targetElement.parentElement;
     if (!parent) return;
     const siblings = getActionableSiblings(parent, followerElement);
     const isFirst = siblings[0] === targetElement;
     const isLast = siblings[siblings.length - 1] === targetElement;
-    const topRadius = isFirst ? `${cornerRadiusPx}px` : "0px";
-    const bottomRadius = isLast ? `${cornerRadiusPx}px` : "0px";
+    const topRadius = isFirst && topCornerRadiusPx !== undefined ? `${topCornerRadiusPx}px` : "0px";
+    const bottomRadius =
+      isLast && bottomCornerRadiusPx !== undefined ? `${bottomCornerRadiusPx}px` : "0px";
     followerElement.style.borderTopLeftRadius = topRadius;
     followerElement.style.borderTopRightRadius = topRadius;
     followerElement.style.borderBottomLeftRadius = bottomRadius;
@@ -123,6 +126,7 @@ export const createMenuHighlight = (
 
   const highlightRef = (highlightElement: HTMLElement): void => {
     followerElement = highlightElement;
+    didApplyCornerShape = false;
     baseFollowerRef(highlightElement);
   };
 

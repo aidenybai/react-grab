@@ -31,7 +31,8 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
     updateHighlight,
     clearHighlight,
   } = createMenuHighlight({
-    cornerRadiusPx: MENU_PANEL_CORNER_RADIUS_PX,
+    topCornerRadiusPx: MENU_PANEL_CORNER_RADIUS_PX,
+    bottomCornerRadiusPx: MENU_PANEL_CORNER_RADIUS_PX,
     cornerShape: MENU_HIGHLIGHT_CORNER_SHAPE,
   });
 
