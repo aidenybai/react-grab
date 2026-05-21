@@ -23,7 +23,7 @@ The runtime has two main concerns: initialization and the interaction lifecycle.
 
 When the package is imported in a browser environment, [index.ts](../src/index.ts) checks that `window` exists and `__REACT_GRAB_DISABLED__` is not set, then calls `init()`. The returned API object is assigned to `window.__REACT_GRAB__`, any plugins that were registered via `registerPlugin()` before initialization completed are flushed from a pending queue, and a `react-grab:init` custom event is dispatched so other code on the page can react to the tool being ready. If `init()` is called in an SSR environment or when the tool is disabled, it returns a no-op API object with the same shape so that consumers don't need to guard every call.
 
-Inside `init()`, the first thing that happens is merging any options provided programmatically with options parsed from the `data-options` JSON attribute on the script tag (via `getScriptOptions()`). Then `createPluginRegistry` and `createGrabStore` are called to set up the reactive state. A single `AbortController` manages all event listeners on `window` and `document`, so that teardown is a single `abort()` call. The five built-in plugins (copy, comment, open, copy-html, copy-styles) are registered through the same `register()` path that external plugins use. Finally, the renderer is loaded asynchronously via `import("../components/renderer.js")` and mounted into a Shadow DOM container created by [utils/mount-root.ts](../src/utils/mount-root.ts).
+Inside `init()`, the first thing that happens is merging any options provided programmatically with options parsed from the `data-options` JSON attribute on the script tag (via `getScriptOptions()`). Then `createPluginRegistry` and `createGrabStore` are called to set up the reactive state. A single `AbortController` manages all event listeners on `window` and `document`, so that teardown is a single `abort()` call. The three built-in plugins (copy, comment, open) are registered through the same `register()` path that external plugins use. Finally, the renderer is loaded asynchronously via `import("../components/renderer.js")` and mounted into a Shadow DOM container created by [utils/mount-root.ts](../src/utils/mount-root.ts).
 
 ### The interaction lifecycle
 
@@ -197,10 +197,8 @@ The registry provides several ways to call hooks, each suited to a different use
 
 ### Built-in plugins
 
-The five built-in plugins are registered during `init()` through the same `register()` path that external plugins use, so there is nothing architecturally special about them:
+The three built-in plugins are registered during `init()` through the same `register()` path that external plugins use, so there is nothing architecturally special about them:
 
-- **copy** registers the default "Copy" context-menu action that calls the copy flow.
+- **copy** registers the default "Copy" context-menu action that copies a single-line `[<tag …> in Component (at path:line) …]` reference per selected element, including up to `DEFAULT_MAX_CONTEXT_LINES` (3) frames from the component stack.
 - **comment** registers the "Comment" action that enters prompt mode.
 - **open** registers the "Open in editor" action that calls `openFile` with the resolved source location, running the URL through the `transformOpenFileUrl` hook pipeline first.
-- **copy-html** registers "Copy HTML" which copies the element's `outerHTML` with stack context appended.
-- **copy-styles** registers "Copy styles" which extracts the element's computed CSS (compared against a baseline from a hidden iframe) and copies it with stack context.

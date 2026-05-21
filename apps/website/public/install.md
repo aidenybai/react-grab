@@ -1,6 +1,6 @@
 # React Grab
 
-Grab any element in your app and give it to Cursor, Claude Code, or other AI coding agents.
+Copy any UI element for your agent.
 
 ## OBJECTIVE
 

@@ -19,6 +19,7 @@ import {
   PREVIEW_ATTR_VALUE_MAX_LENGTH,
   PREVIEW_MAX_ATTRS,
   PREVIEW_PRIORITY_ATTRS,
+  PREVIEW_IDENTIFYING_ATTRS,
   SYMBOLICATION_TIMEOUT_MS,
   DEFAULT_MAX_CONTEXT_LINES,
 } from "../constants.js";
@@ -26,57 +27,13 @@ import { getTagName } from "../utils/get-tag-name.js";
 import { truncateString } from "../utils/truncate-string.js";
 import { getNextBasePath } from "../utils/get-next-base-path.js";
 import { normalizeFilePath } from "../utils/normalize-file-path.js";
+import { parsePackageName } from "../utils/parse-package-name.js";
+import { safeDecodeURIComponent } from "../utils/safe-decode-uri-component.js";
 import { isInternalAttribute } from "../utils/strip-internal-attributes.js";
-
-const NON_COMPONENT_PREFIXES = new Set([
-  "_",
-  "$",
-  "motion.",
-  "styled.",
-  "chakra.",
-  "ark.",
-  "Primitive.",
-  "Slot.",
-]);
-
-// Next.js App Router internals that wrap user components but are not useful
-// as display names. Without filtering these the UI would show names like
-// "InnerLayoutRouter" instead of the user's own component.
-const NEXT_INTERNAL_COMPONENT_NAMES = new Set([
-  "InnerLayoutRouter",
-  "RedirectErrorBoundary",
-  "RedirectBoundary",
-  "HTTPAccessFallbackErrorBoundary",
-  "HTTPAccessFallbackBoundary",
-  "LoadingBoundary",
-  "ErrorBoundary",
-  "InnerScrollAndFocusHandler",
-  "ScrollAndFocusHandler",
-  "RenderFromTemplateContext",
-  "OuterLayoutRouter",
-  "body",
-  "html",
-  "DevRootHTTPAccessFallbackBoundary",
-  "AppDevOverlayErrorBoundary",
-  "AppDevOverlay",
-  "HotReload",
-  "Router",
-  "ErrorBoundaryHandler",
-  "AppRouter",
-  "ServerRoot",
-  "SegmentStateProvider",
-  "RootErrorBoundary",
-  "LoadableComponent",
-  "MotionDOMComponent",
-]);
-
-const REACT_INTERNAL_COMPONENT_NAMES = new Set([
-  "Suspense",
-  "Fragment",
-  "StrictMode",
-  "Profiler",
-  "SuspenseList",
-]);
+import {
+  isInternalComponentName,
+  isUsefulComponentName,
+} from "../utils/is-useful-component-name.js";
 
 let cachedIsNextProject: boolean | undefined;
 
@@ -88,22 +45,6 @@ export const checkIsNextProject = (revalidate?: boolean): boolean => {
     typeof document !== "undefined" &&
     Boolean(document.getElementById("__NEXT_DATA__") || document.querySelector("nextjs-portal"));
   return cachedIsNextProject;
-};
-
-const isInternalComponentName = (name: string): boolean => {
-  if (NEXT_INTERNAL_COMPONENT_NAMES.has(name)) return true;
-  if (REACT_INTERNAL_COMPONENT_NAMES.has(name)) return true;
-  for (const prefix of NON_COMPONENT_PREFIXES) {
-    if (name.startsWith(prefix)) return true;
-  }
-  return false;
-};
-
-const isUsefulComponentName = (name: string): boolean => {
-  if (!name) return false;
-  if (isInternalComponentName(name)) return false;
-  if (name === "SlotClone" || name === "Slot") return false;
-  return true;
 };
 
 const isSourceComponentName = (name: string): boolean => {
@@ -123,10 +64,12 @@ const devirtualizeServerUrl = (url: string): string => {
   for (const prefix of SERVER_COMPONENT_URL_PREFIXES) {
     if (!url.startsWith(prefix)) continue;
     const environmentEndIndex = url.indexOf("/", prefix.length);
+    if (environmentEndIndex === -1) continue;
+    const pathStart = environmentEndIndex + 1;
     const querySuffixIndex = url.lastIndexOf("?");
-    if (environmentEndIndex > -1 && querySuffixIndex > -1) {
-      return decodeURI(url.slice(environmentEndIndex + 1, querySuffixIndex));
-    }
+    const rawPath =
+      querySuffixIndex > pathStart ? url.slice(pathStart, querySuffixIndex) : url.slice(pathStart);
+    return safeDecodeURIComponent(rawPath);
   }
   return url;
 };
@@ -393,6 +336,7 @@ const hasFormattableFrames = (stack: StackFrame[] | null): boolean => {
     if (frame.isServer && (!frame.functionName || isSourceComponentName(frame.functionName))) {
       return true;
     }
+    if (frame.functionName && isSourceComponentName(frame.functionName)) return true;
     return false;
   });
 };
@@ -420,54 +364,63 @@ const getComponentNamesFromFiber = (element: Element, maxCount: number): string[
   return componentNames;
 };
 
+const formatResolvedSourceLine = (
+  frame: StackFrame,
+  filePath: string,
+  componentName: string | null,
+  isNextProject: boolean,
+): string => {
+  // HACK: bundlers like Vite produce unreliable line/column numbers from
+  // owner stacks, so we only include them for Next.js where the dev server
+  // symbolicates frames via source maps.
+  const location =
+    isNextProject && frame.lineNumber
+      ? `${normalizeFilePath(filePath)}:${frame.lineNumber}${frame.columnNumber ? `:${frame.columnNumber}` : ""}`
+      : normalizeFilePath(filePath);
+  return componentName ? `\n  in ${componentName} (at ${location})` : `\n  in ${location}`;
+};
+
 const formatStackContext = (stack: StackFrame[], options: StackContextOptions = {}): string => {
   const { maxLines = DEFAULT_MAX_CONTEXT_LINES } = options;
   const isNextProject = checkIsNextProject();
-  const formattedLines: string[] = [];
+  const lines: string[] = [];
+  let previousLibraryPackage: string | null = null;
+
+  const emit = (line: string, libraryPackage: string | null) => {
+    lines.push(line);
+    previousLibraryPackage = libraryPackage;
+  };
 
   for (const frame of stack) {
-    if (formattedLines.length >= maxLines) break;
+    if (lines.length >= maxLines) break;
 
-    const hasResolvedSource = frame.fileName && isSourceFile(frame.fileName);
+    const resolvedSource = frame.fileName && isSourceFile(frame.fileName) ? frame.fileName : null;
+    const libraryPackage = resolvedSource ? null : parsePackageName(frame.fileName);
+    if (libraryPackage && libraryPackage === previousLibraryPackage) continue;
 
-    if (
-      frame.isServer &&
-      !hasResolvedSource &&
-      (!frame.functionName || isSourceComponentName(frame.functionName))
-    ) {
-      formattedLines.push(`\n  in ${frame.functionName || "<anonymous>"} (at Server)`);
+    const componentName =
+      frame.functionName && isSourceComponentName(frame.functionName) ? frame.functionName : null;
+
+    if (frame.isServer && !resolvedSource && (componentName || !frame.functionName)) {
+      const tag = libraryPackage ? `${libraryPackage} at Server` : "at Server";
+      emit(`\n  in ${componentName ?? "<anonymous>"} (${tag})`, libraryPackage);
       continue;
     }
 
-    if (hasResolvedSource) {
-      let line = "\n  in ";
-      const hasComponentName = frame.functionName && isSourceComponentName(frame.functionName);
+    if (!resolvedSource && componentName) {
+      emit(
+        libraryPackage ? `\n  in ${componentName} (${libraryPackage})` : `\n  in ${componentName}`,
+        libraryPackage,
+      );
+      continue;
+    }
 
-      if (hasComponentName) {
-        line += `${frame.functionName} (at `;
-      }
-
-      line += normalizeFilePath(frame.fileName!);
-
-      // HACK: bundlers like Vite produce unreliable line/column numbers from
-      // owner stacks, so we only include them for Next.js where the dev
-      // server symbolicates frames via source maps.
-      if (isNextProject && frame.lineNumber) {
-        line += `:${frame.lineNumber}`;
-        if (frame.columnNumber) {
-          line += `:${frame.columnNumber}`;
-        }
-      }
-
-      if (hasComponentName) {
-        line += `)`;
-      }
-
-      formattedLines.push(line);
+    if (resolvedSource) {
+      emit(formatResolvedSourceLine(frame, resolvedSource, componentName, isNextProject), null);
     }
   }
 
-  return formattedLines.join("");
+  return lines.join("");
 };
 
 export const getStackContext = async (
@@ -505,25 +458,14 @@ export const getElementContext = async (
 };
 
 const getFallbackContext = (element: Element): string => {
-  const tagName = getTagName(element);
-
   if (!(element instanceof HTMLElement)) {
-    const attrsHint = formatPriorityAttrs(element, {
-      truncate: false,
-      maxAttrs: PREVIEW_PRIORITY_ATTRS.length,
-    });
-    return `<${tagName}${attrsHint} />`;
+    return getInlineHTMLPreview(element);
   }
 
-  const text = element.innerText?.trim() ?? element.textContent?.trim() ?? "";
-
-  let attrsText = "";
-  for (const { name, value } of element.attributes) {
-    if (isInternalAttribute(name)) continue;
-    attrsText += ` ${name}="${value}"`;
-  }
-
-  const truncatedText = truncateString(text, PREVIEW_TEXT_MAX_LENGTH);
+  const tagName = getTagName(element);
+  const attrsText = formatAttrsForPreview(element);
+  const directText = getDirectTextContent(element);
+  const truncatedText = truncateString(directText, PREVIEW_TEXT_MAX_LENGTH);
 
   if (truncatedText.length > 0) {
     return `<${tagName}${attrsText}>\n  ${truncatedText}\n</${tagName}>`;
@@ -558,27 +500,85 @@ const formatPriorityAttrs = (
   return priorityAttrs.length > 0 ? ` ${priorityAttrs.join(" ")}` : "";
 };
 
-export const getHTMLPreview = (element: Element): string => {
-  const tagName = getTagName(element);
-  const text =
-    element instanceof HTMLElement
-      ? (element.innerText?.trim() ?? element.textContent?.trim() ?? "")
-      : (element.textContent?.trim() ?? "");
+const isClassOrStyleAttr = (name: string): boolean =>
+  name === "class" || name === "className" || name === "style";
 
-  let attrsText = "";
+const formatAttrsForPreview = (element: Element): string => {
+  const identifyingParts: string[] = [];
+  const remainingParts: string[] = [];
+  let classAttr = "";
+
   for (const { name, value } of element.attributes) {
     if (isInternalAttribute(name)) continue;
-    attrsText += ` ${name}="${truncateAttrValue(value)}"`;
+    if (isClassOrStyleAttr(name)) {
+      if (name !== "style" && value) {
+        classAttr = ` class="${truncateAttrValue(value)}"`;
+      }
+      continue;
+    }
+    if (PREVIEW_IDENTIFYING_ATTRS.has(name)) {
+      identifyingParts.push(value ? ` ${name}="${value}"` : ` ${name}`);
+    } else if (value) {
+      remainingParts.push(` ${name}="${truncateAttrValue(value)}"`);
+    }
   }
+
+  return identifyingParts.join("") + remainingParts.join("") + classAttr;
+};
+
+export const getDirectTextContent = (element: Element): string => {
+  let directText = "";
+  for (const node of element.childNodes) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const trimmed = node.textContent?.trim() ?? "";
+      if (trimmed) {
+        directText += (directText ? " " : "") + trimmed;
+      }
+    }
+  }
+  return directText;
+};
+
+const formatChildElements = (elements: Array<Element>): string => {
+  if (elements.length === 0) return "";
+  if (elements.length <= 2) {
+    return elements.map((childElement) => `<${getTagName(childElement)} ...>`).join("\n  ");
+  }
+  return `(${elements.length} elements)`;
+};
+
+export const getInlineHTMLPreview = (element: Element): string => {
+  const tagName = getTagName(element);
+
+  if (!(element instanceof HTMLElement)) {
+    const attrsHint = formatPriorityAttrs(element, {
+      truncate: false,
+      maxAttrs: PREVIEW_PRIORITY_ATTRS.length,
+    });
+    return `<${tagName}${attrsHint} />`;
+  }
+
+  const attrsText = formatAttrsForPreview(element);
+  const directText = getDirectTextContent(element);
+  const truncatedText = truncateString(directText, PREVIEW_TEXT_MAX_LENGTH);
+
+  if (truncatedText) {
+    return `<${tagName}${attrsText}>${truncatedText}</${tagName}>`;
+  }
+  return `<${tagName}${attrsText} />`;
+};
+
+export const getHTMLPreview = (element: Element): string => {
+  const tagName = getTagName(element);
+  const attrsText = formatAttrsForPreview(element);
+  const directText = getDirectTextContent(element);
 
   const topElements: Array<Element> = [];
   const bottomElements: Array<Element> = [];
   let foundFirstText = false;
 
-  const childNodes = Array.from(element.childNodes);
-  for (const node of childNodes) {
+  for (const node of element.childNodes) {
     if (node.nodeType === Node.COMMENT_NODE) continue;
-
     if (node.nodeType === Node.TEXT_NODE) {
       if (node.textContent && node.textContent.trim().length > 0) {
         foundFirstText = true;
@@ -592,21 +592,13 @@ export const getHTMLPreview = (element: Element): string => {
     }
   }
 
-  const formatElements = (elements: Array<Element>): string => {
-    if (elements.length === 0) return "";
-    if (elements.length <= 2) {
-      return elements.map((childElement) => `<${getTagName(childElement)} ...>`).join("\n  ");
-    }
-    return `(${elements.length} elements)`;
-  };
-
   let content = "";
-  const topElementsStr = formatElements(topElements);
+  const topElementsStr = formatChildElements(topElements);
   if (topElementsStr) content += `\n  ${topElementsStr}`;
-  if (text.length > 0) {
-    content += `\n  ${truncateString(text, PREVIEW_TEXT_MAX_LENGTH)}`;
+  if (directText.length > 0) {
+    content += `\n  ${truncateString(directText, PREVIEW_TEXT_MAX_LENGTH)}`;
   }
-  const bottomElementsStr = formatElements(bottomElements);
+  const bottomElementsStr = formatChildElements(bottomElements);
   if (bottomElementsStr) content += `\n  ${bottomElementsStr}`;
 
   if (content.length > 0) {

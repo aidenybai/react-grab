@@ -41,7 +41,7 @@ nr dev
 ```
 apps/
 ├── e2e-app/             # E2E test target app (Vite)
-├── storybook/           # Storybook gallery: UI states + ad-hoc targeting playground
+├── openstory/           # Openstory gallery: UI states + ad-hoc targeting playground
 ├── web-extension/       # Browser extension
 └── website/             # Documentation site (react-grab.com)
 
@@ -54,12 +54,12 @@ packages/
 
 ## Development Workflow
 
-### Running the Storybook Playground
+### Running the Openstory Playground
 
-Run the Storybook locally to exercise react-grab against realistic DOM fixtures (composite dashboard, freeze-demo, live-updates, and targeting edge cases):
+Run openstory locally to exercise react-grab against realistic DOM fixtures (composite dashboard, freeze-demo, live-updates, and targeting edge cases):
 
 ```bash
-pnpm --filter @react-grab/storybook dev
+pnpm --filter @react-grab/openstory dev
 ```
 
 Opens at `http://localhost:6006`. The **Playground/** section hosts ad-hoc scenarios (replaces the former `apps/gym`) with real `init()` running so you can hover/grab to verify behavior.

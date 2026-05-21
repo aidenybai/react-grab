@@ -1,5 +1,29 @@
 # @react-grab/cli
 
+## 0.1.37
+
+### Patch Changes
+
+- fix
+
+## 0.1.36
+
+### Patch Changes
+
+- fix hanging issue
+
+## 0.1.35
+
+### Patch Changes
+
+- ui improvement
+
+## 0.1.34
+
+### Patch Changes
+
+- fix
+
 ## 0.1.33
 
 ### Patch Changes

@@ -1,0 +1,52 @@
+{
+  "label": "stage-4-hoist-signals",
+  "timestamp": "2026-05-16T02-33-54-781Z",
+  "gitSha": null,
+  "gridSize": {
+    "rows": 50,
+    "columns": 10,
+    "total": 500
+  },
+  "scenarios": {
+    "hoverSweep": {
+      "count": 1500,
+      "total": 35.4,
+      "mean": 0.024,
+      "median": 0,
+      "p95": 0.1,
+      "max": 0.9
+    },
+    "scrollOnly": {
+      "count": 300,
+      "total": 9.6,
+      "mean": 0.032,
+      "median": 0,
+      "p95": 0.1,
+      "max": 4.5
+    },
+    "getStateReadAmplification": {
+      "count": 5000,
+      "total": 1.7,
+      "mean": 0,
+      "median": 0,
+      "p95": 0,
+      "max": 0.1
+    },
+    "viewportInvalidationBurst": {
+      "count": 100,
+      "total": 7544.7,
+      "mean": 75.447,
+      "median": 74.25,
+      "p95": 86.4,
+      "max": 105.7
+    },
+    "multiFreezeInvalidationBurst": {
+      "count": 100,
+      "total": 7923.7,
+      "mean": 79.237,
+      "median": 78.7,
+      "p95": 89.8,
+      "max": 104.2
+    }
+  }
+}

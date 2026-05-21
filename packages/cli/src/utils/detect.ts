@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
-import { detect } from "@antfu/ni";
+import { detect } from "package-manager-detector/detect";
 import ignore from "ignore";
 
 export type PackageManager = "npm" | "yarn" | "pnpm" | "bun";
@@ -21,11 +21,10 @@ interface ProjectInfo {
 
 const VALID_PACKAGE_MANAGERS: ReadonlySet<string> = new Set(["npm", "yarn", "pnpm", "bun"]);
 
-const detectPackageManager = async (projectRoot: string): Promise<PackageManager> => {
-  const detected = await detect({ cwd: projectRoot });
-  if (detected) {
-    // @antfu/ni returns versioned agents like "pnpm@6" or "yarn@berry"
-    const managerName = detected.split("@")[0];
+export const detectPackageManager = async (projectRoot: string): Promise<PackageManager> => {
+  const result = await detect({ cwd: projectRoot });
+  if (result?.agent) {
+    const managerName = result.agent.split("@")[0];
     if (VALID_PACKAGE_MANAGERS.has(managerName)) {
       return managerName as PackageManager;
     }
@@ -33,44 +32,67 @@ const detectPackageManager = async (projectRoot: string): Promise<PackageManager
   return "npm";
 };
 
-export const detectFramework = (projectRoot: string): Framework => {
+const CONFIG_EXTENSIONS = ["ts", "mts", "cts", "js", "mjs", "cjs"] as const;
+
+const hasConfigFile = (projectRoot: string, configBaseName: string): boolean =>
+  CONFIG_EXTENSIONS.some((extension) =>
+    existsSync(join(projectRoot, `${configBaseName}.${extension}`)),
+  );
+
+const readMergedDependencies = (projectRoot: string): Record<string, string> | null => {
   const packageJsonPath = join(projectRoot, "package.json");
-
-  if (!existsSync(packageJsonPath)) {
-    return "unknown";
-  }
-
+  if (!existsSync(packageJsonPath)) return null;
   try {
     const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
-    const allDependencies = {
+    return {
       ...packageJson.dependencies,
       ...packageJson.devDependencies,
     };
-
-    if (allDependencies["next"]) {
-      return "next";
-    }
-
-    if (allDependencies["@tanstack/react-start"]) {
-      return "tanstack";
-    }
-
-    if (allDependencies["@sveltejs/kit"]) {
-      return "sveltekit";
-    }
-
-    if (allDependencies["vite"]) {
-      return "vite";
-    }
-
-    if (allDependencies["webpack"]) {
-      return "webpack";
-    }
-
-    return "unknown";
   } catch {
-    return "unknown";
+    return null;
   }
+};
+
+const detectFrameworkFromDependencies = (
+  dependencies: Record<string, string> | null,
+): Framework => {
+  if (!dependencies) return "unknown";
+  if (dependencies["next"]) return "next";
+  if (dependencies["@tanstack/react-start"]) return "tanstack";
+  if (dependencies["@sveltejs/kit"]) return "sveltekit";
+  if (dependencies["vite"]) return "vite";
+  if (dependencies["webpack"]) return "webpack";
+  return "unknown";
+};
+
+const detectFrameworkFromConfigFiles = (projectRoot: string): Framework => {
+  if (hasConfigFile(projectRoot, "next.config")) return "next";
+  if (hasConfigFile(projectRoot, "app.config")) return "tanstack";
+  if (hasConfigFile(projectRoot, "svelte.config")) return "sveltekit";
+  if (hasConfigFile(projectRoot, "vite.config")) return "vite";
+  if (hasConfigFile(projectRoot, "webpack.config")) return "webpack";
+  return "unknown";
+};
+
+const findEnclosingMonorepoRoot = (projectRoot: string): string | null => {
+  let currentDirectory = dirname(projectRoot);
+  while (currentDirectory !== dirname(currentDirectory)) {
+    if (detectMonorepo(currentDirectory)) return currentDirectory;
+    currentDirectory = dirname(currentDirectory);
+  }
+  return null;
+};
+
+export const detectFramework = (projectRoot: string): Framework => {
+  const localFramework = detectFrameworkFromDependencies(readMergedDependencies(projectRoot));
+  if (localFramework !== "unknown") return localFramework;
+  return detectFrameworkFromConfigFiles(projectRoot);
+};
+
+const detectFrameworkFromMonorepoRoot = (projectRoot: string): Framework => {
+  const monorepoRoot = findEnclosingMonorepoRoot(projectRoot);
+  if (!monorepoRoot) return "unknown";
+  return detectFrameworkFromDependencies(readMergedDependencies(monorepoRoot));
 };
 
 export const detectNextRouterType = (projectRoot: string): NextRouterType => {
@@ -201,19 +223,9 @@ const expandWorkspacePattern = (projectRoot: string, pattern: string): string[] 
 };
 
 const hasReactDependency = (projectPath: string): boolean => {
-  const packageJsonPath = join(projectPath, "package.json");
-  if (!existsSync(packageJsonPath)) return false;
-
-  try {
-    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
-    const allDeps = {
-      ...packageJson.dependencies,
-      ...packageJson.devDependencies,
-    };
-    return Boolean(allDeps["react"] || allDeps["react-dom"]);
-  } catch {
-    return false;
-  }
+  const dependencies = readMergedDependencies(projectPath);
+  if (!dependencies) return false;
+  return Boolean(dependencies["react"] || dependencies["react-dom"]);
 };
 
 const buildReactProject = (projectPath: string): WorkspaceProject | null => {
@@ -352,20 +364,8 @@ const hasReactGrabInFile = (filePath: string): boolean => {
 };
 
 export const detectReactGrab = (projectRoot: string): boolean => {
-  const packageJsonPath = join(projectRoot, "package.json");
-
-  if (existsSync(packageJsonPath)) {
-    try {
-      const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
-      const allDependencies = {
-        ...packageJson.dependencies,
-        ...packageJson.devDependencies,
-      };
-      if (allDependencies["react-grab"]) {
-        return true;
-      }
-    } catch {}
-  }
+  const dependencies = readMergedDependencies(projectRoot);
+  if (dependencies?.["react-grab"]) return true;
 
   const filesToCheck = [
     join(projectRoot, "app", "layout.tsx"),
@@ -398,35 +398,12 @@ export const detectReactGrab = (projectRoot: string): boolean => {
 };
 
 export const detectUnsupportedFramework = (projectRoot: string): UnsupportedFramework => {
-  const packageJsonPath = join(projectRoot, "package.json");
-
-  if (!existsSync(packageJsonPath)) {
-    return null;
-  }
-
-  try {
-    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
-    const allDependencies = {
-      ...packageJson.dependencies,
-      ...packageJson.devDependencies,
-    };
-
-    if (allDependencies["@remix-run/react"] || allDependencies["remix"]) {
-      return "remix";
-    }
-
-    if (allDependencies["astro"]) {
-      return "astro";
-    }
-
-    if (allDependencies["gatsby"]) {
-      return "gatsby";
-    }
-
-    return null;
-  } catch {
-    return null;
-  }
+  const dependencies = readMergedDependencies(projectRoot);
+  if (!dependencies) return null;
+  if (dependencies["@remix-run/react"] || dependencies["remix"]) return "remix";
+  if (dependencies["astro"]) return "astro";
+  if (dependencies["gatsby"]) return "gatsby";
+  return null;
 };
 
 const detectReactGrabVersion = (projectRoot: string): string | null => {
@@ -441,7 +418,9 @@ const detectReactGrabVersion = (projectRoot: string): string | null => {
 };
 
 export const detectProject = async (projectRoot: string = process.cwd()): Promise<ProjectInfo> => {
-  const framework = detectFramework(projectRoot);
+  const localFramework = detectFramework(projectRoot);
+  const framework =
+    localFramework === "unknown" ? detectFrameworkFromMonorepoRoot(projectRoot) : localFramework;
   const packageManager = await detectPackageManager(projectRoot);
 
   return {

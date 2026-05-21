@@ -4,9 +4,6 @@ import type { Position } from "../../types.js";
 import { cn } from "../../utils/cn.js";
 import { loadToolbarState, saveToolbarState, type SnapEdge, type ToolbarState } from "./state.js";
 import { IconSelect } from "../icons/icon-select.jsx";
-import { IconComment } from "../icons/icon-comment.jsx";
-import { IconCopy } from "../icons/icon-copy.jsx";
-import { createSafePolygonTracker, type TargetRect } from "../../utils/safe-polygon.js";
 import {
   TOOLBAR_SNAP_MARGIN_PX,
   TOOLBAR_FADE_IN_DELAY_MS,
@@ -14,21 +11,18 @@ import {
   TOOLBAR_DEFAULT_WIDTH_PX,
   TOOLBAR_DEFAULT_HEIGHT_PX,
   TOOLBAR_DEFAULT_POSITION_RATIO,
-  FEEDBACK_DURATION_MS,
-  SAFE_POLYGON_BUFFER_PX,
   Z_INDEX_OVERLAY,
+  SELECT_ICON_NATURAL_POINT_ANGLE_DEG,
+  SELECT_ICON_POINT_MIN_DISTANCE_PX,
 } from "../../constants.js";
 import { freezeUpdates } from "../../utils/freeze-updates.js";
 import { freezeGlobalAnimations, unfreezeGlobalAnimations } from "../../utils/freeze-animations.js";
 import { freezePseudoStates, unfreezePseudoStates } from "../../utils/freeze-pseudo-states.js";
-import { getButtonSpacingClass, getHitboxConstraintClass } from "../../utils/toolbar-layout.js";
+import { getButtonSpacingClass } from "../../utils/toolbar-layout.js";
 import { ToolbarContent } from "./toolbar-content.js";
-import { UnreadCountBadge } from "../unread-count-badge.js";
-import { nativeRequestAnimationFrame } from "../../utils/native-raf.js";
 import { getVisualViewport } from "../../utils/get-visual-viewport.js";
 import {
   calculateExpandedPositionFromCollapsed,
-  clampToRange,
   getCollapsedDimsForEdge,
   getCollapsedPosition,
   getPositionFromEdgeAndRatio,
@@ -36,6 +30,7 @@ import {
   isHorizontalEdge,
 } from "../../utils/toolbar-position.js";
 import { createToolbarDrag } from "../../utils/create-toolbar-drag.js";
+import { accumulateRotationDeg } from "../../utils/accumulate-rotation.js";
 
 interface ToolbarProps {
   isActive?: boolean;
@@ -47,51 +42,18 @@ interface ToolbarProps {
   onSubscribeToStateChanges?: (callback: (state: ToolbarState) => void) => () => void;
   onSelectHoverChange?: (isHovered: boolean) => void;
   onContainerRef?: (element: HTMLDivElement) => void;
-  commentItemCount?: number;
-  clockFlashTrigger?: number;
-  onToggleComments?: () => void;
-  onCopyAll?: () => void;
-  onCopyAllHover?: (isHovered: boolean) => void;
-  onCommentsButtonHover?: (isHovered: boolean) => void;
-  isCommentsDropdownOpen?: boolean;
-  isCommentsPinned?: boolean;
   onToggleToolbarMenu?: () => void;
 }
 
 interface FreezeHandlersOptions {
   shouldFreezeInteractions?: boolean;
   onHoverChange?: (isHovered: boolean) => void;
-  safePolygonTargets?: () => TargetRect[] | null;
 }
 
 export const Toolbar: Component<ToolbarProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
+  let selectButtonRef: HTMLButtonElement | undefined;
   let unfreezeUpdatesCallback: (() => void) | null = null;
-
-  const safePolygonTracker = createSafePolygonTracker();
-
-  const getElementRect = (selector: string): TargetRect | null => {
-    if (!containerRef) return null;
-    const rootNode = containerRef.getRootNode() as Document | ShadowRoot;
-    const element = rootNode.querySelector<HTMLElement>(selector);
-    if (!element) return null;
-    const rect = element.getBoundingClientRect();
-    return {
-      x: rect.x - SAFE_POLYGON_BUFFER_PX,
-      y: rect.y - SAFE_POLYGON_BUFFER_PX,
-      width: rect.width + SAFE_POLYGON_BUFFER_PX * 2,
-      height: rect.height + SAFE_POLYGON_BUFFER_PX * 2,
-    };
-  };
-
-  const getSafePolygonTargets = (...selectors: string[]): TargetRect[] | null => {
-    const rects: TargetRect[] = [];
-    for (const selector of selectors) {
-      const rect = getElementRect(selector);
-      if (rect) rects.push(rect);
-    }
-    return rects.length > 0 ? rects : null;
-  };
 
   const savedState = loadToolbarState();
 
@@ -107,7 +69,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [isCollapseAnimating, setIsCollapseAnimating] = createSignal(false);
   const [isChevronPressed, setIsChevronPressed] = createSignal(false);
   const [isToolbarHovered, setIsToolbarHovered] = createSignal(false);
-  let clockFlashRef: HTMLSpanElement | undefined;
+  const [selectIconRotationDeg, setSelectIconRotationDeg] = createSignal(0);
   const drag = createToolbarDrag({
     getContainerRef: () => containerRef,
     isCollapsed,
@@ -138,13 +100,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     },
   });
 
-  const commentsIconClass = () =>
-    cn("transition-colors", props.isCommentsPinned ? "text-black/50" : "text-[#B3B3B3]");
-
   const isVertical = () => snapEdge() === "left" || snapEdge() === "right";
 
   const buttonSpacingClass = () => getButtonSpacingClass(isVertical());
-  const hitboxConstraintClass = () => getHitboxConstraintClass(isVertical());
 
   const stopEventPropagation = (event: Event) => {
     event.stopImmediatePropagation();
@@ -153,7 +111,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const createFreezeHandlers = (options?: FreezeHandlersOptions) => ({
     onMouseEnter: (event: MouseEvent) => {
       if (drag.isDragging()) return;
-      safePolygonTracker.stop();
       if (options?.shouldFreezeInteractions !== false && !unfreezeUpdatesCallback) {
         unfreezeUpdatesCallback = freezeUpdates();
         freezeGlobalAnimations();
@@ -161,7 +118,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       }
       options?.onHoverChange?.(true);
     },
-    onMouseLeave: (event: MouseEvent) => {
+    onMouseLeave: () => {
       if (
         options?.shouldFreezeInteractions !== false &&
         !props.isActive &&
@@ -172,15 +129,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         unfreezeGlobalAnimations();
         unfreezePseudoStates();
       }
-
-      const targetRects = options?.safePolygonTargets?.();
-      if (targetRects) {
-        safePolygonTracker.start({ x: event.clientX, y: event.clientY }, targetRects, () =>
-          options?.onHoverChange?.(false),
-        );
-        return;
-      }
-
       options?.onHoverChange?.(false);
     },
   });
@@ -208,107 +156,41 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     ),
   );
 
-  const reclampToolbarToViewport = () => {
-    if (!containerRef) return;
-    const rect = containerRef.getBoundingClientRect();
-    expandedDimensions = { width: rect.width, height: rect.height };
-
-    const currentPos = position();
-    const viewport = getVisualViewport();
-    const edge = snapEdge();
-    let clampedX = currentPos.x;
-    let clampedY = currentPos.y;
-
-    if (edge === "top" || edge === "bottom") {
-      const minX = viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX;
-      const maxX = Math.max(
-        minX,
-        viewport.offsetLeft + viewport.width - rect.width - TOOLBAR_SNAP_MARGIN_PX,
-      );
-      clampedX = clampToRange(currentPos.x, minX, maxX);
-      clampedY =
-        edge === "top"
-          ? viewport.offsetTop + TOOLBAR_SNAP_MARGIN_PX
-          : viewport.offsetTop + viewport.height - rect.height - TOOLBAR_SNAP_MARGIN_PX;
-    } else {
-      const minY = viewport.offsetTop + TOOLBAR_SNAP_MARGIN_PX;
-      const maxY = Math.max(
-        minY,
-        viewport.offsetTop + viewport.height - rect.height - TOOLBAR_SNAP_MARGIN_PX,
-      );
-      clampedY = clampToRange(currentPos.y, minY, maxY);
-      clampedX =
-        edge === "left"
-          ? viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX
-          : viewport.offsetLeft + viewport.width - rect.width - TOOLBAR_SNAP_MARGIN_PX;
-    }
-
-    const newRatio = getRatioFromPosition(edge, clampedX, clampedY, rect.width, rect.height);
-    setPositionRatio(newRatio);
-
-    const didPositionChange = clampedX !== currentPos.x || clampedY !== currentPos.y;
-    // Two nested rAFs defer setPosition until the browser has committed
-    // layout and paint from the preceding collapse/expand, which prevents
-    // a visible jump where the toolbar briefly appears at its old position
-    // before snapping to the new clamped coordinates.
-    if (didPositionChange) {
-      setIsCollapseAnimating(true);
-      nativeRequestAnimationFrame(() => {
-        nativeRequestAnimationFrame(() => {
-          setPosition({ x: clampedX, y: clampedY });
-          if (collapseAnimationTimeout) {
-            clearTimeout(collapseAnimationTimeout);
-          }
-          collapseAnimationTimeout = setTimeout(() => {
-            setIsCollapseAnimating(false);
-          }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
-        });
-      });
-    }
-  };
-
   createEffect(
     on(
-      () => props.clockFlashTrigger ?? 0,
-      () => {
-        if (props.isCommentsDropdownOpen) return;
-        if (clockFlashRef) {
-          clockFlashRef.classList.remove("animate-clock-flash");
-          // Reading offsetHeight forces a reflow between the class removal
-          // and re-addition, which restarts the CSS animation. Without it
-          // the browser would batch both operations as a no-op.
-          void clockFlashRef.offsetHeight;
-          clockFlashRef.classList.add("animate-clock-flash");
+      () => Boolean(props.isActive),
+      (isActive) => {
+        if (!isActive) {
+          // The accumulator can drift past ±180° while the user circles the
+          // toolbar; resetting to literal 0 would unspin those revolutions
+          // through the CSS transition. Snapping to the nearest equivalent
+          // of 0° keeps the ease-back to a shortest-path arc.
+          setSelectIconRotationDeg((previousRotationDeg) =>
+            accumulateRotationDeg(previousRotationDeg, 0),
+          );
+          return;
         }
-        const timerId = setTimeout(() => {
-          clockFlashRef?.classList.remove("animate-clock-flash");
-        }, FEEDBACK_DURATION_MS);
-        onCleanup(() => {
-          clearTimeout(timerId);
-        });
-      },
-      { defer: true },
-    ),
-  );
 
-  createEffect(
-    on(
-      () => props.commentItemCount ?? 0,
-      () => {
-        if (isCollapsed()) return;
-        if (commentItemCountTimeout) {
-          clearTimeout(commentItemCountTimeout);
-        }
-        commentItemCountTimeout = setTimeout(() => {
-          reclampToolbarToViewport();
-        }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
+        const handlePointerMove = (event: PointerEvent | MouseEvent) => {
+          if (!selectButtonRef) return;
+          const rect = selectButtonRef.getBoundingClientRect();
+          const centerX = rect.left + rect.width / 2;
+          const centerY = rect.top + rect.height / 2;
+          const dx = event.clientX - centerX;
+          const dy = event.clientY - centerY;
+          if (Math.hypot(dx, dy) < SELECT_ICON_POINT_MIN_DISTANCE_PX) return;
+          const targetAngleDeg = (Math.atan2(dy, dx) * 180) / Math.PI;
+          const desiredRotationDeg = targetAngleDeg - SELECT_ICON_NATURAL_POINT_ANGLE_DEG;
+          setSelectIconRotationDeg((previousRotationDeg) =>
+            accumulateRotationDeg(previousRotationDeg, desiredRotationDeg),
+          );
+        };
+
+        window.addEventListener("pointermove", handlePointerMove, { passive: true });
         onCleanup(() => {
-          if (commentItemCountTimeout) {
-            clearTimeout(commentItemCountTimeout);
-          }
+          window.removeEventListener("pointermove", handlePointerMove);
         });
       },
-      { defer: true },
     ),
   );
 
@@ -352,10 +234,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const handleToggle = drag.createDragAwareHandler(() => props.onToggle?.());
 
-  const handleComments = drag.createDragAwareHandler(() => props.onToggleComments?.());
-
-  const handleCopyAll = drag.createDragAwareHandler(() => props.onCopyAll?.());
-
   const handleToggleCollapse = drag.createDragAwareHandler(() => {
     const rect = containerRef?.getBoundingClientRect();
     const wasCollapsed = isCollapsed();
@@ -394,7 +272,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   let resizeTimeout: ReturnType<typeof setTimeout> | undefined;
   let collapseAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
-  let commentItemCountTimeout: ReturnType<typeof setTimeout> | undefined;
+
   let lastObservedExpandedSize: { width: number; height: number } | null = null;
 
   // Both directions need to refresh their cached dimensions: collapsing
@@ -626,9 +504,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     window.visualViewport?.removeEventListener("scroll", handleResize);
     clearTimeout(resizeTimeout);
     clearTimeout(collapseAnimationTimeout);
-    clearTimeout(commentItemCountTimeout);
+
     unfreezeUpdatesCallback?.();
-    safePolygonTracker.stop();
   });
 
   const currentPosition = () => {
@@ -725,8 +602,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         isCollapsed={isCollapsed()}
         snapEdge={snapEdge()}
         isShaking={isShaking()}
-        isCommentsExpanded={(props.commentItemCount ?? 0) > 0}
-        isCopyAllExpanded={Boolean(props.isCommentsDropdownOpen)}
         isChevronPressed={isChevronPressed()}
         transformOrigin={getTransformOrigin()}
         onAnimationEnd={() => setIsShaking(false)}
@@ -762,12 +637,13 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         }}
         selectButton={
           <button
+            ref={selectButtonRef}
             data-react-grab-ignore-events
             data-react-grab-toolbar-toggle
             aria-label={props.isActive ? "Stop selecting element" : "Select element"}
             aria-pressed={Boolean(props.isActive)}
             class={cn(
-              "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
+              "group contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
               buttonSpacingClass(),
             )}
             onClick={handleToggle}
@@ -780,66 +656,13 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           >
             <IconSelect
               size={14}
-              class={cn("transition-colors", props.isActive ? "text-black" : "text-black/70")}
+              rotationDeg={selectIconRotationDeg()}
+              class={
+                props.isActive
+                  ? "text-[var(--rg-text-primary)]"
+                  : "text-[var(--rg-text-secondary)] group-hover:text-[var(--rg-text-primary)]"
+              }
             />
-          </button>
-        }
-        commentsButton={
-          <button
-            data-react-grab-ignore-events
-            data-react-grab-toolbar-comments
-            aria-label={`Open comments${
-              (props.commentItemCount ?? 0) > 0 ? ` (${props.commentItemCount ?? 0} items)` : ""
-            }`}
-            aria-haspopup="menu"
-            aria-expanded={Boolean(props.isCommentsDropdownOpen)}
-            class={cn(
-              "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
-              buttonSpacingClass(),
-              hitboxConstraintClass(),
-            )}
-            onClick={handleComments}
-            {...createFreezeHandlers({
-              onHoverChange: (isHovered) => props.onCommentsButtonHover?.(isHovered),
-              shouldFreezeInteractions: false,
-              safePolygonTargets: () =>
-                props.isCommentsDropdownOpen
-                  ? getSafePolygonTargets(
-                      "[data-react-grab-comments-dropdown]",
-                      "[data-react-grab-toolbar-copy-all]",
-                    )
-                  : null,
-            })}
-          >
-            <span ref={clockFlashRef} class="inline-flex relative">
-              <IconComment size={14} class={commentsIconClass()} />
-              <UnreadCountBadge value={props.commentItemCount ?? 0} />
-            </span>
-          </button>
-        }
-        copyAllButton={
-          <button
-            data-react-grab-ignore-events
-            data-react-grab-toolbar-copy-all
-            aria-label="Copy all comments"
-            class={cn(
-              "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
-              hitboxConstraintClass(),
-            )}
-            onClick={handleCopyAll}
-            {...createFreezeHandlers({
-              onHoverChange: (isHovered) => props.onCopyAllHover?.(isHovered),
-              shouldFreezeInteractions: false,
-              safePolygonTargets: () =>
-                props.isCommentsDropdownOpen
-                  ? getSafePolygonTargets(
-                      "[data-react-grab-comments-dropdown]",
-                      "[data-react-grab-toolbar-comments]",
-                    )
-                  : null,
-            })}
-          >
-            <IconCopy size={14} class="text-[#B3B3B3] transition-colors" />
           </button>
         }
       />

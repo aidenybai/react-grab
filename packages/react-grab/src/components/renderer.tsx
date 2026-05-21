@@ -15,8 +15,6 @@ import { SelectionLabel } from "./selection-label/index.js";
 import { Toolbar } from "./toolbar/index.js";
 import { ContextMenu } from "./context-menu.js";
 import { ToolbarMenu } from "./toolbar/toolbar-menu.js";
-import { CommentsDropdown } from "./comments-dropdown.js";
-import { ClearCommentsPrompt } from "./clear-comments-prompt.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
   return (
@@ -26,7 +24,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         selectionBounds={props.selectionBounds}
         selectionBoundsMultiple={props.selectionBoundsMultiple}
         selectionShouldSnap={props.selectionShouldSnap}
-        selectionIsFading={props.selectionLabelStatus === "fading"}
         dragVisible={props.dragVisible}
         dragBounds={props.dragBounds}
         grabbedBoxes={props.grabbedBoxes}
@@ -59,11 +56,24 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
               tagName={entry().tagName}
               componentName={entry().componentName}
               selectionBounds={entry().bounds}
+              mouseX={entry().mouseX}
               visible={true}
+              shouldToggleExpandOnClick={entryIndex === 0}
               onToggleExpand={entryIndex === 0 ? props.onToggleExpand : undefined}
             />
           )}
         </Index>
+      </Show>
+      <Show when={props.selectionLabelVisible && props.pendingShiftPreviewEntry}>
+        {(pendingEntry) => (
+          <SelectionLabel
+            tagName={pendingEntry().tagName}
+            componentName={pendingEntry().componentName}
+            selectionBounds={pendingEntry().bounds}
+            mouseX={pendingEntry().mouseX}
+            visible={true}
+          />
+        )}
       </Show>
       <Show
         when={
@@ -141,14 +151,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           onSubscribeToStateChanges={props.onSubscribeToToolbarStateChanges}
           onSelectHoverChange={props.onToolbarSelectHoverChange}
           onContainerRef={props.onToolbarRef}
-          commentItemCount={props.commentItemCount}
-          clockFlashTrigger={props.clockFlashTrigger}
-          onToggleComments={props.onToggleComments}
-          onCopyAll={props.onCopyAll}
-          onCopyAllHover={props.onCopyAllHover}
-          onCommentsButtonHover={props.onCommentsButtonHover}
-          isCommentsDropdownOpen={Boolean(props.commentsDropdownPosition)}
-          isCommentsPinned={props.isCommentsPinned}
           onToggleToolbarMenu={props.onToggleToolbarMenu}
         />
       </Show>
@@ -169,23 +171,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         defaultActionId={props.defaultActionId ?? DEFAULT_ACTION_ID}
         onSetDefaultAction={props.onSetDefaultAction ?? (() => {})}
         onDismiss={props.onToolbarMenuDismiss ?? (() => {})}
-      />
-      <ClearCommentsPrompt
-        position={props.clearPromptPosition ?? null}
-        onConfirm={props.onClearCommentsConfirm ?? (() => {})}
-        onCancel={props.onClearCommentsCancel ?? (() => {})}
-      />
-      <CommentsDropdown
-        position={props.commentsDropdownPosition ?? null}
-        items={props.commentItems ?? []}
-        disconnectedItemIds={props.commentsDisconnectedItemIds}
-        onSelectItem={props.onCommentItemSelect}
-        onItemHover={props.onCommentItemHover}
-        onCopyAll={props.onCommentsCopyAll}
-        onCopyAllHover={props.onCommentsCopyAllHover}
-        onClearAll={props.onCommentsClear}
-        onDismiss={props.onCommentsDismiss}
-        onDropdownHover={props.onCommentsDropdownHover}
       />
     </>
   );

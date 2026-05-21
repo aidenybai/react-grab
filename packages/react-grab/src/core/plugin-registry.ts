@@ -20,7 +20,7 @@ import type {
   ActionContext,
 } from "../types.js";
 import { DEFAULT_THEME, deepMergeTheme } from "./theme.js";
-import { DEFAULT_KEY_HOLD_DURATION_MS, DEFAULT_MAX_CONTEXT_LINES } from "../constants.js";
+import { DEFAULT_KEY_HOLD_DURATION_MS } from "../constants.js";
 
 interface RegisteredPlugin {
   plugin: Plugin;
@@ -31,7 +31,6 @@ interface OptionsState {
   activationMode: ActivationMode;
   keyHoldDuration: number;
   allowActivationInsideInput: boolean;
-  maxContextLines: number;
   activationKey: ActivationKey | undefined;
   getContent: ((elements: Element[]) => Promise<string> | string) | undefined;
   freezeReactUpdates: boolean;
@@ -41,7 +40,6 @@ const DEFAULT_OPTIONS: OptionsState = {
   activationMode: "toggle",
   keyHoldDuration: DEFAULT_KEY_HOLD_DURATION_MS,
   allowActivationInsideInput: true,
-  maxContextLines: DEFAULT_MAX_CONTEXT_LINES,
   activationKey: undefined,
   getContent: undefined,
   freezeReactUpdates: true,
@@ -105,7 +103,6 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     "activationMode",
     "keyHoldDuration",
     "allowActivationInsideInput",
-    "maxContextLines",
     "activationKey",
     "getContent",
     "freezeReactUpdates",
@@ -306,8 +303,6 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       callHookReduceSync("transformActionContext", context),
     transformOpenFileUrl: (url: string, filePath: string, lineNumber?: number) =>
       callHookReduceSync("transformOpenFileUrl", url, filePath, lineNumber),
-    transformSnippet: async (snippet: string, element: Element) =>
-      callHookReduce("transformSnippet", snippet, element),
   };
 
   return {

@@ -3,6 +3,7 @@ import type { Component } from "solid-js";
 import type { ArrowPosition, SelectionLabelProps } from "../../types.js";
 import {
   FADE_DURATION_MS,
+  PANEL_SHADOW,
   IME_COMPOSING_KEY_CODE,
   VIEWPORT_MARGIN_PX,
   ARROW_CENTER_PERCENT,
@@ -71,8 +72,15 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   const isCompletedStatus = () => props.status === "copied" || props.status === "fading";
 
+  const canToggleExpand = () =>
+    Boolean(props.shouldToggleExpandOnClick) &&
+    Boolean(props.onToggleExpand) &&
+    canInteract() &&
+    !props.isPromptMode;
+
   const shouldEnablePointerEvents = (): boolean => {
     if (props.isPromptMode) return true;
+    if (canToggleExpand()) return true;
     if (isCompletedStatus() && (props.onDismiss || props.onShowContextMenu)) {
       return true;
     }
@@ -328,10 +336,20 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   const isArrowNavigationVisible = () => Boolean(props.arrowNavigationState?.isVisible);
 
+  const isSinglePanelLine = createMemo(() => {
+    if (props.error || props.isPendingDismiss) return false;
+    if (canInteract() && (props.isPromptMode || isArrowNavigationVisible())) return false;
+    return true;
+  });
+
   const handleTagClick = (event: MouseEvent) => {
     event.stopImmediatePropagation();
     if (props.filePath && props.onOpen) {
       props.onOpen();
+      return;
+    }
+    if (canToggleExpand()) {
+      props.onToggleExpand?.();
     }
   };
 
@@ -362,7 +380,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           "pointer-events": shouldEnablePointerEvents() ? "auto" : "none",
           transition: `opacity ${FADE_DURATION_MS}ms ease-out, filter ${FADE_DURATION_MS}ms ease-out`,
           opacity: props.status === "fading" || isInternalFading() ? 0 : 1,
-          filter: `drop-shadow(0px 1px 2px #51515140) blur(${props.status === "fading" || isInternalFading() ? "3px" : "0"})`,
+          filter: `drop-shadow(${PANEL_SHADOW}) blur(${props.status === "fading" || isInternalFading() ? "3px" : "0"})`,
         }}
         onPointerDown={handleContainerPointerDown}
         onClick={(event) => {
@@ -392,8 +410,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         <div
           ref={panelRef}
           class={cn(
-            "contain-layout flex items-center gap-[5px] rounded-[10px] antialiased w-fit h-fit p-0 [font-synthesis:none] [corner-shape:superellipse(1.25)]",
-            "bg-white",
+            "contain-layout flex items-center gap-[5px] antialiased w-fit h-fit p-0 [font-synthesis:none]",
+            isSinglePanelLine()
+              ? "rounded-full"
+              : "rounded-[14px] [corner-shape:superellipse(1.25)]",
+            "bg-[var(--rg-panel-bg)]",
             isShaking() && "animate-shake",
           )}
           style={{
@@ -404,7 +425,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           <Show when={props.status === "copying"}>
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start w-fit h-fit max-w-[280px]">
               <div class="contain-layout shrink-0 flex items-center gap-1 py-1.5 px-2 w-full h-fit">
-                <IconLoader size={13} class="text-[#71717a] shrink-0" />
+                <IconLoader size={13} class="text-[var(--rg-text-secondary)] shrink-0" />
                 <span class="shimmer-text text-[13px] leading-4 font-sans font-medium h-fit tabular-nums overflow-hidden text-ellipsis whitespace-nowrap">
                   {props.statusText ?? "Grabbing…"}
                 </span>
@@ -479,7 +500,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     }}
                     data-react-grab-ignore-events
                     data-react-grab-input
-                    class="text-black text-[13px] leading-4 font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 wrap-break-word overflow-y-auto"
+                    class="text-[var(--rg-text-primary)] text-[13px] leading-4 font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 wrap-break-word overflow-y-auto"
                     style={{
                       "field-sizing": "content",
                       "min-height": "16px",
@@ -496,10 +517,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   <Show when={props.onSubmit}>
                     <button
                       data-react-grab-submit
-                      class="contain-layout shrink-0 flex items-center justify-center size-4 rounded-full bg-black cursor-pointer ml-1 interactive-scale"
+                      class="contain-layout shrink-0 flex items-center justify-center size-4 rounded-full bg-[var(--rg-submit-bg)] cursor-pointer ml-1 interactive-scale"
                       onClick={() => props.onSubmit?.()}
                     >
-                      <IconSubmit size={10} class="text-white" />
+                      <IconSubmit size={10} class="text-[var(--rg-submit-fg)]" />
                     </button>
                   </Show>
                 </div>

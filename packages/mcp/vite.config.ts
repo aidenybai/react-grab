@@ -25,6 +25,9 @@ export default defineConfig({
       minify: process.env.NODE_ENV === "production",
       sourcemap: false,
       platform: "browser",
+      outputOptions: {
+        entryFileNames: "[name].global.js",
+      },
       deps: {
         alwaysBundle: [/.*/],
       },

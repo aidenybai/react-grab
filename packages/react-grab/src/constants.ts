@@ -2,13 +2,16 @@ import { overlayColor } from "./utils/overlay-color.js";
 
 export const VERSION = process.env.VERSION as string;
 
+export const PANEL_BACKGROUND = "var(--rg-panel-bg)";
+export const PANEL_SHADOW = "var(--rg-shadow)";
+
 export const VIEWPORT_MARGIN_PX = 8;
 export const OFFSCREEN_POSITION = -1000;
 
 export const SELECTION_LERP_FACTOR = 0.95;
 
 export const FEEDBACK_DURATION_MS = 1500;
-export const FADE_DURATION_MS = 100;
+export const FADE_DURATION_MS = 150;
 export const FADE_COMPLETE_BUFFER_MS = 150;
 export const KEYDOWN_SPAM_TIMEOUT_MS = 200;
 export const BLUR_DEACTIVATION_THRESHOLD_MS = 500;
@@ -44,7 +47,6 @@ export const BASELINE_FRAME_DURATION_MS = 1000 / 60;
 export const MIN_FRAME_DELTA_MS = 1;
 export const LERP_CONVERGENCE_THRESHOLD_PX = 0.5;
 export const OPACITY_CONVERGENCE_THRESHOLD = 0.01;
-export const FADE_OUT_BUFFER_MS = 100;
 export const MIN_DEVICE_PIXEL_RATIO = 2;
 
 export const OVERLAY_BORDER_COLOR_DRAG = overlayColor(0.4);
@@ -57,8 +59,15 @@ export const FROZEN_GLOW_EDGE_PX = 50;
 export const ARROW_HEIGHT_PX = 8;
 export const ARROW_MIN_SIZE_PX = 4;
 export const ARROW_MAX_LABEL_WIDTH_RATIO = 0.2;
+export const ARROW_TIP_RADIUS_PX = 1;
 export const ARROW_CENTER_PERCENT = 50;
 export const ARROW_LABEL_MARGIN_PX = 16;
+// The arrow base and the panel edge touch at the same fractional CSS
+// coordinate. Without overlap, that shared edge anti-aliases as a hairline
+// seam at certain zoom levels and devicePixelRatios. Overlapping by 1px
+// hides the seam without shifting the visual tip noticeably (both fills
+// are var(--rg-panel-bg) so the overlap is invisible).
+export const ARROW_PANEL_OVERLAP_PX = 1;
 export const LABEL_GAP_PX = 4;
 export const PREVIEW_TEXT_MAX_LENGTH = 100;
 export const PREVIEW_ATTR_VALUE_MAX_LENGTH = 15;
@@ -72,6 +81,29 @@ export const PREVIEW_PRIORITY_ATTRS: readonly string[] = [
   "name",
   "title",
 ];
+
+export const PREVIEW_IDENTIFYING_ATTRS = new Set([
+  "id",
+  "data-testid",
+  "aria-label",
+  "href",
+  "src",
+  "alt",
+  "type",
+  "name",
+  "placeholder",
+  "role",
+  "for",
+  "action",
+  "method",
+  "title",
+  "disabled",
+  "checked",
+  "readonly",
+  "required",
+  "selected",
+  "open",
+]);
 
 export const MODIFIER_KEYS: readonly string[] = ["Meta", "Control", "Shift", "Alt"];
 
@@ -101,6 +133,17 @@ export const TOOLBAR_DEFAULT_WIDTH_PX = 78;
 export const TOOLBAR_DEFAULT_HEIGHT_PX = 28;
 export const TOOLBAR_DEFAULT_POSITION_RATIO = 0.5;
 export const DEFAULT_ACTION_ID = "comment";
+
+export const MENU_PANEL_CORNER_RADIUS_PX = 14;
+export const MENU_HIGHLIGHT_CORNER_SHAPE = "superellipse(1.25)";
+
+// The select icon is a paper-airplane shape whose tip points toward the
+// top-right corner of its viewBox, ~45° above the +x axis. Subtracting this
+// from the mouse-relative angle yields the rotation needed to aim the tip at
+// the cursor.
+export const SELECT_ICON_NATURAL_POINT_ANGLE_DEG = -45;
+export const SELECT_ICON_ROTATION_TRANSITION_MS = 180;
+export const SELECT_ICON_POINT_MIN_DISTANCE_PX = 4;
 
 export const DRAG_SELECTION_COVERAGE_THRESHOLD = 0.75;
 export const DRAG_SELECTION_SAMPLE_SPACING_PX = 32;
@@ -152,6 +195,9 @@ export const TEXTAREA_MAX_HEIGHT_PX = 95;
 
 export const IME_COMPOSING_KEY_CODE = 229;
 export const SELECTION_LABEL_OFFSCREEN_PX = -9999;
+export const SHIFT_SELECTION_LABEL_MIN_ANCHOR_RATIO = 0;
+export const SHIFT_SELECTION_LABEL_MAX_ANCHOR_RATIO = 1;
+export const SHIFT_SELECTION_LABEL_FALLBACK_ANCHOR_RATIO = 0;
 
 export const RELEVANT_CSS_PROPERTIES = new Set([
   "display",

@@ -59,7 +59,13 @@ test.describe("Element Selection", () => {
     expect(clipboardMetadata.entries[0].content).toContain("Todo List");
   });
 
-  test("should block page text selection while grabbing", async ({ reactGrab }) => {
+  // PR #349 ("fix: keep page interactive while grabbing") intentionally
+  // stopped treating the copying state as a global selection-interaction
+  // lock so that clicks, scrolling, and native text selection on the page
+  // continue to work while React Grab finishes a slow copy hook.
+  test("should keep page interactive (allowing text selection) while a copy is pending", async ({
+    reactGrab,
+  }) => {
     await reactGrab.page.evaluate(() => {
       const api = (
         window as {
@@ -113,7 +119,7 @@ test.describe("Element Selection", () => {
     const selectedText = await reactGrab.page.evaluate(() => {
       return window.getSelection()?.toString().trim() ?? "";
     });
-    expect(selectedText).toBe("");
+    expect(selectedText).not.toBe("");
   });
 
   test("should highlight different elements when hovering", async ({ reactGrab }) => {

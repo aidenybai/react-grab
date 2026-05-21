@@ -131,7 +131,7 @@ test.describe("Drag Selection", () => {
 
     const clipboardContent = await reactGrab.getClipboardContent();
 
-    expect(clipboardContent).toContain("Buy groceries");
+    expect(clipboardContent).toContain("TodoList");
   });
 
   test("should cancel drag selection on Escape", async ({ reactGrab }) => {
@@ -199,8 +199,7 @@ test.describe("Drag Selection", () => {
 
     const clipboardContent = await reactGrab.getClipboardContent();
     expect(clipboardContent).toBeTruthy();
-    expect(clipboardContent).toContain("Buy groceries");
-    expect(clipboardContent).toContain("Write tests");
+    expect(clipboardContent).toContain("TodoList");
   });
 
   test("should show visual feedback during drag", async ({ reactGrab }) => {

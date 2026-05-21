@@ -1,0 +1,52 @@
+{
+  "label": "stage-0-baseline",
+  "timestamp": "2026-05-16T02-22-00-693Z",
+  "gitSha": null,
+  "gridSize": {
+    "rows": 50,
+    "columns": 10,
+    "total": 500
+  },
+  "scenarios": {
+    "hoverSweep": {
+      "count": 1500,
+      "total": 38.9,
+      "mean": 0.026,
+      "median": 0,
+      "p95": 0.1,
+      "max": 1.7
+    },
+    "scrollOnly": {
+      "count": 300,
+      "total": 5.9,
+      "mean": 0.02,
+      "median": 0,
+      "p95": 0.1,
+      "max": 0.3
+    },
+    "getStateReadAmplification": {
+      "count": 5000,
+      "total": 1.7,
+      "mean": 0,
+      "median": 0,
+      "p95": 0,
+      "max": 0.1
+    },
+    "viewportInvalidationBurst": {
+      "count": 100,
+      "total": 7352.6,
+      "mean": 73.526,
+      "median": 70.4,
+      "p95": 86.7,
+      "max": 116.1
+    },
+    "multiFreezeInvalidationBurst": {
+      "count": 100,
+      "total": 7779.3,
+      "mean": 77.793,
+      "median": 77.3,
+      "p95": 88.3,
+      "max": 102.3
+    }
+  }
+}

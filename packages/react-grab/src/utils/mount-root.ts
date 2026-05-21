@@ -43,11 +43,18 @@ const scheduleHostAttachment = (host: HTMLElement): void => {
   document.addEventListener("DOMContentLoaded", onReady, { once: true });
 };
 
-export const mountRoot = (cssText?: string) => {
+interface MountRootResult {
+  root: HTMLDivElement;
+  host: HTMLElement;
+}
+
+export const mountRoot = (cssText?: string): MountRootResult => {
   const mountedHosts = document.querySelectorAll<HTMLElement>(`[${ATTRIBUTE_NAME}]`);
   for (const mountedHost of mountedHosts) {
     const mountedRoot = mountedHost.shadowRoot?.querySelector(`[${ATTRIBUTE_NAME}]`);
-    if (mountedRoot instanceof HTMLDivElement) return mountedRoot;
+    if (mountedRoot instanceof HTMLDivElement) {
+      return { root: mountedRoot, host: mountedHost };
+    }
     mountedHost.remove();
   }
 
@@ -84,5 +91,5 @@ export const mountRoot = (cssText?: string) => {
     attachHostToBody(host);
   }, MOUNT_ROOT_RECHECK_DELAY_MS);
 
-  return root;
+  return { root, host };
 };

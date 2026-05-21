@@ -1,5 +1,37 @@
 # @react-grab/mcp
 
+## 0.1.37
+
+### Patch Changes
+
+- fix
+- Updated dependencies
+  - react-grab@0.1.37
+
+## 0.1.36
+
+### Patch Changes
+
+- fix hanging issue
+- Updated dependencies
+  - react-grab@0.1.36
+
+## 0.1.35
+
+### Patch Changes
+
+- ui improvement
+- Updated dependencies
+  - react-grab@0.1.35
+
+## 0.1.34
+
+### Patch Changes
+
+- fix
+- Updated dependencies
+  - react-grab@0.1.34
+
 ## 0.1.33
 
 ### Patch Changes

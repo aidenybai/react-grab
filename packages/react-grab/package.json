@@ -1,6 +1,6 @@
 {
   "name": "react-grab",
-  "version": "0.1.33",
+  "version": "0.1.37",
   "description": "Select context for coding agents directly from your website",
   "keywords": [
     "agent",
@@ -82,32 +82,35 @@
   "scripts": {
     "css:watch": "tailwindcss -i ./src/styles.css -o ./dist/styles.css -w",
     "prebuild": "mkdir -p dist && tailwindcss -i ./src/styles.css -o ./dist/styles.css -m && tsx scripts/css-rem-to-px.ts",
-    "build": "NODE_ENV=production vp pack && cp dist/index.iife.js dist/index.global.js",
+    "build": "NODE_ENV=production vp pack",
     "dev": "concurrently \"pnpm:css:watch\" \"vp pack --watch\"",
     "test": "playwright test",
     "test:expect": "bun e2e/react-grab.expect.ts",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "pnpm build",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "perf:bench": "node scripts/perf-bench.mjs",
+    "perf:baseline": "node scripts/perf-bench.mjs --label=baseline"
   },
   "dependencies": {
     "@react-grab/cli": "workspace:*",
-    "bippy": "^0.5.39"
+    "bippy": "^0.5.41"
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",
     "@babel/preset-typescript": "^7.28.5",
     "@playwright/test": "^1.59.1",
-    "@tailwindcss/cli": "^4.2.4",
+    "@tailwindcss/cli": "^4.3.0",
     "@types/babel__core": "^7.20.5",
-    "@types/node": "^25.6.0",
+    "@types/node": "^25.6.2",
     "@types/react": "^19.2.14",
     "babel-preset-solid": "^1.9.12",
-    "concurrently": "^9.1.2",
+    "concurrently": "^9.2.1",
     "expect-sdk": "^0.1.2",
     "solid-js": "^1.9.12",
-    "tailwindcss": "^4.2.4",
-    "tsx": "^4.21.0"
+    "tailwindcss": "^4.3.0",
+    "tsx": "^4.21.0",
+    "vite-plus": "^0.1.20"
   },
   "peerDependencies": {
     "react": ">=17.0.0"

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { PerfGrid } from "./perf-grid";
 
 interface Todo {
   id: number;
@@ -612,7 +613,30 @@ const HiddenToggleSection = () => {
   );
 };
 
+const usePerfGridConfig = (): { rowCount: number; columnCount: number } | null => {
+  if (typeof window === "undefined") return null;
+  const params = new URLSearchParams(window.location.search);
+  const perfMode = params.get("perf");
+  if (perfMode !== "grid") return null;
+  const parseCount = (key: string, fallback: number) => {
+    const raw = params.get(key);
+    if (!raw) return fallback;
+    const parsed = Number.parseInt(raw, 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+  };
+  return {
+    rowCount: parseCount("rows", 50),
+    columnCount: parseCount("cols", 10),
+  };
+};
+
 export default function App() {
+  const perfConfig = usePerfGridConfig();
+
+  if (perfConfig) {
+    return <PerfGrid rowCount={perfConfig.rowCount} columnCount={perfConfig.columnCount} />;
+  }
+
   return (
     <div className="min-h-[200vh] p-12 flex flex-col gap-8 pb-32">
       <EdgeElements />

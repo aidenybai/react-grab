@@ -1,78 +1,60 @@
-import { copyContent, type ReactGrabEntry } from "../utils/copy-content.js";
-import { generateSnippet } from "../utils/generate-snippet.js";
-import { joinSnippets } from "../utils/join-snippets.js";
+import { getInlineHTMLPreview, getStackContext } from "./context.js";
+import { copyContent } from "../utils/copy-content.js";
 import { normalizeError } from "../utils/normalize-error.js";
 
-interface CopyOptions {
-  maxContextLines?: number;
+interface CopyFlowOptions {
   getContent?: (elements: Element[]) => Promise<string> | string;
   componentName?: string;
 }
 
-interface CopyHooks {
+interface CopyFlowHooks {
   onBeforeCopy: (elements: Element[]) => Promise<void>;
-  transformSnippet: (snippet: string, element: Element) => Promise<string>;
   transformCopyContent: (content: string, elements: Element[]) => Promise<string>;
-  onAfterCopy: (elements: Element[], success: boolean) => void;
+  onAfterCopy: (elements: Element[], didCopy: boolean) => void;
   onCopySuccess: (elements: Element[], content: string) => void;
   onCopyError: (error: Error) => void;
 }
 
-export const tryCopyWithFallback = async (
-  options: CopyOptions,
-  hooks: CopyHooks,
-  elements: Element[],
-  extraPrompt?: string,
-): Promise<boolean> => {
-  let didCopy = false;
-  let copiedContent = "";
+const formatElementReference = async (element: Element): Promise<string> => {
+  const inlinePreview = getInlineHTMLPreview(element);
+  const inlineStack = (await getStackContext(element)).replace(/\n\s+/g, " ");
+  return `[${inlinePreview}${inlineStack}]`;
+};
 
+const buildClipboardPayload = async (elements: Element[]): Promise<string | null> => {
+  const references = await Promise.all(elements.map(formatElementReference));
+  const uniqueReferences = [...new Set(references)];
+  return uniqueReferences.length > 0 ? uniqueReferences.join("\n") : null;
+};
+
+export const runCopyFlow = async (
+  options: CopyFlowOptions,
+  hooks: CopyFlowHooks,
+  elements: Element[],
+  prependedPrompt?: string,
+): Promise<boolean> => {
   await hooks.onBeforeCopy(elements);
 
+  let didCopy = false;
+  let finalContent = "";
+
   try {
-    let generatedContent: string;
-    let entries: ReactGrabEntry[] | undefined;
+    const rawContent = options.getContent
+      ? await options.getContent(elements)
+      : await buildClipboardPayload(elements);
 
-    if (options.getContent) {
-      generatedContent = await options.getContent(elements);
-    } else {
-      const rawSnippets = await generateSnippet(elements, {
-        maxLines: options.maxContextLines,
-      });
-      const transformedSnippets = await Promise.all(
-        rawSnippets.map((snippet, index) =>
-          snippet.trim() ? hooks.transformSnippet(snippet, elements[index]) : Promise.resolve(""),
-        ),
-      );
-      const snippetElementPairs = transformedSnippets
-        .map((snippet, index) => ({ snippet, element: elements[index] }))
-        .filter(({ snippet }) => snippet.trim());
-
-      generatedContent = joinSnippets(snippetElementPairs.map(({ snippet }) => snippet));
-      entries = snippetElementPairs.map(({ snippet, element }) => ({
-        tagName: element.localName,
-        content: snippet,
-        commentText: extraPrompt,
-      }));
-    }
-
-    if (generatedContent.trim()) {
-      const transformedContent = await hooks.transformCopyContent(generatedContent, elements);
-
-      copiedContent = extraPrompt ? `${extraPrompt}\n\n${transformedContent}` : transformedContent;
-
-      didCopy = copyContent(copiedContent, {
-        componentName: options.componentName,
-        entries,
-      });
+    if (rawContent?.trim()) {
+      const transformedContent = await hooks.transformCopyContent(rawContent, elements);
+      finalContent = prependedPrompt
+        ? `${prependedPrompt}\n${transformedContent}`
+        : transformedContent;
+      didCopy = copyContent(finalContent, { componentName: options.componentName });
     }
   } catch (error) {
     hooks.onCopyError(normalizeError(error));
   }
 
-  if (didCopy) {
-    hooks.onCopySuccess(elements, copiedContent);
-  }
+  if (didCopy) hooks.onCopySuccess(elements, finalContent);
   hooks.onAfterCopy(elements, didCopy);
 
   return didCopy;

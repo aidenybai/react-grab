@@ -1,6 +1,6 @@
 {
   "name": "@react-grab/cli",
-  "version": "0.1.33",
+  "version": "0.1.37",
   "bin": {
     "react-grab": "./bin/cli.js"
   },
@@ -27,16 +27,18 @@
     "check": "vp check"
   },
   "dependencies": {
-    "@antfu/ni": "^30.1.0",
     "commander": "^14.0.3",
     "ignore": "^7.0.5",
     "jsonc-parser": "^3.3.1",
     "ora": "^9.4.0",
+    "package-manager-detector": "^1.6.0",
     "picocolors": "^1.1.1",
     "prompts": "^2.4.2",
-    "smol-toml": "^1.6.1"
+    "smol-toml": "^1.6.1",
+    "tinyexec": "^1.1.2"
   },
   "devDependencies": {
-    "@types/prompts": "^2.4.9"
+    "@types/prompts": "^2.4.9",
+    "vite-plus": "^0.1.20"
   }
 }

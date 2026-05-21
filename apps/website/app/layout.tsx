@@ -25,10 +25,11 @@ const geistMono = Geist_Mono({
   preload: true,
 });
 
+const description = "Copy any UI element for your agent";
+
 export const metadata: Metadata = {
   title: "React Grab",
-  description:
-    "Select an element → Give it to Cursor, Claude Code, etc → Make a change to your app",
+  description,
   icons: {
     icon: "https://react-grab.com/logo.png",
     shortcut: "https://react-grab.com/logo.png",
@@ -37,8 +38,7 @@ export const metadata: Metadata = {
   openGraph: {
     images: "https://react-grab.com/banner.png",
     title: "React Grab",
-    description:
-      "Select an element → Give it to Cursor, Claude Code, etc → Make a change to your app",
+    description,
     url: "https://react-grab.com",
     siteName: "React Grab",
     locale: "en_US",
@@ -47,8 +47,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "React Grab",
-    description:
-      "Select an element → Give it to Cursor, Claude Code, etc → Make a change to your app",
+    description,
     images: "https://react-grab.com/banner.png",
   },
 };

@@ -218,7 +218,6 @@ export interface PluginHooks {
   ) => AgentContext | Promise<AgentContext>;
   transformActionContext?: (context: ActionContext) => ActionContext;
   transformOpenFileUrl?: (url: string, filePath: string, lineNumber?: number) => string;
-  transformSnippet?: (snippet: string, element: Element) => string | Promise<string>;
 }
 
 export interface PluginConfig {
@@ -243,7 +242,6 @@ export interface Options {
   activationMode?: ActivationMode;
   keyHoldDuration?: number;
   allowActivationInsideInput?: boolean;
-  maxContextLines?: number;
   activationKey?: ActivationKey;
   getContent?: (elements: Element[]) => Promise<string> | string;
   /**
@@ -351,6 +349,7 @@ export interface FrozenLabelEntry {
   tagName: string;
   componentName?: string;
   bounds: OverlayBounds;
+  mouseX?: number;
 }
 
 export interface ReactGrabRendererProps {
@@ -360,6 +359,7 @@ export interface ReactGrabRendererProps {
   selectionShouldSnap?: boolean;
   selectionElementsCount?: number;
   frozenLabelEntries?: FrozenLabelEntry[];
+  pendingShiftPreviewEntry?: FrozenLabelEntry;
   selectionFilePath?: string;
   selectionLineNumber?: number;
   selectionTagName?: string;
@@ -407,32 +407,12 @@ export interface ReactGrabRendererProps {
   actionContext?: ActionContext;
   onContextMenuDismiss?: () => void;
   onContextMenuHide?: () => void;
-  commentItems?: CommentItem[];
-  commentsDisconnectedItemIds?: Set<string>;
-  commentItemCount?: number;
-  clockFlashTrigger?: number;
-  commentsDropdownPosition?: DropdownAnchor | null;
-  isCommentsPinned?: boolean;
-  onToggleComments?: () => void;
-  onCopyAll?: () => void;
-  onCopyAllHover?: (isHovered: boolean) => void;
-  onCommentsButtonHover?: (isHovered: boolean) => void;
-  onCommentItemSelect?: (item: CommentItem) => void;
-  onCommentItemHover?: (commentItemId: string | null) => void;
-  onCommentsCopyAll?: () => void;
-  onCommentsCopyAllHover?: (isHovered: boolean) => void;
-  onCommentsClear?: () => void;
-  onCommentsDismiss?: () => void;
-  onCommentsDropdownHover?: (isHovered: boolean) => void;
   toolbarMenuPosition?: DropdownAnchor | null;
   toolbarMenuActions?: ContextMenuAction[];
   defaultActionId?: string;
   onSetDefaultAction?: (actionId: string) => void;
   onToggleToolbarMenu?: () => void;
   onToolbarMenuDismiss?: () => void;
-  clearPromptPosition?: DropdownAnchor | null;
-  onClearCommentsConfirm?: () => void;
-  onClearCommentsCancel?: () => void;
 }
 
 export interface GrabbedBox {
@@ -512,6 +492,7 @@ export interface SelectionLabelProps {
   status?: SelectionLabelStatus;
   statusText?: string;
   filePath?: string;
+  shouldToggleExpandOnClick?: boolean;
   arrowNavigationState?: ArrowNavigationState;
   onArrowNavigationSelect?: (index: number) => void;
   onInputChange?: (value: string) => void;

@@ -52,7 +52,7 @@ export const DiscardPrompt: Component<DiscardPromptProps> = (props) => {
       onClick={handleFocus}
     >
       <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 px-2 w-full h-fit">
-        <span class="text-black text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
+        <span class="text-[var(--rg-text-primary)] text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
           {props.label ?? "Discard?"}
         </span>
       </div>
@@ -60,18 +60,22 @@ export const DiscardPrompt: Component<DiscardPromptProps> = (props) => {
         <div class="contain-layout shrink-0 flex items-center justify-end gap-[5px] w-full h-fit">
           <button
             data-react-grab-discard-no
-            class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] press-scale h-[17px]"
+            class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[var(--rg-surface-hover)] [border-width:0.5px] border-solid border-[var(--rg-border-button)] cursor-pointer transition-all hover:bg-[var(--rg-surface-active)] press-scale h-[17px]"
             onClick={props.onCancel}
           >
-            <span class="text-black text-[13px] leading-3.5 font-sans font-medium">No</span>
+            <span class="text-[var(--rg-text-primary)] text-[13px] leading-3.5 font-sans font-medium">
+              No
+            </span>
           </button>
           <button
             data-react-grab-discard-yes
-            class="contain-layout shrink-0 flex items-center justify-center gap-0.5 px-[3px] py-px rounded-sm bg-[#FEF2F2] cursor-pointer transition-all hover:bg-[#FEE2E2] press-scale h-[17px]"
+            class="contain-layout shrink-0 flex items-center justify-center gap-0.5 px-[3px] py-px rounded-sm bg-[var(--rg-error-bg)] cursor-pointer transition-all hover:bg-[var(--rg-error-bg-hover)] press-scale h-[17px]"
             onClick={props.onConfirm}
           >
-            <span class="text-[#B91C1C] text-[13px] leading-3.5 font-sans font-medium">Yes</span>
-            <IconReturn size={10} class="text-[#B91C1C]/50" />
+            <span class="text-[var(--rg-error-text)] text-[13px] leading-3.5 font-sans font-medium">
+              Yes
+            </span>
+            <IconReturn size={10} class="text-[var(--rg-error-text)] opacity-50" />
           </button>
         </div>
       </BottomSection>

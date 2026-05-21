@@ -1,27 +1,40 @@
 import type { Component } from "solid-js";
+import { cn } from "../../utils/cn.js";
+import { SELECT_ICON_ROTATION_TRANSITION_MS } from "../../constants.js";
 
 interface IconSelectProps {
   size?: number;
   class?: string;
+  rotationDeg?: number;
 }
 
 export const IconSelect: Component<IconSelectProps> = (props) => {
   const size = () => props.size ?? 14;
+  const rotationDeg = () => props.rotationDeg ?? 0;
 
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={size()}
-      height={size()}
-      viewBox="0 0 18 18"
-      fill="currentColor"
-      class={props.class}
+    <span
+      class={cn("inline-flex items-center justify-center will-change-transform", props.class)}
+      style={{
+        transform: `rotate(${rotationDeg()}deg)`,
+        "transition-property": "transform",
+        "transition-duration": `${SELECT_ICON_ROTATION_TRANSITION_MS}ms`,
+        "transition-timing-function": "cubic-bezier(0.32, 0.72, 0, 1)",
+      }}
     >
-      <path
-        opacity="0.4"
-        d="M7.65631 10.9565C7.31061 10.0014 7.54012 8.96635 8.25592 8.25195C8.74522 7.76615 9.38771 7.49951 10.0694 7.49951C10.3682 7.49951 10.6641 7.55171 10.9483 7.65381L16.0001 9.49902V4.75C16.0001 3.2334 14.7667 2 13.2501 2H4.75012C3.23352 2 2.00012 3.2334 2.00012 4.75V13.25C2.00012 14.7666 3.23352 16 4.75012 16H9.49962L7.65631 10.9565Z"
-      />
-      <path d="M17.296 11.5694L10.4415 9.06545C10.0431 8.92235 9.61441 9.01658 9.31551 9.31338C9.01671 9.61168 8.92101 10.0429 9.06551 10.4413L11.5704 17.2948C11.7247 17.7191 12.128 18.0004 12.5772 18.0004C12.585 18.0004 12.5918 17.9999 12.5987 17.9999C13.0577 17.9906 13.4591 17.6913 13.5987 17.2543L14.4854 14.4857L17.2559 13.5985C17.6914 13.4589 17.9903 13.057 18 12.599C18.0097 12.141 17.7267 11.7276 17.296 11.5694Z" />
-    </svg>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={size()}
+        height={size()}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+      >
+        <path
+          fill-rule="evenodd"
+          clip-rule="evenodd"
+          d="M20.8977 4.02356L21.8277 4.39121C22.3784 2.99813 21.0382 1.60206 19.6238 2.09546L3.47334 7.72936C1.38661 8.45728 1.49021 11.443 3.6224 12.0245L10.1289 13.799L11.2331 19.8724C11.638 22.0991 14.7072 22.4019 15.5393 20.2972L21.8277 4.39121L20.8977 4.02356Z"
+        />
+      </svg>
+    </span>
   );
 };

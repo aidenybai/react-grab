@@ -12,6 +12,7 @@ import {
 } from "react";
 import { Calligraph } from "calligraph";
 import { TriangleAlert } from "lucide-react";
+import Link from "next/link";
 import {
   AGENT_CYCLE_INTERVAL_MS,
   DEFAULT_CHUNK_SIZE,
@@ -21,7 +22,6 @@ import {
 } from "@/constants";
 import { useStream, type StreamBlock, type StreamRenderedBlock } from "@/hooks/use-stream";
 import { detectMobile } from "@/utils/detect-mobile";
-import { BenchmarkTooltip } from "./benchmark-tooltip";
 import { ThoughtBlock } from "./blocks/thought-block";
 import { MessageBlock } from "./blocks/message-block";
 import { GrepSearchGroup } from "./blocks/grep-search-group";
@@ -84,7 +84,7 @@ const ReactGrabIntro = (): ReactElement => (
     </div>
     <div className="text-pretty">
       <span className="font-bold">React&nbsp;Grab</span>
-      {" lets you select context for coding agents directly from your\u00a0website."}
+      {" lets you copy any UI element for your\u00a0agent."}
     </div>
   </div>
 );
@@ -146,12 +146,13 @@ const CyclingAgent = (): ReactElement => {
 const ToolsList = (): ReactElement => (
   <span className="text-pretty">
     Get <CyclingAgent /> to the right code{" "}
-    <BenchmarkTooltip
-      href="https://react-bench.com"
+    <Link
+      href="https://benchmarks.react-grab.com"
+      rel="noreferrer"
       className="shimmer-text-pink inline-block touch-manipulation py-1"
     >
       <span className="font-bold">2×</span>&nbsp;faster
-    </BenchmarkTooltip>
+    </Link>
   </span>
 );
 

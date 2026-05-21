@@ -6,42 +6,57 @@ import {
 import { freezePseudoStates, unfreezePseudoStates } from "./utils/freeze-pseudo-states.js";
 import { freezeUpdates } from "./utils/freeze-updates.js";
 import {
+  suspendPointerEventsFreeze,
+  resumePointerEventsFreeze,
+} from "./utils/pointer-events-freeze.js";
+import {
   getComponentDisplayName,
   getHTMLPreview,
   getStack,
   getStackContext,
+  getElementContext as formatElementSnippet,
+  resolveSource,
 } from "./core/context.js";
 import { Fiber, getFiberFromHostInstance } from "bippy";
 import type { StackFrame } from "bippy/source";
 export type { StackFrame };
 import { createElementSelector } from "./utils/create-element-selector.js";
-import { extractElementCss } from "./utils/extract-element-css.js";
+import { extractElementCss, disposeBaselineStyles } from "./utils/extract-element-css.js";
 import { openFile as openFileAsync } from "./utils/open-file.js";
 
 export interface ReactGrabElementContext {
   element: Element;
+  snippet: string;
   htmlPreview: string;
   stackString: string;
   stack: StackFrame[];
   componentName: string | null;
+  filePath: string | null;
+  lineNumber: number | null;
+  columnNumber: number | null;
   fiber: Fiber | null;
   selector: string | null;
   styles: string;
 }
 
 /**
- * Gathers comprehensive context for a DOM element, including its React fiber,
- * component name, source stack, HTML preview, CSS selector, and computed styles.
+ * Gathers comprehensive context for a DOM element — the same context
+ * React Grab copies to the clipboard, plus structured source location
+ * and computed styles.
  *
  * @example
- * const context = await getElementContext(document.querySelector('.my-button')!);
- * console.log(context.componentName); // "SubmitButton"
- * console.log(context.selector);      // "button.my-button"
- * console.log(context.stackString);   // "\n  in SubmitButton (at Button.tsx:12:5)"
- * console.log(context.stack[0]);      // { functionName: "SubmitButton", fileName: "Button.tsx", lineNumber: 12, columnNumber: 5 }
+ * const ctx = await getElementContext(document.querySelector('.my-button')!);
+ * ctx.snippet;       // formatted text identical to React Grab's clipboard output
+ * ctx.componentName; // "SubmitButton"
+ * ctx.filePath;      // "/src/components/Button.tsx"
+ * ctx.lineNumber;    // 12
  */
 export const getElementContext = async (element: Element): Promise<ReactGrabElementContext> => {
-  const stack = (await getStack(element)) ?? [];
+  const [snippet, source, stack] = await Promise.all([
+    formatElementSnippet(element),
+    resolveSource(element),
+    getStack(element).then((result) => result ?? []),
+  ]);
   const stackString = await getStackContext(element);
   const htmlPreview = getHTMLPreview(element);
   const componentName = getComponentDisplayName(element);
@@ -51,14 +66,38 @@ export const getElementContext = async (element: Element): Promise<ReactGrabElem
 
   return {
     element,
+    snippet,
     htmlPreview,
     stackString,
     stack,
     componentName,
+    filePath: source?.filePath ?? null,
+    lineNumber: source?.lineNumber ?? null,
+    columnNumber: source?.columnNumber ?? null,
     fiber,
     selector,
     styles,
   };
+};
+
+export { copyContent } from "./utils/copy-content.js";
+
+/**
+ * Returns all elements at the given viewport coordinates, temporarily
+ * suspending the pointer-events freeze so `elementsFromPoint` can
+ * reach real elements underneath.
+ *
+ * @example
+ * freeze();
+ * const elements = getElementsAtPosition(e.clientX, e.clientY);
+ * // elements[0] is the topmost element under the cursor
+ */
+export const getElementsAtPosition = (clientX: number, clientY: number): Element[] => {
+  if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) return [];
+  suspendPointerEventsFreeze();
+  const elements = document.elementsFromPoint(clientX, clientY);
+  resumePointerEventsFreeze();
+  return Array.from(elements);
 };
 
 const freezeCleanupFns = new Set<() => void>();
@@ -124,3 +163,5 @@ export const isFreezeActive = (): boolean => {
 export const openFile = async (filePath: string, lineNumber?: number): Promise<void> => {
   await openFileAsync(filePath, lineNumber);
 };
+
+export { disposeBaselineStyles };
