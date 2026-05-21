@@ -62,6 +62,14 @@ const FRAMEWORK_NAMES: Record<Framework, string> = {
   unknown: "Unknown",
 };
 
+const SUPPORTED_FRAMEWORKS_MESSAGE = `React Grab supports ${[
+  FRAMEWORK_NAMES.next,
+  FRAMEWORK_NAMES.vite,
+  FRAMEWORK_NAMES.tanstack,
+  FRAMEWORK_NAMES.webpack,
+  FRAMEWORK_NAMES.sveltekit,
+].join(", ")} projects.`;
+
 const PACKAGE_MANAGER_NAMES: Record<PackageManager, string> = {
   npm: "npm",
   yarn: "Yarn",
@@ -421,7 +429,7 @@ export const init = new Command()
           if (newProjectInfo.framework === "unknown") {
             newFrameworkSpinner.fail("Could not detect a supported framework in this project.");
             logger.break();
-            logger.log("React Grab supports Next.js, Vite, TanStack Start, and Webpack projects.");
+            logger.log(SUPPORTED_FRAMEWORKS_MESSAGE);
             logger.log(`Visit ${highlighter.info(DOCS_URL)} for manual setup.`);
             logger.break();
             process.exit(1);
@@ -432,7 +440,7 @@ export const init = new Command()
         } else {
           frameworkSpinner.fail("Could not detect a supported framework.");
           logger.break();
-          logger.log("React Grab supports Next.js, Vite, TanStack Start, and Webpack projects.");
+          logger.log(SUPPORTED_FRAMEWORKS_MESSAGE);
           logger.log(`Visit ${highlighter.info(DOCS_URL)} for manual setup.`);
           logger.break();
           process.exit(1);
