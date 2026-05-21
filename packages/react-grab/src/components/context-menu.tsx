@@ -219,9 +219,17 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
   const restorePreviousFocus = () => {
     const target = previouslyFocusedElement;
     previouslyFocusedElement = null;
-    if (target instanceof HTMLElement && document.contains(target)) {
+    if (!(target instanceof HTMLElement) || !document.contains(target)) return;
+    // Activating a menu item often triggers a state change that focuses
+    // something else (e.g. the prompt-mode textarea). Deferring lets that
+    // focus land first, and the guard below skips restore when it has, so
+    // we do not yank focus away from the action's intended target.
+    nativeRequestAnimationFrame(() => {
+      const activeElement = document.activeElement;
+      const isBodyFocused = activeElement === document.body || activeElement === null;
+      if (!isBodyFocused) return;
       target.focus({ preventScroll: true });
-    }
+    });
   };
 
   onMount(() => {
