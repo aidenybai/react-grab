@@ -1,4 +1,4 @@
-import { Show, For, onMount, onCleanup, createSignal, createEffect, createMemo } from "solid-js";
+import { Show, For, on, onMount, onCleanup, createSignal, createEffect, createMemo } from "solid-js";
 import type { Component } from "solid-js";
 import type {
   Position,
@@ -73,7 +73,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
   // instead, which fires regardless of where DOM focus is.
   const [activeItemIndex, setActiveItemIndex] = createSignal(-1);
 
-  const isVisible = () => props.position !== null;
+  const isVisible = createMemo(() => props.position !== null);
 
   const tagDisplayResult = createMemo(() =>
     getTagDisplay({
@@ -206,23 +206,31 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     }
   });
 
-  // Single, predictable focus move: focus the menu container on open so
-  // aria-activedescendant (driven by activeItemIndex) is announced by
-  // assistive tech. On close, restore focus to whatever the host page had
-  // focused — but only if nothing else has already claimed focus (e.g. the
-  // prompt-mode textarea that an action opened), so we don't yank it back.
-  createEffect(() => {
-    if (isVisible()) {
-      const previousActiveElement = document.activeElement;
-      const isPreviousInsideMenu =
-        previousActiveElement instanceof Element &&
-        containerRef instanceof Element &&
-        containerRef.contains(previousActiveElement);
-      if (!isPreviousInsideMenu) {
-        previouslyFocusedElement = previousActiveElement;
+  // Single, predictable focus move keyed strictly on visibility (not on
+  // position): focus the menu container on open so aria-activedescendant
+  // (driven by activeItemIndex) is announced by assistive tech. On close,
+  // restore focus to whatever the host page had focused — but only if
+  // nothing else has already claimed focus (e.g. the prompt-mode textarea
+  // that an action opened), so we do not yank it back.
+  createEffect(
+    on(isVisible, (visible) => {
+      if (visible) {
+        // document.activeElement returns the shadow host when focus is
+        // inside the shadow root, so use the host's shadowRoot.activeElement
+        // to detect a focused element that already lives in our own DOM
+        // tree; we should not capture our own host as "previous".
+        const hostShadowRoot = containerRef?.getRootNode();
+        const focusInsideHost =
+          hostShadowRoot instanceof ShadowRoot ? hostShadowRoot.activeElement : null;
+        const pageActiveElement = document.activeElement;
+        const wasFocusedOnPage =
+          pageActiveElement instanceof HTMLElement &&
+          focusInsideHost === null &&
+          !(containerRef instanceof Element && containerRef.contains(pageActiveElement));
+        previouslyFocusedElement = wasFocusedOnPage ? pageActiveElement : null;
+        menuContainerRef?.focus({ preventScroll: true });
+        return;
       }
-      menuContainerRef?.focus({ preventScroll: true });
-    } else {
       setActiveItemIndex(-1);
       const restoreTarget = previouslyFocusedElement;
       previouslyFocusedElement = null;
@@ -237,8 +245,8 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
         if (!isOrphanedFocus) return;
         restoreTarget.focus({ preventScroll: true });
       });
-    }
-  });
+    }),
+  );
 
   const handleAction = (item: MenuItem, event: Event) => {
     event.stopPropagation();
