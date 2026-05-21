@@ -377,7 +377,7 @@ const meta: Meta<SceneProps> = {
     filePath: "",
   },
   argTypes: {
-    selectedElement: { control: "select", options: ELEMENT_KEYS },
+    selectedElement: { control: "select", options: [...ELEMENT_KEYS] },
     showToolbar: { control: "boolean" },
     isActive: { control: "boolean" },
     enabled: { control: "boolean" },
@@ -403,9 +403,9 @@ export const ContextMenu: Story = {
     showContextMenu: true,
     filePath: "src/components/Button.tsx",
   },
-  play: async (context: StoryContext<SceneProps>) => {
+  play: async (context) => {
     if (!meta.play) throw new Error("meta.play is required for shared assertions");
-    await meta.play(context);
+    await meta.play(context as StoryContext<SceneProps>);
     await waitFor(() => {
       expect(context.canvasElement.querySelector("[data-react-grab-context-menu]")).not.toBeNull();
     });
