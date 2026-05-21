@@ -21,9 +21,13 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+const onlyPackageJsonExists = (): void => {
+  mockExistsSync.mockImplementation((path) => String(path).endsWith("package.json"));
+};
+
 describe("detectFramework", () => {
   it("should detect Next.js", () => {
-    mockExistsSync.mockReturnValue(true);
+    onlyPackageJsonExists();
     mockReadFileSync.mockReturnValue(
       JSON.stringify({ dependencies: { next: "14.0.0", react: "18.0.0" } }),
     );
@@ -32,21 +36,21 @@ describe("detectFramework", () => {
   });
 
   it("should detect Vite", () => {
-    mockExistsSync.mockReturnValue(true);
+    onlyPackageJsonExists();
     mockReadFileSync.mockReturnValue(JSON.stringify({ devDependencies: { vite: "5.0.0" } }));
 
     expect(detectFramework("/test")).toBe("vite");
   });
 
   it("should detect Webpack", () => {
-    mockExistsSync.mockReturnValue(true);
+    onlyPackageJsonExists();
     mockReadFileSync.mockReturnValue(JSON.stringify({ devDependencies: { webpack: "5.0.0" } }));
 
     expect(detectFramework("/test")).toBe("webpack");
   });
 
   it("should return unknown when no framework detected", () => {
-    mockExistsSync.mockReturnValue(true);
+    onlyPackageJsonExists();
     mockReadFileSync.mockReturnValue(JSON.stringify({ dependencies: { react: "18.0.0" } }));
 
     expect(detectFramework("/test")).toBe("unknown");
@@ -59,14 +63,14 @@ describe("detectFramework", () => {
   });
 
   it("should return unknown for malformed package.json", () => {
-    mockExistsSync.mockReturnValue(true);
+    onlyPackageJsonExists();
     mockReadFileSync.mockReturnValue("{ invalid json }");
 
     expect(detectFramework("/test")).toBe("unknown");
   });
 
   it("should prioritize Next.js over Vite if both are present", () => {
-    mockExistsSync.mockReturnValue(true);
+    onlyPackageJsonExists();
     mockReadFileSync.mockReturnValue(
       JSON.stringify({
         dependencies: { next: "14.0.0" },
@@ -78,7 +82,7 @@ describe("detectFramework", () => {
   });
 
   it("should detect TanStack Start", () => {
-    mockExistsSync.mockReturnValue(true);
+    onlyPackageJsonExists();
     mockReadFileSync.mockReturnValue(
       JSON.stringify({
         dependencies: { "@tanstack/react-start": "1.100.0", "@tanstack/react-router": "1.100.0" },
@@ -90,7 +94,7 @@ describe("detectFramework", () => {
   });
 
   it("should prioritize TanStack Start over Vite if both are present", () => {
-    mockExistsSync.mockReturnValue(true);
+    onlyPackageJsonExists();
     mockReadFileSync.mockReturnValue(
       JSON.stringify({
         dependencies: { "@tanstack/react-start": "1.100.0" },
@@ -99,6 +103,52 @@ describe("detectFramework", () => {
     );
 
     expect(detectFramework("/test")).toBe("tanstack");
+  });
+
+  it("should detect Vite from a config file when deps are hoisted to monorepo root", () => {
+    mockExistsSync.mockImplementation((path) => {
+      const pathString = String(path);
+      if (pathString === "/test/package.json") return true;
+      if (pathString === "/test/vite.config.ts") return true;
+      return false;
+    });
+    mockReadFileSync.mockReturnValue(JSON.stringify({ dependencies: { react: "18.0.0" } }));
+
+    expect(detectFramework("/test")).toBe("vite");
+  });
+
+  it("should detect Next.js from next.config.mjs without next in deps", () => {
+    mockExistsSync.mockImplementation((path) => {
+      const pathString = String(path);
+      if (pathString === "/test/package.json") return true;
+      if (pathString === "/test/next.config.mjs") return true;
+      return false;
+    });
+    mockReadFileSync.mockReturnValue(JSON.stringify({ dependencies: { react: "18.0.0" } }));
+
+    expect(detectFramework("/test")).toBe("next");
+  });
+
+  it("should fall back to monorepo root deps when subpackage has no framework signal", () => {
+    mockExistsSync.mockImplementation((path) => {
+      const pathString = String(path);
+      if (pathString === "/repo/apps/web/package.json") return true;
+      if (pathString === "/repo/pnpm-workspace.yaml") return true;
+      if (pathString === "/repo/package.json") return true;
+      return false;
+    });
+    mockReadFileSync.mockImplementation((path) => {
+      const pathString = String(path);
+      if (pathString === "/repo/apps/web/package.json") {
+        return JSON.stringify({ dependencies: { react: "18.0.0" } });
+      }
+      if (pathString === "/repo/package.json") {
+        return JSON.stringify({ devDependencies: { vite: "5.0.0" } });
+      }
+      return "{}";
+    });
+
+    expect(detectFramework("/repo/apps/web")).toBe("vite");
   });
 });
 
