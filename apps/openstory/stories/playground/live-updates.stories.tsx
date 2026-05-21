@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "storybook-solidjs-vite";
+import type { Meta, StoryObj } from "openstory/solid";
 import { onCleanup, onMount } from "solid-js";
 import { createElement } from "react";
 import { createRoot } from "react-dom/client";
@@ -27,7 +27,7 @@ const meta: Meta = {
     docs: {
       description: {
         component:
-          "A React tree using useState + useEffect that re-renders every 100ms. Mounted inside the Solid storybook shell so freeze-updates (which patches React's dispatcher) actually has React renders to pause.",
+          "A React tree using useState + useEffect that re-renders every 100ms. Mounted inside the Solid openstory shell so freeze-updates (which patches React's dispatcher) actually has React renders to pause.",
       },
     },
   },

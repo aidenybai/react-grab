@@ -1,5 +1,5 @@
-import type { Meta, StoryObj } from "storybook-solidjs-vite";
-import { expect, waitFor } from "storybook/test";
+import type { Meta, StoryObj } from "openstory/solid";
+import { expect, waitFor } from "openstory/test";
 import { ContextMenu } from "react-grab/src/components/context-menu.js";
 import type { Position } from "react-grab/src/types.js";
 import { DEMO_BOUNDS } from "./demo-bounds.js";

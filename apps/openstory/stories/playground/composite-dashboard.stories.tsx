@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "storybook-solidjs-vite";
+import type { Meta, StoryObj } from "openstory/solid";
 import { For } from "solid-js";
 
 import "react-grab";

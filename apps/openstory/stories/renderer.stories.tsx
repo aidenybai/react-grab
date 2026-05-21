@@ -1,6 +1,6 @@
 import { createEffect, createSignal, on, onCleanup, onMount } from "solid-js";
-import type { Meta, StoryContext, StoryObj } from "storybook-solidjs-vite";
-import { expect, waitFor } from "storybook/test";
+import type { Meta, StoryContext, StoryObj } from "openstory/solid";
+import { expect, waitFor } from "openstory/test";
 import { ReactGrabRenderer } from "react-grab/src/components/renderer.js";
 import type { OverlayBounds } from "react-grab/src/types.js";
 import { createMenuActions } from "./fixtures.js";

@@ -1,10 +1,10 @@
-# @react-grab/storybook
+# @react-grab/openstory
 
-Internal playground for React Grab's overlay UI.
+Internal playground for React Grab's overlay UI. Local-development only — not deployed.
 
-Storybook renders the full `ReactGrabRenderer` against mocked states and realistic playground pages, so overlay states can be inspected without running the e2e app.
+Renders the full `ReactGrabRenderer` against mocked states and realistic playground pages, so overlay states can be inspected without running the e2e app.
 
-Uses [Storybook 10](https://storybook.js.org/) with [`storybook-solidjs-vite`](https://github.com/nicolo-ribaudo/storybook-solidjs-vite).
+Uses [openstory](https://openstory.dev), a Vite-native CSF 3 alternative to Storybook.
 
 ## Develop
 
@@ -12,8 +12,8 @@ Uses [Storybook 10](https://storybook.js.org/) with [`storybook-solidjs-vite`](h
 # Build the core CSS once (required before first run)
 pnpm --filter react-grab prebuild
 
-# Start Storybook
-pnpm --filter @react-grab/storybook dev
+# Start openstory
+pnpm --filter @react-grab/openstory dev
 ```
 
 Opens at `http://localhost:6006`.
@@ -21,18 +21,17 @@ Opens at `http://localhost:6006`.
 ## Build
 
 ```bash
-pnpm --filter @react-grab/storybook build
+pnpm --filter @react-grab/openstory build
 ```
 
-Static build output is written to `storybook-static/`.
+Generates the static manifest at `dist/__openstory/manifest.json` plus per-story iframe HTML stubs at `dist/__story/<id>/index.html`. Note: `openstory@0.0.2` does not yet produce a self-contained static bundle — the HTML stubs reference virtual modules that only resolve through the dev server. For now, this app is local-dev only.
 
 ## Structure
 
 ```
-apps/storybook/
-├── .storybook/
-│   ├── main.ts                 Storybook config
-│   └── preview.tsx             global parameters and CSS import
+apps/openstory/
+├── preview.tsx                 global parameters, decorators, CSS import
+├── vite.config.ts              openstory + vite-plugin-solid config
 └── stories/
     ├── fixtures.ts             preset comment items and menu actions
     ├── noop.ts                 no-op callback for handlers

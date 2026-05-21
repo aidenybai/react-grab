@@ -11,6 +11,6 @@
     "@react-grab/website",
     "@react-grab/website-v2",
     "@react-grab/web-extension",
-    "@react-grab/storybook"
+    "@react-grab/openstory"
   ]
 }

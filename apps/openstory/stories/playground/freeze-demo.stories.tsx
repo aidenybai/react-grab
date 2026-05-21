@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "storybook-solidjs-vite";
+import type { Meta, StoryObj } from "openstory/solid";
 import { onCleanup, onMount } from "solid-js";
 import { createElement } from "react";
 import { createRoot } from "react-dom/client";
@@ -27,7 +27,7 @@ const meta: Meta = {
     docs: {
       description: {
         component:
-          "A React tree (useState + useEffect + setInterval) mounted inside the Solid storybook shell. Replaces the gym /freeze-demo page. Activate react-grab (Alt) - freezeUpdates should pause React's setState batch, freezePseudoStates should pause the color transition, and the whole scene should hold still until release.",
+          "A React tree (useState + useEffect + setInterval) mounted inside the Solid openstory shell. Replaces the gym /freeze-demo page. Activate react-grab (Alt) - freezeUpdates should pause React's setState batch, freezePseudoStates should pause the color transition, and the whole scene should hold still until release.",
       },
     },
   },

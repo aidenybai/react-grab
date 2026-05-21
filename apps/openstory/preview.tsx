@@ -1,23 +1,11 @@
+import type { JSX } from "solid-js";
 import "react-grab/dist/styles.css";
+import type { Preview } from "openstory/solid";
 
-import addonA11y from "@storybook/addon-a11y";
-import addonDocs from "@storybook/addon-docs";
-import { definePreview } from "storybook-solidjs-vite";
-
-export default definePreview({
-  addons: [addonDocs(), addonA11y()],
+const preview: Preview = {
   parameters: {
     layout: "fullscreen",
     backgrounds: { disable: true },
-    controls: {
-      matchers: {
-        color: /(background|color)$/i,
-        date: /Date$/i,
-      },
-    },
-    a11y: {
-      test: "todo",
-    },
   },
   globalTypes: {
     theme: {
@@ -38,13 +26,17 @@ export default definePreview({
   },
   decorators: [
     (Story, context) => {
-      const theme = context.globals.theme ?? "dark";
+      const theme =
+        ((context.globals as Record<string, unknown>)["theme"] as string | undefined) ?? "dark";
       const canvasBg = theme === "light" ? "#f0f0f0" : "#1a1a1a";
+      const renderStory = Story as () => JSX.Element;
       return (
         <div data-rg-theme={theme} style={{ "min-height": "100vh", background: canvasBg }}>
-          <Story />
+          {renderStory()}
         </div>
       );
     },
   ],
-});
+};
+
+export default preview;

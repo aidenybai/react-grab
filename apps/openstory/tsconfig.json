@@ -16,5 +16,5 @@
     "types": ["node", "vite/client"],
     "lib": ["ES2022", "DOM", "DOM.Iterable"]
   },
-  "include": [".storybook/**/*.ts", ".storybook/**/*.tsx", "stories/**/*.ts", "stories/**/*.tsx"]
+  "include": ["preview.tsx", "vite.config.ts", "stories/**/*.ts", "stories/**/*.tsx"]
 }

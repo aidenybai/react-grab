@@ -1,5 +1,5 @@
-import type { Meta, StoryObj } from "storybook-solidjs-vite";
-import { expect, waitFor } from "storybook/test";
+import type { Meta, StoryObj } from "openstory/solid";
+import { expect, waitFor } from "openstory/test";
 import { SelectionLabel } from "react-grab/src/components/selection-label/index.js";
 import type { SelectionLabelProps } from "react-grab/src/types.js";
 import { DEMO_BOUNDS, DEMO_MOUSE_X } from "./demo-bounds.js";
