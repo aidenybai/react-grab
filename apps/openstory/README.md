@@ -1,6 +1,6 @@
 # @react-grab/openstory
 
-Internal playground for React Grab's overlay UI. Local-development only — not deployed.
+Internal playground for React Grab's overlay UI.
 
 Renders the full `ReactGrabRenderer` against mocked states and realistic playground pages, so overlay states can be inspected without running the e2e app.
 
@@ -24,7 +24,7 @@ Opens at `http://localhost:6006`.
 pnpm --filter @react-grab/openstory build
 ```
 
-Generates the static manifest at `dist/__openstory/manifest.json` plus per-story iframe HTML stubs at `dist/__story/<id>/index.html`. Note: `openstory@0.0.2` does not yet produce a self-contained static bundle — the HTML stubs reference virtual modules that only resolve through the dev server. For now, this app is local-dev only.
+Static build output is written to `dist/` and deployed to <https://openstory.react-grab.dev>.
 
 ## Structure
 

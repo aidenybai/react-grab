@@ -73,8 +73,8 @@ importers:
   apps/openstory:
     dependencies:
       openstory:
-        specifier: ^0.0.3
-        version: 0.0.3(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(@voidzero-dev/vite-plus-core@0.1.22(@types/node@25.6.2)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.37.0)(tsx@4.21.0)(typescript@6.0.3)(yaml@2.8.4))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(solid-js@1.9.12)(typescript@6.0.3)
+        specifier: ^0.0.4
+        version: 0.0.4(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(@voidzero-dev/vite-plus-core@0.1.22(@types/node@25.6.2)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.37.0)(tsx@4.21.0)(typescript@6.0.3)(yaml@2.8.4))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(solid-js@1.9.12)(typescript@6.0.3)
     devDependencies:
       '@types/node':
         specifier: ^25.6.2
@@ -6227,8 +6227,8 @@ packages:
     resolution: {integrity: sha512-smsWv2LzFjP03xmvFoJ331ss6h+jixfA4UUV/Bsiyuu4YJPfN+FIQGOIiv4w9/+MoHkfkJ22UIaQWRVFRfH6Vw==}
     engines: {node: '>=20'}
 
-  openstory@0.0.3:
-    resolution: {integrity: sha512-xReSaBtT+jVf3gfhnsJJKvdZuerg2H361vk4fQWslgeMj76dGKtIl/ahBFOkJpMJNofwt8MVFvZM6pxg2XoYtQ==}
+  openstory@0.0.4:
+    resolution: {integrity: sha512-/nOZckdDnTrSa3dAzFCBILOHPv9SPMF34C3DovTAbj8+9JiQowLw7TMgL2W0vFiTaxsADqSPNzwMGLkkzAmxgQ==}
     engines: {node: '>=20', pnpm: '>=10'}
     hasBin: true
     peerDependencies:
@@ -13444,7 +13444,7 @@ snapshots:
       powershell-utils: 0.1.0
       wsl-utils: 0.3.1
 
-  openstory@0.0.3(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(@voidzero-dev/vite-plus-core@0.1.22(@types/node@25.6.2)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.37.0)(tsx@4.21.0)(typescript@6.0.3)(yaml@2.8.4))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(solid-js@1.9.12)(typescript@6.0.3):
+  openstory@0.0.4(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(@voidzero-dev/vite-plus-core@0.1.22(@types/node@25.6.2)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.37.0)(tsx@4.21.0)(typescript@6.0.3)(yaml@2.8.4))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(solid-js@1.9.12)(typescript@6.0.3):
     dependencies:
       fast-glob: 3.3.3
       mri: 1.2.0
