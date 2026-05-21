@@ -255,7 +255,11 @@
 }
 
 /* Minimum 24x24 hit area for small icon buttons (WCAG 2.5.8). Use this when
-   touch-hitbox would visually push neighboring controls apart. */
+   touch-hitbox would visually push neighboring controls apart. pointer-events
+   on the pseudo-element is set explicitly so clicks landing outside the
+   visual button bounds still reach the host element (pseudo-elements inherit
+   pointer-events from their originating element, but stating it removes
+   ambiguity in environments where an ancestor sets pointer-events:none). */
 @utility a11y-hitbox {
   position: relative;
 
@@ -270,6 +274,7 @@
     height: 100%;
     min-height: 24px;
     min-width: 24px;
+    pointer-events: auto;
   }
 }
 
