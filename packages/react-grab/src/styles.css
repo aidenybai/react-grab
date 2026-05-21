@@ -93,12 +93,40 @@
   }
 }
 
+/* Reduce motion: respect the OS-level preference for users with vestibular
+   disorders (WCAG 2.3.3). Blanket-disable animation/transition inside the
+   shadow root so any animation added later inherits the override. */
 @media (prefers-reduced-motion: reduce) {
-  [data-react-grab-unread-indicator],
-  [data-react-grab-unread-indicator] * {
-    animation: none !important;
-    transition: none !important;
+  :host,
+  :host *,
+  :host *::before,
+  :host *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
+}
+
+/* Restore a visible focus indicator inside the shadow root. :host { all:
+   initial } strips the UA default :focus-visible ring, so without this
+   keyboard users see nothing on tab/menu navigation. The ring is theme-
+   aware (--rg-text-primary) and uses a negative outline-offset on menu
+   items so the indicator stays inside the rounded menu panel instead of
+   clipping at the edge. */
+:host button:focus-visible,
+:host textarea:focus-visible,
+:host [tabindex]:focus-visible {
+  outline: 2px solid var(--rg-text-primary);
+  outline-offset: 1px;
+  border-radius: 4px;
+}
+
+:host [role="menuitem"]:focus-visible,
+:host [role="menuitemradio"]:focus-visible {
+  outline: 2px solid var(--rg-text-primary);
+  outline-offset: -2px;
+  border-radius: 0;
 }
 
 @keyframes shake {
