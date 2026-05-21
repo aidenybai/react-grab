@@ -134,6 +134,9 @@ export const TOOLBAR_DEFAULT_HEIGHT_PX = 28;
 export const TOOLBAR_DEFAULT_POSITION_RATIO = 0.5;
 export const DEFAULT_ACTION_ID = "comment";
 
+export const MENU_PANEL_CORNER_RADIUS_PX = 14;
+export const MENU_HIGHLIGHT_CORNER_SHAPE = "superellipse(1.25)";
+
 // The select icon is a paper-airplane shape whose tip points toward the
 // top-right corner of its viewBox, ~45° above the +x axis. Subtracting this
 // from the mouse-relative angle yields the rotation needed to aim the tip at
