@@ -168,12 +168,11 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     bounds: OverlayBounds,
     targetOpacity?: number,
   ) => {
-    animation.target = {
-      x: bounds.x,
-      y: bounds.y,
-      width: bounds.width,
-      height: bounds.height,
-    };
+    const target = animation.target;
+    target.x = bounds.x;
+    target.y = bounds.y;
+    target.width = bounds.width;
+    target.height = bounds.height;
     animation.borderRadius = parseBorderRadiusValue(bounds.borderRadius);
     if (targetOpacity !== undefined) {
       animation.targetOpacity = targetOpacity;

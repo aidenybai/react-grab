@@ -61,8 +61,8 @@ export default defineConfig({
       dts: true,
       clean: false,
       platform: "neutral",
-      sourcemap: false,
-      minify: process.env.NODE_ENV === "production",
+      sourcemap: process.env.REACT_GRAB_SOURCEMAP === "true",
+      minify: process.env.NODE_ENV === "production" && process.env.REACT_GRAB_NO_MINIFY !== "true",
       banner: licenseBanner,
       define: {
         "process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV ?? "development"),

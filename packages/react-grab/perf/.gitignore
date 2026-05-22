@@ -1,3 +1,4 @@
 *.json
 !baseline-latest.json
 !stage-*.json
+*.log
