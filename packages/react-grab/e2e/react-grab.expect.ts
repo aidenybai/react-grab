@@ -1,5 +1,4 @@
-import { Expect, configure } from "expect-sdk";
-import type { TestResult } from "expect-sdk";
+import { configure, Expect, type TestResult } from "expect-sdk";
 import { execSync } from "node:child_process";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";

@@ -1,5 +1,4 @@
-import { Show, For, onMount, onCleanup } from "solid-js";
-import type { Component } from "solid-js";
+import { For, onCleanup, onMount, Show, type Component } from "solid-js";
 import type { ContextMenuAction, DropdownAnchor } from "../../types.js";
 import {
   DROPDOWN_EDGE_TRANSFORM_ORIGIN,

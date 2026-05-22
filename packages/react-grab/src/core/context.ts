@@ -4,8 +4,8 @@ import {
   formatOwnerStack,
   hasDebugStack,
   parseStack,
+  type StackFrame,
 } from "bippy/source";
-import type { StackFrame } from "bippy/source";
 import {
   getFiberFromHostInstance,
   isInstrumentationActive,

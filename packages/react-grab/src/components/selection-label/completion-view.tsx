@@ -1,5 +1,4 @@
-import { Show, createSignal, onMount, onCleanup } from "solid-js";
-import type { Component } from "solid-js";
+import { createSignal, onCleanup, onMount, Show, type Component } from "solid-js";
 import type { CompletionViewProps } from "../../types.js";
 import { FEEDBACK_DURATION_MS, FADE_DURATION_MS } from "../../constants.js";
 import { confirmationFocusManager } from "../../utils/confirmation-focus-manager.js";

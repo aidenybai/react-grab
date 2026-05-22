@@ -1,5 +1,4 @@
-import { createEffect, onCleanup, onMount, on } from "solid-js";
-import type { Component } from "solid-js";
+import { createEffect, on, onCleanup, onMount, type Component } from "solid-js";
 import type { OverlayBounds, SelectionLabelInstance } from "../types.js";
 import { lerp } from "../utils/lerp.js";
 import {
