@@ -90,7 +90,8 @@
     "prepublishOnly": "pnpm build",
     "test:e2e:ui": "playwright test --ui",
     "perf:bench": "node scripts/perf-bench.mjs",
-    "perf:baseline": "node scripts/perf-bench.mjs --label=baseline"
+    "perf:baseline": "node scripts/perf-bench.mjs --label=baseline",
+    "perf:deopt": "node scripts/deopt-trace.mjs"
   },
   "dependencies": {
     "@react-grab/cli": "workspace:*",

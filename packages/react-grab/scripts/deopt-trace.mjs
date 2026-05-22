@@ -9,15 +9,25 @@ import process from "node:process";
 import net from "node:net";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const PACKAGE_ROOT = resolve(__dirname, "..");
 const REPO_ROOT = resolve(__dirname, "../../..");
-const OUTPUT_DIR = resolve(__dirname, "../perf");
+const OUTPUT_DIR = resolve(PACKAGE_ROOT, "perf");
 
-const E2E_APP_URL = "http://localhost:5175";
-const PERF_GRID_PATH = "/?perf=grid&rows=50&cols=10";
-const SERVER_READY_TIMEOUT_MS = 60_000;
-const CHROME_BINARY =
-  process.env.CHROME_BINARY ||
-  "/home/ubuntu/.cache/ms-playwright/chromium_headless_shell-1217/chrome-headless-shell-linux64/chrome-headless-shell";
+const E2E_APP_URL = process.env.DEOPT_TRACE_E2E_URL || "http://localhost:5175";
+const PERF_GRID_PATH = process.env.DEOPT_TRACE_PAGE_PATH || "/?perf=grid&rows=50&cols=10";
+const SERVER_READY_TIMEOUT_MS = Number(process.env.DEOPT_TRACE_SERVER_TIMEOUT_MS) || 60_000;
+const CDP_READY_TIMEOUT_MS = Number(process.env.DEOPT_TRACE_CDP_TIMEOUT_MS) || 20_000;
+const E2E_APP_FILTER = process.env.DEOPT_TRACE_E2E_FILTER || "@react-grab/e2e-app";
+const DIST_ENTRY = resolve(PACKAGE_ROOT, "dist/index.js");
+
+const resolveChromeBinary = () => {
+  if (process.env.CHROME_BINARY) return process.env.CHROME_BINARY;
+  try {
+    return chromium.executablePath();
+  } catch {
+    return null;
+  }
+};
 
 const PRINT_PREFIX = "[deopt]";
 const log = (message) => console.log(`${PRINT_PREFIX} ${message}`);
@@ -41,8 +51,8 @@ const waitForServer = async (url, timeoutMs) => {
 };
 
 const startDevServer = () => {
-  log("starting e2e-app dev server (pnpm --filter @react-grab/e2e-app dev) ...");
-  const child = spawn("pnpm", ["--filter", "@react-grab/e2e-app", "dev"], {
+  log(`starting e2e-app dev server (pnpm --filter ${E2E_APP_FILTER} dev) ...`);
+  const child = spawn("pnpm", ["--filter", E2E_APP_FILTER, "dev"], {
     cwd: REPO_ROOT,
     stdio: ["ignore", "pipe", "pipe"],
     env: { ...process.env, FORCE_COLOR: "0" },
@@ -87,11 +97,17 @@ const waitForUrlReady = async (url, timeoutMs) => {
 };
 
 const launchChromeWithDeoptTrace = async () => {
-  if (!existsSync(CHROME_BINARY)) {
-    throw new Error(`chromium binary not found at ${CHROME_BINARY}`);
+  const chromeBinary = resolveChromeBinary();
+  if (!chromeBinary || !existsSync(chromeBinary)) {
+    throw new Error(
+      `chromium binary not found (resolved: ${chromeBinary ?? "<unset>"}); set CHROME_BINARY or run \`npx playwright install chromium\``,
+    );
   }
   const port = await findFreePort();
-  const userDataDir = `/tmp/deopt-trace-profile-${Date.now()}`;
+  const userDataDir = resolve(
+    process.env.DEOPT_TRACE_PROFILE_DIR || (process.env.TMPDIR ?? "/tmp"),
+    `deopt-trace-profile-${Date.now()}`,
+  );
   const jsFlags = ["--trace-deopt", "--trace-deopt-verbose", "--log-deopt", "--code-comments"].join(
     " ",
   );
@@ -106,8 +122,8 @@ const launchChromeWithDeoptTrace = async () => {
     `--js-flags=${jsFlags}`,
     "about:blank",
   ];
-  log(`launching chrome with js-flags: ${jsFlags}`);
-  const child = spawn(CHROME_BINARY, args, {
+  log(`launching ${chromeBinary} with js-flags: ${jsFlags}`);
+  const child = spawn(chromeBinary, args, {
     stdio: ["ignore", "pipe", "pipe"],
     env: { ...process.env },
   });
@@ -122,7 +138,7 @@ const launchChromeWithDeoptTrace = async () => {
 
   child.on("exit", (code, signal) => log(`chrome process exited: code=${code} signal=${signal}`));
   const cdpUrl = `http://127.0.0.1:${port}/json/version`;
-  const ready = await waitForUrlReady(cdpUrl, 20_000);
+  const ready = await waitForUrlReady(cdpUrl, CDP_READY_TIMEOUT_MS);
   if (!ready) {
     log("--- chrome stderr ---");
     process.stderr.write(stderrChunks.join(""));
@@ -433,8 +449,8 @@ const parseDeopts = (stderrText) => {
 };
 
 const main = async () => {
-  if (!existsSync(resolve(REPO_ROOT, "packages/react-grab/dist/index.js"))) {
-    log("dist missing; please run `pnpm build` first");
+  if (!existsSync(DIST_ENTRY)) {
+    log(`dist missing at ${DIST_ENTRY}; please run \`pnpm build\` first`);
     process.exit(1);
   }
 
