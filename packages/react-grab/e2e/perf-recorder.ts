@@ -8,13 +8,8 @@ const PACKAGE_PERF_DIR = resolve(E2E_DIR, "../perf");
 
 declare global {
   interface Window {
-    __PERF_BENCH__?: PerfBenchRecorder;
+    __PERF_BENCH__?: { start(): void; stop(): PerfRawSnapshot };
   }
-}
-
-interface PerfBenchRecorder {
-  start(): void;
-  stop(): PerfRawSnapshot;
 }
 
 export interface PerfRawSnapshot {
@@ -40,11 +35,12 @@ export interface PerfScenarioAggregate {
   frames: PerfStatsSummary;
 }
 
-// Injected via context.addInitScript BEFORE any other script. Dormant until
-// `__PERF_BENCH__.start()` so non-perf tests pay zero runtime cost. All
-// inputs are browser-native (Event Timing, Long Tasks, LoAF) — we do not
-// need any react-grab source instrumentation to capture them.
-export const installPerfRecorderScript = () => {
+// Installed lazily on the first `startRecording` call (via page.evaluate)
+// so non-perf e2e tests pay zero JS-injection cost. All inputs are
+// browser-native — we don't need any react-grab source instrumentation
+// to capture them, and CDP Tracing would only surface the same data
+// inside a 5-100MB trace blob that we'd then have to parse offline.
+const installPerfRecorderScript = (): void => {
   if (window.__PERF_BENCH__) return;
   let isRecording = false;
   let frameDeltas: number[] = [];
@@ -187,11 +183,10 @@ export const aggregateRawSnapshot = (rawSnapshot: PerfRawSnapshot): PerfScenario
   };
 };
 
-export const startRecording = (page: Page) =>
-  page.evaluate(() => {
-    if (!window.__PERF_BENCH__) throw new Error("perf recorder not installed");
-    window.__PERF_BENCH__.start();
-  });
+export const startRecording = async (page: Page): Promise<void> => {
+  await page.evaluate(installPerfRecorderScript);
+  await page.evaluate(() => window.__PERF_BENCH__!.start());
+};
 
 export const stopRecording = (page: Page): Promise<PerfRawSnapshot> =>
   page.evaluate(() => {

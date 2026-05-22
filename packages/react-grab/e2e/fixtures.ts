@@ -1,5 +1,4 @@
 import { test as base, expect, Page, Locator } from "@playwright/test";
-import { installPerfRecorderScript } from "./perf-recorder.js";
 
 const ATTRIBUTE_NAME = "data-react-grab";
 const DEFAULT_KEY_HOLD_DURATION_MS = 200;
@@ -1710,11 +1709,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
 export const test = base.extend<{ reactGrab: ReactGrabPageObject }>({
   reactGrab: async ({ page }, use) => {
-    // Installed unconditionally; the recorder is dormant until
-    // `window.__PERF_BENCH__.start()` is called. In non-perf tests it
-    // contributes ~1KB of JS and zero runtime cost.
-    await page.addInitScript(installPerfRecorderScript);
-
     const waitForApiReady = async () => {
       await page.waitForFunction(
         () => {
