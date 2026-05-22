@@ -48,7 +48,6 @@ import { isElementConnected } from "../utils/is-element-connected.js";
 import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
 import { getElementAnchorRatio } from "../utils/get-element-anchor-ratio.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
-import { createElementSelector } from "../utils/create-element-selector.js";
 import { getVisibleBoundsCenter } from "../utils/get-visible-bounds-center.js";
 import { invalidateInteractionCaches } from "../utils/invalidate-interaction-caches.js";
 import { normalizeErrorMessage } from "../utils/normalize-error.js";
@@ -108,7 +107,6 @@ import type {
   SourceInfo,
   Plugin,
   ToolbarState,
-  CommentItem,
   DropdownAnchor,
   ElementLabelVariant,
 } from "../types.js";
@@ -134,7 +132,6 @@ import {
 } from "../utils/freeze-animations.js";
 import { freezePseudoStates, unfreezePseudoStates } from "../utils/freeze-pseudo-states.js";
 import { freezeUpdates } from "../utils/freeze-updates.js";
-import { loadComments, addCommentItem, removeCommentItem } from "../utils/comment-storage.js";
 import { copyContent } from "../utils/copy-content.js";
 import { generateId } from "../utils/generate-id.js";
 import { logRecoverableError } from "../utils/log-recoverable-error.js";
@@ -283,11 +280,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       savedToolbarState,
     );
     const [isToolbarSelectHovered, setIsToolbarSelectHovered] = createSignal(false);
-    const [commentItems, setCommentItems] = createSignal<CommentItem[]>(loadComments());
     const [toolbarMenuPosition, setToolbarMenuPosition] = createSignal<DropdownAnchor | null>(null);
     let toolbarElement: HTMLDivElement | undefined;
     let dropdownTrackingFrameId: number | null = null;
-    const commentElementMap = new Map<string, Element[]>();
 
     let shiftSelectionLabelAnchorRatioByElement = new WeakMap<Element, number>();
 
@@ -728,69 +723,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
-    const handleCopySuccessWithComments = (options: {
-      copiedElements: Element[];
-      content: string;
-      extraPrompt: string | undefined;
-      elementName: string | undefined;
-      tagName: string | null;
-      componentName: string | null;
-    }) => {
-      const { copiedElements, content, extraPrompt, elementName, tagName, componentName } = options;
-      pluginRegistry.hooks.onCopySuccess(copiedElements, content);
-
-      if (!extraPrompt) return;
-
-      const hasCopiedElements = copiedElements.length > 0;
-
-      if (hasCopiedElements) {
-        const currentItems = commentItems();
-        for (const [existingItemId, mappedElements] of commentElementMap.entries()) {
-          const isSameSelection =
-            mappedElements.length === copiedElements.length &&
-            mappedElements.every((mappedElement, index) => mappedElement === copiedElements[index]);
-          if (!isSameSelection) continue;
-          const existingItem = currentItems.find((item) => item.id === existingItemId);
-          if (!existingItem) continue;
-
-          if (existingItem.commentText === extraPrompt) {
-            removeCommentItem(existingItemId);
-            commentElementMap.delete(existingItemId);
-            break;
-          }
-        }
-      }
-
-      const elementSelectors = copiedElements.map((copiedElement, index) =>
-        createElementSelector(copiedElement, index === 0),
-      );
-
-      const updatedCommentItems = addCommentItem({
-        content,
-        elementName: elementName ?? "element",
-        tagName: tagName ?? "div",
-        componentName: componentName ?? undefined,
-        elementsCount: copiedElements.length,
-        previewBounds: copiedElements.map((copiedElement) => createElementBounds(copiedElement)),
-        elementSelectors,
-        commentText: extraPrompt,
-        timestamp: Date.now(),
-      });
-      setCommentItems(updatedCommentItems);
-
-      const newestCommentItem = updatedCommentItems[0];
-      if (newestCommentItem && hasCopiedElements) {
-        commentElementMap.set(newestCommentItem.id, [...copiedElements]);
-      }
-
-      const currentItemIds = new Set(updatedCommentItems.map((item) => item.id));
-      for (const mapItemId of commentElementMap.keys()) {
-        if (!currentItemIds.has(mapItemId)) {
-          commentElementMap.delete(mapItemId);
-        }
-      }
-    };
-
     const copyResolvedElements = (
       elements: Element[],
       extraPrompt?: string,
@@ -811,16 +743,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           onBeforeCopy: pluginRegistry.hooks.onBeforeCopy,
           transformCopyContent: pluginRegistry.hooks.transformCopyContent,
           onAfterCopy: pluginRegistry.hooks.onAfterCopy,
-          onCopySuccess: (copiedElements: Element[], content: string) => {
-            handleCopySuccessWithComments({
-              copiedElements,
-              content,
-              extraPrompt,
-              elementName,
-              tagName,
-              componentName,
-            });
-          },
+          onCopySuccess: pluginRegistry.hooks.onCopySuccess,
           onCopyError: pluginRegistry.hooks.onCopyError,
         },
         elements,

@@ -53,36 +53,6 @@ export const installPackages = async (
   );
 };
 
-export const uninstallPackages = async (
-  packages: string[],
-  options: Omit<InstallPackageOptions, "isDev" | "preferOffline"> = {},
-): Promise<void> => {
-  if (packages.length === 0) return;
-
-  const detectedAgent =
-    options.packageManager ?? (await detectPackageManager(options.cwd ?? process.cwd()));
-  const args: string[] = [];
-
-  if (
-    detectedAgent === "pnpm" &&
-    existsSync(resolve(options.cwd ?? process.cwd(), "pnpm-workspace.yaml"))
-  ) {
-    args.push("-w");
-  }
-
-  if (options.additionalArgs) {
-    args.push(...options.additionalArgs);
-  }
-
-  await x(detectedAgent, [detectedAgent === "npm" ? "uninstall" : "remove", ...args, ...packages], {
-    nodeOptions: {
-      stdio: options.silent ? "ignore" : "inherit",
-      cwd: options.cwd,
-    },
-    throwOnError: true,
-  });
-};
-
 export const getPackagesToInstall = (includeReactGrab: boolean = true): string[] => {
   return includeReactGrab ? ["react-grab"] : [];
 };
