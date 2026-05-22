@@ -1,10 +1,10 @@
 {
-  "scenario": "hover-in-selection-mode",
+  "scenario": "dom-mutation-during-selection",
   "label": "baseline",
-  "samples": 3,
+  "samples": 2,
   "aggregate": {
-    "inp": 0,
-    "interactions": 0,
+    "inp": 48,
+    "interactions": 39,
     "longTasks": {
       "count": 0,
       "sum": 0,
@@ -17,16 +17,16 @@
       "maxBlocking": 0
     },
     "frames": {
-      "count": 303,
+      "count": 109,
       "median": 16.7,
       "p95": 16.8,
-      "max": 16.8
+      "max": 33.4
     }
   },
   "perSample": [
     {
-      "inp": 0,
-      "interactions": 0,
+      "inp": 48,
+      "interactions": 39,
       "longTasks": {
         "count": 0,
         "sum": 0,
@@ -39,54 +39,33 @@
         "maxBlocking": 0
       },
       "frames": {
-        "count": 303,
+        "count": 109,
+        "median": 16.7,
+        "p95": 16.8,
+        "max": 33.4
+      }
+    },
+    {
+      "inp": 24,
+      "interactions": 35,
+      "longTasks": {
+        "count": 0,
+        "sum": 0,
+        "max": 0
+      },
+      "longAnimationFrames": {
+        "count": 0,
+        "sum": 0,
+        "max": 0,
+        "maxBlocking": 0
+      },
+      "frames": {
+        "count": 109,
         "median": 16.7,
         "p95": 16.7,
         "max": 16.8
       }
-    },
-    {
-      "inp": 0,
-      "interactions": 0,
-      "longTasks": {
-        "count": 0,
-        "sum": 0,
-        "max": 0
-      },
-      "longAnimationFrames": {
-        "count": 0,
-        "sum": 0,
-        "max": 0,
-        "maxBlocking": 0
-      },
-      "frames": {
-        "count": 304,
-        "median": 16.7,
-        "p95": 16.8,
-        "max": 16.8
-      }
-    },
-    {
-      "inp": 0,
-      "interactions": 0,
-      "longTasks": {
-        "count": 0,
-        "sum": 0,
-        "max": 0
-      },
-      "longAnimationFrames": {
-        "count": 0,
-        "sum": 0,
-        "max": 0,
-        "maxBlocking": 0
-      },
-      "frames": {
-        "count": 303,
-        "median": 16.7,
-        "p95": 16.8,
-        "max": 16.8
-      }
     }
   ],
-  "recordedAt": "2026-05-22T22:54:36.798Z"
+  "recordedAt": "2026-05-22T22:56:45.709Z"
 }

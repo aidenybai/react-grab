@@ -1,7 +1,7 @@
 {
-  "scenario": "hover-in-selection-mode",
+  "scenario": "rapid-toggle-active-inactive",
   "label": "baseline",
-  "samples": 3,
+  "samples": 2,
   "aggregate": {
     "inp": 0,
     "interactions": 0,
@@ -17,9 +17,9 @@
       "maxBlocking": 0
     },
     "frames": {
-      "count": 303,
+      "count": 166,
       "median": 16.7,
-      "p95": 16.8,
+      "p95": 16.7,
       "max": 16.8
     }
   },
@@ -39,7 +39,7 @@
         "maxBlocking": 0
       },
       "frames": {
-        "count": 303,
+        "count": 166,
         "median": 16.7,
         "p95": 16.7,
         "max": 16.8
@@ -60,33 +60,12 @@
         "maxBlocking": 0
       },
       "frames": {
-        "count": 304,
+        "count": 163,
         "median": 16.7,
-        "p95": 16.8,
-        "max": 16.8
-      }
-    },
-    {
-      "inp": 0,
-      "interactions": 0,
-      "longTasks": {
-        "count": 0,
-        "sum": 0,
-        "max": 0
-      },
-      "longAnimationFrames": {
-        "count": 0,
-        "sum": 0,
-        "max": 0,
-        "maxBlocking": 0
-      },
-      "frames": {
-        "count": 303,
-        "median": 16.7,
-        "p95": 16.8,
+        "p95": 16.7,
         "max": 16.8
       }
     }
   ],
-  "recordedAt": "2026-05-22T22:54:36.798Z"
+  "recordedAt": "2026-05-22T22:56:41.710Z"
 }

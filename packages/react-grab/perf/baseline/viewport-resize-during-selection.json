@@ -1,0 +1,71 @@
+{
+  "scenario": "viewport-resize-during-selection",
+  "label": "baseline",
+  "samples": 2,
+  "aggregate": {
+    "inp": 0,
+    "interactions": 0,
+    "longTasks": {
+      "count": 4,
+      "sum": 233,
+      "max": 77
+    },
+    "longAnimationFrames": {
+      "count": 4,
+      "sum": 238,
+      "max": 74.5,
+      "maxBlocking": 13.638
+    },
+    "frames": {
+      "count": 72,
+      "median": 16.7,
+      "p95": 50,
+      "max": 66.7
+    }
+  },
+  "perSample": [
+    {
+      "inp": 0,
+      "interactions": 0,
+      "longTasks": {
+        "count": 4,
+        "sum": 233,
+        "max": 77
+      },
+      "longAnimationFrames": {
+        "count": 4,
+        "sum": 238,
+        "max": 74.5,
+        "maxBlocking": 13.638
+      },
+      "frames": {
+        "count": 66,
+        "median": 16.7,
+        "p95": 50,
+        "max": 66.7
+      }
+    },
+    {
+      "inp": 0,
+      "interactions": 0,
+      "longTasks": {
+        "count": 1,
+        "sum": 50,
+        "max": 50
+      },
+      "longAnimationFrames": {
+        "count": 4,
+        "sum": 209.8,
+        "max": 53.7,
+        "maxBlocking": 0
+      },
+      "frames": {
+        "count": 72,
+        "median": 16.7,
+        "p95": 33.4,
+        "max": 50
+      }
+    }
+  ],
+  "recordedAt": "2026-05-22T22:57:08.342Z"
+}

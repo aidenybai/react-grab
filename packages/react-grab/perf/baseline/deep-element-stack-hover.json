@@ -1,5 +1,5 @@
 {
-  "scenario": "hover-in-selection-mode",
+  "scenario": "deep-element-stack-hover",
   "label": "baseline",
   "samples": 3,
   "aggregate": {
@@ -17,9 +17,9 @@
       "maxBlocking": 0
     },
     "frames": {
-      "count": 303,
+      "count": 203,
       "median": 16.7,
-      "p95": 16.8,
+      "p95": 16.7,
       "max": 16.8
     }
   },
@@ -39,7 +39,28 @@
         "maxBlocking": 0
       },
       "frames": {
-        "count": 303,
+        "count": 203,
+        "median": 16.7,
+        "p95": 16.8,
+        "max": 16.8
+      }
+    },
+    {
+      "inp": 0,
+      "interactions": 0,
+      "longTasks": {
+        "count": 0,
+        "sum": 0,
+        "max": 0
+      },
+      "longAnimationFrames": {
+        "count": 0,
+        "sum": 0,
+        "max": 0,
+        "maxBlocking": 0
+      },
+      "frames": {
+        "count": 203,
         "median": 16.7,
         "p95": 16.7,
         "max": 16.8
@@ -60,33 +81,12 @@
         "maxBlocking": 0
       },
       "frames": {
-        "count": 304,
+        "count": 203,
         "median": 16.7,
-        "p95": 16.8,
-        "max": 16.8
-      }
-    },
-    {
-      "inp": 0,
-      "interactions": 0,
-      "longTasks": {
-        "count": 0,
-        "sum": 0,
-        "max": 0
-      },
-      "longAnimationFrames": {
-        "count": 0,
-        "sum": 0,
-        "max": 0,
-        "maxBlocking": 0
-      },
-      "frames": {
-        "count": 303,
-        "median": 16.7,
-        "p95": 16.8,
+        "p95": 16.7,
         "max": 16.8
       }
     }
   ],
-  "recordedAt": "2026-05-22T22:54:36.798Z"
+  "recordedAt": "2026-05-22T22:57:05.012Z"
 }

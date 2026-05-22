@@ -289,4 +289,343 @@ test.describe("@perf benchmarks", () => {
     await page.keyboard.press("Escape");
     logScenario("scroll-during-selection", aggregate);
   });
+
+  test("hover-over-animated-elements @perf", async ({ reactGrab, page }, testInfo) => {
+    // Matches the laggy-on-real-sites case: hovering near CSS-animated
+    // elements forces the freeze-pseudo-states + animation-finish paths
+    // every time the detected element changes.
+    const animatedSelectors = [
+      "[data-testid='animated-pulse']",
+      "[data-testid='animated-bounce']",
+      "[data-testid='animated-spin']",
+      "[data-testid='animated-section']",
+      "[data-testid='gradient-div']",
+    ];
+    const hoverTargets: Array<{ x: number; y: number }> = [];
+    for (const animatedSelector of animatedSelectors) {
+      const locator = page.locator(animatedSelector).first();
+      if ((await locator.count()) === 0) continue;
+      const box = await locator.boundingBox();
+      if (!box) continue;
+      hoverTargets.push({ x: box.x + box.width / 2, y: box.y + box.height / 2 });
+    }
+    if (hoverTargets.length === 0) {
+      test.skip(true, "no animated targets in e2e-app");
+      return;
+    }
+
+    await reactGrab.activate();
+    await idleFrame(page, 2);
+
+    const aggregate = await recordScenario(
+      page,
+      testInfo,
+      "hover-over-animated-elements",
+      async () => {
+        for (let passIndex = 0; passIndex < 30; passIndex++) {
+          for (const target of hoverTargets) {
+            await page.mouse.move(target.x, target.y, { steps: 2 });
+            await page.waitForTimeout(20);
+          }
+        }
+        await idleFrame(page, 4);
+      },
+    );
+    await reactGrab.deactivate();
+    logScenario("hover-over-animated-elements", aggregate);
+  });
+
+  test("arrow-key-tree-navigation @perf", async ({ reactGrab, page }, testInfo) => {
+    // Activates the keyboard arrow-navigation menu and walks the DOM tree
+    // up/down/left/right. Stresses the arrow-navigation logic + the
+    // navigation menu render path.
+    await reactGrab.activate();
+    const startTarget = page.locator("[data-testid='nested-card']").first();
+    if ((await startTarget.count()) === 0) {
+      test.skip(true, "no nested-card target");
+      return;
+    }
+    await startTarget.hover({ force: true });
+    await page.waitForTimeout(200);
+
+    const aggregate = await recordScenario(
+      page,
+      testInfo,
+      "arrow-key-tree-navigation",
+      async () => {
+        const arrowKeys = ["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight"] as const;
+        for (let sequenceIndex = 0; sequenceIndex < 60; sequenceIndex++) {
+          await page.keyboard.press(arrowKeys[sequenceIndex % arrowKeys.length]);
+          await page.waitForTimeout(20);
+        }
+        await idleFrame(page, 4);
+      },
+    );
+    await page.keyboard.press("Escape");
+    logScenario("arrow-key-tree-navigation", aggregate);
+  });
+
+  test("context-menu-open-close-cycle @perf", async ({ reactGrab, page }, testInfo) => {
+    // Right-click → context menu opens → escape closes. Each cycle
+    // re-mounts the menu DOM, runs its dropdown-anchored positioning,
+    // and re-runs deactivate cleanup on dismiss.
+    const targetSelectors = [
+      "[data-testid='todo-list'] li:nth-child(2)",
+      "[data-testid='nested-card']",
+      "[data-testid='span-element']",
+      "[data-testid='td-1-2']",
+    ];
+    await reactGrab.activate();
+    await idleFrame(page, 2);
+
+    const aggregate = await recordScenario(
+      page,
+      testInfo,
+      "context-menu-open-close-cycle",
+      async () => {
+        for (let cycleIndex = 0; cycleIndex < 30; cycleIndex++) {
+          const elementLocator = page
+            .locator(targetSelectors[cycleIndex % targetSelectors.length])
+            .first();
+          if ((await elementLocator.count()) === 0) continue;
+          await elementLocator.click({ button: "right", force: true });
+          await page.waitForTimeout(40);
+          await page.keyboard.press("Escape");
+          await page.waitForTimeout(40);
+        }
+        await idleFrame(page, 4);
+      },
+    );
+    await reactGrab.deactivate();
+    logScenario("context-menu-open-close-cycle", aggregate);
+  });
+
+  test("prompt-mode-typing @perf", async ({ reactGrab, page }, testInfo) => {
+    // Enters prompt mode and types a paragraph. Exercises the textarea
+    // auto-resize, reactive input signal, and per-keystroke memo
+    // re-evaluation in the selection-label tree.
+    await reactGrab.registerCommentAction();
+    await reactGrab.enterPromptMode("[data-testid='span-element']");
+    const promptText =
+      "Refactor this component so the rendering logic is split from the data fetching layer, " +
+      "and add a loading skeleton plus an error retry button.";
+
+    const aggregate = await recordScenario(
+      page,
+      testInfo,
+      "prompt-mode-typing",
+      async () => {
+        for (const character of promptText) {
+          await page.keyboard.type(character);
+          // Slow enough to capture per-keystroke INP but fast enough to
+          // finish in a reasonable scenario duration.
+          await page.waitForTimeout(8);
+        }
+        await idleFrame(page, 4);
+      },
+      // Typing 150 chars takes ~2s independent of system load — variance
+      // is low, so one sample is enough and we save ~4s of CI time.
+      { samples: 1 },
+    );
+    await page.keyboard.press("Escape");
+    await page.keyboard.press("Escape");
+    logScenario("prompt-mode-typing", aggregate);
+  });
+
+  test("rapid-toggle-active-inactive @perf", async ({ reactGrab, page }, testInfo) => {
+    // Just activate/deactivate via the API, no other interaction. Strips
+    // away pointermove + hit-test noise so you see the bare activate /
+    // deactivate cost (freeze-pseudo-states install/uninstall,
+    // freeze-animations attach/remove, freezeUpdates pause/resume).
+    void reactGrab; // fixture pre-loads the page
+    const aggregate = await recordScenario(
+      page,
+      testInfo,
+      "rapid-toggle-active-inactive",
+      async () => {
+        for (let cycleIndex = 0; cycleIndex < 80; cycleIndex++) {
+          await page.evaluate(() => window.__REACT_GRAB__?.activate?.());
+          await idleFrame(page, 1);
+          await page.evaluate(() => window.__REACT_GRAB__?.deactivate?.());
+          await idleFrame(page, 1);
+        }
+        await idleFrame(page, 4);
+      },
+      { samples: 2 },
+    );
+    logScenario("rapid-toggle-active-inactive", aggregate);
+  });
+
+  test("dom-mutation-during-selection @perf", async ({ reactGrab, page }, testInfo) => {
+    // Activates, then keeps adding/removing DOM nodes via the test app's
+    // Add Element button. Tests the stale-element detection interval +
+    // bounds-cache invalidation when the detected element disappears.
+    await reactGrab.activate();
+    const dynamicSection = page.locator("[data-testid='dynamic-section']").first();
+    if ((await dynamicSection.count()) === 0) {
+      test.skip(true, "no dynamic-section target");
+      return;
+    }
+    const dynamicBox = await dynamicSection.boundingBox();
+    if (!dynamicBox) {
+      test.skip(true, "no dynamic-section bounds");
+      return;
+    }
+    await page.mouse.move(dynamicBox.x + 20, dynamicBox.y + 20, { steps: 2 });
+    await idleFrame(page, 2);
+
+    const aggregate = await recordScenario(
+      page,
+      testInfo,
+      "dom-mutation-during-selection",
+      async () => {
+        const addButton = page.locator("[data-testid='add-element-button']").first();
+        for (let cycleIndex = 0; cycleIndex < 25; cycleIndex++) {
+          await addButton.click({ force: true });
+          await page.waitForTimeout(20);
+          const removeButton = page.locator("[data-testid^='remove-element-']").first();
+          if ((await removeButton.count()) > 0) {
+            await removeButton.click({ force: true });
+            await page.waitForTimeout(20);
+          }
+        }
+        await idleFrame(page, 4);
+      },
+      { samples: 2 },
+    );
+    await reactGrab.deactivate();
+    logScenario("dom-mutation-during-selection", aggregate);
+  });
+
+  test("idle-after-activation @perf", async ({ reactGrab, page }, testInfo) => {
+    // Sanity baseline: after activate, the library should do effectively
+    // no work until a user gesture arrives. If a long task or LoAF shows
+    // up here, something is polling/timer-ticking that shouldn't be.
+    await reactGrab.activate();
+    await idleFrame(page, 4);
+
+    const aggregate = await recordScenario(
+      page,
+      testInfo,
+      "idle-after-activation",
+      async () => {
+        await page.waitForTimeout(2000);
+      },
+      // No user input + no library work — variance is approximately zero,
+      // so one 2s sample is enough.
+      { samples: 1 },
+    );
+    await reactGrab.deactivate();
+    logScenario("idle-after-activation", aggregate);
+  });
+
+  test("large-drag-selection @perf", async ({ reactGrab, page }, testInfo) => {
+    // One huge drag rectangle covering ~half the perf grid. Stresses
+    // getElementsInDrag's coverage sampling at the upper bound of
+    // candidate count.
+    await page.goto(PERF_GRID_PATH);
+    await page.waitForFunction(
+      () => document.querySelectorAll("[data-perf-row][data-perf-column]").length > 50,
+      null,
+      { timeout: 10_000 },
+    );
+
+    await reactGrab.activate();
+    await idleFrame(page, 2);
+
+    const aggregate = await recordScenario(page, testInfo, "large-drag-selection", async () => {
+      const viewport = page.viewportSize() ?? { width: 1280, height: 720 };
+      for (let dragIndex = 0; dragIndex < 8; dragIndex++) {
+        await page.mouse.move(20, 80, { steps: 1 });
+        await page.mouse.down();
+        await page.mouse.move(viewport.width - 40, viewport.height - 40, { steps: 16 });
+        await page.mouse.up();
+        await page.waitForTimeout(80);
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(40);
+      }
+      await idleFrame(page, 4);
+    });
+    logScenario("large-drag-selection", aggregate);
+  });
+
+  test("deep-element-stack-hover @perf", async ({ reactGrab, page }, testInfo) => {
+    // Inject 2000 absolutely-positioned divs stacked at one point, then
+    // hover that point. Every hit-test walks the full stack via
+    // elementsFromPoint + isValidGrabbableElement filter. This is the
+    // pathological case for large dense DOMs (per the comment in
+    // pointer-events-freeze.ts about GitHub diff viewers).
+    const stackDepth = 2000;
+    await page.evaluate((depth) => {
+      const previousContainer = document.getElementById("perf-bench-stack-container");
+      previousContainer?.remove();
+      const stackContainer = document.createElement("div");
+      stackContainer.id = "perf-bench-stack-container";
+      stackContainer.style.cssText =
+        "position:fixed;top:200px;left:200px;width:200px;height:200px;z-index:50;";
+      for (let stackIndex = 0; stackIndex < depth; stackIndex++) {
+        const stackedElement = document.createElement("div");
+        stackedElement.setAttribute("data-stack-index", String(stackIndex));
+        // Slight per-element styling so each one has its own computed
+        // style entry (otherwise the engine may optimistically dedupe).
+        stackedElement.style.cssText = `position:absolute;inset:0;background:rgba(${stackIndex % 255},0,0,0.0005);`;
+        stackContainer.appendChild(stackedElement);
+      }
+      document.body.appendChild(stackContainer);
+    }, stackDepth);
+
+    await reactGrab.activate();
+    await idleFrame(page, 2);
+
+    const aggregate = await recordScenario(page, testInfo, "deep-element-stack-hover", async () => {
+      // Wiggle the pointer inside the stack so each move counts as a new
+      // detection (setPointer dedupes identical positions). 200 hit-tests,
+      // each walking ~2000 stacked elements.
+      for (let moveIndex = 0; moveIndex < 200; moveIndex++) {
+        const x = 250 + (moveIndex % 11);
+        const y = 250 + (moveIndex % 13);
+        await page.mouse.move(x, y, { steps: 1 });
+      }
+      await idleFrame(page, 4);
+    });
+    await reactGrab.deactivate();
+    await page.evaluate(() => {
+      document.getElementById("perf-bench-stack-container")?.remove();
+    });
+    logScenario("deep-element-stack-hover", aggregate);
+  });
+
+  test("viewport-resize-during-selection @perf", async ({ reactGrab, page }, testInfo) => {
+    // Resize the viewport while a selection is active. Tests
+    // viewport-version invalidation, bounds recompute, and the
+    // resize-handler scaling of pointer coordinates.
+    await reactGrab.activate();
+    await page.locator("[data-testid='nested-card']").first().hover({ force: true });
+    await page.waitForTimeout(200);
+
+    const viewportSizes = [
+      { width: 1024, height: 700 },
+      { width: 1400, height: 900 },
+      { width: 800, height: 600 },
+      { width: 1280, height: 720 },
+    ];
+    const aggregate = await recordScenario(
+      page,
+      testInfo,
+      "viewport-resize-during-selection",
+      async () => {
+        for (let cycleIndex = 0; cycleIndex < 15; cycleIndex++) {
+          await page.setViewportSize(viewportSizes[cycleIndex % viewportSizes.length]);
+          await page.waitForTimeout(80);
+        }
+        await idleFrame(page, 4);
+      },
+      // Each resize includes a fixed 80ms settle; the actual library work
+      // is tiny relative to that, so 2 samples is plenty.
+      { samples: 2 },
+    );
+    await page.keyboard.press("Escape");
+    await page.setViewportSize({ width: 1280, height: 720 });
+    logScenario("viewport-resize-during-selection", aggregate);
+  });
 });

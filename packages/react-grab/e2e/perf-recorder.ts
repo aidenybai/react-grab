@@ -277,10 +277,18 @@ export const attachPerfReport = async (
   testInfo: TestInfo,
   scenarioName: string,
   aggregate: PerfScenarioAggregate,
+  perSample: PerfScenarioAggregate[] = [aggregate],
 ): Promise<void> => {
   const runLabel = process.env.PERF_LABEL ?? "current";
   const reportJson = JSON.stringify(
-    { scenario: scenarioName, label: runLabel, aggregate, recordedAt: new Date().toISOString() },
+    {
+      scenario: scenarioName,
+      label: runLabel,
+      samples: perSample.length,
+      aggregate,
+      perSample,
+      recordedAt: new Date().toISOString(),
+    },
     null,
     2,
   );
@@ -310,21 +318,64 @@ export const idleFrame = (page: Page, frameCount = 1) =>
     frameCount,
   );
 
+const medianOfNumbers = (values: number[]): number => {
+  if (values.length === 0) return 0;
+  const sortedValues = [...values].sort((a, b) => a - b);
+  return sortedValues[Math.floor(sortedValues.length / 2)];
+};
+
+const medianAcrossSamples = (samples: PerfScenarioAggregate[]): PerfScenarioAggregate => {
+  return {
+    inp: medianOfNumbers(samples.map((sample) => sample.inp)),
+    interactions: medianOfNumbers(samples.map((sample) => sample.interactions)),
+    longTasks: {
+      count: medianOfNumbers(samples.map((sample) => sample.longTasks.count)),
+      sum: medianOfNumbers(samples.map((sample) => sample.longTasks.sum)),
+      max: medianOfNumbers(samples.map((sample) => sample.longTasks.max)),
+    },
+    longAnimationFrames: {
+      count: medianOfNumbers(samples.map((sample) => sample.longAnimationFrames.count)),
+      sum: medianOfNumbers(samples.map((sample) => sample.longAnimationFrames.sum)),
+      max: medianOfNumbers(samples.map((sample) => sample.longAnimationFrames.max)),
+      maxBlocking: medianOfNumbers(samples.map((sample) => sample.longAnimationFrames.maxBlocking)),
+    },
+    frames: {
+      count: medianOfNumbers(samples.map((sample) => sample.frames.count)),
+      median: medianOfNumbers(samples.map((sample) => sample.frames.median)),
+      p95: medianOfNumbers(samples.map((sample) => sample.frames.p95)),
+      max: medianOfNumbers(samples.map((sample) => sample.frames.max)),
+    },
+  };
+};
+
 // Wraps a scenario body with: CDP trace start (if PERF_TRACE=1) →
 // PerformanceObserver start → scenario body → stop everything → attach
-// report. Returns the aggregate so the test can soft-assert thresholds.
+// report. Runs the body `samples` times (default 3, js-framework-benchmark
+// style) and returns the per-metric median, so single-run noise can't
+// trip soft assertions.
 export const recordScenario = async (
   page: Page,
   testInfo: TestInfo,
   scenarioName: string,
   scenarioBody: () => Promise<void>,
+  options: { samples?: number } = {},
 ): Promise<PerfScenarioAggregate> => {
-  const cdpTrace = await startCdpTrace(page);
-  await startRecording(page);
-  await scenarioBody();
-  const rawSnapshot = await stopRecording(page);
-  await stopCdpTrace(testInfo, scenarioName, cdpTrace);
-  const aggregate = aggregateRawSnapshot(rawSnapshot);
-  await attachPerfReport(testInfo, scenarioName, aggregate);
-  return aggregate;
+  const sampleCount = Math.max(1, options.samples ?? 3);
+  const perSampleAggregates: PerfScenarioAggregate[] = [];
+  for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex++) {
+    // CDP traces are 5-100MB each; capturing only the first sample keeps
+    // disk usage sane while still giving you something to drop into DevTools.
+    const cdpTrace = sampleIndex === 0 ? await startCdpTrace(page) : null;
+    await startRecording(page);
+    await scenarioBody();
+    const rawSnapshot = await stopRecording(page);
+    await stopCdpTrace(testInfo, scenarioName, cdpTrace);
+    perSampleAggregates.push(aggregateRawSnapshot(rawSnapshot));
+  }
+  const medianAggregate =
+    perSampleAggregates.length === 1
+      ? perSampleAggregates[0]
+      : medianAcrossSamples(perSampleAggregates);
+  await attachPerfReport(testInfo, scenarioName, medianAggregate, perSampleAggregates);
+  return medianAggregate;
 };
