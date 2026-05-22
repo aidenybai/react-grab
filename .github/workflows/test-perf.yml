@@ -1,0 +1,52 @@
+name: Test Perf
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test-perf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Install Playwright browsers
+        run: pnpm --filter react-grab exec playwright install chromium --with-deps
+
+      - name: Build
+        run: pnpm build
+
+      # Dedicated runner with --workers=1 keeps perf measurements out of
+      # the noise floor that the sharded `test-e2e` workflow creates by
+      # running 4 workers in parallel. Same scenarios; cleaner numbers.
+      - name: Run perf bench
+        run: pnpm --filter react-grab exec playwright test --grep @perf --workers=1 --reporter=list
+
+      - name: Upload perf reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-bench-${{ github.event.pull_request.number || github.sha }}
+          path: packages/react-grab/perf/current/
+          if-no-files-found: warn
+          retention-days: 14

@@ -41,5 +41,8 @@ jobs:
       - name: Build
         run: pnpm build
 
+      # @perf scenarios run in their own workflow (test-perf.yml) on a
+      # dedicated runner so multi-worker contention doesn't pollute their
+      # timing measurements. Exclude them here.
       - name: Run E2E tests
-        run: pnpm --filter react-grab exec playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+        run: pnpm --filter react-grab exec playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }} --grep-invert @perf
