@@ -13,172 +13,86 @@ declare global {
 }
 
 interface PerfBenchRecorder {
-  isRecording: boolean;
-  frameDeltas: number[];
-  events: PerfEventEntry[];
-  longTasks: PerfLongTaskEntry[];
-  longAnimationFrames: PerfLongAnimationFrameEntry[];
-  measures: PerfMeasureEntry[];
-  inpInteractionMap: Map<number, number>;
-  rafHandle: number;
-  observer: PerformanceObserver | null;
-  nextFrameTimestamp: number | null;
-  _flushPending?: (entries: PerformanceEntryList) => void;
   start(): void;
   stop(): PerfRawSnapshot;
 }
 
-interface PerfEventEntry {
-  name: string;
-  duration: number;
-  processingStart: number;
-  processingEnd: number;
-  interactionId: number;
-  startTime: number;
-}
-
-interface PerfLongTaskEntry {
-  startTime: number;
-  duration: number;
-}
-
-interface PerfLongAnimationFrameEntry {
-  startTime: number;
-  duration: number;
-  renderStart?: number;
-  styleAndLayoutStart?: number;
-  blockingDuration?: number;
-  firstUIEventTimestamp?: number;
-  scriptCount: number;
-}
-
-interface PerfMeasureEntry {
-  name: string;
-  duration: number;
-}
-
 export interface PerfRawSnapshot {
   frameDeltas: number[];
-  events: PerfEventEntry[];
-  longTasks: PerfLongTaskEntry[];
-  longAnimationFrames: PerfLongAnimationFrameEntry[];
-  measures: PerfMeasureEntry[];
+  longTasks: number[];
+  longAnimationFrames: Array<{ duration: number; blockingDuration: number }>;
+  measures: Array<{ name: string; duration: number }>;
   inp: number;
   interactionCount: number;
 }
 
 export interface PerfStatsSummary {
   count: number;
-  total: number;
-  mean: number;
   median: number;
-  p75: number;
   p95: number;
-  p99: number;
   max: number;
 }
 
 export interface PerfScenarioAggregate {
   inp: number;
   interactions: number;
-  eventTimings: PerfStatsSummary;
   longTasks: { count: number; sum: number; max: number };
-  longAnimationFrames: {
-    count: number;
-    sum: number;
-    maxDuration: number;
-    maxBlockingDuration: number;
-  };
+  longAnimationFrames: { count: number; sum: number; max: number; maxBlocking: number };
   frames: PerfStatsSummary;
   measures: Record<string, PerfStatsSummary>;
 }
 
-// Injected into the page BEFORE any other script via context.addInitScript.
-// All `performance.mark`/`performance.measure` calls emitted by the
-// react-grab profiling build land in the same PerformanceObserver buffer,
-// alongside the browser-native Event Timing, Long Tasks, and Long Animation
-// Frames entries. We aggregate at scenario-end to keep per-frame overhead
-// to a single observer.
+// Injected via context.addInitScript BEFORE any other script. Dormant until
+// `__PERF_BENCH__.start()` so non-perf tests pay zero runtime cost.
 export const installPerfRecorderScript = () => {
   if (window.__PERF_BENCH__) return;
-  const recorder: PerfBenchRecorder = {
-    isRecording: false,
-    frameDeltas: [],
-    events: [],
-    longTasks: [],
-    longAnimationFrames: [],
-    measures: [],
-    inpInteractionMap: new Map(),
-    rafHandle: 0,
-    observer: null,
-    nextFrameTimestamp: null,
-    start() {
-      this.isRecording = true;
-      this.frameDeltas = [];
-      this.events = [];
-      this.longTasks = [];
-      this.longAnimationFrames = [];
-      this.measures = [];
-      this.inpInteractionMap = new Map();
-      this.nextFrameTimestamp = null;
+  let isRecording = false;
+  let frameDeltas: number[] = [];
+  let longTasks: number[] = [];
+  let longAnimationFrames: Array<{ duration: number; blockingDuration: number }> = [];
+  let measures: Array<{ name: string; duration: number }> = [];
+  let inpInteractionMap = new Map<number, number>();
+  let observer: PerformanceObserver | null = null;
+  let rafHandle = 0;
+  let previousFrameTimestamp: number | null = null;
 
-      // Both the observer callback and the `stop()` takeRecords() flush feed
-      // the same ingestion path. Stash an arrow handle so it can be reused
-      // from `stop()` without re-binding `this`.
-      const ingestEntries = (entries: PerformanceEntryList): void => {
-        for (const entry of entries) {
-          if (entry.entryType === "event" || entry.entryType === "first-input") {
-            const eventEntry = entry as PerformanceEventTiming;
-            const interactionId = eventEntry.interactionId ?? 0;
-            this.events.push({
-              name: eventEntry.name,
-              duration: eventEntry.duration,
-              processingStart: eventEntry.processingStart - eventEntry.startTime,
-              processingEnd: eventEntry.processingEnd - eventEntry.startTime,
-              interactionId,
-              startTime: eventEntry.startTime,
-            });
-            if (interactionId > 0) {
-              const existingDuration = this.inpInteractionMap.get(interactionId);
-              if (existingDuration === undefined || eventEntry.duration > existingDuration) {
-                this.inpInteractionMap.set(interactionId, eventEntry.duration);
-              }
-            }
-          } else if (entry.entryType === "longtask") {
-            this.longTasks.push({
-              startTime: entry.startTime,
-              duration: entry.duration,
-            });
-          } else if (entry.entryType === "long-animation-frame") {
-            const loafEntry = entry as PerformanceEntry & {
-              renderStart?: number;
-              styleAndLayoutStart?: number;
-              blockingDuration?: number;
-              firstUIEventTimestamp?: number;
-              scripts?: unknown[];
-            };
-            this.longAnimationFrames.push({
-              startTime: entry.startTime,
-              duration: entry.duration,
-              renderStart: loafEntry.renderStart,
-              styleAndLayoutStart: loafEntry.styleAndLayoutStart,
-              blockingDuration: loafEntry.blockingDuration,
-              firstUIEventTimestamp: loafEntry.firstUIEventTimestamp,
-              scriptCount: Array.isArray(loafEntry.scripts) ? loafEntry.scripts.length : 0,
-            });
-          } else if (entry.entryType === "measure" && entry.name.startsWith("rg:")) {
-            this.measures.push({ name: entry.name, duration: entry.duration });
+  const ingest = (entries: PerformanceEntryList): void => {
+    for (const entry of entries) {
+      if (entry.entryType === "event" || entry.entryType === "first-input") {
+        const interactionId = (entry as PerformanceEventTiming).interactionId ?? 0;
+        if (interactionId > 0) {
+          const previousDuration = inpInteractionMap.get(interactionId);
+          if (previousDuration === undefined || entry.duration > previousDuration) {
+            inpInteractionMap.set(interactionId, entry.duration);
           }
         }
-      };
-      this._flushPending = ingestEntries;
+      } else if (entry.entryType === "longtask") {
+        longTasks.push(entry.duration);
+      } else if (entry.entryType === "long-animation-frame") {
+        const loafEntry = entry as PerformanceEntry & { blockingDuration?: number };
+        longAnimationFrames.push({
+          duration: entry.duration,
+          blockingDuration: loafEntry.blockingDuration ?? 0,
+        });
+      } else if (entry.entryType === "measure" && entry.name.startsWith("rg:")) {
+        measures.push({ name: entry.name, duration: entry.duration });
+      }
+    }
+  };
 
-      const observer = new PerformanceObserver((list) => {
-        ingestEntries(list.getEntries());
-      });
-      // `durationThreshold` is a Chromium extension to PerformanceObserverInit
-      // (not yet in lib.dom.d.ts). 16ms keeps the noise floor low while still
-      // catching every event slow enough to drop a frame.
+  window.__PERF_BENCH__ = {
+    start() {
+      isRecording = true;
+      frameDeltas = [];
+      longTasks = [];
+      longAnimationFrames = [];
+      measures = [];
+      inpInteractionMap = new Map();
+      previousFrameTimestamp = null;
+
+      observer = new PerformanceObserver((list) => ingest(list.getEntries()));
+      // `durationThreshold` is a Chromium extension not in lib.dom.d.ts yet;
+      // 16ms keeps the noise floor low while catching every frame-dropping event.
       const observerOptionsList: PerformanceObserverInit[] = [
         { type: "event", buffered: false, durationThreshold: 16 } as PerformanceObserverInit & {
           durationThreshold: number;
@@ -191,60 +105,46 @@ export const installPerfRecorderScript = () => {
         try {
           observer.observe(observerOptions);
         } catch {
-          // Older Chromium may lack long-animation-frame, etc.
+          // older Chromium lacks long-animation-frame, etc.
         }
       }
-      this.observer = observer;
 
       const rafTick = (timestamp: number): void => {
-        if (!this.isRecording) return;
-        if (this.nextFrameTimestamp !== null) {
-          this.frameDeltas.push(timestamp - this.nextFrameTimestamp);
+        if (!isRecording) return;
+        if (previousFrameTimestamp !== null) {
+          frameDeltas.push(timestamp - previousFrameTimestamp);
         }
-        this.nextFrameTimestamp = timestamp;
-        this.rafHandle = requestAnimationFrame(rafTick);
+        previousFrameTimestamp = timestamp;
+        rafHandle = requestAnimationFrame(rafTick);
       };
-      this.rafHandle = requestAnimationFrame(rafTick);
+      rafHandle = requestAnimationFrame(rafTick);
     },
-    stop(): PerfRawSnapshot {
-      this.isRecording = false;
-      if (this.observer) {
+    stop() {
+      isRecording = false;
+      if (observer) {
         try {
-          // Flush any entries the observer batched but hadn't dispatched yet
-          // before disconnect drops them.
-          const pendingEntries = this.observer.takeRecords();
-          if (pendingEntries.length > 0 && this._flushPending) {
-            this._flushPending(pendingEntries);
-          }
-        } catch {
-          // ignore
-        }
-        try {
-          this.observer.disconnect();
+          observer.disconnect();
         } catch {
           // ignore
         }
       }
-      this.observer = null;
-      if (this.rafHandle) cancelAnimationFrame(this.rafHandle);
-      this.rafHandle = 0;
+      observer = null;
+      if (rafHandle) cancelAnimationFrame(rafHandle);
+      rafHandle = 0;
 
-      const interactionDurations = [...this.inpInteractionMap.values()].sort((a, b) => b - a);
+      const interactionDurations = [...inpInteractionMap.values()].sort((a, b) => b - a);
       const interactionCount = interactionDurations.length;
-      // INP per WebVitals convention: 98th-percentile worst interaction.
+      // INP per web-vitals convention: 98th-percentile worst interaction.
       const inp =
         interactionCount === 0
           ? 0
-          : (interactionDurations[Math.floor(interactionCount * 0.02)] ??
-            interactionDurations[0] ??
-            0);
+          : (interactionDurations[Math.floor(interactionCount * 0.02)] ?? 0);
 
       const snapshot: PerfRawSnapshot = {
-        frameDeltas: this.frameDeltas.slice(),
-        events: this.events.slice(),
-        longTasks: this.longTasks.slice(),
-        longAnimationFrames: this.longAnimationFrames.slice(),
-        measures: this.measures.slice(),
+        frameDeltas: frameDeltas.slice(),
+        longTasks: longTasks.slice(),
+        longAnimationFrames: longAnimationFrames.slice(),
+        measures: measures.slice(),
         inp,
         interactionCount,
       };
@@ -258,74 +158,56 @@ export const installPerfRecorderScript = () => {
       return snapshot;
     },
   };
-  window.__PERF_BENCH__ = recorder;
 };
 
 const summarize = (values: number[]): PerfStatsSummary => {
-  if (values.length === 0) {
-    return { count: 0, total: 0, mean: 0, median: 0, p75: 0, p95: 0, p99: 0, max: 0 };
-  }
+  if (values.length === 0) return { count: 0, median: 0, p95: 0, max: 0 };
   const sortedValues = [...values].sort((a, b) => a - b);
-  const sumOfValues = sortedValues.reduce((accum, value) => accum + value, 0);
   const pickPercentile = (percentile: number): number =>
     sortedValues[Math.min(sortedValues.length - 1, Math.floor(sortedValues.length * percentile))];
   return {
     count: sortedValues.length,
-    total: Number(sumOfValues.toFixed(3)),
-    mean: Number((sumOfValues / sortedValues.length).toFixed(3)),
     median: Number(pickPercentile(0.5).toFixed(3)),
-    p75: Number(pickPercentile(0.75).toFixed(3)),
     p95: Number(pickPercentile(0.95).toFixed(3)),
-    p99: Number(pickPercentile(0.99).toFixed(3)),
     max: Number(sortedValues[sortedValues.length - 1].toFixed(3)),
   };
 };
 
+const sumOf = (values: number[]): number =>
+  Number(values.reduce((accum, value) => accum + value, 0).toFixed(3));
+
+const maxOf = (values: number[]): number =>
+  values.length === 0 ? 0 : Number(Math.max(...values).toFixed(3));
+
 export const aggregateRawSnapshot = (rawSnapshot: PerfRawSnapshot): PerfScenarioAggregate => {
   const measureDurationsByName = new Map<string, number[]>();
   for (const measureEntry of rawSnapshot.measures) {
-    const namespacedKey = measureEntry.name.startsWith("rg:")
-      ? measureEntry.name.slice("rg:".length)
-      : measureEntry.name;
-    const existingDurations = measureDurationsByName.get(namespacedKey) ?? [];
-    existingDurations.push(measureEntry.duration);
-    measureDurationsByName.set(namespacedKey, existingDurations);
+    const namespacedKey = measureEntry.name.slice("rg:".length);
+    const bucket = measureDurationsByName.get(namespacedKey) ?? [];
+    bucket.push(measureEntry.duration);
+    measureDurationsByName.set(namespacedKey, bucket);
   }
   const measureSummaries: Record<string, PerfStatsSummary> = {};
   for (const [measureName, durations] of measureDurationsByName) {
     measureSummaries[measureName] = summarize(durations);
   }
 
+  const loafDurations = rawSnapshot.longAnimationFrames.map((frame) => frame.duration);
+  const loafBlocking = rawSnapshot.longAnimationFrames.map((frame) => frame.blockingDuration);
+
   return {
     inp: Number(rawSnapshot.inp.toFixed(3)),
     interactions: rawSnapshot.interactionCount,
-    eventTimings: summarize(rawSnapshot.events.map((entry) => entry.duration)),
     longTasks: {
       count: rawSnapshot.longTasks.length,
-      sum: Number(
-        rawSnapshot.longTasks.reduce((accum, task) => accum + task.duration, 0).toFixed(3),
-      ),
-      max: Number(
-        rawSnapshot.longTasks.reduce((accum, task) => Math.max(accum, task.duration), 0).toFixed(3),
-      ),
+      sum: sumOf(rawSnapshot.longTasks),
+      max: maxOf(rawSnapshot.longTasks),
     },
     longAnimationFrames: {
       count: rawSnapshot.longAnimationFrames.length,
-      sum: Number(
-        rawSnapshot.longAnimationFrames
-          .reduce((accum, frame) => accum + frame.duration, 0)
-          .toFixed(3),
-      ),
-      maxDuration: Number(
-        rawSnapshot.longAnimationFrames
-          .reduce((accum, frame) => Math.max(accum, frame.duration), 0)
-          .toFixed(3),
-      ),
-      maxBlockingDuration: Number(
-        rawSnapshot.longAnimationFrames
-          .reduce((accum, frame) => Math.max(accum, frame.blockingDuration ?? 0), 0)
-          .toFixed(3),
-      ),
+      sum: sumOf(loafDurations),
+      max: maxOf(loafDurations),
+      maxBlocking: maxOf(loafBlocking),
     },
     frames: summarize(rawSnapshot.frameDeltas),
     measures: measureSummaries,
@@ -348,40 +230,22 @@ export const attachPerfReport = async (
   testInfo: TestInfo,
   scenarioName: string,
   aggregate: PerfScenarioAggregate,
-  rawSnapshot?: PerfRawSnapshot,
 ): Promise<void> => {
   const runLabel = process.env.PERF_LABEL ?? "current";
-  const aggregateJson = JSON.stringify(
-    {
-      scenario: scenarioName,
-      label: runLabel,
-      aggregate,
-      gitSha: process.env.GIT_SHA ?? null,
-      recordedAt: new Date().toISOString(),
-    },
+  const reportJson = JSON.stringify(
+    { scenario: scenarioName, label: runLabel, aggregate, recordedAt: new Date().toISOString() },
     null,
     2,
   );
-
   await testInfo.attach(`perf-${scenarioName}.json`, {
-    body: aggregateJson,
+    body: reportJson,
     contentType: "application/json",
   });
-
-  // Mirror to packages/react-grab/perf so it's diff-able across branches.
-  // Each scenario keeps its own file so labels can be overlaid without races.
-  const perfOutputDir = resolve(PACKAGE_PERF_DIR, runLabel);
-  await mkdir(perfOutputDir, { recursive: true });
-  await writeFile(resolve(perfOutputDir, `${scenarioName}.json`), aggregateJson);
-
-  if (rawSnapshot && process.env.PERF_ATTACH_RAW === "1") {
-    const rawJson = JSON.stringify(rawSnapshot, null, 2);
-    await testInfo.attach(`perf-${scenarioName}.raw.json`, {
-      body: rawJson,
-      contentType: "application/json",
-    });
-    await writeFile(resolve(perfOutputDir, `${scenarioName}.raw.json`), rawJson);
-  }
+  // Mirror to packages/react-grab/perf/<label>/ so the file is diff-able
+  // across branches without parsing the Playwright HTML report.
+  const labelDirPath = resolve(PACKAGE_PERF_DIR, runLabel);
+  await mkdir(labelDirPath, { recursive: true });
+  await writeFile(resolve(labelDirPath, `${scenarioName}.json`), reportJson);
 };
 
 export const idleFrame = (page: Page, frameCount = 1) =>

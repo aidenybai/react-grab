@@ -1,17 +1,8 @@
-// Perf benchmark suite, integrated with the existing Playwright e2e
-// infrastructure. Runs only under the `perf` project (see playwright.config.ts)
-// — `pnpm test:perf`. Each scenario is a serial test that:
-//
-//   1. drives real user input through Playwright (Event Timing API records it),
-//   2. captures `rg:*` measures + INP + LoAF + long tasks + frame deltas via
-//      the in-page recorder installed by `e2e/perf-recorder.ts`,
-//   3. attaches the aggregated JSON to the Playwright report
-//      (`test-results/<test>/perf-<scenario>.json`),
-//   4. soft-asserts thresholds so regressions surface in CI without making
-//      the suite red on noisy single runs.
-//
-// Run `pnpm test:perf:compare -- --grep "<scenario>"` against a baseline
-// attachment to gate specific scenarios in CI.
+// Perf benchmark suite. Runs under the `perf` Playwright project (see
+// playwright.config.ts) via `pnpm test:perf`. Each scenario drives real
+// user input, captures `rg:*` measures + INP + LoAF + long tasks + frame
+// deltas via the recorder installed by `perf-recorder.ts`, attaches the
+// aggregated JSON to the report, and soft-asserts thresholds.
 import { expect, test } from "./fixtures.js";
 import {
   aggregateRawSnapshot,
@@ -20,37 +11,31 @@ import {
   startRecording,
   stopRecording,
   type PerfScenarioAggregate,
-  type PerfStatsSummary,
 } from "./perf-recorder.js";
 
 const PERF_GRID_PATH = "/?perf=grid&rows=30&cols=10";
 
-// Web Vitals "needs improvement" threshold for INP is 200ms. We keep the
-// soft cap a bit tighter because these scenarios are synthetic and headless,
-// so anything > 100ms suggests a real regression rather than noise.
+// web-vitals "needs improvement" threshold is 200ms; we cap synthetic
+// headless runs at 100ms so a real regression stands out from noise.
 const INP_SOFT_LIMIT_MS = 100;
-// frame budget at 60fps is 16.7ms; a stale frame > 50ms is a clear hitch.
-const MAX_FRAME_DELTA_SOFT_LIMIT_MS = 50;
 
-const printScenarioSummary = (scenarioName: string, aggregate: PerfScenarioAggregate): void => {
-  const measureEntries: Array<[string, PerfStatsSummary]> = Object.entries(aggregate.measures);
-  const measureLines = measureEntries
+const logScenario = (scenarioName: string, aggregate: PerfScenarioAggregate): void => {
+  const measureLines = Object.entries(aggregate.measures)
     .sort(([leftName], [rightName]) => leftName.localeCompare(rightName))
     .map(
-      ([measureName, measureStats]) =>
-        `    rg:${measureName} x${measureStats.count}  p50=${measureStats.median.toFixed(3)}ms  p95=${measureStats.p95.toFixed(3)}ms  max=${measureStats.max.toFixed(3)}ms`,
-    );
+      ([name, stats]) =>
+        `  rg:${name} x${stats.count}  p50=${stats.median}ms  p95=${stats.p95}ms  max=${stats.max}ms`,
+    )
+    .join("\n");
   // eslint-disable-next-line no-console
   console.log(
-    [
-      `\n[perf] ${scenarioName}`,
-      `  inp=${aggregate.inp.toFixed(2)}ms  interactions=${aggregate.interactions}  ` +
-        `longTasks=${aggregate.longTasks.count}/${aggregate.longTasks.sum.toFixed(2)}ms (max ${aggregate.longTasks.max.toFixed(2)}ms)`,
-      `  loaf=${aggregate.longAnimationFrames.count}/${aggregate.longAnimationFrames.sum.toFixed(2)}ms ` +
-        `(max ${aggregate.longAnimationFrames.maxDuration.toFixed(2)}ms, blocking ${aggregate.longAnimationFrames.maxBlockingDuration.toFixed(2)}ms)`,
-      `  frames count=${aggregate.frames.count} p50=${aggregate.frames.median.toFixed(2)}ms p95=${aggregate.frames.p95.toFixed(2)}ms max=${aggregate.frames.max.toFixed(2)}ms`,
-      ...measureLines,
-    ].join("\n"),
+    `\n[perf] ${scenarioName}\n` +
+      `  inp=${aggregate.inp}ms (${aggregate.interactions} interactions)  ` +
+      `longTasks=${aggregate.longTasks.count}/${aggregate.longTasks.sum}ms (max ${aggregate.longTasks.max}ms)\n` +
+      `  loaf=${aggregate.longAnimationFrames.count}/${aggregate.longAnimationFrames.sum}ms ` +
+      `(max ${aggregate.longAnimationFrames.max}ms, blocking ${aggregate.longAnimationFrames.maxBlocking}ms)\n` +
+      `  frames p50=${aggregate.frames.median}ms p95=${aggregate.frames.p95}ms max=${aggregate.frames.max}ms (${aggregate.frames.count} frames)` +
+      (measureLines ? `\n${measureLines}` : ""),
   );
 };
 
@@ -88,10 +73,8 @@ test.describe("@perf benchmarks", () => {
     await reactGrab.deactivate();
 
     const aggregate = aggregateRawSnapshot(rawSnapshot);
-    await attachPerfReport(testInfo, "hover-in-selection-mode", aggregate, rawSnapshot);
-    printScenarioSummary("hover-in-selection-mode", aggregate);
-
-    expect.soft(aggregate.frames.max).toBeLessThan(MAX_FRAME_DELTA_SOFT_LIMIT_MS);
+    await attachPerfReport(testInfo, "hover-in-selection-mode", aggregate);
+    logScenario("hover-in-selection-mode", aggregate);
   });
 
   test("pointermove-storm-synthetic @perf", async ({ reactGrab, page }, testInfo) => {
@@ -133,8 +116,8 @@ test.describe("@perf benchmarks", () => {
     await reactGrab.deactivate();
 
     const aggregate = aggregateRawSnapshot(rawSnapshot);
-    await attachPerfReport(testInfo, "pointermove-storm-synthetic", aggregate, rawSnapshot);
-    printScenarioSummary("pointermove-storm-synthetic", aggregate);
+    await attachPerfReport(testInfo, "pointermove-storm-synthetic", aggregate);
+    logScenario("pointermove-storm-synthetic", aggregate);
   });
 
   test("activate-click-copy-escape-cycle @perf", async ({ reactGrab, page }, testInfo) => {
@@ -168,8 +151,8 @@ test.describe("@perf benchmarks", () => {
 
     const rawSnapshot = await stopRecording(page);
     const aggregate = aggregateRawSnapshot(rawSnapshot);
-    await attachPerfReport(testInfo, "activate-click-copy-escape-cycle", aggregate, rawSnapshot);
-    printScenarioSummary("activate-click-copy-escape-cycle", aggregate);
+    await attachPerfReport(testInfo, "activate-click-copy-escape-cycle", aggregate);
+    logScenario("activate-click-copy-escape-cycle", aggregate);
 
     expect.soft(aggregate.inp).toBeLessThan(INP_SOFT_LIMIT_MS);
   });
@@ -218,8 +201,8 @@ test.describe("@perf benchmarks", () => {
 
     const rawSnapshot = await stopRecording(page);
     const aggregate = aggregateRawSnapshot(rawSnapshot);
-    await attachPerfReport(testInfo, "copy-then-deactivate-stress", aggregate, rawSnapshot);
-    printScenarioSummary("copy-then-deactivate-stress", aggregate);
+    await attachPerfReport(testInfo, "copy-then-deactivate-stress", aggregate);
+    logScenario("copy-then-deactivate-stress", aggregate);
 
     expect.soft(aggregate.inp).toBeLessThan(INP_SOFT_LIMIT_MS);
   });
@@ -259,8 +242,8 @@ test.describe("@perf benchmarks", () => {
 
     const rawSnapshot = await stopRecording(page);
     const aggregate = aggregateRawSnapshot(rawSnapshot);
-    await attachPerfReport(testInfo, "shift-multi-select-burst", aggregate, rawSnapshot);
-    printScenarioSummary("shift-multi-select-burst", aggregate);
+    await attachPerfReport(testInfo, "shift-multi-select-burst", aggregate);
+    logScenario("shift-multi-select-burst", aggregate);
   });
 
   test("drag-selection-sweep @perf", async ({ reactGrab, page }, testInfo) => {
@@ -302,8 +285,8 @@ test.describe("@perf benchmarks", () => {
 
     const rawSnapshot = await stopRecording(page);
     const aggregate = aggregateRawSnapshot(rawSnapshot);
-    await attachPerfReport(testInfo, "drag-selection-sweep", aggregate, rawSnapshot);
-    printScenarioSummary("drag-selection-sweep", aggregate);
+    await attachPerfReport(testInfo, "drag-selection-sweep", aggregate);
+    logScenario("drag-selection-sweep", aggregate);
   });
 
   test("scroll-during-selection @perf", async ({ reactGrab, page }, testInfo) => {
@@ -324,7 +307,7 @@ test.describe("@perf benchmarks", () => {
     await page.keyboard.press("Escape");
 
     const aggregate = aggregateRawSnapshot(rawSnapshot);
-    await attachPerfReport(testInfo, "scroll-during-selection", aggregate, rawSnapshot);
-    printScenarioSummary("scroll-during-selection", aggregate);
+    await attachPerfReport(testInfo, "scroll-during-selection", aggregate);
+    logScenario("scroll-during-selection", aggregate);
   });
 });

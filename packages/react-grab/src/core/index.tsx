@@ -2611,25 +2611,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       "pointermove",
       (event: PointerEvent) => {
         if (!event.isPrimary) return;
-        markPerf("pointermove:start");
         const isTouchPointer = event.pointerType === "touch";
         actions.setTouchMode(isTouchPointer);
-        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) {
-          measureSincePerf("pointermove:short-circuit", "pointermove:start");
-          return;
-        }
-        if (store.contextMenuPosition !== null) {
-          measureSincePerf("pointermove:short-circuit", "pointermove:start");
-          return;
-        }
-        if (isSelectionInteractionLocked()) {
-          measureSincePerf("pointermove:short-circuit", "pointermove:start");
-          return;
-        }
-        if (isTouchPointer && !isHoldingKeys() && !isActivated()) {
-          measureSincePerf("pointermove:short-circuit", "pointermove:start");
-          return;
-        }
+        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
+        if (store.contextMenuPosition !== null) return;
+        if (isSelectionInteractionLocked()) return;
+        if (isTouchPointer && !isHoldingKeys() && !isActivated()) return;
+        markPerf("pointermove:start");
         const isActiveState = isTouchPointer ? isHoldingKeys() : isActivated();
         // The flag check covers the small window after physical Shift
         // release but before the keyup handler commits — pointermove fires

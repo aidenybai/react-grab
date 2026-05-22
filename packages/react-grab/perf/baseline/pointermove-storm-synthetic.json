@@ -4,50 +4,31 @@
   "aggregate": {
     "inp": 0,
     "interactions": 0,
-    "eventTimings": {
-      "count": 0,
-      "total": 0,
-      "mean": 0,
-      "median": 0,
-      "p75": 0,
-      "p95": 0,
-      "p99": 0,
-      "max": 0
-    },
     "longTasks": {
-      "count": 33,
-      "sum": 3322,
-      "max": 193
+      "count": 31,
+      "sum": 2997,
+      "max": 171
     },
     "longAnimationFrames": {
       "count": 31,
-      "sum": 3098.5,
-      "maxDuration": 187.6,
-      "maxBlockingDuration": 137.467
+      "sum": 2900.5,
+      "max": 167.8,
+      "maxBlocking": 117.673
     },
     "frames": {
       "count": 42,
-      "total": 3633.3,
-      "mean": 86.507,
       "median": 83.3,
-      "p75": 116.7,
-      "p95": 166.7,
-      "p99": 200,
-      "max": 200
+      "p95": 150,
+      "max": 166.7
     },
     "measures": {
       "pointermove": {
         "count": 10000,
-        "total": 270.7,
-        "mean": 0.027,
         "median": 0,
-        "p75": 0.1,
         "p95": 0.1,
-        "p99": 0.1,
-        "max": 1.8
+        "max": 5.7
       }
     }
   },
-  "gitSha": null,
-  "recordedAt": "2026-05-22T10:31:34.721Z"
+  "recordedAt": "2026-05-22T10:49:54.279Z"
 }

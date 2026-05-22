@@ -2,102 +2,63 @@
   "scenario": "copy-then-deactivate-stress",
   "label": "baseline",
   "aggregate": {
-    "inp": 48,
-    "interactions": 38,
-    "eventTimings": {
-      "count": 680,
-      "total": 17744,
-      "mean": 26.094,
-      "median": 24,
-      "p75": 32,
-      "p95": 40,
-      "p99": 48,
-      "max": 48
-    },
+    "inp": 40,
+    "interactions": 39,
     "longTasks": {
       "count": 0,
       "sum": 0,
       "max": 0
     },
     "longAnimationFrames": {
-      "count": 1,
-      "sum": 85.7,
-      "maxDuration": 85.7,
-      "maxBlockingDuration": 0
+      "count": 0,
+      "sum": 0,
+      "max": 0,
+      "maxBlocking": 0
     },
     "frames": {
-      "count": 349,
-      "total": 5816.4,
-      "mean": 16.666,
+      "count": 345,
       "median": 16.7,
-      "p75": 16.7,
-      "p95": 16.7,
-      "p99": 16.8,
+      "p95": 16.8,
       "max": 16.8
     },
     "measures": {
       "activate": {
         "count": 20,
-        "total": 66.8,
-        "mean": 3.34,
-        "median": 3.3,
-        "p75": 4.1,
-        "p95": 5.8,
-        "p99": 5.8,
-        "max": 5.8
+        "median": 3.2,
+        "p95": 5.7,
+        "max": 5.7
       },
       "pointermove": {
         "count": 13,
-        "total": 1.1,
-        "mean": 0.085,
         "median": 0.1,
-        "p75": 0.1,
-        "p95": 0.1,
-        "p99": 0.1,
-        "max": 0.1
+        "p95": 0.2,
+        "max": 0.2
       },
       "unfreezePseudoStates": {
         "count": 20,
-        "total": 0.9,
-        "mean": 0.045,
         "median": 0,
-        "p75": 0.1,
-        "p95": 0.2,
-        "p99": 0.2,
-        "max": 0.2
+        "p95": 0.1,
+        "max": 0.1
       },
       "unfreezeGlobalAnimations": {
         "count": 20,
-        "total": 35.9,
-        "mean": 1.795,
         "median": 1.7,
-        "p75": 2.1,
-        "p95": 2.5,
-        "p99": 2.5,
-        "max": 2.5
+        "p95": 2.4,
+        "max": 2.4
       },
       "freezeUpdates:resume": {
         "count": 20,
-        "total": 2.1,
-        "mean": 0.105,
         "median": 0.1,
-        "p75": 0.1,
         "p95": 0.2,
-        "p99": 0.2,
         "max": 0.2
       },
       "deactivate": {
         "count": 20,
-        "total": 1.5,
-        "mean": 0.075,
         "median": 0.1,
-        "p75": 0.1,
-        "p95": 0.1,
-        "p99": 0.1,
-        "max": 0.1
+        "p95": 0.2,
+        "max": 0.2
       }
     }
   },
-  "gitSha": null,
-  "recordedAt": "2026-05-22T10:31:48.480Z"
+  "recordedAt": "2026-05-22T10:50:07.728Z"
 }
