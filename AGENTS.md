@@ -17,6 +17,7 @@
 - MUST: Put all magic numbers in `constants.ts` using `SCREAMING_SNAKE_CASE` with unit suffixes (`_MS`, `_PX`).
 - MUST: Put small, focused utility functions in `utils/` with one utility per file.
 - MUST: Use Boolean over !!.
+- MUST: No dynamic imports (`import()`) unless strictly necessary (e.g. code-splitting a large optional dependency, breaking a circular dependency that cannot be refactored). Prefer static `import` at the top of the file.
 
 ## V8 Hot-Path Rules
 
