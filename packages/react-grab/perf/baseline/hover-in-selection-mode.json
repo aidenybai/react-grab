@@ -1,0 +1,63 @@
+{
+  "scenario": "hover-in-selection-mode",
+  "label": "baseline",
+  "aggregate": {
+    "inp": 0,
+    "interactions": 0,
+    "eventTimings": {
+      "count": 3040,
+      "total": 73632,
+      "mean": 24.221,
+      "median": 24,
+      "p75": 24,
+      "p95": 24,
+      "p99": 32,
+      "max": 32
+    },
+    "longTasks": {
+      "count": 0,
+      "sum": 0,
+      "max": 0
+    },
+    "longAnimationFrames": {
+      "count": 0,
+      "sum": 0,
+      "maxDuration": 0,
+      "maxBlockingDuration": 0
+    },
+    "frames": {
+      "count": 303,
+      "total": 5049.8,
+      "mean": 16.666,
+      "median": 16.7,
+      "p75": 16.7,
+      "p95": 16.8,
+      "p99": 16.8,
+      "max": 16.8
+    },
+    "measures": {
+      "pointermove": {
+        "count": 239,
+        "total": 19.4,
+        "mean": 0.081,
+        "median": 0.1,
+        "p75": 0.1,
+        "p95": 0.2,
+        "p99": 0.2,
+        "max": 0.2
+      },
+      "pointermove:short-circuit": {
+        "count": 1,
+        "total": 0,
+        "mean": 0,
+        "median": 0,
+        "p75": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      }
+    }
+  },
+  "gitSha": null,
+  "recordedAt": "2026-05-22T10:31:30.444Z"
+}

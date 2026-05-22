@@ -4,6 +4,12 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// When PERF=1 we ask the dev server to use the profiling build of
+// react-grab so that `performance.mark`/`measure` calls inside the library
+// actually fire. Otherwise the production build short-circuits them at
+// compile time and rg:* measures never reach the recorder.
+const reactGrabBuildScript = process.env.PERF === "1" ? "build:profiling" : "build";
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
@@ -21,7 +27,7 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
-      testIgnore: /touch-mode\.spec\.ts/,
+      testIgnore: [/touch-mode\.spec\.ts/, /perf-bench\.spec\.ts/],
     },
     {
       name: "chromium-touch",
@@ -31,12 +37,28 @@ export default defineConfig({
       },
       testMatch: /touch-mode\.spec\.ts/,
     },
+    {
+      name: "perf",
+      use: {
+        ...devices["Desktop Chrome"],
+        // Trace adds non-trivial overhead; we capture our own metrics so
+        // the playwright trace just gets in the way.
+        trace: "off",
+        video: "off",
+      },
+      testMatch: /perf-bench\.spec\.ts/,
+      // Perf scenarios are CPU-heavy and concurrent runs would skew the
+      // measurements; pin to one worker and let them run serially.
+      fullyParallel: false,
+      retries: 0,
+      timeout: 120_000,
+    },
   ],
   webServer: {
-    command: "pnpm --filter react-grab build && pnpm dev",
+    command: `pnpm --filter react-grab ${reactGrabBuildScript} && pnpm dev`,
     url: "http://localhost:5175",
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: !process.env.CI && process.env.PERF !== "1",
     cwd: path.resolve(__dirname, "../../apps/e2e-app"),
-    timeout: 30000,
+    timeout: 60_000,
   },
 });

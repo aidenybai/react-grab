@@ -1,0 +1,42 @@
+{
+  "scenario": "scroll-during-selection",
+  "label": "baseline",
+  "aggregate": {
+    "inp": 0,
+    "interactions": 0,
+    "eventTimings": {
+      "count": 1600,
+      "total": 38336,
+      "mean": 23.96,
+      "median": 24,
+      "p75": 24,
+      "p95": 24,
+      "p99": 24,
+      "max": 24
+    },
+    "longTasks": {
+      "count": 0,
+      "sum": 0,
+      "max": 0
+    },
+    "longAnimationFrames": {
+      "count": 0,
+      "sum": 0,
+      "maxDuration": 0,
+      "maxBlockingDuration": 0
+    },
+    "frames": {
+      "count": 407,
+      "total": 6783.1,
+      "mean": 16.666,
+      "median": 16.7,
+      "p75": 16.7,
+      "p95": 16.8,
+      "p99": 16.8,
+      "max": 16.8
+    },
+    "measures": {}
+  },
+  "gitSha": null,
+  "recordedAt": "2026-05-22T10:32:01.092Z"
+}

@@ -1,0 +1,103 @@
+{
+  "scenario": "drag-selection-sweep",
+  "label": "baseline",
+  "aggregate": {
+    "inp": 40,
+    "interactions": 18,
+    "eventTimings": {
+      "count": 607,
+      "total": 10920,
+      "mean": 17.99,
+      "median": 16,
+      "p75": 16,
+      "p95": 24,
+      "p99": 40,
+      "max": 40
+    },
+    "longTasks": {
+      "count": 0,
+      "sum": 0,
+      "max": 0
+    },
+    "longAnimationFrames": {
+      "count": 0,
+      "sum": 0,
+      "maxDuration": 0,
+      "maxBlockingDuration": 0
+    },
+    "frames": {
+      "count": 236,
+      "total": 3933.2,
+      "mean": 16.666,
+      "median": 16.7,
+      "p75": 16.7,
+      "p95": 16.8,
+      "p99": 16.8,
+      "max": 16.8
+    },
+    "measures": {
+      "pointermove": {
+        "count": 92,
+        "total": 3.5,
+        "mean": 0.038,
+        "median": 0,
+        "p75": 0.1,
+        "p95": 0.1,
+        "p99": 0.3,
+        "max": 0.3
+      },
+      "unfreezePseudoStates": {
+        "count": 1,
+        "total": 0.1,
+        "mean": 0.1,
+        "median": 0.1,
+        "p75": 0.1,
+        "p95": 0.1,
+        "p99": 0.1,
+        "max": 0.1
+      },
+      "unfreezeGlobalAnimations": {
+        "count": 1,
+        "total": 2.9,
+        "mean": 2.9,
+        "median": 2.9,
+        "p75": 2.9,
+        "p95": 2.9,
+        "p99": 2.9,
+        "max": 2.9
+      },
+      "freezeUpdates:resume": {
+        "count": 1,
+        "total": 0.3,
+        "mean": 0.3,
+        "median": 0.3,
+        "p75": 0.3,
+        "p95": 0.3,
+        "p99": 0.3,
+        "max": 0.3
+      },
+      "deactivate": {
+        "count": 1,
+        "total": 0.2,
+        "mean": 0.2,
+        "median": 0.2,
+        "p75": 0.2,
+        "p95": 0.2,
+        "p99": 0.2,
+        "max": 0.2
+      },
+      "pointermove:short-circuit": {
+        "count": 4,
+        "total": 0.1,
+        "mean": 0.025,
+        "median": 0,
+        "p75": 0.1,
+        "p95": 0.1,
+        "p99": 0.1,
+        "max": 0.1
+      }
+    }
+  },
+  "gitSha": null,
+  "recordedAt": "2026-05-22T10:31:53.912Z"
+}
