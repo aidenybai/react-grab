@@ -72,7 +72,9 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
       data-react-grab-ignore-events
       data-react-grab-toolbar-collapse
       aria-label={props.isCollapsed ? "Expand toolbar" : "Collapse toolbar"}
-      class="group contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale"
+      aria-expanded={!props.isCollapsed}
+      type="button"
+      class="group contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale a11y-hitbox"
       onClick={props.onCollapseClick}
       on:pointerdown={props.onCollapsePointerDown}
       onPointerUp={props.onCollapsePointerUp}

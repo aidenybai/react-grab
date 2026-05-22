@@ -93,12 +93,28 @@
   }
 }
 
+/* Reduce motion: respect the OS-level preference for users with vestibular
+   disorders (WCAG 2.3.3). Blanket-disable animation/transition inside the
+   shadow root so any animation added later inherits the override. */
 @media (prefers-reduced-motion: reduce) {
-  [data-react-grab-unread-indicator],
-  [data-react-grab-unread-indicator] * {
+  :host,
+  :host *,
+  :host *::before,
+  :host *::after {
     animation: none !important;
     transition: none !important;
+    scroll-behavior: auto !important;
   }
+}
+
+/* The react-grab overlay UI uses its own visual states (the moving menu
+   highlight, button hover transitions, etc.) as focus indicators, so any
+   UA focus ring inside the shadow root is purely visual noise. Strip all
+   :focus / :focus-visible outlines and shadows uniformly. */
+:host *:focus,
+:host *:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 @keyframes shake {
@@ -251,6 +267,30 @@
     height: 100%;
     min-height: 44px;
     min-width: 44px;
+  }
+}
+
+/* Minimum 24x24 hit area for small icon buttons (WCAG 2.5.8). Use this when
+   touch-hitbox would visually push neighboring controls apart. pointer-events
+   on the pseudo-element is set explicitly so clicks landing outside the
+   visual button bounds still reach the host element (pseudo-elements inherit
+   pointer-events from their originating element, but stating it removes
+   ambiguity in environments where an ancestor sets pointer-events:none). */
+@utility a11y-hitbox {
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    display: block;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    min-height: 24px;
+    min-width: 24px;
+    pointer-events: auto;
   }
 }
 

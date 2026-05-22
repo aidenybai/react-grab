@@ -642,6 +642,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             data-react-grab-toolbar-toggle
             aria-label={props.isActive ? "Stop selecting element" : "Select element"}
             aria-pressed={Boolean(props.isActive)}
+            type="button"
             class={cn(
               "group contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
               buttonSpacingClass(),

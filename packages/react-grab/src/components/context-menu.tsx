@@ -1,4 +1,4 @@
-import { Show, For, onMount, onCleanup, createSignal, createEffect, createMemo } from "solid-js";
+import { Show, For, on, onMount, onCleanup, createSignal, createEffect, createMemo } from "solid-js";
 import type { Component } from "solid-js";
 import type {
   Position,
@@ -47,6 +47,11 @@ interface MenuItem {
 
 export const ContextMenu: Component<ContextMenuProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
+  let menuContainerRef: HTMLDivElement | undefined;
+  let previouslyFocusedElement: Element | null = null;
+  // Collected via ref callbacks during render so navigation reads from a
+  // typed array instead of querying the DOM. Indices line up with menuItems().
+  const menuItemRefs: (HTMLButtonElement | undefined)[] = [];
   const {
     containerRef: highlightContainerRef,
     highlightRef,
@@ -59,8 +64,16 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
 
   const [measuredWidth, setMeasuredWidth] = createSignal(0);
   const [measuredHeight, setMeasuredHeight] = createSignal(0);
+  // Tracks which menu row is "active" (hovered, arrowed-to, or invoked-via-
+  // shortcut). The visible highlight follows this signal. We never call
+  // .focus() on the row itself: that would steal DOM focus from whatever the
+  // host page had focused (form inputs, comboboxes, focus-trapped modals),
+  // dispatch blur/focus events at the wrong time, and fight focus traps.
+  // Keyboard navigation is handled by a window-level keydown listener
+  // instead, which fires regardless of where DOM focus is.
+  const [activeItemIndex, setActiveItemIndex] = createSignal(-1);
 
-  const isVisible = () => props.position !== null;
+  const isVisible = createMemo(() => props.position !== null);
 
   const tagDisplayResult = createMemo(() =>
     getTagDisplay({
@@ -148,6 +161,93 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     }));
   });
 
+  // Resets when items change so a freshly-opened menu doesn't carry over
+  // stale element refs (e.g. an action list that shrank).
+  createEffect(() => {
+    menuItemRefs.length = menuItems().length;
+  });
+
+  const findNextEnabledIndex = (startIndex: number, direction: 1 | -1): number => {
+    const items = menuItems();
+    if (items.length === 0) return -1;
+    const totalItems = items.length;
+    const wrap = (index: number) => ((index % totalItems) + totalItems) % totalItems;
+    let nextIndex = wrap(startIndex + direction);
+    for (let attempt = 0; attempt < totalItems; attempt++) {
+      if (items[nextIndex]?.enabled) return nextIndex;
+      nextIndex = wrap(nextIndex + direction);
+    }
+    return -1;
+  };
+
+  const findFirstEnabledIndex = (): number =>
+    menuItems().findIndex((item) => item.enabled);
+
+  const findLastEnabledIndex = (): number => {
+    const items = menuItems();
+    for (let itemIndex = items.length - 1; itemIndex >= 0; itemIndex--) {
+      if (items[itemIndex]?.enabled) return itemIndex;
+    }
+    return -1;
+  };
+
+  // Single source of truth for the visible highlight. Reacts to activeItemIndex
+  // changes (from keyboard nav, mouse hover, etc.) and re-positions the
+  // highlight element via createMenuHighlight. No DOM queries.
+  createEffect(() => {
+    const index = activeItemIndex();
+    if (index < 0) {
+      clearHighlight();
+      return;
+    }
+    const element = menuItemRefs[index];
+    if (element) {
+      updateHighlight(element);
+    }
+  });
+
+  // Single, predictable focus move keyed strictly on visibility (not on
+  // position): focus the menu container on open so aria-activedescendant
+  // (driven by activeItemIndex) is announced by assistive tech. On close,
+  // restore focus to whatever the host page had focused — but only if
+  // nothing else has already claimed focus (e.g. the prompt-mode textarea
+  // that an action opened), so we do not yank it back.
+  createEffect(
+    on(isVisible, (visible) => {
+      if (visible) {
+        // document.activeElement returns the shadow host when focus is
+        // inside the shadow root, so use the host's shadowRoot.activeElement
+        // to detect a focused element that already lives in our own DOM
+        // tree; we should not capture our own host as "previous".
+        const hostShadowRoot = containerRef?.getRootNode();
+        const focusInsideHost =
+          hostShadowRoot instanceof ShadowRoot ? hostShadowRoot.activeElement : null;
+        const pageActiveElement = document.activeElement;
+        const wasFocusedOnPage =
+          pageActiveElement instanceof HTMLElement &&
+          focusInsideHost === null &&
+          !(containerRef instanceof Element && containerRef.contains(pageActiveElement));
+        previouslyFocusedElement = wasFocusedOnPage ? pageActiveElement : null;
+        menuContainerRef?.focus({ preventScroll: true });
+        return;
+      }
+      setActiveItemIndex(-1);
+      const restoreTarget = previouslyFocusedElement;
+      previouslyFocusedElement = null;
+      if (!(restoreTarget instanceof HTMLElement) || !document.contains(restoreTarget)) return;
+      // Defer to the next frame so an action-triggered focus move (e.g.
+      // the prompt textarea focusing itself via queueMicrotask) lands
+      // first. If something other than the body has focus by then, the
+      // action's side effect deserves to keep it.
+      nativeRequestAnimationFrame(() => {
+        const currentActive = document.activeElement;
+        const isOrphanedFocus = currentActive === null || currentActive === document.body;
+        if (!isOrphanedFocus) return;
+        restoreTarget.focus({ preventScroll: true });
+      });
+    }),
+  );
+
   const handleAction = (item: MenuItem, event: Event) => {
     event.stopPropagation();
     if (item.enabled) {
@@ -162,9 +262,34 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!isVisible()) return;
 
+      const isArrowDown = event.key === "ArrowDown";
+      const isArrowUp = event.key === "ArrowUp";
+      const isHome = event.key === "Home";
+      const isEnd = event.key === "End";
+      const isTab = event.key === "Tab";
       const isEnter = event.key === "Enter";
       const hasModifierKey = event.metaKey || event.ctrlKey;
       const keyLower = event.key.toLowerCase();
+
+      if (isArrowDown || isArrowUp || isHome || isEnd || isTab) {
+        event.preventDefault();
+        event.stopPropagation();
+        const currentIndex = activeItemIndex();
+        const moveForward = isArrowDown || (isTab && !event.shiftKey);
+        let nextIndex: number;
+        if (isHome) {
+          nextIndex = findFirstEnabledIndex();
+        } else if (isEnd) {
+          nextIndex = findLastEnabledIndex();
+        } else if (moveForward) {
+          nextIndex = findNextEnabledIndex(currentIndex === -1 ? -1 : currentIndex, 1);
+        } else {
+          const itemsLength = menuItems().length;
+          nextIndex = findNextEnabledIndex(currentIndex === -1 ? itemsLength : currentIndex, -1);
+        }
+        if (nextIndex >= 0) setActiveItemIndex(nextIndex);
+        return;
+      }
 
       const pluginActions = props.actions ?? [];
       const context = props.actionContext;
@@ -179,6 +304,18 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       };
 
       if (isEnter) {
+        // Active row wins when the user has explicitly navigated to one.
+        // Otherwise fall back to the action that registered Enter as its
+        // shortcut (typically "Edit" → prompt mode), matching the legacy
+        // behavior so opening the menu and pressing Enter still works.
+        const activeIndex = activeItemIndex();
+        if (activeIndex >= 0) {
+          const activeAction = pluginActions[activeIndex];
+          if (activeAction) {
+            runActionIfAllowed(activeAction);
+            return;
+          }
+        }
         const enterAction = pluginActions.find((action) => action.shortcut === "Enter");
         if (enterAction) {
           runActionIfAllowed(enterAction);
@@ -212,6 +349,23 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       window.removeEventListener("keydown", handleKeyDown, { capture: true });
     });
   });
+
+  const accessibleMenuLabel = createMemo(() => {
+    const { tagName, componentName } = tagDisplayResult();
+    const displayName = componentName ? `${componentName}.${tagName}` : tagName;
+    return `Actions for ${displayName}`;
+  });
+
+  // Stable per-instance prefix so each open of the menu produces unique
+  // ids the active-descendant attribute can reference. Two menus mounted
+  // simultaneously (shouldn't happen today, but cheap to guard) won't
+  // collide on the same #menu-item-N id.
+  const menuIdPrefix = `react-grab-menu-${Math.random().toString(36).slice(2, 8)}`;
+  const menuItemId = (itemIndex: number) => `${menuIdPrefix}-item-${itemIndex}`;
+  const activeDescendantId = () => {
+    const index = activeItemIndex();
+    return index >= 0 ? menuItemId(index) : undefined;
+  };
 
   return (
     <Show when={isVisible()}>
@@ -261,27 +415,46 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
           </div>
           <BottomSection>
             <div
-              ref={highlightContainerRef}
-              class="relative flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5"
+              ref={(element) => {
+                menuContainerRef = element;
+                highlightContainerRef(element);
+              }}
+              role="menu"
+              tabindex={-1}
+              aria-orientation="vertical"
+              aria-label={accessibleMenuLabel()}
+              aria-activedescendant={activeDescendantId()}
+              class="relative flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5 outline-none"
             >
               <div
                 ref={highlightRef}
+                aria-hidden="true"
                 class="pointer-events-none absolute opacity-0 transition-[top,left,width,height,opacity,border-radius] duration-75 ease-out bg-[var(--rg-surface-hover)]"
               />
               <For each={menuItems()}>
-                {(item) => (
+                {(item, itemIndex) => (
                   <button
+                    ref={(element) => {
+                      menuItemRefs[itemIndex()] = element;
+                      onCleanup(() => {
+                        if (menuItemRefs[itemIndex()] === element) {
+                          menuItemRefs[itemIndex()] = undefined;
+                        }
+                      });
+                    }}
+                    id={menuItemId(itemIndex())}
                     data-react-grab-ignore-events
                     data-react-grab-menu-item={item.label.toLowerCase()}
+                    type="button"
+                    role="menuitem"
+                    tabindex={activeItemIndex() === itemIndex() ? 0 : -1}
+                    aria-disabled={!item.enabled}
                     class="relative z-1 contain-layout flex items-center justify-between w-full px-2 py-1 cursor-pointer text-left border-none bg-transparent disabled:opacity-40 disabled:cursor-default"
                     disabled={!item.enabled}
                     onPointerDown={(event) => event.stopPropagation()}
-                    onPointerEnter={(event) => {
-                      if (item.enabled) {
-                        updateHighlight(event.currentTarget);
-                      }
+                    onPointerEnter={() => {
+                      if (item.enabled) setActiveItemIndex(itemIndex());
                     }}
-                    onPointerLeave={clearHighlight}
                     onClick={(event) => handleAction(item, event)}
                   >
                     <span class="text-[13px] leading-4 font-sans font-medium text-[var(--rg-text-primary)]">

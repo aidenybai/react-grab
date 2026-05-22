@@ -2176,6 +2176,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!isActivated() || isPromptMode()) return false;
       if (isShiftMultiSelecting()) return false;
       if (!ARROW_KEYS.has(event.key)) return false;
+      // While the context menu is open, arrow keys belong to its own
+      // roving-tabindex navigation. Both listeners fire for the same
+      // event (both window+capture), so without bowing out here arrow
+      // keys also re-select a different page element and reposition
+      // the menu over it.
+      if (store.contextMenuPosition !== null) return false;
 
       let currentElement = effectiveElement();
       const isInitialSelection = !currentElement;
@@ -2301,6 +2307,42 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!wasHandled) {
         openFile(filePath, lineNumber ?? undefined, pluginRegistry.hooks.transformOpenFileUrl);
       }
+      return true;
+    };
+
+    const handleContextMenuKey = (event: KeyboardEvent): boolean => {
+      if (!isActivated()) return false;
+      if (isCopying() || isPromptMode()) return false;
+      if (store.contextMenuPosition !== null) return false;
+
+      const isShiftF10 = event.key === "F10" && event.shiftKey;
+      const isContextMenuKey = event.key === "ContextMenu";
+      if (!isShiftF10 && !isContextMenuKey) return false;
+
+      const existingFrozenElements = store.frozenElements;
+      const hasMultiFrozenSelection = existingFrozenElements.length > 1;
+      const element =
+        (hasMultiFrozenSelection ? existingFrozenElements[0] : null) ||
+        store.frozenElement ||
+        targetElement();
+      if (!element) return false;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const center = getBoundsCenter(createElementBounds(element));
+      // Preserve an existing multi-frozen selection (e.g. Shift+click)
+      // when invoking via keyboard, matching the mouse contextmenu
+      // handler's behavior on a click that lands on the existing set.
+      if (hasMultiFrozenSelection) {
+        freezeAllAnimations(existingFrozenElements);
+      } else {
+        freezeAllAnimations([element]);
+        actions.setFrozenElement(element);
+      }
+      actions.setPointer(center);
+      actions.freeze();
+      openContextMenu(element, center);
       return true;
     };
 
@@ -2433,6 +2475,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
+        // When the context menu is open, its own registerOverlayDismiss
+        // listener handles Escape. Bail out so the global handler doesn't
+        // fire deactivateRenderer first via the isFromOverlay branch
+        // (the menu container now holds focus, so composedPath() includes
+        // data-react-grab-ignore-events).
+        if (event.key === "Escape" && store.contextMenuPosition !== null) {
+          return;
+        }
+
         const isFromOverlay =
           isEventFromOverlay(event, "data-react-grab-ignore-events") && !isEnterToActivateInput;
 
@@ -2480,6 +2531,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (handleArrowNavigation(event)) return;
         if (handleEnterKeyActivation(event)) return;
         if (handleOpenFileShortcut(event)) return;
+        if (handleContextMenuKey(event)) return;
 
         if (!didWindowJustRegainFocus) {
           handleActivationKeys(event);
