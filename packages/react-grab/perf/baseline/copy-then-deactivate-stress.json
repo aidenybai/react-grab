@@ -3,8 +3,8 @@
   "label": "baseline",
   "samples": 3,
   "aggregate": {
-    "inp": 48,
-    "interactions": 39,
+    "inp": 56,
+    "interactions": 40,
     "longTasks": {
       "count": 0,
       "sum": 0,
@@ -17,13 +17,55 @@
       "maxBlocking": 0
     },
     "frames": {
-      "count": 224,
+      "count": 223,
       "median": 16.7,
-      "p95": 16.7,
+      "p95": 16.8,
       "max": 16.8
     }
   },
   "perSample": [
+    {
+      "inp": 56,
+      "interactions": 39,
+      "longTasks": {
+        "count": 0,
+        "sum": 0,
+        "max": 0
+      },
+      "longAnimationFrames": {
+        "count": 1,
+        "sum": 79.7,
+        "max": 79.7,
+        "maxBlocking": 0
+      },
+      "frames": {
+        "count": 216,
+        "median": 16.7,
+        "p95": 16.8,
+        "max": 16.8
+      }
+    },
+    {
+      "inp": 56,
+      "interactions": 40,
+      "longTasks": {
+        "count": 0,
+        "sum": 0,
+        "max": 0
+      },
+      "longAnimationFrames": {
+        "count": 0,
+        "sum": 0,
+        "max": 0,
+        "maxBlocking": 0
+      },
+      "frames": {
+        "count": 227,
+        "median": 16.7,
+        "p95": 16.7,
+        "max": 16.8
+      }
+    },
     {
       "inp": 40,
       "interactions": 40,
@@ -39,54 +81,12 @@
         "maxBlocking": 0
       },
       "frames": {
-        "count": 219,
-        "median": 16.7,
-        "p95": 16.7,
-        "max": 16.8
-      }
-    },
-    {
-      "inp": 48,
-      "interactions": 39,
-      "longTasks": {
-        "count": 0,
-        "sum": 0,
-        "max": 0
-      },
-      "longAnimationFrames": {
-        "count": 0,
-        "sum": 0,
-        "max": 0,
-        "maxBlocking": 0
-      },
-      "frames": {
-        "count": 224,
+        "count": 223,
         "median": 16.7,
         "p95": 16.8,
         "max": 16.8
       }
-    },
-    {
-      "inp": 72,
-      "interactions": 39,
-      "longTasks": {
-        "count": 0,
-        "sum": 0,
-        "max": 0
-      },
-      "longAnimationFrames": {
-        "count": 0,
-        "sum": 0,
-        "max": 0,
-        "maxBlocking": 0
-      },
-      "frames": {
-        "count": 236,
-        "median": 16.7,
-        "p95": 16.7,
-        "max": 33.3
-      }
     }
   ],
-  "recordedAt": "2026-05-22T22:55:20.970Z"
+  "recordedAt": "2026-05-22T23:52:38.530Z"
 }

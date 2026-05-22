@@ -1,10 +1,10 @@
 {
-  "scenario": "dom-mutation-during-selection",
+  "scenario": "dom-rerender-during-selection",
   "label": "baseline",
   "samples": 2,
   "aggregate": {
-    "inp": 48,
-    "interactions": 38,
+    "inp": 32,
+    "interactions": 58,
     "longTasks": {
       "count": 0,
       "sum": 0,
@@ -17,16 +17,16 @@
       "maxBlocking": 0
     },
     "frames": {
-      "count": 115,
+      "count": 102,
       "median": 16.7,
-      "p95": 16.8,
-      "max": 33.4
+      "p95": 16.7,
+      "max": 33.3
     }
   },
   "perSample": [
     {
-      "inp": 48,
-      "interactions": 38,
+      "inp": 32,
+      "interactions": 58,
       "longTasks": {
         "count": 0,
         "sum": 0,
@@ -39,15 +39,15 @@
         "maxBlocking": 0
       },
       "frames": {
-        "count": 115,
+        "count": 102,
         "median": 16.7,
-        "p95": 16.8,
-        "max": 33.4
+        "p95": 16.7,
+        "max": 33.3
       }
     },
     {
       "inp": 24,
-      "interactions": 37,
+      "interactions": 47,
       "longTasks": {
         "count": 0,
         "sum": 0,
@@ -60,12 +60,12 @@
         "maxBlocking": 0
       },
       "frames": {
-        "count": 106,
+        "count": 95,
         "median": 16.7,
-        "p95": 16.8,
+        "p95": 16.7,
         "max": 16.8
       }
     }
   ],
-  "recordedAt": "2026-05-22T23:54:03.138Z"
+  "recordedAt": "2026-05-22T23:56:14.634Z"
 }

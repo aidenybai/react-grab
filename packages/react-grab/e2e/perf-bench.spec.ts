@@ -27,7 +27,11 @@ const logScenario = (scenarioName: string, aggregate: PerfScenarioAggregate): vo
   );
 };
 
-test.describe.configure({ mode: "serial" });
+// Perf scenarios are timing-sensitive — retries don't make a flaky
+// measurement less flaky, they just waste minutes of CI. If a scenario
+// throws, show it immediately; multi-sample averaging inside
+// `recordScenario` is the right place to handle measurement variance.
+test.describe.configure({ mode: "serial", retries: 0 });
 
 test.describe("@perf benchmarks", () => {
   test("hover-in-selection-mode @perf", async ({ reactGrab, page }, testInfo) => {
@@ -593,6 +597,456 @@ test.describe("@perf benchmarks", () => {
       document.getElementById("perf-bench-stack-container")?.remove();
     });
     logScenario("deep-element-stack-hover", aggregate);
+  });
+
+  // ─── DOM-density variants ──────────────────────────────────────────
+
+  test("hover-dense-flat-dom @perf", async ({ reactGrab, page }, testInfo) => {
+    // 3000 small absolutely-positioned divs tiled across the viewport.
+    // Differs from deep-element-stack-hover (stacked at one point) in
+    // that each detection hits a different element, exercising the
+    // bounds cache + isValidGrabbableElement filter at different DOM
+    // depths.
+    const elementCount = 3000;
+    await page.evaluate((targetCount) => {
+      const container = document.createElement("div");
+      container.id = "perf-bench-dense-container";
+      container.style.cssText = "position:fixed;inset:0;pointer-events:auto;";
+      const tileSize = Math.ceil(Math.sqrt(targetCount));
+      for (let elementIndex = 0; elementIndex < targetCount; elementIndex++) {
+        const tileColumn = elementIndex % tileSize;
+        const tileRow = Math.floor(elementIndex / tileSize);
+        const denseElement = document.createElement("div");
+        denseElement.dataset.denseIndex = String(elementIndex);
+        denseElement.style.cssText =
+          `position:absolute;left:${tileColumn * 10}px;top:${tileRow * 10}px;` +
+          `width:10px;height:10px;background:rgba(${elementIndex % 255},80,80,0.05);`;
+        container.appendChild(denseElement);
+      }
+      document.body.appendChild(container);
+    }, elementCount);
+
+    await reactGrab.activate();
+    await idleFrame(page, 2);
+
+    const aggregate = await recordScenario(page, testInfo, "hover-dense-flat-dom", async () => {
+      // Spiral across the dense grid hitting many distinct elements.
+      for (let moveIndex = 0; moveIndex < 400; moveIndex++) {
+        const radius = 50 + (moveIndex % 200);
+        const angle = moveIndex * 0.13;
+        await page.mouse.move(400 + Math.cos(angle) * radius, 300 + Math.sin(angle) * radius, {
+          steps: 1,
+        });
+      }
+      await idleFrame(page, 4);
+    });
+    await reactGrab.deactivate();
+    await page.evaluate(() => document.getElementById("perf-bench-dense-container")?.remove());
+    logScenario("hover-dense-flat-dom", aggregate);
+  });
+
+  test("hover-deep-nested-dom @perf", async ({ reactGrab, page }, testInfo) => {
+    // 60-level deep nested divs. Hover at each level so the bounds
+    // accumulator (getAccumulatedTransform) walks the ancestor chain.
+    // MAX_TRANSFORM_ANCESTOR_DEPTH is 6, so beyond that the walk early-
+    // exits — this measures whether the early-exit is actually working.
+    const nestingDepth = 60;
+    await page.evaluate((depth) => {
+      const root = document.createElement("div");
+      root.id = "perf-bench-nested-root";
+      root.style.cssText = "position:fixed;top:200px;left:200px;width:400px;height:400px;";
+      let cursor = root;
+      for (let nestIndex = 0; nestIndex < depth; nestIndex++) {
+        const inner = document.createElement("div");
+        inner.dataset.nestLevel = String(nestIndex);
+        // Apply transforms to some ancestors so the transform accumulator
+        // has actual work to do, not just no-ops.
+        const hasTransform = nestIndex % 5 === 0;
+        inner.style.cssText =
+          `padding:2px;width:${400 - nestIndex * 2}px;height:${400 - nestIndex * 2}px;` +
+          (hasTransform ? `transform:rotate(${nestIndex * 0.1}deg);` : "");
+        cursor.appendChild(inner);
+        cursor = inner;
+      }
+      document.body.appendChild(root);
+    }, nestingDepth);
+
+    await reactGrab.activate();
+    await idleFrame(page, 2);
+
+    const aggregate = await recordScenario(page, testInfo, "hover-deep-nested-dom", async () => {
+      // Many hovers near center of the nest — every detection walks
+      // through the same deeply nested chain.
+      for (let moveIndex = 0; moveIndex < 200; moveIndex++) {
+        await page.mouse.move(400 + (moveIndex % 11), 400 + (moveIndex % 13), { steps: 1 });
+      }
+      await idleFrame(page, 4);
+    });
+    await reactGrab.deactivate();
+    await page.evaluate(() => document.getElementById("perf-bench-nested-root")?.remove());
+    logScenario("hover-deep-nested-dom", aggregate);
+  });
+
+  // ─── Drag variants ─────────────────────────────────────────────────
+
+  test("drag-with-autoscroll @perf", async ({ reactGrab, page }, testInfo) => {
+    // Drag near the bottom viewport edge so AUTO_SCROLL_EDGE_THRESHOLD_PX
+    // kicks in and autoScroller starts ticking. Exercises the rAF-driven
+    // scroll path that runs concurrently with the drag.
+    await page.goto(PERF_GRID_PATH);
+    await page.waitForFunction(
+      () => document.querySelectorAll("[data-perf-row][data-perf-column]").length > 50,
+      null,
+      { timeout: 10_000 },
+    );
+
+    await reactGrab.activate();
+    await idleFrame(page, 2);
+
+    const aggregate = await recordScenario(page, testInfo, "drag-with-autoscroll", async () => {
+      const viewport = page.viewportSize() ?? { width: 1280, height: 720 };
+      // Five long drags ending near the bottom edge so autoscroll engages
+      // for the tail of each drag.
+      for (let dragIndex = 0; dragIndex < 5; dragIndex++) {
+        await page.mouse.move(60, 80, { steps: 1 });
+        await page.mouse.down();
+        await page.mouse.move(viewport.width - 60, viewport.height - 12, { steps: 30 });
+        // Hold at the edge so autoscroll keeps firing.
+        await page.waitForTimeout(400);
+        await page.mouse.up();
+        await page.waitForTimeout(80);
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(40);
+      }
+      await idleFrame(page, 4);
+    });
+    logScenario("drag-with-autoscroll", aggregate);
+  });
+
+  test("drag-rapid-zigzag @perf", async ({ reactGrab, page }, testInfo) => {
+    // Drag in a zigzag pattern with frequent direction changes — each
+    // change recomputes the drag rectangle and dispatches new pointer
+    // moves at full resolution.
+    await page.goto(PERF_GRID_PATH);
+    await page.waitForFunction(
+      () => document.querySelectorAll("[data-perf-row][data-perf-column]").length > 50,
+      null,
+      { timeout: 10_000 },
+    );
+
+    await reactGrab.activate();
+    await idleFrame(page, 2);
+
+    const aggregate = await recordScenario(page, testInfo, "drag-rapid-zigzag", async () => {
+      for (let dragIndex = 0; dragIndex < 6; dragIndex++) {
+        await page.mouse.move(200, 200, { steps: 1 });
+        await page.mouse.down();
+        for (let zigIndex = 0; zigIndex < 12; zigIndex++) {
+          await page.mouse.move(200 + (zigIndex % 2 === 0 ? 400 : -50), 200 + zigIndex * 30, {
+            steps: 4,
+          });
+        }
+        await page.mouse.up();
+        await page.waitForTimeout(60);
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(40);
+      }
+      await idleFrame(page, 4);
+    });
+    logScenario("drag-rapid-zigzag", aggregate);
+  });
+
+  // ─── Copy / multi-select variants ──────────────────────────────────
+
+  test("copy-multi-element-batch @perf", async ({ reactGrab, page }, testInfo) => {
+    // Shift+click 20 elements then trigger copy via Cmd+Enter. Multi-
+    // element copy fans out through clipboard payload aggregation +
+    // per-element stack symbolication.
+    await page.goto(PERF_GRID_PATH);
+    await page.waitForFunction(
+      () => document.querySelectorAll("[data-perf-row][data-perf-column]").length > 50,
+      null,
+      { timeout: 10_000 },
+    );
+    const gridPoints = await page.evaluate(() =>
+      Array.from(document.querySelectorAll("[data-perf-row][data-perf-column]"))
+        .slice(0, 20)
+        .map((cell) => {
+          const rect = cell.getBoundingClientRect();
+          return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+        }),
+    );
+
+    await reactGrab.activate();
+    await idleFrame(page, 2);
+
+    const aggregate = await recordScenario(
+      page,
+      testInfo,
+      "copy-multi-element-batch",
+      async () => {
+        await page.keyboard.down("Shift");
+        for (const point of gridPoints) {
+          await page.mouse.move(point.x, point.y, { steps: 1 });
+          await page.mouse.click(point.x, point.y);
+          await page.waitForTimeout(15);
+        }
+        await page.keyboard.up("Shift");
+        await page.waitForTimeout(80);
+        // Cmd/Ctrl+Enter triggers a copy of the multi-select.
+        const modifierKey = process.platform === "darwin" ? "Meta" : "Control";
+        await page.keyboard.press(`${modifierKey}+Enter`);
+        await page.waitForTimeout(200);
+        await idleFrame(page, 4);
+      },
+      { samples: 2 },
+    );
+    await page.keyboard.press("Escape");
+    logScenario("copy-multi-element-batch", aggregate);
+  });
+
+  // ─── Animation density ─────────────────────────────────────────────
+
+  test("activate-with-many-animations @perf", async ({ page }, testInfo) => {
+    // Inject 150 CSS-animated divs, then measure the activate cost
+    // (which runs freezeGlobalAnimations + freezePseudoStates +
+    // freezeUpdates). This isolates the freeze setup cost from the
+    // surrounding scenario.
+    const animationCount = 150;
+    await page.evaluate((count) => {
+      const styleNode = document.createElement("style");
+      styleNode.id = "perf-bench-anim-style";
+      styleNode.textContent = `
+        @keyframes perf-bench-rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes perf-bench-pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+      `;
+      document.head.appendChild(styleNode);
+      const container = document.createElement("div");
+      container.id = "perf-bench-anim-container";
+      container.style.cssText = "position:fixed;inset:0;pointer-events:none;";
+      for (let animIndex = 0; animIndex < count; animIndex++) {
+        const animatedElement = document.createElement("div");
+        const animName = animIndex % 2 === 0 ? "perf-bench-rotate" : "perf-bench-pulse";
+        animatedElement.style.cssText =
+          `position:absolute;left:${(animIndex % 30) * 30}px;top:${Math.floor(animIndex / 30) * 30}px;` +
+          `width:20px;height:20px;background:hsl(${animIndex * 7},70%,60%);` +
+          `animation:${animName} 1s linear infinite;`;
+        container.appendChild(animatedElement);
+      }
+      document.body.appendChild(container);
+    }, animationCount);
+
+    const aggregate = await recordScenario(
+      page,
+      testInfo,
+      "activate-with-many-animations",
+      async () => {
+        for (let cycleIndex = 0; cycleIndex < 20; cycleIndex++) {
+          await page.evaluate(() => window.__REACT_GRAB__?.activate?.());
+          await idleFrame(page, 1);
+          await page.evaluate(() => window.__REACT_GRAB__?.deactivate?.());
+          await idleFrame(page, 1);
+        }
+        await idleFrame(page, 4);
+      },
+      { samples: 2 },
+    );
+    await page.evaluate(() => {
+      document.getElementById("perf-bench-anim-container")?.remove();
+      document.getElementById("perf-bench-anim-style")?.remove();
+    });
+    logScenario("activate-with-many-animations", aggregate);
+  });
+
+  test("deactivate-with-many-frozen-elements @perf", async ({ reactGrab, page }, testInfo) => {
+    // Shift-click 15 elements (multi-freeze), then deactivate. Stresses
+    // the bulk-unfreeze of frozen elements, frozenElementBoundsAccessors
+    // teardown, and labelInstance fadeout.
+    await page.goto(PERF_GRID_PATH);
+    await page.waitForFunction(
+      () => document.querySelectorAll("[data-perf-row][data-perf-column]").length > 50,
+      null,
+      { timeout: 10_000 },
+    );
+
+    const aggregate = await recordScenario(
+      page,
+      testInfo,
+      "deactivate-with-many-frozen-elements",
+      async () => {
+        const points = await page.evaluate(() =>
+          Array.from(document.querySelectorAll("[data-perf-row][data-perf-column]"))
+            .slice(0, 15)
+            .map((cell) => {
+              const rect = cell.getBoundingClientRect();
+              return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+            }),
+        );
+        for (let cycleIndex = 0; cycleIndex < 6; cycleIndex++) {
+          await reactGrab.activate();
+          await page.keyboard.down("Shift");
+          for (const point of points) {
+            await page.mouse.move(point.x, point.y, { steps: 1 });
+            await page.mouse.click(point.x, point.y);
+            await page.waitForTimeout(12);
+          }
+          await page.keyboard.up("Shift");
+          await page.waitForTimeout(60);
+          await page.keyboard.press("Escape");
+          await page.waitForTimeout(80);
+        }
+        await idleFrame(page, 4);
+      },
+      { samples: 2 },
+    );
+    logScenario("deactivate-with-many-frozen-elements", aggregate);
+  });
+
+  // ─── Keyboard / menu paths ─────────────────────────────────────────
+
+  test("context-menu-arrow-navigation @perf", async ({ reactGrab, page }, testInfo) => {
+    // Open the context menu and walk its items via arrow keys. Each
+    // press re-positions the menu-highlight and may scroll the menu.
+    await reactGrab.activate();
+    const target = page.locator("[data-testid='nested-card']").first();
+    if ((await target.count()) === 0) {
+      test.skip(true, "no nested-card target");
+      return;
+    }
+
+    const aggregate = await recordScenario(
+      page,
+      testInfo,
+      "context-menu-arrow-navigation",
+      async () => {
+        for (let cycleIndex = 0; cycleIndex < 10; cycleIndex++) {
+          await target.click({ button: "right", force: true });
+          await page.waitForTimeout(60);
+          for (let pressIndex = 0; pressIndex < 6; pressIndex++) {
+            await page.keyboard.press(pressIndex % 2 === 0 ? "ArrowDown" : "ArrowUp");
+            await page.waitForTimeout(16);
+          }
+          await page.keyboard.press("Escape");
+          await page.waitForTimeout(40);
+        }
+        await idleFrame(page, 4);
+      },
+    );
+    await reactGrab.deactivate();
+    logScenario("context-menu-arrow-navigation", aggregate);
+  });
+
+  test("keyboard-rapid-arrows @perf", async ({ reactGrab, page }, testInfo) => {
+    // Selection active, hammer arrow keys without entering arrow-nav
+    // menu. Tests the keyboard-handler path's debounce + decision logic.
+    await reactGrab.activate();
+    await page.locator("[data-testid='nested-card']").first().hover({ force: true });
+    await page.waitForTimeout(200);
+
+    const aggregate = await recordScenario(page, testInfo, "keyboard-rapid-arrows", async () => {
+      const arrowKeys = ["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight"] as const;
+      for (let pressIndex = 0; pressIndex < 200; pressIndex++) {
+        await page.keyboard.press(arrowKeys[pressIndex % arrowKeys.length]);
+        await page.waitForTimeout(8);
+      }
+      await idleFrame(page, 4);
+    });
+    await page.keyboard.press("Escape");
+    logScenario("keyboard-rapid-arrows", aggregate);
+  });
+
+  // ─── Toolbar interactions ──────────────────────────────────────────
+
+  test("toolbar-drag-to-edges @perf", async ({ reactGrab, page }, testInfo) => {
+    // Drag the toolbar to each of the 4 viewport edges (snap kicks in
+    // each time). Stresses the toolbar drag physics + snap recalc.
+    void reactGrab;
+    const aggregate = await recordScenario(
+      page,
+      testInfo,
+      "toolbar-drag-to-edges",
+      async () => {
+        for (let cycleIndex = 0; cycleIndex < 5; cycleIndex++) {
+          await reactGrab.dragToolbar(-400, -200);
+          await reactGrab.dragToolbar(400, -200);
+          await reactGrab.dragToolbar(400, 200);
+          await reactGrab.dragToolbar(-400, 200);
+        }
+        await idleFrame(page, 4);
+      },
+      { samples: 2 },
+    );
+    logScenario("toolbar-drag-to-edges", aggregate);
+  });
+
+  test("toolbar-collapse-expand-cycle @perf", async ({ reactGrab, page }, testInfo) => {
+    // Rapid toolbar collapse + expand. Stresses the collapse animation
+    // path that the AGENTS.md comment in constants.ts about
+    // TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS specifically calls out.
+    void reactGrab;
+    const aggregate = await recordScenario(
+      page,
+      testInfo,
+      "toolbar-collapse-expand-cycle",
+      async () => {
+        for (let cycleIndex = 0; cycleIndex < 15; cycleIndex++) {
+          await reactGrab.clickToolbarCollapse();
+          await page.waitForTimeout(120);
+          await reactGrab.clickToolbarCollapse();
+          await page.waitForTimeout(120);
+        }
+        await idleFrame(page, 4);
+      },
+      { samples: 2 },
+    );
+    logScenario("toolbar-collapse-expand-cycle", aggregate);
+  });
+
+  // ─── Edge / integration ────────────────────────────────────────────
+
+  test("dom-rerender-during-selection @perf", async ({ reactGrab, page }, testInfo) => {
+    // Selection active, rapidly add and remove DOM nodes (React triggers
+    // a re-render each time). Tests that selection bounds stay stable
+    // while React is mutating the tree.
+    await reactGrab.activate();
+    const dynamicSection = page.locator("[data-testid='dynamic-section']").first();
+    if ((await dynamicSection.count()) === 0) {
+      test.skip(true, "no dynamic-section target");
+      return;
+    }
+    const box = await dynamicSection.boundingBox();
+    if (!box) {
+      test.skip(true, "no dynamic-section bounds");
+      return;
+    }
+    await page.mouse.move(box.x + 20, box.y + 20, { steps: 2 });
+
+    const aggregate = await recordScenario(
+      page,
+      testInfo,
+      "dom-rerender-during-selection",
+      async () => {
+        const addButton = page.locator("[data-testid='add-element-button']").first();
+        // Burst: add 5 in a row, then remove all, repeat. Each add/remove
+        // is a React render that recommits the section subtree.
+        for (let burstIndex = 0; burstIndex < 10; burstIndex++) {
+          for (let addIndex = 0; addIndex < 5; addIndex++) {
+            await addButton.click({ force: true });
+            await page.waitForTimeout(8);
+          }
+          let removeButton = page.locator("[data-testid^='remove-element-']").first();
+          while ((await removeButton.count()) > 0) {
+            await removeButton.click({ force: true });
+            await page.waitForTimeout(6);
+            removeButton = page.locator("[data-testid^='remove-element-']").first();
+          }
+        }
+        await idleFrame(page, 4);
+      },
+      { samples: 2 },
+    );
+    await reactGrab.deactivate();
+    logScenario("dom-rerender-during-selection", aggregate);
   });
 
   test("viewport-resize-during-selection @perf", async ({ reactGrab, page }, testInfo) => {

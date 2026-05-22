@@ -3,8 +3,8 @@
   "label": "baseline",
   "samples": 1,
   "aggregate": {
-    "inp": 24,
-    "interactions": 89,
+    "inp": 32,
+    "interactions": 87,
     "longTasks": {
       "count": 0,
       "sum": 0,
@@ -17,7 +17,7 @@
       "maxBlocking": 0
     },
     "frames": {
-      "count": 110,
+      "count": 109,
       "median": 16.7,
       "p95": 16.8,
       "max": 16.8
@@ -25,8 +25,8 @@
   },
   "perSample": [
     {
-      "inp": 24,
-      "interactions": 89,
+      "inp": 32,
+      "interactions": 87,
       "longTasks": {
         "count": 0,
         "sum": 0,
@@ -39,12 +39,12 @@
         "maxBlocking": 0
       },
       "frames": {
-        "count": 110,
+        "count": 109,
         "median": 16.7,
         "p95": 16.8,
         "max": 16.8
       }
     }
   ],
-  "recordedAt": "2026-05-22T22:56:35.959Z"
+  "recordedAt": "2026-05-22T23:53:53.021Z"
 }

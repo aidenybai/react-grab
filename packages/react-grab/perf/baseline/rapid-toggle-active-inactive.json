@@ -17,9 +17,9 @@
       "maxBlocking": 0
     },
     "frames": {
-      "count": 166,
+      "count": 174,
       "median": 16.7,
-      "p95": 16.7,
+      "p95": 16.8,
       "max": 16.8
     }
   },
@@ -39,9 +39,9 @@
         "maxBlocking": 0
       },
       "frames": {
-        "count": 166,
+        "count": 174,
         "median": 16.7,
-        "p95": 16.7,
+        "p95": 16.8,
         "max": 16.8
       }
     },
@@ -60,12 +60,12 @@
         "maxBlocking": 0
       },
       "frames": {
-        "count": 163,
+        "count": 171,
         "median": 16.7,
-        "p95": 16.7,
+        "p95": 16.8,
         "max": 16.8
       }
     }
   ],
-  "recordedAt": "2026-05-22T22:56:41.710Z"
+  "recordedAt": "2026-05-22T23:53:59.056Z"
 }

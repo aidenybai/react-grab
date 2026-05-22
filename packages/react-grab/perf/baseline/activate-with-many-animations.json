@@ -1,26 +1,26 @@
 {
-  "scenario": "viewport-resize-during-selection",
+  "scenario": "activate-with-many-animations",
   "label": "baseline",
   "samples": 2,
   "aggregate": {
     "inp": 0,
     "interactions": 0,
     "longTasks": {
-      "count": 2,
-      "sum": 127,
-      "max": 75
+      "count": 0,
+      "sum": 0,
+      "max": 0
     },
     "longAnimationFrames": {
-      "count": 4,
-      "sum": 225.1,
-      "max": 62.6,
-      "maxBlocking": 1.587
+      "count": 0,
+      "sum": 0,
+      "max": 0,
+      "maxBlocking": 0
     },
     "frames": {
-      "count": 74,
+      "count": 47,
       "median": 16.7,
-      "p95": 33.4,
-      "max": 66.7
+      "p95": 16.8,
+      "max": 16.8
     }
   },
   "perSample": [
@@ -28,21 +28,21 @@
       "inp": 0,
       "interactions": 0,
       "longTasks": {
-        "count": 2,
-        "sum": 127,
-        "max": 75
+        "count": 0,
+        "sum": 0,
+        "max": 0
       },
       "longAnimationFrames": {
-        "count": 4,
-        "sum": 225.1,
-        "max": 62.6,
-        "maxBlocking": 1.587
+        "count": 0,
+        "sum": 0,
+        "max": 0,
+        "maxBlocking": 0
       },
       "frames": {
-        "count": 69,
+        "count": 47,
         "median": 16.7,
-        "p95": 33.4,
-        "max": 66.7
+        "p95": 16.8,
+        "max": 16.8
       }
     },
     {
@@ -60,12 +60,12 @@
         "maxBlocking": 0
       },
       "frames": {
-        "count": 74,
+        "count": 45,
         "median": 16.7,
-        "p95": 33.3,
-        "max": 33.4
+        "p95": 16.7,
+        "max": 16.8
       }
     }
   ],
-  "recordedAt": "2026-05-22T23:56:17.885Z"
+  "recordedAt": "2026-05-22T23:55:16.202Z"
 }

@@ -3,7 +3,7 @@
   "label": "baseline",
   "samples": 3,
   "aggregate": {
-    "inp": 24,
+    "inp": 32,
     "interactions": 60,
     "longTasks": {
       "count": 0,
@@ -17,7 +17,7 @@
       "maxBlocking": 0
     },
     "frames": {
-      "count": 95,
+      "count": 93,
       "median": 16.7,
       "p95": 16.7,
       "max": 16.8
@@ -25,7 +25,7 @@
   },
   "perSample": [
     {
-      "inp": 24,
+      "inp": 32,
       "interactions": 60,
       "longTasks": {
         "count": 0,
@@ -39,10 +39,10 @@
         "maxBlocking": 0
       },
       "frames": {
-        "count": 95,
+        "count": 93,
         "median": 16.7,
         "p95": 16.7,
-        "max": 16.7
+        "max": 16.8
       }
     },
     {
@@ -60,7 +60,7 @@
         "maxBlocking": 0
       },
       "frames": {
-        "count": 94,
+        "count": 93,
         "median": 16.7,
         "p95": 16.7,
         "max": 16.8
@@ -81,12 +81,12 @@
         "maxBlocking": 0
       },
       "frames": {
-        "count": 98,
+        "count": 93,
         "median": 16.7,
-        "p95": 16.8,
+        "p95": 16.7,
         "max": 16.8
       }
     }
   ],
-  "recordedAt": "2026-05-22T22:56:23.944Z"
+  "recordedAt": "2026-05-22T23:53:41.205Z"
 }

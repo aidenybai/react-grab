@@ -3,8 +3,8 @@
   "label": "baseline",
   "samples": 3,
   "aggregate": {
-    "inp": 16,
-    "interactions": 3,
+    "inp": 0,
+    "interactions": 0,
     "longTasks": {
       "count": 0,
       "sum": 0,
@@ -17,16 +17,16 @@
       "maxBlocking": 0
     },
     "frames": {
-      "count": 111,
+      "count": 115,
       "median": 16.7,
-      "p95": 16.7,
+      "p95": 16.8,
       "max": 16.8
     }
   },
   "perSample": [
     {
       "inp": 48,
-      "interactions": 3,
+      "interactions": 7,
       "longTasks": {
         "count": 0,
         "sum": 0,
@@ -39,15 +39,36 @@
         "maxBlocking": 0
       },
       "frames": {
-        "count": 142,
+        "count": 140,
         "median": 16.7,
-        "p95": 16.7,
+        "p95": 16.8,
+        "max": 33.4
+      }
+    },
+    {
+      "inp": 0,
+      "interactions": 0,
+      "longTasks": {
+        "count": 0,
+        "sum": 0,
+        "max": 0
+      },
+      "longAnimationFrames": {
+        "count": 0,
+        "sum": 0,
+        "max": 0,
+        "maxBlocking": 0
+      },
+      "frames": {
+        "count": 115,
+        "median": 16.7,
+        "p95": 16.8,
         "max": 16.8
       }
     },
     {
-      "inp": 16,
-      "interactions": 1,
+      "inp": 0,
+      "interactions": 0,
       "longTasks": {
         "count": 0,
         "sum": 0,
@@ -60,33 +81,12 @@
         "maxBlocking": 0
       },
       "frames": {
-        "count": 111,
+        "count": 115,
         "median": 16.7,
-        "p95": 16.7,
-        "max": 16.8
-      }
-    },
-    {
-      "inp": 16,
-      "interactions": 3,
-      "longTasks": {
-        "count": 0,
-        "sum": 0,
-        "max": 0
-      },
-      "longAnimationFrames": {
-        "count": 0,
-        "sum": 0,
-        "max": 0,
-        "maxBlocking": 0
-      },
-      "frames": {
-        "count": 107,
-        "median": 16.7,
-        "p95": 16.7,
+        "p95": 16.8,
         "max": 16.8
       }
     }
   ],
-  "recordedAt": "2026-05-22T22:56:54.493Z"
+  "recordedAt": "2026-05-22T23:54:12.105Z"
 }

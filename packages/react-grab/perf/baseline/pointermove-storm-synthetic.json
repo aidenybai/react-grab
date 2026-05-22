@@ -6,21 +6,21 @@
     "inp": 0,
     "interactions": 0,
     "longTasks": {
-      "count": 29,
-      "sum": 3186,
-      "max": 171
+      "count": 30,
+      "sum": 3235,
+      "max": 182
     },
     "longAnimationFrames": {
       "count": 28,
-      "sum": 2945.7,
-      "max": 176.9,
-      "maxBlocking": 126.586
+      "sum": 2990.9,
+      "max": 174.6,
+      "maxBlocking": 124.403
     },
     "frames": {
       "count": 42,
       "median": 83.3,
-      "p95": 166.6,
-      "max": 183.4
+      "p95": 166.7,
+      "max": 183.3
     }
   },
   "perSample": [
@@ -28,41 +28,41 @@
       "inp": 0,
       "interactions": 0,
       "longTasks": {
-        "count": 32,
-        "sum": 3186,
-        "max": 186
+        "count": 31,
+        "sum": 3235,
+        "max": 182
       },
       "longAnimationFrames": {
-        "count": 31,
-        "sum": 2945.7,
-        "max": 176.9,
-        "maxBlocking": 126.586
+        "count": 30,
+        "sum": 2990.9,
+        "max": 174.6,
+        "maxBlocking": 124.403
       },
       "frames": {
         "count": 42,
         "median": 83.3,
-        "p95": 166.6,
-        "max": 183.4
+        "p95": 166.7,
+        "max": 183.3
       }
     },
     {
       "inp": 0,
       "interactions": 0,
       "longTasks": {
-        "count": 29,
-        "sum": 3280,
-        "max": 171
+        "count": 30,
+        "sum": 3335,
+        "max": 199
       },
       "longAnimationFrames": {
         "count": 28,
-        "sum": 3165.8,
-        "max": 266.6,
-        "maxBlocking": 206.028
+        "sum": 3161.4,
+        "max": 265.7,
+        "maxBlocking": 204.8
       },
       "frames": {
         "count": 42,
         "median": 83.3,
-        "p95": 166.7,
+        "p95": 183.4,
         "max": 250
       }
     },
@@ -70,23 +70,23 @@
       "inp": 0,
       "interactions": 0,
       "longTasks": {
-        "count": 25,
-        "sum": 1917,
-        "max": 109
+        "count": 26,
+        "sum": 2110,
+        "max": 112
       },
       "longAnimationFrames": {
         "count": 24,
-        "sum": 1839.9,
-        "max": 144.1,
-        "maxBlocking": 82.581
+        "sum": 1947.2,
+        "max": 167.2,
+        "maxBlocking": 108.253
       },
       "frames": {
         "count": 42,
         "median": 66.6,
-        "p95": 100,
-        "max": 133.4
+        "p95": 116.7,
+        "max": 150
       }
     }
   ],
-  "recordedAt": "2026-05-22T22:54:47.115Z"
+  "recordedAt": "2026-05-22T23:52:05.111Z"
 }

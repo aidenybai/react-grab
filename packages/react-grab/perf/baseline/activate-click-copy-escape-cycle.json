@@ -3,8 +3,8 @@
   "label": "baseline",
   "samples": 3,
   "aggregate": {
-    "inp": 40,
-    "interactions": 57,
+    "inp": 32,
+    "interactions": 55,
     "longTasks": {
       "count": 0,
       "sum": 0,
@@ -19,14 +19,35 @@
     "frames": {
       "count": 434,
       "median": 16.7,
-      "p95": 16.8,
+      "p95": 16.7,
       "max": 16.8
     }
   },
   "perSample": [
     {
-      "inp": 56,
-      "interactions": 54,
+      "inp": 32,
+      "interactions": 55,
+      "longTasks": {
+        "count": 0,
+        "sum": 0,
+        "max": 0
+      },
+      "longAnimationFrames": {
+        "count": 1,
+        "sum": 90.6,
+        "max": 90.6,
+        "maxBlocking": 0
+      },
+      "frames": {
+        "count": 434,
+        "median": 16.7,
+        "p95": 16.8,
+        "max": 16.8
+      }
+    },
+    {
+      "inp": 32,
+      "interactions": 52,
       "longTasks": {
         "count": 0,
         "sum": 0,
@@ -39,14 +60,14 @@
         "maxBlocking": 0
       },
       "frames": {
-        "count": 434,
+        "count": 428,
         "median": 16.7,
-        "p95": 16.8,
+        "p95": 16.7,
         "max": 16.8
       }
     },
     {
-      "inp": 40,
+      "inp": 56,
       "interactions": 60,
       "longTasks": {
         "count": 0,
@@ -60,33 +81,12 @@
         "maxBlocking": 0
       },
       "frames": {
-        "count": 444,
+        "count": 440,
         "median": 16.7,
-        "p95": 16.8,
-        "max": 16.8
-      }
-    },
-    {
-      "inp": 40,
-      "interactions": 57,
-      "longTasks": {
-        "count": 0,
-        "sum": 0,
-        "max": 0
-      },
-      "longAnimationFrames": {
-        "count": 0,
-        "sum": 0,
-        "max": 0,
-        "maxBlocking": 0
-      },
-      "frames": {
-        "count": 434,
-        "median": 16.7,
-        "p95": 16.8,
+        "p95": 16.7,
         "max": 16.8
       }
     }
   ],
-  "recordedAt": "2026-05-22T22:55:09.301Z"
+  "recordedAt": "2026-05-22T23:52:27.132Z"
 }
