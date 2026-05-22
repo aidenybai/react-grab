@@ -1,5 +1,11 @@
 import type { OverlayBounds } from "../types.js";
 
+// All OverlayBounds factories use the same property insertion order
+// (borderRadius, height, transform, width, x, y) so V8 sees one hidden class
+// across every consumer (getBoundsCenter, overlay-canvas effects, label
+// positioning). Mixed orders here caused recurring "wrong map" deopts in
+// hot bounds paths.
+
 interface DragRectWithPageCoords {
   pageX: number;
   pageY: number;
@@ -15,12 +21,12 @@ interface BaseBounds {
 }
 
 export const createBoundsFromDragRect = (dragRect: DragRectWithPageCoords): OverlayBounds => ({
+  borderRadius: "0px",
+  height: dragRect.height,
+  transform: "none",
+  width: dragRect.width,
   x: dragRect.pageX - window.scrollX,
   y: dragRect.pageY - window.scrollY,
-  width: dragRect.width,
-  height: dragRect.height,
-  borderRadius: "0px",
-  transform: "none",
 });
 
 export const createPageRectFromBounds = (bounds: BaseBounds): DragRectWithPageCoords => ({
@@ -31,7 +37,10 @@ export const createPageRectFromBounds = (bounds: BaseBounds): DragRectWithPageCo
 });
 
 export const createFlatOverlayBounds = (bounds: BaseBounds): OverlayBounds => ({
-  ...bounds,
   borderRadius: "0px",
+  height: bounds.height,
   transform: "none",
+  width: bounds.width,
+  x: bounds.x,
+  y: bounds.y,
 });

@@ -448,7 +448,11 @@ const createGrabStore = (input: GrabStoreInput) => {
     },
 
     setPointer: (position: Position) => {
-      setPointer(position);
+      setPointer((previousPosition) =>
+        previousPosition.x === position.x && previousPosition.y === position.y
+          ? previousPosition
+          : position,
+      );
     },
 
     setDetectedElement: (element: Element | null) => {
