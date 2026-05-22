@@ -2,57 +2,25 @@
   "scenario": "shift-multi-select-burst",
   "label": "baseline",
   "aggregate": {
-    "inp": 40,
-    "interactions": 9,
+    "inp": 80,
+    "interactions": 10,
     "longTasks": {
       "count": 0,
       "sum": 0,
       "max": 0
     },
     "longAnimationFrames": {
-      "count": 0,
-      "sum": 0,
-      "max": 0,
+      "count": 2,
+      "sum": 112.1,
+      "max": 59.3,
       "maxBlocking": 0
     },
     "frames": {
-      "count": 33,
+      "count": 35,
       "median": 16.7,
-      "p95": 16.8,
-      "max": 33.3
-    },
-    "measures": {
-      "pointermove": {
-        "count": 16,
-        "median": 0.2,
-        "p95": 4,
-        "max": 4
-      },
-      "unfreezePseudoStates": {
-        "count": 1,
-        "median": 0,
-        "p95": 0,
-        "max": 0
-      },
-      "unfreezeGlobalAnimations": {
-        "count": 1,
-        "median": 3.1,
-        "p95": 3.1,
-        "max": 3.1
-      },
-      "freezeUpdates:resume": {
-        "count": 1,
-        "median": 0.4,
-        "p95": 0.4,
-        "max": 0.4
-      },
-      "deactivate": {
-        "count": 1,
-        "median": 0.2,
-        "p95": 0.2,
-        "max": 0.2
-      }
+      "p95": 33.4,
+      "max": 50
     }
   },
-  "recordedAt": "2026-05-22T10:50:08.753Z"
+  "recordedAt": "2026-05-22T11:17:06.211Z"
 }

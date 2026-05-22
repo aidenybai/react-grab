@@ -2,8 +2,8 @@
   "scenario": "copy-then-deactivate-stress",
   "label": "baseline",
   "aggregate": {
-    "inp": 40,
-    "interactions": 39,
+    "inp": 64,
+    "interactions": 34,
     "longTasks": {
       "count": 0,
       "sum": 0,
@@ -16,49 +16,11 @@
       "maxBlocking": 0
     },
     "frames": {
-      "count": 345,
+      "count": 407,
       "median": 16.7,
-      "p95": 16.8,
-      "max": 16.8
-    },
-    "measures": {
-      "activate": {
-        "count": 20,
-        "median": 3.2,
-        "p95": 5.7,
-        "max": 5.7
-      },
-      "pointermove": {
-        "count": 13,
-        "median": 0.1,
-        "p95": 0.2,
-        "max": 0.2
-      },
-      "unfreezePseudoStates": {
-        "count": 20,
-        "median": 0,
-        "p95": 0.1,
-        "max": 0.1
-      },
-      "unfreezeGlobalAnimations": {
-        "count": 20,
-        "median": 1.7,
-        "p95": 2.4,
-        "max": 2.4
-      },
-      "freezeUpdates:resume": {
-        "count": 20,
-        "median": 0.1,
-        "p95": 0.2,
-        "max": 0.2
-      },
-      "deactivate": {
-        "count": 20,
-        "median": 0.1,
-        "p95": 0.2,
-        "max": 0.2
-      }
+      "p95": 16.7,
+      "max": 33.4
     }
   },
-  "recordedAt": "2026-05-22T10:50:07.728Z"
+  "recordedAt": "2026-05-22T11:17:04.528Z"
 }

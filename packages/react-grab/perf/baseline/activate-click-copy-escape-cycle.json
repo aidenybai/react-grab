@@ -2,63 +2,25 @@
   "scenario": "activate-click-copy-escape-cycle",
   "label": "baseline",
   "aggregate": {
-    "inp": 32,
-    "interactions": 54,
+    "inp": 56,
+    "interactions": 56,
     "longTasks": {
       "count": 0,
       "sum": 0,
       "max": 0
     },
     "longAnimationFrames": {
-      "count": 0,
-      "sum": 0,
-      "max": 0,
+      "count": 1,
+      "sum": 52.3,
+      "max": 52.3,
       "maxBlocking": 0
     },
     "frames": {
-      "count": 430,
+      "count": 427,
       "median": 16.7,
       "p95": 16.7,
-      "max": 16.8
-    },
-    "measures": {
-      "activate": {
-        "count": 30,
-        "median": 3.2,
-        "p95": 5.3,
-        "max": 5.8
-      },
-      "pointermove": {
-        "count": 42,
-        "median": 0,
-        "p95": 0.2,
-        "max": 0.2
-      },
-      "unfreezePseudoStates": {
-        "count": 30,
-        "median": 0.1,
-        "p95": 0.1,
-        "max": 0.2
-      },
-      "unfreezeGlobalAnimations": {
-        "count": 30,
-        "median": 1.6,
-        "p95": 2.4,
-        "max": 2.5
-      },
-      "freezeUpdates:resume": {
-        "count": 30,
-        "median": 0.1,
-        "p95": 0.2,
-        "max": 0.3
-      },
-      "deactivate": {
-        "count": 30,
-        "median": 0.1,
-        "p95": 0.2,
-        "max": 0.2
-      }
+      "max": 50.1
     }
   },
-  "recordedAt": "2026-05-22T10:50:01.713Z"
+  "recordedAt": "2026-05-22T11:16:55.958Z"
 }

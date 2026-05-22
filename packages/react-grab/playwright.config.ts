@@ -4,10 +4,11 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// When PERF=1 we ask the dev server to use the profiling build of
-// react-grab so that `performance.mark`/`measure` calls inside the library
-// actually fire. Otherwise the production build short-circuits them at
-// compile time and rg:* measures never reach the recorder.
+// When PERF=1 we ask the dev server to use the profiling (unminified +
+// sourcemaps) build of react-grab so Chrome perf traces show readable
+// function names instead of minified `B`/`na`/etc. Production build is
+// fine for INP/LoAF/Long Tasks (browser-native, name-agnostic), but
+// pairing PERF=1 with PERF_TRACE=1 is what makes the dumped trace useful.
 const reactGrabBuildScript = process.env.PERF === "1" ? "build:profiling" : "build";
 
 export default defineConfig({

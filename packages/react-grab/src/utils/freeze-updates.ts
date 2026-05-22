@@ -15,7 +15,6 @@ import {
   type FiberRoot,
 } from "bippy";
 import { logRecoverableError } from "./log-recoverable-error.js";
-import { markPerf, measureSincePerf } from "./perf-marks.js";
 
 interface FiberRootLike extends FiberRoot {
   current: Fiber | null;
@@ -539,7 +538,6 @@ export const freezeUpdates = (): (() => void) => {
 
   return () => {
     if (!isUpdatesPaused) return;
-    markPerf("freezeUpdates:resume:start");
 
     try {
       const fiberRootsToResume = collectFiberRoots();
@@ -561,7 +559,6 @@ export const freezeUpdates = (): (() => void) => {
       pendingStoreCallbacks.clear();
       pendingTransitionCallbacks.length = 0;
       pendingStateUpdates.length = 0;
-      measureSincePerf("freezeUpdates:resume", "freezeUpdates:resume:start");
     }
   };
 };

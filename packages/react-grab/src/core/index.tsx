@@ -136,7 +136,6 @@ import { copyContent } from "../utils/copy-content.js";
 import { generateId } from "../utils/generate-id.js";
 import { logRecoverableError } from "../utils/log-recoverable-error.js";
 import { getNearestEdge } from "../utils/get-nearest-edge.js";
-import { markPerf, measureSincePerf } from "../utils/perf-marks.js";
 
 const builtInPlugins = [copyPlugin, commentPlugin, openPlugin];
 
@@ -1430,17 +1429,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     const activateRenderer = () => {
-      markPerf("activate:start");
       const wasInHoldingState = isHoldingKeys();
       actions.activate();
       if (!wasInHoldingState) {
         pluginRegistry.hooks.onActivate();
       }
-      measureSincePerf("activate", "activate:start");
     };
 
     const deactivateRenderer = () => {
-      markPerf("deactivate:start");
       const wasDragging = isDragging();
       const previousFocused = store.previouslyFocusedElement;
       stopSpaceDragRepositioning();
@@ -1467,7 +1463,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         previousFocused.focus();
       }
       pluginRegistry.hooks.onDeactivate();
-      measureSincePerf("deactivate", "deactivate:start");
     };
 
     const forceDeactivateAll = () => {
@@ -2617,7 +2612,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (store.contextMenuPosition !== null) return;
         if (isSelectionInteractionLocked()) return;
         if (isTouchPointer && !isHoldingKeys() && !isActivated()) return;
-        markPerf("pointermove:start");
         const isActiveState = isTouchPointer ? isHoldingKeys() : isActivated();
         // The flag check covers the small window after physical Shift
         // release but before the keyup handler commits — pointermove fires
@@ -2634,7 +2628,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           clearArrowNavigation();
         }
         handlePointerMove(event.clientX, event.clientY, event.shiftKey);
-        measureSincePerf("pointermove", "pointermove:start");
       },
       { passive: true },
     );

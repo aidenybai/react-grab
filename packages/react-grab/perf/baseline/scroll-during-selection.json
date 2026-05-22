@@ -10,18 +10,17 @@
       "max": 0
     },
     "longAnimationFrames": {
-      "count": 0,
-      "sum": 0,
-      "max": 0,
+      "count": 1,
+      "sum": 56.1,
+      "max": 56.1,
       "maxBlocking": 0
     },
     "frames": {
-      "count": 407,
+      "count": 404,
       "median": 16.7,
-      "p95": 16.7,
+      "p95": 16.8,
       "max": 33.4
-    },
-    "measures": {}
+    }
   },
-  "recordedAt": "2026-05-22T10:50:20.199Z"
+  "recordedAt": "2026-05-22T11:17:20.188Z"
 }

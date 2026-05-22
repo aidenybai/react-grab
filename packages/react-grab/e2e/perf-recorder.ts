@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Page, TestInfo } from "@playwright/test";
+import type { CDPSession, Page, TestInfo } from "@playwright/test";
 
 const E2E_DIR = dirname(fileURLToPath(import.meta.url));
 const PACKAGE_PERF_DIR = resolve(E2E_DIR, "../perf");
@@ -21,7 +21,6 @@ export interface PerfRawSnapshot {
   frameDeltas: number[];
   longTasks: number[];
   longAnimationFrames: Array<{ duration: number; blockingDuration: number }>;
-  measures: Array<{ name: string; duration: number }>;
   inp: number;
   interactionCount: number;
 }
@@ -39,18 +38,18 @@ export interface PerfScenarioAggregate {
   longTasks: { count: number; sum: number; max: number };
   longAnimationFrames: { count: number; sum: number; max: number; maxBlocking: number };
   frames: PerfStatsSummary;
-  measures: Record<string, PerfStatsSummary>;
 }
 
 // Injected via context.addInitScript BEFORE any other script. Dormant until
-// `__PERF_BENCH__.start()` so non-perf tests pay zero runtime cost.
+// `__PERF_BENCH__.start()` so non-perf tests pay zero runtime cost. All
+// inputs are browser-native (Event Timing, Long Tasks, LoAF) — we do not
+// need any react-grab source instrumentation to capture them.
 export const installPerfRecorderScript = () => {
   if (window.__PERF_BENCH__) return;
   let isRecording = false;
   let frameDeltas: number[] = [];
   let longTasks: number[] = [];
   let longAnimationFrames: Array<{ duration: number; blockingDuration: number }> = [];
-  let measures: Array<{ name: string; duration: number }> = [];
   let inpInteractionMap = new Map<number, number>();
   let observer: PerformanceObserver | null = null;
   let rafHandle = 0;
@@ -74,8 +73,6 @@ export const installPerfRecorderScript = () => {
           duration: entry.duration,
           blockingDuration: loafEntry.blockingDuration ?? 0,
         });
-      } else if (entry.entryType === "measure" && entry.name.startsWith("rg:")) {
-        measures.push({ name: entry.name, duration: entry.duration });
       }
     }
   };
@@ -86,7 +83,6 @@ export const installPerfRecorderScript = () => {
       frameDeltas = [];
       longTasks = [];
       longAnimationFrames = [];
-      measures = [];
       inpInteractionMap = new Map();
       previousFrameTimestamp = null;
 
@@ -99,7 +95,6 @@ export const installPerfRecorderScript = () => {
         },
         { type: "longtask", buffered: false },
         { type: "long-animation-frame", buffered: false },
-        { type: "measure", buffered: false },
       ];
       for (const observerOptions of observerOptionsList) {
         try {
@@ -140,22 +135,13 @@ export const installPerfRecorderScript = () => {
           ? 0
           : (interactionDurations[Math.floor(interactionCount * 0.02)] ?? 0);
 
-      const snapshot: PerfRawSnapshot = {
+      return {
         frameDeltas: frameDeltas.slice(),
         longTasks: longTasks.slice(),
         longAnimationFrames: longAnimationFrames.slice(),
-        measures: measures.slice(),
         inp,
         interactionCount,
       };
-
-      try {
-        performance.clearMarks();
-        performance.clearMeasures();
-      } catch {
-        // ignore
-      }
-      return snapshot;
     },
   };
 };
@@ -180,18 +166,6 @@ const maxOf = (values: number[]): number =>
   values.length === 0 ? 0 : Number(Math.max(...values).toFixed(3));
 
 export const aggregateRawSnapshot = (rawSnapshot: PerfRawSnapshot): PerfScenarioAggregate => {
-  const measureDurationsByName = new Map<string, number[]>();
-  for (const measureEntry of rawSnapshot.measures) {
-    const namespacedKey = measureEntry.name.slice("rg:".length);
-    const bucket = measureDurationsByName.get(namespacedKey) ?? [];
-    bucket.push(measureEntry.duration);
-    measureDurationsByName.set(namespacedKey, bucket);
-  }
-  const measureSummaries: Record<string, PerfStatsSummary> = {};
-  for (const [measureName, durations] of measureDurationsByName) {
-    measureSummaries[measureName] = summarize(durations);
-  }
-
   const loafDurations = rawSnapshot.longAnimationFrames.map((frame) => frame.duration);
   const loafBlocking = rawSnapshot.longAnimationFrames.map((frame) => frame.blockingDuration);
 
@@ -210,7 +184,6 @@ export const aggregateRawSnapshot = (rawSnapshot: PerfRawSnapshot): PerfScenario
       maxBlocking: maxOf(loafBlocking),
     },
     frames: summarize(rawSnapshot.frameDeltas),
-    measures: measureSummaries,
   };
 };
 
@@ -225,6 +198,85 @@ export const stopRecording = (page: Page): Promise<PerfRawSnapshot> =>
     if (!window.__PERF_BENCH__) throw new Error("perf recorder not installed");
     return window.__PERF_BENCH__.stop();
   });
+
+// --- Optional Chrome CPU trace capture ----------------------------------
+//
+// Enabled with PERF_TRACE=1. Streams the chrome://tracing JSON for the
+// scenario window via CDP and writes it to perf/<label>/<scenario>.trace.json.
+// Drop the resulting file into Chrome DevTools "Performance" panel
+// (or `chrome://tracing`) for full flame chart + function-level attribution.
+// Use with `pnpm build:profiling` so the trace shows readable function names
+// instead of minified `B`/`na`/etc.
+
+interface CdpTraceCapture {
+  events: unknown[];
+  cdpSession: CDPSession;
+  onDataCollected: (payload: { value: unknown[] }) => void;
+  onComplete: () => void;
+  completionPromise: Promise<void>;
+}
+
+export const startCdpTrace = async (page: Page): Promise<CdpTraceCapture | null> => {
+  if (process.env.PERF_TRACE !== "1") return null;
+  const cdpSession = await page.context().newCDPSession(page);
+  const events: unknown[] = [];
+  let resolveComplete: () => void = () => {};
+  const completionPromise = new Promise<void>((resolveTimer) => {
+    resolveComplete = resolveTimer;
+  });
+  const onDataCollected = (payload: { value: unknown[] }): void => {
+    if (Array.isArray(payload?.value)) events.push(...payload.value);
+  };
+  const onComplete = (): void => resolveComplete();
+  cdpSession.on("Tracing.dataCollected", onDataCollected);
+  cdpSession.on("Tracing.tracingComplete", onComplete);
+  await cdpSession.send("Tracing.start", {
+    transferMode: "ReportEvents",
+    // Same categories DevTools "Performance" uses by default. Includes the
+    // V8 sampling CPU profiler so function-level cost is attributable.
+    categories: [
+      "blink.user_timing",
+      "devtools.timeline",
+      "disabled-by-default-devtools.timeline",
+      "disabled-by-default-devtools.timeline.frame",
+      "disabled-by-default-devtools.timeline.stack",
+      "disabled-by-default-v8.cpu_profiler",
+      "loading",
+      "v8.execute",
+    ].join(","),
+  });
+  return { events, cdpSession, onDataCollected, onComplete, completionPromise };
+};
+
+export const stopCdpTrace = async (
+  testInfo: TestInfo,
+  scenarioName: string,
+  capture: CdpTraceCapture | null,
+): Promise<void> => {
+  if (!capture) return;
+  await capture.cdpSession.send("Tracing.end");
+  await capture.completionPromise;
+  capture.cdpSession.off("Tracing.dataCollected", capture.onDataCollected);
+  capture.cdpSession.off("Tracing.tracingComplete", capture.onComplete);
+  try {
+    await capture.cdpSession.detach();
+  } catch {
+    // ignore
+  }
+
+  const runLabel = process.env.PERF_LABEL ?? "current";
+  // Chrome DevTools accepts both `{traceEvents: [...]}` and a bare array.
+  // Use the explicit object form so the file extension `.trace.json` is
+  // immediately recognized.
+  const traceJson = JSON.stringify({ traceEvents: capture.events });
+  await testInfo.attach(`perf-${scenarioName}.trace.json`, {
+    body: traceJson,
+    contentType: "application/json",
+  });
+  const labelDirPath = resolve(PACKAGE_PERF_DIR, runLabel);
+  await mkdir(labelDirPath, { recursive: true });
+  await writeFile(resolve(labelDirPath, `${scenarioName}.trace.json`), traceJson);
+};
 
 export const attachPerfReport = async (
   testInfo: TestInfo,
@@ -262,3 +314,22 @@ export const idleFrame = (page: Page, frameCount = 1) =>
       }),
     frameCount,
   );
+
+// Wraps a scenario body with: CDP trace start (if PERF_TRACE=1) →
+// PerformanceObserver start → scenario body → stop everything → attach
+// report. Returns the aggregate so the test can soft-assert thresholds.
+export const recordScenario = async (
+  page: Page,
+  testInfo: TestInfo,
+  scenarioName: string,
+  scenarioBody: () => Promise<void>,
+): Promise<PerfScenarioAggregate> => {
+  const cdpTrace = await startCdpTrace(page);
+  await startRecording(page);
+  await scenarioBody();
+  const rawSnapshot = await stopRecording(page);
+  await stopCdpTrace(testInfo, scenarioName, cdpTrace);
+  const aggregate = aggregateRawSnapshot(rawSnapshot);
+  await attachPerfReport(testInfo, scenarioName, aggregate);
+  return aggregate;
+};

@@ -8,3 +8,6 @@
 current/
 !baseline/
 !baseline/*.json
+
+# CDP trace dumps (PERF_TRACE=1) are 5-100MB each. Always local, never committed.
+*.trace.json

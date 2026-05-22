@@ -16,19 +16,11 @@
       "maxBlocking": 0
     },
     "frames": {
-      "count": 303,
+      "count": 304,
       "median": 16.7,
-      "p95": 16.7,
+      "p95": 16.8,
       "max": 16.8
-    },
-    "measures": {
-      "pointermove": {
-        "count": 239,
-        "median": 0.1,
-        "p95": 0.1,
-        "max": 0.2
-      }
     }
   },
-  "recordedAt": "2026-05-22T10:49:50.269Z"
+  "recordedAt": "2026-05-22T11:16:30.161Z"
 }
