@@ -1,5 +1,4 @@
-import { createSignal, createEffect, on, onMount, onCleanup } from "solid-js";
-import type { Component } from "solid-js";
+import { createEffect, createSignal, on, onCleanup, onMount, type Component } from "solid-js";
 import type { Position } from "../../types.js";
 import { cn } from "../../utils/cn.js";
 import { loadToolbarState, saveToolbarState, type SnapEdge, type ToolbarState } from "./state.js";

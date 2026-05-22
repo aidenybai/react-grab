@@ -1,5 +1,4 @@
-import { Show, For, createEffect } from "solid-js";
-import type { Component } from "solid-js";
+import { createEffect, For, Show, type Component } from "solid-js";
 import type { ArrowNavigationItem } from "../../types.js";
 import { MENU_HIGHLIGHT_CORNER_SHAPE, MENU_PANEL_CORNER_RADIUS_PX } from "../../constants.js";
 import { createMenuHighlight } from "../../utils/create-menu-highlight.js";

@@ -1,5 +1,4 @@
-import { Show } from "solid-js";
-import type { Component } from "solid-js";
+import { Show, type Component } from "solid-js";
 import type { TagBadgeProps } from "../../types.js";
 import { cn } from "../../utils/cn.js";
 

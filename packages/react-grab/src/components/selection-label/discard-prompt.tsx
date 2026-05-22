@@ -1,5 +1,4 @@
-import { onMount, onCleanup } from "solid-js";
-import type { Component } from "solid-js";
+import { onCleanup, onMount, type Component } from "solid-js";
 import type { DiscardPromptProps } from "../../types.js";
 import { confirmationFocusManager } from "../../utils/confirmation-focus-manager.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";

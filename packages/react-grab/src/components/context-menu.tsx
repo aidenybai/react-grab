@@ -1,5 +1,14 @@
-import { Show, For, on, onMount, onCleanup, createSignal, createEffect, createMemo } from "solid-js";
-import type { Component } from "solid-js";
+import {
+  createEffect,
+  createMemo,
+  createSignal,
+  For,
+  on,
+  onCleanup,
+  onMount,
+  Show,
+  type Component,
+} from "solid-js";
 import type {
   Position,
   OverlayBounds,
@@ -180,8 +189,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     return -1;
   };
 
-  const findFirstEnabledIndex = (): number =>
-    menuItems().findIndex((item) => item.enabled);
+  const findFirstEnabledIndex = (): number => menuItems().findIndex((item) => item.enabled);
 
   const findLastEnabledIndex = (): number => {
     const items = menuItems();

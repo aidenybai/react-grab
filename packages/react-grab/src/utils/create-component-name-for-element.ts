@@ -1,5 +1,4 @@
-import { createEffect, createSignal, on } from "solid-js";
-import type { Accessor, Setter } from "solid-js";
+import { createEffect, createSignal, on, type Accessor, type Setter } from "solid-js";
 import { getComponentDisplayName, getNearestComponentName } from "../core/context.js";
 
 export const createComponentNameForElement = (

@@ -1,5 +1,13 @@
-import { Show, createSignal, createEffect, createMemo, on, onMount, onCleanup } from "solid-js";
-import type { Component } from "solid-js";
+import {
+  createEffect,
+  createMemo,
+  createSignal,
+  on,
+  onCleanup,
+  onMount,
+  Show,
+  type Component,
+} from "solid-js";
 import type { ArrowPosition, SelectionLabelProps } from "../../types.js";
 import {
   FADE_DURATION_MS,
