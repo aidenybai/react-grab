@@ -3,7 +3,7 @@
   "label": "baseline",
   "aggregate": {
     "inp": 48,
-    "interactions": 10,
+    "interactions": 9,
     "longTasks": {
       "count": 0,
       "sum": 0,
@@ -16,11 +16,11 @@
       "maxBlocking": 0
     },
     "frames": {
-      "count": 35,
+      "count": 33,
       "median": 16.7,
       "p95": 16.8,
       "max": 33.3
     }
   },
-  "recordedAt": "2026-05-22T11:35:15.179Z"
+  "recordedAt": "2026-05-22T11:53:53.854Z"
 }

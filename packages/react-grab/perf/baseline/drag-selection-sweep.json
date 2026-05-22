@@ -2,8 +2,8 @@
   "scenario": "drag-selection-sweep",
   "label": "baseline",
   "aggregate": {
-    "inp": 40,
-    "interactions": 18,
+    "inp": 48,
+    "interactions": 22,
     "longTasks": {
       "count": 0,
       "sum": 0,
@@ -16,11 +16,11 @@
       "maxBlocking": 0
     },
     "frames": {
-      "count": 240,
+      "count": 238,
       "median": 16.7,
       "p95": 16.7,
-      "max": 16.8
+      "max": 33.3
     }
   },
-  "recordedAt": "2026-05-22T11:35:19.663Z"
+  "recordedAt": "2026-05-22T11:53:58.269Z"
 }

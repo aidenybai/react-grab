@@ -168,20 +168,27 @@ test.describe("@perf benchmarks", () => {
             boundingBox.y + boundingBox.height / 2,
             { steps: 2 },
           );
+          // Snapshot taken BEFORE the click is dispatched so the waiter
+          // only matches the new copy's labelInstance, not the lingering
+          // ~1.5s fade from the previous cycle (Bugbot caught this).
+          // Polling `isCopying === true` was unreliable because the full
+          // active → copying → justCopied transition can finish inside one
+          // microtask, faster than `waitForFunction`'s default poll.
+          const cycleStartTimestamp = await page.evaluate(() => Date.now());
           await page.mouse.down();
           await page.mouse.up();
           await page.waitForFunction(
-            () => {
-              const apiState = window.__REACT_GRAB__?.getState?.();
-              return Boolean(
-                apiState &&
-                (apiState.isCopying === false || (apiState.labelInstances?.length ?? 0)),
+            (clickTimestamp) => {
+              const instances = window.__REACT_GRAB__?.getState?.()?.labelInstances ?? [];
+              return instances.some(
+                (instance) =>
+                  instance.createdAt >= clickTimestamp &&
+                  (instance.status === "copied" || instance.status === "fading"),
               );
             },
-            null,
+            cycleStartTimestamp,
             { timeout: 2000 },
           );
-          await page.waitForTimeout(120);
           await page.keyboard.press("Escape");
           await page.waitForTimeout(80);
         }
