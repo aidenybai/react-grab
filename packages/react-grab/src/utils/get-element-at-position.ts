@@ -7,6 +7,7 @@ import {
 import { suspendPointerEventsFreeze, resumePointerEventsFreeze } from "./pointer-events-freeze.js";
 
 interface PositionCache {
+  hasValue: boolean;
   clientX: number;
   clientY: number;
   element: Element | null;
@@ -14,12 +15,25 @@ interface PositionCache {
 }
 
 interface IFrameHoverCache {
-  element: HTMLIFrameElement;
-  rect: DOMRect;
+  isHovering: boolean;
+  element: HTMLIFrameElement | null;
+  rect: DOMRect | null;
 }
 
-let cache: PositionCache | null = null;
-let hoveredIframe: IFrameHoverCache | null = null;
+const positionCache: PositionCache = {
+  hasValue: false,
+  clientX: 0,
+  clientY: 0,
+  element: null,
+  timestamp: 0,
+};
+
+const iframeHoverCache: IFrameHoverCache = {
+  isHovering: false,
+  element: null,
+  rect: null,
+};
+
 let resumeTimerId: ReturnType<typeof setTimeout> | null = null;
 
 const isPointInsideRect = (clientX: number, clientY: number, rect: DOMRect): boolean =>
@@ -70,16 +84,25 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
   // pending resume timer re-enable `html { pointer-events: none }`, which stops
   // the browser from dispatching pointer events into the iframe's document -
   // the source of lag on srcdoc iframes running their own React/JIT pipelines.
-  if (hoveredIframe && isPointInsideRect(clientX, clientY, hoveredIframe.rect)) {
-    return hoveredIframe.element;
+  if (
+    iframeHoverCache.isHovering &&
+    iframeHoverCache.rect &&
+    isPointInsideRect(clientX, clientY, iframeHoverCache.rect)
+  ) {
+    return iframeHoverCache.element;
   }
 
-  if (cache) {
-    const isPositionClose = isWithinThreshold(clientX, clientY, cache.clientX, cache.clientY);
-    const isWithinThrottle = now - cache.timestamp < ELEMENT_POSITION_THROTTLE_MS;
+  if (positionCache.hasValue) {
+    const isPositionClose = isWithinThreshold(
+      clientX,
+      clientY,
+      positionCache.clientX,
+      positionCache.clientY,
+    );
+    const isWithinThrottle = now - positionCache.timestamp < ELEMENT_POSITION_THROTTLE_MS;
 
     if (isPositionClose || isWithinThrottle) {
-      return cache.element;
+      return positionCache.element;
     }
   }
 
@@ -118,17 +141,30 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
 
   scheduleResume();
 
-  hoveredIframe =
-    result instanceof HTMLIFrameElement
-      ? { element: result, rect: result.getBoundingClientRect() }
-      : null;
-  cache = { clientX, clientY, element: result, timestamp: now };
+  if (result instanceof HTMLIFrameElement) {
+    iframeHoverCache.isHovering = true;
+    iframeHoverCache.element = result;
+    iframeHoverCache.rect = result.getBoundingClientRect();
+  } else {
+    iframeHoverCache.isHovering = false;
+    iframeHoverCache.element = null;
+    iframeHoverCache.rect = null;
+  }
+
+  positionCache.hasValue = true;
+  positionCache.clientX = clientX;
+  positionCache.clientY = clientY;
+  positionCache.element = result;
+  positionCache.timestamp = now;
   return result;
 };
 
 export const clearElementPositionCache = (): void => {
   cancelScheduledResume();
   resumePointerEventsFreeze();
-  cache = null;
-  hoveredIframe = null;
+  positionCache.hasValue = false;
+  positionCache.element = null;
+  iframeHoverCache.isHovering = false;
+  iframeHoverCache.element = null;
+  iframeHoverCache.rect = null;
 };

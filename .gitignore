@@ -18,3 +18,5 @@ meta.json
 .agents/skills
 .claude.expect
 .mcp.json
+packages/react-grab/perf/v8-log/*.log
+packages/react-grab/perf/v8-log/code.asm
