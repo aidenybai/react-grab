@@ -2,8 +2,8 @@
   "scenario": "copy-then-deactivate-stress",
   "label": "baseline",
   "aggregate": {
-    "inp": 64,
-    "interactions": 34,
+    "inp": 48,
+    "interactions": 35,
     "longTasks": {
       "count": 0,
       "sum": 0,
@@ -16,11 +16,11 @@
       "maxBlocking": 0
     },
     "frames": {
-      "count": 407,
+      "count": 373,
       "median": 16.7,
       "p95": 16.7,
-      "max": 33.4
+      "max": 16.8
     }
   },
-  "recordedAt": "2026-05-22T11:17:04.528Z"
+  "recordedAt": "2026-05-22T11:35:14.137Z"
 }

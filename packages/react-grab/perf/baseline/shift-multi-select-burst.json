@@ -2,7 +2,7 @@
   "scenario": "shift-multi-select-burst",
   "label": "baseline",
   "aggregate": {
-    "inp": 80,
+    "inp": 48,
     "interactions": 10,
     "longTasks": {
       "count": 0,
@@ -10,17 +10,17 @@
       "max": 0
     },
     "longAnimationFrames": {
-      "count": 2,
-      "sum": 112.1,
-      "max": 59.3,
+      "count": 0,
+      "sum": 0,
+      "max": 0,
       "maxBlocking": 0
     },
     "frames": {
       "count": 35,
       "median": 16.7,
-      "p95": 33.4,
-      "max": 50
+      "p95": 16.8,
+      "max": 33.3
     }
   },
-  "recordedAt": "2026-05-22T11:17:06.211Z"
+  "recordedAt": "2026-05-22T11:35:15.179Z"
 }

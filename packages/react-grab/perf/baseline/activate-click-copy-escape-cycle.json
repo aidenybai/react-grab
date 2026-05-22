@@ -2,7 +2,7 @@
   "scenario": "activate-click-copy-escape-cycle",
   "label": "baseline",
   "aggregate": {
-    "inp": 56,
+    "inp": 40,
     "interactions": 56,
     "longTasks": {
       "count": 0,
@@ -11,16 +11,16 @@
     },
     "longAnimationFrames": {
       "count": 1,
-      "sum": 52.3,
-      "max": 52.3,
+      "sum": 81.1,
+      "max": 81.1,
       "maxBlocking": 0
     },
     "frames": {
-      "count": 427,
+      "count": 438,
       "median": 16.7,
       "p95": 16.7,
-      "max": 50.1
+      "max": 16.8
     }
   },
-  "recordedAt": "2026-05-22T11:16:55.958Z"
+  "recordedAt": "2026-05-22T11:35:07.668Z"
 }

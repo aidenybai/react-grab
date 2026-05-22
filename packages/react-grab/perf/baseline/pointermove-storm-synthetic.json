@@ -5,22 +5,22 @@
     "inp": 0,
     "interactions": 0,
     "longTasks": {
-      "count": 37,
-      "sum": 5851,
-      "max": 244
+      "count": 31,
+      "sum": 3047,
+      "max": 178
     },
     "longAnimationFrames": {
-      "count": 39,
-      "sum": 5801.1,
-      "max": 236.9,
-      "maxBlocking": 186.581
+      "count": 30,
+      "sum": 2869.3,
+      "max": 174.3,
+      "maxBlocking": 124.096
     },
     "frames": {
-      "count": 44,
-      "median": 150,
-      "p95": 233.4,
-      "max": 250
+      "count": 42,
+      "median": 83.3,
+      "p95": 166.6,
+      "max": 183.4
     }
   },
-  "recordedAt": "2026-05-22T11:16:46.452Z"
+  "recordedAt": "2026-05-22T11:35:00.081Z"
 }

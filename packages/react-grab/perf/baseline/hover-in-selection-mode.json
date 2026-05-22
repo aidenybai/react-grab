@@ -16,11 +16,11 @@
       "maxBlocking": 0
     },
     "frames": {
-      "count": 304,
+      "count": 303,
       "median": 16.7,
       "p95": 16.8,
       "max": 16.8
     }
   },
-  "recordedAt": "2026-05-22T11:16:30.161Z"
+  "recordedAt": "2026-05-22T11:34:56.197Z"
 }

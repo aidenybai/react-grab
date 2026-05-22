@@ -2,25 +2,25 @@
   "scenario": "drag-selection-sweep",
   "label": "baseline",
   "aggregate": {
-    "inp": 72,
-    "interactions": 17,
+    "inp": 40,
+    "interactions": 18,
     "longTasks": {
       "count": 0,
       "sum": 0,
       "max": 0
     },
     "longAnimationFrames": {
-      "count": 1,
-      "sum": 56,
-      "max": 56,
+      "count": 0,
+      "sum": 0,
+      "max": 0,
       "maxBlocking": 0
     },
     "frames": {
-      "count": 251,
+      "count": 240,
       "median": 16.7,
       "p95": 16.7,
-      "max": 50
+      "max": 16.8
     }
   },
-  "recordedAt": "2026-05-22T11:17:11.622Z"
+  "recordedAt": "2026-05-22T11:35:19.663Z"
 }
