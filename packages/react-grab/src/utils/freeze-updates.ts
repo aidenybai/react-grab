@@ -295,49 +295,65 @@ const resumeContextDependency = (contextDependency: ContextDependency): void => 
   pausedContextStates.delete(contextDependency);
 };
 
-const forEachHookQueue = (fiber: Fiber, callback: (queue: HookQueue) => void): void => {
+// pauseFiber/resumeFiber inline the hook-queue and context-dependency loops
+// rather than receiving a generic callback. The indirect callback site was
+// the source of recurring "wrong call target" deopts whenever freeze and
+// unfreeze were exercised in alternation across the same fiber subtree.
+const pauseFiber = (fiber: Fiber): void => {
   let hookState = fiber.memoizedState as unknown as HookState | null;
   while (hookState) {
     if (hookState.queue && typeof hookState.queue === "object") {
-      callback(hookState.queue);
+      pauseHookQueue(hookState.queue);
     }
     hookState = hookState.next;
   }
-};
 
-const forEachContextDependency = (
-  fiber: Fiber,
-  callback: (contextDependency: ContextDependency) => void,
-): void => {
   let contextDependency = fiber.dependencies?.firstContext as ContextDependency | null;
   while (
     contextDependency &&
     typeof contextDependency === "object" &&
     "memoizedValue" in contextDependency
   ) {
-    callback(contextDependency);
+    pauseContextDependency(contextDependency);
     contextDependency = contextDependency.next;
   }
 };
 
-const traverseFibers = (
-  fiber: Fiber | null,
-  onCompositeFiber: (compositeFiber: Fiber) => void,
-): void => {
-  if (!fiber) return;
-  if (isCompositeFiber(fiber)) onCompositeFiber(fiber);
-  traverseFibers(fiber.child, onCompositeFiber);
-  traverseFibers(fiber.sibling, onCompositeFiber);
-};
-
-const pauseFiber = (fiber: Fiber): void => {
-  forEachHookQueue(fiber, pauseHookQueue);
-  forEachContextDependency(fiber, pauseContextDependency);
-};
-
 const resumeFiber = (fiber: Fiber): void => {
-  forEachHookQueue(fiber, resumeHookQueue);
-  forEachContextDependency(fiber, resumeContextDependency);
+  let hookState = fiber.memoizedState as unknown as HookState | null;
+  while (hookState) {
+    if (hookState.queue && typeof hookState.queue === "object") {
+      resumeHookQueue(hookState.queue);
+    }
+    hookState = hookState.next;
+  }
+
+  let contextDependency = fiber.dependencies?.firstContext as ContextDependency | null;
+  while (
+    contextDependency &&
+    typeof contextDependency === "object" &&
+    "memoizedValue" in contextDependency
+  ) {
+    resumeContextDependency(contextDependency);
+    contextDependency = contextDependency.next;
+  }
+};
+
+// Two single-callback recursors instead of a polymorphic `(fiber, cb) => ...`.
+// Keeping the indirect call site monomorphic per traversal lets V8 inline the
+// callback and avoids "wrong call target" deopts when freeze/unfreeze alternate.
+const traverseFibersAndPause = (fiber: Fiber | null): void => {
+  if (!fiber) return;
+  if (isCompositeFiber(fiber)) pauseFiber(fiber);
+  traverseFibersAndPause(fiber.child);
+  traverseFibersAndPause(fiber.sibling);
+};
+
+const traverseFibersAndResume = (fiber: Fiber | null): void => {
+  if (!fiber) return;
+  if (isCompositeFiber(fiber)) resumeFiber(fiber);
+  traverseFibersAndResume(fiber.child);
+  traverseFibersAndResume(fiber.sibling);
 };
 
 const patchDispatcher = (dispatcher: object): void => {
@@ -517,7 +533,7 @@ export const freezeUpdates = (): (() => void) => {
 
   const fiberRoots = collectFiberRoots();
   for (const fiberRoot of fiberRoots) {
-    traverseFibers(fiberRoot.current, pauseFiber);
+    traverseFibersAndPause(fiberRoot.current);
   }
 
   return () => {
@@ -526,7 +542,7 @@ export const freezeUpdates = (): (() => void) => {
     try {
       const fiberRootsToResume = collectFiberRoots();
       for (const fiberRoot of fiberRootsToResume) {
-        traverseFibers(fiberRoot.current, resumeFiber);
+        traverseFibersAndResume(fiberRoot.current);
       }
 
       const storeCallbacksToInvoke = Array.from(pendingStoreCallbacks);
