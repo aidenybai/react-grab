@@ -147,7 +147,7 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
           <IconCheck
             size={14}
             aria-hidden="true"
-            class="text-[var(--rg-text-primary-85)] shrink-0 animate-success-pop"
+            class="text-[var(--rg-text-primary-85)] shrink-0"
           />
           <span class="text-[var(--rg-text-primary)] text-[13px] leading-4 font-sans font-medium h-fit tabular-nums overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
             {displayStatusText()}
