@@ -4,18 +4,14 @@
 // snapping each new target to the equivalent within ±180° of the previous
 // value keeps the transition snappy while letting the icon pirouette through
 // full revolutions when the user circles the toolbar.
+//
+// Closed-form (no loops) so V8 sees a single number→number arithmetic shape:
+// fold the angular delta into [-180°, 180°] via Math.round of full-turn ratio.
+const FULL_TURN_DEG = 360;
+
 export const accumulateRotationDeg = (previousDeg: number, targetDeg: number): number => {
-  const HALF_TURN_DEG = 180;
-  const FULL_TURN_DEG = 360;
-  let next = targetDeg;
-  let delta = next - previousDeg;
-  while (delta > HALF_TURN_DEG) {
-    next -= FULL_TURN_DEG;
-    delta = next - previousDeg;
-  }
-  while (delta < -HALF_TURN_DEG) {
-    next += FULL_TURN_DEG;
-    delta = next - previousDeg;
-  }
-  return next;
+  const rawDelta = targetDeg - previousDeg;
+  const wrappedTurns = Math.round(rawDelta / FULL_TURN_DEG);
+  const shortestDelta = rawDelta - wrappedTurns * FULL_TURN_DEG;
+  return previousDeg + shortestDelta;
 };
