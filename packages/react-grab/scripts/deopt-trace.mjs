@@ -222,6 +222,182 @@ const runScenarios = async (page) => {
     },
     { burstCount: 100 },
   );
+
+  log("scenario: freeze/unfreeze cycles (200 toggles via shift-click + escape)");
+  await page.evaluate(
+    async ({ cycleCount }) => {
+      const api = window.__REACT_GRAB__;
+      api?.activate();
+      const cells = Array.from(document.querySelectorAll("[data-perf-row][data-perf-column]"));
+      if (cells.length === 0) return;
+
+      const dispatchPointer = (target, type, options = {}) => {
+        const rect = target.getBoundingClientRect();
+        target.dispatchEvent(
+          new PointerEvent(type, {
+            bubbles: true,
+            cancelable: true,
+            clientX: rect.left + rect.width / 2,
+            clientY: rect.top + rect.height / 2,
+            pointerId: 1,
+            pointerType: "mouse",
+            isPrimary: true,
+            shiftKey: false,
+            button: 0,
+            ...options,
+          }),
+        );
+      };
+
+      for (let cycleIndex = 0; cycleIndex < cycleCount; cycleIndex++) {
+        const cell = cells[cycleIndex % cells.length];
+        dispatchPointer(cell, "pointermove");
+        dispatchPointer(cell, "pointerdown");
+        dispatchPointer(cell, "pointerup");
+        await new Promise((r) => requestAnimationFrame(() => r()));
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+        await new Promise((r) => requestAnimationFrame(() => r()));
+      }
+      api?.deactivate();
+    },
+    { cycleCount: 200 },
+  );
+
+  log("scenario: shift-multi-select freeze sweep (150 toggles)");
+  await page.evaluate(
+    async ({ toggleCount }) => {
+      const api = window.__REACT_GRAB__;
+      api?.activate();
+      const cells = Array.from(document.querySelectorAll("[data-perf-row][data-perf-column]"));
+      if (cells.length === 0) return;
+
+      const dispatchShiftClick = (target) => {
+        const rect = target.getBoundingClientRect();
+        const init = {
+          bubbles: true,
+          cancelable: true,
+          clientX: rect.left + rect.width / 2,
+          clientY: rect.top + rect.height / 2,
+          pointerId: 1,
+          pointerType: "mouse",
+          isPrimary: true,
+          shiftKey: true,
+          button: 0,
+        };
+        target.dispatchEvent(new PointerEvent("pointermove", init));
+        target.dispatchEvent(new PointerEvent("pointerdown", init));
+        target.dispatchEvent(new PointerEvent("pointerup", init));
+      };
+
+      for (let toggleIndex = 0; toggleIndex < toggleCount; toggleIndex++) {
+        dispatchShiftClick(cells[toggleIndex % cells.length]);
+        if (toggleIndex % 8 === 7) {
+          await new Promise((r) => requestAnimationFrame(() => r()));
+        }
+      }
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      await new Promise((r) => requestAnimationFrame(() => r()));
+      api?.deactivate();
+    },
+    { toggleCount: 150 },
+  );
+
+  log("scenario: drag selection sweep (40 drag rectangles)");
+  await page.evaluate(
+    async ({ dragCount }) => {
+      const api = window.__REACT_GRAB__;
+      api?.activate();
+      const cells = Array.from(document.querySelectorAll("[data-perf-row][data-perf-column]"));
+      if (cells.length < 20) return;
+
+      const pointerInit = (clientX, clientY) => ({
+        bubbles: true,
+        cancelable: true,
+        clientX,
+        clientY,
+        pointerId: 1,
+        pointerType: "mouse",
+        isPrimary: true,
+        button: 0,
+      });
+
+      for (let dragIndex = 0; dragIndex < dragCount; dragIndex++) {
+        const startCell = cells[(dragIndex * 7) % cells.length];
+        const endCell = cells[(dragIndex * 7 + 15) % cells.length];
+        const startRect = startCell.getBoundingClientRect();
+        const endRect = endCell.getBoundingClientRect();
+        const startX = startRect.left + 1;
+        const startY = startRect.top + 1;
+        const endX = endRect.right - 1;
+        const endY = endRect.bottom - 1;
+
+        document.dispatchEvent(new PointerEvent("pointermove", pointerInit(startX, startY)));
+        startCell.dispatchEvent(new PointerEvent("pointerdown", pointerInit(startX, startY)));
+        for (let step = 1; step <= 8; step++) {
+          const fraction = step / 8;
+          document.dispatchEvent(
+            new PointerEvent(
+              "pointermove",
+              pointerInit(startX + (endX - startX) * fraction, startY + (endY - startY) * fraction),
+            ),
+          );
+        }
+        document.dispatchEvent(new PointerEvent("pointerup", pointerInit(endX, endY)));
+        await new Promise((r) => requestAnimationFrame(() => r()));
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+        await new Promise((r) => requestAnimationFrame(() => r()));
+      }
+      api?.deactivate();
+    },
+    { dragCount: 40 },
+  );
+
+  log("scenario: toolbar hover rotation (240 pointer orbits around the toolbar)");
+  await page.evaluate(
+    async ({ steps, radius }) => {
+      const api = window.__REACT_GRAB__;
+      api?.activate();
+      await new Promise((r) => requestAnimationFrame(() => r()));
+      const toolbar = document.querySelector("[data-react-grab-toolbar], react-grab-overlay");
+      const fallbackCenter = { x: window.innerWidth / 2, y: window.innerHeight - 80 };
+      const rect = toolbar?.getBoundingClientRect();
+      const cx = rect ? rect.left + rect.width / 2 : fallbackCenter.x;
+      const cy = rect ? rect.top + rect.height / 2 : fallbackCenter.y;
+      for (let stepIndex = 0; stepIndex < steps; stepIndex++) {
+        const theta = (stepIndex / steps) * Math.PI * 6;
+        const px = cx + Math.cos(theta) * radius;
+        const py = cy + Math.sin(theta) * radius;
+        window.dispatchEvent(
+          new PointerEvent("pointermove", {
+            bubbles: true,
+            cancelable: true,
+            clientX: px,
+            clientY: py,
+            pointerId: 1,
+            pointerType: "mouse",
+            isPrimary: true,
+          }),
+        );
+      }
+      await new Promise((r) => requestAnimationFrame(() => r()));
+      api?.deactivate();
+    },
+    { steps: 240, radius: 120 },
+  );
+
+  log("scenario: rapid activate/deactivate (60 cycles)");
+  await page.evaluate(
+    async ({ cycleCount }) => {
+      const api = window.__REACT_GRAB__;
+      for (let cycleIndex = 0; cycleIndex < cycleCount; cycleIndex++) {
+        api?.activate();
+        await new Promise((r) => requestAnimationFrame(() => r()));
+        api?.deactivate();
+        await new Promise((r) => requestAnimationFrame(() => r()));
+      }
+    },
+    { cycleCount: 60 },
+  );
 };
 
 const parseDeopts = (stderrText) => {
