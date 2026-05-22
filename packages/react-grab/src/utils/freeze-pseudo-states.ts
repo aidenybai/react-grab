@@ -1,4 +1,5 @@
 import { clearElementPositionCache } from "./get-element-at-position.js";
+import { markPerf, measureSincePerf } from "./perf-marks.js";
 import {
   installPointerEventsFreeze,
   isPointerEventsFreezeInstalled,
@@ -200,6 +201,7 @@ export const freezePseudoStates = (cursorX?: number, cursorY?: number): void => 
 };
 
 export const unfreezePseudoStates = (): void => {
+  markPerf("unfreezePseudoStates:start");
   clearElementPositionCache();
 
   for (const eventType of MOUSE_EVENTS_TO_BLOCK) {
@@ -214,4 +216,5 @@ export const unfreezePseudoStates = (): void => {
   restoreFrozenStates(frozenFocusElements, FOCUS_STYLE_PROPERTIES);
 
   uninstallPointerEventsFreeze();
+  measureSincePerf("unfreezePseudoStates", "unfreezePseudoStates:start");
 };

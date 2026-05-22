@@ -136,6 +136,7 @@ import { copyContent } from "../utils/copy-content.js";
 import { generateId } from "../utils/generate-id.js";
 import { logRecoverableError } from "../utils/log-recoverable-error.js";
 import { getNearestEdge } from "../utils/get-nearest-edge.js";
+import { markPerf, measureSincePerf } from "../utils/perf-marks.js";
 
 const builtInPlugins = [copyPlugin, commentPlugin, openPlugin];
 
@@ -1429,14 +1430,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     const activateRenderer = () => {
+      markPerf("activate:start");
       const wasInHoldingState = isHoldingKeys();
       actions.activate();
       if (!wasInHoldingState) {
         pluginRegistry.hooks.onActivate();
       }
+      measureSincePerf("activate", "activate:start");
     };
 
     const deactivateRenderer = () => {
+      markPerf("deactivate:start");
       const wasDragging = isDragging();
       const previousFocused = store.previouslyFocusedElement;
       stopSpaceDragRepositioning();
@@ -1450,10 +1454,20 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
       autoScroller.stop();
-      if (previousFocused instanceof HTMLElement && isElementConnected(previousFocused)) {
+      // Calling .focus() forces a synchronous focus event dispatch and a style
+      // recalc. Skip it when the target is <body> or already the active
+      // element — both cases produce no observable focus change but were
+      // previously paying the recalc cost on every deactivate.
+      if (
+        previousFocused instanceof HTMLElement &&
+        previousFocused !== document.body &&
+        previousFocused !== document.activeElement &&
+        isElementConnected(previousFocused)
+      ) {
         previousFocused.focus();
       }
       pluginRegistry.hooks.onDeactivate();
+      measureSincePerf("deactivate", "deactivate:start");
     };
 
     const forceDeactivateAll = () => {
@@ -2597,12 +2611,25 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       "pointermove",
       (event: PointerEvent) => {
         if (!event.isPrimary) return;
+        markPerf("pointermove:start");
         const isTouchPointer = event.pointerType === "touch";
         actions.setTouchMode(isTouchPointer);
-        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-        if (store.contextMenuPosition !== null) return;
-        if (isSelectionInteractionLocked()) return;
-        if (isTouchPointer && !isHoldingKeys() && !isActivated()) return;
+        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) {
+          measureSincePerf("pointermove:short-circuit", "pointermove:start");
+          return;
+        }
+        if (store.contextMenuPosition !== null) {
+          measureSincePerf("pointermove:short-circuit", "pointermove:start");
+          return;
+        }
+        if (isSelectionInteractionLocked()) {
+          measureSincePerf("pointermove:short-circuit", "pointermove:start");
+          return;
+        }
+        if (isTouchPointer && !isHoldingKeys() && !isActivated()) {
+          measureSincePerf("pointermove:short-circuit", "pointermove:start");
+          return;
+        }
         const isActiveState = isTouchPointer ? isHoldingKeys() : isActivated();
         // The flag check covers the small window after physical Shift
         // release but before the keyup handler commits — pointermove fires
@@ -2619,6 +2646,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           clearArrowNavigation();
         }
         handlePointerMove(event.clientX, event.clientY, event.shiftKey);
+        measureSincePerf("pointermove", "pointermove:start");
       },
       { passive: true },
     );

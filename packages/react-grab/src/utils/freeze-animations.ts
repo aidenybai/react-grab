@@ -1,6 +1,7 @@
 import { FROZEN_ELEMENT_ATTRIBUTE } from "../constants.js";
 import { createStyleElement } from "./create-style-element.js";
 import { freezeGsap, unfreezeGsap } from "./freeze-gsap.js";
+import { markPerf, measureSincePerf } from "./perf-marks.js";
 
 const FROZEN_STYLES = `
 [${FROZEN_ELEMENT_ATTRIBUTE}],
@@ -184,6 +185,7 @@ export const freezeGlobalAnimations = (): void => {
 
 export const unfreezeGlobalAnimations = (): void => {
   if (!globalAnimationStyleElement) return;
+  markPerf("unfreezeGlobalAnimations:start");
 
   // All paused animations must be finished before the freeze stylesheet is
   // removed, because simply removing animation-play-state:paused would resume
@@ -218,4 +220,5 @@ export const unfreezeGlobalAnimations = (): void => {
   resumeSvgAnimations(globalFrozenSvgElements);
   globalFrozenSvgElements = [];
   unfreezeGsap();
+  measureSincePerf("unfreezeGlobalAnimations", "unfreezeGlobalAnimations:start");
 };
