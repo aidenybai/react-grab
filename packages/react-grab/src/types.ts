@@ -332,19 +332,6 @@ export interface SelectionLabelInstance {
   hideArrow?: boolean;
 }
 
-export interface CommentItem {
-  id: string;
-  content: string;
-  elementName: string;
-  tagName: string;
-  componentName?: string;
-  elementsCount?: number;
-  previewBounds?: OverlayBounds[];
-  elementSelectors?: string[];
-  commentText?: string;
-  timestamp: number;
-}
-
 export interface FrozenLabelEntry {
   tagName: string;
   componentName?: string;
