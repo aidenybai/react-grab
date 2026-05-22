@@ -416,6 +416,175 @@ const runScenarios = async (page) => {
   );
 };
 
+// Mirrors the surfaces the e2e suite hits: real Playwright mouse/keyboard input
+// against the full app (not the perf grid) so we trace deopts in code paths the
+// synthetic per-cell loops above never touch (context menu, keyboard nav, copy
+// flow, modals, drag through real listeners, etc.).
+const runFullAppScenarios = async (page) => {
+  log("navigating to full e2e-app");
+  await page.goto(E2E_APP_URL, { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => Boolean(window.__REACT_GRAB__), null, { timeout: 10_000 });
+  await page.waitForSelector("[data-testid='todo-list']", { timeout: 10_000 });
+
+  const activate = () =>
+    page.evaluate(() => {
+      window.__REACT_GRAB__?.activate?.();
+    });
+  const deactivate = async () => {
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(60);
+  };
+
+  log("scenario(full): hover sweep across heterogeneous elements (60 hovers)");
+  await activate();
+  const hoverTargets = [
+    "[data-testid='todo-list'] li:nth-child(1) span",
+    "[data-testid='todo-list'] li:nth-child(4) span",
+    "[data-testid='deeply-nested-text']",
+    "[data-testid='nested-button']",
+    "[data-testid='span-element']",
+    "[data-testid='strong-element']",
+    "[data-testid='code-element']",
+    "[data-testid='link-element']",
+    "[data-testid='th-1']",
+    "[data-testid='td-2-2']",
+    "[data-testid='article-content']",
+    "[data-testid='animated-pulse']",
+  ];
+  for (let pass = 0; pass < 5; pass++) {
+    for (const selector of hoverTargets) {
+      const locator = page.locator(selector).first();
+      if ((await locator.count()) === 0) continue;
+      await locator.hover({ force: true });
+      await page.waitForTimeout(20);
+    }
+  }
+  await deactivate();
+
+  log("scenario(full): context menu open/navigate/close (40 cycles)");
+  await activate();
+  const contextMenuTargets = [
+    "[data-testid='todo-list'] li:nth-child(2)",
+    "[data-testid='nested-card']",
+    "[data-testid='span-element']",
+    "[data-testid='td-1-2']",
+  ];
+  for (let cycleIndex = 0; cycleIndex < 40; cycleIndex++) {
+    const selector = contextMenuTargets[cycleIndex % contextMenuTargets.length];
+    const locator = page.locator(selector).first();
+    if ((await locator.count()) === 0) continue;
+    await locator.click({ button: "right", force: true });
+    await page.waitForTimeout(40);
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ArrowUp");
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(40);
+  }
+  await deactivate();
+
+  log("scenario(full): keyboard arrow navigation through selection (30 sequences)");
+  await activate();
+  for (let sequenceIndex = 0; sequenceIndex < 30; sequenceIndex++) {
+    const locator = page.locator("[data-testid='scroll-container'] li").nth(sequenceIndex % 10);
+    if ((await locator.count()) === 0) break;
+    await locator.click({ force: true });
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("ArrowLeft");
+    await page.keyboard.press("Escape");
+  }
+  await deactivate();
+
+  log("scenario(full): drag selection across heterogeneous lists (15 drags)");
+  await activate();
+  const dragPairs = [
+    ["[data-testid='todo-list'] li:nth-child(1)", "[data-testid='todo-list'] li:nth-child(4)"],
+    [
+      "[data-testid='scroll-container'] li:nth-child(2)",
+      "[data-testid='scroll-container'] li:nth-child(6)",
+    ],
+    ["[data-testid='th-1']", "[data-testid='td-2-3']"],
+    ["[data-testid='span-element']", "[data-testid='code-element']"],
+    ["[data-testid='article-header']", "[data-testid='article-footer']"],
+  ];
+  for (let dragIndex = 0; dragIndex < 15; dragIndex++) {
+    const [startSelector, endSelector] = dragPairs[dragIndex % dragPairs.length];
+    const startLocator = page.locator(startSelector).first();
+    const endLocator = page.locator(endSelector).first();
+    if ((await startLocator.count()) === 0 || (await endLocator.count()) === 0) continue;
+    const startBox = await startLocator.boundingBox();
+    const endBox = await endLocator.boundingBox();
+    if (!startBox || !endBox) continue;
+    await page.mouse.move(startBox.x - 4, startBox.y - 4);
+    await page.mouse.down();
+    await page.mouse.move(endBox.x + endBox.width + 4, endBox.y + endBox.height + 4, {
+      steps: 12,
+    });
+    await page.mouse.up();
+    await page.waitForTimeout(60);
+    await page.keyboard.press("Escape");
+  }
+  await deactivate();
+
+  log("scenario(full): shift-multi-select across nested cards (25 toggles)");
+  await activate();
+  const multiSelectTargets = [
+    "[data-testid='nested-card']",
+    "[data-testid='span-element']",
+    "[data-testid='strong-element']",
+    "[data-testid='em-element']",
+    "[data-testid='code-element']",
+  ];
+  await page.keyboard.down("Shift");
+  for (let toggleIndex = 0; toggleIndex < 25; toggleIndex++) {
+    const selector = multiSelectTargets[toggleIndex % multiSelectTargets.length];
+    const locator = page.locator(selector).first();
+    if ((await locator.count()) === 0) continue;
+    await locator.click({ force: true });
+    await page.waitForTimeout(20);
+  }
+  await page.keyboard.up("Shift");
+  await deactivate();
+
+  log("scenario(full): scroll while selection active (40 scrolls)");
+  await activate();
+  await page.locator("[data-testid='todo-list'] li:first-child").click({ force: true });
+  for (let scrollIndex = 0; scrollIndex < 40; scrollIndex++) {
+    const direction = scrollIndex % 2 === 0 ? 240 : -240;
+    await page.mouse.wheel(0, direction);
+    await page.waitForTimeout(15);
+  }
+  await deactivate();
+
+  log("scenario(full): modal open/dismiss cycles (20 cycles)");
+  await deactivate();
+  for (let cycleIndex = 0; cycleIndex < 20; cycleIndex++) {
+    const trigger = page.locator("[data-testid='modal-trigger']").first();
+    if ((await trigger.count()) === 0) break;
+    await trigger.click({ force: true });
+    const backdrop = page.locator("[data-testid='modal-backdrop']").first();
+    try {
+      await backdrop.waitFor({ state: "visible", timeout: 1500 });
+    } catch {
+      continue;
+    }
+    await backdrop.click({ force: true });
+    await page.waitForTimeout(40);
+  }
+
+  log("scenario(full): dropdown open/close cycles (20 cycles)");
+  for (let cycleIndex = 0; cycleIndex < 20; cycleIndex++) {
+    const trigger = page.locator("[data-testid='dropdown-trigger']").first();
+    if ((await trigger.count()) === 0) break;
+    await trigger.click({ force: true });
+    await page.waitForTimeout(40);
+    await trigger.click({ force: true });
+    await page.waitForTimeout(40);
+  }
+};
+
 const parseDeopts = (stderrText) => {
   const lines = stderrText.split(/\r?\n/);
   const deoptLines = lines.filter(
@@ -484,7 +653,16 @@ const main = async () => {
       null,
       { timeout: 10_000 },
     );
-    await runScenarios(page);
+    try {
+      await runScenarios(page);
+    } catch (error) {
+      log(`runScenarios threw: ${error?.message ?? error}`);
+    }
+    try {
+      await runFullAppScenarios(page);
+    } catch (error) {
+      log(`runFullAppScenarios threw: ${error?.message ?? error}`);
+    }
     await page.close();
     await browser.close();
   } finally {
