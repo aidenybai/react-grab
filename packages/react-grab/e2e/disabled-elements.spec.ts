@@ -195,7 +195,7 @@ test.describe("Pointer Events None - Arrow Navigation", () => {
     }, CONTAINER_ID);
   });
 
-  test("should support ArrowUp from pointer-events none element", async ({ reactGrab }) => {
+  test("should support Tab from pointer-events none element", async ({ reactGrab }) => {
     await reactGrab.page.evaluate((containerId) => {
       const container = document.getElementById(containerId);
       const parent = document.createElement("div");
@@ -217,12 +217,12 @@ test.describe("Pointer Events None - Arrow Navigation", () => {
     await reactGrab.waitForSelectionBox();
     expect(await reactGrab.isSelectionBoxVisible()).toBe(true);
 
-    await reactGrab.pressArrowUp();
+    await reactGrab.pressTab();
     await reactGrab.waitForSelectionBox();
     expect(await reactGrab.isSelectionBoxVisible()).toBe(true);
   });
 
-  test("should support ArrowDown back to pointer-events none element", async ({ reactGrab }) => {
+  test("should support Shift+Tab back to pointer-events none element", async ({ reactGrab }) => {
     await reactGrab.page.evaluate((containerId) => {
       const container = document.getElementById(containerId);
       const parent = document.createElement("div");
@@ -243,10 +243,10 @@ test.describe("Pointer Events None - Arrow Navigation", () => {
     await reactGrab.page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
     await reactGrab.waitForSelectionBox();
 
-    await reactGrab.pressArrowUp();
+    await reactGrab.pressTab();
     await reactGrab.waitForSelectionBox();
 
-    await reactGrab.pressArrowDown();
+    await reactGrab.pressShiftTab();
     await reactGrab.waitForSelectionBox();
     expect(await reactGrab.isSelectionBoxVisible()).toBe(true);
   });
@@ -272,15 +272,15 @@ test.describe("Pointer Events None - Arrow Navigation", () => {
     await reactGrab.page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
     await reactGrab.waitForSelectionBox();
 
-    await reactGrab.pressArrowUp();
+    await reactGrab.pressTab();
     await reactGrab.waitForSelectionBox();
     expect(await reactGrab.isSelectionBoxVisible()).toBe(true);
 
-    await reactGrab.pressArrowDown();
+    await reactGrab.pressShiftTab();
     await reactGrab.waitForSelectionBox();
     expect(await reactGrab.isSelectionBoxVisible()).toBe(true);
 
-    await reactGrab.pressArrowUp();
+    await reactGrab.pressTab();
     await reactGrab.waitForSelectionBox();
     expect(await reactGrab.isSelectionBoxVisible()).toBe(true);
   });
@@ -311,11 +311,11 @@ test.describe("Pointer Events None - Arrow Navigation", () => {
     await reactGrab.waitForSelectionBox();
     expect(await reactGrab.isSelectionBoxVisible()).toBe(true);
 
-    await reactGrab.pressArrowUp();
+    await reactGrab.pressTab();
     await reactGrab.waitForSelectionBox();
     expect(await reactGrab.isSelectionBoxVisible()).toBe(true);
 
-    await reactGrab.pressArrowUp();
+    await reactGrab.pressTab();
     await reactGrab.waitForSelectionBox();
     expect(await reactGrab.isSelectionBoxVisible()).toBe(true);
   });

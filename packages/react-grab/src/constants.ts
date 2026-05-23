@@ -109,6 +109,9 @@ export const MODIFIER_KEYS: readonly string[] = ["Meta", "Control", "Shift", "Al
 
 export const ARROW_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
 
+export const KEYBOARD_POINTER_SPEED_PX_PER_MS = 0.9;
+export const KEYBOARD_POINTER_VIEWPORT_PADDING_PX = 4;
+
 export const FROZEN_ELEMENT_ATTRIBUTE = "data-react-grab-frozen";
 
 export const USER_IGNORE_ATTRIBUTE = "data-react-grab-ignore";
@@ -153,8 +156,6 @@ export const DRAG_SELECTION_MAX_TOTAL_SAMPLE_POINTS = 100;
 export const DRAG_SELECTION_EDGE_INSET_PX = 1;
 
 export const MAX_ARROW_NAVIGATION_HISTORY = 50;
-export const MIN_HORIZONTAL_NAV_SIZE_PX = 16;
-export const HORIZONTAL_NAV_RECT_MATCH_TOLERANCE_PX = 2;
 export const MAX_TRANSFORM_ANCESTOR_DEPTH = 6;
 export const TRANSFORM_EARLY_BAIL_DEPTH = 3;
 

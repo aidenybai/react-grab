@@ -62,6 +62,8 @@ import {
   FEEDBACK_DURATION_MS,
   FADE_COMPLETE_BUFFER_MS,
   KEYDOWN_SPAM_TIMEOUT_MS,
+  KEYBOARD_POINTER_SPEED_PX_PER_MS,
+  KEYBOARD_POINTER_VIEWPORT_PADDING_PX,
   DRAG_THRESHOLD_PX,
   ELEMENT_DETECTION_THROTTLE_MS,
   PENDING_DETECTION_STALENESS_MS,
@@ -112,7 +114,7 @@ import type {
 } from "../types.js";
 import { DEFAULT_THEME } from "./theme.js";
 import { createPluginRegistry } from "./plugin-registry.js";
-import { createArrowNavigator } from "./arrow-navigation.js";
+import { createAncestorStackNavigator } from "./arrow-navigation.js";
 import { getRequiredModifiers, setupKeyboardEventClaimer } from "./keyboard-handlers.js";
 import { createAutoScroller, getAutoScrollDirection } from "./auto-scroll.js";
 import { logIntro } from "./log-intro.js";
@@ -455,7 +457,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [arrowNavigationElements, setArrowNavigationElements] = createSignal<Element[]>([]);
     const [arrowNavigationActiveIndex, setArrowNavigationActiveIndex] = createSignal(0);
 
-    const arrowNavigator = createArrowNavigator(isValidGrabbableElement, createElementBounds);
+    const ancestorStackNavigator = createAncestorStackNavigator(
+      isValidGrabbableElement,
+      createElementBounds,
+    );
 
     const autoScroller = createAutoScroller(
       pointer,
@@ -1443,6 +1448,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.deactivate();
       stopShiftMultiSelecting();
       clearArrowNavigation();
+      releaseKeyboardPointerMovement();
       keyboardSelectedElement = null;
       setIsPendingContextMenuSelect(false);
       if (wasDragging) {
@@ -2059,7 +2065,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const clearArrowNavigation = () => {
       setArrowNavigationElements([]);
       setArrowNavigationActiveIndex(0);
-      arrowNavigator.clearHistory();
+      ancestorStackNavigator.clearHistory();
     };
 
     const selectAndFocusElement = (element: Element) => {
@@ -2091,47 +2097,161 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!targetElement) return;
 
       setArrowNavigationActiveIndex(index);
-      arrowNavigator.clearHistory();
+      ancestorStackNavigator.clearHistory();
       selectAndFocusElement(targetElement);
     };
 
-    const handleArrowNavigation = (event: KeyboardEvent): boolean => {
+    const heldKeyboardPointerKeys = new Set<string>();
+    let keyboardPointerRafId: number | null = null;
+    let keyboardPointerLastTimestamp = 0;
+
+    const stopKeyboardPointerMovement = () => {
+      if (keyboardPointerRafId !== null) {
+        cancelAnimationFrame(keyboardPointerRafId);
+        keyboardPointerRafId = null;
+      }
+      keyboardPointerLastTimestamp = 0;
+    };
+
+    const startKeyboardPointerMovement = () => {
+      if (keyboardPointerRafId !== null) return;
+
+      const tick = (timestamp: number) => {
+        keyboardPointerRafId = null;
+
+        if (heldKeyboardPointerKeys.size === 0 || !isActivated() || isPromptMode()) {
+          keyboardPointerLastTimestamp = 0;
+          return;
+        }
+
+        const deltaMs =
+          keyboardPointerLastTimestamp === 0 ? 0 : timestamp - keyboardPointerLastTimestamp;
+        keyboardPointerLastTimestamp = timestamp;
+
+        const dirX =
+          (heldKeyboardPointerKeys.has("ArrowRight") ? 1 : 0) -
+          (heldKeyboardPointerKeys.has("ArrowLeft") ? 1 : 0);
+        const dirY =
+          (heldKeyboardPointerKeys.has("ArrowDown") ? 1 : 0) -
+          (heldKeyboardPointerKeys.has("ArrowUp") ? 1 : 0);
+
+        if ((dirX !== 0 || dirY !== 0) && deltaMs > 0) {
+          const distance = KEYBOARD_POINTER_SPEED_PX_PER_MS * deltaMs;
+          const length = Math.hypot(dirX, dirY);
+          const stepX = (dirX / length) * distance;
+          const stepY = (dirY / length) * distance;
+
+          const padding = KEYBOARD_POINTER_VIEWPORT_PADDING_PX;
+          const currentPointer = pointer();
+          const nextX = Math.max(
+            padding,
+            Math.min(window.innerWidth - padding, currentPointer.x + stepX),
+          );
+          const nextY = Math.max(
+            padding,
+            Math.min(window.innerHeight - padding, currentPointer.y + stepY),
+          );
+
+          actions.setPointer({ x: nextX, y: nextY });
+
+          const candidate = getElementAtPosition(nextX, nextY);
+          if (candidate !== store.detectedElement) {
+            actions.setDetectedElement(candidate);
+          }
+        }
+
+        keyboardPointerRafId = requestAnimationFrame(tick);
+      };
+
+      keyboardPointerRafId = requestAnimationFrame(tick);
+    };
+
+    const releaseKeyboardPointerMovement = () => {
+      heldKeyboardPointerKeys.clear();
+      stopKeyboardPointerMovement();
+    };
+
+    const handleKeyboardPointerMovement = (event: KeyboardEvent): boolean => {
       if (!isActivated() || isPromptMode()) return false;
       if (isShiftMultiSelecting()) return false;
+      if (isDragging()) return false;
       if (!ARROW_KEYS.has(event.key)) return false;
-      // While the context menu is open, arrow keys belong to its own
-      // roving-tabindex navigation. Both listeners fire for the same
-      // event (both window+capture), so without bowing out here arrow
-      // keys also re-select a different page element and reposition
-      // the menu over it.
+      if (store.contextMenuPosition !== null) return false;
+
+      if (heldKeyboardPointerKeys.size === 0) {
+        const seedElement = effectiveElement();
+        if (seedElement) {
+          const center = getBoundsCenter(createElementBounds(seedElement));
+          actions.setPointer(center);
+        } else {
+          const currentPointer = pointer();
+          const hasPointerPosition = currentPointer.x !== 0 || currentPointer.y !== 0;
+          if (!hasPointerPosition) {
+            actions.setPointer({
+              x: window.innerWidth / 2,
+              y: window.innerHeight / 2,
+            });
+          }
+        }
+
+        clearArrowNavigation();
+        actions.unfreeze();
+
+        if (seedElement && store.detectedElement !== seedElement) {
+          actions.setDetectedElement(seedElement);
+        }
+      }
+
+      heldKeyboardPointerKeys.add(event.key);
+      startKeyboardPointerMovement();
+
+      event.preventDefault();
+      event.stopPropagation();
+      return true;
+    };
+
+    const handleKeyboardPointerRelease = (event: KeyboardEvent): boolean => {
+      if (!ARROW_KEYS.has(event.key)) return false;
+      if (!heldKeyboardPointerKeys.has(event.key)) return false;
+
+      heldKeyboardPointerKeys.delete(event.key);
+
+      if (heldKeyboardPointerKeys.size === 0) {
+        stopKeyboardPointerMovement();
+
+        const restingPointer = pointer();
+        const elementAtPointer = getElementAtPosition(restingPointer.x, restingPointer.y);
+        if (elementAtPointer && isValidGrabbableElement(elementAtPointer)) {
+          selectAndFocusElement(elementAtPointer);
+        }
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      return true;
+    };
+
+    const handleAncestorStackNavigation = (event: KeyboardEvent): boolean => {
+      if (event.key !== "Tab") return false;
+      if (!isActivated() || isPromptMode()) return false;
+      if (isShiftMultiSelecting()) return false;
+      if (isDragging()) return false;
       if (store.contextMenuPosition !== null) return false;
 
       let currentElement = effectiveElement();
-      const isInitialSelection = !currentElement;
-
       if (!currentElement) {
         currentElement = getElementAtPosition(window.innerWidth / 2, window.innerHeight / 2);
       }
-
       if (!currentElement) return false;
-
-      const isVertical = event.key === "ArrowUp" || event.key === "ArrowDown";
-
-      if (!isVertical) {
-        clearArrowNavigation();
-        const nextElement = arrowNavigator.findNext(event.key, currentElement);
-        if (!nextElement && !isInitialSelection) return false;
-        event.preventDefault();
-        event.stopPropagation();
-        selectAndFocusElement(nextElement ?? currentElement);
-        return true;
-      }
 
       if (arrowNavigationElements().length === 0) {
         openArrowNavigationMenu(currentElement);
       }
 
-      const nextElement = arrowNavigator.findNext(event.key, currentElement);
+      const isStepUp = !event.shiftKey;
+      const nextElement = isStepUp
+        ? ancestorStackNavigator.stepUp(currentElement)
+        : ancestorStackNavigator.stepDown(currentElement);
       const elementToSelect = nextElement ?? currentElement;
 
       event.preventDefault();
@@ -2420,7 +2540,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           }
 
           if (isFromOverlay && ARROW_KEYS.has(event.key)) {
-            if (handleArrowNavigation(event)) return;
+            if (handleKeyboardPointerMovement(event)) return;
           }
 
           return;
@@ -2451,7 +2571,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const didWindowJustRegainFocus =
           Date.now() - lastWindowFocusTimestamp < WINDOW_REFOCUS_GRACE_PERIOD_MS;
 
-        if (handleArrowNavigation(event)) return;
+        if (handleKeyboardPointerMovement(event)) return;
+        if (handleAncestorStackNavigation(event)) return;
         if (handleEnterKeyActivation(event)) return;
         if (handleOpenFileShortcut(event)) return;
         if (handleContextMenuKey(event)) return;
@@ -2467,6 +2588,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       "keyup",
       (event: KeyboardEvent) => {
         if (blockEnterIfNeeded(event)) return;
+
+        if (handleKeyboardPointerRelease(event)) return;
 
         if (isSpaceActivationKey(event) && isDragRepositioning()) {
           stopSpaceDragRepositioning();
@@ -2779,6 +2902,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     // the user may alt-tab back.
     eventListenerManager.addWindowListener("blur", () => {
       cancelActiveDrag();
+      releaseKeyboardPointerMovement();
       if (isHoldingKeys()) {
         clearHoldTimer();
         actions.releaseHold();
