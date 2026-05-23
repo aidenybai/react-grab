@@ -2062,9 +2062,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       capture: true,
     });
 
-    const clearArrowNavigation = () => {
+    const closeArrowNavigationMenu = () => {
       setArrowNavigationElements([]);
       setArrowNavigationActiveIndex(0);
+    };
+
+    const clearArrowNavigation = () => {
+      closeArrowNavigationMenu();
       ancestorStackNavigator.clearHistory();
     };
 
@@ -2128,8 +2132,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const tick = (timestamp: number) => {
         keyboardPointerRafId = null;
 
-        if (heldKeyboardPointerKeys.size === 0 || !isKeyboardPointerContextValid()) {
+        if (heldKeyboardPointerKeys.size === 0) {
           keyboardPointerLastTimestamp = 0;
+          return;
+        }
+
+        // Stay scheduled but don't advance the pointer when something
+        // else has taken over (drag, shift multi-select, prompt mode,
+        // open context menu). When the interruption ends the loop
+        // resumes without the user having to release and re-press arrows.
+        if (!isKeyboardPointerContextValid()) {
+          keyboardPointerLastTimestamp = 0;
+          keyboardPointerRafId = requestAnimationFrame(tick);
           return;
         }
 
@@ -2213,7 +2227,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           }
         }
 
-        clearArrowNavigation();
+        // Close the ancestors menu since the user is now moving freely,
+        // but keep ancestorStackNavigator history so Shift+Tab can still
+        // step back through prior Tab selections after the brief arrow
+        // hold ends.
+        closeArrowNavigationMenu();
         actions.unfreeze();
         // Drop any stale prior Tab/snap-freeze target so a click landing
         // on blank space mid-movement can't fall back to it via
