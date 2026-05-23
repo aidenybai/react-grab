@@ -38,10 +38,9 @@ export interface PerfScenarioAggregate {
 }
 
 // Installed lazily on the first `startRecording` call (via page.evaluate)
-// so non-perf e2e tests pay zero JS-injection cost. All inputs are
-// browser-native — we don't need any react-grab source instrumentation
-// to capture them, and CDP Tracing would only surface the same data
-// inside a 5-100MB trace blob that we'd then have to parse offline.
+// so non-perf e2e tests pay zero JS-injection cost. PerformanceObserver
+// is the live aggregate-only path; CDP Tracing (below, PERF_TRACE=1) is
+// the post-hoc deep-dive path with function-level attribution.
 const installPerfRecorderScript = (): void => {
   if (window.__PERF_BENCH__) return;
   let isRecording = false;
@@ -166,29 +165,29 @@ const summarize = (values: number[]): PerfStatsSummary => {
   };
 };
 
-const sumOf = (values: number[]): number =>
-  Number(values.reduce((accum, value) => accum + value, 0).toFixed(3));
-
-const maxOf = (values: number[]): number =>
-  values.length === 0 ? 0 : Number(Math.max(...values).toFixed(3));
+const roundTo3 = (value: number): number => Number(value.toFixed(3));
+const sumRounded = (values: number[]): number =>
+  roundTo3(values.reduce((accum, value) => accum + value, 0));
+const maxRounded = (values: number[]): number =>
+  values.length === 0 ? 0 : roundTo3(Math.max(...values));
 
 export const aggregateRawSnapshot = (rawSnapshot: PerfRawSnapshot): PerfScenarioAggregate => {
   const loafDurations = rawSnapshot.longAnimationFrames.map((frame) => frame.duration);
   const loafBlocking = rawSnapshot.longAnimationFrames.map((frame) => frame.blockingDuration);
 
   return {
-    inp: Number(rawSnapshot.inp.toFixed(3)),
+    inp: roundTo3(rawSnapshot.inp),
     interactions: rawSnapshot.interactionCount,
     longTasks: {
       count: rawSnapshot.longTasks.length,
-      sum: sumOf(rawSnapshot.longTasks),
-      max: maxOf(rawSnapshot.longTasks),
+      sum: sumRounded(rawSnapshot.longTasks),
+      max: maxRounded(rawSnapshot.longTasks),
     },
     longAnimationFrames: {
       count: rawSnapshot.longAnimationFrames.length,
-      sum: sumOf(loafDurations),
-      max: maxOf(loafDurations),
-      maxBlocking: maxOf(loafBlocking),
+      sum: sumRounded(loafDurations),
+      max: maxRounded(loafDurations),
+      maxBlocking: maxRounded(loafBlocking),
     },
     frames: summarize(rawSnapshot.frameDeltas),
   };
@@ -288,7 +287,7 @@ export const attachPerfReport = async (
   testInfo: TestInfo,
   scenarioName: string,
   aggregate: PerfScenarioAggregate,
-  perSample: PerfScenarioAggregate[] = [aggregate],
+  perSample: PerfScenarioAggregate[],
   baseline: PerfScenarioAggregate | null = null,
 ): Promise<void> => {
   const runLabel = process.env.PERF_LABEL ?? "current";
@@ -298,7 +297,8 @@ export const attachPerfReport = async (
       label: runLabel,
       samples: perSample.length,
       aggregate,
-      perSample,
+      // Skip perSample when there's only one — it would just duplicate aggregate.
+      perSample: perSample.length > 1 ? perSample : undefined,
       baseline,
       recordedAt: new Date().toISOString(),
     },
@@ -368,11 +368,6 @@ const medianAcrossSamples = (samples: PerfScenarioAggregate[]): PerfScenarioAggr
   };
 };
 
-// Wraps a scenario body with: CDP trace start (if PERF_TRACE=1) →
-// PerformanceObserver start → scenario body → stop everything → attach
-// report. Runs the body `samples` times (default 3, js-framework-benchmark
-// style) and returns the per-metric median, so single-run noise can't
-// trip soft assertions.
 export const loadCommittedBaseline = async (
   scenarioName: string,
 ): Promise<PerfScenarioAggregate | null> => {

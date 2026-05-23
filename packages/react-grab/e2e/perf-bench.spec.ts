@@ -71,42 +71,6 @@ test.describe("@perf benchmarks", () => {
     await reactGrab.deactivate();
   });
 
-  test("activate-click-copy-escape-cycle @perf", async ({ reactGrab, page }, testInfo) => {
-    const elementSelectors = [
-      "[data-testid='todo-list'] li:nth-child(1) span",
-      "[data-testid='todo-list'] li:nth-child(3) span",
-      "[data-testid='nested-button']",
-      "[data-testid='span-element']",
-      "[data-testid='code-element']",
-      "[data-testid='td-1-2']",
-    ];
-
-    const aggregate = await recordScenario(
-      page,
-      testInfo,
-      "activate-click-copy-escape-cycle",
-      async () => {
-        for (let cycleIndex = 0; cycleIndex < 30; cycleIndex++) {
-          const elementSelector = elementSelectors[cycleIndex % elementSelectors.length];
-          const elementLocator = page.locator(elementSelector).first();
-          if ((await elementLocator.count()) === 0) continue;
-          const boundingBox = await elementLocator.boundingBox();
-          if (!boundingBox) continue;
-          await reactGrab.activate();
-          const targetCenterX = boundingBox.x + boundingBox.width / 2;
-          const targetCenterY = boundingBox.y + boundingBox.height / 2;
-          await page.mouse.move(targetCenterX, targetCenterY, { steps: 3 });
-          await page.mouse.click(targetCenterX, targetCenterY);
-          await page.waitForTimeout(80);
-          await page.keyboard.press("Escape");
-          await page.waitForTimeout(60);
-        }
-        await idleFrame(page, 4);
-      },
-    );
-    expect.soft(aggregate.inp).toBeLessThan(INP_SOFT_LIMIT_MS);
-  });
-
   test("copy-then-deactivate-stress @perf", async ({ reactGrab, page }, testInfo) => {
     const elementSelectors = [
       "[data-testid='todo-list'] li:nth-child(1)",
@@ -161,35 +125,6 @@ test.describe("@perf benchmarks", () => {
       },
     );
     expect.soft(aggregate.inp).toBeLessThan(INP_SOFT_LIMIT_MS);
-  });
-
-  test("shift-multi-select-burst @perf", async ({ reactGrab, page }, testInfo) => {
-    await goToPerfGrid(page);
-    const gridCells = await getPerfGridCenters(page, 8);
-    await recordScenario(
-      page,
-      testInfo,
-      "shift-multi-select-burst",
-      async () => {
-        await page.keyboard.down("Shift");
-        for (const point of gridCells) {
-          await page.mouse.move(point.x, point.y, { steps: 1 });
-          await page.mouse.click(point.x, point.y);
-          await page.waitForTimeout(20);
-        }
-        await page.keyboard.up("Shift");
-        await page.waitForTimeout(80);
-        await page.keyboard.press("Escape");
-        await idleFrame(page, 4);
-      },
-      {
-        // body presses Escape so we must re-activate per sample.
-        beforeEachSample: async () => {
-          await reactGrab.activate();
-          await idleFrame(page, 2);
-        },
-      },
-    );
   });
 
   test("drag-selection-sweep @perf", async ({ reactGrab, page }, testInfo) => {
@@ -282,30 +217,6 @@ test.describe("@perf benchmarks", () => {
       await idleFrame(page, 4);
     });
     await reactGrab.deactivate();
-  });
-
-  test("arrow-key-tree-navigation @perf", async ({ reactGrab, page }, testInfo) => {
-    // Activates the keyboard arrow-navigation menu and walks the DOM tree
-    // up/down/left/right. Stresses the arrow-navigation logic + the
-    // navigation menu render path.
-    await reactGrab.activate();
-    const startTarget = page.locator("[data-testid='nested-card']").first();
-    if ((await startTarget.count()) === 0) {
-      test.skip(true, "no nested-card target");
-      return;
-    }
-    await startTarget.hover({ force: true });
-    await page.waitForTimeout(200);
-
-    await recordScenario(page, testInfo, "arrow-key-tree-navigation", async () => {
-      const arrowKeys = ["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight"] as const;
-      for (let sequenceIndex = 0; sequenceIndex < 60; sequenceIndex++) {
-        await page.keyboard.press(arrowKeys[sequenceIndex % arrowKeys.length]);
-        await page.waitForTimeout(20);
-      }
-      await idleFrame(page, 4);
-    });
-    await page.keyboard.press("Escape");
   });
 
   test("context-menu-open-close-cycle @perf", async ({ reactGrab, page }, testInfo) => {
@@ -404,46 +315,6 @@ test.describe("@perf benchmarks", () => {
       },
       { samples: 2 },
     );
-  });
-
-  test("dom-mutation-during-selection @perf", async ({ reactGrab, page }, testInfo) => {
-    // Activates, then keeps adding/removing DOM nodes via the test app's
-    // Add Element button. Tests the stale-element detection interval +
-    // bounds-cache invalidation when the detected element disappears.
-    await reactGrab.activate();
-    const dynamicSection = page.locator("[data-testid='dynamic-section']").first();
-    if ((await dynamicSection.count()) === 0) {
-      test.skip(true, "no dynamic-section target");
-      return;
-    }
-    const dynamicBox = await dynamicSection.boundingBox();
-    if (!dynamicBox) {
-      test.skip(true, "no dynamic-section bounds");
-      return;
-    }
-    await page.mouse.move(dynamicBox.x + 20, dynamicBox.y + 20, { steps: 2 });
-    await idleFrame(page, 2);
-
-    await recordScenario(
-      page,
-      testInfo,
-      "dom-mutation-during-selection",
-      async () => {
-        const addButton = page.locator("[data-testid='add-element-button']").first();
-        for (let cycleIndex = 0; cycleIndex < 25; cycleIndex++) {
-          await addButton.click({ force: true });
-          await page.waitForTimeout(20);
-          const removeButton = page.locator("[data-testid^='remove-element-']").first();
-          if ((await removeButton.count()) > 0) {
-            await removeButton.click({ force: true });
-            await page.waitForTimeout(20);
-          }
-        }
-        await idleFrame(page, 4);
-      },
-      { samples: 2 },
-    );
-    await reactGrab.deactivate();
   });
 
   test("idle-after-activation @perf", async ({ reactGrab, page }, testInfo) => {

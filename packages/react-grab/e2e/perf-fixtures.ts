@@ -1,13 +1,6 @@
-// Standard-shape Playwright fixtures for the @perf scenarios. Composes
-// the base `reactGrab` fixture from `./fixtures.ts` with one perf-only
-// fixture, `perfDom` — idempotent DOM-injection helpers that auto-clean
-// on test teardown. Used by scenarios that need a specific DOM density
-// or shape (dense flat tile grid, deep ancestor chain, stacked elements
-// at one point, lots of CSS animations).
-//
-// Baseline JSON loading is handled directly by `recordScenario` in
-// `perf-recorder.ts` so the artifact always contains the baseline
-// reference, no fixture wiring required at the call site.
+// Extends the base `reactGrab` fixture with `perfDom` — idempotent
+// DOM-injection helpers (dense tile grid, deep chain, stacked elements,
+// CSS animations) that auto-clean on test teardown.
 import type { Page } from "@playwright/test";
 import { test as reactGrabTest } from "./fixtures.js";
 
