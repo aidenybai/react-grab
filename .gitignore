@@ -16,6 +16,5 @@ playwright-report
 .claude
 meta.json
 .agents/skills/*
-!.agents/skills/thermo-nuclear-code-quality-review/
 .claude.expect
 .mcp.json
