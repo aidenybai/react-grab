@@ -444,7 +444,11 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
     });
   };
 
-  const step = (direction: 1 | -1, shift: boolean) => {
+  const step = (
+    direction: 1 | -1,
+    shift: boolean,
+    source: "keyboard" | "pointer" = "keyboard",
+  ) => {
     const property = activeProperty();
     if (!property) return;
     const multiplier = shift ? EDIT_SHIFT_STEP_MULTIPLIER : 1;
@@ -459,8 +463,22 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
     setTweakedValues((current) => ({ ...current, [property.property]: next }));
     applyPreview(property, next);
     flashActiveKey(direction === 1 ? "right" : "left");
-    markAsAdjusting();
+    // Keyboard tweaking collapses the panel to its compact form;
+    // pointer-driven stepping leaves the panel in its current layout
+    // (and snaps out of compact if it was there from a prior keystroke),
+    // since mouse users want to see what they're clicking.
+    if (source === "keyboard") {
+      markAsAdjusting();
+    }
     ensureSearchFocused();
+  };
+
+  const stepFromPointer = (direction: 1 | -1, shift: boolean) => {
+    if (isAdjusting()) {
+      setIsAdjusting(false);
+      clearTimeout(adjustingIdleTimerId);
+    }
+    step(direction, shift, "pointer");
   };
 
   const handleSubmit = () => {
@@ -692,7 +710,7 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
                   activeKey={activeKey()}
                   onHoverIndex={setActiveIndex}
                   onSelect={handleSelectProperty}
-                  onStep={step}
+                  onStep={stepFromPointer}
                 />
               </div>
             </Show>
@@ -716,7 +734,7 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
                   <StepArrow
                     direction="left"
                     active={activeKey() === "left"}
-                    onPointerDown={() => step(-1, false)}
+                    onPointerDown={() => stepFromPointer(-1, false)}
                   />
                   <span class="inline-flex items-baseline text-[var(--rg-text-primary)] tabular-nums min-w-[36px] justify-center">
                     <span class="text-[13px] leading-4 font-medium">
@@ -729,7 +747,7 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
                   <StepArrow
                     direction="right"
                     active={activeKey() === "right"}
-                    onPointerDown={() => step(1, false)}
+                    onPointerDown={() => stepFromPointer(1, false)}
                   />
                 </div>
               </div>
