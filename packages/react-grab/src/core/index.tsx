@@ -2105,6 +2105,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let keyboardPointerRafId: number | null = null;
     let keyboardPointerLastTimestamp = 0;
     let isKeyboardPointerSuppressed = false;
+    let keyboardPointerSeedElement: Element | null = null;
 
     const stopKeyboardPointerMovement = () => {
       if (keyboardPointerRafId !== null) {
@@ -2171,6 +2172,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       heldKeyboardPointerKeys.clear();
       stopKeyboardPointerMovement();
       isKeyboardPointerSuppressed = false;
+      keyboardPointerSeedElement = null;
     };
 
     const handleKeyboardPointerMovement = (event: KeyboardEvent): boolean => {
@@ -2192,6 +2194,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (heldKeyboardPointerKeys.size === 0) {
         const seedElement = effectiveElement();
+        keyboardPointerSeedElement = seedElement;
         if (seedElement) {
           const center = getBoundsCenter(createElementBounds(seedElement));
           actions.setPointer(center);
@@ -2233,12 +2236,24 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         if (isKeyboardPointerSuppressed) {
           isKeyboardPointerSuppressed = false;
+          keyboardPointerSeedElement = null;
         } else {
           const restingPointer = pointer();
           const elementAtPointer = getElementAtPosition(restingPointer.x, restingPointer.y);
-          if (elementAtPointer && isValidGrabbableElement(elementAtPointer)) {
-            selectAndFocusElement(elementAtPointer);
+          const isElementAtPointerGrabbable =
+            elementAtPointer && isValidGrabbableElement(elementAtPointer);
+          // Fall back to the seed element when the pointer rests over blank
+          // space or a non-grabbable element so we never exit keyboard
+          // movement leaving the user with no frozen selection.
+          const fallbackSeed =
+            keyboardPointerSeedElement && isElementConnected(keyboardPointerSeedElement)
+              ? keyboardPointerSeedElement
+              : null;
+          const elementToFreeze = isElementAtPointerGrabbable ? elementAtPointer : fallbackSeed;
+          if (elementToFreeze) {
+            selectAndFocusElement(elementToFreeze);
           }
+          keyboardPointerSeedElement = null;
         }
       }
 

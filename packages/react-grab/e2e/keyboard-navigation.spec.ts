@@ -165,6 +165,29 @@ test.describe("Keyboard Pointer Movement", () => {
     expect(afterMoveLabel.componentName).toBe(restingLabel.componentName);
   });
 
+  test("releasing arrow over blank space should fall back to the seed element", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
+    await reactGrab.waitForSelectionBox();
+
+    const seedLabel = await reactGrab.getSelectionLabelInfo();
+    expect(seedLabel.tagName).toBe("li");
+
+    await reactGrab.holdArrowKey("ArrowUp", 2000);
+    await reactGrab.waitForSelectionBox();
+
+    const isVisible = await reactGrab.isSelectionBoxVisible();
+    expect(isVisible).toBe(true);
+
+    await reactGrab.page.mouse.move(0, 0);
+    await reactGrab.page.waitForTimeout(150);
+
+    const afterMoveVisible = await reactGrab.isSelectionBoxVisible();
+    expect(afterMoveVisible).toBe(true);
+  });
+
   test("Tab while arrow key is still held should preserve the ancestor selection", async ({
     reactGrab,
   }) => {
