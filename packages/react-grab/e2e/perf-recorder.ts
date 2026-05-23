@@ -410,5 +410,18 @@ export const recordScenario = async (
       ? perSampleAggregates[0]
       : medianAcrossSamples(perSampleAggregates);
   await attachPerfReport(testInfo, scenarioName, medianAggregate, perSampleAggregates, baseline);
+  logAggregate(scenarioName, medianAggregate);
   return medianAggregate;
+};
+
+const logAggregate = (scenarioName: string, aggregate: PerfScenarioAggregate): void => {
+  // eslint-disable-next-line no-console
+  console.log(
+    `\n[perf] ${scenarioName}\n` +
+      `  inp=${aggregate.inp}ms (${aggregate.interactions} interactions)  ` +
+      `longTasks=${aggregate.longTasks.count}/${aggregate.longTasks.sum}ms (max ${aggregate.longTasks.max}ms)\n` +
+      `  loaf=${aggregate.longAnimationFrames.count}/${aggregate.longAnimationFrames.sum}ms ` +
+      `(max ${aggregate.longAnimationFrames.max}ms, blocking ${aggregate.longAnimationFrames.maxBlocking}ms)\n` +
+      `  frames p50=${aggregate.frames.median}ms p95=${aggregate.frames.p95}ms max=${aggregate.frames.max}ms (${aggregate.frames.count} frames)`,
+  );
 };

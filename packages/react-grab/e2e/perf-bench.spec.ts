@@ -6,26 +6,12 @@
 // each scenario also dumps a Chrome trace JSON (load it via DevTools
 // "Performance" panel; pair with `pnpm build:profiling` so symbols are
 // unminified).
-import { expect, test } from "./perf-fixtures.js";
-import { idleFrame, recordScenario, type PerfScenarioAggregate } from "./perf-recorder.js";
-
-const PERF_GRID_PATH = "/?perf=grid&rows=30&cols=10";
+import { expect, getPerfGridCenters, goToPerfGrid, test } from "./perf-fixtures.js";
+import { idleFrame, recordScenario } from "./perf-recorder.js";
 
 // web-vitals "needs improvement" threshold is 200ms; we cap synthetic
 // headless runs at 100ms so a real regression stands out from noise.
 const INP_SOFT_LIMIT_MS = 100;
-
-const logScenario = (scenarioName: string, aggregate: PerfScenarioAggregate): void => {
-  // eslint-disable-next-line no-console
-  console.log(
-    `\n[perf] ${scenarioName}\n` +
-      `  inp=${aggregate.inp}ms (${aggregate.interactions} interactions)  ` +
-      `longTasks=${aggregate.longTasks.count}/${aggregate.longTasks.sum}ms (max ${aggregate.longTasks.max}ms)\n` +
-      `  loaf=${aggregate.longAnimationFrames.count}/${aggregate.longAnimationFrames.sum}ms ` +
-      `(max ${aggregate.longAnimationFrames.max}ms, blocking ${aggregate.longAnimationFrames.maxBlocking}ms)\n` +
-      `  frames p50=${aggregate.frames.median}ms p95=${aggregate.frames.p95}ms max=${aggregate.frames.max}ms (${aggregate.frames.count} frames)`,
-  );
-};
 
 // Perf scenarios are timing-sensitive — retries don't make a flaky
 // measurement less flaky, they just waste minutes of CI. If a scenario
@@ -35,78 +21,54 @@ test.describe.configure({ mode: "serial", retries: 0 });
 
 test.describe("@perf benchmarks", () => {
   test("hover-in-selection-mode @perf", async ({ reactGrab, page }, testInfo) => {
-    await page.goto(PERF_GRID_PATH);
-    await page.waitForFunction(
-      () => document.querySelectorAll("[data-perf-row][data-perf-column]").length > 50,
-      null,
-      { timeout: 10_000 },
-    );
+    await goToPerfGrid(page);
 
-    const gridCells = await page.evaluate(() =>
-      Array.from(document.querySelectorAll("[data-perf-row][data-perf-column]"))
-        .slice(0, 500)
-        .map((cell) => {
-          const rect = cell.getBoundingClientRect();
-          return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-        }),
-    );
+    const gridCells = await getPerfGridCenters(page, 500);
 
     await reactGrab.activate();
     await idleFrame(page, 2);
 
-    const aggregate = await recordScenario(page, testInfo, "hover-in-selection-mode", async () => {
+    await recordScenario(page, testInfo, "hover-in-selection-mode", async () => {
       for (const point of gridCells) {
         await page.mouse.move(point.x, point.y, { steps: 1 });
       }
       await idleFrame(page, 4);
     });
     await reactGrab.deactivate();
-    logScenario("hover-in-selection-mode", aggregate);
   });
 
   test("pointermove-storm-synthetic @perf", async ({ reactGrab, page }, testInfo) => {
-    await page.goto(PERF_GRID_PATH);
-    await page.waitForFunction(
-      () => document.querySelectorAll("[data-perf-row][data-perf-column]").length > 50,
-      null,
-      { timeout: 10_000 },
-    );
+    await goToPerfGrid(page);
 
     await reactGrab.activate();
     await idleFrame(page, 2);
 
-    const aggregate = await recordScenario(
-      page,
-      testInfo,
-      "pointermove-storm-synthetic",
-      async () => {
-        await page.evaluate(async () => {
-          const cells = Array.from(document.querySelectorAll("[data-perf-row][data-perf-column]"));
-          const stormSize = 10_000;
-          for (let stormIndex = 0; stormIndex < stormSize; stormIndex++) {
-            const cell = cells[stormIndex % cells.length];
-            const rect = cell.getBoundingClientRect();
-            cell.dispatchEvent(
-              new PointerEvent("pointermove", {
-                bubbles: true,
-                cancelable: true,
-                clientX: rect.left + rect.width / 2,
-                clientY: rect.top + rect.height / 2,
-                pointerId: 1,
-                pointerType: "mouse",
-                isPrimary: true,
-              }),
-            );
-            if (stormIndex % 256 === 255) {
-              await new Promise((resolveTimer) => requestAnimationFrame(() => resolveTimer(null)));
-            }
+    await recordScenario(page, testInfo, "pointermove-storm-synthetic", async () => {
+      await page.evaluate(async () => {
+        const cells = Array.from(document.querySelectorAll("[data-perf-row][data-perf-column]"));
+        const stormSize = 10_000;
+        for (let stormIndex = 0; stormIndex < stormSize; stormIndex++) {
+          const cell = cells[stormIndex % cells.length];
+          const rect = cell.getBoundingClientRect();
+          cell.dispatchEvent(
+            new PointerEvent("pointermove", {
+              bubbles: true,
+              cancelable: true,
+              clientX: rect.left + rect.width / 2,
+              clientY: rect.top + rect.height / 2,
+              pointerId: 1,
+              pointerType: "mouse",
+              isPrimary: true,
+            }),
+          );
+          if (stormIndex % 256 === 255) {
+            await new Promise((resolveTimer) => requestAnimationFrame(() => resolveTimer(null)));
           }
-        });
-        await idleFrame(page, 4);
-      },
-    );
+        }
+      });
+      await idleFrame(page, 4);
+    });
     await reactGrab.deactivate();
-    logScenario("pointermove-storm-synthetic", aggregate);
   });
 
   test("activate-click-copy-escape-cycle @perf", async ({ reactGrab, page }, testInfo) => {
@@ -142,7 +104,6 @@ test.describe("@perf benchmarks", () => {
         await idleFrame(page, 4);
       },
     );
-    logScenario("activate-click-copy-escape-cycle", aggregate);
     expect.soft(aggregate.inp).toBeLessThan(INP_SOFT_LIMIT_MS);
   });
 
@@ -199,31 +160,18 @@ test.describe("@perf benchmarks", () => {
         await idleFrame(page, 4);
       },
     );
-    logScenario("copy-then-deactivate-stress", aggregate);
     expect.soft(aggregate.inp).toBeLessThan(INP_SOFT_LIMIT_MS);
   });
 
   test("shift-multi-select-burst @perf", async ({ reactGrab, page }, testInfo) => {
-    await page.goto(PERF_GRID_PATH);
-    await page.waitForFunction(
-      () => document.querySelectorAll("[data-perf-row][data-perf-column]").length > 50,
-      null,
-      { timeout: 10_000 },
-    );
+    await goToPerfGrid(page);
 
-    const gridCells = await page.evaluate(() =>
-      Array.from(document.querySelectorAll("[data-perf-row][data-perf-column]"))
-        .slice(0, 8)
-        .map((cell) => {
-          const rect = cell.getBoundingClientRect();
-          return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-        }),
-    );
+    const gridCells = await getPerfGridCenters(page, 8);
 
     await reactGrab.activate();
     await idleFrame(page, 2);
 
-    const aggregate = await recordScenario(page, testInfo, "shift-multi-select-burst", async () => {
+    await recordScenario(page, testInfo, "shift-multi-select-burst", async () => {
       await page.keyboard.down("Shift");
       for (const point of gridCells) {
         await page.mouse.move(point.x, point.y, { steps: 1 });
@@ -235,23 +183,12 @@ test.describe("@perf benchmarks", () => {
       await page.keyboard.press("Escape");
       await idleFrame(page, 4);
     });
-    logScenario("shift-multi-select-burst", aggregate);
   });
 
   test("drag-selection-sweep @perf", async ({ reactGrab, page }, testInfo) => {
-    await page.goto(PERF_GRID_PATH);
-    await page.waitForFunction(
-      () => document.querySelectorAll("[data-perf-row][data-perf-column]").length > 50,
-      null,
-      { timeout: 10_000 },
-    );
+    await goToPerfGrid(page);
 
-    const gridCells = await page.evaluate(() =>
-      Array.from(document.querySelectorAll("[data-perf-row][data-perf-column]")).map((cell) => {
-        const rect = cell.getBoundingClientRect();
-        return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-      }),
-    );
+    const gridCells = await getPerfGridCenters(page);
     if (gridCells.length < 30) {
       test.skip(true, "perf grid has fewer than 30 cells");
       return;
@@ -260,7 +197,7 @@ test.describe("@perf benchmarks", () => {
     await reactGrab.activate();
     await idleFrame(page, 2);
 
-    const aggregate = await recordScenario(page, testInfo, "drag-selection-sweep", async () => {
+    await recordScenario(page, testInfo, "drag-selection-sweep", async () => {
       for (let dragIndex = 0; dragIndex < 20; dragIndex++) {
         const startCell = gridCells[(dragIndex * 5) % gridCells.length];
         const endCell = gridCells[(dragIndex * 5 + 12) % gridCells.length];
@@ -274,7 +211,6 @@ test.describe("@perf benchmarks", () => {
       }
       await idleFrame(page, 4);
     });
-    logScenario("drag-selection-sweep", aggregate);
   });
 
   test("scroll-during-selection @perf", async ({ reactGrab, page }, testInfo) => {
@@ -282,7 +218,7 @@ test.describe("@perf benchmarks", () => {
     await page.mouse.move(400, 300, { steps: 2 });
     await idleFrame(page, 2);
 
-    const aggregate = await recordScenario(page, testInfo, "scroll-during-selection", async () => {
+    await recordScenario(page, testInfo, "scroll-during-selection", async () => {
       for (let scrollIndex = 0; scrollIndex < 200; scrollIndex++) {
         const scrollDeltaY = scrollIndex % 2 === 0 ? 80 : -80;
         await page.mouse.wheel(0, scrollDeltaY);
@@ -291,7 +227,6 @@ test.describe("@perf benchmarks", () => {
       await idleFrame(page, 4);
     });
     await page.keyboard.press("Escape");
-    logScenario("scroll-during-selection", aggregate);
   });
 
   test("hover-over-animated-elements @perf", async ({ reactGrab, page }, testInfo) => {
@@ -321,22 +256,16 @@ test.describe("@perf benchmarks", () => {
     await reactGrab.activate();
     await idleFrame(page, 2);
 
-    const aggregate = await recordScenario(
-      page,
-      testInfo,
-      "hover-over-animated-elements",
-      async () => {
-        for (let passIndex = 0; passIndex < 30; passIndex++) {
-          for (const target of hoverTargets) {
-            await page.mouse.move(target.x, target.y, { steps: 2 });
-            await page.waitForTimeout(20);
-          }
+    await recordScenario(page, testInfo, "hover-over-animated-elements", async () => {
+      for (let passIndex = 0; passIndex < 30; passIndex++) {
+        for (const target of hoverTargets) {
+          await page.mouse.move(target.x, target.y, { steps: 2 });
+          await page.waitForTimeout(20);
         }
-        await idleFrame(page, 4);
-      },
-    );
+      }
+      await idleFrame(page, 4);
+    });
     await reactGrab.deactivate();
-    logScenario("hover-over-animated-elements", aggregate);
   });
 
   test("arrow-key-tree-navigation @perf", async ({ reactGrab, page }, testInfo) => {
@@ -352,21 +281,15 @@ test.describe("@perf benchmarks", () => {
     await startTarget.hover({ force: true });
     await page.waitForTimeout(200);
 
-    const aggregate = await recordScenario(
-      page,
-      testInfo,
-      "arrow-key-tree-navigation",
-      async () => {
-        const arrowKeys = ["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight"] as const;
-        for (let sequenceIndex = 0; sequenceIndex < 60; sequenceIndex++) {
-          await page.keyboard.press(arrowKeys[sequenceIndex % arrowKeys.length]);
-          await page.waitForTimeout(20);
-        }
-        await idleFrame(page, 4);
-      },
-    );
+    await recordScenario(page, testInfo, "arrow-key-tree-navigation", async () => {
+      const arrowKeys = ["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight"] as const;
+      for (let sequenceIndex = 0; sequenceIndex < 60; sequenceIndex++) {
+        await page.keyboard.press(arrowKeys[sequenceIndex % arrowKeys.length]);
+        await page.waitForTimeout(20);
+      }
+      await idleFrame(page, 4);
+    });
     await page.keyboard.press("Escape");
-    logScenario("arrow-key-tree-navigation", aggregate);
   });
 
   test("context-menu-open-close-cycle @perf", async ({ reactGrab, page }, testInfo) => {
@@ -382,26 +305,20 @@ test.describe("@perf benchmarks", () => {
     await reactGrab.activate();
     await idleFrame(page, 2);
 
-    const aggregate = await recordScenario(
-      page,
-      testInfo,
-      "context-menu-open-close-cycle",
-      async () => {
-        for (let cycleIndex = 0; cycleIndex < 30; cycleIndex++) {
-          const elementLocator = page
-            .locator(targetSelectors[cycleIndex % targetSelectors.length])
-            .first();
-          if ((await elementLocator.count()) === 0) continue;
-          await elementLocator.click({ button: "right", force: true });
-          await page.waitForTimeout(40);
-          await page.keyboard.press("Escape");
-          await page.waitForTimeout(40);
-        }
-        await idleFrame(page, 4);
-      },
-    );
+    await recordScenario(page, testInfo, "context-menu-open-close-cycle", async () => {
+      for (let cycleIndex = 0; cycleIndex < 30; cycleIndex++) {
+        const elementLocator = page
+          .locator(targetSelectors[cycleIndex % targetSelectors.length])
+          .first();
+        if ((await elementLocator.count()) === 0) continue;
+        await elementLocator.click({ button: "right", force: true });
+        await page.waitForTimeout(40);
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(40);
+      }
+      await idleFrame(page, 4);
+    });
     await reactGrab.deactivate();
-    logScenario("context-menu-open-close-cycle", aggregate);
   });
 
   test("prompt-mode-typing @perf", async ({ reactGrab, page }, testInfo) => {
@@ -414,7 +331,7 @@ test.describe("@perf benchmarks", () => {
       "Refactor this component so the rendering logic is split from the data fetching layer, " +
       "and add a loading skeleton plus an error retry button.";
 
-    const aggregate = await recordScenario(
+    await recordScenario(
       page,
       testInfo,
       "prompt-mode-typing",
@@ -433,7 +350,6 @@ test.describe("@perf benchmarks", () => {
     );
     await page.keyboard.press("Escape");
     await page.keyboard.press("Escape");
-    logScenario("prompt-mode-typing", aggregate);
   });
 
   test("rapid-toggle-active-inactive @perf", async ({ reactGrab, page }, testInfo) => {
@@ -441,23 +357,21 @@ test.describe("@perf benchmarks", () => {
     // away pointermove + hit-test noise so you see the bare activate /
     // deactivate cost (freeze-pseudo-states install/uninstall,
     // freeze-animations attach/remove, freezeUpdates pause/resume).
-    void reactGrab; // fixture pre-loads the page
-    const aggregate = await recordScenario(
+    await recordScenario(
       page,
       testInfo,
       "rapid-toggle-active-inactive",
       async () => {
         for (let cycleIndex = 0; cycleIndex < 80; cycleIndex++) {
-          await page.evaluate(() => window.__REACT_GRAB__?.activate?.());
+          await reactGrab.activate();
           await idleFrame(page, 1);
-          await page.evaluate(() => window.__REACT_GRAB__?.deactivate?.());
+          await reactGrab.deactivate();
           await idleFrame(page, 1);
         }
         await idleFrame(page, 4);
       },
       { samples: 2 },
     );
-    logScenario("rapid-toggle-active-inactive", aggregate);
   });
 
   test("dom-mutation-during-selection @perf", async ({ reactGrab, page }, testInfo) => {
@@ -478,7 +392,7 @@ test.describe("@perf benchmarks", () => {
     await page.mouse.move(dynamicBox.x + 20, dynamicBox.y + 20, { steps: 2 });
     await idleFrame(page, 2);
 
-    const aggregate = await recordScenario(
+    await recordScenario(
       page,
       testInfo,
       "dom-mutation-during-selection",
@@ -498,7 +412,6 @@ test.describe("@perf benchmarks", () => {
       { samples: 2 },
     );
     await reactGrab.deactivate();
-    logScenario("dom-mutation-during-selection", aggregate);
   });
 
   test("idle-after-activation @perf", async ({ reactGrab, page }, testInfo) => {
@@ -508,7 +421,7 @@ test.describe("@perf benchmarks", () => {
     await reactGrab.activate();
     await idleFrame(page, 4);
 
-    const aggregate = await recordScenario(
+    await recordScenario(
       page,
       testInfo,
       "idle-after-activation",
@@ -520,24 +433,18 @@ test.describe("@perf benchmarks", () => {
       { samples: 1 },
     );
     await reactGrab.deactivate();
-    logScenario("idle-after-activation", aggregate);
   });
 
   test("large-drag-selection @perf", async ({ reactGrab, page }, testInfo) => {
     // One huge drag rectangle covering ~half the perf grid. Stresses
     // getElementsInDrag's coverage sampling at the upper bound of
     // candidate count.
-    await page.goto(PERF_GRID_PATH);
-    await page.waitForFunction(
-      () => document.querySelectorAll("[data-perf-row][data-perf-column]").length > 50,
-      null,
-      { timeout: 10_000 },
-    );
+    await goToPerfGrid(page);
 
     await reactGrab.activate();
     await idleFrame(page, 2);
 
-    const aggregate = await recordScenario(page, testInfo, "large-drag-selection", async () => {
+    await recordScenario(page, testInfo, "large-drag-selection", async () => {
       const viewport = page.viewportSize() ?? { width: 1280, height: 720 };
       for (let dragIndex = 0; dragIndex < 8; dragIndex++) {
         await page.mouse.move(20, 80, { steps: 1 });
@@ -550,7 +457,6 @@ test.describe("@perf benchmarks", () => {
       }
       await idleFrame(page, 4);
     });
-    logScenario("large-drag-selection", aggregate);
   });
 
   test("deep-element-stack-hover @perf", async ({ reactGrab, page, perfDom }, testInfo) => {
@@ -562,7 +468,7 @@ test.describe("@perf benchmarks", () => {
     await reactGrab.activate();
     await idleFrame(page, 2);
 
-    const aggregate = await recordScenario(page, testInfo, "deep-element-stack-hover", async () => {
+    await recordScenario(page, testInfo, "deep-element-stack-hover", async () => {
       // Wiggle the pointer inside the stack so each move counts as a new
       // detection (setPointer dedupes identical positions). 200 hit-tests,
       // each walking ~2000 stacked elements.
@@ -574,7 +480,6 @@ test.describe("@perf benchmarks", () => {
       await idleFrame(page, 4);
     });
     await reactGrab.deactivate();
-    logScenario("deep-element-stack-hover", aggregate);
   });
 
   // ─── DOM-density variants ──────────────────────────────────────────
@@ -588,7 +493,7 @@ test.describe("@perf benchmarks", () => {
     await reactGrab.activate();
     await idleFrame(page, 2);
 
-    const aggregate = await recordScenario(page, testInfo, "hover-dense-flat-dom", async () => {
+    await recordScenario(page, testInfo, "hover-dense-flat-dom", async () => {
       // Spiral across the dense grid hitting many distinct elements.
       for (let moveIndex = 0; moveIndex < 400; moveIndex++) {
         const radius = 50 + (moveIndex % 200);
@@ -600,7 +505,6 @@ test.describe("@perf benchmarks", () => {
       await idleFrame(page, 4);
     });
     await reactGrab.deactivate();
-    logScenario("hover-dense-flat-dom", aggregate);
   });
 
   test("hover-deep-nested-dom @perf", async ({ reactGrab, page, perfDom }, testInfo) => {
@@ -612,7 +516,7 @@ test.describe("@perf benchmarks", () => {
     await reactGrab.activate();
     await idleFrame(page, 2);
 
-    const aggregate = await recordScenario(page, testInfo, "hover-deep-nested-dom", async () => {
+    await recordScenario(page, testInfo, "hover-deep-nested-dom", async () => {
       // Many hovers near center of the nest — every detection walks
       // through the same deeply nested chain.
       for (let moveIndex = 0; moveIndex < 200; moveIndex++) {
@@ -621,7 +525,6 @@ test.describe("@perf benchmarks", () => {
       await idleFrame(page, 4);
     });
     await reactGrab.deactivate();
-    logScenario("hover-deep-nested-dom", aggregate);
   });
 
   // ─── Drag variants ─────────────────────────────────────────────────
@@ -630,17 +533,12 @@ test.describe("@perf benchmarks", () => {
     // Drag near the bottom viewport edge so AUTO_SCROLL_EDGE_THRESHOLD_PX
     // kicks in and autoScroller starts ticking. Exercises the rAF-driven
     // scroll path that runs concurrently with the drag.
-    await page.goto(PERF_GRID_PATH);
-    await page.waitForFunction(
-      () => document.querySelectorAll("[data-perf-row][data-perf-column]").length > 50,
-      null,
-      { timeout: 10_000 },
-    );
+    await goToPerfGrid(page);
 
     await reactGrab.activate();
     await idleFrame(page, 2);
 
-    const aggregate = await recordScenario(page, testInfo, "drag-with-autoscroll", async () => {
+    await recordScenario(page, testInfo, "drag-with-autoscroll", async () => {
       const viewport = page.viewportSize() ?? { width: 1280, height: 720 };
       // Five long drags ending near the bottom edge so autoscroll engages
       // for the tail of each drag.
@@ -657,24 +555,18 @@ test.describe("@perf benchmarks", () => {
       }
       await idleFrame(page, 4);
     });
-    logScenario("drag-with-autoscroll", aggregate);
   });
 
   test("drag-rapid-zigzag @perf", async ({ reactGrab, page }, testInfo) => {
     // Drag in a zigzag pattern with frequent direction changes — each
     // change recomputes the drag rectangle and dispatches new pointer
     // moves at full resolution.
-    await page.goto(PERF_GRID_PATH);
-    await page.waitForFunction(
-      () => document.querySelectorAll("[data-perf-row][data-perf-column]").length > 50,
-      null,
-      { timeout: 10_000 },
-    );
+    await goToPerfGrid(page);
 
     await reactGrab.activate();
     await idleFrame(page, 2);
 
-    const aggregate = await recordScenario(page, testInfo, "drag-rapid-zigzag", async () => {
+    await recordScenario(page, testInfo, "drag-rapid-zigzag", async () => {
       for (let dragIndex = 0; dragIndex < 6; dragIndex++) {
         await page.mouse.move(200, 200, { steps: 1 });
         await page.mouse.down();
@@ -690,7 +582,6 @@ test.describe("@perf benchmarks", () => {
       }
       await idleFrame(page, 4);
     });
-    logScenario("drag-rapid-zigzag", aggregate);
   });
 
   // ─── Copy / multi-select variants ──────────────────────────────────
@@ -699,25 +590,13 @@ test.describe("@perf benchmarks", () => {
     // Shift+click 20 elements then trigger copy via Cmd+Enter. Multi-
     // element copy fans out through clipboard payload aggregation +
     // per-element stack symbolication.
-    await page.goto(PERF_GRID_PATH);
-    await page.waitForFunction(
-      () => document.querySelectorAll("[data-perf-row][data-perf-column]").length > 50,
-      null,
-      { timeout: 10_000 },
-    );
-    const gridPoints = await page.evaluate(() =>
-      Array.from(document.querySelectorAll("[data-perf-row][data-perf-column]"))
-        .slice(0, 20)
-        .map((cell) => {
-          const rect = cell.getBoundingClientRect();
-          return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-        }),
-    );
+    await goToPerfGrid(page);
+    const gridPoints = await getPerfGridCenters(page, 20);
 
     await reactGrab.activate();
     await idleFrame(page, 2);
 
-    const aggregate = await recordScenario(
+    await recordScenario(
       page,
       testInfo,
       "copy-multi-element-batch",
@@ -739,7 +618,6 @@ test.describe("@perf benchmarks", () => {
       { samples: 2 },
     );
     await page.keyboard.press("Escape");
-    logScenario("copy-multi-element-batch", aggregate);
   });
 
   // ─── Animation density ─────────────────────────────────────────────
@@ -750,7 +628,7 @@ test.describe("@perf benchmarks", () => {
     // install/uninstall cost from pointer / detection noise.
     await perfDom.installCssAnimations(150);
 
-    const aggregate = await recordScenario(
+    await recordScenario(
       page,
       testInfo,
       "activate-with-many-animations",
@@ -765,33 +643,20 @@ test.describe("@perf benchmarks", () => {
       },
       { samples: 2 },
     );
-    logScenario("activate-with-many-animations", aggregate);
   });
 
   test("deactivate-with-many-frozen-elements @perf", async ({ reactGrab, page }, testInfo) => {
     // Shift-click 15 elements (multi-freeze), then deactivate. Stresses
     // the bulk-unfreeze of frozen elements, frozenElementBoundsAccessors
     // teardown, and labelInstance fadeout.
-    await page.goto(PERF_GRID_PATH);
-    await page.waitForFunction(
-      () => document.querySelectorAll("[data-perf-row][data-perf-column]").length > 50,
-      null,
-      { timeout: 10_000 },
-    );
+    await goToPerfGrid(page);
 
-    const aggregate = await recordScenario(
+    await recordScenario(
       page,
       testInfo,
       "deactivate-with-many-frozen-elements",
       async () => {
-        const points = await page.evaluate(() =>
-          Array.from(document.querySelectorAll("[data-perf-row][data-perf-column]"))
-            .slice(0, 15)
-            .map((cell) => {
-              const rect = cell.getBoundingClientRect();
-              return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-            }),
-        );
+        const points = await getPerfGridCenters(page, 15);
         for (let cycleIndex = 0; cycleIndex < 6; cycleIndex++) {
           await reactGrab.activate();
           await page.keyboard.down("Shift");
@@ -809,7 +674,6 @@ test.describe("@perf benchmarks", () => {
       },
       { samples: 2 },
     );
-    logScenario("deactivate-with-many-frozen-elements", aggregate);
   });
 
   // ─── Keyboard / menu paths ─────────────────────────────────────────
@@ -824,26 +688,20 @@ test.describe("@perf benchmarks", () => {
       return;
     }
 
-    const aggregate = await recordScenario(
-      page,
-      testInfo,
-      "context-menu-arrow-navigation",
-      async () => {
-        for (let cycleIndex = 0; cycleIndex < 10; cycleIndex++) {
-          await target.click({ button: "right", force: true });
-          await page.waitForTimeout(60);
-          for (let pressIndex = 0; pressIndex < 6; pressIndex++) {
-            await page.keyboard.press(pressIndex % 2 === 0 ? "ArrowDown" : "ArrowUp");
-            await page.waitForTimeout(16);
-          }
-          await page.keyboard.press("Escape");
-          await page.waitForTimeout(40);
+    await recordScenario(page, testInfo, "context-menu-arrow-navigation", async () => {
+      for (let cycleIndex = 0; cycleIndex < 10; cycleIndex++) {
+        await target.click({ button: "right", force: true });
+        await page.waitForTimeout(60);
+        for (let pressIndex = 0; pressIndex < 6; pressIndex++) {
+          await page.keyboard.press(pressIndex % 2 === 0 ? "ArrowDown" : "ArrowUp");
+          await page.waitForTimeout(16);
         }
-        await idleFrame(page, 4);
-      },
-    );
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(40);
+      }
+      await idleFrame(page, 4);
+    });
     await reactGrab.deactivate();
-    logScenario("context-menu-arrow-navigation", aggregate);
   });
 
   test("keyboard-rapid-arrows @perf", async ({ reactGrab, page }, testInfo) => {
@@ -853,7 +711,7 @@ test.describe("@perf benchmarks", () => {
     await page.locator("[data-testid='nested-card']").first().hover({ force: true });
     await page.waitForTimeout(200);
 
-    const aggregate = await recordScenario(page, testInfo, "keyboard-rapid-arrows", async () => {
+    await recordScenario(page, testInfo, "keyboard-rapid-arrows", async () => {
       const arrowKeys = ["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight"] as const;
       for (let pressIndex = 0; pressIndex < 200; pressIndex++) {
         await page.keyboard.press(arrowKeys[pressIndex % arrowKeys.length]);
@@ -862,7 +720,6 @@ test.describe("@perf benchmarks", () => {
       await idleFrame(page, 4);
     });
     await page.keyboard.press("Escape");
-    logScenario("keyboard-rapid-arrows", aggregate);
   });
 
   // ─── Toolbar interactions ──────────────────────────────────────────
@@ -870,8 +727,7 @@ test.describe("@perf benchmarks", () => {
   test("toolbar-drag-to-edges @perf", async ({ reactGrab, page }, testInfo) => {
     // Drag the toolbar to each of the 4 viewport edges (snap kicks in
     // each time). Stresses the toolbar drag physics + snap recalc.
-    void reactGrab;
-    const aggregate = await recordScenario(
+    await recordScenario(
       page,
       testInfo,
       "toolbar-drag-to-edges",
@@ -886,15 +742,13 @@ test.describe("@perf benchmarks", () => {
       },
       { samples: 2 },
     );
-    logScenario("toolbar-drag-to-edges", aggregate);
   });
 
   test("toolbar-collapse-expand-cycle @perf", async ({ reactGrab, page }, testInfo) => {
     // Rapid toolbar collapse + expand. Stresses the collapse animation
     // path that the AGENTS.md comment in constants.ts about
     // TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS specifically calls out.
-    void reactGrab;
-    const aggregate = await recordScenario(
+    await recordScenario(
       page,
       testInfo,
       "toolbar-collapse-expand-cycle",
@@ -909,7 +763,6 @@ test.describe("@perf benchmarks", () => {
       },
       { samples: 2 },
     );
-    logScenario("toolbar-collapse-expand-cycle", aggregate);
   });
 
   // ─── Edge / integration ────────────────────────────────────────────
@@ -931,7 +784,7 @@ test.describe("@perf benchmarks", () => {
     }
     await page.mouse.move(box.x + 20, box.y + 20, { steps: 2 });
 
-    const aggregate = await recordScenario(
+    await recordScenario(
       page,
       testInfo,
       "dom-rerender-during-selection",
@@ -956,7 +809,6 @@ test.describe("@perf benchmarks", () => {
       { samples: 2 },
     );
     await reactGrab.deactivate();
-    logScenario("dom-rerender-during-selection", aggregate);
   });
 
   test("viewport-resize-during-selection @perf", async ({ reactGrab, page }, testInfo) => {
@@ -973,7 +825,7 @@ test.describe("@perf benchmarks", () => {
       { width: 800, height: 600 },
       { width: 1280, height: 720 },
     ];
-    const aggregate = await recordScenario(
+    await recordScenario(
       page,
       testInfo,
       "viewport-resize-during-selection",
@@ -990,6 +842,5 @@ test.describe("@perf benchmarks", () => {
     );
     await page.keyboard.press("Escape");
     await page.setViewportSize({ width: 1280, height: 720 });
-    logScenario("viewport-resize-during-selection", aggregate);
   });
 });

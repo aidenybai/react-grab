@@ -15,8 +15,40 @@
 import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import type { Page } from "@playwright/test";
 import { test as reactGrabTest } from "./fixtures.js";
 import type { PerfScenarioAggregate } from "./perf-recorder.js";
+
+export const PERF_GRID_PATH = "/?perf=grid&rows=30&cols=10";
+const PERF_GRID_SELECTOR = "[data-perf-row][data-perf-column]";
+const PERF_GRID_READY_THRESHOLD = 50;
+
+export const goToPerfGrid = async (page: Page): Promise<void> => {
+  await page.goto(PERF_GRID_PATH);
+  await page.waitForFunction(
+    ({ selector, threshold }) => document.querySelectorAll(selector).length > threshold,
+    { selector: PERF_GRID_SELECTOR, threshold: PERF_GRID_READY_THRESHOLD },
+    { timeout: 10_000 },
+  );
+};
+
+export interface PerfGridCenter {
+  x: number;
+  y: number;
+}
+
+export const getPerfGridCenters = (page: Page, sliceCount?: number): Promise<PerfGridCenter[]> =>
+  page.evaluate(
+    ({ selector, sliceTo }) => {
+      const cells = Array.from(document.querySelectorAll(selector));
+      const slice = sliceTo === undefined ? cells : cells.slice(0, sliceTo);
+      return slice.map((cell) => {
+        const rect = cell.getBoundingClientRect();
+        return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+      });
+    },
+    { selector: PERF_GRID_SELECTOR, sliceTo: sliceCount },
+  );
 
 const E2E_DIR = dirname(fileURLToPath(import.meta.url));
 const PACKAGE_PERF_DIR = resolve(E2E_DIR, "../perf");
