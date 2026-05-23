@@ -303,7 +303,6 @@ export interface ReactGrabAPI {
 export interface OverlayBounds {
   borderRadius: string;
   height: number;
-  transform: string;
   width: number;
   x: number;
   y: number;

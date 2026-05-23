@@ -419,10 +419,10 @@ test.describe("@perf benchmarks", () => {
   });
 
   test("hover-deep-nested-dom @perf", async ({ reactGrab, page, perfDom }, testInfo) => {
-    // 60-level deep nested divs with periodic transforms. Every detection
-    // walks the chain via getAccumulatedTransform.
-    // MAX_TRANSFORM_ANCESTOR_DEPTH=6 caps the walk; beyond that early-exit
-    // kicks in, which is exactly what this measures.
+    // 60-level deep nested divs. Every detection walks the parent chain
+    // through isValidGrabbableElement filtering + bounds-cache lookup.
+    // Periodic ancestor transforms make the browser do real layout
+    // composition work so the scenario isn't artificially flat.
     await perfDom.installDeepNested(60);
     await reactGrab.activate();
     await idleFrame(page, 2);

@@ -96,8 +96,8 @@ export const test = reactGrabTest.extend<{ perfDom: PerfDomHelpers }>({
             for (let nestIndex = 0; nestIndex < depth; nestIndex++) {
               const innerElement = document.createElement("div");
               innerElement.dataset.nestLevel = String(nestIndex);
-              // Apply transforms to some ancestors so getAccumulatedTransform
-              // has real work to do instead of no-ops.
+              // Sprinkled ancestor transforms keep the browser doing real
+              // layout composition work so the chain isn't artificially flat.
               const hasTransform = nestIndex % 5 === 0;
               innerElement.style.cssText =
                 `padding:2px;width:${400 - nestIndex * 2}px;height:${400 - nestIndex * 2}px;` +
