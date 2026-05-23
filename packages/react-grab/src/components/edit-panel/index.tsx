@@ -203,6 +203,21 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
     setMeasuredHeight(rect.height);
   };
 
+  let resizeObserver: ResizeObserver | undefined;
+
+  const attachContainerRef = (element: HTMLDivElement) => {
+    containerRef = element;
+    // Re-measure whenever the panel itself changes size — toggling
+    // between full and compact modes, filter changes that shrink the
+    // list, font reflows, etc. Without this the cursor-anchored
+    // position stays wrong after a layout shift.
+    resizeObserver?.disconnect();
+    resizeObserver = new ResizeObserver(() => measure());
+    resizeObserver.observe(element);
+  };
+
+  onCleanup(() => resizeObserver?.disconnect());
+
   createEffect(() => {
     if (isVisible()) nativeRequestAnimationFrame(measure);
   });
@@ -586,7 +601,7 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
   return (
     <Show when={isVisible() && props.state}>
       <div
-        ref={containerRef}
+        ref={attachContainerRef}
         data-react-grab-ignore-events
         data-react-grab-edit-panel
         class="fixed font-sans text-[13px] antialiased [filter:var(--rg-drop-shadow)] select-none"
