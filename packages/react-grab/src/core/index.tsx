@@ -2115,13 +2115,20 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       keyboardPointerLastTimestamp = 0;
     };
 
+    const isKeyboardPointerContextValid = (): boolean =>
+      isActivated() &&
+      !isPromptMode() &&
+      !isShiftMultiSelecting() &&
+      !isDragging() &&
+      store.contextMenuPosition === null;
+
     const startKeyboardPointerMovement = () => {
       if (keyboardPointerRafId !== null) return;
 
       const tick = (timestamp: number) => {
         keyboardPointerRafId = null;
 
-        if (heldKeyboardPointerKeys.size === 0 || !isActivated() || isPromptMode()) {
+        if (heldKeyboardPointerKeys.size === 0 || !isKeyboardPointerContextValid()) {
           keyboardPointerLastTimestamp = 0;
           return;
         }
@@ -2176,11 +2183,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleKeyboardPointerMovement = (event: KeyboardEvent): boolean => {
-      if (!isActivated() || isPromptMode()) return false;
-      if (isShiftMultiSelecting()) return false;
-      if (isDragging()) return false;
       if (!ARROW_KEYS.has(event.key)) return false;
-      if (store.contextMenuPosition !== null) return false;
+      if (!isKeyboardPointerContextValid()) return false;
 
       // Tab took priority while these arrow keys were still held; track
       // releases so we know when all are up, but never restart the rAF
@@ -2234,7 +2238,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (heldKeyboardPointerKeys.size === 0) {
         stopKeyboardPointerMovement();
 
-        if (isKeyboardPointerSuppressed) {
+        const shouldSkipSnapFreeze =
+          isKeyboardPointerSuppressed || !isKeyboardPointerContextValid();
+
+        if (shouldSkipSnapFreeze) {
           isKeyboardPointerSuppressed = false;
           keyboardPointerSeedElement = null;
         } else {
@@ -2582,8 +2589,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             }
           }
 
-          if (isFromOverlay && ARROW_KEYS.has(event.key)) {
-            if (handleKeyboardPointerMovement(event)) return;
+          if (isFromOverlay) {
+            if (ARROW_KEYS.has(event.key)) {
+              if (handleKeyboardPointerMovement(event)) return;
+            } else if (event.key === "Tab") {
+              if (handleAncestorStackNavigation(event)) return;
+            }
           }
 
           return;
