@@ -2215,6 +2215,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         clearArrowNavigation();
         actions.unfreeze();
+        // Drop any stale prior Tab/snap-freeze target so a click landing
+        // on blank space mid-movement can't fall back to it via
+        // handleSingleClick's keyboardSelectedElement chain.
+        keyboardSelectedElement = null;
 
         if (seedElement && store.detectedElement !== seedElement) {
           actions.setDetectedElement(seedElement);
