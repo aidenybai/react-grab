@@ -2784,12 +2784,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (store.contextMenuPosition !== null) return;
         if (isSelectionInteractionLocked()) return;
         if (isTouchPointer && !isHoldingKeys() && !isActivated()) return;
-        // Keyboard arrow keys are physically held: either driving the
-        // pointer themselves (rAF is moving it) or suppressed because Tab
-        // froze an ancestor and we're waiting on keyup. In both cases
-        // mouse motion must not unfreeze, retarget detectedElement, or
-        // clear the arrow-navigation menu in parallel with that state.
-        if (heldKeyboardPointerKeys.size > 0) return;
+        // Arrow keys are physically held AND nothing else has taken over
+        // (drag, multi-select, prompt, context menu): the keyboard owns
+        // the pointer until release, so mouse motion must not unfreeze,
+        // retarget detectedElement, or clear the arrow-navigation menu.
+        // When drag/multi-select/etc. take over, isKeyboardPointerContextValid
+        // returns false and pointermove flows through normally.
+        const doesKeyboardOwnPointer =
+          heldKeyboardPointerKeys.size > 0 && isKeyboardPointerContextValid();
+        if (doesKeyboardOwnPointer) return;
         const isActiveState = isTouchPointer ? isHoldingKeys() : isActivated();
         // The flag check covers the small window after physical Shift
         // release but before the keyup handler commits — pointermove fires
