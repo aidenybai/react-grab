@@ -32,7 +32,7 @@ PERF_TRACE=1 pnpm test:perf --grep <name>     # also dumps perf/<label>/<scenari
 The intended workflow is:
 
 - **Local optimization work** — record a baseline before your change with `pnpm test:perf:baseline`, then re-run `pnpm test:perf` after each iteration. `recordScenario` auto-loads `perf/baseline/<scenario>.json` and embeds it under the `baseline` key in every report, so diffs are doable straight from the per-scenario JSON.
-- **CI regression tracking** — `.github/workflows/test-perf.yml` runs the bench on a dedicated `ubuntu-latest` runner with `--workers=1` (no shard contention) and uploads `perf/current/*.json` as an artifact (14-day retention). Cross-commit diffs are done by downloading the artifact from a prior CI run on the same workflow.
+- **CI regression tracking** — `.github/workflows/test-perf.yml` runs the bench on a dedicated `ubuntu-latest` runner with `--workers=1` (no shard contention). On PRs it runs the bench **twice on the same runner**: once with `packages/react-grab/src/` swapped to the PR's base ref (`PERF_LABEL=baseline`), then once with HEAD's src (`PERF_LABEL=current`). The bench harness, e2e-app, and Playwright config all stay at HEAD across both runs so the only variable is react-grab's source. A markdown diff table (via `scripts/diff-perf-runs.mjs`) is written to the job summary, and the full `perf/` directory (both runs + diff input) is uploaded as an artifact (14-day retention). On pushes to `main`, only the HEAD run executes — single trend snapshot, no diff.
 
 The only thresholds asserted in-test are absolute Web Vitals caps (currently `INP < 100ms` soft-asserted on a couple of interaction-heavy scenarios). These hold across reasonable hardware; they're not derived from a committed baseline.
 
