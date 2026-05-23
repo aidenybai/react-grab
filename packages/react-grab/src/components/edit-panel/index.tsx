@@ -113,6 +113,10 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
   let activeKeyTimerId: ReturnType<typeof setTimeout> | undefined;
   let boundsFrameId: number | null = null;
   let didCommitOnSubmit = false;
+  // Snapshot of the target element captured when the panel opens, so that
+  // when isVisible flips false (because the parent has already nulled
+  // props.state) we still know which DOM node to restore styles on.
+  let openedElement: Element | null = null;
 
   const isVisible = createMemo(() => props.state !== null);
 
@@ -237,6 +241,8 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
   createEffect(
     on(isVisible, (visible) => {
       if (!visible) {
+        const targetElement = openedElement;
+        openedElement = null;
         setSearchQuery("");
         setActiveIndex(0);
         setTweakedValues({});
@@ -244,10 +250,12 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
         setLiveBounds(null);
         stopBoundsPolling();
         // Commit (Enter) keeps the live preview on the element so the user
-        // sees the result; cancel (Esc / click-outside) reverts.
-        if (!didCommitOnSubmit) {
-          const state = props.state;
-          if (state) restorePreviewStyles(state.element, previewBaseline);
+        // sees the result; cancel (Esc / click-outside) reverts. props.state
+        // is already null by the time this effect runs (the parent clears
+        // it synchronously on dismiss), so we restore on the element we
+        // captured when the panel opened.
+        if (!didCommitOnSubmit && targetElement) {
+          restorePreviewStyles(targetElement, previewBaseline);
         } else {
           // Drop our bookkeeping without removing the styles we wrote, so
           // subsequent edits on the same element start from this committed
@@ -257,6 +265,7 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
         didCommitOnSubmit = false;
         return;
       }
+      openedElement = props.state?.element ?? null;
       queueMicrotask(() => searchInputRef?.focus({ preventScroll: true }));
       startBoundsPolling();
       restorePendingEditsFromStorage();
@@ -463,8 +472,7 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
       unregisterDismiss();
       clearTimeout(activeKeyTimerId);
       stopBoundsPolling();
-      const state = props.state;
-      if (state) restorePreviewStyles(state.element, previewBaseline);
+      if (openedElement) restorePreviewStyles(openedElement, previewBaseline);
     });
   });
 
