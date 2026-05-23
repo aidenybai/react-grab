@@ -70,8 +70,12 @@ lines.push(
     `Changes under ${SMALL_ABSOLUTE_NOISE_FLOOR_MS}ms absolute are treated as noise.`,
 );
 lines.push("");
-lines.push("| Scenario | INP (ms) | LongTasks sum (ms) | LoAF sum (ms) | Frames p95 (ms) | Frames max (ms) |");
-lines.push("|----------|----------|--------------------|---------------|------------------|------------------|");
+lines.push(
+  "| Scenario | INP (ms) | LongTasks sum (ms) | LoAF sum (ms) | Frames p95 (ms) | Frames max (ms) |",
+);
+lines.push(
+  "|----------|----------|--------------------|---------------|------------------|------------------|",
+);
 
 const scenariosOnlyInCurrent = [];
 const scenariosOnlyInBaseline = [];
@@ -101,7 +105,9 @@ for (const baselineOnlyName of baselineReports.keys()) {
 
 if (scenariosOnlyInCurrent.length > 0) {
   lines.push("");
-  lines.push(`_Scenarios new on this PR (no baseline to compare): ${scenariosOnlyInCurrent.join(", ")}_`);
+  lines.push(
+    `_Scenarios new on this PR (no baseline to compare): ${scenariosOnlyInCurrent.join(", ")}_`,
+  );
 }
 if (scenariosOnlyInBaseline.length > 0) {
   lines.push("");
