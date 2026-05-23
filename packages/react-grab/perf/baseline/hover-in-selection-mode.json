@@ -43,7 +43,7 @@
       "frames": {
         "count": 303,
         "mean": 16.666,
-        "stddev": 0.061,
+        "stddev": 0.06,
         "median": 16.7,
         "p95": 16.8,
         "max": 16.8
@@ -66,7 +66,7 @@
       "frames": {
         "count": 303,
         "mean": 16.666,
-        "stddev": 0.055,
+        "stddev": 0.056,
         "median": 16.7,
         "p95": 16.7,
         "max": 16.8
@@ -112,10 +112,12 @@
     },
     "frames": {
       "count": 303,
+      "mean": 16.666,
+      "stddev": 0.056,
       "median": 16.7,
       "p95": 16.7,
       "max": 16.8
     }
   },
-  "recordedAt": "2026-05-23T00:15:55.371Z"
+  "recordedAt": "2026-05-23T03:00:08.713Z"
 }

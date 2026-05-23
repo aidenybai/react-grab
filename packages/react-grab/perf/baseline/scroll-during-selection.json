@@ -17,9 +17,9 @@
       "maxBlocking": 0
     },
     "frames": {
-      "count": 408,
+      "count": 404,
       "mean": 16.666,
-      "stddev": 0.058,
+      "stddev": 0.057,
       "median": 16.7,
       "p95": 16.7,
       "max": 16.8
@@ -41,7 +41,7 @@
         "maxBlocking": 0
       },
       "frames": {
-        "count": 412,
+        "count": 404,
         "mean": 16.666,
         "stddev": 0.056,
         "median": 16.7,
@@ -64,11 +64,11 @@
         "maxBlocking": 0
       },
       "frames": {
-        "count": 408,
+        "count": 405,
         "mean": 16.666,
-        "stddev": 0.058,
+        "stddev": 0.057,
         "median": 16.7,
-        "p95": 16.8,
+        "p95": 16.7,
         "max": 16.8
       }
     },
@@ -89,9 +89,9 @@
       "frames": {
         "count": 403,
         "mean": 16.666,
-        "stddev": 0.058,
+        "stddev": 0.06,
         "median": 16.7,
-        "p95": 16.7,
+        "p95": 16.8,
         "max": 16.8
       }
     }
@@ -111,11 +111,13 @@
       "maxBlocking": 0
     },
     "frames": {
-      "count": 406,
+      "count": 408,
+      "mean": 16.666,
+      "stddev": 0.058,
       "median": 16.7,
-      "p95": 16.8,
+      "p95": 16.7,
       "max": 16.8
     }
   },
-  "recordedAt": "2026-05-23T00:17:15.050Z"
+  "recordedAt": "2026-05-23T03:01:29.356Z"
 }

@@ -19,15 +19,15 @@
     "frames": {
       "count": 94,
       "mean": 16.666,
-      "stddev": 0.052,
+      "stddev": 0.058,
       "median": 16.7,
-      "p95": 16.7,
+      "p95": 16.8,
       "max": 16.8
     }
   },
   "perSample": [
     {
-      "inp": 24,
+      "inp": 32,
       "interactions": 60,
       "longTasks": {
         "count": 0,
@@ -41,11 +41,11 @@
         "maxBlocking": 0
       },
       "frames": {
-        "count": 95,
-        "mean": 16.666,
-        "stddev": 0.049,
+        "count": 94,
+        "mean": 16.665,
+        "stddev": 0.061,
         "median": 16.7,
-        "p95": 16.7,
+        "p95": 16.8,
         "max": 16.8
       }
     },
@@ -66,9 +66,9 @@
       "frames": {
         "count": 94,
         "mean": 16.666,
-        "stddev": 0.054,
+        "stddev": 0.058,
         "median": 16.7,
-        "p95": 16.7,
+        "p95": 16.8,
         "max": 16.8
       }
     },
@@ -87,7 +87,7 @@
         "maxBlocking": 0
       },
       "frames": {
-        "count": 93,
+        "count": 94,
         "mean": 16.666,
         "stddev": 0.052,
         "median": 16.7,
@@ -111,11 +111,13 @@
       "maxBlocking": 0
     },
     "frames": {
-      "count": 93,
+      "count": 94,
+      "mean": 16.666,
+      "stddev": 0.052,
       "median": 16.7,
       "p95": 16.7,
       "max": 16.8
     }
   },
-  "recordedAt": "2026-05-23T00:17:43.365Z"
+  "recordedAt": "2026-05-23T03:01:57.637Z"
 }

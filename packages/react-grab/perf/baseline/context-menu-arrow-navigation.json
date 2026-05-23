@@ -19,16 +19,16 @@
     "frames": {
       "count": 152,
       "mean": 16.666,
-      "stddev": 0.059,
+      "stddev": 0.056,
       "median": 16.7,
-      "p95": 16.8,
+      "p95": 16.7,
       "max": 16.8
     }
   },
   "perSample": [
     {
-      "inp": 48,
-      "interactions": 76,
+      "inp": 24,
+      "interactions": 72,
       "longTasks": {
         "count": 0,
         "sum": 0,
@@ -41,11 +41,34 @@
         "maxBlocking": 0
       },
       "frames": {
-        "count": 157,
+        "count": 156,
         "mean": 16.666,
-        "stddev": 0.059,
+        "stddev": 0.054,
         "median": 16.7,
-        "p95": 16.8,
+        "p95": 16.7,
+        "max": 16.8
+      }
+    },
+    {
+      "inp": 24,
+      "interactions": 77,
+      "longTasks": {
+        "count": 0,
+        "sum": 0,
+        "max": 0
+      },
+      "longAnimationFrames": {
+        "count": 0,
+        "sum": 0,
+        "max": 0,
+        "maxBlocking": 0
+      },
+      "frames": {
+        "count": 151,
+        "mean": 16.666,
+        "stddev": 0.056,
+        "median": 16.7,
+        "p95": 16.7,
         "max": 16.8
       }
     },
@@ -66,39 +89,16 @@
       "frames": {
         "count": 152,
         "mean": 16.666,
-        "stddev": 0.061,
+        "stddev": 0.058,
         "median": 16.7,
         "p95": 16.8,
-        "max": 16.8
-      }
-    },
-    {
-      "inp": 24,
-      "interactions": 74,
-      "longTasks": {
-        "count": 0,
-        "sum": 0,
-        "max": 0
-      },
-      "longAnimationFrames": {
-        "count": 0,
-        "sum": 0,
-        "max": 0,
-        "maxBlocking": 0
-      },
-      "frames": {
-        "count": 151,
-        "mean": 16.666,
-        "stddev": 0.053,
-        "median": 16.7,
-        "p95": 16.7,
         "max": 16.8
       }
     }
   ],
   "baseline": {
     "inp": 24,
-    "interactions": 75,
+    "interactions": 76,
     "longTasks": {
       "count": 0,
       "sum": 0,
@@ -111,11 +111,13 @@
       "maxBlocking": 0
     },
     "frames": {
-      "count": 154,
+      "count": 152,
+      "mean": 16.666,
+      "stddev": 0.059,
       "median": 16.7,
-      "p95": 16.7,
+      "p95": 16.8,
       "max": 16.8
     }
   },
-  "recordedAt": "2026-05-23T00:19:35.497Z"
+  "recordedAt": "2026-05-23T03:03:54.988Z"
 }

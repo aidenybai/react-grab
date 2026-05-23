@@ -1,23 +1,15 @@
 // Standard-shape Playwright fixtures for the @perf scenarios. Composes
-// the base `reactGrab` fixture from `./fixtures.ts` with two perf-only
-// fixtures:
+// the base `reactGrab` fixture from `./fixtures.ts` with one perf-only
+// fixture, `perfDom` — idempotent DOM-injection helpers that auto-clean
+// on test teardown. Used by scenarios that need a specific DOM density
+// or shape (dense flat tile grid, deep ancestor chain, stacked elements
+// at one point, lots of CSS animations).
 //
-//   - `perfDom`     – idempotent DOM-injection helpers that auto-clean
-//                     on test teardown. Used by scenarios that need a
-//                     specific DOM density / shape (dense flat tile,
-//                     deep ancestor chain, stacked elements at one
-//                     point, lots of CSS animations).
-//   - `perfBaseline` – loads the committed `perf/baseline/<scenario>.json`
-//                      for the current test, if present. Each scenario
-//                      passes it back to `recordScenario({ baseline })`
-//                      so the attached report carries both numbers and
-//                      diffs are doable purely from the artifact.
-import { readFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+// Baseline JSON loading is handled directly by `recordScenario` in
+// `perf-recorder.ts` so the artifact always contains the baseline
+// reference, no fixture wiring required at the call site.
 import type { Page } from "@playwright/test";
 import { test as reactGrabTest } from "./fixtures.js";
-import type { PerfScenarioAggregate } from "./perf-recorder.js";
 
 export const PERF_GRID_PATH = "/?perf=grid&rows=30&cols=10";
 const PERF_GRID_SELECTOR = "[data-perf-row][data-perf-column]";
@@ -50,9 +42,6 @@ export const getPerfGridCenters = (page: Page, sliceCount?: number): Promise<Per
     { selector: PERF_GRID_SELECTOR, sliceTo: sliceCount },
   );
 
-const E2E_DIR = dirname(fileURLToPath(import.meta.url));
-const PACKAGE_PERF_DIR = resolve(E2E_DIR, "../perf");
-
 export interface PerfDomHelpers {
   /** N small absolutely-positioned tiles in a sqrt(N)×sqrt(N) grid. */
   installDenseFlat(elementCount: number): Promise<void>;
@@ -71,10 +60,7 @@ const INSTALLER_REGISTRY: Record<keyof PerfDomHelpers, string> = {
   installDeepStack: "perf-bench-stack-container",
 };
 
-export const test = reactGrabTest.extend<{
-  perfDom: PerfDomHelpers;
-  perfBaseline: PerfScenarioAggregate | null;
-}>({
+export const test = reactGrabTest.extend<{ perfDom: PerfDomHelpers }>({
   perfDom: async ({ page }, use) => {
     const installedRootIds: string[] = [];
     const helpers: PerfDomHelpers = {
@@ -197,23 +183,6 @@ export const test = reactGrabTest.extend<{
         // page may have already navigated; nothing to clean up.
       }
     }
-  },
-  // playwright fixtures require an arg even when unused; first slot is
-  // `{}` per the playwright convention.
-  // eslint-disable-next-line no-empty-pattern
-  perfBaseline: async ({}, use, testInfo) => {
-    const scenarioName = testInfo.title.replace(/\s*@perf\s*$/, "").trim();
-    const baselinePath = resolve(PACKAGE_PERF_DIR, "baseline", `${scenarioName}.json`);
-    let baseline: PerfScenarioAggregate | null = null;
-    try {
-      const baselineRaw = await readFile(baselinePath, "utf8");
-      const parsed = JSON.parse(baselineRaw) as { aggregate?: PerfScenarioAggregate };
-      baseline = parsed.aggregate ?? null;
-    } catch {
-      // Either no baseline committed yet, or the file is malformed.
-      // Tests handle null by not comparing — same as the no-baseline case.
-    }
-    await use(baseline);
   },
 });
 

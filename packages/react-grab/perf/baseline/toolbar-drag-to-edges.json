@@ -4,7 +4,7 @@
   "samples": 2,
   "aggregate": {
     "inp": 24,
-    "interactions": 16,
+    "interactions": 15.5,
     "longTasks": {
       "count": 0,
       "sum": 0,
@@ -17,11 +17,11 @@
       "maxBlocking": 0
     },
     "frames": {
-      "count": 551,
+      "count": 547,
       "mean": 16.666,
-      "stddev": 0.056,
+      "stddev": 0.058499999999999996,
       "median": 16.7,
-      "p95": 16.7,
+      "p95": 16.75,
       "max": 16.8
     }
   },
@@ -43,9 +43,9 @@
       "frames": {
         "count": 551,
         "mean": 16.666,
-        "stddev": 0.053,
+        "stddev": 0.06,
         "median": 16.7,
-        "p95": 16.7,
+        "p95": 16.8,
         "max": 16.8
       }
     },
@@ -64,9 +64,9 @@
         "maxBlocking": 0
       },
       "frames": {
-        "count": 544,
+        "count": 543,
         "mean": 16.666,
-        "stddev": 0.056,
+        "stddev": 0.057,
         "median": 16.7,
         "p95": 16.7,
         "max": 16.8
@@ -88,11 +88,13 @@
       "maxBlocking": 0
     },
     "frames": {
-      "count": 550,
+      "count": 551,
+      "mean": 16.666,
+      "stddev": 0.056,
       "median": 16.7,
       "p95": 16.7,
       "max": 16.8
     }
   },
-  "recordedAt": "2026-05-23T00:20:04.695Z"
+  "recordedAt": "2026-05-23T03:04:24.183Z"
 }

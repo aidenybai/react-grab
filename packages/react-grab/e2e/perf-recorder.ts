@@ -334,7 +334,12 @@ export const idleFrame = (page: Page, frameCount = 1) =>
 const medianOfNumbers = (values: number[]): number => {
   if (values.length === 0) return 0;
   const sortedValues = [...values].sort((a, b) => a - b);
-  return sortedValues[Math.floor(sortedValues.length / 2)];
+  const middleIndex = Math.floor(sortedValues.length / 2);
+  // Average the two middle values for even-length samples so 2-sample
+  // medians aren't biased toward the upper sample.
+  return sortedValues.length % 2 === 0
+    ? (sortedValues[middleIndex - 1] + sortedValues[middleIndex]) / 2
+    : sortedValues[middleIndex];
 };
 
 const medianAcrossSamples = (samples: PerfScenarioAggregate[]): PerfScenarioAggregate => {
@@ -372,21 +377,39 @@ export const loadCommittedBaseline = async (
   scenarioName: string,
 ): Promise<PerfScenarioAggregate | null> => {
   const baselinePath = resolve(PACKAGE_PERF_DIR, "baseline", `${scenarioName}.json`);
+  // `parsed.aggregate` is the canonical baseline value for this scenario,
+  // not `parsed.baseline` — that's a historical snapshot of the *previous*
+  // baseline carried inside each baseline file for traceability.
+  let baselineRaw: string;
   try {
-    const baselineRaw = await readFile(baselinePath, "utf8");
-    const parsed = JSON.parse(baselineRaw) as { aggregate?: PerfScenarioAggregate };
-    return parsed.aggregate ?? null;
-  } catch {
-    return null;
+    baselineRaw = await readFile(baselinePath, "utf8");
+  } catch (readError) {
+    if ((readError as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw readError;
   }
+  const parsed = JSON.parse(baselineRaw) as { aggregate?: PerfScenarioAggregate };
+  return parsed.aggregate ?? null;
 };
+
+export interface RecordScenarioOptions {
+  samples?: number;
+  baseline?: PerfScenarioAggregate | null;
+  /**
+   * Runs OUTSIDE the recorded window before each sample. Use this for
+   * per-sample setup that should not be measured — e.g. re-activating
+   * react-grab for scenarios whose body deactivates as part of the
+   * measured work, so sample 2..N don't start with no active selection
+   * and silently measure no-op iterations.
+   */
+  beforeEachSample?: () => Promise<void>;
+}
 
 export const recordScenario = async (
   page: Page,
   testInfo: TestInfo,
   scenarioName: string,
   scenarioBody: () => Promise<void>,
-  options: { samples?: number; baseline?: PerfScenarioAggregate | null } = {},
+  options: RecordScenarioOptions = {},
 ): Promise<PerfScenarioAggregate> => {
   const sampleCount = Math.max(1, options.samples ?? 3);
   // Auto-load the committed baseline if the caller didn't pass one in
@@ -396,13 +419,20 @@ export const recordScenario = async (
     options.baseline === undefined ? await loadCommittedBaseline(scenarioName) : options.baseline;
   const perSampleAggregates: PerfScenarioAggregate[] = [];
   for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex++) {
+    if (options.beforeEachSample) await options.beforeEachSample();
     // CDP traces are 5-100MB each; capturing only the first sample keeps
     // disk usage sane while still giving you something to drop into DevTools.
     const cdpTrace = sampleIndex === 0 ? await startCdpTrace(page) : null;
     await startRecording(page);
-    await scenarioBody();
-    const rawSnapshot = await stopRecording(page);
-    await stopCdpTrace(testInfo, scenarioName, cdpTrace);
+    // try/finally so the observer disconnects and CDP trace flushes even
+    // if the scenario body throws mid-measurement.
+    let rawSnapshot: PerfRawSnapshot | null = null;
+    try {
+      await scenarioBody();
+    } finally {
+      rawSnapshot = await stopRecording(page);
+      await stopCdpTrace(testInfo, scenarioName, cdpTrace);
+    }
     perSampleAggregates.push(aggregateRawSnapshot(rawSnapshot));
   }
   const medianAggregate =

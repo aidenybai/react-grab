@@ -165,24 +165,31 @@ test.describe("@perf benchmarks", () => {
 
   test("shift-multi-select-burst @perf", async ({ reactGrab, page }, testInfo) => {
     await goToPerfGrid(page);
-
     const gridCells = await getPerfGridCenters(page, 8);
-
-    await reactGrab.activate();
-    await idleFrame(page, 2);
-
-    await recordScenario(page, testInfo, "shift-multi-select-burst", async () => {
-      await page.keyboard.down("Shift");
-      for (const point of gridCells) {
-        await page.mouse.move(point.x, point.y, { steps: 1 });
-        await page.mouse.click(point.x, point.y);
-        await page.waitForTimeout(20);
-      }
-      await page.keyboard.up("Shift");
-      await page.waitForTimeout(80);
-      await page.keyboard.press("Escape");
-      await idleFrame(page, 4);
-    });
+    await recordScenario(
+      page,
+      testInfo,
+      "shift-multi-select-burst",
+      async () => {
+        await page.keyboard.down("Shift");
+        for (const point of gridCells) {
+          await page.mouse.move(point.x, point.y, { steps: 1 });
+          await page.mouse.click(point.x, point.y);
+          await page.waitForTimeout(20);
+        }
+        await page.keyboard.up("Shift");
+        await page.waitForTimeout(80);
+        await page.keyboard.press("Escape");
+        await idleFrame(page, 4);
+      },
+      {
+        // body presses Escape so we must re-activate per sample.
+        beforeEachSample: async () => {
+          await reactGrab.activate();
+          await idleFrame(page, 2);
+        },
+      },
+    );
   });
 
   test("drag-selection-sweep @perf", async ({ reactGrab, page }, testInfo) => {
@@ -194,23 +201,32 @@ test.describe("@perf benchmarks", () => {
       return;
     }
 
-    await reactGrab.activate();
-    await idleFrame(page, 2);
-
-    await recordScenario(page, testInfo, "drag-selection-sweep", async () => {
-      for (let dragIndex = 0; dragIndex < 20; dragIndex++) {
-        const startCell = gridCells[(dragIndex * 5) % gridCells.length];
-        const endCell = gridCells[(dragIndex * 5 + 12) % gridCells.length];
-        await page.mouse.move(startCell.x - 6, startCell.y - 6, { steps: 1 });
-        await page.mouse.down();
-        await page.mouse.move(endCell.x + 6, endCell.y + 6, { steps: 8 });
-        await page.mouse.up();
-        await page.waitForTimeout(60);
-        await page.keyboard.press("Escape");
-        await page.waitForTimeout(40);
-      }
-      await idleFrame(page, 4);
-    });
+    await recordScenario(
+      page,
+      testInfo,
+      "drag-selection-sweep",
+      async () => {
+        for (let dragIndex = 0; dragIndex < 20; dragIndex++) {
+          const startCell = gridCells[(dragIndex * 5) % gridCells.length];
+          const endCell = gridCells[(dragIndex * 5 + 12) % gridCells.length];
+          await page.mouse.move(startCell.x - 6, startCell.y - 6, { steps: 1 });
+          await page.mouse.down();
+          await page.mouse.move(endCell.x + 6, endCell.y + 6, { steps: 8 });
+          await page.mouse.up();
+          await page.waitForTimeout(60);
+          await page.keyboard.press("Escape");
+          await page.waitForTimeout(40);
+        }
+        await idleFrame(page, 4);
+      },
+      {
+        // body Escapes after each drag; re-activate per sample.
+        beforeEachSample: async () => {
+          await reactGrab.activate();
+          await idleFrame(page, 2);
+        },
+      },
+    );
   });
 
   test("scroll-during-selection @perf", async ({ reactGrab, page }, testInfo) => {
@@ -302,22 +318,33 @@ test.describe("@perf benchmarks", () => {
       "[data-testid='span-element']",
       "[data-testid='td-1-2']",
     ];
-    await reactGrab.activate();
-    await idleFrame(page, 2);
 
-    await recordScenario(page, testInfo, "context-menu-open-close-cycle", async () => {
-      for (let cycleIndex = 0; cycleIndex < 30; cycleIndex++) {
-        const elementLocator = page
-          .locator(targetSelectors[cycleIndex % targetSelectors.length])
-          .first();
-        if ((await elementLocator.count()) === 0) continue;
-        await elementLocator.click({ button: "right", force: true });
-        await page.waitForTimeout(40);
-        await page.keyboard.press("Escape");
-        await page.waitForTimeout(40);
-      }
-      await idleFrame(page, 4);
-    });
+    await recordScenario(
+      page,
+      testInfo,
+      "context-menu-open-close-cycle",
+      async () => {
+        for (let cycleIndex = 0; cycleIndex < 30; cycleIndex++) {
+          const elementLocator = page
+            .locator(targetSelectors[cycleIndex % targetSelectors.length])
+            .first();
+          if ((await elementLocator.count()) === 0) continue;
+          await elementLocator.click({ button: "right", force: true });
+          await page.waitForTimeout(40);
+          await page.keyboard.press("Escape");
+          await page.waitForTimeout(40);
+        }
+        await idleFrame(page, 4);
+      },
+      {
+        // Escape after each cycle dismisses the menu AND deactivates;
+        // re-activate per sample so cycles 2..N still exercise the menu.
+        beforeEachSample: async () => {
+          await reactGrab.activate();
+          await idleFrame(page, 2);
+        },
+      },
+    );
     await reactGrab.deactivate();
   });
 
@@ -353,19 +380,24 @@ test.describe("@perf benchmarks", () => {
   });
 
   test("rapid-toggle-active-inactive @perf", async ({ reactGrab, page }, testInfo) => {
-    // Just activate/deactivate via the API, no other interaction. Strips
-    // away pointermove + hit-test noise so you see the bare activate /
-    // deactivate cost (freeze-pseudo-states install/uninstall,
-    // freeze-animations attach/remove, freezeUpdates pause/resume).
+    // Just activate/deactivate via the bare API — no Escape keypress, no
+    // pointer interaction — so the measurement is purely the install/
+    // uninstall cost of freeze-pseudo-states + freeze-animations +
+    // freezeUpdates. Using `reactGrab.deactivate()` here would route
+    // through `page.keyboard.press("Escape")`, which adds keydown event
+    // dispatch + Event Timing INP overhead to every cycle.
+    // reactGrab is destructured solely to trigger the fixture that
+    // navigates the page to "/" before the scenario runs.
+    void reactGrab;
     await recordScenario(
       page,
       testInfo,
       "rapid-toggle-active-inactive",
       async () => {
         for (let cycleIndex = 0; cycleIndex < 80; cycleIndex++) {
-          await reactGrab.activate();
+          await page.evaluate(() => window.__REACT_GRAB__?.activate?.());
           await idleFrame(page, 1);
-          await reactGrab.deactivate();
+          await page.evaluate(() => window.__REACT_GRAB__?.deactivate?.());
           await idleFrame(page, 1);
         }
         await idleFrame(page, 4);
@@ -441,22 +473,30 @@ test.describe("@perf benchmarks", () => {
     // candidate count.
     await goToPerfGrid(page);
 
-    await reactGrab.activate();
-    await idleFrame(page, 2);
-
-    await recordScenario(page, testInfo, "large-drag-selection", async () => {
-      const viewport = page.viewportSize() ?? { width: 1280, height: 720 };
-      for (let dragIndex = 0; dragIndex < 8; dragIndex++) {
-        await page.mouse.move(20, 80, { steps: 1 });
-        await page.mouse.down();
-        await page.mouse.move(viewport.width - 40, viewport.height - 40, { steps: 16 });
-        await page.mouse.up();
-        await page.waitForTimeout(80);
-        await page.keyboard.press("Escape");
-        await page.waitForTimeout(40);
-      }
-      await idleFrame(page, 4);
-    });
+    await recordScenario(
+      page,
+      testInfo,
+      "large-drag-selection",
+      async () => {
+        const viewport = page.viewportSize() ?? { width: 1280, height: 720 };
+        for (let dragIndex = 0; dragIndex < 8; dragIndex++) {
+          await page.mouse.move(20, 80, { steps: 1 });
+          await page.mouse.down();
+          await page.mouse.move(viewport.width - 40, viewport.height - 40, { steps: 16 });
+          await page.mouse.up();
+          await page.waitForTimeout(80);
+          await page.keyboard.press("Escape");
+          await page.waitForTimeout(40);
+        }
+        await idleFrame(page, 4);
+      },
+      {
+        beforeEachSample: async () => {
+          await reactGrab.activate();
+          await idleFrame(page, 2);
+        },
+      },
+    );
   });
 
   test("deep-element-stack-hover @perf", async ({ reactGrab, page, perfDom }, testInfo) => {
@@ -535,26 +575,34 @@ test.describe("@perf benchmarks", () => {
     // scroll path that runs concurrently with the drag.
     await goToPerfGrid(page);
 
-    await reactGrab.activate();
-    await idleFrame(page, 2);
-
-    await recordScenario(page, testInfo, "drag-with-autoscroll", async () => {
-      const viewport = page.viewportSize() ?? { width: 1280, height: 720 };
-      // Five long drags ending near the bottom edge so autoscroll engages
-      // for the tail of each drag.
-      for (let dragIndex = 0; dragIndex < 5; dragIndex++) {
-        await page.mouse.move(60, 80, { steps: 1 });
-        await page.mouse.down();
-        await page.mouse.move(viewport.width - 60, viewport.height - 12, { steps: 30 });
-        // Hold at the edge so autoscroll keeps firing.
-        await page.waitForTimeout(400);
-        await page.mouse.up();
-        await page.waitForTimeout(80);
-        await page.keyboard.press("Escape");
-        await page.waitForTimeout(40);
-      }
-      await idleFrame(page, 4);
-    });
+    await recordScenario(
+      page,
+      testInfo,
+      "drag-with-autoscroll",
+      async () => {
+        const viewport = page.viewportSize() ?? { width: 1280, height: 720 };
+        // Five long drags ending near the bottom edge so autoscroll engages
+        // for the tail of each drag.
+        for (let dragIndex = 0; dragIndex < 5; dragIndex++) {
+          await page.mouse.move(60, 80, { steps: 1 });
+          await page.mouse.down();
+          await page.mouse.move(viewport.width - 60, viewport.height - 12, { steps: 30 });
+          // Hold at the edge so autoscroll keeps firing.
+          await page.waitForTimeout(400);
+          await page.mouse.up();
+          await page.waitForTimeout(80);
+          await page.keyboard.press("Escape");
+          await page.waitForTimeout(40);
+        }
+        await idleFrame(page, 4);
+      },
+      {
+        beforeEachSample: async () => {
+          await reactGrab.activate();
+          await idleFrame(page, 2);
+        },
+      },
+    );
   });
 
   test("drag-rapid-zigzag @perf", async ({ reactGrab, page }, testInfo) => {
@@ -563,25 +611,33 @@ test.describe("@perf benchmarks", () => {
     // moves at full resolution.
     await goToPerfGrid(page);
 
-    await reactGrab.activate();
-    await idleFrame(page, 2);
-
-    await recordScenario(page, testInfo, "drag-rapid-zigzag", async () => {
-      for (let dragIndex = 0; dragIndex < 6; dragIndex++) {
-        await page.mouse.move(200, 200, { steps: 1 });
-        await page.mouse.down();
-        for (let zigIndex = 0; zigIndex < 12; zigIndex++) {
-          await page.mouse.move(200 + (zigIndex % 2 === 0 ? 400 : -50), 200 + zigIndex * 30, {
-            steps: 4,
-          });
+    await recordScenario(
+      page,
+      testInfo,
+      "drag-rapid-zigzag",
+      async () => {
+        for (let dragIndex = 0; dragIndex < 6; dragIndex++) {
+          await page.mouse.move(200, 200, { steps: 1 });
+          await page.mouse.down();
+          for (let zigIndex = 0; zigIndex < 12; zigIndex++) {
+            await page.mouse.move(200 + (zigIndex % 2 === 0 ? 400 : -50), 200 + zigIndex * 30, {
+              steps: 4,
+            });
+          }
+          await page.mouse.up();
+          await page.waitForTimeout(60);
+          await page.keyboard.press("Escape");
+          await page.waitForTimeout(40);
         }
-        await page.mouse.up();
-        await page.waitForTimeout(60);
-        await page.keyboard.press("Escape");
-        await page.waitForTimeout(40);
-      }
-      await idleFrame(page, 4);
-    });
+        await idleFrame(page, 4);
+      },
+      {
+        beforeEachSample: async () => {
+          await reactGrab.activate();
+          await idleFrame(page, 2);
+        },
+      },
+    );
   });
 
   // ─── Copy / multi-select variants ──────────────────────────────────
@@ -592,9 +648,6 @@ test.describe("@perf benchmarks", () => {
     // per-element stack symbolication.
     await goToPerfGrid(page);
     const gridPoints = await getPerfGridCenters(page, 20);
-
-    await reactGrab.activate();
-    await idleFrame(page, 2);
 
     await recordScenario(
       page,
@@ -615,7 +668,15 @@ test.describe("@perf benchmarks", () => {
         await page.waitForTimeout(200);
         await idleFrame(page, 4);
       },
-      { samples: 2 },
+      {
+        samples: 2,
+        // Cmd+Enter copies, then deactivates after Copied… fades —
+        // re-activate per sample so sample 2 still has a fresh selection.
+        beforeEachSample: async () => {
+          await reactGrab.activate();
+          await idleFrame(page, 2);
+        },
+      },
     );
     await page.keyboard.press("Escape");
   });
@@ -681,26 +742,37 @@ test.describe("@perf benchmarks", () => {
   test("context-menu-arrow-navigation @perf", async ({ reactGrab, page }, testInfo) => {
     // Open the context menu and walk its items via arrow keys. Each
     // press re-positions the menu-highlight and may scroll the menu.
-    await reactGrab.activate();
     const target = page.locator("[data-testid='nested-card']").first();
     if ((await target.count()) === 0) {
       test.skip(true, "no nested-card target");
       return;
     }
 
-    await recordScenario(page, testInfo, "context-menu-arrow-navigation", async () => {
-      for (let cycleIndex = 0; cycleIndex < 10; cycleIndex++) {
-        await target.click({ button: "right", force: true });
-        await page.waitForTimeout(60);
-        for (let pressIndex = 0; pressIndex < 6; pressIndex++) {
-          await page.keyboard.press(pressIndex % 2 === 0 ? "ArrowDown" : "ArrowUp");
-          await page.waitForTimeout(16);
+    await recordScenario(
+      page,
+      testInfo,
+      "context-menu-arrow-navigation",
+      async () => {
+        for (let cycleIndex = 0; cycleIndex < 10; cycleIndex++) {
+          await target.click({ button: "right", force: true });
+          await page.waitForTimeout(60);
+          for (let pressIndex = 0; pressIndex < 6; pressIndex++) {
+            await page.keyboard.press(pressIndex % 2 === 0 ? "ArrowDown" : "ArrowUp");
+            await page.waitForTimeout(16);
+          }
+          await page.keyboard.press("Escape");
+          await page.waitForTimeout(40);
         }
-        await page.keyboard.press("Escape");
-        await page.waitForTimeout(40);
-      }
-      await idleFrame(page, 4);
-    });
+        await idleFrame(page, 4);
+      },
+      {
+        // Escape after each cycle dismisses the menu AND deactivates.
+        beforeEachSample: async () => {
+          await reactGrab.activate();
+          await idleFrame(page, 2);
+        },
+      },
+    );
     await reactGrab.deactivate();
   });
 

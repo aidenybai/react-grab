@@ -17,11 +17,11 @@
       "maxBlocking": 0
     },
     "frames": {
-      "count": 226,
+      "count": 226.5,
       "mean": 16.666,
-      "stddev": 0.061,
+      "stddev": 0.056,
       "median": 16.7,
-      "p95": 16.8,
+      "p95": 16.75,
       "max": 16.8
     }
   },
@@ -41,9 +41,9 @@
         "maxBlocking": 0
       },
       "frames": {
-        "count": 225,
+        "count": 227,
         "mean": 16.666,
-        "stddev": 0.061,
+        "stddev": 0.058,
         "median": 16.7,
         "p95": 16.8,
         "max": 16.8
@@ -66,9 +66,9 @@
       "frames": {
         "count": 226,
         "mean": 16.666,
-        "stddev": 0.06,
+        "stddev": 0.054,
         "median": 16.7,
-        "p95": 16.8,
+        "p95": 16.7,
         "max": 16.8
       }
     }
@@ -89,10 +89,12 @@
     },
     "frames": {
       "count": 226,
+      "mean": 16.666,
+      "stddev": 0.061,
       "median": 16.7,
       "p95": 16.8,
       "max": 16.8
     }
   },
-  "recordedAt": "2026-05-23T00:20:12.476Z"
+  "recordedAt": "2026-05-23T03:04:31.998Z"
 }
