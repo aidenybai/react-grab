@@ -1,15 +1,16 @@
 import type { Plugin } from "../../types.js";
 
-export const commentPlugin: Plugin = {
-  name: "comment",
+export const editPlugin: Plugin = {
+  name: "edit",
   setup: () => ({
     actions: [
       {
-        id: "comment",
-        label: "Comment",
+        id: "edit",
+        label: "Edit",
+        shortcut: "Enter",
         showInToolbarMenu: true,
         onAction: (context) => {
-          context.enterPromptMode?.();
+          context.enterEditMode?.();
         },
       },
     ],

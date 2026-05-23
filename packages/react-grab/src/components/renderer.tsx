@@ -13,6 +13,7 @@ import { OverlayCanvas } from "./overlay-canvas.js";
 import { SelectionLabel } from "./selection-label/index.js";
 import { Toolbar } from "./toolbar/index.js";
 import { ContextMenu } from "./context-menu.js";
+import { EditPanel } from "./edit-panel/index.js";
 import { ToolbarMenu } from "./toolbar/toolbar-menu.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
@@ -48,7 +49,13 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           "box-shadow": `inset 0 0 ${FROZEN_GLOW_EDGE_PX}px ${FROZEN_GLOW_COLOR}`,
         }}
       />
-      <Show when={props.selectionLabelVisible && (props.frozenLabelEntries?.length ?? 0) > 0}>
+      <Show
+        when={
+          !props.editPanelState &&
+          props.selectionLabelVisible &&
+          (props.frozenLabelEntries?.length ?? 0) > 0
+        }
+      >
         <Index each={props.frozenLabelEntries ?? []}>
           {(entry, entryIndex) => (
             <SelectionLabel
@@ -63,7 +70,11 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           )}
         </Index>
       </Show>
-      <Show when={props.selectionLabelVisible && props.pendingShiftPreviewEntry}>
+      <Show
+        when={
+          !props.editPanelState && props.selectionLabelVisible && props.pendingShiftPreviewEntry
+        }
+      >
         {(pendingEntry) => (
           <SelectionLabel
             tagName={pendingEntry().tagName}
@@ -76,6 +87,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
       </Show>
       <Show
         when={
+          !props.editPanelState &&
           props.selectionLabelVisible &&
           props.selectionBounds &&
           (props.frozenLabelEntries?.length ?? 0) === 0
@@ -170,6 +182,11 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         defaultActionId={props.defaultActionId ?? DEFAULT_ACTION_ID}
         onSetDefaultAction={props.onSetDefaultAction ?? (() => {})}
         onDismiss={props.onToolbarMenuDismiss ?? (() => {})}
+      />
+      <EditPanel
+        state={props.editPanelState ?? null}
+        onDismiss={props.onEditPanelDismiss ?? (() => {})}
+        onSubmit={props.onEditPanelSubmit ?? (() => {})}
       />
     </>
   );

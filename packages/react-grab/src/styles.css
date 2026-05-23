@@ -285,3 +285,17 @@
     font-size: 16px;
   }
 }
+
+/* Cross-browser scrollbar suppression. Inline style="scrollbar-width:none"
+   covers Firefox and modern Chrome/Safari, but the legacy ::-webkit-scrollbar
+   pseudo-element still has to be hidden via CSS rule. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+}

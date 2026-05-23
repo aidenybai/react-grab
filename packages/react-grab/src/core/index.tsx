@@ -109,7 +109,9 @@ import type {
   ToolbarState,
   DropdownAnchor,
   ElementLabelVariant,
+  EditPanelState,
 } from "../types.js";
+import { buildEditableProperties } from "../utils/build-editable-properties.js";
 import { DEFAULT_THEME } from "./theme.js";
 import { createPluginRegistry } from "./plugin-registry.js";
 import { createArrowNavigator } from "./arrow-navigation.js";
@@ -123,6 +125,7 @@ import { isPositionInsideBounds } from "../utils/is-position-inside-bounds.js";
 import { loadToolbarState, saveToolbarState } from "../components/toolbar/state.js";
 import { copyPlugin } from "./plugins/copy.js";
 import { commentPlugin } from "./plugins/comment.js";
+import { editPlugin } from "./plugins/edit.js";
 import { openPlugin } from "./plugins/open.js";
 import {
   freezeAnimations,
@@ -137,7 +140,7 @@ import { generateId } from "../utils/generate-id.js";
 import { logRecoverableError } from "../utils/log-recoverable-error.js";
 import { getNearestEdge } from "../utils/get-nearest-edge.js";
 
-const builtInPlugins = [copyPlugin, commentPlugin, openPlugin];
+const builtInPlugins = [copyPlugin, editPlugin, commentPlugin, openPlugin];
 
 interface CopyWithLabelOptions {
   element: Element;
@@ -281,6 +284,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
     const [isToolbarSelectHovered, setIsToolbarSelectHovered] = createSignal(false);
     const [toolbarMenuPosition, setToolbarMenuPosition] = createSignal<DropdownAnchor | null>(null);
+    const [editPanelState, setEditPanelState] = createSignal<EditPanelState | null>(null);
     let toolbarElement: HTMLDivElement | undefined;
     let dropdownTrackingFrameId: number | null = null;
 
@@ -1531,10 +1535,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleToggleExpand = () => {
       const element = store.frozenElement || targetElement();
-      if (element) {
-        preparePromptMode(element, pointer().x, pointer().y);
-      }
-      activatePromptMode();
+      if (!element) return;
+      triggerEditMode(element, { x: pointer().x, y: pointer().y });
     };
 
     const handleToggleActive = () => {
@@ -2107,6 +2109,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       // keys also re-select a different page element and reposition
       // the menu over it.
       if (store.contextMenuPosition !== null) return false;
+      // Same applies to the edit panel — arrows are owned by its
+      // value tweaker and would otherwise re-select page elements.
+      if (editPanelState() !== null) return false;
 
       let currentElement = effectiveElement();
       const isInitialSelection = !currentElement;
@@ -2172,16 +2177,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         event.stopImmediatePropagation();
 
         const center = getBoundsCenter(createElementBounds(copiedElement));
-
-        actions.setPointer(center);
-        preparePromptMode(copiedElement, center.x, center.y);
-        actions.setFrozenElement(copiedElement);
         actions.clearLastCopied();
-
-        activatePromptMode();
-        if (!isActivated()) {
-          activateRenderer();
-        }
+        const opened = triggerEditMode(copiedElement, center);
+        if (!opened) return false;
         return true;
       }
 
@@ -2192,25 +2190,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         event.stopImmediatePropagation();
 
         const element = store.frozenElement || targetElement();
-        if (element) {
-          preparePromptMode(element, pointer().x, pointer().y);
-        }
-
-        actions.setPointer({ x: pointer().x, y: pointer().y });
-        if (element) {
-          actions.setFrozenElement(element);
-        }
-        activatePromptMode();
+        if (!element) return false;
 
         if (keydownSpamTimerId !== null) {
           window.clearTimeout(keydownSpamTimerId);
           keydownSpamTimerId = null;
         }
 
-        if (!isActivated()) {
-          activateRenderer();
-        }
-
+        const opened = triggerEditMode(element, { x: pointer().x, y: pointer().y });
+        if (!opened) return false;
         return true;
       }
 
@@ -2603,6 +2591,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.setTouchMode(isTouchPointer);
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
+        if (editPanelState() !== null) return;
         if (isSelectionInteractionLocked()) return;
         if (isTouchPointer && !isHoldingKeys() && !isActivated()) return;
         const isActiveState = isTouchPointer ? isHoldingKeys() : isActivated();
@@ -2634,6 +2623,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
         if (toolbarMenuPosition() !== null) return;
+        if (editPanelState() !== null) return;
 
         if (isPromptMode()) {
           const bounds = selectionBounds();
@@ -2677,6 +2667,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (!event.isPrimary) return;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
+        if (editPanelState() !== null) return;
         const isActive = isRendererActive() || isSelectionInteractionLocked() || isDragging();
         const hasModifierKeyHeld = event.metaKey || event.ctrlKey;
         handlePointerUp(event.clientX, event.clientY, hasModifierKeyHeld, event.shiftKey);
@@ -2744,6 +2735,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (event: MouseEvent) => {
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
+        if (editPanelState() !== null) return;
 
         if (isRendererActive() || didJustDrag()) {
           event.preventDefault();
@@ -3305,6 +3297,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         hideContextMenuAction();
       };
 
+      const enterEditModeAction = () => {
+        triggerEditMode(element, position, {
+          filePath,
+          lineNumber,
+          componentName,
+          tagName,
+        });
+        hideContextMenuAction();
+      };
+
       const context: ContextMenuActionContext = {
         element,
         elements,
@@ -3313,6 +3315,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         componentName,
         tagName,
         enterPromptMode: customEnterPromptMode ?? defaultEnterPromptMode,
+        enterEditMode: enterEditModeAction,
         copy: copyAction,
         hooks: {
           transformHtmlContent: pluginRegistry.hooks.transformHtmlContent,
@@ -3417,8 +3420,84 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setToolbarMenuPosition(null);
     };
 
+    const dismissEditPanel = () => {
+      const state = editPanelState();
+      if (!state) return;
+      setEditPanelState(null);
+      if (store.wasActivatedByToggle) {
+        deactivateRenderer();
+      } else {
+        actions.unfreeze();
+      }
+    };
+
+    const handleEditPanelSubmit = (prompt: string) => {
+      const state = editPanelState();
+      if (!state) return;
+      const element = state.element;
+      // Clear the panel state first so the renderer hides EditPanel before
+      // the copy-feedback label takes over the same anchor position.
+      setEditPanelState(null);
+      performCopyWithLabel({
+        element,
+        cursorX: state.position.x,
+        extraPrompt: prompt || undefined,
+        shouldDeactivateAfter: store.wasActivatedByToggle,
+      });
+    };
+
+    interface TriggerEditModeOptions {
+      filePath?: string;
+      lineNumber?: number;
+      componentName?: string;
+      tagName?: string;
+    }
+
+    const triggerEditMode = (
+      element: Element,
+      position: Position,
+      overrides: TriggerEditModeOptions = {},
+    ): boolean => {
+      const properties = buildEditableProperties(element);
+      if (properties.length === 0) return false;
+      const bounds = createElementBounds(element);
+      const resolvedTag = overrides.tagName ?? getTagName(element);
+      const resolvedFilePath = overrides.filePath ?? store.selectionFilePath ?? undefined;
+      const resolvedLineNumber = overrides.lineNumber ?? store.selectionLineNumber ?? undefined;
+      setEditPanelState({
+        element,
+        position,
+        selectionBounds: bounds,
+        properties,
+        filePath: resolvedFilePath,
+        lineNumber: resolvedLineNumber,
+        componentName: overrides.componentName,
+        tagName: resolvedTag,
+      });
+
+      void getNearestComponentName(element).then((nearestName) => {
+        if (!nearestName) return;
+        setEditPanelState((current) => {
+          if (!current || current.element !== element || current.componentName) return current;
+          return { ...current, componentName: nearestName };
+        });
+      });
+      // Order matters: actions.freeze() is a no-op unless the state machine is
+      // already "active", so the renderer must activate first.
+      if (!isActivated()) {
+        activateRenderer();
+      }
+      actions.setPointer(position);
+      actions.setFrozenElement(element);
+      actions.freeze();
+      return true;
+    };
+
     const dismissAllPopups = () => {
       dismissToolbarMenu();
+      if (editPanelState() !== null) {
+        dismissEditPanel();
+      }
     };
 
     const handleToggleToolbarMenu = () => {
@@ -3569,6 +3648,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 onSetDefaultAction={handleSetDefaultAction}
                 onToggleToolbarMenu={handleToggleToolbarMenu}
                 onToolbarMenuDismiss={dismissToolbarMenu}
+                editPanelState={editPanelState()}
+                onEditPanelDismiss={dismissEditPanel}
+                onEditPanelSubmit={handleEditPanelSubmit}
               />
             );
           }, rendererRoot);

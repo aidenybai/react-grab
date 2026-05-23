@@ -155,6 +155,32 @@ export interface ActionContext {
 
 export interface ContextMenuActionContext extends ActionContext {
   copy?: () => void;
+  enterEditMode?: () => void;
+}
+
+export interface EditableProperty {
+  label: string;
+  property: string;
+  min: number;
+  max: number;
+  value: number;
+  original: number;
+  unit: string;
+  tailwindAliases?: string[];
+  prioritized?: boolean;
+  isDefault?: boolean;
+}
+
+export interface EditPanelState {
+  element: Element;
+  position: Position;
+  selectionBounds: OverlayBounds;
+  properties: EditableProperty[];
+  filePath?: string;
+  lineNumber?: number;
+  componentName?: string;
+  tagName?: string;
+  htmlPreview?: string;
 }
 
 export interface ContextMenuAction {
@@ -399,6 +425,9 @@ export interface ReactGrabRendererProps {
   onSetDefaultAction?: (actionId: string) => void;
   onToggleToolbarMenu?: () => void;
   onToolbarMenuDismiss?: () => void;
+  editPanelState?: EditPanelState | null;
+  onEditPanelDismiss?: () => void;
+  onEditPanelSubmit?: (prompt: string) => void;
 }
 
 export interface GrabbedBox {
