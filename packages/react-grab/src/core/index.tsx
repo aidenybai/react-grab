@@ -2104,6 +2104,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const heldKeyboardPointerKeys = new Set<string>();
     let keyboardPointerRafId: number | null = null;
     let keyboardPointerLastTimestamp = 0;
+    let isKeyboardPointerSuppressed = false;
 
     const stopKeyboardPointerMovement = () => {
       if (keyboardPointerRafId !== null) {
@@ -2169,6 +2170,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const releaseKeyboardPointerMovement = () => {
       heldKeyboardPointerKeys.clear();
       stopKeyboardPointerMovement();
+      isKeyboardPointerSuppressed = false;
     };
 
     const handleKeyboardPointerMovement = (event: KeyboardEvent): boolean => {
@@ -2177,6 +2179,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isDragging()) return false;
       if (!ARROW_KEYS.has(event.key)) return false;
       if (store.contextMenuPosition !== null) return false;
+
+      // Tab took priority while these arrow keys were still held; track
+      // releases so we know when all are up, but never restart the rAF
+      // or unfreeze, so the ancestor selection survives.
+      if (isKeyboardPointerSuppressed) {
+        heldKeyboardPointerKeys.add(event.key);
+        event.preventDefault();
+        event.stopPropagation();
+        return true;
+      }
 
       if (heldKeyboardPointerKeys.size === 0) {
         const seedElement = effectiveElement();
@@ -2219,10 +2231,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (heldKeyboardPointerKeys.size === 0) {
         stopKeyboardPointerMovement();
 
-        const restingPointer = pointer();
-        const elementAtPointer = getElementAtPosition(restingPointer.x, restingPointer.y);
-        if (elementAtPointer && isValidGrabbableElement(elementAtPointer)) {
-          selectAndFocusElement(elementAtPointer);
+        if (isKeyboardPointerSuppressed) {
+          isKeyboardPointerSuppressed = false;
+        } else {
+          const restingPointer = pointer();
+          const elementAtPointer = getElementAtPosition(restingPointer.x, restingPointer.y);
+          if (elementAtPointer && isValidGrabbableElement(elementAtPointer)) {
+            selectAndFocusElement(elementAtPointer);
+          }
         }
       }
 
@@ -2237,6 +2253,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isShiftMultiSelecting()) return false;
       if (isDragging()) return false;
       if (store.contextMenuPosition !== null) return false;
+
+      // If arrow keys are still physically held, halt the rAF and mark the
+      // movement suppressed so subsequent keydown repeats and the eventual
+      // keyup don't reactivate the loop or snap-freeze over the ancestor
+      // selection. heldKeyboardPointerKeys stays populated so we can detect
+      // when every arrow has actually been released.
+      if (heldKeyboardPointerKeys.size > 0 || keyboardPointerRafId !== null) {
+        stopKeyboardPointerMovement();
+        if (heldKeyboardPointerKeys.size > 0) {
+          isKeyboardPointerSuppressed = true;
+        }
+      }
 
       let currentElement = effectiveElement();
       if (!currentElement) {

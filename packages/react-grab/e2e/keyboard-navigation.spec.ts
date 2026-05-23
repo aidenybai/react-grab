@@ -165,6 +165,34 @@ test.describe("Keyboard Pointer Movement", () => {
     expect(afterMoveLabel.componentName).toBe(restingLabel.componentName);
   });
 
+  test("Tab while arrow key is still held should preserve the ancestor selection", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
+    await reactGrab.waitForSelectionBox();
+
+    const startLabel = await reactGrab.getSelectionLabelInfo();
+    expect(startLabel.tagName).toBe("li");
+
+    await reactGrab.page.keyboard.down("ArrowDown");
+    await reactGrab.page.waitForTimeout(300);
+
+    await reactGrab.page.keyboard.press("Tab");
+    await reactGrab.waitForSelectionBox();
+
+    const afterTabLabel = await reactGrab.getSelectionLabelInfo();
+    expect(afterTabLabel.tagName).not.toBe("li");
+
+    await reactGrab.page.waitForTimeout(150);
+    await reactGrab.page.keyboard.up("ArrowDown");
+    await reactGrab.page.waitForTimeout(150);
+
+    const afterReleaseLabel = await reactGrab.getSelectionLabelInfo();
+    expect(afterReleaseLabel.tagName).toBe(afterTabLabel.tagName);
+    expect(afterReleaseLabel.componentName).toBe(afterTabLabel.componentName);
+  });
+
   test("multiple arrow keys held together keep selection visible", async ({ reactGrab }) => {
     await reactGrab.activate();
     await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
