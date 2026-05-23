@@ -634,8 +634,21 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
       shouldIgnoreRightClick: true,
     });
 
+    // Window-level keydown so arrow/Enter/Esc work regardless of where
+    // focus actually lives — in compact mode the search textarea is
+    // hidden 0×0 and some browsers blur it, which would otherwise
+    // strand the keyboard handler. We still run handleSearchKeyDown
+    // when the textarea IS focused too, since stopImmediatePropagation
+    // there prevents double-processing.
+    const handleWindowKeyDown = (event: KeyboardEvent) => {
+      if (!isVisible()) return;
+      handleSearchKeyDown(event);
+    };
+    window.addEventListener("keydown", handleWindowKeyDown, { capture: true });
+
     onCleanup(() => {
       unregisterDismiss();
+      window.removeEventListener("keydown", handleWindowKeyDown, { capture: true });
       clearTimeout(activeKeyTimerId);
       clearTimeout(adjustingIdleTimerId);
       clearTimeout(interactingIdleTimerId);
