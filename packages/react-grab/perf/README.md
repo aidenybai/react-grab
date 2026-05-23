@@ -1,6 +1,6 @@
 # Perf bench
 
-The 29 `@perf` scenarios in `e2e/perf-bench.spec.ts` run under the same Playwright project as the rest of the e2e suite and capture browser-native signals per scenario via `e2e/perf-recorder.ts`:
+The 25 `@perf` scenarios in `e2e/perf-bench.spec.ts` run under the same Playwright project as the rest of the e2e suite and capture browser-native signals per scenario via `e2e/perf-recorder.ts`:
 
 - **INP** — 98th-percentile worst `interactionId` duration (web-vitals convention).
 - **Long Tasks** — count / sum / max from `PerformanceObserver({ entryType: "longtask" })`.
@@ -11,19 +11,23 @@ Per-sample median across N samples (default 3, configurable per scenario; js-fra
 
 ## Commands
 
+Run from `packages/react-grab/` (the `test:perf*` scripts live in that package's `package.json`; the repo root has no equivalents):
+
 ```bash
-pnpm test                                     # everything, perf scenarios included
+pnpm test                                     # everything, perf scenarios included (root or package)
 pnpm test:perf                                # only @perf scenarios via --grep
 pnpm test:perf:baseline                       # writes perf/baseline/<scenario>.json
 PERF_LABEL=feature pnpm test:perf             # writes perf/feature/<scenario>.json
 PERF_TRACE=1 pnpm test:perf --grep <name>     # also dumps perf/<label>/<scenario>.trace.json
 # Drop the .trace.json into Chrome DevTools "Performance" panel for the full flame chart.
-# Pair with `pnpm --filter react-grab build:profiling` so symbols are unminified.
+# Pair with `pnpm build:profiling` (or `pnpm --filter react-grab build:profiling` from root) so symbols are unminified.
 ```
 
 ## Baselines are machine-local
 
-`perf/baseline/`, `perf/current/`, and any custom `perf/<label>/` directories are all `.gitignore`d. **Nothing in this directory is committed.** That's intentional — headless Chromium timings on a 4-core Linux runner look nothing like an M-series Mac. Committing one machine's numbers as the canonical baseline would be misleading the moment anyone else opened the file.
+`perf/<label>/*.json` and `*.trace.json` are gitignored (see `perf/.gitignore`), so per-run bench outputs and CDP traces stay local. **Per-scenario baselines aren't committed.** That's intentional — headless Chromium timings on a 4-core Linux runner look nothing like an M-series Mac. Committing one machine's numbers as the canonical baseline would be misleading the moment anyone else opened the file.
+
+(The `stage-*.json` files at the top of `perf/` are an exception: they're snapshots of an older deopt-trace bench kept as historical context for prior optimization passes, not active baselines for this suite.)
 
 The intended workflow is:
 
@@ -64,10 +68,10 @@ Drag:
 `drag-selection-sweep` · `large-drag-selection` · `drag-with-autoscroll` · `drag-rapid-zigzag`
 
 Copy / multi-select:
-`activate-click-copy-escape-cycle` · `copy-then-deactivate-stress` · `copy-multi-element-batch` · `shift-multi-select-burst`
+`copy-then-deactivate-stress` · `copy-multi-element-batch`
 
 Keyboard / menu:
-`arrow-key-tree-navigation` · `keyboard-rapid-arrows` · `context-menu-open-close-cycle` · `context-menu-arrow-navigation`
+`keyboard-rapid-arrows` · `context-menu-open-close-cycle` · `context-menu-arrow-navigation`
 
 Other:
-`prompt-mode-typing` · `toolbar-drag-to-edges` · `toolbar-collapse-expand-cycle` · `dom-mutation-during-selection` · `dom-rerender-during-selection` · `scroll-during-selection` · `viewport-resize-during-selection`
+`prompt-mode-typing` · `toolbar-drag-to-edges` · `toolbar-collapse-expand-cycle` · `dom-rerender-during-selection` · `scroll-during-selection` · `viewport-resize-during-selection`
