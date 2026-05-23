@@ -17,7 +17,9 @@
       "maxBlocking": 0
     },
     "frames": {
-      "count": 47,
+      "count": 44,
+      "mean": 16.667,
+      "stddev": 0.064,
       "median": 16.7,
       "p95": 16.8,
       "max": 16.8
@@ -39,9 +41,11 @@
         "maxBlocking": 0
       },
       "frames": {
-        "count": 47,
+        "count": 44,
+        "mean": 16.667,
+        "stddev": 0.059,
         "median": 16.7,
-        "p95": 16.8,
+        "p95": 16.7,
         "max": 16.8
       }
     },
@@ -60,12 +64,35 @@
         "maxBlocking": 0
       },
       "frames": {
-        "count": 45,
+        "count": 43,
+        "mean": 16.667,
+        "stddev": 0.064,
         "median": 16.7,
-        "p95": 16.7,
+        "p95": 16.8,
         "max": 16.8
       }
     }
   ],
-  "recordedAt": "2026-05-22T23:55:16.202Z"
+  "baseline": {
+    "inp": 0,
+    "interactions": 0,
+    "longTasks": {
+      "count": 0,
+      "sum": 0,
+      "max": 0
+    },
+    "longAnimationFrames": {
+      "count": 0,
+      "sum": 0,
+      "max": 0,
+      "maxBlocking": 0
+    },
+    "frames": {
+      "count": 47,
+      "median": 16.7,
+      "p95": 16.8,
+      "max": 16.8
+    }
+  },
+  "recordedAt": "2026-05-23T00:19:17.644Z"
 }

@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { CDPSession, Page, TestInfo } from "@playwright/test";
@@ -22,6 +22,8 @@ export interface PerfRawSnapshot {
 
 export interface PerfStatsSummary {
   count: number;
+  mean: number;
+  stddev: number;
   median: number;
   p95: number;
   max: number;
@@ -143,12 +145,21 @@ const installPerfRecorderScript = (): void => {
 };
 
 const summarize = (values: number[]): PerfStatsSummary => {
-  if (values.length === 0) return { count: 0, median: 0, p95: 0, max: 0 };
+  if (values.length === 0) {
+    return { count: 0, mean: 0, stddev: 0, median: 0, p95: 0, max: 0 };
+  }
   const sortedValues = [...values].sort((a, b) => a - b);
+  const sumOfValues = sortedValues.reduce((accum, value) => accum + value, 0);
+  const meanValue = sumOfValues / sortedValues.length;
+  const variance =
+    sortedValues.reduce((accum, value) => accum + (value - meanValue) ** 2, 0) /
+    sortedValues.length;
   const pickPercentile = (percentile: number): number =>
     sortedValues[Math.min(sortedValues.length - 1, Math.floor(sortedValues.length * percentile))];
   return {
     count: sortedValues.length,
+    mean: Number(meanValue.toFixed(3)),
+    stddev: Number(Math.sqrt(variance).toFixed(3)),
     median: Number(pickPercentile(0.5).toFixed(3)),
     p95: Number(pickPercentile(0.95).toFixed(3)),
     max: Number(sortedValues[sortedValues.length - 1].toFixed(3)),
@@ -278,6 +289,7 @@ export const attachPerfReport = async (
   scenarioName: string,
   aggregate: PerfScenarioAggregate,
   perSample: PerfScenarioAggregate[] = [aggregate],
+  baseline: PerfScenarioAggregate | null = null,
 ): Promise<void> => {
   const runLabel = process.env.PERF_LABEL ?? "current";
   const reportJson = JSON.stringify(
@@ -287,6 +299,7 @@ export const attachPerfReport = async (
       samples: perSample.length,
       aggregate,
       perSample,
+      baseline,
       recordedAt: new Date().toISOString(),
     },
     null,
@@ -341,6 +354,8 @@ const medianAcrossSamples = (samples: PerfScenarioAggregate[]): PerfScenarioAggr
     },
     frames: {
       count: medianOfNumbers(samples.map((sample) => sample.frames.count)),
+      mean: medianOfNumbers(samples.map((sample) => sample.frames.mean)),
+      stddev: medianOfNumbers(samples.map((sample) => sample.frames.stddev)),
       median: medianOfNumbers(samples.map((sample) => sample.frames.median)),
       p95: medianOfNumbers(samples.map((sample) => sample.frames.p95)),
       max: medianOfNumbers(samples.map((sample) => sample.frames.max)),
@@ -353,14 +368,32 @@ const medianAcrossSamples = (samples: PerfScenarioAggregate[]): PerfScenarioAggr
 // report. Runs the body `samples` times (default 3, js-framework-benchmark
 // style) and returns the per-metric median, so single-run noise can't
 // trip soft assertions.
+export const loadCommittedBaseline = async (
+  scenarioName: string,
+): Promise<PerfScenarioAggregate | null> => {
+  const baselinePath = resolve(PACKAGE_PERF_DIR, "baseline", `${scenarioName}.json`);
+  try {
+    const baselineRaw = await readFile(baselinePath, "utf8");
+    const parsed = JSON.parse(baselineRaw) as { aggregate?: PerfScenarioAggregate };
+    return parsed.aggregate ?? null;
+  } catch {
+    return null;
+  }
+};
+
 export const recordScenario = async (
   page: Page,
   testInfo: TestInfo,
   scenarioName: string,
   scenarioBody: () => Promise<void>,
-  options: { samples?: number } = {},
+  options: { samples?: number; baseline?: PerfScenarioAggregate | null } = {},
 ): Promise<PerfScenarioAggregate> => {
   const sampleCount = Math.max(1, options.samples ?? 3);
+  // Auto-load the committed baseline if the caller didn't pass one in
+  // explicitly. The artifact JSON always carries the baseline reference
+  // so diffs are doable straight from the file.
+  const baseline =
+    options.baseline === undefined ? await loadCommittedBaseline(scenarioName) : options.baseline;
   const perSampleAggregates: PerfScenarioAggregate[] = [];
   for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex++) {
     // CDP traces are 5-100MB each; capturing only the first sample keeps
@@ -376,6 +409,6 @@ export const recordScenario = async (
     perSampleAggregates.length === 1
       ? perSampleAggregates[0]
       : medianAcrossSamples(perSampleAggregates);
-  await attachPerfReport(testInfo, scenarioName, medianAggregate, perSampleAggregates);
+  await attachPerfReport(testInfo, scenarioName, medianAggregate, perSampleAggregates, baseline);
   return medianAggregate;
 };

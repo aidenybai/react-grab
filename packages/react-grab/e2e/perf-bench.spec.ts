@@ -6,7 +6,7 @@
 // each scenario also dumps a Chrome trace JSON (load it via DevTools
 // "Performance" panel; pair with `pnpm build:profiling` so symbols are
 // unminified).
-import { expect, test } from "./fixtures.js";
+import { expect, test } from "./perf-fixtures.js";
 import { idleFrame, recordScenario, type PerfScenarioAggregate } from "./perf-recorder.js";
 
 const PERF_GRID_PATH = "/?perf=grid&rows=30&cols=10";
@@ -553,31 +553,12 @@ test.describe("@perf benchmarks", () => {
     logScenario("large-drag-selection", aggregate);
   });
 
-  test("deep-element-stack-hover @perf", async ({ reactGrab, page }, testInfo) => {
-    // Inject 2000 absolutely-positioned divs stacked at one point, then
-    // hover that point. Every hit-test walks the full stack via
-    // elementsFromPoint + isValidGrabbableElement filter. This is the
-    // pathological case for large dense DOMs (per the comment in
-    // pointer-events-freeze.ts about GitHub diff viewers).
-    const stackDepth = 2000;
-    await page.evaluate((depth) => {
-      const previousContainer = document.getElementById("perf-bench-stack-container");
-      previousContainer?.remove();
-      const stackContainer = document.createElement("div");
-      stackContainer.id = "perf-bench-stack-container";
-      stackContainer.style.cssText =
-        "position:fixed;top:200px;left:200px;width:200px;height:200px;z-index:50;";
-      for (let stackIndex = 0; stackIndex < depth; stackIndex++) {
-        const stackedElement = document.createElement("div");
-        stackedElement.setAttribute("data-stack-index", String(stackIndex));
-        // Slight per-element styling so each one has its own computed
-        // style entry (otherwise the engine may optimistically dedupe).
-        stackedElement.style.cssText = `position:absolute;inset:0;background:rgba(${stackIndex % 255},0,0,0.0005);`;
-        stackContainer.appendChild(stackedElement);
-      }
-      document.body.appendChild(stackContainer);
-    }, stackDepth);
-
+  test("deep-element-stack-hover @perf", async ({ reactGrab, page, perfDom }, testInfo) => {
+    // 2000 absolutely-positioned divs stacked at one point. Every hit-test
+    // walks the full stack via elementsFromPoint + isValidGrabbableElement
+    // filter — pathological case for large dense DOMs (per the comment
+    // in pointer-events-freeze.ts about GitHub diff viewers).
+    await perfDom.installDeepStack(2000);
     await reactGrab.activate();
     await idleFrame(page, 2);
 
@@ -593,39 +574,17 @@ test.describe("@perf benchmarks", () => {
       await idleFrame(page, 4);
     });
     await reactGrab.deactivate();
-    await page.evaluate(() => {
-      document.getElementById("perf-bench-stack-container")?.remove();
-    });
     logScenario("deep-element-stack-hover", aggregate);
   });
 
   // ─── DOM-density variants ──────────────────────────────────────────
 
-  test("hover-dense-flat-dom @perf", async ({ reactGrab, page }, testInfo) => {
-    // 3000 small absolutely-positioned divs tiled across the viewport.
-    // Differs from deep-element-stack-hover (stacked at one point) in
-    // that each detection hits a different element, exercising the
-    // bounds cache + isValidGrabbableElement filter at different DOM
-    // depths.
-    const elementCount = 3000;
-    await page.evaluate((targetCount) => {
-      const container = document.createElement("div");
-      container.id = "perf-bench-dense-container";
-      container.style.cssText = "position:fixed;inset:0;pointer-events:auto;";
-      const tileSize = Math.ceil(Math.sqrt(targetCount));
-      for (let elementIndex = 0; elementIndex < targetCount; elementIndex++) {
-        const tileColumn = elementIndex % tileSize;
-        const tileRow = Math.floor(elementIndex / tileSize);
-        const denseElement = document.createElement("div");
-        denseElement.dataset.denseIndex = String(elementIndex);
-        denseElement.style.cssText =
-          `position:absolute;left:${tileColumn * 10}px;top:${tileRow * 10}px;` +
-          `width:10px;height:10px;background:rgba(${elementIndex % 255},80,80,0.05);`;
-        container.appendChild(denseElement);
-      }
-      document.body.appendChild(container);
-    }, elementCount);
-
+  test("hover-dense-flat-dom @perf", async ({ reactGrab, page, perfDom }, testInfo) => {
+    // 3000 small tiles across the viewport — each detection lands on a
+    // different element, exercising bounds-cache + isValidGrabbableElement
+    // filter at different DOM depths (vs. deep-element-stack-hover which
+    // stacks them all at one point).
+    await perfDom.installDenseFlat(3000);
     await reactGrab.activate();
     await idleFrame(page, 2);
 
@@ -641,36 +600,15 @@ test.describe("@perf benchmarks", () => {
       await idleFrame(page, 4);
     });
     await reactGrab.deactivate();
-    await page.evaluate(() => document.getElementById("perf-bench-dense-container")?.remove());
     logScenario("hover-dense-flat-dom", aggregate);
   });
 
-  test("hover-deep-nested-dom @perf", async ({ reactGrab, page }, testInfo) => {
-    // 60-level deep nested divs. Hover at each level so the bounds
-    // accumulator (getAccumulatedTransform) walks the ancestor chain.
-    // MAX_TRANSFORM_ANCESTOR_DEPTH is 6, so beyond that the walk early-
-    // exits — this measures whether the early-exit is actually working.
-    const nestingDepth = 60;
-    await page.evaluate((depth) => {
-      const root = document.createElement("div");
-      root.id = "perf-bench-nested-root";
-      root.style.cssText = "position:fixed;top:200px;left:200px;width:400px;height:400px;";
-      let cursor = root;
-      for (let nestIndex = 0; nestIndex < depth; nestIndex++) {
-        const inner = document.createElement("div");
-        inner.dataset.nestLevel = String(nestIndex);
-        // Apply transforms to some ancestors so the transform accumulator
-        // has actual work to do, not just no-ops.
-        const hasTransform = nestIndex % 5 === 0;
-        inner.style.cssText =
-          `padding:2px;width:${400 - nestIndex * 2}px;height:${400 - nestIndex * 2}px;` +
-          (hasTransform ? `transform:rotate(${nestIndex * 0.1}deg);` : "");
-        cursor.appendChild(inner);
-        cursor = inner;
-      }
-      document.body.appendChild(root);
-    }, nestingDepth);
-
+  test("hover-deep-nested-dom @perf", async ({ reactGrab, page, perfDom }, testInfo) => {
+    // 60-level deep nested divs with periodic transforms. Every detection
+    // walks the chain via getAccumulatedTransform.
+    // MAX_TRANSFORM_ANCESTOR_DEPTH=6 caps the walk; beyond that early-exit
+    // kicks in, which is exactly what this measures.
+    await perfDom.installDeepNested(60);
     await reactGrab.activate();
     await idleFrame(page, 2);
 
@@ -683,7 +621,6 @@ test.describe("@perf benchmarks", () => {
       await idleFrame(page, 4);
     });
     await reactGrab.deactivate();
-    await page.evaluate(() => document.getElementById("perf-bench-nested-root")?.remove());
     logScenario("hover-deep-nested-dom", aggregate);
   });
 
@@ -807,34 +744,11 @@ test.describe("@perf benchmarks", () => {
 
   // ─── Animation density ─────────────────────────────────────────────
 
-  test("activate-with-many-animations @perf", async ({ page }, testInfo) => {
-    // Inject 150 CSS-animated divs, then measure the activate cost
-    // (which runs freezeGlobalAnimations + freezePseudoStates +
-    // freezeUpdates). This isolates the freeze setup cost from the
-    // surrounding scenario.
-    const animationCount = 150;
-    await page.evaluate((count) => {
-      const styleNode = document.createElement("style");
-      styleNode.id = "perf-bench-anim-style";
-      styleNode.textContent = `
-        @keyframes perf-bench-rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @keyframes perf-bench-pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
-      `;
-      document.head.appendChild(styleNode);
-      const container = document.createElement("div");
-      container.id = "perf-bench-anim-container";
-      container.style.cssText = "position:fixed;inset:0;pointer-events:none;";
-      for (let animIndex = 0; animIndex < count; animIndex++) {
-        const animatedElement = document.createElement("div");
-        const animName = animIndex % 2 === 0 ? "perf-bench-rotate" : "perf-bench-pulse";
-        animatedElement.style.cssText =
-          `position:absolute;left:${(animIndex % 30) * 30}px;top:${Math.floor(animIndex / 30) * 30}px;` +
-          `width:20px;height:20px;background:hsl(${animIndex * 7},70%,60%);` +
-          `animation:${animName} 1s linear infinite;`;
-        container.appendChild(animatedElement);
-      }
-      document.body.appendChild(container);
-    }, animationCount);
+  test("activate-with-many-animations @perf", async ({ page, perfDom }, testInfo) => {
+    // 150 CSS-animated divs, then 20 activate/deactivate cycles. Isolates
+    // the freeze-pseudo-states + freeze-animations + freezeUpdates
+    // install/uninstall cost from pointer / detection noise.
+    await perfDom.installCssAnimations(150);
 
     const aggregate = await recordScenario(
       page,
@@ -851,10 +765,6 @@ test.describe("@perf benchmarks", () => {
       },
       { samples: 2 },
     );
-    await page.evaluate(() => {
-      document.getElementById("perf-bench-anim-container")?.remove();
-      document.getElementById("perf-bench-anim-style")?.remove();
-    });
     logScenario("activate-with-many-animations", aggregate);
   });
 

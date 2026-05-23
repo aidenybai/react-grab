@@ -4,6 +4,100 @@
   "samples": 3,
   "aggregate": {
     "inp": 32,
+    "interactions": 50,
+    "longTasks": {
+      "count": 0,
+      "sum": 0,
+      "max": 0
+    },
+    "longAnimationFrames": {
+      "count": 0,
+      "sum": 0,
+      "max": 0,
+      "maxBlocking": 0
+    },
+    "frames": {
+      "count": 429,
+      "mean": 16.666,
+      "stddev": 0.058,
+      "median": 16.7,
+      "p95": 16.7,
+      "max": 16.8
+    }
+  },
+  "perSample": [
+    {
+      "inp": 32,
+      "interactions": 50,
+      "longTasks": {
+        "count": 0,
+        "sum": 0,
+        "max": 0
+      },
+      "longAnimationFrames": {
+        "count": 1,
+        "sum": 83.9,
+        "max": 83.9,
+        "maxBlocking": 0
+      },
+      "frames": {
+        "count": 430,
+        "mean": 16.666,
+        "stddev": 0.058,
+        "median": 16.7,
+        "p95": 16.7,
+        "max": 16.8
+      }
+    },
+    {
+      "inp": 32,
+      "interactions": 47,
+      "longTasks": {
+        "count": 0,
+        "sum": 0,
+        "max": 0
+      },
+      "longAnimationFrames": {
+        "count": 0,
+        "sum": 0,
+        "max": 0,
+        "maxBlocking": 0
+      },
+      "frames": {
+        "count": 425,
+        "mean": 16.666,
+        "stddev": 0.058,
+        "median": 16.7,
+        "p95": 16.8,
+        "max": 16.8
+      }
+    },
+    {
+      "inp": 32,
+      "interactions": 53,
+      "longTasks": {
+        "count": 0,
+        "sum": 0,
+        "max": 0
+      },
+      "longAnimationFrames": {
+        "count": 0,
+        "sum": 0,
+        "max": 0,
+        "maxBlocking": 0
+      },
+      "frames": {
+        "count": 429,
+        "mean": 16.666,
+        "stddev": 0.058,
+        "median": 16.7,
+        "p95": 16.7,
+        "max": 16.8
+      }
+    }
+  ],
+  "baseline": {
+    "inp": 32,
     "interactions": 55,
     "longTasks": {
       "count": 0,
@@ -23,70 +117,5 @@
       "max": 16.8
     }
   },
-  "perSample": [
-    {
-      "inp": 32,
-      "interactions": 55,
-      "longTasks": {
-        "count": 0,
-        "sum": 0,
-        "max": 0
-      },
-      "longAnimationFrames": {
-        "count": 1,
-        "sum": 90.6,
-        "max": 90.6,
-        "maxBlocking": 0
-      },
-      "frames": {
-        "count": 434,
-        "median": 16.7,
-        "p95": 16.8,
-        "max": 16.8
-      }
-    },
-    {
-      "inp": 32,
-      "interactions": 52,
-      "longTasks": {
-        "count": 0,
-        "sum": 0,
-        "max": 0
-      },
-      "longAnimationFrames": {
-        "count": 0,
-        "sum": 0,
-        "max": 0,
-        "maxBlocking": 0
-      },
-      "frames": {
-        "count": 428,
-        "median": 16.7,
-        "p95": 16.7,
-        "max": 16.8
-      }
-    },
-    {
-      "inp": 56,
-      "interactions": 60,
-      "longTasks": {
-        "count": 0,
-        "sum": 0,
-        "max": 0
-      },
-      "longAnimationFrames": {
-        "count": 0,
-        "sum": 0,
-        "max": 0,
-        "maxBlocking": 0
-      },
-      "frames": {
-        "count": 440,
-        "median": 16.7,
-        "p95": 16.7,
-        "max": 16.8
-      }
-    }
-  ],
-  "recordedAt": "2026-05-22T23:52:27.132Z"
+  "recordedAt": "2026-05-23T00:16:29.840Z"
 }
