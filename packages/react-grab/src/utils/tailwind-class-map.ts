@@ -58,9 +58,19 @@ const PROPERTY_ALIASES = ((): Record<string, string[]> => {
   return out;
 })();
 
+// Bracket-aware variant separator: Tailwind arbitrary values like
+// `bg-[url(http://x)]` contain colons inside `[…]`; only colons OUTSIDE
+// any brackets are variant separators.
 const stripTailwindModifiers = (className: string): string => {
-  const colonIndex = className.lastIndexOf(":");
-  const base = colonIndex >= 0 ? className.slice(colonIndex + 1) : className;
+  let bracketDepth = 0;
+  let lastVariantColon = -1;
+  for (let index = 0; index < className.length; index++) {
+    const char = className[index];
+    if (char === "[") bracketDepth++;
+    else if (char === "]") bracketDepth--;
+    else if (char === ":" && bracketDepth === 0) lastVariantColon = index;
+  }
+  const base = lastVariantColon >= 0 ? className.slice(lastVariantColon + 1) : className;
   return base.startsWith("!") ? base.slice(1) : base;
 };
 

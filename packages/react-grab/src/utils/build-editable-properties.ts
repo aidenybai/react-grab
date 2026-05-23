@@ -323,10 +323,10 @@ const isDefaultPropertyValue = (property: EditableProperty): boolean => {
   if (name === "width" || name === "height" || name.startsWith("max-") || name.startsWith("min-")) {
     return true;
   }
-  if (name === "line-height") {
-    // "Default" is approximately font-size × 1.2 (browser "normal" heuristic).
-    return value === 0;
-  }
+  // line-height is always computed (defaults to font-size × 1.2 in browsers).
+  // There's no clean "is at default" heuristic without re-parsing CSS, so we
+  // hide it by default; users surface it via search or a Tailwind class.
+  if (name === "line-height") return true;
   return false;
 };
 

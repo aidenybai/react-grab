@@ -1438,6 +1438,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const previousFocused = store.previouslyFocusedElement;
       stopSpaceDragRepositioning();
       actions.deactivate();
+      // editPanelState must be cleared in lockstep with deactivate(): the
+      // global pointermove/click handlers exit early when it's non-null, so
+      // a stray panel left mounted after deactivation would silently block
+      // every selection until the user re-dismissed it. EditPanel's own
+      // cleanup effect then restores any preview styles via the captured
+      // target-element ref.
+      setEditPanelState(null);
       stopShiftMultiSelecting();
       clearArrowNavigation();
       keyboardSelectedElement = null;

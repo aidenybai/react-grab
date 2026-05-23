@@ -4,9 +4,12 @@ const STORAGE_KEY_PREFIX = "react-grab:edit:";
 
 export type PendingEdits = Record<string, number>;
 
+// Both filePath AND lineNumber are required to disambiguate elements within
+// the same file. Without that, two un-attributed elements would share a
+// storage slot and one's saved edits would restore onto the other.
 const storageKeyFor = (state: EditPanelState): string | null => {
-  if (!state.filePath) return null;
-  return `${STORAGE_KEY_PREFIX}${state.filePath}:${state.lineNumber ?? "?"}`;
+  if (!state.filePath || state.lineNumber === undefined) return null;
+  return `${STORAGE_KEY_PREFIX}${state.filePath}:${state.lineNumber}`;
 };
 
 const readStorage = (): Storage | null => {

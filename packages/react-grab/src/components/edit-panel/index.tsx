@@ -31,6 +31,7 @@ import {
 } from "../../utils/edit-panel-storage.js";
 import { expandCssLonghands } from "../../utils/expand-css-shorthand.js";
 import { cleanNumericValue } from "../../utils/format-display-value.js";
+import { parseNumericValue } from "../../utils/parse-numeric-value.js";
 import { filterPropertiesByQuery } from "../../utils/fuzzy-score-property.js";
 import { formatStyleDiffPrompt, type EditPromptChange } from "../../utils/format-edit-prompt.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
@@ -204,16 +205,19 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
   };
 
   // Pending edits saved on a previous Enter survive across page reloads
-  // until the source code catches up. On open we compare each saved value
-  // against the element's freshly-snapshotted original: matches mean the
-  // agent applied the change for real (drop), mismatches mean the edit is
-  // still pending (re-apply as preview so the user sees their work).
+  // until the source code catches up. The trick is detecting "source has
+  // caught up" — we left inline styles on the element after commit, so
+  // getComputedStyle just reads back our own preview value, not the
+  // source's value. We disambiguate by temporarily removing each saved
+  // property's inline overrides, snapshotting the source-only value,
+  // then re-applying the inline preview if the source hasn't caught up.
   const restorePendingEditsFromStorage = () => {
     const state = props.state;
-    if (!state) return;
+    if (!state || !(state.element instanceof HTMLElement)) return;
     const saved = loadPendingEdits(state);
     if (!saved) return;
 
+    const element = state.element;
     const propertyByKey = new Map(state.properties.map((entry) => [entry.property, entry]));
     const stillPending: Record<string, number> = {};
     const tweaksToApply: Record<string, number> = {};
@@ -221,7 +225,8 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
     for (const [propertyKey, savedValue] of Object.entries(saved)) {
       const property = propertyByKey.get(propertyKey);
       if (!property) continue;
-      if (savedValue === property.original) continue;
+      const sourceValue = readSourceValueWithoutInline(element, property);
+      if (sourceValue !== null && sourceValue === savedValue) continue;
       stillPending[propertyKey] = savedValue;
       tweaksToApply[propertyKey] = savedValue;
       applyPreview(property, savedValue);
@@ -236,6 +241,33 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
     if (Object.keys(tweaksToApply).length > 0) {
       setTweakedValues(tweaksToApply);
     }
+  };
+
+  // Pop our inline override for this property's CSS longhands, read
+  // getComputedStyle (= what the underlying source produces), then put
+  // the inline overrides back. The mutate-read-mutate happens in one
+  // synchronous task, so the user never sees the intermediate state.
+  const readSourceValueWithoutInline = (
+    element: HTMLElement,
+    property: EditableProperty,
+  ): number | null => {
+    const cssProperties = editablePropertyToCssProperties(property.property);
+    const savedInline = new Map<string, string>();
+    for (const cssProperty of cssProperties) {
+      savedInline.set(cssProperty, element.style.getPropertyValue(cssProperty));
+      element.style.removeProperty(cssProperty);
+    }
+    const computed = getComputedStyle(element);
+    const rawValue = computed.getPropertyValue(cssProperties[0]);
+    for (const [cssProperty, inlineValue] of savedInline) {
+      if (inlineValue) element.style.setProperty(cssProperty, inlineValue);
+    }
+    if (!rawValue) return null;
+    const parsed = parseNumericValue(rawValue);
+    if (!parsed) return null;
+    return property.unit === "%"
+      ? Math.round(parsed.value * 100)
+      : cleanNumericValue(parsed.value);
   };
 
   createEffect(
@@ -372,6 +404,10 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
     }
     if (changes.length > 0) {
       savePendingEdits(state, pendingEdits);
+    } else {
+      // No net change → user reverted everything before committing.
+      // Drop any older pending entries so reopening starts clean.
+      clearPendingEdits(state);
     }
     const prompt = formatStyleDiffPrompt({ changes });
     didCommitOnSubmit = true;
