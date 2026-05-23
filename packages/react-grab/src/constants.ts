@@ -195,6 +195,8 @@ export const EDIT_PANEL_MIN_WIDTH_PX = 200;
 export const EDIT_PANEL_MAX_WIDTH_PX = 320;
 export const EDIT_SHIFT_STEP_MULTIPLIER = 10;
 export const EDIT_PANEL_ADJUSTING_IDLE_MS = 500;
+export const EDIT_PANEL_ADJUSTING_OPACITY = 0.5;
+export const EDIT_PANEL_ADJUSTING_FADE_MS = 180;
 
 export const PIXELS_PER_REM = 16;
 

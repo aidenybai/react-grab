@@ -11,7 +11,9 @@ import {
 import {
   ARROW_HEIGHT_PX,
   DROPDOWN_OFFSCREEN_POSITION,
+  EDIT_PANEL_ADJUSTING_FADE_MS,
   EDIT_PANEL_ADJUSTING_IDLE_MS,
+  EDIT_PANEL_ADJUSTING_OPACITY,
   EDIT_PANEL_MAX_WIDTH_PX,
   EDIT_PANEL_MIN_WIDTH_PX,
   EDIT_PROPERTY_LIST_MAX_HEIGHT_PX,
@@ -594,6 +596,8 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
           "z-index": `${Z_INDEX_OVERLAY}`,
           "pointer-events": "auto",
           "--rg-edit-list-max-h": `${EDIT_PROPERTY_LIST_MAX_HEIGHT_PX}px`,
+          opacity: isAdjusting() ? EDIT_PANEL_ADJUSTING_OPACITY : 1,
+          transition: `opacity ${EDIT_PANEL_ADJUSTING_FADE_MS}ms ease-out`,
         }}
         onPointerDown={suppressMenuEvent}
         onMouseDown={suppressMenuEvent}
@@ -680,42 +684,41 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
           </div>
 
           {/* Compact row — only visible while adjusting. Shows just the
-              active property's label + value + stepper, nothing else. */}
-          <Show when={isAdjusting()}>
-            {(_) => {
-              const property = activeProperty();
-              if (!property) return null;
-              return (
-                <div
-                  class="flex items-center justify-between gap-3 w-full px-3 py-1.5 min-h-[28px]"
-                  onMouseDown={(event) => event.preventDefault()}
-                >
-                  <span class="text-[13px] leading-4 font-medium text-[var(--rg-text-secondary)] truncate min-w-0">
-                    {property.label}
-                  </span>
-                  <div class="flex items-center gap-1 shrink-0 leading-none">
-                    <StepArrow
-                      direction="left"
-                      active={activeKey() === "left"}
-                      onPointerDown={() => step(-1, false)}
-                    />
-                    <span class="inline-flex items-baseline text-[var(--rg-text-primary)] tabular-nums min-w-[36px] justify-center">
-                      <span class="text-[13px] leading-4 font-medium">
-                        {formatDisplayValue(property.value)}
-                      </span>
-                      <span class="text-[10px] leading-4 font-medium text-[var(--rg-text-secondary)] ml-px">
-                        {property.unit}
-                      </span>
+              active property's label + value + stepper, nothing else.
+              Reads activeProperty() through the Show accessor (not a
+              captured const) so each tweak flows through to the displayed
+              number reactively. */}
+          <Show when={isAdjusting() && activeProperty()}>
+            {(activeProp) => (
+              <div
+                class="flex items-center justify-between gap-3 w-full px-3 py-1.5 min-h-[28px]"
+                onMouseDown={(event) => event.preventDefault()}
+              >
+                <span class="text-[13px] leading-4 font-medium text-[var(--rg-text-secondary)] truncate min-w-0">
+                  {activeProp().label}
+                </span>
+                <div class="flex items-center gap-1 shrink-0 leading-none">
+                  <StepArrow
+                    direction="left"
+                    active={activeKey() === "left"}
+                    onPointerDown={() => step(-1, false)}
+                  />
+                  <span class="inline-flex items-baseline text-[var(--rg-text-primary)] tabular-nums min-w-[36px] justify-center">
+                    <span class="text-[13px] leading-4 font-medium">
+                      {formatDisplayValue(activeProp().value)}
                     </span>
-                    <StepArrow
-                      direction="right"
-                      active={activeKey() === "right"}
-                      onPointerDown={() => step(1, false)}
-                    />
-                  </div>
+                    <span class="text-[10px] leading-4 font-medium text-[var(--rg-text-secondary)] ml-px">
+                      {activeProp().unit}
+                    </span>
+                  </span>
+                  <StepArrow
+                    direction="right"
+                    active={activeKey() === "right"}
+                    onPointerDown={() => step(1, false)}
+                  />
                 </div>
-              );
-            }}
+              </div>
+            )}
           </Show>
         </div>
       </div>
