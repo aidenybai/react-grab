@@ -285,6 +285,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [isToolbarSelectHovered, setIsToolbarSelectHovered] = createSignal(false);
     const [toolbarMenuPosition, setToolbarMenuPosition] = createSignal<DropdownAnchor | null>(null);
     const [editPanelState, setEditPanelState] = createSignal<EditPanelState | null>(null);
+    const [isEditPanelAdjusting, setIsEditPanelAdjusting] = createSignal(false);
     let toolbarElement: HTMLDivElement | undefined;
     let dropdownTrackingFrameId: number | null = null;
 
@@ -1445,6 +1446,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       // cleanup effect then restores any preview styles via the captured
       // target-element ref.
       setEditPanelState(null);
+      setIsEditPanelAdjusting(false);
       stopShiftMultiSelecting();
       clearArrowNavigation();
       keyboardSelectedElement = null;
@@ -2977,6 +2979,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!isThemeEnabled()) return false;
       if (!isSelectionBoxThemeEnabled()) return false;
       if (isSelectionSuppressed()) return false;
+      // While the edit panel is actively stepping a value, hide the
+      // selection overlay so the result is unobstructed. Restores after
+      // the panel's idle timer (EDIT_PANEL_ADJUSTING_IDLE_MS) elapses.
+      if (isEditPanelAdjusting()) return false;
       if (hasDragPreviewBounds()) return true;
       return isSelectionElementVisible();
     });
@@ -3431,6 +3437,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const state = editPanelState();
       if (!state) return;
       setEditPanelState(null);
+      setIsEditPanelAdjusting(false);
       if (store.wasActivatedByToggle) {
         deactivateRenderer();
       } else {
@@ -3658,6 +3665,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 editPanelState={editPanelState()}
                 onEditPanelDismiss={dismissEditPanel}
                 onEditPanelSubmit={handleEditPanelSubmit}
+                onEditPanelAdjustingChange={setIsEditPanelAdjusting}
               />
             );
           }, rendererRoot);

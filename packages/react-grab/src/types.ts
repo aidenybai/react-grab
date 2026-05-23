@@ -434,6 +434,7 @@ export interface ReactGrabRendererProps {
   editPanelState?: EditPanelState | null;
   onEditPanelDismiss?: () => void;
   onEditPanelSubmit?: (prompt: string) => void;
+  onEditPanelAdjustingChange?: (adjusting: boolean) => void;
 }
 
 export interface GrabbedBox {

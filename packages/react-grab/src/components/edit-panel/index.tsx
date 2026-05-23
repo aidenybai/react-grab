@@ -11,6 +11,9 @@ import {
 import {
   ARROW_HEIGHT_PX,
   DROPDOWN_OFFSCREEN_POSITION,
+  EDIT_PANEL_ADJUSTING_DIM_OPACITY,
+  EDIT_PANEL_ADJUSTING_FADE_MS,
+  EDIT_PANEL_ADJUSTING_IDLE_MS,
   EDIT_PANEL_MAX_WIDTH_PX,
   EDIT_PANEL_MIN_WIDTH_PX,
   EDIT_PROPERTY_LIST_MAX_HEIGHT_PX,
@@ -52,6 +55,7 @@ interface EditPanelProps {
   state: EditPanelState | null;
   onDismiss: () => void;
   onSubmit: (prompt: string) => void;
+  onAdjustingChange?: (adjusting: boolean) => void;
 }
 
 interface EditPanelPosition {
@@ -112,8 +116,10 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
   const [tweakedValues, setTweakedValues] = createSignal<Record<string, number>>({});
   const [activeKey, setActiveKey] = createSignal<"left" | "right" | null>(null);
   const [liveBounds, setLiveBounds] = createSignal<OverlayBounds | null>(null);
+  const [isAdjusting, setIsAdjusting] = createSignal(false);
 
   let activeKeyTimerId: ReturnType<typeof setTimeout> | undefined;
+  let adjustingIdleTimerId: ReturnType<typeof setTimeout> | undefined;
   let boundsFrameId: number | null = null;
   let didCommitOnSubmit = false;
   // Snapshot of the target element captured when the panel opens, so that
@@ -282,6 +288,8 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
         setTweakedValues({});
         setActiveKey(null);
         setLiveBounds(null);
+        setIsAdjusting(false);
+        clearTimeout(adjustingIdleTimerId);
         stopBoundsPolling();
         // Commit (Enter) keeps the live preview on the element so the user
         // sees the result; cancel (Esc / click-outside) reverts. props.state
@@ -366,6 +374,23 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
     }, ACTIVE_KEY_FLASH_MS);
   };
 
+  // While the user is actively stepping the value, dim the panel and hide
+  // the selection overlay so the result is unobstructed. The flag clears
+  // after EDIT_PANEL_ADJUSTING_IDLE_MS of no further steps; an effect below
+  // forwards each transition to the parent (core) so the page-level
+  // selection box can hide in lockstep.
+  const markAsAdjusting = () => {
+    setIsAdjusting(true);
+    clearTimeout(adjustingIdleTimerId);
+    adjustingIdleTimerId = setTimeout(() => {
+      setIsAdjusting(false);
+    }, EDIT_PANEL_ADJUSTING_IDLE_MS);
+  };
+
+  createEffect(
+    on(isAdjusting, (adjusting) => props.onAdjustingChange?.(adjusting), { defer: true }),
+  );
+
   const ensureSearchFocused = () => {
     queueMicrotask(() => {
       const active = searchInputRef?.ownerDocument.activeElement;
@@ -388,6 +413,7 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
     setTweakedValues((current) => ({ ...current, [property.property]: next }));
     applyPreview(property, next);
     flashActiveKey(direction === 1 ? "right" : "left");
+    markAsAdjusting();
     ensureSearchFocused();
   };
 
@@ -512,6 +538,7 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
     onCleanup(() => {
       unregisterDismiss();
       clearTimeout(activeKeyTimerId);
+      clearTimeout(adjustingIdleTimerId);
       stopBoundsPolling();
       if (openedElement) restorePreviewStyles(openedElement, previewBaseline);
     });
@@ -524,7 +551,7 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
 
   return (
     <Show when={isVisible() && props.state}>
-      <div
+        <div
           ref={containerRef}
           data-react-grab-ignore-events
           data-react-grab-edit-panel
@@ -535,6 +562,8 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
             "z-index": `${Z_INDEX_OVERLAY}`,
             "pointer-events": "auto",
             "--rg-edit-list-max-h": `${EDIT_PROPERTY_LIST_MAX_HEIGHT_PX}px`,
+            opacity: isAdjusting() ? EDIT_PANEL_ADJUSTING_DIM_OPACITY : 1,
+            transition: `opacity ${EDIT_PANEL_ADJUSTING_FADE_MS}ms ease-out`,
           }}
           onPointerDown={suppressMenuEvent}
           onMouseDown={suppressMenuEvent}
