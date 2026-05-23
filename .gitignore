@@ -12,10 +12,10 @@ test-results
 playwright-report
 .vercel
 .cursor/debug.log
-.cursor/*
-!.cursor/skills/
+.cursor
 .claude
 meta.json
-.agents/skills
+.agents/skills/*
+!.agents/skills/thermo-nuclear-code-quality-review/
 .claude.expect
 .mcp.json
