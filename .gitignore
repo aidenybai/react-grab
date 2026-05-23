@@ -12,7 +12,8 @@ test-results
 playwright-report
 .vercel
 .cursor/debug.log
-.cursor
+.cursor/*
+!.cursor/skills/
 .claude
 meta.json
 .agents/skills
