@@ -406,21 +406,24 @@ test.describe("Copy Feedback Behavior", () => {
   test.describe("Copied Drag Region Viewport Tracking", () => {
     test("drag region label follows page scroll while in copied state", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.dragSelect("li:first-child", "li:nth-child(3)");
+      await reactGrab.dragSelect(
+        "[data-testid='todo-list'] li:first-child",
+        "[data-testid='todo-list'] li:nth-child(3)",
+      );
       await reactGrab.waitForSelectionLabel();
 
       const labelBeforeScroll = await reactGrab.getSelectionLabelBounds();
       expect(labelBeforeScroll).not.toBeNull();
       if (!labelBeforeScroll) throw new Error("Expected label bounds before scroll");
 
-      const firstItem = reactGrab.page.locator("li").first();
-      const elementBeforeScroll = await firstItem.boundingBox();
+      const firstTodoItem = reactGrab.page.locator("[data-testid='todo-list'] li").first();
+      const elementBeforeScroll = await firstTodoItem.boundingBox();
       expect(elementBeforeScroll).not.toBeNull();
 
       await reactGrab.scrollPage(80);
       await reactGrab.page.waitForTimeout(200);
 
-      const elementAfterScroll = await firstItem.boundingBox();
+      const elementAfterScroll = await firstTodoItem.boundingBox();
       const labelAfterScroll = await reactGrab.getSelectionLabelBounds();
       expect(elementAfterScroll).not.toBeNull();
       expect(labelAfterScroll).not.toBeNull();
