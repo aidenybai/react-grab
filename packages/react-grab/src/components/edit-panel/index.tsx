@@ -573,8 +573,18 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
     const panelHeight = measuredHeight();
     if (panelWidth === 0 || panelHeight === 0) return DEFAULT_POSITION;
 
-    const bounds = liveBounds() ?? state.selectionBounds;
-    const cursorX = state.position.x;
+    // Convert the original click X into a ratio across the open-time
+    // bounds, then re-project that ratio onto the live bounds. As the
+    // element resizes (e.g. a padding tweak grows it asymmetrically) the
+    // panel and arrow track the same relative point on the element
+    // instead of staying pinned to the absolute screen pixel.
+    const originalBounds = state.selectionBounds;
+    const bounds = liveBounds() ?? originalBounds;
+    const cursorRatio =
+      originalBounds.width > 0
+        ? (state.position.x - originalBounds.x) / originalBounds.width
+        : 0.5;
+    const cursorX = bounds.x + bounds.width * cursorRatio;
     const left = Math.max(
       LABEL_GAP_PX,
       Math.min(cursorX - panelWidth / 2, window.innerWidth - panelWidth - LABEL_GAP_PX),
