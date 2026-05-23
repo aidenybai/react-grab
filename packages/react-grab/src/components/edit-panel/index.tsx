@@ -11,8 +11,6 @@ import {
 import {
   ARROW_HEIGHT_PX,
   DROPDOWN_OFFSCREEN_POSITION,
-  EDIT_PANEL_ADJUSTING_DIM_OPACITY,
-  EDIT_PANEL_ADJUSTING_FADE_MS,
   EDIT_PANEL_ADJUSTING_IDLE_MS,
   EDIT_PANEL_MAX_WIDTH_PX,
   EDIT_PANEL_MIN_WIDTH_PX,
@@ -35,7 +33,10 @@ import {
   type PendingEdits,
 } from "../../utils/edit-panel-storage.js";
 import { expandCssLonghands } from "../../utils/expand-css-shorthand.js";
-import { cleanNumericValue } from "../../utils/format-display-value.js";
+import {
+  cleanNumericValue,
+  formatDisplayValue,
+} from "../../utils/format-display-value.js";
 import { parseNumericValue } from "../../utils/parse-numeric-value.js";
 import { filterPropertiesByQuery } from "../../utils/fuzzy-score-property.js";
 import { formatSessionEditsPrompt } from "../../utils/format-edit-prompt.js";
@@ -47,9 +48,9 @@ import {
 import { registerOverlayDismiss } from "../../utils/register-overlay-dismiss.js";
 import { suppressMenuEvent } from "../../utils/suppress-menu-event.js";
 import { Arrow } from "../selection-label/arrow.js";
-import { BottomSection } from "../selection-label/bottom-section.js";
 import { TagBadge } from "../selection-label/tag-badge.js";
 import { PropertyList } from "./property-list.js";
+import { StepArrow } from "./step-arrow.js";
 
 interface EditPanelProps {
   state: EditPanelState | null;
@@ -551,89 +552,156 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
 
   return (
     <Show when={isVisible() && props.state}>
+      <div
+        ref={containerRef}
+        data-react-grab-ignore-events
+        data-react-grab-edit-panel
+        class="fixed font-sans text-[13px] antialiased [filter:var(--rg-drop-shadow)] select-none"
+        style={{
+          top: `${computedPosition().top}px`,
+          left: `${computedPosition().left}px`,
+          "z-index": `${Z_INDEX_OVERLAY}`,
+          "pointer-events": "auto",
+          "--rg-edit-list-max-h": `${EDIT_PROPERTY_LIST_MAX_HEIGHT_PX}px`,
+        }}
+        onPointerDown={suppressMenuEvent}
+        onMouseDown={suppressMenuEvent}
+        onClick={suppressMenuEvent}
+        onContextMenu={suppressMenuEvent}
+      >
+        <Arrow
+          position={computedPosition().arrowPosition}
+          leftPercent={0}
+          leftOffsetPx={computedPosition().arrowLeft}
+        />
         <div
-          ref={containerRef}
-          data-react-grab-ignore-events
-          data-react-grab-edit-panel
-          class="fixed font-sans text-[13px] antialiased [filter:var(--rg-drop-shadow)] select-none"
+          class="contain-layout flex flex-col justify-center items-start rounded-[14px] antialiased w-fit h-fit [font-synthesis:none] [corner-shape:superellipse(1.25)] bg-[var(--rg-panel-bg)]"
           style={{
-            top: `${computedPosition().top}px`,
-            left: `${computedPosition().left}px`,
-            "z-index": `${Z_INDEX_OVERLAY}`,
-            "pointer-events": "auto",
-            "--rg-edit-list-max-h": `${EDIT_PROPERTY_LIST_MAX_HEIGHT_PX}px`,
-            opacity: isAdjusting() ? EDIT_PANEL_ADJUSTING_DIM_OPACITY : 1,
-            transition: `opacity ${EDIT_PANEL_ADJUSTING_FADE_MS}ms ease-out`,
+            "min-width": isAdjusting() ? undefined : `${EDIT_PANEL_MIN_WIDTH_PX}px`,
+            "max-width": `${EDIT_PANEL_MAX_WIDTH_PX}px`,
           }}
-          onPointerDown={suppressMenuEvent}
-          onMouseDown={suppressMenuEvent}
-          onClick={suppressMenuEvent}
-          onContextMenu={suppressMenuEvent}
         >
-          <Arrow
-            position={computedPosition().arrowPosition}
-            leftPercent={0}
-            leftOffsetPx={computedPosition().arrowLeft}
-          />
+          {/* TagBadge header — hidden during adjustment so the panel shrinks
+              down to just the active row. */}
           <div
-            class="contain-layout flex flex-col justify-center items-start rounded-[14px] antialiased w-fit h-fit [font-synthesis:none] [corner-shape:superellipse(1.25)] bg-[var(--rg-panel-bg)]"
-            style={{
-              "min-width": `${EDIT_PANEL_MIN_WIDTH_PX}px`,
-              "max-width": `${EDIT_PANEL_MAX_WIDTH_PX}px`,
-            }}
+            class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 w-fit h-fit px-2"
+            style={isAdjusting() ? HIDDEN_FOCUS_PRESERVING_STYLE : undefined}
           >
-            <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 w-fit h-fit px-2">
-              <TagBadge
-                tagName={tagDisplay().tagName}
-                componentName={tagDisplay().componentName}
-                isClickable={false}
-                onClick={() => {}}
-                shrink
-                forceShowIcon={false}
-              />
-            </div>
-            <BottomSection>
-              <textarea
-                ref={(element) => {
-                  searchInputRef = element;
-                  queueMicrotask(() => element.focus({ preventScroll: true }));
-                }}
-                data-react-grab-ignore-events
-                data-react-grab-input
-                aria-label="Search properties"
-                aria-keyshortcuts="Enter Escape ArrowUp ArrowDown ArrowLeft ArrowRight Tab"
-                class="text-[var(--rg-text-primary)] text-[13px] leading-4 font-medium bg-transparent border-none resize-none w-full p-0 m-0 outline-none"
-                style={{
-                  "field-sizing": "content",
-                  "min-height": "16px",
-                  "max-height": "16px",
-                  "scrollbar-width": "none",
-                }}
-                value={searchQuery()}
-                onInput={(event) => {
-                  const value = event.currentTarget.value;
-                  setSearchQuery(value);
-                  setActiveIndex(0);
-                }}
-                onKeyDown={handleSearchKeyDown}
-                placeholder="Search property"
-                rows={1}
-              />
-              <Show when={filteredProperties().length > 0}>
-                <div class="w-full pt-2">
-                  <PropertyList
-                    properties={filteredProperties()}
-                    activeIndex={activeIndex()}
-                    activeKey={activeKey()}
-                    onHoverIndex={setActiveIndex}
-                    onSelect={handleSelectProperty}
-                    onStep={step}
-                  />
-                </div>
-              </Show>
-            </BottomSection>
+            <TagBadge
+              tagName={tagDisplay().tagName}
+              componentName={tagDisplay().componentName}
+              isClickable={false}
+              onClick={() => {}}
+              shrink
+              forceShowIcon={false}
+            />
           </div>
+
+          {/* Search + list — hidden during adjustment, but the textarea
+              keeps focus (positioned 0×0 invisibly via HIDDEN_FOCUS_PRESERVING_STYLE)
+              so keyboard handlers continue to fire. */}
+          <div
+            class={
+              isAdjusting()
+                ? ""
+                : "[font-synthesis:none] contain-layout shrink-0 flex flex-col items-start px-2 py-1.5 w-auto h-fit self-stretch [border-top-width:0.5px] border-t-solid border-t-[var(--rg-border-subtle)] antialiased rounded-t-none rounded-b-[6px]"
+            }
+            style={isAdjusting() ? HIDDEN_FOCUS_PRESERVING_STYLE : undefined}
+          >
+            <textarea
+              ref={(element) => {
+                searchInputRef = element;
+                queueMicrotask(() => element.focus({ preventScroll: true }));
+              }}
+              data-react-grab-ignore-events
+              data-react-grab-input
+              aria-label="Search properties"
+              aria-keyshortcuts="Enter Escape ArrowUp ArrowDown ArrowLeft ArrowRight Tab"
+              class="text-[var(--rg-text-primary)] text-[13px] leading-4 font-medium bg-transparent border-none resize-none w-full p-0 m-0 outline-none"
+              style={{
+                "field-sizing": "content",
+                "min-height": "16px",
+                "max-height": "16px",
+                "scrollbar-width": "none",
+              }}
+              value={searchQuery()}
+              onInput={(event) => {
+                const value = event.currentTarget.value;
+                setSearchQuery(value);
+                setActiveIndex(0);
+              }}
+              onKeyDown={handleSearchKeyDown}
+              placeholder="Search property"
+              rows={1}
+            />
+            <Show when={filteredProperties().length > 0}>
+              <div class="w-full pt-2">
+                <PropertyList
+                  properties={filteredProperties()}
+                  activeIndex={activeIndex()}
+                  activeKey={activeKey()}
+                  onHoverIndex={setActiveIndex}
+                  onSelect={handleSelectProperty}
+                  onStep={step}
+                />
+              </div>
+            </Show>
+          </div>
+
+          {/* Compact row — only visible while adjusting. Shows just the
+              active property's label + value + stepper, nothing else. */}
+          <Show when={isAdjusting()}>
+            {(_) => {
+              const property = activeProperty();
+              if (!property) return null;
+              return (
+                <div
+                  class="flex items-center justify-between gap-3 w-full px-3 py-1.5 min-h-[28px]"
+                  onMouseDown={(event) => event.preventDefault()}
+                >
+                  <span class="text-[13px] leading-4 font-medium text-[var(--rg-text-secondary)] truncate min-w-0">
+                    {property.label}
+                  </span>
+                  <div class="flex items-center gap-1 shrink-0 leading-none">
+                    <StepArrow
+                      direction="left"
+                      active={activeKey() === "left"}
+                      onPointerDown={() => step(-1, false)}
+                    />
+                    <span class="inline-flex items-baseline text-[var(--rg-text-primary)] tabular-nums min-w-[36px] justify-center">
+                      <span class="text-[13px] leading-4 font-medium">
+                        {formatDisplayValue(property.value)}
+                      </span>
+                      <span class="text-[10px] leading-4 font-medium text-[var(--rg-text-secondary)] ml-px">
+                        {property.unit}
+                      </span>
+                    </span>
+                    <StepArrow
+                      direction="right"
+                      active={activeKey() === "right"}
+                      onPointerDown={() => step(1, false)}
+                    />
+                  </div>
+                </div>
+              );
+            }}
+          </Show>
         </div>
+      </div>
     </Show>
   );
+};
+
+// Visually removes an element from layout flow while keeping it in the DOM,
+// so a focused textarea inside still receives keyboard events and our
+// onKeyDown handler keeps working through the panel's compact state.
+const HIDDEN_FOCUS_PRESERVING_STYLE = {
+  position: "absolute" as const,
+  opacity: 0,
+  "pointer-events": "none" as const,
+  width: "0",
+  height: "0",
+  margin: "0",
+  padding: "0",
+  overflow: "hidden" as const,
 };
