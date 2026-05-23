@@ -58,7 +58,10 @@ interface EditPanelProps {
   state: EditPanelState | null;
   onDismiss: () => void;
   onSubmit: (prompt: string) => void;
-  onAdjustingChange?: (adjusting: boolean) => void;
+  // Fires whenever the user is actively stepping a value — keyboard OR
+  // pointer. The parent uses this to hide the page-level selection
+  // overlay so the live preview reads cleanly underneath.
+  onInteractingChange?: (interacting: boolean) => void;
 }
 
 interface EditPanelPosition {
@@ -120,9 +123,11 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
   const [activeKey, setActiveKey] = createSignal<"left" | "right" | null>(null);
   const [liveBounds, setLiveBounds] = createSignal<OverlayBounds | null>(null);
   const [isAdjusting, setIsAdjusting] = createSignal(false);
+  const [isInteracting, setIsInteracting] = createSignal(false);
 
   let activeKeyTimerId: ReturnType<typeof setTimeout> | undefined;
   let adjustingIdleTimerId: ReturnType<typeof setTimeout> | undefined;
+  let interactingIdleTimerId: ReturnType<typeof setTimeout> | undefined;
   let boundsFrameId: number | null = null;
   let didCommitOnSubmit = false;
   // Snapshot of the target element captured when the panel opens, so that
@@ -335,7 +340,9 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
         setActiveKey(null);
         setLiveBounds(null);
         setIsAdjusting(false);
+        setIsInteracting(false);
         clearTimeout(adjustingIdleTimerId);
+        clearTimeout(interactingIdleTimerId);
         stopBoundsPolling();
         // Commit (Enter) keeps the live preview on the element so the user
         // sees the result; cancel (Esc / click-outside) reverts. props.state
@@ -420,21 +427,32 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
     }, ACTIVE_KEY_FLASH_MS);
   };
 
-  // While the user is actively stepping the value, dim the panel and hide
-  // the selection overlay so the result is unobstructed. The flag clears
-  // after EDIT_PANEL_ADJUSTING_IDLE_MS of no further steps; an effect below
-  // forwards each transition to the parent (core) so the page-level
-  // selection box can hide in lockstep.
+  // Two related but separate states:
+  //   isInteracting → true on ANY step (keyboard or pointer). Drives
+  //     hiding the page-level selection overlay so the live preview
+  //     reads cleanly while the user is actively tweaking.
+  //   isAdjusting → true only on KEYBOARD steps. Drives the panel's
+  //     own compact + dim treatment, since mouse users want to keep
+  //     seeing the panel they're clicking.
+  const markAsInteracting = () => {
+    setIsInteracting(true);
+    clearTimeout(interactingIdleTimerId);
+    interactingIdleTimerId = setTimeout(() => {
+      setIsInteracting(false);
+    }, EDIT_PANEL_ADJUSTING_IDLE_MS);
+  };
+
   const markAsAdjusting = () => {
     setIsAdjusting(true);
     clearTimeout(adjustingIdleTimerId);
     adjustingIdleTimerId = setTimeout(() => {
       setIsAdjusting(false);
     }, EDIT_PANEL_ADJUSTING_IDLE_MS);
+    markAsInteracting();
   };
 
   createEffect(
-    on(isAdjusting, (adjusting) => props.onAdjustingChange?.(adjusting), { defer: true }),
+    on(isInteracting, (interacting) => props.onInteractingChange?.(interacting), { defer: true }),
   );
 
   const ensureSearchFocused = () => {
@@ -466,9 +484,13 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
     // Keyboard tweaking collapses the panel to its compact form;
     // pointer-driven stepping leaves the panel in its current layout
     // (and snaps out of compact if it was there from a prior keystroke),
-    // since mouse users want to see what they're clicking.
+    // since mouse users want to see what they're clicking. Both paths
+    // mark the panel as interacting so the page-level selection overlay
+    // fades out either way.
     if (source === "keyboard") {
       markAsAdjusting();
+    } else {
+      markAsInteracting();
     }
     ensureSearchFocused();
   };
@@ -616,6 +638,7 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
       unregisterDismiss();
       clearTimeout(activeKeyTimerId);
       clearTimeout(adjustingIdleTimerId);
+      clearTimeout(interactingIdleTimerId);
       stopBoundsPolling();
       if (openedElement) restorePreviewStyles(openedElement, previewBaseline);
     });
