@@ -128,13 +128,17 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
     const state = props.state;
     if (!state) return [];
     const query = searchQuery();
-    // No query: only surface properties that actually matter for this
-    // element (non-default values plus Tailwind-targeted ones). Searching
-    // gives access to the full list so users can still edit any property
-    // they want even if it's at its default.
+    // No query: only surface canonical, non-default rows. Canonical means
+    // "the highest-level form that captures this side", so a uniform
+    // padding shows as one row instead of seven. Searching unlocks the
+    // full list — that's how Tailwind aliases like `pl` can rank to
+    // `padding-left` even when the consolidated `padding` is what we
+    // normally show.
     const candidates = query
       ? state.properties
-      : state.properties.filter((entry) => !entry.isDefault);
+      : state.properties.filter(
+          (entry) => entry.prioritized || (entry.isCanonical && !entry.isDefault),
+        );
     return filterPropertiesByQuery(candidates, query);
   });
 

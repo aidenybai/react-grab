@@ -176,17 +176,22 @@ export const buildEditableProperties = (element: Element): EditableProperty[] =>
   const properties: EditableProperty[] = [];
   const seen = new Set<string>();
 
-  const pushNumeric = (property: string, label: string, value: NumericValue | null) => {
+  const pushNumeric = (
+    property: string,
+    label: string,
+    value: NumericValue | null,
+    isCanonical: boolean,
+  ) => {
     if (!value || seen.has(property) || properties.length >= EDIT_PROPERTY_MAX_COUNT) return;
-    properties.push(buildNumericProperty(property, label, value));
+    properties.push({ ...buildNumericProperty(property, label, value), isCanonical });
     seen.add(property);
   };
 
-  // Smart consolidation: when sides are aligned, emit only the highest-level
-  // group that captures them. A uniform 16px padding becomes a single
-  // "padding" row, not 7 redundant 16px rows. Users break alignment by
-  // searching for an individual side ("padding top") — at that point the
-  // edit pipeline operates on the longhand directly.
+  // Emit every variant (group / y / x / individual sides) that has a value,
+  // tagging canonical = the highest-level form that captures the current
+  // snapshot. The panel shows only canonical entries by default but searches
+  // across all of them, so Tailwind aliases like `pl` can still rank to
+  // `padding-left` even when all four sides are uniform.
   const pushBoxGroup = (
     label: string,
     property: string,
@@ -195,62 +200,41 @@ export const buildEditableProperties = (element: Element): EditableProperty[] =>
     inlineProperties: [TrackedProperty, TrackedProperty],
   ) => {
     const all = alignedValue(snapshot, allProperties);
-    if (all) {
-      pushNumeric(property, label, all);
-      return;
-    }
-
     const block = alignedValue(snapshot, blockProperties);
     const inline = alignedValue(snapshot, inlineProperties);
 
-    if (block && inline) {
-      pushNumeric(`${property}-top,${property}-bottom`, `${label}-y`, block);
-      pushNumeric(`${property}-left,${property}-right`, `${label}-x`, inline);
-      return;
-    }
-
-    if (block) {
-      pushNumeric(`${property}-top,${property}-bottom`, `${label}-y`, block);
-      pushNumeric(
-        `${property}-left`,
-        `${label} left`,
-        parseNumericValue(snapshot[inlineProperties[0]]),
-      );
-      pushNumeric(
-        `${property}-right`,
-        `${label} right`,
-        parseNumericValue(snapshot[inlineProperties[1]]),
-      );
-      return;
-    }
-
-    if (inline) {
-      pushNumeric(`${property}-left,${property}-right`, `${label}-x`, inline);
-      pushNumeric(
-        `${property}-top`,
-        `${label} top`,
-        parseNumericValue(snapshot[blockProperties[0]]),
-      );
-      pushNumeric(
-        `${property}-bottom`,
-        `${label} bottom`,
-        parseNumericValue(snapshot[blockProperties[1]]),
-      );
-      return;
-    }
-
-    pushNumeric(`${property}-top`, `${label} top`, parseNumericValue(snapshot[blockProperties[0]]));
+    pushNumeric(property, label, all, Boolean(all));
+    pushNumeric(`${property}-top,${property}-bottom`, `${label}-y`, block, !all && Boolean(block));
     pushNumeric(
-      `${property}-right`,
-      `${label} right`,
-      parseNumericValue(snapshot[inlineProperties[1]]),
+      `${property}-left,${property}-right`,
+      `${label}-x`,
+      inline,
+      !all && Boolean(inline),
+    );
+    pushNumeric(
+      `${property}-top`,
+      `${label} top`,
+      parseNumericValue(snapshot[blockProperties[0]]),
+      !all && !block,
     );
     pushNumeric(
       `${property}-bottom`,
       `${label} bottom`,
       parseNumericValue(snapshot[blockProperties[1]]),
+      !all && !block,
     );
-    pushNumeric(`${property}-left`, `${label} left`, parseNumericValue(snapshot[inlineProperties[0]]));
+    pushNumeric(
+      `${property}-left`,
+      `${label} left`,
+      parseNumericValue(snapshot[inlineProperties[0]]),
+      !all && !inline,
+    );
+    pushNumeric(
+      `${property}-right`,
+      `${label} right`,
+      parseNumericValue(snapshot[inlineProperties[1]]),
+      !all && !inline,
+    );
   };
 
   pushBoxGroup(
@@ -269,13 +253,13 @@ export const buildEditableProperties = (element: Element): EditableProperty[] =>
     ["margin-left", "margin-right"],
   );
 
-  pushNumeric("gap", "gap", valueWithFallback(snapshot, "gap"));
-  pushNumeric("row-gap", "row gap", valueWithFallback(snapshot, "row-gap"));
-  pushNumeric("column-gap", "column gap", valueWithFallback(snapshot, "column-gap"));
+  pushNumeric("gap", "gap", valueWithFallback(snapshot, "gap"), true);
+  pushNumeric("row-gap", "row gap", valueWithFallback(snapshot, "row-gap"), true);
+  pushNumeric("column-gap", "column gap", valueWithFallback(snapshot, "column-gap"), true);
 
-  pushNumeric("font-size", "font size", parseNumericValue(snapshot["font-size"]));
-  pushNumeric("line-height", "line height", valueWithFallback(snapshot, "line-height"));
-  pushNumeric("letter-spacing", "letter spacing", valueWithFallback(snapshot, "letter-spacing"));
+  pushNumeric("font-size", "font size", parseNumericValue(snapshot["font-size"]), true);
+  pushNumeric("line-height", "line height", valueWithFallback(snapshot, "line-height"), true);
+  pushNumeric("letter-spacing", "letter spacing", valueWithFallback(snapshot, "letter-spacing"), true);
 
   const allRadii = alignedValue(snapshot, [
     "border-top-left-radius",
@@ -283,37 +267,38 @@ export const buildEditableProperties = (element: Element): EditableProperty[] =>
     "border-bottom-right-radius",
     "border-bottom-left-radius",
   ]);
-  if (allRadii) {
-    pushNumeric("border-radius", "border radius", allRadii);
-  } else {
-    pushNumeric(
-      "border-top-left-radius",
-      "top left radius",
-      parseNumericValue(snapshot["border-top-left-radius"]),
-    );
-    pushNumeric(
-      "border-top-right-radius",
-      "top right radius",
-      parseNumericValue(snapshot["border-top-right-radius"]),
-    );
-    pushNumeric(
-      "border-bottom-right-radius",
-      "bottom right radius",
-      parseNumericValue(snapshot["border-bottom-right-radius"]),
-    );
-    pushNumeric(
-      "border-bottom-left-radius",
-      "bottom left radius",
-      parseNumericValue(snapshot["border-bottom-left-radius"]),
-    );
-  }
-  pushNumeric("border-width", "border width", parseNumericValue(snapshot["border-width"]));
+  pushNumeric("border-radius", "border radius", allRadii, Boolean(allRadii));
+  pushNumeric(
+    "border-top-left-radius",
+    "top left radius",
+    parseNumericValue(snapshot["border-top-left-radius"]),
+    !allRadii,
+  );
+  pushNumeric(
+    "border-top-right-radius",
+    "top right radius",
+    parseNumericValue(snapshot["border-top-right-radius"]),
+    !allRadii,
+  );
+  pushNumeric(
+    "border-bottom-right-radius",
+    "bottom right radius",
+    parseNumericValue(snapshot["border-bottom-right-radius"]),
+    !allRadii,
+  );
+  pushNumeric(
+    "border-bottom-left-radius",
+    "bottom left radius",
+    parseNumericValue(snapshot["border-bottom-left-radius"]),
+    !allRadii,
+  );
+  pushNumeric("border-width", "border width", parseNumericValue(snapshot["border-width"]), true);
 
-  pushNumeric("width", "width", parseNumericValue(snapshot["width"]));
-  pushNumeric("height", "height", parseNumericValue(snapshot["height"]));
-  pushNumeric("max-width", "max width", parseNumericValue(snapshot["max-width"]));
-  pushNumeric("max-height", "max height", parseNumericValue(snapshot["max-height"]));
-  pushNumeric("opacity", "opacity", parseNumericValue(snapshot["opacity"]));
+  pushNumeric("width", "width", parseNumericValue(snapshot["width"]), true);
+  pushNumeric("height", "height", parseNumericValue(snapshot["height"]), true);
+  pushNumeric("max-width", "max width", parseNumericValue(snapshot["max-width"]), true);
+  pushNumeric("max-height", "max height", parseNumericValue(snapshot["max-height"]), true);
+  pushNumeric("opacity", "opacity", parseNumericValue(snapshot["opacity"]), true);
 
   const prioritized = getElementTailwindProperties(element);
   return rankProperties(properties, prioritized);

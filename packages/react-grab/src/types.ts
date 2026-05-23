@@ -169,6 +169,12 @@ export interface EditableProperty {
   tailwindAliases?: string[];
   prioritized?: boolean;
   isDefault?: boolean;
+  // True when this entry is the highest-level form that captures the
+  // current snapshot (e.g. "padding" when all 4 sides are equal). The
+  // panel only shows canonical entries by default; searching surfaces
+  // non-canonical variants like "padding-left" so Tailwind aliases like
+  // "pl" can still rank to specific sides.
+  isCanonical?: boolean;
 }
 
 export interface EditPanelState {
