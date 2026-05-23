@@ -187,111 +187,168 @@ export const buildEditableProperties = (element: Element): EditableProperty[] =>
     seen.add(property);
   };
 
-  // Emit every variant (group / y / x / individual sides) that has a value,
-  // tagging canonical = the highest-level form that captures the current
-  // snapshot. The panel shows only canonical entries by default but searches
-  // across all of them, so Tailwind aliases like `pl` can still rank to
-  // `padding-left` even when all four sides are uniform.
-  const pushBoxGroup = (
-    label: string,
-    property: string,
-    allProperties: TrackedProperty[],
-    blockProperties: [TrackedProperty, TrackedProperty],
-    inlineProperties: [TrackedProperty, TrackedProperty],
+  // Emit every aggregate variant that has an aligned value, tagging
+  // canonical = the largest aggregate that covers each longhand at the
+  // same value. With this, `padding` is canonical when all 4 sides are
+  // uniform, `padding-y`/`padding-x` are canonical when the y/x pairs
+  // are uniform but the four don't share a value, etc. The algorithm
+  // generalises to any longhand layout: padding, margin, border-radius
+  // (with t/b/l/r), border-width, etc.
+  const pushAggregateGroup = (
+    aggregates: Array<{
+      property: string;
+      label: string;
+      longhands: TrackedProperty[];
+    }>,
   ) => {
-    const all = alignedValue(snapshot, allProperties);
-    const block = alignedValue(snapshot, blockProperties);
-    const inline = alignedValue(snapshot, inlineProperties);
+    const valued = aggregates
+      .map((aggregate) => ({
+        ...aggregate,
+        value: aggregate.longhands.length === 1
+          ? parseNumericValue(snapshot[aggregate.longhands[0]])
+          : alignedValue(snapshot, aggregate.longhands),
+      }))
+      .filter(
+        (aggregate): aggregate is typeof aggregate & { value: NumericValue } =>
+          aggregate.value !== null,
+      );
 
-    pushNumeric(property, label, all, Boolean(all));
-    pushNumeric(`${property}-top,${property}-bottom`, `${label}-y`, block, !all && Boolean(block));
-    pushNumeric(
-      `${property}-left,${property}-right`,
-      `${label}-x`,
-      inline,
-      !all && Boolean(inline),
-    );
-    pushNumeric(
-      `${property}-top`,
-      `${label} top`,
-      parseNumericValue(snapshot[blockProperties[0]]),
-      !all && !block,
-    );
-    pushNumeric(
-      `${property}-bottom`,
-      `${label} bottom`,
-      parseNumericValue(snapshot[blockProperties[1]]),
-      !all && !block,
-    );
-    pushNumeric(
-      `${property}-left`,
-      `${label} left`,
-      parseNumericValue(snapshot[inlineProperties[0]]),
-      !all && !inline,
-    );
-    pushNumeric(
-      `${property}-right`,
-      `${label} right`,
-      parseNumericValue(snapshot[inlineProperties[1]]),
-      !all && !inline,
-    );
+    const canonicalForLonghand = new Map<TrackedProperty, typeof valued[number]>();
+    for (const aggregate of valued) {
+      for (const longhand of aggregate.longhands) {
+        const current = canonicalForLonghand.get(longhand);
+        if (!current || aggregate.longhands.length > current.longhands.length) {
+          canonicalForLonghand.set(longhand, aggregate);
+        }
+      }
+    }
+    const canonicalSet = new Set(canonicalForLonghand.values());
+
+    for (const aggregate of valued) {
+      pushNumeric(aggregate.property, aggregate.label, aggregate.value, canonicalSet.has(aggregate));
+    }
   };
 
-  pushBoxGroup(
-    "padding",
-    "padding",
-    ["padding-top", "padding-right", "padding-bottom", "padding-left"],
-    ["padding-top", "padding-bottom"],
-    ["padding-left", "padding-right"],
-  );
+  const boxAggregates = (label: string, property: string) => [
+    {
+      property,
+      label,
+      longhands: [
+        `${property}-top`,
+        `${property}-right`,
+        `${property}-bottom`,
+        `${property}-left`,
+      ] as TrackedProperty[],
+    },
+    {
+      property: `${property}-top,${property}-bottom`,
+      label: `${label}-y`,
+      longhands: [`${property}-top`, `${property}-bottom`] as TrackedProperty[],
+    },
+    {
+      property: `${property}-left,${property}-right`,
+      label: `${label}-x`,
+      longhands: [`${property}-left`, `${property}-right`] as TrackedProperty[],
+    },
+    {
+      property: `${property}-top`,
+      label: `${label} top`,
+      longhands: [`${property}-top`] as TrackedProperty[],
+    },
+    {
+      property: `${property}-right`,
+      label: `${label} right`,
+      longhands: [`${property}-right`] as TrackedProperty[],
+    },
+    {
+      property: `${property}-bottom`,
+      label: `${label} bottom`,
+      longhands: [`${property}-bottom`] as TrackedProperty[],
+    },
+    {
+      property: `${property}-left`,
+      label: `${label} left`,
+      longhands: [`${property}-left`] as TrackedProperty[],
+    },
+  ];
 
-  pushBoxGroup(
-    "margin",
-    "margin",
-    ["margin-top", "margin-right", "margin-bottom", "margin-left"],
-    ["margin-top", "margin-bottom"],
-    ["margin-left", "margin-right"],
-  );
+  pushAggregateGroup(boxAggregates("padding", "padding"));
+  pushAggregateGroup(boxAggregates("margin", "margin"));
 
-  pushNumeric("gap", "gap", valueWithFallback(snapshot, "gap"), true);
-  pushNumeric("row-gap", "row gap", valueWithFallback(snapshot, "row-gap"), true);
-  pushNumeric("column-gap", "column gap", valueWithFallback(snapshot, "column-gap"), true);
+  const rowGap = valueWithFallback(snapshot, "row-gap");
+  const columnGap = valueWithFallback(snapshot, "column-gap");
+  const gapAligned =
+    rowGap &&
+    columnGap &&
+    rowGap.unit === columnGap.unit &&
+    Math.abs(rowGap.value - columnGap.value) < ALIGNED_VALUE_TOLERANCE_PX
+      ? rowGap
+      : null;
+  pushNumeric("gap", "gap", gapAligned, Boolean(gapAligned));
+  pushNumeric("row-gap", "row gap", rowGap, !gapAligned);
+  pushNumeric("column-gap", "column gap", columnGap, !gapAligned);
 
   pushNumeric("font-size", "font size", parseNumericValue(snapshot["font-size"]), true);
   pushNumeric("line-height", "line height", valueWithFallback(snapshot, "line-height"), true);
   pushNumeric("letter-spacing", "letter spacing", valueWithFallback(snapshot, "letter-spacing"), true);
 
-  const allRadii = alignedValue(snapshot, [
-    "border-top-left-radius",
-    "border-top-right-radius",
-    "border-bottom-right-radius",
-    "border-bottom-left-radius",
+  // Border-radius has four corners with two orthogonal groupings: top/bottom
+  // (rounded-t / rounded-b) and left/right (rounded-l / rounded-r). Aligned
+  // values consolidate into the highest-level form that captures them; the
+  // others stay available via search (Tailwind aliases rounded-tl, rounded-tr,
+  // rounded-bl, rounded-br, rounded-t/b/l/r all map through).
+  pushAggregateGroup([
+    {
+      property: "border-radius",
+      label: "border radius",
+      longhands: [
+        "border-top-left-radius",
+        "border-top-right-radius",
+        "border-bottom-right-radius",
+        "border-bottom-left-radius",
+      ],
+    },
+    {
+      property: "border-top-left-radius,border-top-right-radius",
+      label: "top corners",
+      longhands: ["border-top-left-radius", "border-top-right-radius"],
+    },
+    {
+      property: "border-bottom-left-radius,border-bottom-right-radius",
+      label: "bottom corners",
+      longhands: ["border-bottom-left-radius", "border-bottom-right-radius"],
+    },
+    {
+      property: "border-top-left-radius,border-bottom-left-radius",
+      label: "left corners",
+      longhands: ["border-top-left-radius", "border-bottom-left-radius"],
+    },
+    {
+      property: "border-top-right-radius,border-bottom-right-radius",
+      label: "right corners",
+      longhands: ["border-top-right-radius", "border-bottom-right-radius"],
+    },
+    {
+      property: "border-top-left-radius",
+      label: "top left radius",
+      longhands: ["border-top-left-radius"],
+    },
+    {
+      property: "border-top-right-radius",
+      label: "top right radius",
+      longhands: ["border-top-right-radius"],
+    },
+    {
+      property: "border-bottom-right-radius",
+      label: "bottom right radius",
+      longhands: ["border-bottom-right-radius"],
+    },
+    {
+      property: "border-bottom-left-radius",
+      label: "bottom left radius",
+      longhands: ["border-bottom-left-radius"],
+    },
   ]);
-  pushNumeric("border-radius", "border radius", allRadii, Boolean(allRadii));
-  pushNumeric(
-    "border-top-left-radius",
-    "top left radius",
-    parseNumericValue(snapshot["border-top-left-radius"]),
-    !allRadii,
-  );
-  pushNumeric(
-    "border-top-right-radius",
-    "top right radius",
-    parseNumericValue(snapshot["border-top-right-radius"]),
-    !allRadii,
-  );
-  pushNumeric(
-    "border-bottom-right-radius",
-    "bottom right radius",
-    parseNumericValue(snapshot["border-bottom-right-radius"]),
-    !allRadii,
-  );
-  pushNumeric(
-    "border-bottom-left-radius",
-    "bottom left radius",
-    parseNumericValue(snapshot["border-bottom-left-radius"]),
-    !allRadii,
-  );
   pushNumeric("border-width", "border width", parseNumericValue(snapshot["border-width"]), true);
 
   pushNumeric("width", "width", parseNumericValue(snapshot["width"]), true);

@@ -26,14 +26,16 @@ import {
 import { clampNumericValue } from "../../utils/clamp-numeric-value.js";
 import {
   clearPendingEdits,
+  loadAllPendingEdits,
   loadPendingEdits,
   savePendingEdits,
+  type PendingEdits,
 } from "../../utils/edit-panel-storage.js";
 import { expandCssLonghands } from "../../utils/expand-css-shorthand.js";
 import { cleanNumericValue } from "../../utils/format-display-value.js";
 import { parseNumericValue } from "../../utils/parse-numeric-value.js";
 import { filterPropertiesByQuery } from "../../utils/fuzzy-score-property.js";
-import { formatStyleDiffPrompt, type EditPromptChange } from "../../utils/format-edit-prompt.js";
+import { formatSessionEditsPrompt } from "../../utils/format-edit-prompt.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
 import {
   nativeCancelAnimationFrame,
@@ -219,17 +221,17 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
 
     const element = state.element;
     const propertyByKey = new Map(state.properties.map((entry) => [entry.property, entry]));
-    const stillPending: Record<string, number> = {};
+    const stillPending: PendingEdits = {};
     const tweaksToApply: Record<string, number> = {};
 
-    for (const [propertyKey, savedValue] of Object.entries(saved)) {
+    for (const [propertyKey, savedEdit] of Object.entries(saved)) {
       const property = propertyByKey.get(propertyKey);
       if (!property) continue;
       const sourceValue = readSourceValueWithoutInline(element, property);
-      if (sourceValue !== null && sourceValue === savedValue) continue;
-      stillPending[propertyKey] = savedValue;
-      tweaksToApply[propertyKey] = savedValue;
-      applyPreview(property, savedValue);
+      if (sourceValue !== null && sourceValue === savedEdit.value) continue;
+      stillPending[propertyKey] = savedEdit;
+      tweaksToApply[propertyKey] = savedEdit.value;
+      applyPreview(property, savedEdit.value);
     }
 
     if (Object.keys(stillPending).length === 0) {
@@ -393,23 +395,26 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
     const state = props.state;
     if (!state) return;
     const tweaks = tweakedValues();
-    const changes: EditPromptChange[] = [];
-    const pendingEdits: Record<string, number> = {};
+    const pendingEdits: PendingEdits = {};
+    let hasChanges = false;
     for (const property of state.properties) {
       const tweakedValue = tweaks[property.property];
       if (tweakedValue === undefined) continue;
       if (tweakedValue === property.original) continue;
-      changes.push({ property, value: tweakedValue });
-      pendingEdits[property.property] = tweakedValue;
+      pendingEdits[property.property] = { value: tweakedValue, unit: property.unit };
+      hasChanges = true;
     }
-    if (changes.length > 0) {
+    if (hasChanges) {
       savePendingEdits(state, pendingEdits);
     } else {
       // No net change → user reverted everything before committing.
       // Drop any older pending entries so reopening starts clean.
       clearPendingEdits(state);
     }
-    const prompt = formatStyleDiffPrompt({ changes });
+    // The copy prompt covers every still-pending edit across the session,
+    // not just this element's diff, so the agent gets the full backlog of
+    // UI tweaks the user has made and can apply them in one batch.
+    const prompt = formatSessionEditsPrompt(loadAllPendingEdits());
     didCommitOnSubmit = true;
     props.onSubmit(prompt);
   };
