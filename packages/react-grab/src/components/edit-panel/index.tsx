@@ -24,6 +24,11 @@ import {
   formatEditableValue,
 } from "../../utils/build-editable-properties.js";
 import { clampNumericValue } from "../../utils/clamp-numeric-value.js";
+import {
+  clearPendingEdits,
+  loadPendingEdits,
+  savePendingEdits,
+} from "../../utils/edit-panel-storage.js";
 import { expandCssLonghands } from "../../utils/expand-css-shorthand.js";
 import { cleanNumericValue } from "../../utils/format-display-value.js";
 import { filterPropertiesByQuery } from "../../utils/fuzzy-score-property.js";
@@ -190,6 +195,41 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
     writePreviewStyles(state.element, cssProperties, previewValue, previewBaseline);
   };
 
+  // Pending edits saved on a previous Enter survive across page reloads
+  // until the source code catches up. On open we compare each saved value
+  // against the element's freshly-snapshotted original: matches mean the
+  // agent applied the change for real (drop), mismatches mean the edit is
+  // still pending (re-apply as preview so the user sees their work).
+  const restorePendingEditsFromStorage = () => {
+    const state = props.state;
+    if (!state) return;
+    const saved = loadPendingEdits(state);
+    if (!saved) return;
+
+    const propertyByKey = new Map(state.properties.map((entry) => [entry.property, entry]));
+    const stillPending: Record<string, number> = {};
+    const tweaksToApply: Record<string, number> = {};
+
+    for (const [propertyKey, savedValue] of Object.entries(saved)) {
+      const property = propertyByKey.get(propertyKey);
+      if (!property) continue;
+      if (savedValue === property.original) continue;
+      stillPending[propertyKey] = savedValue;
+      tweaksToApply[propertyKey] = savedValue;
+      applyPreview(property, savedValue);
+    }
+
+    if (Object.keys(stillPending).length === 0) {
+      clearPendingEdits(state);
+    } else if (Object.keys(stillPending).length !== Object.keys(saved).length) {
+      savePendingEdits(state, stillPending);
+    }
+
+    if (Object.keys(tweaksToApply).length > 0) {
+      setTweakedValues(tweaksToApply);
+    }
+  };
+
   createEffect(
     on(isVisible, (visible) => {
       if (!visible) {
@@ -215,6 +255,7 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
       }
       queueMicrotask(() => searchInputRef?.focus({ preventScroll: true }));
       startBoundsPolling();
+      restorePendingEditsFromStorage();
     }),
   );
 
@@ -308,11 +349,16 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
     if (!state) return;
     const tweaks = tweakedValues();
     const changes: EditPromptChange[] = [];
+    const pendingEdits: Record<string, number> = {};
     for (const property of state.properties) {
       const tweakedValue = tweaks[property.property];
       if (tweakedValue === undefined) continue;
       if (tweakedValue === property.original) continue;
       changes.push({ property, value: tweakedValue });
+      pendingEdits[property.property] = tweakedValue;
+    }
+    if (changes.length > 0) {
+      savePendingEdits(state, pendingEdits);
     }
     const prompt = formatStyleDiffPrompt({ changes });
     didCommitOnSubmit = true;
