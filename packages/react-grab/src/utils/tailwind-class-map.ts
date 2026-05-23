@@ -99,6 +99,20 @@ export const matchTailwindPrefix = (rawClassName: string): string | null => {
   return segments[0];
 };
 
+// Color-named tail tokens — used to detect when an otherwise-ambiguous
+// class (e.g. text-blue-500, border-red-500) is operating on color and
+// should NOT bubble unrelated rows (font-size, border-width) to the top
+// of the editor. The editor doesn't expose color tweaking, so the
+// safest behavior is to ignore the class entirely.
+const COLOR_TAIL_REGEX = /-(red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|slate|gray|zinc|neutral|stone|black|white|transparent|current|inherit)\b/;
+
+const isAmbiguousColorClass = (prefix: string, token: string): boolean => {
+  if (prefix !== "text" && prefix !== "bg" && prefix !== "border" && !prefix.startsWith("border-")) {
+    return false;
+  }
+  return COLOR_TAIL_REGEX.test(token);
+};
+
 export const getElementTailwindProperties = (element: Element): Set<string> => {
   const classAttribute = element.getAttribute("class");
   if (!classAttribute) return new Set();
@@ -108,6 +122,7 @@ export const getElementTailwindProperties = (element: Element): Set<string> => {
   for (const token of tokens) {
     const prefix = matchTailwindPrefix(token);
     if (!prefix) continue;
+    if (isAmbiguousColorClass(prefix, token)) continue;
     const mapped = tailwindPrefixToProperty(prefix);
     if (mapped) properties.add(mapped);
   }

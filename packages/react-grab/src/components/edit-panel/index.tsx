@@ -252,31 +252,59 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
     }
   };
 
-  // Pop our inline override for this property's CSS longhands, read
-  // getComputedStyle (= what the underlying source produces), then put
-  // the inline overrides back. The mutate-read-mutate happens in one
-  // synchronous task, so the user never sees the intermediate state.
+  // Pop our inline overrides for the property's CSS longhands (preserving
+  // !important priority), read getComputedStyle (= what the underlying
+  // source produces), confirm every longhand resolves to the same saved
+  // value, then put the inline overrides back. The mutate-read-mutate
+  // happens in one synchronous task so the user never sees the
+  // intermediate state.
   const readSourceValueWithoutInline = (
     element: HTMLElement,
     property: EditableProperty,
   ): number | null => {
     const cssProperties = editablePropertyToCssProperties(property.property);
-    const savedInline = new Map<string, string>();
+    const savedInline = new Map<string, { value: string; priority: string }>();
     for (const cssProperty of cssProperties) {
-      savedInline.set(cssProperty, element.style.getPropertyValue(cssProperty));
+      const value = element.style.getPropertyValue(cssProperty);
+      const priority = element.style.getPropertyPriority(cssProperty);
+      savedInline.set(cssProperty, { value, priority });
       element.style.removeProperty(cssProperty);
     }
     const computed = getComputedStyle(element);
-    const rawValue = computed.getPropertyValue(cssProperties[0]);
-    for (const [cssProperty, inlineValue] of savedInline) {
-      if (inlineValue) element.style.setProperty(cssProperty, inlineValue);
+    const values: number[] = [];
+    let resolved: number | null = null;
+    for (const cssProperty of cssProperties) {
+      const raw = computed.getPropertyValue(cssProperty);
+      if (!raw) {
+        resolved = null;
+        break;
+      }
+      const parsed = parseNumericValue(raw);
+      if (!parsed) {
+        resolved = null;
+        break;
+      }
+      // Opacity is the only property the editor expresses as 0–100% over a
+      // 0–1 computed value. Other %-unit properties (width, max-width, …)
+      // already parse to their UI value, so don't scale them.
+      const normalized =
+        property.property === "opacity"
+          ? Math.round(parsed.value * 100)
+          : cleanNumericValue(parsed.value);
+      values.push(normalized);
     }
-    if (!rawValue) return null;
-    const parsed = parseNumericValue(rawValue);
-    if (!parsed) return null;
-    return property.unit === "%"
-      ? Math.round(parsed.value * 100)
-      : cleanNumericValue(parsed.value);
+    for (const [cssProperty, { value, priority }] of savedInline) {
+      if (value) element.style.setProperty(cssProperty, value, priority);
+    }
+    if (values.length === 0 || values.length !== cssProperties.length) return null;
+    // For aggregate keys (padding-top,padding-bottom) all longhands must
+    // resolve to the same value for us to treat the saved aggregate as
+    // applied — otherwise the agent only synced one side.
+    resolved = values[0];
+    for (let index = 1; index < values.length; index++) {
+      if (values[index] !== resolved) return null;
+    }
+    return resolved;
   };
 
   createEffect(
@@ -433,15 +461,18 @@ export const EditPanel: Component<EditPanelProps> = (props) => {
     }
     if (hasChanges) {
       savePendingEdits(state, pendingEdits);
-    } else {
-      // No net change → user reverted everything before committing.
-      // Drop any older pending entries so reopening starts clean.
-      clearPendingEdits(state);
     }
     // The copy prompt covers every still-pending edit across the session,
     // not just this element's diff, so the agent gets the full backlog of
-    // UI tweaks the user has made and can apply them in one batch.
+    // UI tweaks the user has made and can apply them in one batch. Read
+    // BEFORE clearing the current element's entry so a no-change submit
+    // still ships the rest of the session's pending edits to the agent.
     const prompt = formatSessionEditsPrompt(loadAllPendingEdits());
+    if (!hasChanges) {
+      // No net change → user reverted everything for this element. Drop
+      // its pending entry so reopening starts from the source baseline.
+      clearPendingEdits(state);
+    }
     didCommitOnSubmit = true;
     props.onSubmit(prompt);
   };

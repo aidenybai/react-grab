@@ -2182,32 +2182,32 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         );
 
       if (canActivateFromCopied) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-
         const center = getBoundsCenter(createElementBounds(copiedElement));
-        actions.clearLastCopied();
         const opened = triggerEditMode(copiedElement, center);
         if (!opened) return false;
+        // Only consume Enter and clear the copy state AFTER edit mode
+        // actually opens. If the element had no editable properties, we
+        // want the key to fall through to other handlers rather than
+        // swallow it with no visible result.
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        actions.clearLastCopied();
         return true;
       }
 
       const canActivateFromHolding = isHoldingKeys() && !isPromptMode();
 
       if (canActivateFromHolding) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-
         const element = store.frozenElement || targetElement();
         if (!element) return false;
-
+        const opened = triggerEditMode(element, { x: pointer().x, y: pointer().y });
+        if (!opened) return false;
+        event.preventDefault();
+        event.stopImmediatePropagation();
         if (keydownSpamTimerId !== null) {
           window.clearTimeout(keydownSpamTimerId);
           keydownSpamTimerId = null;
         }
-
-        const opened = triggerEditMode(element, { x: pointer().x, y: pointer().y });
-        if (!opened) return false;
         return true;
       }
 
