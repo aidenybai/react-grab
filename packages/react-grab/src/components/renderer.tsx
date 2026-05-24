@@ -5,6 +5,10 @@ import {
   FADE_DURATION_MS,
   FROZEN_GLOW_COLOR,
   FROZEN_GLOW_EDGE_PX,
+  KEYBOARD_POINTER_CURSOR_SIZE_PX,
+  OVERLAY_BORDER_COLOR_DEFAULT,
+  OVERLAY_FILL_COLOR_DEFAULT,
+  Z_INDEX_OVERLAY,
   Z_INDEX_OVERLAY_CANVAS,
 } from "../constants.js";
 import { openFile } from "../utils/open-file.js";
@@ -28,6 +32,26 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         grabbedBoxes={props.grabbedBoxes}
         labelInstances={props.labelInstances}
       />
+      <Show when={props.keyboardPointerCursor}>
+        {(cursor) => (
+          <div
+            data-react-grab-keyboard-cursor
+            style={{
+              position: "fixed",
+              left: `${cursor().x - KEYBOARD_POINTER_CURSOR_SIZE_PX / 2}px`,
+              top: `${cursor().y - KEYBOARD_POINTER_CURSOR_SIZE_PX / 2}px`,
+              width: `${KEYBOARD_POINTER_CURSOR_SIZE_PX}px`,
+              height: `${KEYBOARD_POINTER_CURSOR_SIZE_PX}px`,
+              "border-radius": "50%",
+              border: `2px solid ${OVERLAY_BORDER_COLOR_DEFAULT}`,
+              "background-color": OVERLAY_FILL_COLOR_DEFAULT,
+              "pointer-events": "none",
+              "z-index": Z_INDEX_OVERLAY,
+              "box-shadow": "0 1px 4px rgba(0, 0, 0, 0.2)",
+            }}
+          />
+        )}
+      </Show>
       {/* translateZ(0) promotes to its own compositor layer so opacity
           transitions skip main-thread repaints; contain:strict with
           will-change:opacity pre-allocates the layer. */}

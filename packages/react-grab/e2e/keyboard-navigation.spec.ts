@@ -126,41 +126,64 @@ test.describe("Keyboard Navigation", () => {
   });
 });
 
+const getKeyboardCursorBounds = async (reactGrab: ReactGrabPageObject) => {
+  return reactGrab.page.evaluate(() => {
+    const host = document.querySelector("[data-react-grab]");
+    const root = host?.shadowRoot?.querySelector("[data-react-grab]");
+    const cursor = root?.querySelector<HTMLElement>("[data-react-grab-keyboard-cursor]");
+    if (!cursor) return null;
+    const rect = cursor.getBoundingClientRect();
+    return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+  });
+};
+
 test.describe("Keyboard Pointer Movement", () => {
-  test("holding ArrowRight translates the selection box horizontally", async ({ reactGrab }) => {
+  test("holding ArrowRight moves the keyboard cursor horizontally", async ({ reactGrab }) => {
     await reactGrab.activate();
     await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
     await reactGrab.waitForSelectionBox();
 
-    const startBounds = await reactGrab.getSelectionLabelBounds();
-    expect(startBounds).not.toBeNull();
-
     await reactGrab.page.keyboard.down("ArrowRight");
+    await reactGrab.page.waitForTimeout(80);
+    const startCursor = await getKeyboardCursorBounds(reactGrab);
     await reactGrab.page.waitForTimeout(500);
-    const midBounds = await reactGrab.getSelectionLabelBounds();
+    const midCursor = await getKeyboardCursorBounds(reactGrab);
     await reactGrab.page.keyboard.up("ArrowRight");
     await reactGrab.waitForSelectionBox();
 
-    expect(midBounds).not.toBeNull();
-    expect(midBounds!.label.x).toBeGreaterThan(startBounds!.label.x + 50);
+    expect(startCursor).not.toBeNull();
+    expect(midCursor).not.toBeNull();
+    expect(midCursor!.x).toBeGreaterThan(startCursor!.x + 50);
   });
 
-  test("holding ArrowDown translates the selection box vertically", async ({ reactGrab }) => {
+  test("holding ArrowDown moves the keyboard cursor vertically", async ({ reactGrab }) => {
     await reactGrab.activate();
     await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
     await reactGrab.waitForSelectionBox();
 
-    const startBounds = await reactGrab.getSelectionLabelBounds();
-    expect(startBounds).not.toBeNull();
-
     await reactGrab.page.keyboard.down("ArrowDown");
+    await reactGrab.page.waitForTimeout(80);
+    const startCursor = await getKeyboardCursorBounds(reactGrab);
     await reactGrab.page.waitForTimeout(500);
-    const midBounds = await reactGrab.getSelectionLabelBounds();
+    const midCursor = await getKeyboardCursorBounds(reactGrab);
     await reactGrab.page.keyboard.up("ArrowDown");
     await reactGrab.waitForSelectionBox();
 
-    expect(midBounds).not.toBeNull();
-    expect(midBounds!.label.y).toBeGreaterThan(startBounds!.label.y + 50);
+    expect(startCursor).not.toBeNull();
+    expect(midCursor).not.toBeNull();
+    expect(midCursor!.y).toBeGreaterThan(startCursor!.y + 50);
+  });
+
+  test("keyboard cursor disappears after releasing the arrow key", async ({ reactGrab }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
+    await reactGrab.waitForSelectionBox();
+
+    await reactGrab.holdArrowKey("ArrowRight", 200);
+    await reactGrab.page.waitForTimeout(150);
+
+    const cursor = await getKeyboardCursorBounds(reactGrab);
+    expect(cursor).toBeNull();
   });
 
   test("holding ArrowDown then releasing freezes selection against further mouse movement", async ({

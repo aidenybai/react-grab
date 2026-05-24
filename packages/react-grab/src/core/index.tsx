@@ -456,10 +456,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
     const [arrowNavigationElements, setArrowNavigationElements] = createSignal<Element[]>([]);
     const [arrowNavigationActiveIndex, setArrowNavigationActiveIndex] = createSignal(0);
-    const [keyboardFloatingBounds, setKeyboardFloatingBounds] = createSignal<OverlayBounds | null>(
-      null,
-      { equals: false },
-    );
+    const [keyboardPointerCursor, setKeyboardPointerCursor] = createSignal<Position | null>(null);
 
     const ancestorStackNavigator = createAncestorStackNavigator(
       isValidGrabbableElement,
@@ -1028,12 +1025,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const selectionBounds = createMemo((): OverlayBounds | undefined => {
       void viewportVersion();
-
-      // While the user is holding an arrow key the box is detached from
-      // any specific element and translates with the keyboard pointer.
-      // It snaps back to an element on release.
-      const floatingBounds = keyboardFloatingBounds();
-      if (floatingBounds) return floatingBounds;
 
       const frozenElements = store.frozenElements;
       if (frozenElements.length > 0) {
@@ -2184,20 +2175,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             padding,
             Math.min(window.innerHeight - padding, currentPointer.y + stepY),
           );
-          const actualStepX = nextX - currentPointer.x;
-          const actualStepY = nextY - currentPointer.y;
 
           actions.setPointer({ x: nextX, y: nextY });
 
-          const floatingBounds = keyboardFloatingBounds();
-          if (floatingBounds) {
-            // Translate the visual box by the same delta as the pointer.
-            // We mutate in place and re-emit via the equals: false signal so
-            // memos depending on selectionBounds re-run, without churning a
-            // fresh object literal every frame.
-            floatingBounds.x += actualStepX;
-            floatingBounds.y += actualStepY;
-            setKeyboardFloatingBounds(floatingBounds);
+          if (keyboardPointerCursor()) {
+            setKeyboardPointerCursor({ x: nextX, y: nextY });
           }
 
           const candidate = getElementAtPosition(nextX, nextY);
@@ -2217,7 +2199,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       stopKeyboardPointerMovement();
       isKeyboardPointerSuppressed = false;
       keyboardPointerSeedElement = null;
-      setKeyboardFloatingBounds(null);
+      setKeyboardPointerCursor(null);
     };
 
     const handleKeyboardPointerMovement = (event: KeyboardEvent): boolean => {
@@ -2237,25 +2219,29 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (heldKeyboardPointerKeys.size === 0) {
         const seedElement = effectiveElement();
         keyboardPointerSeedElement = seedElement;
+        let cursorStart: Position;
         if (seedElement) {
           const seedBounds = createElementBounds(seedElement);
-          const center = getBoundsCenter(seedBounds);
-          actions.setPointer(center);
-          // Snapshot the seed's geometry so the visual box can translate
-          // freely from there during the hold (decoupled from elements
-          // crossed under the pointer). { ...seedBounds } is a one-time
-          // copy at hold-start; the rAF tick mutates this copy in place.
-          setKeyboardFloatingBounds({ ...seedBounds });
+          cursorStart = getBoundsCenter(seedBounds);
+          actions.setPointer(cursorStart);
         } else {
           const currentPointer = pointer();
           const hasPointerPosition = currentPointer.x !== 0 || currentPointer.y !== 0;
-          if (!hasPointerPosition) {
-            actions.setPointer({
+          if (hasPointerPosition) {
+            cursorStart = { x: currentPointer.x, y: currentPointer.y };
+          } else {
+            cursorStart = {
               x: window.innerWidth / 2,
               y: window.innerHeight / 2,
-            });
+            };
+            actions.setPointer(cursorStart);
           }
         }
+        // Show a small fake cursor at the keyboard pointer position so
+        // the user can see where the pointer is moving while held. The
+        // selection box continues to follow whichever element is under
+        // it (live preview of what would snap on release).
+        setKeyboardPointerCursor(cursorStart);
 
         // Close the ancestors menu since the user is now moving freely,
         // but keep ancestorStackNavigator history so Shift+Tab can still
@@ -2314,10 +2300,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           }
           keyboardPointerSeedElement = null;
         }
-        // The visual box now follows the snapped/frozen element again, so
-        // drop the floating bounds. This runs after selectAndFocusElement
-        // so there's no flicker where both could render simultaneously.
-        setKeyboardFloatingBounds(null);
+        setKeyboardPointerCursor(null);
       }
 
       event.preventDefault();
@@ -3220,9 +3203,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!isSelectionBoxThemeEnabled()) return false;
       if (isSelectionSuppressed()) return false;
       if (hasDragPreviewBounds()) return true;
-      // The free-floating keyboard box keeps the overlay visible even when
-      // the pointer is over blank space and there's no detected element.
-      if (keyboardFloatingBounds()) return true;
       return isSelectionElementVisible();
     });
 
@@ -3738,6 +3718,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 selectionShouldSnap={
                   store.frozenElements.length > 0 || dragPreviewBounds().length > 0
                 }
+                keyboardPointerCursor={keyboardPointerCursor()}
                 selectionElementsCount={store.frozenElements.length}
                 frozenLabelEntries={frozenLabelEntries()}
                 pendingShiftPreviewEntry={pendingShiftPreviewEntry() ?? undefined}

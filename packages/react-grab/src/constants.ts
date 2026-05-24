@@ -111,6 +111,7 @@ export const ARROW_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRi
 
 export const KEYBOARD_POINTER_SPEED_PX_PER_MS = 0.9;
 export const KEYBOARD_POINTER_VIEWPORT_PADDING_PX = 4;
+export const KEYBOARD_POINTER_CURSOR_SIZE_PX = 14;
 
 export const FROZEN_ELEMENT_ATTRIBUTE = "data-react-grab-frozen";
 
