@@ -30,16 +30,20 @@ export const createTweakStore = (options: CreateTweakStoreOptions): TweakStore =
 
   const baseFilteredProperties = createMemo<EditableProperty[]>(() => {
     const query = searchQuery();
-    // No query: only surface canonical, non-default rows. Canonical means
-    // "the highest-level form that captures this side", so a uniform
-    // padding shows as one row instead of seven. Searching unlocks the
-    // full list — that's how Tailwind aliases like `pl` can rank to
-    // `padding-left` even when the consolidated `padding` is what we
-    // normally show.
+    // No query: surface canonical, non-default rows + any row the user
+    // has already tweaked this session. Canonical means "the highest-
+    // level form that captures this side", so a uniform padding shows
+    // as one row instead of seven. Tweaked rows stay visible after
+    // their edit even if their original value matches the baseline —
+    // hiding a row the user just touched would be hostile UX.
+    const tweaks = tweakedValues();
     const candidates = query
       ? initialProperties
       : initialProperties.filter(
-          (entry) => entry.prioritized || (entry.isCanonical && !entry.isDefault),
+          (entry) =>
+            entry.prioritized ||
+            (entry.isCanonical && !entry.isDefault) ||
+            tweaks[entry.key] !== undefined,
         );
     return filterPropertiesByQuery(candidates, query);
   });

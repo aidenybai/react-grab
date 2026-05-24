@@ -276,11 +276,16 @@ test.describe("Edit Panel", () => {
       expect(keys).toContain("border-radius");
     });
 
-    test("default-value margin is hidden when no search query is active", async ({ reactGrab }) => {
+    test("core properties (padding, margin, color, etc.) surface even when at baseline", async ({
+      reactGrab,
+    }) => {
+      // Older versions hid margin when the value matched the baseline
+      // (margin: 0). The panel now surfaces a small whitelist of
+      // frequently-edited properties so the user doesn't have to know
+      // to search "margin" before tweaking it from zero.
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       const keys = await getVisiblePropertyKeys(reactGrab.page);
-      // Button has no margin classes; margin-* should be hidden by default
-      expect(keys.every((key) => !key.startsWith("margin"))).toBe(true);
+      expect(keys.some((key) => key.startsWith("margin"))).toBe(true);
     });
 
     test("typing a search query reveals non-canonical properties", async ({ reactGrab }) => {
