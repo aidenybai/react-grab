@@ -196,6 +196,9 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   // property that was tweaked (or null if no change). Stepper commits
   // (Left/Right) collapse to compact — the user has picked a property
   // and is now adjusting its value.
+  // Shared write-through. Only keyboard step / typed value / typed
+  // tailwind class collapse to compact; pointer-driven clicks on the
+  // stepper arrows tweak the value without changing layout.
   const commitTweak = (direction: 1 | -1, shift: boolean): EditableProperty | null => {
     const property = activeProperty();
     if (!property) return null;
@@ -207,14 +210,13 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     setTweakedValues((current) => ({ ...current, [property.key]: next }));
     preview.apply(property.cssProperties, formatEditableValue(property, next));
     flashActiveKey(direction === 1 ? "right" : "left");
-    setIsCompact(true);
     markAsInteracting();
     ensureSearchFocused();
     return property;
   };
 
   const stepFromKeyboard = (direction: 1 | -1, shift: boolean) => {
-    commitTweak(direction, shift);
+    if (commitTweak(direction, shift)) setIsCompact(true);
   };
 
   const stepFromPointer = (direction: 1 | -1) => {
