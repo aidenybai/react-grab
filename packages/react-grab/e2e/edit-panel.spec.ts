@@ -422,6 +422,53 @@ test.describe("Edit Panel", () => {
       expect(await isEditPanelCompact(reactGrab.page)).toBe(false);
     });
 
+    test("type-to-edit: hover + type m then t → margin-top focused", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+      await reactGrab.hoverElement(BUTTON_SELECTOR);
+      await reactGrab.waitForSelectionBox();
+      await reactGrab.page.keyboard.type("mt", { delay: 50 });
+      await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(true);
+      await reactGrab.page.waitForTimeout(80);
+      const searchValue = await reactGrab.page.evaluate(
+        ({ attrName, inputAttr }) => {
+          const host = document.querySelector(`[${attrName}]`);
+          const shadowRoot = host?.shadowRoot;
+          const input = shadowRoot?.querySelector<HTMLTextAreaElement>(`[${inputAttr}]`);
+          return input?.value ?? null;
+        },
+        { attrName: ATTRIBUTE_NAME, inputAttr: SEARCH_INPUT_ATTR },
+      );
+      expect(searchValue).toBe("mt");
+      const activeKey = await getActivePropertyKey(reactGrab.page);
+      expect(activeKey).toBe("margin-top");
+    });
+
+    test("type-to-edit: hover + type m-t-dash → search shows mt-, active is margin-top", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+      await reactGrab.hoverElement(BUTTON_SELECTOR);
+      await reactGrab.waitForSelectionBox();
+      // 3 chars: m (opens panel) + t (refines) + - (extends prefix)
+      await reactGrab.page.keyboard.type("mt-", { delay: 50 });
+      await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(true);
+      await reactGrab.page.waitForTimeout(80);
+      const searchValue = await reactGrab.page.evaluate(
+        ({ attrName, inputAttr }) => {
+          const host = document.querySelector(`[${attrName}]`);
+          const shadowRoot = host?.shadowRoot;
+          const input = shadowRoot?.querySelector<HTMLTextAreaElement>(`[${inputAttr}]`);
+          return input?.value ?? null;
+        },
+        { attrName: ATTRIBUTE_NAME, inputAttr: SEARCH_INPUT_ATTR },
+      );
+      expect(searchValue).toBe("mt-");
+      const activeKey = await getActivePropertyKey(reactGrab.page);
+      expect(activeKey).toBe("margin-top");
+    });
+
     test("typing a tailwind prefix (e.g. mt) sets compact state", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       const compactBefore = await reactGrab.page.evaluate(
