@@ -20,7 +20,7 @@ import {
   Z_INDEX_OVERLAY,
 } from "../../constants.js";
 import type { EditableProperty, EditPanelState, OverlayBounds } from "../../types.js";
-import { clampNumericValue } from "../../utils/clamp-numeric-value.js";
+import { clampToRange } from "../../utils/clamp-to-range.js";
 import {
   clearPendingEdits,
   loadAllPendingEdits,
@@ -343,7 +343,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     if (!property) return null;
     const multiplier = shift ? EDIT_SHIFT_STEP_MULTIPLIER : 1;
     const next = cleanNumericValue(
-      clampNumericValue(property.value + direction * multiplier, property.min, property.max),
+      clampToRange(property.value + direction * multiplier, property.min, property.max),
     );
     if (next === property.value) return null;
     setTweakedValues((current) => ({ ...current, [property.key]: next }));
@@ -370,7 +370,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   const commitTypedValue = (rawValue: number) => {
     const property = activeProperty();
     if (!property) return;
-    const next = cleanNumericValue(clampNumericValue(rawValue, property.min, property.max));
+    const next = cleanNumericValue(clampToRange(rawValue, property.min, property.max));
     if (next === property.value) return;
     setTweakedValues((current) => ({ ...current, [property.key]: next }));
     preview.apply(property.cssProperties, formatEditableValue(property, next));

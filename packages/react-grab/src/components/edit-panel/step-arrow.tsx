@@ -35,9 +35,7 @@ export const StepArrow: Component<StepArrowProps> = (props) => {
       viewBox="0 0 24 24"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      role="button"
-      aria-label={`Step ${props.direction}`}
-      aria-disabled={props.disabled || undefined}
+      aria-hidden="true"
       onPointerDown={props.disabled ? undefined : props.onPointerDown}
       onPointerUp={props.onPointerUp}
       onPointerLeave={props.onPointerLeave}

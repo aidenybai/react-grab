@@ -2178,6 +2178,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isKeyboardEventTriggeredByInput(event)) return false;
       if (isCopying()) return false;
       if (isSelectionInteractionLocked()) return false;
+      // When a popover owns the Enter semantics (context menu = activate
+      // item; edit panel = submit value), bow out so this global handler
+      // doesn't re-trigger edit mode underneath the open panel — would
+      // otherwise reset its in-flight tweaks.
+      if (isAnyPopoverOpen()) return false;
 
       const copiedElement = store.lastCopiedElement;
       const canActivateFromCopied =
