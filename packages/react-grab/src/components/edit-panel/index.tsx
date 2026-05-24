@@ -499,7 +499,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
         onContextMenu={suppressMenuEvent}
       >
         <div
-          class="contain-layout flex flex-col justify-center items-start rounded-[14px] antialiased w-fit h-fit [font-synthesis:none] [corner-shape:superellipse(1.25)] bg-[var(--rg-panel-bg)]"
+          class="contain-layout flex flex-col justify-center items-start rounded-[14px] overflow-hidden antialiased w-fit h-fit [font-synthesis:none] [corner-shape:superellipse(1.25)] bg-[var(--rg-panel-bg)]"
           style={{
             "min-width": isCompact() ? undefined : `${EDIT_PANEL_MIN_WIDTH_PX}px`,
             "max-width": `${EDIT_PANEL_MAX_WIDTH_PX}px`,
