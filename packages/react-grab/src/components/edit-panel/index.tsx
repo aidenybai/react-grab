@@ -10,9 +10,7 @@ import {
 } from "solid-js";
 import {
   EDIT_PANEL_ACTIVE_KEY_FLASH_MS,
-  EDIT_PANEL_ADJUSTING_FADE_MS,
   EDIT_PANEL_ADJUSTING_IDLE_MS,
-  EDIT_PANEL_ADJUSTING_OPACITY,
   EDIT_PANEL_MAX_WIDTH_PX,
   EDIT_PANEL_MIN_WIDTH_PX,
   EDIT_PROPERTY_LIST_MAX_HEIGHT_PX,
@@ -36,6 +34,7 @@ import { getTagDisplay } from "../../utils/get-tag-display.js";
 import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "../../utils/native-raf.js";
 import { registerOverlayDismiss } from "../../utils/register-overlay-dismiss.js";
 import { suppressMenuEvent } from "../../utils/suppress-menu-event.js";
+import { IconSubmit } from "../icons/icon-submit.jsx";
 import { Arrow } from "../selection-label/arrow.js";
 import { TagBadge } from "../selection-label/tag-badge.js";
 import { computeEditPanelPosition, OFFSCREEN_POSITION } from "./compute-position.js";
@@ -89,13 +88,22 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   const [tweakedValues, setTweakedValues] = createSignal<Record<string, number>>({});
   const [activeKey, setActiveKey] = createSignal<"left" | "right" | null>(null);
   const [liveBounds, setLiveBounds] = createSignal<OverlayBounds | null>(null);
-  const [isAdjusting, setIsAdjusting] = createSignal(false);
+  // Sticky-true once the user commits any tweak (keyboard step, pointer
+  // step, click-to-type). Drives the layout collapse to compact mode,
+  // which only re-expands when the user types in the search field.
+  const [hasCommittedAnyEdit, setHasCommittedAnyEdit] = createSignal(false);
 
   let activeKeyTimerId: ReturnType<typeof setTimeout> | undefined;
-  let adjustingIdleTimerId: ReturnType<typeof setTimeout> | undefined;
   let interactingIdleTimerId: ReturnType<typeof setTimeout> | undefined;
   let isInteractingFlag = false;
-  let didCommitOnSubmit = false;
+
+  // Compact mode is sticky: once the user commits a tweak, the panel
+  // collapses to just the value stepper + submit button (no tag badge,
+  // no search, no list). It only re-expands when the user types a
+  // non-empty search query — typing on the hidden-but-focused search
+  // textarea snaps the panel back to the full layout so they can see
+  // the filtered property list.
+  const isCompact = createMemo(() => hasCommittedAnyEdit() && searchQuery() === "");
 
   const tagDisplay = createMemo(() =>
     getTagDisplay({
@@ -247,6 +255,10 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     }
     if (survivingEdits.length !== saved.length) savePendingEdits(props.state, survivingEdits);
     setTweakedValues(Object.fromEntries(survivingEdits.map((edit) => [edit.key, edit.value])));
+    // Treat restored edits as commits so the panel opens straight into
+    // compact mode — the user already committed these, no need to make
+    // them re-discover their own pending state.
+    setHasCommittedAnyEdit(true);
   };
 
   // Tweaks change layout (padding, width, etc.), which can ripple through
@@ -294,12 +306,9 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     }, EDIT_PANEL_ACTIVE_KEY_FLASH_MS);
   };
 
-  // Two related but separate states (mouse drives one, keyboard both):
-  //   interacting → fires onInteractingChange so the parent hides the
-  //     page-level selection overlay while the user is actively tweaking
-  //     (either keyboard or pointer).
-  //   adjusting   → collapses the panel to compact mode, keyboard only.
-  //     Mouse users want the panel they're clicking to stay visible.
+  // Timed "currently tweaking" flag — fires onInteractingChange so the
+  // parent hides the page-level selection overlay while the user is
+  // actively adjusting values.
   const markAsInteracting = () => {
     if (!isInteractingFlag) {
       isInteractingFlag = true;
@@ -312,21 +321,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     }, EDIT_PANEL_ADJUSTING_IDLE_MS);
   };
 
-  const markAsAdjusting = () => {
-    setIsAdjusting(true);
-    clearTimeout(adjustingIdleTimerId);
-    adjustingIdleTimerId = setTimeout(() => {
-      setIsAdjusting(false);
-    }, EDIT_PANEL_ADJUSTING_IDLE_MS);
-    markAsInteracting();
-  };
-
-  const exitAdjusting = () => {
-    if (!isAdjusting()) return;
-    setIsAdjusting(false);
-    clearTimeout(adjustingIdleTimerId);
-  };
-
   const ensureSearchFocused = () => {
     queueMicrotask(() => {
       const active = searchInputRef?.ownerDocument.activeElement;
@@ -335,9 +329,8 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   };
 
   // Pure step: computes the next value, writes it through, returns the
-  // property that was tweaked (or null if no change). Mode transitions
-  // (adjusting vs interacting) belong to the caller — keyboard ENTERS
-  // adjusting, pointer EXITS it.
+  // property that was tweaked (or null if no change). All commit paths
+  // flip hasCommittedAnyEdit true and ping interacting.
   const commitTweak = (direction: 1 | -1, shift: boolean): EditableProperty | null => {
     const property = activeProperty();
     if (!property) return null;
@@ -349,24 +342,23 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     setTweakedValues((current) => ({ ...current, [property.key]: next }));
     preview.apply(property.cssProperties, formatEditableValue(property, next));
     flashActiveKey(direction === 1 ? "right" : "left");
+    setHasCommittedAnyEdit(true);
+    markAsInteracting();
     ensureSearchFocused();
     return property;
   };
 
   const stepFromKeyboard = (direction: 1 | -1, shift: boolean) => {
-    if (commitTweak(direction, shift)) markAsAdjusting();
+    commitTweak(direction, shift);
   };
 
   const stepFromPointer = (direction: 1 | -1) => {
-    if (!commitTweak(direction, false)) return;
-    exitAdjusting();
-    markAsInteracting();
+    commitTweak(direction, false);
   };
 
-  // Click-to-type entry point. Clamps the raw user input (parsed
-  // float) to the property's bounds and writes through the same preview
-  // pipeline as the steppers. No flash, no mode flip — the input itself
-  // is the affordance.
+  // Click-to-type entry point. Clamps the raw user input (parsed float)
+  // to the property's bounds and writes through the same preview pipeline
+  // as the steppers.
   const commitTypedValue = (rawValue: number) => {
     const property = activeProperty();
     if (!property) return;
@@ -374,11 +366,14 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     if (next === property.value) return;
     setTweakedValues((current) => ({ ...current, [property.key]: next }));
     preview.apply(property.cssProperties, formatEditableValue(property, next));
-    exitAdjusting();
+    setHasCommittedAnyEdit(true);
     markAsInteracting();
   };
 
-  const handleSubmit = () => {
+  // Persist current tweaks to sessionStorage and return the diff. Used
+  // by both Enter (commits + fires agent prompt) and Escape / click-outside
+  // (commits silently, no prompt).
+  const persistTweaks = (): PendingEdit[] => {
     const tweaks = tweakedValues();
     const pendingEdits: PendingEdit[] = [];
     for (const property of initialProperties) {
@@ -398,6 +393,11 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       // its pending entry so reopening starts from the source baseline.
       clearPendingEdits(props.state);
     }
+    return pendingEdits;
+  };
+
+  const handleSubmit = () => {
+    const pendingEdits = persistTweaks();
     // The copy prompt covers every still-pending edit across the session,
     // not just this element's diff, so the agent gets the full backlog of
     // UI tweaks and can apply them in one batch. Read AFTER persisting
@@ -415,9 +415,15 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
         edits: pendingEdits,
       });
     }
-    const prompt = formatSessionEditsPrompt(sessionEntries);
-    didCommitOnSubmit = true;
-    props.onSubmit(prompt);
+    props.onSubmit(formatSessionEditsPrompt(sessionEntries));
+  };
+
+  // Close paths (Escape, click-outside) preserve the user's tweaks —
+  // inline styles stay applied + sessionStorage saves the diff so reopening
+  // surfaces it again. No agent prompt fires.
+  const dismissPreservingTweaks = () => {
+    persistTweaks();
+    props.onDismiss();
   };
 
   const navigateActive = (direction: 1 | -1) => {
@@ -433,7 +439,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     ArrowRight: (event) => stepFromKeyboard(1, event.shiftKey),
     Tab: (event) => navigateActive(event.shiftKey ? -1 : 1),
     Enter: () => handleSubmit(),
-    Escape: () => props.onDismiss(),
+    Escape: () => dismissPreservingTweaks(),
   };
 
   const handleSearchKeyDown = (event: KeyboardEvent) => {
@@ -481,12 +487,12 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
 
     const unregisterDismiss = registerOverlayDismiss({
       isOpen: () => true,
-      onDismiss: props.onDismiss,
+      onDismiss: dismissPreservingTweaks,
       shouldIgnoreRightClick: true,
       // Escape inside our own inputs (search textarea, click-to-type value
-      // editor) is owned by those inputs (commit/cancel/clear), not the
-      // panel dismissal path. The panel's own window-level handler still
-      // routes Escape-from-search to onDismiss.
+      // editor) is owned by those inputs (commit/cancel), not the panel
+      // dismissal path. The panel's own window-level handler still routes
+      // Escape-from-search to dismissPreservingTweaks.
       shouldIgnoreInputEvents: true,
     });
 
@@ -509,7 +515,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       unregisterDismiss();
       window.removeEventListener("keydown", handleWindowKeyDown, { capture: true });
       clearTimeout(activeKeyTimerId);
-      clearTimeout(adjustingIdleTimerId);
       clearTimeout(interactingIdleTimerId);
       stopBoundsPolling();
       resizeObserver?.disconnect();
@@ -517,13 +522,10 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
         isInteractingFlag = false;
         props.onInteractingChange?.(false);
       }
-      // Commit keeps the live preview on the element so the user sees
-      // the result; cancel reverts.
-      if (didCommitOnSubmit) {
-        preview.forget();
-      } else {
-        preview.restore();
-      }
+      // All dismissal paths preserve the user's tweaks now (req: Escape
+      // does not reset state). Inline styles stay applied; the page shows
+      // the tweaked values until the source is updated.
+      preview.forget();
     });
   });
 
@@ -544,8 +546,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
         "z-index": `${Z_INDEX_OVERLAY}`,
         "pointer-events": "auto",
         "--rg-edit-list-max-h": `${EDIT_PROPERTY_LIST_MAX_HEIGHT_PX}px`,
-        opacity: isAdjusting() ? EDIT_PANEL_ADJUSTING_OPACITY : 1,
-        transition: `opacity ${EDIT_PANEL_ADJUSTING_FADE_MS}ms ease-out`,
       }}
       onPointerDown={suppressMenuEvent}
       onMouseDown={suppressMenuEvent}
@@ -560,31 +560,37 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       <div
         class="contain-layout flex flex-col justify-center items-start rounded-[14px] antialiased w-fit h-fit [font-synthesis:none] [corner-shape:superellipse(1.25)] bg-[var(--rg-panel-bg)]"
         style={{
-          "min-width": isAdjusting() ? undefined : `${EDIT_PANEL_MIN_WIDTH_PX}px`,
+          "min-width": isCompact() ? undefined : `${EDIT_PANEL_MIN_WIDTH_PX}px`,
           "max-width": `${EDIT_PANEL_MAX_WIDTH_PX}px`,
         }}
       >
-        <div
-          class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 w-fit h-fit px-2"
-          style={isAdjusting() ? HIDDEN_FOCUS_PRESERVING_STYLE : undefined}
-        >
-          <TagBadge
-            tagName={tagDisplay().tagName}
-            componentName={tagDisplay().componentName}
-            isClickable={false}
-            onClick={() => {}}
-            shrink
-            forceShowIcon={false}
-          />
-        </div>
+        {/* TagBadge: full mode only — once the user starts editing, the
+            element name is implicit (they just clicked it) and gets in the
+            way of the value-focused compact layout. */}
+        <Show when={!isCompact()}>
+          <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 w-fit h-fit px-2">
+            <TagBadge
+              tagName={tagDisplay().tagName}
+              componentName={tagDisplay().componentName}
+              isClickable={false}
+              onClick={() => {}}
+              shrink
+              forceShowIcon={false}
+            />
+          </div>
+        </Show>
 
+        {/* Search + list. Always mounted: the search textarea owns focus,
+            and in compact mode it stays focused via HIDDEN_FOCUS_PRESERVING_STYLE
+            so the next keystroke from the user (typing) snaps the panel
+            back to full layout. */}
         <div
           class={
-            isAdjusting()
+            isCompact()
               ? ""
               : "[font-synthesis:none] contain-layout shrink-0 flex flex-col items-start px-2 py-1.5 w-auto h-fit self-stretch [border-top-width:0.5px] border-t-solid border-t-[var(--rg-border-subtle)] antialiased rounded-t-none rounded-b-[6px]"
           }
-          style={isAdjusting() ? HIDDEN_FOCUS_PRESERVING_STYLE : undefined}
+          style={isCompact() ? HIDDEN_FOCUS_PRESERVING_STYLE : undefined}
         >
           <textarea
             ref={(element) => {
@@ -626,10 +632,13 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
           </Show>
         </div>
 
-        <Show when={isAdjusting() && activeProperty()}>
+        {/* Compact-mode dropdown — mirrors the comment plugin's prompt-mode
+            UX: focused value editor + circular submit button. Click the
+            number to type directly, click ✓ to commit + send to the agent. */}
+        <Show when={isCompact() && activeProperty()}>
           {(activeProp) => (
             <div
-              class="flex items-center justify-center w-full px-3 py-1.5 min-h-[28px]"
+              class="flex items-center justify-center gap-2 w-full px-3 py-1.5 min-h-[28px]"
               onMouseDown={(event) => event.preventDefault()}
             >
               <ValueStepper
@@ -641,6 +650,17 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                 onEditComplete={ensureSearchFocused}
                 emphasized
               />
+              <button
+                data-react-grab-ignore-events
+                data-react-grab-submit
+                type="button"
+                aria-label="Submit edits"
+                class="contain-layout shrink-0 flex items-center justify-center size-4 rounded-full bg-[var(--rg-submit-bg)] cursor-pointer interactive-scale a11y-hitbox"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => handleSubmit()}
+              >
+                <IconSubmit size={10} aria-hidden="true" class="text-[var(--rg-submit-fg)]" />
+              </button>
             </div>
           )}
         </Show>

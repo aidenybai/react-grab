@@ -216,8 +216,7 @@ test.describe("Edit Panel", () => {
       await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
     });
 
-    test("Escape reverts inline styles written as preview", async ({ reactGrab }) => {
-      const before = await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-top");
+    test("Escape preserves inline styles written as preview", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await reactGrab.page.keyboard.press("ArrowRight");
       await reactGrab.page.waitForTimeout(80);
@@ -228,17 +227,18 @@ test.describe("Edit Panel", () => {
         "padding-top",
       );
       expect(duringTweak.length).toBeGreaterThan(0);
-      expect(duringTweak).not.toBe(before);
 
       await reactGrab.page.keyboard.press("Escape");
       await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
 
+      // Tweaks persist across dismiss — Escape stashes for later, doesn't
+      // revert. Reopening the panel sees the same value still applied.
       const afterDismiss = await getInlineStyleProperty(
         reactGrab.page,
         BUTTON_SELECTOR,
         "padding-top",
       );
-      expect(afterDismiss).toBe(before);
+      expect(afterDismiss).toBe(duringTweak);
     });
 
     test("click outside dismisses the panel", async ({ reactGrab }) => {
@@ -399,12 +399,26 @@ test.describe("Edit Panel", () => {
       expect(await isEditPanelCompact(reactGrab.page)).toBe(true);
     });
 
-    test("panel expands back after idle delay", async ({ reactGrab }) => {
+    test("compact mode is sticky once committed", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await reactGrab.page.keyboard.press("ArrowRight");
       await reactGrab.page.waitForTimeout(80);
       expect(await isEditPanelCompact(reactGrab.page)).toBe(true);
+      // Stays compact across the idle window — no auto-expand back to
+      // the search + property list.
       await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
+      expect(await isEditPanelCompact(reactGrab.page)).toBe(true);
+    });
+
+    test("typing in search re-expands the compact panel", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isEditPanelCompact(reactGrab.page)).toBe(true);
+      // Search textarea stays focused even while hidden 0×0; typing a
+      // character snaps the layout back to full mode.
+      await reactGrab.page.keyboard.type("p");
+      await reactGrab.page.waitForTimeout(80);
       expect(await isEditPanelCompact(reactGrab.page)).toBe(false);
     });
 
