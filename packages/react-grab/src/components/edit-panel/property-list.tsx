@@ -25,6 +25,9 @@ interface PropertyListProps {
   // twitch can't swap the active row out from under them mid-tweak.
   isInteracting: () => boolean;
   activeKey: "left" | "right" | null;
+  // Token chip sourced from the panel and forwarded through to the
+  // active row's ValueStepper.
+  activeTailwindLabel: string | null;
 }
 
 export const PropertyList: Component<PropertyListProps> = (props) => {
@@ -201,6 +204,7 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
                       onCommitValue={props.onCommitValue}
                       onEditComplete={props.onEditComplete}
                       onInteract={props.onInteract}
+                      tailwindLabel={props.activeTailwindLabel}
                     />
                   </Match>
                   <Match when={property().kind === "color"}>

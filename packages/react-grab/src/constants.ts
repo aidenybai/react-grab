@@ -198,6 +198,43 @@ export const EDIT_PANEL_ADJUSTING_IDLE_MS = 500;
 export const EDIT_PANEL_ACTIVE_KEY_FLASH_MS = 100;
 export const EDIT_SLIDER_CLICK_THRESHOLD_PX = 3;
 export const EDIT_SLIDER_HASH_MARK_COUNT = 9;
+// Dialkit-style rubber-band: the cursor must drag at least DEAD_ZONE_PX
+// past the slider edge before the track starts pulling. After that the
+// stretch grows as sqrt(overflow / SOFT_RANGE_PX) up to MAX_PX, then
+// springs back via SPRING_EASING over SETTLE_MS once the gesture ends.
+export const EDIT_SLIDER_RUBBER_DEAD_ZONE_PX = 32;
+export const EDIT_SLIDER_RUBBER_SOFT_RANGE_PX = 200;
+export const EDIT_SLIDER_RUBBER_MAX_PX = 8;
+export const EDIT_SLIDER_RUBBER_SETTLE_MS = 350;
+// Lifted from budge's barPhysics — a slightly-overshooting bezier
+// that reads as a spring snap-back when used on transform transitions.
+export const EDIT_SLIDER_SPRING_EASING = "cubic-bezier(0.34, 1.56, 0.64, 1)";
+// When the displayed value changes, the whole stepper row briefly
+// translates in the direction of change and springs back — budge's
+// "the UI slightly moves on every step" feel. Kept small (2px) so
+// the motion reads as a nudge rather than a leap.
+export const EDIT_VALUE_BUMP_PX = 2;
+export const EDIT_VALUE_BUMP_MS = 280;
+// Long-press auto-repeat: first step fires on keydown, then we wait
+// INITIAL_DELAY_MS before rolling over to a repeat cadence of
+// INTERVAL_MS. Matches budge's "drrr" of nudges when you hold ←/→.
+export const EDIT_STEP_REPEAT_INITIAL_DELAY_MS = 280;
+export const EDIT_STEP_REPEAT_INTERVAL_MS = 60;
+// Slot (animated number) per-column tuning: same spring easing as the
+// slider rubber-band; STAGGER_MS spaces the digits so the rightmost
+// lands first; FADE_HEIGHT masks the top/bottom of the strip so digits
+// don't visibly clip as they roll past the edge.
+export const SLOT_TRANSITION_MS = 350;
+export const SLOT_STAGGER_MS = 18;
+export const SLOT_FADE_HEIGHT_EM = 0.25;
+// Tailwind reverse-lookup bounds — used by find-tailwind-class to
+// decide whether a (cssKey, value) pair maps to a concise utility.
+// Spacing scale maxes at p-96 / m-96 (Tailwind's default ceiling);
+// border widths cap at border-8; z-index at z-50; opacity steps at 5%.
+export const TAILWIND_SPACING_MAX_UNITS = 96;
+export const TAILWIND_BORDER_MAX_PX = 8;
+export const TAILWIND_Z_INDEX_MAX = 50;
+export const TAILWIND_OPACITY_GRANULARITY = 5;
 export const EDIT_COLOR_LIGHTNESS_STEP_PERCENT = 4;
 
 export const CSS_VALUE_DECIMAL_PLACES = 2;

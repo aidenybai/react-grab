@@ -187,6 +187,11 @@ interface AggregateDefinition {
   longhands: readonly TrackedProperty[];
 }
 
+// Aggregate `key` strings are referenced verbatim by
+// RECOMMENDED_KEY_ORDER below for sort priority. If you reorder the
+// comma-joined longhands here (e.g. `padding-bottom,padding-top`),
+// remember to update the rank map or the row will lose its sort hint
+// and sink to the bottom of the recommended tier.
 const PADDING_AGGREGATES: readonly AggregateDefinition[] = [
   {
     key: "padding",
@@ -735,6 +740,87 @@ export const buildEditableProperties = (element: Element): EditableProperty[] =>
   );
 };
 
+// Recommended order for the no-query default list — the properties at
+// the top are the ones users tweak most often when iterating on a
+// design (sizing, spacing, color, typography). Anything not listed
+// falls to the bottom of its tier in source order, so newly-added
+// properties stay visible without forcing a constant audit of this
+// list.
+const RECOMMENDED_KEY_ORDER: readonly string[] = [
+  "padding",
+  "padding-left,padding-right",
+  "padding-top,padding-bottom",
+  "padding-top",
+  "padding-right",
+  "padding-bottom",
+  "padding-left",
+  "margin",
+  "margin-left,margin-right",
+  "margin-top,margin-bottom",
+  "margin-top",
+  "margin-right",
+  "margin-bottom",
+  "margin-left",
+  "background-color",
+  "color",
+  "font-size",
+  "font-weight",
+  "line-height",
+  "letter-spacing",
+  "border-radius",
+  "border-top-left-radius,border-top-right-radius",
+  "border-bottom-left-radius,border-bottom-right-radius",
+  "border-top-left-radius,border-bottom-left-radius",
+  "border-top-right-radius,border-bottom-right-radius",
+  "border-top-left-radius",
+  "border-top-right-radius",
+  "border-bottom-left-radius",
+  "border-bottom-right-radius",
+  "width",
+  "height",
+  "max-width",
+  "max-height",
+  "min-width",
+  "min-height",
+  "opacity",
+  "gap",
+  "row-gap",
+  "column-gap",
+  "border-width",
+  "border-top-width",
+  "border-right-width",
+  "border-bottom-width",
+  "border-left-width",
+  "border-color",
+  "align-items",
+  "justify-content",
+  "top",
+  "right",
+  "bottom",
+  "left",
+  "z-index",
+];
+const RECOMMENDATION_RANK = new Map(
+  RECOMMENDED_KEY_ORDER.map((key, index) => [key, index] as const),
+);
+const rankFor = (property: EditableProperty): number =>
+  RECOMMENDATION_RANK.get(property.key) ?? Number.POSITIVE_INFINITY;
+
+// Stable sort by recommendation rank (lower index first), falling back
+// to original source order so properties not in the list don't shuffle
+// each render and stay grouped by their semantic family (radii after
+// radii, etc.).
+const sortByRecommendation = (properties: EditableProperty[]): EditableProperty[] =>
+  properties
+    .map((property, index) => ({ property, index }))
+    .sort((left, right) => {
+      const leftRank = rankFor(left.property);
+      const rightRank = rankFor(right.property);
+      if (leftRank !== rightRank) return leftRank - rightRank;
+      return left.index - right.index;
+    })
+    .map((entry) => entry.property);
+
 const finalizeProperties = (
   properties: EditableProperty[],
   prioritized: Set<string>,
@@ -759,5 +845,7 @@ const finalizeProperties = (
       tier2.push({ ...property, isDefault });
     }
   }
-  return [...tier1, ...tier2];
+  // Sort within each tier by recommended order so the most-commonly
+  // tweaked properties land at the top of the list.
+  return [...sortByRecommendation(tier1), ...sortByRecommendation(tier2)];
 };

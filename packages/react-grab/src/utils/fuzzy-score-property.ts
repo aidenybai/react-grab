@@ -42,12 +42,19 @@ const scoreProperty = (query: string, property: EditableProperty): number => {
   return Math.max(aliasScore, substringScore);
 };
 
+// Pure-number queries (e.g. typing `55` into the compact-mode inline
+// value editor) are literal value inputs, not search terms — filtering
+// would empty the list and orphan the active property, breaking the
+// keystroke pipeline that depends on activeProperty() resolving.
+const NUMERIC_QUERY_PATTERN = /^-?\d*\.?\d+$/;
+
 export const filterPropertiesByQuery = (
   properties: EditableProperty[],
   query: string,
 ): EditableProperty[] => {
   const normalized = normalize(query);
   if (!normalized) return properties;
+  if (NUMERIC_QUERY_PATTERN.test(normalized)) return properties;
 
   const scored: Array<{ property: EditableProperty; score: number; originalIndex: number }> = [];
   for (let index = 0; index < properties.length; index++) {

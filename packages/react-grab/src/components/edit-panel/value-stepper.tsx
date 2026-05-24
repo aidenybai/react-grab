@@ -2,8 +2,14 @@ import { createSignal, Show, type Component, type JSX } from "solid-js";
 import {
   EDIT_SLIDER_CLICK_THRESHOLD_PX,
   EDIT_SLIDER_HASH_MARK_COUNT,
+  EDIT_SLIDER_RUBBER_DEAD_ZONE_PX,
+  EDIT_SLIDER_RUBBER_MAX_PX,
+  EDIT_SLIDER_RUBBER_SETTLE_MS,
+  EDIT_SLIDER_RUBBER_SOFT_RANGE_PX,
+  EDIT_SLIDER_SPRING_EASING,
 } from "../../constants.js";
 import { formatDisplayValue } from "../../utils/format-css-value.js";
+import { Slot } from "../slot.js";
 import { StepArrow } from "./step-arrow.js";
 
 interface ValueStepperProps {
@@ -35,6 +41,10 @@ interface ValueStepperProps {
   // active slider reads as the primary focus when the rest of the panel
   // is hidden.
   emphasized?: boolean;
+  // Optional Tailwind token chip — when the current value matches a
+  // known design-system stop the parent passes the class name (e.g.
+  // `p-4`) and we render it after the value as `· p-4`.
+  tailwindLabel?: string | null;
 }
 
 // 9 marks at 10/20/.../90% — fixed visual cadence regardless of value
@@ -47,12 +57,23 @@ const HASH_MARK_PERCENTS = Array.from(
 export const ValueStepper: Component<ValueStepperProps> = (props) => {
   const [draftText, setDraftText] = createSignal<string | null>(null);
   const [isHovered, setIsHovered] = createSignal(false);
+  // Rubber-band stretch in px (negative = drag past left edge, positive =
+  // past right). Applied as `transform: translateX(...)` on the track so
+  // siblings (compact-mode arrows) don't shift. Spring-eases back to 0
+  // on release via CSS transition.
+  const [rubberStretchPx, setRubberStretchPx] = createSignal(0);
   const isEditing = () => draftText() !== null;
   let trackElement: HTMLDivElement | undefined;
+  let valueTextElement: HTMLSpanElement | undefined;
   // Absolute-position drag: each pointer-move maps cursor x → fillPercent
   // → value. Click-vs-drag still uses startX to decide whether to also
   // commit (click without movement still snaps to that position).
-  let dragState: { startX: number; isDragging: boolean } | null = null;
+  // `startedOnValueText` lets pointerdown on the value chip still seed a
+  // drag — without it, slow click-to-edit gestures would slip past the
+  // drag threshold and rewrite the value mid-edit.
+  let dragState:
+    | { startX: number; isDragging: boolean; startedOnValueText: boolean }
+    | null = null;
 
   const valueClass = "text-[12px] leading-4 font-medium tabular-nums";
   // Label stays at the inactive row's 13px so the type doesn't
@@ -89,17 +110,43 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
     props.onCommitValue?.(positionToValue(clientX));
   };
 
+  // Dialkit rubber-band: once the cursor crosses the track edge by more
+  // than DEAD_ZONE_PX, the track translates in that direction with a
+  // sqrt-decay so the pull feels heavier the further you go, capped at
+  // MAX_PX. Single-exit closed-form to keep the return type lane
+  // consistent (always a double via Math.sqrt) — branchy early returns
+  // would mix Smi 0 with double exits and deopt this hot path on
+  // every pointer-move.
+  const computeRubberStretch = (clientX: number, trackRect: DOMRect): number => {
+    const sign =
+      clientX < trackRect.left ? -1 : clientX > trackRect.right ? 1 : 0;
+    const overshoot =
+      sign < 0
+        ? trackRect.left - clientX
+        : sign > 0
+          ? clientX - trackRect.right
+          : 0;
+    const past = Math.max(0, overshoot - EDIT_SLIDER_RUBBER_DEAD_ZONE_PX);
+    const decay = Math.sqrt(Math.min(past / EDIT_SLIDER_RUBBER_SOFT_RANGE_PX, 1));
+    return sign * EDIT_SLIDER_RUBBER_MAX_PX * decay;
+  };
+
   const handleTrackPointerDown = (event: PointerEvent) => {
     if (!isDragSupported() || isEditing()) return;
     event.preventDefault();
     event.stopPropagation();
     (event.currentTarget as Element).setPointerCapture(event.pointerId);
-    dragState = { startX: event.clientX, isDragging: false };
+    const valueChip = valueTextElement;
+    const startedOnValueText =
+      valueChip !== undefined &&
+      event.target instanceof Node &&
+      valueChip.contains(event.target);
+    dragState = { startX: event.clientX, isDragging: false, startedOnValueText };
     props.onInteract?.();
   };
 
   const handleTrackPointerMove = (event: PointerEvent) => {
-    if (!dragState) return;
+    if (!dragState || !trackElement) return;
     const deltaX = event.clientX - dragState.startX;
     if (!dragState.isDragging && Math.abs(deltaX) < EDIT_SLIDER_CLICK_THRESHOLD_PX) return;
     dragState.isDragging = true;
@@ -108,15 +155,29 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
     // stays hidden through the full grab.
     props.onInteract?.();
     commitDrag(event.clientX);
+    setRubberStretchPx(
+      computeRubberStretch(event.clientX, trackElement.getBoundingClientRect()),
+    );
   };
 
   const handleTrackPointerUp = (event: PointerEvent) => {
     if (!dragState) return;
     const target = event.currentTarget as Element;
     if (target.hasPointerCapture(event.pointerId)) target.releasePointerCapture(event.pointerId);
-    // Click without drag → snap to that position (dialkit behavior).
-    if (!dragState.isDragging) commitDrag(dragState.startX);
+    // No-drag release semantics:
+    //   - Started on the value chip → it's a click-to-edit, open the
+    //     inline editor instead of snapping the slider to that position.
+    //   - Started anywhere else on the track → snap to that position
+    //     (dialkit click-on-track behaviour).
+    if (!dragState.isDragging) {
+      if (dragState.startedOnValueText) {
+        startEditing();
+      } else {
+        commitDrag(dragState.startX);
+      }
+    }
     dragState = null;
+    setRubberStretchPx(0);
   };
 
   const handleTrackPointerCancel = (event: PointerEvent) => {
@@ -124,6 +185,7 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
     const target = event.currentTarget as Element;
     if (target.hasPointerCapture(event.pointerId)) target.releasePointerCapture(event.pointerId);
     dragState = null;
+    setRubberStretchPx(0);
   };
 
   // Hash marks brighten when the track is "active" — hovered, currently
@@ -162,18 +224,21 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
     }
   };
 
-  const handleValueClick = (event: MouseEvent) => {
-    if (!props.onCommitValue) return;
-    event.preventDefault();
-    event.stopPropagation();
-    startEditing();
-  };
-
-  const containerStyle: JSX.CSSProperties = {
-    cursor: isDragSupported() && !isEditing() ? "ew-resize" : "default",
-    "touch-action": isDragSupported() ? "none" : "auto",
-    "user-select": "none",
-    "-webkit-user-select": "none",
+  const trackStyle = (): JSX.CSSProperties => {
+    const stretch = rubberStretchPx();
+    return {
+      cursor: isDragSupported() && !isEditing() ? "ew-resize" : "default",
+      "touch-action": isDragSupported() ? "none" : "auto",
+      "user-select": "none",
+      "-webkit-user-select": "none",
+      transform: stretch === 0 ? "translateX(0)" : `translateX(${stretch}px)`,
+      // While the cursor is actively dragging the stretch tracks the
+      // pointer with no smoothing; once released we set stretch to 0 and
+      // this transition produces the spring-back snap.
+      transition: dragState !== null
+        ? "none"
+        : `transform ${EDIT_SLIDER_RUBBER_SETTLE_MS}ms ${EDIT_SLIDER_SPRING_EASING}`,
+    };
   };
 
   return (
@@ -184,7 +249,7 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
       <div
         ref={trackElement}
         class="relative flex-1 h-[20px] flex items-center overflow-hidden rounded-[6px]"
-        style={containerStyle}
+        style={trackStyle()}
         onPointerDown={handleTrackPointerDown}
         onPointerMove={handleTrackPointerMove}
         onPointerUp={handleTrackPointerUp}
@@ -202,20 +267,24 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
         />
         {/* Hash marks — 9 vertical 1px ticks at 10/20/.../90%. Fade in
             when the slider becomes active (hover / drag / keyboard
-            step), mirroring dialkit's `.dialkit-slider-hashmark`. */}
-        <div aria-hidden="true" class="absolute inset-0 pointer-events-none">
-          {HASH_MARK_PERCENTS.map((percent) => (
-            <div
-              class="absolute top-1/2 w-px h-[8px] rounded-[1px] bg-[var(--rg-text-secondary)]"
-              style={{
-                left: `${percent}%`,
-                transform: "translate(-50%, -50%)",
-                opacity: isActiveSlider() ? 0.4 : 0,
-                transition: "opacity 200ms ease",
-              }}
-            />
-          ))}
-        </div>
+            step), mirroring dialkit's `.dialkit-slider-hashmark`.
+            Hidden in compact / emphasized mode — the single-control
+            layout doesn't need scale ticks behind the value text. */}
+        <Show when={!props.emphasized}>
+          <div aria-hidden="true" class="absolute inset-0 pointer-events-none">
+            {HASH_MARK_PERCENTS.map((percent) => (
+              <div
+                class="absolute top-1/2 w-px h-[8px] rounded-[1px] bg-[var(--rg-text-secondary)]"
+                style={{
+                  left: `${percent}%`,
+                  transform: "translate(-50%, -50%)",
+                  opacity: isActiveSlider() ? 0.4 : 0,
+                  transition: "opacity 200ms ease",
+                }}
+              />
+            ))}
+          </div>
+        </Show>
         {/* Handle — thin pill at the fill edge, brightens while the
             keyboard is actively stepping (activeKey set by parent). */}
         <div
@@ -240,16 +309,27 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
           <Show
             when={isEditing()}
             fallback={
-              <span
-                class={`${valueClass} text-[var(--rg-text-primary)] pointer-events-auto ml-auto`}
-                style={{
-                  cursor: props.onCommitValue ? "text" : "default",
-                }}
-                onPointerDown={(event) => event.stopPropagation()}
-                onClick={handleValueClick}
-              >
-                {formatDisplayValue(props.value)}
-                <span class="text-[var(--rg-text-secondary)] ml-px">{props.unit}</span>
+              <span class="ml-auto flex items-baseline gap-1 pointer-events-auto">
+                <span
+                  ref={valueTextElement}
+                  class={`${valueClass} text-[var(--rg-text-primary)]`}
+                  style={{
+                    cursor: props.onCommitValue ? "text" : "default",
+                  }}
+                >
+                  <Slot>{formatDisplayValue(props.value)}</Slot>
+                  <span class="text-[var(--rg-text-secondary)] ml-px">{props.unit}</span>
+                </span>
+                <Show when={props.tailwindLabel} keyed>
+                  {(label) => (
+                    <span
+                      aria-hidden="true"
+                      class="text-[10px] leading-4 font-mono text-[var(--rg-text-secondary)] tabular-nums"
+                    >
+                      · {label}
+                    </span>
+                  )}
+                </Show>
               </span>
             }
           >

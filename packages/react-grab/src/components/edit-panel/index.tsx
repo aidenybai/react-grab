@@ -17,6 +17,11 @@ import {
   EDIT_PANEL_MAX_WIDTH_PX,
   EDIT_PANEL_MIN_WIDTH_PX,
   EDIT_PROPERTY_LIST_MAX_HEIGHT_PX,
+  EDIT_SLIDER_SPRING_EASING,
+  EDIT_STEP_REPEAT_INITIAL_DELAY_MS,
+  EDIT_STEP_REPEAT_INTERVAL_MS,
+  EDIT_VALUE_BUMP_MS,
+  EDIT_VALUE_BUMP_PX,
   TAILWIND_SPACING_UNIT_PX,
   Z_INDEX_OVERLAY,
 } from "../../constants.js";
@@ -29,6 +34,7 @@ import { clampToRange } from "../../utils/clamp-to-range.js";
 import { cn } from "../../utils/cn.js";
 import { createAnchoredDropdown } from "../../utils/create-anchored-dropdown.js";
 import { expandAggregateLonghands } from "../../utils/expand-aggregate-longhands.js";
+import { findTailwindClass } from "../../utils/find-tailwind-class.js";
 import { cleanNumericValue, formatEditableValue } from "../../utils/format-css-value.js";
 import { formatSessionEditsPrompt } from "../../utils/format-edit-prompt.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
@@ -191,11 +197,26 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     if (options.compact) setIsCompact(true);
   };
 
+  // Held step direction: when an arrow key (or step button) is held,
+  // the panel surface translates a few px in that direction and parks
+  // there until release, at which point the CSS transition springs it
+  // back. A quick tap renders as a brief shift → spring-back; a long
+  // hold parks at the offset for the duration. This replaces the
+  // per-step WAAPI bump — bumps stacked on every repeat tick and read
+  // as shaking. Boundary clamps intentionally have no animation —
+  // budge wraps values instead of clamping so the boundary case never
+  // surfaces; CSS props need real clamping but a silent clamp + arrow
+  // flash conveys "you're at the edge" without extra noise.
+  const [heldStepDirection, setHeldStepDirection] = createSignal<-1 | 0 | 1>(0);
+
   const commitTweak = (direction: 1 | -1, shift: boolean): EditableProperty | null => {
     const property = activeProperty();
     if (!property) return null;
     const next = stepProperty(property, direction, shift);
-    if (next === null) return null;
+    if (next === null) {
+      flashActiveKey(direction === 1 ? "right" : "left");
+      return null;
+    }
     commit(property, next, { flash: direction, focus: true });
     return property;
   };
@@ -206,6 +227,41 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
 
   const stepFromPointer = (direction: 1 | -1) => {
     commitTweak(direction, false);
+  };
+
+  // Long-press auto-repeat. OS-level key-repeat fires keydown again at
+  // ~30-100ms after a ~500ms initial delay (varies by platform / a11y
+  // settings). For a consistent budge-feel we drive our own timer:
+  //   - First keydown commits + records `pressedKey`
+  //   - After INITIAL_DELAY_MS, an interval fires step() at INTERVAL_MS
+  //   - keyup (or any other key) clears state
+  // Subsequent OS keydown repeats while `pressedKey` matches are
+  // ignored — our interval is authoritative for the cadence.
+  //
+  // `currentShiftHeld` is read fresh inside the interval (not captured
+  // at startStepRepeat) so toggling Shift mid-hold flips the multiplier
+  // on the very next repeat tick.
+  let pressedKey: "ArrowLeft" | "ArrowRight" | null = null;
+  let currentShiftHeld = false;
+  let repeatInitialTimerId: ReturnType<typeof setTimeout> | null = null;
+  let repeatIntervalTimerId: ReturnType<typeof setInterval> | null = null;
+  const stopStepRepeat = () => {
+    if (repeatInitialTimerId !== null) clearTimeout(repeatInitialTimerId);
+    if (repeatIntervalTimerId !== null) clearInterval(repeatIntervalTimerId);
+    repeatInitialTimerId = null;
+    repeatIntervalTimerId = null;
+    pressedKey = null;
+    setHeldStepDirection(0);
+  };
+  const startStepRepeat = (key: "ArrowLeft" | "ArrowRight") => {
+    stopStepRepeat();
+    pressedKey = key;
+    const direction = key === "ArrowLeft" ? -1 : 1;
+    repeatInitialTimerId = setTimeout(() => {
+      repeatIntervalTimerId = setInterval(() => {
+        stepFromKeyboard(direction, currentShiftHeld);
+      }, EDIT_STEP_REPEAT_INTERVAL_MS);
+    }, EDIT_STEP_REPEAT_INITIAL_DELAY_MS);
   };
 
   const commitNumericValue = (rawValue: number) => {
@@ -230,12 +286,53 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     commit(property, value);
   };
 
+  // Token chip for the active row: shown only while Shift is held so
+  // it's a peek-on-demand hint, not constant visual noise. Resolves the
+  // canonical Tailwind class for the current numeric value (e.g.
+  // padding-top 16 → `pt-4`). The first cssProperties entry is the
+  // property's canonical key — for aggregates (padding, inset) it's the
+  // shorthand, for longhands it matches the row label.
+  const [isShiftHeld, setIsShiftHeld] = createSignal(false);
+  const activeTailwindLabel = createMemo<string | null>(() => {
+    if (!isShiftHeld()) return null;
+    const property = activeProperty();
+    if (!property || property.kind !== "numeric") return null;
+    const cssKey = property.cssProperties[0];
+    if (!cssKey) return null;
+    return findTailwindClass(cssKey, property.value);
+  });
+
   // Auto-apply when the search query is a complete `<prefix>-<n>` Tailwind
   // class. `p-64` immediately writes 256px to padding (no Enter needed),
   // `opacity-50` writes 50%. Skips arbitrary values (`p-[10px]`) and the
   // named scales (`text-xs`, `rounded-full`) — those don't map 1:1 to a
   // numeric multiplier.
   const TAILWIND_CLASS_PATTERN = /^([a-z-]+)-(-?\d+(?:\.\d+)?)$/;
+  // Bare-number query: when the user is in compact mode with a numeric
+  // row active and types just digits / `.` / `-`, the keystroke is
+  // routed straight to the active value (so typing `55` against a
+  // 22px padding-top updates it to 55px live). Search-mode is suppressed
+  // and the textarea stays hidden — value display already mirrors the
+  // typed digits, so a second copy in the search field would be noise.
+  const NUMERIC_QUERY_PATTERN = /^-?\d*\.?\d+$/;
+  const isInlineNumericEdit = createMemo(() => {
+    if (!isCompact()) return false;
+    const property = activeProperty();
+    if (property?.kind !== "numeric") return false;
+    return NUMERIC_QUERY_PATTERN.test(searchQuery());
+  });
+  const tryApplyNumericQuery = (query: string): boolean => {
+    if (!isCompact()) return false;
+    if (!NUMERIC_QUERY_PATTERN.test(query)) return false;
+    const property = activeProperty();
+    if (!property || property.kind !== "numeric") return false;
+    const parsed = Number.parseFloat(query);
+    if (!Number.isFinite(parsed)) return false;
+    const next = cleanNumericValue(clampToRange(parsed, property.min, property.max));
+    if (next === property.value) return true;
+    commit(property, next);
+    return true;
+  };
   // Whether a tailwind cssKey resolves to at least one trackable
   // numeric row in initialProperties (either as the exact key or
   // through aggregate-longhand expansion). Auto-apply both gates
@@ -353,8 +450,21 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   const keyHandlers: Record<string, (event: KeyboardEvent) => void> = {
     ArrowUp: () => navigateActive(-1),
     ArrowDown: () => navigateActive(1),
-    ArrowLeft: (event) => stepFromKeyboard(-1, event.shiftKey),
-    ArrowRight: (event) => stepFromKeyboard(1, event.shiftKey),
+    ArrowLeft: (event) => {
+      // Our long-press timer drives the cadence — let the first keydown
+      // through, then ignore OS-level repeats so the two sources don't
+      // interleave.
+      if (event.repeat) return;
+      setHeldStepDirection(-1);
+      stepFromKeyboard(-1, event.shiftKey);
+      startStepRepeat("ArrowLeft");
+    },
+    ArrowRight: (event) => {
+      if (event.repeat) return;
+      setHeldStepDirection(1);
+      stepFromKeyboard(1, event.shiftKey);
+      startStepRepeat("ArrowRight");
+    },
     Tab: (event) => navigateActive(event.shiftKey ? -1 : 1),
     Enter: () => {
       // Colour rows: first Enter opens the native picker (pick-affordance);
@@ -445,14 +555,38 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       return false;
     };
     const handleWindowKeyDown = (event: KeyboardEvent) => {
+      // Track shift regardless of focus target — the token chip should
+      // peek even if the user is typing into a page input, and the
+      // long-press repeat tick reads currentShiftHeld fresh per tick
+      // so a Shift toggle mid-hold flips the 10x multiplier.
+      currentShiftHeld = event.shiftKey;
+      if (event.shiftKey) setIsShiftHeld(true);
       if (isPageEditableTarget(event.composedPath()[0])) return;
       handleSearchKeyDown(event);
     };
+    // keyup needs the same shadow-target guard so releasing a page input
+    // doesn't accidentally cancel our repeat timer (and vice-versa).
+    const handleWindowKeyUp = (event: KeyboardEvent) => {
+      currentShiftHeld = event.shiftKey;
+      if (!event.shiftKey) setIsShiftHeld(false);
+      if (event.key === pressedKey) stopStepRepeat();
+    };
+    // Window blur can swallow keyup (chord, alt-tab) so reset shift then
+    // so the chip doesn't stick around on the next focus.
+    const handleWindowBlur = () => {
+      currentShiftHeld = false;
+      setIsShiftHeld(false);
+    };
     window.addEventListener("keydown", handleWindowKeyDown, { capture: true });
+    window.addEventListener("keyup", handleWindowKeyUp, { capture: true });
+    window.addEventListener("blur", handleWindowBlur);
 
     onCleanup(() => {
       unregisterDismiss();
       window.removeEventListener("keydown", handleWindowKeyDown, { capture: true });
+      window.removeEventListener("keyup", handleWindowKeyUp, { capture: true });
+      window.removeEventListener("blur", handleWindowBlur);
+      stopStepRepeat();
       clearTimeout(activeKeyTimerId);
       clearTimeout(interactingIdleTimerId);
       dropdown.clearAnimationHandles();
@@ -506,6 +640,8 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
           style={{
             "min-width": isCompact() ? undefined : `${EDIT_PANEL_MIN_WIDTH_PX}px`,
             "max-width": `${EDIT_PANEL_MAX_WIDTH_PX}px`,
+            transform: `translateX(${heldStepDirection() * EDIT_VALUE_BUMP_PX}px)`,
+            transition: `transform ${EDIT_VALUE_BUMP_MS}ms ${EDIT_SLIDER_SPRING_EASING}`,
           }}
         >
           {/* TagBadge: full mode only — once the user starts editing, the
@@ -531,11 +667,15 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
               what they typed. */}
           <div
             class={
-              isCompact() && searchQuery() === ""
+              isCompact() && (searchQuery() === "" || isInlineNumericEdit())
                 ? ""
                 : "[font-synthesis:none] contain-layout shrink-0 flex flex-col items-start px-2 py-1.5 w-full self-stretch [border-top-width:0.5px] border-t-solid border-t-[var(--rg-border-subtle)] antialiased"
             }
-            style={isCompact() && searchQuery() === "" ? HIDDEN_FOCUS_PRESERVING_STYLE : undefined}
+            style={
+              isCompact() && (searchQuery() === "" || isInlineNumericEdit())
+                ? HIDDEN_FOCUS_PRESERVING_STYLE
+                : undefined
+            }
           >
             <textarea
               ref={(element) => {
@@ -557,6 +697,12 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
               onInput={(event) => {
                 const next = event.currentTarget.value;
                 setSearchQuery(next);
+                // Pure-number typing in compact + numeric active stays
+                // compact and applies the value live — no re-expansion,
+                // no activeIndex reset (would reshuffle the active row
+                // out from under the value pipeline), no tailwind class
+                // probing (numbers alone are never valid class names).
+                if (tryApplyNumericQuery(next)) return;
                 setActiveIndex(0);
                 setIsCompact(false);
                 tryApplyTailwindClass(next);
@@ -593,6 +739,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                 onEditComplete={ensureSearchFocused}
                 onInteract={markAsInteracting}
                 isInteracting={isInteracting}
+                activeTailwindLabel={activeTailwindLabel()}
               />
             </div>
           </Show>
@@ -628,6 +775,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                       onCommitValue={commitNumericValue}
                       onEditComplete={ensureSearchFocused}
                       onInteract={markAsInteracting}
+                      tailwindLabel={activeTailwindLabel()}
                       emphasized
                     />
                   </Match>
