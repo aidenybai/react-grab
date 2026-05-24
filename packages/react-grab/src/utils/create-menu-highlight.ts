@@ -44,17 +44,20 @@ const createAnimatedBoundsFollower = ({
       hideFollower();
       return;
     }
-    const containerRect = containerElement.getBoundingClientRect();
-    const targetRect = targetElement.getBoundingClientRect();
-    const targetTopWithinContainer =
-      targetRect.top - containerRect.top + containerElement.scrollTop;
-    const targetLeftWithinContainer =
-      targetRect.left - containerRect.left + containerElement.scrollLeft;
+    // Use offsetTop/Left/Width/Height (layout coords) instead of
+    // getBoundingClientRect (visual rect after transforms). When the
+    // panel container is mid-transform during its enter animation
+    // (e.g. scale(0.92)), the rect width/height reflect the scaled
+    // visual size — saving those into the highlight's inline style
+    // bakes in the wrong dimensions and the highlight stays narrower
+    // than the row when the transform settles to scale(1).
+    const targetTopWithinContainer = targetElement.offsetTop - containerElement.scrollTop;
+    const targetLeftWithinContainer = targetElement.offsetLeft - containerElement.scrollLeft;
     followerElement.style.opacity = visibleOpacity;
     followerElement.style.top = `${targetTopWithinContainer}px`;
     followerElement.style.left = `${targetLeftWithinContainer}px`;
-    followerElement.style.width = `${targetRect.width}px`;
-    followerElement.style.height = `${targetRect.height}px`;
+    followerElement.style.width = `${targetElement.offsetWidth}px`;
+    followerElement.style.height = `${targetElement.offsetHeight}px`;
   };
 
   const setContainerRef = (containerNode: HTMLElement): void => {

@@ -23,17 +23,9 @@ import type { DropdownAnchor, EditableProperty, EditPanelState } from "../../typ
 import { clampToRange } from "../../utils/clamp-to-range.js";
 import { cn } from "../../utils/cn.js";
 import { createAnchoredDropdown } from "../../utils/create-anchored-dropdown.js";
-import {
-  clearAllPendingEdits,
-  clearPendingEdits,
-  loadAllPendingEdits,
-  loadPendingEdits,
-  savePendingEdits,
-  type PendingEdit,
-} from "../../utils/edit-panel-storage.js";
+import type { PendingEdit } from "../../utils/edit-panel-storage.js";
 import { cleanNumericValue, formatEditableValue } from "../../utils/format-css-value.js";
 import { formatSessionEditsPrompt } from "../../utils/format-edit-prompt.js";
-import { parseNumericValue } from "../../utils/parse-numeric-value.js";
 import { filterPropertiesByQuery } from "../../utils/fuzzy-score-property.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
 import { tailwindPrefixToProperty } from "../../utils/tailwind-class-map.js";
@@ -170,82 +162,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
 
   const dropdown = createAnchoredDropdown(() => containerRef, props.position);
 
-  // Pops our inline overrides for the property's CSS longhands (preserving
-  // !important priority), reads getComputedStyle (= what the source produces),
-  // confirms every longhand resolves to the same saved value, then puts the
-  // inline overrides back. The mutate-read-mutate happens in one synchronous
-  // task so the user never sees the intermediate state.
-  const readSourceValueWithoutInline = (
-    element: HTMLElement,
-    property: EditableProperty,
-  ): number | null => {
-    const savedInline = new Map<string, { value: string; priority: string }>();
-    for (const cssProperty of property.cssProperties) {
-      savedInline.set(cssProperty, {
-        value: element.style.getPropertyValue(cssProperty),
-        priority: element.style.getPropertyPriority(cssProperty),
-      });
-      element.style.removeProperty(cssProperty);
-    }
-    const computed = getComputedStyle(element);
-    const values: number[] = [];
-    for (const cssProperty of property.cssProperties) {
-      const raw = computed.getPropertyValue(cssProperty);
-      const parsed = raw ? parseNumericValue(raw) : null;
-      if (!parsed) {
-        values.length = 0;
-        break;
-      }
-      // Opacity is the only property the editor expresses as 0–100% over a
-      // 0–1 computed value. Other %-unit properties (width, max-width, …)
-      // already parse to their UI value.
-      values.push(
-        property.key === "opacity"
-          ? Math.round(parsed.value * 100)
-          : cleanNumericValue(parsed.value),
-      );
-    }
-    for (const [cssProperty, { value, priority }] of savedInline) {
-      if (value) element.style.setProperty(cssProperty, value, priority);
-    }
-    if (values.length !== property.cssProperties.length) return null;
-    // All longhands must resolve to the same value for an aggregate to
-    // count as applied — otherwise the agent only synced one side.
-    for (let index = 1; index < values.length; index++) {
-      if (values[index] !== values[0]) return null;
-    }
-    return values[0];
-  };
-
-  // Pending edits saved on a previous Enter survive across page reloads
-  // until the source catches up. Detecting "source caught up" requires
-  // briefly stripping our inline preview so we read the source-only value.
-  const restorePendingEditsFromStorage = () => {
-    if (!(initialElement instanceof HTMLElement)) return;
-    const saved = loadPendingEdits(props.state);
-    if (!saved) return;
-
-    const propertyByKey = new Map(initialProperties.map((entry) => [entry.key, entry]));
-
-    const survivingEdits = saved.filter((edit) => {
-      const property = propertyByKey.get(edit.key);
-      if (!property) return false;
-      if (readSourceValueWithoutInline(initialElement, property) === edit.value) return false;
-      preview.apply(property.cssProperties, formatEditableValue(property, edit.value));
-      return true;
-    });
-
-    if (survivingEdits.length === 0) {
-      clearPendingEdits(props.state);
-      return;
-    }
-    if (survivingEdits.length !== saved.length) savePendingEdits(props.state, survivingEdits);
-    setTweakedValues(Object.fromEntries(survivingEdits.map((edit) => [edit.key, edit.value])));
-    // Don't flip isCompact — the panel always opens in full mode (search
-    // + list) so the user can see/pick a property to edit before the
-    // layout collapses. Stickiness is per-session, not across reopens.
-  };
-
   const flashActiveKey = (direction: "left" | "right") => {
     setActiveKey(direction);
     clearTimeout(activeKeyTimerId);
@@ -325,14 +241,14 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   // named scales (`text-xs`, `rounded-full`) — those don't map 1:1 to a
   // numeric multiplier.
   const TAILWIND_CLASS_PATTERN = /^([a-z-]+)-(-?\d+(?:\.\d+)?)$/;
-  // Looser pattern: a recognized prefix followed by a dash. Signals
-  // user intent to target this property even before the value is
-  // complete (e.g. `mt-` while still typing) — collapse to compact so
-  // the stepper is visible and ready.
-  const TAILWIND_PREFIX_INTENT_PATTERN = /^([a-z-]+)-/;
   const tryApplyTailwindClass = (query: string) => {
-    const intentMatch = query.match(TAILWIND_PREFIX_INTENT_PATTERN);
-    if (intentMatch && tailwindPrefixToProperty(intentMatch[1])) {
+    // Strip trailing partial value (digit or hanging dash) so `mt`,
+    // `mt-`, `mt-4` all distill down to the prefix `mt`. If that prefix
+    // maps to an editable property, signal user intent to target it →
+    // collapse to compact so the stepper is visible and ready, even
+    // before any value is applied.
+    const intentPrefix = query.replace(/-\d*$/, "").replace(/-$/, "");
+    if (intentPrefix && tailwindPrefixToProperty(intentPrefix)) {
       setIsCompact(true);
     }
     const match = query.match(TAILWIND_CLASS_PATTERN);
@@ -385,10 +301,8 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     markAsInteracting();
   };
 
-  // Persist current tweaks to sessionStorage and return the diff. Used
-  // by both Enter (commits + fires agent prompt) and Escape / click-outside
-  // (commits silently, no prompt).
-  const persistTweaks = (): PendingEdit[] => {
+  // Build the current diff from in-memory tweaks. Pure read — no storage.
+  const buildPendingEdits = (): PendingEdit[] => {
     const tweaks = tweakedValues();
     const pendingEdits: PendingEdit[] = [];
     for (const property of initialProperties) {
@@ -401,48 +315,24 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
         unit: property.unit,
       });
     }
-    if (pendingEdits.length > 0) {
-      savePendingEdits(props.state, pendingEdits);
-    } else {
-      // No net change → user reverted everything for this element. Drop
-      // its pending entry so reopening starts from the source baseline.
-      clearPendingEdits(props.state);
-    }
     return pendingEdits;
   };
 
   const handleSubmit = () => {
-    const pendingEdits = persistTweaks();
-    // The copy prompt covers every still-pending edit across the session,
-    // not just this element's diff, so the agent gets the full backlog of
-    // UI tweaks and can apply them in one batch. Read AFTER persisting
-    // this element's edits so they're included.
-    const sessionEntries = loadAllPendingEdits();
-    // When the current element lacks filePath/lineNumber, savePendingEdits
-    // can't persist (no storage key) and loadAllPendingEdits won't surface
-    // the in-flight tweaks. Prepend them inline so the agent still sees
-    // them in the prompt.
-    const hasStorageKey = Boolean(props.state.filePath) && props.state.lineNumber !== undefined;
-    if (pendingEdits.length > 0 && !hasStorageKey) {
-      sessionEntries.unshift({
-        filePath: props.state.filePath ?? "",
-        lineNumber: props.state.lineNumber ?? 0,
-        edits: pendingEdits,
-      });
-    }
-    // Explicit copy = the agent now owns this diff. Wipe sessionStorage
-    // so the next panel open doesn't replay these as still-pending; if
-    // the agent fails to apply them, the inline preview stays visible
-    // but won't get re-restored on top of the source.
-    clearAllPendingEdits();
-    props.onSubmit(formatSessionEditsPrompt(sessionEntries));
+    const pendingEdits = buildPendingEdits();
+    const entry = {
+      filePath: props.state.filePath ?? "",
+      lineNumber: props.state.lineNumber ?? 0,
+      edits: pendingEdits,
+    };
+    props.onSubmit(formatSessionEditsPrompt(pendingEdits.length > 0 ? [entry] : []));
   };
 
-  // Close paths (Escape, click-outside) preserve the user's tweaks —
-  // inline styles stay applied + sessionStorage saves the diff so reopening
-  // surfaces it again. No agent prompt fires.
+  // Close paths (Escape, click-outside) just close — the inline preview
+  // styles stay on the element via preview.forget() in onCleanup, so the
+  // page keeps showing the user's tweaks until the agent updates the
+  // source. No prompt fires, nothing persisted.
   const dismissPreservingTweaks = () => {
-    persistTweaks();
     props.onDismiss();
   };
 
@@ -492,7 +382,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   onMount(() => {
     queueMicrotask(() => searchInputRef?.focus({ preventScroll: true }));
     dropdown.measure();
-    restorePendingEditsFromStorage();
 
     const unregisterDismiss = registerOverlayDismiss({
       isOpen: () => true,
@@ -595,53 +484,45 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
           {/* Search input. Always mounted (owns focus). Hidden when
               compact AND empty — typing into it would re-show it via
               setIsCompact(false) in onInput. When compact but the user
-              already typed something (e.g. `mt-`), keeps showing so
-              they can see what they typed. */}
-          {(() => {
-            const isSearchHidden = () => isCompact() && searchQuery() === "";
-            return (
-              <div
-                class={
-                  isSearchHidden()
-                    ? ""
-                    : "[font-synthesis:none] contain-layout shrink-0 flex flex-col items-start px-2 py-1.5 w-full self-stretch [border-top-width:0.5px] border-t-solid border-t-[var(--rg-border-subtle)] antialiased"
-                }
-                style={isSearchHidden() ? HIDDEN_FOCUS_PRESERVING_STYLE : undefined}
-              >
-                <textarea
-                  ref={(element) => {
-                    searchInputRef = element;
-                  }}
-                  data-react-grab-ignore-events
-                  data-react-grab-input
-                  aria-label="Search properties"
-                  aria-keyshortcuts="Enter Escape ArrowUp ArrowDown ArrowLeft ArrowRight Tab"
-                  class="text-[var(--rg-text-primary)] text-[13px] leading-4 font-medium bg-transparent border-none resize-none w-full p-0 m-0 outline-none"
-                  style={{
-                    "field-sizing": "content",
-                    "min-height": "16px",
-                    "max-height": "16px",
-                    "scrollbar-width": "none",
-                  }}
-                  value={searchQuery()}
-                  onInput={(event) => {
-                    const next = event.currentTarget.value;
-                    setSearchQuery(next);
-                    setActiveIndex(0);
-                    // Typing means the user is looking for a property —
-                    // pop back to full layout. tryApplyTailwindClass may
-                    // immediately re-set compact if the query targets a
-                    // known prefix or class.
-                    setIsCompact(false);
-                    tryApplyTailwindClass(next);
-                  }}
-                  onKeyDown={handleSearchKeyDown}
-                  placeholder="Search property"
-                  rows={1}
-                />
-              </div>
-            );
-          })()}
+              already typed something, keeps showing so they can see
+              what they typed. */}
+          <div
+            class={
+              isCompact() && searchQuery() === ""
+                ? ""
+                : "[font-synthesis:none] contain-layout shrink-0 flex flex-col items-start px-2 py-1.5 w-full self-stretch [border-top-width:0.5px] border-t-solid border-t-[var(--rg-border-subtle)] antialiased"
+            }
+            style={isCompact() && searchQuery() === "" ? HIDDEN_FOCUS_PRESERVING_STYLE : undefined}
+          >
+            <textarea
+              ref={(element) => {
+                searchInputRef = element;
+                queueMicrotask(() => element.focus({ preventScroll: true }));
+              }}
+              data-react-grab-ignore-events
+              data-react-grab-input
+              aria-label="Search properties"
+              aria-keyshortcuts="Enter Escape ArrowUp ArrowDown ArrowLeft ArrowRight Tab"
+              class="text-[var(--rg-text-primary)] text-[13px] leading-4 font-medium bg-transparent border-none resize-none w-full p-0 m-0 outline-none"
+              style={{
+                "field-sizing": "content",
+                "min-height": "16px",
+                "max-height": "16px",
+                "scrollbar-width": "none",
+              }}
+              value={searchQuery()}
+              onInput={(event) => {
+                const next = event.currentTarget.value;
+                setSearchQuery(next);
+                setActiveIndex(0);
+                setIsCompact(false);
+                tryApplyTailwindClass(next);
+              }}
+              onKeyDown={handleSearchKeyDown}
+              placeholder="Search property"
+              rows={1}
+            />
+          </div>
 
           {/* Property list. Always mounted (so e2e tests + the active
               row's value can be queried even in compact). Hidden in
@@ -651,7 +532,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
               class={
                 isCompact()
                   ? ""
-                  : "[font-synthesis:none] contain-layout shrink-0 flex flex-col items-start px-2 pb-1.5 w-full self-stretch antialiased"
+                  : "[font-synthesis:none] contain-layout shrink-0 flex flex-col items-start pb-1.5 w-full self-stretch antialiased"
               }
               style={isCompact() ? HIDDEN_FOCUS_PRESERVING_STYLE : undefined}
             >

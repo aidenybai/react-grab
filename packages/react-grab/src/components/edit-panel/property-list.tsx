@@ -47,7 +47,18 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
       clearHighlight();
       return;
     }
+    // Two-pass update: first call snaps the highlight to the row's
+    // current offsetWidth/Top (may be stale if the list just transitioned
+    // from compact-hidden 0×0 to full-size — Solid effects can run
+    // before the browser reflows the layout). Re-running on the next
+    // animation frame captures the post-reflow dimensions, so the
+    // highlight matches the row even when the user navigates back from
+    // compact mode via arrow keys.
     updateHighlight(element);
+    requestAnimationFrame(() => {
+      const refreshed = itemElements[props.activeIndex];
+      if (refreshed) updateHighlight(refreshed);
+    });
     if (!listRef) return;
     const containerRect = listRef.getBoundingClientRect();
     const targetRect = element.getBoundingClientRect();
