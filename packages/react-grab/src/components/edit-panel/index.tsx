@@ -546,7 +546,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
               class={
                 isCompact()
                   ? ""
-                  : "[font-synthesis:none] contain-layout shrink-0 flex flex-col items-start pb-1.5 w-full self-stretch antialiased"
+                  : "[font-synthesis:none] contain-layout shrink-0 flex flex-col items-start w-full self-stretch antialiased"
               }
               style={isCompact() ? HIDDEN_FOCUS_PRESERVING_STYLE : undefined}
             >
