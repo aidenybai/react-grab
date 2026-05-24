@@ -34,7 +34,7 @@ export const formatSessionEditsPrompt = (entries: PendingEditsEntry[]): string =
   }
 
   for (const entry of entries) {
-    sections.push(`\n${entry.filePath}:${entry.lineNumber}`);
+    sections.push(entry.filePath ? `\n${entry.filePath}:${entry.lineNumber}` : "");
     sections.push(["```css", ...formatEntryCss(entry), "```"].join("\n"));
   }
   return sections.join("\n");

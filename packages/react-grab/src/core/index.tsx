@@ -2064,6 +2064,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         isEnterKey && isOverlayActive && !isPromptMode() && !store.wasActivatedByToggle;
 
       if (shouldBlockEnter) {
+        // Carve out our own inputs (search textarea, edit-panel value
+        // editor). Without this, Enter inside the click-to-type value
+        // editor is swallowed before the editor can commit.
+        if (isEventFromOverlay(event, "data-react-grab-input")) return false;
         keyboardClaimer.claimedEvents.add(event);
         event.preventDefault();
         event.stopImmediatePropagation();

@@ -402,7 +402,20 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     // not just this element's diff, so the agent gets the full backlog of
     // UI tweaks and can apply them in one batch. Read AFTER persisting
     // this element's edits so they're included.
-    const prompt = formatSessionEditsPrompt(loadAllPendingEdits());
+    const sessionEntries = loadAllPendingEdits();
+    // When the current element lacks filePath/lineNumber, savePendingEdits
+    // can't persist (no storage key) and loadAllPendingEdits won't surface
+    // the in-flight tweaks. Prepend them inline so the agent still sees
+    // them in the prompt.
+    const hasStorageKey = Boolean(props.state.filePath) && props.state.lineNumber !== undefined;
+    if (pendingEdits.length > 0 && !hasStorageKey) {
+      sessionEntries.unshift({
+        filePath: props.state.filePath ?? "",
+        lineNumber: props.state.lineNumber ?? 0,
+        edits: pendingEdits,
+      });
+    }
+    const prompt = formatSessionEditsPrompt(sessionEntries);
     didCommitOnSubmit = true;
     props.onSubmit(prompt);
   };
@@ -470,6 +483,11 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       isOpen: () => true,
       onDismiss: props.onDismiss,
       shouldIgnoreRightClick: true,
+      // Escape inside our own inputs (search textarea, click-to-type value
+      // editor) is owned by those inputs (commit/cancel/clear), not the
+      // panel dismissal path. The panel's own window-level handler still
+      // routes Escape-from-search to onDismiss.
+      shouldIgnoreInputEvents: true,
     });
 
     // Window-level keydown so arrow/Enter/Esc work regardless of where
