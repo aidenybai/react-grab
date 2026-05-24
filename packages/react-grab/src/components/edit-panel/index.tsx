@@ -379,6 +379,10 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     const properties = filteredProperties();
     if (properties.length === 0) return;
     setActiveIndex((current) => (current + direction + properties.length) % properties.length);
+    // Navigating the list (Up/Down/Tab) needs the list to be visible —
+    // re-expand back to full mode. Next adjust (Left/Right) flips it
+    // back to compact via setHasCommittedAnyEdit(true) in commitTweak.
+    setHasCommittedAnyEdit(false);
   };
 
   const keyHandlers: Record<string, (event: KeyboardEvent) => void> = {
