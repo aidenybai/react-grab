@@ -2,6 +2,18 @@ import { createMemo, createSignal } from "solid-js";
 import type { EditableProperty, PendingEdit } from "../../types.js";
 import { filterPropertiesByQuery } from "../../utils/fuzzy-score-property.js";
 
+// Axis aggregates (padding-x, padding-y, margin-x, margin-y) — shown by
+// default even when non-canonical so the user can target one axis
+// without first searching `px` / `py` / `mx` / `my`. Without this,
+// uniform-padding elements collapse to just "padding" and one-axis
+// edits feel hidden.
+const ALWAYS_VISIBLE_AXIS_KEYS: ReadonlySet<string> = new Set([
+  "padding-left,padding-right",
+  "padding-top,padding-bottom",
+  "margin-left,margin-right",
+  "margin-top,margin-bottom",
+]);
+
 interface PropertyTweak {
   kind: EditableProperty["kind"];
   value: number | string;
@@ -43,6 +55,7 @@ export const createTweakStore = (options: CreateTweakStoreOptions): TweakStore =
           (entry) =>
             entry.prioritized ||
             (entry.isCanonical && !entry.isDefault) ||
+            ALWAYS_VISIBLE_AXIS_KEYS.has(entry.key) ||
             tweaks[entry.key] !== undefined,
         );
     return filterPropertiesByQuery(candidates, query);
