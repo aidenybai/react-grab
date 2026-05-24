@@ -127,21 +127,40 @@ test.describe("Keyboard Navigation", () => {
 });
 
 test.describe("Keyboard Pointer Movement", () => {
-  test("holding ArrowDown slides the selection onto a different element", async ({ reactGrab }) => {
+  test("holding ArrowRight translates the selection box horizontally", async ({ reactGrab }) => {
     await reactGrab.activate();
     await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
     await reactGrab.waitForSelectionBox();
 
-    const startLabel = await reactGrab.getSelectionLabelInfo();
-    expect(startLabel.isVisible).toBe(true);
-    expect(startLabel.tagName).toBe("li");
+    const startBounds = await reactGrab.getSelectionLabelBounds();
+    expect(startBounds).not.toBeNull();
 
-    await reactGrab.holdArrowKey("ArrowDown", 800);
+    await reactGrab.page.keyboard.down("ArrowRight");
+    await reactGrab.page.waitForTimeout(500);
+    const midBounds = await reactGrab.getSelectionLabelBounds();
+    await reactGrab.page.keyboard.up("ArrowRight");
     await reactGrab.waitForSelectionBox();
 
-    const endLabel = await reactGrab.getSelectionLabelInfo();
-    expect(endLabel.isVisible).toBe(true);
-    expect(endLabel.tagName).not.toBeNull();
+    expect(midBounds).not.toBeNull();
+    expect(midBounds!.label.x).toBeGreaterThan(startBounds!.label.x + 50);
+  });
+
+  test("holding ArrowDown translates the selection box vertically", async ({ reactGrab }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
+    await reactGrab.waitForSelectionBox();
+
+    const startBounds = await reactGrab.getSelectionLabelBounds();
+    expect(startBounds).not.toBeNull();
+
+    await reactGrab.page.keyboard.down("ArrowDown");
+    await reactGrab.page.waitForTimeout(500);
+    const midBounds = await reactGrab.getSelectionLabelBounds();
+    await reactGrab.page.keyboard.up("ArrowDown");
+    await reactGrab.waitForSelectionBox();
+
+    expect(midBounds).not.toBeNull();
+    expect(midBounds!.label.y).toBeGreaterThan(startBounds!.label.y + 50);
   });
 
   test("holding ArrowDown then releasing freezes selection against further mouse movement", async ({
