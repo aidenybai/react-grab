@@ -132,7 +132,7 @@ export const TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS = 260;
 export const TOOLBAR_DEFAULT_WIDTH_PX = 78;
 export const TOOLBAR_DEFAULT_HEIGHT_PX = 28;
 export const TOOLBAR_DEFAULT_POSITION_RATIO = 0.5;
-export const DEFAULT_ACTION_ID = "comment";
+export const DEFAULT_ACTION_ID = "copy";
 
 export const MENU_PANEL_CORNER_RADIUS_PX = 14;
 export const MENU_HIGHLIGHT_CORNER_SHAPE = "superellipse(1.25)";
