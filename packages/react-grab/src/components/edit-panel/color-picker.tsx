@@ -38,10 +38,10 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
     const text = draftText();
     if (text === null) return;
     setDraftText(null);
-    // parseAnyColorToHex accepts hex w/ or w/o `#`, 3/4/6/8 digits,
+    // parseAnyColor accepts hex w/ or w/o `#`, 3/4/6/8 digits,
     // rgb/rgba, hsl/hsla, and CSS named colours — anything the browser
     // parses through the canvas fillStyle setter.
-    const normalized = parseAnyColorToHex(text);
+    const normalized = parseAnyColor(text);
     if (normalized && normalized.toLowerCase() !== props.value.toLowerCase()) {
       props.onCommit(normalized);
     }
