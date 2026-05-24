@@ -24,6 +24,7 @@ import { clampToRange } from "../../utils/clamp-to-range.js";
 import { cn } from "../../utils/cn.js";
 import { createAnchoredDropdown } from "../../utils/create-anchored-dropdown.js";
 import {
+  clearAllPendingEdits,
   clearPendingEdits,
   loadAllPendingEdits,
   loadPendingEdits,
@@ -393,6 +394,11 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
         edits: pendingEdits,
       });
     }
+    // Explicit copy = the agent now owns this diff. Wipe sessionStorage
+    // so the next panel open doesn't replay these as still-pending; if
+    // the agent fails to apply them, the inline preview stays visible
+    // but won't get re-restored on top of the source.
+    clearAllPendingEdits();
     props.onSubmit(formatSessionEditsPrompt(sessionEntries));
   };
 

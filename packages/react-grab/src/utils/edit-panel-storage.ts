@@ -92,6 +92,21 @@ export const clearPendingEdits = (state: EditPanelState): void => {
   storage.removeItem(key);
 };
 
+// Wipes every pending edit across the session — used after an explicit
+// commit-to-agent (Enter / submit click), since the agent prompt now
+// owns the diff and the local entries would otherwise be re-applied on
+// the next panel open as if they were still pending.
+export const clearAllPendingEdits = (): void => {
+  const storage = readStorage();
+  if (!storage) return;
+  const toRemove: string[] = [];
+  for (let index = 0; index < storage.length; index++) {
+    const key = storage.key(index);
+    if (key?.startsWith(STORAGE_KEY_PREFIX)) toRemove.push(key);
+  }
+  for (const key of toRemove) storage.removeItem(key);
+};
+
 // Walks the entire session storage and returns every pending entry
 // currently tracked by the edit panel. Used when composing the copy
 // prompt so the agent sees every still-unapplied UI tweak the user has

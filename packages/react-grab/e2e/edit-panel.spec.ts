@@ -437,13 +437,29 @@ test.describe("Edit Panel", () => {
   });
 
   test.describe("Commit and sessionStorage", () => {
-    test("Enter saves the diff to sessionStorage", async ({ reactGrab }) => {
+    test("Enter wipes sessionStorage (agent now owns the diff)", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await reactGrab.page.keyboard.press("ArrowRight");
       await reactGrab.page.waitForTimeout(80);
       await reactGrab.page.keyboard.press("Enter");
       await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
 
+      // Explicit commit ships the diff to the agent — local pending
+      // storage gets wiped so reopening doesn't replay these as still-
+      // pending edits on top of whatever the source ends up at.
+      const entries = await readSessionStorageEntries(reactGrab.page);
+      expect(Object.keys(entries).length).toBe(0);
+    });
+
+    test("Escape preserves the diff in sessionStorage", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+      await reactGrab.page.keyboard.press("Escape");
+      await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
+
+      // Escape = "stash for later" — sessionStorage keeps the diff so
+      // the user can reopen and continue from where they left off.
       const entries = await readSessionStorageEntries(reactGrab.page);
       expect(Object.keys(entries).length).toBeGreaterThan(0);
     });
