@@ -18,10 +18,17 @@ export const formatDisplayValue = (value: number): string => {
   return stripTrailingZeros(roundToDecimals(value));
 };
 
-// Snaps a runtime numeric value (e.g. computed-style sub-pixel like
-// 1860.6000000000004) to a clean rounded representation we can compare
-// against and write back as a CSS value.
-export const cleanNumericValue = (value: number): number => roundToDecimals(value);
+// Snaps a runtime numeric value to a whole number — the store form
+// for everything we tweak. Two reasons to round to integer instead of
+// just trimming FP noise via roundToDecimals:
+//   - slider drag computes continuous values from cursor x; without
+//     this the UI shows `padding: 16.42px` which is never what users
+//     want for layout values
+//   - browsers occasionally report sub-pixel computed style
+//     ("1860.6000000000004px"); rounding to integer cleans that too
+// Sub-percent precision (e.g. opacity 50.5%) is rare enough that the
+// loss of one decimal place isn't worth keeping the FP display.
+export const cleanNumericValue = (value: number): number => Math.round(value);
 
 // Formats an editable property's value as a CSS-injectable string,
 // applying property-specific transforms (opacity goes from 0-100 UI to
