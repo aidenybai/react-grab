@@ -127,6 +127,7 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
               }}
               data-react-grab-ignore-events
               data-react-grab-edit-property={property().key}
+              aria-current={isActive() ? "true" : undefined}
               type="button"
               role="menuitem"
               tabindex={-1}

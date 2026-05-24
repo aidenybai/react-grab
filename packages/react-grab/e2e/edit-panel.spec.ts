@@ -47,9 +47,10 @@ const getActivePropertyKey = async (
       const host = document.querySelector(`[${attrName}]`);
       const shadowRoot = host?.shadowRoot;
       if (!shadowRoot) return null;
-      const rows = Array.from(shadowRoot.querySelectorAll<HTMLElement>(`[${propertyAttr}]`));
-      // Active row renders two stepper-arrow SVGs; inactive rows have none.
-      const active = rows.find((row) => row.querySelectorAll("svg").length >= 2);
+      // Active row is marked aria-current="true" by PropertyList.
+      const active = shadowRoot.querySelector<HTMLElement>(
+        `[${propertyAttr}][aria-current="true"]`,
+      );
       return active?.getAttribute(propertyAttr) ?? null;
     },
     { attrName: ATTRIBUTE_NAME, propertyAttr: EDIT_PROPERTY_ATTR },
@@ -63,8 +64,12 @@ const getActivePropertyValue = async (
       const host = document.querySelector(`[${attrName}]`);
       const shadowRoot = host?.shadowRoot;
       if (!shadowRoot) return null;
-      const rows = Array.from(shadowRoot.querySelectorAll<HTMLElement>(`[${propertyAttr}]`));
-      const active = rows.find((row) => row.querySelectorAll("svg").length >= 2);
+      // The active row carries aria-current="true". Stable across UI
+      // refactors (the previous "find row with ≥2 SVGs" heuristic broke
+      // when the stepper arrows moved to compact-mode-only).
+      const active = shadowRoot.querySelector<HTMLElement>(
+        `[${propertyAttr}][aria-current="true"]`,
+      );
       return active?.textContent?.trim() ?? null;
     },
     { attrName: ATTRIBUTE_NAME, propertyAttr: EDIT_PROPERTY_ATTR },
