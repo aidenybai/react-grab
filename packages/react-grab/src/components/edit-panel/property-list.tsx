@@ -65,7 +65,7 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
       role="menu"
       aria-orientation="vertical"
       aria-label="Editable properties"
-      class="relative flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5 max-h-[var(--rg-edit-list-max-h)] overflow-y-auto outline-none no-scrollbar"
+      class="relative flex flex-col w-full max-h-[var(--rg-edit-list-max-h)] overflow-y-auto outline-none no-scrollbar"
       onPointerMove={() => {
         didPointerMove = true;
       }}
