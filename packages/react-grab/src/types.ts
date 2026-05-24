@@ -189,6 +189,10 @@ export interface EditPanelState {
   componentName?: string;
   tagName?: string;
   htmlPreview?: string;
+  // Pre-fill the search input when the panel opens. Used by the
+  // type-to-edit shortcut (typing a letter while hovering an element
+  // opens the panel with that letter already in the search).
+  initialSearchQuery?: string;
 }
 
 export interface ContextMenuAction {

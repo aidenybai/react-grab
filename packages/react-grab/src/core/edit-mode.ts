@@ -10,6 +10,7 @@ export interface EditModeOverrides {
   lineNumber?: number;
   componentName?: string;
   tagName?: string;
+  initialSearchQuery?: string;
 }
 
 interface EditModeDependencies {
@@ -85,6 +86,7 @@ export const createEditModeController = (
       lineNumber: resolvedLineNumber,
       componentName: overrides.componentName,
       tagName: overrides.tagName ?? getTagName(element),
+      initialSearchQuery: overrides.initialSearchQuery,
     });
 
     void getNearestComponentName(element).then((nearestName) => {

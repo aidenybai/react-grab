@@ -2233,6 +2233,36 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return false;
     };
 
+    // Type-to-edit shortcut: while react-grab is active and the user is
+    // hovering an element (selection mode, no panel/menu open), pressing
+    // a letter (a–z, 0–9, dash) opens the edit panel on the hovered/
+    // frozen element and seeds the search with that letter. Subsequent
+    // keystrokes flow into the panel's own search input normally.
+    //
+    // Examples:
+    //   `p` → opens panel for hovered element, padding row active, compact.
+    //   `m` then `t` then `-` then `5` → margin-top 20px applied.
+    const TYPE_TO_EDIT_KEY_PATTERN = /^[a-zA-Z0-9-]$/;
+    const handleTypeToEdit = (event: KeyboardEvent): boolean => {
+      if (event.metaKey || event.ctrlKey || event.altKey) return false;
+      if (event.repeat) return false;
+      if (!isActivated()) return false;
+      if (isPromptMode()) return false;
+      if (editMode.isOpen() || store.contextMenuPosition !== null) return false;
+      if (event.key.length !== 1 || !TYPE_TO_EDIT_KEY_PATTERN.test(event.key)) return false;
+      const element = store.frozenElement || targetElement();
+      if (!element) return false;
+      const opened = editMode.trigger(
+        element,
+        { x: pointer().x, y: pointer().y },
+        { initialSearchQuery: event.key },
+      );
+      if (!opened) return false;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      return true;
+    };
+
     const handleOpenFileShortcut = (event: KeyboardEvent): boolean => {
       if (event.key?.toLowerCase() !== "o" || isPromptMode()) return false;
       if (!isActivated() || !(event.metaKey || event.ctrlKey)) return false;
@@ -2473,6 +2503,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (handleEnterKeyActivation(event)) return;
         if (handleOpenFileShortcut(event)) return;
         if (handleContextMenuKey(event)) return;
+        if (handleTypeToEdit(event)) return;
 
         if (!didWindowJustRegainFocus) {
           handleActivationKeys(event);

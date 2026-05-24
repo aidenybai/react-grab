@@ -78,7 +78,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   let searchInputRef: HTMLTextAreaElement | undefined;
   const preview = createPreviewStyles(initialElement);
 
-  const [searchQuery, setSearchQuery] = createSignal("");
+  const [searchQuery, setSearchQuery] = createSignal(props.state.initialSearchQuery ?? "");
   const [activeIndex, setActiveIndex] = createSignal(0);
   const [tweakedValues, setTweakedValues] = createSignal<Record<string, number>>({});
   const [activeKey, setActiveKey] = createSignal<"left" | "right" | null>(null);
@@ -380,8 +380,21 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   );
 
   onMount(() => {
-    queueMicrotask(() => searchInputRef?.focus({ preventScroll: true }));
+    queueMicrotask(() => {
+      searchInputRef?.focus({ preventScroll: true });
+      // Move cursor to end so the next keystroke from the user appends
+      // to the seeded query (type-to-edit flow), not overwrites.
+      if (searchInputRef) {
+        const length = searchInputRef.value.length;
+        searchInputRef.setSelectionRange(length, length);
+      }
+    });
     dropdown.measure();
+    // If seeded with a tailwind prefix (e.g. user typed `m` while
+    // hovering in selection mode), run the same auto-apply pipeline
+    // that onInput uses so compact mode + value application kicks in.
+    const seed = searchQuery();
+    if (seed) tryApplyTailwindClass(seed);
 
     const unregisterDismiss = registerOverlayDismiss({
       isOpen: () => true,
