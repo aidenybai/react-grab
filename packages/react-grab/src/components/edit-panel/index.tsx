@@ -437,6 +437,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
         ref={containerRef}
         data-react-grab-ignore-events
         data-react-grab-edit-panel
+        data-rg-compact={isCompact() ? "true" : "false"}
         class={cn(
           "fixed font-sans text-[13px] antialiased [filter:var(--rg-drop-shadow)] select-none will-change-[opacity,transform]",
           dropdown.isAnimatedIn()

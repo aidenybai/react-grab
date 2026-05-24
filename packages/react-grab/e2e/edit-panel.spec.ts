@@ -422,6 +422,55 @@ test.describe("Edit Panel", () => {
       expect(await isEditPanelCompact(reactGrab.page)).toBe(false);
     });
 
+    test("typing a tailwind prefix (e.g. mt) sets compact state", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      const compactBefore = await reactGrab.page.evaluate(
+        ({ attrName, panelAttr }) => {
+          const host = document.querySelector(`[${attrName}]`);
+          const shadowRoot = host?.shadowRoot;
+          const panel = shadowRoot?.querySelector(`[${panelAttr}]`);
+          return panel?.getAttribute("data-rg-compact") ?? null;
+        },
+        { attrName: ATTRIBUTE_NAME, panelAttr: EDIT_PANEL_ATTR },
+      );
+      expect(compactBefore).toBe("false");
+      await reactGrab.page.keyboard.type("mt");
+      await reactGrab.page.waitForTimeout(80);
+      const compactAfter = await reactGrab.page.evaluate(
+        ({ attrName, panelAttr }) => {
+          const host = document.querySelector(`[${attrName}]`);
+          const shadowRoot = host?.shadowRoot;
+          const panel = shadowRoot?.querySelector(`[${panelAttr}]`);
+          return panel?.getAttribute("data-rg-compact") ?? null;
+        },
+        { attrName: ATTRIBUTE_NAME, panelAttr: EDIT_PANEL_ATTR },
+      );
+      expect(compactAfter).toBe("true");
+    });
+
+    test("typing a complete tailwind class (mt-5) applies value + compact", async ({
+      reactGrab,
+    }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      const before = await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "margin-top");
+      await reactGrab.page.keyboard.type("mt-5");
+      await reactGrab.page.waitForTimeout(80);
+      const compactAttr = await reactGrab.page.evaluate(
+        ({ attrName, panelAttr }) => {
+          const host = document.querySelector(`[${attrName}]`);
+          const shadowRoot = host?.shadowRoot;
+          const panel = shadowRoot?.querySelector(`[${panelAttr}]`);
+          return panel?.getAttribute("data-rg-compact") ?? null;
+        },
+        { attrName: ATTRIBUTE_NAME, panelAttr: EDIT_PANEL_ATTR },
+      );
+      expect(compactAttr).toBe("true");
+      const after = await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "margin-top");
+      expect(after).not.toBe(before);
+      // Tailwind n × 4px = 5 × 4 = 20px
+      expect(after).toContain("20");
+    });
+
     test("compact value updates live on subsequent tweaks", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await reactGrab.page.keyboard.press("ArrowRight");
