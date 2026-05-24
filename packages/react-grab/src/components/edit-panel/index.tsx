@@ -255,10 +255,10 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     }
     if (survivingEdits.length !== saved.length) savePendingEdits(props.state, survivingEdits);
     setTweakedValues(Object.fromEntries(survivingEdits.map((edit) => [edit.key, edit.value])));
-    // Treat restored edits as commits so the panel opens straight into
-    // compact mode — the user already committed these, no need to make
-    // them re-discover their own pending state.
-    setHasCommittedAnyEdit(true);
+    // Don't flip hasCommittedAnyEdit — the panel always opens in full
+    // mode (search + list) so the user can see/pick a property to edit
+    // before the layout collapses. Stickiness is per-session, not
+    // across reopens.
   };
 
   // Tweaks change layout (padding, width, etc.), which can ripple through
