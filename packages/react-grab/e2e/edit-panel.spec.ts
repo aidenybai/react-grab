@@ -70,7 +70,17 @@ const getActivePropertyValue = async (
       const active = shadowRoot.querySelector<HTMLElement>(
         `[${propertyAttr}][aria-current="true"]`,
       );
-      return active?.textContent?.trim() ?? null;
+      if (!active) return null;
+      // The active row's numeric value chip carries a
+      // data-react-grab-value attribute holding the formatted value +
+      // unit. Read that instead of textContent — the Slot animated-
+      // digit renderer stamps "0123456789" per column into the DOM, so
+      // textContent is constant regardless of the displayed digit.
+      const valueNode = active.querySelector<HTMLElement>("[data-react-grab-value]");
+      if (valueNode) {
+        return valueNode.getAttribute("data-react-grab-value");
+      }
+      return active.textContent?.trim() ?? null;
     },
     { attrName: ATTRIBUTE_NAME, propertyAttr: EDIT_PROPERTY_ATTR },
   );
@@ -106,6 +116,19 @@ const getInlineStyleProperty = async (
     },
     { sel: selector, prop: property },
   );
+
+// Whole `style="…"` attribute as written — used when the default
+// first-row depends on which longhand is canonical for the target
+// (e.g. px-2 py-1 → padding-x first; px-4 py-4 → padding first).
+const getInlineStyleAttribute = async (
+  page: import("@playwright/test").Page,
+  selector: string,
+): Promise<string> =>
+  page.evaluate((sel) => {
+    const element = document.querySelector(sel);
+    if (!(element instanceof HTMLElement)) return "";
+    return element.getAttribute("style") ?? "";
+  }, selector);
 
 const isEditPanelCompact = async (page: import("@playwright/test").Page): Promise<boolean> =>
   page.evaluate(
@@ -226,11 +249,12 @@ test.describe("Edit Panel", () => {
       await reactGrab.page.keyboard.press("ArrowRight");
       await reactGrab.page.waitForTimeout(80);
 
-      const duringTweak = await getInlineStyleProperty(
-        reactGrab.page,
-        BUTTON_SELECTOR,
-        "padding-top",
-      );
+      // The default first row depends on which padding rows are
+      // canonical for this element — px-2 py-1 → padding-x is first,
+      // so reading any specific longhand by name is fragile. Snapshot
+      // the entire inline `style` instead and assert that the tweak
+      // wrote *something*.
+      const duringTweak = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
       expect(duringTweak.length).toBeGreaterThan(0);
 
       await reactGrab.page.keyboard.press("Escape");
@@ -238,11 +262,7 @@ test.describe("Edit Panel", () => {
 
       // Tweaks persist across dismiss — Escape stashes for later, doesn't
       // revert. Reopening the panel sees the same value still applied.
-      const afterDismiss = await getInlineStyleProperty(
-        reactGrab.page,
-        BUTTON_SELECTOR,
-        "padding-top",
-      );
+      const afterDismiss = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
       expect(afterDismiss).toBe(duringTweak);
     });
 
@@ -358,11 +378,11 @@ test.describe("Edit Panel", () => {
     });
 
     test("tweak applies an inline style on the target element", async ({ reactGrab }) => {
-      const before = await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-top");
+      const before = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await reactGrab.page.keyboard.press("ArrowRight");
       await reactGrab.page.waitForTimeout(80);
-      const after = await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-top");
+      const after = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
       expect(after.length).toBeGreaterThan(0);
       expect(after).not.toBe(before);
     });
@@ -567,18 +587,14 @@ test.describe("Edit Panel", () => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await reactGrab.page.keyboard.press("ArrowRight");
       await reactGrab.page.waitForTimeout(80);
-      const tweaked = await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-top");
+      const tweaked = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
       expect(tweaked.length).toBeGreaterThan(0);
 
       await reactGrab.page.keyboard.press("Enter");
       await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
       await reactGrab.page.waitForTimeout(200);
 
-      const afterCommit = await getInlineStyleProperty(
-        reactGrab.page,
-        BUTTON_SELECTOR,
-        "padding-top",
-      );
+      const afterCommit = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
       expect(afterCommit).toBe(tweaked);
     });
   });
