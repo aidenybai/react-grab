@@ -605,7 +605,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                   onStep={stepFromPointer}
                   onCommitValue={commitTypedValue}
                   onEditComplete={ensureSearchFocused}
-                  onSubmit={handleSubmit}
                 />
               </div>
             </Show>
