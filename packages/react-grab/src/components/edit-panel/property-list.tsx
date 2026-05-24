@@ -1,5 +1,4 @@
 import { createEffect, Index, onCleanup, Show, type Component } from "solid-js";
-import { MENU_HIGHLIGHT_CORNER_SHAPE, MENU_PANEL_CORNER_RADIUS_PX } from "../../constants.js";
 import type { EditableProperty } from "../../types.js";
 import { createMenuHighlight } from "../../utils/create-menu-highlight.js";
 import { formatDisplayValue } from "../../utils/format-css-value.js";
@@ -31,11 +30,12 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
     highlightRef,
     updateHighlight,
     clearHighlight,
-  } = createMenuHighlight({
-    topCornerRadiusPx: MENU_PANEL_CORNER_RADIUS_PX,
-    bottomCornerRadiusPx: MENU_PANEL_CORNER_RADIUS_PX,
-    cornerShape: MENU_HIGHLIGHT_CORNER_SHAPE,
-  });
+    // No per-corner radii — the EditPanel's outer overflow:hidden +
+    // rounded-[14px] superellipse already clips the highlight pill at
+    // the panel's curve. Setting our own radii here makes the pill's
+    // own corner curve compete with the panel's and visibly bulge past
+    // the outline at first/last rows.
+  } = createMenuHighlight({});
 
   createEffect(() => {
     itemElements.length = props.properties.length;
