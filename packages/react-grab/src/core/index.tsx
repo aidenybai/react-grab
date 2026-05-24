@@ -302,7 +302,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       () => store.contextMenuPosition !== null || editMode.isOpen(),
     );
     let toolbarElement: HTMLDivElement | undefined;
-    let dropdownTrackingFrameId: number | null = null;
+    let stopToolbarMenuTracking: (() => void) | null = null;
+    let stopEditPanelTracking: (() => void) | null = null;
 
     let shiftSelectionLabelAnchorRatioByElement = new WeakMap<Element, number>();
 
@@ -1567,7 +1568,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         deactivateRenderer();
       } else if (isEnabled()) {
         const defaultActionId = currentToolbarState()?.defaultAction ?? DEFAULT_ACTION_ID;
-        if (defaultActionId === DEFAULT_ACTION_ID) {
+        // Comment is the one default that has a dedicated prompt-mode
+        // flow; every other action (copy, edit, custom plugin actions)
+        // runs through the standard "select element then dispatch the
+        // pending action id" path. Tying the special-case to the literal
+        // "comment" id keeps it correct when DEFAULT_ACTION_ID changes.
+        if (defaultActionId === "comment") {
           actions.setPendingCommentMode(true);
         } else {
           pendingDefaultActionId = defaultActionId;
@@ -2989,9 +2995,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
       clearCopyFeedbackCooldown();
-      if (dropdownTrackingFrameId !== null) {
-        nativeCancelAnimationFrame(dropdownTrackingFrameId);
-      }
+      stopToolbarMenuTracking?.();
+      stopToolbarMenuTracking = null;
+      stopEditPanelTracking?.();
+      stopEditPanelTracking = null;
       grabbedBoxTimeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
       grabbedBoxTimeouts.clear();
       cancelAllLabelFades();
@@ -3435,13 +3442,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }, 0);
     };
 
-    const stopTrackingDropdownPosition = () => {
-      if (dropdownTrackingFrameId !== null) {
-        nativeCancelAnimationFrame(dropdownTrackingFrameId);
-        dropdownTrackingFrameId = null;
-      }
-    };
-
     const computeDropdownAnchor = (): DropdownAnchor | null => {
       if (!toolbarElement) return null;
       const toolbarRect = toolbarElement.getBoundingClientRect();
@@ -3464,18 +3464,32 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       };
     };
 
-    const openTrackedDropdown = (setPosition: (anchor: DropdownAnchor) => void) => {
-      stopTrackingDropdownPosition();
+    // Each tracked dropdown owns its own RAF loop via a closure-captured
+    // frame id, returning a stop function. Sharing a single module-level
+    // frame id between the toolbar menu and the edit panel caused the
+    // later opener to cancel the earlier opener's tracking, then leave
+    // the earlier dropdown unanchored when it closed.
+    const trackDropdownPosition = (
+      setPosition: (anchor: DropdownAnchor) => void,
+    ): (() => void) => {
+      let frameId: number | null = null;
       const updatePosition = () => {
         const anchor = computeDropdownAnchor();
         if (anchor) setPosition(anchor);
-        dropdownTrackingFrameId = nativeRequestAnimationFrame(updatePosition);
+        frameId = nativeRequestAnimationFrame(updatePosition);
       };
       updatePosition();
+      return () => {
+        if (frameId !== null) {
+          nativeCancelAnimationFrame(frameId);
+          frameId = null;
+        }
+      };
     };
 
     const dismissToolbarMenu = () => {
-      stopTrackingDropdownPosition();
+      stopToolbarMenuTracking?.();
+      stopToolbarMenuTracking = null;
       setToolbarMenuPosition(null);
     };
 
@@ -3492,9 +3506,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         editMode.isOpen,
         (isOpen) => {
           if (isOpen) {
-            openTrackedDropdown(setEditPanelPosition);
+            stopEditPanelTracking?.();
+            stopEditPanelTracking = trackDropdownPosition(setEditPanelPosition);
           } else {
-            stopTrackingDropdownPosition();
+            stopEditPanelTracking?.();
+            stopEditPanelTracking = null;
             setEditPanelPosition(null);
           }
         },
@@ -3507,7 +3523,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         dismissToolbarMenu();
       } else {
         actions.hideContextMenu();
-        openTrackedDropdown(setToolbarMenuPosition);
+        stopToolbarMenuTracking?.();
+        stopToolbarMenuTracking = trackDropdownPosition(setToolbarMenuPosition);
       }
     };
 
@@ -3733,7 +3750,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         disposed = true;
         hasInited = false;
         disposeRenderer?.();
-        stopTrackingDropdownPosition();
+        stopToolbarMenuTracking?.();
+        stopToolbarMenuTracking = null;
+        stopEditPanelTracking?.();
+        stopEditPanelTracking = null;
         toolbarStateChangeCallbacks.clear();
         dispose();
       },
