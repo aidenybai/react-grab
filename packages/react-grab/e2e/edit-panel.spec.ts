@@ -422,9 +422,7 @@ test.describe("Edit Panel", () => {
       expect(await isEditPanelCompact(reactGrab.page)).toBe(false);
     });
 
-    test("type-to-edit: hover + type m then t → margin-top focused", async ({
-      reactGrab,
-    }) => {
+    test("type-to-edit: hover + type m then t → margin-top focused", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement(BUTTON_SELECTOR);
       await reactGrab.waitForSelectionBox();
