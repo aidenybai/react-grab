@@ -35,6 +35,7 @@ import type {
 import { clampToRange } from "../../utils/clamp-to-range.js";
 import { cn } from "../../utils/cn.js";
 import { createAnchoredDropdown } from "../../utils/create-anchored-dropdown.js";
+import { expandAggregateLonghands } from "../../utils/expand-aggregate-longhands.js";
 import { cleanNumericValue, formatEditableValue } from "../../utils/format-css-value.js";
 import { formatSessionEditsPrompt } from "../../utils/format-edit-prompt.js";
 import { stepColorLightness } from "../../utils/parse-color.js";
@@ -360,8 +361,10 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     // has non-uniform padding, so "padding" was filtered out). Apply
     // inline styles to each longhand the cssKey covers, and update
     // tweakedValues for every individual side row that exists so the
-    // UI reflects the change.
-    const longhands = cssKey.split(",") as string[];
+    // UI reflects the change. The expansion handles both comma-joined
+    // partial aggregates (`padding-left,padding-right`) AND top-level
+    // aggregates (`padding` → 4 sides).
+    const longhands = expandAggregateLonghands(cssKey);
     // We need a per-side property reference to clamp + format, so prefer
     // any one matching individual-side row. All sides share min/max/unit
     // so picking the first match is safe.
