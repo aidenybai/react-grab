@@ -334,13 +334,20 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     return true;
   };
   // Whether a tailwind cssKey resolves to at least one trackable
-  // numeric row in initialProperties (either as the exact key or
-  // through aggregate-longhand expansion). Auto-apply both gates
-  // compact-intent and the value commit on this — typing a class for
-  // a property the panel can't edit shouldn't shrink the UI around
-  // an empty target.
+  // editable row in initialProperties (either as the exact key, an
+  // enum row matching the cssKey, or through aggregate-longhand
+  // expansion). Auto-apply both gates compact-intent and the value
+  // commit on this — typing a class for a property the panel can't
+  // edit shouldn't shrink the UI around an empty target. Enum rows
+  // count too so `font-` (font-weight) gets the same intent treatment
+  // as `mt-` etc.
   const hasTrackableTarget = (cssKey: string): boolean => {
-    if (initialProperties.some((entry) => entry.key === cssKey && entry.kind === "numeric")) {
+    if (
+      initialProperties.some(
+        (entry) =>
+          entry.key === cssKey && (entry.kind === "numeric" || entry.kind === "enum"),
+      )
+    ) {
       return true;
     }
     const longhands = expandAggregateLonghands(cssKey);
@@ -391,6 +398,24 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       const next = cleanNumericValue(clampToRange(candidate, exact.min, exact.max));
       commit(exact, next, { compact: true });
       return;
+    }
+
+    // Enum fallback: properties like `font-weight` are built as enum
+    // rows (cycle through `100..900`) but the canonical Tailwind class
+    // is numeric (`font-700`). If the typed number matches one of the
+    // enum's `value`s exactly, commit it to the enum row.
+    const enumExact = initialProperties.find(
+      (entry) => entry.key === cssKey && entry.kind === "enum",
+    );
+    if (enumExact && enumExact.kind === "enum") {
+      const candidateString = String(rawNumber);
+      const matchingOption = enumExact.options.find(
+        (option) => option.value === candidateString,
+      );
+      if (matchingOption) {
+        commit(enumExact, matchingOption.value, { compact: true });
+        return;
+      }
     }
 
     // Fallback: the canonical aggregate isn't in the list (e.g. element
