@@ -183,29 +183,8 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     nextValue: number | string,
     options: CommitOptions = {},
   ) => {
-    // #region agent log
-    const formattedCss = formatEditableValue(property, nextValue);
-    fetch("http://127.0.0.1:7710/ingest/aba791f5-84d2-4d41-9c67-4be1eb9bf9d9", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "554b5c" },
-      body: JSON.stringify({
-        sessionId: "554b5c",
-        location: "edit-panel/index.tsx:commit",
-        message: "commit",
-        data: {
-          key: property.key,
-          kind: property.kind,
-          currentValue: property.value,
-          nextValue,
-          formattedCss,
-          cssProperties: property.cssProperties,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
     tweakStore.applyTweak(property, nextValue);
-    preview.apply(property.cssProperties, formattedCss);
+    preview.apply(property.cssProperties, formatEditableValue(property, nextValue));
     markAsInteracting();
     if (options.flash) flashActiveKey(options.flash === 1 ? "right" : "left");
     if (options.focus) ensureSearchFocused();
@@ -229,66 +208,25 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     commitTweak(direction, false);
   };
 
-  // #region agent log
-  const debugSkip = (path: string, reason: string, data: Record<string, unknown>) => {
-    fetch("http://127.0.0.1:7710/ingest/aba791f5-84d2-4d41-9c67-4be1eb9bf9d9", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "554b5c" },
-      body: JSON.stringify({
-        sessionId: "554b5c",
-        location: `edit-panel/index.tsx:${path}`,
-        message: `skip-commit:${reason}`,
-        data,
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-  };
-  // #endregion
-
   const commitNumericValue = (rawValue: number) => {
     const property = activeProperty();
-    if (!property || property.kind !== "numeric") {
-      debugSkip("commitNumericValue", "wrong-kind", { rawValue, kind: property?.kind });
-      return;
-    }
+    if (!property || property.kind !== "numeric") return;
     const next = cleanNumericValue(clampToRange(rawValue, property.min, property.max));
-    if (next === property.value) {
-      debugSkip("commitNumericValue", "value-unchanged", {
-        rawValue,
-        next,
-        currentValue: property.value,
-        key: property.key,
-        min: property.min,
-        max: property.max,
-      });
-      return;
-    }
+    if (next === property.value) return;
     commit(property, next);
   };
 
   const commitColorValue = (hex: string) => {
     const property = activeProperty();
-    if (!property || property.kind !== "color") {
-      debugSkip("commitColorValue", "wrong-kind", { hex, kind: property?.kind });
-      return;
-    }
-    if (hex.toLowerCase() === property.value.toLowerCase()) {
-      debugSkip("commitColorValue", "hex-unchanged", { hex, currentValue: property.value });
-      return;
-    }
+    if (!property || property.kind !== "color") return;
+    if (hex.toLowerCase() === property.value.toLowerCase()) return;
     commit(property, hex);
   };
 
   const commitEnumValue = (value: string) => {
     const property = activeProperty();
-    if (!property || property.kind !== "enum") {
-      debugSkip("commitEnumValue", "wrong-kind", { value, kind: property?.kind });
-      return;
-    }
-    if (value === property.value) {
-      debugSkip("commitEnumValue", "value-unchanged", { value, currentValue: property.value });
-      return;
-    }
+    if (!property || property.kind !== "enum") return;
+    if (value === property.value) return;
     commit(property, value);
   };
 
@@ -493,16 +431,21 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     // the keyboard handler. The textarea's own onKeyDown still fires too,
     // but stopImmediatePropagation there prevents double-processing.
     //
-    // The HTMLInputElement check carves out the click-to-type value
-    // editor — while its input owns focus, Enter/Esc are owned by the
-    // editor (commit/cancel), not by the panel (submit/dismiss).
-    // The panel renders inside a Shadow DOM, so events bubbling out get
-    // retargeted to the shadow host. `event.target` outside the shadow
-    // is the host DIV (never an HTMLInputElement), which is why we read
-    // the real original target from `composedPath()[0]`.
+    // Skip when the keystroke belongs to a real editable surface on
+    // the page (or inside our own click-to-type value editor) — those
+    // own the keystroke for their own commit/cancel semantics. The
+    // panel renders inside a Shadow DOM, so events bubbling out get
+    // retargeted to the shadow host; `composedPath()[0]` gives us the
+    // true original target across the shadow boundary.
+    const isPageEditableTarget = (target: EventTarget | undefined): boolean => {
+      if (!(target instanceof HTMLElement)) return false;
+      if (target instanceof HTMLInputElement) return true;
+      if (target instanceof HTMLTextAreaElement) return true;
+      if (target.isContentEditable) return true;
+      return false;
+    };
     const handleWindowKeyDown = (event: KeyboardEvent) => {
-      const originalTarget = event.composedPath()[0];
-      if (originalTarget instanceof HTMLInputElement) return;
+      if (isPageEditableTarget(event.composedPath()[0])) return;
       handleSearchKeyDown(event);
     };
     window.addEventListener("keydown", handleWindowKeyDown, { capture: true });
