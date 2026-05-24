@@ -104,10 +104,16 @@ export const matchTailwindPrefix = (rawClassName: string): string | null => {
 // should NOT bubble unrelated rows (font-size, border-width) to the top
 // of the editor. The editor doesn't expose color tweaking, so the
 // safest behavior is to ignore the class entirely.
-const COLOR_TAIL_REGEX = /-(red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|slate|gray|zinc|neutral|stone|black|white|transparent|current|inherit)\b/;
+const COLOR_TAIL_REGEX =
+  /-(red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|slate|gray|zinc|neutral|stone|black|white|transparent|current|inherit)\b/;
 
 const isAmbiguousColorClass = (prefix: string, token: string): boolean => {
-  if (prefix !== "text" && prefix !== "bg" && prefix !== "border" && !prefix.startsWith("border-")) {
+  if (
+    prefix !== "text" &&
+    prefix !== "bg" &&
+    prefix !== "border" &&
+    !prefix.startsWith("border-")
+  ) {
     return false;
   }
   return COLOR_TAIL_REGEX.test(token);

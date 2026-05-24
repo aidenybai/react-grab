@@ -3,11 +3,13 @@ import type { EditPanelState } from "../types.js";
 const STORAGE_KEY_PREFIX = "react-grab:edit:";
 
 export interface PendingEdit {
+  key: string;
+  cssProperties: readonly string[];
   value: number;
   unit: string;
 }
 
-export type PendingEdits = Record<string, PendingEdit>;
+export type PendingEdits = PendingEdit[];
 
 export interface PendingEditsEntry {
   filePath: string;
@@ -15,9 +17,9 @@ export interface PendingEditsEntry {
   edits: PendingEdits;
 }
 
-// Both filePath AND lineNumber are required to disambiguate elements within
-// the same file. Without that, two un-attributed elements would share a
-// storage slot and one's saved edits would restore onto the other.
+// Both filePath AND lineNumber are required to disambiguate elements
+// within the same file. Without that, two un-attributed elements would
+// share a slot and one's saved edits would restore onto the other.
 const storageKeyFor = (state: EditPanelState): string | null => {
   if (!state.filePath || state.lineNumber === undefined) return null;
   return `${STORAGE_KEY_PREFIX}${state.filePath}:${state.lineNumber}`;
@@ -35,16 +37,27 @@ const parsePendingEdits = (raw: string | null): PendingEdits | null => {
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") return null;
-    const result: PendingEdits = {};
-    for (const [property, entry] of Object.entries(parsed)) {
+    if (!Array.isArray(parsed)) return null;
+    const result: PendingEdits = [];
+    for (const entry of parsed) {
       if (!entry || typeof entry !== "object") continue;
-      const candidate = entry as { value?: unknown; unit?: unknown };
+      const candidate = entry as Partial<PendingEdit>;
+      if (typeof candidate.key !== "string") continue;
+      if (!Array.isArray(candidate.cssProperties)) continue;
       if (typeof candidate.value !== "number" || !Number.isFinite(candidate.value)) continue;
       if (typeof candidate.unit !== "string") continue;
-      result[property] = { value: candidate.value, unit: candidate.unit };
+      const cssProperties = candidate.cssProperties.filter(
+        (item): item is string => typeof item === "string",
+      );
+      if (cssProperties.length === 0) continue;
+      result.push({
+        key: candidate.key,
+        cssProperties,
+        value: candidate.value,
+        unit: candidate.unit,
+      });
     }
-    return Object.keys(result).length > 0 ? result : null;
+    return result.length > 0 ? result : null;
   } catch {
     return null;
   }
@@ -61,7 +74,7 @@ export const savePendingEdits = (state: EditPanelState, edits: PendingEdits): vo
   const storage = readStorage();
   const key = storageKeyFor(state);
   if (!storage || !key) return;
-  if (Object.keys(edits).length === 0) {
+  if (edits.length === 0) {
     storage.removeItem(key);
     return;
   }
@@ -79,10 +92,10 @@ export const clearPendingEdits = (state: EditPanelState): void => {
   storage.removeItem(key);
 };
 
-// Walks the entire session storage and returns every pending entry currently
-// tracked by the edit panel. Used when composing the copy prompt so the agent
-// sees every still-unapplied UI tweak the user has made this session, not
-// just the change they're committing right now.
+// Walks the entire session storage and returns every pending entry
+// currently tracked by the edit panel. Used when composing the copy
+// prompt so the agent sees every still-unapplied UI tweak the user has
+// made this session, not just the change they're committing right now.
 export const loadAllPendingEdits = (): PendingEditsEntry[] => {
   const storage = readStorage();
   if (!storage) return [];

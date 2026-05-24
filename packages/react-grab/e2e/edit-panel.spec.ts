@@ -27,9 +27,7 @@ const isEditPanelVisible = async (page: import("@playwright/test").Page): Promis
     { attrName: ATTRIBUTE_NAME, panelAttr: EDIT_PANEL_ATTR },
   );
 
-const getVisiblePropertyKeys = async (
-  page: import("@playwright/test").Page,
-): Promise<string[]> =>
+const getVisiblePropertyKeys = async (page: import("@playwright/test").Page): Promise<string[]> =>
   page.evaluate(
     ({ attrName, propertyAttr }) => {
       const host = document.querySelector(`[${attrName}]`);
@@ -49,9 +47,7 @@ const getActivePropertyKey = async (
       const host = document.querySelector(`[${attrName}]`);
       const shadowRoot = host?.shadowRoot;
       if (!shadowRoot) return null;
-      const rows = Array.from(
-        shadowRoot.querySelectorAll<HTMLElement>(`[${propertyAttr}]`),
-      );
+      const rows = Array.from(shadowRoot.querySelectorAll<HTMLElement>(`[${propertyAttr}]`));
       // Active row renders two stepper-arrow SVGs; inactive rows have none.
       const active = rows.find((row) => row.querySelectorAll("svg").length >= 2);
       return active?.getAttribute(propertyAttr) ?? null;
@@ -67,9 +63,7 @@ const getActivePropertyValue = async (
       const host = document.querySelector(`[${attrName}]`);
       const shadowRoot = host?.shadowRoot;
       if (!shadowRoot) return null;
-      const rows = Array.from(
-        shadowRoot.querySelectorAll<HTMLElement>(`[${propertyAttr}]`),
-      );
+      const rows = Array.from(shadowRoot.querySelectorAll<HTMLElement>(`[${propertyAttr}]`));
       const active = rows.find((row) => row.querySelectorAll("svg").length >= 2);
       return active?.textContent?.trim() ?? null;
     },
@@ -108,9 +102,7 @@ const getInlineStyleProperty = async (
     { sel: selector, prop: property },
   );
 
-const isEditPanelCompact = async (
-  page: import("@playwright/test").Page,
-): Promise<boolean> =>
+const isEditPanelCompact = async (page: import("@playwright/test").Page): Promise<boolean> =>
   page.evaluate(
     ({ attrName, panelAttr, inputAttr }) => {
       const host = document.querySelector(`[${attrName}]`);
@@ -267,9 +259,7 @@ test.describe("Edit Panel", () => {
       expect(keys).toContain("padding-left,padding-right");
     });
 
-    test("font-size surfaces for elements that have explicit sizing", async ({
-      reactGrab,
-    }) => {
+    test("font-size surfaces for elements that have explicit sizing", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       const keys = await getVisiblePropertyKeys(reactGrab.page);
       expect(keys).toContain("font-size");
@@ -281,9 +271,7 @@ test.describe("Edit Panel", () => {
       expect(keys).toContain("border-radius");
     });
 
-    test("default-value margin is hidden when no search query is active", async ({
-      reactGrab,
-    }) => {
+    test("default-value margin is hidden when no search query is active", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       const keys = await getVisiblePropertyKeys(reactGrab.page);
       // Button has no margin classes; margin-* should be hidden by default
@@ -339,9 +327,7 @@ test.describe("Edit Panel", () => {
   });
 
   test.describe("Tweaking", () => {
-    test("ArrowRight increments the active property's displayed value", async ({
-      reactGrab,
-    }) => {
+    test("ArrowRight increments the active property's displayed value", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       const before = await getActivePropertyValue(reactGrab.page);
       await reactGrab.page.keyboard.press("ArrowRight");
@@ -350,9 +336,7 @@ test.describe("Edit Panel", () => {
       expect(after).not.toBe(before);
     });
 
-    test("ArrowLeft decrements the active property's displayed value", async ({
-      reactGrab,
-    }) => {
+    test("ArrowLeft decrements the active property's displayed value", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await reactGrab.page.keyboard.press("ArrowRight");
       await reactGrab.page.waitForTimeout(80);
@@ -364,19 +348,11 @@ test.describe("Edit Panel", () => {
     });
 
     test("tweak applies an inline style on the target element", async ({ reactGrab }) => {
-      const before = await getInlineStyleProperty(
-        reactGrab.page,
-        BUTTON_SELECTOR,
-        "padding-top",
-      );
+      const before = await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-top");
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await reactGrab.page.keyboard.press("ArrowRight");
       await reactGrab.page.waitForTimeout(80);
-      const after = await getInlineStyleProperty(
-        reactGrab.page,
-        BUTTON_SELECTOR,
-        "padding-top",
-      );
+      const after = await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-top");
       expect(after.length).toBeGreaterThan(0);
       expect(after).not.toBe(before);
     });
@@ -462,11 +438,7 @@ test.describe("Edit Panel", () => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await reactGrab.page.keyboard.press("ArrowRight");
       await reactGrab.page.waitForTimeout(80);
-      const tweaked = await getInlineStyleProperty(
-        reactGrab.page,
-        BUTTON_SELECTOR,
-        "padding-top",
-      );
+      const tweaked = await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-top");
       expect(tweaked.length).toBeGreaterThan(0);
 
       await reactGrab.page.keyboard.press("Enter");
@@ -481,9 +453,7 @@ test.describe("Edit Panel", () => {
       expect(afterCommit).toBe(tweaked);
     });
 
-    test("reopening surfaces the tweaked value from sessionStorage", async ({
-      reactGrab,
-    }) => {
+    test("reopening surfaces the tweaked value from sessionStorage", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await reactGrab.page.keyboard.press("ArrowRight");
       await reactGrab.page.waitForTimeout(80);
@@ -500,9 +470,7 @@ test.describe("Edit Panel", () => {
   });
 
   test.describe("Selection lock", () => {
-    test("panel stays open while pointer moves over other elements", async ({
-      reactGrab,
-    }) => {
+    test("panel stays open while pointer moves over other elements", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await reactGrab.page.mouse.move(10, 10);
       await reactGrab.page.waitForTimeout(80);

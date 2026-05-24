@@ -159,22 +159,24 @@ export interface ContextMenuActionContext extends ActionContext {
 }
 
 export interface EditableProperty {
+  // Stable identity across renders and sessionStorage. For aggregates this
+  // is a comma-joined cssProperties (e.g. "padding-top,padding-bottom") so
+  // the key survives DOM round-trips without parsing back.
+  key: string;
   label: string;
-  property: string;
+  cssProperties: readonly string[];
   min: number;
   max: number;
   value: number;
   original: number;
   unit: string;
-  tailwindAliases?: string[];
-  prioritized?: boolean;
-  isDefault?: boolean;
+  tailwindAliases: string[];
+  prioritized: boolean;
+  isDefault: boolean;
   // True when this entry is the highest-level form that captures the
-  // current snapshot (e.g. "padding" when all 4 sides are equal). The
-  // panel only shows canonical entries by default; searching surfaces
-  // non-canonical variants like "padding-left" so Tailwind aliases like
-  // "pl" can still rank to specific sides.
-  isCanonical?: boolean;
+  // current snapshot (e.g. "padding" when all 4 sides are equal). Default
+  // view shows only canonical rows; searching surfaces the rest.
+  isCanonical: boolean;
 }
 
 export interface EditPanelState {
@@ -434,7 +436,7 @@ export interface ReactGrabRendererProps {
   editPanelState?: EditPanelState | null;
   onEditPanelDismiss?: () => void;
   onEditPanelSubmit?: (prompt: string) => void;
-  onEditPanelAdjustingChange?: (adjusting: boolean) => void;
+  onEditPanelInteractingChange?: (interacting: boolean) => void;
 }
 
 export interface GrabbedBox {

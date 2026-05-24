@@ -109,9 +109,8 @@ import type {
   ToolbarState,
   DropdownAnchor,
   ElementLabelVariant,
-  EditPanelState,
 } from "../types.js";
-import { buildEditableProperties } from "../utils/build-editable-properties.js";
+import { createEditModeController } from "./edit-mode.js";
 import { DEFAULT_THEME } from "./theme.js";
 import { createPluginRegistry } from "./plugin-registry.js";
 import { createArrowNavigator } from "./arrow-navigation.js";
@@ -284,8 +283,23 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
     const [isToolbarSelectHovered, setIsToolbarSelectHovered] = createSignal(false);
     const [toolbarMenuPosition, setToolbarMenuPosition] = createSignal<DropdownAnchor | null>(null);
-    const [editPanelState, setEditPanelState] = createSignal<EditPanelState | null>(null);
-    const [isEditPanelAdjusting, setIsEditPanelAdjusting] = createSignal(false);
+    // Forward-ref wrappers because activateRenderer / deactivateRenderer /
+    // performCopyWithLabel are declared later in this scope. The wrappers
+    // are captured by the controller; the underlying lookups happen at
+    // call time (inside event handlers), by which point the bindings have
+    // been initialized.
+    const editMode = createEditModeController({
+      store,
+      actions,
+      isActivated,
+      activateRenderer: () => activateRenderer(),
+      deactivateRenderer: () => deactivateRenderer(),
+      performCopyWithLabel: (options) => performCopyWithLabel(options),
+    });
+
+    const isAnyPopoverOpen = createMemo(
+      () => store.contextMenuPosition !== null || editMode.isOpen(),
+    );
     let toolbarElement: HTMLDivElement | undefined;
     let dropdownTrackingFrameId: number | null = null;
 
@@ -1439,14 +1453,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const previousFocused = store.previouslyFocusedElement;
       stopSpaceDragRepositioning();
       actions.deactivate();
-      // editPanelState must be cleared in lockstep with deactivate(): the
+      // editMode state must be cleared in lockstep with deactivate(): the
       // global pointermove/click handlers exit early when it's non-null, so
       // a stray panel left mounted after deactivation would silently block
       // every selection until the user re-dismissed it. EditPanel's own
       // cleanup effect then restores any preview styles via the captured
       // target-element ref.
-      setEditPanelState(null);
-      setIsEditPanelAdjusting(false);
+      editMode.reset();
       stopShiftMultiSelecting();
       clearArrowNavigation();
       keyboardSelectedElement = null;
@@ -1545,7 +1558,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const handleToggleExpand = () => {
       const element = store.frozenElement || targetElement();
       if (!element) return;
-      triggerEditMode(element, { x: pointer().x, y: pointer().y });
+      editMode.trigger(element, { x: pointer().x, y: pointer().y });
     };
 
     const handleToggleActive = () => {
@@ -2112,15 +2125,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!isActivated() || isPromptMode()) return false;
       if (isShiftMultiSelecting()) return false;
       if (!ARROW_KEYS.has(event.key)) return false;
-      // While the context menu is open, arrow keys belong to its own
-      // roving-tabindex navigation. Both listeners fire for the same
-      // event (both window+capture), so without bowing out here arrow
-      // keys also re-select a different page element and reposition
-      // the menu over it.
-      if (store.contextMenuPosition !== null) return false;
-      // Same applies to the edit panel — arrows are owned by its
-      // value tweaker and would otherwise re-select page elements.
-      if (editPanelState() !== null) return false;
+      // While the context menu or edit panel is open, arrow keys belong
+      // to their own focused widgets (roving-tabindex / value tweaker).
+      // Both global+capture listeners fire for the same event, so bow
+      // out here to avoid re-selecting page elements.
+      if (isAnyPopoverOpen()) return false;
 
       let currentElement = effectiveElement();
       const isInitialSelection = !currentElement;
@@ -2183,7 +2192,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (canActivateFromCopied) {
         const center = getBoundsCenter(createElementBounds(copiedElement));
-        const opened = triggerEditMode(copiedElement, center);
+        const opened = editMode.trigger(copiedElement, center);
         if (!opened) return false;
         // Only consume Enter and clear the copy state AFTER edit mode
         // actually opens. If the element had no editable properties, we
@@ -2200,7 +2209,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (canActivateFromHolding) {
         const element = store.frozenElement || targetElement();
         if (!element) return false;
-        const opened = triggerEditMode(element, { x: pointer().x, y: pointer().y });
+        const opened = editMode.trigger(element, { x: pointer().x, y: pointer().y });
         if (!opened) return false;
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -2599,8 +2608,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const isTouchPointer = event.pointerType === "touch";
         actions.setTouchMode(isTouchPointer);
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-        if (store.contextMenuPosition !== null) return;
-        if (editPanelState() !== null) return;
+        if (isAnyPopoverOpen()) return;
         if (isSelectionInteractionLocked()) return;
         if (isTouchPointer && !isHoldingKeys() && !isActivated()) return;
         const isActiveState = isTouchPointer ? isHoldingKeys() : isActivated();
@@ -2630,9 +2638,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (!event.isPrimary) return;
         actions.setTouchMode(event.pointerType === "touch");
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-        if (store.contextMenuPosition !== null) return;
+        if (isAnyPopoverOpen()) return;
         if (toolbarMenuPosition() !== null) return;
-        if (editPanelState() !== null) return;
 
         if (isPromptMode()) {
           const bounds = selectionBounds();
@@ -2675,8 +2682,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (event.button !== 0) return;
         if (!event.isPrimary) return;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-        if (store.contextMenuPosition !== null) return;
-        if (editPanelState() !== null) return;
+        if (isAnyPopoverOpen()) return;
         const isActive = isRendererActive() || isSelectionInteractionLocked() || isDragging();
         const hasModifierKeyHeld = event.metaKey || event.ctrlKey;
         handlePointerUp(event.clientX, event.clientY, hasModifierKeyHeld, event.shiftKey);
@@ -2743,8 +2749,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       "click",
       (event: MouseEvent) => {
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-        if (store.contextMenuPosition !== null) return;
-        if (editPanelState() !== null) return;
+        if (isAnyPopoverOpen()) return;
 
         if (isRendererActive() || didJustDrag()) {
           event.preventDefault();
@@ -2982,7 +2987,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       // While the edit panel is actively stepping a value, hide the
       // selection overlay so the result is unobstructed. Restores after
       // the panel's idle timer (EDIT_PANEL_ADJUSTING_IDLE_MS) elapses.
-      if (isEditPanelAdjusting()) return false;
+      if (editMode.isInteracting()) return false;
       if (hasDragPreviewBounds()) return true;
       return isSelectionElementVisible();
     });
@@ -3311,7 +3316,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       };
 
       const enterEditModeAction = () => {
-        triggerEditMode(element, position, {
+        editMode.trigger(element, position, {
           filePath,
           lineNumber,
           componentName,
@@ -3433,85 +3438,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setToolbarMenuPosition(null);
     };
 
-    const dismissEditPanel = () => {
-      const state = editPanelState();
-      if (!state) return;
-      setEditPanelState(null);
-      setIsEditPanelAdjusting(false);
-      if (store.wasActivatedByToggle) {
-        deactivateRenderer();
-      } else {
-        actions.unfreeze();
-      }
-    };
-
-    const handleEditPanelSubmit = (prompt: string) => {
-      const state = editPanelState();
-      if (!state) return;
-      const element = state.element;
-      // Clear the panel state first so the renderer hides EditPanel before
-      // the copy-feedback label takes over the same anchor position.
-      setEditPanelState(null);
-      performCopyWithLabel({
-        element,
-        cursorX: state.position.x,
-        extraPrompt: prompt || undefined,
-        shouldDeactivateAfter: store.wasActivatedByToggle,
-      });
-    };
-
-    interface TriggerEditModeOptions {
-      filePath?: string;
-      lineNumber?: number;
-      componentName?: string;
-      tagName?: string;
-    }
-
-    const triggerEditMode = (
-      element: Element,
-      position: Position,
-      overrides: TriggerEditModeOptions = {},
-    ): boolean => {
-      const properties = buildEditableProperties(element);
-      if (properties.length === 0) return false;
-      const bounds = createElementBounds(element);
-      const resolvedTag = overrides.tagName ?? getTagName(element);
-      const resolvedFilePath = overrides.filePath ?? store.selectionFilePath ?? undefined;
-      const resolvedLineNumber = overrides.lineNumber ?? store.selectionLineNumber ?? undefined;
-      setEditPanelState({
-        element,
-        position,
-        selectionBounds: bounds,
-        properties,
-        filePath: resolvedFilePath,
-        lineNumber: resolvedLineNumber,
-        componentName: overrides.componentName,
-        tagName: resolvedTag,
-      });
-
-      void getNearestComponentName(element).then((nearestName) => {
-        if (!nearestName) return;
-        setEditPanelState((current) => {
-          if (!current || current.element !== element || current.componentName) return current;
-          return { ...current, componentName: nearestName };
-        });
-      });
-      // Order matters: actions.freeze() is a no-op unless the state machine is
-      // already "active", so the renderer must activate first.
-      if (!isActivated()) {
-        activateRenderer();
-      }
-      actions.setPointer(position);
-      actions.setFrozenElement(element);
-      actions.freeze();
-      return true;
-    };
-
     const dismissAllPopups = () => {
       dismissToolbarMenu();
-      if (editPanelState() !== null) {
-        dismissEditPanel();
-      }
+      editMode.dismiss();
     };
 
     const handleToggleToolbarMenu = () => {
@@ -3662,10 +3591,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 onSetDefaultAction={handleSetDefaultAction}
                 onToggleToolbarMenu={handleToggleToolbarMenu}
                 onToolbarMenuDismiss={dismissToolbarMenu}
-                editPanelState={editPanelState()}
-                onEditPanelDismiss={dismissEditPanel}
-                onEditPanelSubmit={handleEditPanelSubmit}
-                onEditPanelAdjustingChange={setIsEditPanelAdjusting}
+                editPanelState={editMode.state()}
+                onEditPanelDismiss={editMode.dismiss}
+                onEditPanelSubmit={editMode.submit}
+                onEditPanelInteractingChange={editMode.setInteracting}
               />
             );
           }, rendererRoot);

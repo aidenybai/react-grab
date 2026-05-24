@@ -2,21 +2,27 @@ import { createEffect, Index, onCleanup, Show, type Component } from "solid-js";
 import { MENU_HIGHLIGHT_CORNER_SHAPE, MENU_PANEL_CORNER_RADIUS_PX } from "../../constants.js";
 import type { EditableProperty } from "../../types.js";
 import { createMenuHighlight } from "../../utils/create-menu-highlight.js";
-import { formatDisplayValue } from "../../utils/format-display-value.js";
-import { StepArrow } from "./step-arrow.js";
+import { formatDisplayValue } from "../../utils/format-css-value.js";
+import { ValueStepper } from "./value-stepper.js";
 
 interface PropertyListProps {
   properties: EditableProperty[];
   activeIndex: number;
   onHoverIndex: (index: number) => void;
   onSelect: (index: number) => void;
-  onStep: (direction: 1 | -1, shift: boolean) => void;
+  onStep: (direction: 1 | -1) => void;
+  onCommitValue: (value: number) => void;
+  onEditComplete: () => void;
   activeKey: "left" | "right" | null;
 }
 
 export const PropertyList: Component<PropertyListProps> = (props) => {
   const itemElements: (HTMLButtonElement | undefined)[] = [];
   let listRef: HTMLDivElement | undefined;
+  // Stationary cursor + reflow can fire phantom pointerenter on rows the
+  // user didn't actually mouse onto, which would yank keyboard focus to a
+  // different row. We only trust pointerenter after we've observed real
+  // pointer movement at least once.
   let didPointerMove = false;
 
   const {
@@ -31,35 +37,20 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
 
   createEffect(() => {
     itemElements.length = props.properties.length;
-  });
-
-  // Reset the pointer-move flag whenever the list's data changes so phantom
-  // pointerenter events fired by re-layouting under a stationary cursor
-  // don't yank the active row away from where keyboard navigation put it.
-  createEffect(() => {
-    void props.properties;
     didPointerMove = false;
   });
 
   createEffect(() => {
-    const index = props.activeIndex;
-    if (index < 0) {
+    const element = itemElements[props.activeIndex];
+    if (!element || props.activeIndex < 0) {
       clearHighlight();
       return;
     }
-    const element = itemElements[index];
-    if (element) updateHighlight(element);
-  });
-
-  createEffect(() => {
-    const index = props.activeIndex;
-    const element = itemElements[index];
-    if (!element || !listRef) return;
+    updateHighlight(element);
+    if (!listRef) return;
     const containerRect = listRef.getBoundingClientRect();
     const targetRect = element.getBoundingClientRect();
-    if (targetRect.top < containerRect.top) {
-      element.scrollIntoView({ block: "nearest" });
-    } else if (targetRect.bottom > containerRect.bottom) {
+    if (targetRect.top < containerRect.top || targetRect.bottom > containerRect.bottom) {
       element.scrollIntoView({ block: "nearest" });
     }
   });
@@ -84,8 +75,7 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
         class="pointer-events-none absolute opacity-0 transition-[top,left,width,height,opacity,border-radius] duration-75 ease-out bg-[var(--rg-surface-hover)]"
       />
       <Index each={props.properties}>
-        {(propertyAccessor, propertyIndex) => {
-          const property = () => propertyAccessor();
+        {(property, propertyIndex) => {
           const isActive = () => propertyIndex === props.activeIndex;
           return (
             <button
@@ -98,7 +88,7 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
                 });
               }}
               data-react-grab-ignore-events
-              data-react-grab-edit-property={property().property}
+              data-react-grab-edit-property={property().key}
               type="button"
               role="menuitem"
               tabindex={-1}
@@ -107,10 +97,8 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
                 if (didPointerMove) props.onHoverIndex(propertyIndex);
               }}
               onMouseDown={(event) => {
-                // Browsers focus the clicked button by default, which steals
-                // focus from the EditPanel's search input and breaks
-                // subsequent arrow-key tweaking. Preventing the mousedown
-                // default keeps focus where it is.
+                // Default focus on the clicked button would steal it from
+                // EditPanel's search input and break arrow-key tweaking.
                 event.preventDefault();
               }}
               onClick={(event) => {
@@ -131,31 +119,17 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
                 }
               >
                 <div
-                  class="flex items-center gap-1 shrink-0 leading-none"
                   onPointerDown={(event) => event.stopPropagation()}
                   onMouseDown={(event) => event.preventDefault()}
                   onClick={(event) => event.stopPropagation()}
                 >
-                  <StepArrow
-                    direction="left"
-                    active={props.activeKey === "left"}
-                    onPointerDown={() => props.onStep(-1, false)}
-                  />
-                  <span class="inline-flex items-baseline text-[var(--rg-text-primary)] tabular-nums min-w-[36px] justify-center">
-                    <span
-                      class="text-[12px] leading-4 font-medium"
-                      style={{ "font-variant-numeric": "tabular-nums" }}
-                    >
-                      {formatDisplayValue(property().value)}
-                    </span>
-                    <span class="text-[10px] leading-4 font-medium text-[var(--rg-text-secondary)] ml-px">
-                      {property().unit}
-                    </span>
-                  </span>
-                  <StepArrow
-                    direction="right"
-                    active={props.activeKey === "right"}
-                    onPointerDown={() => props.onStep(1, false)}
+                  <ValueStepper
+                    value={property().value}
+                    unit={property().unit}
+                    activeKey={props.activeKey}
+                    onStep={props.onStep}
+                    onCommitValue={props.onCommitValue}
+                    onEditComplete={props.onEditComplete}
                   />
                 </div>
               </Show>

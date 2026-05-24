@@ -1,10 +1,12 @@
-import { EDIT_PROPERTY_MAX_COUNT } from "../constants.js";
-import type { EditableProperty } from "../types.js";
-import { parseNumericValue, type NumericValue } from "./parse-numeric-value.js";
 import {
-  getElementTailwindProperties,
-  tailwindAliasesForProperty,
-} from "./tailwind-class-map.js";
+  EDIT_PROPERTY_MAX_COUNT,
+  FONT_SIZE_LINE_HEIGHT_RATIO,
+  OPACITY_PERCENT_MAX,
+} from "../constants.js";
+import type { EditableProperty } from "../types.js";
+import { cleanNumericValue } from "./format-css-value.js";
+import { parseNumericValue, type NumericValue } from "./parse-numeric-value.js";
+import { getElementTailwindProperties, tailwindAliasesForProperty } from "./tailwind-class-map.js";
 
 const TRACKED_PROPERTIES = [
   "padding-top",
@@ -35,16 +37,9 @@ const TRACKED_PROPERTIES = [
 ] as const;
 
 type TrackedProperty = (typeof TRACKED_PROPERTIES)[number];
-
 type StyleSnapshot = Record<TrackedProperty, string>;
 
-const FONT_SIZE_LINE_HEIGHT_RATIO = 1.2;
-const ROUND_TWO_DECIMALS = 100;
 const ALIGNED_VALUE_TOLERANCE_PX = 0.5;
-const OPACITY_MIN_PERCENT = 0;
-const OPACITY_MAX_PERCENT = 100;
-const PERCENT_RANGE_MIN = 0;
-const PERCENT_RANGE_MAX = 100;
 const LETTER_SPACING_MIN_PX = -10;
 const LETTER_SPACING_MAX_PX = 20;
 const FONT_SIZE_MIN_PX = 8;
@@ -58,6 +53,9 @@ const SIZE_FALLBACK_MULTIPLIER = 2;
 const SPACING_MIN_PX = 0;
 const SPACING_MAX_PX = 128;
 const MARGIN_MIN_PX = -128;
+const PERCENT_RANGE_MIN = 0;
+const PERCENT_RANGE_MAX = 100;
+const OPACITY_MIN_PERCENT = 0;
 
 const snapshotElement = (element: Element): StyleSnapshot => {
   const computed = getComputedStyle(element);
@@ -70,12 +68,16 @@ const snapshotElement = (element: Element): StyleSnapshot => {
 
 const alignedValue = (
   snapshot: StyleSnapshot,
-  properties: TrackedProperty[],
+  properties: readonly TrackedProperty[],
 ): NumericValue | null => {
-  const first = parseNumericValue(snapshot[properties[0]]);
+  // valueWithFallback so gap-family longhands with "normal" resolve to 0px
+  // (matching their historic behavior in the per-property path). For
+  // padding/margin/radius the computed style is always "<n>px", so
+  // valueWithFallback delegates to parseNumericValue with no behavior change.
+  const first = valueWithFallback(snapshot, properties[0]);
   if (!first) return null;
   for (let index = 1; index < properties.length; index++) {
-    const next = parseNumericValue(snapshot[properties[index]]);
+    const next = valueWithFallback(snapshot, properties[index]);
     if (
       !next ||
       next.unit !== first.unit ||
@@ -86,6 +88,13 @@ const alignedValue = (
   }
   return first;
 };
+
+const FALLBACK_ZERO_PX: ReadonlySet<TrackedProperty> = new Set([
+  "letter-spacing",
+  "gap",
+  "row-gap",
+  "column-gap",
+]);
 
 const valueWithFallback = (
   snapshot: StyleSnapshot,
@@ -98,38 +107,24 @@ const valueWithFallback = (
     const fontSize = parseNumericValue(snapshot["font-size"]);
     if (!fontSize) return null;
     return {
-      value:
-        Math.round(fontSize.value * FONT_SIZE_LINE_HEIGHT_RATIO * ROUND_TWO_DECIMALS) /
-        ROUND_TWO_DECIMALS,
+      value: cleanNumericValue(fontSize.value * FONT_SIZE_LINE_HEIGHT_RATIO),
       unit: fontSize.unit || "px",
     };
   }
 
-  if (
-    property === "letter-spacing" ||
-    property === "gap" ||
-    property === "row-gap" ||
-    property === "column-gap"
-  ) {
-    return { value: 0, unit: "px" };
-  }
-
+  if (FALLBACK_ZERO_PX.has(property)) return { value: 0, unit: "px" };
   return null;
 };
 
-const propertyBounds = (
-  property: string,
-  value: number,
-  unit: string,
-): { min: number; max: number } => {
-  if (property === "opacity") return { min: OPACITY_MIN_PERCENT, max: OPACITY_MAX_PERCENT };
-  if (property === "letter-spacing") {
+const propertyBounds = (key: string, value: number, unit: string): { min: number; max: number } => {
+  if (key === "opacity") return { min: OPACITY_MIN_PERCENT, max: OPACITY_PERCENT_MAX };
+  if (key === "letter-spacing") {
     return { min: LETTER_SPACING_MIN_PX, max: LETTER_SPACING_MAX_PX };
   }
-  if (property === "font-size") return { min: FONT_SIZE_MIN_PX, max: FONT_SIZE_MAX_PX };
-  if (property === "line-height") return { min: LINE_HEIGHT_MIN_PX, max: LINE_HEIGHT_MAX_PX };
-  if (property.includes("radius")) return { min: RADIUS_MIN_PX, max: RADIUS_MAX_PX };
-  if (property === "width" || property === "height" || property.startsWith("max-")) {
+  if (key === "font-size") return { min: FONT_SIZE_MIN_PX, max: FONT_SIZE_MAX_PX };
+  if (key === "line-height") return { min: LINE_HEIGHT_MIN_PX, max: LINE_HEIGHT_MAX_PX };
+  if (key.includes("radius")) return { min: RADIUS_MIN_PX, max: RADIUS_MAX_PX };
+  if (key === "width" || key === "height" || key.startsWith("max-")) {
     return {
       min: 0,
       max: Math.max(SIZE_FALLBACK_MAX_PX, Math.ceil(value * SIZE_FALLBACK_MULTIPLIER)),
@@ -137,262 +132,254 @@ const propertyBounds = (
   }
   if (unit === "%") return { min: PERCENT_RANGE_MIN, max: PERCENT_RANGE_MAX };
   return {
-    min: property.startsWith("margin") ? MARGIN_MIN_PX : SPACING_MIN_PX,
+    min: key.startsWith("margin") ? MARGIN_MIN_PX : SPACING_MIN_PX,
     max: SPACING_MAX_PX,
   };
 };
 
-const normalizeForEdit = (property: string, value: NumericValue): NumericValue => {
-  if (property === "opacity") {
-    return { value: Math.round(value.value * OPACITY_MAX_PERCENT), unit: "%" };
+const normalizeForEdit = (key: string, value: NumericValue): NumericValue => {
+  if (key === "opacity") {
+    return { value: Math.round(value.value * OPACITY_PERCENT_MAX), unit: "%" };
   }
-  return {
-    value: Math.round(value.value * ROUND_TWO_DECIMALS) / ROUND_TWO_DECIMALS,
-    unit: value.unit || "px",
-  };
+  return { value: cleanNumericValue(value.value), unit: value.unit || "px" };
 };
 
+interface AggregateDefinition {
+  key: string;
+  label: string;
+  longhands: readonly TrackedProperty[];
+}
+
+const PADDING_AGGREGATES: readonly AggregateDefinition[] = [
+  {
+    key: "padding",
+    label: "padding",
+    longhands: ["padding-top", "padding-right", "padding-bottom", "padding-left"],
+  },
+  {
+    key: "padding-top,padding-bottom",
+    label: "padding-y",
+    longhands: ["padding-top", "padding-bottom"],
+  },
+  {
+    key: "padding-left,padding-right",
+    label: "padding-x",
+    longhands: ["padding-left", "padding-right"],
+  },
+  { key: "padding-top", label: "padding top", longhands: ["padding-top"] },
+  { key: "padding-right", label: "padding right", longhands: ["padding-right"] },
+  { key: "padding-bottom", label: "padding bottom", longhands: ["padding-bottom"] },
+  { key: "padding-left", label: "padding left", longhands: ["padding-left"] },
+];
+
+const MARGIN_AGGREGATES: readonly AggregateDefinition[] = [
+  {
+    key: "margin",
+    label: "margin",
+    longhands: ["margin-top", "margin-right", "margin-bottom", "margin-left"],
+  },
+  {
+    key: "margin-top,margin-bottom",
+    label: "margin-y",
+    longhands: ["margin-top", "margin-bottom"],
+  },
+  {
+    key: "margin-left,margin-right",
+    label: "margin-x",
+    longhands: ["margin-left", "margin-right"],
+  },
+  { key: "margin-top", label: "margin top", longhands: ["margin-top"] },
+  { key: "margin-right", label: "margin right", longhands: ["margin-right"] },
+  { key: "margin-bottom", label: "margin bottom", longhands: ["margin-bottom"] },
+  { key: "margin-left", label: "margin left", longhands: ["margin-left"] },
+];
+
+// gap shorthand has no CSS longhand; setting `gap` is just setting both
+// row-gap and column-gap. Treating it as an aggregate over its two
+// real longhands lets the canonical-row algorithm pick "gap" when
+// aligned and split into "row gap" + "column gap" otherwise — same
+// behavior we used to roll by hand.
+const GAP_AGGREGATES: readonly AggregateDefinition[] = [
+  { key: "gap", label: "gap", longhands: ["row-gap", "column-gap"] },
+  { key: "row-gap", label: "row gap", longhands: ["row-gap"] },
+  { key: "column-gap", label: "column gap", longhands: ["column-gap"] },
+];
+
+const RADIUS_AGGREGATES: readonly AggregateDefinition[] = [
+  {
+    key: "border-radius",
+    label: "border radius",
+    longhands: [
+      "border-top-left-radius",
+      "border-top-right-radius",
+      "border-bottom-right-radius",
+      "border-bottom-left-radius",
+    ],
+  },
+  {
+    key: "border-top-left-radius,border-top-right-radius",
+    label: "top corners",
+    longhands: ["border-top-left-radius", "border-top-right-radius"],
+  },
+  {
+    key: "border-bottom-left-radius,border-bottom-right-radius",
+    label: "bottom corners",
+    longhands: ["border-bottom-left-radius", "border-bottom-right-radius"],
+  },
+  {
+    key: "border-top-left-radius,border-bottom-left-radius",
+    label: "left corners",
+    longhands: ["border-top-left-radius", "border-bottom-left-radius"],
+  },
+  {
+    key: "border-top-right-radius,border-bottom-right-radius",
+    label: "right corners",
+    longhands: ["border-top-right-radius", "border-bottom-right-radius"],
+  },
+  {
+    key: "border-top-left-radius",
+    label: "top left radius",
+    longhands: ["border-top-left-radius"],
+  },
+  {
+    key: "border-top-right-radius",
+    label: "top right radius",
+    longhands: ["border-top-right-radius"],
+  },
+  {
+    key: "border-bottom-right-radius",
+    label: "bottom right radius",
+    longhands: ["border-bottom-right-radius"],
+  },
+  {
+    key: "border-bottom-left-radius",
+    label: "bottom left radius",
+    longhands: ["border-bottom-left-radius"],
+  },
+];
+
+// Non-aggregate rows (each row maps 1:1 to a single CSS longhand). The
+// canonical flag is always true for singles because there's no broader
+// row that could subsume them.
+const SINGLE_PROPERTIES: readonly { key: TrackedProperty; label: string }[] = [
+  { key: "font-size", label: "font size" },
+  { key: "line-height", label: "line height" },
+  { key: "letter-spacing", label: "letter spacing" },
+  { key: "border-width", label: "border width" },
+  { key: "width", label: "width" },
+  { key: "height", label: "height" },
+  { key: "max-width", label: "max width" },
+  { key: "max-height", label: "max height" },
+  { key: "opacity", label: "opacity" },
+];
+
 const buildNumericProperty = (
-  property: string,
-  label: string,
+  definition: AggregateDefinition,
   raw: NumericValue,
+  isCanonical: boolean,
 ): EditableProperty => {
-  const normalized = normalizeForEdit(property, raw);
-  const bounds = propertyBounds(property, normalized.value, normalized.unit);
+  const normalized = normalizeForEdit(definition.key, raw);
+  const bounds = propertyBounds(definition.key, normalized.value, normalized.unit);
   return {
-    label,
-    property,
+    key: definition.key,
+    label: definition.label,
+    cssProperties: definition.longhands,
     min: bounds.min,
     max: bounds.max,
     value: normalized.value,
     original: normalized.value,
     unit: normalized.unit,
-    tailwindAliases: tailwindAliasesForProperty(property),
+    tailwindAliases: tailwindAliasesForProperty(definition.key),
+    prioritized: false,
+    isDefault: false,
+    isCanonical,
   };
 };
+
+// Picks each longhand's "canonical aggregate" as the largest one that
+// covers it at the same value. Padding with 4 uniform sides → "padding"
+// is canonical; y/x aligned but not all four → "padding-y" + "padding-x";
+// nothing aligned → 4 individual sides. Same algorithm works for margin
+// and border-radius regardless of their longhand topology.
+const tagAggregateGroup = (
+  snapshot: StyleSnapshot,
+  definitions: readonly AggregateDefinition[],
+): Array<{ definition: AggregateDefinition; value: NumericValue; isCanonical: boolean }> => {
+  const resolved = definitions
+    .map((definition) => {
+      const value =
+        definition.longhands.length === 1
+          ? valueWithFallback(snapshot, definition.longhands[0])
+          : alignedValue(snapshot, definition.longhands);
+      return value ? { definition, value } : null;
+    })
+    .filter(<T>(entry: T | null): entry is T => entry !== null);
+
+  const canonicalForLonghand = new Map<TrackedProperty, (typeof resolved)[number]>();
+  for (const entry of resolved) {
+    for (const longhand of entry.definition.longhands) {
+      const current = canonicalForLonghand.get(longhand);
+      if (!current || entry.definition.longhands.length > current.definition.longhands.length) {
+        canonicalForLonghand.set(longhand, entry);
+      }
+    }
+  }
+  const canonicalSet = new Set(canonicalForLonghand.values());
+  return resolved.map((entry) => ({ ...entry, isCanonical: canonicalSet.has(entry) }));
+};
+
+const isDefaultPropertyValue = (property: EditableProperty): boolean => {
+  const { key, original: value } = property;
+  if (key.startsWith("padding") || key.startsWith("margin")) return value === 0;
+  if (key.includes("gap")) return value === 0;
+  if (key === "border-width") return value === 0;
+  if (key.endsWith("-radius") || key === "border-radius") return value === 0;
+  if (key === "opacity") return value === OPACITY_PERCENT_MAX;
+  if (key === "letter-spacing") return value === 0;
+  // width/height/max-*/line-height are always computed by the layout
+  // engine; hide them unless the user explicitly opts in via a Tailwind
+  // class or search query.
+  if (key === "width" || key === "height" || key.startsWith("max-") || key.startsWith("min-")) {
+    return true;
+  }
+  if (key === "line-height") return true;
+  return false;
+};
+
+const AGGREGATE_GROUPS: readonly (readonly AggregateDefinition[])[] = [
+  PADDING_AGGREGATES,
+  MARGIN_AGGREGATES,
+  GAP_AGGREGATES,
+  RADIUS_AGGREGATES,
+];
 
 export const buildEditableProperties = (element: Element): EditableProperty[] => {
   const snapshot = snapshotElement(element);
   const properties: EditableProperty[] = [];
   const seen = new Set<string>();
 
-  const pushNumeric = (
-    property: string,
-    label: string,
-    value: NumericValue | null,
-    isCanonical: boolean,
-  ) => {
-    if (!value || seen.has(property) || properties.length >= EDIT_PROPERTY_MAX_COUNT) return;
-    properties.push({ ...buildNumericProperty(property, label, value), isCanonical });
-    seen.add(property);
+  const push = (definition: AggregateDefinition, value: NumericValue, isCanonical: boolean) => {
+    if (seen.has(definition.key) || properties.length >= EDIT_PROPERTY_MAX_COUNT) return;
+    properties.push(buildNumericProperty(definition, value, isCanonical));
+    seen.add(definition.key);
   };
 
-  // Emit every aggregate variant that has an aligned value, tagging
-  // canonical = the largest aggregate that covers each longhand at the
-  // same value. With this, `padding` is canonical when all 4 sides are
-  // uniform, `padding-y`/`padding-x` are canonical when the y/x pairs
-  // are uniform but the four don't share a value, etc. The algorithm
-  // generalises to any longhand layout: padding, margin, border-radius
-  // (with t/b/l/r), border-width, etc.
-  const pushAggregateGroup = (
-    aggregates: Array<{
-      property: string;
-      label: string;
-      longhands: TrackedProperty[];
-    }>,
-  ) => {
-    const valued = aggregates
-      .map((aggregate) => ({
-        ...aggregate,
-        value: aggregate.longhands.length === 1
-          ? parseNumericValue(snapshot[aggregate.longhands[0]])
-          : alignedValue(snapshot, aggregate.longhands),
-      }))
-      .filter(
-        (aggregate): aggregate is typeof aggregate & { value: NumericValue } =>
-          aggregate.value !== null,
-      );
-
-    const canonicalForLonghand = new Map<TrackedProperty, typeof valued[number]>();
-    for (const aggregate of valued) {
-      for (const longhand of aggregate.longhands) {
-        const current = canonicalForLonghand.get(longhand);
-        if (!current || aggregate.longhands.length > current.longhands.length) {
-          canonicalForLonghand.set(longhand, aggregate);
-        }
-      }
+  for (const group of AGGREGATE_GROUPS) {
+    for (const entry of tagAggregateGroup(snapshot, group)) {
+      push(entry.definition, entry.value, entry.isCanonical);
     }
-    const canonicalSet = new Set(canonicalForLonghand.values());
-
-    for (const aggregate of valued) {
-      pushNumeric(aggregate.property, aggregate.label, aggregate.value, canonicalSet.has(aggregate));
-    }
-  };
-
-  const boxAggregates = (label: string, property: string) => [
-    {
-      property,
-      label,
-      longhands: [
-        `${property}-top`,
-        `${property}-right`,
-        `${property}-bottom`,
-        `${property}-left`,
-      ] as TrackedProperty[],
-    },
-    {
-      property: `${property}-top,${property}-bottom`,
-      label: `${label}-y`,
-      longhands: [`${property}-top`, `${property}-bottom`] as TrackedProperty[],
-    },
-    {
-      property: `${property}-left,${property}-right`,
-      label: `${label}-x`,
-      longhands: [`${property}-left`, `${property}-right`] as TrackedProperty[],
-    },
-    {
-      property: `${property}-top`,
-      label: `${label} top`,
-      longhands: [`${property}-top`] as TrackedProperty[],
-    },
-    {
-      property: `${property}-right`,
-      label: `${label} right`,
-      longhands: [`${property}-right`] as TrackedProperty[],
-    },
-    {
-      property: `${property}-bottom`,
-      label: `${label} bottom`,
-      longhands: [`${property}-bottom`] as TrackedProperty[],
-    },
-    {
-      property: `${property}-left`,
-      label: `${label} left`,
-      longhands: [`${property}-left`] as TrackedProperty[],
-    },
-  ];
-
-  pushAggregateGroup(boxAggregates("padding", "padding"));
-  pushAggregateGroup(boxAggregates("margin", "margin"));
-
-  const rowGap = valueWithFallback(snapshot, "row-gap");
-  const columnGap = valueWithFallback(snapshot, "column-gap");
-  const gapAligned =
-    rowGap &&
-    columnGap &&
-    rowGap.unit === columnGap.unit &&
-    Math.abs(rowGap.value - columnGap.value) < ALIGNED_VALUE_TOLERANCE_PX
-      ? rowGap
-      : null;
-  pushNumeric("gap", "gap", gapAligned, Boolean(gapAligned));
-  pushNumeric("row-gap", "row gap", rowGap, !gapAligned);
-  pushNumeric("column-gap", "column gap", columnGap, !gapAligned);
-
-  pushNumeric("font-size", "font size", parseNumericValue(snapshot["font-size"]), true);
-  pushNumeric("line-height", "line height", valueWithFallback(snapshot, "line-height"), true);
-  pushNumeric("letter-spacing", "letter spacing", valueWithFallback(snapshot, "letter-spacing"), true);
-
-  // Border-radius has four corners with two orthogonal groupings: top/bottom
-  // (rounded-t / rounded-b) and left/right (rounded-l / rounded-r). Aligned
-  // values consolidate into the highest-level form that captures them; the
-  // others stay available via search (Tailwind aliases rounded-tl, rounded-tr,
-  // rounded-bl, rounded-br, rounded-t/b/l/r all map through).
-  pushAggregateGroup([
-    {
-      property: "border-radius",
-      label: "border radius",
-      longhands: [
-        "border-top-left-radius",
-        "border-top-right-radius",
-        "border-bottom-right-radius",
-        "border-bottom-left-radius",
-      ],
-    },
-    {
-      property: "border-top-left-radius,border-top-right-radius",
-      label: "top corners",
-      longhands: ["border-top-left-radius", "border-top-right-radius"],
-    },
-    {
-      property: "border-bottom-left-radius,border-bottom-right-radius",
-      label: "bottom corners",
-      longhands: ["border-bottom-left-radius", "border-bottom-right-radius"],
-    },
-    {
-      property: "border-top-left-radius,border-bottom-left-radius",
-      label: "left corners",
-      longhands: ["border-top-left-radius", "border-bottom-left-radius"],
-    },
-    {
-      property: "border-top-right-radius,border-bottom-right-radius",
-      label: "right corners",
-      longhands: ["border-top-right-radius", "border-bottom-right-radius"],
-    },
-    {
-      property: "border-top-left-radius",
-      label: "top left radius",
-      longhands: ["border-top-left-radius"],
-    },
-    {
-      property: "border-top-right-radius",
-      label: "top right radius",
-      longhands: ["border-top-right-radius"],
-    },
-    {
-      property: "border-bottom-right-radius",
-      label: "bottom right radius",
-      longhands: ["border-bottom-right-radius"],
-    },
-    {
-      property: "border-bottom-left-radius",
-      label: "bottom left radius",
-      longhands: ["border-bottom-left-radius"],
-    },
-  ]);
-  pushNumeric("border-width", "border width", parseNumericValue(snapshot["border-width"]), true);
-
-  pushNumeric("width", "width", parseNumericValue(snapshot["width"]), true);
-  pushNumeric("height", "height", parseNumericValue(snapshot["height"]), true);
-  pushNumeric("max-width", "max width", parseNumericValue(snapshot["max-width"]), true);
-  pushNumeric("max-height", "max height", parseNumericValue(snapshot["max-height"]), true);
-  pushNumeric("opacity", "opacity", parseNumericValue(snapshot["opacity"]), true);
-
-  const prioritized = getElementTailwindProperties(element);
-  return rankProperties(properties, prioritized);
-};
-
-// A property is "default" when its value is the typical resting state for
-// that property — most elements don't care about it and shouldn't pollute the
-// editor list with a row that says "0px". The EditPanel hides defaults by
-// default but reveals them when the user searches.
-const isDefaultPropertyValue = (property: EditableProperty): boolean => {
-  const value = property.original;
-  const name = property.property;
-
-  if (name.startsWith("padding") || name.startsWith("margin")) return value === 0;
-  if (name.includes("gap")) return value === 0;
-  if (name === "border-width") return value === 0;
-  if (name.endsWith("-radius") || name === "border-radius") return value === 0;
-  if (name === "opacity") return value === 100;
-  if (name === "letter-spacing") return value === 0;
-  // width/height/max-* always have computed values from layout — hide them
-  // unless the user explicitly chose them via a Tailwind class.
-  if (name === "width" || name === "height" || name.startsWith("max-") || name.startsWith("min-")) {
-    return true;
   }
-  // line-height is always computed (defaults to font-size × 1.2 in browsers).
-  // There's no clean "is at default" heuristic without re-parsing CSS, so we
-  // hide it by default; users surface it via search or a Tailwind class.
-  if (name === "line-height") return true;
-  return false;
+
+  for (const single of SINGLE_PROPERTIES) {
+    const value = valueWithFallback(snapshot, single.key);
+    if (!value) continue;
+    push({ key: single.key, label: single.label, longhands: [single.key] }, value, true);
+  }
+
+  return finalizeProperties(properties, getElementTailwindProperties(element));
 };
 
-// Two tiers, preserving insertion order within each:
-//   1. Properties explicitly set by a Tailwind class on the element
-//   2. Everything else
-// Each property also gets an isDefault flag so the EditPanel can filter out
-// rows that aren't worth showing unless the user actively searches for them.
-const rankProperties = (
+const finalizeProperties = (
   properties: EditableProperty[],
   prioritized: Set<string>,
 ): EditableProperty[] => {
@@ -400,32 +387,11 @@ const rankProperties = (
   const tier2: EditableProperty[] = [];
 
   for (const property of properties) {
-    if (prioritized.has(property.property)) {
+    if (prioritized.has(property.key)) {
       tier1.push({ ...property, prioritized: true, isDefault: false });
-      continue;
+    } else {
+      tier2.push({ ...property, isDefault: isDefaultPropertyValue(property) });
     }
-    tier2.push({ ...property, isDefault: isDefaultPropertyValue(property) });
   }
-
   return [...tier1, ...tier2];
-};
-
-export const editablePropertyToCssProperties = (property: string): string[] =>
-  property
-    .split(",")
-    .map((piece) => piece.trim())
-    .filter(Boolean);
-
-const formatCssNumber = (value: number): string => {
-  if (Number.isInteger(value)) return String(value);
-  const rounded = Math.round(value * 100) / 100;
-  if (Number.isInteger(rounded)) return String(rounded);
-  return rounded.toFixed(2).replace(/\.?0+$/, "");
-};
-
-export const formatEditableValue = (property: EditableProperty): string => {
-  if (property.unit === "%" && property.property === "opacity") {
-    return formatCssNumber(property.value / OPACITY_MAX_PERCENT);
-  }
-  return `${formatCssNumber(property.value)}${property.unit}`;
 };
