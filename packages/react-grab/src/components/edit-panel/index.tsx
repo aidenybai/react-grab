@@ -333,18 +333,48 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     if (!match) return;
     const cssKey = tailwindPrefixToProperty(match[1]);
     if (!cssKey) return;
-    const property = initialProperties.find((entry) => entry.key === cssKey);
-    if (!property) return;
     const rawNumber = Number.parseFloat(match[2]);
     if (!Number.isFinite(rawNumber)) return;
     // Opacity classes (opacity-50) are already in percent on Tailwind's
     // side and in our 0–100 UI scale. Everything else follows the 4px
     // spacing unit.
     const candidate = cssKey === "opacity" ? rawNumber : rawNumber * TAILWIND_SPACING_UNIT_PX;
-    const next = cleanNumericValue(clampToRange(candidate, property.min, property.max));
-    if (next === (tweakedValues()[property.key] ?? property.original)) return;
-    setTweakedValues((current) => ({ ...current, [property.key]: next }));
-    preview.apply(property.cssProperties, formatEditableValue(property, next));
+
+    // First try: the prefix maps to an exact aggregate row (e.g. `p` →
+    // canonical "padding" when all sides are uniform).
+    const exact = initialProperties.find((entry) => entry.key === cssKey);
+    if (exact) {
+      const next = cleanNumericValue(clampToRange(candidate, exact.min, exact.max));
+      if (next === (tweakedValues()[exact.key] ?? exact.original)) return;
+      setTweakedValues((current) => ({ ...current, [exact.key]: next }));
+      preview.apply(exact.cssProperties, formatEditableValue(exact, next));
+      setHasCommittedAnyEdit(true);
+      markAsInteracting();
+      return;
+    }
+
+    // Fallback: the canonical aggregate isn't in the list (e.g. element
+    // has non-uniform padding, so "padding" was filtered out). Apply
+    // inline styles to each longhand the cssKey covers, and update
+    // tweakedValues for every individual side row that exists so the
+    // UI reflects the change.
+    const longhands = cssKey.split(",") as string[];
+    // We need a per-side property reference to clamp + format, so prefer
+    // any one matching individual-side row. All sides share min/max/unit
+    // so picking the first match is safe.
+    const sampleProperty = initialProperties.find((entry) => longhands.includes(entry.key));
+    if (!sampleProperty) return;
+    const next = cleanNumericValue(clampToRange(candidate, sampleProperty.min, sampleProperty.max));
+    preview.apply(longhands, formatEditableValue(sampleProperty, next));
+    setTweakedValues((current) => {
+      const updated = { ...current };
+      for (const longhand of longhands) {
+        if (initialProperties.some((entry) => entry.key === longhand)) {
+          updated[longhand] = next;
+        }
+      }
+      return updated;
+    });
     setHasCommittedAnyEdit(true);
     markAsInteracting();
   };
