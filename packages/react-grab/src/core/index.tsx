@@ -802,7 +802,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const selectionBounds =
         dragRect && isMultiSelect
           ? createBoundsFromDragRect(dragRect)
-          : createFlatOverlayBounds(createElementBounds(element));
+          : createElementBounds(element);
 
       const labelCursorX = isMultiSelect ? selectionBounds.x + selectionBounds.width / 2 : cursorX;
 
@@ -1100,14 +1100,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const drag = calculateDragRectangle(pointer().x, pointer().y);
 
-      return {
-        borderRadius: "0px",
-        height: drag.height,
-        transform: "none",
-        width: drag.width,
-        x: drag.x,
-        y: drag.y,
-      };
+      return createFlatOverlayBounds(drag);
     });
 
     const dragPreviewBounds = createMemo((): OverlayBounds[] => {
