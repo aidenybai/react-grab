@@ -1,25 +1,11 @@
 import { createEffect, Index, Match, onCleanup, Show, Switch, type Component } from "solid-js";
-import type {
-  ColorEditableProperty,
-  EditableProperty,
-  EnumEditableProperty,
-  NumericEditableProperty,
-} from "../../types.js";
+import type { EditableProperty } from "../../types.js";
 import { createMenuHighlight } from "../../utils/create-menu-highlight.js";
 import { formatDisplayValue } from "../../utils/format-css-value.js";
 import { ColorPicker } from "./color-picker.js";
 import { CycleControl } from "./cycle-control.js";
+import { asColor, asEnum, asNumeric } from "./narrow-property.js";
 import { ValueStepper } from "./value-stepper.js";
-
-// Narrowing accessors used inside the active-row Switch. Match's `when`
-// gates rendering, so the cast inside is safe — TS just can't see
-// across the boundary because we deliberately don't use `keyed`
-// (keyed would remount on every value update and tear down native
-// color pickers / drag pointer captures).
-const asNumeric = (property: EditableProperty) =>
-  property as NumericEditableProperty;
-const asColor = (property: EditableProperty) => property as ColorEditableProperty;
-const asEnum = (property: EditableProperty) => property as EnumEditableProperty;
 
 interface PropertyListProps {
   properties: EditableProperty[];

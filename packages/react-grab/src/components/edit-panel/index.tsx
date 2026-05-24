@@ -17,19 +17,13 @@ import {
   EDIT_PANEL_MAX_WIDTH_PX,
   EDIT_PANEL_MIN_WIDTH_PX,
   EDIT_PROPERTY_LIST_MAX_HEIGHT_PX,
-  EDIT_COLOR_LIGHTNESS_STEP_PERCENT,
-  EDIT_SHIFT_STEP_MULTIPLIER,
   TAILWIND_SPACING_UNIT_PX,
   Z_INDEX_OVERLAY,
 } from "../../constants.js";
 import type {
-  ColorEditableProperty,
   DropdownAnchor,
   EditableProperty,
-  EnumEditableProperty,
   EditPanelState,
-  NumericEditableProperty,
-  PendingEdit,
 } from "../../types.js";
 import { clampToRange } from "../../utils/clamp-to-range.js";
 import { cn } from "../../utils/cn.js";
@@ -37,20 +31,19 @@ import { createAnchoredDropdown } from "../../utils/create-anchored-dropdown.js"
 import { expandAggregateLonghands } from "../../utils/expand-aggregate-longhands.js";
 import { cleanNumericValue, formatEditableValue } from "../../utils/format-css-value.js";
 import { formatSessionEditsPrompt } from "../../utils/format-edit-prompt.js";
-import { stepColorLightness } from "../../utils/parse-color.js";
-import { pickNextOption } from "../../utils/pick-next-option.js";
-import { stepTailwindShade } from "../../utils/tailwind-palette.js";
-import { filterPropertiesByQuery } from "../../utils/fuzzy-score-property.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
 import { tailwindPrefixToProperty } from "../../utils/tailwind-class-map.js";
 import { registerOverlayDismiss } from "../../utils/register-overlay-dismiss.js";
 import { suppressMenuEvent } from "../../utils/suppress-menu-event.js";
 import { TagBadge } from "../selection-label/tag-badge.js";
+import { ColorPicker } from "./color-picker.js";
 import { HIDDEN_FOCUS_PRESERVING_STYLE } from "./constants.js";
+import { CycleControl } from "./cycle-control.js";
+import { asColor, asEnum, asNumeric } from "./narrow-property.js";
 import { createPreviewStyles } from "./preview-styles.js";
 import { PropertyList } from "./property-list.js";
-import { ColorPicker } from "./color-picker.js";
-import { CycleControl } from "./cycle-control.js";
+import { stepProperty } from "./step-property.js";
+import { createTweakStore } from "./tweak-store.js";
 import { ValueStepper } from "./value-stepper.js";
 
 interface EditPanelProps {
@@ -96,12 +89,8 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
 
   const [searchQuery, setSearchQuery] = createSignal(props.state.initialSearchQuery ?? "");
   const [activeIndex, setActiveIndex] = createSignal(0);
-  // Tweaks for numeric properties are stored as numbers; colour tweaks as
-  // hex strings. The union keeps the store flat without a per-entry
-  // `kind` discriminator since we always look up against the matching
-  // property which already carries its kind.
-  const [tweakedValues, setTweakedValues] = createSignal<Record<string, number | string>>({});
   const [activeKey, setActiveKey] = createSignal<"left" | "right" | null>(null);
+  const tweakStore = createTweakStore({ initialProperties, searchQuery });
   // Compact mode: shows just the value stepper (no TagBadge, no search,
   // no list). Driven directly by user action rather than derived from
   // search content:
@@ -114,12 +103,16 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
 
   let activeKeyTimerId: ReturnType<typeof setTimeout> | undefined;
   let interactingIdleTimerId: ReturnType<typeof setTimeout> | undefined;
-  // Reactive form of the "currently tweaking" flag so PropertyList can
-  // suppress hover-driven active-row swaps while the user has engaged
-  // with the active row's control (slider drag, swatch click, native
-  // colour picker, segmented cycle). Stays a let-mirror for the cleanup
-  // path that still needs to compare without re-running effects.
-  const [isInteracting, setIsInteractingSignal] = createSignal(false);
+  // Transient: true for EDIT_PANEL_ADJUSTING_IDLE_MS after the user's
+  // last touch on a control. The composed `isInteracting` accessor
+  // OR-s this with hasPendingTweaks so the page-level selection overlay
+  // stays hidden across the full edit lifecycle (transient action OR
+  // any committed tweak) without the timer needing to encode latch
+  // logic itself.
+  const [isTransientInteraction, setIsTransientInteraction] = createSignal(false);
+  const isInteracting = createMemo(
+    () => isTransientInteraction() || tweakStore.hasPendingTweaks(),
+  );
 
   const tagDisplay = createMemo(() =>
     getTagDisplay({
@@ -128,70 +121,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     }),
   );
 
-  const baseFilteredProperties = createMemo<EditableProperty[]>(() => {
-    const query = searchQuery();
-    // No query: only surface canonical, non-default rows. Canonical means
-    // "the highest-level form that captures this side", so a uniform
-    // padding shows as one row instead of seven. Searching unlocks the
-    // full list — that's how Tailwind aliases like `pl` can rank to
-    // `padding-left` even when the consolidated `padding` is what we
-    // normally show.
-    const candidates = query
-      ? initialProperties
-      : initialProperties.filter(
-          (entry) => entry.prioritized || (entry.isCanonical && !entry.isDefault),
-        );
-    return filterPropertiesByQuery(candidates, query);
-  });
-
-  // A tweak on an aggregate (e.g. padding-y → padding-top + padding-bottom)
-  // also redefines any row whose longhands are fully covered by the tweak's
-  // longhands. Walk the tweaked properties first to build a longhand →
-  // value lookup, then overlay it on the base rows.
-  const filteredProperties = createMemo<EditableProperty[]>(() => {
-    const tweaks = tweakedValues();
-    const tweakKeys = Object.keys(tweaks);
-    if (tweakKeys.length === 0) return baseFilteredProperties();
-
-    // Longhand fan-out only applies to numeric aggregates (padding,
-    // margin, border-radius). Colour properties don't aggregate — each
-    // colour key maps 1:1 to a single CSS property — so we skip them
-    // here and only consult the direct key-match below.
-    const tweakValueByLonghand = new Map<string, number>();
-    const propertyByKey = new Map(initialProperties.map((entry) => [entry.key, entry]));
-    for (const key of tweakKeys) {
-      const property = propertyByKey.get(key);
-      if (!property || property.kind !== "numeric") continue;
-      const tweak = tweaks[key];
-      if (typeof tweak !== "number") continue;
-      for (const longhand of property.cssProperties) {
-        tweakValueByLonghand.set(longhand, tweak);
-      }
-    }
-
-    return baseFilteredProperties().map((property) => {
-      const direct = tweaks[property.key];
-      if (direct !== undefined) {
-        if (property.kind === "color" && typeof direct === "string") {
-          return { ...property, value: direct };
-        }
-        if (property.kind === "enum" && typeof direct === "string") {
-          return { ...property, value: direct };
-        }
-        if (property.kind === "numeric" && typeof direct === "number") {
-          return { ...property, value: direct };
-        }
-        return property;
-      }
-      if (property.kind !== "numeric") return property;
-      const first = tweakValueByLonghand.get(property.cssProperties[0]);
-      if (first === undefined) return property;
-      const allCoveredSameValue = property.cssProperties.every(
-        (longhand) => tweakValueByLonghand.get(longhand) === first,
-      );
-      return allCoveredSameValue ? { ...property, value: first } : property;
-    });
-  });
+  const filteredProperties = tweakStore.filteredProperties;
 
   const activeProperty = createMemo<EditableProperty | null>(() => {
     const properties = filteredProperties();
@@ -212,28 +142,22 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     }, EDIT_PANEL_ACTIVE_KEY_FLASH_MS);
   };
 
-  // "Currently tweaking" flag — fires onInteractingChange so the parent
-  // hides the page-level selection overlay while the user is actively
-  // adjusting values. Doubles as a hover guard inside PropertyList so
-  // a quick mouse twitch doesn't swap the active row mid-tweak.
-  //
-  // The idle timer normally releases the flag after a short pause, BUT
-  // once the user has committed any tweak in this session we LATCH
-  // the flag on for the rest of the panel — the page is now showing
-  // the user's preview and the selection overlay would clutter that
-  // result. Cleanup on dismiss still fires onInteractingChange(false).
+  // Fires the transient "user just touched a control" pulse. Kept
+  // dumb: the panel's `isInteracting` accessor composes this with the
+  // store's hasPendingTweaks so the page-level overlay stays hidden
+  // for the full session without this timer encoding latch logic.
   const markAsInteracting = () => {
-    if (!isInteracting()) {
-      setIsInteractingSignal(true);
-      props.onInteractingChange?.(true);
-    }
+    setIsTransientInteraction(true);
     clearTimeout(interactingIdleTimerId);
-    interactingIdleTimerId = setTimeout(() => {
-      if (Object.keys(tweakedValues()).length > 0) return;
-      setIsInteractingSignal(false);
-      props.onInteractingChange?.(false);
-    }, EDIT_PANEL_ADJUSTING_IDLE_MS);
+    interactingIdleTimerId = setTimeout(
+      () => setIsTransientInteraction(false),
+      EDIT_PANEL_ADJUSTING_IDLE_MS,
+    );
   };
+
+  // Bridge the composed isInteracting signal to the parent overlay
+  // controller via the prop callback.
+  createEffect(() => props.onInteractingChange?.(isInteracting()));
 
   const ensureSearchFocused = () => {
     queueMicrotask(() => {
@@ -242,54 +166,37 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     });
   };
 
-  // Pure step: computes the next value, writes it through, returns the
-  // property that was tweaked (or null if no change). Stepper commits
-  // (Left/Right) collapse to compact — the user has picked a property
-  // and is now adjusting its value.
-  // Shared write-through. Only keyboard step / typed value / typed
-  // tailwind class collapse to compact; pointer-driven clicks on the
-  // stepper arrows tweak the value without changing layout.
+  interface CommitOptions {
+    flash?: 1 | -1;
+    focus?: boolean;
+    compact?: boolean;
+  }
+
+  // Canonical write path for every committed tweak (keyboard step,
+  // typed value, drag, colour pick, enum cycle, tailwind auto-apply).
+  // The store owns kind-tagged storage; preview owns inline styles;
+  // markAsInteracting owns the overlay-hide pulse. Callers only choose
+  // which optional side-effects fire (flash an arrow, refocus search,
+  // collapse to compact).
+  const commit = (
+    property: EditableProperty,
+    nextValue: number | string,
+    options: CommitOptions = {},
+  ) => {
+    tweakStore.applyTweak(property, nextValue);
+    preview.apply(property.cssProperties, formatEditableValue(property, nextValue));
+    markAsInteracting();
+    if (options.flash) flashActiveKey(options.flash === 1 ? "right" : "left");
+    if (options.focus) ensureSearchFocused();
+    if (options.compact) setIsCompact(true);
+  };
+
   const commitTweak = (direction: 1 | -1, shift: boolean): EditableProperty | null => {
     const property = activeProperty();
     if (!property) return null;
-
-    // Per-kind step picks the new value; the shared tail below handles
-    // store update, preview write, key flash, and focus restoration.
-    let nextValue: number | string | null = null;
-    if (property.kind === "color") {
-      // Shift+arrow snaps to the nearest tailwind palette entry and
-      // walks shades within that family; plain arrow nudges lightness
-      // smoothly in HSL space (preserves hue / saturation / alpha).
-      const nextHex = shift
-        ? stepTailwindShade(property.value, direction)
-        : stepColorLightness(
-            property.value,
-            EDIT_COLOR_LIGHTNESS_STEP_PERCENT * direction,
-          );
-      if (nextHex && nextHex.toLowerCase() !== property.value.toLowerCase()) {
-        nextValue = nextHex;
-      }
-    } else if (property.kind === "enum") {
-      const next = pickNextOption(property.options, property.value, direction);
-      if (next) nextValue = next.value;
-    } else {
-      // Plain arrow nudges by 1 unit; Shift+arrow uses a 10× multiplier
-      // for predictable "fast browse" behaviour. (Snapping to the
-      // tailwind scale was tried briefly but produced tiny shift-deltas
-      // at small starting values — defeating the point — so we kept the
-      // multiplier model.)
-      const multiplier = shift ? EDIT_SHIFT_STEP_MULTIPLIER : 1;
-      const candidate = cleanNumericValue(
-        clampToRange(property.value + direction * multiplier, property.min, property.max),
-      );
-      if (candidate !== property.value) nextValue = candidate;
-    }
-    if (nextValue === null) return null;
-    setTweakedValues((current) => ({ ...current, [property.key]: nextValue }));
-    preview.apply(property.cssProperties, formatEditableValue(property, nextValue));
-    flashActiveKey(direction === 1 ? "right" : "left");
-    markAsInteracting();
-    ensureSearchFocused();
+    const next = stepProperty(property, direction, shift);
+    if (next === null) return null;
+    commit(property, next, { flash: direction, focus: true });
     return property;
   };
 
@@ -301,39 +208,26 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     commitTweak(direction, false);
   };
 
-  // Shared numeric write-through used by both the click-to-type editor
-  // and the slider drag. Neither path collapses to compact — the user
-  // explicitly opened the search interface (or is hovering it) and we
-  // should keep them there. Only keyboard step (Left/Right) collapses.
   const commitNumericValue = (rawValue: number) => {
     const property = activeProperty();
     if (!property || property.kind !== "numeric") return;
     const next = cleanNumericValue(clampToRange(rawValue, property.min, property.max));
     if (next === property.value) return;
-    setTweakedValues((current) => ({ ...current, [property.key]: next }));
-    preview.apply(property.cssProperties, formatEditableValue(property, next));
-    markAsInteracting();
+    commit(property, next);
   };
 
-  // Colour write-through: same preview/state machinery as the numeric
-  // path but no clamp/round — the hex string is already canonical.
   const commitColorValue = (hex: string) => {
     const property = activeProperty();
     if (!property || property.kind !== "color") return;
     if (hex.toLowerCase() === property.value.toLowerCase()) return;
-    setTweakedValues((current) => ({ ...current, [property.key]: hex }));
-    preview.apply(property.cssProperties, formatEditableValue(property, hex));
-    markAsInteracting();
+    commit(property, hex);
   };
 
-  // Enum write-through: picks one of the property's predefined options.
   const commitEnumValue = (value: string) => {
     const property = activeProperty();
     if (!property || property.kind !== "enum") return;
     if (value === property.value) return;
-    setTweakedValues((current) => ({ ...current, [property.key]: value }));
-    preview.apply(property.cssProperties, formatEditableValue(property, value));
-    markAsInteracting();
+    commit(property, value);
   };
 
   // Auto-apply when the search query is a complete `<prefix>-<n>` Tailwind
@@ -373,87 +267,30 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     );
     if (exact && exact.kind === "numeric") {
       const next = cleanNumericValue(clampToRange(candidate, exact.min, exact.max));
-      if (next === (tweakedValues()[exact.key] ?? exact.original)) return;
-      setTweakedValues((current) => ({ ...current, [exact.key]: next }));
-      preview.apply(exact.cssProperties, formatEditableValue(exact, next));
-      setIsCompact(true);
-      markAsInteracting();
+      commit(exact, next, { compact: true });
       return;
     }
 
     // Fallback: the canonical aggregate isn't in the list (e.g. element
-    // has non-uniform padding, so "padding" was filtered out). Apply
-    // inline styles to each longhand the cssKey covers, and update
-    // tweakedValues for every individual side row that exists so the
-    // UI reflects the change. The expansion handles both comma-joined
-    // partial aggregates (`padding-left,padding-right`) AND top-level
-    // aggregates (`padding` → 4 sides).
+    // has non-uniform padding, so "padding" was filtered out). Commit
+    // to every individual side row whose longhand is covered, so the
+    // store reflects the change AND the preview spans all real sides
+    // (expandAggregateLonghands handles both comma-joined partial
+    // aggregates and top-level aggregates → 4 sides).
     const longhands = expandAggregateLonghands(cssKey);
-    // We need a per-side property reference to clamp + format, so prefer
-    // any one matching individual-side row. All sides share min/max/unit
-    // so picking the first match is safe.
-    const sampleProperty = initialProperties.find(
+    const sideProperties = initialProperties.filter(
       (entry) => longhands.includes(entry.key) && entry.kind === "numeric",
     );
-    if (!sampleProperty || sampleProperty.kind !== "numeric") return;
-    const next = cleanNumericValue(clampToRange(candidate, sampleProperty.min, sampleProperty.max));
-    preview.apply(longhands, formatEditableValue(sampleProperty, next));
-    setTweakedValues((current) => {
-      const updated = { ...current };
-      for (const longhand of longhands) {
-        if (initialProperties.some((entry) => entry.key === longhand)) {
-          updated[longhand] = next;
-        }
-      }
-      return updated;
-    });
-    setIsCompact(true);
-    markAsInteracting();
-  };
-
-  // Build the current diff from in-memory tweaks. Pure read — no storage.
-  const buildPendingEdits = (): PendingEdit[] => {
-    const tweaks = tweakedValues();
-    const pendingEdits: PendingEdit[] = [];
-    for (const property of initialProperties) {
-      const tweakedValue = tweaks[property.key];
-      if (tweakedValue === undefined || tweakedValue === property.original) continue;
-      if (property.kind === "color") {
-        if (typeof tweakedValue !== "string") continue;
-        pendingEdits.push({
-          key: property.key,
-          cssProperties: property.cssProperties,
-          kind: "color",
-          value: tweakedValue,
-          unit: "",
-        });
-        continue;
-      }
-      if (property.kind === "enum") {
-        if (typeof tweakedValue !== "string") continue;
-        pendingEdits.push({
-          key: property.key,
-          cssProperties: property.cssProperties,
-          kind: "enum",
-          value: tweakedValue,
-          unit: "",
-        });
-        continue;
-      }
-      if (typeof tweakedValue !== "number") continue;
-      pendingEdits.push({
-        key: property.key,
-        cssProperties: property.cssProperties,
-        kind: "numeric",
-        value: tweakedValue,
-        unit: property.unit,
-      });
+    if (sideProperties.length === 0) return;
+    for (const side of sideProperties) {
+      if (side.kind !== "numeric") continue;
+      const next = cleanNumericValue(clampToRange(candidate, side.min, side.max));
+      commit(side, next, { compact: true });
     }
-    return pendingEdits;
   };
 
   const handleSubmit = () => {
-    const pendingEdits = buildPendingEdits();
+    const pendingEdits = tweakStore.buildPendingEdits();
     const entry = {
       filePath: props.state.filePath ?? "",
       lineNumber: props.state.lineNumber ?? 0,
@@ -501,7 +338,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       // Escape-and-re-Enter round trip.
       const property = activeProperty();
       const isUntweakedColor =
-        property?.kind === "color" && tweakedValues()[property.key] === undefined;
+        property?.kind === "color" && !tweakStore.hasTweakFor(property.key);
       if (isUntweakedColor && colorPickerTrigger) {
         colorPickerTrigger();
         return;
@@ -523,7 +360,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   // Keep the active row in sync with the filtered list — collapse on empty,
   // clamp when the list shrinks beneath the previous index.
   createEffect(
-    on(baseFilteredProperties, (properties) => {
+    on(filteredProperties, (properties) => {
       if (properties.length === 0) {
         setActiveIndex(-1);
         return;
@@ -589,10 +426,11 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       clearTimeout(activeKeyTimerId);
       clearTimeout(interactingIdleTimerId);
       dropdown.clearAnimationHandles();
-      if (isInteracting()) {
-        setIsInteractingSignal(false);
-        props.onInteractingChange?.(false);
-      }
+      // The reactive bridge stops firing on unmount, so explicitly
+      // tell the parent the overlay can come back. Safe to call even
+      // when we weren't interacting — the parent's setter is idempotent.
+      setIsTransientInteraction(false);
+      props.onInteractingChange?.(false);
       // All dismissal paths preserve the user's tweaks (req: Escape does
       // not reset state). Inline styles stay applied; the page shows the
       // tweaked values until the source is updated.
@@ -742,59 +580,44 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                     mounted while the value updates — native color
                     pickers / slider pointer captures need element
                     persistence across re-renders. */}
+                {/* Compact ColorPicker intentionally omits
+                    onRegisterTrigger — the list view's instance is the
+                    canonical registrant (it stays mounted while compact
+                    is on, just hidden). Registering here would race the
+                    list's trigger to null on compact unmount and break
+                    the Enter→picker shortcut. */}
                 <Switch>
                   <Match when={activeProp().kind === "numeric"}>
-                    {(() => {
-                      const numeric = () => activeProp() as NumericEditableProperty;
-                      return (
-                        <ValueStepper
-                          value={numeric().value}
-                          min={numeric().min}
-                          max={numeric().max}
-                          unit={numeric().unit}
-                          activeKey={activeKey()}
-                          onStep={stepFromPointer}
-                          onCommitValue={commitNumericValue}
-                          onEditComplete={ensureSearchFocused}
-                          onInteract={markAsInteracting}
-                          emphasized
-                        />
-                      );
-                    })()}
+                    <ValueStepper
+                      value={asNumeric(activeProp()).value}
+                      min={asNumeric(activeProp()).min}
+                      max={asNumeric(activeProp()).max}
+                      unit={asNumeric(activeProp()).unit}
+                      activeKey={activeKey()}
+                      onStep={stepFromPointer}
+                      onCommitValue={commitNumericValue}
+                      onEditComplete={ensureSearchFocused}
+                      onInteract={markAsInteracting}
+                      emphasized
+                    />
                   </Match>
                   <Match when={activeProp().kind === "color"}>
-                    {(() => {
-                      const color = () => activeProp() as ColorEditableProperty;
-                      // Compact ColorPicker intentionally omits
-                      // onRegisterTrigger — the list view's instance is
-                      // the canonical registrant (it stays mounted while
-                      // compact is on, just hidden). Registering here
-                      // would race the list's trigger to null on compact
-                      // unmount and break the Enter→picker shortcut.
-                      return (
-                        <ColorPicker
-                          value={color().value}
-                          onCommit={commitColorValue}
-                          onEditComplete={ensureSearchFocused}
-                          onInteract={markAsInteracting}
-                          emphasized
-                        />
-                      );
-                    })()}
+                    <ColorPicker
+                      value={asColor(activeProp()).value}
+                      onCommit={commitColorValue}
+                      onEditComplete={ensureSearchFocused}
+                      onInteract={markAsInteracting}
+                      emphasized
+                    />
                   </Match>
                   <Match when={activeProp().kind === "enum"}>
-                    {(() => {
-                      const enumProp = () => activeProp() as EnumEditableProperty;
-                      return (
-                        <CycleControl
-                          value={enumProp().value}
-                          options={enumProp().options}
-                          activeKey={activeKey()}
-                          onCommit={commitEnumValue}
-                          emphasized
-                        />
-                      );
-                    })()}
+                    <CycleControl
+                      value={asEnum(activeProp()).value}
+                      options={asEnum(activeProp()).options}
+                      activeKey={activeKey()}
+                      onCommit={commitEnumValue}
+                      emphasized
+                    />
                   </Match>
                 </Switch>
               </div>
