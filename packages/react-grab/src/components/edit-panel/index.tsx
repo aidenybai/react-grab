@@ -365,17 +365,11 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     if (!cssKey) return;
     const rawNumber = Number.parseFloat(match[2]);
     if (!Number.isFinite(rawNumber)) return;
-    // Opacity classes (opacity-50) are already in percent on Tailwind's
-    // side and in our 0–100 UI scale. Border-width's tailwind utilities
-    // (`border-2`, `border-t-4`) use the literal number as pixels — they
-    // don't follow the 4px spacing unit. Everything else does.
-    const usesLiteralPixels = cssKey === "border-width";
-    const candidate =
-      cssKey === "opacity"
-        ? rawNumber
-        : usesLiteralPixels
-          ? rawNumber
-          : rawNumber * TAILWIND_SPACING_UNIT_PX;
+    // opacity-50 (0–100 percent, our UI scale matches) and border-N
+    // (literal pixels per Tailwind spec) both use the raw number as-is.
+    // Everything else follows the 4px spacing unit.
+    const usesLiteralNumber = cssKey === "opacity" || cssKey === "border-width";
+    const candidate = usesLiteralNumber ? rawNumber : rawNumber * TAILWIND_SPACING_UNIT_PX;
 
     // First try: the prefix maps to an exact aggregate row (e.g. `p` →
     // canonical "padding" when all sides are uniform). Tailwind numeric
@@ -508,14 +502,14 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     ArrowRight: (event) => stepFromKeyboard(1, event.shiftKey),
     Tab: (event) => navigateActive(event.shiftKey ? -1 : 1),
     Enter: () => {
+      // Colour rows: first Enter opens the native picker (pick-affordance);
+      // once a tweak is committed for this row, fall through to submit
+      // like every other kind so the diff gets copied without an extra
+      // Escape-and-re-Enter round trip.
       const property = activeProperty();
-      // For color rows, Enter opens the native picker — UNLESS the user
-      // has already committed a change to this colour, in which case
-      // they're done picking and the next Enter should copy/submit the
-      // diff like every other row.
-      const isUnchangedColor =
+      const isUntweakedColor =
         property?.kind === "color" && tweakedValues()[property.key] === undefined;
-      if (isUnchangedColor && colorPickerTrigger) {
+      if (isUntweakedColor && colorPickerTrigger) {
         colorPickerTrigger();
         return;
       }
