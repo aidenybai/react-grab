@@ -12,14 +12,18 @@ const formatCssValue = (edit: PendingEdit): string => {
 };
 
 const formatEntryCss = (entry: PendingEditsEntry): string[] => {
-  const lines: string[] = [];
+  // Last-write-wins per CSS property: an aggregate edit (padding) writes
+  // to all 4 sides, and a subsequent longhand edit (padding-top) should
+  // override JUST that side without leaving the older sibling rules
+  // duplicated. Iteration order = order of user edits.
+  const valueByCssProperty = new Map<string, string>();
   for (const edit of entry.edits) {
     const cssValue = formatCssValue(edit);
     for (const cssProperty of edit.cssProperties) {
-      lines.push(`${cssProperty}: ${cssValue};`);
+      valueByCssProperty.set(cssProperty, cssValue);
     }
   }
-  return lines;
+  return Array.from(valueByCssProperty, ([cssProperty, cssValue]) => `${cssProperty}: ${cssValue};`);
 };
 
 // Composes a single prompt section covering every pending edit collected
