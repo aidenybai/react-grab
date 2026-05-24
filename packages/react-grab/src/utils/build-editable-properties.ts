@@ -548,17 +548,91 @@ const tagAggregateGroup = (
   return resolved.map((entry) => ({ ...entry, isCanonical: canonicalSet.has(entry) }));
 };
 
-const isDefaultPropertyValue = (property: EditableProperty): boolean => {
-  // Color properties: leave default-detection to the build step that
-  // already drops fully-transparent backgrounds; anything that survives
-  // is a real value worth surfacing.
+type ComputedSnapshot = Record<string, string>;
+
+// All keys we read from computed style across the three kinds.
+// Used to snapshot both the target AND the diff baseline so a single
+// per-key string compare resolves "did the user (or a class on this
+// element) override this property from the baseline?".
+const ALL_BASELINE_KEYS: ReadonlyArray<string> = [
+  ...TRACKED_PROPERTIES,
+  "color",
+  "background-color",
+  "border-color",
+  "fill",
+  "stroke",
+  "display",
+  "text-align",
+  "font-style",
+  "text-decoration-line",
+  "border-style",
+  "visibility",
+  "align-items",
+  "justify-content",
+  "font-weight",
+];
+
+const snapshotAllKeys = (computed: CSSStyleDeclaration): ComputedSnapshot => {
+  const snapshot: ComputedSnapshot = {};
+  for (const key of ALL_BASELINE_KEYS) {
+    snapshot[key] = computed.getPropertyValue(key);
+  }
+  return snapshot;
+};
+
+// Measure the baseline by inserting a styling-free clone of the same
+// tag as a sibling of the target, snapshotting computed style, then
+// removing it. Same-parent placement makes inherited properties
+// (font-size, color) compare apples-to-apples; display:none keeps
+// the clone out of layout so it can't shift the page or trigger any
+// of the target's side-effects. Returns null on any failure (detached
+// element, exotic namespace, etc.) so callers fall back to the
+// hardcoded heuristic below.
+const measureBaseline = (target: Element): ComputedSnapshot | null => {
+  try {
+    const parent = target.parentElement;
+    if (!parent) return null;
+    const namespaceUri = target.namespaceURI;
+    const tag = target.tagName.toLowerCase();
+    const baseline =
+      namespaceUri && namespaceUri !== "http://www.w3.org/1999/xhtml"
+        ? target.ownerDocument.createElementNS(namespaceUri, tag)
+        : target.ownerDocument.createElement(tag);
+    (baseline as HTMLElement).style?.setProperty("display", "none", "important");
+    parent.appendChild(baseline);
+    try {
+      return snapshotAllKeys(getComputedStyle(baseline));
+    } finally {
+      baseline.remove();
+    }
+  } catch {
+    return null;
+  }
+};
+
+// Diff-based default detection: a property is "default" if every CSS
+// longhand it covers matches the baseline. Replaces the per-property
+// heuristics for elements where the baseline can be measured.
+const matchesBaseline = (
+  cssProperties: readonly string[],
+  current: ComputedSnapshot,
+  baseline: ComputedSnapshot,
+): boolean => {
+  return cssProperties.every((key) => {
+    const cur = current[key];
+    const base = baseline[key];
+    if (cur === undefined || base === undefined) return false;
+    return cur === base;
+  });
+};
+
+// Legacy heuristic used only when measureBaseline returns null (target
+// has no parent, is in an exotic shadow tree, etc.). Kept as a safety
+// net so the panel still produces a sensible list even without a
+// baseline.
+const isDefaultByHeuristic = (property: EditableProperty): boolean => {
   if (property.kind === "color") return false;
-  // Enum properties: hide rows whose computed value matches the
-  // first declared option, which we author as the browser default
-  // (block, left, normal, none, none, visible, stretch, flex-start,
-  // 100/thin → no, we want font-weight 400 default; handled below).
   if (property.kind === "enum") {
-    // Font-weight's default is 400 (normal), not the first option (100).
     if (property.key === "font-weight") return property.original === "400";
     return property.options[0]?.value === property.original;
   }
@@ -570,14 +644,7 @@ const isDefaultPropertyValue = (property: EditableProperty): boolean => {
   if (key === "opacity") return value === OPACITY_PERCENT_MAX;
   if (key === "letter-spacing") return value === 0;
   if (key === "z-index") return value === 0;
-  // Positioning longhands have no canonical "default" — top: 0 is a
-  // real positioning intent for absolute/fixed elements. Surface them
-  // whenever the computed value parses as a number (the snapshot path
-  // already returns null for `auto`, the actual common default).
   if (POSITION_KEYS.has(key)) return false;
-  // width/height/max-*/line-height are always computed by the layout
-  // engine; hide them unless the user explicitly opts in via a Tailwind
-  // class or search query.
   if (key === "width" || key === "height" || key.startsWith("max-") || key.startsWith("min-")) {
     return true;
   }
@@ -595,6 +662,9 @@ const AGGREGATE_GROUPS: readonly (readonly AggregateDefinition[])[] = [
 
 export const buildEditableProperties = (element: Element): EditableProperty[] => {
   const snapshot = snapshotElement(element);
+  const computed = getComputedStyle(element);
+  const currentAllKeys = snapshotAllKeys(computed);
+  const baseline = measureBaseline(element);
   const properties: EditableProperty[] = [];
   const seen = new Set<string>();
 
@@ -622,7 +692,6 @@ export const buildEditableProperties = (element: Element): EditableProperty[] =>
     );
   }
 
-  const computed = getComputedStyle(element);
   for (const { key, label } of COLOR_PROPERTIES) {
     const raw = computed.getPropertyValue(key);
     if (!raw || isTransparentRgbString(raw)) continue;
@@ -637,12 +706,19 @@ export const buildEditableProperties = (element: Element): EditableProperty[] =>
     if (enumProperty) push(enumProperty);
   }
 
-  return finalizeProperties(properties, getElementTailwindProperties(element));
+  return finalizeProperties(
+    properties,
+    getElementTailwindProperties(element),
+    currentAllKeys,
+    baseline,
+  );
 };
 
 const finalizeProperties = (
   properties: EditableProperty[],
   prioritized: Set<string>,
+  current: ComputedSnapshot,
+  baseline: ComputedSnapshot | null,
 ): EditableProperty[] => {
   const tier1: EditableProperty[] = [];
   const tier2: EditableProperty[] = [];
@@ -651,7 +727,10 @@ const finalizeProperties = (
     if (prioritized.has(property.key)) {
       tier1.push({ ...property, prioritized: true, isDefault: false });
     } else {
-      tier2.push({ ...property, isDefault: isDefaultPropertyValue(property) });
+      const isDefault = baseline
+        ? matchesBaseline(property.cssProperties, current, baseline)
+        : isDefaultByHeuristic(property);
+      tier2.push({ ...property, isDefault });
     }
   }
   return [...tier1, ...tier2];
