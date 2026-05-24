@@ -12,6 +12,7 @@ interface PropertyListProps {
   onStep: (direction: 1 | -1) => void;
   onCommitValue: (value: number) => void;
   onEditComplete: () => void;
+  onSubmit: () => void;
   activeKey: "left" | "right" | null;
 }
 
@@ -131,6 +132,7 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
                     onStep={props.onStep}
                     onCommitValue={props.onCommitValue}
                     onEditComplete={props.onEditComplete}
+                    onSubmit={props.onSubmit}
                   />
                 </div>
               </Show>
