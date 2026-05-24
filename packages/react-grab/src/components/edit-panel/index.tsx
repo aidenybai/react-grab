@@ -213,11 +213,16 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     }, EDIT_PANEL_ACTIVE_KEY_FLASH_MS);
   };
 
-  // Timed "currently tweaking" flag — fires onInteractingChange so the
-  // parent hides the page-level selection overlay while the user is
-  // actively adjusting values. Doubles as a hover guard inside
-  // PropertyList so a quick mouse twitch doesn't swap the active row
-  // out from under the user mid-tweak.
+  // "Currently tweaking" flag — fires onInteractingChange so the parent
+  // hides the page-level selection overlay while the user is actively
+  // adjusting values. Doubles as a hover guard inside PropertyList so
+  // a quick mouse twitch doesn't swap the active row mid-tweak.
+  //
+  // The idle timer normally releases the flag after a short pause, BUT
+  // once the user has committed any tweak in this session we LATCH
+  // the flag on for the rest of the panel — the page is now showing
+  // the user's preview and the selection overlay would clutter that
+  // result. Cleanup on dismiss still fires onInteractingChange(false).
   const markAsInteracting = () => {
     if (!isInteracting()) {
       setIsInteractingSignal(true);
@@ -225,6 +230,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     }
     clearTimeout(interactingIdleTimerId);
     interactingIdleTimerId = setTimeout(() => {
+      if (Object.keys(tweakedValues()).length > 0) return;
       setIsInteractingSignal(false);
       props.onInteractingChange?.(false);
     }, EDIT_PANEL_ADJUSTING_IDLE_MS);
@@ -360,9 +366,16 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     const rawNumber = Number.parseFloat(match[2]);
     if (!Number.isFinite(rawNumber)) return;
     // Opacity classes (opacity-50) are already in percent on Tailwind's
-    // side and in our 0–100 UI scale. Everything else follows the 4px
-    // spacing unit.
-    const candidate = cssKey === "opacity" ? rawNumber : rawNumber * TAILWIND_SPACING_UNIT_PX;
+    // side and in our 0–100 UI scale. Border-width's tailwind utilities
+    // (`border-2`, `border-t-4`) use the literal number as pixels — they
+    // don't follow the 4px spacing unit. Everything else does.
+    const usesLiteralPixels = cssKey === "border-width";
+    const candidate =
+      cssKey === "opacity"
+        ? rawNumber
+        : usesLiteralPixels
+          ? rawNumber
+          : rawNumber * TAILWIND_SPACING_UNIT_PX;
 
     // First try: the prefix maps to an exact aggregate row (e.g. `p` →
     // canonical "padding" when all sides are uniform). Tailwind numeric
@@ -759,12 +772,17 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                   <Match when={activeProp().kind === "color"}>
                     {(() => {
                       const color = () => activeProp() as ColorEditableProperty;
+                      // Compact ColorPicker intentionally omits
+                      // onRegisterTrigger — the list view's instance is
+                      // the canonical registrant (it stays mounted while
+                      // compact is on, just hidden). Registering here
+                      // would race the list's trigger to null on compact
+                      // unmount and break the Enter→picker shortcut.
                       return (
                         <ColorPicker
                           value={color().value}
                           onCommit={commitColorValue}
                           onEditComplete={ensureSearchFocused}
-                          onRegisterTrigger={registerColorPickerTrigger}
                           onInteract={markAsInteracting}
                           emphasized
                         />
