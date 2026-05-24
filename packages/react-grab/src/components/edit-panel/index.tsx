@@ -325,7 +325,16 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   // named scales (`text-xs`, `rounded-full`) — those don't map 1:1 to a
   // numeric multiplier.
   const TAILWIND_CLASS_PATTERN = /^([a-z-]+)-(-?\d+(?:\.\d+)?)$/;
+  // Looser pattern: a recognized prefix followed by a dash. Signals
+  // user intent to target this property even before the value is
+  // complete (e.g. `mt-` while still typing) — collapse to compact so
+  // the stepper is visible and ready.
+  const TAILWIND_PREFIX_INTENT_PATTERN = /^([a-z-]+)-/;
   const tryApplyTailwindClass = (query: string) => {
+    const intentMatch = query.match(TAILWIND_PREFIX_INTENT_PATTERN);
+    if (intentMatch && tailwindPrefixToProperty(intentMatch[1])) {
+      setIsCompact(true);
+    }
     const match = query.match(TAILWIND_CLASS_PATTERN);
     if (!match) return;
     const cssKey = tailwindPrefixToProperty(match[1]);
@@ -345,6 +354,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       if (next === (tweakedValues()[exact.key] ?? exact.original)) return;
       setTweakedValues((current) => ({ ...current, [exact.key]: next }));
       preview.apply(exact.cssProperties, formatEditableValue(exact, next));
+      setIsCompact(true);
       markAsInteracting();
       return;
     }
@@ -371,6 +381,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       }
       return updated;
     });
+    setIsCompact(true);
     markAsInteracting();
   };
 
@@ -581,67 +592,81 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
             </div>
           </Show>
 
-          {/* Search + list. Always mounted: the search textarea owns
-              focus, and in compact mode it stays focused via
-              HIDDEN_FOCUS_PRESERVING_STYLE so the next keystroke from
-              the user (typing) snaps the panel back to full layout. */}
-          <div
-            class={
-              isCompact()
-                ? ""
-                : "[font-synthesis:none] contain-layout shrink-0 flex flex-col items-start px-2 py-1.5 w-full self-stretch [border-top-width:0.5px] border-t-solid border-t-[var(--rg-border-subtle)] antialiased rounded-t-none rounded-b-[6px]"
-            }
-            style={isCompact() ? HIDDEN_FOCUS_PRESERVING_STYLE : undefined}
-          >
-            <textarea
-              ref={(element) => {
-                searchInputRef = element;
-              }}
-              data-react-grab-ignore-events
-              data-react-grab-input
-              aria-label="Search properties"
-              aria-keyshortcuts="Enter Escape ArrowUp ArrowDown ArrowLeft ArrowRight Tab"
-              class="text-[var(--rg-text-primary)] text-[13px] leading-4 font-medium bg-transparent border-none resize-none w-full p-0 m-0 outline-none"
-              style={{
-                "field-sizing": "content",
-                "min-height": "16px",
-                "max-height": "16px",
-                "scrollbar-width": "none",
-              }}
-              value={searchQuery()}
-              onInput={(event) => {
-                const next = event.currentTarget.value;
-                setSearchQuery(next);
-                setActiveIndex(0);
-                // Typing means the user is looking for a property — pop
-                // back to full layout so they can see filtered results.
-                setIsCompact(false);
-                tryApplyTailwindClass(next);
-              }}
-              onKeyDown={handleSearchKeyDown}
-              placeholder="Search property"
-              rows={1}
-            />
-            <Show when={filteredProperties().length > 0}>
-              {/* Negative horizontal margin extends the list past the
-                  wrapper's px-2 so rows are full-bleed to the panel
-                  edges. The panel-inner's overflow-hidden +
-                  rounded-[14px] clips the highlight to the panel
-                  outline, so no leakage past rounded corners. */}
-              <div class="w-[calc(100%+16px)] -mx-2 pt-2">
-                <PropertyList
-                  properties={filteredProperties()}
-                  activeIndex={activeIndex()}
-                  activeKey={activeKey()}
-                  onHoverIndex={setActiveIndex}
-                  onSelect={handleSelectProperty}
-                  onStep={stepFromPointer}
-                  onCommitValue={commitTypedValue}
-                  onEditComplete={ensureSearchFocused}
+          {/* Search input. Always mounted (owns focus). Hidden when
+              compact AND empty — typing into it would re-show it via
+              setIsCompact(false) in onInput. When compact but the user
+              already typed something (e.g. `mt-`), keeps showing so
+              they can see what they typed. */}
+          {(() => {
+            const isSearchHidden = () => isCompact() && searchQuery() === "";
+            return (
+              <div
+                class={
+                  isSearchHidden()
+                    ? ""
+                    : "[font-synthesis:none] contain-layout shrink-0 flex flex-col items-start px-2 py-1.5 w-full self-stretch [border-top-width:0.5px] border-t-solid border-t-[var(--rg-border-subtle)] antialiased"
+                }
+                style={isSearchHidden() ? HIDDEN_FOCUS_PRESERVING_STYLE : undefined}
+              >
+                <textarea
+                  ref={(element) => {
+                    searchInputRef = element;
+                  }}
+                  data-react-grab-ignore-events
+                  data-react-grab-input
+                  aria-label="Search properties"
+                  aria-keyshortcuts="Enter Escape ArrowUp ArrowDown ArrowLeft ArrowRight Tab"
+                  class="text-[var(--rg-text-primary)] text-[13px] leading-4 font-medium bg-transparent border-none resize-none w-full p-0 m-0 outline-none"
+                  style={{
+                    "field-sizing": "content",
+                    "min-height": "16px",
+                    "max-height": "16px",
+                    "scrollbar-width": "none",
+                  }}
+                  value={searchQuery()}
+                  onInput={(event) => {
+                    const next = event.currentTarget.value;
+                    setSearchQuery(next);
+                    setActiveIndex(0);
+                    // Typing means the user is looking for a property —
+                    // pop back to full layout. tryApplyTailwindClass may
+                    // immediately re-set compact if the query targets a
+                    // known prefix or class.
+                    setIsCompact(false);
+                    tryApplyTailwindClass(next);
+                  }}
+                  onKeyDown={handleSearchKeyDown}
+                  placeholder="Search property"
+                  rows={1}
                 />
               </div>
-            </Show>
-          </div>
+            );
+          })()}
+
+          {/* Property list. Always mounted (so e2e tests + the active
+              row's value can be queried even in compact). Hidden in
+              compact via HIDDEN_FOCUS_PRESERVING_STYLE. */}
+          <Show when={filteredProperties().length > 0}>
+            <div
+              class={
+                isCompact()
+                  ? ""
+                  : "[font-synthesis:none] contain-layout shrink-0 flex flex-col items-start px-2 pb-1.5 w-[calc(100%+16px)] -mx-2 self-stretch antialiased"
+              }
+              style={isCompact() ? HIDDEN_FOCUS_PRESERVING_STYLE : undefined}
+            >
+              <PropertyList
+                properties={filteredProperties()}
+                activeIndex={activeIndex()}
+                activeKey={activeKey()}
+                onHoverIndex={setActiveIndex}
+                onSelect={handleSelectProperty}
+                onStep={stepFromPointer}
+                onCommitValue={commitTypedValue}
+                onEditComplete={ensureSearchFocused}
+              />
+            </div>
+          </Show>
 
           {/* Compact-mode dropdown — mirrors the comment plugin's
               prompt-mode UX: focused value editor + circular submit
