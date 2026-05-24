@@ -18,11 +18,8 @@ import {
   EDIT_PANEL_MIN_WIDTH_PX,
   EDIT_PROPERTY_LIST_MAX_HEIGHT_PX,
   EDIT_SLIDER_SPRING_EASING,
-  EDIT_STEP_REPEAT_INITIAL_DELAY_MS,
-  EDIT_STEP_REPEAT_INTERVAL_MS,
   EDIT_VALUE_BUMP_MS,
   EDIT_VALUE_BUMP_PX,
-  TAILWIND_SPACING_UNIT_PX,
   Z_INDEX_OVERLAY,
 } from "../../constants.js";
 import type {
@@ -33,12 +30,10 @@ import type {
 import { clampToRange } from "../../utils/clamp-to-range.js";
 import { cn } from "../../utils/cn.js";
 import { createAnchoredDropdown } from "../../utils/create-anchored-dropdown.js";
-import { expandAggregateLonghands } from "../../utils/expand-aggregate-longhands.js";
 import { findTailwindClass } from "../../utils/find-tailwind-class.js";
 import { cleanNumericValue, formatEditableValue } from "../../utils/format-css-value.js";
 import { formatSessionEditsPrompt } from "../../utils/format-edit-prompt.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
-import { tailwindPrefixToProperty } from "../../utils/tailwind-class-map.js";
 import { registerOverlayDismiss } from "../../utils/register-overlay-dismiss.js";
 import { suppressMenuEvent } from "../../utils/suppress-menu-event.js";
 import { TagBadge } from "../selection-label/tag-badge.js";
@@ -48,7 +43,10 @@ import { CycleControl } from "./cycle-control.js";
 import { asColor, asEnum, asNumeric } from "./narrow-property.js";
 import { createPreviewStyles } from "./preview-styles.js";
 import { PropertyList } from "./property-list.js";
+import { createShiftTracker } from "./shift-tracker.js";
+import { createStepController } from "./step-controller.js";
 import { stepProperty } from "./step-property.js";
+import { createTailwindAutoApply } from "./tailwind-autoapply.js";
 import { createTweakStore } from "./tweak-store.js";
 import { ValueStepper } from "./value-stepper.js";
 
@@ -60,10 +58,9 @@ interface EditPanelProps {
   onInteractingChange?: (interacting: boolean) => void;
 }
 
-// Thin wrapper that uses keyed <Show> so every signal/effect in the body
-// is torn down and rebuilt when the panel opens on a different element
-// (or after a dismiss → re-open cycle). No manual state-reset bookkeeping
-// in the body, no stale closures, no leaked timers.
+// Keyed <Show> tears down + rebuilds the body each time the panel opens
+// against a new element, so no manual reset bookkeeping is needed in
+// the body.
 export const EditPanel: Component<EditPanelProps> = (props) => (
   <Show keyed when={props.state}>
     {(state) => (
@@ -97,24 +94,16 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   const [activeIndex, setActiveIndex] = createSignal(0);
   const [activeKey, setActiveKey] = createSignal<"left" | "right" | null>(null);
   const tweakStore = createTweakStore({ initialProperties, searchQuery });
-  // Compact mode: shows just the value stepper (no TagBadge, no search,
-  // no list). Driven directly by user action rather than derived from
-  // search content:
-  //   - Stepper commit (Left/Right) or click-to-type commit → setIsCompact(true)
-  //   - Navigate (Up/Down/Tab) or type in search → setIsCompact(false)
-  // Auto-applied Tailwind classes (typed in search) intentionally don't
-  // flip the layout — the user is still searching, just with side-effect
-  // value application.
+  // Compact mode shows just the value stepper. Driven by user actions
+  // (commit / step → compact; navigate / search → expanded), not derived
+  // from search content.
   const [isCompact, setIsCompact] = createSignal(false);
 
   let activeKeyTimerId: ReturnType<typeof setTimeout> | undefined;
   let interactingIdleTimerId: ReturnType<typeof setTimeout> | undefined;
-  // Transient: true for EDIT_PANEL_ADJUSTING_IDLE_MS after the user's
-  // last touch on a control. The composed `isInteracting` accessor
-  // OR-s this with hasPendingTweaks so the page-level selection overlay
-  // stays hidden across the full edit lifecycle (transient action OR
-  // any committed tweak) without the timer needing to encode latch
-  // logic itself.
+  // Transient pulse: composed via OR with hasPendingTweaks so the
+  // page-level overlay stays hidden for the whole edit session without
+  // this timer encoding latch logic.
   const [isTransientInteraction, setIsTransientInteraction] = createSignal(false);
   const isInteracting = createMemo(
     () => isTransientInteraction() || tweakStore.hasPendingTweaks(),
@@ -148,10 +137,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     }, EDIT_PANEL_ACTIVE_KEY_FLASH_MS);
   };
 
-  // Fires the transient "user just touched a control" pulse. Kept
-  // dumb: the panel's `isInteracting` accessor composes this with the
-  // store's hasPendingTweaks so the page-level overlay stays hidden
-  // for the full session without this timer encoding latch logic.
   const markAsInteracting = () => {
     setIsTransientInteraction(true);
     clearTimeout(interactingIdleTimerId);
@@ -161,8 +146,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     );
   };
 
-  // Bridge the composed isInteracting signal to the parent overlay
-  // controller via the prop callback.
   createEffect(() => props.onInteractingChange?.(isInteracting()));
 
   const ensureSearchFocused = () => {
@@ -178,12 +161,9 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     compact?: boolean;
   }
 
-  // Canonical write path for every committed tweak (keyboard step,
-  // typed value, drag, colour pick, enum cycle, tailwind auto-apply).
-  // The store owns kind-tagged storage; preview owns inline styles;
-  // markAsInteracting owns the overlay-hide pulse. Callers only choose
-  // which optional side-effects fire (flash an arrow, refocus search,
-  // collapse to compact).
+  // Canonical write path for every committed tweak. The store owns
+  // kind-tagged storage, preview owns inline styles, markAsInteracting
+  // owns the overlay-hide pulse. Options just gate optional side-effects.
   const commit = (
     property: EditableProperty,
     nextValue: number | string,
@@ -197,17 +177,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     if (options.compact) setIsCompact(true);
   };
 
-  // Held step direction: when an arrow key (or step button) is held,
-  // the panel surface translates a few px in that direction and parks
-  // there until release, at which point the CSS transition springs it
-  // back. A quick tap renders as a brief shift → spring-back; a long
-  // hold parks at the offset for the duration. This replaces the
-  // per-step WAAPI bump — bumps stacked on every repeat tick and read
-  // as shaking. Boundary clamps intentionally have no animation —
-  // budge wraps values instead of clamping so the boundary case never
-  // surfaces; CSS props need real clamping but a silent clamp + arrow
-  // flash conveys "you're at the edge" without extra noise.
-  const [heldStepDirection, setHeldStepDirection] = createSignal<-1 | 0 | 1>(0);
+  const isShiftHeld = createShiftTracker();
 
   const commitTweak = (direction: 1 | -1, shift: boolean): EditableProperty | null => {
     const property = activeProperty();
@@ -229,40 +199,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     commitTweak(direction, false);
   };
 
-  // Long-press auto-repeat. OS-level key-repeat fires keydown again at
-  // ~30-100ms after a ~500ms initial delay (varies by platform / a11y
-  // settings). For a consistent budge-feel we drive our own timer:
-  //   - First keydown commits + records `pressedKey`
-  //   - After INITIAL_DELAY_MS, an interval fires step() at INTERVAL_MS
-  //   - keyup (or any other key) clears state
-  // Subsequent OS keydown repeats while `pressedKey` matches are
-  // ignored — our interval is authoritative for the cadence.
-  //
-  // `currentShiftHeld` is read fresh inside the interval (not captured
-  // at startStepRepeat) so toggling Shift mid-hold flips the multiplier
-  // on the very next repeat tick.
-  let pressedKey: "ArrowLeft" | "ArrowRight" | null = null;
-  let currentShiftHeld = false;
-  let repeatInitialTimerId: ReturnType<typeof setTimeout> | null = null;
-  let repeatIntervalTimerId: ReturnType<typeof setInterval> | null = null;
-  const stopStepRepeat = () => {
-    if (repeatInitialTimerId !== null) clearTimeout(repeatInitialTimerId);
-    if (repeatIntervalTimerId !== null) clearInterval(repeatIntervalTimerId);
-    repeatInitialTimerId = null;
-    repeatIntervalTimerId = null;
-    pressedKey = null;
-    setHeldStepDirection(0);
-  };
-  const startStepRepeat = (key: "ArrowLeft" | "ArrowRight") => {
-    stopStepRepeat();
-    pressedKey = key;
-    const direction = key === "ArrowLeft" ? -1 : 1;
-    repeatInitialTimerId = setTimeout(() => {
-      repeatIntervalTimerId = setInterval(() => {
-        stepFromKeyboard(direction, currentShiftHeld);
-      }, EDIT_STEP_REPEAT_INTERVAL_MS);
-    }, EDIT_STEP_REPEAT_INITIAL_DELAY_MS);
-  };
+  const stepController = createStepController({ step: stepFromKeyboard, isShiftHeld });
 
   const commitNumericValue = (rawValue: number) => {
     const property = activeProperty();
@@ -286,155 +223,22 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     commit(property, value);
   };
 
-  // Token chip for the active row: shown only while Shift is held so
-  // it's a peek-on-demand hint, not constant visual noise. Resolves the
-  // canonical Tailwind class for the current numeric value (e.g.
-  // padding-top 16 → `pt-4`). The first cssProperties entry is the
-  // property's canonical key — for aggregates (padding, inset) it's the
-  // shorthand, for longhands it matches the row label.
-  const [isShiftHeld, setIsShiftHeld] = createSignal(false);
   const activeTailwindLabel = createMemo<string | null>(() => {
     if (!isShiftHeld()) return null;
     const property = activeProperty();
     if (!property || property.kind !== "numeric") return null;
     const cssKey = property.cssProperties[0];
-    if (!cssKey) return null;
-    return findTailwindClass(cssKey, property.value);
+    return cssKey ? findTailwindClass(cssKey, property.value) : null;
   });
 
-  // Auto-apply when the search query is a complete `<prefix>-<n>` Tailwind
-  // class. `p-64` immediately writes 256px to padding (no Enter needed),
-  // `opacity-50` writes 50%. Skips arbitrary values (`p-[10px]`) and the
-  // named scales (`text-xs`, `rounded-full`) — those don't map 1:1 to a
-  // numeric multiplier.
-  const TAILWIND_CLASS_PATTERN = /^([a-z-]+)-(-?\d+(?:\.\d+)?)$/;
-  // Bare-number query: when the user is in compact mode with a numeric
-  // row active and types just digits / `.` / `-`, the keystroke is
-  // routed straight to the active value (so typing `55` against a
-  // 22px padding-top updates it to 55px live). Search-mode is suppressed
-  // and the textarea stays hidden — value display already mirrors the
-  // typed digits, so a second copy in the search field would be noise.
-  const NUMERIC_QUERY_PATTERN = /^-?\d*\.?\d+$/;
-  const isInlineNumericEdit = createMemo(() => {
-    if (!isCompact()) return false;
-    const property = activeProperty();
-    if (property?.kind !== "numeric") return false;
-    return NUMERIC_QUERY_PATTERN.test(searchQuery());
+  const autoApply = createTailwindAutoApply({
+    initialProperties,
+    searchQuery,
+    isCompact,
+    activeProperty,
+    commit,
+    setIsCompact,
   });
-  const tryApplyNumericQuery = (query: string): boolean => {
-    if (!isCompact()) return false;
-    if (!NUMERIC_QUERY_PATTERN.test(query)) return false;
-    const property = activeProperty();
-    if (!property || property.kind !== "numeric") return false;
-    const parsed = Number.parseFloat(query);
-    if (!Number.isFinite(parsed)) return false;
-    const next = cleanNumericValue(clampToRange(parsed, property.min, property.max));
-    if (next === property.value) return true;
-    commit(property, next);
-    return true;
-  };
-  // Whether a tailwind cssKey resolves to at least one trackable
-  // editable row in initialProperties (either as the exact key, an
-  // enum row matching the cssKey, or through aggregate-longhand
-  // expansion). Auto-apply both gates compact-intent and the value
-  // commit on this — typing a class for a property the panel can't
-  // edit shouldn't shrink the UI around an empty target. Enum rows
-  // count too so `font-` (font-weight) gets the same intent treatment
-  // as `mt-` etc.
-  const hasTrackableTarget = (cssKey: string): boolean => {
-    if (
-      initialProperties.some(
-        (entry) =>
-          entry.key === cssKey && (entry.kind === "numeric" || entry.kind === "enum"),
-      )
-    ) {
-      return true;
-    }
-    const longhands = expandAggregateLonghands(cssKey);
-    return initialProperties.some(
-      (entry) => longhands.includes(entry.key) && entry.kind === "numeric",
-    );
-  };
-
-  const tryApplyTailwindClass = (query: string) => {
-    // Strip trailing partial value (digit or hanging dash) so `mt`,
-    // `mt-`, `mt-4` all distill down to the prefix `mt`. If that prefix
-    // maps to an editable property AND that property is actually
-    // trackable, signal user intent to target it → collapse to compact
-    // so the stepper is visible and ready, even before any value is
-    // applied.
-    const intentPrefix = query.replace(/-\d*$/, "").replace(/-$/, "");
-    const intentCssKey = intentPrefix ? tailwindPrefixToProperty(intentPrefix) : null;
-    if (intentCssKey && hasTrackableTarget(intentCssKey)) {
-      setIsCompact(true);
-    }
-    const match = query.match(TAILWIND_CLASS_PATTERN);
-    if (!match) return;
-    const cssKey = tailwindPrefixToProperty(match[1]);
-    if (!cssKey) return;
-    const rawNumber = Number.parseFloat(match[2]);
-    if (!Number.isFinite(rawNumber)) return;
-    // These properties take the raw number as-is rather than the 4px
-    // spacing multiplier:
-    //   - opacity (Tailwind: opacity-50 = 50%, our UI is 0-100 too)
-    //   - border-width (Tailwind: border-2 = 2px literally)
-    //   - z-index (z-10 = z-index: 10)
-    //   - font-weight (font-700 = font-weight: 700)
-    const usesLiteralNumber =
-      cssKey === "opacity" ||
-      cssKey === "border-width" ||
-      cssKey === "z-index" ||
-      cssKey === "font-weight";
-    const candidate = usesLiteralNumber ? rawNumber : rawNumber * TAILWIND_SPACING_UNIT_PX;
-
-    // First try: the prefix maps to an exact aggregate row (e.g. `p` →
-    // canonical "padding" when all sides are uniform). Tailwind numeric
-    // classes only target numeric properties — colour classes resolve
-    // to canonical hex via a different code path (none yet).
-    const exact = initialProperties.find(
-      (entry) => entry.key === cssKey && entry.kind === "numeric",
-    );
-    if (exact && exact.kind === "numeric") {
-      const next = cleanNumericValue(clampToRange(candidate, exact.min, exact.max));
-      commit(exact, next, { compact: true });
-      return;
-    }
-
-    // Enum fallback: properties like `font-weight` are built as enum
-    // rows (cycle through `100..900`) but the canonical Tailwind class
-    // is numeric (`font-700`). If the typed number matches one of the
-    // enum's `value`s exactly, commit it to the enum row.
-    const enumExact = initialProperties.find(
-      (entry) => entry.key === cssKey && entry.kind === "enum",
-    );
-    if (enumExact && enumExact.kind === "enum") {
-      const candidateString = String(rawNumber);
-      const matchingOption = enumExact.options.find(
-        (option) => option.value === candidateString,
-      );
-      if (matchingOption) {
-        commit(enumExact, matchingOption.value, { compact: true });
-        return;
-      }
-    }
-
-    // Fallback: the canonical aggregate isn't in the list (e.g. element
-    // has non-uniform padding, so "padding" was filtered out). Commit
-    // to every individual side row whose longhand is covered, so the
-    // store reflects the change AND the preview spans all real sides
-    // (expandAggregateLonghands handles both comma-joined partial
-    // aggregates and top-level aggregates → 4 sides).
-    const longhands = expandAggregateLonghands(cssKey);
-    const sideProperties = initialProperties.filter(
-      (entry) => longhands.includes(entry.key) && entry.kind === "numeric",
-    );
-    if (sideProperties.length === 0) return;
-    for (const side of sideProperties) {
-      if (side.kind !== "numeric") continue;
-      const next = cleanNumericValue(clampToRange(candidate, side.min, side.max));
-      commit(side, next, { compact: true });
-    }
-  };
 
   const handleSubmit = () => {
     const pendingEdits = tweakStore.buildPendingEdits();
@@ -446,10 +250,8 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     props.onSubmit(formatSessionEditsPrompt(pendingEdits.length > 0 ? [entry] : []));
   };
 
-  // Close paths (Escape, click-outside) just close — the inline preview
-  // styles stay on the element via preview.forget() in onCleanup, so the
-  // page keeps showing the user's tweaks until the agent updates the
-  // source. No prompt fires, nothing persisted.
+  // Close paths preserve tweaks — inline preview styles stay on the
+  // element until the agent updates source.
   const dismissPreservingTweaks = () => {
     props.onDismiss();
   };
@@ -458,15 +260,9 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     const properties = filteredProperties();
     if (properties.length === 0) return;
     setActiveIndex((current) => (current + direction + properties.length) % properties.length);
-    // Navigating the list (Up/Down/Tab) needs the list to be visible —
-    // re-expand back to full mode. Next adjust (Left/Right) flips it
-    // back to compact via setIsCompact(true) in commitTweak.
     setIsCompact(false);
   };
 
-  // Color rows register a trigger fn on mount so Enter on a colour
-  // active row opens the native picker instead of submitting the panel.
-  // Cleared on unmount so we never accidentally call into a stale ref.
   let colorPickerTrigger: (() => void) | null = null;
   const registerColorPickerTrigger = (trigger: (() => void) | null) => {
     colorPickerTrigger = trigger;
@@ -475,27 +271,12 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   const keyHandlers: Record<string, (event: KeyboardEvent) => void> = {
     ArrowUp: () => navigateActive(-1),
     ArrowDown: () => navigateActive(1),
-    ArrowLeft: (event) => {
-      // Our long-press timer drives the cadence — let the first keydown
-      // through, then ignore OS-level repeats so the two sources don't
-      // interleave.
-      if (event.repeat) return;
-      setHeldStepDirection(-1);
-      stepFromKeyboard(-1, event.shiftKey);
-      startStepRepeat("ArrowLeft");
-    },
-    ArrowRight: (event) => {
-      if (event.repeat) return;
-      setHeldStepDirection(1);
-      stepFromKeyboard(1, event.shiftKey);
-      startStepRepeat("ArrowRight");
-    },
+    ArrowLeft: (event) => stepController.pressArrow("ArrowLeft", event.repeat, event.shiftKey),
+    ArrowRight: (event) => stepController.pressArrow("ArrowRight", event.repeat, event.shiftKey),
     Tab: (event) => navigateActive(event.shiftKey ? -1 : 1),
     Enter: () => {
-      // Colour rows: first Enter opens the native picker (pick-affordance);
-      // once a tweak is committed for this row, fall through to submit
-      // like every other kind so the diff gets copied without an extra
-      // Escape-and-re-Enter round trip.
+      // Colour rows: first Enter opens the native picker; subsequent
+      // Enters submit like every other kind.
       const property = activeProperty();
       const isUntweakedColor =
         property?.kind === "color" && !tweakStore.hasTweakFor(property.key);
@@ -517,8 +298,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     handler(event);
   };
 
-  // Keep the active row in sync with the filtered list — collapse on empty,
-  // clamp when the list shrinks beneath the previous index.
+  // Keep activeIndex valid as the filtered list grows/shrinks.
   createEffect(
     on(filteredProperties, (properties) => {
       if (properties.length === 0) {
@@ -535,43 +315,30 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   onMount(() => {
     queueMicrotask(() => {
       searchInputRef?.focus({ preventScroll: true });
-      // Move cursor to end so the next keystroke from the user appends
-      // to the seeded query (type-to-edit flow), not overwrites.
+      // Append-to-seed flow: next keystroke extends the query rather
+      // than overwriting it.
       if (searchInputRef) {
         const length = searchInputRef.value.length;
         searchInputRef.setSelectionRange(length, length);
       }
     });
     dropdown.measure();
-    // If seeded with a tailwind prefix (e.g. user typed `m` while
-    // hovering in selection mode), run the same auto-apply pipeline
-    // that onInput uses so compact mode + value application kicks in.
     const seed = searchQuery();
-    if (seed) tryApplyTailwindClass(seed);
+    if (seed) autoApply.applyTailwindClass(seed);
 
     const unregisterDismiss = registerOverlayDismiss({
       isOpen: () => true,
       onDismiss: dismissPreservingTweaks,
       shouldIgnoreRightClick: true,
-      // Escape inside our own inputs (search textarea, click-to-type value
-      // editor) is owned by those inputs (commit/cancel), not the panel
-      // dismissal path. The panel's own window-level handler still routes
-      // Escape-from-search to dismissPreservingTweaks.
+      // Inline editors (search textarea / click-to-type) own their own
+      // Escape; the panel still gets Escape via its window handler.
       shouldIgnoreInputEvents: true,
     });
 
-    // Window-level keydown so arrow/Enter/Esc work regardless of where
-    // focus actually lives — in compact mode the search textarea is
-    // hidden 0×0 and some browsers blur it, which would otherwise strand
-    // the keyboard handler. The textarea's own onKeyDown still fires too,
-    // but stopImmediatePropagation there prevents double-processing.
-    //
-    // Skip when the keystroke belongs to a real editable surface on
-    // the page (or inside our own click-to-type value editor) — those
-    // own the keystroke for their own commit/cancel semantics. The
-    // panel renders inside a Shadow DOM, so events bubbling out get
-    // retargeted to the shadow host; `composedPath()[0]` gives us the
-    // true original target across the shadow boundary.
+    // Window-level keydown — compact mode hides the textarea 0×0 and
+    // some browsers blur it. Page editable targets keep their own
+    // semantics. composedPath()[0] sees through the Shadow DOM
+    // retargeting.
     const isPageEditableTarget = (target: EventTarget | undefined): boolean => {
       if (!(target instanceof HTMLElement)) return false;
       if (target instanceof HTMLInputElement) return true;
@@ -580,49 +347,27 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       return false;
     };
     const handleWindowKeyDown = (event: KeyboardEvent) => {
-      // Track shift regardless of focus target — the token chip should
-      // peek even if the user is typing into a page input, and the
-      // long-press repeat tick reads currentShiftHeld fresh per tick
-      // so a Shift toggle mid-hold flips the 10x multiplier.
-      currentShiftHeld = event.shiftKey;
-      if (event.shiftKey) setIsShiftHeld(true);
       if (isPageEditableTarget(event.composedPath()[0])) return;
       handleSearchKeyDown(event);
     };
-    // keyup needs the same shadow-target guard so releasing a page input
-    // doesn't accidentally cancel our repeat timer (and vice-versa).
     const handleWindowKeyUp = (event: KeyboardEvent) => {
-      currentShiftHeld = event.shiftKey;
-      if (!event.shiftKey) setIsShiftHeld(false);
-      if (event.key === pressedKey) stopStepRepeat();
-    };
-    // Window blur can swallow keyup (chord, alt-tab) so reset shift then
-    // so the chip doesn't stick around on the next focus.
-    const handleWindowBlur = () => {
-      currentShiftHeld = false;
-      setIsShiftHeld(false);
+      stepController.releaseKey(event.key);
     };
     window.addEventListener("keydown", handleWindowKeyDown, { capture: true });
     window.addEventListener("keyup", handleWindowKeyUp, { capture: true });
-    window.addEventListener("blur", handleWindowBlur);
 
     onCleanup(() => {
       unregisterDismiss();
       window.removeEventListener("keydown", handleWindowKeyDown, { capture: true });
       window.removeEventListener("keyup", handleWindowKeyUp, { capture: true });
-      window.removeEventListener("blur", handleWindowBlur);
-      stopStepRepeat();
       clearTimeout(activeKeyTimerId);
       clearTimeout(interactingIdleTimerId);
       dropdown.clearAnimationHandles();
-      // The reactive bridge stops firing on unmount, so explicitly
-      // tell the parent the overlay can come back. Safe to call even
-      // when we weren't interacting — the parent's setter is idempotent.
+      // Bridge stops firing on unmount — tell the parent the overlay
+      // can return. Idempotent.
       setIsTransientInteraction(false);
       props.onInteractingChange?.(false);
-      // All dismissal paths preserve the user's tweaks (req: Escape does
-      // not reset state). Inline styles stay applied; the page shows the
-      // tweaked values until the source is updated.
+      // All dismissals preserve tweaks — inline styles stay applied.
       preview.forget();
     });
   });
@@ -665,7 +410,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
           style={{
             "min-width": isCompact() ? undefined : `${EDIT_PANEL_MIN_WIDTH_PX}px`,
             "max-width": `${EDIT_PANEL_MAX_WIDTH_PX}px`,
-            transform: `translateX(${heldStepDirection() * EDIT_VALUE_BUMP_PX}px)`,
+            transform: `translateX(${stepController.heldDirection() * EDIT_VALUE_BUMP_PX}px)`,
             transition: `transform ${EDIT_VALUE_BUMP_MS}ms ${EDIT_SLIDER_SPRING_EASING}`,
           }}
         >
@@ -692,12 +437,12 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
               what they typed. */}
           <div
             class={
-              isCompact() && (searchQuery() === "" || isInlineNumericEdit())
+              isCompact() && (searchQuery() === "" || autoApply.isInlineNumericEdit())
                 ? ""
                 : "[font-synthesis:none] contain-layout shrink-0 flex flex-col items-start px-2 py-1.5 w-full self-stretch [border-top-width:0.5px] border-t-solid border-t-[var(--rg-border-subtle)] antialiased"
             }
             style={
-              isCompact() && (searchQuery() === "" || isInlineNumericEdit())
+              isCompact() && (searchQuery() === "" || autoApply.isInlineNumericEdit())
                 ? HIDDEN_FOCUS_PRESERVING_STYLE
                 : undefined
             }
@@ -723,14 +468,12 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                 const next = event.currentTarget.value;
                 setSearchQuery(next);
                 // Pure-number typing in compact + numeric active stays
-                // compact and applies the value live — no re-expansion,
-                // no activeIndex reset (would reshuffle the active row
-                // out from under the value pipeline), no tailwind class
-                // probing (numbers alone are never valid class names).
-                if (tryApplyNumericQuery(next)) return;
+                // compact and short-circuits the search flow so the
+                // active row identity isn't reshuffled mid-keystroke.
+                if (autoApply.tryApplyNumericValue(next)) return;
                 setActiveIndex(0);
                 setIsCompact(false);
-                tryApplyTailwindClass(next);
+                autoApply.applyTailwindClass(next);
               }}
               onKeyDown={handleSearchKeyDown}
               placeholder="Search property"

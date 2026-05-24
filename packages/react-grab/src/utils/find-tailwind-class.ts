@@ -6,21 +6,9 @@ import {
   TAILWIND_Z_INDEX_MAX,
 } from "../constants.js";
 
-// Reverse-lookup from (CSS property, numeric value) to the canonical
-// Tailwind class string. Used by the edit panel's "token chip" — when
-// the user's tweak lands exactly on a design-system stop we show e.g.
-// `· p-4` after the raw number so they know they're on a known token.
-//
-// Returns null when the value doesn't match any concise Tailwind
-// utility (off-scale, negative when not allowed, etc.) — the chip just
-// hides in that case.
+// Reverse-lookup (CSS key, value) → canonical Tailwind class. Returns
+// null for off-scale / unsupported values; the chip just hides.
 
-// Spacing-scale: padding/margin/gap/sizing/positioning all map
-// `value px = (units * 4) px`, so the chip is `prefix-units` when
-// `value % 4 === 0`. Same scale handles negative margins
-// (`-mt-4` for -16px) but the chip elides the leading dash here —
-// users rarely hand-author negative spacing and the chip is a hint,
-// not a complete substitution.
 const SPACING_PROPERTIES: ReadonlySet<string> = new Set([
   "padding",
   "padding-top",
@@ -47,9 +35,8 @@ const SPACING_PROPERTIES: ReadonlySet<string> = new Set([
   "left",
 ]);
 
-// Per-property "best" Tailwind prefix — picks the most specific
-// longhand alias so the chip reads as the canonical class the user
-// would type, not an aggregate that touches other sides.
+// Most-specific Tailwind prefix per CSS key — `pt` over `p` for
+// padding-top so the chip names the longhand the user would type.
 const PROPERTY_TO_BEST_PREFIX: Record<string, string> = {
   padding: "p",
   "padding-top": "pt",
@@ -97,8 +84,7 @@ export const findTailwindClass = (cssKey: string, value: number): string | null 
 
   if (cssKey === "border-width" || cssKey.endsWith("-width")) {
     if (!Number.isInteger(value) || value < 0 || value > TAILWIND_BORDER_MAX_PX) return null;
-    // `border` (no suffix) means 1px on the aggregate; `border-t`
-    // (also no suffix) means 1px on that side. Other widths get the
+    // 1px is the suffix-less form: `border` / `border-t`. Others get
     // numeric suffix: `border-2`, `border-t-4`, …
     if (value === 1) return prefix;
     return `${prefix}-${value}`;
@@ -110,10 +96,8 @@ export const findTailwindClass = (cssKey: string, value: number): string | null 
   }
 
   if (cssKey === "opacity") {
-    // The edit panel stores opacity as a percent in [0, 100] (see
-    // build-editable-properties.normalizeForEdit), so `value` here is
-    // already the chip number we want — granularity check just keeps
-    // arbitrary off-scale numbers from getting chipped.
+    // Opacity is stored as percent [0, 100] (build-editable-properties
+    // normalizes), so `value` already matches the chip number.
     if (!Number.isFinite(value) || value < 0 || value > 100) return null;
     if (value % TAILWIND_OPACITY_GRANULARITY !== 0) return null;
     return `${prefix}-${value}`;

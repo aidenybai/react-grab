@@ -15,17 +15,9 @@ import {
 } from "../constants.js";
 
 interface SlotProps {
-  // Number (or pre-formatted numeric string) whose digits roll
-  // slot-machine style when the value changes. Non-digit characters
-  // (`.`, `-`, ` `, etc.) are rendered as static segments between
-  // digit columns so they preserve position without animating.
   children: string | number;
-  // Override the auto-derived direction:
-  //   1  → digits roll UP   (new digit enters from below)
-  //   -1 → digits roll DOWN (new digit enters from above)
-  //   0  → take the shortest mod-10 path
-  // When omitted, sign(newValue - prevValue) drives direction so the
-  // motion mirrors the value's actual change.
+  // Override auto-derived direction: 1 rolls up, -1 rolls down, 0
+  // takes the shortest mod-10 path. Omit to derive from value sign.
   direction?: 1 | -1 | 0;
   class?: string;
   style?: JSX.CSSProperties;
@@ -37,18 +29,15 @@ const isDigit = (character: string) => DIGIT_REGEX.test(character);
 const SLOT_FADE_MASK = `linear-gradient(to bottom, transparent 0%, black ${SLOT_FADE_HEIGHT_EM}em, black calc(100% - ${SLOT_FADE_HEIGHT_EM}em), transparent 100%)`;
 const DIGITS_0_TO_9 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
 
-// Modular shortest signed offset in [-5, 5] from `from` to `to` on a
-// ring of 10 — used to pick the visually shortest digit roll when the
-// caller doesn't impose a direction.
+// Shortest signed offset in [-5, 5] on the 0..9 ring.
 const ringOffset = (from: number, to: number): number => {
   let offset = (((to - from) % 10) + 10) % 10;
   if (offset > 5) offset -= 10;
   return offset;
 };
 
-// Signed digit step on the 0..9 ring honoring the caller's direction.
-// direction > 0 → only forward (9 → 0 = +1, never -9), direction < 0 →
-// only backward, direction === 0 → shortest path (mod-10 nearest).
+// Direction > 0 forces forward steps even when the new digit wraps
+// (9 → 0 = +1 instead of -9), < 0 forces backward, 0 takes shortest.
 const computeDigitDelta = (
   previousDigit: number,
   nextDigit: number,
@@ -75,22 +64,15 @@ interface SlotColumnProps {
 }
 
 const SlotColumn: Component<SlotColumnProps> = (props) => {
-  // `cumulativePosition` is unbounded: each digit change adds the
-  // signed step (computeDigitDelta). The DOM renders digits 0..9 in
-  // a stack — for each, translateY = -(offsetFromCumulative)*100% is
-  // computed against the mod-10 position of `cumulativePosition`, so
-  // only the active digit + its immediate neighbour are on-screen and
-  // the rest sit clamped off the strip. CSS transitions on each
-  // digit's transform produce the slot-spin animation.
+  // Unbounded counter — adds each delta so `9 → 0` (going up) advances
+  // past 10 instead of rolling backward. The mod-10 of this drives the
+  // per-digit clamping in translateYPercent, so only the active digit +
+  // its neighbour are on-screen and CSS transitions handle the roll.
   const [cumulativePosition, setCumulativePosition] = createSignal(0);
 
-  // `on()` tracks the previous digit for us, so we never reach outside
-  // a reactive context to peek at props. First fire (`previous ===
-  // undefined`) seeds the cumulative to the initial digit without
-  // animating; subsequent changes add the signed delta. Accumulating
-  // history into a signal is the legitimate use of createEffect — the
-  // value can't be expressed as a pure function of the current input
-  // alone, so a memo isn't applicable.
+  // Accumulator: not derivable from props.digit alone, so createEffect
+  // is the right primitive. `on()`'s previous arg avoids a closure-var
+  // peek at props from setup-time.
   createEffect(
     on(
       () => props.digit,
@@ -109,8 +91,7 @@ const SlotColumn: Component<SlotColumnProps> = (props) => {
 
   return (
     <span class="relative inline-block" style={{ "vertical-align": "top" }}>
-      {/* Invisible "0" reserves layout width for the column so the
-          absolutely-positioned digit children have a sized parent. */}
+      {/* Sized parent for the absolutely-positioned digit children. */}
       <span aria-hidden="true" class="invisible inline-block whitespace-pre">
         0
       </span>
@@ -152,15 +133,10 @@ const splitIntoSegments = (text: string): CharSegment[] => {
   return segments;
 };
 
-// Right-aligned digit columns: each entry's index = distance from the
-// END of the string. Index 0 is the ones place, index 1 is the tens,
-// etc. Combined with `flex-direction: row-reverse` in the renderer
-// this gives every digit a stable position across digit-count
-// transitions: incrementing 9 → 10 reuses index-0 (animates 9 → 0,
-// the ones digit rolling down) and mounts a fresh column at index 1
-// for the new "1" — instead of the naive left-aligned approach which
-// would roll the existing 9 column all the way to 1 (a visible jolt)
-// and stamp 0 on the right.
+// Returned in right-to-left order — index 0 is the ones place. Combined
+// with row-reverse in the renderer, each column keeps a stable identity
+// across digit-count transitions (9 → 10 reuses index-0 as the ones
+// digit and mounts a fresh column at index-1 for the new tens digit).
 const collectRightAlignedDigits = (segments: readonly CharSegment[]): string[] => {
   const reversed: string[] = [];
   for (let position = segments.length - 1; position >= 0; position--) {
@@ -170,11 +146,9 @@ const collectRightAlignedDigits = (segments: readonly CharSegment[]): string[] =
   return reversed;
 };
 
-// Literals (sign, decimal point, separators) preserve their left-aligned
-// order — they don't roll, just render. Only the prefix slice is
-// rendered (anything before the first digit); literals AFTER the first
-// digit are dropped because the slider use case only passes integer
-// formatted strings into Slot today.
+// Only the prefix (leading sign / literals before any digit) renders.
+// In-body literals (e.g. `.` in "1.5") aren't handled — slider values
+// pass integers into Slot today.
 const collectPrefixLiterals = (segments: readonly CharSegment[]): string[] => {
   const out: string[] = [];
   for (const segment of segments) {
@@ -184,34 +158,17 @@ const collectPrefixLiterals = (segments: readonly CharSegment[]): string[] => {
   return out;
 };
 
-// Intentionally narrow regex — keeps only digits, `.`, `-` so unit
-// suffixes (`px`, `%`) and thousands separators are dropped. `+` signs
-// are also dropped (parseFloat treats their absence as positive).
 const parseNumeric = (raw: string | number): number => {
   if (typeof raw === "number") return raw;
   return Number.parseFloat(String(raw).replace(/[^0-9.-]/g, "")) || 0;
 };
 
-// Slot — calligraph's "slots" variant ported to SolidJS. Renders a
-// numeric string with each digit in its own slot-machine column that
-// spring-rolls to the new digit on change. Non-digit characters
-// (decimal point, sign, spaces) sit static between columns.
-//
-// Direction is auto-derived from the sign of the change in numeric
-// value, so incrementing rolls up and decrementing rolls down by
-// default. Pass `direction` explicitly to override.
-//
-// Implementation note: CSS transitions on per-digit transform are used
-// instead of a JS animation loop — the mod-10 ring math means only the
-// active digit + its immediate neighbour ever animate, so the perf
-// envelope is tiny and the browser handles spring easing via bezier.
+// Slot — calligraph's "slots" variant ported to SolidJS. Per-digit CSS
+// transitions on transform produce the slot-spin roll on value change.
 export const Slot: Component<SlotProps> = (props) => {
   const text = createMemo(() => String(props.children ?? ""));
   const segments = createMemo(() => splitIntoSegments(text()));
 
-  // Auto-direction: cached memo using on()'s previous-value tracking.
-  // After a change, the memo holds the most recent direction until the
-  // next change — exactly what consumers (SlotColumn) need.
   const autoDirection = createMemo<1 | -1 | 0>(
     on(
       () => parseNumeric(props.children),
@@ -223,10 +180,6 @@ export const Slot: Component<SlotProps> = (props) => {
   );
   const direction = createMemo<1 | -1 | 0>(() => props.direction ?? autoDirection());
 
-  // Prefix literals (sign, leading non-digits) render left-aligned via
-  // their natural order. Digit columns render right-aligned via
-  // row-reverse so column-0 is always the ones place across
-  // digit-count transitions.
   const prefixLiterals = createMemo(() => collectPrefixLiterals(segments()));
   const rightAlignedDigits = createMemo(() => collectRightAlignedDigits(segments()));
 
@@ -255,9 +208,8 @@ export const Slot: Component<SlotProps> = (props) => {
             </span>
           )}
         </Index>
-        {/* Digit columns: rendered in reverse (ones-first) and visually
-            reversed by row-reverse so the strip reads left-to-right but
-            stable-keys by distance-from-right. */}
+        {/* row-reverse so the array's index 0 (ones place) renders
+            rightmost while keeping a stable column identity. */}
         <span class="inline-flex" style={{ "flex-direction": "row-reverse" }}>
           <Index each={rightAlignedDigits()}>
             {(digit, distanceFromRight) => (

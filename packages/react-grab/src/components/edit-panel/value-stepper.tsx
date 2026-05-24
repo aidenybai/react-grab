@@ -19,36 +19,17 @@ interface ValueStepperProps {
   unit: string;
   activeKey: "left" | "right" | null;
   onStep: (direction: 1 | -1) => void;
-  // Optional label rendered on the left of the slider (used by the
-  // compact view to show the property name on top of the track).
-  // PropertyList omits this — the row's own label sits to the left of
-  // the slider container.
   label?: string;
-  // When provided, the value text becomes click-to-edit AND the track
-  // supports dialkit-style absolute-position drag. Parent is responsible
-  // for clamping/rounding before writing through.
   onCommitValue?: (value: number) => void;
-  // Fires after the inline editor closes (commit OR cancel) so the
-  // parent can return focus to the search input.
   onEditComplete?: () => void;
-  // Signals "user is actively grabbing this control" so the parent can
-  // hide the page-level selection overlay. Called continuously while
-  // the slider is being dragged (every pointer-move), so the parent's
-  // idle timer keeps resetting and the overlay stays hidden even when
-  // the cursor is clamped past min/max and no value change fires.
+  // Fires on every drag-move so the parent's overlay-idle timer keeps
+  // resetting even while the cursor is clamped past min/max and no
+  // value-change events fire.
   onInteract?: () => void;
-  // `emphasized` bumps font sizes for the compact panel view so the
-  // active slider reads as the primary focus when the rest of the panel
-  // is hidden.
   emphasized?: boolean;
-  // Optional Tailwind token chip — when the current value matches a
-  // known design-system stop the parent passes the class name (e.g.
-  // `p-4`) and we render it after the value as `· p-4`.
   tailwindLabel?: string | null;
 }
 
-// 9 marks at 10/20/.../90% — fixed visual cadence regardless of value
-// range, mirroring dialkit's continuous-slider hash placement.
 const HASH_MARK_PERCENTS = Array.from(
   { length: EDIT_SLIDER_HASH_MARK_COUNT },
   (_, index) => ((index + 1) * 100) / (EDIT_SLIDER_HASH_MARK_COUNT + 1),
@@ -57,27 +38,18 @@ const HASH_MARK_PERCENTS = Array.from(
 export const ValueStepper: Component<ValueStepperProps> = (props) => {
   const [draftText, setDraftText] = createSignal<string | null>(null);
   const [isHovered, setIsHovered] = createSignal(false);
-  // Rubber-band stretch in px (negative = drag past left edge, positive =
-  // past right). Applied as `transform: translateX(...)` on the track so
-  // siblings (compact-mode arrows) don't shift. Spring-eases back to 0
-  // on release via CSS transition.
   const [rubberStretchPx, setRubberStretchPx] = createSignal(0);
   const isEditing = () => draftText() !== null;
   let trackElement: HTMLDivElement | undefined;
   let valueTextElement: HTMLSpanElement | undefined;
-  // Absolute-position drag: each pointer-move maps cursor x → fillPercent
-  // → value. Click-vs-drag still uses startX to decide whether to also
-  // commit (click without movement still snaps to that position).
-  // `startedOnValueText` lets pointerdown on the value chip still seed a
-  // drag — without it, slow click-to-edit gestures would slip past the
-  // drag threshold and rewrite the value mid-edit.
+  // `startedOnValueText` lets the value chip be both click-to-edit AND
+  // a drag handle — pointer-down records the flag, release branches on
+  // it.
   let dragState:
     | { startX: number; isDragging: boolean; startedOnValueText: boolean }
     | null = null;
 
   const valueClass = "text-[12px] leading-4 font-medium tabular-nums";
-  // Label stays at the inactive row's 13px so the type doesn't
-  // resize when a row goes active.
   const labelClass = "text-[13px] leading-4 font-medium";
 
   const fillPercent = () => {
@@ -110,25 +82,20 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
     props.onCommitValue?.(positionToValue(clientX));
   };
 
-  // Dialkit rubber-band: once the cursor crosses the track edge by more
-  // than DEAD_ZONE_PX, the track translates in that direction with a
-  // sqrt-decay so the pull feels heavier the further you go, capped at
-  // MAX_PX. Single-exit closed-form to keep the return type lane
-  // consistent (always a double via Math.sqrt) — branchy early returns
-  // would mix Smi 0 with double exits and deopt this hot path on
-  // every pointer-move.
+  // Dialkit rubber-band: past DEAD_ZONE_PX overflow the track pulls
+  // toward the cursor with sqrt-decay, capped at MAX_PX. signedOvershoot
+  // is negative past the left edge, positive past the right; everything
+  // else falls out of |signedOvershoot| and Math.sign.
   const computeRubberStretch = (clientX: number, trackRect: DOMRect): number => {
-    const sign =
-      clientX < trackRect.left ? -1 : clientX > trackRect.right ? 1 : 0;
-    const overshoot =
-      sign < 0
-        ? trackRect.left - clientX
-        : sign > 0
-          ? clientX - trackRect.right
-          : 0;
-    const past = Math.max(0, overshoot - EDIT_SLIDER_RUBBER_DEAD_ZONE_PX);
+    const signedOvershoot =
+      Math.max(0, clientX - trackRect.right) -
+      Math.max(0, trackRect.left - clientX);
+    const past = Math.max(
+      0,
+      Math.abs(signedOvershoot) - EDIT_SLIDER_RUBBER_DEAD_ZONE_PX,
+    );
     const decay = Math.sqrt(Math.min(past / EDIT_SLIDER_RUBBER_SOFT_RANGE_PX, 1));
-    return sign * EDIT_SLIDER_RUBBER_MAX_PX * decay;
+    return Math.sign(signedOvershoot) * EDIT_SLIDER_RUBBER_MAX_PX * decay;
   };
 
   const handleTrackPointerDown = (event: PointerEvent) => {
@@ -150,9 +117,6 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
     const deltaX = event.clientX - dragState.startX;
     if (!dragState.isDragging && Math.abs(deltaX) < EDIT_SLIDER_CLICK_THRESHOLD_PX) return;
     dragState.isDragging = true;
-    // Tick interact even when the value clamps to the same number, so
-    // the parent's idle timer keeps resetting and the selection overlay
-    // stays hidden through the full grab.
     props.onInteract?.();
     commitDrag(event.clientX);
     setRubberStretchPx(
@@ -164,17 +128,9 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
     if (!dragState) return;
     const target = event.currentTarget as Element;
     if (target.hasPointerCapture(event.pointerId)) target.releasePointerCapture(event.pointerId);
-    // No-drag release semantics:
-    //   - Started on the value chip → it's a click-to-edit, open the
-    //     inline editor instead of snapping the slider to that position.
-    //   - Started anywhere else on the track → snap to that position
-    //     (dialkit click-on-track behaviour).
     if (!dragState.isDragging) {
-      if (dragState.startedOnValueText) {
-        startEditing();
-      } else {
-        commitDrag(dragState.startX);
-      }
+      if (dragState.startedOnValueText) startEditing();
+      else commitDrag(dragState.startX);
     }
     dragState = null;
     setRubberStretchPx(0);
@@ -188,9 +144,6 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
     setRubberStretchPx(0);
   };
 
-  // Hash marks brighten when the track is "active" — hovered, currently
-  // dragging, or the keyboard is actively stepping. Matches dialkit's
-  // `.dialkit-slider-active .dialkit-slider-hashmark` rule.
   const isActiveSlider = () => isHovered() || Boolean(props.activeKey) || dragState !== null;
 
   const commit = () => {
@@ -209,9 +162,8 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
   };
 
   const handleEditKeyDown = (event: KeyboardEvent) => {
-    // The panel's window-level keydown handler skips when an HTMLInputElement
-    // owns focus, so Enter/Esc don't double-fire and accidentally submit or
-    // dismiss the whole panel.
+    // stopImmediatePropagation prevents the panel's window-level handler
+    // from also reacting to Enter/Esc while the inline editor owns input.
     event.stopImmediatePropagation();
     if (event.key === "Enter") {
       event.preventDefault();
@@ -232,9 +184,9 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
       "user-select": "none",
       "-webkit-user-select": "none",
       transform: stretch === 0 ? "translateX(0)" : `translateX(${stretch}px)`,
-      // While the cursor is actively dragging the stretch tracks the
-      // pointer with no smoothing; once released we set stretch to 0 and
-      // this transition produces the spring-back snap.
+      // Mid-drag: stretch tracks the pointer with no smoothing. On
+      // release stretch resets to 0 and this transition produces the
+      // spring-back.
       transition: dragState !== null
         ? "none"
         : `transform ${EDIT_SLIDER_RUBBER_SETTLE_MS}ms ${EDIT_SLIDER_SPRING_EASING}`,
@@ -243,9 +195,6 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
 
   return (
     <div class="flex items-center gap-1 w-full px-1">
-      {/* Slider track: drag/click anywhere on it to set the value. The
-          arrows on the right are discrete steppers and share the same
-          keyboard-active visual lane (props.activeKey). */}
       <div
         ref={trackElement}
         class="relative flex-1 h-[20px] flex items-center overflow-hidden rounded-[6px]"
@@ -257,19 +206,11 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        {/* Fill bar — sweeps left → fillPercent(), behind the text.
-            Uses `surface-active` so the value position is visible on top
-            of the row's own focus background. */}
         <div
           aria-hidden="true"
           class="absolute inset-y-0 left-0 bg-[var(--rg-surface-active)] pointer-events-none"
           style={{ width: `${fillPercent()}%` }}
         />
-        {/* Hash marks — 9 vertical 1px ticks at 10/20/.../90%. Fade in
-            when the slider becomes active (hover / drag / keyboard
-            step), mirroring dialkit's `.dialkit-slider-hashmark`.
-            Hidden in compact / emphasized mode — the single-control
-            layout doesn't need scale ticks behind the value text. */}
         <Show when={!props.emphasized}>
           <div aria-hidden="true" class="absolute inset-0 pointer-events-none">
             {HASH_MARK_PERCENTS.map((percent) => (
@@ -285,8 +226,6 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
             ))}
           </div>
         </Show>
-        {/* Handle — thin pill at the fill edge, brightens while the
-            keyboard is actively stepping (activeKey set by parent). */}
         <div
           aria-hidden="true"
           class="absolute top-[2px] bottom-[2px] w-[2px] rounded-[1px] bg-[var(--rg-text-primary)] pointer-events-none"
@@ -296,8 +235,6 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
             transition: "opacity 120ms ease",
           }}
         />
-        {/* Foreground content sits on top of the fill. Label is optional
-            (compact view omits it; list rows pass property name). */}
         <div class="relative z-10 flex items-center justify-between w-full px-2 pointer-events-none">
           <Show when={props.label} keyed>
             {(text) => (
@@ -365,9 +302,6 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
           </Show>
         </div>
       </div>
-      {/* Arrows are compact-only — list rows on hover rely on the slider
-          drag/click + keyboard arrows. Compact mode adds the discrete
-          steppers for the "single-control" feel. */}
       <Show when={props.emphasized}>
         <StepArrow
           direction="left"
