@@ -611,12 +611,9 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
         <Show when={isAdjusting() && activeProperty()}>
           {(activeProp) => (
             <div
-              class="flex items-center justify-between gap-3 w-full px-3 py-1.5 min-h-[28px]"
+              class="flex items-center justify-center w-full px-3 py-1.5 min-h-[28px]"
               onMouseDown={(event) => event.preventDefault()}
             >
-              <span class="text-[13px] leading-4 font-medium text-[var(--rg-text-secondary)] truncate min-w-0">
-                {activeProp().label}
-              </span>
               <ValueStepper
                 value={activeProp().value}
                 unit={activeProp().unit}
