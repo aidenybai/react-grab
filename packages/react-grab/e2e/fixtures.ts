@@ -8,6 +8,8 @@ const PAGE_SETUP_NAVIGATION_TIMEOUT_MS = 8_000;
 const PAGE_SETUP_API_TIMEOUT_MS = 8_000;
 const MODIFIER_KEY = process.platform === "darwin" ? "Meta" : "Control";
 
+type ArrowKey = "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight";
+
 interface ContextMenuInfo {
   isVisible: boolean;
   tagBadgeText: string | null;
@@ -99,6 +101,9 @@ export interface ReactGrabPageObject {
   pressArrowUp: () => Promise<void>;
   pressArrowLeft: () => Promise<void>;
   pressArrowRight: () => Promise<void>;
+  holdArrowKey: (key: ArrowKey, durationMs: number) => Promise<void>;
+  pressTab: () => Promise<void>;
+  pressShiftTab: () => Promise<void>;
   pressEnter: () => Promise<void>;
   pressKey: (key: string) => Promise<void>;
   pressKeyCombo: (modifiers: string[], key: string) => Promise<void>;
@@ -363,6 +368,20 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const pressArrowRight = async () => {
     await page.keyboard.press("ArrowRight");
+  };
+
+  const holdArrowKey = async (key: ArrowKey, durationMs: number) => {
+    await page.keyboard.down(key);
+    await page.waitForTimeout(durationMs);
+    await page.keyboard.up(key);
+  };
+
+  const pressTab = async () => {
+    await page.keyboard.press("Tab");
+  };
+
+  const pressShiftTab = async () => {
+    await page.keyboard.press("Shift+Tab");
   };
 
   const pressEnter = async () => {
@@ -1636,6 +1655,9 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     pressArrowUp,
     pressArrowLeft,
     pressArrowRight,
+    holdArrowKey,
+    pressTab,
+    pressShiftTab,
     pressEnter,
     pressKey,
     pressKeyCombo,

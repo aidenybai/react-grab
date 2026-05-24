@@ -344,6 +344,7 @@ export interface ReactGrabRendererProps {
   selectionBounds?: OverlayBounds;
   selectionBoundsMultiple?: OverlayBounds[];
   selectionShouldSnap?: boolean;
+  keyboardPointerCursor?: Position | null;
   selectionElementsCount?: number;
   frozenLabelEntries?: FrozenLabelEntry[];
   pendingShiftPreviewEntry?: FrozenLabelEntry;

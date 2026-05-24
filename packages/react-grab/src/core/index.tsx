@@ -62,6 +62,8 @@ import {
   FEEDBACK_DURATION_MS,
   FADE_COMPLETE_BUFFER_MS,
   KEYDOWN_SPAM_TIMEOUT_MS,
+  KEYBOARD_POINTER_SPEED_PX_PER_MS,
+  KEYBOARD_POINTER_VIEWPORT_PADDING_PX,
   DRAG_THRESHOLD_PX,
   ELEMENT_DETECTION_THROTTLE_MS,
   PENDING_DETECTION_STALENESS_MS,
@@ -112,7 +114,7 @@ import type {
 } from "../types.js";
 import { DEFAULT_THEME } from "./theme.js";
 import { createPluginRegistry } from "./plugin-registry.js";
-import { createArrowNavigator } from "./arrow-navigation.js";
+import { createAncestorStackNavigator } from "./arrow-navigation.js";
 import { getRequiredModifiers, setupKeyboardEventClaimer } from "./keyboard-handlers.js";
 import { createAutoScroller, getAutoScrollDirection } from "./auto-scroll.js";
 import { logIntro } from "./log-intro.js";
@@ -454,8 +456,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
     const [arrowNavigationElements, setArrowNavigationElements] = createSignal<Element[]>([]);
     const [arrowNavigationActiveIndex, setArrowNavigationActiveIndex] = createSignal(0);
+    const [keyboardPointerCursor, setKeyboardPointerCursor] = createSignal<Position | null>(null);
 
-    const arrowNavigator = createArrowNavigator(isValidGrabbableElement, createElementBounds);
+    const ancestorStackNavigator = createAncestorStackNavigator(
+      isValidGrabbableElement,
+      createElementBounds,
+    );
 
     const autoScroller = createAutoScroller(
       pointer,
@@ -1443,6 +1449,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.deactivate();
       stopShiftMultiSelecting();
       clearArrowNavigation();
+      releaseKeyboardPointerMovement();
       keyboardSelectedElement = null;
       setIsPendingContextMenuSelect(false);
       if (wasDragging) {
@@ -2056,10 +2063,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       capture: true,
     });
 
-    const clearArrowNavigation = () => {
+    const closeArrowNavigationMenu = () => {
       setArrowNavigationElements([]);
       setArrowNavigationActiveIndex(0);
-      arrowNavigator.clearHistory();
+    };
+
+    const clearArrowNavigation = () => {
+      closeArrowNavigationMenu();
+      ancestorStackNavigator.clearHistory();
     };
 
     const selectAndFocusElement = (element: Element) => {
@@ -2091,47 +2102,245 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!targetElement) return;
 
       setArrowNavigationActiveIndex(index);
-      arrowNavigator.clearHistory();
+      ancestorStackNavigator.clearHistory();
       selectAndFocusElement(targetElement);
     };
 
-    const handleArrowNavigation = (event: KeyboardEvent): boolean => {
+    const heldKeyboardPointerKeys = new Set<string>();
+    let keyboardPointerRafId: number | null = null;
+    let keyboardPointerLastTimestamp = 0;
+    let isKeyboardPointerSuppressed = false;
+    let keyboardPointerSeedElement: Element | null = null;
+
+    const stopKeyboardPointerMovement = () => {
+      if (keyboardPointerRafId !== null) {
+        cancelAnimationFrame(keyboardPointerRafId);
+        keyboardPointerRafId = null;
+      }
+      keyboardPointerLastTimestamp = 0;
+    };
+
+    const isKeyboardPointerContextValid = (): boolean =>
+      isActivated() &&
+      !isPromptMode() &&
+      !isShiftMultiSelecting() &&
+      !isDragging() &&
+      store.contextMenuPosition === null;
+
+    const startKeyboardPointerMovement = () => {
+      if (keyboardPointerRafId !== null) return;
+
+      const tick = (timestamp: number) => {
+        keyboardPointerRafId = null;
+
+        if (heldKeyboardPointerKeys.size === 0) {
+          keyboardPointerLastTimestamp = 0;
+          return;
+        }
+
+        // Stay scheduled but don't advance the pointer when something
+        // else has taken over (drag, shift multi-select, prompt mode,
+        // open context menu). When the interruption ends the loop
+        // resumes without the user having to release and re-press arrows.
+        if (!isKeyboardPointerContextValid()) {
+          keyboardPointerLastTimestamp = 0;
+          keyboardPointerRafId = requestAnimationFrame(tick);
+          return;
+        }
+
+        const deltaMs =
+          keyboardPointerLastTimestamp === 0 ? 0 : timestamp - keyboardPointerLastTimestamp;
+        keyboardPointerLastTimestamp = timestamp;
+
+        const dirX =
+          (heldKeyboardPointerKeys.has("ArrowRight") ? 1 : 0) -
+          (heldKeyboardPointerKeys.has("ArrowLeft") ? 1 : 0);
+        const dirY =
+          (heldKeyboardPointerKeys.has("ArrowDown") ? 1 : 0) -
+          (heldKeyboardPointerKeys.has("ArrowUp") ? 1 : 0);
+
+        if ((dirX !== 0 || dirY !== 0) && deltaMs > 0) {
+          const distance = KEYBOARD_POINTER_SPEED_PX_PER_MS * deltaMs;
+          const length = Math.hypot(dirX, dirY);
+          const stepX = (dirX / length) * distance;
+          const stepY = (dirY / length) * distance;
+
+          const padding = KEYBOARD_POINTER_VIEWPORT_PADDING_PX;
+          const currentPointer = pointer();
+          const nextX = Math.max(
+            padding,
+            Math.min(window.innerWidth - padding, currentPointer.x + stepX),
+          );
+          const nextY = Math.max(
+            padding,
+            Math.min(window.innerHeight - padding, currentPointer.y + stepY),
+          );
+
+          actions.setPointer({ x: nextX, y: nextY });
+
+          if (keyboardPointerCursor()) {
+            setKeyboardPointerCursor({ x: nextX, y: nextY });
+          }
+
+          const candidate = getElementAtPosition(nextX, nextY);
+          if (candidate !== store.detectedElement) {
+            actions.setDetectedElement(candidate);
+          }
+        }
+
+        keyboardPointerRafId = requestAnimationFrame(tick);
+      };
+
+      keyboardPointerRafId = requestAnimationFrame(tick);
+    };
+
+    const releaseKeyboardPointerMovement = () => {
+      heldKeyboardPointerKeys.clear();
+      stopKeyboardPointerMovement();
+      isKeyboardPointerSuppressed = false;
+      keyboardPointerSeedElement = null;
+      setKeyboardPointerCursor(null);
+    };
+
+    const handleKeyboardPointerMovement = (event: KeyboardEvent): boolean => {
+      if (!ARROW_KEYS.has(event.key)) return false;
+      if (!isKeyboardPointerContextValid()) return false;
+
+      // Tab took priority while these arrow keys were still held; track
+      // releases so we know when all are up, but never restart the rAF
+      // or unfreeze, so the ancestor selection survives.
+      if (isKeyboardPointerSuppressed) {
+        heldKeyboardPointerKeys.add(event.key);
+        event.preventDefault();
+        event.stopPropagation();
+        return true;
+      }
+
+      if (heldKeyboardPointerKeys.size === 0) {
+        const seedElement = effectiveElement();
+        keyboardPointerSeedElement = seedElement;
+        let cursorStart: Position;
+        if (seedElement) {
+          const seedBounds = createElementBounds(seedElement);
+          cursorStart = getBoundsCenter(seedBounds);
+          actions.setPointer(cursorStart);
+        } else {
+          const currentPointer = pointer();
+          const hasPointerPosition = currentPointer.x !== 0 || currentPointer.y !== 0;
+          if (hasPointerPosition) {
+            cursorStart = { x: currentPointer.x, y: currentPointer.y };
+          } else {
+            cursorStart = {
+              x: window.innerWidth / 2,
+              y: window.innerHeight / 2,
+            };
+            actions.setPointer(cursorStart);
+          }
+        }
+        // Show a small fake cursor at the keyboard pointer position so
+        // the user can see where the pointer is moving while held. The
+        // selection box continues to follow whichever element is under
+        // it (live preview of what would snap on release).
+        setKeyboardPointerCursor(cursorStart);
+
+        // Close the ancestors menu since the user is now moving freely,
+        // but keep ancestorStackNavigator history so Shift+Tab can still
+        // step back through prior Tab selections after the brief arrow
+        // hold ends.
+        closeArrowNavigationMenu();
+        actions.unfreeze();
+        // Drop any stale prior Tab/snap-freeze target so a click landing
+        // on blank space mid-movement can't fall back to it via
+        // handleSingleClick's keyboardSelectedElement chain.
+        keyboardSelectedElement = null;
+
+        if (seedElement && store.detectedElement !== seedElement) {
+          actions.setDetectedElement(seedElement);
+        }
+      }
+
+      heldKeyboardPointerKeys.add(event.key);
+      startKeyboardPointerMovement();
+
+      event.preventDefault();
+      event.stopPropagation();
+      return true;
+    };
+
+    const handleKeyboardPointerRelease = (event: KeyboardEvent): boolean => {
+      if (!ARROW_KEYS.has(event.key)) return false;
+      if (!heldKeyboardPointerKeys.has(event.key)) return false;
+
+      heldKeyboardPointerKeys.delete(event.key);
+
+      if (heldKeyboardPointerKeys.size === 0) {
+        stopKeyboardPointerMovement();
+
+        const shouldSkipSnapFreeze =
+          isKeyboardPointerSuppressed || !isKeyboardPointerContextValid();
+
+        if (shouldSkipSnapFreeze) {
+          isKeyboardPointerSuppressed = false;
+          keyboardPointerSeedElement = null;
+        } else {
+          const restingPointer = pointer();
+          const elementAtPointer = getElementAtPosition(restingPointer.x, restingPointer.y);
+          const isElementAtPointerGrabbable =
+            elementAtPointer && isValidGrabbableElement(elementAtPointer);
+          // Fall back to the seed element when the pointer rests over blank
+          // space or a non-grabbable element so we never exit keyboard
+          // movement leaving the user with no frozen selection.
+          const fallbackSeed =
+            keyboardPointerSeedElement && isElementConnected(keyboardPointerSeedElement)
+              ? keyboardPointerSeedElement
+              : null;
+          const elementToFreeze = isElementAtPointerGrabbable ? elementAtPointer : fallbackSeed;
+          if (elementToFreeze) {
+            selectAndFocusElement(elementToFreeze);
+          }
+          keyboardPointerSeedElement = null;
+        }
+        setKeyboardPointerCursor(null);
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      return true;
+    };
+
+    const handleAncestorStackNavigation = (event: KeyboardEvent): boolean => {
+      if (event.key !== "Tab") return false;
       if (!isActivated() || isPromptMode()) return false;
       if (isShiftMultiSelecting()) return false;
-      if (!ARROW_KEYS.has(event.key)) return false;
-      // While the context menu is open, arrow keys belong to its own
-      // roving-tabindex navigation. Both listeners fire for the same
-      // event (both window+capture), so without bowing out here arrow
-      // keys also re-select a different page element and reposition
-      // the menu over it.
+      if (isDragging()) return false;
       if (store.contextMenuPosition !== null) return false;
 
-      let currentElement = effectiveElement();
-      const isInitialSelection = !currentElement;
+      // If arrow keys are still physically held, halt the rAF and mark the
+      // movement suppressed so subsequent keydown repeats and the eventual
+      // keyup don't reactivate the loop or snap-freeze over the ancestor
+      // selection. heldKeyboardPointerKeys stays populated so we can detect
+      // when every arrow has actually been released.
+      if (heldKeyboardPointerKeys.size > 0 || keyboardPointerRafId !== null) {
+        stopKeyboardPointerMovement();
+        if (heldKeyboardPointerKeys.size > 0) {
+          isKeyboardPointerSuppressed = true;
+        }
+      }
 
+      let currentElement = effectiveElement();
       if (!currentElement) {
         currentElement = getElementAtPosition(window.innerWidth / 2, window.innerHeight / 2);
       }
-
       if (!currentElement) return false;
-
-      const isVertical = event.key === "ArrowUp" || event.key === "ArrowDown";
-
-      if (!isVertical) {
-        clearArrowNavigation();
-        const nextElement = arrowNavigator.findNext(event.key, currentElement);
-        if (!nextElement && !isInitialSelection) return false;
-        event.preventDefault();
-        event.stopPropagation();
-        selectAndFocusElement(nextElement ?? currentElement);
-        return true;
-      }
 
       if (arrowNavigationElements().length === 0) {
         openArrowNavigationMenu(currentElement);
       }
 
-      const nextElement = arrowNavigator.findNext(event.key, currentElement);
+      const isStepUp = !event.shiftKey;
+      const nextElement = isStepUp
+        ? ancestorStackNavigator.stepUp(currentElement)
+        : ancestorStackNavigator.stepDown(currentElement);
       const elementToSelect = nextElement ?? currentElement;
 
       event.preventDefault();
@@ -2419,8 +2628,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             }
           }
 
-          if (isFromOverlay && ARROW_KEYS.has(event.key)) {
-            if (handleArrowNavigation(event)) return;
+          if (isFromOverlay) {
+            if (ARROW_KEYS.has(event.key)) {
+              if (handleKeyboardPointerMovement(event)) return;
+            } else if (event.key === "Tab") {
+              if (handleAncestorStackNavigation(event)) return;
+            }
           }
 
           return;
@@ -2451,7 +2664,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const didWindowJustRegainFocus =
           Date.now() - lastWindowFocusTimestamp < WINDOW_REFOCUS_GRACE_PERIOD_MS;
 
-        if (handleArrowNavigation(event)) return;
+        if (handleKeyboardPointerMovement(event)) return;
+        if (handleAncestorStackNavigation(event)) return;
         if (handleEnterKeyActivation(event)) return;
         if (handleOpenFileShortcut(event)) return;
         if (handleContextMenuKey(event)) return;
@@ -2467,6 +2681,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       "keyup",
       (event: KeyboardEvent) => {
         if (blockEnterIfNeeded(event)) return;
+
+        if (handleKeyboardPointerRelease(event)) return;
 
         if (isSpaceActivationKey(event) && isDragRepositioning()) {
           stopSpaceDragRepositioning();
@@ -2603,6 +2819,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (store.contextMenuPosition !== null) return;
         if (isSelectionInteractionLocked()) return;
         if (isTouchPointer && !isHoldingKeys() && !isActivated()) return;
+        // Arrow keys are physically held AND nothing else has taken over
+        // (drag, multi-select, prompt, context menu): the keyboard owns
+        // the pointer until release, so mouse motion must not unfreeze,
+        // retarget detectedElement, or clear the arrow-navigation menu.
+        // When drag/multi-select/etc. take over, isKeyboardPointerContextValid
+        // returns false and pointermove flows through normally.
+        const doesKeyboardOwnPointer =
+          heldKeyboardPointerKeys.size > 0 && isKeyboardPointerContextValid();
+        if (doesKeyboardOwnPointer) return;
         const isActiveState = isTouchPointer ? isHoldingKeys() : isActivated();
         // The flag check covers the small window after physical Shift
         // release but before the keyup handler commits — pointermove fires
@@ -2779,6 +3004,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     // the user may alt-tab back.
     eventListenerManager.addWindowListener("blur", () => {
       cancelActiveDrag();
+      releaseKeyboardPointerMovement();
       if (isHoldingKeys()) {
         clearHoldTimer();
         actions.releaseHold();
@@ -3492,6 +3718,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 selectionShouldSnap={
                   store.frozenElements.length > 0 || dragPreviewBounds().length > 0
                 }
+                keyboardPointerCursor={keyboardPointerCursor()}
                 selectionElementsCount={store.frozenElements.length}
                 frozenLabelEntries={frozenLabelEntries()}
                 pendingShiftPreviewEntry={pendingShiftPreviewEntry() ?? undefined}
