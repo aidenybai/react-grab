@@ -594,7 +594,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
             class={
               isCompact()
                 ? ""
-                : "[font-synthesis:none] contain-layout shrink-0 flex flex-col items-start px-2 py-1.5 w-auto h-fit self-stretch [border-top-width:0.5px] border-t-solid border-t-[var(--rg-border-subtle)] antialiased rounded-t-none rounded-b-[6px]"
+                : "[font-synthesis:none] contain-layout shrink-0 flex flex-col items-start px-2 py-1.5 w-full self-stretch [border-top-width:0.5px] border-t-solid border-t-[var(--rg-border-subtle)] antialiased rounded-t-none rounded-b-[6px]"
             }
             style={isCompact() ? HIDDEN_FOCUS_PRESERVING_STYLE : undefined}
           >
@@ -625,7 +625,12 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
               rows={1}
             />
             <Show when={filteredProperties().length > 0}>
-              <div class="w-full pt-2">
+              {/* Negative horizontal margin extends the list past the
+                  wrapper's px-2 so rows are full-bleed to the panel
+                  edges. The panel-inner's overflow-hidden +
+                  rounded-[14px] clips the highlight to the panel
+                  outline, so no leakage past rounded corners. */}
+              <div class="w-[calc(100%+16px)] -mx-2 pt-2">
                 <PropertyList
                   properties={filteredProperties()}
                   activeIndex={activeIndex()}
