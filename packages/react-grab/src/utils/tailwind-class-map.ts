@@ -47,11 +47,37 @@ const TAILWIND_PREFIX_TO_PROPERTY: Record<string, string> = {
   "border-l": "border-left-width",
   w: "width",
   h: "height",
+  // `size-N` is the common tailwind utility for square SVG / avatar /
+  // icon sizing — sets both width and height. The auto-apply fan-out
+  // path already handles comma-joined targets (split + write through
+  // each longhand), and width + height are tracked individually in
+  // initialProperties, so this entry alone makes `size-4` work.
+  size: "width,height",
   "max-w": "max-width",
   "max-h": "max-height",
   "min-w": "min-width",
   "min-h": "min-height",
   opacity: "opacity",
+  // Positioning utilities. inset / inset-x / inset-y target the
+  // canonical aggregate keys; individual sides map 1:1.
+  inset: "top,right,bottom,left",
+  "inset-x": "left,right",
+  "inset-y": "top,bottom",
+  top: "top",
+  right: "right",
+  bottom: "bottom",
+  left: "left",
+  z: "z-index",
+  // Flex alignment enums. `items-center` / `justify-between` etc. land
+  // here as numeric-pattern misses (no `-N` suffix) but the alias
+  // ranking still uses these so search picks the right row.
+  items: "align-items",
+  justify: "justify-content",
+  // `font-N` maps to numeric font-weight (e.g. `font-700` → 700).
+  // Named utilities like `font-bold` resolve to "bold" tail which
+  // doesn't match the numeric value regex; users cycle the row
+  // instead.
+  font: "font-weight",
 };
 
 const PROPERTY_ALIASES = ((): Record<string, string[]> => {

@@ -183,8 +183,29 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     nextValue: number | string,
     options: CommitOptions = {},
   ) => {
+    // #region agent log
+    const formattedCss = formatEditableValue(property, nextValue);
+    fetch("http://127.0.0.1:7710/ingest/aba791f5-84d2-4d41-9c67-4be1eb9bf9d9", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "554b5c" },
+      body: JSON.stringify({
+        sessionId: "554b5c",
+        location: "edit-panel/index.tsx:commit",
+        message: "commit",
+        data: {
+          key: property.key,
+          kind: property.kind,
+          currentValue: property.value,
+          nextValue,
+          formattedCss,
+          cssProperties: property.cssProperties,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
     tweakStore.applyTweak(property, nextValue);
-    preview.apply(property.cssProperties, formatEditableValue(property, nextValue));
+    preview.apply(property.cssProperties, formattedCss);
     markAsInteracting();
     if (options.flash) flashActiveKey(options.flash === 1 ? "right" : "left");
     if (options.focus) ensureSearchFocused();
@@ -208,25 +229,66 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     commitTweak(direction, false);
   };
 
+  // #region agent log
+  const debugSkip = (path: string, reason: string, data: Record<string, unknown>) => {
+    fetch("http://127.0.0.1:7710/ingest/aba791f5-84d2-4d41-9c67-4be1eb9bf9d9", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "554b5c" },
+      body: JSON.stringify({
+        sessionId: "554b5c",
+        location: `edit-panel/index.tsx:${path}`,
+        message: `skip-commit:${reason}`,
+        data,
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+  };
+  // #endregion
+
   const commitNumericValue = (rawValue: number) => {
     const property = activeProperty();
-    if (!property || property.kind !== "numeric") return;
+    if (!property || property.kind !== "numeric") {
+      debugSkip("commitNumericValue", "wrong-kind", { rawValue, kind: property?.kind });
+      return;
+    }
     const next = cleanNumericValue(clampToRange(rawValue, property.min, property.max));
-    if (next === property.value) return;
+    if (next === property.value) {
+      debugSkip("commitNumericValue", "value-unchanged", {
+        rawValue,
+        next,
+        currentValue: property.value,
+        key: property.key,
+        min: property.min,
+        max: property.max,
+      });
+      return;
+    }
     commit(property, next);
   };
 
   const commitColorValue = (hex: string) => {
     const property = activeProperty();
-    if (!property || property.kind !== "color") return;
-    if (hex.toLowerCase() === property.value.toLowerCase()) return;
+    if (!property || property.kind !== "color") {
+      debugSkip("commitColorValue", "wrong-kind", { hex, kind: property?.kind });
+      return;
+    }
+    if (hex.toLowerCase() === property.value.toLowerCase()) {
+      debugSkip("commitColorValue", "hex-unchanged", { hex, currentValue: property.value });
+      return;
+    }
     commit(property, hex);
   };
 
   const commitEnumValue = (value: string) => {
     const property = activeProperty();
-    if (!property || property.kind !== "enum") return;
-    if (value === property.value) return;
+    if (!property || property.kind !== "enum") {
+      debugSkip("commitEnumValue", "wrong-kind", { value, kind: property?.kind });
+      return;
+    }
+    if (value === property.value) {
+      debugSkip("commitEnumValue", "value-unchanged", { value, currentValue: property.value });
+      return;
+    }
     commit(property, value);
   };
 
@@ -270,10 +332,17 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     if (!cssKey) return;
     const rawNumber = Number.parseFloat(match[2]);
     if (!Number.isFinite(rawNumber)) return;
-    // opacity-50 (0–100 percent, our UI scale matches) and border-N
-    // (literal pixels per Tailwind spec) both use the raw number as-is.
-    // Everything else follows the 4px spacing unit.
-    const usesLiteralNumber = cssKey === "opacity" || cssKey === "border-width";
+    // These properties take the raw number as-is rather than the 4px
+    // spacing multiplier:
+    //   - opacity (Tailwind: opacity-50 = 50%, our UI is 0-100 too)
+    //   - border-width (Tailwind: border-2 = 2px literally)
+    //   - z-index (z-10 = z-index: 10)
+    //   - font-weight (font-700 = font-weight: 700)
+    const usesLiteralNumber =
+      cssKey === "opacity" ||
+      cssKey === "border-width" ||
+      cssKey === "z-index" ||
+      cssKey === "font-weight";
     const candidate = usesLiteralNumber ? rawNumber : rawNumber * TAILWIND_SPACING_UNIT_PX;
 
     // First try: the prefix maps to an exact aggregate row (e.g. `p` →

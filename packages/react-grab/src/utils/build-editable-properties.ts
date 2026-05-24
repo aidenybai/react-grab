@@ -41,6 +41,11 @@ const TRACKED_PROPERTIES = [
   "height",
   "max-width",
   "max-height",
+  "top",
+  "right",
+  "bottom",
+  "left",
+  "z-index",
 ] as const;
 
 type TrackedProperty = (typeof TRACKED_PROPERTIES)[number];
@@ -60,6 +65,10 @@ const SIZE_FALLBACK_MULTIPLIER = 2;
 const SPACING_MIN_PX = 0;
 const SPACING_MAX_PX = 128;
 const MARGIN_MIN_PX = -128;
+const POSITION_MIN_PX = -512;
+const POSITION_MAX_PX = 512;
+const Z_INDEX_MIN = -9999;
+const Z_INDEX_MAX = 9999;
 const PERCENT_RANGE_MIN = 0;
 const PERCENT_RANGE_MAX = 100;
 const OPACITY_MIN_PERCENT = 0;
@@ -123,8 +132,19 @@ const valueWithFallback = (
   return null;
 };
 
+const POSITION_KEYS: ReadonlySet<string> = new Set([
+  "top",
+  "right",
+  "bottom",
+  "left",
+  "top,right,bottom,left",
+  "top,bottom",
+  "left,right",
+]);
+
 const propertyBounds = (key: string, value: number, unit: string): { min: number; max: number } => {
   if (key === "opacity") return { min: OPACITY_MIN_PERCENT, max: OPACITY_PERCENT_MAX };
+  if (key === "z-index") return { min: Z_INDEX_MIN, max: Z_INDEX_MAX };
   if (key === "letter-spacing") {
     return { min: LETTER_SPACING_MIN_PX, max: LETTER_SPACING_MAX_PX };
   }
@@ -137,6 +157,9 @@ const propertyBounds = (key: string, value: number, unit: string): { min: number
       max: Math.max(SIZE_FALLBACK_MAX_PX, Math.ceil(value * SIZE_FALLBACK_MULTIPLIER)),
     };
   }
+  // Positioning (top/right/bottom/left and their inset aggregates) needs
+  // the negative half — overlays often live at `top: -8px` etc.
+  if (POSITION_KEYS.has(key)) return { min: POSITION_MIN_PX, max: POSITION_MAX_PX };
   if (unit === "%") return { min: PERCENT_RANGE_MIN, max: PERCENT_RANGE_MAX };
   return {
     min: key.startsWith("margin") ? MARGIN_MIN_PX : SPACING_MIN_PX,
@@ -144,9 +167,16 @@ const propertyBounds = (key: string, value: number, unit: string): { min: number
   };
 };
 
+// Keys whose CSS value is a pure number (no unit). Writing `10px` here
+// would be invalid CSS.
+const UNITLESS_KEYS: ReadonlySet<string> = new Set(["z-index"]);
+
 const normalizeForEdit = (key: string, value: NumericValue): NumericValue => {
   if (key === "opacity") {
     return { value: Math.round(value.value * OPACITY_PERCENT_MAX), unit: "%" };
+  }
+  if (UNITLESS_KEYS.has(key)) {
+    return { value: cleanNumericValue(value.value), unit: "" };
   }
   return { value: cleanNumericValue(value.value), unit: value.unit || "px" };
 };
@@ -265,6 +295,20 @@ const RADIUS_AGGREGATES: readonly AggregateDefinition[] = [
   },
 ];
 
+const INSET_AGGREGATES: readonly AggregateDefinition[] = [
+  {
+    key: "top,right,bottom,left",
+    label: "inset",
+    longhands: ["top", "right", "bottom", "left"],
+  },
+  { key: "top,bottom", label: "inset-y", longhands: ["top", "bottom"] },
+  { key: "left,right", label: "inset-x", longhands: ["left", "right"] },
+  { key: "top", label: "top", longhands: ["top"] },
+  { key: "right", label: "right", longhands: ["right"] },
+  { key: "bottom", label: "bottom", longhands: ["bottom"] },
+  { key: "left", label: "left", longhands: ["left"] },
+];
+
 // Non-aggregate rows (each row maps 1:1 to a single CSS longhand). The
 // canonical flag is always true for singles because there's no broader
 // row that could subsume them.
@@ -277,6 +321,7 @@ const SINGLE_PROPERTIES: readonly { key: TrackedProperty; label: string }[] = [
   { key: "height", label: "height" },
   { key: "max-width", label: "max width" },
   { key: "max-height", label: "max height" },
+  { key: "z-index", label: "z-index" },
   { key: "opacity", label: "opacity" },
 ];
 
@@ -405,6 +450,49 @@ const ENUM_PROPERTIES: ReadonlyArray<{
       { value: "hidden", label: "hidden" },
     ],
   },
+  {
+    key: "align-items",
+    label: "align items",
+    options: [
+      { value: "stretch", label: "stretch" },
+      { value: "flex-start", label: "start" },
+      { value: "center", label: "center" },
+      { value: "flex-end", label: "end" },
+      { value: "baseline", label: "baseline" },
+    ],
+  },
+  {
+    key: "justify-content",
+    label: "justify content",
+    options: [
+      { value: "flex-start", label: "start" },
+      { value: "center", label: "center" },
+      { value: "flex-end", label: "end" },
+      { value: "space-between", label: "between" },
+      { value: "space-around", label: "around" },
+      { value: "space-evenly", label: "evenly" },
+    ],
+  },
+  {
+    key: "font-weight",
+    label: "font weight",
+    // Computed style always returns the numeric form, so options use
+    // numeric `value` (matches the snapshot) with descriptive labels.
+    // Tailwind utilities like `font-bold` aren't mapped 1:1 to a class
+    // here (named-scale resolution is Tier 3 future work) — for now the
+    // user picks via the cycle control or types a numeric class.
+    options: [
+      { value: "100", label: "thin" },
+      { value: "200", label: "extra-light" },
+      { value: "300", label: "light" },
+      { value: "400", label: "normal" },
+      { value: "500", label: "medium" },
+      { value: "600", label: "semibold" },
+      { value: "700", label: "bold" },
+      { value: "800", label: "extra-bold" },
+      { value: "900", label: "black" },
+    ],
+  },
 ];
 
 const buildEnumProperty = (
@@ -467,10 +555,11 @@ const isDefaultPropertyValue = (property: EditableProperty): boolean => {
   if (property.kind === "color") return false;
   // Enum properties: hide rows whose computed value matches the
   // first declared option, which we author as the browser default
-  // (block, left, normal, none, none, visible). Keeping the default
-  // as options[0] is enforced by convention in ENUM_PROPERTIES rather
-  // than a parallel lookup table.
+  // (block, left, normal, none, none, visible, stretch, flex-start,
+  // 100/thin → no, we want font-weight 400 default; handled below).
   if (property.kind === "enum") {
+    // Font-weight's default is 400 (normal), not the first option (100).
+    if (property.key === "font-weight") return property.original === "400";
     return property.options[0]?.value === property.original;
   }
   const { key, original: value } = property;
@@ -480,6 +569,12 @@ const isDefaultPropertyValue = (property: EditableProperty): boolean => {
   if (key.endsWith("-radius") || key === "border-radius") return value === 0;
   if (key === "opacity") return value === OPACITY_PERCENT_MAX;
   if (key === "letter-spacing") return value === 0;
+  if (key === "z-index") return value === 0;
+  // Positioning longhands have no canonical "default" — top: 0 is a
+  // real positioning intent for absolute/fixed elements. Surface them
+  // whenever the computed value parses as a number (the snapshot path
+  // already returns null for `auto`, the actual common default).
+  if (POSITION_KEYS.has(key)) return false;
   // width/height/max-*/line-height are always computed by the layout
   // engine; hide them unless the user explicitly opts in via a Tailwind
   // class or search query.
@@ -495,6 +590,7 @@ const AGGREGATE_GROUPS: readonly (readonly AggregateDefinition[])[] = [
   MARGIN_AGGREGATES,
   GAP_AGGREGATES,
   RADIUS_AGGREGATES,
+  INSET_AGGREGATES,
 ];
 
 export const buildEditableProperties = (element: Element): EditableProperty[] => {
