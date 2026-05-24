@@ -1,5 +1,6 @@
 import { createSignal, Show, type Component } from "solid-js";
 import { formatDisplayValue } from "../../utils/format-css-value.js";
+import { IconSubmit } from "../icons/icon-submit.jsx";
 import { StepArrow } from "./step-arrow.js";
 
 interface ValueStepperProps {
@@ -14,6 +15,9 @@ interface ValueStepperProps {
   // Fires after the inline editor closes (commit OR cancel) so the
   // parent can return focus to the search input.
   onEditComplete?: () => void;
+  // When provided, render a circular submit button after the right step
+  // arrow. Click → fires onSubmit (= "send these edits to the agent").
+  onSubmit?: () => void;
   // `emphasized` boosts the value text from 12px (list row) to 13px
   // (compact panel mode) so the active value reads as the primary focus
   // when the rest of the panel is hidden.
@@ -124,6 +128,25 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
         active={props.activeKey === "right"}
         onPointerDown={() => props.onStep(1)}
       />
+      <Show when={props.onSubmit}>
+        {(submit) => (
+          <button
+            data-react-grab-ignore-events
+            data-react-grab-submit
+            type="button"
+            aria-label="Submit edits"
+            class="contain-layout shrink-0 flex items-center justify-center size-4 rounded-full bg-[var(--rg-submit-bg)] cursor-pointer interactive-scale a11y-hitbox ml-1"
+            onPointerDown={(event) => event.stopPropagation()}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={(event) => {
+              event.stopPropagation();
+              submit()();
+            }}
+          >
+            <IconSubmit size={10} aria-hidden="true" class="text-[var(--rg-submit-fg)]" />
+          </button>
+        )}
+      </Show>
     </div>
   );
 };

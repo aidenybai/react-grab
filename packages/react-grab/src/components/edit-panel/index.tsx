@@ -36,7 +36,6 @@ import { filterPropertiesByQuery } from "../../utils/fuzzy-score-property.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
 import { registerOverlayDismiss } from "../../utils/register-overlay-dismiss.js";
 import { suppressMenuEvent } from "../../utils/suppress-menu-event.js";
-import { IconSubmit } from "../icons/icon-submit.jsx";
 import { TagBadge } from "../selection-label/tag-badge.js";
 import { HIDDEN_FOCUS_PRESERVING_STYLE } from "./constants.js";
 import { createPreviewStyles } from "./preview-styles.js";
@@ -565,6 +564,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                   onStep={stepFromPointer}
                   onCommitValue={commitTypedValue}
                   onEditComplete={ensureSearchFocused}
+                  onSubmit={handleSubmit}
                 />
               </div>
             </Show>
@@ -572,12 +572,11 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
 
           {/* Compact-mode dropdown — mirrors the comment plugin's
               prompt-mode UX: focused value editor + circular submit
-              button. Click the number to type directly, click ✓ to
-              commit + send to the agent. */}
+              button (rendered inside ValueStepper via onSubmit). */}
           <Show when={isCompact() && activeProperty()}>
             {(activeProp) => (
               <div
-                class="flex items-center justify-center gap-2 w-full px-3 py-1.5 min-h-[28px]"
+                class="flex items-center justify-center w-full px-3 py-1.5 min-h-[28px]"
                 onMouseDown={(event) => event.preventDefault()}
               >
                 <ValueStepper
@@ -587,19 +586,9 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                   onStep={stepFromPointer}
                   onCommitValue={commitTypedValue}
                   onEditComplete={ensureSearchFocused}
+                  onSubmit={handleSubmit}
                   emphasized
                 />
-                <button
-                  data-react-grab-ignore-events
-                  data-react-grab-submit
-                  type="button"
-                  aria-label="Submit edits"
-                  class="contain-layout shrink-0 flex items-center justify-center size-4 rounded-full bg-[var(--rg-submit-bg)] cursor-pointer interactive-scale a11y-hitbox"
-                  onMouseDown={(event) => event.preventDefault()}
-                  onClick={() => handleSubmit()}
-                >
-                  <IconSubmit size={10} aria-hidden="true" class="text-[var(--rg-submit-fg)]" />
-                </button>
               </div>
             )}
           </Show>
