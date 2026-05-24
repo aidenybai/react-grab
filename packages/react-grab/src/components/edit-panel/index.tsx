@@ -509,7 +509,13 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     Tab: (event) => navigateActive(event.shiftKey ? -1 : 1),
     Enter: () => {
       const property = activeProperty();
-      if (property?.kind === "color" && colorPickerTrigger) {
+      // For color rows, Enter opens the native picker — UNLESS the user
+      // has already committed a change to this colour, in which case
+      // they're done picking and the next Enter should copy/submit the
+      // diff like every other row.
+      const isUnchangedColor =
+        property?.kind === "color" && tweakedValues()[property.key] === undefined;
+      if (isUnchangedColor && colorPickerTrigger) {
         colorPickerTrigger();
         return;
       }
