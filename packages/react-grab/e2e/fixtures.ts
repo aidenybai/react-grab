@@ -1260,6 +1260,12 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
           };
         }
       ).__REACT_GRAB__;
+      // The built-in `edit` plugin (style-tweak panel) ships with the
+      // same context-menu label "Edit" we use here for the comment shim,
+      // which would produce a duplicate menu item and break
+      // clickContextMenuItem("Edit") for legacy prompt-mode tests.
+      // Unregister it so this test's "Edit" is the only one in the menu.
+      api?.unregisterPlugin("edit");
       api?.unregisterPlugin("comment-action");
       api?.registerPlugin({
         name: "comment-action",
