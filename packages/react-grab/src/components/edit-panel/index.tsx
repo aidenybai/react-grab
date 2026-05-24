@@ -16,6 +16,7 @@ import {
   EDIT_PANEL_MIN_WIDTH_PX,
   EDIT_PROPERTY_LIST_MAX_HEIGHT_PX,
   EDIT_SHIFT_STEP_MULTIPLIER,
+  TAILWIND_SPACING_UNIT_PX,
   Z_INDEX_OVERLAY,
 } from "../../constants.js";
 import type { DropdownAnchor, EditableProperty, EditPanelState } from "../../types.js";
@@ -34,6 +35,7 @@ import { formatSessionEditsPrompt } from "../../utils/format-edit-prompt.js";
 import { parseNumericValue } from "../../utils/parse-numeric-value.js";
 import { filterPropertiesByQuery } from "../../utils/fuzzy-score-property.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
+import { tailwindPrefixToProperty } from "../../utils/tailwind-class-map.js";
 import { registerOverlayDismiss } from "../../utils/register-overlay-dismiss.js";
 import { suppressMenuEvent } from "../../utils/suppress-menu-event.js";
 import { TagBadge } from "../selection-label/tag-badge.js";
@@ -319,6 +321,33 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     markAsInteracting();
   };
 
+  // Auto-apply when the search query is a complete `<prefix>-<n>` Tailwind
+  // class. `p-64` immediately writes 256px to padding (no Enter needed),
+  // `opacity-50` writes 50%. Skips arbitrary values (`p-[10px]`) and the
+  // named scales (`text-xs`, `rounded-full`) — those don't map 1:1 to a
+  // numeric multiplier.
+  const TAILWIND_CLASS_PATTERN = /^([a-z-]+)-(-?\d+(?:\.\d+)?)$/;
+  const tryApplyTailwindClass = (query: string) => {
+    const match = query.match(TAILWIND_CLASS_PATTERN);
+    if (!match) return;
+    const cssKey = tailwindPrefixToProperty(match[1]);
+    if (!cssKey) return;
+    const property = initialProperties.find((entry) => entry.key === cssKey);
+    if (!property) return;
+    const rawNumber = Number.parseFloat(match[2]);
+    if (!Number.isFinite(rawNumber)) return;
+    // Opacity classes (opacity-50) are already in percent on Tailwind's
+    // side and in our 0–100 UI scale. Everything else follows the 4px
+    // spacing unit.
+    const candidate = cssKey === "opacity" ? rawNumber : rawNumber * TAILWIND_SPACING_UNIT_PX;
+    const next = cleanNumericValue(clampToRange(candidate, property.min, property.max));
+    if (next === (tweakedValues()[property.key] ?? property.original)) return;
+    setTweakedValues((current) => ({ ...current, [property.key]: next }));
+    preview.apply(property.cssProperties, formatEditableValue(property, next));
+    setHasCommittedAnyEdit(true);
+    markAsInteracting();
+  };
+
   // Persist current tweaks to sessionStorage and return the diff. Used
   // by both Enter (commits + fires agent prompt) and Escape / click-outside
   // (commits silently, no prompt).
@@ -550,8 +579,10 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
               }}
               value={searchQuery()}
               onInput={(event) => {
-                setSearchQuery(event.currentTarget.value);
+                const next = event.currentTarget.value;
+                setSearchQuery(next);
                 setActiveIndex(0);
+                tryApplyTailwindClass(next);
               }}
               onKeyDown={handleSearchKeyDown}
               placeholder="Search property"

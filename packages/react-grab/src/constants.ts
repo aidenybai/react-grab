@@ -200,6 +200,9 @@ export const EDIT_PANEL_ACTIVE_KEY_FLASH_MS = 100;
 export const CSS_VALUE_DECIMAL_PLACES = 2;
 export const OPACITY_PERCENT_MAX = 100;
 export const FONT_SIZE_LINE_HEIGHT_RATIO = 1.2;
+// Tailwind's spacing scale: `p-1` = 0.25rem = 4px, so each "unit"
+// in `p-{n}` translates to n × 4px when auto-applied from the search.
+export const TAILWIND_SPACING_UNIT_PX = 4;
 
 export const PIXELS_PER_REM = 16;
 
