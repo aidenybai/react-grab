@@ -33,10 +33,18 @@ const TAILWIND_PREFIX_TO_PROPERTY: Record<string, string> = {
   "rounded-bl": "border-bottom-left-radius",
   "rounded-br": "border-bottom-right-radius",
   border: "border-width",
-  "border-t": "border-width",
-  "border-r": "border-width",
-  "border-b": "border-width",
-  "border-l": "border-width",
+  // Per-side utilities map to their proper longhand. Pointing them at
+  // the aggregate "border-width" would set every side from a side-
+  // specific class — a user typing `border-t-4` would also overwrite
+  // right/bottom/left. Targets aren't currently tracked in
+  // initialProperties, so auto-apply will no-op until they are (gated
+  // below in tryApplyTailwindClass); the mapping just needs to point
+  // at the right CSS key so search ranking still surfaces the right
+  // intent.
+  "border-t": "border-top-width",
+  "border-r": "border-right-width",
+  "border-b": "border-bottom-width",
+  "border-l": "border-left-width",
   w: "width",
   h: "height",
   "max-w": "max-width",

@@ -236,14 +236,32 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   // named scales (`text-xs`, `rounded-full`) — those don't map 1:1 to a
   // numeric multiplier.
   const TAILWIND_CLASS_PATTERN = /^([a-z-]+)-(-?\d+(?:\.\d+)?)$/;
+  // Whether a tailwind cssKey resolves to at least one trackable
+  // numeric row in initialProperties (either as the exact key or
+  // through aggregate-longhand expansion). Auto-apply both gates
+  // compact-intent and the value commit on this — typing a class for
+  // a property the panel can't edit shouldn't shrink the UI around
+  // an empty target.
+  const hasTrackableTarget = (cssKey: string): boolean => {
+    if (initialProperties.some((entry) => entry.key === cssKey && entry.kind === "numeric")) {
+      return true;
+    }
+    const longhands = expandAggregateLonghands(cssKey);
+    return initialProperties.some(
+      (entry) => longhands.includes(entry.key) && entry.kind === "numeric",
+    );
+  };
+
   const tryApplyTailwindClass = (query: string) => {
     // Strip trailing partial value (digit or hanging dash) so `mt`,
     // `mt-`, `mt-4` all distill down to the prefix `mt`. If that prefix
-    // maps to an editable property, signal user intent to target it →
-    // collapse to compact so the stepper is visible and ready, even
-    // before any value is applied.
+    // maps to an editable property AND that property is actually
+    // trackable, signal user intent to target it → collapse to compact
+    // so the stepper is visible and ready, even before any value is
+    // applied.
     const intentPrefix = query.replace(/-\d*$/, "").replace(/-$/, "");
-    if (intentPrefix && tailwindPrefixToProperty(intentPrefix)) {
+    const intentCssKey = intentPrefix ? tailwindPrefixToProperty(intentPrefix) : null;
+    if (intentCssKey && hasTrackableTarget(intentCssKey)) {
       setIsCompact(true);
     }
     const match = query.match(TAILWIND_CLASS_PATTERN);
