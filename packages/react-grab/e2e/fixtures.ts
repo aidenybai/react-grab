@@ -588,7 +588,9 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       await waitForSelectionBox();
     }
     await rightClickElement(selector);
-    await clickContextMenuItem("Edit");
+    // "Edit" opens the style-tweak panel; prompt-mode is owned by the
+    // "Comment" action (introduced when the Edit panel was split out).
+    await clickContextMenuItem("Comment");
     await waitForPromptMode(true);
   };
 
