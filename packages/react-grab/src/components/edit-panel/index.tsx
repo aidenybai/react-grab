@@ -90,22 +90,19 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   const [activeIndex, setActiveIndex] = createSignal(0);
   const [tweakedValues, setTweakedValues] = createSignal<Record<string, number>>({});
   const [activeKey, setActiveKey] = createSignal<"left" | "right" | null>(null);
-  // Sticky-true once the user commits any tweak (keyboard step, pointer
-  // step, click-to-type). Drives the layout collapse to compact mode,
-  // which only re-expands when the user types in the search field.
-  const [hasCommittedAnyEdit, setHasCommittedAnyEdit] = createSignal(false);
+  // Compact mode: shows just the value stepper (no TagBadge, no search,
+  // no list). Driven directly by user action rather than derived from
+  // search content:
+  //   - Stepper commit (Left/Right) or click-to-type commit → setIsCompact(true)
+  //   - Navigate (Up/Down/Tab) or type in search → setIsCompact(false)
+  // Auto-applied Tailwind classes (typed in search) intentionally don't
+  // flip the layout — the user is still searching, just with side-effect
+  // value application.
+  const [isCompact, setIsCompact] = createSignal(false);
 
   let activeKeyTimerId: ReturnType<typeof setTimeout> | undefined;
   let interactingIdleTimerId: ReturnType<typeof setTimeout> | undefined;
   let isInteractingFlag = false;
-
-  // Compact mode is sticky: once the user commits a tweak, the panel
-  // collapses to just the value stepper + submit button (no tag badge,
-  // no search, no list). It only re-expands when the user types a
-  // non-empty search query — typing on the hidden-but-focused search
-  // textarea snaps the panel back to the full layout so they can see
-  // the filtered property list.
-  const isCompact = createMemo(() => hasCommittedAnyEdit() && searchQuery() === "");
 
   const tagDisplay = createMemo(() =>
     getTagDisplay({
@@ -244,10 +241,9 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     }
     if (survivingEdits.length !== saved.length) savePendingEdits(props.state, survivingEdits);
     setTweakedValues(Object.fromEntries(survivingEdits.map((edit) => [edit.key, edit.value])));
-    // Don't flip hasCommittedAnyEdit — the panel always opens in full
-    // mode (search + list) so the user can see/pick a property to edit
-    // before the layout collapses. Stickiness is per-session, not
-    // across reopens.
+    // Don't flip isCompact — the panel always opens in full mode (search
+    // + list) so the user can see/pick a property to edit before the
+    // layout collapses. Stickiness is per-session, not across reopens.
   };
 
   const flashActiveKey = (direction: "left" | "right") => {
@@ -281,8 +277,9 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   };
 
   // Pure step: computes the next value, writes it through, returns the
-  // property that was tweaked (or null if no change). All commit paths
-  // flip hasCommittedAnyEdit true and ping interacting.
+  // property that was tweaked (or null if no change). Stepper commits
+  // (Left/Right) collapse to compact — the user has picked a property
+  // and is now adjusting its value.
   const commitTweak = (direction: 1 | -1, shift: boolean): EditableProperty | null => {
     const property = activeProperty();
     if (!property) return null;
@@ -294,7 +291,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     setTweakedValues((current) => ({ ...current, [property.key]: next }));
     preview.apply(property.cssProperties, formatEditableValue(property, next));
     flashActiveKey(direction === 1 ? "right" : "left");
-    setHasCommittedAnyEdit(true);
+    setIsCompact(true);
     markAsInteracting();
     ensureSearchFocused();
     return property;
@@ -318,7 +315,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     if (next === property.value) return;
     setTweakedValues((current) => ({ ...current, [property.key]: next }));
     preview.apply(property.cssProperties, formatEditableValue(property, next));
-    setHasCommittedAnyEdit(true);
+    setIsCompact(true);
     markAsInteracting();
   };
 
@@ -348,7 +345,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       if (next === (tweakedValues()[exact.key] ?? exact.original)) return;
       setTweakedValues((current) => ({ ...current, [exact.key]: next }));
       preview.apply(exact.cssProperties, formatEditableValue(exact, next));
-      setHasCommittedAnyEdit(true);
       markAsInteracting();
       return;
     }
@@ -375,7 +371,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       }
       return updated;
     });
-    setHasCommittedAnyEdit(true);
     markAsInteracting();
   };
 
@@ -446,8 +441,8 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     setActiveIndex((current) => (current + direction + properties.length) % properties.length);
     // Navigating the list (Up/Down/Tab) needs the list to be visible —
     // re-expand back to full mode. Next adjust (Left/Right) flips it
-    // back to compact via setHasCommittedAnyEdit(true) in commitTweak.
-    setHasCommittedAnyEdit(false);
+    // back to compact via setIsCompact(true) in commitTweak.
+    setIsCompact(false);
   };
 
   const keyHandlers: Record<string, (event: KeyboardEvent) => void> = {
@@ -618,6 +613,9 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                 const next = event.currentTarget.value;
                 setSearchQuery(next);
                 setActiveIndex(0);
+                // Typing means the user is looking for a property — pop
+                // back to full layout so they can see filtered results.
+                setIsCompact(false);
                 tryApplyTailwindClass(next);
               }}
               onKeyDown={handleSearchKeyDown}
