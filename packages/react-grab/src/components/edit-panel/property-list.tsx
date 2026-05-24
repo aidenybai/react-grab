@@ -30,8 +30,14 @@ interface PropertyListProps {
   onCommitValue: (value: number) => void;
   onCommitColor: (hex: string) => void;
   onCommitEnum: (value: string) => void;
+  onColorPickerRegister: (trigger: (() => void) | null) => void;
   onEditComplete: () => void;
   onInteract: () => void;
+  // True while the user is actively tweaking the current row (slider
+  // drag, swatch click / native picker, segmented cycle). Hover-driven
+  // active-row swaps are suppressed during this window so a mouse
+  // twitch can't swap the active row out from under them mid-tweak.
+  isInteracting: () => boolean;
   activeKey: "left" | "right" | null;
 }
 
@@ -127,6 +133,12 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
               class="relative z-1 contain-layout block w-full px-0 py-0 cursor-pointer text-left border-none bg-transparent min-h-[24px]"
               onPointerEnter={() => {
                 if (!didPointerMove) return;
+                // Suppress hover-driven swaps while the user is mid-tweak
+                // (slider drag, native colour picker open, etc.). The
+                // panel's onInteract idle timer governs the lifetime —
+                // the lock releases shortly after the user stops poking
+                // the active control.
+                if (props.isInteracting()) return;
                 // The panel runs inside a Shadow DOM (mountRoot attaches a
                 // shadow root on the overlay host). `document.activeElement`
                 // returns the shadow HOST when focus is inside the shadow,
@@ -210,6 +222,8 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
                       value={asColor(property()).value}
                       onCommit={props.onCommitColor}
                       onEditComplete={props.onEditComplete}
+                      onRegisterTrigger={props.onColorPickerRegister}
+                      onInteract={props.onInteract}
                     />
                   </Match>
                   <Match when={property().kind === "enum"}>

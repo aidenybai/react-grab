@@ -1,4 +1,4 @@
-import { createSignal, Show, type Component } from "solid-js";
+import { createSignal, onCleanup, onMount, Show, type Component } from "solid-js";
 import { normalizeHex } from "../../utils/normalize-hex.js";
 import { stripHexAlpha } from "../../utils/strip-hex-alpha.js";
 
@@ -9,6 +9,15 @@ interface ColorPickerProps {
   // Called after the inline hex editor commits / cancels so the panel can
   // return focus to the search input (mirrors ValueStepper.onEditComplete).
   onEditComplete?: () => void;
+  // Lets the parent imperatively open the native color picker (used by
+  // the panel's Enter key handler on color rows). Called with the
+  // trigger function on mount and `null` on unmount.
+  onRegisterTrigger?: (trigger: (() => void) | null) => void;
+  // Signals "user is engaging with this control" so the panel can keep
+  // the page-level selection overlay hidden AND lock hover-driven
+  // active-row swaps in the property list. Fires on swatch open and
+  // on every native picker change.
+  onInteract?: () => void;
   emphasized?: boolean;
 }
 
@@ -19,6 +28,11 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
   const [draftText, setDraftText] = createSignal<string | null>(null);
   const isEditing = () => draftText() !== null;
   let nativePickerRef: HTMLInputElement | undefined;
+
+  onMount(() => {
+    props.onRegisterTrigger?.(() => nativePickerRef?.click());
+    onCleanup(() => props.onRegisterTrigger?.(null));
+  });
 
   const commitHex = () => {
     const text = draftText();
@@ -53,6 +67,7 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
   const handleSwatchClick = (event: MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
+    props.onInteract?.();
     nativePickerRef?.click();
   };
 
@@ -131,6 +146,7 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
           value={stripHexAlpha(props.value)}
           onInput={(event) => {
             const next = event.currentTarget.value;
+            props.onInteract?.();
             if (next && next.toLowerCase() !== props.value.toLowerCase()) {
               props.onCommit(next);
             }

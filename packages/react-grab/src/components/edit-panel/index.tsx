@@ -17,7 +17,6 @@ import {
   EDIT_PANEL_MAX_WIDTH_PX,
   EDIT_PANEL_MIN_WIDTH_PX,
   EDIT_PROPERTY_LIST_MAX_HEIGHT_PX,
-  EDIT_COLOR_LIGHTNESS_SHIFT_STEP_PERCENT,
   EDIT_COLOR_LIGHTNESS_STEP_PERCENT,
   EDIT_SHIFT_STEP_MULTIPLIER,
   TAILWIND_SPACING_UNIT_PX,
@@ -40,6 +39,7 @@ import { cleanNumericValue, formatEditableValue } from "../../utils/format-css-v
 import { formatSessionEditsPrompt } from "../../utils/format-edit-prompt.js";
 import { stepColorLightness } from "../../utils/parse-color.js";
 import { pickNextOption } from "../../utils/pick-next-option.js";
+import { stepTailwindShade } from "../../utils/tailwind-palette.js";
 import { filterPropertiesByQuery } from "../../utils/fuzzy-score-property.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
 import { tailwindPrefixToProperty } from "../../utils/tailwind-class-map.js";
@@ -114,7 +114,12 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
 
   let activeKeyTimerId: ReturnType<typeof setTimeout> | undefined;
   let interactingIdleTimerId: ReturnType<typeof setTimeout> | undefined;
-  let isInteractingFlag = false;
+  // Reactive form of the "currently tweaking" flag so PropertyList can
+  // suppress hover-driven active-row swaps while the user has engaged
+  // with the active row's control (slider drag, swatch click, native
+  // colour picker, segmented cycle). Stays a let-mirror for the cleanup
+  // path that still needs to compare without re-running effects.
+  const [isInteracting, setIsInteractingSignal] = createSignal(false);
 
   const tagDisplay = createMemo(() =>
     getTagDisplay({
@@ -209,15 +214,17 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
 
   // Timed "currently tweaking" flag — fires onInteractingChange so the
   // parent hides the page-level selection overlay while the user is
-  // actively adjusting values.
+  // actively adjusting values. Doubles as a hover guard inside
+  // PropertyList so a quick mouse twitch doesn't swap the active row
+  // out from under the user mid-tweak.
   const markAsInteracting = () => {
-    if (!isInteractingFlag) {
-      isInteractingFlag = true;
+    if (!isInteracting()) {
+      setIsInteractingSignal(true);
       props.onInteractingChange?.(true);
     }
     clearTimeout(interactingIdleTimerId);
     interactingIdleTimerId = setTimeout(() => {
-      isInteractingFlag = false;
+      setIsInteractingSignal(false);
       props.onInteractingChange?.(false);
     }, EDIT_PANEL_ADJUSTING_IDLE_MS);
   };
@@ -244,10 +251,15 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     // store update, preview write, key flash, and focus restoration.
     let nextValue: number | string | null = null;
     if (property.kind === "color") {
-      const stepPercent =
-        (shift ? EDIT_COLOR_LIGHTNESS_SHIFT_STEP_PERCENT : EDIT_COLOR_LIGHTNESS_STEP_PERCENT) *
-        direction;
-      const nextHex = stepColorLightness(property.value, stepPercent);
+      // Shift+arrow snaps to the nearest tailwind palette entry and
+      // walks shades within that family; plain arrow nudges lightness
+      // smoothly in HSL space (preserves hue / saturation / alpha).
+      const nextHex = shift
+        ? stepTailwindShade(property.value, direction)
+        : stepColorLightness(
+            property.value,
+            EDIT_COLOR_LIGHTNESS_STEP_PERCENT * direction,
+          );
       if (nextHex && nextHex.toLowerCase() !== property.value.toLowerCase()) {
         nextValue = nextHex;
       }
@@ -456,13 +468,28 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     setIsCompact(false);
   };
 
+  // Color rows register a trigger fn on mount so Enter on a colour
+  // active row opens the native picker instead of submitting the panel.
+  // Cleared on unmount so we never accidentally call into a stale ref.
+  let colorPickerTrigger: (() => void) | null = null;
+  const registerColorPickerTrigger = (trigger: (() => void) | null) => {
+    colorPickerTrigger = trigger;
+  };
+
   const keyHandlers: Record<string, (event: KeyboardEvent) => void> = {
     ArrowUp: () => navigateActive(-1),
     ArrowDown: () => navigateActive(1),
     ArrowLeft: (event) => stepFromKeyboard(-1, event.shiftKey),
     ArrowRight: (event) => stepFromKeyboard(1, event.shiftKey),
     Tab: (event) => navigateActive(event.shiftKey ? -1 : 1),
-    Enter: () => handleSubmit(),
+    Enter: () => {
+      const property = activeProperty();
+      if (property?.kind === "color" && colorPickerTrigger) {
+        colorPickerTrigger();
+        return;
+      }
+      handleSubmit();
+    },
     Escape: () => dismissPreservingTweaks(),
   };
 
@@ -544,8 +571,8 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       clearTimeout(activeKeyTimerId);
       clearTimeout(interactingIdleTimerId);
       dropdown.clearAnimationHandles();
-      if (isInteractingFlag) {
-        isInteractingFlag = false;
+      if (isInteracting()) {
+        setIsInteractingSignal(false);
         props.onInteractingChange?.(false);
       }
       // All dismissal paths preserve the user's tweaks (req: Escape does
@@ -676,8 +703,10 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                 onCommitValue={commitNumericValue}
                 onCommitColor={commitColorValue}
                 onCommitEnum={commitEnumValue}
+                onColorPickerRegister={registerColorPickerTrigger}
                 onEditComplete={ensureSearchFocused}
                 onInteract={markAsInteracting}
+                isInteracting={isInteracting}
               />
             </div>
           </Show>
@@ -723,6 +752,8 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                           value={color().value}
                           onCommit={commitColorValue}
                           onEditComplete={ensureSearchFocused}
+                          onRegisterTrigger={registerColorPickerTrigger}
+                          onInteract={markAsInteracting}
                           emphasized
                         />
                       );
