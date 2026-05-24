@@ -148,7 +148,13 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
           class="absolute opacity-0 pointer-events-none size-0"
           value={stripHexAlpha(props.value)}
           onInput={(event) => {
-            const next = event.currentTarget.value;
+            // Native <input type="color"> only emits `#rrggbb` — when
+            // the current value carries alpha (#rrggbbaa), splice the
+            // original alpha byte onto the picker's RGB result so we
+            // don't silently drop transparency.
+            const pickedRgb = event.currentTarget.value;
+            const originalAlpha = props.value.length === 9 ? props.value.slice(7) : "";
+            const next = pickedRgb + originalAlpha;
             props.onInteract?.();
             if (next && next.toLowerCase() !== props.value.toLowerCase()) {
               props.onCommit(next);

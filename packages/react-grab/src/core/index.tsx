@@ -2291,6 +2291,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!isActivated()) return false;
       if (isCopying() || isPromptMode()) return false;
       if (store.contextMenuPosition !== null) return false;
+      // Edit panel owns the surface while it's open — context menu
+      // would land on top and split keyboard routing.
+      if (editMode.isOpen()) return false;
 
       const isShiftF10 = event.key === "F10" && event.shiftKey;
       const isContextMenuKey = event.key === "ContextMenu";
@@ -2745,6 +2748,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       "contextmenu",
       (event: MouseEvent) => {
         if (!isRendererActive() || isCopying() || isPromptMode()) return;
+        // Edit panel owns the surface while it's open — context menu
+        // would land on top and split keyboard routing between two
+        // popovers.
+        if (editMode.isOpen()) return;
 
         const isFromOverlay = isEventFromOverlay(event, "data-react-grab-ignore-events");
         const position = { x: event.clientX, y: event.clientY };
