@@ -434,6 +434,7 @@ export interface ReactGrabRendererProps {
   onToggleToolbarMenu?: () => void;
   onToolbarMenuDismiss?: () => void;
   editPanelState?: EditPanelState | null;
+  editPanelPosition?: DropdownAnchor | null;
   onEditPanelDismiss?: () => void;
   onEditPanelSubmit?: (prompt: string) => void;
   onEditPanelInteractingChange?: (interacting: boolean) => void;

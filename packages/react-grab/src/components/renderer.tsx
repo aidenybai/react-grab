@@ -185,6 +185,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
       />
       <EditPanel
         state={props.editPanelState ?? null}
+        position={props.editPanelPosition ?? null}
         onDismiss={props.onEditPanelDismiss ?? (() => {})}
         onSubmit={props.onEditPanelSubmit ?? (() => {})}
         onInteractingChange={props.onEditPanelInteractingChange}

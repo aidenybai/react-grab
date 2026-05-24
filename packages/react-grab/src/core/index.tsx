@@ -283,6 +283,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
     const [isToolbarSelectHovered, setIsToolbarSelectHovered] = createSignal(false);
     const [toolbarMenuPosition, setToolbarMenuPosition] = createSignal<DropdownAnchor | null>(null);
+    const [editPanelPosition, setEditPanelPosition] = createSignal<DropdownAnchor | null>(null);
     // Forward-ref wrappers because activateRenderer / deactivateRenderer /
     // performCopyWithLabel are declared later in this scope. The wrappers
     // are captured by the controller; the underlying lookups happen at
@@ -3452,6 +3453,24 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       editMode.dismiss();
     };
 
+    // Anchor the edit panel to the toolbar like the toolbar menu / former
+    // comments dropdown. Track the toolbar's bounding rect each frame so
+    // the panel stays glued to it as the toolbar moves/repositions.
+    createEffect(
+      on(
+        editMode.isOpen,
+        (isOpen) => {
+          if (isOpen) {
+            openTrackedDropdown(setEditPanelPosition);
+          } else {
+            stopTrackingDropdownPosition();
+            setEditPanelPosition(null);
+          }
+        },
+        { defer: true },
+      ),
+    );
+
     const handleToggleToolbarMenu = () => {
       if (toolbarMenuPosition() !== null) {
         dismissToolbarMenu();
@@ -3601,6 +3620,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 onToggleToolbarMenu={handleToggleToolbarMenu}
                 onToolbarMenuDismiss={dismissToolbarMenu}
                 editPanelState={editMode.state()}
+                editPanelPosition={editPanelPosition()}
                 onEditPanelDismiss={editMode.dismiss}
                 onEditPanelSubmit={editMode.submit}
                 onEditPanelInteractingChange={editMode.setInteracting}
