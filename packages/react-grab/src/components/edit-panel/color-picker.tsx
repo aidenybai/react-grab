@@ -1,5 +1,5 @@
 import { createSignal, onCleanup, onMount, Show, type Component } from "solid-js";
-import { normalizeHex } from "../../utils/normalize-hex.js";
+import { parseAnyColor } from "../../utils/parse-any-color.js";
 import { stripHexAlpha } from "../../utils/strip-hex-alpha.js";
 
 interface ColorPickerProps {
@@ -38,7 +38,10 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
     const text = draftText();
     if (text === null) return;
     setDraftText(null);
-    const normalized = normalizeHex(text.trim());
+    // parseAnyColorToHex accepts hex w/ or w/o `#`, 3/4/6/8 digits,
+    // rgb/rgba, hsl/hsla, and CSS named colours — anything the browser
+    // parses through the canvas fillStyle setter.
+    const normalized = parseAnyColorToHex(text);
     if (normalized && normalized.toLowerCase() !== props.value.toLowerCase()) {
       props.onCommit(normalized);
     }

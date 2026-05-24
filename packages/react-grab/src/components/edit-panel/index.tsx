@@ -39,6 +39,7 @@ import { cleanNumericValue, formatEditableValue } from "../../utils/format-css-v
 import { formatSessionEditsPrompt } from "../../utils/format-edit-prompt.js";
 import { stepColorLightness } from "../../utils/parse-color.js";
 import { pickNextOption } from "../../utils/pick-next-option.js";
+import { stepTailwindNumeric } from "../../utils/tailwind-numeric-scale.js";
 import { stepTailwindShade } from "../../utils/tailwind-palette.js";
 import { filterPropertiesByQuery } from "../../utils/fuzzy-score-property.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
@@ -267,10 +268,21 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       const next = pickNextOption(property.options, property.value, direction);
       if (next) nextValue = next.value;
     } else {
-      const multiplier = shift ? EDIT_SHIFT_STEP_MULTIPLIER : 1;
-      const candidate = cleanNumericValue(
-        clampToRange(property.value + direction * multiplier, property.min, property.max),
-      );
+      // Shift+arrow on numeric snaps to the nearest tailwind spacing /
+      // opacity scale stop in that direction. Plain arrow nudges by 1
+      // unit (rounded). If the value is past the scale's max (e.g.
+      // width=500px), snap returns null and we fall back to a 10x
+      // multiplier — the long-standing "fast browse big values" behavior.
+      let candidate: number | null = null;
+      if (shift) candidate = stepTailwindNumeric(property, direction);
+      if (candidate === null) {
+        const multiplier = shift ? EDIT_SHIFT_STEP_MULTIPLIER : 1;
+        candidate = cleanNumericValue(
+          clampToRange(property.value + direction * multiplier, property.min, property.max),
+        );
+      } else {
+        candidate = cleanNumericValue(clampToRange(candidate, property.min, property.max));
+      }
       if (candidate !== property.value) nextValue = candidate;
     }
     if (nextValue === null) return null;
