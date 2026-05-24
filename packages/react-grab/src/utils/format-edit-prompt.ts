@@ -1,18 +1,20 @@
 import { OPACITY_PERCENT_MAX } from "../constants.js";
-import type { PendingEditsEntry } from "./edit-panel-storage.js";
+import type { PendingEdit, PendingEditsEntry } from "../types.js";
 import { formatDisplayValue } from "./format-css-value.js";
 
-const formatCssValue = (cssProperty: string, value: number, unit: string): string => {
-  if (cssProperty === "opacity" && unit === "%") {
+const formatCssValue = (edit: PendingEdit): string => {
+  if (edit.kind === "color" || edit.kind === "enum") return String(edit.value);
+  const value = edit.value as number;
+  if ((edit.cssProperties[0] ?? edit.key) === "opacity" && edit.unit === "%") {
     return formatDisplayValue(value / OPACITY_PERCENT_MAX);
   }
-  return `${formatDisplayValue(value)}${unit}`;
+  return `${formatDisplayValue(value)}${edit.unit}`;
 };
 
 const formatEntryCss = (entry: PendingEditsEntry): string[] => {
   const lines: string[] = [];
   for (const edit of entry.edits) {
-    const cssValue = formatCssValue(edit.cssProperties[0] ?? edit.key, edit.value, edit.unit);
+    const cssValue = formatCssValue(edit);
     for (const cssProperty of edit.cssProperties) {
       lines.push(`${cssProperty}: ${cssValue};`);
     }

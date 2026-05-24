@@ -1,8 +1,25 @@
-import { createEffect, Index, onCleanup, Show, type Component } from "solid-js";
-import type { EditableProperty } from "../../types.js";
+import { createEffect, Index, Match, onCleanup, Show, Switch, type Component } from "solid-js";
+import type {
+  ColorEditableProperty,
+  EditableProperty,
+  EnumEditableProperty,
+  NumericEditableProperty,
+} from "../../types.js";
 import { createMenuHighlight } from "../../utils/create-menu-highlight.js";
 import { formatDisplayValue } from "../../utils/format-css-value.js";
+import { ColorPicker } from "./color-picker.js";
+import { CycleControl } from "./cycle-control.js";
 import { ValueStepper } from "./value-stepper.js";
+
+// Narrowing accessors used inside the active-row Switch. Match's `when`
+// gates rendering, so the cast inside is safe — TS just can't see
+// across the boundary because we deliberately don't use `keyed`
+// (keyed would remount on every value update and tear down native
+// color pickers / drag pointer captures).
+const asNumeric = (property: EditableProperty) =>
+  property as NumericEditableProperty;
+const asColor = (property: EditableProperty) => property as ColorEditableProperty;
+const asEnum = (property: EditableProperty) => property as EnumEditableProperty;
 
 interface PropertyListProps {
   properties: EditableProperty[];
@@ -11,7 +28,10 @@ interface PropertyListProps {
   onSelect: (index: number) => void;
   onStep: (direction: 1 | -1) => void;
   onCommitValue: (value: number) => void;
+  onCommitColor: (hex: string) => void;
+  onCommitEnum: (value: string) => void;
   onEditComplete: () => void;
+  onInteract: () => void;
   activeKey: "left" | "right" | null;
 }
 
@@ -104,9 +124,24 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
               type="button"
               role="menuitem"
               tabindex={-1}
-              class="relative z-1 contain-layout flex items-center justify-between w-full px-2 py-1 cursor-pointer text-left border-none bg-transparent gap-2 min-h-[24px]"
+              class="relative z-1 contain-layout block w-full px-0 py-0 cursor-pointer text-left border-none bg-transparent min-h-[24px]"
               onPointerEnter={() => {
-                if (didPointerMove) props.onHoverIndex(propertyIndex);
+                if (!didPointerMove) return;
+                // The panel runs inside a Shadow DOM (mountRoot attaches a
+                // shadow root on the overlay host). `document.activeElement`
+                // returns the shadow HOST when focus is inside the shadow,
+                // not the actual focused element — so we'd never see our
+                // own value-edit input and would always change activeIndex
+                // on hover, unmounting the user's in-progress edit. Read
+                // the shadow root via getRootNode to find the real focused
+                // element.
+                const root = listRef?.getRootNode();
+                const focused =
+                  root instanceof ShadowRoot
+                    ? (root.activeElement as HTMLElement | null)
+                    : (document.activeElement as HTMLElement | null);
+                if (focused?.matches("input[data-react-grab-input]")) return;
+                props.onHoverIndex(propertyIndex);
               }}
               onMouseDown={(event) => {
                 // Default focus on the clicked button would steal it from
@@ -118,32 +153,75 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
                 props.onSelect(propertyIndex);
               }}
             >
-              <span class="text-[13px] leading-4 font-sans font-medium text-[var(--rg-text-primary)] truncate min-w-0">
-                {property().label}
-              </span>
+              {/* Switch matches use boolean `when` (not `keyed`) so the
+                  mounted control stays alive across value updates — the
+                  native color picker dialog and the slider's pointer
+                  capture both rely on the element instance persisting
+                  while the value changes. Property data is read
+                  reactively below via narrowing helper accessors. */}
               <Show
                 when={isActive()}
                 fallback={
-                  <span class="text-[11px] font-sans text-[var(--rg-text-secondary)] tabular-nums shrink-0">
-                    {formatDisplayValue(property().value)}
-                    {property().unit}
-                  </span>
+                  <div class="flex items-center justify-between w-full px-2 py-1 gap-2 min-h-[24px]">
+                    <span class="text-[13px] leading-4 font-sans font-medium text-[var(--rg-text-primary)] truncate min-w-0">
+                      {property().label}
+                    </span>
+                    <Switch>
+                      <Match when={property().kind === "numeric"}>
+                        <span class="text-[11px] font-sans text-[var(--rg-text-secondary)] tabular-nums shrink-0">
+                          {formatDisplayValue(asNumeric(property()).value)}
+                          {asNumeric(property()).unit}
+                        </span>
+                      </Match>
+                      <Match when={property().kind === "color"}>
+                        <span
+                          aria-hidden="true"
+                          class="size-[12px] rounded-[3px] border-[var(--rg-border-button)] [border-width:0.5px] border-solid shrink-0"
+                          style={{ "background-color": asColor(property()).value }}
+                        />
+                      </Match>
+                      <Match when={property().kind === "enum"}>
+                        <span class="text-[11px] font-sans text-[var(--rg-text-secondary)] shrink-0">
+                          {asEnum(property()).value}
+                        </span>
+                      </Match>
+                    </Switch>
+                  </div>
                 }
               >
-                <div
-                  onPointerDown={(event) => event.stopPropagation()}
-                  onMouseDown={(event) => event.preventDefault()}
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  <ValueStepper
-                    value={property().value}
-                    unit={property().unit}
-                    activeKey={props.activeKey}
-                    onStep={props.onStep}
-                    onCommitValue={props.onCommitValue}
-                    onEditComplete={props.onEditComplete}
-                  />
-                </div>
+                <Switch>
+                  <Match when={property().kind === "numeric"}>
+                    <ValueStepper
+                      label={asNumeric(property()).label}
+                      value={asNumeric(property()).value}
+                      min={asNumeric(property()).min}
+                      max={asNumeric(property()).max}
+                      unit={asNumeric(property()).unit}
+                      activeKey={props.activeKey}
+                      onStep={props.onStep}
+                      onCommitValue={props.onCommitValue}
+                      onEditComplete={props.onEditComplete}
+                      onInteract={props.onInteract}
+                    />
+                  </Match>
+                  <Match when={property().kind === "color"}>
+                    <ColorPicker
+                      label={asColor(property()).label}
+                      value={asColor(property()).value}
+                      onCommit={props.onCommitColor}
+                      onEditComplete={props.onEditComplete}
+                    />
+                  </Match>
+                  <Match when={property().kind === "enum"}>
+                    <CycleControl
+                      label={asEnum(property()).label}
+                      value={asEnum(property()).value}
+                      options={asEnum(property()).options}
+                      activeKey={props.activeKey}
+                      onCommit={props.onCommitEnum}
+                    />
+                  </Match>
+                </Switch>
               </Show>
             </button>
           );

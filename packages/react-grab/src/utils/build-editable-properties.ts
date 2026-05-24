@@ -3,8 +3,15 @@ import {
   FONT_SIZE_LINE_HEIGHT_RATIO,
   OPACITY_PERCENT_MAX,
 } from "../constants.js";
-import type { EditableProperty } from "../types.js";
+import type {
+  ColorEditableProperty,
+  EditableProperty,
+  EnumEditableOption,
+  EnumEditableProperty,
+  NumericEditableProperty,
+} from "../types.js";
 import { cleanNumericValue } from "./format-css-value.js";
+import { isTransparentRgbString, rgbStringToHex } from "./parse-color.js";
 import { parseNumericValue, type NumericValue } from "./parse-numeric-value.js";
 import { getElementTailwindProperties, tailwindAliasesForProperty } from "./tailwind-class-map.js";
 
@@ -277,10 +284,11 @@ const buildNumericProperty = (
   definition: AggregateDefinition,
   raw: NumericValue,
   isCanonical: boolean,
-): EditableProperty => {
+): NumericEditableProperty => {
   const normalized = normalizeForEdit(definition.key, raw);
   const bounds = propertyBounds(definition.key, normalized.value, normalized.unit);
   return {
+    kind: "numeric",
     key: definition.key,
     label: definition.label,
     cssProperties: definition.longhands,
@@ -293,6 +301,130 @@ const buildNumericProperty = (
     prioritized: false,
     isDefault: false,
     isCanonical,
+  };
+};
+
+// Color properties (color, background-color, border-color, fill, stroke)
+// pulled from computed style and rendered via the color-picker control
+// instead of the slider. We deliberately limit the list to the handful
+// users actually want to tweak — every element computes dozens of
+// colour-typed properties, most of them inherited and uninteresting.
+const COLOR_PROPERTIES: ReadonlyArray<{ key: string; label: string }> = [
+  { key: "color", label: "text color" },
+  { key: "background-color", label: "background" },
+  { key: "border-color", label: "border color" },
+  { key: "fill", label: "fill" },
+  { key: "stroke", label: "stroke" },
+];
+
+const buildColorProperty = (
+  cssKey: string,
+  label: string,
+  rawCssValue: string,
+): ColorEditableProperty | null => {
+  const hex = rgbStringToHex(rawCssValue);
+  if (!hex) return null;
+  return {
+    kind: "color",
+    key: cssKey,
+    label,
+    cssProperties: [cssKey],
+    value: hex,
+    original: hex,
+    tailwindAliases: tailwindAliasesForProperty(cssKey),
+    prioritized: false,
+    isDefault: false,
+    isCanonical: true,
+  };
+};
+
+// Enum properties — CSS keys whose value is one of a fixed small set
+// (segmented control). Each entry lists the canonical labels we want to
+// show (in display order). Properties only surface if the computed
+// value matches one of the options, so we don't render a misleading
+// active state when the page uses an unsupported value.
+const ENUM_PROPERTIES: ReadonlyArray<{
+  key: string;
+  label: string;
+  options: ReadonlyArray<EnumEditableOption>;
+}> = [
+  {
+    key: "display",
+    label: "display",
+    options: [
+      { value: "block", label: "block" },
+      { value: "flex", label: "flex" },
+      { value: "inline-block", label: "inline-block" },
+      { value: "inline", label: "inline" },
+      { value: "grid", label: "grid" },
+      { value: "none", label: "none" },
+    ],
+  },
+  {
+    key: "text-align",
+    label: "text align",
+    options: [
+      { value: "left", label: "left" },
+      { value: "center", label: "center" },
+      { value: "right", label: "right" },
+      { value: "justify", label: "justify" },
+    ],
+  },
+  {
+    key: "font-style",
+    label: "font style",
+    options: [
+      { value: "normal", label: "normal" },
+      { value: "italic", label: "italic" },
+    ],
+  },
+  {
+    key: "text-decoration-line",
+    label: "decoration",
+    options: [
+      { value: "none", label: "none" },
+      { value: "underline", label: "underline" },
+      { value: "line-through", label: "strike" },
+    ],
+  },
+  {
+    key: "border-style",
+    label: "border style",
+    options: [
+      { value: "none", label: "none" },
+      { value: "solid", label: "solid" },
+      { value: "dashed", label: "dashed" },
+      { value: "dotted", label: "dotted" },
+    ],
+  },
+  {
+    key: "visibility",
+    label: "visibility",
+    options: [
+      { value: "visible", label: "visible" },
+      { value: "hidden", label: "hidden" },
+    ],
+  },
+];
+
+const buildEnumProperty = (
+  definition: (typeof ENUM_PROPERTIES)[number],
+  rawCssValue: string,
+): EnumEditableProperty | null => {
+  const trimmed = rawCssValue.trim();
+  if (!definition.options.some((option) => option.value === trimmed)) return null;
+  return {
+    kind: "enum",
+    key: definition.key,
+    label: definition.label,
+    cssProperties: [definition.key],
+    value: trimmed,
+    original: trimmed,
+    options: definition.options,
+    tailwindAliases: tailwindAliasesForProperty(definition.key),
+    prioritized: false,
+    isDefault: false,
+    isCanonical: true,
   };
 };
 
@@ -329,6 +461,18 @@ const tagAggregateGroup = (
 };
 
 const isDefaultPropertyValue = (property: EditableProperty): boolean => {
+  // Color properties: leave default-detection to the build step that
+  // already drops fully-transparent backgrounds; anything that survives
+  // is a real value worth surfacing.
+  if (property.kind === "color") return false;
+  // Enum properties: hide rows whose computed value matches the
+  // first declared option, which we author as the browser default
+  // (block, left, normal, none, none, visible). Keeping the default
+  // as options[0] is enforced by convention in ENUM_PROPERTIES rather
+  // than a parallel lookup table.
+  if (property.kind === "enum") {
+    return property.options[0]?.value === property.original;
+  }
   const { key, original: value } = property;
   if (key.startsWith("padding") || key.startsWith("margin")) return value === 0;
   if (key.includes("gap")) return value === 0;
@@ -358,22 +502,43 @@ export const buildEditableProperties = (element: Element): EditableProperty[] =>
   const properties: EditableProperty[] = [];
   const seen = new Set<string>();
 
-  const push = (definition: AggregateDefinition, value: NumericValue, isCanonical: boolean) => {
-    if (seen.has(definition.key) || properties.length >= EDIT_PROPERTY_MAX_COUNT) return;
-    properties.push(buildNumericProperty(definition, value, isCanonical));
-    seen.add(definition.key);
+  const push = (property: EditableProperty) => {
+    if (seen.has(property.key) || properties.length >= EDIT_PROPERTY_MAX_COUNT) return;
+    properties.push(property);
+    seen.add(property.key);
   };
 
   for (const group of AGGREGATE_GROUPS) {
     for (const entry of tagAggregateGroup(snapshot, group)) {
-      push(entry.definition, entry.value, entry.isCanonical);
+      push(buildNumericProperty(entry.definition, entry.value, entry.isCanonical));
     }
   }
 
   for (const single of SINGLE_PROPERTIES) {
     const value = valueWithFallback(snapshot, single.key);
     if (!value) continue;
-    push({ key: single.key, label: single.label, longhands: [single.key] }, value, true);
+    push(
+      buildNumericProperty(
+        { key: single.key, label: single.label, longhands: [single.key] },
+        value,
+        true,
+      ),
+    );
+  }
+
+  const computed = getComputedStyle(element);
+  for (const { key, label } of COLOR_PROPERTIES) {
+    const raw = computed.getPropertyValue(key);
+    if (!raw || isTransparentRgbString(raw)) continue;
+    const colorProperty = buildColorProperty(key, label, raw);
+    if (colorProperty) push(colorProperty);
+  }
+
+  for (const definition of ENUM_PROPERTIES) {
+    const raw = computed.getPropertyValue(definition.key);
+    if (!raw) continue;
+    const enumProperty = buildEnumProperty(definition, raw);
+    if (enumProperty) push(enumProperty);
   }
 
   return finalizeProperties(properties, getElementTailwindProperties(element));

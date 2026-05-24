@@ -25,11 +25,16 @@ export const cleanNumericValue = (value: number): number => roundToDecimals(valu
 
 // Formats an editable property's value as a CSS-injectable string,
 // applying property-specific transforms (opacity goes from 0-100 UI to
-// 0-1 CSS).
+// 0-1 CSS). Color and enum properties are already valid CSS tokens
+// (`#rrggbb`, `solid`, etc.) and pass through unchanged.
 export const formatEditableValue = (
   property: EditableProperty,
-  value: number = property.value,
+  overrideValue?: number | string,
 ): string => {
+  if (property.kind === "color" || property.kind === "enum") {
+    return (overrideValue as string | undefined) ?? property.value;
+  }
+  const value = (overrideValue as number | undefined) ?? property.value;
   if (property.key === "opacity" && property.unit === "%") {
     return stripTrailingZeros(roundToDecimals(value / OPACITY_PERCENT_MAX));
   }

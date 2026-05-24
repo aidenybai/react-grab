@@ -51,8 +51,17 @@ const createAnimatedBoundsFollower = ({
     // visual size — saving those into the highlight's inline style
     // bakes in the wrong dimensions and the highlight stays narrower
     // than the row when the transform settles to scale(1).
-    const targetTopWithinContainer = targetElement.offsetTop - containerElement.scrollTop;
-    const targetLeftWithinContainer = targetElement.offsetLeft - containerElement.scrollLeft;
+    //
+    // offsetTop/offsetLeft are relative to the container's CONTENT
+    // origin and do NOT change as the container scrolls. The highlight
+    // is rendered as a position:absolute child of the same scrolling
+    // container, so it shares the same coordinate system — applying
+    // offsetTop directly keeps the highlight glued to the row through
+    // scroll. Subtracting scrollTop here would make the highlight
+    // appear stuck at a fixed viewport position while the rows scroll
+    // past it.
+    const targetTopWithinContainer = targetElement.offsetTop;
+    const targetLeftWithinContainer = targetElement.offsetLeft;
     followerElement.style.opacity = visibleOpacity;
     followerElement.style.top = `${targetTopWithinContainer}px`;
     followerElement.style.left = `${targetLeftWithinContainer}px`;

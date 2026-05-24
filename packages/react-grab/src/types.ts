@@ -158,18 +158,13 @@ export interface ContextMenuActionContext extends ActionContext {
   enterEditMode?: () => void;
 }
 
-export interface EditableProperty {
+interface EditablePropertyBase {
   // Stable identity across renders and sessionStorage. For aggregates this
   // is a comma-joined cssProperties (e.g. "padding-top,padding-bottom") so
   // the key survives DOM round-trips without parsing back.
   key: string;
   label: string;
   cssProperties: readonly string[];
-  min: number;
-  max: number;
-  value: number;
-  original: number;
-  unit: string;
   tailwindAliases: string[];
   prioritized: boolean;
   isDefault: boolean;
@@ -177,6 +172,58 @@ export interface EditableProperty {
   // current snapshot (e.g. "padding" when all 4 sides are equal). Default
   // view shows only canonical rows; searching surfaces the rest.
   isCanonical: boolean;
+}
+
+export interface NumericEditableProperty extends EditablePropertyBase {
+  kind: "numeric";
+  min: number;
+  max: number;
+  value: number;
+  original: number;
+  unit: string;
+}
+
+export interface ColorEditableProperty extends EditablePropertyBase {
+  kind: "color";
+  // Hex string ("#rrggbb" or "#rrggbbaa") for both display and CSS write.
+  value: string;
+  original: string;
+}
+
+export interface EnumEditableOption {
+  value: string;
+  label: string;
+}
+
+export interface EnumEditableProperty extends EditablePropertyBase {
+  kind: "enum";
+  value: string;
+  original: string;
+  options: ReadonlyArray<EnumEditableOption>;
+}
+
+export type EditableProperty =
+  | NumericEditableProperty
+  | ColorEditableProperty
+  | EnumEditableProperty;
+
+export interface PendingEdit {
+  key: string;
+  cssProperties: readonly string[];
+  // Numeric edits store the value + unit ("16" + "px"); colour/enum
+  // edits store a CSS-ready string directly and leave unit empty.
+  // `kind` is the discriminator the prompt formatter switches on.
+  kind: "numeric" | "color" | "enum";
+  value: number | string;
+  unit: string;
+}
+
+export type PendingEdits = PendingEdit[];
+
+export interface PendingEditsEntry {
+  filePath: string;
+  lineNumber: number;
+  edits: PendingEdits;
 }
 
 export interface EditPanelState {
