@@ -38,6 +38,7 @@ import { createSpaceDragRepositioning } from "./space-drag-repositioning.js";
 import { createActivationKeyHandlers } from "./activation-key-handlers.js";
 import { createDragHandlers } from "./drag-handlers.js";
 import { registerKeyboardListeners } from "./keyboard-listeners.js";
+import { registerPointerListeners } from "./pointer-listeners.js";
 import { buildPublicApi } from "./build-public-api.js";
 import { createWindowFocusListeners } from "./window-focus-listeners.js";
 import { createToolbarStateController } from "./toolbar-state-controller.js";
@@ -51,16 +52,12 @@ import {
 import { createNoopApi } from "./noop-api.js";
 import { createEventListenerManager } from "./events.js";
 import {
-  getElementAtPosition,
-} from "../utils/get-element-at-position.js";
-import {
 } from "../utils/create-bounds-from-drag-rect.js";
 import {
   DEFAULT_KEY_HOLD_DURATION_MS,
   NEXTJS_REVALIDATION_DELAY_MS,
   DEFAULT_ACTION_ID,
 } from "../constants.js";
-import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
 import type {
   Options,
   ReactGrabAPI,
@@ -78,7 +75,6 @@ import { getScriptOptions } from "../utils/get-script-options.js";
 import { copyPlugin } from "./plugins/copy.js";
 import { commentPlugin } from "./plugins/comment.js";
 import { openPlugin } from "./plugins/open.js";
-import { freezeAllAnimations } from "../utils/freeze-animations.js";
 import { copyContent } from "../utils/copy-content.js";
 import {
   calculateDragDistance as calculateDragDistanceUtil,
@@ -136,7 +132,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       isDragRepositioning,
       didJustDrag,
       isCopying,
-      isSelectionInteractionLocked,
       didJustCopy,
       isPromptMode,
       isPendingDismiss,
@@ -144,7 +139,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const elementSelectors = createGrabElementSelectors(grab, phase);
     const {
-      isRendererActive,
       targetElement,
       effectiveElement,
       frozenElementsBounds,
@@ -424,7 +418,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       clearArrowNavigation,
     });
     const {
-      openContextMenu,
       handleContextMenuDismiss,
       handleShowContextMenuInstance,
       handleToggleToolbarMenu,
@@ -475,13 +468,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       calculateDragDistance,
       calculateDragRectangle,
     });
-    const {
-      handlePointerMove,
-      handlePointerDown,
-      handlePointerUp,
-      cancelActiveDrag,
-      getFrozenElementAtPosition,
-    } = dragHandlers;
+    const { cancelActiveDrag } = dragHandlers;
 
     const eventListenerManager = createEventListenerManager();
 
@@ -492,7 +479,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       isPromptMode,
       eventListenerManager,
     });
-    const blockEnterIfNeeded = enterBlocker.blockEnterIfNeeded;
 
     const {
       handleEnterKeyActivation,
@@ -560,181 +546,34 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       handleInputCancel,
     });
 
-    eventListenerManager.addDocumentListener("copy", () => {
-      if (isHoldingKeys()) {
-        activationHold.markCopyWaiting();
-      }
+    registerPointerListeners({
+      grab,
+      phase,
+      elementSelectors,
+      activationHold,
+      activationLifecycle,
+      arrowNavigation: {
+        state: arrowNavigationState,
+        handleArrowNavigation,
+        handleArrowNavigationSelect,
+        clearArrowNavigation,
+      },
+      dragHandlers,
+      enterBlocker,
+      eventListenerManager,
+      menuHandlers,
+      promptModeHandlers: {
+        handleInputSubmit,
+        handleInputCancel,
+        handleConfirmDismiss,
+        handleCancelDismiss,
+        handleToggleExpand,
+      },
+      shiftMultiSelect,
+      toolbarMenu,
+      selectionBounds,
+      didJustDrag,
     });
-
-    eventListenerManager.addWindowListener("keypress", blockEnterIfNeeded, {
-      capture: true,
-    });
-
-    eventListenerManager.addWindowListener(
-      "pointermove",
-      (event: PointerEvent) => {
-        if (!event.isPrimary) return;
-        const isTouchPointer = event.pointerType === "touch";
-        actions.setTouchMode(isTouchPointer);
-        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-        if (store.contextMenuPosition !== null) return;
-        if (isSelectionInteractionLocked()) return;
-        if (isTouchPointer && !isHoldingKeys() && !isActivated()) return;
-        const isActiveState = isTouchPointer ? isHoldingKeys() : isActivated();
-        // The flag check covers the small window after physical Shift
-        // release but before the keyup handler commits — pointermove fires
-        // with shiftKey=false in that gap, and unfreezing here would empty
-        // frozenElements before commitShiftMultiSelection can read it.
-        if (
-          isActiveState &&
-          !isPromptMode() &&
-          isFrozenPhase() &&
-          !event.shiftKey &&
-          !isShiftMultiSelecting()
-        ) {
-          actions.unfreeze();
-          clearArrowNavigation();
-        }
-        handlePointerMove(event.clientX, event.clientY, event.shiftKey);
-      },
-      { passive: true },
-    );
-
-    eventListenerManager.addWindowListener(
-      "pointerdown",
-      (event: PointerEvent) => {
-        if (event.button !== 0) return;
-        if (!event.isPrimary) return;
-        actions.setTouchMode(event.pointerType === "touch");
-        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-        if (store.contextMenuPosition !== null) return;
-        if (toolbarMenuPosition() !== null) return;
-
-        if (isPromptMode()) {
-          const bounds = selectionBounds();
-          const isClickOnSelection =
-            bounds &&
-            event.clientX >= bounds.x &&
-            event.clientX <= bounds.x + bounds.width &&
-            event.clientY >= bounds.y &&
-            event.clientY <= bounds.y + bounds.height;
-
-          if (isClickOnSelection) {
-            void handleInputSubmit();
-          } else {
-            handleInputCancel();
-          }
-          return;
-        }
-
-        if (isSelectionInteractionLocked()) {
-          event.preventDefault();
-          event.stopImmediatePropagation();
-          return;
-        }
-
-        const didHandle = handlePointerDown(event.clientX, event.clientY, event.shiftKey);
-        if (didHandle) {
-          if (event.pointerId !== undefined) {
-            document.documentElement.setPointerCapture(event.pointerId);
-          }
-          event.preventDefault();
-          event.stopImmediatePropagation();
-        }
-      },
-      { capture: true },
-    );
-
-    eventListenerManager.addWindowListener(
-      "pointerup",
-      (event: PointerEvent) => {
-        if (event.button !== 0) return;
-        if (!event.isPrimary) return;
-        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-        if (store.contextMenuPosition !== null) return;
-        const isActive = isRendererActive() || isSelectionInteractionLocked() || isDragging();
-        const hasModifierKeyHeld = event.metaKey || event.ctrlKey;
-        handlePointerUp(event.clientX, event.clientY, hasModifierKeyHeld, event.shiftKey);
-        if (isActive) {
-          event.preventDefault();
-          event.stopImmediatePropagation();
-        }
-      },
-      { capture: true },
-    );
-
-    eventListenerManager.addWindowListener(
-      "contextmenu",
-      (event: MouseEvent) => {
-        if (!isRendererActive() || isCopying() || isPromptMode()) return;
-
-        const isFromOverlay = isEventFromOverlay(event, "data-react-grab-ignore-events");
-        const position = { x: event.clientX, y: event.clientY };
-        const overlayFrozenElement =
-          isFromOverlay && store.frozenElements.length > 1
-            ? getFrozenElementAtPosition(position)
-            : null;
-        if (isFromOverlay && arrowNavigationState().isVisible) {
-          clearArrowNavigation();
-        } else if (isFromOverlay && !overlayFrozenElement) {
-          return;
-        }
-
-        if (store.contextMenuPosition !== null) {
-          event.preventDefault();
-          return;
-        }
-
-        event.preventDefault();
-        event.stopPropagation();
-
-        const element = overlayFrozenElement ?? getElementAtPosition(event.clientX, event.clientY);
-        if (!element) return;
-
-        const existingFrozenElements = store.frozenElements;
-        const isClickedElementAlreadyFrozen =
-          existingFrozenElements.length > 1 && existingFrozenElements.includes(element);
-
-        if (isClickedElementAlreadyFrozen) {
-          freezeAllAnimations(existingFrozenElements);
-        } else {
-          freezeAllAnimations([element]);
-          actions.setFrozenElement(element);
-        }
-
-        actions.setPointer(position);
-        actions.freeze();
-        openContextMenu(element, position);
-      },
-      { capture: true },
-    );
-
-    eventListenerManager.addWindowListener("pointercancel", (event: PointerEvent) => {
-      if (!event.isPrimary) return;
-      cancelActiveDrag();
-    });
-
-    eventListenerManager.addWindowListener(
-      "click",
-      (event: MouseEvent) => {
-        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-        if (store.contextMenuPosition !== null) return;
-
-        if (isRendererActive() || didJustDrag()) {
-          event.preventDefault();
-          event.stopImmediatePropagation();
-
-          if (store.wasActivatedByToggle && !isPromptMode() && !event.shiftKey) {
-            if (!isHoldingKeys()) {
-              deactivateRenderer();
-            } else {
-              actions.setWasActivatedByToggle(false);
-            }
-          }
-        }
-      },
-      { capture: true },
-    );
 
     createViewportSyncObserver({
       grab,
@@ -744,18 +583,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       eventListenerManager,
     });
 
-    eventListenerManager.addDocumentListener(
-      "copy",
-      (event: ClipboardEvent) => {
-        if (isPromptMode() || isEventFromOverlay(event, "data-react-grab-ignore-events")) {
-          return;
-        }
-        if (isRendererActive()) {
-          event.preventDefault();
-        }
-      },
-      { capture: true },
-    );
 
     onCleanup(() => {
       eventListenerManager.abort();
