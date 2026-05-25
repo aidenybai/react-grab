@@ -15,7 +15,7 @@ declare global {
   }
 }
 
-const ATTRIBUTE_NAME = "data-react-grab";
+export const ATTRIBUTE_NAME = "data-react-grab";
 const DEFAULT_KEY_HOLD_DURATION_MS = 200;
 const ACTIVATION_BUFFER_MS = 200;
 const PAGE_SETUP_MAX_ATTEMPTS = 2;
