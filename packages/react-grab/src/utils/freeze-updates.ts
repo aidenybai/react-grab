@@ -22,7 +22,6 @@ import type {
   HookQueue,
   HookState,
   OriginalHooks,
-  PausedContextState,
   PausedQueueState,
   PendingUpdate,
   TransitionFunction,
@@ -32,10 +31,13 @@ import {
   mergePendingChains,
 } from "./freeze/pending-update-chain.js";
 import {
+  pauseContextDependency,
+  resumeContextDependency,
+} from "./freeze/context-dependency.js";
+import {
   freezeState,
   getOrCache,
   patchedDispatchers,
-  pausedContextStates,
   pausedQueueStates,
   pendingStateUpdates,
   pendingStoreCallbacks,
@@ -146,67 +148,6 @@ const resumeHookQueue = (queue: HookQueue): void => {
   }
 
   pausedQueueStates.delete(queue);
-};
-
-const pauseContextDependency = (contextDependency: ContextDependency): void => {
-  if (pausedContextStates.has(contextDependency)) return;
-
-  const pauseState: PausedContextState = {
-    originalDescriptor: Object.getOwnPropertyDescriptor(contextDependency, "memoizedValue"),
-    frozenValue: contextDependency.memoizedValue,
-  };
-
-  Object.defineProperty(contextDependency, "memoizedValue", {
-    configurable: true,
-    enumerable: true,
-    get() {
-      if (freezeState.isUpdatesPaused) return pauseState.frozenValue;
-      if (pauseState.originalDescriptor?.get) {
-        return pauseState.originalDescriptor.get.call(this) as unknown;
-      }
-      return (this as { _memoizedValue?: unknown })._memoizedValue;
-    },
-    set(value: unknown) {
-      if (freezeState.isUpdatesPaused) {
-        pauseState.pendingValue = value;
-        pauseState.didReceivePendingValue = true;
-        return;
-      }
-      if (pauseState.originalDescriptor?.set) {
-        pauseState.originalDescriptor.set.call(this, value);
-      } else {
-        (this as { _memoizedValue: unknown })._memoizedValue = value;
-      }
-    },
-  });
-
-  // Replacing a plain data property (e.g. { memoizedValue: 42 }) with a
-  // get/set descriptor via Object.defineProperty removes the original value,
-  // so we initialize a _memoizedValue backing field for the new getter to
-  // read from.
-  if (!pauseState.originalDescriptor?.get) {
-    (contextDependency as unknown as { _memoizedValue: unknown })._memoizedValue =
-      pauseState.frozenValue;
-  }
-
-  pausedContextStates.set(contextDependency, pauseState);
-};
-
-const resumeContextDependency = (contextDependency: ContextDependency): void => {
-  const pauseState = pausedContextStates.get(contextDependency);
-  if (!pauseState) return;
-
-  if (pauseState.originalDescriptor) {
-    Object.defineProperty(contextDependency, "memoizedValue", pauseState.originalDescriptor);
-  } else {
-    delete (contextDependency as unknown as Record<string, unknown>).memoizedValue;
-  }
-
-  if (pauseState.didReceivePendingValue) {
-    contextDependency.memoizedValue = pauseState.pendingValue;
-  }
-
-  pausedContextStates.delete(contextDependency);
 };
 
 // pauseFiber/resumeFiber inline the hook-queue and context-dependency loops
