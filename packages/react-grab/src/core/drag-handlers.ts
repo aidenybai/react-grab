@@ -59,8 +59,6 @@ interface DragHandlersInput {
   setIsPendingContextMenuSelect: (value: boolean) => void;
   /** Read+clear the keyboardSelectedElement closure flag. */
   takeKeyboardSelectedElement: () => Element | null;
-  /** Schedule a debounced drag-preview pointer update. */
-  scheduleDragPreviewUpdate: (clientX: number, clientY: number) => void;
   setResolvedComponentName: (name: string | undefined) => void;
   clearArrowNavigation: () => void;
   toPageCoordinates: (clientX: number, clientY: number) => { pageX: number; pageY: number };
@@ -103,7 +101,6 @@ export const createDragHandlers = (input: DragHandlersInput): DragHandlers => {
     setIsPendingContextMenuSelect,
     isDragRepositioning,
     takeKeyboardSelectedElement,
-    scheduleDragPreviewUpdate,
     setResolvedComponentName,
     clearArrowNavigation,
     toPageCoordinates,
@@ -201,7 +198,7 @@ export const createDragHandlers = (input: DragHandlersInput): DragHandlers => {
         if (delta) actions.shiftDragStart(delta);
       }
 
-      scheduleDragPreviewUpdate(clientX, clientY);
+      dragPreviewDebounce.schedule(clientX, clientY);
 
       const direction = getAutoScrollDirection(clientX, clientY);
       const isNearEdge = direction.top || direction.bottom || direction.left || direction.right;
@@ -229,7 +226,7 @@ export const createDragHandlers = (input: DragHandlersInput): DragHandlers => {
     actions.setPointer({ x: clientX, y: clientY });
     document.body.style.userSelect = "none";
 
-    scheduleDragPreviewUpdate(clientX, clientY);
+    dragPreviewDebounce.schedule(clientX, clientY);
 
     pluginRegistry.hooks.onDragStart(clientX + window.scrollX, clientY + window.scrollY);
 

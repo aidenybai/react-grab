@@ -194,7 +194,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const dragPreviewDebounce = createDragPreviewDebounce();
     const debouncedDragPointer = dragPreviewDebounce.pointer;
-    const scheduleDragPreviewUpdate = dragPreviewDebounce.schedule;
     const keydownSpamTimer = createKeydownSpamTimer();
     const copyFeedbackCooldown = createCopyFeedbackCooldown();
     const [isPendingContextMenuSelect, setIsPendingContextMenuSelect] = createSignal(false);
@@ -395,7 +394,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setIsPendingContextMenuSelect,
       isDragRepositioning,
       takeKeyboardSelectedElement: coordinationFlags.takeKeyboardSelectedElement,
-      scheduleDragPreviewUpdate,
       setResolvedComponentName,
       clearArrowNavigation,
       toPageCoordinates: toPageCoordinatesUtil,
