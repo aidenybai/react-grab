@@ -611,6 +611,37 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       void notifyElementsSelected(targetElements);
     };
 
+    const runCopyJob = (job: {
+      primaryElement: Element;
+      elements: Element[];
+      labelInstanceIds: readonly string[];
+      extraPrompt?: string;
+      shouldDeactivateAfter?: boolean;
+      onComplete?: () => void;
+    }) => {
+      void getNearestComponentName(job.primaryElement)
+        .then(async (componentName) => {
+          await executeCopyOperation(
+            () =>
+              copyElementsToClipboard(job.elements, job.extraPrompt, componentName ?? undefined),
+            job.labelInstanceIds.length > 0 ? [...job.labelInstanceIds] : null,
+            job.primaryElement,
+            job.shouldDeactivateAfter,
+          );
+          job.onComplete?.();
+        })
+        .catch((error) => {
+          logRecoverableError("Copy operation failed", error);
+          const normalizedMessage = normalizeErrorMessage(error, "Action failed");
+          for (const labelInstanceId of job.labelInstanceIds) {
+            updateLabelAfterCopy(labelInstanceId, false, normalizedMessage);
+          }
+          if (current().state === "copying") {
+            actions.unfreeze();
+          }
+        });
+    };
+
     const performCopyWithLabel = (options: CopyWithLabelOptions) => {
       const {
         element,
@@ -645,30 +676,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           })
         : null;
 
-      void getNearestComponentName(element)
-        .then(async (componentName) => {
-          await executeCopyOperation(
-            () =>
-              copyElementsToClipboard(allTargetElements, extraPrompt, componentName ?? undefined),
-            labelInstanceId ? [labelInstanceId] : null,
-            element,
-            shouldDeactivateAfter,
-          );
-          onComplete?.();
-        })
-        .catch((error) => {
-          logRecoverableError("Copy operation failed", error);
-          if (labelInstanceId) {
-            updateLabelAfterCopy(
-              labelInstanceId,
-              false,
-              normalizeErrorMessage(error, "Action failed"),
-            );
-          }
-          if (current().state === "copying") {
-            actions.unfreeze();
-          }
-        });
+      runCopyJob({
+        primaryElement: element,
+        elements: allTargetElements,
+        labelInstanceIds: labelInstanceId ? [labelInstanceId] : [],
+        extraPrompt,
+        shouldDeactivateAfter,
+        onComplete,
+      });
     };
 
     const performCopyWithPerElementLabels = (options: {
@@ -690,26 +705,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const labelInstanceIds = createPerElementLabelInstances(labelEntries, "copying");
 
-      void getNearestComponentName(primaryElement)
-        .then(async (componentName) => {
-          await executeCopyOperation(
-            () => copyElementsToClipboard(elements, undefined, componentName ?? undefined),
-            labelInstanceIds.length > 0 ? labelInstanceIds : null,
-            primaryElement,
-            shouldDeactivateAfter,
-          );
-          onComplete?.();
-        })
-        .catch((error) => {
-          logRecoverableError("Copy operation failed", error);
-          const normalizedMessage = normalizeErrorMessage(error, "Action failed");
-          for (const labelInstanceId of labelInstanceIds) {
-            updateLabelAfterCopy(labelInstanceId, false, normalizedMessage);
-          }
-          if (current().state === "copying") {
-            actions.unfreeze();
-          }
-        });
+      runCopyJob({
+        primaryElement,
+        elements,
+        labelInstanceIds,
+        shouldDeactivateAfter,
+        onComplete,
+      });
     };
 
     createEffect(() => {
