@@ -1,6 +1,10 @@
 import { accessSync, constants, readFileSync, writeFileSync } from "node:fs";
 import type { Framework, NextRouterType } from "./detect.js";
 import {
+  NEXT_PAGES_ROUTER_NOT_FOUND_MESSAGE,
+  TANSTACK_ROOT_NOT_FOUND_MESSAGE,
+} from "./manual-setup-messages.js";
+import {
   findDocumentFile,
   findEntryFile,
   findIndexHtml,
@@ -129,26 +133,7 @@ const transformNextPagesRouter = (
     return {
       success: false,
       filePath: "",
-      message:
-        "Could not find pages/_document.tsx or pages/_document.jsx.\n\n" +
-        "To set up React Grab with Pages Router, create pages/_document.tsx with:\n\n" +
-        '  import { Html, Head, Main, NextScript } from "next/document";\n' +
-        '  import Script from "next/script";\n\n' +
-        "  export default function Document() {\n" +
-        "    return (\n" +
-        "      <Html>\n" +
-        "        <Head>\n" +
-        '          {process.env.NODE_ENV === "development" && (\n' +
-        '            <Script src="//unpkg.com/react-grab/dist/index.global.js" strategy="beforeInteractive" />\n' +
-        "          )}\n" +
-        "        </Head>\n" +
-        "        <body>\n" +
-        "          <Main />\n" +
-        "          <NextScript />\n" +
-        "        </body>\n" +
-        "      </Html>\n" +
-        "    );\n" +
-        "  }",
+      message: NEXT_PAGES_ROUTER_NOT_FOUND_MESSAGE,
     };
   }
 
@@ -296,15 +281,7 @@ const transformTanStack = (
     return {
       success: false,
       filePath: "",
-      message:
-        "Could not find src/routes/__root.tsx or app/routes/__root.tsx.\n\n" +
-        "To set up React Grab with TanStack Start, add this to your root route component:\n\n" +
-        '  import { useEffect } from "react";\n\n' +
-        "  useEffect(() => {\n" +
-        "    if (import.meta.env.DEV) {\n" +
-        '      void import("react-grab");\n' +
-        "    }\n" +
-        "  }, []);",
+      message: TANSTACK_ROOT_NOT_FOUND_MESSAGE,
     };
   }
 
