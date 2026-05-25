@@ -1,5 +1,9 @@
 import { type Accessor } from "solid-js";
 import {
+  calculateDragDistance as calculateDragDistanceUtil,
+  calculateDragRectangle as calculateDragRectangleUtil,
+} from "../utils/drag-geometry.js";
+import {
   DRAG_THRESHOLD_PX,
   ELEMENT_DETECTION_THROTTLE_MS,
   PENDING_DETECTION_STALENESS_MS,
@@ -60,13 +64,6 @@ interface DragHandlersInput {
   setResolvedComponentName: (name: string | undefined) => void;
   clearArrowNavigation: () => void;
   toPageCoordinates: (clientX: number, clientY: number) => { pageX: number; pageY: number };
-  calculateDragDistance: (clientX: number, clientY: number) => Position;
-  calculateDragRectangle: (clientX: number, clientY: number) => {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  };
 }
 
 export interface DragHandlers {
@@ -110,8 +107,6 @@ export const createDragHandlers = (input: DragHandlersInput): DragHandlers => {
     setResolvedComponentName,
     clearArrowNavigation,
     toPageCoordinates,
-    calculateDragDistance,
-    calculateDragRectangle,
   } = input;
   const { store, actions } = grab;
   const {
@@ -127,6 +122,11 @@ export const createDragHandlers = (input: DragHandlersInput): DragHandlers => {
     stop: stopShiftMultiSelecting,
   } = shiftMultiSelect;
   const { performCopyWithLabel, performCopyWithPerElementLabels } = copyOrchestrator;
+
+  const calculateDragDistance = (endX: number, endY: number) =>
+    calculateDragDistanceUtil(store.dragStart, endX, endY);
+  const calculateDragRectangle = (endX: number, endY: number) =>
+    calculateDragRectangleUtil(store.dragStart, endX, endY);
   const { openContextMenuOrRunPendingDefault } = menuHandlers;
   const { enterCommentModeForElement } = commentModeHandlers;
 

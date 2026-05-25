@@ -68,8 +68,6 @@ import { commentPlugin } from "./plugins/comment.js";
 import { openPlugin } from "./plugins/open.js";
 import { copyContent } from "../utils/copy-content.js";
 import {
-  calculateDragDistance as calculateDragDistanceUtil,
-  calculateDragRectangle as calculateDragRectangleUtil,
   toPageCoordinates as toPageCoordinatesUtil,
 } from "../utils/drag-geometry.js";
 
@@ -113,7 +111,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       theme: DEFAULT_THEME,
       keyHoldDuration: pluginRegistry.store.options.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS,
     });
-    const { store, actions, pointer } = grab;
+    const { actions, pointer } = grab;
 
     const phase = createGrabPhaseSelectors(grab);
     const {
@@ -255,11 +253,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       cursorPosition,
       shiftSelectionLabelMouseX,
     } = dragSelectors;
-
-    const calculateDragDistance = (endX: number, endY: number) =>
-      calculateDragDistanceUtil(store.dragStart, endX, endY);
-    const calculateDragRectangle = (endX: number, endY: number) =>
-      calculateDragRectangleUtil(store.dragStart, endX, endY);
 
     const { stop: stopSpaceDragRepositioning } = spaceDragRepositioning;
 
@@ -406,8 +399,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setResolvedComponentName,
       clearArrowNavigation,
       toPageCoordinates: toPageCoordinatesUtil,
-      calculateDragDistance,
-      calculateDragRectangle,
     });
     const { cancelActiveDrag } = dragHandlers;
 
