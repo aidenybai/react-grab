@@ -19,26 +19,19 @@ import type {
   ContextDependency,
   DispatchFunction,
   FiberRootLike,
-  HookQueue,
   HookState,
   OriginalHooks,
-  PausedQueueState,
-  PendingUpdate,
   TransitionFunction,
 } from "./freeze/types.js";
-import {
-  extractActionsFromChain,
-  mergePendingChains,
-} from "./freeze/pending-update-chain.js";
 import {
   pauseContextDependency,
   resumeContextDependency,
 } from "./freeze/context-dependency.js";
+import { pauseHookQueue, resumeHookQueue } from "./freeze/hook-queue.js";
 import {
   freezeState,
   getOrCache,
   patchedDispatchers,
-  pausedQueueStates,
   pendingStateUpdates,
   pendingStoreCallbacks,
   pendingTransitionCallbacks,
@@ -81,73 +74,6 @@ const collectFiberRoots = (): Set<FiberRootLike> => {
 
   traverseDOM(document.body);
   return collectedRoots;
-};
-
-const pauseHookQueue = (queue: HookQueue): void => {
-  if (!queue || pausedQueueStates.has(queue)) return;
-
-  const pauseState: PausedQueueState = {
-    originalPendingDescriptor: Object.getOwnPropertyDescriptor(queue, "pending"),
-    pendingValueAtPause: queue.pending as PendingUpdate | null,
-    bufferedPending: null,
-  };
-
-  if (typeof queue.getSnapshot === "function") {
-    pauseState.originalGetSnapshot = queue.getSnapshot;
-    pauseState.snapshotValueAtPause = queue.getSnapshot();
-    queue.getSnapshot = () =>
-      freezeState.isUpdatesPaused ? pauseState.snapshotValueAtPause : pauseState.originalGetSnapshot!();
-  }
-
-  let currentPendingValue = pauseState.pendingValueAtPause;
-
-  Object.defineProperty(queue, "pending", {
-    configurable: true,
-    enumerable: true,
-    get: () => (freezeState.isUpdatesPaused ? null : currentPendingValue),
-    set: (newValue: PendingUpdate | null) => {
-      if (freezeState.isUpdatesPaused) {
-        if (newValue !== null) {
-          pauseState.bufferedPending = mergePendingChains(
-            pauseState.bufferedPending ?? null,
-            newValue,
-          );
-        }
-        return;
-      }
-      currentPendingValue = newValue;
-    },
-  });
-
-  pausedQueueStates.set(queue, pauseState);
-};
-
-const resumeHookQueue = (queue: HookQueue): void => {
-  const pauseState = pausedQueueStates.get(queue);
-  if (!pauseState) return;
-
-  if (pauseState.originalGetSnapshot) {
-    queue.getSnapshot = pauseState.originalGetSnapshot;
-  }
-
-  if (pauseState.originalPendingDescriptor) {
-    Object.defineProperty(queue, "pending", pauseState.originalPendingDescriptor);
-  } else {
-    delete (queue as Record<string, unknown>).pending;
-  }
-
-  queue.pending = null;
-
-  const dispatch = queue.dispatch;
-  if (typeof dispatch === "function") {
-    const pendingActions = extractActionsFromChain(pauseState.pendingValueAtPause ?? null);
-    const bufferedActions = extractActionsFromChain(pauseState.bufferedPending ?? null);
-    for (const action of [...pendingActions, ...bufferedActions]) {
-      pendingStateUpdates.push(() => dispatch(action));
-    }
-  }
-
-  pausedQueueStates.delete(queue);
 };
 
 // pauseFiber/resumeFiber inline the hook-queue and context-dependency loops
