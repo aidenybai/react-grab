@@ -9,7 +9,6 @@ interface CycleControlProps {
   options: ReadonlyArray<EnumEditableOption>;
   activeKey: "left" | "right" | null;
   onCommit: (value: string) => void;
-  emphasized?: boolean;
 }
 
 const LABEL_CLASS = "text-[13px] leading-4 font-medium";

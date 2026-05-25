@@ -129,15 +129,15 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
                 // on hover, unmounting the user's in-progress edit. Read
                 // the shadow root via getRootNode to find the real focused
                 // element.
-                const root = listRef?.getRootNode();
-                const focused =
-                  root instanceof ShadowRoot
-                    ? (root.activeElement as HTMLElement | null)
+                const listRootNode = listRef?.getRootNode();
+                const focusedElement =
+                  listRootNode instanceof ShadowRoot
+                    ? (listRootNode.activeElement as HTMLElement | null)
                     : (document.activeElement as HTMLElement | null);
                 // Search input is a <textarea>; per-row numeric edits use
                 // an <input>. Both carry data-react-grab-input, so a tag-
                 // agnostic selector locks hover for either focused control.
-                if (focused?.matches("[data-react-grab-input]")) return;
+                if (focusedElement?.matches("[data-react-grab-input]")) return;
                 props.onHoverIndex(propertyIndex);
               }}
               onMouseDown={(event) => {
@@ -147,12 +147,14 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
                 // onBlur=>commit fires before the subsequent onClick
                 // changes activeIndex and unmounts the input (otherwise
                 // the typed draft is silently lost).
-                const root = listRef?.getRootNode();
-                const focused =
-                  root instanceof ShadowRoot
-                    ? (root.activeElement as HTMLElement | null)
+                const listRootNode = listRef?.getRootNode();
+                const focusedElement =
+                  listRootNode instanceof ShadowRoot
+                    ? (listRootNode.activeElement as HTMLElement | null)
                     : (document.activeElement as HTMLElement | null);
-                if (focused?.matches("input[data-react-grab-input]")) focused.blur();
+                if (focusedElement?.matches("input[data-react-grab-input]")) {
+                  focusedElement.blur();
+                }
                 event.preventDefault();
               }}
               onClick={(event) => {

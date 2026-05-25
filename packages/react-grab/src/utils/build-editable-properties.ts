@@ -348,7 +348,7 @@ const buildNumericProperty = (
     original: normalized.value,
     unit: normalized.unit,
     tailwindAliases: tailwindAliasesForProperty(definition.key),
-    prioritized: false,
+    isPrioritized: false,
     isDefault: false,
     isCanonical,
   };
@@ -382,7 +382,7 @@ const buildColorProperty = (
     value: hex,
     original: hex,
     tailwindAliases: tailwindAliasesForProperty(cssKey),
-    prioritized: false,
+    isPrioritized: false,
     isDefault: false,
     isCanonical: true,
   };
@@ -515,7 +515,7 @@ const buildEnumProperty = (
     original: trimmed,
     options: definition.options,
     tailwindAliases: tailwindAliasesForProperty(definition.key),
-    prioritized: false,
+    isPrioritized: false,
     isDefault: false,
     isCanonical: true,
   };
@@ -620,14 +620,14 @@ const measureBaseline = (target: Element): ComputedSnapshot | null => {
 // heuristics for elements where the baseline can be measured.
 const matchesBaseline = (
   cssProperties: readonly string[],
-  current: ComputedSnapshot,
-  baseline: ComputedSnapshot,
+  currentSnapshot: ComputedSnapshot,
+  baselineSnapshot: ComputedSnapshot,
 ): boolean => {
   return cssProperties.every((key) => {
-    const cur = current[key];
-    const base = baseline[key];
-    if (cur === undefined || base === undefined) return false;
-    return cur === base;
+    const currentValue = currentSnapshot[key];
+    const baselineValue = baselineSnapshot[key];
+    if (currentValue === undefined || baselineValue === undefined) return false;
+    return currentValue === baselineValue;
   });
 };
 
@@ -721,22 +721,28 @@ export const buildEditableProperties = (element: Element): EditableProperty[] =>
 
 const finalizeProperties = (
   properties: EditableProperty[],
-  prioritized: Set<string>,
-  current: ComputedSnapshot,
+  prioritizedKeys: Set<string>,
+  currentSnapshot: ComputedSnapshot,
   baseline: ComputedSnapshot | null,
 ): EditableProperty[] => {
-  const tier1: EditableProperty[] = [];
-  const tier2: EditableProperty[] = [];
+  // prioritizedTier: rows the element actively uses a Tailwind class
+  // for — surfaced first because they're known-relevant.
+  // recommendedTier: everything else, ordered by RECOMMENDED_KEY_ORDER.
+  const prioritizedTier: EditableProperty[] = [];
+  const recommendedTier: EditableProperty[] = [];
 
   for (const property of properties) {
-    if (prioritized.has(property.key)) {
-      tier1.push({ ...property, prioritized: true, isDefault: false });
+    if (prioritizedKeys.has(property.key)) {
+      prioritizedTier.push({ ...property, isPrioritized: true, isDefault: false });
     } else {
       const isDefault = baseline
-        ? matchesBaseline(property.cssProperties, current, baseline)
+        ? matchesBaseline(property.cssProperties, currentSnapshot, baseline)
         : isDefaultByHeuristic(property);
-      tier2.push({ ...property, isDefault });
+      recommendedTier.push({ ...property, isDefault });
     }
   }
-  return [...sortPropertiesByRecommendation(tier1), ...sortPropertiesByRecommendation(tier2)];
+  return [
+    ...sortPropertiesByRecommendation(prioritizedTier),
+    ...sortPropertiesByRecommendation(recommendedTier),
+  ];
 };

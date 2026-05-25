@@ -166,7 +166,7 @@ interface EditablePropertyBase {
   label: string;
   cssProperties: readonly string[];
   tailwindAliases: string[];
-  prioritized: boolean;
+  isPrioritized: boolean;
   isDefault: boolean;
   // True when this entry is the highest-level form that captures the
   // current snapshot (e.g. "padding" when all 4 sides are equal). Default

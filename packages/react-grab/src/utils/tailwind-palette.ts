@@ -316,24 +316,24 @@ interface NearestPaletteEntry {
 const findNearestPaletteEntry = (hex: string): NearestPaletteEntry | null => {
   const target = hexToRgb(hex);
   if (!target) return null;
-  let best: NearestPaletteEntry | null = null;
-  let bestDistance = Infinity;
+  let bestEntry: NearestPaletteEntry | null = null;
+  let bestDistanceSquared = Infinity;
   for (const family of Object.keys(TAILWIND_PALETTE)) {
     const shades = TAILWIND_PALETTE[family];
     for (const shade of TAILWIND_SHADES) {
       const candidate = hexToRgb(shades[shade]);
       if (!candidate) continue;
-      const dr = candidate.r - target.r;
-      const dg = candidate.g - target.g;
-      const db = candidate.b - target.b;
-      const distance = dr * dr + dg * dg + db * db;
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        best = { family, shade };
+      const redDelta = candidate.r - target.r;
+      const greenDelta = candidate.g - target.g;
+      const blueDelta = candidate.b - target.b;
+      const distanceSquared = redDelta * redDelta + greenDelta * greenDelta + blueDelta * blueDelta;
+      if (distanceSquared < bestDistanceSquared) {
+        bestDistanceSquared = distanceSquared;
+        bestEntry = { family, shade };
       }
     }
   }
-  return best;
+  return bestEntry;
 };
 
 // Snap to the nearest tailwind color, then step one shade in the

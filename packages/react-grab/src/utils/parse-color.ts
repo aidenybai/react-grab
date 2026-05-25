@@ -83,16 +83,18 @@ const hslToHex = ({ h, s, l, a }: HslColor): string => {
   const lightness = Math.max(0, Math.min(100, l)) / 100;
   const hue = (((h % 360) + 360) % 360) / 60;
   const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation;
-  const x = chroma * (1 - Math.abs((hue % 2) - 1));
+  // `secondaryComponent` is the CSS Color Module Level 3 spec's `X`
+  // — the second-largest channel within each 60° hue sextant.
+  const secondaryComponent = chroma * (1 - Math.abs((hue % 2) - 1));
   let rPrime = 0;
   let gPrime = 0;
   let bPrime = 0;
-  if (hue >= 0 && hue < 1) [rPrime, gPrime, bPrime] = [chroma, x, 0];
-  else if (hue < 2) [rPrime, gPrime, bPrime] = [x, chroma, 0];
-  else if (hue < 3) [rPrime, gPrime, bPrime] = [0, chroma, x];
-  else if (hue < 4) [rPrime, gPrime, bPrime] = [0, x, chroma];
-  else if (hue < 5) [rPrime, gPrime, bPrime] = [x, 0, chroma];
-  else [rPrime, gPrime, bPrime] = [chroma, 0, x];
+  if (hue >= 0 && hue < 1) [rPrime, gPrime, bPrime] = [chroma, secondaryComponent, 0];
+  else if (hue < 2) [rPrime, gPrime, bPrime] = [secondaryComponent, chroma, 0];
+  else if (hue < 3) [rPrime, gPrime, bPrime] = [0, chroma, secondaryComponent];
+  else if (hue < 4) [rPrime, gPrime, bPrime] = [0, secondaryComponent, chroma];
+  else if (hue < 5) [rPrime, gPrime, bPrime] = [secondaryComponent, 0, chroma];
+  else [rPrime, gPrime, bPrime] = [chroma, 0, secondaryComponent];
   const matchValue = lightness - chroma / 2;
   const red = toHexByte((rPrime + matchValue) * 255);
   const green = toHexByte((gPrime + matchValue) * 255);

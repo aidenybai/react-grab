@@ -59,7 +59,6 @@ export const ActivePropertyControl: Component<ActivePropertyControlProps> = (pro
         options={asEnum(props.property).options}
         activeKey={props.activeKey}
         onCommit={props.onCommit}
-        emphasized={props.emphasized}
       />
     </Match>
   </Switch>

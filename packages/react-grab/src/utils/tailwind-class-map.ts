@@ -81,15 +81,15 @@ const TAILWIND_PREFIX_TO_PROPERTY: Record<string, string> = {
 };
 
 const PROPERTY_ALIASES = ((): Record<string, string[]> => {
-  const reverse: Record<string, Set<string>> = {};
+  const prefixSetsByProperty: Record<string, Set<string>> = {};
   for (const [prefix, property] of Object.entries(TAILWIND_PREFIX_TO_PROPERTY)) {
-    (reverse[property] ??= new Set()).add(prefix);
+    (prefixSetsByProperty[property] ??= new Set()).add(prefix);
   }
-  const out: Record<string, string[]> = {};
-  for (const [property, prefixes] of Object.entries(reverse)) {
-    out[property] = Array.from(prefixes);
+  const aliasesByProperty: Record<string, string[]> = {};
+  for (const [property, prefixes] of Object.entries(prefixSetsByProperty)) {
+    aliasesByProperty[property] = Array.from(prefixes);
   }
-  return out;
+  return aliasesByProperty;
 })();
 
 // Bracket-aware variant separator: Tailwind arbitrary values like
@@ -99,13 +99,13 @@ const stripTailwindModifiers = (className: string): string => {
   let bracketDepth = 0;
   let lastVariantColon = -1;
   for (let index = 0; index < className.length; index++) {
-    const char = className[index];
-    if (char === "[") bracketDepth++;
-    else if (char === "]") bracketDepth--;
-    else if (char === ":" && bracketDepth === 0) lastVariantColon = index;
+    const character = className[index];
+    if (character === "[") bracketDepth++;
+    else if (character === "]") bracketDepth--;
+    else if (character === ":" && bracketDepth === 0) lastVariantColon = index;
   }
-  const base = lastVariantColon >= 0 ? className.slice(lastVariantColon + 1) : className;
-  return base.startsWith("!") ? base.slice(1) : base;
+  const baseClassName = lastVariantColon >= 0 ? className.slice(lastVariantColon + 1) : className;
+  return baseClassName.startsWith("!") ? baseClassName.slice(1) : baseClassName;
 };
 
 // Walks segment prefixes from longest to shortest until one matches a known
@@ -113,21 +113,21 @@ const stripTailwindModifiers = (className: string): string => {
 // (greedy "strip trailing numeric"), which isn't in the prefix map even
 // though `text` is — and would silently fail to map to `color`.
 const matchTailwindPrefix = (rawClassName: string): string | null => {
-  const base = stripTailwindModifiers(rawClassName);
-  if (!base) return null;
+  const baseClassName = stripTailwindModifiers(rawClassName);
+  if (!baseClassName) return null;
 
-  const bracketIndex = base.indexOf("[");
+  const bracketIndex = baseClassName.indexOf("[");
   if (bracketIndex > 0) {
-    const stem = base.slice(0, bracketIndex).replace(/-$/, "");
-    return stem || null;
+    const prefixStem = baseClassName.slice(0, bracketIndex).replace(/-$/, "");
+    return prefixStem || null;
   }
 
-  const segments = base.split("-").filter(Boolean);
+  const segments = baseClassName.split("-").filter(Boolean);
   if (segments.length === 0) return null;
 
-  for (let length = segments.length; length >= 1; length--) {
-    const candidate = segments.slice(0, length).join("-");
-    if (TAILWIND_PREFIX_TO_PROPERTY[candidate]) return candidate;
+  for (let prefixLength = segments.length; prefixLength >= 1; prefixLength--) {
+    const prefixCandidate = segments.slice(0, prefixLength).join("-");
+    if (TAILWIND_PREFIX_TO_PROPERTY[prefixCandidate]) return prefixCandidate;
   }
 
   return segments[0];

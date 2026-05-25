@@ -113,7 +113,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     setActiveKey(direction);
     clearTimeout(activeKeyTimerId);
     activeKeyTimerId = setTimeout(() => {
-      setActiveKey((current) => (current === direction ? null : current));
+      setActiveKey((currentKey) => (currentKey === direction ? null : currentKey));
     }, EDIT_PANEL_ACTIVE_KEY_FLASH_MS);
   };
 
@@ -121,12 +121,12 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   // (or the cleanup path). Avoids a createEffect-as-event-bus that
   // would re-fire `(false)` during unmount on top of the explicit
   // cleanup call.
-  let lastInteractingBroadcast: boolean | null = null;
+  let lastBroadcastedInteracting: boolean | null = null;
   const broadcastInteracting = () => {
-    const next = isInteracting();
-    if (next === lastInteractingBroadcast) return;
-    lastInteractingBroadcast = next;
-    props.onInteractingChange?.(next);
+    const nextInteracting = isInteracting();
+    if (nextInteracting === lastBroadcastedInteracting) return;
+    lastBroadcastedInteracting = nextInteracting;
+    props.onInteractingChange?.(nextInteracting);
   };
 
   const markAsInteracting = () => {
@@ -141,8 +141,10 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
 
   const ensureSearchFocused = () => {
     queueMicrotask(() => {
-      const active = searchInputRef?.ownerDocument.activeElement;
-      if (active !== searchInputRef) searchInputRef?.focus({ preventScroll: true });
+      const currentlyFocusedElement = searchInputRef?.ownerDocument.activeElement;
+      if (currentlyFocusedElement !== searchInputRef) {
+        searchInputRef?.focus({ preventScroll: true });
+      }
     });
   };
 
