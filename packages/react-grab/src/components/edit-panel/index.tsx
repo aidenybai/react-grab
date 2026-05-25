@@ -371,17 +371,29 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     // that tick. Check both to avoid submitting pending edits when
     // the user was actually picking a Hiragana/Hangul candidate.
     if (event.isComposing || event.keyCode === IME_COMPOSING_KEY_CODE) return;
-    // When the discard prompt is up and focus is on one of its
-    // buttons, let the browser handle Tab navigation + Enter/Space
-    // activation natively. Otherwise keyboard users can't pick
-    // between No / Yes.
-    if (isPendingDismiss() && (event.key === "Tab" || event.key === "Enter")) {
+    // Discard-prompt keyboard routing — three overrides while the
+    // prompt owns focus on one of its buttons:
+    //   • Tab / Enter pass through so the browser handles natural
+    //     focus movement + button activation.
+    //   • Escape collapses the prompt (matches the visible "No"
+    //     affordance) instead of falling through to attemptDismiss,
+    //     which would silently close the panel from the No button —
+    //     surprising behaviour given the prompt explicitly offers a
+    //     binary Yes/No choice.
+    if (isPendingDismiss()) {
       const target = event.composedPath()[0];
-      if (
+      const isOnDiscardButton =
         target instanceof HTMLElement &&
-        target.closest("[data-react-grab-discard-button]") !== null
-      ) {
-        return;
+        target.closest("[data-react-grab-discard-button]") !== null;
+      if (isOnDiscardButton) {
+        if (event.key === "Tab" || event.key === "Enter") return;
+        if (event.key === "Escape") {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          setIsPendingDismiss(false);
+          ensureSearchFocused();
+          return;
+        }
       }
     }
     const handler = keyHandlers[event.key];

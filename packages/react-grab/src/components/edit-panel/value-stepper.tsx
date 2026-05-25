@@ -185,8 +185,9 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
   // Match "<number><optional-unit>" — rejects pasted `calc(...)`,
   // `++5`, free text. Normalizes single comma decimals (de-DE locale)
   // to dots. Rejects unit mismatches (`1.5rem` typed into a `px` row
-  // would silently commit 1.5px without this guard).
-  const INLINE_VALUE_PATTERN = /^(-?\d*\.?\d+)\s*([a-zA-Z%]*)$/;
+  // would silently commit 1.5px without this guard). Accepts trailing
+  // dot (`5.`) for users mid-typing a decimal — `parseFloat("5.") = 5`.
+  const INLINE_VALUE_PATTERN = /^(-?(?:\d+\.?\d*|\.\d+))\s*([a-zA-Z%]*)$/;
   const commit = () => {
     const text = draftText();
     if (text === null) return;
@@ -201,7 +202,9 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
       return;
     }
     const typedUnit = match[2].toLowerCase();
-    if (typedUnit && typedUnit !== props.unit.toLowerCase()) {
+    // `props.unit` is always lowercase ASCII from CSS (px, %, em, ...)
+    // — no .toLowerCase() needed on it.
+    if (typedUnit && typedUnit !== props.unit) {
       props.onInvalidCommit?.();
       props.onEditComplete?.();
       return;

@@ -41,12 +41,13 @@ export interface EditModeController {
   trigger: (element: Element, position: Position, overrides?: EditModeOverrides) => boolean;
   dismiss: () => void;
   submit: (prompt: string) => void;
-  // Clears panel state without triggering unfreeze/deactivate side effects.
-  // Used when the larger lifecycle (e.g. deactivateRenderer) is already
-  // tearing things down and would otherwise loop back through dismiss.
-  // Forced resets ALSO revert any in-progress preview-style writes so
-  // the page doesn't get stranded with inline styles the user never
-  // had a chance to commit or discard.
+  // Forced close path — clears panel state AND reverts any in-progress
+  // preview-style writes via the registered force-discard hook. Used
+  // when the larger lifecycle (e.g. deactivateRenderer) tears things
+  // down and the user lost control of the panel mid-edit; without
+  // the revert, inline preview styles would strand on the DOM.
+  // Distinct from `dismiss`/`submit`, which preserve preview styles
+  // (those are user-initiated commits / stash-for-later).
   reset: () => void;
   isOpen: Accessor<boolean>;
   // The panel registers a callback that reverts in-progress preview
