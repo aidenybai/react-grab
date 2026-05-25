@@ -22,6 +22,7 @@ import { createCursorOverride } from "./cursor-override.js";
 import { createCopyFeedbackCooldown } from "./copy-feedback-cooldown.js";
 import { createActivationHoldController } from "./activation-hold.js";
 import { createDebouncedComponentName } from "./debounced-component-name.js";
+import { createDragPreviewDebounce } from "./drag-preview-debounce.js";
 import { CopyFailedError } from "../errors.js";
 import {
   isKeyboardEventTriggeredByInput,
@@ -67,7 +68,6 @@ import {
   DRAG_THRESHOLD_PX,
   ELEMENT_DETECTION_THROTTLE_MS,
   PENDING_DETECTION_STALENESS_MS,
-  DRAG_PREVIEW_DEBOUNCE_MS,
   MODIFIER_KEYS,
   BLUR_DEACTIVATION_THRESHOLD_MS,
   BOUNDS_RECALC_INTERVAL_MS,
@@ -367,21 +367,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       latestPointerX: 0,
       latestPointerY: 0,
     };
-    let dragPreviewDebounceTimerId: number | null = null;
-    const [debouncedDragPointer, setDebouncedDragPointer] = createSignal<{
-      x: number;
-      y: number;
-    } | null>(null);
-    const scheduleDragPreviewUpdate = (clientX: number, clientY: number) => {
-      if (dragPreviewDebounceTimerId !== null) {
-        clearTimeout(dragPreviewDebounceTimerId);
-      }
-      setDebouncedDragPointer(null);
-      dragPreviewDebounceTimerId = window.setTimeout(() => {
-        setDebouncedDragPointer({ x: clientX, y: clientY });
-        dragPreviewDebounceTimerId = null;
-      }, DRAG_PREVIEW_DEBOUNCE_MS);
-    };
+    const dragPreviewDebounce = createDragPreviewDebounce();
+    const debouncedDragPointer = dragPreviewDebounce.pointer;
+    const scheduleDragPreviewUpdate = dragPreviewDebounce.schedule;
     let keydownSpamTimerId: number | null = null;
     let previousSpaceDragPointerPage: Position | null = null;
     const [isShiftMultiSelecting, setIsShiftMultiSelecting] = createSignal(false);
@@ -1589,11 +1577,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     ) => {
       if (!isDragging()) return;
 
-      if (dragPreviewDebounceTimerId !== null) {
-        clearTimeout(dragPreviewDebounceTimerId);
-        dragPreviewDebounceTimerId = null;
-      }
-      setDebouncedDragPointer(null);
+      dragPreviewDebounce.cancel();
 
       const dragDistance = calculateDragDistance(clientX, clientY);
       const wasDragGesture =
@@ -2325,9 +2309,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     onCleanup(() => {
       eventListenerManager.abort();
-      if (dragPreviewDebounceTimerId !== null) {
-        window.clearTimeout(dragPreviewDebounceTimerId);
-      }
+      dragPreviewDebounce.cancel();
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
       clearCopyFeedbackCooldown();
       toolbarMenu.dispose();
