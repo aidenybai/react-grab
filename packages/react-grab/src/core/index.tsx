@@ -29,6 +29,7 @@ import { createRendererHost } from "./renderer-host.js";
 import { createOverlayVisibility } from "./overlay-visibility.js";
 import { createPluginStateBridge } from "./plugin-state-bridge.js";
 import { createCopyOrchestrator } from "./copy-orchestrator.js";
+import { createActivationLifecycle } from "./activation-lifecycle.js";
 import {
   isKeyboardEventTriggeredByInput,
   hasTextSelectionInInput,
@@ -603,57 +604,25 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const cursorOverride = createCursorOverride({ isActivated, isCopying, isPromptMode });
 
-    const activateRenderer = () => {
-      const wasInHoldingState = isHoldingKeys();
-      actions.activate();
-      if (!wasInHoldingState) {
-        pluginRegistry.hooks.onActivate();
-      }
-    };
-
-    const deactivateRenderer = () => {
-      const wasDragging = isDragging();
-      const previousFocused = store.previouslyFocusedElement;
-      stopSpaceDragRepositioning();
-      actions.deactivate();
-      stopShiftMultiSelecting();
-      clearArrowNavigation();
-      keyboardSelectedElement = null;
-      setIsPendingContextMenuSelect(false);
-      if (wasDragging) {
-        document.body.style.userSelect = "";
-      }
-      if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
-      autoScroller.stop();
-      // Calling .focus() forces a synchronous focus event dispatch and a style
-      // recalc. Skip it when the target is <body> or already the active
-      // element — both cases produce no observable focus change but were
-      // previously paying the recalc cost on every deactivate.
-      if (
-        previousFocused instanceof HTMLElement &&
-        previousFocused !== document.body &&
-        previousFocused !== document.activeElement &&
-        isElementConnected(previousFocused)
-      ) {
-        previousFocused.focus();
-      }
-      pluginRegistry.hooks.onDeactivate();
-    };
-
-    const forceDeactivateAll = () => {
-      if (isHoldingKeys()) {
-        actions.releaseHold();
-      }
-      if (isActivated()) {
-        deactivateRenderer();
-      }
-      clearCopyFeedbackCooldown();
-    };
-
-    const toggleActivate = () => {
-      actions.setWasActivatedByToggle(true);
-      activateRenderer();
-    };
+    const activationLifecycle = createActivationLifecycle({
+      grab,
+      phase,
+      pluginRegistry,
+      copyFeedbackCooldown,
+      autoScroller,
+      clearArrowNavigation,
+      stopSpaceDragRepositioning: () => stopSpaceDragRepositioning(),
+      stopShiftMultiSelecting: () => stopShiftMultiSelecting(),
+      clearKeyboardSelectedElement: () => {
+        keyboardSelectedElement = null;
+      },
+      clearKeydownSpamTimer: () => {
+        if (keydownSpamTimerId !== null) window.clearTimeout(keydownSpamTimerId);
+      },
+      clearPendingContextMenuSelect: () => setIsPendingContextMenuSelect(false),
+    });
+    const { activateRenderer, deactivateRenderer, forceDeactivateAll, toggleActivate } =
+      activationLifecycle;
 
     const handleInputSubmit = () => {
       actions.clearLastCopied();
