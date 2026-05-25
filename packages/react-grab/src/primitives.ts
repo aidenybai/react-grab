@@ -147,9 +147,7 @@ export const unfreeze = (): void => {
  *   console.log('Page is frozen, skipping update');
  * }
  */
-export const isFreezeActive = (): boolean => {
-  return _isFreezeActive;
-};
+export const isFreezeActive = (): boolean => _isFreezeActive;
 
 /**
  * Opens the source file at the given path in the user's editor.

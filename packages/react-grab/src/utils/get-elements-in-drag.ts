@@ -32,15 +32,14 @@ const hasIntersection = (rect1: Rect, rect2: Rect): boolean => {
   );
 };
 
-const sortByDocumentOrder = (elements: Element[]): Element[] => {
-  return elements.sort((leftElement, rightElement) => {
+const sortByDocumentOrder = (elements: Element[]): Element[] =>
+  elements.sort((leftElement, rightElement) => {
     if (leftElement === rightElement) return 0;
     const position = leftElement.compareDocumentPosition(rightElement);
     if (position & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
     if (position & Node.DOCUMENT_POSITION_PRECEDING) return 1;
     return 0;
   });
-};
 
 interface SamplePoint {
   x: number;

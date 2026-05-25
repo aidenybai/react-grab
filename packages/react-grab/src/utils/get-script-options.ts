@@ -1,8 +1,7 @@
 import type { Options } from "../types.js";
 
-const isObjectRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === "object" && value !== null;
-};
+const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
 
 const parseOptionsFromJson = (rawValue: unknown): Partial<Options> | null => {
   if (!isObjectRecord(rawValue)) return null;
