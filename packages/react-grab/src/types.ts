@@ -87,11 +87,7 @@ export interface ReactGrabState {
    * Currently visible grabbed boxes (success flash effects).
    * These are temporary visual indicators shown after elements are grabbed/copied.
    */
-  grabbedBoxes: Array<{
-    id: string;
-    bounds: OverlayBounds;
-    createdAt: number;
-  }>;
+  grabbedBoxes: PublicGrabbedBox[];
   labelInstances: Array<{
     id: string;
     status: SelectionLabelStatus;
@@ -357,11 +353,7 @@ export interface ReactGrabRendererProps {
   labelInstances?: SelectionLabelInstance[];
   dragVisible?: boolean;
   dragBounds?: OverlayBounds;
-  grabbedBoxes?: Array<{
-    id: string;
-    bounds: OverlayBounds;
-    createdAt: number;
-  }>;
+  grabbedBoxes?: PublicGrabbedBox[];
   mouseX?: number;
   isFrozen?: boolean;
   inputValue?: string;

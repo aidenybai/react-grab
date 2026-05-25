@@ -150,18 +150,8 @@ export interface ReactGrabPageObject {
   getGrabbedBoxInfo: () => Promise<GrabbedBoxInfo>;
   getLabelInstancesInfo: () => Promise<LabelInstanceInfo[]>;
   isGrabbedBoxVisible: () => Promise<boolean>;
-  getDragBoxBounds: () => Promise<{
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  } | null>;
-  getSelectionBoxBounds: () => Promise<{
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  } | null>;
+  getDragBoxBounds: () => Promise<DragRect | null>;
+  getSelectionBoxBounds: () => Promise<DragRect | null>;
 
   getState: () => Promise<ReactGrabState>;
   toggle: () => Promise<void>;
@@ -1084,12 +1074,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     });
   };
 
-  const getDragBoxBounds = async (): Promise<{
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  } | null> => {
+  const getDragBoxBounds = async (): Promise<DragRect | null> => {
     return page.evaluate(() => {
       const api = window.__REACT_GRAB__;
       const state = api?.getState();
@@ -1098,12 +1083,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     });
   };
 
-  const getSelectionBoxBounds = async (): Promise<{
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  } | null> => {
+  const getSelectionBoxBounds = async (): Promise<DragRect | null> => {
     return page.evaluate(() => {
       const api = window.__REACT_GRAB__;
       const state = api?.getState();
@@ -1373,12 +1353,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const getElementBounds = async (
     selector: string,
-  ): Promise<{
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  } | null> => {
+  ): Promise<DragRect | null> => {
     const element = page.locator(selector).first();
     const box = await element.boundingBox();
     return box ? { x: box.x, y: box.y, width: box.width, height: box.height } : null;
