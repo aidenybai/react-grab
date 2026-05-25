@@ -53,7 +53,7 @@ const PrivacyPage = () => {
         </div>
 
         <div className="text-foreground mt-4">
-          <h1 className="font-bold inline">Privacy Policy</h1> &middot; Last updated{" "}
+          <h1 className="font-semibold inline">Privacy Policy</h1> &middot; Last updated{" "}
           {new Date().toLocaleDateString("en-US", {
             year: "numeric",
             month: "long",
@@ -63,7 +63,7 @@ const PrivacyPage = () => {
 
         <div className="space-y-6 text-neutral-300 mt-4">
           <section>
-            <h2 className="text-foreground font-bold mb-2">Overview</h2>
+            <h2 className="text-foreground font-semibold mb-2">Overview</h2>
             <p>
               React Grab is a developer tool that helps you inspect and copy React components from
               web pages. This privacy policy explains how the React Grab browser extension and
