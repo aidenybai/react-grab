@@ -1,5 +1,5 @@
 import { test as base, expect, Page, Locator } from "@playwright/test";
-import type { ReactGrabAPI } from "../src/types.js";
+import type { DragRect, ReactGrabAPI } from "../src/types.js";
 
 interface CallbackHistoryEntry {
   name: string;
@@ -40,8 +40,8 @@ interface SelectionLabelInfo {
 }
 
 interface SelectionLabelBounds {
-  label: { x: number; y: number; width: number; height: number };
-  arrow: { x: number; y: number; width: number; height: number } | null;
+  label: DragRect;
+  arrow: DragRect | null;
   viewport: { width: number; height: number };
 }
 
@@ -68,10 +68,10 @@ interface ReactGrabState {
   isCopying: boolean;
   isPromptMode: boolean;
   targetElement: boolean;
-  dragBounds: { x: number; y: number; width: number; height: number } | null;
+  dragBounds: DragRect | null;
   grabbedBoxes: Array<{
     id: string;
-    bounds: { x: number; y: number; width: number; height: number };
+    bounds: DragRect;
     createdAt: number;
   }>;
   labelInstances: LabelInstanceInfo[];
@@ -81,7 +81,7 @@ interface GrabbedBoxInfo {
   count: number;
   boxes: Array<{
     id: string;
-    bounds: { x: number; y: number; width: number; height: number };
+    bounds: DragRect;
   }>;
 }
 
@@ -186,7 +186,7 @@ export interface ReactGrabPageObject {
   showElement: (selector: string) => Promise<void>;
   getElementBounds: (
     selector: string,
-  ) => Promise<{ x: number; y: number; width: number; height: number } | null>;
+  ) => Promise<DragRect | null>;
   isDropdownOpen: () => Promise<boolean>;
   openDropdown: () => Promise<void>;
 
