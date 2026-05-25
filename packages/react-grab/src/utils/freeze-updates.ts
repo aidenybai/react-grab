@@ -11,33 +11,25 @@ import {
   getFiberFromHostInstance,
   isCompositeFiber,
   type Fiber,
-  type ReactRenderer,
 } from "bippy";
 import { logRecoverableError } from "./log-recoverable-error.js";
 
 import type {
   ContextDependency,
-  DispatchFunction,
   FiberRootLike,
   HookState,
-  OriginalHooks,
-  TransitionFunction,
 } from "./freeze/types.js";
 import {
   pauseContextDependency,
   resumeContextDependency,
 } from "./freeze/context-dependency.js";
 import { pauseHookQueue, resumeHookQueue } from "./freeze/hook-queue.js";
+import { initializeFreezeSupport } from "./freeze/dispatcher-patch.js";
 import {
   freezeState,
-  getOrCache,
-  patchedDispatchers,
   pendingStateUpdates,
   pendingStoreCallbacks,
   pendingTransitionCallbacks,
-  renderersWithPatchedDispatcher,
-  wrappedDispatchCache,
-  wrappedStartTransitionCache,
 } from "./freeze/state.js";
 
 const typedFiberRoots = _fiberRoots as Set<FiberRootLike>;
@@ -137,136 +129,6 @@ const traverseFibersAndResume = (fiber: Fiber | null): void => {
   traverseFibersAndResume(fiber.sibling);
 };
 
-const patchDispatcher = (dispatcher: object): void => {
-  if (patchedDispatchers.has(dispatcher)) return;
-
-  const typedDispatcher = dispatcher as Record<string, DispatchFunction>;
-  const originalHooks: OriginalHooks = {
-    useState: typedDispatcher.useState,
-    useReducer: typedDispatcher.useReducer,
-    useTransition: typedDispatcher.useTransition,
-    useSyncExternalStore: typedDispatcher.useSyncExternalStore,
-  };
-  patchedDispatchers.set(dispatcher, originalHooks);
-
-  typedDispatcher.useState = (...args: unknown[]) => {
-    const result = originalHooks.useState.apply(dispatcher, args) as unknown;
-    if (!freezeState.isUpdatesPaused) return result;
-    if (!Array.isArray(result) || typeof result[1] !== "function") return result;
-    const [state, dispatch] = result as [unknown, DispatchFunction];
-    const wrappedDispatch = getOrCache(
-      wrappedDispatchCache,
-      dispatch,
-      () =>
-        (...dispatchArgs: unknown[]) => {
-          if (freezeState.isUpdatesPaused) {
-            pendingStateUpdates.push(() => dispatch(...dispatchArgs));
-          } else {
-            dispatch(...dispatchArgs);
-          }
-        },
-    );
-    return [state, wrappedDispatch];
-  };
-
-  typedDispatcher.useReducer = (...args: unknown[]) => {
-    const result = originalHooks.useReducer.apply(dispatcher, args) as unknown;
-    if (!freezeState.isUpdatesPaused) return result;
-    if (!Array.isArray(result) || typeof result[1] !== "function") return result;
-    const [state, dispatch] = result as [unknown, DispatchFunction];
-    const wrappedDispatch = getOrCache(
-      wrappedDispatchCache,
-      dispatch,
-      () =>
-        (...dispatchArgs: unknown[]) => {
-          if (freezeState.isUpdatesPaused) {
-            pendingStateUpdates.push(() => dispatch(...dispatchArgs));
-          } else {
-            dispatch(...dispatchArgs);
-          }
-        },
-    );
-    return [state, wrappedDispatch];
-  };
-
-  typedDispatcher.useTransition = (...args: unknown[]) => {
-    const result = originalHooks.useTransition.apply(dispatcher, args) as unknown;
-    if (!freezeState.isUpdatesPaused) return result;
-    if (!Array.isArray(result) || typeof result[1] !== "function") return result;
-    const [isPending, startTransition] = result as [boolean, TransitionFunction];
-    const wrappedStartTransition = getOrCache(
-      wrappedStartTransitionCache,
-      startTransition,
-      () => (transitionCallback: () => void) => {
-        if (freezeState.isUpdatesPaused) {
-          pendingTransitionCallbacks.push(() => startTransition(transitionCallback));
-        } else {
-          startTransition(transitionCallback);
-        }
-      },
-    );
-    return [isPending, wrappedStartTransition];
-  };
-
-  type UseSyncExternalStore = <T>(
-    subscribe: (onStoreChange: () => void) => () => void,
-    getSnapshot: () => T,
-    getServerSnapshot?: () => T,
-  ) => T;
-
-  typedDispatcher.useSyncExternalStore = (<T>(
-    subscribe: (onStoreChange: () => void) => () => void,
-    getSnapshot: () => T,
-    getServerSnapshot?: () => T,
-  ): T => {
-    if (!freezeState.isUpdatesPaused) {
-      return (originalHooks.useSyncExternalStore as UseSyncExternalStore)(
-        subscribe,
-        getSnapshot,
-        getServerSnapshot,
-      );
-    }
-    const wrappedSubscribe = (onChange: () => void) =>
-      subscribe(() => {
-        if (freezeState.isUpdatesPaused) {
-          pendingStoreCallbacks.add(onChange);
-        } else {
-          onChange();
-        }
-      });
-    return (originalHooks.useSyncExternalStore as UseSyncExternalStore)(
-      wrappedSubscribe,
-      getSnapshot,
-      getServerSnapshot,
-    );
-  }) as DispatchFunction;
-};
-
-const installDispatcherPatching = (renderer: ReactRenderer): void => {
-  const dispatcherRef = renderer.currentDispatcherRef as {
-    H?: unknown;
-    current?: unknown;
-  } | null;
-  if (!dispatcherRef || typeof dispatcherRef !== "object") return;
-
-  const dispatcherKey = "H" in dispatcherRef ? "H" : "current";
-  let currentDispatcher = dispatcherRef[dispatcherKey];
-
-  Object.defineProperty(dispatcherRef, dispatcherKey, {
-    configurable: true,
-    enumerable: true,
-    get: () => {
-      if (currentDispatcher && typeof currentDispatcher === "object") {
-        patchDispatcher(currentDispatcher);
-      }
-      return currentDispatcher;
-    },
-    set: (newDispatcher) => {
-      currentDispatcher = newDispatcher;
-    },
-  });
-};
-
 const scheduleReactUpdate = (fiberRoots: Set<FiberRootLike>): void => {
   queueMicrotask(() => {
     try {
@@ -295,14 +157,6 @@ const invokeCallbacks = (callbacks: Array<() => void>): void => {
     } catch (error) {
       logRecoverableError("Callback failed during state replay", error);
     }
-  }
-};
-
-const initializeFreezeSupport = (): void => {
-  for (const renderer of getRDTHook().renderers.values()) {
-    if (renderersWithPatchedDispatcher.has(renderer)) continue;
-    installDispatcherPatching(renderer);
-    renderersWithPatchedDispatcher.add(renderer);
   }
 };
 
