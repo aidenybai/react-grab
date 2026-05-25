@@ -142,6 +142,14 @@ export const createEditModeController = (
     // Clear state first so the renderer hides EditPanel before the
     // copy-feedback label takes over the same anchor position.
     clearAll();
+    // Mirror `dismiss`'s freeze handling. Toggle mode hands off to
+    // `performCopyWithLabel` which deactivates the renderer (which
+    // clears freeze as part of teardown). Hold mode stays active —
+    // unfreeze explicitly so hover selection follows the cursor
+    // again instead of staying locked on the just-copied element.
+    if (!dependencies.store.wasActivatedByToggle) {
+      dependencies.actions.unfreeze();
+    }
     dependencies.performCopyWithLabel({
       element,
       cursorX: currentState.position.x,
