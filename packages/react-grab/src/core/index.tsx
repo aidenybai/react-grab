@@ -38,6 +38,7 @@ import { createInitCleanup } from "./init-cleanup.js";
 import { registerLifecycleHookEffects } from "./lifecycle-hook-effects.js";
 import { mountRenderer } from "./mount-renderer.js";
 import { createContextMenuActionContext } from "./context-menu-action-context.js";
+import { createPromptModePreset } from "./prompt-mode-preset.js";
 import { buildPublicApi } from "./build-public-api.js";
 import { createWindowFocusListeners } from "./window-focus-listeners.js";
 import { createToolbarStateController } from "./toolbar-state-controller.js";
@@ -193,21 +194,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
 
 
-    const preparePromptMode = (element: Element, positionX: number, positionY: number) => {
-      setCopyStartPosition(element, positionX, positionY);
-      actions.clearInputText();
-    };
-
-    const activatePromptMode = () => {
-      const element = store.frozenElement || targetElement();
-      if (element) {
-        actions.enterPromptMode({ x: pointer().x, y: pointer().y }, element);
-      }
-    };
-
-    const setCopyStartPosition = (element: Element, positionX: number, positionY: number) => {
-      actions.setCopyStart({ x: positionX, y: positionY }, element);
-    };
+    const { preparePromptMode, activatePromptMode } = createPromptModePreset({
+      grab,
+      pointer,
+      targetElement,
+    });
 
     const dragPreviewDebounce = createDragPreviewDebounce();
     const debouncedDragPointer = dragPreviewDebounce.pointer;
