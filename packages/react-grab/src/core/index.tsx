@@ -1,11 +1,9 @@
 // @ts-expect-error - CSS imported as text via tsup loader
 import cssText from "../../dist/styles.css";
 import {
-  createMemo,
   createRoot,
   createSignal,
   onCleanup,
-  createResource,
 } from "solid-js";
 import { createGrabStore } from "./store.js";
 import { createGrabElementSelectors, createGrabPhaseSelectors } from "./selectors.js";
@@ -39,15 +37,14 @@ import { registerPointerListeners } from "./pointer-listeners.js";
 import { createInitCleanup } from "./init-cleanup.js";
 import { registerLifecycleHookEffects } from "./lifecycle-hook-effects.js";
 import { mountRenderer } from "./mount-renderer.js";
+import { createContextMenuActionContext } from "./context-menu-action-context.js";
 import { buildPublicApi } from "./build-public-api.js";
 import { createWindowFocusListeners } from "./window-focus-listeners.js";
 import { createToolbarStateController } from "./toolbar-state-controller.js";
 import { createShiftMultiSelectState } from "./shift-multi-select-state.js";
 import { createDragSelectors } from "./drag-selectors.js";
-import { createComponentNameForElement } from "../utils/create-component-name-for-element.js";
 import {
   checkIsNextProject,
-  resolveSource,
 } from "./context.js";
 import { createNoopApi } from "./noop-api.js";
 import { createEventListenerManager } from "./events.js";
@@ -60,7 +57,6 @@ import {
 import type {
   Options,
   ReactGrabAPI,
-  ContextMenuActionContext,
   ContextMenuAction,
   SettableOptions,
   SourceInfo,
@@ -151,7 +147,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       isGrabbedBoxesThemeEnabled: () => Boolean(pluginRegistry.store.theme.grabbedBoxes.enabled),
     });
     const {
-      clearAllLabels,
       handleLabelInstanceHoverChange,
       computedLabelInstances,
       computedGrabbedBoxes,
@@ -372,7 +367,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       preparePromptMode,
       activatePromptMode,
     });
-    const { buildActionContext, deferHideContextMenu } = actionContextBuilder;
+    const { deferHideContextMenu } = actionContextBuilder;
 
     const menuHandlers = createMenuHandlers({
       grab,
@@ -580,43 +575,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
 
-    const [contextMenuComponentName] = createComponentNameForElement(() =>
-      store.frozenElements.length > 1 ? null : store.contextMenuElement,
-    );
-
-    const [contextMenuFilePath] = createResource(
-      () => store.contextMenuElement,
-      async (element) => {
-        if (!element) return null;
-        return resolveSource(element);
+    const {
+      contextMenuComponentName,
+      contextMenuFilePath,
+      contextMenuActionContext,
+    } = createContextMenuActionContext({
+      grab,
+      actionContextBuilder,
+      labelManager,
+      pointer,
+      contextMenuTagName,
+      clearKeyboardSelectedElement: () => {
+        keyboardSelectedElement = null;
       },
-    );
-
-
-    const contextMenuActionContext = createMemo((): ContextMenuActionContext | undefined => {
-      const element = store.contextMenuElement;
-      if (!element) return undefined;
-      const fileInfo = contextMenuFilePath();
-      const position = store.contextMenuPosition ?? pointer();
-
-      return buildActionContext({
-        element,
-        filePath: fileInfo?.filePath,
-        lineNumber: fileInfo?.lineNumber ?? undefined,
-        tagName: contextMenuTagName(),
-        componentName: contextMenuComponentName(),
-        position,
-        shouldDeferHideContextMenu: true,
-        onBeforeCopy: () => {
-          keyboardSelectedElement = null;
-        },
-        customEnterPromptMode: () => {
-          clearAllLabels();
-          actions.clearInputText();
-          actions.enterPromptMode(position, element);
-          deferHideContextMenu();
-        },
-      });
     });
 
     mountRenderer({
