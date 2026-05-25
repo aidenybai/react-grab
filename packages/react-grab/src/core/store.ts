@@ -3,15 +3,9 @@ import { batch, createSignal } from "solid-js";
 import type { Position, Theme, GrabbedBox, SelectionLabelInstance } from "../types.js";
 import { OFFSCREEN_POSITION } from "../constants.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
+import type { DragRectWithPageCoords } from "../utils/create-bounds-from-drag-rect.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
-
-interface FrozenDragRect {
-  pageX: number;
-  pageY: number;
-  width: number;
-  height: number;
-}
 
 type GrabPhase = "hovering" | "frozen" | "dragging-select" | "dragging-reposition" | "justDragged";
 
@@ -41,7 +35,7 @@ interface GrabStore {
   detectedElement: Element | null;
   frozenElement: Element | null;
   frozenElements: Element[];
-  frozenDragRect: FrozenDragRect | null;
+  frozenDragRect: DragRectWithPageCoords | null;
   lastGrabbedElement: Element | null;
   lastCopiedElement: Element | null;
 
@@ -137,7 +131,7 @@ interface GrabActions {
   setFrozenElements: (elements: Element[]) => void;
   toggleFrozenElement: (element: Element) => void;
   addFrozenElements: (elements: Element[]) => void;
-  setFrozenDragRect: (rect: FrozenDragRect | null) => void;
+  setFrozenDragRect: (rect: DragRectWithPageCoords | null) => void;
   setCopyStart: (position: Position, element: Element) => void;
   setLastGrabbed: (element: Element | null) => void;
   clearLastCopied: () => void;
@@ -492,7 +486,7 @@ const createGrabStore = (input: GrabStoreInput) => {
       });
     },
 
-    setFrozenDragRect: (rect: FrozenDragRect | null) => {
+    setFrozenDragRect: (rect: DragRectWithPageCoords | null) => {
       setStore("frozenDragRect", rect);
     },
 

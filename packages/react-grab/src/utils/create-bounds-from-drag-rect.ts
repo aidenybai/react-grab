@@ -6,7 +6,7 @@ import type { OverlayBounds } from "../types.js";
 // positioning). Mixed orders here caused recurring "wrong map" deopts in
 // hot bounds paths.
 
-interface DragRectWithPageCoords {
+export interface DragRectWithPageCoords {
   pageX: number;
   pageY: number;
   width: number;
