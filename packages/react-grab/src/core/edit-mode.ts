@@ -69,6 +69,11 @@ export const createEditModeController = (
     position: Position,
     overrides: EditModeOverrides = {},
   ): boolean => {
+    // Re-entry would tear down + remount the panel body, destroying
+    // the in-memory tweak store while inline-style previews stay on
+    // the DOM (the panel's onCleanup runs `preview.forget`, not
+    // `restore`). Callers should dismiss the open panel first.
+    if (state() !== null) return false;
     const properties = buildEditableProperties(element);
     if (properties.length === 0) return false;
 

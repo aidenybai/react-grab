@@ -10,7 +10,10 @@ type Direction = 1 | -1;
 const directionFor = (key: ArrowKey): Direction => (key === "ArrowLeft" ? -1 : 1);
 
 interface StepControllerOptions {
-  step: (direction: Direction, shift: boolean) => void;
+  // `isRepeat` lets callers distinguish the initial keypress (where
+  // side-effects like dismissing the discard prompt should fire) from
+  // long-press auto-repeat ticks (which should leave UI state alone).
+  step: (direction: Direction, shift: boolean, isRepeat: boolean) => void;
   isShiftHeld: Accessor<boolean>;
 }
 
@@ -44,7 +47,7 @@ export const createStepController = (options: StepControllerOptions): StepContro
     const direction = directionFor(key);
     initialDelayId = setTimeout(() => {
       intervalId = setInterval(() => {
-        options.step(direction, options.isShiftHeld());
+        options.step(direction, options.isShiftHeld(), true);
       }, EDIT_STEP_REPEAT_INTERVAL_MS);
     }, EDIT_STEP_REPEAT_INITIAL_DELAY_MS);
   };
@@ -52,7 +55,7 @@ export const createStepController = (options: StepControllerOptions): StepContro
   const pressArrow = (key: ArrowKey, isRepeat: boolean, shiftKey: boolean): boolean => {
     if (isRepeat) return false;
     setHeldDirection(directionFor(key));
-    options.step(directionFor(key), shiftKey);
+    options.step(directionFor(key), shiftKey, false);
     startRepeat(key);
     return true;
   };

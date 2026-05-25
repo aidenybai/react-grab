@@ -143,6 +143,16 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
               onMouseDown={(event) => {
                 // Default focus on the clicked button would steal it from
                 // EditPanel's search input and break arrow-key tweaking.
+                // Blur any in-progress inline value input FIRST so its
+                // onBlur=>commit fires before the subsequent onClick
+                // changes activeIndex and unmounts the input (otherwise
+                // the typed draft is silently lost).
+                const root = listRef?.getRootNode();
+                const focused =
+                  root instanceof ShadowRoot
+                    ? (root.activeElement as HTMLElement | null)
+                    : (document.activeElement as HTMLElement | null);
+                if (focused?.matches("input[data-react-grab-input]")) focused.blur();
                 event.preventDefault();
               }}
               onClick={(event) => {

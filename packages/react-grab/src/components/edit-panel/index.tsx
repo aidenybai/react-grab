@@ -148,6 +148,10 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     flash?: 1 | -1;
     focus?: boolean;
     compact?: boolean;
+    // True when the commit was triggered by a held-key auto-repeat
+    // tick. Skips UI-state side-effects (clearing the discard prompt)
+    // that would otherwise fire 60×/sec while a key is held.
+    fromRepeat?: boolean;
   }
 
   // Canonical write path for every committed tweak. The store owns
@@ -161,7 +165,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     tweakStore.applyTweak(property, nextValue);
     preview.apply(property.cssProperties, formatEditableValue(property, nextValue));
     markAsInteracting();
-    setIsPendingDismiss(false);
+    if (!options.fromRepeat) setIsPendingDismiss(false);
     if (options.flash) flashActiveKey(options.flash === 1 ? "right" : "left");
     if (options.focus) ensureSearchFocused();
     if (options.compact) setIsCompact(true);
@@ -169,7 +173,11 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
 
   const isShiftHeld = createShiftTracker();
 
-  const commitTweak = (direction: 1 | -1, shift: boolean): EditableProperty | null => {
+  const commitTweak = (
+    direction: 1 | -1,
+    shift: boolean,
+    fromRepeat: boolean,
+  ): EditableProperty | null => {
     const property = activeProperty();
     if (!property) return null;
     const next = stepProperty(property, direction, shift);
@@ -177,16 +185,16 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       flashActiveKey(direction === 1 ? "right" : "left");
       return null;
     }
-    commit(property, next, { flash: direction, focus: true });
+    commit(property, next, { flash: direction, focus: true, fromRepeat });
     return property;
   };
 
-  const stepFromKeyboard = (direction: 1 | -1, shift: boolean) => {
-    if (commitTweak(direction, shift)) setIsCompact(true);
+  const stepFromKeyboard = (direction: 1 | -1, shift: boolean, fromRepeat: boolean) => {
+    if (commitTweak(direction, shift, fromRepeat)) setIsCompact(true);
   };
 
   const stepFromPointer = (direction: 1 | -1) => {
-    commitTweak(direction, false);
+    commitTweak(direction, false, false);
   };
 
   const stepController = createStepController({ step: stepFromKeyboard, isShiftHeld });
@@ -265,13 +273,17 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     panelSurfaceRef.classList.add("animate-shake");
   };
 
-  const dismissPreservingTweaks = () => {
+  // Two paths out: `preserve` keeps the inline-style preview on the
+  // element (every Escape / click-outside path); `discard` reverts
+  // and is only reachable via the explicit "Yes" confirm button.
+  const closePanel = (mode: "preserve" | "discard") => {
+    if (mode === "discard") preview.restore();
     props.onDismiss();
   };
 
   const attemptDismiss = () => {
     if (!tweakStore.hasPendingTweaks() || isPendingDismiss()) {
-      dismissPreservingTweaks();
+      closePanel("preserve");
       return;
     }
     setIsPendingDismiss(true);
@@ -486,7 +498,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                   onClick={(event) => {
                     event.preventDefault();
                     event.stopPropagation();
-                    dismissPreservingTweaks();
+                    closePanel("discard");
                   }}
                 >
                   <span class="text-[var(--rg-error-text)] text-[13px] leading-3.5 font-sans font-medium">
@@ -513,7 +525,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
             <textarea
               ref={(element) => {
                 searchInputRef = element;
-                queueMicrotask(() => element.focus({ preventScroll: true }));
               }}
               data-react-grab-ignore-events
               data-react-grab-input
