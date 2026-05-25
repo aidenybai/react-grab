@@ -35,6 +35,7 @@ import { createMenuHandlers } from "./menu-handlers.js";
 import { createCommentModeHandlers } from "./comment-mode-handlers.js";
 import { createKeydownSpamTimer } from "./keydown-spam-timer.js";
 import { createSpaceDragRepositioning } from "./space-drag-repositioning.js";
+import { createActivationKeyHandlers } from "./activation-key-handlers.js";
 import { buildPublicApi } from "./build-public-api.js";
 import { createWindowFocusListeners } from "./window-focus-listeners.js";
 import { createToolbarStateController } from "./toolbar-state-controller.js";
@@ -42,8 +43,6 @@ import { createShiftMultiSelectState } from "./shift-multi-select-state.js";
 import { createDragSelectors } from "./drag-selectors.js";
 import {
   isKeyboardEventTriggeredByInput,
-  hasTextSelectionInInput,
-  hasTextSelectionOnPage,
 } from "../utils/is-keyboard-event-triggered-by-input.js";
 import { createComponentNameForElement } from "../utils/create-component-name-for-element.js";
 import {
@@ -69,13 +68,10 @@ import {
 import { getTagName } from "../utils/get-tag-name.js";
 import {
   ARROW_KEYS,
-  KEYDOWN_SPAM_TIMEOUT_MS,
   DRAG_THRESHOLD_PX,
   ELEMENT_DETECTION_THROTTLE_MS,
   PENDING_DETECTION_STALENESS_MS,
   MODIFIER_KEYS,
-  INPUT_FOCUS_ACTIVATION_DELAY_MS,
-  INPUT_TEXT_SELECTION_ACTIVATION_DELAY_MS,
   DEFAULT_KEY_HOLD_DURATION_MS,
   MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS,
   NEXTJS_REVALIDATION_DELAY_MS,
@@ -86,7 +82,6 @@ import { isCLikeKey } from "../utils/is-c-like-key.js";
 import { isTargetKeyCombination } from "../utils/is-target-key-combination.js";
 import { parseActivationKey } from "../utils/parse-activation-key.js";
 import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
-import { openFile } from "../utils/open-file.js";
 import type {
   Position,
   Options,
@@ -419,7 +414,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       clearKeydownSpamTimer: keydownSpamTimer.clear,
       clearPendingContextMenuSelect: () => setIsPendingContextMenuSelect(false),
     });
-    const { activateRenderer, deactivateRenderer, forceDeactivateAll } = activationLifecycle;
+    const { deactivateRenderer, forceDeactivateAll } = activationLifecycle;
 
     const {
       handleInputSubmit,
@@ -896,201 +891,26 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
     const blockEnterIfNeeded = enterBlocker.blockEnterIfNeeded;
 
-    const handleEnterKeyActivation = (event: KeyboardEvent): boolean => {
-      if (!isEnterCode(event.code)) return false;
-      if (isKeyboardEventTriggeredByInput(event)) return false;
-      if (isCopying()) return false;
-      if (isSelectionInteractionLocked()) return false;
-
-      const copiedElement = store.lastCopiedElement;
-      const canActivateFromCopied =
-        !isHoldingKeys() &&
-        !isPromptMode() &&
-        !isActivated() &&
-        copiedElement &&
-        isElementConnected(copiedElement) &&
-        !store.labelInstances.some(
-          (instance) => instance.status === "copied" || instance.status === "fading",
-        );
-
-      if (canActivateFromCopied) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-
-        const center = getBoundsCenter(createElementBounds(copiedElement));
-
-        actions.setPointer(center);
-        preparePromptMode(copiedElement, center.x, center.y);
-        actions.setFrozenElement(copiedElement);
-        actions.clearLastCopied();
-
-        activatePromptMode();
-        if (!isActivated()) {
-          activateRenderer();
-        }
-        return true;
-      }
-
-      const canActivateFromHolding = isHoldingKeys() && !isPromptMode();
-
-      if (canActivateFromHolding) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-
-        const element = store.frozenElement || targetElement();
-        if (element) {
-          preparePromptMode(element, pointer().x, pointer().y);
-        }
-
-        actions.setPointer({ x: pointer().x, y: pointer().y });
-        if (element) {
-          actions.setFrozenElement(element);
-        }
-        activatePromptMode();
-
-        keydownSpamTimer.clear();
-
-        if (!isActivated()) {
-          activateRenderer();
-        }
-
-        return true;
-      }
-
-      return false;
-    };
-
-    const handleOpenFileShortcut = (event: KeyboardEvent): boolean => {
-      if (event.key?.toLowerCase() !== "o" || isPromptMode()) return false;
-      if (!isActivated() || !(event.metaKey || event.ctrlKey)) return false;
-
-      const filePath = store.selectionFilePath;
-      const lineNumber = store.selectionLineNumber;
-      if (!filePath) return false;
-
-      event.preventDefault();
-      event.stopPropagation();
-
-      const wasHandled = pluginRegistry.hooks.onOpenFile(filePath, lineNumber ?? undefined);
-      if (!wasHandled) {
-        openFile(filePath, lineNumber ?? undefined, pluginRegistry.hooks.transformOpenFileUrl);
-      }
-      return true;
-    };
-
-    const handleContextMenuKey = (event: KeyboardEvent): boolean => {
-      if (!isActivated()) return false;
-      if (isCopying() || isPromptMode()) return false;
-      if (store.contextMenuPosition !== null) return false;
-
-      const isShiftF10 = event.key === "F10" && event.shiftKey;
-      const isContextMenuKey = event.key === "ContextMenu";
-      if (!isShiftF10 && !isContextMenuKey) return false;
-
-      const existingFrozenElements = store.frozenElements;
-      const hasMultiFrozenSelection = existingFrozenElements.length > 1;
-      const element =
-        (hasMultiFrozenSelection ? existingFrozenElements[0] : null) ||
-        store.frozenElement ||
-        targetElement();
-      if (!element) return false;
-
-      event.preventDefault();
-      event.stopPropagation();
-
-      const center = getBoundsCenter(createElementBounds(element));
-      // Preserve an existing multi-frozen selection (e.g. Shift+click)
-      // when invoking via keyboard, matching the mouse contextmenu
-      // handler's behavior on a click that lands on the existing set.
-      if (hasMultiFrozenSelection) {
-        freezeAllAnimations(existingFrozenElements);
-      } else {
-        freezeAllAnimations([element]);
-        actions.setFrozenElement(element);
-      }
-      actions.setPointer(center);
-      actions.freeze();
-      openContextMenu(element, center);
-      return true;
-    };
-
-    const handleActivationKeys = (event: KeyboardEvent): void => {
-      if (
-        !pluginRegistry.store.options.allowActivationInsideInput &&
-        isKeyboardEventTriggeredByInput(event)
-      ) {
-        return;
-      }
-
-      if (!isTargetKeyCombination(event, pluginRegistry.store.options)) {
-        if (
-          (event.metaKey || event.ctrlKey) &&
-          !MODIFIER_KEYS.includes(event.key) &&
-          !isEnterCode(event.code)
-        ) {
-          if (isActivated() && !store.wasActivatedByToggle) {
-            deactivateRenderer();
-          } else if (isHoldingKeys()) {
-            clearHoldTimer();
-            resetCopyConfirmation();
-            actions.releaseHold();
-          }
-        }
-        if (!isEnterCode(event.code) || !isHoldingKeys()) {
-          return;
-        }
-      }
-
-      if ((isActivated() || isHoldingKeys()) && !isPromptMode()) {
-        event.preventDefault();
-        if (isEnterCode(event.code)) {
-          event.stopImmediatePropagation();
-        }
-      }
-
-      if (isActivated()) {
-        if (store.wasActivatedByToggle && pluginRegistry.store.options.activationMode !== "hold")
-          return;
-        if (event.repeat) return;
-
-        // If the overlay gets stuck active (e.g. the modifier keyup was lost
-        // during a window blur), repeated keydowns will auto-dismiss it after
-        // 200ms of idle keyboard activity.
-        keydownSpamTimer.schedule(() => deactivateRenderer(), KEYDOWN_SPAM_TIMEOUT_MS);
-        return;
-      }
-
-      if (isHoldingKeys() && event.repeat) {
-        if (activationHold.copyWaiting()) {
-          const shouldActivate = activationHold.holdTimerFired();
-          resetCopyConfirmation();
-          if (shouldActivate) {
-            actions.activate();
-          }
-        }
-        return;
-      }
-
-      if (isCopying() || didJustCopy()) return;
-
-      if (!isHoldingKeys()) {
-        const keyHoldDuration =
-          pluginRegistry.store.options.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS;
-
-        let activationDuration = keyHoldDuration;
-        if (isKeyboardEventTriggeredByInput(event)) {
-          if (hasTextSelectionInInput(event)) {
-            activationDuration += INPUT_TEXT_SELECTION_ACTIVATION_DELAY_MS;
-          } else {
-            activationDuration += INPUT_FOCUS_ACTIVATION_DELAY_MS;
-          }
-        } else if (hasTextSelectionOnPage()) {
-          activationDuration += INPUT_TEXT_SELECTION_ACTIVATION_DELAY_MS;
-        }
-        resetCopyConfirmation();
-        actions.startHold(activationDuration);
-      }
-    };
+    const {
+      handleEnterKeyActivation,
+      handleOpenFileShortcut,
+      handleContextMenuKey,
+      handleActivationKeys,
+    } = createActivationKeyHandlers({
+      grab,
+      pluginRegistry,
+      phase,
+      elementSelectors,
+      activationHold,
+      activationLifecycle,
+      menuHandlers,
+      keydownSpamTimer,
+      pointer,
+      didJustCopy,
+      resetCopyConfirmation,
+      preparePromptMode,
+      activatePromptMode,
+    });
 
     eventListenerManager.addWindowListener(
       "keydown",
