@@ -26,15 +26,14 @@ import { createDragPreviewDebounce } from "./drag-preview-debounce.js";
 import { createSelectionSourceSync } from "./selection-source-sync.js";
 import { createOverlayEffects } from "./overlay-effects.js";
 import { createEnterBlocker } from "./enter-blocker.js";
+import { createRendererHost } from "./renderer-host.js";
 import { CopyFailedError } from "../errors.js";
 import {
   isKeyboardEventTriggeredByInput,
   hasTextSelectionInInput,
   hasTextSelectionOnPage,
 } from "../utils/is-keyboard-event-triggered-by-input.js";
-import { mountRoot } from "../utils/mount-root.js";
 import { createComponentNameForElement } from "../utils/create-component-name-for-element.js";
-import { watchAppTheme } from "../utils/detect-app-theme.js";
 import { waitUntilNextFrame } from "../utils/native-raf.js";
 import {
   getStackContext,
@@ -2212,10 +2211,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     const resolvedCssText = typeof cssText === "string" ? cssText : "";
-    const { root: rendererRoot, host: rendererHost } = mountRoot(resolvedCssText);
-
-    const themeWatcher = watchAppTheme(rendererHost);
-    onCleanup(themeWatcher.cleanup);
+    const { root: rendererRoot } = createRendererHost({
+      cssText: resolvedCssText,
+      themeHue: () => pluginRegistry.store.theme.hue,
+    });
 
     const isThemeEnabled = createMemo(() => pluginRegistry.store.theme.enabled);
     const isSelectionBoxThemeEnabled = createMemo(
@@ -2579,15 +2578,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.showContextMenu(position, contextMenuElement);
       }, 0);
     };
-
-    createEffect(() => {
-      const hue = pluginRegistry.store.theme.hue;
-      if (hue !== 0) {
-        rendererRoot.style.filter = `hue-rotate(${hue}deg)`;
-      } else {
-        rendererRoot.style.filter = "";
-      }
-    });
 
     if (pluginRegistry.store.theme.enabled) {
       // The renderer is dynamically imported because solid-js/web's
