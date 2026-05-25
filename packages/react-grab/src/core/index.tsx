@@ -24,6 +24,7 @@ import { createActivationHoldController } from "./activation-hold.js";
 import { createDebouncedComponentName } from "./debounced-component-name.js";
 import { createDragPreviewDebounce } from "./drag-preview-debounce.js";
 import { createSelectionSourceSync } from "./selection-source-sync.js";
+import { createOverlayEffects } from "./overlay-effects.js";
 import { CopyFailedError } from "../errors.js";
 import {
   isKeyboardEventTriggeredByInput,
@@ -71,7 +72,6 @@ import {
   PENDING_DETECTION_STALENESS_MS,
   MODIFIER_KEYS,
   BLUR_DEACTIVATION_THRESHOLD_MS,
-  BOUNDS_RECALC_INTERVAL_MS,
   INPUT_FOCUS_ACTIVATION_DELAY_MS,
   INPUT_TEXT_SELECTION_ACTIVATION_DELAY_MS,
   DEFAULT_KEY_HOLD_DURATION_MS,
@@ -118,13 +118,11 @@ import { copyPlugin } from "./plugins/copy.js";
 import { commentPlugin } from "./plugins/comment.js";
 import { openPlugin } from "./plugins/open.js";
 import {
-  freezeAnimations,
   freezeAllAnimations,
   freezeGlobalAnimations,
   unfreezeGlobalAnimations,
 } from "../utils/freeze-animations.js";
 import { freezePseudoStates, unfreezePseudoStates } from "../utils/freeze-pseudo-states.js";
-import { freezeUpdates } from "../utils/freeze-updates.js";
 import { copyContent } from "../utils/copy-content.js";
 import { notifyElementsSelected } from "../utils/notify-elements-selected.js";
 import { logRecoverableError } from "../utils/log-recoverable-error.js";
@@ -617,33 +615,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       });
     };
 
-    createEffect(() => {
-      const element = store.detectedElement;
-      if (!element) return;
-
-      const intervalId = setInterval(() => {
-        if (!isElementConnected(element)) {
-          actions.setDetectedElement(null);
-        }
-      }, BOUNDS_RECALC_INTERVAL_MS);
-
-      onCleanup(() => clearInterval(intervalId));
+    createOverlayEffects({
+      grab,
+      isActivated,
+      shouldFreezeReactUpdates: () => pluginRegistry.store.options.freezeReactUpdates,
     });
-
-    createEffect(() => {
-      const elements = store.frozenElements;
-      const cleanup = freezeAnimations(elements);
-      onCleanup(cleanup);
-    });
-
-    createEffect(
-      on(isActivated, (activated) => {
-        if (!activated) return;
-        if (!pluginRegistry.store.options.freezeReactUpdates) return;
-        const unfreezeUpdates = freezeUpdates();
-        onCleanup(unfreezeUpdates);
-      }),
-    );
 
     const pendingShiftSelectionElement = createMemo((): Element | null => {
       if (!isShiftMultiSelecting()) return null;
