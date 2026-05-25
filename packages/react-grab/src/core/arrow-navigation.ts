@@ -16,8 +16,10 @@ interface BoundsCalculator {
   (element: Element): OverlayBounds;
 }
 
+type NavigationDirection = "up" | "down" | "forward" | "backward";
+
 interface ArrowNavigator {
-  findNext: (key: string, currentElement: Element) => Element | null;
+  findNext: (direction: NavigationDirection, currentElement: Element) => Element | null;
   clearHistory: () => void;
 }
 
@@ -142,18 +144,16 @@ export const createArrowNavigator = (
     return nextElement;
   };
 
-  const findNext = (key: string, currentElement: Element): Element | null => {
-    switch (key) {
-      case "ArrowUp":
+  const findNext = (direction: NavigationDirection, currentElement: Element): Element | null => {
+    switch (direction) {
+      case "up":
         return findUp(currentElement);
-      case "ArrowDown":
+      case "down":
         return findDown(currentElement);
-      case "ArrowRight":
+      case "forward":
         return findHorizontal(currentElement, true);
-      case "ArrowLeft":
+      case "backward":
         return findHorizontal(currentElement, false);
-      default:
-        return null;
     }
   };
 

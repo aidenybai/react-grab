@@ -99,6 +99,8 @@ export interface ReactGrabPageObject {
   pressArrowUp: () => Promise<void>;
   pressArrowLeft: () => Promise<void>;
   pressArrowRight: () => Promise<void>;
+  pressTab: () => Promise<void>;
+  pressShiftTab: () => Promise<void>;
   pressEnter: () => Promise<void>;
   pressKey: (key: string) => Promise<void>;
   pressKeyCombo: (modifiers: string[], key: string) => Promise<void>;
@@ -363,6 +365,14 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const pressArrowRight = async () => {
     await page.keyboard.press("ArrowRight");
+  };
+
+  const pressTab = async () => {
+    await page.keyboard.press("Tab");
+  };
+
+  const pressShiftTab = async () => {
+    await page.keyboard.press("Shift+Tab");
   };
 
   const pressEnter = async () => {
@@ -1636,6 +1646,8 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     pressArrowUp,
     pressArrowLeft,
     pressArrowRight,
+    pressTab,
+    pressShiftTab,
     pressEnter,
     pressKey,
     pressKeyCombo,

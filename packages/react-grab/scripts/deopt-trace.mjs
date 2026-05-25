@@ -491,8 +491,8 @@ const runFullAppScenarios = async (page) => {
     await locator.click({ force: true });
     await page.keyboard.press("ArrowDown");
     await page.keyboard.press("ArrowDown");
-    await page.keyboard.press("ArrowRight");
-    await page.keyboard.press("ArrowLeft");
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Shift+Tab");
     await page.keyboard.press("Escape");
   }
   await deactivate();
