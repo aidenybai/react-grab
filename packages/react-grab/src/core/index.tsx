@@ -31,6 +31,7 @@ import { createPluginStateBridge } from "./plugin-state-bridge.js";
 import { createCopyOrchestrator } from "./copy-orchestrator.js";
 import { createActivationLifecycle } from "./activation-lifecycle.js";
 import { createActionContextBuilder } from "./action-context-builder.js";
+import { createPromptModeHandlers } from "./prompt-mode-handlers.js";
 import {
   isKeyboardEventTriggeredByInput,
   hasTextSelectionInInput,
@@ -605,69 +606,22 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const { activateRenderer, deactivateRenderer, forceDeactivateAll, toggleActivate } =
       activationLifecycle;
 
-    const handleInputSubmit = () => {
-      actions.clearLastCopied();
-      const frozenElements = [...store.frozenElements];
-      const element = store.frozenElement || targetElement();
-      const prompt = isPromptMode() ? store.inputText.trim() : "";
-
-      if (!element) {
-        deactivateRenderer();
-        return;
-      }
-
-      const elements = frozenElements.length > 0 ? frozenElements : [element];
-
-      const currentSelectionBounds = elements.map((selectedElement) =>
-        createElementBounds(selectedElement),
-      );
-      const firstBounds = currentSelectionBounds[0];
-      const { x: currentX, y: currentY } = getBoundsCenter(firstBounds);
-      const labelPositionX = currentX + store.copyOffsetFromCenterX;
-
-      actions.setPointer({ x: currentX, y: currentY });
-      actions.exitPromptMode();
-      actions.clearInputText();
-
-      performCopyWithLabel({
-        element,
-        cursorX: labelPositionX,
-        selectedElements: elements,
-        extraPrompt: prompt || undefined,
-        shouldDeactivateAfter: true,
-      });
-    };
-
-    const handleInputCancel = () => {
-      actions.clearLastCopied();
-      if (!isPromptMode()) return;
-
-      if (isPendingDismiss()) {
-        actions.clearInputText();
-        deactivateRenderer();
-        return;
-      }
-
-      actions.setPendingDismiss(true);
-      setSelectionLabelShakeCount((count) => count + 1);
-    };
-
-    const handleConfirmDismiss = () => {
-      actions.clearInputText();
-      deactivateRenderer();
-    };
-
-    const handleCancelDismiss = () => {
-      actions.setPendingDismiss(false);
-    };
-
-    const handleToggleExpand = () => {
-      const element = store.frozenElement || targetElement();
-      if (element) {
-        preparePromptMode(element, pointer().x, pointer().y);
-      }
-      activatePromptMode();
-    };
+    const {
+      handleInputSubmit,
+      handleInputCancel,
+      handleConfirmDismiss,
+      handleCancelDismiss,
+      handleToggleExpand,
+    } = createPromptModeHandlers({
+      grab,
+      phase,
+      targetElement,
+      activationLifecycle,
+      copyOrchestrator,
+      preparePromptMode,
+      activatePromptMode,
+      setSelectionLabelShakeCount,
+    });
 
     const handleToggleActive = () => {
       if (isActivated()) {
