@@ -36,13 +36,11 @@ interface DigitColumnProps {
 interface ExitingDigit {
   digit: number;
   direction: 1 | -1 | 0;
-  generation: number;
 }
 
 const DigitColumn: Component<DigitColumnProps> = (props) => {
   let enterCellRef: HTMLSpanElement | undefined;
   const [exitingDigit, setExitingDigit] = createSignal<ExitingDigit | null>(null);
-  let exitGeneration = 0;
   let exitTimerId: ReturnType<typeof setTimeout> | null = null;
 
   // On every digit change: spawn an exit element for the previous
@@ -63,12 +61,7 @@ const DigitColumn: Component<DigitColumnProps> = (props) => {
           void enterCellRef.offsetWidth;
           enterCellRef.classList.add("rg-slot-enter");
         }
-        exitGeneration += 1;
-        setExitingDigit({
-          digit: previousDigit,
-          direction: props.direction,
-          generation: exitGeneration,
-        });
+        setExitingDigit({ digit: previousDigit, direction: props.direction });
         if (exitTimerId !== null) clearTimeout(exitTimerId);
         exitTimerId = setTimeout(() => setExitingDigit(null), SLOT_TRANSITION_MS);
       },

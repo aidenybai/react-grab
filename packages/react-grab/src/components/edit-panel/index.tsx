@@ -1,13 +1,4 @@
-import {
-  createEffect,
-  createMemo,
-  createSignal,
-  on,
-  onCleanup,
-  onMount,
-  Show,
-  type Component,
-} from "solid-js";
+import { createMemo, createSignal, onCleanup, onMount, Show, type Component } from "solid-js";
 import {
   DROPDOWN_EDGE_TRANSFORM_ORIGIN,
   EDIT_PANEL_ACTIVE_KEY_FLASH_MS,
@@ -126,16 +117,27 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     }, EDIT_PANEL_ACTIVE_KEY_FLASH_MS);
   };
 
-  const markAsInteracting = () => {
-    setIsTransientInteraction(true);
-    clearTimeout(interactingIdleTimerId);
-    interactingIdleTimerId = setTimeout(
-      () => setIsTransientInteraction(false),
-      EDIT_PANEL_ADJUSTING_IDLE_MS,
-    );
+  // Single source: every write to interacting state goes through here
+  // (or the cleanup path). Avoids a createEffect-as-event-bus that
+  // would re-fire `(false)` during unmount on top of the explicit
+  // cleanup call.
+  let lastInteractingBroadcast: boolean | null = null;
+  const broadcastInteracting = () => {
+    const next = isInteracting();
+    if (next === lastInteractingBroadcast) return;
+    lastInteractingBroadcast = next;
+    props.onInteractingChange?.(next);
   };
 
-  createEffect(() => props.onInteractingChange?.(isInteracting()));
+  const markAsInteracting = () => {
+    setIsTransientInteraction(true);
+    broadcastInteracting();
+    clearTimeout(interactingIdleTimerId);
+    interactingIdleTimerId = setTimeout(() => {
+      setIsTransientInteraction(false);
+      broadcastInteracting();
+    }, EDIT_PANEL_ADJUSTING_IDLE_MS);
+  };
 
   const ensureSearchFocused = () => {
     queueMicrotask(() => {
@@ -336,17 +338,10 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     handler(event);
   };
 
-  createEffect(
-    on(filteredProperties, (properties) => {
-      if (properties.length === 0) {
-        setActiveIndex(-1);
-        return;
-      }
-      if (activeIndex() < 0 || activeIndex() >= properties.length) {
-        setActiveIndex(0);
-      }
-    }),
-  );
+  // activeIndex clamp is handled at the read boundary in
+  // `activeProperty()` (Math.min/Math.max) — every write path that can
+  // shrink the list (search input onInput) already resets to 0, so no
+  // repair effect is needed.
 
   onMount(() => {
     queueMicrotask(() => {
@@ -400,9 +395,10 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       clearTimeout(interactingIdleTimerId);
       dropdown.clearAnimationHandles();
       // Bridge stops firing on unmount — tell the parent the overlay
-      // can return. Idempotent.
+      // can return. broadcastInteracting dedups, so this is safe even
+      // when the panel was already idle at unmount time.
       setIsTransientInteraction(false);
-      props.onInteractingChange?.(false);
+      broadcastInteracting();
       // All dismissals preserve tweaks — inline styles stay applied.
       preview.forget();
     });

@@ -4,7 +4,7 @@ import { formatDisplayValue } from "./format-css-value.js";
 
 const formatCssValue = (edit: PendingEdit): string => {
   if (edit.kind === "color" || edit.kind === "enum") return edit.value;
-  if ((edit.cssProperties[0] ?? edit.key) === "opacity" && edit.unit === "%") {
+  if (edit.key === "opacity" && edit.unit === "%") {
     return formatDisplayValue(edit.value / OPACITY_PERCENT_MAX);
   }
   return `${formatDisplayValue(edit.value)}${edit.unit}`;

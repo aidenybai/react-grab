@@ -2,10 +2,13 @@ import { createMemo, createSignal } from "solid-js";
 import type { EditableProperty, PendingEdit } from "../../types.js";
 import { filterPropertiesByQuery } from "../../utils/fuzzy-score-property.js";
 
-interface PropertyTweak {
-  kind: EditableProperty["kind"];
-  value: number | string;
-}
+// Discriminated by kind so `value`'s type follows the variant, not
+// the union. Eliminates the `as number` / `as string` casts that the
+// previous non-correlated container forced at every read site.
+type PropertyTweak =
+  | { kind: "numeric"; value: number }
+  | { kind: "color"; value: string }
+  | { kind: "enum"; value: string };
 
 interface CreateTweakStoreOptions {
   initialProperties: EditableProperty[];
@@ -49,6 +52,12 @@ export const createTweakStore = (options: CreateTweakStoreOptions): TweakStore =
     return filterPropertiesByQuery(candidates, query);
   });
 
+  // `initialProperties` is bound at panel mount and never changes,
+  // so the by-key index is invariant — building it once at store
+  // construction avoids a per-keystroke Map allocation inside the
+  // hot filteredProperties memo (60Hz during slider drag).
+  const propertyByKey = new Map(initialProperties.map((entry) => [entry.key, entry]));
+
   const filteredProperties = createMemo<EditableProperty[]>(() => {
     const tweaks = tweakedValues();
     const tweakKeys = Object.keys(tweaks);
@@ -59,24 +68,20 @@ export const createTweakStore = (options: CreateTweakStoreOptions): TweakStore =
     // by the tweak's longhands. Only numeric aggregates fan out —
     // colour/enum keys map 1:1 to a single CSS property.
     const numericValueByLonghand = new Map<string, number>();
-    const propertyByKey = new Map(initialProperties.map((entry) => [entry.key, entry]));
     for (const key of tweakKeys) {
       const tweak = tweaks[key];
       if (tweak.kind !== "numeric") continue;
       const property = propertyByKey.get(key);
       if (!property) continue;
       for (const longhand of property.cssProperties) {
-        numericValueByLonghand.set(longhand, tweak.value as number);
+        numericValueByLonghand.set(longhand, tweak.value);
       }
     }
 
     return baseFilteredProperties().map((property) => {
       const direct = tweaks[property.key];
       if (direct !== undefined) {
-        // The store guarantees kind matches the property the tweak was
-        // written against; cast through unknown is safe and avoids
-        // re-narrowing the discriminated value at every read site.
-        return { ...property, value: direct.value } as unknown as EditableProperty;
+        return overrideValue(property, direct);
       }
       if (property.kind !== "numeric") return property;
       const first = numericValueByLonghand.get(property.cssProperties[0]);
@@ -88,11 +93,38 @@ export const createTweakStore = (options: CreateTweakStoreOptions): TweakStore =
     });
   });
 
+  // Per-kind branch so the spread + value override carries the
+  // correlated value type instead of leaning on a structural cast.
+  // Each branch is a 1-line lift; TS narrows the input via
+  // property.kind and the override via tweak.kind so the assembled
+  // shape statically matches the right discriminated member.
+  const overrideValue = (property: EditableProperty, tweak: PropertyTweak): EditableProperty => {
+    if (property.kind === "numeric" && tweak.kind === "numeric") {
+      return { ...property, value: tweak.value };
+    }
+    if (property.kind === "color" && tweak.kind === "color") {
+      return { ...property, value: tweak.value };
+    }
+    if (property.kind === "enum" && tweak.kind === "enum") {
+      return { ...property, value: tweak.value };
+    }
+    // Kind mismatch is a store-invariant violation (applyTweak writes
+    // kind from the property), but typing it as unreachable keeps the
+    // function total without a cast.
+    return property;
+  };
+
+  // applyTweak constructs the discriminated tweak per-kind so the
+  // resulting record statically lines up with PropertyTweak. The
+  // caller passes a value of the right kind by construction (commit
+  // pipeline routes per-kind), but the per-kind switch makes that
+  // invariant a property of the function signature, not a comment.
   const applyTweak = (property: EditableProperty, value: number | string) => {
-    setTweakedValues((current) => ({
-      ...current,
-      [property.key]: { kind: property.kind, value },
-    }));
+    const tweak: PropertyTweak =
+      property.kind === "numeric"
+        ? { kind: "numeric", value: value as number }
+        : { kind: property.kind, value: value as string };
+    setTweakedValues((current) => ({ ...current, [property.key]: tweak }));
   };
 
   const buildPendingEdits = (): PendingEdit[] => {
@@ -101,20 +133,20 @@ export const createTweakStore = (options: CreateTweakStoreOptions): TweakStore =
     for (const property of initialProperties) {
       const tweak = tweaks[property.key];
       if (!tweak || tweak.value === property.original) continue;
-      if (property.kind === "numeric") {
+      if (property.kind === "numeric" && tweak.kind === "numeric") {
         pending.push({
           kind: "numeric",
           key: property.key,
           cssProperties: property.cssProperties,
-          value: tweak.value as number,
+          value: tweak.value,
           unit: property.unit,
         });
-      } else {
+      } else if (property.kind !== "numeric" && tweak.kind !== "numeric") {
         pending.push({
           kind: property.kind,
           key: property.key,
           cssProperties: property.cssProperties,
-          value: tweak.value as string,
+          value: tweak.value,
         });
       }
     }

@@ -44,8 +44,17 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
   let valueTextElement: HTMLSpanElement | undefined;
   // `startedOnValueText` lets the value chip be both click-to-edit AND
   // a drag handle — pointer-down records the flag, release branches on
-  // it.
-  let dragState: { startX: number; isDragging: boolean; startedOnValueText: boolean } | null = null;
+  // it. `trackRect` snapshots the track's bounding rect at drag start
+  // so the per-pointermove math doesn't force layout against the
+  // freshly-mutated target element's inline styles (preview.apply
+  // dirties layout every commit; reading the rect right after would be
+  // a forced reflow per frame).
+  let dragState: {
+    startX: number;
+    isDragging: boolean;
+    startedOnValueText: boolean;
+    trackRect: DOMRect;
+  } | null = null;
 
   const valueClass = "text-[12px] leading-4 font-medium tabular-nums";
   const labelClass = "text-[13px] leading-4 font-medium";
@@ -68,16 +77,14 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
   // track, which maps to a value in [min, max]. Guarantees the fill
   // and handle move 1:1 with the cursor — the only way the slider
   // can read as "linear" regardless of the property's range.
-  const positionToValue = (clientX: number): number => {
-    if (!trackElement) return props.value;
-    const rect = trackElement.getBoundingClientRect();
+  const positionToValue = (clientX: number, rect: DOMRect): number => {
     if (rect.width <= 0) return props.value;
     const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     return props.min + ratio * (props.max - props.min);
   };
 
-  const commitDrag = (clientX: number) => {
-    props.onCommitValue?.(positionToValue(clientX));
+  const commitDrag = (clientX: number, rect: DOMRect) => {
+    props.onCommitValue?.(positionToValue(clientX, rect));
   };
 
   // Past DEAD_ZONE_PX overflow the track pulls toward the cursor with
@@ -99,18 +106,23 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
     const valueChip = valueTextElement;
     const startedOnValueText =
       valueChip !== undefined && event.target instanceof Node && valueChip.contains(event.target);
-    dragState = { startX: event.clientX, isDragging: false, startedOnValueText };
+    dragState = {
+      startX: event.clientX,
+      isDragging: false,
+      startedOnValueText,
+      trackRect: event.currentTarget.getBoundingClientRect(),
+    };
     props.onInteract?.();
   };
 
   const handleTrackPointerMove: JSX.EventHandler<HTMLDivElement, PointerEvent> = (event) => {
-    if (!dragState || !trackElement) return;
+    if (!dragState) return;
     const deltaX = event.clientX - dragState.startX;
     if (!dragState.isDragging && Math.abs(deltaX) < EDIT_SLIDER_CLICK_THRESHOLD_PX) return;
     dragState.isDragging = true;
     props.onInteract?.();
-    commitDrag(event.clientX);
-    setRubberStretchPx(computeRubberStretch(event.clientX, trackElement.getBoundingClientRect()));
+    commitDrag(event.clientX, dragState.trackRect);
+    setRubberStretchPx(computeRubberStretch(event.clientX, dragState.trackRect));
   };
 
   const handleTrackPointerUp: JSX.EventHandler<HTMLDivElement, PointerEvent> = (event) => {
@@ -119,7 +131,7 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
     if (target.hasPointerCapture(event.pointerId)) target.releasePointerCapture(event.pointerId);
     if (!dragState.isDragging) {
       if (dragState.startedOnValueText) startEditing();
-      else commitDrag(dragState.startX);
+      else commitDrag(dragState.startX, dragState.trackRect);
     }
     dragState = null;
     setRubberStretchPx(0);

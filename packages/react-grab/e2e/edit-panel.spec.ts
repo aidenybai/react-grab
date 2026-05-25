@@ -569,7 +569,11 @@ test.describe("Edit Panel", () => {
       await reactGrab.page.waitForTimeout(80);
       const top = await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-top");
       const right = await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-right");
-      const bottom = await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-bottom");
+      const bottom = await getInlineStyleProperty(
+        reactGrab.page,
+        BUTTON_SELECTOR,
+        "padding-bottom",
+      );
       const left = await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-left");
       // 4 × 4 = 16px on every side
       expect(top).toContain("16");

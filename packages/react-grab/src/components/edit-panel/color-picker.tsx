@@ -1,6 +1,10 @@
 import { createSignal, onCleanup, onMount, Show, type Component } from "solid-js";
 import { parseAnyColor } from "../../utils/parse-any-color.js";
-import { stripHexAlpha } from "../../utils/strip-hex-alpha.js";
+
+// Native <input type="color"> only accepts `#rrggbb` (no alpha, no
+// shorthand). Strip the alpha byte if present so the picker opens at
+// the right colour without rejecting the value.
+const stripHexAlpha = (hex: string): string => (hex.length === 9 ? hex.slice(0, 7) : hex);
 
 interface ColorPickerProps {
   label?: string;

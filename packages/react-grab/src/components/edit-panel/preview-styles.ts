@@ -3,12 +3,22 @@
 // they can be reverted exactly on dismiss without clobbering author
 // inline styles that were already there. Element is bound at construction
 // because the panel never retargets mid-lifetime.
+// Anything that exposes a writable inline `.style` is a valid target:
+// HTMLElement, SVGElement, MathMLElement, and any web component whose
+// base extends one of them. Capability check (does the node have a
+// CSSStyleDeclaration?) rather than instanceof narrowing — the latter
+// silently no-ops for exotic element classes that still own a `style`.
+interface InlineStyledElement extends Element {
+  style: CSSStyleDeclaration;
+}
+const hasInlineStyle = (element: Element): element is InlineStyledElement => {
+  const candidate = element as Partial<InlineStyledElement>;
+  return candidate.style instanceof CSSStyleDeclaration;
+};
+
 export const createPreviewStyles = (element: Element) => {
   const baseline = new Map<string, { value: string; priority: string }>();
-  // SVG icons/shapes (fill, stroke, etc.) are valid Budge targets and
-  // expose `.style` the same way HTML elements do; reject only nodes
-  // that have no inline-style surface (XML, MathML on older engines).
-  const target = element instanceof HTMLElement || element instanceof SVGElement ? element : null;
+  const target = hasInlineStyle(element) ? element : null;
 
   const apply = (cssProperties: readonly string[], cssValue: string): void => {
     if (!target) return;
