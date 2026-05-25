@@ -12,50 +12,21 @@ import {
   isCompositeFiber,
   type Fiber,
   type ReactRenderer,
-  type FiberRoot,
 } from "bippy";
 import { logRecoverableError } from "./log-recoverable-error.js";
 
-interface FiberRootLike extends FiberRoot {
-  current: Fiber | null;
-}
-
-interface PendingUpdate {
-  next: PendingUpdate | null;
-  action: unknown;
-  [key: string]: unknown;
-}
-
-interface HookQueue {
-  pending?: unknown;
-  dispatch?: ((...args: unknown[]) => void) | null;
-  getSnapshot?: () => unknown;
-}
-
-interface HookState {
-  queue: HookQueue | null;
-  next: HookState | null;
-}
-
-interface ContextDependency {
-  memoizedValue: unknown;
-  next: ContextDependency | null;
-}
-
-interface PausedQueueState {
-  originalGetSnapshot?: () => unknown;
-  snapshotValueAtPause?: unknown;
-  originalPendingDescriptor?: PropertyDescriptor;
-  pendingValueAtPause?: PendingUpdate | null;
-  bufferedPending?: PendingUpdate | null;
-}
-
-interface PausedContextState {
-  originalDescriptor?: PropertyDescriptor;
-  frozenValue: unknown;
-  pendingValue?: unknown;
-  didReceivePendingValue?: boolean;
-}
+import type {
+  ContextDependency,
+  DispatchFunction,
+  FiberRootLike,
+  HookQueue,
+  HookState,
+  OriginalHooks,
+  PausedContextState,
+  PausedQueueState,
+  PendingUpdate,
+  TransitionFunction,
+} from "./freeze/types.js";
 
 let isUpdatesPaused = false;
 
@@ -66,16 +37,6 @@ const getOrCache = <K extends object, V>(cache: WeakMap<K, V>, key: K, create: (
   cache.set(key, value);
   return value;
 };
-
-type DispatchFunction = (...args: unknown[]) => void;
-type TransitionFunction = (callback: () => void) => void;
-
-interface OriginalHooks {
-  useState: DispatchFunction;
-  useReducer: DispatchFunction;
-  useTransition: DispatchFunction;
-  useSyncExternalStore: DispatchFunction;
-}
 
 const patchedDispatchers = new WeakMap<object, OriginalHooks>();
 const wrappedDispatchCache = new WeakMap<DispatchFunction, DispatchFunction>();
