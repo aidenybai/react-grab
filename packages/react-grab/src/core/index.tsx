@@ -50,18 +50,12 @@ import {
 import { createNoopApi } from "./noop-api.js";
 import { createEventListenerManager } from "./events.js";
 import {
-} from "../utils/create-bounds-from-drag-rect.js";
-import {
   DEFAULT_KEY_HOLD_DURATION_MS,
   NEXTJS_REVALIDATION_DELAY_MS,
 } from "../constants.js";
 import type {
   Options,
   ReactGrabAPI,
-  ContextMenuAction,
-  SettableOptions,
-  SourceInfo,
-  Plugin,
 } from "../types.js";
 import { DEFAULT_THEME } from "./theme.js";
 import { createPluginRegistry } from "./plugin-registry.js";
