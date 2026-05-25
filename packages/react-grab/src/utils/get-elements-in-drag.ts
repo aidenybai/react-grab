@@ -1,4 +1,4 @@
-import type { DragRect, Rect } from "../types.js";
+import type { DragRect, Position, Rect } from "../types.js";
 import { suspendPointerEventsFreeze, resumePointerEventsFreeze } from "./pointer-events-freeze.js";
 import {
   DRAG_SELECTION_COVERAGE_THRESHOLD,
@@ -41,12 +41,7 @@ const sortByDocumentOrder = (elements: Element[]): Element[] =>
     return 0;
   });
 
-interface SamplePoint {
-  x: number;
-  y: number;
-}
-
-const createSamplePoints = (dragRect: DragRect): SamplePoint[] => {
+const createSamplePoints = (dragRect: DragRect): Position[] => {
   if (dragRect.width <= 0 || dragRect.height <= 0) return [];
 
   const viewportWidth = window.innerWidth;
@@ -87,7 +82,7 @@ const createSamplePoints = (dragRect: DragRect): SamplePoint[] => {
   );
 
   const pointKeys = new Set<string>();
-  const points: SamplePoint[] = [];
+  const points: Position[] = [];
 
   const addPoint = (x: number, y: number) => {
     const clampedX = clampToRange(Math.round(x), 0, viewportWidth - 1);
