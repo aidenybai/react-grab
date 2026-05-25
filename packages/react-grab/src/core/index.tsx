@@ -7,7 +7,6 @@ import {
   onCleanup,
   createResource,
 } from "solid-js";
-import { render } from "solid-js/web";
 import { createGrabStore } from "./store.js";
 import { createGrabElementSelectors, createGrabPhaseSelectors } from "./selectors.js";
 import { createToolbarMenuController } from "./toolbar-menu-controller.js";
@@ -39,6 +38,7 @@ import { registerKeyboardListeners } from "./keyboard-listeners.js";
 import { registerPointerListeners } from "./pointer-listeners.js";
 import { createInitCleanup } from "./init-cleanup.js";
 import { registerLifecycleHookEffects } from "./lifecycle-hook-effects.js";
+import { mountRenderer } from "./mount-renderer.js";
 import { buildPublicApi } from "./build-public-api.js";
 import { createWindowFocusListeners } from "./window-focus-listeners.js";
 import { createToolbarStateController } from "./toolbar-state-controller.js";
@@ -56,7 +56,6 @@ import {
 import {
   DEFAULT_KEY_HOLD_DURATION_MS,
   NEXTJS_REVALIDATION_DELAY_MS,
-  DEFAULT_ACTION_ID,
 } from "../constants.js";
 import type {
   Options,
@@ -620,100 +619,72 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       });
     });
 
-    if (pluginRegistry.store.theme.enabled) {
-      // The renderer is dynamically imported because solid-js/web's
-      // solid-js/web's delegateEvents() runs at module evaluation time and
-      // accesses document, which would crash during SSR.
-      void import("../components/renderer.js")
-        .then(({ ReactGrabRenderer }) => {
-          if (disposed) return;
-          disposeRenderer = render(() => {
-            return (
-              <ReactGrabRenderer
-                selectionVisible={selectionVisible()}
-                selectionBounds={selectionBounds()}
-                selectionBoundsMultiple={selectionBoundsMultiple()}
-                selectionShouldSnap={
-                  store.frozenElements.length > 0 || dragPreviewBounds().length > 0
-                }
-                selectionElementsCount={store.frozenElements.length}
-                frozenLabelEntries={frozenLabelEntries()}
-                pendingShiftPreviewEntry={pendingShiftPreviewEntry() ?? undefined}
-                selectionFilePath={store.selectionFilePath ?? undefined}
-                selectionLineNumber={store.selectionLineNumber ?? undefined}
-                selectionTagName={selectionTagName()}
-                selectionComponentName={resolvedComponentName()}
-                selectionLabelVisible={selectionLabelVisible()}
-                selectionLabelStatus="idle"
-                selectionArrowNavigationState={arrowNavigationState()}
-                onArrowNavigationSelect={handleArrowNavigationSelect}
-                labelInstances={computedLabelInstances()}
-                dragVisible={dragVisible()}
-                dragBounds={dragBounds()}
-                grabbedBoxes={computedGrabbedBoxes()}
-                mouseX={
-                  store.frozenElements.length > 1
-                    ? undefined
-                    : (shiftSelectionLabelMouseX() ?? cursorPosition().x)
-                }
-                isFrozen={isFrozenPhase() || isActivated() || isToolbarSelectHovered()}
-                inputValue={store.inputText}
-                isPromptMode={isPromptMode()}
-                onShowContextMenuInstance={handleShowContextMenuInstance}
-                onLabelInstanceHoverChange={handleLabelInstanceHoverChange}
-                onInputChange={actions.setInputText}
-                onInputSubmit={() => void handleInputSubmit()}
-                onToggleExpand={handleToggleExpand}
-                isPendingDismiss={isPendingDismiss()}
-                selectionLabelShakeCount={selectionLabelShakeCount()}
-                onConfirmDismiss={handleConfirmDismiss}
-                onCancelDismiss={handleCancelDismiss}
-                toolbarVisible={pluginRegistry.store.theme.toolbar.enabled}
-                isActive={isActivated()}
-                onToggleActive={handleToggleActive}
-                enabled={isEnabled()}
-                shakeCount={toolbarShakeCount()}
-                onToolbarStateChange={(state) => {
-                  setCurrentToolbarState(state);
-                  if (state.enabled !== isEnabled()) {
-                    setIsEnabled(state.enabled);
-                    if (!state.enabled) {
-                      forceDeactivateAll();
-                      dismissAllPopups();
-                    }
-                  }
-                  toolbarStateController.notify(state);
-                }}
-                onSubscribeToToolbarStateChanges={toolbarStateController.onChange}
-                onToolbarSelectHoverChange={setIsToolbarSelectHovered}
-                onToolbarRef={(element) => {
-                  toolbarElement = element;
-                }}
-                contextMenuPosition={contextMenuPosition()}
-                contextMenuBounds={contextMenuBounds()}
-                contextMenuTagName={contextMenuTagName()}
-                contextMenuComponentName={contextMenuComponentName()}
-                contextMenuHasFilePath={Boolean(contextMenuFilePath()?.filePath)}
-                actions={pluginRegistry.store.actions}
-                actionContext={contextMenuActionContext()}
-                onContextMenuDismiss={handleContextMenuDismiss}
-                onContextMenuHide={deferHideContextMenu}
-                toolbarMenuPosition={toolbarMenuPosition()}
-                toolbarMenuActions={pluginRegistry.store.actions.filter(
-                  (action) => action.showInToolbarMenu === true,
-                )}
-                defaultActionId={currentToolbarState()?.defaultAction ?? DEFAULT_ACTION_ID}
-                onSetDefaultAction={handleSetDefaultAction}
-                onToggleToolbarMenu={handleToggleToolbarMenu}
-                onToolbarMenuDismiss={dismissToolbarMenu}
-              />
-            );
-          }, rendererRoot);
-        })
-        .catch((error) => {
-          console.warn("[react-grab] Failed to load renderer:", error);
-        });
-    }
+    mountRenderer({
+      grab,
+      pluginRegistry,
+      rendererRoot,
+      isDisposed: () => disposed,
+      setDisposeRenderer: (dispose) => {
+        disposeRenderer = dispose;
+      },
+      selectionVisible,
+      selectionBounds,
+      selectionBoundsMultiple,
+      dragPreviewBounds,
+      frozenLabelEntries,
+      pendingShiftPreviewEntry,
+      selectionTagName,
+      resolvedComponentName,
+      selectionLabelVisible,
+      arrowNavigationState,
+      computedLabelInstances,
+      dragVisible,
+      dragBounds,
+      computedGrabbedBoxes,
+      shiftSelectionLabelMouseX,
+      cursorPosition,
+      isFrozenPhase,
+      isActivated,
+      isToolbarSelectHovered,
+      isPromptMode,
+      isPendingDismiss,
+      isEnabled,
+      selectionLabelShakeCount,
+      toolbarShakeCount,
+      contextMenuPosition,
+      contextMenuBounds,
+      contextMenuTagName,
+      contextMenuComponentName,
+      contextMenuHasFilePath: () => Boolean(contextMenuFilePath()?.filePath),
+      contextMenuActionContext,
+      toolbarMenuPosition,
+      currentToolbarState,
+      themeToolbarEnabled: () => pluginRegistry.store.theme.toolbar.enabled,
+      storeActions: () => pluginRegistry.store.actions,
+      handleArrowNavigationSelect,
+      handleShowContextMenuInstance,
+      handleLabelInstanceHoverChange,
+      handleInputSubmit,
+      handleToggleExpand,
+      handleConfirmDismiss,
+      handleCancelDismiss,
+      handleToggleActive,
+      handleContextMenuDismiss,
+      deferHideContextMenu,
+      handleSetDefaultAction,
+      handleToggleToolbarMenu,
+      dismissToolbarMenu,
+      setCurrentToolbarState,
+      setIsEnabled,
+      forceDeactivateAll,
+      dismissAllPopups,
+      toolbarStateNotify: toolbarStateController.notify,
+      toolbarStateOnChange: toolbarStateController.onChange,
+      setIsToolbarSelectHovered,
+      setToolbarElement: (element) => {
+        toolbarElement = element;
+      },
+    });
 
     const api: ReactGrabAPI = buildPublicApi({
       grab,

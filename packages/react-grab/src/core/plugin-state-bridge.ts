@@ -29,7 +29,7 @@ interface PluginStateBridgeInput {
   currentToolbarState: Accessor<ToolbarState | null>;
 }
 
-interface PublicLabelInstance {
+export interface PublicLabelInstance {
   id: string;
   status: ReactGrabState["labelInstances"][number]["status"];
   tagName: string;
