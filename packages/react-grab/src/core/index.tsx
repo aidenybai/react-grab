@@ -18,6 +18,7 @@ import { createToolbarMenuController } from "./toolbar-menu-controller.js";
 import { createLabelInstanceManager } from "./label-instance-manager.js";
 import { createViewportSyncObserver } from "./viewport-sync.js";
 import { createArrowNavigationController } from "./arrow-navigation-controller.js";
+import { createCursorOverride } from "./cursor-override.js";
 import { CopyFailedError } from "../errors.js";
 import {
   isKeyboardEventTriggeredByInput,
@@ -79,8 +80,6 @@ import {
   DEFAULT_ACTION_ID,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
-import { hideFromThirdParties } from "../utils/hide-from-third-parties.js";
-import { detectCspNonce } from "../utils/detect-csp-nonce.js";
 import { isCLikeKey } from "../utils/is-c-like-key.js";
 import { isTargetKeyCombination } from "../utils/is-target-key-combination.js";
 import { parseActivationKey } from "../utils/parse-activation-key.js";
@@ -1138,39 +1137,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       ),
     );
 
-    let cursorStyleElement: HTMLStyleElement | null = null;
-
-    const setCursorOverride = (cursor: string | null) => {
-      if (cursor) {
-        if (!cursorStyleElement) {
-          cursorStyleElement = document.createElement("style");
-          cursorStyleElement.setAttribute("data-react-grab-cursor", "");
-          const nonce = detectCspNonce();
-          if (nonce) cursorStyleElement.nonce = nonce;
-          hideFromThirdParties(cursorStyleElement);
-          document.head.appendChild(cursorStyleElement);
-        }
-        cursorStyleElement.textContent = `* { cursor: ${cursor} !important; }`;
-      } else if (cursorStyleElement) {
-        cursorStyleElement.remove();
-        cursorStyleElement = null;
-      }
-    };
-
-    createEffect(
-      on(
-        () => [isActivated(), isCopying(), isPromptMode()] as const,
-        ([activated, copying, promptMode]) => {
-          if (copying) {
-            setCursorOverride("progress");
-          } else if (activated && !promptMode) {
-            setCursorOverride("crosshair");
-          } else {
-            setCursorOverride(null);
-          }
-        },
-      ),
-    );
+    const cursorOverride = createCursorOverride({ isActivated, isCopying, isPromptMode });
 
     const activateRenderer = () => {
       const wasInHoldingState = isHoldingKeys();
@@ -2487,7 +2454,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       autoScroller.stop();
       document.body.style.userSelect = "";
       document.body.style.touchAction = "";
-      setCursorOverride(null);
+      cursorOverride.clear();
       keyboardClaimer.restore();
     });
 
