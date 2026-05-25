@@ -21,6 +21,7 @@ import { createArrowNavigationController } from "./arrow-navigation-controller.j
 import { createCursorOverride } from "./cursor-override.js";
 import { createCopyFeedbackCooldown } from "./copy-feedback-cooldown.js";
 import { createActivationHoldController } from "./activation-hold.js";
+import { createDebouncedComponentName } from "./debounced-component-name.js";
 import { CopyFailedError } from "../errors.js";
 import {
   isKeyboardEventTriggeredByInput,
@@ -66,7 +67,6 @@ import {
   DRAG_THRESHOLD_PX,
   ELEMENT_DETECTION_THROTTLE_MS,
   PENDING_DETECTION_STALENESS_MS,
-  COMPONENT_NAME_DEBOUNCE_MS,
   DRAG_PREVIEW_DEBOUNCE_MS,
   MODIFIER_KEYS,
   BLUR_DEACTIVATION_THRESHOLD_MS,
@@ -390,15 +390,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const clearCopyFeedbackCooldown = copyFeedbackCooldown.clear;
     const startCopyFeedbackCooldown = copyFeedbackCooldown.start;
     let selectionSourceRequestVersion = 0;
-    let componentNameDebounceTimerId: number | null = null;
     let keyboardSelectedElement: Element | null = null;
     let pendingDefaultActionId: string | null = null;
     const [isPendingContextMenuSelect, setIsPendingContextMenuSelect] = createSignal(false);
-    const [debouncedElementForComponentName, setDebouncedElementForComponentName] =
-      createSignal<Element | null>(null);
-    const [resolvedComponentName, setResolvedComponentName] = createComponentNameForElement(
-      debouncedElementForComponentName,
-    );
+    const debouncedComponentName = createDebouncedComponentName(effectiveElement);
+    const resolvedComponentName = debouncedComponentName.resolved;
+    const setResolvedComponentName = debouncedComponentName.setResolved;
     const autoScroller = createAutoScroller(
       pointer,
       () => isDragging(),
@@ -637,32 +634,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }, BOUNDS_RECALC_INTERVAL_MS);
 
       onCleanup(() => clearInterval(intervalId));
-    });
-
-    createEffect(
-      on(effectiveElement, (element) => {
-        if (componentNameDebounceTimerId !== null) {
-          clearTimeout(componentNameDebounceTimerId);
-          componentNameDebounceTimerId = null;
-        }
-
-        if (!element) {
-          setDebouncedElementForComponentName(null);
-          return;
-        }
-
-        componentNameDebounceTimerId = window.setTimeout(() => {
-          componentNameDebounceTimerId = null;
-          setDebouncedElementForComponentName(element);
-        }, COMPONENT_NAME_DEBOUNCE_MS);
-      }),
-    );
-
-    onCleanup(() => {
-      if (componentNameDebounceTimerId !== null) {
-        clearTimeout(componentNameDebounceTimerId);
-        componentNameDebounceTimerId = null;
-      }
     });
 
     createEffect(() => {
