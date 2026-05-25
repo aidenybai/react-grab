@@ -19,6 +19,7 @@ import { createLabelInstanceManager } from "./label-instance-manager.js";
 import { createViewportSyncObserver } from "./viewport-sync.js";
 import { createArrowNavigationController } from "./arrow-navigation-controller.js";
 import { createCursorOverride } from "./cursor-override.js";
+import { createCopyFeedbackCooldown } from "./copy-feedback-cooldown.js";
 import { CopyFailedError } from "../errors.js";
 import {
   isKeyboardEventTriggeredByInput,
@@ -419,27 +420,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let previousSpaceDragPointerPage: Position | null = null;
     const [isShiftMultiSelecting, setIsShiftMultiSelecting] = createSignal(false);
     let lastWindowFocusTimestamp = 0;
-    let isCopyFeedbackCooldownActive = false;
-    let copyFeedbackCooldownTimerId: number | null = null;
-
-    const startCopyFeedbackCooldown = () => {
-      isCopyFeedbackCooldownActive = true;
-      if (copyFeedbackCooldownTimerId !== null) {
-        window.clearTimeout(copyFeedbackCooldownTimerId);
-      }
-      copyFeedbackCooldownTimerId = window.setTimeout(() => {
-        isCopyFeedbackCooldownActive = false;
-        copyFeedbackCooldownTimerId = null;
-      }, FEEDBACK_DURATION_MS);
-    };
-
-    const clearCopyFeedbackCooldown = () => {
-      if (copyFeedbackCooldownTimerId !== null) {
-        window.clearTimeout(copyFeedbackCooldownTimerId);
-        copyFeedbackCooldownTimerId = null;
-      }
-      isCopyFeedbackCooldownActive = false;
-    };
+    const copyFeedbackCooldown = createCopyFeedbackCooldown();
+    const clearCopyFeedbackCooldown = copyFeedbackCooldown.clear;
+    const startCopyFeedbackCooldown = copyFeedbackCooldown.start;
     let selectionSourceRequestVersion = 0;
     let componentNameDebounceTimerId: number | null = null;
     let keyboardSelectedElement: Element | null = null;
@@ -2080,7 +2063,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             : parseActivationKey(pluginRegistry.store.options.activationKey)(event)
           : isCLikeKey(event.key, event.code);
 
-        if (didJustCopy() || isCopyFeedbackCooldownActive) {
+        if (didJustCopy() || copyFeedbackCooldown.isActive()) {
           if (isReleasingActivationKey || isReleasingModifier) {
             clearCopyFeedbackCooldown();
             deactivateRenderer();
