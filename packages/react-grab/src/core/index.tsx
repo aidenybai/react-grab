@@ -2255,6 +2255,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (event.repeat) return false;
       if (!isActivated()) return false;
       if (isPromptMode()) return false;
+      // Mirror handleEnterKeyActivation: don't open Budge while a copy
+      // is mid-flight (would race the copy feedback) or while selection
+      // interaction is locked (drag, shift-select, etc.).
+      if (isCopying()) return false;
+      if (isSelectionInteractionLocked()) return false;
       if (isAnyPopoverOpen() || toolbarMenuPosition() !== null) return false;
       if (event.key.length !== 1 || !TYPE_TO_EDIT_KEY_PATTERN.test(event.key)) return false;
       // Skip when the keystroke belongs to a host-page editable surface

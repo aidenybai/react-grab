@@ -297,6 +297,11 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     ArrowRight: (event) => stepController.pressArrow("ArrowRight", event.repeat, event.shiftKey),
     Tab: (event) => navigateActive(event.shiftKey ? -1 : 1),
     Enter: () => {
+      // Discard prompt up: ignore Enter so the user has to explicitly
+      // pick No or Yes. Otherwise the focused search textarea forwards
+      // Enter into handleSubmit and we'd copy the pending edits while
+      // the prompt is still asking whether to keep them.
+      if (isPendingDismiss()) return;
       // Colour rows: first Enter opens the native picker; subsequent
       // Enters submit like every other kind.
       const property = activeProperty();
