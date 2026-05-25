@@ -1759,15 +1759,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
     );
 
-    const withSelectionInteractionLock = async <T,>(operation: () => Promise<T>): Promise<T> => {
-      actions.incrementSelectionInteractionLockDepth();
-      try {
-        return await operation();
-      } finally {
-        actions.decrementSelectionInteractionLockDepth();
-      }
-    };
-
     const actionContextBuilder = createActionContextBuilder({
       grab,
       pluginRegistry,
@@ -1779,7 +1770,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       isActivated,
       preparePromptMode,
       activatePromptMode,
-      withSelectionInteractionLock,
     });
     const { buildActionContext, deferHideContextMenu } = actionContextBuilder;
 

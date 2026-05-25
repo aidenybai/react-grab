@@ -43,7 +43,6 @@ interface ActionContextBuilderInput {
   isActivated: Accessor<boolean>;
   preparePromptMode: (element: Element, x: number, y: number) => void;
   activatePromptMode: () => void;
-  withSelectionInteractionLock: <T>(operation: () => Promise<T>) => Promise<T>;
 }
 
 export interface ActionContextBuilder {
@@ -80,12 +79,20 @@ export const createActionContextBuilder = (
     isActivated,
     preparePromptMode,
     activatePromptMode,
-    withSelectionInteractionLock,
   } = input;
   const { store, actions, pointer } = grab;
   const { createLabelInstance, updateLabelAfterCopy, clearAllLabels } = labelManager;
   const { performCopyWithLabel } = copyOrchestrator;
   const { activateRenderer, deactivateRenderer } = activationLifecycle;
+
+  const withSelectionInteractionLock = async <T,>(operation: () => Promise<T>): Promise<T> => {
+    actions.incrementSelectionInteractionLockDepth();
+    try {
+      return await operation();
+    } finally {
+      actions.decrementSelectionInteractionLockDepth();
+    }
+  };
 
   const deferHideContextMenu = () => {
     setTimeout(() => {
