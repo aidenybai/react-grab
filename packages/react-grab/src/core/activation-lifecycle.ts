@@ -23,7 +23,7 @@ interface ActivationLifecycleInput {
   /** Cancel the keydown-spam debounce timer if armed. */
   clearKeydownSpamTimer: () => void;
   /** Clear the pending-context-menu-select signal. */
-  clearPendingContextMenuSelect: () => void;
+  clearActivationIntent: () => void;
 }
 
 export interface ActivationLifecycle {
@@ -63,7 +63,7 @@ export const createActivationLifecycle = (
     stopShiftMultiSelecting,
     clearKeyboardSelectedElement,
     clearKeydownSpamTimer,
-    clearPendingContextMenuSelect,
+    clearActivationIntent,
   } = input;
   const { store, actions } = grab;
   const { isHoldingKeys, isActivated, isDragging } = phase;
@@ -84,7 +84,7 @@ export const createActivationLifecycle = (
     stopShiftMultiSelecting();
     clearArrowNavigation();
     clearKeyboardSelectedElement();
-    clearPendingContextMenuSelect();
+    clearActivationIntent();
     if (wasDragging) {
       document.body.style.userSelect = "";
     }

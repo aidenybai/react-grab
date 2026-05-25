@@ -1,6 +1,6 @@
 import { createStore, produce } from "solid-js/store";
 import { batch, createSignal } from "solid-js";
-import type { Position, Theme, GrabbedBox, SelectionLabelInstance } from "../types.js";
+import type { ActivationIntent, Position, Theme, GrabbedBox, SelectionLabelInstance } from "../types.js";
 import { OFFSCREEN_POSITION } from "../constants.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
 import type { DragRectWithPageCoords } from "../utils/create-bounds-from-drag-rect.js";
@@ -25,7 +25,7 @@ interface GrabStore {
   selectionInteractionLockDepth: number;
 
   wasActivatedByToggle: boolean;
-  pendingCommentMode: boolean;
+  activationIntent: ActivationIntent;
   keyHoldDuration: number;
 
   dragStart: Position;
@@ -68,7 +68,7 @@ const createInitialStore = (input: GrabStoreInput): GrabStore => ({
   selectionInteractionLockDepth: 0,
 
   wasActivatedByToggle: false,
-  pendingCommentMode: false,
+  activationIntent: { kind: "default" },
   keyHoldDuration: input.keyHoldDuration,
 
   dragStart: { x: OFFSCREEN_POSITION, y: OFFSCREEN_POSITION },
@@ -136,7 +136,8 @@ interface GrabActions {
   setLastGrabbed: (element: Element | null) => void;
   clearLastCopied: () => void;
   setWasActivatedByToggle: (value: boolean) => void;
-  setPendingCommentMode: (value: boolean) => void;
+  setActivationIntent: (intent: ActivationIntent) => void;
+  resetActivationIntent: () => void;
   setTouchMode: (value: boolean) => void;
   incrementSelectionInteractionLockDepth: () => void;
   decrementSelectionInteractionLockDepth: () => void;
@@ -221,7 +222,7 @@ const createGrabStore = (input: GrabStoreInput) => {
         setStore(
           produce((draft) => {
             draft.wasActivatedByToggle = false;
-            draft.pendingCommentMode = false;
+            draft.activationIntent = { kind: "default" };
             draft.inputText = "";
             draft.frozenElement = null;
             draft.frozenElements = [];
@@ -509,8 +510,12 @@ const createGrabStore = (input: GrabStoreInput) => {
       setStore("wasActivatedByToggle", value);
     },
 
-    setPendingCommentMode: (value: boolean) => {
-      setStore("pendingCommentMode", value);
+    setActivationIntent: (intent: ActivationIntent) => {
+      setStore("activationIntent", intent);
+    },
+
+    resetActivationIntent: () => {
+      setStore("activationIntent", { kind: "default" });
     },
 
     setTouchMode: (value: boolean) => {

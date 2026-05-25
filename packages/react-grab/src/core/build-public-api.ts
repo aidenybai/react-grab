@@ -109,7 +109,7 @@ export const buildPublicApi = (input: BuildPublicApiInput): ReactGrabAPI => {
 
   return {
     activate: () => {
-      actions.setPendingCommentMode(false);
+      actions.resetActivationIntent();
       if (!isActivated() && isEnabled()) {
         toggleActivate();
       }

@@ -25,9 +25,7 @@ interface MenuHandlersInput {
   toolbarStateController: ToolbarStateController;
   resolvedComponentName: Accessor<string | undefined>;
   /** Get the pending-default-action id and clear it (single-shot read+reset). */
-  takePendingDefaultActionId: () => string | null;
   /** Read the pending-default-action id without consuming it. */
-  peekPendingDefaultActionId: () => string | null;
   /** Clear shift-multi-select state at the start of context-menu open. */
   stopShiftMultiSelecting: () => void;
   /** Clear arrow-navigation state at the start of context-menu open. */
@@ -38,9 +36,10 @@ export interface MenuHandlers {
   /** Open the context menu at `position` anchored to `element`. */
   openContextMenu: (element: Element, position: Position) => void;
   /**
-   * Consume `pendingDefaultActionId` (set by handleToggleActive) and either
-   * run that action against the just-clicked element or open the regular
-   * context menu if the action no longer exists.
+   * Consume the `context-menu` activation intent (set by handleToggleActive
+   * when the toolbar default-action is non-default) and either run that
+   * action against the just-clicked element or open the regular context menu
+   * if the action no longer exists.
    */
   runPendingDefaultAction: (element: Element, position: Position) => void;
   /**
@@ -80,8 +79,6 @@ export const createMenuHandlers = (input: MenuHandlersInput): MenuHandlers => {
     toolbarMenu,
     toolbarStateController,
     resolvedComponentName,
-    takePendingDefaultActionId,
-    peekPendingDefaultActionId,
     stopShiftMultiSelecting,
     clearArrowNavigation,
   } = input;
@@ -107,8 +104,13 @@ export const createMenuHandlers = (input: MenuHandlersInput): MenuHandlers => {
   };
 
   const runPendingDefaultAction = (element: Element, position: Position) => {
-    const actionId = takePendingDefaultActionId();
-    if (!actionId) return;
+    const intent = store.activationIntent;
+    if (intent.kind !== "context-menu") {
+      actions.resetActivationIntent();
+      return;
+    }
+    const actionId = intent.actionId;
+    actions.resetActivationIntent();
 
     const action = pluginRegistry.store.actions.find(
       (registeredAction) => registeredAction.id === actionId,
@@ -188,7 +190,7 @@ export const createMenuHandlers = (input: MenuHandlersInput): MenuHandlers => {
     }, 0);
   };
 
-  const hasPendingDefaultAction = () => peekPendingDefaultActionId() !== null;
+  const hasPendingDefaultAction = () => store.activationIntent.kind === "context-menu";
 
   const openContextMenuOrRunPendingDefault = (element: Element, position: Position) => {
     if (hasPendingDefaultAction()) {

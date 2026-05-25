@@ -21,7 +21,6 @@ interface DragSelectorsInput {
   phase: GrabPhaseSelectors;
   elementSelectors: GrabElementSelectors;
   shiftMultiSelect: ShiftMultiSelectState;
-  isPendingContextMenuSelect: Accessor<boolean>;
   debouncedDragPointer: Accessor<{ x: number; y: number } | null>;
 }
 
@@ -56,7 +55,6 @@ export const createDragSelectors = (input: DragSelectorsInput): DragSelectors =>
     phase,
     elementSelectors,
     shiftMultiSelect,
-    isPendingContextMenuSelect,
     debouncedDragPointer,
   } = input;
   const { store, pointer, viewportVersion } = grab;
@@ -65,7 +63,7 @@ export const createDragSelectors = (input: DragSelectorsInput): DragSelectors =>
 
   const pendingShiftSelectionElement = createMemo((): Element | null => {
     if (!shiftMultiSelect.isActive()) return null;
-    if (store.pendingCommentMode || isPendingContextMenuSelect()) return null;
+    if (store.activationIntent.kind !== "default") return null;
 
     const element = store.detectedElement;
     if (!isElementConnected(element)) return null;

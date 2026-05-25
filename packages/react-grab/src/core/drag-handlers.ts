@@ -51,9 +51,7 @@ interface DragHandlersInput {
   dragPreviewDebounce: DragPreviewDebounce;
   pointer: Accessor<Position>;
   isEnabled: Accessor<boolean>;
-  isPendingContextMenuSelect: Accessor<boolean>;
   isDragRepositioning: Accessor<boolean>;
-  setIsPendingContextMenuSelect: (value: boolean) => void;
   /** Read+clear the keyboardSelectedElement closure flag. */
   takeKeyboardSelectedElement: () => Element | null;
   setResolvedComponentName: (name: string | undefined) => void;
@@ -94,8 +92,6 @@ export const createDragHandlers = (input: DragHandlersInput): DragHandlers => {
     dragPreviewDebounce,
     pointer,
     isEnabled,
-    isPendingContextMenuSelect,
-    setIsPendingContextMenuSelect,
     isDragRepositioning,
     takeKeyboardSelectedElement,
     setResolvedComponentName,
@@ -141,8 +137,7 @@ export const createDragHandlers = (input: DragHandlersInput): DragHandlers => {
       isShiftHeld &&
       isShiftMultiSelecting() &&
       !isDragging() &&
-      !store.pendingCommentMode &&
-      !isPendingContextMenuSelect();
+      store.activationIntent.kind === "default";
 
     if (
       !isEnabled() ||
@@ -322,7 +317,7 @@ export const createDragHandlers = (input: DragHandlersInput): DragHandlers => {
     if (selectedElements.length === 0) return;
 
     const isShiftAccumulating =
-      isShiftHeld && !store.pendingCommentMode && !isPendingContextMenuSelect();
+      isShiftHeld && store.activationIntent.kind === "default";
 
     if (isShiftAccumulating) {
       actions.addFrozenElements(selectedElements);
@@ -352,13 +347,13 @@ export const createDragHandlers = (input: DragHandlersInput): DragHandlers => {
     actions.freeze();
     actions.setLastGrabbed(firstElement);
 
-    if (store.pendingCommentMode) {
+    if (store.activationIntent.kind === "comment") {
       enterCommentModeForElement(firstElement, center.x, center.y);
       return;
     }
 
-    if (isPendingContextMenuSelect()) {
-      setIsPendingContextMenuSelect(false);
+    if (store.activationIntent.kind === "context-menu") {
+      actions.resetActivationIntent();
       openContextMenuOrRunPendingDefault(firstElement, center);
       return;
     }
@@ -408,7 +403,7 @@ export const createDragHandlers = (input: DragHandlersInput): DragHandlers => {
       selectedElementUnderPointer ?? validFrozenElement ?? validKeyboardSelectedElement;
     if (!selectedElement) return;
 
-    if (isShiftHeld && !store.pendingCommentMode && !isPendingContextMenuSelect()) {
+    if (isShiftHeld && store.activationIntent.kind === "default") {
       if (elementAtPointer !== null) {
         toggleShiftMultiSelection(elementAtPointer, { x: clientX, y: clientY });
       }
@@ -437,13 +432,13 @@ export const createDragHandlers = (input: DragHandlersInput): DragHandlers => {
       positionY = clientY;
     }
 
-    if (store.pendingCommentMode) {
+    if (store.activationIntent.kind === "comment") {
       enterCommentModeForElement(selectedElement, positionX, positionY);
       return;
     }
 
-    if (isPendingContextMenuSelect()) {
-      setIsPendingContextMenuSelect(false);
+    if (store.activationIntent.kind === "context-menu") {
+      actions.resetActivationIntent();
       const { wasIntercepted } = pluginRegistry.hooks.onElementSelect(selectedElement);
       if (wasIntercepted) return;
 

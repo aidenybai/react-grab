@@ -306,6 +306,24 @@ export interface OverlayBounds {
 
 export type SelectionLabelStatus = "idle" | "copying" | "copied" | "fading" | "error";
 
+/**
+ * Discriminated union encoding "what does the user intend the next click to do?".
+ * The three states are mutually exclusive by construction.
+ *
+ *   - `default`     — the next click follows the normal default flow (copy).
+ *   - `comment`     — the next click should enter comment/prompt mode.
+ *   - `context-menu` — the next click should run the configured `actionId`.
+ *
+ * Previously encoded as 3 separate flags (`pendingCommentMode`,
+ * `pendingDefaultActionId`, `isPendingContextMenuSelect`) that were always
+ * set in mutually exclusive branches — the union makes the exclusion
+ * type-enforced.
+ */
+export type ActivationIntent =
+  | { kind: "default" }
+  | { kind: "comment" }
+  | { kind: "context-menu"; actionId: string };
+
 export interface SelectionLabelInstance {
   id: string;
   bounds: OverlayBounds;
@@ -400,10 +418,6 @@ export interface GrabbedBox {
   element?: Element;
 }
 
-/**
- * The public-facing shape of a grabbed box, without the internal element
- * reference. Used by the renderer prop bag and the public `ReactGrabState`.
- */
 export type PublicGrabbedBox = Pick<GrabbedBox, "id" | "bounds" | "createdAt">;
 
 export interface Rect {

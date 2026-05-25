@@ -12,10 +12,6 @@ interface CommentModeHandlersInput {
   activationLifecycle: ActivationLifecycle;
   toolbarStateController: ToolbarStateController;
   isEnabled: Accessor<boolean>;
-  /** Store the pending-default-action id for the next click to consume. */
-  setPendingDefaultActionId: (actionId: string | null) => void;
-  /** Mark the next click as "select an element then run the default action". */
-  setPendingContextMenuSelect: (value: boolean) => void;
 }
 
 export interface CommentModeHandlers {
@@ -44,8 +40,6 @@ export const createCommentModeHandlers = (
     activationLifecycle,
     toolbarStateController,
     isEnabled,
-    setPendingDefaultActionId,
-    setPendingContextMenuSelect,
   } = input;
   const { actions } = grab;
   const { isActivated, isCommentMode } = phase;
@@ -60,10 +54,9 @@ export const createCommentModeHandlers = (
     const defaultActionId =
       toolbarStateController.current()?.defaultAction ?? DEFAULT_ACTION_ID;
     if (defaultActionId === DEFAULT_ACTION_ID) {
-      actions.setPendingCommentMode(true);
+      actions.setActivationIntent({ kind: "comment" });
     } else {
-      setPendingDefaultActionId(defaultActionId);
-      setPendingContextMenuSelect(true);
+      actions.setActivationIntent({ kind: "context-menu", actionId: defaultActionId });
     }
     toggleActivate();
   };
@@ -73,7 +66,7 @@ export const createCommentModeHandlers = (
     positionX: number,
     positionY: number,
   ) => {
-    actions.setPendingCommentMode(false);
+    actions.resetActivationIntent();
     actions.clearInputText();
     actions.enterPromptMode({ x: positionX, y: positionY }, element);
   };
@@ -87,7 +80,7 @@ export const createCommentModeHandlers = (
       return;
     }
 
-    actions.setPendingCommentMode(true);
+    actions.setActivationIntent({ kind: "comment" });
     if (!isActivated()) {
       toggleActivate();
     }

@@ -79,7 +79,7 @@ export const createGrabPhaseSelectors = (grab: GrabStoreHandle): GrabPhaseSelect
     const currentState = current();
     return currentState.state === "active" && Boolean(currentState.isPromptMode);
   });
-  const isCommentMode = createMemo(() => store.pendingCommentMode || isPromptMode());
+  const isCommentMode = createMemo(() => store.activationIntent.kind === "comment" || isPromptMode());
   const isContextMenuOpen = createMemo(() => store.contextMenuPosition !== null);
   const isPendingDismiss = createMemo(() => {
     const currentState = current();

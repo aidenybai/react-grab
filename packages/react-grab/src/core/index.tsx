@@ -193,7 +193,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const debouncedDragPointer = dragPreviewDebounce.pointer;
     const keydownSpamTimer = createKeydownSpamTimer();
     const copyFeedbackCooldown = createCopyFeedbackCooldown();
-    const [isPendingContextMenuSelect, setIsPendingContextMenuSelect] = createSignal(false);
     const debouncedComponentName = createDebouncedComponentName(effectiveElement);
     const resolvedComponentName = debouncedComponentName.resolved;
     const setResolvedComponentName = debouncedComponentName.setResolved;
@@ -236,7 +235,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       phase,
       elementSelectors,
       shiftMultiSelect,
-      isPendingContextMenuSelect,
       debouncedDragPointer,
     });
     const {
@@ -304,7 +302,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       stopShiftMultiSelecting: () => stopShiftMultiSelecting(),
       clearKeyboardSelectedElement: () => coordinationFlags.setKeyboardSelectedElement(null),
       clearKeydownSpamTimer: keydownSpamTimer.clear,
-      clearPendingContextMenuSelect: () => setIsPendingContextMenuSelect(false),
+      clearActivationIntent: () => actions.resetActivationIntent(),
     });
     const { deactivateRenderer, forceDeactivateAll } = activationLifecycle;
 
@@ -348,8 +346,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       toolbarMenu,
       toolbarStateController,
       resolvedComponentName,
-      takePendingDefaultActionId: coordinationFlags.takePendingDefaultActionId,
-      peekPendingDefaultActionId: coordinationFlags.peekPendingDefaultActionId,
       stopShiftMultiSelecting: () => stopShiftMultiSelecting(),
       clearArrowNavigation,
     });
@@ -369,8 +365,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         activationLifecycle,
         toolbarStateController,
         isEnabled,
-        setPendingDefaultActionId: coordinationFlags.setPendingDefaultActionId,
-        setPendingContextMenuSelect: setIsPendingContextMenuSelect,
       });
 
     const dragHandlers = createDragHandlers({
@@ -387,8 +381,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       dragPreviewDebounce,
       pointer,
       isEnabled,
-      isPendingContextMenuSelect,
-      setIsPendingContextMenuSelect,
       isDragRepositioning,
       takeKeyboardSelectedElement: coordinationFlags.takeKeyboardSelectedElement,
       setResolvedComponentName,
