@@ -33,6 +33,7 @@ import { createActionContextBuilder } from "./action-context-builder.js";
 import { createPromptModeHandlers } from "./prompt-mode-handlers.js";
 import { createMenuHandlers } from "./menu-handlers.js";
 import { createCommentModeHandlers } from "./comment-mode-handlers.js";
+import { buildPublicApi } from "./build-public-api.js";
 import { createWindowFocusListeners } from "./window-focus-listeners.js";
 import { createToolbarStateController } from "./toolbar-state-controller.js";
 import { createShiftMultiSelectState } from "./shift-multi-select-state.js";
@@ -44,7 +45,6 @@ import {
 } from "../utils/is-keyboard-event-triggered-by-input.js";
 import { createComponentNameForElement } from "../utils/create-component-name-for-element.js";
 import {
-  getStackContext,
   getComponentDisplayName,
   checkIsNextProject,
   resolveSource,
@@ -78,7 +78,6 @@ import {
   MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS,
   WINDOW_REFOCUS_GRACE_PERIOD_MS,
   NEXTJS_REVALIDATION_DELAY_MS,
-  TOOLBAR_DEFAULT_POSITION_RATIO,
   DEFAULT_ACTION_ID,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
@@ -90,15 +89,12 @@ import { openFile } from "../utils/open-file.js";
 import type {
   Position,
   Options,
-  OverlayBounds,
   ReactGrabAPI,
-  ReactGrabState,
   ContextMenuActionContext,
   ContextMenuAction,
   SettableOptions,
   SourceInfo,
   Plugin,
-  ToolbarState,
 } from "../types.js";
 import { DEFAULT_THEME } from "./theme.js";
 import { createPluginRegistry } from "./plugin-registry.js";
@@ -109,7 +105,6 @@ import { getScriptOptions } from "../utils/get-script-options.js";
 import { isEnterCode } from "../utils/is-enter-code.js";
 import { isMac } from "../utils/is-mac.js";
 import { isPositionInsideBounds } from "../utils/is-position-inside-bounds.js";
-import { loadToolbarState, saveToolbarState } from "../components/toolbar/state.js";
 import { copyPlugin } from "./plugins/copy.js";
 import { commentPlugin } from "./plugins/comment.js";
 import { openPlugin } from "./plugins/open.js";
@@ -222,7 +217,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const toolbarStateController = createToolbarStateController();
     const currentToolbarState = toolbarStateController.current;
     const setCurrentToolbarState = toolbarStateController.setCurrent;
-    const updateToolbarState = toolbarStateController.update;
     const savedToolbarState = toolbarStateController.load();
     const [isEnabled, setIsEnabled] = createSignal(
       savedToolbarState ? !savedToolbarState.collapsed : true,
@@ -320,7 +314,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const {
       performCopyWithLabel,
       performCopyWithPerElementLabels,
-      copyResolvedElements,
     } = copyOrchestrator;
 
     createOverlayEffects({
@@ -439,8 +432,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
       clearPendingContextMenuSelect: () => setIsPendingContextMenuSelect(false),
     });
-    const { activateRenderer, deactivateRenderer, forceDeactivateAll, toggleActivate } =
-      activationLifecycle;
+    const { activateRenderer, deactivateRenderer, forceDeactivateAll } = activationLifecycle;
 
     const {
       handleInputSubmit,
@@ -1717,111 +1709,32 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         });
     }
 
-    const copyElementAPI = async (elements: Element | Element[]): Promise<boolean> => {
-      const elementsArray = Array.isArray(elements) ? elements : [elements];
-      if (elementsArray.length === 0) return false;
-      return await copyResolvedElements(elementsArray);
-    };
-
-    const api: ReactGrabAPI = {
-      activate: () => {
-        actions.setPendingCommentMode(false);
-        if (!isActivated() && isEnabled()) {
-          toggleActivate();
-        }
-      },
-      deactivate: () => {
-        if (isActivated() || isCopying()) {
-          deactivateRenderer();
-        }
-      },
-      toggle: () => {
-        if (isActivated()) {
-          deactivateRenderer();
-        } else if (isEnabled()) {
-          toggleActivate();
-        }
-      },
-      comment: handleComment,
-      isActive: () => isActivated(),
-      isEnabled: () => isEnabled(),
-      setEnabled: (enabled: boolean) => {
-        if (enabled === isEnabled()) return;
-        setIsEnabled(enabled);
-        updateToolbarState({ enabled, collapsed: !enabled });
-        if (!enabled) {
-          forceDeactivateAll();
-          dismissAllPopups();
-        }
-      },
-      getToolbarState: () => loadToolbarState(),
-      setToolbarState: (state: Partial<ToolbarState>) => {
-        const currentState = loadToolbarState();
-        const resolvedCollapsed = state.collapsed ?? currentState?.collapsed ?? false;
-        const newState: ToolbarState = {
-          edge: state.edge ?? currentState?.edge ?? "bottom",
-          ratio: state.ratio ?? currentState?.ratio ?? TOOLBAR_DEFAULT_POSITION_RATIO,
-          collapsed: resolvedCollapsed,
-          enabled: !resolvedCollapsed,
-          defaultAction: state.defaultAction ?? currentState?.defaultAction ?? DEFAULT_ACTION_ID,
-        };
-        saveToolbarState(newState);
-        setCurrentToolbarState(newState);
-        if (newState.enabled !== isEnabled()) {
-          setIsEnabled(newState.enabled);
-          if (!newState.enabled) {
-            forceDeactivateAll();
-            dismissAllPopups();
-          }
-        }
-        toolbarStateController.notify(newState);
-      },
-      onToolbarStateChange: toolbarStateController.onChange,
-      dispose: () => {
+    const api: ReactGrabAPI = buildPublicApi({
+      grab,
+      pluginRegistry,
+      phase,
+      elementSelectors,
+      dragSelectors,
+      visibility,
+      pluginStateBridge: { publicGrabbedBoxes, publicLabelInstances },
+      activationLifecycle,
+      commentModeHandlers: { handleToggleActive, enterCommentModeForElement, handleComment },
+      copyOrchestrator,
+      toolbarMenu,
+      toolbarStateController,
+      menuHandlers,
+      isEnabled,
+      setIsEnabled,
+      setDisposed: () => {
         disposed = true;
+      },
+      getDisposeRenderer: () => disposeRenderer,
+      resetHasInited: () => {
         hasInited = false;
-        disposeRenderer?.();
-        toolbarMenu.dispose();
-        toolbarStateController.clearSubscribers();
-        dispose();
       },
-      copyElement: copyElementAPI,
-      getSource: async (element: Element): Promise<SourceInfo | null> => {
-        const source = await resolveSource(element);
-        if (!source) return null;
-        return {
-          filePath: source.filePath,
-          lineNumber: source.lineNumber,
-          componentName: source.componentName,
-        };
-      },
-      getStackContext,
-      getState: (): ReactGrabState => ({
-        isActive: isActivated(),
-        isDragging: isDragging(),
-        isCopying: isCopying(),
-        isPromptMode: isPromptMode(),
-        isSelectionBoxVisible: Boolean(selectionVisible()),
-        isDragBoxVisible: Boolean(dragVisible()),
-        targetElement: targetElement(),
-        dragBounds: dragBounds() ?? null,
-        grabbedBoxes: [...publicGrabbedBoxes()],
-        labelInstances: [...publicLabelInstances()],
-        selectionFilePath: store.selectionFilePath,
-        toolbarState: currentToolbarState(),
-      }),
-      setOptions: (newOptions: SettableOptions) => {
-        pluginRegistry.setOptions(newOptions);
-      },
-      registerPlugin: (plugin: Plugin) => {
-        pluginRegistry.register(plugin, api);
-      },
-      unregisterPlugin: (name: string) => {
-        pluginRegistry.unregister(name);
-      },
-      getPlugins: () => pluginRegistry.getPluginNames(),
-      getDisplayName: getComponentDisplayName,
-    };
+      rootDispose: dispose,
+      getApi: () => api,
+    });
 
     for (const plugin of builtInPlugins) {
       pluginRegistry.register(plugin, api);
