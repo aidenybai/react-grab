@@ -57,5 +57,3 @@ export const createPreviewStyles = (element: Element) => {
 
   return { apply, restore, forget };
 };
-
-export type PreviewStyles = ReturnType<typeof createPreviewStyles>;

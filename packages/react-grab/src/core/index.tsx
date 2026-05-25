@@ -99,7 +99,6 @@ import type {
   ReactGrabState,
   SelectionLabelInstance,
   ContextMenuActionContext,
-  ContextMenuAction,
   ArrowNavigationState,
   FrozenLabelEntry,
   PerformWithFeedbackOptions,
@@ -134,7 +133,6 @@ import {
 } from "../utils/freeze-animations.js";
 import { freezePseudoStates, unfreezePseudoStates } from "../utils/freeze-pseudo-states.js";
 import { freezeUpdates } from "../utils/freeze-updates.js";
-import { copyContent } from "../utils/copy-content.js";
 import { generateId } from "../utils/generate-id.js";
 import { logRecoverableError } from "../utils/log-recoverable-error.js";
 import { getNearestEdge } from "../utils/get-nearest-edge.js";
