@@ -27,6 +27,10 @@ import type {
   PendingUpdate,
   TransitionFunction,
 } from "./freeze/types.js";
+import {
+  extractActionsFromChain,
+  mergePendingChains,
+} from "./freeze/pending-update-chain.js";
 
 let isUpdatesPaused = false;
 
@@ -83,36 +87,6 @@ const collectFiberRoots = (): Set<FiberRootLike> => {
   return collectedRoots;
 };
 
-const mergePendingChains = (
-  original: PendingUpdate | null,
-  buffered: PendingUpdate | null,
-): PendingUpdate | null => {
-  if (!original) return buffered;
-  if (!buffered) return original;
-  if (!original.next || !buffered.next) return buffered;
-
-  const originalFirst = original.next;
-  const bufferedFirst = buffered.next;
-  const isOriginalSingle = original === originalFirst;
-  const isBufferedSingle = buffered === bufferedFirst;
-
-  if (isOriginalSingle && isBufferedSingle) {
-    original.next = buffered;
-    buffered.next = original;
-  } else if (isOriginalSingle) {
-    original.next = bufferedFirst;
-    buffered.next = original;
-  } else if (isBufferedSingle) {
-    buffered.next = originalFirst;
-    original.next = buffered;
-  } else {
-    original.next = bufferedFirst;
-    buffered.next = originalFirst;
-  }
-
-  return buffered;
-};
-
 const pauseHookQueue = (queue: HookQueue): void => {
   if (!queue || pausedQueueStates.has(queue)) return;
 
@@ -150,21 +124,6 @@ const pauseHookQueue = (queue: HookQueue): void => {
   });
 
   pausedQueueStates.set(queue, pauseState);
-};
-
-const extractActionsFromChain = (pending: PendingUpdate | null): unknown[] => {
-  if (!pending) return [];
-  const actions: unknown[] = [];
-  const first = pending.next;
-  if (!first) return [];
-  let current: PendingUpdate | null = first;
-  do {
-    if (current) {
-      actions.push(current.action);
-      current = current.next;
-    }
-  } while (current && current !== first);
-  return actions;
 };
 
 const resumeHookQueue = (queue: HookQueue): void => {
