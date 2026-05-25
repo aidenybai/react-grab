@@ -16,6 +16,7 @@ import { createGrabStore } from "./store.js";
 import { createGrabElementSelectors, createGrabPhaseSelectors } from "./selectors.js";
 import { createToolbarMenuController } from "./toolbar-menu-controller.js";
 import { createLabelInstanceManager } from "./label-instance-manager.js";
+import { createViewportSyncObserver } from "./viewport-sync.js";
 import { CopyFailedError } from "../errors.js";
 import {
   isKeyboardEventTriggeredByInput,
@@ -25,11 +26,7 @@ import {
 import { mountRoot } from "../utils/mount-root.js";
 import { createComponentNameForElement } from "../utils/create-component-name-for-element.js";
 import { watchAppTheme } from "../utils/detect-app-theme.js";
-import {
-  nativeCancelAnimationFrame,
-  nativeRequestAnimationFrame,
-  waitUntilNextFrame,
-} from "../utils/native-raf.js";
+import { waitUntilNextFrame } from "../utils/native-raf.js";
 import {
   getStackContext,
   getNearestComponentName,
@@ -52,7 +49,6 @@ import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
 import { getElementAnchorRatio } from "../utils/get-element-anchor-ratio.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
 import { getVisibleBoundsCenter } from "../utils/get-visible-bounds-center.js";
-import { invalidateInteractionCaches } from "../utils/invalidate-interaction-caches.js";
 import { normalizeErrorMessage } from "../utils/normalize-error.js";
 import {
   createBoundsFromDragRect,
@@ -76,7 +72,6 @@ import {
   INPUT_TEXT_SELECTION_ACTIVATION_DELAY_MS,
   DEFAULT_KEY_HOLD_DURATION_MS,
   MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS,
-  ZOOM_DETECTION_THRESHOLD,
   WINDOW_REFOCUS_GRACE_PERIOD_MS,
   PREVIEW_TEXT_MAX_LENGTH,
   NEXTJS_REVALIDATION_DELAY_MS,
@@ -2555,118 +2550,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       { capture: true },
     );
 
-    const redetectElementUnderPointer = () => {
-      if (store.isTouchMode && !isHoldingKeys() && !isActivated()) return;
-      if (
-        isEnabled() &&
-        !isPromptMode() &&
-        !isSelectionInteractionLocked() &&
-        !isFrozenPhase() &&
-        !isDragging() &&
-        store.contextMenuPosition === null &&
-        store.frozenElements.length === 0
-      ) {
-        const candidate = getElementAtPosition(pointer().x, pointer().y);
-        actions.setDetectedElement(candidate);
-      }
-    };
-
-    let boundsRecalcIntervalId: number | null = null;
-    let viewportChangeFrameId: number | null = null;
-
-    const handleViewportChange = () => {
-      invalidateInteractionCaches();
-      redetectElementUnderPointer();
-      actions.incrementViewportVersion();
-      actions.updateContextMenuPosition();
-    };
-
-    eventListenerManager.addWindowListener("scroll", handleViewportChange, {
-      capture: true,
-    });
-
-    let previousViewportWidth = window.innerWidth;
-    let previousViewportHeight = window.innerHeight;
-
-    eventListenerManager.addWindowListener("resize", () => {
-      const currentViewportWidth = window.innerWidth;
-      const currentViewportHeight = window.innerHeight;
-
-      if (previousViewportWidth > 0 && previousViewportHeight > 0) {
-        const scaleX = currentViewportWidth / previousViewportWidth;
-        const scaleY = currentViewportHeight / previousViewportHeight;
-        const isUniformScale = Math.abs(scaleX - scaleY) < ZOOM_DETECTION_THRESHOLD;
-        const hasScaleChanged = Math.abs(scaleX - 1) > ZOOM_DETECTION_THRESHOLD;
-
-        if (isUniformScale && hasScaleChanged) {
-          actions.setPointer({
-            x: pointer().x * scaleX,
-            y: pointer().y * scaleY,
-          });
-        }
-      }
-
-      previousViewportWidth = currentViewportWidth;
-      previousViewportHeight = currentViewportHeight;
-
-      handleViewportChange();
-    });
-
-    const visualViewport = window.visualViewport;
-    if (visualViewport) {
-      const { signal } = eventListenerManager;
-      visualViewport.addEventListener("resize", handleViewportChange, {
-        signal,
-      });
-      visualViewport.addEventListener("scroll", handleViewportChange, {
-        signal,
-      });
-    }
-
-    const scheduleBoundsSync = () => {
-      if (viewportChangeFrameId !== null) return;
-
-      viewportChangeFrameId = nativeRequestAnimationFrame(() => {
-        viewportChangeFrameId = null;
-        actions.incrementViewportVersion();
-      });
-    };
-
-    createEffect(() => {
-      const shouldRunInterval =
-        pluginRegistry.store.theme.enabled &&
-        (isActivated() ||
-          isCopying() ||
-          store.labelInstances.length > 0 ||
-          store.grabbedBoxes.length > 0);
-
-      if (shouldRunInterval) {
-        if (boundsRecalcIntervalId !== null) return;
-
-        boundsRecalcIntervalId = window.setInterval(() => {
-          scheduleBoundsSync();
-        }, BOUNDS_RECALC_INTERVAL_MS);
-        return;
-      }
-
-      if (boundsRecalcIntervalId !== null) {
-        window.clearInterval(boundsRecalcIntervalId);
-        boundsRecalcIntervalId = null;
-      }
-
-      if (viewportChangeFrameId !== null) {
-        nativeCancelAnimationFrame(viewportChangeFrameId);
-        viewportChangeFrameId = null;
-      }
-    });
-
-    onCleanup(() => {
-      if (boundsRecalcIntervalId !== null) {
-        window.clearInterval(boundsRecalcIntervalId);
-      }
-      if (viewportChangeFrameId !== null) {
-        nativeCancelAnimationFrame(viewportChangeFrameId);
-      }
+    createViewportSyncObserver({
+      grab,
+      phase,
+      isEnabled,
+      isThemeEnabled: () => pluginRegistry.store.theme.enabled,
+      eventListenerManager,
     });
 
     eventListenerManager.addDocumentListener(
