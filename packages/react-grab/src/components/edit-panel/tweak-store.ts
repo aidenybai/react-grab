@@ -2,18 +2,6 @@ import { createMemo, createSignal } from "solid-js";
 import type { EditableProperty, PendingEdit } from "../../types.js";
 import { filterPropertiesByQuery } from "../../utils/fuzzy-score-property.js";
 
-// Axis aggregates (padding-x, padding-y, margin-x, margin-y) — shown by
-// default even when non-canonical so the user can target one axis
-// without first searching `px` / `py` / `mx` / `my`. Without this,
-// uniform-padding elements collapse to just "padding" and one-axis
-// edits feel hidden.
-const ALWAYS_VISIBLE_AXIS_KEYS: ReadonlySet<string> = new Set([
-  "padding-left,padding-right",
-  "padding-top,padding-bottom",
-  "margin-left,margin-right",
-  "margin-top,margin-bottom",
-]);
-
 interface PropertyTweak {
   kind: EditableProperty["kind"];
   value: number | string;
@@ -42,20 +30,20 @@ export const createTweakStore = (options: CreateTweakStoreOptions): TweakStore =
 
   const baseFilteredProperties = createMemo<EditableProperty[]>(() => {
     const query = searchQuery();
-    // No query: surface canonical, non-default rows + any row the user
-    // has already tweaked this session. Canonical means "the highest-
-    // level form that captures this side", so a uniform padding shows
-    // as one row instead of seven. Tweaked rows stay visible after
-    // their edit even if their original value matches the baseline —
-    // hiding a row the user just touched would be hostile UX.
     const tweaks = tweakedValues();
+    // Default-list rule (no query): show only what's actually styled or
+    // touched — anything at baseline is discoverable via search.
+    //   - prioritized: element has a Tailwind class targeting this key
+    //   - isCanonical && !isDefault: value differs from a styling-free
+    //     baseline clone of the same tag
+    //   - tweaked this session: keep visible after a tweak even if the
+    //     new value happens to match baseline
     const candidates = query
       ? initialProperties
       : initialProperties.filter(
           (entry) =>
             entry.prioritized ||
             (entry.isCanonical && !entry.isDefault) ||
-            ALWAYS_VISIBLE_AXIS_KEYS.has(entry.key) ||
             tweaks[entry.key] !== undefined,
         );
     return filterPropertiesByQuery(candidates, query);

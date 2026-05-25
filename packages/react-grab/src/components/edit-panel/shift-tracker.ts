@@ -1,8 +1,7 @@
 import { createSignal, onCleanup, onMount, type Accessor } from "solid-js";
 
-// Window-wide Shift tracker — single source of truth for the token chip
-// + long-press 10x multiplier. Blur resets because chord / alt-tab
-// usually swallows the keyup.
+// Window blur resets because chord / alt-tab usually swallows the
+// keyup event and leaves the flag stuck.
 export const createShiftTracker = (): Accessor<boolean> => {
   const [isShiftHeld, setIsShiftHeld] = createSignal(false);
 

@@ -13,6 +13,16 @@ import { tailwindPrefixToProperty } from "../../utils/tailwind-class-map.js";
 
 const TAILWIND_CLASS_PATTERN = /^([a-z-]+)-(-?\d+(?:\.\d+)?)$/;
 
+// Accept `py 40`, `py40`, `py-40` — all normalize to the canonical
+// `py-40` form before pattern matching. Collapses whitespace runs into
+// a single hyphen, then inserts a hyphen between a letter and an
+// immediately-following digit when one is missing.
+const normalizeQuery = (query: string): string =>
+  query
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/([a-z])(\d)/g, "$1-$2");
+
 // Take the typed number literally instead of multiplying by the 4px
 // spacing scale: opacity-50, border-2, z-10, font-700.
 const LITERAL_NUMBER_KEYS = new Set([
@@ -121,7 +131,8 @@ export const createTailwindAutoApply = (
     return true;
   };
 
-  const applyTailwindClass = (query: string) => {
+  const applyTailwindClass = (rawQuery: string) => {
+    const query = normalizeQuery(rawQuery);
     // `mt`, `mt-`, `mt-4` all distill to the prefix `mt` for intent —
     // collapse to compact before any value is written.
     const intentPrefix = query.replace(/-\d*$/, "").replace(/-$/, "");

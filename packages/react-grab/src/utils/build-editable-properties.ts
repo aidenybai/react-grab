@@ -188,11 +188,10 @@ interface AggregateDefinition {
   longhands: readonly TrackedProperty[];
 }
 
-// Aggregate `key` strings are referenced verbatim by
-// RECOMMENDED_KEY_ORDER below for sort priority. If you reorder the
-// comma-joined longhands here (e.g. `padding-bottom,padding-top`),
-// remember to update the rank map or the row will lose its sort hint
-// and sink to the bottom of the recommended tier.
+// Aggregate `key` strings are referenced verbatim by the rank map in
+// utils/sort-properties-by-recommendation.ts — reordering comma-joined
+// longhands here means updating the rank map too, or rows will sink
+// to the bottom of the recommended tier.
 const PADDING_AGGREGATES: readonly AggregateDefinition[] = [
   {
     key: "padding",
@@ -632,27 +631,6 @@ const matchesBaseline = (
   });
 };
 
-// Properties we always surface in the default view regardless of
-// baseline-diff. The baseline-only filter is too aggressive — it hides
-// `padding: 0` because the baseline button also has `padding: 0`,
-// even though tweaking padding from 0 is one of the most common
-// design moves. Match a small whitelist by CSS longhand so individual
-// sides (padding-top) AND aggregates (padding, padding-y) both qualify.
-const isCoreProperty = (property: EditableProperty): boolean => {
-  if (property.kind === "color") {
-    return property.key === "color" || property.key === "background-color";
-  }
-  if (property.kind !== "numeric") return false;
-  return property.cssProperties.some((cssProperty) => {
-    if (cssProperty.startsWith("padding")) return true;
-    if (cssProperty.startsWith("margin")) return true;
-    if (cssProperty === "font-size") return true;
-    if (cssProperty.includes("radius")) return true;
-    if (cssProperty === "opacity") return true;
-    return false;
-  });
-};
-
 // Legacy heuristic used only when measureBaseline returns null (target
 // has no parent, is in an exotic shadow tree, etc.). Kept as a safety
 // net so the panel still produces a sensible list even without a
@@ -753,11 +731,6 @@ const finalizeProperties = (
   for (const property of properties) {
     if (prioritized.has(property.key)) {
       tier1.push({ ...property, prioritized: true, isDefault: false });
-    } else if (isCoreProperty(property)) {
-      // Core properties skip default-detection: they're always
-      // surfaced in the default view since users frequently want to
-      // tweak them from zero.
-      tier2.push({ ...property, isDefault: false });
     } else {
       const isDefault = baseline
         ? matchesBaseline(property.cssProperties, current, baseline)

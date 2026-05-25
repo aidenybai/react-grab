@@ -19,11 +19,12 @@ interface PropertyListProps {
   onColorPickerRegister: (trigger: (() => void) | null) => void;
   onEditComplete: () => void;
   onInteract: () => void;
-  // True while the user is actively tweaking the current row (slider
-  // drag, swatch click / native picker, segmented cycle). Hover-driven
-  // active-row swaps are suppressed during this window so a mouse
-  // twitch can't swap the active row out from under them mid-tweak.
-  isInteracting: () => boolean;
+  // True while a gesture is mid-flight (slider drag, native picker
+  // open, etc.). Hover-driven row swaps are suppressed during this
+  // window so a mouse twitch can't yank the active row out from under
+  // the user. Does NOT stay true for the lifetime of pending tweaks —
+  // hover should still navigate the list once the gesture settles.
+  isAdjusting: () => boolean;
   activeKey: "left" | "right" | null;
   // Token chip sourced from the panel and forwarded through to the
   // active row's ValueStepper.
@@ -33,10 +34,11 @@ interface PropertyListProps {
 export const PropertyList: Component<PropertyListProps> = (props) => {
   const itemElements: (HTMLButtonElement | undefined)[] = [];
   let listRef: HTMLDivElement | undefined;
-  // Stationary cursor + reflow can fire phantom pointerenter on rows the
-  // user didn't actually mouse onto, which would yank keyboard focus to a
-  // different row. We only trust pointerenter after we've observed real
-  // pointer movement at least once.
+  // Mount-time gate: a stationary cursor + the initial reflow can fire
+  // phantom pointerenter on whatever row the mouse happens to be sitting
+  // on, yanking the active row before the user has demonstrated intent
+  // to use the mouse. Once any real pointer movement is observed, the
+  // gate is permanently open for this panel mount.
   let didPointerMove = false;
 
   const {
@@ -53,7 +55,6 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
 
   createEffect(() => {
     itemElements.length = props.properties.length;
-    didPointerMove = false;
   });
 
   createEffect(() => {
@@ -123,12 +124,7 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
               class="relative z-1 contain-layout block w-full px-0 py-0 cursor-pointer text-left border-none bg-transparent min-h-[24px]"
               onPointerEnter={() => {
                 if (!didPointerMove) return;
-                // Suppress hover-driven swaps while the user is mid-tweak
-                // (slider drag, native colour picker open, etc.). The
-                // panel's onInteract idle timer governs the lifetime —
-                // the lock releases shortly after the user stops poking
-                // the active control.
-                if (props.isInteracting()) return;
+                if (props.isAdjusting()) return;
                 // The panel runs inside a Shadow DOM (mountRoot attaches a
                 // shadow root on the overlay host). `document.activeElement`
                 // returns the shadow HOST when focus is inside the shadow,

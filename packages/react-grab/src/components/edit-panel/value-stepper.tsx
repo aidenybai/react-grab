@@ -1,4 +1,11 @@
-import { createSignal, Show, type Component, type JSX } from "solid-js";
+import {
+  createSignal,
+  onCleanup,
+  onMount,
+  Show,
+  type Component,
+  type JSX,
+} from "solid-js";
 import {
   EDIT_SLIDER_CLICK_THRESHOLD_PX,
   EDIT_SLIDER_HASH_MARK_COUNT,
@@ -82,10 +89,9 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
     props.onCommitValue?.(positionToValue(clientX));
   };
 
-  // Dialkit rubber-band: past DEAD_ZONE_PX overflow the track pulls
-  // toward the cursor with sqrt-decay, capped at MAX_PX. signedOvershoot
-  // is negative past the left edge, positive past the right; everything
-  // else falls out of |signedOvershoot| and Math.sign.
+  // Past DEAD_ZONE_PX overflow the track pulls toward the cursor with
+  // sqrt-decay, capped at MAX_PX. signedOvershoot is negative past the
+  // left edge, positive past the right.
   const computeRubberStretch = (clientX: number, trackRect: DOMRect): number => {
     const signedOvershoot =
       Math.max(0, clientX - trackRect.right) -
@@ -136,13 +142,30 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
     setRubberStretchPx(0);
   };
 
-  const handleTrackPointerCancel = (event: PointerEvent) => {
+  // Shared release path for pointercancel + lostpointercapture. The
+  // latter fires when the browser revokes capture for any reason (mouse
+  // leaves the window, gesture stolen, capturing element unmounted) —
+  // without this the drag state would leak and the rubber-band stretch
+  // would stay at its last value forever.
+  const releaseDrag = (event: PointerEvent) => {
     if (!dragState) return;
     const target = event.currentTarget as Element;
     if (target.hasPointerCapture(event.pointerId)) target.releasePointerCapture(event.pointerId);
     dragState = null;
     setRubberStretchPx(0);
   };
+
+  // Defensive: alt-tab / focus loss / system gesture can land the
+  // browser in a state where neither pointerup nor pointercancel ever
+  // fires. Drop the drag state on blur so the stretch can't stay stuck.
+  onMount(() => {
+    const handleBlur = () => {
+      dragState = null;
+      setRubberStretchPx(0);
+    };
+    window.addEventListener("blur", handleBlur);
+    onCleanup(() => window.removeEventListener("blur", handleBlur));
+  });
 
   const isActiveSlider = () => isHovered() || Boolean(props.activeKey) || dragState !== null;
 
@@ -202,7 +225,8 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
         onPointerDown={handleTrackPointerDown}
         onPointerMove={handleTrackPointerMove}
         onPointerUp={handleTrackPointerUp}
-        onPointerCancel={handleTrackPointerCancel}
+        onPointerCancel={releaseDrag}
+        onLostPointerCapture={releaseDrag}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >

@@ -36,6 +36,7 @@ import { formatSessionEditsPrompt } from "../../utils/format-edit-prompt.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
 import { registerOverlayDismiss } from "../../utils/register-overlay-dismiss.js";
 import { suppressMenuEvent } from "../../utils/suppress-menu-event.js";
+import { DiscardPrompt } from "../selection-label/discard-prompt.js";
 import { TagBadge } from "../selection-label/tag-badge.js";
 import { ColorPicker } from "./color-picker.js";
 import { HIDDEN_FOCUS_PRESERVING_STYLE } from "./constants.js";
@@ -172,6 +173,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     tweakStore.applyTweak(property, nextValue);
     preview.apply(property.cssProperties, formatEditableValue(property, nextValue));
     markAsInteracting();
+    setIsPendingDismiss(false);
     if (options.flash) flashActiveKey(options.flash === 1 ? "right" : "left");
     if (options.focus) ensureSearchFocused();
     if (options.compact) setIsCompact(true);
@@ -250,11 +252,34 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     props.onSubmit(formatSessionEditsPrompt(pendingEdits.length > 0 ? [entry] : []));
   };
 
-  // Close paths preserve tweaks — inline preview styles stay on the
-  // element until the agent updates source.
+  // Two-step dismiss when there are pending tweaks: first attempt
+  // shakes + shows the discard prompt; second attempt actually
+  // dismisses. Matches the comment plugin's discard flow.
+  const [isPendingDismiss, setIsPendingDismiss] = createSignal(false);
+  let panelSurfaceRef: HTMLDivElement | undefined;
+
+  const playShake = () => {
+    if (!panelSurfaceRef) return;
+    panelSurfaceRef.classList.remove("animate-shake");
+    // Force reflow so re-adding the class restarts the animation.
+    void panelSurfaceRef.offsetWidth;
+    panelSurfaceRef.classList.add("animate-shake");
+  };
+
   const dismissPreservingTweaks = () => {
     props.onDismiss();
   };
+
+  const attemptDismiss = () => {
+    if (!tweakStore.hasPendingTweaks() || isPendingDismiss()) {
+      dismissPreservingTweaks();
+      return;
+    }
+    setIsPendingDismiss(true);
+    playShake();
+  };
+
+  const cancelPendingDismiss = () => setIsPendingDismiss(false);
 
   const navigateActive = (direction: 1 | -1) => {
     const properties = filteredProperties();
@@ -286,7 +311,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       }
       handleSubmit();
     },
-    Escape: () => dismissPreservingTweaks(),
+    Escape: () => attemptDismiss(),
   };
 
   const handleSearchKeyDown = (event: KeyboardEvent) => {
@@ -328,7 +353,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
 
     const unregisterDismiss = registerOverlayDismiss({
       isOpen: () => true,
-      onDismiss: dismissPreservingTweaks,
+      onDismiss: attemptDismiss,
       shouldIgnoreRightClick: true,
       // Inline editors (search textarea / click-to-type) own their own
       // Escape; the panel still gets Escape via its window handler.
@@ -406,6 +431,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
         onContextMenu={suppressMenuEvent}
       >
         <div
+          ref={panelSurfaceRef}
           class="contain-layout flex flex-col justify-center items-start rounded-[14px] overflow-hidden antialiased w-fit h-fit [font-synthesis:none] [corner-shape:superellipse(1.25)] bg-[var(--rg-panel-bg)]"
           style={{
             "min-width": isCompact() ? undefined : `${EDIT_PANEL_MIN_WIDTH_PX}px`,
@@ -506,7 +532,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                 onColorPickerRegister={registerColorPickerTrigger}
                 onEditComplete={ensureSearchFocused}
                 onInteract={markAsInteracting}
-                isInteracting={isInteracting}
+                isAdjusting={isTransientInteraction}
                 activeTailwindLabel={activeTailwindLabel()}
               />
             </div>
@@ -568,6 +594,15 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                 </Switch>
               </div>
             )}
+          </Show>
+
+          <Show when={isPendingDismiss()}>
+            <DiscardPrompt
+              label="Discard edits?"
+              onConfirm={dismissPreservingTweaks}
+              onCancel={cancelPendingDismiss}
+              cancelOnEscape={false}
+            />
           </Show>
         </div>
       </div>

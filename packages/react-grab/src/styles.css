@@ -93,6 +93,122 @@
   }
 }
 
+/* Slot — per-digit enter/exit. Direction-aware: incrementing rolls
+   new digit in from below + old up; decrementing reversed. Blur +
+   opacity fade per calligraph's number variant. */
+@keyframes rg-slot-enter-up {
+  from {
+    transform: translateY(0.5em) scale(0.5);
+    filter: blur(2px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+    opacity: 1;
+  }
+}
+@keyframes rg-slot-exit-up {
+  from {
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-0.5em) scale(0.5);
+    filter: blur(2px);
+    opacity: 0;
+  }
+}
+@keyframes rg-slot-enter-down {
+  from {
+    transform: translateY(-0.5em) scale(0.5);
+    filter: blur(2px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+    opacity: 1;
+  }
+}
+@keyframes rg-slot-exit-down {
+  from {
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(0.5em) scale(0.5);
+    filter: blur(2px);
+    opacity: 0;
+  }
+}
+@keyframes rg-slot-enter-fade {
+  from {
+    filter: blur(2px);
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  to {
+    filter: blur(0);
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes rg-slot-exit-fade {
+  from {
+    filter: blur(0);
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    filter: blur(2px);
+    transform: scale(0.5);
+    opacity: 0;
+  }
+}
+
+.rg-slot-column {
+  position: relative;
+  display: inline-block;
+  vertical-align: top;
+}
+.rg-slot-sizer {
+  visibility: hidden;
+  display: inline-block;
+  white-space: pre;
+}
+.rg-slot-cell {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: inline-block;
+  white-space: pre;
+  will-change: transform, filter, opacity;
+  animation-duration: var(--rg-slot-dur, 350ms);
+  animation-timing-function: var(--rg-slot-ease, cubic-bezier(0.34, 1.56, 0.64, 1));
+  animation-fill-mode: both;
+}
+.rg-slot-cell.rg-slot-enter[data-dir="1"] {
+  animation-name: rg-slot-enter-up;
+}
+.rg-slot-cell.rg-slot-enter[data-dir="-1"] {
+  animation-name: rg-slot-enter-down;
+}
+.rg-slot-cell.rg-slot-enter[data-dir="0"] {
+  animation-name: rg-slot-enter-fade;
+}
+.rg-slot-cell.rg-slot-exit[data-dir="1"] {
+  animation-name: rg-slot-exit-up;
+}
+.rg-slot-cell.rg-slot-exit[data-dir="-1"] {
+  animation-name: rg-slot-exit-down;
+}
+.rg-slot-cell.rg-slot-exit[data-dir="0"] {
+  animation-name: rg-slot-exit-fade;
+}
+
 /* Reduce motion: respect the OS-level preference for users with vestibular
    disorders (WCAG 2.3.3). Blanket-disable animation/transition inside the
    shadow root so any animation added later inherits the override. */

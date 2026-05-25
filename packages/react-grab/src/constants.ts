@@ -194,18 +194,22 @@ export const EDIT_PROPERTY_MAX_COUNT = 40;
 export const EDIT_PANEL_MIN_WIDTH_PX = 200;
 export const EDIT_PANEL_MAX_WIDTH_PX = 320;
 export const EDIT_SHIFT_STEP_MULTIPLIER = 10;
-export const EDIT_PANEL_ADJUSTING_IDLE_MS = 500;
+// Idle window after the last control-interact pulse before the
+// transient-interaction signal clears. Must comfortably exceed the
+// long-press repeat cadence (60ms) so holding ←/→ stays "interacting",
+// but short enough that hover-swap re-enables almost immediately
+// after a release.
+export const EDIT_PANEL_ADJUSTING_IDLE_MS = 150;
 export const EDIT_PANEL_ACTIVE_KEY_FLASH_MS = 100;
 export const EDIT_SLIDER_CLICK_THRESHOLD_PX = 3;
 export const EDIT_SLIDER_HASH_MARK_COUNT = 9;
-// Dialkit-style rubber-band: cursor must overshoot DEAD_ZONE_PX before
-// the track pulls; stretch grows sqrt(past / SOFT_RANGE_PX) up to
-// MAX_PX, springs back over SETTLE_MS on release.
+// Rubber-band: cursor must overshoot DEAD_ZONE_PX before the track
+// pulls; stretch grows sqrt(past / SOFT_RANGE_PX) up to MAX_PX, springs
+// back over SETTLE_MS on release.
 export const EDIT_SLIDER_RUBBER_DEAD_ZONE_PX = 32;
 export const EDIT_SLIDER_RUBBER_SOFT_RANGE_PX = 200;
 export const EDIT_SLIDER_RUBBER_MAX_PX = 8;
 export const EDIT_SLIDER_RUBBER_SETTLE_MS = 350;
-// Budge "barPhysics" overshoot bezier — reads as a spring snap-back.
 export const EDIT_SLIDER_SPRING_EASING = "cubic-bezier(0.34, 1.56, 0.64, 1)";
 export const EDIT_VALUE_BUMP_PX = 2;
 export const EDIT_VALUE_BUMP_MS = 280;
@@ -213,7 +217,6 @@ export const EDIT_STEP_REPEAT_INITIAL_DELAY_MS = 280;
 export const EDIT_STEP_REPEAT_INTERVAL_MS = 60;
 export const SLOT_TRANSITION_MS = 350;
 export const SLOT_STAGGER_MS = 18;
-export const SLOT_FADE_HEIGHT_EM = 0.25;
 export const TAILWIND_SPACING_MAX_UNITS = 96;
 export const TAILWIND_BORDER_MAX_PX = 8;
 export const TAILWIND_Z_INDEX_MAX = 50;

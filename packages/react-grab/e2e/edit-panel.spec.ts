@@ -296,16 +296,22 @@ test.describe("Edit Panel", () => {
       expect(keys).toContain("border-radius");
     });
 
-    test("core properties (padding, margin, color, etc.) surface even when at baseline", async ({
+    test("properties matching the baseline are hidden from the default list", async ({
       reactGrab,
     }) => {
-      // Older versions hid margin when the value matched the baseline
-      // (margin: 0). The panel now surfaces a small whitelist of
-      // frequently-edited properties so the user doesn't have to know
-      // to search "margin" before tweaking it from zero.
+      // Default list shows only what's actually styled on the element +
+      // anything tweaked this session. Properties at the browser/UA
+      // baseline (here, margin: 0 on a button) hide until the user
+      // searches for them — keeping the list focused on what differs.
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       const keys = await getVisiblePropertyKeys(reactGrab.page);
-      expect(keys.some((key) => key.startsWith("margin"))).toBe(true);
+      expect(keys.some((key) => key.startsWith("margin"))).toBe(false);
+
+      // But typing the search reveals them.
+      await typeInSearchInput(reactGrab.page, "margin");
+      await reactGrab.page.waitForTimeout(80);
+      const searched = await getVisiblePropertyKeys(reactGrab.page);
+      expect(searched.some((key) => key.startsWith("margin"))).toBe(true);
     });
 
     test("typing a search query reveals non-canonical properties", async ({ reactGrab }) => {

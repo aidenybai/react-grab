@@ -4,20 +4,17 @@ import {
   createSignal,
   Index,
   on,
+  onCleanup,
+  Show,
   type Component,
   type JSX,
 } from "solid-js";
-import {
-  EDIT_SLIDER_SPRING_EASING,
-  SLOT_FADE_HEIGHT_EM,
-  SLOT_STAGGER_MS,
-  SLOT_TRANSITION_MS,
-} from "../constants.js";
+import { SLOT_STAGGER_MS, SLOT_TRANSITION_MS } from "../constants.js";
 
 interface SlotProps {
   children: string | number;
-  // Override auto-derived direction: 1 rolls up, -1 rolls down, 0
-  // takes the shortest mod-10 path. Omit to derive from value sign.
+  // 1 rolls new digit in from below + old up; -1 reversed; 0 fades.
+  // Omit to derive from value sign.
   direction?: 1 | -1 | 0;
   class?: string;
   style?: JSX.CSSProperties;
@@ -26,96 +23,91 @@ interface SlotProps {
 const DIGIT_REGEX = /^[0-9]$/;
 const isDigit = (character: string) => DIGIT_REGEX.test(character);
 
-const SLOT_FADE_MASK = `linear-gradient(to bottom, transparent 0%, black ${SLOT_FADE_HEIGHT_EM}em, black calc(100% - ${SLOT_FADE_HEIGHT_EM}em), transparent 100%)`;
-const DIGITS_0_TO_9 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
-
-// Shortest signed offset in [-5, 5] on the 0..9 ring.
-const ringOffset = (from: number, to: number): number => {
-  let offset = (((to - from) % 10) + 10) % 10;
-  if (offset > 5) offset -= 10;
-  return offset;
+const parseNumeric = (raw: string | number): number => {
+  if (typeof raw === "number") return raw;
+  return Number.parseFloat(String(raw).replace(/[^0-9.-]/g, "")) || 0;
 };
 
-// Direction > 0 forces forward steps even when the new digit wraps
-// (9 → 0 = +1 instead of -9), < 0 forces backward, 0 takes shortest.
-const computeDigitDelta = (
-  previousDigit: number,
-  nextDigit: number,
-  direction: 1 | -1 | 0,
-): number => {
-  if (previousDigit === nextDigit) return 0;
-  if (direction > 0) {
-    return nextDigit >= previousDigit
-      ? nextDigit - previousDigit
-      : 10 - previousDigit + nextDigit;
-  }
-  if (direction < 0) {
-    return nextDigit <= previousDigit
-      ? -(previousDigit - nextDigit)
-      : -(previousDigit + (10 - nextDigit));
-  }
-  return ringOffset(previousDigit, nextDigit);
-};
-
-interface SlotColumnProps {
+interface DigitColumnProps {
   digit: number;
   direction: 1 | -1 | 0;
   delayMs: number;
 }
 
-const SlotColumn: Component<SlotColumnProps> = (props) => {
-  // Unbounded counter — adds each delta so `9 → 0` (going up) advances
-  // past 10 instead of rolling backward. The mod-10 of this drives the
-  // per-digit clamping in translateYPercent, so only the active digit +
-  // its neighbour are on-screen and CSS transitions handle the roll.
-  const [cumulativePosition, setCumulativePosition] = createSignal(0);
+interface ExitingDigit {
+  digit: number;
+  direction: 1 | -1 | 0;
+  generation: number;
+}
 
-  // Accumulator: not derivable from props.digit alone, so createEffect
-  // is the right primitive. `on()`'s previous arg avoids a closure-var
-  // peek at props from setup-time.
+const DigitColumn: Component<DigitColumnProps> = (props) => {
+  let enterCellRef: HTMLSpanElement | undefined;
+  const [exitingDigit, setExitingDigit] = createSignal<ExitingDigit | null>(null);
+  let exitGeneration = 0;
+  let exitTimerId: ReturnType<typeof setTimeout> | null = null;
+
+  // On every digit change: spawn an exit element for the previous
+  // digit and restart the enter animation on the current cell. Rapid
+  // changes replace the in-flight exit so only one exit element is
+  // ever alive — sweep changes blur into one trail instead of
+  // stacking N exit elements.
   createEffect(
     on(
       () => props.digit,
       (nextDigit, previousDigit) => {
-        if (previousDigit === undefined) {
-          setCumulativePosition(nextDigit);
-          return;
+        if (previousDigit === undefined || nextDigit === previousDigit) return;
+        if (enterCellRef) {
+          enterCellRef.classList.remove("rg-slot-enter");
+          // Force reflow so the re-added class restarts the CSS
+          // animation. Without this, the browser collapses the
+          // remove+add into a no-op.
+          void enterCellRef.offsetWidth;
+          enterCellRef.classList.add("rg-slot-enter");
         }
-        const delta = computeDigitDelta(previousDigit, nextDigit, props.direction);
-        if (delta !== 0) setCumulativePosition((current) => current + delta);
+        exitGeneration += 1;
+        setExitingDigit({
+          digit: previousDigit,
+          direction: props.direction,
+          generation: exitGeneration,
+        });
+        if (exitTimerId !== null) clearTimeout(exitTimerId);
+        exitTimerId = setTimeout(() => setExitingDigit(null), SLOT_TRANSITION_MS);
       },
+      { defer: true },
     ),
   );
+  onCleanup(() => {
+    if (exitTimerId !== null) clearTimeout(exitTimerId);
+  });
 
-  const currentMod = createMemo(() => ((cumulativePosition() % 10) + 10) % 10);
+  const cellStyle = (): JSX.CSSProperties => ({
+    "animation-delay": `${props.delayMs}ms`,
+  });
 
   return (
-    <span class="relative inline-block" style={{ "vertical-align": "top" }}>
-      {/* Sized parent for the absolutely-positioned digit children. */}
-      <span aria-hidden="true" class="invisible inline-block whitespace-pre">
+    <span class="rg-slot-column">
+      <span aria-hidden="true" class="rg-slot-sizer">
         0
       </span>
-      <Index each={DIGITS_0_TO_9}>
-        {(digit) => {
-          const translateYPercent = createMemo(() => {
-            const offset = ringOffset(currentMod(), digit());
-            const clamped = Math.max(-1, Math.min(1, offset));
-            return -clamped * 100;
-          });
-          return (
-            <span
-              aria-hidden="true"
-              class="absolute top-0 left-1/2 inline-block whitespace-pre"
-              style={{
-                transform: `translateX(-50%) translateY(${translateYPercent()}%)`,
-                transition: `transform ${SLOT_TRANSITION_MS}ms ${EDIT_SLIDER_SPRING_EASING} ${props.delayMs}ms`,
-              }}
-            >
-              {digit()}
-            </span>
-          );
-        }}
-      </Index>
+      <span
+        ref={enterCellRef}
+        class="rg-slot-cell"
+        data-dir={String(props.direction)}
+        style={cellStyle()}
+      >
+        {props.digit}
+      </span>
+      <Show when={exitingDigit()} keyed>
+        {(exitState) => (
+          <span
+            class="rg-slot-cell rg-slot-exit"
+            data-dir={String(exitState.direction)}
+            style={cellStyle()}
+          >
+            {exitState.digit}
+          </span>
+        )}
+      </Show>
     </span>
   );
 };
@@ -133,10 +125,9 @@ const splitIntoSegments = (text: string): CharSegment[] => {
   return segments;
 };
 
-// Returned in right-to-left order — index 0 is the ones place. Combined
-// with row-reverse in the renderer, each column keeps a stable identity
-// across digit-count transitions (9 → 10 reuses index-0 as the ones
-// digit and mounts a fresh column at index-1 for the new tens digit).
+// Returned right-to-left — index 0 is the ones place. Combined with
+// row-reverse rendering, each column keeps a stable identity across
+// digit-count transitions (9 → 10 reuses index-0 as the ones digit).
 const collectRightAlignedDigits = (segments: readonly CharSegment[]): string[] => {
   const reversed: string[] = [];
   for (let position = segments.length - 1; position >= 0; position--) {
@@ -146,9 +137,8 @@ const collectRightAlignedDigits = (segments: readonly CharSegment[]): string[] =
   return reversed;
 };
 
-// Only the prefix (leading sign / literals before any digit) renders.
-// In-body literals (e.g. `.` in "1.5") aren't handled — slider values
-// pass integers into Slot today.
+// Prefix slice only — in-body literals like `.` in "1.5" aren't
+// handled (slider passes integers today).
 const collectPrefixLiterals = (segments: readonly CharSegment[]): string[] => {
   const out: string[] = [];
   for (const segment of segments) {
@@ -158,13 +148,6 @@ const collectPrefixLiterals = (segments: readonly CharSegment[]): string[] => {
   return out;
 };
 
-const parseNumeric = (raw: string | number): number => {
-  if (typeof raw === "number") return raw;
-  return Number.parseFloat(String(raw).replace(/[^0-9.-]/g, "")) || 0;
-};
-
-// Slot — calligraph's "slots" variant ported to SolidJS. Per-digit CSS
-// transitions on transform produce the slot-spin roll on value change.
 export const Slot: Component<SlotProps> = (props) => {
   const text = createMemo(() => String(props.children ?? ""));
   const segments = createMemo(() => splitIntoSegments(text()));
@@ -187,40 +170,32 @@ export const Slot: Component<SlotProps> = (props) => {
     <span
       aria-label={text()}
       aria-live="polite"
-      class={`relative inline-flex ${props.class ?? ""}`}
-      style={props.style}
+      class={`inline-flex ${props.class ?? ""}`}
+      // SLOT_TRANSITION_MS drives both the JS exit-cell lifetime
+      // (setTimeout) and the CSS animation duration via this custom
+      // property — keeps the constant as the single source of truth.
+      style={{
+        ...props.style,
+        "--rg-slot-dur": `${SLOT_TRANSITION_MS}ms`,
+      }}
     >
-      <span
-        class="inline-flex"
-        style={{
-          "padding-top": `${SLOT_FADE_HEIGHT_EM}em`,
-          "padding-bottom": `${SLOT_FADE_HEIGHT_EM}em`,
-          "margin-top": `-${SLOT_FADE_HEIGHT_EM}em`,
-          "margin-bottom": `-${SLOT_FADE_HEIGHT_EM}em`,
-          "mask-image": SLOT_FADE_MASK,
-          "-webkit-mask-image": SLOT_FADE_MASK,
-        }}
-      >
-        <Index each={prefixLiterals()}>
-          {(character) => (
-            <span class="inline-block whitespace-pre" aria-hidden="true">
-              {character()}
-            </span>
+      <Index each={prefixLiterals()}>
+        {(character) => (
+          <span class="inline-block whitespace-pre" aria-hidden="true">
+            {character()}
+          </span>
+        )}
+      </Index>
+      <span class="inline-flex" style={{ "flex-direction": "row-reverse" }}>
+        <Index each={rightAlignedDigits()}>
+          {(digit, distanceFromRight) => (
+            <DigitColumn
+              digit={Number(digit())}
+              direction={direction()}
+              delayMs={distanceFromRight * SLOT_STAGGER_MS}
+            />
           )}
         </Index>
-        {/* row-reverse so the array's index 0 (ones place) renders
-            rightmost while keeping a stable column identity. */}
-        <span class="inline-flex" style={{ "flex-direction": "row-reverse" }}>
-          <Index each={rightAlignedDigits()}>
-            {(digit, distanceFromRight) => (
-              <SlotColumn
-                digit={Number(digit())}
-                direction={direction()}
-                delayMs={distanceFromRight * SLOT_STAGGER_MS}
-              />
-            )}
-          </Index>
-        </span>
       </span>
     </span>
   );
