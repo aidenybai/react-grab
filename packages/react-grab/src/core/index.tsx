@@ -74,7 +74,6 @@ import {
   DEFAULT_KEY_HOLD_DURATION_MS,
   MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS,
   WINDOW_REFOCUS_GRACE_PERIOD_MS,
-  PREVIEW_TEXT_MAX_LENGTH,
   NEXTJS_REVALIDATION_DELAY_MS,
   TOOLBAR_DEFAULT_POSITION_RATIO,
   DEFAULT_ACTION_ID,
@@ -125,6 +124,7 @@ import {
 import { freezePseudoStates, unfreezePseudoStates } from "../utils/freeze-pseudo-states.js";
 import { freezeUpdates } from "../utils/freeze-updates.js";
 import { copyContent } from "../utils/copy-content.js";
+import { notifyElementsSelected } from "../utils/notify-elements-selected.js";
 import { logRecoverableError } from "../utils/log-recoverable-error.js";
 
 const builtInPlugins = [copyPlugin, commentPlugin, openPlugin];
@@ -469,46 +469,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
     );
 
-
-    const notifyElementsSelected = async (elements: Element[]): Promise<void> => {
-      const elementsPayload = await Promise.all(
-        elements.map(async (element) => {
-          const source = await resolveSource(element);
-          let componentName = source?.componentName ?? null;
-          const filePath = source?.filePath;
-          const lineNumber = source?.lineNumber ?? undefined;
-          const columnNumber = source?.columnNumber ?? undefined;
-
-          if (!componentName) {
-            componentName = getComponentDisplayName(element);
-          }
-
-          const textContent =
-            element instanceof HTMLElement
-              ? element.innerText?.slice(0, PREVIEW_TEXT_MAX_LENGTH)
-              : undefined;
-
-          return {
-            tagName: getTagName(element),
-            id: element.id || undefined,
-            className: element.getAttribute("class") || undefined,
-            textContent,
-            componentName: componentName ?? undefined,
-            filePath,
-            lineNumber,
-            columnNumber,
-          };
-        }),
-      );
-
-      window.dispatchEvent(
-        new CustomEvent("react-grab:element-selected", {
-          detail: {
-            elements: elementsPayload,
-          },
-        }),
-      );
-    };
 
     const executeCopyOperation = async (
       clipboardOperation: () => Promise<void>,
