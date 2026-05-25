@@ -1,5 +1,4 @@
-import { Show, createSignal, onMount, onCleanup } from "solid-js";
-import type { Component } from "solid-js";
+import { createSignal, onCleanup, onMount, Show, type Component } from "solid-js";
 import type { CompletionViewProps } from "../../types.js";
 import { FEEDBACK_DURATION_MS, FADE_DURATION_MS } from "../../constants.js";
 import { confirmationFocusManager } from "../../utils/confirmation-focus-manager.js";
@@ -101,6 +100,9 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
   return (
     <div
       data-react-grab-completion
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
       class={cn(
         "contain-layout shrink-0 flex flex-col justify-center items-end rounded-full antialiased w-fit h-fit max-w-[280px] transition-opacity duration-100 ease-out [font-synthesis:none]",
         "bg-[var(--rg-panel-bg)]",
@@ -121,9 +123,12 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
             <Show when={props.onDismiss}>
               <button
                 data-react-grab-dismiss
+                type="button"
+                aria-keyshortcuts="Enter"
                 class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-[var(--rg-surface-hover)] [border-width:0.5px] border-solid border-[var(--rg-border-button)] cursor-pointer transition-all hover:bg-[var(--rg-surface-active)] press-scale h-[17px]"
                 onClick={handleAccept}
                 disabled={didCopy()}
+                aria-disabled={didCopy()}
               >
                 <span class="text-[var(--rg-text-primary)] text-[13px] leading-3.5 font-sans font-medium">
                   Keep
@@ -140,7 +145,8 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
         <div class="contain-layout shrink-0 flex items-center gap-0.5 py-1.5 px-2 w-full h-fit">
           <IconCheck
             size={14}
-            class="text-[var(--rg-text-primary-85)] shrink-0 animate-success-pop"
+            aria-hidden="true"
+            class="text-[var(--rg-text-primary-85)] shrink-0"
           />
           <span class="text-[var(--rg-text-primary)] text-[13px] leading-4 font-sans font-medium h-fit tabular-nums overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
             {displayStatusText()}

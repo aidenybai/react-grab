@@ -11,8 +11,8 @@ export const OFFSCREEN_POSITION = -1000;
 export const SELECTION_LERP_FACTOR = 0.95;
 
 export const FEEDBACK_DURATION_MS = 1500;
-export const FADE_DURATION_MS = 150;
-export const FADE_COMPLETE_BUFFER_MS = 150;
+export const FADE_DURATION_MS = 125;
+export const FADE_COMPLETE_BUFFER_MS = 125;
 export const KEYDOWN_SPAM_TIMEOUT_MS = 200;
 export const BLUR_DEACTIVATION_THRESHOLD_MS = 500;
 export const WINDOW_REFOCUS_GRACE_PERIOD_MS = 200;
@@ -155,8 +155,6 @@ export const DRAG_SELECTION_EDGE_INSET_PX = 1;
 export const MAX_ARROW_NAVIGATION_HISTORY = 50;
 export const MIN_HORIZONTAL_NAV_SIZE_PX = 16;
 export const HORIZONTAL_NAV_RECT_MATCH_TOLERANCE_PX = 2;
-export const MAX_TRANSFORM_ANCESTOR_DEPTH = 6;
-export const TRANSFORM_EARLY_BAIL_DEPTH = 3;
 
 export const ELEMENT_POSITION_CACHE_DISTANCE_THRESHOLD_PX = 2;
 export const ELEMENT_POSITION_THROTTLE_MS = 16;
@@ -167,8 +165,6 @@ export const ZOOM_DETECTION_THRESHOLD = 0.01;
 
 export const MOUNT_ROOT_RECHECK_DELAY_MS = 1000;
 
-export const MAX_COMMENT_ITEMS = 20;
-export const MAX_SESSION_STORAGE_SIZE_BYTES = 2 * 1024 * 1024;
 // Must match the CSS exit transition on dropdown components or the DOM
 // unmounts mid-animation.
 export const DROPDOWN_ANIMATION_DURATION_MS = 120;

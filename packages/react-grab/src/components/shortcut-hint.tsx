@@ -1,5 +1,4 @@
-import { Show } from "solid-js";
-import type { Component } from "solid-js";
+import { Show, type Component } from "solid-js";
 import { isMac } from "../utils/is-mac.js";
 import { IconCommand } from "./icons/icon-command.jsx";
 import { IconReturn } from "./icons/icon-return.jsx";

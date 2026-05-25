@@ -1,3 +1,19 @@
 *.json
 !baseline-latest.json
 !stage-*.json
+*.log
+
+# Per-run perf bench outputs written by e2e/perf-bench.spec.ts → PERF_LABEL.
+# Always machine-local. Headless-Chrome timings on a 4-core Linux runner
+# look nothing like timings on an M-series Mac, so committing one
+# machine's numbers as a shared "baseline" was misleading — it can't be
+# used as a hard threshold across hosts. Devs record their own local
+# baseline with `pnpm test:perf:baseline` and diff against it during
+# optimization work. CI compares its own runs across commits via the
+# uploaded artifact (.github/workflows/test-perf.yml).
+current/
+baseline/
+feature/
+
+# CDP trace dumps (PERF_TRACE=1) are 5-100MB each. Always local, never committed.
+*.trace.json

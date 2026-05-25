@@ -1,5 +1,4 @@
-import type { ReactGrabPageObject } from "./fixtures.js";
-import { test, expect } from "./fixtures.js";
+import { expect, test, type ReactGrabPageObject } from "./fixtures.js";
 
 test.describe("Keyboard Navigation", () => {
   test("should navigate to next element with ArrowDown", async ({ reactGrab }) => {

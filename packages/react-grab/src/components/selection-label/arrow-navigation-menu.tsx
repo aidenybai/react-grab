@@ -1,5 +1,4 @@
-import { Show, For, createEffect } from "solid-js";
-import type { Component } from "solid-js";
+import { createEffect, For, Show, type Component } from "solid-js";
 import type { ArrowNavigationItem } from "../../types.js";
 import { MENU_HIGHLIGHT_CORNER_SHAPE, MENU_PANEL_CORNER_RADIUS_PX } from "../../constants.js";
 import { createMenuHighlight } from "../../utils/create-menu-highlight.js";
@@ -55,6 +54,9 @@ export const ArrowNavigationMenu: Component<ArrowNavigationMenuProps> = (props) 
           menuItemsRef = element;
           highlightContainerRef(element);
         }}
+        role="menu"
+        aria-orientation="vertical"
+        aria-label="Navigate parent elements"
         class="relative flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5"
         onPointerMove={() => {
           didPointerMove = true;
@@ -62,6 +64,7 @@ export const ArrowNavigationMenu: Component<ArrowNavigationMenuProps> = (props) 
       >
         <div
           ref={highlightRef}
+          aria-hidden="true"
           class="pointer-events-none absolute opacity-0 transition-[top,left,width,height,opacity,border-radius] duration-75 ease-out bg-[var(--rg-surface-hover)]"
         />
         <For each={props.items}>
@@ -70,6 +73,10 @@ export const ArrowNavigationMenu: Component<ArrowNavigationMenuProps> = (props) 
               data-react-grab-ignore-events
               data-react-grab-arrow-nav-item={item.tagName}
               data-react-grab-arrow-nav-index={itemIndex()}
+              type="button"
+              role="menuitemradio"
+              aria-checked={itemIndex() === props.activeIndex}
+              tabindex={itemIndex() === props.activeIndex ? 0 : -1}
               class="relative z-1 contain-layout flex items-center w-full px-2 py-1 cursor-pointer text-left border-none bg-transparent"
               onPointerDown={(event) => event.stopPropagation()}
               onPointerEnter={(event) => {

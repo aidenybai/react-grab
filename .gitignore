@@ -15,6 +15,6 @@ playwright-report
 .cursor
 .claude
 meta.json
-.agents/skills
+.agents/skills/*
 .claude.expect
 .mcp.json

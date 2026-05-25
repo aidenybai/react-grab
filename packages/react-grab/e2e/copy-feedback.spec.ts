@@ -406,30 +406,42 @@ test.describe("Copy Feedback Behavior", () => {
   test.describe("Copied Drag Region Viewport Tracking", () => {
     test("drag region label follows page scroll while in copied state", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.dragSelect("li:first-child", "li:nth-child(3)");
+      await reactGrab.dragSelect(
+        "[data-testid='todo-list'] li:first-child",
+        "[data-testid='todo-list'] li:nth-child(3)",
+      );
       await reactGrab.waitForSelectionLabel();
 
       const labelBeforeScroll = await reactGrab.getSelectionLabelBounds();
       expect(labelBeforeScroll).not.toBeNull();
       if (!labelBeforeScroll) throw new Error("Expected label bounds before scroll");
 
-      const firstItem = reactGrab.page.locator("li").first();
-      const elementBeforeScroll = await firstItem.boundingBox();
+      const firstTodoItem = reactGrab.page.locator("[data-testid='todo-list'] li").first();
+      const elementBeforeScroll = await firstTodoItem.boundingBox();
       expect(elementBeforeScroll).not.toBeNull();
+      if (!elementBeforeScroll) throw new Error("Expected element bounds before scroll");
 
       await reactGrab.scrollPage(80);
-      await reactGrab.page.waitForTimeout(200);
 
-      const elementAfterScroll = await firstItem.boundingBox();
-      const labelAfterScroll = await reactGrab.getSelectionLabelBounds();
+      // Poll instead of waiting a fixed 200ms — under load (e.g. CI shard
+      // 1 of 4 with 4 concurrent workers competing for CPU) the chain
+      // scroll → viewportVersion → memo → solid re-render → DOM paint
+      // can take >2s. 5s is conservative but doesn't slow happy-path runs
+      // since `expect.poll` resolves as soon as the predicate succeeds.
+      await expect
+        .poll(
+          async () => {
+            const currentLabel = await reactGrab.getSelectionLabelBounds();
+            return currentLabel ? labelBeforeScroll.label.y - currentLabel.label.y : 0;
+          },
+          { timeout: 5000 },
+        )
+        .toBeGreaterThan(0);
+
+      const elementAfterScroll = await firstTodoItem.boundingBox();
       expect(elementAfterScroll).not.toBeNull();
-      expect(labelAfterScroll).not.toBeNull();
-      if (!elementBeforeScroll || !elementAfterScroll || !labelAfterScroll) {
-        throw new Error("Expected post-scroll bounds");
-      }
-
+      if (!elementAfterScroll) throw new Error("Expected post-scroll element bounds");
       expect(elementBeforeScroll.y - elementAfterScroll.y).toBeGreaterThan(0);
-      expect(labelBeforeScroll.label.y - labelAfterScroll.label.y).toBeGreaterThan(0);
     });
 
     test("drag region label follows viewport resize while in copied state", async ({

@@ -21,10 +21,16 @@ export const uninstallPointerEventsFreeze = (): void => {
   pointerEventsStyle = null;
 };
 
+// Writing `.disabled` on a CSSStyleSheet element invalidates the affected
+// selector tree even when the new value matches the old one in some engines,
+// so we early-out when the desired state is already in effect. Continuous
+// pointermove hits this hundreds of times per second.
 export const suspendPointerEventsFreeze = (): void => {
-  if (pointerEventsStyle) pointerEventsStyle.disabled = true;
+  if (!pointerEventsStyle || pointerEventsStyle.disabled) return;
+  pointerEventsStyle.disabled = true;
 };
 
 export const resumePointerEventsFreeze = (): void => {
-  if (pointerEventsStyle) pointerEventsStyle.disabled = false;
+  if (!pointerEventsStyle || !pointerEventsStyle.disabled) return;
+  pointerEventsStyle.disabled = false;
 };

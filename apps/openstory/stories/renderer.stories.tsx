@@ -37,7 +37,6 @@ const measureElement = (element: HTMLElement | undefined): OverlayBounds | undef
     width: rect.width,
     height: rect.height,
     borderRadius,
-    transform: "",
   };
 };
 

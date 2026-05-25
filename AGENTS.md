@@ -17,6 +17,16 @@
 - MUST: Put all magic numbers in `constants.ts` using `SCREAMING_SNAKE_CASE` with unit suffixes (`_MS`, `_PX`).
 - MUST: Put small, focused utility functions in `utils/` with one utility per file.
 - MUST: Use Boolean over !!.
+- MUST: No dynamic imports (`import()`) unless strictly necessary (e.g. code-splitting a large optional dependency, breaking a circular dependency that cannot be refactored). Prefer static `import` at the top of the file.
+
+## V8 Hot-Path Rules
+
+For hot per-frame paths (pointer/scroll handlers, animation ticks, fiber walks):
+
+- MUST: Keep indirect call sites monomorphic. Do not pass different callbacks to a shared recursor/iterator that gets hot - split into one specialized helper per callback, or inline the loop.
+- MUST: Mutate object fields in place instead of replacing the field with a fresh object literal. `obj.target.x = ...` not `obj.target = { x, y, ... }`. Allocating per-frame literals churns the GC and cycles hidden classes.
+- MUST: Keep numeric helpers in a single number-type "lane". A function that early-returns a Smi (`return 8`) and otherwise returns a double (`labelWidth * 0.2`) will deopt every consumer with `not a Smi`. Pick one (e.g. `Math.round` the double).
+- SHOULD: Prefer closed-form arithmetic over loops that subtract/add a constant until a delta is in range (e.g. angle normalization with `Math.round(delta / 360)`, not `while delta > 180`).
 
 ## SolidJS Rules
 

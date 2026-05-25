@@ -1,6 +1,5 @@
 import type { PackageManager } from "./detect.js";
-import type { TransformResult } from "./transform.js";
-import { applyTransform } from "./transform.js";
+import { applyTransform, type TransformResult } from "./transform.js";
 import { handleError } from "./handle-error.js";
 import { installPackages } from "./install.js";
 import { logger } from "./logger.js";

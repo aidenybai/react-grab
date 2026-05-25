@@ -1,5 +1,4 @@
-import { createSignal, createEffect, createMemo, onCleanup } from "solid-js";
-import type { Accessor } from "solid-js";
+import { createEffect, createMemo, createSignal, onCleanup, type Accessor } from "solid-js";
 import type { DropdownAnchor } from "../types.js";
 import {
   DROPDOWN_ANCHOR_GAP_PX,

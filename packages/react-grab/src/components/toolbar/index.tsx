@@ -1,5 +1,4 @@
-import { createSignal, createEffect, on, onMount, onCleanup } from "solid-js";
-import type { Component } from "solid-js";
+import { createEffect, createSignal, on, onCleanup, onMount, type Component } from "solid-js";
 import type { Position } from "../../types.js";
 import { cn } from "../../utils/cn.js";
 import { loadToolbarState, saveToolbarState, type SnapEdge, type ToolbarState } from "./state.js";
@@ -642,6 +641,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             data-react-grab-toolbar-toggle
             aria-label={props.isActive ? "Stop selecting element" : "Select element"}
             aria-pressed={Boolean(props.isActive)}
+            type="button"
             class={cn(
               "group contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
               buttonSpacingClass(),

@@ -1,0 +1,93 @@
+name: Test Perf
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test-perf:
+    runs-on: ubuntu-latest
+    # PR runs do the bench twice (base ref + HEAD) so the cost roughly
+    # doubles vs. a push-to-main run.
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Install Playwright browsers
+        run: pnpm --filter react-grab exec playwright install chromium --with-deps
+
+      # ─── Baseline run (PR only) ────────────────────────────────────────
+      # Swap `packages/react-grab/src/` to the base ref so the same
+      # bench harness measures the OLD library code. The harness itself
+      # (`e2e/perf-*.ts`, `scripts/diff-perf-runs.mjs`) and the e2e-app
+      # stimulus stay at HEAD so the only variable across runs is
+      # react-grab's source.
+      - name: Swap react-grab src to base ref
+        id: swap-base
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          if git cat-file -e "origin/${{ github.base_ref }}:packages/react-grab/src" 2>/dev/null; then
+            git checkout "origin/${{ github.base_ref }}" -- packages/react-grab/src
+            echo "swapped=true" >> "$GITHUB_OUTPUT"
+            echo "Swapped react-grab/src to origin/${{ github.base_ref }} ($(git rev-parse "origin/${{ github.base_ref }}"))"
+          else
+            echo "Base ref lacks packages/react-grab/src; skipping baseline run."
+            echo "swapped=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run perf bench against base ref src
+        if: github.event_name == 'pull_request' && steps.swap-base.outputs.swapped == 'true'
+        env:
+          PERF_LABEL: baseline
+        # --workers=1 keeps perf measurements off the noise floor that
+        # the sharded `test-e2e` workflow creates by running 4 workers
+        # in parallel. Playwright's webServer auto-runs
+        # `pnpm --filter react-grab build` so the dev server picks up
+        # whichever src is checked out.
+        run: pnpm --filter react-grab exec playwright test --grep @perf --workers=1 --reporter=list
+
+      - name: Restore react-grab src to HEAD
+        if: github.event_name == 'pull_request' && steps.swap-base.outputs.swapped == 'true'
+        run: git checkout HEAD -- packages/react-grab/src
+
+      # ─── HEAD run ──────────────────────────────────────────────────────
+      - name: Run perf bench against HEAD src
+        env:
+          PERF_LABEL: current
+        run: pnpm --filter react-grab exec playwright test --grep @perf --workers=1 --reporter=list
+
+      # ─── Diff & surface ────────────────────────────────────────────────
+      - name: Compute baseline-vs-current diff
+        if: always() && github.event_name == 'pull_request'
+        run: node packages/react-grab/scripts/diff-perf-runs.mjs packages/react-grab/perf/baseline packages/react-grab/perf/current | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload perf reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-bench-${{ github.event.pull_request.number || github.sha }}
+          path: packages/react-grab/perf/
+          if-no-files-found: warn
+          retention-days: 14

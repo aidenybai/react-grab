@@ -1,5 +1,4 @@
-import { Show, For, onMount, onCleanup } from "solid-js";
-import type { Component } from "solid-js";
+import { For, onCleanup, onMount, Show, type Component } from "solid-js";
 import type { ContextMenuAction, DropdownAnchor } from "../../types.js";
 import {
   DROPDOWN_EDGE_TRANSFORM_ORIGIN,
@@ -93,9 +92,16 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
           )}
           style={{ "min-width": `${TOOLBAR_MENU_MIN_WIDTH_PX}px` }}
         >
-          <div ref={highlightContainerRef} class="relative flex flex-col">
+          <div
+            ref={highlightContainerRef}
+            role="menu"
+            aria-orientation="vertical"
+            aria-label="Default action"
+            class="relative flex flex-col"
+          >
             <div
               ref={highlightRef}
+              aria-hidden="true"
               class="pointer-events-none absolute opacity-0 transition-[top,left,width,height,opacity,border-radius] duration-75 ease-out bg-[var(--rg-surface-hover)]"
             />
             <For each={props.actions}>
@@ -106,6 +112,9 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
                   <button
                     data-react-grab-ignore-events
                     data-react-grab-menu-item={action.id}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={isDefault()}
                     class="relative z-1 contain-layout flex items-center justify-between w-full px-2 py-1 cursor-pointer text-left border-none bg-transparent"
                     onPointerDown={(event) => event.stopPropagation()}
                     onPointerEnter={(event) => updateHighlight(event.currentTarget)}

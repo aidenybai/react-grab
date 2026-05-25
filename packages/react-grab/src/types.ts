@@ -303,7 +303,6 @@ export interface ReactGrabAPI {
 export interface OverlayBounds {
   borderRadius: string;
   height: number;
-  transform: string;
   width: number;
   x: number;
   y: number;
@@ -330,19 +329,6 @@ export interface SelectionLabelInstance {
   mouseXOffsetRatio?: number;
   errorMessage?: string;
   hideArrow?: boolean;
-}
-
-export interface CommentItem {
-  id: string;
-  content: string;
-  elementName: string;
-  tagName: string;
-  componentName?: string;
-  elementsCount?: number;
-  previewBounds?: OverlayBounds[];
-  elementSelectors?: string[];
-  commentText?: string;
-  timestamp: number;
 }
 
 export interface FrozenLabelEntry {

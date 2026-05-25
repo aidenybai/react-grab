@@ -1,0 +1,103 @@
+name: React Doctor Bot
+
+# Daily cron at 8am Pacific (15:00 UTC). Crontabs are UTC; adjust the hour
+# if you change timezones. Also runnable on-demand via "Run workflow".
+on:
+  schedule:
+    - cron: "0 15 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+# Never run two bot invocations at once.
+concurrency:
+  group: react-doctor-bot
+  cancel-in-progress: false
+
+jobs:
+  triage-and-fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Configure git identity
+        run: |
+          git config user.name "react-doctor-bot [bot]"
+          git config user.email "bot@million.dev"
+
+      # Load the playbook markdown into a step output so the action receives
+      # it as the `prompt`. Keeping the playbook in a separate file means you
+      # can edit the bot's instructions without touching CI.
+      - name: Load playbook into prompt
+        id: playbook
+        run: |
+          {
+            echo 'prompt<<__PLAYBOOK_EOF__'
+            cat .react-doctor/playbook.md
+            echo '__PLAYBOOK_EOF__'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Run React Doctor Bot
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          prompt: ${{ steps.playbook.outputs.prompt }}
+          # WARNING: prints every tool call, file read, and command stdout
+          # into the public Actions log. Fine while iterating; flip back to
+          # "false" (or just delete the line — false is the default) once
+          # the bot is stable, and rely on the `ACTIONS_STEP_DEBUG=true`
+          # secret as a per-run debug toggle.
+          show_full_output: "true"
+          claude_args: |
+            --model claude-opus-4-7
+            --effort max
+            --permission-mode bypassPermissions
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # `CLAUDE_CODE_EFFORT_LEVEL` is the only setting that persists `max`
+          # across the whole run (settings.json silently downgrades it).
+          CLAUDE_CODE_EFFORT_LEVEL: max
+          SKIP_ENV_VALIDATION: "true"
+
+# Notes
+# -----
+# * PRs opened by the default GITHUB_TOKEN do NOT trigger other `pull_request`
+#   workflows (GitHub anti-recursion). To make `code-quality`, `react-doctor`,
+#   and `test-build` run on bot PRs, swap `github_token:` above for a PAT or a
+#   GitHub App token (e.g. via `actions/create-github-app-token`).
+# * To test changes without waiting for cron, use the Actions tab → "React
+#   Doctor Bot" → "Run workflow".
+# * The bot reads `.react-doctor/false-positives.md` to skip known
+#   FPs. Add new patterns there (or let the bot append them via a docs PR).
+# * Runs at `--effort max` on `claude-opus-4-7` (deepest reasoning, no token
+#   constraint). Anthropic recommends `xhigh` for long agentic runs because
+#   `max` is "more prone to overthinking" — swap `--effort max` → `--effort
+#   xhigh` and drop the `CLAUDE_CODE_EFFORT_LEVEL` env var to cut cost.
+# * `--max-turns 500` is intentionally generous. A real run needs ~150-350
+#   turns (scan → triage → ~5-10 buckets × ~15-30 turns each → tracking
+#   issue). The action's default is 10, which is far too low for this
+#   playbook. Last failed run burned 81 turns for $4.33 with zero output;
+#   budget ~$25 per healthy daily run at this size.

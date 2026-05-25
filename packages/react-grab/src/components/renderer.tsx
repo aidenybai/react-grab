@@ -1,5 +1,4 @@
-import { Show, Index } from "solid-js";
-import type { Component } from "solid-js";
+import { Index, Show, type Component } from "solid-js";
 import type { ReactGrabRendererProps } from "../types.js";
 import {
   DEFAULT_ACTION_ID,

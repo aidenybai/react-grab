@@ -1,8 +1,7 @@
 import type { Meta, StoryObj } from "openstory/solid";
 import { onCleanup, onMount } from "solid-js";
 import { createElement } from "react";
-import { createRoot } from "react-dom/client";
-import type { Root } from "react-dom/client";
+import { createRoot, type Root } from "react-dom/client";
 
 import "react-grab";
 import { LiveCounter } from "./live-counter.react.js";
