@@ -127,13 +127,13 @@ export const createMenuHandlers = (input: MenuHandlersInput): MenuHandlers => {
 
     const elementBounds = createElementBounds(element);
     const context = buildActionContext({
+      mode: "default-action",
       element,
       filePath: store.selectionFilePath ?? undefined,
       lineNumber: store.selectionLineNumber ?? undefined,
       tagName: getTagName(element) || undefined,
       componentName: resolvedComponentName(),
       position,
-      shouldDeferHideContextMenu: false,
       performWithFeedbackOptions: {
         fallbackBounds: elementBounds,
         fallbackSelectionBounds: [elementBounds],

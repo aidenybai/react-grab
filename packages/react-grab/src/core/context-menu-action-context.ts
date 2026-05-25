@@ -73,13 +73,13 @@ export const createContextMenuActionContext = (
     const position = store.contextMenuPosition ?? pointer();
 
     return buildActionContext({
+      mode: "context-menu",
       element,
       filePath: fileInfo?.filePath ?? undefined,
       lineNumber: fileInfo?.lineNumber ?? undefined,
       tagName: contextMenuTagName(),
       componentName: contextMenuComponentName(),
       position,
-      shouldDeferHideContextMenu: true,
       onBeforeCopy: clearKeyboardSelectedElement,
       customEnterPromptMode: () => {
         clearAllLabels();

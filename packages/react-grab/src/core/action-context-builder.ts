@@ -18,18 +18,41 @@ import type { createPluginRegistry } from "./plugin-registry.js";
 type GrabStoreHandle = ReturnType<typeof createGrabStore>;
 type PluginRegistry = ReturnType<typeof createPluginRegistry>;
 
-export interface BuildActionContextOptions {
+interface BuildActionContextBase {
   element: Element;
   filePath: string | undefined;
   lineNumber: number | undefined;
   tagName: string | undefined;
   componentName: string | undefined;
   position: Position;
-  performWithFeedbackOptions?: PerformWithFeedbackOptions;
-  shouldDeferHideContextMenu: boolean;
-  onBeforeCopy?: () => void;
-  customEnterPromptMode?: () => void;
 }
+
+/**
+ * Two callers, two shapes. Modeling them as a discriminated union means
+ * the type tells you up-front which callbacks/options each path expects,
+ * rather than the previous "11 fields, 7 optional, callers pick a
+ * different subset" tangle.
+ *
+ *  - `mode: "default-action"` — fired by `runPendingDefaultAction` against
+ *    the just-clicked element. The action's `performWithFeedback` uses
+ *    the supplied fallback bounds, and the context menu is hidden
+ *    synchronously (it was never shown).
+ *
+ *  - `mode: "context-menu"` — fired by the regular context-menu actions
+ *    row. Hides the context menu on the next microtask so the click that
+ *    fires the action doesn't fall through to the element underneath.
+ *    May supply custom `onBeforeCopy` / `customEnterPromptMode` callbacks.
+ */
+export type BuildActionContextOptions =
+  | (BuildActionContextBase & {
+      mode: "default-action";
+      performWithFeedbackOptions: PerformWithFeedbackOptions;
+    })
+  | (BuildActionContextBase & {
+      mode: "context-menu";
+      onBeforeCopy?: () => void;
+      customEnterPromptMode?: () => void;
+    });
 
 interface ActionContextBuilderInput {
   grab: GrabStoreHandle;
@@ -180,22 +203,16 @@ export const createActionContextBuilder = (
   };
 
   const buildActionContext = (options: BuildActionContextOptions): ContextMenuActionContext => {
-    const {
-      element,
-      filePath,
-      lineNumber,
-      tagName,
-      componentName,
-      position,
-      performWithFeedbackOptions,
-      shouldDeferHideContextMenu,
-      onBeforeCopy,
-      customEnterPromptMode,
-    } = options;
+    const { element, filePath, lineNumber, tagName, componentName, position } = options;
+    const isContextMenuMode = options.mode === "context-menu";
+    const onBeforeCopy = isContextMenuMode ? options.onBeforeCopy : undefined;
+    const customEnterPromptMode = isContextMenuMode ? options.customEnterPromptMode : undefined;
+    const performWithFeedbackOptions =
+      options.mode === "default-action" ? options.performWithFeedbackOptions : undefined;
 
     const elements = store.frozenElements.length > 0 ? store.frozenElements : [element];
 
-    const hideContextMenuAction = shouldDeferHideContextMenu
+    const hideContextMenuAction = isContextMenuMode
       ? deferHideContextMenu
       : actions.hideContextMenu;
 
