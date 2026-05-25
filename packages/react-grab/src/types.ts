@@ -408,6 +408,12 @@ export interface GrabbedBox {
   element?: Element;
 }
 
+/**
+ * The public-facing shape of a grabbed box, without the internal element
+ * reference. Used by the renderer prop bag and the public `ReactGrabState`.
+ */
+export type PublicGrabbedBox = Pick<GrabbedBox, "id" | "bounds" | "createdAt">;
+
 export interface Rect {
   left: number;
   top: number;

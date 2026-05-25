@@ -1,10 +1,9 @@
 import type { Component } from "solid-js";
 import { cn } from "../../utils/cn.js";
 import { SELECT_ICON_ROTATION_TRANSITION_MS } from "../../constants.js";
+import type { IconProps } from "./types.js";
 
-interface IconSelectProps {
-  size?: number;
-  class?: string;
+interface IconSelectProps extends IconProps {
   rotationDeg?: number;
 }
 

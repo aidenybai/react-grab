@@ -23,9 +23,6 @@ importers:
       '@voidzero-dev/vite-plus-core':
         specifier: ^0.1.20
         version: 0.1.20(@types/node@25.6.2)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.37.0)(tsx@4.21.0)(typescript@6.0.3)(yaml@2.8.4)
-      picomatch:
-        specifier: ^4.0.4
-        version: 4.0.4
       turbo:
         specifier: ^2.9.12
         version: 2.9.12
