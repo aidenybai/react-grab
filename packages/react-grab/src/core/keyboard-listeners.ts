@@ -6,7 +6,7 @@ import {
 } from "../constants.js";
 import { isCLikeKey } from "../utils/is-c-like-key.js";
 import { isEnterCode } from "../utils/is-enter-code.js";
-import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
+import { isEventFromIgnoredOverlay, isEventFromOverlay } from "../utils/is-event-from-overlay.js";
 import { isKeyboardEventTriggeredByInput } from "../utils/is-keyboard-event-triggered-by-input.js";
 import { isMac } from "../utils/is-mac.js";
 import { isTargetKeyCombination } from "../utils/is-target-key-combination.js";
@@ -152,7 +152,7 @@ export const registerKeyboardListeners = (input: KeyboardListenersInput): void =
       }
 
       const isFromOverlay =
-        isEventFromOverlay(event, "data-react-grab-ignore-events") && !isEnterToActivateInput;
+        isEventFromIgnoredOverlay(event) && !isEnterToActivateInput;
 
       if (isPromptMode() || isFromOverlay) {
         if (event.key === "Escape") {
@@ -231,7 +231,7 @@ export const registerKeyboardListeners = (input: KeyboardListenersInput): void =
         return;
       }
 
-      if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
+      if (isEventFromIgnoredOverlay(event)) return;
 
       const requiredModifiers = getRequiredModifiers(pluginRegistry.store.options);
       const isReleasingModifier =

@@ -1,7 +1,7 @@
 import { type Accessor } from "solid-js";
 import { freezeAllAnimations } from "../utils/freeze-animations.js";
 import { getElementAtPosition } from "../utils/get-element-at-position.js";
-import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
+import { isEventFromIgnoredOverlay } from "../utils/is-event-from-overlay.js";
 import type { ActivationHoldController } from "./activation-hold.js";
 import type { ActivationLifecycle } from "./activation-lifecycle.js";
 import type { ArrowNavigationController } from "./arrow-navigation-controller.js";
@@ -102,7 +102,7 @@ export const registerPointerListeners = (input: PointerListenersInput): void => 
       if (!event.isPrimary) return;
       const isTouchPointer = event.pointerType === "touch";
       actions.setTouchMode(isTouchPointer);
-      if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
+      if (isEventFromIgnoredOverlay(event)) return;
       if (store.contextMenuPosition !== null) return;
       if (isSelectionInteractionLocked()) return;
       if (isTouchPointer && !isHoldingKeys() && !isActivated()) return;
@@ -132,7 +132,7 @@ export const registerPointerListeners = (input: PointerListenersInput): void => 
       if (event.button !== 0) return;
       if (!event.isPrimary) return;
       actions.setTouchMode(event.pointerType === "touch");
-      if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
+      if (isEventFromIgnoredOverlay(event)) return;
       if (store.contextMenuPosition !== null) return;
       if (toolbarMenu.position() !== null) return;
 
@@ -176,7 +176,7 @@ export const registerPointerListeners = (input: PointerListenersInput): void => 
     (event: PointerEvent) => {
       if (event.button !== 0) return;
       if (!event.isPrimary) return;
-      if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
+      if (isEventFromIgnoredOverlay(event)) return;
       if (store.contextMenuPosition !== null) return;
       const isActive = isRendererActive() || isSelectionInteractionLocked() || isDragging();
       const hasModifierKeyHeld = event.metaKey || event.ctrlKey;
@@ -194,7 +194,7 @@ export const registerPointerListeners = (input: PointerListenersInput): void => 
     (event: MouseEvent) => {
       if (!isRendererActive() || isCopying() || isPromptMode()) return;
 
-      const isFromOverlay = isEventFromOverlay(event, "data-react-grab-ignore-events");
+      const isFromOverlay = isEventFromIgnoredOverlay(event);
       const position = { x: event.clientX, y: event.clientY };
       const overlayFrozenElement =
         isFromOverlay && store.frozenElements.length > 1
@@ -243,7 +243,7 @@ export const registerPointerListeners = (input: PointerListenersInput): void => 
   eventListenerManager.addWindowListener(
     "click",
     (event: MouseEvent) => {
-      if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
+      if (isEventFromIgnoredOverlay(event)) return;
       if (store.contextMenuPosition !== null) return;
 
       if (isRendererActive() || didJustDrag()) {
@@ -265,7 +265,7 @@ export const registerPointerListeners = (input: PointerListenersInput): void => 
   eventListenerManager.addDocumentListener(
     "copy",
     (event: ClipboardEvent) => {
-      if (isPromptMode() || isEventFromOverlay(event, "data-react-grab-ignore-events")) {
+      if (isPromptMode() || isEventFromIgnoredOverlay(event)) {
         return;
       }
       if (isRendererActive()) {
