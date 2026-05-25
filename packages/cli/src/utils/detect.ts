@@ -2,6 +2,10 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { detect } from "package-manager-detector/detect";
 import ignore from "ignore";
+import {
+  REACT_GRAB_DETECTION_PATHS,
+  hasReactGrabCodeInFile,
+} from "./framework-paths.js";
 
 export type PackageManager = "npm" | "yarn" | "pnpm" | "bun";
 export type Framework = "next" | "vite" | "tanstack" | "webpack" | "unknown";
@@ -342,53 +346,13 @@ export const findReactProjects = (projectRoot: string): WorkspaceProject[] => {
   return [];
 };
 
-const hasReactGrabInFile = (filePath: string): boolean => {
-  if (!existsSync(filePath)) return false;
-  try {
-    const content = readFileSync(filePath, "utf-8");
-    const fuzzyPatterns = [
-      /["'`][^"'`]*react-grab/,
-      /react-grab[^"'`]*["'`]/,
-      /<[^>]*react-grab/i,
-      /import[^;]*react-grab/i,
-      /require[^)]*react-grab/i,
-      /from\s+[^;]*react-grab/i,
-      /src[^>]*react-grab/i,
-    ];
-    return fuzzyPatterns.some((pattern) => pattern.test(content));
-  } catch {
-    return false;
-  }
-};
-
 export const detectReactGrab = (projectRoot: string): boolean => {
   const dependencies = readMergedDependencies(projectRoot);
   if (dependencies?.["react-grab"]) return true;
 
-  const filesToCheck = [
-    join(projectRoot, "app", "layout.tsx"),
-    join(projectRoot, "app", "layout.jsx"),
-    join(projectRoot, "src", "app", "layout.tsx"),
-    join(projectRoot, "src", "app", "layout.jsx"),
-    join(projectRoot, "pages", "_document.tsx"),
-    join(projectRoot, "pages", "_document.jsx"),
-    join(projectRoot, "instrumentation-client.ts"),
-    join(projectRoot, "instrumentation-client.js"),
-    join(projectRoot, "src", "instrumentation-client.ts"),
-    join(projectRoot, "src", "instrumentation-client.js"),
-    join(projectRoot, "index.html"),
-    join(projectRoot, "public", "index.html"),
-    join(projectRoot, "src", "index.tsx"),
-    join(projectRoot, "src", "index.ts"),
-    join(projectRoot, "src", "main.tsx"),
-    join(projectRoot, "src", "main.ts"),
-    join(projectRoot, "src", "routes", "__root.tsx"),
-    join(projectRoot, "src", "routes", "__root.jsx"),
-    join(projectRoot, "app", "routes", "__root.tsx"),
-    join(projectRoot, "app", "routes", "__root.jsx"),
-  ];
-
-  return filesToCheck.some(hasReactGrabInFile);
+  return REACT_GRAB_DETECTION_PATHS.some((segments) =>
+    hasReactGrabCodeInFile(join(projectRoot, ...segments)),
+  );
 };
 
 export const detectUnsupportedFramework = (projectRoot: string): UnsupportedFramework => {
