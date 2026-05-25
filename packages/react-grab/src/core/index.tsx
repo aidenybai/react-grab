@@ -14,6 +14,7 @@ import {
 import { render } from "solid-js/web";
 import { createGrabStore } from "./store.js";
 import { createGrabElementSelectors, createGrabPhaseSelectors } from "./selectors.js";
+import { createToolbarMenuController } from "./toolbar-menu-controller.js";
 import { CopyFailedError } from "../errors.js";
 import {
   isKeyboardEventTriggeredByInput,
@@ -108,7 +109,6 @@ import type {
   SourceInfo,
   Plugin,
   ToolbarState,
-  DropdownAnchor,
   ElementLabelVariant,
 } from "../types.js";
 import { DEFAULT_THEME } from "./theme.js";
@@ -136,7 +136,6 @@ import { freezeUpdates } from "../utils/freeze-updates.js";
 import { copyContent } from "../utils/copy-content.js";
 import { generateId } from "../utils/generate-id.js";
 import { logRecoverableError } from "../utils/log-recoverable-error.js";
-import { getNearestEdge } from "../utils/get-nearest-edge.js";
 
 const builtInPlugins = [copyPlugin, commentPlugin, openPlugin];
 
@@ -261,9 +260,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       savedToolbarState,
     );
     const [isToolbarSelectHovered, setIsToolbarSelectHovered] = createSignal(false);
-    const [toolbarMenuPosition, setToolbarMenuPosition] = createSignal<DropdownAnchor | null>(null);
     let toolbarElement: HTMLDivElement | undefined;
-    let dropdownTrackingFrameId: number | null = null;
+    const toolbarMenu = createToolbarMenuController({
+      getToolbarElement: () => toolbarElement,
+    });
+    const toolbarMenuPosition = toolbarMenu.position;
 
     let shiftSelectionLabelAnchorRatioByElement = new WeakMap<Element, number>();
 
@@ -2840,9 +2841,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
       clearCopyFeedbackCooldown();
-      if (dropdownTrackingFrameId !== null) {
-        nativeCancelAnimationFrame(dropdownTrackingFrameId);
-      }
+      toolbarMenu.dispose();
       grabbedBoxTimeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
       grabbedBoxTimeouts.clear();
       cancelAllLabelFades();
@@ -3271,49 +3270,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }, 0);
     };
 
-    const stopTrackingDropdownPosition = () => {
-      if (dropdownTrackingFrameId !== null) {
-        nativeCancelAnimationFrame(dropdownTrackingFrameId);
-        dropdownTrackingFrameId = null;
-      }
-    };
-
-    const computeDropdownAnchor = (): DropdownAnchor | null => {
-      if (!toolbarElement) return null;
-      const toolbarRect = toolbarElement.getBoundingClientRect();
-      const edge = getNearestEdge(toolbarRect);
-
-      if (edge === "left" || edge === "right") {
-        return {
-          x: edge === "left" ? toolbarRect.right : toolbarRect.left,
-          y: toolbarRect.top + toolbarRect.height / 2,
-          edge,
-          toolbarWidth: toolbarRect.width,
-        };
-      }
-
-      return {
-        x: toolbarRect.left + toolbarRect.width / 2,
-        y: edge === "top" ? toolbarRect.bottom : toolbarRect.top,
-        edge,
-        toolbarWidth: toolbarRect.width,
-      };
-    };
-
-    const openTrackedDropdown = (setPosition: (anchor: DropdownAnchor) => void) => {
-      stopTrackingDropdownPosition();
-      const updatePosition = () => {
-        const anchor = computeDropdownAnchor();
-        if (anchor) setPosition(anchor);
-        dropdownTrackingFrameId = nativeRequestAnimationFrame(updatePosition);
-      };
-      updatePosition();
-    };
-
-    const dismissToolbarMenu = () => {
-      stopTrackingDropdownPosition();
-      setToolbarMenuPosition(null);
-    };
+    const dismissToolbarMenu = toolbarMenu.dismiss;
 
     const dismissAllPopups = () => {
       dismissToolbarMenu();
@@ -3324,7 +3281,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         dismissToolbarMenu();
       } else {
         actions.hideContextMenu();
-        openTrackedDropdown(setToolbarMenuPosition);
+        toolbarMenu.open();
       }
     };
 
@@ -3545,7 +3502,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         disposed = true;
         hasInited = false;
         disposeRenderer?.();
-        stopTrackingDropdownPosition();
+        toolbarMenu.dispose();
         toolbarStateChangeCallbacks.clear();
         dispose();
       },
