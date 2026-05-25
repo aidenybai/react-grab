@@ -25,6 +25,7 @@ import { createDebouncedComponentName } from "./debounced-component-name.js";
 import { createDragPreviewDebounce } from "./drag-preview-debounce.js";
 import { createSelectionSourceSync } from "./selection-source-sync.js";
 import { createOverlayEffects } from "./overlay-effects.js";
+import { createEnterBlocker } from "./enter-blocker.js";
 import { CopyFailedError } from "../errors.js";
 import {
   isKeyboardEventTriggeredByInput,
@@ -105,7 +106,7 @@ import type {
 } from "../types.js";
 import { DEFAULT_THEME } from "./theme.js";
 import { createPluginRegistry } from "./plugin-registry.js";
-import { getRequiredModifiers, setupKeyboardEventClaimer } from "./keyboard-handlers.js";
+import { getRequiredModifiers } from "./keyboard-handlers.js";
 import { createAutoScroller, getAutoScrollDirection } from "./auto-scroll.js";
 import { logIntro } from "./log-intro.js";
 import { getScriptOptions } from "../utils/get-script-options.js";
@@ -1520,40 +1521,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const eventListenerManager = createEventListenerManager();
 
-    const keyboardClaimer = setupKeyboardEventClaimer();
-
-    const blockEnterIfNeeded = (event: KeyboardEvent) => {
-      let originalKey: string;
-      try {
-        originalKey = keyboardClaimer.originalKeyDescriptor?.get
-          ? keyboardClaimer.originalKeyDescriptor.get.call(event)
-          : event.key;
-      } catch {
-        return false;
-      }
-      const isEnterKey = originalKey === "Enter" || isEnterCode(event.code);
-      const isOverlayActive = isActivated() || isHoldingKeys();
-      const shouldBlockEnter =
-        isEnterKey && isOverlayActive && !isPromptMode() && !store.wasActivatedByToggle;
-
-      if (shouldBlockEnter) {
-        keyboardClaimer.claimedEvents.add(event);
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        return true;
-      }
-      return false;
-    };
-
-    eventListenerManager.addDocumentListener("keydown", blockEnterIfNeeded, {
-      capture: true,
+    const enterBlocker = createEnterBlocker({
+      grab,
+      isActivated,
+      isHoldingKeys,
+      isPromptMode,
+      eventListenerManager,
     });
-    eventListenerManager.addDocumentListener("keyup", blockEnterIfNeeded, {
-      capture: true,
-    });
-    eventListenerManager.addDocumentListener("keypress", blockEnterIfNeeded, {
-      capture: true,
-    });
+    const blockEnterIfNeeded = enterBlocker.blockEnterIfNeeded;
 
     const handleEnterKeyActivation = (event: KeyboardEvent): boolean => {
       if (!isEnterCode(event.code)) return false;
@@ -2233,7 +2208,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       document.body.style.userSelect = "";
       document.body.style.touchAction = "";
       cursorOverride.clear();
-      keyboardClaimer.restore();
+      enterBlocker.restore();
     });
 
     const resolvedCssText = typeof cssText === "string" ? cssText : "";
