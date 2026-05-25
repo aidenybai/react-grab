@@ -21,13 +21,12 @@ import { openFile } from "../utils/open-file.js";
 import type { Position } from "../types.js";
 import type { ActivationHoldController } from "./activation-hold.js";
 import type { ActivationLifecycle } from "./activation-lifecycle.js";
-import type { createGrabStore } from "./store.js";
+import type { GrabStoreHandle } from "./store.js";
 import type { createPluginRegistry } from "./plugin-registry.js";
 import type { GrabElementSelectors, GrabPhaseSelectors } from "./selectors.js";
 import type { KeydownSpamTimer } from "./keydown-spam-timer.js";
 import type { MenuHandlers } from "./menu-handlers.js";
 
-type GrabStoreHandle = ReturnType<typeof createGrabStore>;
 type PluginRegistry = ReturnType<typeof createPluginRegistry>;
 
 interface ActivationKeyHandlersInput {

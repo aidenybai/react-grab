@@ -1,8 +1,7 @@
 import { type Accessor } from "solid-js";
 import type { Position } from "../types.js";
-import type { createGrabStore } from "./store.js";
+import type { GrabStoreHandle } from "./store.js";
 
-type GrabStoreHandle = ReturnType<typeof createGrabStore>;
 
 interface SpaceDragRepositioningInput {
   grab: GrabStoreHandle;

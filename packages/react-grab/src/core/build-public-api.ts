@@ -17,7 +17,7 @@ import type {
 import type { ActivationLifecycle } from "./activation-lifecycle.js";
 import type { CommentModeHandlers } from "./comment-mode-handlers.js";
 import type { CopyOrchestrator } from "./copy-orchestrator.js";
-import type { createGrabStore } from "./store.js";
+import type { GrabStoreHandle } from "./store.js";
 import type { createPluginRegistry } from "./plugin-registry.js";
 import type { GrabElementSelectors, GrabPhaseSelectors } from "./selectors.js";
 import type { DragSelectors } from "./drag-selectors.js";
@@ -27,7 +27,6 @@ import type { ToolbarMenuController } from "./toolbar-menu-controller.js";
 import type { ToolbarStateController } from "./toolbar-state-controller.js";
 import type { MenuHandlers } from "./menu-handlers.js";
 
-type GrabStoreHandle = ReturnType<typeof createGrabStore>;
 type PluginRegistry = ReturnType<typeof createPluginRegistry>;
 
 interface BuildPublicApiInput {

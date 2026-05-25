@@ -1,10 +1,9 @@
 import { isEnterCode } from "../utils/is-enter-code.js";
 import { setupKeyboardEventClaimer } from "./keyboard-handlers.js";
 import type { Accessor } from "solid-js";
-import type { createGrabStore } from "./store.js";
+import type { GrabStoreHandle } from "./store.js";
 import type { createEventListenerManager } from "./events.js";
 
-type GrabStoreHandle = ReturnType<typeof createGrabStore>;
 type EventListenerManagerHandle = ReturnType<typeof createEventListenerManager>;
 
 interface EnterBlockerInput {

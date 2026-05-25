@@ -14,10 +14,9 @@ import type {
   SelectionLabelInstance,
   ToolbarState,
 } from "../types.js";
-import type { createGrabStore } from "./store.js";
+import type { GrabStoreHandle } from "./store.js";
 import type { createPluginRegistry } from "./plugin-registry.js";
 
-type GrabStoreHandle = ReturnType<typeof createGrabStore>;
 type PluginRegistry = ReturnType<typeof createPluginRegistry>;
 
 interface MountRendererInput {

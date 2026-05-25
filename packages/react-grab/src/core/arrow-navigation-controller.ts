@@ -9,10 +9,9 @@ import { getTagName } from "../utils/get-tag-name.js";
 import { getVisibleBoundsCenter } from "../utils/get-visible-bounds-center.js";
 import { isValidGrabbableElement } from "../utils/is-valid-grabbable-element.js";
 import type { ArrowNavigationState } from "../types.js";
-import type { createGrabStore } from "./store.js";
+import type { GrabStoreHandle } from "./store.js";
 import type { GrabPhaseSelectors } from "./selectors.js";
 
-type GrabStoreHandle = ReturnType<typeof createGrabStore>;
 
 interface ArrowNavigationInput {
   grab: GrabStoreHandle;

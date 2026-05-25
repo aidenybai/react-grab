@@ -1,11 +1,10 @@
 import { type Accessor } from "solid-js";
 import { DEFAULT_ACTION_ID } from "../constants.js";
 import type { ActivationLifecycle } from "./activation-lifecycle.js";
-import type { createGrabStore } from "./store.js";
+import type { GrabStoreHandle } from "./store.js";
 import type { GrabPhaseSelectors } from "./selectors.js";
 import type { ToolbarStateController } from "./toolbar-state-controller.js";
 
-type GrabStoreHandle = ReturnType<typeof createGrabStore>;
 
 interface CommentModeHandlersInput {
   grab: GrabStoreHandle;

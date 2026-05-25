@@ -2,11 +2,10 @@ import { type Accessor, createMemo } from "solid-js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
 import { getTagName } from "../utils/get-tag-name.js";
 import type { ElementLabelVariant, OverlayBounds } from "../types.js";
-import type { createGrabStore } from "./store.js";
+import type { GrabStoreHandle } from "./store.js";
 import type { createPluginRegistry } from "./plugin-registry.js";
 import type { GrabElementSelectors, GrabPhaseSelectors } from "./selectors.js";
 
-type GrabStoreHandle = ReturnType<typeof createGrabStore>;
 type PluginRegistry = ReturnType<typeof createPluginRegistry>;
 
 interface OverlayVisibilityInput {

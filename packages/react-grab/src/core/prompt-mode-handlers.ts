@@ -3,10 +3,9 @@ import { createElementBounds } from "../utils/create-element-bounds.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import type { ActivationLifecycle } from "./activation-lifecycle.js";
 import type { CopyOrchestrator } from "./copy-orchestrator.js";
-import type { createGrabStore } from "./store.js";
+import type { GrabStoreHandle } from "./store.js";
 import type { GrabPhaseSelectors } from "./selectors.js";
 
-type GrabStoreHandle = ReturnType<typeof createGrabStore>;
 
 interface PromptModeHandlersInput {
   grab: GrabStoreHandle;

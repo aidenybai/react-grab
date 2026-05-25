@@ -622,3 +622,5 @@ const createGrabStore = (input: GrabStoreInput) => {
 };
 
 export { createGrabStore };
+
+export type GrabStoreHandle = ReturnType<typeof createGrabStore>;

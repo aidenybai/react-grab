@@ -4,9 +4,8 @@ import { freezeAnimations, freezeGlobalAnimations, unfreezeGlobalAnimations } fr
 import { freezePseudoStates, unfreezePseudoStates } from "../utils/freeze-pseudo-states.js";
 import { freezeUpdates } from "../utils/freeze-updates.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
-import type { createGrabStore } from "./store.js";
+import type { GrabStoreHandle } from "./store.js";
 
-type GrabStoreHandle = ReturnType<typeof createGrabStore>;
 
 interface OverlayEffectsInput {
   grab: GrabStoreHandle;

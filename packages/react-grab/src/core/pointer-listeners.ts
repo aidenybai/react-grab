@@ -8,7 +8,7 @@ import type { ArrowNavigationController } from "./arrow-navigation-controller.js
 import type { DragHandlers } from "./drag-handlers.js";
 import type { EnterBlocker } from "./enter-blocker.js";
 import type { createEventListenerManager } from "./events.js";
-import type { createGrabStore } from "./store.js";
+import type { GrabStoreHandle } from "./store.js";
 import type { GrabElementSelectors, GrabPhaseSelectors } from "./selectors.js";
 import type { MenuHandlers } from "./menu-handlers.js";
 import type { OverlayBounds } from "../types.js";
@@ -16,7 +16,6 @@ import type { PromptModeHandlers } from "./prompt-mode-handlers.js";
 import type { ShiftMultiSelectState } from "./shift-multi-select-state.js";
 import type { ToolbarMenuController } from "./toolbar-menu-controller.js";
 
-type GrabStoreHandle = ReturnType<typeof createGrabStore>;
 type EventListenerManagerHandle = ReturnType<typeof createEventListenerManager>;
 
 interface PointerListenersInput {

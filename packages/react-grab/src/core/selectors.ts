@@ -9,9 +9,8 @@ import { createElementBounds } from "../utils/create-element-bounds.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
 import { isRootElement } from "../utils/is-root-element.js";
 import type { OverlayBounds } from "../types.js";
-import type { createGrabStore } from "./store.js";
+import type { GrabStoreHandle } from "./store.js";
 
-type GrabStoreHandle = ReturnType<typeof createGrabStore>;
 
 /**
  * Pure derivations over the grab state machine. Every selector here is a

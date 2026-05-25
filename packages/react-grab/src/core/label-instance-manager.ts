@@ -6,10 +6,9 @@ import { createElementBounds } from "../utils/create-element-bounds.js";
 import { generateId } from "../utils/generate-id.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
 import type { GrabbedBox, OverlayBounds, SelectionLabelInstance } from "../types.js";
-import type { createGrabStore } from "./store.js";
+import type { GrabStoreHandle } from "./store.js";
 import type { createPluginRegistry } from "./plugin-registry.js";
 
-type GrabStoreHandle = ReturnType<typeof createGrabStore>;
 type PluginRegistry = ReturnType<typeof createPluginRegistry>;
 
 interface CreateLabelInstanceOptions {

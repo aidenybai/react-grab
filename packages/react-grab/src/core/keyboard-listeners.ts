@@ -20,7 +20,7 @@ import type { CopyFeedbackCooldown } from "./copy-feedback-cooldown.js";
 import type { DragHandlers } from "./drag-handlers.js";
 import type { EnterBlocker } from "./enter-blocker.js";
 import type { createEventListenerManager } from "./events.js";
-import type { createGrabStore } from "./store.js";
+import type { GrabStoreHandle } from "./store.js";
 import type { createPluginRegistry } from "./plugin-registry.js";
 import type { GrabPhaseSelectors } from "./selectors.js";
 import type { KeydownSpamTimer } from "./keydown-spam-timer.js";
@@ -29,7 +29,6 @@ import type { SpaceDragRepositioning } from "./space-drag-repositioning.js";
 import type { ToolbarMenuController } from "./toolbar-menu-controller.js";
 import type { WindowFocusListeners } from "./window-focus-listeners.js";
 
-type GrabStoreHandle = ReturnType<typeof createGrabStore>;
 type PluginRegistry = ReturnType<typeof createPluginRegistry>;
 type EventListenerManagerHandle = ReturnType<typeof createEventListenerManager>;
 

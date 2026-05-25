@@ -1,7 +1,6 @@
 import { createEffect, onCleanup } from "solid-js";
-import type { createGrabStore } from "./store.js";
+import type { GrabStoreHandle } from "./store.js";
 
-type GrabStoreHandle = ReturnType<typeof createGrabStore>;
 
 export interface ActivationHoldController {
   /** Timestamp when the most recent hold timer started, or null if not holding. */

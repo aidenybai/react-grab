@@ -4,9 +4,8 @@ import { resolveSource, type ResolvedSource } from "./context.js";
 import type { ActionContextBuilder } from "./action-context-builder.js";
 import type { ContextMenuActionContext, Position } from "../types.js";
 import type { LabelInstanceManager } from "./label-instance-manager.js";
-import type { createGrabStore } from "./store.js";
+import type { GrabStoreHandle } from "./store.js";
 
-type GrabStoreHandle = ReturnType<typeof createGrabStore>;
 
 interface ContextMenuActionContextInputs {
   grab: GrabStoreHandle;

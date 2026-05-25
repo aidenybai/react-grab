@@ -12,10 +12,9 @@ import { isValidGrabbableElement } from "../utils/is-valid-grabbable-element.js"
 import { calculateDragDistance, calculateDragRectangle } from "../utils/drag-geometry.js";
 import type { FrozenLabelEntry, OverlayBounds, Position } from "../types.js";
 import type { ShiftMultiSelectState } from "./shift-multi-select-state.js";
-import type { createGrabStore } from "./store.js";
+import type { GrabStoreHandle } from "./store.js";
 import type { GrabElementSelectors, GrabPhaseSelectors } from "./selectors.js";
 
-type GrabStoreHandle = ReturnType<typeof createGrabStore>;
 
 interface DragSelectorsInput {
   grab: GrabStoreHandle;

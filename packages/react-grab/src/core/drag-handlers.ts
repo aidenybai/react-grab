@@ -28,7 +28,7 @@ import { getAutoScrollDirection, type createAutoScroller } from "./auto-scroll.j
 import type { Position } from "../types.js";
 import type { CommentModeHandlers } from "./comment-mode-handlers.js";
 import type { CopyOrchestrator } from "./copy-orchestrator.js";
-import type { createGrabStore } from "./store.js";
+import type { GrabStoreHandle } from "./store.js";
 import type { createPluginRegistry } from "./plugin-registry.js";
 import type { DragPreviewDebounce } from "./drag-preview-debounce.js";
 import type { GrabElementSelectors, GrabPhaseSelectors } from "./selectors.js";
@@ -36,7 +36,6 @@ import type { MenuHandlers } from "./menu-handlers.js";
 import type { ShiftMultiSelectState } from "./shift-multi-select-state.js";
 import type { SpaceDragRepositioning } from "./space-drag-repositioning.js";
 
-type GrabStoreHandle = ReturnType<typeof createGrabStore>;
 type PluginRegistry = ReturnType<typeof createPluginRegistry>;
 type AutoScroller = ReturnType<typeof createAutoScroller>;
 
