@@ -23,6 +23,7 @@ import { createCopyFeedbackCooldown } from "./copy-feedback-cooldown.js";
 import { createActivationHoldController } from "./activation-hold.js";
 import { createDebouncedComponentName } from "./debounced-component-name.js";
 import { createDragPreviewDebounce } from "./drag-preview-debounce.js";
+import { createSelectionSourceSync } from "./selection-source-sync.js";
 import { CopyFailedError } from "../errors.js";
 import {
   isKeyboardEventTriggeredByInput,
@@ -377,7 +378,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const copyFeedbackCooldown = createCopyFeedbackCooldown();
     const clearCopyFeedbackCooldown = copyFeedbackCooldown.clear;
     const startCopyFeedbackCooldown = copyFeedbackCooldown.start;
-    let selectionSourceRequestVersion = 0;
     let keyboardSelectedElement: Element | null = null;
     let pendingDefaultActionId: string | null = null;
     const [isPendingContextMenuSelect, setIsPendingContextMenuSelect] = createSignal(false);
@@ -838,40 +838,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       ),
     );
 
-    createEffect(
-      on(
-        () => targetElement(),
-        (element) => {
-          const currentVersion = ++selectionSourceRequestVersion;
-
-          const clearSource = () => {
-            if (selectionSourceRequestVersion === currentVersion) {
-              actions.setSelectionSource(null, null);
-            }
-          };
-
-          if (!element) {
-            clearSource();
-            return;
-          }
-
-          resolveSource(element)
-            .then((source) => {
-              if (selectionSourceRequestVersion !== currentVersion) return;
-              if (!source) {
-                clearSource();
-                return;
-              }
-              actions.setSelectionSource(source.filePath, source.lineNumber);
-            })
-            .catch(() => {
-              if (selectionSourceRequestVersion === currentVersion) {
-                actions.setSelectionSource(null, null);
-              }
-            });
-        },
-      ),
-    );
+    createSelectionSourceSync({
+      targetElement,
+      setSelectionSource: actions.setSelectionSource,
+    });
 
     const publicGrabbedBoxes = createMemo(() =>
       store.grabbedBoxes.map((box) => ({
