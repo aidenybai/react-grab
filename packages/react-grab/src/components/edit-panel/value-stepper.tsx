@@ -271,7 +271,7 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
             when={isEditing()}
             fallback={
               <span
-                class="ml-auto flex items-baseline gap-1 pointer-events-auto"
+                class="ml-auto flex items-center gap-1 pointer-events-auto"
                 data-react-grab-value={`${formatDisplayValue(props.value)}${props.unit}`}
               >
                 <span
@@ -288,9 +288,9 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
                   {(label) => (
                     <span
                       aria-hidden="true"
-                      class="text-[10px] leading-4 font-mono text-[var(--rg-text-secondary)] tabular-nums"
+                      class="text-[10px] leading-4 text-[var(--rg-text-secondary)] tabular-nums"
                     >
-                      · {label}
+                      {label}
                     </span>
                   )}
                 </Show>

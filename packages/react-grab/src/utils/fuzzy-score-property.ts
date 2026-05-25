@@ -13,6 +13,22 @@ const normalize = (value: string): string => value.toLowerCase().replace(/[^a-z0
 const labelText = (property: EditableProperty): string =>
   normalize(`${property.label} ${property.key}`);
 
+// Enum option values + labels surface the parent row when the user
+// types a value name — typing `flex` finds `display`, `center` finds
+// align-items / justify-content / text-align, etc. Scored like a
+// Tailwind alias so exact matches outrank label-substring hits.
+const enumOptionTexts = (property: EditableProperty): readonly string[] => {
+  if (property.kind !== "enum") return [];
+  const texts: string[] = [];
+  for (const option of property.options) {
+    const valueNorm = normalize(option.value);
+    const labelNorm = normalize(option.label);
+    if (valueNorm) texts.push(valueNorm);
+    if (labelNorm && labelNorm !== valueNorm) texts.push(labelNorm);
+  }
+  return texts;
+};
+
 // Higher score = better match. Tiered so exact Tailwind alias matches
 // (`p` → padding) outrank text-based fuzzy hits, and aliases that
 // PREFIX the query (`px4` → padding-x via `px`) outrank substring
@@ -28,6 +44,14 @@ const scoreProperty = (query: string, property: EditableProperty): number => {
       aliasScore = Math.max(aliasScore, EXACT_ALIAS_SCORE + aliasNorm.length);
     } else if (query.startsWith(aliasNorm)) {
       aliasScore = Math.max(aliasScore, PREFIX_ALIAS_SCORE + aliasNorm.length);
+    }
+  }
+
+  for (const optionText of enumOptionTexts(property)) {
+    if (query === optionText) {
+      aliasScore = Math.max(aliasScore, EXACT_ALIAS_SCORE + optionText.length);
+    } else if (optionText.startsWith(query)) {
+      aliasScore = Math.max(aliasScore, PREFIX_ALIAS_SCORE + query.length);
     }
   }
 
