@@ -39,6 +39,7 @@ import { createActivationKeyHandlers } from "./activation-key-handlers.js";
 import { createDragHandlers } from "./drag-handlers.js";
 import { registerKeyboardListeners } from "./keyboard-listeners.js";
 import { registerPointerListeners } from "./pointer-listeners.js";
+import { createInitCleanup } from "./init-cleanup.js";
 import { buildPublicApi } from "./build-public-api.js";
 import { createWindowFocusListeners } from "./window-focus-listeners.js";
 import { createToolbarStateController } from "./toolbar-state-controller.js";
@@ -231,7 +232,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const scheduleDragPreviewUpdate = dragPreviewDebounce.schedule;
     const keydownSpamTimer = createKeydownSpamTimer();
     const copyFeedbackCooldown = createCopyFeedbackCooldown();
-    const clearCopyFeedbackCooldown = copyFeedbackCooldown.clear;
     let keyboardSelectedElement: Element | null = null;
     let pendingDefaultActionId: string | null = null;
     const [isPendingContextMenuSelect, setIsPendingContextMenuSelect] = createSignal(false);
@@ -584,19 +584,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
 
-    onCleanup(() => {
-      eventListenerManager.abort();
-      dragPreviewDebounce.cancel();
-      keydownSpamTimer.dispose();
-      clearCopyFeedbackCooldown();
-      toolbarMenu.dispose();
-      labelManager.dispose();
-      autoScroller.stop();
-      document.body.style.userSelect = "";
-      document.body.style.touchAction = "";
-      cursorOverride.clear();
-      enterBlocker.restore();
-    });
+    onCleanup(
+      createInitCleanup({
+        eventListenerManager,
+        dragPreviewDebounce,
+        keydownSpamTimer,
+        copyFeedbackCooldown,
+        toolbarMenu,
+        labelManager,
+        cursorOverride,
+        enterBlocker,
+        autoScroller,
+      }),
+    );
 
     const resolvedCssText = typeof cssText === "string" ? cssText : "";
     const { root: rendererRoot } = createRendererHost({
