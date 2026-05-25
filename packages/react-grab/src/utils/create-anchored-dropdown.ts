@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, onCleanup, type Accessor } from "solid-js";
+import { batch, createEffect, createMemo, createSignal, onCleanup, type Accessor } from "solid-js";
 import type { DropdownAnchor } from "../types.js";
 import {
   DROPDOWN_ANCHOR_GAP_PX,
@@ -49,9 +49,20 @@ export const createAnchoredDropdown = (
   };
 
   const handleViewportChange = () => {
-    setViewportVersion((previousViewportVersion) => previousViewportVersion + 1);
-    measure();
+    // Three signal writes — wrap in batch so dependent memos
+    // (`displayPosition`) only recompute once per viewport tick
+    // instead of three times.
+    batch(() => {
+      setViewportVersion((previousViewportVersion) => previousViewportVersion + 1);
+      measure();
+    });
   };
+
+  // The listener effect must NOT re-run on every position update
+  // (panel anchor's position object identity changes 60×/sec while
+  // the toolbar tracks its bounding rect). Derive a stable
+  // "is the dropdown open" memo and key the effect off THAT.
+  const isAnchored = createMemo(() => anchorAccessor() !== null);
 
   createEffect(() => {
     const anchor = anchorAccessor();
@@ -79,8 +90,7 @@ export const createAnchoredDropdown = (
   });
 
   createEffect(() => {
-    const anchor = anchorAccessor();
-    if (!anchor) return;
+    if (!isAnchored()) return;
 
     window.addEventListener("resize", handleViewportChange);
     window.visualViewport?.addEventListener("resize", handleViewportChange);

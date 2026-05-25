@@ -76,11 +76,12 @@ const DigitColumn: Component<DigitColumnProps> = (props) => {
     "animation-delay": `${props.delayMs}ms`,
   });
 
+  // Digit cells are aria-hidden so screen readers don't double-read
+  // ("twelve fourteen sixteen" stream). The parent Slot owns the
+  // accessible name via aria-label.
   return (
-    <span class="rg-slot-column">
-      <span aria-hidden="true" class="rg-slot-sizer">
-        0
-      </span>
+    <span class="rg-slot-column" aria-hidden="true">
+      <span class="rg-slot-sizer">0</span>
       <span
         ref={enterCellRef}
         class="rg-slot-cell"
@@ -161,7 +162,10 @@ export const Slot: Component<SlotProps> = (props) => {
   return (
     <span
       aria-label={text()}
-      aria-live="polite"
+      // Intentionally NOT aria-live. A slider drag commits at 60Hz
+      // and flooding a live region at that rate produces unusable
+      // SR verbosity. The parent (ValueStepper / value chip) owns
+      // any debounced live announcement separately.
       class={`inline-flex ${props.class ?? ""}`}
       // SLOT_TRANSITION_MS drives both the JS exit-cell lifetime
       // (setTimeout) and the CSS animation duration via this custom

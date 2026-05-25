@@ -1,4 +1,5 @@
 import { createSignal, onCleanup, onMount, Show, type Component } from "solid-js";
+import { IME_COMPOSING_KEY_CODE } from "../../constants.js";
 import { parseAnyColor } from "../../utils/parse-any-color.js";
 
 // Native <input type="color"> only accepts `#rrggbb` (no alpha, no
@@ -13,10 +14,16 @@ interface ColorPickerProps {
   // Called after the inline hex editor commits / cancels so the panel can
   // return focus to the search input (mirrors ValueStepper.onEditComplete).
   onEditComplete?: () => void;
+  // Fires when typed hex can't be parsed — parent plays a shake so
+  // the field doesn't look broken on silent rejection.
+  onInvalidCommit?: () => void;
   // Lets the parent imperatively open the native color picker (used by
   // the panel's Enter key handler on color rows). Called with the
   // trigger function on mount and `null` on unmount.
-  onRegisterTrigger?: (trigger: (() => void) | null) => void;
+  // Second arg lets the registrar identity-check on unregister: pass
+  // the same `owner` closure that registered the slot, so a stale
+  // unmount from a previous instance doesn't clobber a newer one.
+  onRegisterTrigger?: (trigger: (() => void) | null, owner?: () => void) => void;
   // Signals "user is engaging with this control" so the panel can keep
   // the page-level selection overlay hidden AND lock hover-driven
   // active-row swaps in the property list. Fires on swatch open and
@@ -33,9 +40,26 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
   const isEditing = () => draftText() !== null;
   let nativePickerRef: HTMLInputElement | undefined;
 
+  // isMounted gates the native picker's `onInput` against firing
+  // after dismiss: the OS color dialog can outlive `<input>` detach
+  // (Firefox/Safari), and a delayed `onInput` would otherwise commit
+  // an untracked inline style on the original element with no
+  // preview baseline to revert from.
+  let isMounted = true;
+  onCleanup(() => {
+    isMounted = false;
+  });
+
   onMount(() => {
-    props.onRegisterTrigger?.(() => nativePickerRef?.click());
-    onCleanup(() => props.onRegisterTrigger?.(null));
+    const openPicker = () => nativePickerRef?.click();
+    props.onRegisterTrigger?.(openPicker);
+    // Pass the same closure on unregister so the parent can
+    // identity-check before nulling its slot — prevents an older
+    // ColorPicker unmount from clobbering a newer instance's
+    // registration during sibling-row navigation (effects fire in
+    // subscription order; mount of next row can precede unmount of
+    // previous row when activeIndex decreases).
+    onCleanup(() => props.onRegisterTrigger?.(null, openPicker));
   });
 
   const commitHex = () => {
@@ -43,10 +67,13 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
     if (text === null) return;
     setDraftText(null);
     // parseAnyColor accepts hex w/ or w/o `#`, 3/4/6/8 digits,
-    // rgb/rgba, hsl/hsla, and CSS named colours — anything the browser
-    // parses through the canvas fillStyle setter.
+    // rgb/rgba, hsl/hsla, and CSS named colours (including
+    // `transparent`) — anything the browser parses through the
+    // canvas fillStyle setter.
     const normalized = parseAnyColor(text);
-    if (normalized && normalized.toLowerCase() !== props.value.toLowerCase()) {
+    if (!normalized) {
+      props.onInvalidCommit?.();
+    } else if (normalized.toLowerCase() !== props.value.toLowerCase()) {
       props.onCommit(normalized);
     }
     props.onEditComplete?.();
@@ -59,6 +86,8 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
   };
 
   const handleHexKeyDown = (event: KeyboardEvent) => {
+    // IME composition guard (see ValueStepper).
+    if (event.isComposing || event.keyCode === IME_COMPOSING_KEY_CODE) return;
     event.stopImmediatePropagation();
     if (event.key === "Enter") {
       event.preventDefault();
@@ -80,10 +109,10 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
 
   return (
     <div class="flex items-center gap-2 w-full px-2 h-[20px]">
-      <Show when={props.label} keyed>
+      <Show when={props.label}>
         {(text) => (
           <span class={`${LABEL_CLASS} text-[var(--rg-text-primary)] truncate min-w-0`}>
-            {text}
+            {text()}
           </span>
         )}
       </Show>
@@ -114,7 +143,12 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
             data-react-grab-ignore-events
             data-react-grab-input
             type="text"
+            inputmode="text"
             aria-label="Edit color hex"
+            autocapitalize="none"
+            autocorrect="off"
+            autocomplete="off"
+            spellcheck={false}
             class={`${HEX_CLASS} bg-transparent border-none outline-none text-[var(--rg-text-primary)] p-0 m-0 text-right`}
             style={{
               "field-sizing": "content",
@@ -152,6 +186,7 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
           class="absolute opacity-0 pointer-events-none size-0"
           value={stripHexAlpha(props.value)}
           onInput={(event) => {
+            if (!isMounted) return;
             // Native <input type="color"> only emits `#rrggbb` — when
             // the current value carries alpha (#rrggbbaa), splice the
             // original alpha byte onto the picker's RGB result so we

@@ -44,6 +44,12 @@ export const parseAnyColor = (input: string): string | null => {
   const trimmed = input.trim();
   if (!trimmed) return null;
 
+  // CSS-wide `transparent` keyword. Canvas resolves it to
+  // `rgba(0,0,0,0)` — same string as the rejection sentinel — so
+  // without this allow-list it'd fall through to null and silently
+  // refuse a perfectly valid color.
+  if (trimmed.toLowerCase() === "transparent") return TRANSPARENT_BLACK_HEX;
+
   // Fast path: already-valid hex (with or without `#`, 3/4/6/8 digit).
   const directHex = normalizeHex(trimmed);
   if (directHex) return directHex;

@@ -12,8 +12,9 @@ interface PropertyListProps {
   onSelect: (index: number) => void;
   onStep: (direction: 1 | -1) => void;
   onCommit: (value: number | string) => void;
-  onColorPickerRegister: (trigger: (() => void) | null) => void;
+  onColorPickerRegister: (trigger: (() => void) | null, owner?: () => void) => void;
   onEditComplete: () => void;
+  onInvalidCommit: () => void;
   onInteract: () => void;
   // True while a gesture is mid-flight (slider drag, native picker
   // open, etc.). Hover-driven row swaps are suppressed during this
@@ -53,9 +54,15 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
     itemElements.length = props.properties.length;
   });
 
+  let pendingHighlightFrame: number | undefined;
   createEffect(() => {
-    const element = itemElements[props.activeIndex];
-    if (!element || props.activeIndex < 0) {
+    // Capture the index in this effect run so the rAF callback below
+    // can't drift to a later value (e.g. held-arrow auto-repeat
+    // ticking faster than rAF). Stacking rAFs all read the latest
+    // index otherwise.
+    const activeIndex = props.activeIndex;
+    const element = itemElements[activeIndex];
+    if (!element || activeIndex < 0) {
       clearHighlight();
       return;
     }
@@ -63,12 +70,14 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
     // current offsetWidth/Top (may be stale if the list just transitioned
     // from compact-hidden 0×0 to full-size — Solid effects can run
     // before the browser reflows the layout). Re-running on the next
-    // animation frame captures the post-reflow dimensions, so the
-    // highlight matches the row even when the user navigates back from
-    // compact mode via arrow keys.
+    // animation frame captures the post-reflow dimensions.
     updateHighlight(element);
-    requestAnimationFrame(() => {
-      const refreshed = itemElements[props.activeIndex];
+    if (pendingHighlightFrame !== undefined) {
+      cancelAnimationFrame(pendingHighlightFrame);
+    }
+    pendingHighlightFrame = requestAnimationFrame(() => {
+      pendingHighlightFrame = undefined;
+      const refreshed = itemElements[activeIndex];
       if (refreshed) updateHighlight(refreshed);
     });
     if (!listRef) return;
@@ -77,6 +86,9 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
     if (targetRect.top < containerRect.top || targetRect.bottom > containerRect.bottom) {
       element.scrollIntoView({ block: "nearest" });
     }
+  });
+  onCleanup(() => {
+    if (pendingHighlightFrame !== undefined) cancelAnimationFrame(pendingHighlightFrame);
   });
 
   return (
@@ -204,6 +216,7 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
                   onStep={props.onStep}
                   onCommit={props.onCommit}
                   onEditComplete={props.onEditComplete}
+                  onInvalidCommit={props.onInvalidCommit}
                   onInteract={props.onInteract}
                   onColorPickerRegister={props.onColorPickerRegister}
                   showLabel

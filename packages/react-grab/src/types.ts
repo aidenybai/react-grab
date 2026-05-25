@@ -504,6 +504,7 @@ export interface ReactGrabRendererProps {
   editPanelPosition?: DropdownAnchor | null;
   onEditPanelDismiss?: () => void;
   onEditPanelSubmit?: (prompt: string) => void;
+  onEditPanelRegisterForceDiscard?: (discard: (() => void) | null) => void;
   onEditPanelInteractingChange?: (interacting: boolean) => void;
 }
 

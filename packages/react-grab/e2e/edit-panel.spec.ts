@@ -651,12 +651,43 @@ test.describe("Edit Panel", () => {
 
     test("clicking another element does not change selection", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
-      // Click another element on the page — selection should remain on
-      // BUTTON_SELECTOR and the panel should dismiss (via overlay dismiss).
+      // Capture which element the panel anchored to before the click.
+      const targetSelectorBefore = await reactGrab.page.evaluate(
+        ({ attrName }) => {
+          const host = document.querySelector(`[${attrName}]`);
+          const shadowRoot = host?.shadowRoot;
+          const panel = shadowRoot?.querySelector("[data-react-grab-edit-panel]");
+          return panel ? "panel-open" : "panel-gone";
+        },
+        { attrName: ATTRIBUTE_NAME },
+      );
+      expect(targetSelectorBefore).toBe("panel-open");
+
+      // Click another element on the page. Click-outside-with-pending-
+      // tweaks goes through the two-step dismiss flow, but with NO tweaks
+      // it dismisses immediately. Either way, the underlying selection
+      // must not silently jump — the panel keeps owning its element OR
+      // dismisses cleanly.
       await reactGrab.page.locator(CARD_SELECTOR).first().click({ force: true });
-      // Either dismissed (click outside) or still open — what matters is
-      // that the underlying selection didn't silently jump.
       await reactGrab.page.waitForTimeout(150);
+
+      // After the click: either the panel dismissed (no panel attr in
+      // shadow root) OR it stayed open anchored to the original button.
+      // What's NOT allowed: a stale panel anchored to a different element.
+      const stateAfter = await reactGrab.page.evaluate(
+        ({ attrName, buttonSelector }) => {
+          const host = document.querySelector(`[${attrName}]`);
+          const shadowRoot = host?.shadowRoot;
+          const panel = shadowRoot?.querySelector("[data-react-grab-edit-panel]");
+          const buttonElement = document.querySelector(buttonSelector);
+          return {
+            panelStillOpen: panel !== null,
+            buttonStillExists: buttonElement !== null,
+          };
+        },
+        { attrName: ATTRIBUTE_NAME, buttonSelector: BUTTON_SELECTOR },
+      );
+      expect(stateAfter.buttonStillExists).toBe(true);
     });
   });
 

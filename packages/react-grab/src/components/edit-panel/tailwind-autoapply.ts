@@ -1,4 +1,4 @@
-import { createMemo, type Accessor } from "solid-js";
+import { batch, createMemo, type Accessor } from "solid-js";
 import { TAILWIND_SPACING_UNIT_PX } from "../../constants.js";
 import type {
   EditableProperty,
@@ -13,13 +13,16 @@ import { tailwindPrefixToProperty } from "../../utils/tailwind-class-map.js";
 
 const TAILWIND_CLASS_PATTERN = /^([a-z-]+)-(-?\d+(?:\.\d+)?)$/;
 
-// Accept `py 40`, `py40`, `py-40` — all normalize to the canonical
-// `py-40` form before pattern matching. Collapses whitespace runs into
-// a single hyphen, then inserts a hyphen between a letter and an
-// immediately-following digit when one is missing.
+// Accept `py 40`, `py40`, `py-40`, `Py-40` (iOS auto-capitalize) —
+// all normalize to the canonical `py-40` form before pattern matching.
+// Lowercases (iOS Safari uppercases the first character of a textarea
+// by default), collapses whitespace runs into a single hyphen, then
+// inserts a hyphen between a letter and an immediately-following digit
+// when one is missing.
 const normalizeQuery = (query: string): string =>
   query
     .trim()
+    .toLowerCase()
     .replace(/\s+/g, "-")
     .replace(/([a-z])(\d)/g, "$1-$2");
 
@@ -132,7 +135,7 @@ export const createTailwindAutoApply = (
     return true;
   };
 
-  const applyTailwindClass = (rawQuery: string) => {
+  const applySingleClass = (rawQuery: string) => {
     const query = normalizeQuery(rawQuery);
     // `mt`, `mt-`, `mt-4` all distill to the prefix `mt` for intent —
     // collapse to compact before any value is written.
@@ -169,10 +172,34 @@ export const createTailwindAutoApply = (
     }
 
     // Aggregate fan-out when the shorthand isn't a tracked row (non-
-    // uniform sides) — write to each covered longhand.
-    for (const side of findNumericLonghands(initialProperties, cssKey)) {
-      commit(side, clampedFor(side, candidate), { compact: true });
+    // uniform sides) — write to each covered longhand. Batch the
+    // commits so `markAsInteracting` / `setIsCompact` only fire once
+    // per shorthand instead of N times (keeps the idle-timer from
+    // drifting under held-key autorepeat).
+    const sideProperties = findNumericLonghands(initialProperties, cssKey);
+    if (sideProperties.length === 0) return;
+    batch(() => {
+      for (const sideProperty of sideProperties) {
+        commit(sideProperty, clampedFor(sideProperty, candidate), { compact: true });
+      }
+    });
+  };
+
+  // Accept multi-class paste: `p-4 m-2`, `class="p-4 m-2 bg-blue-500"`,
+  // or newline-separated tokens. Strips a leading `class="..."` /
+  // `class='...'` wrapper, splits on whitespace/newlines, and applies
+  // each token through the single-class flow.
+  const applyTailwindClass = (rawQuery: string) => {
+    const stripped = rawQuery
+      .trim()
+      .replace(/^class\s*=\s*["']/, "")
+      .replace(/["']\s*$/, "");
+    const tokens = stripped.split(/\s+/).filter(Boolean);
+    if (tokens.length <= 1) {
+      applySingleClass(stripped);
+      return;
     }
+    for (const token of tokens) applySingleClass(token);
   };
 
   return {

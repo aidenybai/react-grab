@@ -3709,6 +3709,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 editPanelPosition={editPanelPosition()}
                 onEditPanelDismiss={editMode.dismiss}
                 onEditPanelSubmit={editMode.submit}
+                onEditPanelRegisterForceDiscard={editMode.registerForceDiscard}
                 onEditPanelInteractingChange={editMode.setInteracting}
               />
             );

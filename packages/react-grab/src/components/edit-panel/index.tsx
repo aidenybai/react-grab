@@ -9,6 +9,7 @@ import {
   EDIT_SLIDER_SPRING_EASING,
   EDIT_VALUE_BUMP_MS,
   EDIT_VALUE_BUMP_PX,
+  IME_COMPOSING_KEY_CODE,
   Z_INDEX_OVERLAY,
 } from "../../constants.js";
 import type { DropdownAnchor, EditableProperty, EditPanelState } from "../../types.js";
@@ -37,22 +38,35 @@ interface EditPanelProps {
   position: DropdownAnchor | null;
   onDismiss: () => void;
   onSubmit: (prompt: string) => void;
+  // Wired from `editMode.registerForceDiscard` — the panel calls this
+  // on mount with a closure that reverts in-progress preview styles,
+  // and nulls it on unmount. `reset()` (deactivate path) invokes the
+  // current closure before clearing state.
+  registerForceDiscard?: (discard: (() => void) | null) => void;
   onInteractingChange?: (interacting: boolean) => void;
 }
 
-// Keyed <Show> tears down + rebuilds the body each time the panel opens
-// against a new element, so no manual reset bookkeeping is needed in
-// the body.
+// Key on `state.element` identity — NOT on the state object itself.
+// `editMode.trigger`'s async `getNearestComponentName(element).then(...)`
+// produces a fresh state object via `{ ...current, componentName }`.
+// Keying on the object would tear down the panel body mid-edit and
+// lose in-flight tweaks + preview baseline. The body still rebuilds
+// when the user opens the panel against a different element.
 export const EditPanel: Component<EditPanelProps> = (props) => (
-  <Show keyed when={props.state}>
+  <Show when={props.state}>
     {(state) => (
-      <EditPanelBody
-        state={state}
-        position={() => props.position}
-        onDismiss={props.onDismiss}
-        onSubmit={props.onSubmit}
-        onInteractingChange={props.onInteractingChange}
-      />
+      <Show keyed when={state().element}>
+        {(_element) => (
+          <EditPanelBody
+            state={state()}
+            position={() => props.position}
+            onDismiss={props.onDismiss}
+            onSubmit={props.onSubmit}
+            registerForceDiscard={props.registerForceDiscard}
+            onInteractingChange={props.onInteractingChange}
+          />
+        )}
+      </Show>
     )}
   </Show>
 );
@@ -62,6 +76,7 @@ interface EditPanelBodyProps {
   position: () => DropdownAnchor | null;
   onDismiss: () => void;
   onSubmit: (prompt: string) => void;
+  registerForceDiscard?: (discard: (() => void) | null) => void;
   onInteractingChange?: (interacting: boolean) => void;
 }
 
@@ -141,9 +156,19 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
 
   const ensureSearchFocused = () => {
     queueMicrotask(() => {
-      const currentlyFocusedElement = searchInputRef?.ownerDocument.activeElement;
-      if (currentlyFocusedElement !== searchInputRef) {
-        searchInputRef?.focus({ preventScroll: true });
+      if (!searchInputRef) return;
+      // The panel mounts inside a Shadow DOM. `ownerDocument.activeElement`
+      // returns the shadow HOST (overlay container), never our textarea
+      // inside the shadow root — so a naive `!==` check is always true
+      // and `.focus()` fires on every commit (focus event spam + IME
+      // cursor reset). Read via getRootNode() + shadowRoot.activeElement.
+      const rootNode = searchInputRef.getRootNode();
+      const focusedElement =
+        rootNode instanceof ShadowRoot
+          ? (rootNode.activeElement as HTMLElement | null)
+          : (searchInputRef.ownerDocument.activeElement as HTMLElement | null);
+      if (focusedElement !== searchInputRef) {
+        searchInputRef.focus({ preventScroll: true });
       }
     });
   };
@@ -302,7 +327,16 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   };
 
   let colorPickerTrigger: (() => void) | null = null;
-  const registerColorPickerTrigger = (trigger: (() => void) | null) => {
+  // Identity-guard the unregister: a stale ColorPicker unmount (e.g.
+  // sibling row navigation where the new row's mount runs before the
+  // previous row's cleanup) must NOT clobber a freshly-registered
+  // trigger. Compare against `owner` to scope the null write.
+  const registerColorPickerTrigger = (trigger: (() => void) | null, owner?: () => void) => {
+    if (trigger === null) {
+      if (owner !== undefined && colorPickerTrigger !== owner) return;
+      colorPickerTrigger = null;
+      return;
+    }
     colorPickerTrigger = trigger;
   };
 
@@ -332,7 +366,24 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   };
 
   const handleSearchKeyDown = (event: KeyboardEvent) => {
-    if (event.isComposing) return;
+    // `isComposing` is false on the IME-commit `Enter` tick that
+    // confirms a candidate; Chromium reports `keyCode === 229` on
+    // that tick. Check both to avoid submitting pending edits when
+    // the user was actually picking a Hiragana/Hangul candidate.
+    if (event.isComposing || event.keyCode === IME_COMPOSING_KEY_CODE) return;
+    // When the discard prompt is up and focus is on one of its
+    // buttons, let the browser handle Tab navigation + Enter/Space
+    // activation natively. Otherwise keyboard users can't pick
+    // between No / Yes.
+    if (isPendingDismiss() && (event.key === "Tab" || event.key === "Enter")) {
+      const target = event.composedPath()[0];
+      if (
+        target instanceof HTMLElement &&
+        target.closest("[data-react-grab-discard-button]") !== null
+      ) {
+        return;
+      }
+    }
     const handler = keyHandlers[event.key];
     if (!handler) return;
     event.preventDefault();
@@ -358,6 +409,13 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     dropdown.measure();
     const seed = searchQuery();
     if (seed) autoApply.applyTailwindClass(seed);
+
+    // Force-discard hook: when the renderer deactivates mid-edit
+    // (toolbar toggled off, page navigation, etc.), `editMode.reset`
+    // calls this BEFORE clearing state — gives us a chance to revert
+    // in-progress preview styles instead of stranding them on the DOM.
+    props.registerForceDiscard?.(() => preview.restore());
+    onCleanup(() => props.registerForceDiscard?.(null));
 
     const unregisterDismiss = registerOverlayDismiss({
       isOpen: () => true,
@@ -415,11 +473,14 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     <Show when={dropdown.shouldMount()}>
       <div
         ref={containerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Edit element styles"
         data-react-grab-ignore-events
         data-react-grab-edit-panel
         data-rg-compact={isCompact() ? "true" : "false"}
         class={cn(
-          "fixed font-sans text-[13px] antialiased [filter:var(--rg-drop-shadow)] select-none will-change-[opacity,transform]",
+          "fixed font-sans text-[13px] antialiased [filter:var(--rg-drop-shadow)] select-none",
           dropdown.isAnimatedIn()
             ? "transition-[opacity,transform] duration-220 ease-spring"
             : "transition-[opacity,transform] duration-120 ease-drawer",
@@ -470,14 +531,31 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
               </Show>
             }
           >
-            <div class="contain-layout shrink-0 flex items-center justify-between gap-2 pt-1.5 pb-1 px-2 w-full self-stretch">
-              <span class="text-[var(--rg-text-primary)] text-[13px] leading-4 font-sans font-medium">
+            <div
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="rg-discard-prompt-title"
+              class="contain-layout shrink-0 flex items-center justify-between gap-2 pt-1.5 pb-1 px-2 w-full self-stretch"
+            >
+              <span
+                id="rg-discard-prompt-title"
+                class="text-[var(--rg-text-primary)] text-[13px] leading-4 font-sans font-medium"
+              >
                 Discard edits?
               </span>
               <div class="flex items-center gap-[5px]">
                 <button
                   data-react-grab-ignore-events
+                  data-react-grab-discard-button="cancel"
                   type="button"
+                  ref={(element) => {
+                    // Move focus to No on prompt open so keyboard
+                    // users can Tab → Yes / Enter to confirm. Without
+                    // this, focus stays in the search textarea and
+                    // the panel's window keydown captures Tab/Enter
+                    // before the buttons can see them.
+                    queueMicrotask(() => element.focus({ preventScroll: true }));
+                  }}
                   class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[var(--rg-surface-hover)] [border-width:0.5px] border-solid border-[var(--rg-border-button)] cursor-pointer transition-all hover:bg-[var(--rg-surface-active)] press-scale h-[17px]"
                   onClick={(event) => {
                     event.preventDefault();
@@ -491,6 +569,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                 </button>
                 <button
                   data-react-grab-ignore-events
+                  data-react-grab-discard-button="confirm"
                   type="button"
                   class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[var(--rg-error-bg)] cursor-pointer transition-all hover:bg-[var(--rg-error-bg-hover)] press-scale h-[17px]"
                   onClick={(event) => {
@@ -528,6 +607,11 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
               data-react-grab-input
               aria-label="Search properties"
               aria-keyshortcuts="Enter Escape ArrowUp ArrowDown ArrowLeft ArrowRight Tab"
+              autocapitalize="none"
+              autocorrect="off"
+              autocomplete="off"
+              spellcheck={false}
+              tabIndex={isSearchInputHidden() ? -1 : 0}
               class="text-[var(--rg-text-primary)] text-[13px] leading-4 font-medium bg-transparent border-none resize-none w-full p-0 m-0 outline-none"
               style={{
                 "field-sizing": "content",
@@ -575,6 +659,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                 onCommit={commitActive}
                 onColorPickerRegister={registerColorPickerTrigger}
                 onEditComplete={ensureSearchFocused}
+                onInvalidCommit={playShake}
                 onInteract={markAsInteracting}
                 isAdjusting={isTransientInteraction}
                 activeTailwindLabel={activeTailwindLabel()}
@@ -599,6 +684,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                   onStep={stepFromPointer}
                   onCommit={commitActive}
                   onEditComplete={ensureSearchFocused}
+                  onInvalidCommit={playShake}
                   onInteract={markAsInteracting}
                   showLabel={false}
                   tailwindLabel={activeTailwindLabel()}

@@ -44,8 +44,15 @@ export interface EditModeController {
   // Clears panel state without triggering unfreeze/deactivate side effects.
   // Used when the larger lifecycle (e.g. deactivateRenderer) is already
   // tearing things down and would otherwise loop back through dismiss.
+  // Forced resets ALSO revert any in-progress preview-style writes so
+  // the page doesn't get stranded with inline styles the user never
+  // had a chance to commit or discard.
   reset: () => void;
   isOpen: Accessor<boolean>;
+  // The panel registers a callback that reverts in-progress preview
+  // styles. Called from `reset()` before state is cleared so the
+  // restore can read the panel's baseline map before unmount.
+  registerForceDiscard: (discard: (() => void) | null) => void;
   // True while the user is actively stepping a value (keyboard or pointer).
   // Page-level selection overlay reads this to hide itself so the live
   // preview reads cleanly underneath.
@@ -58,10 +65,24 @@ export const createEditModeController = (
 ): EditModeController => {
   const [state, setState] = createSignal<EditPanelState | null>(null);
   const [isInteracting, setIsInteracting] = createSignal(false);
+  let forceDiscardPreview: (() => void) | null = null;
+
+  const registerForceDiscard = (discard: (() => void) | null) => {
+    forceDiscardPreview = discard;
+  };
 
   const clearAll = () => {
     setState(null);
     setIsInteracting(false);
+  };
+
+  // Force-revert + clear. Used by deactivateRenderer / unmount paths
+  // where the user lost control of the panel and any in-progress
+  // preview styles should NOT survive on the DOM. User-initiated
+  // dismiss + submit deliberately do NOT call this (they preserve).
+  const resetWithDiscard = () => {
+    forceDiscardPreview?.();
+    clearAll();
   };
 
   const trigger = (
@@ -113,16 +134,6 @@ export const createEditModeController = (
     return true;
   };
 
-  const dismiss = () => {
-    if (state() === null) return;
-    clearAll();
-    if (dependencies.store.wasActivatedByToggle) {
-      dependencies.deactivateRenderer();
-    } else {
-      dependencies.actions.unfreeze();
-    }
-  };
-
   const submit = (prompt: string) => {
     const currentState = state();
     if (!currentState) return;
@@ -138,13 +149,24 @@ export const createEditModeController = (
     });
   };
 
+  const dismiss = () => {
+    if (state() === null) return;
+    clearAll();
+    if (dependencies.store.wasActivatedByToggle) {
+      dependencies.deactivateRenderer();
+    } else {
+      dependencies.actions.unfreeze();
+    }
+  };
+
   return {
     state,
     trigger,
     dismiss,
     submit,
-    reset: clearAll,
+    reset: resetWithDiscard,
     isOpen: () => state() !== null,
+    registerForceDiscard,
     isInteracting,
     setInteracting: setIsInteracting,
   };

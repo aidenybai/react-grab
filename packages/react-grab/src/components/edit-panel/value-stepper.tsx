@@ -7,6 +7,7 @@ import {
   EDIT_SLIDER_RUBBER_SETTLE_MS,
   EDIT_SLIDER_RUBBER_SOFT_RANGE_PX,
   EDIT_SLIDER_SPRING_EASING,
+  IME_COMPOSING_KEY_CODE,
 } from "../../constants.js";
 import { formatDisplayValue } from "../../utils/format-css-value.js";
 import { Slot } from "../slot.js";
@@ -22,6 +23,10 @@ interface ValueStepperProps {
   label?: string;
   onCommitValue?: (value: number) => void;
   onEditComplete?: () => void;
+  // Fires when an inline-typed value is rejected (NaN, unit mismatch,
+  // free text). Parent plays a shake to signal "we threw your input
+  // out" — silent rejection makes the field look broken.
+  onInvalidCommit?: () => void;
   // Fires on every drag-move so the parent's overlay-idle timer keeps
   // resetting even while the cursor is clamped past min/max and no
   // value-change events fire.
@@ -39,6 +44,12 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
   const [draftText, setDraftText] = createSignal<string | null>(null);
   const [isHovered, setIsHovered] = createSignal(false);
   const [rubberStretchPx, setRubberStretchPx] = createSignal(0);
+  // Mirrors `dragState !== null` reactively. Touch/pen drag has no
+  // preceding `mouseenter` (so `isHovered` doesn't fire), and the
+  // non-reactive `dragState` read inside `isActiveSlider`/`trackStyle`
+  // would leave hash-marks invisible and disable the rubber-band
+  // `transition: none` flag for the entire drag on touch.
+  const [isDragging, setIsDragging] = createSignal(false);
   const isEditing = () => draftText() !== null;
   let trackElement: HTMLDivElement | undefined;
   let valueTextElement: HTMLSpanElement | undefined;
@@ -112,6 +123,7 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
       startedOnValueText,
       trackRect: event.currentTarget.getBoundingClientRect(),
     };
+    setIsDragging(true);
     props.onInteract?.();
   };
 
@@ -126,14 +138,18 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
   };
 
   const handleTrackPointerUp: JSX.EventHandler<HTMLDivElement, PointerEvent> = (event) => {
-    if (!dragState) return;
     const target = event.currentTarget;
+    // Release capture unconditionally — if the blur handler nulled
+    // `dragState` while capture was held, we still need to free it
+    // so the page doesn't keep routing pointer events to the track.
     if (target.hasPointerCapture(event.pointerId)) target.releasePointerCapture(event.pointerId);
+    if (!dragState) return;
     if (!dragState.isDragging) {
       if (dragState.startedOnValueText) startEditing();
       else commitDrag(dragState.startX, dragState.trackRect);
     }
     dragState = null;
+    setIsDragging(false);
     setRubberStretchPx(0);
   };
 
@@ -143,10 +159,11 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
   // without this the drag state would leak and the rubber-band stretch
   // would stay at its last value forever.
   const releaseDrag: JSX.EventHandler<HTMLDivElement, PointerEvent> = (event) => {
-    if (!dragState) return;
     const target = event.currentTarget;
     if (target.hasPointerCapture(event.pointerId)) target.releasePointerCapture(event.pointerId);
+    if (!dragState) return;
     dragState = null;
+    setIsDragging(false);
     setRubberStretchPx(0);
   };
 
@@ -156,20 +173,45 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
   onMount(() => {
     const handleBlur = () => {
       dragState = null;
+      setIsDragging(false);
       setRubberStretchPx(0);
     };
     window.addEventListener("blur", handleBlur);
     onCleanup(() => window.removeEventListener("blur", handleBlur));
   });
 
-  const isActiveSlider = () => isHovered() || Boolean(props.activeKey) || dragState !== null;
+  const isActiveSlider = () => isHovered() || Boolean(props.activeKey) || isDragging();
 
+  // Match "<number><optional-unit>" — rejects pasted `calc(...)`,
+  // `++5`, free text. Normalizes single comma decimals (de-DE locale)
+  // to dots. Rejects unit mismatches (`1.5rem` typed into a `px` row
+  // would silently commit 1.5px without this guard).
+  const INLINE_VALUE_PATTERN = /^(-?\d*\.?\d+)\s*([a-zA-Z%]*)$/;
   const commit = () => {
     const text = draftText();
     if (text === null) return;
     setDraftText(null);
-    const parsed = Number.parseFloat(text);
-    if (Number.isFinite(parsed)) props.onCommitValue?.(parsed);
+    const match = text
+      .trim()
+      .replace(/(\d),(\d)/g, "$1.$2")
+      .match(INLINE_VALUE_PATTERN);
+    if (!match) {
+      props.onInvalidCommit?.();
+      props.onEditComplete?.();
+      return;
+    }
+    const typedUnit = match[2].toLowerCase();
+    if (typedUnit && typedUnit !== props.unit.toLowerCase()) {
+      props.onInvalidCommit?.();
+      props.onEditComplete?.();
+      return;
+    }
+    const parsed = Number.parseFloat(match[1]);
+    if (Number.isFinite(parsed)) {
+      props.onCommitValue?.(parsed);
+    } else {
+      props.onInvalidCommit?.();
+    }
     props.onEditComplete?.();
   };
 
@@ -180,6 +222,12 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
   };
 
   const handleEditKeyDown = (event: KeyboardEvent) => {
+    // IME composition: an Enter that confirms a Hiragana/Hangul
+    // candidate has `isComposing=true` mid-composition and
+    // `keyCode===229` on the commit tick (Chromium). Bail in both
+    // cases so we don't fire commit() while the user is still picking
+    // an IME candidate.
+    if (event.isComposing || event.keyCode === IME_COMPOSING_KEY_CODE) return;
     // stopImmediatePropagation prevents the panel's window-level handler
     // from also reacting to Enter/Esc while the inline editor owns input.
     event.stopImmediatePropagation();
@@ -204,11 +252,12 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
       transform: stretch === 0 ? "translateX(0)" : `translateX(${stretch}px)`,
       // Mid-drag: stretch tracks the pointer with no smoothing. On
       // release stretch resets to 0 and this transition produces the
-      // spring-back.
-      transition:
-        dragState !== null
-          ? "none"
-          : `transform ${EDIT_SLIDER_RUBBER_SETTLE_MS}ms ${EDIT_SLIDER_SPRING_EASING}`,
+      // spring-back. Reads `isDragging()` (reactive) — `dragState`
+      // is a non-reactive `let` and wouldn't propagate to touch/pen
+      // drag where there's no preceding hover signal to mask the gap.
+      transition: isDragging()
+        ? "none"
+        : `transform ${EDIT_SLIDER_RUBBER_SETTLE_MS}ms ${EDIT_SLIDER_SPRING_EASING}`,
     };
   };
 
@@ -216,6 +265,14 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
     <div class="flex items-center gap-1 w-full px-1">
       <div
         ref={trackElement}
+        role="slider"
+        aria-label={props.label ?? "Value"}
+        aria-valuemin={props.min}
+        aria-valuemax={props.max}
+        aria-valuenow={props.value}
+        aria-valuetext={`${formatDisplayValue(props.value)}${props.unit}`}
+        aria-keyshortcuts="ArrowLeft ArrowRight"
+        tabIndex={-1}
         class="relative flex-1 h-[20px] flex items-center overflow-hidden rounded-[6px]"
         style={trackStyle()}
         onPointerDown={handleTrackPointerDown}
@@ -256,10 +313,10 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
           }}
         />
         <div class="relative z-10 flex items-center justify-between w-full px-2 pointer-events-none">
-          <Show when={props.label} keyed>
+          <Show when={props.label}>
             {(text) => (
               <span class={`${labelClass} text-[var(--rg-text-primary)] truncate min-w-0`}>
-                {text}
+                {text()}
               </span>
             )}
           </Show>
@@ -280,13 +337,13 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
                   <Slot>{formatDisplayValue(props.value)}</Slot>
                   <span class="text-[var(--rg-text-secondary)] ml-px">{props.unit}</span>
                 </span>
-                <Show when={props.tailwindLabel} keyed>
+                <Show when={props.tailwindLabel}>
                   {(label) => (
                     <span
                       aria-hidden="true"
                       class="text-[10px] leading-4 text-[var(--rg-text-secondary)] tabular-nums"
                     >
-                      {label}
+                      {label()}
                     </span>
                   )}
                 </Show>
@@ -305,6 +362,10 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
               type="text"
               inputmode="decimal"
               aria-label="Edit value"
+              autocapitalize="none"
+              autocorrect="off"
+              autocomplete="off"
+              spellcheck={false}
               class={`${valueClass} bg-transparent border-none outline-none text-[var(--rg-text-primary)] p-0 m-0 text-right pointer-events-auto ml-auto`}
               style={{
                 "field-sizing": "content",

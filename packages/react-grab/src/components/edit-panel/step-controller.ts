@@ -22,7 +22,7 @@ export interface StepController {
   readonly heldDirection: Accessor<-1 | 0 | 1>;
   // OS-level keydown repeats are filtered (`isRepeat` short-circuits)
   // so our own interval drives the cadence after the initial press.
-  pressArrow: (key: ArrowKey, isRepeat: boolean, shiftKey: boolean) => boolean;
+  pressArrow: (key: ArrowKey, isRepeat: boolean, shiftKey: boolean) => void;
   releaseKey: (key: string) => void;
 }
 
@@ -52,12 +52,17 @@ export const createStepController = (options: StepControllerOptions): StepContro
     }, EDIT_STEP_REPEAT_INITIAL_DELAY_MS);
   };
 
-  const pressArrow = (key: ArrowKey, isRepeat: boolean, shiftKey: boolean): boolean => {
-    if (isRepeat) return false;
-    setHeldDirection(directionFor(key));
-    options.step(directionFor(key), shiftKey, false);
+  const pressArrow = (key: ArrowKey, isRepeat: boolean, shiftKey: boolean): void => {
+    if (isRepeat) return;
+    const direction = directionFor(key);
+    // Order matters: `startRepeat` calls `stopRepeat` first, which
+    // writes `setHeldDirection(0)`. Inside an event handler Solid
+    // batches writes and only the LAST value commits. If we set the
+    // held direction BEFORE startRepeat, the 0-write clobbers the
+    // ±1-write and the panel's press-bump translateX never fires.
     startRepeat(key);
-    return true;
+    setHeldDirection(direction);
+    options.step(direction, shiftKey, false);
   };
 
   const releaseKey = (key: string) => {
