@@ -2,6 +2,7 @@
 // DOM-injection helpers (dense tile grid, deep chain, stacked elements,
 // CSS animations) that auto-clean on test teardown.
 import type { Page } from "@playwright/test";
+import type { Position } from "../src/types.js";
 import { test as reactGrabTest } from "./fixtures.js";
 
 export const PERF_GRID_PATH = "/?perf=grid&rows=30&cols=10";
@@ -17,10 +18,7 @@ export const goToPerfGrid = async (page: Page): Promise<void> => {
   );
 };
 
-export interface PerfGridCenter {
-  x: number;
-  y: number;
-}
+export type PerfGridCenter = Position;
 
 export const getPerfGridCenters = (page: Page, sliceCount?: number): Promise<PerfGridCenter[]> =>
   page.evaluate(
