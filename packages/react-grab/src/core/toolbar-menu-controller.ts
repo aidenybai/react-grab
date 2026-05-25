@@ -6,19 +6,17 @@ import {
 import { getNearestEdge } from "../utils/get-nearest-edge.js";
 import type { DropdownAnchor } from "../types.js";
 
-interface ToolbarMenuControllerInput {
-  /**
-   * Late-bound reference to the toolbar host element. The controller polls
-   * this each frame while the menu is open so the dropdown can re-anchor
-   * if the toolbar moves (drag, snap, resize) without us needing to
-   * re-wire reactivity.
-   */
-  getToolbarElement: () => HTMLElement | undefined;
-}
-
 export interface ToolbarMenuController {
   /** Reactive position of the toolbar dropdown menu, null when closed. */
   position: Accessor<DropdownAnchor | null>;
+  /**
+   * Late-bound setter for the toolbar host element. Wired into the
+   * renderer's `onToolbarRef`; the controller polls the latest element
+   * each frame while the menu is open so the dropdown can re-anchor if
+   * the toolbar moves (drag, snap, resize) without us needing to re-wire
+   * reactivity.
+   */
+  setToolbarElement: (element: HTMLDivElement | undefined) => void;
   /** Open the menu, anchored to the current toolbar position. */
   open: () => void;
   /** Close the menu and stop tracking the toolbar position. */
@@ -50,11 +48,10 @@ const computeDropdownAnchor = (toolbarElement: HTMLElement): DropdownAnchor => {
   };
 };
 
-export const createToolbarMenuController = (
-  input: ToolbarMenuControllerInput,
-): ToolbarMenuController => {
+export const createToolbarMenuController = (): ToolbarMenuController => {
   const [position, setPosition] = createSignal<DropdownAnchor | null>(null);
   let trackingFrameId: number | null = null;
+  let toolbarElement: HTMLDivElement | undefined;
 
   const stopTracking = () => {
     if (trackingFrameId !== null) {
@@ -64,8 +61,7 @@ export const createToolbarMenuController = (
   };
 
   const tick = () => {
-    const toolbar = input.getToolbarElement();
-    if (toolbar) setPosition(computeDropdownAnchor(toolbar));
+    if (toolbarElement) setPosition(computeDropdownAnchor(toolbarElement));
     trackingFrameId = nativeRequestAnimationFrame(tick);
   };
 
@@ -91,5 +87,9 @@ export const createToolbarMenuController = (
     stopTracking();
   };
 
-  return { position, open, dismiss, toggle, dispose };
+  const setToolbarElement = (element: HTMLDivElement | undefined) => {
+    toolbarElement = element;
+  };
+
+  return { position, setToolbarElement, open, dismiss, toggle, dispose };
 };

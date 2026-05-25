@@ -174,10 +174,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [toolbarShakeCount, setToolbarShakeCount] = createSignal(0);
     const [selectionLabelShakeCount, setSelectionLabelShakeCount] = createSignal(0);
     const [isToolbarSelectHovered, setIsToolbarSelectHovered] = createSignal(false);
-    let toolbarElement: HTMLDivElement | undefined;
-    const toolbarMenu = createToolbarMenuController({
-      getToolbarElement: () => toolbarElement,
-    });
+    const toolbarMenu = createToolbarMenuController();
     const toolbarMenuPosition = toolbarMenu.position;
 
     const shiftMultiSelect = createShiftMultiSelectState();
@@ -610,9 +607,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       toolbarStateNotify: toolbarStateController.notify,
       toolbarStateOnChange: toolbarStateController.onChange,
       setIsToolbarSelectHovered,
-      setToolbarElement: (element) => {
-        toolbarElement = element;
-      },
+      setToolbarElement: toolbarMenu.setToolbarElement,
     });
 
     const api: ReactGrabAPI = buildPublicApi({
