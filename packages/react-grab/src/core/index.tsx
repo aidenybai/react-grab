@@ -34,6 +34,7 @@ import { createPromptModeHandlers } from "./prompt-mode-handlers.js";
 import { createMenuHandlers } from "./menu-handlers.js";
 import { createCommentModeHandlers } from "./comment-mode-handlers.js";
 import { createKeydownSpamTimer } from "./keydown-spam-timer.js";
+import { createSpaceDragRepositioning } from "./space-drag-repositioning.js";
 import { buildPublicApi } from "./build-public-api.js";
 import { createWindowFocusListeners } from "./window-focus-listeners.js";
 import { createToolbarStateController } from "./toolbar-state-controller.js";
@@ -275,7 +276,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const debouncedDragPointer = dragPreviewDebounce.pointer;
     const scheduleDragPreviewUpdate = dragPreviewDebounce.schedule;
     const keydownSpamTimer = createKeydownSpamTimer();
-    let previousSpaceDragPointerPage: Position | null = null;
     let lastWindowFocusTimestamp = 0;
     const copyFeedbackCooldown = createCopyFeedbackCooldown();
     const clearCopyFeedbackCooldown = copyFeedbackCooldown.clear;
@@ -285,21 +285,20 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const debouncedComponentName = createDebouncedComponentName(effectiveElement);
     const resolvedComponentName = debouncedComponentName.resolved;
     const setResolvedComponentName = debouncedComponentName.setResolved;
+    const spaceDragRepositioning = createSpaceDragRepositioning({
+      grab,
+      isDragging,
+      pointer,
+      toPageCoordinates: toPageCoordinatesUtil,
+    });
+
     const autoScroller = createAutoScroller(
       pointer,
       () => isDragging(),
       (scrollDelta) => {
         if (isDragRepositioning()) {
           actions.shiftDragStart(scrollDelta);
-          if (previousSpaceDragPointerPage) {
-            previousSpaceDragPointerPage = {
-              x: previousSpaceDragPointerPage.x + scrollDelta.x,
-              y: previousSpaceDragPointerPage.y + scrollDelta.y,
-            };
-            return;
-          }
-          const { pageX, pageY } = toPageCoordinates(pointer().x, pointer().y);
-          previousSpaceDragPointerPage = { x: pageX, y: pageY };
+          spaceDragRepositioning.applyScrollDelta(scrollDelta);
         }
       },
     );
@@ -348,20 +347,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const calculateDragRectangle = (endX: number, endY: number) =>
       calculateDragRectangleUtil(store.dragStart, endX, endY);
 
-    const isSpaceActivationKey = (event: KeyboardEvent) =>
-      event.code === "Space" || event.key === " ";
-
-    const startSpaceDragRepositioning = () => {
-      if (!isDragging()) return;
-      actions.startDragReposition();
-      const { pageX, pageY } = toPageCoordinates(pointer().x, pointer().y);
-      previousSpaceDragPointerPage = { x: pageX, y: pageY };
-    };
-
-    const stopSpaceDragRepositioning = () => {
-      actions.stopDragReposition();
-      previousSpaceDragPointerPage = null;
-    };
+    const {
+      isActivationKey: isSpaceActivationKey,
+      start: startSpaceDragRepositioning,
+      stop: stopSpaceDragRepositioning,
+    } = spaceDragRepositioning;
 
     createEffect(
       on(
@@ -561,13 +551,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isDragging()) {
         if (isDragRepositioning()) {
           const { pageX, pageY } = toPageCoordinates(clientX, clientY);
-          if (previousSpaceDragPointerPage) {
-            actions.shiftDragStart({
-              x: pageX - previousSpaceDragPointerPage.x,
-              y: pageY - previousSpaceDragPointerPage.y,
-            });
-          }
-          previousSpaceDragPointerPage = { x: pageX, y: pageY };
+          const delta = spaceDragRepositioning.applyPointerDelta(pageX, pageY);
+          if (delta) actions.shiftDragStart(delta);
         }
 
         scheduleDragPreviewUpdate(clientX, clientY);
