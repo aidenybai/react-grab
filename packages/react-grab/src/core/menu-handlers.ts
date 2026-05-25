@@ -1,8 +1,7 @@
 import { type Accessor } from "solid-js";
 import { DEFAULT_ACTION_ID } from "../constants.js";
-import { createBoundsFromDragRect } from "../utils/create-bounds-from-drag-rect.js";
-import { createElementBounds } from "../utils/create-element-bounds.js";
 import { createPageRectFromBounds } from "../utils/create-bounds-from-drag-rect.js";
+import { createElementBounds } from "../utils/create-element-bounds.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { getTagName } from "../utils/get-tag-name.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
@@ -14,9 +13,6 @@ import type { createPluginRegistry } from "./plugin-registry.js";
 import type { GrabPhaseSelectors } from "./selectors.js";
 import type { ToolbarMenuController } from "./toolbar-menu-controller.js";
 import type { ToolbarStateController } from "./toolbar-state-controller.js";
-
-// Ensure unused import warning is silenced even though it's referenced only via re-export type sigs.
-void createBoundsFromDragRect;
 
 type GrabStoreHandle = ReturnType<typeof createGrabStore>;
 type PluginRegistry = ReturnType<typeof createPluginRegistry>;
