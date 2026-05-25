@@ -40,6 +40,7 @@ import { mountRenderer } from "./mount-renderer.js";
 import { createContextMenuActionContext } from "./context-menu-action-context.js";
 import { createPromptModePreset } from "./prompt-mode-preset.js";
 import { createCoordinationFlags } from "./coordination-flags.js";
+import { createRendererLifecycleState } from "./renderer-lifecycle-state.js";
 import { buildPublicApi } from "./build-public-api.js";
 import { createWindowFocusListeners } from "./window-focus-listeners.js";
 import { createToolbarStateController } from "./toolbar-state-controller.js";
@@ -101,8 +102,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
   const { enabled: _enabled, ...settableOptions } = initialOptions;
 
   return createRoot((dispose) => {
-    let disposed = false;
-    let disposeRenderer: (() => void) | undefined;
+    const rendererLifecycle = createRendererLifecycleState();
     const coordinationFlags = createCoordinationFlags();
 
     const pluginRegistry = createPluginRegistry(settableOptions);
@@ -549,10 +549,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       grab,
       pluginRegistry,
       rendererRoot,
-      isDisposed: () => disposed,
-      setDisposeRenderer: (dispose) => {
-        disposeRenderer = dispose;
-      },
+      isDisposed: rendererLifecycle.isDisposed,
+      setDisposeRenderer: rendererLifecycle.setDisposeRenderer,
       selectionVisible,
       selectionBounds,
       selectionBoundsMultiple,
@@ -626,10 +624,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       menuHandlers,
       isEnabled,
       setIsEnabled,
-      setDisposed: () => {
-        disposed = true;
-      },
-      getDisposeRenderer: () => disposeRenderer,
+      setDisposed: rendererLifecycle.markDisposed,
+      getDisposeRenderer: rendererLifecycle.getDisposeRenderer,
       resetHasInited: () => {
         hasInited = false;
       },
