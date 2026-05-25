@@ -299,8 +299,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     const isAnyPopoverOpen = createMemo(
-      () =>
-        store.contextMenuPosition !== null || editMode.isOpen() || toolbarMenuPosition() !== null,
+      () => store.contextMenuPosition !== null || editMode.isOpen(),
     );
     let toolbarElement: HTMLDivElement | undefined;
     let stopToolbarMenuTracking: (() => void) | null = null;
@@ -2191,10 +2190,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isCopying()) return false;
       if (isSelectionInteractionLocked()) return false;
       // When a popover owns the Enter semantics (context menu = activate
-      // item; edit panel = submit value), bow out so this global handler
-      // doesn't re-trigger edit mode underneath the open panel — would
-      // otherwise reset its in-flight tweaks.
-      if (isAnyPopoverOpen()) return false;
+      // item; edit panel = submit value; toolbar menu = pick action),
+      // bow out so this global handler doesn't re-trigger edit mode
+      // underneath the open popover — would otherwise reset its
+      // in-flight state.
+      if (isAnyPopoverOpen() || toolbarMenuPosition() !== null) return false;
 
       const copiedElement = store.lastCopiedElement;
       const canActivateFromCopied =
@@ -2255,7 +2255,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (event.repeat) return false;
       if (!isActivated()) return false;
       if (isPromptMode()) return false;
-      if (isAnyPopoverOpen()) return false;
+      if (isAnyPopoverOpen() || toolbarMenuPosition() !== null) return false;
       if (event.key.length !== 1 || !TYPE_TO_EDIT_KEY_PATTERN.test(event.key)) return false;
       // Skip when the keystroke belongs to a host-page editable surface
       // (input, textarea, or contenteditable). Otherwise we'd swallow
@@ -2712,6 +2712,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.setTouchMode(event.pointerType === "touch");
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (isAnyPopoverOpen()) return;
+        if (toolbarMenuPosition() !== null) return;
 
         if (isPromptMode()) {
           const bounds = selectionBounds();
