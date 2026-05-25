@@ -1,14 +1,10 @@
 import { type Accessor, createSignal } from "solid-js";
 import { DRAG_PREVIEW_DEBOUNCE_MS } from "../constants.js";
-
-interface DebouncedPointer {
-  x: number;
-  y: number;
-}
+import type { Position } from "../types.js";
 
 export interface DragPreviewDebounce {
   /** Most recent pointer position after the debounce settles, or null while debouncing. */
-  pointer: Accessor<DebouncedPointer | null>;
+  pointer: Accessor<Position | null>;
   /** Schedule a debounced update; cancels any prior pending update. */
   schedule: (clientX: number, clientY: number) => void;
   /** Clear the debounce and null out the pointer immediately. */
@@ -23,7 +19,7 @@ export interface DragPreviewDebounce {
  * preview hides between adjustments.
  */
 export const createDragPreviewDebounce = (): DragPreviewDebounce => {
-  const [pointer, setPointer] = createSignal<DebouncedPointer | null>(null);
+  const [pointer, setPointer] = createSignal<Position | null>(null);
   let timerId: number | null = null;
 
   const cancel = () => {
