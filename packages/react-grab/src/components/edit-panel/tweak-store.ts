@@ -127,12 +127,20 @@ export const createTweakStore = (options: CreateTweakStoreOptions): TweakStore =
     setTweakedValues((current) => ({ ...current, [property.key]: tweak }));
   };
 
+  // Emit in TWEAK insertion order, not canonical property order.
+  // `formatEntryCss` collapses pending edits into a per-CSS-property
+  // map via last-write-wins, so emission order is part of the
+  // contract: a broader newer tweak (padding) must override the stale
+  // sides written by an earlier narrower tweak (padding-x). JS Object
+  // preserves the original insertion position even when a key is
+  // re-assigned, so re-tweaking the same row doesn't reshuffle.
   const buildPendingEdits = (): PendingEdit[] => {
     const tweaks = tweakedValues();
     const pending: PendingEdit[] = [];
-    for (const property of initialProperties) {
-      const tweak = tweaks[property.key];
-      if (!tweak || tweak.value === property.original) continue;
+    for (const key of Object.keys(tweaks)) {
+      const tweak = tweaks[key];
+      const property = propertyByKey.get(key);
+      if (!property || tweak.value === property.original) continue;
       if (property.kind === "numeric" && tweak.kind === "numeric") {
         pending.push({
           kind: "numeric",
