@@ -1,11 +1,6 @@
-interface Bounds {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
+import type { DragRect } from "../types.js";
 
-export const combineBounds = <T extends Bounds>(boundsList: T[]): Bounds => {
+export const combineBounds = <T extends DragRect>(boundsList: T[]): DragRect => {
   if (boundsList.length === 0) {
     return { x: 0, y: 0, width: 0, height: 0 };
   }
