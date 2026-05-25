@@ -157,9 +157,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     recomputeStore();
   };
 
-  const getPluginNames = (): string[] => {
-    return Array.from(plugins.keys());
-  };
+  const getPluginNames = (): string[] => Array.from(plugins.keys());
 
   const callHook = <K extends HookName>(
     hookName: K,
