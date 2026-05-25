@@ -15,6 +15,7 @@ import { render } from "solid-js/web";
 import { createGrabStore } from "./store.js";
 import { createGrabElementSelectors, createGrabPhaseSelectors } from "./selectors.js";
 import { createToolbarMenuController } from "./toolbar-menu-controller.js";
+import { createLabelInstanceManager } from "./label-instance-manager.js";
 import { CopyFailedError } from "../errors.js";
 import {
   isKeyboardEventTriggeredByInput,
@@ -62,7 +63,6 @@ import { getTagName } from "../utils/get-tag-name.js";
 import {
   ARROW_KEYS,
   FEEDBACK_DURATION_MS,
-  FADE_COMPLETE_BUFFER_MS,
   KEYDOWN_SPAM_TIMEOUT_MS,
   DRAG_THRESHOLD_PX,
   ELEMENT_DETECTION_THROTTLE_MS,
@@ -96,7 +96,6 @@ import type {
   Position,
   Options,
   OverlayBounds,
-  GrabbedBox,
   ReactGrabAPI,
   ReactGrabState,
   SelectionLabelInstance,
@@ -134,7 +133,6 @@ import {
 import { freezePseudoStates, unfreezePseudoStates } from "../utils/freeze-pseudo-states.js";
 import { freezeUpdates } from "../utils/freeze-updates.js";
 import { copyContent } from "../utils/copy-content.js";
-import { generateId } from "../utils/generate-id.js";
 import { logRecoverableError } from "../utils/log-recoverable-error.js";
 
 const builtInPlugins = [copyPlugin, commentPlugin, openPlugin];
@@ -235,6 +233,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       selectionBounds,
       isSelectionElementVisible,
     } = elementSelectors;
+
+    const labelManager = createLabelInstanceManager(grab, pluginRegistry);
+    const {
+      showTemporaryGrabbedBox,
+      createLabelInstance,
+      createPerElementLabelInstances,
+      clearAllLabels,
+      updateLabelAfterCopy,
+      handleLabelInstanceHoverChange,
+    } = labelManager;
 
     createEffect(
       on(isActivated, (activated, previousActivated) => {
@@ -459,23 +467,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
 
-    const grabbedBoxTimeouts = new Map<string, number>();
-
-    const showTemporaryGrabbedBox = (bounds: OverlayBounds, element: Element) => {
-      const boxId = generateId("grabbed");
-      const createdAt = Date.now();
-      const newBox: GrabbedBox = { id: boxId, bounds, createdAt, element };
-
-      actions.addGrabbedBox(newBox);
-      pluginRegistry.hooks.onGrabbedBox(bounds, element);
-
-      const timeoutId = window.setTimeout(() => {
-        grabbedBoxTimeouts.delete(boxId);
-        actions.removeGrabbedBox(boxId);
-      }, FEEDBACK_DURATION_MS);
-      grabbedBoxTimeouts.set(boxId, timeoutId);
-    };
-
     const notifyElementsSelected = async (elements: Element[]): Promise<void> => {
       const elementsPayload = await Promise.all(
         elements.map(async (element) => {
@@ -514,151 +505,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           },
         }),
       );
-    };
-
-    const labelFadeTimeouts = new Map<string, number>();
-
-    const cancelLabelFade = (instanceId: string) => {
-      const existingTimeout = labelFadeTimeouts.get(instanceId);
-      if (existingTimeout !== undefined) {
-        window.clearTimeout(existingTimeout);
-        labelFadeTimeouts.delete(instanceId);
-      }
-    };
-
-    const cancelAllLabelFades = () => {
-      for (const timeoutId of labelFadeTimeouts.values()) {
-        window.clearTimeout(timeoutId);
-      }
-      labelFadeTimeouts.clear();
-    };
-
-    const scheduleLabelFade = (instanceId: string) => {
-      cancelLabelFade(instanceId);
-
-      const timeoutId = window.setTimeout(() => {
-        labelFadeTimeouts.delete(instanceId);
-        actions.updateLabelInstance(instanceId, "fading");
-        setTimeout(() => {
-          labelFadeTimeouts.delete(instanceId);
-          actions.removeLabelInstance(instanceId);
-        }, FADE_COMPLETE_BUFFER_MS);
-      }, FEEDBACK_DURATION_MS);
-
-      labelFadeTimeouts.set(instanceId, timeoutId);
-    };
-
-    const handleLabelInstanceHoverChange = (instanceId: string, isHovered: boolean) => {
-      if (isHovered) {
-        cancelLabelFade(instanceId);
-      } else {
-        const instance = store.labelInstances.find(
-          (labelInstance) => labelInstance.id === instanceId,
-        );
-        if (instance && instance.status === "copied") {
-          scheduleLabelFade(instanceId);
-        }
-      }
-    };
-
-    const createLabelInstance = (
-      bounds: OverlayBounds,
-      tagName: string,
-      componentName: string | undefined,
-      status: SelectionLabelInstance["status"],
-      options?: {
-        element?: Element;
-        mouseX?: number;
-        elements?: Element[];
-        boundsMultiple?: OverlayBounds[];
-        hideArrow?: boolean;
-      },
-    ): string => {
-      actions.clearLabelInstances();
-      cancelAllLabelFades();
-      const instanceId = generateId("label");
-      const boundsCenterX = bounds.x + bounds.width / 2;
-      const boundsHalfWidth = bounds.width / 2;
-      const mouseX = options?.mouseX;
-      const mouseXOffset = mouseX !== undefined ? mouseX - boundsCenterX : undefined;
-
-      const instance: SelectionLabelInstance = {
-        id: instanceId,
-        bounds,
-        boundsMultiple: options?.boundsMultiple,
-        tagName,
-        componentName,
-        status,
-        createdAt: Date.now(),
-        element: options?.element,
-        elements: options?.elements,
-        mouseX,
-        mouseXOffsetFromCenter: mouseXOffset,
-        mouseXOffsetRatio:
-          mouseXOffset !== undefined && boundsHalfWidth > 0
-            ? mouseXOffset / boundsHalfWidth
-            : undefined,
-        hideArrow: options?.hideArrow,
-      };
-      actions.addLabelInstance(instance);
-      return instanceId;
-    };
-
-    const createPerElementLabelInstances = (
-      entries: Array<{
-        element: Element;
-        tagName: string;
-        componentName?: string;
-        mouseX?: number;
-      }>,
-      status: SelectionLabelInstance["status"],
-    ): string[] => {
-      actions.clearLabelInstances();
-      cancelAllLabelFades();
-      const instanceIds: string[] = [];
-      for (const entry of entries) {
-        const bounds = createElementBounds(entry.element);
-        const boundsCenterX = bounds.x + bounds.width / 2;
-        const boundsHalfWidth = bounds.width / 2;
-        const mouseXOffset = entry.mouseX !== undefined ? entry.mouseX - boundsCenterX : undefined;
-        const instanceId = generateId("label");
-        const instance: SelectionLabelInstance = {
-          id: instanceId,
-          bounds,
-          tagName: entry.tagName,
-          componentName: entry.componentName,
-          status,
-          createdAt: Date.now(),
-          element: entry.element,
-          mouseX: entry.mouseX,
-          mouseXOffsetFromCenter: mouseXOffset,
-          mouseXOffsetRatio:
-            mouseXOffset !== undefined && boundsHalfWidth > 0
-              ? mouseXOffset / boundsHalfWidth
-              : undefined,
-        };
-        actions.addLabelInstance(instance);
-        instanceIds.push(instanceId);
-      }
-      return instanceIds;
-    };
-
-    const clearAllLabels = () => {
-      cancelAllLabelFades();
-      actions.clearLabelInstances();
-    };
-
-    const updateLabelAfterCopy = (
-      labelInstanceId: string,
-      didSucceed: boolean,
-      errorMessage?: string,
-    ) => {
-      if (didSucceed) {
-        actions.updateLabelInstance(labelInstanceId, "copied");
-      } else {
-        actions.updateLabelInstance(labelInstanceId, "error", errorMessage || "Unknown error");
-      }
-      scheduleLabelFade(labelInstanceId);
     };
 
     const executeCopyOperation = async (
@@ -2842,9 +2688,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
       clearCopyFeedbackCooldown();
       toolbarMenu.dispose();
-      grabbedBoxTimeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
-      grabbedBoxTimeouts.clear();
-      cancelAllLabelFades();
+      labelManager.dispose();
       autoScroller.stop();
       document.body.style.userSelect = "";
       document.body.style.touchAction = "";
