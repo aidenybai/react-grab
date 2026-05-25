@@ -371,15 +371,16 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     // that tick. Check both to avoid submitting pending edits when
     // the user was actually picking a Hiragana/Hangul candidate.
     if (event.isComposing || event.keyCode === IME_COMPOSING_KEY_CODE) return;
-    // Discard-prompt keyboard routing — three overrides while the
-    // prompt owns focus on one of its buttons:
-    //   • Tab / Enter pass through so the browser handles natural
-    //     focus movement + button activation.
-    //   • Escape collapses the prompt (matches the visible "No"
-    //     affordance) instead of falling through to attemptDismiss,
-    //     which would silently close the panel from the No button —
-    //     surprising behaviour given the prompt explicitly offers a
-    //     binary Yes/No choice.
+    // Discard-prompt keyboard routing.
+    //   • Arrow / Tab list-navigation + value-step handlers are
+    //     blocked entirely: changing a tweak mid-prompt is incoherent
+    //     with "do you want to discard your edits?". Only the prompt's
+    //     own keys are allowed through.
+    //   • Tab / Enter on a focused discard button pass through so
+    //     native button focus movement + activation work.
+    //   • Escape on a focused discard button collapses the prompt
+    //     (matches the visible "No" affordance) instead of falling
+    //     through to attemptDismiss.
     if (isPendingDismiss()) {
       const target = event.composedPath()[0];
       const isOnDiscardButton =
@@ -394,6 +395,19 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
           ensureSearchFocused();
           return;
         }
+      }
+      // Block panel-level navigation + stepping while the prompt is
+      // asking the user to commit/discard.
+      if (
+        event.key === "Tab" ||
+        event.key === "ArrowUp" ||
+        event.key === "ArrowDown" ||
+        event.key === "ArrowLeft" ||
+        event.key === "ArrowRight"
+      ) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return;
       }
     }
     const handler = keyHandlers[event.key];
