@@ -5,9 +5,7 @@ import {
   createRoot,
   createSignal,
   onCleanup,
-  createEffect,
   createResource,
-  on,
 } from "solid-js";
 import { render } from "solid-js/web";
 import { createGrabStore } from "./store.js";
@@ -40,6 +38,7 @@ import { createDragHandlers } from "./drag-handlers.js";
 import { registerKeyboardListeners } from "./keyboard-listeners.js";
 import { registerPointerListeners } from "./pointer-listeners.js";
 import { createInitCleanup } from "./init-cleanup.js";
+import { registerLifecycleHookEffects } from "./lifecycle-hook-effects.js";
 import { buildPublicApi } from "./build-public-api.js";
 import { createWindowFocusListeners } from "./window-focus-listeners.js";
 import { createToolbarStateController } from "./toolbar-state-controller.js";
@@ -199,17 +198,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const stopShiftMultiSelecting = shiftMultiSelect.stop;
 
 
-    createEffect(
-      on(isHoldingKeys, (currentlyHolding, previouslyHolding = false) => {
-        if (!previouslyHolding || currentlyHolding || !isActivated()) {
-          return;
-        }
-        if (pluginRegistry.store.options.activationMode !== "hold") {
-          actions.setWasActivatedByToggle(true);
-        }
-        pluginRegistry.hooks.onActivate();
-      }),
-    );
 
     const preparePromptMode = (element: Element, positionX: number, positionY: number) => {
       setCopyStartPosition(element, positionX, positionY);
@@ -298,19 +286,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const { stop: stopSpaceDragRepositioning } = spaceDragRepositioning;
 
-    createEffect(
-      on(
-        () => [targetElement(), store.lastGrabbedElement] as const,
-        ([currentElement, lastElement]) => {
-          if (lastElement && currentElement && lastElement !== currentElement) {
-            actions.setLastGrabbed(null);
-          }
-          if (currentElement) {
-            pluginRegistry.hooks.onElementHover(currentElement);
-          }
-        },
-      ),
-    );
+    registerLifecycleHookEffects({ grab, pluginRegistry, phase, targetElement });
 
     createSelectionSourceSync({
       targetElement,
