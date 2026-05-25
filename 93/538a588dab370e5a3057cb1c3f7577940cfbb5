@@ -1,0 +1,20 @@
+.react-doctor/playbook.md
+  s_61a274434f0074::t_325016d76e245a 122
+  s_61a274434f0074::t_3add148239b0a4 112
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.1",
+  "base_commit_sha": "93538a588dab370e5a3057cb1c3f7577940cfbb5",
+  "prompts": {},
+  "sessions": {
+    "s_61a274434f0074": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0f35f8af-46e6-44c0-9724-75c95b377450",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Nisarg Patel <awesomenisarg@gmail.com>"
+    }
+  }
+}
