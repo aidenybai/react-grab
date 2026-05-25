@@ -28,7 +28,6 @@ export interface BuildActionContextOptions {
   performWithFeedbackOptions?: PerformWithFeedbackOptions;
   shouldDeferHideContextMenu: boolean;
   onBeforeCopy?: () => void;
-  onBeforePrompt?: () => void;
   customEnterPromptMode?: () => void;
 }
 
@@ -191,7 +190,6 @@ export const createActionContextBuilder = (
       performWithFeedbackOptions,
       shouldDeferHideContextMenu,
       onBeforeCopy,
-      onBeforePrompt,
       customEnterPromptMode,
     } = options;
 
@@ -214,7 +212,6 @@ export const createActionContextBuilder = (
 
     const defaultEnterPromptMode = () => {
       clearAllLabels();
-      onBeforePrompt?.();
       preparePromptMode(element, position.x, position.y);
       actions.setPointer({ x: position.x, y: position.y });
       actions.setFrozenElement(element);
