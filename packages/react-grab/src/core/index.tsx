@@ -34,6 +34,7 @@ import { createActionContextBuilder } from "./action-context-builder.js";
 import { createPromptModeHandlers } from "./prompt-mode-handlers.js";
 import { createWindowFocusListeners } from "./window-focus-listeners.js";
 import { createToolbarStateController } from "./toolbar-state-controller.js";
+import { createShiftMultiSelectState } from "./shift-multi-select-state.js";
 import {
   isKeyboardEventTriggeredByInput,
   hasTextSelectionInInput,
@@ -237,16 +238,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
     const toolbarMenuPosition = toolbarMenu.position;
 
-    let shiftSelectionLabelAnchorRatioByElement = new WeakMap<Element, number>();
-
-    const clearShiftSelectionLabelAnchors = () => {
-      shiftSelectionLabelAnchorRatioByElement = new WeakMap<Element, number>();
-    };
-
-    const stopShiftMultiSelecting = () => {
-      setIsShiftMultiSelecting(false);
-      clearShiftSelectionLabelAnchors();
-    };
+    const shiftMultiSelect = createShiftMultiSelectState();
+    const isShiftMultiSelecting = shiftMultiSelect.isActive;
+    const setIsShiftMultiSelecting = shiftMultiSelect.setActive;
+    const stopShiftMultiSelecting = shiftMultiSelect.stop;
 
 
     createEffect(
@@ -288,7 +283,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const scheduleDragPreviewUpdate = dragPreviewDebounce.schedule;
     let keydownSpamTimerId: number | null = null;
     let previousSpaceDragPointerPage: Position | null = null;
-    const [isShiftMultiSelecting, setIsShiftMultiSelecting] = createSignal(false);
     let lastWindowFocusTimestamp = 0;
     const copyFeedbackCooldown = createCopyFeedbackCooldown();
     const clearCopyFeedbackCooldown = copyFeedbackCooldown.clear;
@@ -430,7 +424,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           void viewportVersion();
           if (!isElementConnected(element)) return null;
           const bounds = createElementBounds(element);
-          const anchorRatio = shiftSelectionLabelAnchorRatioByElement.get(element);
+          const anchorRatio = shiftMultiSelect.getAnchorRatio(element);
           const mouseX =
             anchorRatio === undefined ? undefined : bounds.x + bounds.width * anchorRatio;
           return { tagName, componentName, bounds, mouseX };
@@ -489,7 +483,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const element = store.frozenElements[0];
       if (!isElementConnected(element)) return undefined;
 
-      const anchorRatio = shiftSelectionLabelAnchorRatioByElement.get(element);
+      const anchorRatio = shiftMultiSelect.getAnchorRatio(element);
       if (anchorRatio === undefined) return undefined;
 
       const bounds = createElementBounds(element);
@@ -765,7 +759,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!wasElementSelected) {
         const bounds = createElementBounds(element);
         const anchorRatio = getElementAnchorRatio(bounds, pointer);
-        shiftSelectionLabelAnchorRatioByElement.set(element, anchorRatio);
+        shiftMultiSelect.setAnchorRatio(element, anchorRatio);
         if (isFirstFrozenElement) {
           const componentName = getComponentDisplayName(element) ?? undefined;
           setResolvedComponentName(componentName);
@@ -777,7 +771,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const isElementStillSelected = store.frozenElements.includes(element);
 
       if (!isElementStillSelected) {
-        shiftSelectionLabelAnchorRatioByElement.delete(element);
+        shiftMultiSelect.deleteAnchor(element);
       }
 
       if (store.frozenElements.length === 0) {
@@ -810,7 +804,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const perElementLabelEntries = accumulatedElements.map((element) => {
         const tagName = getTagName(element) || "element";
         const componentName = getComponentDisplayName(element) ?? undefined;
-        const anchorRatio = shiftSelectionLabelAnchorRatioByElement.get(element);
+        const anchorRatio = shiftMultiSelect.getAnchorRatio(element);
         const bounds = createElementBounds(element);
         const mouseX =
           anchorRatio === undefined
