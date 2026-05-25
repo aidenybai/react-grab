@@ -39,6 +39,7 @@ import { registerLifecycleHookEffects } from "./lifecycle-hook-effects.js";
 import { mountRenderer } from "./mount-renderer.js";
 import { createContextMenuActionContext } from "./context-menu-action-context.js";
 import { createPromptModePreset } from "./prompt-mode-preset.js";
+import { createCoordinationFlags } from "./coordination-flags.js";
 import { buildPublicApi } from "./build-public-api.js";
 import { createWindowFocusListeners } from "./window-focus-listeners.js";
 import { createToolbarStateController } from "./toolbar-state-controller.js";
@@ -104,6 +105,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
   return createRoot((dispose) => {
     let disposed = false;
     let disposeRenderer: (() => void) | undefined;
+    const coordinationFlags = createCoordinationFlags();
 
     const pluginRegistry = createPluginRegistry(settableOptions);
 
@@ -152,9 +154,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       phase,
       effectiveElement,
       isShiftMultiSelecting: () => isShiftMultiSelecting(),
-      setKeyboardSelectedElement: (element) => {
-        keyboardSelectedElement = element;
-      },
+      setKeyboardSelectedElement: coordinationFlags.setKeyboardSelectedElement,
     });
     const {
       state: arrowNavigationState,
@@ -199,8 +199,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const scheduleDragPreviewUpdate = dragPreviewDebounce.schedule;
     const keydownSpamTimer = createKeydownSpamTimer();
     const copyFeedbackCooldown = createCopyFeedbackCooldown();
-    let keyboardSelectedElement: Element | null = null;
-    let pendingDefaultActionId: string | null = null;
     const [isPendingContextMenuSelect, setIsPendingContextMenuSelect] = createSignal(false);
     const debouncedComponentName = createDebouncedComponentName(effectiveElement);
     const resolvedComponentName = debouncedComponentName.resolved;
@@ -315,9 +313,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       clearArrowNavigation,
       stopSpaceDragRepositioning: () => stopSpaceDragRepositioning(),
       stopShiftMultiSelecting: () => stopShiftMultiSelecting(),
-      clearKeyboardSelectedElement: () => {
-        keyboardSelectedElement = null;
-      },
+      clearKeyboardSelectedElement: () => coordinationFlags.setKeyboardSelectedElement(null),
       clearKeydownSpamTimer: keydownSpamTimer.clear,
       clearPendingContextMenuSelect: () => setIsPendingContextMenuSelect(false),
     });
@@ -363,12 +359,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       toolbarMenu,
       toolbarStateController,
       resolvedComponentName,
-      takePendingDefaultActionId: () => {
-        const id = pendingDefaultActionId;
-        pendingDefaultActionId = null;
-        return id;
-      },
-      peekPendingDefaultActionId: () => pendingDefaultActionId,
+      takePendingDefaultActionId: coordinationFlags.takePendingDefaultActionId,
+      peekPendingDefaultActionId: coordinationFlags.peekPendingDefaultActionId,
       stopShiftMultiSelecting: () => stopShiftMultiSelecting(),
       clearArrowNavigation,
     });
@@ -388,9 +380,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         activationLifecycle,
         toolbarStateController,
         isEnabled,
-        setPendingDefaultActionId: (actionId) => {
-          pendingDefaultActionId = actionId;
-        },
+        setPendingDefaultActionId: coordinationFlags.setPendingDefaultActionId,
         setPendingContextMenuSelect: setIsPendingContextMenuSelect,
       });
 
@@ -411,11 +401,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       isPendingContextMenuSelect,
       setIsPendingContextMenuSelect,
       isDragRepositioning,
-      takeKeyboardSelectedElement: () => {
-        const element = keyboardSelectedElement;
-        keyboardSelectedElement = null;
-        return element;
-      },
+      takeKeyboardSelectedElement: coordinationFlags.takeKeyboardSelectedElement,
       scheduleDragPreviewUpdate,
       setResolvedComponentName,
       clearArrowNavigation,
@@ -570,9 +556,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       labelManager,
       pointer,
       contextMenuTagName,
-      clearKeyboardSelectedElement: () => {
-        keyboardSelectedElement = null;
-      },
+      clearKeyboardSelectedElement: () => coordinationFlags.setKeyboardSelectedElement(null),
     });
 
     mountRenderer({
