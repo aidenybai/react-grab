@@ -40,6 +40,11 @@ export interface EditModeController {
   state: Accessor<EditPanelState | null>;
   trigger: (element: Element, position: Position, overrides?: EditModeOverrides) => boolean;
   dismiss: () => void;
+  // Close the panel without deactivating the renderer or reverting
+  // preview. Used by sibling-popover handlers (e.g. opening the
+  // toolbar menu while the panel is open) — they want to swap
+  // popovers, not end the grab session.
+  closePreservingRenderer: () => void;
   submit: (prompt: string) => void;
   // Forced close path — clears panel state AND reverts any in-progress
   // preview-style writes via the registered force-discard hook. Used
@@ -168,10 +173,20 @@ export const createEditModeController = (
     }
   };
 
+  const closePreservingRenderer = () => {
+    if (state() === null) return;
+    clearAll();
+    // Don't deactivate even in toggle mode — caller is opening
+    // another popover, not ending the session. Unfreeze so selection
+    // can follow hover again under the toolbar menu.
+    dependencies.actions.unfreeze();
+  };
+
   return {
     state,
     trigger,
     dismiss,
+    closePreservingRenderer,
     submit,
     reset: resetWithDiscard,
     isOpen: () => state() !== null,

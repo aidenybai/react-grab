@@ -3563,8 +3563,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         // Single-popover rule (symmetric with the editMode.isOpen
         // effect that dismisses the toolbar menu when Budge opens) —
         // close any other anchored popovers before opening this one.
+        // `closePreservingRenderer` (not `dismiss`) because in
+        // toolbar-toggle mode `dismiss` would `deactivateRenderer` —
+        // user is swapping popovers, not ending the session.
         actions.hideContextMenu();
-        if (editMode.isOpen()) editMode.dismiss();
+        if (editMode.isOpen()) editMode.closePreservingRenderer();
         stopToolbarMenuTracking?.();
         stopToolbarMenuTracking = trackDropdownPosition(setToolbarMenuPosition);
       }
