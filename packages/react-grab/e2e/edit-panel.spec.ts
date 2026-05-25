@@ -557,6 +557,27 @@ test.describe("Edit Panel", () => {
       expect(after).toContain("20");
     });
 
+    test("typing p-4 on non-uniform spacing writes to both axis aggregates", async ({
+      reactGrab,
+    }) => {
+      // nested-button is px-2 py-1 → padding-x + padding-y axis rows
+      // are canonical; no single `padding` aggregate exists. The user
+      // typing `p-4` should still apply to all four sides via the
+      // axis-aggregate fan-out path.
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.type("p-4");
+      await reactGrab.page.waitForTimeout(80);
+      const top = await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-top");
+      const right = await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-right");
+      const bottom = await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-bottom");
+      const left = await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-left");
+      // 4 × 4 = 16px on every side
+      expect(top).toContain("16");
+      expect(right).toContain("16");
+      expect(bottom).toContain("16");
+      expect(left).toContain("16");
+    });
+
     test("compact value updates live on subsequent tweaks", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await reactGrab.page.keyboard.press("ArrowRight");

@@ -47,18 +47,27 @@ const findEnum = (
   return null;
 };
 
+// For each longhand the typed shorthand covers (e.g. p-4 → all four
+// padding sides), find the panel row whose cssProperties INCLUDES that
+// longhand. Axis-aggregate rows like `padding-top,padding-bottom`
+// cover two sides, so an exact `property.key === longhand` match would
+// miss them on elements with non-uniform spacing where only axis rows
+// are canonical. Dedup by row key so an aggregate covering multiple
+// longhands gets written once.
 const findNumericLonghands = (
   properties: readonly EditableProperty[],
   cssKey: string,
 ): NumericEditableProperty[] => {
   const longhands = expandAggregateLonghands(cssKey);
-  const matches: NumericEditableProperty[] = [];
-  for (const property of properties) {
-    if (longhands.includes(property.key) && property.kind === "numeric") {
-      matches.push(property);
+  const matchedByRowKey = new Map<string, NumericEditableProperty>();
+  for (const longhand of longhands) {
+    for (const property of properties) {
+      if (property.kind !== "numeric") continue;
+      if (!property.cssProperties.includes(longhand)) continue;
+      matchedByRowKey.set(property.key, property);
     }
   }
-  return matches;
+  return Array.from(matchedByRowKey.values());
 };
 
 const clampedFor = (property: NumericEditableProperty, candidate: number): number =>
