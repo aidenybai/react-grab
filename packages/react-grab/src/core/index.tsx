@@ -3539,6 +3539,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         editMode.isOpen,
         (isOpen) => {
           if (isOpen) {
+            // Two popovers can't coexist — opening Budge from the
+            // context menu / selection-label expand path should close
+            // the toolbar menu the same way handleToggleToolbarMenu
+            // closes the context menu when going the other direction.
+            dismissToolbarMenu();
             stopEditPanelTracking?.();
             stopEditPanelTracking = trackDropdownPosition(setEditPanelPosition);
           } else {
