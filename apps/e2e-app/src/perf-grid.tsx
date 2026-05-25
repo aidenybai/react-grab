@@ -41,7 +41,7 @@ export const PerfGrid = ({ rowCount, columnCount }: PerfGridProps) => {
   return (
     <div data-testid="perf-grid" className="p-4">
       <header className="mb-4">
-        <h1 className="text-xl font-bold" data-testid="perf-title">
+        <h1 className="text-xl font-semibold" data-testid="perf-title">
           Perf Grid ({rowCount}×{columnCount})
         </h1>
         <p className="text-sm text-gray-500" data-testid="perf-description">

@@ -27,7 +27,7 @@ const TodoList = () => {
 
   return (
     <div className="p-4 border rounded-lg" data-testid="todo-list">
-      <h1 className="text-xl font-bold mb-4">Todo List</h1>
+      <h1 className="text-xl font-semibold mb-4">Todo List</h1>
       <ul className="space-y-2">
         {todos.map((todo) => (
           <TodoItem key={todo.id} todo={todo} />
@@ -74,7 +74,7 @@ const FormSection = () => {
 
   return (
     <section className="border rounded-lg p-4" data-testid="form-section">
-      <h2 className="text-lg font-bold mb-4">Form Elements</h2>
+      <h2 className="text-lg font-semibold mb-4">Form Elements</h2>
       <div className="space-y-4">
         <div>
           <label htmlFor="test-input" className="block text-sm font-medium mb-1">
@@ -133,7 +133,7 @@ const ScrollableSection = () => {
 
   return (
     <section className="border rounded-lg p-4" data-testid="scrollable-section">
-      <h2 className="text-lg font-bold mb-4">Scrollable Content</h2>
+      <h2 className="text-lg font-semibold mb-4">Scrollable Content</h2>
       <div className="h-64 overflow-y-auto border rounded" data-testid="scroll-container">
         <ul className="divide-y">
           {items.map((item) => (
@@ -172,7 +172,7 @@ const DynamicElements = () => {
 
   return (
     <section className="border rounded-lg p-4" data-testid="dynamic-section">
-      <h2 className="text-lg font-bold mb-4">Dynamic Elements</h2>
+      <h2 className="text-lg font-semibold mb-4">Dynamic Elements</h2>
       <div className="space-y-2 mb-4">
         {elements.map((element) => (
           <div
@@ -236,7 +236,7 @@ const EdgeElements = () => {
 const VariousElements = () => {
   return (
     <section className="border rounded-lg p-4" data-testid="various-section">
-      <h2 className="text-lg font-bold mb-4">Various Element Types</h2>
+      <h2 className="text-lg font-semibold mb-4">Various Element Types</h2>
       <div className="space-y-4">
         <div className="flex gap-4 items-center">
           <span className="text-sm" data-testid="span-element">
@@ -330,7 +330,7 @@ const VariousElements = () => {
 const AnimatedElements = () => {
   return (
     <section className="border rounded-lg p-4" data-testid="animated-section">
-      <h2 className="text-lg font-bold mb-4">Animated Elements</h2>
+      <h2 className="text-lg font-semibold mb-4">Animated Elements</h2>
       <div className="space-y-4">
         <div
           className="w-8 h-8 bg-blue-500 rounded-full animate-pulse"
@@ -346,7 +346,7 @@ const AnimatedElements = () => {
 const ZeroDimensionElements = () => {
   return (
     <section className="border rounded-lg p-4" data-testid="zero-dimension-section">
-      <h2 className="text-lg font-bold mb-4">Edge Case Elements</h2>
+      <h2 className="text-lg font-semibold mb-4">Edge Case Elements</h2>
       <div className="space-y-2">
         <div className="w-0 h-0" data-testid="zero-size-element" />
         <div className="invisible" data-testid="invisible-element">
@@ -389,7 +389,7 @@ const DropdownSection = () => {
 
   return (
     <section className="border rounded-lg p-4" data-testid="dropdown-section">
-      <h2 className="text-lg font-bold mb-4">Dropdown Test</h2>
+      <h2 className="text-lg font-semibold mb-4">Dropdown Test</h2>
       <div className="relative" ref={dropdownRef}>
         <button
           onClick={() => setIsOpen(!isOpen)}
@@ -458,7 +458,7 @@ const ModalDialogSection = () => {
 
   return (
     <section className="border rounded-lg p-4" data-testid="modal-dialog-section">
-      <h2 className="text-lg font-bold mb-4">Modal Dialog (pointerdown dismiss)</h2>
+      <h2 className="text-lg font-semibold mb-4">Modal Dialog (pointerdown dismiss)</h2>
       <button
         onClick={() => setIsOpen(true)}
         className="bg-indigo-500 text-white px-4 py-2 rounded"
@@ -478,7 +478,7 @@ const ModalDialogSection = () => {
             className="relative bg-white rounded-lg shadow-xl p-6 w-96 z-10"
             data-testid="modal-content"
           >
-            <h3 className="text-lg font-bold mb-2">Modal Title</h3>
+            <h3 className="text-lg font-semibold mb-2">Modal Title</h3>
             <p className="mb-4">
               Click inside here while React Grab is active. The modal should NOT close.
             </p>
@@ -543,7 +543,7 @@ const PointerUpModalSection = () => {
 
   return (
     <section className="border rounded-lg p-4" data-testid="pointerup-modal-section">
-      <h2 className="text-lg font-bold mb-4">
+      <h2 className="text-lg font-semibold mb-4">
         Modal Dialog (pointerdown+pointerup dismiss, Headless UI style)
       </h2>
       <button
@@ -564,7 +564,7 @@ const PointerUpModalSection = () => {
             className="relative bg-white rounded-lg shadow-xl p-6 w-96 z-10"
             data-testid="pointerup-modal-content"
           >
-            <h3 className="text-lg font-bold mb-2">Headless UI Style Modal</h3>
+            <h3 className="text-lg font-semibold mb-2">Headless UI Style Modal</h3>
             <p className="mb-4">Uses pointerdown+pointerup pair for outside detection.</p>
             <button
               className="bg-blue-500 text-white px-3 py-1 rounded"
@@ -592,7 +592,7 @@ const HiddenToggleSection = () => {
 
   return (
     <section className="border rounded-lg p-4" data-testid="hidden-toggle-section">
-      <h2 className="text-lg font-bold mb-4">Visibility Toggle</h2>
+      <h2 className="text-lg font-semibold mb-4">Visibility Toggle</h2>
       <button
         onClick={() => setIsVisible(!isVisible)}
         className="bg-gray-500 text-white px-4 py-2 rounded mb-4"
@@ -642,7 +642,7 @@ export default function App() {
       <EdgeElements />
 
       <header className="mb-4">
-        <h1 className="text-2xl font-bold" data-testid="main-title">
+        <h1 className="text-2xl font-semibold" data-testid="main-title">
           React Grab E2E Test Page
         </h1>
         <p className="text-gray-600" data-testid="main-description">

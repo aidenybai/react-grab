@@ -168,7 +168,7 @@ export default function Home() {
     <main className="mx-auto max-w-4xl space-y-10 p-8 pb-20">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">shadcn/ui Components</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">shadcn/ui Components</h1>
           <p className="mt-1 text-muted-foreground">
             All installed components laid out for preview.
           </p>
