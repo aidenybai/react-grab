@@ -3560,7 +3560,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (toolbarMenuPosition() !== null) {
         dismissToolbarMenu();
       } else {
+        // Single-popover rule (symmetric with the editMode.isOpen
+        // effect that dismisses the toolbar menu when Budge opens) —
+        // close any other anchored popovers before opening this one.
         actions.hideContextMenu();
+        if (editMode.isOpen()) editMode.dismiss();
         stopToolbarMenuTracking?.();
         stopToolbarMenuTracking = trackDropdownPosition(setToolbarMenuPosition);
       }
