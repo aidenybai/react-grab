@@ -117,12 +117,7 @@ import { loadToolbarState, saveToolbarState } from "../components/toolbar/state.
 import { copyPlugin } from "./plugins/copy.js";
 import { commentPlugin } from "./plugins/comment.js";
 import { openPlugin } from "./plugins/open.js";
-import {
-  freezeAllAnimations,
-  freezeGlobalAnimations,
-  unfreezeGlobalAnimations,
-} from "../utils/freeze-animations.js";
-import { freezePseudoStates, unfreezePseudoStates } from "../utils/freeze-pseudo-states.js";
+import { freezeAllAnimations } from "../utils/freeze-animations.js";
 import { copyContent } from "../utils/copy-content.js";
 import { notifyElementsSelected } from "../utils/notify-elements-selected.js";
 import { logRecoverableError } from "../utils/log-recoverable-error.js";
@@ -262,20 +257,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const activationHold = createActivationHoldController(grab);
     const clearHoldTimer = activationHold.clearTimer;
     const resetCopyConfirmation = activationHold.resetCopyConfirmation;
-
-    createEffect(
-      on(isActivated, (activated, previousActivated) => {
-        if (activated && !previousActivated) {
-          freezePseudoStates(pointer().x, pointer().y);
-          freezeGlobalAnimations();
-          document.body.style.touchAction = "none";
-        } else if (!activated && previousActivated) {
-          unfreezePseudoStates();
-          unfreezeGlobalAnimations();
-          document.body.style.touchAction = "";
-        }
-      }),
-    );
 
     const savedToolbarState = loadToolbarState();
     const [isEnabled, setIsEnabled] = createSignal(

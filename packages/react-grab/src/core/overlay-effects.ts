@@ -1,6 +1,7 @@
 import { type Accessor, createEffect, on, onCleanup } from "solid-js";
 import { BOUNDS_RECALC_INTERVAL_MS } from "../constants.js";
-import { freezeAnimations } from "../utils/freeze-animations.js";
+import { freezeAnimations, freezeGlobalAnimations, unfreezeGlobalAnimations } from "../utils/freeze-animations.js";
+import { freezePseudoStates, unfreezePseudoStates } from "../utils/freeze-pseudo-states.js";
 import { freezeUpdates } from "../utils/freeze-updates.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
 import type { createGrabStore } from "./store.js";
@@ -55,6 +56,24 @@ export const createOverlayEffects = (input: OverlayEffectsInput): void => {
       if (!shouldFreezeReactUpdates()) return;
       const unfreeze = freezeUpdates();
       onCleanup(unfreeze);
+    }),
+  );
+
+  // On activation: freeze :hover/:active pseudo-states at the current
+  // pointer position, freeze all WAAPI animations, and disable touch panning
+  // so a touch drag inside the overlay doesn't scroll the page underneath.
+  // On deactivation: undo each in reverse.
+  createEffect(
+    on(isActivated, (activated, previousActivated) => {
+      if (activated && !previousActivated) {
+        freezePseudoStates(grab.pointer().x, grab.pointer().y);
+        freezeGlobalAnimations();
+        document.body.style.touchAction = "none";
+      } else if (!activated && previousActivated) {
+        unfreezePseudoStates();
+        unfreezeGlobalAnimations();
+        document.body.style.touchAction = "";
+      }
     }),
   );
 };
