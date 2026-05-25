@@ -32,6 +32,7 @@ import { createActivationLifecycle } from "./activation-lifecycle.js";
 import { createActionContextBuilder } from "./action-context-builder.js";
 import { createPromptModeHandlers } from "./prompt-mode-handlers.js";
 import { createMenuHandlers } from "./menu-handlers.js";
+import { createCommentModeHandlers } from "./comment-mode-handlers.js";
 import { createWindowFocusListeners } from "./window-focus-listeners.js";
 import { createToolbarStateController } from "./toolbar-state-controller.js";
 import { createShiftMultiSelectState } from "./shift-multi-select-state.js";
@@ -173,7 +174,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       isSelectionInteractionLocked,
       didJustCopy,
       isPromptMode,
-      isCommentMode,
       isPendingDismiss,
     } = phase;
 
@@ -501,41 +501,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     } = menuHandlers;
     const dismissToolbarMenu = toolbarMenu.dismiss;
 
-    const handleToggleActive = () => {
-      if (isActivated()) {
-        deactivateRenderer();
-      } else if (isEnabled()) {
-        const defaultActionId = currentToolbarState()?.defaultAction ?? DEFAULT_ACTION_ID;
-        if (defaultActionId === DEFAULT_ACTION_ID) {
-          actions.setPendingCommentMode(true);
-        } else {
-          pendingDefaultActionId = defaultActionId;
-          setIsPendingContextMenuSelect(true);
-        }
-        toggleActivate();
-      }
-    };
-
-    const enterCommentModeForElement = (element: Element, positionX: number, positionY: number) => {
-      actions.setPendingCommentMode(false);
-      actions.clearInputText();
-      actions.enterPromptMode({ x: positionX, y: positionY }, element);
-    };
-
-    const handleComment = () => {
-      if (!isEnabled()) return;
-
-      const isAlreadyInCommentMode = isActivated() && isCommentMode();
-      if (isAlreadyInCommentMode) {
-        deactivateRenderer();
-        return;
-      }
-
-      actions.setPendingCommentMode(true);
-      if (!isActivated()) {
-        toggleActivate();
-      }
-    };
+    const { handleToggleActive, enterCommentModeForElement, handleComment } =
+      createCommentModeHandlers({
+        grab,
+        phase,
+        activationLifecycle,
+        toolbarStateController,
+        isEnabled,
+        setPendingDefaultActionId: (actionId) => {
+          pendingDefaultActionId = actionId;
+        },
+        setPendingContextMenuSelect: setIsPendingContextMenuSelect,
+      });
 
     const handlePointerMove = (clientX: number, clientY: number, isShiftHeld: boolean) => {
       const shouldTrackPendingShiftSelection =
