@@ -1,11 +1,4 @@
-import {
-  createSignal,
-  onCleanup,
-  onMount,
-  Show,
-  type Component,
-  type JSX,
-} from "solid-js";
+import { createSignal, onCleanup, onMount, Show, type Component, type JSX } from "solid-js";
 import {
   EDIT_SLIDER_CLICK_THRESHOLD_PX,
   EDIT_SLIDER_HASH_MARK_COUNT,
@@ -52,9 +45,7 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
   // `startedOnValueText` lets the value chip be both click-to-edit AND
   // a drag handle — pointer-down records the flag, release branches on
   // it.
-  let dragState:
-    | { startX: number; isDragging: boolean; startedOnValueText: boolean }
-    | null = null;
+  let dragState: { startX: number; isDragging: boolean; startedOnValueText: boolean } | null = null;
 
   const valueClass = "text-[12px] leading-4 font-medium tabular-nums";
   const labelClass = "text-[13px] leading-4 font-medium";
@@ -94,45 +85,37 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
   // left edge, positive past the right.
   const computeRubberStretch = (clientX: number, trackRect: DOMRect): number => {
     const signedOvershoot =
-      Math.max(0, clientX - trackRect.right) -
-      Math.max(0, trackRect.left - clientX);
-    const past = Math.max(
-      0,
-      Math.abs(signedOvershoot) - EDIT_SLIDER_RUBBER_DEAD_ZONE_PX,
-    );
+      Math.max(0, clientX - trackRect.right) - Math.max(0, trackRect.left - clientX);
+    const past = Math.max(0, Math.abs(signedOvershoot) - EDIT_SLIDER_RUBBER_DEAD_ZONE_PX);
     const decay = Math.sqrt(Math.min(past / EDIT_SLIDER_RUBBER_SOFT_RANGE_PX, 1));
     return Math.sign(signedOvershoot) * EDIT_SLIDER_RUBBER_MAX_PX * decay;
   };
 
-  const handleTrackPointerDown = (event: PointerEvent) => {
+  const handleTrackPointerDown: JSX.EventHandler<HTMLDivElement, PointerEvent> = (event) => {
     if (!isDragSupported() || isEditing()) return;
     event.preventDefault();
     event.stopPropagation();
-    (event.currentTarget as Element).setPointerCapture(event.pointerId);
+    event.currentTarget.setPointerCapture(event.pointerId);
     const valueChip = valueTextElement;
     const startedOnValueText =
-      valueChip !== undefined &&
-      event.target instanceof Node &&
-      valueChip.contains(event.target);
+      valueChip !== undefined && event.target instanceof Node && valueChip.contains(event.target);
     dragState = { startX: event.clientX, isDragging: false, startedOnValueText };
     props.onInteract?.();
   };
 
-  const handleTrackPointerMove = (event: PointerEvent) => {
+  const handleTrackPointerMove: JSX.EventHandler<HTMLDivElement, PointerEvent> = (event) => {
     if (!dragState || !trackElement) return;
     const deltaX = event.clientX - dragState.startX;
     if (!dragState.isDragging && Math.abs(deltaX) < EDIT_SLIDER_CLICK_THRESHOLD_PX) return;
     dragState.isDragging = true;
     props.onInteract?.();
     commitDrag(event.clientX);
-    setRubberStretchPx(
-      computeRubberStretch(event.clientX, trackElement.getBoundingClientRect()),
-    );
+    setRubberStretchPx(computeRubberStretch(event.clientX, trackElement.getBoundingClientRect()));
   };
 
-  const handleTrackPointerUp = (event: PointerEvent) => {
+  const handleTrackPointerUp: JSX.EventHandler<HTMLDivElement, PointerEvent> = (event) => {
     if (!dragState) return;
-    const target = event.currentTarget as Element;
+    const target = event.currentTarget;
     if (target.hasPointerCapture(event.pointerId)) target.releasePointerCapture(event.pointerId);
     if (!dragState.isDragging) {
       if (dragState.startedOnValueText) startEditing();
@@ -147,9 +130,9 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
   // leaves the window, gesture stolen, capturing element unmounted) —
   // without this the drag state would leak and the rubber-band stretch
   // would stay at its last value forever.
-  const releaseDrag = (event: PointerEvent) => {
+  const releaseDrag: JSX.EventHandler<HTMLDivElement, PointerEvent> = (event) => {
     if (!dragState) return;
-    const target = event.currentTarget as Element;
+    const target = event.currentTarget;
     if (target.hasPointerCapture(event.pointerId)) target.releasePointerCapture(event.pointerId);
     dragState = null;
     setRubberStretchPx(0);
@@ -210,9 +193,10 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
       // Mid-drag: stretch tracks the pointer with no smoothing. On
       // release stretch resets to 0 and this transition produces the
       // spring-back.
-      transition: dragState !== null
-        ? "none"
-        : `transform ${EDIT_SLIDER_RUBBER_SETTLE_MS}ms ${EDIT_SLIDER_SPRING_EASING}`,
+      transition:
+        dragState !== null
+          ? "none"
+          : `transform ${EDIT_SLIDER_RUBBER_SETTLE_MS}ms ${EDIT_SLIDER_SPRING_EASING}`,
     };
   };
 
@@ -297,32 +281,32 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
               </span>
             }
           >
-          <input
-            ref={(element) => {
-              queueMicrotask(() => {
-                element.focus();
-                element.select();
-              });
-            }}
-            data-react-grab-ignore-events
-            data-react-grab-input
-            type="text"
-            inputmode="decimal"
-            aria-label="Edit value"
-            class={`${valueClass} bg-transparent border-none outline-none text-[var(--rg-text-primary)] p-0 m-0 text-right pointer-events-auto ml-auto`}
-            style={{
-              "field-sizing": "content",
-              "min-width": "16px",
-              "max-width": props.emphasized ? "120px" : "60px",
-            }}
-            value={draftText() ?? ""}
-            onInput={(event) => setDraftText(event.currentTarget.value)}
-            onKeyDown={handleEditKeyDown}
-            onBlur={commit}
-            onPointerDown={(event) => event.stopPropagation()}
-            onMouseDown={(event) => event.stopPropagation()}
-            onClick={(event) => event.stopPropagation()}
-          />
+            <input
+              ref={(element) => {
+                queueMicrotask(() => {
+                  element.focus();
+                  element.select();
+                });
+              }}
+              data-react-grab-ignore-events
+              data-react-grab-input
+              type="text"
+              inputmode="decimal"
+              aria-label="Edit value"
+              class={`${valueClass} bg-transparent border-none outline-none text-[var(--rg-text-primary)] p-0 m-0 text-right pointer-events-auto ml-auto`}
+              style={{
+                "field-sizing": "content",
+                "min-width": "16px",
+                "max-width": props.emphasized ? "120px" : "60px",
+              }}
+              value={draftText() ?? ""}
+              onInput={(event) => setDraftText(event.currentTarget.value)}
+              onKeyDown={handleEditKeyDown}
+              onBlur={commit}
+              onPointerDown={(event) => event.stopPropagation()}
+              onMouseDown={(event) => event.stopPropagation()}
+              onClick={(event) => event.stopPropagation()}
+            />
           </Show>
         </div>
       </div>

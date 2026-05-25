@@ -207,16 +207,32 @@ export type EditableProperty =
   | ColorEditableProperty
   | EnumEditableProperty;
 
-export interface PendingEdit {
+// Discriminated by `kind` — the prompt formatter switches on it.
+// Numeric edits carry value + unit; colour/enum edits carry a single
+// CSS-ready string.
+interface NumericPendingEdit {
+  kind: "numeric";
   key: string;
   cssProperties: readonly string[];
-  // Numeric edits store the value + unit ("16" + "px"); colour/enum
-  // edits store a CSS-ready string directly and leave unit empty.
-  // `kind` is the discriminator the prompt formatter switches on.
-  kind: "numeric" | "color" | "enum";
-  value: number | string;
+  value: number;
   unit: string;
 }
+
+interface ColorPendingEdit {
+  kind: "color";
+  key: string;
+  cssProperties: readonly string[];
+  value: string;
+}
+
+interface EnumPendingEdit {
+  kind: "enum";
+  key: string;
+  cssProperties: readonly string[];
+  value: string;
+}
+
+export type PendingEdit = NumericPendingEdit | ColorPendingEdit | EnumPendingEdit;
 
 export type PendingEdits = PendingEdit[];
 

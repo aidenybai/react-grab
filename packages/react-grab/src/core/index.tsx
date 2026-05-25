@@ -3490,9 +3490,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     // frame id between the toolbar menu and the edit panel caused the
     // later opener to cancel the earlier opener's tracking, then leave
     // the earlier dropdown unanchored when it closed.
-    const trackDropdownPosition = (
-      setPosition: (anchor: DropdownAnchor) => void,
-    ): (() => void) => {
+    const trackDropdownPosition = (setPosition: (anchor: DropdownAnchor) => void): (() => void) => {
       let frameId: number | null = null;
       const updatePosition = () => {
         const anchor = computeDropdownAnchor();

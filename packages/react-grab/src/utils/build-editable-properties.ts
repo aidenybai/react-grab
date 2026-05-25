@@ -738,8 +738,5 @@ const finalizeProperties = (
       tier2.push({ ...property, isDefault });
     }
   }
-  return [
-    ...sortPropertiesByRecommendation(tier1),
-    ...sortPropertiesByRecommendation(tier2),
-  ];
+  return [...sortPropertiesByRecommendation(tier1), ...sortPropertiesByRecommendation(tier2)];
 };

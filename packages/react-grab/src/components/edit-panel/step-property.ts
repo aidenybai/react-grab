@@ -1,7 +1,4 @@
-import {
-  EDIT_COLOR_LIGHTNESS_STEP_PERCENT,
-  EDIT_SHIFT_STEP_MULTIPLIER,
-} from "../../constants.js";
+import { EDIT_COLOR_LIGHTNESS_STEP_PERCENT, EDIT_SHIFT_STEP_MULTIPLIER } from "../../constants.js";
 import type { EditableProperty } from "../../types.js";
 import { clampToRange } from "../../utils/clamp-to-range.js";
 import { cleanNumericValue } from "../../utils/format-css-value.js";

@@ -5,7 +5,9 @@ const NUMERIC_RGB =
   /^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:\s*[,/]\s*([\d.]+%?))?\s*\)$/;
 
 const toHexByte = (numericValue: number): string =>
-  Math.max(0, Math.min(255, Math.round(numericValue))).toString(16).padStart(2, "0");
+  Math.max(0, Math.min(255, Math.round(numericValue)))
+    .toString(16)
+    .padStart(2, "0");
 
 const parseHexChannels = (hex: string): { r: number; g: number; b: number; a: number } | null => {
   if (!hex.startsWith("#")) return null;
@@ -41,9 +43,7 @@ export const isTransparentRgbString = (cssValue: string): boolean => {
   const match = cssValue.match(NUMERIC_RGB);
   if (!match) return false;
   if (match[4] === undefined) return false;
-  const alpha = match[4].endsWith("%")
-    ? Number(match[4].slice(0, -1)) / 100
-    : Number(match[4]);
+  const alpha = match[4].endsWith("%") ? Number(match[4].slice(0, -1)) / 100 : Number(match[4]);
   return alpha === 0;
 };
 

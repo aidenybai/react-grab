@@ -30,8 +30,7 @@ export const StepArrow: Component<StepArrowProps> = (props) => {
         : ACTIVE_TRANSLATE_PX
       : 0;
   const scale = () => (props.active && !props.disabled ? ACTIVE_SCALE : 1);
-  const path = () =>
-    props.direction === "left" ? ARROW_BLOCK_LEFT_PATH : ARROW_BLOCK_RIGHT_PATH;
+  const path = () => (props.direction === "left" ? ARROW_BLOCK_LEFT_PATH : ARROW_BLOCK_RIGHT_PATH);
 
   return (
     <svg

@@ -3,12 +3,11 @@ import type { PendingEdit, PendingEditsEntry } from "../types.js";
 import { formatDisplayValue } from "./format-css-value.js";
 
 const formatCssValue = (edit: PendingEdit): string => {
-  if (edit.kind === "color" || edit.kind === "enum") return String(edit.value);
-  const value = edit.value as number;
+  if (edit.kind === "color" || edit.kind === "enum") return edit.value;
   if ((edit.cssProperties[0] ?? edit.key) === "opacity" && edit.unit === "%") {
-    return formatDisplayValue(value / OPACITY_PERCENT_MAX);
+    return formatDisplayValue(edit.value / OPACITY_PERCENT_MAX);
   }
-  return `${formatDisplayValue(value)}${edit.unit}`;
+  return `${formatDisplayValue(edit.value)}${edit.unit}`;
 };
 
 const formatEntryCss = (entry: PendingEditsEntry): string[] => {
@@ -23,7 +22,10 @@ const formatEntryCss = (entry: PendingEditsEntry): string[] => {
       valueByCssProperty.set(cssProperty, cssValue);
     }
   }
-  return Array.from(valueByCssProperty, ([cssProperty, cssValue]) => `${cssProperty}: ${cssValue};`);
+  return Array.from(
+    valueByCssProperty,
+    ([cssProperty, cssValue]) => `${cssProperty}: ${cssValue};`,
+  );
 };
 
 // Composes a single prompt section covering every pending edit collected

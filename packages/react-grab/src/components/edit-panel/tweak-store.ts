@@ -101,13 +101,22 @@ export const createTweakStore = (options: CreateTweakStoreOptions): TweakStore =
     for (const property of initialProperties) {
       const tweak = tweaks[property.key];
       if (!tweak || tweak.value === property.original) continue;
-      pending.push({
-        key: property.key,
-        cssProperties: property.cssProperties,
-        kind: tweak.kind,
-        value: tweak.value,
-        unit: property.kind === "numeric" ? property.unit : "",
-      });
+      if (property.kind === "numeric") {
+        pending.push({
+          kind: "numeric",
+          key: property.key,
+          cssProperties: property.cssProperties,
+          value: tweak.value as number,
+          unit: property.unit,
+        });
+      } else {
+        pending.push({
+          kind: property.kind,
+          key: property.key,
+          cssProperties: property.cssProperties,
+          value: tweak.value as string,
+        });
+      }
     }
     return pending;
   };

@@ -2,12 +2,10 @@ import {
   createEffect,
   createMemo,
   createSignal,
-  Match,
   on,
   onCleanup,
   onMount,
   Show,
-  Switch,
   type Component,
 } from "solid-js";
 import {
@@ -22,11 +20,7 @@ import {
   EDIT_VALUE_BUMP_PX,
   Z_INDEX_OVERLAY,
 } from "../../constants.js";
-import type {
-  DropdownAnchor,
-  EditableProperty,
-  EditPanelState,
-} from "../../types.js";
+import type { DropdownAnchor, EditableProperty, EditPanelState } from "../../types.js";
 import { clampToRange } from "../../utils/clamp-to-range.js";
 import { cn } from "../../utils/cn.js";
 import { createAnchoredDropdown } from "../../utils/create-anchored-dropdown.js";
@@ -37,10 +31,8 @@ import { getTagDisplay } from "../../utils/get-tag-display.js";
 import { registerOverlayDismiss } from "../../utils/register-overlay-dismiss.js";
 import { suppressMenuEvent } from "../../utils/suppress-menu-event.js";
 import { TagBadge } from "../selection-label/tag-badge.js";
-import { ColorPicker } from "./color-picker.js";
+import { ActivePropertyControl } from "./active-property-control.js";
 import { HIDDEN_FOCUS_PRESERVING_STYLE } from "./constants.js";
-import { CycleControl } from "./cycle-control.js";
-import { asColor, asEnum, asNumeric } from "./narrow-property.js";
 import { createPreviewStyles } from "./preview-styles.js";
 import { PropertyList } from "./property-list.js";
 import { createShiftTracker } from "./shift-tracker.js";
@@ -48,7 +40,6 @@ import { createStepController } from "./step-controller.js";
 import { stepProperty } from "./step-property.js";
 import { createTailwindAutoApply } from "./tailwind-autoapply.js";
 import { createTweakStore } from "./tweak-store.js";
-import { ValueStepper } from "./value-stepper.js";
 
 interface EditPanelProps {
   state: EditPanelState | null;
@@ -105,9 +96,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   // page-level overlay stays hidden for the whole edit session without
   // this timer encoding latch logic.
   const [isTransientInteraction, setIsTransientInteraction] = createSignal(false);
-  const isInteracting = createMemo(
-    () => isTransientInteraction() || tweakStore.hasPendingTweaks(),
-  );
+  const isInteracting = createMemo(() => isTransientInteraction() || tweakStore.hasPendingTweaks());
 
   const tagDisplay = createMemo(() =>
     getTagDisplay({
@@ -202,26 +191,30 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
 
   const stepController = createStepController({ step: stepFromKeyboard, isShiftHeld });
 
-  const commitNumericValue = (rawValue: number) => {
+  // Single commit path the ActivePropertyControl dispatches into. The
+  // child component already gates on kind via its <Switch>, so each
+  // caller passes the right value type (number for the slider; hex
+  // string for the picker; option string for the cycle control).
+  const commitActive = (rawValue: number | string) => {
     const property = activeProperty();
-    if (!property || property.kind !== "numeric") return;
-    const next = cleanNumericValue(clampToRange(rawValue, property.min, property.max));
-    if (next === property.value) return;
-    commit(property, next);
-  };
-
-  const commitColorValue = (hex: string) => {
-    const property = activeProperty();
-    if (!property || property.kind !== "color") return;
-    if (hex.toLowerCase() === property.value.toLowerCase()) return;
-    commit(property, hex);
-  };
-
-  const commitEnumValue = (value: string) => {
-    const property = activeProperty();
-    if (!property || property.kind !== "enum") return;
-    if (value === property.value) return;
-    commit(property, value);
+    if (!property) return;
+    if (property.kind === "numeric") {
+      if (typeof rawValue !== "number") return;
+      const next = cleanNumericValue(clampToRange(rawValue, property.min, property.max));
+      if (next === property.value) return;
+      commit(property, next);
+      return;
+    }
+    if (property.kind === "color") {
+      if (typeof rawValue !== "string") return;
+      if (rawValue.toLowerCase() === property.value.toLowerCase()) return;
+      commit(property, rawValue);
+      return;
+    }
+    // enum
+    if (typeof rawValue !== "string") return;
+    if (rawValue === property.value) return;
+    commit(property, rawValue);
   };
 
   const activeTailwindLabel = createMemo<string | null>(() => {
@@ -240,6 +233,13 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     commit,
     setIsCompact,
   });
+
+  // Search textarea hides in compact mode when there's nothing in it
+  // to show — empty query, or pure-number streaming through to the
+  // active numeric row (Slot already mirrors the digits).
+  const isSearchInputHidden = createMemo(
+    () => isCompact() && (searchQuery() === "" || autoApply.isInlineNumericEdit()),
+  );
 
   const handleSubmit = () => {
     const pendingEdits = tweakStore.buildPendingEdits();
@@ -300,8 +300,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       // Colour rows: first Enter opens the native picker; subsequent
       // Enters submit like every other kind.
       const property = activeProperty();
-      const isUntweakedColor =
-        property?.kind === "color" && !tweakStore.hasTweakFor(property.key);
+      const isUntweakedColor = property?.kind === "color" && !tweakStore.hasTweakFor(property.key);
       if (isUntweakedColor && colorPickerTrigger) {
         colorPickerTrigger();
         return;
@@ -332,7 +331,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       }
     }),
   );
-
 
   onMount(() => {
     queueMicrotask(() => {
@@ -502,15 +500,11 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
               what they typed. */}
           <div
             class={
-              isCompact() && (searchQuery() === "" || autoApply.isInlineNumericEdit())
+              isSearchInputHidden()
                 ? ""
                 : "[font-synthesis:none] contain-layout shrink-0 flex flex-col items-start px-2 py-1.5 w-full self-stretch [border-top-width:0.5px] border-t-solid border-t-[var(--rg-border-subtle)] antialiased"
             }
-            style={
-              isCompact() && (searchQuery() === "" || autoApply.isInlineNumericEdit())
-                ? HIDDEN_FOCUS_PRESERVING_STYLE
-                : undefined
-            }
+            style={isSearchInputHidden() ? HIDDEN_FOCUS_PRESERVING_STYLE : undefined}
           >
             <textarea
               ref={(element) => {
@@ -565,9 +559,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                 onHoverIndex={setActiveIndex}
                 onSelect={handleSelectProperty}
                 onStep={stepFromPointer}
-                onCommitValue={commitNumericValue}
-                onCommitColor={commitColorValue}
-                onCommitEnum={commitEnumValue}
+                onCommit={commitActive}
                 onColorPickerRegister={registerColorPickerTrigger}
                 onEditComplete={ensureSearchFocused}
                 onInteract={markAsInteracting}
@@ -577,64 +569,31 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
             </div>
           </Show>
 
-          {/* Compact-mode dropdown — mirrors the comment plugin's
-              prompt-mode UX: focused value editor + circular submit
-              button (rendered inside ValueStepper via onSubmit). */}
+          {/* Compact-mode dropdown — the same control that owns the
+              active row in the list, just emphasized + without the
+              inner label. ColorPicker registers its trigger only via
+              the list instance (canonical registrant) so omit the
+              register prop here. */}
           <Show when={isCompact() && activeProperty()}>
             {(activeProp) => (
               <div
                 class="flex items-center justify-center w-full px-3 py-1.5 min-h-[28px]"
                 onMouseDown={(event) => event.preventDefault()}
               >
-                {/* Non-keyed Switch matches keep the underlying control
-                    mounted while the value updates — native color
-                    pickers / slider pointer captures need element
-                    persistence across re-renders. */}
-                {/* Compact ColorPicker intentionally omits
-                    onRegisterTrigger — the list view's instance is the
-                    canonical registrant (it stays mounted while compact
-                    is on, just hidden). Registering here would race the
-                    list's trigger to null on compact unmount and break
-                    the Enter→picker shortcut. */}
-                <Switch>
-                  <Match when={activeProp().kind === "numeric"}>
-                    <ValueStepper
-                      value={asNumeric(activeProp()).value}
-                      min={asNumeric(activeProp()).min}
-                      max={asNumeric(activeProp()).max}
-                      unit={asNumeric(activeProp()).unit}
-                      activeKey={activeKey()}
-                      onStep={stepFromPointer}
-                      onCommitValue={commitNumericValue}
-                      onEditComplete={ensureSearchFocused}
-                      onInteract={markAsInteracting}
-                      tailwindLabel={activeTailwindLabel()}
-                      emphasized
-                    />
-                  </Match>
-                  <Match when={activeProp().kind === "color"}>
-                    <ColorPicker
-                      value={asColor(activeProp()).value}
-                      onCommit={commitColorValue}
-                      onEditComplete={ensureSearchFocused}
-                      onInteract={markAsInteracting}
-                      emphasized
-                    />
-                  </Match>
-                  <Match when={activeProp().kind === "enum"}>
-                    <CycleControl
-                      value={asEnum(activeProp()).value}
-                      options={asEnum(activeProp()).options}
-                      activeKey={activeKey()}
-                      onCommit={commitEnumValue}
-                      emphasized
-                    />
-                  </Match>
-                </Switch>
+                <ActivePropertyControl
+                  property={activeProp()}
+                  activeKey={activeKey()}
+                  onStep={stepFromPointer}
+                  onCommit={commitActive}
+                  onEditComplete={ensureSearchFocused}
+                  onInteract={markAsInteracting}
+                  showLabel={false}
+                  tailwindLabel={activeTailwindLabel()}
+                  emphasized
+                />
               </div>
             )}
           </Show>
-
         </div>
       </div>
     </Show>

@@ -2,10 +2,8 @@ import { createEffect, Index, Match, onCleanup, Show, Switch, type Component } f
 import type { EditableProperty } from "../../types.js";
 import { createMenuHighlight } from "../../utils/create-menu-highlight.js";
 import { formatDisplayValue } from "../../utils/format-css-value.js";
-import { ColorPicker } from "./color-picker.js";
-import { CycleControl } from "./cycle-control.js";
+import { ActivePropertyControl } from "./active-property-control.js";
 import { asColor, asEnum, asNumeric } from "./narrow-property.js";
-import { ValueStepper } from "./value-stepper.js";
 
 interface PropertyListProps {
   properties: EditableProperty[];
@@ -13,9 +11,7 @@ interface PropertyListProps {
   onHoverIndex: (index: number) => void;
   onSelect: (index: number) => void;
   onStep: (direction: 1 | -1) => void;
-  onCommitValue: (value: number) => void;
-  onCommitColor: (hex: string) => void;
-  onCommitEnum: (value: string) => void;
+  onCommit: (value: number | string) => void;
   onColorPickerRegister: (trigger: (() => void) | null) => void;
   onEditComplete: () => void;
   onInteract: () => void;
@@ -187,42 +183,17 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
                   </div>
                 }
               >
-                <Switch>
-                  <Match when={property().kind === "numeric"}>
-                    <ValueStepper
-                      label={asNumeric(property()).label}
-                      value={asNumeric(property()).value}
-                      min={asNumeric(property()).min}
-                      max={asNumeric(property()).max}
-                      unit={asNumeric(property()).unit}
-                      activeKey={props.activeKey}
-                      onStep={props.onStep}
-                      onCommitValue={props.onCommitValue}
-                      onEditComplete={props.onEditComplete}
-                      onInteract={props.onInteract}
-                      tailwindLabel={props.activeTailwindLabel}
-                    />
-                  </Match>
-                  <Match when={property().kind === "color"}>
-                    <ColorPicker
-                      label={asColor(property()).label}
-                      value={asColor(property()).value}
-                      onCommit={props.onCommitColor}
-                      onEditComplete={props.onEditComplete}
-                      onRegisterTrigger={props.onColorPickerRegister}
-                      onInteract={props.onInteract}
-                    />
-                  </Match>
-                  <Match when={property().kind === "enum"}>
-                    <CycleControl
-                      label={asEnum(property()).label}
-                      value={asEnum(property()).value}
-                      options={asEnum(property()).options}
-                      activeKey={props.activeKey}
-                      onCommit={props.onCommitEnum}
-                    />
-                  </Match>
-                </Switch>
+                <ActivePropertyControl
+                  property={property()}
+                  activeKey={props.activeKey}
+                  onStep={props.onStep}
+                  onCommit={props.onCommit}
+                  onEditComplete={props.onEditComplete}
+                  onInteract={props.onInteract}
+                  onColorPickerRegister={props.onColorPickerRegister}
+                  showLabel
+                  tailwindLabel={props.activeTailwindLabel}
+                />
               </Show>
             </button>
           );

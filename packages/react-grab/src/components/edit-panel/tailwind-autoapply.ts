@@ -25,12 +25,7 @@ const normalizeQuery = (query: string): string =>
 
 // Take the typed number literally instead of multiplying by the 4px
 // spacing scale: opacity-50, border-2, z-10, font-700.
-const LITERAL_NUMBER_KEYS = new Set([
-  "opacity",
-  "border-width",
-  "z-index",
-  "font-weight",
-]);
+const LITERAL_NUMBER_KEYS = new Set(["opacity", "border-width", "z-index", "font-weight"]);
 
 const findNumeric = (
   properties: readonly EditableProperty[],
@@ -103,10 +98,7 @@ export const createTailwindAutoApply = (
 
   const hasTrackableTarget = (cssKey: string): boolean => {
     for (const property of initialProperties) {
-      if (
-        property.key === cssKey &&
-        (property.kind === "numeric" || property.kind === "enum")
-      ) {
+      if (property.key === cssKey && (property.kind === "numeric" || property.kind === "enum")) {
         return true;
       }
     }
