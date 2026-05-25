@@ -179,7 +179,7 @@ const openEditPanel = async (
   await reactGrab.hoverElement(selector);
   await reactGrab.waitForSelectionBox();
   await reactGrab.rightClickElement(selector);
-  await reactGrab.clickContextMenuItem("Edit");
+  await reactGrab.clickContextMenuItem("Budge");
   await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(true);
 };
 
@@ -206,7 +206,7 @@ test.describe("Edit Panel", () => {
         if (!shadow) return false;
         const root = shadow.querySelector(`[${attr}]`);
         if (!root) return false;
-        const editButton = root.querySelector(`[data-react-grab-menu-item="edit"]`);
+        const editButton = root.querySelector(`[data-react-grab-menu-item="budge"]`);
         // The shortcut hint renders 'Enter' (or '↵' icon) within the row.
         return Boolean(editButton);
       }, ATTRIBUTE_NAME);

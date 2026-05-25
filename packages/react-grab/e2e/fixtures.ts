@@ -1260,11 +1260,10 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
           };
         }
       ).__REACT_GRAB__;
-      // The built-in `edit` plugin (style-tweak panel) ships with the
-      // same context-menu label "Edit" we use here for the comment shim,
-      // which would produce a duplicate menu item and break
-      // clickContextMenuItem("Edit") for legacy prompt-mode tests.
-      // Unregister it so this test's "Edit" is the only one in the menu.
+      // Unregister the built-in `edit` plugin (the Budge style-tweak
+      // panel) so prompt-mode tests interact with this comment shim
+      // exclusively. The shim uses label "Edit" for legacy compat with
+      // prompt-mode tests written before Budge existed.
       api?.unregisterPlugin("edit");
       api?.unregisterPlugin("comment-action");
       api?.registerPlugin({
