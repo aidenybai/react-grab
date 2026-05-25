@@ -20,6 +20,7 @@ import { createViewportSyncObserver } from "./viewport-sync.js";
 import { createArrowNavigationController } from "./arrow-navigation-controller.js";
 import { createCursorOverride } from "./cursor-override.js";
 import { createCopyFeedbackCooldown } from "./copy-feedback-cooldown.js";
+import { createActivationHoldController } from "./activation-hold.js";
 import { CopyFailedError } from "../errors.js";
 import {
   isKeyboardEventTriggeredByInput,
@@ -253,6 +254,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       clearArrowNavigation,
     } = arrowNav;
 
+    const activationHold = createActivationHoldController(grab);
+    const clearHoldTimer = activationHold.clearTimer;
+    const resetCopyConfirmation = activationHold.resetCopyConfirmation;
+
     createEffect(
       on(isActivated, (activated, previousActivated) => {
         if (activated && !previousActivated) {
@@ -310,39 +315,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         callback(newState);
       }
     };
-
-    const clearHoldTimer = () => {
-      if (activationHoldState.timerId !== null) {
-        clearTimeout(activationHoldState.timerId);
-        activationHoldState.timerId = null;
-      }
-    };
-
-    const resetCopyConfirmation = () => {
-      activationHoldState.copyWaiting = false;
-      activationHoldState.holdTimerFired = false;
-      activationHoldState.startTimestamp = null;
-    };
-
-    // The hold timer does not call activate when copyWaiting is true (the user
-    // held the activation key and pressed Ctrl+C). Instead it sets holdTimerFired
-    // so the keyup handler can activate after the clipboard operation finishes.
-    createEffect(() => {
-      if (current().state !== "holding") {
-        clearHoldTimer();
-        return;
-      }
-      activationHoldState.startTimestamp = Date.now();
-      activationHoldState.timerId = window.setTimeout(() => {
-        activationHoldState.timerId = null;
-        if (activationHoldState.copyWaiting) {
-          activationHoldState.holdTimerFired = true;
-          return;
-        }
-        actions.activate();
-      }, store.keyHoldDuration);
-      onCleanup(clearHoldTimer);
-    });
 
     createEffect(() => {
       const currentState = current();
@@ -411,12 +383,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }, DRAG_PREVIEW_DEBOUNCE_MS);
     };
     let keydownSpamTimerId: number | null = null;
-    const activationHoldState = {
-      timerId: null as number | null,
-      startTimestamp: null as number | null,
-      copyWaiting: false,
-      holdTimerFired: false,
-    };
     let previousSpaceDragPointerPage: Position | null = null;
     const [isShiftMultiSelecting, setIsShiftMultiSelecting] = createSignal(false);
     let lastWindowFocusTimestamp = 0;
@@ -1892,8 +1858,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
 
       if (isHoldingKeys() && event.repeat) {
-        if (activationHoldState.copyWaiting) {
-          const shouldActivate = activationHoldState.holdTimerFired;
+        if (activationHold.copyWaiting()) {
+          const shouldActivate = activationHold.holdTimerFired();
           resetCopyConfirmation();
           if (shouldActivate) {
             actions.activate();
@@ -2113,17 +2079,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             return;
 
           const shouldRelease =
-            isHoldingKeys() || (activationHoldState.holdTimerFired && isReleasingModifier);
+            isHoldingKeys() || (activationHold.holdTimerFired() && isReleasingModifier);
 
           if (shouldRelease) {
             clearHoldTimer();
-            const elapsedSinceHoldStart = activationHoldState.startTimestamp
-              ? Date.now() - activationHoldState.startTimestamp
+            const startTimestamp = activationHold.startTimestamp();
+            const elapsedSinceHoldStart = startTimestamp
+              ? Date.now() - startTimestamp
               : 0;
             const heldLongEnoughForActivation =
               elapsedSinceHoldStart >= MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS;
             const shouldActivateAfterCopy =
-              activationHoldState.holdTimerFired &&
+              activationHold.holdTimerFired() &&
               heldLongEnoughForActivation &&
               (pluginRegistry.store.options.allowActivationInsideInput ||
                 !isKeyboardEventTriggeredByInput(event));
@@ -2143,7 +2110,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     eventListenerManager.addDocumentListener("copy", () => {
       if (isHoldingKeys()) {
-        activationHoldState.copyWaiting = true;
+        activationHold.markCopyWaiting();
       }
     });
 
