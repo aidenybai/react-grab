@@ -17,6 +17,7 @@ import { createGrabElementSelectors, createGrabPhaseSelectors } from "./selector
 import { createToolbarMenuController } from "./toolbar-menu-controller.js";
 import { createLabelInstanceManager } from "./label-instance-manager.js";
 import { createViewportSyncObserver } from "./viewport-sync.js";
+import { createArrowNavigationController } from "./arrow-navigation-controller.js";
 import { CopyFailedError } from "../errors.js";
 import {
   isKeyboardEventTriggeredByInput,
@@ -48,7 +49,6 @@ import { isElementConnected } from "../utils/is-element-connected.js";
 import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
 import { getElementAnchorRatio } from "../utils/get-element-anchor-ratio.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
-import { getVisibleBoundsCenter } from "../utils/get-visible-bounds-center.js";
 import { normalizeErrorMessage } from "../utils/normalize-error.js";
 import {
   createBoundsFromDragRect,
@@ -96,7 +96,6 @@ import type {
   SelectionLabelInstance,
   ContextMenuActionContext,
   ContextMenuAction,
-  ArrowNavigationState,
   FrozenLabelEntry,
   PerformWithFeedbackOptions,
   SettableOptions,
@@ -107,7 +106,6 @@ import type {
 } from "../types.js";
 import { DEFAULT_THEME } from "./theme.js";
 import { createPluginRegistry } from "./plugin-registry.js";
-import { createArrowNavigator } from "./arrow-navigation.js";
 import { getRequiredModifiers, setupKeyboardEventClaimer } from "./keyboard-handlers.js";
 import { createAutoScroller, getAutoScrollDirection } from "./auto-scroll.js";
 import { logIntro } from "./log-intro.js";
@@ -238,6 +236,22 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       updateLabelAfterCopy,
       handleLabelInstanceHoverChange,
     } = labelManager;
+
+    const arrowNav = createArrowNavigationController({
+      grab,
+      phase,
+      effectiveElement,
+      isShiftMultiSelecting: () => isShiftMultiSelecting(),
+      setKeyboardSelectedElement: (element) => {
+        keyboardSelectedElement = element;
+      },
+    });
+    const {
+      state: arrowNavigationState,
+      handleArrowNavigation,
+      handleArrowNavigationSelect,
+      clearArrowNavigation,
+    } = arrowNav;
 
     createEffect(
       on(isActivated, (activated, previousActivated) => {
@@ -437,11 +451,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [resolvedComponentName, setResolvedComponentName] = createComponentNameForElement(
       debouncedElementForComponentName,
     );
-    const [arrowNavigationElements, setArrowNavigationElements] = createSignal<Element[]>([]);
-    const [arrowNavigationActiveIndex, setArrowNavigationActiveIndex] = createSignal(0);
-
-    const arrowNavigator = createArrowNavigator(isValidGrabbableElement, createElementBounds);
-
     const autoScroller = createAutoScroller(
       pointer,
       () => isDragging(),
@@ -1800,98 +1809,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       capture: true,
     });
 
-    const clearArrowNavigation = () => {
-      setArrowNavigationElements([]);
-      setArrowNavigationActiveIndex(0);
-      arrowNavigator.clearHistory();
-    };
-
-    const selectAndFocusElement = (element: Element) => {
-      actions.setFrozenElement(element);
-      actions.freeze();
-      keyboardSelectedElement = element;
-
-      const center = getBoundsCenter(createElementBounds(element));
-      actions.setPointer(center);
-
-      if (store.contextMenuPosition !== null) {
-        actions.showContextMenu(center, element);
-      }
-    };
-
-    const openArrowNavigationMenu = (anchorElement: Element) => {
-      const bounds = createElementBounds(anchorElement);
-      const probePoint = getVisibleBoundsCenter(bounds);
-      const elementsAtPoint = getElementsAtPoint(probePoint.x, probePoint.y)
-        .filter(isValidGrabbableElement)
-        .reverse();
-
-      setArrowNavigationElements(elementsAtPoint);
-      setArrowNavigationActiveIndex(Math.max(0, elementsAtPoint.indexOf(anchorElement)));
-    };
-
-    const handleArrowNavigationSelect = (index: number) => {
-      const targetElement = arrowNavigationElements()[index];
-      if (!targetElement) return;
-
-      setArrowNavigationActiveIndex(index);
-      arrowNavigator.clearHistory();
-      selectAndFocusElement(targetElement);
-    };
-
-    const handleArrowNavigation = (event: KeyboardEvent): boolean => {
-      if (!isActivated() || isPromptMode()) return false;
-      if (isShiftMultiSelecting()) return false;
-      if (!ARROW_KEYS.has(event.key)) return false;
-      // While the context menu is open, arrow keys belong to its own
-      // roving-tabindex navigation. Both listeners fire for the same
-      // event (both window+capture), so without bowing out here arrow
-      // keys also re-select a different page element and reposition
-      // the menu over it.
-      if (store.contextMenuPosition !== null) return false;
-
-      let currentElement = effectiveElement();
-      const isInitialSelection = !currentElement;
-
-      if (!currentElement) {
-        currentElement = getElementAtPosition(window.innerWidth / 2, window.innerHeight / 2);
-      }
-
-      if (!currentElement) return false;
-
-      const isVertical = event.key === "ArrowUp" || event.key === "ArrowDown";
-
-      if (!isVertical) {
-        clearArrowNavigation();
-        const nextElement = arrowNavigator.findNext(event.key, currentElement);
-        if (!nextElement && !isInitialSelection) return false;
-        event.preventDefault();
-        event.stopPropagation();
-        selectAndFocusElement(nextElement ?? currentElement);
-        return true;
-      }
-
-      if (arrowNavigationElements().length === 0) {
-        openArrowNavigationMenu(currentElement);
-      }
-
-      const nextElement = arrowNavigator.findNext(event.key, currentElement);
-      const elementToSelect = nextElement ?? currentElement;
-
-      event.preventDefault();
-      event.stopPropagation();
-      selectAndFocusElement(elementToSelect);
-
-      const newIndex = arrowNavigationElements().indexOf(elementToSelect);
-      if (newIndex !== -1) {
-        setArrowNavigationActiveIndex(newIndex);
-      } else {
-        openArrowNavigationMenu(elementToSelect);
-      }
-
-      return true;
-    };
-
     const handleEnterKeyActivation = (event: KeyboardEvent): boolean => {
       if (!isEnterCode(event.code)) return false;
       if (isKeyboardEventTriggeredByInput(event)) return false;
@@ -2012,19 +1929,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       openContextMenu(element, center);
       return true;
     };
-
-    const arrowNavigationItems = createMemo(() =>
-      arrowNavigationElements().map((element) => ({
-        tagName: getTagName(element) || "element",
-        componentName: getComponentDisplayName(element) ?? undefined,
-      })),
-    );
-
-    const arrowNavigationState = createMemo<ArrowNavigationState>(() => ({
-      items: arrowNavigationItems(),
-      activeIndex: arrowNavigationActiveIndex(),
-      isVisible: arrowNavigationElements().length > 0,
-    }));
 
     const handleActivationKeys = (event: KeyboardEvent): void => {
       if (
@@ -2441,7 +2345,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           isFromOverlay && store.frozenElements.length > 1
             ? getFrozenElementAtPosition(position)
             : null;
-        if (isFromOverlay && arrowNavigationElements().length > 0) {
+        if (isFromOverlay && arrowNavigationState().isVisible) {
           clearArrowNavigation();
         } else if (isFromOverlay && !overlayFrozenElement) {
           return;
