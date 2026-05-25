@@ -248,7 +248,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       commit(property, rawValue);
       return;
     }
-    // enum
     if (typeof rawValue !== "string") return;
     if (rawValue === property.value) return;
     commit(property, rawValue);
@@ -371,18 +370,13 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     // that tick. Check both to avoid submitting pending edits when
     // the user was actually picking a Hiragana/Hangul candidate.
     if (event.isComposing || event.keyCode === IME_COMPOSING_KEY_CODE) return;
-    // Discard-prompt keyboard routing.
+    // Discard-prompt keyboard routing:
     //   • Tab / Enter on a focused discard button pass through so
     //     native button focus movement + activation work.
     //   • Arrow / Tab list-navigation + value-step handlers are
-    //     blocked entirely while the prompt is up: changing a tweak
+    //     blocked entirely while the prompt is up — changing a tweak
     //     mid-prompt is incoherent with "do you want to discard your
-    //     edits?". Only the prompt's own keys are allowed through.
-    //
-    // Escape-on-discard-button → collapse-prompt is handled inside
-    // attemptDismiss itself because `registerOverlayDismiss` runs at
-    // window capture BEFORE this handler — Escape never reaches
-    // handleSearchKeyDown for non-input focus targets.
+    //     edits?".
     if (isPendingDismiss()) {
       const target = event.composedPath()[0];
       const isOnDiscardButton =
