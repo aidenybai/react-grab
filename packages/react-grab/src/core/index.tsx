@@ -13,6 +13,7 @@ import {
 } from "solid-js";
 import { render } from "solid-js/web";
 import { createGrabStore } from "./store.js";
+import { createGrabPhaseSelectors } from "./selectors.js";
 import { CopyFailedError } from "../errors.js";
 import {
   isKeyboardEventTriggeredByInput,
@@ -203,58 +204,28 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const pluginRegistry = createPluginRegistry(settableOptions);
 
-    const { store, actions, pointer, viewportVersion, current } = createGrabStore({
+    const grab = createGrabStore({
       theme: DEFAULT_THEME,
       keyHoldDuration: pluginRegistry.store.options.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS,
     });
+    const { store, actions, pointer, viewportVersion, current } = grab;
 
-    const isHoldingKeys = createMemo(() => current().state === "holding");
-    const isActivated = createMemo(() => current().state === "active");
-    const isFrozenPhase = createMemo(() => {
-      const currentState = current();
-      return currentState.state === "active" && currentState.phase === "frozen";
-    });
-    const isDragging = createMemo(() => {
-      const currentState = current();
-      return (
-        currentState.state === "active" &&
-        (currentState.phase === "dragging-select" || currentState.phase === "dragging-reposition")
-      );
-    });
-    // True only when the drag has actually moved beyond the click threshold.
-    // We use this for selection-visibility decisions so a click (which
-    // momentarily enters the dragging-select phase between pointerdown and
-    // pointerup) does not flash the selection bounds off and back on.
-    const isActivelyDragging = createMemo(() => {
-      if (!isDragging()) return false;
-      const dx = Math.abs(pointer().x + window.scrollX - store.dragStart.x);
-      const dy = Math.abs(pointer().y + window.scrollY - store.dragStart.y);
-      return dx > DRAG_THRESHOLD_PX || dy > DRAG_THRESHOLD_PX;
-    });
-    const isDragRepositioning = createMemo(() => {
-      const currentState = current();
-      return currentState.state === "active" && currentState.phase === "dragging-reposition";
-    });
-    const didJustDrag = createMemo(() => {
-      const currentState = current();
-      return currentState.state === "active" && currentState.phase === "justDragged";
-    });
-    const isCopying = createMemo(() => current().state === "copying");
-    const isSelectionInteractionLocked = createMemo(() => store.selectionInteractionLockDepth > 0);
-    const didJustCopy = createMemo(() => current().state === "justCopied");
-    const isPromptMode = createMemo(() => {
-      const currentState = current();
-      return currentState.state === "active" && Boolean(currentState.isPromptMode);
-    });
-    const isCommentMode = createMemo(() => store.pendingCommentMode || isPromptMode());
-    const isPendingDismiss = createMemo(() => {
-      const currentState = current();
-      return (
-        currentState.state === "active" &&
-        Boolean(currentState.isPromptMode) &&
-        Boolean(currentState.isPendingDismiss)
-      );
-    });
+    const phase = createGrabPhaseSelectors(grab);
+    const {
+      isHoldingKeys,
+      isActivated,
+      isFrozenPhase,
+      isDragging,
+      isActivelyDragging,
+      isDragRepositioning,
+      didJustDrag,
+      isCopying,
+      isSelectionInteractionLocked,
+      didJustCopy,
+      isPromptMode,
+      isCommentMode,
+      isPendingDismiss,
+    } = phase;
 
     createEffect(
       on(isActivated, (activated, previousActivated) => {
