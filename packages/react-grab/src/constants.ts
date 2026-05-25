@@ -107,7 +107,7 @@ export const PREVIEW_IDENTIFYING_ATTRS = new Set([
 
 export const MODIFIER_KEYS: readonly string[] = ["Meta", "Control", "Shift", "Alt"];
 
-export const ARROW_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
+export const NAVIGATION_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Tab"]);
 
 export const FROZEN_ELEMENT_ATTRIBUTE = "data-react-grab-frozen";
 

@@ -25,28 +25,48 @@ test.describe("Keyboard Navigation", () => {
     expect(isVisible).toBe(true);
   });
 
-  test("should navigate to parent element with ArrowLeft", async ({ reactGrab }) => {
+  test("should navigate to parent element with Shift+Tab", async ({ reactGrab }) => {
     await reactGrab.activate();
     await reactGrab.hoverElement("li:first-child");
     await reactGrab.waitForSelectionBox();
 
-    await reactGrab.page.keyboard.press("ArrowLeft");
+    await reactGrab.pressShiftTab();
     await reactGrab.waitForSelectionBox();
 
     const isVisible = await reactGrab.isOverlayVisible();
     expect(isVisible).toBe(true);
   });
 
-  test("should navigate to child element with ArrowRight", async ({ reactGrab }) => {
+  test("should navigate to child element with Tab", async ({ reactGrab }) => {
     await reactGrab.activate();
     await reactGrab.hoverElement("ul");
     await reactGrab.waitForSelectionBox();
 
-    await reactGrab.page.keyboard.press("ArrowRight");
+    await reactGrab.pressTab();
     await reactGrab.waitForSelectionBox();
 
     const isVisible = await reactGrab.isOverlayVisible();
     expect(isVisible).toBe(true);
+  });
+
+  test("ArrowRight should enter edit (prompt) mode", async ({ reactGrab }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverElement("li:first-child");
+    await reactGrab.waitForSelectionBox();
+
+    await reactGrab.pressArrowRight();
+
+    await expect.poll(() => reactGrab.isPromptModeActive(), { timeout: 5000 }).toBe(true);
+  });
+
+  test("ArrowLeft should enter edit (prompt) mode", async ({ reactGrab }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverElement("li:first-child");
+    await reactGrab.waitForSelectionBox();
+
+    await reactGrab.pressArrowLeft();
+
+    await expect.poll(() => reactGrab.isPromptModeActive(), { timeout: 5000 }).toBe(true);
   });
 
   test("should maintain activation during keyboard navigation", async ({ reactGrab }) => {
@@ -155,7 +175,7 @@ test.describe("Navigation History and Wrapping", () => {
       .toContain(scenario.expectedClipboardContent);
   };
 
-  test("ArrowLeft should go back to previous element", async ({ reactGrab }) => {
+  test("Shift+Tab should go back to previous element", async ({ reactGrab }) => {
     await reactGrab.activate();
     await reactGrab.hoverElement("li:first-child");
     await reactGrab.waitForSelectionBox();
@@ -163,7 +183,7 @@ test.describe("Navigation History and Wrapping", () => {
     await reactGrab.pressArrowDown();
     await reactGrab.pressArrowDown();
 
-    await reactGrab.pressArrowLeft();
+    await reactGrab.pressShiftTab();
     await reactGrab.waitForSelectionBox();
 
     const isVisible = await reactGrab.isSelectionBoxVisible();
@@ -239,7 +259,7 @@ test.describe("Navigation History and Wrapping", () => {
     await reactGrab.hoverElement("[data-testid='deeply-nested-text']");
     await reactGrab.waitForSelectionBox();
 
-    await reactGrab.pressArrowLeft();
+    await reactGrab.pressShiftTab();
     await reactGrab.waitForSelectionBox();
 
     const isVisible = await reactGrab.isSelectionBoxVisible();
@@ -253,7 +273,7 @@ test.describe("Navigation History and Wrapping", () => {
 
     const labelBefore = await reactGrab.getSelectionLabelInfo();
 
-    await reactGrab.pressArrowLeft();
+    await reactGrab.pressShiftTab();
     await reactGrab.waitForSelectionBox();
 
     const labelAfter = await reactGrab.getSelectionLabelInfo();

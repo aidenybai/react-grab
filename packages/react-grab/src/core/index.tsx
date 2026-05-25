@@ -58,7 +58,7 @@ import {
 } from "../utils/create-bounds-from-drag-rect.js";
 import { getTagName } from "../utils/get-tag-name.js";
 import {
-  ARROW_KEYS,
+  NAVIGATION_KEYS,
   FEEDBACK_DURATION_MS,
   FADE_COMPLETE_BUFFER_MS,
   KEYDOWN_SPAM_TIMEOUT_MS,
@@ -2097,16 +2097,37 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       selectAndFocusElement(targetElement);
     };
 
+    const enterEditModeForCurrentSelection = (): boolean => {
+      const element = store.frozenElement || targetElement();
+      if (!element) return false;
+      preparePromptMode(element, pointer().x, pointer().y);
+      activatePromptMode();
+      return true;
+    };
+
     const handleArrowNavigation = (event: KeyboardEvent): boolean => {
       if (!isActivated() || isPromptMode()) return false;
       if (isShiftMultiSelecting()) return false;
-      if (!ARROW_KEYS.has(event.key)) return false;
+      if (!NAVIGATION_KEYS.has(event.key)) return false;
       // While the context menu is open, arrow keys belong to its own
       // roving-tabindex navigation. Both listeners fire for the same
       // event (both window+capture), so without bowing out here arrow
       // keys also re-select a different page element and reposition
       // the menu over it.
       if (store.contextMenuPosition !== null) return false;
+
+      const isHorizontalNav = event.key === "Tab";
+      const isVerticalNav = event.key === "ArrowUp" || event.key === "ArrowDown";
+      const isEnterEditMode = event.key === "ArrowLeft" || event.key === "ArrowRight";
+
+      if (isEnterEditMode) {
+        if (!effectiveElement()) return false;
+        event.preventDefault();
+        event.stopPropagation();
+        clearArrowNavigation();
+        enterEditModeForCurrentSelection();
+        return true;
+      }
 
       let currentElement = effectiveElement();
       const isInitialSelection = !currentElement;
@@ -2117,23 +2138,29 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (!currentElement) return false;
 
-      const isVertical = event.key === "ArrowUp" || event.key === "ArrowDown";
-
-      if (!isVertical) {
+      if (isHorizontalNav) {
         clearArrowNavigation();
-        const nextElement = arrowNavigator.findNext(event.key, currentElement);
-        if (!nextElement && !isInitialSelection) return false;
+        const direction = event.shiftKey ? "backward" : "forward";
+        const nextElement = arrowNavigator.findNext(direction, currentElement);
+        if (!nextElement && !isInitialSelection) {
+          event.preventDefault();
+          event.stopPropagation();
+          return true;
+        }
         event.preventDefault();
         event.stopPropagation();
         selectAndFocusElement(nextElement ?? currentElement);
         return true;
       }
 
+      if (!isVerticalNav) return false;
+
       if (arrowNavigationElements().length === 0) {
         openArrowNavigationMenu(currentElement);
       }
 
-      const nextElement = arrowNavigator.findNext(event.key, currentElement);
+      const verticalDirection = event.key === "ArrowUp" ? "up" : "down";
+      const nextElement = arrowNavigator.findNext(verticalDirection, currentElement);
       const elementToSelect = nextElement ?? currentElement;
 
       event.preventDefault();
@@ -2421,7 +2448,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             }
           }
 
-          if (isFromOverlay && ARROW_KEYS.has(event.key)) {
+          if (isFromOverlay && NAVIGATION_KEYS.has(event.key)) {
             if (handleArrowNavigation(event)) return;
           }
 

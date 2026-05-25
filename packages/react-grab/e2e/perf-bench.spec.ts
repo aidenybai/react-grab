@@ -655,9 +655,9 @@ test.describe("@perf benchmarks", () => {
     await page.waitForTimeout(200);
 
     await recordScenario(page, testInfo, "keyboard-rapid-arrows", async () => {
-      const arrowKeys = ["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight"] as const;
+      const navKeys = ["ArrowDown", "ArrowUp", "Shift+Tab", "Tab"] as const;
       for (let pressIndex = 0; pressIndex < 200; pressIndex++) {
-        await page.keyboard.press(arrowKeys[pressIndex % arrowKeys.length]);
+        await page.keyboard.press(navKeys[pressIndex % navKeys.length]);
         await page.waitForTimeout(8);
       }
       await idleFrame(page, 4);
