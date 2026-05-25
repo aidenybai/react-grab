@@ -33,6 +33,7 @@ import { createActivationLifecycle } from "./activation-lifecycle.js";
 import { createActionContextBuilder } from "./action-context-builder.js";
 import { createPromptModeHandlers } from "./prompt-mode-handlers.js";
 import { createWindowFocusListeners } from "./window-focus-listeners.js";
+import { createToolbarStateController } from "./toolbar-state-controller.js";
 import {
   isKeyboardEventTriggeredByInput,
   hasTextSelectionInInput,
@@ -123,8 +124,6 @@ import {
 const builtInPlugins = [copyPlugin, commentPlugin, openPlugin];
 
 let hasInited = false;
-const toolbarStateChangeCallbacks = new Set<(state: ToolbarState) => void>();
-
 export const init = (rawOptions?: Options): ReactGrabAPI => {
   if (typeof window === "undefined") {
     return createNoopApi();
@@ -221,15 +220,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const clearHoldTimer = activationHold.clearTimer;
     const resetCopyConfirmation = activationHold.resetCopyConfirmation;
 
-    const savedToolbarState = loadToolbarState();
+    const toolbarStateController = createToolbarStateController();
+    const currentToolbarState = toolbarStateController.current;
+    const setCurrentToolbarState = toolbarStateController.setCurrent;
+    const updateToolbarState = toolbarStateController.update;
+    const savedToolbarState = toolbarStateController.load();
     const [isEnabled, setIsEnabled] = createSignal(
       savedToolbarState ? !savedToolbarState.collapsed : true,
     );
     const [toolbarShakeCount, setToolbarShakeCount] = createSignal(0);
     const [selectionLabelShakeCount, setSelectionLabelShakeCount] = createSignal(0);
-    const [currentToolbarState, setCurrentToolbarState] = createSignal<ToolbarState | null>(
-      savedToolbarState,
-    );
     const [isToolbarSelectHovered, setIsToolbarSelectHovered] = createSignal(false);
     let toolbarElement: HTMLDivElement | undefined;
     const toolbarMenu = createToolbarMenuController({
@@ -248,22 +248,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       clearShiftSelectionLabelAnchors();
     };
 
-    const updateToolbarState = (updates: Partial<ToolbarState>) => {
-      const currentState = currentToolbarState() ?? loadToolbarState();
-      const newState: ToolbarState = {
-        edge: currentState?.edge ?? "bottom",
-        ratio: currentState?.ratio ?? TOOLBAR_DEFAULT_POSITION_RATIO,
-        collapsed: currentState?.collapsed ?? false,
-        enabled: currentState?.enabled ?? true,
-        defaultAction: currentState?.defaultAction ?? DEFAULT_ACTION_ID,
-        ...updates,
-      };
-      saveToolbarState(newState);
-      setCurrentToolbarState(newState);
-      for (const callback of toolbarStateChangeCallbacks) {
-        callback(newState);
-      }
-    };
 
     createEffect(
       on(isHoldingKeys, (currentlyHolding, previouslyHolding = false) => {
@@ -1922,14 +1906,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                       dismissAllPopups();
                     }
                   }
-                  toolbarStateChangeCallbacks.forEach((callback) => callback(state));
+                  toolbarStateController.notify(state);
                 }}
-                onSubscribeToToolbarStateChanges={(callback) => {
-                  toolbarStateChangeCallbacks.add(callback);
-                  return () => {
-                    toolbarStateChangeCallbacks.delete(callback);
-                  };
-                }}
+                onSubscribeToToolbarStateChanges={toolbarStateController.onChange}
                 onToolbarSelectHoverChange={setIsToolbarSelectHovered}
                 onToolbarRef={(element) => {
                   toolbarElement = element;
@@ -2017,20 +1996,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             dismissAllPopups();
           }
         }
-        toolbarStateChangeCallbacks.forEach((callback) => callback(newState));
+        toolbarStateController.notify(newState);
       },
-      onToolbarStateChange: (callback: (state: ToolbarState) => void) => {
-        toolbarStateChangeCallbacks.add(callback);
-        return () => {
-          toolbarStateChangeCallbacks.delete(callback);
-        };
-      },
+      onToolbarStateChange: toolbarStateController.onChange,
       dispose: () => {
         disposed = true;
         hasInited = false;
         disposeRenderer?.();
         toolbarMenu.dispose();
-        toolbarStateChangeCallbacks.clear();
+        toolbarStateController.clearSubscribers();
         dispose();
       },
       copyElement: copyElementAPI,
