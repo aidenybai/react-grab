@@ -36,7 +36,6 @@ import { formatSessionEditsPrompt } from "../../utils/format-edit-prompt.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
 import { registerOverlayDismiss } from "../../utils/register-overlay-dismiss.js";
 import { suppressMenuEvent } from "../../utils/suppress-menu-event.js";
-import { DiscardPrompt } from "../selection-label/discard-prompt.js";
 import { TagBadge } from "../selection-label/tag-badge.js";
 import { ColorPicker } from "./color-picker.js";
 import { HIDDEN_FOCUS_PRESERVING_STYLE } from "./constants.js";
@@ -279,8 +278,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     playShake();
   };
 
-  const cancelPendingDismiss = () => setIsPendingDismiss(false);
-
   const navigateActive = (direction: 1 | -1) => {
     const properties = filteredProperties();
     if (properties.length === 0) return;
@@ -440,19 +437,61 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
             transition: `transform ${EDIT_VALUE_BUMP_MS}ms ${EDIT_SLIDER_SPRING_EASING}`,
           }}
         >
-          {/* TagBadge: full mode only — once the user starts editing, the
-              element name is implicit (they just clicked it) and gets in
-              the way of the value-focused compact layout. */}
-          <Show when={!isCompact()}>
-            <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 w-fit h-fit px-2">
-              <TagBadge
-                tagName={tagDisplay().tagName}
-                componentName={tagDisplay().componentName}
-                isClickable={false}
-                onClick={() => {}}
-                shrink
-                forceShowIcon={false}
-              />
+          {/* Top row: TagBadge in normal mode, discard-confirm UI when
+              there's a pending dismiss. Discard takes over the whole
+              row so the prompt lives where the user's eye already is
+              (the element title). */}
+          <Show
+            when={isPendingDismiss()}
+            fallback={
+              <Show when={!isCompact()}>
+                <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 w-fit h-fit px-2">
+                  <TagBadge
+                    tagName={tagDisplay().tagName}
+                    componentName={tagDisplay().componentName}
+                    isClickable={false}
+                    onClick={() => {}}
+                    shrink
+                    forceShowIcon={false}
+                  />
+                </div>
+              </Show>
+            }
+          >
+            <div class="contain-layout shrink-0 flex items-center justify-between gap-2 pt-1.5 pb-1 px-2 w-full self-stretch">
+              <span class="text-[var(--rg-text-primary)] text-[13px] leading-4 font-sans font-medium">
+                Discard edits?
+              </span>
+              <div class="flex items-center gap-[5px]">
+                <button
+                  data-react-grab-ignore-events
+                  type="button"
+                  class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[var(--rg-surface-hover)] [border-width:0.5px] border-solid border-[var(--rg-border-button)] cursor-pointer transition-all hover:bg-[var(--rg-surface-active)] press-scale h-[17px]"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setIsPendingDismiss(false);
+                  }}
+                >
+                  <span class="text-[var(--rg-text-primary)] text-[13px] leading-3.5 font-sans font-medium">
+                    No
+                  </span>
+                </button>
+                <button
+                  data-react-grab-ignore-events
+                  type="button"
+                  class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[var(--rg-error-bg)] cursor-pointer transition-all hover:bg-[var(--rg-error-bg-hover)] press-scale h-[17px]"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    dismissPreservingTweaks();
+                  }}
+                >
+                  <span class="text-[var(--rg-error-text)] text-[13px] leading-3.5 font-sans font-medium">
+                    Yes
+                  </span>
+                </button>
+              </div>
             </div>
           </Show>
 
@@ -596,14 +635,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
             )}
           </Show>
 
-          <Show when={isPendingDismiss()}>
-            <DiscardPrompt
-              label="Discard edits?"
-              onConfirm={dismissPreservingTweaks}
-              onCancel={cancelPendingDismiss}
-              cancelOnEscape={false}
-            />
-          </Show>
         </div>
       </div>
     </Show>
