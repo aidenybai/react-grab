@@ -11,7 +11,7 @@ import { getComponentDisplayName, getNearestComponentName } from "./context.js";
 import type { CopyFeedbackCooldown } from "./copy-feedback-cooldown.js";
 import type { GrabStoreHandle } from "./store.js";
 import type { PluginRegistry } from "./plugin-registry.js";
-import type { LabelInstanceManager } from "./label-instance-manager.js";
+import type { LabelInstanceManager, PerElementLabelEntry } from "./label-instance-manager.js";
 interface CopyWithLabelOptions {
   element: Element;
   cursorX: number;
@@ -29,13 +29,6 @@ interface CopyWithLabelOptions {
 
 export type { CopyWithLabelOptions };
 
-
-interface PerElementLabelEntry {
-  element: Element;
-  tagName: string;
-  componentName?: string;
-  mouseX?: number;
-}
 
 interface PerElementCopyOptions {
   elements: Element[];

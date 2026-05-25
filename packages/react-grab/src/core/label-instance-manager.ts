@@ -18,7 +18,7 @@ interface CreateLabelInstanceOptions {
   hideArrow?: boolean;
 }
 
-interface PerElementLabelEntry {
+export interface PerElementLabelEntry {
   element: Element;
   tagName: string;
   componentName?: string;
