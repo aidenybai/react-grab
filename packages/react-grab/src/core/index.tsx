@@ -114,6 +114,11 @@ import { commentPlugin } from "./plugins/comment.js";
 import { openPlugin } from "./plugins/open.js";
 import { freezeAllAnimations } from "../utils/freeze-animations.js";
 import { copyContent } from "../utils/copy-content.js";
+import {
+  calculateDragDistance as calculateDragDistanceUtil,
+  calculateDragRectangle as calculateDragRectangleUtil,
+  toPageCoordinates as toPageCoordinatesUtil,
+} from "../utils/drag-geometry.js";
 
 const builtInPlugins = [copyPlugin, commentPlugin, openPlugin];
 
@@ -367,43 +372,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return createElementBounds(element);
     });
 
-    const toPageCoordinates = (clientX: number, clientY: number) => ({
-      pageX: clientX + window.scrollX,
-      pageY: clientY + window.scrollY,
-    });
-
-    const calculateDragDistance = (endX: number, endY: number) => {
-      const { pageX: endPageX, pageY: endPageY } = toPageCoordinates(endX, endY);
-
-      return {
-        x: Math.abs(endPageX - store.dragStart.x),
-        y: Math.abs(endPageY - store.dragStart.y),
-      };
-    };
+    const toPageCoordinates = toPageCoordinatesUtil;
+    const calculateDragDistance = (endX: number, endY: number) =>
+      calculateDragDistanceUtil(store.dragStart, endX, endY);
+    const calculateDragRectangle = (endX: number, endY: number) =>
+      calculateDragRectangleUtil(store.dragStart, endX, endY);
 
     const isDraggingBeyondThreshold = createMemo(() => {
       if (!isDragging()) return false;
-
       const dragDistance = calculateDragDistance(pointer().x, pointer().y);
-
       return dragDistance.x > DRAG_THRESHOLD_PX || dragDistance.y > DRAG_THRESHOLD_PX;
     });
-
-    const calculateDragRectangle = (endX: number, endY: number) => {
-      const { pageX: endPageX, pageY: endPageY } = toPageCoordinates(endX, endY);
-
-      const dragPageX = Math.min(store.dragStart.x, endPageX);
-      const dragPageY = Math.min(store.dragStart.y, endPageY);
-      const dragWidth = Math.abs(endPageX - store.dragStart.x);
-      const dragHeight = Math.abs(endPageY - store.dragStart.y);
-
-      return {
-        x: dragPageX - window.scrollX,
-        y: dragPageY - window.scrollY,
-        width: dragWidth,
-        height: dragHeight,
-      };
-    };
 
     const isSpaceActivationKey = (event: KeyboardEvent) =>
       event.code === "Space" || event.key === " ";
