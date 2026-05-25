@@ -32,6 +32,7 @@ import { createCopyOrchestrator } from "./copy-orchestrator.js";
 import { createActivationLifecycle } from "./activation-lifecycle.js";
 import { createActionContextBuilder } from "./action-context-builder.js";
 import { createPromptModeHandlers } from "./prompt-mode-handlers.js";
+import { createWindowFocusListeners } from "./window-focus-listeners.js";
 import {
   isKeyboardEventTriggeredByInput,
   hasTextSelectionInInput,
@@ -69,7 +70,6 @@ import {
   ELEMENT_DETECTION_THROTTLE_MS,
   PENDING_DETECTION_STALENESS_MS,
   MODIFIER_KEYS,
-  BLUR_DEACTIVATION_THRESHOLD_MS,
   INPUT_FOCUS_ACTIVATION_DELAY_MS,
   INPUT_TEXT_SELECTION_ACTIVATION_DELAY_MS,
   DEFAULT_KEY_HOLD_DURATION_MS,
@@ -1692,52 +1692,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       { capture: true },
     );
 
-    eventListenerManager.addDocumentListener("visibilitychange", () => {
-      if (document.hidden) {
-        actions.clearGrabbedBoxes();
-        const storeActivationTimestamp = store.activationTimestamp;
-        if (
-          isActivated() &&
-          !isPromptMode() &&
-          storeActivationTimestamp !== null &&
-          Date.now() - storeActivationTimestamp > BLUR_DEACTIVATION_THRESHOLD_MS
-        ) {
-          deactivateRenderer();
-        }
-      }
-    });
-
-    // On blur we release the hold state (modifier keyup events are lost when
-    // the window loses focus) but do not deactivate if already active, since
-    // the user may alt-tab back.
-    eventListenerManager.addWindowListener("blur", () => {
-      cancelActiveDrag();
-      if (isHoldingKeys()) {
-        clearHoldTimer();
-        actions.releaseHold();
-        resetCopyConfirmation();
-      }
-      // Modifier keyup events are lost on blur, so a shift release that
-      // would have committed the multi-selection never fires. Clear the
-      // flag here so the pointermove unfreeze guard and the arrow
-      // navigation guard don't stay blocked indefinitely. Frozen elements
-      // are intentionally preserved so the user can resume on refocus.
-      stopShiftMultiSelecting();
-    });
-
-    eventListenerManager.addWindowListener("focus", () => {
-      lastWindowFocusTimestamp = Date.now();
-    });
-
-    eventListenerManager.addWindowListener(
-      "focusin",
-      (event: FocusEvent) => {
-        if (isEventFromOverlay(event, "data-react-grab")) {
-          event.stopPropagation();
-        }
+    createWindowFocusListeners({
+      grab,
+      phase,
+      activationLifecycle,
+      activationHold,
+      eventListenerManager,
+      cancelActiveDrag: () => cancelActiveDrag(),
+      stopShiftMultiSelecting: () => stopShiftMultiSelecting(),
+      setLastWindowFocusTimestamp: (timestamp) => {
+        lastWindowFocusTimestamp = timestamp;
       },
-      { capture: true },
-    );
+    });
 
     createViewportSyncObserver({
       grab,
