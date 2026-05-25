@@ -27,6 +27,7 @@ import { createSelectionSourceSync } from "./selection-source-sync.js";
 import { createOverlayEffects } from "./overlay-effects.js";
 import { createEnterBlocker } from "./enter-blocker.js";
 import { createRendererHost } from "./renderer-host.js";
+import { createOverlayVisibility } from "./overlay-visibility.js";
 import { CopyFailedError } from "../errors.js";
 import {
   isKeyboardEventTriggeredByInput,
@@ -101,7 +102,6 @@ import type {
   SourceInfo,
   Plugin,
   ToolbarState,
-  ElementLabelVariant,
 } from "../types.js";
 import { DEFAULT_THEME } from "./theme.js";
 import { createPluginRegistry } from "./plugin-registry.js";
@@ -214,10 +214,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       isRendererActive,
       targetElement,
       effectiveElement,
-      selectionElement,
       frozenElementsBounds,
       selectionBounds,
-      isSelectionElementVisible,
     } = elementSelectors;
 
     const labelManager = createLabelInstanceManager({
@@ -2216,92 +2214,26 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       themeHue: () => pluginRegistry.store.theme.hue,
     });
 
-    const isThemeEnabled = createMemo(() => pluginRegistry.store.theme.enabled);
-    const isSelectionBoxThemeEnabled = createMemo(
-      () => pluginRegistry.store.theme.selectionBox.enabled,
-    );
-    const isElementLabelThemeEnabled = createMemo(
-      () => pluginRegistry.store.theme.elementLabel.enabled,
-    );
-    const isDragBoxThemeEnabled = createMemo(() => pluginRegistry.store.theme.dragBox.enabled);
-    const isSelectionSuppressed = createMemo(
-      () => didJustCopy() || (isToolbarSelectHovered() && !isFrozenPhase()),
-    );
-    const hasDragPreviewBounds = createMemo(() => dragPreviewBounds().length > 0);
-
-    const selectionVisible = createMemo(() => {
-      if (!isThemeEnabled()) return false;
-      if (!isSelectionBoxThemeEnabled()) return false;
-      if (isSelectionSuppressed()) return false;
-      if (hasDragPreviewBounds()) return true;
-      return isSelectionElementVisible();
+    const visibility = createOverlayVisibility({
+      grab,
+      phase,
+      elementSelectors,
+      pluginRegistry,
+      isToolbarSelectHovered: () => isToolbarSelectHovered(),
+      isDraggingBeyondThreshold: () => isDraggingBeyondThreshold(),
+      hasDragPreviewBounds: () => dragPreviewBounds().length > 0,
     });
-
-    const selectionTagName = createMemo(() => {
-      const element = selectionElement();
-      if (!element) return undefined;
-      return getTagName(element) || undefined;
-    });
-
-    const selectionLabelVisible = createMemo(() => {
-      if (store.contextMenuPosition !== null) return false;
-      if (!isElementLabelThemeEnabled()) return false;
-      if (isSelectionSuppressed()) return false;
-
-      return isSelectionElementVisible();
-    });
-
-    const dragVisible = createMemo(
-      () =>
-        isThemeEnabled() &&
-        isDragBoxThemeEnabled() &&
-        isRendererActive() &&
-        isDraggingBeyondThreshold(),
-    );
-
-    const labelVariant = createMemo<ElementLabelVariant>(() =>
-      isCopying() ? "processing" : "hover",
-    );
-
-    const labelVisible = createMemo(() => {
-      if (!isThemeEnabled()) return false;
-      const themeEnabled = isElementLabelThemeEnabled();
-      const inPromptMode = isPromptMode();
-      const copying = isCopying();
-      const rendererActive = isRendererActive();
-      const dragging = isDragging();
-      const hasElement = Boolean(effectiveElement());
-      const toolbarSelectHovered = isToolbarSelectHovered();
-      const frozen = isFrozenPhase();
-
-      if (!themeEnabled) return false;
-      if (inPromptMode) return false;
-      if (toolbarSelectHovered && !frozen) return false;
-      if (copying) return true;
-      return rendererActive && !dragging && hasElement;
-    });
-
-    const contextMenuBounds = createMemo((): OverlayBounds | null => {
-      void viewportVersion();
-      const element = store.contextMenuElement;
-      if (!element) return null;
-      return createElementBounds(element);
-    });
-
-    const contextMenuPosition = createMemo(() => {
-      void viewportVersion();
-      return store.contextMenuPosition;
-    });
-
-    const contextMenuTagName = createMemo(() => {
-      const element = store.contextMenuElement;
-      if (!element) return undefined;
-      const frozenCount = store.frozenElements.length;
-      if (frozenCount > 1) {
-        return `${frozenCount} elements`;
-      }
-      return getTagName(element) || undefined;
-    });
+    const {
+      selectionVisible,
+      selectionTagName,
+      selectionLabelVisible,
+      dragVisible,
+      labelVariant,
+      labelVisible,
+      contextMenuBounds,
+      contextMenuPosition,
+      contextMenuTagName,
+    } = visibility;
 
     const [contextMenuComponentName] = createComponentNameForElement(() =>
       store.frozenElements.length > 1 ? null : store.contextMenuElement,
