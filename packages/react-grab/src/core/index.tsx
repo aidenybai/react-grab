@@ -65,7 +65,6 @@ import {
 import { getTagName } from "../utils/get-tag-name.js";
 import {
   ARROW_KEYS,
-  FEEDBACK_DURATION_MS,
   KEYDOWN_SPAM_TIMEOUT_MS,
   DRAG_THRESHOLD_PX,
   ELEMENT_DETECTION_THROTTLE_MS,
@@ -301,23 +300,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         callback(newState);
       }
     };
-
-    createEffect(() => {
-      const currentState = current();
-      if (currentState.state !== "active" || currentState.phase !== "justDragged") return;
-      const timerId = setTimeout(() => {
-        actions.finishJustDragged();
-      }, FEEDBACK_DURATION_MS);
-      onCleanup(() => clearTimeout(timerId));
-    });
-
-    createEffect(() => {
-      if (current().state !== "justCopied") return;
-      const timerId = setTimeout(() => {
-        actions.finishJustCopied();
-      }, FEEDBACK_DURATION_MS);
-      onCleanup(() => clearTimeout(timerId));
-    });
 
     createEffect(
       on(isHoldingKeys, (currentlyHolding, previouslyHolding = false) => {

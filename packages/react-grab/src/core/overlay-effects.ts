@@ -1,5 +1,5 @@
 import { type Accessor, createEffect, on, onCleanup } from "solid-js";
-import { BOUNDS_RECALC_INTERVAL_MS } from "../constants.js";
+import { BOUNDS_RECALC_INTERVAL_MS, FEEDBACK_DURATION_MS } from "../constants.js";
 import { freezeAnimations, freezeGlobalAnimations, unfreezeGlobalAnimations } from "../utils/freeze-animations.js";
 import { freezePseudoStates, unfreezePseudoStates } from "../utils/freeze-pseudo-states.js";
 import { freezeUpdates } from "../utils/freeze-updates.js";
@@ -76,4 +76,24 @@ export const createOverlayEffects = (input: OverlayEffectsInput): void => {
       }
     }),
   );
+
+  // State-machine auto-transition timers: leave the post-drag and post-copy
+  // visual states after FEEDBACK_DURATION_MS so the next interaction starts
+  // from a clean phase.
+  createEffect(() => {
+    const currentState = grab.current();
+    if (currentState.state !== "active" || currentState.phase !== "justDragged") return;
+    const timerId = setTimeout(() => {
+      grab.actions.finishJustDragged();
+    }, FEEDBACK_DURATION_MS);
+    onCleanup(() => clearTimeout(timerId));
+  });
+
+  createEffect(() => {
+    if (grab.current().state !== "justCopied") return;
+    const timerId = setTimeout(() => {
+      grab.actions.finishJustCopied();
+    }, FEEDBACK_DURATION_MS);
+    onCleanup(() => clearTimeout(timerId));
+  });
 };
