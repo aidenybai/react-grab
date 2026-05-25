@@ -14,7 +14,7 @@ export const GithubButton = (): ReactElement => {
         "h-auto gap-2 px-3 py-1.5 text-sm active:scale-[0.98] sm:text-base",
       )}
     >
-      <IconGithub className="h-[18px] w-[18px]" />
+      <IconGithub className="size-[18px]" />
       Star on GitHub
     </a>
   );
