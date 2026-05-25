@@ -32,6 +32,8 @@ interface MenuHandlersInput {
   resolvedComponentName: Accessor<string | undefined>;
   /** Get the pending-default-action id and clear it (single-shot read+reset). */
   takePendingDefaultActionId: () => string | null;
+  /** Read the pending-default-action id without consuming it. */
+  peekPendingDefaultActionId: () => string | null;
   /** Clear shift-multi-select state at the start of context-menu open. */
   stopShiftMultiSelecting: () => void;
   /** Clear arrow-navigation state at the start of context-menu open. */
@@ -47,6 +49,14 @@ export interface MenuHandlers {
    * context menu if the action no longer exists.
    */
   runPendingDefaultAction: (element: Element, position: Position) => void;
+  /**
+   * Single dispatcher for the click-on-selected-element path: if a
+   * pending-default-action is queued, run it; otherwise open the regular
+   * context menu.
+   */
+  openContextMenuOrRunPendingDefault: (element: Element, position: Position) => void;
+  /** True if a pending-default-action is queued. */
+  hasPendingDefaultAction: () => boolean;
   /** Dismiss the context menu + deactivate the overlay (Esc / outside click). */
   handleContextMenuDismiss: () => void;
   /** Show the context menu for a label instance (used by the "..." button on a copied label). */
@@ -77,6 +87,7 @@ export const createMenuHandlers = (input: MenuHandlersInput): MenuHandlers => {
     toolbarStateController,
     resolvedComponentName,
     takePendingDefaultActionId,
+    peekPendingDefaultActionId,
     stopShiftMultiSelecting,
     clearArrowNavigation,
   } = input;
@@ -183,9 +194,21 @@ export const createMenuHandlers = (input: MenuHandlersInput): MenuHandlers => {
     }, 0);
   };
 
+  const hasPendingDefaultAction = () => peekPendingDefaultActionId() !== null;
+
+  const openContextMenuOrRunPendingDefault = (element: Element, position: Position) => {
+    if (hasPendingDefaultAction()) {
+      runPendingDefaultAction(element, position);
+    } else {
+      openContextMenu(element, position);
+    }
+  };
+
   return {
     openContextMenu,
     runPendingDefaultAction,
+    openContextMenuOrRunPendingDefault,
+    hasPendingDefaultAction,
     handleContextMenuDismiss,
     handleShowContextMenuInstance,
     handleToggleToolbarMenu,

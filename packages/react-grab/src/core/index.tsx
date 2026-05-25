@@ -466,12 +466,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         pendingDefaultActionId = null;
         return id;
       },
+      peekPendingDefaultActionId: () => pendingDefaultActionId,
       stopShiftMultiSelecting: () => stopShiftMultiSelecting(),
       clearArrowNavigation,
     });
     const {
       openContextMenu,
-      runPendingDefaultAction,
+      openContextMenuOrRunPendingDefault,
       handleContextMenuDismiss,
       handleShowContextMenuInstance,
       handleToggleToolbarMenu,
@@ -726,11 +727,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (isPendingContextMenuSelect()) {
         setIsPendingContextMenuSelect(false);
-        if (pendingDefaultActionId) {
-          runPendingDefaultAction(firstElement, center);
-        } else {
-          openContextMenu(firstElement, center);
-        }
+        openContextMenuOrRunPendingDefault(firstElement, center);
         return;
       }
 
@@ -831,11 +828,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const position = { x: positionX, y: positionY };
         actions.setPointer(position);
         actions.freeze();
-        if (pendingDefaultActionId) {
-          runPendingDefaultAction(selectedElement, position);
-        } else {
-          openContextMenu(selectedElement, position);
-        }
+        openContextMenuOrRunPendingDefault(selectedElement, position);
         return;
       }
 
