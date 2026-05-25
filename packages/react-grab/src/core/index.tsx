@@ -78,7 +78,6 @@ import {
   INPUT_TEXT_SELECTION_ACTIVATION_DELAY_MS,
   DEFAULT_KEY_HOLD_DURATION_MS,
   MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS,
-  WINDOW_REFOCUS_GRACE_PERIOD_MS,
   NEXTJS_REVALIDATION_DELAY_MS,
   DEFAULT_ACTION_ID,
 } from "../constants.js";
@@ -276,7 +275,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const debouncedDragPointer = dragPreviewDebounce.pointer;
     const scheduleDragPreviewUpdate = dragPreviewDebounce.schedule;
     const keydownSpamTimer = createKeydownSpamTimer();
-    let lastWindowFocusTimestamp = 0;
     const copyFeedbackCooldown = createCopyFeedbackCooldown();
     const clearCopyFeedbackCooldown = copyFeedbackCooldown.clear;
     let keyboardSelectedElement: Element | null = null;
@@ -1184,8 +1182,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         // After the window regains focus we briefly ignore activation keys to
         // prevent accidental activation from the modifier keys used to alt-tab.
-        const didWindowJustRegainFocus =
-          Date.now() - lastWindowFocusTimestamp < WINDOW_REFOCUS_GRACE_PERIOD_MS;
+        const didWindowJustRegainFocus = windowFocusListeners.isWithinRefocusGracePeriod();
 
         if (handleArrowNavigation(event)) return;
         if (handleEnterKeyActivation(event)) return;
@@ -1488,7 +1485,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       { capture: true },
     );
 
-    createWindowFocusListeners({
+    const windowFocusListeners = createWindowFocusListeners({
       grab,
       phase,
       activationLifecycle,
@@ -1496,9 +1493,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       eventListenerManager,
       cancelActiveDrag: () => cancelActiveDrag(),
       stopShiftMultiSelecting: () => stopShiftMultiSelecting(),
-      setLastWindowFocusTimestamp: (timestamp) => {
-        lastWindowFocusTimestamp = timestamp;
-      },
     });
 
     createViewportSyncObserver({

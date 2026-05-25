@@ -1,5 +1,8 @@
 import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
-import { BLUR_DEACTIVATION_THRESHOLD_MS } from "../constants.js";
+import {
+  BLUR_DEACTIVATION_THRESHOLD_MS,
+  WINDOW_REFOCUS_GRACE_PERIOD_MS,
+} from "../constants.js";
 import type { ActivationHoldController } from "./activation-hold.js";
 import type { ActivationLifecycle } from "./activation-lifecycle.js";
 import type { createEventListenerManager } from "./events.js";
@@ -19,12 +22,15 @@ interface WindowFocusListenersInput {
   cancelActiveDrag: () => void;
   /** Called from blur so a stale shift-multi-select doesn't block future input. */
   stopShiftMultiSelecting: () => void;
+}
+
+export interface WindowFocusListeners {
   /**
-   * Called from focus to update the last-window-focus timestamp used by
-   * handleActivationKeys to suppress activation during the alt-tab grace
-   * window.
+   * True while we are inside the post-refocus grace window — a key pressed
+   * shortly after the window regains focus (e.g. during alt-tab completion)
+   * should not re-arm activation.
    */
-  setLastWindowFocusTimestamp: (timestamp: number) => void;
+  isWithinRefocusGracePeriod: () => boolean;
 }
 
 /**
@@ -41,7 +47,9 @@ interface WindowFocusListenersInput {
  *     the overlay so the host page can't react to our own internal focus
  *     moves.
  */
-export const createWindowFocusListeners = (input: WindowFocusListenersInput): void => {
+export const createWindowFocusListeners = (
+  input: WindowFocusListenersInput,
+): WindowFocusListeners => {
   const {
     grab,
     phase,
@@ -50,11 +58,12 @@ export const createWindowFocusListeners = (input: WindowFocusListenersInput): vo
     eventListenerManager,
     cancelActiveDrag,
     stopShiftMultiSelecting,
-    setLastWindowFocusTimestamp,
   } = input;
   const { store, actions } = grab;
   const { isActivated, isPromptMode, isHoldingKeys } = phase;
   const { deactivateRenderer } = activationLifecycle;
+
+  let lastWindowFocusTimestamp = 0;
 
   eventListenerManager.addDocumentListener("visibilitychange", () => {
     if (!document.hidden) return;
@@ -89,7 +98,7 @@ export const createWindowFocusListeners = (input: WindowFocusListenersInput): vo
   });
 
   eventListenerManager.addWindowListener("focus", () => {
-    setLastWindowFocusTimestamp(Date.now());
+    lastWindowFocusTimestamp = Date.now();
   });
 
   eventListenerManager.addWindowListener(
@@ -101,4 +110,9 @@ export const createWindowFocusListeners = (input: WindowFocusListenersInput): vo
     },
     { capture: true },
   );
+
+  return {
+    isWithinRefocusGracePeriod: () =>
+      Date.now() - lastWindowFocusTimestamp < WINDOW_REFOCUS_GRACE_PERIOD_MS,
+  };
 };
