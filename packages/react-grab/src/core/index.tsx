@@ -30,6 +30,7 @@ import { createOverlayVisibility } from "./overlay-visibility.js";
 import { createPluginStateBridge } from "./plugin-state-bridge.js";
 import { createCopyOrchestrator } from "./copy-orchestrator.js";
 import { createActivationLifecycle } from "./activation-lifecycle.js";
+import { createActionContextBuilder } from "./action-context-builder.js";
 import {
   isKeyboardEventTriggeredByInput,
   hasTextSelectionInInput,
@@ -55,7 +56,6 @@ import { isElementConnected } from "../utils/is-element-connected.js";
 import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
 import { getElementAnchorRatio } from "../utils/get-element-anchor-ratio.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
-import { normalizeErrorMessage } from "../utils/normalize-error.js";
 import {
   createFlatOverlayBounds,
   createPageRectFromBounds,
@@ -84,7 +84,6 @@ import { isTargetKeyCombination } from "../utils/is-target-key-combination.js";
 import { parseActivationKey } from "../utils/parse-activation-key.js";
 import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
 import { openFile } from "../utils/open-file.js";
-import { combineBounds } from "../utils/combine-bounds.js";
 import type {
   Position,
   Options,
@@ -94,7 +93,6 @@ import type {
   ContextMenuActionContext,
   ContextMenuAction,
   FrozenLabelEntry,
-  PerformWithFeedbackOptions,
   SettableOptions,
   SourceInfo,
   Plugin,
@@ -115,23 +113,8 @@ import { commentPlugin } from "./plugins/comment.js";
 import { openPlugin } from "./plugins/open.js";
 import { freezeAllAnimations } from "../utils/freeze-animations.js";
 import { copyContent } from "../utils/copy-content.js";
-import { logRecoverableError } from "../utils/log-recoverable-error.js";
 
 const builtInPlugins = [copyPlugin, commentPlugin, openPlugin];
-
-interface BuildActionContextOptions {
-  element: Element;
-  filePath: string | undefined;
-  lineNumber: number | undefined;
-  tagName: string | undefined;
-  componentName: string | undefined;
-  position: Position;
-  performWithFeedbackOptions?: PerformWithFeedbackOptions;
-  shouldDeferHideContextMenu: boolean;
-  onBeforeCopy?: () => void;
-  onBeforePrompt?: () => void;
-  customEnterPromptMode?: () => void;
-}
 
 let hasInited = false;
 const toolbarStateChangeCallbacks = new Set<(state: ToolbarState) => void>();
@@ -206,8 +189,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       isGrabbedBoxesThemeEnabled: () => Boolean(pluginRegistry.store.theme.grabbedBoxes.enabled),
     });
     const {
-      createLabelInstance,
-      updateLabelAfterCopy,
       clearAllLabels,
       handleLabelInstanceHoverChange,
       computedLabelInstances,
@@ -1888,173 +1869,20 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
-    const createPerformWithFeedback = (
-      element: Element,
-      elements: Element[],
-      tagName: string | undefined,
-      componentName: string | undefined,
-      options?: PerformWithFeedbackOptions,
-    ) => {
-      return async (action: () => Promise<boolean>): Promise<void> => {
-        await withSelectionInteractionLock(async () => {
-          const fallbackBounds = options?.fallbackBounds ?? null;
-          const fallbackSelectionBounds = options?.fallbackSelectionBounds ?? [];
-          const position = options?.position ?? store.contextMenuPosition ?? pointer();
-          const frozenBounds = frozenElementsBounds();
-          const singleElementBounds = contextMenuBounds() ?? fallbackBounds;
-          const hasMultipleElements = elements.length > 1;
-
-          const labelBounds = hasMultipleElements
-            ? createFlatOverlayBounds(combineBounds(frozenBounds))
-            : singleElementBounds;
-
-          const shouldDeactivateAfter = store.wasActivatedByToggle;
-          let selectionBoundsForLabel: OverlayBounds[];
-          if (hasMultipleElements) {
-            selectionBoundsForLabel = frozenBounds;
-          } else if (singleElementBounds) {
-            selectionBoundsForLabel = [singleElementBounds];
-          } else {
-            selectionBoundsForLabel = fallbackSelectionBounds;
-          }
-
-          actions.hideContextMenu();
-
-          if (labelBounds) {
-            const labelCursorX = hasMultipleElements
-              ? labelBounds.x + labelBounds.width / 2
-              : position.x;
-
-            const labelInstanceId = createLabelInstance(
-              labelBounds,
-              tagName || "element",
-              componentName,
-              "copying",
-              {
-                element,
-                mouseX: labelCursorX,
-                elements: hasMultipleElements ? elements : undefined,
-                boundsMultiple: selectionBoundsForLabel,
-              },
-            );
-
-            let didSucceed = false;
-            let errorMessage: string | undefined;
-
-            try {
-              didSucceed = await action();
-              if (!didSucceed) {
-                errorMessage = "Failed to copy";
-              }
-            } catch (error) {
-              errorMessage = normalizeErrorMessage(error, "Action failed");
-            }
-
-            updateLabelAfterCopy(labelInstanceId, didSucceed, errorMessage);
-          } else {
-            try {
-              await action();
-            } catch (error) {
-              logRecoverableError("Action failed without feedback bounds", error);
-            }
-          }
-
-          if (shouldDeactivateAfter) {
-            deactivateRenderer();
-          } else {
-            actions.unfreeze();
-          }
-        });
-      };
-    };
-
-    // Hiding the context menu synchronously during a click would cause the
-    // click to fall through to whatever element was behind it.
-    const deferHideContextMenu = () => {
-      setTimeout(() => {
-        actions.hideContextMenu();
-      }, 0);
-    };
-
-    const buildActionContext = (options: BuildActionContextOptions): ContextMenuActionContext => {
-      const {
-        element,
-        filePath,
-        lineNumber,
-        tagName,
-        componentName,
-        position,
-        performWithFeedbackOptions,
-        shouldDeferHideContextMenu,
-        onBeforeCopy,
-        onBeforePrompt,
-        customEnterPromptMode,
-      } = options;
-
-      const elements = store.frozenElements.length > 0 ? store.frozenElements : [element];
-
-      const hideContextMenuAction = shouldDeferHideContextMenu
-        ? deferHideContextMenu
-        : actions.hideContextMenu;
-
-      const copyAction = () => {
-        onBeforeCopy?.();
-        performCopyWithLabel({
-          element,
-          cursorX: position.x,
-          selectedElements: elements.length > 1 ? elements : undefined,
-          shouldDeactivateAfter: store.wasActivatedByToggle,
-        });
-        hideContextMenuAction();
-      };
-
-      const defaultEnterPromptMode = () => {
-        clearAllLabels();
-        onBeforePrompt?.();
-        preparePromptMode(element, position.x, position.y);
-        actions.setPointer({ x: position.x, y: position.y });
-        actions.setFrozenElement(element);
-        activatePromptMode();
-        if (!isActivated()) {
-          activateRenderer();
-        }
-        hideContextMenuAction();
-      };
-
-      const context: ContextMenuActionContext = {
-        element,
-        elements,
-        filePath,
-        lineNumber,
-        componentName,
-        tagName,
-        enterPromptMode: customEnterPromptMode ?? defaultEnterPromptMode,
-        copy: copyAction,
-        hooks: {
-          transformHtmlContent: pluginRegistry.hooks.transformHtmlContent,
-          onOpenFile: pluginRegistry.hooks.onOpenFile,
-          transformOpenFileUrl: pluginRegistry.hooks.transformOpenFileUrl,
-        },
-        performWithFeedback: createPerformWithFeedback(
-          element,
-          elements,
-          tagName,
-          componentName,
-          performWithFeedbackOptions,
-        ),
-        hideContextMenu: hideContextMenuAction,
-        cleanup: () => {
-          if (store.wasActivatedByToggle) {
-            deactivateRenderer();
-          } else {
-            actions.unfreeze();
-          }
-        },
-      };
-
-      const transformedContext = pluginRegistry.hooks.transformActionContext(context);
-      return { ...context, ...transformedContext };
-    };
+    const actionContextBuilder = createActionContextBuilder({
+      grab,
+      pluginRegistry,
+      labelManager,
+      copyOrchestrator,
+      activationLifecycle,
+      frozenElementsBounds,
+      contextMenuBounds,
+      isActivated,
+      preparePromptMode,
+      activatePromptMode,
+      withSelectionInteractionLock,
+    });
+    const { buildActionContext, deferHideContextMenu } = actionContextBuilder;
 
     const contextMenuActionContext = createMemo((): ContextMenuActionContext | undefined => {
       const element = store.contextMenuElement;
