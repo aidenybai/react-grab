@@ -197,7 +197,8 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     const maxCornerRadius = Math.min(rectWidth / 2, rectHeight / 2);
     const clampedCornerRadius = Math.min(cornerRadius, maxCornerRadius);
 
-    context.globalAlpha = opacity;
+    const shouldSetGlobalAlpha = opacity !== 1;
+    if (shouldSetGlobalAlpha) context.globalAlpha = opacity;
     context.beginPath();
     if (clampedCornerRadius > 0) {
       context.roundRect(rectX, rectY, rectWidth, rectHeight, clampedCornerRadius);
@@ -209,7 +210,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     context.strokeStyle = strokeColor;
     context.lineWidth = 1;
     context.stroke();
-    context.globalAlpha = 1;
+    if (shouldSetGlobalAlpha) context.globalAlpha = 1;
   };
 
   const renderDragLayer = () => {
@@ -472,16 +473,22 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
           boundsToRender = [];
         }
 
+        const existingSelectionById = new Map<string, AnimatedBounds>();
+        for (const animation of selectionAnimations) {
+          existingSelectionById.set(animation.id, animation);
+        }
+
         selectionAnimations = boundsToRender.map((bounds, index) => {
           const animationId = `selection-${index}`;
-          const existingAnimation = selectionAnimations.find(
-            (animation) => animation.id === animationId,
-          );
+          const existingAnimation = existingSelectionById.get(animationId);
 
           if (existingAnimation) {
             updateAnimationTarget(existingAnimation, bounds);
             if (shouldSnap) {
-              existingAnimation.current = { ...existingAnimation.target };
+              existingAnimation.current.x = existingAnimation.target.x;
+              existingAnimation.current.y = existingAnimation.target.y;
+              existingAnimation.current.width = existingAnimation.target.width;
+              existingAnimation.current.height = existingAnimation.target.height;
             }
             return existingAnimation;
           }
@@ -520,28 +527,40 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
       () => [props.grabbedBoxes, props.labelInstances] as const,
       ([grabbedBoxes, labelInstances]) => {
         const boxesToProcess = grabbedBoxes ?? [];
-        const activeBoxIds = new Set(boxesToProcess.map((box) => box.id));
-        const existingAnimationIds = new Set(grabbedAnimations.map((animation) => animation.id));
+        const instancesToProcess = labelInstances ?? [];
+
+        const boxesById = new Map<string, (typeof boxesToProcess)[number]>();
+        for (const box of boxesToProcess) {
+          boxesById.set(box.id, box);
+        }
+
+        // Build one id→animation index up-front so the per-instance lookups
+        // below are O(1). The previous .find() inside a for-loop produced
+        // O(boxes × animations) and O(labels × animations) hot work, both
+        // of which grow with multi-select.
+        const animationsById = new Map<string, AnimatedBounds>();
+        for (const animation of grabbedAnimations) {
+          animationsById.set(animation.id, animation);
+        }
 
         for (const box of boxesToProcess) {
-          if (!existingAnimationIds.has(box.id)) {
-            grabbedAnimations.push(
-              createAnimatedBounds(box.id, box.bounds, {
-                createdAt: box.createdAt,
-              }),
-            );
+          if (!animationsById.has(box.id)) {
+            const newAnimation = createAnimatedBounds(box.id, box.bounds, {
+              createdAt: box.createdAt,
+            });
+            grabbedAnimations.push(newAnimation);
+            animationsById.set(box.id, newAnimation);
           }
         }
 
         for (const animation of grabbedAnimations) {
-          const matchingBox = boxesToProcess.find((box) => box.id === animation.id);
+          const matchingBox = boxesById.get(animation.id);
           if (matchingBox) {
             updateAnimationTarget(animation, matchingBox.bounds);
           }
         }
 
-        const instancesToProcess = labelInstances ?? [];
-
+        const activeLabelIds = new Set<string>();
         for (const instance of instancesToProcess) {
           const boundsToRender = resolveBoundsArray(instance);
           const targetOpacity = instance.status === "fading" ? 0 : 1;
@@ -549,28 +568,19 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
           for (let index = 0; index < boundsToRender.length; index++) {
             const bounds = boundsToRender[index];
             const animationId = `label-${instance.id}-${index}`;
-            const existingAnimation = grabbedAnimations.find(
-              (animation) => animation.id === animationId,
-            );
+            activeLabelIds.add(animationId);
 
+            const existingAnimation = animationsById.get(animationId);
             if (existingAnimation) {
               updateAnimationTarget(existingAnimation, bounds, targetOpacity);
             } else {
-              grabbedAnimations.push(
-                createAnimatedBounds(animationId, bounds, {
-                  opacity: 1,
-                  targetOpacity,
-                }),
-              );
+              const newAnimation = createAnimatedBounds(animationId, bounds, {
+                opacity: 1,
+                targetOpacity,
+              });
+              grabbedAnimations.push(newAnimation);
+              animationsById.set(animationId, newAnimation);
             }
-          }
-        }
-
-        const activeLabelIds = new Set<string>();
-        for (const instance of instancesToProcess) {
-          const boundsToRender = resolveBoundsArray(instance);
-          for (let index = 0; index < boundsToRender.length; index++) {
-            activeLabelIds.add(`label-${instance.id}-${index}`);
           }
         }
 
@@ -578,7 +588,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
           if (animation.id.startsWith("label-")) {
             return activeLabelIds.has(animation.id);
           }
-          if (activeBoxIds.has(animation.id)) return true;
+          if (boxesById.has(animation.id)) return true;
           if (animation.createdAt && animation.opacity > 0) return true;
           return false;
         });

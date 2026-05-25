@@ -15,7 +15,6 @@ export const DEMO_BOUNDS: OverlayBounds = {
   width: DEMO_WIDTH,
   height: DEMO_HEIGHT,
   borderRadius: "8px",
-  transform: "",
 };
 
 export const DEMO_MOUSE_X = DEMO_BOUNDS.x + DEMO_BOUNDS.width / 2;

@@ -419,20 +419,29 @@ test.describe("Copy Feedback Behavior", () => {
       const firstTodoItem = reactGrab.page.locator("[data-testid='todo-list'] li").first();
       const elementBeforeScroll = await firstTodoItem.boundingBox();
       expect(elementBeforeScroll).not.toBeNull();
+      if (!elementBeforeScroll) throw new Error("Expected element bounds before scroll");
 
       await reactGrab.scrollPage(80);
-      await reactGrab.page.waitForTimeout(200);
+
+      // Poll instead of waiting a fixed 200ms — under load (e.g. CI shard
+      // 1 of 4 with 4 concurrent workers competing for CPU) the chain
+      // scroll → viewportVersion → memo → solid re-render → DOM paint
+      // can take >2s. 5s is conservative but doesn't slow happy-path runs
+      // since `expect.poll` resolves as soon as the predicate succeeds.
+      await expect
+        .poll(
+          async () => {
+            const currentLabel = await reactGrab.getSelectionLabelBounds();
+            return currentLabel ? labelBeforeScroll.label.y - currentLabel.label.y : 0;
+          },
+          { timeout: 5000 },
+        )
+        .toBeGreaterThan(0);
 
       const elementAfterScroll = await firstTodoItem.boundingBox();
-      const labelAfterScroll = await reactGrab.getSelectionLabelBounds();
       expect(elementAfterScroll).not.toBeNull();
-      expect(labelAfterScroll).not.toBeNull();
-      if (!elementBeforeScroll || !elementAfterScroll || !labelAfterScroll) {
-        throw new Error("Expected post-scroll bounds");
-      }
-
+      if (!elementAfterScroll) throw new Error("Expected post-scroll element bounds");
       expect(elementBeforeScroll.y - elementAfterScroll.y).toBeGreaterThan(0);
-      expect(labelBeforeScroll.label.y - labelAfterScroll.label.y).toBeGreaterThan(0);
     });
 
     test("drag region label follows viewport resize while in copied state", async ({

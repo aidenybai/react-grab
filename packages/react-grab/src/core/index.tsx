@@ -802,7 +802,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const selectionBounds =
         dragRect && isMultiSelect
           ? createBoundsFromDragRect(dragRect)
-          : createFlatOverlayBounds(createElementBounds(element));
+          : createElementBounds(element);
 
       const labelCursorX = isMultiSelect ? selectionBounds.x + selectionBounds.width / 2 : cursorX;
 
@@ -1100,14 +1100,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const drag = calculateDragRectangle(pointer().x, pointer().y);
 
-      return {
-        borderRadius: "0px",
-        height: drag.height,
-        transform: "none",
-        width: drag.width,
-        x: drag.x,
-        y: drag.y,
-      };
+      return createFlatOverlayBounds(drag);
     });
 
     const dragPreviewBounds = createMemo((): OverlayBounds[] => {
@@ -1450,7 +1443,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
       autoScroller.stop();
-      if (previousFocused instanceof HTMLElement && isElementConnected(previousFocused)) {
+      // Calling .focus() forces a synchronous focus event dispatch and a style
+      // recalc. Skip it when the target is <body> or already the active
+      // element — both cases produce no observable focus change but were
+      // previously paying the recalc cost on every deactivate.
+      if (
+        previousFocused instanceof HTMLElement &&
+        previousFocused !== document.body &&
+        previousFocused !== document.activeElement &&
+        isElementConnected(previousFocused)
+      ) {
         previousFocused.focus();
       }
       pluginRegistry.hooks.onDeactivate();
