@@ -324,7 +324,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     handler(event);
   };
 
-  // Keep activeIndex valid as the filtered list grows/shrinks.
   createEffect(
     on(filteredProperties, (properties) => {
       if (properties.length === 0) {

@@ -78,7 +78,7 @@ export const hexToHsl = (hex: string): HslColor | null => {
 };
 
 // HSL → RGB → hex. Lossy round-trip (each channel snaps to 0–255).
-export const hslToHex = ({ h, s, l, a }: HslColor): string => {
+const hslToHex = ({ h, s, l, a }: HslColor): string => {
   const saturation = Math.max(0, Math.min(100, s)) / 100;
   const lightness = Math.max(0, Math.min(100, l)) / 100;
   const hue = (((h % 360) + 360) % 360) / 60;

@@ -93,9 +93,10 @@
   }
 }
 
-/* Slot — per-digit enter/exit. Direction-aware: incrementing rolls
+/* Slot digit enter/exit. Direction-aware: incrementing rolls the
    new digit in from below + old up; decrementing reversed. Blur +
-   opacity fade per calligraph's number variant. */
+   opacity fade trail the y translate so rapid sweeps read as motion
+   rather than a snap. */
 @keyframes rg-slot-enter-up {
   from {
     transform: translateY(0.5em) scale(0.5);

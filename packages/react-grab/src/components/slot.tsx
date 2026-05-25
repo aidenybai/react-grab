@@ -21,7 +21,6 @@ interface SlotProps {
 }
 
 const DIGIT_REGEX = /^[0-9]$/;
-const isDigit = (character: string) => DIGIT_REGEX.test(character);
 
 const parseNumeric = (raw: string | number): number => {
   if (typeof raw === "number") return raw;
@@ -120,7 +119,7 @@ interface CharSegment {
 const splitIntoSegments = (text: string): CharSegment[] => {
   const segments: CharSegment[] = [];
   for (const character of text) {
-    segments.push({ kind: isDigit(character) ? "digit" : "literal", value: character });
+    segments.push({ kind: DIGIT_REGEX.test(character) ? "digit" : "literal", value: character });
   }
   return segments;
 };

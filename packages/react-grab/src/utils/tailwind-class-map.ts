@@ -112,7 +112,7 @@ const stripTailwindModifiers = (className: string): string => {
 // Tailwind utility prefix. Without this, `text-blue-500` returns `text-blue`
 // (greedy "strip trailing numeric"), which isn't in the prefix map even
 // though `text` is — and would silently fail to map to `color`.
-export const matchTailwindPrefix = (rawClassName: string): string | null => {
+const matchTailwindPrefix = (rawClassName: string): string | null => {
   const base = stripTailwindModifiers(rawClassName);
   if (!base) return null;
 
