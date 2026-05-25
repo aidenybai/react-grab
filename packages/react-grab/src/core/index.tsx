@@ -31,6 +31,7 @@ import { createCopyOrchestrator } from "./copy-orchestrator.js";
 import { createActivationLifecycle } from "./activation-lifecycle.js";
 import { createActionContextBuilder } from "./action-context-builder.js";
 import { createPromptModeHandlers } from "./prompt-mode-handlers.js";
+import { createMenuHandlers } from "./menu-handlers.js";
 import { createWindowFocusListeners } from "./window-focus-listeners.js";
 import { createToolbarStateController } from "./toolbar-state-controller.js";
 import { createShiftMultiSelectState } from "./shift-multi-select-state.js";
@@ -458,6 +459,48 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setSelectionLabelShakeCount,
     });
 
+    const actionContextBuilder = createActionContextBuilder({
+      grab,
+      pluginRegistry,
+      labelManager,
+      copyOrchestrator,
+      activationLifecycle,
+      frozenElementsBounds,
+      contextMenuBounds,
+      isActivated,
+      preparePromptMode,
+      activatePromptMode,
+    });
+    const { buildActionContext, deferHideContextMenu } = actionContextBuilder;
+
+    const menuHandlers = createMenuHandlers({
+      grab,
+      pluginRegistry,
+      phase,
+      actionContextBuilder,
+      activationLifecycle,
+      toolbarMenu,
+      toolbarStateController,
+      resolvedComponentName,
+      takePendingDefaultActionId: () => {
+        const id = pendingDefaultActionId;
+        pendingDefaultActionId = null;
+        return id;
+      },
+      stopShiftMultiSelecting: () => stopShiftMultiSelecting(),
+      clearArrowNavigation,
+    });
+    const {
+      openContextMenu,
+      runPendingDefaultAction,
+      handleContextMenuDismiss,
+      handleShowContextMenuInstance,
+      handleToggleToolbarMenu,
+      handleSetDefaultAction,
+      dismissAllPopups,
+    } = menuHandlers;
+    const dismissToolbarMenu = toolbarMenu.dismiss;
+
     const handleToggleActive = () => {
       if (isActivated()) {
         deactivateRenderer();
@@ -477,46 +520,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.setPendingCommentMode(false);
       actions.clearInputText();
       actions.enterPromptMode({ x: positionX, y: positionY }, element);
-    };
-
-    const openContextMenu = (element: Element, position: Position) => {
-      stopShiftMultiSelecting();
-      actions.showContextMenu(position, element);
-      clearArrowNavigation();
-      dismissAllPopups();
-      pluginRegistry.hooks.onContextMenu(element, position);
-    };
-
-    const runPendingDefaultAction = (element: Element, position: Position) => {
-      const actionId = pendingDefaultActionId;
-      pendingDefaultActionId = null;
-      if (!actionId) return;
-
-      const action = pluginRegistry.store.actions.find(
-        (registeredAction) => registeredAction.id === actionId,
-      );
-      if (!action) {
-        handleSetDefaultAction(DEFAULT_ACTION_ID);
-        openContextMenu(element, position);
-        return;
-      }
-
-      const elementBounds = createElementBounds(element);
-      const context = buildActionContext({
-        element,
-        filePath: store.selectionFilePath ?? undefined,
-        lineNumber: store.selectionLineNumber ?? undefined,
-        tagName: getTagName(element) || undefined,
-        componentName: resolvedComponentName(),
-        position,
-        shouldDeferHideContextMenu: false,
-        performWithFeedbackOptions: {
-          fallbackBounds: elementBounds,
-          fallbackSelectionBounds: [elementBounds],
-          position,
-        },
-      });
-      action.onAction(context);
     };
 
     const handleComment = () => {
@@ -1615,19 +1618,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
     );
 
-    const actionContextBuilder = createActionContextBuilder({
-      grab,
-      pluginRegistry,
-      labelManager,
-      copyOrchestrator,
-      activationLifecycle,
-      frozenElementsBounds,
-      contextMenuBounds,
-      isActivated,
-      preparePromptMode,
-      activatePromptMode,
-    });
-    const { buildActionContext, deferHideContextMenu } = actionContextBuilder;
 
     const contextMenuActionContext = createMemo((): ContextMenuActionContext | undefined => {
       const element = store.contextMenuElement;
@@ -1654,67 +1644,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         },
       });
     });
-
-    const handleContextMenuDismiss = () => {
-      setTimeout(() => {
-        actions.hideContextMenu();
-        deactivateRenderer();
-      }, 0);
-    };
-
-    const dismissToolbarMenu = toolbarMenu.dismiss;
-
-    const dismissAllPopups = () => {
-      dismissToolbarMenu();
-    };
-
-    const handleToggleToolbarMenu = () => {
-      if (toolbarMenuPosition() !== null) {
-        dismissToolbarMenu();
-      } else {
-        actions.hideContextMenu();
-        toolbarMenu.open();
-      }
-    };
-
-    const handleSetDefaultAction = (actionId: string) => {
-      updateToolbarState({ defaultAction: actionId });
-    };
-
-    const handleShowContextMenuInstance = (instanceId: string) => {
-      const instance = store.labelInstances.find(
-        (labelInstance) => labelInstance.id === instanceId,
-      );
-      if (!instance?.element) return;
-      if (!isElementConnected(instance.element)) return;
-
-      const contextMenuElement = instance.element;
-      const center = getBoundsCenter(createElementBounds(contextMenuElement));
-      const position = {
-        x: instance.mouseX ?? center.x,
-        y: center.y,
-      };
-
-      const elementsToFreeze =
-        instance.elements && instance.elements.length > 0
-          ? instance.elements.filter((element) => isElementConnected(element))
-          : [contextMenuElement];
-
-      setTimeout(() => {
-        if (!isActivated()) {
-          actions.setWasActivatedByToggle(true);
-          activateRenderer();
-        }
-        actions.setPointer(position);
-        actions.setFrozenElements(elementsToFreeze);
-        const hasMultipleElements = elementsToFreeze.length > 1;
-        if (hasMultipleElements && instance.bounds) {
-          actions.setFrozenDragRect(createPageRectFromBounds(instance.bounds));
-        }
-        actions.freeze();
-        actions.showContextMenu(position, contextMenuElement);
-      }, 0);
-    };
 
     if (pluginRegistry.store.theme.enabled) {
       // The renderer is dynamically imported because solid-js/web's
