@@ -37,14 +37,12 @@ import { createKeydownSpamTimer } from "./keydown-spam-timer.js";
 import { createSpaceDragRepositioning } from "./space-drag-repositioning.js";
 import { createActivationKeyHandlers } from "./activation-key-handlers.js";
 import { createDragHandlers } from "./drag-handlers.js";
+import { registerKeyboardListeners } from "./keyboard-listeners.js";
 import { buildPublicApi } from "./build-public-api.js";
 import { createWindowFocusListeners } from "./window-focus-listeners.js";
 import { createToolbarStateController } from "./toolbar-state-controller.js";
 import { createShiftMultiSelectState } from "./shift-multi-select-state.js";
 import { createDragSelectors } from "./drag-selectors.js";
-import {
-  isKeyboardEventTriggeredByInput,
-} from "../utils/is-keyboard-event-triggered-by-input.js";
 import { createComponentNameForElement } from "../utils/create-component-name-for-element.js";
 import {
   checkIsNextProject,
@@ -58,16 +56,10 @@ import {
 import {
 } from "../utils/create-bounds-from-drag-rect.js";
 import {
-  ARROW_KEYS,
-  MODIFIER_KEYS,
   DEFAULT_KEY_HOLD_DURATION_MS,
-  MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS,
   NEXTJS_REVALIDATION_DELAY_MS,
   DEFAULT_ACTION_ID,
 } from "../constants.js";
-import { isCLikeKey } from "../utils/is-c-like-key.js";
-import { isTargetKeyCombination } from "../utils/is-target-key-combination.js";
-import { parseActivationKey } from "../utils/parse-activation-key.js";
 import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
 import type {
   Options,
@@ -80,12 +72,9 @@ import type {
 } from "../types.js";
 import { DEFAULT_THEME } from "./theme.js";
 import { createPluginRegistry } from "./plugin-registry.js";
-import { getRequiredModifiers } from "./keyboard-handlers.js";
 import { createAutoScroller } from "./auto-scroll.js";
 import { logIntro } from "./log-intro.js";
 import { getScriptOptions } from "../utils/get-script-options.js";
-import { isEnterCode } from "../utils/is-enter-code.js";
-import { isMac } from "../utils/is-mac.js";
 import { copyPlugin } from "./plugins/copy.js";
 import { commentPlugin } from "./plugins/comment.js";
 import { openPlugin } from "./plugins/open.js";
@@ -192,7 +181,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     } = arrowNav;
 
     const activationHold = createActivationHoldController(grab);
-    const clearHoldTimer = activationHold.clearTimer;
     const resetCopyConfirmation = activationHold.resetCopyConfirmation;
 
     const toolbarStateController = createToolbarStateController();
@@ -314,11 +302,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const calculateDragRectangle = (endX: number, endY: number) =>
       calculateDragRectangleUtil(store.dragStart, endX, endY);
 
-    const {
-      isActivationKey: isSpaceActivationKey,
-      start: startSpaceDragRepositioning,
-      stop: stopSpaceDragRepositioning,
-    } = spaceDragRepositioning;
+    const { stop: stopSpaceDragRepositioning } = spaceDragRepositioning;
 
     createEffect(
       on(
@@ -495,7 +479,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       handlePointerMove,
       handlePointerDown,
       handlePointerUp,
-      commitShiftMultiSelection,
       cancelActiveDrag,
       getFrozenElementAtPosition,
     } = dragHandlers;
@@ -532,215 +515,50 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       activatePromptMode,
     });
 
-    eventListenerManager.addWindowListener(
-      "keydown",
-      (event: KeyboardEvent) => {
-        blockEnterIfNeeded(event);
+    const windowFocusListeners = createWindowFocusListeners({
+      grab,
+      phase,
+      activationLifecycle,
+      activationHold,
+      eventListenerManager,
+      cancelActiveDrag: () => cancelActiveDrag(),
+      stopShiftMultiSelecting: () => stopShiftMultiSelecting(),
+    });
 
-        if (!isEnabled()) {
-          if (isTargetKeyCombination(event, pluginRegistry.store.options) && !event.repeat) {
-            setToolbarShakeCount((count) => count + 1);
-          }
-          return;
-        }
-
-        const isEnterToActivateInput =
-          isEnterCode(event.code) && isHoldingKeys() && !isPromptMode();
-
-        const isFromReactGrabInput = isEventFromOverlay(event, "data-react-grab-input");
-        if (
-          isPromptMode() &&
-          isTargetKeyCombination(event, pluginRegistry.store.options) &&
-          !event.repeat &&
-          !isFromReactGrabInput
-        ) {
-          event.preventDefault();
-          event.stopPropagation();
-          handleInputCancel();
-          return;
-        }
-
-        if (event.key === "Escape" && toolbarMenuPosition() !== null) {
-          dismissToolbarMenu();
-          return;
-        }
-
-        // When the context menu is open, its own registerOverlayDismiss
-        // listener handles Escape. Bail out so the global handler doesn't
-        // fire deactivateRenderer first via the isFromOverlay branch
-        // (the menu container now holds focus, so composedPath() includes
-        // data-react-grab-ignore-events).
-        if (event.key === "Escape" && store.contextMenuPosition !== null) {
-          return;
-        }
-
-        const isFromOverlay =
-          isEventFromOverlay(event, "data-react-grab-ignore-events") && !isEnterToActivateInput;
-
-        if (isPromptMode() || isFromOverlay) {
-          if (event.key === "Escape") {
-            if (isPromptMode()) {
-              handleInputCancel();
-            } else if (store.wasActivatedByToggle) {
-              deactivateRenderer();
-            }
-          }
-
-          if (isFromOverlay && ARROW_KEYS.has(event.key)) {
-            if (handleArrowNavigation(event)) return;
-          }
-
-          return;
-        }
-
-        if (isDragging() && isSpaceActivationKey(event)) {
-          if (!event.repeat) {
-            startSpaceDragRepositioning();
-          }
-          event.preventDefault();
-          event.stopPropagation();
-          return;
-        }
-
-        if (event.key === "Escape") {
-          if (isHoldingKeys() || store.wasActivatedByToggle) {
-            deactivateRenderer();
-            return;
-          }
-        }
-
-        if (isActivated() && !MODIFIER_KEYS.includes(event.key)) {
-          event.preventDefault();
-        }
-
-        // After the window regains focus we briefly ignore activation keys to
-        // prevent accidental activation from the modifier keys used to alt-tab.
-        const didWindowJustRegainFocus = windowFocusListeners.isWithinRefocusGracePeriod();
-
-        if (handleArrowNavigation(event)) return;
-        if (handleEnterKeyActivation(event)) return;
-        if (handleOpenFileShortcut(event)) return;
-        if (handleContextMenuKey(event)) return;
-
-        if (!didWindowJustRegainFocus) {
-          handleActivationKeys(event);
-        }
+    registerKeyboardListeners({
+      grab,
+      pluginRegistry,
+      phase,
+      activationHold,
+      activationKeyHandlers: {
+        handleEnterKeyActivation,
+        handleOpenFileShortcut,
+        handleContextMenuKey,
+        handleActivationKeys,
       },
-      { capture: true },
-    );
-
-    eventListenerManager.addWindowListener(
-      "keyup",
-      (event: KeyboardEvent) => {
-        if (blockEnterIfNeeded(event)) return;
-
-        if (isSpaceActivationKey(event) && isDragRepositioning()) {
-          stopSpaceDragRepositioning();
-          event.preventDefault();
-          event.stopPropagation();
-        }
-
-        if (event.key === "Shift" && isShiftMultiSelecting()) {
-          // If shift is released mid-drag, abort the in-progress drag
-          // before committing. Without this, performCopyWithLabel ->
-          // startCopy moves state out of "active+dragging", which makes
-          // the subsequent pointerup early-return and silently swallows
-          // the drag gesture along with its document.body.style.userSelect
-          // cleanup.
-          if (isDragging()) {
-            cancelActiveDrag();
-          }
-          commitShiftMultiSelection();
-          return;
-        }
-
-        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-
-        const requiredModifiers = getRequiredModifiers(pluginRegistry.store.options);
-        const isReleasingModifier =
-          requiredModifiers.metaKey || requiredModifiers.ctrlKey
-            ? isMac()
-              ? !event.metaKey
-              : !event.ctrlKey
-            : (requiredModifiers.shiftKey && !event.shiftKey) ||
-              (requiredModifiers.altKey && !event.altKey);
-
-        const isReleasingActivationKey = pluginRegistry.store.options.activationKey
-          ? typeof pluginRegistry.store.options.activationKey === "function"
-            ? pluginRegistry.store.options.activationKey(event)
-            : parseActivationKey(pluginRegistry.store.options.activationKey)(event)
-          : isCLikeKey(event.key, event.code);
-
-        if (didJustCopy() || copyFeedbackCooldown.isActive()) {
-          if (isReleasingActivationKey || isReleasingModifier) {
-            clearCopyFeedbackCooldown();
-            deactivateRenderer();
-          }
-          return;
-        }
-
-        if (!isHoldingKeys() && !isActivated()) return;
-        if (isPromptMode()) return;
-
-        const hasCustomShortcut = Boolean(pluginRegistry.store.options.activationKey);
-
-        const isHoldMode = pluginRegistry.store.options.activationMode === "hold";
-        const isDragGestureInProgress = isDragging();
-
-        if (isActivated()) {
-          const hasContextMenu = store.contextMenuPosition !== null;
-          if (isReleasingModifier) {
-            if (
-              store.wasActivatedByToggle &&
-              pluginRegistry.store.options.activationMode !== "hold"
-            )
-              return;
-            if (hasContextMenu) return;
-            deactivateRenderer();
-          } else if (isHoldMode && isReleasingActivationKey) {
-            keydownSpamTimer.clear();
-            if (hasContextMenu) return;
-            if (isDragGestureInProgress) return;
-            deactivateRenderer();
-          } else if (!hasCustomShortcut && isReleasingActivationKey) {
-            keydownSpamTimer.clear();
-          }
-          return;
-        }
-
-        if (isReleasingActivationKey || isReleasingModifier) {
-          if (store.wasActivatedByToggle && pluginRegistry.store.options.activationMode !== "hold")
-            return;
-
-          const shouldRelease =
-            isHoldingKeys() || (activationHold.holdTimerFired() && isReleasingModifier);
-
-          if (shouldRelease) {
-            clearHoldTimer();
-            const startTimestamp = activationHold.startTimestamp();
-            const elapsedSinceHoldStart = startTimestamp
-              ? Date.now() - startTimestamp
-              : 0;
-            const heldLongEnoughForActivation =
-              elapsedSinceHoldStart >= MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS;
-            const shouldActivateAfterCopy =
-              activationHold.holdTimerFired() &&
-              heldLongEnoughForActivation &&
-              (pluginRegistry.store.options.allowActivationInsideInput ||
-                !isKeyboardEventTriggeredByInput(event));
-            resetCopyConfirmation();
-            if (shouldActivateAfterCopy) {
-              actions.activate();
-            } else {
-              actions.releaseHold();
-            }
-          } else {
-            deactivateRenderer();
-          }
-        }
+      activationLifecycle,
+      arrowNavigation: {
+        state: arrowNavigationState,
+        handleArrowNavigation,
+        handleArrowNavigationSelect,
+        clearArrowNavigation,
       },
-      { capture: true },
-    );
+      copyFeedbackCooldown,
+      dragHandlers,
+      enterBlocker,
+      eventListenerManager,
+      keydownSpamTimer,
+      shiftMultiSelect,
+      spaceDragRepositioning,
+      toolbarMenu,
+      windowFocusListeners,
+      isEnabled,
+      isDragRepositioning,
+      didJustCopy,
+      setToolbarShakeCount,
+      resetCopyConfirmation,
+      handleInputCancel,
+    });
 
     eventListenerManager.addDocumentListener("copy", () => {
       if (isHoldingKeys()) {
@@ -917,16 +735,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
       { capture: true },
     );
-
-    const windowFocusListeners = createWindowFocusListeners({
-      grab,
-      phase,
-      activationLifecycle,
-      activationHold,
-      eventListenerManager,
-      cancelActiveDrag: () => cancelActiveDrag(),
-      stopShiftMultiSelecting: () => stopShiftMultiSelecting(),
-    });
 
     createViewportSyncObserver({
       grab,
