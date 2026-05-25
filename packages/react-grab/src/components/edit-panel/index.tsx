@@ -372,32 +372,23 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     // the user was actually picking a Hiragana/Hangul candidate.
     if (event.isComposing || event.keyCode === IME_COMPOSING_KEY_CODE) return;
     // Discard-prompt keyboard routing.
-    //   • Arrow / Tab list-navigation + value-step handlers are
-    //     blocked entirely: changing a tweak mid-prompt is incoherent
-    //     with "do you want to discard your edits?". Only the prompt's
-    //     own keys are allowed through.
     //   • Tab / Enter on a focused discard button pass through so
     //     native button focus movement + activation work.
-    //   • Escape on a focused discard button collapses the prompt
-    //     (matches the visible "No" affordance) instead of falling
-    //     through to attemptDismiss.
+    //   • Arrow / Tab list-navigation + value-step handlers are
+    //     blocked entirely while the prompt is up: changing a tweak
+    //     mid-prompt is incoherent with "do you want to discard your
+    //     edits?". Only the prompt's own keys are allowed through.
+    //
+    // Escape-on-discard-button → collapse-prompt is handled inside
+    // attemptDismiss itself because `registerOverlayDismiss` runs at
+    // window capture BEFORE this handler — Escape never reaches
+    // handleSearchKeyDown for non-input focus targets.
     if (isPendingDismiss()) {
       const target = event.composedPath()[0];
       const isOnDiscardButton =
         target instanceof HTMLElement &&
         target.closest("[data-react-grab-discard-button]") !== null;
-      if (isOnDiscardButton) {
-        if (event.key === "Tab" || event.key === "Enter") return;
-        if (event.key === "Escape") {
-          event.preventDefault();
-          event.stopImmediatePropagation();
-          setIsPendingDismiss(false);
-          ensureSearchFocused();
-          return;
-        }
-      }
-      // Block panel-level navigation + stepping while the prompt is
-      // asking the user to commit/discard.
+      if (isOnDiscardButton && (event.key === "Tab" || event.key === "Enter")) return;
       if (
         event.key === "Tab" ||
         event.key === "ArrowUp" ||
@@ -574,14 +565,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                   data-react-grab-ignore-events
                   data-react-grab-discard-button="cancel"
                   type="button"
-                  ref={(element) => {
-                    // Move focus to No on prompt open so keyboard
-                    // users can Tab → Yes / Enter to confirm. Without
-                    // this, focus stays in the search textarea and
-                    // the panel's window keydown captures Tab/Enter
-                    // before the buttons can see them.
-                    queueMicrotask(() => element.focus({ preventScroll: true }));
-                  }}
                   class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[var(--rg-surface-hover)] [border-width:0.5px] border-solid border-[var(--rg-border-button)] cursor-pointer transition-all hover:bg-[var(--rg-surface-active)] press-scale h-[17px]"
                   onClick={(event) => {
                     event.preventDefault();
