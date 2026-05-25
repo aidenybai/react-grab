@@ -13,7 +13,7 @@ import {
 } from "solid-js";
 import { render } from "solid-js/web";
 import { createGrabStore } from "./store.js";
-import { createGrabPhaseSelectors } from "./selectors.js";
+import { createGrabElementSelectors, createGrabPhaseSelectors } from "./selectors.js";
 import { CopyFailedError } from "../errors.js";
 import {
   isKeyboardEventTriggeredByInput,
@@ -216,7 +216,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       isActivated,
       isFrozenPhase,
       isDragging,
-      isActivelyDragging,
       isDragRepositioning,
       didJustDrag,
       isCopying,
@@ -226,6 +225,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       isCommentMode,
       isPendingDismiss,
     } = phase;
+
+    const elementSelectors = createGrabElementSelectors(grab, phase);
+    const {
+      isRendererActive,
+      targetElement,
+      effectiveElement,
+      selectionElement,
+      frozenElementsBounds,
+      selectionBounds,
+      isSelectionElementVisible,
+    } = elementSelectors;
 
     createEffect(
       on(isActivated, (activated, previousActivated) => {
@@ -447,7 +457,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
     );
 
-    const isRendererActive = createMemo(() => isActivated() && !isCopying());
 
     const grabbedBoxTimeouts = new Map<string, number>();
 
@@ -856,19 +865,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         });
     };
 
-    const targetElement = createMemo(() => {
-      void viewportVersion();
-      if (!isRendererActive() || isActivelyDragging() || isSelectionInteractionLocked())
-        return null;
-      const element = store.detectedElement;
-      if (!isElementConnected(element)) return null;
-      return element;
-    });
-
-    const effectiveElement = createMemo(
-      () => store.frozenElement || (isFrozenPhase() ? null : targetElement()),
-    );
-
     createEffect(() => {
       const element = store.detectedElement;
       if (!element) return;
@@ -923,52 +919,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }),
     );
 
-    // In touch mode during a drag, effectiveElement() is null because pointer
-    // events are captured by the drag handler. We fall back to detectedElement,
-    // which was stored before the drag started.
-    const getSelectionElement = (): Element | undefined => {
-      if (store.isTouchMode && isDragging()) {
-        const detected = store.detectedElement;
-        if (!detected || isRootElement(detected)) return undefined;
-        return detected;
-      }
-      const element = effectiveElement();
-      if (!element || isRootElement(element)) return undefined;
-      return element;
-    };
-
-    const selectionElement = createMemo(() => getSelectionElement());
-
-    const isSelectionElementVisible = (): boolean => {
-      const element = selectionElement();
-      if (!element) return false;
-      if (store.isTouchMode && isDragging()) {
-        return isRendererActive();
-      }
-      return isRendererActive() && !isActivelyDragging();
-    };
-
-    const frozenElementBoundsAccessors = mapArray(
-      () => store.frozenElements,
-      (element) =>
-        createMemo(() => {
-          void viewportVersion();
-          return createElementBounds(element);
-        }),
-    );
-
-    const frozenElementsBounds = createMemo((): OverlayBounds[] => {
-      const frozenElements = store.frozenElements;
-      if (frozenElements.length === 0) return [];
-
-      const dragRect = store.frozenDragRect;
-      if (dragRect && frozenElements.length > 1) {
-        return [createBoundsFromDragRect(dragRect)];
-      }
-
-      return frozenElementBoundsAccessors().map((readBounds) => readBounds());
-    });
-
     const pendingShiftSelectionElement = createMemo((): Element | null => {
       if (!isShiftMultiSelecting()) return null;
       if (store.pendingCommentMode || isPendingContextMenuSelect()) return null;
@@ -984,29 +934,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const pendingShiftSelectionBounds = createMemo((): OverlayBounds | undefined => {
       void viewportVersion();
       const element = pendingShiftSelectionElement();
-      if (!element) return undefined;
-      return createElementBounds(element);
-    });
-
-    const selectionBounds = createMemo((): OverlayBounds | undefined => {
-      void viewportVersion();
-
-      const frozenElements = store.frozenElements;
-      if (frozenElements.length > 0) {
-        const frozenBounds = frozenElementsBounds();
-        if (frozenElements.length === 1) {
-          const firstBounds = frozenBounds[0];
-          if (firstBounds) return firstBounds;
-        }
-        const dragRect = store.frozenDragRect;
-        if (dragRect) {
-          const dragBounds = frozenBounds[0];
-          return dragBounds ?? createBoundsFromDragRect(dragRect);
-        }
-        return createFlatOverlayBounds(combineBounds(frozenBounds));
-      }
-
-      const element = selectionElement();
       if (!element) return undefined;
       return createElementBounds(element);
     });
