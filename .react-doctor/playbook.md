@@ -109,7 +109,7 @@ For each code-fix bucket and each entry in `learned_fps[]`:
 
    **Label**: `react-doctor` (`gh label create react-doctor --color FBCA04 --description "Opened by react-doctor" --force` if missing).
 
-   **Body** — bolded value lead, optional 2–3 sentence "why it matters", then the change list. Each change bullet **must** be a GitHub permalink to the pre-change line (use the scan-time SHA, not the branch — branches get deleted on merge). GitHub renders permalinks as inline code snippets, which makes the diff scannable from the PR body itself. No "Validation" section — `pnpm typecheck`/`lint` passing is the workflow's baseline, not value-add prose.
+   **Body** — bolded value lead, optional 2–3 sentence "why it matters", then the change list. Each change bullet **must** link to the pre-change line at the scan-time SHA (not the branch — branches get deleted on merge). Wrap the permalink in a markdown link with `` `<path>:<line>` `` as the link text — see template below. Never paste a bare URL: GitHub auto-expands bare permalinks into embedded snippet blocks, and inside a bulleted list those blocks render with an ugly nested vertical rule and stray bullet markers. The wrapped form stays inline, monospace, and scannable. No "Validation" section — `pnpm typecheck`/`lint` passing is the workflow's baseline, not value-add prose.
 
    ```markdown
    **<title repeated as bold lead>** — <8–15 word context>
@@ -119,7 +119,7 @@ For each code-fix bucket and each entry in `learned_fps[]`:
 
    ## Changes
 
-   - https://github.com/<owner>/<repo>/blob/<scan-sha>/<path>#L<line> — `<rule>`: <what changed>
+   - [`<path>:<line>`](https://github.com/<owner>/<repo>/blob/<scan-sha>/<path>#L<line>) — `<rule>`: <what changed>
    - …
 
    ---
