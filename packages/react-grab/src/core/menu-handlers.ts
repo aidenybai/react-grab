@@ -9,12 +9,11 @@ import type { Position } from "../types.js";
 import type { ActivationLifecycle } from "./activation-lifecycle.js";
 import type { ActionContextBuilder } from "./action-context-builder.js";
 import type { GrabStoreHandle } from "./store.js";
-import type { createPluginRegistry } from "./plugin-registry.js";
+import type { PluginRegistry } from "./plugin-registry.js";
 import type { GrabPhaseSelectors } from "./selectors.js";
 import type { ToolbarMenuController } from "./toolbar-menu-controller.js";
 import type { ToolbarStateController } from "./toolbar-state-controller.js";
 
-type PluginRegistry = ReturnType<typeof createPluginRegistry>;
 
 interface MenuHandlersInput {
   grab: GrabStoreHandle;

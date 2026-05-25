@@ -18,7 +18,7 @@ export const getAutoScrollDirection = (clientX: number, clientY: number): AutoSc
   };
 };
 
-interface AutoScroller {
+export interface AutoScroller {
   start: () => void;
   stop: () => void;
   isActive: () => boolean;

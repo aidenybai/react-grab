@@ -9,11 +9,10 @@ import type {
   ToolbarState,
 } from "../types.js";
 import type { GrabStoreHandle } from "./store.js";
-import type { createPluginRegistry } from "./plugin-registry.js";
+import type { PluginRegistry } from "./plugin-registry.js";
 import type { GrabElementSelectors, GrabPhaseSelectors } from "./selectors.js";
 import type { OverlayVisibility } from "./overlay-visibility.js";
 
-type PluginRegistry = ReturnType<typeof createPluginRegistry>;
 
 interface PluginStateBridgeInput {
   grab: GrabStoreHandle;

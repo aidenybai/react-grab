@@ -5,11 +5,10 @@ import {
 } from "../constants.js";
 import type { ActivationHoldController } from "./activation-hold.js";
 import type { ActivationLifecycle } from "./activation-lifecycle.js";
-import type { createEventListenerManager } from "./events.js";
+import type { EventListenerManagerHandle } from "./events.js";
 import type { GrabStoreHandle } from "./store.js";
 import type { GrabPhaseSelectors } from "./selectors.js";
 
-type EventListenerManagerHandle = ReturnType<typeof createEventListenerManager>;
 
 interface WindowFocusListenersInput {
   grab: GrabStoreHandle;

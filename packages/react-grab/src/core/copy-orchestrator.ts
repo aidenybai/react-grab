@@ -10,7 +10,7 @@ import { runCopyFlow } from "./copy.js";
 import { getComponentDisplayName, getNearestComponentName } from "./context.js";
 import type { CopyFeedbackCooldown } from "./copy-feedback-cooldown.js";
 import type { GrabStoreHandle } from "./store.js";
-import type { createPluginRegistry } from "./plugin-registry.js";
+import type { PluginRegistry } from "./plugin-registry.js";
 import type { LabelInstanceManager } from "./label-instance-manager.js";
 interface CopyWithLabelOptions {
   element: Element;
@@ -29,7 +29,6 @@ interface CopyWithLabelOptions {
 
 export type { CopyWithLabelOptions };
 
-type PluginRegistry = ReturnType<typeof createPluginRegistry>;
 
 interface PerElementLabelEntry {
   element: Element;

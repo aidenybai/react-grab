@@ -7,9 +7,8 @@ import { generateId } from "../utils/generate-id.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
 import type { GrabbedBox, OverlayBounds, SelectionLabelInstance } from "../types.js";
 import type { GrabStoreHandle } from "./store.js";
-import type { createPluginRegistry } from "./plugin-registry.js";
+import type { PluginRegistry } from "./plugin-registry.js";
 
-type PluginRegistry = ReturnType<typeof createPluginRegistry>;
 
 interface CreateLabelInstanceOptions {
   element?: Element;

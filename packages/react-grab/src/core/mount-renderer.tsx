@@ -15,9 +15,8 @@ import type {
   ToolbarState,
 } from "../types.js";
 import type { GrabStoreHandle } from "./store.js";
-import type { createPluginRegistry } from "./plugin-registry.js";
+import type { PluginRegistry } from "./plugin-registry.js";
 
-type PluginRegistry = ReturnType<typeof createPluginRegistry>;
 
 interface MountRendererInput {
   grab: GrabStoreHandle;

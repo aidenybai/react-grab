@@ -13,9 +13,8 @@ import type { ActivationLifecycle } from "./activation-lifecycle.js";
 import type { CopyOrchestrator } from "./copy-orchestrator.js";
 import type { LabelInstanceManager } from "./label-instance-manager.js";
 import type { GrabStoreHandle } from "./store.js";
-import type { createPluginRegistry } from "./plugin-registry.js";
+import type { PluginRegistry } from "./plugin-registry.js";
 
-type PluginRegistry = ReturnType<typeof createPluginRegistry>;
 
 interface BuildActionContextBase {
   element: Element;

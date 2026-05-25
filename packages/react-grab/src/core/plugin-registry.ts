@@ -314,3 +314,5 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
 };
 
 export { createPluginRegistry };
+
+export type PluginRegistry = ReturnType<typeof createPluginRegistry>;

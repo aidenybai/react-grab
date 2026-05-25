@@ -19,9 +19,9 @@ import type { ArrowNavigationController } from "./arrow-navigation-controller.js
 import type { CopyFeedbackCooldown } from "./copy-feedback-cooldown.js";
 import type { DragHandlers } from "./drag-handlers.js";
 import type { EnterBlocker } from "./enter-blocker.js";
-import type { createEventListenerManager } from "./events.js";
+import type { EventListenerManagerHandle } from "./events.js";
 import type { GrabStoreHandle } from "./store.js";
-import type { createPluginRegistry } from "./plugin-registry.js";
+import type { PluginRegistry } from "./plugin-registry.js";
 import type { GrabPhaseSelectors } from "./selectors.js";
 import type { KeydownSpamTimer } from "./keydown-spam-timer.js";
 import type { ShiftMultiSelectState } from "./shift-multi-select-state.js";
@@ -29,8 +29,6 @@ import type { SpaceDragRepositioning } from "./space-drag-repositioning.js";
 import type { ToolbarMenuController } from "./toolbar-menu-controller.js";
 import type { WindowFocusListeners } from "./window-focus-listeners.js";
 
-type PluginRegistry = ReturnType<typeof createPluginRegistry>;
-type EventListenerManagerHandle = ReturnType<typeof createEventListenerManager>;
 
 interface KeyboardListenersInput {
   grab: GrabStoreHandle;

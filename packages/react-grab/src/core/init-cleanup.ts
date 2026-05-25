@@ -2,12 +2,11 @@ import type { CopyFeedbackCooldown } from "./copy-feedback-cooldown.js";
 import type { CursorOverride } from "./cursor-override.js";
 import type { DragPreviewDebounce } from "./drag-preview-debounce.js";
 import type { EnterBlocker } from "./enter-blocker.js";
-import type { createEventListenerManager } from "./events.js";
+import type { EventListenerManagerHandle } from "./events.js";
 import type { KeydownSpamTimer } from "./keydown-spam-timer.js";
 import type { LabelInstanceManager } from "./label-instance-manager.js";
 import type { ToolbarMenuController } from "./toolbar-menu-controller.js";
 
-type EventListenerManagerHandle = ReturnType<typeof createEventListenerManager>;
 
 interface InitCleanupInput {
   eventListenerManager: EventListenerManagerHandle;

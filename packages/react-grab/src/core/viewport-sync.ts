@@ -8,9 +8,8 @@ import {
 } from "../utils/native-raf.js";
 import type { GrabStoreHandle } from "./store.js";
 import type { GrabPhaseSelectors } from "./selectors.js";
-import type { createEventListenerManager } from "./events.js";
+import type { EventListenerManagerHandle } from "./events.js";
 
-type EventListenerManagerHandle = ReturnType<typeof createEventListenerManager>;
 
 interface ViewportSyncInput {
   grab: GrabStoreHandle;

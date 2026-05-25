@@ -1,12 +1,10 @@
 import { isElementConnected } from "../utils/is-element-connected.js";
-import type { createAutoScroller } from "./auto-scroll.js";
+import type { AutoScroller } from "./auto-scroll.js";
 import type { CopyFeedbackCooldown } from "./copy-feedback-cooldown.js";
 import type { GrabStoreHandle } from "./store.js";
-import type { createPluginRegistry } from "./plugin-registry.js";
+import type { PluginRegistry } from "./plugin-registry.js";
 import type { GrabPhaseSelectors } from "./selectors.js";
 
-type PluginRegistry = ReturnType<typeof createPluginRegistry>;
-type AutoScroller = ReturnType<typeof createAutoScroller>;
 
 interface ActivationLifecycleInput {
   grab: GrabStoreHandle;
