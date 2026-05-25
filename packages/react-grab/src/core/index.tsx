@@ -33,6 +33,7 @@ import { createActionContextBuilder } from "./action-context-builder.js";
 import { createPromptModeHandlers } from "./prompt-mode-handlers.js";
 import { createMenuHandlers } from "./menu-handlers.js";
 import { createCommentModeHandlers } from "./comment-mode-handlers.js";
+import { createKeydownSpamTimer } from "./keydown-spam-timer.js";
 import { buildPublicApi } from "./build-public-api.js";
 import { createWindowFocusListeners } from "./window-focus-listeners.js";
 import { createToolbarStateController } from "./toolbar-state-controller.js";
@@ -273,7 +274,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const dragPreviewDebounce = createDragPreviewDebounce();
     const debouncedDragPointer = dragPreviewDebounce.pointer;
     const scheduleDragPreviewUpdate = dragPreviewDebounce.schedule;
-    let keydownSpamTimerId: number | null = null;
+    const keydownSpamTimer = createKeydownSpamTimer();
     let previousSpaceDragPointerPage: Position | null = null;
     let lastWindowFocusTimestamp = 0;
     const copyFeedbackCooldown = createCopyFeedbackCooldown();
@@ -427,9 +428,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       clearKeyboardSelectedElement: () => {
         keyboardSelectedElement = null;
       },
-      clearKeydownSpamTimer: () => {
-        if (keydownSpamTimerId !== null) window.clearTimeout(keydownSpamTimerId);
-      },
+      clearKeydownSpamTimer: keydownSpamTimer.clear,
       clearPendingContextMenuSelect: () => setIsPendingContextMenuSelect(false),
     });
     const { activateRenderer, deactivateRenderer, forceDeactivateAll } = activationLifecycle;
@@ -973,10 +972,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
         activatePromptMode();
 
-        if (keydownSpamTimerId !== null) {
-          window.clearTimeout(keydownSpamTimerId);
-          keydownSpamTimerId = null;
-        }
+        keydownSpamTimer.clear();
 
         if (!isActivated()) {
           activateRenderer();
@@ -1084,12 +1080,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         // If the overlay gets stuck active (e.g. the modifier keyup was lost
         // during a window blur), repeated keydowns will auto-dismiss it after
         // 200ms of idle keyboard activity.
-        if (keydownSpamTimerId !== null) {
-          window.clearTimeout(keydownSpamTimerId);
-        }
-        keydownSpamTimerId = window.setTimeout(() => {
-          deactivateRenderer();
-        }, KEYDOWN_SPAM_TIMEOUT_MS);
+        keydownSpamTimer.schedule(() => deactivateRenderer(), KEYDOWN_SPAM_TIMEOUT_MS);
         return;
       }
 
@@ -1292,20 +1283,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             if (hasContextMenu) return;
             deactivateRenderer();
           } else if (isHoldMode && isReleasingActivationKey) {
-            if (keydownSpamTimerId !== null) {
-              window.clearTimeout(keydownSpamTimerId);
-              keydownSpamTimerId = null;
-            }
+            keydownSpamTimer.clear();
             if (hasContextMenu) return;
             if (isDragGestureInProgress) return;
             deactivateRenderer();
-          } else if (
-            !hasCustomShortcut &&
-            isReleasingActivationKey &&
-            keydownSpamTimerId !== null
-          ) {
-            window.clearTimeout(keydownSpamTimerId);
-            keydownSpamTimerId = null;
+          } else if (!hasCustomShortcut && isReleasingActivationKey) {
+            keydownSpamTimer.clear();
           }
           return;
         }
@@ -1557,7 +1540,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     onCleanup(() => {
       eventListenerManager.abort();
       dragPreviewDebounce.cancel();
-      if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
+      keydownSpamTimer.dispose();
       clearCopyFeedbackCooldown();
       toolbarMenu.dispose();
       labelManager.dispose();
