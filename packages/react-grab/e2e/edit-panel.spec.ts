@@ -257,11 +257,16 @@ test.describe("Edit Panel", () => {
       const duringTweak = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
       expect(duringTweak.length).toBeGreaterThan(0);
 
+      // With a pending tweak the first Escape shakes + arms the
+      // discard-confirm prompt; the second Escape actually dismisses
+      // (preserving the inline-style preview, since onDismiss does
+      // not revert).
+      await reactGrab.page.keyboard.press("Escape");
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
       await reactGrab.page.keyboard.press("Escape");
       await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
 
-      // Tweaks persist across dismiss — Escape stashes for later, doesn't
-      // revert. Reopening the panel sees the same value still applied.
       const afterDismiss = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
       expect(afterDismiss).toBe(duringTweak);
     });
@@ -581,6 +586,10 @@ test.describe("Edit Panel", () => {
     test("Escape does not write to sessionStorage (in-memory only)", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+      // Two-step dismiss: first Escape shakes the discard-confirm
+      // prompt, second Escape actually closes.
+      await reactGrab.page.keyboard.press("Escape");
       await reactGrab.page.waitForTimeout(80);
       await reactGrab.page.keyboard.press("Escape");
       await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);

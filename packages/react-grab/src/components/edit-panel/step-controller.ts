@@ -1,4 +1,4 @@
-import { createSignal, onCleanup, type Accessor } from "solid-js";
+import { createSignal, onCleanup, onMount, type Accessor } from "solid-js";
 import {
   EDIT_STEP_REPEAT_INITIAL_DELAY_MS,
   EDIT_STEP_REPEAT_INTERVAL_MS,
@@ -60,6 +60,14 @@ export const createStepController = (options: StepControllerOptions): StepContro
   const releaseKey = (key: string) => {
     if (key === pressedKey) stopRepeat();
   };
+
+  onMount(() => {
+    // Window blur (alt-tab, focus an iframe) means the matching keyup
+    // may never reach us — without this, the long-press repeat keeps
+    // stepping the active property silently in the background.
+    window.addEventListener("blur", stopRepeat);
+    onCleanup(() => window.removeEventListener("blur", stopRepeat));
+  });
 
   onCleanup(stopRepeat);
 

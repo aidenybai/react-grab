@@ -299,7 +299,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     const isAnyPopoverOpen = createMemo(
-      () => store.contextMenuPosition !== null || editMode.isOpen(),
+      () =>
+        store.contextMenuPosition !== null || editMode.isOpen() || toolbarMenuPosition() !== null,
     );
     let toolbarElement: HTMLDivElement | undefined;
     let stopToolbarMenuTracking: (() => void) | null = null;
@@ -2254,7 +2255,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (event.repeat) return false;
       if (!isActivated()) return false;
       if (isPromptMode()) return false;
-      if (editMode.isOpen() || store.contextMenuPosition !== null) return false;
+      if (isAnyPopoverOpen()) return false;
       if (event.key.length !== 1 || !TYPE_TO_EDIT_KEY_PATTERN.test(event.key)) return false;
       // Skip when the keystroke belongs to a host-page editable surface
       // (input, textarea, or contenteditable). Otherwise we'd swallow
@@ -2475,6 +2476,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         // (the menu container now holds focus, so composedPath() includes
         // data-react-grab-ignore-events).
         if (event.key === "Escape" && store.contextMenuPosition !== null) {
+          return;
+        }
+
+        // Edit panel owns Escape while it's open: it runs a two-step
+        // discard-confirm flow (shake first, dismiss second) that the
+        // global isFromOverlay branch below would override by calling
+        // deactivateRenderer() outright.
+        if (event.key === "Escape" && editMode.isOpen()) {
           return;
         }
 
@@ -2703,7 +2712,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.setTouchMode(event.pointerType === "touch");
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (isAnyPopoverOpen()) return;
-        if (toolbarMenuPosition() !== null) return;
 
         if (isPromptMode()) {
           const bounds = selectionBounds();

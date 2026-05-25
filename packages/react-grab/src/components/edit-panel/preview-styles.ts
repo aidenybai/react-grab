@@ -5,7 +5,10 @@
 // because the panel never retargets mid-lifetime.
 export const createPreviewStyles = (element: Element) => {
   const baseline = new Map<string, { value: string; priority: string }>();
-  const target = element instanceof HTMLElement ? element : null;
+  // SVG icons/shapes (fill, stroke, etc.) are valid Budge targets and
+  // expose `.style` the same way HTML elements do; reject only nodes
+  // that have no inline-style surface (XML, MathML on older engines).
+  const target = element instanceof HTMLElement || element instanceof SVGElement ? element : null;
 
   const apply = (cssProperties: readonly string[], cssValue: string): void => {
     if (!target) return;

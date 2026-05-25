@@ -134,7 +134,10 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
                   root instanceof ShadowRoot
                     ? (root.activeElement as HTMLElement | null)
                     : (document.activeElement as HTMLElement | null);
-                if (focused?.matches("input[data-react-grab-input]")) return;
+                // Search input is a <textarea>; per-row numeric edits use
+                // an <input>. Both carry data-react-grab-input, so a tag-
+                // agnostic selector locks hover for either focused control.
+                if (focused?.matches("[data-react-grab-input]")) return;
                 props.onHoverIndex(propertyIndex);
               }}
               onMouseDown={(event) => {

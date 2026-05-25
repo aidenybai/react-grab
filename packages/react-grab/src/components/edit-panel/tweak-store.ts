@@ -121,7 +121,19 @@ export const createTweakStore = (options: CreateTweakStoreOptions): TweakStore =
     return pending;
   };
 
-  const hasPendingTweaks = () => Object.keys(tweakedValues()).length > 0;
+  // Count only tweaks that differ from the original — stepping a value
+  // away and back leaves a tweak record whose value equals the
+  // original, and buildPendingEdits already filters those out. Using
+  // a looser "any key tweaked" check here makes the discard-confirm
+  // flow shake on net-zero edits with nothing to actually save.
+  const hasPendingTweaks = () => {
+    const tweaks = tweakedValues();
+    for (const property of initialProperties) {
+      const tweak = tweaks[property.key];
+      if (tweak && tweak.value !== property.original) return true;
+    }
+    return false;
+  };
   const hasTweakFor = (key: string) => tweakedValues()[key] !== undefined;
 
   return {
