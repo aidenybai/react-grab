@@ -94,7 +94,6 @@ import type {
   OverlayBounds,
   ReactGrabAPI,
   ReactGrabState,
-  SelectionLabelInstance,
   ContextMenuActionContext,
   ContextMenuAction,
   FrozenLabelEntry,
@@ -229,7 +228,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       isSelectionElementVisible,
     } = elementSelectors;
 
-    const labelManager = createLabelInstanceManager(grab, pluginRegistry);
+    const labelManager = createLabelInstanceManager({
+      grab,
+      pluginRegistry,
+      isThemeEnabled: () => pluginRegistry.store.theme.enabled,
+      isGrabbedBoxesThemeEnabled: () => Boolean(pluginRegistry.store.theme.grabbedBoxes.enabled),
+    });
     const {
       showTemporaryGrabbedBox,
       createLabelInstance,
@@ -237,6 +241,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       clearAllLabels,
       updateLabelAfterCopy,
       handleLabelInstanceHoverChange,
+      computedLabelInstances,
+      computedGrabbedBoxes,
     } = labelManager;
 
     const arrowNav = createArrowNavigationController({
@@ -2330,109 +2336,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isSelectionSuppressed()) return false;
 
       return isSelectionElementVisible();
-    });
-
-    const labelInstanceCache = new Map<string, SelectionLabelInstance>();
-
-    const recomputeLabelInstance = (instance: SelectionLabelInstance): SelectionLabelInstance => {
-      const liveElements = instance.elements?.filter(isElementConnected) ?? [];
-      const instanceElement = instance.element;
-
-      let liveBoundsList: OverlayBounds[] | null = null;
-      if (liveElements.length > 0) {
-        liveBoundsList = liveElements.map(createElementBounds);
-      } else if (instanceElement && isElementConnected(instanceElement)) {
-        liveBoundsList = [createElementBounds(instanceElement)];
-      }
-
-      let newBounds = instance.bounds;
-      let newBoundsMultiple = instance.boundsMultiple;
-      if (liveBoundsList) {
-        newBounds =
-          liveBoundsList.length > 1
-            ? createFlatOverlayBounds(combineBounds(liveBoundsList))
-            : liveBoundsList[0];
-        if (instance.boundsMultiple !== undefined) {
-          newBoundsMultiple =
-            instance.boundsMultiple.length > 1 &&
-            instance.boundsMultiple.length === instance.elements?.length
-              ? liveBoundsList
-              : [newBounds];
-        }
-      }
-
-      const previousInstance = labelInstanceCache.get(instance.id);
-      const previousBoundsMultiple = previousInstance?.boundsMultiple;
-      const boundsMultipleUnchanged =
-        previousBoundsMultiple === newBoundsMultiple ||
-        (previousBoundsMultiple !== undefined &&
-          newBoundsMultiple !== undefined &&
-          previousBoundsMultiple.length === newBoundsMultiple.length &&
-          previousBoundsMultiple.every(
-            (bounds, index) =>
-              bounds.x === newBoundsMultiple![index].x &&
-              bounds.y === newBoundsMultiple![index].y &&
-              bounds.width === newBoundsMultiple![index].width &&
-              bounds.height === newBoundsMultiple![index].height,
-          ));
-      if (
-        previousInstance &&
-        previousInstance.status === instance.status &&
-        previousInstance.errorMessage === instance.errorMessage &&
-        previousInstance.bounds.x === newBounds.x &&
-        previousInstance.bounds.y === newBounds.y &&
-        previousInstance.bounds.width === newBounds.width &&
-        previousInstance.bounds.height === newBounds.height &&
-        boundsMultipleUnchanged
-      ) {
-        return previousInstance;
-      }
-      const newBoundsCenterX = newBounds.x + newBounds.width / 2;
-      const newBoundsHalfWidth = newBounds.width / 2;
-      let newMouseX: number;
-      if (instance.mouseXOffsetRatio !== undefined && newBoundsHalfWidth > 0) {
-        newMouseX = newBoundsCenterX + instance.mouseXOffsetRatio * newBoundsHalfWidth;
-      } else if (instance.mouseXOffsetFromCenter !== undefined) {
-        newMouseX = newBoundsCenterX + instance.mouseXOffsetFromCenter;
-      } else {
-        newMouseX = instance.mouseX ?? newBoundsCenterX;
-      }
-      const newCached = {
-        ...instance,
-        bounds: newBounds,
-        boundsMultiple: newBoundsMultiple,
-        mouseX: newMouseX,
-      };
-      labelInstanceCache.set(instance.id, newCached);
-      return newCached;
-    };
-
-    const computedLabelInstances = createMemo(() => {
-      if (!isThemeEnabled()) return [];
-      if (!pluginRegistry.store.theme.grabbedBoxes.enabled) return [];
-      void viewportVersion();
-      const currentIds = new Set(store.labelInstances.map((instance) => instance.id));
-      for (const cachedId of labelInstanceCache.keys()) {
-        if (!currentIds.has(cachedId)) {
-          labelInstanceCache.delete(cachedId);
-        }
-      }
-      return store.labelInstances.map(recomputeLabelInstance);
-    });
-
-    const computedGrabbedBoxes = createMemo(() => {
-      if (!isThemeEnabled()) return [];
-      if (!pluginRegistry.store.theme.grabbedBoxes.enabled) return [];
-      void viewportVersion();
-      return store.grabbedBoxes.map((box) => {
-        if (!box.element || !document.body.contains(box.element)) {
-          return box;
-        }
-        return {
-          ...box,
-          bounds: createElementBounds(box.element),
-        };
-      });
     });
 
     const dragVisible = createMemo(

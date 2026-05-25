@@ -1,6 +1,10 @@
+import { type Accessor, createMemo } from "solid-js";
 import { FADE_COMPLETE_BUFFER_MS, FEEDBACK_DURATION_MS } from "../constants.js";
+import { combineBounds } from "../utils/combine-bounds.js";
+import { createFlatOverlayBounds } from "../utils/create-bounds-from-drag-rect.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
 import { generateId } from "../utils/generate-id.js";
+import { isElementConnected } from "../utils/is-element-connected.js";
 import type { GrabbedBox, OverlayBounds, SelectionLabelInstance } from "../types.js";
 import type { createGrabStore } from "./store.js";
 import type { createPluginRegistry } from "./plugin-registry.js";
@@ -49,6 +53,15 @@ export interface LabelInstanceManager {
   ) => void;
   /** Cancel the fade while hovered; reschedule it on un-hover for "copied" labels. */
   handleLabelInstanceHoverChange: (instanceId: string, isHovered: boolean) => void;
+  /**
+   * Renderer-facing accessor: label instances with their bounds re-projected
+   * against the live element positions (so they follow scroll/resize/etc.).
+   * Returns the same instance reference when nothing changed so downstream
+   * `<Index each>` can dedupe.
+   */
+  computedLabelInstances: Accessor<SelectionLabelInstance[]>;
+  /** Renderer-facing accessor: grabbed boxes with re-projected element bounds. */
+  computedGrabbedBoxes: Accessor<GrabbedBox[]>;
   /** Tear down all pending timers; safe to call multiple times. */
   dispose: () => void;
 }
@@ -66,11 +79,20 @@ const computeMouseXOffsets = (bounds: OverlayBounds, mouseX: number | undefined)
   };
 };
 
+interface LabelInstanceManagerInput {
+  grab: GrabStoreHandle;
+  pluginRegistry: PluginRegistry;
+  /** Theme master switch; both computed accessors gate on this. */
+  isThemeEnabled: Accessor<boolean>;
+  /** grabbedBoxes/labels theme switch; gates both computed accessors. */
+  isGrabbedBoxesThemeEnabled: Accessor<boolean>;
+}
+
 export const createLabelInstanceManager = (
-  grab: GrabStoreHandle,
-  pluginRegistry: PluginRegistry,
+  input: LabelInstanceManagerInput,
 ): LabelInstanceManager => {
-  const { store, actions } = grab;
+  const { grab, pluginRegistry, isThemeEnabled, isGrabbedBoxesThemeEnabled } = input;
+  const { store, actions, viewportVersion } = grab;
   const grabbedBoxTimeouts = new Map<string, number>();
   const labelFadeTimeouts = new Map<string, number>();
 
@@ -209,6 +231,109 @@ export const createLabelInstanceManager = (
     scheduleLabelFade(labelInstanceId);
   };
 
+  const labelInstanceCache = new Map<string, SelectionLabelInstance>();
+
+  const recomputeLabelInstance = (instance: SelectionLabelInstance): SelectionLabelInstance => {
+    const liveElements = instance.elements?.filter(isElementConnected) ?? [];
+    const instanceElement = instance.element;
+
+    let liveBoundsList: OverlayBounds[] | null = null;
+    if (liveElements.length > 0) {
+      liveBoundsList = liveElements.map(createElementBounds);
+    } else if (instanceElement && isElementConnected(instanceElement)) {
+      liveBoundsList = [createElementBounds(instanceElement)];
+    }
+
+    let newBounds = instance.bounds;
+    let newBoundsMultiple = instance.boundsMultiple;
+    if (liveBoundsList) {
+      newBounds =
+        liveBoundsList.length > 1
+          ? createFlatOverlayBounds(combineBounds(liveBoundsList))
+          : liveBoundsList[0];
+      if (instance.boundsMultiple !== undefined) {
+        newBoundsMultiple =
+          instance.boundsMultiple.length > 1 &&
+          instance.boundsMultiple.length === instance.elements?.length
+            ? liveBoundsList
+            : [newBounds];
+      }
+    }
+
+    const previousInstance = labelInstanceCache.get(instance.id);
+    const previousBoundsMultiple = previousInstance?.boundsMultiple;
+    const boundsMultipleUnchanged =
+      previousBoundsMultiple === newBoundsMultiple ||
+      (previousBoundsMultiple !== undefined &&
+        newBoundsMultiple !== undefined &&
+        previousBoundsMultiple.length === newBoundsMultiple.length &&
+        previousBoundsMultiple.every(
+          (bounds, index) =>
+            bounds.x === newBoundsMultiple![index].x &&
+            bounds.y === newBoundsMultiple![index].y &&
+            bounds.width === newBoundsMultiple![index].width &&
+            bounds.height === newBoundsMultiple![index].height,
+        ));
+    if (
+      previousInstance &&
+      previousInstance.status === instance.status &&
+      previousInstance.errorMessage === instance.errorMessage &&
+      previousInstance.bounds.x === newBounds.x &&
+      previousInstance.bounds.y === newBounds.y &&
+      previousInstance.bounds.width === newBounds.width &&
+      previousInstance.bounds.height === newBounds.height &&
+      boundsMultipleUnchanged
+    ) {
+      return previousInstance;
+    }
+    const newBoundsCenterX = newBounds.x + newBounds.width / 2;
+    const newBoundsHalfWidth = newBounds.width / 2;
+    let newMouseX: number;
+    if (instance.mouseXOffsetRatio !== undefined && newBoundsHalfWidth > 0) {
+      newMouseX = newBoundsCenterX + instance.mouseXOffsetRatio * newBoundsHalfWidth;
+    } else if (instance.mouseXOffsetFromCenter !== undefined) {
+      newMouseX = newBoundsCenterX + instance.mouseXOffsetFromCenter;
+    } else {
+      newMouseX = instance.mouseX ?? newBoundsCenterX;
+    }
+    const newCached = {
+      ...instance,
+      bounds: newBounds,
+      boundsMultiple: newBoundsMultiple,
+      mouseX: newMouseX,
+    };
+    labelInstanceCache.set(instance.id, newCached);
+    return newCached;
+  };
+
+  const computedLabelInstances = createMemo(() => {
+    if (!isThemeEnabled()) return [];
+    if (!isGrabbedBoxesThemeEnabled()) return [];
+    void viewportVersion();
+    const currentIds = new Set(store.labelInstances.map((instance) => instance.id));
+    for (const cachedId of labelInstanceCache.keys()) {
+      if (!currentIds.has(cachedId)) {
+        labelInstanceCache.delete(cachedId);
+      }
+    }
+    return store.labelInstances.map(recomputeLabelInstance);
+  });
+
+  const computedGrabbedBoxes = createMemo(() => {
+    if (!isThemeEnabled()) return [];
+    if (!isGrabbedBoxesThemeEnabled()) return [];
+    void viewportVersion();
+    return store.grabbedBoxes.map((box) => {
+      if (!box.element || !document.body.contains(box.element)) {
+        return box;
+      }
+      return {
+        ...box,
+        bounds: createElementBounds(box.element),
+      };
+    });
+  });
+
   const dispose = () => {
     for (const timeoutId of grabbedBoxTimeouts.values()) {
       window.clearTimeout(timeoutId);
@@ -224,6 +349,9 @@ export const createLabelInstanceManager = (
     clearAllLabels,
     updateLabelAfterCopy,
     handleLabelInstanceHoverChange,
+    computedLabelInstances,
+    computedGrabbedBoxes,
     dispose,
   };
 };
+
