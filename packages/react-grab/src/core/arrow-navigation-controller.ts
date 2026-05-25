@@ -51,8 +51,8 @@ export const createArrowNavigationController = (
 ): ArrowNavigationController => {
   const { grab, phase, effectiveElement, isShiftMultiSelecting, setKeyboardSelectedElement } =
     input;
-  const { store, actions } = grab;
-  const { isActivated, isPromptMode } = phase;
+  const { actions } = grab;
+  const { isActivated, isPromptMode, isContextMenuOpen } = phase;
 
   const [arrowNavigationElements, setArrowNavigationElements] = createSignal<Element[]>([]);
   const [arrowNavigationActiveIndex, setArrowNavigationActiveIndex] = createSignal(0);
@@ -73,7 +73,7 @@ export const createArrowNavigationController = (
     const center = getBoundsCenter(createElementBounds(element));
     actions.setPointer(center);
 
-    if (store.contextMenuPosition !== null) {
+    if (isContextMenuOpen()) {
       actions.showContextMenu(center, element);
     }
   };
@@ -107,7 +107,7 @@ export const createArrowNavigationController = (
     // event (both window+capture), so without bowing out here arrow
     // keys also re-select a different page element and reposition
     // the menu over it.
-    if (store.contextMenuPosition !== null) return false;
+    if (isContextMenuOpen()) return false;
 
     let currentElement = effectiveElement();
     const isInitialSelection = !currentElement;

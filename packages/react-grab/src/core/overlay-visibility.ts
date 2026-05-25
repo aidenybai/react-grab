@@ -61,6 +61,7 @@ export const createOverlayVisibility = (input: OverlayVisibilityInput): OverlayV
     isFrozenPhase,
     isDragging,
     didJustCopy,
+    isContextMenuOpen,
   } = phase;
   const { isSelectionElementVisible, selectionElement, effectiveElement, isRendererActive } =
     elementSelectors;
@@ -93,7 +94,7 @@ export const createOverlayVisibility = (input: OverlayVisibilityInput): OverlayV
   });
 
   const selectionLabelVisible = createMemo(() => {
-    if (store.contextMenuPosition !== null) return false;
+    if (isContextMenuOpen()) return false;
     if (!isElementLabelThemeEnabled()) return false;
     if (isSelectionSuppressed()) return false;
     return isSelectionElementVisible();

@@ -111,6 +111,7 @@ export const createDragHandlers = (input: DragHandlersInput): DragHandlers => {
     isFrozenPhase,
     isPromptMode,
     isSelectionInteractionLocked,
+    isContextMenuOpen,
   } = phase;
   const { isRendererActive } = elementSelectors;
   const {
@@ -151,7 +152,7 @@ export const createDragHandlers = (input: DragHandlersInput): DragHandlers => {
       isPromptMode() ||
       (isFrozenPhase() && !shouldTrackPendingShiftSelection) ||
       isSelectionInteractionLocked() ||
-      store.contextMenuPosition !== null
+      isContextMenuOpen()
     ) {
       return;
     }

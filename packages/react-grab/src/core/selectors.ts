@@ -39,6 +39,8 @@ export interface GrabPhaseSelectors {
   isPromptMode: Accessor<boolean>;
   isCommentMode: Accessor<boolean>;
   isPendingDismiss: Accessor<boolean>;
+  /** True while the context menu is open (regardless of which element it targets). */
+  isContextMenuOpen: Accessor<boolean>;
 }
 
 export const createGrabPhaseSelectors = (grab: GrabStoreHandle): GrabPhaseSelectors => {
@@ -79,6 +81,7 @@ export const createGrabPhaseSelectors = (grab: GrabStoreHandle): GrabPhaseSelect
     return currentState.state === "active" && Boolean(currentState.isPromptMode);
   });
   const isCommentMode = createMemo(() => store.pendingCommentMode || isPromptMode());
+  const isContextMenuOpen = createMemo(() => store.contextMenuPosition !== null);
   const isPendingDismiss = createMemo(() => {
     const currentState = current();
     return (
@@ -102,6 +105,7 @@ export const createGrabPhaseSelectors = (grab: GrabStoreHandle): GrabPhaseSelect
     isPromptMode,
     isCommentMode,
     isPendingDismiss,
+    isContextMenuOpen,
   };
 };
 

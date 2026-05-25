@@ -70,6 +70,7 @@ export const registerPointerListeners = (input: PointerListenersInput): void => 
     isHoldingKeys,
     isPromptMode,
     isSelectionInteractionLocked,
+    isContextMenuOpen,
   } = phase;
   const { isRendererActive } = elementSelectors;
   const { deactivateRenderer } = activationLifecycle;
@@ -103,7 +104,7 @@ export const registerPointerListeners = (input: PointerListenersInput): void => 
       const isTouchPointer = event.pointerType === "touch";
       actions.setTouchMode(isTouchPointer);
       if (isEventFromIgnoredOverlay(event)) return;
-      if (store.contextMenuPosition !== null) return;
+      if (isContextMenuOpen()) return;
       if (isSelectionInteractionLocked()) return;
       if (isTouchPointer && !isHoldingKeys() && !isActivated()) return;
       const isActiveState = isTouchPointer ? isHoldingKeys() : isActivated();
@@ -133,7 +134,7 @@ export const registerPointerListeners = (input: PointerListenersInput): void => 
       if (!event.isPrimary) return;
       actions.setTouchMode(event.pointerType === "touch");
       if (isEventFromIgnoredOverlay(event)) return;
-      if (store.contextMenuPosition !== null) return;
+      if (isContextMenuOpen()) return;
       if (toolbarMenu.position() !== null) return;
 
       if (isPromptMode()) {
@@ -177,7 +178,7 @@ export const registerPointerListeners = (input: PointerListenersInput): void => 
       if (event.button !== 0) return;
       if (!event.isPrimary) return;
       if (isEventFromIgnoredOverlay(event)) return;
-      if (store.contextMenuPosition !== null) return;
+      if (isContextMenuOpen()) return;
       const isActive = isRendererActive() || isSelectionInteractionLocked() || isDragging();
       const hasModifierKeyHeld = event.metaKey || event.ctrlKey;
       handlePointerUp(event.clientX, event.clientY, hasModifierKeyHeld, event.shiftKey);
@@ -206,7 +207,7 @@ export const registerPointerListeners = (input: PointerListenersInput): void => 
         return;
       }
 
-      if (store.contextMenuPosition !== null) {
+      if (isContextMenuOpen()) {
         event.preventDefault();
         return;
       }
@@ -244,7 +245,7 @@ export const registerPointerListeners = (input: PointerListenersInput): void => 
     "click",
     (event: MouseEvent) => {
       if (isEventFromIgnoredOverlay(event)) return;
-      if (store.contextMenuPosition !== null) return;
+      if (isContextMenuOpen()) return;
 
       if (isRendererActive() || didJustDrag()) {
         event.preventDefault();

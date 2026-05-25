@@ -89,6 +89,7 @@ export const createActivationKeyHandlers = (input: ActivationKeyHandlersInput): 
     isPromptMode,
     isHoldingKeys,
     isSelectionInteractionLocked,
+    isContextMenuOpen,
   } = phase;
   const { targetElement } = elementSelectors;
   const { activateRenderer, deactivateRenderer } = activationLifecycle;
@@ -180,7 +181,7 @@ export const createActivationKeyHandlers = (input: ActivationKeyHandlersInput): 
   const handleContextMenuKey = (event: KeyboardEvent): boolean => {
     if (!isActivated()) return false;
     if (isCopying() || isPromptMode()) return false;
-    if (store.contextMenuPosition !== null) return false;
+    if (isContextMenuOpen()) return false;
 
     const isShiftF10 = event.key === "F10" && event.shiftKey;
     const isContextMenuKey = event.key === "ContextMenu";

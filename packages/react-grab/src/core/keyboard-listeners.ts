@@ -91,7 +91,7 @@ export const registerKeyboardListeners = (input: KeyboardListenersInput): void =
     handleInputCancel,
   } = input;
   const { store, actions } = grab;
-  const { isActivated, isDragging, isHoldingKeys, isPromptMode } = phase;
+  const { isActivated, isDragging, isHoldingKeys, isPromptMode, isContextMenuOpen } = phase;
   const { deactivateRenderer } = activationLifecycle;
   const {
     handleArrowNavigation,
@@ -147,7 +147,7 @@ export const registerKeyboardListeners = (input: KeyboardListenersInput): void =
       // fire deactivateRenderer first via the isFromOverlay branch
       // (the menu container now holds focus, so composedPath() includes
       // data-react-grab-ignore-events).
-      if (event.key === "Escape" && store.contextMenuPosition !== null) {
+      if (event.key === "Escape" && isContextMenuOpen()) {
         return;
       }
 
@@ -265,7 +265,7 @@ export const registerKeyboardListeners = (input: KeyboardListenersInput): void =
       const isDragGestureInProgress = isDragging();
 
       if (isActivated()) {
-        const hasContextMenu = store.contextMenuPosition !== null;
+        const hasContextMenu = isContextMenuOpen();
         if (isReleasingModifier) {
           if (
             store.wasActivatedByToggle &&
