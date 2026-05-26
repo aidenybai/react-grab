@@ -1,9 +1,11 @@
+import { EDIT_DISCARD_PROMPT_IDLE_MS } from "../src/constants.js";
 import { expect, test } from "./fixtures.js";
 
 const ATTRIBUTE_NAME = "data-react-grab";
 const EDIT_PANEL_ATTR = "data-react-grab-edit-panel";
 const EDIT_PROPERTY_ATTR = "data-react-grab-edit-property";
 const SEARCH_INPUT_ATTR = "data-react-grab-input";
+const COPY_BUTTON_ATTR = "data-react-grab-copy-button";
 const IDLE_BUFFER_MS = 700;
 
 // nested-button: <button class="bg-blue-500 text-white px-2 py-1 rounded text-sm">
@@ -146,6 +148,105 @@ const isEditPanelCompact = async (page: import("@playwright/test").Page): Promis
     { attrName: ATTRIBUTE_NAME, panelAttr: EDIT_PANEL_ATTR, inputAttr: SEARCH_INPUT_ATTR },
   );
 
+const isHeaderCopyButtonVisible = async (page: import("@playwright/test").Page): Promise<boolean> =>
+  page.evaluate(
+    ({ attrName, copyButtonAttr }) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      const button = shadowRoot?.querySelector<HTMLElement>(`[${copyButtonAttr}]`);
+      if (!button) return false;
+      const rect = button.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    },
+    { attrName: ATTRIBUTE_NAME, copyButtonAttr: COPY_BUTTON_ATTR },
+  );
+
+const isDiscardPromptVisible = async (page: import("@playwright/test").Page): Promise<boolean> =>
+  page.evaluate(
+    ({ attrName }) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      const button = shadowRoot?.querySelector<HTMLElement>(
+        "[data-react-grab-discard-button='confirm']",
+      );
+      if (!button) return false;
+      const rect = button.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    },
+    { attrName: ATTRIBUTE_NAME },
+  );
+
+const focusDiscardButton = async (
+  page: import("@playwright/test").Page,
+  action: "cancel" | "confirm",
+): Promise<void> => {
+  await page.evaluate(
+    ({ attrName, actionName }) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      const button = shadowRoot?.querySelector<HTMLButtonElement>(
+        `[data-react-grab-discard-button='${actionName}']`,
+      );
+      if (!button) throw new Error("Discard button not found");
+      button.focus();
+    },
+    { attrName: ATTRIBUTE_NAME, actionName: action },
+  );
+};
+
+const clickHeaderCopyButton = async (page: import("@playwright/test").Page): Promise<void> => {
+  await page.evaluate(
+    ({ attrName, copyButtonAttr }) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      const button = shadowRoot?.querySelector<HTMLButtonElement>(`[${copyButtonAttr}]`);
+      if (!button) throw new Error("Copy button not found");
+      button.click();
+    },
+    { attrName: ATTRIBUTE_NAME, copyButtonAttr: COPY_BUTTON_ATTR },
+  );
+};
+
+const dragActiveSlider = async (page: import("@playwright/test").Page): Promise<void> => {
+  const rect = await page.evaluate(
+    ({ attrName, propertyAttr }) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      const active = shadowRoot?.querySelector<HTMLElement>(
+        `[${propertyAttr}][aria-current="true"]`,
+      );
+      const slider = active?.querySelector<HTMLElement>("[role='slider']");
+      if (!slider) throw new Error("Active slider not found");
+      const bounds = slider.getBoundingClientRect();
+      return {
+        left: bounds.left,
+        top: bounds.top,
+        width: bounds.width,
+        height: bounds.height,
+      };
+    },
+    { attrName: ATTRIBUTE_NAME, propertyAttr: EDIT_PROPERTY_ATTR },
+  );
+  const y = rect.top + rect.height / 2;
+  await page.mouse.move(rect.left + rect.width * 0.25, y);
+  await page.mouse.down();
+  await page.mouse.move(rect.left + rect.width * 0.75, y, { steps: 4 });
+  await page.mouse.up();
+};
+
+const getEditPanelCompactAttr = async (
+  page: import("@playwright/test").Page,
+): Promise<string | null> =>
+  page.evaluate(
+    ({ attrName, panelAttr }) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      const panel = shadowRoot?.querySelector(`[${panelAttr}]`);
+      return panel?.getAttribute("data-rg-compact") ?? null;
+    },
+    { attrName: ATTRIBUTE_NAME, panelAttr: EDIT_PANEL_ATTR },
+  );
+
 const readSessionStorageEntries = async (
   page: import("@playwright/test").Page,
 ): Promise<Record<string, string>> =>
@@ -244,8 +345,9 @@ test.describe("Edit Panel", () => {
       await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
     });
 
-    test("Escape preserves inline styles written as preview", async ({ reactGrab }) => {
+    test("second Escape discards inline preview from the discard prompt", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      const beforeTweak = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
       await reactGrab.page.keyboard.press("ArrowRight");
       await reactGrab.page.waitForTimeout(80);
 
@@ -258,17 +360,47 @@ test.describe("Edit Panel", () => {
       expect(duringTweak.length).toBeGreaterThan(0);
 
       // With a pending tweak the first Escape shakes + arms the
-      // discard-confirm prompt; the second Escape actually dismisses
-      // (preserving the inline-style preview, since onDismiss does
-      // not revert).
+      // discard-confirm prompt; the second Escape chooses "Yes" and
+      // reverts the inline-style preview.
       await reactGrab.page.keyboard.press("Escape");
       await reactGrab.page.waitForTimeout(80);
       expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
       await reactGrab.page.keyboard.press("Escape");
       await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
 
       const afterDismiss = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
-      expect(afterDismiss).toBe(duringTweak);
+      expect(afterDismiss).toBe(beforeTweak);
+    });
+
+    test("discard prompt auto-hides after idle", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+
+      await reactGrab.page.keyboard.press("Escape");
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
+
+      await reactGrab.page.waitForTimeout(EDIT_DISCARD_PROMPT_IDLE_MS + 100);
+      expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(false);
+    });
+
+    test("Escape on focused No button confirms discard", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      const beforeTweak = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+      expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).not.toBe(beforeTweak);
+
+      await reactGrab.page.keyboard.press("Escape");
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
+      await focusDiscardButton(reactGrab.page, "cancel");
+      await reactGrab.page.keyboard.press("Escape");
+      await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
+      expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).toBe(beforeTweak);
     });
 
     test("click outside dismisses the panel", async ({ reactGrab }) => {
@@ -365,6 +497,22 @@ test.describe("Edit Panel", () => {
       const keys = await getVisiblePropertyKeys(reactGrab.page);
       expect(keys[0]).toBe("font-size");
     });
+
+    test("typing 'font-mono' ranks font-family first", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await typeInSearchInput(reactGrab.page, "font-mono");
+      await reactGrab.page.waitForTimeout(80);
+      const keys = await getVisiblePropertyKeys(reactGrab.page);
+      expect(keys[0]).toBe("font-family");
+    });
+
+    test("typing 'uppercase' ranks text-transform first", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await typeInSearchInput(reactGrab.page, "uppercase");
+      await reactGrab.page.waitForTimeout(80);
+      const keys = await getVisiblePropertyKeys(reactGrab.page);
+      expect(keys[0]).toBe("text-transform");
+    });
   });
 
   test.describe("Tweaking", () => {
@@ -428,6 +576,23 @@ test.describe("Edit Panel", () => {
       const oneStepDelta = Math.abs(numbersIn(afterOne) - numbersIn(before));
       const shiftStepDelta = Math.abs(numbersIn(afterShift) - numbersIn(afterOne));
       expect(shiftStepDelta).toBeGreaterThan(oneStepDelta);
+    });
+
+    test("ArrowRight cycles font-family", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await typeInSearchInput(reactGrab.page, "font family");
+      await reactGrab.page.waitForTimeout(80);
+      expect(await getActivePropertyKey(reactGrab.page)).toBe("font-family");
+
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+
+      const fontFamily = await getInlineStyleProperty(
+        reactGrab.page,
+        BUTTON_SELECTOR,
+        "font-family",
+      );
+      expect(fontFamily.length).toBeGreaterThan(0);
     });
   });
 
@@ -557,6 +722,34 @@ test.describe("Edit Panel", () => {
       expect(after).toContain("20");
     });
 
+    test("typing font-mono applies font family + compact", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.type("font-mono");
+      await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
+
+      const fontFamily = await getInlineStyleProperty(
+        reactGrab.page,
+        BUTTON_SELECTOR,
+        "font-family",
+      );
+      expect(fontFamily).toContain("ui-monospace");
+      expect(await getEditPanelCompactAttr(reactGrab.page)).toBe("true");
+    });
+
+    test("typing uppercase applies text transform + compact", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.type("uppercase");
+      await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
+
+      const textTransform = await getInlineStyleProperty(
+        reactGrab.page,
+        BUTTON_SELECTOR,
+        "text-transform",
+      );
+      expect(textTransform).toBe("uppercase");
+      expect(await getEditPanelCompactAttr(reactGrab.page)).toBe("true");
+    });
+
     test("typing p-4 on non-uniform spacing writes to both axis aggregates", async ({
       reactGrab,
     }) => {
@@ -580,6 +773,20 @@ test.describe("Edit Panel", () => {
       expect(right).toContain("16");
       expect(bottom).toContain("16");
       expect(left).toContain("16");
+    });
+
+    test("typing py 40 applies padding-y", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.type("py 40");
+      await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
+
+      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-top")).toBe(
+        "160px",
+      );
+      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-bottom")).toBe(
+        "160px",
+      );
+      expect(await getEditPanelCompactAttr(reactGrab.page)).toBe("true");
     });
 
     test("compact value updates live on subsequent tweaks", async ({ reactGrab }) => {
@@ -613,7 +820,7 @@ test.describe("Edit Panel", () => {
       await reactGrab.page.keyboard.press("ArrowRight");
       await reactGrab.page.waitForTimeout(80);
       // Two-step dismiss: first Escape shakes the discard-confirm
-      // prompt, second Escape actually closes.
+      // prompt, second Escape confirms discard and closes.
       await reactGrab.page.keyboard.press("Escape");
       await reactGrab.page.waitForTimeout(80);
       await reactGrab.page.keyboard.press("Escape");
@@ -633,6 +840,24 @@ test.describe("Edit Panel", () => {
       await reactGrab.page.keyboard.press("Enter");
       await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
       await reactGrab.page.waitForTimeout(200);
+
+      const afterCommit = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
+      expect(afterCommit).toBe(tweaked);
+    });
+
+    test("header Copy button appears after a pending tweak and submits", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      expect(await isHeaderCopyButtonVisible(reactGrab.page)).toBe(false);
+
+      await dragActiveSlider(reactGrab.page);
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isEditPanelCompact(reactGrab.page)).toBe(false);
+      expect(await isHeaderCopyButtonVisible(reactGrab.page)).toBe(true);
+
+      const tweaked = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
+      expect(tweaked.length).toBeGreaterThan(0);
+      await clickHeaderCopyButton(reactGrab.page);
+      await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
 
       const afterCommit = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
       expect(afterCommit).toBe(tweaked);

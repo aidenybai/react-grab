@@ -2,6 +2,8 @@ import {
   EDIT_PROPERTY_MAX_COUNT,
   FONT_SIZE_LINE_HEIGHT_RATIO,
   OPACITY_PERCENT_MAX,
+  TAILWIND_SPACING_MAX_UNITS,
+  TAILWIND_SPACING_UNIT_PX,
 } from "../constants.js";
 import type {
   ColorEditableProperty,
@@ -64,7 +66,7 @@ const RADIUS_MAX_PX = 96;
 const SIZE_FALLBACK_MAX_PX = 512;
 const SIZE_FALLBACK_MULTIPLIER = 2;
 const SPACING_MIN_PX = 0;
-const SPACING_MAX_PX = 128;
+const SPACING_MAX_PX = TAILWIND_SPACING_MAX_UNITS * TAILWIND_SPACING_UNIT_PX;
 const MARGIN_MIN_PX = -128;
 const POSITION_MIN_PX = -512;
 const POSITION_MAX_PX = 512;
@@ -396,8 +398,39 @@ const buildColorProperty = (
 const ENUM_PROPERTIES: ReadonlyArray<{
   key: string;
   label: string;
-  options: ReadonlyArray<EnumEditableOption>;
+  options:
+    | ReadonlyArray<EnumEditableOption>
+    | ((rawCssValue: string) => ReadonlyArray<EnumEditableOption>);
 }> = [
+  {
+    key: "font-family",
+    label: "font family",
+    options: (rawCssValue) => {
+      const trimmed = rawCssValue.trim();
+      const options = [
+        {
+          value:
+            'ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"',
+          label: "sans",
+        },
+        {
+          value: 'ui-serif, Georgia, Cambria, "Times New Roman", Times, serif',
+          label: "serif",
+        },
+        {
+          value:
+            'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+          label: "mono",
+        },
+        { value: "system-ui, sans-serif", label: "system" },
+        { value: "serif", label: "serif" },
+        { value: "monospace", label: "mono" },
+      ];
+      return options.some((option) => option.value === trimmed)
+        ? options
+        : [{ value: trimmed, label: "current" }, ...options];
+    },
+  },
   {
     key: "display",
     label: "display",
@@ -426,6 +459,58 @@ const ENUM_PROPERTIES: ReadonlyArray<{
     options: [
       { value: "normal", label: "normal" },
       { value: "italic", label: "italic" },
+    ],
+  },
+  {
+    key: "text-transform",
+    label: "text transform",
+    options: [
+      { value: "none", label: "none" },
+      { value: "uppercase", label: "uppercase" },
+      { value: "lowercase", label: "lowercase" },
+      { value: "capitalize", label: "capitalize" },
+    ],
+  },
+  {
+    key: "white-space",
+    label: "white space",
+    options: [
+      { value: "normal", label: "normal" },
+      { value: "nowrap", label: "nowrap" },
+      { value: "pre", label: "pre" },
+      { value: "pre-wrap", label: "pre-wrap" },
+      { value: "pre-line", label: "pre-line" },
+      { value: "break-spaces", label: "break-spaces" },
+    ],
+  },
+  {
+    key: "word-break",
+    label: "word break",
+    options: [
+      { value: "normal", label: "normal" },
+      { value: "break-all", label: "break-all" },
+      { value: "keep-all", label: "keep-all" },
+    ],
+  },
+  {
+    key: "overflow-wrap",
+    label: "wrap",
+    options: [
+      { value: "normal", label: "normal" },
+      { value: "break-word", label: "break-word" },
+      { value: "anywhere", label: "anywhere" },
+    ],
+  },
+  {
+    key: "font-variant-numeric",
+    label: "number style",
+    options: [
+      { value: "normal", label: "normal" },
+      { value: "tabular-nums", label: "tabular" },
+      { value: "proportional-nums", label: "proportional" },
+      { value: "lining-nums", label: "lining" },
+      { value: "oldstyle-nums", label: "oldstyle" },
+      { value: "slashed-zero", label: "slashed zero" },
     ],
   },
   {
@@ -505,7 +590,9 @@ const buildEnumProperty = (
   rawCssValue: string,
 ): EnumEditableProperty | null => {
   const trimmed = rawCssValue.trim();
-  if (!definition.options.some((option) => option.value === trimmed)) return null;
+  const options =
+    typeof definition.options === "function" ? definition.options(trimmed) : definition.options;
+  if (!options.some((option) => option.value === trimmed)) return null;
   return {
     kind: "enum",
     key: definition.key,
@@ -513,7 +600,7 @@ const buildEnumProperty = (
     cssProperties: [definition.key],
     value: trimmed,
     original: trimmed,
-    options: definition.options,
+    options,
     tailwindAliases: tailwindAliasesForProperty(definition.key),
     isPrioritized: false,
     isDefault: false,
@@ -566,9 +653,15 @@ const ALL_BASELINE_KEYS: ReadonlyArray<string> = [
   "border-color",
   "fill",
   "stroke",
+  "font-family",
   "display",
   "text-align",
   "font-style",
+  "text-transform",
+  "white-space",
+  "word-break",
+  "overflow-wrap",
+  "font-variant-numeric",
   "text-decoration-line",
   "border-style",
   "visibility",

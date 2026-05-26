@@ -78,6 +78,27 @@ const TAILWIND_PREFIX_TO_PROPERTY: Record<string, string> = {
   // doesn't match the numeric value regex; users cycle the row
   // instead.
   font: "font-weight",
+  whitespace: "white-space",
+};
+
+const EXTRA_PROPERTY_ALIASES: Record<string, string[]> = {
+  "font-family": [
+    "font",
+    "font-sans",
+    "font-serif",
+    "font-mono",
+    "family",
+    "sans",
+    "serif",
+    "mono",
+  ],
+  "font-style": ["italic", "not-italic"],
+  "text-transform": ["uppercase", "lowercase", "capitalize", "normal-case"],
+  "text-decoration-line": ["underline", "line-through", "no-underline"],
+  "white-space": ["whitespace", "whitespace-normal", "whitespace-nowrap", "whitespace-pre"],
+  "word-break": ["break-normal", "break-all", "break-keep"],
+  "overflow-wrap": ["break-words", "break-anywhere"],
+  "font-variant-numeric": ["tabular-nums", "proportional-nums", "lining-nums", "oldstyle-nums"],
 };
 
 const PROPERTY_ALIASES = ((): Record<string, string[]> => {
@@ -88,6 +109,10 @@ const PROPERTY_ALIASES = ((): Record<string, string[]> => {
   const aliasesByProperty: Record<string, string[]> = {};
   for (const [property, prefixes] of Object.entries(prefixSetsByProperty)) {
     aliasesByProperty[property] = Array.from(prefixes);
+  }
+  for (const [property, aliases] of Object.entries(EXTRA_PROPERTY_ALIASES)) {
+    const merged = new Set([...(aliasesByProperty[property] ?? []), ...aliases]);
+    aliasesByProperty[property] = Array.from(merged);
   }
   return aliasesByProperty;
 })();
@@ -153,6 +178,57 @@ const isAmbiguousColorClass = (prefix: string, token: string): boolean => {
   return COLOR_TAIL_REGEX.test(token);
 };
 
+const TAILWIND_CLASS_TO_ENUM_VALUE: Record<string, { property: string; value: string }> = {
+  "font-sans": {
+    property: "font-family",
+    value:
+      'ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"',
+  },
+  "font-serif": {
+    property: "font-family",
+    value: 'ui-serif, Georgia, Cambria, "Times New Roman", Times, serif',
+  },
+  "font-mono": {
+    property: "font-family",
+    value:
+      'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+  },
+  "font-thin": { property: "font-weight", value: "100" },
+  "font-extralight": { property: "font-weight", value: "200" },
+  "font-light": { property: "font-weight", value: "300" },
+  "font-normal": { property: "font-weight", value: "400" },
+  "font-medium": { property: "font-weight", value: "500" },
+  "font-semibold": { property: "font-weight", value: "600" },
+  "font-bold": { property: "font-weight", value: "700" },
+  "font-extrabold": { property: "font-weight", value: "800" },
+  "font-black": { property: "font-weight", value: "900" },
+  italic: { property: "font-style", value: "italic" },
+  "not-italic": { property: "font-style", value: "normal" },
+  uppercase: { property: "text-transform", value: "uppercase" },
+  lowercase: { property: "text-transform", value: "lowercase" },
+  capitalize: { property: "text-transform", value: "capitalize" },
+  "normal-case": { property: "text-transform", value: "none" },
+  underline: { property: "text-decoration-line", value: "underline" },
+  "line-through": { property: "text-decoration-line", value: "line-through" },
+  "no-underline": { property: "text-decoration-line", value: "none" },
+  "whitespace-normal": { property: "white-space", value: "normal" },
+  "whitespace-nowrap": { property: "white-space", value: "nowrap" },
+  "whitespace-pre": { property: "white-space", value: "pre" },
+  "whitespace-pre-line": { property: "white-space", value: "pre-line" },
+  "whitespace-pre-wrap": { property: "white-space", value: "pre-wrap" },
+  "whitespace-break-spaces": { property: "white-space", value: "break-spaces" },
+  "break-normal": { property: "word-break", value: "normal" },
+  "break-all": { property: "word-break", value: "break-all" },
+  "break-keep": { property: "word-break", value: "keep-all" },
+  "break-words": { property: "overflow-wrap", value: "break-word" },
+  "break-anywhere": { property: "overflow-wrap", value: "anywhere" },
+  "tabular-nums": { property: "font-variant-numeric", value: "tabular-nums" },
+  "proportional-nums": { property: "font-variant-numeric", value: "proportional-nums" },
+  "lining-nums": { property: "font-variant-numeric", value: "lining-nums" },
+  "oldstyle-nums": { property: "font-variant-numeric", value: "oldstyle-nums" },
+  "slashed-zero": { property: "font-variant-numeric", value: "slashed-zero" },
+};
+
 export const getElementTailwindProperties = (element: Element): Set<string> => {
   const classAttribute = element.getAttribute("class");
   if (!classAttribute) return new Set();
@@ -163,6 +239,11 @@ export const getElementTailwindProperties = (element: Element): Set<string> => {
     const prefix = matchTailwindPrefix(token);
     if (!prefix) continue;
     if (isAmbiguousColorClass(prefix, token)) continue;
+    const enumMapping = tailwindClassToEnumValue(token);
+    if (enumMapping) {
+      properties.add(enumMapping.property);
+      continue;
+    }
     const mapped = tailwindPrefixToProperty(prefix);
     if (mapped) properties.add(mapped);
   }
@@ -175,3 +256,8 @@ export const tailwindAliasesForProperty = (property: string): string[] =>
 
 export const tailwindPrefixToProperty = (prefix: string): string | null =>
   TAILWIND_PREFIX_TO_PROPERTY[prefix] ?? null;
+
+export const tailwindClassToEnumValue = (
+  className: string,
+): { property: string; value: string } | null =>
+  TAILWIND_CLASS_TO_ENUM_VALUE[stripTailwindModifiers(className)] ?? null;

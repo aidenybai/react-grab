@@ -5,6 +5,13 @@ import { formatDisplayValue } from "../../utils/format-css-value.js";
 import { ActivePropertyControl } from "./active-property-control.js";
 import { asColor, asEnum, asNumeric } from "./narrow-property.js";
 
+const enumDisplayValue = (property: EditableProperty): string => {
+  if (property.kind !== "enum") return "";
+  return (
+    property.options.find((option) => option.value === property.value)?.label ?? property.value
+  );
+};
+
 interface PropertyListProps {
   properties: EditableProperty[];
   activeIndex: number;
@@ -203,7 +210,7 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
                       </Match>
                       <Match when={property().kind === "enum"}>
                         <span class="text-[11px] font-sans text-[var(--rg-text-secondary)] shrink-0">
-                          {asEnum(property()).value}
+                          {enumDisplayValue(asEnum(property()))}
                         </span>
                       </Match>
                     </Switch>

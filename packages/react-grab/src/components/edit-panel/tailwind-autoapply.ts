@@ -9,7 +9,10 @@ import { clampToRange } from "../../utils/clamp-to-range.js";
 import { expandAggregateLonghands } from "../../utils/expand-aggregate-longhands.js";
 import { cleanNumericValue } from "../../utils/format-css-value.js";
 import { isNumericQuery } from "../../utils/is-numeric-query.js";
-import { tailwindPrefixToProperty } from "../../utils/tailwind-class-map.js";
+import {
+  tailwindClassToEnumValue,
+  tailwindPrefixToProperty,
+} from "../../utils/tailwind-class-map.js";
 
 const TAILWIND_CLASS_PATTERN = /^([a-z-]+)-(-?\d+(?:\.\d+)?)$/;
 
@@ -143,6 +146,18 @@ export const createTailwindAutoApply = (
     const intentCssKey = intentPrefix ? tailwindPrefixToProperty(intentPrefix) : null;
     if (intentCssKey && hasTrackableTarget(intentCssKey)) setIsCompact(true);
 
+    const enumMapping = tailwindClassToEnumValue(query);
+    if (enumMapping) {
+      const enumTarget = findEnum(initialProperties, enumMapping.property);
+      if (!enumTarget) return;
+      const option = enumTarget.options.find((entry) => entry.value === enumMapping.value);
+      if (option) {
+        setIsCompact(true);
+        commit(enumTarget, option.value, { compact: true });
+      }
+      return;
+    }
+
     const match = query.match(TAILWIND_CLASS_PATTERN);
     if (!match) return;
     const cssKey = tailwindPrefixToProperty(match[1]);
@@ -194,7 +209,15 @@ export const createTailwindAutoApply = (
       .trim()
       .replace(/^class\s*=\s*["']/, "")
       .replace(/["']\s*$/, "");
+    const normalizedStripped = normalizeQuery(stripped);
+    const shouldApplyAsSingleClass =
+      TAILWIND_CLASS_PATTERN.test(normalizedStripped) ||
+      tailwindClassToEnumValue(normalizedStripped) !== null;
     const tokens = stripped.split(/\s+/).filter(Boolean);
+    if (shouldApplyAsSingleClass) {
+      applySingleClass(stripped);
+      return;
+    }
     if (tokens.length <= 1) {
       applySingleClass(stripped);
       return;

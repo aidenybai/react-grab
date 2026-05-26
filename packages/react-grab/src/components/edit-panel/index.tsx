@@ -1,6 +1,7 @@
 import { createMemo, createSignal, onCleanup, onMount, Show, type Component } from "solid-js";
 import {
   DROPDOWN_EDGE_TRANSFORM_ORIGIN,
+  EDIT_DISCARD_PROMPT_IDLE_MS,
   EDIT_PANEL_ACTIVE_KEY_FLASH_MS,
   EDIT_PANEL_ADJUSTING_IDLE_MS,
   EDIT_PANEL_MAX_WIDTH_PX,
@@ -91,6 +92,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   const [activeIndex, setActiveIndex] = createSignal(0);
   const [activeKey, setActiveKey] = createSignal<"left" | "right" | null>(null);
   const tweakStore = createTweakStore({ initialProperties, searchQuery });
+  const hasPendingTweaks = createMemo(() => tweakStore.hasPendingTweaks());
   // Compact mode shows just the value stepper. Driven by user actions
   // (commit / step → compact; navigate / search → expanded), not derived
   // from search content.
@@ -102,7 +104,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   // page-level overlay stays hidden for the whole edit session without
   // this timer encoding latch logic.
   const [isTransientInteraction, setIsTransientInteraction] = createSignal(false);
-  const isInteracting = createMemo(() => isTransientInteraction() || tweakStore.hasPendingTweaks());
+  const isInteracting = createMemo(() => isTransientInteraction() || hasPendingTweaks());
 
   const tagDisplay = createMemo(() =>
     getTagDisplay({
@@ -288,10 +290,10 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   };
 
   // Two-step dismiss when there are pending tweaks: first attempt
-  // shakes + shows the discard prompt; second attempt actually
-  // dismisses. Matches the comment plugin's discard flow.
+  // shakes + shows the discard prompt; second Escape confirms "Yes".
   const [isPendingDismiss, setIsPendingDismiss] = createSignal(false);
   let panelSurfaceRef: HTMLDivElement | undefined;
+  let pendingDismissTimerId: ReturnType<typeof setTimeout> | undefined;
 
   const playShake = () => {
     if (!panelSurfaceRef) return;
@@ -302,20 +304,34 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   };
 
   // Two paths out: `preserve` keeps the inline-style preview on the
-  // element (every Escape / click-outside path); `discard` reverts
-  // and is only reachable via the explicit "Yes" confirm button.
+  // element; `discard` reverts and is reachable through the explicit
+  // "Yes" confirm button or a second Escape while the prompt is visible.
   const closePanel = (mode: "preserve" | "discard") => {
+    clearTimeout(pendingDismissTimerId);
     if (mode === "discard") preview.restore();
     props.onDismiss();
   };
 
+  const hidePendingDismissPrompt = () => {
+    clearTimeout(pendingDismissTimerId);
+    setIsPendingDismiss(false);
+  };
+
+  const showPendingDismissPrompt = (shake: boolean) => {
+    setIsPendingDismiss(true);
+    clearTimeout(pendingDismissTimerId);
+    pendingDismissTimerId = setTimeout(() => {
+      setIsPendingDismiss(false);
+    }, EDIT_DISCARD_PROMPT_IDLE_MS);
+    if (shake) playShake();
+  };
+
   const attemptDismiss = () => {
-    if (!tweakStore.hasPendingTweaks() || isPendingDismiss()) {
+    if (!hasPendingTweaks()) {
       closePanel("preserve");
       return;
     }
-    setIsPendingDismiss(true);
-    playShake();
+    showPendingDismissPrompt(!isPendingDismiss());
   };
 
   const navigateActive = (direction: 1 | -1) => {
@@ -361,7 +377,13 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       }
       handleSubmit();
     },
-    Escape: () => attemptDismiss(),
+    Escape: () => {
+      if (isPendingDismiss()) {
+        closePanel("discard");
+        return;
+      }
+      attemptDismiss();
+    },
   };
 
   const handleSearchKeyDown = (event: KeyboardEvent) => {
@@ -431,6 +453,14 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     const unregisterDismiss = registerOverlayDismiss({
       isOpen: () => true,
       onDismiss: attemptDismiss,
+      shouldIgnoreKeyboardEvent: (event) => {
+        const target = event.composedPath()[0];
+        return (
+          isPendingDismiss() &&
+          target instanceof HTMLElement &&
+          target.closest("[data-react-grab-discard-button]") !== null
+        );
+      },
       shouldIgnoreRightClick: true,
       // Inline editors (search textarea / click-to-type) own their own
       // Escape; the panel still gets Escape via its window handler.
@@ -464,6 +494,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       window.removeEventListener("keyup", handleWindowKeyUp, { capture: true });
       clearTimeout(activeKeyTimerId);
       clearTimeout(interactingIdleTimerId);
+      clearTimeout(pendingDismissTimerId);
       dropdown.clearAnimationHandles();
       // Bridge stops firing on unmount — tell the parent the overlay
       // can return. broadcastInteracting dedups, so this is safe even
@@ -529,7 +560,12 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
             when={isPendingDismiss()}
             fallback={
               <Show when={!isCompact()}>
-                <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 w-fit h-fit px-2">
+                <div
+                  class={cn(
+                    "contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 h-fit px-2",
+                    hasPendingTweaks() ? "w-full self-stretch justify-between" : "w-fit",
+                  )}
+                >
                   <TagBadge
                     tagName={tagDisplay().tagName}
                     componentName={tagDisplay().componentName}
@@ -538,6 +574,23 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                     shrink
                     forceShowIcon={false}
                   />
+                  <Show when={hasPendingTweaks()}>
+                    <button
+                      data-react-grab-ignore-events
+                      data-react-grab-copy-button
+                      type="button"
+                      class="contain-layout shrink-0 flex items-center justify-center px-[5px] py-px rounded-sm bg-[var(--rg-submit-bg)] [border-width:0.5px] border-solid border-[var(--rg-border-button)] cursor-pointer transition-all press-scale h-[17px]"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        handleSubmit();
+                      }}
+                    >
+                      <span class="text-[var(--rg-submit-fg)] text-[13px] leading-3.5 font-sans font-medium">
+                        Copy
+                      </span>
+                    </button>
+                  </Show>
                 </div>
               </Show>
             }
@@ -563,7 +616,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                   onClick={(event) => {
                     event.preventDefault();
                     event.stopPropagation();
-                    setIsPendingDismiss(false);
+                    hidePendingDismissPrompt();
                   }}
                 >
                   <span class="text-[var(--rg-text-primary)] text-[13px] leading-3.5 font-sans font-medium">
@@ -617,6 +670,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
               tabIndex={isSearchInputHidden() ? -1 : 0}
               class="text-[var(--rg-text-primary)] text-[13px] leading-4 font-medium bg-transparent border-none resize-none w-full p-0 m-0 outline-none"
               style={{
+                "caret-color": searchQuery() === "" ? "transparent" : "var(--rg-text-primary)",
                 "field-sizing": "content",
                 "min-height": "16px",
                 "max-height": "16px",

@@ -200,6 +200,7 @@ export const EDIT_SHIFT_STEP_MULTIPLIER = 10;
 // but short enough that hover-swap re-enables almost immediately
 // after a release.
 export const EDIT_PANEL_ADJUSTING_IDLE_MS = 150;
+export const EDIT_DISCARD_PROMPT_IDLE_MS = 2000;
 export const EDIT_PANEL_ACTIVE_KEY_FLASH_MS = 100;
 export const EDIT_SLIDER_CLICK_THRESHOLD_PX = 3;
 export const EDIT_SLIDER_HASH_MARK_COUNT = 9;

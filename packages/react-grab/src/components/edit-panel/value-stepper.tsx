@@ -1,4 +1,4 @@
-import { createSignal, onCleanup, onMount, Show, type Component, type JSX } from "solid-js";
+import { createSignal, Index, onCleanup, onMount, Show, type Component, type JSX } from "solid-js";
 import {
   EDIT_SLIDER_CLICK_THRESHOLD_PX,
   EDIT_SLIDER_HASH_MARK_COUNT,
@@ -42,7 +42,6 @@ const HASH_MARK_PERCENTS = Array.from(
 
 export const ValueStepper: Component<ValueStepperProps> = (props) => {
   const [draftText, setDraftText] = createSignal<string | null>(null);
-  const [isHovered, setIsHovered] = createSignal(false);
   const [rubberStretchPx, setRubberStretchPx] = createSignal(0);
   // Mirrors `dragState !== null` reactively. Touch/pen drag has no
   // preceding `mouseenter` (so `isHovered` doesn't fire), and the
@@ -180,7 +179,7 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
     onCleanup(() => window.removeEventListener("blur", handleBlur));
   });
 
-  const isActiveSlider = () => isHovered() || Boolean(props.activeKey) || isDragging();
+  const isAdjustingSlider = () => Boolean(props.activeKey) || isDragging();
 
   // Match "<number><optional-unit>" — rejects pasted `calc(...)`,
   // `++5`, free text. Normalizes single comma decimals (de-DE locale)
@@ -283,27 +282,31 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
         onPointerUp={handleTrackPointerUp}
         onPointerCancel={releaseDrag}
         onLostPointerCapture={releaseDrag}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
       >
         <div
           aria-hidden="true"
           class="absolute inset-y-0 left-0 bg-[var(--rg-surface-active)] pointer-events-none"
-          style={{ width: `${fillPercent()}%` }}
+          style={{
+            width: `${fillPercent()}%`,
+            opacity: isAdjustingSlider() ? 1 : 0,
+            transition: "opacity 120ms ease",
+          }}
         />
         <Show when={!props.emphasized}>
           <div aria-hidden="true" class="absolute inset-0 pointer-events-none">
-            {HASH_MARK_PERCENTS.map((percent) => (
-              <div
-                class="absolute top-1/2 w-px h-[8px] rounded-[1px] bg-[var(--rg-text-secondary)]"
-                style={{
-                  left: `${percent}%`,
-                  transform: "translate(-50%, -50%)",
-                  opacity: isActiveSlider() ? 0.4 : 0,
-                  transition: "opacity 200ms ease",
-                }}
-              />
-            ))}
+            <Index each={HASH_MARK_PERCENTS}>
+              {(percent) => (
+                <div
+                  class="absolute top-1/2 w-px h-[8px] rounded-[1px] bg-[var(--rg-text-secondary)]"
+                  style={{
+                    left: `${percent()}%`,
+                    transform: "translate(-50%, -50%)",
+                    opacity: isAdjustingSlider() ? 0.4 : 0,
+                    transition: "opacity 200ms ease",
+                  }}
+                />
+              )}
+            </Index>
           </div>
         </Show>
         <div
@@ -311,7 +314,7 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
           class="absolute top-[2px] bottom-[2px] w-[2px] rounded-[1px] bg-[var(--rg-text-primary)] pointer-events-none"
           style={{
             left: `calc(${fillPercent()}% - 1px)`,
-            opacity: props.activeKey ? 0.9 : 0.35,
+            opacity: props.activeKey ? 0.9 : isDragging() ? 0.35 : 0,
             transition: "opacity 120ms ease",
           }}
         />
