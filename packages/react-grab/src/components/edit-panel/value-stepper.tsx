@@ -285,10 +285,19 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
       >
         <div
           aria-hidden="true"
-          class="absolute inset-y-0 left-0 bg-[var(--rg-surface-active)] pointer-events-none"
+          class="absolute left-0 right-0 top-1/2 h-[3px] -translate-y-1/2 rounded-full bg-[var(--rg-surface-active)] pointer-events-none"
+          style={{
+            opacity: isEditing() ? 0 : 0.22,
+            transition: "opacity 120ms ease",
+          }}
+        />
+        <div
+          data-react-grab-slider-fill
+          aria-hidden="true"
+          class="absolute left-0 top-1/2 h-[3px] -translate-y-1/2 rounded-full bg-[var(--rg-text-secondary)] pointer-events-none"
           style={{
             width: `${fillPercent()}%`,
-            opacity: isAdjustingSlider() ? 1 : 0,
+            opacity: isEditing() ? 0 : isAdjustingSlider() ? 0.65 : 0.4,
             transition: "opacity 120ms ease",
           }}
         />
@@ -310,6 +319,7 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
           </div>
         </Show>
         <div
+          data-react-grab-slider-handle
           aria-hidden="true"
           class="absolute top-[2px] bottom-[2px] w-[2px] rounded-[1px] bg-[var(--rg-text-primary)] pointer-events-none"
           style={{

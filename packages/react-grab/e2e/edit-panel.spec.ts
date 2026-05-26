@@ -87,6 +87,36 @@ const getActivePropertyValue = async (
     { attrName: ATTRIBUTE_NAME, propertyAttr: EDIT_PROPERTY_ATTR },
   );
 
+interface ActiveSliderVisualState {
+  key: string | null;
+  width: number | null;
+  fillOpacity: number | null;
+  handleOpacity: number | null;
+}
+
+const getActiveSliderVisualState = async (
+  page: import("@playwright/test").Page,
+): Promise<ActiveSliderVisualState> =>
+  page.evaluate(
+    ({ attrName, propertyAttr }) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      const active = shadowRoot?.querySelector<HTMLElement>(
+        `[${propertyAttr}][aria-current="true"]`,
+      );
+      const slider = active?.querySelector<HTMLElement>("[role='slider']");
+      const fill = slider?.querySelector<HTMLElement>("[data-react-grab-slider-fill]");
+      const handle = slider?.querySelector<HTMLElement>("[data-react-grab-slider-handle]");
+      return {
+        key: active?.getAttribute(propertyAttr) ?? null,
+        width: slider?.getBoundingClientRect().width ?? null,
+        fillOpacity: fill ? Number(getComputedStyle(fill).opacity) : null,
+        handleOpacity: handle ? Number(getComputedStyle(handle).opacity) : null,
+      };
+    },
+    { attrName: ATTRIBUTE_NAME, propertyAttr: EDIT_PROPERTY_ATTR },
+  );
+
 const typeInSearchInput = async (
   page: import("@playwright/test").Page,
   text: string,
@@ -544,6 +574,18 @@ test.describe("Edit Panel", () => {
       const after = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
       expect(after.length).toBeGreaterThan(0);
       expect(after).not.toBe(before);
+    });
+
+    test("idle numeric rows show a slider rail without the handle caret", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await typeInSearchInput(reactGrab.page, "line height");
+      await reactGrab.page.waitForTimeout(80);
+
+      const slider = await getActiveSliderVisualState(reactGrab.page);
+      expect(slider.key).toBe("line-height");
+      expect(slider.width ?? 0).toBeGreaterThan(0);
+      expect(slider.fillOpacity ?? 0).toBeGreaterThan(0);
+      expect(slider.handleOpacity).toBe(0);
     });
 
     test("ArrowUp / ArrowDown navigate the list, not the value", async ({ reactGrab }) => {
