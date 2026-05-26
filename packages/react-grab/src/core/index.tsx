@@ -97,6 +97,7 @@ import type {
   GrabbedBox,
   ReactGrabAPI,
   ReactGrabState,
+  ScreenshotLabel,
   SelectionLabelInstance,
   ContextMenuActionContext,
   ContextMenuAction,
@@ -136,6 +137,15 @@ import { copyContent } from "../utils/copy-content.js";
 import { generateId } from "../utils/generate-id.js";
 import { logRecoverableError } from "../utils/log-recoverable-error.js";
 import { getNearestEdge } from "../utils/get-nearest-edge.js";
+import {
+  collectScreenshotLabels,
+  resolveScreenshotLabelFileName,
+  type ScreenshotLabelCandidate,
+} from "../utils/collect-screenshot-labels.js";
+import {
+  isScreenshotShortcutPressed,
+  isScreenshotShortcutReleased,
+} from "../utils/is-screenshot-shortcut.js";
 
 const builtInPlugins = [copyPlugin, commentPlugin, openPlugin];
 
@@ -3469,6 +3479,120 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }, 0);
     };
 
+    const [screenshotLabelCandidates, setScreenshotLabelCandidates] = createSignal<
+      ScreenshotLabelCandidate[]
+    >([]);
+    const [screenshotLabelFileNames, setScreenshotLabelFileNames] = createSignal<
+      Map<number, string>
+    >(new Map());
+    let screenshotLabelResolutionToken = 0;
+
+    const clearScreenshotLabels = () => {
+      screenshotLabelResolutionToken++;
+      setScreenshotLabelCandidates([]);
+      setScreenshotLabelFileNames(new Map());
+    };
+
+    const activateScreenshotLabels = () => {
+      const candidates = collectScreenshotLabels();
+      if (candidates.length === 0) {
+        clearScreenshotLabels();
+        return;
+      }
+
+      const initialFileNames = new Map<number, string>();
+      for (const candidate of candidates) {
+        if (candidate.fileBaseName) {
+          initialFileNames.set(candidate.fiberId, candidate.fileBaseName);
+        }
+      }
+
+      const resolutionToken = ++screenshotLabelResolutionToken;
+      setScreenshotLabelFileNames(initialFileNames);
+      setScreenshotLabelCandidates(candidates);
+
+      for (const candidate of candidates) {
+        if (initialFileNames.has(candidate.fiberId)) continue;
+        void resolveScreenshotLabelFileName(candidate.element).then((fileBaseName) => {
+          if (resolutionToken !== screenshotLabelResolutionToken) return;
+          if (!fileBaseName) return;
+          setScreenshotLabelFileNames((previous) => {
+            if (previous.get(candidate.fiberId) === fileBaseName) return previous;
+            const next = new Map(previous);
+            next.set(candidate.fiberId, fileBaseName);
+            return next;
+          });
+        });
+      }
+    };
+
+    const computedScreenshotLabels = createMemo<ScreenshotLabel[]>(() => {
+      const candidates = screenshotLabelCandidates();
+      if (candidates.length === 0) return [];
+      void viewportVersion();
+      const fileNames = screenshotLabelFileNames();
+      const labels: ScreenshotLabel[] = [];
+
+      for (const candidate of candidates) {
+        if (!isElementConnected(candidate.element)) continue;
+        const rect = candidate.element.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) continue;
+        if (rect.right <= 0 || rect.bottom <= 0) continue;
+        if (rect.left >= window.innerWidth || rect.top >= window.innerHeight) continue;
+
+        labels.push({
+          id: candidate.fiberId,
+          x: rect.left,
+          y: rect.top,
+          componentName: candidate.componentName,
+          fileBaseName: fileNames.get(candidate.fiberId) ?? candidate.fileBaseName,
+        });
+      }
+
+      return labels;
+    });
+
+    const isScreenshotTriggerKey = (event: KeyboardEvent): boolean => {
+      return (
+        event.key === "Meta" ||
+        event.key === "Shift" ||
+        event.key === "PrintScreen" ||
+        event.code === "PrintScreen"
+      );
+    };
+
+    eventListenerManager.addWindowListener(
+      "keydown",
+      (event: KeyboardEvent) => {
+        if (!isEnabled()) return;
+        if (event.repeat) return;
+        if (!isScreenshotTriggerKey(event)) return;
+        if (!isScreenshotShortcutPressed(event)) return;
+        if (isPromptMode()) return;
+        if (isCopying()) return;
+        if (isKeyboardEventTriggeredByInput(event)) return;
+        if (screenshotLabelCandidates().length > 0) return;
+        activateScreenshotLabels();
+      },
+      { capture: true },
+    );
+
+    eventListenerManager.addWindowListener(
+      "keyup",
+      (event: KeyboardEvent) => {
+        if (screenshotLabelCandidates().length === 0) return;
+        if (!isScreenshotShortcutReleased(event)) return;
+        clearScreenshotLabels();
+      },
+      { capture: true },
+    );
+
+    eventListenerManager.addWindowListener("blur", () => {
+      if (screenshotLabelCandidates().length > 0) {
+        clearScreenshotLabels();
+      }
+    });
+
     createEffect(() => {
       const hue = pluginRegistry.store.theme.hue;
       if (hue !== 0) {
@@ -3506,6 +3630,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 selectionArrowNavigationState={arrowNavigationState()}
                 onArrowNavigationSelect={handleArrowNavigationSelect}
                 labelInstances={computedLabelInstances()}
+                screenshotLabels={computedScreenshotLabels()}
                 dragVisible={dragVisible()}
                 dragBounds={dragBounds()}
                 grabbedBoxes={computedGrabbedBoxes()}

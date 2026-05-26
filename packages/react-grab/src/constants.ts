@@ -187,6 +187,18 @@ export const DROPDOWN_EDGE_TRANSFORM_ORIGIN = {
 
 export const NEXTJS_REVALIDATION_DELAY_MS = 1000;
 
+export const SCREENSHOT_LABEL_FONT_SIZE_PX = 11;
+export const SCREENSHOT_LABEL_PADDING_X_PX = 4;
+export const SCREENSHOT_LABEL_PADDING_Y_PX = 2;
+export const SCREENSHOT_LABEL_BACKGROUND_COLOR = "rgba(0, 0, 0, 0.78)";
+export const SCREENSHOT_LABEL_TEXT_COLOR = "#ffffff";
+export const SCREENSHOT_LABEL_SECONDARY_COLOR = "rgba(255, 255, 255, 0.6)";
+export const SCREENSHOT_LABEL_CORNER_RADIUS_PX = 3;
+export const SCREENSHOT_LABEL_MIDDOT = "\u00B7";
+export const SCREENSHOT_LABEL_FONT_FAMILY =
+  "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
+export const SCREENSHOT_LABEL_VERTICAL_OFFSET_PX = 2;
+
 export const TEXTAREA_MAX_HEIGHT_PX = 95;
 
 export const IME_COMPOSING_KEY_CODE = 229;

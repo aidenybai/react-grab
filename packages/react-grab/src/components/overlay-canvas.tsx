@@ -1,5 +1,5 @@
 import { createEffect, on, onCleanup, onMount, type Component } from "solid-js";
-import type { OverlayBounds, SelectionLabelInstance } from "../types.js";
+import type { OverlayBounds, ScreenshotLabel, SelectionLabelInstance } from "../types.js";
 import { lerp } from "../utils/lerp.js";
 import {
   SELECTION_LERP_FACTOR,
@@ -15,6 +15,16 @@ import {
   OVERLAY_BORDER_COLOR_DEFAULT,
   OVERLAY_FILL_COLOR_DEFAULT,
   BASELINE_FRAME_DURATION_MS,
+  SCREENSHOT_LABEL_BACKGROUND_COLOR,
+  SCREENSHOT_LABEL_CORNER_RADIUS_PX,
+  SCREENSHOT_LABEL_FONT_FAMILY,
+  SCREENSHOT_LABEL_FONT_SIZE_PX,
+  SCREENSHOT_LABEL_MIDDOT,
+  SCREENSHOT_LABEL_PADDING_X_PX,
+  SCREENSHOT_LABEL_PADDING_Y_PX,
+  SCREENSHOT_LABEL_SECONDARY_COLOR,
+  SCREENSHOT_LABEL_TEXT_COLOR,
+  SCREENSHOT_LABEL_VERTICAL_OFFSET_PX,
 } from "../constants.js";
 import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "../utils/native-raf.js";
 import { supportsDisplayP3 } from "../utils/supports-display-p3.js";
@@ -72,6 +82,8 @@ interface OverlayCanvasProps {
   }>;
 
   labelInstances?: SelectionLabelInstance[];
+
+  screenshotLabels?: ScreenshotLabel[];
 }
 
 export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
@@ -288,6 +300,65 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     }
   };
 
+  const renderScreenshotLabels = () => {
+    if (!mainContext) return;
+    const labels = props.screenshotLabels;
+    if (!labels || labels.length === 0) return;
+
+    const context = mainContext;
+    context.save();
+    context.font = `${SCREENSHOT_LABEL_FONT_SIZE_PX}px ${SCREENSHOT_LABEL_FONT_FAMILY}`;
+    context.textBaseline = "top";
+
+    const textHeight = SCREENSHOT_LABEL_FONT_SIZE_PX;
+    const paddingX = SCREENSHOT_LABEL_PADDING_X_PX;
+    const paddingY = SCREENSHOT_LABEL_PADDING_Y_PX;
+    const rectHeight = textHeight + paddingY * 2;
+    const cornerRadius = SCREENSHOT_LABEL_CORNER_RADIUS_PX;
+    const middotSegment = ` ${SCREENSHOT_LABEL_MIDDOT} `;
+
+    for (const label of labels) {
+      const componentText = label.componentName;
+      const fileText = label.fileBaseName ?? "";
+      const componentWidth = context.measureText(componentText).width;
+      const middotWidth = fileText ? context.measureText(middotSegment).width : 0;
+      const fileWidth = fileText ? context.measureText(fileText).width : 0;
+      const totalTextWidth = componentWidth + middotWidth + fileWidth;
+      const rectWidth = totalTextWidth + paddingX * 2;
+
+      let rectX = Math.round(label.x);
+      let rectY = Math.round(label.y - rectHeight - SCREENSHOT_LABEL_VERTICAL_OFFSET_PX);
+      if (rectY < 0) {
+        rectY = Math.round(label.y + SCREENSHOT_LABEL_VERTICAL_OFFSET_PX);
+      }
+      if (rectX + rectWidth > canvasWidth) {
+        rectX = Math.max(0, canvasWidth - rectWidth);
+      }
+      if (rectX < 0) rectX = 0;
+
+      context.fillStyle = SCREENSHOT_LABEL_BACKGROUND_COLOR;
+      context.beginPath();
+      context.roundRect(rectX, rectY, rectWidth, rectHeight, cornerRadius);
+      context.fill();
+
+      let textCursorX = rectX + paddingX;
+      const textCursorY = rectY + paddingY;
+
+      context.fillStyle = SCREENSHOT_LABEL_TEXT_COLOR;
+      context.fillText(componentText, textCursorX, textCursorY);
+      textCursorX += componentWidth;
+
+      if (fileText) {
+        context.fillStyle = SCREENSHOT_LABEL_SECONDARY_COLOR;
+        context.fillText(middotSegment, textCursorX, textCursorY);
+        textCursorX += middotWidth;
+        context.fillText(fileText, textCursorX, textCursorY);
+      }
+    }
+
+    context.restore();
+  };
+
   const compositeAllLayers = () => {
     if (!mainContext || !canvasRef) return;
 
@@ -306,6 +377,8 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
         mainContext.drawImage(layer.canvas, 0, 0, canvasWidth, canvasHeight);
       }
     }
+
+    renderScreenshotLabels();
   };
 
   const interpolateBounds = (
@@ -517,6 +590,15 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
           dragAnimation = createAnimatedBounds("drag", bounds);
         }
 
+        scheduleAnimationFrame();
+      },
+    ),
+  );
+
+  createEffect(
+    on(
+      () => props.screenshotLabels,
+      () => {
         scheduleAnimationFrame();
       },
     ),
