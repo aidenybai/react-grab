@@ -750,7 +750,7 @@ export const MobileDemoAnimation = (): ReactElement => {
                   className="flex items-center justify-between px-3 py-2"
                 >
                   <div className="flex items-center gap-2">
-                    <div className="h-5 w-5 rounded-full bg-muted/50" />
+                    <div className="size-5 rounded-full bg-muted/50" />
                     <span className="text-[11px] text-muted-foreground">{activity.label}</span>
                   </div>
                   <span className="text-[10px] text-muted-foreground">{activity.time}</span>
@@ -837,7 +837,7 @@ export const MobileDemoAnimation = (): ReactElement => {
             }}
           >
             <div
-              className="absolute left-1/2 h-0 w-0 -translate-x-1/2"
+              className="absolute left-1/2 size-0 -translate-x-1/2"
               style={{
                 top: -5,
                 borderLeft: "5px solid transparent",
