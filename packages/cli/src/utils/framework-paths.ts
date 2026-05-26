@@ -142,9 +142,6 @@ export const REACT_GRAB_DETECTION_PATHS: readonly (readonly string[])[] = [
   ...NEXT_PAGES_DOCUMENT_CANDIDATES,
   ...NEXT_INSTRUMENTATION_CANDIDATES,
   ...VITE_INDEX_HTML_CANDIDATES,
-  ["src", "index.tsx"],
-  ["src", "index.ts"],
-  ["src", "main.tsx"],
-  ["src", "main.ts"],
+  ...VITE_ENTRY_CANDIDATES,
   ...TANSTACK_ROOT_CANDIDATES,
 ];

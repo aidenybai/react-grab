@@ -1110,7 +1110,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         dragBounds: state?.dragBounds ?? null,
         grabbedBoxes: state?.grabbedBoxes ?? [],
         labelInstances:
-          state?.labelInstances.map((instance) => ({
+          state?.labelInstances?.map((instance) => ({
             id: instance.id,
             status: instance.status,
             tagName: instance.tagName,

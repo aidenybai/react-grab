@@ -1,5 +1,4 @@
 import { highlighter } from "./highlighter.js";
-import { logger } from "./logger.js";
 import { prompts } from "./prompts.js";
 
 /**
@@ -10,13 +9,6 @@ import { prompts } from "./prompts.js";
  * caller would otherwise have to repeat the same `if (x === undefined)
  * { logger.break(); process.exit(1); }` block at every callsite).
  */
-
-const exitOnCancel = (value: unknown): void => {
-  if (value === undefined) {
-    logger.break();
-    process.exit(1);
-  }
-};
 
 export const promptActivationMode = async (): Promise<"toggle" | "hold"> => {
   const { activationMode } = await prompts({
@@ -29,7 +21,6 @@ export const promptActivationMode = async (): Promise<"toggle" | "hold"> => {
     ],
     initial: 0,
   });
-  exitOnCancel(activationMode);
   return activationMode;
 };
 
@@ -42,7 +33,6 @@ export const promptKeyHoldDuration = async (): Promise<number> => {
     min: 0,
     max: 2000,
   });
-  exitOnCancel(keyHoldDuration);
   return keyHoldDuration;
 };
 
@@ -53,7 +43,6 @@ export const promptAllowActivationInsideInput = async (): Promise<boolean> => {
     message: `Allow activation ${highlighter.info("inside input fields")}?`,
     initial: true,
   });
-  exitOnCancel(allowActivationInsideInput);
   return allowActivationInsideInput;
 };
 
@@ -66,6 +55,5 @@ export const promptMaxContextLines = async (): Promise<number> => {
     min: 0,
     max: 50,
   });
-  exitOnCancel(maxContextLines);
   return maxContextLines;
 };

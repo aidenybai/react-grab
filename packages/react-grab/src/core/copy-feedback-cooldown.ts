@@ -32,10 +32,15 @@ export const createCopyFeedbackCooldown = (): CopyFeedbackCooldown => {
     if (timerId !== null) {
       window.clearTimeout(timerId);
     }
-    timerId = window.setTimeout(() => {
+    const scheduledTimerId = window.setTimeout(() => {
+      // Guard against a stale callback ending a freshly-scheduled cooldown:
+      // if the captured id no longer matches `timerId`, our timer was
+      // already cleared/replaced and we should not touch the state.
+      if (scheduledTimerId !== timerId) return;
       isActive = false;
       timerId = null;
     }, FEEDBACK_DURATION_MS);
+    timerId = scheduledTimerId;
   };
 
   return {

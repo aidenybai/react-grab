@@ -353,7 +353,8 @@ export const createDragHandlers = (input: DragHandlersInput): DragHandlers => {
     }
 
     if (store.activationIntent.kind === "context-menu") {
-      actions.resetActivationIntent();
+      // Don't reset here — openContextMenuOrRunPendingDefault dispatches on
+      // intent.kind, and runPendingDefaultAction owns the read+reset atomically.
       openContextMenuOrRunPendingDefault(firstElement, center);
       return;
     }
@@ -438,15 +439,21 @@ export const createDragHandlers = (input: DragHandlersInput): DragHandlers => {
     }
 
     if (store.activationIntent.kind === "context-menu") {
-      actions.resetActivationIntent();
       const { wasIntercepted } = pluginRegistry.hooks.onElementSelect(selectedElement);
-      if (wasIntercepted) return;
+      if (wasIntercepted) {
+        // Plugin consumed the click; reset the intent so the next click is
+        // not still treated as context-menu.
+        actions.resetActivationIntent();
+        return;
+      }
 
       freezeAllAnimations([selectedElement]);
       actions.setFrozenElement(selectedElement);
       const position = { x: positionX, y: positionY };
       actions.setPointer(position);
       actions.freeze();
+      // Don't reset here — openContextMenuOrRunPendingDefault dispatches on
+      // intent.kind, and runPendingDefaultAction owns the read+reset atomically.
       openContextMenuOrRunPendingDefault(selectedElement, position);
       return;
     }

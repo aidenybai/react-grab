@@ -1,3 +1,5 @@
+import { unfreezeGlobalAnimations } from "../utils/freeze-animations.js";
+import { unfreezePseudoStates } from "../utils/freeze-pseudo-states.js";
 import type { CopyFeedbackCooldown } from "./copy-feedback-cooldown.js";
 import type { CursorOverride } from "./cursor-override.js";
 import type { DragPreviewDebounce } from "./drag-preview-debounce.js";
@@ -51,5 +53,11 @@ export const createInitCleanup = (input: InitCleanupInput): (() => void) => {
     document.body.style.touchAction = "";
     cursorOverride.clear();
     enterBlocker.restore();
+    // If the overlay was active when api.dispose() ran, the activation
+    // freeze effects (pseudo-state + WAAPI animation pause) would otherwise
+    // leak onto the host page. Both unfreeze fns are safe to call when not
+    // frozen — they early-return.
+    unfreezePseudoStates();
+    unfreezeGlobalAnimations();
   };
 };
