@@ -1,6 +1,6 @@
 import { createMemo, createSignal } from "solid-js";
 import type { EditableProperty, PendingEdit } from "../../types.js";
-import { filterPropertiesByQuery } from "../../utils/fuzzy-score-property.js";
+import { createPropertySearchIndex } from "../../utils/property-search-index.js";
 
 // Discriminated by kind so `value`'s type follows the variant, not
 // the union. Eliminates the `as number` / `as string` casts that the
@@ -30,6 +30,7 @@ export interface TweakStore {
 export const createTweakStore = (options: CreateTweakStoreOptions): TweakStore => {
   const { initialProperties, searchQuery } = options;
   const [tweaksByKey, setTweaksByKey] = createSignal<Record<string, PropertyTweak>>({});
+  const propertySearchIndex = createPropertySearchIndex(initialProperties);
 
   const baseFilteredProperties = createMemo<EditableProperty[]>(() => {
     const query = searchQuery();
@@ -49,7 +50,7 @@ export const createTweakStore = (options: CreateTweakStoreOptions): TweakStore =
             (property.isCanonical && !property.isDefault) ||
             currentTweaks[property.key] !== undefined,
         );
-    return filterPropertiesByQuery(candidates, query);
+    return query ? propertySearchIndex.search(query) : candidates;
   });
 
   // `initialProperties` is bound at panel mount and never changes,

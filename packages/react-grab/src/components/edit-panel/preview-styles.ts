@@ -55,5 +55,7 @@ export const createPreviewStyles = (element: Element) => {
     baseline.clear();
   };
 
-  return { apply, restore, forget };
+  const hasAppliedStyles = (): boolean => baseline.size > 0;
+
+  return { apply, restore, forget, hasAppliedStyles };
 };

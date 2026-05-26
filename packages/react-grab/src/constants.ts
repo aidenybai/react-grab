@@ -193,6 +193,7 @@ export const EDIT_PROPERTY_LIST_MAX_HEIGHT_PX = 280;
 export const EDIT_PROPERTY_MAX_COUNT = 40;
 export const EDIT_PANEL_MIN_WIDTH_PX = 200;
 export const EDIT_PANEL_MAX_WIDTH_PX = 320;
+export const EDIT_PANEL_POINTER_ANCHOR_WIDTH_PX = 0;
 export const EDIT_SHIFT_STEP_MULTIPLIER = 10;
 // Idle window after the last control-interact pulse before the
 // transient-interaction signal clears. Must comfortably exceed the
@@ -223,6 +224,13 @@ export const TAILWIND_BORDER_MAX_PX = 8;
 export const TAILWIND_Z_INDEX_MAX = 50;
 export const TAILWIND_OPACITY_GRANULARITY = 5;
 export const EDIT_COLOR_LIGHTNESS_STEP_PERCENT = 4;
+export const EDIT_SEARCH_EXACT_ALIAS_SCORE = 10000;
+export const EDIT_SEARCH_PREFIX_ALIAS_SCORE = 8000;
+export const EDIT_SEARCH_STARTS_WITH_SCORE = 5000;
+export const EDIT_SEARCH_SUBSTRING_SCORE = 1000;
+export const EDIT_SEARCH_POSITION_PENALTY = 100;
+export const EDIT_SEARCH_LENGTH_PENALTY = 1;
+export const EDIT_COMPACT_SLIDER_MIN_WIDTH_PX = 96;
 
 export const CSS_VALUE_DECIMAL_PLACES = 2;
 export const OPACITY_PERCENT_MAX = 100;

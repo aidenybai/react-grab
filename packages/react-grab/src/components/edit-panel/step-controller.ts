@@ -24,6 +24,7 @@ export interface StepController {
   // so our own interval drives the cadence after the initial press.
   pressArrow: (key: ArrowKey, isRepeat: boolean, shiftKey: boolean) => void;
   releaseKey: (key: string) => void;
+  cancelRepeat: () => void;
 }
 
 export const createStepController = (options: StepControllerOptions): StepController => {
@@ -79,5 +80,5 @@ export const createStepController = (options: StepControllerOptions): StepContro
 
   onCleanup(stopRepeat);
 
-  return { heldDirection, pressArrow, releaseKey };
+  return { heldDirection, pressArrow, releaseKey, cancelRepeat: stopRepeat };
 };

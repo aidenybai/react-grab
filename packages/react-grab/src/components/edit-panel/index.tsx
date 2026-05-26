@@ -318,6 +318,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   };
 
   const showPendingDismissPrompt = (shake: boolean) => {
+    stepController.cancelRepeat();
     setIsPendingDismiss(true);
     clearTimeout(pendingDismissTimerId);
     pendingDismissTimerId = setTimeout(() => {
@@ -327,8 +328,13 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   };
 
   const attemptDismiss = () => {
+    stepController.cancelRepeat();
+    if (isPendingDismiss()) {
+      closePanel("discard");
+      return;
+    }
     if (!hasPendingTweaks()) {
-      closePanel("preserve");
+      closePanel(preview.hasAppliedStyles() ? "discard" : "preserve");
       return;
     }
     showPendingDismissPrompt(!isPendingDismiss());

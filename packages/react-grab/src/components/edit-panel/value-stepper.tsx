@@ -7,6 +7,7 @@ import {
   EDIT_SLIDER_RUBBER_SETTLE_MS,
   EDIT_SLIDER_RUBBER_SOFT_RANGE_PX,
   EDIT_SLIDER_SPRING_EASING,
+  EDIT_COMPACT_SLIDER_MIN_WIDTH_PX,
   IME_COMPOSING_KEY_CODE,
 } from "../../constants.js";
 import { formatDisplayValue } from "../../utils/format-css-value.js";
@@ -251,6 +252,7 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
       "touch-action": isDragSupported() ? "none" : "auto",
       "user-select": "none",
       "-webkit-user-select": "none",
+      "min-width": props.emphasized ? `${EDIT_COMPACT_SLIDER_MIN_WIDTH_PX}px` : undefined,
       transform: stretch === 0 ? "translateX(0)" : `translateX(${stretch}px)`,
       // Mid-drag: stretch tracks the pointer with no smoothing. On
       // release stretch resets to 0 and this transition produces the
@@ -283,22 +285,23 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
         onPointerCancel={releaseDrag}
         onLostPointerCapture={releaseDrag}
       >
-        <div
-          aria-hidden="true"
-          class="absolute left-0 right-0 top-1/2 h-[3px] -translate-y-1/2 rounded-full bg-[var(--rg-surface-active)] pointer-events-none"
-          style={{
-            opacity: isEditing() ? 0 : 0.22,
-            transition: "opacity 120ms ease",
-          }}
-        />
+        <Show when={props.emphasized}>
+          <div
+            data-react-grab-slider-base
+            aria-hidden="true"
+            class="absolute inset-y-0 left-0 right-0 rounded-[6px] bg-[var(--rg-surface-active)] pointer-events-none"
+            style={{
+              opacity: isEditing() ? 0 : 0.55,
+            }}
+          />
+        </Show>
         <div
           data-react-grab-slider-fill
           aria-hidden="true"
-          class="absolute left-0 top-1/2 h-[3px] -translate-y-1/2 rounded-full bg-[var(--rg-text-secondary)] pointer-events-none"
+          class="absolute inset-y-0 left-0 bg-[var(--rg-surface-active)] pointer-events-none"
           style={{
             width: `${fillPercent()}%`,
-            opacity: isEditing() ? 0 : isAdjustingSlider() ? 0.65 : 0.4,
-            transition: "opacity 120ms ease",
+            opacity: isEditing() ? 0 : 1,
           }}
         />
         <Show when={!props.emphasized}>

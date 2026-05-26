@@ -90,7 +90,9 @@ const getActivePropertyValue = async (
 interface ActiveSliderVisualState {
   key: string | null;
   width: number | null;
+  hasBaseRail: boolean;
   fillOpacity: number | null;
+  fillBackground: string | null;
   handleOpacity: number | null;
 }
 
@@ -105,17 +107,64 @@ const getActiveSliderVisualState = async (
         `[${propertyAttr}][aria-current="true"]`,
       );
       const slider = active?.querySelector<HTMLElement>("[role='slider']");
+      const base = slider?.querySelector<HTMLElement>("[data-react-grab-slider-base]");
       const fill = slider?.querySelector<HTMLElement>("[data-react-grab-slider-fill]");
       const handle = slider?.querySelector<HTMLElement>("[data-react-grab-slider-handle]");
+      const fillStyle = fill ? getComputedStyle(fill) : null;
       return {
         key: active?.getAttribute(propertyAttr) ?? null,
         width: slider?.getBoundingClientRect().width ?? null,
-        fillOpacity: fill ? Number(getComputedStyle(fill).opacity) : null,
+        hasBaseRail: base !== undefined,
+        fillOpacity: fillStyle ? Number(fillStyle.opacity) : null,
+        fillBackground: fillStyle?.backgroundColor ?? null,
         handleOpacity: handle ? Number(getComputedStyle(handle).opacity) : null,
       };
     },
     { attrName: ATTRIBUTE_NAME, propertyAttr: EDIT_PROPERTY_ATTR },
   );
+
+interface VisibleSliderVisualState {
+  width: number | null;
+  height: number | null;
+  baseWidth: number | null;
+  baseHeight: number | null;
+  baseOpacity: number | null;
+  fillWidth: number | null;
+  fillHeight: number | null;
+  fillOpacity: number | null;
+  fillBackground: string | null;
+  handleOpacity: number | null;
+}
+
+const getVisibleSliderVisualState = async (
+  page: import("@playwright/test").Page,
+): Promise<VisibleSliderVisualState> =>
+  page.evaluate((attrName) => {
+    const host = document.querySelector(`[${attrName}]`);
+    const shadowRoot = host?.shadowRoot;
+    const sliders = Array.from(
+      shadowRoot?.querySelectorAll<HTMLElement>("[data-react-grab-edit-panel] [role='slider']") ??
+        [],
+    );
+    const slider = sliders.find((candidate) => candidate.getBoundingClientRect().width > 0) ?? null;
+    const base = slider?.querySelector<HTMLElement>("[data-react-grab-slider-base]");
+    const fill = slider?.querySelector<HTMLElement>("[data-react-grab-slider-fill]");
+    const handle = slider?.querySelector<HTMLElement>("[data-react-grab-slider-handle]");
+    const baseStyle = base ? getComputedStyle(base) : null;
+    const fillStyle = fill ? getComputedStyle(fill) : null;
+    return {
+      width: slider?.getBoundingClientRect().width ?? null,
+      height: slider?.getBoundingClientRect().height ?? null,
+      baseWidth: base?.getBoundingClientRect().width ?? null,
+      baseHeight: base?.getBoundingClientRect().height ?? null,
+      baseOpacity: baseStyle ? Number(baseStyle.opacity) : null,
+      fillWidth: fill?.getBoundingClientRect().width ?? null,
+      fillHeight: fill?.getBoundingClientRect().height ?? null,
+      fillOpacity: fillStyle ? Number(fillStyle.opacity) : null,
+      fillBackground: fillStyle?.backgroundColor ?? null,
+      handleOpacity: handle ? Number(getComputedStyle(handle).opacity) : null,
+    };
+  }, ATTRIBUTE_NAME);
 
 interface SearchInputFocusVisualState {
   isFocusVisible: boolean;
@@ -223,6 +272,11 @@ const getInlineStyleAttribute = async (
     if (!(element instanceof HTMLElement)) return "";
     return element.getAttribute("style") ?? "";
   }, selector);
+
+const dispatchOutsideDismiss = async (page: import("@playwright/test").Page): Promise<void> =>
+  page.evaluate(() => {
+    window.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+  });
 
 const isEditPanelCompact = async (page: import("@playwright/test").Page): Promise<boolean> =>
   page.evaluate(
@@ -539,6 +593,51 @@ test.describe("Edit Panel", () => {
       await reactGrab.page.mouse.click(5, 5);
       await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
     });
+
+    test("second outside dismiss confirms discard prompt", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      const beforeTweak = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+      expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).not.toBe(beforeTweak);
+
+      await dispatchOutsideDismiss(reactGrab.page);
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
+
+      await dispatchOutsideDismiss(reactGrab.page);
+      await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
+      expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).toBe(beforeTweak);
+    });
+
+    test("net-zero tweak dismiss restores preview inline styles", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      const beforeTweak = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.type("px-2");
+      await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
+      expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).not.toBe(beforeTweak);
+
+      await dispatchOutsideDismiss(reactGrab.page);
+      await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
+      expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).toBe(beforeTweak);
+    });
+
+    test("held arrow repeat stops while discard prompt is visible", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.down("ArrowRight");
+      await reactGrab.page.waitForTimeout(360);
+      await reactGrab.page.keyboard.press("Escape");
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
+      const valueAtPrompt = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
+
+      await reactGrab.page.waitForTimeout(180);
+      expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).toBe(valueAtPrompt);
+      await reactGrab.page.keyboard.up("ArrowRight");
+      await reactGrab.page.keyboard.press("Escape");
+      await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
+    });
   });
 
   test.describe("Property listing", () => {
@@ -637,6 +736,14 @@ test.describe("Edit Panel", () => {
       expect(keys[0]).toBe("font-family");
     });
 
+    test("typing a partial Tailwind alias uses prefix search", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await typeInSearchInput(reactGrab.page, "font-mo");
+      await reactGrab.page.waitForTimeout(80);
+      const keys = await getVisiblePropertyKeys(reactGrab.page);
+      expect(keys[0]).toBe("font-family");
+    });
+
     test("typing 'uppercase' ranks text-transform first", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await typeInSearchInput(reactGrab.page, "uppercase");
@@ -677,7 +784,7 @@ test.describe("Edit Panel", () => {
       expect(after).not.toBe(before);
     });
 
-    test("idle numeric rows show a slider rail without the handle caret", async ({ reactGrab }) => {
+    test("idle numeric rows show slider fill without the handle caret", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await typeInSearchInput(reactGrab.page, "line height");
       await reactGrab.page.waitForTimeout(80);
@@ -685,6 +792,24 @@ test.describe("Edit Panel", () => {
       const slider = await getActiveSliderVisualState(reactGrab.page);
       expect(slider.key).toBe("line-height");
       expect(slider.width ?? 0).toBeGreaterThan(0);
+      expect(slider.fillOpacity ?? 0).toBeGreaterThan(0);
+      expect(slider.handleOpacity).toBe(0);
+    });
+
+    test("compact discard prompt keeps the slider fill visible", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+      await reactGrab.page.keyboard.press("Escape");
+      await reactGrab.page.waitForTimeout(220);
+
+      const slider = await getVisibleSliderVisualState(reactGrab.page);
+      expect(slider.width ?? 0).toBeGreaterThan(80);
+      expect(slider.baseWidth ?? 0).toBeCloseTo(slider.width ?? 0, 1);
+      expect(slider.baseHeight ?? 0).toBeCloseTo(slider.height ?? 0, 1);
+      expect(slider.baseOpacity ?? 0).toBeGreaterThan(0);
+      expect(slider.fillWidth ?? 0).toBeGreaterThan(0);
+      expect(slider.fillHeight ?? 0).toBeCloseTo(slider.height ?? 0, 1);
       expect(slider.fillOpacity ?? 0).toBeGreaterThan(0);
       expect(slider.handleOpacity).toBe(0);
     });
