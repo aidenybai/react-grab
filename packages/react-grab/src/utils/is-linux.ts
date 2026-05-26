@@ -21,7 +21,9 @@ export const isLinux = (): boolean => {
     }
 
     const platform = navigator.platform ?? getPlatformFromUserAgentData() ?? navigator.userAgent;
-    cachedIsLinux = /Linux|X11|CrOS/i.test(platform) && !/Android/i.test(platform);
+    const userAgent = navigator.userAgent ?? "";
+    const isAndroid = /Android/i.test(platform) || /Android/i.test(userAgent);
+    cachedIsLinux = /Linux|X11|CrOS/i.test(platform) && !isAndroid;
   }
   return cachedIsLinux;
 };

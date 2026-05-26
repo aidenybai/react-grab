@@ -38,7 +38,6 @@ const collectFiberRoots = (): Set<FiberRootLike> => {
     }
     for (const child of Array.from(element.children)) {
       walk(child);
-      if (collected.size > 0) return;
     }
   };
   if (typeof document !== "undefined") walk(document.body);
@@ -58,7 +57,7 @@ const getSyncFileName = (fiber: Fiber): string | null => {
 };
 
 const getFileBaseName = (filePath: string): string => {
-  const cleaned = filePath.split("?")[0].split("#")[0];
+  const cleaned = filePath.split("?")[0].split("#")[0].replace(/\\/g, "/");
   const parts = cleaned.split("/");
   return parts[parts.length - 1] || cleaned;
 };
@@ -132,7 +131,7 @@ export const resolveScreenshotLabelFileName = async (element: Element): Promise<
   try {
     const source = await resolveSource(element);
     if (!source?.filePath) return null;
-    return getFileBaseName(source.filePath);
+    return getFileBaseName(normalizeFilePath(source.filePath));
   } catch {
     return null;
   }
