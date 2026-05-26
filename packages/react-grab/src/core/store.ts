@@ -484,8 +484,10 @@ const createGrabStore = (input: GrabStoreInput) => {
 
     addFrozenElements: (elements: Element[]) => {
       updateFrozenElements((draft) => {
+        const existingFrozenSet = new Set(draft.frozenElements);
         for (const incomingElement of elements) {
-          if (!draft.frozenElements.includes(incomingElement)) {
+          if (!existingFrozenSet.has(incomingElement)) {
+            existingFrozenSet.add(incomingElement);
             draft.frozenElements.push(incomingElement);
           }
         }
