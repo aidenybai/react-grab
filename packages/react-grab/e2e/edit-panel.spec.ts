@@ -95,6 +95,16 @@ interface ActiveSliderVisualState {
   fillOpacity: number | null;
   fillBackground: string | null;
   handleOpacity: number | null;
+  maxHashMarkOpacity: number;
+}
+
+interface PropertyRowBounds {
+  key: string;
+  isActive: boolean;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
 }
 
 const getActiveSliderVisualState = async (
@@ -111,6 +121,9 @@ const getActiveSliderVisualState = async (
       const base = slider?.querySelector<HTMLElement>("[data-react-grab-slider-base]");
       const fill = slider?.querySelector<HTMLElement>("[data-react-grab-slider-fill]");
       const handle = slider?.querySelector<HTMLElement>("[data-react-grab-slider-handle]");
+      const hashMarks = Array.from(
+        slider?.querySelectorAll<HTMLElement>("[data-react-grab-slider-hash-mark]") ?? [],
+      );
       const fillStyle = fill ? getComputedStyle(fill) : null;
       return {
         key: active?.getAttribute(propertyAttr) ?? null,
@@ -119,6 +132,10 @@ const getActiveSliderVisualState = async (
         fillOpacity: fillStyle ? Number(fillStyle.opacity) : null,
         fillBackground: fillStyle?.backgroundColor ?? null,
         handleOpacity: handle ? Number(getComputedStyle(handle).opacity) : null,
+        maxHashMarkOpacity: Math.max(
+          0,
+          ...hashMarks.map((hashMark) => Number(getComputedStyle(hashMark).opacity)),
+        ),
       };
     },
     { attrName: ATTRIBUTE_NAME, propertyAttr: EDIT_PROPERTY_ATTR },
@@ -440,6 +457,29 @@ const dragActiveSlider = async (page: import("@playwright/test").Page): Promise<
   await page.mouse.move(rect.left + rect.width * 0.75, y, { steps: 4 });
   await page.mouse.up();
 };
+
+const getPropertyRowBounds = async (
+  page: import("@playwright/test").Page,
+): Promise<PropertyRowBounds[]> =>
+  page.evaluate(
+    ({ attrName, propertyAttr }) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      const rows = Array.from(shadowRoot?.querySelectorAll<HTMLElement>(`[${propertyAttr}]`) ?? []);
+      return rows.map((row) => {
+        const rect = row.getBoundingClientRect();
+        return {
+          key: row.getAttribute(propertyAttr) ?? "",
+          isActive: row.getAttribute("aria-current") === "true",
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+          height: rect.height,
+        };
+      });
+    },
+    { attrName: ATTRIBUTE_NAME, propertyAttr: EDIT_PROPERTY_ATTR },
+  );
 
 const getEditPanelCompactAttr = async (
   page: import("@playwright/test").Page,
@@ -855,6 +895,78 @@ test.describe("Edit Panel", () => {
       expect(slider.width ?? 0).toBeGreaterThan(0);
       expect(slider.fillOpacity ?? 0).toBeGreaterThan(0);
       expect(slider.handleOpacity).toBe(0);
+    });
+
+    test("hovering a numeric row shows slider unit marks and handle", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await typeInSearchInput(reactGrab.page, "line height");
+      await reactGrab.page.waitForTimeout(80);
+
+      const beforeHover = await getActiveSliderVisualState(reactGrab.page);
+      expect(beforeHover.handleOpacity).toBe(0);
+      expect(beforeHover.maxHashMarkOpacity).toBe(0);
+
+      await reactGrab.page.evaluate(
+        ({ attrName, propertyAttr }) => {
+          const host = document.querySelector(`[${attrName}]`);
+          const shadowRoot = host?.shadowRoot;
+          const active = shadowRoot?.querySelector<HTMLElement>(
+            `[${propertyAttr}][aria-current="true"]`,
+          );
+          active?.querySelector<HTMLElement>("[role='slider']")?.scrollIntoView({
+            block: "center",
+            inline: "center",
+          });
+        },
+        { attrName: ATTRIBUTE_NAME, propertyAttr: EDIT_PROPERTY_ATTR },
+      );
+
+      const sliderBounds = await reactGrab.page.evaluate(
+        ({ attrName, propertyAttr }) => {
+          const host = document.querySelector(`[${attrName}]`);
+          const shadowRoot = host?.shadowRoot;
+          const active = shadowRoot?.querySelector<HTMLElement>(
+            `[${propertyAttr}][aria-current="true"]`,
+          );
+          const slider = active?.querySelector<HTMLElement>("[role='slider']");
+          const rect = slider?.getBoundingClientRect();
+          return rect
+            ? { left: rect.left, top: rect.top, width: rect.width, height: rect.height }
+            : null;
+        },
+        { attrName: ATTRIBUTE_NAME, propertyAttr: EDIT_PROPERTY_ATTR },
+      );
+      if (!sliderBounds) throw new Error("Active slider not found");
+
+      await reactGrab.page.mouse.move(
+        sliderBounds.left + sliderBounds.width / 2,
+        sliderBounds.top + sliderBounds.height / 2,
+      );
+      await reactGrab.page.waitForTimeout(220);
+
+      const afterHover = await getActiveSliderVisualState(reactGrab.page);
+      expect(afterHover.handleOpacity ?? 0).toBeGreaterThan(0);
+      expect(afterHover.maxHashMarkOpacity).toBeGreaterThan(0);
+    });
+
+    test("hovering another row after slider adjustment updates the active property", async ({
+      reactGrab,
+    }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      const before = await getActivePropertyKey(reactGrab.page);
+
+      await dragActiveSlider(reactGrab.page);
+      const rows = await getPropertyRowBounds(reactGrab.page);
+      const target = rows.find((row) => !row.isActive && row.width > 0 && row.height > 0);
+      if (!target) throw new Error("Hover target row not found");
+
+      await reactGrab.page.mouse.move(
+        target.left + target.width / 2,
+        target.top + target.height / 2,
+      );
+
+      await expect.poll(() => getActivePropertyKey(reactGrab.page)).toBe(target.key);
+      expect(await getActivePropertyKey(reactGrab.page)).not.toBe(before);
     });
 
     test("compact discard prompt keeps the slider fill visible", async ({ reactGrab }) => {

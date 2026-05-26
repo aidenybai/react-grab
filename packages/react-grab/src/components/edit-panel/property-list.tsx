@@ -44,6 +44,50 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
   // to use the mouse. Once any real pointer movement is observed, the
   // gate is permanently open for this panel mount.
   let didPointerMove = false;
+  let pendingHoverIndex: number | null = null;
+
+  // The panel runs inside a Shadow DOM (mountRoot attaches a shadow root
+  // on the overlay host). `document.activeElement` returns the shadow HOST
+  // when focus is inside the shadow, not the actual focused element. Read
+  // the shadow root via getRootNode to find the real focused element.
+  // Only inline value inputs lock hover; the search textarea stays focused
+  // while users move through rows.
+  const focusedInlineInputOwnsHover = (): boolean => {
+    const listRootNode = listRef?.getRootNode();
+    const focusedElement =
+      listRootNode instanceof ShadowRoot
+        ? (listRootNode.activeElement as HTMLElement | null)
+        : (document.activeElement as HTMLElement | null);
+    return focusedElement?.matches("input[data-react-grab-input]") ?? false;
+  };
+
+  const maybeActivateHoveredIndex = (propertyIndex: number, source: "enter" | "move") => {
+    if (source === "move") didPointerMove = true;
+    const isFocusLocked = focusedInlineInputOwnsHover();
+    if (!didPointerMove) return;
+    if (isFocusLocked) return;
+    if (props.isAdjusting()) {
+      pendingHoverIndex = propertyIndex;
+      return;
+    }
+    pendingHoverIndex = null;
+    if (propertyIndex === props.activeIndex) return;
+    props.onHoverIndex(propertyIndex);
+  };
+
+  createEffect(() => {
+    if (props.isAdjusting()) return;
+    const propertyIndex = pendingHoverIndex;
+    if (propertyIndex === null) return;
+    pendingHoverIndex = null;
+    const element = itemElements[propertyIndex];
+    const isFocusLocked = focusedInlineInputOwnsHover();
+    if (!didPointerMove) return;
+    if (isFocusLocked) return;
+    if (!element?.matches(":hover")) return;
+    if (propertyIndex === props.activeIndex) return;
+    props.onHoverIndex(propertyIndex);
+  });
 
   const {
     containerRef: highlightContainerRef,
@@ -138,26 +182,13 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
               tabindex={-1}
               class="relative z-1 contain-layout block w-full px-0 py-0 cursor-pointer text-left border-none bg-transparent min-h-[24px]"
               onPointerEnter={() => {
-                if (!didPointerMove) return;
-                if (props.isAdjusting()) return;
-                // The panel runs inside a Shadow DOM (mountRoot attaches a
-                // shadow root on the overlay host). `document.activeElement`
-                // returns the shadow HOST when focus is inside the shadow,
-                // not the actual focused element — so we'd never see our
-                // own value-edit input and would always change activeIndex
-                // on hover, unmounting the user's in-progress edit. Read
-                // the shadow root via getRootNode to find the real focused
-                // element.
-                const listRootNode = listRef?.getRootNode();
-                const focusedElement =
-                  listRootNode instanceof ShadowRoot
-                    ? (listRootNode.activeElement as HTMLElement | null)
-                    : (document.activeElement as HTMLElement | null);
-                // Search input is a <textarea>; per-row numeric edits use
-                // an <input>. Both carry data-react-grab-input, so a tag-
-                // agnostic selector locks hover for either focused control.
-                if (focusedElement?.matches("[data-react-grab-input]")) return;
-                props.onHoverIndex(propertyIndex);
+                maybeActivateHoveredIndex(propertyIndex, "enter");
+              }}
+              onPointerMove={() => {
+                maybeActivateHoveredIndex(propertyIndex, "move");
+              }}
+              onPointerLeave={() => {
+                if (pendingHoverIndex === propertyIndex) pendingHoverIndex = null;
               }}
               onMouseDown={(event) => {
                 // Default focus on the clicked button would steal it from

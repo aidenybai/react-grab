@@ -50,6 +50,7 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
   // would leave hash-marks invisible and disable the rubber-band
   // `transition: none` flag for the entire drag on touch.
   const [isDragging, setIsDragging] = createSignal(false);
+  const [isHovered, setIsHovered] = createSignal(false);
   const isEditing = () => draftText() !== null;
   let trackElement: HTMLDivElement | undefined;
   let valueTextElement: HTMLSpanElement | undefined;
@@ -174,13 +175,14 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
     const handleBlur = () => {
       dragState = null;
       setIsDragging(false);
+      setIsHovered(false);
       setRubberStretchPx(0);
     };
     window.addEventListener("blur", handleBlur);
     onCleanup(() => window.removeEventListener("blur", handleBlur));
   });
 
-  const isAdjustingSlider = () => Boolean(props.activeKey) || isDragging();
+  const isAdjustingSlider = () => Boolean(props.activeKey) || isDragging() || isHovered();
 
   // Match "<number><optional-unit>" — rejects pasted `calc(...)`,
   // `++5`, free text. Normalizes single comma decimals (de-DE locale)
@@ -281,6 +283,8 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
         style={trackStyle()}
         onPointerDown={handleTrackPointerDown}
         onPointerMove={handleTrackPointerMove}
+        onPointerEnter={() => setIsHovered(true)}
+        onPointerLeave={() => setIsHovered(false)}
         onPointerUp={handleTrackPointerUp}
         onPointerCancel={releaseDrag}
         onLostPointerCapture={releaseDrag}
@@ -309,6 +313,7 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
             <Index each={HASH_MARK_PERCENTS}>
               {(percent) => (
                 <div
+                  data-react-grab-slider-hash-mark
                   class="absolute top-1/2 w-px h-[8px] rounded-[1px] bg-[var(--rg-text-secondary)]"
                   style={{
                     left: `${percent()}%`,
@@ -327,7 +332,7 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
           class="absolute top-[2px] bottom-[2px] w-[2px] rounded-[1px] bg-[var(--rg-text-primary)] pointer-events-none"
           style={{
             left: `calc(${fillPercent()}% - 1px)`,
-            opacity: props.activeKey ? 0.9 : isDragging() ? 0.35 : 0,
+            opacity: props.activeKey ? 0.9 : isDragging() || isHovered() ? 0.35 : 0,
             transition: "opacity 120ms ease",
           }}
         />
