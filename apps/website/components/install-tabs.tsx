@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef, type ReactElement } from "react";
+import Link from "next/link";
 import { Copy, Check, Terminal, ChevronDown } from "lucide-react";
 import {
   COPY_FEEDBACK_DURATION_MS,
@@ -509,9 +510,9 @@ export const InstallTabs = ({
       {showAgentNote && activeTab.variant === "code" && (
         <span className="mt-2 block text-sm text-muted-foreground sm:text-base">
           Want to connect directly to your coding agent?{" "}
-          <a href="/docs" className="underline hover:text-foreground/70">
+          <Link href="/docs" className="underline hover:text-foreground/70">
             See our agent connection guide
-          </a>
+          </Link>
         </span>
       )}
     </div>

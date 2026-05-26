@@ -1,6 +1,7 @@
 "use client";
 
 import { type ReactElement } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
 
@@ -29,9 +30,9 @@ export const DemoFooter = (): ReactElement => {
         <RotateCcw size={13} className="align-middle" />
       </Button>
       <span className="hidden sm:inline"> &middot; </span>
-      <a href="/changelog" className="underline underline-offset-4 hover:text-foreground">
+      <Link href="/changelog" className="underline underline-offset-4 hover:text-foreground">
         changelog
-      </a>
+      </Link>
     </div>
   );
 };
