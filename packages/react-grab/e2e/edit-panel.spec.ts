@@ -117,6 +117,68 @@ const getActiveSliderVisualState = async (
     { attrName: ATTRIBUTE_NAME, propertyAttr: EDIT_PROPERTY_ATTR },
   );
 
+interface SearchInputFocusVisualState {
+  isFocusVisible: boolean;
+  outlineStyle: string;
+  boxShadow: string;
+}
+
+const getSearchInputFocusVisualState = async (
+  page: import("@playwright/test").Page,
+): Promise<SearchInputFocusVisualState> =>
+  page.evaluate(
+    ({ attrName, inputAttr }) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const input = host?.shadowRoot?.querySelector<HTMLElement>(`[${inputAttr}]`);
+      if (!input) {
+        return { isFocusVisible: false, outlineStyle: "", boxShadow: "" };
+      }
+      const computedStyle = getComputedStyle(input);
+      return {
+        isFocusVisible: input.matches(":focus-visible"),
+        outlineStyle: computedStyle.outlineStyle,
+        boxShadow: computedStyle.boxShadow,
+      };
+    },
+    { attrName: ATTRIBUTE_NAME, inputAttr: SEARCH_INPUT_ATTR },
+  );
+
+interface OverlayFocusVisualState {
+  label: string;
+  outlineStyle: string;
+  boxShadow: string;
+}
+
+const getOverlayFocusVisualStates = async (
+  page: import("@playwright/test").Page,
+  selector: string,
+): Promise<OverlayFocusVisualState[]> =>
+  page.evaluate(
+    ({ attrName, selector }) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      const root = shadowRoot?.querySelector(`[${attrName}]`) ?? shadowRoot;
+      const elements = Array.from(root?.querySelectorAll<HTMLElement>(selector) ?? []);
+      return elements
+        .filter((element) => element.getClientRects().length > 0)
+        .map((element) => {
+          element.focus({ preventScroll: true });
+          const computedStyle = getComputedStyle(element);
+          return {
+            label:
+              element.getAttribute("data-react-grab-menu-item") ??
+              element.getAttribute("data-react-grab-edit-property") ??
+              element.getAttribute("aria-label") ??
+              element.getAttribute("role") ??
+              element.tagName.toLowerCase(),
+            outlineStyle: computedStyle.outlineStyle,
+            boxShadow: computedStyle.boxShadow,
+          };
+        });
+    },
+    { attrName: ATTRIBUTE_NAME, selector },
+  );
+
 const typeInSearchInput = async (
   page: import("@playwright/test").Page,
   text: string,
@@ -323,6 +385,45 @@ test.describe("Edit Panel", () => {
     test("right-click → Edit opens the panel", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
+    });
+
+    test("search input has no focus ring", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      const focusVisualState = await getSearchInputFocusVisualState(reactGrab.page);
+      expect(focusVisualState.isFocusVisible).toBe(true);
+      expect(focusVisualState.outlineStyle).toBe("none");
+      expect(focusVisualState.boxShadow).toBe("none");
+    });
+
+    test("context menu rows have no focus ring", async ({ reactGrab }) => {
+      await reactGrab.activate();
+      await reactGrab.hoverElement(BUTTON_SELECTOR);
+      await reactGrab.waitForSelectionBox();
+      await reactGrab.rightClickElement(BUTTON_SELECTOR);
+      const focusVisualStates = await getOverlayFocusVisualStates(
+        reactGrab.page,
+        '[role="menu"], [data-react-grab-menu-item]',
+      );
+      expect(focusVisualStates.map((state) => state.label)).toContain("budge");
+      expect(
+        focusVisualStates.filter(
+          (state) => state.outlineStyle !== "none" || state.boxShadow !== "none",
+        ),
+      ).toEqual([]);
+    });
+
+    test("Budge controls have no focus ring", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      const focusVisualStates = await getOverlayFocusVisualStates(
+        reactGrab.page,
+        '[data-react-grab-input], [data-react-grab-edit-property], button, [role="slider"]',
+      );
+      expect(focusVisualStates.map((state) => state.label)).toContain("Search properties");
+      expect(
+        focusVisualStates.filter(
+          (state) => state.outlineStyle !== "none" || state.boxShadow !== "none",
+        ),
+      ).toEqual([]);
     });
 
     test("Edit context menu item carries the Enter shortcut", async ({ reactGrab }) => {

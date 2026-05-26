@@ -224,22 +224,10 @@
   }
 }
 
-/* The react-grab overlay UI uses its own visual states (the moving menu
-   highlight, button hover transitions, etc.) as focus indicators, so any
-   UA focus ring inside the shadow root is purely visual noise. Strip all
-   :focus / :focus-visible outlines and shadows uniformly. */
-/* Strip the UA outline ONLY for mouse-driven focus (`:focus` without
-   `:focus-visible`). Keyboard navigation must keep an explicit ring
-   — `:focus-visible` users see the ring; mouse users don't see noise. */
-:host *:focus:not(:focus-visible) {
+:host *:focus,
+:host *:focus-visible {
   outline: none !important;
   box-shadow: none !important;
-}
-
-:host *:focus-visible {
-  outline: 2px solid var(--rg-text-primary);
-  outline-offset: 2px;
-  border-radius: 2px;
 }
 
 @keyframes shake {
