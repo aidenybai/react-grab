@@ -585,14 +585,14 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                       data-react-grab-ignore-events
                       data-react-grab-copy-button
                       type="button"
-                      class="contain-layout shrink-0 flex items-center justify-center px-[5px] py-px rounded-sm bg-[var(--rg-submit-bg)] [border-width:0.5px] border-solid border-[var(--rg-border-button)] cursor-pointer transition-all press-scale h-[17px]"
+                      class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[var(--rg-surface-hover)] [border-width:0.5px] border-solid border-[var(--rg-border-button)] cursor-pointer transition-all hover:bg-[var(--rg-surface-active)] press-scale h-[17px]"
                       onClick={(event) => {
                         event.preventDefault();
                         event.stopPropagation();
                         handleSubmit();
                       }}
                     >
-                      <span class="text-[var(--rg-submit-fg)] text-[13px] leading-3.5 font-sans font-medium">
+                      <span class="text-[var(--rg-text-primary)] text-[13px] leading-3.5 font-sans font-medium">
                         Copy
                       </span>
                     </button>

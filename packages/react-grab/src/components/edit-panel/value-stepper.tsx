@@ -343,22 +343,17 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
             when={isEditing()}
             fallback={
               <span
+                ref={valueTextElement}
                 class="ml-auto flex items-center gap-1 pointer-events-auto"
                 data-react-grab-value={`${formatDisplayValue(props.value)}${props.unit}`}
+                style={{
+                  cursor: props.onCommitValue ? "text" : "default",
+                }}
               >
-                <span
-                  ref={valueTextElement}
-                  class={`${valueClass} text-[var(--rg-text-primary)]`}
-                  style={{
-                    cursor: props.onCommitValue ? "text" : "default",
-                  }}
-                >
-                  <Slot>{formatDisplayValue(props.value)}</Slot>
-                  <span class="text-[var(--rg-text-secondary)] ml-px">{props.unit}</span>
-                </span>
                 <Show when={props.tailwindLabel}>
                   {(label) => (
                     <span
+                      data-react-grab-tailwind-label
                       aria-hidden="true"
                       class="text-[10px] leading-4 text-[var(--rg-text-secondary)] tabular-nums"
                     >
@@ -366,6 +361,13 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
                     </span>
                   )}
                 </Show>
+                <span
+                  data-react-grab-value-text
+                  class={`${valueClass} text-[var(--rg-text-primary)]`}
+                >
+                  <Slot>{formatDisplayValue(props.value)}</Slot>
+                  <span class="text-[var(--rg-text-secondary)] ml-px">{props.unit}</span>
+                </span>
               </span>
             }
           >

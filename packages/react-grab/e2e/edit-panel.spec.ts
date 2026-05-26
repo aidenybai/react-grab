@@ -5,6 +5,7 @@ const EDIT_PANEL_ATTR = "data-react-grab-edit-panel";
 const EDIT_PROPERTY_ATTR = "data-react-grab-edit-property";
 const SEARCH_INPUT_ATTR = "data-react-grab-input";
 const COPY_BUTTON_ATTR = "data-react-grab-copy-button";
+const TAILWIND_LABEL_ATTR = "data-react-grab-tailwind-label";
 const IDLE_BUFFER_MS = 700;
 const DISCARD_PROMPT_IDLE_MS = 2000;
 
@@ -166,6 +167,32 @@ const getVisibleSliderVisualState = async (
     };
   }, ATTRIBUTE_NAME);
 
+const getActiveTailwindLabelOrder = async (
+  page: import("@playwright/test").Page,
+): Promise<{ tailwindLeft: number | null; valueLeft: number | null }> =>
+  page.evaluate(
+    ({ attrName, tailwindLabelAttr }) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      const labels = Array.from(
+        shadowRoot?.querySelectorAll<HTMLElement>(
+          `[data-react-grab-edit-panel] [${tailwindLabelAttr}]`,
+        ) ?? [],
+      );
+      const tailwindLabel =
+        labels.find((element) => element.getBoundingClientRect().width > 0) ?? null;
+      const valueText =
+        tailwindLabel
+          ?.closest("[data-react-grab-value]")
+          ?.querySelector<HTMLElement>("[data-react-grab-value-text]") ?? null;
+      return {
+        tailwindLeft: tailwindLabel?.getBoundingClientRect().left ?? null,
+        valueLeft: valueText?.getBoundingClientRect().left ?? null,
+      };
+    },
+    { attrName: ATTRIBUTE_NAME, tailwindLabelAttr: TAILWIND_LABEL_ATTR },
+  );
+
 interface SearchInputFocusVisualState {
   isFocusVisible: boolean;
   outlineStyle: string;
@@ -305,6 +332,40 @@ const isHeaderCopyButtonVisible = async (page: import("@playwright/test").Page):
       return rect.width > 0 && rect.height > 0;
     },
     { attrName: ATTRIBUTE_NAME, copyButtonAttr: COPY_BUTTON_ATTR },
+  );
+
+interface ButtonVisualStyle {
+  backgroundColor: string;
+  borderColor: string;
+  color: string;
+  height: string;
+  paddingLeft: string;
+  paddingRight: string;
+}
+
+const getOverlayButtonVisualStyle = async (
+  page: import("@playwright/test").Page,
+  selector: string,
+): Promise<ButtonVisualStyle> =>
+  page.evaluate(
+    ({ attrName, buttonSelector }) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      const button = shadowRoot?.querySelector<HTMLElement>(buttonSelector);
+      if (!button) throw new Error("Button not found");
+      const label = button.querySelector<HTMLElement>("span") ?? button;
+      const buttonStyle = getComputedStyle(button);
+      const labelStyle = getComputedStyle(label);
+      return {
+        backgroundColor: buttonStyle.backgroundColor,
+        borderColor: buttonStyle.borderColor,
+        color: labelStyle.color,
+        height: buttonStyle.height,
+        paddingLeft: buttonStyle.paddingLeft,
+        paddingRight: buttonStyle.paddingRight,
+      };
+    },
+    { attrName: ATTRIBUTE_NAME, buttonSelector: selector },
   );
 
 const isDiscardPromptVisible = async (page: import("@playwright/test").Page): Promise<boolean> =>
@@ -814,6 +875,21 @@ test.describe("Edit Panel", () => {
       expect(slider.handleOpacity).toBe(0);
     });
 
+    test("Tailwind label appears to the left of the value", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.down("Shift");
+      try {
+        await reactGrab.page.waitForTimeout(80);
+
+        const order = await getActiveTailwindLabelOrder(reactGrab.page);
+        expect(order.tailwindLeft).not.toBeNull();
+        expect(order.valueLeft).not.toBeNull();
+        expect(order.tailwindLeft ?? 0).toBeLessThan(order.valueLeft ?? 0);
+      } finally {
+        await reactGrab.page.keyboard.up("Shift");
+      }
+    });
+
     test("ArrowUp / ArrowDown navigate the list, not the value", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       const initial = await getActivePropertyKey(reactGrab.page);
@@ -1129,6 +1205,23 @@ test.describe("Edit Panel", () => {
 
       const afterCommit = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
       expect(afterCommit).toBe(tweaked);
+    });
+
+    test("header Copy button matches the neutral discard button style", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await dragActiveSlider(reactGrab.page);
+      await reactGrab.page.waitForTimeout(80);
+
+      const copyStyle = await getOverlayButtonVisualStyle(reactGrab.page, `[${COPY_BUTTON_ATTR}]`);
+
+      await reactGrab.page.keyboard.press("Escape");
+      await reactGrab.page.waitForTimeout(80);
+      const noStyle = await getOverlayButtonVisualStyle(
+        reactGrab.page,
+        "[data-react-grab-discard-button='cancel']",
+      );
+
+      expect(copyStyle).toEqual(noStyle);
     });
   });
 
