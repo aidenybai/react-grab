@@ -335,6 +335,7 @@ export interface ScreenshotLabel {
   id: number;
   x: number;
   y: number;
+  area: number;
   componentName: string;
   fileBaseName: string | null;
 }

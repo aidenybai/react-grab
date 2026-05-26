@@ -16,6 +16,7 @@ import {
   OVERLAY_FILL_COLOR_DEFAULT,
   BASELINE_FRAME_DURATION_MS,
   SCREENSHOT_LABEL_BACKGROUND_COLOR,
+  SCREENSHOT_LABEL_COLLISION_PADDING_PX,
   SCREENSHOT_LABEL_CORNER_RADIUS_PX,
   SCREENSHOT_LABEL_FONT_FAMILY,
   SCREENSHOT_LABEL_FONT_SIZE_PX,
@@ -315,9 +316,13 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     const paddingY = SCREENSHOT_LABEL_PADDING_Y_PX;
     const rectHeight = textHeight + paddingY * 2;
     const cornerRadius = SCREENSHOT_LABEL_CORNER_RADIUS_PX;
+    const collisionPadding = SCREENSHOT_LABEL_COLLISION_PADDING_PX;
     const middotSegment = ` ${SCREENSHOT_LABEL_MIDDOT} `;
 
-    for (const label of labels) {
+    const sortedLabels = labels.slice().sort((labelA, labelB) => labelB.area - labelA.area);
+    const placedRects: Array<{ x: number; y: number; width: number; height: number }> = [];
+
+    for (const label of sortedLabels) {
       const componentText = label.componentName;
       const fileText = label.fileBaseName ?? "";
       const componentWidth = context.measureText(componentText).width;
@@ -335,6 +340,23 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
         rectX = Math.max(0, canvasWidth - rectWidth);
       }
       if (rectX < 0) rectX = 0;
+
+      let collidesWithPlaced = false;
+      for (const placed of placedRects) {
+        const horizontallyApart =
+          rectX + rectWidth + collisionPadding <= placed.x ||
+          placed.x + placed.width + collisionPadding <= rectX;
+        const verticallyApart =
+          rectY + rectHeight + collisionPadding <= placed.y ||
+          placed.y + placed.height + collisionPadding <= rectY;
+        if (!horizontallyApart && !verticallyApart) {
+          collidesWithPlaced = true;
+          break;
+        }
+      }
+      if (collidesWithPlaced) continue;
+
+      placedRects.push({ x: rectX, y: rectY, width: rectWidth, height: rectHeight });
 
       context.fillStyle = SCREENSHOT_LABEL_BACKGROUND_COLOR;
       context.beginPath();

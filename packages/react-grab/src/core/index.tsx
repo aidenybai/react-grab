@@ -78,6 +78,8 @@ import {
   WINDOW_REFOCUS_GRACE_PERIOD_MS,
   PREVIEW_TEXT_MAX_LENGTH,
   NEXTJS_REVALIDATION_DELAY_MS,
+  SCREENSHOT_LABEL_MIN_ELEMENT_HEIGHT_PX,
+  SCREENSHOT_LABEL_MIN_ELEMENT_WIDTH_PX,
   TOOLBAR_DEFAULT_POSITION_RATIO,
   DEFAULT_ACTION_ID,
 } from "../constants.js";
@@ -3532,18 +3534,22 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       void viewportVersion();
       const fileNames = screenshotLabelFileNames();
       const labels: ScreenshotLabel[] = [];
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
 
       for (const candidate of candidates) {
         if (!isElementConnected(candidate.element)) continue;
         const rect = candidate.element.getBoundingClientRect();
-        if (rect.width <= 0 || rect.height <= 0) continue;
+        if (rect.width < SCREENSHOT_LABEL_MIN_ELEMENT_WIDTH_PX) continue;
+        if (rect.height < SCREENSHOT_LABEL_MIN_ELEMENT_HEIGHT_PX) continue;
         if (rect.right <= 0 || rect.bottom <= 0) continue;
-        if (rect.left >= window.innerWidth || rect.top >= window.innerHeight) continue;
+        if (rect.left >= viewportWidth || rect.top >= viewportHeight) continue;
 
         labels.push({
           id: candidate.fiberId,
           x: rect.left,
           y: rect.top,
+          area: rect.width * rect.height,
           componentName: candidate.componentName,
           fileBaseName: fileNames.get(candidate.fiberId) ?? candidate.fileBaseName,
         });
@@ -3565,6 +3571,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (event.repeat) return;
       if (!isScreenshotTriggerKey(event)) return;
       if (!isScreenshotShortcutPressed(event)) return;
+      if (!isEnabled()) return;
       if (isPromptMode()) return;
       if (isCopying()) return;
       if (isKeyboardEventTriggeredByInput(event)) return;

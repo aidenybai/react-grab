@@ -105,6 +105,30 @@ test.describe("Screenshot Labels - smoke", () => {
 });
 
 macTest.describe("Screenshot Labels - macOS (Cmd+Shift)", () => {
+  macTest("does not activate when react-grab is disabled via API", async ({ page }) => {
+    await page.evaluate(() => {
+      const api = (window as { __REACT_GRAB__?: { setEnabled: (enabled: boolean) => void } })
+        .__REACT_GRAB__;
+      api?.setEnabled(false);
+    });
+
+    await page.keyboard.down("Meta");
+    await page.keyboard.down("Shift");
+    await page.waitForTimeout(200);
+
+    const result = await inspectOverlayCanvasInk(page);
+    expect(result.hasInk).toBe(false);
+
+    await page.keyboard.up("Shift");
+    await page.keyboard.up("Meta");
+
+    await page.evaluate(() => {
+      const api = (window as { __REACT_GRAB__?: { setEnabled: (enabled: boolean) => void } })
+        .__REACT_GRAB__;
+      api?.setEnabled(true);
+    });
+  });
+
   macTest("Cmd then Shift activates labels", async ({ page }) => {
     const before = await inspectOverlayCanvasInk(page);
     expect(before.found).toBe(true);

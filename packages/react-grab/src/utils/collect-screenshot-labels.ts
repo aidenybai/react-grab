@@ -25,20 +25,26 @@ const collectFiberRoots = (): Set<FiberRootLike> => {
   if (typedFiberRoots.size > 0) return typedFiberRoots;
 
   const collected = new Set<FiberRootLike>();
-  const walk = (element: Element): void => {
+  if (typeof document === "undefined") return collected;
+
+  const elementsToVisit: Element[] = [document.body];
+  while (elementsToVisit.length > 0) {
+    const element = elementsToVisit.pop();
+    if (!element) continue;
+
     const fiber = getFiberFromHostInstance(element);
     if (fiber) {
       let current: Fiber | null = fiber;
       while (current?.return) current = current.return;
       const root = current?.stateNode as FiberRootLike | undefined;
       if (root) collected.add(root);
-      return;
+      continue;
     }
-    for (const child of Array.from(element.children)) {
-      walk(child);
+    for (const child of element.children) {
+      elementsToVisit.push(child);
     }
-  };
-  if (typeof document !== "undefined") walk(document.body);
+  }
+
   return collected;
 };
 
@@ -103,34 +109,35 @@ export const collectScreenshotLabels = (): ScreenshotLabelCandidate[] => {
   const fiberRoots = collectFiberRoots();
   const candidates: ScreenshotLabelCandidate[] = [];
   const seenElements = new WeakSet<Element>();
-
-  const visit = (fiber: Fiber | null | undefined): void => {
-    if (!fiber) return;
-
-    if (isCompositeFiber(fiber)) {
-      const displayName = getDisplayName(fiber.type);
-      if (displayName && isUsefulComponentName(displayName)) {
-        const hostElement = findNearestHostElement(fiber);
-        if (hostElement && !seenElements.has(hostElement) && isElementOnscreen(hostElement)) {
-          seenElements.add(hostElement);
-          const fileName = getSyncFileName(fiber);
-          candidates.push({
-            fiberId: getStableFiberId(fiber),
-            element: hostElement,
-            componentName: displayName,
-            fileBaseName: fileName ? getFileBaseName(fileName) : null,
-          });
-        }
-      }
-    }
-
-    visit(fiber.child);
-    visit(fiber.sibling);
-  };
+  const walkStack: Array<Fiber | null | undefined> = [];
 
   for (const fiberRoot of fiberRoots) {
     if (!fiberRoot.current) continue;
-    visit(fiberRoot.current);
+    walkStack.push(fiberRoot.current);
+  }
+
+  while (walkStack.length > 0) {
+    const fiber = walkStack.pop();
+    if (!fiber) continue;
+
+    if (fiber.sibling) walkStack.push(fiber.sibling);
+    if (fiber.child) walkStack.push(fiber.child);
+
+    if (!isCompositeFiber(fiber)) continue;
+    const displayName = getDisplayName(fiber.type);
+    if (!displayName || !isUsefulComponentName(displayName)) continue;
+
+    const hostElement = findNearestHostElement(fiber);
+    if (!hostElement || seenElements.has(hostElement) || !isElementOnscreen(hostElement)) continue;
+
+    seenElements.add(hostElement);
+    const fileName = getSyncFileName(fiber);
+    candidates.push({
+      fiberId: getStableFiberId(fiber),
+      element: hostElement,
+      componentName: displayName,
+      fileBaseName: fileName ? getFileBaseName(fileName) : null,
+    });
   }
 
   return candidates;
