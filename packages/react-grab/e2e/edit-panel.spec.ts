@@ -1,4 +1,3 @@
-import { EDIT_DISCARD_PROMPT_IDLE_MS } from "../src/constants.js";
 import { expect, test } from "./fixtures.js";
 
 const ATTRIBUTE_NAME = "data-react-grab";
@@ -7,6 +6,7 @@ const EDIT_PROPERTY_ATTR = "data-react-grab-edit-property";
 const SEARCH_INPUT_ATTR = "data-react-grab-input";
 const COPY_BUTTON_ATTR = "data-react-grab-copy-button";
 const IDLE_BUFFER_MS = 700;
+const DISCARD_PROMPT_IDLE_MS = 2000;
 
 // nested-button: <button class="bg-blue-500 text-white px-2 py-1 rounded text-sm">
 // — leaf element, reliable target. Has px-2 (8px) py-1 (4px) → padding-y +
@@ -382,7 +382,7 @@ test.describe("Edit Panel", () => {
       await reactGrab.page.waitForTimeout(80);
       expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
 
-      await reactGrab.page.waitForTimeout(EDIT_DISCARD_PROMPT_IDLE_MS + 100);
+      await reactGrab.page.waitForTimeout(DISCARD_PROMPT_IDLE_MS + 100);
       expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
       expect(await isDiscardPromptVisible(reactGrab.page)).toBe(false);
     });
