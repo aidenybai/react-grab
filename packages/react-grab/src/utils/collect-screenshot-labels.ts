@@ -2,9 +2,7 @@ import {
   _fiberRoots,
   getDisplayName,
   getFiberFromHostInstance,
-  getNearestHostFibers,
   isCompositeFiber,
-  traverseFiber,
   type Fiber,
   type FiberRoot,
 } from "bippy";
@@ -88,40 +86,51 @@ const getStableFiberId = (fiber: Fiber): number => {
   return id;
 };
 
+const findNearestHostElement = (fiber: Fiber): Element | null => {
+  const queue: Array<Fiber | null | undefined> = [fiber.child];
+  while (queue.length > 0) {
+    const candidate = queue.shift();
+    if (!candidate) continue;
+    const stateNode = candidate.stateNode;
+    if (stateNode instanceof Element) return stateNode;
+    if (candidate.child) queue.push(candidate.child);
+    if (candidate.sibling) queue.push(candidate.sibling);
+  }
+  return null;
+};
+
 export const collectScreenshotLabels = (): ScreenshotLabelCandidate[] => {
   const fiberRoots = collectFiberRoots();
   const candidates: ScreenshotLabelCandidate[] = [];
   const seenElements = new WeakSet<Element>();
 
+  const visit = (fiber: Fiber | null | undefined): void => {
+    if (!fiber) return;
+
+    if (isCompositeFiber(fiber)) {
+      const displayName = getDisplayName(fiber.type);
+      if (displayName && isUsefulComponentName(displayName)) {
+        const hostElement = findNearestHostElement(fiber);
+        if (hostElement && !seenElements.has(hostElement) && isElementOnscreen(hostElement)) {
+          seenElements.add(hostElement);
+          const fileName = getSyncFileName(fiber);
+          candidates.push({
+            fiberId: getStableFiberId(fiber),
+            element: hostElement,
+            componentName: displayName,
+            fileBaseName: fileName ? getFileBaseName(fileName) : null,
+          });
+        }
+      }
+    }
+
+    visit(fiber.child);
+    visit(fiber.sibling);
+  };
+
   for (const fiberRoot of fiberRoots) {
     if (!fiberRoot.current) continue;
-    traverseFiber(
-      fiberRoot.current,
-      (fiber) => {
-        if (!isCompositeFiber(fiber)) return false;
-        const displayName = getDisplayName(fiber.type);
-        if (!displayName || !isUsefulComponentName(displayName)) return false;
-
-        const hostFibers = getNearestHostFibers(fiber);
-        if (hostFibers.length === 0) return false;
-
-        const hostNode = hostFibers[0].stateNode;
-        if (!(hostNode instanceof Element)) return false;
-        if (seenElements.has(hostNode)) return false;
-        if (!isElementOnscreen(hostNode)) return false;
-
-        seenElements.add(hostNode);
-        const fileName = getSyncFileName(fiber);
-        candidates.push({
-          fiberId: getStableFiberId(fiber),
-          element: hostNode,
-          componentName: displayName,
-          fileBaseName: fileName ? getFileBaseName(fileName) : null,
-        });
-        return false;
-      },
-      true,
-    );
+    visit(fiberRoot.current);
   }
 
   return candidates;

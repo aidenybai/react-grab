@@ -3561,31 +3561,31 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       );
     };
 
-    eventListenerManager.addWindowListener(
-      "keydown",
-      (event: KeyboardEvent) => {
-        if (!isEnabled()) return;
-        if (event.repeat) return;
-        if (!isScreenshotTriggerKey(event)) return;
-        if (!isScreenshotShortcutPressed(event)) return;
-        if (isPromptMode()) return;
-        if (isCopying()) return;
-        if (isKeyboardEventTriggeredByInput(event)) return;
-        if (screenshotLabelCandidates().length > 0) return;
-        activateScreenshotLabels();
-      },
-      { capture: true },
-    );
+    const handleScreenshotKeydown = (event: KeyboardEvent): void => {
+      if (event.repeat) return;
+      if (!isScreenshotTriggerKey(event)) return;
+      if (!isScreenshotShortcutPressed(event)) return;
+      if (isPromptMode()) return;
+      if (isCopying()) return;
+      if (isKeyboardEventTriggeredByInput(event)) return;
+      if (screenshotLabelCandidates().length > 0) return;
+      activateScreenshotLabels();
+    };
 
-    eventListenerManager.addWindowListener(
-      "keyup",
-      (event: KeyboardEvent) => {
-        if (screenshotLabelCandidates().length === 0) return;
-        if (!isScreenshotShortcutReleased(event)) return;
-        clearScreenshotLabels();
-      },
-      { capture: true },
-    );
+    const handleScreenshotKeyup = (event: KeyboardEvent): void => {
+      if (screenshotLabelCandidates().length === 0) return;
+      if (!isScreenshotShortcutReleased(event)) return;
+      clearScreenshotLabels();
+    };
+
+    // Listen on both window and document with capture so the activation
+    // still fires when an upstream listener calls stopPropagation on the
+    // other target. Same handler on both - the early-return on existing
+    // candidates makes a second invocation for the same press a no-op.
+    eventListenerManager.addWindowListener("keydown", handleScreenshotKeydown, { capture: true });
+    eventListenerManager.addDocumentListener("keydown", handleScreenshotKeydown, { capture: true });
+    eventListenerManager.addWindowListener("keyup", handleScreenshotKeyup, { capture: true });
+    eventListenerManager.addDocumentListener("keyup", handleScreenshotKeyup, { capture: true });
 
     eventListenerManager.addWindowListener("blur", () => {
       if (screenshotLabelCandidates().length > 0) {
