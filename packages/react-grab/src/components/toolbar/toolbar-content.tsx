@@ -96,6 +96,14 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
       ? `transition-[padding,border-radius,transform] duration-60 ease-[cubic-bezier(0,0,0.2,1)]`
       : `transition-[padding,border-radius,transform] ${sizeDurationClass()} ease-drawer`;
 
+  const handleAnimationEnd = () => {
+    props.onAnimationEnd?.();
+  };
+
+  const handlePanelClick = (event: MouseEvent) => {
+    props.onPanelClick?.(event);
+  };
+
   return (
     <div
       data-react-grab-toolbar-panel
@@ -109,8 +117,8 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
         props.isShaking && (isVertical() ? "animate-shake-vertical" : "animate-shake"),
       )}
       style={{ "transform-origin": props.transformOrigin, transform: pressSquishTransform() }}
-      onAnimationEnd={props.onAnimationEnd}
-      onClick={props.onPanelClick}
+      onAnimationEnd={handleAnimationEnd}
+      onClick={handlePanelClick}
     >
       <div
         class={cn(
