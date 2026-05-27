@@ -84,7 +84,7 @@ export const createAnchoredDropdown = (
 
     window.addEventListener("resize", handleViewportChange);
     window.visualViewport?.addEventListener("resize", handleViewportChange);
-    window.visualViewport?.addEventListener("scroll", handleViewportChange);
+    window.visualViewport?.addEventListener("scroll", handleViewportChange, { passive: true });
 
     onCleanup(() => {
       window.removeEventListener("resize", handleViewportChange);

@@ -48,6 +48,7 @@ export const registerOverlayDismiss = (options: RegisterOverlayDismissOptions): 
     });
     window.addEventListener("touchstart", handleClickOutside, {
       capture: true,
+      passive: true,
     });
   });
 
