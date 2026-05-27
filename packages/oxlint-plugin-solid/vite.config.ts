@@ -10,4 +10,9 @@ export default defineConfig({
     platform: "node",
     fixedExtension: false,
   },
+  test: {
+    globals: true,
+    include: ["test/**/*.test.ts"],
+    testTimeout: 15000,
+  },
 });
