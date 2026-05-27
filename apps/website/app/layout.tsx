@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/react";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Caveat, Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -62,7 +63,7 @@ const RootLayout = ({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${caveat.variable} antialiased`}
       >
-        <script src="/script.js" defer />
+        <Script src="/script.js" strategy="afterInteractive" />
         <NuqsAdapter>{children}</NuqsAdapter>
         <Analytics />
       </body>
