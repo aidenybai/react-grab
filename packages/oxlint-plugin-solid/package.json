@@ -1,0 +1,32 @@
+{
+  "name": "@react-grab/oxlint-plugin-solid",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Internal vendor of oxlint-plugin-solidjs as TypeScript, ported 1:1 from the upstream bundle.",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "rm -rf dist && vp pack",
+    "dev": "vp pack --watch"
+  },
+  "dependencies": {
+    "@oxlint/plugins": "^1.61.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.2",
+    "typescript": "^6.0.3",
+    "vite-plus": "^0.1.20"
+  }
+}
