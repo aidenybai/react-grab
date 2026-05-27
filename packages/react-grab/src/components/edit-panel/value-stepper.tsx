@@ -331,7 +331,7 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
           aria-hidden="true"
           class="absolute top-[2px] bottom-[2px] w-[2px] rounded-[1px] bg-[var(--rg-text-primary)] pointer-events-none"
           style={{
-            left: `calc(${fillPercent()}% - 1px)`,
+            left: `clamp(0px, calc(${fillPercent()}% - 1px), calc(100% - 2px))`,
             opacity: props.activeKey ? 0.9 : isDragging() || isHovered() ? 0.35 : 0,
             transition: "opacity 120ms ease",
           }}
@@ -371,7 +371,12 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
                   class={`${valueClass} text-[var(--rg-text-primary)]`}
                 >
                   <Slot>{formatDisplayValue(props.value)}</Slot>
-                  <span class="text-[var(--rg-text-secondary)] ml-px">{props.unit}</span>
+                  <span
+                    data-react-grab-value-unit
+                    class="text-[10px] leading-4 text-[var(--rg-text-secondary)] ml-px tabular-nums"
+                  >
+                    {props.unit}
+                  </span>
                 </span>
               </span>
             }

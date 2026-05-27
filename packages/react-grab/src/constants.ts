@@ -3,7 +3,6 @@ import { overlayColor } from "./utils/overlay-color.js";
 export const VERSION = process.env.VERSION as string;
 
 export const PANEL_BACKGROUND = "var(--rg-panel-bg)";
-export const PANEL_SHADOW = "var(--rg-shadow)";
 
 export const VIEWPORT_MARGIN_PX = 8;
 export const OFFSCREEN_POSITION = -1000;
@@ -213,7 +212,7 @@ export const EDIT_SLIDER_RUBBER_SOFT_RANGE_PX = 200;
 export const EDIT_SLIDER_RUBBER_MAX_PX = 8;
 export const EDIT_SLIDER_RUBBER_SETTLE_MS = 350;
 export const EDIT_SLIDER_SPRING_EASING = "cubic-bezier(0.34, 1.56, 0.64, 1)";
-export const EDIT_VALUE_BUMP_PX = 2;
+export const EDIT_VALUE_BUMP_PX = 1;
 export const EDIT_VALUE_BUMP_MS = 280;
 export const EDIT_STEP_REPEAT_INITIAL_DELAY_MS = 280;
 export const EDIT_STEP_REPEAT_INTERVAL_MS = 60;

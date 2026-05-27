@@ -142,6 +142,8 @@ const getActiveSliderVisualState = async (
   );
 
 interface VisibleSliderVisualState {
+  left: number | null;
+  right: number | null;
   width: number | null;
   height: number | null;
   baseWidth: number | null;
@@ -151,6 +153,8 @@ interface VisibleSliderVisualState {
   fillHeight: number | null;
   fillOpacity: number | null;
   fillBackground: string | null;
+  handleLeft: number | null;
+  handleRight: number | null;
   handleOpacity: number | null;
 }
 
@@ -171,6 +175,8 @@ const getVisibleSliderVisualState = async (
     const baseStyle = base ? getComputedStyle(base) : null;
     const fillStyle = fill ? getComputedStyle(fill) : null;
     return {
+      left: slider?.getBoundingClientRect().left ?? null,
+      right: slider?.getBoundingClientRect().right ?? null,
       width: slider?.getBoundingClientRect().width ?? null,
       height: slider?.getBoundingClientRect().height ?? null,
       baseWidth: base?.getBoundingClientRect().width ?? null,
@@ -180,6 +186,8 @@ const getVisibleSliderVisualState = async (
       fillHeight: fill?.getBoundingClientRect().height ?? null,
       fillOpacity: fillStyle ? Number(fillStyle.opacity) : null,
       fillBackground: fillStyle?.backgroundColor ?? null,
+      handleLeft: handle?.getBoundingClientRect().left ?? null,
+      handleRight: handle?.getBoundingClientRect().right ?? null,
       handleOpacity: handle ? Number(getComputedStyle(handle).opacity) : null,
     };
   }, ATTRIBUTE_NAME);
@@ -209,6 +217,27 @@ const getActiveTailwindLabelOrder = async (
     },
     { attrName: ATTRIBUTE_NAME, tailwindLabelAttr: TAILWIND_LABEL_ATTR },
   );
+
+interface ActiveValueFontSizes {
+  numberFontSize: number | null;
+  unitFontSize: number | null;
+}
+
+const getActiveValueFontSizes = async (
+  page: import("@playwright/test").Page,
+): Promise<ActiveValueFontSizes> =>
+  page.evaluate((attrName) => {
+    const host = document.querySelector(`[${attrName}]`);
+    const shadowRoot = host?.shadowRoot;
+    const valueText = shadowRoot?.querySelector<HTMLElement>(
+      "[data-react-grab-edit-panel] [aria-current='true'] [data-react-grab-value-text]",
+    );
+    const unit = valueText?.querySelector<HTMLElement>("[data-react-grab-value-unit]");
+    return {
+      numberFontSize: valueText ? Number.parseFloat(getComputedStyle(valueText).fontSize) : null,
+      unitFontSize: unit ? Number.parseFloat(getComputedStyle(unit).fontSize) : null,
+    };
+  }, ATTRIBUTE_NAME);
 
 interface SearchInputFocusVisualState {
   isFocusVisible: boolean;
@@ -673,6 +702,63 @@ test.describe("Edit Panel", () => {
       expect(await isDiscardPromptVisible(reactGrab.page)).toBe(false);
     });
 
+    test("discard prompt idle timer pauses while hovering the dropdown", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+
+      await reactGrab.page.keyboard.press("Escape");
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
+
+      const promptBounds = await reactGrab.page.evaluate((attrName) => {
+        const shadowRoot = document.querySelector(`[${attrName}]`)?.shadowRoot;
+        const prompt = shadowRoot?.querySelector<HTMLElement>("[role='alertdialog']");
+        const rect = prompt?.getBoundingClientRect();
+        return rect
+          ? { left: rect.left, top: rect.top, width: rect.width, height: rect.height }
+          : null;
+      }, ATTRIBUTE_NAME);
+      if (!promptBounds) throw new Error("Discard prompt not found");
+
+      await reactGrab.page.mouse.move(
+        promptBounds.left + promptBounds.width / 2,
+        promptBounds.top + promptBounds.height / 2,
+      );
+      await reactGrab.page.waitForTimeout(DISCARD_PROMPT_IDLE_MS + 100);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
+
+      await reactGrab.page.mouse.move(5, 5);
+      await reactGrab.page.waitForTimeout(DISCARD_PROMPT_IDLE_MS + 100);
+      expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(false);
+    });
+
+    test("Enter chooses No from the discard prompt", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+      const tweaked = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
+      expect(tweaked.length).toBeGreaterThan(0);
+
+      await reactGrab.page.keyboard.press("Escape");
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
+      await reactGrab.page.keyboard.press("Enter");
+      await expect.poll(() => isDiscardPromptVisible(reactGrab.page)).toBe(false);
+      expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
+      expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).toBe(tweaked);
+
+      await reactGrab.page.keyboard.press("Escape");
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
+      await focusDiscardButton(reactGrab.page, "confirm");
+      await reactGrab.page.keyboard.press("Enter");
+      await expect.poll(() => isDiscardPromptVisible(reactGrab.page)).toBe(false);
+      expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
+      expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).toBe(tweaked);
+    });
+
     test("Escape on focused No button confirms discard", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       const beforeTweak = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
@@ -987,6 +1073,31 @@ test.describe("Edit Panel", () => {
       expect(slider.handleOpacity).toBe(0);
     });
 
+    test("slider handle stays inside the rail at min and max values", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await typeInSearchInput(reactGrab.page, "px-0");
+      await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
+      const minSlider = await getVisibleSliderVisualState(reactGrab.page);
+      expect(minSlider.handleLeft ?? -1).toBeGreaterThanOrEqual(minSlider.left ?? 0);
+      expect(minSlider.handleRight ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(
+        minSlider.right ?? 0,
+      );
+
+      await reactGrab.page.keyboard.press("Escape");
+      await reactGrab.page.waitForTimeout(80);
+      await reactGrab.page.keyboard.press("Escape");
+      await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
+
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await typeInSearchInput(reactGrab.page, "px-96");
+      await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
+      const maxSlider = await getVisibleSliderVisualState(reactGrab.page);
+      expect(maxSlider.handleLeft ?? -1).toBeGreaterThanOrEqual(maxSlider.left ?? 0);
+      expect(maxSlider.handleRight ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(
+        maxSlider.right ?? 0,
+      );
+    });
+
     test("Tailwind label appears to the left of the value", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await reactGrab.page.keyboard.down("Shift");
@@ -1000,6 +1111,15 @@ test.describe("Edit Panel", () => {
       } finally {
         await reactGrab.page.keyboard.up("Shift");
       }
+    });
+
+    test("numeric unit is smaller than the number", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      const sizes = await getActiveValueFontSizes(reactGrab.page);
+
+      expect(sizes.numberFontSize).not.toBeNull();
+      expect(sizes.unitFontSize).not.toBeNull();
+      expect(sizes.unitFontSize ?? 0).toBeLessThan(sizes.numberFontSize ?? 0);
     });
 
     test("ArrowUp / ArrowDown navigate the list, not the value", async ({ reactGrab }) => {

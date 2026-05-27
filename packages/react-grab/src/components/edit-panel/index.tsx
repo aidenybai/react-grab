@@ -293,6 +293,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   // shakes + shows the discard prompt; second Escape confirms "Yes".
   const [isPendingDismiss, setIsPendingDismiss] = createSignal(false);
   let panelSurfaceRef: HTMLDivElement | undefined;
+  let isPointerInsidePanel = false;
   let pendingDismissTimerId: ReturnType<typeof setTimeout> | undefined;
 
   const playShake = () => {
@@ -308,22 +309,33 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   // "Yes" confirm button or a second Escape while the prompt is visible.
   const closePanel = (mode: "preserve" | "discard") => {
     clearTimeout(pendingDismissTimerId);
+    pendingDismissTimerId = undefined;
     if (mode === "discard") preview.restore();
     props.onDismiss();
   };
 
   const hidePendingDismissPrompt = () => {
     clearTimeout(pendingDismissTimerId);
+    pendingDismissTimerId = undefined;
     setIsPendingDismiss(false);
+  };
+
+  const schedulePendingDismissPromptIdle = () => {
+    clearTimeout(pendingDismissTimerId);
+    pendingDismissTimerId = undefined;
+    if (!isPendingDismiss()) return;
+    if (isPointerInsidePanel) return;
+    pendingDismissTimerId = setTimeout(() => {
+      if (isPointerInsidePanel) return;
+      setIsPendingDismiss(false);
+      pendingDismissTimerId = undefined;
+    }, EDIT_DISCARD_PROMPT_IDLE_MS);
   };
 
   const showPendingDismissPrompt = (shake: boolean) => {
     stepController.cancelRepeat();
     setIsPendingDismiss(true);
-    clearTimeout(pendingDismissTimerId);
-    pendingDismissTimerId = setTimeout(() => {
-      setIsPendingDismiss(false);
-    }, EDIT_DISCARD_PROMPT_IDLE_MS);
+    schedulePendingDismissPromptIdle();
     if (shake) playShake();
   };
 
@@ -368,11 +380,12 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     ArrowRight: (event) => stepController.pressArrow("ArrowRight", event.repeat, event.shiftKey),
     Tab: (event) => navigateActive(event.shiftKey ? -1 : 1),
     Enter: () => {
-      // Discard prompt up: ignore Enter so the user has to explicitly
-      // pick No or Yes. Otherwise the focused search textarea forwards
-      // Enter into handleSubmit and we'd copy the pending edits while
-      // the prompt is still asking whether to keep them.
-      if (isPendingDismiss()) return;
+      // Discard prompt up: Enter chooses "No" so the common accidental
+      // Enter path keeps edits and returns to the panel instead of copying.
+      if (isPendingDismiss()) {
+        hidePendingDismissPrompt();
+        return;
+      }
       // Colour rows: first Enter opens the native picker; subsequent
       // Enters submit like every other kind.
       const property = activeProperty();
@@ -399,8 +412,10 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     // the user was actually picking a Hiragana/Hangul candidate.
     if (event.isComposing || event.keyCode === IME_COMPOSING_KEY_CODE) return;
     // Discard-prompt keyboard routing:
-    //   • Tab / Enter on a focused discard button pass through so
-    //     native button focus movement + activation work.
+    //   • Tab on a focused discard button passes through so native focus
+    //     movement works.
+    //   • Enter chooses "No" from anywhere, including a focused discard
+    //     button.
     //   • Arrow / Tab list-navigation + value-step handlers are
     //     blocked entirely while the prompt is up — changing a tweak
     //     mid-prompt is incoherent with "do you want to discard your
@@ -410,7 +425,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       const isOnDiscardButton =
         target instanceof HTMLElement &&
         target.closest("[data-react-grab-discard-button]") !== null;
-      if (isOnDiscardButton && (event.key === "Tab" || event.key === "Enter")) return;
+      if (isOnDiscardButton && event.key === "Tab") return;
       if (
         event.key === "Tab" ||
         event.key === "ArrowUp" ||
@@ -544,13 +559,22 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
           "--rg-edit-list-max-h": `${EDIT_PROPERTY_LIST_MAX_HEIGHT_PX}px`,
         }}
         onPointerDown={suppressMenuEvent}
+        onPointerEnter={() => {
+          isPointerInsidePanel = true;
+          clearTimeout(pendingDismissTimerId);
+          pendingDismissTimerId = undefined;
+        }}
+        onPointerLeave={() => {
+          isPointerInsidePanel = false;
+          schedulePendingDismissPromptIdle();
+        }}
         onMouseDown={suppressMenuEvent}
         onClick={suppressMenuEvent}
         onContextMenu={suppressMenuEvent}
       >
         <div
           ref={panelSurfaceRef}
-          class="contain-layout flex flex-col justify-center items-start rounded-[14px] overflow-hidden antialiased w-fit h-fit [font-synthesis:none] [corner-shape:superellipse(1.25)] bg-[var(--rg-panel-bg)]"
+          class="contain-layout flex flex-col justify-center items-start rounded-[14px] overflow-hidden antialiased w-fit h-fit [font-synthesis:none] [corner-shape:superellipse(1.25)] bg-[var(--rg-panel-bg)] [box-shadow:var(--rg-shadow)] backdrop-blur-[48px]"
           style={{
             "min-width": isCompact() ? undefined : `${EDIT_PANEL_MIN_WIDTH_PX}px`,
             "max-width": `${EDIT_PANEL_MAX_WIDTH_PX}px`,
@@ -605,7 +629,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
               role="alertdialog"
               aria-modal="true"
               aria-labelledby="rg-discard-prompt-title"
-              class="contain-layout shrink-0 flex items-center justify-between gap-2 pt-1.5 pb-1 px-2 w-full self-stretch"
+              class="contain-layout shrink-0 flex items-center justify-between gap-2 pt-1.5 pb-1 px-2 w-full self-stretch bg-[var(--rg-error-bg)] [box-shadow:var(--rg-danger-shadow)]"
             >
               <span
                 id="rg-discard-prompt-title"
@@ -633,7 +657,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                   data-react-grab-ignore-events
                   data-react-grab-discard-button="confirm"
                   type="button"
-                  class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[var(--rg-error-bg)] cursor-pointer transition-all hover:bg-[var(--rg-error-bg-hover)] press-scale h-[17px]"
+                  class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-black/15 cursor-pointer transition-all hover:bg-black/25 press-scale h-[17px]"
                   onClick={(event) => {
                     event.preventDefault();
                     event.stopPropagation();

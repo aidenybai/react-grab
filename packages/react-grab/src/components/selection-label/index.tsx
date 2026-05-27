@@ -11,7 +11,6 @@ import {
 import type { ArrowPosition, SelectionLabelProps } from "../../types.js";
 import {
   FADE_DURATION_MS,
-  PANEL_SHADOW,
   IME_COMPOSING_KEY_CODE,
   VIEWPORT_MARGIN_PX,
   ARROW_CENTER_PERCENT,
@@ -373,6 +372,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const shouldPersistDuringFade = () =>
     hadValidBounds() && (isCompletedStatus() || props.status === "error");
 
+  const arrowColor = () =>
+    isCompletedStatus() && !props.error ? "var(--rg-panel-bg)" : "var(--rg-label-bg)";
+
   return (
     <Show when={props.visible !== false && (props.selectionBounds || shouldPersistDuringFade())}>
       <div
@@ -388,7 +390,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           "pointer-events": shouldEnablePointerEvents() ? "auto" : "none",
           transition: `opacity ${FADE_DURATION_MS}ms ease-out, filter ${FADE_DURATION_MS}ms ease-out`,
           opacity: props.status === "fading" || isInternalFading() ? 0 : 1,
-          filter: `drop-shadow(${PANEL_SHADOW}) blur(${props.status === "fading" || isInternalFading() ? "3px" : "0"})`,
+          filter: `var(--rg-label-filter) blur(${props.status === "fading" || isInternalFading() ? "3px" : "0"})`,
         }}
         onPointerDown={handleContainerPointerDown}
         onClick={(event) => {
@@ -403,6 +405,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             leftPercent={positionComputation().position.arrowLeftPercent}
             leftOffsetPx={positionComputation().position.arrowLeftOffset}
             labelWidth={panelWidth()}
+            color={arrowColor()}
           />
         </Show>
 
@@ -422,7 +425,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             isSinglePanelLine()
               ? "rounded-full"
               : "rounded-[14px] [corner-shape:superellipse(1.25)]",
-            "bg-[var(--rg-panel-bg)]",
+            "bg-[var(--rg-label-bg)] backdrop-blur-[48px]",
             isShaking() && "animate-shake",
           )}
           style={{

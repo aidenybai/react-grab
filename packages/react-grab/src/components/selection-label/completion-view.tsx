@@ -105,7 +105,7 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
       aria-atomic="true"
       class={cn(
         "contain-layout shrink-0 flex flex-col justify-center items-end rounded-full antialiased w-fit h-fit max-w-[280px] transition-opacity duration-100 ease-out [font-synthesis:none]",
-        "bg-[var(--rg-panel-bg)]",
+        "bg-[var(--rg-panel-bg)] [box-shadow:var(--rg-shadow)] backdrop-blur-[48px]",
       )}
       style={{ opacity: isFading() ? 0 : 1 }}
       onPointerDown={handleFocus}
