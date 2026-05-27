@@ -75,7 +75,7 @@ export const HTML_TAGS = new Set([
   "tr",
   "u",
   "ul",
-  "video",
+  "video"
 ]);
 export function isDOMElementName(name) {
   return HTML_TAGS.has(name) || /^[a-z]/.test(name);
@@ -115,7 +115,5 @@ export function jsxHasProp(props, prop) {
   return false;
 }
 export function jsxGetProp(props, prop) {
-  return (props ?? []).find(
-    (attribute) => attribute?.type !== "JSXSpreadAttribute" && prop === jsxPropName(attribute),
-  );
+  return (props ?? []).find((attribute) => attribute?.type !== "JSXSpreadAttribute" && prop === jsxPropName(attribute));
 }

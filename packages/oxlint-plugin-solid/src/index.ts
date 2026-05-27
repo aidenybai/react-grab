@@ -25,7 +25,7 @@ const plugin = eslintCompatPlugin({
   rules: {
     "components-return-once": componentsReturnOnce,
     "event-handlers": eventHandlers,
-    imports: imports,
+    "imports": imports,
     "jsx-no-duplicate-props": jsxNoDuplicateProps,
     "jsx-no-script-url": jsxNoScriptUrl,
     "jsx-no-undef": jsxNoUndef,
@@ -40,7 +40,7 @@ const plugin = eslintCompatPlugin({
     "prefer-classlist": preferClasslist,
     "prefer-for": preferFor,
     "prefer-show": preferShow,
-    reactivity: reactivity,
+    "reactivity": reactivity,
     "self-closing-comp": selfClosingComp,
     "style-prop": styleProp,
   },

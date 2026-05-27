@@ -4,8 +4,10 @@ function isHtmlLike(str) {
   return /<[a-z][\s\S]*>/i.test(str.trim());
 }
 function getStringIfConstant(node) {
-  if (!node) return null;
-  if (node.type === "Literal" && typeof node.value === "string") return node.value;
+  if (!node)
+    return null;
+  if (node.type === "Literal" && typeof node.value === "string")
+    return node.value;
   if (node.type === "TemplateLiteral" && node.expressions.length === 0) {
     return node.quasis[0]?.value?.cooked ?? null;
   }
@@ -15,9 +17,8 @@ const ruleDefinition = {
   meta: {
     type: "problem",
     docs: {
-      description:
-        "Disallow usage of the innerHTML attribute, which can often lead to security vulnerabilities.",
-      recommended: "error",
+      description: "Disallow usage of the innerHTML attribute, which can often lead to security vulnerabilities.",
+      recommended: "error"
     },
     fixable: "code",
     hasSuggestions: true,
@@ -26,25 +27,21 @@ const ruleDefinition = {
         type: "object",
         properties: {
           allowStatic: {
-            description:
-              "if the innerHTML value is guaranteed to be a static HTML string (i.e. no user input), allow it",
+            description: "if the innerHTML value is guaranteed to be a static HTML string (i.e. no user input), allow it",
             type: "boolean",
-            default: true,
-          },
+            default: true
+          }
         },
-        additionalProperties: false,
-      },
+        additionalProperties: false
+      }
     ],
     messages: {
-      dangerous:
-        "The innerHTML attribute is dangerous; passing unsanitized input can lead to security vulnerabilities.",
-      conflict:
-        "The innerHTML attribute should not be used on an element with child elements; they will be overwritten.",
+      dangerous: "The innerHTML attribute is dangerous; passing unsanitized input can lead to security vulnerabilities.",
+      conflict: "The innerHTML attribute should not be used on an element with child elements; they will be overwritten.",
       notHtml: "The string passed to innerHTML does not appear to be valid HTML.",
       useInnerText: "For text content, using innerText is clearer and safer.",
-      dangerouslySetInnerHTML:
-        "The dangerouslySetInnerHTML prop is not supported; use innerHTML instead.",
-    },
+      dangerouslySetInnerHTML: "The dangerouslySetInnerHTML prop is not supported; use innerHTML instead."
+    }
   },
   defaultOptions: [{ allowStatic: true }],
   createOnce(context) {
@@ -52,17 +49,9 @@ const ruleDefinition = {
       JSXAttribute(node) {
         const allowStatic = Boolean(context.options?.[0]?.allowStatic ?? true);
         if (jsxPropName(node) === "dangerouslySetInnerHTML") {
-          if (
-            node.value?.type === "JSXExpressionContainer" &&
-            node.value.expression.type === "ObjectExpression" &&
-            node.value.expression.properties.length === 1
-          ) {
+          if (node.value?.type === "JSXExpressionContainer" && node.value.expression.type === "ObjectExpression" && node.value.expression.properties.length === 1) {
             const htmlProp = node.value.expression.properties[0];
-            if (
-              htmlProp.type === "Property" &&
-              htmlProp.key.type === "Identifier" &&
-              htmlProp.key.name === "__html"
-            ) {
+            if (htmlProp.type === "Property" && htmlProp.key.type === "Identifier" && htmlProp.key.name === "__html") {
               context.report({
                 node,
                 messageId: "dangerouslySetInnerHTML",
@@ -71,9 +60,9 @@ const ruleDefinition = {
                   const valueRange = htmlProp.value.range;
                   return [
                     fixer.replaceTextRange([propRange[0], valueRange[0]], "innerHTML={"),
-                    fixer.replaceTextRange([valueRange[1], propRange[1]], "}"),
+                    fixer.replaceTextRange([valueRange[1], propRange[1]], "}")
                   ];
-                },
+                }
               });
             } else {
               context.report({ node, messageId: "dangerouslySetInnerHTML" });
@@ -86,18 +75,14 @@ const ruleDefinition = {
           return;
         }
         if (allowStatic) {
-          const innerHtmlNode =
-            node.value?.type === "JSXExpressionContainer" ? node.value.expression : node.value;
+          const innerHtmlNode = node.value?.type === "JSXExpressionContainer" ? node.value.expression : node.value;
           const innerHtml = innerHtmlNode && getStringIfConstant(innerHtmlNode);
           if (typeof innerHtml === "string") {
             if (isHtmlLike(innerHtml)) {
-              if (
-                node.parent?.parent?.type === "JSXElement" &&
-                node.parent.parent.children?.length
-              ) {
+              if (node.parent?.parent?.type === "JSXElement" && node.parent.parent.children?.length) {
                 context.report({
                   node: node.parent.parent,
-                  messageId: "conflict",
+                  messageId: "conflict"
                 });
               }
             } else {
@@ -107,9 +92,9 @@ const ruleDefinition = {
                 suggest: [
                   {
                     fix: (fixer) => fixer.replaceText(node.name, "innerText"),
-                    messageId: "useInnerText",
-                  },
-                ],
+                    messageId: "useInnerText"
+                  }
+                ]
               });
             }
           } else {
@@ -118,9 +103,9 @@ const ruleDefinition = {
         } else {
           context.report({ node, messageId: "dangerous" });
         }
-      },
+      }
     };
-  },
+  }
 };
 
 export default ruleDefinition;

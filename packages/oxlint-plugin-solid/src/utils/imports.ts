@@ -1,5 +1,5 @@
 export function trackImports(fromModule = /^solid-js(?:\/?|\b)/) {
-  const importMap = new Map();
+  const importMap = new Map;
   return {
     handleImportDeclaration(node) {
       if (node?.type !== "ImportDeclaration" || typeof node.source?.value !== "string") {
@@ -9,11 +9,7 @@ export function trackImports(fromModule = /^solid-js(?:\/?|\b)/) {
         return;
       }
       for (const specifier of node.specifiers ?? []) {
-        if (
-          specifier?.type === "ImportSpecifier" &&
-          specifier.imported?.type === "Identifier" &&
-          specifier.local?.type === "Identifier"
-        ) {
+        if (specifier?.type === "ImportSpecifier" && specifier.imported?.type === "Identifier" && specifier.local?.type === "Identifier") {
           importMap.set(specifier.imported.name, specifier.local.name);
         }
       }
@@ -24,6 +20,6 @@ export function trackImports(fromModule = /^solid-js(?:\/?|\b)/) {
     },
     clear() {
       importMap.clear();
-    },
+    }
   };
 }

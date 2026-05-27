@@ -7,9 +7,8 @@ const ruleDefinition = {
   meta: {
     type: "problem",
     docs: {
-      description:
-        "Enforce using only Solid-specific namespaced attribute names (i.e. `'on:'` in `<div on:click={...} />`).",
-      recommended: "error",
+      description: "Enforce using only Solid-specific namespaced attribute names (i.e. `'on:'` in `<div on:click={...} />`).",
+      recommended: "error"
     },
     hasSuggestions: true,
     schema: [
@@ -22,19 +21,18 @@ const ruleDefinition = {
             items: { type: "string" },
             default: [],
             minItems: 1,
-            uniqueItems: true,
-          },
+            uniqueItems: true
+          }
         },
-        additionalProperties: false,
-      },
+        additionalProperties: false
+      }
     ],
     messages: {
       unknown: `'{{namespace}}:' is not one of Solid's special prefixes for JSX attributes (${knownNamespaces.map((n) => `'${n}:'`).join(", ")}).`,
-      style:
-        "Using the '{{namespace}}:' special prefix is potentially confusing, prefer the '{{namespace}}' prop instead.",
+      style: "Using the '{{namespace}}:' special prefix is potentially confusing, prefer the '{{namespace}}' prop instead.",
       component: "Namespaced props have no effect on components.",
-      "component-suggest": "Replace {{namespace}}:{{name}} with {{name}}.",
-    },
+      "component-suggest": "Replace {{namespace}}:{{name}} with {{name}}."
+    }
   },
   defaultOptions: [],
   createOnce(context) {
@@ -42,10 +40,7 @@ const ruleDefinition = {
       "JSXAttribute > JSXNamespacedName"(node) {
         const explicitlyAllowedNamespaces = context.options?.[0]?.allowedNamespaces;
         const openingElement = node.parent?.parent;
-        if (
-          openingElement?.name?.type === "JSXIdentifier" &&
-          !isDOMElementName(openingElement.name.name)
-        ) {
+        if (openingElement?.name?.type === "JSXIdentifier" && !isDOMElementName(openingElement.name.name)) {
           context.report({
             node,
             messageId: "component",
@@ -53,37 +48,31 @@ const ruleDefinition = {
               {
                 messageId: "component-suggest",
                 data: { namespace: node.namespace.name, name: node.name.name },
-                fix: (fixer) => fixer.replaceText(node, node.name.name),
-              },
-            ],
+                fix: (fixer) => fixer.replaceText(node, node.name.name)
+              }
+            ]
           });
           return;
         }
         const namespace = node.namespace?.name;
-        if (
-          !(
-            knownNamespaces.includes(namespace) ||
-            otherNamespaces.includes(namespace) ||
-            explicitlyAllowedNamespaces?.includes(namespace)
-          )
-        ) {
+        if (!(knownNamespaces.includes(namespace) || otherNamespaces.includes(namespace) || explicitlyAllowedNamespaces?.includes(namespace))) {
           if (styleNamespaces.includes(namespace)) {
             context.report({
               node,
               messageId: "style",
-              data: { namespace },
+              data: { namespace }
             });
           } else {
             context.report({
               node,
               messageId: "unknown",
-              data: { namespace },
+              data: { namespace }
             });
           }
         }
-      },
+      }
     };
-  },
+  }
 };
 
 export default ruleDefinition;

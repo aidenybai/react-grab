@@ -1,32 +1,23 @@
 import { isDOMElementName } from "../utils/jsx.js";
 
-const voidDOMElementRegex =
-  /^(?:area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)$/;
+const voidDOMElementRegex = /^(?:area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)$/;
 function isComponent(node) {
-  return (
-    (node.name?.type === "JSXIdentifier" && !isDOMElementName(node.name.name)) ||
-    node.name?.type === "JSXMemberExpression"
-  );
+  return node.name?.type === "JSXIdentifier" && !isDOMElementName(node.name.name) || node.name?.type === "JSXMemberExpression";
 }
 function childrenIsEmpty(node) {
   return (node.parent?.children?.length ?? 0) === 0;
 }
 function childrenIsMultilineSpaces(node) {
   const children = node.parent?.children ?? [];
-  return (
-    children.length === 1 &&
-    children[0].type === "JSXText" &&
-    children[0].value.indexOf(`
-`) !== -1 &&
-    children[0].value.replace(/(?!\xA0)\s/g, "") === ""
-  );
+  return children.length === 1 && children[0].type === "JSXText" && children[0].value.indexOf(`
+`) !== -1 && children[0].value.replace(/(?!\xA0)\s/g, "") === "";
 }
 const ruleDefinition = {
   meta: {
     type: "layout",
     docs: {
       description: "Disallow extra closing tags for components without children.",
-      recommended: "error",
+      recommended: "error"
     },
     fixable: "code",
     schema: [
@@ -37,22 +28,22 @@ const ruleDefinition = {
             type: "string",
             description: "which Solid components should be self-closing when possible",
             enum: ["all", "none"],
-            default: "all",
+            default: "all"
           },
           html: {
             type: "string",
             description: "which native elements should be self-closing when possible",
             enum: ["all", "void", "none"],
-            default: "all",
-          },
+            default: "all"
+          }
         },
-        additionalProperties: false,
-      },
+        additionalProperties: false
+      }
     ],
     messages: {
       selfClose: "Empty components are self-closing.",
-      dontSelfClose: "This element should not be self-closing.",
-    },
+      dontSelfClose: "This element should not be self-closing."
+    }
   },
   defaultOptions: [],
   createOnce(context) {
@@ -84,9 +75,10 @@ const ruleDefinition = {
               fix(fixer) {
                 const openingElementEnding = node.range[1] - 1;
                 const closingElementEnding = node.parent?.closingElement?.range?.[1];
-                if (closingElementEnding == null) return null;
+                if (closingElementEnding == null)
+                  return null;
                 return fixer.replaceTextRange([openingElementEnding, closingElementEnding], " />");
-              },
+              }
             });
           } else if (!shouldSelfClose && node.selfClosing) {
             context.report({
@@ -97,22 +89,19 @@ const ruleDefinition = {
                 const tagName = sourceCode.getText(node.name);
                 const selfCloseEnding = node.range[1];
                 const lastTokens = sourceCode.getLastTokens(node, { count: 3 });
-                const isSpaceBeforeSelfClose = sourceCode.isSpaceBetween?.(
-                  lastTokens[0],
-                  lastTokens[1],
-                );
+                const isSpaceBeforeSelfClose = sourceCode.isSpaceBetween?.(lastTokens[0], lastTokens[1]);
                 const range = [
                   isSpaceBeforeSelfClose ? selfCloseEnding - 3 : selfCloseEnding - 2,
-                  selfCloseEnding,
+                  selfCloseEnding
                 ];
                 return fixer.replaceTextRange(range, `></${tagName}>`);
-              },
+              }
             });
           }
         }
-      },
+      }
     };
-  },
+  }
 };
 
 export default ruleDefinition;

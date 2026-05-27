@@ -7,30 +7,38 @@ function parseStyleString(str) {
   const result = {};
   for (const decl of str.split(";")) {
     const trimmed = decl.trim();
-    if (!trimmed) continue;
+    if (!trimmed)
+      continue;
     const i = trimmed.indexOf(":");
-    if (i === -1) return;
+    if (i === -1)
+      return;
     const prop = trimmed.slice(0, i).trim();
     const value = trimmed.slice(i + 1).trim();
-    if (!prop) return;
+    if (!prop)
+      return;
     result[prop] = value;
   }
   return result;
 }
 function getPropertyName(node, scope) {
   if (!node.computed) {
-    if (node.key?.type === "Identifier") return node.key.name;
-    if (node.key?.type === "Literal" && typeof node.key.value === "string") return node.key.value;
+    if (node.key?.type === "Identifier")
+      return node.key.name;
+    if (node.key?.type === "Literal" && typeof node.key.value === "string")
+      return node.key.value;
   }
   if (node.computed && node.key) {
     const val = getStaticValue(node.key, scope);
-    if (val && typeof val.value === "string") return val.value;
+    if (val && typeof val.value === "string")
+      return val.value;
   }
   return null;
 }
 function getStaticValue(node, _scope) {
-  if (!node) return null;
-  if (node.type === "Literal") return { value: node.value };
+  if (!node)
+    return null;
+  if (node.type === "Literal")
+    return { value: node.value };
   if (node.type === "TemplateLiteral" && node.expressions.length === 0) {
     return { value: node.quasis[0]?.value?.cooked ?? null };
   }
@@ -424,7 +432,7 @@ function buildCssPropertyList() {
     "dominant-baseline",
     "text-anchor",
     "block-size",
-    "inline-size",
+    "inline-size"
   ];
   return props;
 }
@@ -433,10 +441,8 @@ const ruleDefinition = {
   meta: {
     type: "problem",
     docs: {
-      description:
-        "Require CSS properties in the `style` prop to be valid and kebab-cased (ex. 'font-size'), not camel-cased (ex. 'fontSize') like in React, " +
-        "and that property values with dimensions are strings, not numbers with implicit 'px' units.",
-      url: "https://github.com/solidjs-community/eslint-plugin-solid/blob/main/packages/eslint-plugin-solid/docs/style-prop.md",
+      description: "Require CSS properties in the `style` prop to be valid and kebab-cased (ex. 'font-size'), not camel-cased (ex. 'fontSize') like in React, " + "and that property values with dimensions are strings, not numbers with implicit 'px' units.",
+      url: "https://github.com/solidjs-community/eslint-plugin-solid/blob/main/packages/eslint-plugin-solid/docs/style-prop.md"
     },
     fixable: "code",
     schema: [
@@ -449,25 +455,23 @@ const ruleDefinition = {
             type: "array",
             items: { type: "string" },
             minItems: 1,
-            uniqueItems: true,
+            uniqueItems: true
           },
           allowString: {
-            description:
-              "if allowString is set to true, this rule will not convert a style string literal into a style object (not recommended for performance)",
+            description: "if allowString is set to true, this rule will not convert a style string literal into a style object (not recommended for performance)",
             type: "boolean",
-            default: false,
-          },
+            default: false
+          }
         },
-        additionalProperties: false,
-      },
+        additionalProperties: false
+      }
     ],
     messages: {
       kebabStyleProp: "Use {{ kebabName }} instead of {{ name }}.",
       invalidStyleProp: "{{ name }} is not a valid CSS property.",
-      numericStyleValue:
-        'This CSS property value should be a string with a unit; Solid does not automatically append a "px" unit.',
-      stringStyle: "Use an object for the style prop instead of a string.",
-    },
+      numericStyleValue: 'This CSS property value should be a string with a unit; Solid does not automatically append a "px" unit.',
+      stringStyle: "Use an object for the style prop instead of a string."
+    }
   },
   defaultOptions: [],
   createOnce(context) {
@@ -475,9 +479,9 @@ const ruleDefinition = {
       JSXAttribute(node) {
         const allowString = Boolean(context.options?.[0]?.allowString);
         const styleProps = context.options?.[0]?.styleProps || ["style"];
-        if (styleProps.indexOf(jsxPropName(node)) === -1) return;
-        const style =
-          node.value?.type === "JSXExpressionContainer" ? node.value.expression : node.value;
+        if (styleProps.indexOf(jsxPropName(node)) === -1)
+          return;
+        const style = node.value?.type === "JSXExpressionContainer" ? node.value.expression : node.value;
         if (!style) {
           return;
         } else if (style.type === "Literal" && typeof style.value === "string" && !allowString) {
@@ -488,9 +492,7 @@ const ruleDefinition = {
           context.report({
             node: style,
             messageId: "stringStyle",
-            fix:
-              objectStyles &&
-              ((fixer) => fixer.replaceText(node.value, `{${JSON.stringify(objectStyles)}}`)),
+            fix: objectStyles && ((fixer) => fixer.replaceText(node.value, `{${JSON.stringify(objectStyles)}}`))
           });
         } else if (style.type === "TemplateLiteral" && !allowString) {
           context.report({ node: style, messageId: "stringStyle" });
@@ -506,16 +508,16 @@ const ruleDefinition = {
                   node: prop.key,
                   messageId: "kebabStyleProp",
                   data: { name, kebabName },
-                  fix: (fixer) => fixer.replaceText(prop.key, `"${kebabName}"`),
+                  fix: (fixer) => fixer.replaceText(prop.key, `"${kebabName}"`)
                 });
               } else {
                 context.report({
                   node: prop.key,
                   messageId: "invalidStyleProp",
-                  data: { name },
+                  data: { name }
                 });
               }
-            } else if (!name || (!name.startsWith("--") && lengthPercentageRegex.test(name))) {
+            } else if (!name || !name.startsWith("--") && lengthPercentageRegex.test(name)) {
               const value = getStaticValue(prop.value)?.value;
               if (typeof value === "number" && value !== 0) {
                 context.report({ node: prop.value, messageId: "numericStyleValue" });
@@ -523,9 +525,9 @@ const ruleDefinition = {
             }
           }
         }
-      },
+      }
     };
-  },
+  }
 };
 
 export default ruleDefinition;

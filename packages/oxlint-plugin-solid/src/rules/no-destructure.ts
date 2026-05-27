@@ -20,7 +20,7 @@ const getPropertyInfo = (prop) => {
       real: prop.key,
       var: valueName,
       computed: prop.computed,
-      init: prop.value.type === "AssignmentPattern" ? prop.value.right : undefined,
+      init: prop.value.type === "AssignmentPattern" ? prop.value.right : undefined
     };
   }
   return null;
@@ -29,16 +29,14 @@ const ruleDefinition = {
   meta: {
     type: "problem",
     docs: {
-      description:
-        "Disallow destructuring props. In Solid, props must be used with property accesses (`props.foo`) to preserve reactivity. This rule only tracks destructuring in the parameter list.",
-      url: "https://github.com/solidjs-community/eslint-plugin-solid/blob/main/packages/eslint-plugin-solid/docs/no-destructure.md",
+      description: "Disallow destructuring props. In Solid, props must be used with property accesses (`props.foo`) to preserve reactivity. This rule only tracks destructuring in the parameter list.",
+      url: "https://github.com/solidjs-community/eslint-plugin-solid/blob/main/packages/eslint-plugin-solid/docs/no-destructure.md"
     },
     fixable: "code",
     schema: [],
     messages: {
-      noDestructure:
-        "Destructuring component props breaks Solid's reactivity; use property access instead.",
-    },
+      noDestructure: "Destructuring component props breaks Solid's reactivity; use property access instead."
+    }
   },
   defaultOptions: [],
   createOnce(context) {
@@ -50,15 +48,11 @@ const ruleDefinition = {
     const onFunctionExit = (node) => {
       if (node.params.length === 1) {
         const props = node.params[0];
-        if (
-          props.type === "ObjectPattern" &&
-          currentFunction().hasJSX &&
-          node.parent?.type !== "JSXExpressionContainer"
-        ) {
+        if (props.type === "ObjectPattern" && currentFunction().hasJSX && node.parent?.type !== "JSXExpressionContainer") {
           context.report({
             node: props,
             messageId: "noDestructure",
-            fix: (fixer) => fixDestructure(node, props, fixer),
+            fix: (fixer) => fixDestructure(node, props, fixer)
           });
         }
       }
@@ -74,7 +68,8 @@ const ruleDefinition = {
           rest = property;
         } else {
           const info = getPropertyInfo(property);
-          if (info === null) continue;
+          if (info === null)
+            continue;
           propertyInfo.push(info);
         }
       }
@@ -87,24 +82,16 @@ const ruleDefinition = {
         yield fixer.replaceText(props, origProps);
       }
       const sourceCode = context.sourceCode;
-      const defaultsObjectString = () =>
-        propertyInfo
-          .filter((info) => info.init)
-          .map(
-            (info) =>
-              `${info.computed ? "[" : ""}${sourceCode.getText(info.real)}${info.computed ? "]" : ""}: ${sourceCode.getText(info.init)}`,
-          )
-          .join(", ");
-      const splitPropsArray = () =>
-        `[${propertyInfo.map((info) => (info.real.type === "Identifier" ? JSON.stringify(info.real.name) : sourceCode.getText(info.real))).join(", ")}]`;
+      const defaultsObjectString = () => propertyInfo.filter((info) => info.init).map((info) => `${info.computed ? "[" : ""}${sourceCode.getText(info.real)}${info.computed ? "]" : ""}: ${sourceCode.getText(info.init)}`).join(", ");
+      const splitPropsArray = () => `[${propertyInfo.map((info) => info.real.type === "Identifier" ? JSON.stringify(info.real.name) : sourceCode.getText(info.real)).join(", ")}]`;
       let lineToInsert = "";
       if (hasDefaults && rest) {
-        lineToInsert = `  const [${propsName}, ${(rest.argument.type === "Identifier" && rest.argument.name) || "rest"}] = splitProps(mergeProps({ ${defaultsObjectString()} }, ${origProps}), ${splitPropsArray()});`;
+        lineToInsert = `  const [${propsName}, ${rest.argument.type === "Identifier" && rest.argument.name || "rest"}] = splitProps(mergeProps({ ${defaultsObjectString()} }, ${origProps}), ${splitPropsArray()});`;
       } else if (hasDefaults) {
         lineToInsert = `  const ${propsName} = mergeProps({ ${defaultsObjectString()} }, ${origProps});
 `;
       } else if (rest) {
-        lineToInsert = `  const [${propsName}, ${(rest.argument.type === "Identifier" && rest.argument.name) || "rest"}] = splitProps(${origProps}, ${splitPropsArray()});
+        lineToInsert = `  const [${propsName}, ${rest.argument.type === "Identifier" && rest.argument.name || "rest"}] = splitProps(${origProps}, ${splitPropsArray()});
 `;
       }
       if (lineToInsert) {
@@ -122,31 +109,19 @@ const ruleDefinition = {
           if (maybeCloseParen?.value === ")") {
             yield fixer.remove(maybeCloseParen);
           }
-          yield fixer.insertTextBefore(
-            body,
-            `{
-${lineToInsert}  return (`,
-          );
-          yield fixer.insertTextAfter(
-            body,
-            `);
-}`,
-          );
+          yield fixer.insertTextBefore(body, `{
+${lineToInsert}  return (`);
+          yield fixer.insertTextAfter(body, `);
+}`);
         }
       }
       const scope = sourceCode.scopeManager?.acquire(func);
       if (scope) {
-        for (const [info, variable] of propertyInfo.map((info2) => [
-          info2,
-          scope.set.get(info2.var),
-        ])) {
+        for (const [info, variable] of propertyInfo.map((info2) => [info2, scope.set.get(info2.var)])) {
           if (variable) {
             for (const reference of variable.references) {
               if (reference.isReadOnly()) {
-                const access =
-                  info.real.type === "Identifier" && !info.computed
-                    ? `.${info.real.name}`
-                    : `[${sourceCode.getText(info.real)}]`;
+                const access = info.real.type === "Identifier" && !info.computed ? `.${info.real.name}` : `[${sourceCode.getText(info.real)}]`;
                 yield fixer.replaceText(reference.identifier, `${propsName}${access}`);
               }
             }
@@ -170,9 +145,9 @@ ${lineToInsert}  return (`,
         if (functionStack.length) {
           currentFunction().hasJSX = true;
         }
-      },
+      }
     };
-  },
+  }
 };
 
 export default ruleDefinition;

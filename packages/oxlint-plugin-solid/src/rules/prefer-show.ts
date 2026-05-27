@@ -5,17 +5,15 @@ const ruleDefinition = {
   meta: {
     type: "problem",
     docs: {
-      description:
-        "Enforce using Solid's `<Show />` component for conditionally showing content. Solid's compiler covers this case, so it's a stylistic rule only.",
-      recommended: "warn",
+      description: "Enforce using Solid's `<Show />` component for conditionally showing content. Solid's compiler covers this case, so it's a stylistic rule only.",
+      recommended: "warn"
     },
     fixable: "code",
     schema: [],
     messages: {
       preferShowAnd: "Use Solid's `<Show />` component for conditionally showing content.",
-      preferShowTernary:
-        "Use Solid's `<Show />` component for conditionally showing content with a fallback.",
-    },
+      preferShowTernary: "Use Solid's `<Show />` component for conditionally showing content with a fallback."
+    }
   },
   defaultOptions: [],
   createOnce(context) {
@@ -28,33 +26,16 @@ const ruleDefinition = {
         context.report({
           node,
           messageId: "preferShowAnd",
-          fix: (fixer) =>
-            fixer.replaceText(
-              node.parent?.type === "JSXExpressionContainer" &&
-                isJSXElementOrFragment(node.parent.parent)
-                ? node.parent
-                : node,
-              `<Show when={${context.sourceCode.getText(node.left)}}>${putIntoJSX(node.right)}</Show>`,
-            ),
+          fix: (fixer) => fixer.replaceText(node.parent?.type === "JSXExpressionContainer" && isJSXElementOrFragment(node.parent.parent) ? node.parent : node, `<Show when={${context.sourceCode.getText(node.left)}}>${putIntoJSX(node.right)}</Show>`)
         });
       }
     };
     const conditionalExpressionHandler = (node) => {
-      if (
-        EXPENSIVE_TYPES.includes(node.consequent?.type) ||
-        EXPENSIVE_TYPES.includes(node.alternate?.type)
-      ) {
+      if (EXPENSIVE_TYPES.includes(node.consequent?.type) || EXPENSIVE_TYPES.includes(node.alternate?.type)) {
         context.report({
           node,
           messageId: "preferShowTernary",
-          fix: (fixer) =>
-            fixer.replaceText(
-              node.parent?.type === "JSXExpressionContainer" &&
-                isJSXElementOrFragment(node.parent.parent)
-                ? node.parent
-                : node,
-              `<Show when={${context.sourceCode.getText(node.test)}} fallback={${context.sourceCode.getText(node.alternate)}}>${putIntoJSX(node.consequent)}</Show>`,
-            ),
+          fix: (fixer) => fixer.replaceText(node.parent?.type === "JSXExpressionContainer" && isJSXElementOrFragment(node.parent.parent) ? node.parent : node, `<Show when={${context.sourceCode.getText(node.test)}} fallback={${context.sourceCode.getText(node.alternate)}}>${putIntoJSX(node.consequent)}</Show>`)
         });
       }
     };
@@ -65,22 +46,16 @@ const ruleDefinition = {
         }
         if (node.expression?.type === "LogicalExpression") {
           logicalExpressionHandler(node.expression);
-        } else if (
-          node.expression?.type === "ArrowFunctionExpression" &&
-          node.expression.body?.type === "LogicalExpression"
-        ) {
+        } else if (node.expression?.type === "ArrowFunctionExpression" && node.expression.body?.type === "LogicalExpression") {
           logicalExpressionHandler(node.expression.body);
         } else if (node.expression?.type === "ConditionalExpression") {
           conditionalExpressionHandler(node.expression);
-        } else if (
-          node.expression?.type === "ArrowFunctionExpression" &&
-          node.expression.body?.type === "ConditionalExpression"
-        ) {
+        } else if (node.expression?.type === "ArrowFunctionExpression" && node.expression.body?.type === "ConditionalExpression") {
           conditionalExpressionHandler(node.expression.body);
         }
-      },
+      }
     };
-  },
+  }
 };
 
 export default ruleDefinition;

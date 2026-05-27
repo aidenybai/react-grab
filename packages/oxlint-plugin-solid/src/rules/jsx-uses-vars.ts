@@ -3,10 +3,10 @@ const ruleDefinition = {
     type: "problem",
     docs: {
       description: "Prevent variables used in JSX from being marked as unused.",
-      recommended: "error",
+      recommended: "error"
     },
     schema: [],
-    messages: {},
+    messages: {}
   },
   defaultOptions: [],
   createOnce(context) {
@@ -34,16 +34,12 @@ const ruleDefinition = {
         }
       },
       "JSXAttribute > JSXNamespacedName"(node) {
-        if (
-          node.namespace?.type === "JSXIdentifier" &&
-          node.namespace.name === "use" &&
-          node.name?.type === "JSXIdentifier"
-        ) {
+        if (node.namespace?.type === "JSXIdentifier" && node.namespace.name === "use" && node.name?.type === "JSXIdentifier") {
           markUsed(node.name.name, node.name);
         }
-      },
+      }
     };
-  },
+  }
 };
 
 export default ruleDefinition;

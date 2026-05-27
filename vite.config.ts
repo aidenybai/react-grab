@@ -91,6 +91,13 @@ export default defineConfig({
   fmt: {
     semi: true,
     singleQuote: false,
-    ignorePatterns: [".next", "node_modules", "dist", "build", "pnpm-lock.yaml"],
+    ignorePatterns: [
+      ".next",
+      "node_modules",
+      "dist",
+      "build",
+      "pnpm-lock.yaml",
+      "packages/oxlint-plugin-solid/src",
+    ],
   },
 });

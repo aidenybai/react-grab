@@ -362,8 +362,8 @@ importers:
   packages/oxlint-plugin-solid:
     dependencies:
       '@oxlint/plugins':
-        specifier: ^1.61.0
-        version: 1.67.0
+        specifier: 1.61.0
+        version: 1.61.0
     devDependencies:
       '@types/node':
         specifier: ^25.6.2
@@ -2240,8 +2240,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@oxlint/plugins@1.67.0':
-    resolution: {integrity: sha512-L5oSCA3Ehr2BvRCHy9e64InPnkfjeopwsP4VsxfZwcvZA9c7wRp48RXVt2q3OA8Z/uM6RFbE/VIB2ZYTA31guA==}
+  '@oxlint/plugins@1.61.0':
+    resolution: {integrity: sha512-nkOyZEF1vH527CkdQtOp1HMrVFEM4ResURvI2JFeGoup+h+43J/k/FgdOR9b9Isxg+Yae7qVDa7y3nssE8b3TQ==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
 
   '@parcel/watcher-android-arm64@2.5.6':
@@ -9615,7 +9615,7 @@ snapshots:
   '@oxlint/binding-win32-x64-msvc@1.61.0':
     optional: true
 
-  '@oxlint/plugins@1.67.0': {}
+  '@oxlint/plugins@1.61.0': {}
 
   '@parcel/watcher-android-arm64@2.5.6':
     optional: true
