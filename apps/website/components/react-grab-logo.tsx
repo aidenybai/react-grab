@@ -21,11 +21,11 @@ export const ReactGrabLogo = ({
   const speedMultiplier = 1 + clickCount * SPEED_INCREMENT;
   const animationDuration = Math.round(BASE_ANIMATION_DURATION_MS / speedMultiplier);
 
-  const handleClick = () => {
+  const accelerateArrowSpin = () => {
     setClickCount((previousCount) => previousCount + 1);
   };
 
-  const handleMouseLeave = () => {
+  const resetArrowSpeed = () => {
     setClickCount(0);
   };
 
@@ -37,8 +37,8 @@ export const ReactGrabLogo = ({
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={`react-grab-logo ${className}`}
-      onClick={handleClick}
-      onMouseLeave={handleMouseLeave}
+      onClick={accelerateArrowSpin}
+      onMouseLeave={resetArrowSpeed}
       style={{
         display: "inline-block",
         verticalAlign: "middle",

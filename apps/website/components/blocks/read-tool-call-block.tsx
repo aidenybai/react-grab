@@ -24,7 +24,7 @@ export const ReadToolCallBlock = ({
     };
   }, []);
 
-  const handleClick = () => {
+  const flashClickedFeedback = () => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
@@ -36,7 +36,7 @@ export const ReadToolCallBlock = ({
     <div className="flex flex-wrap gap-1 text-[#818181]">
       <span className={isStreaming ? "shimmer-text" : ""}>{displayName}</span>
       <button
-        onClick={handleClick}
+        onClick={flashClickedFeedback}
         className="max-w-full break-all text-left transition-colors duration-300"
         style={{
           color: isClicked ? "#ffffff" : "#5b5b5b",

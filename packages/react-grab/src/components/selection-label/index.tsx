@@ -326,7 +326,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     }
   };
 
-  const handleInput = (event: InputEvent) => {
+  const resizeAndForwardInput = (event: InputEvent) => {
     const inputTarget = event.target;
     if (!(inputTarget instanceof HTMLTextAreaElement)) {
       return;
@@ -518,7 +518,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                       "scrollbar-width": "none",
                     }}
                     value={props.inputValue ?? ""}
-                    onInput={handleInput}
+                    onInput={resizeAndForwardInput}
                     onKeyDown={handleKeyDown}
                     placeholder="Add context"
                     rows={1}

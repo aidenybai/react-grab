@@ -808,7 +808,7 @@ export default function Home() {
           <div className="space-y-4">
             {Array.from({ length: 20 }, (_, index) => (
               <div key={index} className="text-sm">
-                Item {index + 1} — Scroll to see more content below.
+                Item {index + 1}: Scroll to see more content below.
               </div>
             ))}
           </div>

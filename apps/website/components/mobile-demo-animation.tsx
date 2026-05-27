@@ -886,7 +886,7 @@ export const MobileDemoAnimation = (): ReactElement => {
                   >
                     {commentText || "Add context"}
                   </span>
-                  <div className="shrink-0 flex items-center justify-center size-4 rounded-full bg-black">
+                  <div className="shrink-0 flex items-center justify-center size-4 rounded-full bg-gray-950">
                     <SubmitIcon />
                   </div>
                 </div>
