@@ -1,4 +1,12 @@
-import { createEffect, createSignal, on, onCleanup, onMount, type Component } from "solid-js";
+import {
+  createEffect,
+  createSignal,
+  on,
+  onCleanup,
+  onMount,
+  untrack,
+  type Component,
+} from "solid-js";
 import type { Position } from "../../types.js";
 import { cn } from "../../utils/cn.js";
 import { loadToolbarState, saveToolbarState, type SnapEdge, type ToolbarState } from "./state.js";
@@ -198,7 +206,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     height: TOOLBAR_DEFAULT_HEIGHT_PX,
   };
   const [collapsedDimensions, setCollapsedDimensions] = createSignal(
-    getCollapsedDimsForEdge(snapEdge()),
+    untrack(() => getCollapsedDimsForEdge(snapEdge())),
   );
 
   const syncCollapsedDimensionsToEdge = (oldEdge: SnapEdge, newEdge: SnapEdge): void => {
@@ -407,6 +415,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     }
 
     if (props.onSubscribeToStateChanges) {
+      // oxlint-disable-next-line solid/reactivity -- imperative subscription callback; signals are read on-demand when state changes
       const unsubscribe = props.onSubscribeToStateChanges((state: ToolbarState) => {
         if (isCollapseAnimating()) return;
 
