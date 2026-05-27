@@ -13,11 +13,6 @@ interface CycleControlProps {
 
 const LABEL_CLASS = "text-[13px] leading-4 font-medium";
 
-// Click-to-cycle pill: shows the current value as a single chip; each
-// click advances to the next option (wrapping at the end). Two-option
-// properties behave like a boolean toggle; longer lists step through
-// in declared order. Right-click steps backwards so multi-option cycles
-// don't require clicking through the whole ring.
 export const CycleControl: Component<CycleControlProps> = (props) => {
   const currentLabel = () => {
     const match = props.options.find((option) => option.value === props.value);
@@ -36,11 +31,6 @@ export const CycleControl: Component<CycleControlProps> = (props) => {
           {props.label}
         </span>
       ) : null}
-      {/* Cycle pad: chunky left/right arrows flanking the current value
-          (mirrors the numeric slider's stepper layout). Click an arrow
-          to step in that direction; click the value text itself to
-          advance (cycles forward); right-click the value to step back.
-          Keyboard ←/→ on the panel mirrors the arrows. */}
       <div class="ml-auto shrink-0 flex items-center gap-1">
         <StepArrow
           direction="left"

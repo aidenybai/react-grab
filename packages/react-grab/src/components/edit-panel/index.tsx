@@ -39,20 +39,10 @@ interface EditPanelProps {
   position: DropdownAnchor | null;
   onDismiss: () => void;
   onSubmit: (prompt: string) => void;
-  // Wired from `editMode.registerForceDiscard` — the panel calls this
-  // on mount with a closure that reverts in-progress preview styles,
-  // and nulls it on unmount. `reset()` (deactivate path) invokes the
-  // current closure before clearing state.
   registerForceDiscard?: (discard: (() => void) | null) => void;
   onInteractingChange?: (interacting: boolean) => void;
 }
 
-// Key on `state.element` identity — NOT on the state object itself.
-// `editMode.trigger`'s async `getNearestComponentName(element).then(...)`
-// produces a fresh state object via `{ ...current, componentName }`.
-// Keying on the object would tear down the panel body mid-edit and
-// lose in-flight tweaks + preview baseline. The body still rebuilds
-// when the user opens the panel against a different element.
 export const EditPanel: Component<EditPanelProps> = (props) => (
   <Show when={props.state}>
     {(state) => (
@@ -93,16 +83,10 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   const [activeKey, setActiveKey] = createSignal<"left" | "right" | null>(null);
   const tweakStore = createTweakStore({ initialProperties, searchQuery });
   const hasPendingTweaks = createMemo(() => tweakStore.hasPendingTweaks());
-  // Compact mode shows just the value stepper. Driven by user actions
-  // (commit / step → compact; navigate / search → expanded), not derived
-  // from search content.
   const [isCompact, setIsCompact] = createSignal(false);
 
   let activeKeyTimerId: ReturnType<typeof setTimeout> | undefined;
   let interactingIdleTimerId: ReturnType<typeof setTimeout> | undefined;
-  // Transient pulse: composed via OR with hasPendingTweaks so the
-  // page-level overlay stays hidden for the whole edit session without
-  // this timer encoding latch logic.
   const [isTransientInteraction, setIsTransientInteraction] = createSignal(false);
   const isInteracting = createMemo(() => isTransientInteraction() || hasPendingTweaks());
 
@@ -134,10 +118,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     }, EDIT_PANEL_ACTIVE_KEY_FLASH_MS);
   };
 
-  // Single source: every write to interacting state goes through here
-  // (or the cleanup path). Avoids a createEffect-as-event-bus that
-  // would re-fire `(false)` during unmount on top of the explicit
-  // cleanup call.
   let lastBroadcastedInteracting: boolean | null = null;
   const broadcastInteracting = () => {
     const nextInteracting = isInteracting();
@@ -179,15 +159,9 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     flash?: 1 | -1;
     focus?: boolean;
     compact?: boolean;
-    // True when the commit was triggered by a held-key auto-repeat
-    // tick. Skips UI-state side-effects (clearing the discard prompt)
-    // that would otherwise fire 60×/sec while a key is held.
     fromRepeat?: boolean;
   }
 
-  // Canonical write path for every committed tweak. The store owns
-  // kind-tagged storage, preview owns inline styles, markAsInteracting
-  // owns the overlay-hide pulse. Options just gate optional side-effects.
   const commit = (
     property: EditableProperty,
     nextValue: number | string,
@@ -230,10 +204,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
 
   const stepController = createStepController({ step: stepFromKeyboard, isShiftHeld });
 
-  // Single commit path the ActivePropertyControl dispatches into. The
-  // child component already gates on kind via its <Switch>, so each
-  // caller passes the right value type (number for the slider; hex
-  // string for the picker; option string for the cycle control).
   const commitActive = (rawValue: number | string) => {
     const property = activeProperty();
     if (!property) return;
@@ -272,9 +242,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     setIsCompact,
   });
 
-  // Search textarea hides in compact mode when there's nothing in it
-  // to show — empty query, or pure-number streaming through to the
-  // active numeric row (Slot already mirrors the digits).
   const isSearchInputHidden = createMemo(
     () => isCompact() && (searchQuery() === "" || autoApply.isInlineNumericEdit()),
   );
@@ -289,8 +256,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     props.onSubmit(formatSessionEditsPrompt(pendingEdits.length > 0 ? [entry] : []));
   };
 
-  // Two-step dismiss when there are pending tweaks: first attempt
-  // shakes + shows the discard prompt; second Escape confirms "Yes".
   const [isPendingDismiss, setIsPendingDismiss] = createSignal(false);
   let panelSurfaceRef: HTMLDivElement | undefined;
   let pendingDismissTimerId: ReturnType<typeof setTimeout> | undefined;
@@ -303,9 +268,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     panelSurfaceRef.classList.add("animate-shake");
   };
 
-  // Two paths out: `preserve` keeps the inline-style preview on the
-  // element; `discard` reverts and is reachable through the explicit
-  // "Yes" confirm button or a second Escape while the prompt is visible.
   const closePanel = (mode: "preserve" | "discard") => {
     clearTimeout(pendingDismissTimerId);
     if (mode === "discard") preview.restore();
@@ -368,13 +330,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     ArrowRight: (event) => stepController.pressArrow("ArrowRight", event.repeat, event.shiftKey),
     Tab: (event) => navigateActive(event.shiftKey ? -1 : 1),
     Enter: () => {
-      // Discard prompt up: ignore Enter so the user has to explicitly
-      // pick No or Yes. Otherwise the focused search textarea forwards
-      // Enter into handleSubmit and we'd copy the pending edits while
-      // the prompt is still asking whether to keep them.
       if (isPendingDismiss()) return;
-      // Colour rows: first Enter opens the native picker; subsequent
-      // Enters submit like every other kind.
       const property = activeProperty();
       const isUntweakedColor = property?.kind === "color" && !tweakStore.hasTweakFor(property.key);
       if (isUntweakedColor && colorPickerTrigger) {
@@ -398,13 +354,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     // that tick. Check both to avoid submitting pending edits when
     // the user was actually picking a Hiragana/Hangul candidate.
     if (event.isComposing || event.keyCode === IME_COMPOSING_KEY_CODE) return;
-    // Discard-prompt keyboard routing:
-    //   • Tab / Enter on a focused discard button pass through so
-    //     native button focus movement + activation work.
-    //   • Arrow / Tab list-navigation + value-step handlers are
-    //     blocked entirely while the prompt is up — changing a tweak
-    //     mid-prompt is incoherent with "do you want to discard your
-    //     edits?".
     if (isPendingDismiss()) {
       const target = event.composedPath()[0];
       const isOnDiscardButton =
@@ -430,16 +379,9 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     handler(event);
   };
 
-  // activeIndex clamp is handled at the read boundary in
-  // `activeProperty()` (Math.min/Math.max) — every write path that can
-  // shrink the list (search input onInput) already resets to 0, so no
-  // repair effect is needed.
-
   onMount(() => {
     queueMicrotask(() => {
       searchInputRef?.focus({ preventScroll: true });
-      // Append-to-seed flow: next keystroke extends the query rather
-      // than overwriting it.
       if (searchInputRef) {
         const length = searchInputRef.value.length;
         searchInputRef.setSelectionRange(length, length);
@@ -449,10 +391,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     const seed = searchQuery();
     if (seed) autoApply.applyTailwindClass(seed);
 
-    // Force-discard hook: when the renderer deactivates mid-edit
-    // (toolbar toggled off, page navigation, etc.), `editMode.reset`
-    // calls this BEFORE clearing state — gives us a chance to revert
-    // in-progress preview styles instead of stranding them on the DOM.
     props.registerForceDiscard?.(() => preview.restore());
     onCleanup(() => props.registerForceDiscard?.(null));
 
@@ -468,8 +406,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
         );
       },
       shouldIgnoreRightClick: true,
-      // Inline editors (search textarea / click-to-type) own their own
-      // Escape; the panel still gets Escape via its window handler.
       shouldIgnoreInputEvents: true,
     });
 
@@ -502,12 +438,8 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       clearTimeout(interactingIdleTimerId);
       clearTimeout(pendingDismissTimerId);
       dropdown.clearAnimationHandles();
-      // Bridge stops firing on unmount — tell the parent the overlay
-      // can return. broadcastInteracting dedups, so this is safe even
-      // when the panel was already idle at unmount time.
       setIsTransientInteraction(false);
       broadcastInteracting();
-      // All dismissals preserve tweaks — inline styles stay applied.
       preview.forget();
     });
   });
@@ -558,10 +490,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
             transition: `transform ${EDIT_VALUE_BUMP_MS}ms ${EDIT_SLIDER_SPRING_EASING}`,
           }}
         >
-          {/* Top row: TagBadge in normal mode, discard-confirm UI when
-              there's a pending dismiss. Discard takes over the whole
-              row so the prompt lives where the user's eye already is
-              (the element title). */}
           <Show
             when={isPendingDismiss()}
             fallback={
@@ -648,11 +576,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
             </div>
           </Show>
 
-          {/* Search input. Always mounted (owns focus). Hidden when
-              compact AND empty — typing into it would re-show it via
-              setIsCompact(false) in onInput. When compact but the user
-              already typed something, keeps showing so they can see
-              what they typed. */}
           <div
             class={
               isSearchInputHidden()
@@ -686,9 +609,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
               onInput={(event) => {
                 const next = event.currentTarget.value;
                 setSearchQuery(next);
-                // Pure-number typing in compact + numeric active stays
-                // compact and short-circuits the search flow so the
-                // active row identity isn't reshuffled mid-keystroke.
                 if (autoApply.tryApplyNumericValue(next)) return;
                 setActiveIndex(0);
                 setIsCompact(false);
@@ -700,9 +620,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
             />
           </div>
 
-          {/* Property list. Always mounted (so e2e tests + the active
-              row's value can be queried even in compact). Hidden in
-              compact via HIDDEN_FOCUS_PRESERVING_STYLE. */}
           <Show when={filteredProperties().length > 0}>
             <div
               class={
@@ -730,11 +647,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
             </div>
           </Show>
 
-          {/* Compact-mode dropdown — the same control that owns the
-              active row in the list, just emphasized + without the
-              inner label. ColorPicker registers its trigger only via
-              the list instance (canonical registrant) so omit the
-              register prop here. */}
           <Show when={isCompact() && activeProperty()}>
             {(activeProp) => (
               <div

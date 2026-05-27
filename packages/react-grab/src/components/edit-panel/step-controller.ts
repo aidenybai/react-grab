@@ -10,18 +10,12 @@ type Direction = 1 | -1;
 const directionFor = (key: ArrowKey): Direction => (key === "ArrowLeft" ? -1 : 1);
 
 interface StepControllerOptions {
-  // `isRepeat` lets callers distinguish the initial keypress (where
-  // side-effects like dismissing the discard prompt should fire) from
-  // long-press auto-repeat ticks (which should leave UI state alone).
   step: (direction: Direction, shift: boolean, isRepeat: boolean) => void;
   isShiftHeld: Accessor<boolean>;
 }
 
 export interface StepController {
-  // -1 while ← held, 1 while → held, 0 idle.
   readonly heldDirection: Accessor<-1 | 0 | 1>;
-  // OS-level keydown repeats are filtered (`isRepeat` short-circuits)
-  // so our own interval drives the cadence after the initial press.
   pressArrow: (key: ArrowKey, isRepeat: boolean, shiftKey: boolean) => void;
   releaseKey: (key: string) => void;
   cancelRepeat: () => void;

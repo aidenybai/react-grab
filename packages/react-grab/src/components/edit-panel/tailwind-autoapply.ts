@@ -29,8 +29,6 @@ const normalizeQuery = (query: string): string =>
     .replace(/\s+/g, "-")
     .replace(/([a-z])(\d)/g, "$1-$2");
 
-// Take the typed number literally instead of multiplying by the 4px
-// spacing scale: opacity-50, border-2, z-10, font-700.
 const LITERAL_NUMBER_KEYS = new Set(["opacity", "border-width", "z-index", "font-weight"]);
 
 const findNumeric = (
@@ -53,13 +51,6 @@ const findEnum = (
   return null;
 };
 
-// For each longhand the typed shorthand covers (e.g. p-4 → all four
-// padding sides), find the panel row whose cssProperties INCLUDES that
-// longhand. Axis-aggregate rows like `padding-top,padding-bottom`
-// cover two sides, so an exact `property.key === longhand` match would
-// miss them on elements with non-uniform spacing where only axis rows
-// are canonical. Dedup by row key so an aggregate covering multiple
-// longhands gets written once.
 const findNumericLonghands = (
   properties: readonly EditableProperty[],
   cssKey: string,
@@ -93,15 +84,8 @@ interface TailwindAutoApplyOptions {
 }
 
 export interface TailwindAutoApplyController {
-  // True while the caller should keep the search textarea hidden in
-  // compact mode — a literal number is streaming through to the active
-  // numeric row.
   readonly isInlineNumericEdit: Accessor<boolean>;
-  // Returns true when the query was consumed as a value; the caller
-  // skips its normal search flow so the active row stays locked.
   tryApplyNumericValue: (query: string) => boolean;
-  // Caller must run its normal search-flow setIsCompact(false) BEFORE
-  // this so the intent-driven setIsCompact(true) lands last.
   applyTailwindClass: (query: string) => void;
 }
 
@@ -140,8 +124,6 @@ export const createTailwindAutoApply = (
 
   const applySingleClass = (rawQuery: string) => {
     const query = normalizeQuery(rawQuery);
-    // `mt`, `mt-`, `mt-4` all distill to the prefix `mt` for intent —
-    // collapse to compact before any value is written.
     const intentPrefix = query.replace(/-\d*$/, "").replace(/-$/, "");
     const intentCssKey = intentPrefix ? tailwindPrefixToProperty(intentPrefix) : null;
     if (intentCssKey && hasTrackableTarget(intentCssKey)) setIsCompact(true);
@@ -174,8 +156,6 @@ export const createTailwindAutoApply = (
       return;
     }
 
-    // font-weight is an enum row but the canonical class is numeric
-    // (font-700) — commit by option value match.
     const enumTarget = findEnum(initialProperties, cssKey);
     if (enumTarget) {
       const optionValue = String(rawNumber);
@@ -186,11 +166,6 @@ export const createTailwindAutoApply = (
       }
     }
 
-    // Aggregate fan-out when the shorthand isn't a tracked row (non-
-    // uniform sides) — write to each covered longhand. Batch the
-    // commits so `markAsInteracting` / `setIsCompact` only fire once
-    // per shorthand instead of N times (keeps the idle-timer from
-    // drifting under held-key autorepeat).
     const sideProperties = findNumericLonghands(initialProperties, cssKey);
     if (sideProperties.length === 0) return;
     batch(() => {
@@ -200,10 +175,6 @@ export const createTailwindAutoApply = (
     });
   };
 
-  // Accept multi-class paste: `p-4 m-2`, `class="p-4 m-2 bg-blue-500"`,
-  // or newline-separated tokens. Strips a leading `class="..."` /
-  // `class='...'` wrapper, splits on whitespace/newlines, and applies
-  // each token through the single-class flow.
   const applyTailwindClass = (rawQuery: string) => {
     const stripped = rawQuery
       .trim()

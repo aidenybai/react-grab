@@ -24,13 +24,7 @@ interface ValueStepperProps {
   label?: string;
   onCommitValue?: (value: number) => void;
   onEditComplete?: () => void;
-  // Fires when an inline-typed value is rejected (NaN, unit mismatch,
-  // free text). Parent plays a shake to signal "we threw your input
-  // out" — silent rejection makes the field look broken.
   onInvalidCommit?: () => void;
-  // Fires on every drag-move so the parent's overlay-idle timer keeps
-  // resetting even while the cursor is clamped past min/max and no
-  // value-change events fire.
   onInteract?: () => void;
   emphasized?: boolean;
   tailwindLabel?: string | null;
@@ -44,23 +38,11 @@ const HASH_MARK_PERCENTS = Array.from(
 export const ValueStepper: Component<ValueStepperProps> = (props) => {
   const [draftText, setDraftText] = createSignal<string | null>(null);
   const [rubberStretchPx, setRubberStretchPx] = createSignal(0);
-  // Mirrors `dragState !== null` reactively. Touch/pen drag has no
-  // preceding `mouseenter` (so `isHovered` doesn't fire), and the
-  // non-reactive `dragState` read inside `isActiveSlider`/`trackStyle`
-  // would leave hash-marks invisible and disable the rubber-band
-  // `transition: none` flag for the entire drag on touch.
   const [isDragging, setIsDragging] = createSignal(false);
   const [isHovered, setIsHovered] = createSignal(false);
   const isEditing = () => draftText() !== null;
   let trackElement: HTMLDivElement | undefined;
   let valueTextElement: HTMLSpanElement | undefined;
-  // `startedOnValueText` lets the value chip be both click-to-edit AND
-  // a drag handle — pointer-down records the flag, release branches on
-  // it. `trackRect` snapshots the track's bounding rect at drag start
-  // so the per-pointermove math doesn't force layout against the
-  // freshly-mutated target element's inline styles (preview.apply
-  // dirties layout every commit; reading the rect right after would be
-  // a forced reflow per frame).
   let dragState: {
     startX: number;
     isDragging: boolean;
@@ -85,10 +67,6 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
 
   const isDragSupported = () => Boolean(props.onCommitValue);
 
-  // Absolute-position drag: cursor x maps to a position inside the
-  // track, which maps to a value in [min, max]. Guarantees the fill
-  // and handle move 1:1 with the cursor — the only way the slider
-  // can read as "linear" regardless of the property's range.
   const positionToValue = (clientX: number, rect: DOMRect): number => {
     if (rect.width <= 0) return props.value;
     const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
@@ -99,9 +77,6 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
     props.onCommitValue?.(positionToValue(clientX, rect));
   };
 
-  // Past DEAD_ZONE_PX overflow the track pulls toward the cursor with
-  // sqrt-decay, capped at MAX_PX. signedOvershoot is negative past the
-  // left edge, positive past the right.
   const computeRubberStretch = (clientX: number, trackRect: DOMRect): number => {
     const signedOvershoot =
       Math.max(0, clientX - trackRect.right) - Math.max(0, trackRect.left - clientX);
@@ -140,9 +115,6 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
 
   const handleTrackPointerUp: JSX.EventHandler<HTMLDivElement, PointerEvent> = (event) => {
     const target = event.currentTarget;
-    // Release capture unconditionally — if the blur handler nulled
-    // `dragState` while capture was held, we still need to free it
-    // so the page doesn't keep routing pointer events to the track.
     if (target.hasPointerCapture(event.pointerId)) target.releasePointerCapture(event.pointerId);
     if (!dragState) return;
     if (!dragState.isDragging) {
@@ -154,11 +126,6 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
     setRubberStretchPx(0);
   };
 
-  // Shared release path for pointercancel + lostpointercapture. The
-  // latter fires when the browser revokes capture for any reason (mouse
-  // leaves the window, gesture stolen, capturing element unmounted) —
-  // without this the drag state would leak and the rubber-band stretch
-  // would stay at its last value forever.
   const releaseDrag: JSX.EventHandler<HTMLDivElement, PointerEvent> = (event) => {
     const target = event.currentTarget;
     if (target.hasPointerCapture(event.pointerId)) target.releasePointerCapture(event.pointerId);
@@ -204,8 +171,6 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
       return;
     }
     const typedUnit = match[2].toLowerCase();
-    // `props.unit` is always lowercase ASCII from CSS (px, %, em, ...)
-    // — no .toLowerCase() needed on it.
     if (typedUnit && typedUnit !== props.unit) {
       props.onInvalidCommit?.();
       props.onEditComplete?.();
@@ -233,8 +198,6 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
     // cases so we don't fire commit() while the user is still picking
     // an IME candidate.
     if (event.isComposing || event.keyCode === IME_COMPOSING_KEY_CODE) return;
-    // stopImmediatePropagation prevents the panel's window-level handler
-    // from also reacting to Enter/Esc while the inline editor owns input.
     event.stopImmediatePropagation();
     if (event.key === "Enter") {
       event.preventDefault();
@@ -256,11 +219,6 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
       "-webkit-user-select": "none",
       "min-width": props.emphasized ? `${EDIT_COMPACT_SLIDER_MIN_WIDTH_PX}px` : undefined,
       transform: stretch === 0 ? "translateX(0)" : `translateX(${stretch}px)`,
-      // Mid-drag: stretch tracks the pointer with no smoothing. On
-      // release stretch resets to 0 and this transition produces the
-      // spring-back. Reads `isDragging()` (reactive) — `dragState`
-      // is a non-reactive `let` and wouldn't propagate to touch/pen
-      // drag where there's no preceding hover signal to mask the gap.
       transition: isDragging()
         ? "none"
         : `transform ${EDIT_SLIDER_RUBBER_SETTLE_MS}ms ${EDIT_SLIDER_SPRING_EASING}`,

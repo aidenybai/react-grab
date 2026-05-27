@@ -11,16 +11,9 @@ interface ActivePropertyControlProps {
   onStep: (direction: 1 | -1) => void;
   onCommit: (value: number | string) => void;
   onEditComplete: () => void;
-  // Fires when an inline-typed value/hex is rejected — parent plays
-  // a shake animation so the user sees feedback for the discarded input.
   onInvalidCommit: () => void;
   onInteract: () => void;
-  // Only the property-list call site registers the color picker
-  // trigger; compact mode omits because the list's instance stays
-  // mounted underneath and is the canonical registrant.
   onColorPickerRegister?: (trigger: (() => void) | null, owner?: () => void) => void;
-  // PropertyList omits the inner label because the row carries its
-  // own; compact mode shows it because there's no surrounding row.
   showLabel: boolean;
   tailwindLabel?: string | null;
   emphasized?: boolean;

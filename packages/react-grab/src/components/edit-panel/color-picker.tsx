@@ -11,23 +11,9 @@ interface ColorPickerProps {
   label?: string;
   value: string;
   onCommit: (value: string) => void;
-  // Called after the inline hex editor commits / cancels so the panel can
-  // return focus to the search input (mirrors ValueStepper.onEditComplete).
   onEditComplete?: () => void;
-  // Fires when typed hex can't be parsed — parent plays a shake so
-  // the field doesn't look broken on silent rejection.
   onInvalidCommit?: () => void;
-  // Lets the parent imperatively open the native color picker (used by
-  // the panel's Enter key handler on color rows). Called with the
-  // trigger function on mount and `null` on unmount.
-  // Second arg lets the registrar identity-check on unregister: pass
-  // the same `owner` closure that registered the slot, so a stale
-  // unmount from a previous instance doesn't clobber a newer one.
   onRegisterTrigger?: (trigger: (() => void) | null, owner?: () => void) => void;
-  // Signals "user is engaging with this control" so the panel can keep
-  // the page-level selection overlay hidden AND lock hover-driven
-  // active-row swaps in the property list. Fires on swatch open and
-  // on every native picker change.
   onInteract?: () => void;
   emphasized?: boolean;
 }
@@ -53,12 +39,6 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
   onMount(() => {
     const openPicker = () => nativePickerRef?.click();
     props.onRegisterTrigger?.(openPicker);
-    // Pass the same closure on unregister so the parent can
-    // identity-check before nulling its slot — prevents an older
-    // ColorPicker unmount from clobbering a newer instance's
-    // registration during sibling-row navigation (effects fire in
-    // subscription order; mount of next row can precede unmount of
-    // previous row when activeIndex decreases).
     onCleanup(() => props.onRegisterTrigger?.(null, openPicker));
   });
 
@@ -66,10 +46,6 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
     const text = draftText();
     if (text === null) return;
     setDraftText(null);
-    // parseAnyColor accepts hex w/ or w/o `#`, 3/4/6/8 digits,
-    // rgb/rgba, hsl/hsla, and CSS named colours (including
-    // `transparent`) — anything the browser parses through the
-    // canvas fillStyle setter.
     const normalized = parseAnyColor(text);
     if (!normalized) {
       props.onInvalidCommit?.();
@@ -86,7 +62,6 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
   };
 
   const handleHexKeyDown = (event: KeyboardEvent) => {
-    // IME composition guard (see ValueStepper).
     if (event.isComposing || event.keyCode === IME_COMPOSING_KEY_CODE) return;
     event.stopImmediatePropagation();
     if (event.key === "Enter") {
@@ -164,9 +139,6 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
             onClick={(event) => event.stopPropagation()}
           />
         </Show>
-        {/* Swatch — clicking opens the native color picker. The native
-            <input type="color"> is rendered hidden underneath so the
-            browser still owns the picker UI. */}
         <button
           type="button"
           data-react-grab-ignore-events

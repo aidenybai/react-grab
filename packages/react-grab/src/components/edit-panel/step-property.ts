@@ -6,19 +6,6 @@ import { stepColorLightness } from "../../utils/parse-color.js";
 import { pickNextOption } from "../../utils/pick-next-option.js";
 import { stepTailwindShade } from "../../utils/tailwind-palette.js";
 
-// Keyboard-arrow step: per-kind dispatch returning the new value or
-// null when the step would be a no-op. The panel just feeds the
-// result into the canonical commit pipeline — no per-kind logic
-// leaks into the dispatch site.
-//
-// Color: plain arrow nudges HSL lightness (preserves hue / saturation
-// / alpha); Shift+arrow snaps to the nearest Tailwind palette shade
-// and walks the family.
-//
-// Enum: arrow cycles to the next/previous option (wraps).
-//
-// Numeric: plain arrow nudges ±1 unit (rounded + clamped); Shift+arrow
-// uses a 10× multiplier for predictable fast browse.
 export const stepProperty = (
   property: EditableProperty,
   direction: 1 | -1,

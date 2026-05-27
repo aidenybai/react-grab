@@ -23,15 +23,8 @@ interface PropertyListProps {
   onEditComplete: () => void;
   onInvalidCommit: () => void;
   onInteract: () => void;
-  // True while a gesture is mid-flight (slider drag, native picker
-  // open, etc.). Hover-driven row swaps are suppressed during this
-  // window so a mouse twitch can't yank the active row out from under
-  // the user. Does NOT stay true for the lifetime of pending tweaks —
-  // hover should still navigate the list once the gesture settles.
   isAdjusting: () => boolean;
   activeKey: "left" | "right" | null;
-  // Token chip sourced from the panel and forwarded through to the
-  // active row's ValueStepper.
   activeTailwindLabel: string | null;
 }
 
@@ -94,11 +87,6 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
     highlightRef,
     updateHighlight,
     clearHighlight,
-    // No per-corner radii — the EditPanel's outer overflow:hidden +
-    // rounded-[14px] superellipse already clips the highlight pill at
-    // the panel's curve. Setting our own radii here makes the pill's
-    // own corner curve compete with the panel's and visibly bulge past
-    // the outline at first/last rows.
   } = createMenuHighlight({});
 
   createEffect(() => {
@@ -107,21 +95,12 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
 
   let pendingHighlightFrame: number | undefined;
   createEffect(() => {
-    // Capture the index in this effect run so the rAF callback below
-    // can't drift to a later value (e.g. held-arrow auto-repeat
-    // ticking faster than rAF). Stacking rAFs all read the latest
-    // index otherwise.
     const activeIndex = props.activeIndex;
     const element = itemElements[activeIndex];
     if (!element || activeIndex < 0) {
       clearHighlight();
       return;
     }
-    // Two-pass update: first call snaps the highlight to the row's
-    // current offsetWidth/Top (may be stale if the list just transitioned
-    // from compact-hidden 0×0 to full-size — Solid effects can run
-    // before the browser reflows the layout). Re-running on the next
-    // animation frame captures the post-reflow dimensions.
     updateHighlight(element);
     if (pendingHighlightFrame !== undefined) {
       cancelAnimationFrame(pendingHighlightFrame);
@@ -212,12 +191,6 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
                 props.onSelect(propertyIndex);
               }}
             >
-              {/* Switch matches use boolean `when` (not `keyed`) so the
-                  mounted control stays alive across value updates — the
-                  native color picker dialog and the slider's pointer
-                  capture both rely on the element instance persisting
-                  while the value changes. Property data is read
-                  reactively below via narrowing helper accessors. */}
               <Show
                 when={isActive()}
                 fallback={
