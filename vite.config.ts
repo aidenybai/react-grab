@@ -7,6 +7,7 @@ export default defineConfig({
   lint: {
     ignorePatterns: [".next", "dist", "build", "bundled_*.mjs", "bin"],
     plugins: ["typescript"],
+    jsPlugins: [{ name: "solid", specifier: "oxlint-plugin-solidjs" }],
     rules: {
       "@typescript-eslint/ban-ts-comment": "error",
       "no-array-constructor": "error",
@@ -42,6 +43,27 @@ export default defineConfig({
         files: ["**/*.tsx"],
         rules: {
           "no-unassigned-vars": "off",
+        },
+      },
+      {
+        files: ["packages/react-grab/src/**/*.{ts,tsx}"],
+        rules: {
+          "solid/jsx-no-duplicate-props": "error",
+          "solid/jsx-no-undef": "error",
+          "solid/jsx-no-script-url": "error",
+          "solid/jsx-uses-vars": "off",
+          "solid/no-innerhtml": "error",
+          "solid/no-unknown-namespaces": "error",
+          "solid/self-closing-comp": "warn",
+          "solid/components-return-once": "warn",
+          "solid/no-destructure": "error",
+          "solid/prefer-for": "error",
+          "solid/reactivity": "warn",
+          "solid/event-handlers": "warn",
+          "solid/imports": "warn",
+          "solid/style-prop": "warn",
+          "solid/no-react-deps": "warn",
+          "solid/no-react-specific-props": "warn",
         },
       },
     ],

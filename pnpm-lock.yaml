@@ -23,6 +23,9 @@ importers:
       '@voidzero-dev/vite-plus-core':
         specifier: ^0.1.20
         version: 0.1.20(@types/node@25.6.2)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.37.0)(tsx@4.21.0)(typescript@6.0.3)(yaml@2.8.4)
+      oxlint-plugin-solidjs:
+        specifier: ^0.1.1
+        version: 0.1.1
       picomatch:
         specifier: ^4.0.4
         version: 4.0.4
@@ -6217,6 +6220,10 @@ packages:
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
 
+  oxlint-plugin-solidjs@0.1.1:
+    resolution: {integrity: sha512-d1rttwfdvquIhErLsWhumXElAmlBWITegVam2YJRzwoMaGeaJJggWpNunWYsH/C7W+W6sn3x4dQyqS+Yu7d7rg==}
+    engines: {node: '>=18.0.0'}
+
   oxlint-tsgolint@0.22.0:
     resolution: {integrity: sha512-ku4MecLmCQIj1ScCtzNAqTuyl0BJQ02B36fJT+c5XQihHpYSFak+FC3GYO5fPyYk4oDwi0w0S7hTvrpNzuZhig==}
     hasBin: true
@@ -8615,7 +8622,7 @@ snapshots:
       '@google/gemini-cli-core': 0.35.3(express@5.2.1)
       '@google/genai': 1.30.0(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))
       '@iarna/toml': 2.2.5
-      '@modelcontextprotocol/sdk': 1.29.0(zod@3.25.76)
+      '@modelcontextprotocol/sdk': 1.29.0(zod@4.4.3)
       ansi-escapes: 7.3.0
       ansi-regex: 6.2.2
       chalk: 4.1.2
@@ -8671,7 +8678,7 @@ snapshots:
       google-auth-library: 10.6.2
       ws: 8.20.0
     optionalDependencies:
-      '@modelcontextprotocol/sdk': 1.29.0(zod@3.25.76)
+      '@modelcontextprotocol/sdk': 1.29.0(zod@4.4.3)
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -9010,7 +9017,7 @@ snapshots:
       pkce-challenge: 5.0.1
       raw-body: 3.0.2
       zod: 4.4.3
-      zod-to-json-schema: 3.25.2(zod@4.4.3)
+      zod-to-json-schema: 3.25.2(zod@3.25.76)
     transitivePeerDependencies:
       - supports-color
 
@@ -13461,6 +13468,8 @@ snapshots:
       '@oxfmt/binding-win32-ia32-msvc': 0.46.0
       '@oxfmt/binding-win32-x64-msvc': 0.46.0
 
+  oxlint-plugin-solidjs@0.1.1: {}
+
   oxlint-tsgolint@0.22.0:
     optionalDependencies:
       '@oxlint-tsgolint/darwin-arm64': 0.22.0
@@ -15276,10 +15285,6 @@ snapshots:
   zod-to-json-schema@3.25.2(zod@3.25.76):
     dependencies:
       zod: 3.25.76
-
-  zod-to-json-schema@3.25.2(zod@4.4.3):
-    dependencies:
-      zod: 4.4.3
 
   zod@3.25.76: {}
 

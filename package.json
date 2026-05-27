@@ -26,6 +26,7 @@
     "@changesets/cli": "^2.31.0",
     "@types/node": "^25.6.2",
     "@voidzero-dev/vite-plus-core": "^0.1.20",
+    "oxlint-plugin-solidjs": "^0.1.1",
     "picomatch": "^4.0.4",
     "turbo": "^2.9.12",
     "typescript": "^6.0.3",
