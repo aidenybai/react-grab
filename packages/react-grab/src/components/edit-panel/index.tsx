@@ -380,8 +380,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     ArrowRight: (event) => stepController.pressArrow("ArrowRight", event.repeat, event.shiftKey),
     Tab: (event) => navigateActive(event.shiftKey ? -1 : 1),
     Enter: () => {
-      // Discard prompt up: Enter chooses "No" so the common accidental
-      // Enter path keeps edits and returns to the panel instead of copying.
       if (isPendingDismiss()) {
         hidePendingDismissPrompt();
         return;
@@ -411,15 +409,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     // that tick. Check both to avoid submitting pending edits when
     // the user was actually picking a Hiragana/Hangul candidate.
     if (event.isComposing || event.keyCode === IME_COMPOSING_KEY_CODE) return;
-    // Discard-prompt keyboard routing:
-    //   • Tab on a focused discard button passes through so native focus
-    //     movement works.
-    //   • Enter chooses "No" from anywhere, including a focused discard
-    //     button.
-    //   • Arrow / Tab list-navigation + value-step handlers are
-    //     blocked entirely while the prompt is up — changing a tweak
-    //     mid-prompt is incoherent with "do you want to discard your
-    //     edits?".
     if (isPendingDismiss()) {
       const target = event.composedPath()[0];
       const isOnDiscardButton =
