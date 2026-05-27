@@ -1,5 +1,5 @@
 import { type ReactElement } from "react";
-import { buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { cn } from "@/utils/cn";
 import { IconGithub } from "./icons/icon-github";
 
