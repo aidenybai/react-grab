@@ -2332,7 +2332,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (keydownSpamTimerId !== null) {
           window.clearTimeout(keydownSpamTimerId);
         }
-        // oxlint-disable-next-line solid/reactivity -- setTimeout body intentionally reads latest store state on fire
         keydownSpamTimerId = window.setTimeout(() => {
           deactivateRenderer();
         }, KEYDOWN_SPAM_TIMEOUT_MS);
@@ -3184,7 +3183,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       options?: PerformWithFeedbackOptions,
     ) => {
       return async (action: () => Promise<boolean>): Promise<void> => {
-        // oxlint-disable-next-line solid/reactivity -- imperative lock acquirer; signals are read on demand inside the awaited critical section
         await withSelectionInteractionLock(async () => {
           const fallbackBounds = options?.fallbackBounds ?? null;
           const fallbackSelectionBounds = options?.fallbackSelectionBounds ?? [];

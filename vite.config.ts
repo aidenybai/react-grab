@@ -60,7 +60,19 @@ export default defineConfig({
           "solid/prefer-for": "error",
           "solid/reactivity": [
             "warn",
-            { customReactiveFunctions: ["addWindowListener", "addDocumentListener"] },
+            {
+              customReactiveFunctions: [
+                "addWindowListener",
+                "addDocumentListener",
+                "setTimeout",
+                "clearTimeout",
+                "setInterval",
+                "clearInterval",
+                "requestAnimationFrame",
+                "requestIdleCallback",
+                "withSelectionInteractionLock",
+              ],
+            },
           ],
           "solid/event-handlers": "warn",
           "solid/imports": "warn",
