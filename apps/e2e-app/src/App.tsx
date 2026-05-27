@@ -109,7 +109,7 @@ const FormSection = () => {
             className="bg-green-500 text-white px-4 py-2 rounded"
             data-testid="submit-button"
           >
-            Submit
+            Submit message
           </button>
           <button
             type="button"
