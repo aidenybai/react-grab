@@ -53,9 +53,11 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
   const handleAccept = () => {
     if (didCopy()) return;
     setDidCopy(true);
+    // oxlint-disable-next-line solid/reactivity -- setTimeout body intentionally reads latest props on fire
     fadeTimeoutId = window.setTimeout(() => {
       setIsFading(true);
       props.onFadingChange?.(true);
+      // oxlint-disable-next-line solid/reactivity -- setTimeout body intentionally reads latest props on fire
       dismissTimeoutId = window.setTimeout(() => {
         props.onDismiss?.();
       }, FADE_DURATION_MS);
