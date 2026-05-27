@@ -979,11 +979,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const frozenElementBoundsAccessors = mapArray(
       () => store.frozenElements,
-      (element) =>
-        createMemo(() => {
+      (element) => {
+        const boundsAccessor = createMemo(() => {
           void viewportVersion();
           return createElementBounds(element);
-        }),
+        });
+        return boundsAccessor;
+      },
     );
 
     const frozenElementsBounds = createMemo((): OverlayBounds[] => {
@@ -1136,7 +1138,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (element) => {
         const tagName = getTagName(element) || "element";
         const componentName = getComponentDisplayName(element) ?? undefined;
-        return createMemo<FrozenLabelEntry | null>(() => {
+        const labelEntryAccessor = createMemo<FrozenLabelEntry | null>(() => {
           void viewportVersion();
           if (!isElementConnected(element)) return null;
           const bounds = createElementBounds(element);
@@ -1145,6 +1147,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             anchorRatio === undefined ? undefined : bounds.x + bounds.width * anchorRatio;
           return { tagName, componentName, bounds, mouseX };
         });
+        return labelEntryAccessor;
       },
     );
 
@@ -2329,6 +2332,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (keydownSpamTimerId !== null) {
           window.clearTimeout(keydownSpamTimerId);
         }
+        // oxlint-disable-next-line solid/reactivity -- setTimeout body intentionally reads latest store state on fire
         keydownSpamTimerId = window.setTimeout(() => {
           deactivateRenderer();
         }, KEYDOWN_SPAM_TIMEOUT_MS);
@@ -3180,6 +3184,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       options?: PerformWithFeedbackOptions,
     ) => {
       return async (action: () => Promise<boolean>): Promise<void> => {
+        // oxlint-disable-next-line solid/reactivity -- imperative lock acquirer; signals are read on demand inside the awaited critical section
         await withSelectionInteractionLock(async () => {
           const fallbackBounds = options?.fallbackBounds ?? null;
           const fallbackSelectionBounds = options?.fallbackSelectionBounds ?? [];
