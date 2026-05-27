@@ -5,9 +5,16 @@ export default defineConfig({
     "*.{js,ts,tsx}": "vp check --fix",
   },
   lint: {
-    ignorePatterns: [".next", "dist", "build", "bundled_*.mjs", "bin"],
+    ignorePatterns: [
+      ".next",
+      "dist",
+      "build",
+      "bundled_*.mjs",
+      "bin",
+      "packages/oxlint-plugin-solid/src",
+    ],
     plugins: ["typescript"],
-    jsPlugins: [{ name: "solid", specifier: "oxlint-plugin-solidjs" }],
+    jsPlugins: [{ name: "solid", specifier: "@react-grab/oxlint-plugin-solid" }],
     rules: {
       "@typescript-eslint/ban-ts-comment": "error",
       "no-array-constructor": "error",

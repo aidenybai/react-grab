@@ -17,15 +17,15 @@ importers:
       '@changesets/cli':
         specifier: ^2.31.0
         version: 2.31.0(@types/node@25.6.2)
+      '@react-grab/oxlint-plugin-solid':
+        specifier: workspace:*
+        version: link:packages/oxlint-plugin-solid
       '@types/node':
         specifier: ^25.6.2
         version: 25.6.2
       '@voidzero-dev/vite-plus-core':
         specifier: ^0.1.20
         version: 0.1.20(@types/node@25.6.2)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.37.0)(tsx@4.21.0)(typescript@6.0.3)(yaml@2.8.4)
-      oxlint-plugin-solidjs:
-        specifier: ^0.1.1
-        version: 0.1.1
       picomatch:
         specifier: ^4.0.4
         version: 4.0.4
@@ -355,6 +355,22 @@ importers:
       '@types/node':
         specifier: ^25.6.2
         version: 25.6.2
+      vite-plus:
+        specifier: ^0.1.20
+        version: 0.1.20(@opentelemetry/api@1.9.1)(@types/node@25.6.2)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.37.0)(tsx@4.21.0)(typescript@6.0.3)(vite@6.4.1(@types/node@25.6.2)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.37.0)(tsx@4.21.0)(yaml@2.8.4))(yaml@2.8.4)
+
+  packages/oxlint-plugin-solid:
+    dependencies:
+      '@oxlint/plugins':
+        specifier: ^1.61.0
+        version: 1.67.0
+    devDependencies:
+      '@types/node':
+        specifier: ^25.6.2
+        version: 25.6.2
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
       vite-plus:
         specifier: ^0.1.20
         version: 0.1.20(@opentelemetry/api@1.9.1)(@types/node@25.6.2)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.37.0)(tsx@4.21.0)(typescript@6.0.3)(vite@6.4.1(@types/node@25.6.2)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.37.0)(tsx@4.21.0)(yaml@2.8.4))(yaml@2.8.4)
@@ -2223,6 +2239,10 @@ packages:
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [x64]
     os: [win32]
+
+  '@oxlint/plugins@1.67.0':
+    resolution: {integrity: sha512-L5oSCA3Ehr2BvRCHy9e64InPnkfjeopwsP4VsxfZwcvZA9c7wRp48RXVt2q3OA8Z/uM6RFbE/VIB2ZYTA31guA==}
+    engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
 
   '@parcel/watcher-android-arm64@2.5.6':
     resolution: {integrity: sha512-YQxSS34tPF/6ZG7r/Ih9xy+kP/WwediEUsqmtf0cuCV5TPPKw/PQHRhueUo6JdeFJaqV3pyjm0GdYjZotbRt/A==}
@@ -6220,10 +6240,6 @@ packages:
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
 
-  oxlint-plugin-solidjs@0.1.1:
-    resolution: {integrity: sha512-d1rttwfdvquIhErLsWhumXElAmlBWITegVam2YJRzwoMaGeaJJggWpNunWYsH/C7W+W6sn3x4dQyqS+Yu7d7rg==}
-    engines: {node: '>=18.0.0'}
-
   oxlint-tsgolint@0.22.0:
     resolution: {integrity: sha512-ku4MecLmCQIj1ScCtzNAqTuyl0BJQ02B36fJT+c5XQihHpYSFak+FC3GYO5fPyYk4oDwi0w0S7hTvrpNzuZhig==}
     hasBin: true
@@ -9598,6 +9614,8 @@ snapshots:
 
   '@oxlint/binding-win32-x64-msvc@1.61.0':
     optional: true
+
+  '@oxlint/plugins@1.67.0': {}
 
   '@parcel/watcher-android-arm64@2.5.6':
     optional: true
@@ -13467,8 +13485,6 @@ snapshots:
       '@oxfmt/binding-win32-arm64-msvc': 0.46.0
       '@oxfmt/binding-win32-ia32-msvc': 0.46.0
       '@oxfmt/binding-win32-x64-msvc': 0.46.0
-
-  oxlint-plugin-solidjs@0.1.1: {}
 
   oxlint-tsgolint@0.22.0:
     optionalDependencies:
