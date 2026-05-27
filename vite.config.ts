@@ -58,7 +58,10 @@ export default defineConfig({
           "solid/components-return-once": "warn",
           "solid/no-destructure": "error",
           "solid/prefer-for": "error",
-          "solid/reactivity": "warn",
+          "solid/reactivity": [
+            "warn",
+            { customReactiveFunctions: ["addWindowListener", "addDocumentListener"] },
+          ],
           "solid/event-handlers": "warn",
           "solid/imports": "warn",
           "solid/style-prop": "warn",
