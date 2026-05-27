@@ -75,11 +75,11 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
       aria-expanded={!props.isCollapsed}
       type="button"
       class="group contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale a11y-hitbox"
-      onClick={props.onCollapseClick}
-      on:pointerdown={props.onCollapsePointerDown}
-      onPointerUp={props.onCollapsePointerUp}
-      onPointerLeave={props.onCollapsePointerLeave}
-      onPointerCancel={props.onCollapsePointerLeave}
+      onClick={handleCollapseClick}
+      on:pointerdown={handleCollapsePointerDown}
+      onPointerUp={handleCollapsePointerUp}
+      onPointerLeave={handleCollapsePointerLeaveOrCancel}
+      onPointerCancel={handleCollapsePointerLeaveOrCancel}
     >
       <IconChevron
         size={18}
@@ -102,6 +102,22 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
 
   const handlePanelClick = (event: MouseEvent) => {
     props.onPanelClick?.(event);
+  };
+
+  const handleCollapseClick = (event: MouseEvent) => {
+    props.onCollapseClick?.(event);
+  };
+
+  const handleCollapsePointerDown = (event: PointerEvent) => {
+    props.onCollapsePointerDown?.(event);
+  };
+
+  const handleCollapsePointerUp = (event: PointerEvent) => {
+    props.onCollapsePointerUp?.(event);
+  };
+
+  const handleCollapsePointerLeaveOrCancel = (event: PointerEvent) => {
+    props.onCollapsePointerLeave?.(event);
   };
 
   return (
