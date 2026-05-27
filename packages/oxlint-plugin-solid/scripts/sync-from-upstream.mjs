@@ -27,12 +27,21 @@
  * in the root `vite.config.ts` so re-sync output stays byte-stable until the
  * next intentional sync.
  */
-import { execSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, rmSync, writeFileSync, readFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const UPSTREAM_VERSION = process.argv[2] ?? "0.1.1";
+const VERSION_PATTERN = /^[0-9]+\.[0-9]+\.[0-9]+(?:-[A-Za-z0-9.-]+)?$/;
+
+const rawVersionArg = process.argv[2] ?? "0.1.1";
+if (!VERSION_PATTERN.test(rawVersionArg)) {
+  console.error(
+    `Invalid version "${rawVersionArg}". Expected a semver like 0.1.1 or 0.2.0-beta.1.`,
+  );
+  process.exit(1);
+}
+const UPSTREAM_VERSION = rawVersionArg;
 const PACKAGE_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const SRC_ROOT = join(PACKAGE_ROOT, "src");
 const STAGING_DIR = join(PACKAGE_ROOT, ".sync-staging");
@@ -204,19 +213,33 @@ export default plugin;
 `;
 };
 
+const runProcess = (command, args, options = {}) => {
+  const result = spawnSync(command, args, { stdio: "inherit", ...options });
+  if (result.status !== 0) {
+    throw new Error(
+      `${command} ${args.join(" ")} exited with status ${result.status ?? result.signal}`,
+    );
+  }
+};
+
 const downloadTarball = (version) => {
   if (existsSync(STAGING_DIR)) rmSync(STAGING_DIR, { recursive: true, force: true });
   mkdirSync(STAGING_DIR, { recursive: true });
   const tarballUrl = `https://registry.npmjs.org/oxlint-plugin-solidjs/-/oxlint-plugin-solidjs-${version}.tgz`;
+  const tarballPath = join(STAGING_DIR, "upstream.tgz");
   console.log(`Fetching ${tarballUrl}`);
-  execSync(`curl -fsSL ${tarballUrl} | tar -xz -C ${STAGING_DIR}`, {
-    stdio: "inherit",
-    shell: "/bin/bash",
-  });
+  runProcess("curl", ["-fsSL", "-o", tarballPath, tarballUrl]);
+  runProcess("tar", ["-xzf", tarballPath, "-C", STAGING_DIR]);
   return join(STAGING_DIR, "package", "dist", "index.js");
 };
 
+const SAFE_SECTION_PATH = /^[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*\.ts$/;
 const SECTION_BOUNDARY = /^\/\/ packages\/plugin-solid\/src\/([^\s]+\.ts)$/;
+
+const isSafeSectionPath = (relativePath) =>
+  SAFE_SECTION_PATH.test(relativePath) &&
+  !relativePath.split("/").includes("..") &&
+  !relativePath.startsWith("/");
 
 const splitBundle = (bundleText) => {
   const sections = [];
@@ -228,7 +251,13 @@ const splitBundle = (bundleText) => {
       if (currentRelativePath != null) {
         sections.push({ relativePath: currentRelativePath, lines: currentLines });
       }
-      currentRelativePath = match[1];
+      const candidate = match[1];
+      if (!isSafeSectionPath(candidate)) {
+        throw new Error(
+          `Refusing to write section "${candidate}": upstream bundle contains an unsafe path that would escape src/.`,
+        );
+      }
+      currentRelativePath = candidate;
       currentLines = [];
       continue;
     }
@@ -241,10 +270,18 @@ const splitBundle = (bundleText) => {
   return sections;
 };
 
+const MINIMUM_EXPECTED_SECTIONS = 20;
+
 const main = () => {
   const bundlePath = downloadTarball(UPSTREAM_VERSION);
   const bundleText = readFileSync(bundlePath, "utf8");
   const sections = splitBundle(bundleText);
+
+  if (sections.length < MINIMUM_EXPECTED_SECTIONS) {
+    throw new Error(
+      `Found only ${sections.length} sections in the upstream bundle (expected at least ${MINIMUM_EXPECTED_SECTIONS}). Refusing to delete src/ — the upstream bundle layout likely changed and this script needs to be updated before re-running.`,
+    );
+  }
 
   if (existsSync(SRC_ROOT)) rmSync(SRC_ROOT, { recursive: true, force: true });
   mkdirSync(SRC_ROOT, { recursive: true });
