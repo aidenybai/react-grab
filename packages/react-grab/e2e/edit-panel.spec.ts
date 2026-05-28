@@ -324,18 +324,14 @@ const dispatchOutsideDismiss = async (page: import("@playwright/test").Page): Pr
 
 const isEditPanelCompact = async (page: import("@playwright/test").Page): Promise<boolean> =>
   page.evaluate(
-    ({ attrName, panelAttr, inputAttr }) => {
+    ({ attrName, panelAttr }) => {
       const host = document.querySelector(`[${attrName}]`);
       const shadowRoot = host?.shadowRoot;
       if (!shadowRoot) return false;
       const panel = shadowRoot.querySelector(`[${panelAttr}]`);
-      if (!panel) return false;
-      const input = panel.querySelector<HTMLElement>(`[${inputAttr}]`);
-      if (!input) return false;
-      const rect = input.getBoundingClientRect();
-      return rect.width === 0 || rect.height === 0;
+      return panel?.getAttribute("data-rg-compact") === "true";
     },
-    { attrName: ATTRIBUTE_NAME, panelAttr: EDIT_PANEL_ATTR, inputAttr: SEARCH_INPUT_ATTR },
+    { attrName: ATTRIBUTE_NAME, panelAttr: EDIT_PANEL_ATTR },
   );
 
 const isHeaderCopyButtonVisible = async (page: import("@playwright/test").Page): Promise<boolean> =>
@@ -969,22 +965,14 @@ test.describe("Style Panel", () => {
       expect(await getActivePropertyKey(reactGrab.page)).not.toBe(before);
     });
 
-    test("compact discard prompt keeps the slider fill visible", async ({ reactGrab }) => {
+    test("discard prompt expands to full panel", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await reactGrab.page.keyboard.press("ArrowRight");
       await reactGrab.page.waitForTimeout(80);
+      expect(await isEditPanelCompact(reactGrab.page)).toBe(true);
       await reactGrab.page.keyboard.press("Escape");
       await reactGrab.page.waitForTimeout(220);
-
-      const slider = await getVisibleSliderVisualState(reactGrab.page);
-      expect(slider.width ?? 0).toBeGreaterThan(80);
-      expect(slider.baseWidth ?? 0).toBeCloseTo(slider.width ?? 0, 1);
-      expect(slider.baseHeight ?? 0).toBeCloseTo(slider.height ?? 0, 1);
-      expect(slider.baseOpacity ?? 0).toBeGreaterThan(0);
-      expect(slider.fillWidth ?? 0).toBeGreaterThan(0);
-      expect(slider.fillHeight ?? 0).toBeCloseTo(slider.height ?? 0, 1);
-      expect(slider.fillOpacity ?? 0).toBeGreaterThan(0);
-      expect(slider.handleOpacity).toBe(0);
+      expect(await isEditPanelCompact(reactGrab.page)).toBe(false);
     });
 
     test("Tailwind label appears to the left of the value", async ({ reactGrab }) => {
