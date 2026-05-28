@@ -141,49 +141,6 @@ const getActiveSliderVisualState = async (
     { attrName: ATTRIBUTE_NAME, propertyAttr: EDIT_PROPERTY_ATTR },
   );
 
-interface VisibleSliderVisualState {
-  width: number | null;
-  height: number | null;
-  baseWidth: number | null;
-  baseHeight: number | null;
-  baseOpacity: number | null;
-  fillWidth: number | null;
-  fillHeight: number | null;
-  fillOpacity: number | null;
-  fillBackground: string | null;
-  handleOpacity: number | null;
-}
-
-const getVisibleSliderVisualState = async (
-  page: import("@playwright/test").Page,
-): Promise<VisibleSliderVisualState> =>
-  page.evaluate((attrName) => {
-    const host = document.querySelector(`[${attrName}]`);
-    const shadowRoot = host?.shadowRoot;
-    const sliders = Array.from(
-      shadowRoot?.querySelectorAll<HTMLElement>("[data-react-grab-edit-panel] [role='slider']") ??
-        [],
-    );
-    const slider = sliders.find((candidate) => candidate.getBoundingClientRect().width > 0) ?? null;
-    const base = slider?.querySelector<HTMLElement>("[data-react-grab-slider-base]");
-    const fill = slider?.querySelector<HTMLElement>("[data-react-grab-slider-fill]");
-    const handle = slider?.querySelector<HTMLElement>("[data-react-grab-slider-handle]");
-    const baseStyle = base ? getComputedStyle(base) : null;
-    const fillStyle = fill ? getComputedStyle(fill) : null;
-    return {
-      width: slider?.getBoundingClientRect().width ?? null,
-      height: slider?.getBoundingClientRect().height ?? null,
-      baseWidth: base?.getBoundingClientRect().width ?? null,
-      baseHeight: base?.getBoundingClientRect().height ?? null,
-      baseOpacity: baseStyle ? Number(baseStyle.opacity) : null,
-      fillWidth: fill?.getBoundingClientRect().width ?? null,
-      fillHeight: fill?.getBoundingClientRect().height ?? null,
-      fillOpacity: fillStyle ? Number(fillStyle.opacity) : null,
-      fillBackground: fillStyle?.backgroundColor ?? null,
-      handleOpacity: handle ? Number(getComputedStyle(handle).opacity) : null,
-    };
-  }, ATTRIBUTE_NAME);
-
 const getActiveTailwindLabelOrder = async (
   page: import("@playwright/test").Page,
 ): Promise<{ tailwindLeft: number | null; valueLeft: number | null }> =>
