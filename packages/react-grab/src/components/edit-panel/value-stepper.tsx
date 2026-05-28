@@ -35,6 +35,10 @@ const HASH_MARK_PERCENTS = Array.from(
   (_, index) => ((index + 1) * 100) / (EDIT_SLIDER_HASH_MARK_COUNT + 1),
 );
 
+const VALUE_CLASS = "text-[12px] leading-4 font-medium tabular-nums";
+const LABEL_CLASS = "text-[13px] leading-4 font-medium";
+const INLINE_VALUE_PATTERN = /^(-?(?:\d+\.?\d*|\.\d+))\s*([a-zA-Z%]*)$/;
+
 export const ValueStepper: Component<ValueStepperProps> = (props) => {
   const [draftText, setDraftText] = createSignal<string | null>(null);
   const [rubberStretchPx, setRubberStretchPx] = createSignal(0);
@@ -50,8 +54,6 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
     trackRect: DOMRect;
   } | null = null;
 
-  const valueClass = "text-[12px] leading-4 font-medium tabular-nums";
-  const labelClass = "text-[13px] leading-4 font-medium";
 
   const fillPercent = () => {
     const span = props.max - props.min;
@@ -156,7 +158,6 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
   // to dots. Rejects unit mismatches (`1.5rem` typed into a `px` row
   // would silently commit 1.5px without this guard). Accepts trailing
   // dot (`5.`) for users mid-typing a decimal — `parseFloat("5.") = 5`.
-  const INLINE_VALUE_PATTERN = /^(-?(?:\d+\.?\d*|\.\d+))\s*([a-zA-Z%]*)$/;
   const commit = () => {
     const text = draftText();
     if (text === null) return;
@@ -297,7 +298,7 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
         <div class="relative z-10 flex items-center justify-between w-full px-2 pointer-events-none">
           <Show when={props.label}>
             {(text) => (
-              <span class={`${labelClass} text-[var(--rg-text-primary)] truncate min-w-0`}>
+              <span class={`${LABEL_CLASS} text-[var(--rg-text-primary)] truncate min-w-0`}>
                 {text()}
               </span>
             )}
@@ -326,7 +327,7 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
                 </Show>
                 <span
                   data-react-grab-value-text
-                  class={`${valueClass} text-[var(--rg-text-primary)]`}
+                  class={`${VALUE_CLASS} text-[var(--rg-text-primary)]`}
                 >
                   <Slot>{formatDisplayValue(props.value)}</Slot>
                   <span class="text-[var(--rg-text-secondary)] ml-px">{props.unit}</span>
@@ -350,7 +351,7 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
               autocorrect="off"
               autocomplete="off"
               spellcheck={false}
-              class={`${valueClass} bg-transparent border-none outline-none text-[var(--rg-text-primary)] p-0 m-0 text-right pointer-events-auto ml-auto`}
+              class={`${VALUE_CLASS} bg-transparent border-none outline-none text-[var(--rg-text-primary)] p-0 m-0 text-right pointer-events-auto ml-auto`}
               style={{
                 "field-sizing": "content",
                 "min-width": "16px",

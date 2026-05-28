@@ -1,6 +1,7 @@
 import { createEffect, Index, Match, onCleanup, Show, Switch, type Component } from "solid-js";
 import type { EditableProperty } from "../../types.js";
 import { createMenuHighlight } from "../../utils/create-menu-highlight.js";
+import { getShadowActiveElement } from "../../utils/get-shadow-active-element.js";
 import { formatDisplayValue } from "../../utils/format-css-value.js";
 import { ActivePropertyControl } from "./active-property-control.js";
 import { asColor, asEnum, asNumeric } from "./narrow-property.js";
@@ -39,19 +40,11 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
   let didPointerMove = false;
   let pendingHoverIndex: number | null = null;
 
-  // The panel runs inside a Shadow DOM (mountRoot attaches a shadow root
-  // on the overlay host). `document.activeElement` returns the shadow HOST
-  // when focus is inside the shadow, not the actual focused element. Read
-  // the shadow root via getRootNode to find the real focused element.
-  // Only inline value inputs lock hover; the search textarea stays focused
-  // while users move through rows.
   const focusedInlineInputOwnsHover = (): boolean => {
-    const listRootNode = listRef?.getRootNode();
-    const focusedElement =
-      listRootNode instanceof ShadowRoot
-        ? (listRootNode.activeElement as HTMLElement | null)
-        : (document.activeElement as HTMLElement | null);
-    return focusedElement?.matches("input[data-react-grab-input]") ?? false;
+    if (!listRef) return false;
+    const focusedElement = getShadowActiveElement(listRef);
+    return focusedElement instanceof HTMLElement &&
+      focusedElement.matches("input[data-react-grab-input]");
   };
 
   const maybeActivateHoveredIndex = (propertyIndex: number, source: "enter" | "move") => {
@@ -176,12 +169,11 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
                 // onBlur=>commit fires before the subsequent onClick
                 // changes activeIndex and unmounts the input (otherwise
                 // the typed draft is silently lost).
-                const listRootNode = listRef?.getRootNode();
-                const focusedElement =
-                  listRootNode instanceof ShadowRoot
-                    ? (listRootNode.activeElement as HTMLElement | null)
-                    : (document.activeElement as HTMLElement | null);
-                if (focusedElement?.matches("input[data-react-grab-input]")) {
+                const focusedElement = listRef ? getShadowActiveElement(listRef) : null;
+                if (
+                  focusedElement instanceof HTMLElement &&
+                  focusedElement.matches("input[data-react-grab-input]")
+                ) {
                   focusedElement.blur();
                 }
                 event.preventDefault();

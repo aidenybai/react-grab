@@ -2202,20 +2202,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isSelectionInteractionLocked()) return false;
       if (isAnyPopoverOpen() || toolbarMenuPosition() !== null) return false;
       if (event.key.length !== 1 || !TYPE_TO_EDIT_KEY_PATTERN.test(event.key)) return false;
-      // Skip when the keystroke belongs to a host-page editable surface
-      // (input, textarea, or contenteditable). Otherwise we'd swallow
-      // the character and open the panel when the user just meant to
-      // type into a form field.
-      const target = event.target;
-      if (target instanceof HTMLElement) {
-        if (
-          target instanceof HTMLInputElement ||
-          target instanceof HTMLTextAreaElement ||
-          target.isContentEditable
-        ) {
-          return false;
-        }
-      }
+      if (isKeyboardEventTriggeredByInput(event)) return false;
       const element = store.frozenElement || targetElement();
       if (!element) return false;
       const opened = editMode.trigger(

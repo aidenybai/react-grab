@@ -1,4 +1,4 @@
-import { type Component } from "solid-js";
+import { Show, type Component } from "solid-js";
 import type { EnumEditableOption } from "../../types.js";
 import { pickNextOption } from "../../utils/pick-next-option.js";
 import { StepArrow } from "./step-arrow.js";
@@ -26,11 +26,11 @@ export const CycleControl: Component<CycleControlProps> = (props) => {
 
   return (
     <div class="flex items-center gap-2 w-full px-2 h-[20px]">
-      {props.label ? (
+      <Show when={props.label}>
         <span class={`${LABEL_CLASS} text-[var(--rg-text-primary)] truncate min-w-0`}>
           {props.label}
         </span>
-      ) : null}
+      </Show>
       <div class="ml-auto shrink-0 flex items-center gap-1">
         <StepArrow
           direction="left"

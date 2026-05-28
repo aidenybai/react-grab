@@ -20,6 +20,7 @@ import { createAnchoredDropdown } from "../../utils/create-anchored-dropdown.js"
 import { findTailwindClass } from "../../utils/find-tailwind-class.js";
 import { cleanNumericValue, formatEditableValue } from "../../utils/format-css-value.js";
 import { formatSessionEditsPrompt } from "../../utils/format-edit-prompt.js";
+import { getShadowActiveElement } from "../../utils/get-shadow-active-element.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
 import { registerOverlayDismiss } from "../../utils/register-overlay-dismiss.js";
 import { suppressMenuEvent } from "../../utils/suppress-menu-event.js";
@@ -140,17 +141,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   const ensureSearchFocused = () => {
     queueMicrotask(() => {
       if (!searchInputRef) return;
-      // The panel mounts inside a Shadow DOM. `ownerDocument.activeElement`
-      // returns the shadow HOST (overlay container), never our textarea
-      // inside the shadow root — so a naive `!==` check is always true
-      // and `.focus()` fires on every commit (focus event spam + IME
-      // cursor reset). Read via getRootNode() + shadowRoot.activeElement.
-      const rootNode = searchInputRef.getRootNode();
-      const focusedElement =
-        rootNode instanceof ShadowRoot
-          ? (rootNode.activeElement as HTMLElement | null)
-          : (searchInputRef.ownerDocument.activeElement as HTMLElement | null);
-      if (focusedElement !== searchInputRef) {
+      if (getShadowActiveElement(searchInputRef) !== searchInputRef) {
         searchInputRef.focus({ preventScroll: true });
       }
     });
