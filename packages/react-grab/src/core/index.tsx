@@ -310,11 +310,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
     });
 
+    const isModalPopoverOpen = createMemo(
+      () => store.contextMenuPosition !== null || editMode.isOpen(),
+    );
     const isAnyPopoverOpen = createMemo(
-      () =>
-        store.contextMenuPosition !== null ||
-        editMode.isOpen() ||
-        toolbarMenuPosition() !== null,
+      () => isModalPopoverOpen() || toolbarMenuPosition() !== null,
     );
     let toolbarElement: HTMLDivElement | undefined;
     let stopToolbarMenuTracking: (() => void) | null = null;
@@ -2223,7 +2223,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const TYPE_TO_EDIT_KEY_PATTERN = /^[a-zA-Z0-9-]$/;
     const handleTypeToEdit = (event: KeyboardEvent): boolean => {
-      if (event.key.length !== 1 || !TYPE_TO_EDIT_KEY_PATTERN.test(event.key)) return false;
+      if (!event.key || event.key.length !== 1 || !TYPE_TO_EDIT_KEY_PATTERN.test(event.key)) return false;
       const element = canDispatchBareKey(event);
       if (!element) return false;
       const opened = editMode.trigger(
@@ -2241,6 +2241,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const element = canDispatchBareKey(event);
       if (!element) return false;
 
+      if (!event.key) return false;
       const keyLower = event.key.toLowerCase();
       const action = pluginRegistry.store.actions.find(
         (registeredAction) =>
@@ -2641,7 +2642,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const isTouchPointer = event.pointerType === "touch";
         actions.setTouchMode(isTouchPointer);
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-        if (isAnyPopoverOpen()) return;
+        if (isModalPopoverOpen()) return;
         if (isSelectionInteractionLocked()) return;
         if (isTouchPointer && !isHoldingKeys() && !isActivated()) return;
         const isActiveState = isTouchPointer ? isHoldingKeys() : isActivated();
@@ -2671,7 +2672,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (!event.isPrimary) return;
         actions.setTouchMode(event.pointerType === "touch");
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-        if (isAnyPopoverOpen()) return;
+        if (isModalPopoverOpen()) return;
 
         if (isPromptMode()) {
           const bounds = selectionBounds();
@@ -2714,7 +2715,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (event.button !== 0) return;
         if (!event.isPrimary) return;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-        if (isAnyPopoverOpen()) return;
+        if (isModalPopoverOpen()) return;
         const isActive = isRendererActive() || isSelectionInteractionLocked() || isDragging();
         const hasModifierKeyHeld = event.metaKey || event.ctrlKey;
         handlePointerUp(event.clientX, event.clientY, hasModifierKeyHeld, event.shiftKey);
@@ -2785,7 +2786,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       "click",
       (event: MouseEvent) => {
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-        if (isAnyPopoverOpen()) return;
+        if (isModalPopoverOpen()) return;
 
         if (isRendererActive() || didJustDrag()) {
           event.preventDefault();
