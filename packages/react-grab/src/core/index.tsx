@@ -3066,9 +3066,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!isThemeEnabled()) return false;
       if (!isSelectionBoxThemeEnabled()) return false;
       if (isSelectionSuppressed()) return false;
-      // While the edit panel is actively stepping a value, hide the
-      // selection overlay so the result is unobstructed. Restores after
-      // the panel's idle timer (EDIT_PANEL_ADJUSTING_IDLE_MS) elapses.
       if (editMode.isInteracting()) return false;
       if (hasDragPreviewBounds()) return true;
       return isSelectionElementVisible();

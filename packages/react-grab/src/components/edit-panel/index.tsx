@@ -89,6 +89,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   let interactingIdleTimerId: ReturnType<typeof setTimeout> | undefined;
   const [isTransientInteraction, setIsTransientInteraction] = createSignal(false);
   const isInteracting = createMemo(() => isTransientInteraction() || hasPendingTweaks());
+  const [isHeaderHovered, setIsHeaderHovered] = createSignal(false);
 
   const tagDisplay = createMemo(() =>
     getTagDisplay({
@@ -120,7 +121,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
 
   let lastBroadcastedInteracting: boolean | null = null;
   const broadcastInteracting = () => {
-    const nextInteracting = isInteracting();
+    const nextInteracting = isInteracting() && !isHeaderHovered();
     if (nextInteracting === lastBroadcastedInteracting) return;
     lastBroadcastedInteracting = nextInteracting;
     props.onInteractingChange?.(nextInteracting);
@@ -499,6 +500,14 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                     "contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 h-fit px-2",
                     hasPendingTweaks() ? "w-full self-stretch justify-between" : "w-fit",
                   )}
+                  onMouseEnter={() => {
+                    setIsHeaderHovered(true);
+                    broadcastInteracting();
+                  }}
+                  onMouseLeave={() => {
+                    setIsHeaderHovered(false);
+                    broadcastInteracting();
+                  }}
                 >
                   <TagBadge
                     tagName={tagDisplay().tagName}
