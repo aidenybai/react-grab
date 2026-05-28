@@ -1320,14 +1320,23 @@ const createReactGrabPageObject = (
 
   const registerCommentAction = async () => {
     await page.evaluate(() => {
-      const api = (
-        window as {
-          __REACT_GRAB__?: {
-            unregisterPlugin: (name: string) => void;
-          };
-        }
-      ).__REACT_GRAB__;
-      api?.unregisterPlugin("comment-action");
+      const api = window.__REACT_GRAB__;
+      if (!api || api.getPlugins().includes("comment")) return;
+      api.registerPlugin({
+        name: "comment",
+        actions: [
+          {
+            id: "comment",
+            label: "Comment",
+            shortcut: "Enter",
+            shortcutModifier: false,
+            showInToolbarMenu: true,
+            onAction: (context) => {
+              context.enterPromptMode?.();
+            },
+          },
+        ],
+      });
     });
   };
 

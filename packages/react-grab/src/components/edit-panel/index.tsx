@@ -29,6 +29,7 @@ import { cleanNumericValue, formatEditableValue } from "../../utils/format-css-v
 import { formatSessionEditsPrompt } from "../../utils/format-edit-prompt.js";
 import { getShadowActiveElement } from "../../utils/get-shadow-active-element.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
+import { isEventFromOverlay } from "../../utils/is-event-from-overlay.js";
 import { registerOverlayDismiss } from "../../utils/register-overlay-dismiss.js";
 import { suppressMenuEvent } from "../../utils/suppress-menu-event.js";
 import { TagBadge } from "../selection-label/tag-badge.js";
@@ -372,16 +373,8 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       shouldIgnoreInputEvents: true,
     });
 
-    // Compact mode can blur the hidden textarea, so the window owns panel keys.
-    const isPageEditableTarget = (target: EventTarget | undefined): boolean => {
-      if (!(target instanceof HTMLElement)) return false;
-      if (target instanceof HTMLInputElement) return true;
-      if (target instanceof HTMLTextAreaElement) return true;
-      if (target.isContentEditable) return true;
-      return false;
-    };
     const handleWindowKeyDown = (event: KeyboardEvent) => {
-      if (isPageEditableTarget(event.composedPath()[0])) return;
+      if (isEventFromOverlay(event, "data-react-grab-input")) return;
       handleSearchKeyDown(event);
     };
     const handleWindowKeyUp = (event: KeyboardEvent) => {

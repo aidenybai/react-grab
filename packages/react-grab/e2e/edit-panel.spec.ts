@@ -113,6 +113,42 @@ test.describe("Style Panel", () => {
       await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
     });
 
+    test("Escape remains owned by the panel after a host input receives focus", async ({
+      reactGrab,
+    }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      const focusedTestId = await reactGrab.page.evaluate(() => {
+        const hostInput = document.querySelector<HTMLInputElement>("[data-testid='test-input']");
+        hostInput?.focus();
+        return document.activeElement?.getAttribute("data-testid") ?? null;
+      });
+      expect(focusedTestId).toBe("test-input");
+
+      await reactGrab.page.keyboard.press("Escape");
+      await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
+    });
+
+    test("Escape opens discard prompt after host focus when tweaks are pending", async ({
+      reactGrab,
+    }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      const beforeTweak = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+      expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).not.toBe(beforeTweak);
+
+      const focusedTestId = await reactGrab.page.evaluate(() => {
+        const hostInput = document.querySelector<HTMLInputElement>("[data-testid='test-input']");
+        hostInput?.focus();
+        return document.activeElement?.getAttribute("data-testid") ?? null;
+      });
+      expect(focusedTestId).toBe("test-input");
+
+      await reactGrab.page.keyboard.press("Escape");
+      expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
+    });
+
     test("second Escape discards inline preview from the discard prompt", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       const beforeTweak = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
@@ -890,9 +926,10 @@ test.describe("Style Panel", () => {
   });
 
   test.describe("Comment plugin coexistence", () => {
-    test("Comment context menu item still triggers prompt mode when clicked", async ({
-      reactGrab,
-    }) => {
+    test("registerCommentAction restores the Comment context menu item", async ({ reactGrab }) => {
+      await reactGrab.page.evaluate(() => {
+        window.__REACT_GRAB__?.unregisterPlugin("comment");
+      });
       await reactGrab.registerCommentAction();
       await reactGrab.activate();
       await reactGrab.hoverElement(BUTTON_SELECTOR);
