@@ -262,6 +262,7 @@ export interface ContextMenuAction {
   id: string;
   label: string;
   shortcut?: string;
+  shortcutModifier?: boolean;
   showInToolbarMenu?: boolean;
   enabled?: boolean | ((context: ActionContext) => boolean);
   onAction: (context: ContextMenuActionContext) => void | Promise<void>;

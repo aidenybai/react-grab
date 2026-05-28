@@ -7,7 +7,8 @@ export const editPlugin: Plugin = {
       {
         id: "edit",
         label: "Style",
-        shortcut: "Enter",
+        shortcut: "S",
+        shortcutModifier: false,
         showInToolbarMenu: true,
         onAction: (context) => {
           context.enterEditMode?.();

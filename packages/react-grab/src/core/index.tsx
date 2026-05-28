@@ -2183,62 +2183,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return true;
     };
 
-    const handleEnterKeyActivation = (event: KeyboardEvent): boolean => {
-      if (!isEnterCode(event.code)) return false;
-      if (isKeyboardEventTriggeredByInput(event)) return false;
-      if (isCopying()) return false;
-      if (isSelectionInteractionLocked()) return false;
-      // When a popover owns the Enter semantics (context menu = activate
-      // item; edit panel = submit value; toolbar menu = pick action),
-      // bow out so this global handler doesn't re-trigger edit mode
-      // underneath the open popover — would otherwise reset its
-      // in-flight state.
-      if (isAnyPopoverOpen() || toolbarMenuPosition() !== null) return false;
-
-      const copiedElement = store.lastCopiedElement;
-      const canActivateFromCopied =
-        !isHoldingKeys() &&
-        !isPromptMode() &&
-        !isActivated() &&
-        copiedElement &&
-        isElementConnected(copiedElement) &&
-        !store.labelInstances.some(
-          (instance) => instance.status === "copied" || instance.status === "fading",
-        );
-
-      if (canActivateFromCopied) {
-        const center = getBoundsCenter(createElementBounds(copiedElement));
-        const opened = editMode.trigger(copiedElement, center);
-        if (!opened) return false;
-        // Only consume Enter and clear the copy state AFTER edit mode
-        // actually opens. If the element had no editable properties, we
-        // want the key to fall through to other handlers rather than
-        // swallow it with no visible result.
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        actions.clearLastCopied();
-        return true;
-      }
-
-      const canActivateFromHolding = isHoldingKeys() && !isPromptMode();
-
-      if (canActivateFromHolding) {
-        const element = store.frozenElement || targetElement();
-        if (!element) return false;
-        const opened = editMode.trigger(element, { x: pointer().x, y: pointer().y });
-        if (!opened) return false;
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        if (keydownSpamTimerId !== null) {
-          window.clearTimeout(keydownSpamTimerId);
-          keydownSpamTimerId = null;
-        }
-        return true;
-      }
-
-      return false;
-    };
-
     // Type-to-edit shortcut: while react-grab is active and the user is
     // hovering an element (selection mode, no panel/menu open), pressing
     // a letter (a–z, 0–9, dash) opens the edit panel on the hovered/
@@ -2254,9 +2198,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (event.repeat) return false;
       if (!isActivated()) return false;
       if (isPromptMode()) return false;
-      // Mirror handleEnterKeyActivation: don't open Style while a copy
-      // is mid-flight (would race the copy feedback) or while selection
-      // interaction is locked (drag, shift-select, etc.).
       if (isCopying()) return false;
       if (isSelectionInteractionLocked()) return false;
       if (isAnyPopoverOpen() || toolbarMenuPosition() !== null) return false;
@@ -2283,6 +2224,51 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         { initialSearchQuery: event.key },
       );
       if (!opened) return false;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      return true;
+    };
+
+    const handleBareKeyShortcut = (event: KeyboardEvent): boolean => {
+      if (event.metaKey || event.ctrlKey || event.altKey) return false;
+      if (event.repeat) return false;
+      if (isKeyboardEventTriggeredByInput(event)) return false;
+      if (!isActivated()) return false;
+      if (isPromptMode()) return false;
+      if (isCopying()) return false;
+      if (isSelectionInteractionLocked()) return false;
+      if (isAnyPopoverOpen() || toolbarMenuPosition() !== null) return false;
+
+      const keyLower = event.key.toLowerCase();
+      const action = pluginRegistry.store.actions.find(
+        (registeredAction) =>
+          registeredAction.shortcut &&
+          registeredAction.shortcutModifier === false &&
+          keyLower === registeredAction.shortcut.toLowerCase(),
+      );
+      if (!action) return false;
+
+      const element = store.frozenElement || targetElement();
+      if (!element) return false;
+
+      const position = { x: pointer().x, y: pointer().y };
+      const elementBounds = createElementBounds(element);
+      const context = buildActionContext({
+        element,
+        filePath: store.selectionFilePath ?? undefined,
+        lineNumber: store.selectionLineNumber ?? undefined,
+        tagName: getTagName(element) || undefined,
+        componentName: resolvedComponentName(),
+        position,
+        shouldDeferHideContextMenu: false,
+        performWithFeedbackOptions: {
+          fallbackBounds: elementBounds,
+          fallbackSelectionBounds: [elementBounds],
+          position,
+        },
+      });
+      action.onAction(context);
+
       event.preventDefault();
       event.stopImmediatePropagation();
       return true;
@@ -2536,9 +2522,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           Date.now() - lastWindowFocusTimestamp < WINDOW_REFOCUS_GRACE_PERIOD_MS;
 
         if (handleArrowNavigation(event)) return;
-        if (handleEnterKeyActivation(event)) return;
         if (handleOpenFileShortcut(event)) return;
         if (handleContextMenuKey(event)) return;
+        if (handleBareKeyShortcut(event)) return;
         if (handleTypeToEdit(event)) return;
 
         if (!didWindowJustRegainFocus) {

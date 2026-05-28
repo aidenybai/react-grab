@@ -52,6 +52,7 @@ interface MenuItem {
   action: () => void;
   enabled: boolean;
   shortcut?: string;
+  shortcutModifier?: boolean;
 }
 
 export const ContextMenu: Component<ContextMenuProps> = (props) => {
@@ -167,6 +168,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       },
       enabled: resolveActionEnabled(action, context),
       shortcut: action.shortcut,
+      shortcutModifier: action.shortcutModifier,
     }));
   });
 
@@ -314,8 +316,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       if (isEnter) {
         // Active row wins when the user has explicitly navigated to one.
         // Otherwise fall back to the action that registered Enter as its
-        // shortcut (typically "Style" → prompt mode), matching the legacy
-        // behavior so opening the menu and pressing Enter still works.
+        // shortcut (Comment → prompt mode).
         const activeIndex = activeItemIndex();
         if (activeIndex >= 0) {
           const activeAction = pluginActions[activeIndex];
@@ -331,13 +332,26 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
         return;
       }
 
-      if (!hasModifierKey) return;
       if (event.repeat) return;
+
+      const bareKeyAction = pluginActions.find(
+        (action) =>
+          action.shortcut &&
+          action.shortcutModifier === false &&
+          keyLower === action.shortcut.toLowerCase(),
+      );
+      if (bareKeyAction) {
+        runActionIfAllowed(bareKeyAction);
+        return;
+      }
+
+      if (!hasModifierKey) return;
 
       const modifierAction = pluginActions.find(
         (action) =>
           action.shortcut &&
           action.shortcut !== "Enter" &&
+          action.shortcutModifier !== false &&
           keyLower === action.shortcut.toLowerCase(),
       );
       if (modifierAction) {
@@ -472,6 +486,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
                       {(shortcut) => (
                         <ShortcutHint
                           shortcut={shortcut()}
+                          modifier={item.shortcutModifier}
                           class="text-[11px] font-sans text-[var(--rg-text-secondary)] ml-4"
                         />
                       )}

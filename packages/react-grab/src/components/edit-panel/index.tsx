@@ -244,7 +244,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   });
 
   const isSearchInputHidden = createMemo(
-    () => isCompact() && (searchQuery() === "" || autoApply.isInlineNumericEdit()),
+    () => isCompact() && searchQuery() !== "" && autoApply.isInlineNumericEdit(),
   );
 
   const handleSubmit = () => {
@@ -282,6 +282,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
 
   const showPendingDismissPrompt = (shake: boolean) => {
     stepController.cancelRepeat();
+    setIsCompact(false);
     setIsPendingDismiss(true);
     clearTimeout(pendingDismissTimerId);
     pendingDismissTimerId = setTimeout(() => {
@@ -624,7 +625,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                 autoApply.applyTailwindClass(next);
               }}
               onKeyDown={handleSearchKeyDown}
-              placeholder="Search property"
+              placeholder={isCompact() ? (activeProperty()?.label ?? "Search property") : "Search property"}
               rows={1}
             />
           </div>
