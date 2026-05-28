@@ -6,7 +6,7 @@ export const editPlugin: Plugin = {
     actions: [
       {
         id: "edit",
-        label: "Budge",
+        label: "Style",
         shortcut: "Enter",
         showInToolbarMenu: true,
         onAction: (context) => {

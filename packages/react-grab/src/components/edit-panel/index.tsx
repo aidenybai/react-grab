@@ -455,7 +455,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
         ref={containerRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Edit element styles"
+        aria-label="Style element"
         data-react-grab-ignore-events
         data-react-grab-edit-panel
         data-rg-compact={isCompact() ? "true" : "false"}
@@ -599,7 +599,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
               tabIndex={isSearchInputHidden() ? -1 : 0}
               class="text-[var(--rg-text-primary)] text-[13px] leading-4 font-medium bg-transparent border-none resize-none w-full p-0 m-0 outline-none"
               style={{
-                "caret-color": searchQuery() === "" ? "transparent" : "var(--rg-text-primary)",
+                "caret-color": "var(--rg-text-primary)",
                 "field-sizing": "content",
                 "min-height": "16px",
                 "max-height": "16px",

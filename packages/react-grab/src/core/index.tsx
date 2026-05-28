@@ -2254,7 +2254,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (event.repeat) return false;
       if (!isActivated()) return false;
       if (isPromptMode()) return false;
-      // Mirror handleEnterKeyActivation: don't open Budge while a copy
+      // Mirror handleEnterKeyActivation: don't open Style while a copy
       // is mid-flight (would race the copy feedback) or while selection
       // interaction is locked (drag, shift-select, etc.).
       if (isCopying()) return false;
@@ -2310,7 +2310,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!isActivated()) return false;
       if (isCopying() || isPromptMode()) return false;
       if (store.contextMenuPosition !== null) return false;
-      // Edit panel owns the surface while it's open — context menu
+      // Style panel owns the surface while it's open — context menu
       // would land on top and split keyboard routing.
       if (editMode.isOpen()) return false;
 
@@ -2483,7 +2483,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
-        // Edit panel owns Escape while it's open: it runs a two-step
+        // Style panel owns Escape while it's open: it runs a two-step
         // discard-confirm flow (shake first, dismiss second) that the
         // global isFromOverlay branch below would override by calling
         // deactivateRenderer() outright.
@@ -2775,7 +2775,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       "contextmenu",
       (event: MouseEvent) => {
         if (!isRendererActive() || isCopying() || isPromptMode()) return;
-        // Edit panel owns the surface while it's open — context menu
+        // Style panel owns the surface while it's open — context menu
         // would land on top and split keyboard routing between two
         // popovers.
         if (editMode.isOpen()) return;
@@ -3554,7 +3554,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         editMode.isOpen,
         (isOpen) => {
           if (isOpen) {
-            // Two popovers can't coexist — opening Budge from the
+            // Two popovers can't coexist — opening Style from the
             // context menu / selection-label expand path should close
             // the toolbar menu the same way handleToggleToolbarMenu
             // closes the context menu when going the other direction.
@@ -3579,7 +3579,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         dismissToolbarMenu();
       } else {
         // Single-popover rule (symmetric with the editMode.isOpen
-        // effect that dismisses the toolbar menu when Budge opens) —
+        // effect that dismisses the toolbar menu when Style opens) —
         // close any other anchored popovers before opening this one.
         // `closePreservingRenderer` (not `dismiss`) because in
         // toolbar-toggle mode `dismiss` would `deactivateRenderer` —

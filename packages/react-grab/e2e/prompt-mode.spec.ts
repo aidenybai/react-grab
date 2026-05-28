@@ -11,7 +11,7 @@ test.describe("Prompt Mode", () => {
       await reactGrab.waitForSelectionBox();
 
       await reactGrab.rightClickElement("li:first-child");
-      await reactGrab.clickContextMenuItem("Edit");
+      await reactGrab.clickContextMenuItem("Style");
 
       await expect.poll(() => reactGrab.isPromptModeActive()).toBe(true);
     });
@@ -262,7 +262,7 @@ test.describe("Prompt Mode", () => {
       await reactGrab.waitForSelectionBox();
 
       await reactGrab.rightClickElement("li:first-child");
-      await reactGrab.clickContextMenuItem("Edit");
+      await reactGrab.clickContextMenuItem("Style");
 
       await expect.poll(() => reactGrab.isPromptModeActive()).toBe(true);
     });

@@ -314,7 +314,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       if (isEnter) {
         // Active row wins when the user has explicitly navigated to one.
         // Otherwise fall back to the action that registered Enter as its
-        // shortcut (typically "Edit" → prompt mode), matching the legacy
+        // shortcut (typically "Style" → prompt mode), matching the legacy
         // behavior so opening the menu and pressing Enter still works.
         const activeIndex = activeItemIndex();
         if (activeIndex >= 0) {

@@ -588,8 +588,8 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       await waitForSelectionBox();
     }
     await rightClickElement(selector);
-    // "Edit" opens the style-tweak panel; prompt-mode is owned by the
-    // "Comment" action (introduced when the Edit panel was split out).
+    // "Style" opens the style-tweak panel; prompt-mode is owned by the
+    // "Comment" action.
     await clickContextMenuItem("Comment");
     await waitForPromptMode(true);
   };
@@ -1260,10 +1260,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
           };
         }
       ).__REACT_GRAB__;
-      // Unregister the built-in `edit` plugin (the Budge style-tweak
-      // panel) so prompt-mode tests interact with this comment shim
-      // exclusively. The shim uses label "Edit" for legacy compat with
-      // prompt-mode tests written before Budge existed.
+      // Unregister the built-in `edit` plugin so prompt-mode tests use this shim.
       api?.unregisterPlugin("edit");
       api?.unregisterPlugin("comment-action");
       api?.registerPlugin({
@@ -1271,7 +1268,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         actions: [
           {
             id: "comment-action",
-            label: "Edit",
+            label: "Style",
             shortcut: "Enter",
             onAction: (context: { enterPromptMode?: () => void }) => {
               context.enterPromptMode?.();

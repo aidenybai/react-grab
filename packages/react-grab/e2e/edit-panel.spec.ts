@@ -527,17 +527,17 @@ const openEditPanel = async (
   await reactGrab.hoverElement(selector);
   await reactGrab.waitForSelectionBox();
   await reactGrab.rightClickElement(selector);
-  await reactGrab.clickContextMenuItem("Budge");
+  await reactGrab.clickContextMenuItem("Style");
   await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(true);
 };
 
-test.describe("Edit Panel", () => {
+test.describe("Style Panel", () => {
   test.beforeEach(async ({ reactGrab }) => {
     await clearEditStorage(reactGrab.page);
   });
 
   test.describe("Opening", () => {
-    test("right-click → Edit opens the panel", async ({ reactGrab }) => {
+    test("right-click -> Style opens the panel", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
     });
@@ -559,7 +559,7 @@ test.describe("Edit Panel", () => {
         reactGrab.page,
         '[role="menu"], [data-react-grab-menu-item]',
       );
-      expect(focusVisualStates.map((state) => state.label)).toContain("budge");
+      expect(focusVisualStates.map((state) => state.label)).toContain("style");
       expect(
         focusVisualStates.filter(
           (state) => state.outlineStyle !== "none" || state.boxShadow !== "none",
@@ -567,7 +567,7 @@ test.describe("Edit Panel", () => {
       ).toEqual([]);
     });
 
-    test("Budge controls have no focus ring", async ({ reactGrab }) => {
+    test("Style controls have no focus ring", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       const focusVisualStates = await getOverlayFocusVisualStates(
         reactGrab.page,
@@ -581,7 +581,7 @@ test.describe("Edit Panel", () => {
       ).toEqual([]);
     });
 
-    test("Edit context menu item carries the Enter shortcut", async ({ reactGrab }) => {
+    test("Style context menu item carries the Enter shortcut", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement(BUTTON_SELECTOR);
       await reactGrab.waitForSelectionBox();
@@ -593,7 +593,7 @@ test.describe("Edit Panel", () => {
         if (!shadow) return false;
         const root = shadow.querySelector(`[${attr}]`);
         if (!root) return false;
-        const editButton = root.querySelector(`[data-react-grab-menu-item="budge"]`);
+        const editButton = root.querySelector(`[data-react-grab-menu-item="style"]`);
         // The shortcut hint renders 'Enter' (or '↵' icon) within the row.
         return Boolean(editButton);
       }, ATTRIBUTE_NAME);

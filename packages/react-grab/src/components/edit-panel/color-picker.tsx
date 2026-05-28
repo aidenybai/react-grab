@@ -119,7 +119,7 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
             data-react-grab-input
             type="text"
             inputmode="text"
-            aria-label="Edit color hex"
+            aria-label="Style color hex"
             autocapitalize="none"
             autocorrect="off"
             autocomplete="off"

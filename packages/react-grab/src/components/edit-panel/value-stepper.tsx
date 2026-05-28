@@ -345,7 +345,7 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
               data-react-grab-input
               type="text"
               inputmode="decimal"
-              aria-label="Edit value"
+              aria-label="Style value"
               autocapitalize="none"
               autocorrect="off"
               autocomplete="off"
