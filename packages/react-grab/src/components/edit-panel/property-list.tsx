@@ -192,9 +192,9 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
                     </span>
                     <Switch>
                       <Match when={property().kind === "numeric"}>
-                        <span class="text-[11px] font-sans text-[var(--rg-text-secondary)] tabular-nums shrink-0">
-                          {formatDisplayValue(asNumeric(property()).value)}
-                          {asNumeric(property()).unit}
+                        <span class="font-sans text-[var(--rg-text-secondary)] tabular-nums shrink-0">
+                          <span class="text-[11px]">{formatDisplayValue(asNumeric(property()).value)}</span>
+                          <span class="text-[9px] ml-px">{asNumeric(property()).unit}</span>
                         </span>
                       </Match>
                       <Match when={property().kind === "color"}>

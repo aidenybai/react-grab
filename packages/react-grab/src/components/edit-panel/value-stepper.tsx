@@ -330,7 +330,7 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
                   class={`${VALUE_CLASS} text-[var(--rg-text-primary)]`}
                 >
                   <Slot>{formatDisplayValue(props.value)}</Slot>
-                  <span class="text-[var(--rg-text-secondary)] ml-px">{props.unit}</span>
+                  <span class="text-[9px] text-[var(--rg-text-secondary)] ml-px">{props.unit}</span>
                 </span>
               </span>
             }

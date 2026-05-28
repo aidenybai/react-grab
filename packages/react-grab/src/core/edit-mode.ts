@@ -34,6 +34,8 @@ interface EditModeDependencies {
     extraPrompt?: string;
     shouldDeactivateAfter: boolean;
   }) => void;
+  onOpen?: () => void;
+  onClose?: () => void;
 }
 
 export interface EditModeController {
@@ -78,8 +80,10 @@ export const createEditModeController = (
   };
 
   const clearAll = () => {
+    const wasOpen = state() !== null;
     setState(null);
     setIsInteracting(false);
+    if (wasOpen) dependencies.onClose?.();
   };
 
   // Force-revert + clear. Used by deactivateRenderer / unmount paths
@@ -137,6 +141,7 @@ export const createEditModeController = (
     dependencies.actions.setPointer(position);
     dependencies.actions.setFrozenElement(element);
     dependencies.actions.freeze();
+    dependencies.onOpen?.();
     return true;
   };
 

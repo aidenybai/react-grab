@@ -295,10 +295,26 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       activateRenderer: () => activateRenderer(),
       deactivateRenderer: () => deactivateRenderer(),
       performCopyWithLabel: (options) => performCopyWithLabel(options),
+      onOpen: () => {
+        dismissToolbarMenu();
+        stopEditPanelTracking?.();
+        stopEditPanelTracking = trackDropdownPosition(
+          computeEditPanelAnchor,
+          setEditPanelPosition,
+        );
+      },
+      onClose: () => {
+        stopEditPanelTracking?.();
+        stopEditPanelTracking = null;
+        setEditPanelPosition(null);
+      },
     });
 
     const isAnyPopoverOpen = createMemo(
-      () => store.contextMenuPosition !== null || editMode.isOpen(),
+      () =>
+        store.contextMenuPosition !== null ||
+        editMode.isOpen() ||
+        toolbarMenuPosition() !== null,
     );
     let toolbarElement: HTMLDivElement | undefined;
     let stopToolbarMenuTracking: (() => void) | null = null;
@@ -1454,13 +1470,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const previousFocused = store.previouslyFocusedElement;
       stopSpaceDragRepositioning();
       actions.deactivate();
-      // editMode state must be cleared in lockstep with deactivate(): the
-      // global pointermove/click handlers exit early when it's non-null, so
-      // a stray panel left mounted after deactivation would silently block
-      // every selection until the user re-dismissed it. EditPanel's own
-      // cleanup effect then restores any preview styles via the captured
-      // target-element ref.
       editMode.reset();
+      dismissToolbarMenu();
       stopShiftMultiSelecting();
       clearArrowNavigation();
       keyboardSelectedElement = null;
@@ -1590,9 +1601,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const openContextMenu = (element: Element, position: Position) => {
       stopShiftMultiSelecting();
+      dismissToolbarMenu();
+      editMode.dismiss();
       actions.showContextMenu(position, element);
       clearArrowNavigation();
-      dismissAllPopups();
       pluginRegistry.hooks.onContextMenu(element, position);
     };
 
@@ -1610,22 +1622,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return;
       }
 
-      const elementBounds = createElementBounds(element);
-      const context = buildActionContext({
-        element,
-        filePath: store.selectionFilePath ?? undefined,
-        lineNumber: store.selectionLineNumber ?? undefined,
-        tagName: getTagName(element) || undefined,
-        componentName: resolvedComponentName(),
-        position,
-        shouldDeferHideContextMenu: false,
-        performWithFeedbackOptions: {
-          fallbackBounds: elementBounds,
-          fallbackSelectionBounds: [elementBounds],
-          position,
-        },
-      });
-      action.onAction(context);
+      action.onAction(buildImmediateActionContext(element, position));
     };
 
     const handleComment = () => {
@@ -2132,7 +2129,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleArrowNavigation = (event: KeyboardEvent): boolean => {
-      if (!isActivated() || isPromptMode()) return false;
+      if (!isActivated()) return false;
       if (isShiftMultiSelecting()) return false;
       if (!ARROW_KEYS.has(event.key)) return false;
       // While the context menu or edit panel is open, arrow keys belong
@@ -2192,55 +2189,23 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     // Examples:
     //   `p` → opens panel for hovered element, padding row active, compact.
     //   `m` then `t` then `-` then `5` → margin-top 20px applied.
-    const TYPE_TO_EDIT_KEY_PATTERN = /^[a-zA-Z0-9-]$/;
-    const handleTypeToEdit = (event: KeyboardEvent): boolean => {
-      if (event.metaKey || event.ctrlKey || event.altKey) return false;
-      if (event.repeat) return false;
-      if (!isActivated()) return false;
-      if (isPromptMode()) return false;
-      if (isCopying()) return false;
-      if (isSelectionInteractionLocked()) return false;
-      if (isAnyPopoverOpen() || toolbarMenuPosition() !== null) return false;
-      if (event.key.length !== 1 || !TYPE_TO_EDIT_KEY_PATTERN.test(event.key)) return false;
-      if (isKeyboardEventTriggeredByInput(event)) return false;
-      const element = store.frozenElement || targetElement();
-      if (!element) return false;
-      const opened = editMode.trigger(
-        element,
-        { x: pointer().x, y: pointer().y },
-        { initialSearchQuery: event.key },
-      );
-      if (!opened) return false;
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      return true;
+    const canDispatchBareKey = (event: KeyboardEvent): Element | null => {
+      if (event.metaKey || event.ctrlKey || event.altKey) return null;
+      if (event.repeat) return null;
+      if (isKeyboardEventTriggeredByInput(event)) return null;
+      if (!isActivated()) return null;
+      if (isCopying()) return null;
+      if (isSelectionInteractionLocked()) return null;
+      if (isAnyPopoverOpen()) return null;
+      return store.frozenElement || targetElement();
     };
 
-    const handleBareKeyShortcut = (event: KeyboardEvent): boolean => {
-      if (event.metaKey || event.ctrlKey || event.altKey) return false;
-      if (event.repeat) return false;
-      if (isKeyboardEventTriggeredByInput(event)) return false;
-      if (!isActivated()) return false;
-      if (isPromptMode()) return false;
-      if (isCopying()) return false;
-      if (isSelectionInteractionLocked()) return false;
-      if (isAnyPopoverOpen() || toolbarMenuPosition() !== null) return false;
-
-      const keyLower = event.key.toLowerCase();
-      const action = pluginRegistry.store.actions.find(
-        (registeredAction) =>
-          registeredAction.shortcut &&
-          registeredAction.shortcutModifier === false &&
-          keyLower === registeredAction.shortcut.toLowerCase(),
-      );
-      if (!action) return false;
-
-      const element = store.frozenElement || targetElement();
-      if (!element) return false;
-
-      const position = { x: pointer().x, y: pointer().y };
+    const buildImmediateActionContext = (
+      element: Element,
+      position: Position,
+    ): ContextMenuActionContext => {
       const elementBounds = createElementBounds(element);
-      const context = buildActionContext({
+      return buildActionContext({
         element,
         filePath: store.selectionFilePath ?? undefined,
         lineNumber: store.selectionLineNumber ?? undefined,
@@ -2254,7 +2219,39 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           position,
         },
       });
-      action.onAction(context);
+    };
+
+    const TYPE_TO_EDIT_KEY_PATTERN = /^[a-zA-Z0-9-]$/;
+    const handleTypeToEdit = (event: KeyboardEvent): boolean => {
+      if (event.key.length !== 1 || !TYPE_TO_EDIT_KEY_PATTERN.test(event.key)) return false;
+      const element = canDispatchBareKey(event);
+      if (!element) return false;
+      const opened = editMode.trigger(
+        element,
+        { x: pointer().x, y: pointer().y },
+        { initialSearchQuery: event.key },
+      );
+      if (!opened) return false;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      return true;
+    };
+
+    const handleBareKeyShortcut = (event: KeyboardEvent): boolean => {
+      const element = canDispatchBareKey(event);
+      if (!element) return false;
+
+      const keyLower = event.key.toLowerCase();
+      const action = pluginRegistry.store.actions.find(
+        (registeredAction) =>
+          registeredAction.shortcut &&
+          registeredAction.shortcutModifier === false &&
+          keyLower === registeredAction.shortcut.toLowerCase(),
+      );
+      if (!action) return false;
+
+      const position = { x: pointer().x, y: pointer().y };
+      action.onAction(buildImmediateActionContext(element, position));
 
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -2262,7 +2259,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleOpenFileShortcut = (event: KeyboardEvent): boolean => {
-      if (event.key?.toLowerCase() !== "o" || isPromptMode()) return false;
+      if (event.key?.toLowerCase() !== "o") return false;
       if (!isActivated() || !(event.metaKey || event.ctrlKey)) return false;
 
       const filePath = store.selectionFilePath;
@@ -2281,7 +2278,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleContextMenuKey = (event: KeyboardEvent): boolean => {
       if (!isActivated()) return false;
-      if (isCopying() || isPromptMode()) return false;
+      if (isCopying()) return false;
       if (store.contextMenuPosition !== null) return false;
       // Style panel owns the surface while it's open — context menu
       // would land on top and split keyboard routing.
@@ -2442,25 +2439,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
-        if (event.key === "Escape" && toolbarMenuPosition() !== null) {
-          dismissToolbarMenu();
-          return;
-        }
-
-        // When the context menu is open, its own registerOverlayDismiss
-        // listener handles Escape. Bail out so the global handler doesn't
-        // fire deactivateRenderer first via the isFromOverlay branch
-        // (the menu container now holds focus, so composedPath() includes
-        // data-react-grab-ignore-events).
-        if (event.key === "Escape" && store.contextMenuPosition !== null) {
-          return;
-        }
-
-        // Style panel owns Escape while it's open: it runs a two-step
-        // discard-confirm flow (shake first, dismiss second) that the
-        // global isFromOverlay branch below would override by calling
-        // deactivateRenderer() outright.
-        if (event.key === "Escape" && editMode.isOpen()) {
+        // Each popover owns its own Escape handling (context menu and
+        // edit panel via registerOverlayDismiss, toolbar menu via this
+        // path). Bail so the global handler doesn't deactivateRenderer.
+        if (event.key === "Escape" && isAnyPopoverOpen()) {
+          if (toolbarMenuPosition() !== null) dismissToolbarMenu();
           return;
         }
 
@@ -2689,7 +2672,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.setTouchMode(event.pointerType === "touch");
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (isAnyPopoverOpen()) return;
-        if (toolbarMenuPosition() !== null) return;
 
         if (isPromptMode()) {
           const bounds = selectionBounds();
@@ -3512,37 +3494,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const dismissAllPopups = () => {
+      actions.hideContextMenu();
       dismissToolbarMenu();
       editMode.dismiss();
     };
-
-    // Anchor the edit panel to the toolbar like the toolbar menu / former
-    // comments dropdown. Track the toolbar's bounding rect each frame so
-    // the panel stays glued to it as the toolbar moves/repositions.
-    createEffect(
-      on(
-        editMode.isOpen,
-        (isOpen) => {
-          if (isOpen) {
-            // Two popovers can't coexist — opening Style from the
-            // context menu / selection-label expand path should close
-            // the toolbar menu the same way handleToggleToolbarMenu
-            // closes the context menu when going the other direction.
-            dismissToolbarMenu();
-            stopEditPanelTracking?.();
-            stopEditPanelTracking = trackDropdownPosition(
-              computeEditPanelAnchor,
-              setEditPanelPosition,
-            );
-          } else {
-            stopEditPanelTracking?.();
-            stopEditPanelTracking = null;
-            setEditPanelPosition(null);
-          }
-        },
-        { defer: true },
-      ),
-    );
 
     const handleToggleToolbarMenu = () => {
       if (toolbarMenuPosition() !== null) {
@@ -3588,6 +3543,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           : [contextMenuElement];
 
       setTimeout(() => {
+        dismissToolbarMenu();
+        if (editMode.isOpen()) editMode.closePreservingRenderer();
         if (!isActivated()) {
           actions.setWasActivatedByToggle(true);
           activateRenderer();

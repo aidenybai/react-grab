@@ -1,4 +1,4 @@
-import { createMemo, createSignal, onCleanup, onMount, Show, type Component } from "solid-js";
+import { createEffect, createMemo, createSignal, onCleanup, onMount, Show, type Component } from "solid-js";
 import {
   DROPDOWN_EDGE_TRANSFORM_ORIGIN,
   EDIT_DISCARD_PROMPT_IDLE_MS,
@@ -120,21 +120,18 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     }, EDIT_PANEL_ACTIVE_KEY_FLASH_MS);
   };
 
-  let lastBroadcastedInteracting: boolean | null = null;
-  const broadcastInteracting = () => {
-    const nextInteracting = isInteracting() && !isHeaderHovered();
-    if (nextInteracting === lastBroadcastedInteracting) return;
-    lastBroadcastedInteracting = nextInteracting;
+  const effectiveInteracting = createMemo(() => isInteracting() && !isHeaderHovered());
+
+  createEffect(() => {
+    const nextInteracting = effectiveInteracting();
     props.onInteractingChange?.(nextInteracting);
-  };
+  });
 
   const markAsInteracting = () => {
     setIsTransientInteraction(true);
-    broadcastInteracting();
     clearTimeout(interactingIdleTimerId);
     interactingIdleTimerId = setTimeout(() => {
       setIsTransientInteraction(false);
-      broadcastInteracting();
     }, EDIT_PANEL_ADJUSTING_IDLE_MS);
   };
 
@@ -235,7 +232,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   });
 
   const isSearchInputHidden = createMemo(
-    () => isCompact() && (searchQuery() === "" || autoApply.isInlineNumericEdit()),
+    () => isCompact() && searchQuery() !== "" && autoApply.isInlineNumericEdit(),
   );
 
   const handleSubmit = () => {
@@ -332,13 +329,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       }
       handleSubmit();
     },
-    Escape: () => {
-      if (isPendingDismiss()) {
-        closePanel("discard");
-        return;
-      }
-      attemptDismiss();
-    },
+    Escape: () => attemptDismiss(),
   };
 
   const handleSearchKeyDown = (event: KeyboardEvent) => {
@@ -432,7 +423,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       clearTimeout(pendingDismissTimerId);
       dropdown.clearAnimationHandles();
       setIsTransientInteraction(false);
-      broadcastInteracting();
       preview.forget();
     });
   });
@@ -492,14 +482,8 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                     "contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 h-fit px-2",
                     hasPendingTweaks() ? "w-full self-stretch justify-between" : "w-fit",
                   )}
-                  onMouseEnter={() => {
-                    setIsHeaderHovered(true);
-                    broadcastInteracting();
-                  }}
-                  onMouseLeave={() => {
-                    setIsHeaderHovered(false);
-                    broadcastInteracting();
-                  }}
+                  onMouseEnter={() => setIsHeaderHovered(true)}
+                  onMouseLeave={() => setIsHeaderHovered(false)}
                 >
                   <TagBadge
                     tagName={tagDisplay().tagName}
