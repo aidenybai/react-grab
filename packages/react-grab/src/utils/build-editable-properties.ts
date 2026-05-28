@@ -316,9 +316,6 @@ const INSET_AGGREGATES: readonly AggregateDefinition[] = [
   { key: "left", label: "left", longhands: ["left"] },
 ];
 
-// Non-aggregate rows (each row maps 1:1 to a single CSS longhand). The
-// canonical flag is always true for singles because there's no broader
-// row that could subsume them.
 const SINGLE_PROPERTIES: readonly { key: TrackedProperty; label: string }[] = [
   { key: "font-size", label: "font size" },
   { key: "line-height", label: "line height" },
@@ -708,9 +705,6 @@ const measureBaseline = (target: Element): ComputedSnapshot | null => {
   }
 };
 
-// Diff-based default detection: a property is "default" if every CSS
-// longhand it covers matches the baseline. Replaces the per-property
-// heuristics for elements where the baseline can be measured.
 const matchesBaseline = (
   cssProperties: readonly string[],
   currentSnapshot: ComputedSnapshot,
@@ -818,9 +812,6 @@ const finalizeProperties = (
   currentSnapshot: ComputedSnapshot,
   baseline: ComputedSnapshot | null,
 ): EditableProperty[] => {
-  // prioritizedTier: rows the element actively uses a Tailwind class
-  // for — surfaced first because they're known-relevant.
-  // recommendedTier: everything else, ordered by RECOMMENDED_KEY_ORDER.
   const prioritizedTier: EditableProperty[] = [];
   const recommendedTier: EditableProperty[] = [];
 

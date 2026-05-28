@@ -57,13 +57,7 @@ export interface EditModeController {
   // (those are user-initiated commits / stash-for-later).
   reset: () => void;
   isOpen: Accessor<boolean>;
-  // The panel registers a callback that reverts in-progress preview
-  // styles. Called from `reset()` before state is cleared so the
-  // restore can read the panel's baseline map before unmount.
   registerForceDiscard: (discard: (() => void) | null) => void;
-  // True while the user is actively stepping a value (keyboard or pointer).
-  // Page-level selection overlay reads this to hide itself so the live
-  // preview reads cleanly underneath.
   isInteracting: Accessor<boolean>;
   setInteracting: (interacting: boolean) => void;
 }
@@ -86,10 +80,7 @@ export const createEditModeController = (
     if (wasOpen) dependencies.onClose?.();
   };
 
-  // Force-revert + clear. Used by deactivateRenderer / unmount paths
-  // where the user lost control of the panel and any in-progress
-  // preview styles should NOT survive on the DOM. User-initiated
-  // dismiss + submit deliberately do NOT call this (they preserve).
+
   const resetWithDiscard = () => {
     forceDiscardPreview?.();
     clearAll();
@@ -149,8 +140,6 @@ export const createEditModeController = (
     const currentState = state();
     if (!currentState) return;
     const element = currentState.element;
-    // Clear state first so the renderer hides EditPanel before the
-    // copy-feedback label takes over the same anchor position.
     clearAll();
     // Mirror `dismiss`'s freeze handling. Toggle mode hands off to
     // `performCopyWithLabel` which deactivates the renderer (which

@@ -185,7 +185,6 @@ export interface NumericEditableProperty extends EditablePropertyBase {
 
 export interface ColorEditableProperty extends EditablePropertyBase {
   kind: "color";
-  // Hex string ("#rrggbb" or "#rrggbbaa") for both display and CSS write.
   value: string;
   original: string;
 }
@@ -207,9 +206,6 @@ export type EditableProperty =
   | ColorEditableProperty
   | EnumEditableProperty;
 
-// Discriminated by `kind` — the prompt formatter switches on it.
-// Numeric edits carry value + unit; colour/enum edits carry a single
-// CSS-ready string.
 interface NumericPendingEdit {
   kind: "numeric";
   key: string;

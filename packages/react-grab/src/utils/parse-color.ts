@@ -1,6 +1,3 @@
-// Parses a CSS computed color value (always returned by browsers as
-// `rgb(r, g, b)` or `rgba(r, g, b, a)`) into a `#rrggbb` or `#rrggbbaa`
-// hex string. Returns `null` for unparseable inputs (e.g. gradients).
 const NUMERIC_RGB =
   /^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:\s*[,/]\s*([\d.]+%?))?\s*\)$/;
 
@@ -54,8 +51,6 @@ interface HslColor {
   a: number;
 }
 
-// RGB → HSL via the standard formula. Hue is in degrees (0–360),
-// saturation and lightness are in 0–100, alpha is 0–1.
 export const hexToHsl = (hex: string): HslColor | null => {
   const channels = parseHexChannels(hex);
   if (!channels) return null;
@@ -103,10 +98,7 @@ const hslToHex = ({ h, s, l, a }: HslColor): string => {
   return `#${red}${green}${blue}${toHexByte(a * 255)}`;
 };
 
-// Smart step: ±lightnessDelta on the HSL lightness channel, preserving
-// hue/sat/alpha. Returns the same color if step is a no-op (already at
-// the clamp boundary), so callers can early-out the way numeric tweak
-// already does when the rounded value didn't change.
+
 export const stepColorLightness = (hex: string, delta: number): string | null => {
   const hsl = hexToHsl(hex);
   if (!hsl) return null;

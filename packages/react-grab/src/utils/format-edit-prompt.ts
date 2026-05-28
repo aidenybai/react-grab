@@ -28,9 +28,6 @@ const formatEntryCss = (entry: PendingEditsEntry): string[] => {
   );
 };
 
-// Composes a single prompt section covering every pending edit collected
-// across the session. With one entry, omits the location header — the
-// standard payload already references that element.
 export const formatSessionEditsPrompt = (entries: PendingEditsEntry[]): string => {
   if (entries.length === 0) return "";
 

@@ -1,8 +1,5 @@
 import { rgbStringToHex } from "./parse-color.js";
 
-// Accepts `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa` (with or without
-// the leading `#`). Shorthand forms expand to the long form so the
-// rest of the pipeline can assume `#rrggbb[aa]` exclusively.
 const HEX_PATTERN = /^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 const normalizeHex = (raw: string): string | null => {
   const match = raw.match(HEX_PATTERN);
@@ -50,7 +47,6 @@ export const parseAnyColor = (input: string): string | null => {
   // refuse a perfectly valid color.
   if (trimmedColorInput.toLowerCase() === "transparent") return TRANSPARENT_BLACK_HEX;
 
-  // Fast path: already-valid hex (with or without `#`, 3/4/6/8 digit).
   const directHex = normalizeHex(trimmedColorInput);
   if (directHex) return directHex;
 

@@ -1,8 +1,5 @@
 import type { EnumEditableOption } from "../types.js";
 
-// Returns the option at `+direction` from the currently selected value,
-// wrapping at the ends. Returns null when the options list is empty or
-// when the step lands on the same value (so callers can early-out).
 export const pickNextOption = (
   options: ReadonlyArray<EnumEditableOption>,
   currentValue: string,

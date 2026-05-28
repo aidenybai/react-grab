@@ -15,9 +15,6 @@ const AGGREGATE_LONGHANDS: Record<string, ReadonlyArray<string>> = {
   gap: ["row-gap", "column-gap"],
 };
 
-// Comma-joined keys (e.g. "padding-left,padding-right") split into
-// their components; top-level aggregates expand to their CSS sides;
-// everything else (single longhand) returns as a single-element array.
 export const expandAggregateLonghands = (cssKey: string): string[] => {
   if (cssKey.includes(",")) return cssKey.split(",");
   const expansion = AGGREGATE_LONGHANDS[cssKey];

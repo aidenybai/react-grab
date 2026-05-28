@@ -2,8 +2,7 @@ import { hexToHsl } from "./parse-color.js";
 
 const TAILWIND_SHADES = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950] as const;
 
-// Tailwind v3 default color palette (slate→rose, 22 families × 11 shades).
-// Used by Shift+←/→ snap-step on a color row.
+
 const TAILWIND_PALETTE: Record<string, Record<number, string>> = {
   slate: {
     50: "#f8fafc",
