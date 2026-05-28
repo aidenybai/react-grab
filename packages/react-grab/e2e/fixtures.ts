@@ -11,7 +11,6 @@ const TOOLBAR_SNAP_ANIMATION_WAIT_MS = 300;
 const TOOLBAR_SNAP_EDGE_THRESHOLD_PX = 30;
 const TOUCH_DRAG_STEPS = 10;
 const PAGE_SETUP_RETRY_BACKOFF_MS = 250;
-const FEEDBACK_MODIFIER_KEY = "Meta";
 
 interface ContextMenuInfo {
   isVisible: boolean;
@@ -82,6 +81,8 @@ interface BrowserPlatformInfo {
 }
 
 type ModifierKey = "Meta" | "Control";
+
+const getHostModifierKey = (): ModifierKey => (process.platform === "darwin" ? "Meta" : "Control");
 
 export interface ReactGrabPageObject {
   page: Page;
@@ -223,7 +224,11 @@ const getBrowserModifierKey = async (page: Page): Promise<ModifierKey> => {
   return /Mac|iPhone|iPad|iPod/i.test(platform) ? "Meta" : "Control";
 };
 
-const createReactGrabPageObject = (page: Page, modifierKey: ModifierKey): ReactGrabPageObject => {
+const createReactGrabPageObject = (
+  page: Page,
+  activationModifierKey: ModifierKey,
+  feedbackModifierKey: ModifierKey,
+): ReactGrabPageObject => {
   const getOverlayHost = () => page.locator(`[${ATTRIBUTE_NAME}]`).first();
 
   const getShadowRoot = async () => {
@@ -253,7 +258,7 @@ const createReactGrabPageObject = (page: Page, modifierKey: ModifierKey): ReactG
 
   const holdToActivate = async (durationMs = DEFAULT_KEY_HOLD_DURATION_MS) => {
     await page.click("body");
-    await page.keyboard.down(modifierKey);
+    await page.keyboard.down(activationModifierKey);
     await page.keyboard.down("c");
     await page.waitForTimeout(durationMs + ACTIVATION_BUFFER_MS);
   };
@@ -274,7 +279,7 @@ const createReactGrabPageObject = (page: Page, modifierKey: ModifierKey): ReactG
   const activateViaKeyboard = async () => {
     await holdToActivate();
     await page.keyboard.up("c");
-    await page.keyboard.up(modifierKey);
+    await page.keyboard.up(activationModifierKey);
     await waitForActive(true);
   };
 
@@ -416,19 +421,19 @@ const createReactGrabPageObject = (page: Page, modifierKey: ModifierKey): ReactG
   };
 
   const pressKeyCombo = async (modifiers: string[], key: string) => {
-    for (const modifier of modifiers) {
-      await page.keyboard.down(modifier);
+    for (const modifierKeyName of modifiers) {
+      await page.keyboard.down(modifierKeyName);
     }
     await page.keyboard.press(key);
-    for (const modifier of [...modifiers].reverse()) {
-      await page.keyboard.up(modifier);
+    for (const modifierKeyName of [...modifiers].reverse()) {
+      await page.keyboard.up(modifierKeyName);
     }
   };
 
   const pressModifierKeyCombo = async (key: string) => {
-    await page.keyboard.down(modifierKey);
+    await page.keyboard.down(activationModifierKey);
     await page.keyboard.press(key);
-    await page.keyboard.up(modifierKey);
+    await page.keyboard.up(activationModifierKey);
   };
 
   const waitForContextMenu = async (visible: boolean) => {
@@ -1659,8 +1664,8 @@ const createReactGrabPageObject = (page: Page, modifierKey: ModifierKey): ReactG
 
   return {
     page,
-    modifierKey,
-    feedbackModifierKey: FEEDBACK_MODIFIER_KEY,
+    modifierKey: activationModifierKey,
+    feedbackModifierKey,
     activate,
     activateViaKeyboard,
     deactivate,
@@ -1801,8 +1806,9 @@ export const test = base.extend<{ reactGrab: ReactGrabPageObject }>({
 
     await initializePage();
 
-    const modifierKey = await getBrowserModifierKey(page);
-    const reactGrab = createReactGrabPageObject(page, modifierKey);
+    const activationModifierKey = await getBrowserModifierKey(page);
+    const feedbackModifierKey = getHostModifierKey();
+    const reactGrab = createReactGrabPageObject(page, activationModifierKey, feedbackModifierKey);
     await use(reactGrab);
   },
 });
