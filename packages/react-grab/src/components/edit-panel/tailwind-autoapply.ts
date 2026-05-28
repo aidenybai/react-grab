@@ -178,25 +178,28 @@ export const createTailwindAutoApply = (
     });
   };
 
+  const isApplicableSingleClass = (normalizedQuery: string): boolean => {
+    if (tailwindClassToEnumValue(normalizedQuery)) return true;
+    const tailwindClassMatch = normalizedQuery.match(TAILWIND_CLASS_PATTERN);
+    if (!tailwindClassMatch) return false;
+    const cssKey = tailwindPrefixToProperty(tailwindClassMatch[1]);
+    if (!cssKey) return false;
+    if (hasTrackableTarget(cssKey)) return true;
+    return findEnum(initialProperties, cssKey) !== null;
+  };
+
   const applyTailwindClass = (rawQuery: string) => {
     const strippedClassAttribute = rawQuery
       .trim()
       .replace(/^class\s*=\s*["']/, "")
       .replace(/["']\s*$/, "");
     const normalizedStripped = normalizeQuery(strippedClassAttribute);
-    const shouldApplyAsSingleClass =
-      TAILWIND_CLASS_PATTERN.test(normalizedStripped) ||
-      tailwindClassToEnumValue(normalizedStripped) !== null;
     const tokens = strippedClassAttribute.split(/\s+/).filter(Boolean);
-    if (shouldApplyAsSingleClass) {
-      applySingleClass(strippedClassAttribute);
+    if (tokens.length > 1 && !isApplicableSingleClass(normalizedStripped)) {
+      for (const token of tokens) applySingleClass(token);
       return;
     }
-    if (tokens.length <= 1) {
-      applySingleClass(strippedClassAttribute);
-      return;
-    }
-    for (const token of tokens) applySingleClass(token);
+    applySingleClass(strippedClassAttribute);
   };
 
   return {

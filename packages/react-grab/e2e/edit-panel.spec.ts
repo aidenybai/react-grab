@@ -743,6 +743,20 @@ test.describe("Style Panel", () => {
       expect(paddingLeft).toContain("16");
     });
 
+    test("typing multiple tailwind classes applies each token", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.type("p-4 mt-5");
+      await reactGrab.page.waitForTimeout(80);
+
+      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-top")).toBe(
+        "16px",
+      );
+      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "margin-top")).toBe(
+        "20px",
+      );
+      expect(await getEditPanelCompactAttr(reactGrab.page)).toBe("true");
+    });
+
     test("typing border-t-4 writes only the top border width", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await reactGrab.page.keyboard.type("border-t-4");
