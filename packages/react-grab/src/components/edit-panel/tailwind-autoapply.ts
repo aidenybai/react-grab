@@ -16,12 +16,6 @@ import {
 
 const TAILWIND_CLASS_PATTERN = /^([a-z-]+)-(-?\d+(?:\.\d+)?)$/;
 
-// Accept `py 40`, `py40`, `py-40`, `Py-40` (iOS auto-capitalize) —
-// all normalize to the canonical `py-40` form before pattern matching.
-// Lowercases (iOS Safari uppercases the first character of a textarea
-// by default), collapses whitespace runs into a single hyphen, then
-// inserts a hyphen between a letter and an immediately-following digit
-// when one is missing.
 const normalizeQuery = (query: string): string =>
   query
     .trim()
@@ -29,7 +23,16 @@ const normalizeQuery = (query: string): string =>
     .replace(/\s+/g, "-")
     .replace(/([a-z])(\d)/g, "$1-$2");
 
-const LITERAL_NUMBER_KEYS = new Set(["opacity", "border-width", "z-index", "font-weight"]);
+const LITERAL_NUMBER_KEYS = new Set([
+  "opacity",
+  "border-width",
+  "border-top-width",
+  "border-right-width",
+  "border-bottom-width",
+  "border-left-width",
+  "z-index",
+  "font-weight",
+]);
 
 const findNumeric = (
   properties: readonly EditableProperty[],
@@ -117,8 +120,8 @@ export const createTailwindAutoApply = (
     if (property?.kind !== "numeric") return false;
     const parsed = Number.parseFloat(query);
     if (!Number.isFinite(parsed)) return false;
-    const next = clampedFor(property, parsed);
-    if (next !== property.value) commit(property, next);
+    const nextValue = clampedFor(property, parsed);
+    if (nextValue !== property.value) commit(property, nextValue);
     return true;
   };
 

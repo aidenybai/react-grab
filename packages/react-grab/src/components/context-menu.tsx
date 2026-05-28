@@ -34,6 +34,7 @@ import { nativeRequestAnimationFrame } from "../utils/native-raf.js";
 import { createMenuHighlight } from "../utils/create-menu-highlight.js";
 import { suppressMenuEvent } from "../utils/suppress-menu-event.js";
 import { registerOverlayDismiss } from "../utils/register-overlay-dismiss.js";
+import { findShortcutAction } from "../utils/action-shortcuts.js";
 
 interface ContextMenuProps {
   position: Position | null;
@@ -92,9 +93,9 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
 
   const measureContainer = () => {
     if (containerRef) {
-      const rect = containerRef.getBoundingClientRect();
-      setMeasuredWidth(rect.width);
-      setMeasuredHeight(rect.height);
+      const containerBounds = containerRef.getBoundingClientRect();
+      setMeasuredWidth(containerBounds.width);
+      setMeasuredHeight(containerBounds.height);
     }
   };
 
@@ -272,9 +273,6 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       const isHome = event.key === "Home";
       const isEnd = event.key === "End";
       const isTab = event.key === "Tab";
-      const isEnter = event.key === "Enter";
-      const hasModifierKey = event.metaKey || event.ctrlKey;
-      const keyLower = event.key.toLowerCase();
 
       if (isArrowDown || isArrowUp || isHome || isEnd || isTab) {
         event.preventDefault();
@@ -308,50 +306,14 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
         props.onHide();
       };
 
-      if (isEnter) {
-        // Active row wins when the user has explicitly navigated to one.
-        // Otherwise fall back to the action that registered Enter as its
-        // shortcut (Comment → prompt mode).
-        const activeIndex = activeItemIndex();
-        if (activeIndex >= 0) {
-          const activeAction = pluginActions[activeIndex];
-          if (activeAction) {
-            runActionIfAllowed(activeAction);
-            return;
-          }
-        }
-        const enterAction = pluginActions.find((action) => action.shortcut === "Enter");
-        if (enterAction) {
-          runActionIfAllowed(enterAction);
-        }
-        return;
-      }
-
-      if (event.repeat) return;
-
-      const bareKeyAction = pluginActions.find(
-        (action) =>
-          action.shortcut &&
-          action.shortcutModifier === false &&
-          keyLower === action.shortcut.toLowerCase(),
-      );
-      if (bareKeyAction) {
-        runActionIfAllowed(bareKeyAction);
-        return;
-      }
-
-      if (!hasModifierKey) return;
-
-      const modifierAction = pluginActions.find(
-        (action) =>
-          action.shortcut &&
-          action.shortcut !== "Enter" &&
-          action.shortcutModifier !== false &&
-          keyLower === action.shortcut.toLowerCase(),
-      );
-      if (modifierAction) {
-        runActionIfAllowed(modifierAction);
-      }
+      const currentActiveItemIndex = activeItemIndex();
+      const activeShortcutAction =
+        currentActiveItemIndex >= 0 ? pluginActions[currentActiveItemIndex] : null;
+      const shortcutAction = findShortcutAction(pluginActions, event, {
+        activeAction: activeShortcutAction,
+        includeModifierShortcuts: true,
+      });
+      if (shortcutAction) runActionIfAllowed(shortcutAction);
     };
 
     const unregisterOverlayDismiss = registerOverlayDismiss({

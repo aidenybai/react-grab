@@ -238,19 +238,24 @@ export interface PendingEditsEntry {
   edits: PendingEdits;
 }
 
+export interface PreviewStyles {
+  apply: (cssProperties: readonly string[], cssValue: string) => void;
+  restore: () => void;
+  forget: () => void;
+  hasAppliedStyles: () => boolean;
+}
+
 export interface EditPanelState {
   element: Element;
   position: Position;
   selectionBounds: OverlayBounds;
   properties: EditableProperty[];
+  preview: PreviewStyles;
   filePath?: string;
   lineNumber?: number;
   componentName?: string;
   tagName?: string;
   htmlPreview?: string;
-  // Pre-fill the search input when the panel opens. Used by the
-  // type-to-edit shortcut (typing a letter while hovering an element
-  // opens the panel with that letter already in the search).
   initialSearchQuery?: string;
 }
 
@@ -501,7 +506,6 @@ export interface ReactGrabRendererProps {
   editPanelPosition?: DropdownAnchor | null;
   onEditPanelDismiss?: () => void;
   onEditPanelSubmit?: (prompt: string) => void;
-  onEditPanelRegisterForceDiscard?: (discard: (() => void) | null) => void;
   onEditPanelInteractingChange?: (interacting: boolean) => void;
 }
 

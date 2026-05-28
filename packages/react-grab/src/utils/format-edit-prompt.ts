@@ -2,23 +2,19 @@ import { OPACITY_PERCENT_MAX } from "../constants.js";
 import type { PendingEdit, PendingEditsEntry } from "../types.js";
 import { formatDisplayValue } from "./format-css-value.js";
 
-const formatCssValue = (edit: PendingEdit): string => {
-  if (edit.kind === "color" || edit.kind === "enum") return edit.value;
-  if (edit.key === "opacity" && edit.unit === "%") {
-    return formatDisplayValue(edit.value / OPACITY_PERCENT_MAX);
+const formatCssValue = (pendingEdit: PendingEdit): string => {
+  if (pendingEdit.kind === "color" || pendingEdit.kind === "enum") return pendingEdit.value;
+  if (pendingEdit.key === "opacity" && pendingEdit.unit === "%") {
+    return formatDisplayValue(pendingEdit.value / OPACITY_PERCENT_MAX);
   }
-  return `${formatDisplayValue(edit.value)}${edit.unit}`;
+  return `${formatDisplayValue(pendingEdit.value)}${pendingEdit.unit}`;
 };
 
-const formatEntryCss = (entry: PendingEditsEntry): string[] => {
-  // Last-write-wins per CSS property: an aggregate edit (padding) writes
-  // to all 4 sides, and a subsequent longhand edit (padding-top) should
-  // override JUST that side without leaving the older sibling rules
-  // duplicated. Iteration order = order of user edits.
+const formatEntryCss = (pendingEditsEntry: PendingEditsEntry): string[] => {
   const valueByCssProperty = new Map<string, string>();
-  for (const edit of entry.edits) {
-    const cssValue = formatCssValue(edit);
-    for (const cssProperty of edit.cssProperties) {
+  for (const pendingEdit of pendingEditsEntry.edits) {
+    const cssValue = formatCssValue(pendingEdit);
+    for (const cssProperty of pendingEdit.cssProperties) {
       valueByCssProperty.set(cssProperty, cssValue);
     }
   }
@@ -28,19 +24,25 @@ const formatEntryCss = (entry: PendingEditsEntry): string[] => {
   );
 };
 
-export const formatSessionEditsPrompt = (entries: PendingEditsEntry[]): string => {
-  if (entries.length === 0) return "";
+const formatEntryHeader = (pendingEditsEntry: PendingEditsEntry): string =>
+  pendingEditsEntry.filePath ? `${pendingEditsEntry.filePath}:${pendingEditsEntry.lineNumber}` : "";
+
+export const formatSessionEditsPrompt = (pendingEditsEntries: PendingEditsEntry[]): string => {
+  if (pendingEditsEntries.length === 0) return "";
 
   const sections: string[] = ["Apply these style changes:"];
 
-  if (entries.length === 1) {
-    sections.push(["```css", ...formatEntryCss(entries[0]), "```"].join("\n"));
+  if (pendingEditsEntries.length === 1) {
+    const header = formatEntryHeader(pendingEditsEntries[0]);
+    if (header) sections.push(`\n${header}`);
+    sections.push(["```css", ...formatEntryCss(pendingEditsEntries[0]), "```"].join("\n"));
     return sections.join("\n");
   }
 
-  for (const entry of entries) {
-    sections.push(entry.filePath ? `\n${entry.filePath}:${entry.lineNumber}` : "");
-    sections.push(["```css", ...formatEntryCss(entry), "```"].join("\n"));
+  for (const pendingEditsEntry of pendingEditsEntries) {
+    const header = formatEntryHeader(pendingEditsEntry);
+    sections.push(header ? `\n${header}` : "");
+    sections.push(["```css", ...formatEntryCss(pendingEditsEntry), "```"].join("\n"));
   }
   return sections.join("\n");
 };

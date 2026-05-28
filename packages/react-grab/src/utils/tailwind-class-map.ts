@@ -33,14 +33,6 @@ const TAILWIND_PREFIX_TO_PROPERTY: Record<string, string> = {
   "rounded-bl": "border-bottom-left-radius",
   "rounded-br": "border-bottom-right-radius",
   border: "border-width",
-  // Per-side utilities map to their proper longhand. Pointing them at
-  // the aggregate "border-width" would set every side from a side-
-  // specific class — a user typing `border-t-4` would also overwrite
-  // right/bottom/left. Targets aren't currently tracked in
-  // initialProperties, so auto-apply will no-op until they are (gated
-  // below in tryApplyTailwindClass); the mapping just needs to point
-  // at the right CSS key so search ranking still surfaces the right
-  // intent.
   "border-t": "border-top-width",
   "border-r": "border-right-width",
   "border-b": "border-bottom-width",
@@ -121,11 +113,11 @@ const PROPERTY_ALIASES = ((): Record<string, string[]> => {
 const stripTailwindModifiers = (className: string): string => {
   let bracketDepth = 0;
   let lastVariantColon = -1;
-  for (let index = 0; index < className.length; index++) {
-    const character = className[index];
+  for (let characterIndex = 0; characterIndex < className.length; characterIndex++) {
+    const character = className[characterIndex];
     if (character === "[") bracketDepth++;
     else if (character === "]") bracketDepth--;
-    else if (character === ":" && bracketDepth === 0) lastVariantColon = index;
+    else if (character === ":" && bracketDepth === 0) lastVariantColon = characterIndex;
   }
   const baseClassName = lastVariantColon >= 0 ? className.slice(lastVariantColon + 1) : className;
   return baseClassName.startsWith("!") ? baseClassName.slice(1) : baseClassName;
@@ -156,12 +148,7 @@ const matchTailwindPrefix = (rawClassName: string): string | null => {
   return segments[0];
 };
 
-// Color-named tail tokens — used to detect when an otherwise-ambiguous
-// class (e.g. text-blue-500, border-red-500) is operating on color and
-// should NOT bubble unrelated rows (font-size, border-width) to the top
-// of the editor. The editor doesn't expose color tweaking, so the
-// safest behavior is to ignore the class entirely.
-const COLOR_TAIL_REGEX =
+const AMBIGUOUS_COLOR_CLASS_TAIL_REGEX =
   /-(red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|slate|gray|zinc|neutral|stone|black|white|transparent|current|inherit)\b/;
 
 const isAmbiguousColorClass = (prefix: string, token: string): boolean => {
@@ -173,7 +160,7 @@ const isAmbiguousColorClass = (prefix: string, token: string): boolean => {
   ) {
     return false;
   }
-  return COLOR_TAIL_REGEX.test(token);
+  return AMBIGUOUS_COLOR_CLASS_TAIL_REGEX.test(token);
 };
 
 const TAILWIND_CLASS_TO_ENUM_VALUE: Record<string, { property: string; value: string }> = {

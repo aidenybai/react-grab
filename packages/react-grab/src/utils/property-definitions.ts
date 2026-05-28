@@ -22,9 +22,15 @@ export const TRACKED_PROPERTIES = [
   "border-bottom-right-radius",
   "border-bottom-left-radius",
   "border-width",
+  "border-top-width",
+  "border-right-width",
+  "border-bottom-width",
+  "border-left-width",
   "opacity",
   "width",
   "height",
+  "min-width",
+  "min-height",
   "max-width",
   "max-height",
   "top",
@@ -212,11 +218,29 @@ export const INSET_AGGREGATES: readonly AggregateDefinition[] = [
   { key: "left", label: "left", longhands: ["left"] },
 ];
 
+export const BORDER_WIDTH_AGGREGATES: readonly AggregateDefinition[] = [
+  {
+    key: "border-width",
+    label: "border width",
+    longhands: [
+      "border-top-width",
+      "border-right-width",
+      "border-bottom-width",
+      "border-left-width",
+    ],
+  },
+  { key: "border-top-width", label: "border top width", longhands: ["border-top-width"] },
+  { key: "border-right-width", label: "border right width", longhands: ["border-right-width"] },
+  { key: "border-bottom-width", label: "border bottom width", longhands: ["border-bottom-width"] },
+  { key: "border-left-width", label: "border left width", longhands: ["border-left-width"] },
+];
+
 export const AGGREGATE_GROUPS: readonly (readonly AggregateDefinition[])[] = [
   PADDING_AGGREGATES,
   MARGIN_AGGREGATES,
   GAP_AGGREGATES,
   RADIUS_AGGREGATES,
+  BORDER_WIDTH_AGGREGATES,
   INSET_AGGREGATES,
 ];
 
@@ -224,9 +248,10 @@ export const SINGLE_PROPERTIES: readonly { key: TrackedProperty; label: string }
   { key: "font-size", label: "font size" },
   { key: "line-height", label: "line height" },
   { key: "letter-spacing", label: "letter spacing" },
-  { key: "border-width", label: "border width" },
   { key: "width", label: "width" },
   { key: "height", label: "height" },
+  { key: "min-width", label: "min width" },
+  { key: "min-height", label: "min height" },
   { key: "max-width", label: "max width" },
   { key: "max-height", label: "max height" },
   { key: "z-index", label: "z-index" },

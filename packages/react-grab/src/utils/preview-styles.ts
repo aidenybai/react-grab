@@ -1,12 +1,14 @@
+import type { PreviewStyles } from "../types.js";
+
 interface InlineStyledElement extends Element {
   style: CSSStyleDeclaration;
 }
+
 const hasInlineStyle = (element: Element): element is InlineStyledElement => {
-  const candidate = element as Partial<InlineStyledElement>;
-  return candidate.style instanceof CSSStyleDeclaration;
+  return "style" in element && element.style instanceof CSSStyleDeclaration;
 };
 
-export const createPreviewStyles = (element: Element) => {
+export const createPreviewStyles = (element: Element): PreviewStyles => {
   const baselineStyles = new Map<string, { value: string; priority: string }>();
   const styledElement = hasInlineStyle(element) ? element : null;
 

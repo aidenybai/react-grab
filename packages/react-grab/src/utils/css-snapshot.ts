@@ -81,19 +81,19 @@ export const alignedValue = (
   // (matching their historic behavior in the per-property path). For
   // padding/margin/radius the computed style is always "<n>px", so
   // valueWithFallback delegates to parseNumericValue with no behavior change.
-  const first = valueWithFallback(snapshot, properties[0]);
-  if (!first) return null;
-  for (let index = 1; index < properties.length; index++) {
-    const next = valueWithFallback(snapshot, properties[index]);
+  const firstValue = valueWithFallback(snapshot, properties[0]);
+  if (!firstValue) return null;
+  for (let propertyIndex = 1; propertyIndex < properties.length; propertyIndex++) {
+    const nextValue = valueWithFallback(snapshot, properties[propertyIndex]);
     if (
-      !next ||
-      next.unit !== first.unit ||
-      Math.abs(next.value - first.value) >= ALIGNED_VALUE_TOLERANCE_PX
+      !nextValue ||
+      nextValue.unit !== firstValue.unit ||
+      Math.abs(nextValue.value - firstValue.value) >= ALIGNED_VALUE_TOLERANCE_PX
     ) {
       return null;
     }
   }
-  return first;
+  return firstValue;
 };
 
 export const propertyBounds = (
@@ -109,7 +109,7 @@ export const propertyBounds = (
   if (key === "font-size") return { min: FONT_SIZE_MIN_PX, max: FONT_SIZE_MAX_PX };
   if (key === "line-height") return { min: LINE_HEIGHT_MIN_PX, max: LINE_HEIGHT_MAX_PX };
   if (key.includes("radius")) return { min: RADIUS_MIN_PX, max: RADIUS_MAX_PX };
-  if (key === "width" || key === "height" || key.startsWith("max-")) {
+  if (key === "width" || key === "height" || key.startsWith("min-") || key.startsWith("max-")) {
     return {
       min: 0,
       max: Math.max(SIZE_FALLBACK_MAX_PX, Math.ceil(value * SIZE_FALLBACK_MULTIPLIER)),

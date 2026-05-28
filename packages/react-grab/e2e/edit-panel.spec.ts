@@ -1,488 +1,39 @@
 import { expect, test } from "./fixtures.js";
-
-const ATTRIBUTE_NAME = "data-react-grab";
-const EDIT_PANEL_ATTR = "data-react-grab-edit-panel";
-const EDIT_PROPERTY_ATTR = "data-react-grab-edit-property";
-const SEARCH_INPUT_ATTR = "data-react-grab-input";
-const COPY_BUTTON_ATTR = "data-react-grab-copy-button";
-const TAILWIND_LABEL_ATTR = "data-react-grab-tailwind-label";
-const IDLE_BUFFER_MS = 700;
-const DISCARD_PROMPT_IDLE_MS = 2000;
-
-// nested-button: <button class="bg-blue-500 text-white px-2 py-1 rounded text-sm">
-// — leaf element, reliable target. Has px-2 (8px) py-1 (4px) → padding-y +
-// padding-x canonical, rounded → border-radius 4px, text-sm → 14px.
-const BUTTON_SELECTOR = "[data-testid='nested-button']";
-
-// nested-card: <div class="border rounded-lg p-4 bg-gray-50"> — uniform p-4
-// (16px) so padding consolidates to one row. card-content is the inner div
-// (pl-4) we can target indirectly via the wrapper.
-const CARD_SELECTOR = "[data-testid='nested-card']";
-
-const isEditPanelVisible = async (page: import("@playwright/test").Page): Promise<boolean> =>
-  page.evaluate(
-    ({ attrName, panelAttr }) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      if (!shadowRoot) return false;
-      return shadowRoot.querySelector(`[${panelAttr}]`) !== null;
-    },
-    { attrName: ATTRIBUTE_NAME, panelAttr: EDIT_PANEL_ATTR },
-  );
-
-const getVisiblePropertyKeys = async (page: import("@playwright/test").Page): Promise<string[]> =>
-  page.evaluate(
-    ({ attrName, propertyAttr }) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      if (!shadowRoot) return [];
-      const rows = shadowRoot.querySelectorAll<HTMLElement>(`[${propertyAttr}]`);
-      return Array.from(rows).map((row) => row.getAttribute(propertyAttr) ?? "");
-    },
-    { attrName: ATTRIBUTE_NAME, propertyAttr: EDIT_PROPERTY_ATTR },
-  );
-
-const getActivePropertyKey = async (
-  page: import("@playwright/test").Page,
-): Promise<string | null> =>
-  page.evaluate(
-    ({ attrName, propertyAttr }) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      if (!shadowRoot) return null;
-      // Active row is marked aria-current="true" by PropertyList.
-      const active = shadowRoot.querySelector<HTMLElement>(
-        `[${propertyAttr}][aria-current="true"]`,
-      );
-      return active?.getAttribute(propertyAttr) ?? null;
-    },
-    { attrName: ATTRIBUTE_NAME, propertyAttr: EDIT_PROPERTY_ATTR },
-  );
-
-const getActivePropertyValue = async (
-  page: import("@playwright/test").Page,
-): Promise<string | null> =>
-  page.evaluate(
-    ({ attrName, propertyAttr }) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      if (!shadowRoot) return null;
-      // The active row carries aria-current="true". Stable across UI
-      // refactors (the previous "find row with ≥2 SVGs" heuristic broke
-      // when the stepper arrows moved to compact-mode-only).
-      const active = shadowRoot.querySelector<HTMLElement>(
-        `[${propertyAttr}][aria-current="true"]`,
-      );
-      if (!active) return null;
-      // The active row's numeric value chip carries a
-      // data-react-grab-value attribute holding the formatted value +
-      // unit. Read that instead of textContent — the Slot animated-
-      // digit renderer stamps "0123456789" per column into the DOM, so
-      // textContent is constant regardless of the displayed digit.
-      const valueNode = active.querySelector<HTMLElement>("[data-react-grab-value]");
-      if (valueNode) {
-        return valueNode.getAttribute("data-react-grab-value");
-      }
-      return active.textContent?.trim() ?? null;
-    },
-    { attrName: ATTRIBUTE_NAME, propertyAttr: EDIT_PROPERTY_ATTR },
-  );
-
-interface ActiveSliderVisualState {
-  key: string | null;
-  width: number | null;
-  hasBaseRail: boolean;
-  fillOpacity: number | null;
-  fillBackground: string | null;
-  handleOpacity: number | null;
-  maxHashMarkOpacity: number;
-}
-
-interface PropertyRowBounds {
-  key: string;
-  isActive: boolean;
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-}
-
-const getActiveSliderVisualState = async (
-  page: import("@playwright/test").Page,
-): Promise<ActiveSliderVisualState> =>
-  page.evaluate(
-    ({ attrName, propertyAttr }) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      const active = shadowRoot?.querySelector<HTMLElement>(
-        `[${propertyAttr}][aria-current="true"]`,
-      );
-      const slider = active?.querySelector<HTMLElement>("[role='slider']");
-      const base = slider?.querySelector<HTMLElement>("[data-react-grab-slider-base]");
-      const fill = slider?.querySelector<HTMLElement>("[data-react-grab-slider-fill]");
-      const handle = slider?.querySelector<HTMLElement>("[data-react-grab-slider-handle]");
-      const hashMarks = Array.from(
-        slider?.querySelectorAll<HTMLElement>("[data-react-grab-slider-hash-mark]") ?? [],
-      );
-      const fillStyle = fill ? getComputedStyle(fill) : null;
-      return {
-        key: active?.getAttribute(propertyAttr) ?? null,
-        width: slider?.getBoundingClientRect().width ?? null,
-        hasBaseRail: base !== undefined,
-        fillOpacity: fillStyle ? Number(fillStyle.opacity) : null,
-        fillBackground: fillStyle?.backgroundColor ?? null,
-        handleOpacity: handle ? Number(getComputedStyle(handle).opacity) : null,
-        maxHashMarkOpacity: Math.max(
-          0,
-          ...hashMarks.map((hashMark) => Number(getComputedStyle(hashMark).opacity)),
-        ),
-      };
-    },
-    { attrName: ATTRIBUTE_NAME, propertyAttr: EDIT_PROPERTY_ATTR },
-  );
-
-const getActiveTailwindLabelOrder = async (
-  page: import("@playwright/test").Page,
-): Promise<{ tailwindLeft: number | null; valueLeft: number | null }> =>
-  page.evaluate(
-    ({ attrName, tailwindLabelAttr }) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      const labels = Array.from(
-        shadowRoot?.querySelectorAll<HTMLElement>(
-          `[data-react-grab-edit-panel] [${tailwindLabelAttr}]`,
-        ) ?? [],
-      );
-      const tailwindLabel =
-        labels.find((element) => element.getBoundingClientRect().width > 0) ?? null;
-      const valueText =
-        tailwindLabel
-          ?.closest("[data-react-grab-value]")
-          ?.querySelector<HTMLElement>("[data-react-grab-value-text]") ?? null;
-      return {
-        tailwindLeft: tailwindLabel?.getBoundingClientRect().left ?? null,
-        valueLeft: valueText?.getBoundingClientRect().left ?? null,
-      };
-    },
-    { attrName: ATTRIBUTE_NAME, tailwindLabelAttr: TAILWIND_LABEL_ATTR },
-  );
-
-interface SearchInputFocusVisualState {
-  isFocusVisible: boolean;
-  outlineStyle: string;
-  boxShadow: string;
-}
-
-const getSearchInputFocusVisualState = async (
-  page: import("@playwright/test").Page,
-): Promise<SearchInputFocusVisualState> =>
-  page.evaluate(
-    ({ attrName, inputAttr }) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const input = host?.shadowRoot?.querySelector<HTMLElement>(`[${inputAttr}]`);
-      if (!input) {
-        return { isFocusVisible: false, outlineStyle: "", boxShadow: "" };
-      }
-      const computedStyle = getComputedStyle(input);
-      return {
-        isFocusVisible: input.matches(":focus-visible"),
-        outlineStyle: computedStyle.outlineStyle,
-        boxShadow: computedStyle.boxShadow,
-      };
-    },
-    { attrName: ATTRIBUTE_NAME, inputAttr: SEARCH_INPUT_ATTR },
-  );
-
-interface OverlayFocusVisualState {
-  label: string;
-  outlineStyle: string;
-  boxShadow: string;
-}
-
-const getOverlayFocusVisualStates = async (
-  page: import("@playwright/test").Page,
-  selector: string,
-): Promise<OverlayFocusVisualState[]> =>
-  page.evaluate(
-    ({ attrName, selector }) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      const root = shadowRoot?.querySelector(`[${attrName}]`) ?? shadowRoot;
-      const elements = Array.from(root?.querySelectorAll<HTMLElement>(selector) ?? []);
-      return elements
-        .filter((element) => element.getClientRects().length > 0)
-        .map((element) => {
-          element.focus({ preventScroll: true });
-          const computedStyle = getComputedStyle(element);
-          return {
-            label:
-              element.getAttribute("data-react-grab-menu-item") ??
-              element.getAttribute("data-react-grab-edit-property") ??
-              element.getAttribute("aria-label") ??
-              element.getAttribute("role") ??
-              element.tagName.toLowerCase(),
-            outlineStyle: computedStyle.outlineStyle,
-            boxShadow: computedStyle.boxShadow,
-          };
-        });
-    },
-    { attrName: ATTRIBUTE_NAME, selector },
-  );
-
-const typeInSearchInput = async (
-  page: import("@playwright/test").Page,
-  text: string,
-): Promise<void> => {
-  await page.evaluate(
-    ({ attrName, inputAttr }) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      if (!shadowRoot) throw new Error("No shadow root");
-      const input = shadowRoot.querySelector<HTMLTextAreaElement>(`[${inputAttr}]`);
-      if (!input) throw new Error("Search input not found");
-      input.focus();
-    },
-    { attrName: ATTRIBUTE_NAME, inputAttr: SEARCH_INPUT_ATTR },
-  );
-  await page.keyboard.type(text);
-};
-
-const getInlineStyleProperty = async (
-  page: import("@playwright/test").Page,
-  selector: string,
-  property: string,
-): Promise<string> =>
-  page.evaluate(
-    ({ sel, prop }) => {
-      const element = document.querySelector(sel);
-      if (!(element instanceof HTMLElement)) return "";
-      return element.style.getPropertyValue(prop);
-    },
-    { sel: selector, prop: property },
-  );
-
-// Whole `style="…"` attribute as written — used when the default
-// first-row depends on which longhand is canonical for the target
-// (e.g. px-2 py-1 → padding-x first; px-4 py-4 → padding first).
-const getInlineStyleAttribute = async (
-  page: import("@playwright/test").Page,
-  selector: string,
-): Promise<string> =>
-  page.evaluate((sel) => {
-    const element = document.querySelector(sel);
-    if (!(element instanceof HTMLElement)) return "";
-    return element.getAttribute("style") ?? "";
-  }, selector);
-
-const dispatchOutsideDismiss = async (page: import("@playwright/test").Page): Promise<void> =>
-  page.evaluate(() => {
-    window.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
-  });
-
-const isEditPanelCompact = async (page: import("@playwright/test").Page): Promise<boolean> =>
-  page.evaluate(
-    ({ attrName, panelAttr }) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      if (!shadowRoot) return false;
-      const panel = shadowRoot.querySelector(`[${panelAttr}]`);
-      return panel?.getAttribute("data-rg-compact") === "true";
-    },
-    { attrName: ATTRIBUTE_NAME, panelAttr: EDIT_PANEL_ATTR },
-  );
-
-const isHeaderCopyButtonVisible = async (page: import("@playwright/test").Page): Promise<boolean> =>
-  page.evaluate(
-    ({ attrName, copyButtonAttr }) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      const button = shadowRoot?.querySelector<HTMLElement>(`[${copyButtonAttr}]`);
-      if (!button) return false;
-      const rect = button.getBoundingClientRect();
-      return rect.width > 0 && rect.height > 0;
-    },
-    { attrName: ATTRIBUTE_NAME, copyButtonAttr: COPY_BUTTON_ATTR },
-  );
-
-interface ButtonVisualStyle {
-  backgroundColor: string;
-  borderColor: string;
-  color: string;
-  height: string;
-  paddingLeft: string;
-  paddingRight: string;
-}
-
-const getOverlayButtonVisualStyle = async (
-  page: import("@playwright/test").Page,
-  selector: string,
-): Promise<ButtonVisualStyle> =>
-  page.evaluate(
-    ({ attrName, buttonSelector }) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      const button = shadowRoot?.querySelector<HTMLElement>(buttonSelector);
-      if (!button) throw new Error("Button not found");
-      const label = button.querySelector<HTMLElement>("span") ?? button;
-      const buttonStyle = getComputedStyle(button);
-      const labelStyle = getComputedStyle(label);
-      return {
-        backgroundColor: buttonStyle.backgroundColor,
-        borderColor: buttonStyle.borderColor,
-        color: labelStyle.color,
-        height: buttonStyle.height,
-        paddingLeft: buttonStyle.paddingLeft,
-        paddingRight: buttonStyle.paddingRight,
-      };
-    },
-    { attrName: ATTRIBUTE_NAME, buttonSelector: selector },
-  );
-
-const isDiscardPromptVisible = async (page: import("@playwright/test").Page): Promise<boolean> =>
-  page.evaluate(
-    ({ attrName }) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      const button = shadowRoot?.querySelector<HTMLElement>(
-        "[data-react-grab-discard-button='confirm']",
-      );
-      if (!button) return false;
-      const rect = button.getBoundingClientRect();
-      return rect.width > 0 && rect.height > 0;
-    },
-    { attrName: ATTRIBUTE_NAME },
-  );
-
-const focusDiscardButton = async (
-  page: import("@playwright/test").Page,
-  action: "cancel" | "confirm",
-): Promise<void> => {
-  await page.evaluate(
-    ({ attrName, actionName }) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      const button = shadowRoot?.querySelector<HTMLButtonElement>(
-        `[data-react-grab-discard-button='${actionName}']`,
-      );
-      if (!button) throw new Error("Discard button not found");
-      button.focus();
-    },
-    { attrName: ATTRIBUTE_NAME, actionName: action },
-  );
-};
-
-const clickHeaderCopyButton = async (page: import("@playwright/test").Page): Promise<void> => {
-  await page.evaluate(
-    ({ attrName, copyButtonAttr }) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      const button = shadowRoot?.querySelector<HTMLButtonElement>(`[${copyButtonAttr}]`);
-      if (!button) throw new Error("Copy button not found");
-      button.click();
-    },
-    { attrName: ATTRIBUTE_NAME, copyButtonAttr: COPY_BUTTON_ATTR },
-  );
-};
-
-const dragActiveSlider = async (page: import("@playwright/test").Page): Promise<void> => {
-  const rect = await page.evaluate(
-    ({ attrName, propertyAttr }) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      const active = shadowRoot?.querySelector<HTMLElement>(
-        `[${propertyAttr}][aria-current="true"]`,
-      );
-      const slider = active?.querySelector<HTMLElement>("[role='slider']");
-      if (!slider) throw new Error("Active slider not found");
-      const bounds = slider.getBoundingClientRect();
-      return {
-        left: bounds.left,
-        top: bounds.top,
-        width: bounds.width,
-        height: bounds.height,
-      };
-    },
-    { attrName: ATTRIBUTE_NAME, propertyAttr: EDIT_PROPERTY_ATTR },
-  );
-  const y = rect.top + rect.height / 2;
-  await page.mouse.move(rect.left + rect.width * 0.25, y);
-  await page.mouse.down();
-  await page.mouse.move(rect.left + rect.width * 0.75, y, { steps: 4 });
-  await page.mouse.up();
-};
-
-const getPropertyRowBounds = async (
-  page: import("@playwright/test").Page,
-): Promise<PropertyRowBounds[]> =>
-  page.evaluate(
-    ({ attrName, propertyAttr }) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      const rows = Array.from(shadowRoot?.querySelectorAll<HTMLElement>(`[${propertyAttr}]`) ?? []);
-      return rows.map((row) => {
-        const rect = row.getBoundingClientRect();
-        return {
-          key: row.getAttribute(propertyAttr) ?? "",
-          isActive: row.getAttribute("aria-current") === "true",
-          left: rect.left,
-          top: rect.top,
-          width: rect.width,
-          height: rect.height,
-        };
-      });
-    },
-    { attrName: ATTRIBUTE_NAME, propertyAttr: EDIT_PROPERTY_ATTR },
-  );
-
-const getEditPanelCompactAttr = async (
-  page: import("@playwright/test").Page,
-): Promise<string | null> =>
-  page.evaluate(
-    ({ attrName, panelAttr }) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      const panel = shadowRoot?.querySelector(`[${panelAttr}]`);
-      return panel?.getAttribute("data-rg-compact") ?? null;
-    },
-    { attrName: ATTRIBUTE_NAME, panelAttr: EDIT_PANEL_ATTR },
-  );
-
-const readSessionStorageEntries = async (
-  page: import("@playwright/test").Page,
-): Promise<Record<string, string>> =>
-  page.evaluate(() => {
-    const entries: Record<string, string> = {};
-    for (let index = 0; index < sessionStorage.length; index++) {
-      const key = sessionStorage.key(index);
-      if (key?.startsWith("react-grab:edit:")) {
-        entries[key] = sessionStorage.getItem(key) ?? "";
-      }
-    }
-    return entries;
-  });
-
-const clearEditStorage = async (page: import("@playwright/test").Page): Promise<void> => {
-  await page.evaluate(() => {
-    const toRemove: string[] = [];
-    for (let index = 0; index < sessionStorage.length; index++) {
-      const key = sessionStorage.key(index);
-      if (key?.startsWith("react-grab:edit:")) toRemove.push(key);
-    }
-    for (const key of toRemove) sessionStorage.removeItem(key);
-  });
-};
-
-const openEditPanel = async (
-  reactGrab: import("./fixtures.js").ReactGrabPageObject,
-  selector: string,
-): Promise<void> => {
-  await reactGrab.activate();
-  await reactGrab.hoverElement(selector);
-  await reactGrab.waitForSelectionBox();
-  await reactGrab.rightClickElement(selector);
-  await reactGrab.clickContextMenuItem("Style");
-  await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(true);
-};
+import {
+  ATTRIBUTE_NAME,
+  BUTTON_SELECTOR,
+  CARD_SELECTOR,
+  COPY_BUTTON_ATTR,
+  DISCARD_PROMPT_IDLE_MS,
+  EDIT_PANEL_ATTR,
+  EDIT_PROPERTY_ATTR,
+  IDLE_BUFFER_MS,
+  SEARCH_INPUT_ATTR,
+  clearEditStorage,
+  clickHeaderCopyButton,
+  dispatchOutsideDismiss,
+  dragActiveSlider,
+  focusDiscardButton,
+  getActivePropertyKey,
+  getActivePropertyValue,
+  getActiveSliderVisualState,
+  getActiveTailwindLabelOrder,
+  getEditPanelCompactAttr,
+  getInlineStyleAttribute,
+  getInlineStyleProperty,
+  getOverlayButtonVisualStyle,
+  getOverlayFocusVisualStates,
+  getPropertyRowBounds,
+  getSearchInputFocusVisualState,
+  getVisiblePropertyKeys,
+  isDiscardPromptVisible,
+  isEditPanelCompact,
+  isEditPanelVisible,
+  isHeaderCopyButtonVisible,
+  openEditPanel,
+  readSessionStorageEntries,
+  typeInSearchInput,
+} from "./edit-panel-helpers.js";
 
 test.describe("Style Panel", () => {
   test.beforeEach(async ({ reactGrab }) => {
@@ -534,46 +85,24 @@ test.describe("Style Panel", () => {
       ).toEqual([]);
     });
 
-    test("Style context menu item carries the Enter shortcut", async ({ reactGrab }) => {
+    test("S opens Style from the context menu", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement(BUTTON_SELECTOR);
       await reactGrab.waitForSelectionBox();
       await reactGrab.rightClickElement(BUTTON_SELECTOR);
 
-      const hasShortcut = await reactGrab.page.evaluate((attr) => {
-        const host = document.querySelector(`[${attr}]`);
-        const shadow = host?.shadowRoot;
-        if (!shadow) return false;
-        const root = shadow.querySelector(`[${attr}]`);
-        if (!root) return false;
-        const editButton = root.querySelector(`[data-react-grab-menu-item="style"]`);
-        // The shortcut hint renders 'Enter' (or '↵' icon) within the row.
-        return Boolean(editButton);
-      }, ATTRIBUTE_NAME);
-
-      expect(hasShortcut).toBe(true);
+      await reactGrab.page.keyboard.press("s");
+      await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(true);
     });
 
-    test("Comment context menu item does NOT carry the Enter shortcut anymore", async ({
-      reactGrab,
-    }) => {
-      await reactGrab.registerCommentAction();
+    test("Enter triggers Comment from the context menu", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement(BUTTON_SELECTOR);
       await reactGrab.waitForSelectionBox();
       await reactGrab.rightClickElement(BUTTON_SELECTOR);
 
-      const commentText = await reactGrab.page.evaluate((attr) => {
-        const host = document.querySelector(`[${attr}]`);
-        const shadow = host?.shadowRoot;
-        if (!shadow) return null;
-        const root = shadow.querySelector(`[${attr}]`);
-        if (!root) return null;
-        const commentButton = root.querySelector(`[data-react-grab-menu-item="comment"]`);
-        return commentButton?.textContent ?? null;
-      }, ATTRIBUTE_NAME);
-
-      expect(commentText).not.toContain("Enter");
+      await reactGrab.page.keyboard.press("Enter");
+      await expect.poll(() => reactGrab.isPromptModeActive()).toBe(true);
     });
   });
 
@@ -590,17 +119,9 @@ test.describe("Style Panel", () => {
       await reactGrab.page.keyboard.press("ArrowRight");
       await reactGrab.page.waitForTimeout(80);
 
-      // The default first row depends on which padding rows are
-      // canonical for this element — px-2 py-1 → padding-x is first,
-      // so reading any specific longhand by name is fragile. Snapshot
-      // the entire inline `style` instead and assert that the tweak
-      // wrote *something*.
       const duringTweak = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
       expect(duringTweak.length).toBeGreaterThan(0);
 
-      // With a pending tweak the first Escape shakes + arms the
-      // discard-confirm prompt; the second Escape chooses "Yes" and
-      // reverts the inline-style preview.
       await reactGrab.page.keyboard.press("Escape");
       await reactGrab.page.waitForTimeout(80);
       expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
@@ -698,7 +219,6 @@ test.describe("Style Panel", () => {
     test("non-uniform padding emits y/x aggregate rows (not all 4 sides)", async ({
       reactGrab,
     }) => {
-      // nested-button has px-2 py-1 → padding-y + padding-x are canonical
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       const keys = await getVisiblePropertyKeys(reactGrab.page);
       expect(keys).toContain("padding-top,padding-bottom");
@@ -720,15 +240,10 @@ test.describe("Style Panel", () => {
     test("properties matching the baseline are hidden from the default list", async ({
       reactGrab,
     }) => {
-      // Default list shows only what's actually styled on the element +
-      // anything tweaked this session. Properties at the browser/UA
-      // baseline (here, margin: 0 on a button) hide until the user
-      // searches for them — keeping the list focused on what differs.
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       const keys = await getVisiblePropertyKeys(reactGrab.page);
       expect(keys.some((key) => key.startsWith("margin"))).toBe(false);
 
-      // But typing the search reveals them.
       await typeInSearchInput(reactGrab.page, "margin");
       await reactGrab.page.waitForTimeout(80);
       const searched = await getVisiblePropertyKeys(reactGrab.page);
@@ -738,13 +253,11 @@ test.describe("Style Panel", () => {
     test("typing a search query reveals non-canonical properties", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       const beforeSearch = await getVisiblePropertyKeys(reactGrab.page);
-      // Before: padding-y canonical, padding-top/-bottom non-canonical
       expect(beforeSearch).not.toContain("padding-top");
 
       await typeInSearchInput(reactGrab.page, "padding");
       await reactGrab.page.waitForTimeout(80);
       const afterSearch = await getVisiblePropertyKeys(reactGrab.page);
-      // Search reveals all variants
       expect(afterSearch).toContain("padding-top");
     });
   });
@@ -810,32 +323,32 @@ test.describe("Style Panel", () => {
   test.describe("Tweaking", () => {
     test("ArrowRight increments the active property's displayed value", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
-      const before = await getActivePropertyValue(reactGrab.page);
+      const valueBeforeIncrement = await getActivePropertyValue(reactGrab.page);
       await reactGrab.page.keyboard.press("ArrowRight");
       await reactGrab.page.waitForTimeout(80);
-      const after = await getActivePropertyValue(reactGrab.page);
-      expect(after).not.toBe(before);
+      const valueAfterIncrement = await getActivePropertyValue(reactGrab.page);
+      expect(valueAfterIncrement).not.toBe(valueBeforeIncrement);
     });
 
     test("ArrowLeft decrements the active property's displayed value", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await reactGrab.page.keyboard.press("ArrowRight");
       await reactGrab.page.waitForTimeout(80);
-      const peak = await getActivePropertyValue(reactGrab.page);
+      const valueAfterIncrement = await getActivePropertyValue(reactGrab.page);
       await reactGrab.page.keyboard.press("ArrowLeft");
       await reactGrab.page.waitForTimeout(80);
-      const after = await getActivePropertyValue(reactGrab.page);
-      expect(after).not.toBe(peak);
+      const valueAfterDecrement = await getActivePropertyValue(reactGrab.page);
+      expect(valueAfterDecrement).not.toBe(valueAfterIncrement);
     });
 
     test("tweak applies an inline style on the target element", async ({ reactGrab }) => {
-      const before = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
+      const inlineStyleBeforeTweak = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await reactGrab.page.keyboard.press("ArrowRight");
       await reactGrab.page.waitForTimeout(80);
-      const after = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
-      expect(after.length).toBeGreaterThan(0);
-      expect(after).not.toBe(before);
+      const inlineStyleAfterTweak = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
+      expect(inlineStyleAfterTweak.length).toBeGreaterThan(0);
+      expect(inlineStyleAfterTweak).not.toBe(inlineStyleBeforeTweak);
     });
 
     test("idle numeric rows show slider fill without the handle caret", async ({ reactGrab }) => {
@@ -843,11 +356,11 @@ test.describe("Style Panel", () => {
       await typeInSearchInput(reactGrab.page, "line height");
       await reactGrab.page.waitForTimeout(80);
 
-      const slider = await getActiveSliderVisualState(reactGrab.page);
-      expect(slider.key).toBe("line-height");
-      expect(slider.width ?? 0).toBeGreaterThan(0);
-      expect(slider.fillOpacity ?? 0).toBeGreaterThan(0);
-      expect(slider.handleOpacity).toBe(0);
+      const activeSliderVisualState = await getActiveSliderVisualState(reactGrab.page);
+      expect(activeSliderVisualState.key).toBe("line-height");
+      expect(activeSliderVisualState.width ?? 0).toBeGreaterThan(0);
+      expect(activeSliderVisualState.fillOpacity ?? 0).toBeGreaterThan(0);
+      expect(activeSliderVisualState.handleOpacity).toBe(0);
     });
 
     test("hovering a numeric row shows slider unit marks and handle", async ({ reactGrab }) => {
@@ -863,10 +376,10 @@ test.describe("Style Panel", () => {
         ({ attrName, propertyAttr }) => {
           const host = document.querySelector(`[${attrName}]`);
           const shadowRoot = host?.shadowRoot;
-          const active = shadowRoot?.querySelector<HTMLElement>(
+          const activePropertyRow = shadowRoot?.querySelector<HTMLElement>(
             `[${propertyAttr}][aria-current="true"]`,
           );
-          active?.querySelector<HTMLElement>("[role='slider']")?.scrollIntoView({
+          activePropertyRow?.querySelector<HTMLElement>("[role='slider']")?.scrollIntoView({
             block: "center",
             inline: "center",
           });
@@ -878,13 +391,18 @@ test.describe("Style Panel", () => {
         ({ attrName, propertyAttr }) => {
           const host = document.querySelector(`[${attrName}]`);
           const shadowRoot = host?.shadowRoot;
-          const active = shadowRoot?.querySelector<HTMLElement>(
+          const activePropertyRow = shadowRoot?.querySelector<HTMLElement>(
             `[${propertyAttr}][aria-current="true"]`,
           );
-          const slider = active?.querySelector<HTMLElement>("[role='slider']");
-          const rect = slider?.getBoundingClientRect();
-          return rect
-            ? { left: rect.left, top: rect.top, width: rect.width, height: rect.height }
+          const slider = activePropertyRow?.querySelector<HTMLElement>("[role='slider']");
+          const sliderBounds = slider?.getBoundingClientRect();
+          return sliderBounds
+            ? {
+                left: sliderBounds.left,
+                top: sliderBounds.top,
+                width: sliderBounds.width,
+                height: sliderBounds.height,
+              }
             : null;
         },
         { attrName: ATTRIBUTE_NAME, propertyAttr: EDIT_PROPERTY_ATTR },
@@ -906,20 +424,22 @@ test.describe("Style Panel", () => {
       reactGrab,
     }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
-      const before = await getActivePropertyKey(reactGrab.page);
+      const activePropertyKeyBeforeHover = await getActivePropertyKey(reactGrab.page);
 
       await dragActiveSlider(reactGrab.page);
-      const rows = await getPropertyRowBounds(reactGrab.page);
-      const target = rows.find((row) => !row.isActive && row.width > 0 && row.height > 0);
-      if (!target) throw new Error("Hover target row not found");
+      const propertyRows = await getPropertyRowBounds(reactGrab.page);
+      const hoverTargetRow = propertyRows.find(
+        (propertyRow) => !propertyRow.isActive && propertyRow.width > 0 && propertyRow.height > 0,
+      );
+      if (!hoverTargetRow) throw new Error("Hover target row not found");
 
       await reactGrab.page.mouse.move(
-        target.left + target.width / 2,
-        target.top + target.height / 2,
+        hoverTargetRow.left + hoverTargetRow.width / 2,
+        hoverTargetRow.top + hoverTargetRow.height / 2,
       );
 
-      await expect.poll(() => getActivePropertyKey(reactGrab.page)).toBe(target.key);
-      expect(await getActivePropertyKey(reactGrab.page)).not.toBe(before);
+      await expect.poll(() => getActivePropertyKey(reactGrab.page)).toBe(hoverTargetRow.key);
+      expect(await getActivePropertyKey(reactGrab.page)).not.toBe(activePropertyKeyBeforeHover);
     });
 
     test("discard prompt expands to full panel", async ({ reactGrab }) => {
@@ -949,33 +469,35 @@ test.describe("Style Panel", () => {
 
     test("ArrowUp / ArrowDown navigate the list, not the value", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
-      const initial = await getActivePropertyKey(reactGrab.page);
+      const initialActivePropertyKey = await getActivePropertyKey(reactGrab.page);
       await reactGrab.page.keyboard.press("ArrowDown");
       await reactGrab.page.waitForTimeout(80);
-      const afterDown = await getActivePropertyKey(reactGrab.page);
-      expect(afterDown).not.toBe(initial);
+      const activePropertyKeyAfterDown = await getActivePropertyKey(reactGrab.page);
+      expect(activePropertyKeyAfterDown).not.toBe(initialActivePropertyKey);
     });
 
     test("Shift+ArrowRight steps by 10×", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
-      const before = await getActivePropertyValue(reactGrab.page);
+      const valueBeforeStep = await getActivePropertyValue(reactGrab.page);
 
-      // First a plain Right to capture the +1 delta
       await reactGrab.page.keyboard.press("ArrowRight");
       await reactGrab.page.waitForTimeout(80);
-      const afterOne = await getActivePropertyValue(reactGrab.page);
+      const valueAfterOneStep = await getActivePropertyValue(reactGrab.page);
 
-      // Then Shift+Right and compare against afterOne; should jump way further
       await reactGrab.page.keyboard.down("Shift");
       await reactGrab.page.keyboard.press("ArrowRight");
       await reactGrab.page.keyboard.up("Shift");
       await reactGrab.page.waitForTimeout(80);
-      const afterShift = await getActivePropertyValue(reactGrab.page);
+      const valueAfterShiftStep = await getActivePropertyValue(reactGrab.page);
 
-      const numbersIn = (text: string | null): number =>
+      const parseNumericDisplayValue = (text: string | null): number =>
         Number.parseFloat((text ?? "").replace(/[^\d.-]/g, "")) || 0;
-      const oneStepDelta = Math.abs(numbersIn(afterOne) - numbersIn(before));
-      const shiftStepDelta = Math.abs(numbersIn(afterShift) - numbersIn(afterOne));
+      const oneStepDelta = Math.abs(
+        parseNumericDisplayValue(valueAfterOneStep) - parseNumericDisplayValue(valueBeforeStep),
+      );
+      const shiftStepDelta = Math.abs(
+        parseNumericDisplayValue(valueAfterShiftStep) - parseNumericDisplayValue(valueAfterOneStep),
+      );
       expect(shiftStepDelta).toBeGreaterThan(oneStepDelta);
     });
 
@@ -1011,8 +533,6 @@ test.describe("Style Panel", () => {
       await reactGrab.page.keyboard.press("ArrowRight");
       await reactGrab.page.waitForTimeout(80);
       expect(await isEditPanelCompact(reactGrab.page)).toBe(true);
-      // Stays compact across the idle window — no auto-expand back to
-      // the search + property list.
       await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
       expect(await isEditPanelCompact(reactGrab.page)).toBe(true);
     });
@@ -1022,8 +542,6 @@ test.describe("Style Panel", () => {
       await reactGrab.page.keyboard.press("ArrowRight");
       await reactGrab.page.waitForTimeout(80);
       expect(await isEditPanelCompact(reactGrab.page)).toBe(true);
-      // Use "q" — a character that doesn't match any tailwind prefix,
-      // so applyTailwindClass won't re-set compact to true.
       await reactGrab.page.keyboard.type("q");
       await reactGrab.page.waitForTimeout(80);
       expect(await isEditPanelCompact(reactGrab.page)).toBe(false);
@@ -1056,7 +574,6 @@ test.describe("Style Panel", () => {
       await reactGrab.activate();
       await reactGrab.hoverElement(BUTTON_SELECTOR);
       await reactGrab.waitForSelectionBox();
-      // 3 chars: m (opens panel) + t (refines) + - (extends prefix)
       await reactGrab.page.keyboard.type("mt-", { delay: 50 });
       await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(true);
       await reactGrab.page.waitForTimeout(80);
@@ -1076,7 +593,7 @@ test.describe("Style Panel", () => {
 
     test("typing a tailwind prefix (e.g. mt) sets compact state", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
-      const compactBefore = await reactGrab.page.evaluate(
+      const compactAttrBeforeTyping = await reactGrab.page.evaluate(
         ({ attrName, panelAttr }) => {
           const host = document.querySelector(`[${attrName}]`);
           const shadowRoot = host?.shadowRoot;
@@ -1085,10 +602,10 @@ test.describe("Style Panel", () => {
         },
         { attrName: ATTRIBUTE_NAME, panelAttr: EDIT_PANEL_ATTR },
       );
-      expect(compactBefore).toBe("false");
+      expect(compactAttrBeforeTyping).toBe("false");
       await reactGrab.page.keyboard.type("mt");
       await reactGrab.page.waitForTimeout(80);
-      const compactAfter = await reactGrab.page.evaluate(
+      const compactAttrAfterTyping = await reactGrab.page.evaluate(
         ({ attrName, panelAttr }) => {
           const host = document.querySelector(`[${attrName}]`);
           const shadowRoot = host?.shadowRoot;
@@ -1097,14 +614,18 @@ test.describe("Style Panel", () => {
         },
         { attrName: ATTRIBUTE_NAME, panelAttr: EDIT_PANEL_ATTR },
       );
-      expect(compactAfter).toBe("true");
+      expect(compactAttrAfterTyping).toBe("true");
     });
 
     test("typing a complete tailwind class (mt-5) applies value + compact", async ({
       reactGrab,
     }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
-      const before = await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "margin-top");
+      const marginTopBeforeTyping = await getInlineStyleProperty(
+        reactGrab.page,
+        BUTTON_SELECTOR,
+        "margin-top",
+      );
       await reactGrab.page.keyboard.type("mt-5");
       await reactGrab.page.waitForTimeout(80);
       const compactAttr = await reactGrab.page.evaluate(
@@ -1117,10 +638,13 @@ test.describe("Style Panel", () => {
         { attrName: ATTRIBUTE_NAME, panelAttr: EDIT_PANEL_ATTR },
       );
       expect(compactAttr).toBe("true");
-      const after = await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "margin-top");
-      expect(after).not.toBe(before);
-      // Tailwind n × 4px = 5 × 4 = 20px
-      expect(after).toContain("20");
+      const marginTopAfterTyping = await getInlineStyleProperty(
+        reactGrab.page,
+        BUTTON_SELECTOR,
+        "margin-top",
+      );
+      expect(marginTopAfterTyping).not.toBe(marginTopBeforeTyping);
+      expect(marginTopAfterTyping).toContain("20");
     });
 
     test("typing font-mono applies font family + compact", async ({ reactGrab }) => {
@@ -1154,26 +678,65 @@ test.describe("Style Panel", () => {
     test("typing p-4 on non-uniform spacing writes to both axis aggregates", async ({
       reactGrab,
     }) => {
-      // nested-button is px-2 py-1 → padding-x + padding-y axis rows
-      // are canonical; no single `padding` aggregate exists. The user
-      // typing `p-4` should still apply to all four sides via the
-      // axis-aggregate fan-out path.
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await reactGrab.page.keyboard.type("p-4");
       await reactGrab.page.waitForTimeout(80);
-      const top = await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-top");
-      const right = await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-right");
-      const bottom = await getInlineStyleProperty(
+      const paddingTop = await getInlineStyleProperty(
+        reactGrab.page,
+        BUTTON_SELECTOR,
+        "padding-top",
+      );
+      const paddingRight = await getInlineStyleProperty(
+        reactGrab.page,
+        BUTTON_SELECTOR,
+        "padding-right",
+      );
+      const paddingBottom = await getInlineStyleProperty(
         reactGrab.page,
         BUTTON_SELECTOR,
         "padding-bottom",
       );
-      const left = await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-left");
-      // 4 × 4 = 16px on every side
-      expect(top).toContain("16");
-      expect(right).toContain("16");
-      expect(bottom).toContain("16");
-      expect(left).toContain("16");
+      const paddingLeft = await getInlineStyleProperty(
+        reactGrab.page,
+        BUTTON_SELECTOR,
+        "padding-left",
+      );
+      expect(paddingTop).toContain("16");
+      expect(paddingRight).toContain("16");
+      expect(paddingBottom).toContain("16");
+      expect(paddingLeft).toContain("16");
+    });
+
+    test("typing border-t-4 writes only the top border width", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.type("border-t-4");
+      await reactGrab.page.waitForTimeout(80);
+
+      const borderTopWidth = await getInlineStyleProperty(
+        reactGrab.page,
+        BUTTON_SELECTOR,
+        "border-top-width",
+      );
+      const borderRightWidth = await getInlineStyleProperty(
+        reactGrab.page,
+        BUTTON_SELECTOR,
+        "border-right-width",
+      );
+      const borderBottomWidth = await getInlineStyleProperty(
+        reactGrab.page,
+        BUTTON_SELECTOR,
+        "border-bottom-width",
+      );
+      const borderLeftWidth = await getInlineStyleProperty(
+        reactGrab.page,
+        BUTTON_SELECTOR,
+        "border-left-width",
+      );
+
+      expect(borderTopWidth).toBe("4px");
+      expect(borderRightWidth).toBe("");
+      expect(borderBottomWidth).toBe("");
+      expect(borderLeftWidth).toBe("");
     });
 
     test("typing py 40 applies padding-y", async ({ reactGrab }) => {
@@ -1195,12 +758,12 @@ test.describe("Style Panel", () => {
       await reactGrab.page.keyboard.press("ArrowRight");
       await reactGrab.page.waitForTimeout(80);
       expect(await isEditPanelCompact(reactGrab.page)).toBe(true);
-      const first = await getActivePropertyValue(reactGrab.page);
+      const firstDisplayedValue = await getActivePropertyValue(reactGrab.page);
 
       await reactGrab.page.keyboard.press("ArrowRight");
       await reactGrab.page.waitForTimeout(80);
-      const second = await getActivePropertyValue(reactGrab.page);
-      expect(second).not.toBe(first);
+      const secondDisplayedValue = await getActivePropertyValue(reactGrab.page);
+      expect(secondDisplayedValue).not.toBe(firstDisplayedValue);
     });
   });
 
@@ -1212,38 +775,36 @@ test.describe("Style Panel", () => {
       await reactGrab.page.keyboard.press("Enter");
       await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
 
-      const entries = await readSessionStorageEntries(reactGrab.page);
-      expect(Object.keys(entries).length).toBe(0);
+      const sessionStorageEntries = await readSessionStorageEntries(reactGrab.page);
+      expect(Object.keys(sessionStorageEntries).length).toBe(0);
     });
 
     test("Escape does not write to sessionStorage (in-memory only)", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await reactGrab.page.keyboard.press("ArrowRight");
       await reactGrab.page.waitForTimeout(80);
-      // Two-step dismiss: first Escape shakes the discard-confirm
-      // prompt, second Escape confirms discard and closes.
       await reactGrab.page.keyboard.press("Escape");
       await reactGrab.page.waitForTimeout(80);
       await reactGrab.page.keyboard.press("Escape");
       await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
 
-      const entries = await readSessionStorageEntries(reactGrab.page);
-      expect(Object.keys(entries).length).toBe(0);
+      const sessionStorageEntries = await readSessionStorageEntries(reactGrab.page);
+      expect(Object.keys(sessionStorageEntries).length).toBe(0);
     });
 
     test("inline styles persist on commit (not reverted)", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await reactGrab.page.keyboard.press("ArrowRight");
       await reactGrab.page.waitForTimeout(80);
-      const tweaked = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
-      expect(tweaked.length).toBeGreaterThan(0);
+      const inlineStyleAfterTweak = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
+      expect(inlineStyleAfterTweak.length).toBeGreaterThan(0);
 
       await reactGrab.page.keyboard.press("Enter");
       await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
       await reactGrab.page.waitForTimeout(200);
 
       const afterCommit = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
-      expect(afterCommit).toBe(tweaked);
+      expect(afterCommit).toBe(inlineStyleAfterTweak);
     });
 
     test("header Copy button appears after a pending tweak and submits", async ({ reactGrab }) => {
@@ -1255,13 +816,13 @@ test.describe("Style Panel", () => {
       expect(await isEditPanelCompact(reactGrab.page)).toBe(false);
       expect(await isHeaderCopyButtonVisible(reactGrab.page)).toBe(true);
 
-      const tweaked = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
-      expect(tweaked.length).toBeGreaterThan(0);
+      const inlineStyleAfterTweak = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
+      expect(inlineStyleAfterTweak.length).toBeGreaterThan(0);
       await clickHeaderCopyButton(reactGrab.page);
       await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
 
       const afterCommit = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
-      expect(afterCommit).toBe(tweaked);
+      expect(afterCommit).toBe(inlineStyleAfterTweak);
     });
 
     test("header Copy button matches the neutral discard button style", async ({ reactGrab }) => {
@@ -1269,16 +830,19 @@ test.describe("Style Panel", () => {
       await dragActiveSlider(reactGrab.page);
       await reactGrab.page.waitForTimeout(80);
 
-      const copyStyle = await getOverlayButtonVisualStyle(reactGrab.page, `[${COPY_BUTTON_ATTR}]`);
+      const copyButtonStyle = await getOverlayButtonVisualStyle(
+        reactGrab.page,
+        `[${COPY_BUTTON_ATTR}]`,
+      );
 
       await reactGrab.page.keyboard.press("Escape");
       await reactGrab.page.waitForTimeout(80);
-      const noStyle = await getOverlayButtonVisualStyle(
+      const cancelButtonStyle = await getOverlayButtonVisualStyle(
         reactGrab.page,
         "[data-react-grab-discard-button='cancel']",
       );
 
-      expect(copyStyle).toEqual(noStyle);
+      expect(copyButtonStyle).toEqual(cancelButtonStyle);
     });
   });
 
@@ -1294,8 +858,7 @@ test.describe("Style Panel", () => {
 
     test("clicking another element does not change selection", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
-      // Capture which element the panel anchored to before the click.
-      const targetSelectorBefore = await reactGrab.page.evaluate(
+      const panelStateBeforeClick = await reactGrab.page.evaluate(
         ({ attrName }) => {
           const host = document.querySelector(`[${attrName}]`);
           const shadowRoot = host?.shadowRoot;
@@ -1304,19 +867,11 @@ test.describe("Style Panel", () => {
         },
         { attrName: ATTRIBUTE_NAME },
       );
-      expect(targetSelectorBefore).toBe("panel-open");
+      expect(panelStateBeforeClick).toBe("panel-open");
 
-      // Click another element on the page. Click-outside-with-pending-
-      // tweaks goes through the two-step dismiss flow, but with NO tweaks
-      // it dismisses immediately. Either way, the underlying selection
-      // must not silently jump — the panel keeps owning its element OR
-      // dismisses cleanly.
       await reactGrab.page.locator(CARD_SELECTOR).first().click({ force: true });
       await reactGrab.page.waitForTimeout(150);
 
-      // After the click: either the panel dismissed (no panel attr in
-      // shadow root) OR it stayed open anchored to the original button.
-      // What's NOT allowed: a stale panel anchored to a different element.
       const stateAfter = await reactGrab.page.evaluate(
         ({ attrName, buttonSelector }) => {
           const host = document.querySelector(`[${attrName}]`);

@@ -1,4 +1,5 @@
 import { createMemo, createSignal } from "solid-js";
+import { EDIT_PROPERTY_MAX_COUNT } from "../../constants.js";
 import type { EditableProperty, PendingEdit } from "../../types.js";
 import { createPropertySearchIndex } from "../../utils/property-search-index.js";
 
@@ -36,7 +37,7 @@ export const createTweakStore = (options: CreateTweakStoreOptions): TweakStore =
             (property.isCanonical && !property.isDefault) ||
             currentTweaks[property.key] !== undefined,
         );
-    return query ? propertySearchIndex.search(query) : candidates;
+    return query ? propertySearchIndex.search(query) : candidates.slice(0, EDIT_PROPERTY_MAX_COUNT);
   });
 
   const propertyByKey = new Map(initialProperties.map((property) => [property.key, property]));

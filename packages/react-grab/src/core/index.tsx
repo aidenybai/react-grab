@@ -137,6 +137,7 @@ import { freezeUpdates } from "../utils/freeze-updates.js";
 import { generateId } from "../utils/generate-id.js";
 import { logRecoverableError } from "../utils/log-recoverable-error.js";
 import { getNearestEdge } from "../utils/get-nearest-edge.js";
+import { findShortcutAction } from "../utils/action-shortcuts.js";
 
 const builtInPlugins = [copyPlugin, editPlugin, commentPlugin, openPlugin];
 
@@ -1467,7 +1468,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const previousFocused = store.previouslyFocusedElement;
       stopSpaceDragRepositioning();
       actions.deactivate();
-      editMode.reset();
+      editMode.resetWithDiscard();
       dismissToolbarMenu();
       stopShiftMultiSelecting();
       clearArrowNavigation();
@@ -1579,17 +1580,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         deactivateRenderer();
       } else if (isEnabled()) {
         const defaultActionId = currentToolbarState()?.defaultAction ?? DEFAULT_ACTION_ID;
-        // Comment is the one default that has a dedicated prompt-mode
-        // flow; every other action (copy, edit, custom plugin actions)
-        // runs through the standard "select element then dispatch the
-        // pending action id" path. Tying the special-case to the literal
-        // "comment" id keeps it correct when DEFAULT_ACTION_ID changes.
-        if (defaultActionId === "comment") {
-          actions.setPendingCommentMode(true);
-        } else {
-          pendingDefaultActionId = defaultActionId;
-          setIsPendingContextMenuSelect(true);
-        }
+        pendingDefaultActionId = defaultActionId;
+        setIsPendingContextMenuSelect(true);
         toggleActivate();
       }
     };
@@ -2067,9 +2059,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         isEnterKey && isOverlayActive && !isPromptMode() && !store.wasActivatedByToggle;
 
       if (shouldBlockEnter) {
-        // Carve out our own inputs (search textarea, edit-panel value
-        // editor). Without this, Enter inside the click-to-type value
-        // editor is swallowed before the editor can commit.
+        // React Grab inputs keep Enter so inline editors can commit.
         if (isEventFromOverlay(event, "data-react-grab-input")) return false;
         keyboardClaimer.claimedEvents.add(event);
         event.preventDefault();
@@ -2132,10 +2122,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!isActivated()) return false;
       if (isShiftMultiSelecting()) return false;
       if (!ARROW_KEYS.has(event.key)) return false;
-      // While the context menu or edit panel is open, arrow keys belong
-      // to their own focused widgets (roving-tabindex / value tweaker).
-      // Both global+capture listeners fire for the same event, so bow
-      // out here to avoid re-selecting page elements.
       if (isAnyPopoverOpen()) return false;
 
       let currentElement = effectiveElement();
@@ -2180,15 +2166,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return true;
     };
 
-    // Type-to-edit shortcut: while react-grab is active and the user is
-    // hovering an element (selection mode, no panel/menu open), pressing
-    // a letter (a–z, 0–9, dash) opens the edit panel on the hovered/
-    // frozen element and seeds the search with that letter. Subsequent
-    // keystrokes flow into the panel's own search input normally.
-    //
-    // Examples:
-    //   `p` → opens panel for hovered element, padding row active, compact.
-    //   `m` then `t` then `-` then `5` → margin-top 20px applied.
     const canDispatchBareKey = (event: KeyboardEvent): Element | null => {
       if (event.metaKey || event.ctrlKey || event.altKey) return null;
       if (event.repeat) return null;
@@ -2242,14 +2219,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const element = canDispatchBareKey(event);
       if (!element) return false;
 
-      if (!event.key) return false;
-      const keyLower = event.key.toLowerCase();
-      const action = pluginRegistry.store.actions.find(
-        (registeredAction) =>
-          registeredAction.shortcut &&
-          registeredAction.shortcutModifier === false &&
-          keyLower === registeredAction.shortcut.toLowerCase(),
-      );
+      const action = findShortcutAction(pluginRegistry.store.actions, event);
       if (!action) return false;
 
       const position = { x: pointer().x, y: pointer().y };
@@ -2282,8 +2252,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!isActivated()) return false;
       if (isCopying()) return false;
       if (store.contextMenuPosition !== null) return false;
-      // Style panel owns the surface while it's open — context menu
-      // would land on top and split keyboard routing.
       if (editMode.isOpen()) return false;
 
       const isShiftF10 = event.key === "F10" && event.shiftKey;
@@ -2302,9 +2270,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       event.stopPropagation();
 
       const center = getBoundsCenter(createElementBounds(element));
-      // Preserve an existing multi-frozen selection (e.g. Shift+click)
-      // when invoking via keyboard, matching the mouse contextmenu
-      // handler's behavior on a click that lands on the existing set.
       if (hasMultiFrozenSelection) {
         freezeAllAnimations(existingFrozenElements);
       } else {
@@ -2441,9 +2406,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
-        // Each popover owns its own Escape handling (context menu and
-        // edit panel via registerOverlayDismiss, toolbar menu via this
-        // path). Bail so the global handler doesn't deactivateRenderer.
         if (event.key === "Escape" && isAnyPopoverOpen()) {
           if (toolbarMenuPosition() !== null) dismissToolbarMenu();
           return;
@@ -2732,9 +2694,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       "contextmenu",
       (event: MouseEvent) => {
         if (!isRendererActive() || isCopying() || isPromptMode()) return;
-        // Style panel owns the surface while it's open — context menu
-        // would land on top and split keyboard routing between two
-        // popovers.
         if (editMode.isOpen()) return;
 
         const isFromOverlay = isEventFromOverlay(event, "data-react-grab-ignore-events");
@@ -3465,11 +3424,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       };
     };
 
-    // Each tracked dropdown owns its own RAF loop via a closure-captured
-    // frame id, returning a stop function. Sharing a single module-level
-    // frame id between the toolbar menu and the edit panel caused the
-    // later opener to cancel the earlier opener's tracking, then leave
-    // the earlier dropdown unanchored when it closed.
+    // Keep sibling dropdown tracking independent; sharing one RAF id breaks anchoring.
     const trackDropdownPosition = (
       getAnchor: () => DropdownAnchor | null,
       setPosition: (anchor: DropdownAnchor) => void,
@@ -3505,12 +3460,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (toolbarMenuPosition() !== null) {
         dismissToolbarMenu();
       } else {
-        // Single-popover rule (symmetric with the editMode.isOpen
-        // effect that dismisses the toolbar menu when Style opens) —
-        // close any other anchored popovers before opening this one.
-        // `closePreservingRenderer` (not `dismiss`) because in
-        // toolbar-toggle mode `dismiss` would `deactivateRenderer` —
-        // user is swapping popovers, not ending the session.
         actions.hideContextMenu();
         if (editMode.isOpen()) editMode.closePreservingRenderer();
         stopToolbarMenuTracking?.();
@@ -3666,7 +3615,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 editPanelPosition={editPanelPosition()}
                 onEditPanelDismiss={editMode.dismiss}
                 onEditPanelSubmit={editMode.submit}
-                onEditPanelRegisterForceDiscard={editMode.registerForceDiscard}
                 onEditPanelInteractingChange={editMode.setInteracting}
               />
             );

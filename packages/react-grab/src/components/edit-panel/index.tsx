@@ -34,7 +34,6 @@ import { suppressMenuEvent } from "../../utils/suppress-menu-event.js";
 import { TagBadge } from "../selection-label/tag-badge.js";
 import { ActivePropertyControl } from "./active-property-control.js";
 import { HIDDEN_FOCUS_PRESERVING_STYLE } from "./constants.js";
-import { createPreviewStyles } from "./preview-styles.js";
 import { PropertyList } from "./property-list.js";
 import { createShiftTracker } from "./shift-tracker.js";
 import { createStepController } from "./step-controller.js";
@@ -48,7 +47,6 @@ interface EditPanelProps {
   position: DropdownAnchor | null;
   onDismiss: () => void;
   onSubmit: (prompt: string) => void;
-  registerForceDiscard?: (discard: (() => void) | null) => void;
   onInteractingChange?: (interacting: boolean) => void;
 }
 
@@ -62,7 +60,6 @@ export const EditPanel: Component<EditPanelProps> = (props) => (
             position={() => props.position}
             onDismiss={props.onDismiss}
             onSubmit={props.onSubmit}
-            registerForceDiscard={props.registerForceDiscard}
             onInteractingChange={props.onInteractingChange}
           />
         )}
@@ -76,16 +73,14 @@ interface EditPanelBodyProps {
   position: () => DropdownAnchor | null;
   onDismiss: () => void;
   onSubmit: (prompt: string) => void;
-  registerForceDiscard?: (discard: (() => void) | null) => void;
   onInteractingChange?: (interacting: boolean) => void;
 }
 
 const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
-  const initialElement = props.state.element;
   const initialProperties = props.state.properties;
 
   let searchInputRef: HTMLTextAreaElement | undefined;
-  const preview = createPreviewStyles(initialElement);
+  const preview = props.state.preview;
 
   const [searchQuery, setSearchQuery] = createSignal(props.state.initialSearchQuery ?? "");
   const [activeIndex, setActiveIndex] = createSignal(0);
@@ -182,12 +177,12 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   ): EditableProperty | null => {
     const property = activeProperty();
     if (!property) return null;
-    const next = stepProperty(property, direction, shift);
-    if (next === null) {
+    const nextValue = stepProperty(property, direction, shift);
+    if (nextValue === null) {
       flashActiveKey(direction === 1 ? "right" : "left");
       return null;
     }
-    commit(property, next, {
+    commit(property, nextValue, {
       flashDirection: direction,
       shouldFocus: true,
       isFromKeyRepeat: fromRepeat,
@@ -293,10 +288,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   };
 
   let colorPickerTrigger: (() => void) | null = null;
-  // Identity-guard the unregister: a stale ColorPicker unmount (e.g.
-  // sibling row navigation where the new row's mount runs before the
-  // previous row's cleanup) must NOT clobber a freshly-registered
-  // trigger. Compare against `owner` to scope the null write.
+  // A stale ColorPicker cleanup must not clear a newer trigger owner.
   const registerColorPickerTrigger = (trigger: (() => void) | null, owner?: () => void) => {
     if (trigger === null) {
       if (owner !== undefined && colorPickerTrigger !== owner) return;
@@ -326,10 +318,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   };
 
   const handleSearchKeyDown = (event: KeyboardEvent) => {
-    // `isComposing` is false on the IME-commit `Enter` tick that
-    // confirms a candidate; Chromium reports `keyCode === 229` on
-    // that tick. Check both to avoid submitting pending edits when
-    // the user was actually picking a Hiragana/Hangul candidate.
+    // Chromium reports keyCode 229 on the IME commit tick after isComposing resets.
     if (event.isComposing || event.keyCode === IME_COMPOSING_KEY_CODE) return;
     if (isPendingDismiss()) {
       const target = event.composedPath()[0];
@@ -368,9 +357,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     const initialQuery = searchQuery();
     if (initialQuery) autoApply.applyTailwindClass(initialQuery);
 
-    props.registerForceDiscard?.(() => preview.restore());
-    onCleanup(() => props.registerForceDiscard?.(null));
-
     const unregisterDismiss = registerOverlayDismiss({
       isOpen: () => true,
       onDismiss: attemptDismiss,
@@ -386,10 +372,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       shouldIgnoreInputEvents: true,
     });
 
-    // Window-level keydown — compact mode hides the textarea 0×0 and
-    // some browsers blur it. Page editable targets keep their own
-    // semantics. composedPath()[0] sees through the Shadow DOM
-    // retargeting.
+    // Compact mode can blur the hidden textarea, so the window owns panel keys.
     const isPageEditableTarget = (target: EventTarget | undefined): boolean => {
       if (!(target instanceof HTMLElement)) return false;
       if (target instanceof HTMLInputElement) return true;
@@ -585,12 +568,12 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
               }}
               value={searchQuery()}
               onInput={(event) => {
-                const next = event.currentTarget.value;
-                setSearchQuery(next);
-                if (autoApply.tryApplyNumericValue(next)) return;
+                const nextSearchQuery = event.currentTarget.value;
+                setSearchQuery(nextSearchQuery);
+                if (autoApply.tryApplyNumericValue(nextSearchQuery)) return;
                 setActiveIndex(0);
                 setIsCompact(false);
-                autoApply.applyTailwindClass(next);
+                autoApply.applyTailwindClass(nextSearchQuery);
               }}
               onKeyDown={handleSearchKeyDown}
               placeholder={

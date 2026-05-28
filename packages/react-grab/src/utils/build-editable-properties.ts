@@ -1,4 +1,3 @@
-import { EDIT_PROPERTY_MAX_COUNT } from "../constants.js";
 import type { EditableProperty } from "../types.js";
 import {
   buildColorProperty,
@@ -34,8 +33,7 @@ export const buildEditableProperties = (element: Element): EditableProperty[] =>
   const emittedPropertyKeys = new Set<string>();
 
   const addProperty = (property: EditableProperty) => {
-    if (emittedPropertyKeys.has(property.key) || properties.length >= EDIT_PROPERTY_MAX_COUNT)
-      return;
+    if (emittedPropertyKeys.has(property.key)) return;
     properties.push(property);
     emittedPropertyKeys.add(property.key);
   };
