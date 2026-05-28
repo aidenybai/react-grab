@@ -7,42 +7,42 @@ const hasInlineStyle = (element: Element): element is InlineStyledElement => {
 };
 
 export const createPreviewStyles = (element: Element) => {
-  const baseline = new Map<string, { value: string; priority: string }>();
-  const target = hasInlineStyle(element) ? element : null;
+  const baselineStyles = new Map<string, { value: string; priority: string }>();
+  const styledElement = hasInlineStyle(element) ? element : null;
 
   const apply = (cssProperties: readonly string[], cssValue: string): void => {
-    if (!target) return;
+    if (!styledElement) return;
     for (const cssProperty of cssProperties) {
-      if (!baseline.has(cssProperty)) {
-        baseline.set(cssProperty, {
-          value: target.style.getPropertyValue(cssProperty),
-          priority: target.style.getPropertyPriority(cssProperty),
+      if (!baselineStyles.has(cssProperty)) {
+        baselineStyles.set(cssProperty, {
+          value: styledElement.style.getPropertyValue(cssProperty),
+          priority: styledElement.style.getPropertyPriority(cssProperty),
         });
       }
-      target.style.setProperty(cssProperty, cssValue);
+      styledElement.style.setProperty(cssProperty, cssValue);
     }
   };
 
   const restore = (): void => {
-    if (!target) {
-      baseline.clear();
+    if (!styledElement) {
+      baselineStyles.clear();
       return;
     }
-    for (const [cssProperty, { value, priority }] of baseline) {
+    for (const [cssProperty, { value, priority }] of baselineStyles) {
       if (value) {
-        target.style.setProperty(cssProperty, value, priority);
+        styledElement.style.setProperty(cssProperty, value, priority);
       } else {
-        target.style.removeProperty(cssProperty);
+        styledElement.style.removeProperty(cssProperty);
       }
     }
-    baseline.clear();
+    baselineStyles.clear();
   };
 
   const forget = (): void => {
-    baseline.clear();
+    baselineStyles.clear();
   };
 
-  const hasAppliedStyles = (): boolean => baseline.size > 0;
+  const hasAppliedStyles = (): boolean => baselineStyles.size > 0;
 
   return { apply, restore, forget, hasAppliedStyles };
 };

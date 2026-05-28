@@ -145,10 +145,10 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   };
 
   interface CommitOptions {
-    flash?: 1 | -1;
-    focus?: boolean;
-    compact?: boolean;
-    fromRepeat?: boolean;
+    flashDirection?: 1 | -1;
+    shouldFocus?: boolean;
+    shouldCompact?: boolean;
+    isFromKeyRepeat?: boolean;
   }
 
   const commit = (
@@ -159,10 +159,10 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     tweakStore.applyTweak(property, nextValue);
     preview.apply(property.cssProperties, formatEditableValue(property, nextValue));
     markAsInteracting();
-    if (!options.fromRepeat) setIsPendingDismiss(false);
-    if (options.flash) flashActiveKey(options.flash === 1 ? "right" : "left");
-    if (options.focus) ensureSearchFocused();
-    if (options.compact) setIsCompact(true);
+    if (!options.isFromKeyRepeat) setIsPendingDismiss(false);
+    if (options.flashDirection) flashActiveKey(options.flashDirection === 1 ? "right" : "left");
+    if (options.shouldFocus) ensureSearchFocused();
+    if (options.shouldCompact) setIsCompact(true);
   };
 
   const isShiftHeld = createShiftTracker();
@@ -179,7 +179,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       flashActiveKey(direction === 1 ? "right" : "left");
       return null;
     }
-    commit(property, next, { flash: direction, focus: true, fromRepeat });
+    commit(property, next, { flashDirection: direction, shouldFocus: true, isFromKeyRepeat: fromRepeat });
     return property;
   };
 
@@ -372,8 +372,8 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       }
     });
     dropdown.measure();
-    const seed = searchQuery();
-    if (seed) autoApply.applyTailwindClass(seed);
+    const initialQuery = searchQuery();
+    if (initialQuery) autoApply.applyTailwindClass(initialQuery);
 
     props.registerForceDiscard?.(() => preview.restore());
     onCleanup(() => props.registerForceDiscard?.(null));
@@ -633,13 +633,13 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
           </Show>
 
           <Show when={isCompact() && activeProperty()}>
-            {(activeProp) => (
+            {(compactProperty) => (
               <div
                 class="flex items-center justify-center w-full px-3 py-1.5 min-h-[28px]"
                 onMouseDown={(event) => event.preventDefault()}
               >
                 <ActivePropertyControl
-                  property={activeProp()}
+                  property={compactProperty()}
                   activeKey={activeKey()}
                   onStep={stepFromPointer}
                   onCommit={commitActive}

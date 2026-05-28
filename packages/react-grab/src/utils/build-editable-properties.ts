@@ -764,24 +764,24 @@ export const buildEditableProperties = (element: Element): EditableProperty[] =>
   const currentAllKeys = snapshotAllKeys(computed);
   const baseline = measureBaseline(element);
   const properties: EditableProperty[] = [];
-  const seen = new Set<string>();
+  const emittedPropertyKeys = new Set<string>();
 
-  const push = (property: EditableProperty) => {
-    if (seen.has(property.key) || properties.length >= EDIT_PROPERTY_MAX_COUNT) return;
+  const addProperty = (property: EditableProperty) => {
+    if (emittedPropertyKeys.has(property.key) || properties.length >= EDIT_PROPERTY_MAX_COUNT) return;
     properties.push(property);
-    seen.add(property.key);
+    emittedPropertyKeys.add(property.key);
   };
 
   for (const group of AGGREGATE_GROUPS) {
     for (const entry of tagAggregateGroup(snapshot, group)) {
-      push(buildNumericProperty(entry.definition, entry.value, entry.isCanonical));
+      addProperty(buildNumericProperty(entry.definition, entry.value, entry.isCanonical));
     }
   }
 
   for (const single of SINGLE_PROPERTIES) {
     const value = valueWithFallback(snapshot, single.key);
     if (!value) continue;
-    push(
+    addProperty(
       buildNumericProperty(
         { key: single.key, label: single.label, longhands: [single.key] },
         value,
@@ -791,17 +791,17 @@ export const buildEditableProperties = (element: Element): EditableProperty[] =>
   }
 
   for (const { key, label } of COLOR_PROPERTIES) {
-    const raw = computed.getPropertyValue(key);
-    if (!raw || isTransparentRgbString(raw)) continue;
-    const colorProperty = buildColorProperty(key, label, raw);
-    if (colorProperty) push(colorProperty);
+    const rawCssValue = computed.getPropertyValue(key);
+    if (!rawCssValue || isTransparentRgbString(rawCssValue)) continue;
+    const colorProperty = buildColorProperty(key, label, rawCssValue);
+    if (colorProperty) addProperty(colorProperty);
   }
 
   for (const definition of ENUM_PROPERTIES) {
-    const raw = computed.getPropertyValue(definition.key);
-    if (!raw) continue;
-    const enumProperty = buildEnumProperty(definition, raw);
-    if (enumProperty) push(enumProperty);
+    const rawCssValue = computed.getPropertyValue(definition.key);
+    if (!rawCssValue) continue;
+    const enumProperty = buildEnumProperty(definition, rawCssValue);
+    if (enumProperty) addProperty(enumProperty);
   }
 
   return finalizeProperties(

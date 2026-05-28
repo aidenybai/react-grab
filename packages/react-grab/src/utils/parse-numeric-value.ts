@@ -5,16 +5,16 @@ export interface NumericValue {
   unit: string;
 }
 
-export const parseNumericValue = (raw: string): NumericValue | null => {
-  const trimmed = raw.trim();
+export const parseNumericValue = (cssValueString: string): NumericValue | null => {
+  const trimmed = cssValueString.trim();
   if (!trimmed || trimmed === "auto" || trimmed === "normal" || trimmed === "none") return null;
 
-  const numeric = Number.parseFloat(trimmed);
-  if (!Number.isFinite(numeric)) return null;
+  const parsedNumber = Number.parseFloat(trimmed);
+  if (!Number.isFinite(parsedNumber)) return null;
 
-  if (trimmed.endsWith("%")) return { value: numeric, unit: "%" };
-  if (trimmed.endsWith("rem")) return { value: numeric * PIXELS_PER_REM, unit: "px" };
-  if (trimmed.endsWith("em")) return { value: numeric * PIXELS_PER_REM, unit: "px" };
-  if (trimmed.endsWith("px")) return { value: numeric, unit: "px" };
-  return { value: numeric, unit: "" };
+  if (trimmed.endsWith("%")) return { value: parsedNumber, unit: "%" };
+  if (trimmed.endsWith("rem")) return { value: parsedNumber * PIXELS_PER_REM, unit: "px" };
+  if (trimmed.endsWith("em")) return { value: parsedNumber * PIXELS_PER_REM, unit: "px" };
+  if (trimmed.endsWith("px")) return { value: parsedNumber, unit: "px" };
+  return { value: parsedNumber, unit: "" };
 };

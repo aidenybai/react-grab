@@ -56,10 +56,10 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
 
 
   const fillPercent = () => {
-    const span = props.max - props.min;
-    if (span <= 0) return 0;
+    const valueRange = props.max - props.min;
+    if (valueRange <= 0) return 0;
     const clamped = Math.max(props.min, Math.min(props.max, props.value));
-    return ((clamped - props.min) / span) * 100;
+    return ((clamped - props.min) / valueRange) * 100;
   };
 
   const startEditing = () => {
@@ -158,26 +158,26 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
   // to dots. Rejects unit mismatches (`1.5rem` typed into a `px` row
   // would silently commit 1.5px without this guard). Accepts trailing
   // dot (`5.`) for users mid-typing a decimal — `parseFloat("5.") = 5`.
-  const commit = () => {
+  const commitDraftText = () => {
     const text = draftText();
     if (text === null) return;
     setDraftText(null);
-    const match = text
+    const valueMatch = text
       .trim()
       .replace(/(\d),(\d)/g, "$1.$2")
       .match(INLINE_VALUE_PATTERN);
-    if (!match) {
+    if (!valueMatch) {
       props.onInvalidCommit?.();
       props.onEditComplete?.();
       return;
     }
-    const typedUnit = match[2].toLowerCase();
+    const typedUnit = valueMatch[2].toLowerCase();
     if (typedUnit && typedUnit !== props.unit) {
       props.onInvalidCommit?.();
       props.onEditComplete?.();
       return;
     }
-    const parsed = Number.parseFloat(match[1]);
+    const parsed = Number.parseFloat(valueMatch[1]);
     if (Number.isFinite(parsed)) {
       props.onCommitValue?.(parsed);
     } else {
@@ -196,13 +196,13 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
     // IME composition: an Enter that confirms a Hiragana/Hangul
     // candidate has `isComposing=true` mid-composition and
     // `keyCode===229` on the commit tick (Chromium). Bail in both
-    // cases so we don't fire commit() while the user is still picking
+    // cases so we don't fire commitDraftText() while the user is still picking
     // an IME candidate.
     if (event.isComposing || event.keyCode === IME_COMPOSING_KEY_CODE) return;
     event.stopImmediatePropagation();
     if (event.key === "Enter") {
       event.preventDefault();
-      commit();
+      commitDraftText();
       return;
     }
     if (event.key === "Escape") {
@@ -360,7 +360,7 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
               value={draftText() ?? ""}
               onInput={(event) => setDraftText(event.currentTarget.value)}
               onKeyDown={handleEditKeyDown}
-              onBlur={commit}
+              onBlur={commitDraftText}
               onPointerDown={(event) => event.stopPropagation()}
               onMouseDown={(event) => event.stopPropagation()}
               onClick={(event) => event.stopPropagation()}

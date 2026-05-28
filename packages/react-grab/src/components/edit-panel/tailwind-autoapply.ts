@@ -78,7 +78,7 @@ interface TailwindAutoApplyOptions {
   commit: (
     property: EditableProperty,
     value: number | string,
-    options?: { compact?: boolean },
+    options?: { shouldCompact?: boolean },
   ) => void;
   setIsCompact: (value: boolean) => void;
 }
@@ -135,7 +135,7 @@ export const createTailwindAutoApply = (
       const option = enumTarget.options.find((entry) => entry.value === enumMapping.value);
       if (option) {
         setIsCompact(true);
-        commit(enumTarget, option.value, { compact: true });
+        commit(enumTarget, option.value, { shouldCompact: true });
       }
       return;
     }
@@ -152,7 +152,7 @@ export const createTailwindAutoApply = (
 
     const numericTarget = findNumeric(initialProperties, cssKey);
     if (numericTarget) {
-      commit(numericTarget, clampedFor(numericTarget, candidate), { compact: true });
+      commit(numericTarget, clampedFor(numericTarget, candidate), { shouldCompact: true });
       return;
     }
 
@@ -161,7 +161,7 @@ export const createTailwindAutoApply = (
       const optionValue = String(rawNumber);
       const option = enumTarget.options.find((entry) => entry.value === optionValue);
       if (option) {
-        commit(enumTarget, option.value, { compact: true });
+        commit(enumTarget, option.value, { shouldCompact: true });
         return;
       }
     }
@@ -170,7 +170,7 @@ export const createTailwindAutoApply = (
     if (sideProperties.length === 0) return;
     batch(() => {
       for (const sideProperty of sideProperties) {
-        commit(sideProperty, clampedFor(sideProperty, candidate), { compact: true });
+        commit(sideProperty, clampedFor(sideProperty, candidate), { shouldCompact: true });
       }
     });
   };

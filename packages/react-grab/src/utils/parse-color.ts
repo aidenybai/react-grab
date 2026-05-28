@@ -110,7 +110,7 @@ const hslToHex = ({ h, s, l, a }: HslColor): string => {
 export const stepColorLightness = (hex: string, delta: number): string | null => {
   const hsl = hexToHsl(hex);
   if (!hsl) return null;
-  const nextL = Math.max(0, Math.min(100, hsl.l + delta));
-  if (nextL === hsl.l) return null;
-  return hslToHex({ ...hsl, l: nextL });
+  const nextLightness = Math.max(0, Math.min(100, hsl.l + delta));
+  if (nextLightness === hsl.l) return null;
+  return hslToHex({ ...hsl, l: nextLightness });
 };
