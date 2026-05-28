@@ -41,29 +41,29 @@ const getCanvasContext = (): CanvasRenderingContext2D | null => {
 };
 
 export const parseAnyColor = (input: string): string | null => {
-  const trimmed = input.trim();
-  if (!trimmed) return null;
+  const trimmedColorInput = input.trim();
+  if (!trimmedColorInput) return null;
 
   // CSS-wide `transparent` keyword. Canvas resolves it to
   // `rgba(0,0,0,0)` — same string as the rejection sentinel — so
   // without this allow-list it'd fall through to null and silently
   // refuse a perfectly valid color.
-  if (trimmed.toLowerCase() === "transparent") return TRANSPARENT_BLACK_HEX;
+  if (trimmedColorInput.toLowerCase() === "transparent") return TRANSPARENT_BLACK_HEX;
 
   // Fast path: already-valid hex (with or without `#`, 3/4/6/8 digit).
-  const directHex = normalizeHex(trimmed);
+  const directHex = normalizeHex(trimmedColorInput);
   if (directHex) return directHex;
 
-  const context = getCanvasContext();
-  if (!context) return null;
-  context.fillStyle = REJECTED_FILL_STYLE_SENTINEL;
-  context.fillStyle = trimmed;
-  const resolved = context.fillStyle;
+  const canvasContext2d = getCanvasContext();
+  if (!canvasContext2d) return null;
+  canvasContext2d.fillStyle = REJECTED_FILL_STYLE_SENTINEL;
+  canvasContext2d.fillStyle = trimmedColorInput;
+  const resolved = canvasContext2d.fillStyle;
   if (typeof resolved !== "string") return null;
   if (resolved.toLowerCase() === REJECTED_FILL_STYLE_SENTINEL) {
     // Sentinel came back unchanged — input was either rejected OR is
     // itself fully-transparent black. The input form disambiguates.
-    return trimmed.toLowerCase().replace(/\s+/g, "") === "rgba(0,0,0,0)"
+    return trimmedColorInput.toLowerCase().replace(/\s+/g, "") === "rgba(0,0,0,0)"
       ? TRANSPARENT_BLACK_HEX
       : null;
   }

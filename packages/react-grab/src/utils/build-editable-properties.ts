@@ -589,17 +589,17 @@ const buildEnumProperty = (
   definition: (typeof ENUM_PROPERTIES)[number],
   rawCssValue: string,
 ): EnumEditableProperty | null => {
-  const trimmed = rawCssValue.trim();
+  const trimmedCssValue = rawCssValue.trim();
   const options =
-    typeof definition.options === "function" ? definition.options(trimmed) : definition.options;
-  if (!options.some((option) => option.value === trimmed)) return null;
+    typeof definition.options === "function" ? definition.options(trimmedCssValue) : definition.options;
+  if (!options.some((option) => option.value === trimmedCssValue)) return null;
   return {
     kind: "enum",
     key: definition.key,
     label: definition.label,
     cssProperties: [definition.key],
-    value: trimmed,
-    original: trimmed,
+    value: trimmedCssValue,
+    original: trimmedCssValue,
     options,
     tailwindAliases: tailwindAliasesForProperty(definition.key),
     isPrioritized: false,
@@ -617,7 +617,7 @@ const tagAggregateGroup = (
   snapshot: StyleSnapshot,
   definitions: readonly AggregateDefinition[],
 ): Array<{ definition: AggregateDefinition; value: NumericValue; isCanonical: boolean }> => {
-  const resolved = definitions
+  const resolvedAggregates = definitions
     .map((definition) => {
       const value =
         definition.longhands.length === 1
@@ -627,8 +627,8 @@ const tagAggregateGroup = (
     })
     .filter(<T>(entry: T | null): entry is T => entry !== null);
 
-  const canonicalForLonghand = new Map<TrackedProperty, (typeof resolved)[number]>();
-  for (const entry of resolved) {
+  const canonicalForLonghand = new Map<TrackedProperty, (typeof resolvedAggregates)[number]>();
+  for (const entry of resolvedAggregates) {
     for (const longhand of entry.definition.longhands) {
       const current = canonicalForLonghand.get(longhand);
       if (!current || entry.definition.longhands.length > current.definition.longhands.length) {
@@ -637,7 +637,7 @@ const tagAggregateGroup = (
     }
   }
   const canonicalSet = new Set(canonicalForLonghand.values());
-  return resolved.map((entry) => ({ ...entry, isCanonical: canonicalSet.has(entry) }));
+  return resolvedAggregates.map((entry) => ({ ...entry, isCanonical: canonicalSet.has(entry) }));
 };
 
 type ComputedSnapshot = Record<string, string>;

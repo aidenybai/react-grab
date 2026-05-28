@@ -133,12 +133,12 @@ const collectRightAlignedDigits = (segments: readonly CharSegment[]): string[] =
 // Prefix slice only — in-body literals like `.` in "1.5" aren't
 // handled (slider passes integers today).
 const collectPrefixLiterals = (segments: readonly CharSegment[]): string[] => {
-  const out: string[] = [];
+  const prefixCharacters: string[] = [];
   for (const segment of segments) {
     if (segment.kind === "digit") break;
-    out.push(segment.value);
+    prefixCharacters.push(segment.value);
   }
-  return out;
+  return prefixCharacters;
 };
 
 export const Slot: Component<SlotProps> = (props) => {

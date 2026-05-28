@@ -125,11 +125,11 @@ export const createEditModeController = (
       initialSearchQuery: overrides.initialSearchQuery,
     });
 
-    void getNearestComponentName(element).then((nearestName) => {
-      if (!nearestName) return;
+    void getNearestComponentName(element).then((nearestComponentName) => {
+      if (!nearestComponentName) return;
       setState((current) => {
         if (!current || current.element !== element || current.componentName) return current;
-        return { ...current, componentName: nearestName };
+        return { ...current, componentName: nearestComponentName };
       });
     });
 

@@ -46,11 +46,11 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
     const text = draftText();
     if (text === null) return;
     setDraftText(null);
-    const normalized = parseAnyColor(text);
-    if (!normalized) {
+    const normalizedHexColor = parseAnyColor(text);
+    if (!normalizedHexColor) {
       props.onInvalidCommit?.();
-    } else if (normalized.toLowerCase() !== props.value.toLowerCase()) {
-      props.onCommit(normalized);
+    } else if (normalizedHexColor.toLowerCase() !== props.value.toLowerCase()) {
+      props.onCommit(normalizedHexColor);
     }
     props.onEditComplete?.();
   };

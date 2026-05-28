@@ -140,11 +140,11 @@ export const createTailwindAutoApply = (
       return;
     }
 
-    const match = query.match(TAILWIND_CLASS_PATTERN);
-    if (!match) return;
-    const cssKey = tailwindPrefixToProperty(match[1]);
+    const tailwindClassMatch = query.match(TAILWIND_CLASS_PATTERN);
+    if (!tailwindClassMatch) return;
+    const cssKey = tailwindPrefixToProperty(tailwindClassMatch[1]);
     if (!cssKey) return;
-    const rawNumber = Number.parseFloat(match[2]);
+    const rawNumber = Number.parseFloat(tailwindClassMatch[2]);
     if (!Number.isFinite(rawNumber)) return;
     const candidate = LITERAL_NUMBER_KEYS.has(cssKey)
       ? rawNumber
@@ -176,21 +176,21 @@ export const createTailwindAutoApply = (
   };
 
   const applyTailwindClass = (rawQuery: string) => {
-    const stripped = rawQuery
+    const strippedClassAttribute = rawQuery
       .trim()
       .replace(/^class\s*=\s*["']/, "")
       .replace(/["']\s*$/, "");
-    const normalizedStripped = normalizeQuery(stripped);
+    const normalizedStripped = normalizeQuery(strippedClassAttribute);
     const shouldApplyAsSingleClass =
       TAILWIND_CLASS_PATTERN.test(normalizedStripped) ||
       tailwindClassToEnumValue(normalizedStripped) !== null;
-    const tokens = stripped.split(/\s+/).filter(Boolean);
+    const tokens = strippedClassAttribute.split(/\s+/).filter(Boolean);
     if (shouldApplyAsSingleClass) {
-      applySingleClass(stripped);
+      applySingleClass(strippedClassAttribute);
       return;
     }
     if (tokens.length <= 1) {
-      applySingleClass(stripped);
+      applySingleClass(strippedClassAttribute);
       return;
     }
     for (const token of tokens) applySingleClass(token);
