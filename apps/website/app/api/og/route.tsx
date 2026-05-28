@@ -8,9 +8,11 @@ const BACKGROUND_DARK_PURPLE = "#1a0815";
 const getGoogleFontUrl = (fontFamily: string, weight: number) =>
   `https://fonts.googleapis.com/css2?family=${fontFamily.replace(/ /g, "+")}:wght@${weight}&display=swap`;
 
+const FONT_CACHE_SECONDS = 60 * 60 * 24 * 7;
+
 const fetchFont = async (fontFamily: string, weight: number) => {
   const cssUrl = getGoogleFontUrl(fontFamily, weight);
-  const cssResponse = await fetch(cssUrl);
+  const cssResponse = await fetch(cssUrl, { next: { revalidate: FONT_CACHE_SECONDS } });
   const cssText = await cssResponse.text();
 
   const fontUrlMatch = cssText.match(/src: url\(([^)]+)\)/);
@@ -19,7 +21,7 @@ const fetchFont = async (fontFamily: string, weight: number) => {
   }
 
   const fontUrl = fontUrlMatch[1];
-  const fontResponse = await fetch(fontUrl);
+  const fontResponse = await fetch(fontUrl, { next: { revalidate: FONT_CACHE_SECONDS } });
   return fontResponse.arrayBuffer();
 };
 
@@ -65,8 +67,10 @@ export const GET = async (request: Request) => {
   const title = searchParams.get("title") ?? "React Grab";
   const subtitle = searchParams.get("subtitle");
 
-  const geistSemiBold = await fetchFont("Geist", 600);
-  const geistRegular = await fetchFont("Geist", 400);
+  const [geistSemiBold, geistRegular] = await Promise.all([
+    fetchFont("Geist", 600),
+    fetchFont("Geist", 400),
+  ]);
 
   return new ImageResponse(
     <div

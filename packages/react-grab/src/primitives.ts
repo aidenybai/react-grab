@@ -52,12 +52,12 @@ export interface ReactGrabElementContext {
  * ctx.lineNumber;    // 12
  */
 export const getElementContext = async (element: Element): Promise<ReactGrabElementContext> => {
-  const [snippet, source, stack] = await Promise.all([
+  const [snippet, source, stack, stackString] = await Promise.all([
     formatElementSnippet(element),
     resolveSource(element),
     getStack(element).then((result) => result ?? []),
+    getStackContext(element),
   ]);
-  const stackString = await getStackContext(element);
   const htmlPreview = getHTMLPreview(element);
   const componentName = getComponentDisplayName(element);
   const fiber = getFiberFromHostInstance(element);
