@@ -11,8 +11,6 @@ const stripTrailingZeros = (value: number): string => {
   return value.toFixed(CSS_VALUE_DECIMAL_PLACES).replace(/\.?0+$/, "");
 };
 
-// Rounds to CSS_VALUE_DECIMAL_PLACES and strips trailing zeros for display
-// in the panel UI ("16" not "16.00", "12.5" not "12.5000").
 export const formatDisplayValue = (value: number): string => {
   if (!Number.isFinite(value)) return String(value);
   return stripTrailingZeros(roundToDecimals(value));
@@ -30,10 +28,6 @@ export const formatDisplayValue = (value: number): string => {
 // loss of one decimal place isn't worth keeping the FP display.
 export const cleanNumericValue = (value: number): number => Math.round(value);
 
-// Formats an editable property's value as a CSS-injectable string,
-// applying property-specific transforms (opacity goes from 0-100 UI to
-// 0-1 CSS). Color and enum properties are already valid CSS tokens
-// (`#rrggbb`, `solid`, etc.) and pass through unchanged.
 export const formatEditableValue = (
   property: EditableProperty,
   overrideValue?: number | string,

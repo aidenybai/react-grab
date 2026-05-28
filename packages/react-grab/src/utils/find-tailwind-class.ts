@@ -6,9 +6,6 @@ import {
   TAILWIND_Z_INDEX_MAX,
 } from "../constants.js";
 
-// Reverse-lookup (CSS key, value) → canonical Tailwind class. Returns
-// null for off-scale / unsupported values; the chip just hides.
-
 const SPACING_PROPERTIES: ReadonlySet<string> = new Set([
   "padding",
   "padding-top",

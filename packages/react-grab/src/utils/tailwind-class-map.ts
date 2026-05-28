@@ -58,8 +58,6 @@ const TAILWIND_PREFIX_TO_PROPERTY: Record<string, string> = {
   "min-w": "min-width",
   "min-h": "min-height",
   opacity: "opacity",
-  // Positioning utilities. inset / inset-x / inset-y target the
-  // canonical aggregate keys; individual sides map 1:1.
   inset: "top,right,bottom,left",
   "inset-x": "left,right",
   "inset-y": "top,bottom",

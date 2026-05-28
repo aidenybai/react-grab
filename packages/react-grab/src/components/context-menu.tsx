@@ -59,8 +59,6 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
   let menuContainerRef: HTMLDivElement | undefined;
   let previouslyFocusedElement: Element | null = null;
-  // Collected via ref callbacks during render so navigation reads from a
-  // typed array instead of querying the DOM. Indices line up with menuItems().
   const menuItemRefs: (HTMLButtonElement | undefined)[] = [];
   const {
     containerRef: highlightContainerRef,
@@ -201,9 +199,6 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     return -1;
   };
 
-  // Single source of truth for the visible highlight. Reacts to activeItemIndex
-  // changes (from keyboard nav, mouse hover, etc.) and re-positions the
-  // highlight element via createMenuHighlight. No DOM queries.
   createEffect(() => {
     const index = activeItemIndex();
     if (index < 0) {
