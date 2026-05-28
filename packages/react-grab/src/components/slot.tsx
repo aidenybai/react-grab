@@ -10,17 +10,14 @@ import {
   type JSX,
 } from "solid-js";
 import { SLOT_STAGGER_MS, SLOT_TRANSITION_MS } from "../constants.js";
+import { createSlotRenderSegments } from "../utils/create-slot-render-segments.js";
 
 interface SlotProps {
   children: string | number;
-  // 1 rolls new digit in from below + old up; -1 reversed; 0 fades.
-  // Omit to derive from value sign.
   direction?: 1 | -1 | 0;
   class?: string;
   style?: JSX.CSSProperties;
 }
-
-const DIGIT_REGEX = /^[0-9]$/;
 
 const approximateNumericValue = (raw: string | number): number => {
   if (typeof raw === "number") return raw;
@@ -105,45 +102,9 @@ const DigitColumn: Component<DigitColumnProps> = (props) => {
   );
 };
 
-interface CharSegment {
-  kind: "digit" | "literal";
-  value: string;
-}
-
-const splitIntoSegments = (text: string): CharSegment[] => {
-  const segments: CharSegment[] = [];
-  for (const character of text) {
-    segments.push({ kind: DIGIT_REGEX.test(character) ? "digit" : "literal", value: character });
-  }
-  return segments;
-};
-
-// Returned right-to-left — index 0 is the ones place. Combined with
-// row-reverse rendering, each column keeps a stable identity across
-// digit-count transitions (9 → 10 reuses index-0 as the ones digit).
-const collectRightAlignedDigits = (segments: readonly CharSegment[]): string[] => {
-  const reversed: string[] = [];
-  for (let position = segments.length - 1; position >= 0; position--) {
-    const segment = segments[position];
-    if (segment.kind === "digit") reversed.push(segment.value);
-  }
-  return reversed;
-};
-
-// Prefix slice only — in-body literals like `.` in "1.5" aren't
-// handled (slider passes integers today).
-const collectPrefixLiterals = (segments: readonly CharSegment[]): string[] => {
-  const prefixCharacters: string[] = [];
-  for (const segment of segments) {
-    if (segment.kind === "digit") break;
-    prefixCharacters.push(segment.value);
-  }
-  return prefixCharacters;
-};
-
 export const Slot: Component<SlotProps> = (props) => {
   const text = createMemo(() => String(props.children ?? ""));
-  const segments = createMemo(() => splitIntoSegments(text()));
+  const renderSegments = createMemo(() => createSlotRenderSegments(text()));
 
   const autoDirection = createMemo<1 | -1 | 0>(
     on(
@@ -155,9 +116,6 @@ export const Slot: Component<SlotProps> = (props) => {
     ),
   );
   const direction = createMemo<1 | -1 | 0>(() => props.direction ?? autoDirection());
-
-  const prefixLiterals = createMemo(() => collectPrefixLiterals(segments()));
-  const rightAlignedDigits = createMemo(() => collectRightAlignedDigits(segments()));
 
   return (
     <span
@@ -175,7 +133,7 @@ export const Slot: Component<SlotProps> = (props) => {
         "--rg-slot-dur": `${SLOT_TRANSITION_MS}ms`,
       }}
     >
-      <Index each={prefixLiterals()}>
+      <Index each={renderSegments().prefixLiterals}>
         {(character) => (
           <span class="inline-block whitespace-pre" aria-hidden="true">
             {character()}
@@ -183,13 +141,22 @@ export const Slot: Component<SlotProps> = (props) => {
         )}
       </Index>
       <span class="inline-flex" style={{ "flex-direction": "row-reverse" }}>
-        <Index each={rightAlignedDigits()}>
-          {(digit, distanceFromRight) => (
-            <DigitColumn
-              digit={Number(digit())}
-              direction={direction()}
-              delayMs={distanceFromRight * SLOT_STAGGER_MS}
-            />
+        <Index each={renderSegments().rightAlignedSegments}>
+          {(segment) => (
+            <Show
+              when={segment().kind === "digit"}
+              fallback={
+                <span class="inline-block whitespace-pre" aria-hidden="true">
+                  {segment().value}
+                </span>
+              }
+            >
+              <DigitColumn
+                digit={Number(segment().value)}
+                direction={direction()}
+                delayMs={segment().digitDistanceFromRight * SLOT_STAGGER_MS}
+              />
+            </Show>
           )}
         </Index>
       </span>
