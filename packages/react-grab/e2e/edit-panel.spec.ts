@@ -1022,9 +1022,9 @@ test.describe("Style Panel", () => {
       await reactGrab.page.keyboard.press("ArrowRight");
       await reactGrab.page.waitForTimeout(80);
       expect(await isEditPanelCompact(reactGrab.page)).toBe(true);
-      // Search textarea stays focused even while hidden 0×0; typing a
-      // character snaps the layout back to full mode.
-      await reactGrab.page.keyboard.type("p");
+      // Use "q" — a character that doesn't match any tailwind prefix,
+      // so applyTailwindClass won't re-set compact to true.
+      await reactGrab.page.keyboard.type("q");
       await reactGrab.page.waitForTimeout(80);
       expect(await isEditPanelCompact(reactGrab.page)).toBe(false);
     });

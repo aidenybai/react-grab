@@ -244,7 +244,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   });
 
   const isSearchInputHidden = createMemo(
-    () => isCompact() && searchQuery() !== "" && autoApply.isInlineNumericEdit(),
+    () => isCompact() && (searchQuery() === "" || autoApply.isInlineNumericEdit()),
   );
 
   const handleSubmit = () => {
