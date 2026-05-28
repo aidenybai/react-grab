@@ -6,7 +6,9 @@ const toHexByte = (numericValue: number): string =>
     .toString(16)
     .padStart(2, "0");
 
-const parseHexChannels = (hex: string): { r: number; g: number; b: number; a: number } | null => {
+export const parseHexChannels = (
+  hex: string,
+): { r: number; g: number; b: number; a: number } | null => {
   if (!hex.startsWith("#")) return null;
   const digits = hex.slice(1);
   if (digits.length !== 6 && digits.length !== 8) return null;
@@ -97,7 +99,6 @@ const hslToHex = ({ h, s, l, a }: HslColor): string => {
   if (a >= 1) return `#${red}${green}${blue}`;
   return `#${red}${green}${blue}${toHexByte(a * 255)}`;
 };
-
 
 export const stepColorLightness = (hex: string, delta: number): string | null => {
   const hsl = hexToHsl(hex);

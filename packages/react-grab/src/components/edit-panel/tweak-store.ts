@@ -73,23 +73,26 @@ export const createTweakStore = (options: CreateTweakStoreOptions): TweakStore =
   });
 
   const overrideValue = (property: EditableProperty, tweak: PropertyTweak): EditableProperty => {
-    if (property.kind === "numeric" && tweak.kind === "numeric") {
+    if (property.kind === "numeric" && tweak.kind === "numeric")
       return { ...property, value: tweak.value };
-    }
-    if (property.kind === "color" && tweak.kind === "color") {
+    if (property.kind === "color" && tweak.kind === "color")
       return { ...property, value: tweak.value };
-    }
-    if (property.kind === "enum" && tweak.kind === "enum") {
+    if (property.kind === "enum" && tweak.kind === "enum")
       return { ...property, value: tweak.value };
-    }
     return property;
   };
 
   const applyTweak = (property: EditableProperty, nextValue: number | string) => {
-    const tweak: PropertyTweak =
-      property.kind === "numeric"
-        ? { kind: "numeric", value: nextValue as number }
-        : { kind: property.kind, value: nextValue as string };
+    let tweak: PropertyTweak;
+    if (property.kind === "numeric" && typeof nextValue === "number") {
+      tweak = { kind: "numeric", value: nextValue };
+    } else if (property.kind === "color" && typeof nextValue === "string") {
+      tweak = { kind: "color", value: nextValue };
+    } else if (property.kind === "enum" && typeof nextValue === "string") {
+      tweak = { kind: "enum", value: nextValue };
+    } else {
+      return;
+    }
     setTweaksByKey((current) => ({ ...current, [property.key]: tweak }));
   };
 

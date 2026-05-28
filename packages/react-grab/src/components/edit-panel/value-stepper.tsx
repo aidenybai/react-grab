@@ -54,7 +54,6 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
     trackRect: DOMRect;
   } | null = null;
 
-
   const fillPercent = () => {
     const valueRange = props.max - props.min;
     if (valueRange <= 0) return 0;

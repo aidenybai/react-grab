@@ -298,10 +298,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       onOpen: () => {
         dismissToolbarMenu();
         stopEditPanelTracking?.();
-        stopEditPanelTracking = trackDropdownPosition(
-          computeEditPanelAnchor,
-          setEditPanelPosition,
-        );
+        stopEditPanelTracking = trackDropdownPosition(computeEditPanelAnchor, setEditPanelPosition);
       },
       onClose: () => {
         stopEditPanelTracking?.();
@@ -1568,6 +1565,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleToggleExpand = () => {
+      if (editMode.isOpen()) {
+        editMode.dismiss();
+        return;
+      }
       const element = store.frozenElement || targetElement();
       if (!element) return;
       editMode.trigger(element, { x: pointer().x, y: pointer().y });
@@ -1601,8 +1602,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const openContextMenu = (element: Element, position: Position) => {
       stopShiftMultiSelecting();
-      dismissToolbarMenu();
-      editMode.dismiss();
+      dismissAllPopups();
       actions.showContextMenu(position, element);
       clearArrowNavigation();
       pluginRegistry.hooks.onContextMenu(element, position);
@@ -1653,7 +1653,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         isPromptMode() ||
         (isFrozenPhase() && !shouldTrackPendingShiftSelection) ||
         isSelectionInteractionLocked() ||
-        store.contextMenuPosition !== null
+        isModalPopoverOpen()
       ) {
         return;
       }
@@ -2223,7 +2223,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const TYPE_TO_EDIT_KEY_PATTERN = /^[a-zA-Z0-9-]$/;
     const handleTypeToEdit = (event: KeyboardEvent): boolean => {
-      if (!event.key || event.key.length !== 1 || !TYPE_TO_EDIT_KEY_PATTERN.test(event.key)) return false;
+      if (!event.key || event.key.length !== 1 || !TYPE_TO_EDIT_KEY_PATTERN.test(event.key))
+        return false;
       const element = canDispatchBareKey(event);
       if (!element) return false;
       const opened = editMode.trigger(
@@ -2564,21 +2565,21 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const isDragGestureInProgress = isDragging();
 
         if (isActivated()) {
-          const hasContextMenu = store.contextMenuPosition !== null;
+          const hasModalPopover = isModalPopoverOpen();
           if (isReleasingModifier) {
             if (
               store.wasActivatedByToggle &&
               pluginRegistry.store.options.activationMode !== "hold"
             )
               return;
-            if (hasContextMenu) return;
+            if (hasModalPopover) return;
             deactivateRenderer();
           } else if (isHoldMode && isReleasingActivationKey) {
             if (keydownSpamTimerId !== null) {
               window.clearTimeout(keydownSpamTimerId);
               keydownSpamTimerId = null;
             }
-            if (hasContextMenu) return;
+            if (hasModalPopover) return;
             if (isDragGestureInProgress) return;
             deactivateRenderer();
           } else if (
@@ -2748,7 +2749,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
-        if (store.contextMenuPosition !== null) {
+        if (isModalPopoverOpen()) {
           event.preventDefault();
           return;
         }
@@ -3014,7 +3015,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
     const isDragBoxThemeEnabled = createMemo(() => pluginRegistry.store.theme.dragBox.enabled);
     const isSelectionSuppressed = createMemo(
-      () => didJustCopy() || (isToolbarSelectHovered() && !isFrozenPhase()),
+      () =>
+        didJustCopy() || (isToolbarSelectHovered() && !isFrozenPhase()) || editMode.isInteracting(),
     );
     const hasDragPreviewBounds = createMemo(() => dragPreviewBounds().length > 0);
 
@@ -3022,7 +3024,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!isThemeEnabled()) return false;
       if (!isSelectionBoxThemeEnabled()) return false;
       if (isSelectionSuppressed()) return false;
-      if (editMode.isInteracting()) return false;
       if (hasDragPreviewBounds()) return true;
       return isSelectionElementVisible();
     });
@@ -3034,7 +3035,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     const selectionLabelVisible = createMemo(() => {
-      if (store.contextMenuPosition !== null) return false;
+      if (isModalPopoverOpen()) return false;
       if (!isElementLabelThemeEnabled()) return false;
       if (isSelectionSuppressed()) return false;
 

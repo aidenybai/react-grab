@@ -22,7 +22,7 @@ interface SlotProps {
 
 const DIGIT_REGEX = /^[0-9]$/;
 
-const parseNumeric = (raw: string | number): number => {
+const approximateNumericValue = (raw: string | number): number => {
   if (typeof raw === "number") return raw;
   return Number.parseFloat(String(raw).replace(/[^0-9.-]/g, "")) || 0;
 };
@@ -147,7 +147,7 @@ export const Slot: Component<SlotProps> = (props) => {
 
   const autoDirection = createMemo<1 | -1 | 0>(
     on(
-      () => parseNumeric(props.children),
+      () => approximateNumericValue(props.children),
       (current, previous) => {
         if (previous === undefined || current === previous) return 0;
         return current > previous ? 1 : -1;

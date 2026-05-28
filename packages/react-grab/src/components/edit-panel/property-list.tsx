@@ -4,10 +4,10 @@ import { createMenuHighlight } from "../../utils/create-menu-highlight.js";
 import { getShadowActiveElement } from "../../utils/get-shadow-active-element.js";
 import { formatDisplayValue } from "../../utils/format-css-value.js";
 import { ActivePropertyControl } from "./active-property-control.js";
-import { asColor, asEnum, asNumeric } from "./narrow-property.js";
+import { isEnumProperty, narrowColor, narrowEnum, narrowNumeric } from "./narrow-property.js";
 
 const enumDisplayValue = (property: EditableProperty): string => {
-  if (property.kind !== "enum") return "";
+  if (!isEnumProperty(property)) return "";
   return (
     property.options.find((option) => option.value === property.value)?.label ?? property.value
   );
@@ -43,8 +43,10 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
   const focusedInlineInputOwnsHover = (): boolean => {
     if (!listRef) return false;
     const focusedElement = getShadowActiveElement(listRef);
-    return focusedElement instanceof HTMLElement &&
-      focusedElement.matches("input[data-react-grab-input]");
+    return (
+      focusedElement instanceof HTMLElement &&
+      focusedElement.matches("input[data-react-grab-input]")
+    );
   };
 
   const maybeActivateHoveredIndex = (propertyIndex: number, source: "enter" | "move") => {
@@ -191,23 +193,29 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
                       {property().label}
                     </span>
                     <Switch>
-                      <Match when={property().kind === "numeric"}>
-                        <span class="font-sans text-[var(--rg-text-secondary)] tabular-nums shrink-0">
-                          <span class="text-[11px]">{formatDisplayValue(asNumeric(property()).value)}</span>
-                          <span class="text-[9px] ml-px">{asNumeric(property()).unit}</span>
-                        </span>
+                      <Match when={narrowNumeric(property())}>
+                        {(numeric) => (
+                          <span class="font-sans text-[var(--rg-text-secondary)] tabular-nums shrink-0">
+                            <span class="text-[11px]">{formatDisplayValue(numeric().value)}</span>
+                            <span class="text-[9px] ml-px">{numeric().unit}</span>
+                          </span>
+                        )}
                       </Match>
-                      <Match when={property().kind === "color"}>
-                        <span
-                          aria-hidden="true"
-                          class="size-[12px] rounded-[3px] border-[var(--rg-border-button)] [border-width:0.5px] border-solid shrink-0"
-                          style={{ "background-color": asColor(property()).value }}
-                        />
+                      <Match when={narrowColor(property())}>
+                        {(color) => (
+                          <span
+                            aria-hidden="true"
+                            class="size-[12px] rounded-[3px] border-[var(--rg-border-button)] [border-width:0.5px] border-solid shrink-0"
+                            style={{ "background-color": color().value }}
+                          />
+                        )}
                       </Match>
-                      <Match when={property().kind === "enum"}>
-                        <span class="text-[11px] font-sans text-[var(--rg-text-secondary)] shrink-0">
-                          {enumDisplayValue(asEnum(property()))}
-                        </span>
+                      <Match when={narrowEnum(property())}>
+                        {(enumProp) => (
+                          <span class="text-[11px] font-sans text-[var(--rg-text-secondary)] shrink-0">
+                            {enumDisplayValue(enumProp())}
+                          </span>
+                        )}
                       </Match>
                     </Switch>
                   </div>

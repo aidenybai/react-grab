@@ -2,7 +2,7 @@ import { Match, Switch, type Component } from "solid-js";
 import type { EditableProperty } from "../../types.js";
 import { ColorPicker } from "./color-picker.js";
 import { CycleControl } from "./cycle-control.js";
-import { asColor, asEnum, asNumeric } from "./narrow-property.js";
+import { narrowColor, narrowEnum, narrowNumeric } from "./narrow-property.js";
 import { ValueStepper } from "./value-stepper.js";
 
 interface ActivePropertyControlProps {
@@ -21,43 +21,49 @@ interface ActivePropertyControlProps {
 
 export const ActivePropertyControl: Component<ActivePropertyControlProps> = (props) => (
   <Switch>
-    <Match when={props.property.kind === "numeric"}>
-      <ValueStepper
-        label={props.showLabel ? asNumeric(props.property).label : undefined}
-        value={asNumeric(props.property).value}
-        min={asNumeric(props.property).min}
-        max={asNumeric(props.property).max}
-        unit={asNumeric(props.property).unit}
-        activeKey={props.activeKey}
-        onStep={props.onStep}
-        onCommitValue={props.onCommit}
-        onEditComplete={props.onEditComplete}
-        onInvalidCommit={props.onInvalidCommit}
-        onInteract={props.onInteract}
-        tailwindLabel={props.tailwindLabel}
-        emphasized={props.emphasized}
-      />
+    <Match when={narrowNumeric(props.property)}>
+      {(numeric) => (
+        <ValueStepper
+          label={props.showLabel ? numeric().label : undefined}
+          value={numeric().value}
+          min={numeric().min}
+          max={numeric().max}
+          unit={numeric().unit}
+          activeKey={props.activeKey}
+          onStep={props.onStep}
+          onCommitValue={props.onCommit}
+          onEditComplete={props.onEditComplete}
+          onInvalidCommit={props.onInvalidCommit}
+          onInteract={props.onInteract}
+          tailwindLabel={props.tailwindLabel}
+          emphasized={props.emphasized}
+        />
+      )}
     </Match>
-    <Match when={props.property.kind === "color"}>
-      <ColorPicker
-        label={props.showLabel ? asColor(props.property).label : undefined}
-        value={asColor(props.property).value}
-        onCommit={props.onCommit}
-        onEditComplete={props.onEditComplete}
-        onInvalidCommit={props.onInvalidCommit}
-        onRegisterTrigger={props.onColorPickerRegister}
-        onInteract={props.onInteract}
-        emphasized={props.emphasized}
-      />
+    <Match when={narrowColor(props.property)}>
+      {(color) => (
+        <ColorPicker
+          label={props.showLabel ? color().label : undefined}
+          value={color().value}
+          onCommit={props.onCommit}
+          onEditComplete={props.onEditComplete}
+          onInvalidCommit={props.onInvalidCommit}
+          onRegisterTrigger={props.onColorPickerRegister}
+          onInteract={props.onInteract}
+          emphasized={props.emphasized}
+        />
+      )}
     </Match>
-    <Match when={props.property.kind === "enum"}>
-      <CycleControl
-        label={props.showLabel ? asEnum(props.property).label : undefined}
-        value={asEnum(props.property).value}
-        options={asEnum(props.property).options}
-        activeKey={props.activeKey}
-        onCommit={props.onCommit}
-      />
+    <Match when={narrowEnum(props.property)}>
+      {(enumProp) => (
+        <CycleControl
+          label={props.showLabel ? enumProp().label : undefined}
+          value={enumProp().value}
+          options={enumProp().options}
+          activeKey={props.activeKey}
+          onCommit={props.onCommit}
+        />
+      )}
     </Match>
   </Switch>
 );

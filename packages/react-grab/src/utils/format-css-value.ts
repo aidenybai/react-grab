@@ -33,11 +33,12 @@ export const formatEditableValue = (
   overrideValue?: number | string,
 ): string => {
   if (property.kind === "color" || property.kind === "enum") {
-    return (overrideValue as string | undefined) ?? property.value;
+    const stringValue = typeof overrideValue === "string" ? overrideValue : property.value;
+    return stringValue;
   }
-  const value = (overrideValue as number | undefined) ?? property.value;
+  const numericValue = typeof overrideValue === "number" ? overrideValue : property.value;
   if (property.key === "opacity" && property.unit === "%") {
-    return stripTrailingZeros(roundToDecimals(value / OPACITY_PERCENT_MAX));
+    return stripTrailingZeros(roundToDecimals(numericValue / OPACITY_PERCENT_MAX));
   }
-  return `${stripTrailingZeros(roundToDecimals(value))}${property.unit}`;
+  return `${stripTrailingZeros(roundToDecimals(numericValue))}${property.unit}`;
 };

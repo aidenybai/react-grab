@@ -80,7 +80,6 @@ export const createEditModeController = (
     if (wasOpen) dependencies.onClose?.();
   };
 
-
   const resetWithDiscard = () => {
     forceDiscardPreview?.();
     clearAll();

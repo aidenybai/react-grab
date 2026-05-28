@@ -1,7 +1,14 @@
-import { createEffect, createMemo, createSignal, onCleanup, onMount, Show, type Component } from "solid-js";
+import {
+  createEffect,
+  createMemo,
+  createSignal,
+  onCleanup,
+  onMount,
+  Show,
+  type Component,
+} from "solid-js";
 import {
   DROPDOWN_EDGE_TRANSFORM_ORIGIN,
-  EDIT_DISCARD_PROMPT_IDLE_MS,
   EDIT_PANEL_ACTIVE_KEY_FLASH_MS,
   EDIT_PANEL_ADJUSTING_IDLE_MS,
   EDIT_PANEL_MAX_WIDTH_PX,
@@ -33,6 +40,7 @@ import { createShiftTracker } from "./shift-tracker.js";
 import { createStepController } from "./step-controller.js";
 import { stepProperty } from "./step-property.js";
 import { createTailwindAutoApply } from "./tailwind-autoapply.js";
+import { createDiscardConfirmation } from "./discard-confirmation.js";
 import { createTweakStore } from "./tweak-store.js";
 
 interface EditPanelProps {
@@ -159,7 +167,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     tweakStore.applyTweak(property, nextValue);
     preview.apply(property.cssProperties, formatEditableValue(property, nextValue));
     markAsInteracting();
-    if (!options.isFromKeyRepeat) setIsPendingDismiss(false);
+    if (!options.isFromKeyRepeat) discardConfirmation.hide();
     if (options.flashDirection) flashActiveKey(options.flashDirection === 1 ? "right" : "left");
     if (options.shouldFocus) ensureSearchFocused();
     if (options.shouldCompact) setIsCompact(true);
@@ -179,7 +187,11 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       flashActiveKey(direction === 1 ? "right" : "left");
       return null;
     }
-    commit(property, next, { flashDirection: direction, shouldFocus: true, isFromKeyRepeat: fromRepeat });
+    commit(property, next, {
+      flashDirection: direction,
+      shouldFocus: true,
+      isFromKeyRepeat: fromRepeat,
+    });
     return property;
   };
 
@@ -196,22 +208,17 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   const commitActive = (rawValue: number | string) => {
     const property = activeProperty();
     if (!property) return;
-    if (property.kind === "numeric") {
-      if (typeof rawValue !== "number") return;
-      const next = cleanNumericValue(clampToRange(rawValue, property.min, property.max));
-      if (next === property.value) return;
-      commit(property, next);
-      return;
-    }
-    if (property.kind === "color") {
-      if (typeof rawValue !== "string") return;
-      if (rawValue.toLowerCase() === property.value.toLowerCase()) return;
-      commit(property, rawValue);
+    if (property.kind === "numeric" && typeof rawValue === "number") {
+      const clamped = cleanNumericValue(clampToRange(rawValue, property.min, property.max));
+      if (clamped !== property.value) commit(property, clamped);
       return;
     }
     if (typeof rawValue !== "string") return;
-    if (rawValue === property.value) return;
-    commit(property, rawValue);
+    const isUnchanged =
+      property.kind === "color"
+        ? rawValue.toLowerCase() === property.value.toLowerCase()
+        : rawValue === property.value;
+    if (!isUnchanged) commit(property, rawValue);
   };
 
   const activeTailwindLabel = createMemo<string | null>(() => {
@@ -245,9 +252,9 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     props.onSubmit(formatSessionEditsPrompt(pendingEdits.length > 0 ? [entry] : []));
   };
 
-  const [isPendingDismiss, setIsPendingDismiss] = createSignal(false);
+  const discardConfirmation = createDiscardConfirmation();
+  const isPendingDismiss = discardConfirmation.isPending;
   let panelSurfaceRef: HTMLDivElement | undefined;
-  let pendingDismissTimerId: ReturnType<typeof setTimeout> | undefined;
 
   const playShake = () => {
     if (!panelSurfaceRef) return;
@@ -258,25 +265,9 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   };
 
   const closePanel = (mode: "preserve" | "discard") => {
-    clearTimeout(pendingDismissTimerId);
+    discardConfirmation.hide();
     if (mode === "discard") preview.restore();
     props.onDismiss();
-  };
-
-  const hidePendingDismissPrompt = () => {
-    clearTimeout(pendingDismissTimerId);
-    setIsPendingDismiss(false);
-  };
-
-  const showPendingDismissPrompt = (shake: boolean) => {
-    stepController.cancelRepeat();
-    setIsCompact(false);
-    setIsPendingDismiss(true);
-    clearTimeout(pendingDismissTimerId);
-    pendingDismissTimerId = setTimeout(() => {
-      setIsPendingDismiss(false);
-    }, EDIT_DISCARD_PROMPT_IDLE_MS);
-    if (shake) playShake();
   };
 
   const attemptDismiss = () => {
@@ -289,7 +280,9 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       closePanel(preview.hasAppliedStyles() ? "discard" : "preserve");
       return;
     }
-    showPendingDismissPrompt(!isPendingDismiss());
+    setIsCompact(false);
+    discardConfirmation.show();
+    playShake();
   };
 
   const navigateActive = (direction: 1 | -1) => {
@@ -420,7 +413,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       window.removeEventListener("keyup", handleWindowKeyUp, { capture: true });
       clearTimeout(activeKeyTimerId);
       clearTimeout(interactingIdleTimerId);
-      clearTimeout(pendingDismissTimerId);
+      discardConfirmation.cleanup();
       dropdown.clearAnimationHandles();
       setIsTransientInteraction(false);
       preview.forget();
@@ -535,7 +528,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                   onClick={(event) => {
                     event.preventDefault();
                     event.stopPropagation();
-                    hidePendingDismissPrompt();
+                    discardConfirmation.hide();
                   }}
                 >
                   <span class="text-[var(--rg-text-primary)] text-[13px] leading-3.5 font-sans font-medium">
@@ -600,7 +593,9 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                 autoApply.applyTailwindClass(next);
               }}
               onKeyDown={handleSearchKeyDown}
-              placeholder={isCompact() ? (activeProperty()?.label ?? "Search property") : "Search property"}
+              placeholder={
+                isCompact() ? (activeProperty()?.label ?? "Search property") : "Search property"
+              }
               rows={1}
             />
           </div>

@@ -5,9 +5,21 @@ import type {
   NumericEditableProperty,
 } from "../../types.js";
 
-export const asNumeric = (property: EditableProperty): NumericEditableProperty =>
-  property as NumericEditableProperty;
-export const asColor = (property: EditableProperty): ColorEditableProperty =>
-  property as ColorEditableProperty;
-export const asEnum = (property: EditableProperty): EnumEditableProperty =>
-  property as EnumEditableProperty;
+export const isNumericProperty = (
+  property: EditableProperty,
+): property is NumericEditableProperty => property.kind === "numeric";
+
+export const isColorProperty = (property: EditableProperty): property is ColorEditableProperty =>
+  property.kind === "color";
+
+export const isEnumProperty = (property: EditableProperty): property is EnumEditableProperty =>
+  property.kind === "enum";
+
+export const narrowNumeric = (property: EditableProperty): NumericEditableProperty | null =>
+  property.kind === "numeric" ? property : null;
+
+export const narrowColor = (property: EditableProperty): ColorEditableProperty | null =>
+  property.kind === "color" ? property : null;
+
+export const narrowEnum = (property: EditableProperty): EnumEditableProperty | null =>
+  property.kind === "enum" ? property : null;
