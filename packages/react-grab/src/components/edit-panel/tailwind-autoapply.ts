@@ -8,6 +8,7 @@ import type {
 import { clampToRange } from "../../utils/clamp-to-range.js";
 import { expandAggregateLonghands } from "../../utils/expand-aggregate-longhands.js";
 import { roundEditableNumericValue } from "../../utils/format-css-value.js";
+import { isNumericDraftQuery } from "../../utils/is-numeric-draft-query.js";
 import { isNumericQuery } from "../../utils/is-numeric-query.js";
 import {
   normalizeTailwindClassInput,
@@ -82,6 +83,7 @@ interface TailwindAutoApplyOptions {
 
 export interface TailwindAutoApplyController {
   readonly isInlineNumericEdit: Accessor<boolean>;
+  isInlineNumericDraft: (query: string) => boolean;
   tryApplyNumericValue: (query: string) => boolean;
   applyTailwindClass: (query: string) => void;
 }
@@ -101,15 +103,17 @@ export const createTailwindAutoApply = (
     return findNumericLonghands(initialProperties, cssKey).length > 0;
   };
 
-  const isInlineNumericEdit = createMemo(() => {
+  const isInlineNumericDraft = (query: string): boolean => {
     if (!isCompact()) return false;
     const property = activeProperty();
     if (property?.kind !== "numeric") return false;
-    return isNumericQuery(searchQuery());
-  });
+    return isNumericDraftQuery(query);
+  };
+
+  const isInlineNumericEdit = createMemo(() => isInlineNumericDraft(searchQuery()));
 
   const tryApplyNumericToActive = (query: string): boolean => {
-    if (!isCompact() || !isNumericQuery(query)) return false;
+    if (!isInlineNumericDraft(query) || !isNumericQuery(query)) return false;
     const property = activeProperty();
     if (property?.kind !== "numeric") return false;
     const parsed = Number.parseFloat(query);
@@ -198,6 +202,7 @@ export const createTailwindAutoApply = (
 
   return {
     isInlineNumericEdit,
+    isInlineNumericDraft,
     tryApplyNumericValue: tryApplyNumericToActive,
     applyTailwindClass,
   };

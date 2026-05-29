@@ -34,6 +34,7 @@ import {
   isHeaderCopyButtonVisible,
   openEditPanel,
   readSessionStorageEntries,
+  setSearchInputValue,
   typeInSearchInput,
 } from "./edit-panel-helpers.js";
 
@@ -624,6 +625,34 @@ test.describe("Style Panel", () => {
       await reactGrab.page.keyboard.type("q");
       await reactGrab.page.waitForTimeout(80);
       expect(await isEditPanelCompact(reactGrab.page)).toBe(false);
+    });
+
+    test("compact inline numeric edit survives decimal drafts", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+      const activePropertyKey = await getActivePropertyKey(reactGrab.page);
+      expect(activePropertyKey).toBe("padding-left,padding-right");
+
+      await setSearchInputValue(reactGrab.page, "24");
+      await reactGrab.page.waitForTimeout(80);
+      await setSearchInputValue(reactGrab.page, "24.");
+      await reactGrab.page.waitForTimeout(80);
+
+      expect(await getEditPanelCompactAttr(reactGrab.page)).toBe("true");
+      expect(await getActivePropertyKey(reactGrab.page)).toBe(activePropertyKey);
+
+      await setSearchInputValue(reactGrab.page, "24.5");
+      await reactGrab.page.waitForTimeout(80);
+
+      expect(await getEditPanelCompactAttr(reactGrab.page)).toBe("true");
+      expect(await getActivePropertyKey(reactGrab.page)).toBe(activePropertyKey);
+      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-left")).toBe(
+        "25px",
+      );
+      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-right")).toBe(
+        "25px",
+      );
     });
 
     test("type-to-edit: hover + type m then t → margin-top focused", async ({ reactGrab }) => {

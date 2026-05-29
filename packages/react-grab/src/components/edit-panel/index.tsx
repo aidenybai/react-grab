@@ -573,6 +573,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                 const nextSearchQuery = event.currentTarget.value;
                 setSearchQuery(nextSearchQuery);
                 if (autoApply.tryApplyNumericValue(nextSearchQuery)) return;
+                if (autoApply.isInlineNumericDraft(nextSearchQuery)) return;
                 setActiveIndex(0);
                 setIsCompact(false);
                 autoApply.applyTailwindClass(nextSearchQuery);
