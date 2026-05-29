@@ -1,10 +1,12 @@
 import {
   isSourceFile,
   getOwnerStack,
+  getSource,
   formatOwnerStack,
   hasDebugStack,
   parseStack,
   type StackFrame,
+  type FiberSource,
 } from "bippy/source";
 import {
   getFiberFromHostInstance,
@@ -286,36 +288,36 @@ const getSourceComponentName = (fiber: Fiber | null | undefined): string | null 
   return name && isSourceComponentName(name) ? name : null;
 };
 
-// Bundlers like Webpack/Rspack can make bippy's owner stack resolve to
-// generated module URLs (webpack-internal://, eval sources) instead of the
-// real file. React's dev-only _debugSource points at the original JSX, so we
-// prefer it whenever it references an on-disk source file.
-const getDebugSourceFromFiber = (fiber: Fiber | null): ResolvedSource | null => {
-  let currentFiber = fiber;
+const toResolvedSource = (source: FiberSource, fiber: Fiber): ResolvedSource => ({
+  filePath: normalizeFilePath(source.fileName),
+  lineNumber: source.lineNumber ?? null,
+  columnNumber: source.columnNumber ?? null,
+  componentName:
+    (source.functionName && isSourceComponentName(source.functionName)
+      ? source.functionName
+      : null) ??
+    getSourceComponentName(fiber) ??
+    getSourceComponentName(fiber._debugOwner),
+});
 
-  while (currentFiber) {
-    const debugSource = currentFiber._debugSource;
-    if (debugSource?.fileName && isSourceFile(debugSource.fileName)) {
-      return {
-        filePath: normalizeFilePath(debugSource.fileName),
-        lineNumber: debugSource.lineNumber ?? null,
-        columnNumber: debugSource.columnNumber ?? null,
-        componentName:
-          getSourceComponentName(currentFiber) ?? getSourceComponentName(currentFiber._debugOwner),
-      };
-    }
-    currentFiber = currentFiber.return ?? currentFiber._debugOwner ?? null;
-  }
+// bippy's getSource prefers React's dev-only _debugSource (the real JSX location
+// that bundlers like Webpack/Rspack drop from the owner stack) and otherwise
+// falls back to the owner stack. We only trust locations that point at a real
+// on-disk source file, so bundler-virtual URLs (webpack-internal://, eval, ...)
+// are left for the owner-stack handling below.
+const getFiberSource = async (element: Element): Promise<ResolvedSource | null> => {
+  const fiber = getFiberFromHostInstance(findNearestFiberElement(element));
+  if (!fiber) return null;
 
-  return null;
+  const source = await getSource(fiber);
+  if (!source?.fileName || !isSourceFile(source.fileName)) return null;
+
+  return toResolvedSource(source, fiber);
 };
 
-const getDebugSourceForElement = (element: Element): ResolvedSource | null =>
-  getDebugSourceFromFiber(getFiberFromHostInstance(findNearestFiberElement(element)));
-
 export const resolveSource = async (element: Element): Promise<ResolvedSource | null> => {
-  const debugSource = getDebugSourceForElement(element);
-  if (debugSource) return debugSource;
+  const fiberSource = await getFiberSource(element);
+  if (fiberSource) return fiberSource;
 
   const stack = await getStack(element);
   if (!stack || stack.length === 0) return null;
@@ -460,8 +462,8 @@ const formatStackContext = (
       frame.functionName && isSourceComponentName(frame.functionName) ? frame.functionName : null;
 
     // The owner stack's top frame is usually the same component the leading
-    // _debugSource line already names. Drop only that single duplicate; deeper
-    // frames sharing the name (e.g. recursive components) are kept.
+    // source line already names. Drop only that single duplicate; deeper frames
+    // sharing the name (e.g. recursive components) are kept.
     if (
       !didDedupeLeadingComponent &&
       componentName &&
@@ -509,15 +511,15 @@ export const getStackContext = async (
   options: StackContextOptions = {},
 ): Promise<string> => {
   const maxLines = options.maxLines ?? DEFAULT_MAX_CONTEXT_LINES;
-  const debugSource = getDebugSourceForElement(element);
+  const leadingSource = await getFiberSource(element);
   const stack = await getStack(element);
 
   if (stack && hasFormattableFrames(stack)) {
-    return formatStackContext(stack, options, debugSource);
+    return formatStackContext(stack, options, leadingSource);
   }
 
-  if (debugSource) {
-    return formatSourceContextLine(debugSource, checkIsNextProject());
+  if (leadingSource) {
+    return formatSourceContextLine(leadingSource, checkIsNextProject());
   }
 
   const componentNames = getComponentNamesFromFiber(findNearestFiberElement(element), maxLines);
