@@ -280,9 +280,44 @@ interface ResolvedSource {
   componentName: string | null;
 }
 
+const getSourceComponentName = (fiber: Fiber | null | undefined): string | null => {
+  if (!fiber || !isCompositeFiber(fiber)) return null;
+  const name = getDisplayName(fiber.type);
+  return name && isSourceComponentName(name) ? name : null;
+};
+
+// Bundlers like Webpack/Rspack can make bippy's owner stack resolve to
+// generated module URLs (webpack-internal://, eval sources) instead of the
+// real file. React's dev-only _debugSource points at the original JSX, so we
+// prefer it whenever it references an on-disk source file.
+const getDebugSourceFromFiber = (fiber: Fiber | null): ResolvedSource | null => {
+  let currentFiber = fiber;
+
+  while (currentFiber) {
+    const debugSource = currentFiber._debugSource;
+    if (debugSource?.fileName && isSourceFile(debugSource.fileName)) {
+      return {
+        filePath: normalizeFilePath(debugSource.fileName),
+        lineNumber: debugSource.lineNumber ?? null,
+        columnNumber: debugSource.columnNumber ?? null,
+        componentName:
+          getSourceComponentName(currentFiber) ?? getSourceComponentName(currentFiber._debugOwner),
+      };
+    }
+    currentFiber = currentFiber.return ?? currentFiber._debugOwner ?? null;
+  }
+
+  return null;
+};
+
+const getDebugSourceForElement = (element: Element): ResolvedSource | null =>
+  getDebugSourceFromFiber(getFiberFromHostInstance(findNearestFiberElement(element)));
+
 export const resolveSource = async (element: Element): Promise<ResolvedSource | null> => {
-  const resolvedElement = findNearestFiberElement(element);
-  const stack = await getStack(resolvedElement);
+  const debugSource = getDebugSourceForElement(element);
+  if (debugSource) return debugSource;
+
+  const stack = await getStack(element);
   if (!stack || stack.length === 0) return null;
 
   const sourceFrames = stack.filter((frame) => frame.fileName && isSourceFile(frame.fileName));
@@ -364,27 +399,62 @@ const getComponentNamesFromFiber = (element: Element, maxCount: number): string[
   return componentNames;
 };
 
-const formatResolvedSourceLine = (
-  frame: StackFrame,
-  filePath: string,
+// Next.js apps render from absolute paths; trimming them to a project-relative
+// "/./…" form keeps displayed locations short and consistent with its stacks.
+const NEXT_PROJECT_SOURCE_PATH_MARKERS = ["/src/app/", "/src/pages/", "/app/", "/pages/"];
+
+const formatContextFilePath = (filePath: string, isNextProject: boolean): string => {
+  const normalizedPath = normalizeFilePath(filePath);
+  if (!isNextProject || !normalizedPath.startsWith("/")) return normalizedPath;
+
+  for (const marker of NEXT_PROJECT_SOURCE_PATH_MARKERS) {
+    const markerIndex = normalizedPath.indexOf(marker);
+    if (markerIndex !== -1) return `/./${normalizedPath.slice(markerIndex + 1)}`;
+  }
+
+  return normalizedPath;
+};
+
+const formatSourceContextLine = (
   componentName: string | null,
+  filePath: string,
+  lineNumber: number | null,
+  columnNumber: number | null,
   isNextProject: boolean,
 ): string => {
-  // HACK: bundlers like Vite produce unreliable line/column numbers from
-  // owner stacks, so we only include them for Next.js where the dev server
+  const path = formatContextFilePath(filePath, isNextProject);
+  // HACK: bundlers like Vite produce unreliable line/column numbers from owner
+  // stacks, so we only include them for Next.js where the dev server
   // symbolicates frames via source maps.
   const location =
-    isNextProject && frame.lineNumber
-      ? `${normalizeFilePath(filePath)}:${frame.lineNumber}${frame.columnNumber ? `:${frame.columnNumber}` : ""}`
-      : normalizeFilePath(filePath);
+    isNextProject && lineNumber
+      ? `${path}:${lineNumber}${columnNumber ? `:${columnNumber}` : ""}`
+      : path;
   return componentName ? `\n  in ${componentName} (at ${location})` : `\n  in ${location}`;
 };
 
-const formatStackContext = (stack: StackFrame[], options: StackContextOptions = {}): string => {
+const formatResolvedSource = (source: ResolvedSource, isNextProject: boolean): string =>
+  formatSourceContextLine(
+    source.componentName,
+    source.filePath,
+    source.lineNumber,
+    source.columnNumber,
+    isNextProject,
+  );
+
+const formatStackContext = (
+  stack: StackFrame[],
+  options: StackContextOptions = {},
+  leadingSource: ResolvedSource | null = null,
+): string => {
   const { maxLines = DEFAULT_MAX_CONTEXT_LINES } = options;
   const isNextProject = checkIsNextProject();
   const lines: string[] = [];
   let previousLibraryPackage: string | null = null;
+
+  if (leadingSource) {
+    lines.push(formatResolvedSource(leadingSource, isNextProject));
+  }
 
   const emit = (line: string, libraryPackage: string | null) => {
     lines.push(line);
@@ -401,6 +471,8 @@ const formatStackContext = (stack: StackFrame[], options: StackContextOptions = 
     const componentName =
       frame.functionName && isSourceComponentName(frame.functionName) ? frame.functionName : null;
 
+    if (componentName && componentName === leadingSource?.componentName) continue;
+
     if (frame.isServer && !resolvedSource && (componentName || !frame.functionName)) {
       const tag = libraryPackage ? `${libraryPackage} at Server` : "at Server";
       emit(`\n  in ${componentName ?? "<anonymous>"} (${tag})`, libraryPackage);
@@ -416,7 +488,16 @@ const formatStackContext = (stack: StackFrame[], options: StackContextOptions = 
     }
 
     if (resolvedSource) {
-      emit(formatResolvedSourceLine(frame, resolvedSource, componentName, isNextProject), null);
+      emit(
+        formatSourceContextLine(
+          componentName,
+          resolvedSource,
+          frame.lineNumber ?? null,
+          frame.columnNumber ?? null,
+          isNextProject,
+        ),
+        null,
+      );
     }
   }
 
@@ -428,13 +509,18 @@ export const getStackContext = async (
   options: StackContextOptions = {},
 ): Promise<string> => {
   const maxLines = options.maxLines ?? DEFAULT_MAX_CONTEXT_LINES;
+  const debugSource = getDebugSourceForElement(element);
   const stack = await getStack(element);
 
   if (stack && hasFormattableFrames(stack)) {
-    return formatStackContext(stack, options);
+    return formatStackContext(stack, options, debugSource);
   }
 
-  const componentNames = getComponentNamesFromFiber(element, maxLines);
+  if (debugSource) {
+    return formatResolvedSource(debugSource, checkIsNextProject());
+  }
+
+  const componentNames = getComponentNamesFromFiber(findNearestFiberElement(element), maxLines);
   if (componentNames.length > 0) {
     return componentNames.map((name) => `\n  in ${name}`).join("");
   }
