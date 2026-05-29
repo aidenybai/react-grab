@@ -150,6 +150,10 @@ describe("isGrabText", () => {
     assert.equal(isGrabText("in LoginForm (at src/auth/login.tsx:22:7)"), true);
   });
 
+  it("matches a frame with parentheses in the path (Next.js route groups)", () => {
+    assert.equal(isGrabText("in LoginForm (at src/app/(auth)/login/page.tsx:22:7)"), true);
+  });
+
   it("rejects ordinary copied text", () => {
     assert.equal(isGrabText("just some copied text, not a grab"), false);
   });

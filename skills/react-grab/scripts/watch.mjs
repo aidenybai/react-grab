@@ -20,8 +20,9 @@ const SIGNATURE_SCAN_CHARS = 32 * 1024;
 // React Grab plain-text payloads always carry a component-stack frame such as
 // "in LoginForm (at components/login-form.tsx:46:19)". Used to recognize a grab
 // when the structured custom clipboard format is unavailable (text fallback).
-// `[^)]+` (not `.+?`) bounds backtracking on hostile clipboard text.
-const GRAB_TEXT_SIGNATURE = /\bin\s+\S+\s+\(at\s+[^)]+:\d+:\d+\)/;
+// `[^\n]{1,400}?` allows parentheses in paths (e.g. Next.js route groups
+// `(auth)`) while bounding backtracking on hostile clipboard text.
+const GRAB_TEXT_SIGNATURE = /\bin\s+\S+\s+\(at\s+[^\n]{1,400}?:\d+:\d+\)/;
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 
 const parseArgs = () => {

@@ -67,7 +67,11 @@ public static class RgClip {
 # Add-Type recompiles on every process start, so the reader is compiled to a
 # cached assembly once and merely loaded on subsequent polls.
 $cacheDir = Join-Path $env:TEMP "react-grab-watch"
-$cachedDll = Join-Path $cacheDir "RgClipReader.dll"
+# Key the cached DLL by a hash of the source so a changed reader recompiles
+# instead of loading a stale assembly.
+$sourceHashBytes = [System.Security.Cryptography.SHA256]::Create().ComputeHash([System.Text.Encoding]::UTF8.GetBytes($source))
+$sourceHash = ([System.BitConverter]::ToString($sourceHashBytes) -replace "-", "").Substring(0, 16)
+$cachedDll = Join-Path $cacheDir "RgClipReader-$sourceHash.dll"
 $loaded = $false
 if (Test-Path $cachedDll) {
   try { Add-Type -Path $cachedDll | Out-Null; $loaded = $true } catch {}
