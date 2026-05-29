@@ -7,21 +7,15 @@ import type {
 } from "../../types.js";
 import { clampToRange } from "../../utils/clamp-to-range.js";
 import { expandAggregateLonghands } from "../../utils/expand-aggregate-longhands.js";
-import { cleanNumericValue } from "../../utils/format-css-value.js";
+import { roundEditableNumericValue } from "../../utils/format-css-value.js";
 import { isNumericQuery } from "../../utils/is-numeric-query.js";
 import {
+  normalizeTailwindClassInput,
   tailwindClassToEnumValue,
   tailwindPrefixToProperty,
 } from "../../utils/tailwind-class-map.js";
 
 const TAILWIND_CLASS_PATTERN = /^([a-z-]+)-(-?\d+(?:\.\d+)?)$/;
-
-const normalizeQuery = (query: string): string =>
-  query
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/([a-z])(\d)/g, "$1-$2");
 
 const LITERAL_NUMBER_KEYS = new Set([
   "opacity",
@@ -71,7 +65,7 @@ const findNumericLonghands = (
 };
 
 const clampedFor = (property: NumericEditableProperty, candidate: number): number =>
-  cleanNumericValue(clampToRange(candidate, property.min, property.max));
+  roundEditableNumericValue(clampToRange(candidate, property.min, property.max));
 
 interface TailwindAutoApplyOptions {
   initialProperties: readonly EditableProperty[];
@@ -114,7 +108,7 @@ export const createTailwindAutoApply = (
     return isNumericQuery(searchQuery());
   });
 
-  const applyNumericToActive = (query: string): boolean => {
+  const tryApplyNumericToActive = (query: string): boolean => {
     if (!isCompact() || !isNumericQuery(query)) return false;
     const property = activeProperty();
     if (property?.kind !== "numeric") return false;
@@ -126,7 +120,7 @@ export const createTailwindAutoApply = (
   };
 
   const applySingleClass = (rawQuery: string) => {
-    const query = normalizeQuery(rawQuery);
+    const query = normalizeTailwindClassInput(rawQuery);
     const intentPrefix = query.replace(/-\d*$/, "").replace(/-$/, "");
     const intentCssKey = intentPrefix ? tailwindPrefixToProperty(intentPrefix) : null;
     if (intentCssKey && hasTrackableTarget(intentCssKey)) setIsCompact(true);
@@ -193,7 +187,7 @@ export const createTailwindAutoApply = (
       .trim()
       .replace(/^class\s*=\s*["']/, "")
       .replace(/["']\s*$/, "");
-    const normalizedStripped = normalizeQuery(strippedClassAttribute);
+    const normalizedStripped = normalizeTailwindClassInput(strippedClassAttribute);
     const tokens = strippedClassAttribute.split(/\s+/).filter(Boolean);
     if (tokens.length > 1 && !isApplicableSingleClass(normalizedStripped)) {
       for (const token of tokens) applySingleClass(token);
@@ -204,7 +198,7 @@ export const createTailwindAutoApply = (
 
   return {
     isInlineNumericEdit,
-    tryApplyNumericValue: applyNumericToActive,
+    tryApplyNumericValue: tryApplyNumericToActive,
     applyTailwindClass,
   };
 };

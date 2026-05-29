@@ -37,8 +37,8 @@ import {
 
 let cachedIsNextProject: boolean | undefined;
 
-export const checkIsNextProject = (revalidate?: boolean): boolean => {
-  if (revalidate) {
+export const isNextProjectRuntime = (shouldRevalidate?: boolean): boolean => {
+  if (shouldRevalidate) {
     cachedIsNextProject = undefined;
   }
   cachedIsNextProject ??=
@@ -236,7 +236,7 @@ const fetchStackForElement = async (element: Element): Promise<StackFrame[] | nu
 
     const frames = await getOwnerStack(fiber);
 
-    if (checkIsNextProject()) {
+    if (isNextProjectRuntime()) {
       const enrichedFrames = enrichServerFrameLocations(fiber, frames);
       return await symbolicateServerFrames(enrichedFrames);
     }
@@ -382,7 +382,7 @@ const formatResolvedSourceLine = (
 
 const formatStackContext = (stack: StackFrame[], options: StackContextOptions = {}): string => {
   const { maxLines = DEFAULT_MAX_CONTEXT_LINES } = options;
-  const isNextProject = checkIsNextProject();
+  const isNextProject = isNextProjectRuntime();
   const lines: string[] = [];
   let previousLibraryPackage: string | null = null;
 

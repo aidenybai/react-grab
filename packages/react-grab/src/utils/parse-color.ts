@@ -6,6 +6,19 @@ const toHexByte = (numericValue: number): string =>
     .toString(16)
     .padStart(2, "0");
 
+export const rgbaChannelsToHex = (
+  redChannel: number,
+  greenChannel: number,
+  blueChannel: number,
+  alphaChannel = 1,
+): string => {
+  const red = toHexByte(redChannel);
+  const green = toHexByte(greenChannel);
+  const blue = toHexByte(blueChannel);
+  if (alphaChannel >= 1) return `#${red}${green}${blue}`;
+  return `#${red}${green}${blue}${toHexByte(alphaChannel * 255)}`;
+};
+
 export const parseHexChannels = (
   hex: string,
 ): { r: number; g: number; b: number; a: number } | null => {
@@ -23,16 +36,12 @@ export const parseHexChannels = (
 export const rgbStringToHex = (cssValue: string): string | null => {
   const match = cssValue.match(NUMERIC_RGB);
   if (!match) return null;
-  const red = toHexByte(Number(match[1]));
-  const green = toHexByte(Number(match[2]));
-  const blue = toHexByte(Number(match[3]));
   let alpha = 1;
   if (match[4] !== undefined) {
     const rawAlpha = match[4];
     alpha = rawAlpha.endsWith("%") ? Number(rawAlpha.slice(0, -1)) / 100 : Number(rawAlpha);
   }
-  if (alpha >= 1) return `#${red}${green}${blue}`;
-  return `#${red}${green}${blue}${toHexByte(alpha * 255)}`;
+  return rgbaChannelsToHex(Number(match[1]), Number(match[2]), Number(match[3]), alpha);
 };
 
 // True when the computed color is fully transparent — used to skip the

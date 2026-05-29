@@ -31,7 +31,7 @@ import {
   getStackContext,
   getNearestComponentName,
   getComponentDisplayName,
-  checkIsNextProject,
+  isNextProjectRuntime,
   resolveSource,
 } from "./context.js";
 import { createNoopApi } from "./noop-api.js";
@@ -2118,7 +2118,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       selectAndFocusElement(targetElement);
     };
 
-    const handleArrowNavigation = (event: KeyboardEvent): boolean => {
+    const tryHandleArrowNavigation = (event: KeyboardEvent): boolean => {
       if (!isActivated()) return false;
       if (isPromptMode()) return false;
       if (isShiftMultiSelecting()) return false;
@@ -2200,7 +2200,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const TYPE_TO_EDIT_KEY_PATTERN = /^[a-zA-Z0-9-]$/;
-    const handleTypeToEdit = (event: KeyboardEvent): boolean => {
+    const tryHandleTypeToEdit = (event: KeyboardEvent): boolean => {
       if (!event.key || event.key.length !== 1 || !TYPE_TO_EDIT_KEY_PATTERN.test(event.key))
         return false;
       const element = canDispatchBareKey(event);
@@ -2216,7 +2216,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return true;
     };
 
-    const handleBareKeyShortcut = (event: KeyboardEvent): boolean => {
+    const tryHandleBareKeyShortcut = (event: KeyboardEvent): boolean => {
       const element = canDispatchBareKey(event);
       if (!element) return false;
 
@@ -2231,7 +2231,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return true;
     };
 
-    const handleOpenFileShortcut = (event: KeyboardEvent): boolean => {
+    const tryHandleOpenFileShortcut = (event: KeyboardEvent): boolean => {
       if (event.key?.toLowerCase() !== "o") return false;
       if (!isActivated() || !(event.metaKey || event.ctrlKey)) return false;
 
@@ -2249,7 +2249,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return true;
     };
 
-    const handleContextMenuKey = (event: KeyboardEvent): boolean => {
+    const tryHandleContextMenuKey = (event: KeyboardEvent): boolean => {
       if (!isActivated()) return false;
       if (isCopying()) return false;
       if (store.contextMenuPosition !== null) return false;
@@ -2425,7 +2425,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           }
 
           if (isFromOverlay && ARROW_KEYS.has(event.key)) {
-            if (handleArrowNavigation(event)) return;
+            if (tryHandleArrowNavigation(event)) return;
           }
 
           return;
@@ -2456,11 +2456,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const didWindowJustRegainFocus =
           Date.now() - lastWindowFocusTimestamp < WINDOW_REFOCUS_GRACE_PERIOD_MS;
 
-        if (handleArrowNavigation(event)) return;
-        if (handleOpenFileShortcut(event)) return;
-        if (handleContextMenuKey(event)) return;
-        if (handleBareKeyShortcut(event)) return;
-        if (handleTypeToEdit(event)) return;
+        if (tryHandleArrowNavigation(event)) return;
+        if (tryHandleOpenFileShortcut(event)) return;
+        if (tryHandleContextMenuKey(event)) return;
+        if (tryHandleBareKeyShortcut(event)) return;
+        if (tryHandleTypeToEdit(event)) return;
 
         if (!didWindowJustRegainFocus) {
           handleActivationKeys(event);
@@ -3745,7 +3745,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     }
 
     setTimeout(() => {
-      checkIsNextProject(true);
+      isNextProjectRuntime(true);
     }, NEXTJS_REVALIDATION_DELAY_MS);
 
     return api;

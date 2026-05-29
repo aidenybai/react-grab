@@ -6,16 +6,11 @@ import type {
 } from "../types.js";
 import { propertyBounds } from "./css-property-bounds.js";
 import { normalizeForEdit } from "./css-value-resolution.js";
-import { rgbStringToHex } from "./parse-color.js";
+import { parseAnyColor } from "./parse-any-color.js";
+import { parseHexChannels } from "./parse-color.js";
 import type { NumericValue } from "./parse-numeric-value.js";
-import type { AggregateDefinition } from "./property-definitions.js";
+import type { AggregateDefinition, EnumPropertyDefinition } from "./property-definitions.js";
 import { tailwindAliasesForProperty } from "./tailwind-class-map.js";
-
-interface EnumPropertyDefinition {
-  key: string;
-  label: string;
-  options?: ReadonlyArray<EnumEditableOption>;
-}
 
 export const buildNumericProperty = (
   definition: AggregateDefinition,
@@ -46,8 +41,10 @@ export const buildColorProperty = (
   label: string,
   rawCssValue: string,
 ): ColorEditableProperty | null => {
-  const hexValue = rgbStringToHex(rawCssValue);
+  const hexValue = parseAnyColor(rawCssValue);
   if (!hexValue) return null;
+  const channels = parseHexChannels(hexValue);
+  if (!channels || channels.a === 0) return null;
   return {
     kind: "color",
     key: cssKey,

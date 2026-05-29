@@ -281,6 +281,24 @@ export const typeInSearchInput = async (page: Page, text: string): Promise<void>
   await page.keyboard.type(text);
 };
 
+export const setSearchInputValue = async (page: Page, value: string): Promise<void> => {
+  await page.evaluate(
+    ({ attrName, inputAttr, nextValue }) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      if (!shadowRoot) throw new Error("No shadow root");
+      const input = shadowRoot.querySelector<HTMLTextAreaElement>(`[${inputAttr}]`);
+      if (!input) throw new Error("Search input not found");
+      input.focus();
+      input.value = nextValue;
+      input.dispatchEvent(
+        new InputEvent("input", { bubbles: true, composed: true, data: nextValue }),
+      );
+    },
+    { attrName: ATTRIBUTE_NAME, inputAttr: SEARCH_INPUT_ATTR, nextValue: value },
+  );
+};
+
 export const getInlineStyleProperty = async (
   page: Page,
   selector: string,

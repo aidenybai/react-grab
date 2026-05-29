@@ -1,4 +1,4 @@
-const TAILWIND_PREFIX_TO_PROPERTY: Record<string, string> = {
+const TAILWIND_PREFIX_TO_PROPERTY: Partial<Record<string, string>> = {
   p: "padding",
   px: "padding-left,padding-right",
   py: "padding-top,padding-bottom",
@@ -72,6 +72,19 @@ const TAILWIND_PREFIX_TO_PROPERTY: Record<string, string> = {
 };
 
 const EXTRA_PROPERTY_ALIASES: Record<string, string[]> = {
+  "font-size": ["font-size", "font size", "text-size", "text size"],
+  color: ["color", "text-color", "text color", "text-colour", "text colour", "foreground", "fg"],
+  "background-color": [
+    "background",
+    "background-color",
+    "background color",
+    "bg",
+    "bg-color",
+    "bg color",
+  ],
+  "border-color": ["border-color", "border color"],
+  fill: ["fill", "fill-color", "fill color"],
+  stroke: ["stroke", "stroke-color", "stroke color"],
   "font-family": [
     "font",
     "font-sans",
@@ -83,21 +96,25 @@ const EXTRA_PROPERTY_ALIASES: Record<string, string[]> = {
     "mono",
   ],
   "font-style": ["italic", "not-italic"],
+  "text-align": ["text-left", "text-center", "text-right", "text-justify"],
   "text-transform": ["uppercase", "lowercase", "capitalize", "normal-case"],
   "text-decoration-line": ["underline", "line-through", "no-underline"],
   "white-space": ["whitespace", "whitespace-normal", "whitespace-nowrap", "whitespace-pre"],
   "word-break": ["break-normal", "break-all", "break-keep"],
   "overflow-wrap": ["break-words", "break-anywhere"],
   "font-variant-numeric": ["tabular-nums", "proportional-nums", "lining-nums", "oldstyle-nums"],
+  "border-style": ["border-solid", "border-dashed", "border-dotted", "border-none"],
 };
 
-const PROPERTY_ALIASES = ((): Record<string, string[]> => {
-  const prefixSetsByProperty: Record<string, Set<string>> = {};
+const PROPERTY_ALIASES = ((): Partial<Record<string, string[]>> => {
+  const prefixSetsByProperty: Partial<Record<string, Set<string>>> = {};
   for (const [prefix, property] of Object.entries(TAILWIND_PREFIX_TO_PROPERTY)) {
+    if (property === undefined) continue;
     (prefixSetsByProperty[property] ??= new Set()).add(prefix);
   }
-  const aliasesByProperty: Record<string, string[]> = {};
+  const aliasesByProperty: Partial<Record<string, string[]>> = {};
   for (const [property, prefixes] of Object.entries(prefixSetsByProperty)) {
+    if (prefixes === undefined) continue;
     aliasesByProperty[property] = Array.from(prefixes);
   }
   for (const [property, aliases] of Object.entries(EXTRA_PROPERTY_ALIASES)) {
@@ -107,9 +124,26 @@ const PROPERTY_ALIASES = ((): Record<string, string[]> => {
   return aliasesByProperty;
 })();
 
-// Bracket-aware variant separator: Tailwind arbitrary values like
-// `bg-[url(http://x)]` contain colons inside `[…]`; only colons OUTSIDE
-// any brackets are variant separators.
+const TAILWIND_COLOR_PREFIX_TO_PROPERTY: Partial<Record<string, string>> = {
+  text: "color",
+  bg: "background-color",
+  border: "border-color",
+  "border-x": "border-color",
+  "border-y": "border-color",
+  "border-t": "border-color",
+  "border-r": "border-color",
+  "border-b": "border-color",
+  "border-l": "border-color",
+  "border-s": "border-color",
+  "border-e": "border-color",
+  fill: "fill",
+  stroke: "stroke",
+};
+
+const isKnownTailwindPrefix = (prefix: string): boolean =>
+  TAILWIND_PREFIX_TO_PROPERTY[prefix] !== undefined ||
+  TAILWIND_COLOR_PREFIX_TO_PROPERTY[prefix] !== undefined;
+
 const stripTailwindModifiers = (className: string): string => {
   let bracketDepth = 0;
   let lastVariantColon = -1;
@@ -123,10 +157,6 @@ const stripTailwindModifiers = (className: string): string => {
   return baseClassName.startsWith("!") ? baseClassName.slice(1) : baseClassName;
 };
 
-// Walks segment prefixes from longest to shortest until one matches a known
-// Tailwind utility prefix. Without this, `text-blue-500` returns `text-blue`
-// (greedy "strip trailing numeric"), which isn't in the prefix map even
-// though `text` is — and would silently fail to map to `color`.
 const matchTailwindPrefix = (rawClassName: string): string | null => {
   const baseClassName = stripTailwindModifiers(rawClassName);
   if (!baseClassName) return null;
@@ -142,7 +172,7 @@ const matchTailwindPrefix = (rawClassName: string): string | null => {
 
   for (let prefixLength = segments.length; prefixLength >= 1; prefixLength--) {
     const prefixCandidate = segments.slice(0, prefixLength).join("-");
-    if (TAILWIND_PREFIX_TO_PROPERTY[prefixCandidate]) return prefixCandidate;
+    if (isKnownTailwindPrefix(prefixCandidate)) return prefixCandidate;
   }
 
   return segments[0];
@@ -163,7 +193,135 @@ const isAmbiguousColorClass = (prefix: string, token: string): boolean => {
   return AMBIGUOUS_COLOR_CLASS_TAIL_REGEX.test(token);
 };
 
-const TAILWIND_CLASS_TO_ENUM_VALUE: Record<string, { property: string; value: string }> = {
+const TAILWIND_COLOR_TOKENS = new Set([
+  "color",
+  "red",
+  "orange",
+  "amber",
+  "yellow",
+  "lime",
+  "green",
+  "emerald",
+  "teal",
+  "cyan",
+  "sky",
+  "blue",
+  "indigo",
+  "violet",
+  "purple",
+  "fuchsia",
+  "pink",
+  "rose",
+  "slate",
+  "gray",
+  "grey",
+  "zinc",
+  "neutral",
+  "stone",
+  "black",
+  "white",
+  "transparent",
+  "current",
+  "currentcolor",
+  "inherit",
+  "primary",
+  "secondary",
+  "accent",
+  "muted",
+  "foreground",
+  "background",
+  "destructive",
+  "success",
+  "warning",
+  "error",
+  "info",
+  "card",
+  "popover",
+  "input",
+  "ring",
+]);
+
+const TAILWIND_TEXT_SIZE_TOKENS = new Set([
+  "xs",
+  "sm",
+  "base",
+  "lg",
+  "xl",
+  "2xl",
+  "3xl",
+  "4xl",
+  "5xl",
+  "6xl",
+  "7xl",
+  "8xl",
+  "9xl",
+]);
+
+const CSS_COLOR_ARBITRARY_PATTERN =
+  /^(#|rgb|rgba|hsl|hsla|hwb|lab|lch|oklab|oklch|color:|color\(|var\(--.*color)/;
+
+const CSS_LENGTH_ARBITRARY_PATTERN = /^(-?\d|length:|size:)/;
+
+export const normalizeTailwindClassInput = (query: string): string =>
+  query
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/([a-z])(\d)/g, "$1-$2");
+
+const isTailwindArbitraryColor = (value: string): boolean =>
+  CSS_COLOR_ARBITRARY_PATTERN.test(value) && !CSS_LENGTH_ARBITRARY_PATTERN.test(value);
+
+const tailwindClassTail = (baseClassName: string, prefix: string): string | null => {
+  if (baseClassName === prefix) return "";
+  const prefixWithSeparator = `${prefix}-`;
+  if (!baseClassName.startsWith(prefixWithSeparator)) return null;
+  return baseClassName.slice(prefixWithSeparator.length);
+};
+
+const tailwindColorPropertyForClassName = (className: string): string | null => {
+  const baseClassName = stripTailwindModifiers(normalizeTailwindClassInput(className));
+  const prefix = matchTailwindPrefix(baseClassName);
+  if (!prefix) return null;
+  const propertyKey = TAILWIND_COLOR_PREFIX_TO_PROPERTY[prefix];
+  if (!propertyKey) return null;
+
+  const bracketIndex = baseClassName.indexOf("[");
+  if (bracketIndex >= 0) {
+    const arbitraryValue = baseClassName.slice(bracketIndex + 1).replace(/\]$/, "");
+    return isTailwindArbitraryColor(arbitraryValue) ? propertyKey : null;
+  }
+
+  const tail = tailwindClassTail(baseClassName, prefix);
+  if (tail === null) return null;
+  if (prefix === "bg" && tail === "") return propertyKey;
+  if ((prefix === "fill" || prefix === "stroke") && tail === "") return propertyKey;
+  const colorToken = tail.split("-")[0];
+  if (prefix === "text" && TAILWIND_TEXT_SIZE_TOKENS.has(colorToken)) return null;
+  return TAILWIND_COLOR_TOKENS.has(colorToken) ? propertyKey : null;
+};
+
+const NUMERIC_TAILWIND_VALUE_PATTERN = /^-?\d/;
+
+const isTailwindPrefixFallbackValue = (prefix: string, tail: string): boolean => {
+  if (tail === "") return true;
+  if (tail.startsWith("[") || NUMERIC_TAILWIND_VALUE_PATTERN.test(tail)) return true;
+  const valueToken = tail.split("-")[0];
+  if (prefix === "text") return TAILWIND_TEXT_SIZE_TOKENS.has(valueToken);
+  if (prefix === "font") return false;
+  if (prefix === "border" || prefix.startsWith("border-")) return false;
+  if (prefix === "rounded" || prefix.startsWith("rounded-")) return true;
+  if (prefix === "leading" || prefix === "tracking") return true;
+  if (prefix === "items" || prefix === "justify") return true;
+  return true;
+};
+
+interface TailwindEnumValueMapping {
+  property: string;
+  value: string;
+}
+
+const TAILWIND_CLASS_TO_ENUM_VALUE: Partial<Record<string, TailwindEnumValueMapping>> = {
   "font-sans": {
     property: "font-family",
     value:
@@ -187,6 +345,10 @@ const TAILWIND_CLASS_TO_ENUM_VALUE: Record<string, { property: string; value: st
   "font-bold": { property: "font-weight", value: "700" },
   "font-extrabold": { property: "font-weight", value: "800" },
   "font-black": { property: "font-weight", value: "900" },
+  "text-left": { property: "text-align", value: "left" },
+  "text-center": { property: "text-align", value: "center" },
+  "text-right": { property: "text-align", value: "right" },
+  "text-justify": { property: "text-align", value: "justify" },
   italic: { property: "font-style", value: "italic" },
   "not-italic": { property: "font-style", value: "normal" },
   uppercase: { property: "text-transform", value: "uppercase" },
@@ -212,6 +374,34 @@ const TAILWIND_CLASS_TO_ENUM_VALUE: Record<string, { property: string; value: st
   "lining-nums": { property: "font-variant-numeric", value: "lining-nums" },
   "oldstyle-nums": { property: "font-variant-numeric", value: "oldstyle-nums" },
   "slashed-zero": { property: "font-variant-numeric", value: "slashed-zero" },
+  "border-solid": { property: "border-style", value: "solid" },
+  "border-dashed": { property: "border-style", value: "dashed" },
+  "border-dotted": { property: "border-style", value: "dotted" },
+  "border-none": { property: "border-style", value: "none" },
+};
+
+export const tailwindPropertyKeysForSearchQuery = (query: string): string[] => {
+  const normalizedQuery = normalizeTailwindClassInput(query);
+  if (!normalizedQuery) return [];
+
+  const enumMapping = tailwindClassToEnumValue(normalizedQuery);
+  if (enumMapping) return [enumMapping.property];
+
+  const colorPropertyKey = tailwindColorPropertyForClassName(normalizedQuery);
+  if (colorPropertyKey) return [colorPropertyKey];
+  return [];
+};
+
+export const tailwindPrefixPropertyKeysForSearchQuery = (query: string): string[] => {
+  const normalizedQuery = normalizeTailwindClassInput(query);
+  if (!normalizedQuery) return [];
+
+  const prefix = matchTailwindPrefix(normalizedQuery);
+  if (!prefix) return [];
+  const tail = tailwindClassTail(stripTailwindModifiers(normalizedQuery), prefix);
+  if (tail === null || !isTailwindPrefixFallbackValue(prefix, tail)) return [];
+  const prefixPropertyKey = tailwindPrefixToProperty(prefix);
+  return prefixPropertyKey ? [prefixPropertyKey] : [];
 };
 
 export const getElementTailwindProperties = (element: Element): Set<string> => {
@@ -239,10 +429,12 @@ export const getElementTailwindProperties = (element: Element): Set<string> => {
 export const tailwindAliasesForProperty = (property: string): string[] =>
   PROPERTY_ALIASES[property] ?? [];
 
-export const tailwindPrefixToProperty = (prefix: string): string | null =>
-  TAILWIND_PREFIX_TO_PROPERTY[prefix] ?? null;
+export const tailwindPrefixToProperty = (prefix: string): string | null => {
+  const propertyKey = TAILWIND_PREFIX_TO_PROPERTY[prefix];
+  return propertyKey === undefined ? null : propertyKey;
+};
 
-export const tailwindClassToEnumValue = (
-  className: string,
-): { property: string; value: string } | null =>
-  TAILWIND_CLASS_TO_ENUM_VALUE[stripTailwindModifiers(className)] ?? null;
+export const tailwindClassToEnumValue = (className: string): TailwindEnumValueMapping | null => {
+  const enumMapping = TAILWIND_CLASS_TO_ENUM_VALUE[stripTailwindModifiers(className)];
+  return enumMapping === undefined ? null : enumMapping;
+};

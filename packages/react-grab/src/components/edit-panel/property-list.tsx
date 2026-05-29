@@ -42,7 +42,7 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
   let didPointerMove = false;
   let pendingHoverIndex: number | null = null;
 
-  const focusedInlineInputOwnsHover = (): boolean => {
+  const isHoverOwnedByFocusedInlineInput = (): boolean => {
     if (!listRef) return false;
     const focusedElement = getShadowActiveElement(listRef);
     return (
@@ -53,7 +53,7 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
 
   const maybeActivateHoveredIndex = (propertyIndex: number, source: "enter" | "move") => {
     if (source === "move") didPointerMove = true;
-    const isFocusLocked = focusedInlineInputOwnsHover();
+    const isFocusLocked = isHoverOwnedByFocusedInlineInput();
     if (!didPointerMove) return;
     if (isFocusLocked) return;
     if (props.isAdjusting()) {
@@ -71,7 +71,7 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
     if (propertyIndex === null) return;
     pendingHoverIndex = null;
     const element = itemElements[propertyIndex];
-    const isFocusLocked = focusedInlineInputOwnsHover();
+    const isFocusLocked = isHoverOwnedByFocusedInlineInput();
     if (!didPointerMove) return;
     if (isFocusLocked) return;
     if (!element?.matches(":hover")) return;

@@ -1,4 +1,4 @@
-import { checkIsNextProject } from "../core/context.js";
+import { isNextProjectRuntime } from "../core/context.js";
 import { getNextBasePath } from "./get-next-base-path.js";
 import { normalizeFilePath } from "./normalize-file-path.js";
 
@@ -9,7 +9,7 @@ const tryDevServerOpen = async (
   filePath: string,
   lineNumber: number | undefined,
 ): Promise<boolean> => {
-  const isNextProject = checkIsNextProject();
+  const isNextProject = isNextProjectRuntime();
   const params = new URLSearchParams({ file: filePath });
 
   const lineKey = isNextProject ? "line1" : "line";

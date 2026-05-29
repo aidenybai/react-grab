@@ -1,5 +1,5 @@
 import { FONT_SIZE_LINE_HEIGHT_RATIO, OPACITY_PERCENT_MAX } from "../constants.js";
-import { cleanNumericValue } from "./format-css-value.js";
+import { roundEditableNumericValue } from "./format-css-value.js";
 import { parseNumericValue, type NumericValue } from "./parse-numeric-value.js";
 import {
   ALIGNED_VALUE_TOLERANCE_PX,
@@ -20,7 +20,7 @@ export const valueWithFallback = (
     const fontSize = parseNumericValue(snapshot["font-size"]);
     if (!fontSize) return null;
     return {
-      value: cleanNumericValue(fontSize.value * FONT_SIZE_LINE_HEIGHT_RATIO),
+      value: roundEditableNumericValue(fontSize.value * FONT_SIZE_LINE_HEIGHT_RATIO),
       unit: fontSize.unit || "px",
     };
   }
@@ -57,7 +57,7 @@ export const normalizeForEdit = (propertyKey: string, value: NumericValue): Nume
     return { value: Math.round(value.value * OPACITY_PERCENT_MAX), unit: "%" };
   }
   if (UNITLESS_KEYS.has(propertyKey)) {
-    return { value: cleanNumericValue(value.value), unit: "" };
+    return { value: roundEditableNumericValue(value.value), unit: "" };
   }
-  return { value: cleanNumericValue(value.value), unit: value.unit || "px" };
+  return { value: roundEditableNumericValue(value.value), unit: value.unit || "px" };
 };

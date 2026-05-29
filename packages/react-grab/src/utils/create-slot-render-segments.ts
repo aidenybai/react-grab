@@ -11,11 +11,9 @@ export interface SlotRenderSegments {
 
 const SLOT_DIGIT_REGEX = /^[0-9]$/;
 
-const isSlotDigit = (value: string): boolean => SLOT_DIGIT_REGEX.test(value);
-
 export const createSlotRenderSegments = (text: string): SlotRenderSegments => {
   const characters = Array.from(text);
-  const firstDigitIndex = characters.findIndex(isSlotDigit);
+  const firstDigitIndex = characters.findIndex((character) => SLOT_DIGIT_REGEX.test(character));
 
   if (firstDigitIndex < 0) {
     return {
@@ -30,7 +28,7 @@ export const createSlotRenderSegments = (text: string): SlotRenderSegments => {
 
   for (let position = characters.length - 1; position >= firstDigitIndex; position--) {
     const value = characters[position];
-    const kind = isSlotDigit(value) ? "digit" : "literal";
+    const kind = SLOT_DIGIT_REGEX.test(value) ? "digit" : "literal";
     rightAlignedSegments.push({
       kind,
       value,

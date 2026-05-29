@@ -96,7 +96,7 @@ export interface AggregateDefinition {
 // utils/sort-properties-by-recommendation.ts — reordering comma-joined
 // longhands here means updating the rank map too, or rows will sink
 // to the bottom of the recommended tier.
-export const PADDING_AGGREGATES: readonly AggregateDefinition[] = [
+const PADDING_AGGREGATES: readonly AggregateDefinition[] = [
   {
     key: "padding",
     label: "padding",
@@ -118,7 +118,7 @@ export const PADDING_AGGREGATES: readonly AggregateDefinition[] = [
   { key: "padding-left", label: "padding left", longhands: ["padding-left"] },
 ];
 
-export const MARGIN_AGGREGATES: readonly AggregateDefinition[] = [
+const MARGIN_AGGREGATES: readonly AggregateDefinition[] = [
   {
     key: "margin",
     label: "margin",
@@ -145,13 +145,13 @@ export const MARGIN_AGGREGATES: readonly AggregateDefinition[] = [
 // real longhands lets the canonical-row algorithm pick "gap" when
 // aligned and split into "row gap" + "column gap" otherwise — same
 // behavior we used to roll by hand.
-export const GAP_AGGREGATES: readonly AggregateDefinition[] = [
+const GAP_AGGREGATES: readonly AggregateDefinition[] = [
   { key: "gap", label: "gap", longhands: ["row-gap", "column-gap"] },
   { key: "row-gap", label: "row gap", longhands: ["row-gap"] },
   { key: "column-gap", label: "column gap", longhands: ["column-gap"] },
 ];
 
-export const RADIUS_AGGREGATES: readonly AggregateDefinition[] = [
+const RADIUS_AGGREGATES: readonly AggregateDefinition[] = [
   {
     key: "border-radius",
     label: "border radius",
@@ -204,7 +204,7 @@ export const RADIUS_AGGREGATES: readonly AggregateDefinition[] = [
   },
 ];
 
-export const INSET_AGGREGATES: readonly AggregateDefinition[] = [
+const INSET_AGGREGATES: readonly AggregateDefinition[] = [
   {
     key: "top,right,bottom,left",
     label: "inset",
@@ -218,7 +218,7 @@ export const INSET_AGGREGATES: readonly AggregateDefinition[] = [
   { key: "left", label: "left", longhands: ["left"] },
 ];
 
-export const BORDER_WIDTH_AGGREGATES: readonly AggregateDefinition[] = [
+const BORDER_WIDTH_AGGREGATES: readonly AggregateDefinition[] = [
   {
     key: "border-width",
     label: "border width",
@@ -279,7 +279,7 @@ export const COLOR_PROPERTIES: ReadonlyArray<{ key: string; label: string }> = [
 export interface EnumPropertyDefinition {
   key: string;
   label: string;
-  options: ReadonlyArray<EnumEditableOption>;
+  options?: ReadonlyArray<EnumEditableOption>;
 }
 
 const FONT_FAMILY_OPTIONS: ReadonlyArray<EnumEditableOption> = [

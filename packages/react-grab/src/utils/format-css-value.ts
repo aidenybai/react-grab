@@ -26,7 +26,7 @@ export const formatDisplayValue = (value: number): string => {
 //     ("1860.6000000000004px"); rounding to integer cleans that too
 // Sub-percent precision (e.g. opacity 50.5%) is rare enough that the
 // loss of one decimal place isn't worth keeping the FP display.
-export const cleanNumericValue = (value: number): number => Math.round(value);
+export const roundEditableNumericValue = (value: number): number => Math.round(value);
 
 export const formatEditableValue = (
   property: EditableProperty,

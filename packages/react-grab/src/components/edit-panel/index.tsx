@@ -25,7 +25,7 @@ import { clampToRange } from "../../utils/clamp-to-range.js";
 import { cn } from "../../utils/cn.js";
 import { createAnchoredDropdown } from "../../utils/create-anchored-dropdown.js";
 import { findTailwindClass } from "../../utils/find-tailwind-class.js";
-import { cleanNumericValue, formatEditableValue } from "../../utils/format-css-value.js";
+import { formatEditableValue, roundEditableNumericValue } from "../../utils/format-css-value.js";
 import { formatSessionEditsPrompt } from "../../utils/format-edit-prompt.js";
 import { getShadowActiveElement } from "../../utils/get-shadow-active-element.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
@@ -206,7 +206,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     const property = activeProperty();
     if (!property) return;
     if (property.kind === "numeric" && typeof rawValue === "number") {
-      const clamped = cleanNumericValue(clampToRange(rawValue, property.min, property.max));
+      const clamped = roundEditableNumericValue(clampToRange(rawValue, property.min, property.max));
       if (clamped !== property.value) commit(property, clamped);
       return;
     }

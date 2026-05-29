@@ -5,14 +5,20 @@ import {
   EDIT_SEARCH_PREFIX_ALIAS_SCORE,
   EDIT_SEARCH_STARTS_WITH_SCORE,
   EDIT_SEARCH_SUBSTRING_SCORE,
+  EDIT_SEARCH_TAILWIND_INTENT_SCORE,
+  EDIT_SEARCH_TAILWIND_PREFIX_SCORE,
 } from "../constants.js";
 import type { EditableProperty } from "../types.js";
 import { isNumericQuery } from "./is-numeric-query.js";
+import {
+  tailwindPrefixPropertyKeysForSearchQuery,
+  tailwindPropertyKeysForSearchQuery,
+} from "./tailwind-class-map.js";
 
 interface PropertySearchEntry {
   property: EditableProperty;
   originalIndex: number;
-  kind: "alias" | "enum-option" | "label";
+  kind: "alias" | "enum-option" | "name" | "label";
   term: string;
 }
 
@@ -59,6 +65,12 @@ const createSearchEntries = (properties: readonly EditableProperty[]): PropertyS
         term: optionSearchTerm,
       });
     }
+    const labelTerm = normalizeSearchText(property.label);
+    if (labelTerm) searchEntries.push({ property, originalIndex, kind: "name", term: labelTerm });
+    const propertyKeyTerm = normalizeSearchText(property.key);
+    if (propertyKeyTerm && propertyKeyTerm !== labelTerm) {
+      searchEntries.push({ property, originalIndex, kind: "name", term: propertyKeyTerm });
+    }
     const labelText = normalizeSearchText(`${property.label} ${property.key}`);
     if (labelText) {
       searchEntries.push({ property, originalIndex, kind: "label", term: labelText });
@@ -68,7 +80,7 @@ const createSearchEntries = (properties: readonly EditableProperty[]): PropertyS
 };
 
 const scoreEntry = (query: string, entry: PropertySearchEntry): number | null => {
-  if (entry.kind !== "label") {
+  if (entry.kind === "alias" || entry.kind === "enum-option" || entry.kind === "name") {
     if (query === entry.term) return EDIT_SEARCH_EXACT_ALIAS_SCORE + entry.term.length;
     if (entry.term.startsWith(query) || query.startsWith(entry.term)) {
       return EDIT_SEARCH_PREFIX_ALIAS_SCORE + Math.min(query.length, entry.term.length);
@@ -90,29 +102,59 @@ const scoreEntry = (query: string, entry: PropertySearchEntry): number | null =>
 
 const addCandidate = (
   candidatesByKey: Map<string, PropertySearchCandidate>,
-  entry: PropertySearchEntry,
+  property: EditableProperty,
+  originalIndex: number,
   score: number,
 ) => {
-  const current = candidatesByKey.get(entry.property.key);
+  const current = candidatesByKey.get(property.key);
   if (current && current.score >= score) return;
-  candidatesByKey.set(entry.property.key, {
-    property: entry.property,
+  candidatesByKey.set(property.key, {
+    property,
     score,
-    originalIndex: entry.originalIndex,
+    originalIndex,
   });
 };
 
 export const createPropertySearchIndex = (properties: EditableProperty[]): PropertySearchIndex => {
   const searchEntries = createSearchEntries(properties);
+  const originalIndexByPropertyKey = new Map<string, number>();
+  for (let originalIndex = 0; originalIndex < properties.length; originalIndex++) {
+    originalIndexByPropertyKey.set(properties[originalIndex].key, originalIndex);
+  }
+  const addPropertyKeyCandidates = (
+    candidatesByKey: Map<string, PropertySearchCandidate>,
+    propertyKeys: readonly string[],
+    baseScore: number,
+  ) => {
+    for (let intentIndex = 0; intentIndex < propertyKeys.length; intentIndex++) {
+      const propertyKey = propertyKeys[intentIndex];
+      const originalIndex = originalIndexByPropertyKey.get(propertyKey);
+      if (originalIndex === undefined) continue;
+      const property = properties[originalIndex];
+      addCandidate(candidatesByKey, property, originalIndex, baseScore - intentIndex);
+    }
+  };
 
   const search = (query: string): EditableProperty[] => {
     const normalized = normalizeSearchText(query);
     if (!normalized || isNumericQuery(normalized)) return properties;
 
     const candidatesByKey = new Map<string, PropertySearchCandidate>();
+    addPropertyKeyCandidates(
+      candidatesByKey,
+      tailwindPropertyKeysForSearchQuery(query),
+      EDIT_SEARCH_TAILWIND_INTENT_SCORE,
+    );
+    addPropertyKeyCandidates(
+      candidatesByKey,
+      tailwindPrefixPropertyKeysForSearchQuery(query),
+      EDIT_SEARCH_TAILWIND_PREFIX_SCORE,
+    );
     for (const searchEntry of searchEntries) {
       const score = scoreEntry(normalized, searchEntry);
-      if (score !== null) addCandidate(candidatesByKey, searchEntry, score);
+      if (score !== null) {
+        addCandidate(candidatesByKey, searchEntry.property, searchEntry.originalIndex, score);
+      }
     }
 
     return Array.from(candidatesByKey.values())
