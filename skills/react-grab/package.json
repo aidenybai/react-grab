@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "NODE_ENV=production vp pack",
+    "build": "vp pack",
     "test": "node --test test/clipboard.test.mjs",
     "lint": "vp lint",
     "format": "vp fmt",
