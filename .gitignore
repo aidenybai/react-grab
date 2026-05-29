@@ -3,6 +3,7 @@ node_modules
 .DS_Store
 .env
 dist
+packages/cli/skills
 .next
 **/*.tgz
 coverage

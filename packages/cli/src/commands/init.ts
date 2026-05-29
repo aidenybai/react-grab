@@ -5,7 +5,7 @@ import pc from "picocolors";
 import { detectNonInteractive } from "../utils/is-non-interactive.js";
 import { prompts } from "../utils/prompts.js";
 import { applyTransformWithFeedback, installPackagesWithFeedback } from "../utils/cli-helpers.js";
-import { promptMcpInstall } from "../utils/install-mcp.js";
+import { promptSkillInstall } from "../utils/install-skill.js";
 import {
   detectProject,
   findReactProjects,
@@ -327,27 +327,26 @@ export const init = new Command()
         }
 
         logger.break();
-        const { wantAddMcp } = await prompts({
+        const { wantAddSkill } = await prompts({
           type: "confirm",
-          name: "wantAddMcp",
-          message: `Would you like to ${highlighter.info("connect it to your agent via MCP")}?`,
+          name: "wantAddSkill",
+          message: `Would you like to ${highlighter.info("install the React Grab skill for your agent")}?`,
           initial: false,
         });
 
-        if (wantAddMcp === undefined) {
+        if (wantAddSkill === undefined) {
           logger.break();
           process.exit(1);
         }
 
-        if (wantAddMcp) {
-          const didInstall = await promptMcpInstall();
+        if (wantAddSkill) {
+          const didInstall = await promptSkillInstall();
           if (!didInstall) {
             logger.break();
             process.exit(0);
           }
           logger.break();
-          logger.success("MCP server has been configured.");
-          logger.log("Restart your agents to activate.");
+          logger.success("React Grab skill has been installed.");
         }
 
         logger.break();
@@ -458,30 +457,30 @@ export const init = new Command()
       const finalFramework = projectInfo.framework;
       const finalPackageManager = projectInfo.packageManager;
       const finalNextRouterType = projectInfo.nextRouterType;
-      let didInstallMcp = false;
+      let didInstallSkill = false;
 
       if (!isNonInteractive) {
         logger.break();
-        const { wantAddMcp } = await prompts({
+        const { wantAddSkill } = await prompts({
           type: "confirm",
-          name: "wantAddMcp",
-          message: `Would you like to ${highlighter.info("connect it to your agent via MCP")}?`,
+          name: "wantAddSkill",
+          message: `Would you like to ${highlighter.info("install the React Grab skill for your agent")}?`,
           initial: false,
         });
 
-        if (wantAddMcp === undefined) {
+        if (wantAddSkill === undefined) {
           logger.break();
           process.exit(1);
         }
 
-        if (wantAddMcp) {
-          didInstallMcp = Boolean(await promptMcpInstall());
-          if (!didInstallMcp) {
+        if (wantAddSkill) {
+          didInstallSkill = Boolean(await promptSkillInstall());
+          if (!didInstallSkill) {
             logger.break();
             process.exit(0);
           }
           logger.break();
-          logger.success("MCP server has been configured.");
+          logger.success("React Grab skill has been installed.");
           logger.log("Continuing with React Grab installation...");
           logger.break();
         }
@@ -555,7 +554,7 @@ export const init = new Command()
         framework: finalFramework,
         packageManager: finalPackageManager,
         router: finalNextRouterType,
-        agent: didInstallMcp ? "mcp" : undefined,
+        agent: didInstallSkill ? "skill" : undefined,
         isMonorepo: projectInfo.isMonorepo,
       });
     } catch (error) {

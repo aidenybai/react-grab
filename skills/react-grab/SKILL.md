@@ -150,12 +150,12 @@ outside the user's stated task.
 `REACT_GRAB_READY`. No flags differ per platform — the start command is the same
 everywhere.
 
-| OS | Full capture (structured `entries` + timestamp) | Text fallback |
-| --- | --- | --- |
-| macOS | `swiftc` (Xcode CLI tools), compiled once and cached | `pbpaste` |
-| Linux / Wayland | `wl-clipboard` (`wl-paste`) | `wl-paste` |
-| Linux / X11 | `xclip` | `xclip` or `xsel` |
-| Windows | PowerShell + Win32 (built in, nothing to install) | `Get-Clipboard` |
+| OS              | Full capture (structured `entries` + timestamp)      | Text fallback     |
+| --------------- | ---------------------------------------------------- | ----------------- |
+| macOS           | `swiftc` (Xcode CLI tools), compiled once and cached | `pbpaste`         |
+| Linux / Wayland | `wl-clipboard` (`wl-paste`)                          | `wl-paste`        |
+| Linux / X11     | `xclip`                                              | `xclip` or `xsel` |
+| Windows         | PowerShell + Win32 (built in, nothing to install)    | `Get-Clipboard`   |
 
 Install the per-OS tool for full capture when missing:
 

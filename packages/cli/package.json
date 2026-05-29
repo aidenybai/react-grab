@@ -6,7 +6,8 @@
   },
   "files": [
     "bin",
-    "dist"
+    "dist",
+    "skills"
   ],
   "type": "module",
   "exports": {
@@ -17,8 +18,8 @@
     }
   },
   "scripts": {
-    "dev": "vp pack --watch",
-    "build": "rm -rf dist && NODE_ENV=production vp pack",
+    "dev": "node scripts/bundle-skill.mjs && vp pack --watch",
+    "build": "rm -rf dist skills && node scripts/bundle-skill.mjs && NODE_ENV=production vp pack",
     "test": "vp test run",
     "test:watch": "vp test",
     "lint": "vp lint",
@@ -27,6 +28,7 @@
     "check": "vp check"
   },
   "dependencies": {
+    "agent-install": "^0.0.5",
     "commander": "^14.0.3",
     "ignore": "^7.0.5",
     "jsonc-parser": "^3.3.1",

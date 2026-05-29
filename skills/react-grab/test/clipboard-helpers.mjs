@@ -13,7 +13,8 @@ const encodeString16 = (value) => {
   const valueBytes = Buffer.from(value, "utf16le");
   const lengthHeader = Buffer.alloc(4);
   lengthHeader.writeUInt32LE(value.length);
-  const padding = (PICKLE_ALIGN_BYTES - (valueBytes.length % PICKLE_ALIGN_BYTES)) % PICKLE_ALIGN_BYTES;
+  const padding =
+    (PICKLE_ALIGN_BYTES - (valueBytes.length % PICKLE_ALIGN_BYTES)) % PICKLE_ALIGN_BYTES;
   return Buffer.concat([lengthHeader, valueBytes, Buffer.alloc(padding)]);
 };
 
@@ -21,7 +22,10 @@ export const encodeChromiumPickle = (formats) => {
   const entries = Object.entries(formats);
   const pairCount = Buffer.alloc(4);
   pairCount.writeUInt32LE(entries.length);
-  const pairs = entries.flatMap(([format, value]) => [encodeString16(format), encodeString16(value)]);
+  const pairs = entries.flatMap(([format, value]) => [
+    encodeString16(format),
+    encodeString16(value),
+  ]);
   const body = Buffer.concat([pairCount, ...pairs]);
   const sizeHeader = Buffer.alloc(4);
   sizeHeader.writeUInt32LE(body.length);

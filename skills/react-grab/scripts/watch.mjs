@@ -76,7 +76,8 @@ const parseChromiumPickle = (buffer) => {
 
 const extractGrab = (raw) => {
   if (raw.grab) return raw.grab;
-  if (raw.pickleBase64) return parseChromiumPickle(Buffer.from(raw.pickleBase64, "base64"))[GRAB_MIME];
+  if (raw.pickleBase64)
+    return parseChromiumPickle(Buffer.from(raw.pickleBase64, "base64"))[GRAB_MIME];
   return undefined;
 };
 
@@ -86,9 +87,7 @@ const isGrabText = (text) => GRAB_TEXT_SIGNATURE.test(text);
 // in entries[].commentText when structured, otherwise it is prepended above the
 // bracketed element references in `content`. Returns that comment, or undefined.
 const extractPrompt = (record) => {
-  const comments = record.entries
-    .map((entry) => entry.commentText?.trim())
-    .filter(Boolean);
+  const comments = record.entries.map((entry) => entry.commentText?.trim()).filter(Boolean);
   if (comments.length > 0) return comments.join("\n");
   const lines = (record.content ?? "").split("\n");
   const firstReferenceLine = lines.findIndex((line) => line.startsWith("["));
@@ -237,7 +236,11 @@ const createWindowsReader = (options) => {
     read: () => {
       const raw = runJson(shell, args);
       if (!raw) return null;
-      return { changeCount: raw.changeCount ?? null, text: raw.text ?? undefined, grab: extractGrab(raw) };
+      return {
+        changeCount: raw.changeCount ?? null,
+        text: raw.text ?? undefined,
+        grab: extractGrab(raw),
+      };
     },
   };
 };

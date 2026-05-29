@@ -96,7 +96,7 @@ describe("parseChromiumPickle", () => {
 
 describe("extractGrab", () => {
   it("prefers an already-resolved grab string", () => {
-    assert.equal(extractGrab({ grab: "{\"a\":1}" }), "{\"a\":1}");
+    assert.equal(extractGrab({ grab: '{"a":1}' }), '{"a":1}');
   });
 
   it("parses a base64 pickle when no resolved grab is present", () => {
@@ -175,8 +175,8 @@ describe(`clipboard round-trip via text fallback (${process.platform})`, () => {
 describe(`clipboard round-trip via custom format (${process.platform})`, () => {
   const grabJson = JSON.stringify({
     version: "0.1.0",
-    content: "<a href=\"#\">Link</a>\n\n// src/nav.tsx:8\n  in NavLink (at src/nav.tsx:8:2)",
-    entries: [{ tagName: "a", componentName: "NavLink", content: "<a href=\"#\">Link</a>" }],
+    content: '<a href="#">Link</a>\n\n// src/nav.tsx:8\n  in NavLink (at src/nav.tsx:8:2)',
+    entries: [{ tagName: "a", componentName: "NavLink", content: '<a href="#">Link</a>' }],
     timestamp: Date.now(),
   });
 
