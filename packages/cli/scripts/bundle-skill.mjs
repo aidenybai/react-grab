@@ -1,3 +1,4 @@
+import { spawn } from "node:child_process";
 import { cpSync, rmSync, watch } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -27,4 +28,8 @@ if (process.argv.includes("--watch")) {
       console.error("bundle-skill: re-bundle failed", error);
     }
   });
+  // Run the package bundler from here (cross-platform) so a single command both
+  // re-bundles the skill on change and watches the CLI source.
+  const packer = spawn("vp", ["pack", "--watch"], { stdio: "inherit", shell: true });
+  packer.on("exit", (code) => process.exit(code ?? 0));
 }
