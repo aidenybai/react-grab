@@ -40,9 +40,10 @@ public static class RgClip {
     IntPtr pointer = GlobalLock(handle);
     if (pointer == IntPtr.Zero) return null;
     try {
-      int size = (int)GlobalSize(handle).ToUInt64();
-      byte[] bytes = new byte[size];
-      Marshal.Copy(pointer, bytes, 0, size);
+      ulong size = GlobalSize(handle).ToUInt64();
+      if (size == 0 || size > int.MaxValue) return null;
+      byte[] bytes = new byte[(int)size];
+      Marshal.Copy(pointer, bytes, 0, (int)size);
       return bytes;
     } finally {
       GlobalUnlock(handle);
