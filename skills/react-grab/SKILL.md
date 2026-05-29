@@ -182,9 +182,12 @@ read for the custom format) and dedups on the grab timestamp.
 
 ## Testing
 
-Zero-dependency `node:test` suite in `test/`:
+The watcher is authored in TypeScript (`src/watch.ts`) and built to the runnable,
+zero-dependency `scripts/watch.mjs` via `vp pack`. Build it, then run the
+`node:test` suite:
 
 ```bash
+pnpm --filter @react-grab/skill build
 node --test skills/react-grab/test/clipboard.test.mjs
 ```
 
@@ -200,8 +203,12 @@ CI runs the suite on `ubuntu-latest`, `macos-latest`, and `windows-latest`
 (`.github/workflows/skill-react-grab.yml`). Linux installs `xclip` and runs under
 `xvfb-run` for a headless X server.
 
-## Promote to the CLI (optional)
+## Build
 
-`watch.mjs` is intentionally dependency-free and self-contained so it can move
-into `@react-grab/cli` as a `grab watch` command later. The skill ships it
-standalone so it works today without modifying or republishing the CLI.
+This skill is a workspace package (`@react-grab/skill`). The watcher is
+TypeScript (`src/watch.ts`), typechecked and linted with the repo tooling and
+built to the zero-dependency `scripts/watch.mjs` by `vp pack` (`pnpm --filter
+@react-grab/skill build`). The native readers (`read-clipboard.swift`,
+`read-clipboard.ps1`) ship as source and compile on the user's machine at
+runtime. `@react-grab/cli` builds the skill and bundles `SKILL.md` + `scripts/`
+into the published package so `grab init` installs it offline.

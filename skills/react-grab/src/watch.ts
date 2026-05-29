@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import fs from "node:fs";
@@ -25,9 +24,60 @@ const SIGNATURE_SCAN_CHARS = 32 * 1024;
 const GRAB_TEXT_SIGNATURE = /\bin\s+\S+\s+\(at\s+[^\n]{1,400}?:\d+:\d+\)/;
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 
-const parseArgs = () => {
+interface WatchOptions {
+  dir: string;
+  intervalMs: number;
+  replayLast: boolean;
+  textOnly: boolean;
+}
+
+interface GrabEntry {
+  tagName?: string;
+  componentName?: string;
+  content?: string;
+  commentText?: string;
+}
+
+interface GrabRecord {
+  source: "custom" | "text";
+  timestamp: number;
+  version?: string;
+  content: string;
+  entries: GrabEntry[];
+  prompt?: string;
+}
+
+// What a platform reader returns each poll. `grab` is the resolved
+// application/x-react-grab JSON string when present.
+interface ClipboardSnapshot {
+  changeCount: number | null;
+  text?: string;
+  grab?: string;
+}
+
+// What the native helpers (Swift/PowerShell) emit; the watcher resolves `grab`
+// from `grab` directly or by decoding `pickleBase64`.
+interface NativeRead {
+  changeCount?: number | null;
+  text?: string;
+  grab?: string;
+  pickleBase64?: string;
+}
+
+interface ClipboardReader {
+  mode: string;
+  read: () => ClipboardSnapshot | null;
+}
+
+interface LinuxTool {
+  name: string;
+  readText: () => string | null;
+  readCustom: (() => Buffer | null) | null;
+}
+
+const parseArgs = (): WatchOptions => {
   const args = process.argv.slice(2);
-  const options = {
+  const options: WatchOptions = {
     dir: path.join(os.tmpdir(), "react-grab-watch"),
     intervalMs: POLL_INTERVAL_MS,
     replayLast: false,
@@ -35,7 +85,7 @@ const parseArgs = () => {
   };
   // Only consume the next token as a value when it is not itself a flag, so a
   // valueless `--interval` cannot swallow the following option.
-  const valueAt = (index) => {
+  const valueAt = (index: number): string | undefined => {
     const next = args[index + 1];
     return next !== undefined && !next.startsWith("--") ? next : undefined;
   };
@@ -64,8 +114,8 @@ const parseArgs = () => {
 
 // On a shared host an attacker could pre-create the work dir (or its log as a
 // symlink) to redirect appends; refuse anything we do not own.
-const ensureSafeDir = (dir) => {
-  let stats;
+const ensureSafeDir = (dir: string): void => {
+  let stats: fs.Stats;
   try {
     stats = fs.lstatSync(dir);
   } catch {
@@ -77,18 +127,21 @@ const ensureSafeDir = (dir) => {
   }
 };
 
-const sleep = (durationMs) => new Promise((resolve) => setTimeout(resolve, durationMs));
+const sleep = (durationMs: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, durationMs));
 
-const shortHash = (text) => createHash("sha1").update(text).digest("hex").slice(0, HASH_LENGTH);
+const shortHash = (text: string): string =>
+  createHash("sha1").update(text).digest("hex").slice(0, HASH_LENGTH);
 
 // Chromium serializes web custom data as a base::Pickle on every platform, only
 // the clipboard format name differs. Layout (little-endian):
 // [payloadSize u32][pairCount u32] then per pair:
 // [len u32 in UTF-16 code units][utf16le string, padded to 4 bytes] x2 (format, data).
-const alignUp = (value) => (value + PICKLE_ALIGN_BYTES - 1) & ~(PICKLE_ALIGN_BYTES - 1);
+const alignUp = (value: number): number =>
+  (value + PICKLE_ALIGN_BYTES - 1) & ~(PICKLE_ALIGN_BYTES - 1);
 
-const parseChromiumPickle = (buffer) => {
-  const formats = {};
+const parseChromiumPickle = (buffer: Buffer | null | undefined): Record<string, string> => {
+  const formats: Record<string, string> = {};
   if (!buffer || buffer.length < PICKLE_HEADER_BYTES + 4) return formats;
   let offset = PICKLE_HEADER_BYTES;
   const pairCount = buffer.readUInt32LE(offset);
@@ -111,14 +164,14 @@ const parseChromiumPickle = (buffer) => {
   return formats;
 };
 
-const extractGrab = (raw) => {
+const extractGrab = (raw: NativeRead): string | undefined => {
   if (raw.grab) return raw.grab;
   if (raw.pickleBase64)
     return parseChromiumPickle(Buffer.from(raw.pickleBase64, "base64"))[GRAB_MIME];
   return undefined;
 };
 
-const isGrabText = (text) =>
+const isGrabText = (text: string): boolean =>
   GRAB_TEXT_SIGNATURE.test(
     text.length > SIGNATURE_SCAN_CHARS ? text.slice(0, SIGNATURE_SCAN_CHARS) : text,
   );
@@ -126,8 +179,8 @@ const isGrabText = (text) =>
 // A grab can carry the user's own instruction (React Grab prompt mode). It lives
 // in entries[].commentText when structured, otherwise it is prepended above the
 // bracketed element references in `content`. Returns that comment, or undefined.
-const extractPrompt = (record) => {
-  const entries = Array.isArray(record.entries) ? record.entries : [];
+const extractPrompt = (record: { entries?: unknown; content?: unknown }): string | undefined => {
+  const entries = Array.isArray(record.entries) ? (record.entries as GrabEntry[]) : [];
   const comments = entries.map((entry) => entry?.commentText?.trim?.()).filter(Boolean);
   if (comments.length > 0) return comments.join("\n");
   const content = typeof record.content === "string" ? record.content : "";
@@ -137,12 +190,12 @@ const extractPrompt = (record) => {
   return lines.slice(0, firstReferenceLine).join("\n").trim() || undefined;
 };
 
-const hasCommand = (name) => {
+const hasCommand = (name: string): boolean => {
   const probe = process.platform === "win32" ? "where" : "which";
   return spawnSync(probe, [name], { stdio: "ignore" }).status === 0;
 };
 
-const runText = (command, args) => {
+const runText = (command: string, args: string[]): string | null => {
   const output = spawnSync(command, args, {
     encoding: "utf8",
     maxBuffer: MAX_CLIPBOARD_BYTES,
@@ -151,7 +204,7 @@ const runText = (command, args) => {
   return output.status === 0 ? output.stdout : null;
 };
 
-const runBuffer = (command, args) => {
+const runBuffer = (command: string, args: string[]): Buffer | null => {
   const output = spawnSync(command, args, {
     maxBuffer: MAX_CLIPBOARD_BYTES,
     timeout: READ_TIMEOUT_MS,
@@ -159,7 +212,7 @@ const runBuffer = (command, args) => {
   return output.status === 0 && output.stdout?.length ? output.stdout : null;
 };
 
-const runJson = (command, args) => {
+const runJson = (command: string, args: string[]): NativeRead | null => {
   const output = spawnSync(command, args, {
     encoding: "utf8",
     maxBuffer: MAX_CLIPBOARD_BYTES,
@@ -167,13 +220,13 @@ const runJson = (command, args) => {
   });
   if (output.status !== 0 || !output.stdout) return null;
   try {
-    return JSON.parse(output.stdout);
+    return JSON.parse(output.stdout) as NativeRead;
   } catch {
     return null;
   }
 };
 
-const compileSwiftReader = (workDir) => {
+const compileSwiftReader = (workDir: string): string | null => {
   if (!hasCommand("swiftc")) return null;
   const source = path.join(SCRIPT_DIR, "read-clipboard.swift");
   if (!fs.existsSync(source)) return null;
@@ -184,7 +237,7 @@ const compileSwiftReader = (workDir) => {
   return binary;
 };
 
-const createDarwinReader = (options, workDir) => {
+const createDarwinReader = (options: WatchOptions, workDir: string): ClipboardReader | null => {
   const binary = options.textOnly ? null : compileSwiftReader(workDir);
   if (binary) {
     return {
@@ -206,7 +259,7 @@ const createDarwinReader = (options, workDir) => {
   };
 };
 
-const detectLinuxTool = () => {
+const detectLinuxTool = (): LinuxTool | null => {
   const preferWayland = Boolean(process.env.WAYLAND_DISPLAY) && hasCommand("wl-paste");
   if (preferWayland || (hasCommand("wl-paste") && !hasCommand("xclip"))) {
     return {
@@ -234,7 +287,7 @@ const detectLinuxTool = () => {
   return null;
 };
 
-const createLinuxReader = (options) => {
+const createLinuxReader = (options: WatchOptions): ClipboardReader | null => {
   const tool = detectLinuxTool();
   if (!tool) return null;
   const useCustom = !options.textOnly && Boolean(tool.readCustom);
@@ -245,16 +298,19 @@ const createLinuxReader = (options) => {
       if (text == null) return null;
       // No clipboard sequence number on X11/Wayland, so always read the custom
       // blob; its timestamp dedups re-grabs of the identical element.
-      const grab = useCustom ? parseChromiumPickle(tool.readCustom())[GRAB_MIME] : undefined;
+      const grab =
+        useCustom && tool.readCustom
+          ? parseChromiumPickle(tool.readCustom())[GRAB_MIME]
+          : undefined;
       return { changeCount: null, text, grab };
     },
   };
 };
 
-const detectPowershell = () =>
+const detectPowershell = (): string | null =>
   hasCommand("pwsh") ? "pwsh" : hasCommand("powershell") ? "powershell" : null;
 
-const createWindowsReader = (options) => {
+const createWindowsReader = (options: WatchOptions): ClipboardReader | null => {
   const shell = detectPowershell();
   if (!shell) return null;
   const scriptPath = path.join(SCRIPT_DIR, "read-clipboard.ps1");
@@ -285,22 +341,24 @@ const createWindowsReader = (options) => {
   };
 };
 
-const createReader = (options, workDir) => {
+const createReader = (options: WatchOptions, workDir: string): ClipboardReader | null => {
   if (process.platform === "darwin") return createDarwinReader(options, workDir);
   if (process.platform === "linux") return createLinuxReader(options);
   if (process.platform === "win32") return createWindowsReader(options);
   return null;
 };
 
-const emit = (line) => process.stdout.write(`${line}\n`);
+const emit = (line: string): boolean => process.stdout.write(`${line}\n`);
 
-const main = async () => {
+const main = async (): Promise<void> => {
   const options = parseArgs();
   try {
     ensureSafeDir(options.dir);
     fs.mkdirSync(options.dir, { recursive: true, mode: 0o700 });
   } catch (error) {
-    emit(`REACT_GRAB_ERROR ${JSON.stringify({ message: String(error?.message ?? error) })}`);
+    emit(
+      `REACT_GRAB_ERROR ${JSON.stringify({ message: String((error as Error)?.message ?? error) })}`,
+    );
     process.exit(1);
   }
   const logPath = path.join(options.dir, "grabs.jsonl");
@@ -318,7 +376,7 @@ const main = async () => {
   }
   const { read, mode } = reader;
 
-  let lastChangeCount = null;
+  let lastChangeCount: number | null = null;
   let lastTimestamp = 0;
   let lastTextHash = "";
   let lastErrorMessage = "";
@@ -332,7 +390,7 @@ const main = async () => {
     if (initial.text) lastTextHash = shortHash(initial.text);
     if (initial.grab) {
       try {
-        lastTimestamp = JSON.parse(initial.grab).timestamp ?? 0;
+        lastTimestamp = (JSON.parse(initial.grab) as { timestamp?: number }).timestamp ?? 0;
       } catch {}
     }
   }
@@ -355,20 +413,25 @@ const main = async () => {
       const didTextChange = textHash !== lastTextHash;
       lastTextHash = textHash;
 
-      let record = null;
+      let record: GrabRecord | null = null;
       if (snapshot.grab) {
-        let parsed = null;
+        let parsed: {
+          timestamp?: number;
+          version?: string;
+          content?: unknown;
+          entries?: unknown;
+        } | null = null;
         try {
           parsed = JSON.parse(snapshot.grab);
         } catch {}
-        if (parsed && parsed.timestamp > lastTimestamp) {
+        if (parsed && typeof parsed.timestamp === "number" && parsed.timestamp > lastTimestamp) {
           lastTimestamp = parsed.timestamp;
           record = {
             source: "custom",
             timestamp: parsed.timestamp,
-            version: parsed.version,
+            version: typeof parsed.version === "string" ? parsed.version : undefined,
             content: typeof parsed.content === "string" ? parsed.content : "",
-            entries: Array.isArray(parsed.entries) ? parsed.entries : [],
+            entries: Array.isArray(parsed.entries) ? (parsed.entries as GrabEntry[]) : [],
           };
         }
       } else if (didTextChange && snapshot.text && isGrabText(snapshot.text)) {
@@ -394,7 +457,7 @@ const main = async () => {
         })}`,
       );
     } catch (error) {
-      const message = String(error?.message ?? error);
+      const message = String((error as Error)?.message ?? error);
       if (message !== lastErrorMessage) {
         lastErrorMessage = message;
         process.stderr.write(`REACT_GRAB_WARN ${message}\n`);
@@ -404,7 +467,7 @@ const main = async () => {
 };
 
 const isInvokedDirectly =
-  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+  Boolean(process.argv[1]) && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isInvokedDirectly) main();
 
 export {

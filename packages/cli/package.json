@@ -18,8 +18,8 @@
     }
   },
   "scripts": {
-    "dev": "node scripts/bundle-skill.mjs --watch",
-    "build": "rm -rf dist skills && node scripts/bundle-skill.mjs && NODE_ENV=production vp pack",
+    "dev": "pnpm --filter @react-grab/skill build && node scripts/bundle-skill.mjs --watch",
+    "build": "pnpm --filter @react-grab/skill build && rm -rf dist skills && node scripts/bundle-skill.mjs && NODE_ENV=production vp pack",
     "test": "vp test run",
     "test:watch": "vp test",
     "lint": "vp lint",

@@ -4,6 +4,7 @@ node_modules
 .env
 dist
 packages/cli/skills
+skills/react-grab/scripts/watch.mjs
 .next
 **/*.tgz
 coverage

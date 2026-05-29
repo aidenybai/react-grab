@@ -29,10 +29,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      # Build the first-party TS watcher (src/watch.ts) into scripts/watch.mjs.
+      - name: Build skill
+        run: pnpm --filter @react-grab/skill build
 
       # Linux runners are headless: an X server plus xclip are required for the
       # clipboard round-trip tests (xvfb-run provides the DISPLAY).

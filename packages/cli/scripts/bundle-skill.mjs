@@ -1,27 +1,29 @@
 import { spawn } from "node:child_process";
-import { cpSync, rmSync, watch } from "node:fs";
+import { cpSync, mkdirSync, rmSync, watch } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-// Copies skills/react-grab into the CLI package so the published CLI can install
-// it offline (the test/ directory is dev-only and excluded).
+// Copies the skill's runtime files into the CLI package so the published CLI can
+// install it offline. Only SKILL.md and scripts/ (the built watch.mjs + the
+// native readers) ship — not src/, configs, node_modules, or test/.
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "..", "..", "..");
-const source = path.join(repoRoot, "skills", "react-grab");
+const skillRoot = path.join(repoRoot, "skills", "react-grab");
 const destination = path.join(here, "..", "skills", "react-grab");
+const RUNTIME_ENTRIES = ["SKILL.md", "scripts"];
 
 const bundle = () => {
   rmSync(destination, { recursive: true, force: true });
-  cpSync(source, destination, {
-    recursive: true,
-    filter: (entry) => !entry.split(path.sep).includes("test"),
-  });
+  mkdirSync(destination, { recursive: true });
+  for (const entry of RUNTIME_ENTRIES) {
+    cpSync(path.join(skillRoot, entry), path.join(destination, entry), { recursive: true });
+  }
 };
 
 bundle();
 
 if (process.argv.includes("--watch")) {
-  watch(source, { recursive: true }, () => {
+  watch(path.join(skillRoot, "scripts"), { recursive: true }, () => {
     try {
       bundle();
     } catch (error) {
