@@ -415,32 +415,19 @@ const formatContextFilePath = (filePath: string, isNextProject: boolean): string
   return normalizedPath;
 };
 
-const formatSourceContextLine = (
-  componentName: string | null,
-  filePath: string,
-  lineNumber: number | null,
-  columnNumber: number | null,
-  isNextProject: boolean,
-): string => {
-  const path = formatContextFilePath(filePath, isNextProject);
+const formatSourceContextLine = (source: ResolvedSource, isNextProject: boolean): string => {
+  const displayPath = formatContextFilePath(source.filePath, isNextProject);
   // HACK: bundlers like Vite produce unreliable line/column numbers from owner
   // stacks, so we only include them for Next.js where the dev server
   // symbolicates frames via source maps.
   const location =
-    isNextProject && lineNumber
-      ? `${path}:${lineNumber}${columnNumber ? `:${columnNumber}` : ""}`
-      : path;
-  return componentName ? `\n  in ${componentName} (at ${location})` : `\n  in ${location}`;
+    isNextProject && source.lineNumber
+      ? `${displayPath}:${source.lineNumber}${source.columnNumber ? `:${source.columnNumber}` : ""}`
+      : displayPath;
+  return source.componentName
+    ? `\n  in ${source.componentName} (at ${location})`
+    : `\n  in ${location}`;
 };
-
-const formatResolvedSource = (source: ResolvedSource, isNextProject: boolean): string =>
-  formatSourceContextLine(
-    source.componentName,
-    source.filePath,
-    source.lineNumber,
-    source.columnNumber,
-    isNextProject,
-  );
 
 const formatStackContext = (
   stack: StackFrame[],
@@ -454,7 +441,7 @@ const formatStackContext = (
   let didDedupeLeadingComponent = false;
 
   if (leadingSource) {
-    lines.push(formatResolvedSource(leadingSource, isNextProject));
+    lines.push(formatSourceContextLine(leadingSource, isNextProject));
   }
 
   const emit = (line: string, libraryPackage: string | null) => {
@@ -501,10 +488,12 @@ const formatStackContext = (
     if (resolvedSource) {
       emit(
         formatSourceContextLine(
-          componentName,
-          resolvedSource,
-          frame.lineNumber ?? null,
-          frame.columnNumber ?? null,
+          {
+            componentName,
+            filePath: resolvedSource,
+            lineNumber: frame.lineNumber ?? null,
+            columnNumber: frame.columnNumber ?? null,
+          },
           isNextProject,
         ),
         null,
@@ -528,7 +517,7 @@ export const getStackContext = async (
   }
 
   if (debugSource) {
-    return formatResolvedSource(debugSource, checkIsNextProject());
+    return formatSourceContextLine(debugSource, checkIsNextProject());
   }
 
   const componentNames = getComponentNamesFromFiber(findNearestFiberElement(element), maxLines);
