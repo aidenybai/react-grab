@@ -31,5 +31,5 @@ if let mapData = pasteboard.data(
   result["grab"] = value
 }
 
-let outData = try! JSONSerialization.data(withJSONObject: result, options: [])
+let outData = (try? JSONSerialization.data(withJSONObject: result, options: [])) ?? Data("{}".utf8)
 FileHandle.standardOutput.write(outData)

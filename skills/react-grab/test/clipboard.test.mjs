@@ -131,6 +131,11 @@ describe("extractPrompt", () => {
     const record = { content: "[<button>Submit</button> in Btn (at a.tsx:1:1)]", entries: [] };
     assert.equal(extractPrompt(record), undefined);
   });
+
+  it("does not throw on forged records (non-array entries, non-string content)", () => {
+    assert.equal(extractPrompt({ entries: "x", content: 5 }), undefined);
+    assert.equal(extractPrompt({ entries: [1, null], content: undefined }), undefined);
+  });
 });
 
 describe("isGrabText", () => {

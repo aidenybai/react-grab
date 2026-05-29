@@ -16,10 +16,12 @@ const PICKLE_HEADER_BYTES = 4;
 const PICKLE_ALIGN_BYTES = 4;
 const GRAB_MIME = "application/x-react-grab";
 const CHROMIUM_CUSTOM_FORMAT = "chromium/x-web-custom-data";
+const SIGNATURE_SCAN_CHARS = 32 * 1024;
 // React Grab plain-text payloads always carry a component-stack frame such as
 // "in LoginForm (at components/login-form.tsx:46:19)". Used to recognize a grab
 // when the structured custom clipboard format is unavailable (text fallback).
-const GRAB_TEXT_SIGNATURE = /\bin\s+\S+\s+\(at\s+.+?:\d+:\d+\)/;
+// `[^)]+` (not `.+?`) bounds backtracking on hostile clipboard text.
+const GRAB_TEXT_SIGNATURE = /\bin\s+\S+\s+\(at\s+[^)]+:\d+:\d+\)/;
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 
 const parseArgs = () => {
@@ -81,15 +83,20 @@ const extractGrab = (raw) => {
   return undefined;
 };
 
-const isGrabText = (text) => GRAB_TEXT_SIGNATURE.test(text);
+const isGrabText = (text) =>
+  GRAB_TEXT_SIGNATURE.test(
+    text.length > SIGNATURE_SCAN_CHARS ? text.slice(0, SIGNATURE_SCAN_CHARS) : text,
+  );
 
 // A grab can carry the user's own instruction (React Grab prompt mode). It lives
 // in entries[].commentText when structured, otherwise it is prepended above the
 // bracketed element references in `content`. Returns that comment, or undefined.
 const extractPrompt = (record) => {
-  const comments = record.entries.map((entry) => entry.commentText?.trim()).filter(Boolean);
+  const entries = Array.isArray(record.entries) ? record.entries : [];
+  const comments = entries.map((entry) => entry?.commentText?.trim?.()).filter(Boolean);
   if (comments.length > 0) return comments.join("\n");
-  const lines = (record.content ?? "").split("\n");
+  const content = typeof record.content === "string" ? record.content : "";
+  const lines = content.split("\n");
   const firstReferenceLine = lines.findIndex((line) => line.startsWith("["));
   if (firstReferenceLine > 0) return lines.slice(0, firstReferenceLine).join("\n").trim();
   return undefined;
@@ -256,7 +263,7 @@ const emit = (line) => process.stdout.write(`${line}\n`);
 
 const main = async () => {
   const options = parseArgs();
-  fs.mkdirSync(options.dir, { recursive: true });
+  fs.mkdirSync(options.dir, { recursive: true, mode: 0o700 });
   const logPath = path.join(options.dir, "grabs.jsonl");
 
   const reader = createReader(options, options.dir);
@@ -294,53 +301,57 @@ const main = async () => {
 
   while (true) {
     await sleep(options.intervalMs);
-    const snapshot = read();
-    if (!snapshot) continue;
-    if (snapshot.changeCount !== null && snapshot.changeCount === lastChangeCount) continue;
-    lastChangeCount = snapshot.changeCount;
+    // Clipboard payloads are untrusted (any web page can forge one), so a single
+    // malformed/hostile grab must never crash the watcher.
+    try {
+      const snapshot = read();
+      if (!snapshot) continue;
+      if (snapshot.changeCount !== null && snapshot.changeCount === lastChangeCount) continue;
+      lastChangeCount = snapshot.changeCount;
 
-    const textHash = snapshot.text ? shortHash(snapshot.text) : "";
-    const didTextChange = textHash !== lastTextHash;
-    lastTextHash = textHash;
+      const textHash = snapshot.text ? shortHash(snapshot.text) : "";
+      const didTextChange = textHash !== lastTextHash;
+      lastTextHash = textHash;
 
-    let record = null;
-    if (snapshot.grab) {
-      let parsed = null;
-      try {
-        parsed = JSON.parse(snapshot.grab);
-      } catch {}
-      if (parsed && parsed.timestamp > lastTimestamp) {
-        lastTimestamp = parsed.timestamp;
-        record = {
-          source: "custom",
-          timestamp: parsed.timestamp,
-          version: parsed.version,
-          content: parsed.content,
-          entries: parsed.entries ?? [],
-        };
+      let record = null;
+      if (snapshot.grab) {
+        let parsed = null;
+        try {
+          parsed = JSON.parse(snapshot.grab);
+        } catch {}
+        if (parsed && parsed.timestamp > lastTimestamp) {
+          lastTimestamp = parsed.timestamp;
+          record = {
+            source: "custom",
+            timestamp: parsed.timestamp,
+            version: parsed.version,
+            content: typeof parsed.content === "string" ? parsed.content : "",
+            entries: Array.isArray(parsed.entries) ? parsed.entries : [],
+          };
+        }
+      } else if (didTextChange && snapshot.text && isGrabText(snapshot.text)) {
+        record = { source: "text", timestamp: Date.now(), content: snapshot.text, entries: [] };
       }
-    } else if (didTextChange && snapshot.text && isGrabText(snapshot.text)) {
-      record = { source: "text", timestamp: Date.now(), content: snapshot.text, entries: [] };
-    }
 
-    if (!record) continue;
+      if (!record) continue;
 
-    const prompt = extractPrompt(record);
-    if (prompt) record.prompt = prompt;
+      const prompt = extractPrompt(record);
+      if (prompt) record.prompt = prompt;
 
-    const id = `${record.timestamp}-${(sequence += 1).toString(ID_RADIX)}`;
-    fs.appendFileSync(logPath, `${JSON.stringify({ id, receivedAt: Date.now(), ...record })}\n`);
+      const id = `${record.timestamp}-${(sequence += 1).toString(ID_RADIX)}`;
+      fs.appendFileSync(logPath, `${JSON.stringify({ id, receivedAt: Date.now(), ...record })}\n`);
 
-    const firstEntry = record.entries[0];
-    emit(
-      `REACT_GRAB_NEW ${JSON.stringify({
-        id,
-        component: firstEntry?.componentName,
-        tag: firstEntry?.tagName,
-        count: record.entries.length || 1,
-        prompt: prompt?.slice(0, PROMPT_PREVIEW_CHARS),
-      })}`,
-    );
+      const firstEntry = record.entries[0];
+      emit(
+        `REACT_GRAB_NEW ${JSON.stringify({
+          id,
+          component: firstEntry?.componentName,
+          tag: firstEntry?.tagName,
+          count: record.entries.length || 1,
+          prompt: prompt?.slice(0, PROMPT_PREVIEW_CHARS),
+        })}`,
+      );
+    } catch {}
   }
 };
 
