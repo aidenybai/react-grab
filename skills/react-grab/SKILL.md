@@ -188,8 +188,11 @@ zero-dependency `scripts/watch.mjs` via `vp pack`. Build it, then run the
 
 ```bash
 pnpm --filter @react-grab/skill build
-node --test skills/react-grab/test/clipboard.test.mjs
+pnpm --filter @react-grab/skill test
 ```
+
+The package lives in `packages/skill`. The installable payload (`SKILL.md`, `scripts/`) is
+written to `skills/react-grab/` by the build.
 
 - Pure tests run everywhere: the pickle parser against real captured Chromium
   bytes (`fixtures/golden-pickle.bin`), encoder round-trips with 4-byte
@@ -205,10 +208,10 @@ CI runs the suite on `ubuntu-latest`, `macos-latest`, and `windows-latest`
 
 ## Build
 
-This skill is a workspace package (`@react-grab/skill`). The watcher is
+This skill is developed in `packages/skill` (`@react-grab/skill`). The watcher is
 TypeScript (`src/watch.ts`), typechecked and linted with the repo tooling and
-built to the zero-dependency `scripts/watch.mjs` by `vp pack` (`pnpm --filter
-@react-grab/skill build`). The native readers (`read-clipboard.swift`,
-`read-clipboard.ps1`) ship as source and compile on the user's machine at
-runtime. `@react-grab/cli` builds the skill and bundles `SKILL.md` + `scripts/`
-into the published package so `grab init` installs it offline.
+built to the zero-dependency `skills/react-grab/scripts/watch.mjs` by `vp pack`
+(`pnpm --filter @react-grab/skill build`). The native readers (`read-clipboard.swift`,
+`read-clipboard.ps1`) ship as source in `skills/react-grab/scripts/` and compile on
+the user's machine at runtime. `@react-grab/cli` bundles `skills/react-grab/` into
+the published package so `grab init` installs it offline.

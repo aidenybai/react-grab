@@ -13,7 +13,7 @@ import {
   extractPrompt,
   isGrabText,
   parseChromiumPickle,
-} from "../scripts/watch.mjs";
+} from "../../../skills/react-grab/scripts/watch.mjs";
 import {
   canUseClipboard,
   encodeChromiumPickle,
@@ -24,7 +24,7 @@ import {
 } from "./clipboard-helpers.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const WATCH_SCRIPT = path.join(HERE, "..", "scripts", "watch.mjs");
+const WATCH_SCRIPT = path.join(HERE, "..", "..", "..", "skills", "react-grab", "scripts", "watch.mjs");
 
 // Real bytes captured from Chromium copying application/x-react-grab on macOS
 // (see fixtures/golden-pickle.bin). Proves the parser matches actual browser

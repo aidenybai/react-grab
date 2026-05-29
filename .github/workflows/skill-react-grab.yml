@@ -4,11 +4,13 @@ on:
   push:
     branches: [main]
     paths:
+      - "packages/skill/**"
       - "skills/react-grab/**"
       - ".github/workflows/skill-react-grab.yml"
   pull_request:
     branches: [main]
     paths:
+      - "packages/skill/**"
       - "skills/react-grab/**"
       - ".github/workflows/skill-react-grab.yml"
 
@@ -53,8 +55,8 @@ jobs:
 
       - name: Run tests (Linux)
         if: runner.os == 'Linux'
-        run: xvfb-run -a node --test skills/react-grab/test/clipboard.test.mjs
+        run: xvfb-run -a pnpm --filter @react-grab/skill test
 
       - name: Run tests (macOS / Windows)
         if: runner.os != 'Linux'
-        run: node --test skills/react-grab/test/clipboard.test.mjs
+        run: pnpm --filter @react-grab/skill test

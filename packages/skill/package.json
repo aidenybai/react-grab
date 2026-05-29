@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "vp pack",
+    "pretest": "pnpm run build",
     "test": "node --test test/clipboard.test.mjs",
     "lint": "vp lint",
     "format": "vp fmt",

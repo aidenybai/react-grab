@@ -1,13 +1,13 @@
 import { defineConfig } from "vite-plus";
 
-// Builds the first-party TS watcher (src/watch.ts) into the runnable, zero-dep
-// scripts/watch.mjs that ships in the skill. clean:false keeps the sibling
-// native readers (read-clipboard.swift/.ps1) in scripts/.
+// Builds the first-party TS watcher (src/watch.ts) into the installable payload at
+// skills/react-grab/scripts/watch.mjs. clean:false keeps the sibling native readers
+// (read-clipboard.swift/.ps1) in that directory.
 export default defineConfig({
   pack: {
     entry: ["src/watch.ts"],
     format: ["esm"],
-    outDir: "scripts",
+    outDir: "../../skills/react-grab/scripts",
     fixedExtension: true,
     dts: false,
     clean: false,
