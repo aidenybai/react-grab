@@ -4,11 +4,7 @@ import { detectNonInteractive } from "../utils/is-non-interactive.js";
 import { detectProject } from "../utils/detect.js";
 import { handleError } from "../utils/handle-error.js";
 import { highlighter } from "../utils/highlighter.js";
-import {
-  detectSkillAgents,
-  installReactGrabSkill,
-  promptSkillInstall,
-} from "../utils/install-skill.js";
+import { promptSkillInstall } from "../utils/install-skill.js";
 import { logger } from "../utils/logger.js";
 import { spinner } from "../utils/spinner.js";
 
@@ -25,12 +21,10 @@ export const add = new Command()
     console.log();
 
     try {
-      const cwd = opts.cwd;
       const isNonInteractive = detectNonInteractive(opts.yes);
 
       const preflightSpinner = spinner("Preflight checks.").start();
-
-      const projectInfo = await detectProject(cwd);
+      const projectInfo = await detectProject(opts.cwd);
 
       if (!projectInfo.hasReactGrab) {
         preflightSpinner.fail("React Grab is not installed.");
@@ -41,31 +35,9 @@ export const add = new Command()
       }
 
       preflightSpinner.succeed();
-
-      let didInstall = false;
-
-      if (isNonInteractive) {
-        const agents = await detectSkillAgents();
-        if (agents.length === 0) {
-          logger.break();
-          logger.error("No supported agents detected on this machine.");
-          logger.break();
-          process.exit(1);
-        }
-        logger.break();
-        const result = await installReactGrabSkill(agents);
-        didInstall = result.installed.length > 0;
-      } else {
-        didInstall = await promptSkillInstall();
-      }
-
-      if (!didInstall) {
-        logger.break();
-        process.exit(0);
-      }
-
       logger.break();
-      logger.log(`${highlighter.success("Success!")} React Grab skill has been installed.`);
+
+      await promptSkillInstall({ yes: isNonInteractive });
       logger.break();
     } catch (error) {
       handleError(error);

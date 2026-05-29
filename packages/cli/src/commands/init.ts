@@ -327,27 +327,7 @@ export const init = new Command()
         }
 
         logger.break();
-        const { wantAddSkill } = await prompts({
-          type: "confirm",
-          name: "wantAddSkill",
-          message: `Would you like to ${highlighter.info("install the React Grab skill for your agent")}?`,
-          initial: false,
-        });
-
-        if (wantAddSkill === undefined) {
-          logger.break();
-          process.exit(1);
-        }
-
-        if (wantAddSkill) {
-          const didInstall = await promptSkillInstall();
-          if (!didInstall) {
-            logger.break();
-            process.exit(0);
-          }
-          logger.break();
-          logger.success("React Grab skill has been installed.");
-        }
+        await promptSkillInstall();
 
         logger.break();
         process.exit(0);
@@ -461,29 +441,7 @@ export const init = new Command()
 
       if (!isNonInteractive) {
         logger.break();
-        const { wantAddSkill } = await prompts({
-          type: "confirm",
-          name: "wantAddSkill",
-          message: `Would you like to ${highlighter.info("install the React Grab skill for your agent")}?`,
-          initial: false,
-        });
-
-        if (wantAddSkill === undefined) {
-          logger.break();
-          process.exit(1);
-        }
-
-        if (wantAddSkill) {
-          didInstallSkill = Boolean(await promptSkillInstall());
-          if (!didInstallSkill) {
-            logger.break();
-            process.exit(0);
-          }
-          logger.break();
-          logger.success("React Grab skill has been installed.");
-          logger.log("Continuing with React Grab installation...");
-          logger.break();
-        }
+        didInstallSkill = await promptSkillInstall();
       }
 
       const result = previewTransform(
