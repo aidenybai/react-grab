@@ -1,17 +1,17 @@
 import type { EditableProperty } from "../types.js";
 import {
-  buildColorProperty,
-  buildEnumProperty,
-  buildNumericProperty,
   isDefaultByHeuristic,
   matchesBaseline,
   measureBaseline,
-  snapshotAllKeys,
-  snapshotElement,
-  tagAggregateGroup,
-  valueWithFallback,
-  type ComputedSnapshot,
-} from "./css-snapshot.js";
+} from "./css-baseline-measurement.js";
+import { tagAggregateGroup } from "./css-aggregate-group.js";
+import {
+  buildColorProperty,
+  buildEnumProperty,
+  buildNumericProperty,
+} from "./css-property-builders.js";
+import { snapshotAllKeys, snapshotElement, type ComputedSnapshot } from "./css-snapshot.js";
+import { valueWithFallback } from "./css-value-resolution.js";
 import { isTransparentRgbString } from "./parse-color.js";
 import {
   AGGREGATE_GROUPS,
@@ -38,18 +38,22 @@ export const buildEditableProperties = (element: Element): EditableProperty[] =>
     emittedPropertyKeys.add(property.key);
   };
 
-  for (const group of AGGREGATE_GROUPS) {
-    for (const entry of tagAggregateGroup(snapshot, group)) {
+  for (const aggregateGroup of AGGREGATE_GROUPS) {
+    for (const entry of tagAggregateGroup(snapshot, aggregateGroup)) {
       addProperty(buildNumericProperty(entry.definition, entry.value, entry.isCanonical));
     }
   }
 
-  for (const single of SINGLE_PROPERTIES) {
-    const value = valueWithFallback(snapshot, single.key);
+  for (const singleDefinition of SINGLE_PROPERTIES) {
+    const value = valueWithFallback(snapshot, singleDefinition.key);
     if (!value) continue;
     addProperty(
       buildNumericProperty(
-        { key: single.key, label: single.label, longhands: [single.key] },
+        {
+          key: singleDefinition.key,
+          label: singleDefinition.label,
+          longhands: [singleDefinition.key],
+        },
         value,
         true,
       ),

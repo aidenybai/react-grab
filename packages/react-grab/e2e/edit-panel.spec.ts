@@ -25,7 +25,9 @@ import {
   getOverlayFocusVisualStates,
   getPropertyRowBounds,
   getSearchInputFocusVisualState,
+  getVisibleSliderVisualState,
   getVisiblePropertyKeys,
+  hoverVisibleSlider,
   isDiscardPromptVisible,
   isEditPanelCompact,
   isEditPanelVisible,
@@ -230,6 +232,34 @@ test.describe("Style Panel", () => {
       expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).not.toBe(beforeTweak);
 
       await dispatchOutsideDismiss(reactGrab.page);
+      await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
+      expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).toBe(beforeTweak);
+    });
+
+    test("toolbar menu dismiss restores preview inline styles", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      const beforeTweak = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
+      expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).not.toBe(beforeTweak);
+
+      await reactGrab.rightClickToolbarToggle();
+
+      await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
+      expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).toBe(beforeTweak);
+    });
+
+    test("renderer disable dismiss restores preview inline styles", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      const beforeTweak = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
+      expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).not.toBe(beforeTweak);
+
+      await reactGrab.page.evaluate(() => {
+        window.__REACT_GRAB__?.setEnabled(false);
+      });
+
       await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
       expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).toBe(beforeTweak);
     });
@@ -571,6 +601,19 @@ test.describe("Style Panel", () => {
       expect(await isEditPanelCompact(reactGrab.page)).toBe(true);
       await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
       expect(await isEditPanelCompact(reactGrab.page)).toBe(true);
+    });
+
+    test("compact slider shows unit marks on hover", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
+      expect(await isEditPanelCompact(reactGrab.page)).toBe(true);
+      const beforeHover = await getVisibleSliderVisualState(reactGrab.page);
+      expect(beforeHover.maxHashMarkOpacity).toBe(0);
+      await hoverVisibleSlider(reactGrab.page);
+      await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
+      const afterHover = await getVisibleSliderVisualState(reactGrab.page);
+      expect(afterHover.maxHashMarkOpacity).toBeGreaterThan(0);
     });
 
     test("typing in search re-expands the compact panel", async ({ reactGrab }) => {

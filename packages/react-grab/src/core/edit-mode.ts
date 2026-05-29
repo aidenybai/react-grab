@@ -64,7 +64,7 @@ export const createEditModeController = (
     if (wasOpen) dependencies.onClose?.();
   };
 
-  const resetWithDiscard = () => {
+  const clearWithPreviewRestore = () => {
     state()?.preview.restore();
     clearAll();
   };
@@ -135,7 +135,7 @@ export const createEditModeController = (
 
   const dismiss = () => {
     if (state() === null) return;
-    clearAll();
+    clearWithPreviewRestore();
     if (dependencies.store.wasActivatedByToggle) {
       dependencies.deactivateRenderer();
     } else {
@@ -145,7 +145,7 @@ export const createEditModeController = (
 
   const closePreservingRenderer = () => {
     if (state() === null) return;
-    clearAll();
+    clearWithPreviewRestore();
     dependencies.actions.unfreeze();
   };
 
@@ -155,7 +155,7 @@ export const createEditModeController = (
     dismiss,
     closePreservingRenderer,
     submit,
-    resetWithDiscard,
+    resetWithDiscard: clearWithPreviewRestore,
     isOpen: () => state() !== null,
     isInteracting,
     setInteracting: setIsInteracting,

@@ -5,13 +5,6 @@ import type {
   NumericEditableProperty,
 } from "../../types.js";
 
-export const isNumericProperty = (
-  property: EditableProperty,
-): property is NumericEditableProperty => property.kind === "numeric";
-
-export const isColorProperty = (property: EditableProperty): property is ColorEditableProperty =>
-  property.kind === "color";
-
 export const isEnumProperty = (property: EditableProperty): property is EnumEditableProperty =>
   property.kind === "enum";
 

@@ -2120,6 +2120,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleArrowNavigation = (event: KeyboardEvent): boolean => {
       if (!isActivated()) return false;
+      if (isPromptMode()) return false;
       if (isShiftMultiSelecting()) return false;
       if (!ARROW_KEYS.has(event.key)) return false;
       if (isAnyPopoverOpen()) return false;

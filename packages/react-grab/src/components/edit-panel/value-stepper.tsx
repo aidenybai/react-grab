@@ -266,24 +266,22 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
             opacity: isEditing() ? 0 : 1,
           }}
         />
-        <Show when={!props.emphasized}>
-          <div aria-hidden="true" class="absolute inset-0 pointer-events-none">
-            <Index each={HASH_MARK_PERCENTS}>
-              {(percent) => (
-                <div
-                  data-react-grab-slider-hash-mark
-                  class="absolute top-1/2 w-px h-[8px] rounded-[1px] bg-[var(--rg-text-secondary)]"
-                  style={{
-                    left: `${percent()}%`,
-                    transform: "translate(-50%, -50%)",
-                    opacity: isAdjustingSlider() ? 0.4 : 0,
-                    transition: "opacity 200ms ease",
-                  }}
-                />
-              )}
-            </Index>
-          </div>
-        </Show>
+        <div aria-hidden="true" class="absolute inset-0 pointer-events-none">
+          <Index each={HASH_MARK_PERCENTS}>
+            {(percent) => (
+              <div
+                data-react-grab-slider-hash-mark
+                class="absolute top-1/2 w-px h-[8px] rounded-[1px] bg-[var(--rg-text-secondary)]"
+                style={{
+                  left: `${percent()}%`,
+                  transform: "translate(-50%, -50%)",
+                  opacity: isAdjustingSlider() ? 0.4 : 0,
+                  transition: "opacity 200ms ease",
+                }}
+              />
+            )}
+          </Index>
+        </div>
         <div
           data-react-grab-slider-handle
           aria-hidden="true"

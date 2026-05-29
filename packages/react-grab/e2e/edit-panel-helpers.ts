@@ -81,6 +81,14 @@ export interface ActiveSliderVisualState {
   maxHashMarkOpacity: number;
 }
 
+export interface VisibleSliderVisualState {
+  left: number | null;
+  top: number | null;
+  width: number | null;
+  height: number | null;
+  maxHashMarkOpacity: number;
+}
+
 export interface PropertyRowBounds {
   key: string;
   isActive: boolean;
@@ -122,6 +130,53 @@ export const getActiveSliderVisualState = async (page: Page): Promise<ActiveSlid
     },
     { attrName: ATTRIBUTE_NAME, propertyAttr: EDIT_PROPERTY_ATTR },
   );
+
+export const getVisibleSliderVisualState = async (page: Page): Promise<VisibleSliderVisualState> =>
+  page.evaluate(
+    ({ attrName, panelAttr }) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      const sliderElements = Array.from(
+        shadowRoot?.querySelectorAll<HTMLElement>(`[${panelAttr}] [role='slider']`) ?? [],
+      );
+      const visibleSlider =
+        sliderElements.find((sliderElement) => {
+          const sliderBounds = sliderElement.getBoundingClientRect();
+          return sliderBounds.width > 0 && sliderBounds.height > 0;
+        }) ?? null;
+      const sliderBounds = visibleSlider?.getBoundingClientRect();
+      const hashMarks = Array.from(
+        visibleSlider?.querySelectorAll<HTMLElement>("[data-react-grab-slider-hash-mark]") ?? [],
+      );
+      return {
+        left: sliderBounds?.left ?? null,
+        top: sliderBounds?.top ?? null,
+        width: sliderBounds?.width ?? null,
+        height: sliderBounds?.height ?? null,
+        maxHashMarkOpacity: Math.max(
+          0,
+          ...hashMarks.map((hashMark) => Number(getComputedStyle(hashMark).opacity)),
+        ),
+      };
+    },
+    { attrName: ATTRIBUTE_NAME, panelAttr: EDIT_PANEL_ATTR },
+  );
+
+export const hoverVisibleSlider = async (page: Page): Promise<void> => {
+  const sliderVisualState = await getVisibleSliderVisualState(page);
+  if (
+    sliderVisualState.left === null ||
+    sliderVisualState.top === null ||
+    sliderVisualState.width === null ||
+    sliderVisualState.height === null
+  ) {
+    throw new Error("Visible slider not found");
+  }
+  await page.mouse.move(
+    sliderVisualState.left + sliderVisualState.width / 2,
+    sliderVisualState.top + sliderVisualState.height / 2,
+  );
+};
 
 export const getActiveTailwindLabelOrder = async (
   page: Page,
