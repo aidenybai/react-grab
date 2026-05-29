@@ -36,12 +36,13 @@ export const measureBaseline = (target: Element): ComputedSnapshot | null => {
   }
 };
 
-export const matchesBaseline = (
-  cssProperties: readonly string[],
+export const isDefaultByBaseline = (
+  property: EditableProperty,
   currentSnapshot: ComputedSnapshot,
   baselineSnapshot: ComputedSnapshot,
 ): boolean => {
-  return cssProperties.every((key) => {
+  if (property.kind === "color") return false;
+  return property.cssProperties.every((key) => {
     const currentValue = currentSnapshot[key];
     const baselineValue = baselineSnapshot[key];
     if (currentValue === undefined || baselineValue === undefined) return false;

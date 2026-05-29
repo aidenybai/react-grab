@@ -1,7 +1,7 @@
 import type { EditableProperty } from "../types.js";
 import {
   isDefaultByHeuristic,
-  matchesBaseline,
+  isDefaultByBaseline,
   measureBaseline,
 } from "./css-baseline-measurement.js";
 import { tagAggregateGroup } from "./css-aggregate-group.js";
@@ -106,7 +106,7 @@ const finalizeProperties = (
       prioritizedTier.push({ ...property, isPrioritized: true, isDefault: false });
     } else {
       const isDefault = baseline
-        ? matchesBaseline(property.cssProperties, currentSnapshot, baseline)
+        ? isDefaultByBaseline(property, currentSnapshot, baseline)
         : isDefaultByHeuristic(property);
       recommendedTier.push({ ...property, isDefault });
     }

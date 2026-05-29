@@ -285,15 +285,26 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     setIsCompact(false);
   };
 
-  let colorPickerTrigger: (() => void) | null = null;
-  // A stale ColorPicker cleanup must not clear a newer trigger owner.
+  let colorPickerTriggers: Array<() => void> = [];
   const registerColorPickerTrigger = (trigger: (() => void) | null, owner?: () => void) => {
     if (trigger === null) {
-      if (owner !== undefined && colorPickerTrigger !== owner) return;
-      colorPickerTrigger = null;
+      if (owner === undefined) {
+        colorPickerTriggers = [];
+        return;
+      }
+      colorPickerTriggers = colorPickerTriggers.filter(
+        (registeredTrigger) => registeredTrigger !== owner,
+      );
       return;
     }
-    colorPickerTrigger = trigger;
+    colorPickerTriggers = colorPickerTriggers.filter(
+      (registeredTrigger) => registeredTrigger !== trigger,
+    );
+    colorPickerTriggers.push(trigger);
+  };
+
+  const getCurrentColorPickerTrigger = () => {
+    return colorPickerTriggers[colorPickerTriggers.length - 1] ?? null;
   };
 
   const keyHandlers: Record<string, (event: KeyboardEvent) => void> = {
@@ -305,6 +316,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     Enter: () => {
       if (isPendingDismiss()) return;
       const property = activeProperty();
+      const colorPickerTrigger = getCurrentColorPickerTrigger();
       const isUntweakedColor = property?.kind === "color" && !tweakStore.hasTweakFor(property.key);
       if (isUntweakedColor && colorPickerTrigger) {
         colorPickerTrigger();
@@ -614,6 +626,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                   onEditComplete={ensureSearchFocused}
                   onInvalidCommit={playShake}
                   onInteract={markAsInteracting}
+                  onColorPickerRegister={registerColorPickerTrigger}
                   showLabel={false}
                   tailwindLabel={activeTailwindLabel()}
                   emphasized
