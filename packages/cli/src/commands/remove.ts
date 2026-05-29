@@ -10,7 +10,6 @@ const VERSION = process.env.VERSION ?? "0.0.1";
 export const remove = new Command()
   .name("remove")
   .description("uninstall the React Grab skill from your agent")
-  .option("-c, --cwd <cwd>", "working directory (defaults to current directory)", process.cwd())
   .action(async () => {
     console.log(`${pc.magenta("✿")} ${pc.bold("React Grab")} ${pc.gray(VERSION)}`);
     console.log();
