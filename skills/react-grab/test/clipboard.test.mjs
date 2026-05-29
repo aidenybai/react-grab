@@ -136,6 +136,13 @@ describe("extractPrompt", () => {
     assert.equal(extractPrompt({ entries: "x", content: 5 }), undefined);
     assert.equal(extractPrompt({ entries: [1, null], content: undefined }), undefined);
   });
+
+  it("returns undefined for a whitespace-only prefix (no empty-string prompt)", () => {
+    assert.equal(
+      extractPrompt({ content: "   \n[<a> in A (at a.tsx:1:1)]", entries: [] }),
+      undefined,
+    );
+  });
 });
 
 describe("isGrabText", () => {

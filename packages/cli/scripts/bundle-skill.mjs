@@ -20,5 +20,11 @@ const bundle = () => {
 bundle();
 
 if (process.argv.includes("--watch")) {
-  watch(source, { recursive: true }, () => bundle());
+  watch(source, { recursive: true }, () => {
+    try {
+      bundle();
+    } catch (error) {
+      console.error("bundle-skill: re-bundle failed", error);
+    }
+  });
 }

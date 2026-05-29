@@ -132,8 +132,8 @@ const extractPrompt = (record) => {
   const content = typeof record.content === "string" ? record.content : "";
   const lines = content.split("\n");
   const firstReferenceLine = lines.findIndex((line) => line.startsWith("["));
-  if (firstReferenceLine > 0) return lines.slice(0, firstReferenceLine).join("\n").trim();
-  return undefined;
+  if (firstReferenceLine <= 0) return undefined;
+  return lines.slice(0, firstReferenceLine).join("\n").trim() || undefined;
 };
 
 const hasCommand = (name) => {
