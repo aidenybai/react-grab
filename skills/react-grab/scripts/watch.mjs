@@ -11,6 +11,7 @@ const READ_TIMEOUT_MS = 2500;
 const MAX_CLIPBOARD_BYTES = 64 * 1024 * 1024;
 const ID_RADIX = 36;
 const HASH_LENGTH = 12;
+const PROMPT_PREVIEW_CHARS = 120;
 const PICKLE_HEADER_BYTES = 4;
 const PICKLE_ALIGN_BYTES = 4;
 const GRAB_MIME = "application/x-react-grab";
@@ -80,6 +81,20 @@ const extractGrab = (raw) => {
 };
 
 const isGrabText = (text) => GRAB_TEXT_SIGNATURE.test(text);
+
+// A grab can carry the user's own instruction (React Grab prompt mode). It lives
+// in entries[].commentText when structured, otherwise it is prepended above the
+// bracketed element references in `content`. Returns that comment, or undefined.
+const extractPrompt = (record) => {
+  const comments = record.entries
+    .map((entry) => entry.commentText?.trim())
+    .filter(Boolean);
+  if (comments.length > 0) return comments.join("\n");
+  const lines = (record.content ?? "").split("\n");
+  const firstReferenceLine = lines.findIndex((line) => line.startsWith("["));
+  if (firstReferenceLine > 0) return lines.slice(0, firstReferenceLine).join("\n").trim();
+  return undefined;
+};
 
 const hasCommand = (name) => {
   const probe = process.platform === "win32" ? "where" : "which";
@@ -307,6 +322,9 @@ const main = async () => {
 
     if (!record) continue;
 
+    const prompt = extractPrompt(record);
+    if (prompt) record.prompt = prompt;
+
     const id = `${record.timestamp}-${(sequence += 1).toString(ID_RADIX)}`;
     fs.appendFileSync(logPath, `${JSON.stringify({ id, receivedAt: Date.now(), ...record })}\n`);
 
@@ -317,6 +335,7 @@ const main = async () => {
         component: firstEntry?.componentName,
         tag: firstEntry?.tagName,
         count: record.entries.length || 1,
+        prompt: prompt?.slice(0, PROMPT_PREVIEW_CHARS),
       })}`,
     );
   }
@@ -329,6 +348,7 @@ if (isInvokedDirectly) main();
 export {
   parseChromiumPickle,
   extractGrab,
+  extractPrompt,
   isGrabText,
   createReader,
   detectLinuxTool,

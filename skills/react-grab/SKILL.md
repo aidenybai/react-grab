@@ -61,23 +61,26 @@ Options: `--dir <path>` (work dir + log, default `$TMPDIR/react-grab-watch`),
 on the clipboard at startup), `--text-only` (skip the native reader).
 
 After arming the loop, smoke-check the output once for `REACT_GRAB_READY` and
-confirm to the user: the watcher is live, where the log is, the standing
-instruction, and that it runs until they say stop.
+confirm to the user: the watcher is live, where the log is, that grabs with a
+prompt (prompt mode) run automatically, and that it runs until they say stop.
 
-## Establish a standing instruction
+## What to do with each grab
 
-A grab is element context (source file:line, component stack, HTML), not by
-itself a command. Before starting, settle on what to do with each grab and put
-it in the shell title. Common modes:
+A grab can carry its own instruction. React Grab's prompt mode (right-click →
+Edit, type, Enter) attaches the user's comment to the grab, and the watcher
+surfaces it as `prompt` on the record (from `entries[].commentText`, or the text
+prepended above the element references in `content`).
 
-- **Implement** (default): treat the grab as the target and apply the user's
-  most recent intent to that source location.
-- **Prompt-driven**: React Grab's prompt mode prepends the user's typed
-  instruction to `content`. When present, that embedded prompt wins — execute it.
-- **Triage only**: summarize each grab (component + file:line) and queue it;
-  wait for an explicit go-ahead before editing.
+- **Grab has a `prompt`** → that comment IS the task. Execute it directly against
+  the grabbed source — automatically, no setup. This is the default hands-free
+  path: the user grabs an element, types what they want, and the agent does it.
+- **Grab has no `prompt`** → fall back to the standing instruction the user set
+  when starting the watcher (e.g. "add an a11y audit comment to each grab"). If
+  no standing instruction was given either, triage it (summarize component +
+  file:line) and wait for direction rather than guessing.
 
-If the user has not given one, ask once, then proceed.
+A standing instruction is optional — with prompt mode the user steers each grab
+inline, so you do not need to ask for one up front.
 
 ## On each wake
 
@@ -88,7 +91,8 @@ The wake notification carries the watcher's output file, not a prompt. When
 2. Process only entries after your saved cursor. Track progress in
    `cursor.txt` (a line count) in the same dir: read it, handle lines past it,
    then write the new total. This survives across turns and restarts.
-3. For each new grab, act per the standing instruction. The `content` field
+3. For each new grab: if it has a `prompt`, execute that comment as the task;
+   otherwise apply the standing instruction (or triage). The `content` field
    already contains source references (`// path:line`, `in Component (at …)`),
    so jump straight to that file and line.
 4. If several grabs arrived at once, handle them oldest-first.
@@ -106,16 +110,19 @@ Each line in `grabs.jsonl`:
   "source": "custom",
   "timestamp": 1780033038422,
   "version": "0.1.0",
-  "content": "<button>Submit</button>\n\n// src/components/form.tsx:11\n  in SubmitButton (at src/components/form.tsx:11:5)",
+  "content": "Make this disabled until the form is valid\n[<button>Submit</button> in SubmitButton (at src/components/form.tsx:11:5)]",
   "entries": [
     { "tagName": "button", "componentName": "SubmitButton", "content": "<button>Submit</button>" }
-  ]
+  ],
+  "prompt": "Make this disabled until the form is valid"
 }
 ```
 
 `source` is `"custom"` (full metadata from `application/x-react-grab`) or
 `"text"` (plain-text fallback; `entries` empty, `timestamp` is capture time).
-Drag-selecting multiple elements yields multiple `entries`.
+`prompt` is present only when the grab carries a comment (prompt mode) — that is
+the instruction to act on. Drag-selecting multiple elements yields multiple
+`entries`.
 
 ## Dedup
 

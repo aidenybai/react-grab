@@ -10,6 +10,7 @@ import {
   GRAB_MIME,
   detectLinuxTool,
   extractGrab,
+  extractPrompt,
   isGrabText,
   parseChromiumPickle,
 } from "../scripts/watch.mjs";
@@ -106,6 +107,29 @@ describe("extractGrab", () => {
 
   it("returns undefined when nothing is available", () => {
     assert.equal(extractGrab({}), undefined);
+  });
+});
+
+describe("extractPrompt", () => {
+  it("returns the comment prepended above the element references (prompt mode)", () => {
+    const record = {
+      content: "Make this disabled until valid\n[<button>Submit</button> in Btn (at a.tsx:1:1)]",
+      entries: [],
+    };
+    assert.equal(extractPrompt(record), "Make this disabled until valid");
+  });
+
+  it("prefers structured entry commentText", () => {
+    const record = {
+      content: "[<a> in NavLink (at nav.tsx:8:2)]",
+      entries: [{ componentName: "NavLink", commentText: "fix the aria-label" }],
+    };
+    assert.equal(extractPrompt(record), "fix the aria-label");
+  });
+
+  it("returns undefined for a plain grab with no comment", () => {
+    const record = { content: "[<button>Submit</button> in Btn (at a.tsx:1:1)]", entries: [] };
+    assert.equal(extractPrompt(record), undefined);
   });
 });
 
