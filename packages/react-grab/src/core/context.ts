@@ -451,6 +451,7 @@ const formatStackContext = (
   const isNextProject = checkIsNextProject();
   const lines: string[] = [];
   let previousLibraryPackage: string | null = null;
+  let didDedupeLeadingComponent = false;
 
   if (leadingSource) {
     lines.push(formatResolvedSource(leadingSource, isNextProject));
@@ -471,7 +472,17 @@ const formatStackContext = (
     const componentName =
       frame.functionName && isSourceComponentName(frame.functionName) ? frame.functionName : null;
 
-    if (componentName && componentName === leadingSource?.componentName) continue;
+    // The owner stack's top frame is usually the same component the leading
+    // _debugSource line already names. Drop only that single duplicate; deeper
+    // frames sharing the name (e.g. recursive components) are kept.
+    if (
+      !didDedupeLeadingComponent &&
+      componentName &&
+      componentName === leadingSource?.componentName
+    ) {
+      didDedupeLeadingComponent = true;
+      continue;
+    }
 
     if (frame.isServer && !resolvedSource && (componentName || !frame.functionName)) {
       const tag = libraryPackage ? `${libraryPackage} at Server` : "at Server";
