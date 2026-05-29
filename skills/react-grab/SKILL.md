@@ -177,9 +177,8 @@ Everything degrades gracefully. With `--text-only`, no native tool, or a browser
 that omits the custom format, the watcher recognizes grabs by their plain-text
 signature — losing structured `entries` and timestamp dedup but still capturing.
 macOS and Windows expose a native clipboard sequence number for near-free idle
-polling; Linux has none, so it detects change by diffing the clipboard text
-(re-grabbing the identical element with no other clipboard activity in between
-may be missed there).
+polling; Linux has none, so it reads the clipboard each poll (one extra `xclip`
+read for the custom format) and dedups on the grab timestamp.
 
 ## Testing
 

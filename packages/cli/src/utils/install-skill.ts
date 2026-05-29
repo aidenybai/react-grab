@@ -73,13 +73,13 @@ export const promptSkillInstall = async ({ yes = false } = {}): Promise<boolean>
 
 export const removeSkill = async (): Promise<number> => {
   const agents = await detectInstalledSkillAgents();
-  let removedCount = 0;
-  for (const agent of agents) {
-    const skillDir = installedSkillDir(agent);
-    if (!existsSync(skillDir)) continue;
+  const agentsWithSkill = agents.filter((agent) => existsSync(installedSkillDir(agent)));
+  // Universal agents share one canonical dir, so delete each distinct dir once.
+  for (const skillDir of new Set(agentsWithSkill.map(installedSkillDir))) {
     rmSync(skillDir, { recursive: true, force: true });
-    logger.log(`  ${highlighter.success("\u2713")} ${agentLabel(agent)}`);
-    removedCount += 1;
   }
-  return removedCount;
+  for (const agent of agentsWithSkill) {
+    logger.log(`  ${highlighter.success("\u2713")} ${agentLabel(agent)}`);
+  }
+  return agentsWithSkill.length;
 };

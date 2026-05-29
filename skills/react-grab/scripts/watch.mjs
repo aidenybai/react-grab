@@ -34,12 +34,34 @@ const parseArgs = () => {
   };
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
-    if (arg === "--dir") options.dir = args[(index += 1)];
-    else if (arg === "--interval") options.intervalMs = Number(args[(index += 1)]);
-    else if (arg === "--replay-last") options.replayLast = true;
-    else if (arg === "--text-only") options.textOnly = true;
+    if (arg === "--dir") {
+      const value = args[(index += 1)];
+      if (value) options.dir = value;
+    } else if (arg === "--interval") {
+      const value = Number(args[(index += 1)]);
+      if (Number.isFinite(value) && value > 0) options.intervalMs = value;
+    } else if (arg === "--replay-last") {
+      options.replayLast = true;
+    } else if (arg === "--text-only") {
+      options.textOnly = true;
+    }
   }
   return options;
+};
+
+// On a shared host an attacker could pre-create the work dir (or its log as a
+// symlink) to redirect appends; refuse anything we do not own.
+const ensureSafeDir = (dir) => {
+  let stats;
+  try {
+    stats = fs.lstatSync(dir);
+  } catch {
+    return;
+  }
+  if (stats.isSymbolicLink()) throw new Error(`Refusing to use ${dir}: it is a symlink.`);
+  if (process.getuid && stats.uid !== process.getuid()) {
+    throw new Error(`Refusing to use ${dir}: owned by another user.`);
+  }
 };
 
 const sleep = (durationMs) => new Promise((resolve) => setTimeout(resolve, durationMs));
@@ -203,19 +225,14 @@ const createLinuxReader = (options) => {
   const tool = detectLinuxTool();
   if (!tool) return null;
   const useCustom = !options.textOnly && Boolean(tool.readCustom);
-  // X11/Wayland expose no clipboard sequence number, so the custom blob is only
-  // re-read when the text changed, avoiding a second spawn on idle polls.
-  let lastText = null;
   return {
     mode: useCustom ? `linux-${tool.name}` : `linux-${tool.name}-text`,
     read: () => {
       const text = tool.readText();
       if (text == null) return null;
-      let grab;
-      if (useCustom && text !== lastText) {
-        grab = parseChromiumPickle(tool.readCustom())[GRAB_MIME];
-      }
-      lastText = text;
+      // No clipboard sequence number on X11/Wayland, so always read the custom
+      // blob; its timestamp dedups re-grabs of the identical element.
+      const grab = useCustom ? parseChromiumPickle(tool.readCustom())[GRAB_MIME] : undefined;
       return { changeCount: null, text, grab };
     },
   };
@@ -238,6 +255,9 @@ const createWindowsReader = (options) => {
     };
   }
   const args = ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", scriptPath];
+  // Warm the cached C# compile once (untimed) so the first timed poll does not
+  // race the first-run compile and kill it.
+  spawnSync(shell, args, { stdio: "ignore", maxBuffer: MAX_CLIPBOARD_BYTES });
   return {
     mode: "win-native",
     read: () => {
@@ -263,7 +283,13 @@ const emit = (line) => process.stdout.write(`${line}\n`);
 
 const main = async () => {
   const options = parseArgs();
-  fs.mkdirSync(options.dir, { recursive: true, mode: 0o700 });
+  try {
+    ensureSafeDir(options.dir);
+    fs.mkdirSync(options.dir, { recursive: true, mode: 0o700 });
+  } catch (error) {
+    emit(`REACT_GRAB_ERROR ${JSON.stringify({ message: String(error?.message ?? error) })}`);
+    process.exit(1);
+  }
   const logPath = path.join(options.dir, "grabs.jsonl");
 
   const reader = createReader(options, options.dir);
