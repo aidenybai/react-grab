@@ -6,7 +6,6 @@ import {
   hasDebugStack,
   parseStack,
   type StackFrame,
-  type FiberSource,
 } from "bippy/source";
 import {
   getFiberFromHostInstance,
@@ -282,29 +281,16 @@ interface ResolvedSource {
   componentName: string | null;
 }
 
-const getSourceComponentName = (fiber: Fiber | null | undefined): string | null => {
+const getSourceComponentName = (fiber: Fiber | undefined): string | null => {
   if (!fiber || !isCompositeFiber(fiber)) return null;
   const name = getDisplayName(fiber.type);
   return name && isSourceComponentName(name) ? name : null;
 };
 
-const toResolvedSource = (source: FiberSource, fiber: Fiber): ResolvedSource => ({
-  filePath: normalizeFilePath(source.fileName),
-  lineNumber: source.lineNumber ?? null,
-  columnNumber: source.columnNumber ?? null,
-  componentName:
-    (source.functionName && isSourceComponentName(source.functionName)
-      ? source.functionName
-      : null) ??
-    getSourceComponentName(fiber) ??
-    getSourceComponentName(fiber._debugOwner),
-});
-
 // bippy's getSource prefers React's dev-only _debugSource (the real JSX location
 // that bundlers like Webpack/Rspack drop from the owner stack) and otherwise
 // falls back to the owner stack. We only trust locations that point at a real
-// on-disk source file, so bundler-virtual URLs (webpack-internal://, eval, ...)
-// are left for the owner-stack handling below.
+// on-disk source file; bundler-virtual URLs are left to the owner-stack scan.
 const getFiberSource = async (element: Element): Promise<ResolvedSource | null> => {
   const fiber = getFiberFromHostInstance(findNearestFiberElement(element));
   if (!fiber) return null;
@@ -312,7 +298,15 @@ const getFiberSource = async (element: Element): Promise<ResolvedSource | null> 
   const source = await getSource(fiber);
   if (!source?.fileName || !isSourceFile(source.fileName)) return null;
 
-  return toResolvedSource(source, fiber);
+  return {
+    filePath: normalizeFilePath(source.fileName),
+    lineNumber: source.lineNumber ?? null,
+    columnNumber: source.columnNumber ?? null,
+    componentName:
+      (source.functionName && isSourceComponentName(source.functionName)
+        ? source.functionName
+        : null) ?? getSourceComponentName(fiber._debugOwner),
+  };
 };
 
 export const resolveSource = async (element: Element): Promise<ResolvedSource | null> => {
