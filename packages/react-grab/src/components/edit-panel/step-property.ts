@@ -5,6 +5,7 @@ import { cleanNumericValue } from "../../utils/format-css-value.js";
 import { stepColorLightness } from "../../utils/parse-color.js";
 import { pickNextOption } from "../../utils/pick-next-option.js";
 import { stepTailwindShade } from "../../utils/tailwind-palette.js";
+import { arePropertyValuesEqual } from "./property-values-equal.js";
 
 export const stepProperty = (
   property: EditableProperty,
@@ -15,7 +16,7 @@ export const stepProperty = (
     const next = shift
       ? stepTailwindShade(property.value, direction)
       : stepColorLightness(property.value, EDIT_COLOR_LIGHTNESS_STEP_PERCENT * direction);
-    if (!next || next.toLowerCase() === property.value.toLowerCase()) return null;
+    if (!next || arePropertyValuesEqual(property, next, property.value)) return null;
     return next;
   }
   if (property.kind === "enum") {

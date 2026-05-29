@@ -4,12 +4,14 @@ import { createMenuHighlight } from "../../utils/create-menu-highlight.js";
 import { getShadowActiveElement } from "../../utils/get-shadow-active-element.js";
 import { formatDisplayValue } from "../../utils/format-css-value.js";
 import { ActivePropertyControl } from "./active-property-control.js";
-import { isEnumProperty, narrowColor, narrowEnum, narrowNumeric } from "./narrow-property.js";
+import { narrowColor, narrowEnum, narrowNumeric } from "./narrow-property.js";
 
 const enumDisplayValue = (property: EditableProperty): string => {
-  if (!isEnumProperty(property)) return "";
+  const enumProperty = narrowEnum(property);
+  if (!enumProperty) return "";
   return (
-    property.options.find((option) => option.value === property.value)?.label ?? property.value
+    enumProperty.options.find((option) => option.value === enumProperty.value)?.label ??
+    enumProperty.value
   );
 };
 

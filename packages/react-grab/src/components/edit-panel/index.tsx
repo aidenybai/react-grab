@@ -35,12 +35,13 @@ import { suppressMenuEvent } from "../../utils/suppress-menu-event.js";
 import { TagBadge } from "../selection-label/tag-badge.js";
 import { ActivePropertyControl } from "./active-property-control.js";
 import { HIDDEN_FOCUS_PRESERVING_STYLE } from "./constants.js";
+import { createDiscardConfirmation } from "./discard-confirmation.js";
 import { PropertyList } from "./property-list.js";
+import { arePropertyValuesEqual } from "./property-values-equal.js";
 import { createShiftTracker } from "./shift-tracker.js";
 import { createStepController } from "./step-controller.js";
 import { stepProperty } from "./step-property.js";
 import { createTailwindAutoApply } from "./tailwind-autoapply.js";
-import { createDiscardConfirmation } from "./discard-confirmation.js";
 import { createTweakStore } from "./tweak-store.js";
 
 interface EditPanelProps {
@@ -210,11 +211,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       return;
     }
     if (typeof rawValue !== "string") return;
-    const isUnchanged =
-      property.kind === "color"
-        ? rawValue.toLowerCase() === property.value.toLowerCase()
-        : rawValue === property.value;
-    if (!isUnchanged) commit(property, rawValue);
+    if (!arePropertyValuesEqual(property, rawValue, property.value)) commit(property, rawValue);
   };
 
   const activeTailwindLabel = createMemo<string | null>(() => {

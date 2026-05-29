@@ -5,9 +5,6 @@ import type {
   NumericEditableProperty,
 } from "../../types.js";
 
-export const isEnumProperty = (property: EditableProperty): property is EnumEditableProperty =>
-  property.kind === "enum";
-
 export const narrowNumeric = (property: EditableProperty): NumericEditableProperty | null =>
   property.kind === "numeric" ? property : null;
 

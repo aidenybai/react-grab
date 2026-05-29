@@ -2,6 +2,7 @@ import { createMemo, createSignal } from "solid-js";
 import { EDIT_PROPERTY_MAX_COUNT } from "../../constants.js";
 import type { EditableProperty, PendingEdit } from "../../types.js";
 import { createPropertySearchIndex } from "../../utils/property-search-index.js";
+import { arePropertyValuesEqual } from "./property-values-equal.js";
 
 type PropertyTweak =
   | { kind: "numeric"; value: number }
@@ -20,6 +21,13 @@ export interface TweakStore {
   hasPendingTweaks: () => boolean;
   hasTweakFor: (key: string) => boolean;
 }
+
+const hasChangedFromOriginal = (property: EditableProperty, tweak: PropertyTweak): boolean => {
+  return (
+    property.kind === tweak.kind &&
+    !arePropertyValuesEqual(property, tweak.value, property.original)
+  );
+};
 
 export const createTweakStore = (options: CreateTweakStoreOptions): TweakStore => {
   const { initialProperties, searchQuery } = options;
@@ -103,7 +111,7 @@ export const createTweakStore = (options: CreateTweakStoreOptions): TweakStore =
     for (const tweakedKey of Object.keys(currentTweaks)) {
       const tweak = currentTweaks[tweakedKey];
       const property = propertyByKey.get(tweakedKey);
-      if (!property || tweak.value === property.original) continue;
+      if (!property || !hasChangedFromOriginal(property, tweak)) continue;
       if (property.kind === "numeric" && tweak.kind === "numeric") {
         pendingEdits.push({
           kind: "numeric",
@@ -112,9 +120,16 @@ export const createTweakStore = (options: CreateTweakStoreOptions): TweakStore =
           value: tweak.value,
           unit: property.unit,
         });
-      } else if (property.kind !== "numeric" && tweak.kind !== "numeric") {
+      } else if (property.kind === "color" && tweak.kind === "color") {
         pendingEdits.push({
-          kind: property.kind,
+          kind: "color",
+          key: property.key,
+          cssProperties: property.cssProperties,
+          value: tweak.value,
+        });
+      } else if (property.kind === "enum" && tweak.kind === "enum") {
+        pendingEdits.push({
+          kind: "enum",
           key: property.key,
           cssProperties: property.cssProperties,
           value: tweak.value,
@@ -128,7 +143,7 @@ export const createTweakStore = (options: CreateTweakStoreOptions): TweakStore =
     const currentTweaks = tweaksByKey();
     for (const property of initialProperties) {
       const tweak = currentTweaks[property.key];
-      if (tweak && tweak.value !== property.original) return true;
+      if (tweak && hasChangedFromOriginal(property, tweak)) return true;
     }
     return false;
   };
