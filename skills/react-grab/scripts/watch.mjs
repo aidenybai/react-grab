@@ -32,14 +32,26 @@ const parseArgs = () => {
     replayLast: false,
     textOnly: false,
   };
+  // Only consume the next token as a value when it is not itself a flag, so a
+  // valueless `--interval` cannot swallow the following option.
+  const valueAt = (index) => {
+    const next = args[index + 1];
+    return next !== undefined && !next.startsWith("--") ? next : undefined;
+  };
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
     if (arg === "--dir") {
-      const value = args[(index += 1)];
-      if (value) options.dir = value;
+      const value = valueAt(index);
+      if (value !== undefined) {
+        options.dir = value;
+        index += 1;
+      }
     } else if (arg === "--interval") {
-      const value = Number(args[(index += 1)]);
-      if (Number.isFinite(value) && value > 0) options.intervalMs = value;
+      const value = Number(valueAt(index));
+      if (Number.isFinite(value) && value > 0) {
+        options.intervalMs = value;
+        index += 1;
+      }
     } else if (arg === "--replay-last") {
       options.replayLast = true;
     } else if (arg === "--text-only") {
@@ -308,6 +320,7 @@ const main = async () => {
   let lastChangeCount = null;
   let lastTimestamp = 0;
   let lastTextHash = "";
+  let lastErrorMessage = "";
   let sequence = 0;
 
   // Baseline the current clipboard so restarting the watcher does not replay
@@ -328,7 +341,9 @@ const main = async () => {
   while (true) {
     await sleep(options.intervalMs);
     // Clipboard payloads are untrusted (any web page can forge one), so a single
-    // malformed/hostile grab must never crash the watcher.
+    // malformed/hostile grab must never crash the watcher. Distinct errors are
+    // surfaced on stderr (not the sentinel stream) so a persistent failure is
+    // diagnosable rather than silent.
     try {
       const snapshot = read();
       if (!snapshot) continue;
@@ -377,7 +392,13 @@ const main = async () => {
           prompt: prompt?.slice(0, PROMPT_PREVIEW_CHARS),
         })}`,
       );
-    } catch {}
+    } catch (error) {
+      const message = String(error?.message ?? error);
+      if (message !== lastErrorMessage) {
+        lastErrorMessage = message;
+        process.stderr.write(`REACT_GRAB_WARN ${message}\n`);
+      }
+    }
   }
 };
 

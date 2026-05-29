@@ -37,7 +37,13 @@ export const add = new Command()
       preflightSpinner.succeed();
       logger.break();
 
-      await promptSkillInstall({ yes: isNonInteractive });
+      const didInstall = await promptSkillInstall({ yes: isNonInteractive });
+      // In non-interactive mode a falsy result is a real failure (no agents or
+      // install error), not a user declining the prompt — surface it to CI.
+      if (!didInstall && isNonInteractive) {
+        logger.break();
+        process.exit(1);
+      }
       logger.break();
     } catch (error) {
       handleError(error);

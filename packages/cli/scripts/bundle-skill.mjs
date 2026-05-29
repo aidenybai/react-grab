@@ -1,4 +1,4 @@
-import { cpSync, rmSync } from "node:fs";
+import { cpSync, rmSync, watch } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -9,8 +9,16 @@ const repoRoot = path.resolve(here, "..", "..", "..");
 const source = path.join(repoRoot, "skills", "react-grab");
 const destination = path.join(here, "..", "skills", "react-grab");
 
-rmSync(destination, { recursive: true, force: true });
-cpSync(source, destination, {
-  recursive: true,
-  filter: (entry) => !entry.split(path.sep).includes("test"),
-});
+const bundle = () => {
+  rmSync(destination, { recursive: true, force: true });
+  cpSync(source, destination, {
+    recursive: true,
+    filter: (entry) => !entry.split(path.sep).includes("test"),
+  });
+};
+
+bundle();
+
+if (process.argv.includes("--watch")) {
+  watch(source, { recursive: true }, () => bundle());
+}

@@ -18,7 +18,7 @@
     }
   },
   "scripts": {
-    "dev": "node scripts/bundle-skill.mjs && vp pack --watch",
+    "dev": "node scripts/bundle-skill.mjs --watch & vp pack --watch",
     "build": "rm -rf dist skills && node scripts/bundle-skill.mjs && NODE_ENV=production vp pack",
     "test": "vp test run",
     "test:watch": "vp test",
