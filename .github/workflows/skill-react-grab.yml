@@ -1,0 +1,49 @@
+name: Skill react-grab
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "skills/react-grab/**"
+      - ".github/workflows/skill-react-grab.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "skills/react-grab/**"
+      - ".github/workflows/skill-react-grab.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Linux runners are headless: an X server plus xclip are required for the
+      # clipboard round-trip tests (xvfb-run provides the DISPLAY).
+      - name: Install Linux clipboard tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y xclip xvfb
+
+      - name: Run tests (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a node --test skills/react-grab/test/clipboard.test.mjs
+
+      - name: Run tests (macOS / Windows)
+        if: runner.os != 'Linux'
+        run: node --test skills/react-grab/test/clipboard.test.mjs
