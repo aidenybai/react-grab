@@ -23,25 +23,29 @@ export interface StepController {
 
 export const createStepController = (options: StepControllerOptions): StepController => {
   const [heldDirection, setHeldDirection] = createSignal<-1 | 0 | 1>(0);
-  let pressedKey: ArrowKey | null = null;
-  let initialDelayId: ReturnType<typeof setTimeout> | null = null;
-  let intervalId: ReturnType<typeof setInterval> | null = null;
+  let pressedArrowKey: ArrowKey | null = null;
+  let repeatInitialDelayId: ReturnType<typeof setTimeout> | null = null;
+  let repeatIntervalId: ReturnType<typeof setInterval> | null = null;
+
+  const clearRepeatTimers = () => {
+    if (repeatInitialDelayId !== null) clearTimeout(repeatInitialDelayId);
+    if (repeatIntervalId !== null) clearInterval(repeatIntervalId);
+    repeatInitialDelayId = null;
+    repeatIntervalId = null;
+    pressedArrowKey = null;
+  };
 
   const stopRepeat = () => {
-    if (initialDelayId !== null) clearTimeout(initialDelayId);
-    if (intervalId !== null) clearInterval(intervalId);
-    initialDelayId = null;
-    intervalId = null;
-    pressedKey = null;
+    clearRepeatTimers();
     setHeldDirection(0);
   };
 
   const startRepeat = (key: ArrowKey) => {
-    stopRepeat();
-    pressedKey = key;
+    clearRepeatTimers();
+    pressedArrowKey = key;
     const direction = directionFor(key);
-    initialDelayId = setTimeout(() => {
-      intervalId = setInterval(() => {
+    repeatInitialDelayId = setTimeout(() => {
+      repeatIntervalId = setInterval(() => {
         options.step(direction, options.isShiftHeld(), true);
       }, EDIT_STEP_REPEAT_INTERVAL_MS);
     }, EDIT_STEP_REPEAT_INITIAL_DELAY_MS);
@@ -50,18 +54,13 @@ export const createStepController = (options: StepControllerOptions): StepContro
   const pressArrow = (key: ArrowKey, isRepeat: boolean, shiftKey: boolean): void => {
     if (isRepeat) return;
     const direction = directionFor(key);
-    // Order matters: `startRepeat` calls `stopRepeat` first, which
-    // writes `setHeldDirection(0)`. Inside an event handler Solid
-    // batches writes and only the LAST value commits. If we set the
-    // held direction BEFORE startRepeat, the 0-write clobbers the
-    // ±1-write and the panel's press-bump translateX never fires.
     startRepeat(key);
     setHeldDirection(direction);
     options.step(direction, shiftKey, false);
   };
 
   const releaseKey = (key: string) => {
-    if (key === pressedKey) stopRepeat();
+    if (key === pressedArrowKey) stopRepeat();
   };
 
   onMount(() => {
