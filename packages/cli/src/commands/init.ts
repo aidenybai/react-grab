@@ -5,7 +5,7 @@ import pc from "picocolors";
 import { detectNonInteractive } from "../utils/is-non-interactive.js";
 import { prompts } from "../utils/prompts.js";
 import { applyTransformWithFeedback, installPackagesWithFeedback } from "../utils/cli-helpers.js";
-import { promptMcpInstall } from "../utils/install-mcp.js";
+import { promptSkillInstall } from "../utils/install-skill.js";
 import {
   detectProject,
   findReactProjects,
@@ -327,28 +327,7 @@ export const init = new Command()
         }
 
         logger.break();
-        const { wantAddMcp } = await prompts({
-          type: "confirm",
-          name: "wantAddMcp",
-          message: `Would you like to ${highlighter.info("connect it to your agent via MCP")}?`,
-          initial: false,
-        });
-
-        if (wantAddMcp === undefined) {
-          logger.break();
-          process.exit(1);
-        }
-
-        if (wantAddMcp) {
-          const didInstall = await promptMcpInstall();
-          if (!didInstall) {
-            logger.break();
-            process.exit(0);
-          }
-          logger.break();
-          logger.success("MCP server has been configured.");
-          logger.log("Restart your agents to activate.");
-        }
+        await promptSkillInstall({ yes: isNonInteractive });
 
         logger.break();
         process.exit(0);
@@ -458,33 +437,11 @@ export const init = new Command()
       const finalFramework = projectInfo.framework;
       const finalPackageManager = projectInfo.packageManager;
       const finalNextRouterType = projectInfo.nextRouterType;
-      let didInstallMcp = false;
+      let didInstallSkill = false;
 
       if (!isNonInteractive) {
         logger.break();
-        const { wantAddMcp } = await prompts({
-          type: "confirm",
-          name: "wantAddMcp",
-          message: `Would you like to ${highlighter.info("connect it to your agent via MCP")}?`,
-          initial: false,
-        });
-
-        if (wantAddMcp === undefined) {
-          logger.break();
-          process.exit(1);
-        }
-
-        if (wantAddMcp) {
-          didInstallMcp = Boolean(await promptMcpInstall());
-          if (!didInstallMcp) {
-            logger.break();
-            process.exit(0);
-          }
-          logger.break();
-          logger.success("MCP server has been configured.");
-          logger.log("Continuing with React Grab installation...");
-          logger.break();
-        }
+        didInstallSkill = await promptSkillInstall({ yes: isNonInteractive });
       }
 
       const result = previewTransform(
@@ -555,7 +512,7 @@ export const init = new Command()
         framework: finalFramework,
         packageManager: finalPackageManager,
         router: finalNextRouterType,
-        agent: didInstallMcp ? "mcp" : undefined,
+        agent: didInstallSkill ? "skill" : undefined,
         isMonorepo: projectInfo.isMonorepo,
       });
     } catch (error) {

@@ -31,8 +31,7 @@ jobs:
             if pnpm dlx pkg-pr-new publish \
               ./packages/react-grab \
               ./packages/cli \
-              ./packages/grab \
-              ./packages/mcp; then
+              ./packages/grab; then
               exit 0
             fi
 
