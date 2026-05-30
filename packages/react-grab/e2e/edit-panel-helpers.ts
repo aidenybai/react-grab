@@ -399,6 +399,17 @@ export const isDiscardPromptVisible = async (page: Page): Promise<boolean> =>
     { attrName: ATTRIBUTE_NAME },
   );
 
+// Reach the discard prompt via the keyboard. From a compact panel the
+// first Escape only expands it, so a second is needed; from the full
+// panel one Escape is enough. Returns once the prompt is visible.
+export const openDiscardPromptViaEscape = async (page: Page): Promise<void> => {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(80);
+    if (await isDiscardPromptVisible(page)) return;
+  }
+};
+
 export const focusDiscardButton = async (
   page: Page,
   action: "cancel" | "confirm",

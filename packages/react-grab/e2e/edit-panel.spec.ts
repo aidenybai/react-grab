@@ -32,6 +32,7 @@ import {
   isEditPanelCompact,
   isEditPanelVisible,
   isHeaderCopyButtonVisible,
+  openDiscardPromptViaEscape,
   openEditPanel,
   readSessionStorageEntries,
   setSearchInputValue,
@@ -147,7 +148,7 @@ test.describe("Style Panel", () => {
       });
       expect(focusedTestId).toBe("test-input");
 
-      await reactGrab.page.keyboard.press("Escape");
+      await openDiscardPromptViaEscape(reactGrab.page);
       expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
       expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
     });
@@ -161,8 +162,7 @@ test.describe("Style Panel", () => {
       const duringTweak = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
       expect(duringTweak.length).toBeGreaterThan(0);
 
-      await reactGrab.page.keyboard.press("Escape");
-      await reactGrab.page.waitForTimeout(80);
+      await openDiscardPromptViaEscape(reactGrab.page);
       expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
       expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
       await reactGrab.page.keyboard.press("Escape");
@@ -177,8 +177,7 @@ test.describe("Style Panel", () => {
       await reactGrab.page.keyboard.press("ArrowRight");
       await reactGrab.page.waitForTimeout(80);
 
-      await reactGrab.page.keyboard.press("Escape");
-      await reactGrab.page.waitForTimeout(80);
+      await openDiscardPromptViaEscape(reactGrab.page);
       expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
 
       await reactGrab.page.waitForTimeout(DISCARD_PROMPT_IDLE_MS + 100);
@@ -193,8 +192,7 @@ test.describe("Style Panel", () => {
       await reactGrab.page.waitForTimeout(80);
       expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).not.toBe(beforeTweak);
 
-      await reactGrab.page.keyboard.press("Escape");
-      await reactGrab.page.waitForTimeout(80);
+      await openDiscardPromptViaEscape(reactGrab.page);
       expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
       await focusDiscardButton(reactGrab.page, "cancel");
       await reactGrab.page.keyboard.press("Escape");
@@ -223,6 +221,40 @@ test.describe("Style Panel", () => {
       await dispatchOutsideDismiss(reactGrab.page);
       await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
       expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).toBe(beforeTweak);
+    });
+
+    test("Escape in compact mode expands the panel before prompting to discard", async ({
+      reactGrab,
+    }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isEditPanelCompact(reactGrab.page)).toBe(true);
+
+      await reactGrab.page.keyboard.press("Escape");
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
+      expect(await isEditPanelCompact(reactGrab.page)).toBe(false);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(false);
+
+      await reactGrab.page.keyboard.press("Escape");
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
+    });
+
+    test("clicking outside in compact mode expands and prompts to discard directly", async ({
+      reactGrab,
+    }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isEditPanelCompact(reactGrab.page)).toBe(true);
+
+      await dispatchOutsideDismiss(reactGrab.page);
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
+      expect(await isEditPanelCompact(reactGrab.page)).toBe(false);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
     });
 
     test("net-zero tweak dismiss restores preview inline styles", async ({ reactGrab }) => {
@@ -269,7 +301,10 @@ test.describe("Style Panel", () => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await reactGrab.page.keyboard.down("ArrowRight");
       await reactGrab.page.waitForTimeout(360);
-      await reactGrab.page.keyboard.press("Escape");
+      // A keyboard Escape from compact only expands; the held arrow would
+      // re-collapse it. An outside click goes straight to the discard
+      // prompt, which is what freezes the held-repeat value.
+      await dispatchOutsideDismiss(reactGrab.page);
       await reactGrab.page.waitForTimeout(80);
       expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
       const valueAtPrompt = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
@@ -946,6 +981,9 @@ test.describe("Style Panel", () => {
     test("Escape does not write to sessionStorage (in-memory only)", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+      // Escape from compact: expand, then prompt to discard, then confirm.
+      await reactGrab.page.keyboard.press("Escape");
       await reactGrab.page.waitForTimeout(80);
       await reactGrab.page.keyboard.press("Escape");
       await reactGrab.page.waitForTimeout(80);

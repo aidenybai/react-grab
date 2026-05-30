@@ -20,7 +20,12 @@ import {
   IME_COMPOSING_KEY_CODE,
   Z_INDEX_OVERLAY,
 } from "../../constants.js";
-import type { DropdownAnchor, EditableProperty, EditPanelState } from "../../types.js";
+import type {
+  DropdownAnchor,
+  EditableProperty,
+  EditPanelState,
+  OverlayDismissSource,
+} from "../../types.js";
 import { clampToRange } from "../../utils/clamp-to-range.js";
 import { cn } from "../../utils/cn.js";
 import { createAnchoredDropdown } from "../../utils/create-anchored-dropdown.js";
@@ -271,7 +276,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     props.onDismiss();
   };
 
-  const attemptDismiss = () => {
+  const attemptDismiss = (source: OverlayDismissSource) => {
     stepController.cancelRepeat();
     if (isPendingDismiss()) {
       closePanel("discard");
@@ -279,6 +284,13 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     }
     if (!hasPendingTweaks()) {
       closePanel(preview.hasAppliedStyles() ? "discard" : "preserve");
+      return;
+    }
+    // Escape first expands the compact view; the discard prompt only
+    // appears once the full panel is visible, so a stray Escape can't
+    // nuke pending changes. An outside click skips straight to it.
+    if (source === "keyboard" && isCompact()) {
+      setIsCompact(false);
       return;
     }
     setIsCompact(false);
@@ -347,7 +359,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       }
       handleSubmit();
     },
-    Escape: () => attemptDismiss(),
+    Escape: () => attemptDismiss("keyboard"),
   };
 
   const handleSearchKeyDown = (event: KeyboardEvent) => {
