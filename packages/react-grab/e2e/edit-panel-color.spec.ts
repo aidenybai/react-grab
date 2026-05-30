@@ -109,8 +109,12 @@ test.describe("Style Panel Color Controls", () => {
     const { page } = reactGrab;
     await openEditPanel(reactGrab, PLAIN_TEXT_SELECTOR);
     await page.locator(`[${EDIT_PANEL_ATTR}] [${EDIT_PROPERTY_ATTR}="background-color"]`).click();
+    // Ensure the background row is the active arrow-key target before stepping.
+    await expect.poll(() => getActivePropertyKey(page)).toBe("background-color");
     await page.keyboard.press("ArrowRight");
-    await page.waitForTimeout(120);
+    await expect
+      .poll(() => getInlineStyleProperty(page, PLAIN_TEXT_SELECTOR, "background-color"))
+      .not.toBe("");
     const background = await getInlineStyleProperty(page, PLAIN_TEXT_SELECTOR, "background-color");
     // Opaque colors render as `rgb(...)`; a kept 00 alpha would be `rgba(..., 0)`.
     expect(background.startsWith("rgb(")).toBe(true);
