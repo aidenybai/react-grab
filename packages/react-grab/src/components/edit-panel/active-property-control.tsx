@@ -2,7 +2,8 @@ import { Match, Switch, type Component } from "solid-js";
 import type { EditableProperty } from "../../types.js";
 import { ColorPicker } from "./color-picker.js";
 import { CycleControl } from "./cycle-control.js";
-import { narrowColor, narrowEnum, narrowNumeric } from "./narrow-property.js";
+import { narrowColor, narrowEnum, narrowNumeric, narrowText } from "./narrow-property.js";
+import { TextControl } from "./text-control.js";
 import { ValueStepper } from "./value-stepper.js";
 
 interface ActivePropertyControlProps {
@@ -13,7 +14,7 @@ interface ActivePropertyControlProps {
   onEditComplete: () => void;
   onInvalidCommit: () => void;
   onInteract: () => void;
-  onColorPickerRegister?: (trigger: (() => void) | null, owner?: () => void) => void;
+  onInlineEditRegister?: (trigger: (() => void) | null, owner?: () => void) => void;
   showLabel: boolean;
   tailwindLabel?: string | null;
   emphasized?: boolean;
@@ -48,7 +49,21 @@ export const ActivePropertyControl: Component<ActivePropertyControlProps> = (pro
           onCommit={props.onCommit}
           onEditComplete={props.onEditComplete}
           onInvalidCommit={props.onInvalidCommit}
-          onRegisterTrigger={props.onColorPickerRegister}
+          onRegisterTrigger={props.onInlineEditRegister}
+          onInteract={props.onInteract}
+          emphasized={props.emphasized}
+        />
+      )}
+    </Match>
+    <Match when={narrowText(props.property)}>
+      {(textProperty) => (
+        <TextControl
+          label={props.showLabel ? textProperty().label : undefined}
+          value={textProperty().value}
+          onCommit={props.onCommit}
+          onEditComplete={props.onEditComplete}
+          onInvalidCommit={props.onInvalidCommit}
+          onRegisterTrigger={props.onInlineEditRegister}
           onInteract={props.onInteract}
           emphasized={props.emphasized}
         />

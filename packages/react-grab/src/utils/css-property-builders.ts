@@ -3,13 +3,18 @@ import type {
   EnumEditableOption,
   EnumEditableProperty,
   NumericEditableProperty,
+  TextEditableProperty,
 } from "../types.js";
 import { propertyBounds } from "./css-property-bounds.js";
 import { normalizeForEdit } from "./css-value-resolution.js";
 import { parseAnyColor } from "./parse-any-color.js";
 import { parseHexChannels } from "./parse-color.js";
 import type { NumericValue } from "./parse-numeric-value.js";
-import type { AggregateDefinition, EnumPropertyDefinition } from "./property-definitions.js";
+import {
+  type AggregateDefinition,
+  type EnumPropertyDefinition,
+  TEXT_CONTENT_KEY,
+} from "./property-definitions.js";
 import { tailwindAliasesForProperty } from "./tailwind-class-map.js";
 
 export const buildNumericProperty = (
@@ -35,6 +40,19 @@ export const buildNumericProperty = (
     isCanonical,
   };
 };
+
+export const buildTextProperty = (textValue: string): TextEditableProperty => ({
+  kind: "text",
+  key: TEXT_CONTENT_KEY,
+  label: "text",
+  cssProperties: [],
+  value: textValue,
+  original: textValue,
+  tailwindAliases: [],
+  isPrioritized: true,
+  isDefault: false,
+  isCanonical: true,
+});
 
 export const buildColorProperty = (
   cssKey: string,

@@ -23,6 +23,7 @@ export const stepProperty = (
     const next = pickNextOption(property.options, property.value, direction);
     return next?.value ?? null;
   }
+  if (property.kind === "text") return null;
   const multiplier = shift ? EDIT_SHIFT_STEP_MULTIPLIER : 1;
   const candidate = roundEditableNumericValue(
     clampToRange(property.value + direction * multiplier, property.min, property.max),

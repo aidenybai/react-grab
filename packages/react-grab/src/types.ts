@@ -201,10 +201,17 @@ export interface EnumEditableProperty extends EditablePropertyBase {
   options: ReadonlyArray<EnumEditableOption>;
 }
 
+export interface TextEditableProperty extends EditablePropertyBase {
+  kind: "text";
+  value: string;
+  original: string;
+}
+
 export type EditableProperty =
   | NumericEditableProperty
   | ColorEditableProperty
-  | EnumEditableProperty;
+  | EnumEditableProperty
+  | TextEditableProperty;
 
 interface NumericPendingEdit {
   kind: "numeric";
@@ -228,7 +235,14 @@ interface EnumPendingEdit {
   value: string;
 }
 
-export type PendingEdit = NumericPendingEdit | ColorPendingEdit | EnumPendingEdit;
+interface TextPendingEdit {
+  kind: "text";
+  key: string;
+  cssProperties: readonly string[];
+  value: string;
+}
+
+export type PendingEdit = NumericPendingEdit | ColorPendingEdit | EnumPendingEdit | TextPendingEdit;
 
 export type PendingEdits = PendingEdit[];
 
@@ -240,6 +254,7 @@ export interface PendingEditsEntry {
 
 export interface PreviewStyles {
   apply: (cssProperties: readonly string[], cssValue: string) => void;
+  applyText: (text: string) => void;
   restore: () => void;
   forget: () => void;
   hasAppliedStyles: () => boolean;

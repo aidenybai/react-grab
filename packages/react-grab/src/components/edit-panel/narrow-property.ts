@@ -3,6 +3,7 @@ import type {
   EditableProperty,
   EnumEditableProperty,
   NumericEditableProperty,
+  TextEditableProperty,
 } from "../../types.js";
 
 export const narrowNumeric = (property: EditableProperty): NumericEditableProperty | null =>
@@ -13,3 +14,6 @@ export const narrowColor = (property: EditableProperty): ColorEditableProperty |
 
 export const narrowEnum = (property: EditableProperty): EnumEditableProperty | null =>
   property.kind === "enum" ? property : null;
+
+export const narrowText = (property: EditableProperty): TextEditableProperty | null =>
+  property.kind === "text" ? property : null;

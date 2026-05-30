@@ -4,7 +4,7 @@ import { createMenuHighlight } from "../../utils/create-menu-highlight.js";
 import { getShadowActiveElement } from "../../utils/get-shadow-active-element.js";
 import { formatDisplayValue } from "../../utils/format-css-value.js";
 import { ActivePropertyControl } from "./active-property-control.js";
-import { narrowColor, narrowEnum, narrowNumeric } from "./narrow-property.js";
+import { narrowColor, narrowEnum, narrowNumeric, narrowText } from "./narrow-property.js";
 
 const enumDisplayValue = (property: EditableProperty): string => {
   const enumProperty = narrowEnum(property);
@@ -22,7 +22,7 @@ interface PropertyListProps {
   onSelect: (index: number) => void;
   onStep: (direction: 1 | -1) => void;
   onCommit: (value: number | string) => void;
-  onColorPickerRegister: (trigger: (() => void) | null, owner?: () => void) => void;
+  onInlineEditRegister: (trigger: (() => void) | null, owner?: () => void) => void;
   onEditComplete: () => void;
   onInvalidCommit: () => void;
   onInteract: () => void;
@@ -219,6 +219,13 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
                           </span>
                         )}
                       </Match>
+                      <Match when={narrowText(property())}>
+                        {(textProperty) => (
+                          <span class="text-[11px] font-sans text-[var(--rg-text-secondary)] truncate min-w-0 max-w-[140px] text-right">
+                            {textProperty().value}
+                          </span>
+                        )}
+                      </Match>
                     </Switch>
                   </div>
                 }
@@ -231,7 +238,7 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
                   onEditComplete={props.onEditComplete}
                   onInvalidCommit={props.onInvalidCommit}
                   onInteract={props.onInteract}
-                  onColorPickerRegister={props.onColorPickerRegister}
+                  onInlineEditRegister={props.onInlineEditRegister}
                   showLabel
                   tailwindLabel={props.activeTailwindLabel}
                 />

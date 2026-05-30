@@ -5,6 +5,7 @@ import type { EditableProperty } from "../types.js";
 // ("padding-top,padding-bottom"). Unlisted keys land last in source
 // order.
 const RECOMMENDED_KEY_ORDER: readonly string[] = [
+  "text-content",
   "padding",
   "padding-left,padding-right",
   "padding-top,padding-bottom",
