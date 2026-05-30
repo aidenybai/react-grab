@@ -373,13 +373,12 @@ export const watchForNextGrab = async (
       const snapshot = read();
       if (!snapshot) continue;
       if (snapshot.changeCount !== null && snapshot.changeCount === lastChangeCount) continue;
-      lastChangeCount = snapshot.changeCount;
 
       const textHash = snapshot.text ? shortHash(snapshot.text) : "";
       const didTextChange = textHash !== lastTextHash;
-      lastTextHash = textHash;
 
       let record: GrabRecord | null = null;
+      let nextTimestamp = lastTimestamp;
       if (snapshot.grab) {
         let parsed: {
           timestamp?: number;
@@ -391,7 +390,7 @@ export const watchForNextGrab = async (
           parsed = JSON.parse(snapshot.grab);
         } catch {}
         if (parsed && typeof parsed.timestamp === "number" && parsed.timestamp > lastTimestamp) {
-          lastTimestamp = parsed.timestamp;
+          nextTimestamp = parsed.timestamp;
           record = {
             source: "custom",
             timestamp: parsed.timestamp,
@@ -404,7 +403,13 @@ export const watchForNextGrab = async (
         record = { source: "text", timestamp: Date.now(), content: snapshot.text, entries: [] };
       }
 
-      if (!record) continue;
+      if (!record) {
+        // The clipboard changed but carried no new grab; advance the dedup
+        // state so the same content is not re-scanned every poll.
+        lastChangeCount = snapshot.changeCount;
+        lastTextHash = textHash;
+        continue;
+      }
 
       const prompt = extractPrompt(record);
       if (prompt) record.prompt = prompt;
@@ -414,7 +419,12 @@ export const watchForNextGrab = async (
         receivedAt: Date.now(),
         ...record,
       };
+      // Commit the dedup state only after the write succeeds; a failed append
+      // must leave the grab eligible for retry on the next poll, not lost.
       fs.appendFileSync(logPath, `${JSON.stringify(captured)}\n`);
+      lastChangeCount = snapshot.changeCount;
+      lastTextHash = textHash;
+      lastTimestamp = nextTimestamp;
       return captured;
     } catch (error) {
       const message = String((error as Error)?.message ?? error);
