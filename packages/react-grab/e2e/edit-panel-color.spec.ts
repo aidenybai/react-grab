@@ -94,6 +94,24 @@ test.describe("Style Panel Color Controls", () => {
     expect(color).toBe("");
   });
 
+  test("typing text-[2rem] resolves rem to px font size", async ({ reactGrab }) => {
+    await openEditPanel(reactGrab, BUTTON_SELECTOR);
+    await setSearchInputValue(reactGrab.page, "text-[2rem]");
+    await reactGrab.page.waitForTimeout(120);
+    const fontSize = await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "font-size");
+    expect(fontSize).toBe("32px");
+  });
+
+  test("unitless arbitrary values are not auto-applied as pixels", async ({ reactGrab }) => {
+    // `leading-[1.5]` is a unitless multiplier, not 1.5px — guessing a px
+    // value here would be wrong, so nothing should be applied.
+    await openEditPanel(reactGrab, BUTTON_SELECTOR);
+    await setSearchInputValue(reactGrab.page, "leading-[1.5]");
+    await reactGrab.page.waitForTimeout(120);
+    const lineHeight = await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "line-height");
+    expect(lineHeight).toBe("");
+  });
+
   test("default text color stays available in the property list", async ({ reactGrab }) => {
     await reactGrab.page.evaluate((selector) => {
       document.querySelector(selector)?.classList.remove("text-white");

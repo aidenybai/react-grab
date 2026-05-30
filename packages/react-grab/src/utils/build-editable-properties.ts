@@ -62,8 +62,11 @@ export const buildEditableProperties = (element: Element): EditableProperty[] =>
 
   for (const { key, label, alwaysShow } of COLOR_PROPERTIES) {
     const rawCssValue = computed.getPropertyValue(key);
-    if (!rawCssValue) continue;
-    if (isTransparentRgbString(rawCssValue) && !alwaysShow) continue;
+    // always-show colors (text color, background) surface regardless of
+    // whether the element currently paints a value, so they're never
+    // skipped here — buildColorProperty falls back to a transparent
+    // starting point.
+    if (!alwaysShow && (!rawCssValue || isTransparentRgbString(rawCssValue))) continue;
     const colorProperty = buildColorProperty(key, label, rawCssValue, alwaysShow);
     if (colorProperty) addProperty(colorProperty);
   }

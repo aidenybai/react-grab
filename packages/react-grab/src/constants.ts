@@ -200,7 +200,7 @@ export const EDIT_PROPERTY_MAX_COUNT = 40;
 // background) when the element has no color set yet, so users can pick
 // one from a transparent starting point.
 export const EDIT_TRANSPARENT_COLOR_HEX = "#00000000";
-// Fallback root font size used to resolve arbitrary rem/em tailwind
+// Fallback root font size used to resolve arbitrary rem tailwind
 // lengths (e.g. `text-[1.5rem]`) to px for the numeric controls.
 export const EDIT_ROOT_FONT_SIZE_PX = 16;
 export const EDIT_PANEL_MIN_WIDTH_PX = 200;

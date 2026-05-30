@@ -23,7 +23,12 @@ const TAILWIND_CLASS_PATTERN = /^([a-z-]+)-(-?\d+(?:\.\d+)?)$/;
 // Matches a tailwind arbitrary-value class: `<prefix>-[<value>]`, e.g.
 // `bg-[#ff0000]`, `text-[rgb(0_0_0)]`, `text-[13px]`, `max-w-[200px]`.
 const TAILWIND_ARBITRARY_PATTERN = /^(.+?)-\[(.+)]$/;
-const ARBITRARY_LENGTH_PATTERN = /^(-?\d*\.?\d+)(px|rem|em)?$/i;
+// Auto-apply only requires an explicit px/rem length. Unitless values
+// (`opacity-[0.5]`, `leading-[1.5]`, `z-[10]`) are NOT lengths — their
+// meaning depends on the property — and `em` would need the element's
+// own font size to resolve correctly, so both are left for the user to
+// set on the control rather than guessed at here.
+const ARBITRARY_LENGTH_PATTERN = /^(-?\d*\.?\d+)(px|rem)$/i;
 
 const LITERAL_NUMBER_KEYS = new Set([
   "opacity",
@@ -88,8 +93,7 @@ const parseArbitraryLengthPx = (value: string): number | null => {
   if (!lengthMatch) return null;
   const magnitude = Number.parseFloat(lengthMatch[1]);
   if (!Number.isFinite(magnitude)) return null;
-  const unit = (lengthMatch[2] ?? "px").toLowerCase();
-  return unit === "rem" || unit === "em" ? magnitude * EDIT_ROOT_FONT_SIZE_PX : magnitude;
+  return lengthMatch[2].toLowerCase() === "rem" ? magnitude * EDIT_ROOT_FONT_SIZE_PX : magnitude;
 };
 
 const findNumericLonghands = (
