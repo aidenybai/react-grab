@@ -85,9 +85,17 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   const preview = props.state.preview;
 
   const [searchQuery, setSearchQuery] = createSignal(props.state.initialSearchQuery ?? "");
-  const [activeIndex, setActiveIndex] = createSignal(0);
   const [activeKey, setActiveKey] = createSignal<"left" | "right" | null>(null);
   const tweakStore = createTweakStore({ initialProperties, searchQuery });
+  // Default the keyboard cursor to the first adjustable row. The pinned
+  // text row isn't steppable, so leading with it would make arrow keys a
+  // no-op on open for elements whose only prioritized row is text.
+  const firstAdjustableIndex = tweakStore
+    .filteredProperties()
+    .findIndex((property) => property.kind !== "text");
+  const [activeIndex, setActiveIndex] = createSignal(
+    firstAdjustableIndex > 0 ? firstAdjustableIndex : 0,
+  );
   const hasPendingTweaks = createMemo(() => tweakStore.hasPendingTweaks());
   const [isCompact, setIsCompact] = createSignal(false);
 

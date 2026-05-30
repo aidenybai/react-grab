@@ -4,6 +4,10 @@ import { formatDisplayValue } from "./format-css-value.js";
 
 const formatCssValue = (pendingEdit: PendingEdit): string => {
   if (pendingEdit.kind === "color" || pendingEdit.kind === "enum") return pendingEdit.value;
+  // Text edits are filtered out before this runs (formatEntryBody routes
+  // them to formatTextLine), so this branch is never hit at runtime. It
+  // stays to narrow the union — the numeric tail below reads `.unit`,
+  // which TextPendingEdit doesn't have.
   if (pendingEdit.kind === "text") return pendingEdit.value;
   if (pendingEdit.key === "opacity" && pendingEdit.unit === "%") {
     return formatDisplayValue(pendingEdit.value / OPACITY_PERCENT_MAX);

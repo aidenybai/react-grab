@@ -6,11 +6,14 @@ import {
   clearEditStorage,
   EDIT_PANEL_ATTR,
   EDIT_PROPERTY_ATTR,
+  getActivePropertyKey,
   getVisiblePropertyKeys,
   isEditPanelVisible,
   openEditPanel,
   SEARCH_INPUT_ATTR,
 } from "./edit-panel-helpers.js";
+
+const PLAIN_TEXT_SELECTOR = "[data-testid='deeply-nested-text']";
 
 const getElementText = async (page: Page, selector: string): Promise<string> =>
   page.evaluate((sel) => document.querySelector(sel)?.textContent ?? "", selector);
@@ -41,6 +44,18 @@ test.describe("Style Panel Text Content", () => {
 
     const propertyKeys = await getVisiblePropertyKeys(reactGrab.page);
     expect(propertyKeys).toContain("text-content");
+  });
+
+  test("text content does not preempt the default-active row", async ({ reactGrab }) => {
+    // A plain text element with no Tailwind-derived prioritized props:
+    // text-content is the only prioritized row, so it sits at index 0.
+    // The keyboard cursor must still land on an adjustable row, not text.
+    await openEditPanel(reactGrab, PLAIN_TEXT_SELECTOR);
+
+    const propertyKeys = await getVisiblePropertyKeys(reactGrab.page);
+    expect(propertyKeys).toContain("text-content");
+    expect(propertyKeys[0]).toBe("text-content");
+    expect(await getActivePropertyKey(reactGrab.page)).not.toBe("text-content");
   });
 
   test("text content is not offered for elements that contain child elements", async ({
