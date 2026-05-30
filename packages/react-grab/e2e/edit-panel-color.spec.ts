@@ -114,6 +114,20 @@ test.describe("Style Panel Color Controls", () => {
     await expect.poll(() => reactGrab.getClipboardContent()).toContain("color: #6b7280");
   });
 
+  test("reverting an unset background to transparent leaks no prior color", async ({
+    reactGrab,
+  }) => {
+    const { page } = reactGrab;
+    await openEditPanel(reactGrab, PLAIN_TEXT_SELECTOR);
+    await setSearchInputValue(page, "bg-red-500");
+    await page.waitForTimeout(100);
+    await setSearchInputValue(page, "bg-[#00000000]");
+    await page.waitForTimeout(100);
+    // The revert overwrites the preview — the prior red must be gone, not stuck.
+    const background = await getInlineStyleProperty(page, PLAIN_TEXT_SELECTOR, "background-color");
+    expect(background.replace(/\s/g, "")).toBe("rgba(0,0,0,0)");
+  });
+
   test("a theme color token without a fixed value is not applied", async ({ reactGrab }) => {
     await openEditPanel(reactGrab, BUTTON_SELECTOR);
     await setSearchInputValue(reactGrab.page, "bg-primary");
