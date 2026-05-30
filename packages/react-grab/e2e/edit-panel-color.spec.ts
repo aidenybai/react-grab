@@ -108,22 +108,33 @@ test.describe("Style Panel Color Controls", () => {
     expect(fontSize).toBe("32px");
   });
 
-  test("arrow-stepping an unset (transparent) color produces an opaque color", async ({
-    reactGrab,
-  }) => {
+  test("arrow keys on a color row open the color picker", async ({ reactGrab }) => {
     const { page } = reactGrab;
-    await openEditPanel(reactGrab, PLAIN_TEXT_SELECTOR);
-    // Make the (transparent) background row the active arrow-key target via
-    // search ranking — deterministic, unlike a click-then-step race.
+    await openEditPanel(reactGrab, BUTTON_SELECTOR);
     await setSearchInputValue(page, "background");
     await expect.poll(() => getActivePropertyKey(page)).toBe("background-color");
+
+    await page.evaluate(
+      ({ attrName, panelAttr }) => {
+        const host = document.querySelector(`[${attrName}]`);
+        const nativePicker = host?.shadowRoot?.querySelector<HTMLInputElement>(
+          `[${panelAttr}] input[type="color"]`,
+        );
+        if (!nativePicker) throw new Error("native color picker not found");
+        (window as unknown as { __pickerClicks: number }).__pickerClicks = 0;
+        nativePicker.addEventListener("click", () => {
+          (window as unknown as { __pickerClicks: number }).__pickerClicks += 1;
+        });
+      },
+      { attrName: ATTRIBUTE_NAME, panelAttr: EDIT_PANEL_ATTR },
+    );
+
     await page.keyboard.press("ArrowRight");
     await expect
-      .poll(() => getInlineStyleProperty(page, PLAIN_TEXT_SELECTOR, "background-color"))
-      .not.toBe("");
-    const background = await getInlineStyleProperty(page, PLAIN_TEXT_SELECTOR, "background-color");
-    // Opaque colors render as `rgb(...)`; a kept 00 alpha would be `rgba(..., 0)`.
-    expect(background.startsWith("rgb(")).toBe(true);
+      .poll(() =>
+        page.evaluate(() => (window as unknown as { __pickerClicks: number }).__pickerClicks),
+      )
+      .toBeGreaterThan(0);
   });
 
   test("arbitrary px lengths do not apply to unitless properties", async ({ reactGrab }) => {

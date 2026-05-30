@@ -315,11 +315,21 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     return colorPickerTriggers[colorPickerTriggers.length - 1] ?? null;
   };
 
+  // Left/right on a color row opens the picker rather than nudging the
+  // value; every other property steps as usual.
+  const pressArrowOrOpenColorPicker = (key: "ArrowLeft" | "ArrowRight", event: KeyboardEvent) => {
+    if (activeProperty()?.kind === "color") {
+      if (!event.repeat) getCurrentColorPickerTrigger()?.();
+      return;
+    }
+    stepController.pressArrow(key, event.repeat, event.shiftKey);
+  };
+
   const keyHandlers: Record<string, (event: KeyboardEvent) => void> = {
     ArrowUp: () => navigateActive(-1),
     ArrowDown: () => navigateActive(1),
-    ArrowLeft: (event) => stepController.pressArrow("ArrowLeft", event.repeat, event.shiftKey),
-    ArrowRight: (event) => stepController.pressArrow("ArrowRight", event.repeat, event.shiftKey),
+    ArrowLeft: (event) => pressArrowOrOpenColorPicker("ArrowLeft", event),
+    ArrowRight: (event) => pressArrowOrOpenColorPicker("ArrowRight", event),
     Tab: (event) => navigateActive(event.shiftKey ? -1 : 1),
     Enter: () => {
       if (isPendingDismiss()) return;
