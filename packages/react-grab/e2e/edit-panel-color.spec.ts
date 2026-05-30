@@ -28,8 +28,6 @@ test.describe("Style Panel Color Controls", () => {
   test("background is offered even when the element has a transparent background", async ({
     reactGrab,
   }) => {
-    // The plain text element paints no background, yet users still need
-    // to be able to set one.
     await openEditPanel(reactGrab, PLAIN_TEXT_SELECTOR);
     const propertyKeys = await getVisiblePropertyKeys(reactGrab.page);
     expect(propertyKeys).toContain("background-color");
@@ -61,9 +59,6 @@ test.describe("Style Panel Color Controls", () => {
     reactGrab,
   }) => {
     const { page } = reactGrab;
-    // The plain text element has no background — the pinned "background"
-    // row starts fully transparent (#00000000). Picking a color must not
-    // re-apply the 00 alpha (which would keep it invisible).
     await openEditPanel(reactGrab, PLAIN_TEXT_SELECTOR);
     await page.locator(`[${EDIT_PANEL_ATTR}] [${EDIT_PROPERTY_ATTR}="background-color"]`).click();
 
@@ -122,8 +117,6 @@ test.describe("Style Panel Color Controls", () => {
   });
 
   test("arbitrary px lengths do not apply to unitless properties", async ({ reactGrab }) => {
-    // opacity is unitless (%) — `opacity-[50px]` is nonsensical and must
-    // not commit a value.
     await openEditPanel(reactGrab, BUTTON_SELECTOR);
     await setSearchInputValue(reactGrab.page, "opacity-[50px]");
     await reactGrab.page.waitForTimeout(120);
@@ -146,8 +139,6 @@ test.describe("Style Panel Color Controls", () => {
   });
 
   test("unitless arbitrary values are not auto-applied as pixels", async ({ reactGrab }) => {
-    // `leading-[1.5]` is a unitless multiplier, not 1.5px — guessing a px
-    // value here would be wrong, so nothing should be applied.
     await openEditPanel(reactGrab, BUTTON_SELECTOR);
     await setSearchInputValue(reactGrab.page, "leading-[1.5]");
     await reactGrab.page.waitForTimeout(120);

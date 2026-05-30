@@ -159,14 +159,8 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
           value={stripHexAlpha(props.value)}
           onInput={(event) => {
             if (!isMounted) return;
-            // Native <input type="color"> only emits `#rrggbb` — when
-            // the current value carries partial alpha (#rrggbbaa), splice
-            // the original alpha byte back onto the picker's RGB result so
-            // we don't silently drop transparency. A fully-transparent
-            // start (alpha `00`, e.g. an unset "background" row) means
-            // "no color yet", so picking one must produce an OPAQUE color
-            // — re-applying `00` would keep it invisible and make the
-            // picker look broken.
+            // Native picker emits `#rrggbb`; keep partial alpha, but a fully
+            // transparent start (`00`) means "no color" so pick opaque.
             const pickedRgb = event.currentTarget.value;
             const originalAlpha = props.value.length === 9 ? props.value.slice(7) : "";
             const preservedAlpha = originalAlpha.toLowerCase() === "00" ? "" : originalAlpha;

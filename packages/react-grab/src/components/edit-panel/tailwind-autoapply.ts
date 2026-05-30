@@ -20,14 +20,9 @@ import {
 } from "../../utils/tailwind-class-map.js";
 
 const TAILWIND_CLASS_PATTERN = /^([a-z-]+)-(-?\d+(?:\.\d+)?)$/;
-// Matches a tailwind arbitrary-value class: `<prefix>-[<value>]`, e.g.
-// `bg-[#ff0000]`, `text-[rgb(0_0_0)]`, `text-[13px]`, `max-w-[200px]`.
 const TAILWIND_ARBITRARY_PATTERN = /^(.+?)-\[(.+)]$/;
-// Auto-apply only requires an explicit px/rem length. Unitless values
-// (`opacity-[0.5]`, `leading-[1.5]`, `z-[10]`) are NOT lengths — their
-// meaning depends on the property — and `em` would need the element's
-// own font size to resolve correctly, so both are left for the user to
-// set on the control rather than guessed at here.
+// Only explicit px/rem lengths auto-apply; unitless (opacity-[0.5],
+// leading-[1.5]) and em are ambiguous/element-relative, so they're skipped.
 const ARBITRARY_LENGTH_PATTERN = /^(-?\d*\.?\d+)(px|rem)$/i;
 
 const LITERAL_NUMBER_KEYS = new Set([
@@ -71,8 +66,7 @@ const findColor = (
   return null;
 };
 
-// Tailwind arbitrary values escape spaces as underscores (`rgb(0_0_0)`)
-// and may carry a `color:`/`length:`/`size:` data-type hint.
+// Tailwind escapes spaces as underscores and may carry a type hint.
 const cleanArbitraryValue = (rawValue: string): string =>
   rawValue
     .replace(/_/g, " ")
@@ -173,8 +167,7 @@ export const createTailwindAutoApply = (
   const commitLengthPx = (cssKey: string, value: number): boolean => {
     const numericTarget = findNumeric(initialProperties, cssKey);
     if (numericTarget) {
-      // A px length only makes sense for px-measured properties. opacity
-      // (%) and z-index (unitless) must not absorb `opacity-[50px]` etc.
+      // px lengths only apply to px-measured props, not opacity/z-index.
       if (numericTarget.unit !== "px") return false;
       setIsCompact(true);
       commit(numericTarget, clampedFor(numericTarget, value), { shouldCompact: true });
@@ -191,12 +184,6 @@ export const createTailwindAutoApply = (
     return true;
   };
 
-  // Tailwind arbitrary-value classes, routed by the value's type:
-  //   `bg-[#ff0000]`, `text-[rgb(0_0_0)]` → color property
-  //   `text-[13px]`, `w-[200px]`, `p-[1.5rem]` → dimensional property
-  // The color check runs first but only matches actual colors
-  // (tailwindColorPropertyForClassName excludes lengths), so `text-[13px]`
-  // correctly falls through to font size rather than text color.
   const applyArbitraryClass = (rawQuery: string): boolean => {
     const normalizedClass = rawQuery.trim();
     const arbitraryMatch = normalizedClass.match(TAILWIND_ARBITRARY_PATTERN);

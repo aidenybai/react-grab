@@ -46,9 +46,6 @@ export const buildColorProperty = (
   const hexValue = parseAnyColor(rawCssValue);
   const channels = hexValue ? parseHexChannels(hexValue) : null;
   const isUsableColor = channels !== null && channels.a !== 0;
-  // Non-always-show colors (border-color, fill, stroke) stay hidden when
-  // there's nothing to edit. Text color / background are always offered
-  // so users can set them from a transparent starting point.
   if (!isUsableColor && !alwaysShow) return null;
   const value = isUsableColor && hexValue ? hexValue : EDIT_TRANSPARENT_COLOR_HEX;
   return {

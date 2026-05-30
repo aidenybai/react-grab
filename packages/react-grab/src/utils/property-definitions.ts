@@ -263,9 +263,7 @@ export const SINGLE_PROPERTIES: readonly { key: TrackedProperty; label: string }
 // instead of the slider. We deliberately limit the list to the handful
 // users actually want to tweak — every element computes dozens of
 // colour-typed properties, most of them inherited and uninteresting.
-// `alwaysShow` colors (text color, background) surface as pinned rows
-// even when the element has no value set yet, so users can always pick
-// one. The rest only appear when the element actually paints them.
+// `alwaysShow` colors stay visible even when the element paints no value.
 export const COLOR_PROPERTIES: ReadonlyArray<{
   key: string;
   label: string;

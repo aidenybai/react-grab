@@ -7,10 +7,8 @@ import { pickNextOption } from "../../utils/pick-next-option.js";
 import { stepTailwindShade } from "../../utils/tailwind-palette.js";
 import { arePropertyValuesEqual } from "./property-values-equal.js";
 
-// A fully-transparent color (`#rrggbb00`, e.g. an unset background/text
-// color row) means "no color yet" — step from an opaque base so arrows
-// produce a visible color instead of nudging an invisible one, matching
-// the native picker's behavior.
+// A fully-transparent row means "no color"; step from opaque so arrows
+// produce a visible color instead of nudging an invisible one.
 const opaqueStepBase = (hex: string): string =>
   hex.length === 9 && hex.slice(7).toLowerCase() === "00" ? hex.slice(0, 7) : hex;
 

@@ -147,10 +147,8 @@ export const createTweakStore = (options: CreateTweakStoreOptions): TweakStore =
     }
     return false;
   };
-  // Only counts a tweak that actually differs from the original — a no-op
-  // commit (e.g. applying the color a row already has) must not flip a
-  // row to "tweaked", since that would make Enter submit instead of
-  // opening the inline editor.
+  // A no-op commit must not count as tweaked, or Enter would submit
+  // instead of opening the inline editor.
   const hasChangedTweakFor = (key: string): boolean => {
     const tweak = tweaksByKey()[key];
     const property = propertyByKey.get(key);

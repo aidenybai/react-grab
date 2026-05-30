@@ -87,12 +87,8 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   const [searchQuery, setSearchQuery] = createSignal(props.state.initialSearchQuery ?? "");
   const [activeKey, setActiveKey] = createSignal<"left" | "right" | null>(null);
   const tweakStore = createTweakStore({ initialProperties, searchQuery });
-  // Text color and background are pinned to the top of the list for
-  // visibility, but the arrow-key cursor should land on the first
-  // dimensional control so stepping does something useful — both on open
-  // and whenever the search is cleared back to the default list. Computed
-  // from the live list so tweaked rows shifting the default view can't
-  // leave the cursor pointing at a stale index.
+  // Land the arrow-key cursor on the first numeric row (colors are pinned
+  // on top but aren't slider-steppable), recomputed live for search clears.
   const firstNumericActiveIndex = (): number => {
     const numericIndex = tweakStore
       .filteredProperties()
