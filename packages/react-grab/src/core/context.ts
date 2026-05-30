@@ -292,21 +292,27 @@ const getSourceComponentName = (fiber: Fiber | undefined): string | null => {
 // falls back to the owner stack. We only trust locations that point at a real
 // on-disk source file; bundler-virtual URLs are left to the owner-stack scan.
 const getFiberSource = async (element: Element): Promise<ResolvedSource | null> => {
+  if (!isInstrumentationActive()) return null;
+
   const fiber = getFiberFromHostInstance(findNearestFiberElement(element));
   if (!fiber) return null;
 
-  const source = await getSource(fiber);
-  if (!source?.fileName || !isSourceFile(source.fileName)) return null;
+  try {
+    const source = await getSource(fiber);
+    if (!source?.fileName || !isSourceFile(source.fileName)) return null;
 
-  return {
-    filePath: normalizeFilePath(source.fileName),
-    lineNumber: source.lineNumber ?? null,
-    columnNumber: source.columnNumber ?? null,
-    componentName:
-      (source.functionName && isSourceComponentName(source.functionName)
-        ? source.functionName
-        : null) ?? getSourceComponentName(fiber._debugOwner),
-  };
+    return {
+      filePath: normalizeFilePath(source.fileName),
+      lineNumber: source.lineNumber ?? null,
+      columnNumber: source.columnNumber ?? null,
+      componentName:
+        (source.functionName && isSourceComponentName(source.functionName)
+          ? source.functionName
+          : null) ?? getSourceComponentName(fiber._debugOwner),
+    };
+  } catch {
+    return null;
+  }
 };
 
 export const resolveSource = async (element: Element): Promise<ResolvedSource | null> => {
