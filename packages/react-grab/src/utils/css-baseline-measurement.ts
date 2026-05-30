@@ -41,7 +41,7 @@ export const isDefaultByBaseline = (
   currentSnapshot: ComputedSnapshot,
   baselineSnapshot: ComputedSnapshot,
 ): boolean => {
-  if (property.kind === "color" || property.kind === "text") return false;
+  if (property.kind === "color") return false;
   return property.cssProperties.every((key) => {
     const currentValue = currentSnapshot[key];
     const baselineValue = baselineSnapshot[key];
@@ -55,7 +55,7 @@ export const isDefaultByBaseline = (
 // net so the panel still produces a sensible list even without a
 // baseline.
 export const isDefaultByHeuristic = (property: EditableProperty): boolean => {
-  if (property.kind === "color" || property.kind === "text") return false;
+  if (property.kind === "color") return false;
   if (property.kind === "enum") {
     if (property.key === "font-weight") return property.original === "400";
     return property.options[0]?.value === property.original;
