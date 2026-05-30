@@ -487,6 +487,48 @@ test.describe("Style Panel", () => {
       expect(afterHover.maxHashMarkOpacity).toBeGreaterThan(0);
     });
 
+    test("active highlight re-syncs its width when the panel resizes", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await reactGrab.page.waitForTimeout(200);
+
+      const readHighlightFit = () =>
+        reactGrab.page.evaluate(
+          ({ attrName, propertyAttr }) => {
+            const root = document.querySelector(`[${attrName}]`)?.shadowRoot;
+            const activeRow = root?.querySelector<HTMLElement>(
+              `[${propertyAttr}][aria-current="true"]`,
+            );
+            const highlight = activeRow
+              ?.closest<HTMLElement>("[role='menu']")
+              ?.querySelector<HTMLElement>("[aria-hidden='true']");
+            if (!activeRow || !highlight) throw new Error("active row or highlight not found");
+            return { rowWidth: activeRow.offsetWidth, highlightWidth: highlight.offsetWidth };
+          },
+          { attrName: ATTRIBUTE_NAME, propertyAttr: EDIT_PROPERTY_ATTR },
+        );
+
+      const initial = await readHighlightFit();
+      expect(initial.highlightWidth).toBe(initial.rowWidth);
+
+      await reactGrab.page.evaluate(
+        ({ attrName, panelAttr }) => {
+          const surface = document
+            .querySelector(`[${attrName}]`)
+            ?.shadowRoot?.querySelector<HTMLElement>(`[${panelAttr}] > div`);
+          if (!surface) throw new Error("panel surface not found");
+          surface.style.width = "300px";
+        },
+        { attrName: ATTRIBUTE_NAME, panelAttr: EDIT_PANEL_ATTR },
+      );
+
+      await expect
+        .poll(async () => {
+          const { rowWidth, highlightWidth } = await readHighlightFit();
+          return rowWidth > 200 && highlightWidth === rowWidth;
+        })
+        .toBe(true);
+    });
+
     test("hovering another row after slider adjustment updates the active property", async ({
       reactGrab,
     }) => {
