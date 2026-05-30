@@ -8,6 +8,7 @@ export const commentPlugin: Plugin = {
         id: "comment",
         label: "Comment",
         shortcut: "Enter",
+        shortcutModifier: false,
         showInToolbarMenu: true,
         onAction: (context) => {
           context.enterPromptMode?.();

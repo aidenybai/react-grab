@@ -13,6 +13,7 @@ import { OverlayCanvas } from "./overlay-canvas.js";
 import { SelectionLabel } from "./selection-label/index.js";
 import { Toolbar } from "./toolbar/index.js";
 import { ContextMenu } from "./context-menu.js";
+import { EditPanel } from "./edit-panel/index.js";
 import { ToolbarMenu } from "./toolbar/toolbar-menu.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
@@ -144,6 +145,8 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           isActive={props.isActive}
           isContextMenuOpen={props.contextMenuPosition !== null}
           onToggle={props.onToggleActive}
+          onActivateAction={props.onActivateAction}
+          activeActionId={props.activeActionId}
           enabled={props.enabled}
           shakeCount={props.shakeCount}
           onStateChange={props.onToolbarStateChange}
@@ -170,6 +173,13 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         defaultActionId={props.defaultActionId ?? DEFAULT_ACTION_ID}
         onSetDefaultAction={props.onSetDefaultAction ?? (() => {})}
         onDismiss={props.onToolbarMenuDismiss ?? (() => {})}
+      />
+      <EditPanel
+        state={props.editPanelState ?? null}
+        position={props.editPanelPosition ?? null}
+        onDismiss={props.onEditPanelDismiss ?? (() => {})}
+        onSubmit={props.onEditPanelSubmit ?? (() => {})}
+        onInteractingChange={props.onEditPanelInteractingChange}
       />
     </>
   );

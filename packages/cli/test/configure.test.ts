@@ -490,6 +490,7 @@ describe("previewOptionsTransform - SvelteKit", () => {
     expect(result.success).toBe(true);
     expect(result.filePath).toBe("/test/src/hooks.client.ts");
     expect(result.newContent).toContain(".then((m) => m.init(");
+    expect(result.newContent).not.toContain("void import");
     expect(result.newContent).toContain('"activationKey":"Ctrl+G"');
     expect(result.newContent).toContain('"activationMode":"hold"');
     expect(result.newContent).toContain('"keyHoldDuration":250');
@@ -514,6 +515,33 @@ describe("previewOptionsTransform - SvelteKit", () => {
     expect(result.newContent).not.toContain('"activationKey":"g"');
     const initCount = (result.newContent!.match(/\.then\(/g) || []).length;
     expect(initCount).toBe(1);
+  });
+
+  it("should add options to SvelteKit layout import", () => {
+    const layoutWithReactGrab = `<script>
+  import { onMount } from "svelte";
+
+  onMount(() => {
+    void import("react-grab");
+  });
+</script>
+
+<slot />`;
+
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("+layout.svelte"));
+    mockReadFileSync.mockReturnValue(layoutWithReactGrab);
+
+    const options: ReactGrabOptions = {
+      activationKey: "Meta+G",
+    };
+
+    const result = previewOptionsTransform("/test", "sveltekit", "unknown", options);
+
+    expect(result.success).toBe(true);
+    expect(result.filePath).toBe("/test/src/routes/+layout.svelte");
+    expect(result.newContent).toContain('import("react-grab").then((m) => m.init(');
+    expect(result.newContent).not.toContain("void import");
+    expect(result.newContent).toContain('"activationKey":"Meta+G"');
   });
 });
 

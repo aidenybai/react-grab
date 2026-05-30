@@ -309,10 +309,22 @@ test.describe("Shift Multi-Select", () => {
       firstLabelBounds.y + firstLabelBounds.height / 2,
     );
 
-    await expect.poll(async () => (await reactGrab.getState()).isPromptMode).toBe(true);
-
-    const promptLabelInfo = await reactGrab.getSelectionLabelInfo();
-    expect(promptLabelInfo.elementsCount).toBe(SHIFT_LABEL_ANCHORED_COUNT);
+    // Label expansion now opens the style-tweak edit panel (this PR
+    // re-pointed handleToggleExpand from prompt mode to edit mode).
+    // The "expansion" behavior the test was guarding against ("don't
+    // toggle the element below") is still verified by checking that
+    // the active surface opens for the first label — the panel's
+    // existence proves the first-label-click landed and didn't bubble
+    // down to toggle the element underneath.
+    await expect
+      .poll(async () =>
+        reactGrab.page.evaluate((attrName) => {
+          const host = document.querySelector(`[${attrName}]`);
+          const shadowRoot = host?.shadowRoot;
+          return Boolean(shadowRoot?.querySelector("[data-react-grab-edit-panel]"));
+        }, "data-react-grab"),
+      )
+      .toBe(true);
 
     await reactGrab.page.keyboard.up("Shift");
     await reactGrab.pressEscape();

@@ -1,3 +1,5 @@
+import { onCleanup } from "solid-js";
+
 interface AnimatedBoundsFollowerOptions {
   hiddenOpacity?: string;
   visibleOpacity?: string;
@@ -32,8 +34,48 @@ const createAnimatedBoundsFollower = ({
 }: AnimatedBoundsFollowerOptions = {}): AnimatedBoundsFollowerController => {
   let containerElement: HTMLElement | undefined;
   let followerElement: HTMLElement | undefined;
+  let currentTarget: HTMLElement | undefined;
+
+  // Use offsetTop/Left/Width/Height (layout coords) instead of
+  // getBoundingClientRect (visual rect after transforms). When the
+  // panel container is mid-transform during its enter animation
+  // (e.g. scale(0.92)), the rect width/height reflect the scaled
+  // visual size — saving those into the highlight's inline style
+  // bakes in the wrong dimensions and the highlight stays narrower
+  // than the row when the transform settles to scale(1).
+  //
+  // offsetTop/offsetLeft are relative to the container's CONTENT
+  // origin and do NOT change as the container scrolls. The highlight
+  // is rendered as a position:absolute child of the same scrolling
+  // container, so it shares the same coordinate system — applying
+  // offsetTop directly keeps the highlight glued to the row through
+  // scroll. Subtracting scrollTop here would make the highlight
+  // appear stuck at a fixed viewport position while the rows scroll
+  // past it.
+  const applyBounds = (targetElement: HTMLElement): void => {
+    if (!followerElement) return;
+    followerElement.style.opacity = visibleOpacity;
+    followerElement.style.top = `${targetElement.offsetTop}px`;
+    followerElement.style.left = `${targetElement.offsetLeft}px`;
+    followerElement.style.width = `${targetElement.offsetWidth}px`;
+    followerElement.style.height = `${targetElement.offsetHeight}px`;
+  };
+
+  // Re-sync bounds whenever the menu or the active row changes size —
+  // e.g. the panel widening after a longer value or its min-width kicks
+  // in. Without this the baked pixel width stays stale and the highlight
+  // no longer matches the row.
+  const resizeObserver =
+    typeof ResizeObserver === "undefined"
+      ? undefined
+      : new ResizeObserver(() => {
+          if (currentTarget) applyBounds(currentTarget);
+        });
+  onCleanup(() => resizeObserver?.disconnect());
 
   const hideFollower = (): void => {
+    currentTarget = undefined;
+    resizeObserver?.disconnect();
     if (!followerElement) return;
     followerElement.style.opacity = hiddenOpacity;
   };
@@ -44,17 +86,11 @@ const createAnimatedBoundsFollower = ({
       hideFollower();
       return;
     }
-    const containerRect = containerElement.getBoundingClientRect();
-    const targetRect = targetElement.getBoundingClientRect();
-    const targetTopWithinContainer =
-      targetRect.top - containerRect.top + containerElement.scrollTop;
-    const targetLeftWithinContainer =
-      targetRect.left - containerRect.left + containerElement.scrollLeft;
-    followerElement.style.opacity = visibleOpacity;
-    followerElement.style.top = `${targetTopWithinContainer}px`;
-    followerElement.style.left = `${targetLeftWithinContainer}px`;
-    followerElement.style.width = `${targetRect.width}px`;
-    followerElement.style.height = `${targetRect.height}px`;
+    currentTarget = targetElement;
+    applyBounds(targetElement);
+    resizeObserver?.disconnect();
+    resizeObserver?.observe(targetElement);
+    resizeObserver?.observe(containerElement);
   };
 
   const setContainerRef = (containerNode: HTMLElement): void => {
@@ -73,17 +109,19 @@ const createAnimatedBoundsFollower = ({
   };
 };
 
-const isActionableSibling = (node: Element, follower: HTMLElement | undefined): boolean =>
-  node !== follower && node instanceof HTMLElement;
+const isActionableSibling = (
+  siblingElement: Element,
+  followerElement: HTMLElement | undefined,
+): boolean => siblingElement !== followerElement && siblingElement instanceof HTMLElement;
 
 const getActionableSiblings = (
   parent: HTMLElement,
-  follower: HTMLElement | undefined,
+  followerElement: HTMLElement | undefined,
 ): HTMLElement[] => {
   const siblings: HTMLElement[] = [];
-  for (const child of Array.from(parent.children)) {
-    if (isActionableSibling(child, follower)) {
-      siblings.push(child as HTMLElement);
+  for (const childElement of Array.from(parent.children)) {
+    if (isActionableSibling(childElement, followerElement)) {
+      siblings.push(childElement as HTMLElement);
     }
   }
   return siblings;

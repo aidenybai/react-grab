@@ -11,7 +11,7 @@ test.describe("Prompt Mode", () => {
       await reactGrab.waitForSelectionBox();
 
       await reactGrab.rightClickElement("li:first-child");
-      await reactGrab.clickContextMenuItem("Edit");
+      await reactGrab.clickContextMenuItem("Comment");
 
       await expect.poll(() => reactGrab.isPromptModeActive()).toBe(true);
     });
@@ -195,11 +195,18 @@ test.describe("Prompt Mode", () => {
     test("arrow keys should not navigate elements in prompt mode", async ({ reactGrab }) => {
       await reactGrab.registerCommentAction();
       await reactGrab.enterPromptMode("li:first-child");
+      await reactGrab.typeInInput("Line 1\nLine 2");
 
       await reactGrab.pressArrowDown();
 
       const isPromptMode = await reactGrab.isPromptModeActive();
       expect(isPromptMode).toBe(true);
+      expect(await reactGrab.getInputValue()).toBe("Line 1\nLine 2");
+      const isFirstItemStillSelected = await reactGrab.page.evaluate(() => {
+        const firstItem = document.querySelector("li:first-child");
+        return window.__REACT_GRAB__?.getState().targetElement === firstItem;
+      });
+      expect(isFirstItemStillSelected).toBe(true);
     });
 
     test("activation shortcut should not cancel prompt mode when input is focused", async ({
@@ -262,7 +269,7 @@ test.describe("Prompt Mode", () => {
       await reactGrab.waitForSelectionBox();
 
       await reactGrab.rightClickElement("li:first-child");
-      await reactGrab.clickContextMenuItem("Edit");
+      await reactGrab.clickContextMenuItem("Comment");
 
       await expect.poll(() => reactGrab.isPromptModeActive()).toBe(true);
     });

@@ -5,7 +5,7 @@ import pc from "picocolors";
 import { detectNonInteractive } from "../utils/is-non-interactive.js";
 import { prompts } from "../utils/prompts.js";
 import { applyTransformWithFeedback, installPackagesWithFeedback } from "../utils/cli-helpers.js";
-import { promptMcpInstall } from "../utils/install-mcp.js";
+import { promptSkillInstall } from "../utils/install-skill.js";
 import {
   detectProject,
   findReactProjects,
@@ -21,6 +21,7 @@ import { getPackagesToInstall } from "../utils/install.js";
 import { logger } from "../utils/logger.js";
 import { spinner } from "../utils/spinner.js";
 import {
+  hasFrameworkEntryPoint,
   previewOptionsTransform,
   previewTransform,
   type ReactGrabOptions,
@@ -114,6 +115,21 @@ const printSubprojects = (searchRoot: string, sortedProjects: WorkspaceProject[]
     `  ${highlighter.dim("$")} npx grab@latest init -c ${relative(searchRoot, sortedProjects[0].path)}`,
   );
   logger.break();
+};
+
+const SUPPORTED_FRAMEWORKS_LINE = SUPPORTED_FRAMEWORKS_MESSAGE;
+
+const failWithManualSetup = (
+  failingSpinner: ReturnType<typeof spinner>,
+  message: string,
+  { listSupportedFrameworks = false } = {},
+): never => {
+  failingSpinner.fail(message);
+  logger.break();
+  if (listSupportedFrameworks) logger.log(SUPPORTED_FRAMEWORKS_LINE);
+  logger.log(`Visit ${highlighter.info(DOCS_URL)} for manual setup.`);
+  logger.break();
+  process.exit(1);
 };
 
 export const init = new Command()
@@ -338,28 +354,7 @@ export const init = new Command()
         }
 
         logger.break();
-        const { wantAddMcp } = await prompts({
-          type: "confirm",
-          name: "wantAddMcp",
-          message: `Would you like to ${highlighter.info("connect it to your agent via MCP")}?`,
-          initial: false,
-        });
-
-        if (wantAddMcp === undefined) {
-          logger.break();
-          process.exit(1);
-        }
-
-        if (wantAddMcp) {
-          const didInstall = await promptMcpInstall();
-          if (!didInstall) {
-            logger.break();
-            process.exit(0);
-          }
-          logger.break();
-          logger.success("MCP server has been configured.");
-          logger.log("Restart your agents to activate.");
-        }
+        await promptSkillInstall({ yes: isNonInteractive });
 
         logger.break();
         process.exit(0);
@@ -379,7 +374,20 @@ export const init = new Command()
         process.exit(1);
       }
 
-      if (projectInfo.framework === "unknown") {
+      // A detected framework whose entry file is missing is only ambiguous in a
+      // monorepo, where the real app lives in a workspace and the root config is
+      // tooling. For a standalone project we keep the framework so previewTransform
+      // can surface its specific manual-setup guidance instead of searching elsewhere.
+      const shouldSearchForProject =
+        projectInfo.framework === "unknown" ||
+        (projectInfo.isMonorepo &&
+          !hasFrameworkEntryPoint(
+            projectInfo.projectRoot,
+            projectInfo.framework,
+            projectInfo.nextRouterType,
+          ));
+
+      if (shouldSearchForProject) {
         let searchRoot = cwd;
         let reactProjects = findReactProjects(searchRoot);
         if (reactProjects.length === 0 && cwd !== process.cwd()) {
@@ -430,23 +438,24 @@ export const init = new Command()
 
           const newFrameworkSpinner = spinner("Verifying framework.").start();
           if (newProjectInfo.framework === "unknown") {
-            newFrameworkSpinner.fail("Could not detect a supported framework in this project.");
-            logger.break();
-            logger.log(SUPPORTED_FRAMEWORKS_MESSAGE);
-            logger.log(`Visit ${highlighter.info(DOCS_URL)} for manual setup.`);
-            logger.break();
-            process.exit(1);
+            failWithManualSetup(
+              newFrameworkSpinner,
+              "Could not detect a supported framework in this project.",
+              { listSupportedFrameworks: true },
+            );
           }
           newFrameworkSpinner.succeed(
             `Verifying framework. Found ${highlighter.info(FRAMEWORK_NAMES[newProjectInfo.framework])}.`,
           );
+        } else if (projectInfo.framework !== "unknown") {
+          failWithManualSetup(
+            frameworkSpinner,
+            `Verifying framework. Found ${highlighter.info(FRAMEWORK_NAMES[projectInfo.framework])}, but could not find an entry file.`,
+          );
         } else {
-          frameworkSpinner.fail("Could not detect a supported framework.");
-          logger.break();
-          logger.log(SUPPORTED_FRAMEWORKS_MESSAGE);
-          logger.log(`Visit ${highlighter.info(DOCS_URL)} for manual setup.`);
-          logger.break();
-          process.exit(1);
+          failWithManualSetup(frameworkSpinner, "Could not detect a supported framework.", {
+            listSupportedFrameworks: true,
+          });
         }
       } else {
         frameworkSpinner.succeed(
@@ -469,33 +478,11 @@ export const init = new Command()
       const finalFramework = projectInfo.framework;
       const finalPackageManager = projectInfo.packageManager;
       const finalNextRouterType = projectInfo.nextRouterType;
-      let didInstallMcp = false;
+      let didInstallSkill = false;
 
       if (!isNonInteractive) {
         logger.break();
-        const { wantAddMcp } = await prompts({
-          type: "confirm",
-          name: "wantAddMcp",
-          message: `Would you like to ${highlighter.info("connect it to your agent via MCP")}?`,
-          initial: false,
-        });
-
-        if (wantAddMcp === undefined) {
-          logger.break();
-          process.exit(1);
-        }
-
-        if (wantAddMcp) {
-          didInstallMcp = Boolean(await promptMcpInstall());
-          if (!didInstallMcp) {
-            logger.break();
-            process.exit(0);
-          }
-          logger.break();
-          logger.success("MCP server has been configured.");
-          logger.log("Continuing with React Grab installation...");
-          logger.break();
-        }
+        didInstallSkill = await promptSkillInstall({ yes: isNonInteractive });
       }
 
       const result = previewTransform(
@@ -567,7 +554,7 @@ export const init = new Command()
         framework: finalFramework,
         packageManager: finalPackageManager,
         router: finalNextRouterType,
-        agent: didInstallMcp ? "mcp" : undefined,
+        agent: didInstallSkill ? "skill" : undefined,
         isMonorepo: projectInfo.isMonorepo,
       });
     } catch (error) {

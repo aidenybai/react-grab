@@ -46,16 +46,25 @@ jobs:
           git config user.name "react-doctor-bot [bot]"
           git config user.email "bot@million.dev"
 
-      # Load the playbook markdown into a step output so the action receives
-      # it as the `prompt`. Keeping the playbook in a separate file means you
-      # can edit the bot's instructions without touching CI.
-      - name: Load playbook into prompt
+      # Fetch the playbook from https://www.react.doctor/prompts/react-doctor-bot.md
+      # and load it into a step output as `prompt`. Centralizing the prompt
+      # at react.doctor lets us update the bot's instructions in one place —
+      # every downstream workflow picks up the change on its next run with
+      # no workflow edit required. `--fail` turns 4xx/5xx into a step
+      # failure (better than silently sending an HTML 404 page as the
+      # prompt). `Cache-Control: no-cache` bypasses any intermediate CDN
+      # cache so an update lands immediately after the website redeploys.
+      - name: Fetch prompt from react.doctor
         id: playbook
         run: |
+          curl --fail --silent --show-error --retry 3 --retry-delay 2 \
+            --header 'Cache-Control: no-cache' \
+            --output /tmp/prompt.md \
+            https://www.react.doctor/prompts/react-doctor-bot.md
           {
-            echo 'prompt<<__PLAYBOOK_EOF__'
-            cat .react-doctor/playbook.md
-            echo '__PLAYBOOK_EOF__'
+            echo 'prompt<<__PROMPT_EOF__'
+            cat /tmp/prompt.md
+            echo '__PROMPT_EOF__'
           } >> "$GITHUB_OUTPUT"
 
       - name: Run React Doctor Bot
@@ -90,6 +99,13 @@ jobs:
 #   GitHub App token (e.g. via `actions/create-github-app-token`).
 # * To test changes without waiting for cron, use the Actions tab → "React
 #   Doctor Bot" → "Run workflow".
+# * The prompt is served from
+#   https://www.react.doctor/prompts/react-doctor-bot.md (source:
+#   `apps/website-rd/src/content/prompts/react-doctor-bot.md`). Editing the
+#   source and redeploying the website propagates the new prompt to every
+#   consuming workflow on its next run — no need to touch this file. See
+#   https://www.react.doctor/prompts.md for the full index of fetchable
+#   prompts (bot playbook + per-rule validation/fix prompts).
 # * The bot reads `.react-doctor/false-positives.md` to skip known
 #   FPs. Add new patterns there (or let the bot append them via a docs PR).
 # * Runs at `--effort max` on `claude-opus-4-7` (deepest reasoning, no token

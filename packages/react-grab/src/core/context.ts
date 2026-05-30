@@ -1,6 +1,7 @@
 import {
   isSourceFile,
   getOwnerStack,
+  getSource,
   formatOwnerStack,
   hasDebugStack,
   parseStack,
@@ -37,8 +38,8 @@ import {
 
 let cachedIsNextProject: boolean | undefined;
 
-export const checkIsNextProject = (revalidate?: boolean): boolean => {
-  if (revalidate) {
+export const isNextProjectRuntime = (shouldRevalidate?: boolean): boolean => {
+  if (shouldRevalidate) {
     cachedIsNextProject = undefined;
   }
   cachedIsNextProject ??=
@@ -236,7 +237,7 @@ const fetchStackForElement = async (element: Element): Promise<StackFrame[] | nu
 
     const frames = await getOwnerStack(fiber);
 
-    if (checkIsNextProject()) {
+    if (isNextProjectRuntime()) {
       const enrichedFrames = enrichServerFrameLocations(fiber, frames);
       return await symbolicateServerFrames(enrichedFrames);
     }
@@ -280,9 +281,45 @@ interface ResolvedSource {
   componentName: string | null;
 }
 
+const getSourceComponentName = (fiber: Fiber | undefined): string | null => {
+  if (!fiber || !isCompositeFiber(fiber)) return null;
+  const name = getDisplayName(fiber.type);
+  return name && isSourceComponentName(name) ? name : null;
+};
+
+// bippy's getSource prefers React's dev-only _debugSource (the real JSX location
+// that bundlers like Webpack/Rspack drop from the owner stack) and otherwise
+// falls back to the owner stack. We only trust locations that point at a real
+// on-disk source file; bundler-virtual URLs are left to the owner-stack scan.
+// This reads React's own dev data, so it works without bippy instrumentation;
+// getSource can still throw while parsing owner stacks, so it is guarded.
+const getFiberSource = async (element: Element): Promise<ResolvedSource | null> => {
+  const fiber = getFiberFromHostInstance(findNearestFiberElement(element));
+  if (!fiber) return null;
+
+  try {
+    const source = await getSource(fiber);
+    if (!source?.fileName || !isSourceFile(source.fileName)) return null;
+
+    return {
+      filePath: normalizeFilePath(source.fileName),
+      lineNumber: source.lineNumber ?? null,
+      columnNumber: source.columnNumber ?? null,
+      componentName:
+        (source.functionName && isSourceComponentName(source.functionName)
+          ? source.functionName
+          : null) ?? getSourceComponentName(fiber._debugOwner),
+    };
+  } catch {
+    return null;
+  }
+};
+
 export const resolveSource = async (element: Element): Promise<ResolvedSource | null> => {
-  const resolvedElement = findNearestFiberElement(element);
-  const stack = await getStack(resolvedElement);
+  const fiberSource = await getFiberSource(element);
+  if (fiberSource) return fiberSource;
+
+  const stack = await getStack(element);
   if (!stack || stack.length === 0) return null;
 
   const sourceFrames = stack.filter((frame) => frame.fileName && isSourceFile(frame.fileName));
@@ -364,27 +401,50 @@ const getComponentNamesFromFiber = (element: Element, maxCount: number): string[
   return componentNames;
 };
 
-const formatResolvedSourceLine = (
-  frame: StackFrame,
-  filePath: string,
-  componentName: string | null,
-  isNextProject: boolean,
-): string => {
-  // HACK: bundlers like Vite produce unreliable line/column numbers from
-  // owner stacks, so we only include them for Next.js where the dev server
-  // symbolicates frames via source maps.
-  const location =
-    isNextProject && frame.lineNumber
-      ? `${normalizeFilePath(filePath)}:${frame.lineNumber}${frame.columnNumber ? `:${frame.columnNumber}` : ""}`
-      : normalizeFilePath(filePath);
-  return componentName ? `\n  in ${componentName} (at ${location})` : `\n  in ${location}`;
+// Next.js apps render from absolute paths; trimming them to a project-relative
+// "/./…" form keeps displayed locations short and consistent with its stacks.
+const NEXT_PROJECT_SOURCE_PATH_MARKERS = ["/src/app/", "/src/pages/", "/app/", "/pages/"];
+
+const formatContextFilePath = (filePath: string, isNextProject: boolean): string => {
+  const normalizedPath = normalizeFilePath(filePath);
+  if (!isNextProject || !normalizedPath.startsWith("/")) return normalizedPath;
+
+  for (const marker of NEXT_PROJECT_SOURCE_PATH_MARKERS) {
+    const markerIndex = normalizedPath.indexOf(marker);
+    if (markerIndex !== -1) return `/./${normalizedPath.slice(markerIndex + 1)}`;
+  }
+
+  return normalizedPath;
 };
 
-const formatStackContext = (stack: StackFrame[], options: StackContextOptions = {}): string => {
+const formatSourceContextLine = (source: ResolvedSource, isNextProject: boolean): string => {
+  const displayPath = formatContextFilePath(source.filePath, isNextProject);
+  // HACK: bundlers like Vite produce unreliable line/column numbers from owner
+  // stacks, so we only include them for Next.js where the dev server
+  // symbolicates frames via source maps.
+  const location =
+    isNextProject && source.lineNumber
+      ? `${displayPath}:${source.lineNumber}${source.columnNumber ? `:${source.columnNumber}` : ""}`
+      : displayPath;
+  return source.componentName
+    ? `\n  in ${source.componentName} (at ${location})`
+    : `\n  in ${location}`;
+};
+
+const formatStackContext = (
+  stack: StackFrame[],
+  options: StackContextOptions = {},
+  leadingSource: ResolvedSource | null = null,
+): string => {
   const { maxLines = DEFAULT_MAX_CONTEXT_LINES } = options;
-  const isNextProject = checkIsNextProject();
+  const isNextProject = isNextProjectRuntime();
   const lines: string[] = [];
   let previousLibraryPackage: string | null = null;
+  let didDedupeLeadingComponent = false;
+
+  if (leadingSource) {
+    lines.push(formatSourceContextLine(leadingSource, isNextProject));
+  }
 
   const emit = (line: string, libraryPackage: string | null) => {
     lines.push(line);
@@ -401,6 +461,18 @@ const formatStackContext = (stack: StackFrame[], options: StackContextOptions = 
     const componentName =
       frame.functionName && isSourceComponentName(frame.functionName) ? frame.functionName : null;
 
+    // The owner stack's top frame is usually the same component the leading
+    // source line already names. Drop only that single duplicate; deeper frames
+    // sharing the name (e.g. recursive components) are kept.
+    if (
+      !didDedupeLeadingComponent &&
+      componentName &&
+      componentName === leadingSource?.componentName
+    ) {
+      didDedupeLeadingComponent = true;
+      continue;
+    }
+
     if (frame.isServer && !resolvedSource && (componentName || !frame.functionName)) {
       const tag = libraryPackage ? `${libraryPackage} at Server` : "at Server";
       emit(`\n  in ${componentName ?? "<anonymous>"} (${tag})`, libraryPackage);
@@ -416,7 +488,18 @@ const formatStackContext = (stack: StackFrame[], options: StackContextOptions = 
     }
 
     if (resolvedSource) {
-      emit(formatResolvedSourceLine(frame, resolvedSource, componentName, isNextProject), null);
+      emit(
+        formatSourceContextLine(
+          {
+            componentName,
+            filePath: resolvedSource,
+            lineNumber: frame.lineNumber ?? null,
+            columnNumber: frame.columnNumber ?? null,
+          },
+          isNextProject,
+        ),
+        null,
+      );
     }
   }
 
@@ -428,13 +511,18 @@ export const getStackContext = async (
   options: StackContextOptions = {},
 ): Promise<string> => {
   const maxLines = options.maxLines ?? DEFAULT_MAX_CONTEXT_LINES;
+  const leadingSource = await getFiberSource(element);
   const stack = await getStack(element);
 
   if (stack && hasFormattableFrames(stack)) {
-    return formatStackContext(stack, options);
+    return formatStackContext(stack, options, leadingSource);
   }
 
-  const componentNames = getComponentNamesFromFiber(element, maxLines);
+  if (leadingSource) {
+    return formatSourceContextLine(leadingSource, isNextProjectRuntime());
+  }
+
+  const componentNames = getComponentNamesFromFiber(findNearestFiberElement(element), maxLines);
   if (componentNames.length > 0) {
     return componentNames.map((name) => `\n  in ${name}`).join("");
   }

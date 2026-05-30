@@ -48,7 +48,6 @@ apps/
 packages/
 ├── cli/                 # CLI implementation (@react-grab/cli)
 ├── grab/                # Bundled package (library + CLI, published as `grab`)
-├── mcp/                 # MCP server (@react-grab/mcp)
 └── react-grab/          # Core library
 ```
 

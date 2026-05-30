@@ -1,0 +1,63 @@
+name: Skill react-grab
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/cli/**"
+      - "skills/react-grab/**"
+      - ".github/workflows/skill-react-grab.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "packages/cli/**"
+      - "skills/react-grab/**"
+      - ".github/workflows/skill-react-grab.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      # Build the CLI (compiles the watcher and copies the native readers into
+      # dist/) so the clipboard round-trip tests can spawn `react-grab watch`.
+      - name: Build CLI
+        run: pnpm --filter @react-grab/cli build
+
+      # Linux runners are headless: an X server plus xclip are required for the
+      # clipboard round-trip tests (xvfb-run provides the DISPLAY).
+      - name: Install Linux clipboard tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y xclip xvfb
+
+      - name: Run tests (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a pnpm --filter @react-grab/cli test
+
+      - name: Run tests (macOS / Windows)
+        if: runner.os != 'Linux'
+        run: pnpm --filter @react-grab/cli test

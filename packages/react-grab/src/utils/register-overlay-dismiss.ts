@@ -1,11 +1,13 @@
+import type { OverlayDismissSource } from "../types.js";
 import { isEventFromOverlay } from "./is-event-from-overlay.js";
 import { isKeyboardEventTriggeredByInput } from "./is-keyboard-event-triggered-by-input.js";
 import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "./native-raf.js";
 
 interface RegisterOverlayDismissOptions {
   isOpen: () => boolean;
-  onDismiss: () => void;
+  onDismiss: (source: OverlayDismissSource) => void;
   onConfirm?: () => void;
+  shouldIgnoreKeyboardEvent?: (event: KeyboardEvent) => boolean;
   shouldIgnoreInputEvents?: boolean;
   shouldIgnoreRightClick?: boolean;
 }
@@ -13,6 +15,7 @@ interface RegisterOverlayDismissOptions {
 export const registerOverlayDismiss = (options: RegisterOverlayDismissOptions): (() => void) => {
   const handleKeyDown = (event: KeyboardEvent) => {
     if (!options.isOpen()) return;
+    if (options.shouldIgnoreKeyboardEvent?.(event)) return;
     if (options.shouldIgnoreInputEvents && isKeyboardEventTriggeredByInput(event)) {
       return;
     }
@@ -22,7 +25,7 @@ export const registerOverlayDismiss = (options: RegisterOverlayDismissOptions): 
     if (isEscape) {
       event.preventDefault();
       event.stopImmediatePropagation();
-      options.onDismiss();
+      options.onDismiss("keyboard");
       return;
     }
 
@@ -37,7 +40,7 @@ export const registerOverlayDismiss = (options: RegisterOverlayDismissOptions): 
     if (!options.isOpen()) return;
     if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
     if (options.shouldIgnoreRightClick && event instanceof MouseEvent && event.button === 2) return;
-    options.onDismiss();
+    options.onDismiss("pointer");
   };
 
   // Click registration is deferred to the next frame so the same click or

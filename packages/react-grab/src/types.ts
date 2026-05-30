@@ -133,6 +133,8 @@ export interface AgentContext<T = unknown> {
 
 export type ActivationMode = "toggle" | "hold";
 
+export type OverlayDismissSource = "keyboard" | "pointer";
+
 export interface ActionContextHooks {
   transformHtmlContent: (html: string, elements: Element[]) => Promise<string>;
   onOpenFile: (filePath: string, lineNumber?: number) => boolean | void;
@@ -155,12 +157,115 @@ export interface ActionContext {
 
 export interface ContextMenuActionContext extends ActionContext {
   copy?: () => void;
+  enterEditMode?: () => void;
+}
+
+interface EditablePropertyBase {
+  // Stable identity across renders and sessionStorage. For aggregates this
+  // is a comma-joined cssProperties (e.g. "padding-top,padding-bottom") so
+  // the key survives DOM round-trips without parsing back.
+  key: string;
+  label: string;
+  cssProperties: readonly string[];
+  tailwindAliases: string[];
+  isPrioritized: boolean;
+  isDefault: boolean;
+  // True when this entry is the highest-level form that captures the
+  // current snapshot (e.g. "padding" when all 4 sides are equal). Default
+  // view shows only canonical rows; searching surfaces the rest.
+  isCanonical: boolean;
+}
+
+export interface NumericEditableProperty extends EditablePropertyBase {
+  kind: "numeric";
+  min: number;
+  max: number;
+  value: number;
+  original: number;
+  unit: string;
+}
+
+export interface ColorEditableProperty extends EditablePropertyBase {
+  kind: "color";
+  value: string;
+  original: string;
+}
+
+export interface EnumEditableOption {
+  value: string;
+  label: string;
+}
+
+export interface EnumEditableProperty extends EditablePropertyBase {
+  kind: "enum";
+  value: string;
+  original: string;
+  options: ReadonlyArray<EnumEditableOption>;
+}
+
+export type EditableProperty =
+  | NumericEditableProperty
+  | ColorEditableProperty
+  | EnumEditableProperty;
+
+interface NumericPendingEdit {
+  kind: "numeric";
+  key: string;
+  cssProperties: readonly string[];
+  value: number;
+  unit: string;
+}
+
+interface ColorPendingEdit {
+  kind: "color";
+  key: string;
+  cssProperties: readonly string[];
+  value: string;
+}
+
+interface EnumPendingEdit {
+  kind: "enum";
+  key: string;
+  cssProperties: readonly string[];
+  value: string;
+}
+
+export type PendingEdit = NumericPendingEdit | ColorPendingEdit | EnumPendingEdit;
+
+export type PendingEdits = PendingEdit[];
+
+export interface PendingEditsEntry {
+  filePath: string;
+  lineNumber: number;
+  edits: PendingEdits;
+}
+
+export interface PreviewStyles {
+  apply: (cssProperties: readonly string[], cssValue: string) => void;
+  restore: () => void;
+  forget: () => void;
+  hasAppliedStyles: () => boolean;
+}
+
+export interface EditPanelState {
+  element: Element;
+  position: Position;
+  selectionBounds: OverlayBounds;
+  properties: EditableProperty[];
+  preview: PreviewStyles;
+  filePath?: string;
+  lineNumber?: number;
+  componentName?: string;
+  tagName?: string;
+  htmlPreview?: string;
+  initialSearchQuery?: string;
 }
 
 export interface ContextMenuAction {
   id: string;
   label: string;
   shortcut?: string;
+  shortcutModifier?: boolean;
   showInToolbarMenu?: boolean;
   enabled?: boolean | ((context: ActionContext) => boolean);
   onAction: (context: ContextMenuActionContext) => void | Promise<void>;
@@ -378,6 +483,8 @@ export interface ReactGrabRendererProps {
   toolbarVisible?: boolean;
   isActive?: boolean;
   onToggleActive?: () => void;
+  onActivateAction?: (actionId: string) => void;
+  activeActionId?: string | null;
   enabled?: boolean;
   shakeCount?: number;
   onToolbarStateChange?: (state: ToolbarState) => void;
@@ -399,6 +506,11 @@ export interface ReactGrabRendererProps {
   onSetDefaultAction?: (actionId: string) => void;
   onToggleToolbarMenu?: () => void;
   onToolbarMenuDismiss?: () => void;
+  editPanelState?: EditPanelState | null;
+  editPanelPosition?: DropdownAnchor | null;
+  onEditPanelDismiss?: () => void;
+  onEditPanelSubmit?: (prompt: string) => void;
+  onEditPanelInteractingChange?: (interacting: boolean) => void;
 }
 
 export interface GrabbedBox {

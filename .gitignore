@@ -3,6 +3,7 @@ node_modules
 .DS_Store
 .env
 dist
+packages/cli/skills
 .next
 **/*.tgz
 coverage
@@ -18,3 +19,5 @@ meta.json
 .agents/skills/*
 .claude.expect
 .mcp.json
+!.agents/skills/react-grab
+.react-doctor

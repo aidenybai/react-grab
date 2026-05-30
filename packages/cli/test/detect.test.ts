@@ -24,13 +24,17 @@ const mockExistsSync = vi.mocked(existsSync);
 const mockReadFileSync = vi.mocked(readFileSync);
 const mockDetectPackageManagerAgent = vi.mocked(detectPackageManagerAgent);
 
+// `path.join` emits `\` on Windows, so normalize to `/` to keep the POSIX-style
+// path literals in these mocks working cross-platform.
+const toPosixPath = (path: unknown): string => `${path}`.replace(/\\/g, "/");
+
 beforeEach(() => {
   vi.clearAllMocks();
   mockDetectPackageManagerAgent.mockResolvedValue(null);
 });
 
 const onlyPackageJsonExists = (): void => {
-  mockExistsSync.mockImplementation((path) => String(path).endsWith("package.json"));
+  mockExistsSync.mockImplementation((path) => toPosixPath(path).endsWith("package.json"));
 };
 
 describe("detectFramework", () => {
@@ -124,7 +128,7 @@ describe("detectFramework", () => {
 
   it("should detect Vite from a config file when deps are hoisted to monorepo root", () => {
     mockExistsSync.mockImplementation((path) => {
-      const pathString = String(path);
+      const pathString = toPosixPath(path);
       if (pathString === "/test/package.json") return true;
       if (pathString === "/test/vite.config.ts") return true;
       return false;
@@ -136,7 +140,7 @@ describe("detectFramework", () => {
 
   it("should detect Next.js from next.config.mjs without next in deps", () => {
     mockExistsSync.mockImplementation((path) => {
-      const pathString = String(path);
+      const pathString = toPosixPath(path);
       if (pathString === "/test/package.json") return true;
       if (pathString === "/test/next.config.mjs") return true;
       return false;
@@ -148,14 +152,14 @@ describe("detectFramework", () => {
 
   it("should return unknown when only the monorepo root has the framework dep", () => {
     mockExistsSync.mockImplementation((path) => {
-      const pathString = String(path);
+      const pathString = toPosixPath(path);
       if (pathString === "/repo/apps/web/package.json") return true;
       if (pathString === "/repo/pnpm-workspace.yaml") return true;
       if (pathString === "/repo/package.json") return true;
       return false;
     });
     mockReadFileSync.mockImplementation((path) => {
-      const pathString = String(path);
+      const pathString = toPosixPath(path);
       if (pathString === "/repo/apps/web/package.json") {
         return JSON.stringify({ dependencies: { react: "18.0.0" } });
       }
@@ -172,7 +176,7 @@ describe("detectFramework", () => {
 describe("detectNextRouterType", () => {
   it("should detect App Router when app/ exists", () => {
     mockExistsSync.mockImplementation((path) => {
-      return String(path).endsWith("/app");
+      return toPosixPath(path).endsWith("/app");
     });
 
     expect(detectNextRouterType("/test")).toBe("app");
@@ -180,7 +184,7 @@ describe("detectNextRouterType", () => {
 
   it("should detect App Router when src/app/ exists", () => {
     mockExistsSync.mockImplementation((path) => {
-      return String(path).endsWith("/src/app");
+      return toPosixPath(path).endsWith("/src/app");
     });
 
     expect(detectNextRouterType("/test")).toBe("app");
@@ -188,7 +192,7 @@ describe("detectNextRouterType", () => {
 
   it("should detect Pages Router when pages/ exists", () => {
     mockExistsSync.mockImplementation((path) => {
-      return String(path).endsWith("/pages");
+      return toPosixPath(path).endsWith("/pages");
     });
 
     expect(detectNextRouterType("/test")).toBe("pages");
@@ -196,7 +200,7 @@ describe("detectNextRouterType", () => {
 
   it("should detect Pages Router when src/pages/ exists", () => {
     mockExistsSync.mockImplementation((path) => {
-      return String(path).endsWith("/src/pages");
+      return toPosixPath(path).endsWith("/src/pages");
     });
 
     expect(detectNextRouterType("/test")).toBe("pages");
@@ -204,7 +208,7 @@ describe("detectNextRouterType", () => {
 
   it("should prefer App Router if both exist", () => {
     mockExistsSync.mockImplementation((path) => {
-      const pathStr = String(path);
+      const pathStr = toPosixPath(path);
       return pathStr.endsWith("/app") || pathStr.endsWith("/pages");
     });
 
@@ -221,7 +225,7 @@ describe("detectNextRouterType", () => {
 describe("detectMonorepo", () => {
   it("should detect pnpm monorepo", () => {
     mockExistsSync.mockImplementation((path) => {
-      return String(path).endsWith("pnpm-workspace.yaml");
+      return toPosixPath(path).endsWith("pnpm-workspace.yaml");
     });
 
     expect(detectMonorepo("/test")).toBe(true);
@@ -229,7 +233,7 @@ describe("detectMonorepo", () => {
 
   it("should detect lerna monorepo", () => {
     mockExistsSync.mockImplementation((path) => {
-      return String(path).endsWith("lerna.json");
+      return toPosixPath(path).endsWith("lerna.json");
     });
 
     expect(detectMonorepo("/test")).toBe(true);
@@ -237,7 +241,7 @@ describe("detectMonorepo", () => {
 
   it("should detect npm/yarn workspaces", () => {
     mockExistsSync.mockImplementation((path) => {
-      return String(path).endsWith("package.json");
+      return toPosixPath(path).endsWith("package.json");
     });
     mockReadFileSync.mockReturnValue(JSON.stringify({ workspaces: ["packages/*"] }));
 
@@ -246,7 +250,7 @@ describe("detectMonorepo", () => {
 
   it("should return false for non-monorepo", () => {
     mockExistsSync.mockImplementation((path) => {
-      return String(path).endsWith("package.json");
+      return toPosixPath(path).endsWith("package.json");
     });
     mockReadFileSync.mockReturnValue(JSON.stringify({ dependencies: { react: "18.0.0" } }));
 
@@ -295,7 +299,7 @@ describe("detectReactGrab", () => {
 describe("detectMonorepo", () => {
   it("should return false for malformed package.json", () => {
     mockExistsSync.mockImplementation((path) => {
-      return String(path).endsWith("package.json");
+      return toPosixPath(path).endsWith("package.json");
     });
     mockReadFileSync.mockReturnValue("invalid");
 
@@ -360,14 +364,14 @@ describe("detectUnsupportedFramework", () => {
 describe("detectProject", () => {
   it("should fall back to monorepo root framework when subpackage has hoisted deps", async () => {
     mockExistsSync.mockImplementation((path) => {
-      const pathString = String(path);
+      const pathString = toPosixPath(path);
       if (pathString === "/repo/apps/web/package.json") return true;
       if (pathString === "/repo/pnpm-workspace.yaml") return true;
       if (pathString === "/repo/package.json") return true;
       return false;
     });
     mockReadFileSync.mockImplementation((path) => {
-      const pathString = String(path);
+      const pathString = toPosixPath(path);
       if (pathString === "/repo/apps/web/package.json") {
         return JSON.stringify({ dependencies: { react: "18.0.0" } });
       }
@@ -385,14 +389,14 @@ describe("detectProject", () => {
 
   it("should prefer the subpackage's own framework dep over monorepo root", async () => {
     mockExistsSync.mockImplementation((path) => {
-      const pathString = String(path);
+      const pathString = toPosixPath(path);
       if (pathString === "/repo/apps/web/package.json") return true;
       if (pathString === "/repo/pnpm-workspace.yaml") return true;
       if (pathString === "/repo/package.json") return true;
       return false;
     });
     mockReadFileSync.mockImplementation((path) => {
-      const pathString = String(path);
+      const pathString = toPosixPath(path);
       if (pathString === "/repo/apps/web/package.json") {
         return JSON.stringify({ dependencies: { next: "14.0.0", react: "18.0.0" } });
       }
@@ -409,13 +413,13 @@ describe("detectProject", () => {
 
   it("should not inherit a parent's framework when the parent is not a monorepo", async () => {
     mockExistsSync.mockImplementation((path) => {
-      const pathString = String(path);
+      const pathString = toPosixPath(path);
       if (pathString === "/parent/child/package.json") return true;
       if (pathString === "/parent/package.json") return true;
       return false;
     });
     mockReadFileSync.mockImplementation((path) => {
-      const pathString = String(path);
+      const pathString = toPosixPath(path);
       if (pathString === "/parent/child/package.json") {
         return JSON.stringify({ dependencies: { react: "18.0.0" } });
       }
@@ -433,14 +437,14 @@ describe("detectProject", () => {
 
   it("should leave framework unknown when neither subpackage nor monorepo root advertise one", async () => {
     mockExistsSync.mockImplementation((path) => {
-      const pathString = String(path);
+      const pathString = toPosixPath(path);
       if (pathString === "/repo/apps/web/package.json") return true;
       if (pathString === "/repo/pnpm-workspace.yaml") return true;
       if (pathString === "/repo/package.json") return true;
       return false;
     });
     mockReadFileSync.mockImplementation((path) => {
-      const pathString = String(path);
+      const pathString = toPosixPath(path);
       if (pathString === "/repo/apps/web/package.json") {
         return JSON.stringify({ dependencies: { react: "18.0.0" } });
       }
@@ -458,7 +462,7 @@ describe("detectProject", () => {
 
   it("should resolve framework from local config file before falling back to monorepo root", async () => {
     mockExistsSync.mockImplementation((path) => {
-      const pathString = String(path);
+      const pathString = toPosixPath(path);
       if (pathString === "/repo/apps/web/package.json") return true;
       if (pathString === "/repo/apps/web/vite.config.ts") return true;
       if (pathString === "/repo/pnpm-workspace.yaml") return true;
@@ -466,7 +470,7 @@ describe("detectProject", () => {
       return false;
     });
     mockReadFileSync.mockImplementation((path) => {
-      const pathString = String(path);
+      const pathString = toPosixPath(path);
       if (pathString === "/repo/apps/web/package.json") {
         return JSON.stringify({ dependencies: { react: "18.0.0" } });
       }
