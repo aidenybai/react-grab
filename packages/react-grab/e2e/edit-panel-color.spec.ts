@@ -9,9 +9,28 @@ import {
   openEditPanel,
 } from "./edit-panel-helpers.js";
 
+const PLAIN_TEXT_SELECTOR = "[data-testid='deeply-nested-text']";
+
 test.describe("Style Panel Color Controls", () => {
   test.beforeEach(async ({ reactGrab }) => {
     await clearEditStorage(reactGrab.page);
+  });
+
+  test("text color and background are pinned to the top of the list", async ({ reactGrab }) => {
+    await openEditPanel(reactGrab, BUTTON_SELECTOR);
+    const propertyKeys = await getVisiblePropertyKeys(reactGrab.page);
+    expect(propertyKeys.slice(0, 2)).toEqual(["background-color", "color"]);
+  });
+
+  test("background is offered even when the element has a transparent background", async ({
+    reactGrab,
+  }) => {
+    // The plain text element paints no background, yet users still need
+    // to be able to set one.
+    await openEditPanel(reactGrab, PLAIN_TEXT_SELECTOR);
+    const propertyKeys = await getVisiblePropertyKeys(reactGrab.page);
+    expect(propertyKeys).toContain("background-color");
+    expect(propertyKeys).toContain("color");
   });
 
   test("default text color stays available in the property list", async ({ reactGrab }) => {

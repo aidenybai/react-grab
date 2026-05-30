@@ -85,9 +85,15 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   const preview = props.state.preview;
 
   const [searchQuery, setSearchQuery] = createSignal(props.state.initialSearchQuery ?? "");
-  const [activeIndex, setActiveIndex] = createSignal(0);
   const [activeKey, setActiveKey] = createSignal<"left" | "right" | null>(null);
   const tweakStore = createTweakStore({ initialProperties, searchQuery });
+  // Text color and background are pinned to the top of the list for
+  // visibility, but the arrow-key cursor should land on the first
+  // dimensional control so stepping does something useful on open.
+  const firstNumericIndex = tweakStore
+    .filteredProperties()
+    .findIndex((property) => property.kind === "numeric");
+  const [activeIndex, setActiveIndex] = createSignal(firstNumericIndex > 0 ? firstNumericIndex : 0);
   const hasPendingTweaks = createMemo(() => tweakStore.hasPendingTweaks());
   const [isCompact, setIsCompact] = createSignal(false);
 
