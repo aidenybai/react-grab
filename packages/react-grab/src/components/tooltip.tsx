@@ -72,7 +72,7 @@ export const Tooltip: Component<TooltipProps> = (props) => {
     <Show when={delayedVisible()}>
       <div
         class={cn(
-          "absolute whitespace-nowrap px-1.5 py-0.5 rounded-[8px] text-[10px] font-sans font-medium leading-4 pointer-events-none [corner-shape:superellipse(1.25)]",
+          "absolute whitespace-nowrap px-2 py-0.5 rounded-full text-[10px] font-sans font-medium leading-4 pointer-events-none",
           "bg-[var(--rg-panel-bg)] text-[var(--rg-text-primary)] [box-shadow:var(--rg-shadow)]",
           props.position === "top" && "bottom-full mb-2.5",
           props.position === "bottom" && "top-full mt-2.5",
