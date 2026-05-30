@@ -327,7 +327,7 @@ export const init = new Command()
         }
 
         logger.break();
-        await promptSkillInstall();
+        await promptSkillInstall({ yes: isNonInteractive });
 
         logger.break();
         process.exit(0);
@@ -441,7 +441,7 @@ export const init = new Command()
 
       if (!isNonInteractive) {
         logger.break();
-        didInstallSkill = await promptSkillInstall();
+        didInstallSkill = await promptSkillInstall({ yes: isNonInteractive });
       }
 
       const result = previewTransform(
