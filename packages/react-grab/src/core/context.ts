@@ -519,7 +519,7 @@ export const getStackContext = async (
   }
 
   if (leadingSource) {
-    return formatSourceContextLine(leadingSource, checkIsNextProject());
+    return formatSourceContextLine(leadingSource, isNextProjectRuntime());
   }
 
   const componentNames = getComponentNamesFromFiber(findNearestFiberElement(element), maxLines);
