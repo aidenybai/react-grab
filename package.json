@@ -45,8 +45,9 @@
       "unrs-resolver"
     ],
     "overrides": {
-      "vite": "npm:@voidzero-dev/vite-plus-core",
+      "vite": "npm:@voidzero-dev/vite-plus-core@0.1.22",
       "vitest": "npm:@voidzero-dev/vite-plus-test",
+      "@voidzero-dev/vite-plus-core": "0.1.22",
       "react": "19.2.6",
       "react-dom": "19.2.6"
     }
