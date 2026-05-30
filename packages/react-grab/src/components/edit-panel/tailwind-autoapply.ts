@@ -207,13 +207,8 @@ export const createTailwindAutoApply = (
     const colorTarget = colorCssKey ? findColor(initialProperties, colorCssKey) : null;
     const normalizedHex = colorTarget ? parseAnyColor(value) : null;
     if (colorTarget && normalizedHex) {
-      // Skip committing a value identical to the current one — a no-op
-      // tweak would still mark the row "tweaked" and make Enter submit
-      // instead of opening the picker.
-      if (normalizedHex.toLowerCase() !== colorTarget.value.toLowerCase()) {
-        setIsCompact(true);
-        commit(colorTarget, normalizedHex, { shouldCompact: true });
-      }
+      setIsCompact(true);
+      commit(colorTarget, normalizedHex, { shouldCompact: true });
       return true;
     }
 

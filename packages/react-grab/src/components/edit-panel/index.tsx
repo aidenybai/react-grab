@@ -329,7 +329,8 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       if (isPendingDismiss()) return;
       const property = activeProperty();
       const colorPickerTrigger = getCurrentColorPickerTrigger();
-      const isUntweakedColor = property?.kind === "color" && !tweakStore.hasTweakFor(property.key);
+      const isUntweakedColor =
+        property?.kind === "color" && !tweakStore.hasChangedTweakFor(property.key);
       if (isUntweakedColor && colorPickerTrigger) {
         colorPickerTrigger();
         return;
