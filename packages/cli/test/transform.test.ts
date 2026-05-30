@@ -25,33 +25,38 @@ beforeEach(() => {
 });
 
 describe("hasFrameworkEntryPoint", () => {
+  // `path.join` emits `\` on Windows, so normalize to `/` before matching the
+  // POSIX-style suffixes below.
+  const pathEndsWith = (path: unknown, suffix: string): boolean =>
+    `${path}`.replace(/\\/g, "/").endsWith(suffix);
+
   it("returns true when a Vite entry file exists", () => {
-    mockExistsSync.mockImplementation((path) => String(path).endsWith("src/main.tsx"));
+    mockExistsSync.mockImplementation((path) => pathEndsWith(path, "src/main.tsx"));
     expect(hasFrameworkEntryPoint("/app", "vite", "unknown")).toBe(true);
   });
 
   it("returns false for Vite when only a config file exists (monorepo root tooling)", () => {
-    mockExistsSync.mockImplementation((path) => String(path).endsWith("vite.config.ts"));
+    mockExistsSync.mockImplementation((path) => pathEndsWith(path, "vite.config.ts"));
     expect(hasFrameworkEntryPoint("/repo", "vite", "unknown")).toBe(false);
   });
 
   it("returns true for a Webpack entry file", () => {
-    mockExistsSync.mockImplementation((path) => String(path).endsWith("src/index.tsx"));
+    mockExistsSync.mockImplementation((path) => pathEndsWith(path, "src/index.tsx"));
     expect(hasFrameworkEntryPoint("/app", "webpack", "unknown")).toBe(true);
   });
 
   it("returns true for Next.js App Router when layout exists", () => {
-    mockExistsSync.mockImplementation((path) => String(path).endsWith("app/layout.tsx"));
+    mockExistsSync.mockImplementation((path) => pathEndsWith(path, "app/layout.tsx"));
     expect(hasFrameworkEntryPoint("/app", "next", "app")).toBe(true);
   });
 
   it("returns false for Next.js App Router when only _document exists (matches transform)", () => {
-    mockExistsSync.mockImplementation((path) => String(path).endsWith("pages/_document.tsx"));
+    mockExistsSync.mockImplementation((path) => pathEndsWith(path, "pages/_document.tsx"));
     expect(hasFrameworkEntryPoint("/app", "next", "app")).toBe(false);
   });
 
   it("returns true for Next.js Pages Router when _document exists", () => {
-    mockExistsSync.mockImplementation((path) => String(path).endsWith("pages/_document.tsx"));
+    mockExistsSync.mockImplementation((path) => pathEndsWith(path, "pages/_document.tsx"));
     expect(hasFrameworkEntryPoint("/app", "next", "pages")).toBe(true);
   });
 
@@ -61,7 +66,7 @@ describe("hasFrameworkEntryPoint", () => {
   });
 
   it("returns true for TanStack Start when the root route exists", () => {
-    mockExistsSync.mockImplementation((path) => String(path).endsWith("src/routes/__root.tsx"));
+    mockExistsSync.mockImplementation((path) => pathEndsWith(path, "src/routes/__root.tsx"));
     expect(hasFrameworkEntryPoint("/app", "tanstack", "unknown")).toBe(true);
   });
 
