@@ -13,7 +13,7 @@ export const ViewDocsButton = (): ReactElement => (
       "hidden h-auto gap-2 px-3 py-1.5 text-sm active:scale-[0.98] sm:inline-flex sm:text-base",
     )}
   >
-    <BookOpen className="h-[15px] w-[15px]" />
+    <BookOpen className="size-[15px]" />
     View docs
   </a>
 );

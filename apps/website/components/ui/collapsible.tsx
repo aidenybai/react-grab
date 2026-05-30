@@ -46,9 +46,9 @@ export const Collapsible = ({
           {header}
           <span className="ml-2 opacity-50">
             {isExpanded ? (
-              <ChevronDown className="w-3 h-3" />
+              <ChevronDown className="size-3" />
             ) : (
-              <ChevronRight className="w-3 h-3" />
+              <ChevronRight className="size-3" />
             )}
           </span>
         </div>

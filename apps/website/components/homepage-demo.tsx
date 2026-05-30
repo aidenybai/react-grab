@@ -253,7 +253,7 @@ const ElementSelectContent = ({
         <ElementTag>{`<${tagName}>`}</ElementTag>
         {hasMetadata && (
           <span className="absolute left-0 top-full mt-1 z-50 hidden group-hover:block min-w-[180px] rounded-lg border border-border bg-popover px-2.5 py-2 text-xs shadow-xl">
-            <span className="absolute -top-1.5 left-3 h-3 w-3 rotate-45 border-l border-t border-border bg-popover" />
+            <span className="absolute -top-1.5 left-3 size-3 rotate-45 border-l border-t border-border bg-popover" />
             <span className="flex flex-col gap-1">
               {componentName && <TooltipRow label="Component" value={componentName} />}
               {shortPath && <TooltipRow label="File" value={shortPath} />}
