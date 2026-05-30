@@ -286,14 +286,12 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       closePanel(preview.hasAppliedStyles() ? "discard" : "preserve");
       return;
     }
-    // Escape first expands the compact view; the discard prompt only
-    // appears once the full panel is visible, so a stray Escape can't
-    // nuke pending changes. An outside click skips straight to it.
-    if (source === "keyboard" && isCompact()) {
-      setIsCompact(false);
-      return;
-    }
+    // Always reveal the full panel before anything destructive. A keyboard
+    // Escape stops there (so a stray Escape can't nuke pending changes on
+    // the collapsed view); an outside click continues to the discard prompt.
+    const wasCompact = isCompact();
     setIsCompact(false);
+    if (source === "keyboard" && wasCompact) return;
     discardConfirmation.show();
     playShake();
   };
