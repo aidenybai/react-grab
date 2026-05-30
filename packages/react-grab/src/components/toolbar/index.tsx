@@ -119,13 +119,37 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const isCopyActive = () =>
     Boolean(props.isActive) && (props.activeActionId ?? DEFAULT_ACTION_ID) === DEFAULT_ACTION_ID;
 
+  const [hoveredActionId, setHoveredActionId] = createSignal<string | null>(null);
+  const isTooltipVisible = (actionId: string) =>
+    hoveredActionId() === actionId &&
+    !props.isActive &&
+    !isCollapsed() &&
+    !drag.isDragging() &&
+    !drag.isSnapping() &&
+    !props.isContextMenuOpen;
+  const tooltipPosition = (): "top" | "bottom" | "left" | "right" => {
+    switch (snapEdge()) {
+      case "top":
+        return "bottom";
+      case "bottom":
+        return "top";
+      case "left":
+        return "right";
+      case "right":
+        return "left";
+      default:
+        return "top";
+    }
+  };
+
   const stopEventPropagation = (event: Event) => {
     event.stopImmediatePropagation();
   };
 
-  const createFreezeHandlers = (options?: FreezeHandlersOptions) => ({
+  const createFreezeHandlers = (actionId: string, options?: FreezeHandlersOptions) => ({
     onMouseEnter: (event: MouseEvent) => {
       if (drag.isDragging()) return;
+      setHoveredActionId(actionId);
       if (options?.shouldFreezeInteractions !== false && !unfreezeUpdatesCallback) {
         unfreezeUpdatesCallback = freezeUpdates();
         freezeGlobalAnimations();
@@ -134,6 +158,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       options?.onHoverChange?.(true);
     },
     onMouseLeave: () => {
+      setHoveredActionId((current) => (current === actionId ? null : current));
       if (
         options?.shouldFreezeInteractions !== false &&
         !props.isActive &&
@@ -253,11 +278,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   );
   const handleStyle = drag.createDragAwareHandler(() => props.onActivateAction?.(EDIT_ACTION_ID));
 
-  const actionButtonClass = () =>
-    cn(
-      "group contain-layout flex items-center justify-center cursor-pointer interactive-scale a11y-hitbox",
-      buttonSpacingClass(),
-    );
+  const actionButtonClass =
+    "group contain-layout flex items-center justify-center cursor-pointer interactive-scale a11y-hitbox";
+  const actionButtonWrapperClass = () =>
+    cn("relative contain-layout flex items-center justify-center", buttonSpacingClass());
   const actionIconClass = (isActive: boolean) =>
     isActive
       ? "text-[var(--rg-text-primary)]"
@@ -666,46 +690,58 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         }}
         actionButtons={
           <>
-            <button
-              ref={selectButtonRef}
-              data-react-grab-ignore-events
-              data-react-grab-toolbar-toggle
-              data-react-grab-toolbar-action={DEFAULT_ACTION_ID}
-              aria-label={isCopyActive() ? "Stop selecting element" : "Copy element"}
-              aria-pressed={isCopyActive()}
-              type="button"
-              class={actionButtonClass()}
+            <ToolbarActionButton
+              actionId={DEFAULT_ACTION_ID}
+              isToggle
+              ref={(element) => (selectButtonRef = element)}
+              label={isCopyActive() ? "Stop selecting element" : "Copy element"}
+              isActive={isCopyActive()}
+              class={actionButtonClass}
+              wrapperClass={actionButtonWrapperClass()}
               onClick={handleToggle}
-              on:contextmenu={(event: MouseEvent) => {
+              onContextMenu={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
+                setHoveredActionId(null);
                 props.onToggleToolbarMenu?.();
               }}
-              {...createFreezeHandlers()}
-            >
-              <IconSelect
-                size={14}
-                rotationDeg={selectIconRotationDeg()}
-                class={actionIconClass(isCopyActive())}
-              />
-            </button>
+              {...createFreezeHandlers(DEFAULT_ACTION_ID)}
+              icon={
+                <IconSelect
+                  size={14}
+                  rotationDeg={selectIconRotationDeg()}
+                  class={actionIconClass(isCopyActive())}
+                />
+              }
+              tooltipVisible={isTooltipVisible(DEFAULT_ACTION_ID)}
+              tooltipPosition={tooltipPosition()}
+              tooltip="Copy"
+            />
             <ToolbarActionButton
               actionId={COMMENT_ACTION_ID}
               label="Comment on element"
               isActive={isActionActive(COMMENT_ACTION_ID)}
-              class={actionButtonClass()}
+              class={actionButtonClass}
+              wrapperClass={actionButtonWrapperClass()}
               onClick={handleComment}
-              {...createFreezeHandlers()}
+              {...createFreezeHandlers(COMMENT_ACTION_ID)}
               icon={<IconComment size={14} class={actionIconClass(isActionActive(COMMENT_ACTION_ID))} />}
+              tooltipVisible={isTooltipVisible(COMMENT_ACTION_ID)}
+              tooltipPosition={tooltipPosition()}
+              tooltip="Comment"
             />
             <ToolbarActionButton
               actionId={EDIT_ACTION_ID}
               label="Style element"
               isActive={isActionActive(EDIT_ACTION_ID)}
-              class={actionButtonClass()}
+              class={actionButtonClass}
+              wrapperClass={actionButtonWrapperClass()}
               onClick={handleStyle}
-              {...createFreezeHandlers()}
+              {...createFreezeHandlers(EDIT_ACTION_ID)}
               icon={<IconStyle size={14} class={actionIconClass(isActionActive(EDIT_ACTION_ID))} />}
+              tooltipVisible={isTooltipVisible(EDIT_ACTION_ID)}
+              tooltipPosition={tooltipPosition()}
+              tooltip="Style"
             />
           </>
         }

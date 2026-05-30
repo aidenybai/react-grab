@@ -136,6 +136,9 @@ export const DEFAULT_ACTION_ID = "copy";
 export const COMMENT_ACTION_ID = "comment";
 export const EDIT_ACTION_ID = "edit";
 
+export const TOOLTIP_DELAY_MS = 400;
+export const TOOLTIP_GRACE_PERIOD_MS = 800;
+
 export const MENU_PANEL_CORNER_RADIUS_PX = 14;
 export const MENU_HIGHLIGHT_CORNER_SHAPE = "superellipse(1.25)";
 
