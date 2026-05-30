@@ -567,6 +567,29 @@ describe("previewOptionsTransform - SvelteKit", () => {
     expect(result.newContent).toContain('"activationMode":"hold"');
   });
 
+  it("should escape SvelteKit app.html script options", () => {
+    const appHtmlWithReactGrab = `<html>
+  <head><script src="/react-grab.js"></script></head>
+  <body>%sveltekit.body%</body>
+</html>`;
+
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("app.html"));
+    mockReadFileSync.mockReturnValue(appHtmlWithReactGrab);
+
+    const options: ReactGrabOptions = {
+      activationKey: "Meta+'&",
+    };
+
+    const result = previewOptionsTransform("/test", "sveltekit", "unknown", options);
+
+    expect(result.success).toBe(true);
+    expect(result.filePath).toBe("/test/src/app.html");
+    expect(result.newContent).toContain("data-options='");
+    expect(result.newContent).toContain("&amp;");
+    expect(result.newContent).toContain("&#39;");
+    expect(result.newContent).not.toContain(`"activationKey":"Meta+'&"`);
+  });
+
   it("should update existing SvelteKit app.html script options", () => {
     const appHtmlWithReactGrabOptions = `<html>
   <head><script src="/react-grab.js" data-options='{"activationKey":"g"}'></script></head>

@@ -706,6 +706,9 @@ const formatOptionsAsJson = (options: ReactGrabOptions): string => {
   return JSON.stringify(cleanOptions);
 };
 
+const escapeSingleQuotedHtmlAttribute = (value: string): string =>
+  value.replace(/&/g, "&amp;").replace(/'/g, "&#39;");
+
 const findReactGrabFile = (
   projectRoot: string,
   framework: Framework,
@@ -835,7 +838,8 @@ const addOptionsToSvelteKitImport = (
 
     const scriptTag = reactGrabScriptMatch[0];
     const optionsJson = formatOptionsAsJson(options);
-    const dataOptionsAttr = `data-options='${optionsJson}'`;
+    const escapedOptionsJson = escapeSingleQuotedHtmlAttribute(optionsJson);
+    const dataOptionsAttr = `data-options='${escapedOptionsJson}'`;
     const existingDataOptionsMatch = scriptTag.match(/\sdata-options=(["']).*?\1/);
     const newScriptTag = existingDataOptionsMatch
       ? scriptTag.replace(existingDataOptionsMatch[0], ` ${dataOptionsAttr}`)
