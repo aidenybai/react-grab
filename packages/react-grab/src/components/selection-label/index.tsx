@@ -512,9 +512,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     aria-keyshortcuts="Enter Escape"
                     class="text-[var(--rg-text-primary)] text-[13px] leading-4 font-medium bg-transparent border-none resize-none flex-1 p-0 m-0 wrap-break-word overflow-y-auto"
                     style={{
+                      // oxlint-disable-next-line solid/style-prop -- standard CSS property not yet in plugin's CSS DB
                       "field-sizing": "content",
                       "min-height": "16px",
                       "max-height": `${TEXTAREA_MAX_HEIGHT_PX}px`,
+                      // oxlint-disable-next-line solid/style-prop -- standard CSS property not yet in plugin's CSS DB
                       "scrollbar-width": "none",
                     }}
                     value={props.inputValue ?? ""}

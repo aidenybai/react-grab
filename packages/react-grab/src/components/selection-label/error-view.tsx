@@ -30,6 +30,14 @@ export const ErrorView: Component<ErrorViewProps> = (props) => {
     confirmationFocusManager.claim(instanceId);
   };
 
+  const handleRetryClick = () => {
+    props.onRetry?.();
+  };
+
+  const handleAcknowledgeClick = () => {
+    props.onAcknowledge?.();
+  };
+
   onMount(() => {
     confirmationFocusManager.claim(instanceId);
     window.addEventListener("keydown", handleKeyDown, { capture: true });
@@ -71,7 +79,7 @@ export const ErrorView: Component<ErrorViewProps> = (props) => {
                 type="button"
                 aria-keyshortcuts="Enter"
                 class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-[var(--rg-surface-hover)] [border-width:0.5px] border-solid border-[var(--rg-border-button)] cursor-pointer transition-all hover:bg-[var(--rg-surface-active)] press-scale h-[17px]"
-                onClick={props.onRetry}
+                onClick={handleRetryClick}
               >
                 <span class="text-[var(--rg-text-primary)] text-[13px] leading-3.5 font-sans font-medium">
                   Retry
@@ -85,7 +93,7 @@ export const ErrorView: Component<ErrorViewProps> = (props) => {
                 type="button"
                 aria-keyshortcuts="Escape"
                 class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-[var(--rg-surface-hover)] [border-width:0.5px] border-solid border-[var(--rg-border-button)] cursor-pointer transition-all hover:bg-[var(--rg-surface-active)] press-scale h-[17px]"
-                onClick={props.onAcknowledge}
+                onClick={handleAcknowledgeClick}
               >
                 <span class="text-[var(--rg-text-primary)] text-[13px] leading-3.5 font-sans font-medium">
                   Ok

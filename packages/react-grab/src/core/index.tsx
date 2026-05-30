@@ -979,11 +979,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const frozenElementBoundsAccessors = mapArray(
       () => store.frozenElements,
-      (element) =>
-        createMemo(() => {
+      (element) => {
+        const boundsAccessor = createMemo(() => {
           void viewportVersion();
           return createElementBounds(element);
-        }),
+        });
+        return boundsAccessor;
+      },
     );
 
     const frozenElementsBounds = createMemo((): OverlayBounds[] => {
@@ -1136,7 +1138,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (element) => {
         const tagName = getTagName(element) || "element";
         const componentName = getComponentDisplayName(element) ?? undefined;
-        return createMemo<FrozenLabelEntry | null>(() => {
+        const labelEntryAccessor = createMemo<FrozenLabelEntry | null>(() => {
           void viewportVersion();
           if (!isElementConnected(element)) return null;
           const bounds = createElementBounds(element);
@@ -1145,6 +1147,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             anchorRatio === undefined ? undefined : bounds.x + bounds.width * anchorRatio;
           return { tagName, componentName, bounds, mouseX };
         });
+        return labelEntryAccessor;
       },
     );
 

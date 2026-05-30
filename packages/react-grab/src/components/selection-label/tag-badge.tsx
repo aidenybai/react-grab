@@ -11,6 +11,10 @@ export const TagBadge: Component<TagBadgeProps> = (props) => {
     props.onHoverChange?.(false);
   };
 
+  const handleClick = (event: MouseEvent) => {
+    props.onClick(event);
+  };
+
   const accessibleName = () =>
     props.componentName ? `${props.componentName}.${props.tagName}` : props.tagName;
 
@@ -42,7 +46,7 @@ export const TagBadge: Component<TagBadgeProps> = (props) => {
           )}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
-          onClick={props.onClick}
+          onClick={handleClick}
         >
           {renderTagLabel()}
         </div>
@@ -57,7 +61,7 @@ export const TagBadge: Component<TagBadgeProps> = (props) => {
         )}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        onClick={props.onClick}
+        onClick={handleClick}
       >
         {renderTagLabel()}
       </button>
