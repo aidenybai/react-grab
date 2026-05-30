@@ -481,6 +481,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let keyboardSelectedElement: Element | null = null;
     let pendingDefaultActionId: string | null = null;
     const [isPendingContextMenuSelect, setIsPendingContextMenuSelect] = createSignal(false);
+    const [activeActionId, setActiveActionId] = createSignal<string | null>(null);
     const [debouncedElementForComponentName, setDebouncedElementForComponentName] =
       createSignal<Element | null>(null);
     const [resolvedComponentName, setResolvedComponentName] = createComponentNameForElement(
@@ -1474,6 +1475,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       clearArrowNavigation();
       keyboardSelectedElement = null;
       setIsPendingContextMenuSelect(false);
+      setActiveActionId(null);
       if (wasDragging) {
         document.body.style.userSelect = "";
       }
@@ -1575,15 +1577,28 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       editMode.trigger(element, { x: pointer().x, y: pointer().y });
     };
 
-    const handleToggleActive = () => {
+    const handleActivateAction = (actionId: string) => {
       if (isActivated()) {
+        // While still choosing an element, clicking a different action switches
+        // the pending action in place instead of tearing down selection mode;
+        // clicking the already-active action toggles selection off.
+        if (activeActionId() !== actionId && isPendingContextMenuSelect()) {
+          pendingDefaultActionId = actionId;
+          setActiveActionId(actionId);
+          return;
+        }
         deactivateRenderer();
-      } else if (isEnabled()) {
-        const defaultActionId = currentToolbarState()?.defaultAction ?? DEFAULT_ACTION_ID;
-        pendingDefaultActionId = defaultActionId;
-        setIsPendingContextMenuSelect(true);
-        toggleActivate();
+        return;
       }
+      if (!isEnabled()) return;
+      pendingDefaultActionId = actionId;
+      setActiveActionId(actionId);
+      setIsPendingContextMenuSelect(true);
+      toggleActivate();
+    };
+
+    const handleToggleActive = () => {
+      handleActivateAction(currentToolbarState()?.defaultAction ?? DEFAULT_ACTION_ID);
     };
 
     const enterCommentModeForElement = (element: Element, positionX: number, positionY: number) => {
@@ -3572,6 +3587,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 toolbarVisible={pluginRegistry.store.theme.toolbar.enabled}
                 isActive={isActivated()}
                 onToggleActive={handleToggleActive}
+                onActivateAction={handleActivateAction}
+                activeActionId={activeActionId()}
                 enabled={isEnabled()}
                 shakeCount={toolbarShakeCount()}
                 onToolbarStateChange={(state) => {

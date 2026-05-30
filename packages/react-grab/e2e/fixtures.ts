@@ -132,6 +132,8 @@ export interface ReactGrabPageObject {
   isToolbarCollapsed: () => Promise<boolean>;
   getToolbarInfo: () => Promise<ToolbarInfo>;
   clickToolbarToggle: () => Promise<void>;
+  clickToolbarAction: (actionId: string) => Promise<void>;
+  getToolbarActionPressed: (actionId: string) => Promise<boolean | null>;
   clickToolbarCollapse: () => Promise<void>;
   dragToolbar: (deltaX: number, deltaY: number) => Promise<void>;
   dragToolbarFromButton: (buttonSelector: string, deltaX: number, deltaY: number) => Promise<void>;
@@ -825,6 +827,48 @@ const createReactGrabPageObject = (
       toggleButton?.click();
     }, ATTRIBUTE_NAME);
     await waitForActive(!wasActive);
+  };
+
+  const clickToolbarAction = async (actionId: string) => {
+    const wasActive = await isOverlayVisible();
+    await page.evaluate(
+      ({ attrName, id }) => {
+        const host = document.querySelector(`[${attrName}]`);
+        const shadowRoot = host?.shadowRoot;
+        if (!shadowRoot) return;
+        const root = shadowRoot.querySelector(`[${attrName}]`);
+        if (!root) return;
+        const actionButton = root.querySelector<HTMLButtonElement>(
+          `[data-react-grab-toolbar-action="${id}"]`,
+        );
+        actionButton?.click();
+      },
+      { attrName: ATTRIBUTE_NAME, id: actionId },
+    );
+    // From inactive, the click activates. While already active it either
+    // switches the pending action (stays active) or toggles off, so callers
+    // assert the resulting state explicitly rather than waiting on a flip here.
+    if (!wasActive) {
+      await waitForActive(true);
+    }
+  };
+
+  const getToolbarActionPressed = async (actionId: string): Promise<boolean | null> => {
+    return page.evaluate(
+      ({ attrName, id }) => {
+        const host = document.querySelector(`[${attrName}]`);
+        const shadowRoot = host?.shadowRoot;
+        if (!shadowRoot) return null;
+        const root = shadowRoot.querySelector(`[${attrName}]`);
+        if (!root) return null;
+        const actionButton = root.querySelector<HTMLButtonElement>(
+          `[data-react-grab-toolbar-action="${id}"]`,
+        );
+        if (!actionButton) return null;
+        return actionButton.getAttribute("aria-pressed") === "true";
+      },
+      { attrName: ATTRIBUTE_NAME, id: actionId },
+    );
   };
 
   const clickToolbarCollapse = async () => {
@@ -1719,6 +1763,8 @@ const createReactGrabPageObject = (
     isToolbarCollapsed,
     getToolbarInfo,
     clickToolbarToggle,
+    clickToolbarAction,
+    getToolbarActionPressed,
     clickToolbarCollapse,
     dragToolbar,
     dragToolbarFromButton,
