@@ -166,38 +166,11 @@ export const createTailwindAutoApply = (
     return true;
   };
 
-  // `bg-[#ff0000]`, `text-[rgb(0_0_0)]`, `border-[hsl(...)]` → set the
-  // color property. Length-valued classes like `text-[13px]` are NOT
-  // colors (tailwindColorPropertyForClassName excludes them) and fall
-  // through to the length handler below.
-  const applyArbitraryColorClass = (rawQuery: string): boolean => {
-    const arbitraryMatch = rawQuery.trim().match(TAILWIND_ARBITRARY_PATTERN);
-    if (!arbitraryMatch) return false;
-    const colorCssKey = tailwindColorPropertyForClassName(rawQuery.trim());
-    if (!colorCssKey) return false;
-    const colorTarget = findColor(initialProperties, colorCssKey);
-    if (!colorTarget) return false;
-    const normalizedHex = parseAnyColor(cleanArbitraryValue(arbitraryMatch[2]));
-    if (!normalizedHex) return false;
-    setIsCompact(true);
-    commit(colorTarget, normalizedHex, { shouldCompact: true });
-    return true;
-  };
-
-  // `text-[13px]`, `w-[200px]`, `p-[1.5rem]` → set the dimensional
-  // property. Routing `text-[13px]` here (font size) is what keeps it
-  // from being mistaken for a text color.
-  const applyArbitraryLengthClass = (rawQuery: string): boolean => {
-    const arbitraryMatch = rawQuery.trim().match(TAILWIND_ARBITRARY_PATTERN);
-    if (!arbitraryMatch) return false;
-    const px = parseArbitraryLengthPx(cleanArbitraryValue(arbitraryMatch[2]));
-    if (px === null) return false;
-    const cssKey = tailwindPrefixToProperty(arbitraryPrefix(arbitraryMatch[1]));
-    if (!cssKey) return false;
+  const commitNumericValue = (cssKey: string, value: number): boolean => {
     const numericTarget = findNumeric(initialProperties, cssKey);
     if (numericTarget) {
       setIsCompact(true);
-      commit(numericTarget, clampedFor(numericTarget, px), { shouldCompact: true });
+      commit(numericTarget, clampedFor(numericTarget, value), { shouldCompact: true });
       return true;
     }
     const sideProperties = findNumericLonghands(initialProperties, cssKey);
@@ -205,15 +178,41 @@ export const createTailwindAutoApply = (
     setIsCompact(true);
     batch(() => {
       for (const sideProperty of sideProperties) {
-        commit(sideProperty, clampedFor(sideProperty, px), { shouldCompact: true });
+        commit(sideProperty, clampedFor(sideProperty, value), { shouldCompact: true });
       }
     });
     return true;
   };
 
+  // Tailwind arbitrary-value classes, routed by the value's type:
+  //   `bg-[#ff0000]`, `text-[rgb(0_0_0)]` → color property
+  //   `text-[13px]`, `w-[200px]`, `p-[1.5rem]` → dimensional property
+  // The color check runs first but only matches actual colors
+  // (tailwindColorPropertyForClassName excludes lengths), so `text-[13px]`
+  // correctly falls through to font size rather than text color.
+  const applyArbitraryClass = (rawQuery: string): boolean => {
+    const normalizedClass = rawQuery.trim();
+    const arbitraryMatch = normalizedClass.match(TAILWIND_ARBITRARY_PATTERN);
+    if (!arbitraryMatch) return false;
+    const value = cleanArbitraryValue(arbitraryMatch[2]);
+
+    const colorCssKey = tailwindColorPropertyForClassName(normalizedClass);
+    const colorTarget = colorCssKey ? findColor(initialProperties, colorCssKey) : null;
+    const normalizedHex = colorTarget ? parseAnyColor(value) : null;
+    if (colorTarget && normalizedHex) {
+      setIsCompact(true);
+      commit(colorTarget, normalizedHex, { shouldCompact: true });
+      return true;
+    }
+
+    const lengthPx = parseArbitraryLengthPx(value);
+    if (lengthPx === null) return false;
+    const cssKey = tailwindPrefixToProperty(arbitraryPrefix(arbitraryMatch[1]));
+    return cssKey ? commitNumericValue(cssKey, lengthPx) : false;
+  };
+
   const applySingleClass = (rawQuery: string) => {
-    if (applyArbitraryColorClass(rawQuery)) return;
-    if (applyArbitraryLengthClass(rawQuery)) return;
+    if (applyArbitraryClass(rawQuery)) return;
     const query = normalizeTailwindClassInput(rawQuery);
     const intentPrefix = query.replace(/-\d*$/, "").replace(/-$/, "");
     const intentCssKey = intentPrefix ? tailwindPrefixToProperty(intentPrefix) : null;
