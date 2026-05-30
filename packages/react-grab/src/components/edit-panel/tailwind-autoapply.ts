@@ -1,6 +1,7 @@
 import { batch, createMemo, type Accessor } from "solid-js";
-import { TAILWIND_SPACING_UNIT_PX } from "../../constants.js";
+import { EDIT_ROOT_FONT_SIZE_PX, TAILWIND_SPACING_UNIT_PX } from "../../constants.js";
 import type {
+  ColorEditableProperty,
   EditableProperty,
   EnumEditableProperty,
   NumericEditableProperty,
@@ -10,13 +11,19 @@ import { expandAggregateLonghands } from "../../utils/expand-aggregate-longhands
 import { roundEditableNumericValue } from "../../utils/format-css-value.js";
 import { isNumericDraftQuery } from "../../utils/is-numeric-draft-query.js";
 import { isNumericQuery } from "../../utils/is-numeric-query.js";
+import { parseAnyColor } from "../../utils/parse-any-color.js";
 import {
   normalizeTailwindClassInput,
   tailwindClassToEnumValue,
+  tailwindColorPropertyForClassName,
   tailwindPrefixToProperty,
 } from "../../utils/tailwind-class-map.js";
 
 const TAILWIND_CLASS_PATTERN = /^([a-z-]+)-(-?\d+(?:\.\d+)?)$/;
+// Matches a tailwind arbitrary-value class: `<prefix>-[<value>]`, e.g.
+// `bg-[#ff0000]`, `text-[rgb(0_0_0)]`, `text-[13px]`, `max-w-[200px]`.
+const TAILWIND_ARBITRARY_PATTERN = /^(.+?)-\[(.+)]$/;
+const ARBITRARY_LENGTH_PATTERN = /^(-?\d*\.?\d+)(px|rem|em)?$/i;
 
 const LITERAL_NUMBER_KEYS = new Set([
   "opacity",
@@ -47,6 +54,42 @@ const findEnum = (
     if (property.key === cssKey && property.kind === "enum") return property;
   }
   return null;
+};
+
+const findColor = (
+  properties: readonly EditableProperty[],
+  cssKey: string,
+): ColorEditableProperty | null => {
+  for (const property of properties) {
+    if (property.key === cssKey && property.kind === "color") return property;
+  }
+  return null;
+};
+
+// Tailwind arbitrary values escape spaces as underscores (`rgb(0_0_0)`)
+// and may carry a `color:`/`length:`/`size:` data-type hint.
+const cleanArbitraryValue = (rawValue: string): string =>
+  rawValue
+    .replace(/_/g, " ")
+    .replace(/^(?:color|length|size):/i, "")
+    .trim();
+
+const arbitraryPrefix = (rawPrefix: string): string => {
+  const lastVariantColon = rawPrefix.lastIndexOf(":");
+  const withoutVariant = lastVariantColon >= 0 ? rawPrefix.slice(lastVariantColon + 1) : rawPrefix;
+  const withoutImportant = withoutVariant.startsWith("!")
+    ? withoutVariant.slice(1)
+    : withoutVariant;
+  return withoutImportant.toLowerCase();
+};
+
+const parseArbitraryLengthPx = (value: string): number | null => {
+  const lengthMatch = value.match(ARBITRARY_LENGTH_PATTERN);
+  if (!lengthMatch) return null;
+  const magnitude = Number.parseFloat(lengthMatch[1]);
+  if (!Number.isFinite(magnitude)) return null;
+  const unit = (lengthMatch[2] ?? "px").toLowerCase();
+  return unit === "rem" || unit === "em" ? magnitude * EDIT_ROOT_FONT_SIZE_PX : magnitude;
 };
 
 const findNumericLonghands = (
@@ -123,7 +166,54 @@ export const createTailwindAutoApply = (
     return true;
   };
 
+  // `bg-[#ff0000]`, `text-[rgb(0_0_0)]`, `border-[hsl(...)]` → set the
+  // color property. Length-valued classes like `text-[13px]` are NOT
+  // colors (tailwindColorPropertyForClassName excludes them) and fall
+  // through to the length handler below.
+  const applyArbitraryColorClass = (rawQuery: string): boolean => {
+    const arbitraryMatch = rawQuery.trim().match(TAILWIND_ARBITRARY_PATTERN);
+    if (!arbitraryMatch) return false;
+    const colorCssKey = tailwindColorPropertyForClassName(rawQuery.trim());
+    if (!colorCssKey) return false;
+    const colorTarget = findColor(initialProperties, colorCssKey);
+    if (!colorTarget) return false;
+    const normalizedHex = parseAnyColor(cleanArbitraryValue(arbitraryMatch[2]));
+    if (!normalizedHex) return false;
+    setIsCompact(true);
+    commit(colorTarget, normalizedHex, { shouldCompact: true });
+    return true;
+  };
+
+  // `text-[13px]`, `w-[200px]`, `p-[1.5rem]` → set the dimensional
+  // property. Routing `text-[13px]` here (font size) is what keeps it
+  // from being mistaken for a text color.
+  const applyArbitraryLengthClass = (rawQuery: string): boolean => {
+    const arbitraryMatch = rawQuery.trim().match(TAILWIND_ARBITRARY_PATTERN);
+    if (!arbitraryMatch) return false;
+    const px = parseArbitraryLengthPx(cleanArbitraryValue(arbitraryMatch[2]));
+    if (px === null) return false;
+    const cssKey = tailwindPrefixToProperty(arbitraryPrefix(arbitraryMatch[1]));
+    if (!cssKey) return false;
+    const numericTarget = findNumeric(initialProperties, cssKey);
+    if (numericTarget) {
+      setIsCompact(true);
+      commit(numericTarget, clampedFor(numericTarget, px), { shouldCompact: true });
+      return true;
+    }
+    const sideProperties = findNumericLonghands(initialProperties, cssKey);
+    if (sideProperties.length === 0) return false;
+    setIsCompact(true);
+    batch(() => {
+      for (const sideProperty of sideProperties) {
+        commit(sideProperty, clampedFor(sideProperty, px), { shouldCompact: true });
+      }
+    });
+    return true;
+  };
+
   const applySingleClass = (rawQuery: string) => {
+    if (applyArbitraryColorClass(rawQuery)) return;
+    if (applyArbitraryLengthClass(rawQuery)) return;
     const query = normalizeTailwindClassInput(rawQuery);
     const intentPrefix = query.replace(/-\d*$/, "").replace(/-$/, "");
     const intentCssKey = intentPrefix ? tailwindPrefixToProperty(intentPrefix) : null;

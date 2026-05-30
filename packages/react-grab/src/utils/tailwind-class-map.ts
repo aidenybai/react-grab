@@ -279,7 +279,7 @@ const tailwindClassTail = (baseClassName: string, prefix: string): string | null
   return baseClassName.slice(prefixWithSeparator.length);
 };
 
-const tailwindColorPropertyForClassName = (className: string): string | null => {
+export const tailwindColorPropertyForClassName = (className: string): string | null => {
   const baseClassName = stripTailwindModifiers(normalizeTailwindClassInput(className));
   const prefix = matchTailwindPrefix(baseClassName);
   if (!prefix) return null;

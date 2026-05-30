@@ -5,8 +5,10 @@ import {
   EDIT_PANEL_ATTR,
   EDIT_PROPERTY_ATTR,
   clearEditStorage,
+  getInlineStyleProperty,
   getVisiblePropertyKeys,
   openEditPanel,
+  setSearchInputValue,
 } from "./edit-panel-helpers.js";
 
 const PLAIN_TEXT_SELECTOR = "[data-testid='deeply-nested-text']";
@@ -31,6 +33,37 @@ test.describe("Style Panel Color Controls", () => {
     const propertyKeys = await getVisiblePropertyKeys(reactGrab.page);
     expect(propertyKeys).toContain("background-color");
     expect(propertyKeys).toContain("color");
+  });
+
+  test("typing bg-[#hex] applies the background color", async ({ reactGrab }) => {
+    await openEditPanel(reactGrab, BUTTON_SELECTOR);
+    await setSearchInputValue(reactGrab.page, "bg-[#ff0000]");
+    await reactGrab.page.waitForTimeout(120);
+    const background = await getInlineStyleProperty(
+      reactGrab.page,
+      BUTTON_SELECTOR,
+      "background-color",
+    );
+    // The browser normalizes the applied inline color to rgb form.
+    expect(background.replace(/\s/g, "")).toBe("rgb(255,0,0)");
+  });
+
+  test("typing text-[rgb(...)] applies the text color", async ({ reactGrab }) => {
+    await openEditPanel(reactGrab, BUTTON_SELECTOR);
+    await setSearchInputValue(reactGrab.page, "text-[rgb(0_128_255)]");
+    await reactGrab.page.waitForTimeout(120);
+    const color = await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "color");
+    expect(color.replace(/\s/g, "")).toBe("rgb(0,128,255)");
+  });
+
+  test("typing text-[13px] applies font size, not a text color", async ({ reactGrab }) => {
+    await openEditPanel(reactGrab, BUTTON_SELECTOR);
+    await setSearchInputValue(reactGrab.page, "text-[13px]");
+    await reactGrab.page.waitForTimeout(120);
+    const fontSize = await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "font-size");
+    const color = await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "color");
+    expect(fontSize).toBe("13px");
+    expect(color).toBe("");
   });
 
   test("default text color stays available in the property list", async ({ reactGrab }) => {
