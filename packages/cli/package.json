@@ -19,7 +19,7 @@
   },
   "scripts": {
     "dev": "node scripts/bundle-skill.mjs --watch",
-    "build": "rm -rf dist skills && node scripts/bundle-skill.mjs && NODE_ENV=production vp pack && node scripts/copy-native-readers.mjs",
+    "build": "rm -rf dist skills && node scripts/bundle-skill.mjs && cross-env NODE_ENV=production vp pack && node scripts/copy-native-readers.mjs",
     "test": "vp test run",
     "test:watch": "vp test",
     "lint": "vp lint",
@@ -41,6 +41,7 @@
   },
   "devDependencies": {
     "@types/prompts": "^2.4.9",
+    "cross-env": "^10.1.0",
     "vite-plus": "^0.1.20"
   }
 }
