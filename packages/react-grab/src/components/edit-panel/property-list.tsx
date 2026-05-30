@@ -54,9 +54,9 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
 
   const maybeActivateHoveredIndex = (propertyIndex: number, source: "enter" | "move") => {
     if (source === "move") didPointerMove = true;
-    const isFocusLocked = isInlineEditorOpen();
+    const isEditorOpen = isInlineEditorOpen();
     if (!didPointerMove) return;
-    if (isFocusLocked) return;
+    if (isEditorOpen) return;
     if (props.isAdjusting()) {
       pendingHoverIndex = propertyIndex;
       return;
@@ -72,9 +72,9 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
     if (propertyIndex === null) return;
     pendingHoverIndex = null;
     const element = itemElements[propertyIndex];
-    const isFocusLocked = isInlineEditorOpen();
+    const isEditorOpen = isInlineEditorOpen();
     if (!didPointerMove) return;
-    if (isFocusLocked) return;
+    if (isEditorOpen) return;
     if (!element?.matches(":hover")) return;
     if (propertyIndex === props.activeIndex) return;
     props.onHoverIndex(propertyIndex);
