@@ -87,6 +87,32 @@ test.describe("Style Panel Color Controls", () => {
     expect(background.replace(/\s/g, "")).toBe("rgb(0,0,0)");
   });
 
+  test("typing bg-grey-500 resolves the grey alias to gray", async ({ reactGrab }) => {
+    await openEditPanel(reactGrab, BUTTON_SELECTOR);
+    await setSearchInputValue(reactGrab.page, "bg-grey-500");
+    await reactGrab.page.waitForTimeout(120);
+    const background = await getInlineStyleProperty(
+      reactGrab.page,
+      BUTTON_SELECTOR,
+      "background-color",
+    );
+    expect(background.replace(/\s/g, "")).toBe("rgb(107,114,128)");
+  });
+
+  test("a theme color token without a fixed value is not applied", async ({ reactGrab }) => {
+    await openEditPanel(reactGrab, BUTTON_SELECTOR);
+    await setSearchInputValue(reactGrab.page, "bg-primary");
+    await reactGrab.page.waitForTimeout(120);
+    const background = await getInlineStyleProperty(
+      reactGrab.page,
+      BUTTON_SELECTOR,
+      "background-color",
+    );
+    expect(background).toBe("");
+    // The color row is still surfaced so the value can be picked manually.
+    await expect.poll(() => getActivePropertyKey(reactGrab.page)).toBe("background-color");
+  });
+
   test("picking a color on an unset (transparent) row produces an opaque color", async ({
     reactGrab,
   }) => {

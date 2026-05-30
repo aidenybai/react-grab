@@ -190,38 +190,35 @@ export const createTailwindAutoApply = (
     return true;
   };
 
+  // Single color-apply path for both spellings: arbitrary values
+  // (`bg-[#f00]`, passed pre-parsed) and named palette tokens
+  // (`bg-red-500`, resolved here). A null arbitraryValue means "resolve
+  // the named token".
+  const applyColorClass = (rawClass: string, arbitraryValue: string | null): boolean => {
+    const colorCssKey = tailwindColorPropertyForClassName(rawClass);
+    if (!colorCssKey) return false;
+    const colorTarget = findColor(initialProperties, colorCssKey);
+    if (!colorTarget) return false;
+    const colorHex =
+      arbitraryValue === null ? tailwindNamedColorHex(rawClass) : parseAnyColor(arbitraryValue);
+    if (!colorHex) return false;
+    setIsCompact(true);
+    commit(colorTarget, colorHex, { shouldCompact: true });
+    return true;
+  };
+
   const applyArbitraryClass = (rawQuery: string): boolean => {
     const normalizedClass = rawQuery.trim();
     const arbitraryMatch = normalizedClass.match(TAILWIND_ARBITRARY_PATTERN);
     if (!arbitraryMatch) return false;
     const rawValue = arbitraryMatch[2];
     const value = cleanArbitraryValue(rawValue);
-
-    const colorCssKey = tailwindColorPropertyForClassName(normalizedClass);
-    const colorTarget = colorCssKey ? findColor(initialProperties, colorCssKey) : null;
-    const normalizedHex = colorTarget ? parseAnyColor(value) : null;
-    if (colorTarget && normalizedHex) {
-      setIsCompact(true);
-      commit(colorTarget, normalizedHex, { shouldCompact: true });
-      return true;
-    }
+    if (applyColorClass(normalizedClass, value)) return true;
 
     const lengthPx = parseArbitraryLengthPx(value, ARBITRARY_LENGTH_HINT.test(rawValue.trim()));
     if (lengthPx === null) return false;
     const cssKey = tailwindPrefixToProperty(arbitraryPrefix(arbitraryMatch[1]));
     return cssKey ? commitLengthPx(cssKey, lengthPx) : false;
-  };
-
-  const applyNamedColorClass = (normalizedClass: string): boolean => {
-    const colorCssKey = tailwindColorPropertyForClassName(normalizedClass);
-    if (!colorCssKey) return false;
-    const colorTarget = findColor(initialProperties, colorCssKey);
-    if (!colorTarget) return false;
-    const namedColorHex = tailwindNamedColorHex(normalizedClass);
-    if (!namedColorHex) return false;
-    setIsCompact(true);
-    commit(colorTarget, namedColorHex, { shouldCompact: true });
-    return true;
   };
 
   const applySingleClass = (rawQuery: string) => {
@@ -231,7 +228,7 @@ export const createTailwindAutoApply = (
     const intentCssKey = intentPrefix ? tailwindPrefixToProperty(intentPrefix) : null;
     if (intentCssKey && hasTrackableTarget(intentCssKey)) setIsCompact(true);
 
-    if (applyNamedColorClass(query)) return;
+    if (applyColorClass(query, null)) return;
 
     const enumMapping = tailwindClassToEnumValue(query);
     if (enumMapping) {
