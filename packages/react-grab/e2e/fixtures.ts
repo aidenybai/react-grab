@@ -6,7 +6,11 @@ const ACTIVATION_BUFFER_MS = 200;
 const PAGE_SETUP_MAX_ATTEMPTS = 2;
 const PAGE_SETUP_NAVIGATION_TIMEOUT_MS = 8_000;
 const PAGE_SETUP_API_TIMEOUT_MS = 8_000;
-const MODIFIER_KEY = process.platform === "darwin" ? "Meta" : "Control";
+const DRAG_SELECT_STEPS = 10;
+const TOOLBAR_SNAP_ANIMATION_WAIT_MS = 300;
+const TOOLBAR_SNAP_EDGE_THRESHOLD_PX = 30;
+const TOUCH_DRAG_STEPS = 10;
+const PAGE_SETUP_RETRY_BACKOFF_MS = 250;
 
 interface ContextMenuInfo {
   isVisible: boolean;
@@ -70,9 +74,20 @@ interface GrabbedBoxInfo {
   }>;
 }
 
+interface BrowserPlatformInfo {
+  platform: string;
+  userAgentDataPlatform: string | null;
+  userAgent: string;
+}
+
+type ModifierKey = "Meta" | "Control";
+
+const getHostModifierKey = (): ModifierKey => (process.platform === "darwin" ? "Meta" : "Control");
+
 export interface ReactGrabPageObject {
   page: Page;
-  modifierKey: "Meta" | "Control";
+  modifierKey: ModifierKey;
+  feedbackModifierKey: ModifierKey;
   activate: () => Promise<void>;
   activateViaKeyboard: () => Promise<void>;
   deactivate: () => Promise<void>;
@@ -181,7 +196,39 @@ export interface ReactGrabPageObject {
   waitForCallback: (name: string, timeout?: number) => Promise<unknown[]>;
 }
 
-const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
+const getBrowserModifierKey = async (page: Page): Promise<ModifierKey> => {
+  const platformInfo = await page.evaluate((): BrowserPlatformInfo => {
+    let userAgentDataPlatform: string | null = null;
+
+    if ("userAgentData" in navigator) {
+      const userAgentData = navigator.userAgentData;
+      if (typeof userAgentData === "object" && userAgentData !== null) {
+        if ("platform" in userAgentData) {
+          const platform = userAgentData.platform;
+          if (typeof platform === "string") {
+            userAgentDataPlatform = platform;
+          }
+        }
+      }
+    }
+
+    return {
+      platform: navigator.platform,
+      userAgentDataPlatform,
+      userAgent: navigator.userAgent,
+    };
+  });
+
+  const platform =
+    platformInfo.platform || platformInfo.userAgentDataPlatform || platformInfo.userAgent;
+  return /Mac|iPhone|iPad|iPod/i.test(platform) ? "Meta" : "Control";
+};
+
+const createReactGrabPageObject = (
+  page: Page,
+  activationModifierKey: ModifierKey,
+  feedbackModifierKey: ModifierKey,
+): ReactGrabPageObject => {
   const getOverlayHost = () => page.locator(`[${ATTRIBUTE_NAME}]`).first();
 
   const getShadowRoot = async () => {
@@ -211,7 +258,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const holdToActivate = async (durationMs = DEFAULT_KEY_HOLD_DURATION_MS) => {
     await page.click("body");
-    await page.keyboard.down(MODIFIER_KEY);
+    await page.keyboard.down(activationModifierKey);
     await page.keyboard.down("c");
     await page.waitForTimeout(durationMs + ACTIVATION_BUFFER_MS);
   };
@@ -232,7 +279,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   const activateViaKeyboard = async () => {
     await holdToActivate();
     await page.keyboard.up("c");
-    await page.keyboard.up(MODIFIER_KEY);
+    await page.keyboard.up(activationModifierKey);
     await waitForActive(true);
   };
 
@@ -270,7 +317,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.mouse.move(endX, endY, { steps: 10 });
+    await page.mouse.move(endX, endY, { steps: DRAG_SELECT_STEPS });
     await page.mouse.up();
   };
 
@@ -374,19 +421,19 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   };
 
   const pressKeyCombo = async (modifiers: string[], key: string) => {
-    for (const modifier of modifiers) {
-      await page.keyboard.down(modifier);
+    for (const modifierKeyName of modifiers) {
+      await page.keyboard.down(modifierKeyName);
     }
     await page.keyboard.press(key);
-    for (const modifier of [...modifiers].reverse()) {
-      await page.keyboard.up(modifier);
+    for (const modifierKeyName of [...modifiers].reverse()) {
+      await page.keyboard.up(modifierKeyName);
     }
   };
 
   const pressModifierKeyCombo = async (key: string) => {
-    await page.keyboard.down(MODIFIER_KEY);
+    await page.keyboard.down(activationModifierKey);
     await page.keyboard.press(key);
-    await page.keyboard.up(MODIFIER_KEY);
+    await page.keyboard.up(activationModifierKey);
   };
 
   const waitForContextMenu = async (visible: boolean) => {
@@ -539,9 +586,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       .waitForFunction((prevScroll) => window.scrollY !== prevScroll, scrollBefore, {
         timeout: 2000,
       })
-      .catch(() => {
-        // Scroll may not change if at edge of page, that's okay
-      });
+      .catch(() => undefined);
   };
 
   const waitForPromptMode = async (active: boolean) => {
@@ -588,7 +633,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       await waitForSelectionBox();
     }
     await rightClickElement(selector);
-    await clickContextMenuItem("Edit");
+    await clickContextMenuItem("Comment");
     await waitForPromptMode(true);
   };
 
@@ -694,7 +739,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   };
 
   const getToolbarInfo = async (): Promise<ToolbarInfo> => {
-    const defaultInfo: ToolbarInfo = {
+    const defaultToolbarInfo: ToolbarInfo = {
       isVisible: false,
       isCollapsed: false,
       isVertical: false,
@@ -704,7 +749,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     };
 
     return page.evaluate(
-      ({ attrName, fallback }) => {
+      ({ attrName, fallback, snapEdgeThresholdPx }) => {
         const host = document.querySelector(`[${attrName}]`);
         const shadowRoot = host?.shadowRoot;
         if (!shadowRoot) return fallback;
@@ -728,23 +773,26 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
-        const rect = toolbar.getBoundingClientRect();
-        const dimensions = { width: rect.width, height: rect.height };
+        const toolbarBounds = toolbar.getBoundingClientRect();
+        const dimensions = { width: toolbarBounds.width, height: toolbarBounds.height };
 
         let snapEdge: string | null = null;
         if (position) {
-          const SNAP_THRESHOLD = 30;
-          if (position.y <= SNAP_THRESHOLD) snapEdge = "top";
-          else if (position.y + rect.height >= viewportHeight - SNAP_THRESHOLD) snapEdge = "bottom";
-          else if (position.x <= SNAP_THRESHOLD) snapEdge = "left";
-          else if (position.x + rect.width >= viewportWidth - SNAP_THRESHOLD) snapEdge = "right";
+          if (position.y <= snapEdgeThresholdPx) snapEdge = "top";
+          else if (position.y + toolbarBounds.height >= viewportHeight - snapEdgeThresholdPx)
+            snapEdge = "bottom";
+          else if (position.x <= snapEdgeThresholdPx) snapEdge = "left";
+          else if (position.x + toolbarBounds.width >= viewportWidth - snapEdgeThresholdPx)
+            snapEdge = "right";
         }
 
         const isCollapsed = computedStyle.cursor === "pointer";
 
-        const innerDiv = toolbar.querySelector("div");
-        const innerStyle = innerDiv ? window.getComputedStyle(innerDiv) : null;
-        const isVertical = innerStyle?.flexDirection === "column";
+        const toolbarInnerElement = toolbar.querySelector("div");
+        const toolbarInnerStyle = toolbarInnerElement
+          ? window.getComputedStyle(toolbarInnerElement)
+          : null;
+        const isVertical = toolbarInnerStyle?.flexDirection === "column";
 
         return {
           isVisible: computedStyle.opacity !== "0",
@@ -755,7 +803,11 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
           snapEdge,
         };
       },
-      { attrName: ATTRIBUTE_NAME, fallback: defaultInfo },
+      {
+        attrName: ATTRIBUTE_NAME,
+        fallback: defaultToolbarInfo,
+        snapEdgeThresholdPx: TOOLBAR_SNAP_EDGE_THRESHOLD_PX,
+      },
     );
   };
 
@@ -790,7 +842,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   };
 
   const dragToolbar = async (deltaX: number, deltaY: number) => {
-    const toolbarRect = await page.evaluate((attrName) => {
+    const toolbarBounds = await page.evaluate((attrName) => {
       const host = document.querySelector(`[${attrName}]`);
       const shadowRoot = host?.shadowRoot;
       if (!shadowRoot) return null;
@@ -798,27 +850,31 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       if (!root) return null;
       const toolbar = root.querySelector<HTMLElement>("[data-react-grab-toolbar]");
       if (!toolbar) return null;
-      const rect = toolbar.getBoundingClientRect();
-      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+      const toolbarBounds = toolbar.getBoundingClientRect();
+      return {
+        x: toolbarBounds.x,
+        y: toolbarBounds.y,
+        width: toolbarBounds.width,
+        height: toolbarBounds.height,
+      };
     }, ATTRIBUTE_NAME);
 
-    if (!toolbarRect) return;
+    if (!toolbarBounds) return;
 
-    const startX = toolbarRect.x + toolbarRect.width / 2;
-    const startY = toolbarRect.y + toolbarRect.height / 2;
+    const startX = toolbarBounds.x + toolbarBounds.width / 2;
+    const startY = toolbarBounds.y + toolbarBounds.height / 2;
     const endX = startX + deltaX;
     const endY = startY + deltaY;
 
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.mouse.move(endX, endY, { steps: 10 });
+    await page.mouse.move(endX, endY, { steps: DRAG_SELECT_STEPS });
     await page.mouse.up();
-    // HACK: Wait for snap animation to complete
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(TOOLBAR_SNAP_ANIMATION_WAIT_MS);
   };
 
   const dragToolbarFromButton = async (buttonSelector: string, deltaX: number, deltaY: number) => {
-    const buttonRect = await page.evaluate(
+    const buttonBounds = await page.evaluate(
       ({ attrName, selector }) => {
         const host = document.querySelector(`[${attrName}]`);
         const shadowRoot = host?.shadowRoot;
@@ -827,25 +883,29 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         if (!root) return null;
         const button = root.querySelector<HTMLElement>(selector);
         if (!button) return null;
-        const rect = button.getBoundingClientRect();
-        return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+        const buttonBounds = button.getBoundingClientRect();
+        return {
+          x: buttonBounds.x,
+          y: buttonBounds.y,
+          width: buttonBounds.width,
+          height: buttonBounds.height,
+        };
       },
       { attrName: ATTRIBUTE_NAME, selector: buttonSelector },
     );
 
-    if (!buttonRect) return;
+    if (!buttonBounds) return;
 
-    const startX = buttonRect.x + buttonRect.width / 2;
-    const startY = buttonRect.y + buttonRect.height / 2;
+    const startX = buttonBounds.x + buttonBounds.width / 2;
+    const startY = buttonBounds.y + buttonBounds.height / 2;
     const endX = startX + deltaX;
     const endY = startY + deltaY;
 
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.mouse.move(endX, endY, { steps: 10 });
+    await page.mouse.move(endX, endY, { steps: DRAG_SELECT_STEPS });
     await page.mouse.up();
-    // HACK: Wait for snap animation to complete
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(TOOLBAR_SNAP_ANIMATION_WAIT_MS);
   };
 
   const rightClickToolbarToggle = async () => {
@@ -872,8 +932,8 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       const root = shadowRoot.querySelector(`[${attrName}]`);
       if (!root) return false;
       const dropdowns = root.querySelectorAll<HTMLElement>("[data-react-grab-toolbar-menu]");
-      for (let index = 0; index < dropdowns.length; index++) {
-        const dropdown = dropdowns[index];
+      for (let dropdownIndex = 0; dropdownIndex < dropdowns.length; dropdownIndex++) {
+        const dropdown = dropdowns[dropdownIndex];
         if (
           dropdown.classList.contains("fixed") &&
           getComputedStyle(dropdown).pointerEvents !== "none"
@@ -1050,15 +1110,23 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       if (!root) return null;
 
       const pulsingElements = Array.from(root.querySelectorAll(".animate-pulse"));
-      for (let i = 0; i < pulsingElements.length; i++) {
-        const element = pulsingElements[i];
+      for (
+        let pulsingElementIndex = 0;
+        pulsingElementIndex < pulsingElements.length;
+        pulsingElementIndex++
+      ) {
+        const element = pulsingElements[pulsingElementIndex];
         const text = element.textContent?.trim();
         if (text) return text;
       }
 
       const completedTexts = ["Copied", "Completed", "Done"];
-      for (let i = 0; i < completedTexts.length; i++) {
-        const text = completedTexts[i];
+      for (
+        let completedTextIndex = 0;
+        completedTextIndex < completedTexts.length;
+        completedTextIndex++
+      ) {
+        const text = completedTexts[completedTextIndex];
         if (root.textContent?.includes(text)) return text;
       }
 
@@ -1188,9 +1256,14 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       ).__REACT_GRAB__;
       const state = api?.getState();
       if (!state?.isSelectionBoxVisible || !state?.targetElement) return null;
-      const rect = state.targetElement.getBoundingClientRect();
-      if (rect.width > 0 && rect.height > 0) {
-        return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+      const targetBounds = state.targetElement.getBoundingClientRect();
+      if (targetBounds.width > 0 && targetBounds.height > 0) {
+        return {
+          x: targetBounds.x,
+          y: targetBounds.y,
+          width: targetBounds.width,
+          height: targetBounds.height,
+        };
       }
       return null;
     });
@@ -1247,26 +1320,18 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const registerCommentAction = async () => {
     await page.evaluate(() => {
-      const api = (
-        window as {
-          __REACT_GRAB__?: {
-            unregisterPlugin: (name: string) => void;
-            registerPlugin: (plugin: {
-              name: string;
-              actions: Array<Record<string, unknown>>;
-            }) => void;
-          };
-        }
-      ).__REACT_GRAB__;
-      api?.unregisterPlugin("comment-action");
-      api?.registerPlugin({
-        name: "comment-action",
+      const api = window.__REACT_GRAB__;
+      if (!api || api.getPlugins().includes("comment")) return;
+      api.registerPlugin({
+        name: "comment",
         actions: [
           {
-            id: "comment-action",
-            label: "Edit",
+            id: "comment",
+            label: "Comment",
             shortcut: "Enter",
-            onAction: (context: { enterPromptMode?: () => void }) => {
+            shortcutModifier: false,
+            showInToolbarMenu: true,
+            onAction: (context) => {
               context.enterPromptMode?.();
             },
           },
@@ -1276,7 +1341,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   };
 
   const updateOptions = async (options: Record<string, unknown>) => {
-    await page.evaluate((opts) => {
+    await page.evaluate((optionUpdates) => {
       const api = (
         window as {
           __REACT_GRAB__?: {
@@ -1313,13 +1378,13 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       const hooks: Record<string, unknown> = {};
       const regularOpts: Record<string, unknown> = {};
 
-      for (const [key, value] of Object.entries(opts)) {
-        if (pluginKeys.includes(key)) {
-          pluginOpts[key] = value;
-        } else if (hookKeys.includes(key)) {
-          hooks[key] = value;
+      for (const [optionKey, optionValue] of Object.entries(optionUpdates)) {
+        if (pluginKeys.includes(optionKey)) {
+          pluginOpts[optionKey] = optionValue;
+        } else if (hookKeys.includes(optionKey)) {
+          hooks[optionKey] = optionValue;
         } else {
-          regularOpts[key] = value;
+          regularOpts[optionKey] = optionValue;
         }
       }
 
@@ -1339,13 +1404,13 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   };
 
   const reinitialize = async (options?: Record<string, unknown>) => {
-    await page.evaluate((opts) => {
+    await page.evaluate((initialOptions) => {
       const existingApi = (window as { __REACT_GRAB__?: { dispose: () => void } }).__REACT_GRAB__;
       existingApi?.dispose();
 
       const initFn = (window as { initReactGrab?: (o?: Record<string, unknown>) => void })
         .initReactGrab;
-      initFn?.(opts);
+      initFn?.(initialOptions);
     }, options);
     await page.waitForFunction(
       () => {
@@ -1408,10 +1473,9 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   const touchDrag = async (startX: number, startY: number, endX: number, endY: number) => {
     await dispatchPointerEvent("pointerdown", startX, startY);
 
-    const steps = 10;
-    for (let i = 1; i <= steps; i++) {
-      const currentX = startX + ((endX - startX) * i) / steps;
-      const currentY = startY + ((endY - startY) * i) / steps;
+    for (let dragStepIndex = 1; dragStepIndex <= TOUCH_DRAG_STEPS; dragStepIndex++) {
+      const currentX = startX + ((endX - startX) * dragStepIndex) / TOUCH_DRAG_STEPS;
+      const currentY = startY + ((endY - startY) * dragStepIndex) / TOUCH_DRAG_STEPS;
       await dispatchPointerEvent("pointermove", currentX, currentY);
     }
 
@@ -1609,7 +1673,8 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   return {
     page,
-    modifierKey: MODIFIER_KEY,
+    modifierKey: activationModifierKey,
+    feedbackModifierKey,
     activate,
     activateViaKeyboard,
     deactivate,
@@ -1741,9 +1806,8 @@ export const test = base.extend<{ reactGrab: ReactGrabPageObject }>({
           if (attemptIndex === PAGE_SETUP_MAX_ATTEMPTS - 1) {
             throw lastError;
           }
-          // HACK: brief backoff helps when dev server is under heavy parallel load.
           await new Promise((resolve) => {
-            setTimeout(resolve, 250 * (attemptIndex + 1));
+            setTimeout(resolve, PAGE_SETUP_RETRY_BACKOFF_MS * (attemptIndex + 1));
           });
         }
       }
@@ -1751,7 +1815,9 @@ export const test = base.extend<{ reactGrab: ReactGrabPageObject }>({
 
     await initializePage();
 
-    const reactGrab = createReactGrabPageObject(page);
+    const activationModifierKey = await getBrowserModifierKey(page);
+    const feedbackModifierKey = getHostModifierKey();
+    const reactGrab = createReactGrabPageObject(page, activationModifierKey, feedbackModifierKey);
     await use(reactGrab);
   },
 });

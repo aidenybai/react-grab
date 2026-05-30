@@ -34,6 +34,7 @@ import { nativeRequestAnimationFrame } from "../utils/native-raf.js";
 import { createMenuHighlight } from "../utils/create-menu-highlight.js";
 import { suppressMenuEvent } from "../utils/suppress-menu-event.js";
 import { registerOverlayDismiss } from "../utils/register-overlay-dismiss.js";
+import { findShortcutAction } from "../utils/action-shortcuts.js";
 
 interface ContextMenuProps {
   position: Position | null;
@@ -52,14 +53,13 @@ interface MenuItem {
   action: () => void;
   enabled: boolean;
   shortcut?: string;
+  shortcutModifier?: boolean;
 }
 
 export const ContextMenu: Component<ContextMenuProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
   let menuContainerRef: HTMLDivElement | undefined;
   let previouslyFocusedElement: Element | null = null;
-  // Collected via ref callbacks during render so navigation reads from a
-  // typed array instead of querying the DOM. Indices line up with menuItems().
   const menuItemRefs: (HTMLButtonElement | undefined)[] = [];
   const {
     containerRef: highlightContainerRef,
@@ -93,9 +93,9 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
 
   const measureContainer = () => {
     if (containerRef) {
-      const rect = containerRef.getBoundingClientRect();
-      setMeasuredWidth(rect.width);
-      setMeasuredHeight(rect.height);
+      const containerBounds = containerRef.getBoundingClientRect();
+      setMeasuredWidth(containerBounds.width);
+      setMeasuredHeight(containerBounds.height);
     }
   };
 
@@ -167,6 +167,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       },
       enabled: resolveActionEnabled(action, context),
       shortcut: action.shortcut,
+      shortcutModifier: action.shortcutModifier,
     }));
   });
 
@@ -199,9 +200,6 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     return -1;
   };
 
-  // Single source of truth for the visible highlight. Reacts to activeItemIndex
-  // changes (from keyboard nav, mouse hover, etc.) and re-positions the
-  // highlight element via createMenuHighlight. No DOM queries.
   createEffect(() => {
     const index = activeItemIndex();
     if (index < 0) {
@@ -275,9 +273,6 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       const isHome = event.key === "Home";
       const isEnd = event.key === "End";
       const isTab = event.key === "Tab";
-      const isEnter = event.key === "Enter";
-      const hasModifierKey = event.metaKey || event.ctrlKey;
-      const keyLower = event.key.toLowerCase();
 
       if (isArrowDown || isArrowUp || isHome || isEnd || isTab) {
         event.preventDefault();
@@ -311,38 +306,14 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
         props.onHide();
       };
 
-      if (isEnter) {
-        // Active row wins when the user has explicitly navigated to one.
-        // Otherwise fall back to the action that registered Enter as its
-        // shortcut (typically "Edit" → prompt mode), matching the legacy
-        // behavior so opening the menu and pressing Enter still works.
-        const activeIndex = activeItemIndex();
-        if (activeIndex >= 0) {
-          const activeAction = pluginActions[activeIndex];
-          if (activeAction) {
-            runActionIfAllowed(activeAction);
-            return;
-          }
-        }
-        const enterAction = pluginActions.find((action) => action.shortcut === "Enter");
-        if (enterAction) {
-          runActionIfAllowed(enterAction);
-        }
-        return;
-      }
-
-      if (!hasModifierKey) return;
-      if (event.repeat) return;
-
-      const modifierAction = pluginActions.find(
-        (action) =>
-          action.shortcut &&
-          action.shortcut !== "Enter" &&
-          keyLower === action.shortcut.toLowerCase(),
-      );
-      if (modifierAction) {
-        runActionIfAllowed(modifierAction);
-      }
+      const currentActiveItemIndex = activeItemIndex();
+      const activeShortcutAction =
+        currentActiveItemIndex >= 0 ? pluginActions[currentActiveItemIndex] : null;
+      const shortcutAction = findShortcutAction(pluginActions, event, {
+        activeAction: activeShortcutAction,
+        includeModifierShortcuts: true,
+      });
+      if (shortcutAction) runActionIfAllowed(shortcutAction);
     };
 
     const unregisterOverlayDismiss = registerOverlayDismiss({
@@ -472,6 +443,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
                       {(shortcut) => (
                         <ShortcutHint
                           shortcut={shortcut()}
+                          modifier={item.shortcutModifier}
                           class="text-[11px] font-sans text-[var(--rg-text-secondary)] ml-4"
                         />
                       )}

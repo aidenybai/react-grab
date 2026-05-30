@@ -6,6 +6,7 @@ interface RegisterOverlayDismissOptions {
   isOpen: () => boolean;
   onDismiss: () => void;
   onConfirm?: () => void;
+  shouldIgnoreKeyboardEvent?: (event: KeyboardEvent) => boolean;
   shouldIgnoreInputEvents?: boolean;
   shouldIgnoreRightClick?: boolean;
 }
@@ -13,6 +14,7 @@ interface RegisterOverlayDismissOptions {
 export const registerOverlayDismiss = (options: RegisterOverlayDismissOptions): (() => void) => {
   const handleKeyDown = (event: KeyboardEvent) => {
     if (!options.isOpen()) return;
+    if (options.shouldIgnoreKeyboardEvent?.(event)) return;
     if (options.shouldIgnoreInputEvents && isKeyboardEventTriggeredByInput(event)) {
       return;
     }

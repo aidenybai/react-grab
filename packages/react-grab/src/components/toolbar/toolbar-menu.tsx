@@ -135,6 +135,7 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
                       {(shortcutKey) => (
                         <ShortcutHint
                           shortcut={shortcutKey()}
+                          modifier={action.shortcutModifier}
                           class="text-[11px] font-sans text-[var(--rg-text-secondary)] ml-4"
                         />
                       )}

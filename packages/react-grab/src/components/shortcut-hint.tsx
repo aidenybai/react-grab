@@ -5,11 +5,13 @@ import { IconReturn } from "./icons/icon-return.jsx";
 
 interface ShortcutHintProps {
   shortcut: string;
+  modifier?: boolean;
   class?: string;
 }
 
 export const ShortcutHint: Component<ShortcutHintProps> = (props) => {
   const isEnter = () => props.shortcut === "Enter";
+  const requiresModifier = () => props.modifier !== false;
   const isMacPlatform = isMac();
 
   return (
@@ -21,9 +23,11 @@ export const ShortcutHint: Component<ShortcutHintProps> = (props) => {
         <IconReturn size={8} />
       </Show>
       <Show when={!isEnter()}>
-        <Show when={isMacPlatform} fallback={<span>Ctrl+{props.shortcut}</span>}>
-          <IconCommand size={9} />
-          <span>{props.shortcut}</span>
+        <Show when={requiresModifier()} fallback={<span>{props.shortcut}</span>}>
+          <Show when={isMacPlatform} fallback={<span>Ctrl+{props.shortcut}</span>}>
+            <IconCommand size={9} />
+            <span>{props.shortcut}</span>
+          </Show>
         </Show>
       </Show>
     </span>
