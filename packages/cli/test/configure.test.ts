@@ -543,6 +543,52 @@ describe("previewOptionsTransform - SvelteKit", () => {
     expect(result.newContent).not.toContain("void import");
     expect(result.newContent).toContain('"activationKey":"Meta+G"');
   });
+
+  it("should add options to SvelteKit app.html script tag", () => {
+    const appHtmlWithReactGrab = `<html>
+  <head><script src="/react-grab.js"></script></head>
+  <body>%sveltekit.body%</body>
+</html>`;
+
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("app.html"));
+    mockReadFileSync.mockReturnValue(appHtmlWithReactGrab);
+
+    const options: ReactGrabOptions = {
+      activationKey: "Meta+G",
+      activationMode: "hold",
+    };
+
+    const result = previewOptionsTransform("/test", "sveltekit", "unknown", options);
+
+    expect(result.success).toBe(true);
+    expect(result.filePath).toBe("/test/src/app.html");
+    expect(result.newContent).toContain("data-options='");
+    expect(result.newContent).toContain('"activationKey":"Meta+G"');
+    expect(result.newContent).toContain('"activationMode":"hold"');
+  });
+
+  it("should update existing SvelteKit app.html script options", () => {
+    const appHtmlWithReactGrabOptions = `<html>
+  <head><script src="/react-grab.js" data-options='{"activationKey":"g"}'></script></head>
+  <body>%sveltekit.body%</body>
+</html>`;
+
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("app.html"));
+    mockReadFileSync.mockReturnValue(appHtmlWithReactGrabOptions);
+
+    const options: ReactGrabOptions = {
+      activationKey: "Meta+K",
+    };
+
+    const result = previewOptionsTransform("/test", "sveltekit", "unknown", options);
+
+    expect(result.success).toBe(true);
+    expect(result.filePath).toBe("/test/src/app.html");
+    expect(result.newContent).toContain('"activationKey":"Meta+K"');
+    expect(result.newContent).not.toContain('"activationKey":"g"');
+    const dataOptionsCount = (result.newContent!.match(/data-options/g) || []).length;
+    expect(dataOptionsCount).toBe(1);
+  });
 });
 
 describe("previewOptionsTransform - Unknown framework", () => {

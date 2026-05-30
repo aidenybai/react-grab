@@ -823,10 +823,31 @@ const addOptionsToSvelteKitImport = (
   );
 
   if (!reactGrabImportWithInitMatch) {
+    const reactGrabScriptMatch = originalContent.match(/<script\b[^>]*react-grab[^>]*>/i);
+
+    if (!reactGrabScriptMatch) {
+      return {
+        success: false,
+        filePath,
+        message: "Could not find React Grab import or script tag",
+      };
+    }
+
+    const scriptTag = reactGrabScriptMatch[0];
+    const optionsJson = formatOptionsAsJson(options);
+    const dataOptionsAttr = `data-options='${optionsJson}'`;
+    const existingDataOptionsMatch = scriptTag.match(/\sdata-options=(["']).*?\1/);
+    const newScriptTag = existingDataOptionsMatch
+      ? scriptTag.replace(existingDataOptionsMatch[0], ` ${dataOptionsAttr}`)
+      : scriptTag.replace(/>$/, ` ${dataOptionsAttr}>`);
+    const newContent = originalContent.replace(scriptTag, newScriptTag);
+
     return {
-      success: false,
+      success: true,
       filePath,
-      message: "Could not find React Grab import",
+      message: "Update React Grab options",
+      originalContent,
+      newContent,
     };
   }
 
