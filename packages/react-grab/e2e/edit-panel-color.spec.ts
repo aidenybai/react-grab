@@ -56,6 +56,34 @@ test.describe("Style Panel Color Controls", () => {
     expect(color.replace(/\s/g, "")).toBe("rgb(0,128,255)");
   });
 
+  test("picking a color on an unset (transparent) row produces an opaque color", async ({
+    reactGrab,
+  }) => {
+    const { page } = reactGrab;
+    // The plain text element has no background — the pinned "background"
+    // row starts fully transparent (#00000000). Picking a color must not
+    // re-apply the 00 alpha (which would keep it invisible).
+    await openEditPanel(reactGrab, PLAIN_TEXT_SELECTOR);
+    await page.locator(`[${EDIT_PANEL_ATTR}] [${EDIT_PROPERTY_ATTR}="background-color"]`).click();
+
+    await page.evaluate(
+      ({ attrName, panelAttr }) => {
+        const host = document.querySelector(`[${attrName}]`);
+        const nativePicker = host?.shadowRoot?.querySelector<HTMLInputElement>(
+          `[${panelAttr}] input[type="color"]`,
+        );
+        if (!nativePicker) throw new Error("native color picker not found");
+        nativePicker.value = "#ff0000";
+        nativePicker.dispatchEvent(new InputEvent("input", { bubbles: true, composed: true }));
+      },
+      { attrName: ATTRIBUTE_NAME, panelAttr: EDIT_PANEL_ATTR },
+    );
+    await page.waitForTimeout(120);
+
+    const background = await getInlineStyleProperty(page, PLAIN_TEXT_SELECTOR, "background-color");
+    expect(background.replace(/\s/g, "")).toBe("rgb(255,0,0)");
+  });
+
   test("typing text-[13px] applies font size, not a text color", async ({ reactGrab }) => {
     await openEditPanel(reactGrab, BUTTON_SELECTOR);
     await setSearchInputValue(reactGrab.page, "text-[13px]");
