@@ -2,6 +2,9 @@ import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { sleep } from "./sleep.js";
+
+export const HISTORY_FILE_NAME = "history.jsonl";
 
 const READ_TIMEOUT_MS = 2500;
 const MAX_CLIPBOARD_BYTES = 64 * 1024 * 1024;
@@ -77,9 +80,6 @@ interface CreateReaderOptions {
   // Writable directory for the compiled native binary (e.g. macOS `pbread`).
   workDir: string;
 }
-
-const sleep = (durationMs: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, durationMs));
 
 const shortHash = (text: string): string =>
   createHash("sha1").update(text).digest("hex").slice(0, HASH_LENGTH);
@@ -326,24 +326,21 @@ export const prepareWorkDir = (dir: string): void => {
   if (!fs.existsSync(gitignore)) fs.writeFileSync(gitignore, "*\n");
 };
 
-interface WatchForNextGrabOptions {
+interface RunWatchLoopOptions {
   reader: ClipboardReader;
   dir: string;
   intervalMs: number;
   replayLast: boolean;
   onWarn?: (message: string) => void;
-  signal?: AbortSignal;
 }
 
-// Polls the clipboard until it captures the next React Grab selection, appends
-// it to history.jsonl, and resolves with that one record. Resolves null only if
-// aborted. Baselines the current clipboard first so a grab already sitting there
-// is not replayed (unless replayLast).
-export const watchForNextGrab = async (
-  options: WatchForNextGrabOptions,
-): Promise<CapturedGrab | null> => {
-  const { reader, dir, intervalMs, replayLast, onWarn, signal } = options;
-  const logPath = path.join(dir, "history.jsonl");
+// Polls the clipboard forever, appending every newly captured React Grab
+// selection to history.jsonl. Runs until the process is killed (the daemon body
+// keeps it alive for the process's lifetime). Baselines the current clipboard
+// first so a grab already sitting there is not replayed (unless replayLast).
+export const runWatchLoop = async (options: RunWatchLoopOptions): Promise<void> => {
+  const { reader, dir, intervalMs, replayLast, onWarn } = options;
+  const logPath = path.join(dir, HISTORY_FILE_NAME);
   const { read } = reader;
 
   let lastChangeCount: number | null = null;
@@ -363,9 +360,8 @@ export const watchForNextGrab = async (
     }
   }
 
-  while (!signal?.aborted) {
+  while (true) {
     await sleep(intervalMs);
-    if (signal?.aborted) return null;
     // Clipboard payloads are untrusted (any web page can forge one), so a single
     // malformed/hostile grab must never crash the loop. Distinct errors surface
     // via onWarn so a persistent failure is diagnosable rather than silent.
@@ -425,7 +421,6 @@ export const watchForNextGrab = async (
       lastChangeCount = snapshot.changeCount;
       lastTextHash = textHash;
       lastTimestamp = nextTimestamp;
-      return captured;
     } catch (error) {
       const message = String((error as Error)?.message ?? error);
       if (message !== lastErrorMessage) {
@@ -434,5 +429,4 @@ export const watchForNextGrab = async (
       }
     }
   }
-  return null;
 };

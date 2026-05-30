@@ -6,31 +6,67 @@ description: >-
   copy-paste or manual handoff. Triggers: "watch react grab", "monitor my
   grabs", "auto-process react grab", "watch my clipboard for grabs". Not for a
   one-off paste of a single grab; this is the continuous, always-on loop.
-disable-model-invocation: true
 ---
 
 # React Grab
 
-The user selects UI elements in their browser and copies them with React Grab.
-`npx grab watch` blocks until the next grab lands on the clipboard, prints it as
-one line of JSON, and exits. Run it, act on the grab, run it again: that is the
-whole loop. No background process, no notifications, no polling, just a blocking
-command you keep re-running until the user says stop.
+The user selects UI elements in their browser and copies them with React Grab. A
+background daemon captures each grab to `./.react-grab/history.jsonl`; you pull
+them with `grab read`. Nothing blocks the agent: the daemon runs detached and
+`read` returns promptly, so the loop survives shell-command timeouts.
+
+## Start the daemon (once)
+
+```bash
+npx grab@latest watch
+```
+
+This launches a detached daemon that watches the clipboard. It is idempotent per
+dir — re-running it while a daemon is already watching this project is a no-op —
+so it is safe to run at the start of every session. `--dir <path>` relocates the
+capture dir; `--text-only` skips the native clipboard reader.
 
 ## The loop
 
-1. Run `npx grab watch` in the foreground. It blocks until the user grabs
-   something, then prints the grab JSON and exits 0.
-2. Act on the grab (below).
-3. Repeat.
+Repeat until the user says stop:
 
-Each grab is also appended to `./.react-grab/history.jsonl` as a durable record;
-the command drops a `.gitignore` there so it never lands in git. `--dir <path>`
-relocates it, `--text-only` skips the native clipboard reader.
+1. Pull the next grabs (blocks up to 20s for one to arrive, then returns):
+
+```bash
+npx grab read --wait 20000
+```
+
+Each line of stdout is one grab as JSON. Empty output means nothing new yet —
+just run it again.
+
+2. Act on each grab (below).
+3. Go back to step 1.
+
+`read` advances a cursor (`./.react-grab/cursor.txt`), so each grab is delivered
+exactly once across calls. Add `--all` to replay the whole history from the start.
+
+## Gotchas
+
+- **Empty `read` output is not an error** — it just means no grab landed yet.
+  Re-run it; never treat empty output as the daemon being dead or the loop being
+  done. Only the user saying "stop" ends the loop.
+- **The daemon reads the clipboard on the machine it runs on.** Over SSH, in a
+  container, or on a cloud host while the browser is on the user's laptop, grabs
+  never arrive. The daemon must run on the same machine as the browser.
+- **Run one `read` at a time.** Concurrent reads share `cursor.txt` and can
+  double-deliver or skip grabs — keep the loop sequential.
+- **`read --all` replays the whole history without consuming it** — it does not
+  advance the cursor, so use it only to inspect history; the loop's plain `read`
+  is what delivers each grab exactly once.
+- **If grabs never arrive even though the user is grabbing**, the daemon may not
+  be staying up. A healthy daemon makes `npx grab@latest watch` report
+  `already watching`; if it keeps reporting `started`, the daemon is dying on
+  startup — usually no clipboard reader. Try `npx grab watch --text-only`, or run
+  `npx grab watch --foreground` once to see the startup error directly.
 
 ## Acting on a grab
 
-The grab JSON has `content` (the element's source references) and, in prompt
+Each grab JSON has `content` (the element's source references) and, in prompt
 mode, `prompt` (the user's typed instruction):
 
 - **`prompt` present** → that comment IS the task. Execute it against the grabbed
@@ -45,5 +81,10 @@ inline.
 
 ## Stopping
 
-When the user says stop, interrupt the command if it is still blocking and do not
-run it again. Confirm the loop has stopped.
+When the user says stop, stop the daemon and do not read again:
+
+```bash
+npx grab@latest watch --stop
+```
+
+Confirm the loop has stopped.

@@ -2,6 +2,7 @@ import { Command } from "commander";
 import { add } from "./commands/add.js";
 import { configure } from "./commands/configure.js";
 import { init } from "./commands/init.js";
+import { read } from "./commands/read.js";
 import { remove } from "./commands/remove.js";
 import { upgrade } from "./commands/upgrade.js";
 import { watch } from "./commands/watch.js";
@@ -27,6 +28,7 @@ program.addCommand(remove);
 program.addCommand(configure);
 program.addCommand(upgrade);
 program.addCommand(watch);
+program.addCommand(read);
 
 const main = async () => {
   await program.parseAsync();
