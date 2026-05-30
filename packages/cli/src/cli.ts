@@ -4,6 +4,7 @@ import { configure } from "./commands/configure.js";
 import { init } from "./commands/init.js";
 import { remove } from "./commands/remove.js";
 import { upgrade } from "./commands/upgrade.js";
+import { watch } from "./commands/watch.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
 const VERSION_API_URL = "https://www.react-grab.com/api/version";
@@ -25,6 +26,7 @@ program.addCommand(add);
 program.addCommand(remove);
 program.addCommand(configure);
 program.addCommand(upgrade);
+program.addCommand(watch);
 
 const main = async () => {
   await program.parseAsync();

@@ -1,12 +1,12 @@
 import AppKit
 
-// macOS clipboard reader for the React Grab watcher. React Grab's custom MIME
-// type is not exposed directly by Chromium-based browsers: the legacy
+// macOS clipboard reader for `react-grab watch`. React Grab's custom MIME type
+// is not exposed directly by Chromium-based browsers: the legacy
 // execCommand("copy") + dataTransfer.setData path lands as a base::Pickle under
 // "org.chromium.web-custom-data"; the async Clipboard API path lands as raw
 // bytes referenced by "org.w3.web-custom-format.map". This reader emits the
-// pickle as base64 (watch.mjs decodes it, shared with Linux/Windows) and the
-// W3C payload as a resolved string, plus changeCount for cheap idle polling.
+// pickle as base64 (the CLI decodes it, shared with Linux/Windows) and the W3C
+// payload as a resolved string, plus changeCount for cheap idle polling.
 
 let GRAB_MIME = "application/x-react-grab"
 let pasteboard = NSPasteboard.general

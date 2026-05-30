@@ -7,9 +7,9 @@ const GRAB_MIME = "application/x-react-grab";
 const CHROMIUM_CUSTOM_FORMAT = "chromium/x-web-custom-data";
 const FIXTURES_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "fixtures");
 
-// Mirror of watch.mjs's parser: encode one base::Pickle string16 (uint32 length
-// in UTF-16 code units, UTF-16LE bytes, padded to a 4-byte boundary).
-const encodeString16 = (value) => {
+// Mirror of the CLI parser: encode one base::Pickle string16 (uint32 length in
+// UTF-16 code units, UTF-16LE bytes, padded to a 4-byte boundary).
+const encodeString16 = (value: string): Buffer => {
   const valueBytes = Buffer.from(value, "utf16le");
   const lengthHeader = Buffer.alloc(4);
   lengthHeader.writeUInt32LE(value.length);
@@ -18,7 +18,7 @@ const encodeString16 = (value) => {
   return Buffer.concat([lengthHeader, valueBytes, Buffer.alloc(padding)]);
 };
 
-export const encodeChromiumPickle = (formats) => {
+export const encodeChromiumPickle = (formats: Record<string, string>): Buffer => {
   const entries = Object.entries(formats);
   const pairCount = Buffer.alloc(4);
   pairCount.writeUInt32LE(entries.length);
@@ -32,23 +32,24 @@ export const encodeChromiumPickle = (formats) => {
   return Buffer.concat([sizeHeader, body]);
 };
 
-export const encodeGrabPickle = (grabJson) => encodeChromiumPickle({ [GRAB_MIME]: grabJson });
+export const encodeGrabPickle = (grabJson: string): Buffer =>
+  encodeChromiumPickle({ [GRAB_MIME]: grabJson });
 
-export const hasCommand = (name) => {
+export const hasCommand = (name: string): boolean => {
   const probe = process.platform === "win32" ? "where" : "which";
   return spawnSync(probe, [name], { stdio: "ignore" }).status === 0;
 };
 
-export const canUseClipboard = () => {
+export const canUseClipboard = (): boolean => {
   if (process.platform === "darwin") return hasCommand("pbcopy");
   if (process.platform === "linux") return hasCommand("xclip") && Boolean(process.env.DISPLAY);
   if (process.platform === "win32") return hasCommand("powershell") || hasCommand("pwsh");
   return false;
 };
 
-const powershell = () => (hasCommand("pwsh") ? "pwsh" : "powershell");
+const powershell = (): string => (hasCommand("pwsh") ? "pwsh" : "powershell");
 
-export const writeText = (text) => {
+export const writeText = (text: string): boolean => {
   if (process.platform === "darwin") return spawnSync("pbcopy", [], { input: text }).status === 0;
   if (process.platform === "linux") {
     // xclip forks a background server that keeps stdout/stderr open; ignore them
@@ -72,7 +73,7 @@ export const writeText = (text) => {
 // Writes a React Grab grab to the clipboard the way a browser would. macOS and
 // Windows can offer the custom format alongside plain text; X11 xclip serves one
 // target per invocation, so on Linux only the custom blob is offered.
-export const writeGrab = ({ text, grabJson }) => {
+export const writeGrab = ({ text, grabJson }: { text: string; grabJson: string }): boolean => {
   const pickle = encodeGrabPickle(grabJson);
   if (process.platform === "darwin") {
     const fixture = path.join(FIXTURES_DIR, "write-pasteboard.swift");

@@ -1,35 +1,25 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
 
-const POLL_INTERVAL_MS = 800;
 const READ_TIMEOUT_MS = 2500;
 const MAX_CLIPBOARD_BYTES = 64 * 1024 * 1024;
 const ID_RADIX = 36;
 const HASH_LENGTH = 12;
-const PROMPT_PREVIEW_CHARS = 120;
 const PICKLE_HEADER_BYTES = 4;
 const PICKLE_ALIGN_BYTES = 4;
-const GRAB_MIME = "application/x-react-grab";
-const CHROMIUM_CUSTOM_FORMAT = "chromium/x-web-custom-data";
 const SIGNATURE_SCAN_CHARS = 32 * 1024;
+
+export const GRAB_MIME = "application/x-react-grab";
+export const CHROMIUM_CUSTOM_FORMAT = "chromium/x-web-custom-data";
+
 // React Grab plain-text payloads always carry a component-stack frame such as
 // "in LoginForm (at components/login-form.tsx:46:19)". Used to recognize a grab
 // when the structured custom clipboard format is unavailable (text fallback).
 // `[^\n]{1,400}?` allows parentheses in paths (e.g. Next.js route groups
 // `(auth)`) while bounding backtracking on hostile clipboard text.
 const GRAB_TEXT_SIGNATURE = /\bin\s+\S+\s+\(at\s+[^\n]{1,400}?:\d+:\d+\)/;
-const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
-
-interface WatchOptions {
-  dir: string;
-  intervalMs: number;
-  replayLast: boolean;
-  textOnly: boolean;
-}
 
 interface GrabEntry {
   tagName?: string;
@@ -45,6 +35,11 @@ interface GrabRecord {
   content: string;
   entries: GrabEntry[];
   prompt?: string;
+}
+
+interface CapturedGrab extends GrabRecord {
+  id: string;
+  receivedAt: number;
 }
 
 // What a platform reader returns each poll. `grab` is the resolved
@@ -75,57 +70,13 @@ interface LinuxTool {
   readCustom: (() => Buffer | null) | null;
 }
 
-const parseArgs = (): WatchOptions => {
-  const args = process.argv.slice(2);
-  const options: WatchOptions = {
-    dir: path.join(os.tmpdir(), "react-grab-watch"),
-    intervalMs: POLL_INTERVAL_MS,
-    replayLast: false,
-    textOnly: false,
-  };
-  // Only consume the next token as a value when it is not itself a flag, so a
-  // valueless `--interval` cannot swallow the following option.
-  const valueAt = (index: number): string | undefined => {
-    const next = args[index + 1];
-    return next !== undefined && !next.startsWith("--") ? next : undefined;
-  };
-  for (let index = 0; index < args.length; index += 1) {
-    const arg = args[index];
-    if (arg === "--dir") {
-      const value = valueAt(index);
-      if (value !== undefined) {
-        options.dir = value;
-        index += 1;
-      }
-    } else if (arg === "--interval") {
-      const value = Number(valueAt(index));
-      if (Number.isFinite(value) && value > 0) {
-        options.intervalMs = value;
-        index += 1;
-      }
-    } else if (arg === "--replay-last") {
-      options.replayLast = true;
-    } else if (arg === "--text-only") {
-      options.textOnly = true;
-    }
-  }
-  return options;
-};
-
-// On a shared host an attacker could pre-create the work dir (or its log as a
-// symlink) to redirect appends; refuse anything we do not own.
-const ensureSafeDir = (dir: string): void => {
-  let stats: fs.Stats;
-  try {
-    stats = fs.lstatSync(dir);
-  } catch {
-    return;
-  }
-  if (stats.isSymbolicLink()) throw new Error(`Refusing to use ${dir}: it is a symlink.`);
-  if (process.getuid && stats.uid !== process.getuid()) {
-    throw new Error(`Refusing to use ${dir}: owned by another user.`);
-  }
-};
+interface CreateReaderOptions {
+  textOnly: boolean;
+  // Directory holding the native reader sources (read-clipboard.swift / .ps1).
+  readersDir: string;
+  // Writable directory for the compiled native binary (e.g. macOS `pbread`).
+  workDir: string;
+}
 
 const sleep = (durationMs: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, durationMs));
@@ -140,7 +91,7 @@ const shortHash = (text: string): string =>
 const alignUp = (value: number): number =>
   (value + PICKLE_ALIGN_BYTES - 1) & ~(PICKLE_ALIGN_BYTES - 1);
 
-const parseChromiumPickle = (buffer: Buffer | null | undefined): Record<string, string> => {
+export const parseChromiumPickle = (buffer: Buffer | null | undefined): Record<string, string> => {
   const formats: Record<string, string> = {};
   if (!buffer || buffer.length < PICKLE_HEADER_BYTES + 4) return formats;
   let offset = PICKLE_HEADER_BYTES;
@@ -164,14 +115,14 @@ const parseChromiumPickle = (buffer: Buffer | null | undefined): Record<string, 
   return formats;
 };
 
-const extractGrab = (raw: NativeRead): string | undefined => {
+export const extractGrab = (raw: NativeRead): string | undefined => {
   if (raw.grab) return raw.grab;
   if (raw.pickleBase64)
     return parseChromiumPickle(Buffer.from(raw.pickleBase64, "base64"))[GRAB_MIME];
   return undefined;
 };
 
-const isGrabText = (text: string): boolean =>
+export const isGrabText = (text: string): boolean =>
   GRAB_TEXT_SIGNATURE.test(
     text.length > SIGNATURE_SCAN_CHARS ? text.slice(0, SIGNATURE_SCAN_CHARS) : text,
   );
@@ -179,7 +130,10 @@ const isGrabText = (text: string): boolean =>
 // A grab can carry the user's own instruction (React Grab prompt mode). It lives
 // in entries[].commentText when structured, otherwise it is prepended above the
 // bracketed element references in `content`. Returns that comment, or undefined.
-const extractPrompt = (record: { entries?: unknown; content?: unknown }): string | undefined => {
+export const extractPrompt = (record: {
+  entries?: unknown;
+  content?: unknown;
+}): string | undefined => {
   const entries = Array.isArray(record.entries) ? (record.entries as GrabEntry[]) : [];
   const comments = entries.map((entry) => entry?.commentText?.trim?.()).filter(Boolean);
   if (comments.length > 0) return comments.join("\n");
@@ -226,9 +180,9 @@ const runJson = (command: string, args: string[]): NativeRead | null => {
   }
 };
 
-const compileSwiftReader = (workDir: string): string | null => {
+const compileSwiftReader = (readersDir: string, workDir: string): string | null => {
   if (!hasCommand("swiftc")) return null;
-  const source = path.join(SCRIPT_DIR, "read-clipboard.swift");
+  const source = path.join(readersDir, "read-clipboard.swift");
   if (!fs.existsSync(source)) return null;
   const binary = path.join(workDir, "pbread");
   const isStale =
@@ -237,8 +191,8 @@ const compileSwiftReader = (workDir: string): string | null => {
   return binary;
 };
 
-const createDarwinReader = (options: WatchOptions, workDir: string): ClipboardReader | null => {
-  const binary = options.textOnly ? null : compileSwiftReader(workDir);
+const createDarwinReader = (options: CreateReaderOptions): ClipboardReader | null => {
+  const binary = options.textOnly ? null : compileSwiftReader(options.readersDir, options.workDir);
   if (binary) {
     return {
       mode: "darwin-native",
@@ -259,7 +213,7 @@ const createDarwinReader = (options: WatchOptions, workDir: string): ClipboardRe
   };
 };
 
-const detectLinuxTool = (): LinuxTool | null => {
+export const detectLinuxTool = (): LinuxTool | null => {
   const preferWayland = Boolean(process.env.WAYLAND_DISPLAY) && hasCommand("wl-paste");
   if (preferWayland || (hasCommand("wl-paste") && !hasCommand("xclip"))) {
     return {
@@ -287,7 +241,7 @@ const detectLinuxTool = (): LinuxTool | null => {
   return null;
 };
 
-const createLinuxReader = (options: WatchOptions): ClipboardReader | null => {
+const createLinuxReader = (options: CreateReaderOptions): ClipboardReader | null => {
   const tool = detectLinuxTool();
   if (!tool) return null;
   const useCustom = !options.textOnly && Boolean(tool.readCustom);
@@ -310,10 +264,10 @@ const createLinuxReader = (options: WatchOptions): ClipboardReader | null => {
 const detectPowershell = (): string | null =>
   hasCommand("pwsh") ? "pwsh" : hasCommand("powershell") ? "powershell" : null;
 
-const createWindowsReader = (options: WatchOptions): ClipboardReader | null => {
+const createWindowsReader = (options: CreateReaderOptions): ClipboardReader | null => {
   const shell = detectPowershell();
   if (!shell) return null;
-  const scriptPath = path.join(SCRIPT_DIR, "read-clipboard.ps1");
+  const scriptPath = path.join(options.readersDir, "read-clipboard.ps1");
   if (options.textOnly || !fs.existsSync(scriptPath)) {
     return {
       mode: "win-text",
@@ -341,40 +295,56 @@ const createWindowsReader = (options: WatchOptions): ClipboardReader | null => {
   };
 };
 
-const createReader = (options: WatchOptions, workDir: string): ClipboardReader | null => {
-  if (process.platform === "darwin") return createDarwinReader(options, workDir);
+export const createReader = (options: CreateReaderOptions): ClipboardReader | null => {
+  if (process.platform === "darwin") return createDarwinReader(options);
   if (process.platform === "linux") return createLinuxReader(options);
   if (process.platform === "win32") return createWindowsReader(options);
   return null;
 };
 
-const emit = (line: string): boolean => process.stdout.write(`${line}\n`);
-
-const main = async (): Promise<void> => {
-  const options = parseArgs();
+// On a shared host an attacker could pre-create the work dir (or its log as a
+// symlink) to redirect appends; refuse anything we do not own.
+const ensureSafeDir = (dir: string): void => {
+  let stats: fs.Stats;
   try {
-    ensureSafeDir(options.dir);
-    fs.mkdirSync(options.dir, { recursive: true, mode: 0o700 });
-  } catch (error) {
-    emit(
-      `REACT_GRAB_ERROR ${JSON.stringify({ message: String((error as Error)?.message ?? error) })}`,
-    );
-    process.exit(1);
+    stats = fs.lstatSync(dir);
+  } catch {
+    return;
   }
-  const logPath = path.join(options.dir, "grabs.jsonl");
+  if (stats.isSymbolicLink()) throw new Error(`Refusing to use ${dir}: it is a symlink.`);
+  if (process.getuid && stats.uid !== process.getuid()) {
+    throw new Error(`Refusing to use ${dir}: owned by another user.`);
+  }
+};
 
-  const reader = createReader(options, options.dir);
-  if (!reader) {
-    emit(
-      `REACT_GRAB_ERROR ${JSON.stringify({
-        platform: process.platform,
-        message:
-          "No clipboard reader available. Linux: install xclip or wl-clipboard. macOS: install Xcode CLI tools (swiftc) or rely on pbpaste. Windows: ensure PowerShell is on PATH.",
-      })}`,
-    );
-    process.exit(1);
-  }
-  const { read, mode } = reader;
+// Creates the work dir and drops a self-ignoring .gitignore so the captured
+// history never lands in the user's repo.
+export const prepareWorkDir = (dir: string): void => {
+  ensureSafeDir(dir);
+  fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+  const gitignore = path.join(dir, ".gitignore");
+  if (!fs.existsSync(gitignore)) fs.writeFileSync(gitignore, "*\n");
+};
+
+interface WatchForNextGrabOptions {
+  reader: ClipboardReader;
+  dir: string;
+  intervalMs: number;
+  replayLast: boolean;
+  onWarn?: (message: string) => void;
+  signal?: AbortSignal;
+}
+
+// Polls the clipboard until it captures the next React Grab selection, appends
+// it to history.jsonl, and resolves with that one record. Resolves null only if
+// aborted. Baselines the current clipboard first so a grab already sitting there
+// is not replayed (unless replayLast).
+export const watchForNextGrab = async (
+  options: WatchForNextGrabOptions,
+): Promise<CapturedGrab | null> => {
+  const { reader, dir, intervalMs, replayLast, onWarn, signal } = options;
+  const logPath = path.join(dir, "history.jsonl");
+  const { read } = reader;
 
   let lastChangeCount: number | null = null;
   let lastTimestamp = 0;
@@ -382,10 +352,8 @@ const main = async (): Promise<void> => {
   let lastErrorMessage = "";
   let sequence = 0;
 
-  // Baseline the current clipboard so restarting the watcher does not replay
-  // whatever grab is already sitting on the clipboard.
   const initial = read();
-  if (initial && !options.replayLast) {
+  if (initial && !replayLast) {
     lastChangeCount = initial.changeCount;
     if (initial.text) lastTextHash = shortHash(initial.text);
     if (initial.grab) {
@@ -395,14 +363,12 @@ const main = async (): Promise<void> => {
     }
   }
 
-  emit(`REACT_GRAB_READY ${JSON.stringify({ mode, dir: options.dir, log: logPath })}`);
-
-  while (true) {
-    await sleep(options.intervalMs);
+  while (!signal?.aborted) {
+    await sleep(intervalMs);
+    if (signal?.aborted) return null;
     // Clipboard payloads are untrusted (any web page can forge one), so a single
-    // malformed/hostile grab must never crash the watcher. Distinct errors are
-    // surfaced on stderr (not the sentinel stream) so a persistent failure is
-    // diagnosable rather than silent.
+    // malformed/hostile grab must never crash the loop. Distinct errors surface
+    // via onWarn so a persistent failure is diagnosable rather than silent.
     try {
       const snapshot = read();
       if (!snapshot) continue;
@@ -443,40 +409,20 @@ const main = async (): Promise<void> => {
       const prompt = extractPrompt(record);
       if (prompt) record.prompt = prompt;
 
-      const id = `${record.timestamp}-${(sequence += 1).toString(ID_RADIX)}`;
-      fs.appendFileSync(logPath, `${JSON.stringify({ id, receivedAt: Date.now(), ...record })}\n`);
-
-      const firstEntry = record.entries[0];
-      emit(
-        `REACT_GRAB_NEW ${JSON.stringify({
-          id,
-          component: firstEntry?.componentName,
-          tag: firstEntry?.tagName,
-          count: record.entries.length || 1,
-          prompt: prompt?.slice(0, PROMPT_PREVIEW_CHARS),
-        })}`,
-      );
+      const captured: CapturedGrab = {
+        id: `${record.timestamp}-${(sequence += 1).toString(ID_RADIX)}`,
+        receivedAt: Date.now(),
+        ...record,
+      };
+      fs.appendFileSync(logPath, `${JSON.stringify(captured)}\n`);
+      return captured;
     } catch (error) {
       const message = String((error as Error)?.message ?? error);
       if (message !== lastErrorMessage) {
         lastErrorMessage = message;
-        process.stderr.write(`REACT_GRAB_WARN ${message}\n`);
+        onWarn?.(message);
       }
     }
   }
-};
-
-const isInvokedDirectly =
-  Boolean(process.argv[1]) && import.meta.url === pathToFileURL(process.argv[1]).href;
-if (isInvokedDirectly) main();
-
-export {
-  parseChromiumPickle,
-  extractGrab,
-  extractPrompt,
-  isGrabText,
-  createReader,
-  detectLinuxTool,
-  GRAB_MIME,
-  CHROMIUM_CUSTOM_FORMAT,
+  return null;
 };

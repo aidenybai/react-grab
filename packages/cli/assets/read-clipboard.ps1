@@ -1,9 +1,9 @@
-# Windows clipboard reader for the React Grab watcher. Reads CF_UNICODETEXT and
-# the registered "Chromium Web Custom MIME Data Format" (a base::Pickle of web
-# custom data) via Win32, in a single OpenClipboard so the two reads are
-# consistent. Emits { changeCount, text, pickleBase64 } as JSON; watch.mjs
-# decodes the pickle (shared with macOS/Linux). GetClipboardSequenceNumber gives
-# a cheap monotonic change token for idle polling.
+# Windows clipboard reader for `react-grab watch`. Reads CF_UNICODETEXT and the
+# registered "Chromium Web Custom MIME Data Format" (a base::Pickle of web custom
+# data) via Win32, in a single OpenClipboard so the two reads are consistent.
+# Emits { changeCount, text, pickleBase64 } as JSON; the CLI decodes the pickle
+# (shared with macOS/Linux). GetClipboardSequenceNumber gives a cheap monotonic
+# change token for idle polling.
 
 $ErrorActionPreference = "Stop"
 

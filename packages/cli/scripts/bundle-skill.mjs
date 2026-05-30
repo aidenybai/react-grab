@@ -4,13 +4,13 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 // Copies the skill's runtime files into the CLI package so the published CLI can
-// install it offline. Only SKILL.md and scripts/ (the built watch.mjs + the
-// native readers) ship — not src/, configs, node_modules, or test/.
+// install it offline. The watcher now lives in the CLI itself (`react-grab
+// watch`), so only SKILL.md ships — not src/, configs, node_modules, or test/.
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "..", "..", "..");
 const skillRoot = path.join(repoRoot, "skills", "react-grab");
 const destination = path.join(here, "..", "skills", "react-grab");
-const RUNTIME_ENTRIES = ["SKILL.md", "scripts"];
+const RUNTIME_ENTRIES = ["SKILL.md"];
 
 const bundle = () => {
   rmSync(destination, { recursive: true, force: true });
@@ -23,7 +23,7 @@ const bundle = () => {
 bundle();
 
 if (process.argv.includes("--watch")) {
-  watch(path.join(skillRoot, "scripts"), { recursive: true }, () => {
+  watch(path.join(skillRoot, "SKILL.md"), () => {
     try {
       bundle();
     } catch (error) {

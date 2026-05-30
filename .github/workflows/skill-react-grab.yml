@@ -4,13 +4,13 @@ on:
   push:
     branches: [main]
     paths:
-      - "packages/skill/**"
+      - "packages/cli/**"
       - "skills/react-grab/**"
       - ".github/workflows/skill-react-grab.yml"
   pull_request:
     branches: [main]
     paths:
-      - "packages/skill/**"
+      - "packages/cli/**"
       - "skills/react-grab/**"
       - ".github/workflows/skill-react-grab.yml"
 
@@ -43,9 +43,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      # Build the first-party TS watcher (src/watch.ts) into scripts/watch.mjs.
-      - name: Build skill
-        run: pnpm --filter @react-grab/skill build
+      # Build the CLI (compiles the watcher and copies the native readers into
+      # dist/) so the clipboard round-trip tests can spawn `react-grab watch`.
+      - name: Build CLI
+        run: pnpm --filter @react-grab/cli build
 
       # Linux runners are headless: an X server plus xclip are required for the
       # clipboard round-trip tests (xvfb-run provides the DISPLAY).
@@ -55,8 +56,8 @@ jobs:
 
       - name: Run tests (Linux)
         if: runner.os == 'Linux'
-        run: xvfb-run -a pnpm --filter @react-grab/skill test
+        run: xvfb-run -a pnpm --filter @react-grab/cli test
 
       - name: Run tests (macOS / Windows)
         if: runner.os != 'Linux'
-        run: pnpm --filter @react-grab/skill test
+        run: pnpm --filter @react-grab/cli test

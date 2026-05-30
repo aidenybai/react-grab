@@ -3,7 +3,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "../../skills/react-grab/scripts/watch.mjs"]
+      "outputs": ["dist/**", ".next/**"]
     },
     "grab#build": {
       "dependsOn": ["react-grab#build"]
