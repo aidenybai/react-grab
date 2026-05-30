@@ -22,6 +22,11 @@ const commitTextContent = async (page: Page, nextValue: string): Promise<void> =
   await textRow.click();
   await textRow.locator("[data-react-grab-value]").click();
   const input = editPanel.locator(`input[${SEARCH_INPUT_ATTR}]`);
+  await input.waitFor({ state: "visible" });
+  // The editor must survive the interaction-idle window: a deferred
+  // hover-activation used to steal the active row ~150ms after opening
+  // and tear the editor down mid-edit.
+  await page.waitForTimeout(300);
   await input.fill(nextValue);
   await input.press("Enter");
 };

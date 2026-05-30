@@ -42,18 +42,19 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
   let didPointerMove = false;
   let pendingHoverIndex: number | null = null;
 
-  const isHoverOwnedByFocusedInlineInput = (): boolean => {
-    if (!listRef) return false;
-    const focusedElement = getShadowActiveElement(listRef);
-    return (
-      focusedElement instanceof HTMLElement &&
-      focusedElement.matches("input[data-react-grab-input]")
-    );
-  };
+  // An open inline editor (numeric/color/text) renders an
+  // `input[data-react-grab-input]` in the active row. Detecting its
+  // presence — rather than its focus — is what locks hover-activation:
+  // focus races (the input can transiently lose focus right after
+  // opening), but the element's presence is a stable signal that an
+  // edit is in progress, so a stray pointerenter from a layout shift
+  // can't yank the active row out from under the editor.
+  const isInlineEditorOpen = (): boolean =>
+    Boolean(listRef?.querySelector("input[data-react-grab-input]"));
 
   const maybeActivateHoveredIndex = (propertyIndex: number, source: "enter" | "move") => {
     if (source === "move") didPointerMove = true;
-    const isFocusLocked = isHoverOwnedByFocusedInlineInput();
+    const isFocusLocked = isInlineEditorOpen();
     if (!didPointerMove) return;
     if (isFocusLocked) return;
     if (props.isAdjusting()) {
@@ -71,7 +72,7 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
     if (propertyIndex === null) return;
     pendingHoverIndex = null;
     const element = itemElements[propertyIndex];
-    const isFocusLocked = isHoverOwnedByFocusedInlineInput();
+    const isFocusLocked = isInlineEditorOpen();
     if (!didPointerMove) return;
     if (isFocusLocked) return;
     if (!element?.matches(":hover")) return;
