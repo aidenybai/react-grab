@@ -80,6 +80,16 @@ test.describe("Style Panel Color Controls", () => {
     expect(background.replace(/\s/g, "")).toBe("rgb(255,0,0)");
   });
 
+  test("a space before the bracket is treated as the arbitrary separator", async ({
+    reactGrab,
+  }) => {
+    await openEditPanel(reactGrab, BUTTON_SELECTOR);
+    await setSearchInputValue(reactGrab.page, "text [13px]");
+    await reactGrab.page.waitForTimeout(120);
+    const fontSize = await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "font-size");
+    expect(fontSize).toBe("13px");
+  });
+
   test("typing text-[13px] applies font size, not a text color", async ({ reactGrab }) => {
     await openEditPanel(reactGrab, BUTTON_SELECTOR);
     await setSearchInputValue(reactGrab.page, "text-[13px]");

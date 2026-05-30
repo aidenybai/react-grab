@@ -67,11 +67,12 @@ const findColor = (
 };
 
 // Tailwind escapes spaces as underscores and may carry a type hint.
-const cleanArbitraryValue = (rawValue: string): string =>
-  rawValue
-    .replace(/_/g, " ")
-    .replace(/^(?:color|length|size):/i, "")
-    .trim();
+// Underscores inside var()/url() belong to the identifier, so leave
+// those values untouched.
+const cleanArbitraryValue = (rawValue: string): string => {
+  const value = rawValue.replace(/^(?:color|length|size):/i, "").trim();
+  return /(?:var|url)\(/i.test(value) ? value : value.replace(/_/g, " ");
+};
 
 const arbitraryPrefix = (rawPrefix: string): string => {
   const lastVariantColon = rawPrefix.lastIndexOf(":");
@@ -273,7 +274,11 @@ export const createTailwindAutoApply = (
     const strippedClassAttribute = rawQuery
       .trim()
       .replace(/^class\s*=\s*["']/, "")
-      .replace(/["']\s*$/, "");
+      .replace(/["']\s*$/, "")
+      // A space before `[` is a typo for the `-[` arbitrary-value
+      // separator (`text [13px]` → `text-[13px]`); join it so the class
+      // isn't split into separate tokens.
+      .replace(/\s+\[/g, "-[");
     const normalizedStripped = normalizeTailwindClassInput(strippedClassAttribute);
     const tokens = strippedClassAttribute.split(/\s+/).filter(Boolean);
     if (tokens.length > 1 && !isApplicableSingleClass(normalizedStripped)) {
