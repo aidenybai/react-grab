@@ -90,12 +90,16 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   // Text color and background are pinned to the top of the list for
   // visibility, but the arrow-key cursor should land on the first
   // dimensional control so stepping does something useful — both on open
-  // and whenever the search is cleared back to the default list.
-  const firstNumericIndex = tweakStore
-    .filteredProperties()
-    .findIndex((property) => property.kind === "numeric");
-  const defaultActiveIndex = firstNumericIndex > 0 ? firstNumericIndex : 0;
-  const [activeIndex, setActiveIndex] = createSignal(defaultActiveIndex);
+  // and whenever the search is cleared back to the default list. Computed
+  // from the live list so tweaked rows shifting the default view can't
+  // leave the cursor pointing at a stale index.
+  const firstNumericActiveIndex = (): number => {
+    const numericIndex = tweakStore
+      .filteredProperties()
+      .findIndex((property) => property.kind === "numeric");
+    return numericIndex > 0 ? numericIndex : 0;
+  };
+  const [activeIndex, setActiveIndex] = createSignal(firstNumericActiveIndex());
   const hasPendingTweaks = createMemo(() => tweakStore.hasPendingTweaks());
   const [isCompact, setIsCompact] = createSignal(false);
 
@@ -582,7 +586,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                 setSearchQuery(nextSearchQuery);
                 if (autoApply.tryApplyNumericValue(nextSearchQuery)) return;
                 if (autoApply.isInlineNumericDraft(nextSearchQuery)) return;
-                setActiveIndex(nextSearchQuery.trim() === "" ? defaultActiveIndex : 0);
+                setActiveIndex(nextSearchQuery.trim() === "" ? firstNumericActiveIndex() : 0);
                 setIsCompact(false);
                 autoApply.applyTailwindClass(nextSearchQuery);
               }}
