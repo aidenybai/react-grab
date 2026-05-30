@@ -1,5 +1,13 @@
 # grab
 
+## 0.1.39
+
+### Patch Changes
+
+- fix: issues with style
+- Updated dependencies
+  - @react-grab/cli@0.1.39
+
 ## 0.1.38
 
 ### Patch Changes
