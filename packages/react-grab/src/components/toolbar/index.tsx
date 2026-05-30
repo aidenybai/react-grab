@@ -3,6 +3,9 @@ import type { Position } from "../../types.js";
 import { cn } from "../../utils/cn.js";
 import { loadToolbarState, saveToolbarState, type SnapEdge, type ToolbarState } from "./state.js";
 import { IconSelect } from "../icons/icon-select.jsx";
+import { IconComment } from "../icons/icon-comment.jsx";
+import { IconStyle } from "../icons/icon-style.jsx";
+import { ToolbarActionButton } from "./toolbar-action-button.jsx";
 import {
   TOOLBAR_SNAP_MARGIN_PX,
   TOOLBAR_FADE_IN_DELAY_MS,
@@ -13,6 +16,9 @@ import {
   Z_INDEX_OVERLAY,
   SELECT_ICON_NATURAL_POINT_ANGLE_DEG,
   SELECT_ICON_POINT_MIN_DISTANCE_PX,
+  DEFAULT_ACTION_ID,
+  COMMENT_ACTION_ID,
+  EDIT_ACTION_ID,
 } from "../../constants.js";
 import { freezeUpdates } from "../../utils/freeze-updates.js";
 import { freezeGlobalAnimations, unfreezeGlobalAnimations } from "../../utils/freeze-animations.js";
@@ -35,6 +41,8 @@ interface ToolbarProps {
   isActive?: boolean;
   isContextMenuOpen?: boolean;
   onToggle?: () => void;
+  onActivateAction?: (actionId: string) => void;
+  activeActionId?: string | null;
   enabled?: boolean;
   shakeCount?: number;
   onStateChange?: (state: ToolbarState) => void;
@@ -103,6 +111,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const buttonSpacingClass = () => getButtonSpacingClass(isVertical());
 
+  const isActionActive = (actionId: string) => props.activeActionId === actionId;
+  const isCopyActive = () => isActionActive(DEFAULT_ACTION_ID);
+
   const stopEventPropagation = (event: Event) => {
     event.stopImmediatePropagation();
   };
@@ -157,9 +168,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   createEffect(
     on(
-      () => Boolean(props.isActive),
-      (isActive) => {
-        if (!isActive) {
+      () => isCopyActive(),
+      (isPointing) => {
+        if (!isPointing) {
           // The accumulator can drift past ±180° while the user circles the
           // toolbar; resetting to literal 0 would unspin those revolutions
           // through the CSS transition. Snapping to the nearest equivalent
@@ -232,6 +243,20 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   };
 
   const handleToggle = drag.createDragAwareHandler(() => props.onToggle?.());
+  const handleComment = drag.createDragAwareHandler(() =>
+    props.onActivateAction?.(COMMENT_ACTION_ID),
+  );
+  const handleStyle = drag.createDragAwareHandler(() => props.onActivateAction?.(EDIT_ACTION_ID));
+
+  const actionButtonClass = () =>
+    cn(
+      "group contain-layout flex items-center justify-center cursor-pointer interactive-scale a11y-hitbox",
+      buttonSpacingClass(),
+    );
+  const actionIconClass = (isActive: boolean) =>
+    isActive
+      ? "text-[var(--rg-text-primary)]"
+      : "text-[var(--rg-text-secondary)] group-hover:text-[var(--rg-text-primary)]";
 
   const handleToggleCollapse = drag.createDragAwareHandler(() => {
     const rect = containerRef?.getBoundingClientRect();
@@ -634,36 +659,50 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
           }
         }}
-        selectButton={
-          <button
-            ref={selectButtonRef}
-            data-react-grab-ignore-events
-            data-react-grab-toolbar-toggle
-            aria-label={props.isActive ? "Stop selecting element" : "Select element"}
-            aria-pressed={Boolean(props.isActive)}
-            type="button"
-            class={cn(
-              "group contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
-              buttonSpacingClass(),
-            )}
-            onClick={handleToggle}
-            on:contextmenu={(event: MouseEvent) => {
-              event.preventDefault();
-              event.stopPropagation();
-              props.onToggleToolbarMenu?.();
-            }}
-            {...createFreezeHandlers()}
-          >
-            <IconSelect
-              size={14}
-              rotationDeg={selectIconRotationDeg()}
-              class={
-                props.isActive
-                  ? "text-[var(--rg-text-primary)]"
-                  : "text-[var(--rg-text-secondary)] group-hover:text-[var(--rg-text-primary)]"
-              }
+        actionButtons={
+          <>
+            <button
+              ref={selectButtonRef}
+              data-react-grab-ignore-events
+              data-react-grab-toolbar-toggle
+              data-react-grab-toolbar-action={DEFAULT_ACTION_ID}
+              aria-label={isCopyActive() ? "Stop selecting element" : "Copy element"}
+              aria-pressed={isCopyActive()}
+              type="button"
+              class={actionButtonClass()}
+              onClick={handleToggle}
+              on:contextmenu={(event: MouseEvent) => {
+                event.preventDefault();
+                event.stopPropagation();
+                props.onToggleToolbarMenu?.();
+              }}
+              {...createFreezeHandlers()}
+            >
+              <IconSelect
+                size={14}
+                rotationDeg={selectIconRotationDeg()}
+                class={actionIconClass(isCopyActive())}
+              />
+            </button>
+            <ToolbarActionButton
+              actionId={COMMENT_ACTION_ID}
+              label="Comment on element"
+              isActive={isActionActive(COMMENT_ACTION_ID)}
+              class={actionButtonClass()}
+              onClick={handleComment}
+              {...createFreezeHandlers()}
+              icon={<IconComment size={14} class={actionIconClass(isActionActive(COMMENT_ACTION_ID))} />}
             />
-          </button>
+            <ToolbarActionButton
+              actionId={EDIT_ACTION_ID}
+              label="Style element"
+              isActive={isActionActive(EDIT_ACTION_ID)}
+              class={actionButtonClass()}
+              onClick={handleStyle}
+              {...createFreezeHandlers()}
+              icon={<IconStyle size={14} class={actionIconClass(isActionActive(EDIT_ACTION_ID))} />}
+            />
+          </>
         }
       />
     </div>

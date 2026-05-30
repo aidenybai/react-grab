@@ -14,7 +14,7 @@ interface ToolbarContentProps {
   onCollapsePointerDown?: (event: PointerEvent) => void;
   onCollapsePointerUp?: (event: PointerEvent) => void;
   onCollapsePointerLeave?: (event: PointerEvent) => void;
-  selectButton?: JSX.Element;
+  actionButtons?: JSX.Element;
   collapseButton?: JSX.Element;
   transformOrigin?: string;
 }
@@ -133,8 +133,14 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
             props.isCollapsed ? opacityExitClass : opacityEnterClass,
           )}
         >
-          <div class={cn("relative overflow-visible", minDimensionClass())}>
-            {props.selectButton}
+          <div
+            class={cn(
+              "relative overflow-visible flex",
+              isVertical() ? "flex-col items-center" : "items-center",
+              minDimensionClass(),
+            )}
+          >
+            {props.actionButtons}
           </div>
         </div>
       </div>
