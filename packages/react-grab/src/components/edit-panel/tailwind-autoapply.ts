@@ -21,9 +21,11 @@ import {
 
 const TAILWIND_CLASS_PATTERN = /^([a-z-]+)-(-?\d+(?:\.\d+)?)$/;
 const TAILWIND_ARBITRARY_PATTERN = /^(.+?)-\[(.+)]$/;
-// Only explicit px/rem lengths auto-apply; unitless (opacity-[0.5],
-// leading-[1.5]) and em are ambiguous/element-relative, so they're skipped.
-const ARBITRARY_LENGTH_PATTERN = /^(-?\d*\.?\d+)(px|rem)$/i;
+// A px/rem unit (or an explicit length:/size: data-type hint) marks a
+// value as a length. Bare unitless values (opacity-[0.5], leading-[1.5])
+// are ambiguous and em is element-relative, so those are skipped.
+const ARBITRARY_LENGTH_PATTERN = /^(-?\d*\.?\d+)(px|rem)?$/i;
+const ARBITRARY_LENGTH_HINT = /^(?:length|size):/i;
 
 const LITERAL_NUMBER_KEYS = new Set([
   "opacity",
@@ -83,12 +85,14 @@ const arbitraryPrefix = (rawPrefix: string): string => {
   return withoutImportant.toLowerCase();
 };
 
-const parseArbitraryLengthPx = (value: string): number | null => {
+const parseArbitraryLengthPx = (value: string, allowUnitless: boolean): number | null => {
   const lengthMatch = value.match(ARBITRARY_LENGTH_PATTERN);
   if (!lengthMatch) return null;
+  const unit = lengthMatch[2]?.toLowerCase();
+  if (!unit && !allowUnitless) return null;
   const magnitude = Number.parseFloat(lengthMatch[1]);
   if (!Number.isFinite(magnitude)) return null;
-  return lengthMatch[2].toLowerCase() === "rem" ? magnitude * EDIT_ROOT_FONT_SIZE_PX : magnitude;
+  return unit === "rem" ? magnitude * EDIT_ROOT_FONT_SIZE_PX : magnitude;
 };
 
 const findNumericLonghands = (
@@ -189,7 +193,8 @@ export const createTailwindAutoApply = (
     const normalizedClass = rawQuery.trim();
     const arbitraryMatch = normalizedClass.match(TAILWIND_ARBITRARY_PATTERN);
     if (!arbitraryMatch) return false;
-    const value = cleanArbitraryValue(arbitraryMatch[2]);
+    const rawValue = arbitraryMatch[2];
+    const value = cleanArbitraryValue(rawValue);
 
     const colorCssKey = tailwindColorPropertyForClassName(normalizedClass);
     const colorTarget = colorCssKey ? findColor(initialProperties, colorCssKey) : null;
@@ -200,7 +205,7 @@ export const createTailwindAutoApply = (
       return true;
     }
 
-    const lengthPx = parseArbitraryLengthPx(value);
+    const lengthPx = parseArbitraryLengthPx(value, ARBITRARY_LENGTH_HINT.test(rawValue.trim()));
     if (lengthPx === null) return false;
     const cssKey = tailwindPrefixToProperty(arbitraryPrefix(arbitraryMatch[1]));
     return cssKey ? commitLengthPx(cssKey, lengthPx) : false;

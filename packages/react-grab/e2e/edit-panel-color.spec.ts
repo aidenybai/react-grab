@@ -159,6 +159,14 @@ test.describe("Style Panel Color Controls", () => {
     expect(activeKey).not.toBe("color");
   });
 
+  test("a length: data-type hint applies a unitless value as px", async ({ reactGrab }) => {
+    await openEditPanel(reactGrab, BUTTON_SELECTOR);
+    await setSearchInputValue(reactGrab.page, "text-[length:20]");
+    await reactGrab.page.waitForTimeout(120);
+    const fontSize = await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "font-size");
+    expect(fontSize).toBe("20px");
+  });
+
   test("unitless arbitrary values are not auto-applied as pixels", async ({ reactGrab }) => {
     await openEditPanel(reactGrab, BUTTON_SELECTOR);
     await setSearchInputValue(reactGrab.page, "leading-[1.5]");
