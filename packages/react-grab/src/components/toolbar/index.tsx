@@ -517,7 +517,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
     window.addEventListener("resize", handleResize);
     window.visualViewport?.addEventListener("resize", handleResize);
-    window.visualViewport?.addEventListener("scroll", handleResize);
+    window.visualViewport?.addEventListener("scroll", handleResize, { passive: true });
 
     if (typeof ResizeObserver !== "undefined" && containerRef) {
       const observer = new ResizeObserver((entries) => {
