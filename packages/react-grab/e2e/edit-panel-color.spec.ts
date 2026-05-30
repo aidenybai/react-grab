@@ -99,6 +99,21 @@ test.describe("Style Panel Color Controls", () => {
     expect(background.replace(/\s/g, "")).toBe("rgb(107,114,128)");
   });
 
+  test("a typed color persists on Enter even when an unchanged color row is active", async ({
+    reactGrab,
+  }) => {
+    const { page } = reactGrab;
+    await openEditPanel(reactGrab, BUTTON_SELECTOR);
+    await setSearchInputValue(page, "text-gray-500");
+    await page.waitForTimeout(120);
+    // Surface the (unchanged) background-color row so it becomes active.
+    await setSearchInputValue(page, "background");
+    await expect.poll(() => getActivePropertyKey(page)).toBe("background-color");
+
+    await page.keyboard.press("Enter");
+    await expect.poll(() => reactGrab.getClipboardContent()).toContain("color: #6b7280");
+  });
+
   test("a theme color token without a fixed value is not applied", async ({ reactGrab }) => {
     await openEditPanel(reactGrab, BUTTON_SELECTOR);
     await setSearchInputValue(reactGrab.page, "bg-primary");

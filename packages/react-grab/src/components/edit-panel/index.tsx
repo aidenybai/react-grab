@@ -335,9 +335,13 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       if (isPendingDismiss()) return;
       const property = activeProperty();
       const colorPickerTrigger = getCurrentColorPickerTrigger();
+      // Opening the picker is only a convenience for an untouched color
+      // row with nothing else staged. If any edit is pending, Enter must
+      // submit it — otherwise the picker interaction dismisses the panel
+      // and the pending change is discarded instead of copied.
       const isUntweakedColor =
         property?.kind === "color" && !tweakStore.hasChangedTweakFor(property.key);
-      if (isUntweakedColor && colorPickerTrigger) {
+      if (isUntweakedColor && colorPickerTrigger && !hasPendingTweaks()) {
         colorPickerTrigger();
         return;
       }
