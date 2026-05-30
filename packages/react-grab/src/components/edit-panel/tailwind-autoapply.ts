@@ -16,6 +16,7 @@ import {
   normalizeTailwindClassInput,
   tailwindClassToEnumValue,
   tailwindColorPropertyForClassName,
+  tailwindNamedColorHex,
   tailwindPrefixToProperty,
 } from "../../utils/tailwind-class-map.js";
 
@@ -211,12 +212,26 @@ export const createTailwindAutoApply = (
     return cssKey ? commitLengthPx(cssKey, lengthPx) : false;
   };
 
+  const applyNamedColorClass = (normalizedClass: string): boolean => {
+    const colorCssKey = tailwindColorPropertyForClassName(normalizedClass);
+    if (!colorCssKey) return false;
+    const colorTarget = findColor(initialProperties, colorCssKey);
+    if (!colorTarget) return false;
+    const namedColorHex = tailwindNamedColorHex(normalizedClass);
+    if (!namedColorHex) return false;
+    setIsCompact(true);
+    commit(colorTarget, namedColorHex, { shouldCompact: true });
+    return true;
+  };
+
   const applySingleClass = (rawQuery: string) => {
     if (applyArbitraryClass(rawQuery)) return;
     const query = normalizeTailwindClassInput(rawQuery);
     const intentPrefix = query.replace(/-\d*$/, "").replace(/-$/, "");
     const intentCssKey = intentPrefix ? tailwindPrefixToProperty(intentPrefix) : null;
     if (intentCssKey && hasTrackableTarget(intentCssKey)) setIsCompact(true);
+
+    if (applyNamedColorClass(query)) return;
 
     const enumMapping = tailwindClassToEnumValue(query);
     if (enumMapping) {

@@ -1,3 +1,6 @@
+import { EDIT_TRANSPARENT_COLOR_HEX } from "../constants.js";
+import { TAILWIND_PALETTE } from "./tailwind-palette-data.js";
+
 const TAILWIND_PREFIX_TO_PROPERTY: Partial<Record<string, string>> = {
   p: "padding",
   px: "padding-left,padding-right",
@@ -299,6 +302,37 @@ export const tailwindColorPropertyForClassName = (className: string): string | n
   const colorToken = tail.split("-")[0];
   if (prefix === "text" && TAILWIND_TEXT_SIZE_TOKENS.has(colorToken)) return null;
   return TAILWIND_COLOR_TOKENS.has(colorToken) ? propertyKey : null;
+};
+
+const TAILWIND_KEYWORD_COLOR_HEX: Partial<Record<string, string>> = {
+  black: "#000000",
+  white: "#ffffff",
+  transparent: EDIT_TRANSPARENT_COLOR_HEX,
+};
+
+// Resolves a named palette color class (e.g. `bg-red-500`, `text-slate-500`,
+// `border-blue-200`, `bg-black`, `bg-transparent`) to a concrete hex value.
+// Returns null for arbitrary values, theme tokens (primary/accent/…), the
+// `current`/`inherit` keywords, and prefix-only classes (`bg`) — none of
+// which map to a fixed color.
+export const tailwindNamedColorHex = (className: string): string | null => {
+  const baseClassName = stripTailwindModifiers(normalizeTailwindClassInput(className));
+  const prefix = matchTailwindPrefix(baseClassName);
+  if (!prefix || TAILWIND_COLOR_PREFIX_TO_PROPERTY[prefix] === undefined) return null;
+  if (baseClassName.includes("[")) return null;
+
+  const tail = tailwindClassTail(baseClassName, prefix);
+  if (!tail) return null;
+
+  const keywordHex = TAILWIND_KEYWORD_COLOR_HEX[tail];
+  if (keywordHex) return keywordHex;
+
+  const shadeSeparatorIndex = tail.lastIndexOf("-");
+  if (shadeSeparatorIndex < 0) return null;
+  const familyToken = tail.slice(0, shadeSeparatorIndex);
+  const family = familyToken === "grey" ? "gray" : familyToken;
+  const shade = Number.parseInt(tail.slice(shadeSeparatorIndex + 1), 10);
+  return TAILWIND_PALETTE[family]?.[shade] ?? null;
 };
 
 const NUMERIC_TAILWIND_VALUE_PATTERN = /^-?\d/;

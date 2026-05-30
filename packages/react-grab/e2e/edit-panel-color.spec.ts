@@ -55,6 +55,38 @@ test.describe("Style Panel Color Controls", () => {
     expect(color.replace(/\s/g, "")).toBe("rgb(0,128,255)");
   });
 
+  test("typing bg-red-500 applies the palette background color", async ({ reactGrab }) => {
+    await openEditPanel(reactGrab, BUTTON_SELECTOR);
+    await setSearchInputValue(reactGrab.page, "bg-red-500");
+    await reactGrab.page.waitForTimeout(120);
+    const background = await getInlineStyleProperty(
+      reactGrab.page,
+      BUTTON_SELECTOR,
+      "background-color",
+    );
+    expect(background.replace(/\s/g, "")).toBe("rgb(239,68,68)");
+  });
+
+  test("typing text-slate-500 applies the palette text color", async ({ reactGrab }) => {
+    await openEditPanel(reactGrab, BUTTON_SELECTOR);
+    await setSearchInputValue(reactGrab.page, "text-slate-500");
+    await reactGrab.page.waitForTimeout(120);
+    const color = await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "color");
+    expect(color.replace(/\s/g, "")).toBe("rgb(100,116,139)");
+  });
+
+  test("typing bg-black applies the keyword color", async ({ reactGrab }) => {
+    await openEditPanel(reactGrab, BUTTON_SELECTOR);
+    await setSearchInputValue(reactGrab.page, "bg-black");
+    await reactGrab.page.waitForTimeout(120);
+    const background = await getInlineStyleProperty(
+      reactGrab.page,
+      BUTTON_SELECTOR,
+      "background-color",
+    );
+    expect(background.replace(/\s/g, "")).toBe("rgb(0,0,0)");
+  });
+
   test("picking a color on an unset (transparent) row produces an opaque color", async ({
     reactGrab,
   }) => {
