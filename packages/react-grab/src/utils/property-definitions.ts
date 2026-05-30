@@ -235,11 +235,9 @@ const BORDER_WIDTH_AGGREGATES: readonly AggregateDefinition[] = [
   { key: "border-left-width", label: "border left width", longhands: ["border-left-width"] },
 ];
 
-// `size` (Tailwind's `size-*`) sets width and height together. Modeling
-// it as an aggregate lets the canonical-row algorithm surface a single
-// "size" slider for square elements (writing both dimensions at once)
-// and fall back to separate "width" + "height" rows otherwise — which is
-// exactly what users expect when typing `size` for an icon/SVG.
+// Modeling `size` as an aggregate lets the canonical-row algorithm show
+// one "size" slider when width and height are equal (writing both at once)
+// and fall back to separate width/height rows otherwise.
 const SIZE_AGGREGATES: readonly AggregateDefinition[] = [
   { key: "width,height", label: "size", longhands: ["width", "height"] },
   { key: "width", label: "width", longhands: ["width"] },
@@ -273,7 +271,6 @@ export const SINGLE_PROPERTIES: readonly { key: TrackedProperty; label: string }
 // instead of the slider. We deliberately limit the list to the handful
 // users actually want to tweak — every element computes dozens of
 // colour-typed properties, most of them inherited and uninteresting.
-// `alwaysShow` colors stay visible even when the element paints no value.
 export const COLOR_PROPERTIES: ReadonlyArray<{
   key: string;
   label: string;

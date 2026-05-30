@@ -310,11 +310,9 @@ const TAILWIND_KEYWORD_COLOR_HEX: Partial<Record<string, string>> = {
   transparent: EDIT_TRANSPARENT_COLOR_HEX,
 };
 
-// Resolves a named palette color class (e.g. `bg-red-500`, `text-slate-500`,
-// `border-blue-200`, `bg-black`, `bg-transparent`) to a concrete hex value.
 // Returns null for arbitrary values, theme tokens (primary/accent/…), the
 // `current`/`inherit` keywords, and prefix-only classes (`bg`) — none of
-// which map to a fixed color.
+// which map to a fixed palette hex.
 export const tailwindNamedColorHex = (className: string): string | null => {
   const baseClassName = stripTailwindModifiers(normalizeTailwindClassInput(className));
   const prefix = matchTailwindPrefix(baseClassName);

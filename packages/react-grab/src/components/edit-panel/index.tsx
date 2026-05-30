@@ -92,8 +92,8 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   const [searchQuery, setSearchQuery] = createSignal(props.state.initialSearchQuery ?? "");
   const [activeKey, setActiveKey] = createSignal<"left" | "right" | null>(null);
   const tweakStore = createTweakStore({ initialProperties, searchQuery });
-  // Land the arrow-key cursor on the first numeric row (colors are pinned
-  // on top but aren't slider-steppable), recomputed live for search clears.
+  // Colors are pinned on top but aren't slider-steppable, so the arrow-key
+  // cursor lands on the first numeric row instead.
   const firstNumericActiveIndex = (): number => {
     const numericIndex = tweakStore
       .filteredProperties()
@@ -325,8 +325,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     return colorPickerTriggers[colorPickerTriggers.length - 1] ?? null;
   };
 
-  // Left/right on a color row opens the picker rather than nudging the
-  // value; every other property steps as usual.
   const pressArrowOrOpenColorPicker = (key: "ArrowLeft" | "ArrowRight", event: KeyboardEvent) => {
     if (activeProperty()?.kind === "color") {
       if (!event.repeat) getCurrentColorPickerTrigger()?.();
