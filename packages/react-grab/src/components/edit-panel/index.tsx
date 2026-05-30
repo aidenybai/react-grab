@@ -85,17 +85,9 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   const preview = props.state.preview;
 
   const [searchQuery, setSearchQuery] = createSignal(props.state.initialSearchQuery ?? "");
+  const [activeIndex, setActiveIndex] = createSignal(0);
   const [activeKey, setActiveKey] = createSignal<"left" | "right" | null>(null);
   const tweakStore = createTweakStore({ initialProperties, searchQuery });
-  // Default the keyboard cursor to the first adjustable row. The pinned
-  // text row isn't steppable, so leading with it would make arrow keys a
-  // no-op on open for elements whose only prioritized row is text.
-  const firstAdjustableIndex = tweakStore
-    .filteredProperties()
-    .findIndex((property) => property.kind !== "text");
-  const [activeIndex, setActiveIndex] = createSignal(
-    firstAdjustableIndex > 0 ? firstAdjustableIndex : 0,
-  );
   const hasPendingTweaks = createMemo(() => tweakStore.hasPendingTweaks());
   const [isCompact, setIsCompact] = createSignal(false);
 
@@ -170,11 +162,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     options: CommitOptions = {},
   ) => {
     tweakStore.applyTweak(property, nextValue);
-    if (property.kind === "text" && typeof nextValue === "string") {
-      preview.applyText(nextValue);
-    } else {
-      preview.apply(property.cssProperties, formatEditableValue(property, nextValue));
-    }
+    preview.apply(property.cssProperties, formatEditableValue(property, nextValue));
     markAsInteracting();
     if (!options.isFromKeyRepeat) discardConfirmation.hide();
     if (options.flashDirection) flashActiveKey(options.flashDirection === 1 ? "right" : "left");
@@ -297,26 +285,26 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     setIsCompact(false);
   };
 
-  let inlineEditTriggers: Array<() => void> = [];
-  const registerInlineEditTrigger = (trigger: (() => void) | null, owner?: () => void) => {
+  let colorPickerTriggers: Array<() => void> = [];
+  const registerColorPickerTrigger = (trigger: (() => void) | null, owner?: () => void) => {
     if (trigger === null) {
       if (owner === undefined) {
-        inlineEditTriggers = [];
+        colorPickerTriggers = [];
         return;
       }
-      inlineEditTriggers = inlineEditTriggers.filter(
+      colorPickerTriggers = colorPickerTriggers.filter(
         (registeredTrigger) => registeredTrigger !== owner,
       );
       return;
     }
-    inlineEditTriggers = inlineEditTriggers.filter(
+    colorPickerTriggers = colorPickerTriggers.filter(
       (registeredTrigger) => registeredTrigger !== trigger,
     );
-    inlineEditTriggers.push(trigger);
+    colorPickerTriggers.push(trigger);
   };
 
-  const getCurrentInlineEditTrigger = () => {
-    return inlineEditTriggers[inlineEditTriggers.length - 1] ?? null;
+  const getCurrentColorPickerTrigger = () => {
+    return colorPickerTriggers[colorPickerTriggers.length - 1] ?? null;
   };
 
   const keyHandlers: Record<string, (event: KeyboardEvent) => void> = {
@@ -328,12 +316,10 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     Enter: () => {
       if (isPendingDismiss()) return;
       const property = activeProperty();
-      const inlineEditTrigger = getCurrentInlineEditTrigger();
-      const isUntweakedInlineEditable =
-        (property?.kind === "color" || property?.kind === "text") &&
-        !tweakStore.hasTweakFor(property.key);
-      if (isUntweakedInlineEditable && inlineEditTrigger) {
-        inlineEditTrigger();
+      const colorPickerTrigger = getCurrentColorPickerTrigger();
+      const isUntweakedColor = property?.kind === "color" && !tweakStore.hasTweakFor(property.key);
+      if (isUntweakedColor && colorPickerTrigger) {
+        colorPickerTrigger();
         return;
       }
       handleSubmit();
@@ -617,7 +603,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                 onSelect={handleSelectProperty}
                 onStep={stepFromPointer}
                 onCommit={commitActive}
-                onInlineEditRegister={registerInlineEditTrigger}
+                onColorPickerRegister={registerColorPickerTrigger}
                 onEditComplete={ensureSearchFocused}
                 onInvalidCommit={playShake}
                 onInteract={markAsInteracting}
@@ -641,7 +627,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                   onEditComplete={ensureSearchFocused}
                   onInvalidCommit={playShake}
                   onInteract={markAsInteracting}
-                  onInlineEditRegister={registerInlineEditTrigger}
+                  onColorPickerRegister={registerColorPickerTrigger}
                   showLabel={false}
                   tailwindLabel={activeTailwindLabel()}
                   emphasized

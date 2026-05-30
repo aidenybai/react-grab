@@ -32,7 +32,7 @@ export const formatEditableValue = (
   property: EditableProperty,
   overrideValue?: number | string,
 ): string => {
-  if (property.kind === "color" || property.kind === "enum" || property.kind === "text") {
+  if (property.kind === "color" || property.kind === "enum") {
     const stringValue = typeof overrideValue === "string" ? overrideValue : property.value;
     return stringValue;
   }

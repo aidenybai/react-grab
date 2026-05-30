@@ -9,11 +9,9 @@ import {
   buildColorProperty,
   buildEnumProperty,
   buildNumericProperty,
-  buildTextProperty,
 } from "./css-property-builders.js";
 import { snapshotAllKeys, snapshotElement, type ComputedSnapshot } from "./css-snapshot.js";
 import { valueWithFallback } from "./css-value-resolution.js";
-import { getEditableTextContent } from "./get-editable-text-content.js";
 import { isTransparentRgbString } from "./parse-color.js";
 import {
   AGGREGATE_GROUPS,
@@ -39,9 +37,6 @@ export const buildEditableProperties = (element: Element): EditableProperty[] =>
     properties.push(property);
     emittedPropertyKeys.add(property.key);
   };
-
-  const editableTextContent = getEditableTextContent(element);
-  if (editableTextContent !== null) addProperty(buildTextProperty(editableTextContent));
 
   for (const aggregateGroup of AGGREGATE_GROUPS) {
     for (const entry of tagAggregateGroup(snapshot, aggregateGroup)) {
@@ -107,7 +102,7 @@ const finalizeProperties = (
   const recommendedTier: EditableProperty[] = [];
 
   for (const property of properties) {
-    if (property.kind === "text" || prioritizedKeys.has(property.key)) {
+    if (prioritizedKeys.has(property.key)) {
       prioritizedTier.push({ ...property, isPrioritized: true, isDefault: false });
     } else {
       const isDefault = baseline

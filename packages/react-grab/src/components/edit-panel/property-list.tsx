@@ -4,7 +4,7 @@ import { createMenuHighlight } from "../../utils/create-menu-highlight.js";
 import { getShadowActiveElement } from "../../utils/get-shadow-active-element.js";
 import { formatDisplayValue } from "../../utils/format-css-value.js";
 import { ActivePropertyControl } from "./active-property-control.js";
-import { narrowColor, narrowEnum, narrowNumeric, narrowText } from "./narrow-property.js";
+import { narrowColor, narrowEnum, narrowNumeric } from "./narrow-property.js";
 
 const enumDisplayValue = (property: EditableProperty): string => {
   const enumProperty = narrowEnum(property);
@@ -22,7 +22,7 @@ interface PropertyListProps {
   onSelect: (index: number) => void;
   onStep: (direction: 1 | -1) => void;
   onCommit: (value: number | string) => void;
-  onInlineEditRegister: (trigger: (() => void) | null, owner?: () => void) => void;
+  onColorPickerRegister: (trigger: (() => void) | null, owner?: () => void) => void;
   onEditComplete: () => void;
   onInvalidCommit: () => void;
   onInteract: () => void;
@@ -42,21 +42,20 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
   let didPointerMove = false;
   let pendingHoverIndex: number | null = null;
 
-  // An open inline editor (numeric/color/text) renders an
-  // `input[data-react-grab-input]` in the active row. Detecting its
-  // presence — rather than its focus — is what locks hover-activation:
-  // focus races (the input can transiently lose focus right after
-  // opening), but the element's presence is a stable signal that an
-  // edit is in progress, so a stray pointerenter from a layout shift
-  // can't yank the active row out from under the editor.
-  const isInlineEditorOpen = (): boolean =>
-    Boolean(listRef?.querySelector("input[data-react-grab-input]"));
+  const isHoverOwnedByFocusedInlineInput = (): boolean => {
+    if (!listRef) return false;
+    const focusedElement = getShadowActiveElement(listRef);
+    return (
+      focusedElement instanceof HTMLElement &&
+      focusedElement.matches("input[data-react-grab-input]")
+    );
+  };
 
   const maybeActivateHoveredIndex = (propertyIndex: number, source: "enter" | "move") => {
     if (source === "move") didPointerMove = true;
-    const isEditorOpen = isInlineEditorOpen();
+    const isFocusLocked = isHoverOwnedByFocusedInlineInput();
     if (!didPointerMove) return;
-    if (isEditorOpen) return;
+    if (isFocusLocked) return;
     if (props.isAdjusting()) {
       pendingHoverIndex = propertyIndex;
       return;
@@ -72,9 +71,9 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
     if (propertyIndex === null) return;
     pendingHoverIndex = null;
     const element = itemElements[propertyIndex];
-    const isEditorOpen = isInlineEditorOpen();
+    const isFocusLocked = isHoverOwnedByFocusedInlineInput();
     if (!didPointerMove) return;
-    if (isEditorOpen) return;
+    if (isFocusLocked) return;
     if (!element?.matches(":hover")) return;
     if (propertyIndex === props.activeIndex) return;
     props.onHoverIndex(propertyIndex);
@@ -220,13 +219,6 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
                           </span>
                         )}
                       </Match>
-                      <Match when={narrowText(property())}>
-                        {(textProperty) => (
-                          <span class="text-[11px] font-sans text-[var(--rg-text-secondary)] truncate min-w-0 max-w-[140px] text-right">
-                            {textProperty().value}
-                          </span>
-                        )}
-                      </Match>
                     </Switch>
                   </div>
                 }
@@ -239,7 +231,7 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
                   onEditComplete={props.onEditComplete}
                   onInvalidCommit={props.onInvalidCommit}
                   onInteract={props.onInteract}
-                  onInlineEditRegister={props.onInlineEditRegister}
+                  onColorPickerRegister={props.onColorPickerRegister}
                   showLabel
                   tailwindLabel={props.activeTailwindLabel}
                 />

@@ -11,7 +11,6 @@ const hasInlineStyle = (element: Element): element is InlineStyledElement => {
 export const createPreviewStyles = (element: Element): PreviewStyles => {
   const baselineStyles = new Map<string, { value: string; priority: string }>();
   const styledElement = hasInlineStyle(element) ? element : null;
-  let baselineText: string | null = null;
 
   const apply = (cssProperties: readonly string[], cssValue: string): void => {
     if (!styledElement) return;
@@ -26,16 +25,7 @@ export const createPreviewStyles = (element: Element): PreviewStyles => {
     }
   };
 
-  const applyText = (text: string): void => {
-    if (baselineText === null) baselineText = element.textContent ?? "";
-    element.textContent = text;
-  };
-
   const restore = (): void => {
-    if (baselineText !== null) {
-      element.textContent = baselineText;
-      baselineText = null;
-    }
     if (!styledElement) {
       baselineStyles.clear();
       return;
@@ -52,10 +42,9 @@ export const createPreviewStyles = (element: Element): PreviewStyles => {
 
   const forget = (): void => {
     baselineStyles.clear();
-    baselineText = null;
   };
 
-  const hasAppliedStyles = (): boolean => baselineStyles.size > 0 || baselineText !== null;
+  const hasAppliedStyles = (): boolean => baselineStyles.size > 0;
 
-  return { apply, applyText, restore, forget, hasAppliedStyles };
+  return { apply, restore, forget, hasAppliedStyles };
 };

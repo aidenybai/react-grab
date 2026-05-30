@@ -51,10 +51,6 @@ const createSearchEntries = (properties: readonly EditableProperty[]): PropertyS
   const searchEntries: PropertySearchEntry[] = [];
   for (let originalIndex = 0; originalIndex < properties.length; originalIndex++) {
     const property = properties[originalIndex];
-    // Text content is a pinned row, not a CSS property — keeping it out
-    // of the fuzzy index avoids its "text" label hijacking CSS searches
-    // like "text" (font-size) or "text-align".
-    if (property.kind === "text") continue;
     for (const alias of property.tailwindAliases) {
       const normalizedAlias = normalizeSearchText(alias);
       if (normalizedAlias) {

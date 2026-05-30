@@ -1,11 +1,6 @@
 import { TAILWIND_SPACING_MAX_UNITS, TAILWIND_SPACING_UNIT_PX } from "../constants.js";
 import type { EnumEditableOption } from "../types.js";
 
-// Synthetic key for the in-place text-content editor. Not a CSS
-// property — kept distinct from any real CSS key so it never collides
-// with computed-style snapshots or Tailwind class resolution.
-export const TEXT_CONTENT_KEY = "text-content";
-
 export const TRACKED_PROPERTIES = [
   "padding-top",
   "padding-right",

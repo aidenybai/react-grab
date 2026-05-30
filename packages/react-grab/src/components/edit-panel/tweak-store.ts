@@ -7,8 +7,7 @@ import { arePropertyValuesEqual } from "./property-values-equal.js";
 type PropertyTweak =
   | { kind: "numeric"; value: number }
   | { kind: "color"; value: string }
-  | { kind: "enum"; value: string }
-  | { kind: "text"; value: string };
+  | { kind: "enum"; value: string };
 
 interface CreateTweakStoreOptions {
   initialProperties: EditableProperty[];
@@ -89,8 +88,6 @@ export const createTweakStore = (options: CreateTweakStoreOptions): TweakStore =
       return { ...property, value: tweak.value };
     if (property.kind === "enum" && tweak.kind === "enum")
       return { ...property, value: tweak.value };
-    if (property.kind === "text" && tweak.kind === "text")
-      return { ...property, value: tweak.value };
     return property;
   };
 
@@ -102,8 +99,6 @@ export const createTweakStore = (options: CreateTweakStoreOptions): TweakStore =
       tweak = { kind: "color", value: nextValue };
     } else if (property.kind === "enum" && typeof nextValue === "string") {
       tweak = { kind: "enum", value: nextValue };
-    } else if (property.kind === "text" && typeof nextValue === "string") {
-      tweak = { kind: "text", value: nextValue };
     } else {
       return;
     }
@@ -135,13 +130,6 @@ export const createTweakStore = (options: CreateTweakStoreOptions): TweakStore =
       } else if (property.kind === "enum" && tweak.kind === "enum") {
         pendingEdits.push({
           kind: "enum",
-          key: property.key,
-          cssProperties: property.cssProperties,
-          value: tweak.value,
-        });
-      } else if (property.kind === "text" && tweak.kind === "text") {
-        pendingEdits.push({
-          kind: "text",
           key: property.key,
           cssProperties: property.cssProperties,
           value: tweak.value,

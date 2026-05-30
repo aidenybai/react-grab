@@ -196,10 +196,6 @@ export const TEXTAREA_MAX_HEIGHT_PX = 95;
 
 export const EDIT_PROPERTY_LIST_MAX_HEIGHT_PX = 280;
 export const EDIT_PROPERTY_MAX_COUNT = 40;
-// Only surface in-place text editing for reasonably short leaf text.
-// Longer blocks are likely composed content where replacing the whole
-// textContent would be lossy or surprising.
-export const EDIT_TEXT_CONTENT_MAX_LENGTH = 200;
 export const EDIT_PANEL_MIN_WIDTH_PX = 200;
 export const EDIT_PANEL_MAX_WIDTH_PX = 320;
 export const EDIT_PANEL_POINTER_ANCHOR_WIDTH_PX = 0;
