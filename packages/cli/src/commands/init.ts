@@ -21,6 +21,7 @@ import { getPackagesToInstall } from "../utils/install.js";
 import { logger } from "../utils/logger.js";
 import { spinner } from "../utils/spinner.js";
 import {
+  hasFrameworkEntryPoint,
   previewOptionsTransform,
   previewTransform,
   type ReactGrabOptions,
@@ -103,6 +104,22 @@ const printSubprojects = (searchRoot: string, sortedProjects: WorkspaceProject[]
     `  ${highlighter.dim("$")} npx grab@latest init -c ${relative(searchRoot, sortedProjects[0].path)}`,
   );
   logger.break();
+};
+
+const SUPPORTED_FRAMEWORKS_LINE =
+  "React Grab supports Next.js, Vite, TanStack Start, and Webpack projects.";
+
+const failWithManualSetup = (
+  failingSpinner: ReturnType<typeof spinner>,
+  message: string,
+  { listSupportedFrameworks = false } = {},
+): never => {
+  failingSpinner.fail(message);
+  logger.break();
+  if (listSupportedFrameworks) logger.log(SUPPORTED_FRAMEWORKS_LINE);
+  logger.log(`Visit ${highlighter.info(DOCS_URL)} for manual setup.`);
+  logger.break();
+  process.exit(1);
 };
 
 export const init = new Command()
@@ -347,7 +364,20 @@ export const init = new Command()
         process.exit(1);
       }
 
-      if (projectInfo.framework === "unknown") {
+      // A detected framework whose entry file is missing is only ambiguous in a
+      // monorepo, where the real app lives in a workspace and the root config is
+      // tooling. For a standalone project we keep the framework so previewTransform
+      // can surface its specific manual-setup guidance instead of searching elsewhere.
+      const shouldSearchForProject =
+        projectInfo.framework === "unknown" ||
+        (projectInfo.isMonorepo &&
+          !hasFrameworkEntryPoint(
+            projectInfo.projectRoot,
+            projectInfo.framework,
+            projectInfo.nextRouterType,
+          ));
+
+      if (shouldSearchForProject) {
         let searchRoot = cwd;
         let reactProjects = findReactProjects(searchRoot);
         if (reactProjects.length === 0 && cwd !== process.cwd()) {
@@ -398,23 +428,24 @@ export const init = new Command()
 
           const newFrameworkSpinner = spinner("Verifying framework.").start();
           if (newProjectInfo.framework === "unknown") {
-            newFrameworkSpinner.fail("Could not detect a supported framework in this project.");
-            logger.break();
-            logger.log("React Grab supports Next.js, Vite, TanStack Start, and Webpack projects.");
-            logger.log(`Visit ${highlighter.info(DOCS_URL)} for manual setup.`);
-            logger.break();
-            process.exit(1);
+            failWithManualSetup(
+              newFrameworkSpinner,
+              "Could not detect a supported framework in this project.",
+              { listSupportedFrameworks: true },
+            );
           }
           newFrameworkSpinner.succeed(
             `Verifying framework. Found ${highlighter.info(FRAMEWORK_NAMES[newProjectInfo.framework])}.`,
           );
+        } else if (projectInfo.framework !== "unknown") {
+          failWithManualSetup(
+            frameworkSpinner,
+            `Verifying framework. Found ${highlighter.info(FRAMEWORK_NAMES[projectInfo.framework])}, but could not find an entry file.`,
+          );
         } else {
-          frameworkSpinner.fail("Could not detect a supported framework.");
-          logger.break();
-          logger.log("React Grab supports Next.js, Vite, TanStack Start, and Webpack projects.");
-          logger.log(`Visit ${highlighter.info(DOCS_URL)} for manual setup.`);
-          logger.break();
-          process.exit(1);
+          failWithManualSetup(frameworkSpinner, "Could not detect a supported framework.", {
+            listSupportedFrameworks: true,
+          });
         }
       } else {
         frameworkSpinner.succeed(

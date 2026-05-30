@@ -1,5 +1,9 @@
 import { vi, describe, expect, it, beforeEach } from "vite-plus/test";
-import { previewTransform, applyTransform } from "../src/utils/transform.js";
+import {
+  hasFrameworkEntryPoint,
+  previewTransform,
+  applyTransform,
+} from "../src/utils/transform.js";
 
 vi.mock("node:fs", () => ({
   existsSync: vi.fn(),
@@ -18,6 +22,58 @@ const mockAccessSync = vi.mocked(accessSync);
 
 beforeEach(() => {
   vi.clearAllMocks();
+});
+
+describe("hasFrameworkEntryPoint", () => {
+  // `path.join` emits `\` on Windows, so normalize to `/` before matching the
+  // POSIX-style suffixes below.
+  const pathEndsWith = (path: unknown, suffix: string): boolean =>
+    `${path}`.replace(/\\/g, "/").endsWith(suffix);
+
+  it("returns true when a Vite entry file exists", () => {
+    mockExistsSync.mockImplementation((path) => pathEndsWith(path, "src/main.tsx"));
+    expect(hasFrameworkEntryPoint("/app", "vite", "unknown")).toBe(true);
+  });
+
+  it("returns false for Vite when only a config file exists (monorepo root tooling)", () => {
+    mockExistsSync.mockImplementation((path) => pathEndsWith(path, "vite.config.ts"));
+    expect(hasFrameworkEntryPoint("/repo", "vite", "unknown")).toBe(false);
+  });
+
+  it("returns true for a Webpack entry file", () => {
+    mockExistsSync.mockImplementation((path) => pathEndsWith(path, "src/index.tsx"));
+    expect(hasFrameworkEntryPoint("/app", "webpack", "unknown")).toBe(true);
+  });
+
+  it("returns true for Next.js App Router when layout exists", () => {
+    mockExistsSync.mockImplementation((path) => pathEndsWith(path, "app/layout.tsx"));
+    expect(hasFrameworkEntryPoint("/app", "next", "app")).toBe(true);
+  });
+
+  it("returns false for Next.js App Router when only _document exists (matches transform)", () => {
+    mockExistsSync.mockImplementation((path) => pathEndsWith(path, "pages/_document.tsx"));
+    expect(hasFrameworkEntryPoint("/app", "next", "app")).toBe(false);
+  });
+
+  it("returns true for Next.js Pages Router when _document exists", () => {
+    mockExistsSync.mockImplementation((path) => pathEndsWith(path, "pages/_document.tsx"));
+    expect(hasFrameworkEntryPoint("/app", "next", "pages")).toBe(true);
+  });
+
+  it("returns false for Next.js when neither layout nor document exist", () => {
+    mockExistsSync.mockReturnValue(false);
+    expect(hasFrameworkEntryPoint("/repo", "next", "unknown")).toBe(false);
+  });
+
+  it("returns true for TanStack Start when the root route exists", () => {
+    mockExistsSync.mockImplementation((path) => pathEndsWith(path, "src/routes/__root.tsx"));
+    expect(hasFrameworkEntryPoint("/app", "tanstack", "unknown")).toBe(true);
+  });
+
+  it("returns false for an unknown framework", () => {
+    mockExistsSync.mockReturnValue(true);
+    expect(hasFrameworkEntryPoint("/app", "unknown", "unknown")).toBe(false);
+  });
 });
 
 describe("previewTransform - Next.js App Router", () => {

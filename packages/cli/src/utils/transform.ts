@@ -484,6 +484,26 @@ const transformTanStack = (
   };
 };
 
+export const hasFrameworkEntryPoint = (
+  projectRoot: string,
+  framework: Framework,
+  nextRouterType: NextRouterType,
+): boolean => {
+  switch (framework) {
+    case "next":
+      return nextRouterType === "app"
+        ? findLayoutFile(projectRoot) !== null
+        : findDocumentFile(projectRoot) !== null;
+    case "vite":
+    case "webpack":
+      return findEntryFile(projectRoot) !== null;
+    case "tanstack":
+      return findTanStackRootFile(projectRoot) !== null;
+    default:
+      return false;
+  }
+};
+
 export const previewTransform = (
   projectRoot: string,
   framework: Framework,

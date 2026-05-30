@@ -4,12 +4,12 @@ import { fileURLToPath } from "node:url";
 import {
   type SkillAgentType,
   add,
-  detectInstalledSkillAgents,
   getCanonicalSkillsDir,
   getSkillAgentConfig,
   getSkillAgentDir,
   isUniversalSkillAgent,
 } from "agent-install/skill";
+import { detectAvailableAgents } from "./detect-agents.js";
 import { highlighter } from "./highlighter.js";
 import { logger } from "./logger.js";
 import { prompts } from "./prompts.js";
@@ -34,26 +34,34 @@ const installedSkillDir = (agent: SkillAgentType): string =>
   );
 
 export const promptSkillInstall = async ({ yes = false } = {}): Promise<boolean> => {
-  const agents = await detectInstalledSkillAgents();
-  if (agents.length === 0) {
+  const detectedAgents = await detectAvailableAgents();
+  if (detectedAgents.length === 0) {
     logger.warn("No supported agents detected.");
     return false;
   }
 
+  let selectedAgents = detectedAgents;
   if (!yes) {
-    const { confirmed } = await prompts({
-      type: "confirm",
-      name: "confirmed",
-      message: `Install the React Grab skill for ${highlighter.info(agents.map(agentLabel).join(", "))}?`,
-      initial: true,
+    const { agents } = await prompts({
+      type: "multiselect",
+      name: "agents",
+      message: "Install the React Grab skill for:",
+      choices: detectedAgents.map((agent) => ({
+        title: agentLabel(agent),
+        value: agent,
+        selected: true,
+      })),
+      instructions: false,
+      min: 1,
     });
-    if (!confirmed) return false;
+    selectedAgents = agents ?? [];
+    if (selectedAgents.length === 0) return false;
   }
 
   const installSpinner = spinner("Installing React Grab skill.").start();
   const { installed, failed } = await add({
     source: SKILL_SOURCE,
-    agents,
+    agents: selectedAgents,
     global: true,
     mode: "copy",
   });
@@ -72,7 +80,7 @@ export const promptSkillInstall = async ({ yes = false } = {}): Promise<boolean>
 };
 
 export const removeSkill = async (): Promise<number> => {
-  const agents = await detectInstalledSkillAgents();
+  const agents = await detectAvailableAgents();
   const agentsWithSkill = agents.filter((agent) => existsSync(installedSkillDir(agent)));
   // Universal agents share one canonical dir, so delete each distinct dir once.
   for (const skillDir of new Set(agentsWithSkill.map(installedSkillDir))) {
