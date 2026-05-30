@@ -4,6 +4,7 @@ import type {
   EnumEditableProperty,
   NumericEditableProperty,
 } from "../types.js";
+import { EDIT_TRANSPARENT_COLOR_HEX } from "../constants.js";
 import { propertyBounds } from "./css-property-bounds.js";
 import { normalizeForEdit } from "./css-value-resolution.js";
 import { parseAnyColor } from "./parse-any-color.js";
@@ -40,20 +41,22 @@ export const buildColorProperty = (
   cssKey: string,
   label: string,
   rawCssValue: string,
+  alwaysShow = false,
 ): ColorEditableProperty | null => {
   const hexValue = parseAnyColor(rawCssValue);
-  if (!hexValue) return null;
-  const channels = parseHexChannels(hexValue);
-  if (!channels || channels.a === 0) return null;
+  const channels = hexValue ? parseHexChannels(hexValue) : null;
+  const isUsableColor = channels !== null && channels.a !== 0;
+  if (!isUsableColor && !alwaysShow) return null;
+  const value = isUsableColor && hexValue ? hexValue : EDIT_TRANSPARENT_COLOR_HEX;
   return {
     kind: "color",
     key: cssKey,
     label,
     cssProperties: [cssKey],
-    value: hexValue,
-    original: hexValue,
+    value,
+    original: value,
     tailwindAliases: tailwindAliasesForProperty(cssKey),
-    isPrioritized: false,
+    isPrioritized: alwaysShow,
     isDefault: false,
     isCanonical: true,
   };

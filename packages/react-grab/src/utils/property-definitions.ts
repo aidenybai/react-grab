@@ -235,12 +235,22 @@ const BORDER_WIDTH_AGGREGATES: readonly AggregateDefinition[] = [
   { key: "border-left-width", label: "border left width", longhands: ["border-left-width"] },
 ];
 
+// Modeling `size` as an aggregate lets the canonical-row algorithm show
+// one "size" slider when width and height are equal (writing both at once)
+// and fall back to separate width/height rows otherwise.
+const SIZE_AGGREGATES: readonly AggregateDefinition[] = [
+  { key: "width,height", label: "size", longhands: ["width", "height"] },
+  { key: "width", label: "width", longhands: ["width"] },
+  { key: "height", label: "height", longhands: ["height"] },
+];
+
 export const AGGREGATE_GROUPS: readonly (readonly AggregateDefinition[])[] = [
   PADDING_AGGREGATES,
   MARGIN_AGGREGATES,
   GAP_AGGREGATES,
   RADIUS_AGGREGATES,
   BORDER_WIDTH_AGGREGATES,
+  SIZE_AGGREGATES,
   INSET_AGGREGATES,
 ];
 
@@ -248,8 +258,6 @@ export const SINGLE_PROPERTIES: readonly { key: TrackedProperty; label: string }
   { key: "font-size", label: "font size" },
   { key: "line-height", label: "line height" },
   { key: "letter-spacing", label: "letter spacing" },
-  { key: "width", label: "width" },
-  { key: "height", label: "height" },
   { key: "min-width", label: "min width" },
   { key: "min-height", label: "min height" },
   { key: "max-width", label: "max width" },
@@ -263,9 +271,13 @@ export const SINGLE_PROPERTIES: readonly { key: TrackedProperty; label: string }
 // instead of the slider. We deliberately limit the list to the handful
 // users actually want to tweak — every element computes dozens of
 // colour-typed properties, most of them inherited and uninteresting.
-export const COLOR_PROPERTIES: ReadonlyArray<{ key: string; label: string }> = [
-  { key: "color", label: "text color" },
-  { key: "background-color", label: "background" },
+export const COLOR_PROPERTIES: ReadonlyArray<{
+  key: string;
+  label: string;
+  alwaysShow?: boolean;
+}> = [
+  { key: "color", label: "text color", alwaysShow: true },
+  { key: "background-color", label: "background", alwaysShow: true },
   { key: "border-color", label: "border color" },
   { key: "fill", label: "fill" },
   { key: "stroke", label: "stroke" },

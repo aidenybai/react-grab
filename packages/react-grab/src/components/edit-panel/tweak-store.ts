@@ -19,7 +19,7 @@ export interface TweakStore {
   applyTweak: (property: EditableProperty, nextValue: number | string) => void;
   buildPendingEdits: () => PendingEdit[];
   hasPendingTweaks: () => boolean;
-  hasTweakFor: (key: string) => boolean;
+  hasChangedTweakFor: (key: string) => boolean;
 }
 
 const hasChangedFromOriginal = (property: EditableProperty, tweak: PropertyTweak): boolean => {
@@ -147,13 +147,19 @@ export const createTweakStore = (options: CreateTweakStoreOptions): TweakStore =
     }
     return false;
   };
-  const hasTweakFor = (key: string) => tweaksByKey()[key] !== undefined;
+  // A no-op commit must not count as tweaked, or Enter would submit
+  // instead of opening the inline editor.
+  const hasChangedTweakFor = (key: string): boolean => {
+    const tweak = tweaksByKey()[key];
+    const property = propertyByKey.get(key);
+    return Boolean(tweak && property && hasChangedFromOriginal(property, tweak));
+  };
 
   return {
     filteredProperties,
     applyTweak,
     buildPendingEdits,
     hasPendingTweaks,
-    hasTweakFor,
+    hasChangedTweakFor,
   };
 };

@@ -1,6 +1,7 @@
 import { batch, createMemo, type Accessor } from "solid-js";
-import { TAILWIND_SPACING_UNIT_PX } from "../../constants.js";
+import { EDIT_ROOT_FONT_SIZE_PX, TAILWIND_SPACING_UNIT_PX } from "../../constants.js";
 import type {
+  ColorEditableProperty,
   EditableProperty,
   EnumEditableProperty,
   NumericEditableProperty,
@@ -10,13 +11,22 @@ import { expandAggregateLonghands } from "../../utils/expand-aggregate-longhands
 import { roundEditableNumericValue } from "../../utils/format-css-value.js";
 import { isNumericDraftQuery } from "../../utils/is-numeric-draft-query.js";
 import { isNumericQuery } from "../../utils/is-numeric-query.js";
+import { parseAnyColor } from "../../utils/parse-any-color.js";
 import {
   normalizeTailwindClassInput,
   tailwindClassToEnumValue,
+  tailwindColorPropertyForClassName,
+  tailwindNamedColorHex,
   tailwindPrefixToProperty,
 } from "../../utils/tailwind-class-map.js";
 
 const TAILWIND_CLASS_PATTERN = /^([a-z-]+)-(-?\d+(?:\.\d+)?)$/;
+const TAILWIND_ARBITRARY_PATTERN = /^(.+?)-\[(.+)]$/;
+// A px/rem unit (or an explicit length:/size: data-type hint) marks a
+// value as a length. Bare unitless values (opacity-[0.5], leading-[1.5])
+// are ambiguous and em is element-relative, so those are skipped.
+const ARBITRARY_LENGTH_PATTERN = /^(-?\d*\.?\d+)(px|rem)?$/i;
+const ARBITRARY_LENGTH_HINT = /^(?:length|size):/i;
 
 const LITERAL_NUMBER_KEYS = new Set([
   "opacity",
@@ -47,6 +57,43 @@ const findEnum = (
     if (property.key === cssKey && property.kind === "enum") return property;
   }
   return null;
+};
+
+const findColor = (
+  properties: readonly EditableProperty[],
+  cssKey: string,
+): ColorEditableProperty | null => {
+  for (const property of properties) {
+    if (property.key === cssKey && property.kind === "color") return property;
+  }
+  return null;
+};
+
+// Tailwind escapes spaces as underscores and may carry a type hint.
+// Underscores inside var()/url() belong to the identifier, so leave
+// those values untouched.
+const cleanArbitraryValue = (rawValue: string): string => {
+  const value = rawValue.replace(/^(?:color|length|size):/i, "").trim();
+  return /(?:var|url)\(/i.test(value) ? value : value.replace(/_/g, " ");
+};
+
+const arbitraryPrefix = (rawPrefix: string): string => {
+  const lastVariantColon = rawPrefix.lastIndexOf(":");
+  const withoutVariant = lastVariantColon >= 0 ? rawPrefix.slice(lastVariantColon + 1) : rawPrefix;
+  const withoutImportant = withoutVariant.startsWith("!")
+    ? withoutVariant.slice(1)
+    : withoutVariant;
+  return withoutImportant.toLowerCase();
+};
+
+const parseArbitraryLengthPx = (value: string, allowUnitless: boolean): number | null => {
+  const lengthMatch = value.match(ARBITRARY_LENGTH_PATTERN);
+  if (!lengthMatch) return null;
+  const unit = lengthMatch[2]?.toLowerCase();
+  if (!unit && !allowUnitless) return null;
+  const magnitude = Number.parseFloat(lengthMatch[1]);
+  if (!Number.isFinite(magnitude)) return null;
+  return unit === "rem" ? magnitude * EDIT_ROOT_FONT_SIZE_PX : magnitude;
 };
 
 const findNumericLonghands = (
@@ -123,11 +170,65 @@ export const createTailwindAutoApply = (
     return true;
   };
 
+  const commitLengthPx = (cssKey: string, value: number): boolean => {
+    const numericTarget = findNumeric(initialProperties, cssKey);
+    if (numericTarget) {
+      // px lengths only apply to px-measured props, not opacity/z-index.
+      if (numericTarget.unit !== "px") return false;
+      setIsCompact(true);
+      commit(numericTarget, clampedFor(numericTarget, value), { shouldCompact: true });
+      return true;
+    }
+    const sideProperties = findNumericLonghands(initialProperties, cssKey);
+    if (sideProperties.length === 0) return false;
+    setIsCompact(true);
+    batch(() => {
+      for (const sideProperty of sideProperties) {
+        commit(sideProperty, clampedFor(sideProperty, value), { shouldCompact: true });
+      }
+    });
+    return true;
+  };
+
+  // Single color-apply path for both spellings: arbitrary values
+  // (`bg-[#f00]`, passed pre-parsed) and named palette tokens
+  // (`bg-red-500`, resolved here). A null arbitraryValue means "resolve
+  // the named token".
+  const applyColorClass = (rawClass: string, arbitraryValue: string | null): boolean => {
+    const colorCssKey = tailwindColorPropertyForClassName(rawClass);
+    if (!colorCssKey) return false;
+    const colorTarget = findColor(initialProperties, colorCssKey);
+    if (!colorTarget) return false;
+    const colorHex =
+      arbitraryValue === null ? tailwindNamedColorHex(rawClass) : parseAnyColor(arbitraryValue);
+    if (!colorHex) return false;
+    setIsCompact(true);
+    commit(colorTarget, colorHex, { shouldCompact: true });
+    return true;
+  };
+
+  const applyArbitraryClass = (rawQuery: string): boolean => {
+    const normalizedClass = rawQuery.trim();
+    const arbitraryMatch = normalizedClass.match(TAILWIND_ARBITRARY_PATTERN);
+    if (!arbitraryMatch) return false;
+    const rawValue = arbitraryMatch[2];
+    const value = cleanArbitraryValue(rawValue);
+    if (applyColorClass(normalizedClass, value)) return true;
+
+    const lengthPx = parseArbitraryLengthPx(value, ARBITRARY_LENGTH_HINT.test(rawValue.trim()));
+    if (lengthPx === null) return false;
+    const cssKey = tailwindPrefixToProperty(arbitraryPrefix(arbitraryMatch[1]));
+    return cssKey ? commitLengthPx(cssKey, lengthPx) : false;
+  };
+
   const applySingleClass = (rawQuery: string) => {
+    if (applyArbitraryClass(rawQuery)) return;
     const query = normalizeTailwindClassInput(rawQuery);
     const intentPrefix = query.replace(/-\d*$/, "").replace(/-$/, "");
     const intentCssKey = intentPrefix ? tailwindPrefixToProperty(intentPrefix) : null;
     if (intentCssKey && hasTrackableTarget(intentCssKey)) setIsCompact(true);
+
+    if (applyColorClass(query, null)) return;
 
     const enumMapping = tailwindClassToEnumValue(query);
     if (enumMapping) {
@@ -190,7 +291,11 @@ export const createTailwindAutoApply = (
     const strippedClassAttribute = rawQuery
       .trim()
       .replace(/^class\s*=\s*["']/, "")
-      .replace(/["']\s*$/, "");
+      .replace(/["']\s*$/, "")
+      // A space before `[` is a typo for the `-[` arbitrary-value
+      // separator (`text [13px]` → `text-[13px]`); join it so the class
+      // isn't split into separate tokens.
+      .replace(/\s+\[/g, "-[");
     const normalizedStripped = normalizeTailwindClassInput(strippedClassAttribute);
     const tokens = strippedClassAttribute.split(/\s+/).filter(Boolean);
     if (tokens.length > 1 && !isApplicableSingleClass(normalizedStripped)) {

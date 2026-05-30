@@ -133,6 +133,8 @@ export interface AgentContext<T = unknown> {
 
 export type ActivationMode = "toggle" | "hold";
 
+export type OverlayDismissSource = "keyboard" | "pointer";
+
 export interface ActionContextHooks {
   transformHtmlContent: (html: string, elements: Element[]) => Promise<string>;
   onOpenFile: (filePath: string, lineNumber?: number) => boolean | void;

@@ -20,7 +20,12 @@ import {
   IME_COMPOSING_KEY_CODE,
   Z_INDEX_OVERLAY,
 } from "../../constants.js";
-import type { DropdownAnchor, EditableProperty, EditPanelState } from "../../types.js";
+import type {
+  DropdownAnchor,
+  EditableProperty,
+  EditPanelState,
+  OverlayDismissSource,
+} from "../../types.js";
 import { clampToRange } from "../../utils/clamp-to-range.js";
 import { cn } from "../../utils/cn.js";
 import { createAnchoredDropdown } from "../../utils/create-anchored-dropdown.js";
@@ -85,9 +90,17 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   const preview = props.state.preview;
 
   const [searchQuery, setSearchQuery] = createSignal(props.state.initialSearchQuery ?? "");
-  const [activeIndex, setActiveIndex] = createSignal(0);
   const [activeKey, setActiveKey] = createSignal<"left" | "right" | null>(null);
   const tweakStore = createTweakStore({ initialProperties, searchQuery });
+  // Colors are pinned on top but aren't slider-steppable, so the arrow-key
+  // cursor lands on the first numeric row instead.
+  const firstNumericActiveIndex = (): number => {
+    const numericIndex = tweakStore
+      .filteredProperties()
+      .findIndex((property) => property.kind === "numeric");
+    return numericIndex > 0 ? numericIndex : 0;
+  };
+  const [activeIndex, setActiveIndex] = createSignal(firstNumericActiveIndex());
   const hasPendingTweaks = createMemo(() => tweakStore.hasPendingTweaks());
   const [isCompact, setIsCompact] = createSignal(false);
 
@@ -263,7 +276,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     props.onDismiss();
   };
 
-  const attemptDismiss = () => {
+  const attemptDismiss = (source: OverlayDismissSource) => {
     stepController.cancelRepeat();
     if (isPendingDismiss()) {
       closePanel("discard");
@@ -273,7 +286,12 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       closePanel(preview.hasAppliedStyles() ? "discard" : "preserve");
       return;
     }
+    // Always reveal the full panel before anything destructive. A keyboard
+    // Escape stops there (so a stray Escape can't nuke pending changes on
+    // the collapsed view); an outside click continues to the discard prompt.
+    const wasCompact = isCompact();
     setIsCompact(false);
+    if (source === "keyboard" && wasCompact) return;
     discardConfirmation.show();
     playShake();
   };
@@ -307,24 +325,37 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     return colorPickerTriggers[colorPickerTriggers.length - 1] ?? null;
   };
 
+  const pressArrowOrOpenColorPicker = (key: "ArrowLeft" | "ArrowRight", event: KeyboardEvent) => {
+    if (activeProperty()?.kind === "color") {
+      if (!event.repeat) getCurrentColorPickerTrigger()?.();
+      return;
+    }
+    stepController.pressArrow(key, event.repeat, event.shiftKey);
+  };
+
   const keyHandlers: Record<string, (event: KeyboardEvent) => void> = {
     ArrowUp: () => navigateActive(-1),
     ArrowDown: () => navigateActive(1),
-    ArrowLeft: (event) => stepController.pressArrow("ArrowLeft", event.repeat, event.shiftKey),
-    ArrowRight: (event) => stepController.pressArrow("ArrowRight", event.repeat, event.shiftKey),
+    ArrowLeft: (event) => pressArrowOrOpenColorPicker("ArrowLeft", event),
+    ArrowRight: (event) => pressArrowOrOpenColorPicker("ArrowRight", event),
     Tab: (event) => navigateActive(event.shiftKey ? -1 : 1),
     Enter: () => {
       if (isPendingDismiss()) return;
       const property = activeProperty();
       const colorPickerTrigger = getCurrentColorPickerTrigger();
-      const isUntweakedColor = property?.kind === "color" && !tweakStore.hasTweakFor(property.key);
-      if (isUntweakedColor && colorPickerTrigger) {
+      // Opening the picker is only a convenience for an untouched color
+      // row with nothing else staged. If any edit is pending, Enter must
+      // submit it — otherwise the picker interaction dismisses the panel
+      // and the pending change is discarded instead of copied.
+      const isUntweakedColor =
+        property?.kind === "color" && !tweakStore.hasChangedTweakFor(property.key);
+      if (isUntweakedColor && colorPickerTrigger && !hasPendingTweaks()) {
         colorPickerTrigger();
         return;
       }
       handleSubmit();
     },
-    Escape: () => attemptDismiss(),
+    Escape: () => attemptDismiss("keyboard"),
   };
 
   const handleSearchKeyDown = (event: KeyboardEvent) => {
@@ -574,7 +605,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                 setSearchQuery(nextSearchQuery);
                 if (autoApply.tryApplyNumericValue(nextSearchQuery)) return;
                 if (autoApply.isInlineNumericDraft(nextSearchQuery)) return;
-                setActiveIndex(0);
+                setActiveIndex(nextSearchQuery.trim() === "" ? firstNumericActiveIndex() : 0);
                 setIsCompact(false);
                 autoApply.applyTailwindClass(nextSearchQuery);
               }}

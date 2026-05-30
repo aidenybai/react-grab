@@ -60,10 +60,10 @@ export const buildEditableProperties = (element: Element): EditableProperty[] =>
     );
   }
 
-  for (const { key, label } of COLOR_PROPERTIES) {
+  for (const { key, label, alwaysShow } of COLOR_PROPERTIES) {
     const rawCssValue = computed.getPropertyValue(key);
-    if (!rawCssValue || isTransparentRgbString(rawCssValue)) continue;
-    const colorProperty = buildColorProperty(key, label, rawCssValue);
+    if (!alwaysShow && (!rawCssValue || isTransparentRgbString(rawCssValue))) continue;
+    const colorProperty = buildColorProperty(key, label, rawCssValue, alwaysShow);
     if (colorProperty) addProperty(colorProperty);
   }
 
@@ -102,7 +102,7 @@ const finalizeProperties = (
   const recommendedTier: EditableProperty[] = [];
 
   for (const property of properties) {
-    if (prioritizedKeys.has(property.key)) {
+    if (property.isPrioritized || prioritizedKeys.has(property.key)) {
       prioritizedTier.push({ ...property, isPrioritized: true, isDefault: false });
     } else {
       const isDefault = baseline
