@@ -78,6 +78,8 @@ import {
   WINDOW_REFOCUS_GRACE_PERIOD_MS,
   PREVIEW_TEXT_MAX_LENGTH,
   NEXTJS_REVALIDATION_DELAY_MS,
+  SCREENSHOT_LABEL_MIN_ELEMENT_HEIGHT_PX,
+  SCREENSHOT_LABEL_MIN_ELEMENT_WIDTH_PX,
   TOOLBAR_DEFAULT_POSITION_RATIO,
   DEFAULT_ACTION_ID,
 } from "../constants.js";
@@ -97,6 +99,7 @@ import type {
   GrabbedBox,
   ReactGrabAPI,
   ReactGrabState,
+  ScreenshotLabel,
   SelectionLabelInstance,
   ContextMenuActionContext,
   ContextMenuAction,
@@ -136,6 +139,15 @@ import { copyContent } from "../utils/copy-content.js";
 import { generateId } from "../utils/generate-id.js";
 import { logRecoverableError } from "../utils/log-recoverable-error.js";
 import { getNearestEdge } from "../utils/get-nearest-edge.js";
+import {
+  collectScreenshotLabels,
+  resolveScreenshotLabelFileName,
+  type ScreenshotLabelCandidate,
+} from "../utils/collect-screenshot-labels.js";
+import {
+  isScreenshotShortcutPressed,
+  isScreenshotShortcutReleased,
+} from "../utils/is-screenshot-shortcut.js";
 
 const builtInPlugins = [copyPlugin, commentPlugin, openPlugin];
 
@@ -3469,6 +3481,125 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }, 0);
     };
 
+    const [screenshotLabelCandidates, setScreenshotLabelCandidates] = createSignal<
+      ScreenshotLabelCandidate[]
+    >([]);
+    const [screenshotLabelFileNames, setScreenshotLabelFileNames] = createSignal<
+      Map<number, string>
+    >(new Map());
+    let screenshotLabelResolutionToken = 0;
+
+    const clearScreenshotLabels = () => {
+      screenshotLabelResolutionToken++;
+      setScreenshotLabelCandidates([]);
+      setScreenshotLabelFileNames(new Map());
+    };
+
+    const activateScreenshotLabels = () => {
+      const candidates = collectScreenshotLabels();
+      if (candidates.length === 0) {
+        clearScreenshotLabels();
+        return;
+      }
+
+      const initialFileNames = new Map<number, string>();
+      for (const candidate of candidates) {
+        if (candidate.fileBaseName) {
+          initialFileNames.set(candidate.fiberId, candidate.fileBaseName);
+        }
+      }
+
+      const resolutionToken = ++screenshotLabelResolutionToken;
+      setScreenshotLabelFileNames(initialFileNames);
+      setScreenshotLabelCandidates(candidates);
+
+      for (const candidate of candidates) {
+        if (initialFileNames.has(candidate.fiberId)) continue;
+        void resolveScreenshotLabelFileName(candidate.element).then((fileBaseName) => {
+          if (resolutionToken !== screenshotLabelResolutionToken) return;
+          if (!fileBaseName) return;
+          setScreenshotLabelFileNames((previous) => {
+            if (previous.get(candidate.fiberId) === fileBaseName) return previous;
+            const next = new Map(previous);
+            next.set(candidate.fiberId, fileBaseName);
+            return next;
+          });
+        });
+      }
+    };
+
+    const computedScreenshotLabels = createMemo<ScreenshotLabel[]>(() => {
+      const candidates = screenshotLabelCandidates();
+      if (candidates.length === 0) return [];
+      void viewportVersion();
+      const fileNames = screenshotLabelFileNames();
+      const labels: ScreenshotLabel[] = [];
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+
+      for (const candidate of candidates) {
+        if (!isElementConnected(candidate.element)) continue;
+        const rect = candidate.element.getBoundingClientRect();
+        if (rect.width < SCREENSHOT_LABEL_MIN_ELEMENT_WIDTH_PX) continue;
+        if (rect.height < SCREENSHOT_LABEL_MIN_ELEMENT_HEIGHT_PX) continue;
+        if (rect.right <= 0 || rect.bottom <= 0) continue;
+        if (rect.left >= viewportWidth || rect.top >= viewportHeight) continue;
+
+        labels.push({
+          id: candidate.fiberId,
+          x: rect.left,
+          y: rect.top,
+          area: rect.width * rect.height,
+          componentName: candidate.componentName,
+          fileBaseName: fileNames.get(candidate.fiberId) ?? candidate.fileBaseName,
+        });
+      }
+
+      return labels;
+    });
+
+    const isScreenshotTriggerKey = (event: KeyboardEvent): boolean => {
+      return (
+        event.key === "Meta" ||
+        event.key === "Shift" ||
+        event.key === "PrintScreen" ||
+        event.code === "PrintScreen"
+      );
+    };
+
+    const handleScreenshotKeydown = (event: KeyboardEvent): void => {
+      if (event.repeat) return;
+      if (!isScreenshotTriggerKey(event)) return;
+      if (!isScreenshotShortcutPressed(event)) return;
+      if (!isEnabled()) return;
+      if (isPromptMode()) return;
+      if (isCopying()) return;
+      if (isKeyboardEventTriggeredByInput(event)) return;
+      if (screenshotLabelCandidates().length > 0) return;
+      activateScreenshotLabels();
+    };
+
+    const handleScreenshotKeyup = (event: KeyboardEvent): void => {
+      if (screenshotLabelCandidates().length === 0) return;
+      if (!isScreenshotShortcutReleased(event)) return;
+      clearScreenshotLabels();
+    };
+
+    // Listen on both window and document with capture so the activation
+    // still fires when an upstream listener calls stopPropagation on the
+    // other target. Same handler on both - the early-return on existing
+    // candidates makes a second invocation for the same press a no-op.
+    eventListenerManager.addWindowListener("keydown", handleScreenshotKeydown, { capture: true });
+    eventListenerManager.addDocumentListener("keydown", handleScreenshotKeydown, { capture: true });
+    eventListenerManager.addWindowListener("keyup", handleScreenshotKeyup, { capture: true });
+    eventListenerManager.addDocumentListener("keyup", handleScreenshotKeyup, { capture: true });
+
+    eventListenerManager.addWindowListener("blur", () => {
+      if (screenshotLabelCandidates().length > 0) {
+        clearScreenshotLabels();
+      }
+    });
+
     createEffect(() => {
       const hue = pluginRegistry.store.theme.hue;
       if (hue !== 0) {
@@ -3506,6 +3637,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 selectionArrowNavigationState={arrowNavigationState()}
                 onArrowNavigationSelect={handleArrowNavigationSelect}
                 labelInstances={computedLabelInstances()}
+                screenshotLabels={computedScreenshotLabels()}
                 dragVisible={dragVisible()}
                 dragBounds={dragBounds()}
                 grabbedBoxes={computedGrabbedBoxes()}

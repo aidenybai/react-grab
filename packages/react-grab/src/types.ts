@@ -331,6 +331,15 @@ export interface SelectionLabelInstance {
   hideArrow?: boolean;
 }
 
+export interface ScreenshotLabel {
+  id: number;
+  x: number;
+  y: number;
+  area: number;
+  componentName: string;
+  fileBaseName: string | null;
+}
+
 export interface FrozenLabelEntry {
   tagName: string;
   componentName?: string;
@@ -355,6 +364,7 @@ export interface ReactGrabRendererProps {
   selectionArrowNavigationState?: ArrowNavigationState;
   onArrowNavigationSelect?: (index: number) => void;
   labelInstances?: SelectionLabelInstance[];
+  screenshotLabels?: ScreenshotLabel[];
   dragVisible?: boolean;
   dragBounds?: OverlayBounds;
   grabbedBoxes?: Array<{

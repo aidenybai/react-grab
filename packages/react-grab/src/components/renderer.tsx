@@ -27,6 +27,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         dragBounds={props.dragBounds}
         grabbedBoxes={props.grabbedBoxes}
         labelInstances={props.labelInstances}
+        screenshotLabels={props.screenshotLabels}
       />
       {/* translateZ(0) promotes to its own compositor layer so opacity
           transitions skip main-thread repaints; contain:strict with
