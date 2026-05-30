@@ -170,9 +170,12 @@ export const createTailwindAutoApply = (
     return true;
   };
 
-  const commitNumericValue = (cssKey: string, value: number): boolean => {
+  const commitLengthPx = (cssKey: string, value: number): boolean => {
     const numericTarget = findNumeric(initialProperties, cssKey);
     if (numericTarget) {
+      // A px length only makes sense for px-measured properties. opacity
+      // (%) and z-index (unitless) must not absorb `opacity-[50px]` etc.
+      if (numericTarget.unit !== "px") return false;
       setIsCompact(true);
       commit(numericTarget, clampedFor(numericTarget, value), { shouldCompact: true });
       return true;
@@ -212,7 +215,7 @@ export const createTailwindAutoApply = (
     const lengthPx = parseArbitraryLengthPx(value);
     if (lengthPx === null) return false;
     const cssKey = tailwindPrefixToProperty(arbitraryPrefix(arbitraryMatch[1]));
-    return cssKey ? commitNumericValue(cssKey, lengthPx) : false;
+    return cssKey ? commitLengthPx(cssKey, lengthPx) : false;
   };
 
   const applySingleClass = (rawQuery: string) => {

@@ -7,15 +7,23 @@ import { pickNextOption } from "../../utils/pick-next-option.js";
 import { stepTailwindShade } from "../../utils/tailwind-palette.js";
 import { arePropertyValuesEqual } from "./property-values-equal.js";
 
+// A fully-transparent color (`#rrggbb00`, e.g. an unset background/text
+// color row) means "no color yet" — step from an opaque base so arrows
+// produce a visible color instead of nudging an invisible one, matching
+// the native picker's behavior.
+const opaqueStepBase = (hex: string): string =>
+  hex.length === 9 && hex.slice(7).toLowerCase() === "00" ? hex.slice(0, 7) : hex;
+
 export const stepProperty = (
   property: EditableProperty,
   direction: 1 | -1,
   shift: boolean,
 ): number | string | null => {
   if (property.kind === "color") {
+    const baseColor = opaqueStepBase(property.value);
     const next = shift
-      ? stepTailwindShade(property.value, direction)
-      : stepColorLightness(property.value, EDIT_COLOR_LIGHTNESS_STEP_PERCENT * direction);
+      ? stepTailwindShade(baseColor, direction)
+      : stepColorLightness(baseColor, EDIT_COLOR_LIGHTNESS_STEP_PERCENT * direction);
     if (!next || arePropertyValuesEqual(property, next, property.value)) return null;
     return next;
   }

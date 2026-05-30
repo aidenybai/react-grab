@@ -5,6 +5,7 @@ import {
   EDIT_PANEL_ATTR,
   EDIT_PROPERTY_ATTR,
   clearEditStorage,
+  getActivePropertyKey,
   getInlineStyleProperty,
   getVisiblePropertyKeys,
   openEditPanel,
@@ -100,6 +101,43 @@ test.describe("Style Panel Color Controls", () => {
     await reactGrab.page.waitForTimeout(120);
     const fontSize = await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "font-size");
     expect(fontSize).toBe("32px");
+  });
+
+  test("arrow-stepping an unset (transparent) color produces an opaque color", async ({
+    reactGrab,
+  }) => {
+    const { page } = reactGrab;
+    await openEditPanel(reactGrab, PLAIN_TEXT_SELECTOR);
+    await page.locator(`[${EDIT_PANEL_ATTR}] [${EDIT_PROPERTY_ATTR}="background-color"]`).click();
+    await page.keyboard.press("ArrowRight");
+    await page.waitForTimeout(120);
+    const background = await getInlineStyleProperty(page, PLAIN_TEXT_SELECTOR, "background-color");
+    // Opaque colors render as `rgb(...)`; a kept 00 alpha would be `rgba(..., 0)`.
+    expect(background.startsWith("rgb(")).toBe(true);
+  });
+
+  test("arbitrary px lengths do not apply to unitless properties", async ({ reactGrab }) => {
+    // opacity is unitless (%) — `opacity-[50px]` is nonsensical and must
+    // not commit a value.
+    await openEditPanel(reactGrab, BUTTON_SELECTOR);
+    await setSearchInputValue(reactGrab.page, "opacity-[50px]");
+    await reactGrab.page.waitForTimeout(120);
+    const opacity = await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "opacity");
+    expect(opacity).toBe("");
+  });
+
+  test("clearing the search restores the first numeric cursor, not a color row", async ({
+    reactGrab,
+  }) => {
+    const { page } = reactGrab;
+    await openEditPanel(reactGrab, BUTTON_SELECTOR);
+    await setSearchInputValue(page, "padding");
+    await page.waitForTimeout(80);
+    await setSearchInputValue(page, "");
+    await page.waitForTimeout(80);
+    const activeKey = await getActivePropertyKey(page);
+    expect(activeKey).not.toBe("background-color");
+    expect(activeKey).not.toBe("color");
   });
 
   test("unitless arbitrary values are not auto-applied as pixels", async ({ reactGrab }) => {
