@@ -845,7 +845,12 @@ const createReactGrabPageObject = (
       },
       { attrName: ATTRIBUTE_NAME, id: actionId },
     );
-    await waitForActive(!wasActive);
+    // From inactive, the click activates. While already active it either
+    // switches the pending action (stays active) or toggles off, so callers
+    // assert the resulting state explicitly rather than waiting on a flip here.
+    if (!wasActive) {
+      await waitForActive(true);
+    }
   };
 
   const getToolbarActionPressed = async (actionId: string): Promise<boolean | null> => {

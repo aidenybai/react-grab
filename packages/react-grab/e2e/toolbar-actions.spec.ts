@@ -57,6 +57,32 @@ test.describe("Toolbar Action Buttons", () => {
       expect(await reactGrab.getToolbarActionPressed("edit")).toBe(false);
     });
 
+    test("clicking a different action while active switches without deactivating", async ({
+      reactGrab,
+    }) => {
+      await waitForToolbar(reactGrab);
+      await reactGrab.clickToolbarAction("copy");
+      expect(await reactGrab.getToolbarActionPressed("copy")).toBe(true);
+
+      await reactGrab.clickToolbarAction("comment");
+
+      expect(await reactGrab.isOverlayVisible()).toBe(true);
+      await expect.poll(() => reactGrab.getToolbarActionPressed("comment"), { timeout: 2000 }).toBe(true);
+      expect(await reactGrab.getToolbarActionPressed("copy")).toBe(false);
+      expect(await reactGrab.getToolbarActionPressed("edit")).toBe(false);
+    });
+
+    test("clicking the already-active action toggles selection off", async ({ reactGrab }) => {
+      await waitForToolbar(reactGrab);
+      await reactGrab.clickToolbarAction("comment");
+      expect(await reactGrab.isOverlayVisible()).toBe(true);
+
+      await reactGrab.clickToolbarAction("comment");
+
+      await expect.poll(() => reactGrab.isOverlayVisible(), { timeout: 2000 }).toBe(false);
+      expect(await reactGrab.getToolbarActionPressed("comment")).toBe(false);
+    });
+
     test("Escape resets every action button to unpressed", async ({ reactGrab }) => {
       await waitForToolbar(reactGrab);
       await reactGrab.clickToolbarAction("comment");

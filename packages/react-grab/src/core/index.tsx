@@ -1579,6 +1579,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleActivateAction = (actionId: string) => {
       if (isActivated()) {
+        // While still choosing an element, clicking a different action switches
+        // the pending action in place instead of tearing down selection mode;
+        // clicking the already-active action toggles selection off.
+        if (activeActionId() !== actionId && isPendingContextMenuSelect()) {
+          pendingDefaultActionId = actionId;
+          setActiveActionId(actionId);
+          return;
+        }
         deactivateRenderer();
         return;
       }
