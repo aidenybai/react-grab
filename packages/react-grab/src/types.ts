@@ -87,11 +87,7 @@ export interface ReactGrabState {
    * Currently visible grabbed boxes (success flash effects).
    * These are temporary visual indicators shown after elements are grabbed/copied.
    */
-  grabbedBoxes: Array<{
-    id: string;
-    bounds: OverlayBounds;
-    createdAt: number;
-  }>;
+  grabbedBoxes: PublicGrabbedBox[];
   labelInstances: Array<{
     id: string;
     status: SelectionLabelStatus;
@@ -310,6 +306,24 @@ export interface OverlayBounds {
 
 export type SelectionLabelStatus = "idle" | "copying" | "copied" | "fading" | "error";
 
+/**
+ * Discriminated union encoding "what does the user intend the next click to do?".
+ * The three states are mutually exclusive by construction.
+ *
+ *   - `default`     — the next click follows the normal default flow (copy).
+ *   - `comment`     — the next click should enter comment/prompt mode.
+ *   - `context-menu` — the next click should run the configured `actionId`.
+ *
+ * Previously encoded as 3 separate flags (`pendingCommentMode`,
+ * `pendingDefaultActionId`, `isPendingContextMenuSelect`) that were always
+ * set in mutually exclusive branches — the union makes the exclusion
+ * type-enforced.
+ */
+export type ActivationIntent =
+  | { kind: "default" }
+  | { kind: "comment" }
+  | { kind: "context-menu"; actionId: string };
+
 export interface SelectionLabelInstance {
   id: string;
   bounds: OverlayBounds;
@@ -357,11 +371,7 @@ export interface ReactGrabRendererProps {
   labelInstances?: SelectionLabelInstance[];
   dragVisible?: boolean;
   dragBounds?: OverlayBounds;
-  grabbedBoxes?: Array<{
-    id: string;
-    bounds: OverlayBounds;
-    createdAt: number;
-  }>;
+  grabbedBoxes?: PublicGrabbedBox[];
   mouseX?: number;
   isFrozen?: boolean;
   inputValue?: string;
@@ -407,6 +417,8 @@ export interface GrabbedBox {
   createdAt: number;
   element?: Element;
 }
+
+export type PublicGrabbedBox = Pick<GrabbedBox, "id" | "bounds" | "createdAt">;
 
 export interface Rect {
   left: number;

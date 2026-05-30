@@ -26,6 +26,12 @@ import {
   type ReactGrabOptions,
 } from "../utils/transform.js";
 import { formatActivationKeyDisplay } from "../utils/format-activation-key.js";
+import {
+  promptActivationMode,
+  promptAllowActivationInsideInput,
+  promptKeyHoldDuration,
+  promptMaxContextLines,
+} from "../utils/option-prompts.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
 const REPORT_URL = "https://react-grab.com/api/report-cli";
@@ -209,74 +215,16 @@ export const init = new Command()
             }
           }
 
-          const { activationMode } = await prompts({
-            type: "select",
-            name: "activationMode",
-            message: `Select ${highlighter.info("activation mode")}:`,
-            choices: [
-              {
-                title: "Toggle (press to activate/deactivate)",
-                value: "toggle",
-              },
-              { title: "Hold (hold key to keep active)", value: "hold" },
-            ],
-            initial: 0,
-          });
-
-          if (activationMode === undefined) {
-            logger.break();
-            process.exit(1);
-          }
-
+          const activationMode = await promptActivationMode();
           collectedOptions.activationMode = activationMode;
 
           if (activationMode === "hold") {
-            const { keyHoldDuration } = await prompts({
-              type: "number",
-              name: "keyHoldDuration",
-              message: `Enter ${highlighter.info("key hold duration")} in milliseconds:`,
-              initial: 150,
-              min: 0,
-              max: 2000,
-            });
-
-            if (keyHoldDuration === undefined) {
-              logger.break();
-              process.exit(1);
-            }
-
-            collectedOptions.keyHoldDuration = keyHoldDuration;
+            collectedOptions.keyHoldDuration = await promptKeyHoldDuration();
           }
 
-          const { allowActivationInsideInput } = await prompts({
-            type: "confirm",
-            name: "allowActivationInsideInput",
-            message: `Allow activation ${highlighter.info("inside input fields")}?`,
-            initial: true,
-          });
+          collectedOptions.allowActivationInsideInput = await promptAllowActivationInsideInput();
 
-          if (allowActivationInsideInput === undefined) {
-            logger.break();
-            process.exit(1);
-          }
-
-          collectedOptions.allowActivationInsideInput = allowActivationInsideInput;
-
-          const { maxContextLines } = await prompts({
-            type: "number",
-            name: "maxContextLines",
-            message: `Enter ${highlighter.info("max context lines")} to include:`,
-            initial: 3,
-            min: 0,
-            max: 50,
-          });
-
-          if (maxContextLines === undefined) {
-            logger.break();
-            process.exit(1);
-          }
-
-          collectedOptions.maxContextLines = maxContextLines;
+          collectedOptions.maxContextLines = await promptMaxContextLines();
 
           const optionsResult = previewOptionsTransform(
             projectInfo.projectRoot,

@@ -45,3 +45,5 @@ export const createEventListenerManager = (): EventListenerManager => {
     addDocumentListener,
   };
 };
+
+export type EventListenerManagerHandle = ReturnType<typeof createEventListenerManager>;

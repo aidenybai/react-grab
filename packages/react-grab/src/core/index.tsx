@@ -1,176 +1,80 @@
 // @ts-expect-error - CSS imported as text via tsup loader
 import cssText from "../../dist/styles.css";
 import {
-  createMemo,
   createRoot,
   createSignal,
   onCleanup,
-  createEffect,
-  createResource,
-  on,
-  mapArray,
-  untrack,
 } from "solid-js";
-import { render } from "solid-js/web";
 import { createGrabStore } from "./store.js";
-import { CopyFailedError } from "../errors.js";
+import { createGrabElementSelectors, createGrabPhaseSelectors } from "./selectors.js";
+import { createToolbarMenuController } from "./toolbar-menu-controller.js";
+import { createLabelInstanceManager } from "./label-instance-manager.js";
+import { createViewportSyncObserver } from "./viewport-sync.js";
+import { createArrowNavigationController } from "./arrow-navigation-controller.js";
+import { createCursorOverride } from "./cursor-override.js";
+import { createCopyFeedbackCooldown } from "./copy-feedback-cooldown.js";
+import { createActivationHoldController } from "./activation-hold.js";
+import { createDebouncedComponentName } from "./debounced-component-name.js";
+import { createDragPreviewDebounce } from "./drag-preview-debounce.js";
+import { createSelectionSourceSync } from "./selection-source-sync.js";
+import { createOverlayEffects } from "./overlay-effects.js";
+import { createEnterBlocker } from "./enter-blocker.js";
+import { createRendererHost } from "./renderer-host.js";
+import { createOverlayVisibility } from "./overlay-visibility.js";
+import { createPluginStateBridge } from "./plugin-state-bridge.js";
+import { createCopyOrchestrator } from "./copy-orchestrator.js";
+import { createActivationLifecycle } from "./activation-lifecycle.js";
+import { createActionContextBuilder } from "./action-context-builder.js";
+import { createPromptModeHandlers } from "./prompt-mode-handlers.js";
+import { createMenuHandlers } from "./menu-handlers.js";
+import { createCommentModeHandlers } from "./comment-mode-handlers.js";
+import { createKeydownSpamTimer } from "./keydown-spam-timer.js";
+import { createSpaceDragRepositioning } from "./space-drag-repositioning.js";
+import { createActivationKeyHandlers } from "./activation-key-handlers.js";
+import { createDragHandlers } from "./drag-handlers.js";
+import { registerKeyboardListeners } from "./keyboard-listeners.js";
+import { registerPointerListeners } from "./pointer-listeners.js";
+import { createInitCleanup } from "./init-cleanup.js";
+import { registerLifecycleHookEffects } from "./lifecycle-hook-effects.js";
+import { mountRenderer } from "./mount-renderer.js";
+import { createContextMenuActionContext } from "./context-menu-action-context.js";
+import { createPromptModePreset } from "./prompt-mode-preset.js";
+import { createCoordinationFlags } from "./coordination-flags.js";
+import { createRendererLifecycleState } from "./renderer-lifecycle-state.js";
+import { buildPublicApi } from "./build-public-api.js";
+import { createWindowFocusListeners } from "./window-focus-listeners.js";
+import { createToolbarStateController } from "./toolbar-state-controller.js";
+import { createShiftMultiSelectState } from "./shift-multi-select-state.js";
+import { createDragSelectors } from "./drag-selectors.js";
 import {
-  isKeyboardEventTriggeredByInput,
-  hasTextSelectionInInput,
-  hasTextSelectionOnPage,
-} from "../utils/is-keyboard-event-triggered-by-input.js";
-import { mountRoot } from "../utils/mount-root.js";
-import { createComponentNameForElement } from "../utils/create-component-name-for-element.js";
-import { watchAppTheme } from "../utils/detect-app-theme.js";
-import {
-  nativeCancelAnimationFrame,
-  nativeRequestAnimationFrame,
-  waitUntilNextFrame,
-} from "../utils/native-raf.js";
-import {
-  getStackContext,
-  getNearestComponentName,
-  getComponentDisplayName,
   checkIsNextProject,
-  resolveSource,
 } from "./context.js";
 import { createNoopApi } from "./noop-api.js";
 import { createEventListenerManager } from "./events.js";
-import { runCopyFlow } from "./copy.js";
 import {
-  clearElementPositionCache,
-  getElementAtPosition,
-  getElementsAtPoint,
-} from "../utils/get-element-at-position.js";
-import { isValidGrabbableElement } from "../utils/is-valid-grabbable-element.js";
-import { isRootElement } from "../utils/is-root-element.js";
-import { isElementConnected } from "../utils/is-element-connected.js";
-import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
-import { getElementAnchorRatio } from "../utils/get-element-anchor-ratio.js";
-import { createElementBounds } from "../utils/create-element-bounds.js";
-import { getVisibleBoundsCenter } from "../utils/get-visible-bounds-center.js";
-import { invalidateInteractionCaches } from "../utils/invalidate-interaction-caches.js";
-import { normalizeErrorMessage } from "../utils/normalize-error.js";
-import {
-  createBoundsFromDragRect,
-  createFlatOverlayBounds,
-  createPageRectFromBounds,
-} from "../utils/create-bounds-from-drag-rect.js";
-import { getTagName } from "../utils/get-tag-name.js";
-import {
-  ARROW_KEYS,
-  FEEDBACK_DURATION_MS,
-  FADE_COMPLETE_BUFFER_MS,
-  KEYDOWN_SPAM_TIMEOUT_MS,
-  DRAG_THRESHOLD_PX,
-  ELEMENT_DETECTION_THROTTLE_MS,
-  PENDING_DETECTION_STALENESS_MS,
-  COMPONENT_NAME_DEBOUNCE_MS,
-  DRAG_PREVIEW_DEBOUNCE_MS,
-  MODIFIER_KEYS,
-  BLUR_DEACTIVATION_THRESHOLD_MS,
-  BOUNDS_RECALC_INTERVAL_MS,
-  INPUT_FOCUS_ACTIVATION_DELAY_MS,
-  INPUT_TEXT_SELECTION_ACTIVATION_DELAY_MS,
   DEFAULT_KEY_HOLD_DURATION_MS,
-  MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS,
-  ZOOM_DETECTION_THRESHOLD,
-  WINDOW_REFOCUS_GRACE_PERIOD_MS,
-  PREVIEW_TEXT_MAX_LENGTH,
   NEXTJS_REVALIDATION_DELAY_MS,
-  TOOLBAR_DEFAULT_POSITION_RATIO,
-  DEFAULT_ACTION_ID,
 } from "../constants.js";
-import { getBoundsCenter } from "../utils/get-bounds-center.js";
-import { hideFromThirdParties } from "../utils/hide-from-third-parties.js";
-import { detectCspNonce } from "../utils/detect-csp-nonce.js";
-import { isCLikeKey } from "../utils/is-c-like-key.js";
-import { isTargetKeyCombination } from "../utils/is-target-key-combination.js";
-import { parseActivationKey } from "../utils/parse-activation-key.js";
-import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
-import { openFile } from "../utils/open-file.js";
-import { combineBounds } from "../utils/combine-bounds.js";
 import type {
-  Position,
   Options,
-  OverlayBounds,
-  GrabbedBox,
   ReactGrabAPI,
-  ReactGrabState,
-  SelectionLabelInstance,
-  ContextMenuActionContext,
-  ContextMenuAction,
-  ArrowNavigationState,
-  FrozenLabelEntry,
-  PerformWithFeedbackOptions,
-  SettableOptions,
-  SourceInfo,
-  Plugin,
-  ToolbarState,
-  DropdownAnchor,
-  ElementLabelVariant,
 } from "../types.js";
 import { DEFAULT_THEME } from "./theme.js";
 import { createPluginRegistry } from "./plugin-registry.js";
-import { createArrowNavigator } from "./arrow-navigation.js";
-import { getRequiredModifiers, setupKeyboardEventClaimer } from "./keyboard-handlers.js";
-import { createAutoScroller, getAutoScrollDirection } from "./auto-scroll.js";
+import { createAutoScroller } from "./auto-scroll.js";
 import { logIntro } from "./log-intro.js";
 import { getScriptOptions } from "../utils/get-script-options.js";
-import { isEnterCode } from "../utils/is-enter-code.js";
-import { isMac } from "../utils/is-mac.js";
-import { isPositionInsideBounds } from "../utils/is-position-inside-bounds.js";
-import { loadToolbarState, saveToolbarState } from "../components/toolbar/state.js";
 import { copyPlugin } from "./plugins/copy.js";
 import { commentPlugin } from "./plugins/comment.js";
 import { openPlugin } from "./plugins/open.js";
-import {
-  freezeAnimations,
-  freezeAllAnimations,
-  freezeGlobalAnimations,
-  unfreezeGlobalAnimations,
-} from "../utils/freeze-animations.js";
-import { freezePseudoStates, unfreezePseudoStates } from "../utils/freeze-pseudo-states.js";
-import { freezeUpdates } from "../utils/freeze-updates.js";
 import { copyContent } from "../utils/copy-content.js";
-import { generateId } from "../utils/generate-id.js";
-import { logRecoverableError } from "../utils/log-recoverable-error.js";
-import { getNearestEdge } from "../utils/get-nearest-edge.js";
+import {
+  toPageCoordinates as toPageCoordinatesUtil,
+} from "../utils/drag-geometry.js";
 
 const builtInPlugins = [copyPlugin, commentPlugin, openPlugin];
 
-interface CopyWithLabelOptions {
-  element: Element;
-  cursorX: number;
-  selectedElements?: Element[];
-  extraPrompt?: string;
-  shouldDeactivateAfter?: boolean;
-  onComplete?: () => void;
-  dragRect?: {
-    pageX: number;
-    pageY: number;
-    width: number;
-    height: number;
-  };
-}
-
-interface BuildActionContextOptions {
-  element: Element;
-  filePath: string | undefined;
-  lineNumber: number | undefined;
-  tagName: string | undefined;
-  componentName: string | undefined;
-  position: Position;
-  performWithFeedbackOptions?: PerformWithFeedbackOptions;
-  shouldDeferHideContextMenu: boolean;
-  onBeforeCopy?: () => void;
-  onBeforePrompt?: () => void;
-  customEnterPromptMode?: () => void;
-}
-
 let hasInited = false;
-const toolbarStateChangeCallbacks = new Set<(state: ToolbarState) => void>();
-
 export const init = (rawOptions?: Options): ReactGrabAPI => {
   if (typeof window === "undefined") {
     return createNoopApi();
@@ -198,264 +102,106 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
   const { enabled: _enabled, ...settableOptions } = initialOptions;
 
   return createRoot((dispose) => {
-    let disposed = false;
-    let disposeRenderer: (() => void) | undefined;
+    const rendererLifecycle = createRendererLifecycleState();
+    const coordinationFlags = createCoordinationFlags();
 
     const pluginRegistry = createPluginRegistry(settableOptions);
 
-    const { store, actions, pointer, viewportVersion, current } = createGrabStore({
+    const grab = createGrabStore({
       theme: DEFAULT_THEME,
       keyHoldDuration: pluginRegistry.store.options.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS,
     });
+    const { actions, pointer } = grab;
 
-    const isHoldingKeys = createMemo(() => current().state === "holding");
-    const isActivated = createMemo(() => current().state === "active");
-    const isFrozenPhase = createMemo(() => {
-      const currentState = current();
-      return currentState.state === "active" && currentState.phase === "frozen";
-    });
-    const isDragging = createMemo(() => {
-      const currentState = current();
-      return (
-        currentState.state === "active" &&
-        (currentState.phase === "dragging-select" || currentState.phase === "dragging-reposition")
-      );
-    });
-    // True only when the drag has actually moved beyond the click threshold.
-    // We use this for selection-visibility decisions so a click (which
-    // momentarily enters the dragging-select phase between pointerdown and
-    // pointerup) does not flash the selection bounds off and back on.
-    const isActivelyDragging = createMemo(() => {
-      if (!isDragging()) return false;
-      const dx = Math.abs(pointer().x + window.scrollX - store.dragStart.x);
-      const dy = Math.abs(pointer().y + window.scrollY - store.dragStart.y);
-      return dx > DRAG_THRESHOLD_PX || dy > DRAG_THRESHOLD_PX;
-    });
-    const isDragRepositioning = createMemo(() => {
-      const currentState = current();
-      return currentState.state === "active" && currentState.phase === "dragging-reposition";
-    });
-    const didJustDrag = createMemo(() => {
-      const currentState = current();
-      return currentState.state === "active" && currentState.phase === "justDragged";
-    });
-    const isCopying = createMemo(() => current().state === "copying");
-    const isSelectionInteractionLocked = createMemo(() => store.selectionInteractionLockDepth > 0);
-    const didJustCopy = createMemo(() => current().state === "justCopied");
-    const isPromptMode = createMemo(() => {
-      const currentState = current();
-      return currentState.state === "active" && Boolean(currentState.isPromptMode);
-    });
-    const isCommentMode = createMemo(() => store.pendingCommentMode || isPromptMode());
-    const isPendingDismiss = createMemo(() => {
-      const currentState = current();
-      return (
-        currentState.state === "active" &&
-        Boolean(currentState.isPromptMode) &&
-        Boolean(currentState.isPendingDismiss)
-      );
-    });
+    const phase = createGrabPhaseSelectors(grab);
+    const {
+      isHoldingKeys,
+      isActivated,
+      isFrozenPhase,
+      isDragging,
+      isDragRepositioning,
+      didJustDrag,
+      isCopying,
+      didJustCopy,
+      isPromptMode,
+      isPendingDismiss,
+    } = phase;
 
-    createEffect(
-      on(isActivated, (activated, previousActivated) => {
-        if (activated && !previousActivated) {
-          freezePseudoStates(pointer().x, pointer().y);
-          freezeGlobalAnimations();
-          document.body.style.touchAction = "none";
-        } else if (!activated && previousActivated) {
-          unfreezePseudoStates();
-          unfreezeGlobalAnimations();
-          document.body.style.touchAction = "";
-        }
-      }),
-    );
+    const elementSelectors = createGrabElementSelectors(grab, phase);
+    const {
+      targetElement,
+      effectiveElement,
+      frozenElementsBounds,
+      selectionBounds,
+    } = elementSelectors;
 
-    const savedToolbarState = loadToolbarState();
+    const labelManager = createLabelInstanceManager({
+      grab,
+      pluginRegistry,
+      isThemeEnabled: () => pluginRegistry.store.theme.enabled,
+      isGrabbedBoxesThemeEnabled: () => Boolean(pluginRegistry.store.theme.grabbedBoxes.enabled),
+    });
+    const {
+      handleLabelInstanceHoverChange,
+      computedLabelInstances,
+      computedGrabbedBoxes,
+    } = labelManager;
+
+    const arrowNav = createArrowNavigationController({
+      grab,
+      phase,
+      effectiveElement,
+      isShiftMultiSelecting: () => isShiftMultiSelecting(),
+      setKeyboardSelectedElement: coordinationFlags.setKeyboardSelectedElement,
+    });
+    const {
+      state: arrowNavigationState,
+      handleArrowNavigation,
+      handleArrowNavigationSelect,
+      clearArrowNavigation,
+    } = arrowNav;
+
+    const activationHold = createActivationHoldController(grab);
+    const resetCopyConfirmation = activationHold.resetCopyConfirmation;
+
+    const toolbarStateController = createToolbarStateController();
+    const currentToolbarState = toolbarStateController.current;
+    const setCurrentToolbarState = toolbarStateController.setCurrent;
+    const savedToolbarState = toolbarStateController.load();
     const [isEnabled, setIsEnabled] = createSignal(
       savedToolbarState ? !savedToolbarState.collapsed : true,
     );
     const [toolbarShakeCount, setToolbarShakeCount] = createSignal(0);
     const [selectionLabelShakeCount, setSelectionLabelShakeCount] = createSignal(0);
-    const [currentToolbarState, setCurrentToolbarState] = createSignal<ToolbarState | null>(
-      savedToolbarState,
-    );
     const [isToolbarSelectHovered, setIsToolbarSelectHovered] = createSignal(false);
-    const [toolbarMenuPosition, setToolbarMenuPosition] = createSignal<DropdownAnchor | null>(null);
-    let toolbarElement: HTMLDivElement | undefined;
-    let dropdownTrackingFrameId: number | null = null;
+    const toolbarMenu = createToolbarMenuController();
+    const toolbarMenuPosition = toolbarMenu.position;
 
-    let shiftSelectionLabelAnchorRatioByElement = new WeakMap<Element, number>();
+    const shiftMultiSelect = createShiftMultiSelectState();
+    const isShiftMultiSelecting = shiftMultiSelect.isActive;
+    const stopShiftMultiSelecting = shiftMultiSelect.stop;
 
-    const clearShiftSelectionLabelAnchors = () => {
-      shiftSelectionLabelAnchorRatioByElement = new WeakMap<Element, number>();
-    };
 
-    const stopShiftMultiSelecting = () => {
-      setIsShiftMultiSelecting(false);
-      clearShiftSelectionLabelAnchors();
-    };
 
-    const updateToolbarState = (updates: Partial<ToolbarState>) => {
-      const currentState = currentToolbarState() ?? loadToolbarState();
-      const newState: ToolbarState = {
-        edge: currentState?.edge ?? "bottom",
-        ratio: currentState?.ratio ?? TOOLBAR_DEFAULT_POSITION_RATIO,
-        collapsed: currentState?.collapsed ?? false,
-        enabled: currentState?.enabled ?? true,
-        defaultAction: currentState?.defaultAction ?? DEFAULT_ACTION_ID,
-        ...updates,
-      };
-      saveToolbarState(newState);
-      setCurrentToolbarState(newState);
-      for (const callback of toolbarStateChangeCallbacks) {
-        callback(newState);
-      }
-    };
-
-    const clearHoldTimer = () => {
-      if (activationHoldState.timerId !== null) {
-        clearTimeout(activationHoldState.timerId);
-        activationHoldState.timerId = null;
-      }
-    };
-
-    const resetCopyConfirmation = () => {
-      activationHoldState.copyWaiting = false;
-      activationHoldState.holdTimerFired = false;
-      activationHoldState.startTimestamp = null;
-    };
-
-    // The hold timer does not call activate when copyWaiting is true (the user
-    // held the activation key and pressed Ctrl+C). Instead it sets holdTimerFired
-    // so the keyup handler can activate after the clipboard operation finishes.
-    createEffect(() => {
-      if (current().state !== "holding") {
-        clearHoldTimer();
-        return;
-      }
-      activationHoldState.startTimestamp = Date.now();
-      activationHoldState.timerId = window.setTimeout(() => {
-        activationHoldState.timerId = null;
-        if (activationHoldState.copyWaiting) {
-          activationHoldState.holdTimerFired = true;
-          return;
-        }
-        actions.activate();
-      }, store.keyHoldDuration);
-      onCleanup(clearHoldTimer);
+    const { preparePromptMode, activatePromptMode } = createPromptModePreset({
+      grab,
+      pointer,
+      targetElement,
     });
 
-    createEffect(() => {
-      const currentState = current();
-      if (currentState.state !== "active" || currentState.phase !== "justDragged") return;
-      const timerId = setTimeout(() => {
-        actions.finishJustDragged();
-      }, FEEDBACK_DURATION_MS);
-      onCleanup(() => clearTimeout(timerId));
+    const dragPreviewDebounce = createDragPreviewDebounce();
+    const debouncedDragPointer = dragPreviewDebounce.pointer;
+    const keydownSpamTimer = createKeydownSpamTimer();
+    const copyFeedbackCooldown = createCopyFeedbackCooldown();
+    const debouncedComponentName = createDebouncedComponentName(effectiveElement);
+    const resolvedComponentName = debouncedComponentName.resolved;
+    const setResolvedComponentName = debouncedComponentName.setResolved;
+    const spaceDragRepositioning = createSpaceDragRepositioning({
+      grab,
+      isDragging,
+      pointer,
+      toPageCoordinates: toPageCoordinatesUtil,
     });
-
-    createEffect(() => {
-      if (current().state !== "justCopied") return;
-      const timerId = setTimeout(() => {
-        actions.finishJustCopied();
-      }, FEEDBACK_DURATION_MS);
-      onCleanup(() => clearTimeout(timerId));
-    });
-
-    createEffect(
-      on(isHoldingKeys, (currentlyHolding, previouslyHolding = false) => {
-        if (!previouslyHolding || currentlyHolding || !isActivated()) {
-          return;
-        }
-        if (pluginRegistry.store.options.activationMode !== "hold") {
-          actions.setWasActivatedByToggle(true);
-        }
-        pluginRegistry.hooks.onActivate();
-      }),
-    );
-
-    const preparePromptMode = (element: Element, positionX: number, positionY: number) => {
-      setCopyStartPosition(element, positionX, positionY);
-      actions.clearInputText();
-    };
-
-    const activatePromptMode = () => {
-      const element = store.frozenElement || targetElement();
-      if (element) {
-        actions.enterPromptMode({ x: pointer().x, y: pointer().y }, element);
-      }
-    };
-
-    const setCopyStartPosition = (element: Element, positionX: number, positionY: number) => {
-      actions.setCopyStart({ x: positionX, y: positionY }, element);
-    };
-
-    const elementDetectionState = {
-      lastDetectionTimestamp: 0,
-      pendingDetectionScheduledAt: 0,
-      latestPointerX: 0,
-      latestPointerY: 0,
-    };
-    let dragPreviewDebounceTimerId: number | null = null;
-    const [debouncedDragPointer, setDebouncedDragPointer] = createSignal<{
-      x: number;
-      y: number;
-    } | null>(null);
-    const scheduleDragPreviewUpdate = (clientX: number, clientY: number) => {
-      if (dragPreviewDebounceTimerId !== null) {
-        clearTimeout(dragPreviewDebounceTimerId);
-      }
-      setDebouncedDragPointer(null);
-      dragPreviewDebounceTimerId = window.setTimeout(() => {
-        setDebouncedDragPointer({ x: clientX, y: clientY });
-        dragPreviewDebounceTimerId = null;
-      }, DRAG_PREVIEW_DEBOUNCE_MS);
-    };
-    let keydownSpamTimerId: number | null = null;
-    const activationHoldState = {
-      timerId: null as number | null,
-      startTimestamp: null as number | null,
-      copyWaiting: false,
-      holdTimerFired: false,
-    };
-    let previousSpaceDragPointerPage: Position | null = null;
-    const [isShiftMultiSelecting, setIsShiftMultiSelecting] = createSignal(false);
-    let lastWindowFocusTimestamp = 0;
-    let isCopyFeedbackCooldownActive = false;
-    let copyFeedbackCooldownTimerId: number | null = null;
-
-    const startCopyFeedbackCooldown = () => {
-      isCopyFeedbackCooldownActive = true;
-      if (copyFeedbackCooldownTimerId !== null) {
-        window.clearTimeout(copyFeedbackCooldownTimerId);
-      }
-      copyFeedbackCooldownTimerId = window.setTimeout(() => {
-        isCopyFeedbackCooldownActive = false;
-        copyFeedbackCooldownTimerId = null;
-      }, FEEDBACK_DURATION_MS);
-    };
-
-    const clearCopyFeedbackCooldown = () => {
-      if (copyFeedbackCooldownTimerId !== null) {
-        window.clearTimeout(copyFeedbackCooldownTimerId);
-        copyFeedbackCooldownTimerId = null;
-      }
-      isCopyFeedbackCooldownActive = false;
-    };
-    let selectionSourceRequestVersion = 0;
-    let componentNameDebounceTimerId: number | null = null;
-    let keyboardSelectedElement: Element | null = null;
-    let pendingDefaultActionId: string | null = null;
-    const [isPendingContextMenuSelect, setIsPendingContextMenuSelect] = createSignal(false);
-    const [debouncedElementForComponentName, setDebouncedElementForComponentName] =
-      createSignal<Element | null>(null);
-    const [resolvedComponentName, setResolvedComponentName] = createComponentNameForElement(
-      debouncedElementForComponentName,
-    );
-    const [arrowNavigationElements, setArrowNavigationElements] = createSignal<Element[]>([]);
-    const [arrowNavigationActiveIndex, setArrowNavigationActiveIndex] = createSignal(0);
-
-    const arrowNavigator = createArrowNavigator(isValidGrabbableElement, createElementBounds);
 
     const autoScroller = createAutoScroller(
       pointer,
@@ -463,3231 +209,421 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (scrollDelta) => {
         if (isDragRepositioning()) {
           actions.shiftDragStart(scrollDelta);
-          if (previousSpaceDragPointerPage) {
-            previousSpaceDragPointerPage = {
-              x: previousSpaceDragPointerPage.x + scrollDelta.x,
-              y: previousSpaceDragPointerPage.y + scrollDelta.y,
-            };
-            return;
-          }
-          const { pageX, pageY } = toPageCoordinates(pointer().x, pointer().y);
-          previousSpaceDragPointerPage = { x: pageX, y: pageY };
+          spaceDragRepositioning.applyScrollDelta(scrollDelta);
         }
       },
     );
 
-    const isRendererActive = createMemo(() => isActivated() && !isCopying());
 
-    const grabbedBoxTimeouts = new Map<string, number>();
-
-    const showTemporaryGrabbedBox = (bounds: OverlayBounds, element: Element) => {
-      const boxId = generateId("grabbed");
-      const createdAt = Date.now();
-      const newBox: GrabbedBox = { id: boxId, bounds, createdAt, element };
-
-      actions.addGrabbedBox(newBox);
-      pluginRegistry.hooks.onGrabbedBox(bounds, element);
-
-      const timeoutId = window.setTimeout(() => {
-        grabbedBoxTimeouts.delete(boxId);
-        actions.removeGrabbedBox(boxId);
-      }, FEEDBACK_DURATION_MS);
-      grabbedBoxTimeouts.set(boxId, timeoutId);
-    };
-
-    const notifyElementsSelected = async (elements: Element[]): Promise<void> => {
-      const elementsPayload = await Promise.all(
-        elements.map(async (element) => {
-          const source = await resolveSource(element);
-          let componentName = source?.componentName ?? null;
-          const filePath = source?.filePath;
-          const lineNumber = source?.lineNumber ?? undefined;
-          const columnNumber = source?.columnNumber ?? undefined;
-
-          if (!componentName) {
-            componentName = getComponentDisplayName(element);
-          }
-
-          const textContent =
-            element instanceof HTMLElement
-              ? element.innerText?.slice(0, PREVIEW_TEXT_MAX_LENGTH)
-              : undefined;
-
-          return {
-            tagName: getTagName(element),
-            id: element.id || undefined,
-            className: element.getAttribute("class") || undefined,
-            textContent,
-            componentName: componentName ?? undefined,
-            filePath,
-            lineNumber,
-            columnNumber,
-          };
-        }),
-      );
-
-      window.dispatchEvent(
-        new CustomEvent("react-grab:element-selected", {
-          detail: {
-            elements: elementsPayload,
-          },
-        }),
-      );
-    };
-
-    const labelFadeTimeouts = new Map<string, number>();
-
-    const cancelLabelFade = (instanceId: string) => {
-      const existingTimeout = labelFadeTimeouts.get(instanceId);
-      if (existingTimeout !== undefined) {
-        window.clearTimeout(existingTimeout);
-        labelFadeTimeouts.delete(instanceId);
-      }
-    };
-
-    const cancelAllLabelFades = () => {
-      for (const timeoutId of labelFadeTimeouts.values()) {
-        window.clearTimeout(timeoutId);
-      }
-      labelFadeTimeouts.clear();
-    };
-
-    const scheduleLabelFade = (instanceId: string) => {
-      cancelLabelFade(instanceId);
-
-      const timeoutId = window.setTimeout(() => {
-        labelFadeTimeouts.delete(instanceId);
-        actions.updateLabelInstance(instanceId, "fading");
-        setTimeout(() => {
-          labelFadeTimeouts.delete(instanceId);
-          actions.removeLabelInstance(instanceId);
-        }, FADE_COMPLETE_BUFFER_MS);
-      }, FEEDBACK_DURATION_MS);
-
-      labelFadeTimeouts.set(instanceId, timeoutId);
-    };
-
-    const handleLabelInstanceHoverChange = (instanceId: string, isHovered: boolean) => {
-      if (isHovered) {
-        cancelLabelFade(instanceId);
-      } else {
-        const instance = store.labelInstances.find(
-          (labelInstance) => labelInstance.id === instanceId,
-        );
-        if (instance && instance.status === "copied") {
-          scheduleLabelFade(instanceId);
-        }
-      }
-    };
-
-    const createLabelInstance = (
-      bounds: OverlayBounds,
-      tagName: string,
-      componentName: string | undefined,
-      status: SelectionLabelInstance["status"],
-      options?: {
-        element?: Element;
-        mouseX?: number;
-        elements?: Element[];
-        boundsMultiple?: OverlayBounds[];
-        hideArrow?: boolean;
-      },
-    ): string => {
-      actions.clearLabelInstances();
-      cancelAllLabelFades();
-      const instanceId = generateId("label");
-      const boundsCenterX = bounds.x + bounds.width / 2;
-      const boundsHalfWidth = bounds.width / 2;
-      const mouseX = options?.mouseX;
-      const mouseXOffset = mouseX !== undefined ? mouseX - boundsCenterX : undefined;
-
-      const instance: SelectionLabelInstance = {
-        id: instanceId,
-        bounds,
-        boundsMultiple: options?.boundsMultiple,
-        tagName,
-        componentName,
-        status,
-        createdAt: Date.now(),
-        element: options?.element,
-        elements: options?.elements,
-        mouseX,
-        mouseXOffsetFromCenter: mouseXOffset,
-        mouseXOffsetRatio:
-          mouseXOffset !== undefined && boundsHalfWidth > 0
-            ? mouseXOffset / boundsHalfWidth
-            : undefined,
-        hideArrow: options?.hideArrow,
-      };
-      actions.addLabelInstance(instance);
-      return instanceId;
-    };
-
-    const createPerElementLabelInstances = (
-      entries: Array<{
-        element: Element;
-        tagName: string;
-        componentName?: string;
-        mouseX?: number;
-      }>,
-      status: SelectionLabelInstance["status"],
-    ): string[] => {
-      actions.clearLabelInstances();
-      cancelAllLabelFades();
-      const instanceIds: string[] = [];
-      for (const entry of entries) {
-        const bounds = createElementBounds(entry.element);
-        const boundsCenterX = bounds.x + bounds.width / 2;
-        const boundsHalfWidth = bounds.width / 2;
-        const mouseXOffset = entry.mouseX !== undefined ? entry.mouseX - boundsCenterX : undefined;
-        const instanceId = generateId("label");
-        const instance: SelectionLabelInstance = {
-          id: instanceId,
-          bounds,
-          tagName: entry.tagName,
-          componentName: entry.componentName,
-          status,
-          createdAt: Date.now(),
-          element: entry.element,
-          mouseX: entry.mouseX,
-          mouseXOffsetFromCenter: mouseXOffset,
-          mouseXOffsetRatio:
-            mouseXOffset !== undefined && boundsHalfWidth > 0
-              ? mouseXOffset / boundsHalfWidth
-              : undefined,
-        };
-        actions.addLabelInstance(instance);
-        instanceIds.push(instanceId);
-      }
-      return instanceIds;
-    };
-
-    const clearAllLabels = () => {
-      cancelAllLabelFades();
-      actions.clearLabelInstances();
-    };
-
-    const updateLabelAfterCopy = (
-      labelInstanceId: string,
-      didSucceed: boolean,
-      errorMessage?: string,
-    ) => {
-      if (didSucceed) {
-        actions.updateLabelInstance(labelInstanceId, "copied");
-      } else {
-        actions.updateLabelInstance(labelInstanceId, "error", errorMessage || "Unknown error");
-      }
-      scheduleLabelFade(labelInstanceId);
-    };
-
-    const executeCopyOperation = async (
-      clipboardOperation: () => Promise<void>,
-      labelInstanceIds: string[] | null,
-      copiedElement?: Element,
-      shouldDeactivateAfter?: boolean,
-    ) => {
-      clearCopyFeedbackCooldown();
-      if (current().state !== "copying") {
-        actions.startCopy();
-      }
-
-      let didSucceed = false;
-      let errorMessage: string | undefined;
-
-      try {
-        await clipboardOperation();
-        didSucceed = true;
-      } catch (error) {
-        errorMessage = normalizeErrorMessage(error, "Action failed");
-      }
-
-      if (labelInstanceIds) {
-        for (const labelInstanceId of labelInstanceIds) {
-          updateLabelAfterCopy(labelInstanceId, didSucceed, errorMessage);
-        }
-      }
-
-      if (current().state !== "copying") return;
-
-      if (didSucceed) {
-        actions.completeCopy(copiedElement);
-      }
-
-      if (shouldDeactivateAfter) {
-        deactivateRenderer();
-      } else if (didSucceed) {
-        actions.activate();
-        startCopyFeedbackCooldown();
-      } else {
-        actions.unfreeze();
-      }
-    };
-
-    const copyResolvedElements = (
-      elements: Element[],
-      extraPrompt?: string,
-      resolvedComponentName?: string,
-    ) => {
-      const firstElement = elements[0];
-      const componentName =
-        resolvedComponentName ?? (firstElement ? getComponentDisplayName(firstElement) : null);
-      const tagName = firstElement ? getTagName(firstElement) : null;
-      const elementName = componentName ?? tagName ?? undefined;
-
-      return runCopyFlow(
-        {
-          getContent: pluginRegistry.store.options.getContent,
-          componentName: elementName,
-        },
-        {
-          onBeforeCopy: pluginRegistry.hooks.onBeforeCopy,
-          transformCopyContent: pluginRegistry.hooks.transformCopyContent,
-          onAfterCopy: pluginRegistry.hooks.onAfterCopy,
-          onCopySuccess: pluginRegistry.hooks.onCopySuccess,
-          onCopyError: pluginRegistry.hooks.onCopyError,
-        },
-        elements,
-        extraPrompt,
-      );
-    };
-
-    const copyElementsToClipboard = async (
-      targetElements: Element[],
-      extraPrompt?: string,
-      resolvedComponentName?: string,
-    ): Promise<void> => {
-      if (targetElements.length === 0) return;
-
-      const unhandledElements: Element[] = [];
-      const pendingResults: Promise<boolean>[] = [];
-      for (const element of targetElements) {
-        const { wasIntercepted, pendingResult } = pluginRegistry.hooks.onElementSelect(element);
-        if (!wasIntercepted) {
-          unhandledElements.push(element);
-        }
-        if (pendingResult) {
-          pendingResults.push(pendingResult);
-        }
-        if (pluginRegistry.store.theme.grabbedBoxes.enabled) {
-          showTemporaryGrabbedBox(createElementBounds(element), element);
-        }
-      }
-      await waitUntilNextFrame();
-      if (unhandledElements.length > 0) {
-        await copyResolvedElements(unhandledElements, extraPrompt, resolvedComponentName);
-      } else if (pendingResults.length > 0) {
-        const results = await Promise.all(pendingResults);
-        if (!results.every(Boolean)) {
-          throw new CopyFailedError();
-        }
-      }
-      void notifyElementsSelected(targetElements);
-    };
-
-    const performCopyWithLabel = (options: CopyWithLabelOptions) => {
-      const {
-        element,
-        cursorX,
-        selectedElements,
-        extraPrompt,
-        shouldDeactivateAfter,
-        onComplete,
-        dragRect: passedDragRect,
-      } = options;
-
-      const allTargetElements = selectedElements ?? [element];
-      const dragRect = passedDragRect ?? store.frozenDragRect;
-      const isMultiSelect = allTargetElements.length > 1;
-
-      const selectionBounds =
-        dragRect && isMultiSelect
-          ? createBoundsFromDragRect(dragRect)
-          : createElementBounds(element);
-
-      const labelCursorX = isMultiSelect ? selectionBounds.x + selectionBounds.width / 2 : cursorX;
-
-      const tagName = getTagName(element);
-      clearCopyFeedbackCooldown();
-      actions.startCopy();
-
-      const labelInstanceId = tagName
-        ? createLabelInstance(selectionBounds, tagName, undefined, "copying", {
-            element,
-            mouseX: labelCursorX,
-            elements: selectedElements,
-          })
-        : null;
-
-      void getNearestComponentName(element)
-        .then(async (componentName) => {
-          await executeCopyOperation(
-            () =>
-              copyElementsToClipboard(allTargetElements, extraPrompt, componentName ?? undefined),
-            labelInstanceId ? [labelInstanceId] : null,
-            element,
-            shouldDeactivateAfter,
-          );
-          onComplete?.();
-        })
-        .catch((error) => {
-          logRecoverableError("Copy operation failed", error);
-          if (labelInstanceId) {
-            updateLabelAfterCopy(
-              labelInstanceId,
-              false,
-              normalizeErrorMessage(error, "Action failed"),
-            );
-          }
-          if (current().state === "copying") {
-            actions.unfreeze();
-          }
-        });
-    };
-
-    const performCopyWithPerElementLabels = (options: {
-      elements: Element[];
-      labelEntries: Array<{
-        element: Element;
-        tagName: string;
-        componentName?: string;
-        mouseX?: number;
-      }>;
-      shouldDeactivateAfter?: boolean;
-      onComplete?: () => void;
-    }) => {
-      const { elements, labelEntries, shouldDeactivateAfter, onComplete } = options;
-      const primaryElement = elements[0];
-
-      clearCopyFeedbackCooldown();
-      actions.startCopy();
-
-      const labelInstanceIds = createPerElementLabelInstances(labelEntries, "copying");
-
-      void getNearestComponentName(primaryElement)
-        .then(async (componentName) => {
-          await executeCopyOperation(
-            () => copyElementsToClipboard(elements, undefined, componentName ?? undefined),
-            labelInstanceIds.length > 0 ? labelInstanceIds : null,
-            primaryElement,
-            shouldDeactivateAfter,
-          );
-          onComplete?.();
-        })
-        .catch((error) => {
-          logRecoverableError("Copy operation failed", error);
-          const normalizedMessage = normalizeErrorMessage(error, "Action failed");
-          for (const labelInstanceId of labelInstanceIds) {
-            updateLabelAfterCopy(labelInstanceId, false, normalizedMessage);
-          }
-          if (current().state === "copying") {
-            actions.unfreeze();
-          }
-        });
-    };
-
-    const targetElement = createMemo(() => {
-      void viewportVersion();
-      if (!isRendererActive() || isActivelyDragging() || isSelectionInteractionLocked())
-        return null;
-      const element = store.detectedElement;
-      if (!isElementConnected(element)) return null;
-      return element;
+    const copyOrchestrator = createCopyOrchestrator({
+      grab,
+      pluginRegistry,
+      labelManager,
+      copyFeedbackCooldown,
+      deactivateRenderer: () => deactivateRenderer(),
     });
 
-    const effectiveElement = createMemo(
-      () => store.frozenElement || (isFrozenPhase() ? null : targetElement()),
-    );
 
-    createEffect(() => {
-      const element = store.detectedElement;
-      if (!element) return;
-
-      const intervalId = setInterval(() => {
-        if (!isElementConnected(element)) {
-          actions.setDetectedElement(null);
-        }
-      }, BOUNDS_RECALC_INTERVAL_MS);
-
-      onCleanup(() => clearInterval(intervalId));
+    createOverlayEffects({
+      grab,
+      isActivated,
+      shouldFreezeReactUpdates: () => pluginRegistry.store.options.freezeReactUpdates,
     });
 
-    createEffect(
-      on(effectiveElement, (element) => {
-        if (componentNameDebounceTimerId !== null) {
-          clearTimeout(componentNameDebounceTimerId);
-          componentNameDebounceTimerId = null;
-        }
+    const dragSelectors = createDragSelectors({
+      grab,
+      phase,
+      elementSelectors,
+      shiftMultiSelect,
+      debouncedDragPointer,
+    });
+    const {
+      isDraggingBeyondThreshold,
+      dragBounds,
+      dragPreviewBounds,
+      selectionBoundsMultiple,
+      frozenLabelEntries,
+      pendingShiftPreviewEntry,
+      cursorPosition,
+      shiftSelectionLabelMouseX,
+    } = dragSelectors;
 
-        if (!element) {
-          setDebouncedElementForComponentName(null);
-          return;
-        }
+    const { stop: stopSpaceDragRepositioning } = spaceDragRepositioning;
 
-        componentNameDebounceTimerId = window.setTimeout(() => {
-          componentNameDebounceTimerId = null;
-          setDebouncedElementForComponentName(element);
-        }, COMPONENT_NAME_DEBOUNCE_MS);
-      }),
-    );
+    registerLifecycleHookEffects({ grab, pluginRegistry, phase, targetElement });
 
-    onCleanup(() => {
-      if (componentNameDebounceTimerId !== null) {
-        clearTimeout(componentNameDebounceTimerId);
-        componentNameDebounceTimerId = null;
-      }
+    createSelectionSourceSync({
+      targetElement,
+      setSelectionSource: actions.setSelectionSource,
     });
 
-    createEffect(() => {
-      const elements = store.frozenElements;
-      const cleanup = freezeAnimations(elements);
-      onCleanup(cleanup);
+    const visibility = createOverlayVisibility({
+      grab,
+      phase,
+      elementSelectors,
+      pluginRegistry,
+      isToolbarSelectHovered: () => isToolbarSelectHovered(),
+      isDraggingBeyondThreshold: () => isDraggingBeyondThreshold(),
+      hasDragPreviewBounds: () => dragPreviewBounds().length > 0,
+    });
+    const {
+      selectionVisible,
+      selectionTagName,
+      selectionLabelVisible,
+      dragVisible,
+      contextMenuBounds,
+      contextMenuPosition,
+      contextMenuTagName,
+    } = visibility;
+
+    const { publicGrabbedBoxes, publicLabelInstances } = createPluginStateBridge({
+      grab,
+      pluginRegistry,
+      phase,
+      elementSelectors,
+      visibility,
+      dragBounds,
+      selectionBounds,
+      cursorPosition,
+      isDraggingBeyondThreshold,
+      currentToolbarState,
     });
 
-    createEffect(
-      on(isActivated, (activated) => {
-        if (!activated) return;
-        if (!pluginRegistry.store.options.freezeReactUpdates) return;
-        const unfreezeUpdates = freezeUpdates();
-        onCleanup(unfreezeUpdates);
-      }),
-    );
+    const cursorOverride = createCursorOverride({ isActivated, isCopying, isPromptMode });
 
-    // In touch mode during a drag, effectiveElement() is null because pointer
-    // events are captured by the drag handler. We fall back to detectedElement,
-    // which was stored before the drag started.
-    const getSelectionElement = (): Element | undefined => {
-      if (store.isTouchMode && isDragging()) {
-        const detected = store.detectedElement;
-        if (!detected || isRootElement(detected)) return undefined;
-        return detected;
-      }
-      const element = effectiveElement();
-      if (!element || isRootElement(element)) return undefined;
-      return element;
-    };
+    const activationLifecycle = createActivationLifecycle({
+      grab,
+      phase,
+      pluginRegistry,
+      copyFeedbackCooldown,
+      autoScroller,
+      clearArrowNavigation,
+      stopSpaceDragRepositioning: () => stopSpaceDragRepositioning(),
+      stopShiftMultiSelecting: () => stopShiftMultiSelecting(),
+      clearKeyboardSelectedElement: () => coordinationFlags.setKeyboardSelectedElement(null),
+      clearKeydownSpamTimer: keydownSpamTimer.clear,
+      clearActivationIntent: () => actions.resetActivationIntent(),
+    });
+    const { deactivateRenderer, forceDeactivateAll } = activationLifecycle;
 
-    const selectionElement = createMemo(() => getSelectionElement());
-
-    const isSelectionElementVisible = (): boolean => {
-      const element = selectionElement();
-      if (!element) return false;
-      if (store.isTouchMode && isDragging()) {
-        return isRendererActive();
-      }
-      return isRendererActive() && !isActivelyDragging();
-    };
-
-    const frozenElementBoundsAccessors = mapArray(
-      () => store.frozenElements,
-      (element) =>
-        createMemo(() => {
-          void viewportVersion();
-          return createElementBounds(element);
-        }),
-    );
-
-    const frozenElementsBounds = createMemo((): OverlayBounds[] => {
-      const frozenElements = store.frozenElements;
-      if (frozenElements.length === 0) return [];
-
-      const dragRect = store.frozenDragRect;
-      if (dragRect && frozenElements.length > 1) {
-        return [createBoundsFromDragRect(dragRect)];
-      }
-
-      return frozenElementBoundsAccessors().map((readBounds) => readBounds());
+    const {
+      handleInputSubmit,
+      handleInputCancel,
+      handleConfirmDismiss,
+      handleCancelDismiss,
+      handleToggleExpand,
+    } = createPromptModeHandlers({
+      grab,
+      phase,
+      targetElement,
+      activationLifecycle,
+      copyOrchestrator,
+      preparePromptMode,
+      activatePromptMode,
+      setSelectionLabelShakeCount,
     });
 
-    const pendingShiftSelectionElement = createMemo((): Element | null => {
-      if (!isShiftMultiSelecting()) return null;
-      if (store.pendingCommentMode || isPendingContextMenuSelect()) return null;
-
-      const element = store.detectedElement;
-      if (!isElementConnected(element)) return null;
-      if (isRootElement(element)) return null;
-      if (store.frozenElements.includes(element)) return null;
-
-      return element;
+    const actionContextBuilder = createActionContextBuilder({
+      grab,
+      pluginRegistry,
+      labelManager,
+      copyOrchestrator,
+      activationLifecycle,
+      frozenElementsBounds,
+      contextMenuBounds,
+      isActivated,
+      preparePromptMode,
+      activatePromptMode,
     });
+    const { deferHideContextMenu } = actionContextBuilder;
 
-    const pendingShiftSelectionBounds = createMemo((): OverlayBounds | undefined => {
-      void viewportVersion();
-      const element = pendingShiftSelectionElement();
-      if (!element) return undefined;
-      return createElementBounds(element);
+    const menuHandlers = createMenuHandlers({
+      grab,
+      pluginRegistry,
+      phase,
+      actionContextBuilder,
+      activationLifecycle,
+      toolbarMenu,
+      toolbarStateController,
+      resolvedComponentName,
+      stopShiftMultiSelecting: () => stopShiftMultiSelecting(),
+      clearArrowNavigation,
     });
-
-    const selectionBounds = createMemo((): OverlayBounds | undefined => {
-      void viewportVersion();
-
-      const frozenElements = store.frozenElements;
-      if (frozenElements.length > 0) {
-        const frozenBounds = frozenElementsBounds();
-        if (frozenElements.length === 1) {
-          const firstBounds = frozenBounds[0];
-          if (firstBounds) return firstBounds;
-        }
-        const dragRect = store.frozenDragRect;
-        if (dragRect) {
-          const dragBounds = frozenBounds[0];
-          return dragBounds ?? createBoundsFromDragRect(dragRect);
-        }
-        return createFlatOverlayBounds(combineBounds(frozenBounds));
-      }
-
-      const element = selectionElement();
-      if (!element) return undefined;
-      return createElementBounds(element);
-    });
-
-    const toPageCoordinates = (clientX: number, clientY: number) => ({
-      pageX: clientX + window.scrollX,
-      pageY: clientY + window.scrollY,
-    });
-
-    const calculateDragDistance = (endX: number, endY: number) => {
-      const { pageX: endPageX, pageY: endPageY } = toPageCoordinates(endX, endY);
-
-      return {
-        x: Math.abs(endPageX - store.dragStart.x),
-        y: Math.abs(endPageY - store.dragStart.y),
-      };
-    };
-
-    const isDraggingBeyondThreshold = createMemo(() => {
-      if (!isDragging()) return false;
-
-      const dragDistance = calculateDragDistance(pointer().x, pointer().y);
-
-      return dragDistance.x > DRAG_THRESHOLD_PX || dragDistance.y > DRAG_THRESHOLD_PX;
-    });
-
-    const calculateDragRectangle = (endX: number, endY: number) => {
-      const { pageX: endPageX, pageY: endPageY } = toPageCoordinates(endX, endY);
-
-      const dragPageX = Math.min(store.dragStart.x, endPageX);
-      const dragPageY = Math.min(store.dragStart.y, endPageY);
-      const dragWidth = Math.abs(endPageX - store.dragStart.x);
-      const dragHeight = Math.abs(endPageY - store.dragStart.y);
-
-      return {
-        x: dragPageX - window.scrollX,
-        y: dragPageY - window.scrollY,
-        width: dragWidth,
-        height: dragHeight,
-      };
-    };
-
-    const isSpaceActivationKey = (event: KeyboardEvent) =>
-      event.code === "Space" || event.key === " ";
-
-    const startSpaceDragRepositioning = () => {
-      if (!isDragging()) return;
-      actions.startDragReposition();
-      const { pageX, pageY } = toPageCoordinates(pointer().x, pointer().y);
-      previousSpaceDragPointerPage = { x: pageX, y: pageY };
-    };
-
-    const stopSpaceDragRepositioning = () => {
-      actions.stopDragReposition();
-      previousSpaceDragPointerPage = null;
-    };
-
-    const dragBounds = createMemo((): OverlayBounds | undefined => {
-      void viewportVersion();
-
-      if (!isDraggingBeyondThreshold()) return undefined;
-
-      const drag = calculateDragRectangle(pointer().x, pointer().y);
-
-      return createFlatOverlayBounds(drag);
-    });
-
-    const dragPreviewBounds = createMemo((): OverlayBounds[] => {
-      void viewportVersion();
-
-      if (!isDraggingBeyondThreshold()) return [];
-
-      const pointer = debouncedDragPointer();
-      if (!pointer) return [];
-
-      const drag = calculateDragRectangle(pointer.x, pointer.y);
-      const elements = getElementsInDrag(drag, isValidGrabbableElement);
-      const previewElements =
-        elements.length > 0 ? elements : getElementsInDrag(drag, isValidGrabbableElement, false);
-
-      return previewElements.map((element) => createElementBounds(element));
-    });
-
-    const selectionBoundsMultiple = createMemo((): OverlayBounds[] => {
-      const previewBounds = dragPreviewBounds();
-      if (previewBounds.length > 0) {
-        return previewBounds;
-      }
-      const pendingBounds = pendingShiftSelectionBounds();
-      if (pendingBounds) {
-        return [...frozenElementsBounds(), pendingBounds];
-      }
-      return frozenElementsBounds();
-    });
-
-    const frozenLabelEntryAccessors = mapArray(
-      () => store.frozenElements,
-      (element) => {
-        const tagName = getTagName(element) || "element";
-        const componentName = getComponentDisplayName(element) ?? undefined;
-        return createMemo<FrozenLabelEntry | null>(() => {
-          void viewportVersion();
-          if (!isElementConnected(element)) return null;
-          const bounds = createElementBounds(element);
-          const anchorRatio = shiftSelectionLabelAnchorRatioByElement.get(element);
-          const mouseX =
-            anchorRatio === undefined ? undefined : bounds.x + bounds.width * anchorRatio;
-          return { tagName, componentName, bounds, mouseX };
-        });
-      },
-    );
-
-    const frozenLabelEntries = createMemo((): FrozenLabelEntry[] => {
-      if (isPromptMode() || store.frozenElements.length < 2) return [];
-      const entries: FrozenLabelEntry[] = [];
-      for (const readEntry of frozenLabelEntryAccessors()) {
-        const entry = readEntry();
-        if (entry !== null) entries.push(entry);
-      }
-      return entries;
-    });
-
-    const pendingShiftPreviewEntry = createMemo((): FrozenLabelEntry | null => {
-      if (isPromptMode()) return null;
-      const element = pendingShiftSelectionElement();
-      if (!element) return null;
-      void viewportVersion();
-      const tagName = getTagName(element) || "element";
-      const componentName = getComponentDisplayName(element) ?? undefined;
-      const bounds = createElementBounds(element);
-      return { tagName, componentName, bounds, mouseX: pointer().x };
-    });
-
-    const cursorPosition = createMemo(() => {
-      if (isCopying() || isPromptMode()) {
-        void viewportVersion();
-        const element = store.frozenElement || targetElement();
-        if (element) {
-          const center = getBoundsCenter(createElementBounds(element));
-          return {
-            x: center.x + store.copyOffsetFromCenterX,
-            y: store.copyStart.y,
-          };
-        }
-        return {
-          x: store.copyStart.x,
-          y: store.copyStart.y,
-        };
-      }
-      return {
-        x: pointer().x,
-        y: pointer().y,
-      };
-    });
-
-    const shiftSelectionLabelMouseX = createMemo((): number | undefined => {
-      if (!isShiftMultiSelecting()) return undefined;
-      if (store.frozenElements.length !== 1) return undefined;
-      void viewportVersion();
-
-      const element = store.frozenElements[0];
-      if (!isElementConnected(element)) return undefined;
-
-      const anchorRatio = shiftSelectionLabelAnchorRatioByElement.get(element);
-      if (anchorRatio === undefined) return undefined;
-
-      const bounds = createElementBounds(element);
-      return bounds.x + bounds.width * anchorRatio;
-    });
-
-    createEffect(
-      on(
-        () => [targetElement(), store.lastGrabbedElement] as const,
-        ([currentElement, lastElement]) => {
-          if (lastElement && currentElement && lastElement !== currentElement) {
-            actions.setLastGrabbed(null);
-          }
-          if (currentElement) {
-            pluginRegistry.hooks.onElementHover(currentElement);
-          }
-        },
-      ),
-    );
-
-    createEffect(
-      on(
-        () => targetElement(),
-        (element) => {
-          const currentVersion = ++selectionSourceRequestVersion;
-
-          const clearSource = () => {
-            if (selectionSourceRequestVersion === currentVersion) {
-              actions.setSelectionSource(null, null);
-            }
-          };
-
-          if (!element) {
-            clearSource();
-            return;
-          }
-
-          resolveSource(element)
-            .then((source) => {
-              if (selectionSourceRequestVersion !== currentVersion) return;
-              if (!source) {
-                clearSource();
-                return;
-              }
-              actions.setSelectionSource(source.filePath, source.lineNumber);
-            })
-            .catch(() => {
-              if (selectionSourceRequestVersion === currentVersion) {
-                actions.setSelectionSource(null, null);
-              }
-            });
-        },
-      ),
-    );
-
-    const publicGrabbedBoxes = createMemo(() =>
-      store.grabbedBoxes.map((box) => ({
-        id: box.id,
-        bounds: box.bounds,
-        createdAt: box.createdAt,
-      })),
-    );
-
-    const publicLabelInstances = createMemo(() =>
-      store.labelInstances.map((instance) => ({
-        id: instance.id,
-        status: instance.status,
-        tagName: instance.tagName,
-        componentName: instance.componentName,
-        createdAt: instance.createdAt,
-      })),
-    );
-
-    const derivedStateForHook = createMemo(() => {
-      const active = isActivated();
-      const dragging = isDragging();
-      const copying = isCopying();
-      const inputMode = isPromptMode();
-      const target = targetElement();
-      const drag = dragBounds();
-      const themeEnabled = pluginRegistry.store.theme.enabled;
-      const selectionBoxEnabled = pluginRegistry.store.theme.selectionBox.enabled;
-      const dragBoxEnabled = pluginRegistry.store.theme.dragBox.enabled;
-      const draggingBeyondThreshold = isDraggingBeyondThreshold();
-      const effectiveTarget = effectiveElement();
-      const justCopied = didJustCopy();
-
-      const isSelectionBoxVisible = Boolean(
-        themeEnabled &&
-        selectionBoxEnabled &&
-        active &&
-        !copying &&
-        !justCopied &&
-        !dragging &&
-        effectiveTarget != null,
-      );
-      const isDragBoxVisible = Boolean(
-        themeEnabled && dragBoxEnabled && active && !copying && draggingBeyondThreshold,
-      );
-
-      return {
-        isActive: active,
-        isDragging: dragging,
-        isCopying: copying,
-        isPromptMode: inputMode,
-        isSelectionBoxVisible,
-        isDragBoxVisible,
-        targetElement: target,
-        dragBounds: drag ? { x: drag.x, y: drag.y, width: drag.width, height: drag.height } : null,
-        grabbedBoxes: [...publicGrabbedBoxes()],
-        labelInstances: [...publicLabelInstances()],
-        selectionFilePath: store.selectionFilePath,
-        toolbarState: currentToolbarState(),
-      };
-    });
-
-    createEffect(
-      on(derivedStateForHook, (state) => {
-        pluginRegistry.hooks.onStateChange(state);
-      }),
-    );
-
-    createEffect(
-      on(
-        () => {
-          const inputMode = isPromptMode();
-          return {
-            inputMode,
-            position: inputMode ? pointer() : untrack(pointer),
-            target: inputMode ? targetElement() : untrack(targetElement),
-          };
-        },
-        ({ inputMode, position, target }) => {
-          pluginRegistry.hooks.onPromptModeChange(inputMode, {
-            x: position.x,
-            y: position.y,
-            targetElement: target,
-          });
-        },
-      ),
-    );
-
-    createEffect(
-      on(
-        () => [selectionVisible(), selectionBounds(), targetElement()] as const,
-        ([visible, bounds, element]) => {
-          pluginRegistry.hooks.onSelectionBox(Boolean(visible), bounds ?? null, element);
-        },
-      ),
-    );
-
-    createEffect(
-      on(
-        () => [dragVisible(), dragBounds()] as const,
-        ([visible, bounds]) => {
-          pluginRegistry.hooks.onDragBox(Boolean(visible), bounds ?? null);
-        },
-      ),
-    );
-
-    createEffect(
-      on(
-        () => {
-          const visible = labelVisible();
-          return [
-            visible,
-            labelVariant(),
-            visible ? cursorPosition() : untrack(cursorPosition),
-            visible ? targetElement() : untrack(targetElement),
-            store.selectionFilePath,
-            store.selectionLineNumber,
-          ] as const;
-        },
-        ([visible, variant, position, element, filePath, lineNumber]) => {
-          pluginRegistry.hooks.onElementLabel(visible, variant, {
-            x: position.x,
-            y: position.y,
-            content: "",
-            element: element ?? undefined,
-            tagName: element ? getTagName(element) || undefined : undefined,
-            filePath: filePath ?? undefined,
-            lineNumber: lineNumber ?? undefined,
-          });
-        },
-      ),
-    );
-
-    let cursorStyleElement: HTMLStyleElement | null = null;
-
-    const setCursorOverride = (cursor: string | null) => {
-      if (cursor) {
-        if (!cursorStyleElement) {
-          cursorStyleElement = document.createElement("style");
-          cursorStyleElement.setAttribute("data-react-grab-cursor", "");
-          const nonce = detectCspNonce();
-          if (nonce) cursorStyleElement.nonce = nonce;
-          hideFromThirdParties(cursorStyleElement);
-          document.head.appendChild(cursorStyleElement);
-        }
-        cursorStyleElement.textContent = `* { cursor: ${cursor} !important; }`;
-      } else if (cursorStyleElement) {
-        cursorStyleElement.remove();
-        cursorStyleElement = null;
-      }
-    };
-
-    createEffect(
-      on(
-        () => [isActivated(), isCopying(), isPromptMode()] as const,
-        ([activated, copying, promptMode]) => {
-          if (copying) {
-            setCursorOverride("progress");
-          } else if (activated && !promptMode) {
-            setCursorOverride("crosshair");
-          } else {
-            setCursorOverride(null);
-          }
-        },
-      ),
-    );
-
-    const activateRenderer = () => {
-      const wasInHoldingState = isHoldingKeys();
-      actions.activate();
-      if (!wasInHoldingState) {
-        pluginRegistry.hooks.onActivate();
-      }
-    };
-
-    const deactivateRenderer = () => {
-      const wasDragging = isDragging();
-      const previousFocused = store.previouslyFocusedElement;
-      stopSpaceDragRepositioning();
-      actions.deactivate();
-      stopShiftMultiSelecting();
-      clearArrowNavigation();
-      keyboardSelectedElement = null;
-      setIsPendingContextMenuSelect(false);
-      if (wasDragging) {
-        document.body.style.userSelect = "";
-      }
-      if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
-      autoScroller.stop();
-      // Calling .focus() forces a synchronous focus event dispatch and a style
-      // recalc. Skip it when the target is <body> or already the active
-      // element — both cases produce no observable focus change but were
-      // previously paying the recalc cost on every deactivate.
-      if (
-        previousFocused instanceof HTMLElement &&
-        previousFocused !== document.body &&
-        previousFocused !== document.activeElement &&
-        isElementConnected(previousFocused)
-      ) {
-        previousFocused.focus();
-      }
-      pluginRegistry.hooks.onDeactivate();
-    };
-
-    const forceDeactivateAll = () => {
-      if (isHoldingKeys()) {
-        actions.releaseHold();
-      }
-      if (isActivated()) {
-        deactivateRenderer();
-      }
-      clearCopyFeedbackCooldown();
-    };
-
-    const toggleActivate = () => {
-      actions.setWasActivatedByToggle(true);
-      activateRenderer();
-    };
-
-    const handleInputSubmit = () => {
-      actions.clearLastCopied();
-      const frozenElements = [...store.frozenElements];
-      const element = store.frozenElement || targetElement();
-      const prompt = isPromptMode() ? store.inputText.trim() : "";
-
-      if (!element) {
-        deactivateRenderer();
-        return;
-      }
-
-      const elements = frozenElements.length > 0 ? frozenElements : [element];
-
-      const currentSelectionBounds = elements.map((selectedElement) =>
-        createElementBounds(selectedElement),
-      );
-      const firstBounds = currentSelectionBounds[0];
-      const { x: currentX, y: currentY } = getBoundsCenter(firstBounds);
-      const labelPositionX = currentX + store.copyOffsetFromCenterX;
-
-      actions.setPointer({ x: currentX, y: currentY });
-      actions.exitPromptMode();
-      actions.clearInputText();
-
-      performCopyWithLabel({
-        element,
-        cursorX: labelPositionX,
-        selectedElements: elements,
-        extraPrompt: prompt || undefined,
-        shouldDeactivateAfter: true,
-      });
-    };
-
-    const handleInputCancel = () => {
-      actions.clearLastCopied();
-      if (!isPromptMode()) return;
-
-      if (isPendingDismiss()) {
-        actions.clearInputText();
-        deactivateRenderer();
-        return;
-      }
-
-      actions.setPendingDismiss(true);
-      setSelectionLabelShakeCount((count) => count + 1);
-    };
-
-    const handleConfirmDismiss = () => {
-      actions.clearInputText();
-      deactivateRenderer();
-    };
-
-    const handleCancelDismiss = () => {
-      actions.setPendingDismiss(false);
-    };
-
-    const handleToggleExpand = () => {
-      const element = store.frozenElement || targetElement();
-      if (element) {
-        preparePromptMode(element, pointer().x, pointer().y);
-      }
-      activatePromptMode();
-    };
-
-    const handleToggleActive = () => {
-      if (isActivated()) {
-        deactivateRenderer();
-      } else if (isEnabled()) {
-        const defaultActionId = currentToolbarState()?.defaultAction ?? DEFAULT_ACTION_ID;
-        if (defaultActionId === DEFAULT_ACTION_ID) {
-          actions.setPendingCommentMode(true);
-        } else {
-          pendingDefaultActionId = defaultActionId;
-          setIsPendingContextMenuSelect(true);
-        }
-        toggleActivate();
-      }
-    };
-
-    const enterCommentModeForElement = (element: Element, positionX: number, positionY: number) => {
-      actions.setPendingCommentMode(false);
-      actions.clearInputText();
-      actions.enterPromptMode({ x: positionX, y: positionY }, element);
-    };
-
-    const openContextMenu = (element: Element, position: Position) => {
-      stopShiftMultiSelecting();
-      actions.showContextMenu(position, element);
-      clearArrowNavigation();
-      dismissAllPopups();
-      pluginRegistry.hooks.onContextMenu(element, position);
-    };
-
-    const runPendingDefaultAction = (element: Element, position: Position) => {
-      const actionId = pendingDefaultActionId;
-      pendingDefaultActionId = null;
-      if (!actionId) return;
-
-      const action = pluginRegistry.store.actions.find(
-        (registeredAction) => registeredAction.id === actionId,
-      );
-      if (!action) {
-        handleSetDefaultAction(DEFAULT_ACTION_ID);
-        openContextMenu(element, position);
-        return;
-      }
-
-      const elementBounds = createElementBounds(element);
-      const context = buildActionContext({
-        element,
-        filePath: store.selectionFilePath ?? undefined,
-        lineNumber: store.selectionLineNumber ?? undefined,
-        tagName: getTagName(element) || undefined,
-        componentName: resolvedComponentName(),
-        position,
-        shouldDeferHideContextMenu: false,
-        performWithFeedbackOptions: {
-          fallbackBounds: elementBounds,
-          fallbackSelectionBounds: [elementBounds],
-          position,
-        },
-      });
-      action.onAction(context);
-    };
-
-    const handleComment = () => {
-      if (!isEnabled()) return;
-
-      const isAlreadyInCommentMode = isActivated() && isCommentMode();
-      if (isAlreadyInCommentMode) {
-        deactivateRenderer();
-        return;
-      }
-
-      actions.setPendingCommentMode(true);
-      if (!isActivated()) {
-        toggleActivate();
-      }
-    };
-
-    const handlePointerMove = (clientX: number, clientY: number, isShiftHeld: boolean) => {
-      const shouldTrackPendingShiftSelection =
-        isShiftHeld &&
-        isShiftMultiSelecting() &&
-        !isDragging() &&
-        !store.pendingCommentMode &&
-        !isPendingContextMenuSelect();
-
-      if (
-        !isEnabled() ||
-        isPromptMode() ||
-        (isFrozenPhase() && !shouldTrackPendingShiftSelection) ||
-        isSelectionInteractionLocked() ||
-        store.contextMenuPosition !== null
-      ) {
-        return;
-      }
-
-      actions.setPointer({ x: clientX, y: clientY });
-
-      elementDetectionState.latestPointerX = clientX;
-      elementDetectionState.latestPointerY = clientY;
-
-      if (shouldTrackPendingShiftSelection) {
-        const candidate = getElementAtPosition(clientX, clientY);
-        if (candidate !== store.detectedElement) {
-          actions.setDetectedElement(candidate);
-        }
-        return;
-      }
-
-      const now = performance.now();
-      const isDetectionPending =
-        elementDetectionState.pendingDetectionScheduledAt > 0 &&
-        now - elementDetectionState.pendingDetectionScheduledAt < PENDING_DETECTION_STALENESS_MS;
-      if (
-        now - elementDetectionState.lastDetectionTimestamp >= ELEMENT_DETECTION_THROTTLE_MS &&
-        !isDetectionPending
-      ) {
-        elementDetectionState.lastDetectionTimestamp = now;
-        elementDetectionState.pendingDetectionScheduledAt = now;
-        setTimeout(() => {
-          const candidate = getElementAtPosition(
-            elementDetectionState.latestPointerX,
-            elementDetectionState.latestPointerY,
-          );
-          if (candidate !== store.detectedElement) {
-            actions.setDetectedElement(candidate);
-          }
-          elementDetectionState.pendingDetectionScheduledAt = 0;
-        });
-      }
-
-      if (isDragging()) {
-        if (isDragRepositioning()) {
-          const { pageX, pageY } = toPageCoordinates(clientX, clientY);
-          if (previousSpaceDragPointerPage) {
-            actions.shiftDragStart({
-              x: pageX - previousSpaceDragPointerPage.x,
-              y: pageY - previousSpaceDragPointerPage.y,
-            });
-          }
-          previousSpaceDragPointerPage = { x: pageX, y: pageY };
-        }
-
-        scheduleDragPreviewUpdate(clientX, clientY);
-
-        const direction = getAutoScrollDirection(clientX, clientY);
-        const isNearEdge = direction.top || direction.bottom || direction.left || direction.right;
-
-        if (isNearEdge && !autoScroller.isActive()) {
-          autoScroller.start();
-        } else if (!isNearEdge && autoScroller.isActive()) {
-          autoScroller.stop();
-        }
-      }
-    };
-
-    const handlePointerDown = (clientX: number, clientY: number, isShiftHeld: boolean) => {
-      if (!isRendererActive() || isSelectionInteractionLocked()) return false;
-
-      if (!isShiftHeld && isShiftMultiSelecting()) {
-        stopShiftMultiSelecting();
-      }
-
-      actions.startDrag({ x: clientX, y: clientY }, isShiftHeld);
-      actions.setPointer({ x: clientX, y: clientY });
-      document.body.style.userSelect = "none";
-
-      scheduleDragPreviewUpdate(clientX, clientY);
-
-      pluginRegistry.hooks.onDragStart(clientX + window.scrollX, clientY + window.scrollY);
-
-      return true;
-    };
-
-    const toggleShiftMultiSelection = (element: Element, pointer: Position) => {
-      const wasElementSelected = store.frozenElements.includes(element);
-      const isFirstFrozenElement = store.frozenElements.length === 0;
-
-      if (!wasElementSelected) {
-        const bounds = createElementBounds(element);
-        const anchorRatio = getElementAnchorRatio(bounds, pointer);
-        shiftSelectionLabelAnchorRatioByElement.set(element, anchorRatio);
-        if (isFirstFrozenElement) {
-          const componentName = getComponentDisplayName(element) ?? undefined;
-          setResolvedComponentName(componentName);
-        }
-      }
-
-      actions.toggleFrozenElement(element);
-      clearElementPositionCache();
-      const isElementStillSelected = store.frozenElements.includes(element);
-
-      if (!isElementStillSelected) {
-        shiftSelectionLabelAnchorRatioByElement.delete(element);
-      }
-
-      if (store.frozenElements.length === 0) {
-        stopShiftMultiSelecting();
-        actions.unfreeze();
-        return;
-      }
-
-      // Animation freeze must run on the combined accumulated set, not just
-      // on the toggled element. freezeAllAnimations unfreezes its previous
-      // input before freezing its new input, so passing only [element] would
-      // resume animations on every previously shift-clicked element.
-      freezeAllAnimations(store.frozenElements);
-      setIsShiftMultiSelecting(true);
-      actions.setPointer(pointer);
-      // After toggleFrozenElement, the most recently changed element is
-      // either added (still in frozenElements) or removed. Anchor
-      // lastGrabbed to a still-selected element rather than to one that
-      // was just deselected.
-      actions.setLastGrabbed(
-        isElementStillSelected ? element : store.frozenElements[store.frozenElements.length - 1],
-      );
-      actions.freeze();
-      clearArrowNavigation();
-    };
-
-    const commitShiftMultiSelection = () => {
-      const accumulatedElements = store.frozenElements.filter(isElementConnected);
-
-      const perElementLabelEntries = accumulatedElements.map((element) => {
-        const tagName = getTagName(element) || "element";
-        const componentName = getComponentDisplayName(element) ?? undefined;
-        const anchorRatio = shiftSelectionLabelAnchorRatioByElement.get(element);
-        const bounds = createElementBounds(element);
-        const mouseX =
-          anchorRatio === undefined
-            ? bounds.x + bounds.width / 2
-            : bounds.x + bounds.width * anchorRatio;
-        return { element, tagName, componentName, mouseX };
+    const {
+      handleContextMenuDismiss,
+      handleShowContextMenuInstance,
+      handleToggleToolbarMenu,
+      handleSetDefaultAction,
+      dismissAllPopups,
+    } = menuHandlers;
+    const dismissToolbarMenu = toolbarMenu.dismiss;
+
+    const { handleToggleActive, enterCommentModeForElement, handleComment } =
+      createCommentModeHandlers({
+        grab,
+        phase,
+        activationLifecycle,
+        toolbarStateController,
+        isEnabled,
       });
 
-      stopShiftMultiSelecting();
-
-      if (accumulatedElements.length === 0) {
-        actions.unfreeze();
-        return;
-      }
-
-      if (accumulatedElements.length === 1) {
-        performCopyWithLabel({
-          element: accumulatedElements[0],
-          cursorX: perElementLabelEntries[0].mouseX,
-          selectedElements: accumulatedElements,
-          shouldDeactivateAfter: store.wasActivatedByToggle,
-        });
-        return;
-      }
-
-      performCopyWithPerElementLabels({
-        elements: accumulatedElements,
-        labelEntries: perElementLabelEntries,
-        shouldDeactivateAfter: store.wasActivatedByToggle,
-      });
-    };
-
-    const handleDragSelection = (
-      dragSelectionRect: ReturnType<typeof calculateDragRectangle>,
-      hasModifierKeyHeld: boolean,
-      isShiftHeld: boolean,
-    ) => {
-      const elements = getElementsInDrag(dragSelectionRect, isValidGrabbableElement);
-      const selectedElements =
-        elements.length > 0
-          ? elements
-          : getElementsInDrag(dragSelectionRect, isValidGrabbableElement, false);
-
-      if (selectedElements.length === 0) return;
-
-      const isShiftAccumulating =
-        isShiftHeld && !store.pendingCommentMode && !isPendingContextMenuSelect();
-
-      // In the shift-accumulating branch we must freeze on the COMBINED set
-      // (prior accumulated + newly dragged), because freezeAllAnimations
-      // unfreezes its prior input via finishAnimations() — which permanently
-      // advances WAAPI animations on previously selected elements past the
-      // freeze point. Calling it once with [...prior, ...new] keeps prior
-      // animations paused.
-      if (isShiftAccumulating) {
-        actions.addFrozenElements(selectedElements);
-      }
-      freezeAllAnimations(isShiftAccumulating ? store.frozenElements : selectedElements);
-
-      pluginRegistry.hooks.onDragEnd(selectedElements, dragSelectionRect);
-
-      if (isShiftAccumulating) {
-        const lastElement = selectedElements[selectedElements.length - 1];
-        setIsShiftMultiSelecting(true);
-        clearElementPositionCache();
-        actions.setPointer(getBoundsCenter(createElementBounds(lastElement)));
-        actions.setLastGrabbed(lastElement);
-        actions.freeze();
-        clearArrowNavigation();
-        return;
-      }
-
-      const firstElement = selectedElements[0];
-      const center = getBoundsCenter(createElementBounds(firstElement));
-
-      actions.setPointer(center);
-      actions.setFrozenElements(selectedElements);
-      const dragRect = createPageRectFromBounds(dragSelectionRect);
-      actions.setFrozenDragRect(dragRect);
-      actions.freeze();
-      actions.setLastGrabbed(firstElement);
-
-      if (store.pendingCommentMode) {
-        enterCommentModeForElement(firstElement, center.x, center.y);
-        return;
-      }
-
-      if (isPendingContextMenuSelect()) {
-        setIsPendingContextMenuSelect(false);
-        if (pendingDefaultActionId) {
-          runPendingDefaultAction(firstElement, center);
-        } else {
-          openContextMenu(firstElement, center);
-        }
-        return;
-      }
-
-      const shouldDeactivateAfter = store.wasActivatedByToggle && !hasModifierKeyHeld;
-
-      performCopyWithLabel({
-        element: firstElement,
-        cursorX: center.x,
-        selectedElements,
-        shouldDeactivateAfter,
-        dragRect,
-      });
-    };
-
-    const getFrozenElementAtPosition = (position: Position): Element | null => {
-      for (const element of store.frozenElements) {
-        if (!isElementConnected(element)) continue;
-        if (isPositionInsideBounds(position, createElementBounds(element))) {
-          return element;
-        }
-      }
-      return null;
-    };
-
-    const handleSingleClick = (
-      clientX: number,
-      clientY: number,
-      hasModifierKeyHeld: boolean,
-      isShiftHeld: boolean,
-    ) => {
-      const validFrozenElement = isElementConnected(store.frozenElement)
-        ? store.frozenElement
-        : null;
-
-      const validKeyboardSelectedElement = isElementConnected(keyboardSelectedElement)
-        ? keyboardSelectedElement
-        : null;
-
-      const elementAtPointer =
-        getElementsAtPoint(clientX, clientY).find(isValidGrabbableElement) ?? null;
-      const selectedElementUnderPointer =
-        elementAtPointer ??
-        (isElementConnected(store.detectedElement) ? store.detectedElement : null);
-      const selectedElement =
-        selectedElementUnderPointer ?? validFrozenElement ?? validKeyboardSelectedElement;
-      if (!selectedElement) return;
-
-      // While Shift is held we only operate on the live elementAtPointer.
-      // Falling through to the non-shift path would let the
-      // selectedElement fallback chain resolve to the previously-frozen
-      // element and fire an unintended single-element copy that races
-      // with the eventual commitShiftMultiSelection on Shift release. So
-      // we always return when Shift is held: toggle when an element is
-      // under the pointer, no-op when it isn't.
-      if (isShiftHeld && !store.pendingCommentMode && !isPendingContextMenuSelect()) {
-        if (elementAtPointer !== null) {
-          toggleShiftMultiSelection(elementAtPointer, { x: clientX, y: clientY });
-        }
-        return;
-      }
-
-      let positionX: number;
-      let positionY: number;
-
-      const didResolveFromFrozenElement =
-        selectedElementUnderPointer === null && validFrozenElement === selectedElement;
-      const didResolveFromKeyboardElement =
-        selectedElementUnderPointer === null &&
-        validFrozenElement === null &&
-        validKeyboardSelectedElement === selectedElement;
-
-      if (didResolveFromFrozenElement) {
-        positionX = pointer().x;
-        positionY = pointer().y;
-      } else if (didResolveFromKeyboardElement) {
-        const elementCenter = getBoundsCenter(createElementBounds(selectedElement));
-        positionX = elementCenter.x;
-        positionY = elementCenter.y;
-      } else {
-        positionX = clientX;
-        positionY = clientY;
-      }
-
-      keyboardSelectedElement = null;
-
-      if (store.pendingCommentMode) {
-        enterCommentModeForElement(selectedElement, positionX, positionY);
-        return;
-      }
-
-      if (isPendingContextMenuSelect()) {
-        setIsPendingContextMenuSelect(false);
-        const { wasIntercepted } = pluginRegistry.hooks.onElementSelect(selectedElement);
-        if (wasIntercepted) return;
-
-        freezeAllAnimations([selectedElement]);
-        actions.setFrozenElement(selectedElement);
-        const position = { x: positionX, y: positionY };
-        actions.setPointer(position);
-        actions.freeze();
-        if (pendingDefaultActionId) {
-          runPendingDefaultAction(selectedElement, position);
-        } else {
-          openContextMenu(selectedElement, position);
-        }
-        return;
-      }
-
-      const shouldDeactivateAfter = store.wasActivatedByToggle && !hasModifierKeyHeld;
-
-      actions.setLastGrabbed(selectedElement);
-
-      performCopyWithLabel({
-        element: selectedElement,
-        cursorX: positionX,
-        shouldDeactivateAfter,
-      });
-    };
-
-    const cancelActiveDrag = () => {
-      if (!isDragging()) return;
-      stopSpaceDragRepositioning();
-      actions.cancelDrag();
-      autoScroller.stop();
-      document.body.style.userSelect = "";
-    };
-
-    const handlePointerUp = (
-      clientX: number,
-      clientY: number,
-      hasModifierKeyHeld: boolean,
-      isShiftHeld: boolean,
-    ) => {
-      if (!isDragging()) return;
-
-      if (dragPreviewDebounceTimerId !== null) {
-        clearTimeout(dragPreviewDebounceTimerId);
-        dragPreviewDebounceTimerId = null;
-      }
-      setDebouncedDragPointer(null);
-
-      const dragDistance = calculateDragDistance(clientX, clientY);
-      const wasDragGesture =
-        dragDistance.x > DRAG_THRESHOLD_PX || dragDistance.y > DRAG_THRESHOLD_PX;
-
-      // The rectangle needs to be calculated before endDrag() because endDrag
-      // resets dragStart in the store, which would zero out the rectangle.
-      const dragSelectionRect = wasDragGesture ? calculateDragRectangle(clientX, clientY) : null;
-
-      if (wasDragGesture) {
-        actions.endDrag();
-      } else {
-        actions.cancelDrag();
-      }
-      stopSpaceDragRepositioning();
-      autoScroller.stop();
-      document.body.style.userSelect = "";
-
-      if (dragSelectionRect) {
-        handleDragSelection(dragSelectionRect, hasModifierKeyHeld, isShiftHeld);
-      } else {
-        handleSingleClick(clientX, clientY, hasModifierKeyHeld, isShiftHeld);
-      }
-    };
+    const dragHandlers = createDragHandlers({
+      grab,
+      pluginRegistry,
+      phase,
+      elementSelectors,
+      autoScroller,
+      shiftMultiSelect,
+      spaceDragRepositioning,
+      copyOrchestrator,
+      menuHandlers,
+      commentModeHandlers: { handleToggleActive, enterCommentModeForElement, handleComment },
+      dragPreviewDebounce,
+      pointer,
+      isEnabled,
+      isDragRepositioning,
+      takeKeyboardSelectedElement: coordinationFlags.takeKeyboardSelectedElement,
+      setResolvedComponentName,
+      clearArrowNavigation,
+      toPageCoordinates: toPageCoordinatesUtil,
+    });
+    const { cancelActiveDrag } = dragHandlers;
 
     const eventListenerManager = createEventListenerManager();
 
-    const keyboardClaimer = setupKeyboardEventClaimer();
-
-    const blockEnterIfNeeded = (event: KeyboardEvent) => {
-      let originalKey: string;
-      try {
-        originalKey = keyboardClaimer.originalKeyDescriptor?.get
-          ? keyboardClaimer.originalKeyDescriptor.get.call(event)
-          : event.key;
-      } catch {
-        return false;
-      }
-      const isEnterKey = originalKey === "Enter" || isEnterCode(event.code);
-      const isOverlayActive = isActivated() || isHoldingKeys();
-      const shouldBlockEnter =
-        isEnterKey && isOverlayActive && !isPromptMode() && !store.wasActivatedByToggle;
-
-      if (shouldBlockEnter) {
-        keyboardClaimer.claimedEvents.add(event);
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        return true;
-      }
-      return false;
-    };
-
-    eventListenerManager.addDocumentListener("keydown", blockEnterIfNeeded, {
-      capture: true,
-    });
-    eventListenerManager.addDocumentListener("keyup", blockEnterIfNeeded, {
-      capture: true,
-    });
-    eventListenerManager.addDocumentListener("keypress", blockEnterIfNeeded, {
-      capture: true,
+    const enterBlocker = createEnterBlocker({
+      grab,
+      isActivated,
+      isHoldingKeys,
+      isPromptMode,
+      eventListenerManager,
     });
 
-    const clearArrowNavigation = () => {
-      setArrowNavigationElements([]);
-      setArrowNavigationActiveIndex(0);
-      arrowNavigator.clearHistory();
-    };
-
-    const selectAndFocusElement = (element: Element) => {
-      actions.setFrozenElement(element);
-      actions.freeze();
-      keyboardSelectedElement = element;
-
-      const center = getBoundsCenter(createElementBounds(element));
-      actions.setPointer(center);
-
-      if (store.contextMenuPosition !== null) {
-        actions.showContextMenu(center, element);
-      }
-    };
-
-    const openArrowNavigationMenu = (anchorElement: Element) => {
-      const bounds = createElementBounds(anchorElement);
-      const probePoint = getVisibleBoundsCenter(bounds);
-      const elementsAtPoint = getElementsAtPoint(probePoint.x, probePoint.y)
-        .filter(isValidGrabbableElement)
-        .reverse();
-
-      setArrowNavigationElements(elementsAtPoint);
-      setArrowNavigationActiveIndex(Math.max(0, elementsAtPoint.indexOf(anchorElement)));
-    };
-
-    const handleArrowNavigationSelect = (index: number) => {
-      const targetElement = arrowNavigationElements()[index];
-      if (!targetElement) return;
-
-      setArrowNavigationActiveIndex(index);
-      arrowNavigator.clearHistory();
-      selectAndFocusElement(targetElement);
-    };
-
-    const handleArrowNavigation = (event: KeyboardEvent): boolean => {
-      if (!isActivated() || isPromptMode()) return false;
-      if (isShiftMultiSelecting()) return false;
-      if (!ARROW_KEYS.has(event.key)) return false;
-      // While the context menu is open, arrow keys belong to its own
-      // roving-tabindex navigation. Both listeners fire for the same
-      // event (both window+capture), so without bowing out here arrow
-      // keys also re-select a different page element and reposition
-      // the menu over it.
-      if (store.contextMenuPosition !== null) return false;
-
-      let currentElement = effectiveElement();
-      const isInitialSelection = !currentElement;
-
-      if (!currentElement) {
-        currentElement = getElementAtPosition(window.innerWidth / 2, window.innerHeight / 2);
-      }
-
-      if (!currentElement) return false;
-
-      const isVertical = event.key === "ArrowUp" || event.key === "ArrowDown";
-
-      if (!isVertical) {
-        clearArrowNavigation();
-        const nextElement = arrowNavigator.findNext(event.key, currentElement);
-        if (!nextElement && !isInitialSelection) return false;
-        event.preventDefault();
-        event.stopPropagation();
-        selectAndFocusElement(nextElement ?? currentElement);
-        return true;
-      }
-
-      if (arrowNavigationElements().length === 0) {
-        openArrowNavigationMenu(currentElement);
-      }
-
-      const nextElement = arrowNavigator.findNext(event.key, currentElement);
-      const elementToSelect = nextElement ?? currentElement;
-
-      event.preventDefault();
-      event.stopPropagation();
-      selectAndFocusElement(elementToSelect);
-
-      const newIndex = arrowNavigationElements().indexOf(elementToSelect);
-      if (newIndex !== -1) {
-        setArrowNavigationActiveIndex(newIndex);
-      } else {
-        openArrowNavigationMenu(elementToSelect);
-      }
-
-      return true;
-    };
-
-    const handleEnterKeyActivation = (event: KeyboardEvent): boolean => {
-      if (!isEnterCode(event.code)) return false;
-      if (isKeyboardEventTriggeredByInput(event)) return false;
-      if (isCopying()) return false;
-      if (isSelectionInteractionLocked()) return false;
-
-      const copiedElement = store.lastCopiedElement;
-      const canActivateFromCopied =
-        !isHoldingKeys() &&
-        !isPromptMode() &&
-        !isActivated() &&
-        copiedElement &&
-        isElementConnected(copiedElement) &&
-        !store.labelInstances.some(
-          (instance) => instance.status === "copied" || instance.status === "fading",
-        );
-
-      if (canActivateFromCopied) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-
-        const center = getBoundsCenter(createElementBounds(copiedElement));
-
-        actions.setPointer(center);
-        preparePromptMode(copiedElement, center.x, center.y);
-        actions.setFrozenElement(copiedElement);
-        actions.clearLastCopied();
-
-        activatePromptMode();
-        if (!isActivated()) {
-          activateRenderer();
-        }
-        return true;
-      }
-
-      const canActivateFromHolding = isHoldingKeys() && !isPromptMode();
-
-      if (canActivateFromHolding) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-
-        const element = store.frozenElement || targetElement();
-        if (element) {
-          preparePromptMode(element, pointer().x, pointer().y);
-        }
-
-        actions.setPointer({ x: pointer().x, y: pointer().y });
-        if (element) {
-          actions.setFrozenElement(element);
-        }
-        activatePromptMode();
-
-        if (keydownSpamTimerId !== null) {
-          window.clearTimeout(keydownSpamTimerId);
-          keydownSpamTimerId = null;
-        }
-
-        if (!isActivated()) {
-          activateRenderer();
-        }
-
-        return true;
-      }
-
-      return false;
-    };
-
-    const handleOpenFileShortcut = (event: KeyboardEvent): boolean => {
-      if (event.key?.toLowerCase() !== "o" || isPromptMode()) return false;
-      if (!isActivated() || !(event.metaKey || event.ctrlKey)) return false;
-
-      const filePath = store.selectionFilePath;
-      const lineNumber = store.selectionLineNumber;
-      if (!filePath) return false;
-
-      event.preventDefault();
-      event.stopPropagation();
-
-      const wasHandled = pluginRegistry.hooks.onOpenFile(filePath, lineNumber ?? undefined);
-      if (!wasHandled) {
-        openFile(filePath, lineNumber ?? undefined, pluginRegistry.hooks.transformOpenFileUrl);
-      }
-      return true;
-    };
-
-    const handleContextMenuKey = (event: KeyboardEvent): boolean => {
-      if (!isActivated()) return false;
-      if (isCopying() || isPromptMode()) return false;
-      if (store.contextMenuPosition !== null) return false;
-
-      const isShiftF10 = event.key === "F10" && event.shiftKey;
-      const isContextMenuKey = event.key === "ContextMenu";
-      if (!isShiftF10 && !isContextMenuKey) return false;
-
-      const existingFrozenElements = store.frozenElements;
-      const hasMultiFrozenSelection = existingFrozenElements.length > 1;
-      const element =
-        (hasMultiFrozenSelection ? existingFrozenElements[0] : null) ||
-        store.frozenElement ||
-        targetElement();
-      if (!element) return false;
-
-      event.preventDefault();
-      event.stopPropagation();
-
-      const center = getBoundsCenter(createElementBounds(element));
-      // Preserve an existing multi-frozen selection (e.g. Shift+click)
-      // when invoking via keyboard, matching the mouse contextmenu
-      // handler's behavior on a click that lands on the existing set.
-      if (hasMultiFrozenSelection) {
-        freezeAllAnimations(existingFrozenElements);
-      } else {
-        freezeAllAnimations([element]);
-        actions.setFrozenElement(element);
-      }
-      actions.setPointer(center);
-      actions.freeze();
-      openContextMenu(element, center);
-      return true;
-    };
-
-    const arrowNavigationItems = createMemo(() =>
-      arrowNavigationElements().map((element) => ({
-        tagName: getTagName(element) || "element",
-        componentName: getComponentDisplayName(element) ?? undefined,
-      })),
-    );
-
-    const arrowNavigationState = createMemo<ArrowNavigationState>(() => ({
-      items: arrowNavigationItems(),
-      activeIndex: arrowNavigationActiveIndex(),
-      isVisible: arrowNavigationElements().length > 0,
-    }));
-
-    const handleActivationKeys = (event: KeyboardEvent): void => {
-      if (
-        !pluginRegistry.store.options.allowActivationInsideInput &&
-        isKeyboardEventTriggeredByInput(event)
-      ) {
-        return;
-      }
-
-      if (!isTargetKeyCombination(event, pluginRegistry.store.options)) {
-        if (
-          (event.metaKey || event.ctrlKey) &&
-          !MODIFIER_KEYS.includes(event.key) &&
-          !isEnterCode(event.code)
-        ) {
-          if (isActivated() && !store.wasActivatedByToggle) {
-            deactivateRenderer();
-          } else if (isHoldingKeys()) {
-            clearHoldTimer();
-            resetCopyConfirmation();
-            actions.releaseHold();
-          }
-        }
-        if (!isEnterCode(event.code) || !isHoldingKeys()) {
-          return;
-        }
-      }
-
-      if ((isActivated() || isHoldingKeys()) && !isPromptMode()) {
-        event.preventDefault();
-        if (isEnterCode(event.code)) {
-          event.stopImmediatePropagation();
-        }
-      }
-
-      if (isActivated()) {
-        if (store.wasActivatedByToggle && pluginRegistry.store.options.activationMode !== "hold")
-          return;
-        if (event.repeat) return;
-
-        // If the overlay gets stuck active (e.g. the modifier keyup was lost
-        // during a window blur), repeated keydowns will auto-dismiss it after
-        // 200ms of idle keyboard activity.
-        if (keydownSpamTimerId !== null) {
-          window.clearTimeout(keydownSpamTimerId);
-        }
-        keydownSpamTimerId = window.setTimeout(() => {
-          deactivateRenderer();
-        }, KEYDOWN_SPAM_TIMEOUT_MS);
-        return;
-      }
-
-      if (isHoldingKeys() && event.repeat) {
-        if (activationHoldState.copyWaiting) {
-          const shouldActivate = activationHoldState.holdTimerFired;
-          resetCopyConfirmation();
-          if (shouldActivate) {
-            actions.activate();
-          }
-        }
-        return;
-      }
-
-      if (isCopying() || didJustCopy()) return;
-
-      if (!isHoldingKeys()) {
-        const keyHoldDuration =
-          pluginRegistry.store.options.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS;
-
-        let activationDuration = keyHoldDuration;
-        if (isKeyboardEventTriggeredByInput(event)) {
-          if (hasTextSelectionInInput(event)) {
-            activationDuration += INPUT_TEXT_SELECTION_ACTIVATION_DELAY_MS;
-          } else {
-            activationDuration += INPUT_FOCUS_ACTIVATION_DELAY_MS;
-          }
-        } else if (hasTextSelectionOnPage()) {
-          activationDuration += INPUT_TEXT_SELECTION_ACTIVATION_DELAY_MS;
-        }
-        resetCopyConfirmation();
-        actions.startHold(activationDuration);
-      }
-    };
-
-    eventListenerManager.addWindowListener(
-      "keydown",
-      (event: KeyboardEvent) => {
-        blockEnterIfNeeded(event);
-
-        if (!isEnabled()) {
-          if (isTargetKeyCombination(event, pluginRegistry.store.options) && !event.repeat) {
-            setToolbarShakeCount((count) => count + 1);
-          }
-          return;
-        }
-
-        const isEnterToActivateInput =
-          isEnterCode(event.code) && isHoldingKeys() && !isPromptMode();
-
-        const isFromReactGrabInput = isEventFromOverlay(event, "data-react-grab-input");
-        if (
-          isPromptMode() &&
-          isTargetKeyCombination(event, pluginRegistry.store.options) &&
-          !event.repeat &&
-          !isFromReactGrabInput
-        ) {
-          event.preventDefault();
-          event.stopPropagation();
-          handleInputCancel();
-          return;
-        }
-
-        if (event.key === "Escape" && toolbarMenuPosition() !== null) {
-          dismissToolbarMenu();
-          return;
-        }
-
-        // When the context menu is open, its own registerOverlayDismiss
-        // listener handles Escape. Bail out so the global handler doesn't
-        // fire deactivateRenderer first via the isFromOverlay branch
-        // (the menu container now holds focus, so composedPath() includes
-        // data-react-grab-ignore-events).
-        if (event.key === "Escape" && store.contextMenuPosition !== null) {
-          return;
-        }
-
-        const isFromOverlay =
-          isEventFromOverlay(event, "data-react-grab-ignore-events") && !isEnterToActivateInput;
-
-        if (isPromptMode() || isFromOverlay) {
-          if (event.key === "Escape") {
-            if (isPromptMode()) {
-              handleInputCancel();
-            } else if (store.wasActivatedByToggle) {
-              deactivateRenderer();
-            }
-          }
-
-          if (isFromOverlay && ARROW_KEYS.has(event.key)) {
-            if (handleArrowNavigation(event)) return;
-          }
-
-          return;
-        }
-
-        if (isDragging() && isSpaceActivationKey(event)) {
-          if (!event.repeat) {
-            startSpaceDragRepositioning();
-          }
-          event.preventDefault();
-          event.stopPropagation();
-          return;
-        }
-
-        if (event.key === "Escape") {
-          if (isHoldingKeys() || store.wasActivatedByToggle) {
-            deactivateRenderer();
-            return;
-          }
-        }
-
-        if (isActivated() && !MODIFIER_KEYS.includes(event.key)) {
-          event.preventDefault();
-        }
-
-        // After the window regains focus we briefly ignore activation keys to
-        // prevent accidental activation from the modifier keys used to alt-tab.
-        const didWindowJustRegainFocus =
-          Date.now() - lastWindowFocusTimestamp < WINDOW_REFOCUS_GRACE_PERIOD_MS;
-
-        if (handleArrowNavigation(event)) return;
-        if (handleEnterKeyActivation(event)) return;
-        if (handleOpenFileShortcut(event)) return;
-        if (handleContextMenuKey(event)) return;
-
-        if (!didWindowJustRegainFocus) {
-          handleActivationKeys(event);
-        }
+    const {
+      handleEnterKeyActivation,
+      handleOpenFileShortcut,
+      handleContextMenuKey,
+      handleActivationKeys,
+    } = createActivationKeyHandlers({
+      grab,
+      pluginRegistry,
+      phase,
+      elementSelectors,
+      activationHold,
+      activationLifecycle,
+      menuHandlers,
+      keydownSpamTimer,
+      pointer,
+      didJustCopy,
+      resetCopyConfirmation,
+      preparePromptMode,
+      activatePromptMode,
+    });
+
+    const windowFocusListeners = createWindowFocusListeners({
+      grab,
+      phase,
+      activationLifecycle,
+      activationHold,
+      eventListenerManager,
+      cancelActiveDrag: () => cancelActiveDrag(),
+      stopShiftMultiSelecting: () => stopShiftMultiSelecting(),
+    });
+
+    registerKeyboardListeners({
+      grab,
+      pluginRegistry,
+      phase,
+      activationHold,
+      activationKeyHandlers: {
+        handleEnterKeyActivation,
+        handleOpenFileShortcut,
+        handleContextMenuKey,
+        handleActivationKeys,
       },
-      { capture: true },
-    );
-
-    eventListenerManager.addWindowListener(
-      "keyup",
-      (event: KeyboardEvent) => {
-        if (blockEnterIfNeeded(event)) return;
-
-        if (isSpaceActivationKey(event) && isDragRepositioning()) {
-          stopSpaceDragRepositioning();
-          event.preventDefault();
-          event.stopPropagation();
-        }
-
-        if (event.key === "Shift" && isShiftMultiSelecting()) {
-          // If shift is released mid-drag, abort the in-progress drag
-          // before committing. Without this, performCopyWithLabel ->
-          // startCopy moves state out of "active+dragging", which makes
-          // the subsequent pointerup early-return and silently swallows
-          // the drag gesture along with its document.body.style.userSelect
-          // cleanup.
-          if (isDragging()) {
-            cancelActiveDrag();
-          }
-          commitShiftMultiSelection();
-          return;
-        }
-
-        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-
-        const requiredModifiers = getRequiredModifiers(pluginRegistry.store.options);
-        const isReleasingModifier =
-          requiredModifiers.metaKey || requiredModifiers.ctrlKey
-            ? isMac()
-              ? !event.metaKey
-              : !event.ctrlKey
-            : (requiredModifiers.shiftKey && !event.shiftKey) ||
-              (requiredModifiers.altKey && !event.altKey);
-
-        const isReleasingActivationKey = pluginRegistry.store.options.activationKey
-          ? typeof pluginRegistry.store.options.activationKey === "function"
-            ? pluginRegistry.store.options.activationKey(event)
-            : parseActivationKey(pluginRegistry.store.options.activationKey)(event)
-          : isCLikeKey(event.key, event.code);
-
-        if (didJustCopy() || isCopyFeedbackCooldownActive) {
-          if (isReleasingActivationKey || isReleasingModifier) {
-            clearCopyFeedbackCooldown();
-            deactivateRenderer();
-          }
-          return;
-        }
-
-        if (!isHoldingKeys() && !isActivated()) return;
-        if (isPromptMode()) return;
-
-        const hasCustomShortcut = Boolean(pluginRegistry.store.options.activationKey);
-
-        const isHoldMode = pluginRegistry.store.options.activationMode === "hold";
-        const isDragGestureInProgress = isDragging();
-
-        if (isActivated()) {
-          const hasContextMenu = store.contextMenuPosition !== null;
-          if (isReleasingModifier) {
-            if (
-              store.wasActivatedByToggle &&
-              pluginRegistry.store.options.activationMode !== "hold"
-            )
-              return;
-            if (hasContextMenu) return;
-            deactivateRenderer();
-          } else if (isHoldMode && isReleasingActivationKey) {
-            if (keydownSpamTimerId !== null) {
-              window.clearTimeout(keydownSpamTimerId);
-              keydownSpamTimerId = null;
-            }
-            if (hasContextMenu) return;
-            if (isDragGestureInProgress) return;
-            deactivateRenderer();
-          } else if (
-            !hasCustomShortcut &&
-            isReleasingActivationKey &&
-            keydownSpamTimerId !== null
-          ) {
-            window.clearTimeout(keydownSpamTimerId);
-            keydownSpamTimerId = null;
-          }
-          return;
-        }
-
-        if (isReleasingActivationKey || isReleasingModifier) {
-          if (store.wasActivatedByToggle && pluginRegistry.store.options.activationMode !== "hold")
-            return;
-
-          const shouldRelease =
-            isHoldingKeys() || (activationHoldState.holdTimerFired && isReleasingModifier);
-
-          if (shouldRelease) {
-            clearHoldTimer();
-            const elapsedSinceHoldStart = activationHoldState.startTimestamp
-              ? Date.now() - activationHoldState.startTimestamp
-              : 0;
-            const heldLongEnoughForActivation =
-              elapsedSinceHoldStart >= MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS;
-            const shouldActivateAfterCopy =
-              activationHoldState.holdTimerFired &&
-              heldLongEnoughForActivation &&
-              (pluginRegistry.store.options.allowActivationInsideInput ||
-                !isKeyboardEventTriggeredByInput(event));
-            resetCopyConfirmation();
-            if (shouldActivateAfterCopy) {
-              actions.activate();
-            } else {
-              actions.releaseHold();
-            }
-          } else {
-            deactivateRenderer();
-          }
-        }
+      activationLifecycle,
+      arrowNavigation: {
+        state: arrowNavigationState,
+        handleArrowNavigation,
+        handleArrowNavigationSelect,
+        clearArrowNavigation,
       },
-      { capture: true },
-    );
-
-    eventListenerManager.addDocumentListener("copy", () => {
-      if (isHoldingKeys()) {
-        activationHoldState.copyWaiting = true;
-      }
+      copyFeedbackCooldown,
+      dragHandlers,
+      enterBlocker,
+      eventListenerManager,
+      keydownSpamTimer,
+      shiftMultiSelect,
+      spaceDragRepositioning,
+      toolbarMenu,
+      windowFocusListeners,
+      isEnabled,
+      isDragRepositioning,
+      didJustCopy,
+      setToolbarShakeCount,
+      resetCopyConfirmation,
+      handleInputCancel,
     });
 
-    eventListenerManager.addWindowListener("keypress", blockEnterIfNeeded, {
-      capture: true,
-    });
-
-    eventListenerManager.addWindowListener(
-      "pointermove",
-      (event: PointerEvent) => {
-        if (!event.isPrimary) return;
-        const isTouchPointer = event.pointerType === "touch";
-        actions.setTouchMode(isTouchPointer);
-        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-        if (store.contextMenuPosition !== null) return;
-        if (isSelectionInteractionLocked()) return;
-        if (isTouchPointer && !isHoldingKeys() && !isActivated()) return;
-        const isActiveState = isTouchPointer ? isHoldingKeys() : isActivated();
-        // The flag check covers the small window after physical Shift
-        // release but before the keyup handler commits — pointermove fires
-        // with shiftKey=false in that gap, and unfreezing here would empty
-        // frozenElements before commitShiftMultiSelection can read it.
-        if (
-          isActiveState &&
-          !isPromptMode() &&
-          isFrozenPhase() &&
-          !event.shiftKey &&
-          !isShiftMultiSelecting()
-        ) {
-          actions.unfreeze();
-          clearArrowNavigation();
-        }
-        handlePointerMove(event.clientX, event.clientY, event.shiftKey);
+    registerPointerListeners({
+      grab,
+      phase,
+      elementSelectors,
+      activationHold,
+      activationLifecycle,
+      arrowNavigation: {
+        state: arrowNavigationState,
+        handleArrowNavigation,
+        handleArrowNavigationSelect,
+        clearArrowNavigation,
       },
-      { passive: true },
-    );
-
-    eventListenerManager.addWindowListener(
-      "pointerdown",
-      (event: PointerEvent) => {
-        if (event.button !== 0) return;
-        if (!event.isPrimary) return;
-        actions.setTouchMode(event.pointerType === "touch");
-        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-        if (store.contextMenuPosition !== null) return;
-        if (toolbarMenuPosition() !== null) return;
-
-        if (isPromptMode()) {
-          const bounds = selectionBounds();
-          const isClickOnSelection =
-            bounds &&
-            event.clientX >= bounds.x &&
-            event.clientX <= bounds.x + bounds.width &&
-            event.clientY >= bounds.y &&
-            event.clientY <= bounds.y + bounds.height;
-
-          if (isClickOnSelection) {
-            void handleInputSubmit();
-          } else {
-            handleInputCancel();
-          }
-          return;
-        }
-
-        if (isSelectionInteractionLocked()) {
-          event.preventDefault();
-          event.stopImmediatePropagation();
-          return;
-        }
-
-        const didHandle = handlePointerDown(event.clientX, event.clientY, event.shiftKey);
-        if (didHandle) {
-          if (event.pointerId !== undefined) {
-            document.documentElement.setPointerCapture(event.pointerId);
-          }
-          event.preventDefault();
-          event.stopImmediatePropagation();
-        }
+      dragHandlers,
+      enterBlocker,
+      eventListenerManager,
+      menuHandlers,
+      promptModeHandlers: {
+        handleInputSubmit,
+        handleInputCancel,
+        handleConfirmDismiss,
+        handleCancelDismiss,
+        handleToggleExpand,
       },
-      { capture: true },
+      shiftMultiSelect,
+      toolbarMenu,
+      selectionBounds,
+      didJustDrag,
+    });
+
+    createViewportSyncObserver({
+      grab,
+      phase,
+      isEnabled,
+      isThemeEnabled: () => pluginRegistry.store.theme.enabled,
+      eventListenerManager,
+    });
+
+
+    onCleanup(
+      createInitCleanup({
+        eventListenerManager,
+        dragPreviewDebounce,
+        keydownSpamTimer,
+        copyFeedbackCooldown,
+        toolbarMenu,
+        labelManager,
+        cursorOverride,
+        enterBlocker,
+        autoScroller,
+      }),
     );
-
-    eventListenerManager.addWindowListener(
-      "pointerup",
-      (event: PointerEvent) => {
-        if (event.button !== 0) return;
-        if (!event.isPrimary) return;
-        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-        if (store.contextMenuPosition !== null) return;
-        const isActive = isRendererActive() || isSelectionInteractionLocked() || isDragging();
-        const hasModifierKeyHeld = event.metaKey || event.ctrlKey;
-        handlePointerUp(event.clientX, event.clientY, hasModifierKeyHeld, event.shiftKey);
-        if (isActive) {
-          event.preventDefault();
-          event.stopImmediatePropagation();
-        }
-      },
-      { capture: true },
-    );
-
-    eventListenerManager.addWindowListener(
-      "contextmenu",
-      (event: MouseEvent) => {
-        if (!isRendererActive() || isCopying() || isPromptMode()) return;
-
-        const isFromOverlay = isEventFromOverlay(event, "data-react-grab-ignore-events");
-        const position = { x: event.clientX, y: event.clientY };
-        const overlayFrozenElement =
-          isFromOverlay && store.frozenElements.length > 1
-            ? getFrozenElementAtPosition(position)
-            : null;
-        if (isFromOverlay && arrowNavigationElements().length > 0) {
-          clearArrowNavigation();
-        } else if (isFromOverlay && !overlayFrozenElement) {
-          return;
-        }
-
-        if (store.contextMenuPosition !== null) {
-          event.preventDefault();
-          return;
-        }
-
-        event.preventDefault();
-        event.stopPropagation();
-
-        const element = overlayFrozenElement ?? getElementAtPosition(event.clientX, event.clientY);
-        if (!element) return;
-
-        const existingFrozenElements = store.frozenElements;
-        const isClickedElementAlreadyFrozen =
-          existingFrozenElements.length > 1 && existingFrozenElements.includes(element);
-
-        if (isClickedElementAlreadyFrozen) {
-          freezeAllAnimations(existingFrozenElements);
-        } else {
-          freezeAllAnimations([element]);
-          actions.setFrozenElement(element);
-        }
-
-        actions.setPointer(position);
-        actions.freeze();
-        openContextMenu(element, position);
-      },
-      { capture: true },
-    );
-
-    eventListenerManager.addWindowListener("pointercancel", (event: PointerEvent) => {
-      if (!event.isPrimary) return;
-      cancelActiveDrag();
-    });
-
-    eventListenerManager.addWindowListener(
-      "click",
-      (event: MouseEvent) => {
-        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-        if (store.contextMenuPosition !== null) return;
-
-        if (isRendererActive() || didJustDrag()) {
-          event.preventDefault();
-          event.stopImmediatePropagation();
-
-          if (store.wasActivatedByToggle && !isPromptMode() && !event.shiftKey) {
-            if (!isHoldingKeys()) {
-              deactivateRenderer();
-            } else {
-              actions.setWasActivatedByToggle(false);
-            }
-          }
-        }
-      },
-      { capture: true },
-    );
-
-    eventListenerManager.addDocumentListener("visibilitychange", () => {
-      if (document.hidden) {
-        actions.clearGrabbedBoxes();
-        const storeActivationTimestamp = store.activationTimestamp;
-        if (
-          isActivated() &&
-          !isPromptMode() &&
-          storeActivationTimestamp !== null &&
-          Date.now() - storeActivationTimestamp > BLUR_DEACTIVATION_THRESHOLD_MS
-        ) {
-          deactivateRenderer();
-        }
-      }
-    });
-
-    // On blur we release the hold state (modifier keyup events are lost when
-    // the window loses focus) but do not deactivate if already active, since
-    // the user may alt-tab back.
-    eventListenerManager.addWindowListener("blur", () => {
-      cancelActiveDrag();
-      if (isHoldingKeys()) {
-        clearHoldTimer();
-        actions.releaseHold();
-        resetCopyConfirmation();
-      }
-      // Modifier keyup events are lost on blur, so a shift release that
-      // would have committed the multi-selection never fires. Clear the
-      // flag here so the pointermove unfreeze guard and the arrow
-      // navigation guard don't stay blocked indefinitely. Frozen elements
-      // are intentionally preserved so the user can resume on refocus.
-      stopShiftMultiSelecting();
-    });
-
-    eventListenerManager.addWindowListener("focus", () => {
-      lastWindowFocusTimestamp = Date.now();
-    });
-
-    eventListenerManager.addWindowListener(
-      "focusin",
-      (event: FocusEvent) => {
-        if (isEventFromOverlay(event, "data-react-grab")) {
-          event.stopPropagation();
-        }
-      },
-      { capture: true },
-    );
-
-    const redetectElementUnderPointer = () => {
-      if (store.isTouchMode && !isHoldingKeys() && !isActivated()) return;
-      if (
-        isEnabled() &&
-        !isPromptMode() &&
-        !isSelectionInteractionLocked() &&
-        !isFrozenPhase() &&
-        !isDragging() &&
-        store.contextMenuPosition === null &&
-        store.frozenElements.length === 0
-      ) {
-        const candidate = getElementAtPosition(pointer().x, pointer().y);
-        actions.setDetectedElement(candidate);
-      }
-    };
-
-    let boundsRecalcIntervalId: number | null = null;
-    let viewportChangeFrameId: number | null = null;
-
-    const handleViewportChange = () => {
-      invalidateInteractionCaches();
-      redetectElementUnderPointer();
-      actions.incrementViewportVersion();
-      actions.updateContextMenuPosition();
-    };
-
-    eventListenerManager.addWindowListener("scroll", handleViewportChange, {
-      capture: true,
-    });
-
-    let previousViewportWidth = window.innerWidth;
-    let previousViewportHeight = window.innerHeight;
-
-    eventListenerManager.addWindowListener("resize", () => {
-      const currentViewportWidth = window.innerWidth;
-      const currentViewportHeight = window.innerHeight;
-
-      if (previousViewportWidth > 0 && previousViewportHeight > 0) {
-        const scaleX = currentViewportWidth / previousViewportWidth;
-        const scaleY = currentViewportHeight / previousViewportHeight;
-        const isUniformScale = Math.abs(scaleX - scaleY) < ZOOM_DETECTION_THRESHOLD;
-        const hasScaleChanged = Math.abs(scaleX - 1) > ZOOM_DETECTION_THRESHOLD;
-
-        if (isUniformScale && hasScaleChanged) {
-          actions.setPointer({
-            x: pointer().x * scaleX,
-            y: pointer().y * scaleY,
-          });
-        }
-      }
-
-      previousViewportWidth = currentViewportWidth;
-      previousViewportHeight = currentViewportHeight;
-
-      handleViewportChange();
-    });
-
-    const visualViewport = window.visualViewport;
-    if (visualViewport) {
-      const { signal } = eventListenerManager;
-      visualViewport.addEventListener("resize", handleViewportChange, {
-        signal,
-      });
-      visualViewport.addEventListener("scroll", handleViewportChange, {
-        signal,
-      });
-    }
-
-    const scheduleBoundsSync = () => {
-      if (viewportChangeFrameId !== null) return;
-
-      viewportChangeFrameId = nativeRequestAnimationFrame(() => {
-        viewportChangeFrameId = null;
-        actions.incrementViewportVersion();
-      });
-    };
-
-    createEffect(() => {
-      const shouldRunInterval =
-        pluginRegistry.store.theme.enabled &&
-        (isActivated() ||
-          isCopying() ||
-          store.labelInstances.length > 0 ||
-          store.grabbedBoxes.length > 0);
-
-      if (shouldRunInterval) {
-        if (boundsRecalcIntervalId !== null) return;
-
-        boundsRecalcIntervalId = window.setInterval(() => {
-          scheduleBoundsSync();
-        }, BOUNDS_RECALC_INTERVAL_MS);
-        return;
-      }
-
-      if (boundsRecalcIntervalId !== null) {
-        window.clearInterval(boundsRecalcIntervalId);
-        boundsRecalcIntervalId = null;
-      }
-
-      if (viewportChangeFrameId !== null) {
-        nativeCancelAnimationFrame(viewportChangeFrameId);
-        viewportChangeFrameId = null;
-      }
-    });
-
-    onCleanup(() => {
-      if (boundsRecalcIntervalId !== null) {
-        window.clearInterval(boundsRecalcIntervalId);
-      }
-      if (viewportChangeFrameId !== null) {
-        nativeCancelAnimationFrame(viewportChangeFrameId);
-      }
-    });
-
-    eventListenerManager.addDocumentListener(
-      "copy",
-      (event: ClipboardEvent) => {
-        if (isPromptMode() || isEventFromOverlay(event, "data-react-grab-ignore-events")) {
-          return;
-        }
-        if (isRendererActive()) {
-          event.preventDefault();
-        }
-      },
-      { capture: true },
-    );
-
-    onCleanup(() => {
-      eventListenerManager.abort();
-      if (dragPreviewDebounceTimerId !== null) {
-        window.clearTimeout(dragPreviewDebounceTimerId);
-      }
-      if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
-      clearCopyFeedbackCooldown();
-      if (dropdownTrackingFrameId !== null) {
-        nativeCancelAnimationFrame(dropdownTrackingFrameId);
-      }
-      grabbedBoxTimeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
-      grabbedBoxTimeouts.clear();
-      cancelAllLabelFades();
-      autoScroller.stop();
-      document.body.style.userSelect = "";
-      document.body.style.touchAction = "";
-      setCursorOverride(null);
-      keyboardClaimer.restore();
-    });
 
     const resolvedCssText = typeof cssText === "string" ? cssText : "";
-    const { root: rendererRoot, host: rendererHost } = mountRoot(resolvedCssText);
-
-    const themeWatcher = watchAppTheme(rendererHost);
-    onCleanup(themeWatcher.cleanup);
-
-    const isThemeEnabled = createMemo(() => pluginRegistry.store.theme.enabled);
-    const isSelectionBoxThemeEnabled = createMemo(
-      () => pluginRegistry.store.theme.selectionBox.enabled,
-    );
-    const isElementLabelThemeEnabled = createMemo(
-      () => pluginRegistry.store.theme.elementLabel.enabled,
-    );
-    const isDragBoxThemeEnabled = createMemo(() => pluginRegistry.store.theme.dragBox.enabled);
-    const isSelectionSuppressed = createMemo(
-      () => didJustCopy() || (isToolbarSelectHovered() && !isFrozenPhase()),
-    );
-    const hasDragPreviewBounds = createMemo(() => dragPreviewBounds().length > 0);
-
-    const selectionVisible = createMemo(() => {
-      if (!isThemeEnabled()) return false;
-      if (!isSelectionBoxThemeEnabled()) return false;
-      if (isSelectionSuppressed()) return false;
-      if (hasDragPreviewBounds()) return true;
-      return isSelectionElementVisible();
+    const { root: rendererRoot } = createRendererHost({
+      cssText: resolvedCssText,
+      themeHue: () => pluginRegistry.store.theme.hue,
     });
 
-    const selectionTagName = createMemo(() => {
-      const element = selectionElement();
-      if (!element) return undefined;
-      return getTagName(element) || undefined;
+
+    const {
+      contextMenuComponentName,
+      contextMenuFilePath,
+      contextMenuActionContext,
+    } = createContextMenuActionContext({
+      grab,
+      actionContextBuilder,
+      labelManager,
+      pointer,
+      contextMenuTagName,
+      clearKeyboardSelectedElement: () => coordinationFlags.setKeyboardSelectedElement(null),
     });
 
-    const selectionLabelVisible = createMemo(() => {
-      if (store.contextMenuPosition !== null) return false;
-      if (!isElementLabelThemeEnabled()) return false;
-      if (isSelectionSuppressed()) return false;
-
-      return isSelectionElementVisible();
+    mountRenderer({
+      grab,
+      pluginRegistry,
+      rendererRoot,
+      isDisposed: rendererLifecycle.isDisposed,
+      setDisposeRenderer: rendererLifecycle.setDisposeRenderer,
+      selectionVisible,
+      selectionBounds,
+      selectionBoundsMultiple,
+      dragPreviewBounds,
+      frozenLabelEntries,
+      pendingShiftPreviewEntry,
+      selectionTagName,
+      resolvedComponentName,
+      selectionLabelVisible,
+      arrowNavigationState,
+      computedLabelInstances,
+      dragVisible,
+      dragBounds,
+      computedGrabbedBoxes,
+      shiftSelectionLabelMouseX,
+      cursorPosition,
+      isFrozenPhase,
+      isActivated,
+      isToolbarSelectHovered,
+      isPromptMode,
+      isPendingDismiss,
+      isEnabled,
+      selectionLabelShakeCount,
+      toolbarShakeCount,
+      contextMenuPosition,
+      contextMenuBounds,
+      contextMenuTagName,
+      contextMenuComponentName,
+      contextMenuHasFilePath: () => Boolean(contextMenuFilePath()?.filePath),
+      contextMenuActionContext,
+      toolbarMenuPosition,
+      currentToolbarState,
+      themeToolbarEnabled: () => pluginRegistry.store.theme.toolbar.enabled,
+      storeActions: () => pluginRegistry.store.actions,
+      handleArrowNavigationSelect,
+      handleShowContextMenuInstance,
+      handleLabelInstanceHoverChange,
+      handleInputSubmit,
+      handleToggleExpand,
+      handleConfirmDismiss,
+      handleCancelDismiss,
+      handleToggleActive,
+      handleContextMenuDismiss,
+      deferHideContextMenu,
+      handleSetDefaultAction,
+      handleToggleToolbarMenu,
+      dismissToolbarMenu,
+      setCurrentToolbarState,
+      setIsEnabled,
+      forceDeactivateAll,
+      dismissAllPopups,
+      toolbarStateNotify: toolbarStateController.notify,
+      toolbarStateOnChange: toolbarStateController.onChange,
+      setIsToolbarSelectHovered,
+      setToolbarElement: toolbarMenu.setToolbarElement,
     });
 
-    const labelInstanceCache = new Map<string, SelectionLabelInstance>();
-
-    const recomputeLabelInstance = (instance: SelectionLabelInstance): SelectionLabelInstance => {
-      const liveElements = instance.elements?.filter(isElementConnected) ?? [];
-      const instanceElement = instance.element;
-
-      let liveBoundsList: OverlayBounds[] | null = null;
-      if (liveElements.length > 0) {
-        liveBoundsList = liveElements.map(createElementBounds);
-      } else if (instanceElement && isElementConnected(instanceElement)) {
-        liveBoundsList = [createElementBounds(instanceElement)];
-      }
-
-      let newBounds = instance.bounds;
-      let newBoundsMultiple = instance.boundsMultiple;
-      if (liveBoundsList) {
-        newBounds =
-          liveBoundsList.length > 1
-            ? createFlatOverlayBounds(combineBounds(liveBoundsList))
-            : liveBoundsList[0];
-        if (instance.boundsMultiple !== undefined) {
-          newBoundsMultiple =
-            instance.boundsMultiple.length > 1 &&
-            instance.boundsMultiple.length === instance.elements?.length
-              ? liveBoundsList
-              : [newBounds];
-        }
-      }
-
-      const previousInstance = labelInstanceCache.get(instance.id);
-      const previousBoundsMultiple = previousInstance?.boundsMultiple;
-      const boundsMultipleUnchanged =
-        previousBoundsMultiple === newBoundsMultiple ||
-        (previousBoundsMultiple !== undefined &&
-          newBoundsMultiple !== undefined &&
-          previousBoundsMultiple.length === newBoundsMultiple.length &&
-          previousBoundsMultiple.every(
-            (bounds, index) =>
-              bounds.x === newBoundsMultiple![index].x &&
-              bounds.y === newBoundsMultiple![index].y &&
-              bounds.width === newBoundsMultiple![index].width &&
-              bounds.height === newBoundsMultiple![index].height,
-          ));
-      if (
-        previousInstance &&
-        previousInstance.status === instance.status &&
-        previousInstance.errorMessage === instance.errorMessage &&
-        previousInstance.bounds.x === newBounds.x &&
-        previousInstance.bounds.y === newBounds.y &&
-        previousInstance.bounds.width === newBounds.width &&
-        previousInstance.bounds.height === newBounds.height &&
-        boundsMultipleUnchanged
-      ) {
-        return previousInstance;
-      }
-      const newBoundsCenterX = newBounds.x + newBounds.width / 2;
-      const newBoundsHalfWidth = newBounds.width / 2;
-      let newMouseX: number;
-      if (instance.mouseXOffsetRatio !== undefined && newBoundsHalfWidth > 0) {
-        newMouseX = newBoundsCenterX + instance.mouseXOffsetRatio * newBoundsHalfWidth;
-      } else if (instance.mouseXOffsetFromCenter !== undefined) {
-        newMouseX = newBoundsCenterX + instance.mouseXOffsetFromCenter;
-      } else {
-        newMouseX = instance.mouseX ?? newBoundsCenterX;
-      }
-      const newCached = {
-        ...instance,
-        bounds: newBounds,
-        boundsMultiple: newBoundsMultiple,
-        mouseX: newMouseX,
-      };
-      labelInstanceCache.set(instance.id, newCached);
-      return newCached;
-    };
-
-    const computedLabelInstances = createMemo(() => {
-      if (!isThemeEnabled()) return [];
-      if (!pluginRegistry.store.theme.grabbedBoxes.enabled) return [];
-      void viewportVersion();
-      const currentIds = new Set(store.labelInstances.map((instance) => instance.id));
-      for (const cachedId of labelInstanceCache.keys()) {
-        if (!currentIds.has(cachedId)) {
-          labelInstanceCache.delete(cachedId);
-        }
-      }
-      return store.labelInstances.map(recomputeLabelInstance);
-    });
-
-    const computedGrabbedBoxes = createMemo(() => {
-      if (!isThemeEnabled()) return [];
-      if (!pluginRegistry.store.theme.grabbedBoxes.enabled) return [];
-      void viewportVersion();
-      return store.grabbedBoxes.map((box) => {
-        if (!box.element || !document.body.contains(box.element)) {
-          return box;
-        }
-        return {
-          ...box,
-          bounds: createElementBounds(box.element),
-        };
-      });
-    });
-
-    const dragVisible = createMemo(
-      () =>
-        isThemeEnabled() &&
-        isDragBoxThemeEnabled() &&
-        isRendererActive() &&
-        isDraggingBeyondThreshold(),
-    );
-
-    const labelVariant = createMemo<ElementLabelVariant>(() =>
-      isCopying() ? "processing" : "hover",
-    );
-
-    const labelVisible = createMemo(() => {
-      if (!isThemeEnabled()) return false;
-      const themeEnabled = isElementLabelThemeEnabled();
-      const inPromptMode = isPromptMode();
-      const copying = isCopying();
-      const rendererActive = isRendererActive();
-      const dragging = isDragging();
-      const hasElement = Boolean(effectiveElement());
-      const toolbarSelectHovered = isToolbarSelectHovered();
-      const frozen = isFrozenPhase();
-
-      if (!themeEnabled) return false;
-      if (inPromptMode) return false;
-      if (toolbarSelectHovered && !frozen) return false;
-      if (copying) return true;
-      return rendererActive && !dragging && hasElement;
-    });
-
-    const contextMenuBounds = createMemo((): OverlayBounds | null => {
-      void viewportVersion();
-      const element = store.contextMenuElement;
-      if (!element) return null;
-      return createElementBounds(element);
-    });
-
-    const contextMenuPosition = createMemo(() => {
-      void viewportVersion();
-      return store.contextMenuPosition;
-    });
-
-    const contextMenuTagName = createMemo(() => {
-      const element = store.contextMenuElement;
-      if (!element) return undefined;
-      const frozenCount = store.frozenElements.length;
-      if (frozenCount > 1) {
-        return `${frozenCount} elements`;
-      }
-      return getTagName(element) || undefined;
-    });
-
-    const [contextMenuComponentName] = createComponentNameForElement(() =>
-      store.frozenElements.length > 1 ? null : store.contextMenuElement,
-    );
-
-    const [contextMenuFilePath] = createResource(
-      () => store.contextMenuElement,
-      async (element) => {
-        if (!element) return null;
-        return resolveSource(element);
-      },
-    );
-
-    const withSelectionInteractionLock = async <T,>(operation: () => Promise<T>): Promise<T> => {
-      actions.incrementSelectionInteractionLockDepth();
-      try {
-        return await operation();
-      } finally {
-        actions.decrementSelectionInteractionLockDepth();
-      }
-    };
-
-    const createPerformWithFeedback = (
-      element: Element,
-      elements: Element[],
-      tagName: string | undefined,
-      componentName: string | undefined,
-      options?: PerformWithFeedbackOptions,
-    ) => {
-      return async (action: () => Promise<boolean>): Promise<void> => {
-        await withSelectionInteractionLock(async () => {
-          const fallbackBounds = options?.fallbackBounds ?? null;
-          const fallbackSelectionBounds = options?.fallbackSelectionBounds ?? [];
-          const position = options?.position ?? store.contextMenuPosition ?? pointer();
-          const frozenBounds = frozenElementsBounds();
-          const singleElementBounds = contextMenuBounds() ?? fallbackBounds;
-          const hasMultipleElements = elements.length > 1;
-
-          const labelBounds = hasMultipleElements
-            ? createFlatOverlayBounds(combineBounds(frozenBounds))
-            : singleElementBounds;
-
-          const shouldDeactivateAfter = store.wasActivatedByToggle;
-          let selectionBoundsForLabel: OverlayBounds[];
-          if (hasMultipleElements) {
-            selectionBoundsForLabel = frozenBounds;
-          } else if (singleElementBounds) {
-            selectionBoundsForLabel = [singleElementBounds];
-          } else {
-            selectionBoundsForLabel = fallbackSelectionBounds;
-          }
-
-          actions.hideContextMenu();
-
-          if (labelBounds) {
-            const labelCursorX = hasMultipleElements
-              ? labelBounds.x + labelBounds.width / 2
-              : position.x;
-
-            const labelInstanceId = createLabelInstance(
-              labelBounds,
-              tagName || "element",
-              componentName,
-              "copying",
-              {
-                element,
-                mouseX: labelCursorX,
-                elements: hasMultipleElements ? elements : undefined,
-                boundsMultiple: selectionBoundsForLabel,
-              },
-            );
-
-            let didSucceed = false;
-            let errorMessage: string | undefined;
-
-            try {
-              didSucceed = await action();
-              if (!didSucceed) {
-                errorMessage = "Failed to copy";
-              }
-            } catch (error) {
-              errorMessage = normalizeErrorMessage(error, "Action failed");
-            }
-
-            updateLabelAfterCopy(labelInstanceId, didSucceed, errorMessage);
-          } else {
-            try {
-              await action();
-            } catch (error) {
-              logRecoverableError("Action failed without feedback bounds", error);
-            }
-          }
-
-          if (shouldDeactivateAfter) {
-            deactivateRenderer();
-          } else {
-            actions.unfreeze();
-          }
-        });
-      };
-    };
-
-    // Hiding the context menu synchronously during a click would cause the
-    // click to fall through to whatever element was behind it.
-    const deferHideContextMenu = () => {
-      setTimeout(() => {
-        actions.hideContextMenu();
-      }, 0);
-    };
-
-    const buildActionContext = (options: BuildActionContextOptions): ContextMenuActionContext => {
-      const {
-        element,
-        filePath,
-        lineNumber,
-        tagName,
-        componentName,
-        position,
-        performWithFeedbackOptions,
-        shouldDeferHideContextMenu,
-        onBeforeCopy,
-        onBeforePrompt,
-        customEnterPromptMode,
-      } = options;
-
-      const elements = store.frozenElements.length > 0 ? store.frozenElements : [element];
-
-      const hideContextMenuAction = shouldDeferHideContextMenu
-        ? deferHideContextMenu
-        : actions.hideContextMenu;
-
-      const copyAction = () => {
-        onBeforeCopy?.();
-        performCopyWithLabel({
-          element,
-          cursorX: position.x,
-          selectedElements: elements.length > 1 ? elements : undefined,
-          shouldDeactivateAfter: store.wasActivatedByToggle,
-        });
-        hideContextMenuAction();
-      };
-
-      const defaultEnterPromptMode = () => {
-        clearAllLabels();
-        onBeforePrompt?.();
-        preparePromptMode(element, position.x, position.y);
-        actions.setPointer({ x: position.x, y: position.y });
-        actions.setFrozenElement(element);
-        activatePromptMode();
-        if (!isActivated()) {
-          activateRenderer();
-        }
-        hideContextMenuAction();
-      };
-
-      const context: ContextMenuActionContext = {
-        element,
-        elements,
-        filePath,
-        lineNumber,
-        componentName,
-        tagName,
-        enterPromptMode: customEnterPromptMode ?? defaultEnterPromptMode,
-        copy: copyAction,
-        hooks: {
-          transformHtmlContent: pluginRegistry.hooks.transformHtmlContent,
-          onOpenFile: pluginRegistry.hooks.onOpenFile,
-          transformOpenFileUrl: pluginRegistry.hooks.transformOpenFileUrl,
-        },
-        performWithFeedback: createPerformWithFeedback(
-          element,
-          elements,
-          tagName,
-          componentName,
-          performWithFeedbackOptions,
-        ),
-        hideContextMenu: hideContextMenuAction,
-        cleanup: () => {
-          if (store.wasActivatedByToggle) {
-            deactivateRenderer();
-          } else {
-            actions.unfreeze();
-          }
-        },
-      };
-
-      const transformedContext = pluginRegistry.hooks.transformActionContext(context);
-      return { ...context, ...transformedContext };
-    };
-
-    const contextMenuActionContext = createMemo((): ContextMenuActionContext | undefined => {
-      const element = store.contextMenuElement;
-      if (!element) return undefined;
-      const fileInfo = contextMenuFilePath();
-      const position = store.contextMenuPosition ?? pointer();
-
-      return buildActionContext({
-        element,
-        filePath: fileInfo?.filePath,
-        lineNumber: fileInfo?.lineNumber ?? undefined,
-        tagName: contextMenuTagName(),
-        componentName: contextMenuComponentName(),
-        position,
-        shouldDeferHideContextMenu: true,
-        onBeforeCopy: () => {
-          keyboardSelectedElement = null;
-        },
-        customEnterPromptMode: () => {
-          clearAllLabels();
-          actions.clearInputText();
-          actions.enterPromptMode(position, element);
-          deferHideContextMenu();
-        },
-      });
-    });
-
-    const handleContextMenuDismiss = () => {
-      setTimeout(() => {
-        actions.hideContextMenu();
-        deactivateRenderer();
-      }, 0);
-    };
-
-    const stopTrackingDropdownPosition = () => {
-      if (dropdownTrackingFrameId !== null) {
-        nativeCancelAnimationFrame(dropdownTrackingFrameId);
-        dropdownTrackingFrameId = null;
-      }
-    };
-
-    const computeDropdownAnchor = (): DropdownAnchor | null => {
-      if (!toolbarElement) return null;
-      const toolbarRect = toolbarElement.getBoundingClientRect();
-      const edge = getNearestEdge(toolbarRect);
-
-      if (edge === "left" || edge === "right") {
-        return {
-          x: edge === "left" ? toolbarRect.right : toolbarRect.left,
-          y: toolbarRect.top + toolbarRect.height / 2,
-          edge,
-          toolbarWidth: toolbarRect.width,
-        };
-      }
-
-      return {
-        x: toolbarRect.left + toolbarRect.width / 2,
-        y: edge === "top" ? toolbarRect.bottom : toolbarRect.top,
-        edge,
-        toolbarWidth: toolbarRect.width,
-      };
-    };
-
-    const openTrackedDropdown = (setPosition: (anchor: DropdownAnchor) => void) => {
-      stopTrackingDropdownPosition();
-      const updatePosition = () => {
-        const anchor = computeDropdownAnchor();
-        if (anchor) setPosition(anchor);
-        dropdownTrackingFrameId = nativeRequestAnimationFrame(updatePosition);
-      };
-      updatePosition();
-    };
-
-    const dismissToolbarMenu = () => {
-      stopTrackingDropdownPosition();
-      setToolbarMenuPosition(null);
-    };
-
-    const dismissAllPopups = () => {
-      dismissToolbarMenu();
-    };
-
-    const handleToggleToolbarMenu = () => {
-      if (toolbarMenuPosition() !== null) {
-        dismissToolbarMenu();
-      } else {
-        actions.hideContextMenu();
-        openTrackedDropdown(setToolbarMenuPosition);
-      }
-    };
-
-    const handleSetDefaultAction = (actionId: string) => {
-      updateToolbarState({ defaultAction: actionId });
-    };
-
-    const handleShowContextMenuInstance = (instanceId: string) => {
-      const instance = store.labelInstances.find(
-        (labelInstance) => labelInstance.id === instanceId,
-      );
-      if (!instance?.element) return;
-      if (!isElementConnected(instance.element)) return;
-
-      const contextMenuElement = instance.element;
-      const center = getBoundsCenter(createElementBounds(contextMenuElement));
-      const position = {
-        x: instance.mouseX ?? center.x,
-        y: center.y,
-      };
-
-      const elementsToFreeze =
-        instance.elements && instance.elements.length > 0
-          ? instance.elements.filter((element) => isElementConnected(element))
-          : [contextMenuElement];
-
-      setTimeout(() => {
-        if (!isActivated()) {
-          actions.setWasActivatedByToggle(true);
-          activateRenderer();
-        }
-        actions.setPointer(position);
-        actions.setFrozenElements(elementsToFreeze);
-        const hasMultipleElements = elementsToFreeze.length > 1;
-        if (hasMultipleElements && instance.bounds) {
-          actions.setFrozenDragRect(createPageRectFromBounds(instance.bounds));
-        }
-        actions.freeze();
-        actions.showContextMenu(position, contextMenuElement);
-      }, 0);
-    };
-
-    createEffect(() => {
-      const hue = pluginRegistry.store.theme.hue;
-      if (hue !== 0) {
-        rendererRoot.style.filter = `hue-rotate(${hue}deg)`;
-      } else {
-        rendererRoot.style.filter = "";
-      }
-    });
-
-    if (pluginRegistry.store.theme.enabled) {
-      // The renderer is dynamically imported because solid-js/web's
-      // solid-js/web's delegateEvents() runs at module evaluation time and
-      // accesses document, which would crash during SSR.
-      void import("../components/renderer.js")
-        .then(({ ReactGrabRenderer }) => {
-          if (disposed) return;
-          disposeRenderer = render(() => {
-            return (
-              <ReactGrabRenderer
-                selectionVisible={selectionVisible()}
-                selectionBounds={selectionBounds()}
-                selectionBoundsMultiple={selectionBoundsMultiple()}
-                selectionShouldSnap={
-                  store.frozenElements.length > 0 || dragPreviewBounds().length > 0
-                }
-                selectionElementsCount={store.frozenElements.length}
-                frozenLabelEntries={frozenLabelEntries()}
-                pendingShiftPreviewEntry={pendingShiftPreviewEntry() ?? undefined}
-                selectionFilePath={store.selectionFilePath ?? undefined}
-                selectionLineNumber={store.selectionLineNumber ?? undefined}
-                selectionTagName={selectionTagName()}
-                selectionComponentName={resolvedComponentName()}
-                selectionLabelVisible={selectionLabelVisible()}
-                selectionLabelStatus="idle"
-                selectionArrowNavigationState={arrowNavigationState()}
-                onArrowNavigationSelect={handleArrowNavigationSelect}
-                labelInstances={computedLabelInstances()}
-                dragVisible={dragVisible()}
-                dragBounds={dragBounds()}
-                grabbedBoxes={computedGrabbedBoxes()}
-                mouseX={
-                  store.frozenElements.length > 1
-                    ? undefined
-                    : (shiftSelectionLabelMouseX() ?? cursorPosition().x)
-                }
-                isFrozen={isFrozenPhase() || isActivated() || isToolbarSelectHovered()}
-                inputValue={store.inputText}
-                isPromptMode={isPromptMode()}
-                onShowContextMenuInstance={handleShowContextMenuInstance}
-                onLabelInstanceHoverChange={handleLabelInstanceHoverChange}
-                onInputChange={actions.setInputText}
-                onInputSubmit={() => void handleInputSubmit()}
-                onToggleExpand={handleToggleExpand}
-                isPendingDismiss={isPendingDismiss()}
-                selectionLabelShakeCount={selectionLabelShakeCount()}
-                onConfirmDismiss={handleConfirmDismiss}
-                onCancelDismiss={handleCancelDismiss}
-                toolbarVisible={pluginRegistry.store.theme.toolbar.enabled}
-                isActive={isActivated()}
-                onToggleActive={handleToggleActive}
-                enabled={isEnabled()}
-                shakeCount={toolbarShakeCount()}
-                onToolbarStateChange={(state) => {
-                  setCurrentToolbarState(state);
-                  if (state.enabled !== isEnabled()) {
-                    setIsEnabled(state.enabled);
-                    if (!state.enabled) {
-                      forceDeactivateAll();
-                      dismissAllPopups();
-                    }
-                  }
-                  toolbarStateChangeCallbacks.forEach((callback) => callback(state));
-                }}
-                onSubscribeToToolbarStateChanges={(callback) => {
-                  toolbarStateChangeCallbacks.add(callback);
-                  return () => {
-                    toolbarStateChangeCallbacks.delete(callback);
-                  };
-                }}
-                onToolbarSelectHoverChange={setIsToolbarSelectHovered}
-                onToolbarRef={(element) => {
-                  toolbarElement = element;
-                }}
-                contextMenuPosition={contextMenuPosition()}
-                contextMenuBounds={contextMenuBounds()}
-                contextMenuTagName={contextMenuTagName()}
-                contextMenuComponentName={contextMenuComponentName()}
-                contextMenuHasFilePath={Boolean(contextMenuFilePath()?.filePath)}
-                actions={pluginRegistry.store.actions}
-                actionContext={contextMenuActionContext()}
-                onContextMenuDismiss={handleContextMenuDismiss}
-                onContextMenuHide={deferHideContextMenu}
-                toolbarMenuPosition={toolbarMenuPosition()}
-                toolbarMenuActions={pluginRegistry.store.actions.filter(
-                  (action) => action.showInToolbarMenu === true,
-                )}
-                defaultActionId={currentToolbarState()?.defaultAction ?? DEFAULT_ACTION_ID}
-                onSetDefaultAction={handleSetDefaultAction}
-                onToggleToolbarMenu={handleToggleToolbarMenu}
-                onToolbarMenuDismiss={dismissToolbarMenu}
-              />
-            );
-          }, rendererRoot);
-        })
-        .catch((error) => {
-          console.warn("[react-grab] Failed to load renderer:", error);
-        });
-    }
-
-    const copyElementAPI = async (elements: Element | Element[]): Promise<boolean> => {
-      const elementsArray = Array.isArray(elements) ? elements : [elements];
-      if (elementsArray.length === 0) return false;
-      return await copyResolvedElements(elementsArray);
-    };
-
-    const api: ReactGrabAPI = {
-      activate: () => {
-        actions.setPendingCommentMode(false);
-        if (!isActivated() && isEnabled()) {
-          toggleActivate();
-        }
-      },
-      deactivate: () => {
-        if (isActivated() || isCopying()) {
-          deactivateRenderer();
-        }
-      },
-      toggle: () => {
-        if (isActivated()) {
-          deactivateRenderer();
-        } else if (isEnabled()) {
-          toggleActivate();
-        }
-      },
-      comment: handleComment,
-      isActive: () => isActivated(),
-      isEnabled: () => isEnabled(),
-      setEnabled: (enabled: boolean) => {
-        if (enabled === isEnabled()) return;
-        setIsEnabled(enabled);
-        updateToolbarState({ enabled, collapsed: !enabled });
-        if (!enabled) {
-          forceDeactivateAll();
-          dismissAllPopups();
-        }
-      },
-      getToolbarState: () => loadToolbarState(),
-      setToolbarState: (state: Partial<ToolbarState>) => {
-        const currentState = loadToolbarState();
-        const resolvedCollapsed = state.collapsed ?? currentState?.collapsed ?? false;
-        const newState: ToolbarState = {
-          edge: state.edge ?? currentState?.edge ?? "bottom",
-          ratio: state.ratio ?? currentState?.ratio ?? TOOLBAR_DEFAULT_POSITION_RATIO,
-          collapsed: resolvedCollapsed,
-          enabled: !resolvedCollapsed,
-          defaultAction: state.defaultAction ?? currentState?.defaultAction ?? DEFAULT_ACTION_ID,
-        };
-        saveToolbarState(newState);
-        setCurrentToolbarState(newState);
-        if (newState.enabled !== isEnabled()) {
-          setIsEnabled(newState.enabled);
-          if (!newState.enabled) {
-            forceDeactivateAll();
-            dismissAllPopups();
-          }
-        }
-        toolbarStateChangeCallbacks.forEach((callback) => callback(newState));
-      },
-      onToolbarStateChange: (callback: (state: ToolbarState) => void) => {
-        toolbarStateChangeCallbacks.add(callback);
-        return () => {
-          toolbarStateChangeCallbacks.delete(callback);
-        };
-      },
-      dispose: () => {
-        disposed = true;
+    const api: ReactGrabAPI = buildPublicApi({
+      grab,
+      pluginRegistry,
+      phase,
+      elementSelectors,
+      dragSelectors,
+      visibility,
+      pluginStateBridge: { publicGrabbedBoxes, publicLabelInstances },
+      activationLifecycle,
+      commentModeHandlers: { handleToggleActive, enterCommentModeForElement, handleComment },
+      copyOrchestrator,
+      toolbarMenu,
+      toolbarStateController,
+      menuHandlers,
+      isEnabled,
+      setIsEnabled,
+      setDisposed: rendererLifecycle.markDisposed,
+      getDisposeRenderer: rendererLifecycle.getDisposeRenderer,
+      resetHasInited: () => {
         hasInited = false;
-        disposeRenderer?.();
-        stopTrackingDropdownPosition();
-        toolbarStateChangeCallbacks.clear();
-        dispose();
       },
-      copyElement: copyElementAPI,
-      getSource: async (element: Element): Promise<SourceInfo | null> => {
-        const source = await resolveSource(element);
-        if (!source) return null;
-        return {
-          filePath: source.filePath,
-          lineNumber: source.lineNumber,
-          componentName: source.componentName,
-        };
-      },
-      getStackContext,
-      getState: (): ReactGrabState => ({
-        isActive: isActivated(),
-        isDragging: isDragging(),
-        isCopying: isCopying(),
-        isPromptMode: isPromptMode(),
-        isSelectionBoxVisible: Boolean(selectionVisible()),
-        isDragBoxVisible: Boolean(dragVisible()),
-        targetElement: targetElement(),
-        dragBounds: dragBounds() ?? null,
-        grabbedBoxes: [...publicGrabbedBoxes()],
-        labelInstances: [...publicLabelInstances()],
-        selectionFilePath: store.selectionFilePath,
-        toolbarState: currentToolbarState(),
-      }),
-      setOptions: (newOptions: SettableOptions) => {
-        pluginRegistry.setOptions(newOptions);
-      },
-      registerPlugin: (plugin: Plugin) => {
-        pluginRegistry.register(plugin, api);
-      },
-      unregisterPlugin: (name: string) => {
-        pluginRegistry.unregister(name);
-      },
-      getPlugins: () => pluginRegistry.getPluginNames(),
-      getDisplayName: getComponentDisplayName,
-    };
+      rootDispose: dispose,
+      getApi: () => api,
+    });
 
     for (const plugin of builtInPlugins) {
       pluginRegistry.register(plugin, api);

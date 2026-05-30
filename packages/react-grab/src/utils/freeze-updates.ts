@@ -11,81 +11,27 @@ import {
   getFiberFromHostInstance,
   isCompositeFiber,
   type Fiber,
-  type ReactRenderer,
-  type FiberRoot,
 } from "bippy";
 import { logRecoverableError } from "./log-recoverable-error.js";
 
-interface FiberRootLike extends FiberRoot {
-  current: Fiber | null;
-}
+import type {
+  ContextDependency,
+  FiberRootLike,
+  HookState,
+} from "./freeze/types.js";
+import {
+  pauseContextDependency,
+  resumeContextDependency,
+} from "./freeze/context-dependency.js";
+import { pauseHookQueue, resumeHookQueue } from "./freeze/hook-queue.js";
+import { initializeFreezeSupport } from "./freeze/dispatcher-patch.js";
+import {
+  freezeState,
+  pendingStateUpdates,
+  pendingStoreCallbacks,
+  pendingTransitionCallbacks,
+} from "./freeze/state.js";
 
-interface PendingUpdate {
-  next: PendingUpdate | null;
-  action: unknown;
-  [key: string]: unknown;
-}
-
-interface HookQueue {
-  pending?: unknown;
-  dispatch?: ((...args: unknown[]) => void) | null;
-  getSnapshot?: () => unknown;
-}
-
-interface HookState {
-  queue: HookQueue | null;
-  next: HookState | null;
-}
-
-interface ContextDependency {
-  memoizedValue: unknown;
-  next: ContextDependency | null;
-}
-
-interface PausedQueueState {
-  originalGetSnapshot?: () => unknown;
-  snapshotValueAtPause?: unknown;
-  originalPendingDescriptor?: PropertyDescriptor;
-  pendingValueAtPause?: PendingUpdate | null;
-  bufferedPending?: PendingUpdate | null;
-}
-
-interface PausedContextState {
-  originalDescriptor?: PropertyDescriptor;
-  frozenValue: unknown;
-  pendingValue?: unknown;
-  didReceivePendingValue?: boolean;
-}
-
-let isUpdatesPaused = false;
-
-const getOrCache = <K extends object, V>(cache: WeakMap<K, V>, key: K, create: () => V): V => {
-  const cached = cache.get(key);
-  if (cached) return cached;
-  const value = create();
-  cache.set(key, value);
-  return value;
-};
-
-type DispatchFunction = (...args: unknown[]) => void;
-type TransitionFunction = (callback: () => void) => void;
-
-interface OriginalHooks {
-  useState: DispatchFunction;
-  useReducer: DispatchFunction;
-  useTransition: DispatchFunction;
-  useSyncExternalStore: DispatchFunction;
-}
-
-const patchedDispatchers = new WeakMap<object, OriginalHooks>();
-const wrappedDispatchCache = new WeakMap<DispatchFunction, DispatchFunction>();
-const wrappedStartTransitionCache = new WeakMap<TransitionFunction, TransitionFunction>();
-const pendingStoreCallbacks = new Set<() => void>();
-const pendingTransitionCallbacks: Array<() => void> = [];
-const pendingStateUpdates: Array<() => void> = [];
-const pausedQueueStates = new WeakMap<HookQueue, PausedQueueState>();
-const pausedContextStates = new WeakMap<ContextDependency, PausedContextState>();
-const renderersWithPatchedDispatcher = new WeakSet<ReactRenderer>();
 const typedFiberRoots = _fiberRoots as Set<FiberRootLike>;
 
 const getFiberRoot = (fiber: Fiber): FiberRootLike | null => {
@@ -120,179 +66,6 @@ const collectFiberRoots = (): Set<FiberRootLike> => {
 
   traverseDOM(document.body);
   return collectedRoots;
-};
-
-const mergePendingChains = (
-  original: PendingUpdate | null,
-  buffered: PendingUpdate | null,
-): PendingUpdate | null => {
-  if (!original) return buffered;
-  if (!buffered) return original;
-  if (!original.next || !buffered.next) return buffered;
-
-  const originalFirst = original.next;
-  const bufferedFirst = buffered.next;
-  const isOriginalSingle = original === originalFirst;
-  const isBufferedSingle = buffered === bufferedFirst;
-
-  if (isOriginalSingle && isBufferedSingle) {
-    original.next = buffered;
-    buffered.next = original;
-  } else if (isOriginalSingle) {
-    original.next = bufferedFirst;
-    buffered.next = original;
-  } else if (isBufferedSingle) {
-    buffered.next = originalFirst;
-    original.next = buffered;
-  } else {
-    original.next = bufferedFirst;
-    buffered.next = originalFirst;
-  }
-
-  return buffered;
-};
-
-const pauseHookQueue = (queue: HookQueue): void => {
-  if (!queue || pausedQueueStates.has(queue)) return;
-
-  const pauseState: PausedQueueState = {
-    originalPendingDescriptor: Object.getOwnPropertyDescriptor(queue, "pending"),
-    pendingValueAtPause: queue.pending as PendingUpdate | null,
-    bufferedPending: null,
-  };
-
-  if (typeof queue.getSnapshot === "function") {
-    pauseState.originalGetSnapshot = queue.getSnapshot;
-    pauseState.snapshotValueAtPause = queue.getSnapshot();
-    queue.getSnapshot = () =>
-      isUpdatesPaused ? pauseState.snapshotValueAtPause : pauseState.originalGetSnapshot!();
-  }
-
-  let currentPendingValue = pauseState.pendingValueAtPause;
-
-  Object.defineProperty(queue, "pending", {
-    configurable: true,
-    enumerable: true,
-    get: () => (isUpdatesPaused ? null : currentPendingValue),
-    set: (newValue: PendingUpdate | null) => {
-      if (isUpdatesPaused) {
-        if (newValue !== null) {
-          pauseState.bufferedPending = mergePendingChains(
-            pauseState.bufferedPending ?? null,
-            newValue,
-          );
-        }
-        return;
-      }
-      currentPendingValue = newValue;
-    },
-  });
-
-  pausedQueueStates.set(queue, pauseState);
-};
-
-const extractActionsFromChain = (pending: PendingUpdate | null): unknown[] => {
-  if (!pending) return [];
-  const actions: unknown[] = [];
-  const first = pending.next;
-  if (!first) return [];
-  let current: PendingUpdate | null = first;
-  do {
-    if (current) {
-      actions.push(current.action);
-      current = current.next;
-    }
-  } while (current && current !== first);
-  return actions;
-};
-
-const resumeHookQueue = (queue: HookQueue): void => {
-  const pauseState = pausedQueueStates.get(queue);
-  if (!pauseState) return;
-
-  if (pauseState.originalGetSnapshot) {
-    queue.getSnapshot = pauseState.originalGetSnapshot;
-  }
-
-  if (pauseState.originalPendingDescriptor) {
-    Object.defineProperty(queue, "pending", pauseState.originalPendingDescriptor);
-  } else {
-    delete (queue as Record<string, unknown>).pending;
-  }
-
-  queue.pending = null;
-
-  const dispatch = queue.dispatch;
-  if (typeof dispatch === "function") {
-    const pendingActions = extractActionsFromChain(pauseState.pendingValueAtPause ?? null);
-    const bufferedActions = extractActionsFromChain(pauseState.bufferedPending ?? null);
-    for (const action of [...pendingActions, ...bufferedActions]) {
-      pendingStateUpdates.push(() => dispatch(action));
-    }
-  }
-
-  pausedQueueStates.delete(queue);
-};
-
-const pauseContextDependency = (contextDependency: ContextDependency): void => {
-  if (pausedContextStates.has(contextDependency)) return;
-
-  const pauseState: PausedContextState = {
-    originalDescriptor: Object.getOwnPropertyDescriptor(contextDependency, "memoizedValue"),
-    frozenValue: contextDependency.memoizedValue,
-  };
-
-  Object.defineProperty(contextDependency, "memoizedValue", {
-    configurable: true,
-    enumerable: true,
-    get() {
-      if (isUpdatesPaused) return pauseState.frozenValue;
-      if (pauseState.originalDescriptor?.get) {
-        return pauseState.originalDescriptor.get.call(this) as unknown;
-      }
-      return (this as { _memoizedValue?: unknown })._memoizedValue;
-    },
-    set(value: unknown) {
-      if (isUpdatesPaused) {
-        pauseState.pendingValue = value;
-        pauseState.didReceivePendingValue = true;
-        return;
-      }
-      if (pauseState.originalDescriptor?.set) {
-        pauseState.originalDescriptor.set.call(this, value);
-      } else {
-        (this as { _memoizedValue: unknown })._memoizedValue = value;
-      }
-    },
-  });
-
-  // Replacing a plain data property (e.g. { memoizedValue: 42 }) with a
-  // get/set descriptor via Object.defineProperty removes the original value,
-  // so we initialize a _memoizedValue backing field for the new getter to
-  // read from.
-  if (!pauseState.originalDescriptor?.get) {
-    (contextDependency as unknown as { _memoizedValue: unknown })._memoizedValue =
-      pauseState.frozenValue;
-  }
-
-  pausedContextStates.set(contextDependency, pauseState);
-};
-
-const resumeContextDependency = (contextDependency: ContextDependency): void => {
-  const pauseState = pausedContextStates.get(contextDependency);
-  if (!pauseState) return;
-
-  if (pauseState.originalDescriptor) {
-    Object.defineProperty(contextDependency, "memoizedValue", pauseState.originalDescriptor);
-  } else {
-    delete (contextDependency as unknown as Record<string, unknown>).memoizedValue;
-  }
-
-  if (pauseState.didReceivePendingValue) {
-    contextDependency.memoizedValue = pauseState.pendingValue;
-  }
-
-  pausedContextStates.delete(contextDependency);
 };
 
 // pauseFiber/resumeFiber inline the hook-queue and context-dependency loops
@@ -356,136 +129,6 @@ const traverseFibersAndResume = (fiber: Fiber | null): void => {
   traverseFibersAndResume(fiber.sibling);
 };
 
-const patchDispatcher = (dispatcher: object): void => {
-  if (patchedDispatchers.has(dispatcher)) return;
-
-  const typedDispatcher = dispatcher as Record<string, DispatchFunction>;
-  const originalHooks: OriginalHooks = {
-    useState: typedDispatcher.useState,
-    useReducer: typedDispatcher.useReducer,
-    useTransition: typedDispatcher.useTransition,
-    useSyncExternalStore: typedDispatcher.useSyncExternalStore,
-  };
-  patchedDispatchers.set(dispatcher, originalHooks);
-
-  typedDispatcher.useState = (...args: unknown[]) => {
-    const result = originalHooks.useState.apply(dispatcher, args) as unknown;
-    if (!isUpdatesPaused) return result;
-    if (!Array.isArray(result) || typeof result[1] !== "function") return result;
-    const [state, dispatch] = result as [unknown, DispatchFunction];
-    const wrappedDispatch = getOrCache(
-      wrappedDispatchCache,
-      dispatch,
-      () =>
-        (...dispatchArgs: unknown[]) => {
-          if (isUpdatesPaused) {
-            pendingStateUpdates.push(() => dispatch(...dispatchArgs));
-          } else {
-            dispatch(...dispatchArgs);
-          }
-        },
-    );
-    return [state, wrappedDispatch];
-  };
-
-  typedDispatcher.useReducer = (...args: unknown[]) => {
-    const result = originalHooks.useReducer.apply(dispatcher, args) as unknown;
-    if (!isUpdatesPaused) return result;
-    if (!Array.isArray(result) || typeof result[1] !== "function") return result;
-    const [state, dispatch] = result as [unknown, DispatchFunction];
-    const wrappedDispatch = getOrCache(
-      wrappedDispatchCache,
-      dispatch,
-      () =>
-        (...dispatchArgs: unknown[]) => {
-          if (isUpdatesPaused) {
-            pendingStateUpdates.push(() => dispatch(...dispatchArgs));
-          } else {
-            dispatch(...dispatchArgs);
-          }
-        },
-    );
-    return [state, wrappedDispatch];
-  };
-
-  typedDispatcher.useTransition = (...args: unknown[]) => {
-    const result = originalHooks.useTransition.apply(dispatcher, args) as unknown;
-    if (!isUpdatesPaused) return result;
-    if (!Array.isArray(result) || typeof result[1] !== "function") return result;
-    const [isPending, startTransition] = result as [boolean, TransitionFunction];
-    const wrappedStartTransition = getOrCache(
-      wrappedStartTransitionCache,
-      startTransition,
-      () => (transitionCallback: () => void) => {
-        if (isUpdatesPaused) {
-          pendingTransitionCallbacks.push(() => startTransition(transitionCallback));
-        } else {
-          startTransition(transitionCallback);
-        }
-      },
-    );
-    return [isPending, wrappedStartTransition];
-  };
-
-  type UseSyncExternalStore = <T>(
-    subscribe: (onStoreChange: () => void) => () => void,
-    getSnapshot: () => T,
-    getServerSnapshot?: () => T,
-  ) => T;
-
-  typedDispatcher.useSyncExternalStore = (<T>(
-    subscribe: (onStoreChange: () => void) => () => void,
-    getSnapshot: () => T,
-    getServerSnapshot?: () => T,
-  ): T => {
-    if (!isUpdatesPaused) {
-      return (originalHooks.useSyncExternalStore as UseSyncExternalStore)(
-        subscribe,
-        getSnapshot,
-        getServerSnapshot,
-      );
-    }
-    const wrappedSubscribe = (onChange: () => void) =>
-      subscribe(() => {
-        if (isUpdatesPaused) {
-          pendingStoreCallbacks.add(onChange);
-        } else {
-          onChange();
-        }
-      });
-    return (originalHooks.useSyncExternalStore as UseSyncExternalStore)(
-      wrappedSubscribe,
-      getSnapshot,
-      getServerSnapshot,
-    );
-  }) as DispatchFunction;
-};
-
-const installDispatcherPatching = (renderer: ReactRenderer): void => {
-  const dispatcherRef = renderer.currentDispatcherRef as {
-    H?: unknown;
-    current?: unknown;
-  } | null;
-  if (!dispatcherRef || typeof dispatcherRef !== "object") return;
-
-  const dispatcherKey = "H" in dispatcherRef ? "H" : "current";
-  let currentDispatcher = dispatcherRef[dispatcherKey];
-
-  Object.defineProperty(dispatcherRef, dispatcherKey, {
-    configurable: true,
-    enumerable: true,
-    get: () => {
-      if (currentDispatcher && typeof currentDispatcher === "object") {
-        patchDispatcher(currentDispatcher);
-      }
-      return currentDispatcher;
-    },
-    set: (newDispatcher) => {
-      currentDispatcher = newDispatcher;
-    },
-  });
-};
-
 const scheduleReactUpdate = (fiberRoots: Set<FiberRootLike>): void => {
   queueMicrotask(() => {
     try {
@@ -517,19 +160,11 @@ const invokeCallbacks = (callbacks: Array<() => void>): void => {
   }
 };
 
-const initializeFreezeSupport = (): void => {
-  for (const renderer of getRDTHook().renderers.values()) {
-    if (renderersWithPatchedDispatcher.has(renderer)) continue;
-    installDispatcherPatching(renderer);
-    renderersWithPatchedDispatcher.add(renderer);
-  }
-};
-
 export const freezeUpdates = (): (() => void) => {
-  if (isUpdatesPaused) return () => {};
+  if (freezeState.isUpdatesPaused) return () => {};
 
   initializeFreezeSupport();
-  isUpdatesPaused = true;
+  freezeState.isUpdatesPaused = true;
 
   const fiberRoots = collectFiberRoots();
   for (const fiberRoot of fiberRoots) {
@@ -537,7 +172,7 @@ export const freezeUpdates = (): (() => void) => {
   }
 
   return () => {
-    if (!isUpdatesPaused) return;
+    if (!freezeState.isUpdatesPaused) return;
 
     try {
       const fiberRootsToResume = collectFiberRoots();
@@ -549,7 +184,7 @@ export const freezeUpdates = (): (() => void) => {
       const transitionCallbacksToInvoke = pendingTransitionCallbacks.slice();
       const stateUpdatesToInvoke = pendingStateUpdates.slice();
 
-      isUpdatesPaused = false;
+      freezeState.isUpdatesPaused = false;
 
       invokeCallbacks(storeCallbacksToInvoke);
       invokeCallbacks(transitionCallbacksToInvoke);

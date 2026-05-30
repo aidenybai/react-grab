@@ -10,6 +10,4 @@ const onCancel = () => {
 
 export const prompts = <T extends string = string>(
   questions: PromptObject<T> | PromptObject<T>[],
-): Promise<Answers<T>> => {
-  return basePrompts(questions, { onCancel });
-};
+): Promise<Answers<T>> => basePrompts(questions, { onCancel });

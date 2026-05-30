@@ -1,6 +1,21 @@
 import { test as base, expect, Page, Locator } from "@playwright/test";
+import type { DragRect, ReactGrabAPI } from "../src/types.js";
 
-const ATTRIBUTE_NAME = "data-react-grab";
+interface CallbackHistoryEntry {
+  name: string;
+  args: unknown[];
+  timestamp: number;
+}
+
+declare global {
+  interface Window {
+    __REACT_GRAB__?: ReactGrabAPI;
+    __CALLBACK_HISTORY__?: CallbackHistoryEntry[];
+    initReactGrab?: (options?: Record<string, unknown>) => void;
+  }
+}
+
+export const ATTRIBUTE_NAME = "data-react-grab";
 const DEFAULT_KEY_HOLD_DURATION_MS = 200;
 const ACTIVATION_BUFFER_MS = 200;
 const PAGE_SETUP_MAX_ATTEMPTS = 2;
@@ -25,8 +40,8 @@ interface SelectionLabelInfo {
 }
 
 interface SelectionLabelBounds {
-  label: { x: number; y: number; width: number; height: number };
-  arrow: { x: number; y: number; width: number; height: number } | null;
+  label: DragRect;
+  arrow: DragRect | null;
   viewport: { width: number; height: number };
 }
 
@@ -53,10 +68,10 @@ interface ReactGrabState {
   isCopying: boolean;
   isPromptMode: boolean;
   targetElement: boolean;
-  dragBounds: { x: number; y: number; width: number; height: number } | null;
+  dragBounds: DragRect | null;
   grabbedBoxes: Array<{
     id: string;
-    bounds: { x: number; y: number; width: number; height: number };
+    bounds: DragRect;
     createdAt: number;
   }>;
   labelInstances: LabelInstanceInfo[];
@@ -66,7 +81,7 @@ interface GrabbedBoxInfo {
   count: number;
   boxes: Array<{
     id: string;
-    bounds: { x: number; y: number; width: number; height: number };
+    bounds: DragRect;
   }>;
 }
 
@@ -135,18 +150,8 @@ export interface ReactGrabPageObject {
   getGrabbedBoxInfo: () => Promise<GrabbedBoxInfo>;
   getLabelInstancesInfo: () => Promise<LabelInstanceInfo[]>;
   isGrabbedBoxVisible: () => Promise<boolean>;
-  getDragBoxBounds: () => Promise<{
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  } | null>;
-  getSelectionBoxBounds: () => Promise<{
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  } | null>;
+  getDragBoxBounds: () => Promise<DragRect | null>;
+  getSelectionBoxBounds: () => Promise<DragRect | null>;
 
   getState: () => Promise<ReactGrabState>;
   toggle: () => Promise<void>;
@@ -171,7 +176,7 @@ export interface ReactGrabPageObject {
   showElement: (selector: string) => Promise<void>;
   getElementBounds: (
     selector: string,
-  ) => Promise<{ x: number; y: number; width: number; height: number } | null>;
+  ) => Promise<DragRect | null>;
   isDropdownOpen: () => Promise<boolean>;
   openDropdown: () => Promise<void>;
 
@@ -193,7 +198,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const isOverlayVisible = async () => {
     return page.evaluate(() => {
-      const api = (window as { __REACT_GRAB__?: { isActive: () => boolean } }).__REACT_GRAB__;
+      const api = window.__REACT_GRAB__;
       return api?.isActive() ?? false;
     });
   };
@@ -201,7 +206,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   const waitForActive = async (expectedState: boolean) => {
     await page.waitForFunction(
       (expected) => {
-        const api = (window as { __REACT_GRAB__?: { isActive: () => boolean } }).__REACT_GRAB__;
+        const api = window.__REACT_GRAB__;
         return api?.isActive() === expected;
       },
       expectedState,
@@ -218,12 +223,12 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const activate = async () => {
     await page.waitForFunction(
-      () => (window as { __REACT_GRAB__?: unknown }).__REACT_GRAB__ !== undefined,
+      () => window.__REACT_GRAB__ !== undefined,
       undefined,
       { timeout: 5000 },
     );
     await page.evaluate(() => {
-      const api = (window as { __REACT_GRAB__?: { activate: () => void } }).__REACT_GRAB__;
+      const api = window.__REACT_GRAB__;
       api?.activate();
     });
     await waitForActive(true);
@@ -310,16 +315,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   const waitForSelectionBox = async () => {
     await page.waitForFunction(
       () => {
-        const api = (
-          window as {
-            __REACT_GRAB__?: {
-              getState: () => {
-                isSelectionBoxVisible: boolean;
-                targetElement: unknown;
-              };
-            };
-          }
-        ).__REACT_GRAB__;
+        const api = window.__REACT_GRAB__;
         const state = api?.getState();
         return state?.isSelectionBoxVisible || state?.targetElement !== null;
       },
@@ -331,13 +327,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   const waitForSelectionSource = async () => {
     await page.waitForFunction(
       () => {
-        const api = (
-          window as {
-            __REACT_GRAB__?: {
-              getState: () => { selectionFilePath: string | null };
-            };
-          }
-        ).__REACT_GRAB__;
+        const api = window.__REACT_GRAB__;
         return api?.getState()?.selectionFilePath !== null;
       },
       undefined,
@@ -521,13 +511,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const isSelectionBoxVisible = async (): Promise<boolean> => {
     return page.evaluate(() => {
-      const api = (
-        window as {
-          __REACT_GRAB__?: {
-            getState: () => { isSelectionBoxVisible: boolean };
-          };
-        }
-      ).__REACT_GRAB__;
+      const api = window.__REACT_GRAB__;
       return api?.getState()?.isSelectionBoxVisible ?? false;
     });
   };
@@ -547,11 +531,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   const waitForPromptMode = async (active: boolean) => {
     await page.waitForFunction(
       (expected) => {
-        const api = (
-          window as {
-            __REACT_GRAB__?: { getState: () => { isPromptMode: boolean } };
-          }
-        ).__REACT_GRAB__;
+        const api = window.__REACT_GRAB__;
         return api?.getState()?.isPromptMode === expected;
       },
       active,
@@ -565,16 +545,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     const isSelected = await page
       .waitForFunction(
         () => {
-          const api = (
-            window as {
-              __REACT_GRAB__?: {
-                getState: () => {
-                  isSelectionBoxVisible: boolean;
-                  targetElement: unknown;
-                };
-              };
-            }
-          ).__REACT_GRAB__;
+          const api = window.__REACT_GRAB__;
           const state = api?.getState();
           return state?.isSelectionBoxVisible || state?.targetElement !== null;
         },
@@ -594,11 +565,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const isPromptModeActive = async (): Promise<boolean> => {
     return page.evaluate(() => {
-      const api = (
-        window as {
-          __REACT_GRAB__?: { getState: () => { isPromptMode: boolean } };
-        }
-      ).__REACT_GRAB__;
+      const api = window.__REACT_GRAB__;
       return api?.getState()?.isPromptMode ?? false;
     });
   };
@@ -1068,19 +1035,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const getGrabbedBoxInfo = async (): Promise<GrabbedBoxInfo> => {
     return page.evaluate(() => {
-      const api = (
-        window as {
-          __REACT_GRAB__?: {
-            getState: () => {
-              grabbedBoxes: Array<{
-                id: string;
-                bounds: { x: number; y: number; width: number; height: number };
-                createdAt: number;
-              }>;
-            };
-          };
-        }
-      ).__REACT_GRAB__;
+      const api = window.__REACT_GRAB__;
 
       const state = api?.getState();
       const grabbedBoxes = state?.grabbedBoxes ?? [];
@@ -1097,21 +1052,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const getLabelInstancesInfo = async (): Promise<LabelInstanceInfo[]> => {
     return page.evaluate(() => {
-      const api = (
-        window as {
-          __REACT_GRAB__?: {
-            getState: () => {
-              labelInstances: Array<{
-                id: string;
-                status: string;
-                tagName: string;
-                componentName?: string;
-                createdAt: number;
-              }>;
-            };
-          };
-        }
-      ).__REACT_GRAB__;
+      const api = window.__REACT_GRAB__;
 
       const state = api?.getState();
       return (state?.labelInstances ?? []).map((instance) => ({
@@ -1126,66 +1067,25 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const isGrabbedBoxVisible = async (): Promise<boolean> => {
     return page.evaluate(() => {
-      const api = (
-        window as {
-          __REACT_GRAB__?: {
-            getState: () => {
-              grabbedBoxes: Array<{ id: string }>;
-            };
-          };
-        }
-      ).__REACT_GRAB__;
+      const api = window.__REACT_GRAB__;
 
       const state = api?.getState();
       return (state?.grabbedBoxes?.length ?? 0) > 0;
     });
   };
 
-  const getDragBoxBounds = async (): Promise<{
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  } | null> => {
+  const getDragBoxBounds = async (): Promise<DragRect | null> => {
     return page.evaluate(() => {
-      const api = (
-        window as {
-          __REACT_GRAB__?: {
-            getState: () => {
-              isDragBoxVisible: boolean;
-              dragBounds: {
-                x: number;
-                y: number;
-                width: number;
-                height: number;
-              } | null;
-            };
-          };
-        }
-      ).__REACT_GRAB__;
+      const api = window.__REACT_GRAB__;
       const state = api?.getState();
       if (!state?.isDragBoxVisible || !state?.dragBounds) return null;
       return state.dragBounds;
     });
   };
 
-  const getSelectionBoxBounds = async (): Promise<{
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  } | null> => {
+  const getSelectionBoxBounds = async (): Promise<DragRect | null> => {
     return page.evaluate(() => {
-      const api = (
-        window as {
-          __REACT_GRAB__?: {
-            getState: () => {
-              isSelectionBoxVisible: boolean;
-              targetElement: Element | null;
-            };
-          };
-        }
-      ).__REACT_GRAB__;
+      const api = window.__REACT_GRAB__;
       const state = api?.getState();
       if (!state?.isSelectionBoxVisible || !state?.targetElement) return null;
       const rect = state.targetElement.getBoundingClientRect();
@@ -1198,28 +1098,33 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const getState = async (): Promise<ReactGrabState> => {
     return page.evaluate(() => {
-      const api = (window as { __REACT_GRAB__?: { getState: () => ReactGrabState } })
-        .__REACT_GRAB__;
-      const state = api?.getState();
-      return (
-        state ?? {
-          isActive: false,
-          isDragging: false,
-          isCopying: false,
-          isPromptMode: false,
-          targetElement: false,
-          dragBounds: null,
-          grabbedBoxes: [],
-          labelInstances: [],
-        }
-      );
+      const state = window.__REACT_GRAB__?.getState();
+      // `Element` cannot cross Playwright's serialization boundary, so the
+      // fixture's `targetElement` is narrowed to a boolean indicating presence.
+      return {
+        isActive: state?.isActive ?? false,
+        isDragging: state?.isDragging ?? false,
+        isCopying: state?.isCopying ?? false,
+        isPromptMode: state?.isPromptMode ?? false,
+        targetElement: state?.targetElement != null,
+        dragBounds: state?.dragBounds ?? null,
+        grabbedBoxes: state?.grabbedBoxes ?? [],
+        labelInstances:
+          state?.labelInstances?.map((instance) => ({
+            id: instance.id,
+            status: instance.status,
+            tagName: instance.tagName,
+            componentName: instance.componentName,
+            createdAt: instance.createdAt,
+          })) ?? [],
+      };
     });
   };
 
   const toggle = async () => {
     const wasActive = await isOverlayVisible();
     await page.evaluate(() => {
-      const api = (window as { __REACT_GRAB__?: { toggle: () => void } }).__REACT_GRAB__;
+      const api = window.__REACT_GRAB__;
       api?.toggle();
     });
     await waitForActive(!wasActive);
@@ -1227,18 +1132,14 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const dispose = async () => {
     await page.evaluate(() => {
-      const api = (window as { __REACT_GRAB__?: { dispose: () => void } }).__REACT_GRAB__;
+      const api = window.__REACT_GRAB__;
       api?.dispose();
     });
   };
 
   const copyElementViaApi = async (selector: string): Promise<boolean> => {
     return page.evaluate(async (sel) => {
-      const api = (
-        window as {
-          __REACT_GRAB__?: { copyElement: (el: Element) => Promise<boolean> };
-        }
-      ).__REACT_GRAB__;
+      const api = window.__REACT_GRAB__;
       const element = document.querySelector(sel);
       if (!element || !api) return false;
       return api.copyElement(element);
@@ -1247,17 +1148,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const registerCommentAction = async () => {
     await page.evaluate(() => {
-      const api = (
-        window as {
-          __REACT_GRAB__?: {
-            unregisterPlugin: (name: string) => void;
-            registerPlugin: (plugin: {
-              name: string;
-              actions: Array<Record<string, unknown>>;
-            }) => void;
-          };
-        }
-      ).__REACT_GRAB__;
+      const api = window.__REACT_GRAB__;
       api?.unregisterPlugin("comment-action");
       api?.registerPlugin({
         name: "comment-action",
@@ -1277,15 +1168,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const updateOptions = async (options: Record<string, unknown>) => {
     await page.evaluate((opts) => {
-      const api = (
-        window as {
-          __REACT_GRAB__?: {
-            setOptions: (o: Record<string, unknown>) => void;
-            unregisterPlugin: (name: string) => void;
-            registerPlugin: (plugin: Record<string, unknown>) => void;
-          };
-        }
-      ).__REACT_GRAB__;
+      const api = window.__REACT_GRAB__;
 
       const pluginKeys = ["theme", "actions"];
       const hookKeys = [
@@ -1340,16 +1223,15 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const reinitialize = async (options?: Record<string, unknown>) => {
     await page.evaluate((opts) => {
-      const existingApi = (window as { __REACT_GRAB__?: { dispose: () => void } }).__REACT_GRAB__;
+      const existingApi = window.__REACT_GRAB__;
       existingApi?.dispose();
 
-      const initFn = (window as { initReactGrab?: (o?: Record<string, unknown>) => void })
-        .initReactGrab;
+      const initFn = window.initReactGrab;
       initFn?.(opts);
     }, options);
     await page.waitForFunction(
       () => {
-        const api = (window as { __REACT_GRAB__?: unknown }).__REACT_GRAB__;
+        const api = window.__REACT_GRAB__;
         return api !== undefined;
       },
       undefined,
@@ -1420,11 +1302,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const isTouchMode = async (): Promise<boolean> => {
     return page.evaluate(() => {
-      const api = (
-        window as {
-          __REACT_GRAB__?: { getState: () => { isTouchMode?: boolean } };
-        }
-      ).__REACT_GRAB__;
+      const api = window.__REACT_GRAB__;
       return (api?.getState() as { isTouchMode?: boolean })?.isTouchMode ?? false;
     });
   };
@@ -1475,12 +1353,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const getElementBounds = async (
     selector: string,
-  ): Promise<{
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  } | null> => {
+  ): Promise<DragRect | null> => {
     const element = page.locator(selector).first();
     const box = await element.boundingBox();
     return box ? { x: box.x, y: box.y, width: box.width, height: box.height } : null;
@@ -1502,38 +1375,15 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const setupCallbackTracking = async () => {
     await page.evaluate(() => {
-      (
-        window as {
-          __CALLBACK_HISTORY__?: Array<{
-            name: string;
-            args: unknown[];
-            timestamp: number;
-          }>;
-        }
-      ).__CALLBACK_HISTORY__ = [];
+      window.__CALLBACK_HISTORY__ = [];
 
       const trackCallback =
         (name: string) =>
         (...args: unknown[]) => {
-          (
-            window as {
-              __CALLBACK_HISTORY__?: Array<{
-                name: string;
-                args: unknown[];
-                timestamp: number;
-              }>;
-            }
-          ).__CALLBACK_HISTORY__?.push({ name, args, timestamp: Date.now() });
+          window.__CALLBACK_HISTORY__?.push({ name, args, timestamp: Date.now() });
         };
 
-      const api = (
-        window as {
-          __REACT_GRAB__?: {
-            unregisterPlugin: (name: string) => void;
-            registerPlugin: (plugin: { name: string; hooks: Record<string, unknown> }) => void;
-          };
-        }
-      ).__REACT_GRAB__;
+      const api = window.__REACT_GRAB__;
       api?.unregisterPlugin("callback-tracking");
       api?.registerPlugin({
         name: "callback-tracking",
@@ -1565,30 +1415,14 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   > => {
     return page.evaluate(() => {
       return (
-        (
-          window as {
-            __CALLBACK_HISTORY__?: Array<{
-              name: string;
-              args: unknown[];
-              timestamp: number;
-            }>;
-          }
-        ).__CALLBACK_HISTORY__ ?? []
+        window.__CALLBACK_HISTORY__ ?? []
       );
     });
   };
 
   const clearCallbackHistory = async () => {
     await page.evaluate(() => {
-      (
-        window as {
-          __CALLBACK_HISTORY__?: Array<{
-            name: string;
-            args: unknown[];
-            timestamp: number;
-          }>;
-        }
-      ).__CALLBACK_HISTORY__ = [];
+      window.__CALLBACK_HISTORY__ = [];
     });
   };
 
@@ -1596,7 +1430,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     await page.waitForFunction(
       (callbackName) => {
         const history =
-          (window as { __CALLBACK_HISTORY__?: Array<{ name: string }> }).__CALLBACK_HISTORY__ ?? [];
+          window.__CALLBACK_HISTORY__ ?? [];
         return history.some((c) => c.name === callbackName);
       },
       name,
@@ -1712,7 +1546,7 @@ export const test = base.extend<{ reactGrab: ReactGrabPageObject }>({
     const waitForApiReady = async () => {
       await page.waitForFunction(
         () => {
-          const api = (window as { __REACT_GRAB__?: unknown }).__REACT_GRAB__;
+          const api = window.__REACT_GRAB__;
           return api !== undefined;
         },
         undefined,

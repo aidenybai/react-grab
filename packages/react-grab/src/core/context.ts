@@ -274,7 +274,7 @@ export const getNearestComponentName = async (element: Element): Promise<string 
   return null;
 };
 
-interface ResolvedSource {
+export interface ResolvedSource {
   filePath: string;
   lineNumber: number | null;
   columnNumber: number | null;

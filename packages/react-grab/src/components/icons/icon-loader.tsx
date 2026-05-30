@@ -1,11 +1,7 @@
 import type { Component } from "solid-js";
+import type { IconProps } from "./types.js";
 
-interface IconLoaderProps {
-  size?: number;
-  class?: string;
-}
-
-export const IconLoader: Component<IconLoaderProps> = (props) => {
+export const IconLoader: Component<IconProps> = (props) => {
   const size = () => props.size ?? 16;
 
   return (

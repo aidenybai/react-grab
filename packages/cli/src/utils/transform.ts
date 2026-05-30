@@ -1,6 +1,18 @@
-import { accessSync, constants, existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { accessSync, constants, readFileSync, writeFileSync } from "node:fs";
 import type { Framework, NextRouterType } from "./detect.js";
+import {
+  NEXT_PAGES_ROUTER_NOT_FOUND_MESSAGE,
+  TANSTACK_ROOT_NOT_FOUND_MESSAGE,
+} from "./manual-setup-messages.js";
+import {
+  findDocumentFile,
+  findEntryFile,
+  findIndexHtml,
+  findInstrumentationFile,
+  findLayoutFile,
+  findTanStackRootFile,
+  hasReactGrabCode,
+} from "./framework-paths.js";
 import {
   NEXT_APP_ROUTER_SCRIPT,
   SCRIPT_IMPORT,
@@ -26,130 +38,12 @@ export interface ReactGrabOptions {
   maxContextLines?: number;
 }
 
-const hasReactGrabCode = (content: string): boolean => {
-  const fuzzyPatterns = [
-    /["'`][^"'`]*react-grab/,
-    /react-grab[^"'`]*["'`]/,
-    /<[^>]*react-grab/i,
-    /import[^;]*react-grab/i,
-    /require[^)]*react-grab/i,
-    /from\s+[^;]*react-grab/i,
-    /src[^>]*react-grab/i,
-    /href[^>]*react-grab/i,
-  ];
-  return fuzzyPatterns.some((pattern) => pattern.test(content));
-};
-
-const findLayoutFile = (projectRoot: string): string | null => {
-  const possiblePaths = [
-    join(projectRoot, "app", "layout.tsx"),
-    join(projectRoot, "app", "layout.jsx"),
-    join(projectRoot, "src", "app", "layout.tsx"),
-    join(projectRoot, "src", "app", "layout.jsx"),
-  ];
-
-  for (const filePath of possiblePaths) {
-    if (existsSync(filePath)) {
-      return filePath;
-    }
-  }
-
-  return null;
-};
-
-const findInstrumentationFile = (projectRoot: string): string | null => {
-  const possiblePaths = [
-    join(projectRoot, "instrumentation-client.ts"),
-    join(projectRoot, "instrumentation-client.js"),
-    join(projectRoot, "src", "instrumentation-client.ts"),
-    join(projectRoot, "src", "instrumentation-client.js"),
-  ];
-
-  for (const filePath of possiblePaths) {
-    if (existsSync(filePath)) {
-      return filePath;
-    }
-  }
-
-  return null;
-};
-
 const hasReactGrabInInstrumentation = (projectRoot: string): boolean => {
   const instrumentationPath = findInstrumentationFile(projectRoot);
   if (!instrumentationPath) return false;
 
   const content = readFileSync(instrumentationPath, "utf-8");
   return hasReactGrabCode(content);
-};
-
-const findDocumentFile = (projectRoot: string): string | null => {
-  const possiblePaths = [
-    join(projectRoot, "pages", "_document.tsx"),
-    join(projectRoot, "pages", "_document.jsx"),
-    join(projectRoot, "src", "pages", "_document.tsx"),
-    join(projectRoot, "src", "pages", "_document.jsx"),
-  ];
-
-  for (const filePath of possiblePaths) {
-    if (existsSync(filePath)) {
-      return filePath;
-    }
-  }
-
-  return null;
-};
-
-const findIndexHtml = (projectRoot: string): string | null => {
-  const possiblePaths = [
-    join(projectRoot, "index.html"),
-    join(projectRoot, "public", "index.html"),
-  ];
-
-  for (const filePath of possiblePaths) {
-    if (existsSync(filePath)) {
-      return filePath;
-    }
-  }
-
-  return null;
-};
-
-const findEntryFile = (projectRoot: string): string | null => {
-  const possiblePaths = [
-    join(projectRoot, "src", "index.tsx"),
-    join(projectRoot, "src", "index.jsx"),
-    join(projectRoot, "src", "index.ts"),
-    join(projectRoot, "src", "index.js"),
-    join(projectRoot, "src", "main.tsx"),
-    join(projectRoot, "src", "main.jsx"),
-    join(projectRoot, "src", "main.ts"),
-    join(projectRoot, "src", "main.js"),
-  ];
-
-  for (const filePath of possiblePaths) {
-    if (existsSync(filePath)) {
-      return filePath;
-    }
-  }
-
-  return null;
-};
-
-const findTanStackRootFile = (projectRoot: string): string | null => {
-  const possiblePaths = [
-    join(projectRoot, "src", "routes", "__root.tsx"),
-    join(projectRoot, "src", "routes", "__root.jsx"),
-    join(projectRoot, "app", "routes", "__root.tsx"),
-    join(projectRoot, "app", "routes", "__root.jsx"),
-  ];
-
-  for (const filePath of possiblePaths) {
-    if (existsSync(filePath)) {
-      return filePath;
-    }
-  }
-
-  return null;
 };
 
 const alreadyConfiguredResult = (filePath: string): TransformResult => ({
@@ -239,26 +133,7 @@ const transformNextPagesRouter = (
     return {
       success: false,
       filePath: "",
-      message:
-        "Could not find pages/_document.tsx or pages/_document.jsx.\n\n" +
-        "To set up React Grab with Pages Router, create pages/_document.tsx with:\n\n" +
-        '  import { Html, Head, Main, NextScript } from "next/document";\n' +
-        '  import Script from "next/script";\n\n' +
-        "  export default function Document() {\n" +
-        "    return (\n" +
-        "      <Html>\n" +
-        "        <Head>\n" +
-        '          {process.env.NODE_ENV === "development" && (\n' +
-        '            <Script src="//unpkg.com/react-grab/dist/index.global.js" strategy="beforeInteractive" />\n' +
-        "          )}\n" +
-        "        </Head>\n" +
-        "        <body>\n" +
-        "          <Main />\n" +
-        "          <NextScript />\n" +
-        "        </body>\n" +
-        "      </Html>\n" +
-        "    );\n" +
-        "  }",
+      message: NEXT_PAGES_ROUTER_NOT_FOUND_MESSAGE,
     };
   }
 
@@ -406,15 +281,7 @@ const transformTanStack = (
     return {
       success: false,
       filePath: "",
-      message:
-        "Could not find src/routes/__root.tsx or app/routes/__root.tsx.\n\n" +
-        "To set up React Grab with TanStack Start, add this to your root route component:\n\n" +
-        '  import { useEffect } from "react";\n\n' +
-        "  useEffect(() => {\n" +
-        "    if (import.meta.env.DEV) {\n" +
-        '      void import("react-grab");\n' +
-        "    }\n" +
-        "  }, []);",
+      message: TANSTACK_ROOT_NOT_FOUND_MESSAGE,
     };
   }
 

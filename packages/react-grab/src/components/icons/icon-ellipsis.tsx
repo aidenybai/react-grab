@@ -1,11 +1,7 @@
 import type { Component } from "solid-js";
+import type { IconProps } from "./types.js";
 
-interface IconEllipsisProps {
-  size?: number;
-  class?: string;
-}
-
-export const IconEllipsis: Component<IconEllipsisProps> = (props) => {
+export const IconEllipsis: Component<IconProps> = (props) => {
   const size = () => props.size ?? 14;
 
   return (

@@ -1,5 +1,5 @@
 import { createEffect, on, onCleanup, onMount, type Component } from "solid-js";
-import type { OverlayBounds, SelectionLabelInstance } from "../types.js";
+import type { DragRect, OverlayBounds, PublicGrabbedBox, SelectionLabelInstance } from "../types.js";
 import { lerp } from "../utils/lerp.js";
 import {
   SELECTION_LERP_FACTOR,
@@ -45,8 +45,8 @@ interface OffscreenLayer {
 
 interface AnimatedBounds {
   id: string;
-  current: { x: number; y: number; width: number; height: number };
-  target: { x: number; y: number; width: number; height: number };
+  current: DragRect;
+  target: DragRect;
   borderRadius: number;
   opacity: number;
   targetOpacity: number;
@@ -65,11 +65,7 @@ interface OverlayCanvasProps {
   dragVisible?: boolean;
   dragBounds?: OverlayBounds;
 
-  grabbedBoxes?: Array<{
-    id: string;
-    bounds: OverlayBounds;
-    createdAt: number;
-  }>;
+  grabbedBoxes?: PublicGrabbedBox[];
 
   labelInstances?: SelectionLabelInstance[];
 }

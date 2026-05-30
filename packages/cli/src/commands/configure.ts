@@ -19,6 +19,12 @@ import {
   MAX_CONTEXT_LINES,
 } from "../utils/constants.js";
 import { formatActivationKeyDisplay } from "../utils/format-activation-key.js";
+import {
+  promptActivationMode,
+  promptAllowActivationInsideInput,
+  promptKeyHoldDuration,
+  promptMaxContextLines,
+} from "../utils/option-prompts.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
 
@@ -449,78 +455,19 @@ export const configure = new Command()
         }
 
         if (selectedOption === "activationMode") {
-          const { activationMode } = await prompts({
-            type: "select",
-            name: "activationMode",
-            message: `Select ${highlighter.info("activation mode")}:`,
-            choices: [
-              {
-                title: "Toggle (press to activate/deactivate)",
-                value: "toggle",
-              },
-              { title: "Hold (hold key to keep active)", value: "hold" },
-            ],
-            initial: 0,
-          });
-
-          if (activationMode === undefined) {
-            logger.break();
-            process.exit(1);
-          }
-
-          collectedOptions.activationMode = activationMode;
+          collectedOptions.activationMode = await promptActivationMode();
         }
 
         if (selectedOption === "keyHoldDuration") {
-          const { keyHoldDuration } = await prompts({
-            type: "number",
-            name: "keyHoldDuration",
-            message: `Enter ${highlighter.info("key hold duration")} in milliseconds:`,
-            initial: 150,
-            min: 0,
-            max: 2000,
-          });
-
-          if (keyHoldDuration === undefined) {
-            logger.break();
-            process.exit(1);
-          }
-
-          collectedOptions.keyHoldDuration = keyHoldDuration;
+          collectedOptions.keyHoldDuration = await promptKeyHoldDuration();
         }
 
         if (selectedOption === "allowActivationInsideInput") {
-          const { allowActivationInsideInput } = await prompts({
-            type: "confirm",
-            name: "allowActivationInsideInput",
-            message: `Allow activation ${highlighter.info("inside input fields")}?`,
-            initial: true,
-          });
-
-          if (allowActivationInsideInput === undefined) {
-            logger.break();
-            process.exit(1);
-          }
-
-          collectedOptions.allowActivationInsideInput = allowActivationInsideInput;
+          collectedOptions.allowActivationInsideInput = await promptAllowActivationInsideInput();
         }
 
         if (selectedOption === "maxContextLines") {
-          const { maxContextLines } = await prompts({
-            type: "number",
-            name: "maxContextLines",
-            message: `Enter ${highlighter.info("max context lines")} to include:`,
-            initial: 3,
-            min: 0,
-            max: 50,
-          });
-
-          if (maxContextLines === undefined) {
-            logger.break();
-            process.exit(1);
-          }
-
-          collectedOptions.maxContextLines = maxContextLines;
+          collectedOptions.maxContextLines = await promptMaxContextLines();
         }
       }
 
