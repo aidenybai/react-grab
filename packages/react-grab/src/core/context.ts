@@ -291,9 +291,9 @@ const getSourceComponentName = (fiber: Fiber | undefined): string | null => {
 // that bundlers like Webpack/Rspack drop from the owner stack) and otherwise
 // falls back to the owner stack. We only trust locations that point at a real
 // on-disk source file; bundler-virtual URLs are left to the owner-stack scan.
+// This reads React's own dev data, so it works without bippy instrumentation;
+// getSource can still throw while parsing owner stacks, so it is guarded.
 const getFiberSource = async (element: Element): Promise<ResolvedSource | null> => {
-  if (!isInstrumentationActive()) return null;
-
   const fiber = getFiberFromHostInstance(findNearestFiberElement(element));
   if (!fiber) return null;
 
