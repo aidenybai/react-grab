@@ -112,7 +112,12 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const buttonSpacingClass = () => getButtonSpacingClass(isVertical());
 
   const isActionActive = (actionId: string) => props.activeActionId === actionId;
-  const isCopyActive = () => isActionActive(DEFAULT_ACTION_ID);
+  // Activation paths that bypass the toolbar buttons (keyboard hold, api.activate,
+  // post-copy reactivation) never set activeActionId, so a null id while active
+  // means the implicit default copy/select flow - keep the select icon's
+  // cursor-follow rotation and pressed state working for those paths too.
+  const isCopyActive = () =>
+    Boolean(props.isActive) && (props.activeActionId ?? DEFAULT_ACTION_ID) === DEFAULT_ACTION_ID;
 
   const stopEventPropagation = (event: Event) => {
     event.stopImmediatePropagation();
@@ -169,8 +174,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   createEffect(
     on(
       () => isCopyActive(),
-      (isPointing) => {
-        if (!isPointing) {
+      (isCopyActionActive) => {
+        if (!isCopyActionActive) {
           // The accumulator can drift past ±180° while the user circles the
           // toolbar; resetting to literal 0 would unspin those revolutions
           // through the CSS transition. Snapping to the nearest equivalent

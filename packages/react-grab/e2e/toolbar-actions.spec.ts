@@ -48,6 +48,15 @@ test.describe("Toolbar Action Buttons", () => {
       expect(await reactGrab.getToolbarActionPressed("edit")).toBe(false);
     });
 
+    test("activating via API (no toolbar button) marks Copy as pressed", async ({ reactGrab }) => {
+      await waitForToolbar(reactGrab);
+      await reactGrab.activate();
+
+      expect(await reactGrab.getToolbarActionPressed("copy")).toBe(true);
+      expect(await reactGrab.getToolbarActionPressed("comment")).toBe(false);
+      expect(await reactGrab.getToolbarActionPressed("edit")).toBe(false);
+    });
+
     test("Escape resets every action button to unpressed", async ({ reactGrab }) => {
       await waitForToolbar(reactGrab);
       await reactGrab.clickToolbarAction("comment");
