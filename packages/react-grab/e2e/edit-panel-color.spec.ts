@@ -108,8 +108,9 @@ test.describe("Style Panel Color Controls", () => {
   }) => {
     const { page } = reactGrab;
     await openEditPanel(reactGrab, PLAIN_TEXT_SELECTOR);
-    await page.locator(`[${EDIT_PANEL_ATTR}] [${EDIT_PROPERTY_ATTR}="background-color"]`).click();
-    // Ensure the background row is the active arrow-key target before stepping.
+    // Make the (transparent) background row the active arrow-key target via
+    // search ranking — deterministic, unlike a click-then-step race.
+    await setSearchInputValue(page, "background");
     await expect.poll(() => getActivePropertyKey(page)).toBe("background-color");
     await page.keyboard.press("ArrowRight");
     await expect
