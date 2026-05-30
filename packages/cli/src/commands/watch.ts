@@ -54,9 +54,14 @@ export const watch = new Command()
       intervalMs: Number.isFinite(intervalMs) && intervalMs > 0 ? intervalMs : DEFAULT_INTERVAL_MS,
       replayLast: Boolean(options.replayLast),
       onWarn: (message) => process.stderr.write(`react-grab watch: ${message}\n`),
-    }).then((grab) => {
-      if (!grab) process.exit(0);
-      process.stdout.write(`${JSON.stringify(grab)}\n`);
-      process.exit(0);
-    });
+    })
+      .then((grab) => {
+        if (!grab) process.exit(0);
+        process.stdout.write(`${JSON.stringify(grab)}\n`);
+        process.exit(0);
+      })
+      .catch((error) => {
+        process.stderr.write(`react-grab watch: ${String((error as Error)?.message ?? error)}\n`);
+        process.exit(1);
+      });
   });
