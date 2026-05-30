@@ -77,11 +77,16 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [isChevronPressed, setIsChevronPressed] = createSignal(false);
   const [isToolbarHovered, setIsToolbarHovered] = createSignal(false);
   const [selectIconRotationDeg, setSelectIconRotationDeg] = createSignal(0);
+  const [hoveredActionId, setHoveredActionId] = createSignal<string | null>(null);
   const drag = createToolbarDrag({
     getContainerRef: () => containerRef,
     isCollapsed,
     getExpandedDimensions: () => expandedDimensions,
     onDragStart: () => {
+      // Pointer capture during a drag suppresses the button's mouseleave, so
+      // clear the hover here or the tooltip flashes at the snapped position
+      // once isDragging/isSnapping settle.
+      setHoveredActionId(null);
       if (unfreezeUpdatesCallback) {
         unfreezeUpdatesCallback();
         unfreezeUpdatesCallback = null;
@@ -119,7 +124,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const isCopyActive = () =>
     Boolean(props.isActive) && (props.activeActionId ?? DEFAULT_ACTION_ID) === DEFAULT_ACTION_ID;
 
-  const [hoveredActionId, setHoveredActionId] = createSignal<string | null>(null);
   const isTooltipVisible = (actionId: string) =>
     hoveredActionId() === actionId &&
     !props.isActive &&
