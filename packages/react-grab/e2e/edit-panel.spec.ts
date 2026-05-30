@@ -645,6 +645,22 @@ test.describe("Style Panel", () => {
       expect(shiftStepDelta).toBeGreaterThan(oneStepDelta);
     });
 
+    test("typing 'size' on a square element steps width and height together", async ({
+      reactGrab,
+    }) => {
+      const squareSelector = "[data-testid='gradient-div']";
+      await openEditPanel(reactGrab, squareSelector);
+      await setSearchInputValue(reactGrab.page, "size");
+      await expect.poll(() => getActivePropertyKey(reactGrab.page)).toBe("width,height");
+
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+      const width = await getInlineStyleProperty(reactGrab.page, squareSelector, "width");
+      const height = await getInlineStyleProperty(reactGrab.page, squareSelector, "height");
+      expect(width).not.toBe("");
+      expect(width).toBe(height);
+    });
+
     test("ArrowRight cycles font-family", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await typeInSearchInput(reactGrab.page, "font family");

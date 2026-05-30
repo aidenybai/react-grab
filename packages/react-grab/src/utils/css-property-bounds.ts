@@ -44,6 +44,7 @@ export const propertyBounds = (
   if (
     propertyKey === "width" ||
     propertyKey === "height" ||
+    propertyKey === "width,height" ||
     propertyKey.startsWith("min-") ||
     propertyKey.startsWith("max-")
   ) {

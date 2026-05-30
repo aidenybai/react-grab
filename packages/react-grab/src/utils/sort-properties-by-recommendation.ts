@@ -43,6 +43,7 @@ const RECOMMENDED_KEY_ORDER: readonly string[] = [
   "border-top-right-radius",
   "border-bottom-left-radius",
   "border-bottom-right-radius",
+  "width,height",
   "width",
   "height",
   "max-width",

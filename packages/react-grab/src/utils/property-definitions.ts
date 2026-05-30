@@ -235,12 +235,24 @@ const BORDER_WIDTH_AGGREGATES: readonly AggregateDefinition[] = [
   { key: "border-left-width", label: "border left width", longhands: ["border-left-width"] },
 ];
 
+// `size` (Tailwind's `size-*`) sets width and height together. Modeling
+// it as an aggregate lets the canonical-row algorithm surface a single
+// "size" slider for square elements (writing both dimensions at once)
+// and fall back to separate "width" + "height" rows otherwise — which is
+// exactly what users expect when typing `size` for an icon/SVG.
+const SIZE_AGGREGATES: readonly AggregateDefinition[] = [
+  { key: "width,height", label: "size", longhands: ["width", "height"] },
+  { key: "width", label: "width", longhands: ["width"] },
+  { key: "height", label: "height", longhands: ["height"] },
+];
+
 export const AGGREGATE_GROUPS: readonly (readonly AggregateDefinition[])[] = [
   PADDING_AGGREGATES,
   MARGIN_AGGREGATES,
   GAP_AGGREGATES,
   RADIUS_AGGREGATES,
   BORDER_WIDTH_AGGREGATES,
+  SIZE_AGGREGATES,
   INSET_AGGREGATES,
 ];
 
@@ -248,8 +260,6 @@ export const SINGLE_PROPERTIES: readonly { key: TrackedProperty; label: string }
   { key: "font-size", label: "font size" },
   { key: "line-height", label: "line height" },
   { key: "letter-spacing", label: "letter spacing" },
-  { key: "width", label: "width" },
-  { key: "height", label: "height" },
   { key: "min-width", label: "min width" },
   { key: "min-height", label: "min height" },
   { key: "max-width", label: "max width" },
