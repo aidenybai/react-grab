@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { Command } from "commander";
 import pc from "picocolors";
 import { detectNonInteractive } from "../utils/is-non-interactive.js";
@@ -16,6 +17,7 @@ export const add = new Command()
   .description("install the React Grab skill for your agent")
   .option("-y, --yes", "skip confirmation prompts", false)
   .option("-c, --cwd <cwd>", "working directory (defaults to current directory)", process.cwd())
+  .option("-g, --global", "install the skill globally instead of in the project", false)
   .action(async (opts) => {
     console.log(`${pc.magenta("✿")} ${pc.bold("React Grab")} ${pc.gray(VERSION)}`);
     console.log();
@@ -37,7 +39,11 @@ export const add = new Command()
       preflightSpinner.succeed();
       logger.break();
 
-      const didInstall = await promptSkillInstall({ yes: isNonInteractive });
+      const didInstall = await promptSkillInstall({
+        yes: isNonInteractive,
+        global: opts.global,
+        cwd: resolve(opts.cwd),
+      });
       // In non-interactive mode a falsy result is a real failure (no agents or
       // install error), not a user declining the prompt — surface it to CI.
       if (!didInstall && isNonInteractive) {

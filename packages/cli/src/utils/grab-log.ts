@@ -31,21 +31,46 @@ export const readGrabCursor = (dir: string): number => {
   }
 };
 
+const grabReceivedAt = (line: string): number | null => {
+  try {
+    const value = (JSON.parse(line) as { receivedAt?: unknown }).receivedAt;
+    return typeof value === "number" ? value : null;
+  } catch {
+    return null;
+  }
+};
+
 interface ConsumeGrabsOptions {
   limit: number;
   all: boolean;
+  // Grabs captured longer ago than this are stale and skipped (cursor still
+  // advances past them). 0 disables eviction. Records without a parseable
+  // receivedAt are never evicted.
+  maxAgeMs?: number;
 }
 
-// Advances the cursor only past what is returned, so a backlog drains across
-// calls without dropping any. `all` replays everything without touching the
-// cursor. Rewriting the cursor only when it moves also self-heals one left past
-// the end by a truncated history.
+// Advances the cursor only past what it examines, so a backlog drains across
+// calls without dropping any and stale grabs are evicted rather than delivered.
+// `all` replays everything without touching the cursor. Rewriting the cursor only
+// when it moves also self-heals one left past the end by a truncated history.
 export const consumeGrabs = (dir: string, options: ConsumeGrabsOptions): string[] => {
   const lines = readCompleteGrabLines(dir);
   if (options.all) return lines;
+  const maxAgeMs = options.maxAgeMs ?? 0;
   const cursor = readGrabCursor(dir);
-  const start = Math.min(cursor, lines.length);
-  const end = options.limit > 0 ? Math.min(start + options.limit, lines.length) : lines.length;
-  if (end !== cursor) fs.writeFileSync(cursorFilePath(dir), String(end));
-  return lines.slice(start, end);
+  const total = lines.length;
+  const now = Date.now();
+  const fresh: string[] = [];
+  let index = Math.min(cursor, total);
+  while (index < total && (options.limit <= 0 || fresh.length < options.limit)) {
+    const line = lines[index];
+    index += 1;
+    if (maxAgeMs > 0) {
+      const receivedAt = grabReceivedAt(line);
+      if (receivedAt !== null && now - receivedAt > maxAgeMs) continue;
+    }
+    fresh.push(line);
+  }
+  if (index !== cursor) fs.writeFileSync(cursorFilePath(dir), String(index));
+  return fresh;
 };

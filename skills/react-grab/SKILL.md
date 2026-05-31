@@ -30,20 +30,23 @@ capture dir; `--text-only` skips the native clipboard reader.
 
 Repeat until the user says stop:
 
-1. Pull the next grabs (blocks up to 20s for one to arrive, then returns):
+1. Pull the next grab — this blocks until one arrives:
 
 ```bash
-npx grab read --wait 20000
+npx grab read --wait infinite
 ```
 
-Each line of stdout is one grab as JSON. Empty output means nothing new yet —
-just run it again.
+Give the command a long timeout. If your shell cancels it before a grab arrives,
+just run it again — the daemon keeps capturing in the background, so nothing is
+lost. Each line of stdout is one grab as JSON.
 
 2. Act on each grab (below).
 3. Go back to step 1.
 
 `read` advances a cursor (`./.react-grab/cursor.txt`), so each grab is delivered
-exactly once across calls. Add `--all` to replay the whole history from the start.
+exactly once across calls. Grabs older than ~5 minutes are treated as stale and
+skipped (override with `--max-age <ms>`, or `--max-age 0` to never evict). Add
+`--all` to replay the whole history from the start.
 
 ## Gotchas
 

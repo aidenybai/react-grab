@@ -132,6 +132,7 @@ export const init = new Command()
   .option("--skip-install", "skip package installation", false)
   .option("--pkg <pkg>", "custom package URL for CLI (e.g., grab)")
   .option("-c, --cwd <cwd>", "working directory (defaults to current directory)", process.cwd())
+  .option("-g, --global", "install the skill globally instead of in the project", false)
   .action(async (opts) => {
     console.log(`${pc.magenta("✿")} ${pc.bold("React Grab")} ${pc.gray(VERSION)}`);
     console.log();
@@ -344,7 +345,7 @@ export const init = new Command()
         }
 
         logger.break();
-        await promptSkillInstall({ yes: isNonInteractive });
+        await promptSkillInstall({ yes: isNonInteractive, global: opts.global, cwd });
 
         logger.break();
         process.exit(0);
@@ -472,7 +473,11 @@ export const init = new Command()
 
       if (!isNonInteractive) {
         logger.break();
-        didInstallSkill = await promptSkillInstall({ yes: isNonInteractive });
+        didInstallSkill = await promptSkillInstall({
+          yes: isNonInteractive,
+          global: opts.global,
+          cwd,
+        });
       }
 
       const result = previewTransform(

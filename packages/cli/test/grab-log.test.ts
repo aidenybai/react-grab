@@ -12,6 +12,12 @@ const cursorPath = (): string => path.join(dir, "cursor.txt");
 const appendRecord = (id: string): void =>
   fs.appendFileSync(historyPath(), `${JSON.stringify({ id })}\n`);
 const record = (id: string): string => JSON.stringify({ id });
+const appendAged = (id: string, ageMs: number): void =>
+  fs.appendFileSync(historyPath(), `${JSON.stringify({ id, receivedAt: Date.now() - ageMs })}\n`);
+const idsOf = (lines: string[]): string[] =>
+  lines.map((line) => (JSON.parse(line) as { id: string }).id);
+
+const FIVE_MIN_MS = 5 * 60 * 1000;
 
 beforeEach(() => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "rg-grablog-"));
@@ -88,6 +94,49 @@ describe("consumeGrabs cursor semantics", () => {
     expect(readGrabCursor(dir)).toBe(1);
     appendRecord("y");
     expect(consumeGrabs(dir, { limit: 0, all: false })).toEqual([record("y")]);
+  });
+});
+
+describe("consumeGrabs eviction", () => {
+  it("skips grabs older than maxAgeMs and advances the cursor past them", () => {
+    appendAged("old", 10 * 60 * 1000);
+    appendAged("new", 1000);
+    expect(idsOf(consumeGrabs(dir, { limit: 0, all: false, maxAgeMs: FIVE_MIN_MS }))).toEqual([
+      "new",
+    ]);
+    expect(readGrabCursor(dir)).toBe(2);
+    expect(consumeGrabs(dir, { limit: 0, all: false, maxAgeMs: FIVE_MIN_MS })).toEqual([]);
+  });
+
+  it("delivers grabs within maxAgeMs", () => {
+    appendAged("a", 1000);
+    appendAged("b", 2000);
+    expect(idsOf(consumeGrabs(dir, { limit: 0, all: false, maxAgeMs: FIVE_MIN_MS }))).toEqual([
+      "a",
+      "b",
+    ]);
+  });
+
+  it("never evicts records without a receivedAt", () => {
+    appendRecord("no-timestamp");
+    expect(idsOf(consumeGrabs(dir, { limit: 0, all: false, maxAgeMs: 1 }))).toEqual([
+      "no-timestamp",
+    ]);
+  });
+
+  it("maxAgeMs of 0 disables eviction", () => {
+    appendAged("ancient", 60 * 60 * 1000);
+    expect(idsOf(consumeGrabs(dir, { limit: 0, all: false, maxAgeMs: 0 }))).toEqual(["ancient"]);
+  });
+
+  it("evicted grabs do not count against the limit", () => {
+    appendAged("old", 10 * 60 * 1000);
+    appendAged("new1", 1000);
+    appendAged("new2", 1000);
+    expect(idsOf(consumeGrabs(dir, { limit: 2, all: false, maxAgeMs: FIVE_MIN_MS }))).toEqual([
+      "new1",
+      "new2",
+    ]);
   });
 });
 
