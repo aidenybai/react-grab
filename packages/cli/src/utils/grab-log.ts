@@ -36,11 +36,10 @@ interface ConsumeGrabsOptions {
   all: boolean;
 }
 
-// Returns the grabs to emit, advancing the cursor only past what is returned so a
-// backlog drains across calls without dropping any (`limit` of 0 means no cap).
-// `all` replays the whole history without touching the cursor. The cursor is only
-// rewritten when it actually moves, which also self-heals a cursor left past the
-// end by a truncated history.
+// Advances the cursor only past what is returned, so a backlog drains across
+// calls without dropping any. `all` replays everything without touching the
+// cursor. Rewriting the cursor only when it moves also self-heals one left past
+// the end by a truncated history.
 export const consumeGrabs = (dir: string, options: ConsumeGrabsOptions): string[] => {
   const lines = readCompleteGrabLines(dir);
   if (options.all) return lines;

@@ -8,8 +8,6 @@ const PID_FILE_NAME = "watch.pid";
 
 const pidFilePath = (dir: string): string => path.join(dir, PID_FILE_NAME);
 
-// Re-execing the CLI needs the path Node was launched with; fall back to the
-// compiled bundle's own URL on the rare host where argv[1] is absent.
 const cliEntryPath = (): string => process.argv[1] ?? fileURLToPath(import.meta.url);
 
 // Signal 0 only runs the kernel's permission/existence checks without delivering
@@ -39,11 +37,9 @@ export const isDaemonRunning = (dir: string): boolean => {
   return pid !== null && isProcessAlive(pid);
 };
 
-// Atomically claims the per-dir pid file so exactly one daemon body runs per work
-// dir. Returns false when a live daemon already owns it (the caller lost the race
-// and should exit). A pid file left by a crashed daemon is reclaimed. The post-
-// write re-read closes the tiny open->write window where a racing body could see
-// a momentarily-empty file and reclaim it.
+// Atomic `wx` create acts as the per-dir lock; a file left by a crashed daemon is
+// reclaimed. The post-write re-read closes the open->write window where a racing
+// claimant could see a momentarily-empty file and steal it.
 export const claimDaemon = (dir: string): boolean => {
   const file = pidFilePath(dir);
   for (let attempt = 0; attempt < DAEMON_CLAIM_MAX_ATTEMPTS; attempt += 1) {
@@ -73,10 +69,8 @@ export const releaseDaemon = (dir: string): void => {
   }
 };
 
-// Stops the daemon watching `dir`: SIGTERMs it (when alive), then clears the pid
-// file only if it still names that pid, so a successor daemon that already
-// re-claimed the dir is never clobbered. Returns the pid of the live daemon that
-// was stopped, or null when none was running.
+// Removes the pid file only if it still names the pid we signalled, so a
+// successor that already re-claimed the dir is not clobbered.
 export const stopDaemon = (dir: string): number | null => {
   const pid = readDaemonPid(dir);
   if (pid === null) return null;
@@ -101,9 +95,8 @@ interface SpawnDaemonOptions {
   replayLast: boolean;
 }
 
-// Re-execs this CLI as a detached `watch --foreground` process, then unrefs it so
-// the launcher exits immediately while the daemon keeps capturing in the
-// background. The detached child claims the pid file itself (see claimDaemon).
+// Detached + unref'd so the launcher can exit immediately while the daemon keeps
+// running in the background.
 export const spawnDaemon = (options: SpawnDaemonOptions): void => {
   const args = [
     cliEntryPath(),

@@ -37,8 +37,6 @@ const writeStatus = (message: string): void => {
   process.stderr.write(`react-grab watch: ${message}\n`);
 };
 
-// The daemon body. Claims the per-dir lock (exiting quietly if another daemon
-// won the race) then polls the clipboard until the process is signalled.
 const runForeground = (
   dir: string,
   intervalMs: number,

@@ -334,10 +334,8 @@ interface RunWatchLoopOptions {
   onWarn?: (message: string) => void;
 }
 
-// Polls the clipboard forever, appending every newly captured React Grab
-// selection to history.jsonl. Runs until the process is killed (the daemon body
-// keeps it alive for the process's lifetime). Baselines the current clipboard
-// first so a grab already sitting there is not replayed (unless replayLast).
+// Baselines the current clipboard first so a grab already sitting there is not
+// replayed (unless replayLast), then appends each newly captured grab forever.
 export const runWatchLoop = async (options: RunWatchLoopOptions): Promise<void> => {
   const { reader, dir, intervalMs, replayLast, onWarn } = options;
   const logPath = path.join(dir, HISTORY_FILE_NAME);
