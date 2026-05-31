@@ -470,6 +470,150 @@ import ReactDOM from "react-dom/client";`;
   });
 });
 
+describe("previewOptionsTransform - SvelteKit", () => {
+  const hooksWithReactGrab = `if (import.meta.env.DEV) {
+  void import("react-grab");
+}`;
+
+  it("should add options to SvelteKit client hook import", () => {
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("hooks.client.ts"));
+    mockReadFileSync.mockReturnValue(hooksWithReactGrab);
+
+    const options: ReactGrabOptions = {
+      activationKey: "Ctrl+G",
+      activationMode: "hold",
+      keyHoldDuration: 250,
+    };
+
+    const result = previewOptionsTransform("/test", "sveltekit", "unknown", options);
+
+    expect(result.success).toBe(true);
+    expect(result.filePath).toBe("/test/src/hooks.client.ts");
+    expect(result.newContent).toContain(".then((m) => m.init(");
+    expect(result.newContent).not.toContain("void import");
+    expect(result.newContent).toContain('"activationKey":"Ctrl+G"');
+    expect(result.newContent).toContain('"activationMode":"hold"');
+    expect(result.newContent).toContain('"keyHoldDuration":250');
+  });
+
+  it("should update existing SvelteKit options without duplicating", () => {
+    const hooksWithOptions = `if (import.meta.env.DEV) {
+  import("react-grab").then((m) => m.init({"activationKey":"g"}));
+}`;
+
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("hooks.client.ts"));
+    mockReadFileSync.mockReturnValue(hooksWithOptions);
+
+    const options: ReactGrabOptions = {
+      activationKey: "Meta+K",
+    };
+
+    const result = previewOptionsTransform("/test", "sveltekit", "unknown", options);
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).toContain('"activationKey":"Meta+K"');
+    expect(result.newContent).not.toContain('"activationKey":"g"');
+    const initCount = (result.newContent!.match(/\.then\(/g) || []).length;
+    expect(initCount).toBe(1);
+  });
+
+  it("should add options to SvelteKit layout import", () => {
+    const layoutWithReactGrab = `<script>
+  import { onMount } from "svelte";
+
+  onMount(() => {
+    void import("react-grab");
+  });
+</script>
+
+<slot />`;
+
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("+layout.svelte"));
+    mockReadFileSync.mockReturnValue(layoutWithReactGrab);
+
+    const options: ReactGrabOptions = {
+      activationKey: "Meta+G",
+    };
+
+    const result = previewOptionsTransform("/test", "sveltekit", "unknown", options);
+
+    expect(result.success).toBe(true);
+    expect(result.filePath).toBe("/test/src/routes/+layout.svelte");
+    expect(result.newContent).toContain('import("react-grab").then((m) => m.init(');
+    expect(result.newContent).not.toContain("void import");
+    expect(result.newContent).toContain('"activationKey":"Meta+G"');
+  });
+
+  it("should add options to SvelteKit app.html script tag", () => {
+    const appHtmlWithReactGrab = `<html>
+  <head><script src="/react-grab.js"></script></head>
+  <body>%sveltekit.body%</body>
+</html>`;
+
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("app.html"));
+    mockReadFileSync.mockReturnValue(appHtmlWithReactGrab);
+
+    const options: ReactGrabOptions = {
+      activationKey: "Meta+G",
+      activationMode: "hold",
+    };
+
+    const result = previewOptionsTransform("/test", "sveltekit", "unknown", options);
+
+    expect(result.success).toBe(true);
+    expect(result.filePath).toBe("/test/src/app.html");
+    expect(result.newContent).toContain("data-options='");
+    expect(result.newContent).toContain('"activationKey":"Meta+G"');
+    expect(result.newContent).toContain('"activationMode":"hold"');
+  });
+
+  it("should escape SvelteKit app.html script options", () => {
+    const appHtmlWithReactGrab = `<html>
+  <head><script src="/react-grab.js"></script></head>
+  <body>%sveltekit.body%</body>
+</html>`;
+
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("app.html"));
+    mockReadFileSync.mockReturnValue(appHtmlWithReactGrab);
+
+    const options: ReactGrabOptions = {
+      activationKey: "Meta+'&",
+    };
+
+    const result = previewOptionsTransform("/test", "sveltekit", "unknown", options);
+
+    expect(result.success).toBe(true);
+    expect(result.filePath).toBe("/test/src/app.html");
+    expect(result.newContent).toContain("data-options='");
+    expect(result.newContent).toContain("&amp;");
+    expect(result.newContent).toContain("&#39;");
+    expect(result.newContent).not.toContain(`"activationKey":"Meta+'&"`);
+  });
+
+  it("should update existing SvelteKit app.html script options", () => {
+    const appHtmlWithReactGrabOptions = `<html>
+  <head><script src="/react-grab.js" data-options='{"activationKey":"g"}'></script></head>
+  <body>%sveltekit.body%</body>
+</html>`;
+
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("app.html"));
+    mockReadFileSync.mockReturnValue(appHtmlWithReactGrabOptions);
+
+    const options: ReactGrabOptions = {
+      activationKey: "Meta+K",
+    };
+
+    const result = previewOptionsTransform("/test", "sveltekit", "unknown", options);
+
+    expect(result.success).toBe(true);
+    expect(result.filePath).toBe("/test/src/app.html");
+    expect(result.newContent).toContain('"activationKey":"Meta+K"');
+    expect(result.newContent).not.toContain('"activationKey":"g"');
+    const dataOptionsCount = (result.newContent!.match(/data-options/g) || []).length;
+    expect(dataOptionsCount).toBe(1);
+  });
+});
+
 describe("previewOptionsTransform - Unknown framework", () => {
   it("should fail for unknown framework (no file found)", () => {
     mockExistsSync.mockReturnValue(false);

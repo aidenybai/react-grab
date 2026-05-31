@@ -70,6 +70,11 @@ describe("hasFrameworkEntryPoint", () => {
     expect(hasFrameworkEntryPoint("/app", "tanstack", "unknown")).toBe(true);
   });
 
+  it("returns true for SvelteKit when src exists", () => {
+    mockExistsSync.mockImplementation((path) => pathEndsWith(path, "src"));
+    expect(hasFrameworkEntryPoint("/app", "sveltekit", "unknown")).toBe(true);
+  });
+
   it("returns false for an unknown framework", () => {
     mockExistsSync.mockReturnValue(true);
     expect(hasFrameworkEntryPoint("/app", "unknown", "unknown")).toBe(false);
@@ -160,6 +165,116 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     expect(result.success).toBe(true);
     expect(result.newContent).toContain('import("react-grab")');
     expect(result.newContent).toContain("import.meta.env.DEV");
+  });
+});
+
+describe("previewTransform - SvelteKit", () => {
+  it("should create hooks.client.ts when no client hook exists", () => {
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("/src"));
+
+    const result = previewTransform("/test", "sveltekit", "unknown", false);
+
+    expect(result.success).toBe(true);
+    expect(result.filePath).toBe("/test/src/hooks.client.ts");
+    expect(result.originalContent).toBe("");
+    expect(result.newContent).toContain('void import("react-grab")');
+    expect(result.newContent).toContain("import.meta.env.DEV");
+  });
+
+  it("should add React Grab to an existing TypeScript client hook", () => {
+    const hooksContent = `export const handleError = ({ error }) => {
+  console.error(error);
+};`;
+
+    mockExistsSync.mockImplementation((path) => {
+      const pathString = String(path);
+      return pathString.endsWith("/src") || pathString.endsWith("hooks.client.ts");
+    });
+    mockReadFileSync.mockReturnValue(hooksContent);
+
+    const result = previewTransform("/test", "sveltekit", "unknown", false);
+
+    expect(result.success).toBe(true);
+    expect(result.filePath).toBe("/test/src/hooks.client.ts");
+    expect(result.newContent).toContain('void import("react-grab")');
+    expect(result.newContent).toContain(hooksContent);
+  });
+
+  it("should add React Grab to an existing JavaScript client hook", () => {
+    mockExistsSync.mockImplementation((path) => {
+      const pathString = String(path);
+      return pathString.endsWith("/src") || pathString.endsWith("hooks.client.js");
+    });
+    mockReadFileSync.mockReturnValue("export const reroute = () => undefined;");
+
+    const result = previewTransform("/test", "sveltekit", "unknown", false);
+
+    expect(result.success).toBe(true);
+    expect(result.filePath).toBe("/test/src/hooks.client.js");
+    expect(result.newContent).toContain('void import("react-grab")');
+  });
+
+  it("should not duplicate if React Grab already exists in hooks.client", () => {
+    mockExistsSync.mockImplementation((path) => {
+      const pathString = String(path);
+      return pathString.endsWith("/src") || pathString.endsWith("hooks.client.ts");
+    });
+    mockReadFileSync.mockReturnValue(`if (import.meta.env.DEV) {
+  void import("react-grab");
+}`);
+
+    const result = previewTransform("/test", "sveltekit", "unknown", false);
+
+    expect(result.success).toBe(true);
+    expect(result.noChanges).toBe(true);
+  });
+
+  it("should not duplicate if React Grab already exists in app.html", () => {
+    mockExistsSync.mockImplementation((path) => {
+      const pathString = String(path);
+      return pathString.endsWith("/src") || pathString.endsWith("app.html");
+    });
+    mockReadFileSync.mockReturnValue(`<html>
+  <head><script src="/react-grab.js"></script></head>
+  <body>%sveltekit.body%</body>
+</html>`);
+
+    const result = previewTransform("/test", "sveltekit", "unknown", false);
+
+    expect(result.success).toBe(true);
+    expect(result.noChanges).toBe(true);
+    expect(result.filePath).toBe("/test/src/app.html");
+  });
+
+  it("should not duplicate if React Grab already exists in +layout.svelte", () => {
+    mockExistsSync.mockImplementation((path) => {
+      const pathString = String(path);
+      return pathString.endsWith("/src") || pathString.endsWith("+layout.svelte");
+    });
+    mockReadFileSync.mockReturnValue(`<script>
+  import { onMount } from "svelte";
+
+  onMount(() => {
+    void import("react-grab");
+  });
+</script>
+
+<slot />`);
+
+    const result = previewTransform("/test", "sveltekit", "unknown", false);
+
+    expect(result.success).toBe(true);
+    expect(result.noChanges).toBe(true);
+    expect(result.filePath).toBe("/test/src/routes/+layout.svelte");
+  });
+
+  it("should fail when src directory is missing", () => {
+    mockExistsSync.mockReturnValue(false);
+
+    const result = previewTransform("/test", "sveltekit", "unknown", false);
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("Could not find src/ directory");
   });
 });
 

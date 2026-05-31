@@ -4,9 +4,9 @@ import { detect } from "package-manager-detector/detect";
 import ignore from "ignore";
 
 export type PackageManager = "npm" | "yarn" | "pnpm" | "bun";
-export type Framework = "next" | "vite" | "tanstack" | "webpack" | "unknown";
+export type Framework = "next" | "vite" | "tanstack" | "webpack" | "sveltekit" | "unknown";
 export type NextRouterType = "app" | "pages" | "unknown";
-export type UnsupportedFramework = "remix" | "astro" | "sveltekit" | "gatsby" | null;
+export type UnsupportedFramework = "remix" | "astro" | "gatsby" | null;
 
 interface ProjectInfo {
   packageManager: PackageManager;
@@ -59,6 +59,7 @@ const detectFrameworkFromDependencies = (
   if (!dependencies) return "unknown";
   if (dependencies["next"]) return "next";
   if (dependencies["@tanstack/react-start"]) return "tanstack";
+  if (dependencies["@sveltejs/kit"]) return "sveltekit";
   if (dependencies["vite"]) return "vite";
   if (dependencies["webpack"]) return "webpack";
   return "unknown";
@@ -67,6 +68,7 @@ const detectFrameworkFromDependencies = (
 const detectFrameworkFromConfigFiles = (projectRoot: string): Framework => {
   if (hasConfigFile(projectRoot, "next.config")) return "next";
   if (hasConfigFile(projectRoot, "app.config")) return "tanstack";
+  if (hasConfigFile(projectRoot, "svelte.config")) return "sveltekit";
   if (hasConfigFile(projectRoot, "vite.config")) return "vite";
   if (hasConfigFile(projectRoot, "webpack.config")) return "webpack";
   return "unknown";
@@ -386,6 +388,10 @@ export const detectReactGrab = (projectRoot: string): boolean => {
     join(projectRoot, "src", "routes", "__root.jsx"),
     join(projectRoot, "app", "routes", "__root.tsx"),
     join(projectRoot, "app", "routes", "__root.jsx"),
+    join(projectRoot, "src", "hooks.client.ts"),
+    join(projectRoot, "src", "hooks.client.js"),
+    join(projectRoot, "src", "app.html"),
+    join(projectRoot, "src", "routes", "+layout.svelte"),
   ];
 
   return filesToCheck.some(hasReactGrabInFile);
@@ -396,7 +402,6 @@ export const detectUnsupportedFramework = (projectRoot: string): UnsupportedFram
   if (!dependencies) return null;
   if (dependencies["@remix-run/react"] || dependencies["remix"]) return "remix";
   if (dependencies["astro"]) return "astro";
-  if (dependencies["@sveltejs/kit"]) return "sveltekit";
   if (dependencies["gatsby"]) return "gatsby";
   return null;
 };

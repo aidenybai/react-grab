@@ -9,7 +9,7 @@ Install React Grab in a React project to enable element grabbing for AI coding a
 ## DONE WHEN
 
 - [ ] React Grab package is installed
-- [ ] Framework integration is configured (Next.js, Vite, or Webpack)
+- [ ] Framework integration is configured (Next.js, Vite, SvelteKit, or Webpack)
 - [ ] Running the dev server shows the grab overlay when pressing the activation key
 
 ## INSTALLATION
@@ -28,7 +28,7 @@ The CLI will auto-detect your framework and configure everything automatically.
 
 ```
 Options:
-  -f, --framework        Override detected framework [choices: "next", "vite", "webpack"]
+  -f, --framework        Override detected framework [choices: "next", "vite", "sveltekit", "webpack"]
   -p, --package-manager  Override detected package manager [choices: "npm", "yarn", "pnpm", "bun"]
   -r, --router           Next.js router type [choices: "app", "pages"]
   -k, --key              Activation key (e.g., "Meta+K", "Ctrl+Shift+G", "Space")
@@ -117,6 +117,16 @@ export default function Document() {
 Add to your main entry file (e.g., `src/main.tsx`):
 
 ```tsx
+if (import.meta.env.DEV) {
+  import("react-grab");
+}
+```
+
+#### SvelteKit
+
+Add to `src/hooks.client.ts`:
+
+```ts
 if (import.meta.env.DEV) {
   import("react-grab");
 }

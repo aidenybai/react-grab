@@ -1,9 +1,10 @@
 import { accessSync, constants, existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import type { Framework, NextRouterType } from "./detect.js";
 import {
   NEXT_APP_ROUTER_SCRIPT,
   SCRIPT_IMPORT,
+  SVELTEKIT_IMPORT,
   TANSTACK_EFFECT,
   VITE_IMPORT,
   WEBPACK_IMPORT,
@@ -145,6 +146,31 @@ const findTanStackRootFile = (projectRoot: string): string | null => {
 
   for (const filePath of possiblePaths) {
     if (existsSync(filePath)) {
+      return filePath;
+    }
+  }
+
+  return null;
+};
+
+const findSvelteKitHooksClientFile = (projectRoot: string): string | null => {
+  const candidates = [
+    join(projectRoot, "src", "hooks.client.ts"),
+    join(projectRoot, "src", "hooks.client.js"),
+  ];
+  return candidates.find(existsSync) ?? null;
+};
+
+const findSvelteKitReactGrabFile = (projectRoot: string): string | null => {
+  const candidates = [
+    join(projectRoot, "src", "hooks.client.ts"),
+    join(projectRoot, "src", "hooks.client.js"),
+    join(projectRoot, "src", "app.html"),
+    join(projectRoot, "src", "routes", "+layout.svelte"),
+  ];
+
+  for (const filePath of candidates) {
+    if (existsSync(filePath) && hasReactGrabCode(readFileSync(filePath, "utf-8"))) {
       return filePath;
     }
   }
@@ -395,6 +421,58 @@ const transformWebpack = (
   };
 };
 
+const transformSvelteKit = (
+  projectRoot: string,
+  reactGrabAlreadyConfigured: boolean,
+  force: boolean = false,
+): TransformResult => {
+  if (!force) {
+    const existingReactGrabFile = findSvelteKitReactGrabFile(projectRoot);
+    if (existingReactGrabFile) {
+      const existingResult = checkExistingInstallation(
+        existingReactGrabFile,
+        reactGrabAlreadyConfigured,
+      );
+      if (existingResult) return existingResult;
+    }
+  }
+
+  if (!existsSync(join(projectRoot, "src"))) {
+    return {
+      success: false,
+      filePath: "",
+      message: "Could not find src/ directory for SvelteKit project",
+    };
+  }
+
+  const existingHooks = findSvelteKitHooksClientFile(projectRoot);
+
+  if (existingHooks) {
+    if (!force) {
+      const existing = checkExistingInstallation(existingHooks, reactGrabAlreadyConfigured);
+      if (existing) return existing;
+    }
+    const originalContent = readFileSync(existingHooks, "utf-8");
+    const newContent = `${SVELTEKIT_IMPORT}\n\n${originalContent}`;
+    return {
+      success: true,
+      filePath: existingHooks,
+      message: "Add React Grab",
+      originalContent,
+      newContent,
+    };
+  }
+
+  const newFilePath = join(projectRoot, "src", "hooks.client.ts");
+  return {
+    success: true,
+    filePath: newFilePath,
+    message: "Create src/hooks.client.ts with React Grab",
+    originalContent: "",
+    newContent: `${SVELTEKIT_IMPORT}\n`,
+  };
+};
+
 const transformTanStack = (
   projectRoot: string,
   reactGrabAlreadyConfigured: boolean,
@@ -499,6 +577,8 @@ export const hasFrameworkEntryPoint = (
       return findEntryFile(projectRoot) !== null;
     case "tanstack":
       return findTanStackRootFile(projectRoot) !== null;
+    case "sveltekit":
+      return existsSync(join(projectRoot, "src"));
     default:
       return false;
   }
@@ -527,6 +607,9 @@ export const previewTransform = (
     case "webpack":
       return transformWebpack(projectRoot, reactGrabAlreadyConfigured, force);
 
+    case "sveltekit":
+      return transformSvelteKit(projectRoot, reactGrabAlreadyConfigured, force);
+
     default:
       return {
         success: false,
@@ -538,7 +621,11 @@ export const previewTransform = (
 
 const canWriteToFile = (filePath: string): boolean => {
   try {
-    accessSync(filePath, constants.W_OK);
+    if (existsSync(filePath)) {
+      accessSync(filePath, constants.W_OK);
+    } else {
+      accessSync(dirname(filePath), constants.W_OK);
+    }
     return true;
   } catch {
     return false;
@@ -619,6 +706,9 @@ const formatOptionsAsJson = (options: ReactGrabOptions): string => {
   return JSON.stringify(cleanOptions);
 };
 
+const escapeSingleQuotedHtmlAttribute = (value: string): string =>
+  value.replace(/&/g, "&amp;").replace(/'/g, "&#39;");
+
 const findReactGrabFile = (
   projectRoot: string,
   framework: Framework,
@@ -645,6 +735,8 @@ const findReactGrabFile = (
       return findTanStackRootFile(projectRoot);
     case "webpack":
       return findEntryFile(projectRoot);
+    case "sveltekit":
+      return findSvelteKitReactGrabFile(projectRoot) ?? findSvelteKitHooksClientFile(projectRoot);
     default:
       return null;
   }
@@ -707,6 +799,59 @@ const addOptionsToDynamicImport = (
       success: false,
       filePath,
       message: "Could not find React Grab import",
+    };
+  }
+
+  const optionsJson = formatOptionsAsJson(options);
+  const newImport = `import("react-grab").then((m) => m.init(${optionsJson}))`;
+
+  const newContent = originalContent.replace(reactGrabImportWithInitMatch[0], newImport);
+
+  return {
+    success: true,
+    filePath,
+    message: "Update React Grab options",
+    originalContent,
+    newContent,
+  };
+};
+
+const addOptionsToSvelteKitImport = (
+  originalContent: string,
+  options: ReactGrabOptions,
+  filePath: string,
+): TransformResult => {
+  const reactGrabImportWithInitMatch = originalContent.match(
+    /(?:void\s+)?import\s*\(\s*["']react-grab["']\s*\)(?:\.then\s*\(\s*\(m\)\s*=>\s*m\.init\s*\([^)]*\)\s*\))?/,
+  );
+
+  if (!reactGrabImportWithInitMatch) {
+    const reactGrabScriptMatch = originalContent.match(/<script\b[^>]*react-grab[^>]*>/i);
+
+    if (!reactGrabScriptMatch) {
+      return {
+        success: false,
+        filePath,
+        message: "Could not find React Grab import or script tag",
+      };
+    }
+
+    const scriptTag = reactGrabScriptMatch[0];
+    const optionsJson = formatOptionsAsJson(options);
+    const escapedOptionsJson = escapeSingleQuotedHtmlAttribute(optionsJson);
+    const dataOptionsAttr = `data-options='${escapedOptionsJson}'`;
+    const existingDataOptionsMatch = scriptTag.match(/\sdata-options=(["']).*?\1/);
+    const newScriptTag = existingDataOptionsMatch
+      ? scriptTag.replace(existingDataOptionsMatch[0], ` ${dataOptionsAttr}`)
+      : scriptTag.replace(/>$/, ` ${dataOptionsAttr}>`);
+    const newContent = originalContent.replace(scriptTag, newScriptTag);
+
+    return {
+      success: true,
+      filePath,
+      message: "Update React Grab options",
+      originalContent,
+      newContent,
     };
   }
 
@@ -790,6 +935,8 @@ export const previewOptionsTransform = (
       return addOptionsToTanStackImport(originalContent, options, filePath);
     case "webpack":
       return addOptionsToDynamicImport(originalContent, options, filePath);
+    case "sveltekit":
+      return addOptionsToSvelteKitImport(originalContent, options, filePath);
     default:
       return {
         success: false,
