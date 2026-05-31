@@ -5,6 +5,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import {
   claimDaemon,
+  ensureDaemon,
   isDaemonRunning,
   readDaemonPid,
   releaseDaemon,
@@ -148,5 +149,16 @@ describe("stopDaemon", () => {
     expect(fs.existsSync(pidFilePath())).toBe(false);
     await waitForDead(livePid);
     expect(isAlive(livePid)).toBe(false);
+  });
+});
+
+describe("ensureDaemon", () => {
+  it("is a no-op when a daemon already watches the dir (does not spawn another)", () => {
+    const livePid = spawnLiveProcess();
+    writePidFile(String(livePid));
+    expect(ensureDaemon({ dir, intervalMs: 800, textOnly: true, replayLast: false })).toBe(
+      "already-running",
+    );
+    expect(readDaemonPid(dir)).toBe(livePid);
   });
 });

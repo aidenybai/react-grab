@@ -49,17 +49,7 @@ const collectGrabs = (
     const logPath = path.join(dir, "history.jsonl");
     const child = spawn(
       process.execPath,
-      [
-        CLI_BIN,
-        "watch",
-        "--foreground",
-        "--dir",
-        dir,
-        "--interval",
-        "120",
-        "--replay-last",
-        ...extraArgs,
-      ],
+      [CLI_BIN, "watch", "--dir", dir, "--interval", "120", "--replay-last", ...extraArgs],
       { stdio: "ignore" },
     );
     const readRecords = (): CapturedRecord[] => {

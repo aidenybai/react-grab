@@ -35,8 +35,6 @@ const installedSkillDir = (agent: SkillAgentType, global: boolean, cwd: string):
 
 interface PromptSkillInstallOptions {
   yes?: boolean;
-  // Install into the user's home agent dirs instead of the project (default:
-  // project, so the skill is committable and lives beside the project's others).
   global?: boolean;
   cwd?: string;
 }
@@ -92,20 +90,25 @@ export const promptSkillInstall = async ({
   return true;
 };
 
-// Removes the skill from both the project and the global locations so `remove`
-// cleans up regardless of where a past install (or version) put it.
-export const removeSkill = async (cwd: string = process.cwd()): Promise<number> => {
+interface RemoveSkillOptions {
+  cwd?: string;
+  global?: boolean;
+}
+
+// Scoped like install (project unless global) so it won't delete a global install
+// from inside an unrelated project.
+export const removeSkill = async ({
+  cwd = process.cwd(),
+  global = false,
+}: RemoveSkillOptions = {}): Promise<number> => {
   const agents = await detectAvailableAgents();
   const removedAgents: SkillAgentType[] = [];
   const dirsToRemove = new Set<string>();
   for (const agent of agents) {
-    const present = [
-      installedSkillDir(agent, false, cwd),
-      installedSkillDir(agent, true, cwd),
-    ].filter((dir) => existsSync(dir));
-    if (present.length === 0) continue;
+    const skillDir = installedSkillDir(agent, global, cwd);
+    if (!existsSync(skillDir)) continue;
     removedAgents.push(agent);
-    for (const dir of present) dirsToRemove.add(dir);
+    dirsToRemove.add(skillDir);
   }
   for (const skillDir of dirsToRemove) {
     rmSync(skillDir, { recursive: true, force: true });

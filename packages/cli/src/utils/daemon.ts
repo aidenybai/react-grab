@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { createReader } from "./clipboard.js";
 import { DAEMON_CLAIM_MAX_ATTEMPTS } from "./constants.js";
 
 const PID_FILE_NAME = "watch.pid";
@@ -88,20 +89,19 @@ export const stopDaemon = (dir: string): number | null => {
   return wasAlive ? pid : null;
 };
 
-interface SpawnDaemonOptions {
+interface EnsureDaemonOptions {
   dir: string;
   intervalMs: number;
   textOnly: boolean;
   replayLast: boolean;
 }
 
-// Detached + unref'd so the launcher can exit immediately while the daemon keeps
-// running in the background.
-export const spawnDaemon = (options: SpawnDaemonOptions): void => {
+// Detached + unref'd so the caller exits immediately while the daemon keeps
+// running. Re-execs the hidden `watch` command, which is the capture-daemon body.
+const spawnDaemon = (options: EnsureDaemonOptions): void => {
   const args = [
     cliEntryPath(),
     "watch",
-    "--foreground",
     "--dir",
     options.dir,
     "--interval",
@@ -115,4 +115,16 @@ export const spawnDaemon = (options: SpawnDaemonOptions): void => {
     windowsHide: true,
   });
   child.unref();
+};
+
+export type EnsureDaemonResult = "already-running" | "started" | "no-reader";
+
+// Starts the capture daemon if one isn't already watching `dir`. Validates the
+// clipboard reader first: the detached daemon's stderr is discarded, so a missing
+// reader would otherwise fail invisibly.
+export const ensureDaemon = (options: EnsureDaemonOptions): EnsureDaemonResult => {
+  if (isDaemonRunning(options.dir)) return "already-running";
+  if (!createReader({ textOnly: options.textOnly, workDir: options.dir })) return "no-reader";
+  spawnDaemon(options);
+  return "started";
 };

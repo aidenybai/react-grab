@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { Command } from "commander";
 import pc from "picocolors";
 import { handleError } from "../utils/handle-error.js";
@@ -10,13 +11,15 @@ const VERSION = process.env.VERSION ?? "0.0.1";
 export const remove = new Command()
   .name("remove")
   .description("uninstall the React Grab skill from your agent")
-  .action(async () => {
+  .option("-c, --cwd <cwd>", "working directory (defaults to current directory)", process.cwd())
+  .option("-g, --global", "remove the globally-installed skill instead of the project's", false)
+  .action(async (opts) => {
     console.log(`${pc.magenta("✿")} ${pc.bold("React Grab")} ${pc.gray(VERSION)}`);
     console.log();
 
     try {
       logger.break();
-      const removedCount = await removeSkill();
+      const removedCount = await removeSkill({ cwd: resolve(opts.cwd), global: opts.global });
 
       logger.break();
       if (removedCount === 0) {
