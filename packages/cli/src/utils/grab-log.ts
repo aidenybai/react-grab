@@ -79,7 +79,12 @@ export const consumeGrabs = (dir: string, options: ConsumeGrabsOptions): string[
   const cursor = readGrabCursor(dir);
   // A cursor past EOF means the history was truncated/rotated under us; restart.
   const start = cursor > size ? 0 : cursor;
-  if (start >= size) return [];
+  if (start >= size) {
+    // Persist a truncation reset even with nothing to read, or a later-grown file
+    // would be read from the stale offset and skip its leading records.
+    if (start !== cursor) writeGrabCursor(dir, start);
+    return [];
+  }
 
   const chunk = readHistoryRange(dir, start, Math.min(size - start, MAX_READ_HISTORY_BYTES));
   const lastNewline = chunk.lastIndexOf("\n");

@@ -37,9 +37,9 @@ npx grab read --wait infinite
 ```
 
 Give the command a long timeout. If your shell cancels it before a grab arrives,
-re-run it — a cancelled wait loses nothing, because the daemon keeps capturing in
-the background and the cursor only advances on delivery. Each line of stdout is
-one grab as JSON.
+re-run it — a cancelled wait loses nothing: the daemon keeps capturing in the
+background, and a re-run resumes from the cursor. Each line of stdout is one grab
+as JSON.
 
 2. Act on each grab (below).
 3. Go back to step 1.

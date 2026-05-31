@@ -108,6 +108,16 @@ describe("consumeGrabs cursor semantics", () => {
     appendRecord("y");
     expect(consume()).toEqual([record("y")]);
   });
+
+  it("resets a stale cursor when the history is emptied, so later appends are not skipped", () => {
+    appendRecord("1");
+    consume();
+    fs.writeFileSync(historyPath(), "");
+    expect(consume()).toEqual([]);
+    expect(readGrabCursor(dir)).toBe(0);
+    appendRecord("2");
+    expect(consume()).toEqual([record("2")]);
+  });
 });
 
 describe("consumeGrabs eviction", () => {
