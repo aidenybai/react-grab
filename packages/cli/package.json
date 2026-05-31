@@ -1,6 +1,10 @@
 {
   "name": "@react-grab/cli",
   "version": "0.1.43",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aidenybai/react-grab.git"
+  },
   "bin": {
     "react-grab": "./bin/cli.js"
   },
