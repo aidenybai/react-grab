@@ -136,6 +136,15 @@ describe("consumeGrabs cursor semantics", () => {
     appendRecord("3");
     expect(consume()).toEqual([record("3")]);
   });
+
+  it("computes an exact migration offset across the chunk boundary on a large history", () => {
+    const big = (id: string): string => JSON.stringify({ id, pad: "x".repeat(600 * 1024) });
+    fs.writeFileSync(historyPath(), `${big("1")}\n${big("2")}\n${big("3")}\n`);
+    expect(historySize()).toBeGreaterThan(1024 * 1024);
+    fs.writeFileSync(cursorPath(), "2");
+    expect(consume()).toEqual([big("3")]);
+    expect(consume()).toEqual([]);
+  });
 });
 
 describe("consumeGrabs eviction", () => {

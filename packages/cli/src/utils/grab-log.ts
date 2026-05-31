@@ -1,9 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import { HISTORY_FILE_NAME } from "./clipboard.js";
-import { MAX_READ_HISTORY_BYTES } from "./constants.js";
+import { MAX_READ_HISTORY_BYTES, MIGRATION_SCAN_CHUNK_BYTES } from "./constants.js";
 
 const CURSOR_FILE_NAME = "cursor.txt";
+const NEWLINE_BYTE = 0x0a;
 
 const cursorFilePath = (dir: string): string => path.join(dir, CURSOR_FILE_NAME);
 const historyFilePath = (dir: string): string => path.join(dir, HISTORY_FILE_NAME);
@@ -37,22 +38,34 @@ const writeGrabCursor = (dir: string, offset: number): void => {
   fs.renameSync(tempPath, target);
 };
 
+// Exact byte offset after `lineCount` newlines, scanned in bounded chunks so a
+// huge legacy history neither materializes a >512 MB string nor clamps to a scan
+// window (which would re-deliver or drop records on migration). `\n` (0x0A) never
+// occurs inside a multi-byte UTF-8 sequence, so counting bytes is correct.
 const byteOffsetAfterLines = (dir: string, lineCount: number): number => {
-  const size = fileSize(historyFilePath(dir));
+  const filePath = historyFilePath(dir);
+  const size = fileSize(filePath);
   if (lineCount <= 0 || size === 0) return 0;
-  const raw = readHistoryRange(dir, 0, Math.min(size, MAX_READ_HISTORY_BYTES));
-  let index = 0;
-  let seen = 0;
-  while (seen < lineCount) {
-    const newlineIndex = raw.indexOf("\n", index);
-    // The Nth line is past the scan window (huge history) or doesn't exist (the
-    // history has fewer lines): baseline at EOF rather than re-delivering from the
-    // window boundary.
-    if (newlineIndex < 0) return size;
-    index = newlineIndex + 1;
-    seen += 1;
+  const fd = fs.openSync(filePath, "r");
+  try {
+    const buffer = Buffer.allocUnsafe(MIGRATION_SCAN_CHUNK_BYTES);
+    let position = 0;
+    let seen = 0;
+    while (position < size) {
+      const bytesRead = fs.readSync(fd, buffer, 0, MIGRATION_SCAN_CHUNK_BYTES, position);
+      if (bytesRead <= 0) break;
+      for (let index = 0; index < bytesRead; index += 1) {
+        if (buffer[index] !== NEWLINE_BYTE) continue;
+        seen += 1;
+        if (seen === lineCount) return position + index + 1;
+      }
+      position += bytesRead;
+    }
+  } finally {
+    fs.closeSync(fd);
   }
-  return Buffer.byteLength(raw.slice(0, index), "utf8");
+  // Fewer than lineCount complete lines exist; the legacy cursor consumed all of them.
+  return size;
 };
 
 // Byte offset into history.jsonl (not a line index), so an idle poll can tell
