@@ -147,7 +147,7 @@ const ToolsList = (): ReactElement => (
   <span className="text-pretty">
     Get <CyclingAgent /> to the right code{" "}
     <Link
-      href="https://benchmarks.react-grab.com"
+      href="https://benchmark.react-grab.com"
       rel="noreferrer"
       className="shimmer-text-pink inline-block touch-manipulation py-1"
     >
