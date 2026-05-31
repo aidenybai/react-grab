@@ -7,7 +7,7 @@ export const parseWaitMs = (raw: string | undefined): number | null => {
   return Number.isFinite(ms) && ms >= 0 ? ms : null;
 };
 
-export const parseGrabCount = (raw: string | undefined): number | null => {
+export const parseNonNegativeInt = (raw: string | undefined): number | null => {
   if (raw === undefined) return null;
   const trimmed = raw.trim();
   // Number("") and Number("  ") are 0, which would mask empty/garbage input.

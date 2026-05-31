@@ -2,12 +2,17 @@ import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { sleep } from "./sleep.js";
 
 export const HISTORY_FILE_NAME = "history.jsonl";
 
 export const NO_READER_MESSAGE =
   "no clipboard reader available. Linux: install xclip or wl-clipboard. macOS: install Xcode CLI tools (swiftc) or rely on pbpaste. Windows: ensure PowerShell is on PATH.";
+
+// Native readers (read-clipboard.swift / .ps1) are copied next to the compiled
+// CLI at build time (see scripts/copy-native-readers.mjs).
+const READERS_DIR = path.dirname(fileURLToPath(import.meta.url));
 
 const READ_TIMEOUT_MS = 2500;
 const MAX_CLIPBOARD_BYTES = 64 * 1024 * 1024;
@@ -78,8 +83,6 @@ interface LinuxTool {
 
 interface CreateReaderOptions {
   textOnly: boolean;
-  // Directory holding the native reader sources (read-clipboard.swift / .ps1).
-  readersDir: string;
   // Writable directory for the compiled native binary (e.g. macOS `pbread`).
   workDir: string;
 }
@@ -195,7 +198,7 @@ const compileSwiftReader = (readersDir: string, workDir: string): string | null 
 };
 
 const createDarwinReader = (options: CreateReaderOptions): ClipboardReader | null => {
-  const binary = options.textOnly ? null : compileSwiftReader(options.readersDir, options.workDir);
+  const binary = options.textOnly ? null : compileSwiftReader(READERS_DIR, options.workDir);
   if (binary) {
     return {
       mode: "darwin-native",
@@ -270,7 +273,7 @@ const detectPowershell = (): string | null =>
 const createWindowsReader = (options: CreateReaderOptions): ClipboardReader | null => {
   const shell = detectPowershell();
   if (!shell) return null;
-  const scriptPath = path.join(options.readersDir, "read-clipboard.ps1");
+  const scriptPath = path.join(READERS_DIR, "read-clipboard.ps1");
   if (options.textOnly || !fs.existsSync(scriptPath)) {
     return {
       mode: "win-text",

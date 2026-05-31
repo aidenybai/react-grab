@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { parseGrabCount, parseWaitMs } from "../src/utils/read-args.js";
+import { parseNonNegativeInt, parseWaitMs } from "../src/utils/read-args.js";
 
 describe("parseWaitMs", () => {
   it("treats missing/empty as no wait", () => {
@@ -28,17 +28,17 @@ describe("parseWaitMs", () => {
   });
 });
 
-describe("parseGrabCount", () => {
+describe("parseNonNegativeInt", () => {
   it("accepts non-negative integers", () => {
-    expect(parseGrabCount("0")).toBe(0);
-    expect(parseGrabCount("50")).toBe(50);
-    expect(parseGrabCount(" 7 ")).toBe(7);
+    expect(parseNonNegativeInt("0")).toBe(0);
+    expect(parseNonNegativeInt("50")).toBe(50);
+    expect(parseNonNegativeInt(" 7 ")).toBe(7);
   });
 
   it("returns null for negative, fractional, or non-numeric input", () => {
     for (const raw of ["-1", "1.5", "abc", "", "Infinity"]) {
-      expect(parseGrabCount(raw)).toBe(null);
+      expect(parseNonNegativeInt(raw)).toBe(null);
     }
-    expect(parseGrabCount(undefined)).toBe(null);
+    expect(parseNonNegativeInt(undefined)).toBe(null);
   });
 });

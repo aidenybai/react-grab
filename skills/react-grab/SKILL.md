@@ -11,8 +11,9 @@ description: >-
 # React Grab
 
 The user selects UI elements in their browser and copies them with React Grab.
-`npx grab pull` waits for the next copied grab and prints it as one line of JSON,
-starting the background watcher automatically the first time. Run it in a loop.
+`npx grab pull` waits for new grabs and prints each as one line of JSON (usually
+one, sometimes a few if several were copied), starting the background watcher
+automatically the first time. Run it in a loop.
 
 ## The loop
 
@@ -24,10 +25,10 @@ Repeat until the user says stop:
 npx grab pull
 ```
 
-It blocks until the user grabs something, then prints it (one grab per line, as
-JSON). If your shell cancels the command before a grab arrives, just run it
-again — nothing is lost; the watcher keeps capturing in the background and `pull`
-resumes where it left off.
+It blocks until the user grabs something, then prints the new grab(s) — one JSON
+object per line. Act on every line. If your shell cancels the command before a
+grab arrives, just run it again — nothing is lost; the watcher keeps capturing in
+the background and `pull` resumes where it left off.
 
 2. Act on the grab (below).
 3. Go back to step 1.

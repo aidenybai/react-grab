@@ -1,7 +1,6 @@
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { Command } from "commander";
-import { NO_READER_MESSAGE, createReader, prepareWorkDir } from "../utils/clipboard.js";
+import { NO_READER_MESSAGE, prepareWorkDir } from "../utils/clipboard.js";
 import {
   DEFAULT_GRAB_AGE_MS,
   DEFAULT_WATCH_DIR,
@@ -9,13 +8,11 @@ import {
   READ_DEFAULT_LIMIT,
   READ_WAIT_POLL_MS,
 } from "../utils/constants.js";
-import { isDaemonRunning, spawnDaemon } from "../utils/daemon.js";
+import { ensureDaemon } from "../utils/daemon.js";
 import { consumeGrabs } from "../utils/grab-log.js";
-import { parseGrabCount, parseWaitMs } from "../utils/read-args.js";
+import { parseNonNegativeInt, parseWaitMs } from "../utils/read-args.js";
 import { sleep } from "../utils/sleep.js";
 import { unrefStdin } from "../utils/unref-stdin.js";
-
-const readersDir = (): string => path.dirname(fileURLToPath(import.meta.url));
 
 interface PullOptions {
   dir: string;
@@ -38,7 +35,7 @@ const emitAndExit = (lines: string[]): void => {
 
 export const pull = new Command()
   .name("pull")
-  .description("start the watcher if needed, then wait for and print the next React Grab selection")
+  .description("start the watcher if needed, then wait for and print the next React Grab grab(s)")
   .option("-d, --dir <dir>", "work dir for history.jsonl + watch.pid", DEFAULT_WATCH_DIR)
   .option(
     "-w, --wait <ms>",
@@ -55,7 +52,10 @@ export const pull = new Command()
     "skip grabs captured longer ago than <ms> (0 = never)",
     String(DEFAULT_GRAB_AGE_MS),
   )
-  .option("--text-only", "watcher uses the plain-text clipboard reader")
+  .option(
+    "--text-only",
+    "watcher uses the plain-text clipboard reader (ignored if already running)",
+  )
   .option("--all", "print the whole history without advancing the cursor")
   .action(async (options: PullOptions) => {
     const dir = path.resolve(options.dir);
@@ -68,19 +68,20 @@ export const pull = new Command()
 
     const waitMs = parseWaitMs(options.wait);
     if (waitMs === null) fail(`invalid --wait "${options.wait}" (use milliseconds or "infinite")`);
-    const limit = parseGrabCount(options.limit);
+    const limit = parseNonNegativeInt(options.limit);
     if (limit === null) fail(`invalid --limit "${options.limit}" (use a non-negative integer)`);
-    const maxAgeMs = parseGrabCount(options.maxAge);
+    const maxAgeMs = parseNonNegativeInt(options.maxAge);
     if (maxAgeMs === null)
       fail(`invalid --max-age "${options.maxAge}" (use milliseconds, 0 to disable)`);
 
     const all = Boolean(options.all);
     const textOnly = Boolean(options.textOnly);
 
-    if (!isDaemonRunning(dir)) {
-      if (!createReader({ textOnly, readersDir: readersDir(), workDir: dir }))
-        fail(NO_READER_MESSAGE);
-      spawnDaemon({ dir, intervalMs: DEFAULT_WATCH_INTERVAL_MS, textOnly, replayLast: false });
+    if (
+      ensureDaemon({ dir, intervalMs: DEFAULT_WATCH_INTERVAL_MS, textOnly, replayLast: false }) ===
+      "no-reader"
+    ) {
+      fail(NO_READER_MESSAGE);
     }
 
     unrefStdin();

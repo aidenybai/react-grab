@@ -30,7 +30,7 @@ program.addCommand(configure);
 program.addCommand(upgrade);
 program.addCommand(pull);
 program.addCommand(stop);
-program.addCommand(watch);
+program.addCommand(watch, { hidden: true });
 
 const main = async () => {
   await program.parseAsync();
