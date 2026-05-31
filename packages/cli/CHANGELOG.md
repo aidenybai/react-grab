@@ -1,5 +1,11 @@
 # @react-grab/cli
 
+## 0.1.43
+
+### Patch Changes
+
+- d930036: Set up automated npm releases via GitHub Actions using trusted publishing (OIDC).
+
 ## 0.1.42
 
 ### Patch Changes
