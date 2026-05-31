@@ -37,16 +37,18 @@ npx grab read --wait infinite
 ```
 
 Give the command a long timeout. If your shell cancels it before a grab arrives,
-just run it again — the daemon keeps capturing in the background, so nothing is
-lost. Each line of stdout is one grab as JSON.
+re-run it — a cancelled wait loses nothing, because the daemon keeps capturing in
+the background and the cursor only advances on delivery. Each line of stdout is
+one grab as JSON.
 
 2. Act on each grab (below).
 3. Go back to step 1.
 
 `read` advances a cursor (`./.react-grab/cursor.txt`), so each grab is delivered
-exactly once across calls. Grabs older than ~5 minutes are treated as stale and
-skipped (override with `--max-age <ms>`, or `--max-age 0` to never evict). Add
-`--all` to replay the whole history from the start.
+exactly once across calls. Grabs that sat unread for more than ~5 minutes are
+intentionally skipped as stale (so you don't act on a backlog the user has moved
+on from) — raise the window with `--max-age <ms>`, or `--max-age 0` to deliver
+every grab regardless of age. `--all` reprints the whole history.
 
 ## Gotchas
 

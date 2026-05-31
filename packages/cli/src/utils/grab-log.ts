@@ -1,27 +1,24 @@
 import fs from "node:fs";
 import path from "node:path";
 import { HISTORY_FILE_NAME } from "./clipboard.js";
+import { MAX_READ_HISTORY_BYTES } from "./constants.js";
 
 const CURSOR_FILE_NAME = "cursor.txt";
 
 const cursorFilePath = (dir: string): string => path.join(dir, CURSOR_FILE_NAME);
+const historyFilePath = (dir: string): string => path.join(dir, HISTORY_FILE_NAME);
 
-// Returns only complete (newline-terminated) records. Each grab is appended as a
-// single JSON line ending in "\n", but a large grab is not one atomic write, so
-// a concurrent reader can observe a half-written final line. Everything after
-// the last newline is treated as an in-progress append and skipped until done.
-export const readCompleteGrabLines = (dir: string): string[] => {
-  let raw: string;
+const fileSize = (filePath: string): number => {
   try {
-    raw = fs.readFileSync(path.join(dir, HISTORY_FILE_NAME), "utf8");
+    return fs.statSync(filePath).size;
   } catch {
-    return [];
+    return 0;
   }
-  const lastNewline = raw.lastIndexOf("\n");
-  if (lastNewline < 0) return [];
-  return raw.slice(0, lastNewline).split("\n").filter(Boolean);
 };
 
+// Byte offset into history.jsonl, not a line index: the file is append-only and
+// never compacted, so a byte offset lets a poll detect "nothing new" by size in
+// O(1) and read only the unconsumed tail.
 export const readGrabCursor = (dir: string): number => {
   try {
     const value = Number.parseInt(fs.readFileSync(cursorFilePath(dir), "utf8").trim(), 10);
@@ -31,46 +28,88 @@ export const readGrabCursor = (dir: string): number => {
   }
 };
 
-const grabReceivedAt = (line: string): number | null => {
+// Atomic via temp + rename so a crash mid-write can't leave a truncated cursor
+// (which would replay the whole history).
+const writeGrabCursor = (dir: string, offset: number): void => {
+  const target = cursorFilePath(dir);
+  const tempPath = `${target}.${process.pid}.tmp`;
+  fs.writeFileSync(tempPath, String(offset));
+  fs.renameSync(tempPath, target);
+};
+
+const readHistoryRange = (dir: string, start: number, length: number): string => {
+  if (length <= 0) return "";
+  const fd = fs.openSync(historyFilePath(dir), "r");
   try {
-    const value = (JSON.parse(line) as { receivedAt?: unknown }).receivedAt;
-    return typeof value === "number" ? value : null;
-  } catch {
-    return null;
+    const buffer = Buffer.allocUnsafe(length);
+    const bytesRead = fs.readSync(fd, buffer, 0, length, start);
+    return buffer.toString("utf8", 0, bytesRead);
+  } finally {
+    fs.closeSync(fd);
   }
+};
+
+// Whole-history read for `--all`; the cursor path reads incrementally instead.
+export const readCompleteGrabLines = (dir: string): string[] => {
+  const size = fileSize(historyFilePath(dir));
+  if (size === 0) return [];
+  const raw = readHistoryRange(dir, 0, size);
+  const lastNewline = raw.lastIndexOf("\n");
+  if (lastNewline < 0) return [];
+  return raw.slice(0, lastNewline).split("\n").filter(Boolean);
 };
 
 interface ConsumeGrabsOptions {
   limit: number;
   all: boolean;
-  // Grabs captured longer ago than this are stale and skipped (cursor still
-  // advances past them). 0 disables eviction. Records without a parseable
+  // Grabs captured longer ago than this are stale and skipped (the cursor still
+  // advances past them). 0 disables eviction. Records without a numeric
   // receivedAt are never evicted.
-  maxAgeMs?: number;
+  maxAgeMs: number;
 }
 
-// Advances the cursor only past what it examines, so a backlog drains across
-// calls without dropping any and stale grabs are evicted rather than delivered.
-// `all` replays everything without touching the cursor. Rewriting the cursor only
-// when it moves also self-heals one left past the end by a truncated history.
+// Reads only the unconsumed tail (capped at MAX_READ_HISTORY_BYTES; a larger
+// backlog drains over several calls) and advances the cursor past every record it
+// examines, so stale/skipped records are never re-seen. `all` replays the whole
+// history without moving the cursor.
 export const consumeGrabs = (dir: string, options: ConsumeGrabsOptions): string[] => {
-  const lines = readCompleteGrabLines(dir);
-  if (options.all) return lines;
-  const maxAgeMs = options.maxAgeMs ?? 0;
+  if (options.all) return readCompleteGrabLines(dir);
+
+  const size = fileSize(historyFilePath(dir));
   const cursor = readGrabCursor(dir);
-  const total = lines.length;
+  // A cursor past EOF means the history was truncated/rotated under us; restart.
+  const start = cursor > size ? 0 : cursor;
+  if (start >= size) return [];
+
+  const chunk = readHistoryRange(dir, start, Math.min(size - start, MAX_READ_HISTORY_BYTES));
+  const lastNewline = chunk.lastIndexOf("\n");
+  if (lastNewline < 0) return [];
+
   const now = Date.now();
   const fresh: string[] = [];
-  let index = Math.min(cursor, total);
-  while (index < total && (options.limit <= 0 || fresh.length < options.limit)) {
-    const line = lines[index];
-    index += 1;
-    if (maxAgeMs > 0) {
-      const receivedAt = grabReceivedAt(line);
-      if (receivedAt !== null && now - receivedAt > maxAgeMs) continue;
+  let consumedBytes = 0;
+  let lineStart = 0;
+  while (lineStart <= lastNewline && (options.limit <= 0 || fresh.length < options.limit)) {
+    const newlineIndex = chunk.indexOf("\n", lineStart);
+    const line = chunk.slice(lineStart, newlineIndex);
+    consumedBytes += Buffer.byteLength(chunk.slice(lineStart, newlineIndex + 1), "utf8");
+    lineStart = newlineIndex + 1;
+    if (line.length === 0) continue;
+    let parsed: { receivedAt?: unknown };
+    try {
+      parsed = JSON.parse(line);
+    } catch {
+      // Corrupt line, or a mid-line fragment from an old line-index cursor read
+      // as a byte offset; skip it (the cursor still advances past it).
+      continue;
+    }
+    if (options.maxAgeMs > 0 && typeof parsed.receivedAt === "number") {
+      if (now - parsed.receivedAt > options.maxAgeMs) continue;
     }
     fresh.push(line);
   }
-  if (index !== cursor) fs.writeFileSync(cursorFilePath(dir), String(index));
+
+  const nextCursor = start + consumedBytes;
+  if (nextCursor !== cursor) writeGrabCursor(dir, nextCursor);
   return fresh;
 };

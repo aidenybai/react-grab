@@ -2,12 +2,13 @@ import path from "node:path";
 import { Command } from "commander";
 import { prepareWorkDir } from "../utils/clipboard.js";
 import {
+  DEFAULT_GRAB_AGE_MS,
   DEFAULT_WATCH_DIR,
-  MAX_GRAB_AGE_MS,
   READ_DEFAULT_LIMIT,
   READ_WAIT_POLL_MS,
 } from "../utils/constants.js";
 import { consumeGrabs } from "../utils/grab-log.js";
+import { parseGrabCount, parseWaitMs } from "../utils/read-args.js";
 import { sleep } from "../utils/sleep.js";
 import { unrefStdin } from "../utils/unref-stdin.js";
 
@@ -19,18 +20,15 @@ interface ReadOptions {
   all?: boolean;
 }
 
-// Accepts a millisecond count or "infinite"/"inf"/"forever"; anything else (or
-// non-positive) means no wait.
-const parseWaitMs = (raw: string | undefined): number => {
-  if (!raw) return 0;
-  if (/^(inf|infinite|forever)$/i.test(raw.trim())) return Number.POSITIVE_INFINITY;
-  const ms = Number(raw);
-  return Number.isFinite(ms) && ms > 0 ? ms : 0;
+const fail = (message: string): never => {
+  process.stderr.write(`react-grab read: ${message}\n`);
+  process.exit(1);
 };
 
-const parseNonNegativeInt = (raw: string, fallback: number): number => {
-  const value = Number(raw);
-  return Number.isInteger(value) && value >= 0 ? value : fallback;
+// Writes the grabs to stdout and exits only once they have flushed — a plain
+// process.exit() right after a write can truncate large output on a pipe.
+const emitAndExit = (lines: string[]): void => {
+  process.stdout.write(`${lines.join("\n")}\n`, () => process.exit(0));
 };
 
 export const read = new Command()
@@ -46,7 +44,7 @@ export const read = new Command()
   .option(
     "--max-age <ms>",
     "skip grabs captured longer ago than <ms> (0 = never evict)",
-    String(MAX_GRAB_AGE_MS),
+    String(DEFAULT_GRAB_AGE_MS),
   )
   .option("--all", "print the entire history without advancing the cursor")
   .action(async (options: ReadOptions) => {
@@ -55,30 +53,36 @@ export const read = new Command()
     try {
       prepareWorkDir(dir);
     } catch (error) {
-      process.stderr.write(`react-grab read: ${String((error as Error)?.message ?? error)}\n`);
-      process.exit(1);
+      fail(String((error as Error)?.message ?? error));
     }
 
     unrefStdin();
 
-    const limit = parseNonNegativeInt(options.limit, READ_DEFAULT_LIMIT);
-    const maxAgeMs = parseNonNegativeInt(options.maxAge, MAX_GRAB_AGE_MS);
-    const all = Boolean(options.all);
-
-    const drain = (): number => {
-      const fresh = consumeGrabs(dir, { limit, all, maxAgeMs });
-      if (fresh.length > 0) process.stdout.write(`${fresh.join("\n")}\n`);
-      return fresh.length;
-    };
-
     const waitMs = parseWaitMs(options.wait);
-    const deadline =
-      waitMs === Number.POSITIVE_INFINITY ? Number.POSITIVE_INFINITY : Date.now() + waitMs;
+    if (waitMs === null) fail(`invalid --wait "${options.wait}" (use milliseconds or "infinite")`);
+    const limit = parseGrabCount(options.limit);
+    if (limit === null) fail(`invalid --limit "${options.limit}" (use a non-negative integer)`);
+    const maxAgeMs = parseGrabCount(options.maxAge);
+    if (maxAgeMs === null)
+      fail(`invalid --max-age "${options.maxAge}" (use milliseconds, 0 to disable)`);
 
-    if (drain() > 0) process.exit(0);
+    const all = Boolean(options.all);
+    const consume = (): string[] => consumeGrabs(dir, { limit, all, maxAgeMs });
+
+    const first = consume();
+    if (first.length > 0) {
+      emitAndExit(first);
+      return;
+    }
+
+    const deadline = Date.now() + waitMs;
     while (Date.now() < deadline) {
       await sleep(READ_WAIT_POLL_MS);
-      if (drain() > 0) break;
+      const batch = consume();
+      if (batch.length > 0) {
+        emitAndExit(batch);
+        return;
+      }
     }
     process.exit(0);
   });

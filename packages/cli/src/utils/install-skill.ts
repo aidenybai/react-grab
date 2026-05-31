@@ -92,20 +92,25 @@ export const promptSkillInstall = async ({
   return true;
 };
 
-// Removes the skill from both the project and the global locations so `remove`
-// cleans up regardless of where a past install (or version) put it.
-export const removeSkill = async (cwd: string = process.cwd()): Promise<number> => {
+interface RemoveSkillOptions {
+  cwd?: string;
+  global?: boolean;
+}
+
+// Scoped to the project (default) or global dirs, mirroring install — so `remove`
+// never deletes a deliberate global install just because it ran inside a project.
+export const removeSkill = async ({
+  cwd = process.cwd(),
+  global = false,
+}: RemoveSkillOptions = {}): Promise<number> => {
   const agents = await detectAvailableAgents();
   const removedAgents: SkillAgentType[] = [];
   const dirsToRemove = new Set<string>();
   for (const agent of agents) {
-    const present = [
-      installedSkillDir(agent, false, cwd),
-      installedSkillDir(agent, true, cwd),
-    ].filter((dir) => existsSync(dir));
-    if (present.length === 0) continue;
+    const skillDir = installedSkillDir(agent, global, cwd);
+    if (!existsSync(skillDir)) continue;
     removedAgents.push(agent);
-    for (const dir of present) dirsToRemove.add(dir);
+    dirsToRemove.add(skillDir);
   }
   for (const skillDir of dirsToRemove) {
     rmSync(skillDir, { recursive: true, force: true });
