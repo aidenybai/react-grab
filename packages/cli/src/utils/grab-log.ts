@@ -45,7 +45,10 @@ const byteOffsetAfterLines = (dir: string, lineCount: number): number => {
   let seen = 0;
   while (seen < lineCount) {
     const newlineIndex = raw.indexOf("\n", index);
-    if (newlineIndex < 0) return Buffer.byteLength(raw, "utf8");
+    // The Nth line is past the scan window (huge history) or doesn't exist (the
+    // history has fewer lines): baseline at EOF rather than re-delivering from the
+    // window boundary.
+    if (newlineIndex < 0) return size;
     index = newlineIndex + 1;
     seen += 1;
   }

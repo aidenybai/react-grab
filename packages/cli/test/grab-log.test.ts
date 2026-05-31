@@ -127,6 +127,15 @@ describe("consumeGrabs cursor semantics", () => {
     appendRecord("4");
     expect(consume()).toEqual([record("4")]);
   });
+
+  it("baselines at EOF when a legacy cursor counts more lines than exist (no re-delivery)", () => {
+    appendRecord("1");
+    appendRecord("2");
+    fs.writeFileSync(cursorPath(), "5");
+    expect(consume()).toEqual([]);
+    appendRecord("3");
+    expect(consume()).toEqual([record("3")]);
+  });
 });
 
 describe("consumeGrabs eviction", () => {
