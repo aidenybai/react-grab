@@ -6,6 +6,9 @@ import { sleep } from "./sleep.js";
 
 export const HISTORY_FILE_NAME = "history.jsonl";
 
+export const NO_READER_MESSAGE =
+  "no clipboard reader available. Linux: install xclip or wl-clipboard. macOS: install Xcode CLI tools (swiftc) or rely on pbpaste. Windows: ensure PowerShell is on PATH.";
+
 const READ_TIMEOUT_MS = 2500;
 const MAX_CLIPBOARD_BYTES = 64 * 1024 * 1024;
 const ID_RADIX = 36;

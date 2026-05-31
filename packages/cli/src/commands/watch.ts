@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import {
   HISTORY_FILE_NAME,
+  NO_READER_MESSAGE,
   createReader,
   prepareWorkDir,
   runWatchLoop,
@@ -29,9 +30,6 @@ interface WatchOptions {
   foreground?: boolean;
   stop?: boolean;
 }
-
-const NO_READER_MESSAGE =
-  "no clipboard reader available. Linux: install xclip or wl-clipboard. macOS: install Xcode CLI tools (swiftc) or rely on pbpaste. Windows: ensure PowerShell is on PATH.";
 
 const writeStatus = (message: string): void => {
   process.stderr.write(`react-grab watch: ${message}\n`);
