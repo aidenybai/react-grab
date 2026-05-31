@@ -25,8 +25,7 @@ const fail = (message: string): never => {
   process.exit(1);
 };
 
-// Writes the grabs to stdout and exits only once they have flushed — a plain
-// process.exit() right after a write can truncate large output on a pipe.
+// Exit only after the write flushes; process.exit() mid-write can truncate a pipe.
 const emitAndExit = (lines: string[]): void => {
   process.stdout.write(`${lines.join("\n")}\n`, () => process.exit(0));
 };

@@ -35,8 +35,6 @@ const installedSkillDir = (agent: SkillAgentType, global: boolean, cwd: string):
 
 interface PromptSkillInstallOptions {
   yes?: boolean;
-  // Install into the user's home agent dirs instead of the project (default:
-  // project, so the skill is committable and lives beside the project's others).
   global?: boolean;
   cwd?: string;
 }
@@ -97,8 +95,8 @@ interface RemoveSkillOptions {
   global?: boolean;
 }
 
-// Scoped to the project (default) or global dirs, mirroring install — so `remove`
-// never deletes a deliberate global install just because it ran inside a project.
+// Scoped like install (project unless global) so it won't delete a global install
+// from inside an unrelated project.
 export const removeSkill = async ({
   cwd = process.cwd(),
   global = false,

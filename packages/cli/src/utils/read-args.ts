@@ -1,5 +1,3 @@
-// Returns null for unparseable input so the caller can reject it instead of
-// silently degrading to "no wait", which would break the read loop.
 export const parseWaitMs = (raw: string | undefined): number | null => {
   if (raw === undefined) return 0;
   const trimmed = raw.trim();
@@ -9,7 +7,6 @@ export const parseWaitMs = (raw: string | undefined): number | null => {
   return Number.isFinite(ms) && ms >= 0 ? ms : null;
 };
 
-// Returns null for unparseable input so the caller can reject it.
 export const parseGrabCount = (raw: string | undefined): number | null => {
   if (raw === undefined) return null;
   const trimmed = raw.trim();

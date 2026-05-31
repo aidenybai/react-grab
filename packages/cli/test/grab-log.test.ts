@@ -18,7 +18,6 @@ const appendAged = (id: string, ageMs: number): void =>
 const idsOf = (lines: string[]): string[] =>
   lines.map((line) => (JSON.parse(line) as { id: string }).id);
 
-// The cursor is a byte offset, so a fully-drained cursor equals the file size.
 const consume = (overrides: { limit?: number; all?: boolean; maxAgeMs?: number } = {}): string[] =>
   consumeGrabs(dir, { limit: 0, all: false, maxAgeMs: 0, ...overrides });
 
@@ -102,7 +101,6 @@ describe("consumeGrabs cursor semantics", () => {
     for (const id of ["1", "2", "3"]) appendRecord(id);
     consume();
     fs.writeFileSync(historyPath(), `${record("x")}\n`);
-    // cursor past the new EOF resets to 0 and re-reads the surviving content once
     expect(consume()).toEqual([record("x")]);
     expect(consume()).toEqual([]);
     appendRecord("y");

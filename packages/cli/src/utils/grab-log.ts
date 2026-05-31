@@ -16,9 +16,8 @@ const fileSize = (filePath: string): number => {
   }
 };
 
-// Byte offset into history.jsonl, not a line index: the file is append-only and
-// never compacted, so a byte offset lets a poll detect "nothing new" by size in
-// O(1) and read only the unconsumed tail.
+// Byte offset into history.jsonl (not a line index), so an idle poll can tell
+// "nothing new" from the file size without reading.
 export const readGrabCursor = (dir: string): number => {
   try {
     const value = Number.parseInt(fs.readFileSync(cursorFilePath(dir), "utf8").trim(), 10);
@@ -28,8 +27,7 @@ export const readGrabCursor = (dir: string): number => {
   }
 };
 
-// Atomic via temp + rename so a crash mid-write can't leave a truncated cursor
-// (which would replay the whole history).
+// temp + rename so a crash mid-write can't leave a truncated cursor.
 const writeGrabCursor = (dir: string, offset: number): void => {
   const target = cursorFilePath(dir);
   const tempPath = `${target}.${process.pid}.tmp`;
@@ -49,7 +47,6 @@ const readHistoryRange = (dir: string, start: number, length: number): string =>
   }
 };
 
-// Whole-history read for `--all`; the cursor path reads incrementally instead.
 export const readCompleteGrabLines = (dir: string): string[] => {
   const size = fileSize(historyFilePath(dir));
   if (size === 0) return [];
@@ -62,16 +59,9 @@ export const readCompleteGrabLines = (dir: string): string[] => {
 interface ConsumeGrabsOptions {
   limit: number;
   all: boolean;
-  // Grabs captured longer ago than this are stale and skipped (the cursor still
-  // advances past them). 0 disables eviction. Records without a numeric
-  // receivedAt are never evicted.
   maxAgeMs: number;
 }
 
-// Reads only the unconsumed tail (capped at MAX_READ_HISTORY_BYTES; a larger
-// backlog drains over several calls) and advances the cursor past every record it
-// examines, so stale/skipped records are never re-seen. `all` replays the whole
-// history without moving the cursor.
 export const consumeGrabs = (dir: string, options: ConsumeGrabsOptions): string[] => {
   if (options.all) return readCompleteGrabLines(dir);
 
@@ -80,8 +70,7 @@ export const consumeGrabs = (dir: string, options: ConsumeGrabsOptions): string[
   // A cursor past EOF means the history was truncated/rotated under us; restart.
   const start = cursor > size ? 0 : cursor;
   if (start >= size) {
-    // Persist a truncation reset even with nothing to read, or a later-grown file
-    // would be read from the stale offset and skip its leading records.
+    // Persist the reset, or a later-grown file would be read from the stale offset.
     if (start !== cursor) writeGrabCursor(dir, start);
     return [];
   }
@@ -104,8 +93,7 @@ export const consumeGrabs = (dir: string, options: ConsumeGrabsOptions): string[
     try {
       parsed = JSON.parse(line);
     } catch {
-      // Corrupt line, or a mid-line fragment from an old line-index cursor read
-      // as a byte offset; skip it (the cursor still advances past it).
+      // Corrupt, or a mid-line fragment from an old line-index cursor; skip it.
       continue;
     }
     if (options.maxAgeMs > 0 && typeof parsed.receivedAt === "number") {

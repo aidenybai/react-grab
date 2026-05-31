@@ -8,7 +8,6 @@ export const READ_WAIT_POLL_MS = 200;
 export const DAEMON_CLAIM_MAX_ATTEMPTS = 50;
 export const READ_DEFAULT_LIMIT = 50;
 export const DEFAULT_GRAB_AGE_MS = 5 * 60 * 1000;
-// Caps how many bytes a single `read` pulls from history.jsonl so one call never
-// materializes a huge string (V8's max is ~512 MB); a large backlog drains across
-// calls instead. Must exceed the largest possible single grab line.
+// A single read must never build a >512 MB string (V8's cap); a bigger backlog
+// drains across calls. Must exceed the largest single grab line.
 export const MAX_READ_HISTORY_BYTES = 128 * 1024 * 1024;
