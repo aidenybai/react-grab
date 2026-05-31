@@ -173,13 +173,8 @@ export const MOUNT_ROOT_RECHECK_DELAY_MS = 1000;
 // Must match the CSS exit transition on dropdown components or the DOM
 // unmounts mid-animation.
 export const DROPDOWN_ANIMATION_DURATION_MS = 120;
-export const DROPDOWN_HOVER_OPEN_DELAY_MS = 200;
 export const DROPDOWN_VIEWPORT_PADDING_PX = 8;
 export const DROPDOWN_ANCHOR_GAP_PX = 8;
-export const SAFE_POLYGON_BUFFER_PX = 8;
-export const DROPDOWN_ICON_SIZE_PX = 11;
-export const DROPDOWN_MIN_WIDTH_PX = 180;
-export const DROPDOWN_MAX_WIDTH_PX = 280;
 export const TOOLBAR_MENU_MIN_WIDTH_PX = 100;
 export const DROPDOWN_OFFSCREEN_POSITION = { left: -9999, top: -9999 };
 
