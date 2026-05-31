@@ -1,5 +1,13 @@
 # grab
 
+## 0.1.40
+
+### Patch Changes
+
+- fix
+- Updated dependencies
+  - @react-grab/cli@0.1.40
+
 ## 0.1.39
 
 ### Patch Changes
