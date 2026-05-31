@@ -20,7 +20,8 @@
     "extension:build": "pnpm --filter web-extension build",
     "changeset": "changeset",
     "version": "changeset version",
-    "release": "pnpm build && changeset publish"
+    "check:provenance": "node scripts/check-publish-provenance.mjs",
+    "release": "pnpm check:provenance && pnpm build && changeset publish"
   },
   "devDependencies": {
     "@changesets/cli": "^2.31.0",
