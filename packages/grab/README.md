@@ -124,6 +124,24 @@ if (process.env.NODE_ENV === "development") {
 }
 ```
 
+## Telemetry
+
+On startup, React Grab makes a single anonymous version check to `react-grab.com` so it can warn you when a newer version is available. No personal data, source code, or page content is ever sent — only the running version. The browser extension never makes this request.
+
+To opt out:
+
+**CLI** — set the [`DO_NOT_TRACK`](https://consoledonottrack.com) environment variable:
+
+```bash
+DO_NOT_TRACK=1 npx grab@latest init
+```
+
+**Browser runtime** — set the `telemetry: false` option. With the script tag, pass it through `data-options` (e.g. `data-options='{"telemetry": false}'`). When initializing manually:
+
+```js
+import("grab/core").then(({ init }) => init({ telemetry: false }));
+```
+
 ## Plugins
 
 Use plugins to extend React Grab's built-in UI with context menu actions, toolbar menu items, lifecycle hooks, and theme overrides. Plugins run within React Grab.

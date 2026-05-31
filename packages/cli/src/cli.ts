@@ -7,6 +7,7 @@ import { remove } from "./commands/remove.js";
 import { stop } from "./commands/stop.js";
 import { upgrade } from "./commands/upgrade.js";
 import { watch } from "./commands/watch.js";
+import { isTelemetryEnabled } from "./utils/is-telemetry-enabled.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
 const VERSION_API_URL = "https://www.react-grab.com/api/version";
@@ -15,7 +16,9 @@ process.on("SIGINT", () => process.exit(0));
 process.on("SIGTERM", () => process.exit(0));
 
 try {
-  fetch(`${VERSION_API_URL}?source=cli&v=${VERSION}&t=${Date.now()}`).catch(() => {});
+  if (isTelemetryEnabled()) {
+    fetch(`${VERSION_API_URL}?source=cli&v=${VERSION}&t=${Date.now()}`).catch(() => {});
+  }
 } catch {}
 
 const program = new Command()
