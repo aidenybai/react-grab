@@ -355,10 +355,17 @@ export interface Options {
    * @default true
    */
   freezeReactUpdates?: boolean;
+  /**
+   * Whether to send the anonymous version check to react-grab.com on init.
+   * Set to false to skip the version-check request.
+   * @default true
+   */
+  telemetry?: boolean;
 }
 
 export interface SettableOptions extends Options {
   enabled?: never;
+  telemetry?: never;
 }
 
 export interface SourceInfo {

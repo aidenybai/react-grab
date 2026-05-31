@@ -27,6 +27,9 @@ const parseOptionsFromJson = (rawValue: unknown): Partial<Options> | null => {
   if (typeof rawValue.freezeReactUpdates === "boolean") {
     parsedOptions.freezeReactUpdates = rawValue.freezeReactUpdates;
   }
+  if (typeof rawValue.telemetry === "boolean") {
+    parsedOptions.telemetry = rawValue.telemetry;
+  }
 
   if (Object.keys(parsedOptions).length === 0) return null;
   return parsedOptions;
