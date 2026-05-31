@@ -116,6 +116,17 @@ describe("consumeGrabs cursor semantics", () => {
     appendRecord("2");
     expect(consume()).toEqual([record("2")]);
   });
+
+  it("migrates a legacy line-index cursor to a byte offset without re-delivering or dropping", () => {
+    appendRecord("1");
+    appendRecord("2");
+    appendRecord("3");
+    fs.writeFileSync(cursorPath(), "2");
+    expect(consume()).toEqual([record("3")]);
+    expect(consume()).toEqual([]);
+    appendRecord("4");
+    expect(consume()).toEqual([record("4")]);
+  });
 });
 
 describe("consumeGrabs eviction", () => {

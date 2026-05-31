@@ -16,25 +16,6 @@ const fileSize = (filePath: string): number => {
   }
 };
 
-// Byte offset into history.jsonl (not a line index), so an idle poll can tell
-// "nothing new" from the file size without reading.
-export const readGrabCursor = (dir: string): number => {
-  try {
-    const value = Number.parseInt(fs.readFileSync(cursorFilePath(dir), "utf8").trim(), 10);
-    return Number.isInteger(value) && value >= 0 ? value : 0;
-  } catch {
-    return 0;
-  }
-};
-
-// temp + rename so a crash mid-write can't leave a truncated cursor.
-const writeGrabCursor = (dir: string, offset: number): void => {
-  const target = cursorFilePath(dir);
-  const tempPath = `${target}.${process.pid}.tmp`;
-  fs.writeFileSync(tempPath, String(offset));
-  fs.renameSync(tempPath, target);
-};
-
 const readHistoryRange = (dir: string, start: number, length: number): string => {
   if (length <= 0) return "";
   const fd = fs.openSync(historyFilePath(dir), "r");
@@ -45,6 +26,60 @@ const readHistoryRange = (dir: string, start: number, length: number): string =>
   } finally {
     fs.closeSync(fd);
   }
+};
+
+// temp + rename so a crash mid-write can't leave a truncated cursor. Tagged as
+// JSON so a legacy bare-integer (line-index) cursor is distinguishable on read.
+const writeGrabCursor = (dir: string, offset: number): void => {
+  const target = cursorFilePath(dir);
+  const tempPath = `${target}.${process.pid}.tmp`;
+  fs.writeFileSync(tempPath, JSON.stringify({ offset }));
+  fs.renameSync(tempPath, target);
+};
+
+const byteOffsetAfterLines = (dir: string, lineCount: number): number => {
+  const size = fileSize(historyFilePath(dir));
+  if (lineCount <= 0 || size === 0) return 0;
+  const raw = readHistoryRange(dir, 0, Math.min(size, MAX_READ_HISTORY_BYTES));
+  let index = 0;
+  let seen = 0;
+  while (seen < lineCount) {
+    const newlineIndex = raw.indexOf("\n", index);
+    if (newlineIndex < 0) return Buffer.byteLength(raw, "utf8");
+    index = newlineIndex + 1;
+    seen += 1;
+  }
+  return Buffer.byteLength(raw.slice(0, index), "utf8");
+};
+
+// Byte offset into history.jsonl (not a line index), so an idle poll can tell
+// "nothing new" from the file size without reading.
+export const readGrabCursor = (dir: string): number => {
+  let raw: string;
+  try {
+    raw = fs.readFileSync(cursorFilePath(dir), "utf8").trim();
+  } catch {
+    return 0;
+  }
+  if (raw === "") return 0;
+  let parsed: { offset?: unknown } | number;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return 0;
+  }
+  if (typeof parsed === "number") {
+    // A bare integer is a legacy line-index cursor from before byte offsets.
+    // Convert it to the byte position after that many lines (and persist) so
+    // already-consumed grabs are not re-delivered after an upgrade.
+    if (!Number.isInteger(parsed) || parsed < 0) return 0;
+    const offset = byteOffsetAfterLines(dir, parsed);
+    writeGrabCursor(dir, offset);
+    return offset;
+  }
+  return typeof parsed.offset === "number" && Number.isInteger(parsed.offset) && parsed.offset >= 0
+    ? parsed.offset
+    : 0;
 };
 
 export const readCompleteGrabLines = (dir: string): string[] => {
@@ -93,7 +128,7 @@ export const consumeGrabs = (dir: string, options: ConsumeGrabsOptions): string[
     try {
       parsed = JSON.parse(line);
     } catch {
-      // Corrupt, or a mid-line fragment from an old line-index cursor; skip it.
+      // Corrupt or partial line; skip it (the cursor still advances past it).
       continue;
     }
     if (options.maxAgeMs > 0 && typeof parsed.receivedAt === "number") {
