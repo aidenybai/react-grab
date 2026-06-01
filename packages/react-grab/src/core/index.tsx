@@ -3445,6 +3445,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         },
         customEnterPromptMode: () => {
           clearAllLabels();
+          clearPendingToolbarSelection();
+          setActiveActionId(COMMENT_ACTION_ID);
           actions.clearInputText();
           actions.enterPromptMode(position, element);
           deferHideContextMenu();
