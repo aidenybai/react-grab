@@ -71,19 +71,14 @@ if (typeof window !== "undefined") {
   // secure() adds bippy's production/React-version guard and per-callback error
   // isolation around the commit hook. Scanning needs dev-only profiling timings
   // anyway, so we let it stay disabled on production React.
-  instrument(
-    secure(
-      {
-        name: "react-grab-scan",
-        onActive: markInstrumentationActive,
-        onCommitFiberRoot(_rendererId, root) {
-          markInstrumentationActive();
-          return handleCommit(root);
-        },
-      },
-      { onError: () => {} },
-    ),
-  );
+  instrument({
+    name: "react-grab",
+    onActive: markInstrumentationActive,
+    onCommitFiberRoot(_rendererId, root) {
+      markInstrumentationActive();
+      return handleCommit(root);
+    },
+  });
 }
 
 export const createScanner = (): ScannerController => {

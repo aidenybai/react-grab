@@ -805,9 +805,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     <IconScan size={14} class={actionIconClass(false)} />
                   )
                 }
-                tooltipVisible={isTooltipVisible(SCAN_ACTION_ID) && !props.isScanning}
+                tooltipVisible={isTooltipVisible(SCAN_ACTION_ID)}
                 tooltipPosition={tooltipPosition()}
-                tooltip="Scan"
+                tooltip={props.isScanning ? "Stop scanning" : "Scan"}
               />
             </Show>
           </>
