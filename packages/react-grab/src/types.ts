@@ -491,6 +491,7 @@ export interface ReactGrabRendererProps {
   isActive?: boolean;
   onToggleActive?: () => void;
   isScanning?: boolean;
+  scanAvailable?: boolean;
   onToggleScan?: () => void;
   scanCopiedToken?: number | null;
   onActivateAction?: (actionId: string) => void;

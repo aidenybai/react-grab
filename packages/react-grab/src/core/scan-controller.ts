@@ -3,7 +3,12 @@ import { FEEDBACK_DURATION_MS } from "../constants.js";
 import { copyContent } from "../utils/copy-content.js";
 import { serializeScanTrace } from "../utils/serialize-scan-trace.js";
 import { loadScanActive, saveScanActive } from "../utils/scan-active-storage.js";
-import { createScanner, type ScannerController } from "./scanner.js";
+import {
+  createScanner,
+  isScanAvailable,
+  onScanAvailable,
+  type ScannerController,
+} from "./scanner.js";
 
 interface ScanControllerOptions {
   // Whether there is a toolbar to stop the scan from; a persisted scan only
@@ -13,6 +18,8 @@ interface ScanControllerOptions {
 
 export interface ScanController {
   scanner: ScannerController;
+  // Whether a React renderer is instrumented; the scan button hides when false.
+  isScanAvailable: Accessor<boolean>;
   isScanning: Accessor<boolean>;
   // A fresh token per successful copy (null when no toast). The toolbar keys
   // its toast on this so each copy replays the fade, even back-to-back.
@@ -26,6 +33,8 @@ export interface ScanController {
 // and persistence across reloads. Must run inside a reactive owner.
 export const createScanController = (options: ScanControllerOptions): ScanController => {
   const scanner = createScanner();
+  const [scanAvailable, setScanAvailable] = createSignal(isScanAvailable());
+  onCleanup(onScanAvailable(() => setScanAvailable(true)));
   const [isScanning, setIsScanning] = createSignal(false);
   const [scanCopiedToken, setScanCopiedToken] = createSignal<number | null>(null);
   let scanCopiedCount = 0;
@@ -85,5 +94,5 @@ export const createScanController = (options: ScanControllerOptions): ScanContro
     stop();
   });
 
-  return { scanner, isScanning, scanCopiedToken, toggle, stop };
+  return { scanner, isScanAvailable: scanAvailable, isScanning, scanCopiedToken, toggle, stop };
 };

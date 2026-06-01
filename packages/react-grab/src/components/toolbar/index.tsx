@@ -46,6 +46,7 @@ import { accumulateRotationDeg } from "../../utils/accumulate-rotation.js";
 interface ToolbarProps {
   isActive?: boolean;
   isScanning?: boolean;
+  scanAvailable?: boolean;
   onToggleScan?: () => void;
   scanCopiedToken?: number | null;
   isContextMenuOpen?: boolean;
@@ -783,30 +784,32 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               tooltipPosition={tooltipPosition()}
               tooltip="Style"
             />
-            <ToolbarActionButton
-              actionId={SCAN_ACTION_ID}
-              isToggle
-              label={props.isScanning ? "Stop scanning renders" : "Scan renders"}
-              isActive={Boolean(props.isScanning)}
-              class={actionButtonClass}
-              wrapperClass={actionButtonWrapperClass()}
-              onClick={handleScan}
-              {...createFreezeHandlers(SCAN_ACTION_ID, { shouldFreezeInteractions: false })}
-              icon={
-                props.isScanning ? (
-                  hoveredActionId() === SCAN_ACTION_ID ? (
-                    <IconStop size={14} class="text-[var(--rg-error-text)]" />
+            <Show when={props.scanAvailable}>
+              <ToolbarActionButton
+                actionId={SCAN_ACTION_ID}
+                isToggle
+                label={props.isScanning ? "Stop scanning renders" : "Scan renders"}
+                isActive={Boolean(props.isScanning)}
+                class={actionButtonClass}
+                wrapperClass={actionButtonWrapperClass()}
+                onClick={handleScan}
+                {...createFreezeHandlers(SCAN_ACTION_ID, { shouldFreezeInteractions: false })}
+                icon={
+                  props.isScanning ? (
+                    hoveredActionId() === SCAN_ACTION_ID ? (
+                      <IconStop size={14} class="text-[var(--rg-error-text)]" />
+                    ) : (
+                      <IconLoader size={14} class={actionIconClass(true)} />
+                    )
                   ) : (
-                    <IconLoader size={14} class={actionIconClass(true)} />
+                    <IconScan size={14} class={actionIconClass(false)} />
                   )
-                ) : (
-                  <IconScan size={14} class={actionIconClass(false)} />
-                )
-              }
-              tooltipVisible={isTooltipVisible(SCAN_ACTION_ID) && !props.isScanning}
-              tooltipPosition={tooltipPosition()}
-              tooltip="Scan"
-            />
+                }
+                tooltipVisible={isTooltipVisible(SCAN_ACTION_ID) && !props.isScanning}
+                tooltipPosition={tooltipPosition()}
+                tooltip="Scan"
+              />
+            </Show>
           </>
         }
       />

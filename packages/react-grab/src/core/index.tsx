@@ -3595,6 +3595,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 isActive={isActivated()}
                 onToggleActive={handleToggleActive}
                 isScanning={scanController.isScanning()}
+                scanAvailable={scanController.isScanAvailable()}
                 onToggleScan={scanController.toggle}
                 scanCopiedToken={scanController.scanCopiedToken()}
                 onActivateAction={handleActivateAction}

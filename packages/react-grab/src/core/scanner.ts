@@ -3,6 +3,7 @@ import {
   getDisplayName,
   getNearestHostFiber,
   isCompositeFiber,
+  isInstrumentationActive,
   traverseRenderedFibers,
   type Fiber,
   type FiberRoot,
@@ -47,10 +48,31 @@ export interface ScannerController {
 
 let handleCommit: (rendererId: number, root: FiberRoot) => void = () => {};
 
+// Tracks whether bippy is instrumenting a React renderer. Scanning is
+// meaningless without one, so the toolbar hides the scan button until this
+// flips true (on instrumentation activating or the first React commit).
+let hasActiveInstrumentation = isInstrumentationActive();
+const instrumentationListeners = new Set<() => void>();
+
+const markInstrumentationActive = (): void => {
+  if (hasActiveInstrumentation) return;
+  hasActiveInstrumentation = true;
+  for (const listener of instrumentationListeners) listener();
+};
+
+export const isScanAvailable = (): boolean => hasActiveInstrumentation;
+
+export const onScanAvailable = (listener: () => void): (() => void) => {
+  instrumentationListeners.add(listener);
+  return () => instrumentationListeners.delete(listener);
+};
+
 if (typeof window !== "undefined") {
   instrument({
     name: "react-grab-scan",
+    onActive: markInstrumentationActive,
     onCommitFiberRoot(_rendererId, root) {
+      markInstrumentationActive();
       return handleCommit(_rendererId, root);
     },
   });

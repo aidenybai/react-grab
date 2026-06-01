@@ -71,7 +71,9 @@ test.describe("Render scan", () => {
     await waitForToolbar(reactGrab);
 
     await expect.poll(() => isScanCanvasPresent(reactGrab.page), { timeout: 2000 }).toBe(true);
-    expect(await reactGrab.getToolbarActionPressed("scan")).toBe(true);
+    await expect
+      .poll(() => reactGrab.getToolbarActionPressed("scan"), { timeout: 2000 })
+      .toBe(true);
   });
 
   test("copies a trace and shows the Copied toast on stop", async ({ reactGrab }) => {
