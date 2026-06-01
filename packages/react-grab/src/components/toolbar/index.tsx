@@ -729,7 +729,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               wrapperClass={actionButtonWrapperClass()}
               onClick={handleComment}
               {...createFreezeHandlers(COMMENT_ACTION_ID)}
-              icon={<IconComment size={14} class={actionIconClass(isActionActive(COMMENT_ACTION_ID))} />}
+              icon={
+                <IconComment size={14} class={actionIconClass(isActionActive(COMMENT_ACTION_ID))} />
+              }
               tooltipVisible={isTooltipVisible(COMMENT_ACTION_ID)}
               tooltipPosition={tooltipPosition()}
               tooltip="Comment"

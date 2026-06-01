@@ -67,7 +67,9 @@ test.describe("Toolbar Action Buttons", () => {
       await reactGrab.clickToolbarAction("comment");
 
       expect(await reactGrab.isOverlayVisible()).toBe(true);
-      await expect.poll(() => reactGrab.getToolbarActionPressed("comment"), { timeout: 2000 }).toBe(true);
+      await expect
+        .poll(() => reactGrab.getToolbarActionPressed("comment"), { timeout: 2000 })
+        .toBe(true);
       expect(await reactGrab.getToolbarActionPressed("copy")).toBe(false);
       expect(await reactGrab.getToolbarActionPressed("edit")).toBe(false);
     });
