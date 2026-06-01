@@ -132,7 +132,7 @@ export const createScanner = (): ScannerController => {
   const drawOutline = (element: HTMLElement, outline: ScanOutline, opacity: number): void => {
     if (!context) return;
     const elementBounds = createElementBounds(element);
-    if (elementBounds.width <= 0 && elementBounds.height <= 0) return;
+    if (elementBounds.width <= 0 || elementBounds.height <= 0) return;
 
     drawRoundedRectangle(
       context,

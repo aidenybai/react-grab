@@ -10,6 +10,7 @@ export interface ScanController {
   isScanning: Accessor<boolean>;
   scanCopied: Accessor<boolean>;
   toggle: () => void;
+  stop: () => void;
 }
 
 // Owns the full scan lifecycle: the canvas scanner, the reactive scanning
@@ -27,18 +28,31 @@ export const createScanController = (): ScanController => {
     scanCopiedTimeout = setTimeout(() => setScanCopied(false), FEEDBACK_DURATION_MS);
   };
 
-  const toggle = () => {
-    const wasScanning = scanner.isScanning();
-    scanner.toggle();
-    const nowScanning = scanner.isScanning();
+  const syncState = (nowScanning: boolean) => {
     setIsScanning(nowScanning);
     saveScanActive(nowScanning);
-    if (!wasScanning || nowScanning) return;
-    const trace = scanner.takeTrace();
-    if (!trace) return;
-    if (copyContent(serializeScanTrace(trace), { componentName: "ReactGrabScan" })) {
-      flashCopied();
+  };
+
+  // Stops without copying a trace - used for teardown paths (plugin cleanup,
+  // disposal) where the toolbar/storage state must still be kept in sync.
+  const stop = () => {
+    if (!scanner.isScanning()) return;
+    scanner.stop();
+    syncState(false);
+  };
+
+  const toggle = () => {
+    if (scanner.isScanning()) {
+      scanner.stop();
+      syncState(false);
+      const trace = scanner.takeTrace();
+      if (trace && copyContent(serializeScanTrace(trace), { componentName: "ReactGrabScan" })) {
+        flashCopied();
+      }
+      return;
     }
+    scanner.start();
+    syncState(true);
   };
 
   // Persisting across reloads keeps the scan running through dev-server HMR
@@ -63,5 +77,5 @@ export const createScanController = (): ScanController => {
     scanner.dispose();
   });
 
-  return { scanner, isScanning, scanCopied, toggle };
+  return { scanner, isScanning, scanCopied, toggle, stop };
 };

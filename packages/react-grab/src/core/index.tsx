@@ -3767,7 +3767,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     for (const plugin of builtInPlugins) {
       pluginRegistry.register(plugin, api);
     }
-    pluginRegistry.register(createScanPlugin(scanController.scanner), api);
+    pluginRegistry.register(createScanPlugin(scanController.stop), api);
 
     setTimeout(() => {
       isNextProjectRuntime(true);
