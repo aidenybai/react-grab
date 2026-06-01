@@ -1,6 +1,5 @@
 import {
   instrument,
-  secure,
   didFiberRender,
   getDisplayName,
   getNearestHostFiber,
@@ -68,9 +67,10 @@ export const onScanAvailable = (listener: () => void): (() => void) => {
 };
 
 if (typeof window !== "undefined") {
-  // secure() adds bippy's production/React-version guard and per-callback error
-  // isolation around the commit hook. Scanning needs dev-only profiling timings
-  // anyway, so we let it stay disabled on production React.
+  // Raw instrument() (not secure()): secure tears the commit hook down if a
+  // React renderer isn't detected within its ~100ms install-check window, which
+  // breaks scanning on apps that mount React after react-grab's script loads.
+  // React core already wraps onCommitFiberRoot in try/catch, so this is safe.
   instrument({
     name: "react-grab",
     onActive: markInstrumentationActive,
