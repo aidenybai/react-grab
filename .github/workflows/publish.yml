@@ -44,3 +44,63 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_CONFIG_PROVENANCE: true
+
+  publish-dev:
+    name: Publish @dev snapshot
+    needs: publish
+    if: ${{ !cancelled() && needs.publish.result != 'failure' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22.18.0
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: npm install -g npm@11
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Compute dev version
+        id: dev-version
+        run: |
+          base_version="$(node -p "require('./packages/react-grab/package.json').version")"
+          dev_version="${base_version}-dev.$(git rev-parse --short HEAD)"
+          echo "version=${dev_version}" >> "$GITHUB_OUTPUT"
+          echo "Publishing dev snapshot ${dev_version}"
+
+      - name: Apply dev version to published packages
+        env:
+          DEV_VERSION: ${{ steps.dev-version.outputs.version }}
+        run: |
+          for package_dir in react-grab cli grab; do
+            node -e "const fs = require('node:fs'); const path = 'packages/${package_dir}/package.json'; const manifest = JSON.parse(fs.readFileSync(path, 'utf8')); manifest.version = process.env.DEV_VERSION; fs.writeFileSync(path, JSON.stringify(manifest, null, 2) + '\n');"
+          done
+
+      - name: Build
+        env:
+          VERSION: ${{ steps.dev-version.outputs.version }}
+        run: pnpm build
+
+      - name: Publish to npm under the dev tag
+        env:
+          NPM_CONFIG_PROVENANCE: true
+        run: |
+          for attempt in 1 2 3; do
+            if pnpm publish --recursive --tag dev --no-git-checks --access public; then
+              exit 0
+            fi
+            backoff_seconds=$((attempt * 15))
+            echo "Dev publish attempt ${attempt} failed; retrying in ${backoff_seconds}s (already-published versions are skipped by pnpm)"
+            sleep "${backoff_seconds}"
+          done
+          echo "Dev publish failed after 3 attempts"
+          exit 1
