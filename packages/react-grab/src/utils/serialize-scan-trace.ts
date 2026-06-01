@@ -1,53 +1,64 @@
-import { VERSION } from "../constants.js";
 import type { ScanTrace } from "../types.js";
 
-const roundToHundredths = (value: number): number => Math.round(value * 100) / 100;
+const round1 = (value: number): number => Math.round(value * 10) / 10;
 
-// Serializes a render-scan trace into an agent-readable JSON payload. The
-// shape mirrors the react-scan/lite + LoAF correlation model: rank components
-// by render cost, and pair them with the long-animation-frames captured over
-// the same window so an agent can attribute jank to a component and a script.
+// Renders a render-scan trace as a compact, token-efficient log (not JSON) for
+// pasting to a coding agent. Columns are positional with terse labels and a
+// per-section legend, mirroring the react-scan/lite + LoAF correlation model:
+// rank components by render cost, then list the long-animation-frames so an
+// agent can attribute jank to a component and the script that blocked the frame.
 export const serializeScanTrace = (trace: ScanTrace): string => {
-  const payload = {
-    tool: "react-grab",
-    type: "react-render-scan-trace",
-    version: VERSION,
-    description:
-      "Performance trace captured by React Grab's render scan. `components` ranks " +
-      "React components by total render time over the scan, aggregated by display " +
-      "name (distinct components sharing a name are summed together); " +
-      "`longAnimationFrames` lists frames >50ms with the scripts that blocked them. " +
-      "Correlate a long animation frame with the components rendering in the same " +
-      "window to find jank.",
-    capturedAt: new Date(trace.startedAtEpochMs).toISOString(),
-    scanDurationMs: Math.round(trace.durationMs),
-    commitCount: trace.commitCount,
-    components: trace.components.map((component) => ({
-      name: component.componentName,
-      renderCount: component.renderCount,
-      totalActualDurationMs: roundToHundredths(component.totalActualDurationMs),
-      avgActualDurationMs: roundToHundredths(
-        component.totalActualDurationMs / component.renderCount,
-      ),
-      maxActualDurationMs: roundToHundredths(component.maxActualDurationMs),
-      totalSelfDurationMs: roundToHundredths(component.totalSelfDurationMs),
-    })),
-    longAnimationFrames: trace.longAnimationFrames.map((frame) => ({
-      startTimeMs: roundToHundredths(frame.startTimeMs),
-      durationMs: roundToHundredths(frame.durationMs),
-      blockingDurationMs: roundToHundredths(frame.blockingDurationMs),
-      renderStartMs: roundToHundredths(frame.renderStartMs),
-      styleAndLayoutStartMs: roundToHundredths(frame.styleAndLayoutStartMs),
-      scripts: frame.scripts.map((script) => ({
-        invoker: script.invoker,
-        invokerType: script.invokerType,
-        sourceURL: script.sourceURL,
-        sourceFunctionName: script.sourceFunctionName,
-        durationMs: roundToHundredths(script.durationMs),
-        forcedStyleAndLayoutDurationMs: roundToHundredths(script.forcedStyleAndLayoutDurationMs),
-      })),
-    })),
-  };
+  const lines: string[] = [];
 
-  return JSON.stringify(payload, null, 2);
+  lines.push(
+    `react-grab render scan: ${(trace.durationMs / 1000).toFixed(1)}s, ` +
+      `${trace.commitCount} commits, ${trace.components.length} components, ` +
+      `${trace.longAnimationFrames.length} long frames (>50ms)`,
+  );
+
+  lines.push("");
+  lines.push("components — name total ×renders avg max self (render ms), worst first:");
+  if (trace.components.length === 0) {
+    lines.push("  none");
+  } else {
+    for (const component of trace.components) {
+      lines.push(
+        `  ${component.componentName} ${round1(component.totalActualDurationMs)}` +
+          ` ×${component.renderCount}` +
+          ` avg${round1(component.totalActualDurationMs / component.renderCount)}` +
+          ` max${round1(component.maxActualDurationMs)}` +
+          ` self${round1(component.totalSelfDurationMs)}`,
+      );
+    }
+  }
+
+  lines.push("");
+  lines.push(
+    "long animation frames — @start dur block (ms); scripts url:fn@char dur reflow:",
+  );
+  if (trace.longAnimationFrames.length === 0) {
+    lines.push("  none");
+  } else {
+    for (const frame of trace.longAnimationFrames) {
+      const uiWait =
+        frame.firstUIEventTimestampMs > 0
+          ? ` ui+${round1(frame.firstUIEventTimestampMs - frame.startTimeMs)}`
+          : "";
+      lines.push(
+        `  @${round1(frame.startTimeMs)} dur${round1(frame.durationMs)}` +
+          ` block${round1(frame.blockingDurationMs)}${uiWait}`,
+      );
+      for (const script of frame.scripts) {
+        const reflow =
+          script.forcedStyleAndLayoutDurationMs > 0
+            ? ` reflow${round1(script.forcedStyleAndLayoutDurationMs)}`
+            : "";
+        const url = script.sourceURL || "(inline)";
+        const fn = script.sourceFunctionName || "(anonymous)";
+        lines.push(`    ${url}:${fn}@${script.sourceCharPosition} ${round1(script.durationMs)}ms${reflow}`);
+      }
+    }
+  }
+
+  return lines.join("\n");
 };

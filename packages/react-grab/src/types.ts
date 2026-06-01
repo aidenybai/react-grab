@@ -589,10 +589,9 @@ export interface CompletionViewProps {
 }
 
 export interface ScanLoafScript {
-  invoker: string;
-  invokerType: string;
   sourceURL: string;
   sourceFunctionName: string;
+  sourceCharPosition: number;
   durationMs: number;
   forcedStyleAndLayoutDurationMs: number;
 }
@@ -602,7 +601,7 @@ export interface ScanLongAnimationFrame {
   durationMs: number;
   blockingDurationMs: number;
   renderStartMs: number;
-  styleAndLayoutStartMs: number;
+  firstUIEventTimestampMs: number;
   scripts: ScanLoafScript[];
 }
 

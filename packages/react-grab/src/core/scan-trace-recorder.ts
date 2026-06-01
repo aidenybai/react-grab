@@ -15,18 +15,17 @@ import type {
 // The `long-animation-frame` entry shape is not yet in the DOM lib types, so
 // we model the fields we read off PerformanceObserver entries here.
 interface LongAnimationFrameScriptTiming {
-  invoker?: string;
-  invokerType?: string;
   sourceURL?: string;
   sourceFunctionName?: string;
+  sourceCharPosition?: number;
   duration?: number;
   forcedStyleAndLayoutDuration?: number;
 }
 
 interface LongAnimationFrameTiming extends PerformanceEntry {
   renderStart?: number;
-  styleAndLayoutStart?: number;
   blockingDuration?: number;
+  firstUIEventTimestamp?: number;
   scripts?: LongAnimationFrameScriptTiming[];
 }
 
@@ -63,10 +62,9 @@ export const createScanTraceRecorder = (): ScanTraceRecorder => {
       const scripts: ScanLoafScript[] = (loafEntry.scripts ?? [])
         .slice(0, MAX_SCAN_TRACE_LOAF_SCRIPTS)
         .map((script) => ({
-          invoker: script.invoker ?? "",
-          invokerType: script.invokerType ?? "",
           sourceURL: script.sourceURL ?? "",
           sourceFunctionName: script.sourceFunctionName ?? "",
+          sourceCharPosition: script.sourceCharPosition ?? 0,
           durationMs: script.duration ?? 0,
           forcedStyleAndLayoutDurationMs: script.forcedStyleAndLayoutDuration ?? 0,
         }));
@@ -75,7 +73,7 @@ export const createScanTraceRecorder = (): ScanTraceRecorder => {
         durationMs: loafEntry.duration,
         blockingDurationMs: loafEntry.blockingDuration ?? 0,
         renderStartMs: loafEntry.renderStart ?? 0,
-        styleAndLayoutStartMs: loafEntry.styleAndLayoutStart ?? 0,
+        firstUIEventTimestampMs: loafEntry.firstUIEventTimestamp ?? 0,
         scripts,
       });
     }
