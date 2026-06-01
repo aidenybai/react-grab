@@ -2,7 +2,6 @@ import { test, expect, type ReactGrabPageObject } from "./fixtures.js";
 import type { Page } from "@playwright/test";
 
 const ATTRIBUTE_NAME = "data-react-grab";
-const SCAN_ACTIVE_STORAGE_KEY = "react-grab-scan-active";
 
 const waitForToolbar = async (reactGrab: ReactGrabPageObject) => {
   await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
@@ -31,9 +30,6 @@ const isScanCopiedVisible = (page: Page): Promise<boolean> =>
     return Boolean(root?.querySelector("[data-react-grab-scan-copied]"));
   }, ATTRIBUTE_NAME);
 
-const getStoredScanActive = (page: Page, key: string): Promise<string | null> =>
-  page.evaluate((storageKey) => window.sessionStorage.getItem(storageKey), key);
-
 test.describe("Render scan", () => {
   test("starts and stops the scan canvas from the toolbar", async ({ reactGrab }) => {
     await waitForToolbar(reactGrab);
@@ -45,35 +41,6 @@ test.describe("Render scan", () => {
     await clickScanButton(reactGrab.page);
     await expect.poll(() => isScanCanvasPresent(reactGrab.page), { timeout: 2000 }).toBe(false);
     expect(await reactGrab.getToolbarActionPressed("scan")).toBe(false);
-  });
-
-  test("persists the scanning flag to sessionStorage", async ({ reactGrab }) => {
-    await waitForToolbar(reactGrab);
-
-    await clickScanButton(reactGrab.page);
-    await expect
-      .poll(() => getStoredScanActive(reactGrab.page, SCAN_ACTIVE_STORAGE_KEY), { timeout: 2000 })
-      .toBe("true");
-
-    await clickScanButton(reactGrab.page);
-    await expect
-      .poll(() => getStoredScanActive(reactGrab.page, SCAN_ACTIVE_STORAGE_KEY), { timeout: 2000 })
-      .toBe(null);
-  });
-
-  test("resumes a persisted scan after reload", async ({ reactGrab }) => {
-    await waitForToolbar(reactGrab);
-
-    await clickScanButton(reactGrab.page);
-    await expect.poll(() => isScanCanvasPresent(reactGrab.page), { timeout: 2000 }).toBe(true);
-
-    await reactGrab.page.reload();
-    await waitForToolbar(reactGrab);
-
-    await expect.poll(() => isScanCanvasPresent(reactGrab.page), { timeout: 2000 }).toBe(true);
-    await expect
-      .poll(() => reactGrab.getToolbarActionPressed("scan"), { timeout: 2000 })
-      .toBe(true);
   });
 
   test("copies a trace and shows the Copied toast on stop", async ({ reactGrab }) => {

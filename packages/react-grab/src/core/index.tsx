@@ -1606,10 +1606,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       handleActivateAction(currentToolbarState()?.defaultAction ?? DEFAULT_ACTION_ID);
     };
 
-    const scanController = createScanController({
-      isToolbarEnabled: () =>
-        Boolean(pluginRegistry.store.theme.enabled && pluginRegistry.store.theme.toolbar.enabled),
-    });
+    const scanController = createScanController();
 
     const enterCommentModeForElement = (element: Element, positionX: number, positionY: number) => {
       actions.setPendingCommentMode(false);
