@@ -46,7 +46,7 @@ export interface ScannerController {
   takeTrace: () => ScanTrace | null;
 }
 
-let handleCommit: (rendererId: number, root: FiberRoot) => void = () => {};
+let handleCommit: (root: FiberRoot) => void = () => {};
 
 // Tracks whether bippy is instrumenting a React renderer. Scanning is
 // meaningless without one, so the toolbar hides the scan button until this
@@ -78,7 +78,7 @@ if (typeof window !== "undefined") {
         onActive: markInstrumentationActive,
         onCommitFiberRoot(_rendererId, root) {
           markInstrumentationActive();
-          return handleCommit(_rendererId, root);
+          return handleCommit(root);
         },
       },
       { onError: () => {} },
@@ -138,7 +138,7 @@ export const createScanner = (): ScannerController => {
     }
   };
 
-  handleCommit = (_rendererId: number, root: FiberRoot): void => {
+  handleCommit = (root: FiberRoot): void => {
     if (!isScanning) return;
     currentCommitTimestamp = performance.now();
     recorder.beginCommit(currentCommitTimestamp);
