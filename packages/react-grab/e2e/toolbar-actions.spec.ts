@@ -97,9 +97,7 @@ test.describe("Toolbar Action Buttons", () => {
       expect(await reactGrab.getToolbarActionPressed("edit")).toBe(false);
     });
 
-    test("context menu Comment marks only the Comment button as pressed", async ({
-      reactGrab,
-    }) => {
+    test("context menu Comment marks only the Comment button as pressed", async ({ reactGrab }) => {
       await waitForToolbar(reactGrab);
       await reactGrab.activate();
       await reactGrab.hoverElement(BUTTON_SELECTOR);
