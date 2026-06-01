@@ -33,20 +33,20 @@ Init Options:
 Options:
   -y, --yes              Skip confirmation prompts
   -f, --force            Force overwrite existing config
-  -k, --key <key>        Activation key (e.g., "Meta+K", "Ctrl+Shift+G", "Space")
+  -k, --key <key>        Shortcut (e.g., "Meta+K", "Ctrl+Shift+G", "Space")
       --skip-install     Skip package installation
   -c, --cwd <cwd>        Working directory (defaults to current directory)
 
 Examples:
   npx grab@latest init -y                         # Auto-detect and install without prompts
-  npx grab@latest init -k "Meta+K" -y             # Set activation key to Cmd+K / Win+K
+  npx grab@latest init -k "Meta+K" -y             # Set shortcut to Cmd+K / Win+K
 ```
 
 The CLI will detect your framework and add the necessary scripts automatically.
 
 ### Configuration
 
-Configure React Grab options (activation key, mode, etc.):
+Configure React Grab options (shortcut, mode, etc.):
 
 ```bash
 npx grab@latest config
@@ -56,7 +56,7 @@ Config Options:
 ```
 Options:
   -y, --yes                  Skip confirmation prompts
-  -k, --key <key>            Activation key (e.g., "Meta+K", "Ctrl+Shift+G", "Space")
+  -k, --key <key>            Shortcut (e.g., "Meta+K", "Ctrl+Shift+G", "Space")
   -m, --mode <mode>          Activation mode (toggle, hold)
       --hold-duration <ms>   Key hold duration in milliseconds (for hold mode)
       --allow-input <bool>   Allow activation inside input fields (true/false)
@@ -65,8 +65,8 @@ Options:
   -c, --cwd <cwd>            Working directory (defaults to current directory)
 
 Examples:
-  npx grab@latest config -k "Meta+K"              # Set activation key to Cmd+K / Win+K
-  npx grab@latest config -k "Ctrl+Shift+G"        # Set activation key to Ctrl+Shift+G
+  npx grab@latest config -k "Meta+K"              # Set shortcut to Cmd+K / Win+K
+  npx grab@latest config -k "Ctrl+Shift+G"        # Set shortcut to Ctrl+Shift+G
   npx grab@latest config -m hold --hold-duration 150   # Use hold mode with 150ms delay
   npx grab@latest config --context-lines 5         # Include 5 lines of context
 ```

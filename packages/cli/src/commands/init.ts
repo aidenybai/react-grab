@@ -130,7 +130,7 @@ export const init = new Command()
   .description("initialize React Grab in your project")
   .option("-y, --yes", "skip confirmation prompts", false)
   .option("-f, --force", "force overwrite existing config", false)
-  .option("-k, --key <key>", "activation key (e.g., Meta+K, Ctrl+Shift+G, Space)")
+  .option("-k, --key <key>", "shortcut (e.g., Meta+K, Ctrl+Shift+G, Space)")
   .option("--skip-install", "skip package installation", false)
   .option("--pkg <pkg>", "custom package URL for CLI (e.g., grab)")
   .option("-c, --cwd <cwd>", "working directory (defaults to current directory)", process.cwd())
@@ -193,13 +193,13 @@ export const init = new Command()
           if (opts.key) {
             collectedOptions.activationKey = opts.key;
             logger.log(
-              `  Activation key: ${highlighter.info(formatActivationKeyDisplay(collectedOptions.activationKey))}`,
+              `  Shortcut: ${highlighter.info(formatActivationKeyDisplay(collectedOptions.activationKey))}`,
             );
           } else {
             const { wantActivationKey } = await prompts({
               type: "confirm",
               name: "wantActivationKey",
-              message: `Configure ${highlighter.info("activation key")}?`,
+              message: `Configure ${highlighter.info("shortcut")}?`,
               initial: false,
             });
 
@@ -212,7 +212,7 @@ export const init = new Command()
               const { key } = await prompts({
                 type: "text",
                 name: "key",
-                message: "Enter the activation key (e.g., g, k, space):",
+                message: "Enter the shortcut (e.g., g, k, space):",
                 initial: "",
               });
 
@@ -224,7 +224,7 @@ export const init = new Command()
               collectedOptions.activationKey = key ? key.toLowerCase() : undefined;
 
               logger.log(
-                `  Activation key: ${highlighter.info(formatActivationKeyDisplay(collectedOptions.activationKey))}`,
+                `  Shortcut: ${highlighter.info(formatActivationKeyDisplay(collectedOptions.activationKey))}`,
               );
             }
           }

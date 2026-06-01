@@ -10,7 +10,7 @@ Install React Grab in a React project to enable element grabbing for AI coding a
 
 - [ ] React Grab package is installed
 - [ ] Framework integration is configured (Next.js, Vite, or Webpack)
-- [ ] Running the dev server shows the grab overlay when pressing the activation key
+- [ ] Running the dev server shows the grab overlay when pressing the shortcut
 
 ## INSTALLATION
 
@@ -31,7 +31,7 @@ Options:
   -f, --framework        Override detected framework [choices: "next", "vite", "webpack"]
   -p, --package-manager  Override detected package manager [choices: "npm", "yarn", "pnpm", "bun"]
   -r, --router           Next.js router type [choices: "app", "pages"]
-  -k, --key              Activation key (e.g., "Meta+K", "Ctrl+Shift+G", "Space")
+  -k, --key              Shortcut (e.g., "Meta+K", "Ctrl+Shift+G", "Space")
   -y, --yes              Skip all prompts and use auto-detected/default values
       --skip-install     Only modify config files, skip package install
 ```
@@ -41,7 +41,7 @@ Options:
 ```bash
 npx grab@latest init -y                         # Auto-detect and install without prompts
 npx grab@latest init -f next -r app -y          # Configure for Next.js App Router
-npx grab@latest init -k "Meta+K" -y             # Set activation key to Cmd+K / Win+K
+npx grab@latest init -k "Meta+K" -y             # Set shortcut to Cmd+K / Win+K
 ```
 
 ## MANUAL INSTALLATION
@@ -153,7 +153,7 @@ in LoginForm at components/login-form.tsx:46:19
 Customize React Grab behavior:
 
 ```bash
-npx grab@latest config -k "Meta+K"              # Set activation key to Cmd+K / Win+K
+npx grab@latest config -k "Meta+K"              # Set shortcut to Cmd+K / Win+K
 npx grab@latest config -m hold --hold-duration 150   # Use hold mode with 150ms delay
 npx grab@latest config --context-lines 5        # Include 5 lines of context
 ```

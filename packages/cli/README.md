@@ -24,7 +24,7 @@ npx grab@latest init
 | ---------------- | ----- | ---------------------------------------- |
 | `--yes`          | `-y`  | Skip confirmation prompts                |
 | `--force`        | `-f`  | Force overwrite existing config          |
-| `--key <key>`    | `-k`  | Activation key (e.g. Meta+K, Space)      |
+| `--key <key>`    | `-k`  | Shortcut (e.g. Meta+K, Space)            |
 | `--skip-install` |       | Skip package installation                |
 | `--pkg <pkg>`    |       | Custom package URL                       |
 | `--cwd <cwd>`    | `-c`  | Working directory (default: current dir) |
@@ -40,7 +40,7 @@ npx grab@latest configure
 | Option                 | Alias | Description                                   |
 | ---------------------- | ----- | --------------------------------------------- |
 | `--yes`                | `-y`  | Skip confirmation prompts                     |
-| `--key <key>`          | `-k`  | Activation key (e.g. Meta+K, Ctrl+Shift+G)    |
+| `--key <key>`          | `-k`  | Shortcut (e.g. Meta+K, Ctrl+Shift+G)          |
 | `--mode <mode>`        | `-m`  | Activation mode (`toggle` or `hold`)          |
 | `--hold-duration <ms>` |       | Key hold duration in ms (hold mode, max 2000) |
 | `--allow-input <bool>` |       | Allow activation inside input fields          |
@@ -57,7 +57,7 @@ npx grab@latest init
 # Non-interactive setup
 npx grab@latest init -y
 
-# Set a custom activation key
+# Set a custom shortcut
 npx grab@latest init -k "Meta+K"
 
 # Change activation mode to hold
