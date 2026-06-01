@@ -29,9 +29,7 @@ for (const manifestPath of collectPackageManifests()) {
   if (manifest.private === true) continue;
 
   const repositoryUrl =
-    typeof manifest.repository === "string"
-      ? manifest.repository
-      : manifest.repository?.url;
+    typeof manifest.repository === "string" ? manifest.repository : manifest.repository?.url;
 
   if (repositoryUrl !== EXPECTED_REPOSITORY_URL) {
     offendingPackages.push({
