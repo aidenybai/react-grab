@@ -89,6 +89,24 @@ test.describe("Style Panel", () => {
       ).toEqual([]);
     });
 
+    test("hovering a style row keeps row height stable", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      const beforeRows = await getPropertyRowBounds(reactGrab.page);
+      const targetRow = beforeRows.find((row) => !row.isActive);
+      expect(targetRow).toBeTruthy();
+
+      await reactGrab.page.mouse.move(
+        targetRow!.left + targetRow!.width / 2,
+        targetRow!.top + targetRow!.height / 2,
+      );
+      await expect.poll(() => getActivePropertyKey(reactGrab.page)).toBe(targetRow!.key);
+
+      const afterRows = await getPropertyRowBounds(reactGrab.page);
+      const afterTargetRow = afterRows.find((row) => row.key === targetRow!.key);
+      expect(afterTargetRow).toBeTruthy();
+      expect(Math.abs(afterTargetRow!.height - targetRow!.height)).toBeLessThan(0.5);
+    });
+
     test("S opens Style from the context menu", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement(BUTTON_SELECTOR);

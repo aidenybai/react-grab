@@ -223,18 +223,20 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
                   </div>
                 }
               >
-                <ActivePropertyControl
-                  property={property()}
-                  activeKey={props.activeKey}
-                  onStep={props.onStep}
-                  onCommit={props.onCommit}
-                  onEditComplete={props.onEditComplete}
-                  onInvalidCommit={props.onInvalidCommit}
-                  onInteract={props.onInteract}
-                  onColorPickerRegister={props.onColorPickerRegister}
-                  showLabel
-                  tailwindLabel={props.activeTailwindLabel}
-                />
+                <div class="flex items-center w-full min-h-[24px]">
+                  <ActivePropertyControl
+                    property={property()}
+                    activeKey={props.activeKey}
+                    onStep={props.onStep}
+                    onCommit={props.onCommit}
+                    onEditComplete={props.onEditComplete}
+                    onInvalidCommit={props.onInvalidCommit}
+                    onInteract={props.onInteract}
+                    onColorPickerRegister={props.onColorPickerRegister}
+                    showLabel
+                    tailwindLabel={props.activeTailwindLabel}
+                  />
+                </div>
               </Show>
             </button>
           );
