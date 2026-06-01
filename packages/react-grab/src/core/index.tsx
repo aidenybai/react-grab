@@ -2512,6 +2512,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           isEventFromOverlay(event, "data-react-grab-ignore-events") && !isEnterToActivateInput;
 
         if (isPromptMode() || isFromOverlay) {
+          if (isPromptMode() && !isFromReactGrabInput && tryHandleBareKeyShortcut(event)) return;
+
           if (event.key === "Escape") {
             if (isPromptMode()) {
               handleInputCancel();
