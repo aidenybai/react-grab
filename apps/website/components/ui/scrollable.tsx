@@ -43,7 +43,7 @@ export const Scrollable = ({
     if (!element) return;
 
     updateScrollbar();
-    element.addEventListener("scroll", updateScrollbar);
+    element.addEventListener("scroll", updateScrollbar, { passive: true });
     window.addEventListener("resize", updateScrollbar);
 
     return () => {
