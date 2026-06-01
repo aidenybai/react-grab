@@ -337,6 +337,19 @@
   will-change: transform, opacity;
 }
 
+/* Hold, then fade+blur out - matches the selection label's dismissal. The
+   hold duration comes from the animation-delay set inline on the element. */
+@keyframes rg-copied-pill-out {
+  from {
+    opacity: 1;
+    filter: drop-shadow(var(--rg-shadow)) blur(0);
+  }
+  to {
+    opacity: 0;
+    filter: drop-shadow(var(--rg-shadow)) blur(3px);
+  }
+}
+
 .animate-shake-vertical {
   --rg-shake-x: 0;
   --rg-shake-y: 1;

@@ -3,6 +3,7 @@ import { Geist_Mono, Inter } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
+import Script from "next/script";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -35,8 +36,10 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${inter.variable} ${geistMono.variable} antialiased`}
     >
+      <head>
+        <Script src="/script.js" strategy="beforeInteractive" />
+      </head>
       <body>
-        <script src="/script.js" defer />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <TooltipProvider>{children}</TooltipProvider>
         </ThemeProvider>

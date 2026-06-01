@@ -126,6 +126,8 @@ import { copyPlugin } from "./plugins/copy.js";
 import { commentPlugin } from "./plugins/comment.js";
 import { editPlugin } from "./plugins/edit.js";
 import { openPlugin } from "./plugins/open.js";
+import { createScanPlugin } from "./plugins/scan.js";
+import { createScanController } from "./scan-controller.js";
 import {
   freezeAnimations,
   freezeAllAnimations,
@@ -1600,6 +1602,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const handleToggleActive = () => {
       handleActivateAction(currentToolbarState()?.defaultAction ?? DEFAULT_ACTION_ID);
     };
+
+    const scanController = createScanController({
+      isToolbarEnabled: () =>
+        Boolean(pluginRegistry.store.theme.enabled && pluginRegistry.store.theme.toolbar.enabled),
+    });
 
     const enterCommentModeForElement = (element: Element, positionX: number, positionY: number) => {
       actions.setPendingCommentMode(false);
@@ -3587,6 +3594,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 toolbarVisible={pluginRegistry.store.theme.toolbar.enabled}
                 isActive={isActivated()}
                 onToggleActive={handleToggleActive}
+                isScanning={scanController.isScanning()}
+                scanAvailable={scanController.isScanAvailable()}
+                onToggleScan={scanController.toggle}
+                scanCopiedToken={scanController.scanCopiedToken()}
                 onActivateAction={handleActivateAction}
                 activeActionId={activeActionId()}
                 enabled={isEnabled()}
@@ -3760,6 +3771,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     for (const plugin of builtInPlugins) {
       pluginRegistry.register(plugin, api);
     }
+    pluginRegistry.register(createScanPlugin(scanController.stop), api);
 
     setTimeout(() => {
       isNextProjectRuntime(true);
