@@ -17,6 +17,22 @@ Run this at your project root:
 npx grab@latest init
 ```
 
+## How It Works
+
+React Grab turns a browser selection into source context your agent can use:
+
+1. Hover any UI element in your app.
+2. Press **⌘C** or **Ctrl+C**.
+3. Paste the copied context into your agent.
+
+The copied context includes the selected element and its component stack with source locations:
+
+```txt
+[<a class="ml-auto inline-block text-sm" href="#">Forgot your password?</a> in LoginForm (at components/login-form.tsx:46:19)]
+```
+
+## Manual Installation
+
 ### shadcn Registry
 
 Install the React Grab component from this GitHub registry:
@@ -39,22 +55,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 ```
-
-## How It Works
-
-React Grab turns a browser selection into source context your agent can use:
-
-1. Hover any UI element in your app.
-2. Press **⌘C** or **Ctrl+C**.
-3. Paste the copied context into your agent.
-
-The copied context includes the selected element and its component stack with source locations:
-
-```txt
-[<a class="ml-auto inline-block text-sm" href="#">Forgot your password?</a> in LoginForm (at components/login-form.tsx:46:19)]
-```
-
-## Manual Installation
 
 If you cannot use the CLI, install React Grab manually for your framework:
 

@@ -19,9 +19,6 @@ const reactGrabOptions: Options = {
   // activationKey: "Alt+KeyG",
   // keyHoldDuration: 500,
   // allowActivationInsideInput: true,
-  // freezeReactUpdates: true,
-  // telemetry: true,
-  // getContent: async (elements) => elements.map((element) => element.outerHTML).join("\n"),
 };
 
 export const ReactGrab = (props: ReactGrabProps) => {
