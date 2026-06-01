@@ -8,6 +8,7 @@ import { IconComment } from "../icons/icon-comment.jsx";
 import { IconStyle } from "../icons/icon-style.jsx";
 import { IconScan } from "../icons/icon-scan.jsx";
 import { IconStop } from "../icons/icon-stop.jsx";
+import { IconLoader } from "../icons/icon-loader.jsx";
 import { ToolbarActionButton } from "./toolbar-action-button.jsx";
 import {
   TOOLBAR_SNAP_MARGIN_PX,
@@ -790,7 +791,11 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               {...createFreezeHandlers(SCAN_ACTION_ID, { shouldFreezeInteractions: false })}
               icon={
                 props.isScanning ? (
-                  <IconStop size={14} class={actionIconClass(true)} />
+                  hoveredActionId() === SCAN_ACTION_ID ? (
+                    <IconStop size={14} class="text-[var(--rg-error-text)]" />
+                  ) : (
+                    <IconLoader size={14} class={actionIconClass(true)} />
+                  )
                 ) : (
                   <IconScan size={14} class={actionIconClass(false)} />
                 )
