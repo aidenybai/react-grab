@@ -177,6 +177,16 @@ test.describe("Prompt Mode", () => {
       const isPendingDismiss = await reactGrab.isPendingDismissVisible();
       expect(isPendingDismiss).toBe(false);
     });
+
+    test("empty input outside click should cancel without confirmation", async ({ reactGrab }) => {
+      await reactGrab.registerCommentAction();
+      await reactGrab.enterPromptMode("li:first-child");
+
+      await reactGrab.page.mouse.click(10, 10);
+
+      await expect.poll(() => reactGrab.isOverlayVisible(), { timeout: 2000 }).toBe(false);
+      expect(await reactGrab.isPendingDismissVisible()).toBe(false);
+    });
   });
 
   test.describe("Prompt Mode with Selection", () => {

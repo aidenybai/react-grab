@@ -1548,6 +1548,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.clearLastCopied();
       if (!isPromptMode()) return;
 
+      if (store.inputText.trim() === "") {
+        actions.clearInputText();
+        deactivateRenderer();
+        return;
+      }
+
       if (isPendingDismiss()) {
         actions.clearInputText();
         deactivateRenderer();
@@ -1577,6 +1583,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       editMode.trigger(element, { x: pointer().x, y: pointer().y });
     };
 
+    const clearPendingToolbarSelection = () => {
+      pendingDefaultActionId = null;
+      setIsPendingContextMenuSelect(false);
+      actions.setPendingCommentMode(false);
+    };
+
     const runActionForCurrentSelection = (actionId: string): boolean => {
       const element = store.frozenElement || targetElement();
       if (!element) return false;
@@ -1584,8 +1596,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const position = { x: pointer().x, y: pointer().y };
       actions.clearInputText();
       actions.exitPromptMode();
-      actions.setPendingCommentMode(false);
-      setIsPendingContextMenuSelect(false);
+      clearPendingToolbarSelection();
       setActiveActionId(actionId);
 
       const action = pluginRegistry.store.actions.find(
@@ -1606,13 +1617,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         // While still choosing an element, clicking a different action switches
         // the pending action in place instead of tearing down selection mode;
         // clicking the already-active action toggles selection off.
+        if (activeActionId() !== actionId && isPromptMode()) {
+          if (runActionForCurrentSelection(actionId)) return;
+        }
         if (activeActionId() !== actionId && isPendingContextMenuSelect()) {
           pendingDefaultActionId = actionId;
           setActiveActionId(actionId);
           return;
-        }
-        if (activeActionId() !== actionId && isPromptMode()) {
-          if (runActionForCurrentSelection(actionId)) return;
         }
         deactivateRenderer();
         return;
@@ -1629,7 +1640,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const enterCommentModeForElement = (element: Element, positionX: number, positionY: number) => {
-      actions.setPendingCommentMode(false);
+      clearPendingToolbarSelection();
+      setActiveActionId(COMMENT_ACTION_ID);
       actions.clearInputText();
       actions.enterPromptMode({ x: positionX, y: positionY }, element);
     };
@@ -1637,6 +1649,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const openContextMenu = (element: Element, position: Position) => {
       stopShiftMultiSelecting();
       dismissAllPopups();
+      clearPendingToolbarSelection();
       actions.showContextMenu(position, element);
       clearArrowNavigation();
       pluginRegistry.hooks.onContextMenu(element, position);
@@ -2253,6 +2266,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         { initialSearchQuery: event.key },
       );
       if (!opened) return false;
+      clearPendingToolbarSelection();
+      setActiveActionId(EDIT_ACTION_ID);
       event.preventDefault();
       event.stopImmediatePropagation();
       return true;
@@ -2266,6 +2281,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!action) return false;
 
       const position = { x: pointer().x, y: pointer().y };
+      clearPendingToolbarSelection();
+      setActiveActionId(action.id);
       action.onAction(buildImmediateActionContext(element, position));
 
       event.preventDefault();
@@ -3330,6 +3347,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         : actions.hideContextMenu;
 
       const copyAction = () => {
+        clearPendingToolbarSelection();
+        setActiveActionId(DEFAULT_ACTION_ID);
         onBeforeCopy?.();
         performCopyWithLabel({
           element,
@@ -3342,6 +3361,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const defaultEnterPromptMode = () => {
         clearAllLabels();
+        clearPendingToolbarSelection();
+        setActiveActionId(COMMENT_ACTION_ID);
         onBeforePrompt?.();
         preparePromptMode(element, position.x, position.y);
         actions.setPointer({ x: position.x, y: position.y });
@@ -3354,12 +3375,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       };
 
       const enterEditModeAction = () => {
-        editMode.trigger(element, position, {
+        const didOpen = editMode.trigger(element, position, {
           filePath,
           lineNumber,
           componentName,
           tagName,
         });
+        if (didOpen) {
+          clearPendingToolbarSelection();
+          setActiveActionId(EDIT_ACTION_ID);
+        }
         hideContextMenuAction();
       };
 
