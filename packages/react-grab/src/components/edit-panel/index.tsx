@@ -500,7 +500,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                     isClickable={false}
                     onClick={() => {}}
                     shrink
-                    forceShowIcon={false}
                   />
                   <Show when={hasPendingTweaks()}>
                     <button

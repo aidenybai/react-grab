@@ -462,11 +462,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   onClick={handleTagClick}
                   onHoverChange={handleTagHoverChange}
                   shrink
-                  forceShowIcon={
-                    isArrowNavigationVisible()
-                      ? Boolean(props.filePath && props.onOpen)
-                      : Boolean(props.isContextMenuOpen)
-                  }
                 />
               </div>
               <Show when={props.arrowNavigationState?.isVisible}>
@@ -488,7 +483,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   isClickable={Boolean(props.filePath && props.onOpen)}
                   onClick={handleTagClick}
                   onHoverChange={handleTagHoverChange}
-                  forceShowIcon
                 />
               </div>
               <BottomSection>

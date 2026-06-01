@@ -23,7 +23,7 @@ const PICKLE_ALIGN_BYTES = 4;
 const SIGNATURE_SCAN_CHARS = 32 * 1024;
 
 export const GRAB_MIME = "application/x-react-grab";
-export const CHROMIUM_CUSTOM_FORMAT = "chromium/x-web-custom-data";
+const CHROMIUM_CUSTOM_FORMAT = "chromium/x-web-custom-data";
 
 // React Grab plain-text payloads always carry a component-stack frame such as
 // "in LoginForm (at components/login-form.tsx:46:19)". Used to recognize a grab

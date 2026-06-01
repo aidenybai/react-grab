@@ -21,16 +21,16 @@ export const rgbaChannelsToHex = (
 
 export const parseHexChannels = (
   hex: string,
-): { r: number; g: number; b: number; a: number } | null => {
+): { red: number; green: number; blue: number; alpha: number } | null => {
   if (!hex.startsWith("#")) return null;
   const digits = hex.slice(1);
   if (digits.length !== 6 && digits.length !== 8) return null;
-  const r = parseInt(digits.slice(0, 2), 16);
-  const g = parseInt(digits.slice(2, 4), 16);
-  const b = parseInt(digits.slice(4, 6), 16);
-  const a = digits.length === 8 ? parseInt(digits.slice(6, 8), 16) / 255 : 1;
-  if (!Number.isFinite(r) || !Number.isFinite(g) || !Number.isFinite(b)) return null;
-  return { r, g, b, a };
+  const red = parseInt(digits.slice(0, 2), 16);
+  const green = parseInt(digits.slice(2, 4), 16);
+  const blue = parseInt(digits.slice(4, 6), 16);
+  const alpha = digits.length === 8 ? parseInt(digits.slice(6, 8), 16) / 255 : 1;
+  if (!Number.isFinite(red) || !Number.isFinite(green) || !Number.isFinite(blue)) return null;
+  return { red, green, blue, alpha };
 };
 
 export const rgbStringToHex = (cssValue: string): string | null => {

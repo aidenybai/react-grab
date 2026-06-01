@@ -97,26 +97,24 @@ const createNthChildSelector = (element: Element): string => {
   return segments.join(" > ");
 };
 
-export const createElementSelector = (element: Element, shouldUseFinder = true): string => {
+export const createElementSelector = (element: Element): string => {
   const fastSelector = createFastElementSelector(element);
   if (fastSelector) return fastSelector;
 
-  if (shouldUseFinder) {
-    try {
-      const selector = findUniqueSelector(
-        element,
-        getFinderRoot(element),
-        FINDER_TIMEOUT_MS,
-        (attributeName, attributeValue) =>
-          isAcceptedAttr(attributeName, attributeValue) ||
-          (PREFERRED_SELECTOR_ATTRIBUTE_NAMES.has(attributeName) &&
-            isPreferredAttributeValueSafe(attributeValue)),
-      );
-      if (selector) return selector;
-      // @medv/finder can throw on unusual DOM structures (SVG, web components,
-      // detached nodes), so we fall back to an nth-child selector instead.
-    } catch {}
-  }
+  try {
+    const selector = findUniqueSelector(
+      element,
+      getFinderRoot(element),
+      FINDER_TIMEOUT_MS,
+      (attributeName, attributeValue) =>
+        isAcceptedAttr(attributeName, attributeValue) ||
+        (PREFERRED_SELECTOR_ATTRIBUTE_NAMES.has(attributeName) &&
+          isPreferredAttributeValueSafe(attributeValue)),
+    );
+    if (selector) return selector;
+    // @medv/finder can throw on unusual DOM structures (SVG, web components,
+    // detached nodes), so we fall back to an nth-child selector instead.
+  } catch {}
 
   return createNthChildSelector(element);
 };

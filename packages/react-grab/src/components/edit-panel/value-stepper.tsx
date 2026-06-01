@@ -12,6 +12,7 @@ import {
 } from "../../constants.js";
 import { formatDisplayValue } from "../../utils/format-css-value.js";
 import { Slot } from "../slot.js";
+import { EDIT_LABEL_CLASS } from "./constants.js";
 import { StepArrow } from "./step-arrow.js";
 
 interface ValueStepperProps {
@@ -36,7 +37,6 @@ const HASH_MARK_PERCENTS = Array.from(
 );
 
 const VALUE_CLASS = "text-[12px] leading-4 font-medium tabular-nums";
-const LABEL_CLASS = "text-[13px] leading-4 font-medium";
 const INLINE_VALUE_PATTERN = /^(-?(?:\d+\.?\d*|\.\d+))\s*([a-zA-Z%]*)$/;
 
 export const ValueStepper: Component<ValueStepperProps> = (props) => {
@@ -45,7 +45,6 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
   const [isDragging, setIsDragging] = createSignal(false);
   const [isHovered, setIsHovered] = createSignal(false);
   const isEditing = () => draftText() !== null;
-  let trackElement: HTMLDivElement | undefined;
   let valueTextElement: HTMLSpanElement | undefined;
   let dragState: {
     startX: number;
@@ -228,7 +227,6 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
   return (
     <div class="flex items-center gap-1 w-full px-1">
       <div
-        ref={trackElement}
         role="slider"
         aria-label={props.label ?? "Value"}
         aria-valuemin={props.min}
@@ -295,7 +293,7 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
         <div class="relative z-10 flex items-center justify-between w-full px-2 pointer-events-none">
           <Show when={props.label}>
             {(text) => (
-              <span class={`${LABEL_CLASS} text-[var(--rg-text-primary)] truncate min-w-0`}>
+              <span class={`${EDIT_LABEL_CLASS} text-[var(--rg-text-primary)] truncate min-w-0`}>
                 {text()}
               </span>
             )}

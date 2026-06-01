@@ -6,7 +6,6 @@ import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "./nativ
 interface RegisterOverlayDismissOptions {
   isOpen: () => boolean;
   onDismiss: (source: OverlayDismissSource) => void;
-  onConfirm?: () => void;
   shouldIgnoreKeyboardEvent?: (event: KeyboardEvent) => boolean;
   shouldIgnoreInputEvents?: boolean;
   shouldIgnoreRightClick?: boolean;
@@ -20,19 +19,10 @@ export const registerOverlayDismiss = (options: RegisterOverlayDismissOptions): 
       return;
     }
 
-    const isEscape = event.code === "Escape";
-
-    if (isEscape) {
+    if (event.code === "Escape") {
       event.preventDefault();
       event.stopImmediatePropagation();
       options.onDismiss("keyboard");
-      return;
-    }
-
-    if (event.code === "Enter" && options.onConfirm) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      options.onConfirm();
     }
   };
 

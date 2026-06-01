@@ -14,7 +14,7 @@ interface CreateTweakStoreOptions {
   searchQuery: () => string;
 }
 
-export interface TweakStore {
+interface TweakStore {
   filteredProperties: () => EditableProperty[];
   applyTweak: (property: EditableProperty, nextValue: number | string) => void;
   buildPendingEdits: () => PendingEdit[];
