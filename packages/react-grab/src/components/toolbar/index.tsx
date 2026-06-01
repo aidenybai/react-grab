@@ -1,10 +1,13 @@
-import { createEffect, createSignal, on, onCleanup, onMount, type Component } from "solid-js";
+import { createEffect, createSignal, on, onCleanup, onMount, Show, type Component } from "solid-js";
 import type { Position } from "../../types.js";
 import { cn } from "../../utils/cn.js";
+import { CopiedPill } from "../copied-pill.js";
 import { loadToolbarState, saveToolbarState, type SnapEdge, type ToolbarState } from "./state.js";
 import { IconSelect } from "../icons/icon-select.jsx";
 import { IconComment } from "../icons/icon-comment.jsx";
 import { IconStyle } from "../icons/icon-style.jsx";
+import { IconScan } from "../icons/icon-scan.jsx";
+import { IconStop } from "../icons/icon-stop.jsx";
 import { ToolbarActionButton } from "./toolbar-action-button.jsx";
 import {
   TOOLBAR_SNAP_MARGIN_PX,
@@ -19,6 +22,8 @@ import {
   DEFAULT_ACTION_ID,
   COMMENT_ACTION_ID,
   EDIT_ACTION_ID,
+  SCAN_ACTION_ID,
+  LABEL_GAP_PX,
 } from "../../constants.js";
 import { freezeUpdates } from "../../utils/freeze-updates.js";
 import { freezeGlobalAnimations, unfreezeGlobalAnimations } from "../../utils/freeze-animations.js";
@@ -39,6 +44,9 @@ import { accumulateRotationDeg } from "../../utils/accumulate-rotation.js";
 
 interface ToolbarProps {
   isActive?: boolean;
+  isScanning?: boolean;
+  onToggleScan?: () => void;
+  scanCopied?: boolean;
   isContextMenuOpen?: boolean;
   onToggle?: () => void;
   onActivateAction?: (actionId: string) => void;
@@ -143,6 +151,20 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         return "left";
       default:
         return "top";
+    }
+  };
+
+  const scanCopiedToastStyle = (): Record<string, string> => {
+    const gap = `calc(100% + ${LABEL_GAP_PX}px)`;
+    switch (tooltipPosition()) {
+      case "bottom":
+        return { top: gap, left: "50%", transform: "translateX(-50%)" };
+      case "left":
+        return { right: gap, top: "50%", transform: "translateY(-50%)" };
+      case "right":
+        return { left: gap, top: "50%", transform: "translateY(-50%)" };
+      default:
+        return { bottom: gap, left: "50%", transform: "translateX(-50%)" };
     }
   };
 
@@ -281,6 +303,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     props.onActivateAction?.(COMMENT_ACTION_ID),
   );
   const handleStyle = drag.createDragAwareHandler(() => props.onActivateAction?.(EDIT_ACTION_ID));
+  const handleScan = drag.createDragAwareHandler(() => props.onToggleScan?.());
 
   const actionButtonClass =
     "group contain-layout flex items-center justify-center cursor-pointer interactive-scale a11y-hitbox";
@@ -655,6 +678,15 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         props.onSelectHoverChange?.(false);
       }}
     >
+      <Show when={props.scanCopied}>
+        <div
+          data-react-grab-scan-copied
+          class="absolute pointer-events-none"
+          style={scanCopiedToastStyle()}
+        >
+          <CopiedPill text="Copied performance trace" />
+        </div>
+      </Show>
       <ToolbarContent
         isCollapsed={isCollapsed()}
         snapEdge={snapEdge()}
@@ -746,6 +778,26 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               tooltipVisible={isTooltipVisible(EDIT_ACTION_ID)}
               tooltipPosition={tooltipPosition()}
               tooltip="Style"
+            />
+            <ToolbarActionButton
+              actionId={SCAN_ACTION_ID}
+              isToggle
+              label={props.isScanning ? "Stop scanning renders" : "Scan renders"}
+              isActive={Boolean(props.isScanning)}
+              class={actionButtonClass}
+              wrapperClass={actionButtonWrapperClass()}
+              onClick={handleScan}
+              {...createFreezeHandlers(SCAN_ACTION_ID, { shouldFreezeInteractions: false })}
+              icon={
+                props.isScanning ? (
+                  <IconStop size={14} class={actionIconClass(true)} />
+                ) : (
+                  <IconScan size={14} class={actionIconClass(false)} />
+                )
+              }
+              tooltipVisible={isTooltipVisible(SCAN_ACTION_ID) && !props.isScanning}
+              tooltipPosition={tooltipPosition()}
+              tooltip="Scan"
             />
           </>
         }

@@ -490,6 +490,9 @@ export interface ReactGrabRendererProps {
   toolbarVisible?: boolean;
   isActive?: boolean;
   onToggleActive?: () => void;
+  isScanning?: boolean;
+  onToggleScan?: () => void;
+  scanCopied?: boolean;
   onActivateAction?: (actionId: string) => void;
   activeActionId?: string | null;
   enabled?: boolean;
@@ -583,6 +586,41 @@ export interface CompletionViewProps {
   onDismiss?: () => void;
   onFadingChange?: (isFading: boolean) => void;
   onShowContextMenu?: () => void;
+}
+
+export interface ScanLoafScript {
+  invoker: string;
+  invokerType: string;
+  sourceURL: string;
+  sourceFunctionName: string;
+  durationMs: number;
+  forcedStyleAndLayoutDurationMs: number;
+}
+
+export interface ScanLongAnimationFrame {
+  startTimeMs: number;
+  durationMs: number;
+  blockingDurationMs: number;
+  renderStartMs: number;
+  styleAndLayoutStartMs: number;
+  scripts: ScanLoafScript[];
+}
+
+export interface ScanComponentProfile {
+  componentName: string;
+  renderCount: number;
+  totalActualDurationMs: number;
+  maxActualDurationMs: number;
+  totalSelfDurationMs: number;
+  lastRenderTimestamp: number;
+}
+
+export interface ScanTrace {
+  startedAtEpochMs: number;
+  durationMs: number;
+  commitCount: number;
+  components: ScanComponentProfile[];
+  longAnimationFrames: ScanLongAnimationFrame[];
 }
 
 export interface SelectionLabelProps {

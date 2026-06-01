@@ -135,6 +135,23 @@ export const TOOLBAR_DEFAULT_POSITION_RATIO = 0.5;
 export const DEFAULT_ACTION_ID = "copy";
 export const COMMENT_ACTION_ID = "comment";
 export const EDIT_ACTION_ID = "edit";
+export const SCAN_ACTION_ID = "scan";
+
+// Render-scan overlay (bippy-driven re-render outlines). Reuses the shared
+// overlay pink (OVERLAY_*_COLOR_DEFAULT) and rounded-rect drawing; the scan
+// canvas lives outside the overlay shadow root, so it sits one step below the
+// overlay canvas to keep the selection/toolbar layers visually on top.
+export const Z_INDEX_SCAN_CANVAS = Z_INDEX_OVERLAY_CANVAS - 1;
+export const SCAN_OUTLINE_DURATION_MS = 900;
+export const LONG_ANIMATION_FRAME_ENTRY_TYPE = "long-animation-frame";
+export const MAX_SCAN_TRACE_COMPONENTS = 100;
+export const MAX_SCAN_TRACE_LOAF_ENTRIES = 100;
+export const MAX_SCAN_TRACE_LOAF_SCRIPTS = 10;
+export const SCAN_LABEL_TEXT_COLOR = "rgba(255, 255, 255, 0.95)";
+export const SCAN_LABEL_HEIGHT_PX = 15;
+export const SCAN_LABEL_PADDING_PX = 4;
+export const SCAN_LABEL_FONT =
+  "11px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
 
 export const TOOLTIP_DELAY_MS = 400;
 export const TOOLTIP_GRACE_PERIOD_MS = 800;

@@ -143,6 +143,9 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
       <Show when={props.toolbarVisible !== false}>
         <Toolbar
           isActive={props.isActive}
+          isScanning={props.isScanning}
+          onToggleScan={props.onToggleScan}
+          scanCopied={props.scanCopied}
           isContextMenuOpen={props.contextMenuPosition !== null}
           onToggle={props.onToggleActive}
           onActivateAction={props.onActivateAction}
