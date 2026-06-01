@@ -1,5 +1,6 @@
 import {
   instrument,
+  didFiberRender,
   getDisplayName,
   getNearestHostFiber,
   isCompositeFiber,
@@ -94,12 +95,21 @@ export const createScanner = (): ScannerController => {
   // instead of calling performance.now() inside the hot fiber walk.
   let currentCommitTimestamp = 0;
 
+  const didNearestCompositeAncestorRender = (fiber: Fiber): boolean => {
+    let ancestor = fiber.return;
+    while (ancestor) {
+      if (isCompositeFiber(ancestor)) return didFiberRender(ancestor);
+      ancestor = ancestor.return;
+    }
+    return false;
+  };
+
   const recordRenderedFiber = (fiber: Fiber): void => {
     if (!isCompositeFiber(fiber)) return;
     const componentName = getDisplayName(fiber.type);
     if (!componentName || !isUsefulComponentName(componentName)) return;
 
-    recorder.recordFiber(componentName, fiber);
+    recorder.collectFiber(fiber, componentName, didNearestCompositeAncestorRender(fiber));
 
     const hostFiber = getNearestHostFiber(fiber);
     const element = hostFiber?.stateNode;
@@ -126,6 +136,7 @@ export const createScanner = (): ScannerController => {
     currentCommitTimestamp = performance.now();
     recorder.beginCommit(currentCommitTimestamp);
     traverseRenderedFibers(root, recordRenderedFiber);
+    recorder.endCommit();
     scheduleFrame();
   };
 

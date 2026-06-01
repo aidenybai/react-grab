@@ -1,16 +1,20 @@
 import type { Fiber } from "bippy";
 import {
   LONG_ANIMATION_FRAME_ENTRY_TYPE,
-  MAX_SCAN_TRACE_COMPONENTS,
+  MAX_SCAN_TRACE_COMMITS,
+  MAX_SCAN_TRACE_FIBERS_PER_COMMIT,
   MAX_SCAN_TRACE_LOAF_ENTRIES,
   MAX_SCAN_TRACE_LOAF_SCRIPTS,
 } from "../constants.js";
 import type {
-  ScanComponentProfile,
+  ScanCommit,
   ScanLoafScript,
   ScanLongAnimationFrame,
+  ScanRenderedFiber,
   ScanTrace,
 } from "../types.js";
+import { getChangeDescription } from "../utils/get-change-description.js";
+import { getFiberSource } from "../utils/get-fiber-source.js";
 
 // The `long-animation-frame` entry shape is not yet in the DOM lib types, so
 // we model the fields we read off PerformanceObserver entries here.
@@ -29,11 +33,20 @@ interface LongAnimationFrameTiming extends PerformanceEntry {
   scripts?: LongAnimationFrameScriptTiming[];
 }
 
+interface CollectedFiber {
+  fiber: Fiber;
+  name: string;
+  actualDurationMs: number;
+  selfDurationMs: number;
+  parentRendered: boolean;
+}
+
 export interface ScanTraceRecorder {
   begin: () => void;
   end: () => void;
   beginCommit: (timestamp: number) => void;
-  recordFiber: (componentName: string, fiber: Fiber) => void;
+  collectFiber: (fiber: Fiber, name: string, parentRendered: boolean) => void;
+  endCommit: () => void;
   takeTrace: () => ScanTrace | null;
 }
 
@@ -41,16 +54,18 @@ const isLongAnimationFrameSupported = (): boolean =>
   typeof PerformanceObserver !== "undefined" &&
   Boolean(PerformanceObserver.supportedEntryTypes?.includes(LONG_ANIMATION_FRAME_ENTRY_TYPE));
 
-// Pure, DOM-free profiling model: accumulates per-component render cost and
-// long-animation-frame entries over a scan session. Kept separate from the
-// canvas scanner so it can be reasoned about and tested on its own.
+// Records what react-scan/lite records - per commit, the fibers that rendered
+// with their actualDuration, why they re-rendered (change description) and
+// where they live (source) - plus the long-animation-frames over the same
+// window, so an agent can attribute a slow frame to a commit and a component.
 export const createScanTraceRecorder = (): ScanTraceRecorder => {
-  const componentProfiles = new Map<string, ScanComponentProfile>();
+  const commits: ScanCommit[] = [];
   const longAnimationFrames: ScanLongAnimationFrame[] = [];
+  const collected: CollectedFiber[] = [];
   let commitCount = 0;
+  let currentCommitTimestamp = 0;
   let scanStartTimestamp = 0;
   let scanStartEpochMs = 0;
-  let currentCommitTimestamp = 0;
   let observer: PerformanceObserver | null = null;
 
   const recordLongAnimationFrames = (list: PerformanceObserverEntryList): void => {
@@ -80,8 +95,9 @@ export const createScanTraceRecorder = (): ScanTraceRecorder => {
   };
 
   const begin = (): void => {
-    componentProfiles.clear();
+    commits.length = 0;
     longAnimationFrames.length = 0;
+    collected.length = 0;
     commitCount = 0;
     scanStartTimestamp = performance.now();
     scanStartEpochMs = Date.now();
@@ -102,49 +118,63 @@ export const createScanTraceRecorder = (): ScanTraceRecorder => {
   const beginCommit = (timestamp: number): void => {
     currentCommitTimestamp = timestamp;
     commitCount += 1;
+    collected.length = 0;
   };
 
-  const recordFiber = (componentName: string, fiber: Fiber): void => {
-    const actualDurationMs = fiber.actualDuration ?? 0;
-    const selfDurationMs = fiber.selfBaseDuration ?? 0;
-    const existingProfile = componentProfiles.get(componentName);
-    if (existingProfile) {
-      existingProfile.renderCount += 1;
-      existingProfile.totalActualDurationMs += actualDurationMs;
-      existingProfile.totalSelfDurationMs += selfDurationMs;
-      if (actualDurationMs > existingProfile.maxActualDurationMs) {
-        existingProfile.maxActualDurationMs = actualDurationMs;
+  const collectFiber = (fiber: Fiber, name: string, parentRendered: boolean): void => {
+    collected.push({
+      fiber,
+      name,
+      actualDurationMs: fiber.actualDuration ?? 0,
+      selfDurationMs: fiber.selfBaseDuration ?? 0,
+      parentRendered,
+    });
+  };
+
+  // Finalizes the in-progress commit: keep the slowest fibers, and only for
+  // those compute the (relatively expensive) change description + source while
+  // the fibers are still the live alternates for this commit.
+  const endCommit = (): void => {
+    if (collected.length === 0) return;
+    collected.sort((first, second) => second.actualDurationMs - first.actualDurationMs);
+
+    let totalActualDurationMs = 0;
+    for (const entry of collected) {
+      if (entry.actualDurationMs > totalActualDurationMs) {
+        totalActualDurationMs = entry.actualDurationMs;
       }
-      existingProfile.lastRenderTimestamp = currentCommitTimestamp;
-    } else {
-      componentProfiles.set(componentName, {
-        componentName,
-        renderCount: 1,
-        totalActualDurationMs: actualDurationMs,
-        maxActualDurationMs: actualDurationMs,
-        totalSelfDurationMs: selfDurationMs,
-        lastRenderTimestamp: currentCommitTimestamp,
-      });
     }
+
+    const fibers: ScanRenderedFiber[] = collected
+      .slice(0, MAX_SCAN_TRACE_FIBERS_PER_COMMIT)
+      .map((entry) => ({
+        name: entry.name,
+        actualDurationMs: entry.actualDurationMs,
+        selfDurationMs: entry.selfDurationMs,
+        source: getFiberSource(entry.fiber),
+        change: getChangeDescription(entry.fiber, entry.parentRendered),
+      }));
+
+    commits.push({
+      timestampMs: currentCommitTimestamp,
+      totalActualDurationMs,
+      renderedFiberCount: collected.length,
+      fibers,
+    });
+    if (commits.length > MAX_SCAN_TRACE_COMMITS) commits.shift();
+    collected.length = 0;
   };
 
   const takeTrace = (): ScanTrace | null => {
-    if (componentProfiles.size === 0 && longAnimationFrames.length === 0) return null;
-    const components = Array.from(componentProfiles.values())
-      .sort(
-        (first, second) =>
-          second.totalActualDurationMs - first.totalActualDurationMs ||
-          second.renderCount - first.renderCount,
-      )
-      .slice(0, MAX_SCAN_TRACE_COMPONENTS);
+    if (commits.length === 0 && longAnimationFrames.length === 0) return null;
     return {
       startedAtEpochMs: scanStartEpochMs,
       durationMs: performance.now() - scanStartTimestamp,
       commitCount,
-      components,
+      commits: commits.slice(),
       longAnimationFrames: longAnimationFrames.slice(),
     };
   };
 
-  return { begin, end, beginCommit, recordFiber, takeTrace };
+  return { begin, end, beginCommit, collectFiber, endCommit, takeTrace };
 };

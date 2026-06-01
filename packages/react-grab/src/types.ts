@@ -606,20 +606,35 @@ export interface ScanLongAnimationFrame {
   scripts: ScanLoafScript[];
 }
 
-export interface ScanComponentProfile {
-  componentName: string;
-  renderCount: number;
+export interface ScanFiberChange {
+  isFirstMount: boolean;
+  props: string[] | null;
+  state: boolean;
+  context: boolean;
+  hooks: number[];
+  parent: boolean;
+}
+
+export interface ScanRenderedFiber {
+  name: string;
+  actualDurationMs: number;
+  selfDurationMs: number;
+  source: string | null;
+  change: ScanFiberChange | null;
+}
+
+export interface ScanCommit {
+  timestampMs: number;
   totalActualDurationMs: number;
-  maxActualDurationMs: number;
-  totalSelfDurationMs: number;
-  lastRenderTimestamp: number;
+  renderedFiberCount: number;
+  fibers: ScanRenderedFiber[];
 }
 
 export interface ScanTrace {
   startedAtEpochMs: number;
   durationMs: number;
   commitCount: number;
-  components: ScanComponentProfile[];
+  commits: ScanCommit[];
   longAnimationFrames: ScanLongAnimationFrame[];
 }
 
