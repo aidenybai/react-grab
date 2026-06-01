@@ -80,6 +80,8 @@ import {
   NEXTJS_REVALIDATION_DELAY_MS,
   TOOLBAR_DEFAULT_POSITION_RATIO,
   DEFAULT_ACTION_ID,
+  COMMENT_ACTION_ID,
+  EDIT_ACTION_ID,
   EDIT_PANEL_POINTER_ANCHOR_WIDTH_PX,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
