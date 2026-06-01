@@ -181,7 +181,12 @@ export const createLabelController = (
       return;
     }
     const instance = getLabelInstances().find((labelInstance) => labelInstance.id === instanceId);
-    if (instance && instance.status === "copied") {
+    if (!instance) return;
+    if (
+      instance.status === "copied" ||
+      instance.status === "error" ||
+      instance.status === "fading"
+    ) {
       scheduleFade(instanceId);
     }
   };

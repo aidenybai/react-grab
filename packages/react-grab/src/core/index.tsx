@@ -683,7 +683,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       let didCopy = true;
       if (unhandledElements.length > 0) {
         didCopy = await copyResolvedElements(unhandledElements, extraPrompt, resolvedComponentName);
-      } else if (pendingResults.length > 0) {
+      }
+      if (pendingResults.length > 0) {
         const results = await Promise.all(pendingResults);
         if (!results.every(Boolean)) {
           throw new CopyFailedError();
