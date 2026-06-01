@@ -30,9 +30,7 @@ const didAnyContextChange = (fiber: Fiber): boolean => {
   let changed = false;
   traverseContexts(fiber, (nextContext, prevContext) => {
     if (!nextContext || !prevContext) return;
-    // A context-identity mismatch means the dependency lists diverged (e.g. a
-    // conditional context read); skip this slot rather than aborting, so a
-    // genuine value change in a later context is still detected.
+    // Diverged dependency lists (conditional context read): skip, don't abort.
     if (nextContext.context !== prevContext.context) return;
     if (!Object.is(prevContext.memoizedValue, nextContext.memoizedValue)) {
       changed = true;
@@ -61,7 +59,6 @@ const didAnyClassStateChange = (fiber: Fiber): boolean => {
   return false;
 };
 
-// Indices of stateful hooks whose memoizedState changed by reference.
 // Approximate: conflates useState with useMemo/useCallback/useEffect deps.
 const collectChangedHookIndices = (fiber: Fiber): number[] => {
   const indices: number[] = [];
@@ -75,10 +72,8 @@ const collectChangedHookIndices = (fiber: Fiber): number[] => {
   return indices;
 };
 
-// Why a fiber re-rendered, attributed to props / state / context / hooks, or
-// flagged as a first mount / parent cascade. Ported from react-scan/lite (which
-// ports react-devtools' getChangeDescription); `parentRendered` is supplied by
-// the caller, which already knows whether a composite ancestor rendered.
+// Why a fiber re-rendered (props/state/context/hooks/mount/parent-cascade).
+// Ported from react-scan/lite; `parentRendered` is supplied by the caller.
 export const getChangeDescription = (
   fiber: Fiber,
   parentRendered: boolean,

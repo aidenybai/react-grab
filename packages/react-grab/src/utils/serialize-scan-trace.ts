@@ -2,7 +2,6 @@ import type { ScanFiberChange, ScanTrace } from "../types.js";
 
 const round1 = (value: number): number => Math.round(value * 10) / 10;
 
-// Compact "why did this fiber render" from a change description.
 const formatChange = (change: ScanFiberChange | null): string => {
   if (!change) return "?";
   if (change.isFirstMount) return "mount";
@@ -15,12 +14,7 @@ const formatChange = (change: ScanFiberChange | null): string => {
   return parts.length > 0 ? parts.join(" ") : "?";
 };
 
-// Renders a render-scan trace as a compact, token-efficient log (not JSON) for
-// pasting to a coding agent - the same data react-scan/lite captures (per
-// commit, the fibers that rendered with actualDuration, why, and where) plus
-// the long-animation-frames over the same window. Commits are listed slowest
-// first so the worst offenders lead; "parent" on a fiber marks a cascade
-// (re-rendered because an ancestor did), not a root cause.
+// Compact, token-efficient log (not JSON) of the trace for pasting to an agent.
 export const serializeScanTrace = (trace: ScanTrace): string => {
   const lines: string[] = [];
 

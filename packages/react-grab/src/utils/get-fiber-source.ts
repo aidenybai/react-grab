@@ -1,10 +1,8 @@
 import type { Fiber } from "bippy";
 import { formatOwnerStack, hasDebugSource, hasDebugStack, parseStack } from "bippy/source";
 
-// The JSX call site of a fiber as a compact "file:line:col" string, or null.
-// Synchronous only: reads `_debugSource` (React 16-18 dev) or parses the first
-// frame of `_debugStack` (React 19+ dev). No source-map symbolication - bundled
-// URLs only. Ported (trimmed) from react-scan/lite's getFiberSource.
+// JSX call site as "file:line:col", or null. Sync, dev-only, no symbolication:
+// `_debugSource` (React 16-18) or the first `_debugStack` frame (React 19+).
 export const getFiberSource = (fiber: Fiber): string | null => {
   if (hasDebugSource(fiber)) {
     const { fileName, lineNumber, columnNumber } = fiber._debugSource;

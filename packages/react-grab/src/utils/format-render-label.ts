@@ -1,9 +1,7 @@
 import { SCAN_LABEL_MAX_CHARS, SCAN_LABEL_MAX_NAMES_PER_GROUP } from "../constants.js";
 
-// Builds the scan outline label from the component names that rendered into one
-// element. Names sharing a render count are grouped under a single `×count`
-// (e.g. "Row, Cell ×3, List ×1"), most-rendered first, and the whole label is
-// truncated with an ellipsis so a long name or many components can't overflow.
+// Outline label for an element: names grouped by render count (e.g.
+// "Row, Cell ×3, List ×1"), most first, ellipsis-truncated.
 export const formatRenderLabel = (nameCounts: Map<string, number>): string => {
   const namesByCount = new Map<number, string[]>();
   for (const [name, count] of nameCounts) {

@@ -137,10 +137,7 @@ export const COMMENT_ACTION_ID = "comment";
 export const EDIT_ACTION_ID = "edit";
 export const SCAN_ACTION_ID = "scan";
 
-// Render-scan overlay (bippy-driven re-render outlines). Reuses the shared
-// overlay pink (OVERLAY_*_COLOR_DEFAULT) and rounded-rect drawing; the scan
-// canvas lives outside the overlay shadow root, so it sits one step below the
-// overlay canvas to keep the selection/toolbar layers visually on top.
+// One below the overlay canvas so selection/toolbar layers stay on top.
 export const Z_INDEX_SCAN_CANVAS = Z_INDEX_OVERLAY_CANVAS - 1;
 export const SCAN_OUTLINE_DURATION_MS = 900;
 export const LONG_ANIMATION_FRAME_ENTRY_TYPE = "long-animation-frame";

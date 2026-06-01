@@ -6,10 +6,7 @@ interface CopiedPillProps {
   text: string;
 }
 
-// Static, non-interactive "copied" confirmation pill for passive confirmations
-// (e.g. the toolbar scan-trace toast). It appears instantly, holds, then fades
-// itself out over its final FADE_DURATION_MS - the same dismissal the selection
-// label uses - so the parent only needs to mount/unmount it.
+// Static "copied" pill that self-fades on a CSS animation; parent only mounts it.
 export const CopiedPill: Component<CopiedPillProps> = (props) => {
   return (
     <div

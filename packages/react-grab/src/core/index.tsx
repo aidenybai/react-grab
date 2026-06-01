@@ -127,7 +127,7 @@ import { commentPlugin } from "./plugins/comment.js";
 import { editPlugin } from "./plugins/edit.js";
 import { openPlugin } from "./plugins/open.js";
 import { createScanPlugin } from "./plugins/scan.js";
-import { createScanController } from "./scan-controller.js";
+import { createScanController } from "./scanner.js";
 import {
   freezeAnimations,
   freezeAllAnimations,
@@ -1505,8 +1505,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isActivated()) {
         deactivateRenderer();
       }
-      // Stop any live scan too - disabling React Grab must not leave the canvas
-      // and per-commit fiber walk running with no UI to stop them.
       scanController.stop();
       clearCopyFeedbackCooldown();
     };
