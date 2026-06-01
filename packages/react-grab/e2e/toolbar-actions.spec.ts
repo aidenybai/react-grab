@@ -153,6 +153,26 @@ test.describe("Toolbar Action Buttons", () => {
       expect(await reactGrab.getToolbarActionPressed("edit")).toBe(true);
     });
 
+    test("Style shortcut opens the style panel from a comment discard prompt", async ({
+      reactGrab,
+    }) => {
+      await waitForToolbar(reactGrab);
+      await reactGrab.clickToolbarAction("comment");
+      await reactGrab.hoverElement(BUTTON_SELECTOR);
+      await reactGrab.waitForSelectionBox();
+      await reactGrab.clickElement(BUTTON_SELECTOR);
+      await reactGrab.typeInInput("Discard this comment");
+      await reactGrab.page.mouse.click(10, 10);
+      await expect.poll(() => reactGrab.isPendingDismissVisible(), { timeout: 2000 }).toBe(true);
+
+      await reactGrab.page.keyboard.press("s");
+
+      await expect.poll(() => isEditPanelVisible(reactGrab.page), { timeout: 2000 }).toBe(true);
+      await expect.poll(() => reactGrab.isPromptModeActive(), { timeout: 2000 }).toBe(false);
+      expect(await reactGrab.getInputValue()).toBe("");
+      expect(await reactGrab.getToolbarActionPressed("edit")).toBe(true);
+    });
+
     test("Style button opens from a context-menu comment after pending toolbar selection", async ({
       reactGrab,
     }) => {

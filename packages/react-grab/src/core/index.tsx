@@ -2311,6 +2311,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const action = findShortcutAction(pluginRegistry.store.actions, event);
       if (!action) return false;
 
+      if (isPromptMode()) {
+        if (!runActionForCurrentSelection(action.id)) return false;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return true;
+      }
+
       const position = { x: pointer().x, y: pointer().y };
       clearPendingToolbarSelection();
       action.onAction(buildImmediateActionContext(element, position));
