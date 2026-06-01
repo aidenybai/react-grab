@@ -684,7 +684,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           class="absolute pointer-events-none"
           style={scanCopiedToastStyle()}
         >
-          <CopiedPill text="Copied performance trace" />
+          <CopiedPill text="Copied" />
         </div>
       </Show>
       <ToolbarContent
