@@ -483,12 +483,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let keyboardSelectedElement: Element | null = null;
     let pendingDefaultActionId: string | null = null;
     const [isPendingContextMenuSelect, setIsPendingContextMenuSelect] = createSignal(false);
-    const [activeActionId, setActiveActionId] = createSignal<string | null>(null);
+    const [pendingToolbarActionId, setPendingToolbarActionId] = createSignal<string | null>(null);
     const [debouncedElementForComponentName, setDebouncedElementForComponentName] =
       createSignal<Element | null>(null);
     const [resolvedComponentName, setResolvedComponentName] = createComponentNameForElement(
       debouncedElementForComponentName,
     );
+    const toolbarActiveActionId = createMemo(() => {
+      if (editMode.isOpen()) return EDIT_ACTION_ID;
+      if (isCommentMode()) return COMMENT_ACTION_ID;
+      if (isPendingContextMenuSelect()) return pendingToolbarActionId();
+      if (isActivated()) return pendingToolbarActionId() ?? DEFAULT_ACTION_ID;
+      return null;
+    });
     const [arrowNavigationElements, setArrowNavigationElements] = createSignal<Element[]>([]);
     const [arrowNavigationActiveIndex, setArrowNavigationActiveIndex] = createSignal(0);
 
@@ -1477,7 +1484,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       clearArrowNavigation();
       keyboardSelectedElement = null;
       setIsPendingContextMenuSelect(false);
-      setActiveActionId(null);
+      setPendingToolbarActionId(null);
       if (wasDragging) {
         document.body.style.userSelect = "";
       }
@@ -1589,6 +1596,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       pendingDefaultActionId = null;
       setIsPendingContextMenuSelect(false);
       actions.setPendingCommentMode(false);
+      setPendingToolbarActionId(null);
     };
 
     const runActionForCurrentSelection = (actionId: string): boolean => {
@@ -1619,7 +1627,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.clearInputText();
         actions.exitPromptMode();
         clearPendingToolbarSelection();
-        setActiveActionId(EDIT_ACTION_ID);
         return true;
       }
 
@@ -1635,12 +1642,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         // While still choosing an element, clicking a different action switches
         // the pending action in place instead of tearing down selection mode;
         // clicking the already-active action toggles selection off.
-        if (activeActionId() !== actionId && isPromptMode()) {
+        if (toolbarActiveActionId() !== actionId && isPromptMode()) {
           if (runActionForCurrentSelection(actionId)) return;
         }
-        if (activeActionId() !== actionId && isPendingContextMenuSelect()) {
+        if (toolbarActiveActionId() !== actionId && isPendingContextMenuSelect()) {
           pendingDefaultActionId = actionId;
-          setActiveActionId(actionId);
+          setPendingToolbarActionId(actionId);
           return;
         }
         deactivateRenderer();
@@ -1648,7 +1655,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
       if (!isEnabled()) return;
       pendingDefaultActionId = actionId;
-      setActiveActionId(actionId);
+      setPendingToolbarActionId(actionId);
       setIsPendingContextMenuSelect(true);
       toggleActivate();
     };
@@ -1659,7 +1666,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const enterCommentModeForElement = (element: Element, positionX: number, positionY: number) => {
       clearPendingToolbarSelection();
-      setActiveActionId(COMMENT_ACTION_ID);
       actions.clearInputText();
       actions.enterPromptMode({ x: positionX, y: positionY }, element);
     };
@@ -2285,7 +2291,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       );
       if (!opened) return false;
       clearPendingToolbarSelection();
-      setActiveActionId(EDIT_ACTION_ID);
       event.preventDefault();
       event.stopImmediatePropagation();
       return true;
@@ -3365,7 +3370,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const copyAction = () => {
         clearPendingToolbarSelection();
-        setActiveActionId(DEFAULT_ACTION_ID);
         onBeforeCopy?.();
         performCopyWithLabel({
           element,
@@ -3379,7 +3383,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const defaultEnterPromptMode = () => {
         clearAllLabels();
         clearPendingToolbarSelection();
-        setActiveActionId(COMMENT_ACTION_ID);
         onBeforePrompt?.();
         preparePromptMode(element, position.x, position.y);
         actions.setPointer({ x: position.x, y: position.y });
@@ -3400,7 +3403,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         });
         if (didOpen) {
           clearPendingToolbarSelection();
-          setActiveActionId(EDIT_ACTION_ID);
         }
         hideContextMenuAction();
       };
@@ -3461,7 +3463,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         customEnterPromptMode: () => {
           clearAllLabels();
           clearPendingToolbarSelection();
-          setActiveActionId(COMMENT_ACTION_ID);
           actions.clearInputText();
           actions.enterPromptMode(position, element);
           deferHideContextMenu();
@@ -3659,7 +3660,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 isActive={isActivated()}
                 onToggleActive={handleToggleActive}
                 onActivateAction={handleActivateAction}
-                activeActionId={activeActionId()}
+                activeActionId={toolbarActiveActionId()}
                 enabled={isEnabled()}
                 shakeCount={toolbarShakeCount()}
                 onToolbarStateChange={(state) => {
