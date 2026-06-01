@@ -26,10 +26,13 @@ import { isUsefulComponentName } from "../utils/is-useful-component-name.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
 import { drawRoundedRectangle } from "../utils/draw-rounded-rectangle.js";
 import { parseBorderRadiusValue } from "../utils/parse-border-radius-value.js";
+import { formatRenderLabel } from "../utils/format-render-label.js";
 
 interface ScanOutline {
-  componentName: string;
-  renderCount: number;
+  nameCounts: Map<string, number>;
+  // Cached label, recomputed only on commit (not per frame) to keep the
+  // render loop allocation-free.
+  label: string;
   lastRenderTimestamp: number;
 }
 
@@ -82,13 +85,15 @@ export const createScanner = (): ScannerController => {
 
     const existingOutline = outlines.get(element);
     if (existingOutline) {
-      existingOutline.componentName = componentName;
-      existingOutline.renderCount += 1;
+      const { nameCounts } = existingOutline;
+      nameCounts.set(componentName, (nameCounts.get(componentName) ?? 0) + 1);
+      existingOutline.label = formatRenderLabel(nameCounts);
       existingOutline.lastRenderTimestamp = currentCommitTimestamp;
     } else {
+      const nameCounts = new Map<string, number>([[componentName, 1]]);
       outlines.set(element, {
-        componentName,
-        renderCount: 1,
+        nameCounts,
+        label: formatRenderLabel(nameCounts),
         lastRenderTimestamp: currentCommitTimestamp,
       });
     }
@@ -146,10 +151,7 @@ export const createScanner = (): ScannerController => {
       opacity,
     );
 
-    const labelText =
-      outline.renderCount > 1
-        ? `${outline.componentName} ×${outline.renderCount}`
-        : outline.componentName;
+    const labelText = outline.label;
     context.globalAlpha = opacity;
     context.font = SCAN_LABEL_FONT;
     const labelWidth = context.measureText(labelText).width + SCAN_LABEL_PADDING_PX * 2;

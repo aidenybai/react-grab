@@ -150,6 +150,8 @@ export const MAX_SCAN_TRACE_LOAF_SCRIPTS = 10;
 export const SCAN_LABEL_TEXT_COLOR = "rgba(255, 255, 255, 0.95)";
 export const SCAN_LABEL_HEIGHT_PX = 15;
 export const SCAN_LABEL_PADDING_PX = 4;
+export const SCAN_LABEL_MAX_NAMES_PER_GROUP = 4;
+export const SCAN_LABEL_MAX_CHARS = 40;
 export const SCAN_LABEL_FONT =
   "11px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
 
