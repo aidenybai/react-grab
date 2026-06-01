@@ -1,5 +1,13 @@
 # react-grab
 
+## 0.1.44
+
+### Patch Changes
+
+- 816db46: Add a confirmation prompt before showing the skill agent-selection view during install.
+- Updated dependencies [816db46]
+  - @react-grab/cli@0.1.44
+
 ## 0.1.43
 
 ### Patch Changes
