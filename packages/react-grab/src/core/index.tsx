@@ -112,7 +112,7 @@ import type {
   DropdownAnchor,
   ElementLabelVariant,
 } from "../types.js";
-import { createEditModeController } from "./edit-mode.js";
+import { createEditModeController, type EditModeOverrides } from "./edit-mode.js";
 import { DEFAULT_THEME } from "./theme.js";
 import { createPluginRegistry } from "./plugin-registry.js";
 import { createArrowNavigator } from "./arrow-navigation.js";
@@ -493,7 +493,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (editMode.isOpen()) return EDIT_ACTION_ID;
       if (isCommentMode()) return COMMENT_ACTION_ID;
       if (isPendingContextMenuSelect()) return pendingToolbarActionId();
-      if (isActivated()) return pendingToolbarActionId() ?? DEFAULT_ACTION_ID;
+      if (isActivated()) return DEFAULT_ACTION_ID;
       return null;
     });
     const [arrowNavigationElements, setArrowNavigationElements] = createSignal<Element[]>([]);
@@ -1589,8 +1589,21 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
       const element = store.frozenElement || targetElement();
       if (!element) return;
-      editMode.trigger(element, { x: pointer().x, y: pointer().y });
+      openEditMode(element, { x: pointer().x, y: pointer().y });
     };
+
+    const openEditMode = (
+      element: Element,
+      position: Position,
+      overrides: EditModeOverrides = {},
+    ): boolean => editMode.trigger(element, position, overrides);
+
+    const currentSelectionEditOverrides = (element: Element): EditModeOverrides => ({
+      filePath: store.selectionFilePath ?? undefined,
+      lineNumber: store.selectionLineNumber ?? undefined,
+      componentName: resolvedComponentName(),
+      tagName: getTagName(element) || undefined,
+    });
 
     const clearPendingToolbarSelection = () => {
       pendingDefaultActionId = null;
@@ -1617,12 +1630,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
 
       if (actionId === EDIT_ACTION_ID) {
-        const didOpen = editMode.trigger(element, position, {
-          filePath: store.selectionFilePath ?? undefined,
-          lineNumber: store.selectionLineNumber ?? undefined,
-          componentName: resolvedComponentName(),
-          tagName: getTagName(element) || undefined,
-        });
+        const didOpen = openEditMode(element, position, currentSelectionEditOverrides(element));
         if (!didOpen) return true;
         actions.clearInputText();
         actions.exitPromptMode();
@@ -1682,7 +1690,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const runPendingDefaultAction = (element: Element, position: Position) => {
       const actionId = pendingDefaultActionId;
       pendingDefaultActionId = null;
+      setPendingToolbarActionId(null);
       if (!actionId) return;
+
+      if (actionId === EDIT_ACTION_ID) {
+        openEditMode(element, position, currentSelectionEditOverrides(element));
+        return;
+      }
 
       const action = pluginRegistry.store.actions.find(
         (registeredAction) => registeredAction.id === actionId,
@@ -3395,7 +3409,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       };
 
       const enterEditModeAction = () => {
-        const didOpen = editMode.trigger(element, position, {
+        const didOpen = openEditMode(element, position, {
           filePath,
           lineNumber,
           componentName,
