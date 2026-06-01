@@ -36,6 +36,7 @@ export const ReadToolCallBlock = ({
     <div className="flex flex-wrap gap-1 text-[#818181]">
       <span className={isStreaming ? "shimmer-text" : ""}>{displayName}</span>
       <button
+        type="button"
         onClick={handleClick}
         className="max-w-full break-all text-left transition-colors duration-300"
         style={{
