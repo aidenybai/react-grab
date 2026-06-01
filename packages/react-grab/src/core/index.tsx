@@ -1596,20 +1596,36 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!element) return false;
 
       const position = { x: pointer().x, y: pointer().y };
-      actions.clearInputText();
-      actions.exitPromptMode();
-      clearPendingToolbarSelection();
-      setActiveActionId(actionId);
-
       const action = pluginRegistry.store.actions.find(
         (registeredAction) => registeredAction.id === actionId,
       );
       if (!action) {
+        actions.clearInputText();
+        actions.exitPromptMode();
+        clearPendingToolbarSelection();
         handleSetDefaultAction(DEFAULT_ACTION_ID);
         openContextMenu(element, position);
         return true;
       }
 
+      if (actionId === EDIT_ACTION_ID) {
+        const didOpen = editMode.trigger(element, position, {
+          filePath: store.selectionFilePath ?? undefined,
+          lineNumber: store.selectionLineNumber ?? undefined,
+          componentName: resolvedComponentName(),
+          tagName: getTagName(element) || undefined,
+        });
+        if (!didOpen) return true;
+        actions.clearInputText();
+        actions.exitPromptMode();
+        clearPendingToolbarSelection();
+        setActiveActionId(EDIT_ACTION_ID);
+        return true;
+      }
+
+      actions.clearInputText();
+      actions.exitPromptMode();
+      clearPendingToolbarSelection();
       action.onAction(buildImmediateActionContext(element, position));
       return true;
     };
@@ -2284,7 +2300,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const position = { x: pointer().x, y: pointer().y };
       clearPendingToolbarSelection();
-      setActiveActionId(action.id);
       action.onAction(buildImmediateActionContext(element, position));
 
       event.preventDefault();
