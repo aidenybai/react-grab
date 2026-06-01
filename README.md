@@ -17,6 +17,29 @@ Run this at your project root:
 npx grab@latest init
 ```
 
+### shadcn Registry
+
+Install the React Grab component from this GitHub registry:
+
+```bash
+npx shadcn@latest add aidenybai/react-grab/react-grab
+```
+
+Render it once near the root of your app:
+
+```tsx
+import { ReactGrab } from "@/components/react-grab";
+
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      {children}
+      {process.env.NODE_ENV === "development" && <ReactGrab />}
+    </>
+  );
+}
+```
+
 ## How It Works
 
 React Grab turns a browser selection into source context your agent can use:
