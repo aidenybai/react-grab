@@ -1577,6 +1577,30 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       editMode.trigger(element, { x: pointer().x, y: pointer().y });
     };
 
+    const runActionForCurrentSelection = (actionId: string): boolean => {
+      const element = store.frozenElement || targetElement();
+      if (!element) return false;
+
+      const position = { x: pointer().x, y: pointer().y };
+      actions.clearInputText();
+      actions.exitPromptMode();
+      actions.setPendingCommentMode(false);
+      setIsPendingContextMenuSelect(false);
+      setActiveActionId(actionId);
+
+      const action = pluginRegistry.store.actions.find(
+        (registeredAction) => registeredAction.id === actionId,
+      );
+      if (!action) {
+        handleSetDefaultAction(DEFAULT_ACTION_ID);
+        openContextMenu(element, position);
+        return true;
+      }
+
+      action.onAction(buildImmediateActionContext(element, position));
+      return true;
+    };
+
     const handleActivateAction = (actionId: string) => {
       if (isActivated()) {
         // While still choosing an element, clicking a different action switches
@@ -1586,6 +1610,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           pendingDefaultActionId = actionId;
           setActiveActionId(actionId);
           return;
+        }
+        if (activeActionId() !== actionId && isPromptMode()) {
+          if (runActionForCurrentSelection(actionId)) return;
         }
         deactivateRenderer();
         return;
