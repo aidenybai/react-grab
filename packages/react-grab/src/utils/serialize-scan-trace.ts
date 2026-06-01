@@ -14,9 +14,11 @@ export const serializeScanTrace = (trace: ScanTrace): string => {
     version: VERSION,
     description:
       "Performance trace captured by React Grab's render scan. `components` ranks " +
-      "React components by total render time over the scan; `longAnimationFrames` " +
-      "lists frames >50ms with the scripts that blocked them. Correlate a long " +
-      "animation frame with the components rendering in the same window to find jank.",
+      "React components by total render time over the scan, aggregated by display " +
+      "name (distinct components sharing a name are summed together); " +
+      "`longAnimationFrames` lists frames >50ms with the scripts that blocked them. " +
+      "Correlate a long animation frame with the components rendering in the same " +
+      "window to find jank.",
     capturedAt: new Date(trace.startedAtEpochMs).toISOString(),
     scanDurationMs: Math.round(trace.durationMs),
     commitCount: trace.commitCount,

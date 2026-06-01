@@ -145,7 +145,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           isActive={props.isActive}
           isScanning={props.isScanning}
           onToggleScan={props.onToggleScan}
-          scanCopied={props.scanCopied}
+          scanCopiedToken={props.scanCopiedToken}
           isContextMenuOpen={props.contextMenuPosition !== null}
           onToggle={props.onToggleActive}
           onActivateAction={props.onActivateAction}

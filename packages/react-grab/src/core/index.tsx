@@ -1603,7 +1603,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       handleActivateAction(currentToolbarState()?.defaultAction ?? DEFAULT_ACTION_ID);
     };
 
-    const scanController = createScanController();
+    const scanController = createScanController({
+      isToolbarEnabled: () =>
+        Boolean(pluginRegistry.store.theme.enabled && pluginRegistry.store.theme.toolbar.enabled),
+    });
 
     const enterCommentModeForElement = (element: Element, positionX: number, positionY: number) => {
       actions.setPendingCommentMode(false);
@@ -3593,7 +3596,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 onToggleActive={handleToggleActive}
                 isScanning={scanController.isScanning()}
                 onToggleScan={scanController.toggle}
-                scanCopied={scanController.scanCopied()}
+                scanCopiedToken={scanController.scanCopiedToken()}
                 onActivateAction={handleActivateAction}
                 activeActionId={activeActionId()}
                 enabled={isEnabled()}

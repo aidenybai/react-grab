@@ -47,7 +47,7 @@ interface ToolbarProps {
   isActive?: boolean;
   isScanning?: boolean;
   onToggleScan?: () => void;
-  scanCopied?: boolean;
+  scanCopiedToken?: number | null;
   isContextMenuOpen?: boolean;
   onToggle?: () => void;
   onActivateAction?: (actionId: string) => void;
@@ -679,14 +679,17 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         props.onSelectHoverChange?.(false);
       }}
     >
-      <Show when={props.scanCopied}>
-        <div
-          data-react-grab-scan-copied
-          class="absolute pointer-events-none"
-          style={scanCopiedToastStyle()}
-        >
-          <CopiedPill text="Copied" />
-        </div>
+      <Show when={props.scanCopiedToken} keyed>
+        {(scanCopiedToken) => (
+          <div
+            data-react-grab-scan-copied
+            data-scan-copied-token={scanCopiedToken}
+            class="absolute pointer-events-none"
+            style={scanCopiedToastStyle()}
+          >
+            <CopiedPill text="Copied" />
+          </div>
+        )}
       </Show>
       <ToolbarContent
         isCollapsed={isCollapsed()}
