@@ -193,6 +193,24 @@ test.describe("Toolbar Action Buttons", () => {
       expect(await reactGrab.getToolbarActionPressed("edit")).toBe(true);
     });
 
+    test("Style button switches from API comment selection mode", async ({ reactGrab }) => {
+      await waitForToolbar(reactGrab);
+      await reactGrab.page.evaluate(() => {
+        window.__REACT_GRAB__?.comment();
+      });
+      await expect
+        .poll(() => reactGrab.getToolbarActionPressed("comment"), { timeout: 2000 })
+        .toBe(true);
+
+      await reactGrab.clickToolbarAction("edit");
+      await reactGrab.hoverElement(BUTTON_SELECTOR);
+      await reactGrab.waitForSelectionBox();
+      await reactGrab.clickElement(BUTTON_SELECTOR);
+
+      await expect.poll(() => isEditPanelVisible(reactGrab.page), { timeout: 2000 }).toBe(true);
+      expect(await reactGrab.getToolbarActionPressed("edit")).toBe(true);
+    });
+
     test("keyboard shortcut switches a pending toolbar selection to style mode", async ({
       reactGrab,
     }) => {

@@ -1647,6 +1647,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (toolbarActiveActionId() !== actionId && isPromptMode()) {
           if (runActionForCurrentSelection(actionId)) return;
         }
+        if (toolbarActiveActionId() !== actionId && store.pendingCommentMode) {
+          actions.setPendingCommentMode(false);
+          pendingDefaultActionId = actionId;
+          setPendingToolbarActionId(actionId);
+          setIsPendingContextMenuSelect(true);
+          return;
+        }
         if (toolbarActiveActionId() !== actionId && isPendingContextMenuSelect()) {
           pendingDefaultActionId = actionId;
           setPendingToolbarActionId(actionId);
@@ -1675,7 +1682,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const openContextMenu = (element: Element, position: Position) => {
       stopShiftMultiSelecting();
       dismissAllPopups();
-      clearPendingToolbarSelection();
       actions.showContextMenu(position, element);
       clearArrowNavigation();
       pluginRegistry.hooks.onContextMenu(element, position);
@@ -2319,7 +2325,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
 
       const position = { x: pointer().x, y: pointer().y };
-      clearPendingToolbarSelection();
       action.onAction(buildImmediateActionContext(element, position));
 
       event.preventDefault();
