@@ -60,7 +60,6 @@ import { getTagName } from "../utils/get-tag-name.js";
 import {
   ARROW_KEYS,
   FEEDBACK_DURATION_MS,
-  FADE_COMPLETE_BUFFER_MS,
   KEYDOWN_SPAM_TIMEOUT_MS,
   DRAG_THRESHOLD_PX,
   ELEMENT_DETECTION_THROTTLE_MS,
@@ -82,7 +81,6 @@ import {
   DEFAULT_ACTION_ID,
   COMMENT_ACTION_ID,
   EDIT_ACTION_ID,
-  EDIT_PANEL_POINTER_ANCHOR_WIDTH_PX,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { hideFromThirdParties } from "../utils/hide-from-third-parties.js";
@@ -113,8 +111,8 @@ import type {
   ElementLabelVariant,
 } from "../types.js";
 import { createEditModeController, type EditModeOverrides } from "./edit-mode.js";
-import { DEFAULT_THEME } from "./theme.js";
 import { createPluginRegistry } from "./plugin-registry.js";
+import { createLabelController } from "./label-controller.js";
 import { createArrowNavigator } from "./arrow-navigation.js";
 import { getRequiredModifiers, setupKeyboardEventClaimer } from "./keyboard-handlers.js";
 import { createAutoScroller, getAutoScrollDirection } from "./auto-scroll.js";
@@ -172,6 +170,15 @@ interface BuildActionContextOptions {
   customEnterPromptMode?: () => void;
 }
 
+interface LabeledCopyOptions {
+  primaryElement: Element;
+  targetElements: Element[];
+  labelInstanceIds: string[];
+  extraPrompt?: string;
+  shouldDeactivateAfter?: boolean;
+  onComplete?: () => void;
+}
+
 let hasInited = false;
 const toolbarStateChangeCallbacks = new Set<(state: ToolbarState) => void>();
 
@@ -208,7 +215,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const pluginRegistry = createPluginRegistry(settableOptions);
 
     const { store, actions, pointer, viewportVersion, current } = createGrabStore({
-      theme: DEFAULT_THEME,
       keyHoldDuration: pluginRegistry.store.options.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS,
     });
 
@@ -231,9 +237,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     // pointerup) does not flash the selection bounds off and back on.
     const isActivelyDragging = createMemo(() => {
       if (!isDragging()) return false;
-      const dx = Math.abs(pointer().x + window.scrollX - store.dragStart.x);
-      const dy = Math.abs(pointer().y + window.scrollY - store.dragStart.y);
-      return dx > DRAG_THRESHOLD_PX || dy > DRAG_THRESHOLD_PX;
+      const deltaX = Math.abs(pointer().x + window.scrollX - store.dragStart.x);
+      const deltaY = Math.abs(pointer().y + window.scrollY - store.dragStart.y);
+      return deltaX > DRAG_THRESHOLD_PX || deltaY > DRAG_THRESHOLD_PX;
     });
     const isDragRepositioning = createMemo(() => {
       const currentState = current();
@@ -579,155 +585,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       );
     };
 
-    const labelFadeTimeouts = new Map<string, number>();
-
-    const cancelLabelFade = (instanceId: string) => {
-      const existingTimeout = labelFadeTimeouts.get(instanceId);
-      if (existingTimeout !== undefined) {
-        window.clearTimeout(existingTimeout);
-        labelFadeTimeouts.delete(instanceId);
-      }
-    };
-
-    const cancelAllLabelFades = () => {
-      for (const timeoutId of labelFadeTimeouts.values()) {
-        window.clearTimeout(timeoutId);
-      }
-      labelFadeTimeouts.clear();
-    };
-
-    const scheduleLabelFade = (instanceId: string) => {
-      cancelLabelFade(instanceId);
-
-      const timeoutId = window.setTimeout(() => {
-        labelFadeTimeouts.delete(instanceId);
-        actions.updateLabelInstance(instanceId, "fading");
-        setTimeout(() => {
-          labelFadeTimeouts.delete(instanceId);
-          actions.removeLabelInstance(instanceId);
-        }, FADE_COMPLETE_BUFFER_MS);
-      }, FEEDBACK_DURATION_MS);
-
-      labelFadeTimeouts.set(instanceId, timeoutId);
-    };
-
-    const handleLabelInstanceHoverChange = (instanceId: string, isHovered: boolean) => {
-      if (isHovered) {
-        cancelLabelFade(instanceId);
-      } else {
-        const instance = store.labelInstances.find(
-          (labelInstance) => labelInstance.id === instanceId,
-        );
-        if (instance && instance.status === "copied") {
-          scheduleLabelFade(instanceId);
-        }
-      }
-    };
-
-    const createLabelInstance = (
-      bounds: OverlayBounds,
-      tagName: string,
-      componentName: string | undefined,
-      status: SelectionLabelInstance["status"],
-      options?: {
-        element?: Element;
-        mouseX?: number;
-        elements?: Element[];
-        boundsMultiple?: OverlayBounds[];
-        hideArrow?: boolean;
-      },
-    ): string => {
-      actions.clearLabelInstances();
-      cancelAllLabelFades();
-      const instanceId = generateId("label");
-      const boundsCenterX = bounds.x + bounds.width / 2;
-      const boundsHalfWidth = bounds.width / 2;
-      const mouseX = options?.mouseX;
-      const mouseXOffset = mouseX !== undefined ? mouseX - boundsCenterX : undefined;
-
-      const instance: SelectionLabelInstance = {
-        id: instanceId,
-        bounds,
-        boundsMultiple: options?.boundsMultiple,
-        tagName,
-        componentName,
-        status,
-        createdAt: Date.now(),
-        element: options?.element,
-        elements: options?.elements,
-        mouseX,
-        mouseXOffsetFromCenter: mouseXOffset,
-        mouseXOffsetRatio:
-          mouseXOffset !== undefined && boundsHalfWidth > 0
-            ? mouseXOffset / boundsHalfWidth
-            : undefined,
-        hideArrow: options?.hideArrow,
-      };
-      actions.addLabelInstance(instance);
-      return instanceId;
-    };
-
-    const createPerElementLabelInstances = (
-      entries: Array<{
-        element: Element;
-        tagName: string;
-        componentName?: string;
-        mouseX?: number;
-      }>,
-      status: SelectionLabelInstance["status"],
-    ): string[] => {
-      actions.clearLabelInstances();
-      cancelAllLabelFades();
-      const instanceIds: string[] = [];
-      for (const entry of entries) {
-        const bounds = createElementBounds(entry.element);
-        const boundsCenterX = bounds.x + bounds.width / 2;
-        const boundsHalfWidth = bounds.width / 2;
-        const mouseXOffset = entry.mouseX !== undefined ? entry.mouseX - boundsCenterX : undefined;
-        const instanceId = generateId("label");
-        const instance: SelectionLabelInstance = {
-          id: instanceId,
-          bounds,
-          tagName: entry.tagName,
-          componentName: entry.componentName,
-          status,
-          createdAt: Date.now(),
-          element: entry.element,
-          mouseX: entry.mouseX,
-          mouseXOffsetFromCenter: mouseXOffset,
-          mouseXOffsetRatio:
-            mouseXOffset !== undefined && boundsHalfWidth > 0
-              ? mouseXOffset / boundsHalfWidth
-              : undefined,
-        };
-        actions.addLabelInstance(instance);
-        instanceIds.push(instanceId);
-      }
-      return instanceIds;
-    };
-
-    const clearAllLabels = () => {
-      cancelAllLabelFades();
-      actions.clearLabelInstances();
-    };
-
-    const updateLabelAfterCopy = (
-      labelInstanceId: string,
-      didSucceed: boolean,
-      errorMessage?: string,
-    ) => {
-      if (didSucceed) {
-        actions.updateLabelInstance(labelInstanceId, "copied");
-      } else {
-        actions.updateLabelInstance(labelInstanceId, "error", errorMessage || "Unknown error");
-      }
-      scheduleLabelFade(labelInstanceId);
-    };
+    const labelController = createLabelController(actions, () => store.labelInstances);
 
     const executeCopyOperation = async (
-      clipboardOperation: () => Promise<void>,
+      clipboardOperation: () => Promise<boolean>,
       labelInstanceIds: string[] | null,
-      copiedElement?: Element,
       shouldDeactivateAfter?: boolean,
     ) => {
       clearCopyFeedbackCooldown();
@@ -739,22 +601,22 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       let errorMessage: string | undefined;
 
       try {
-        await clipboardOperation();
-        didSucceed = true;
+        didSucceed = await clipboardOperation();
+        if (!didSucceed) errorMessage = "Failed to copy";
       } catch (error) {
         errorMessage = normalizeErrorMessage(error, "Action failed");
       }
 
       if (labelInstanceIds) {
         for (const labelInstanceId of labelInstanceIds) {
-          updateLabelAfterCopy(labelInstanceId, didSucceed, errorMessage);
+          labelController.updateAfterCopy(labelInstanceId, didSucceed, errorMessage);
         }
       }
 
       if (current().state !== "copying") return;
 
       if (didSucceed) {
-        actions.completeCopy(copiedElement);
+        actions.completeCopy();
       }
 
       if (shouldDeactivateAfter) {
@@ -799,8 +661,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       targetElements: Element[],
       extraPrompt?: string,
       resolvedComponentName?: string,
-    ): Promise<void> => {
-      if (targetElements.length === 0) return;
+    ): Promise<boolean> => {
+      if (targetElements.length === 0) return false;
 
       const unhandledElements: Element[] = [];
       const pendingResults: Promise<boolean>[] = [];
@@ -817,8 +679,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
       }
       await waitUntilNextFrame();
+
+      let didCopy = true;
       if (unhandledElements.length > 0) {
-        await copyResolvedElements(unhandledElements, extraPrompt, resolvedComponentName);
+        didCopy = await copyResolvedElements(unhandledElements, extraPrompt, resolvedComponentName);
       } else if (pendingResults.length > 0) {
         const results = await Promise.all(pendingResults);
         if (!results.every(Boolean)) {
@@ -826,6 +690,34 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
       }
       void notifyElementsSelected(targetElements);
+      return didCopy;
+    };
+
+    const runLabeledCopy = (copy: LabeledCopyOptions) => {
+      void getNearestComponentName(copy.primaryElement)
+        .then(async (componentName) => {
+          await executeCopyOperation(
+            () =>
+              copyElementsToClipboard(
+                copy.targetElements,
+                copy.extraPrompt,
+                componentName ?? undefined,
+              ),
+            copy.labelInstanceIds.length > 0 ? copy.labelInstanceIds : null,
+            copy.shouldDeactivateAfter,
+          );
+          copy.onComplete?.();
+        })
+        .catch((error) => {
+          logRecoverableError("Copy operation failed", error);
+          const normalizedMessage = normalizeErrorMessage(error, "Action failed");
+          for (const labelInstanceId of copy.labelInstanceIds) {
+            labelController.updateAfterCopy(labelInstanceId, false, normalizedMessage);
+          }
+          if (current().state === "copying") {
+            actions.unfreeze();
+          }
+        });
     };
 
     const performCopyWithLabel = (options: CopyWithLabelOptions) => {
@@ -855,37 +747,21 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.startCopy();
 
       const labelInstanceId = tagName
-        ? createLabelInstance(selectionBounds, tagName, undefined, "copying", {
+        ? labelController.createInstance(selectionBounds, tagName, undefined, "copying", {
             element,
             mouseX: labelCursorX,
             elements: selectedElements,
           })
         : null;
 
-      void getNearestComponentName(element)
-        .then(async (componentName) => {
-          await executeCopyOperation(
-            () =>
-              copyElementsToClipboard(allTargetElements, extraPrompt, componentName ?? undefined),
-            labelInstanceId ? [labelInstanceId] : null,
-            element,
-            shouldDeactivateAfter,
-          );
-          onComplete?.();
-        })
-        .catch((error) => {
-          logRecoverableError("Copy operation failed", error);
-          if (labelInstanceId) {
-            updateLabelAfterCopy(
-              labelInstanceId,
-              false,
-              normalizeErrorMessage(error, "Action failed"),
-            );
-          }
-          if (current().state === "copying") {
-            actions.unfreeze();
-          }
-        });
+      runLabeledCopy({
+        primaryElement: element,
+        targetElements: allTargetElements,
+        labelInstanceIds: labelInstanceId ? [labelInstanceId] : [],
+        extraPrompt,
+        shouldDeactivateAfter,
+        onComplete,
+      });
     };
 
     const performCopyWithPerElementLabels = (options: {
@@ -905,28 +781,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       clearCopyFeedbackCooldown();
       actions.startCopy();
 
-      const labelInstanceIds = createPerElementLabelInstances(labelEntries, "copying");
+      const labelInstanceIds = labelController.createPerElementInstances(labelEntries, "copying");
 
-      void getNearestComponentName(primaryElement)
-        .then(async (componentName) => {
-          await executeCopyOperation(
-            () => copyElementsToClipboard(elements, undefined, componentName ?? undefined),
-            labelInstanceIds.length > 0 ? labelInstanceIds : null,
-            primaryElement,
-            shouldDeactivateAfter,
-          );
-          onComplete?.();
-        })
-        .catch((error) => {
-          logRecoverableError("Copy operation failed", error);
-          const normalizedMessage = normalizeErrorMessage(error, "Action failed");
-          for (const labelInstanceId of labelInstanceIds) {
-            updateLabelAfterCopy(labelInstanceId, false, normalizedMessage);
-          }
-          if (current().state === "copying") {
-            actions.unfreeze();
-          }
-        });
+      runLabeledCopy({
+        primaryElement,
+        targetElements: elements,
+        labelInstanceIds,
+        shouldDeactivateAfter,
+        onComplete,
+      });
     };
 
     const targetElement = createMemo(() => {
@@ -1521,7 +1384,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleInputSubmit = () => {
-      actions.clearLastCopied();
       const frozenElements = [...store.frozenElements];
       const element = store.frozenElement || targetElement();
       const prompt = isPromptMode() ? store.inputText.trim() : "";
@@ -1554,7 +1416,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleInputCancel = () => {
-      actions.clearLastCopied();
       if (!isPromptMode()) return;
 
       if (isPendingDismiss()) {
@@ -3055,7 +2916,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       stopEditPanelTracking = null;
       grabbedBoxTimeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
       grabbedBoxTimeouts.clear();
-      cancelAllLabelFades();
+      labelController.cancelAllFades();
       autoScroller.stop();
       document.body.style.userSelect = "";
       document.body.style.touchAction = "";
@@ -3098,6 +2959,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     const selectionLabelVisible = createMemo(() => {
+      if (!isThemeEnabled()) return false;
       if (isModalPopoverOpen()) return false;
       if (!isElementLabelThemeEnabled()) return false;
       if (isSelectionSuppressed()) return false;
@@ -3318,7 +3180,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               ? labelBounds.x + labelBounds.width / 2
               : position.x;
 
-            const labelInstanceId = createLabelInstance(
+            const labelInstanceId = labelController.createInstance(
               labelBounds,
               tagName || "element",
               componentName,
@@ -3343,7 +3205,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               errorMessage = normalizeErrorMessage(error, "Action failed");
             }
 
-            updateLabelAfterCopy(labelInstanceId, didSucceed, errorMessage);
+            labelController.updateAfterCopy(labelInstanceId, didSucceed, errorMessage);
           } else {
             try {
               await action();
@@ -3403,7 +3265,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       };
 
       const defaultEnterPromptMode = () => {
-        clearAllLabels();
+        labelController.clearAll();
         clearPendingToolbarSelection();
         onBeforePrompt?.();
         preparePromptMode(element, position.x, position.y);
@@ -3483,7 +3345,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           keyboardSelectedElement = null;
         },
         customEnterPromptMode: () => {
-          clearAllLabels();
+          labelController.clearAll();
           clearPendingToolbarSelection();
           actions.clearInputText();
           actions.enterPromptMode(position, element);
@@ -3509,7 +3371,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           x: edge === "left" ? toolbarRect.right : toolbarRect.left,
           y: toolbarRect.top + toolbarRect.height / 2,
           edge,
-          toolbarWidth: toolbarRect.width,
         };
       }
 
@@ -3517,7 +3378,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         x: toolbarRect.left + toolbarRect.width / 2,
         y: edge === "top" ? toolbarRect.bottom : toolbarRect.top,
         edge,
-        toolbarWidth: toolbarRect.width,
       };
     };
 
@@ -3530,7 +3390,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         x: state.position.x,
         y: state.position.y,
         edge: "bottom",
-        toolbarWidth: EDIT_PANEL_POINTER_ANCHOR_WIDTH_PX,
       };
     };
 
@@ -3670,7 +3529,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 inputValue={store.inputText}
                 isPromptMode={isPromptMode()}
                 onShowContextMenuInstance={handleShowContextMenuInstance}
-                onLabelInstanceHoverChange={handleLabelInstanceHoverChange}
+                onLabelInstanceHoverChange={labelController.handleHoverChange}
                 onInputChange={actions.setInputText}
                 onInputSubmit={() => void handleInputSubmit()}
                 onToggleExpand={handleToggleExpand}
@@ -3782,7 +3641,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           edge: state.edge ?? currentState?.edge ?? "bottom",
           ratio: state.ratio ?? currentState?.ratio ?? TOOLBAR_DEFAULT_POSITION_RATIO,
           collapsed: resolvedCollapsed,
-          enabled: !resolvedCollapsed,
+          enabled: state.enabled ?? !resolvedCollapsed,
           defaultAction: state.defaultAction ?? currentState?.defaultAction ?? DEFAULT_ACTION_ID,
         };
         saveToolbarState(newState);

@@ -386,7 +386,6 @@ export interface DropdownAnchor {
   x: number;
   y: number;
   edge: ToolbarState["edge"];
-  toolbarWidth: number;
 }
 
 export interface ReactGrabAPI {
@@ -558,7 +557,6 @@ export interface TagBadgeProps {
   onClick: (event: MouseEvent) => void;
   onHoverChange?: (hovered: boolean) => void;
   shrink?: boolean;
-  forceShowIcon?: boolean;
 }
 
 export interface BottomSectionProps {

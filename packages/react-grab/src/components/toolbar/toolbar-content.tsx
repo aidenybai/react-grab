@@ -15,7 +15,6 @@ interface ToolbarContentProps {
   onCollapsePointerUp?: (event: PointerEvent) => void;
   onCollapsePointerLeave?: (event: PointerEvent) => void;
   actionButtons?: JSX.Element;
-  collapseButton?: JSX.Element;
   transformOrigin?: string;
 }
 
@@ -144,7 +143,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
           </div>
         </div>
       </div>
-      {props.collapseButton ?? defaultCollapseButton()}
+      {defaultCollapseButton()}
     </div>
   );
 };

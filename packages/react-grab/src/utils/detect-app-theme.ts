@@ -2,6 +2,8 @@ import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "./nativ
 
 type AppTheme = "dark" | "light";
 
+const isAppTheme = (token: string): token is AppTheme => token === "dark" || token === "light";
+
 interface ThemeWatcherResult {
   theme: AppTheme;
   cleanup: () => void;
@@ -78,8 +80,7 @@ const themeFromColorScheme = (colorSchemeValue: string): AppTheme | null => {
   if (!normalized || normalized === "normal" || normalized === "auto") return null;
 
   const tokens = normalized.split(/\s+/);
-  const firstRelevantToken = tokens.find((token) => token === "dark" || token === "light");
-  return (firstRelevantToken as AppTheme) ?? null;
+  return tokens.find(isAppTheme) ?? null;
 };
 
 const detectTheme = (): AppTheme => {

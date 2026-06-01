@@ -112,7 +112,8 @@ const createAnimatedBoundsFollower = ({
 const isActionableSibling = (
   siblingElement: Element,
   followerElement: HTMLElement | undefined,
-): boolean => siblingElement !== followerElement && siblingElement instanceof HTMLElement;
+): siblingElement is HTMLElement =>
+  siblingElement !== followerElement && siblingElement instanceof HTMLElement;
 
 const getActionableSiblings = (
   parent: HTMLElement,
@@ -121,7 +122,7 @@ const getActionableSiblings = (
   const siblings: HTMLElement[] = [];
   for (const childElement of Array.from(parent.children)) {
     if (isActionableSibling(childElement, followerElement)) {
-      siblings.push(childElement as HTMLElement);
+      siblings.push(childElement);
     }
   }
   return siblings;

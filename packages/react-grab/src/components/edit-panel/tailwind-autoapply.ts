@@ -128,7 +128,7 @@ interface TailwindAutoApplyOptions {
   setIsCompact: (value: boolean) => void;
 }
 
-export interface TailwindAutoApplyController {
+interface TailwindAutoApplyController {
   readonly isInlineNumericEdit: Accessor<boolean>;
   isInlineNumericDraft: (query: string) => boolean;
   tryApplyNumericValue: (query: string) => boolean;

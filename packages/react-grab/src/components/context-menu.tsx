@@ -389,7 +389,6 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
                 }
               }}
               shrink
-              forceShowIcon={props.hasFilePath}
             />
           </div>
           <BottomSection>

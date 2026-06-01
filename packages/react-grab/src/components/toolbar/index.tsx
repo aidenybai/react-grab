@@ -220,10 +220,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           const rect = selectButtonRef.getBoundingClientRect();
           const centerX = rect.left + rect.width / 2;
           const centerY = rect.top + rect.height / 2;
-          const dx = event.clientX - centerX;
-          const dy = event.clientY - centerY;
-          if (Math.hypot(dx, dy) < SELECT_ICON_POINT_MIN_DISTANCE_PX) return;
-          const targetAngleDeg = (Math.atan2(dy, dx) * 180) / Math.PI;
+          const deltaX = event.clientX - centerX;
+          const deltaY = event.clientY - centerY;
+          if (Math.hypot(deltaX, deltaY) < SELECT_ICON_POINT_MIN_DISTANCE_PX) return;
+          const targetAngleDeg = (Math.atan2(deltaY, deltaX) * 180) / Math.PI;
           const desiredRotationDeg = targetAngleDeg - SELECT_ICON_NATURAL_POINT_ANGLE_DEG;
           setSelectIconRotationDeg((previousRotationDeg) =>
             accumulateRotationDeg(previousRotationDeg, desiredRotationDeg),
@@ -297,16 +297,19 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     let newRatio = positionRatio();
 
     if (wasCollapsed) {
-      const { position: newPos, ratio } = getExpandedFromCollapsed(currentPosition(), snapEdge());
+      const { position: expandedPosition, ratio } = getExpandedFromCollapsed(
+        currentPosition(),
+        snapEdge(),
+      );
       newRatio = ratio;
-      setPosition(newPos);
+      setPosition(expandedPosition);
       setPositionRatio(newRatio);
     } else if (rect) {
       expandedDimensions = { width: rect.width, height: rect.height };
     }
 
     setIsCollapseAnimating(true);
-    setIsCollapsed((prev) => !prev);
+    setIsCollapsed((previousCollapsed) => !previousCollapsed);
 
     saveAndNotify({
       edge: snapEdge(),
@@ -480,11 +483,11 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           const collapsedPos = currentPosition();
           setIsCollapseAnimating(true);
           setIsCollapsed(state.collapsed);
-          const { position: newPos, ratio: newRatio } = getExpandedFromCollapsed(
+          const { position: expandedPosition, ratio: newRatio } = getExpandedFromCollapsed(
             collapsedPos,
             state.edge,
           );
-          setPosition(newPos);
+          setPosition(expandedPosition);
           setPositionRatio(newRatio);
           clearTimeout(collapseAnimationTimeout);
           collapseAnimationTimeout = setTimeout(() => {
@@ -669,11 +672,11 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         onPanelClick={(event) => {
           if (isCollapsed()) {
             event.stopPropagation();
-            const { position: newPos, ratio: newRatio } = getExpandedFromCollapsed(
+            const { position: expandedPosition, ratio: newRatio } = getExpandedFromCollapsed(
               currentPosition(),
               snapEdge(),
             );
-            setPosition(newPos);
+            setPosition(expandedPosition);
             setPositionRatio(newRatio);
             setIsCollapseAnimating(true);
             setIsCollapsed(false);

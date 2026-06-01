@@ -1,6 +1,6 @@
 import { createStore, produce } from "solid-js/store";
 import { batch, createSignal } from "solid-js";
-import type { Position, Theme, GrabbedBox, SelectionLabelInstance } from "../types.js";
+import type { Position, GrabbedBox, SelectionLabelInstance } from "../types.js";
 import { OFFSCREEN_POSITION } from "../constants.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
@@ -43,7 +43,6 @@ interface GrabStore {
   frozenElements: Element[];
   frozenDragRect: FrozenDragRect | null;
   lastGrabbedElement: Element | null;
-  lastCopiedElement: Element | null;
 
   selectionFilePath: string | null;
   selectionLineNumber: number | null;
@@ -55,8 +54,6 @@ interface GrabStore {
 
   isTouchMode: boolean;
 
-  theme: Required<Theme>;
-
   activationTimestamp: number | null;
   previouslyFocusedElement: Element | null;
 
@@ -66,7 +63,6 @@ interface GrabStore {
 }
 
 interface GrabStoreInput {
-  theme: Required<Theme>;
   keyHoldDuration: number;
 }
 
@@ -86,7 +82,6 @@ const createInitialStore = (input: GrabStoreInput): GrabStore => ({
   frozenElements: [],
   frozenDragRect: null,
   lastGrabbedElement: null,
-  lastCopiedElement: null,
 
   selectionFilePath: null,
   selectionLineNumber: null,
@@ -97,8 +92,6 @@ const createInitialStore = (input: GrabStoreInput): GrabStore => ({
   labelInstances: [],
 
   isTouchMode: false,
-
-  theme: input.theme,
 
   activationTimestamp: null,
   previouslyFocusedElement: null,
@@ -124,7 +117,7 @@ interface GrabActions {
   cancelDrag: () => void;
   finishJustDragged: () => void;
   startCopy: () => void;
-  completeCopy: (element?: Element) => void;
+  completeCopy: () => void;
   finishJustCopied: () => void;
   enterPromptMode: (position: Position, element: Element) => void;
   exitPromptMode: () => void;
@@ -140,7 +133,6 @@ interface GrabActions {
   setFrozenDragRect: (rect: FrozenDragRect | null) => void;
   setCopyStart: (position: Position, element: Element) => void;
   setLastGrabbed: (element: Element | null) => void;
-  clearLastCopied: () => void;
   setWasActivatedByToggle: (value: boolean) => void;
   setPendingCommentMode: (value: boolean) => void;
   setTouchMode: (value: boolean) => void;
@@ -237,7 +229,6 @@ const createGrabStore = (input: GrabStoreInput) => {
             draft.contextMenuPosition = null;
             draft.contextMenuElement = null;
             draft.contextMenuClickOffset = null;
-            draft.lastCopiedElement = null;
             // In touch mode there is no pointer movement between taps, so a
             // stale detectedElement from the previous interaction would
             // render its selection box the moment the user re-activates.
@@ -366,18 +357,13 @@ const createGrabStore = (input: GrabStoreInput) => {
       });
     },
 
-    completeCopy: (element?: Element) => {
+    completeCopy: () => {
       const currentState = current();
       const wasActive = currentState.state === "copying" ? currentState.wasActive : false;
-      batch(() => {
-        if (element) {
-          setStore("lastCopiedElement", element);
-        }
-        setCurrent({
-          state: "justCopied",
-          copiedAt: Date.now(),
-          wasActive,
-        });
+      setCurrent({
+        state: "justCopied",
+        copiedAt: Date.now(),
+        wasActive,
       });
     },
 
@@ -505,10 +491,6 @@ const createGrabStore = (input: GrabStoreInput) => {
 
     setLastGrabbed: (element: Element | null) => {
       setStore("lastGrabbedElement", element);
-    },
-
-    clearLastCopied: () => {
-      setStore("lastCopiedElement", null);
     },
 
     setWasActivatedByToggle: (value: boolean) => {

@@ -195,7 +195,6 @@ export const EDIT_TRANSPARENT_COLOR_HEX = "#00000000";
 export const EDIT_ROOT_FONT_SIZE_PX = 16;
 export const EDIT_PANEL_MIN_WIDTH_PX = 200;
 export const EDIT_PANEL_MAX_WIDTH_PX = 320;
-export const EDIT_PANEL_POINTER_ANCHOR_WIDTH_PX = 0;
 export const EDIT_SHIFT_STEP_MULTIPLIER = 10;
 // Idle window after the last control-interact pulse before the
 // transient-interaction signal clears. Must comfortably exceed the

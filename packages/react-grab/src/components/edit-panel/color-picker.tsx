@@ -1,6 +1,7 @@
 import { createSignal, onCleanup, onMount, Show, type Component } from "solid-js";
 import { IME_COMPOSING_KEY_CODE } from "../../constants.js";
 import { parseAnyColor } from "../../utils/parse-any-color.js";
+import { EDIT_LABEL_CLASS } from "./constants.js";
 
 // Native <input type="color"> only accepts `#rrggbb` (no alpha, no
 // shorthand). Strip the alpha byte if present so the picker opens at
@@ -18,7 +19,6 @@ interface ColorPickerProps {
   emphasized?: boolean;
 }
 
-const LABEL_CLASS = "text-[13px] leading-4 font-medium";
 const HEX_CLASS = "text-[12px] leading-4 font-medium tabular-nums uppercase";
 
 export const ColorPicker: Component<ColorPickerProps> = (props) => {
@@ -86,7 +86,7 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
     <div class="flex items-center gap-2 w-full px-2 h-[20px]">
       <Show when={props.label}>
         {(text) => (
-          <span class={`${LABEL_CLASS} text-[var(--rg-text-primary)] truncate min-w-0`}>
+          <span class={`${EDIT_LABEL_CLASS} text-[var(--rg-text-primary)] truncate min-w-0`}>
             {text()}
           </span>
         )}
@@ -164,10 +164,10 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
             const pickedRgb = event.currentTarget.value;
             const originalAlpha = props.value.length === 9 ? props.value.slice(7) : "";
             const preservedAlpha = originalAlpha.toLowerCase() === "00" ? "" : originalAlpha;
-            const next = pickedRgb + preservedAlpha;
+            const nextColorValue = pickedRgb + preservedAlpha;
             props.onInteract?.();
-            if (next && next.toLowerCase() !== props.value.toLowerCase()) {
-              props.onCommit(next);
+            if (nextColorValue && nextColorValue.toLowerCase() !== props.value.toLowerCase()) {
+              props.onCommit(nextColorValue);
             }
           }}
         />

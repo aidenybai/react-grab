@@ -45,7 +45,7 @@ export const buildColorProperty = (
 ): ColorEditableProperty | null => {
   const hexValue = parseAnyColor(rawCssValue);
   const channels = hexValue ? parseHexChannels(hexValue) : null;
-  const isUsableColor = channels !== null && channels.a !== 0;
+  const isUsableColor = channels !== null && channels.alpha !== 0;
   if (!isUsableColor && !alwaysShow) return null;
   const value = isUsableColor && hexValue ? hexValue : EDIT_TRANSPARENT_COLOR_HEX;
   return {

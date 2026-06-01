@@ -67,8 +67,8 @@ const getChildIndex = (element: Element, filterTagName?: string): number | undef
   let position = 0;
   while (sibling) {
     if (
-      sibling.nodeType === Node.ELEMENT_NODE &&
-      (filterTagName === undefined || (sibling as Element).tagName.toLowerCase() === filterTagName)
+      sibling instanceof Element &&
+      (filterTagName === undefined || sibling.tagName.toLowerCase() === filterTagName)
     ) {
       position++;
     }
@@ -165,8 +165,8 @@ const resolveRootDocument = (
   if (attachedRoot instanceof ShadowRoot) {
     return attachedRoot as unknown as Document;
   }
-  if (rootNode.nodeType === Node.DOCUMENT_NODE) return rootNode;
-  return (rootNode as Element).ownerDocument;
+  if (rootNode instanceof Document) return rootNode;
+  return rootNode.ownerDocument;
 };
 
 const isSelectorUnique = (
