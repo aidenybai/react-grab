@@ -52,6 +52,14 @@ export const promptSkillInstall = async ({
 
   let selectedAgents = detectedAgents;
   if (!yes) {
+    const { confirmed } = await prompts({
+      type: "confirm",
+      name: "confirmed",
+      message: `Install the React Grab skill (${global ? "global" : "this project"})?`,
+      initial: true,
+    });
+    if (!confirmed) return false;
+
     const { agents } = await prompts({
       type: "multiselect",
       name: "agents",
