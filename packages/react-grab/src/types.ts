@@ -601,7 +601,6 @@ export interface ScanLongAnimationFrame {
   startTimeMs: number;
   durationMs: number;
   blockingDurationMs: number;
-  renderStartMs: number;
   firstUIEventTimestampMs: number;
   scripts: ScanLoafScript[];
 }
@@ -617,7 +616,6 @@ export interface ScanFiberChange {
 
 export interface ScanRenderedFiber {
   name: string;
-  actualDurationMs: number;
   selfDurationMs: number;
   source: string | null;
   change: ScanFiberChange | null;
@@ -631,7 +629,6 @@ export interface ScanCommit {
 }
 
 export interface ScanTrace {
-  startedAtEpochMs: number;
   durationMs: number;
   commitCount: number;
   commits: ScanCommit[];

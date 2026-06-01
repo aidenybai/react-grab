@@ -1,4 +1,4 @@
-import type { Fiber } from "bippy";
+import { type Fiber, getTimings } from "bippy";
 import {
   LONG_ANIMATION_FRAME_ENTRY_TYPE,
   MAX_SCAN_TRACE_COMMITS,
@@ -27,7 +27,6 @@ interface LongAnimationFrameScriptTiming {
 }
 
 interface LongAnimationFrameTiming extends PerformanceEntry {
-  renderStart?: number;
   blockingDuration?: number;
   firstUIEventTimestamp?: number;
   scripts?: LongAnimationFrameScriptTiming[];
@@ -37,7 +36,6 @@ interface CollectedFiber {
   fiber: Fiber;
   name: string;
   actualDurationMs: number;
-  selfDurationMs: number;
   parentRendered: boolean;
 }
 
@@ -65,14 +63,13 @@ export const createScanTraceRecorder = (): ScanTraceRecorder => {
   let commitCount = 0;
   let currentCommitTimestamp = 0;
   let scanStartTimestamp = 0;
-  let scanStartEpochMs = 0;
   let observer: PerformanceObserver | null = null;
 
-  const recordLongAnimationFrames = (list: PerformanceObserverEntryList): void => {
-    for (const entry of list.getEntries()) {
+  const ingestLoafEntries = (entries: PerformanceEntryList): void => {
+    for (const entry of entries) {
       if (longAnimationFrames.length >= MAX_SCAN_TRACE_LOAF_ENTRIES) break;
-      // getEntries() is typed as the base PerformanceEntry; the runtime entry
-      // carries the long-animation-frame fields modeled above.
+      // The runtime entry carries the long-animation-frame fields modeled above
+      // that aren't in the base PerformanceEntry lib type.
       const loafEntry = entry as LongAnimationFrameTiming;
       const scripts: ScanLoafScript[] = (loafEntry.scripts ?? [])
         .slice(0, MAX_SCAN_TRACE_LOAF_SCRIPTS)
@@ -87,7 +84,6 @@ export const createScanTraceRecorder = (): ScanTraceRecorder => {
         startTimeMs: loafEntry.startTime,
         durationMs: loafEntry.duration,
         blockingDurationMs: loafEntry.blockingDuration ?? 0,
-        renderStartMs: loafEntry.renderStart ?? 0,
         firstUIEventTimestampMs: loafEntry.firstUIEventTimestamp ?? 0,
         scripts,
       });
@@ -100,9 +96,8 @@ export const createScanTraceRecorder = (): ScanTraceRecorder => {
     collected.length = 0;
     commitCount = 0;
     scanStartTimestamp = performance.now();
-    scanStartEpochMs = Date.now();
     if (!isLongAnimationFrameSupported()) return;
-    observer = new PerformanceObserver(recordLongAnimationFrames);
+    observer = new PerformanceObserver((list) => ingestLoafEntries(list.getEntries()));
     try {
       observer.observe({ type: LONG_ANIMATION_FRAME_ENTRY_TYPE, buffered: false });
     } catch {
@@ -111,7 +106,11 @@ export const createScanTraceRecorder = (): ScanTraceRecorder => {
   };
 
   const end = (): void => {
-    observer?.disconnect();
+    if (!observer) return;
+    // Drain entries the observer buffered but hasn't delivered yet (delivery is
+    // async), so frames near the end of the scan aren't lost on disconnect.
+    ingestLoafEntries(observer.takeRecords());
+    observer.disconnect();
     observer = null;
   };
 
@@ -122,35 +121,25 @@ export const createScanTraceRecorder = (): ScanTraceRecorder => {
   };
 
   const collectFiber = (fiber: Fiber, name: string, parentRendered: boolean): void => {
-    collected.push({
-      fiber,
-      name,
-      actualDurationMs: fiber.actualDuration ?? 0,
-      selfDurationMs: fiber.selfBaseDuration ?? 0,
-      parentRendered,
-    });
+    collected.push({ fiber, name, actualDurationMs: fiber.actualDuration ?? 0, parentRendered });
   };
 
   // Finalizes the in-progress commit: keep the slowest fibers, and only for
-  // those compute the (relatively expensive) change description + source while
-  // the fibers are still the live alternates for this commit.
+  // those compute the (relatively expensive) change description + source +
+  // self time while the fibers are still the live alternates for this commit.
   const endCommit = (): void => {
     if (collected.length === 0) return;
     collected.sort((first, second) => second.actualDurationMs - first.actualDurationMs);
 
-    let totalActualDurationMs = 0;
-    for (const entry of collected) {
-      if (entry.actualDurationMs > totalActualDurationMs) {
-        totalActualDurationMs = entry.actualDurationMs;
-      }
-    }
+    // actualDuration nests children, so the slowest fiber's duration is the
+    // commit's total render time.
+    const totalActualDurationMs = collected[0].actualDurationMs;
 
     const fibers: ScanRenderedFiber[] = collected
       .slice(0, MAX_SCAN_TRACE_FIBERS_PER_COMMIT)
       .map((entry) => ({
         name: entry.name,
-        actualDurationMs: entry.actualDurationMs,
-        selfDurationMs: entry.selfDurationMs,
+        selfDurationMs: getTimings(entry.fiber).selfTime,
         source: getFiberSource(entry.fiber),
         change: getChangeDescription(entry.fiber, entry.parentRendered),
       }));
@@ -168,7 +157,6 @@ export const createScanTraceRecorder = (): ScanTraceRecorder => {
   const takeTrace = (): ScanTrace | null => {
     if (commits.length === 0 && longAnimationFrames.length === 0) return null;
     return {
-      startedAtEpochMs: scanStartEpochMs,
       durationMs: performance.now() - scanStartTimestamp,
       commitCount,
       commits: commits.slice(),

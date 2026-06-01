@@ -1505,6 +1505,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isActivated()) {
         deactivateRenderer();
       }
+      // Stop any live scan too - disabling React Grab must not leave the canvas
+      // and per-commit fiber walk running with no UI to stop them.
+      scanController.stop();
       clearCopyFeedbackCooldown();
     };
 

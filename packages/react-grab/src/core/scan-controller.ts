@@ -3,12 +3,7 @@ import { FEEDBACK_DURATION_MS } from "../constants.js";
 import { copyContent } from "../utils/copy-content.js";
 import { serializeScanTrace } from "../utils/serialize-scan-trace.js";
 import { loadScanActive, saveScanActive } from "../utils/scan-active-storage.js";
-import {
-  createScanner,
-  isScanAvailable,
-  onScanAvailable,
-  type ScannerController,
-} from "./scanner.js";
+import { createScanner, isScanAvailable, onScanAvailable } from "./scanner.js";
 
 interface ScanControllerOptions {
   // Whether there is a toolbar to stop the scan from; a persisted scan only
@@ -17,7 +12,6 @@ interface ScanControllerOptions {
 }
 
 export interface ScanController {
-  scanner: ScannerController;
   // Whether a React renderer is instrumented; the scan button hides when false.
   isScanAvailable: Accessor<boolean>;
   isScanning: Accessor<boolean>;
@@ -59,8 +53,7 @@ export const createScanController = (options: ScanControllerOptions): ScanContro
 
   const toggle = () => {
     if (scanner.isScanning()) {
-      scanner.stop();
-      setIsScanning(false);
+      stop();
       saveScanActive(false);
       const trace = scanner.takeTrace();
       if (trace && copyContent(serializeScanTrace(trace), { componentName: "ReactGrabScan" })) {
@@ -94,5 +87,5 @@ export const createScanController = (options: ScanControllerOptions): ScanContro
     stop();
   });
 
-  return { scanner, isScanAvailable: scanAvailable, isScanning, scanCopiedToken, toggle, stop };
+  return { isScanAvailable: scanAvailable, isScanning, scanCopiedToken, toggle, stop };
 };

@@ -30,10 +30,10 @@ const didAnyContextChange = (fiber: Fiber): boolean => {
   let changed = false;
   traverseContexts(fiber, (nextContext, prevContext) => {
     if (!nextContext || !prevContext) return;
-    if (nextContext.context !== prevContext.context) {
-      changed = false;
-      return true;
-    }
+    // A context-identity mismatch means the dependency lists diverged (e.g. a
+    // conditional context read); skip this slot rather than aborting, so a
+    // genuine value change in a later context is still detected.
+    if (nextContext.context !== prevContext.context) return;
     if (!Object.is(prevContext.memoizedValue, nextContext.memoizedValue)) {
       changed = true;
       return true;

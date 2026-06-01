@@ -1,5 +1,6 @@
 import {
   instrument,
+  secure,
   didFiberRender,
   getDisplayName,
   getNearestHostFiber,
@@ -41,10 +42,8 @@ interface ScanOutline {
 export interface ScannerController {
   start: () => void;
   stop: () => void;
-  toggle: () => void;
   isScanning: () => boolean;
   takeTrace: () => ScanTrace | null;
-  dispose: () => void;
 }
 
 let handleCommit: (rendererId: number, root: FiberRoot) => void = () => {};
@@ -69,14 +68,22 @@ export const onScanAvailable = (listener: () => void): (() => void) => {
 };
 
 if (typeof window !== "undefined") {
-  instrument({
-    name: "react-grab-scan",
-    onActive: markInstrumentationActive,
-    onCommitFiberRoot(_rendererId, root) {
-      markInstrumentationActive();
-      return handleCommit(_rendererId, root);
-    },
-  });
+  // secure() adds bippy's production/React-version guard and per-callback error
+  // isolation around the commit hook. Scanning needs dev-only profiling timings
+  // anyway, so we let it stay disabled on production React.
+  instrument(
+    secure(
+      {
+        name: "react-grab-scan",
+        onActive: markInstrumentationActive,
+        onCommitFiberRoot(_rendererId, root) {
+          markInstrumentationActive();
+          return handleCommit(_rendererId, root);
+        },
+      },
+      { onError: () => {} },
+    ),
+  );
 }
 
 export const createScanner = (): ScannerController => {
@@ -260,9 +267,7 @@ export const createScanner = (): ScannerController => {
   return {
     start,
     stop,
-    toggle: () => (isScanning ? stop() : start()),
     isScanning: () => isScanning,
     takeTrace: recorder.takeTrace,
-    dispose: stop,
   };
 };

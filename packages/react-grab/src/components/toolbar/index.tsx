@@ -784,7 +784,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               tooltipPosition={tooltipPosition()}
               tooltip="Style"
             />
-            <Show when={props.scanAvailable}>
+            <Show when={props.scanAvailable || props.isScanning}>
               <ToolbarActionButton
                 actionId={SCAN_ACTION_ID}
                 isToggle
