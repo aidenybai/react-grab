@@ -1557,12 +1557,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.clearLastCopied();
       if (!isPromptMode()) return;
 
-      if (store.inputText.trim() === "") {
-        actions.clearInputText();
-        deactivateRenderer();
-        return;
-      }
-
       if (isPendingDismiss()) {
         actions.clearInputText();
         deactivateRenderer();
