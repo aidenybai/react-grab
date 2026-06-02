@@ -281,6 +281,22 @@ interface ResolvedSource {
   componentName: string | null;
 }
 
+const isStackSourceFile = (fileName: string | null | undefined): boolean =>
+  Boolean(fileName && isSourceFile(fileName));
+
+const isApplicationSourceFile = (fileName: string | null | undefined): boolean =>
+  Boolean(fileName && isSourceFile(fileName) && !parsePackageName(fileName));
+
+const isApplicationSourceFrame = (frame: StackFrame): boolean =>
+  isApplicationSourceFile(frame.fileName);
+
+const pickSourceFrame = (frames: StackFrame[]): StackFrame | null => {
+  const namedFrame = frames.find(
+    (frame) => frame.functionName && isSourceComponentName(frame.functionName),
+  );
+  return namedFrame ?? frames[0] ?? null;
+};
+
 const getSourceComponentName = (fiber: Fiber | undefined): string | null => {
   if (!fiber || !isCompositeFiber(fiber)) return null;
   const name = getDisplayName(fiber.type);
@@ -289,8 +305,8 @@ const getSourceComponentName = (fiber: Fiber | undefined): string | null => {
 
 // bippy's getSource prefers React's dev-only _debugSource (the real JSX location
 // that bundlers like Webpack/Rspack drop from the owner stack) and otherwise
-// falls back to the owner stack. We only trust locations that point at a real
-// on-disk source file; bundler-virtual URLs are left to the owner-stack scan.
+// falls back to the owner stack. We only trust app-owned source locations here;
+// library sourcemap paths are left to the owner-stack scan.
 // This reads React's own dev data, so it works without bippy instrumentation;
 // getSource can still throw while parsing owner stacks, so it is guarded.
 const getFiberSource = async (element: Element): Promise<ResolvedSource | null> => {
@@ -299,7 +315,7 @@ const getFiberSource = async (element: Element): Promise<ResolvedSource | null> 
 
   try {
     const source = await getSource(fiber);
-    if (!source?.fileName || !isSourceFile(source.fileName)) return null;
+    if (!source?.fileName || !isApplicationSourceFile(source.fileName)) return null;
 
     return {
       filePath: normalizeFilePath(source.fileName),
@@ -322,13 +338,12 @@ export const resolveSource = async (element: Element): Promise<ResolvedSource | 
   const stack = await getStack(element);
   if (!stack || stack.length === 0) return null;
 
-  const sourceFrames = stack.filter((frame) => frame.fileName && isSourceFile(frame.fileName));
-
-  const namedFrame = sourceFrames.find(
-    (frame) => frame.functionName && isSourceComponentName(frame.functionName),
-  );
-
-  const resolvedFrame = namedFrame ?? sourceFrames[0];
+  const sourceFrames = stack.filter(isApplicationSourceFrame);
+  const fallbackSourceFrames =
+    sourceFrames.length > 0
+      ? sourceFrames
+      : stack.filter((frame) => isStackSourceFile(frame.fileName));
+  const resolvedFrame = pickSourceFrame(fallbackSourceFrames);
   if (!resolvedFrame?.fileName) return null;
 
   return {
@@ -454,8 +469,8 @@ const formatStackContext = (
   for (const frame of stack) {
     if (lines.length >= maxLines) break;
 
-    const resolvedSource = frame.fileName && isSourceFile(frame.fileName) ? frame.fileName : null;
-    const libraryPackage = resolvedSource ? null : parsePackageName(frame.fileName);
+    const libraryPackage = parsePackageName(frame.fileName);
+    const resolvedSource = isApplicationSourceFile(frame.fileName) ? frame.fileName : null;
     if (libraryPackage && libraryPackage === previousLibraryPackage) continue;
 
     const componentName =

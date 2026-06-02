@@ -7,6 +7,7 @@ const FILE_EXTENSION_PATTERN = /\.[mc]?[jt]sx?$/i;
 const VITE_INTERNAL_CHUNK_PATTERN = /^chunk-[A-Za-z0-9_-]+$/;
 const PATH_SEPARATOR_PATTERN = /[/\\]/;
 const NAME_AT_VERSION_PATTERN = /^(.+?)@v?\d/;
+const SCOPED_PACKAGE_PATTERN = /^@[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
 const splitPathSegments = (path: string): string[] =>
   path.split(PATH_SEPARATOR_PATTERN).filter(Boolean);
@@ -73,6 +74,20 @@ const extractVersionedPackageFromUrl = (rawFileName: string): string | null => {
   return null;
 };
 
+const stripRelativePathPrefix = (path: string): string => {
+  let remainingPath = path;
+  while (remainingPath.startsWith("../") || remainingPath.startsWith("./")) {
+    remainingPath = remainingPath.slice(remainingPath.startsWith("../") ? 3 : 2);
+  }
+  return remainingPath;
+};
+
+const extractFromScopedPackageSourcePath = (decodedPath: string): string | null => {
+  const [scope, packageName] = splitPathSegments(stripRelativePathPrefix(decodedPath));
+  if (!scope || !packageName || !SCOPED_PACKAGE_PATTERN.test(scope)) return null;
+  return `${scope}/${packageName}`;
+};
+
 const extractFromLocalPath = (normalizedPath: string): string | null =>
   extractAfterLastMarker(
     normalizedPath,
@@ -90,6 +105,9 @@ export const parsePackageName = (fileName: string | null | undefined): string | 
 
   const localResult = extractFromLocalPath(decoded);
   if (localResult) return localResult;
+
+  const packageSourceResult = extractFromScopedPackageSourcePath(decoded);
+  if (packageSourceResult) return packageSourceResult;
 
   const cdnResult = extractVersionedPackageFromUrl(fileName);
   if (cdnResult) return cdnResult;
