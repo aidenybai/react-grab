@@ -14,6 +14,10 @@ describe("classifySourcePath", () => {
       kind: "package-source",
       packageName: "@rippling/pebble",
     });
+    expect(classifySourcePath("/app/node_modules/@radix-ui/react-tabs/dist/index.min.js")).toEqual({
+      kind: "package-source",
+      packageName: "@radix-ui/react-tabs",
+    });
   });
 
   it("classifies default ignored app source paths", () => {

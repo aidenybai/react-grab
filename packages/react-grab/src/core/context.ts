@@ -472,6 +472,8 @@ const formatStackContext = (
     if (lines.length >= maxLines) break;
 
     const sourcePath = classifySourcePath(frame.fileName, activeSourceOptions);
+    if (sourcePath.kind === "ignored-app-source") continue;
+
     const libraryPackage = sourcePath.packageName;
     const resolvedSource = sourcePath.kind === "app-source" ? frame.fileName : null;
 
@@ -493,8 +495,6 @@ const formatStackContext = (
       didDedupeLeadingComponent = true;
       continue;
     }
-
-    if (sourcePath.kind === "ignored-app-source") continue;
 
     if (frame.isServer && !resolvedSource && (componentName || !frame.functionName)) {
       const tag = libraryPackage ? `${libraryPackage} at Server` : "at Server";

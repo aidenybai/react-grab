@@ -80,13 +80,17 @@ const classifySourcePathUncached = (
   fileName: string | null | undefined,
   sourceOptions?: SourceOptions,
 ): SourcePathClassification => {
-  if (!fileName || !isSourceFile(fileName)) {
+  if (!fileName) {
     return { kind: "unknown", packageName: null };
   }
 
   const packageName = parsePackageName(fileName);
   if (packageName) {
     return { kind: "package-source", packageName };
+  }
+
+  if (!isSourceFile(fileName)) {
+    return { kind: "unknown", packageName: null };
   }
 
   if (matchesIgnoredSourcePath(fileName, sourceOptions)) {
