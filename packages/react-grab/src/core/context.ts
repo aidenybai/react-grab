@@ -459,7 +459,6 @@ const formatStackContext = (
 
     const libraryPackage = parsePackageName(frame.fileName);
     const resolvedSource = isApplicationSourceFile(frame.fileName) ? frame.fileName : null;
-    if (libraryPackage && libraryPackage === previousLibraryPackage) continue;
 
     const componentName =
       frame.functionName && isSourceComponentName(frame.functionName) ? frame.functionName : null;
