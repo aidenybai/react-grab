@@ -321,6 +321,17 @@ describe("detectReactGrabConfigured", () => {
     expect(detectReactGrabConfigured("/test")).toBe(true);
   });
 
+  it("should detect react-grab setup in module instrumentation files", () => {
+    mockExistsSync.mockImplementation((path) =>
+      toPosixPath(path).endsWith("instrumentation-client.mts"),
+    );
+    mockReadFileSync.mockReturnValue(
+      'if (process.env.NODE_ENV === "development") import("react-grab");',
+    );
+
+    expect(detectReactGrabConfigured("/test")).toBe(true);
+  });
+
   it("should ignore comments that mention react-grab", () => {
     mockExistsSync.mockImplementation((path) => toPosixPath(path).endsWith("app/layout.tsx"));
     mockReadFileSync.mockReturnValue(`const setupLater = true; // import("react-grab") later

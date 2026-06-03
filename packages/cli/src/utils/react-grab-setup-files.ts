@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 const COMPONENT_EXTENSIONS = ["tsx", "jsx", "ts", "js"];
+const INSTRUMENTATION_EXTENSIONS = ["ts", "tsx", "js", "jsx", "mts", "cts", "mjs", "cjs"];
 const ROUTE_EXTENSIONS = ["tsx", "jsx"];
 
 const createFileCandidates = (
@@ -33,7 +34,12 @@ export const getDocumentFileCandidates = (projectRoot: string): string[] =>
   createFileCandidates(projectRoot, ["pages", "src/pages"], "_document", COMPONENT_EXTENSIONS);
 
 export const getInstrumentationFileCandidates = (projectRoot: string): string[] =>
-  createFileCandidates(projectRoot, ["", "src"], "instrumentation-client", COMPONENT_EXTENSIONS);
+  createFileCandidates(
+    projectRoot,
+    ["", "src"],
+    "instrumentation-client",
+    INSTRUMENTATION_EXTENSIONS,
+  );
 
 export const getIndexHtmlCandidates = (projectRoot: string): string[] => [
   join(projectRoot, "index.html"),
