@@ -27,6 +27,7 @@ import {
 import { getTagName } from "../utils/get-tag-name.js";
 import { truncateString } from "../utils/truncate-string.js";
 import { getNextBasePath } from "../utils/get-next-base-path.js";
+import { isIgnoredApplicationSourcePath } from "../utils/is-ignored-application-source-path.js";
 import { normalizeFilePath } from "../utils/normalize-file-path.js";
 import { parsePackageName } from "../utils/parse-package-name.js";
 import { safeDecodeURIComponent } from "../utils/safe-decode-uri-component.js";
@@ -285,7 +286,12 @@ const isStackSourceFile = (fileName: string | null | undefined): boolean =>
   Boolean(fileName && isSourceFile(fileName));
 
 const isApplicationSourceFile = (fileName: string | null | undefined): boolean =>
-  Boolean(fileName && isSourceFile(fileName) && !parsePackageName(fileName));
+  Boolean(
+    fileName &&
+    isSourceFile(fileName) &&
+    !parsePackageName(fileName) &&
+    !isIgnoredApplicationSourcePath(fileName),
+  );
 
 const isApplicationSourceFrame = (frame: StackFrame): boolean =>
   isApplicationSourceFile(frame.fileName);
