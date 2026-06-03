@@ -229,6 +229,7 @@ const findNearestFiberElement = (element: Element): Element => {
 };
 
 const stackCache = new WeakMap<Element, Promise<StackFrame[] | null>>();
+const fiberSourceCache = new WeakMap<Element, Promise<ResolvedSource | null>>();
 
 const fetchStackForElement = async (element: Element): Promise<StackFrame[] | null> => {
   try {
@@ -332,6 +333,23 @@ const getFiberSource = async (
   }
 };
 
+const getCachedFiberSource = (
+  element: Element,
+  sourceOptions?: SourceOptions,
+): Promise<ResolvedSource | null> => {
+  const resolvedElement = findNearestFiberElement(element);
+  if (sourceOptions?.ignorePaths?.length) {
+    return getFiberSource(resolvedElement, sourceOptions);
+  }
+
+  const cached = fiberSourceCache.get(resolvedElement);
+  if (cached) return cached;
+
+  const promise = getFiberSource(resolvedElement, sourceOptions);
+  fiberSourceCache.set(resolvedElement, promise);
+  return promise;
+};
+
 interface ResolveSourceOptions {
   sourceOptions?: SourceOptions;
 }
@@ -340,7 +358,7 @@ export const resolveSource = async (
   element: Element,
   options: ResolveSourceOptions = {},
 ): Promise<ResolvedSource | null> => {
-  const fiberSource = await getFiberSource(element, options.sourceOptions);
+  const fiberSource = await getCachedFiberSource(element, options.sourceOptions);
   if (fiberSource) return fiberSource;
 
   const stack = await getStack(element);
@@ -549,7 +567,7 @@ export const getStackContext = async (
   options: StackContextOptions = {},
 ): Promise<string> => {
   const maxLines = options.maxLines ?? DEFAULT_MAX_CONTEXT_LINES;
-  const leadingSource = await getFiberSource(element, options.sourceOptions);
+  const leadingSource = await getCachedFiberSource(element, options.sourceOptions);
   const stack = await getStack(element);
 
   if (stack) {
