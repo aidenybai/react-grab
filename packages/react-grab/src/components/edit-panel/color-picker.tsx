@@ -20,7 +20,7 @@ interface ColorPickerProps {
   emphasized?: boolean;
 }
 
-const HEX_CLASS = "text-[12px] leading-4 font-medium tabular-nums uppercase";
+const HEX_CLASS = "text-[12px] leading-4 font-medium tabular-nums";
 
 export const ColorPicker: Component<ColorPickerProps> = (props) => {
   const [draftText, setDraftText] = createSignal<string | null>(null);
