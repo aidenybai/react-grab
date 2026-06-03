@@ -199,6 +199,52 @@ test.describe("Transform Overlay", () => {
     expect(orderAfter).toBe(true);
   });
 
+  test("escaping without copying reverts a move and closes the panel", async ({ reactGrab }) => {
+    const { page } = reactGrab;
+    const SIBLING_SELECTOR = "[data-testid='deeply-nested-text']";
+    await openEditPanel(reactGrab, TARGET_SELECTOR);
+    await expect.poll(() => isTransformOverlayVisible(page)).toBe(true);
+
+    const wasAfterSibling = () =>
+      page.evaluate(
+        ({ moved, sibling }) =>
+          document.querySelector(moved)?.previousElementSibling === document.querySelector(sibling),
+        { moved: TARGET_SELECTOR, sibling: SIBLING_SELECTOR },
+      );
+    expect(await wasAfterSibling()).toBe(true);
+
+    const points = await page.evaluate(
+      ({ sibling }) => {
+        const host = document.querySelector("[data-react-grab]");
+        const overlay = host?.shadowRoot?.querySelector<HTMLElement>(
+          "[data-react-grab-transform-overlay]",
+        );
+        const sib = document.querySelector(sibling)!.getBoundingClientRect();
+        const ob = overlay!.getBoundingClientRect();
+        return {
+          from: { x: ob.left + ob.width / 2, y: ob.top + ob.height / 2 },
+          to: { x: sib.left + 8, y: sib.top + 2 },
+        };
+      },
+      { sibling: SIBLING_SELECTOR },
+    );
+    await page.mouse.move(points.from.x, points.from.y);
+    await page.mouse.down();
+    await page.mouse.move(points.to.x, points.to.y, { steps: 10 });
+    await page.mouse.up();
+    // The move reinserted the element before its sibling.
+    expect(await wasAfterSibling()).toBe(false);
+
+    // Escape (with discard confirmation) closes the panel and reverts the move.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(120);
+      if (!(await isEditPanelVisible(page))) break;
+    }
+    expect(await isEditPanelVisible(page)).toBe(false);
+    expect(await wasAfterSibling()).toBe(true);
+  });
+
   test("clicking another element retargets the panel and overlay to it", async ({ reactGrab }) => {
     const { page } = reactGrab;
     const OTHER_SELECTOR = "[data-testid='deeply-nested-text']";

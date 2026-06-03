@@ -57,18 +57,23 @@ export const createTransformController = (
   let originPosition: DomPosition | null = null;
   let lastDrop: DropTarget | null = null;
 
+  // Capture the element once. It is stable for this controller's lifetime (the
+  // panel's keyed <Show> recreates the controller when the selected element
+  // changes), and reading `dependencies.getElement()` during teardown would
+  // touch the disposed panel state and throw "Stale read from <Show>".
+  const element = dependencies.getElement();
+
   // x/y are written as `left`/`top` offsets from the element's starting
   // position; static elements get `position: relative` on first interaction so
   // those offsets take effect. Read the base once — layout is settled by the
   // time the style panel opens.
-  const baseStyle = getComputedStyle(dependencies.getElement());
+  const baseStyle = getComputedStyle(element);
   const baseLeft = Number.parseFloat(baseStyle.left) || 0;
   const baseTop = Number.parseFloat(baseStyle.top) || 0;
   let isPositioned = baseStyle.position !== "static";
   const offset = { x: 0, y: 0 };
 
   const measureFrameInto = (target: TransformFrame): void => {
-    const element = dependencies.getElement();
     const rect = element.getBoundingClientRect();
     const layoutWidth =
       element instanceof HTMLElement && element.offsetWidth > 0 ? element.offsetWidth : rect.width;
@@ -83,7 +88,7 @@ export const createTransformController = (
   };
 
   const ensureConnected = (): boolean => {
-    if (isElementConnected(dependencies.getElement())) return true;
+    if (isElementConnected(element)) return true;
     dependencies.onInvalid();
     return false;
   };
@@ -125,7 +130,6 @@ export const createTransformController = (
   };
 
   const reinsert = (drop: DropTarget): void => {
-    const element = dependencies.getElement();
     const parent = drop.reference.parentNode;
     const elementParent = element.parentNode;
     if (!parent || !elementParent || element === drop.reference || element.contains(drop.reference))
@@ -144,7 +148,7 @@ export const createTransformController = (
   };
 
   const previewDropAt = (clientX: number, clientY: number): DropTarget | null => {
-    const drop = findDropTarget(clientX, clientY, dependencies.getElement());
+    const drop = findDropTarget(clientX, clientY, element);
     setInsertionIndicator(drop ? drop.indicator : null);
     return drop;
   };
@@ -214,7 +218,7 @@ export const createTransformController = (
     // value, however, addresses the content box unless box-sizing is
     // border-box. Subtract padding+border so the committed value lands the
     // border-box exactly under the cursor instead of overshooting.
-    const computed = getComputedStyle(dependencies.getElement());
+    const computed = getComputedStyle(element);
     const isBorderBox = computed.boxSizing === "border-box";
     const extraX = isBorderBox
       ? 0
@@ -300,7 +304,6 @@ export const createTransformController = (
 
   const restore = (): void => {
     if (!originPosition) return;
-    const element = dependencies.getElement();
     // Only move a still-connected element back to its origin; never re-attach a
     // node the app/React already removed (restore runs on every dismiss,
     // including the deselect triggered when the element is detached).
@@ -309,8 +312,9 @@ export const createTransformController = (
     }
     originPosition = null;
     lastDrop = null;
-    setDidMove(false);
-    if (isElementConnected(element)) refreshFrame();
+    // Intentionally no signal writes: restore runs during the panel's teardown
+    // (onCleanup), and notifying a disposing <Show> throws "Stale read from
+    // <Show>", which would abort the dismiss and strip the revert.
   };
 
   // Keep the frame glued to the element: viewport changes (scroll/zoom) plus a
@@ -320,11 +324,11 @@ export const createTransformController = (
     refreshFrame();
     const stopViewportTracking = onViewportChange(refreshFrame);
     const resizeObserver = new ResizeObserver(() => refreshFrame());
-    resizeObserver.observe(dependencies.getElement());
+    resizeObserver.observe(element);
     // A ResizeObserver does not fire when its target is removed, so watch the
     // document tree for the element being detached and deselect if so.
     const mutationObserver = new MutationObserver(() => {
-      if (!isElementConnected(dependencies.getElement())) dependencies.onInvalid();
+      if (!isElementConnected(element)) dependencies.onInvalid();
     });
     mutationObserver.observe(document.documentElement, { childList: true, subtree: true });
     onCleanup(() => {
