@@ -806,7 +806,9 @@ test.describe("Style Panel", () => {
       );
 
       await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
-      await reactGrab.page.keyboard.type("60px");
+      await reactGrab.page.keyboard.type("6");
+      await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
+      await reactGrab.page.keyboard.type("0px");
       await reactGrab.page.waitForTimeout(80);
 
       expect(await getEditPanelCompactAttr(reactGrab.page)).toBe("true");

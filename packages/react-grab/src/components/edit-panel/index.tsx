@@ -186,6 +186,11 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     }, EDIT_INLINE_NUMERIC_REPLACE_IDLE_MS);
   };
 
+  const queueInlineNumericReplacementForQuery = (query: string) => {
+    if (/[a-z%]+$/i.test(query.trim())) queueInlineNumericReplacement();
+    else cancelInlineNumericReplacement();
+  };
+
   const replaceInlineNumericPrefix = (nextSearchQuery: string): string => {
     if (!shouldReplaceInlineNumericInput) return nextSearchQuery;
     const currentSearchQuery = searchQuery();
@@ -211,7 +216,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     if (autoApply.tryApplyNumericValue(nextSearchQuery)) {
       keepInlineNumericSearchQuery();
       setSearchQuery(nextSearchQuery);
-      queueInlineNumericReplacement();
+      queueInlineNumericReplacementForQuery(nextSearchQuery);
       ensureSearchFocused();
       return true;
     }
@@ -673,17 +678,18 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                 if (autoApply.tryApplyNumericValue(nextSearchQuery)) {
                   keepInlineNumericSearchQuery();
                   setSearchQuery(nextSearchQuery);
-                  queueInlineNumericReplacement();
+                  queueInlineNumericReplacementForQuery(nextSearchQuery);
                   ensureSearchFocused();
                   return;
                 }
                 cancelInlineNumericReplacement();
-                setSearchQuery(nextSearchQuery);
                 if (autoApply.isInlineNumericDraft(nextSearchQuery)) {
                   keepInlineNumericSearchQuery();
+                  setSearchQuery(nextSearchQuery);
                   ensureSearchFocused();
                   return;
                 }
+                setSearchQuery(nextSearchQuery);
                 setInlineNumericSearchQuery(null);
                 setActiveIndex(nextSearchQuery.trim() === "" ? firstNumericActiveIndex() : 0);
                 expandPanel();
