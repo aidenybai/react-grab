@@ -786,6 +786,30 @@ test.describe("Style Panel", () => {
       );
     });
 
+    test("compact unitless replacement keeps paused second digits", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+      const activePropertyKey = await getActivePropertyKey(reactGrab.page);
+      expect(activePropertyKey).toBe("padding-left,padding-right");
+
+      await reactGrab.page.keyboard.type("24");
+      await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
+      await reactGrab.page.keyboard.type("3");
+      await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
+      await reactGrab.page.keyboard.type("6");
+      await reactGrab.page.waitForTimeout(80);
+
+      expect(await getEditPanelCompactAttr(reactGrab.page)).toBe("true");
+      expect(await getActivePropertyKey(reactGrab.page)).toBe(activePropertyKey);
+      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-left")).toBe(
+        "36px",
+      );
+      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-right")).toBe(
+        "36px",
+      );
+    });
+
     test("compact inline numeric edit accepts matching CSS units", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await reactGrab.page.keyboard.press("ArrowRight");

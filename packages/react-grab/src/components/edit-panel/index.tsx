@@ -187,8 +187,11 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   };
 
   const queueInlineNumericReplacementForQuery = (query: string) => {
-    if (/[a-z%]+$/i.test(query.trim())) queueInlineNumericReplacement();
-    else cancelInlineNumericReplacement();
+    const trimmedQuery = query.trim();
+    const numericDigits = trimmedQuery.replace(/^-/, "").replace(".", "");
+    if (/[a-z%]+$/i.test(trimmedQuery) || numericDigits.length > 1) {
+      queueInlineNumericReplacement();
+    } else cancelInlineNumericReplacement();
   };
 
   const replaceInlineNumericPrefix = (nextSearchQuery: string): string => {
