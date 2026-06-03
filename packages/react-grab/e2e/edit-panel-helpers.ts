@@ -13,6 +13,8 @@ export const DISCARD_PROMPT_IDLE_MS = 2000;
 export const BUTTON_SELECTOR = "[data-testid='nested-button']";
 export const CARD_SELECTOR = "[data-testid='nested-card']";
 
+export const TRANSFORM_OVERLAY_ATTR = "data-react-grab-transform-overlay";
+
 export const isEditPanelVisible = async (page: Page): Promise<boolean> =>
   page.evaluate(
     ({ attrName, panelAttr }) => {
@@ -22,6 +24,42 @@ export const isEditPanelVisible = async (page: Page): Promise<boolean> =>
       return shadowRoot.querySelector(`[${panelAttr}]`) !== null;
     },
     { attrName: ATTRIBUTE_NAME, panelAttr: EDIT_PANEL_ATTR },
+  );
+
+export const isTransformOverlayVisible = async (page: Page): Promise<boolean> =>
+  page.evaluate(
+    ({ attrName, overlayAttr }) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      const overlay = shadowRoot?.querySelector<HTMLElement>(`[${overlayAttr}]`);
+      if (!overlay) return false;
+      const bounds = overlay.getBoundingClientRect();
+      return bounds.width > 0 && bounds.height > 0;
+    },
+    { attrName: ATTRIBUTE_NAME, overlayAttr: TRANSFORM_OVERLAY_ATTR },
+  );
+
+export interface HandleCenter {
+  x: number;
+  y: number;
+}
+
+export const getTransformHandleCenter = async (
+  page: Page,
+  handleLabel: string,
+): Promise<HandleCenter> =>
+  page.evaluate(
+    ({ attrName, overlayAttr, label }) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      const handle = shadowRoot?.querySelector<HTMLElement>(
+        `[${overlayAttr}] [aria-label="${label}"]`,
+      );
+      if (!handle) throw new Error(`Transform handle "${label}" not found`);
+      const bounds = handle.getBoundingClientRect();
+      return { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 };
+    },
+    { attrName: ATTRIBUTE_NAME, overlayAttr: TRANSFORM_OVERLAY_ATTR, label: handleLabel },
   );
 
 export const getVisiblePropertyKeys = async (page: Page): Promise<string[]> =>
