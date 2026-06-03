@@ -238,16 +238,12 @@ export const EDIT_SEARCH_POSITION_PENALTY = 100;
 export const EDIT_SEARCH_LENGTH_PENALTY = 1;
 export const EDIT_COMPACT_SLIDER_MIN_WIDTH_PX = 96;
 
-// Figma-style transform overlay shown over the selected element while the
-// style panel is open. Square handles sit on the 4 corners + 4 edge
-// midpoints; a detached circular handle floats above the top edge to rotate.
+// Transform overlay shown over the selected element while the style panel is
+// open: a draggable frame to move the element plus square handles on its four
+// corners to resize it.
 export const TRANSFORM_HANDLE_SIZE_PX = 9;
-export const TRANSFORM_ROTATE_HANDLE_SIZE_PX = 12;
-export const TRANSFORM_ROTATE_HANDLE_OFFSET_PX = 22;
 export const TRANSFORM_FRAME_BORDER_PX = 1;
 export const TRANSFORM_MIN_SIZE_PX = 4;
-// Holding Shift snaps rotation to this increment, matching Figma.
-export const TRANSFORM_ROTATE_SNAP_DEG = 15;
 export const TRANSFORM_OVERLAY_ACCENT = "#ec4899";
 
 export const CSS_VALUE_DECIMAL_PLACES = 2;

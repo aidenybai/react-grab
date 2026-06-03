@@ -3,8 +3,6 @@ import {
   TRANSFORM_FRAME_BORDER_PX,
   TRANSFORM_HANDLE_SIZE_PX,
   TRANSFORM_OVERLAY_ACCENT,
-  TRANSFORM_ROTATE_HANDLE_OFFSET_PX,
-  TRANSFORM_ROTATE_HANDLE_SIZE_PX,
   Z_INDEX_TRANSFORM_OVERLAY,
 } from "../../constants.js";
 import type { TransformHandleId } from "../../types.js";
@@ -20,13 +18,9 @@ interface HandleDescriptor {
 
 const HANDLES: readonly HandleDescriptor[] = [
   { id: "nw", leftPercent: 0, topPercent: 0, cursor: "nwse-resize" },
-  { id: "n", leftPercent: 50, topPercent: 0, cursor: "ns-resize" },
   { id: "ne", leftPercent: 100, topPercent: 0, cursor: "nesw-resize" },
-  { id: "e", leftPercent: 100, topPercent: 50, cursor: "ew-resize" },
   { id: "se", leftPercent: 100, topPercent: 100, cursor: "nwse-resize" },
-  { id: "s", leftPercent: 50, topPercent: 100, cursor: "ns-resize" },
   { id: "sw", leftPercent: 0, topPercent: 100, cursor: "nesw-resize" },
-  { id: "w", leftPercent: 0, topPercent: 50, cursor: "ew-resize" },
 ];
 
 interface TransformOverlayProps {
@@ -53,8 +47,7 @@ export const TransformOverlay: Component<TransformOverlayProps> = (props) => {
         top: `${frame().centerY}px`,
         width: `${frame().width}px`,
         height: `${frame().height}px`,
-        transform: `translate(-50%, -50%) rotate(${frame().rotate}deg)`,
-        "transform-origin": "center center",
+        transform: "translate(-50%, -50%)",
         "z-index": `${Z_INDEX_TRANSFORM_OVERLAY}`,
         "pointer-events": "none",
       }}
@@ -72,26 +65,6 @@ export const TransformOverlay: Component<TransformOverlayProps> = (props) => {
           "touch-action": "none",
         }}
         onPointerDown={(event) => beginInteraction(event, props.controller.startMove)}
-      />
-
-      <div
-        aria-label="Rotate element"
-        style={{
-          position: "absolute",
-          left: "50%",
-          top: `${-TRANSFORM_ROTATE_HANDLE_OFFSET_PX}px`,
-          width: `${TRANSFORM_ROTATE_HANDLE_SIZE_PX}px`,
-          height: `${TRANSFORM_ROTATE_HANDLE_SIZE_PX}px`,
-          transform: "translate(-50%, -50%)",
-          "border-radius": "50%",
-          background: "var(--rg-panel-bg)",
-          border: `${TRANSFORM_FRAME_BORDER_PX}px solid ${TRANSFORM_OVERLAY_ACCENT}`,
-          "box-sizing": "border-box",
-          cursor: "grab",
-          "pointer-events": "auto",
-          "touch-action": "none",
-        }}
-        onPointerDown={(event) => beginInteraction(event, props.controller.startRotate)}
       />
 
       <For each={HANDLES}>

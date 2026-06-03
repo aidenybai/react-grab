@@ -59,20 +59,6 @@ test.describe("Transform Overlay", () => {
     expect(await getInlineStyleProperty(page, TARGET_SELECTOR, "width")).not.toBe("");
   });
 
-  test("dragging the rotate handle applies a rotate transform", async ({ reactGrab }) => {
-    const { page } = reactGrab;
-    await openEditPanel(reactGrab, TARGET_SELECTOR);
-    await expect.poll(() => isTransformOverlayVisible(page)).toBe(true);
-
-    const rotateHandle = await getTransformHandleCenter(page, "Rotate element");
-    await page.mouse.move(rotateHandle.x, rotateHandle.y);
-    await page.mouse.down();
-    await page.mouse.move(rotateHandle.x + 80, rotateHandle.y + 60, { steps: 8 });
-    await page.mouse.up();
-
-    expect(await getInlineStyleProperty(page, TARGET_SELECTOR, "transform")).toContain("rotate(");
-  });
-
   test("dragging the frame body translates the element", async ({ reactGrab }) => {
     const { page } = reactGrab;
     await openEditPanel(reactGrab, TARGET_SELECTOR);

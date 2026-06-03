@@ -1,5 +1,5 @@
 import { createSignal, onCleanup, onMount, type Accessor } from "solid-js";
-import { TRANSFORM_MIN_SIZE_PX, TRANSFORM_ROTATE_SNAP_DEG } from "../../constants.js";
+import { TRANSFORM_MIN_SIZE_PX } from "../../constants.js";
 import type {
   PendingEdit,
   PreviewStyles,
@@ -20,64 +20,29 @@ export interface TransformController {
   hasChanged: () => boolean;
   buildPendingEdit: () => PendingEdit | null;
   startMove: (event: PointerEvent) => void;
-  startRotate: (event: PointerEvent) => void;
   startResize: (event: PointerEvent, handle: TransformHandleId) => void;
 }
 
-const HANDLE_DIRECTION: Record<TransformHandleId, { x: -1 | 0 | 1; y: -1 | 0 | 1 }> = {
+const HANDLE_DIRECTION: Record<TransformHandleId, { x: -1 | 1; y: -1 | 1 }> = {
   nw: { x: -1, y: -1 },
-  n: { x: 0, y: -1 },
   ne: { x: 1, y: -1 },
-  e: { x: 1, y: 0 },
   se: { x: 1, y: 1 },
-  s: { x: 0, y: 1 },
   sw: { x: -1, y: 1 },
-  w: { x: -1, y: 0 },
 };
-
-const DEGREES_PER_RADIAN = 180 / Math.PI;
 
 const formatTransform = (values: TransformValues, round: boolean): string => {
   const translateX = round ? Math.round(values.translateX) : values.translateX;
   const translateY = round ? Math.round(values.translateY) : values.translateY;
-  const rotate = round ? Math.round(values.rotate) : values.rotate;
-  return `translate(${translateX}px, ${translateY}px) rotate(${rotate}deg)`;
-};
-
-// World-space position of the box corner/edge opposite the dragged handle.
-// `direction` points outward from center toward the dragged handle, so the
-// anchor lives at the negated local offset, projected onto the element's
-// (possibly rotated) local axes.
-const anchorWorldPoint = (
-  centerX: number,
-  centerY: number,
-  width: number,
-  height: number,
-  direction: { x: number; y: number },
-  axisCos: number,
-  axisSin: number,
-): { x: number; y: number } => {
-  const localX = (-direction.x * width) / 2;
-  const localY = (-direction.y * height) / 2;
-  return {
-    x: centerX + axisCos * localX + -axisSin * localY,
-    y: centerY + axisSin * localX + axisCos * localY,
-  };
+  return `translate(${translateX}px, ${translateY}px)`;
 };
 
 export const createTransformController = (
   dependencies: TransformControllerDependencies,
 ): TransformController => {
-  const transform: TransformValues = { translateX: 0, translateY: 0, rotate: 0 };
+  const transform: TransformValues = { translateX: 0, translateY: 0 };
   // A single mutated-in-place object behind an always-notify signal keeps the
-  // per-frame tracking loop allocation-free while still driving reactivity.
-  const frameValue: TransformFrame = {
-    centerX: 0,
-    centerY: 0,
-    width: 0,
-    height: 0,
-    rotate: 0,
-  };
+  // tracking refresh allocation-free while still driving reactivity.
+  const frameValue: TransformFrame = { centerX: 0, centerY: 0, width: 0, height: 0 };
   const [frame, setFrame] = createSignal(frameValue, { equals: false });
   // Bumped on every applied edit so `hasChanged` stays reactive without
   // mirroring the mutable `transform` into a second signal.
@@ -94,14 +59,10 @@ export const createTransformController = (
       element instanceof HTMLElement && element.offsetHeight > 0
         ? element.offsetHeight
         : rect.height;
-    // The axis-aligned bounding-box center equals the element's geometric
-    // center under a center-origin rotate + translate, so it stays accurate
-    // even once the element is rotated.
     target.centerX = rect.left + rect.width / 2;
     target.centerY = rect.top + rect.height / 2;
     target.width = layoutWidth;
     target.height = layoutHeight;
-    target.rotate = transform.rotate;
   };
 
   const refreshFrame = (): void => {
@@ -110,7 +71,6 @@ export const createTransformController = (
   };
 
   const applyTransform = (): void => {
-    dependencies.preview.apply(["transform-origin"], "center center");
     dependencies.preview.apply(["transform"], formatTransform(transform, false));
     refreshFrame();
     notifyTransformEdit();
@@ -144,22 +104,6 @@ export const createTransformController = (
     });
   };
 
-  const startRotate = (event: PointerEvent): void => {
-    refreshFrame();
-    const centerX = frameValue.centerX;
-    const centerY = frameValue.centerY;
-    const startAngle = Math.atan2(event.clientY - centerY, event.clientX - centerX);
-    const startRotate = transform.rotate;
-    bindDrag((moveEvent) => {
-      const angle = Math.atan2(moveEvent.clientY - centerY, moveEvent.clientX - centerX);
-      const nextRotate = startRotate + (angle - startAngle) * DEGREES_PER_RADIAN;
-      transform.rotate = moveEvent.shiftKey
-        ? Math.round(nextRotate / TRANSFORM_ROTATE_SNAP_DEG) * TRANSFORM_ROTATE_SNAP_DEG
-        : nextRotate;
-      applyTransform();
-    });
-  };
-
   const startResize = (event: PointerEvent, handle: TransformHandleId): void => {
     refreshFrame();
     const direction = HANDLE_DIRECTION[handle];
@@ -169,73 +113,46 @@ export const createTransformController = (
     const startTranslateY = transform.translateY;
     const startPointerX = event.clientX;
     const startPointerY = event.clientY;
-
-    const radians = (transform.rotate * Math.PI) / 180;
-    const axisCos = Math.cos(radians);
-    const axisSin = Math.sin(radians);
-    const anchorWorld = anchorWorldPoint(
-      frameValue.centerX,
-      frameValue.centerY,
-      startWidth,
-      startHeight,
-      direction,
-      axisCos,
-      axisSin,
-    );
+    // World position of the corner opposite the dragged handle; it must stay
+    // pinned in the viewport as the box grows/shrinks.
+    const anchorWorldX = frameValue.centerX - (direction.x * startWidth) / 2;
+    const anchorWorldY = frameValue.centerY - (direction.y * startHeight) / 2;
 
     bindDrag((moveEvent) => {
-      const pointerDeltaX = moveEvent.clientX - startPointerX;
-      const pointerDeltaY = moveEvent.clientY - startPointerY;
-      const localDeltaX = pointerDeltaX * axisCos + pointerDeltaY * axisSin;
-      const localDeltaY = pointerDeltaX * -axisSin + pointerDeltaY * axisCos;
-
-      const nextWidth =
-        direction.x === 0
-          ? startWidth
-          : Math.max(TRANSFORM_MIN_SIZE_PX, startWidth + direction.x * localDeltaX);
-      const nextHeight =
-        direction.y === 0
-          ? startHeight
-          : Math.max(TRANSFORM_MIN_SIZE_PX, startHeight + direction.y * localDeltaY);
+      const nextWidth = Math.max(
+        TRANSFORM_MIN_SIZE_PX,
+        startWidth + direction.x * (moveEvent.clientX - startPointerX),
+      );
+      const nextHeight = Math.max(
+        TRANSFORM_MIN_SIZE_PX,
+        startHeight + direction.y * (moveEvent.clientY - startPointerY),
+      );
 
       // Reset translate to its baseline so the post-resize measurement reflects
       // only the browser's own layout reflow, then commit the new dimensions.
       transform.translateX = startTranslateX;
       transform.translateY = startTranslateY;
-      if (direction.x !== 0) dependencies.commitSize("width", Math.round(nextWidth));
-      if (direction.y !== 0) dependencies.commitSize("height", Math.round(nextHeight));
+      dependencies.commitSize("width", Math.round(nextWidth));
+      dependencies.commitSize("height", Math.round(nextHeight));
       applyTransform();
 
-      // Layout may have shifted the box; nudge translate so the anchored edge
-      // (opposite the dragged handle) stays pinned in viewport space. A pure
-      // corner resize therefore also emits a small translate alongside
-      // width/height — that is geometrically faithful, not a bug.
-      const measuredAnchor = anchorWorldPoint(
-        frameValue.centerX,
-        frameValue.centerY,
-        frameValue.width,
-        frameValue.height,
-        direction,
-        axisCos,
-        axisSin,
-      );
-      transform.translateX = startTranslateX + (anchorWorld.x - measuredAnchor.x);
-      transform.translateY = startTranslateY + (anchorWorld.y - measuredAnchor.y);
+      // Layout may have shifted the box; nudge translate so the anchored corner
+      // stays pinned. A pure grow from the top-left needs no nudge (static
+      // layout already pins it); growing from the top/left does.
+      const measuredAnchorX = frameValue.centerX - (direction.x * frameValue.width) / 2;
+      const measuredAnchorY = frameValue.centerY - (direction.y * frameValue.height) / 2;
+      transform.translateX = startTranslateX + (anchorWorldX - measuredAnchorX);
+      transform.translateY = startTranslateY + (anchorWorldY - measuredAnchorY);
       applyTransform();
     });
   };
 
   // Round before testing so a pure resize, whose anchor compensation can leave
   // sub-pixel translate residue, does not report a change (and `buildPendingEdit`
-  // would emit a no-op `translate(0px, 0px) rotate(0deg)`). "Changed" and
-  // "emitted" therefore agree on the same rounded values.
+  // would emit a no-op `translate(0px, 0px)`).
   const hasChanged = (): boolean => {
     trackTransformEdits();
-    return (
-      Math.round(transform.translateX) !== 0 ||
-      Math.round(transform.translateY) !== 0 ||
-      Math.round(transform.rotate) !== 0
-    );
+    return Math.round(transform.translateX) !== 0 || Math.round(transform.translateY) !== 0;
   };
 
   const buildPendingEdit = (): PendingEdit | null => {
@@ -276,7 +193,6 @@ export const createTransformController = (
     hasChanged,
     buildPendingEdit,
     startMove,
-    startRotate,
     startResize,
   };
 };
