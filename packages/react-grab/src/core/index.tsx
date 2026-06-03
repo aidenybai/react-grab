@@ -43,6 +43,7 @@ import {
   getElementsAtPoint,
 } from "../utils/get-element-at-position.js";
 import { isValidGrabbableElement } from "../utils/is-valid-grabbable-element.js";
+import { findComponentInstanceElements } from "../utils/find-component-instances.js";
 import { isRootElement } from "../utils/is-root-element.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
 import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
@@ -1854,11 +1855,44 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return null;
     };
 
+    const selectComponentInstances = (elements: Element[], hasModifierKeyHeld: boolean) => {
+      const connectedElements = elements.filter(isElementConnected);
+      if (connectedElements.length === 0) return;
+
+      freezeAllAnimations(connectedElements);
+
+      const firstElement = connectedElements[0];
+      const center = getBoundsCenter(createElementBounds(firstElement));
+
+      actions.setPointer(center);
+      actions.setFrozenElements(connectedElements);
+      actions.freeze();
+      actions.setLastGrabbed(firstElement);
+      clearArrowNavigation();
+
+      const labelEntries = connectedElements.map((element) => {
+        const bounds = createElementBounds(element);
+        return {
+          element,
+          tagName: getTagName(element) || "element",
+          componentName: getComponentDisplayName(element) ?? undefined,
+          mouseX: bounds.x + bounds.width / 2,
+        };
+      });
+
+      performCopyWithPerElementLabels({
+        elements: connectedElements,
+        labelEntries,
+        shouldDeactivateAfter: store.wasActivatedByToggle && !hasModifierKeyHeld,
+      });
+    };
+
     const handleSingleClick = (
       clientX: number,
       clientY: number,
       hasModifierKeyHeld: boolean,
       isShiftHeld: boolean,
+      isAltHeld: boolean,
     ) => {
       const validFrozenElement = isElementConnected(store.frozenElement)
         ? store.frozenElement
@@ -1889,6 +1923,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           toggleShiftMultiSelection(elementAtPointer, { x: clientX, y: clientY });
         }
         return;
+      }
+
+      // Holding Alt selects every rendered instance of the clicked element's
+      // nearest component at once, not just the element under the pointer.
+      if (isAltHeld && !store.pendingCommentMode && !isPendingContextMenuSelect()) {
+        const instanceElements = findComponentInstanceElements(selectedElement);
+        if (instanceElements.length > 1) {
+          keyboardSelectedElement = null;
+          selectComponentInstances(instanceElements, hasModifierKeyHeld);
+          return;
+        }
       }
 
       let positionX: number;
@@ -1962,6 +2007,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       clientY: number,
       hasModifierKeyHeld: boolean,
       isShiftHeld: boolean,
+      isAltHeld: boolean,
     ) => {
       if (!isDragging()) return;
 
@@ -1991,7 +2037,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (dragSelectionRect) {
         handleDragSelection(dragSelectionRect, hasModifierKeyHeld, isShiftHeld);
       } else {
-        handleSingleClick(clientX, clientY, hasModifierKeyHeld, isShiftHeld);
+        handleSingleClick(clientX, clientY, hasModifierKeyHeld, isShiftHeld, isAltHeld);
       }
     };
 
@@ -2647,7 +2693,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (isModalPopoverOpen()) return;
         const isActive = isRendererActive() || isSelectionInteractionLocked() || isDragging();
         const hasModifierKeyHeld = event.metaKey || event.ctrlKey;
-        handlePointerUp(event.clientX, event.clientY, hasModifierKeyHeld, event.shiftKey);
+        handlePointerUp(
+          event.clientX,
+          event.clientY,
+          hasModifierKeyHeld,
+          event.shiftKey,
+          event.altKey,
+        );
         if (isActive) {
           event.preventDefault();
           event.stopImmediatePropagation();
