@@ -8,6 +8,7 @@ import {
   VITE_IMPORT,
   WEBPACK_IMPORT,
 } from "./templates.js";
+import { hasReactGrabSetupCode } from "./react-grab-code.js";
 
 export interface TransformResult {
   success: boolean;
@@ -26,26 +27,18 @@ export interface ReactGrabOptions {
   maxContextLines?: number;
 }
 
-const hasReactGrabCode = (content: string): boolean => {
-  const fuzzyPatterns = [
-    /["'`][^"'`]*react-grab/,
-    /react-grab[^"'`]*["'`]/,
-    /<[^>]*react-grab/i,
-    /import[^;]*react-grab/i,
-    /require[^)]*react-grab/i,
-    /from\s+[^;]*react-grab/i,
-    /src[^>]*react-grab/i,
-    /href[^>]*react-grab/i,
-  ];
-  return fuzzyPatterns.some((pattern) => pattern.test(content));
-};
+const hasReactGrabCode = hasReactGrabSetupCode;
 
 const findLayoutFile = (projectRoot: string): string | null => {
   const possiblePaths = [
     join(projectRoot, "app", "layout.tsx"),
     join(projectRoot, "app", "layout.jsx"),
+    join(projectRoot, "app", "layout.ts"),
+    join(projectRoot, "app", "layout.js"),
     join(projectRoot, "src", "app", "layout.tsx"),
     join(projectRoot, "src", "app", "layout.jsx"),
+    join(projectRoot, "src", "app", "layout.ts"),
+    join(projectRoot, "src", "app", "layout.js"),
   ];
 
   for (const filePath of possiblePaths) {
@@ -60,9 +53,13 @@ const findLayoutFile = (projectRoot: string): string | null => {
 const findInstrumentationFile = (projectRoot: string): string | null => {
   const possiblePaths = [
     join(projectRoot, "instrumentation-client.ts"),
+    join(projectRoot, "instrumentation-client.tsx"),
     join(projectRoot, "instrumentation-client.js"),
+    join(projectRoot, "instrumentation-client.jsx"),
     join(projectRoot, "src", "instrumentation-client.ts"),
+    join(projectRoot, "src", "instrumentation-client.tsx"),
     join(projectRoot, "src", "instrumentation-client.js"),
+    join(projectRoot, "src", "instrumentation-client.jsx"),
   ];
 
   for (const filePath of possiblePaths) {
@@ -73,6 +70,9 @@ const findInstrumentationFile = (projectRoot: string): string | null => {
 
   return null;
 };
+
+const isInstrumentationFile = (filePath: string): boolean =>
+  /(?:^|[/\\])instrumentation-client\.[cm]?[jt]sx?$/.test(filePath);
 
 const hasReactGrabInInstrumentation = (projectRoot: string): boolean => {
   const instrumentationPath = findInstrumentationFile(projectRoot);
@@ -86,8 +86,12 @@ const findDocumentFile = (projectRoot: string): string | null => {
   const possiblePaths = [
     join(projectRoot, "pages", "_document.tsx"),
     join(projectRoot, "pages", "_document.jsx"),
+    join(projectRoot, "pages", "_document.ts"),
+    join(projectRoot, "pages", "_document.js"),
     join(projectRoot, "src", "pages", "_document.tsx"),
     join(projectRoot, "src", "pages", "_document.jsx"),
+    join(projectRoot, "src", "pages", "_document.ts"),
+    join(projectRoot, "src", "pages", "_document.js"),
   ];
 
   for (const filePath of possiblePaths) {
@@ -162,7 +166,7 @@ const alreadyConfiguredResult = (filePath: string): TransformResult => ({
 const transformNextAppRouter = (
   projectRoot: string,
   reactGrabAlreadyConfigured: boolean,
-  force: boolean = false,
+  _force: boolean = false,
 ): TransformResult => {
   const layoutPath = findLayoutFile(projectRoot);
 
@@ -170,7 +174,7 @@ const transformNextAppRouter = (
     return {
       success: false,
       filePath: "",
-      message: "Could not find app/layout.tsx or app/layout.jsx",
+      message: "Could not find app/layout.tsx, app/layout.jsx, app/layout.ts, or app/layout.js",
     };
   }
 
@@ -179,11 +183,11 @@ const transformNextAppRouter = (
   const hasReactGrabInFile = hasReactGrabCode(originalContent);
   const hasReactGrabInInstrumentationFile = hasReactGrabInInstrumentation(projectRoot);
 
-  if (!force && hasReactGrabInFile && reactGrabAlreadyConfigured) {
+  if (hasReactGrabInFile && reactGrabAlreadyConfigured) {
     return alreadyConfiguredResult(layoutPath);
   }
 
-  if (!force && (hasReactGrabInFile || hasReactGrabInInstrumentationFile)) {
+  if (hasReactGrabInFile || hasReactGrabInInstrumentationFile) {
     return {
       success: true,
       filePath: layoutPath,
@@ -231,7 +235,7 @@ const transformNextAppRouter = (
 const transformNextPagesRouter = (
   projectRoot: string,
   reactGrabAlreadyConfigured: boolean,
-  force: boolean = false,
+  _force: boolean = false,
 ): TransformResult => {
   const documentPath = findDocumentFile(projectRoot);
 
@@ -240,7 +244,7 @@ const transformNextPagesRouter = (
       success: false,
       filePath: "",
       message:
-        "Could not find pages/_document.tsx or pages/_document.jsx.\n\n" +
+        "Could not find pages/_document.tsx, pages/_document.jsx, pages/_document.ts, or pages/_document.js.\n\n" +
         "To set up React Grab with Pages Router, create pages/_document.tsx with:\n\n" +
         '  import { Html, Head, Main, NextScript } from "next/document";\n' +
         '  import Script from "next/script";\n\n' +
@@ -267,11 +271,11 @@ const transformNextPagesRouter = (
   const hasReactGrabInFile = hasReactGrabCode(originalContent);
   const hasReactGrabInInstrumentationFile = hasReactGrabInInstrumentation(projectRoot);
 
-  if (!force && hasReactGrabInFile && reactGrabAlreadyConfigured) {
+  if (hasReactGrabInFile && reactGrabAlreadyConfigured) {
     return alreadyConfiguredResult(documentPath);
   }
 
-  if (!force && (hasReactGrabInFile || hasReactGrabInInstrumentationFile)) {
+  if (hasReactGrabInFile || hasReactGrabInInstrumentationFile) {
     return {
       success: true,
       filePath: documentPath,
@@ -326,16 +330,14 @@ const checkExistingInstallation = (
 const transformVite = (
   projectRoot: string,
   reactGrabAlreadyConfigured: boolean,
-  force: boolean = false,
+  _force: boolean = false,
 ): TransformResult => {
   const entryPath = findEntryFile(projectRoot);
 
-  if (!force) {
-    const indexPath = findIndexHtml(projectRoot);
-    if (indexPath) {
-      const existingResult = checkExistingInstallation(indexPath, reactGrabAlreadyConfigured);
-      if (existingResult) return existingResult;
-    }
+  const indexPath = findIndexHtml(projectRoot);
+  if (indexPath) {
+    const existingResult = checkExistingInstallation(indexPath, reactGrabAlreadyConfigured);
+    if (existingResult) return existingResult;
   }
 
   if (!entryPath) {
@@ -346,10 +348,8 @@ const transformVite = (
     };
   }
 
-  if (!force) {
-    const existingResult = checkExistingInstallation(entryPath, reactGrabAlreadyConfigured);
-    if (existingResult) return existingResult;
-  }
+  const existingResult = checkExistingInstallation(entryPath, reactGrabAlreadyConfigured);
+  if (existingResult) return existingResult;
 
   const originalContent = readFileSync(entryPath, "utf-8");
   const newContent = `${VITE_IMPORT}\n\n${originalContent}`;
@@ -366,7 +366,7 @@ const transformVite = (
 const transformWebpack = (
   projectRoot: string,
   reactGrabAlreadyConfigured: boolean,
-  force: boolean = false,
+  _force: boolean = false,
 ): TransformResult => {
   const entryPath = findEntryFile(projectRoot);
 
@@ -378,10 +378,8 @@ const transformWebpack = (
     };
   }
 
-  if (!force) {
-    const existingResult = checkExistingInstallation(entryPath, reactGrabAlreadyConfigured);
-    if (existingResult) return existingResult;
-  }
+  const existingResult = checkExistingInstallation(entryPath, reactGrabAlreadyConfigured);
+  if (existingResult) return existingResult;
 
   const originalContent = readFileSync(entryPath, "utf-8");
   const newContent = `${WEBPACK_IMPORT}\n\n${originalContent}`;
@@ -398,7 +396,7 @@ const transformWebpack = (
 const transformTanStack = (
   projectRoot: string,
   reactGrabAlreadyConfigured: boolean,
-  force: boolean = false,
+  _force: boolean = false,
 ): TransformResult => {
   const rootPath = findTanStackRootFile(projectRoot);
 
@@ -422,11 +420,11 @@ const transformTanStack = (
   let newContent = originalContent;
   const hasReactGrabInFile = hasReactGrabCode(originalContent);
 
-  if (!force && hasReactGrabInFile && reactGrabAlreadyConfigured) {
+  if (hasReactGrabInFile && reactGrabAlreadyConfigured) {
     return alreadyConfiguredResult(rootPath);
   }
 
-  if (!force && hasReactGrabInFile) {
+  if (hasReactGrabInFile) {
     return {
       success: true,
       filePath: rootPath,
@@ -625,11 +623,20 @@ const findReactGrabFile = (
   nextRouterType: NextRouterType,
 ): string | null => {
   switch (framework) {
-    case "next":
-      if (nextRouterType === "app") {
-        return findLayoutFile(projectRoot);
+    case "next": {
+      const primaryFile =
+        nextRouterType === "app" ? findLayoutFile(projectRoot) : findDocumentFile(projectRoot);
+      if (primaryFile && hasReactGrabCode(readFileSync(primaryFile, "utf-8"))) {
+        return primaryFile;
       }
-      return findDocumentFile(projectRoot);
+
+      const instrumentationFile = findInstrumentationFile(projectRoot);
+      if (instrumentationFile && hasReactGrabCode(readFileSync(instrumentationFile, "utf-8"))) {
+        return instrumentationFile;
+      }
+
+      return primaryFile;
+    }
     case "vite": {
       const entryFile = findEntryFile(projectRoot);
       if (entryFile && hasReactGrabCode(readFileSync(entryFile, "utf-8"))) {
@@ -699,7 +706,7 @@ const addOptionsToDynamicImport = (
   filePath: string,
 ): TransformResult => {
   const reactGrabImportWithInitMatch = originalContent.match(
-    /import\s*\(\s*["']react-grab["']\s*\)(?:\.then\s*\(\s*\(m\)\s*=>\s*m\.init\s*\([^)]*\)\s*\))?/,
+    /(?:void\s+)?import\s*\(\s*["']react-grab["']\s*\)(?:\.then\s*\(\s*\(m\)\s*=>\s*m\.init\s*\([^)]*\)\s*\))?/,
   );
 
   if (!reactGrabImportWithInitMatch) {
@@ -755,6 +762,16 @@ const addOptionsToTanStackImport = (
   };
 };
 
+const addOptionsToAnyImport = (
+  originalContent: string,
+  options: ReactGrabOptions,
+  filePath: string,
+): TransformResult => {
+  const dynamicImportResult = addOptionsToDynamicImport(originalContent, options, filePath);
+  if (dynamicImportResult.success) return dynamicImportResult;
+  return addOptionsToTanStackImport(originalContent, options, filePath);
+};
+
 export const previewOptionsTransform = (
   projectRoot: string,
   framework: Framework,
@@ -783,6 +800,9 @@ export const previewOptionsTransform = (
 
   switch (framework) {
     case "next":
+      if (isInstrumentationFile(filePath)) {
+        return addOptionsToAnyImport(originalContent, options, filePath);
+      }
       return addOptionsToNextScript(originalContent, options, filePath);
     case "vite":
       return addOptionsToDynamicImport(originalContent, options, filePath);

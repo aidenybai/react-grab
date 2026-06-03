@@ -50,6 +50,11 @@ describe("hasFrameworkEntryPoint", () => {
     expect(hasFrameworkEntryPoint("/app", "next", "app")).toBe(true);
   });
 
+  it("returns true for Next.js App Router when a JavaScript layout exists", () => {
+    mockExistsSync.mockImplementation((path) => pathEndsWith(path, "app/layout.js"));
+    expect(hasFrameworkEntryPoint("/app", "next", "app")).toBe(true);
+  });
+
   it("returns false for Next.js App Router when only _document exists (matches transform)", () => {
     mockExistsSync.mockImplementation((path) => pathEndsWith(path, "pages/_document.tsx"));
     expect(hasFrameworkEntryPoint("/app", "next", "app")).toBe(false);
@@ -128,6 +133,30 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
     expect(result.success).toBe(true);
     expect(result.noChanges).toBe(true);
+  });
+
+  it("should not duplicate existing setup when force is enabled", () => {
+    const layoutWithReactGrab = `import Script from "next/script";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <head>
+        <Script src="//unpkg.com/react-grab/dist/index.global.js" />
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}`;
+
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("layout.tsx"));
+    mockReadFileSync.mockReturnValue(layoutWithReactGrab);
+
+    const result = previewTransform("/test", "next", "app", true, true);
+
+    expect(result.success).toBe(true);
+    expect(result.noChanges).toBe(true);
+    expect(result.newContent).toBeUndefined();
   });
 
   it("should fail when layout file not found", () => {

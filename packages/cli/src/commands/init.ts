@@ -486,7 +486,7 @@ export const init = new Command()
         projectInfo.projectRoot,
         finalFramework,
         finalNextRouterType,
-        false,
+        projectInfo.isReactGrabConfigured,
         opts.force,
       );
 
@@ -542,7 +542,11 @@ export const init = new Command()
       }
 
       logger.break();
-      logger.log(`${highlighter.success("Success!")} React Grab has been installed.`);
+      if (hasLayoutChanges) {
+        logger.log(`${highlighter.success("Success!")} React Grab has been installed.`);
+      } else {
+        logger.log(`${highlighter.success("Success!")} ${result.message}.`);
+      }
       logger.log("You may now start your development server.");
       logger.break();
 

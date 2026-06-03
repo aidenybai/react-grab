@@ -268,6 +268,35 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     expect(result.success).toBe(false);
     expect(result.message).toContain("Could not find file");
   });
+
+  it("should configure options in instrumentation-client when layout is not wired", () => {
+    const layoutWithoutReactGrab = `export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return <html><body>{children}</body></html>;
+}`;
+    const instrumentationWithReactGrab = `if (process.env.NODE_ENV === "development") {
+  import("react-grab");
+}`;
+
+    mockExistsSync.mockImplementation((path) => {
+      const pathString = String(path);
+      return pathString.endsWith("layout.tsx") || pathString.endsWith("instrumentation-client.ts");
+    });
+    mockReadFileSync.mockImplementation((path) => {
+      if (String(path).endsWith("instrumentation-client.ts")) return instrumentationWithReactGrab;
+      return layoutWithoutReactGrab;
+    });
+
+    const options: ReactGrabOptions = {
+      activationKey: "Meta+K",
+    };
+
+    const result = previewOptionsTransform("/test", "next", "app", options);
+
+    expect(result.success).toBe(true);
+    expect(result.filePath).toContain("instrumentation-client.ts");
+    expect(result.newContent).toContain(".then((m) => m.init(");
+    expect(result.newContent).toContain('"activationKey":"Meta+K"');
+  });
 });
 
 describe("previewOptionsTransform - Next.js Pages Router", () => {

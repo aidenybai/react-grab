@@ -305,11 +305,30 @@ describe("detectReactGrabConfigured", () => {
     expect(detectReactGrabConfigured("/test")).toBe(true);
   });
 
+  it("should detect react-grab setup in a JavaScript Next.js app layout", () => {
+    mockExistsSync.mockImplementation((path) => toPosixPath(path).endsWith("app/layout.js"));
+    mockReadFileSync.mockReturnValue(
+      '<Script src="//unpkg.com/react-grab/dist/index.global.js" />',
+    );
+
+    expect(detectReactGrabConfigured("/test")).toBe(true);
+  });
+
   it("should detect react-grab setup in a JavaScript entry import", () => {
     mockExistsSync.mockImplementation((path) => toPosixPath(path).endsWith("src/main.js"));
     mockReadFileSync.mockReturnValue('if (import.meta.env.DEV) import("react-grab");');
 
     expect(detectReactGrabConfigured("/test")).toBe(true);
+  });
+
+  it("should ignore comments that mention react-grab", () => {
+    mockExistsSync.mockImplementation((path) => toPosixPath(path).endsWith("app/layout.tsx"));
+    mockReadFileSync.mockReturnValue(`// import("react-grab") later
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return <html><body>{children}</body></html>;
+}`);
+
+    expect(detectReactGrabConfigured("/test")).toBe(false);
   });
 });
 
@@ -435,6 +454,7 @@ describe("detectProject", () => {
     const project = await detectProject("/repo/apps/web");
 
     expect(project.framework).toBe("vite");
+    expect(project.isMonorepo).toBe(true);
     expect(project.projectRoot).toBe("/repo/apps/web");
   });
 
@@ -508,7 +528,7 @@ describe("detectProject", () => {
     const project = await detectProject("/repo/apps/web");
 
     expect(project.framework).toBe("unknown");
-    expect(project.isMonorepo).toBe(false);
+    expect(project.isMonorepo).toBe(true);
   });
 
   it("should resolve framework from local config file before falling back to monorepo root", async () => {
