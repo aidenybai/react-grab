@@ -287,6 +287,16 @@ export const configure = new Command()
         process.exit(1);
       }
 
+      if (!projectInfo.isReactGrabConfigured) {
+        preflightSpinner.fail("React Grab is installed, but setup is missing.");
+        logger.break();
+        logger.error(
+          `Run ${highlighter.info("react-grab init")} to add the setup script/import before configuring options.`,
+        );
+        logger.break();
+        process.exit(1);
+      }
+
       preflightSpinner.succeed();
 
       if (opts.cdn) {
