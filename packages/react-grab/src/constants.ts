@@ -245,6 +245,9 @@ export const TRANSFORM_HANDLE_SIZE_PX = 9;
 export const TRANSFORM_FRAME_BORDER_PX = 1;
 export const TRANSFORM_MIN_SIZE_PX = 4;
 export const TRANSFORM_OVERLAY_ACCENT = "#ec4899";
+// Thickness of the line marking where a dragged element will be reinserted.
+export const TRANSFORM_INDICATOR_THICKNESS_PX = 2;
+export const ELEMENT_DESCRIPTOR_TEXT_MAX_LENGTH = 24;
 
 export const CSS_VALUE_DECIMAL_PLACES = 2;
 export const OPACITY_PERCENT_MAX = 100;

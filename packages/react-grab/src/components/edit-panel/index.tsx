@@ -103,13 +103,16 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     return numericIndex > 0 ? numericIndex : 0;
   };
   const [activeIndex, setActiveIndex] = createSignal(firstNumericActiveIndex());
-  const hasPendingTweaks = createMemo(() => tweakStore.hasPendingTweaks());
+  // Plain getters (not memos) so they can read `transformController`, created
+  // below in natural order: a memo evaluates eagerly during setup and would hit
+  // the controller's temporal dead zone. The reads stay cheap booleans.
+  const hasPendingTweaks = () => tweakStore.hasPendingTweaks() || transformController.hasMoved();
   const [isCompact, setIsCompact] = createSignal(false);
 
   let activeKeyTimerId: ReturnType<typeof setTimeout> | undefined;
   let interactingIdleTimerId: ReturnType<typeof setTimeout> | undefined;
   const [isTransientInteraction, setIsTransientInteraction] = createSignal(false);
-  const isInteracting = createMemo(() => isTransientInteraction() || hasPendingTweaks());
+  const isInteracting = () => isTransientInteraction() || hasPendingTweaks();
   const [isHeaderHovered, setIsHeaderHovered] = createSignal(false);
 
   const tagDisplay = createMemo(() =>
@@ -140,7 +143,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     }, EDIT_PANEL_ACTIVE_KEY_FLASH_MS);
   };
 
-  const effectiveInteracting = createMemo(() => isInteracting() && !isHeaderHovered());
+  const effectiveInteracting = () => isInteracting() && !isHeaderHovered();
 
   createEffect(() => {
     const nextInteracting = effectiveInteracting();
@@ -259,14 +262,21 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     () => isCompact() && searchQuery() !== "" && autoApply.isInlineNumericEdit(),
   );
 
+  // Distinguishes a copy (keep the DOM reinsertion) from any dismiss path
+  // (restore it in onCleanup), mirroring preview.forget vs preview.restore.
+  let didSubmit = false;
+
   const handleSubmit = () => {
+    didSubmit = true;
     const pendingEdits = tweakStore.buildPendingEdits();
     const entry = {
       filePath: props.state.filePath ?? "",
       lineNumber: props.state.lineNumber ?? 0,
       edits: pendingEdits,
     };
-    props.onSubmit(formatSessionEditsPrompt(pendingEdits.length > 0 ? [entry] : []));
+    const cssPrompt = formatSessionEditsPrompt(pendingEdits.length > 0 ? [entry] : []);
+    const movePrompt = transformController.describeMove();
+    props.onSubmit([movePrompt, cssPrompt].filter(Boolean).join("\n\n"));
   };
 
   const discardConfirmation = createDiscardConfirmation();
@@ -444,6 +454,8 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       dropdown.clearAnimationHandles();
       setIsTransientInteraction(false);
       preview.forget();
+      // A copy keeps the reinsertion; every dismiss path restores it.
+      if (!didSubmit) transformController.restore();
     });
   });
 

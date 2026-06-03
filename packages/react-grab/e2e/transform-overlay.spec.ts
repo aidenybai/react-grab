@@ -59,28 +59,60 @@ test.describe("Transform Overlay", () => {
     expect(await getInlineStyleProperty(page, TARGET_SELECTOR, "width")).not.toBe("");
   });
 
-  test("dragging the frame body moves the element via tracked left/top", async ({ reactGrab }) => {
+  test("dragging the frame body reinserts the element in the DOM", async ({ reactGrab }) => {
     const { page } = reactGrab;
+    const SIBLING_SELECTOR = "[data-testid='deeply-nested-text']";
     await openEditPanel(reactGrab, TARGET_SELECTOR);
     await expect.poll(() => isTransformOverlayVisible(page)).toBe(true);
 
-    const overlayCenter = await page.evaluate(() => {
-      const host = document.querySelector("[data-react-grab]");
-      const overlay = host?.shadowRoot?.querySelector<HTMLElement>(
-        "[data-react-grab-transform-overlay]",
-      );
-      if (!overlay) throw new Error("overlay not found");
-      const bounds = overlay.getBoundingClientRect();
-      return { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 };
-    });
+    // The button starts after its sibling paragraph in the same container.
+    const orderBefore = await page.evaluate(
+      ({ moved, sibling }) => {
+        const movedElement = document.querySelector(moved);
+        const siblingElement = document.querySelector(sibling);
+        return movedElement?.previousElementSibling === siblingElement;
+      },
+      { moved: TARGET_SELECTOR, sibling: SIBLING_SELECTOR },
+    );
+    expect(orderBefore).toBe(true);
 
-    await page.mouse.move(overlayCenter.x, overlayCenter.y);
+    const points = await page.evaluate(
+      ({ moved, sibling }) => {
+        const host = document.querySelector("[data-react-grab]");
+        const overlay = host?.shadowRoot?.querySelector<HTMLElement>(
+          "[data-react-grab-transform-overlay]",
+        );
+        const siblingElement = document.querySelector(sibling);
+        if (!overlay || !siblingElement) throw new Error("overlay or sibling missing");
+        void moved;
+        const overlayBounds = overlay.getBoundingClientRect();
+        const siblingBounds = siblingElement.getBoundingClientRect();
+        return {
+          from: {
+            x: overlayBounds.left + overlayBounds.width / 2,
+            y: overlayBounds.top + overlayBounds.height / 2,
+          },
+          // Upper half of the sibling → insert before it.
+          to: { x: siblingBounds.left + 4, y: siblingBounds.top + 2 },
+        };
+      },
+      { moved: TARGET_SELECTOR, sibling: SIBLING_SELECTOR },
+    );
+
+    await page.mouse.move(points.from.x, points.from.y);
     await page.mouse.down();
-    await page.mouse.move(overlayCenter.x + 50, overlayCenter.y + 30, { steps: 6 });
+    await page.mouse.move(points.to.x, points.to.y, { steps: 8 });
     await page.mouse.up();
 
-    // x/y are tracked as real style properties, not a transform.
-    expect(await getInlineStyleProperty(page, TARGET_SELECTOR, "left")).not.toBe("");
-    expect(await getInlineStyleProperty(page, TARGET_SELECTOR, "top")).not.toBe("");
+    // The button is now reinserted before the paragraph in the DOM.
+    const movedBefore = await page.evaluate(
+      ({ moved, sibling }) => {
+        const movedElement = document.querySelector(moved);
+        const siblingElement = document.querySelector(sibling);
+        return movedElement?.nextElementSibling === siblingElement;
+      },
+      { moved: TARGET_SELECTOR, sibling: SIBLING_SELECTOR },
+    );
+    expect(movedBefore).toBe(true);
   });
 });

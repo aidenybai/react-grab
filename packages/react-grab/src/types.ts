@@ -421,6 +421,22 @@ export interface OverlayBounds {
 
 export type TransformHandleId = "nw" | "ne" | "se" | "sw";
 
+export type DropPlacement = "before" | "after";
+
+// Viewport-space line marking where the dragged element will be reinserted.
+export interface TransformInsertionIndicator {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+export interface DropTarget {
+  reference: Element;
+  placement: DropPlacement;
+  indicator: TransformInsertionIndicator;
+}
+
 // Viewport-space description of the manipulable box. `centerX`/`centerY` are
 // the element's geometric center; `width`/`height` are its layout box.
 export interface TransformFrame {

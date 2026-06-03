@@ -1,6 +1,13 @@
 import { createSignal, onCleanup, onMount, type Accessor } from "solid-js";
 import { TRANSFORM_MIN_SIZE_PX } from "../../constants.js";
-import type { TransformFrame, TransformHandleId } from "../../types.js";
+import type {
+  DropTarget,
+  TransformFrame,
+  TransformHandleId,
+  TransformInsertionIndicator,
+} from "../../types.js";
+import { describeElementForPrompt } from "../../utils/describe-element-for-prompt.js";
+import { findDropTarget } from "../../utils/find-drop-target.js";
 
 interface TransformControllerDependencies {
   getElement: () => Element;
@@ -12,8 +19,17 @@ interface TransformControllerDependencies {
 
 export interface TransformController {
   frame: Accessor<TransformFrame>;
+  insertionIndicator: Accessor<TransformInsertionIndicator | null>;
+  hasMoved: () => boolean;
+  describeMove: () => string;
+  restore: () => void;
   startMove: (event: PointerEvent) => void;
   startResize: (event: PointerEvent, handle: TransformHandleId) => void;
+}
+
+interface DomPosition {
+  parent: Node;
+  nextSibling: Node | null;
 }
 
 const HANDLE_DIRECTION: Record<TransformHandleId, { x: -1 | 1; y: -1 | 1 }> = {
@@ -30,6 +46,13 @@ export const createTransformController = (
   // tracking refresh allocation-free while still driving reactivity.
   const frameValue: TransformFrame = { centerX: 0, centerY: 0, width: 0, height: 0 };
   const [frame, setFrame] = createSignal(frameValue, { equals: false });
+  const [insertionIndicator, setInsertionIndicator] =
+    createSignal<TransformInsertionIndicator | null>(null);
+  const [didMove, setDidMove] = createSignal(false);
+
+  // The element's DOM slot before any move, so a discarded drag can be undone.
+  let originPosition: DomPosition | null = null;
+  let lastDrop: DropTarget | null = null;
 
   // x/y are written as `left`/`top` offsets from the element's starting
   // position; static elements get `position: relative` on first interaction so
@@ -61,6 +84,60 @@ export const createTransformController = (
     setFrame(frameValue);
   };
 
+  const bindDrag = (
+    onMove: (event: PointerEvent) => void,
+    onUp?: (event: PointerEvent) => void,
+  ): void => {
+    const handleMove = (event: PointerEvent) => {
+      event.preventDefault();
+      onMove(event);
+    };
+    const handleUp = (event: PointerEvent) => {
+      window.removeEventListener("pointermove", handleMove, { capture: true });
+      window.removeEventListener("pointerup", handleUp, { capture: true });
+      window.removeEventListener("pointercancel", handleUp, { capture: true });
+      onUp?.(event);
+    };
+    window.addEventListener("pointermove", handleMove, { capture: true });
+    window.addEventListener("pointerup", handleUp, { capture: true });
+    window.addEventListener("pointercancel", handleUp, { capture: true });
+  };
+
+  const reinsert = (drop: DropTarget): void => {
+    const element = dependencies.getElement();
+    const parent = drop.reference.parentNode;
+    if (!parent || element === drop.reference || element.contains(drop.reference)) return;
+    if (!originPosition) {
+      originPosition = { parent: element.parentNode!, nextSibling: element.nextSibling };
+    }
+    const referenceNode = drop.placement === "before" ? drop.reference : drop.reference.nextSibling;
+    if (referenceNode === element) return;
+    parent.insertBefore(element, referenceNode);
+    lastDrop = drop;
+    setDidMove(true);
+    refreshFrame();
+  };
+
+  const previewDropAt = (clientX: number, clientY: number): DropTarget | null => {
+    const drop = findDropTarget(clientX, clientY, dependencies.getElement());
+    setInsertionIndicator(drop ? drop.indicator : null);
+    return drop;
+  };
+
+  const startMove = (event: PointerEvent): void => {
+    previewDropAt(event.clientX, event.clientY);
+    bindDrag(
+      (moveEvent) => {
+        previewDropAt(moveEvent.clientX, moveEvent.clientY);
+      },
+      (upEvent) => {
+        const drop = previewDropAt(upEvent.clientX, upEvent.clientY);
+        if (drop) reinsert(drop);
+        setInsertionIndicator(null);
+      },
+    );
+  };
+
   const ensurePositioned = (): void => {
     if (isPositioned) return;
     dependencies.commitStyle("position", "relative");
@@ -72,33 +149,6 @@ export const createTransformController = (
     dependencies.commitStyle("left", Math.round(baseLeft + offset.x));
     dependencies.commitStyle("top", Math.round(baseTop + offset.y));
     refreshFrame();
-  };
-
-  const bindDrag = (onMove: (event: PointerEvent) => void): void => {
-    const handleMove = (event: PointerEvent) => {
-      event.preventDefault();
-      onMove(event);
-    };
-    const handleUp = () => {
-      window.removeEventListener("pointermove", handleMove, { capture: true });
-      window.removeEventListener("pointerup", handleUp, { capture: true });
-      window.removeEventListener("pointercancel", handleUp, { capture: true });
-    };
-    window.addEventListener("pointermove", handleMove, { capture: true });
-    window.addEventListener("pointerup", handleUp, { capture: true });
-    window.addEventListener("pointercancel", handleUp, { capture: true });
-  };
-
-  const startMove = (event: PointerEvent): void => {
-    const startPointerX = event.clientX;
-    const startPointerY = event.clientY;
-    const startOffsetX = offset.x;
-    const startOffsetY = offset.y;
-    bindDrag((moveEvent) => {
-      offset.x = startOffsetX + (moveEvent.clientX - startPointerX);
-      offset.y = startOffsetY + (moveEvent.clientY - startPointerY);
-      applyOffset();
-    });
   };
 
   const startResize = (event: PointerEvent, handle: TransformHandleId): void => {
@@ -140,10 +190,27 @@ export const createTransformController = (
     });
   };
 
+  const hasMoved = (): boolean => didMove();
+
+  const describeMove = (): string => {
+    if (!didMove() || !lastDrop) return "";
+    return `Move this element to be ${lastDrop.placement} ${describeElementForPrompt(lastDrop.reference)} in the DOM.`;
+  };
+
+  const restore = (): void => {
+    if (!originPosition) return;
+    const element = dependencies.getElement();
+    originPosition.parent.insertBefore(element, originPosition.nextSibling);
+    originPosition = null;
+    lastDrop = null;
+    setDidMove(false);
+    refreshFrame();
+  };
+
   // Track the element the way the selection label does (see selection-label):
   // viewport listeners catch scroll/zoom, a ResizeObserver catches size changes
   // from any source (canvas handles, panel sliders, content reflow). Drags
-  // refresh synchronously via applyOffset/refreshFrame.
+  // refresh synchronously via reinsert/applyOffset.
   onMount(() => {
     refreshFrame();
     const handleViewportChange = () => refreshFrame();
@@ -164,6 +231,10 @@ export const createTransformController = (
 
   return {
     frame,
+    insertionIndicator,
+    hasMoved,
+    describeMove,
+    restore,
     startMove,
     startResize,
   };
