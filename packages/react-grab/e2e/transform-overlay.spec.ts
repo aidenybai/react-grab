@@ -59,7 +59,7 @@ test.describe("Transform Overlay", () => {
     expect(await getInlineStyleProperty(page, TARGET_SELECTOR, "width")).not.toBe("");
   });
 
-  test("dragging the frame body translates the element", async ({ reactGrab }) => {
+  test("dragging the frame body moves the element via tracked left/top", async ({ reactGrab }) => {
     const { page } = reactGrab;
     await openEditPanel(reactGrab, TARGET_SELECTOR);
     await expect.poll(() => isTransformOverlayVisible(page)).toBe(true);
@@ -79,8 +79,8 @@ test.describe("Transform Overlay", () => {
     await page.mouse.move(overlayCenter.x + 50, overlayCenter.y + 30, { steps: 6 });
     await page.mouse.up();
 
-    expect(await getInlineStyleProperty(page, TARGET_SELECTOR, "transform")).toContain(
-      "translate(",
-    );
+    // x/y are tracked as real style properties, not a transform.
+    expect(await getInlineStyleProperty(page, TARGET_SELECTOR, "left")).not.toBe("");
+    expect(await getInlineStyleProperty(page, TARGET_SELECTOR, "top")).not.toBe("");
   });
 });

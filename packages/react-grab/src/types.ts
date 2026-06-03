@@ -230,21 +230,7 @@ interface EnumPendingEdit {
   value: string;
 }
 
-// Canvas transform edits (move) carry a pre-formatted CSS value such as
-// `translate(8px, -4px)` because, unlike numeric rows, the value is a
-// function expression rather than a number+unit.
-interface TransformPendingEdit {
-  kind: "transform";
-  key: string;
-  cssProperties: readonly string[];
-  value: string;
-}
-
-export type PendingEdit =
-  | NumericPendingEdit
-  | ColorPendingEdit
-  | EnumPendingEdit
-  | TransformPendingEdit;
+export type PendingEdit = NumericPendingEdit | ColorPendingEdit | EnumPendingEdit;
 
 export type PendingEdits = PendingEdit[];
 
@@ -434,11 +420,6 @@ export interface OverlayBounds {
 }
 
 export type TransformHandleId = "nw" | "ne" | "se" | "sw";
-
-export interface TransformValues {
-  translateX: number;
-  translateY: number;
-}
 
 // Viewport-space description of the manipulable box. `centerX`/`centerY` are
 // the element's geometric center; `width`/`height` are its layout box.

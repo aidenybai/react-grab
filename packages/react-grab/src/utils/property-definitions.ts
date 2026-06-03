@@ -70,6 +70,10 @@ export const FALLBACK_ZERO_PX: ReadonlySet<TrackedProperty> = new Set([
   "gap",
   "row-gap",
   "column-gap",
+  // `top`/`left` are `auto` until positioned; treat that as 0 so they are
+  // always editable (the canvas move tool tracks the element's x/y here).
+  "top",
+  "left",
 ]);
 
 export const POSITION_KEYS: ReadonlySet<string> = new Set([
@@ -329,6 +333,17 @@ export const FONT_FAMILY_DEFINITION = {
 } as const;
 
 export const ENUM_PROPERTIES: ReadonlyArray<EnumPropertyDefinition> = [
+  {
+    key: "position",
+    label: "position",
+    options: [
+      { value: "static", label: "static" },
+      { value: "relative", label: "relative" },
+      { value: "absolute", label: "absolute" },
+      { value: "fixed", label: "fixed" },
+      { value: "sticky", label: "sticky" },
+    ],
+  },
   {
     key: "display",
     label: "display",

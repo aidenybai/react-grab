@@ -103,20 +103,13 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     return numericIndex > 0 ? numericIndex : 0;
   };
   const [activeIndex, setActiveIndex] = createSignal(firstNumericActiveIndex());
-
-  // Plain getters, not memos: they read `transformController`, which is created
-  // lower down in natural source order (after `commit`). Memos evaluate eagerly
-  // during setup and would hit the controller's temporal dead zone; cheap
-  // boolean getters defer the read until render/effects run, by which point the
-  // controller exists. The downstream `setInteracting` signal dedupes, so the
-  // lost memo caching costs nothing observable.
-  const hasPendingTweaks = () => tweakStore.hasPendingTweaks() || transformController.hasChanged();
+  const hasPendingTweaks = createMemo(() => tweakStore.hasPendingTweaks());
   const [isCompact, setIsCompact] = createSignal(false);
 
   let activeKeyTimerId: ReturnType<typeof setTimeout> | undefined;
   let interactingIdleTimerId: ReturnType<typeof setTimeout> | undefined;
   const [isTransientInteraction, setIsTransientInteraction] = createSignal(false);
-  const isInteracting = () => isTransientInteraction() || hasPendingTweaks();
+  const isInteracting = createMemo(() => isTransientInteraction() || hasPendingTweaks());
   const [isHeaderHovered, setIsHeaderHovered] = createSignal(false);
 
   const tagDisplay = createMemo(() =>
@@ -147,7 +140,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     }, EDIT_PANEL_ACTIVE_KEY_FLASH_MS);
   };
 
-  const effectiveInteracting = () => isInteracting() && !isHeaderHovered();
+  const effectiveInteracting = createMemo(() => isInteracting() && !isHeaderHovered());
 
   createEffect(() => {
     const nextInteracting = effectiveInteracting();
@@ -192,18 +185,13 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     if (options.shouldCompact) setIsCompact(true);
   };
 
-  const sizeProperties: Record<"width" | "height", EditableProperty | undefined> = {
-    width: initialProperties.find((property) => property.key === "width"),
-    height: initialProperties.find((property) => property.key === "height"),
-  };
+  const propertyByKey = new Map(initialProperties.map((property) => [property.key, property]));
   const transformController = createTransformController({
     getElement: () => props.state.element,
-    preview,
-    commitSize: (cssProperty, valuePx) => {
-      const property = sizeProperties[cssProperty];
-      if (property?.kind === "numeric") commit(property, valuePx);
+    commitStyle: (cssProperty, value) => {
+      const property = propertyByKey.get(cssProperty);
+      if (property) commit(property, value);
     },
-    onInteract: markAsInteracting,
   });
 
   const isShiftHeld = createShiftTracker();
@@ -273,8 +261,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
 
   const handleSubmit = () => {
     const pendingEdits = tweakStore.buildPendingEdits();
-    const transformEdit = transformController.buildPendingEdit();
-    if (transformEdit) pendingEdits.push(transformEdit);
     const entry = {
       filePath: props.state.filePath ?? "",
       lineNumber: props.state.lineNumber ?? 0,
