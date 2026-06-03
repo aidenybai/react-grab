@@ -135,7 +135,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     expect(result.noChanges).toBe(true);
   });
 
-  it("should not duplicate existing setup when force is enabled", () => {
+  it("should not duplicate existing setup when already configured", () => {
     const layoutWithReactGrab = `import Script from "next/script";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -152,7 +152,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     mockExistsSync.mockImplementation((path) => String(path).endsWith("layout.tsx"));
     mockReadFileSync.mockReturnValue(layoutWithReactGrab);
 
-    const result = previewTransform("/test", "next", "app", true, true);
+    const result = previewTransform("/test", "next", "app", true);
 
     expect(result.success).toBe(true);
     expect(result.noChanges).toBe(true);

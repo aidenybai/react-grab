@@ -323,7 +323,8 @@ describe("detectReactGrabConfigured", () => {
 
   it("should ignore comments that mention react-grab", () => {
     mockExistsSync.mockImplementation((path) => toPosixPath(path).endsWith("app/layout.tsx"));
-    mockReadFileSync.mockReturnValue(`// import("react-grab") later
+    mockReadFileSync.mockReturnValue(`const setupLater = true; // import("react-grab") later
+// import("react-grab") later
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return <html><body>{children}</body></html>;
 }`);

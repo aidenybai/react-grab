@@ -3,7 +3,7 @@ const stripComments = (content: string): string =>
     .replace(/<!--[\s\S]*?-->/g, "")
     .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
     .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/^\s*\/\/.*$/gm, "");
+    .replace(/(^|\s)\/\/.*$/gm, "$1");
 
 export const hasReactGrabSetupCode = (content: string): boolean => {
   const uncommentedContent = stripComments(content);

@@ -129,7 +129,7 @@ export const init = new Command()
   .alias("setup")
   .description("initialize React Grab in your project")
   .option("-y, --yes", "skip confirmation prompts", false)
-  .option("-f, --force", "force overwrite existing config", false)
+  .option("-f, --force", "re-run setup checks even when React Grab is already configured", false)
   .option("-k, --key <key>", "shortcut (e.g., Meta+K, Ctrl+Shift+G, Space)")
   .option("--skip-install", "skip package installation", false)
   .option("--pkg <pkg>", "custom package URL for CLI (e.g., grab)")
@@ -161,7 +161,7 @@ export const init = new Command()
           logger.break();
           logger.warn("React Grab is already installed.");
           logger.log(
-            `Use ${highlighter.info("--force")} to reconfigure, or remove ${highlighter.info("--yes")} for interactive mode.`,
+            `Use ${highlighter.info("--force")} to re-run setup checks, or remove ${highlighter.info("--yes")} for interactive mode.`,
           );
           logger.break();
           process.exit(0);
@@ -487,7 +487,6 @@ export const init = new Command()
         finalFramework,
         finalNextRouterType,
         projectInfo.isReactGrabConfigured,
-        opts.force,
       );
 
       if (!result.success) {

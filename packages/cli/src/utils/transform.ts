@@ -1,5 +1,4 @@
-import { accessSync, constants, existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { accessSync, constants, readFileSync, writeFileSync } from "node:fs";
 import type { Framework, NextRouterType } from "./detect.js";
 import {
   NEXT_APP_ROUTER_SCRIPT,
@@ -9,6 +8,15 @@ import {
   WEBPACK_IMPORT,
 } from "./templates.js";
 import { hasReactGrabSetupCode } from "./react-grab-code.js";
+import {
+  findDocumentFile,
+  findEntryFile,
+  findIndexHtml,
+  findInstrumentationFile,
+  findLayoutFile,
+  findTanStackRootFile,
+  isInstrumentationFile,
+} from "./react-grab-setup-files.js";
 
 export interface TransformResult {
   success: boolean;
@@ -27,133 +35,12 @@ export interface ReactGrabOptions {
   maxContextLines?: number;
 }
 
-const hasReactGrabCode = hasReactGrabSetupCode;
-
-const findLayoutFile = (projectRoot: string): string | null => {
-  const possiblePaths = [
-    join(projectRoot, "app", "layout.tsx"),
-    join(projectRoot, "app", "layout.jsx"),
-    join(projectRoot, "app", "layout.ts"),
-    join(projectRoot, "app", "layout.js"),
-    join(projectRoot, "src", "app", "layout.tsx"),
-    join(projectRoot, "src", "app", "layout.jsx"),
-    join(projectRoot, "src", "app", "layout.ts"),
-    join(projectRoot, "src", "app", "layout.js"),
-  ];
-
-  for (const filePath of possiblePaths) {
-    if (existsSync(filePath)) {
-      return filePath;
-    }
-  }
-
-  return null;
-};
-
-const findInstrumentationFile = (projectRoot: string): string | null => {
-  const possiblePaths = [
-    join(projectRoot, "instrumentation-client.ts"),
-    join(projectRoot, "instrumentation-client.tsx"),
-    join(projectRoot, "instrumentation-client.js"),
-    join(projectRoot, "instrumentation-client.jsx"),
-    join(projectRoot, "src", "instrumentation-client.ts"),
-    join(projectRoot, "src", "instrumentation-client.tsx"),
-    join(projectRoot, "src", "instrumentation-client.js"),
-    join(projectRoot, "src", "instrumentation-client.jsx"),
-  ];
-
-  for (const filePath of possiblePaths) {
-    if (existsSync(filePath)) {
-      return filePath;
-    }
-  }
-
-  return null;
-};
-
-const isInstrumentationFile = (filePath: string): boolean =>
-  /(?:^|[/\\])instrumentation-client\.[cm]?[jt]sx?$/.test(filePath);
-
 const hasReactGrabInInstrumentation = (projectRoot: string): boolean => {
   const instrumentationPath = findInstrumentationFile(projectRoot);
   if (!instrumentationPath) return false;
 
   const content = readFileSync(instrumentationPath, "utf-8");
-  return hasReactGrabCode(content);
-};
-
-const findDocumentFile = (projectRoot: string): string | null => {
-  const possiblePaths = [
-    join(projectRoot, "pages", "_document.tsx"),
-    join(projectRoot, "pages", "_document.jsx"),
-    join(projectRoot, "pages", "_document.ts"),
-    join(projectRoot, "pages", "_document.js"),
-    join(projectRoot, "src", "pages", "_document.tsx"),
-    join(projectRoot, "src", "pages", "_document.jsx"),
-    join(projectRoot, "src", "pages", "_document.ts"),
-    join(projectRoot, "src", "pages", "_document.js"),
-  ];
-
-  for (const filePath of possiblePaths) {
-    if (existsSync(filePath)) {
-      return filePath;
-    }
-  }
-
-  return null;
-};
-
-const findIndexHtml = (projectRoot: string): string | null => {
-  const possiblePaths = [
-    join(projectRoot, "index.html"),
-    join(projectRoot, "public", "index.html"),
-  ];
-
-  for (const filePath of possiblePaths) {
-    if (existsSync(filePath)) {
-      return filePath;
-    }
-  }
-
-  return null;
-};
-
-const findEntryFile = (projectRoot: string): string | null => {
-  const possiblePaths = [
-    join(projectRoot, "src", "index.tsx"),
-    join(projectRoot, "src", "index.jsx"),
-    join(projectRoot, "src", "index.ts"),
-    join(projectRoot, "src", "index.js"),
-    join(projectRoot, "src", "main.tsx"),
-    join(projectRoot, "src", "main.jsx"),
-    join(projectRoot, "src", "main.ts"),
-    join(projectRoot, "src", "main.js"),
-  ];
-
-  for (const filePath of possiblePaths) {
-    if (existsSync(filePath)) {
-      return filePath;
-    }
-  }
-
-  return null;
-};
-
-const findTanStackRootFile = (projectRoot: string): string | null => {
-  const possiblePaths = [
-    join(projectRoot, "src", "routes", "__root.tsx"),
-    join(projectRoot, "src", "routes", "__root.jsx"),
-    join(projectRoot, "app", "routes", "__root.tsx"),
-    join(projectRoot, "app", "routes", "__root.jsx"),
-  ];
-
-  for (const filePath of possiblePaths) {
-    if (existsSync(filePath)) {
-      return filePath;
-    }
-  }
-
-  return null;
+  return hasReactGrabSetupCode(content);
 };
 
 const alreadyConfiguredResult = (filePath: string): TransformResult => ({
@@ -166,7 +53,6 @@ const alreadyConfiguredResult = (filePath: string): TransformResult => ({
 const transformNextAppRouter = (
   projectRoot: string,
   reactGrabAlreadyConfigured: boolean,
-  _force: boolean = false,
 ): TransformResult => {
   const layoutPath = findLayoutFile(projectRoot);
 
@@ -180,7 +66,7 @@ const transformNextAppRouter = (
 
   const originalContent = readFileSync(layoutPath, "utf-8");
   let newContent = originalContent;
-  const hasReactGrabInFile = hasReactGrabCode(originalContent);
+  const hasReactGrabInFile = hasReactGrabSetupCode(originalContent);
   const hasReactGrabInInstrumentationFile = hasReactGrabInInstrumentation(projectRoot);
 
   if (hasReactGrabInFile && reactGrabAlreadyConfigured) {
@@ -235,7 +121,6 @@ const transformNextAppRouter = (
 const transformNextPagesRouter = (
   projectRoot: string,
   reactGrabAlreadyConfigured: boolean,
-  _force: boolean = false,
 ): TransformResult => {
   const documentPath = findDocumentFile(projectRoot);
 
@@ -268,7 +153,7 @@ const transformNextPagesRouter = (
 
   const originalContent = readFileSync(documentPath, "utf-8");
   let newContent = originalContent;
-  const hasReactGrabInFile = hasReactGrabCode(originalContent);
+  const hasReactGrabInFile = hasReactGrabSetupCode(originalContent);
   const hasReactGrabInInstrumentationFile = hasReactGrabInInstrumentation(projectRoot);
 
   if (hasReactGrabInFile && reactGrabAlreadyConfigured) {
@@ -315,7 +200,7 @@ const checkExistingInstallation = (
   reactGrabAlreadyConfigured: boolean,
 ): TransformResult | null => {
   const content = readFileSync(filePath, "utf-8");
-  if (!hasReactGrabCode(content)) return null;
+  if (!hasReactGrabSetupCode(content)) return null;
 
   return {
     success: true,
@@ -330,7 +215,6 @@ const checkExistingInstallation = (
 const transformVite = (
   projectRoot: string,
   reactGrabAlreadyConfigured: boolean,
-  _force: boolean = false,
 ): TransformResult => {
   const entryPath = findEntryFile(projectRoot);
 
@@ -366,7 +250,6 @@ const transformVite = (
 const transformWebpack = (
   projectRoot: string,
   reactGrabAlreadyConfigured: boolean,
-  _force: boolean = false,
 ): TransformResult => {
   const entryPath = findEntryFile(projectRoot);
 
@@ -396,7 +279,6 @@ const transformWebpack = (
 const transformTanStack = (
   projectRoot: string,
   reactGrabAlreadyConfigured: boolean,
-  _force: boolean = false,
 ): TransformResult => {
   const rootPath = findTanStackRootFile(projectRoot);
 
@@ -418,7 +300,7 @@ const transformTanStack = (
 
   const originalContent = readFileSync(rootPath, "utf-8");
   let newContent = originalContent;
-  const hasReactGrabInFile = hasReactGrabCode(originalContent);
+  const hasReactGrabInFile = hasReactGrabSetupCode(originalContent);
 
   if (hasReactGrabInFile && reactGrabAlreadyConfigured) {
     return alreadyConfiguredResult(rootPath);
@@ -507,23 +389,22 @@ export const previewTransform = (
   framework: Framework,
   nextRouterType: NextRouterType,
   reactGrabAlreadyConfigured: boolean = false,
-  force: boolean = false,
 ): TransformResult => {
   switch (framework) {
     case "next":
       if (nextRouterType === "app") {
-        return transformNextAppRouter(projectRoot, reactGrabAlreadyConfigured, force);
+        return transformNextAppRouter(projectRoot, reactGrabAlreadyConfigured);
       }
-      return transformNextPagesRouter(projectRoot, reactGrabAlreadyConfigured, force);
+      return transformNextPagesRouter(projectRoot, reactGrabAlreadyConfigured);
 
     case "vite":
-      return transformVite(projectRoot, reactGrabAlreadyConfigured, force);
+      return transformVite(projectRoot, reactGrabAlreadyConfigured);
 
     case "tanstack":
-      return transformTanStack(projectRoot, reactGrabAlreadyConfigured, force);
+      return transformTanStack(projectRoot, reactGrabAlreadyConfigured);
 
     case "webpack":
-      return transformWebpack(projectRoot, reactGrabAlreadyConfigured, force);
+      return transformWebpack(projectRoot, reactGrabAlreadyConfigured);
 
     default:
       return {
@@ -626,12 +507,15 @@ const findReactGrabFile = (
     case "next": {
       const primaryFile =
         nextRouterType === "app" ? findLayoutFile(projectRoot) : findDocumentFile(projectRoot);
-      if (primaryFile && hasReactGrabCode(readFileSync(primaryFile, "utf-8"))) {
+      if (primaryFile && hasReactGrabSetupCode(readFileSync(primaryFile, "utf-8"))) {
         return primaryFile;
       }
 
       const instrumentationFile = findInstrumentationFile(projectRoot);
-      if (instrumentationFile && hasReactGrabCode(readFileSync(instrumentationFile, "utf-8"))) {
+      if (
+        instrumentationFile &&
+        hasReactGrabSetupCode(readFileSync(instrumentationFile, "utf-8"))
+      ) {
         return instrumentationFile;
       }
 
@@ -639,11 +523,11 @@ const findReactGrabFile = (
     }
     case "vite": {
       const entryFile = findEntryFile(projectRoot);
-      if (entryFile && hasReactGrabCode(readFileSync(entryFile, "utf-8"))) {
+      if (entryFile && hasReactGrabSetupCode(readFileSync(entryFile, "utf-8"))) {
         return entryFile;
       }
       const indexHtml = findIndexHtml(projectRoot);
-      if (indexHtml && hasReactGrabCode(readFileSync(indexHtml, "utf-8"))) {
+      if (indexHtml && hasReactGrabSetupCode(readFileSync(indexHtml, "utf-8"))) {
         return indexHtml;
       }
       return entryFile;
@@ -706,7 +590,7 @@ const addOptionsToDynamicImport = (
   filePath: string,
 ): TransformResult => {
   const reactGrabImportWithInitMatch = originalContent.match(
-    /(?:void\s+)?import\s*\(\s*["']react-grab["']\s*\)(?:\.then\s*\(\s*\(m\)\s*=>\s*m\.init\s*\([^)]*\)\s*\))?/,
+    /(void\s+)?import\s*\(\s*["']react-grab["']\s*\)(?:\.then\s*\(\s*\(m\)\s*=>\s*m\.init\s*\([^)]*\)\s*\))?/,
   );
 
   if (!reactGrabImportWithInitMatch) {
@@ -718,7 +602,8 @@ const addOptionsToDynamicImport = (
   }
 
   const optionsJson = formatOptionsAsJson(options);
-  const newImport = `import("react-grab").then((m) => m.init(${optionsJson}))`;
+  const voidPrefix = reactGrabImportWithInitMatch[1] ?? "";
+  const newImport = `${voidPrefix}import("react-grab").then((m) => m.init(${optionsJson}))`;
 
   const newContent = originalContent.replace(reactGrabImportWithInitMatch[0], newImport);
 
@@ -737,7 +622,7 @@ const addOptionsToTanStackImport = (
   filePath: string,
 ): TransformResult => {
   const reactGrabImportWithInitMatch = originalContent.match(
-    /(?:void\s+import\s*\(\s*["']react-grab["']\s*\)|import\s*\(\s*["']react-grab\/core["']\s*\)\.then\s*\(\s*\(\s*\{\s*init\s*\}\s*\)\s*=>\s*init\s*\([^)]*\)\s*\))/,
+    /(?:(void\s+)?import\s*\(\s*["']react-grab["']\s*\)|(void\s+)?import\s*\(\s*["']react-grab\/core["']\s*\)\.then\s*\(\s*\(\s*\{\s*init\s*\}\s*\)\s*=>\s*init\s*\([^)]*\)\s*\))/,
   );
 
   if (!reactGrabImportWithInitMatch) {
@@ -749,7 +634,8 @@ const addOptionsToTanStackImport = (
   }
 
   const optionsJson = formatOptionsAsJson(options);
-  const newImport = `import("react-grab/core").then(({ init }) => init(${optionsJson}))`;
+  const voidPrefix = reactGrabImportWithInitMatch[1] ?? reactGrabImportWithInitMatch[2] ?? "";
+  const newImport = `${voidPrefix}import("react-grab/core").then(({ init }) => init(${optionsJson}))`;
 
   const newContent = originalContent.replace(reactGrabImportWithInitMatch[0], newImport);
 
@@ -790,7 +676,7 @@ export const previewOptionsTransform = (
 
   const originalContent = readFileSync(filePath, "utf-8");
 
-  if (!hasReactGrabCode(originalContent)) {
+  if (!hasReactGrabSetupCode(originalContent)) {
     return {
       success: false,
       filePath,

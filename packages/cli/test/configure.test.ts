@@ -274,7 +274,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return <html><body>{children}</body></html>;
 }`;
     const instrumentationWithReactGrab = `if (process.env.NODE_ENV === "development") {
-  import("react-grab");
+  void import("react-grab");
 }`;
 
     mockExistsSync.mockImplementation((path) => {
@@ -294,7 +294,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
     expect(result.success).toBe(true);
     expect(result.filePath).toContain("instrumentation-client.ts");
-    expect(result.newContent).toContain(".then((m) => m.init(");
+    expect(result.newContent).toContain('void import("react-grab").then((m) => m.init(');
     expect(result.newContent).toContain('"activationKey":"Meta+K"');
   });
 });
@@ -496,6 +496,39 @@ import ReactDOM from "react-dom/client";`;
     expect(result.newContent).toContain('"keyHoldDuration":300');
     expect(result.newContent).toContain('"allowActivationInsideInput":true');
     expect(result.newContent).toContain('"maxContextLines":7');
+  });
+});
+
+describe("previewOptionsTransform - TanStack Start", () => {
+  it("should preserve void when adding options to React Grab import", () => {
+    const rootWithReactGrab = `import { useEffect } from "react";
+import { Outlet, createRootRoute } from "@tanstack/react-router";
+
+export const Route = createRootRoute({ component: RootComponent });
+
+function RootComponent() {
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      void import("react-grab");
+    }
+  }, []);
+
+  return <Outlet />;
+}`;
+
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("__root.tsx"));
+    mockReadFileSync.mockReturnValue(rootWithReactGrab);
+
+    const options: ReactGrabOptions = {
+      activationKey: "Meta+K",
+    };
+
+    const result = previewOptionsTransform("/test", "tanstack", "unknown", options);
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).toContain(
+      'void import("react-grab/core").then(({ init }) => init({"activationKey":"Meta+K"}))',
+    );
   });
 });
 

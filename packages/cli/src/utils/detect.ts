@@ -3,6 +3,7 @@ import { basename, dirname, join } from "node:path";
 import { detect } from "package-manager-detector/detect";
 import ignore from "ignore";
 import { hasReactGrabSetupCode } from "./react-grab-code.js";
+import { getReactGrabSetupFileCandidates } from "./react-grab-setup-files.js";
 
 export type PackageManager = "npm" | "yarn" | "pnpm" | "bun";
 export type Framework = "next" | "vite" | "tanstack" | "webpack" | "unknown";
@@ -360,48 +361,7 @@ const detectReactGrabDependency = (projectRoot: string): boolean => {
 };
 
 export const detectReactGrabConfigured = (projectRoot: string): boolean => {
-  const filesToCheck = [
-    join(projectRoot, "app", "layout.tsx"),
-    join(projectRoot, "app", "layout.jsx"),
-    join(projectRoot, "app", "layout.ts"),
-    join(projectRoot, "app", "layout.js"),
-    join(projectRoot, "src", "app", "layout.tsx"),
-    join(projectRoot, "src", "app", "layout.jsx"),
-    join(projectRoot, "src", "app", "layout.ts"),
-    join(projectRoot, "src", "app", "layout.js"),
-    join(projectRoot, "pages", "_document.tsx"),
-    join(projectRoot, "pages", "_document.jsx"),
-    join(projectRoot, "pages", "_document.ts"),
-    join(projectRoot, "pages", "_document.js"),
-    join(projectRoot, "src", "pages", "_document.tsx"),
-    join(projectRoot, "src", "pages", "_document.jsx"),
-    join(projectRoot, "src", "pages", "_document.ts"),
-    join(projectRoot, "src", "pages", "_document.js"),
-    join(projectRoot, "instrumentation-client.ts"),
-    join(projectRoot, "instrumentation-client.tsx"),
-    join(projectRoot, "instrumentation-client.js"),
-    join(projectRoot, "instrumentation-client.jsx"),
-    join(projectRoot, "src", "instrumentation-client.ts"),
-    join(projectRoot, "src", "instrumentation-client.tsx"),
-    join(projectRoot, "src", "instrumentation-client.js"),
-    join(projectRoot, "src", "instrumentation-client.jsx"),
-    join(projectRoot, "index.html"),
-    join(projectRoot, "public", "index.html"),
-    join(projectRoot, "src", "index.tsx"),
-    join(projectRoot, "src", "index.jsx"),
-    join(projectRoot, "src", "index.ts"),
-    join(projectRoot, "src", "index.js"),
-    join(projectRoot, "src", "main.tsx"),
-    join(projectRoot, "src", "main.jsx"),
-    join(projectRoot, "src", "main.ts"),
-    join(projectRoot, "src", "main.js"),
-    join(projectRoot, "src", "routes", "__root.tsx"),
-    join(projectRoot, "src", "routes", "__root.jsx"),
-    join(projectRoot, "app", "routes", "__root.tsx"),
-    join(projectRoot, "app", "routes", "__root.jsx"),
-  ];
-
-  return filesToCheck.some(hasReactGrabSetupInFile);
+  return getReactGrabSetupFileCandidates(projectRoot).some(hasReactGrabSetupInFile);
 };
 
 export const detectReactGrab = (projectRoot: string): boolean =>
