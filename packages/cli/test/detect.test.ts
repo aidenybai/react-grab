@@ -7,6 +7,7 @@ import {
   detectReactGrab,
   detectReactGrabConfigured,
   detectUnsupportedFramework,
+  findReactProjects,
 } from "../src/utils/detect.js";
 
 vi.mock("node:fs", () => ({
@@ -305,6 +306,15 @@ describe("detectReactGrabConfigured", () => {
     expect(detectReactGrabConfigured("/test")).toBe(true);
   });
 
+  it("should detect react-grab setup in a JSX template literal script src", () => {
+    mockExistsSync.mockImplementation((path) => toPosixPath(path).endsWith("app/layout.tsx"));
+    mockReadFileSync.mockReturnValue(
+      "<Script src={`//unpkg.com/react-grab/dist/index.global.js`} />",
+    );
+
+    expect(detectReactGrabConfigured("/test")).toBe(true);
+  });
+
   it("should detect react-grab setup in a JavaScript Next.js app layout", () => {
     mockExistsSync.mockImplementation((path) => toPosixPath(path).endsWith("app/layout.js"));
     mockReadFileSync.mockReturnValue(
@@ -362,6 +372,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
     expect(detectReactGrabConfigured("/test")).toBe(false);
   });
+
+  it("should ignore inline type-only imports from react-grab", () => {
+    mockExistsSync.mockImplementation((path) => toPosixPath(path).endsWith("app/layout.tsx"));
+    mockReadFileSync.mockReturnValue(`import { type ReactGrabAPI } from "react-grab";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return <html><body>{children}</body></html>;
+}`);
+
+    expect(detectReactGrabConfigured("/test")).toBe(false);
+  });
+
+  it("should detect mixed runtime and inline type imports from react-grab", () => {
+    mockExistsSync.mockImplementation((path) => toPosixPath(path).endsWith("app/layout.tsx"));
+    mockReadFileSync.mockReturnValue('import { init, type ReactGrabAPI } from "react-grab";');
+
+    expect(detectReactGrabConfigured("/test")).toBe(true);
+  });
 });
 
 describe("detectMonorepo", () => {
@@ -372,6 +400,31 @@ describe("detectMonorepo", () => {
     mockReadFileSync.mockReturnValue("invalid");
 
     expect(detectMonorepo("/test")).toBe(false);
+  });
+});
+
+describe("findReactProjects", () => {
+  it("should use the enclosing monorepo root when called from a workspace package", () => {
+    mockExistsSync.mockImplementation((path) => {
+      const pathString = toPosixPath(path);
+      if (pathString === "/repo/pnpm-workspace.yaml") return true;
+      if (pathString === "/repo/package.json") return true;
+      if (pathString === "/repo/apps/web") return true;
+      if (pathString === "/repo/apps/web/package.json") return true;
+      return false;
+    });
+    mockReadFileSync.mockImplementation((path) => {
+      const pathString = toPosixPath(path);
+      if (pathString === "/repo/pnpm-workspace.yaml") return "packages:\n  - apps/web\n";
+      if (pathString === "/repo/apps/web/package.json") {
+        return JSON.stringify({ name: "web", dependencies: { react: "18.0.0", vite: "6.0.0" } });
+      }
+      return JSON.stringify({ private: true });
+    });
+
+    expect(findReactProjects("/repo/apps/web")).toEqual([
+      { name: "web", path: "/repo/apps/web", framework: "vite" },
+    ]);
   });
 });
 

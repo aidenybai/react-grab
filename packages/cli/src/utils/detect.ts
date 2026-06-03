@@ -320,8 +320,11 @@ const scanDirectoryForProjects = (
 const MAX_SCAN_DEPTH = 2;
 
 export const findReactProjects = (projectRoot: string): WorkspaceProject[] => {
-  if (detectMonorepo(projectRoot)) {
-    const workspaceProjects = findWorkspaceProjects(projectRoot);
+  const monorepoRoot = detectMonorepo(projectRoot)
+    ? projectRoot
+    : findEnclosingMonorepoRoot(projectRoot);
+  if (monorepoRoot) {
+    const workspaceProjects = findWorkspaceProjects(monorepoRoot);
     if (workspaceProjects.length > 0) {
       return workspaceProjects;
     }
