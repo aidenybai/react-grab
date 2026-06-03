@@ -806,6 +806,32 @@ test.describe("Style Panel", () => {
       );
     });
 
+    test("compact unit edit keeps a searched active property targeted", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await setSearchInputValue(reactGrab.page, "font size");
+      await expect.poll(() => getActivePropertyKey(reactGrab.page)).toBe("font-size");
+      const paddingLeftBeforeTyping = await getInlineStyleProperty(
+        reactGrab.page,
+        BUTTON_SELECTOR,
+        "padding-left",
+      );
+
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+      expect(await getEditPanelCompactAttr(reactGrab.page)).toBe("true");
+      await setSearchInputValue(reactGrab.page, "50px");
+      await reactGrab.page.waitForTimeout(80);
+
+      expect(await getEditPanelCompactAttr(reactGrab.page)).toBe("true");
+      expect(await getActivePropertyKey(reactGrab.page)).toBe("font-size");
+      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "font-size")).toBe(
+        "50px",
+      );
+      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-left")).toBe(
+        paddingLeftBeforeTyping,
+      );
+    });
+
     test("type-to-edit: hover + type m then t → margin-top focused", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement(BUTTON_SELECTOR);
