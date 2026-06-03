@@ -1,25 +1,25 @@
-import { createSignal, type Accessor } from "solid-js";
+import { createSignal, onCleanup, onMount, type Accessor } from "solid-js";
 import { TRANSFORM_MIN_SIZE_PX, TRANSFORM_ROTATE_SNAP_DEG } from "../../constants.js";
 import type {
+  PendingEdit,
   PreviewStyles,
   TransformFrame,
   TransformHandleId,
   TransformValues,
 } from "../../types.js";
+import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "../../utils/native-raf.js";
 
 interface TransformControllerDependencies {
   getElement: () => Element;
   preview: PreviewStyles;
   commitSize: (cssProperty: "width" | "height", valuePx: number) => void;
   onInteract: () => void;
-  onChange: () => void;
 }
 
 export interface TransformController {
   frame: Accessor<TransformFrame>;
-  refreshFrame: () => void;
-  values: () => TransformValues;
   hasChanged: () => boolean;
+  buildPendingEdit: () => PendingEdit | null;
   startMove: (event: PointerEvent) => void;
   startRotate: (event: PointerEvent) => void;
   startResize: (event: PointerEvent, handle: TransformHandleId) => void;
@@ -38,6 +38,34 @@ const HANDLE_DIRECTION: Record<TransformHandleId, { x: -1 | 0 | 1; y: -1 | 0 | 1
 
 const DEGREES_PER_RADIAN = 180 / Math.PI;
 
+const formatTransform = (values: TransformValues, round: boolean): string => {
+  const translateX = round ? Math.round(values.translateX) : values.translateX;
+  const translateY = round ? Math.round(values.translateY) : values.translateY;
+  const rotate = round ? Math.round(values.rotate) : values.rotate;
+  return `translate(${translateX}px, ${translateY}px) rotate(${rotate}deg)`;
+};
+
+// World-space position of the box corner/edge opposite the dragged handle.
+// `direction` points outward from center toward the dragged handle, so the
+// anchor lives at the negated local offset, projected onto the element's
+// (possibly rotated) local axes.
+const anchorWorldPoint = (
+  centerX: number,
+  centerY: number,
+  width: number,
+  height: number,
+  direction: { x: number; y: number },
+  axisCos: number,
+  axisSin: number,
+): { x: number; y: number } => {
+  const localX = (-direction.x * width) / 2;
+  const localY = (-direction.y * height) / 2;
+  return {
+    x: centerX + axisCos * localX + -axisSin * localY,
+    y: centerY + axisSin * localX + axisCos * localY,
+  };
+};
+
 export const createTransformController = (
   dependencies: TransformControllerDependencies,
 ): TransformController => {
@@ -52,6 +80,11 @@ export const createTransformController = (
     rotate: 0,
   };
   const [frame, setFrame] = createSignal(frameValue, { equals: false });
+  // Bumped on every applied edit so `hasChanged` stays reactive without
+  // mirroring the mutable `transform` into a second signal.
+  const [trackTransformEdits, notifyTransformEdit] = createSignal<void>(undefined, {
+    equals: false,
+  });
 
   const measureFrameInto = (target: TransformFrame): void => {
     const element = dependencies.getElement();
@@ -79,13 +112,10 @@ export const createTransformController = (
 
   const applyTransform = (): void => {
     dependencies.preview.apply(["transform-origin"], "center center");
-    dependencies.preview.apply(
-      ["transform"],
-      `translate(${transform.translateX}px, ${transform.translateY}px) rotate(${transform.rotate}deg)`,
-    );
+    dependencies.preview.apply(["transform"], formatTransform(transform, false));
     refreshFrame();
+    notifyTransformEdit();
     dependencies.onInteract();
-    dependencies.onChange();
   };
 
   const bindDrag = (onMove: (event: PointerEvent) => void): void => {
@@ -136,27 +166,29 @@ export const createTransformController = (
     const direction = HANDLE_DIRECTION[handle];
     const startWidth = frameValue.width;
     const startHeight = frameValue.height;
-    const startCenterX = frameValue.centerX;
-    const startCenterY = frameValue.centerY;
     const startTranslateX = transform.translateX;
     const startTranslateY = transform.translateY;
     const startPointerX = event.clientX;
     const startPointerY = event.clientY;
 
     const radians = (transform.rotate * Math.PI) / 180;
-    const axisXCos = Math.cos(radians);
-    const axisXSin = Math.sin(radians);
-    // Local +x axis is (axisXCos, axisXSin); local +y axis is its perpendicular.
-    const anchorLocalX = (-direction.x * startWidth) / 2;
-    const anchorLocalY = (-direction.y * startHeight) / 2;
-    const anchorWorldX = startCenterX + axisXCos * anchorLocalX + -axisXSin * anchorLocalY;
-    const anchorWorldY = startCenterY + axisXSin * anchorLocalX + axisXCos * anchorLocalY;
+    const axisCos = Math.cos(radians);
+    const axisSin = Math.sin(radians);
+    const anchorWorld = anchorWorldPoint(
+      frameValue.centerX,
+      frameValue.centerY,
+      startWidth,
+      startHeight,
+      direction,
+      axisCos,
+      axisSin,
+    );
 
     bindDrag((moveEvent) => {
       const pointerDeltaX = moveEvent.clientX - startPointerX;
       const pointerDeltaY = moveEvent.clientY - startPointerY;
-      const localDeltaX = pointerDeltaX * axisXCos + pointerDeltaY * axisXSin;
-      const localDeltaY = pointerDeltaX * -axisXSin + pointerDeltaY * axisXCos;
+      const localDeltaX = pointerDeltaX * axisCos + pointerDeltaY * axisSin;
+      const localDeltaY = pointerDeltaX * -axisSin + pointerDeltaY * axisCos;
 
       const nextWidth =
         direction.x === 0
@@ -176,35 +208,55 @@ export const createTransformController = (
       applyTransform();
 
       // Layout may have shifted the box; nudge translate so the anchored edge
-      // (opposite the dragged handle) stays pinned in viewport space.
-      const measuredWidth = frameValue.width;
-      const measuredHeight = frameValue.height;
-      const measuredAnchorLocalX = (-direction.x * measuredWidth) / 2;
-      const measuredAnchorLocalY = (-direction.y * measuredHeight) / 2;
-      const measuredAnchorWorldX =
-        frameValue.centerX + axisXCos * measuredAnchorLocalX + -axisXSin * measuredAnchorLocalY;
-      const measuredAnchorWorldY =
-        frameValue.centerY + axisXSin * measuredAnchorLocalX + axisXCos * measuredAnchorLocalY;
-
-      transform.translateX = startTranslateX + (anchorWorldX - measuredAnchorWorldX);
-      transform.translateY = startTranslateY + (anchorWorldY - measuredAnchorWorldY);
+      // (opposite the dragged handle) stays pinned in viewport space. A pure
+      // corner resize therefore also emits a small translate alongside
+      // width/height — that is geometrically faithful, not a bug.
+      const measuredAnchor = anchorWorldPoint(
+        frameValue.centerX,
+        frameValue.centerY,
+        frameValue.width,
+        frameValue.height,
+        direction,
+        axisCos,
+        axisSin,
+      );
+      transform.translateX = startTranslateX + (anchorWorld.x - measuredAnchor.x);
+      transform.translateY = startTranslateY + (anchorWorld.y - measuredAnchor.y);
       applyTransform();
     });
   };
 
-  const hasChanged = (): boolean =>
-    transform.translateX !== 0 || transform.translateY !== 0 || transform.rotate !== 0;
+  const hasChanged = (): boolean => {
+    trackTransformEdits();
+    return transform.translateX !== 0 || transform.translateY !== 0 || transform.rotate !== 0;
+  };
+
+  const buildPendingEdit = (): PendingEdit | null => {
+    if (!hasChanged()) return null;
+    return {
+      kind: "transform",
+      key: "transform",
+      cssProperties: ["transform"],
+      value: formatTransform(transform, true),
+    };
+  };
+
+  onMount(() => {
+    let frameId: number | null = nativeRequestAnimationFrame(function tick() {
+      refreshFrame();
+      frameId = nativeRequestAnimationFrame(tick);
+    });
+    onCleanup(() => {
+      if (frameId !== null) nativeCancelAnimationFrame(frameId);
+    });
+  });
 
   return {
     frame,
-    refreshFrame,
-    values: () => transform,
     hasChanged,
+    buildPendingEdit,
     startMove,
     startRotate,
     startResize,
   };
 };
-
-export const formatTransformValue = (values: TransformValues): string =>
-  `translate(${Math.round(values.translateX)}px, ${Math.round(values.translateY)}px) rotate(${Math.round(values.rotate)}deg)`;

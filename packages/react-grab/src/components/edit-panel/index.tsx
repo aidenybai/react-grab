@@ -49,10 +49,7 @@ import { stepProperty } from "./step-property.js";
 import { createTailwindAutoApply } from "./tailwind-autoapply.js";
 import { createTweakStore } from "./tweak-store.js";
 import { TransformOverlay } from "../transform-overlay/index.js";
-import {
-  createTransformController,
-  formatTransformValue,
-} from "../transform-overlay/transform-controller.js";
+import { createTransformController } from "../transform-overlay/transform-controller.js";
 
 interface EditPanelProps {
   state: EditPanelState | null;
@@ -106,8 +103,28 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     return numericIndex > 0 ? numericIndex : 0;
   };
   const [activeIndex, setActiveIndex] = createSignal(firstNumericActiveIndex());
-  const [hasTransformChanges, setHasTransformChanges] = createSignal(false);
-  const hasPendingTweaks = createMemo(() => tweakStore.hasPendingTweaks() || hasTransformChanges());
+
+  // Created before the memos that read it: createMemo evaluates eagerly, so a
+  // later `const` would hit the temporal dead zone. `commit`/`markAsInteracting`
+  // are only reached through deferred drag callbacks, so referencing them via
+  // closures here is safe even though they are defined further down.
+  const sizeProperties: Record<"width" | "height", EditableProperty | undefined> = {
+    width: initialProperties.find((property) => property.key === "width"),
+    height: initialProperties.find((property) => property.key === "height"),
+  };
+  const transformController = createTransformController({
+    getElement: () => props.state.element,
+    preview,
+    commitSize: (cssProperty, valuePx) => {
+      const property = sizeProperties[cssProperty];
+      if (property?.kind === "numeric") commit(property, valuePx);
+    },
+    onInteract: () => markAsInteracting(),
+  });
+
+  const hasPendingTweaks = createMemo(
+    () => tweakStore.hasPendingTweaks() || transformController.hasChanged(),
+  );
   const [isCompact, setIsCompact] = createSignal(false);
 
   let activeKeyTimerId: ReturnType<typeof setTimeout> | undefined;
@@ -189,19 +206,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     if (options.shouldCompact) setIsCompact(true);
   };
 
-  const propertyByKey = new Map(initialProperties.map((property) => [property.key, property]));
-
-  const transformController = createTransformController({
-    getElement: () => props.state.element,
-    preview,
-    commitSize: (cssProperty, valuePx) => {
-      const property = propertyByKey.get(cssProperty);
-      if (property?.kind === "numeric") commit(property, valuePx);
-    },
-    onInteract: markAsInteracting,
-    onChange: () => setHasTransformChanges(transformController.hasChanged()),
-  });
-
   const isShiftHeld = createShiftTracker();
 
   const commitTweak = (
@@ -269,14 +273,8 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
 
   const handleSubmit = () => {
     const pendingEdits = tweakStore.buildPendingEdits();
-    if (transformController.hasChanged()) {
-      pendingEdits.push({
-        kind: "transform",
-        key: "transform",
-        cssProperties: ["transform"],
-        value: formatTransformValue(transformController.values()),
-      });
-    }
+    const transformEdit = transformController.buildPendingEdit();
+    if (transformEdit) pendingEdits.push(transformEdit);
     const entry = {
       filePath: props.state.filePath ?? "",
       lineNumber: props.state.lineNumber ?? 0,

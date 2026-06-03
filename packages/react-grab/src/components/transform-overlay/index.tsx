@@ -1,4 +1,4 @@
-import { For, onCleanup, onMount, type Component } from "solid-js";
+import { For, type Component } from "solid-js";
 import {
   TRANSFORM_FRAME_BORDER_PX,
   TRANSFORM_HANDLE_SIZE_PX,
@@ -8,7 +8,6 @@ import {
   Z_INDEX_TRANSFORM_OVERLAY,
 } from "../../constants.js";
 import type { TransformHandleId } from "../../types.js";
-import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "../../utils/native-raf.js";
 import { suppressMenuEvent } from "../../utils/suppress-menu-event.js";
 import type { TransformController } from "./transform-controller.js";
 
@@ -35,20 +34,6 @@ interface TransformOverlayProps {
 }
 
 export const TransformOverlay: Component<TransformOverlayProps> = (props) => {
-  let frameId: number | null = null;
-
-  onMount(() => {
-    const tick = () => {
-      props.controller.refreshFrame();
-      frameId = nativeRequestAnimationFrame(tick);
-    };
-    frameId = nativeRequestAnimationFrame(tick);
-
-    onCleanup(() => {
-      if (frameId !== null) nativeCancelAnimationFrame(frameId);
-    });
-  });
-
   const frame = props.controller.frame;
 
   const beginInteraction = (event: PointerEvent, start: (event: PointerEvent) => void) => {
