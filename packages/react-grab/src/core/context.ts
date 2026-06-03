@@ -381,18 +381,6 @@ interface StackContextOptions {
   maxLines?: number;
 }
 
-const hasFormattableFrames = (stack: StackFrame[] | null): boolean => {
-  if (!stack) return false;
-  return stack.some((frame) => {
-    if (frame.fileName && isSourceFile(frame.fileName)) return true;
-    if (frame.isServer && (!frame.functionName || isSourceComponentName(frame.functionName))) {
-      return true;
-    }
-    if (frame.functionName && isSourceComponentName(frame.functionName)) return true;
-    return false;
-  });
-};
-
 const getComponentNamesFromFiber = (element: Element, maxCount: number): string[] => {
   if (!isInstrumentationActive()) return [];
   const fiber = getFiberFromHostInstance(element);
@@ -529,8 +517,9 @@ export const getStackContext = async (
   const leadingSource = await getFiberSource(element);
   const stack = await getStack(element);
 
-  if (stack && hasFormattableFrames(stack)) {
-    return formatStackContext(stack, options, leadingSource);
+  if (stack) {
+    const stackContext = formatStackContext(stack, options, leadingSource);
+    if (stackContext) return stackContext;
   }
 
   if (leadingSource) {

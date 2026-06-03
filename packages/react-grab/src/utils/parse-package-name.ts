@@ -8,6 +8,7 @@ const VITE_INTERNAL_CHUNK_PATTERN = /^chunk-[A-Za-z0-9_-]+$/;
 const PATH_SEPARATOR_PATTERN = /[/\\]/;
 const NAME_AT_VERSION_PATTERN = /^(.+?)@v?\d/;
 const SCOPED_PACKAGE_PATTERN = /^@[A-Za-z0-9][A-Za-z0-9._-]*$/;
+const PACKAGE_NAME_SEGMENT_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
 const splitPathSegments = (path: string): string[] =>
   path.split(PATH_SEPARATOR_PATTERN).filter(Boolean);
@@ -74,17 +75,29 @@ const extractVersionedPackageFromUrl = (rawFileName: string): string | null => {
   return null;
 };
 
-const stripRelativePathPrefix = (path: string): string => {
+const stripRelativeSourcePathPrefix = (path: string): string | null => {
   let remainingPath = path;
+  let didStripPrefix = false;
   while (remainingPath.startsWith("../") || remainingPath.startsWith("./")) {
+    didStripPrefix = true;
     remainingPath = remainingPath.slice(remainingPath.startsWith("../") ? 3 : 2);
   }
-  return remainingPath;
+  return didStripPrefix ? remainingPath : null;
 };
 
 const extractFromScopedPackageSourcePath = (decodedPath: string): string | null => {
-  const [scope, packageName] = splitPathSegments(stripRelativePathPrefix(decodedPath));
-  if (!scope || !packageName || !SCOPED_PACKAGE_PATTERN.test(scope)) return null;
+  const sourcePath = stripRelativeSourcePathPrefix(decodedPath);
+  if (!sourcePath) return null;
+
+  const [scope, packageName] = splitPathSegments(sourcePath);
+  if (
+    !scope ||
+    !packageName ||
+    !SCOPED_PACKAGE_PATTERN.test(scope) ||
+    !PACKAGE_NAME_SEGMENT_PATTERN.test(packageName)
+  ) {
+    return null;
+  }
   return `${scope}/${packageName}`;
 };
 
