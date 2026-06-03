@@ -46,6 +46,7 @@ const matchesIgnoredSourcePath = (fileName: string, sourceOptions?: SourceOption
       continue;
     }
 
+    ignoredSourcePath.lastIndex = 0;
     if (ignoredSourcePath.test(normalizedPath)) return true;
   }
 

@@ -46,6 +46,20 @@ describe("classifySourcePath", () => {
     });
   });
 
+  it("resets stateful configured ignored source regexes", () => {
+    const statefulIgnorePath = /\/packages\/ui\//g;
+    const sourceOptions = { ignorePaths: [statefulIgnorePath] };
+
+    expect(classifySourcePath("/workspace/packages/ui/src/button.tsx", sourceOptions)).toEqual({
+      kind: "ignored-app-source",
+      packageName: null,
+    });
+    expect(classifySourcePath("/workspace/packages/ui/src/dialog.tsx", sourceOptions)).toEqual({
+      kind: "ignored-app-source",
+      packageName: null,
+    });
+  });
+
   it("does not ignore nearby app source paths", () => {
     expect(classifySourcePath("src/components/ui-button.tsx")).toEqual({
       kind: "app-source",
