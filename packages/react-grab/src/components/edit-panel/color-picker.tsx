@@ -1,5 +1,6 @@
 import { createSignal, onCleanup, onMount, Show, type Component } from "solid-js";
 import { IME_COMPOSING_KEY_CODE } from "../../constants.js";
+import { formatColorLabel } from "../../utils/format-color-label.js";
 import { parseAnyColor } from "../../utils/parse-any-color.js";
 import { EDIT_LABEL_CLASS } from "./constants.js";
 
@@ -19,11 +20,12 @@ interface ColorPickerProps {
   emphasized?: boolean;
 }
 
-const HEX_CLASS = "text-[12px] leading-4 font-medium tabular-nums uppercase";
+const HEX_CLASS = "text-[12px] leading-4 font-medium tabular-nums";
 
 export const ColorPicker: Component<ColorPickerProps> = (props) => {
   const [draftText, setDraftText] = createSignal<string | null>(null);
   const isEditing = () => draftText() !== null;
+  const displayValue = () => formatColorLabel(props.value);
   let nativePickerRef: HTMLInputElement | undefined;
 
   // isMounted gates the native picker's `onInput` against firing
@@ -97,14 +99,15 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
           fallback={
             <span
               class={`${HEX_CLASS} text-[var(--rg-text-primary)] cursor-text`}
+              data-react-grab-value={displayValue()}
               onPointerDown={(event) => event.stopPropagation()}
               onClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
-                setDraftText(props.value.replace(/^#/, "").toUpperCase());
+                setDraftText(displayValue());
               }}
             >
-              {props.value.toUpperCase()}
+              {displayValue()}
             </span>
           }
         >
