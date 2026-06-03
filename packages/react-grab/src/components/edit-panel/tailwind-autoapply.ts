@@ -10,7 +10,6 @@ import { clampToRange } from "../../utils/clamp-to-range.js";
 import { expandAggregateLonghands } from "../../utils/expand-aggregate-longhands.js";
 import { roundEditableNumericValue } from "../../utils/format-css-value.js";
 import { isNumericDraftQuery } from "../../utils/is-numeric-draft-query.js";
-import { isNumericQuery } from "../../utils/is-numeric-query.js";
 import { parseAnyColor } from "../../utils/parse-any-color.js";
 import {
   normalizeTailwindClassInput,
@@ -22,6 +21,7 @@ import {
 
 const TAILWIND_CLASS_PATTERN = /^([a-z-]+)-(-?\d+(?:\.\d+)?)$/;
 const TAILWIND_ARBITRARY_PATTERN = /^(.+?)-\[(.+)]$/;
+const INLINE_NUMERIC_VALUE_PATTERN = /^(-?\d*\.?\d+)\s*([a-zA-Z%]*)$/;
 // A px/rem unit (or an explicit length:/size: data-type hint) marks a
 // value as a length. Bare unitless values (opacity-[0.5], leading-[1.5])
 // are ambiguous and em is element-relative, so those are skipped.
@@ -135,6 +135,11 @@ interface TailwindAutoApplyController {
   applyTailwindClass: (query: string) => void;
 }
 
+interface InlineNumericValue {
+  value: number;
+  unit: string;
+}
+
 export const createTailwindAutoApply = (
   options: TailwindAutoApplyOptions,
 ): TailwindAutoApplyController => {
@@ -150,22 +155,44 @@ export const createTailwindAutoApply = (
     return findNumericLonghands(initialProperties, cssKey).length > 0;
   };
 
+  const parseInlineNumericValue = (query: string): InlineNumericValue | null => {
+    const valueMatch = query
+      .trim()
+      .replace(/(\d),(\d)/g, "$1.$2")
+      .match(INLINE_NUMERIC_VALUE_PATTERN);
+    if (!valueMatch) return null;
+    const value = Number.parseFloat(valueMatch[1]);
+    if (!Number.isFinite(value)) return null;
+    return { value, unit: valueMatch[2].toLowerCase() };
+  };
+
+  const isUnitDraftForProperty = (unit: string, propertyUnit: string): boolean => {
+    if (!unit) return true;
+    return propertyUnit.toLowerCase().startsWith(unit);
+  };
+
   const isInlineNumericDraft = (query: string): boolean => {
     if (!isCompact()) return false;
     const property = activeProperty();
     if (property?.kind !== "numeric") return false;
+    const parsed = parseInlineNumericValue(query);
+    if (parsed) return isUnitDraftForProperty(parsed.unit, property.unit);
     return isNumericDraftQuery(query);
   };
 
   const isInlineNumericEdit = createMemo(() => isInlineNumericDraft(searchQuery()));
 
   const tryApplyNumericToActive = (query: string): boolean => {
-    if (!isInlineNumericDraft(query) || !isNumericQuery(query)) return false;
+    if (!isCompact()) return false;
     const property = activeProperty();
     if (property?.kind !== "numeric") return false;
-    const parsed = Number.parseFloat(query);
-    if (!Number.isFinite(parsed)) return false;
-    const nextValue = clampedFor(property, parsed);
+    const parsed = parseInlineNumericValue(query);
+    if (!parsed) return false;
+    const propertyUnit = property.unit.toLowerCase();
+    if (parsed.unit !== "" && parsed.unit !== propertyUnit) {
+      return isUnitDraftForProperty(parsed.unit, property.unit);
+    }
+    const nextValue = clampedFor(property, parsed.value);
     if (nextValue !== property.value) commit(property, nextValue);
     return true;
   };

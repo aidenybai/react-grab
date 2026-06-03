@@ -740,6 +740,24 @@ test.describe("Style Panel", () => {
       expect(await isEditPanelCompact(reactGrab.page)).toBe(false);
     });
 
+    test("full search does not direct-apply unit values", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      expect(await isEditPanelCompact(reactGrab.page)).toBe(false);
+      const paddingLeftBeforeTyping = await getInlineStyleProperty(
+        reactGrab.page,
+        BUTTON_SELECTOR,
+        "padding-left",
+      );
+
+      await reactGrab.page.keyboard.type("50px");
+      await reactGrab.page.waitForTimeout(80);
+
+      expect(await getEditPanelCompactAttr(reactGrab.page)).toBe("false");
+      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-left")).toBe(
+        paddingLeftBeforeTyping,
+      );
+    });
+
     test("compact inline numeric edit survives decimal drafts", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await reactGrab.page.keyboard.press("ArrowRight");
@@ -765,6 +783,91 @@ test.describe("Style Panel", () => {
       );
       expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-right")).toBe(
         "25px",
+      );
+    });
+
+    test("compact unitless replacement keeps paused second digits", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+      const activePropertyKey = await getActivePropertyKey(reactGrab.page);
+      expect(activePropertyKey).toBe("padding-left,padding-right");
+
+      await reactGrab.page.keyboard.type("24");
+      await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
+      await reactGrab.page.keyboard.type("3");
+      await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
+      await reactGrab.page.keyboard.type("6");
+      await reactGrab.page.waitForTimeout(80);
+
+      expect(await getEditPanelCompactAttr(reactGrab.page)).toBe("true");
+      expect(await getActivePropertyKey(reactGrab.page)).toBe(activePropertyKey);
+      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-left")).toBe(
+        "36px",
+      );
+      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-right")).toBe(
+        "36px",
+      );
+    });
+
+    test("compact inline numeric edit accepts matching CSS units", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+      const activePropertyKey = await getActivePropertyKey(reactGrab.page);
+      expect(activePropertyKey).toBe("padding-left,padding-right");
+
+      await reactGrab.page.keyboard.type("50px");
+      await reactGrab.page.waitForTimeout(80);
+
+      expect(await getEditPanelCompactAttr(reactGrab.page)).toBe("true");
+      expect(await getActivePropertyKey(reactGrab.page)).toBe(activePropertyKey);
+      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-left")).toBe(
+        "50px",
+      );
+      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-right")).toBe(
+        "50px",
+      );
+
+      await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
+      await reactGrab.page.keyboard.type("6");
+      await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
+      await reactGrab.page.keyboard.type("0px");
+      await reactGrab.page.waitForTimeout(80);
+
+      expect(await getEditPanelCompactAttr(reactGrab.page)).toBe("true");
+      expect(await getActivePropertyKey(reactGrab.page)).toBe(activePropertyKey);
+      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-left")).toBe(
+        "60px",
+      );
+      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-right")).toBe(
+        "60px",
+      );
+    });
+
+    test("compact unit edit keeps a searched active property targeted", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await setSearchInputValue(reactGrab.page, "font size");
+      await expect.poll(() => getActivePropertyKey(reactGrab.page)).toBe("font-size");
+      const paddingLeftBeforeTyping = await getInlineStyleProperty(
+        reactGrab.page,
+        BUTTON_SELECTOR,
+        "padding-left",
+      );
+
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+      expect(await getEditPanelCompactAttr(reactGrab.page)).toBe("true");
+      await setSearchInputValue(reactGrab.page, "50px");
+      await reactGrab.page.waitForTimeout(80);
+
+      expect(await getEditPanelCompactAttr(reactGrab.page)).toBe("true");
+      expect(await getActivePropertyKey(reactGrab.page)).toBe("font-size");
+      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "font-size")).toBe(
+        "50px",
+      );
+      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-left")).toBe(
+        paddingLeftBeforeTyping,
       );
     });
 
