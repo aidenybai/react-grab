@@ -319,6 +319,8 @@ const scanDirectoryForProjects = (
 
 const MAX_SCAN_DEPTH = 2;
 
+const normalizePathForComparison = (filePath: string): string => filePath.replace(/\\/g, "/");
+
 export const findReactProjects = (projectRoot: string): WorkspaceProject[] => {
   const monorepoRoot = detectMonorepo(projectRoot)
     ? projectRoot
@@ -327,7 +329,14 @@ export const findReactProjects = (projectRoot: string): WorkspaceProject[] => {
     const workspaceProjects = findWorkspaceProjects(monorepoRoot);
     const localProject = projectRoot === monorepoRoot ? null : buildReactProject(projectRoot);
     const projects = localProject
-      ? [localProject, ...workspaceProjects.filter((project) => project.path !== localProject.path)]
+      ? [
+          localProject,
+          ...workspaceProjects.filter(
+            (project) =>
+              normalizePathForComparison(project.path) !==
+              normalizePathForComparison(localProject.path),
+          ),
+        ]
       : workspaceProjects;
     if (projects.length > 0) {
       return projects;

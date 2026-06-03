@@ -317,7 +317,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 }`;
 
     mockExistsSync.mockImplementation((path) => {
-      const pathString = String(path);
+      const pathString = toPosixPath(path);
       return pathString.endsWith("app/layout.tsx") || pathString.endsWith("src/app/layout.tsx");
     });
     mockReadFileSync.mockImplementation((path) => {
