@@ -740,6 +740,24 @@ test.describe("Style Panel", () => {
       expect(await isEditPanelCompact(reactGrab.page)).toBe(false);
     });
 
+    test("full search does not direct-apply unit values", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      expect(await isEditPanelCompact(reactGrab.page)).toBe(false);
+      const paddingLeftBeforeTyping = await getInlineStyleProperty(
+        reactGrab.page,
+        BUTTON_SELECTOR,
+        "padding-left",
+      );
+
+      await reactGrab.page.keyboard.type("50px");
+      await reactGrab.page.waitForTimeout(80);
+
+      expect(await getEditPanelCompactAttr(reactGrab.page)).toBe("false");
+      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-left")).toBe(
+        paddingLeftBeforeTyping,
+      );
+    });
+
     test("compact inline numeric edit survives decimal drafts", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await reactGrab.page.keyboard.press("ArrowRight");

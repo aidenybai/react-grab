@@ -10,7 +10,6 @@ import { clampToRange } from "../../utils/clamp-to-range.js";
 import { expandAggregateLonghands } from "../../utils/expand-aggregate-longhands.js";
 import { roundEditableNumericValue } from "../../utils/format-css-value.js";
 import { isNumericDraftQuery } from "../../utils/is-numeric-draft-query.js";
-import { isNumericQuery } from "../../utils/is-numeric-query.js";
 import { parseAnyColor } from "../../utils/parse-any-color.js";
 import {
   normalizeTailwindClassInput,
@@ -184,16 +183,15 @@ export const createTailwindAutoApply = (
   const isInlineNumericEdit = createMemo(() => isInlineNumericDraft(searchQuery()));
 
   const tryApplyNumericToActive = (query: string): boolean => {
+    if (!isCompact()) return false;
     const property = activeProperty();
     if (property?.kind !== "numeric") return false;
     const parsed = parseInlineNumericValue(query);
     if (!parsed) return false;
-    if (!isCompact() && !parsed.unit) return false;
     const propertyUnit = property.unit.toLowerCase();
     if (parsed.unit !== "" && parsed.unit !== propertyUnit) {
       return isUnitDraftForProperty(parsed.unit, property.unit);
     }
-    if (parsed.unit === "" && !isNumericQuery(query)) return false;
     const nextValue = clampedFor(property, parsed.value);
     if (nextValue !== property.value) commit(property, nextValue);
     return true;
