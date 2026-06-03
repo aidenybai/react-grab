@@ -31,6 +31,7 @@ import {
   getStackContext,
   getNearestComponentName,
   getComponentDisplayName,
+  findSimilarComponentElements,
   isNextProjectRuntime,
   resolveSource,
 } from "./context.js";
@@ -462,6 +463,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
     let previousSpaceDragPointerPage: Position | null = null;
     const [isShiftMultiSelecting, setIsShiftMultiSelecting] = createSignal(false);
+    const [isShiftKeyHeld, setIsShiftKeyHeld] = createSignal(false);
     let lastWindowFocusTimestamp = 0;
     let isCopyFeedbackCooldownActive = false;
     let copyFeedbackCooldownTimerId: number | null = null;
@@ -1039,6 +1041,30 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return frozenElementsBounds();
     });
 
+    const similarComponentElements = createMemo((): Element[] => {
+      if (!isShiftKeyHeld() || !isRendererActive()) return [];
+      if (isShiftMultiSelecting() || isFrozenPhase() || isPromptMode() || isDragging()) return [];
+      if (store.pendingCommentMode || isPendingContextMenuSelect()) return [];
+
+      const element = targetElement();
+      if (!element || isRootElement(element)) return [];
+
+      return findSimilarComponentElements(element);
+    });
+
+    const ghostElementBoundsAccessors = mapArray(similarComponentElements, (element) =>
+      createMemo(() => {
+        void viewportVersion();
+        return createElementBounds(element);
+      }),
+    );
+
+    const ghostBounds = createMemo((): OverlayBounds[] =>
+      ghostElementBoundsAccessors().map((readBounds) => readBounds()),
+    );
+
+    const ghostVisible = createMemo(() => similarComponentElements().length > 0);
+
     const frozenLabelEntryAccessors = mapArray(
       () => store.frozenElements,
       (element) => {
@@ -1345,6 +1371,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       editMode.resetWithDiscard();
       dismissToolbarMenu();
       stopShiftMultiSelecting();
+      setIsShiftKeyHeld(false);
       clearArrowNavigation();
       keyboardSelectedElement = null;
       setIsPendingContextMenuSelect(false);
@@ -2346,6 +2373,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       "keydown",
       (event: KeyboardEvent) => {
         blockEnterIfNeeded(event);
+        setIsShiftKeyHeld(event.shiftKey);
 
         if (!isEnabled()) {
           if (isTargetKeyCombination(event, pluginRegistry.store.options) && !event.repeat) {
@@ -2438,6 +2466,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       "keyup",
       (event: KeyboardEvent) => {
         if (blockEnterIfNeeded(event)) return;
+        setIsShiftKeyHeld(event.shiftKey);
 
         if (isSpaceActivationKey(event) && isDragRepositioning()) {
           stopSpaceDragRepositioning();
@@ -2570,6 +2599,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (!event.isPrimary) return;
         const isTouchPointer = event.pointerType === "touch";
         actions.setTouchMode(isTouchPointer);
+        setIsShiftKeyHeld(event.shiftKey);
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (isModalPopoverOpen()) return;
         if (isSelectionInteractionLocked()) return;
@@ -2761,6 +2791,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       // navigation guard don't stay blocked indefinitely. Frozen elements
       // are intentionally preserved so the user can resume on refocus.
       stopShiftMultiSelecting();
+      setIsShiftKeyHeld(false);
     });
 
     eventListenerManager.addWindowListener("focus", () => {
@@ -3506,6 +3537,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 selectionShouldSnap={
                   store.frozenElements.length > 0 || dragPreviewBounds().length > 0
                 }
+                ghostVisible={ghostVisible()}
+                ghostBounds={ghostBounds()}
                 selectionElementsCount={store.frozenElements.length}
                 frozenLabelEntries={frozenLabelEntries()}
                 pendingShiftPreviewEntry={pendingShiftPreviewEntry() ?? undefined}

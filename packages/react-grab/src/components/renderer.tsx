@@ -24,6 +24,8 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         selectionBounds={props.selectionBounds}
         selectionBoundsMultiple={props.selectionBoundsMultiple}
         selectionShouldSnap={props.selectionShouldSnap}
+        ghostVisible={props.ghostVisible}
+        ghostBounds={props.ghostBounds}
         dragVisible={props.dragVisible}
         dragBounds={props.dragBounds}
         grabbedBoxes={props.grabbedBoxes}

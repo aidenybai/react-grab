@@ -455,6 +455,8 @@ export interface ReactGrabRendererProps {
   selectionBoundsMultiple?: OverlayBounds[];
   selectionShouldSnap?: boolean;
   selectionElementsCount?: number;
+  ghostVisible?: boolean;
+  ghostBounds?: OverlayBounds[];
   frozenLabelEntries?: FrozenLabelEntry[];
   pendingShiftPreviewEntry?: FrozenLabelEntry;
   selectionFilePath?: string;
