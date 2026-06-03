@@ -61,6 +61,34 @@ test.describe("Transform Overlay", () => {
     expect(await getInlineStyleProperty(page, TARGET_SELECTOR, "width")).not.toBe("");
   });
 
+  test("Alt-resizing scales symmetrically about the center", async ({ reactGrab }) => {
+    const { page } = reactGrab;
+    await openEditPanel(reactGrab, TARGET_SELECTOR);
+    await expect.poll(() => isTransformOverlayVisible(page)).toBe(true);
+
+    const rectBefore = await page.evaluate((selector) => {
+      const bounds = document.querySelector(selector)!.getBoundingClientRect();
+      return { left: bounds.left, width: bounds.width };
+    }, TARGET_SELECTOR);
+
+    const handle = await getTransformHandleCenter(page, "Resize se");
+    await page.keyboard.down("Alt");
+    await page.mouse.move(handle.x, handle.y);
+    await page.mouse.down();
+    await page.mouse.move(handle.x + 60, handle.y + 40, { steps: 6 });
+    await page.mouse.up();
+    await page.keyboard.up("Alt");
+
+    const rectAfter = await page.evaluate((selector) => {
+      const bounds = document.querySelector(selector)!.getBoundingClientRect();
+      return { left: bounds.left, width: bounds.width };
+    }, TARGET_SELECTOR);
+
+    // Symmetric growth pushes the left edge outward instead of pinning it.
+    expect(rectAfter.width).toBeGreaterThan(rectBefore.width + 20);
+    expect(rectAfter.left).toBeLessThan(rectBefore.left - 5);
+  });
+
   test("resizing compacts the panel onto the dimension being edited", async ({ reactGrab }) => {
     const { page } = reactGrab;
     await openEditPanel(reactGrab, TARGET_SELECTOR);

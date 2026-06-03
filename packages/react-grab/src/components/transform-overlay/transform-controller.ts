@@ -178,6 +178,25 @@ export const createTransformController = (
   const startResize = (event: PointerEvent, handle: TransformHandleId): void => {
     refreshFrame();
     const direction = HANDLE_DIRECTION[handle];
+    // The frame is the border-box (offsetWidth/Height); the inline `width`
+    // value, however, addresses the content box unless box-sizing is
+    // border-box. Subtract padding+border so the committed value lands the
+    // border-box exactly under the cursor instead of overshooting.
+    const computed = getComputedStyle(dependencies.getElement());
+    const isBorderBox = computed.boxSizing === "border-box";
+    const extraX = isBorderBox
+      ? 0
+      : parseFloat(computed.paddingLeft) +
+        parseFloat(computed.paddingRight) +
+        parseFloat(computed.borderLeftWidth) +
+        parseFloat(computed.borderRightWidth);
+    const extraY = isBorderBox
+      ? 0
+      : parseFloat(computed.paddingTop) +
+        parseFloat(computed.paddingBottom) +
+        parseFloat(computed.borderTopWidth) +
+        parseFloat(computed.borderBottomWidth);
+
     const startWidth = frameValue.width;
     const startHeight = frameValue.height;
     const startOffsetX = offset.x;
@@ -187,35 +206,56 @@ export const createTransformController = (
     let didFocus = false;
 
     bindDrag((moveEvent) => {
+      // Holding Alt/Option scales symmetrically about the center (both edges
+      // move); otherwise the edge opposite the handle stays anchored.
+      const fromCenter = moveEvent.altKey;
+      const growthScale = fromCenter ? 2 : 1;
       const nextWidth = Math.round(
         Math.max(
           TRANSFORM_MIN_SIZE_PX,
-          startWidth + direction.x * (moveEvent.clientX - startPointerX),
+          startWidth + growthScale * direction.x * (moveEvent.clientX - startPointerX),
         ),
       );
       const nextHeight = Math.round(
         Math.max(
           TRANSFORM_MIN_SIZE_PX,
-          startHeight + direction.y * (moveEvent.clientY - startPointerY),
+          startHeight + growthScale * direction.y * (moveEvent.clientY - startPointerY),
         ),
       );
-      dependencies.commitStyle("width", nextWidth);
-      dependencies.commitStyle("height", nextHeight);
+      const widthDelta = nextWidth - startWidth;
+      const heightDelta = nextHeight - startHeight;
+
+      dependencies.commitStyle(
+        "width",
+        Math.max(TRANSFORM_MIN_SIZE_PX, Math.round(nextWidth - extraX)),
+      );
+      dependencies.commitStyle(
+        "height",
+        Math.max(TRANSFORM_MIN_SIZE_PX, Math.round(nextHeight - extraY)),
+      );
 
       // Once the size is on the tweak store, collapse the panel onto whichever
       // dimension the drag is changing most so its live value stays visible.
       if (!didFocus) {
-        const widthDelta = Math.abs(nextWidth - startWidth);
-        const heightDelta = Math.abs(nextHeight - startHeight);
-        dependencies.focusProperty(widthDelta >= heightDelta ? "width" : "height");
+        dependencies.focusProperty(
+          Math.abs(widthDelta) >= Math.abs(heightDelta) ? "width" : "height",
+        );
         didFocus = true;
+      }
+
+      if (fromCenter) {
+        // Keep the center pinned by shifting position half the growth.
+        offset.x = startOffsetX - widthDelta / 2;
+        offset.y = startOffsetY - heightDelta / 2;
+        applyOffset();
+        return;
       }
 
       // A plain box only extends its right/bottom edges when it grows, so
       // dragging a top/left edge must also shift the element's position to keep
       // the opposite (anchored) edge pinned. Right/bottom handles need no shift.
-      if (direction.x === -1) offset.x = startOffsetX - (nextWidth - startWidth);
-      if (direction.y === -1) offset.y = startOffsetY - (nextHeight - startHeight);
+      if (direction.x === -1) offset.x = startOffsetX - widthDelta;
+      if (direction.y === -1) offset.y = startOffsetY - heightDelta;
       if (direction.x === -1 || direction.y === -1) {
         applyOffset();
       } else {
