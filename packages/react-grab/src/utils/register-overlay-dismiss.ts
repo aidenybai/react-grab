@@ -1,4 +1,5 @@
 import type { OverlayDismissSource } from "../types.js";
+import { isDemoMode } from "./runtime-mode.js";
 import { isEventFromOverlay } from "./is-event-from-overlay.js";
 import { isKeyboardEventTriggeredByInput } from "./is-keyboard-event-triggered-by-input.js";
 import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "./native-raf.js";
@@ -13,6 +14,8 @@ interface RegisterOverlayDismissOptions {
 
 export const registerOverlayDismiss = (options: RegisterOverlayDismissOptions): (() => void) => {
   const handleKeyDown = (event: KeyboardEvent) => {
+    // Demo mode ignores real user input; only synthetic events drive dismissal.
+    if (isDemoMode() && event.isTrusted) return;
     if (!options.isOpen()) return;
     if (options.shouldIgnoreKeyboardEvent?.(event)) return;
     if (options.shouldIgnoreInputEvents && isKeyboardEventTriggeredByInput(event)) {
@@ -27,6 +30,7 @@ export const registerOverlayDismiss = (options: RegisterOverlayDismissOptions): 
   };
 
   const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+    if (isDemoMode() && event.isTrusted) return;
     if (!options.isOpen()) return;
     if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
     if (options.shouldIgnoreRightClick && event instanceof MouseEvent && event.button === 2) return;
