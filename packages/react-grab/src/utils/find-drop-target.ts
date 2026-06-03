@@ -35,13 +35,17 @@ export const findDropTarget = (
 
     const rect = candidate.getBoundingClientRect();
     const parentStyle = getComputedStyle(parent);
-    const isRow =
-      parentStyle.display.includes("flex") && parentStyle.flexDirection.startsWith("row");
+    const isFlex = parentStyle.display.includes("flex");
+    const isRow = isFlex && parentStyle.flexDirection.startsWith("row");
+    // In a *-reverse flex container DOM order runs opposite to visual order, so
+    // the side the cursor is on maps to the opposite insertBefore/after.
+    const isReversed = isFlex && parentStyle.flexDirection.endsWith("-reverse");
 
     const half = TRANSFORM_INDICATOR_THICKNESS_PX / 2;
     if (isRow) {
-      const placeBefore = clientX < rect.left + rect.width / 2;
-      const lineX = placeBefore ? rect.left : rect.right;
+      const cursorOnLeadingSide = clientX < rect.left + rect.width / 2;
+      const lineX = cursorOnLeadingSide ? rect.left : rect.right;
+      const placeBefore = isReversed ? !cursorOnLeadingSide : cursorOnLeadingSide;
       return {
         reference: candidate,
         placement: placeBefore ? "before" : "after",
@@ -54,8 +58,9 @@ export const findDropTarget = (
       };
     }
 
-    const placeBefore = clientY < rect.top + rect.height / 2;
-    const lineY = placeBefore ? rect.top : rect.bottom;
+    const cursorOnLeadingSide = clientY < rect.top + rect.height / 2;
+    const lineY = cursorOnLeadingSide ? rect.top : rect.bottom;
+    const placeBefore = isReversed ? !cursorOnLeadingSide : cursorOnLeadingSide;
     return {
       reference: candidate,
       placement: placeBefore ? "before" : "after",

@@ -551,246 +551,246 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     <>
       <TransformOverlay controller={transformController} />
       <Show when={dropdown.shouldMount()}>
-      <div
-        ref={containerRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Style element"
-        data-react-grab-ignore-events
-        data-react-grab-edit-panel
-        data-rg-compact={isCompact() ? "true" : "false"}
-        class={cn(
-          "fixed font-sans text-[13px] antialiased [filter:var(--rg-drop-shadow)] select-none",
-          dropdown.isAnimatedIn()
-            ? "transition-[opacity,transform] duration-220 ease-spring"
-            : "transition-[opacity,transform] duration-120 ease-drawer",
-        )}
-        style={{
-          top: `${dropdown.displayPosition().top}px`,
-          left: `${dropdown.displayPosition().left}px`,
-          "z-index": `${Z_INDEX_OVERLAY}`,
-          "pointer-events": dropdown.isAnimatedIn() ? "auto" : "none",
-          "transform-origin": DROPDOWN_EDGE_TRANSFORM_ORIGIN[dropdown.lastAnchorEdge()],
-          opacity: dropdown.isAnimatedIn() ? "1" : "0",
-          transform: dropdown.isAnimatedIn() ? "scale(1)" : "scale(0.92)",
-          "--rg-edit-list-max-h": `${EDIT_PROPERTY_LIST_MAX_HEIGHT_PX}px`,
-        }}
-        onPointerDown={suppressMenuEvent}
-        onMouseDown={suppressMenuEvent}
-        onClick={suppressMenuEvent}
-        onContextMenu={suppressMenuEvent}
-      >
         <div
-          ref={panelSurfaceRef}
-          class="contain-layout flex flex-col justify-center items-start rounded-[14px] overflow-hidden antialiased w-fit h-fit [font-synthesis:none] [corner-shape:superellipse(1.25)] bg-[var(--rg-panel-bg)]"
+          ref={containerRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Style element"
+          data-react-grab-ignore-events
+          data-react-grab-edit-panel
+          data-rg-compact={isCompact() ? "true" : "false"}
+          class={cn(
+            "fixed font-sans text-[13px] antialiased [filter:var(--rg-drop-shadow)] select-none",
+            dropdown.isAnimatedIn()
+              ? "transition-[opacity,transform] duration-220 ease-spring"
+              : "transition-[opacity,transform] duration-120 ease-drawer",
+          )}
           style={{
-            "min-width": isCompact() ? undefined : `${EDIT_PANEL_MIN_WIDTH_PX}px`,
-            "max-width": `${EDIT_PANEL_MAX_WIDTH_PX}px`,
-            transform: `translateX(${stepController.heldDirection() * EDIT_VALUE_BUMP_PX}px)`,
-            transition: `transform ${EDIT_VALUE_BUMP_MS}ms ${EDIT_SLIDER_SPRING_EASING}`,
+            top: `${dropdown.displayPosition().top}px`,
+            left: `${dropdown.displayPosition().left}px`,
+            "z-index": `${Z_INDEX_OVERLAY}`,
+            "pointer-events": dropdown.isAnimatedIn() ? "auto" : "none",
+            "transform-origin": DROPDOWN_EDGE_TRANSFORM_ORIGIN[dropdown.lastAnchorEdge()],
+            opacity: dropdown.isAnimatedIn() ? "1" : "0",
+            transform: dropdown.isAnimatedIn() ? "scale(1)" : "scale(0.92)",
+            "--rg-edit-list-max-h": `${EDIT_PROPERTY_LIST_MAX_HEIGHT_PX}px`,
           }}
+          onPointerDown={suppressMenuEvent}
+          onMouseDown={suppressMenuEvent}
+          onClick={suppressMenuEvent}
+          onContextMenu={suppressMenuEvent}
         >
-          <Show
-            when={isPendingDismiss()}
-            fallback={
-              <Show when={!isCompact()}>
-                <div
-                  class={cn(
-                    "contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 h-fit px-2",
-                    hasPendingTweaks() ? "w-full self-stretch justify-between" : "w-fit",
-                  )}
-                  onMouseEnter={() => setIsHeaderHovered(true)}
-                  onMouseLeave={() => setIsHeaderHovered(false)}
-                >
-                  <TagBadge
-                    tagName={tagDisplay().tagName}
-                    componentName={tagDisplay().componentName}
-                    isClickable={false}
-                    onClick={() => {}}
-                    shrink
-                  />
-                  <Show when={hasPendingTweaks()}>
-                    <button
-                      data-react-grab-ignore-events
-                      data-react-grab-copy-button
-                      type="button"
-                      class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[var(--rg-surface-hover)] [border-width:0.5px] border-solid border-[var(--rg-border-button)] cursor-pointer transition-all hover:bg-[var(--rg-surface-active)] press-scale h-[17px]"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        handleSubmit();
-                      }}
-                    >
-                      <span class="text-[var(--rg-text-primary)] text-[13px] leading-3.5 font-sans font-medium">
-                        Copy
-                      </span>
-                    </button>
-                  </Show>
-                </div>
-              </Show>
-            }
-          >
-            <div
-              role="alertdialog"
-              aria-modal="true"
-              aria-labelledby="rg-discard-prompt-title"
-              class="contain-layout shrink-0 flex items-center justify-between gap-2 pt-1.5 pb-1 px-2 w-full self-stretch"
-            >
-              <span
-                id="rg-discard-prompt-title"
-                class="text-[var(--rg-text-primary)] text-[13px] leading-4 font-sans font-medium"
-              >
-                Discard edits?
-              </span>
-              <div class="flex items-center gap-[5px]">
-                <button
-                  data-react-grab-ignore-events
-                  data-react-grab-discard-button="cancel"
-                  type="button"
-                  class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[var(--rg-surface-hover)] [border-width:0.5px] border-solid border-[var(--rg-border-button)] cursor-pointer transition-all hover:bg-[var(--rg-surface-active)] press-scale h-[17px]"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    discardConfirmation.hide();
-                  }}
-                >
-                  <span class="text-[var(--rg-text-primary)] text-[13px] leading-3.5 font-sans font-medium">
-                    No
-                  </span>
-                </button>
-                <button
-                  data-react-grab-ignore-events
-                  data-react-grab-discard-button="confirm"
-                  type="button"
-                  class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[var(--rg-error-bg)] cursor-pointer transition-all hover:bg-[var(--rg-error-bg-hover)] press-scale h-[17px]"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    closePanel("discard");
-                  }}
-                >
-                  <span class="text-[var(--rg-error-text)] text-[13px] leading-3.5 font-sans font-medium">
-                    Yes
-                  </span>
-                </button>
-              </div>
-            </div>
-          </Show>
-
           <div
-            class={
-              isSearchInputHidden()
-                ? ""
-                : "[font-synthesis:none] contain-layout shrink-0 flex flex-col items-start px-2 py-1.5 w-full self-stretch [border-top-width:0.5px] border-t-solid border-t-[var(--rg-border-subtle)] antialiased"
-            }
-            style={isSearchInputHidden() ? HIDDEN_FOCUS_PRESERVING_STYLE : undefined}
+            ref={panelSurfaceRef}
+            class="contain-layout flex flex-col justify-center items-start rounded-[14px] overflow-hidden antialiased w-fit h-fit [font-synthesis:none] [corner-shape:superellipse(1.25)] bg-[var(--rg-panel-bg)]"
+            style={{
+              "min-width": isCompact() ? undefined : `${EDIT_PANEL_MIN_WIDTH_PX}px`,
+              "max-width": `${EDIT_PANEL_MAX_WIDTH_PX}px`,
+              transform: `translateX(${stepController.heldDirection() * EDIT_VALUE_BUMP_PX}px)`,
+              transition: `transform ${EDIT_VALUE_BUMP_MS}ms ${EDIT_SLIDER_SPRING_EASING}`,
+            }}
           >
-            <textarea
-              ref={(element) => {
-                searchInputRef = element;
-              }}
-              data-react-grab-ignore-events
-              data-react-grab-input
-              aria-label="Search properties"
-              aria-keyshortcuts="Enter Escape ArrowUp ArrowDown ArrowLeft ArrowRight Tab"
-              autocapitalize="none"
-              autocorrect="off"
-              autocomplete="off"
-              spellcheck={false}
-              tabIndex={isSearchInputHidden() ? -1 : 0}
-              class="text-[var(--rg-text-primary)] text-[13px] leading-4 font-medium bg-transparent border-none resize-none w-full p-0 m-0 outline-none"
-              style={{
-                "caret-color": "var(--rg-text-primary)",
-                "field-sizing": "content",
-                "min-height": "16px",
-                "max-height": "16px",
-                "scrollbar-width": "none",
-              }}
-              value={searchQuery()}
-              onInput={(event) => {
-                const nextSearchQuery = replaceInlineNumericPrefix(event.currentTarget.value);
-                if (nextSearchQuery !== event.currentTarget.value) {
-                  event.currentTarget.value = nextSearchQuery;
-                }
-                if (autoApply.tryApplyNumericValue(nextSearchQuery)) {
-                  keepInlineNumericSearchQuery();
-                  setSearchQuery(nextSearchQuery);
-                  queueInlineNumericReplacementForQuery(nextSearchQuery);
-                  ensureSearchFocused();
-                  return;
-                }
-                cancelInlineNumericReplacement();
-                if (autoApply.isInlineNumericDraft(nextSearchQuery)) {
-                  keepInlineNumericSearchQuery();
-                  setSearchQuery(nextSearchQuery);
-                  ensureSearchFocused();
-                  return;
-                }
-                setSearchQuery(nextSearchQuery);
-                setInlineNumericSearchQuery(null);
-                setActiveIndex(nextSearchQuery.trim() === "" ? firstNumericActiveIndex() : 0);
-                expandPanel();
-                autoApply.applyTailwindClass(nextSearchQuery);
-              }}
-              onKeyDown={handleSearchKeyDown}
-              placeholder={
-                isCompact() ? (activeProperty()?.label ?? "Search property") : "Search property"
+            <Show
+              when={isPendingDismiss()}
+              fallback={
+                <Show when={!isCompact()}>
+                  <div
+                    class={cn(
+                      "contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 h-fit px-2",
+                      hasPendingTweaks() ? "w-full self-stretch justify-between" : "w-fit",
+                    )}
+                    onMouseEnter={() => setIsHeaderHovered(true)}
+                    onMouseLeave={() => setIsHeaderHovered(false)}
+                  >
+                    <TagBadge
+                      tagName={tagDisplay().tagName}
+                      componentName={tagDisplay().componentName}
+                      isClickable={false}
+                      onClick={() => {}}
+                      shrink
+                    />
+                    <Show when={hasPendingTweaks()}>
+                      <button
+                        data-react-grab-ignore-events
+                        data-react-grab-copy-button
+                        type="button"
+                        class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[var(--rg-surface-hover)] [border-width:0.5px] border-solid border-[var(--rg-border-button)] cursor-pointer transition-all hover:bg-[var(--rg-surface-active)] press-scale h-[17px]"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          handleSubmit();
+                        }}
+                      >
+                        <span class="text-[var(--rg-text-primary)] text-[13px] leading-3.5 font-sans font-medium">
+                          Copy
+                        </span>
+                      </button>
+                    </Show>
+                  </div>
+                </Show>
               }
-              rows={1}
-            />
-          </div>
+            >
+              <div
+                role="alertdialog"
+                aria-modal="true"
+                aria-labelledby="rg-discard-prompt-title"
+                class="contain-layout shrink-0 flex items-center justify-between gap-2 pt-1.5 pb-1 px-2 w-full self-stretch"
+              >
+                <span
+                  id="rg-discard-prompt-title"
+                  class="text-[var(--rg-text-primary)] text-[13px] leading-4 font-sans font-medium"
+                >
+                  Discard edits?
+                </span>
+                <div class="flex items-center gap-[5px]">
+                  <button
+                    data-react-grab-ignore-events
+                    data-react-grab-discard-button="cancel"
+                    type="button"
+                    class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[var(--rg-surface-hover)] [border-width:0.5px] border-solid border-[var(--rg-border-button)] cursor-pointer transition-all hover:bg-[var(--rg-surface-active)] press-scale h-[17px]"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      discardConfirmation.hide();
+                    }}
+                  >
+                    <span class="text-[var(--rg-text-primary)] text-[13px] leading-3.5 font-sans font-medium">
+                      No
+                    </span>
+                  </button>
+                  <button
+                    data-react-grab-ignore-events
+                    data-react-grab-discard-button="confirm"
+                    type="button"
+                    class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[var(--rg-error-bg)] cursor-pointer transition-all hover:bg-[var(--rg-error-bg-hover)] press-scale h-[17px]"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      closePanel("discard");
+                    }}
+                  >
+                    <span class="text-[var(--rg-error-text)] text-[13px] leading-3.5 font-sans font-medium">
+                      Yes
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </Show>
 
-          <Show when={filteredProperties().length > 0}>
             <div
               class={
-                isCompact()
+                isSearchInputHidden()
                   ? ""
-                  : "[font-synthesis:none] contain-layout shrink-0 flex flex-col items-start w-full self-stretch antialiased"
+                  : "[font-synthesis:none] contain-layout shrink-0 flex flex-col items-start px-2 py-1.5 w-full self-stretch [border-top-width:0.5px] border-t-solid border-t-[var(--rg-border-subtle)] antialiased"
               }
-              style={isCompact() ? HIDDEN_FOCUS_PRESERVING_STYLE : undefined}
+              style={isSearchInputHidden() ? HIDDEN_FOCUS_PRESERVING_STYLE : undefined}
             >
-              <PropertyList
-                properties={filteredProperties()}
-                activeIndex={activeIndex()}
-                activeKey={activeKey()}
-                onHoverIndex={setActiveIndex}
-                onSelect={handleSelectProperty}
-                onStep={stepFromPointer}
-                onCommit={commitActive}
-                onColorPickerRegister={registerColorPickerTrigger}
-                onEditComplete={ensureSearchFocused}
-                onInvalidCommit={playShake}
-                onInteract={markAsInteracting}
-                isAdjusting={isTransientInteraction}
-                activeTailwindLabel={activeTailwindLabel()}
+              <textarea
+                ref={(element) => {
+                  searchInputRef = element;
+                }}
+                data-react-grab-ignore-events
+                data-react-grab-input
+                aria-label="Search properties"
+                aria-keyshortcuts="Enter Escape ArrowUp ArrowDown ArrowLeft ArrowRight Tab"
+                autocapitalize="none"
+                autocorrect="off"
+                autocomplete="off"
+                spellcheck={false}
+                tabIndex={isSearchInputHidden() ? -1 : 0}
+                class="text-[var(--rg-text-primary)] text-[13px] leading-4 font-medium bg-transparent border-none resize-none w-full p-0 m-0 outline-none"
+                style={{
+                  "caret-color": "var(--rg-text-primary)",
+                  "field-sizing": "content",
+                  "min-height": "16px",
+                  "max-height": "16px",
+                  "scrollbar-width": "none",
+                }}
+                value={searchQuery()}
+                onInput={(event) => {
+                  const nextSearchQuery = replaceInlineNumericPrefix(event.currentTarget.value);
+                  if (nextSearchQuery !== event.currentTarget.value) {
+                    event.currentTarget.value = nextSearchQuery;
+                  }
+                  if (autoApply.tryApplyNumericValue(nextSearchQuery)) {
+                    keepInlineNumericSearchQuery();
+                    setSearchQuery(nextSearchQuery);
+                    queueInlineNumericReplacementForQuery(nextSearchQuery);
+                    ensureSearchFocused();
+                    return;
+                  }
+                  cancelInlineNumericReplacement();
+                  if (autoApply.isInlineNumericDraft(nextSearchQuery)) {
+                    keepInlineNumericSearchQuery();
+                    setSearchQuery(nextSearchQuery);
+                    ensureSearchFocused();
+                    return;
+                  }
+                  setSearchQuery(nextSearchQuery);
+                  setInlineNumericSearchQuery(null);
+                  setActiveIndex(nextSearchQuery.trim() === "" ? firstNumericActiveIndex() : 0);
+                  expandPanel();
+                  autoApply.applyTailwindClass(nextSearchQuery);
+                }}
+                onKeyDown={handleSearchKeyDown}
+                placeholder={
+                  isCompact() ? (activeProperty()?.label ?? "Search property") : "Search property"
+                }
+                rows={1}
               />
             </div>
-          </Show>
 
-          <Show when={isCompact() && activeProperty()}>
-            {(compactProperty) => (
+            <Show when={filteredProperties().length > 0}>
               <div
-                class="flex items-center justify-center w-full px-3 py-1.5 min-h-[28px]"
-                onMouseDown={(event) => event.preventDefault()}
+                class={
+                  isCompact()
+                    ? ""
+                    : "[font-synthesis:none] contain-layout shrink-0 flex flex-col items-start w-full self-stretch antialiased"
+                }
+                style={isCompact() ? HIDDEN_FOCUS_PRESERVING_STYLE : undefined}
               >
-                <ActivePropertyControl
-                  property={compactProperty()}
+                <PropertyList
+                  properties={filteredProperties()}
+                  activeIndex={activeIndex()}
                   activeKey={activeKey()}
+                  onHoverIndex={setActiveIndex}
+                  onSelect={handleSelectProperty}
                   onStep={stepFromPointer}
                   onCommit={commitActive}
+                  onColorPickerRegister={registerColorPickerTrigger}
                   onEditComplete={ensureSearchFocused}
                   onInvalidCommit={playShake}
                   onInteract={markAsInteracting}
-                  onColorPickerRegister={registerColorPickerTrigger}
-                  showLabel={false}
-                  tailwindLabel={activeTailwindLabel()}
-                  emphasized
+                  isAdjusting={isTransientInteraction}
+                  activeTailwindLabel={activeTailwindLabel()}
                 />
               </div>
-            )}
-          </Show>
+            </Show>
+
+            <Show when={isCompact() && activeProperty()}>
+              {(compactProperty) => (
+                <div
+                  class="flex items-center justify-center w-full px-3 py-1.5 min-h-[28px]"
+                  onMouseDown={(event) => event.preventDefault()}
+                >
+                  <ActivePropertyControl
+                    property={compactProperty()}
+                    activeKey={activeKey()}
+                    onStep={stepFromPointer}
+                    onCommit={commitActive}
+                    onEditComplete={ensureSearchFocused}
+                    onInvalidCommit={playShake}
+                    onInteract={markAsInteracting}
+                    onColorPickerRegister={registerColorPickerTrigger}
+                    showLabel={false}
+                    tailwindLabel={activeTailwindLabel()}
+                    emphasized
+                  />
+                </div>
+              )}
+            </Show>
+          </div>
         </div>
-      </div>
       </Show>
     </>
   );

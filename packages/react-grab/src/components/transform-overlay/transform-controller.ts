@@ -94,23 +94,34 @@ export const createTransformController = (
     setFrame(frameValue);
   };
 
+  // Tear down the in-progress drag's window listeners. Tracked so a drag that
+  // is still live when the controller unmounts (e.g. the element is removed
+  // mid-drag) does not leak listeners holding a stale closure.
+  let activeDragTeardown: (() => void) | null = null;
+
   const bindDrag = (
     onMove: (event: PointerEvent) => void,
     onUp?: (event: PointerEvent) => void,
   ): void => {
+    activeDragTeardown?.();
     const handleMove = (event: PointerEvent) => {
       event.preventDefault();
       onMove(event);
     };
-    const handleUp = (event: PointerEvent) => {
+    const teardown = () => {
       window.removeEventListener("pointermove", handleMove, { capture: true });
       window.removeEventListener("pointerup", handleUp, { capture: true });
       window.removeEventListener("pointercancel", handleUp, { capture: true });
+      activeDragTeardown = null;
+    };
+    const handleUp = (event: PointerEvent) => {
+      teardown();
       onUp?.(event);
     };
     window.addEventListener("pointermove", handleMove, { capture: true });
     window.addEventListener("pointerup", handleUp, { capture: true });
     window.addEventListener("pointercancel", handleUp, { capture: true });
+    activeDragTeardown = teardown;
   };
 
   const reinsert = (drop: DropTarget): void => {
@@ -119,11 +130,13 @@ export const createTransformController = (
     const elementParent = element.parentNode;
     if (!parent || !elementParent || element === drop.reference || element.contains(drop.reference))
       return;
+    const referenceNode = drop.placement === "before" ? drop.reference : drop.reference.nextSibling;
+    // Skip a no-op reinsert so an unchanged DOM order isn't flagged as a move.
+    if (referenceNode === element) return;
+    if (element.parentNode === parent && element.nextSibling === referenceNode) return;
     if (!originPosition) {
       originPosition = { parent: elementParent, nextSibling: element.nextSibling };
     }
-    const referenceNode = drop.placement === "before" ? drop.reference : drop.reference.nextSibling;
-    if (referenceNode === element) return;
     parent.insertBefore(element, referenceNode);
     lastDrop = drop;
     setDidMove(true);
@@ -278,7 +291,10 @@ export const createTransformController = (
   const restore = (): void => {
     if (!originPosition) return;
     const element = dependencies.getElement();
-    if (originPosition.parent.isConnected) {
+    // Only move a still-connected element back to its origin; never re-attach a
+    // node the app/React already removed (restore runs on every dismiss,
+    // including the deselect triggered when the element is detached).
+    if (isElementConnected(element) && originPosition.parent.isConnected) {
       originPosition.parent.insertBefore(element, originPosition.nextSibling);
     }
     originPosition = null;
@@ -305,6 +321,7 @@ export const createTransformController = (
       stopViewportTracking();
       resizeObserver.disconnect();
       mutationObserver.disconnect();
+      activeDragTeardown?.();
     });
   });
 

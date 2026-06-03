@@ -139,6 +139,10 @@ export const createEditModeController = (
   ): boolean => {
     const current = state();
     if (current?.element === element) return false;
+    // Confirm the new element is editable before tearing down the current
+    // selection — otherwise a non-editable target would revert the current
+    // element's preview while leaving the panel pointed at it.
+    if (buildEditableProperties(element).length === 0) return false;
     current?.preview.restore();
     return buildStateForElement(element, position, overrides);
   };
