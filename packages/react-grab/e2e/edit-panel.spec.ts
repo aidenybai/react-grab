@@ -768,6 +768,26 @@ test.describe("Style Panel", () => {
       );
     });
 
+    test("compact inline numeric edit accepts matching CSS units", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+      const activePropertyKey = await getActivePropertyKey(reactGrab.page);
+      expect(activePropertyKey).toBe("padding-left,padding-right");
+
+      await reactGrab.page.keyboard.type("50px");
+      await reactGrab.page.waitForTimeout(80);
+
+      expect(await getEditPanelCompactAttr(reactGrab.page)).toBe("true");
+      expect(await getActivePropertyKey(reactGrab.page)).toBe(activePropertyKey);
+      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-left")).toBe(
+        "50px",
+      );
+      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-right")).toBe(
+        "50px",
+      );
+    });
+
     test("type-to-edit: hover + type m then t → margin-top focused", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement(BUTTON_SELECTOR);

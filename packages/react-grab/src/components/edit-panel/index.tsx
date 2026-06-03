@@ -601,8 +601,11 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
               value={searchQuery()}
               onInput={(event) => {
                 const nextSearchQuery = event.currentTarget.value;
+                if (autoApply.tryApplyNumericValue(nextSearchQuery)) {
+                  setSearchQuery(nextSearchQuery);
+                  return;
+                }
                 setSearchQuery(nextSearchQuery);
-                if (autoApply.tryApplyNumericValue(nextSearchQuery)) return;
                 if (autoApply.isInlineNumericDraft(nextSearchQuery)) return;
                 setActiveIndex(nextSearchQuery.trim() === "" ? firstNumericActiveIndex() : 0);
                 setIsCompact(false);
