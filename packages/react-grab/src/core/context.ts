@@ -37,11 +37,6 @@ import {
 import type { SourceOptions } from "../types.js";
 
 let cachedIsNextProject: boolean | undefined;
-let activeSourceOptions: SourceOptions | undefined;
-
-export const setSourceOptions = (sourceOptions: SourceOptions | undefined): void => {
-  activeSourceOptions = sourceOptions;
-};
 
 export const isNextProjectRuntime = (shouldRevalidate?: boolean): boolean => {
   if (shouldRevalidate) {
@@ -286,8 +281,10 @@ interface ResolvedSource {
   componentName: string | null;
 }
 
-const isApplicationSourceFile = (fileName: string | null | undefined): boolean =>
-  classifySourcePath(fileName, activeSourceOptions).kind === "app-source";
+const isApplicationSourceFile = (
+  fileName: string | null | undefined,
+  sourceOptions: SourceOptions | undefined,
+): boolean => classifySourcePath(fileName, sourceOptions).kind === "app-source";
 
 const pickSourceFrame = (frames: StackFrame[]): StackFrame | null => {
   const namedFrame = frames.find(
@@ -308,13 +305,18 @@ const getSourceComponentName = (fiber: Fiber | undefined): string | null => {
 // library sourcemap paths are left to the owner-stack scan.
 // This reads React's own dev data, so it works without bippy instrumentation;
 // getSource can still throw while parsing owner stacks, so it is guarded.
-const getFiberSource = async (element: Element): Promise<ResolvedSource | null> => {
+const getFiberSource = async (
+  element: Element,
+  sourceOptions?: SourceOptions,
+): Promise<ResolvedSource | null> => {
   const fiber = getFiberFromHostInstance(findNearestFiberElement(element));
   if (!fiber) return null;
 
   try {
     const source = await getSource(fiber);
-    if (!source?.fileName || !isApplicationSourceFile(source.fileName)) return null;
+    if (!source?.fileName || !isApplicationSourceFile(source.fileName, sourceOptions)) {
+      return null;
+    }
 
     return {
       filePath: normalizeFilePath(source.fileName),
@@ -330,8 +332,15 @@ const getFiberSource = async (element: Element): Promise<ResolvedSource | null> 
   }
 };
 
-export const resolveSource = async (element: Element): Promise<ResolvedSource | null> => {
-  const fiberSource = await getFiberSource(element);
+interface ResolveSourceOptions {
+  sourceOptions?: SourceOptions;
+}
+
+export const resolveSource = async (
+  element: Element,
+  options: ResolveSourceOptions = {},
+): Promise<ResolvedSource | null> => {
+  const fiberSource = await getFiberSource(element, options.sourceOptions);
   if (fiberSource) return fiberSource;
 
   const stack = await getStack(element);
@@ -341,7 +350,7 @@ export const resolveSource = async (element: Element): Promise<ResolvedSource | 
   const ignoredAppSourceFrames: StackFrame[] = [];
   const packageSourceFrames: StackFrame[] = [];
   for (const frame of stack) {
-    const sourcePath = classifySourcePath(frame.fileName, activeSourceOptions);
+    const sourcePath = classifySourcePath(frame.fileName, options.sourceOptions);
     if (sourcePath.kind === "app-source") {
       appSourceFrames.push(frame);
     } else if (sourcePath.kind === "ignored-app-source") {
@@ -393,6 +402,7 @@ export const getComponentDisplayName = (element: Element): string | null => {
 
 interface StackContextOptions {
   maxLines?: number;
+  sourceOptions?: SourceOptions;
 }
 
 const getComponentNamesFromFiber = (element: Element, maxCount: number): string[] => {
@@ -471,7 +481,7 @@ const formatStackContext = (
   for (const frame of stack) {
     if (lines.length >= maxLines) break;
 
-    const sourcePath = classifySourcePath(frame.fileName, activeSourceOptions);
+    const sourcePath = classifySourcePath(frame.fileName, options.sourceOptions);
     if (sourcePath.kind === "ignored-app-source") continue;
 
     const libraryPackage = sourcePath.packageName;
@@ -539,7 +549,7 @@ export const getStackContext = async (
   options: StackContextOptions = {},
 ): Promise<string> => {
   const maxLines = options.maxLines ?? DEFAULT_MAX_CONTEXT_LINES;
-  const leadingSource = await getFiberSource(element);
+  const leadingSource = await getFiberSource(element, options.sourceOptions);
   const stack = await getStack(element);
 
   if (stack) {

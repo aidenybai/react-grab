@@ -20,6 +20,7 @@ import {
 import { Fiber, getFiberFromHostInstance } from "bippy";
 import type { StackFrame } from "bippy/source";
 export type { StackFrame };
+import type { SourceOptions } from "./types.js";
 import { createElementSelector } from "./utils/create-element-selector.js";
 import { extractElementCss, disposeBaselineStyles } from "./utils/extract-element-css.js";
 import { openFile as openFileAsync } from "./utils/open-file.js";
@@ -39,6 +40,10 @@ export interface ReactGrabElementContext {
   styles: string;
 }
 
+export interface ReactGrabElementContextOptions {
+  sourceOptions?: SourceOptions;
+}
+
 /**
  * Gathers comprehensive context for a DOM element — the same context
  * React Grab copies to the clipboard, plus structured source location
@@ -51,13 +56,16 @@ export interface ReactGrabElementContext {
  * ctx.filePath;      // "/src/components/Button.tsx"
  * ctx.lineNumber;    // 12
  */
-export const getElementContext = async (element: Element): Promise<ReactGrabElementContext> => {
+export const getElementContext = async (
+  element: Element,
+  options: ReactGrabElementContextOptions = {},
+): Promise<ReactGrabElementContext> => {
   const [snippet, source, stack] = await Promise.all([
-    formatElementSnippet(element),
-    resolveSource(element),
+    formatElementSnippet(element, { sourceOptions: options.sourceOptions }),
+    resolveSource(element, { sourceOptions: options.sourceOptions }),
     getStack(element).then((result) => result ?? []),
   ]);
-  const stackString = await getStackContext(element);
+  const stackString = await getStackContext(element, { sourceOptions: options.sourceOptions });
   const htmlPreview = getHTMLPreview(element);
   const componentName = getComponentDisplayName(element);
   const fiber = getFiberFromHostInstance(element);

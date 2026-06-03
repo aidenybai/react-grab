@@ -33,7 +33,6 @@ import {
   getComponentDisplayName,
   isNextProjectRuntime,
   resolveSource,
-  setSourceOptions,
 } from "./context.js";
 import { createNoopApi } from "./noop-api.js";
 import { createEventListenerManager } from "./events.js";
@@ -214,11 +213,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let disposeRenderer: (() => void) | undefined;
 
     const pluginRegistry = createPluginRegistry(settableOptions);
-
-    createEffect(() => {
-      setSourceOptions(pluginRegistry.store.options.source);
-    });
-    onCleanup(() => setSourceOptions(undefined));
 
     const { store, actions, pointer, viewportVersion, current } = createGrabStore({
       keyHoldDuration: pluginRegistry.store.options.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS,
@@ -552,9 +546,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const notifyElementsSelected = async (elements: Element[]): Promise<void> => {
+      const sourceOptions = pluginRegistry.store.options.source;
       const elementsPayload = await Promise.all(
         elements.map(async (element) => {
-          const source = await resolveSource(element);
+          const source = await resolveSource(element, { sourceOptions });
           let componentName = source?.componentName ?? null;
           const filePath = source?.filePath;
           const lineNumber = source?.lineNumber ?? undefined;
@@ -650,6 +645,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         {
           getContent: pluginRegistry.store.options.getContent,
           componentName: elementName,
+          sourceOptions: pluginRegistry.store.options.source,
         },
         {
           onBeforeCopy: pluginRegistry.hooks.onBeforeCopy,
@@ -1151,7 +1147,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             return;
           }
 
-          resolveSource(element)
+          resolveSource(element, { sourceOptions: pluginRegistry.store.options.source })
             .then((source) => {
               if (selectionSourceRequestVersion !== currentVersion) return;
               if (!source) {
@@ -3137,7 +3133,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       () => store.contextMenuElement,
       async (element) => {
         if (!element) return null;
-        return resolveSource(element);
+        return resolveSource(element, { sourceOptions: pluginRegistry.store.options.source });
       },
     );
 
@@ -3681,7 +3677,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
       copyElement: copyElementAPI,
       getSource: async (element: Element): Promise<SourceInfo | null> => {
-        const source = await resolveSource(element);
+        const source = await resolveSource(element, {
+          sourceOptions: pluginRegistry.store.options.source,
+        });
         if (!source) return null;
         return {
           filePath: source.filePath,

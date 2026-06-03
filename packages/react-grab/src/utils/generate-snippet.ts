@@ -1,7 +1,9 @@
 import { getElementContext } from "../core/context.js";
+import type { SourceOptions } from "../types.js";
 
 interface GenerateSnippetOptions {
   maxLines?: number;
+  sourceOptions?: SourceOptions;
 }
 
 export const generateSnippet = async (
