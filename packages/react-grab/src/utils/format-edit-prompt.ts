@@ -30,7 +30,9 @@ const formatEntryHeader = (pendingEditsEntry: PendingEditsEntry): string =>
 export const formatSessionEditsPrompt = (pendingEditsEntries: PendingEditsEntry[]): string => {
   if (pendingEditsEntries.length === 0) return "";
 
-  const sections: string[] = ["Apply these style changes:"];
+  const sections: string[] = [
+    "Apply these style changes canonically (CSS = visual intent; choose the source change that best expresses the underlying layout intent):",
+  ];
 
   if (pendingEditsEntries.length === 1) {
     const header = formatEntryHeader(pendingEditsEntries[0]);
