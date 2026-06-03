@@ -469,6 +469,8 @@ const formatStackContext = (
     if (lines.length >= maxLines) break;
 
     const sourcePath = classifySourcePath(frame.fileName, activeSourceOptions);
+    if (sourcePath.kind === "ignored-app-source") continue;
+
     const libraryPackage = sourcePath.packageName;
     const resolvedSource = sourcePath.kind === "app-source" ? frame.fileName : null;
 
