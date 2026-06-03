@@ -200,6 +200,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       if (index >= 0) setActiveIndex(index);
       setIsCompact(true);
     },
+    onInvalid: () => props.onDismiss(),
   });
 
   const isShiftHeld = createShiftTracker();

@@ -6,6 +6,7 @@ import {
   getInlineStyleProperty,
   getTransformHandleCenter,
   isEditPanelCompact,
+  isEditPanelVisible,
   isTransformOverlayVisible,
   openEditPanel,
 } from "./edit-panel-helpers.js";
@@ -161,6 +162,19 @@ test.describe("Transform Overlay", () => {
       { moved: TARGET_SELECTOR, sibling: SIBLING_SELECTOR },
     );
     expect(movedBefore).toBe(true);
+  });
+
+  test("deselects when the selected element is removed from the DOM", async ({ reactGrab }) => {
+    const { page } = reactGrab;
+    await openEditPanel(reactGrab, TARGET_SELECTOR);
+    await expect.poll(() => isTransformOverlayVisible(page)).toBe(true);
+
+    await page.evaluate((selector) => {
+      document.querySelector(selector)?.remove();
+    }, TARGET_SELECTOR);
+
+    await expect.poll(() => isEditPanelVisible(page)).toBe(false);
+    expect(await isTransformOverlayVisible(page)).toBe(false);
   });
 
   test("shows a drag ghost while moving and clears it on drop", async ({ reactGrab }) => {

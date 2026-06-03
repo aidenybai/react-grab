@@ -9,6 +9,7 @@ import type {
 } from "../../types.js";
 import { describeElementForPrompt } from "../../utils/describe-element-for-prompt.js";
 import { findDropTarget } from "../../utils/find-drop-target.js";
+import { isElementConnected } from "../../utils/is-element-connected.js";
 
 interface TransformControllerDependencies {
   getElement: () => Element;
@@ -18,6 +19,9 @@ interface TransformControllerDependencies {
   ) => void;
   // Collapse the panel onto the dimension being resized, like keyboard stepping.
   focusProperty: (cssProperty: "width" | "height") => void;
+  // The selected element left the document (e.g. removed by a re-render); the
+  // panel should deselect rather than track a dead node.
+  onInvalid: () => void;
 }
 
 export interface TransformController {
@@ -84,7 +88,14 @@ export const createTransformController = (
     target.height = layoutHeight;
   };
 
+  const ensureConnected = (): boolean => {
+    if (isElementConnected(dependencies.getElement())) return true;
+    dependencies.onInvalid();
+    return false;
+  };
+
   const refreshFrame = (): void => {
+    if (!ensureConnected()) return;
     measureFrameInto(frameValue);
     setFrame(frameValue);
   };
@@ -130,6 +141,7 @@ export const createTransformController = (
   };
 
   const startMove = (event: PointerEvent): void => {
+    if (!ensureConnected()) return;
     refreshFrame();
     const originLeft = frameValue.centerX - frameValue.width / 2;
     const originTop = frameValue.centerY - frameValue.height / 2;
@@ -176,6 +188,7 @@ export const createTransformController = (
   };
 
   const startResize = (event: PointerEvent, handle: TransformHandleId): void => {
+    if (!ensureConnected()) return;
     refreshFrame();
     const direction = HANDLE_DIRECTION[handle];
     // The frame is the border-box (offsetWidth/Height); the inline `width`
@@ -274,11 +287,13 @@ export const createTransformController = (
   const restore = (): void => {
     if (!originPosition) return;
     const element = dependencies.getElement();
-    originPosition.parent.insertBefore(element, originPosition.nextSibling);
+    if (originPosition.parent.isConnected) {
+      originPosition.parent.insertBefore(element, originPosition.nextSibling);
+    }
     originPosition = null;
     lastDrop = null;
     setDidMove(false);
-    refreshFrame();
+    if (isElementConnected(element)) refreshFrame();
   };
 
   // Track the element the way the selection label does (see selection-label):
@@ -294,12 +309,19 @@ export const createTransformController = (
     window.visualViewport?.addEventListener("scroll", handleViewportChange);
     const resizeObserver = new ResizeObserver(() => refreshFrame());
     resizeObserver.observe(dependencies.getElement());
+    // A ResizeObserver does not fire when its target is removed, so watch the
+    // document tree for the element being detached and deselect if so.
+    const mutationObserver = new MutationObserver(() => {
+      if (!isElementConnected(dependencies.getElement())) dependencies.onInvalid();
+    });
+    mutationObserver.observe(document.documentElement, { childList: true, subtree: true });
     onCleanup(() => {
       window.removeEventListener("scroll", handleViewportChange, true);
       window.removeEventListener("resize", handleViewportChange);
       window.visualViewport?.removeEventListener("resize", handleViewportChange);
       window.visualViewport?.removeEventListener("scroll", handleViewportChange);
       resizeObserver.disconnect();
+      mutationObserver.disconnect();
     });
   });
 
