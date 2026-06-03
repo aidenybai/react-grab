@@ -246,38 +246,48 @@ export const createTransformController = (
       // move); otherwise the edge opposite the handle stays anchored.
       const fromCenter = moveEvent.altKey;
       const growthScale = fromCenter ? 2 : 1;
-      const nextWidth = Math.round(
+      const requestedWidth = Math.round(
         Math.max(
           TRANSFORM_MIN_SIZE_PX,
           startWidth + growthScale * direction.x * (moveEvent.clientX - startPointerX),
         ),
       );
-      const nextHeight = Math.round(
+      const requestedHeight = Math.round(
         Math.max(
           TRANSFORM_MIN_SIZE_PX,
           startHeight + growthScale * direction.y * (moveEvent.clientY - startPointerY),
         ),
       );
-      const widthDelta = nextWidth - startWidth;
-      const heightDelta = nextHeight - startHeight;
 
       dependencies.commitStyle(
         "width",
-        Math.max(TRANSFORM_MIN_SIZE_PX, Math.round(nextWidth - extraX)),
+        Math.max(TRANSFORM_MIN_SIZE_PX, Math.round(requestedWidth - extraX)),
       );
       dependencies.commitStyle(
         "height",
-        Math.max(TRANSFORM_MIN_SIZE_PX, Math.round(nextHeight - extraY)),
+        Math.max(TRANSFORM_MIN_SIZE_PX, Math.round(requestedHeight - extraY)),
       );
 
       // Once the size is on the tweak store, collapse the panel onto whichever
       // dimension the drag is changing most so its live value stays visible.
       if (!didFocus) {
         dependencies.focusProperty(
-          Math.abs(widthDelta) >= Math.abs(heightDelta) ? "width" : "height",
+          Math.abs(requestedWidth - startWidth) >= Math.abs(requestedHeight - startHeight)
+            ? "width"
+            : "height",
         );
         didFocus = true;
       }
+
+      // Anchor the opposite edge using the element's ACTUAL post-layout size,
+      // not the requested one. When a layout constrains the element (flex/grid
+      // distribution, min/max-width, content), the requested delta overshoots
+      // and the position would slide the element out from under the cursor —
+      // the main source of "glitchy" resizing on real pages. Measuring first
+      // keeps the anchored edge pinned even when the element can't grow.
+      measureFrameInto(frameValue);
+      const actualWidthDelta = frameValue.width - startWidth;
+      const actualHeightDelta = frameValue.height - startHeight;
 
       // How much of each dimension's growth the position must absorb to keep the
       // intended edge fixed: half when scaling about the center (Alt), all of it
@@ -285,12 +295,12 @@ export const createTransformController = (
       // none when dragging the bottom/right edge (the box just extends).
       const anchorX = fromCenter ? 0.5 : direction.x === -1 ? 1 : 0;
       const anchorY = fromCenter ? 0.5 : direction.y === -1 ? 1 : 0;
-      offset.x = startOffsetX - anchorX * widthDelta;
-      offset.y = startOffsetY - anchorY * heightDelta;
       if (anchorX !== 0 || anchorY !== 0) {
+        offset.x = startOffsetX - anchorX * actualWidthDelta;
+        offset.y = startOffsetY - anchorY * actualHeightDelta;
         applyOffset();
       } else {
-        refreshFrame();
+        setFrame(frameValue);
       }
     });
   };

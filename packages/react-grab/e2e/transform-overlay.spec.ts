@@ -62,6 +62,39 @@ test.describe("Transform Overlay", () => {
     expect(await getInlineStyleProperty(page, TARGET_SELECTOR, "width")).not.toBe("");
   });
 
+  test("keeps the anchored edge pinned when the element can't take the requested size", async ({
+    reactGrab,
+  }) => {
+    const { page } = reactGrab;
+    await openEditPanel(reactGrab, TARGET_SELECTOR);
+    await expect.poll(() => isTransformOverlayVisible(page)).toBe(true);
+
+    // Cap the width so the element can't grow horizontally — a stand-in for the
+    // flex/grid/min-max constraints that make real layouts "glitchy". The NW
+    // handle must keep the right edge pinned instead of sliding the element
+    // left by the (unachievable) requested delta.
+    const rightBefore = await page.evaluate((selector) => {
+      const element = document.querySelector(selector);
+      if (!(element instanceof HTMLElement)) return null;
+      element.style.maxWidth = `${element.offsetWidth}px`;
+      return element.getBoundingClientRect().right;
+    }, TARGET_SELECTOR);
+
+    const handle = await getTransformHandleCenter(page, "Resize nw");
+    await page.mouse.move(handle.x, handle.y);
+    await page.mouse.down();
+    await page.mouse.move(handle.x - 80, handle.y - 10, { steps: 6 });
+    await page.mouse.up();
+
+    const rightAfter = await page.evaluate((selector) => {
+      const element = document.querySelector(selector);
+      return element instanceof HTMLElement ? element.getBoundingClientRect().right : null;
+    }, TARGET_SELECTOR);
+
+    expect(rightBefore).not.toBeNull();
+    expect(Math.abs((rightAfter ?? 0) - (rightBefore ?? 0))).toBeLessThanOrEqual(2);
+  });
+
   test("Alt-resizing scales symmetrically about the center", async ({ reactGrab }) => {
     const { page } = reactGrab;
     await openEditPanel(reactGrab, TARGET_SELECTOR);
