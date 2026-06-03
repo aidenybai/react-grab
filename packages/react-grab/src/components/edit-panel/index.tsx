@@ -652,12 +652,14 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                   keepInlineNumericSearchQuery();
                   setSearchQuery(nextSearchQuery);
                   queueInlineNumericReplacement();
+                  ensureSearchFocused();
                   return;
                 }
                 cancelInlineNumericReplacement();
                 setSearchQuery(nextSearchQuery);
                 if (autoApply.isInlineNumericDraft(nextSearchQuery)) {
                   keepInlineNumericSearchQuery();
+                  ensureSearchFocused();
                   return;
                 }
                 setInlineNumericSearchQuery(null);
