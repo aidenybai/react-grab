@@ -2,8 +2,10 @@ import { expect, test } from "./fixtures.js";
 import {
   BUTTON_SELECTOR,
   clearEditStorage,
+  getActivePropertyKey,
   getInlineStyleProperty,
   getTransformHandleCenter,
+  isEditPanelCompact,
   isTransformOverlayVisible,
   openEditPanel,
 } from "./edit-panel-helpers.js";
@@ -57,6 +59,23 @@ test.describe("Transform Overlay", () => {
       .poll(() => getOffsetHeight(page, TARGET_SELECTOR))
       .toBeGreaterThan(startHeight + 10);
     expect(await getInlineStyleProperty(page, TARGET_SELECTOR, "width")).not.toBe("");
+  });
+
+  test("resizing compacts the panel onto the dimension being edited", async ({ reactGrab }) => {
+    const { page } = reactGrab;
+    await openEditPanel(reactGrab, TARGET_SELECTOR);
+    await expect.poll(() => isTransformOverlayVisible(page)).toBe(true);
+    expect(await isEditPanelCompact(page)).toBe(false);
+
+    // Drag the east-west bias of the SE handle so width changes most.
+    const handle = await getTransformHandleCenter(page, "Resize se");
+    await page.mouse.move(handle.x, handle.y);
+    await page.mouse.down();
+    await page.mouse.move(handle.x + 80, handle.y + 10, { steps: 6 });
+    await page.mouse.up();
+
+    expect(await isEditPanelCompact(page)).toBe(true);
+    expect(await getActivePropertyKey(page)).toBe("width");
   });
 
   test("dragging the frame body reinserts the element in the DOM", async ({ reactGrab }) => {

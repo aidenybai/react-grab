@@ -195,6 +195,11 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       const property = propertyByKey.get(cssProperty);
       if (property) commit(property, value);
     },
+    focusProperty: (cssProperty) => {
+      const index = filteredProperties().findIndex((property) => property.key === cssProperty);
+      if (index >= 0) setActiveIndex(index);
+      setIsCompact(true);
+    },
   });
 
   const isShiftHeld = createShiftTracker();

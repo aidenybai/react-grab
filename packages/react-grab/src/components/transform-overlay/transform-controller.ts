@@ -16,6 +16,8 @@ interface TransformControllerDependencies {
     cssProperty: "width" | "height" | "left" | "top" | "position",
     value: number | string,
   ) => void;
+  // Collapse the panel onto the dimension being resized, like keyboard stepping.
+  focusProperty: (cssProperty: "width" | "height") => void;
 }
 
 export interface TransformController {
@@ -182,6 +184,7 @@ export const createTransformController = (
     const startOffsetY = offset.y;
     const startPointerX = event.clientX;
     const startPointerY = event.clientY;
+    let didFocus = false;
 
     bindDrag((moveEvent) => {
       const nextWidth = Math.round(
@@ -198,6 +201,15 @@ export const createTransformController = (
       );
       dependencies.commitStyle("width", nextWidth);
       dependencies.commitStyle("height", nextHeight);
+
+      // Once the size is on the tweak store, collapse the panel onto whichever
+      // dimension the drag is changing most so its live value stays visible.
+      if (!didFocus) {
+        const widthDelta = Math.abs(nextWidth - startWidth);
+        const heightDelta = Math.abs(nextHeight - startHeight);
+        dependencies.focusProperty(widthDelta >= heightDelta ? "width" : "height");
+        didFocus = true;
+      }
 
       // A plain box only extends its right/bottom edges when it grows, so
       // dragging a top/left edge must also shift the element's position to keep
