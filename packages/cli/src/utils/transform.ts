@@ -1,4 +1,4 @@
-import { accessSync, constants, readFileSync, writeFileSync } from "node:fs";
+import { accessSync, constants, existsSync, readFileSync, writeFileSync } from "node:fs";
 import type { Framework, NextRouterType } from "./detect.js";
 import {
   NEXT_APP_ROUTER_SCRIPT,
@@ -15,6 +15,12 @@ import {
   findInstrumentationFile,
   findLayoutFile,
   findTanStackRootFile,
+  getDocumentFileCandidates,
+  getEntryFileCandidates,
+  getIndexHtmlCandidates,
+  getInstrumentationFileCandidates,
+  getLayoutFileCandidates,
+  getTanStackRootFileCandidates,
   isInstrumentationFile,
 } from "./react-grab-setup-files.js";
 
@@ -498,6 +504,14 @@ const formatOptionsAsJson = (options: ReactGrabOptions): string => {
   return JSON.stringify(cleanOptions);
 };
 
+const findFileWithReactGrabSetup = (fileCandidates: string[]): string | null => {
+  for (const filePath of fileCandidates) {
+    if (!existsSync(filePath)) continue;
+    if (hasReactGrabSetupCode(readFileSync(filePath, "utf-8"))) return filePath;
+  }
+  return null;
+};
+
 const findReactGrabFile = (
   projectRoot: string,
   framework: Framework,
@@ -507,35 +521,38 @@ const findReactGrabFile = (
     case "next": {
       const primaryFile =
         nextRouterType === "app" ? findLayoutFile(projectRoot) : findDocumentFile(projectRoot);
-      if (primaryFile && hasReactGrabSetupCode(readFileSync(primaryFile, "utf-8"))) {
-        return primaryFile;
-      }
+      const primaryCandidates =
+        nextRouterType === "app"
+          ? getLayoutFileCandidates(projectRoot)
+          : getDocumentFileCandidates(projectRoot);
+      const primarySetupFile = findFileWithReactGrabSetup(primaryCandidates);
+      if (primarySetupFile) return primarySetupFile;
 
-      const instrumentationFile = findInstrumentationFile(projectRoot);
-      if (
-        instrumentationFile &&
-        hasReactGrabSetupCode(readFileSync(instrumentationFile, "utf-8"))
-      ) {
-        return instrumentationFile;
-      }
+      const instrumentationFile = findFileWithReactGrabSetup(
+        getInstrumentationFileCandidates(projectRoot),
+      );
+      if (instrumentationFile) return instrumentationFile;
 
       return primaryFile;
     }
     case "vite": {
       const entryFile = findEntryFile(projectRoot);
-      if (entryFile && hasReactGrabSetupCode(readFileSync(entryFile, "utf-8"))) {
-        return entryFile;
-      }
-      const indexHtml = findIndexHtml(projectRoot);
-      if (indexHtml && hasReactGrabSetupCode(readFileSync(indexHtml, "utf-8"))) {
-        return indexHtml;
-      }
+      const entrySetupFile = findFileWithReactGrabSetup(getEntryFileCandidates(projectRoot));
+      if (entrySetupFile) return entrySetupFile;
+
+      const indexHtml = findFileWithReactGrabSetup(getIndexHtmlCandidates(projectRoot));
+      if (indexHtml) return indexHtml;
+
       return entryFile;
     }
-    case "tanstack":
-      return findTanStackRootFile(projectRoot);
-    case "webpack":
-      return findEntryFile(projectRoot);
+    case "tanstack": {
+      const rootSetupFile = findFileWithReactGrabSetup(getTanStackRootFileCandidates(projectRoot));
+      return rootSetupFile ?? findTanStackRootFile(projectRoot);
+    }
+    case "webpack": {
+      const entrySetupFile = findFileWithReactGrabSetup(getEntryFileCandidates(projectRoot));
+      return entrySetupFile ?? findEntryFile(projectRoot);
+    }
     default:
       return null;
   }
@@ -590,7 +607,7 @@ const addOptionsToDynamicImport = (
   filePath: string,
 ): TransformResult => {
   const reactGrabImportWithInitMatch = originalContent.match(
-    /(void\s+)?import\s*\(\s*["']react-grab["']\s*\)(?:\.then\s*\(\s*\(m\)\s*=>\s*m\.init\s*\([^)]*\)\s*\))?/,
+    /(void\s+)?import\s*\(\s*["']react-grab(?:\/[^"']+)?["']\s*\)(?:\.then\s*\(\s*\(m\)\s*=>\s*m\.init\s*\([^)]*\)\s*\))?/,
   );
 
   if (!reactGrabImportWithInitMatch) {
@@ -622,7 +639,7 @@ const addOptionsToTanStackImport = (
   filePath: string,
 ): TransformResult => {
   const reactGrabImportWithInitMatch = originalContent.match(
-    /(?:(void\s+)?import\s*\(\s*["']react-grab["']\s*\)|(void\s+)?import\s*\(\s*["']react-grab\/core["']\s*\)\.then\s*\(\s*\(\s*\{\s*init\s*\}\s*\)\s*=>\s*init\s*\([^)]*\)\s*\))/,
+    /(?:(void\s+)?import\s*\(\s*["']react-grab\/core["']\s*\)\.then\s*\(\s*\(\s*\{\s*init\s*\}\s*\)\s*=>\s*init\s*\([^)]*\)\s*\)|(void\s+)?import\s*\(\s*["']react-grab(?:\/[^"']+)?["']\s*\))/,
   );
 
   if (!reactGrabImportWithInitMatch) {

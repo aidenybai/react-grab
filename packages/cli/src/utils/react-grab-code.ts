@@ -7,10 +7,13 @@ const stripComments = (content: string): string =>
 
 export const hasReactGrabSetupCode = (content: string): boolean => {
   const uncommentedContent = stripComments(content);
+  const reactGrabSpecifierPattern = String.raw`react-grab(?:\/[^"']+)?`;
   const setupPatterns = [
-    /import\s*\(\s*["']react-grab(?:\/core)?["']\s*\)/,
-    /import\s+(?!type\b)(?:[^"';]+from\s+)?["']react-grab(?:\/core)?["']/,
-    /require\s*\(\s*["']react-grab(?:\/core)?["']\s*\)/,
+    new RegExp(String.raw`import\s*\(\s*["']${reactGrabSpecifierPattern}["']\s*\)`),
+    new RegExp(
+      String.raw`import\s+(?!type\b)(?:[^"';]+from\s+)?["']${reactGrabSpecifierPattern}["']`,
+    ),
+    new RegExp(String.raw`require\s*\(\s*["']${reactGrabSpecifierPattern}["']\s*\)`),
     /<Script[\s\S]*?src\s*=\s*(?:["'][^"']*react-grab[^"']*["']|\{["'][^"']*react-grab[^"']*["']\})/i,
     /<script[\s\S]*?src\s*=\s*["'][^"']*react-grab[^"']*["']/i,
   ];
