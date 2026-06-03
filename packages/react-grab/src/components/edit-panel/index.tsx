@@ -22,10 +22,14 @@ import {
   Z_INDEX_OVERLAY,
 } from "../../constants.js";
 import type {
+  ArchivedEdit,
+  ArchivedEdits,
   DropdownAnchor,
   EditableProperty,
   EditPanelState,
+  EditTeardownReason,
   OverlayDismissSource,
+  PendingEditsEntry,
 } from "../../types.js";
 import { clampToRange } from "../../utils/clamp-to-range.js";
 import { cn } from "../../utils/cn.js";
@@ -58,6 +62,9 @@ interface EditPanelProps {
   onDismiss: () => void;
   onSubmit: (prompt: string) => void;
   onInteractingChange?: (interacting: boolean) => void;
+  teardownReason: () => EditTeardownReason;
+  onArchive: (item: ArchivedEdit) => void;
+  archived: () => ArchivedEdits;
 }
 
 export const EditPanel: Component<EditPanelProps> = (props) => (
@@ -71,6 +78,9 @@ export const EditPanel: Component<EditPanelProps> = (props) => (
             onDismiss={props.onDismiss}
             onSubmit={props.onSubmit}
             onInteractingChange={props.onInteractingChange}
+            teardownReason={props.teardownReason}
+            onArchive={props.onArchive}
+            archived={props.archived}
           />
         )}
       </Show>
@@ -84,6 +94,9 @@ interface EditPanelBodyProps {
   onDismiss: () => void;
   onSubmit: (prompt: string) => void;
   onInteractingChange?: (interacting: boolean) => void;
+  teardownReason: () => EditTeardownReason;
+  onArchive: (item: ArchivedEdit) => void;
+  archived: () => ArchivedEdits;
 }
 
 const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
@@ -91,6 +104,19 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
 
   let searchInputRef: HTMLTextAreaElement | undefined;
   const preview = props.state.preview;
+  // This body is keyed on its element, but `props.state` still resolves to the
+  // session's current state — which, during a retarget teardown, is already the
+  // next element. Mirror our own source into plain vars (guarded by element
+  // identity) so archiving in onCleanup reports this element, not the next one.
+  const ownElement = props.state.element;
+  let ownFilePath = props.state.filePath ?? "";
+  let ownLineNumber = props.state.lineNumber ?? 0;
+  createEffect(() => {
+    const current = props.state;
+    if (current.element !== ownElement) return;
+    ownFilePath = current.filePath ?? "";
+    ownLineNumber = current.lineNumber ?? 0;
+  });
 
   const [searchQuery, setSearchQuery] = createSignal(props.state.initialSearchQuery ?? "");
   const [inlineNumericSearchQuery, setInlineNumericSearchQuery] = createSignal<string | null>(null);
@@ -112,6 +138,13 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   // below in natural order: a memo evaluates eagerly during setup and would hit
   // the controller's temporal dead zone. The reads stay cheap booleans.
   const hasPendingTweaks = () => tweakStore.hasPendingTweaks() || transformController.hasMoved();
+  // Edits batched from elements the user already switched away from. They feed
+  // the Copy affordance and discard flow even when this element is untouched.
+  const hasArchivedEdits = () => {
+    const archived = props.archived();
+    return archived.entries.length > 0 || archived.movePrompts.length > 0;
+  };
+  const hasAnyEdits = () => hasPendingTweaks() || hasArchivedEdits();
   const [isCompact, setIsCompact] = createSignal(false);
 
   let activeKeyTimerId: ReturnType<typeof setTimeout> | undefined;
@@ -343,21 +376,18 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     () => isCompact() && searchQuery() !== "" && autoApply.isInlineNumericEdit(),
   );
 
-  // Distinguishes a copy (keep the DOM reinsertion) from any dismiss path
-  // (restore it in onCleanup), mirroring preview.forget vs preview.restore.
-  let didSubmit = false;
-
   const handleSubmit = () => {
-    didSubmit = true;
+    const archived = props.archived();
+    const entries: PendingEditsEntry[] = [...archived.entries];
     const pendingEdits = tweakStore.buildPendingEdits();
-    const entry = {
-      filePath: props.state.filePath ?? "",
-      lineNumber: props.state.lineNumber ?? 0,
-      edits: pendingEdits,
-    };
-    const cssPrompt = formatSessionEditsPrompt(pendingEdits.length > 0 ? [entry] : []);
+    if (pendingEdits.length > 0) {
+      entries.push({ filePath: ownFilePath, lineNumber: ownLineNumber, edits: pendingEdits });
+    }
+    const movePrompts = [...archived.movePrompts];
     const movePrompt = transformController.describeMove();
-    props.onSubmit([movePrompt, cssPrompt].filter(Boolean).join("\n\n"));
+    if (movePrompt) movePrompts.push(movePrompt);
+    const cssPrompt = formatSessionEditsPrompt(entries);
+    props.onSubmit([...movePrompts, cssPrompt].filter(Boolean).join("\n\n"));
   };
 
   const discardConfirmation = createDiscardConfirmation();
@@ -384,7 +414,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       closePanel("discard");
       return;
     }
-    if (!hasPendingTweaks()) {
+    if (!hasAnyEdits()) {
       closePanel(preview.hasAppliedStyles() ? "discard" : "preserve");
       return;
     }
@@ -451,7 +481,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       // and the pending change is discarded instead of copied.
       const isUntweakedColor =
         property?.kind === "color" && !tweakStore.hasChangedTweakFor(property.key);
-      if (isUntweakedColor && colorPickerTrigger && !hasPendingTweaks()) {
+      if (isUntweakedColor && colorPickerTrigger && !hasAnyEdits()) {
         colorPickerTrigger();
         return;
       }
@@ -536,9 +566,27 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       discardConfirmation.cleanup();
       dropdown.clearAnimationHandles();
       setIsTransientInteraction(false);
+      if (props.teardownReason() === "retarget") {
+        // Switching elements: keep this element's edits applied and hand them to
+        // the session so they join the copied prompt and revert together on
+        // discard. Skip preview.forget() — its baseline must survive that revert.
+        props.onArchive({
+          entry: {
+            filePath: ownFilePath,
+            lineNumber: ownLineNumber,
+            edits: tweakStore.buildPendingEdits(),
+          },
+          movePrompt: transformController.describeMove(),
+          restore: () => {
+            preview.restore();
+            transformController.restore();
+          },
+        });
+        return;
+      }
       preview.forget();
       // A copy keeps the reinsertion; every dismiss path restores it.
-      if (!didSubmit) transformController.restore();
+      if (props.teardownReason() !== "submit") transformController.restore();
     });
   });
 
@@ -597,7 +645,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                   <div
                     class={cn(
                       "contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 h-fit px-2",
-                      hasPendingTweaks() ? "w-full self-stretch justify-between" : "w-fit",
+                      hasAnyEdits() ? "w-full self-stretch justify-between" : "w-fit",
                     )}
                     onMouseEnter={() => setIsHeaderHovered(true)}
                     onMouseLeave={() => setIsHeaderHovered(false)}
@@ -609,7 +657,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                       onClick={() => {}}
                       shrink
                     />
-                    <Show when={hasPendingTweaks()}>
+                    <Show when={hasAnyEdits()}>
                       <button
                         data-react-grab-ignore-events
                         data-react-grab-copy-button

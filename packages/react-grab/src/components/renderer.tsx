@@ -180,6 +180,9 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         onDismiss={props.onEditPanelDismiss ?? (() => {})}
         onSubmit={props.onEditPanelSubmit ?? (() => {})}
         onInteractingChange={props.onEditPanelInteractingChange}
+        teardownReason={props.editPanelTeardownReason ?? (() => "dismiss")}
+        onArchive={props.onEditPanelArchive ?? (() => {})}
+        archived={props.editPanelArchived ?? (() => ({ entries: [], movePrompts: [] }))}
       />
     </>
   );

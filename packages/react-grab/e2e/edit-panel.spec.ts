@@ -1240,6 +1240,89 @@ test.describe("Style Panel", () => {
     });
   });
 
+  test.describe("Batched edits across elements", () => {
+    const CARD_TITLE_SELECTOR = "[data-testid='card-title']";
+
+    const tweakActiveProperty = async (reactGrab: { page: import("@playwright/test").Page }) => {
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+    };
+
+    const retargetTo = async (
+      reactGrab: { page: import("@playwright/test").Page },
+      selector: string,
+    ) => {
+      await reactGrab.page.locator(selector).first().click({ force: true });
+      await reactGrab.page.waitForTimeout(150);
+    };
+
+    test("retarget keeps the previous element's edits applied instead of reverting", async ({
+      reactGrab,
+    }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      const buttonBeforeTweak = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
+      await tweakActiveProperty(reactGrab);
+      const buttonAfterTweak = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
+      expect(buttonAfterTweak).not.toBe(buttonBeforeTweak);
+
+      await retargetTo(reactGrab, CARD_TITLE_SELECTOR);
+
+      expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
+      // The button was not the click target, so its edits must be retained.
+      expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).toBe(buttonAfterTweak);
+      // A freshly retargeted element with batched edits still offers Copy.
+      expect(await isHeaderCopyButtonVisible(reactGrab.page)).toBe(true);
+    });
+
+    test("copy after retarget includes edits from every touched element", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await tweakActiveProperty(reactGrab);
+
+      await retargetTo(reactGrab, CARD_TITLE_SELECTOR);
+      await tweakActiveProperty(reactGrab);
+
+      // Arrow-stepping collapses the panel (hiding the header Copy button), so
+      // submit via Enter, which copies the batched session regardless.
+      await reactGrab.page.keyboard.press("Enter");
+      await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain("best expresses the underlying layout intent");
+      // Two CSS blocks prove both elements' edits were batched into one prompt.
+      expect(clipboard.split("```css").length - 1).toBeGreaterThanOrEqual(2);
+    });
+
+    test("discard after retarget reverts edits on both elements", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      const buttonBeforeTweak = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
+      await tweakActiveProperty(reactGrab);
+      expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).not.toBe(
+        buttonBeforeTweak,
+      );
+
+      const titleBeforeTweak = await getInlineStyleAttribute(reactGrab.page, CARD_TITLE_SELECTOR);
+      await retargetTo(reactGrab, CARD_TITLE_SELECTOR);
+      await tweakActiveProperty(reactGrab);
+      expect(await getInlineStyleAttribute(reactGrab.page, CARD_TITLE_SELECTOR)).not.toBe(
+        titleBeforeTweak,
+      );
+
+      // First outside dismiss opens the discard prompt; the second confirms it.
+      await dispatchOutsideDismiss(reactGrab.page);
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
+      await dispatchOutsideDismiss(reactGrab.page);
+      await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
+
+      expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).toBe(
+        buttonBeforeTweak,
+      );
+      expect(await getInlineStyleAttribute(reactGrab.page, CARD_TITLE_SELECTOR)).toBe(
+        titleBeforeTweak,
+      );
+    });
+  });
+
   test.describe("Comment plugin coexistence", () => {
     test("registerCommentAction restores the Comment context menu item", async ({ reactGrab }) => {
       await reactGrab.page.evaluate(() => {

@@ -3622,6 +3622,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 onEditPanelDismiss={editMode.dismiss}
                 onEditPanelSubmit={editMode.submit}
                 onEditPanelInteractingChange={editMode.setInteracting}
+                editPanelTeardownReason={editMode.teardownReason}
+                onEditPanelArchive={editMode.archive}
+                editPanelArchived={editMode.getArchived}
               />
             );
           }, rendererRoot);

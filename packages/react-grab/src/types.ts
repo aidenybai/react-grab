@@ -240,6 +240,24 @@ export interface PendingEditsEntry {
   edits: PendingEdits;
 }
 
+// Why a style panel instance is being torn down — drives whether its edits are
+// kept and batched (retarget), reverted (dismiss), or kept on copy (submit).
+export type EditTeardownReason = "retarget" | "dismiss" | "submit";
+
+// An element's edits captured when switching away from it, so the session can
+// keep them applied, include them in the copied prompt, and revert them all on
+// discard.
+export interface ArchivedEdit {
+  entry: PendingEditsEntry;
+  movePrompt: string;
+  restore: () => void;
+}
+
+export interface ArchivedEdits {
+  entries: PendingEditsEntry[];
+  movePrompts: string[];
+}
+
 export interface PreviewStyles {
   apply: (cssProperties: readonly string[], cssValue: string) => void;
   restore: () => void;
@@ -545,6 +563,9 @@ export interface ReactGrabRendererProps {
   onEditPanelDismiss?: () => void;
   onEditPanelSubmit?: (prompt: string) => void;
   onEditPanelInteractingChange?: (interacting: boolean) => void;
+  editPanelTeardownReason?: () => EditTeardownReason;
+  onEditPanelArchive?: (item: ArchivedEdit) => void;
+  editPanelArchived?: () => ArchivedEdits;
 }
 
 export interface GrabbedBox {
