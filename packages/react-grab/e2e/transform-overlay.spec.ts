@@ -164,6 +164,38 @@ test.describe("Transform Overlay", () => {
     expect(movedBefore).toBe(true);
   });
 
+  test("clicking another element retargets the panel and overlay to it", async ({ reactGrab }) => {
+    const { page } = reactGrab;
+    const OTHER_SELECTOR = "[data-testid='deeply-nested-text']";
+    await openEditPanel(reactGrab, TARGET_SELECTOR);
+    await expect.poll(() => isTransformOverlayVisible(page)).toBe(true);
+
+    const other = await page.evaluate((selector) => {
+      const bounds = document.querySelector(selector)!.getBoundingClientRect();
+      return {
+        // Click near the left edge so the click can't land on the
+        // toolbar-anchored (centered) panel.
+        x: bounds.left + 8,
+        y: bounds.top + bounds.height / 2,
+        width: Math.round(bounds.width),
+      };
+    }, OTHER_SELECTOR);
+
+    await page.mouse.click(other.x, other.y);
+    await page.waitForTimeout(150);
+
+    // The panel stays open and the overlay now frames the clicked element.
+    expect(await isEditPanelVisible(page)).toBe(true);
+    const overlayWidth = await page.evaluate(() => {
+      const host = document.querySelector("[data-react-grab]");
+      const overlay = host?.shadowRoot?.querySelector<HTMLElement>(
+        "[data-react-grab-transform-overlay]",
+      );
+      return overlay ? Math.round(overlay.getBoundingClientRect().width) : -1;
+    });
+    expect(Math.abs(overlayWidth - other.width)).toBeLessThan(4);
+  });
+
   test("deselects when the selected element is removed from the DOM", async ({ reactGrab }) => {
     const { page } = reactGrab;
     await openEditPanel(reactGrab, TARGET_SELECTOR);

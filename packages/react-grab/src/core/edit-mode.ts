@@ -42,6 +42,8 @@ interface EditModeDependencies {
 export interface EditModeController {
   state: Accessor<EditPanelState | null>;
   trigger: (element: Element, position: Position, overrides?: EditModeOverrides) => boolean;
+  retarget: (element: Element, position: Position, overrides?: EditModeOverrides) => boolean;
+  updateSource: (element: Element, filePath?: string, lineNumber?: number) => void;
   dismiss: () => void;
   closePreservingRenderer: () => void;
   submit: (prompt: string) => void;
@@ -69,13 +71,11 @@ export const createEditModeController = (
     clearAll();
   };
 
-  const trigger = (
+  const buildStateForElement = (
     element: Element,
     position: Position,
-    overrides: EditModeOverrides = {},
+    overrides: EditModeOverrides,
   ): boolean => {
-    // Re-entry would desync the existing preview from the panel's tweak store.
-    if (state() !== null) return false;
     const properties = buildEditableProperties(element);
     if (properties.length === 0) return false;
 
@@ -113,8 +113,41 @@ export const createEditModeController = (
     dependencies.actions.setPointer(position);
     dependencies.actions.setFrozenElement(element);
     dependencies.actions.freeze();
+    return true;
+  };
+
+  const trigger = (
+    element: Element,
+    position: Position,
+    overrides: EditModeOverrides = {},
+  ): boolean => {
+    // Re-entry would desync the existing preview from the panel's tweak store.
+    if (state() !== null) return false;
+    if (!buildStateForElement(element, position, overrides)) return false;
     dependencies.onOpen?.();
     return true;
+  };
+
+  // Switch the open panel to a different element (click-to-select another
+  // element while styling). The current preview is reverted before the new
+  // element takes over; the renderer stays active, so onOpen tracking keeps
+  // running rather than tearing down and re-creating.
+  const retarget = (
+    element: Element,
+    position: Position,
+    overrides: EditModeOverrides = {},
+  ): boolean => {
+    const current = state();
+    if (current?.element === element) return false;
+    current?.preview.restore();
+    return buildStateForElement(element, position, overrides);
+  };
+
+  const updateSource = (element: Element, filePath?: string, lineNumber?: number): void => {
+    setState((current) => {
+      if (!current || current.element !== element) return current;
+      return { ...current, filePath, lineNumber };
+    });
   };
 
   const submit = (prompt: string) => {
@@ -152,6 +185,8 @@ export const createEditModeController = (
   return {
     state,
     trigger,
+    retarget,
+    updateSource,
     dismiss,
     closePreservingRenderer,
     submit,

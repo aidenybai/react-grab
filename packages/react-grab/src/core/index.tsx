@@ -1454,6 +1454,26 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       overrides: EditModeOverrides = {},
     ): boolean => editMode.trigger(element, position, overrides);
 
+    // Click-to-select another element while the style panel is open: swap the
+    // panel, overlay, and frozen selection to the clicked element and resolve
+    // its source for the copy prompt.
+    const retargetEditMode = (element: Element, position: Position): void => {
+      freezeAllAnimations([element]);
+      actions.setSelectionSource(null, null);
+      const didRetarget = editMode.retarget(element, position, {
+        tagName: getTagName(element) || undefined,
+        componentName: getComponentDisplayName(element) ?? undefined,
+      });
+      if (!didRetarget) return;
+      void resolveSource(element).then((source) => {
+        editMode.updateSource(
+          element,
+          source?.filePath ?? undefined,
+          source?.lineNumber ?? undefined,
+        );
+      });
+    };
+
     const currentSelectionEditOverrides = (element: Element): EditModeOverrides => ({
       filePath: store.selectionFilePath ?? undefined,
       lineNumber: store.selectionLineNumber ?? undefined,
@@ -2601,6 +2621,20 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (!event.isPrimary) return;
         actions.setTouchMode(event.pointerType === "touch");
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
+
+        // In style mode a click on a different element retargets the panel to
+        // it instead of starting a selection; a click on empty space falls
+        // through to the panel's own outside-click dismiss.
+        if (editMode.isOpen()) {
+          const clickedElement = getElementAtPosition(event.clientX, event.clientY);
+          if (clickedElement && clickedElement !== editMode.state()?.element) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            retargetEditMode(clickedElement, { x: event.clientX, y: event.clientY });
+          }
+          return;
+        }
+
         if (isModalPopoverOpen()) return;
 
         if (isPromptMode()) {

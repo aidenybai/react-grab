@@ -222,7 +222,9 @@ test.describe("Style Panel", () => {
 
     test("click outside dismisses the panel", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
-      await reactGrab.page.mouse.click(5, 5);
+      // A click that lands on empty space (no grabbable element) dismisses;
+      // clicking another element instead retargets the panel to it.
+      await dispatchOutsideDismiss(reactGrab.page);
       await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
     });
 
@@ -1094,7 +1096,9 @@ test.describe("Style Panel", () => {
       expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
     });
 
-    test("clicking another element does not change selection", async ({ reactGrab }) => {
+    test("clicking another element keeps the style panel open (retargets)", async ({
+      reactGrab,
+    }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       const panelStateBeforeClick = await reactGrab.page.evaluate(
         ({ attrName }) => {
@@ -1110,6 +1114,8 @@ test.describe("Style Panel", () => {
       await reactGrab.page.locator(CARD_SELECTOR).first().click({ force: true });
       await reactGrab.page.waitForTimeout(150);
 
+      // Style mode now lets you click another element to retarget the panel,
+      // so it stays open instead of deselecting.
       const stateAfter = await reactGrab.page.evaluate(
         ({ attrName, buttonSelector }) => {
           const host = document.querySelector(`[${attrName}]`);
@@ -1123,6 +1129,7 @@ test.describe("Style Panel", () => {
         },
         { attrName: ATTRIBUTE_NAME, buttonSelector: BUTTON_SELECTOR },
       );
+      expect(stateAfter.panelStillOpen).toBe(true);
       expect(stateAfter.buttonStillExists).toBe(true);
     });
   });
