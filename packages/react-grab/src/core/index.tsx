@@ -33,6 +33,7 @@ import {
   getComponentDisplayName,
   isNextProjectRuntime,
   resolveSource,
+  setSourceOptions,
 } from "./context.js";
 import { createNoopApi } from "./noop-api.js";
 import { createEventListenerManager } from "./events.js";
@@ -213,6 +214,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let disposeRenderer: (() => void) | undefined;
 
     const pluginRegistry = createPluginRegistry(settableOptions);
+
+    createEffect(() => {
+      setSourceOptions(pluginRegistry.store.options.source);
+    });
+    onCleanup(() => setSourceOptions(undefined));
 
     const { store, actions, pointer, viewportVersion, current } = createGrabStore({
       keyHoldDuration: pluginRegistry.store.options.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS,

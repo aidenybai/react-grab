@@ -16,6 +16,7 @@ import type {
   ActivationMode,
   ActivationKey,
   SettableOptions,
+  SourceOptions,
   AgentContext,
   ActionContext,
 } from "../types.js";
@@ -34,6 +35,7 @@ interface OptionsState {
   activationKey: ActivationKey | undefined;
   getContent: ((elements: Element[]) => Promise<string> | string) | undefined;
   freezeReactUpdates: boolean;
+  source: SourceOptions | undefined;
 }
 
 const DEFAULT_OPTIONS: OptionsState = {
@@ -43,6 +45,7 @@ const DEFAULT_OPTIONS: OptionsState = {
   activationKey: undefined,
   getContent: undefined,
   freezeReactUpdates: true,
+  source: undefined,
 };
 
 interface PluginStoreState {
@@ -106,6 +109,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     "activationKey",
     "getContent",
     "freezeReactUpdates",
+    "source",
   ];
 
   const setOptions = (optionUpdates: SettableOptions) => {

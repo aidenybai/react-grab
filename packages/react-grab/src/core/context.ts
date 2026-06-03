@@ -1,5 +1,4 @@
 import {
-  isSourceFile,
   getOwnerStack,
   getSource,
   formatOwnerStack,
@@ -27,17 +26,22 @@ import {
 import { getTagName } from "../utils/get-tag-name.js";
 import { truncateString } from "../utils/truncate-string.js";
 import { getNextBasePath } from "../utils/get-next-base-path.js";
-import { isIgnoredApplicationSourcePath } from "../utils/is-ignored-application-source-path.js";
 import { normalizeFilePath } from "../utils/normalize-file-path.js";
-import { parsePackageName } from "../utils/parse-package-name.js";
 import { safeDecodeURIComponent } from "../utils/safe-decode-uri-component.js";
+import { classifySourcePath } from "../utils/source-frame-policy.js";
 import { isInternalAttribute } from "../utils/strip-internal-attributes.js";
 import {
   isInternalComponentName,
   isUsefulComponentName,
 } from "../utils/is-useful-component-name.js";
+import type { SourceOptions } from "../types.js";
 
 let cachedIsNextProject: boolean | undefined;
+let activeSourceOptions: SourceOptions | undefined;
+
+export const setSourceOptions = (sourceOptions: SourceOptions | undefined): void => {
+  activeSourceOptions = sourceOptions;
+};
 
 export const isNextProjectRuntime = (shouldRevalidate?: boolean): boolean => {
   if (shouldRevalidate) {
@@ -282,16 +286,8 @@ interface ResolvedSource {
   componentName: string | null;
 }
 
-const isStackSourceFile = (fileName: string | null | undefined): boolean =>
-  Boolean(fileName && isSourceFile(fileName));
-
 const isApplicationSourceFile = (fileName: string | null | undefined): boolean =>
-  Boolean(
-    fileName &&
-    isSourceFile(fileName) &&
-    !parsePackageName(fileName) &&
-    !isIgnoredApplicationSourcePath(fileName),
-  );
+  classifySourcePath(fileName, activeSourceOptions).kind === "app-source";
 
 const isApplicationSourceFrame = (frame: StackFrame): boolean =>
   isApplicationSourceFile(frame.fileName);
@@ -344,12 +340,21 @@ export const resolveSource = async (element: Element): Promise<ResolvedSource | 
   const stack = await getStack(element);
   if (!stack || stack.length === 0) return null;
 
-  const sourceFrames = stack.filter(isApplicationSourceFrame);
-  const fallbackSourceFrames =
-    sourceFrames.length > 0
-      ? sourceFrames
-      : stack.filter((frame) => isStackSourceFile(frame.fileName));
-  const resolvedFrame = pickSourceFrame(fallbackSourceFrames);
+  const appSourceFrames = stack.filter(isApplicationSourceFrame);
+  const ignoredAppSourceFrames = stack.filter(
+    (frame) =>
+      classifySourcePath(frame.fileName, activeSourceOptions).kind === "ignored-app-source",
+  );
+  const packageSourceFrames = stack.filter(
+    (frame) => classifySourcePath(frame.fileName, activeSourceOptions).kind === "package-source",
+  );
+  const sourceFrames =
+    appSourceFrames.length > 0
+      ? appSourceFrames
+      : ignoredAppSourceFrames.length > 0
+        ? ignoredAppSourceFrames
+        : packageSourceFrames;
+  const resolvedFrame = pickSourceFrame(sourceFrames);
   if (!resolvedFrame?.fileName) return null;
 
   return {
@@ -463,8 +468,9 @@ const formatStackContext = (
   for (const frame of stack) {
     if (lines.length >= maxLines) break;
 
-    const libraryPackage = parsePackageName(frame.fileName);
-    const resolvedSource = isApplicationSourceFile(frame.fileName) ? frame.fileName : null;
+    const sourcePath = classifySourcePath(frame.fileName, activeSourceOptions);
+    const libraryPackage = sourcePath.packageName;
+    const resolvedSource = sourcePath.kind === "app-source" ? frame.fileName : null;
 
     const componentName =
       frame.functionName && isSourceComponentName(frame.functionName) ? frame.functionName : null;
