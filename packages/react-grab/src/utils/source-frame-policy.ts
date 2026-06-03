@@ -5,6 +5,7 @@ import { parsePackageName } from "./parse-package-name.js";
 
 const DEFAULT_IGNORED_SOURCE_PATHS: readonly string[] = ["components/ui"];
 const PATH_SEPARATOR_PATTERN = /[/\\]/;
+const defaultClassificationCache = new Map<string, SourcePathClassification>();
 
 export interface SourcePathClassification {
   kind: "app-source" | "ignored-app-source" | "package-source" | "unknown";
@@ -14,8 +15,11 @@ export interface SourcePathClassification {
 const splitPathSegments = (path: string): string[] =>
   normalizeFilePath(path).split(PATH_SEPARATOR_PATTERN).filter(Boolean);
 
-const matchesPathSegments = (pathSegments: string[], pattern: string): boolean => {
-  const patternSegments = splitPathSegments(pattern);
+const DEFAULT_IGNORED_SOURCE_PATH_SEGMENTS = DEFAULT_IGNORED_SOURCE_PATHS.map((sourcePath) =>
+  splitPathSegments(sourcePath),
+);
+
+const matchesPathSegments = (pathSegments: string[], patternSegments: string[]): boolean => {
   if (patternSegments.length === 0 || patternSegments.length > pathSegments.length) return false;
 
   for (let pathIndex = 0; pathIndex <= pathSegments.length - patternSegments.length; pathIndex++) {
@@ -35,14 +39,17 @@ const matchesPathSegments = (pathSegments: string[], pattern: string): boolean =
 const matchesIgnoredSourcePath = (fileName: string, sourceOptions?: SourceOptions): boolean => {
   const normalizedPath = normalizeFilePath(fileName);
   const pathSegments = splitPathSegments(normalizedPath);
-  const ignoredSourcePaths = [
-    ...DEFAULT_IGNORED_SOURCE_PATHS,
-    ...(sourceOptions?.ignorePaths ?? []),
-  ];
 
-  for (const ignoredSourcePath of ignoredSourcePaths) {
+  for (const ignoredSourcePathSegments of DEFAULT_IGNORED_SOURCE_PATH_SEGMENTS) {
+    if (matchesPathSegments(pathSegments, ignoredSourcePathSegments)) return true;
+  }
+
+  const customIgnoredSourcePaths = sourceOptions?.ignorePaths;
+  if (!customIgnoredSourcePaths) return false;
+
+  for (const ignoredSourcePath of customIgnoredSourcePaths) {
     if (typeof ignoredSourcePath === "string") {
-      if (matchesPathSegments(pathSegments, ignoredSourcePath)) return true;
+      if (matchesPathSegments(pathSegments, splitPathSegments(ignoredSourcePath))) return true;
       continue;
     }
 
@@ -54,6 +61,22 @@ const matchesIgnoredSourcePath = (fileName: string, sourceOptions?: SourceOption
 };
 
 export const classifySourcePath = (
+  fileName: string | null | undefined,
+  sourceOptions?: SourceOptions,
+): SourcePathClassification => {
+  if (!sourceOptions?.ignorePaths?.length && fileName) {
+    const cachedClassification = defaultClassificationCache.get(fileName);
+    if (cachedClassification) return cachedClassification;
+  }
+
+  const classification = classifySourcePathUncached(fileName, sourceOptions);
+  if (!sourceOptions?.ignorePaths?.length && fileName) {
+    defaultClassificationCache.set(fileName, classification);
+  }
+  return classification;
+};
+
+const classifySourcePathUncached = (
   fileName: string | null | undefined,
   sourceOptions?: SourceOptions,
 ): SourcePathClassification => {

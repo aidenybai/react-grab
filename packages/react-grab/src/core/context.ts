@@ -289,9 +289,6 @@ interface ResolvedSource {
 const isApplicationSourceFile = (fileName: string | null | undefined): boolean =>
   classifySourcePath(fileName, activeSourceOptions).kind === "app-source";
 
-const isApplicationSourceFrame = (frame: StackFrame): boolean =>
-  isApplicationSourceFile(frame.fileName);
-
 const pickSourceFrame = (frames: StackFrame[]): StackFrame | null => {
   const namedFrame = frames.find(
     (frame) => frame.functionName && isSourceComponentName(frame.functionName),
@@ -340,14 +337,20 @@ export const resolveSource = async (element: Element): Promise<ResolvedSource | 
   const stack = await getStack(element);
   if (!stack || stack.length === 0) return null;
 
-  const appSourceFrames = stack.filter(isApplicationSourceFrame);
-  const ignoredAppSourceFrames = stack.filter(
-    (frame) =>
-      classifySourcePath(frame.fileName, activeSourceOptions).kind === "ignored-app-source",
-  );
-  const packageSourceFrames = stack.filter(
-    (frame) => classifySourcePath(frame.fileName, activeSourceOptions).kind === "package-source",
-  );
+  const appSourceFrames: StackFrame[] = [];
+  const ignoredAppSourceFrames: StackFrame[] = [];
+  const packageSourceFrames: StackFrame[] = [];
+  for (const frame of stack) {
+    const sourcePath = classifySourcePath(frame.fileName, activeSourceOptions);
+    if (sourcePath.kind === "app-source") {
+      appSourceFrames.push(frame);
+    } else if (sourcePath.kind === "ignored-app-source") {
+      ignoredAppSourceFrames.push(frame);
+    } else if (sourcePath.kind === "package-source") {
+      packageSourceFrames.push(frame);
+    }
+  }
+
   const sourceFrames =
     appSourceFrames.length > 0
       ? appSourceFrames
