@@ -431,6 +431,15 @@ export interface TransformInsertionIndicator {
   height: number;
 }
 
+// Translucent box following the cursor during a move drag, showing where the
+// element is being dragged before it snaps into its reinsertion slot.
+export interface TransformDragGhost {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
 export interface DropTarget {
   reference: Element;
   placement: DropPlacement;

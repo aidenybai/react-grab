@@ -115,4 +115,38 @@ test.describe("Transform Overlay", () => {
     );
     expect(movedBefore).toBe(true);
   });
+
+  test("shows a drag ghost while moving and clears it on drop", async ({ reactGrab }) => {
+    const { page } = reactGrab;
+    await openEditPanel(reactGrab, TARGET_SELECTOR);
+    await expect.poll(() => isTransformOverlayVisible(page)).toBe(true);
+
+    const isGhostVisible = () =>
+      page.evaluate(() => {
+        const host = document.querySelector("[data-react-grab]");
+        const ghost = host?.shadowRoot?.querySelector<HTMLElement>("[data-react-grab-drag-ghost]");
+        if (!ghost) return false;
+        const bounds = ghost.getBoundingClientRect();
+        return bounds.width > 0 && bounds.height > 0;
+      });
+
+    const start = await page.evaluate(() => {
+      const host = document.querySelector("[data-react-grab]");
+      const overlay = host?.shadowRoot?.querySelector<HTMLElement>(
+        "[data-react-grab-transform-overlay]",
+      );
+      if (!overlay) throw new Error("overlay not found");
+      const bounds = overlay.getBoundingClientRect();
+      return { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 };
+    });
+
+    expect(await isGhostVisible()).toBe(false);
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.down();
+    await page.mouse.move(start.x + 30, start.y - 40, { steps: 6 });
+    expect(await isGhostVisible()).toBe(true);
+
+    await page.mouse.up();
+    expect(await isGhostVisible()).toBe(false);
+  });
 });

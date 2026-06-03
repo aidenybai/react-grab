@@ -1,5 +1,7 @@
 import { For, Show, type Component } from "solid-js";
 import {
+  OVERLAY_BORDER_COLOR_DEFAULT,
+  OVERLAY_FILL_COLOR_DEFAULT,
   TRANSFORM_FRAME_BORDER_PX,
   TRANSFORM_HANDLE_SIZE_PX,
   TRANSFORM_OVERLAY_ACCENT,
@@ -30,6 +32,7 @@ interface TransformOverlayProps {
 export const TransformOverlay: Component<TransformOverlayProps> = (props) => {
   const frame = props.controller.frame;
   const indicator = props.controller.insertionIndicator;
+  const ghost = props.controller.dragGhost;
 
   const beginInteraction = (event: PointerEvent, start: (event: PointerEvent) => void) => {
     if (event.button !== 0) return;
@@ -40,6 +43,27 @@ export const TransformOverlay: Component<TransformOverlayProps> = (props) => {
 
   return (
     <>
+      <Show when={ghost()}>
+        {(box) => (
+          <div
+            data-react-grab-ignore-events
+            data-react-grab-drag-ghost
+            style={{
+              position: "fixed",
+              left: `${box().left}px`,
+              top: `${box().top}px`,
+              width: `${box().width}px`,
+              height: `${box().height}px`,
+              background: OVERLAY_FILL_COLOR_DEFAULT,
+              border: `${TRANSFORM_FRAME_BORDER_PX}px dashed ${OVERLAY_BORDER_COLOR_DEFAULT}`,
+              "box-sizing": "border-box",
+              "border-radius": "4px",
+              "z-index": `${Z_INDEX_TRANSFORM_OVERLAY}`,
+              "pointer-events": "none",
+            }}
+          />
+        )}
+      </Show>
       <Show when={indicator()}>
         {(line) => (
           <div

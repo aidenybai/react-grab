@@ -2,6 +2,7 @@ import { createSignal, onCleanup, onMount, type Accessor } from "solid-js";
 import { TRANSFORM_MIN_SIZE_PX } from "../../constants.js";
 import type {
   DropTarget,
+  TransformDragGhost,
   TransformFrame,
   TransformHandleId,
   TransformInsertionIndicator,
@@ -20,6 +21,7 @@ interface TransformControllerDependencies {
 export interface TransformController {
   frame: Accessor<TransformFrame>;
   insertionIndicator: Accessor<TransformInsertionIndicator | null>;
+  dragGhost: Accessor<TransformDragGhost | null>;
   hasMoved: () => boolean;
   describeMove: () => string;
   restore: () => void;
@@ -48,6 +50,7 @@ export const createTransformController = (
   const [frame, setFrame] = createSignal(frameValue, { equals: false });
   const [insertionIndicator, setInsertionIndicator] =
     createSignal<TransformInsertionIndicator | null>(null);
+  const [dragGhost, setDragGhost] = createSignal<TransformDragGhost | null>(null);
   const [didMove, setDidMove] = createSignal(false);
 
   // The element's DOM slot before any move, so a discarded drag can be undone.
@@ -125,15 +128,34 @@ export const createTransformController = (
   };
 
   const startMove = (event: PointerEvent): void => {
-    previewDropAt(event.clientX, event.clientY);
+    refreshFrame();
+    const originLeft = frameValue.centerX - frameValue.width / 2;
+    const originTop = frameValue.centerY - frameValue.height / 2;
+    const ghostWidth = frameValue.width;
+    const ghostHeight = frameValue.height;
+    const downX = event.clientX;
+    const downY = event.clientY;
+    const updateGhost = (clientX: number, clientY: number): void => {
+      setDragGhost({
+        left: originLeft + (clientX - downX),
+        top: originTop + (clientY - downY),
+        width: ghostWidth,
+        height: ghostHeight,
+      });
+    };
+
+    updateGhost(downX, downY);
+    previewDropAt(downX, downY);
     bindDrag(
       (moveEvent) => {
+        updateGhost(moveEvent.clientX, moveEvent.clientY);
         previewDropAt(moveEvent.clientX, moveEvent.clientY);
       },
       (upEvent) => {
         const drop = previewDropAt(upEvent.clientX, upEvent.clientY);
         if (drop) reinsert(drop);
         setInsertionIndicator(null);
+        setDragGhost(null);
       },
     );
   };
@@ -232,6 +254,7 @@ export const createTransformController = (
   return {
     frame,
     insertionIndicator,
+    dragGhost,
     hasMoved,
     describeMove,
     restore,
