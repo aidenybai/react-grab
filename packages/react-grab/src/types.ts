@@ -230,7 +230,21 @@ interface EnumPendingEdit {
   value: string;
 }
 
-export type PendingEdit = NumericPendingEdit | ColorPendingEdit | EnumPendingEdit;
+// Canvas transform edits (move/rotate) carry a pre-formatted CSS value
+// such as `translate(8px, -4px) rotate(15deg)` because, unlike numeric
+// rows, the value is a function expression rather than a number+unit.
+interface TransformPendingEdit {
+  kind: "transform";
+  key: string;
+  cssProperties: readonly string[];
+  value: string;
+}
+
+export type PendingEdit =
+  | NumericPendingEdit
+  | ColorPendingEdit
+  | EnumPendingEdit
+  | TransformPendingEdit;
 
 export type PendingEdits = PendingEdit[];
 
@@ -417,6 +431,25 @@ export interface OverlayBounds {
   width: number;
   x: number;
   y: number;
+}
+
+export type TransformHandleId = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
+
+export interface TransformValues {
+  translateX: number;
+  translateY: number;
+  rotate: number;
+}
+
+// Viewport-space description of the manipulable box. `centerX`/`centerY`
+// are the rotated element's geometric center; `width`/`height` are the
+// element's unrotated layout box so the handle frame can rotate around it.
+export interface TransformFrame {
+  centerX: number;
+  centerY: number;
+  width: number;
+  height: number;
+  rotate: number;
 }
 
 export type SelectionLabelStatus = "idle" | "copying" | "copied" | "fading" | "error";

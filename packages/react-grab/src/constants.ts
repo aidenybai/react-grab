@@ -41,6 +41,9 @@ export const AUTO_SCROLL_SPEED_PX = 10;
 
 export const Z_INDEX_OVERLAY = 2147483647;
 export const Z_INDEX_OVERLAY_CANVAS = 2147483645;
+// Transform handles sit above the selection canvas but below the style
+// panel so the panel's controls always win pointer events on overlap.
+export const Z_INDEX_TRANSFORM_OVERLAY = 2147483646;
 
 export const DRAG_LERP_FACTOR = 0.7;
 export const BASELINE_FRAME_DURATION_MS = 1000 / 60;
@@ -234,6 +237,18 @@ export const EDIT_SEARCH_SUBSTRING_SCORE = 1000;
 export const EDIT_SEARCH_POSITION_PENALTY = 100;
 export const EDIT_SEARCH_LENGTH_PENALTY = 1;
 export const EDIT_COMPACT_SLIDER_MIN_WIDTH_PX = 96;
+
+// Figma-style transform overlay shown over the selected element while the
+// style panel is open. Square handles sit on the 4 corners + 4 edge
+// midpoints; a detached circular handle floats above the top edge to rotate.
+export const TRANSFORM_HANDLE_SIZE_PX = 9;
+export const TRANSFORM_ROTATE_HANDLE_SIZE_PX = 12;
+export const TRANSFORM_ROTATE_HANDLE_OFFSET_PX = 22;
+export const TRANSFORM_FRAME_BORDER_PX = 1;
+export const TRANSFORM_MIN_SIZE_PX = 4;
+// Holding Shift snaps rotation to this increment, matching Figma.
+export const TRANSFORM_ROTATE_SNAP_DEG = 15;
+export const TRANSFORM_OVERLAY_ACCENT = "#0c8ce9";
 
 export const CSS_VALUE_DECIMAL_PLACES = 2;
 export const OPACITY_PERCENT_MAX = 100;

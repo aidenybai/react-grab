@@ -3,7 +3,13 @@ import type { PendingEdit, PendingEditsEntry } from "../types.js";
 import { formatDisplayValue } from "./format-css-value.js";
 
 const formatCssValue = (pendingEdit: PendingEdit): string => {
-  if (pendingEdit.kind === "color" || pendingEdit.kind === "enum") return pendingEdit.value;
+  if (
+    pendingEdit.kind === "color" ||
+    pendingEdit.kind === "enum" ||
+    pendingEdit.kind === "transform"
+  ) {
+    return pendingEdit.value;
+  }
   if (pendingEdit.key === "opacity" && pendingEdit.unit === "%") {
     return formatDisplayValue(pendingEdit.value / OPACITY_PERCENT_MAX);
   }
