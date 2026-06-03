@@ -11,6 +11,7 @@ import {
   DROPDOWN_EDGE_TRANSFORM_ORIGIN,
   EDIT_PANEL_ACTIVE_KEY_FLASH_MS,
   EDIT_PANEL_ADJUSTING_IDLE_MS,
+  EDIT_INLINE_NUMERIC_REPLACE_IDLE_MS,
   EDIT_PANEL_MAX_WIDTH_PX,
   EDIT_PANEL_MIN_WIDTH_PX,
   EDIT_PROPERTY_LIST_MAX_HEIGHT_PX,
@@ -110,6 +111,8 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
 
   let activeKeyTimerId: ReturnType<typeof setTimeout> | undefined;
   let interactingIdleTimerId: ReturnType<typeof setTimeout> | undefined;
+  let inlineNumericReplaceTimerId: ReturnType<typeof setTimeout> | undefined;
+  let shouldReplaceInlineNumericInput = false;
   const [isTransientInteraction, setIsTransientInteraction] = createSignal(false);
   const isInteracting = createMemo(() => isTransientInteraction() || hasPendingTweaks());
   const [isHeaderHovered, setIsHeaderHovered] = createSignal(false);
@@ -170,7 +173,34 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     if (inlineNumericSearchQuery() === null) setInlineNumericSearchQuery(searchQuery());
   };
 
+  const cancelInlineNumericReplacement = () => {
+    shouldReplaceInlineNumericInput = false;
+    clearTimeout(inlineNumericReplaceTimerId);
+  };
+
+  const queueInlineNumericReplacement = () => {
+    shouldReplaceInlineNumericInput = false;
+    clearTimeout(inlineNumericReplaceTimerId);
+    inlineNumericReplaceTimerId = setTimeout(() => {
+      shouldReplaceInlineNumericInput = true;
+    }, EDIT_INLINE_NUMERIC_REPLACE_IDLE_MS);
+  };
+
+  const replaceInlineNumericPrefix = (nextSearchQuery: string): string => {
+    if (!shouldReplaceInlineNumericInput) return nextSearchQuery;
+    const currentSearchQuery = searchQuery();
+    if (!currentSearchQuery || !nextSearchQuery.startsWith(currentSearchQuery)) {
+      cancelInlineNumericReplacement();
+      return nextSearchQuery;
+    }
+    const appendedQuery = nextSearchQuery.slice(currentSearchQuery.length);
+    if (!/^[-.\d]/.test(appendedQuery)) return nextSearchQuery;
+    cancelInlineNumericReplacement();
+    return appendedQuery;
+  };
+
   const expandPanel = () => {
+    cancelInlineNumericReplacement();
     setInlineNumericSearchQuery(null);
     setIsCompact(false);
   };
@@ -442,6 +472,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       window.removeEventListener("keyup", handleWindowKeyUp, { capture: true });
       clearTimeout(activeKeyTimerId);
       clearTimeout(interactingIdleTimerId);
+      clearTimeout(inlineNumericReplaceTimerId);
       discardConfirmation.cleanup();
       dropdown.clearAnimationHandles();
       setIsTransientInteraction(false);
@@ -613,12 +644,17 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
               }}
               value={searchQuery()}
               onInput={(event) => {
-                const nextSearchQuery = event.currentTarget.value;
+                const nextSearchQuery = replaceInlineNumericPrefix(event.currentTarget.value);
+                if (nextSearchQuery !== event.currentTarget.value) {
+                  event.currentTarget.value = nextSearchQuery;
+                }
                 if (autoApply.tryApplyNumericValue(nextSearchQuery)) {
                   keepInlineNumericSearchQuery();
                   setSearchQuery(nextSearchQuery);
+                  queueInlineNumericReplacement();
                   return;
                 }
+                cancelInlineNumericReplacement();
                 setSearchQuery(nextSearchQuery);
                 if (autoApply.isInlineNumericDraft(nextSearchQuery)) {
                   keepInlineNumericSearchQuery();

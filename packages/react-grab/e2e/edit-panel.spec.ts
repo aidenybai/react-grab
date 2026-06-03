@@ -804,6 +804,19 @@ test.describe("Style Panel", () => {
       expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-right")).toBe(
         "50px",
       );
+
+      await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
+      await reactGrab.page.keyboard.type("60px");
+      await reactGrab.page.waitForTimeout(80);
+
+      expect(await getEditPanelCompactAttr(reactGrab.page)).toBe("true");
+      expect(await getActivePropertyKey(reactGrab.page)).toBe(activePropertyKey);
+      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-left")).toBe(
+        "60px",
+      );
+      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-right")).toBe(
+        "60px",
+      );
     });
 
     test("compact unit edit keeps a searched active property targeted", async ({ reactGrab }) => {
