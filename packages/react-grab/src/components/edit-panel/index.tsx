@@ -188,11 +188,14 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     if (options.shouldCompact) setIsCompact(true);
   };
 
-  const propertyByKey = new Map(initialProperties.map((property) => [property.key, property]));
   const transformController = createTransformController({
     getElement: () => props.state.element,
+    // The canvas overlay edits width/height/left/top/position through the same
+    // tweak store as the panel rows (top/left fall back to 0 and position is an
+    // enum in property-definitions, so the rows exist); a missing key just means
+    // that property isn't editable for this element, so skip it.
     commitStyle: (cssProperty, value) => {
-      const property = propertyByKey.get(cssProperty);
+      const property = tweakStore.getProperty(cssProperty);
       if (property) commit(property, value);
     },
     focusProperty: (cssProperty) => {

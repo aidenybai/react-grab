@@ -1,15 +1,10 @@
 import { createSignal, onCleanup, onMount, type Accessor } from "solid-js";
 import { TRANSFORM_MIN_SIZE_PX } from "../../constants.js";
-import type {
-  DropTarget,
-  TransformDragGhost,
-  TransformFrame,
-  TransformHandleId,
-  TransformInsertionIndicator,
-} from "../../types.js";
+import type { DropTarget, TransformFrame, TransformHandleId, ViewportBox } from "../../types.js";
 import { describeElementForPrompt } from "../../utils/describe-element-for-prompt.js";
 import { findDropTarget } from "../../utils/find-drop-target.js";
 import { isElementConnected } from "../../utils/is-element-connected.js";
+import { onViewportChange } from "../../utils/on-viewport-change.js";
 
 interface TransformControllerDependencies {
   getElement: () => Element;
@@ -26,8 +21,8 @@ interface TransformControllerDependencies {
 
 export interface TransformController {
   frame: Accessor<TransformFrame>;
-  insertionIndicator: Accessor<TransformInsertionIndicator | null>;
-  dragGhost: Accessor<TransformDragGhost | null>;
+  insertionIndicator: Accessor<ViewportBox | null>;
+  dragGhost: Accessor<ViewportBox | null>;
   hasMoved: () => boolean;
   describeMove: () => string;
   restore: () => void;
@@ -54,9 +49,8 @@ export const createTransformController = (
   // tracking refresh allocation-free while still driving reactivity.
   const frameValue: TransformFrame = { centerX: 0, centerY: 0, width: 0, height: 0 };
   const [frame, setFrame] = createSignal(frameValue, { equals: false });
-  const [insertionIndicator, setInsertionIndicator] =
-    createSignal<TransformInsertionIndicator | null>(null);
-  const [dragGhost, setDragGhost] = createSignal<TransformDragGhost | null>(null);
+  const [insertionIndicator, setInsertionIndicator] = createSignal<ViewportBox | null>(null);
+  const [dragGhost, setDragGhost] = createSignal<ViewportBox | null>(null);
   const [didMove, setDidMove] = createSignal(false);
 
   // The element's DOM slot before any move, so a discarded drag can be undone.
@@ -122,9 +116,11 @@ export const createTransformController = (
   const reinsert = (drop: DropTarget): void => {
     const element = dependencies.getElement();
     const parent = drop.reference.parentNode;
-    if (!parent || element === drop.reference || element.contains(drop.reference)) return;
+    const elementParent = element.parentNode;
+    if (!parent || !elementParent || element === drop.reference || element.contains(drop.reference))
+      return;
     if (!originPosition) {
-      originPosition = { parent: element.parentNode!, nextSibling: element.nextSibling };
+      originPosition = { parent: elementParent, nextSibling: element.nextSibling };
     }
     const referenceNode = drop.placement === "before" ? drop.reference : drop.reference.nextSibling;
     if (referenceNode === element) return;
@@ -256,20 +252,15 @@ export const createTransformController = (
         didFocus = true;
       }
 
-      if (fromCenter) {
-        // Keep the center pinned by shifting position half the growth.
-        offset.x = startOffsetX - widthDelta / 2;
-        offset.y = startOffsetY - heightDelta / 2;
-        applyOffset();
-        return;
-      }
-
-      // A plain box only extends its right/bottom edges when it grows, so
-      // dragging a top/left edge must also shift the element's position to keep
-      // the opposite (anchored) edge pinned. Right/bottom handles need no shift.
-      if (direction.x === -1) offset.x = startOffsetX - widthDelta;
-      if (direction.y === -1) offset.y = startOffsetY - heightDelta;
-      if (direction.x === -1 || direction.y === -1) {
+      // How much of each dimension's growth the position must absorb to keep the
+      // intended edge fixed: half when scaling about the center (Alt), all of it
+      // when dragging the top/left edge (so the opposite edge stays pinned), and
+      // none when dragging the bottom/right edge (the box just extends).
+      const anchorX = fromCenter ? 0.5 : direction.x === -1 ? 1 : 0;
+      const anchorY = fromCenter ? 0.5 : direction.y === -1 ? 1 : 0;
+      offset.x = startOffsetX - anchorX * widthDelta;
+      offset.y = startOffsetY - anchorY * heightDelta;
+      if (anchorX !== 0 || anchorY !== 0) {
         applyOffset();
       } else {
         refreshFrame();
@@ -296,17 +287,12 @@ export const createTransformController = (
     if (isElementConnected(element)) refreshFrame();
   };
 
-  // Track the element the way the selection label does (see selection-label):
-  // viewport listeners catch scroll/zoom, a ResizeObserver catches size changes
-  // from any source (canvas handles, panel sliders, content reflow). Drags
-  // refresh synchronously via reinsert/applyOffset.
+  // Keep the frame glued to the element: viewport changes (scroll/zoom) plus a
+  // ResizeObserver for size changes from any source (canvas handles, panel
+  // sliders, content reflow). Drags refresh synchronously via reinsert/applyOffset.
   onMount(() => {
     refreshFrame();
-    const handleViewportChange = () => refreshFrame();
-    window.addEventListener("scroll", handleViewportChange, true);
-    window.addEventListener("resize", handleViewportChange);
-    window.visualViewport?.addEventListener("resize", handleViewportChange);
-    window.visualViewport?.addEventListener("scroll", handleViewportChange);
+    const stopViewportTracking = onViewportChange(refreshFrame);
     const resizeObserver = new ResizeObserver(() => refreshFrame());
     resizeObserver.observe(dependencies.getElement());
     // A ResizeObserver does not fire when its target is removed, so watch the
@@ -316,10 +302,7 @@ export const createTransformController = (
     });
     mutationObserver.observe(document.documentElement, { childList: true, subtree: true });
     onCleanup(() => {
-      window.removeEventListener("scroll", handleViewportChange, true);
-      window.removeEventListener("resize", handleViewportChange);
-      window.visualViewport?.removeEventListener("resize", handleViewportChange);
-      window.visualViewport?.removeEventListener("scroll", handleViewportChange);
+      stopViewportTracking();
       resizeObserver.disconnect();
       mutationObserver.disconnect();
     });

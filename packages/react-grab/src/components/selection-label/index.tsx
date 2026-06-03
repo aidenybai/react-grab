@@ -24,6 +24,7 @@ import {
 import { autoResizeTextarea } from "../../utils/auto-resize-textarea.js";
 import { getArrowSize } from "../../utils/get-arrow-size.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
+import { onViewportChange } from "../../utils/on-viewport-change.js";
 import { cn } from "../../utils/cn.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
 import { IconSubmit } from "../icons/icon-submit.jsx";
@@ -100,6 +101,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   };
 
   let resizeObserver: ResizeObserver | undefined;
+  let stopViewportTracking: (() => void) | undefined;
 
   const handleTagHoverChange = (hovered: boolean) => {
     isTagCurrentlyHovered = hovered;
@@ -146,10 +148,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       setPanelWidth(panelRef.getBoundingClientRect().width);
       resizeObserver.observe(panelRef);
     }
-    window.addEventListener("scroll", handleViewportChange, true);
-    window.addEventListener("resize", handleViewportChange);
-    window.visualViewport?.addEventListener("resize", handleViewportChange);
-    window.visualViewport?.addEventListener("scroll", handleViewportChange);
+    stopViewportTracking = onViewportChange(handleViewportChange);
     if (props.onToggleExpand) {
       window.addEventListener("keydown", handleGlobalKeyDown, { capture: true });
     }
@@ -157,10 +156,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   onCleanup(() => {
     resizeObserver?.disconnect();
-    window.removeEventListener("scroll", handleViewportChange, true);
-    window.removeEventListener("resize", handleViewportChange);
-    window.visualViewport?.removeEventListener("resize", handleViewportChange);
-    window.visualViewport?.removeEventListener("scroll", handleViewportChange);
+    stopViewportTracking?.();
     // removeEventListener is a no-op for a listener that was never added,
     // so it does not need to mirror the onMount onToggleExpand guard. If
     // props.onToggleExpand were ever reactive between mount and cleanup,

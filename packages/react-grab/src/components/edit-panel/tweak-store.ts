@@ -16,6 +16,7 @@ interface CreateTweakStoreOptions {
 
 interface TweakStore {
   filteredProperties: () => EditableProperty[];
+  getProperty: (key: string) => EditableProperty | undefined;
   applyTweak: (property: EditableProperty, nextValue: number | string) => void;
   buildPendingEdits: () => PendingEdit[];
   hasPendingTweaks: () => boolean;
@@ -157,6 +158,7 @@ export const createTweakStore = (options: CreateTweakStoreOptions): TweakStore =
 
   return {
     filteredProperties,
+    getProperty: (key) => propertyByKey.get(key),
     applyTweak,
     buildPendingEdits,
     hasPendingTweaks,

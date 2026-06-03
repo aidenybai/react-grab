@@ -423,17 +423,9 @@ export type TransformHandleId = "nw" | "ne" | "se" | "sw";
 
 export type DropPlacement = "before" | "after";
 
-// Viewport-space line marking where the dragged element will be reinserted.
-export interface TransformInsertionIndicator {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-}
-
-// Translucent box following the cursor during a move drag, showing where the
-// element is being dragged before it snaps into its reinsertion slot.
-export interface TransformDragGhost {
+// A plain viewport-space rectangle. Used both for the insertion indicator line
+// (where a dragged element will be reinserted) and the move drag ghost.
+export interface ViewportBox {
   left: number;
   top: number;
   width: number;
@@ -443,7 +435,7 @@ export interface TransformDragGhost {
 export interface DropTarget {
   reference: Element;
   placement: DropPlacement;
-  indicator: TransformInsertionIndicator;
+  indicator: ViewportBox;
 }
 
 // Viewport-space description of the manipulable box. `centerX`/`centerY` are
