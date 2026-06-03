@@ -183,6 +183,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     clearTimeout(inlineNumericReplaceTimerId);
     inlineNumericReplaceTimerId = setTimeout(() => {
       shouldReplaceInlineNumericInput = true;
+      searchInputRef?.focus({ preventScroll: true });
     }, EDIT_INLINE_NUMERIC_REPLACE_IDLE_MS);
   };
 
