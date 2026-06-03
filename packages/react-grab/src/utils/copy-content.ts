@@ -1,4 +1,5 @@
 import { VERSION } from "../constants.js";
+import { isDemoMode } from "./runtime-mode.js";
 
 const REACT_GRAB_MIME_TYPE = "application/x-react-grab";
 
@@ -27,6 +28,11 @@ const escapeHtml = (text: string): string =>
   text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 export const copyContent = (content: string, options?: CopyContentOptions): boolean => {
+  // Demo mode never touches the visitor's real clipboard (and synthetic events
+  // lack the user gesture execCommand needs), so report success to play the
+  // "Copied" feedback without writing.
+  if (isDemoMode()) return true;
+
   const elementName = options?.componentName ?? "div";
   const entries = options?.entries ?? [
     {

@@ -344,6 +344,18 @@ export interface Plugin {
 
 export interface Options {
   enabled?: boolean;
+  /**
+   * Confine React Grab to a single container element instead of the whole page.
+   * Hit-testing is filtered to the container's subtree, the toolbar treats the
+   * container's box as its viewport, and the host page is never frozen.
+   */
+  container?: HTMLElement;
+  /**
+   * Display-only mode for demos. The toolbar and hover highlight still render,
+   * but real clicks never select, grab, copy, or open the context menu, and the
+   * activation hotkey is ignored. Drive it programmatically via the returned API.
+   */
+  demo?: boolean;
   activationMode?: ActivationMode;
   keyHoldDuration?: number;
   allowActivationInsideInput?: boolean;
@@ -399,6 +411,7 @@ export interface ReactGrabAPI {
   getToolbarState: () => ToolbarState | null;
   setToolbarState: (state: Partial<ToolbarState>) => void;
   onToolbarStateChange: (callback: (state: ToolbarState) => void) => () => void;
+  reset: () => void;
   dispose: () => void;
   copyElement: (elements: Element | Element[]) => Promise<boolean>;
   getSource: (element: Element) => Promise<SourceInfo | null>;

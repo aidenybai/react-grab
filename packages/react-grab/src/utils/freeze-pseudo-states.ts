@@ -1,4 +1,5 @@
 import { clearElementPositionCache } from "./get-element-at-position.js";
+import { getScopeContainer } from "./runtime-mode.js";
 import {
   installPointerEventsFreeze,
   isPointerEventsFreezeInstalled,
@@ -159,6 +160,9 @@ const restoreFrozenStates = (
 };
 
 export const freezePseudoStates = (cursorX?: number, cursorY?: number): void => {
+  // Scoped mode must never freeze the host page - the overlay is confined to a
+  // container, so the surrounding page stays fully interactive.
+  if (getScopeContainer()) return;
   if (isPointerEventsFreezeInstalled()) return;
 
   for (const eventType of MOUSE_EVENTS_TO_BLOCK) {
