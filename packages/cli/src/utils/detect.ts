@@ -325,8 +325,12 @@ export const findReactProjects = (projectRoot: string): WorkspaceProject[] => {
     : findEnclosingMonorepoRoot(projectRoot);
   if (monorepoRoot) {
     const workspaceProjects = findWorkspaceProjects(monorepoRoot);
-    if (workspaceProjects.length > 0) {
-      return workspaceProjects;
+    const localProject = projectRoot === monorepoRoot ? null : buildReactProject(projectRoot);
+    const projects = localProject
+      ? [localProject, ...workspaceProjects.filter((project) => project.path !== localProject.path)]
+      : workspaceProjects;
+    if (projects.length > 0) {
+      return projects;
     }
   }
 

@@ -425,6 +425,31 @@ import ReactDOM from "react-dom/client";`;
     expect(initCount).toBe(1);
   });
 
+  it("should replace subpath import with existing callback without double-chaining", () => {
+    const entryWithSubpathInit = `if (import.meta.env.DEV) {
+  import("react-grab/dist/index.global.js").then(({ init }) => init({"activationKey":"g"}));
+}
+
+import React from "react";
+import ReactDOM from "react-dom/client";`;
+
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("main.tsx"));
+    mockReadFileSync.mockReturnValue(entryWithSubpathInit);
+
+    const options: ReactGrabOptions = {
+      activationKey: "Meta+K",
+    };
+
+    const result = previewOptionsTransform("/test", "vite", "unknown", options);
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).toContain(
+      'import("react-grab").then((m) => m.init({"activationKey":"Meta+K"}))',
+    );
+    const initCount = (result.newContent!.match(/\.then\(/g) || []).length;
+    expect(initCount).toBe(1);
+  });
+
   it("should add multiple options to Vite import", () => {
     mockExistsSync.mockImplementation((path) => String(path).endsWith("main.tsx"));
     mockReadFileSync.mockReturnValue(entryWithReactGrab);
@@ -591,6 +616,39 @@ function RootComponent() {
     expect(result.newContent).toContain(
       'void import("react-grab/core").then(({ init }) => init({"activationKey":"Meta+K"}))',
     );
+  });
+
+  it("should replace existing core init callback without double-chaining", () => {
+    const rootWithReactGrab = `import { useEffect } from "react";
+import { Outlet, createRootRoute } from "@tanstack/react-router";
+
+export const Route = createRootRoute({ component: RootComponent });
+
+function RootComponent() {
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      import("react-grab/core").then((m) => m.init({"activationKey":"g"}));
+    }
+  }, []);
+
+  return <Outlet />;
+}`;
+
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("__root.tsx"));
+    mockReadFileSync.mockReturnValue(rootWithReactGrab);
+
+    const options: ReactGrabOptions = {
+      activationKey: "Meta+K",
+    };
+
+    const result = previewOptionsTransform("/test", "tanstack", "unknown", options);
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).toContain(
+      'import("react-grab/core").then(({ init }) => init({"activationKey":"Meta+K"}))',
+    );
+    const initCount = (result.newContent!.match(/\.then\(/g) || []).length;
+    expect(initCount).toBe(1);
   });
 });
 

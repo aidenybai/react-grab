@@ -384,6 +384,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     expect(detectReactGrabConfigured("/test")).toBe(false);
   });
 
+  it("should ignore trailing-comma inline type-only imports from react-grab", () => {
+    mockExistsSync.mockImplementation((path) => toPosixPath(path).endsWith("app/layout.tsx"));
+    mockReadFileSync.mockReturnValue(`import { type ReactGrabAPI, } from "react-grab";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return <html><body>{children}</body></html>;
+}`);
+
+    expect(detectReactGrabConfigured("/test")).toBe(false);
+  });
+
   it("should detect mixed runtime and inline type imports from react-grab", () => {
     mockExistsSync.mockImplementation((path) => toPosixPath(path).endsWith("app/layout.tsx"));
     mockReadFileSync.mockReturnValue('import { init, type ReactGrabAPI } from "react-grab";');
@@ -428,6 +439,42 @@ describe("findReactProjects", () => {
         path: toPosixPath(project.path),
       })),
     ).toEqual([{ name: "web", path: "/repo/apps/web", framework: "vite" }]);
+  });
+
+  it("should include a local React project that is not listed in the enclosing workspace", () => {
+    mockExistsSync.mockImplementation((path) => {
+      const pathString = toPosixPath(path);
+      if (pathString === "/repo/pnpm-workspace.yaml") return true;
+      if (pathString === "/repo/package.json") return true;
+      if (pathString === "/repo/apps/web") return true;
+      if (pathString === "/repo/apps/web/package.json") return true;
+      if (pathString === "/repo/examples/demo/package.json") return true;
+      return false;
+    });
+    mockReadFileSync.mockImplementation((path) => {
+      const pathString = toPosixPath(path);
+      if (pathString === "/repo/pnpm-workspace.yaml") return "packages:\n  - apps/web\n";
+      if (pathString === "/repo/apps/web/package.json") {
+        return JSON.stringify({ name: "web", dependencies: { react: "18.0.0", vite: "6.0.0" } });
+      }
+      if (pathString === "/repo/examples/demo/package.json") {
+        return JSON.stringify({
+          name: "demo",
+          dependencies: { react: "18.0.0", vite: "6.0.0" },
+        });
+      }
+      return JSON.stringify({ private: true });
+    });
+
+    expect(
+      findReactProjects("/repo/examples/demo").map((project) => ({
+        ...project,
+        path: toPosixPath(project.path),
+      })),
+    ).toEqual([
+      { name: "demo", path: "/repo/examples/demo", framework: "vite" },
+      { name: "web", path: "/repo/apps/web", framework: "vite" },
+    ]);
   });
 });
 

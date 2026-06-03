@@ -607,7 +607,7 @@ const addOptionsToDynamicImport = (
   filePath: string,
 ): TransformResult => {
   const reactGrabImportWithInitMatch = originalContent.match(
-    /(void\s+)?import\s*\(\s*["']react-grab(?:\/[^"']+)?["']\s*\)(?:\.then\s*\(\s*\(m\)\s*=>\s*m\.init\s*\([^)]*\)\s*\))?/,
+    /(void\s+)?import\s*\(\s*["']react-grab(?:\/[^"']+)?["']\s*\)(?:\.then\s*\(\s*(?:\(m\)\s*=>\s*m\.init\s*\([^)]*\)|\(\{\s*init\s*\}\)\s*=>\s*init\s*\([^)]*\))\s*\))?/,
   );
 
   if (!reactGrabImportWithInitMatch) {
@@ -639,7 +639,7 @@ const addOptionsToTanStackImport = (
   filePath: string,
 ): TransformResult => {
   const reactGrabImportWithInitMatch = originalContent.match(
-    /(?:(void\s+)?import\s*\(\s*["']react-grab\/core["']\s*\)\.then\s*\(\s*\(\s*\{\s*init\s*\}\s*\)\s*=>\s*init\s*\([^)]*\)\s*\)|(void\s+)?import\s*\(\s*["']react-grab(?:\/[^"']+)?["']\s*\))/,
+    /(?:(void\s+)?import\s*\(\s*["']react-grab\/core["']\s*\)\.then\s*\(\s*(?:\(\s*\{\s*init\s*\}\s*\)\s*=>\s*init\s*\([^)]*\)|\(m\)\s*=>\s*m\.init\s*\([^)]*\))\s*\)|(void\s+)?import\s*\(\s*["']react-grab(?!\/core)(?:\/[^"']+)?["']\s*\))/,
   );
 
   if (!reactGrabImportWithInitMatch) {
