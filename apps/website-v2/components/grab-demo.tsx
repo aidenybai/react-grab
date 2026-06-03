@@ -133,6 +133,7 @@ export const GrabDemo = () => {
   const playingRef = useRef(false);
   const rafRef = useRef<number | null>(null);
   const timeoutRef = useRef<number | null>(null);
+  const pendingResolveRef = useRef<(() => void) | null>(null);
   const positionRef = useRef({ x: 0, y: 0 });
   const scaleRef = useRef(1);
 
@@ -200,15 +201,23 @@ export const GrabDemo = () => {
     if (timeoutRef.current !== null) window.clearTimeout(timeoutRef.current);
     rafRef.current = null;
     timeoutRef.current = null;
+    // Settle any in-flight wait/moveTo/clickPulse so the awaiting loop unwinds
+    // and exits on its next playingRef check instead of hanging forever (which
+    // would also let a second loop start on resume).
+    const resolvePending = pendingResolveRef.current;
+    pendingResolveRef.current = null;
+    resolvePending?.();
   };
 
   const wait = (durationMs: number): Promise<void> =>
     new Promise((resolve) => {
+      pendingResolveRef.current = resolve;
       timeoutRef.current = window.setTimeout(resolve, durationMs);
     });
 
   const moveTo = (targetX: number, targetY: number, durationMs: number): Promise<void> =>
     new Promise((resolve) => {
+      pendingResolveRef.current = resolve;
       const startX = positionRef.current.x;
       const startY = positionRef.current.y;
       const startTime = performance.now();
@@ -235,6 +244,7 @@ export const GrabDemo = () => {
 
   const clickPulse = (): Promise<void> =>
     new Promise((resolve) => {
+      pendingResolveRef.current = resolve;
       const startTime = performance.now();
       const frame = (now: number) => {
         if (!playingRef.current) {

@@ -1,7 +1,7 @@
 import { FROZEN_ELEMENT_ATTRIBUTE } from "../constants.js";
 import { createStyleElement } from "./create-style-element.js";
 import { freezeGsap, unfreezeGsap } from "./freeze-gsap.js";
-import { getScopeContainer } from "./runtime-mode.js";
+import { getScopeContainer, isDemoMode } from "./runtime-mode.js";
 
 const FROZEN_STYLES = `
 [${FROZEN_ELEMENT_ATTRIBUTE}],
@@ -118,8 +118,9 @@ const finishAnimations = (animations: Iterable<Animation>): void => {
 };
 
 export const freezeAllAnimations = (elements: Element[]): void => {
-  // Scoped mode must not pause animations on the host page.
-  if (getScopeContainer()) return;
+  // Element-level freeze only touches the selected subtree, so it's safe in
+  // scoped (embedded) mode; demo mode is display-only and skips it entirely.
+  if (isDemoMode()) return;
   if (elements.length === 0) return;
   if (areElementsSame(elements, lastInputElements)) return;
 
@@ -162,7 +163,7 @@ const unfreezeAllAnimations = (): void => {
 };
 
 export const freezeAnimations = (elements: Element[]): (() => void) => {
-  if (getScopeContainer()) return () => {};
+  if (isDemoMode()) return () => {};
   if (elements.length === 0) {
     unfreezeAllAnimations();
     return () => {};
