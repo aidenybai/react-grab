@@ -90,8 +90,12 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   const preview = props.state.preview;
 
   const [searchQuery, setSearchQuery] = createSignal(props.state.initialSearchQuery ?? "");
+  const [isInlineNumericSearchBypassed, setIsInlineNumericSearchBypassed] = createSignal(false);
   const [activeKey, setActiveKey] = createSignal<"left" | "right" | null>(null);
-  const tweakStore = createTweakStore({ initialProperties, searchQuery });
+  const tweakStore = createTweakStore({
+    initialProperties,
+    searchQuery: () => (isInlineNumericSearchBypassed() ? "" : searchQuery()),
+  });
   // Colors are pinned on top but aren't slider-steppable, so the arrow-key
   // cursor lands on the first numeric row instead.
   const firstNumericActiveIndex = (): number => {
@@ -602,11 +606,16 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
               onInput={(event) => {
                 const nextSearchQuery = event.currentTarget.value;
                 if (autoApply.tryApplyNumericValue(nextSearchQuery)) {
+                  setIsInlineNumericSearchBypassed(true);
                   setSearchQuery(nextSearchQuery);
                   return;
                 }
                 setSearchQuery(nextSearchQuery);
-                if (autoApply.isInlineNumericDraft(nextSearchQuery)) return;
+                if (autoApply.isInlineNumericDraft(nextSearchQuery)) {
+                  setIsInlineNumericSearchBypassed(true);
+                  return;
+                }
+                setIsInlineNumericSearchBypassed(false);
                 setActiveIndex(nextSearchQuery.trim() === "" ? firstNumericActiveIndex() : 0);
                 setIsCompact(false);
                 autoApply.applyTailwindClass(nextSearchQuery);
