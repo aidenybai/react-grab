@@ -38,7 +38,8 @@ test.describe("Style Panel Color Controls", () => {
   test("transparent color values are labeled as transparent", async ({ reactGrab }) => {
     const { page } = reactGrab;
     await openEditPanel(reactGrab, PLAIN_TEXT_SELECTOR);
-    await page.locator(`[${EDIT_PANEL_ATTR}] [${EDIT_PROPERTY_ATTR}="background-color"]`).click();
+    await setSearchInputValue(page, "background");
+    await expect.poll(() => getActivePropertyKey(page)).toBe("background-color");
 
     await expect.poll(() => getActivePropertyValue(page)).toBe("transparent");
   });
