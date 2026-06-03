@@ -7,7 +7,6 @@ import type {
   TransformHandleId,
   TransformValues,
 } from "../../types.js";
-import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "../../utils/native-raf.js";
 
 interface TransformControllerDependencies {
   getElement: () => Element;
@@ -226,9 +225,17 @@ export const createTransformController = (
     });
   };
 
+  // Round before testing so a pure resize, whose anchor compensation can leave
+  // sub-pixel translate residue, does not report a change (and `buildPendingEdit`
+  // would emit a no-op `translate(0px, 0px) rotate(0deg)`). "Changed" and
+  // "emitted" therefore agree on the same rounded values.
   const hasChanged = (): boolean => {
     trackTransformEdits();
-    return transform.translateX !== 0 || transform.translateY !== 0 || transform.rotate !== 0;
+    return (
+      Math.round(transform.translateX) !== 0 ||
+      Math.round(transform.translateY) !== 0 ||
+      Math.round(transform.rotate) !== 0
+    );
   };
 
   const buildPendingEdit = (): PendingEdit | null => {
@@ -241,13 +248,26 @@ export const createTransformController = (
     };
   };
 
+  // Track the element the way the selection label does (see selection-label):
+  // viewport listeners catch scroll/zoom, a ResizeObserver catches size changes
+  // from any source (canvas handles, panel sliders, content reflow). This avoids
+  // an always-on per-frame getBoundingClientRect poll — drags already refresh
+  // synchronously via applyTransform.
   onMount(() => {
-    let frameId: number | null = nativeRequestAnimationFrame(function tick() {
-      refreshFrame();
-      frameId = nativeRequestAnimationFrame(tick);
-    });
+    refreshFrame();
+    const handleViewportChange = () => refreshFrame();
+    window.addEventListener("scroll", handleViewportChange, true);
+    window.addEventListener("resize", handleViewportChange);
+    window.visualViewport?.addEventListener("resize", handleViewportChange);
+    window.visualViewport?.addEventListener("scroll", handleViewportChange);
+    const resizeObserver = new ResizeObserver(() => refreshFrame());
+    resizeObserver.observe(dependencies.getElement());
     onCleanup(() => {
-      if (frameId !== null) nativeCancelAnimationFrame(frameId);
+      window.removeEventListener("scroll", handleViewportChange, true);
+      window.removeEventListener("resize", handleViewportChange);
+      window.visualViewport?.removeEventListener("resize", handleViewportChange);
+      window.visualViewport?.removeEventListener("scroll", handleViewportChange);
+      resizeObserver.disconnect();
     });
   });
 

@@ -104,33 +104,19 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   };
   const [activeIndex, setActiveIndex] = createSignal(firstNumericActiveIndex());
 
-  // Created before the memos that read it: createMemo evaluates eagerly, so a
-  // later `const` would hit the temporal dead zone. `commit`/`markAsInteracting`
-  // are only reached through deferred drag callbacks, so referencing them via
-  // closures here is safe even though they are defined further down.
-  const sizeProperties: Record<"width" | "height", EditableProperty | undefined> = {
-    width: initialProperties.find((property) => property.key === "width"),
-    height: initialProperties.find((property) => property.key === "height"),
-  };
-  const transformController = createTransformController({
-    getElement: () => props.state.element,
-    preview,
-    commitSize: (cssProperty, valuePx) => {
-      const property = sizeProperties[cssProperty];
-      if (property?.kind === "numeric") commit(property, valuePx);
-    },
-    onInteract: () => markAsInteracting(),
-  });
-
-  const hasPendingTweaks = createMemo(
-    () => tweakStore.hasPendingTweaks() || transformController.hasChanged(),
-  );
+  // Plain getters, not memos: they read `transformController`, which is created
+  // lower down in natural source order (after `commit`). Memos evaluate eagerly
+  // during setup and would hit the controller's temporal dead zone; cheap
+  // boolean getters defer the read until render/effects run, by which point the
+  // controller exists. The downstream `setInteracting` signal dedupes, so the
+  // lost memo caching costs nothing observable.
+  const hasPendingTweaks = () => tweakStore.hasPendingTweaks() || transformController.hasChanged();
   const [isCompact, setIsCompact] = createSignal(false);
 
   let activeKeyTimerId: ReturnType<typeof setTimeout> | undefined;
   let interactingIdleTimerId: ReturnType<typeof setTimeout> | undefined;
   const [isTransientInteraction, setIsTransientInteraction] = createSignal(false);
-  const isInteracting = createMemo(() => isTransientInteraction() || hasPendingTweaks());
+  const isInteracting = () => isTransientInteraction() || hasPendingTweaks();
   const [isHeaderHovered, setIsHeaderHovered] = createSignal(false);
 
   const tagDisplay = createMemo(() =>
@@ -161,7 +147,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     }, EDIT_PANEL_ACTIVE_KEY_FLASH_MS);
   };
 
-  const effectiveInteracting = createMemo(() => isInteracting() && !isHeaderHovered());
+  const effectiveInteracting = () => isInteracting() && !isHeaderHovered();
 
   createEffect(() => {
     const nextInteracting = effectiveInteracting();
@@ -205,6 +191,20 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     if (options.shouldFocus) ensureSearchFocused();
     if (options.shouldCompact) setIsCompact(true);
   };
+
+  const sizeProperties: Record<"width" | "height", EditableProperty | undefined> = {
+    width: initialProperties.find((property) => property.key === "width"),
+    height: initialProperties.find((property) => property.key === "height"),
+  };
+  const transformController = createTransformController({
+    getElement: () => props.state.element,
+    preview,
+    commitSize: (cssProperty, valuePx) => {
+      const property = sizeProperties[cssProperty];
+      if (property?.kind === "numeric") commit(property, valuePx);
+    },
+    onInteract: markAsInteracting,
+  });
 
   const isShiftHeld = createShiftTracker();
 
