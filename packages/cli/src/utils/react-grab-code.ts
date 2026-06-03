@@ -9,7 +9,7 @@ export const hasReactGrabSetupCode = (content: string): boolean => {
   const uncommentedContent = stripComments(content);
   const setupPatterns = [
     /import\s*\(\s*["']react-grab(?:\/core)?["']\s*\)/,
-    /import\s+(?:[^"';]+from\s+)?["']react-grab(?:\/core)?["']/,
+    /import\s+(?!type\b)(?:[^"';]+from\s+)?["']react-grab(?:\/core)?["']/,
     /require\s*\(\s*["']react-grab(?:\/core)?["']\s*\)/,
     /<Script[\s\S]*?src\s*=\s*(?:["'][^"']*react-grab[^"']*["']|\{["'][^"']*react-grab[^"']*["']\})/i,
     /<script[\s\S]*?src\s*=\s*["'][^"']*react-grab[^"']*["']/i,

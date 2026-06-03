@@ -331,6 +331,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
     expect(detectReactGrabConfigured("/test")).toBe(false);
   });
+
+  it("should ignore type-only imports from react-grab", () => {
+    mockExistsSync.mockImplementation((path) => toPosixPath(path).endsWith("app/layout.tsx"));
+    mockReadFileSync.mockReturnValue(`import type { ReactGrabAPI } from "react-grab";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return <html><body>{children}</body></html>;
+}`);
+
+    expect(detectReactGrabConfigured("/test")).toBe(false);
+  });
 });
 
 describe("detectMonorepo", () => {
