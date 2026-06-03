@@ -41,7 +41,12 @@ interface EditModeDependencies {
 
 export interface EditModeController {
   state: Accessor<EditPanelState | null>;
-  trigger: (element: Element, position: Position, overrides?: EditModeOverrides) => boolean;
+  trigger: (
+    element: Element,
+    position: Position,
+    overrides?: EditModeOverrides,
+    previewElements?: readonly Element[],
+  ) => boolean;
   dismiss: () => void;
   closePreservingRenderer: () => void;
   submit: (prompt: string) => void;
@@ -73,11 +78,15 @@ export const createEditModeController = (
     element: Element,
     position: Position,
     overrides: EditModeOverrides = {},
+    previewElements?: readonly Element[],
   ): boolean => {
     // Re-entry would desync the existing preview from the panel's tweak store.
     if (state() !== null) return false;
     const properties = buildEditableProperties(element);
     if (properties.length === 0) return false;
+
+    const previewTargets =
+      previewElements && previewElements.length > 0 ? previewElements : [element];
 
     const resolvedFilePath =
       overrides.filePath ?? dependencies.store.selectionFilePath ?? undefined;
@@ -89,7 +98,7 @@ export const createEditModeController = (
       position,
       selectionBounds: createElementBounds(element),
       properties,
-      preview: createPreviewStyles(element),
+      preview: createPreviewStyles(previewTargets),
       filePath: resolvedFilePath,
       lineNumber: resolvedLineNumber,
       componentName: overrides.componentName,

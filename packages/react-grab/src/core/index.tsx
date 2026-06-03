@@ -463,6 +463,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
     let previousSpaceDragPointerPage: Position | null = null;
     const [isShiftMultiSelecting, setIsShiftMultiSelecting] = createSignal(false);
+    const [isAltKeyHeld, setIsAltKeyHeld] = createSignal(false);
     let lastWindowFocusTimestamp = 0;
     let isCopyFeedbackCooldownActive = false;
     let copyFeedbackCooldownTimerId: number | null = null;
@@ -1028,7 +1029,28 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return previewElements.map((element) => createElementBounds(element));
     });
 
+    const altPreviewElements = createMemo((): Element[] => {
+      if (!isAltKeyHeld() || !isRendererActive()) return [];
+      if (isDragging() || isFrozenPhase() || isPromptMode()) return [];
+      if (isShiftMultiSelecting() || store.pendingCommentMode) return [];
+      const element = store.detectedElement;
+      if (!isElementConnected(element) || isRootElement(element)) return [];
+      const instances = findComponentInstanceElements(element);
+      return instances.length > 1 ? instances : [];
+    });
+
+    const altPreviewBounds = createMemo((): OverlayBounds[] => {
+      void viewportVersion();
+      const elements = altPreviewElements();
+      if (elements.length === 0) return [];
+      return elements.map((element) => createElementBounds(element));
+    });
+
     const selectionBoundsMultiple = createMemo((): OverlayBounds[] => {
+      const altBounds = altPreviewBounds();
+      if (altBounds.length > 0) {
+        return altBounds;
+      }
       const previewBounds = dragPreviewBounds();
       if (previewBounds.length > 0) {
         return previewBounds;
@@ -1453,7 +1475,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       element: Element,
       position: Position,
       overrides: EditModeOverrides = {},
-    ): boolean => editMode.trigger(element, position, overrides);
+    ): boolean => {
+      // When Alt selected every instance of a component, the live style
+      // preview should apply to all of them, not just the clicked element.
+      const previewElements =
+        store.frozenElements.length > 1 && store.frozenElements.includes(element)
+          ? [...store.frozenElements]
+          : [element];
+      return editMode.trigger(element, position, overrides, previewElements);
+    };
 
     const currentSelectionEditOverrides = (element: Element): EditModeOverrides => ({
       filePath: store.selectionFilePath ?? undefined,
@@ -1970,15 +2000,22 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const { wasIntercepted } = pluginRegistry.hooks.onElementSelect(selectedElement);
         if (wasIntercepted) return;
 
-        freezeAllAnimations([selectedElement]);
-        actions.setFrozenElement(selectedElement);
+        // Alt expands the pending action to every instance of the clicked
+        // component, so e.g. a style edit previews across all of them.
+        const altInstances = isAltHeld ? findComponentInstanceElements(selectedElement) : [];
+        const targetElements = altInstances.length > 1 ? altInstances : [selectedElement];
+        const primaryElement = targetElements[0];
+
+        freezeAllAnimations(targetElements);
+        actions.setFrozenElements(targetElements);
         const position = { x: positionX, y: positionY };
         actions.setPointer(position);
+        actions.setLastGrabbed(primaryElement);
         actions.freeze();
         if (pendingDefaultActionId) {
-          runPendingDefaultAction(selectedElement, position);
+          runPendingDefaultAction(primaryElement, position);
         } else {
-          openContextMenu(selectedElement, position);
+          openContextMenu(primaryElement, position);
         }
         return;
       }
@@ -2393,6 +2430,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (event: KeyboardEvent) => {
         blockEnterIfNeeded(event);
 
+        if (event.key === "Alt") setIsAltKeyHeld(true);
+
         if (!isEnabled()) {
           if (isTargetKeyCombination(event, pluginRegistry.store.options) && !event.repeat) {
             setToolbarShakeCount((count) => count + 1);
@@ -2483,6 +2522,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     eventListenerManager.addWindowListener(
       "keyup",
       (event: KeyboardEvent) => {
+        if (event.key === "Alt") setIsAltKeyHeld(false);
+
         if (blockEnterIfNeeded(event)) return;
 
         if (isSpaceActivationKey(event) && isDragRepositioning()) {
@@ -2616,6 +2657,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (!event.isPrimary) return;
         const isTouchPointer = event.pointerType === "touch";
         actions.setTouchMode(isTouchPointer);
+        setIsAltKeyHeld(event.altKey);
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (isModalPopoverOpen()) return;
         if (isSelectionInteractionLocked()) return;
@@ -2741,7 +2783,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const isClickedElementAlreadyFrozen =
           existingFrozenElements.length > 1 && existingFrozenElements.includes(element);
 
-        if (isClickedElementAlreadyFrozen) {
+        const altInstances = event.altKey ? findComponentInstanceElements(element) : [];
+
+        let contextMenuTarget = element;
+        if (altInstances.length > 1) {
+          freezeAllAnimations(altInstances);
+          actions.setFrozenElements(altInstances);
+          contextMenuTarget = altInstances[0];
+        } else if (isClickedElementAlreadyFrozen) {
           freezeAllAnimations(existingFrozenElements);
         } else {
           freezeAllAnimations([element]);
@@ -2750,7 +2799,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         actions.setPointer(position);
         actions.freeze();
-        openContextMenu(element, position);
+        openContextMenu(contextMenuTarget, position);
       },
       { capture: true },
     );
@@ -2802,6 +2851,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     // the user may alt-tab back.
     eventListenerManager.addWindowListener("blur", () => {
       cancelActiveDrag();
+      setIsAltKeyHeld(false);
       if (isHoldingKeys()) {
         clearHoldTimer();
         actions.releaseHold();
@@ -3556,7 +3606,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 selectionBounds={selectionBounds()}
                 selectionBoundsMultiple={selectionBoundsMultiple()}
                 selectionShouldSnap={
-                  store.frozenElements.length > 0 || dragPreviewBounds().length > 0
+                  store.frozenElements.length > 0 ||
+                  dragPreviewBounds().length > 0 ||
+                  altPreviewBounds().length > 0
                 }
                 selectionElementsCount={store.frozenElements.length}
                 frozenLabelEntries={frozenLabelEntries()}
