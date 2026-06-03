@@ -154,7 +154,7 @@ export const init = new Command()
 
       const projectInfo = await detectProject(cwd);
 
-      if (projectInfo.hasReactGrab && !opts.force) {
+      if (projectInfo.isReactGrabConfigured && !opts.force) {
         preflightSpinner.succeed();
 
         if (isNonInteractive) {

@@ -15,6 +15,7 @@ interface ProjectInfo {
   isMonorepo: boolean;
   projectRoot: string;
   hasReactGrab: boolean;
+  isReactGrabConfigured: boolean;
   reactGrabVersion: string | null;
   unsupportedFramework: UnsupportedFramework;
 }
@@ -361,10 +362,12 @@ const hasReactGrabInFile = (filePath: string): boolean => {
   }
 };
 
-export const detectReactGrab = (projectRoot: string): boolean => {
+const detectReactGrabDependency = (projectRoot: string): boolean => {
   const dependencies = readMergedDependencies(projectRoot);
-  if (dependencies?.["react-grab"]) return true;
+  return Boolean(dependencies?.["react-grab"]);
+};
 
+export const detectReactGrabConfigured = (projectRoot: string): boolean => {
   const filesToCheck = [
     join(projectRoot, "app", "layout.tsx"),
     join(projectRoot, "app", "layout.jsx"),
@@ -372,6 +375,8 @@ export const detectReactGrab = (projectRoot: string): boolean => {
     join(projectRoot, "src", "app", "layout.jsx"),
     join(projectRoot, "pages", "_document.tsx"),
     join(projectRoot, "pages", "_document.jsx"),
+    join(projectRoot, "src", "pages", "_document.tsx"),
+    join(projectRoot, "src", "pages", "_document.jsx"),
     join(projectRoot, "instrumentation-client.ts"),
     join(projectRoot, "instrumentation-client.js"),
     join(projectRoot, "src", "instrumentation-client.ts"),
@@ -379,9 +384,13 @@ export const detectReactGrab = (projectRoot: string): boolean => {
     join(projectRoot, "index.html"),
     join(projectRoot, "public", "index.html"),
     join(projectRoot, "src", "index.tsx"),
+    join(projectRoot, "src", "index.jsx"),
     join(projectRoot, "src", "index.ts"),
+    join(projectRoot, "src", "index.js"),
     join(projectRoot, "src", "main.tsx"),
+    join(projectRoot, "src", "main.jsx"),
     join(projectRoot, "src", "main.ts"),
+    join(projectRoot, "src", "main.js"),
     join(projectRoot, "src", "routes", "__root.tsx"),
     join(projectRoot, "src", "routes", "__root.jsx"),
     join(projectRoot, "app", "routes", "__root.tsx"),
@@ -390,6 +399,9 @@ export const detectReactGrab = (projectRoot: string): boolean => {
 
   return filesToCheck.some(hasReactGrabInFile);
 };
+
+export const detectReactGrab = (projectRoot: string): boolean =>
+  detectReactGrabDependency(projectRoot) || detectReactGrabConfigured(projectRoot);
 
 export const detectUnsupportedFramework = (projectRoot: string): UnsupportedFramework => {
   const dependencies = readMergedDependencies(projectRoot);
@@ -417,6 +429,7 @@ export const detectProject = async (projectRoot: string = process.cwd()): Promis
   const framework =
     localFramework === "unknown" ? detectFrameworkFromMonorepoRoot(projectRoot) : localFramework;
   const packageManager = await detectPackageManager(projectRoot);
+  const isReactGrabConfigured = detectReactGrabConfigured(projectRoot);
 
   return {
     packageManager,
@@ -424,7 +437,8 @@ export const detectProject = async (projectRoot: string = process.cwd()): Promis
     nextRouterType: framework === "next" ? detectNextRouterType(projectRoot) : "unknown",
     isMonorepo: detectMonorepo(projectRoot),
     projectRoot,
-    hasReactGrab: detectReactGrab(projectRoot),
+    hasReactGrab: detectReactGrabDependency(projectRoot) || isReactGrabConfigured,
+    isReactGrabConfigured,
     reactGrabVersion: detectReactGrabVersion(projectRoot),
     unsupportedFramework: detectUnsupportedFramework(projectRoot),
   };

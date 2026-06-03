@@ -5,6 +5,7 @@ import {
   detectNextRouterType,
   detectProject,
   detectReactGrab,
+  detectReactGrabConfigured,
   detectUnsupportedFramework,
 } from "../src/utils/detect.js";
 
@@ -287,6 +288,31 @@ describe("detectReactGrab", () => {
   });
 });
 
+describe("detectReactGrabConfigured", () => {
+  it("should return false when react-grab only exists in dependencies", () => {
+    mockExistsSync.mockImplementation((path) => toPosixPath(path).endsWith("package.json"));
+    mockReadFileSync.mockReturnValue(JSON.stringify({ dependencies: { "react-grab": "1.0.0" } }));
+
+    expect(detectReactGrabConfigured("/test")).toBe(false);
+  });
+
+  it("should detect react-grab setup in a Next.js app layout", () => {
+    mockExistsSync.mockImplementation((path) => toPosixPath(path).endsWith("app/layout.tsx"));
+    mockReadFileSync.mockReturnValue(
+      '<Script src="//unpkg.com/react-grab/dist/index.global.js" />',
+    );
+
+    expect(detectReactGrabConfigured("/test")).toBe(true);
+  });
+
+  it("should detect react-grab setup in a JavaScript entry import", () => {
+    mockExistsSync.mockImplementation((path) => toPosixPath(path).endsWith("src/main.js"));
+    mockReadFileSync.mockReturnValue('if (import.meta.env.DEV) import("react-grab");');
+
+    expect(detectReactGrabConfigured("/test")).toBe(true);
+  });
+});
+
 describe("detectMonorepo", () => {
   it("should return false for malformed package.json", () => {
     mockExistsSync.mockImplementation((path) => {
@@ -353,6 +379,40 @@ describe("detectUnsupportedFramework", () => {
 });
 
 describe("detectProject", () => {
+  it("should distinguish an installed dependency from completed setup", async () => {
+    mockExistsSync.mockImplementation((path) => {
+      const pathString = toPosixPath(path);
+      return pathString === "/app/package.json";
+    });
+    mockReadFileSync.mockReturnValue(
+      JSON.stringify({ dependencies: { next: "14.0.0", react: "18.0.0", "react-grab": "1.0.0" } }),
+    );
+
+    const project = await detectProject("/app");
+
+    expect(project.hasReactGrab).toBe(true);
+    expect(project.isReactGrabConfigured).toBe(false);
+  });
+
+  it("should mark setup complete when react-grab exists in a framework entry file", async () => {
+    mockExistsSync.mockImplementation((path) => {
+      const pathString = toPosixPath(path);
+      return pathString === "/app/package.json" || pathString === "/app/src/main.tsx";
+    });
+    mockReadFileSync.mockImplementation((path) => {
+      const pathString = toPosixPath(path);
+      if (pathString === "/app/package.json") {
+        return JSON.stringify({ dependencies: { react: "18.0.0", vite: "6.0.0" } });
+      }
+      return 'if (import.meta.env.DEV) import("react-grab");';
+    });
+
+    const project = await detectProject("/app");
+
+    expect(project.hasReactGrab).toBe(true);
+    expect(project.isReactGrabConfigured).toBe(true);
+  });
+
   it("should fall back to monorepo root framework when subpackage has hoisted deps", async () => {
     mockExistsSync.mockImplementation((path) => {
       const pathString = toPosixPath(path);
