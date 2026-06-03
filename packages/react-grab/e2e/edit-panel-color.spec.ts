@@ -4,6 +4,7 @@ import {
   BUTTON_SELECTOR,
   EDIT_PANEL_ATTR,
   EDIT_PROPERTY_ATTR,
+  getActivePropertyValue,
   clearEditStorage,
   getActivePropertyKey,
   getInlineStyleProperty,
@@ -32,6 +33,15 @@ test.describe("Style Panel Color Controls", () => {
     const propertyKeys = await getVisiblePropertyKeys(reactGrab.page);
     expect(propertyKeys).toContain("background-color");
     expect(propertyKeys).toContain("color");
+  });
+
+  test("transparent color values are labeled as transparent", async ({ reactGrab }) => {
+    const { page } = reactGrab;
+    await openEditPanel(reactGrab, PLAIN_TEXT_SELECTOR);
+    await setSearchInputValue(page, "background");
+    await expect.poll(() => getActivePropertyKey(page)).toBe("background-color");
+
+    await expect.poll(() => getActivePropertyValue(page)).toBe("transparent");
   });
 
   test("typing bg-[#hex] applies the background color", async ({ reactGrab }) => {

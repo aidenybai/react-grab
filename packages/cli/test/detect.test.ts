@@ -5,7 +5,9 @@ import {
   detectNextRouterType,
   detectProject,
   detectReactGrab,
+  detectReactGrabConfigured,
   detectUnsupportedFramework,
+  findReactProjects,
 } from "../src/utils/detect.js";
 
 vi.mock("node:fs", () => ({
@@ -287,6 +289,120 @@ describe("detectReactGrab", () => {
   });
 });
 
+describe("detectReactGrabConfigured", () => {
+  it("should return false when react-grab only exists in dependencies", () => {
+    mockExistsSync.mockImplementation((path) => toPosixPath(path).endsWith("package.json"));
+    mockReadFileSync.mockReturnValue(JSON.stringify({ dependencies: { "react-grab": "1.0.0" } }));
+
+    expect(detectReactGrabConfigured("/test")).toBe(false);
+  });
+
+  it("should detect react-grab setup in a Next.js app layout", () => {
+    mockExistsSync.mockImplementation((path) => toPosixPath(path).endsWith("app/layout.tsx"));
+    mockReadFileSync.mockReturnValue(
+      '<Script src="//unpkg.com/react-grab/dist/index.global.js" />',
+    );
+
+    expect(detectReactGrabConfigured("/test")).toBe(true);
+  });
+
+  it("should detect react-grab setup in a JSX template literal script src", () => {
+    mockExistsSync.mockImplementation((path) => toPosixPath(path).endsWith("app/layout.tsx"));
+    mockReadFileSync.mockReturnValue(
+      "<Script src={`//unpkg.com/react-grab/dist/index.global.js`} />",
+    );
+
+    expect(detectReactGrabConfigured("/test")).toBe(true);
+  });
+
+  it("should detect react-grab setup in a JavaScript Next.js app layout", () => {
+    mockExistsSync.mockImplementation((path) => toPosixPath(path).endsWith("app/layout.js"));
+    mockReadFileSync.mockReturnValue(
+      '<Script src="//unpkg.com/react-grab/dist/index.global.js" />',
+    );
+
+    expect(detectReactGrabConfigured("/test")).toBe(true);
+  });
+
+  it("should detect react-grab setup in a JavaScript entry import", () => {
+    mockExistsSync.mockImplementation((path) => toPosixPath(path).endsWith("src/main.js"));
+    mockReadFileSync.mockReturnValue('if (import.meta.env.DEV) import("react-grab");');
+
+    expect(detectReactGrabConfigured("/test")).toBe(true);
+  });
+
+  it("should detect react-grab setup in subpath imports", () => {
+    mockExistsSync.mockImplementation((path) => toPosixPath(path).endsWith("src/main.ts"));
+    mockReadFileSync.mockReturnValue(
+      'if (import.meta.env.DEV) import("react-grab/dist/index.global.js");',
+    );
+
+    expect(detectReactGrabConfigured("/test")).toBe(true);
+  });
+
+  it("should detect react-grab setup in module instrumentation files", () => {
+    mockExistsSync.mockImplementation((path) =>
+      toPosixPath(path).endsWith("instrumentation-client.mts"),
+    );
+    mockReadFileSync.mockReturnValue(
+      'if (process.env.NODE_ENV === "development") import("react-grab");',
+    );
+
+    expect(detectReactGrabConfigured("/test")).toBe(true);
+  });
+
+  it("should ignore comments that mention react-grab", () => {
+    mockExistsSync.mockImplementation((path) => toPosixPath(path).endsWith("app/layout.tsx"));
+    mockReadFileSync.mockReturnValue(`const setupLater = true; // import("react-grab") later
+// import("react-grab") later
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return <html><body>{children}</body></html>;
+}`);
+
+    expect(detectReactGrabConfigured("/test")).toBe(false);
+  });
+
+  it("should ignore type-only imports from react-grab", () => {
+    mockExistsSync.mockImplementation((path) => toPosixPath(path).endsWith("app/layout.tsx"));
+    mockReadFileSync.mockReturnValue(`import type { ReactGrabAPI } from "react-grab";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return <html><body>{children}</body></html>;
+}`);
+
+    expect(detectReactGrabConfigured("/test")).toBe(false);
+  });
+
+  it("should ignore inline type-only imports from react-grab", () => {
+    mockExistsSync.mockImplementation((path) => toPosixPath(path).endsWith("app/layout.tsx"));
+    mockReadFileSync.mockReturnValue(`import { type ReactGrabAPI } from "react-grab";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return <html><body>{children}</body></html>;
+}`);
+
+    expect(detectReactGrabConfigured("/test")).toBe(false);
+  });
+
+  it("should ignore trailing-comma inline type-only imports from react-grab", () => {
+    mockExistsSync.mockImplementation((path) => toPosixPath(path).endsWith("app/layout.tsx"));
+    mockReadFileSync.mockReturnValue(`import { type ReactGrabAPI, } from "react-grab";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return <html><body>{children}</body></html>;
+}`);
+
+    expect(detectReactGrabConfigured("/test")).toBe(false);
+  });
+
+  it("should detect mixed runtime and inline type imports from react-grab", () => {
+    mockExistsSync.mockImplementation((path) => toPosixPath(path).endsWith("app/layout.tsx"));
+    mockReadFileSync.mockReturnValue('import { init, type ReactGrabAPI } from "react-grab";');
+
+    expect(detectReactGrabConfigured("/test")).toBe(true);
+  });
+});
+
 describe("detectMonorepo", () => {
   it("should return false for malformed package.json", () => {
     mockExistsSync.mockImplementation((path) => {
@@ -295,6 +411,70 @@ describe("detectMonorepo", () => {
     mockReadFileSync.mockReturnValue("invalid");
 
     expect(detectMonorepo("/test")).toBe(false);
+  });
+});
+
+describe("findReactProjects", () => {
+  it("should use the enclosing monorepo root when called from a workspace package", () => {
+    mockExistsSync.mockImplementation((path) => {
+      const pathString = toPosixPath(path);
+      if (pathString === "/repo/pnpm-workspace.yaml") return true;
+      if (pathString === "/repo/package.json") return true;
+      if (pathString === "/repo/apps/web") return true;
+      if (pathString === "/repo/apps/web/package.json") return true;
+      return false;
+    });
+    mockReadFileSync.mockImplementation((path) => {
+      const pathString = toPosixPath(path);
+      if (pathString === "/repo/pnpm-workspace.yaml") return "packages:\n  - apps/web\n";
+      if (pathString === "/repo/apps/web/package.json") {
+        return JSON.stringify({ name: "web", dependencies: { react: "18.0.0", vite: "6.0.0" } });
+      }
+      return JSON.stringify({ private: true });
+    });
+
+    expect(
+      findReactProjects("/repo/apps/web").map((project) => ({
+        ...project,
+        path: toPosixPath(project.path),
+      })),
+    ).toEqual([{ name: "web", path: "/repo/apps/web", framework: "vite" }]);
+  });
+
+  it("should include a local React project that is not listed in the enclosing workspace", () => {
+    mockExistsSync.mockImplementation((path) => {
+      const pathString = toPosixPath(path);
+      if (pathString === "/repo/pnpm-workspace.yaml") return true;
+      if (pathString === "/repo/package.json") return true;
+      if (pathString === "/repo/apps/web") return true;
+      if (pathString === "/repo/apps/web/package.json") return true;
+      if (pathString === "/repo/examples/demo/package.json") return true;
+      return false;
+    });
+    mockReadFileSync.mockImplementation((path) => {
+      const pathString = toPosixPath(path);
+      if (pathString === "/repo/pnpm-workspace.yaml") return "packages:\n  - apps/web\n";
+      if (pathString === "/repo/apps/web/package.json") {
+        return JSON.stringify({ name: "web", dependencies: { react: "18.0.0", vite: "6.0.0" } });
+      }
+      if (pathString === "/repo/examples/demo/package.json") {
+        return JSON.stringify({
+          name: "demo",
+          dependencies: { react: "18.0.0", vite: "6.0.0" },
+        });
+      }
+      return JSON.stringify({ private: true });
+    });
+
+    expect(
+      findReactProjects("/repo/examples/demo").map((project) => ({
+        ...project,
+        path: toPosixPath(project.path),
+      })),
+    ).toEqual([
+      { name: "demo", path: "/repo/examples/demo", framework: "vite" },
+      { name: "web", path: "/repo/apps/web", framework: "vite" },
+    ]);
   });
 });
 
@@ -353,6 +533,40 @@ describe("detectUnsupportedFramework", () => {
 });
 
 describe("detectProject", () => {
+  it("should distinguish an installed dependency from completed setup", async () => {
+    mockExistsSync.mockImplementation((path) => {
+      const pathString = toPosixPath(path);
+      return pathString === "/app/package.json";
+    });
+    mockReadFileSync.mockReturnValue(
+      JSON.stringify({ dependencies: { next: "14.0.0", react: "18.0.0", "react-grab": "1.0.0" } }),
+    );
+
+    const project = await detectProject("/app");
+
+    expect(project.hasReactGrab).toBe(true);
+    expect(project.isReactGrabConfigured).toBe(false);
+  });
+
+  it("should mark setup complete when react-grab exists in a framework entry file", async () => {
+    mockExistsSync.mockImplementation((path) => {
+      const pathString = toPosixPath(path);
+      return pathString === "/app/package.json" || pathString === "/app/src/main.tsx";
+    });
+    mockReadFileSync.mockImplementation((path) => {
+      const pathString = toPosixPath(path);
+      if (pathString === "/app/package.json") {
+        return JSON.stringify({ dependencies: { react: "18.0.0", vite: "6.0.0" } });
+      }
+      return 'if (import.meta.env.DEV) import("react-grab");';
+    });
+
+    const project = await detectProject("/app");
+
+    expect(project.hasReactGrab).toBe(true);
+    expect(project.isReactGrabConfigured).toBe(true);
+  });
+
   it("should fall back to monorepo root framework when subpackage has hoisted deps", async () => {
     mockExistsSync.mockImplementation((path) => {
       const pathString = toPosixPath(path);
@@ -375,6 +589,7 @@ describe("detectProject", () => {
     const project = await detectProject("/repo/apps/web");
 
     expect(project.framework).toBe("vite");
+    expect(project.isMonorepo).toBe(true);
     expect(project.projectRoot).toBe("/repo/apps/web");
   });
 
@@ -448,7 +663,7 @@ describe("detectProject", () => {
     const project = await detectProject("/repo/apps/web");
 
     expect(project.framework).toBe("unknown");
-    expect(project.isMonorepo).toBe(false);
+    expect(project.isMonorepo).toBe(true);
   });
 
   it("should resolve framework from local config file before falling back to monorepo root", async () => {

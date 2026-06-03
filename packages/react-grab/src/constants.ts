@@ -192,6 +192,7 @@ export const TEXTAREA_MAX_HEIGHT_PX = 95;
 export const EDIT_PROPERTY_LIST_MAX_HEIGHT_PX = 280;
 export const EDIT_PROPERTY_MAX_COUNT = 40;
 export const EDIT_TRANSPARENT_COLOR_HEX = "#00000000";
+export const EDIT_TRANSPARENT_COLOR_LABEL = "transparent";
 export const EDIT_ROOT_FONT_SIZE_PX = 16;
 export const EDIT_PANEL_MIN_WIDTH_PX = 200;
 export const EDIT_PANEL_MAX_WIDTH_PX = 320;
@@ -204,6 +205,7 @@ export const EDIT_SHIFT_STEP_MULTIPLIER = 10;
 export const EDIT_PANEL_ADJUSTING_IDLE_MS = 150;
 export const EDIT_DISCARD_PROMPT_IDLE_MS = 2000;
 export const EDIT_PANEL_ACTIVE_KEY_FLASH_MS = 100;
+export const EDIT_INLINE_NUMERIC_REPLACE_IDLE_MS = 500;
 export const EDIT_SLIDER_CLICK_THRESHOLD_PX = 3;
 export const EDIT_SLIDER_HASH_MARK_COUNT = 9;
 // Rubber-band: cursor must overshoot DEAD_ZONE_PX before the track

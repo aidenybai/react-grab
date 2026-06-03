@@ -11,6 +11,7 @@ import {
   DROPDOWN_EDGE_TRANSFORM_ORIGIN,
   EDIT_PANEL_ACTIVE_KEY_FLASH_MS,
   EDIT_PANEL_ADJUSTING_IDLE_MS,
+  EDIT_INLINE_NUMERIC_REPLACE_IDLE_MS,
   EDIT_PANEL_MAX_WIDTH_PX,
   EDIT_PANEL_MIN_WIDTH_PX,
   EDIT_PROPERTY_LIST_MAX_HEIGHT_PX,
@@ -90,8 +91,12 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   const preview = props.state.preview;
 
   const [searchQuery, setSearchQuery] = createSignal(props.state.initialSearchQuery ?? "");
+  const [inlineNumericSearchQuery, setInlineNumericSearchQuery] = createSignal<string | null>(null);
   const [activeKey, setActiveKey] = createSignal<"left" | "right" | null>(null);
-  const tweakStore = createTweakStore({ initialProperties, searchQuery });
+  const tweakStore = createTweakStore({
+    initialProperties,
+    searchQuery: () => inlineNumericSearchQuery() ?? searchQuery(),
+  });
   // Colors are pinned on top but aren't slider-steppable, so the arrow-key
   // cursor lands on the first numeric row instead.
   const firstNumericActiveIndex = (): number => {
@@ -106,6 +111,8 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
 
   let activeKeyTimerId: ReturnType<typeof setTimeout> | undefined;
   let interactingIdleTimerId: ReturnType<typeof setTimeout> | undefined;
+  let inlineNumericReplaceTimerId: ReturnType<typeof setTimeout> | undefined;
+  let shouldReplaceInlineNumericInput = false;
   const [isTransientInteraction, setIsTransientInteraction] = createSignal(false);
   const isInteracting = createMemo(() => isTransientInteraction() || hasPendingTweaks());
   const [isHeaderHovered, setIsHeaderHovered] = createSignal(false);
@@ -160,6 +167,71 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
         searchInputRef.focus({ preventScroll: true });
       }
     });
+  };
+
+  const keepInlineNumericSearchQuery = () => {
+    if (inlineNumericSearchQuery() === null) setInlineNumericSearchQuery(searchQuery());
+  };
+
+  const cancelInlineNumericReplacement = () => {
+    shouldReplaceInlineNumericInput = false;
+    clearTimeout(inlineNumericReplaceTimerId);
+  };
+
+  const queueInlineNumericReplacement = () => {
+    shouldReplaceInlineNumericInput = false;
+    clearTimeout(inlineNumericReplaceTimerId);
+    inlineNumericReplaceTimerId = setTimeout(() => {
+      shouldReplaceInlineNumericInput = true;
+    }, EDIT_INLINE_NUMERIC_REPLACE_IDLE_MS);
+  };
+
+  const queueInlineNumericReplacementForQuery = (query: string) => {
+    const trimmedQuery = query.trim();
+    const numericDigits = trimmedQuery.replace(/^-/, "").replace(".", "");
+    if (/[a-z%]+$/i.test(trimmedQuery) || numericDigits.length > 1) {
+      queueInlineNumericReplacement();
+    } else cancelInlineNumericReplacement();
+  };
+
+  const replaceInlineNumericPrefix = (nextSearchQuery: string): string => {
+    if (!shouldReplaceInlineNumericInput) return nextSearchQuery;
+    const currentSearchQuery = searchQuery();
+    if (!currentSearchQuery || !nextSearchQuery.startsWith(currentSearchQuery)) {
+      cancelInlineNumericReplacement();
+      return nextSearchQuery;
+    }
+    const appendedQuery = nextSearchQuery.slice(currentSearchQuery.length);
+    if (!/^[-.\d]/.test(appendedQuery)) return nextSearchQuery;
+    cancelInlineNumericReplacement();
+    return appendedQuery;
+  };
+
+  const tryReplaceInlineNumericFromKey = (event: KeyboardEvent): boolean => {
+    if (!shouldReplaceInlineNumericInput) return false;
+    if (event.metaKey || event.ctrlKey || event.altKey) return false;
+    if (!/^[-.\d]$/.test(event.key)) return false;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    cancelInlineNumericReplacement();
+    const nextSearchQuery = event.key;
+    if (searchInputRef) searchInputRef.value = nextSearchQuery;
+    if (autoApply.tryApplyNumericValue(nextSearchQuery)) {
+      keepInlineNumericSearchQuery();
+      setSearchQuery(nextSearchQuery);
+      queueInlineNumericReplacementForQuery(nextSearchQuery);
+      ensureSearchFocused();
+      return true;
+    }
+    setSearchQuery(nextSearchQuery);
+    ensureSearchFocused();
+    return true;
+  };
+
+  const expandPanel = () => {
+    cancelInlineNumericReplacement();
+    setInlineNumericSearchQuery(null);
+    setIsCompact(false);
   };
 
   interface CommitOptions {
@@ -290,7 +362,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     // Escape stops there (so a stray Escape can't nuke pending changes on
     // the collapsed view); an outside click continues to the discard prompt.
     const wasCompact = isCompact();
-    setIsCompact(false);
+    expandPanel();
     if (source === "keyboard" && wasCompact) return;
     discardConfirmation.show();
     playShake();
@@ -300,7 +372,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     const properties = filteredProperties();
     if (properties.length === 0) return;
     setActiveIndex((current) => (current + direction + properties.length) % properties.length);
-    setIsCompact(false);
+    expandPanel();
   };
 
   let colorPickerTriggers: Array<() => void> = [];
@@ -415,6 +487,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
 
     const handleWindowKeyDown = (event: KeyboardEvent) => {
       if (isEventFromOverlay(event, "data-react-grab-input")) return;
+      if (tryReplaceInlineNumericFromKey(event)) return;
       handleSearchKeyDown(event);
     };
     const handleWindowKeyUp = (event: KeyboardEvent) => {
@@ -429,6 +502,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       window.removeEventListener("keyup", handleWindowKeyUp, { capture: true });
       clearTimeout(activeKeyTimerId);
       clearTimeout(interactingIdleTimerId);
+      clearTimeout(inlineNumericReplaceTimerId);
       discardConfirmation.cleanup();
       dropdown.clearAnimationHandles();
       setIsTransientInteraction(false);
@@ -600,12 +674,28 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
               }}
               value={searchQuery()}
               onInput={(event) => {
-                const nextSearchQuery = event.currentTarget.value;
+                const nextSearchQuery = replaceInlineNumericPrefix(event.currentTarget.value);
+                if (nextSearchQuery !== event.currentTarget.value) {
+                  event.currentTarget.value = nextSearchQuery;
+                }
+                if (autoApply.tryApplyNumericValue(nextSearchQuery)) {
+                  keepInlineNumericSearchQuery();
+                  setSearchQuery(nextSearchQuery);
+                  queueInlineNumericReplacementForQuery(nextSearchQuery);
+                  ensureSearchFocused();
+                  return;
+                }
+                cancelInlineNumericReplacement();
+                if (autoApply.isInlineNumericDraft(nextSearchQuery)) {
+                  keepInlineNumericSearchQuery();
+                  setSearchQuery(nextSearchQuery);
+                  ensureSearchFocused();
+                  return;
+                }
                 setSearchQuery(nextSearchQuery);
-                if (autoApply.tryApplyNumericValue(nextSearchQuery)) return;
-                if (autoApply.isInlineNumericDraft(nextSearchQuery)) return;
+                setInlineNumericSearchQuery(null);
                 setActiveIndex(nextSearchQuery.trim() === "" ? firstNumericActiveIndex() : 0);
-                setIsCompact(false);
+                expandPanel();
                 autoApply.applyTailwindClass(nextSearchQuery);
               }}
               onKeyDown={handleSearchKeyDown}
