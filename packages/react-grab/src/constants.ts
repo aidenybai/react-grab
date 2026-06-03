@@ -248,7 +248,7 @@ export const TRANSFORM_FRAME_BORDER_PX = 1;
 export const TRANSFORM_MIN_SIZE_PX = 4;
 // Holding Shift snaps rotation to this increment, matching Figma.
 export const TRANSFORM_ROTATE_SNAP_DEG = 15;
-export const TRANSFORM_OVERLAY_ACCENT = "#0c8ce9";
+export const TRANSFORM_OVERLAY_ACCENT = "#ec4899";
 
 export const CSS_VALUE_DECIMAL_PLACES = 2;
 export const OPACITY_PERCENT_MAX = 100;
