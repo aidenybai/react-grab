@@ -159,6 +159,31 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     expect(result.newContent).toBeUndefined();
   });
 
+  it("should not duplicate when setup exists in a later instrumentation candidate", () => {
+    mockExistsSync.mockImplementation((path) => {
+      const pathString = String(path).replace(/\\/g, "/");
+      return (
+        pathString.endsWith("layout.tsx") ||
+        pathString.endsWith("instrumentation-client.ts") ||
+        pathString.endsWith("src/instrumentation-client.ts")
+      );
+    });
+    mockReadFileSync.mockImplementation((path) => {
+      const pathString = String(path).replace(/\\/g, "/");
+      if (pathString.endsWith("src/instrumentation-client.ts")) {
+        return 'if (process.env.NODE_ENV === "development") import("react-grab");';
+      }
+      if (pathString.endsWith("instrumentation-client.ts")) return "";
+      return layoutContent;
+    });
+
+    const result = previewTransform("/test", "next", "app", true);
+
+    expect(result.success).toBe(true);
+    expect(result.noChanges).toBe(true);
+    expect(result.newContent).toBeUndefined();
+  });
+
   it("should fail when layout file not found", () => {
     mockExistsSync.mockReturnValue(false);
 

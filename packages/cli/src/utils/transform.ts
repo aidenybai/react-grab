@@ -12,7 +12,6 @@ import {
   findDocumentFile,
   findEntryFile,
   findIndexHtml,
-  findInstrumentationFile,
   findLayoutFile,
   findTanStackRootFile,
   getDocumentFileCandidates,
@@ -42,11 +41,15 @@ export interface ReactGrabOptions {
 }
 
 const hasReactGrabInInstrumentation = (projectRoot: string): boolean => {
-  const instrumentationPath = findInstrumentationFile(projectRoot);
-  if (!instrumentationPath) return false;
+  return findFileWithReactGrabSetup(getInstrumentationFileCandidates(projectRoot)) !== null;
+};
 
-  const content = readFileSync(instrumentationPath, "utf-8");
-  return hasReactGrabSetupCode(content);
+const findFileWithReactGrabSetup = (fileCandidates: string[]): string | null => {
+  for (const filePath of fileCandidates) {
+    if (!existsSync(filePath)) continue;
+    if (hasReactGrabSetupCode(readFileSync(filePath, "utf-8"))) return filePath;
+  }
+  return null;
 };
 
 const alreadyConfiguredResult = (filePath: string): TransformResult => ({
@@ -502,14 +505,6 @@ const formatOptionsAsJson = (options: ReactGrabOptions): string => {
   }
 
   return JSON.stringify(cleanOptions);
-};
-
-const findFileWithReactGrabSetup = (fileCandidates: string[]): string | null => {
-  for (const filePath of fileCandidates) {
-    if (!existsSync(filePath)) continue;
-    if (hasReactGrabSetupCode(readFileSync(filePath, "utf-8"))) return filePath;
-  }
-  return null;
 };
 
 const findReactGrabFile = (
