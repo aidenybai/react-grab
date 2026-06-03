@@ -422,9 +422,12 @@ describe("findReactProjects", () => {
       return JSON.stringify({ private: true });
     });
 
-    expect(findReactProjects("/repo/apps/web")).toEqual([
-      { name: "web", path: "/repo/apps/web", framework: "vite" },
-    ]);
+    expect(
+      findReactProjects("/repo/apps/web").map((project) => ({
+        ...project,
+        path: toPosixPath(project.path),
+      })),
+    ).toEqual([{ name: "web", path: "/repo/apps/web", framework: "vite" }]);
   });
 });
 

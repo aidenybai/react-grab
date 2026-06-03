@@ -19,6 +19,7 @@ const mockExistsSync = vi.mocked(existsSync);
 const mockReadFileSync = vi.mocked(readFileSync);
 const mockWriteFileSync = vi.mocked(writeFileSync);
 const mockAccessSync = vi.mocked(accessSync);
+const toPosixPath = (path: unknown): string => String(path).replace(/\\/g, "/");
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -320,7 +321,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       return pathString.endsWith("app/layout.tsx") || pathString.endsWith("src/app/layout.tsx");
     });
     mockReadFileSync.mockImplementation((path) => {
-      if (String(path).includes("src/app/layout.tsx")) return layoutWithReactGrab;
+      if (toPosixPath(path).includes("src/app/layout.tsx")) return layoutWithReactGrab;
       return layoutWithoutReactGrab;
     });
 
@@ -331,7 +332,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     const result = previewOptionsTransform("/test", "next", "app", options);
 
     expect(result.success).toBe(true);
-    expect(result.filePath).toContain("src/app/layout.tsx");
+    expect(toPosixPath(result.filePath)).toContain("src/app/layout.tsx");
     expect(result.newContent).toContain("data-options");
     expect(result.newContent).toContain("Meta+K");
   });
