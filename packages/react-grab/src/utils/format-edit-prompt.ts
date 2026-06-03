@@ -31,8 +31,7 @@ export const formatSessionEditsPrompt = (pendingEditsEntries: PendingEditsEntry[
   if (pendingEditsEntries.length === 0) return "";
 
   const sections: string[] = [
-    "Apply these style changes:",
-    "Use the captured CSS as the visual intent, then make the most canonical source change. For example, update padding-bottom/pb instead of margin-bottom/mb when the space belongs inside the element.",
+    "Apply these style changes canonically (CSS = visual intent; use padding-bottom/pb over margin-bottom/mb for internal space):",
   ];
 
   if (pendingEditsEntries.length === 1) {

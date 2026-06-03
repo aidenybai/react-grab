@@ -1060,7 +1060,7 @@ test.describe("Style Panel", () => {
       await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
       await expect
         .poll(() => reactGrab.getClipboardContent())
-        .toContain("padding-bottom/pb instead of margin-bottom/mb");
+        .toContain("padding-bottom/pb over margin-bottom/mb");
 
       const afterCommit = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
       expect(afterCommit).toBe(inlineStyleAfterTweak);
