@@ -1,5 +1,5 @@
 import { createSignal, onCleanup, onMount, type Accessor } from "solid-js";
-import { TRANSFORM_MIN_SIZE_PX } from "../../constants.js";
+import { DRAG_THRESHOLD_PX, TRANSFORM_MIN_SIZE_PX } from "../../constants.js";
 import type { DropTarget, TransformFrame, TransformHandleId, ViewportBox } from "../../types.js";
 import { describeElementForPrompt } from "../../utils/describe-element-for-prompt.js";
 import { findDropTarget } from "../../utils/find-drop-target.js";
@@ -158,6 +158,9 @@ export const createTransformController = (
     const ghostHeight = frameValue.height;
     const downX = event.clientX;
     const downY = event.clientY;
+    // A move only begins once the pointer crosses the drag threshold; a plain
+    // click must not reinsert the element (it should only move when dragged).
+    let isDragging = false;
     const updateGhost = (clientX: number, clientY: number): void => {
       setDragGhost({
         left: originLeft + (clientX - downX),
@@ -167,16 +170,23 @@ export const createTransformController = (
       });
     };
 
-    updateGhost(downX, downY);
-    previewDropAt(downX, downY);
     bindDrag(
       (moveEvent) => {
+        if (!isDragging) {
+          const hasCrossedThreshold =
+            Math.abs(moveEvent.clientX - downX) >= DRAG_THRESHOLD_PX ||
+            Math.abs(moveEvent.clientY - downY) >= DRAG_THRESHOLD_PX;
+          if (!hasCrossedThreshold) return;
+          isDragging = true;
+        }
         updateGhost(moveEvent.clientX, moveEvent.clientY);
         previewDropAt(moveEvent.clientX, moveEvent.clientY);
       },
       (upEvent) => {
-        const drop = previewDropAt(upEvent.clientX, upEvent.clientY);
-        if (drop) reinsert(drop);
+        if (isDragging) {
+          const drop = previewDropAt(upEvent.clientX, upEvent.clientY);
+          if (drop) reinsert(drop);
+        }
         setInsertionIndicator(null);
         setDragGhost(null);
       },

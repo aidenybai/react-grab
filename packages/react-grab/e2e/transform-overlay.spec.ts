@@ -164,6 +164,41 @@ test.describe("Transform Overlay", () => {
     expect(movedBefore).toBe(true);
   });
 
+  test("clicking the frame without dragging does not move the element", async ({ reactGrab }) => {
+    const { page } = reactGrab;
+    const SIBLING_SELECTOR = "[data-testid='deeply-nested-text']";
+    await openEditPanel(reactGrab, TARGET_SELECTOR);
+    await expect.poll(() => isTransformOverlayVisible(page)).toBe(true);
+
+    const orderBefore = await page.evaluate(
+      ({ moved, sibling }) =>
+        document.querySelector(moved)?.previousElementSibling === document.querySelector(sibling),
+      { moved: TARGET_SELECTOR, sibling: SIBLING_SELECTOR },
+    );
+    expect(orderBefore).toBe(true);
+
+    const center = await page.evaluate(() => {
+      const host = document.querySelector("[data-react-grab]");
+      const overlay = host?.shadowRoot?.querySelector<HTMLElement>(
+        "[data-react-grab-transform-overlay]",
+      );
+      if (!overlay) throw new Error("overlay not found");
+      const bounds = overlay.getBoundingClientRect();
+      return { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 };
+    });
+
+    // A click (down + up, no drag) must not reinsert the element.
+    await page.mouse.click(center.x, center.y);
+    await page.waitForTimeout(120);
+
+    const orderAfter = await page.evaluate(
+      ({ moved, sibling }) =>
+        document.querySelector(moved)?.previousElementSibling === document.querySelector(sibling),
+      { moved: TARGET_SELECTOR, sibling: SIBLING_SELECTOR },
+    );
+    expect(orderAfter).toBe(true);
+  });
+
   test("clicking another element retargets the panel and overlay to it", async ({ reactGrab }) => {
     const { page } = reactGrab;
     const OTHER_SELECTOR = "[data-testid='deeply-nested-text']";
