@@ -9,6 +9,7 @@ const PATH_SEPARATOR_PATTERN = /[/\\]/;
 const NAME_AT_VERSION_PATTERN = /^(.+?)@v?\d/;
 const SCOPED_PACKAGE_PATTERN = /^@[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const PACKAGE_NAME_SEGMENT_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+const APPLICATION_PACKAGE_NAME_SEGMENTS = new Set(["app", "web", "website", "frontend", "client"]);
 
 const splitPathSegments = (path: string): string[] =>
   path.split(PATH_SEPARATOR_PATTERN).filter(Boolean);
@@ -94,7 +95,8 @@ const extractFromScopedPackageSourcePath = (decodedPath: string): string | null 
     !scope ||
     !packageName ||
     !SCOPED_PACKAGE_PATTERN.test(scope) ||
-    !PACKAGE_NAME_SEGMENT_PATTERN.test(packageName)
+    !PACKAGE_NAME_SEGMENT_PATTERN.test(packageName) ||
+    APPLICATION_PACKAGE_NAME_SEGMENTS.has(packageName)
   ) {
     return null;
   }

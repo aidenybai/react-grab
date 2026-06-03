@@ -26,6 +26,8 @@ describe("parsePackageName", () => {
     expect(parsePackageName("@/components/tabs.tsx")).toBe(null);
     expect(parsePackageName("@app/components/tabs.tsx")).toBe(null);
     expect(parsePackageName("@company/app/src/tabs.tsx")).toBe(null);
+    expect(parsePackageName("../@company/app/src/tabs.tsx")).toBe(null);
+    expect(parsePackageName("./@company/web/src/tabs.tsx")).toBe(null);
     expect(parsePackageName("/@company/app/src/tabs.tsx")).toBe(null);
   });
 });

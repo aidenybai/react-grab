@@ -442,16 +442,16 @@ const formatStackContext = (
   const { maxLines = DEFAULT_MAX_CONTEXT_LINES } = options;
   const isNextProject = isNextProjectRuntime();
   const lines: string[] = [];
-  let previousLibraryPackage: string | null = null;
+  let previousLibraryFrameKey: string | null = null;
   let didDedupeLeadingComponent = false;
 
   if (leadingSource) {
     lines.push(formatSourceContextLine(leadingSource, isNextProject));
   }
 
-  const emit = (line: string, libraryPackage: string | null) => {
+  const emit = (line: string, libraryFrameKey: string | null) => {
     lines.push(line);
-    previousLibraryPackage = libraryPackage;
+    previousLibraryFrameKey = libraryFrameKey;
   };
 
   for (const frame of stack) {
@@ -463,6 +463,10 @@ const formatStackContext = (
 
     const componentName =
       frame.functionName && isSourceComponentName(frame.functionName) ? frame.functionName : null;
+    const libraryFrameKey = libraryPackage
+      ? `${libraryPackage}:${componentName ?? ""}:${frame.isServer ? "server" : "client"}`
+      : null;
+    if (libraryFrameKey && libraryFrameKey === previousLibraryFrameKey) continue;
 
     // The owner stack's top frame is usually the same component the leading
     // source line already names. Drop only that single duplicate; deeper frames
@@ -478,15 +482,20 @@ const formatStackContext = (
 
     if (frame.isServer && !resolvedSource && (componentName || !frame.functionName)) {
       const tag = libraryPackage ? `${libraryPackage} at Server` : "at Server";
-      emit(`\n  in ${componentName ?? "<anonymous>"} (${tag})`, libraryPackage);
+      emit(`\n  in ${componentName ?? "<anonymous>"} (${tag})`, libraryFrameKey);
       continue;
     }
 
     if (!resolvedSource && componentName) {
       emit(
         libraryPackage ? `\n  in ${componentName} (${libraryPackage})` : `\n  in ${componentName}`,
-        libraryPackage,
+        libraryFrameKey,
       );
+      continue;
+    }
+
+    if (libraryPackage) {
+      emit(`\n  in ${libraryPackage}`, libraryFrameKey);
       continue;
     }
 
