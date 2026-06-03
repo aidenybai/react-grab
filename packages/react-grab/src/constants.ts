@@ -244,7 +244,9 @@ export const EDIT_COMPACT_SLIDER_MIN_WIDTH_PX = 96;
 export const TRANSFORM_HANDLE_SIZE_PX = 9;
 export const TRANSFORM_FRAME_BORDER_PX = 1;
 export const TRANSFORM_MIN_SIZE_PX = 4;
-export const TRANSFORM_OVERLAY_ACCENT = "#ec4899";
+// Reuse react-grab's overlay pink (same hue as the selection box) at full
+// opacity so the handles read as a solid accent.
+export const TRANSFORM_OVERLAY_ACCENT = overlayColor(1);
 // Thickness of the line marking where a dragged element will be reinserted.
 export const TRANSFORM_INDICATOR_THICKNESS_PX = 2;
 export const ELEMENT_DESCRIPTOR_TEXT_MAX_LENGTH = 24;

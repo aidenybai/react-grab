@@ -1,9 +1,6 @@
 import { TRANSFORM_INDICATOR_THICKNESS_PX } from "../constants.js";
 import type { DropTarget } from "../types.js";
-import {
-  resumePointerEventsFreeze,
-  suspendPointerEventsFreeze,
-} from "./pointer-events-freeze.js";
+import { resumePointerEventsFreeze, suspendPointerEventsFreeze } from "./pointer-events-freeze.js";
 
 // While frozen the page has `pointer-events: none`, so hit-testing must briefly
 // lift it (it is restored synchronously before returning).
