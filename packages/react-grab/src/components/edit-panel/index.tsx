@@ -183,7 +183,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     clearTimeout(inlineNumericReplaceTimerId);
     inlineNumericReplaceTimerId = setTimeout(() => {
       shouldReplaceInlineNumericInput = true;
-      searchInputRef?.focus({ preventScroll: true });
     }, EDIT_INLINE_NUMERIC_REPLACE_IDLE_MS);
   };
 
@@ -198,6 +197,27 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     if (!/^[-.\d]/.test(appendedQuery)) return nextSearchQuery;
     cancelInlineNumericReplacement();
     return appendedQuery;
+  };
+
+  const tryReplaceInlineNumericFromKey = (event: KeyboardEvent): boolean => {
+    if (!shouldReplaceInlineNumericInput) return false;
+    if (event.metaKey || event.ctrlKey || event.altKey) return false;
+    if (!/^[-.\d]$/.test(event.key)) return false;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    cancelInlineNumericReplacement();
+    const nextSearchQuery = event.key;
+    if (searchInputRef) searchInputRef.value = nextSearchQuery;
+    if (autoApply.tryApplyNumericValue(nextSearchQuery)) {
+      keepInlineNumericSearchQuery();
+      setSearchQuery(nextSearchQuery);
+      queueInlineNumericReplacement();
+      ensureSearchFocused();
+      return true;
+    }
+    setSearchQuery(nextSearchQuery);
+    ensureSearchFocused();
+    return true;
   };
 
   const expandPanel = () => {
@@ -459,6 +479,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
 
     const handleWindowKeyDown = (event: KeyboardEvent) => {
       if (isEventFromOverlay(event, "data-react-grab-input")) return;
+      if (tryReplaceInlineNumericFromKey(event)) return;
       handleSearchKeyDown(event);
     };
     const handleWindowKeyUp = (event: KeyboardEvent) => {
