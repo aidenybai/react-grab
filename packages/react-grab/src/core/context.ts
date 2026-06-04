@@ -341,6 +341,17 @@ const getApplicationFiberSource = async (
   return source;
 };
 
+const resolveStackFrameSource = (frame: StackFrame | null | undefined): ResolvedSource | null => {
+  if (!frame?.fileName) return null;
+  return {
+    filePath: normalizeFilePath(frame.fileName),
+    lineNumber: frame.lineNumber ?? null,
+    columnNumber: frame.columnNumber ?? null,
+    componentName:
+      frame.functionName && isSourceComponentName(frame.functionName) ? frame.functionName : null,
+  };
+};
+
 interface ResolveSourceOptions {
   sourceOptions?: SourceOptions;
 }
@@ -349,11 +360,16 @@ export const resolveSource = async (
   element: Element,
   options: ResolveSourceOptions = {},
 ): Promise<ResolvedSource | null> => {
-  const fiberSource = await getApplicationFiberSource(element, options.sourceOptions);
-  if (fiberSource) return fiberSource;
+  const fiberSource = await getCachedFiberSource(element);
+  const fiberSourceKind = classifySourcePath(fiberSource?.filePath, options.sourceOptions).kind;
+  if (fiberSourceKind === "app-source") return fiberSource;
 
   const stack = await getStack(element);
-  if (!stack || stack.length === 0) return null;
+  if (!stack || stack.length === 0) {
+    return fiberSourceKind === "ignored-app-source" || fiberSourceKind === "package-source"
+      ? fiberSource
+      : null;
+  }
 
   const appSourceFrames: StackFrame[] = [];
   const ignoredAppSourceFrames: StackFrame[] = [];
@@ -369,24 +385,17 @@ export const resolveSource = async (
     }
   }
 
-  const sourceFrames =
-    appSourceFrames.length > 0
-      ? appSourceFrames
-      : ignoredAppSourceFrames.length > 0
-        ? ignoredAppSourceFrames
-        : packageSourceFrames;
-  const resolvedFrame = pickSourceFrame(sourceFrames);
-  if (!resolvedFrame?.fileName) return null;
+  const appFrameSource = resolveStackFrameSource(pickSourceFrame(appSourceFrames));
+  if (appFrameSource) return appFrameSource;
 
-  return {
-    filePath: normalizeFilePath(resolvedFrame.fileName),
-    lineNumber: resolvedFrame.lineNumber ?? null,
-    columnNumber: resolvedFrame.columnNumber ?? null,
-    componentName:
-      resolvedFrame.functionName && isSourceComponentName(resolvedFrame.functionName)
-        ? resolvedFrame.functionName
-        : null,
-  };
+  if (fiberSourceKind === "ignored-app-source") return fiberSource;
+
+  const ignoredFrameSource = resolveStackFrameSource(pickSourceFrame(ignoredAppSourceFrames));
+  if (ignoredFrameSource) return ignoredFrameSource;
+
+  if (fiberSourceKind === "package-source") return fiberSource;
+
+  return resolveStackFrameSource(pickSourceFrame(packageSourceFrames));
 };
 
 export const getComponentDisplayName = (element: Element): string | null => {
