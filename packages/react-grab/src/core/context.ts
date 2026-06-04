@@ -300,24 +300,13 @@ const getSourceComponentName = (fiber: Fiber | undefined): string | null => {
   return name && isSourceComponentName(name) ? name : null;
 };
 
-// bippy's getSource prefers React's dev-only _debugSource (the real JSX location
-// that bundlers like Webpack/Rspack drop from the owner stack) and otherwise
-// falls back to the owner stack. We only trust app-owned source locations here;
-// library sourcemap paths are left to the owner-stack scan.
-// This reads React's own dev data, so it works without bippy instrumentation;
-// getSource can still throw while parsing owner stacks, so it is guarded.
-const getFiberSource = async (
-  element: Element,
-  sourceOptions?: SourceOptions,
-): Promise<ResolvedSource | null> => {
+const getFiberSource = async (element: Element): Promise<ResolvedSource | null> => {
   const fiber = getFiberFromHostInstance(findNearestFiberElement(element));
   if (!fiber) return null;
 
   try {
     const source = await getSource(fiber);
-    if (!source?.fileName || !isApplicationSourceFile(source.fileName, sourceOptions)) {
-      return null;
-    }
+    if (!source?.fileName) return null;
 
     return {
       filePath: normalizeFilePath(source.fileName),
@@ -333,21 +322,23 @@ const getFiberSource = async (
   }
 };
 
-const getCachedFiberSource = (
-  element: Element,
-  sourceOptions?: SourceOptions,
-): Promise<ResolvedSource | null> => {
+const getCachedFiberSource = (element: Element): Promise<ResolvedSource | null> => {
   const resolvedElement = findNearestFiberElement(element);
-  if (sourceOptions?.ignorePaths?.length) {
-    return getFiberSource(resolvedElement, sourceOptions);
-  }
-
   const cached = fiberSourceCache.get(resolvedElement);
   if (cached) return cached;
 
-  const promise = getFiberSource(resolvedElement, sourceOptions);
+  const promise = getFiberSource(resolvedElement);
   fiberSourceCache.set(resolvedElement, promise);
   return promise;
+};
+
+const getApplicationFiberSource = async (
+  element: Element,
+  sourceOptions?: SourceOptions,
+): Promise<ResolvedSource | null> => {
+  const source = await getCachedFiberSource(element);
+  if (!source || !isApplicationSourceFile(source.filePath, sourceOptions)) return null;
+  return source;
 };
 
 interface ResolveSourceOptions {
@@ -358,7 +349,7 @@ export const resolveSource = async (
   element: Element,
   options: ResolveSourceOptions = {},
 ): Promise<ResolvedSource | null> => {
-  const fiberSource = await getCachedFiberSource(element, options.sourceOptions);
+  const fiberSource = await getApplicationFiberSource(element, options.sourceOptions);
   if (fiberSource) return fiberSource;
 
   const stack = await getStack(element);
@@ -567,7 +558,7 @@ export const getStackContext = async (
   options: StackContextOptions = {},
 ): Promise<string> => {
   const maxLines = options.maxLines ?? DEFAULT_MAX_CONTEXT_LINES;
-  const leadingSource = await getCachedFiberSource(element, options.sourceOptions);
+  const leadingSource = await getApplicationFiberSource(element, options.sourceOptions);
   const stack = await getStack(element);
 
   if (stack) {

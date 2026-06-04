@@ -15,11 +15,6 @@ describe("parsePackageName", () => {
     );
   });
 
-  it("reads scoped packages from dependency sourcemap source paths", () => {
-    expect(parsePackageName("../@rippling/pebble/Tabs/Renderers.js")).toBe("@rippling/pebble");
-    expect(parsePackageName("./@radix-ui/react-tabs/src/tabs.tsx")).toBe("@radix-ui/react-tabs");
-  });
-
   it("does not treat app paths or aliases as packages", () => {
     expect(parsePackageName("../components/tabs.tsx")).toBe(null);
     expect(parsePackageName("/workspace/app/src/components/tabs.tsx")).toBe(null);
@@ -27,6 +22,7 @@ describe("parsePackageName", () => {
     expect(parsePackageName("@app/components/tabs.tsx")).toBe(null);
     expect(parsePackageName("@company/app/src/tabs.tsx")).toBe(null);
     expect(parsePackageName("../@company/app/src/tabs.tsx")).toBe(null);
+    expect(parsePackageName("../@rippling/pebble/Tabs/Renderers.js")).toBe(null);
     expect(parsePackageName("./@company/web/src/tabs.tsx")).toBe(null);
     expect(parsePackageName("/@company/app/src/tabs.tsx")).toBe(null);
   });

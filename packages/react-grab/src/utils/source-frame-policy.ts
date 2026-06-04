@@ -1,10 +1,14 @@
-import { isSourceFile } from "bippy/source";
+import { isSourceFile, normalizeFileName } from "bippy/source";
 import type { SourceOptions } from "../types.js";
 import { normalizeFilePath } from "./normalize-file-path.js";
 import { parsePackageName } from "./parse-package-name.js";
+import { safeDecodeURIComponent } from "./safe-decode-uri-component.js";
 
 const DEFAULT_IGNORED_SOURCE_PATHS: readonly string[] = ["components/ui"];
 const PATH_SEPARATOR_PATTERN = /[/\\]/;
+const SCOPED_PACKAGE_PATTERN = /^@[A-Za-z0-9][A-Za-z0-9._-]*$/;
+const PACKAGE_NAME_SEGMENT_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+const APPLICATION_PACKAGE_NAME_SEGMENTS = new Set(["app", "web", "website", "frontend", "client"]);
 const defaultClassificationCache = new Map<string, SourcePathClassification>();
 
 export interface SourcePathClassification {
@@ -60,6 +64,36 @@ const matchesIgnoredSourcePath = (fileName: string, sourceOptions?: SourceOption
   return false;
 };
 
+const stripRelativeSourcePathPrefix = (path: string): string | null => {
+  let remainingPath = path;
+  let didStripPrefix = false;
+  while (remainingPath.startsWith("../") || remainingPath.startsWith("./")) {
+    didStripPrefix = true;
+    remainingPath = remainingPath.slice(remainingPath.startsWith("../") ? 3 : 2);
+  }
+  return didStripPrefix ? remainingPath : null;
+};
+
+const parseScopedPackageSourceName = (fileName: string): string | null => {
+  const sourcePath = stripRelativeSourcePathPrefix(
+    safeDecodeURIComponent(normalizeFileName(fileName)),
+  );
+  if (!sourcePath) return null;
+
+  const [scope, packageName] = sourcePath.split(PATH_SEPARATOR_PATTERN).filter(Boolean);
+  if (
+    !scope ||
+    !packageName ||
+    !SCOPED_PACKAGE_PATTERN.test(scope) ||
+    !PACKAGE_NAME_SEGMENT_PATTERN.test(packageName) ||
+    APPLICATION_PACKAGE_NAME_SEGMENTS.has(packageName)
+  ) {
+    return null;
+  }
+
+  return `${scope}/${packageName}`;
+};
+
 export const classifySourcePath = (
   fileName: string | null | undefined,
   sourceOptions?: SourceOptions,
@@ -84,7 +118,7 @@ const classifySourcePathUncached = (
     return { kind: "unknown", packageName: null };
   }
 
-  const packageName = parsePackageName(fileName);
+  const packageName = parsePackageName(fileName) ?? parseScopedPackageSourceName(fileName);
   if (packageName) {
     return { kind: "package-source", packageName };
   }

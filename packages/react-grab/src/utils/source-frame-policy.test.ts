@@ -14,6 +14,10 @@ describe("classifySourcePath", () => {
       kind: "package-source",
       packageName: "@rippling/pebble",
     });
+    expect(classifySourcePath("./@radix-ui/react-tabs/src/tabs.tsx")).toEqual({
+      kind: "package-source",
+      packageName: "@radix-ui/react-tabs",
+    });
     expect(classifySourcePath("/app/node_modules/@radix-ui/react-tabs/dist/index.min.js")).toEqual({
       kind: "package-source",
       packageName: "@radix-ui/react-tabs",
@@ -65,6 +69,10 @@ describe("classifySourcePath", () => {
   });
 
   it("does not ignore nearby app source paths", () => {
+    expect(classifySourcePath("../@company/app/src/tabs.tsx")).toEqual({
+      kind: "app-source",
+      packageName: null,
+    });
     expect(classifySourcePath("src/components/ui-button.tsx")).toEqual({
       kind: "app-source",
       packageName: null,
