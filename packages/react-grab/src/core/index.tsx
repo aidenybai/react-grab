@@ -1042,12 +1042,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     const similarComponentElements = createMemo((): Element[] => {
-      if (!isShiftKeyHeld() || !isRendererActive()) return [];
+      if (!isShiftKeyHeld() || !isRendererActive() || isSelectionInteractionLocked()) return [];
       if (isShiftMultiSelecting() || isFrozenPhase() || isPromptMode() || isDragging()) return [];
       if (store.pendingCommentMode || isPendingContextMenuSelect()) return [];
 
-      const element = targetElement();
-      if (!element || isRootElement(element)) return [];
+      const element = store.detectedElement;
+      if (!isElementConnected(element) || isRootElement(element)) return [];
 
       return findSimilarComponentElements(element);
     });
