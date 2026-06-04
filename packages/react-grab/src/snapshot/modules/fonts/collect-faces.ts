@@ -51,10 +51,6 @@ export interface CollectFacesContext {
   depth: number;
 }
 
-export interface SnapshotFontFace extends FontFace {
-  _snapshotSrc?: string;
-}
-
 export const isLikelyFontStylesheet = (
   href: string,
   requiredFamilies: Set<string>,
@@ -127,12 +123,15 @@ export const inlineImportsAndRewrite = async (
       return text;
     }
 
+    // Fresh regex per call: IMPORT_ANY_RE is global (/g) and resolveOnce recurses, so a
+    // shared lastIndex would make nested @import scans start mid-string and miss rules.
+    const importRe = new RegExp(IMPORT_ANY_RE.source, "g");
     let out = "";
     let last = 0;
     let m: RegExpExecArray | null;
-    while ((m = IMPORT_ANY_RE.exec(text))) {
+    while ((m = importRe.exec(text))) {
       out += text.slice(last, m.index);
-      last = IMPORT_ANY_RE.lastIndex;
+      last = importRe.lastIndex;
 
       const rawUrl = (m[2] || m[4] || "").trim();
       const absUrl = normalizeUrl(rawUrl, baseHref);

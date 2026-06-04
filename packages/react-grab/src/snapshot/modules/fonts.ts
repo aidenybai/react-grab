@@ -30,7 +30,7 @@ import {
   inlineUrlsInCssBlock,
   collectFacesFromSheet,
 } from "./fonts/collect-faces.js";
-import type { FontFaceMeta, CollectFacesContext, SnapshotFontFace } from "./fonts/collect-faces.js";
+import type { FontFaceMeta, CollectFacesContext } from "./fonts/collect-faces.js";
 
 export { iconToImage } from "./fonts/icon.js";
 
@@ -289,47 +289,6 @@ export const embedCustomFonts = async ({
       );
     } catch {}
   }
-
-  try {
-    for (const f of document.fonts || []) {
-      const face = f as SnapshotFontFace;
-      if (!face || !face.family || face.status !== "loaded" || !face._snapshotSrc) continue;
-      const snapshotSrc = face._snapshotSrc;
-      const fam = String(face.family).replace(/^['"]+|['"]+$/g, "");
-      if (isIconFont(fam)) continue;
-      if (!requiredIndex.has(fam.toLowerCase())) continue;
-
-      if (
-        exclude?.families &&
-        exclude.families.some((n) => String(n).toLowerCase() === fam.toLowerCase())
-      ) {
-        continue;
-      }
-
-      let b64 = snapshotSrc;
-      if (!String(b64).startsWith("data:")) {
-        if (cache.resource?.has(snapshotSrc)) {
-          b64 = cache.resource.get(snapshotSrc) as string;
-          cache.font?.add(snapshotSrc);
-        } else if (!cache.font?.has(snapshotSrc)) {
-          try {
-            const r = await snapFetch(snapshotSrc, { as: "dataURL", useProxy, silent: true });
-            if (r.ok && typeof r.data === "string") {
-              b64 = r.data;
-              cache.resource?.set(snapshotSrc, b64);
-              cache.font?.add(snapshotSrc);
-            } else {
-              continue;
-            }
-          } catch {
-            console.warn("[snapshot] Failed to fetch dynamic font src:", snapshotSrc);
-            continue;
-          }
-        }
-      }
-      finalCSS += `@font-face{font-family:'${fam}';src:url(${b64});font-style:${face.style || "normal"};font-weight:${face.weight || "normal"};}`;
-    }
-  } catch {}
 
   for (const font of localFonts) {
     if (!font || typeof font !== "object") continue;

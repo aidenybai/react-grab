@@ -173,7 +173,9 @@ snapshot.capture = async (el, context, _token) => {
       }
       return result2 as T;
     };
-    exportQueue = exportQueue.then(job);
+    // Run the next job whether the previous settled or rejected, so one failed export
+    // doesn't poison every later export queued on the same capture result.
+    exportQueue = exportQueue.then(job, job);
     return exportQueue as Promise<T>;
   };
 
