@@ -570,12 +570,35 @@ const formatStackContext = (
   return lines.join("");
 };
 
+// The snippet leads with the app fiber's own JSX location when available.
+// Otherwise it surfaces an ignored fallback (e.g. components/ui): those frames
+// are dropped from the stack body but still back the selection metadata, so
+// without this the copied snippet would omit the resolved path. App and package
+// frames need no such handling — formatStackContext already renders them inline,
+// and resolveSource only returns the ignored kind when no app source exists.
+const resolveLeadingSource = async (
+  element: Element,
+  sourceOptions?: SourceOptions,
+): Promise<ResolvedSource | null> => {
+  const appFiberSource = await getApplicationFiberSource(element, sourceOptions);
+  if (appFiberSource) return appFiberSource;
+
+  const resolved = await resolveSource(element, { sourceOptions });
+  if (
+    resolved &&
+    classifySourcePath(resolved.sourceFileName, sourceOptions).kind === "ignored-app-source"
+  ) {
+    return resolved;
+  }
+  return null;
+};
+
 export const getStackContext = async (
   element: Element,
   options: StackContextOptions = {},
 ): Promise<string> => {
   const maxLines = options.maxLines ?? DEFAULT_MAX_CONTEXT_LINES;
-  const leadingSource = await getApplicationFiberSource(element, options.sourceOptions);
+  const leadingSource = await resolveLeadingSource(element, options.sourceOptions);
   const stack = await getStack(element);
 
   if (stack) {
