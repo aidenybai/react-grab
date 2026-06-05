@@ -98,15 +98,15 @@ export const classifySourcePath = (
   fileName: string | null | undefined,
   sourceOptions?: SourceOptions,
 ): SourcePathClassification => {
-  if (!sourceOptions?.ignorePaths?.length && fileName) {
-    const cachedClassification = defaultClassificationCache.get(fileName);
-    if (cachedClassification) return cachedClassification;
+  if (!fileName || sourceOptions?.ignorePaths?.length) {
+    return classifySourcePathUncached(fileName, sourceOptions);
   }
 
+  const cachedClassification = defaultClassificationCache.get(fileName);
+  if (cachedClassification) return cachedClassification;
+
   const classification = classifySourcePathUncached(fileName, sourceOptions);
-  if (!sourceOptions?.ignorePaths?.length && fileName) {
-    defaultClassificationCache.set(fileName, classification);
-  }
+  defaultClassificationCache.set(fileName, classification);
   return classification;
 };
 

@@ -28,7 +28,7 @@ import { truncateString } from "../utils/truncate-string.js";
 import { getNextBasePath } from "../utils/get-next-base-path.js";
 import { normalizeFilePath } from "../utils/normalize-file-path.js";
 import { safeDecodeURIComponent } from "../utils/safe-decode-uri-component.js";
-import { classifySourcePath } from "../utils/source-frame-policy.js";
+import { classifySourcePath, type SourcePathClassification } from "../utils/source-frame-policy.js";
 import { isInternalAttribute } from "../utils/strip-internal-attributes.js";
 import {
   isInternalComponentName,
@@ -55,6 +55,9 @@ const isSourceComponentName = (name: string): boolean => {
   if (name.endsWith("Provider") || name.endsWith("Context")) return false;
   return true;
 };
+
+const toSourceComponentName = (name: string | null | undefined): string | null =>
+  name && isSourceComponentName(name) ? name : null;
 
 const SERVER_COMPONENT_URL_PREFIXES = ["about://React/", "rsc://React/"];
 
@@ -282,11 +285,6 @@ interface ResolvedSource {
   componentName: string | null;
 }
 
-const isApplicationSourceFile = (
-  fileName: string | null | undefined,
-  sourceOptions: SourceOptions | undefined,
-): boolean => classifySourcePath(fileName, sourceOptions).kind === "app-source";
-
 const pickSourceFrame = (frames: StackFrame[]): StackFrame | null => {
   const namedFrame = frames.find(
     (frame) => frame.functionName && isSourceComponentName(frame.functionName),
@@ -296,8 +294,7 @@ const pickSourceFrame = (frames: StackFrame[]): StackFrame | null => {
 
 const getSourceComponentName = (fiber: Fiber | undefined): string | null => {
   if (!fiber || !isCompositeFiber(fiber)) return null;
-  const name = getDisplayName(fiber.type);
-  return name && isSourceComponentName(name) ? name : null;
+  return toSourceComponentName(getDisplayName(fiber.type));
 };
 
 const getFiberSource = async (element: Element): Promise<ResolvedSource | null> => {
@@ -313,9 +310,7 @@ const getFiberSource = async (element: Element): Promise<ResolvedSource | null> 
       lineNumber: source.lineNumber ?? null,
       columnNumber: source.columnNumber ?? null,
       componentName:
-        (source.functionName && isSourceComponentName(source.functionName)
-          ? source.functionName
-          : null) ?? getSourceComponentName(fiber._debugOwner),
+        toSourceComponentName(source.functionName) ?? getSourceComponentName(fiber._debugOwner),
     };
   } catch {
     return null;
@@ -337,7 +332,9 @@ const getApplicationFiberSource = async (
   sourceOptions?: SourceOptions,
 ): Promise<ResolvedSource | null> => {
   const source = await getCachedFiberSource(element);
-  if (!source || !isApplicationSourceFile(source.filePath, sourceOptions)) return null;
+  if (!source || classifySourcePath(source.filePath, sourceOptions).kind !== "app-source") {
+    return null;
+  }
   return source;
 };
 
@@ -347,14 +344,35 @@ const resolveStackFrameSource = (frame: StackFrame | null | undefined): Resolved
     filePath: normalizeFilePath(frame.fileName),
     lineNumber: frame.lineNumber ?? null,
     columnNumber: frame.columnNumber ?? null,
-    componentName:
-      frame.functionName && isSourceComponentName(frame.functionName) ? frame.functionName : null,
+    componentName: toSourceComponentName(frame.functionName),
   };
 };
 
 interface ResolveSourceOptions {
   sourceOptions?: SourceOptions;
 }
+
+// Source candidates are resolved in descending preference: a frame the user
+// actually owns beats one they configured to ignore, which beats third-party
+// package code. Within each kind the fiber's own source wins over stack frames.
+const RESOLVABLE_SOURCE_KINDS = ["app-source", "ignored-app-source", "package-source"] as const;
+
+type ResolvableSourceKind = (typeof RESOLVABLE_SOURCE_KINDS)[number];
+
+export type FramesBySourceKind = Record<ResolvableSourceKind, StackFrame[]>;
+
+export const selectResolvedSource = (
+  fiberSource: ResolvedSource | null,
+  fiberSourceKind: SourcePathClassification["kind"],
+  framesByKind: FramesBySourceKind,
+): ResolvedSource | null => {
+  for (const kind of RESOLVABLE_SOURCE_KINDS) {
+    if (fiberSourceKind === kind) return fiberSource;
+    const frameSource = resolveStackFrameSource(pickSourceFrame(framesByKind[kind]));
+    if (frameSource) return frameSource;
+  }
+  return null;
+};
 
 export const resolveSource = async (
   element: Element,
@@ -364,38 +382,17 @@ export const resolveSource = async (
   const fiberSourceKind = classifySourcePath(fiberSource?.filePath, options.sourceOptions).kind;
   if (fiberSourceKind === "app-source") return fiberSource;
 
-  const stack = await getStack(element);
-  if (!stack || stack.length === 0) {
-    return fiberSourceKind === "ignored-app-source" || fiberSourceKind === "package-source"
-      ? fiberSource
-      : null;
+  const framesByKind: FramesBySourceKind = {
+    "app-source": [],
+    "ignored-app-source": [],
+    "package-source": [],
+  };
+  for (const frame of (await getStack(element)) ?? []) {
+    const { kind } = classifySourcePath(frame.fileName, options.sourceOptions);
+    if (kind !== "unknown") framesByKind[kind].push(frame);
   }
 
-  const appSourceFrames: StackFrame[] = [];
-  const ignoredAppSourceFrames: StackFrame[] = [];
-  const packageSourceFrames: StackFrame[] = [];
-  for (const frame of stack) {
-    const sourcePath = classifySourcePath(frame.fileName, options.sourceOptions);
-    if (sourcePath.kind === "app-source") {
-      appSourceFrames.push(frame);
-    } else if (sourcePath.kind === "ignored-app-source") {
-      ignoredAppSourceFrames.push(frame);
-    } else if (sourcePath.kind === "package-source") {
-      packageSourceFrames.push(frame);
-    }
-  }
-
-  const appFrameSource = resolveStackFrameSource(pickSourceFrame(appSourceFrames));
-  if (appFrameSource) return appFrameSource;
-
-  if (fiberSourceKind === "ignored-app-source") return fiberSource;
-
-  const ignoredFrameSource = resolveStackFrameSource(pickSourceFrame(ignoredAppSourceFrames));
-  if (ignoredFrameSource) return ignoredFrameSource;
-
-  if (fiberSourceKind === "package-source") return fiberSource;
-
-  return resolveStackFrameSource(pickSourceFrame(packageSourceFrames));
+  return selectResolvedSource(fiberSource, fiberSourceKind, framesByKind);
 };
 
 export const getComponentDisplayName = (element: Element): string | null => {
@@ -505,8 +502,7 @@ const formatStackContext = (
     const libraryPackage = sourcePath.packageName;
     const resolvedSource = sourcePath.kind === "app-source" ? frame.fileName : null;
 
-    const componentName =
-      frame.functionName && isSourceComponentName(frame.functionName) ? frame.functionName : null;
+    const componentName = toSourceComponentName(frame.functionName);
     const libraryFrameKey = libraryPackage
       ? `${libraryPackage}:${componentName ?? ""}:${frame.isServer ? "server" : "client"}`
       : null;
