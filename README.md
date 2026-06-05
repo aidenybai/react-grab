@@ -28,7 +28,8 @@ React Grab turns a browser selection into source context your agent can use:
 The copied context includes the selected element and its component stack with source locations:
 
 ```txt
-[<a class="ml-auto inline-block text-sm" href="#">Forgot your password?</a> in LoginForm (at components/login-form.tsx:46:19)]
+<a class="ml-auto inline-block text-sm" href="#">Forgot your password?</a>
+  in LoginForm (at components/login-form.tsx:46:19)
 ```
 
 ## Manual Installation
