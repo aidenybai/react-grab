@@ -490,6 +490,9 @@ const formatStackFrameLine = (
   isNextProject: boolean,
 ): string | null => {
   const libraryPackage = sourcePath.packageName;
+  // Only app-owned frames contribute a file path. Ignored UI-wrapper frames
+  // render by component name (e.g. "in Button") so they stay as context without
+  // surfacing a wrapper path that would compete with the resolved app source.
   const resolvedSource = sourcePath.kind === "app-source" ? frame.fileName : null;
 
   if (frame.isServer && !resolvedSource && (componentName || !frame.functionName)) {
@@ -521,7 +524,7 @@ const formatStackFrameLine = (
   return null;
 };
 
-const formatStackContext = (
+export const formatStackContext = (
   stack: StackFrame[],
   options: StackContextOptions = {},
   leadingSource: ResolvedSource | null = null,
@@ -540,7 +543,6 @@ const formatStackContext = (
     if (lines.length >= maxLines) break;
 
     const sourcePath = classifySourcePath(frame.fileName, options.sourceOptions);
-    if (sourcePath.kind === "ignored-app-source") continue;
 
     const componentName = toSourceComponentName(frame.functionName);
     const libraryFrameKey = sourcePath.packageName

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { StackFrame } from "bippy/source";
-import { selectResolvedSource, type FramesBySourceKind } from "./context.js";
+import { formatStackContext, selectResolvedSource, type FramesBySourceKind } from "./context.js";
 
 const emptyFramesByKind = (): FramesBySourceKind => ({
   "app-source": [],
@@ -108,5 +108,29 @@ describe("selectResolvedSource", () => {
       filePath: "/src/app/widget.tsx",
       componentName: "Widget",
     });
+  });
+});
+
+describe("formatStackContext", () => {
+  it("keeps UI-component frames by name while still surfacing the app frame", () => {
+    const result = formatStackContext([
+      { fileName: "src/components/ui/button.tsx", functionName: "Button" },
+      { fileName: "src/app/page.tsx", functionName: "Page" },
+    ]);
+
+    expect(result).toContain("in Button");
+    expect(result).not.toContain("button.tsx");
+    expect(result).toContain("in Page");
+    expect(result).toContain("app/page.tsx");
+  });
+
+  it("omits anonymous UI-component frames that carry no name", () => {
+    const result = formatStackContext([
+      { fileName: "src/components/ui/button.tsx" },
+      { fileName: "src/app/page.tsx", functionName: "Page" },
+    ]);
+
+    expect(result).not.toContain("button.tsx");
+    expect(result).toContain("in Page");
   });
 });
