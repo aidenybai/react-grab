@@ -473,6 +473,47 @@ const formatSourceContextLine = (source: ResolvedSource, isNextProject: boolean)
     : `\n  in ${location}`;
 };
 
+// Branches are ordered by specificity: a server component (no on-disk source)
+// first, then any frame named by component but lacking a source file, then a
+// bare third-party package, and finally a real app source location. Returns
+// null when the frame carries nothing worth rendering.
+const formatStackFrameLine = (
+  frame: StackFrame,
+  sourcePath: SourcePathClassification,
+  componentName: string | null,
+  isNextProject: boolean,
+): string | null => {
+  const libraryPackage = sourcePath.packageName;
+  const resolvedSource = sourcePath.kind === "app-source" ? frame.fileName : null;
+
+  if (frame.isServer && !resolvedSource && (componentName || !frame.functionName)) {
+    const tag = libraryPackage ? `${libraryPackage} at Server` : "at Server";
+    return `\n  in ${componentName ?? "<anonymous>"} (${tag})`;
+  }
+
+  if (!resolvedSource && componentName) {
+    return libraryPackage ? `\n  in ${componentName} (${libraryPackage})` : `\n  in ${componentName}`;
+  }
+
+  if (libraryPackage) {
+    return `\n  in ${libraryPackage}`;
+  }
+
+  if (resolvedSource) {
+    return formatSourceContextLine(
+      {
+        componentName,
+        filePath: resolvedSource,
+        lineNumber: frame.lineNumber ?? null,
+        columnNumber: frame.columnNumber ?? null,
+      },
+      isNextProject,
+    );
+  }
+
+  return null;
+};
+
 const formatStackContext = (
   stack: StackFrame[],
   options: StackContextOptions = {},
@@ -488,23 +529,15 @@ const formatStackContext = (
     lines.push(formatSourceContextLine(leadingSource, isNextProject));
   }
 
-  const emit = (line: string, libraryFrameKey: string | null) => {
-    lines.push(line);
-    previousLibraryFrameKey = libraryFrameKey;
-  };
-
   for (const frame of stack) {
     if (lines.length >= maxLines) break;
 
     const sourcePath = classifySourcePath(frame.fileName, options.sourceOptions);
     if (sourcePath.kind === "ignored-app-source") continue;
 
-    const libraryPackage = sourcePath.packageName;
-    const resolvedSource = sourcePath.kind === "app-source" ? frame.fileName : null;
-
     const componentName = toSourceComponentName(frame.functionName);
-    const libraryFrameKey = libraryPackage
-      ? `${libraryPackage}:${componentName ?? ""}:${frame.isServer ? "server" : "client"}`
+    const libraryFrameKey = sourcePath.packageName
+      ? `${sourcePath.packageName}:${componentName ?? ""}:${frame.isServer ? "server" : "client"}`
       : null;
     if (libraryFrameKey && libraryFrameKey === previousLibraryFrameKey) continue;
 
@@ -520,39 +553,11 @@ const formatStackContext = (
       continue;
     }
 
-    if (frame.isServer && !resolvedSource && (componentName || !frame.functionName)) {
-      const tag = libraryPackage ? `${libraryPackage} at Server` : "at Server";
-      emit(`\n  in ${componentName ?? "<anonymous>"} (${tag})`, libraryFrameKey);
-      continue;
-    }
+    const line = formatStackFrameLine(frame, sourcePath, componentName, isNextProject);
+    if (line === null) continue;
 
-    if (!resolvedSource && componentName) {
-      emit(
-        libraryPackage ? `\n  in ${componentName} (${libraryPackage})` : `\n  in ${componentName}`,
-        libraryFrameKey,
-      );
-      continue;
-    }
-
-    if (libraryPackage) {
-      emit(`\n  in ${libraryPackage}`, libraryFrameKey);
-      continue;
-    }
-
-    if (resolvedSource) {
-      emit(
-        formatSourceContextLine(
-          {
-            componentName,
-            filePath: resolvedSource,
-            lineNumber: frame.lineNumber ?? null,
-            columnNumber: frame.columnNumber ?? null,
-          },
-          isNextProject,
-        ),
-        null,
-      );
-    }
+    lines.push(line);
+    previousLibraryFrameKey = libraryFrameKey;
   }
 
   return lines.join("");
