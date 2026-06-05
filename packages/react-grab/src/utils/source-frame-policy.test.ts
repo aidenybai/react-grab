@@ -24,6 +24,14 @@ describe("classifySourcePath", () => {
     });
   });
 
+  // The relative prefix is the only signal distinguishing a scoped dependency
+  // import from a `@alias/...` path, so a normalized path (leading "./" removed)
+  // can no longer be detected as a package. Callers must classify the raw path.
+  it("only detects relative scoped packages while the relative prefix survives", () => {
+    expect(classifySourcePath("./@radix-ui/react-tabs/src/tabs.tsx").kind).toBe("package-source");
+    expect(classifySourcePath("@radix-ui/react-tabs/src/tabs.tsx").kind).not.toBe("package-source");
+  });
+
   it("classifies default ignored app source paths", () => {
     expect(classifySourcePath("components/ui/button.tsx")).toEqual({
       kind: "ignored-app-source",

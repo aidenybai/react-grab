@@ -283,6 +283,10 @@ interface ResolvedSource {
   lineNumber: number | null;
   columnNumber: number | null;
   componentName: string | null;
+  // Raw path used for classification. normalizeFilePath strips a leading "./",
+  // which scoped-package detection relies on, so classification must see the
+  // unnormalized form (matching how stack frames are classified from fileName).
+  sourceFileName: string;
 }
 
 const pickSourceFrame = (frames: StackFrame[]): StackFrame | null => {
@@ -311,6 +315,7 @@ const getFiberSource = async (element: Element): Promise<ResolvedSource | null> 
       columnNumber: source.columnNumber ?? null,
       componentName:
         toSourceComponentName(source.functionName) ?? getSourceComponentName(fiber._debugOwner),
+      sourceFileName: source.fileName,
     };
   } catch {
     return null;
@@ -332,7 +337,7 @@ const getApplicationFiberSource = async (
   sourceOptions?: SourceOptions,
 ): Promise<ResolvedSource | null> => {
   const source = await getCachedFiberSource(element);
-  if (!source || classifySourcePath(source.filePath, sourceOptions).kind !== "app-source") {
+  if (!source || classifySourcePath(source.sourceFileName, sourceOptions).kind !== "app-source") {
     return null;
   }
   return source;
@@ -345,6 +350,7 @@ const resolveStackFrameSource = (frame: StackFrame | null | undefined): Resolved
     lineNumber: frame.lineNumber ?? null,
     columnNumber: frame.columnNumber ?? null,
     componentName: toSourceComponentName(frame.functionName),
+    sourceFileName: frame.fileName,
   };
 };
 
@@ -379,7 +385,7 @@ export const resolveSource = async (
   options: ResolveSourceOptions = {},
 ): Promise<ResolvedSource | null> => {
   const fiberSource = await getCachedFiberSource(element);
-  const fiberSourceKind = classifySourcePath(fiberSource?.filePath, options.sourceOptions).kind;
+  const fiberSourceKind = classifySourcePath(fiberSource?.sourceFileName, options.sourceOptions).kind;
   if (fiberSourceKind === "app-source") return fiberSource;
 
   const framesByKind: FramesBySourceKind = {
@@ -506,6 +512,7 @@ const formatStackFrameLine = (
         filePath: resolvedSource,
         lineNumber: frame.lineNumber ?? null,
         columnNumber: frame.columnNumber ?? null,
+        sourceFileName: resolvedSource,
       },
       isNextProject,
     );

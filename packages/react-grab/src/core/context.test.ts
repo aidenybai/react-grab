@@ -13,6 +13,7 @@ const fiberSource = {
   lineNumber: 1,
   columnNumber: 1,
   componentName: "Page",
+  sourceFileName: "/src/app/page.tsx",
 };
 
 const appFrame: StackFrame = {
