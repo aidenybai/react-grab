@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { parsePackageName } from "./parse-package-name.js";
+import { parsePackageName } from "../src/utils/parse-package-name.js";
 
 describe("parsePackageName", () => {
   it("reads packages from node_modules paths", () => {

@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { StackFrame } from "bippy/source";
-import { formatStackContext, selectResolvedSource, type FramesBySourceKind } from "./context.js";
+import {
+  formatStackContext,
+  selectResolvedSource,
+  type FramesBySourceKind,
+} from "../src/core/context.js";
 
 const emptyFramesByKind = (): FramesBySourceKind => ({
   "app-source": [],
