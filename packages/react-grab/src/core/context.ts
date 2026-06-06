@@ -620,7 +620,7 @@ export const getStackContext = async (
   return "";
 };
 
-export const getElementContext = async (
+export const formatElementInfo = async (
   element: Element,
   options: StackContextOptions = {},
 ): Promise<string> => {

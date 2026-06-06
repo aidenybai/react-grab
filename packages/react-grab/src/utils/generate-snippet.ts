@@ -1,4 +1,4 @@
-import { getElementContext } from "../core/context.js";
+import { formatElementInfo } from "../core/context.js";
 import type { SourceOptions } from "../types.js";
 
 interface GenerateSnippetOptions {
@@ -11,7 +11,7 @@ export const generateSnippet = async (
   options: GenerateSnippetOptions = {},
 ): Promise<string[]> => {
   const elementSnippetResults = await Promise.allSettled(
-    elements.map((element) => getElementContext(element, options)),
+    elements.map((element) => formatElementInfo(element, options)),
   );
 
   const elementSnippets = elementSnippetResults.map((result) =>

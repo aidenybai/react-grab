@@ -1,5 +1,5 @@
 import type { Plugin } from "../../types.js";
-import { openFile } from "../../utils/open-file.js";
+import { requestOpenFile } from "../../utils/open-file.js";
 
 export const openPlugin: Plugin = {
   name: "open",
@@ -15,7 +15,7 @@ export const openPlugin: Plugin = {
         const wasHandled = context.hooks.onOpenFile(context.filePath, context.lineNumber);
 
         if (!wasHandled) {
-          openFile(context.filePath, context.lineNumber, context.hooks.transformOpenFileUrl);
+          requestOpenFile(context.filePath, context.lineNumber, context.hooks.transformOpenFileUrl);
         }
 
         context.hideContextMenu();

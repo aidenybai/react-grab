@@ -14,7 +14,7 @@ import {
   getHTMLPreview,
   getStack,
   getStackContext,
-  getElementContext as formatElementSnippet,
+  formatElementInfo,
   resolveSource,
 } from "./core/context.js";
 import { Fiber, getFiberFromHostInstance } from "bippy";
@@ -23,7 +23,7 @@ export type { StackFrame };
 import type { SourceOptions } from "./types.js";
 import { createElementSelector } from "./utils/create-element-selector.js";
 import { extractElementCss, disposeBaselineStyles } from "./utils/extract-element-css.js";
-import { openFile as openFileAsync } from "./utils/open-file.js";
+import { requestOpenFile } from "./utils/open-file.js";
 
 export interface ReactGrabElementContext {
   element: Element;
@@ -61,7 +61,7 @@ export const getElementContext = async (
   options: ReactGrabElementContextOptions = {},
 ): Promise<ReactGrabElementContext> => {
   const [snippet, source, stack] = await Promise.all([
-    formatElementSnippet(element, { sourceOptions: options.sourceOptions }),
+    formatElementInfo(element, { sourceOptions: options.sourceOptions }),
     resolveSource(element, { sourceOptions: options.sourceOptions }),
     getStack(element).then((result) => result ?? []),
   ]);
@@ -169,7 +169,7 @@ export const isFreezeActive = (): boolean => {
  * openFile("/src/components/Button.tsx", 42);
  */
 export const openFile = async (filePath: string, lineNumber?: number): Promise<void> => {
-  await openFileAsync(filePath, lineNumber);
+  await requestOpenFile(filePath, lineNumber);
 };
 
 export { disposeBaselineStyles };

@@ -24,7 +24,7 @@ const tryDevServerOpen = async (
   return response.ok;
 };
 
-export const openFile = async (
+export const requestOpenFile = async (
   filePath: string,
   lineNumber: number | undefined,
   transformUrl?: (url: string, filePath: string, lineNumber?: number) => string,
