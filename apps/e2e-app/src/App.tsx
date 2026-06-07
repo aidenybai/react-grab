@@ -377,9 +377,17 @@ const VariantsBox = ({ variants }: VariantsBoxProps) => {
 };
 
 const PropsPlaygroundSection = () => {
+  const [bump, setBump] = useState(0);
   return (
     <section className="border rounded-lg p-4" data-testid="props-playground-section">
       <h2 className="text-lg font-bold mb-4">Props Playground</h2>
+      <button
+        type="button"
+        onClick={() => setBump((previous) => previous + 1)}
+        data-testid="props-rerender-button"
+      >
+        Re-render ({bump})
+      </button>
       <MotionishBox animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }} count={12} />
       <VariantsBox
         initial="initial"

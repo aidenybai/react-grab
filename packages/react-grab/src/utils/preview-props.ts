@@ -1,46 +1,28 @@
-import { overrideProps, type Fiber } from "bippy";
+import { overrideProps } from "bippy";
 import type { PropPreview } from "../types.js";
 import { findPropsFiber } from "./find-props-fiber.js";
-
-const readPropAtPath = (fiber: Fiber, path: readonly string[]): unknown => {
-  let current: unknown = fiber.memoizedProps;
-  for (const segment of path) {
-    if (typeof current !== "object" || current === null) return undefined;
-    current = (current as Record<string, unknown>)[segment];
-  }
-  return current;
-};
-
-const buildNestedPartial = (path: readonly string[], value: unknown): Record<string, unknown> => {
-  const root: Record<string, unknown> = {};
-  let cursor = root;
-  for (let segmentIndex = 0; segmentIndex < path.length - 1; segmentIndex++) {
-    const next: Record<string, unknown> = {};
-    cursor[path[segmentIndex]] = next;
-    cursor = next;
-  }
-  cursor[path[path.length - 1]] = value;
-  return root;
-};
+import { buildNestedPropPartial, readPropAtPath } from "./prop-path.js";
+import { clearStickyPropOverride, setStickyPropOverride } from "./prop-override-registry.js";
 
 // Live preview for prop edits. bippy's overrideProps re-renders the
 // component with the overridden value merged in at the given path, so the
 // page updates immediately (a motion target re-animates, a three.js count
-// re-spawns). The original leaf at each touched path is captured on first
-// apply so discard can roll every change back.
+// re-spawns). Each override is also registered as sticky so it survives
+// parent re-renders the way a CSS inline-style edit does; discard clears
+// the sticky entry and restores the captured original.
 export const createPropPreview = (element: Element): PropPreview => {
   const fiber = findPropsFiber(element);
   const originalByKey = new Map<string, { path: readonly string[]; value: unknown }>();
 
   const apply = (propPath: readonly string[], value: number): void => {
     if (!fiber || propPath.length === 0) return;
-    // JSON-encode so segments can never alias, even with exotic key chars.
     const key = JSON.stringify(propPath);
     if (!originalByKey.has(key)) {
       originalByKey.set(key, { path: propPath, value: readPropAtPath(fiber, propPath) });
     }
+    setStickyPropOverride(fiber, propPath, value);
     try {
-      overrideProps(fiber, buildNestedPartial(propPath, value));
+      overrideProps(fiber, buildNestedPropPartial(propPath, value));
     } catch {
       // overrideProps reaches into renderer internals; a failure must not
       // tear down the panel.
@@ -50,8 +32,9 @@ export const createPropPreview = (element: Element): PropPreview => {
   const restore = (): void => {
     if (fiber) {
       for (const { path, value } of originalByKey.values()) {
+        clearStickyPropOverride(fiber, path);
         try {
-          overrideProps(fiber, buildNestedPartial(path, value));
+          overrideProps(fiber, buildNestedPropPartial(path, value));
         } catch {
           // Best-effort rollback; ignore renderer hiccups.
         }
@@ -60,6 +43,9 @@ export const createPropPreview = (element: Element): PropPreview => {
     originalByKey.clear();
   };
 
+  // Submit keeps the override applied (like a committed inline style), so
+  // forget only drops the local bookkeeping and leaves the sticky entry in
+  // place to persist across future re-renders.
   const forget = (): void => {
     originalByKey.clear();
   };

@@ -16,6 +16,10 @@ const COUNT_TEXT_SELECTOR = "[data-testid='motionish-count']";
 
 const VARIANTS_BOX_SELECTOR = "[data-testid='variants-box']";
 const VARIANTS_DURATION_TEXT_SELECTOR = "[data-testid='variants-animate-duration']";
+const RERENDER_BUTTON_SELECTOR = "[data-testid='props-rerender-button']";
+
+const clickRerender = (page: import("@playwright/test").Page) =>
+  page.locator(RERENDER_BUTTON_SELECTOR).click();
 
 const getRenderedText = (selector: string) => async (page: import("@playwright/test").Page) =>
   page.locator(selector).first().textContent();
@@ -105,6 +109,41 @@ test.describe("Style Panel - React props", () => {
     await expect
       .poll(() => getRenderedText(VARIANTS_DURATION_TEXT_SELECTOR)(reactGrab.page))
       .toBe("0.7");
+  });
+
+  test("a submitted prop edit persists across a parent re-render", async ({ reactGrab }) => {
+    await openEditPanel(reactGrab, PROPS_BOX_SELECTOR);
+    await setSearchInputValue(reactGrab.page, "animate.opacity");
+    await expect.poll(() => getActivePropertyKey(reactGrab.page)).toBe("prop:animate.opacity");
+
+    await reactGrab.pressArrowLeft();
+    await expect.poll(() => getRenderedText(OPACITY_TEXT_SELECTOR)(reactGrab.page)).toBe("0.95");
+
+    await reactGrab.pressEnter();
+    await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
+
+    // A one-shot override would be wiped here; the sticky re-apply must
+    // survive the parent re-render that rebuilds the child's props.
+    await clickRerender(reactGrab.page);
+    await expect.poll(() => getRenderedText(OPACITY_TEXT_SELECTOR)(reactGrab.page)).toBe("0.95");
+  });
+
+  test("a discarded prop edit does not persist across a re-render", async ({ reactGrab }) => {
+    await openEditPanel(reactGrab, PROPS_BOX_SELECTOR);
+    await setSearchInputValue(reactGrab.page, "animate.opacity");
+    await expect.poll(() => getActivePropertyKey(reactGrab.page)).toBe("prop:animate.opacity");
+
+    await reactGrab.pressArrowLeft();
+    await expect.poll(() => getRenderedText(OPACITY_TEXT_SELECTOR)(reactGrab.page)).toBe("0.95");
+
+    await openDiscardPromptViaEscape(reactGrab.page);
+    await focusDiscardButton(reactGrab.page, "confirm");
+    await reactGrab.pressEnter();
+    await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
+    await expect.poll(() => getRenderedText(OPACITY_TEXT_SELECTOR)(reactGrab.page)).toBe("1");
+
+    await clickRerender(reactGrab.page);
+    await expect.poll(() => getRenderedText(OPACITY_TEXT_SELECTOR)(reactGrab.page)).toBe("1");
   });
 
   test("submitting copies a prompt describing the prop change", async ({ reactGrab }) => {
