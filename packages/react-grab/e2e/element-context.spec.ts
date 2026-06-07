@@ -211,7 +211,7 @@ test.describe("Element Context Fallback", () => {
       const clipboard = await reactGrab.getClipboardContent();
       expect(clipboard).toContain('<a href="/docs/ci-and-prs/github-actions-setup"');
       expect(clipboard).toContain("GitHub Actions setup");
-      expect(clipboard).toContain('selector: a[href="/docs/ci-and-prs/github-actions-setup"]');
+      expect(clipboard).toContain('selector: [href="/docs/ci-and-prs/github-actions-setup"]');
       expect(clipboard).toContain("</a>");
     });
   });
