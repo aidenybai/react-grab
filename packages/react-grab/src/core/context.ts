@@ -22,6 +22,7 @@ import {
   PREVIEW_IDENTIFYING_ATTRS,
   SYMBOLICATION_TIMEOUT_MS,
   DEFAULT_MAX_CONTEXT_LINES,
+  MAX_TRACE_CONTEXT_LINES,
 } from "../constants.js";
 import { getTagName } from "../utils/get-tag-name.js";
 import { truncateString } from "../utils/truncate-string.js";
@@ -574,6 +575,7 @@ export const formatStackContext = (
   leadingSource: ResolvedSource | null = null,
 ): TraceContextResult => {
   const { maxLines = DEFAULT_MAX_CONTEXT_LINES } = options;
+  const hardMaxLines = Math.max(maxLines, MAX_TRACE_CONTEXT_LINES);
   const isNextProject = isNextProjectRuntime();
   const lines: string[] = [];
   let previousLibraryFrameKey: string | null = null;
@@ -601,7 +603,11 @@ export const formatStackContext = (
   }
 
   for (const frame of stack) {
-    if (lines.length >= maxLines) break;
+    // Once the soft budget is full, keep going only while every line so far is
+    // low-signal — this digs past junk frames to surface one real app frame —
+    // and never beyond the hard cap.
+    if (lines.length >= hardMaxLines) break;
+    if (lines.length >= maxLines && hasTrustedSource) break;
 
     const sourcePath = classifySourcePath(frame.fileName, options.sourceOptions);
 

@@ -138,6 +138,18 @@ describe("formatStackContext", () => {
     expect(result.text).toContain("in Page");
   });
 
+  it("digs past low-signal package frames to surface a deeper app source", () => {
+    const result = formatStackContext([
+      { fileName: "node_modules/react-tabs/dist/index.js", functionName: "Tabs" },
+      { fileName: "node_modules/@radix-ui/react-dialog/dist/index.js", functionName: "Dialog" },
+      { fileName: "node_modules/framer-motion/dist/index.js", functionName: "Motion" },
+      { fileName: "src/app/page.tsx", functionName: "Page" },
+    ]);
+
+    expect(result.text).toContain("app/page.tsx");
+    expect(result.text).toContain("in Page");
+  });
+
   it("does not request a selector hint for a trusted app leading source", () => {
     const result = formatStackContext([], {}, fiberSource);
 
