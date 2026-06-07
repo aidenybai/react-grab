@@ -14,6 +14,9 @@ const OPACITY_TEXT_SELECTOR = "[data-testid='motionish-opacity']";
 const DURATION_TEXT_SELECTOR = "[data-testid='motionish-duration']";
 const COUNT_TEXT_SELECTOR = "[data-testid='motionish-count']";
 
+const VARIANTS_BOX_SELECTOR = "[data-testid='variants-box']";
+const VARIANTS_DURATION_TEXT_SELECTOR = "[data-testid='variants-animate-duration']";
+
 const getRenderedText = (selector: string) => async (page: import("@playwright/test").Page) =>
   page.locator(selector).first().textContent();
 
@@ -76,6 +79,32 @@ test.describe("Style Panel - React props", () => {
 
     await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
     await expect.poll(() => getRenderedText(DURATION_TEXT_SELECTOR)(reactGrab.page)).toBe("0.5");
+  });
+
+  test("derives values nested inside a motion variants map", async ({ reactGrab }) => {
+    await openEditPanel(reactGrab, VARIANTS_BOX_SELECTOR);
+    const visibleKeys = await getVisiblePropertyKeys(reactGrab.page);
+    expect(visibleKeys).toContain("prop:variants.animate.scale");
+    expect(visibleKeys).toContain("prop:variants.animate.transition.duration");
+    expect(visibleKeys).toContain("prop:variants.whileHover.scale");
+  });
+
+  test("stepping a deeply nested variant value live-updates the component", async ({
+    reactGrab,
+  }) => {
+    await openEditPanel(reactGrab, VARIANTS_BOX_SELECTOR);
+    await setSearchInputValue(reactGrab.page, "variants.animate.transition.duration");
+    await expect
+      .poll(() => getActivePropertyKey(reactGrab.page))
+      .toBe("prop:variants.animate.transition.duration");
+
+    expect(await getRenderedText(VARIANTS_DURATION_TEXT_SELECTOR)(reactGrab.page)).toBe("0.6");
+
+    await reactGrab.pressArrowRight();
+
+    await expect
+      .poll(() => getRenderedText(VARIANTS_DURATION_TEXT_SELECTOR)(reactGrab.page))
+      .toBe("0.7");
   });
 
   test("submitting copies a prompt describing the prop change", async ({ reactGrab }) => {

@@ -1,5 +1,9 @@
 import { traverseProps, type Fiber } from "bippy";
-import { MOTION_OBJECT_PROP_KEYS, PROP_NUMERIC_MAX_COUNT } from "../constants.js";
+import {
+  EDITABLE_OBJECT_PROP_KEYS,
+  PROP_NESTED_MAX_DEPTH,
+  PROP_NUMERIC_MAX_COUNT,
+} from "../constants.js";
 
 export interface FiberNumericProp {
   path: string[];
@@ -12,11 +16,33 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> =>
 const isEditableNumber = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value);
 
+// Recurses an object-valued prop, collecting numeric leaves at any depth up
+// to PROP_NESTED_MAX_DEPTH. This reaches both motion's inline targets
+// (animate.opacity) and the level-deeper `variants` map
+// (variants.whileHover.transition.duration), which is how motion is most
+// commonly written.
+const collectNumericLeaves = (
+  object: Record<string, unknown>,
+  pathPrefix: string[],
+  depth: number,
+  collected: FiberNumericProp[],
+): void => {
+  for (const key in object) {
+    if (collected.length >= PROP_NUMERIC_MAX_COUNT) return;
+    const childValue = object[key];
+    const childPath = [...pathPrefix, key];
+    if (isEditableNumber(childValue)) {
+      collected.push({ path: childPath, value: childValue });
+    } else if (depth < PROP_NESTED_MAX_DEPTH && isPlainObject(childValue)) {
+      collectNumericLeaves(childValue, childPath, depth + 1, collected);
+    }
+  }
+};
+
 // Walks a single component's props and pulls out the numeric values worth
 // tweaking: top-level numbers (e.g. a three.js wrapper's `count`/`speed`)
-// and the direct numeric members of motion-style object props (e.g.
-// `animate.opacity`, `transition.duration`). Host fibers are never passed
-// here, so DOM attributes like width/height never leak in.
+// and the nested numeric members of motion-style object props. Host fibers
+// are never passed here, so DOM attributes like width/height never leak in.
 export const collectFiberNumericProps = (fiber: Fiber): FiberNumericProp[] => {
   const collected: FiberNumericProp[] = [];
 
@@ -24,16 +50,8 @@ export const collectFiberNumericProps = (fiber: Fiber): FiberNumericProp[] => {
     if (collected.length >= PROP_NUMERIC_MAX_COUNT) return true;
     if (isEditableNumber(nextValue)) {
       collected.push({ path: [propName], value: nextValue });
-      return false;
-    }
-    if (MOTION_OBJECT_PROP_KEYS.has(propName) && isPlainObject(nextValue)) {
-      for (const innerKey in nextValue) {
-        if (collected.length >= PROP_NUMERIC_MAX_COUNT) break;
-        const innerValue = nextValue[innerKey];
-        if (isEditableNumber(innerValue)) {
-          collected.push({ path: [propName, innerKey], value: innerValue });
-        }
-      }
+    } else if (EDITABLE_OBJECT_PROP_KEYS.has(propName) && isPlainObject(nextValue)) {
+      collectNumericLeaves(nextValue, [propName], 1, collected);
     }
     return false;
   });

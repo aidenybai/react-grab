@@ -242,10 +242,14 @@ export const EDIT_COMPACT_SLIDER_MIN_WIDTH_PX = 96;
 // props one component may surface before we stop collecting.
 export const PROP_FIBER_MAX_COMPOSITE_WALK = 6;
 export const PROP_NUMERIC_MAX_COUNT = 24;
-// Motion-style object props whose direct numeric members are editable
-// (e.g. animate.opacity, transition.duration). `style` is intentionally
-// excluded so it does not duplicate the computed-style CSS rows.
-export const MOTION_OBJECT_PROP_KEYS = new Set([
+// Object-valued props whose nested numeric members are editable: motion's
+// inline targets (animate/whileHover/...), its `variants` map (one level
+// deeper, keyed by variant name), transition timings, and drag
+// constraints. Members are collected recursively up to
+// PROP_NESTED_MAX_DEPTH so e.g. variants.whileHover.transition.duration is
+// reachable. `style` is excluded so it does not duplicate the
+// computed-style CSS rows.
+export const EDITABLE_OBJECT_PROP_KEYS = new Set([
   "initial",
   "animate",
   "exit",
@@ -255,7 +259,10 @@ export const MOTION_OBJECT_PROP_KEYS = new Set([
   "whileFocus",
   "whileInView",
   "whileDrag",
+  "variants",
+  "dragConstraints",
 ]);
+export const PROP_NESTED_MAX_DEPTH = 4;
 
 export const CSS_VALUE_DECIMAL_PLACES = 2;
 export const OPACITY_PERCENT_MAX = 100;
