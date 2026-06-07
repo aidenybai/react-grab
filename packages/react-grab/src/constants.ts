@@ -21,7 +21,7 @@ export const INPUT_TEXT_SELECTION_ACTIVATION_DELAY_MS = 600;
 export const DEFAULT_KEY_HOLD_DURATION_MS = 100;
 export const DEFAULT_MAX_CONTEXT_LINES = 3;
 // Hard cap when digging past low-signal frames for a trusted app source.
-export const MAX_TRACE_CONTEXT_LINES = 6;
+export const MAX_TRACE_CONTEXT_LINES = 20;
 export const SYMBOLICATION_TIMEOUT_MS = 5000;
 export const MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS = 200;
 export const FINDER_TIMEOUT_MS = 200;
