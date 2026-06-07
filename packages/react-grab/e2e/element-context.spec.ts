@@ -244,5 +244,36 @@ test.describe("Element Context Fallback", () => {
       expect(clipboard).toContain('aria-hidden="true"');
       expect(clipboard).not.toContain("Decorative Hidden Label");
     });
+
+    test("should include nested text for mixed inline content", async ({ reactGrab }) => {
+      await reactGrab.page.evaluate(() => {
+        const wrapper = document.createElement("div");
+        Object.assign(wrapper.style, {
+          position: "fixed",
+          top: "200px",
+          left: "200px",
+          width: "260px",
+          height: "80px",
+          zIndex: "999",
+        });
+
+        const link = document.createElement("a");
+        link.href = "/docs/mixed-content";
+        link.textContent = "Read ";
+        const emphasizedText = document.createElement("em");
+        emphasizedText.textContent = "the docs";
+        link.appendChild(emphasizedText);
+
+        wrapper.appendChild(link);
+        document.body.appendChild(wrapper);
+      });
+
+      const didCopy = await reactGrab.copyElementViaApi("a[href='/docs/mixed-content']");
+      expect(didCopy).toBe(true);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain("Read the docs");
+      expect(clipboard).not.toContain("<em ...>");
+    });
   });
 });

@@ -42,7 +42,8 @@ export const getPreviewTextContent = (element: Element, tagName: string): string
   if (shouldSkipElementText(element)) return "";
 
   const directText = getDirectTextContent(element);
-  if (directText || !PREVIEW_TEXT_TAGS.has(tagName)) return directText;
+  if (!PREVIEW_TEXT_TAGS.has(tagName)) return directText;
+  if (directText && element.children.length === 0) return directText;
 
   const parts: string[] = [];
   for (const childNode of element.childNodes) {
