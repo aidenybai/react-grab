@@ -3,7 +3,6 @@ import {
   getSource,
   formatOwnerStack,
   hasDebugStack,
-  isSourceFile,
   parseStack,
   type StackFrame,
 } from "bippy/source";
@@ -30,7 +29,6 @@ import { getNextBasePath } from "../utils/get-next-base-path.js";
 import { normalizeFilePath } from "../utils/normalize-file-path.js";
 import { safeDecodeURIComponent } from "../utils/safe-decode-uri-component.js";
 import { classifySourcePath, type SourcePathClassification } from "../utils/source-frame-policy.js";
-import { parsePackageName } from "../utils/parse-package-name.js";
 import { isInternalAttribute } from "../utils/strip-internal-attributes.js";
 import { createElementSelector } from "../utils/create-element-selector.js";
 import { getPreviewTextContent } from "../utils/get-preview-text-content.js";
@@ -435,8 +433,13 @@ interface TraceContextResult {
   shouldAppendSelectorHint: boolean;
 }
 
-const isTrustedSourcePath = (filePath: string | null | undefined): boolean =>
-  Boolean(filePath && isSourceFile(filePath) && !parsePackageName(filePath));
+// A source is trusted when it resolves to editable app code (not a third-party
+// package and not an ignored UI wrapper). Reuse the canonical classifier so the
+// selector-hint heuristic and source resolution share one notion of "app code".
+const isTrustedSourcePath = (
+  sourceFileName: string | null | undefined,
+  sourceOptions?: SourceOptions,
+): boolean => classifySourcePath(sourceFileName, sourceOptions).kind === "app-source";
 
 const formatSelectorContextLine = (element: Element): string => {
   const selector = createElementSelector(element);
@@ -543,8 +546,9 @@ const formatStackFrameLine = (
     return { text: `\n  in ${libraryPackage}`, isTrustedSource: false, isLowSignal: true };
   }
 
+  // resolvedSource is only set for app-source frames, so it is trusted by
+  // definition — no need to re-classify here.
   if (resolvedSource) {
-    const isTrustedSource = isTrustedSourcePath(resolvedSource);
     return {
       text: formatSourceContextLine(
         {
@@ -556,8 +560,8 @@ const formatStackFrameLine = (
         },
         isNextProject,
       ),
-      isTrustedSource,
-      isLowSignal: !isTrustedSource,
+      isTrustedSource: true,
+      isLowSignal: false,
     };
   }
 
@@ -588,7 +592,7 @@ export const formatStackContext = (
   };
 
   if (leadingSource) {
-    const isTrustedSource = isTrustedSourcePath(leadingSource.filePath);
+    const isTrustedSource = isTrustedSourcePath(leadingSource.sourceFileName, options.sourceOptions);
     emit({
       text: formatSourceContextLine(leadingSource, isNextProject),
       isTrustedSource,
@@ -669,7 +673,7 @@ const getTraceContext = async (
   }
 
   if (leadingSource) {
-    const isTrustedSource = isTrustedSourcePath(leadingSource.filePath);
+    const isTrustedSource = isTrustedSourcePath(leadingSource.sourceFileName, options.sourceOptions);
     return {
       text: formatSourceContextLine(leadingSource, isNextProjectRuntime()),
       shouldAppendSelectorHint: !isTrustedSource,

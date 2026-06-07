@@ -137,4 +137,22 @@ describe("formatStackContext", () => {
     expect(result.text).not.toContain("button.tsx");
     expect(result.text).toContain("in Page");
   });
+
+  it("does not request a selector hint for a trusted app leading source", () => {
+    const result = formatStackContext([], {}, fiberSource);
+
+    expect(result.shouldAppendSelectorHint).toBe(false);
+  });
+
+  it("requests a selector hint for an ignored components/ui leading source", () => {
+    const result = formatStackContext([], {}, {
+      filePath: "/src/components/ui/button.tsx",
+      lineNumber: 1,
+      columnNumber: 1,
+      componentName: "Button",
+      sourceFileName: "src/components/ui/button.tsx",
+    });
+
+    expect(result.shouldAppendSelectorHint).toBe(true);
+  });
 });
