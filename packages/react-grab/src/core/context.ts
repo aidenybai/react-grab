@@ -371,7 +371,13 @@ interface StackContextOptions {
 
 interface TraceContextResult {
   text: string;
-  firstSignalKind: "trusted-source" | "untrusted-source" | "package" | "server" | "component" | null;
+  firstSignalKind:
+    | "trusted-source"
+    | "untrusted-source"
+    | "package"
+    | "server"
+    | "component"
+    | null;
   hasTrustedSource: boolean;
 }
 
