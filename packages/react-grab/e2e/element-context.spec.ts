@@ -203,7 +203,9 @@ test.describe("Element Context Fallback", () => {
         document.body.appendChild(wrapper);
       });
 
-      const didCopy = await reactGrab.copyElementViaApi("a[href='/docs/ci-and-prs/github-actions-setup']");
+      const didCopy = await reactGrab.copyElementViaApi(
+        "a[href='/docs/ci-and-prs/github-actions-setup']",
+      );
       expect(didCopy).toBe(true);
 
       const clipboard = await reactGrab.getClipboardContent();
