@@ -724,28 +724,7 @@ export const formatElementInfo = async (
   const html = getHTMLPreview(resolvedElement);
   const traceContext = await getTraceContext(resolvedElement, options);
   const selectorContext = getSelectorContext(resolvedElement, traceContext);
-
-  if (traceContext.text || selectorContext) {
-    return `${html}${traceContext.text}${selectorContext}`;
-  }
-
-  return getFallbackContext(resolvedElement);
-};
-
-const getFallbackContext = (element: Element): string => {
-  if (!(element instanceof HTMLElement)) {
-    return getInlineHTMLPreview(element);
-  }
-
-  const tagName = getTagName(element);
-  const attrsText = formatAttrsForPreview(element);
-  const previewText = getPreviewTextContent(element, tagName);
-  const truncatedText = truncateString(previewText, PREVIEW_TEXT_MAX_LENGTH);
-
-  if (truncatedText.length > 0) {
-    return `<${tagName}${attrsText}>\n  ${truncatedText}\n</${tagName}>`;
-  }
-  return `<${tagName}${attrsText} />`;
+  return `${html}${traceContext.text}${selectorContext}`;
 };
 
 const truncateAttrValue = (value: string): string =>
