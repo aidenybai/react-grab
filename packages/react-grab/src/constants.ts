@@ -105,6 +105,11 @@ export const PREVIEW_IDENTIFYING_ATTRS = new Set([
   "open",
 ]);
 
+// Only these tags pull text from descendants for previews; others use direct
+// text only so structural containers stay compact.
+export const PREVIEW_DESCENDANT_TEXT_TAGS = new Set(["a", "code", "pre"]);
+export const PREVIEW_SKIPPED_TEXT_TAGS = new Set(["script", "style", "template", "noscript"]);
+
 export const MODIFIER_KEYS: readonly string[] = ["Meta", "Control", "Shift", "Alt"];
 
 export const ARROW_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);

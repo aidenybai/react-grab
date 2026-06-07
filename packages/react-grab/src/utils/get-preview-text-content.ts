@@ -1,5 +1,7 @@
-const DESCENDANT_TEXT_TAGS = new Set(["a", "code", "pre"]);
-const SKIPPED_TEXT_TAGS = new Set(["script", "style", "template", "noscript"]);
+import {
+  PREVIEW_DESCENDANT_TEXT_TAGS,
+  PREVIEW_SKIPPED_TEXT_TAGS,
+} from "../constants.js";
 
 const collapseTextContent = (text: string): string => text.replace(/\s+/g, " ").trim();
 
@@ -19,7 +21,7 @@ const getDirectTextContent = (element: Element): string => {
 const shouldSkipElementText = (element: Element): boolean => {
   if (element.getAttribute("aria-hidden") === "true") return true;
   if (element.hasAttribute("hidden")) return true;
-  return SKIPPED_TEXT_TAGS.has(element.tagName.toLowerCase());
+  return PREVIEW_SKIPPED_TEXT_TAGS.has(element.tagName.toLowerCase());
 };
 
 const collectDescendantText = (node: Node, parts: string[]): void => {
@@ -41,7 +43,7 @@ export const getPreviewTextContent = (element: Element, tagName: string): string
   if (shouldSkipElementText(element)) return "";
 
   const directText = getDirectTextContent(element);
-  if (!DESCENDANT_TEXT_TAGS.has(tagName)) return directText;
+  if (!PREVIEW_DESCENDANT_TEXT_TAGS.has(tagName)) return directText;
   if (directText && element.children.length === 0) return directText;
 
   const parts: string[] = [];
