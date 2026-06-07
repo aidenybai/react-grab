@@ -567,6 +567,8 @@ export const formatStackContext = (
   leadingSource: ResolvedSource | null = null,
 ): TraceContextResult => {
   const { maxLines = DEFAULT_MAX_CONTEXT_LINES } = options;
+  // max, not min: the dig-past-low-signal cap must sit above the soft budget
+  // (min would collapse it onto maxLines and disable digging entirely).
   const hardMaxLines = Math.max(maxLines, MAX_TRACE_CONTEXT_LINES);
   const isNextProject = isNextProjectRuntime();
   const lines: string[] = [];
