@@ -215,5 +215,34 @@ test.describe("Element Context Fallback", () => {
       expect(clipboard).toContain('selector: [href="/docs/ci-and-prs/github-actions-setup"]');
       expect(clipboard).toContain("</a>");
     });
+
+    test("should skip preview text for hidden selected roots", async ({ reactGrab }) => {
+      await reactGrab.page.evaluate(() => {
+        const wrapper = document.createElement("div");
+        Object.assign(wrapper.style, {
+          position: "fixed",
+          top: "200px",
+          left: "200px",
+          width: "200px",
+          height: "80px",
+          zIndex: "999",
+        });
+
+        const hiddenLabel = document.createElement("span");
+        hiddenLabel.setAttribute("aria-hidden", "true");
+        hiddenLabel.setAttribute("data-testid", "decorative-hidden-label");
+        hiddenLabel.textContent = "Decorative Hidden Label";
+
+        wrapper.appendChild(hiddenLabel);
+        document.body.appendChild(wrapper);
+      });
+
+      const didCopy = await reactGrab.copyElementViaApi("[data-testid='decorative-hidden-label']");
+      expect(didCopy).toBe(true);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain('aria-hidden="true"');
+      expect(clipboard).not.toContain("Decorative Hidden Label");
+    });
   });
 });

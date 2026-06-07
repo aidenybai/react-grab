@@ -1,5 +1,10 @@
 import { PREVIEW_TEXT_TAGS } from "../constants.js";
 
+export interface PreviewTextContent {
+  text: string;
+  source: "direct" | "descendant" | null;
+}
+
 const SKIPPED_TEXT_TAGS = new Set(["script", "style", "template", "noscript"]);
 
 const collapseTextContent = (text: string): string => text.replace(/\s+/g, " ").trim();
@@ -38,13 +43,26 @@ const collectDescendantText = (node: Node, parts: string[]): void => {
   }
 };
 
-export const getPreviewTextContent = (element: Element, tagName: string): string => {
+export const getPreviewTextContentResult = (
+  element: Element,
+  tagName: string,
+): PreviewTextContent => {
+  if (shouldSkipElementText(element)) return { text: "", source: null };
+
   const directText = getDirectTextContent(element);
-  if (directText || !PREVIEW_TEXT_TAGS.has(tagName)) return directText;
+  if (directText) return { text: directText, source: "direct" };
+  if (!PREVIEW_TEXT_TAGS.has(tagName)) return { text: "", source: null };
 
   const parts: string[] = [];
   for (const childNode of element.childNodes) {
     collectDescendantText(childNode, parts);
   }
-  return collapseTextContent(parts.join(" "));
+  const descendantText = collapseTextContent(parts.join(" "));
+  return {
+    text: descendantText,
+    source: descendantText ? "descendant" : null,
+  };
 };
+
+export const getPreviewTextContent = (element: Element, tagName: string): string =>
+  getPreviewTextContentResult(element, tagName).text;
