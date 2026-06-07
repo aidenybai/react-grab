@@ -371,14 +371,7 @@ interface StackContextOptions {
 
 interface TraceContextResult {
   text: string;
-  firstSignalKind:
-    | "trusted-source"
-    | "untrusted-source"
-    | "package"
-    | "server"
-    | "component"
-    | null;
-  hasTrustedSource: boolean;
+  shouldAppendSelectorHint: boolean;
 }
 
 const hasFormattableFrames = (stack: StackFrame[] | null): boolean => {
@@ -395,17 +388,6 @@ const hasFormattableFrames = (stack: StackFrame[] | null): boolean => {
 
 const isTrustedSourcePath = (filePath: string | null | undefined): boolean =>
   Boolean(filePath && isSourceFile(filePath) && !parsePackageName(filePath));
-
-const getSourceSignalKind = (filePath: string): TraceContextResult["firstSignalKind"] =>
-  isTrustedSourcePath(filePath) ? "trusted-source" : "untrusted-source";
-
-const shouldAppendSelectorHint = (traceContext: TraceContextResult): boolean => {
-  if (!traceContext.text) return true;
-  if (traceContext.firstSignalKind === "package" || traceContext.firstSignalKind === "server") {
-    return true;
-  }
-  return !traceContext.hasTrustedSource;
-};
 
 const formatSelectorContextLine = (element: Element): string => {
   const selector = createElementSelector(element);
@@ -475,29 +457,33 @@ const formatStackContext = (
   const lines: string[] = [];
   let previousLibraryPackage: string | null = null;
   let didDedupeLeadingComponent = false;
-  let firstSignalKind: TraceContextResult["firstSignalKind"] = null;
   let hasTrustedSource = false;
-
-  const recordSignal = (signalKind: TraceContextResult["firstSignalKind"]) => {
-    firstSignalKind ??= signalKind;
-    if (signalKind === "trusted-source") hasTrustedSource = true;
-  };
+  let startsWithLowSignalContext = false;
 
   const emit = (
     line: string,
     libraryPackage: string | null,
-    signalKind: TraceContextResult["firstSignalKind"],
+    options: { isTrustedSource?: boolean; isLowSignal?: boolean } = {},
   ) => {
+    if (lines.length === 0 && options.isLowSignal) {
+      startsWithLowSignalContext = true;
+    }
+    if (options.isTrustedSource) {
+      hasTrustedSource = true;
+    }
     lines.push(line);
     previousLibraryPackage = libraryPackage;
-    recordSignal(signalKind);
   };
 
   if (leadingSource) {
+    const isTrustedSource = isTrustedSourcePath(leadingSource.filePath);
     emit(
       formatSourceContextLine(leadingSource, isNextProject),
       null,
-      getSourceSignalKind(leadingSource.filePath),
+      {
+        isTrustedSource,
+        isLowSignal: !isTrustedSource,
+      },
     );
   }
 
@@ -528,7 +514,7 @@ const formatStackContext = (
       emit(
         `\n  in ${componentName ?? "<anonymous>"} (${tag})`,
         libraryPackage,
-        libraryPackage ? "package" : "server",
+        { isLowSignal: true },
       );
       continue;
     }
@@ -537,12 +523,13 @@ const formatStackContext = (
       emit(
         libraryPackage ? `\n  in ${componentName} (${libraryPackage})` : `\n  in ${componentName}`,
         libraryPackage,
-        libraryPackage ? "package" : "component",
+        { isLowSignal: Boolean(libraryPackage) },
       );
       continue;
     }
 
     if (resolvedSource) {
+      const isTrustedSource = isTrustedSourcePath(resolvedSource);
       emit(
         formatSourceContextLine(
           {
@@ -554,15 +541,17 @@ const formatStackContext = (
           isNextProject,
         ),
         null,
-        getSourceSignalKind(resolvedSource),
+        {
+          isTrustedSource,
+          isLowSignal: !isTrustedSource,
+        },
       );
     }
   }
 
   return {
     text: lines.join(""),
-    firstSignalKind,
-    hasTrustedSource,
+    shouldAppendSelectorHint: startsWithLowSignalContext || !hasTrustedSource,
   };
 };
 
@@ -579,11 +568,10 @@ const getTraceContext = async (
   }
 
   if (leadingSource) {
-    const signalKind = getSourceSignalKind(leadingSource.filePath);
+    const isTrustedSource = isTrustedSourcePath(leadingSource.filePath);
     return {
       text: formatSourceContextLine(leadingSource, isNextProjectRuntime()),
-      firstSignalKind: signalKind,
-      hasTrustedSource: signalKind === "trusted-source",
+      shouldAppendSelectorHint: !isTrustedSource,
     };
   }
 
@@ -591,15 +579,13 @@ const getTraceContext = async (
   if (componentNames.length > 0) {
     return {
       text: componentNames.map((name) => `\n  in ${name}`).join(""),
-      firstSignalKind: "component",
-      hasTrustedSource: false,
+      shouldAppendSelectorHint: true,
     };
   }
 
   return {
     text: "",
-    firstSignalKind: null,
-    hasTrustedSource: false,
+    shouldAppendSelectorHint: true,
   };
 };
 
@@ -612,7 +598,7 @@ export const getStackContext = async (
 };
 
 const getSelectorContext = (element: Element, traceContext: TraceContextResult): string =>
-  shouldAppendSelectorHint(traceContext) ? formatSelectorContextLine(element) : "";
+  traceContext.shouldAppendSelectorHint ? formatSelectorContextLine(element) : "";
 
 export const getElementReferenceContext = async (
   element: Element,
