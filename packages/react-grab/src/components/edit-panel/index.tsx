@@ -31,7 +31,7 @@ import { clampToRange } from "../../utils/clamp-to-range.js";
 import { cn } from "../../utils/cn.js";
 import { createAnchoredDropdown } from "../../utils/create-anchored-dropdown.js";
 import { findTailwindClass } from "../../utils/find-tailwind-class.js";
-import { formatEditableValue, roundEditableNumericValue } from "../../utils/format-css-value.js";
+import { roundEditableNumericValue } from "../../utils/format-css-value.js";
 import { formatSessionEditsPrompt } from "../../utils/format-edit-prompt.js";
 import { getShadowActiveElement } from "../../utils/get-shadow-active-element.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
@@ -241,21 +241,13 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     isFromKeyRepeat?: boolean;
   }
 
-  const propPreview = props.state.propPreview;
-
   const commit = (
     property: EditableProperty,
     nextValue: number | string,
     options: CommitOptions = {},
   ) => {
     tweakStore.applyTweak(property, nextValue);
-    if (property.source === "prop") {
-      if (property.kind === "numeric" && typeof nextValue === "number") {
-        propPreview.apply(property.propPath, nextValue);
-      }
-    } else {
-      preview.apply(property.cssProperties, formatEditableValue(property, nextValue));
-    }
+    preview.apply(property, nextValue);
     markAsInteracting();
     if (!options.isFromKeyRepeat) discardConfirmation.hide();
     if (options.flashDirection) flashActiveKey(options.flashDirection === 1 ? "right" : "left");
@@ -353,14 +345,9 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     panelSurfaceRef.classList.add("animate-shake");
   };
 
-  const hasAppliedPreview = () => preview.hasAppliedStyles() || propPreview.hasAppliedProps();
-
   const closePanel = (mode: "preserve" | "discard") => {
     discardConfirmation.hide();
-    if (mode === "discard") {
-      preview.restore();
-      propPreview.restore();
-    }
+    if (mode === "discard") preview.restore();
     props.onDismiss();
   };
 
@@ -371,7 +358,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       return;
     }
     if (!hasPendingTweaks()) {
-      closePanel(hasAppliedPreview() ? "discard" : "preserve");
+      closePanel(preview.hasApplied() ? "discard" : "preserve");
       return;
     }
     // Always reveal the full panel before anything destructive. A keyboard
@@ -523,7 +510,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       dropdown.clearAnimationHandles();
       setIsTransientInteraction(false);
       preview.forget();
-      propPreview.forget();
     });
   });
 

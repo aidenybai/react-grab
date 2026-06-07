@@ -3,9 +3,8 @@ import type { EditPanelState, Position } from "../types.js";
 import { buildEditableProperties } from "../utils/build-editable-properties.js";
 import { buildPropProperties } from "../utils/build-prop-properties.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
+import { createEditPreview } from "../utils/edit-preview.js";
 import { getTagName } from "../utils/get-tag-name.js";
-import { createPreviewStyles } from "../utils/preview-styles.js";
-import { createPropPreview } from "../utils/preview-props.js";
 import { getNearestComponentName } from "./context.js";
 
 export interface EditModeOverrides {
@@ -93,8 +92,7 @@ export const createEditModeController = (
       position,
       selectionBounds: createElementBounds(element),
       properties,
-      preview: createPreviewStyles(element),
-      propPreview: createPropPreview(element),
+      preview: createEditPreview(element),
       filePath: resolvedFilePath,
       lineNumber: resolvedLineNumber,
       componentName: overrides.componentName,

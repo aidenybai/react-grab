@@ -279,13 +279,22 @@ export interface PropPreview {
   hasAppliedProps: () => boolean;
 }
 
+// Single preview surface the edit panel talks to. It dispatches a tweak to
+// the right backend based on the property's source (inline styles for CSS,
+// fiber prop overrides for props) so callers never branch on source.
+export interface EditPreview {
+  apply: (property: EditableProperty, value: number | string) => void;
+  restore: () => void;
+  forget: () => void;
+  hasApplied: () => boolean;
+}
+
 export interface EditPanelState {
   element: Element;
   position: Position;
   selectionBounds: OverlayBounds;
   properties: EditableProperty[];
-  preview: PreviewStyles;
-  propPreview: PropPreview;
+  preview: EditPreview;
   filePath?: string;
   lineNumber?: number;
   componentName?: string;

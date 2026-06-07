@@ -30,9 +30,8 @@ export const formatDisplayValue = (value: number): string => {
 // to the step grid (rather than free FP) keeps `0.65` from drifting to
 // `0.6500000000000001` after arithmetic.
 export const roundEditableNumericValue = (value: number, step = 1): number => {
-  if (!Number.isFinite(step) || step <= 0) return Math.round(value);
-  const snapped = Math.round(value / step) * step;
-  return roundToDecimals(snapped);
+  const safeStep = Number.isFinite(step) && step > 0 ? step : 1;
+  return roundToDecimals(Math.round(value / safeStep) * safeStep);
 };
 
 export const formatEditableValue = (
