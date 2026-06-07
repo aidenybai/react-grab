@@ -11,10 +11,7 @@ const readPropAtPath = (fiber: Fiber, path: readonly string[]): unknown => {
   return current;
 };
 
-const buildNestedPartial = (
-  path: readonly string[],
-  value: unknown,
-): Record<string, unknown> => {
+const buildNestedPartial = (path: readonly string[], value: unknown): Record<string, unknown> => {
   const root: Record<string, unknown> = {};
   let cursor = root;
   for (let segmentIndex = 0; segmentIndex < path.length - 1; segmentIndex++) {

@@ -3,10 +3,7 @@ import { collectFiberNumericProps } from "./collect-fiber-numeric-props.js";
 import { findPropsFiber } from "./find-props-fiber.js";
 import { propNumericBounds } from "./prop-numeric-bounds.js";
 
-const buildPropNumericProperty = (
-  path: string[],
-  value: number,
-): NumericEditableProperty => {
+const buildPropNumericProperty = (path: string[], value: number): NumericEditableProperty => {
   const bounds = propNumericBounds(path, value);
   const label = path.join(".");
   return {

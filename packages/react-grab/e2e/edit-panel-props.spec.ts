@@ -38,17 +38,13 @@ test.describe("Style Panel - React props", () => {
   test("stepping a prop live-updates the component via overrideProps", async ({ reactGrab }) => {
     await openEditPanel(reactGrab, PROPS_BOX_SELECTOR);
     await setSearchInputValue(reactGrab.page, "animate.opacity");
-    await expect
-      .poll(() => getActivePropertyKey(reactGrab.page))
-      .toBe("prop:animate.opacity");
+    await expect.poll(() => getActivePropertyKey(reactGrab.page)).toBe("prop:animate.opacity");
 
     expect(await getRenderedText(OPACITY_TEXT_SELECTOR)(reactGrab.page)).toBe("1");
 
     await reactGrab.pressArrowLeft();
 
-    await expect
-      .poll(() => getRenderedText(OPACITY_TEXT_SELECTOR)(reactGrab.page))
-      .toBe("0.95");
+    await expect.poll(() => getRenderedText(OPACITY_TEXT_SELECTOR)(reactGrab.page)).toBe("0.95");
   });
 
   test("integer-stepped props snap by whole numbers", async ({ reactGrab }) => {
@@ -66,16 +62,12 @@ test.describe("Style Panel - React props", () => {
   test("discarding restores the original prop value", async ({ reactGrab }) => {
     await openEditPanel(reactGrab, PROPS_BOX_SELECTOR);
     await setSearchInputValue(reactGrab.page, "transition.duration");
-    await expect
-      .poll(() => getActivePropertyKey(reactGrab.page))
-      .toBe("prop:transition.duration");
+    await expect.poll(() => getActivePropertyKey(reactGrab.page)).toBe("prop:transition.duration");
 
     expect(await getRenderedText(DURATION_TEXT_SELECTOR)(reactGrab.page)).toBe("0.5");
 
     await reactGrab.pressArrowRight();
-    await expect
-      .poll(() => getRenderedText(DURATION_TEXT_SELECTOR)(reactGrab.page))
-      .toBe("0.6");
+    await expect.poll(() => getRenderedText(DURATION_TEXT_SELECTOR)(reactGrab.page)).toBe("0.6");
 
     // A pending edit guards dismissal behind a discard prompt; confirm it.
     await openDiscardPromptViaEscape(reactGrab.page);
@@ -83,22 +75,16 @@ test.describe("Style Panel - React props", () => {
     await reactGrab.pressEnter();
 
     await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
-    await expect
-      .poll(() => getRenderedText(DURATION_TEXT_SELECTOR)(reactGrab.page))
-      .toBe("0.5");
+    await expect.poll(() => getRenderedText(DURATION_TEXT_SELECTOR)(reactGrab.page)).toBe("0.5");
   });
 
   test("submitting copies a prompt describing the prop change", async ({ reactGrab }) => {
     await openEditPanel(reactGrab, PROPS_BOX_SELECTOR);
     await setSearchInputValue(reactGrab.page, "animate.opacity");
-    await expect
-      .poll(() => getActivePropertyKey(reactGrab.page))
-      .toBe("prop:animate.opacity");
+    await expect.poll(() => getActivePropertyKey(reactGrab.page)).toBe("prop:animate.opacity");
 
     await reactGrab.pressArrowLeft();
-    await expect
-      .poll(() => getRenderedText(OPACITY_TEXT_SELECTOR)(reactGrab.page))
-      .toBe("0.95");
+    await expect.poll(() => getRenderedText(OPACITY_TEXT_SELECTOR)(reactGrab.page)).toBe("0.95");
 
     const clipboardWritesPromise = reactGrab.captureNextClipboardWrites();
     await reactGrab.pressEnter();

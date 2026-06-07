@@ -252,11 +252,7 @@ export interface PropPendingEdit {
   original: number;
 }
 
-export type PendingEdit =
-  | NumericPendingEdit
-  | ColorPendingEdit
-  | EnumPendingEdit
-  | PropPendingEdit;
+export type PendingEdit = NumericPendingEdit | ColorPendingEdit | EnumPendingEdit | PropPendingEdit;
 
 export type PendingEdits = PendingEdit[];
 
