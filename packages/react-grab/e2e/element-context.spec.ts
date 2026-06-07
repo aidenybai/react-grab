@@ -139,5 +139,47 @@ test.describe("Element Context Fallback", () => {
       expect(clipboard).toContain("long-dom-element");
       expect(clipboard.length).toBeLessThanOrEqual(510);
     });
+
+    test("should include descendant text for syntax highlighted code blocks", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.page.evaluate(() => {
+        const wrapper = document.createElement("div");
+        Object.assign(wrapper.style, {
+          position: "fixed",
+          top: "200px",
+          left: "200px",
+          width: "600px",
+          height: "160px",
+          zIndex: "999",
+        });
+
+        const codeBlock = document.createElement("pre");
+        codeBlock.className = "shiki shiki-themes github-light github-dark";
+        codeBlock.tabIndex = 0;
+        codeBlock.innerHTML = `
+          <code>
+            <span class="line"><span>git</span><span> add</span><span> .github/workflows/react-doctor.yml</span></span>
+            <span class="line"><span>git</span><span> commit</span><span> -m</span><span> "Add React Doctor to CI"</span></span>
+            <span class="line"><span>git</span><span> push</span></span>
+          </code>
+        `;
+
+        wrapper.appendChild(codeBlock);
+        document.body.appendChild(wrapper);
+      });
+
+      await reactGrab.activate();
+
+      await reactGrab.hoverElement("pre.shiki");
+      await reactGrab.waitForSelectionBox();
+      await reactGrab.clickElement("pre.shiki");
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain("<pre");
+      expect(clipboard).toContain("git add .github/workflows/react-doctor.yml");
+      expect(clipboard).toContain('git commit -m "Add React Doctor to CI"');
+      expect(clipboard).toContain("</pre>");
+    });
   });
 });

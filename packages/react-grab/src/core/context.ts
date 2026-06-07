@@ -552,8 +552,8 @@ const getFallbackContext = (element: Element): string => {
 
   const tagName = getTagName(element);
   const attrsText = formatAttrsForPreview(element);
-  const directText = getDirectTextContent(element);
-  const truncatedText = truncateString(directText, PREVIEW_TEXT_MAX_LENGTH);
+  const previewText = getPreviewTextContent(element, tagName);
+  const truncatedText = truncateString(previewText, PREVIEW_TEXT_MAX_LENGTH);
 
   if (truncatedText.length > 0) {
     return `<${tagName}${attrsText}>\n  ${truncatedText}\n</${tagName}>`;
@@ -591,6 +591,37 @@ const formatPriorityAttrs = (
 const isClassOrStyleAttr = (name: string): boolean =>
   name === "class" || name === "className" || name === "style";
 
+const TEXT_CONTENT_PREVIEW_TAGS = new Set([
+  "a",
+  "abbr",
+  "b",
+  "button",
+  "caption",
+  "cite",
+  "code",
+  "dd",
+  "dt",
+  "em",
+  "figcaption",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "label",
+  "legend",
+  "li",
+  "p",
+  "pre",
+  "small",
+  "span",
+  "strong",
+  "summary",
+  "td",
+  "th",
+]);
+
 const formatAttrsForPreview = (element: Element): string => {
   const identifyingParts: string[] = [];
   const remainingParts: string[] = [];
@@ -614,17 +645,25 @@ const formatAttrsForPreview = (element: Element): string => {
   return identifyingParts.join("") + remainingParts.join("") + classAttr;
 };
 
+const collapseTextContent = (text: string): string => text.replace(/\s+/g, " ").trim();
+
 const getDirectTextContent = (element: Element): string => {
   let directText = "";
   for (const node of element.childNodes) {
     if (node.nodeType === Node.TEXT_NODE) {
-      const trimmed = node.textContent?.trim() ?? "";
+      const trimmed = collapseTextContent(node.textContent ?? "");
       if (trimmed) {
         directText += (directText ? " " : "") + trimmed;
       }
     }
   }
   return directText;
+};
+
+const getPreviewTextContent = (element: Element, tagName: string): string => {
+  const directText = getDirectTextContent(element);
+  if (directText || !TEXT_CONTENT_PREVIEW_TAGS.has(tagName)) return directText;
+  return collapseTextContent(element.textContent ?? "");
 };
 
 const formatChildElements = (elements: Array<Element>): string => {
@@ -647,8 +686,8 @@ export const getInlineHTMLPreview = (element: Element): string => {
   }
 
   const attrsText = formatAttrsForPreview(element);
-  const directText = getDirectTextContent(element);
-  const truncatedText = truncateString(directText, PREVIEW_TEXT_MAX_LENGTH);
+  const previewText = getPreviewTextContent(element, tagName);
+  const truncatedText = truncateString(previewText, PREVIEW_TEXT_MAX_LENGTH);
 
   if (truncatedText) {
     return `<${tagName}${attrsText}>${truncatedText}</${tagName}>`;
@@ -659,7 +698,7 @@ export const getInlineHTMLPreview = (element: Element): string => {
 export const getHTMLPreview = (element: Element): string => {
   const tagName = getTagName(element);
   const attrsText = formatAttrsForPreview(element);
-  const directText = getDirectTextContent(element);
+  const previewText = getPreviewTextContent(element, tagName);
 
   const topElements: Array<Element> = [];
   const bottomElements: Array<Element> = [];
@@ -682,12 +721,12 @@ export const getHTMLPreview = (element: Element): string => {
 
   let content = "";
   const topElementsStr = formatChildElements(topElements);
-  if (topElementsStr) content += `\n  ${topElementsStr}`;
-  if (directText.length > 0) {
-    content += `\n  ${truncateString(directText, PREVIEW_TEXT_MAX_LENGTH)}`;
+  if (topElementsStr && !previewText) content += `\n  ${topElementsStr}`;
+  if (previewText.length > 0) {
+    content += `\n  ${truncateString(previewText, PREVIEW_TEXT_MAX_LENGTH)}`;
   }
   const bottomElementsStr = formatChildElements(bottomElements);
-  if (bottomElementsStr) content += `\n  ${bottomElementsStr}`;
+  if (bottomElementsStr && !previewText) content += `\n  ${bottomElementsStr}`;
 
   if (content.length > 0) {
     return `<${tagName}${attrsText}>${content}\n</${tagName}>`;
