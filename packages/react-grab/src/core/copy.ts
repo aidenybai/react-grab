@@ -1,4 +1,4 @@
-import { getInlineHTMLPreview, getStackContext } from "./context.js";
+import { getElementReferenceContext } from "./context.js";
 import { copyContent } from "../utils/copy-content.js";
 import { normalizeError } from "../utils/normalize-error.js";
 import type { SourceOptions } from "../types.js";
@@ -20,11 +20,8 @@ interface CopyFlowHooks {
 const formatElementReference = async (
   element: Element,
   sourceOptions: SourceOptions | undefined,
-): Promise<string> => {
-  const inlinePreview = getInlineHTMLPreview(element);
-  const inlineStack = (await getStackContext(element, { sourceOptions })).replace(/\n\s+/g, " ");
-  return `[${inlinePreview}${inlineStack}]`;
-};
+): Promise<string> =>
+  `[${(await getElementReferenceContext(element, { sourceOptions })).replace(/\n\s+/g, " ")}]`;
 
 const buildClipboardPayload = async (
   elements: Element[],

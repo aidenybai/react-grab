@@ -3,6 +3,7 @@ import {
   getSource,
   formatOwnerStack,
   hasDebugStack,
+  isSourceFile,
   parseStack,
   type StackFrame,
 } from "bippy/source";
@@ -29,7 +30,10 @@ import { getNextBasePath } from "../utils/get-next-base-path.js";
 import { normalizeFilePath } from "../utils/normalize-file-path.js";
 import { safeDecodeURIComponent } from "../utils/safe-decode-uri-component.js";
 import { classifySourcePath, type SourcePathClassification } from "../utils/source-frame-policy.js";
+import { parsePackageName } from "../utils/parse-package-name.js";
 import { isInternalAttribute } from "../utils/strip-internal-attributes.js";
+import { createElementSelector } from "../utils/create-element-selector.js";
+import { getPreviewTextContent } from "../utils/get-preview-text-content.js";
 import {
   isInternalComponentName,
   isUsefulComponentName,
@@ -426,6 +430,19 @@ interface StackContextOptions {
   sourceOptions?: SourceOptions;
 }
 
+interface TraceContextResult {
+  text: string;
+  shouldAppendSelectorHint: boolean;
+}
+
+const isTrustedSourcePath = (filePath: string | null | undefined): boolean =>
+  Boolean(filePath && isSourceFile(filePath) && !parsePackageName(filePath));
+
+const formatSelectorContextLine = (element: Element): string => {
+  const selector = createElementSelector(element);
+  return `\n  selector: ${selector}`;
+};
+
 const getComponentNamesFromFiber = (element: Element, maxCount: number): string[] => {
   if (!isInstrumentationActive()) return [];
   const fiber = getFiberFromHostInstance(element);
@@ -479,16 +496,24 @@ const formatSourceContextLine = (source: ResolvedSource, isNextProject: boolean)
     : `\n  in ${location}`;
 };
 
+interface StackFrameLine {
+  text: string;
+  isTrustedSource: boolean;
+  isLowSignal: boolean;
+}
+
 // Branches are ordered by specificity: a server component (no on-disk source)
 // first, then any frame named by component but lacking a source file, then a
 // bare third-party package, and finally a real app source location. Returns
-// null when the frame carries nothing worth rendering.
+// null when the frame carries nothing worth rendering. A line is low-signal when
+// it cannot pin a trusted app source (server, package, or wrapper context),
+// which higher-level formatters use to decide whether to append a selector hint.
 const formatStackFrameLine = (
   frame: StackFrame,
   sourcePath: SourcePathClassification,
   componentName: string | null,
   isNextProject: boolean,
-): string | null => {
+): StackFrameLine | null => {
   const libraryPackage = sourcePath.packageName;
   // Only app-owned frames contribute a file path. Ignored UI-wrapper frames
   // render by component name (e.g. "in Button") so they stay as context without
@@ -497,28 +522,43 @@ const formatStackFrameLine = (
 
   if (frame.isServer && !resolvedSource && (componentName || !frame.functionName)) {
     const tag = libraryPackage ? `${libraryPackage} at Server` : "at Server";
-    return `\n  in ${componentName ?? "<anonymous>"} (${tag})`;
+    return {
+      text: `\n  in ${componentName ?? "<anonymous>"} (${tag})`,
+      isTrustedSource: false,
+      isLowSignal: true,
+    };
   }
 
   if (!resolvedSource && componentName) {
-    return libraryPackage ? `\n  in ${componentName} (${libraryPackage})` : `\n  in ${componentName}`;
+    return {
+      text: libraryPackage
+        ? `\n  in ${componentName} (${libraryPackage})`
+        : `\n  in ${componentName}`,
+      isTrustedSource: false,
+      isLowSignal: Boolean(libraryPackage),
+    };
   }
 
   if (libraryPackage) {
-    return `\n  in ${libraryPackage}`;
+    return { text: `\n  in ${libraryPackage}`, isTrustedSource: false, isLowSignal: true };
   }
 
   if (resolvedSource) {
-    return formatSourceContextLine(
-      {
-        componentName,
-        filePath: resolvedSource,
-        lineNumber: frame.lineNumber ?? null,
-        columnNumber: frame.columnNumber ?? null,
-        sourceFileName: resolvedSource,
-      },
-      isNextProject,
-    );
+    const isTrustedSource = isTrustedSourcePath(resolvedSource);
+    return {
+      text: formatSourceContextLine(
+        {
+          componentName,
+          filePath: resolvedSource,
+          lineNumber: frame.lineNumber ?? null,
+          columnNumber: frame.columnNumber ?? null,
+          sourceFileName: resolvedSource,
+        },
+        isNextProject,
+      ),
+      isTrustedSource,
+      isLowSignal: !isTrustedSource,
+    };
   }
 
   return null;
@@ -528,15 +568,32 @@ export const formatStackContext = (
   stack: StackFrame[],
   options: StackContextOptions = {},
   leadingSource: ResolvedSource | null = null,
-): string => {
+): TraceContextResult => {
   const { maxLines = DEFAULT_MAX_CONTEXT_LINES } = options;
   const isNextProject = isNextProjectRuntime();
   const lines: string[] = [];
   let previousLibraryFrameKey: string | null = null;
   let didDedupeLeadingComponent = false;
+  let hasTrustedSource = false;
+  let startsWithLowSignalContext = false;
+
+  const emit = (line: StackFrameLine) => {
+    if (lines.length === 0 && line.isLowSignal) {
+      startsWithLowSignalContext = true;
+    }
+    if (line.isTrustedSource) {
+      hasTrustedSource = true;
+    }
+    lines.push(line.text);
+  };
 
   if (leadingSource) {
-    lines.push(formatSourceContextLine(leadingSource, isNextProject));
+    const isTrustedSource = isTrustedSourcePath(leadingSource.filePath);
+    emit({
+      text: formatSourceContextLine(leadingSource, isNextProject),
+      isTrustedSource,
+      isLowSignal: !isTrustedSource,
+    });
   }
 
   for (const frame of stack) {
@@ -562,14 +619,17 @@ export const formatStackContext = (
       continue;
     }
 
-    const line = formatStackFrameLine(frame, sourcePath, componentName, isNextProject);
-    if (line === null) continue;
+    const frameLine = formatStackFrameLine(frame, sourcePath, componentName, isNextProject);
+    if (frameLine === null) continue;
 
-    lines.push(line);
+    emit(frameLine);
     previousLibraryFrameKey = libraryFrameKey;
   }
 
-  return lines.join("");
+  return {
+    text: lines.join(""),
+    shouldAppendSelectorHint: startsWithLowSignalContext || !hasTrustedSource,
+  };
 };
 
 // The snippet leads with the app fiber's own JSX location when available.
@@ -595,29 +655,61 @@ const resolveLeadingSource = async (
   return null;
 };
 
-export const getStackContext = async (
+const getTraceContext = async (
   element: Element,
   options: StackContextOptions = {},
-): Promise<string> => {
+): Promise<TraceContextResult> => {
   const maxLines = options.maxLines ?? DEFAULT_MAX_CONTEXT_LINES;
   const leadingSource = await resolveLeadingSource(element, options.sourceOptions);
   const stack = await getStack(element);
 
   if (stack) {
     const stackContext = formatStackContext(stack, options, leadingSource);
-    if (stackContext) return stackContext;
+    if (stackContext.text) return stackContext;
   }
 
   if (leadingSource) {
-    return formatSourceContextLine(leadingSource, isNextProjectRuntime());
+    const isTrustedSource = isTrustedSourcePath(leadingSource.filePath);
+    return {
+      text: formatSourceContextLine(leadingSource, isNextProjectRuntime()),
+      shouldAppendSelectorHint: !isTrustedSource,
+    };
   }
 
   const componentNames = getComponentNamesFromFiber(findNearestFiberElement(element), maxLines);
   if (componentNames.length > 0) {
-    return componentNames.map((name) => `\n  in ${name}`).join("");
+    return {
+      text: componentNames.map((name) => `\n  in ${name}`).join(""),
+      shouldAppendSelectorHint: true,
+    };
   }
 
-  return "";
+  return {
+    text: "",
+    shouldAppendSelectorHint: true,
+  };
+};
+
+export const getStackContext = async (
+  element: Element,
+  options: StackContextOptions = {},
+): Promise<string> => {
+  const traceContext = await getTraceContext(element, options);
+  return traceContext.text;
+};
+
+const getSelectorContext = (element: Element, traceContext: TraceContextResult): string =>
+  traceContext.shouldAppendSelectorHint ? formatSelectorContextLine(element) : "";
+
+export const getElementReferenceContext = async (
+  element: Element,
+  options: StackContextOptions = {},
+): Promise<string> => {
+  const traceContext = await getTraceContext(element, options);
+  return `${getInlineHTMLPreview(element)}${traceContext.text}${getSelectorContext(
+    element,
+    traceContext,
+  )}`;
 };
 
 export const formatElementInfo = async (
@@ -626,10 +718,11 @@ export const formatElementInfo = async (
 ): Promise<string> => {
   const resolvedElement = findNearestFiberElement(element);
   const html = getHTMLPreview(resolvedElement);
-  const stackContext = await getStackContext(resolvedElement, options);
+  const traceContext = await getTraceContext(resolvedElement, options);
+  const selectorContext = getSelectorContext(resolvedElement, traceContext);
 
-  if (stackContext) {
-    return `${html}${stackContext}`;
+  if (traceContext.text || selectorContext) {
+    return `${html}${traceContext.text}${selectorContext}`;
   }
 
   return getFallbackContext(resolvedElement);
@@ -642,8 +735,8 @@ const getFallbackContext = (element: Element): string => {
 
   const tagName = getTagName(element);
   const attrsText = formatAttrsForPreview(element);
-  const directText = getDirectTextContent(element);
-  const truncatedText = truncateString(directText, PREVIEW_TEXT_MAX_LENGTH);
+  const previewText = getPreviewTextContent(element, tagName);
+  const truncatedText = truncateString(previewText, PREVIEW_TEXT_MAX_LENGTH);
 
   if (truncatedText.length > 0) {
     return `<${tagName}${attrsText}>\n  ${truncatedText}\n</${tagName}>`;
@@ -704,19 +797,6 @@ const formatAttrsForPreview = (element: Element): string => {
   return identifyingParts.join("") + remainingParts.join("") + classAttr;
 };
 
-const getDirectTextContent = (element: Element): string => {
-  let directText = "";
-  for (const node of element.childNodes) {
-    if (node.nodeType === Node.TEXT_NODE) {
-      const trimmed = node.textContent?.trim() ?? "";
-      if (trimmed) {
-        directText += (directText ? " " : "") + trimmed;
-      }
-    }
-  }
-  return directText;
-};
-
 const formatChildElements = (elements: Array<Element>): string => {
   if (elements.length === 0) return "";
   if (elements.length <= 2) {
@@ -737,8 +817,8 @@ export const getInlineHTMLPreview = (element: Element): string => {
   }
 
   const attrsText = formatAttrsForPreview(element);
-  const directText = getDirectTextContent(element);
-  const truncatedText = truncateString(directText, PREVIEW_TEXT_MAX_LENGTH);
+  const previewText = getPreviewTextContent(element, tagName);
+  const truncatedText = truncateString(previewText, PREVIEW_TEXT_MAX_LENGTH);
 
   if (truncatedText) {
     return `<${tagName}${attrsText}>${truncatedText}</${tagName}>`;
@@ -749,7 +829,7 @@ export const getInlineHTMLPreview = (element: Element): string => {
 export const getHTMLPreview = (element: Element): string => {
   const tagName = getTagName(element);
   const attrsText = formatAttrsForPreview(element);
-  const directText = getDirectTextContent(element);
+  const previewText = getPreviewTextContent(element, tagName);
 
   const topElements: Array<Element> = [];
   const bottomElements: Array<Element> = [];
@@ -772,12 +852,12 @@ export const getHTMLPreview = (element: Element): string => {
 
   let content = "";
   const topElementsStr = formatChildElements(topElements);
-  if (topElementsStr) content += `\n  ${topElementsStr}`;
-  if (directText.length > 0) {
-    content += `\n  ${truncateString(directText, PREVIEW_TEXT_MAX_LENGTH)}`;
+  if (topElementsStr && !previewText) content += `\n  ${topElementsStr}`;
+  if (previewText.length > 0) {
+    content += `\n  ${truncateString(previewText, PREVIEW_TEXT_MAX_LENGTH)}`;
   }
   const bottomElementsStr = formatChildElements(bottomElements);
-  if (bottomElementsStr) content += `\n  ${bottomElementsStr}`;
+  if (bottomElementsStr && !previewText) content += `\n  ${bottomElementsStr}`;
 
   if (content.length > 0) {
     return `<${tagName}${attrsText}>${content}\n</${tagName}>`;

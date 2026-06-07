@@ -139,5 +139,141 @@ test.describe("Element Context Fallback", () => {
       expect(clipboard).toContain("long-dom-element");
       expect(clipboard.length).toBeLessThanOrEqual(510);
     });
+
+    test("should include descendant text for syntax highlighted code blocks", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.page.evaluate(() => {
+        const wrapper = document.createElement("div");
+        Object.assign(wrapper.style, {
+          position: "fixed",
+          top: "200px",
+          left: "200px",
+          width: "600px",
+          height: "160px",
+          zIndex: "999",
+        });
+
+        const codeBlock = document.createElement("pre");
+        codeBlock.className = "shiki shiki-themes github-light github-dark";
+        codeBlock.tabIndex = 0;
+        codeBlock.innerHTML = `
+          <code>
+            <span class="line"><span>git</span><span> add</span><span> .github/workflows/react-doctor.yml</span></span>
+            <span class="line"><span>git</span><span> commit</span><span> -m</span><span> "Add React Doctor to CI"</span></span>
+            <span class="line"><span>git</span><span> push</span></span>
+          </code>
+        `;
+
+        wrapper.appendChild(codeBlock);
+        document.body.appendChild(wrapper);
+      });
+
+      const didCopy = await reactGrab.copyElementViaApi("pre.shiki");
+      expect(didCopy).toBe(true);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain("<pre");
+      expect(clipboard).toContain("git add .github/workflows/react-doctor.yml");
+      expect(clipboard).toContain('git commit -m "Add React Doctor to CI"');
+      expect(clipboard).toContain("</pre>");
+    });
+
+    test("should include descendant text for nested link labels", async ({ reactGrab }) => {
+      await reactGrab.page.evaluate(() => {
+        const wrapper = document.createElement("div");
+        Object.assign(wrapper.style, {
+          position: "fixed",
+          top: "200px",
+          left: "200px",
+          width: "320px",
+          height: "80px",
+          zIndex: "999",
+        });
+
+        const link = document.createElement("a");
+        link.href = "/docs/ci-and-prs/github-actions-setup";
+        link.className = "flex h-8 w-full items-center gap-2 rounded-md px-2";
+        link.innerHTML = `
+          <span aria-hidden="true">#</span>
+          <span><span>GitHub Actions setup</span></span>
+        `;
+
+        wrapper.appendChild(link);
+        document.body.appendChild(wrapper);
+      });
+
+      const didCopy = await reactGrab.copyElementViaApi(
+        "a[href='/docs/ci-and-prs/github-actions-setup']",
+      );
+      expect(didCopy).toBe(true);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain('<a href="/docs/ci-and-prs/github-actions-setup"');
+      expect(clipboard).toContain("GitHub Actions setup");
+      expect(clipboard).not.toContain("# GitHub Actions setup");
+      expect(clipboard).toContain('selector: [href="/docs/ci-and-prs/github-actions-setup"]');
+      expect(clipboard).toContain("</a>");
+    });
+
+    test("should skip preview text for hidden selected roots", async ({ reactGrab }) => {
+      await reactGrab.page.evaluate(() => {
+        const wrapper = document.createElement("div");
+        Object.assign(wrapper.style, {
+          position: "fixed",
+          top: "200px",
+          left: "200px",
+          width: "200px",
+          height: "80px",
+          zIndex: "999",
+        });
+
+        const hiddenLabel = document.createElement("span");
+        hiddenLabel.setAttribute("aria-hidden", "true");
+        hiddenLabel.setAttribute("data-testid", "decorative-hidden-label");
+        hiddenLabel.textContent = "Decorative Hidden Label";
+
+        wrapper.appendChild(hiddenLabel);
+        document.body.appendChild(wrapper);
+      });
+
+      const didCopy = await reactGrab.copyElementViaApi("[data-testid='decorative-hidden-label']");
+      expect(didCopy).toBe(true);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain('aria-hidden="true"');
+      expect(clipboard).not.toContain("Decorative Hidden Label");
+    });
+
+    test("should include nested text for mixed inline content", async ({ reactGrab }) => {
+      await reactGrab.page.evaluate(() => {
+        const wrapper = document.createElement("div");
+        Object.assign(wrapper.style, {
+          position: "fixed",
+          top: "200px",
+          left: "200px",
+          width: "260px",
+          height: "80px",
+          zIndex: "999",
+        });
+
+        const link = document.createElement("a");
+        link.href = "/docs/mixed-content";
+        link.textContent = "Read ";
+        const emphasizedText = document.createElement("em");
+        emphasizedText.textContent = "the docs";
+        link.appendChild(emphasizedText);
+
+        wrapper.appendChild(link);
+        document.body.appendChild(wrapper);
+      });
+
+      const didCopy = await reactGrab.copyElementViaApi("a[href='/docs/mixed-content']");
+      expect(didCopy).toBe(true);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain("Read the docs");
+      expect(clipboard).not.toContain("<em ...>");
+    });
   });
 });

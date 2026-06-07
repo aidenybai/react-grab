@@ -18,6 +18,8 @@ const PREFERRED_SELECTOR_ATTRIBUTE_NAMES = new Set<string>([
   "data-cy",
   "data-qa",
   "aria-label",
+  "href",
+  "src",
   "role",
   "name",
   "title",
