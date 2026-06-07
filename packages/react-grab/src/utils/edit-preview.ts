@@ -23,8 +23,12 @@ export const createEditPreview = (element: Element): EditPreview => {
   };
 
   const restore = (): void => {
-    stylePreview.restore();
+    // Roll back props first: overrideProps re-renders the subtree, which can
+    // rewrite the element's inline style. Restoring inline styles afterward
+    // makes our baseline the final write, so mixed CSS + prop edits both
+    // revert cleanly.
     propPreview.restore();
+    stylePreview.restore();
   };
 
   const forget = (): void => {

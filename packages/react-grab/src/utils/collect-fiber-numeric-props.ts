@@ -46,11 +46,18 @@ const collectNumericLeaves = (
 export const collectFiberNumericProps = (fiber: Fiber): FiberNumericProp[] => {
   const collected: FiberNumericProp[] = [];
 
+  // Top-level numeric props (a three.js wrapper's `count`/`speed`, etc.) are
+  // always kept and never gated by the cap: there are only ever a handful of
+  // them, and they must not be starved by a large nested `variants` map
+  // visited earlier in prop order. The cap bounds only the nested leaves.
   traverseProps(fiber, (propName, nextValue) => {
-    if (collected.length >= PROP_NUMERIC_MAX_COUNT) return true;
     if (isEditableNumber(nextValue)) {
       collected.push({ path: [propName], value: nextValue });
-    } else if (EDITABLE_OBJECT_PROP_KEYS.has(propName) && isPlainObject(nextValue)) {
+    } else if (
+      collected.length < PROP_NUMERIC_MAX_COUNT &&
+      EDITABLE_OBJECT_PROP_KEYS.has(propName) &&
+      isPlainObject(nextValue)
+    ) {
       collectNumericLeaves(nextValue, [propName], 1, collected);
     }
     return false;

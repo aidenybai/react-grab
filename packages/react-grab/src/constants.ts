@@ -240,7 +240,11 @@ export const EDIT_COMPACT_SLIDER_MIN_WIDTH_PX = 96;
 // with editable numeric props (e.g. the motion component above a host
 // div, or a three.js wrapper above its canvas), and how many numeric
 // props one component may surface before we stop collecting.
-export const PROP_FIBER_MAX_COMPOSITE_WALK = 6;
+// Walk far enough to clear the wrapper layers a single component can add
+// (forwardRef + memo + context consumers + a LazyMotion-style wrapper) and
+// still reach the component that owns the editable props, while staying
+// bounded so an unrelated far-up ancestor is never surfaced.
+export const PROP_FIBER_MAX_COMPOSITE_WALK = 10;
 export const PROP_NUMERIC_MAX_COUNT = 24;
 // Object-valued props whose nested numeric members are editable: motion's
 // inline targets (animate/whileHover/...), its `variants` map (one level
