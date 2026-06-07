@@ -86,11 +86,10 @@ test.describe("Style Panel - React props", () => {
     await reactGrab.pressArrowLeft();
     await expect.poll(() => getRenderedText(OPACITY_TEXT_SELECTOR)(reactGrab.page)).toBe("0.95");
 
-    const clipboardWritesPromise = reactGrab.captureNextClipboardWrites();
     await reactGrab.pressEnter();
-    const clipboardWrites = await clipboardWritesPromise;
-    const copiedText = clipboardWrites["text/plain"] ?? "";
+    await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
 
+    const copiedText = await reactGrab.getClipboardContent();
     expect(copiedText).toContain("Props:");
     expect(copiedText).toContain("animate.opacity");
     expect(copiedText).toContain("0.95");
