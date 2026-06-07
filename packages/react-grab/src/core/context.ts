@@ -434,9 +434,8 @@ interface TraceContextResult {
   shouldAppendSelectorHint: boolean;
 }
 
-// A source is trusted when it resolves to editable app code (not a third-party
-// package and not an ignored UI wrapper). Reuse the canonical classifier so the
-// selector-hint heuristic and source resolution share one notion of "app code".
+// Reuse the canonical classifier so the selector-hint heuristic and source
+// resolution share one notion of "app code".
 const isTrustedSourcePath = (
   sourceFileName: string | null | undefined,
   sourceOptions?: SourceOptions,

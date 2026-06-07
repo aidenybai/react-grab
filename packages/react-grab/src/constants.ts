@@ -20,10 +20,7 @@ export const INPUT_FOCUS_ACTIVATION_DELAY_MS = 400;
 export const INPUT_TEXT_SELECTION_ACTIVATION_DELAY_MS = 600;
 export const DEFAULT_KEY_HOLD_DURATION_MS = 100;
 export const DEFAULT_MAX_CONTEXT_LINES = 3;
-// When the first DEFAULT_MAX_CONTEXT_LINES frames are all low-signal (packages,
-// server, UI wrappers), keep scanning deeper for one trusted app frame instead
-// of stopping with junk context — capped here so a pathological all-package
-// stack can't balloon the copied reference.
+// Hard cap when digging past low-signal frames for a trusted app source.
 export const MAX_TRACE_CONTEXT_LINES = 6;
 export const SYMBOLICATION_TIMEOUT_MS = 5000;
 export const MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS = 200;
@@ -110,8 +107,6 @@ export const PREVIEW_IDENTIFYING_ATTRS = new Set([
   "open",
 ]);
 
-// Only these tags pull text from descendants for previews; others use direct
-// text only so structural containers stay compact.
 export const PREVIEW_DESCENDANT_TEXT_TAGS = new Set(["a", "code", "pre"]);
 export const PREVIEW_SKIPPED_TEXT_TAGS = new Set(["script", "style", "template", "noscript"]);
 
