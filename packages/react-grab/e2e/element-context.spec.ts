@@ -169,11 +169,8 @@ test.describe("Element Context Fallback", () => {
         document.body.appendChild(wrapper);
       });
 
-      await reactGrab.activate();
-
-      await reactGrab.hoverElement("pre.shiki");
-      await reactGrab.waitForSelectionBox();
-      await reactGrab.clickElement("pre.shiki");
+      const didCopy = await reactGrab.copyElementViaApi("pre.shiki");
+      expect(didCopy).toBe(true);
 
       const clipboard = await reactGrab.getClipboardContent();
       expect(clipboard).toContain("<pre");
