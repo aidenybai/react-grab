@@ -72,37 +72,6 @@ export const LABEL_GAP_PX = 4;
 export const PREVIEW_TEXT_MAX_LENGTH = 100;
 export const PREVIEW_ATTR_VALUE_MAX_LENGTH = 15;
 export const PREVIEW_MAX_ATTRS = 3;
-export const CONTEXT_SELECTOR_MAX_LENGTH_CHARS = 160;
-export const PREVIEW_TEXT_TAGS = new Set([
-  "a",
-  "abbr",
-  "b",
-  "button",
-  "caption",
-  "cite",
-  "code",
-  "dd",
-  "dt",
-  "em",
-  "figcaption",
-  "h1",
-  "h2",
-  "h3",
-  "h4",
-  "h5",
-  "h6",
-  "label",
-  "legend",
-  "li",
-  "p",
-  "pre",
-  "small",
-  "span",
-  "strong",
-  "summary",
-  "td",
-  "th",
-]);
 export const PREVIEW_PRIORITY_ATTRS: readonly string[] = [
   "id",
   "class",

@@ -23,7 +23,6 @@ import {
   PREVIEW_IDENTIFYING_ATTRS,
   SYMBOLICATION_TIMEOUT_MS,
   DEFAULT_MAX_CONTEXT_LINES,
-  CONTEXT_SELECTOR_MAX_LENGTH_CHARS,
 } from "../constants.js";
 import { getTagName } from "../utils/get-tag-name.js";
 import { truncateString } from "../utils/truncate-string.js";
@@ -391,7 +390,7 @@ const isTrustedSourcePath = (filePath: string | null | undefined): boolean =>
 
 const formatSelectorContextLine = (element: Element): string => {
   const selector = createElementSelector(element);
-  return `\n  selector: ${truncateString(selector, CONTEXT_SELECTOR_MAX_LENGTH_CHARS)}`;
+  return `\n  selector: ${selector}`;
 };
 
 const getComponentNamesFromFiber = (element: Element, maxCount: number): string[] => {

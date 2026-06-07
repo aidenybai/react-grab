@@ -1,5 +1,4 @@
-import { PREVIEW_TEXT_TAGS } from "../constants.js";
-
+const DESCENDANT_TEXT_TAGS = new Set(["a", "code", "pre"]);
 const SKIPPED_TEXT_TAGS = new Set(["script", "style", "template", "noscript"]);
 
 const collapseTextContent = (text: string): string => text.replace(/\s+/g, " ").trim();
@@ -42,7 +41,7 @@ export const getPreviewTextContent = (element: Element, tagName: string): string
   if (shouldSkipElementText(element)) return "";
 
   const directText = getDirectTextContent(element);
-  if (!PREVIEW_TEXT_TAGS.has(tagName)) return directText;
+  if (!DESCENDANT_TEXT_TAGS.has(tagName)) return directText;
   if (directText && element.children.length === 0) return directText;
 
   const parts: string[] = [];
