@@ -241,13 +241,21 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     isFromKeyRepeat?: boolean;
   }
 
+  const propPreview = props.state.propPreview;
+
   const commit = (
     property: EditableProperty,
     nextValue: number | string,
     options: CommitOptions = {},
   ) => {
     tweakStore.applyTweak(property, nextValue);
-    preview.apply(property.cssProperties, formatEditableValue(property, nextValue));
+    if (property.source === "prop") {
+      if (property.kind === "numeric" && typeof nextValue === "number") {
+        propPreview.apply(property.propPath, nextValue);
+      }
+    } else {
+      preview.apply(property.cssProperties, formatEditableValue(property, nextValue));
+    }
     markAsInteracting();
     if (!options.isFromKeyRepeat) discardConfirmation.hide();
     if (options.flashDirection) flashActiveKey(options.flashDirection === 1 ? "right" : "left");
@@ -291,7 +299,10 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     const property = activeProperty();
     if (!property) return;
     if (property.kind === "numeric" && typeof rawValue === "number") {
-      const clamped = roundEditableNumericValue(clampToRange(rawValue, property.min, property.max));
+      const clamped = roundEditableNumericValue(
+        clampToRange(rawValue, property.min, property.max),
+        property.step,
+      );
       if (clamped !== property.value) commit(property, clamped);
       return;
     }
@@ -342,9 +353,14 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     panelSurfaceRef.classList.add("animate-shake");
   };
 
+  const hasAppliedPreview = () => preview.hasAppliedStyles() || propPreview.hasAppliedProps();
+
   const closePanel = (mode: "preserve" | "discard") => {
     discardConfirmation.hide();
-    if (mode === "discard") preview.restore();
+    if (mode === "discard") {
+      preview.restore();
+      propPreview.restore();
+    }
     props.onDismiss();
   };
 
@@ -355,7 +371,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       return;
     }
     if (!hasPendingTweaks()) {
-      closePanel(preview.hasAppliedStyles() ? "discard" : "preserve");
+      closePanel(hasAppliedPreview() ? "discard" : "preserve");
       return;
     }
     // Always reveal the full panel before anything destructive. A keyboard
@@ -507,6 +523,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       dropdown.clearAnimationHandles();
       setIsTransientInteraction(false);
       preview.forget();
+      propPreview.forget();
     });
   });
 

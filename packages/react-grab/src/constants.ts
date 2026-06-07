@@ -236,6 +236,27 @@ export const EDIT_SEARCH_POSITION_PENALTY = 100;
 export const EDIT_SEARCH_LENGTH_PENALTY = 1;
 export const EDIT_COMPACT_SLIDER_MIN_WIDTH_PX = 96;
 
+// React-prop editing: how far up the fiber tree to look for a component
+// with editable numeric props (e.g. the motion component above a host
+// div, or a three.js wrapper above its canvas), and how many numeric
+// props one component may surface before we stop collecting.
+export const PROP_FIBER_MAX_COMPOSITE_WALK = 6;
+export const PROP_NUMERIC_MAX_COUNT = 24;
+// Motion-style object props whose direct numeric members are editable
+// (e.g. animate.opacity, transition.duration). `style` is intentionally
+// excluded so it does not duplicate the computed-style CSS rows.
+export const MOTION_OBJECT_PROP_KEYS = new Set([
+  "initial",
+  "animate",
+  "exit",
+  "transition",
+  "whileHover",
+  "whileTap",
+  "whileFocus",
+  "whileInView",
+  "whileDrag",
+]);
+
 export const CSS_VALUE_DECIMAL_PLACES = 2;
 export const OPACITY_PERCENT_MAX = 100;
 export const FONT_SIZE_LINE_HEIGHT_RATIO = 1.2;
