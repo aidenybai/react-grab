@@ -477,14 +477,10 @@ const formatStackContext = (
 
   if (leadingSource) {
     const isTrustedSource = isTrustedSourcePath(leadingSource.filePath);
-    emit(
-      formatSourceContextLine(leadingSource, isNextProject),
-      null,
-      {
-        isTrustedSource,
-        isLowSignal: !isTrustedSource,
-      },
-    );
+    emit(formatSourceContextLine(leadingSource, isNextProject), null, {
+      isTrustedSource,
+      isLowSignal: !isTrustedSource,
+    });
   }
 
   for (const frame of stack) {
@@ -511,11 +507,9 @@ const formatStackContext = (
 
     if (frame.isServer && !resolvedSource && (componentName || !frame.functionName)) {
       const tag = libraryPackage ? `${libraryPackage} at Server` : "at Server";
-      emit(
-        `\n  in ${componentName ?? "<anonymous>"} (${tag})`,
-        libraryPackage,
-        { isLowSignal: true },
-      );
+      emit(`\n  in ${componentName ?? "<anonymous>"} (${tag})`, libraryPackage, {
+        isLowSignal: true,
+      });
       continue;
     }
 
