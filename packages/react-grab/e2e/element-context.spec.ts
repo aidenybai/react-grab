@@ -178,5 +178,38 @@ test.describe("Element Context Fallback", () => {
       expect(clipboard).toContain('git commit -m "Add React Doctor to CI"');
       expect(clipboard).toContain("</pre>");
     });
+
+    test("should include descendant text for nested link labels", async ({ reactGrab }) => {
+      await reactGrab.page.evaluate(() => {
+        const wrapper = document.createElement("div");
+        Object.assign(wrapper.style, {
+          position: "fixed",
+          top: "200px",
+          left: "200px",
+          width: "320px",
+          height: "80px",
+          zIndex: "999",
+        });
+
+        const link = document.createElement("a");
+        link.href = "/docs/ci-and-prs/github-actions-setup";
+        link.className = "flex h-8 w-full items-center gap-2 rounded-md px-2";
+        link.innerHTML = `
+          <span aria-hidden="true">#</span>
+          <span><span>GitHub Actions setup</span></span>
+        `;
+
+        wrapper.appendChild(link);
+        document.body.appendChild(wrapper);
+      });
+
+      const didCopy = await reactGrab.copyElementViaApi("a[href='/docs/ci-and-prs/github-actions-setup']");
+      expect(didCopy).toBe(true);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain('<a href="/docs/ci-and-prs/github-actions-setup"');
+      expect(clipboard).toContain("GitHub Actions setup");
+      expect(clipboard).toContain("</a>");
+    });
   });
 });
