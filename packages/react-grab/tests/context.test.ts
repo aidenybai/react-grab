@@ -122,10 +122,10 @@ describe("formatStackContext", () => {
       { fileName: "src/app/page.tsx", functionName: "Page" },
     ]);
 
-    expect(result).toContain("in Button");
-    expect(result).not.toContain("button.tsx");
-    expect(result).toContain("in Page");
-    expect(result).toContain("app/page.tsx");
+    expect(result.text).toContain("in Button");
+    expect(result.text).not.toContain("button.tsx");
+    expect(result.text).toContain("in Page");
+    expect(result.text).toContain("app/page.tsx");
   });
 
   it("omits anonymous UI-component frames that carry no name", () => {
@@ -134,7 +134,7 @@ describe("formatStackContext", () => {
       { fileName: "src/app/page.tsx", functionName: "Page" },
     ]);
 
-    expect(result).not.toContain("button.tsx");
-    expect(result).toContain("in Page");
+    expect(result.text).not.toContain("button.tsx");
+    expect(result.text).toContain("in Page");
   });
 });
