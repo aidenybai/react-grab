@@ -1,4 +1,8 @@
-import { CSS_VALUE_DECIMAL_PLACES, OPACITY_PERCENT_MAX } from "../constants.js";
+import {
+  CSS_VALUE_DECIMAL_PLACES,
+  EDIT_STEP_SNAP_EPSILON,
+  OPACITY_PERCENT_MAX,
+} from "../constants.js";
 import type { EditableProperty } from "../types.js";
 
 const ROUND_FACTOR = 10 ** CSS_VALUE_DECIMAL_PLACES;
@@ -31,7 +35,13 @@ export const formatDisplayValue = (value: number): string => {
 // `0.6500000000000001` after arithmetic.
 export const roundEditableNumericValue = (value: number, step = 1): number => {
   const safeStep = Number.isFinite(step) && step > 0 ? step : 1;
-  return roundToDecimals(Math.round(value / safeStep) * safeStep);
+  // `value / step` carries IEEE-754 error, which at an exact half-step
+  // boundary can flip the rounding direction (0.35 / 0.1 = 3.4999… rounds
+  // to 3, not 4). A relative nudge far smaller than any real step gap
+  // restores round-half-up without affecting genuinely off-grid values.
+  const quotient = value / safeStep;
+  const nudged = quotient + (quotient < 0 ? -EDIT_STEP_SNAP_EPSILON : EDIT_STEP_SNAP_EPSILON);
+  return roundToDecimals(Math.round(nudged) * safeStep);
 };
 
 export const formatEditableValue = (

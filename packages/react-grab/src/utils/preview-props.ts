@@ -34,8 +34,8 @@ export const createPropPreview = (element: Element): PropPreview => {
 
   const apply = (propPath: readonly string[], value: number): void => {
     if (!fiber || propPath.length === 0) return;
-    // NUL separator so segments can never alias (["a.b"] vs ["a","b"]).
-    const key = propPath.join("\u0000");
+    // JSON-encode so segments can never alias, even with exotic key chars.
+    const key = JSON.stringify(propPath);
     if (!originalByKey.has(key)) {
       originalByKey.set(key, { path: propPath, value: readPropAtPath(fiber, propPath) });
     }

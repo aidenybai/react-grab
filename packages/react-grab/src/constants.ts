@@ -268,6 +268,11 @@ export const EDITABLE_OBJECT_PROP_KEYS = new Set([
 ]);
 export const PROP_NESTED_MAX_DEPTH = 4;
 
+// Relative nudge that restores round-half-up when `value / step` lands a hair
+// below an exact half-step due to floating-point error. Far smaller than the
+// gap between any two adjacent steps, so it never reclassifies off-grid values.
+export const EDIT_STEP_SNAP_EPSILON = 1e-9;
+
 export const CSS_VALUE_DECIMAL_PLACES = 2;
 export const OPACITY_PERCENT_MAX = 100;
 export const FONT_SIZE_LINE_HEIGHT_RATIO = 1.2;
