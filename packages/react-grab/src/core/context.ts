@@ -23,6 +23,7 @@ import {
   PREVIEW_IDENTIFYING_ATTRS,
   SYMBOLICATION_TIMEOUT_MS,
   DEFAULT_MAX_CONTEXT_LINES,
+  CONTEXT_SELECTOR_MAX_LENGTH_CHARS,
 } from "../constants.js";
 import { getTagName } from "../utils/get-tag-name.js";
 import { truncateString } from "../utils/truncate-string.js";
@@ -31,6 +32,7 @@ import { normalizeFilePath } from "../utils/normalize-file-path.js";
 import { parsePackageName } from "../utils/parse-package-name.js";
 import { safeDecodeURIComponent } from "../utils/safe-decode-uri-component.js";
 import { isInternalAttribute } from "../utils/strip-internal-attributes.js";
+import { createElementSelector } from "../utils/create-element-selector.js";
 import {
   isInternalComponentName,
   isUsefulComponentName,
@@ -378,6 +380,52 @@ const hasFormattableFrames = (stack: StackFrame[] | null): boolean => {
   });
 };
 
+const isResolvedSourceFrame = (frame: StackFrame): boolean =>
+  Boolean(frame.fileName && isSourceFile(frame.fileName));
+
+const isTrustedSourcePath = (filePath: string | null | undefined): boolean =>
+  Boolean(filePath && isSourceFile(filePath) && !parsePackageName(filePath));
+
+const getSourceComponentNameFromFrame = (frame: StackFrame): string | null =>
+  frame.functionName && isSourceComponentName(frame.functionName) ? frame.functionName : null;
+
+const getFirstContextFrame = (stack: StackFrame[] | null): StackFrame | null => {
+  if (!stack) return null;
+  for (const frame of stack) {
+    if (parsePackageName(frame.fileName)) return frame;
+    if (isResolvedSourceFrame(frame)) return frame;
+    if (frame.isServer && (!frame.functionName || getSourceComponentNameFromFrame(frame))) {
+      return frame;
+    }
+    if (getSourceComponentNameFromFrame(frame)) return frame;
+  }
+  return null;
+};
+
+const hasTrustedSourceTrace = (
+  leadingSource: ResolvedSource | null,
+  stack: StackFrame[] | null,
+): boolean =>
+  isTrustedSourcePath(leadingSource?.filePath) ||
+  Boolean(stack?.some((frame) => isTrustedSourcePath(frame.fileName)));
+
+const shouldAppendSelectorHint = (
+  leadingSource: ResolvedSource | null,
+  stack: StackFrame[] | null,
+): boolean => {
+  if (isTrustedSourcePath(leadingSource?.filePath)) return false;
+
+  const firstContextFrame = getFirstContextFrame(stack);
+  if (!firstContextFrame) return true;
+  if (parsePackageName(firstContextFrame.fileName)) return true;
+  return !hasTrustedSourceTrace(leadingSource, stack);
+};
+
+const formatSelectorContextLine = (element: Element): string => {
+  const selector = createElementSelector(element);
+  return `\n  selector: ${truncateString(selector, CONTEXT_SELECTOR_MAX_LENGTH_CHARS)}`;
+};
+
 const getComponentNamesFromFiber = (element: Element, maxCount: number): string[] => {
   if (!isInstrumentationActive()) return [];
   const fiber = getFiberFromHostInstance(element);
@@ -513,9 +561,12 @@ export const getStackContext = async (
   const maxLines = options.maxLines ?? DEFAULT_MAX_CONTEXT_LINES;
   const leadingSource = await getFiberSource(element);
   const stack = await getStack(element);
+  const selectorContext = shouldAppendSelectorHint(leadingSource, stack)
+    ? formatSelectorContextLine(element)
+    : "";
 
   if (stack && hasFormattableFrames(stack)) {
-    return formatStackContext(stack, options, leadingSource);
+    return `${formatStackContext(stack, options, leadingSource)}${selectorContext}`;
   }
 
   if (leadingSource) {
@@ -524,10 +575,10 @@ export const getStackContext = async (
 
   const componentNames = getComponentNamesFromFiber(findNearestFiberElement(element), maxLines);
   if (componentNames.length > 0) {
-    return componentNames.map((name) => `\n  in ${name}`).join("");
+    return `${componentNames.map((name) => `\n  in ${name}`).join("")}${selectorContext}`;
   }
 
-  return "";
+  return selectorContext;
 };
 
 export const getElementContext = async (
