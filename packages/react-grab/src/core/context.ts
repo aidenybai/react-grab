@@ -33,10 +33,7 @@ import { parsePackageName } from "../utils/parse-package-name.js";
 import { safeDecodeURIComponent } from "../utils/safe-decode-uri-component.js";
 import { isInternalAttribute } from "../utils/strip-internal-attributes.js";
 import { createElementSelector } from "../utils/create-element-selector.js";
-import {
-  getPreviewTextContent,
-  getPreviewTextContentResult,
-} from "../utils/get-preview-text-content.js";
+import { getPreviewTextContent } from "../utils/get-preview-text-content.js";
 import {
   isInternalComponentName,
   isUsefulComponentName,
@@ -745,7 +742,7 @@ export const getInlineHTMLPreview = (element: Element): string => {
 export const getHTMLPreview = (element: Element): string => {
   const tagName = getTagName(element);
   const attrsText = formatAttrsForPreview(element);
-  const previewText = getPreviewTextContentResult(element, tagName);
+  const previewText = getPreviewTextContent(element, tagName);
 
   const topElements: Array<Element> = [];
   const bottomElements: Array<Element> = [];
@@ -768,14 +765,12 @@ export const getHTMLPreview = (element: Element): string => {
 
   let content = "";
   const topElementsStr = formatChildElements(topElements);
-  if (topElementsStr && previewText.source !== "descendant") content += `\n  ${topElementsStr}`;
-  if (previewText.text.length > 0) {
-    content += `\n  ${truncateString(previewText.text, PREVIEW_TEXT_MAX_LENGTH)}`;
+  if (topElementsStr && !previewText) content += `\n  ${topElementsStr}`;
+  if (previewText.length > 0) {
+    content += `\n  ${truncateString(previewText, PREVIEW_TEXT_MAX_LENGTH)}`;
   }
   const bottomElementsStr = formatChildElements(bottomElements);
-  if (bottomElementsStr && previewText.source !== "descendant") {
-    content += `\n  ${bottomElementsStr}`;
-  }
+  if (bottomElementsStr && !previewText) content += `\n  ${bottomElementsStr}`;
 
   if (content.length > 0) {
     return `<${tagName}${attrsText}>${content}\n</${tagName}>`;
