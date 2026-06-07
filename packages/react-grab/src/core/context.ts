@@ -330,7 +330,12 @@ const getCachedFiberSource = (element: Element): Promise<ResolvedSource | null> 
   const cached = fiberSourceCache.get(resolvedElement);
   if (cached) return cached;
 
-  const promise = getFiberSource(resolvedElement);
+  // Evict null resolutions so a later grab can retry once the fiber's source
+  // metadata is attached, while still deduping concurrent in-flight lookups.
+  const promise = getFiberSource(resolvedElement).then((source) => {
+    if (!source) fiberSourceCache.delete(resolvedElement);
+    return source;
+  });
   fiberSourceCache.set(resolvedElement, promise);
   return promise;
 };
@@ -644,9 +649,10 @@ export const formatStackContext = (
 // The snippet leads with the app fiber's own JSX location when available.
 // Otherwise it surfaces an ignored fallback (e.g. components/ui): those frames
 // are dropped from the stack body but still back the selection metadata, so
-// without this the copied snippet would omit the resolved path. App and package
-// frames need no such handling — formatStackContext already renders them inline,
-// and resolveSource only returns the ignored kind when no app source exists.
+// without this the copied snippet would omit the resolved path. App frames need
+// no such handling — formatStackContext renders them inline. Package-only
+// sources are intentionally not promoted here: surfacing a node_modules path as
+// the resolved location is exactly what this resolution is meant to avoid.
 const resolveLeadingSource = async (
   element: Element,
   sourceOptions?: SourceOptions,
