@@ -1,12 +1,10 @@
 import { getElementReferenceContext } from "./context.js";
 import { copyContent } from "../utils/copy-content.js";
 import { normalizeError } from "../utils/normalize-error.js";
-import type { SourceOptions } from "../types.js";
 
 interface CopyFlowOptions {
   getContent?: (elements: Element[]) => Promise<string> | string;
   componentName?: string;
-  sourceOptions?: SourceOptions;
 }
 
 interface CopyFlowHooks {
@@ -17,18 +15,12 @@ interface CopyFlowHooks {
   onCopyError: (error: Error) => void;
 }
 
-const formatElementReference = async (
-  element: Element,
-  sourceOptions: SourceOptions | undefined,
-): Promise<string> =>
-  `[${(await getElementReferenceContext(element, { sourceOptions })).replace(/\n\s+/g, " ")}]`;
+const formatElementReference = async (element: Element): Promise<string> =>
+  `[${(await getElementReferenceContext(element)).replace(/\n\s+/g, " ")}]`;
 
-const buildClipboardPayload = async (
-  elements: Element[],
-  sourceOptions: SourceOptions | undefined,
-): Promise<string | null> => {
+const buildClipboardPayload = async (elements: Element[]): Promise<string | null> => {
   const references = await Promise.all(
-    elements.map((element) => formatElementReference(element, sourceOptions)),
+    elements.map((element) => formatElementReference(element)),
   );
   const uniqueReferences = [...new Set(references)];
   return uniqueReferences.length > 0 ? uniqueReferences.join("\n") : null;
@@ -48,7 +40,7 @@ export const runCopyFlow = async (
   try {
     const rawContent = options.getContent
       ? await options.getContent(elements)
-      : await buildClipboardPayload(elements, options.sourceOptions);
+      : await buildClipboardPayload(elements);
 
     if (rawContent?.trim()) {
       const transformedContent = await hooks.transformCopyContent(rawContent, elements);

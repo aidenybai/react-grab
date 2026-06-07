@@ -27,14 +27,6 @@ const parseOptionsFromJson = (rawValue: unknown): Partial<Options> | null => {
   if (typeof rawValue.freezeReactUpdates === "boolean") {
     parsedOptions.freezeReactUpdates = rawValue.freezeReactUpdates;
   }
-  if (isObjectRecord(rawValue.source) && Array.isArray(rawValue.source.ignorePaths)) {
-    const ignorePaths = rawValue.source.ignorePaths.filter(
-      (ignorePath) => typeof ignorePath === "string",
-    );
-    if (ignorePaths.length > 0) {
-      parsedOptions.source = { ignorePaths };
-    }
-  }
   if (typeof rawValue.telemetry === "boolean") {
     parsedOptions.telemetry = rawValue.telemetry;
   }

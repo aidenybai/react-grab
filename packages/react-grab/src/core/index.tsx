@@ -546,10 +546,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const notifyElementsSelected = async (elements: Element[]): Promise<void> => {
-      const sourceOptions = pluginRegistry.store.options.source;
       const elementsPayload = await Promise.all(
         elements.map(async (element) => {
-          const source = await resolveSource(element, { sourceOptions });
+          const source = await resolveSource(element);
           let componentName = source?.componentName ?? null;
           const filePath = source?.filePath;
           const lineNumber = source?.lineNumber ?? undefined;
@@ -645,7 +644,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         {
           getContent: pluginRegistry.store.options.getContent,
           componentName: elementName,
-          sourceOptions: pluginRegistry.store.options.source,
         },
         {
           onBeforeCopy: pluginRegistry.hooks.onBeforeCopy,
@@ -1147,7 +1145,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             return;
           }
 
-          resolveSource(element, { sourceOptions: pluginRegistry.store.options.source })
+          resolveSource(element)
             .then((source) => {
               if (selectionSourceRequestVersion !== currentVersion) return;
               if (!source) {
@@ -3133,7 +3131,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       () => store.contextMenuElement,
       async (element) => {
         if (!element) return null;
-        return resolveSource(element, { sourceOptions: pluginRegistry.store.options.source });
+        return resolveSource(element);
       },
     );
 
@@ -3677,9 +3675,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
       copyElement: copyElementAPI,
       getSource: async (element: Element): Promise<SourceInfo | null> => {
-        const source = await resolveSource(element, {
-          sourceOptions: pluginRegistry.store.options.source,
-        });
+        const source = await resolveSource(element);
         if (!source) return null;
         return {
           filePath: source.filePath,
@@ -3687,8 +3683,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           componentName: source.componentName,
         };
       },
-      getStackContext: (element: Element) =>
-        getStackContext(element, { sourceOptions: pluginRegistry.store.options.source }),
+      getStackContext: (element: Element) => getStackContext(element),
       getState: (): ReactGrabState => ({
         isActive: isActivated(),
         isDragging: isDragging(),

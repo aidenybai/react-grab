@@ -20,7 +20,6 @@ import {
 import { Fiber, getFiberFromHostInstance } from "bippy";
 import type { StackFrame } from "bippy/source";
 export type { StackFrame };
-import type { SourceOptions } from "./types.js";
 import { createElementSelector } from "./utils/create-element-selector.js";
 import { extractElementCss, disposeBaselineStyles } from "./utils/extract-element-css.js";
 import { requestOpenFile } from "./utils/open-file.js";
@@ -40,10 +39,6 @@ export interface ReactGrabElementContext {
   styles: string;
 }
 
-export interface ReactGrabElementContextOptions {
-  sourceOptions?: SourceOptions;
-}
-
 /**
  * Gathers comprehensive context for a DOM element — the same context
  * React Grab copies to the clipboard, plus structured source location
@@ -58,14 +53,13 @@ export interface ReactGrabElementContextOptions {
  */
 export const getElementContext = async (
   element: Element,
-  options: ReactGrabElementContextOptions = {},
 ): Promise<ReactGrabElementContext> => {
   const [snippet, source, stack] = await Promise.all([
-    formatElementInfo(element, { sourceOptions: options.sourceOptions }),
-    resolveSource(element, { sourceOptions: options.sourceOptions }),
+    formatElementInfo(element),
+    resolveSource(element),
     getStack(element).then((result) => result ?? []),
   ]);
-  const stackString = await getStackContext(element, { sourceOptions: options.sourceOptions });
+  const stackString = await getStackContext(element);
   const htmlPreview = getHTMLPreview(element);
   const componentName = getComponentDisplayName(element);
   const fiber = getFiberFromHostInstance(element);

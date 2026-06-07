@@ -349,7 +349,6 @@ export interface Options {
   allowActivationInsideInput?: boolean;
   activationKey?: ActivationKey;
   getContent?: (elements: Element[]) => Promise<string> | string;
-  source?: SourceOptions;
   /**
    * Whether to freeze React state updates while React Grab is active.
    * This prevents UI changes from interfering with element selection.
@@ -362,10 +361,6 @@ export interface Options {
    * @default true
    */
   telemetry?: boolean;
-}
-
-export interface SourceOptions {
-  ignorePaths?: Array<string | RegExp>;
 }
 
 export interface SettableOptions extends Options {

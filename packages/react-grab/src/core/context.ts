@@ -37,7 +37,6 @@ import {
   isInternalComponentName,
   isUsefulComponentName,
 } from "../utils/is-useful-component-name.js";
-import type { SourceOptions } from "../types.js";
 
 let cachedIsNextProject: boolean | undefined;
 
@@ -342,10 +341,9 @@ const getCachedFiberSource = (element: Element): Promise<ResolvedSource | null> 
 
 const getApplicationFiberSource = async (
   element: Element,
-  sourceOptions?: SourceOptions,
 ): Promise<ResolvedSource | null> => {
   const source = await getCachedFiberSource(element);
-  if (!source || classifySourcePath(source.sourceFileName, sourceOptions).kind !== "app-source") {
+  if (!source || classifySourcePath(source.sourceFileName).kind !== "app-source") {
     return null;
   }
   return source;
@@ -362,13 +360,9 @@ const resolveStackFrameSource = (frame: StackFrame | null | undefined): Resolved
   };
 };
 
-interface ResolveSourceOptions {
-  sourceOptions?: SourceOptions;
-}
-
 // Source candidates are resolved in descending preference: a frame the user
-// actually owns beats one they configured to ignore, which beats third-party
-// package code. Within each kind the fiber's own source wins over stack frames.
+// actually owns beats an ignored UI wrapper, which beats third-party package
+// code. Within each kind the fiber's own source wins over stack frames.
 const RESOLVABLE_SOURCE_KINDS = ["app-source", "ignored-app-source", "package-source"] as const;
 
 type ResolvableSourceKind = (typeof RESOLVABLE_SOURCE_KINDS)[number];
@@ -388,12 +382,9 @@ export const selectResolvedSource = (
   return null;
 };
 
-export const resolveSource = async (
-  element: Element,
-  options: ResolveSourceOptions = {},
-): Promise<ResolvedSource | null> => {
+export const resolveSource = async (element: Element): Promise<ResolvedSource | null> => {
   const fiberSource = await getCachedFiberSource(element);
-  const fiberSourceKind = classifySourcePath(fiberSource?.sourceFileName, options.sourceOptions).kind;
+  const fiberSourceKind = classifySourcePath(fiberSource?.sourceFileName).kind;
   if (fiberSourceKind === "app-source") return fiberSource;
 
   const framesByKind: FramesBySourceKind = {
@@ -402,7 +393,7 @@ export const resolveSource = async (
     "package-source": [],
   };
   for (const frame of (await getStack(element)) ?? []) {
-    const { kind } = classifySourcePath(frame.fileName, options.sourceOptions);
+    const { kind } = classifySourcePath(frame.fileName);
     if (kind !== "unknown") framesByKind[kind].push(frame);
   }
 
@@ -431,7 +422,6 @@ export const getComponentDisplayName = (element: Element): string | null => {
 
 interface StackContextOptions {
   maxLines?: number;
-  sourceOptions?: SourceOptions;
 }
 
 interface TraceContextResult {
@@ -441,10 +431,8 @@ interface TraceContextResult {
 
 // Reuse the canonical classifier so the selector-hint heuristic and source
 // resolution share one notion of "app code".
-const isTrustedSourcePath = (
-  sourceFileName: string | null | undefined,
-  sourceOptions?: SourceOptions,
-): boolean => classifySourcePath(sourceFileName, sourceOptions).kind === "app-source";
+const isTrustedSourcePath = (sourceFileName: string | null | undefined): boolean =>
+  classifySourcePath(sourceFileName).kind === "app-source";
 
 const formatSelectorContextLine = (element: Element): string => {
   const selector = createElementSelector(element);
@@ -598,7 +586,7 @@ export const formatStackContext = (
   };
 
   if (leadingSource) {
-    const isTrustedSource = isTrustedSourcePath(leadingSource.sourceFileName, options.sourceOptions);
+    const isTrustedSource = isTrustedSourcePath(leadingSource.sourceFileName);
     emit({
       text: formatSourceContextLine(leadingSource, isNextProject),
       isTrustedSource,
@@ -613,7 +601,7 @@ export const formatStackContext = (
     if (lines.length >= hardMaxLines) break;
     if (lines.length >= maxLines && hasTrustedSource) break;
 
-    const sourcePath = classifySourcePath(frame.fileName, options.sourceOptions);
+    const sourcePath = classifySourcePath(frame.fileName);
 
     const componentName = toSourceComponentName(frame.functionName);
     const libraryFrameKey = sourcePath.packageName
@@ -653,18 +641,12 @@ export const formatStackContext = (
 // no such handling — formatStackContext renders them inline. Package-only
 // sources are intentionally not promoted here: surfacing a node_modules path as
 // the resolved location is exactly what this resolution is meant to avoid.
-const resolveLeadingSource = async (
-  element: Element,
-  sourceOptions?: SourceOptions,
-): Promise<ResolvedSource | null> => {
-  const appFiberSource = await getApplicationFiberSource(element, sourceOptions);
+const resolveLeadingSource = async (element: Element): Promise<ResolvedSource | null> => {
+  const appFiberSource = await getApplicationFiberSource(element);
   if (appFiberSource) return appFiberSource;
 
-  const resolved = await resolveSource(element, { sourceOptions });
-  if (
-    resolved &&
-    classifySourcePath(resolved.sourceFileName, sourceOptions).kind === "ignored-app-source"
-  ) {
+  const resolved = await resolveSource(element);
+  if (resolved && classifySourcePath(resolved.sourceFileName).kind === "ignored-app-source") {
     return resolved;
   }
   return null;
@@ -675,7 +657,7 @@ const getTraceContext = async (
   options: StackContextOptions = {},
 ): Promise<TraceContextResult> => {
   const maxLines = options.maxLines ?? DEFAULT_MAX_CONTEXT_LINES;
-  const leadingSource = await resolveLeadingSource(element, options.sourceOptions);
+  const leadingSource = await resolveLeadingSource(element);
   const stack = await getStack(element);
 
   if (stack) {
@@ -684,7 +666,7 @@ const getTraceContext = async (
   }
 
   if (leadingSource) {
-    const isTrustedSource = isTrustedSourcePath(leadingSource.sourceFileName, options.sourceOptions);
+    const isTrustedSource = isTrustedSourcePath(leadingSource.sourceFileName);
     return {
       text: formatSourceContextLine(leadingSource, isNextProjectRuntime()),
       shouldAppendSelectorHint: !isTrustedSource,
