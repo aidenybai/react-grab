@@ -16,12 +16,17 @@ import { prompts } from "./prompts.js";
 import { spinner } from "./spinner.js";
 
 const SKILL_NAME = "react-grab";
+const WINDSURF_AGENT_NAME = "windsurf";
 
 // The skill is bundled next to the compiled CLI (see scripts/bundle-skill.mjs)
 // so installs work offline and stay pinned to this CLI version.
 const SKILL_SOURCE = fileURLToPath(new URL("../skills/react-grab", import.meta.url));
 
 const agentLabel = (agent: SkillAgentType): string => getSkillAgentConfig(agent).displayName;
+
+export const getInstallableSkillAgents = <AgentName extends string>(
+  agents: readonly AgentName[],
+): AgentName[] => agents.filter((agent) => agent !== WINDSURF_AGENT_NAME);
 
 // Universal agents share the canonical .agents/skills directory; others use
 // their own. Mirror where agent-install actually writes so removal lands.
@@ -44,7 +49,7 @@ export const promptSkillInstall = async ({
   global = false,
   cwd = process.cwd(),
 }: PromptSkillInstallOptions = {}): Promise<boolean> => {
-  const detectedAgents = await detectAvailableAgents();
+  const detectedAgents = getInstallableSkillAgents(await detectAvailableAgents());
   if (detectedAgents.length === 0) {
     logger.warn("No supported agents detected.");
     return false;
