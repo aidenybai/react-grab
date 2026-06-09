@@ -285,10 +285,10 @@ interface ResolvedSource {
   lineNumber: number | null;
   columnNumber: number | null;
   componentName: string | null;
-  // Raw path used for classification. normalizeFilePath strips a leading "./",
-  // which scoped-package detection relies on, so classification must see the
-  // unnormalized form: filePath="components/ui/button.tsx",
-  // sourceFileName="./@radix-ui/react-button/src/button.tsx".
+  // filePath is the normalized path we display/open. sourceFileName preserves
+  // React/StackFrame.fileName for classification. Example:
+  // filePath="@radix-ui/react-button/src/button.tsx"
+  // sourceFileName="./@radix-ui/react-button/src/button.tsx"
   sourceFileName: string;
 }
 
