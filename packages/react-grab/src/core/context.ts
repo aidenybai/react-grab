@@ -287,7 +287,8 @@ interface ResolvedSource {
   componentName: string | null;
   // Raw path used for classification. normalizeFilePath strips a leading "./",
   // which scoped-package detection relies on, so classification must see the
-  // unnormalized form (matching how stack frames are classified from fileName).
+  // unnormalized form: filePath="components/ui/button.tsx",
+  // sourceFileName="./@radix-ui/react-button/src/button.tsx".
   sourceFileName: string;
 }
 
@@ -339,9 +340,7 @@ const getCachedFiberSource = (element: Element): Promise<ResolvedSource | null> 
   return promise;
 };
 
-const getApplicationFiberSource = async (
-  element: Element,
-): Promise<ResolvedSource | null> => {
+const getApplicationFiberSource = async (element: Element): Promise<ResolvedSource | null> => {
   const source = await getCachedFiberSource(element);
   if (!source || classifySourcePath(source.sourceFileName).kind !== "app-source") {
     return null;
