@@ -78,14 +78,15 @@ export const peek = new Command()
     }
 
     if (snapshot.text && isGrabText(snapshot.text)) {
+      const now = Date.now();
       const record = {
         source: "text",
-        timestamp: Date.now(),
+        timestamp: now,
         content: snapshot.text,
         entries: [],
         implicit: false,
-        id: `peek-${Date.now()}`,
-        receivedAt: Date.now(),
+        id: `peek-${now}`,
+        receivedAt: now,
       };
       process.stdout.write(`${JSON.stringify(record)}\n`, () => process.exit(0));
       return;

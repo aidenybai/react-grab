@@ -2572,7 +2572,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (!event.isPrimary) return;
         const isTouchPointer = event.pointerType === "touch";
         actions.setTouchMode(isTouchPointer);
-        if (!isActivated() && !isHoldingKeys() && !isCopying()) {
+        if (!isActivated() && !isHoldingKeys() && !isCopying() && isEnabled()) {
           viewportClipboard.scheduleWrite();
         }
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
@@ -2602,7 +2602,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     eventListenerManager.addWindowListener(
       "scroll",
       () => {
-        if (!isActivated() && !isHoldingKeys() && !isCopying()) {
+        if (!isActivated() && !isHoldingKeys() && !isCopying() && isEnabled()) {
           viewportClipboard.scheduleWrite();
         }
       },
