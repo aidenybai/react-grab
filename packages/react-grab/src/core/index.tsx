@@ -138,6 +138,7 @@ import { generateId } from "../utils/generate-id.js";
 import { logRecoverableError } from "../utils/log-recoverable-error.js";
 import { getNearestEdge } from "../utils/get-nearest-edge.js";
 import { findShortcutAction } from "../utils/action-shortcuts.js";
+import { createViewportClipboard } from "./viewport-clipboard.js";
 
 const builtInPlugins = [copyPlugin, editPlugin, commentPlugin, openPlugin];
 
@@ -1996,6 +1997,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const eventListenerManager = createEventListenerManager();
+    const viewportClipboard = createViewportClipboard();
 
     const keyboardClaimer = setupKeyboardEventClaimer();
 
@@ -2570,6 +2572,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (!event.isPrimary) return;
         const isTouchPointer = event.pointerType === "touch";
         actions.setTouchMode(isTouchPointer);
+        if (!isActivated() && !isHoldingKeys() && !isCopying()) {
+          viewportClipboard.scheduleWrite();
+        }
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (isModalPopoverOpen()) return;
         if (isSelectionInteractionLocked()) return;
@@ -2590,6 +2595,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           clearArrowNavigation();
         }
         handlePointerMove(event.clientX, event.clientY, event.shiftKey);
+      },
+      { passive: true },
+    );
+
+    eventListenerManager.addWindowListener(
+      "scroll",
+      () => {
+        if (!isActivated() && !isHoldingKeys() && !isCopying()) {
+          viewportClipboard.scheduleWrite();
+        }
       },
       { passive: true },
     );
@@ -3665,6 +3680,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       dispose: () => {
         disposed = true;
         hasInited = false;
+        viewportClipboard.cancel();
         disposeRenderer?.();
         stopToolbarMenuTracking?.();
         stopToolbarMenuTracking = null;

@@ -2,6 +2,7 @@ import { Command } from "commander";
 import { add } from "./commands/add.js";
 import { configure } from "./commands/configure.js";
 import { init } from "./commands/init.js";
+import { peek } from "./commands/peek.js";
 import { pull } from "./commands/pull.js";
 import { remove } from "./commands/remove.js";
 import { stop } from "./commands/stop.js";
@@ -32,6 +33,7 @@ program.addCommand(remove);
 program.addCommand(configure);
 program.addCommand(upgrade);
 program.addCommand(pull);
+program.addCommand(peek);
 program.addCommand(stop);
 program.addCommand(watch, { hidden: true });
 
