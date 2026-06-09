@@ -57,6 +57,10 @@ test.describe("Element Selection", () => {
     expect(clipboardMetadata.content).toContain("Todo List");
     expect(clipboardMetadata.entries).toHaveLength(1);
     expect(clipboardMetadata.entries[0].content).toContain("Todo List");
+    expect(clipboardMetadata.entries[0]).toHaveProperty("source");
+    expect(clipboardMetadata.entries[0].stackContext).toContain("TodoList");
+    expect(Array.isArray(clipboardMetadata.entries[0].frames)).toBe(true);
+    expect(clipboardMetadata.entries[0].frames.length).toBeGreaterThan(0);
   });
 
   // PR #349 ("fix: keep page interactive while grabbing") intentionally

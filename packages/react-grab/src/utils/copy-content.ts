@@ -7,6 +7,25 @@ interface ReactGrabEntry {
   componentName?: string;
   content: string;
   commentText?: string;
+  source?: ReactGrabSourceInfo | null;
+  stackContext?: string;
+  frames?: ReactGrabStackFrame[];
+}
+
+interface ReactGrabSourceInfo {
+  filePath: string;
+  lineNumber: number | null;
+  columnNumber: number | null;
+  componentName: string | null;
+}
+
+interface ReactGrabStackFrame {
+  functionName?: string;
+  fileName?: string;
+  lineNumber?: number;
+  columnNumber?: number;
+  isServer?: boolean;
+  isSymbolicated?: boolean;
 }
 
 interface CopyContentOptions {
