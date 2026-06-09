@@ -32,7 +32,7 @@
     "check": "vp check"
   },
   "dependencies": {
-    "agent-install": "^0.0.5",
+    "agent-install": "^0.0.6",
     "commander": "^14.0.3",
     "ignore": "^7.0.5",
     "ora": "^9.4.0",
