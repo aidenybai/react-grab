@@ -9,6 +9,8 @@ import {
 } from "bippy/source";
 import {
   getFiberFromHostInstance,
+  getNearestHostFiber,
+  getType,
   isInstrumentationActive,
   getDisplayName,
   isCompositeFiber,
@@ -360,6 +362,65 @@ export const getComponentDisplayName = (element: Element): string | null => {
   }
 
   return null;
+};
+
+const getNearestUsefulComponentFiber = (element: Element): Fiber | null => {
+  const fiber = getFiberFromHostInstance(findNearestFiberElement(element));
+  if (!fiber) return null;
+
+  let currentFiber: Fiber | null = fiber;
+  while (currentFiber) {
+    if (isCompositeFiber(currentFiber)) {
+      const name = getDisplayName(currentFiber.type);
+      if (name && isUsefulComponentName(name)) return currentFiber;
+    }
+    currentFiber = currentFiber.return;
+  }
+
+  return null;
+};
+
+/**
+ * Finds the host elements rendered by every other instance of the same
+ * component as the one nearest to `element`. Walks up to the component the
+ * user is pointing at, then traverses the fiber tree from its root collecting
+ * the nearest host node of each fiber that shares the same component type.
+ */
+export const findSimilarComponentElements = (element: Element): Element[] => {
+  if (!isInstrumentationActive()) return [];
+
+  const targetFiber = getNearestUsefulComponentFiber(element);
+  if (!targetFiber) return [];
+
+  const targetType = getType(targetFiber.type);
+  if (!targetType) return [];
+
+  let rootFiber: Fiber = targetFiber;
+  while (rootFiber.return) {
+    rootFiber = rootFiber.return;
+  }
+
+  const sourceHostElement = findNearestFiberElement(element);
+  const seenElements = new Set<Element>();
+  const similarElements: Element[] = [];
+
+  traverseFiber(rootFiber, (currentFiber) => {
+    if (currentFiber === targetFiber) return;
+    if (!isCompositeFiber(currentFiber)) return;
+    if (getType(currentFiber.type) !== targetType) return;
+
+    const hostFiber = getNearestHostFiber(currentFiber);
+    const hostElement = hostFiber?.stateNode;
+    if (!(hostElement instanceof Element)) return;
+    if (hostElement === sourceHostElement) return;
+    if (seenElements.has(hostElement)) return;
+    if (!hostElement.isConnected) return;
+
+    seenElements.add(hostElement);
+    similarElements.push(hostElement);
+  });
+
+  return similarElements;
 };
 
 interface StackContextOptions {

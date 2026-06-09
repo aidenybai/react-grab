@@ -14,6 +14,10 @@ import {
   OPACITY_CONVERGENCE_THRESHOLD,
   OVERLAY_BORDER_COLOR_DEFAULT,
   OVERLAY_FILL_COLOR_DEFAULT,
+  OVERLAY_BORDER_COLOR_GHOST,
+  OVERLAY_FILL_COLOR_GHOST,
+  GHOST_LINE_DASH_PX,
+  GHOST_OPACITY,
   BASELINE_FRAME_DURATION_MS,
 } from "../constants.js";
 import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "../utils/native-raf.js";
@@ -32,11 +36,16 @@ const LAYER_STYLES = {
     fillColor: OVERLAY_FILL_COLOR_DRAG,
     lerpFactor: DRAG_LERP_FACTOR,
   },
+  ghost: {
+    borderColor: OVERLAY_BORDER_COLOR_GHOST,
+    fillColor: OVERLAY_FILL_COLOR_GHOST,
+    lerpFactor: SELECTION_LERP_FACTOR,
+  },
   selection: DEFAULT_LAYER_STYLE,
   grabbed: DEFAULT_LAYER_STYLE,
 } as const;
 
-type LayerName = "drag" | "selection" | "grabbed";
+type LayerName = "drag" | "ghost" | "selection" | "grabbed";
 
 interface OffscreenLayer {
   canvas: OffscreenCanvas | null;
@@ -62,6 +71,9 @@ interface OverlayCanvasProps {
 
   selectionShouldSnap?: boolean;
 
+  ghostVisible?: boolean;
+  ghostBounds?: OverlayBounds[];
+
   dragVisible?: boolean;
   dragBounds?: OverlayBounds;
 
@@ -85,11 +97,13 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
   const layers: Record<LayerName, OffscreenLayer> = {
     drag: { canvas: null, context: null },
+    ghost: { canvas: null, context: null },
     selection: { canvas: null, context: null },
     grabbed: { canvas: null, context: null },
   };
 
   let selectionAnimations: AnimatedBounds[] = [];
+  let ghostAnimations: AnimatedBounds[] = [];
   let dragAnimation: AnimatedBounds | null = null;
   let grabbedAnimations: AnimatedBounds[] = [];
 
@@ -191,6 +205,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     fillColor: string,
     strokeColor: string,
     opacity: number = 1,
+    lineDashLengthPx: number = 0,
   ) => {
     if (rectWidth <= 0 || rectHeight <= 0) return;
 
@@ -209,7 +224,9 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     context.fill();
     context.strokeStyle = strokeColor;
     context.lineWidth = 1;
+    if (lineDashLengthPx > 0) context.setLineDash([lineDashLengthPx, lineDashLengthPx]);
     context.stroke();
+    if (lineDashLengthPx > 0) context.setLineDash([]);
     if (shouldSetGlobalAlpha) context.globalAlpha = 1;
   };
 
@@ -261,6 +278,33 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     }
   };
 
+  const renderGhostLayer = () => {
+    const layer = layers.ghost;
+    if (!layer.context) return;
+
+    const context = layer.context;
+    context.clearRect(0, 0, canvasWidth, canvasHeight);
+
+    if (!props.ghostVisible) return;
+
+    const style = LAYER_STYLES.ghost;
+
+    for (const animation of ghostAnimations) {
+      drawRoundedRectangle(
+        context,
+        animation.current.x,
+        animation.current.y,
+        animation.current.width,
+        animation.current.height,
+        animation.borderRadius,
+        style.fillColor,
+        style.borderColor,
+        animation.opacity,
+        GHOST_LINE_DASH_PX,
+      );
+    }
+  };
+
   const renderBoundsLayer = (
     layerName: keyof typeof LAYER_STYLES,
     animations: AnimatedBounds[],
@@ -296,10 +340,11 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     mainContext.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
 
     renderDragLayer();
+    renderGhostLayer();
     renderSelectionLayer();
     renderBoundsLayer("grabbed", grabbedAnimations);
 
-    const layerRenderOrder: LayerName[] = ["drag", "selection", "grabbed"];
+    const layerRenderOrder: LayerName[] = ["drag", "ghost", "selection", "grabbed"];
     for (const layerName of layerRenderOrder) {
       const layer = layers[layerName];
       if (layer.canvas) {
@@ -372,6 +417,14 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     for (const animation of selectionAnimations) {
       if (animation.isInitialized) {
         if (interpolateBounds(animation, selectionLerpForFrame)) {
+          shouldContinueAnimating = true;
+        }
+      }
+    }
+
+    for (const animation of ghostAnimations) {
+      if (animation.isInitialized) {
+        if (interpolateBounds(animation, selectionLerpForFrame, { interpolateOpacity: true })) {
           shouldContinueAnimating = true;
         }
       }
@@ -494,6 +547,41 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
           }
 
           return createAnimatedBounds(animationId, bounds);
+        });
+
+        scheduleAnimationFrame();
+      },
+    ),
+  );
+
+  createEffect(
+    on(
+      () => [props.ghostVisible, props.ghostBounds] as const,
+      ([isVisible, bounds]) => {
+        if (!isVisible || !bounds || bounds.length === 0) {
+          ghostAnimations = [];
+          scheduleAnimationFrame();
+          return;
+        }
+
+        const existingGhostById = new Map<string, AnimatedBounds>();
+        for (const animation of ghostAnimations) {
+          existingGhostById.set(animation.id, animation);
+        }
+
+        ghostAnimations = bounds.map((ghostBounds, index) => {
+          const animationId = `ghost-${index}`;
+          const existingAnimation = existingGhostById.get(animationId);
+
+          if (existingAnimation) {
+            updateAnimationTarget(existingAnimation, ghostBounds, GHOST_OPACITY);
+            return existingAnimation;
+          }
+
+          return createAnimatedBounds(animationId, ghostBounds, {
+            opacity: 0,
+            targetOpacity: GHOST_OPACITY,
+          });
         });
 
         scheduleAnimationFrame();
