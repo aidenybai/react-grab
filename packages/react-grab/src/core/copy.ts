@@ -101,7 +101,7 @@ export const runCopyFlow = async (
         : transformedContent;
       didCopy = copyContent(finalContent, {
         componentName: options.componentName,
-        entries: payload.entries,
+        entries: payload?.entries,
       });
     }
   } catch (error) {
