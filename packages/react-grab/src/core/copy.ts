@@ -21,6 +21,7 @@ interface CopyPayloadEntry {
   tagName?: string;
   componentName?: string;
   content: string;
+  commentText?: string;
   source?: {
     filePath: string;
     lineNumber: number | null;
@@ -72,9 +73,35 @@ const buildElementPayloadEntry = async (element: Element): Promise<CopyPayloadEn
 };
 
 const buildClipboardPayload = async (elements: Element[]): Promise<CopyPayload | null> => {
-  const entries = await Promise.all(elements.map(buildElementPayloadEntry));
-  const uniqueReferences = [...new Set(entries.map((entry) => entry.content))];
-  return uniqueReferences.length > 0 ? { content: uniqueReferences.join("\n"), entries } : null;
+  const rawEntries = await Promise.all(elements.map(buildElementPayloadEntry));
+  const entriesByContent = new Map<string, CopyPayloadEntry>();
+  for (const entry of rawEntries) {
+    if (!entriesByContent.has(entry.content)) {
+      entriesByContent.set(entry.content, entry);
+    }
+  }
+  const entries = [...entriesByContent.values()];
+  return entries.length > 0
+    ? { content: entries.map((entry) => entry.content).join("\n"), entries }
+    : null;
+};
+
+const getMetadataEntries = (
+  payload: CopyPayload | null,
+  rawContent: string,
+  finalContent: string,
+  prependedPrompt: string | undefined,
+): CopyPayloadEntry[] | undefined => {
+  if (!payload) return undefined;
+  if (finalContent === rawContent) return payload.entries;
+  if (payload.entries.length !== 1) return undefined;
+  return [
+    {
+      ...payload.entries[0],
+      content: finalContent,
+      commentText: prependedPrompt,
+    },
+  ];
 };
 
 export const runCopyFlow = async (
@@ -101,7 +128,7 @@ export const runCopyFlow = async (
         : transformedContent;
       didCopy = copyContent(finalContent, {
         componentName: options.componentName,
-        entries: payload?.entries,
+        entries: getMetadataEntries(payload, rawContent, finalContent, prependedPrompt),
       });
     }
   } catch (error) {
