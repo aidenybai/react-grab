@@ -113,7 +113,7 @@ const findNumericLonghands = (
 };
 
 const clampedFor = (property: NumericEditableProperty, candidate: number): number =>
-  roundEditableNumericValue(clampToRange(candidate, property.min, property.max));
+  roundEditableNumericValue(clampToRange(candidate, property.min, property.max), property.step);
 
 interface TailwindAutoApplyOptions {
   initialProperties: readonly EditableProperty[];

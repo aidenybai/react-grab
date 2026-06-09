@@ -236,6 +236,43 @@ export const EDIT_SEARCH_POSITION_PENALTY = 100;
 export const EDIT_SEARCH_LENGTH_PENALTY = 1;
 export const EDIT_COMPACT_SLIDER_MIN_WIDTH_PX = 96;
 
+// React-prop editing: how far up the fiber tree to look for a component
+// with editable numeric props (e.g. the motion component above a host
+// div, or a three.js wrapper above its canvas), and how many numeric
+// props one component may surface before we stop collecting.
+// Walk far enough to clear the wrapper layers a single component can add
+// (forwardRef + memo + context consumers + a LazyMotion-style wrapper) and
+// still reach the component that owns the editable props, while staying
+// bounded so an unrelated far-up ancestor is never surfaced.
+export const PROP_FIBER_MAX_COMPOSITE_WALK = 10;
+export const PROP_NUMERIC_MAX_COUNT = 24;
+// Object-valued props whose nested numeric members are editable: motion's
+// inline targets (animate/whileHover/...), its `variants` map (one level
+// deeper, keyed by variant name), transition timings, and drag
+// constraints. Members are collected recursively up to
+// PROP_NESTED_MAX_DEPTH so e.g. variants.whileHover.transition.duration is
+// reachable. `style` is excluded so it does not duplicate the
+// computed-style CSS rows.
+export const EDITABLE_OBJECT_PROP_KEYS = new Set([
+  "initial",
+  "animate",
+  "exit",
+  "transition",
+  "whileHover",
+  "whileTap",
+  "whileFocus",
+  "whileInView",
+  "whileDrag",
+  "variants",
+  "dragConstraints",
+]);
+export const PROP_NESTED_MAX_DEPTH = 4;
+
+// Relative nudge that restores round-half-up when `value / step` lands a hair
+// below an exact half-step due to floating-point error. Far smaller than the
+// gap between any two adjacent steps, so it never reclassifies off-grid values.
+export const EDIT_STEP_SNAP_EPSILON = 1e-9;
+
 export const CSS_VALUE_DECIMAL_PLACES = 2;
 export const OPACITY_PERCENT_MAX = 100;
 export const FONT_SIZE_LINE_HEIGHT_RATIO = 1.2;

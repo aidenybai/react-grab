@@ -160,13 +160,22 @@ export interface ContextMenuActionContext extends ActionContext {
   enterEditMode?: () => void;
 }
 
+// "css" rows edit computed styles via inline-style preview; "prop" rows edit
+// a React component's props via bippy's overrideProps (e.g. motion's
+// animate/transition values, or a three.js wrapper's count/speed).
+export type EditablePropertySource = "css" | "prop";
+
 interface EditablePropertyBase {
   // Stable identity across renders and sessionStorage. For aggregates this
   // is a comma-joined cssProperties (e.g. "padding-top,padding-bottom") so
   // the key survives DOM round-trips without parsing back.
   key: string;
   label: string;
+  source: EditablePropertySource;
   cssProperties: readonly string[];
+  // Path into the component's props for "prop" rows (e.g.
+  // ["transition", "duration"]); empty for "css" rows.
+  propPath: readonly string[];
   tailwindAliases: string[];
   isPrioritized: boolean;
   isDefault: boolean;
@@ -183,6 +192,10 @@ export interface NumericEditableProperty extends EditablePropertyBase {
   value: number;
   original: number;
   unit: string;
+  // Increment applied per arrow press and the snapping granularity. CSS
+  // rows use 1 (integer pixels); prop rows use fractional steps so values
+  // like opacity (0.05) and duration (0.1) can be tuned precisely.
+  step: number;
 }
 
 export interface ColorEditableProperty extends EditablePropertyBase {
@@ -230,7 +243,16 @@ interface EnumPendingEdit {
   value: string;
 }
 
-export type PendingEdit = NumericPendingEdit | ColorPendingEdit | EnumPendingEdit;
+export interface PropPendingEdit {
+  kind: "prop";
+  key: string;
+  propPath: readonly string[];
+  label: string;
+  value: number;
+  original: number;
+}
+
+export type PendingEdit = NumericPendingEdit | ColorPendingEdit | EnumPendingEdit | PropPendingEdit;
 
 export type PendingEdits = PendingEdit[];
 
@@ -247,12 +269,32 @@ export interface PreviewStyles {
   hasAppliedStyles: () => boolean;
 }
 
+// Live preview for "prop" rows: pushes overridden prop values onto the
+// backing React fiber (via bippy) so the component re-renders with the
+// tweaked value, and rolls them back on discard.
+export interface PropPreview {
+  apply: (propPath: readonly string[], value: number) => void;
+  restore: () => void;
+  forget: () => void;
+  hasAppliedProps: () => boolean;
+}
+
+// Single preview surface the edit panel talks to. It dispatches a tweak to
+// the right backend based on the property's source (inline styles for CSS,
+// fiber prop overrides for props) so callers never branch on source.
+export interface EditPreview {
+  apply: (property: EditableProperty, value: number | string) => void;
+  restore: () => void;
+  forget: () => void;
+  hasApplied: () => boolean;
+}
+
 export interface EditPanelState {
   element: Element;
   position: Position;
   selectionBounds: OverlayBounds;
   properties: EditableProperty[];
-  preview: PreviewStyles;
+  preview: EditPreview;
   filePath?: string;
   lineNumber?: number;
   componentName?: string;

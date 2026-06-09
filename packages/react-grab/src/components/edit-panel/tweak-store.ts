@@ -112,7 +112,16 @@ export const createTweakStore = (options: CreateTweakStoreOptions): TweakStore =
       const tweak = currentTweaks[tweakedKey];
       const property = propertyByKey.get(tweakedKey);
       if (!property || !hasChangedFromOriginal(property, tweak)) continue;
-      if (property.kind === "numeric" && tweak.kind === "numeric") {
+      if (property.source === "prop" && property.kind === "numeric" && tweak.kind === "numeric") {
+        pendingEdits.push({
+          kind: "prop",
+          key: property.key,
+          propPath: property.propPath,
+          label: property.label,
+          value: tweak.value,
+          original: property.original,
+        });
+      } else if (property.kind === "numeric" && tweak.kind === "numeric") {
         pendingEdits.push({
           kind: "numeric",
           key: property.key,

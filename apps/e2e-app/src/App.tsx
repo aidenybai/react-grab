@@ -327,6 +327,82 @@ const VariousElements = () => {
   );
 };
 
+interface MotionishBoxProps {
+  animate: { opacity: number; scale: number };
+  transition: { duration: number };
+  count: number;
+}
+
+const MotionishBox = ({ animate, transition, count }: MotionishBoxProps) => {
+  return (
+    <div
+      className="w-40 h-40 bg-pink-300 rounded-lg flex flex-col items-center justify-center gap-1"
+      style={{ opacity: animate.opacity, transform: `scale(${animate.scale})` }}
+      data-testid="motionish-box"
+    >
+      <span data-testid="motionish-opacity">{animate.opacity}</span>
+      <span data-testid="motionish-scale">{animate.scale}</span>
+      <span data-testid="motionish-duration">{transition.duration}</span>
+      <span data-testid="motionish-count">{count}</span>
+    </div>
+  );
+};
+
+interface VariantsBoxProps {
+  initial: string;
+  animate: string;
+  whileHover: string;
+  variants: {
+    initial: { scale: number };
+    animate: { scale: number; opacity: number; transition: { duration: number } };
+    whileHover: { scale: number; y: number };
+  };
+}
+
+// Mirrors the common framer-motion pattern where the numeric values live
+// inside a `variants` map and the initial/animate/whileHover props are just
+// string references to variant names.
+const VariantsBox = ({ variants }: VariantsBoxProps) => {
+  return (
+    <div
+      className="w-40 h-40 bg-sky-300 rounded-lg flex flex-col items-center justify-center gap-1"
+      style={{ opacity: variants.animate.opacity, transform: `scale(${variants.animate.scale})` }}
+      data-testid="variants-box"
+    >
+      <span data-testid="variants-animate-scale">{variants.animate.scale}</span>
+      <span data-testid="variants-animate-duration">{variants.animate.transition.duration}</span>
+      <span data-testid="variants-hover-scale">{variants.whileHover.scale}</span>
+    </div>
+  );
+};
+
+const PropsPlaygroundSection = () => {
+  const [bump, setBump] = useState(0);
+  return (
+    <section className="border rounded-lg p-4" data-testid="props-playground-section">
+      <h2 className="text-lg font-bold mb-4">Props Playground</h2>
+      <button
+        type="button"
+        onClick={() => setBump((previous) => previous + 1)}
+        data-testid="props-rerender-button"
+      >
+        Re-render ({bump})
+      </button>
+      <MotionishBox animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }} count={12} />
+      <VariantsBox
+        initial="initial"
+        animate="animate"
+        whileHover="whileHover"
+        variants={{
+          initial: { scale: 0.4 },
+          animate: { scale: 1, opacity: 1, transition: { duration: 0.6 } },
+          whileHover: { scale: 1.2, y: -5 },
+        }}
+      />
+    </section>
+  );
+};
+
 const AnimatedElements = () => {
   return (
     <section className="border rounded-lg p-4" data-testid="animated-section">
@@ -661,6 +737,8 @@ export default function App() {
       <DynamicElements />
 
       <VariousElements />
+
+      <PropsPlaygroundSection />
 
       <AnimatedElements />
 

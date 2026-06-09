@@ -1,9 +1,10 @@
 import { createSignal, type Accessor } from "solid-js";
 import type { EditPanelState, Position } from "../types.js";
 import { buildEditableProperties } from "../utils/build-editable-properties.js";
+import { buildPropProperties } from "../utils/build-prop-properties.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
+import { createEditPreview } from "../utils/edit-preview.js";
 import { getTagName } from "../utils/get-tag-name.js";
-import { createPreviewStyles } from "../utils/preview-styles.js";
 import { getNearestComponentName } from "./context.js";
 
 export interface EditModeOverrides {
@@ -76,7 +77,9 @@ export const createEditModeController = (
   ): boolean => {
     // Re-entry would desync the existing preview from the panel's tweak store.
     if (state() !== null) return false;
-    const properties = buildEditableProperties(element);
+    // Prop rows lead so a motion/three.js component opens straight onto its
+    // animation values, with CSS rows following.
+    const properties = [...buildPropProperties(element), ...buildEditableProperties(element)];
     if (properties.length === 0) return false;
 
     const resolvedFilePath =
@@ -89,7 +92,7 @@ export const createEditModeController = (
       position,
       selectionBounds: createElementBounds(element),
       properties,
-      preview: createPreviewStyles(element),
+      preview: createEditPreview(element),
       filePath: resolvedFilePath,
       lineNumber: resolvedLineNumber,
       componentName: overrides.componentName,

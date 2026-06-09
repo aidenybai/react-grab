@@ -18,7 +18,12 @@ export const stepProperty = (
   if (property.kind !== "numeric") return null;
   const multiplier = shift ? EDIT_SHIFT_STEP_MULTIPLIER : 1;
   const candidate = roundEditableNumericValue(
-    clampToRange(property.value + direction * multiplier, property.min, property.max),
+    clampToRange(
+      property.value + direction * multiplier * property.step,
+      property.min,
+      property.max,
+    ),
+    property.step,
   );
   return candidate === property.value ? null : candidate;
 };

@@ -31,7 +31,7 @@ import { clampToRange } from "../../utils/clamp-to-range.js";
 import { cn } from "../../utils/cn.js";
 import { createAnchoredDropdown } from "../../utils/create-anchored-dropdown.js";
 import { findTailwindClass } from "../../utils/find-tailwind-class.js";
-import { formatEditableValue, roundEditableNumericValue } from "../../utils/format-css-value.js";
+import { roundEditableNumericValue } from "../../utils/format-css-value.js";
 import { formatSessionEditsPrompt } from "../../utils/format-edit-prompt.js";
 import { getShadowActiveElement } from "../../utils/get-shadow-active-element.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
@@ -247,7 +247,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     options: CommitOptions = {},
   ) => {
     tweakStore.applyTweak(property, nextValue);
-    preview.apply(property.cssProperties, formatEditableValue(property, nextValue));
+    preview.apply(property, nextValue);
     markAsInteracting();
     if (!options.isFromKeyRepeat) discardConfirmation.hide();
     if (options.flashDirection) flashActiveKey(options.flashDirection === 1 ? "right" : "left");
@@ -291,7 +291,10 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     const property = activeProperty();
     if (!property) return;
     if (property.kind === "numeric" && typeof rawValue === "number") {
-      const clamped = roundEditableNumericValue(clampToRange(rawValue, property.min, property.max));
+      const clamped = roundEditableNumericValue(
+        clampToRange(rawValue, property.min, property.max),
+        property.step,
+      );
       if (clamped !== property.value) commit(property, clamped);
       return;
     }
@@ -355,7 +358,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       return;
     }
     if (!hasPendingTweaks()) {
-      closePanel(preview.hasAppliedStyles() ? "discard" : "preserve");
+      closePanel(preview.hasApplied() ? "discard" : "preserve");
       return;
     }
     // Always reveal the full panel before anything destructive. A keyboard
