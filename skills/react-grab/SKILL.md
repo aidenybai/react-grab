@@ -1,11 +1,12 @@
 ---
 name: react-grab
 description: >-
-  Peek at UI elements in the browser via React Grab: inspect components, view
-  source context, and read element metadata in a continuous loop. Triggers:
-  "peek at my app", "peek at this element", "watch react grab", "monitor my
-  grabs", "auto-process react grab", "watch my clipboard for grabs". Not for a
-  one-off paste; this is the always-on peek loop.
+  Use when the user describes a UI change or peeks at elements via React Grab.
+  Triggers: "make this button bigger", "fix the header spacing", "change the
+  color of this component", "peek at my app", "peek at this element", "watch
+  react grab", "monitor my grabs", "auto-process react grab", "watch my
+  clipboard for grabs". Not for a one-off paste; this is the always-on peek
+  loop.
 ---
 
 # React Grab
