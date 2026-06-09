@@ -88,8 +88,8 @@ const formatEntryReference = (entry: ViewportEntry): string => {
   return `[${tag}${location}]`;
 };
 
-const writeToClipboard = async (content: string, metadata: string): Promise<void> => {
-  if (!navigator.clipboard) return;
+const writeToClipboard = async (content: string, metadata: string): Promise<boolean> => {
+  if (!navigator.clipboard) return false;
 
   try {
     if (typeof ClipboardItem !== "undefined") {
@@ -100,13 +100,16 @@ const writeToClipboard = async (content: string, metadata: string): Promise<void
         [WEB_CUSTOM_MIME_TYPE]: customBlob,
       });
       await navigator.clipboard.write([item]);
-      return;
+      return true;
     }
   } catch {}
 
   try {
     await navigator.clipboard.writeText(content);
+    return true;
   } catch {}
+
+  return false;
 };
 
 export const createViewportClipboard = (): ViewportClipboardController => {
@@ -150,9 +153,7 @@ export const createViewportClipboard = (): ViewportClipboardController => {
       const references = deduplicatedEntries.map(formatEntryReference);
       const content = references.join("\n");
 
-      const contentHash = content;
-      if (contentHash === lastContentHash) return;
-      lastContentHash = contentHash;
+      if (content === lastContentHash) return;
 
       const metadata = JSON.stringify({
         version: VERSION,
@@ -166,7 +167,10 @@ export const createViewportClipboard = (): ViewportClipboardController => {
         implicit: true,
       });
 
-      await writeToClipboard(content, metadata);
+      const didWrite = await writeToClipboard(content, metadata);
+      if (didWrite) {
+        lastContentHash = content;
+      }
     } catch {} finally {
       isWriting = false;
     }
