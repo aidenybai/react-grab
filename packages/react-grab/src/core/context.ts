@@ -574,12 +574,8 @@ export const formatStackContext = (
   let previousLibraryFrameKey: string | null = null;
   let didDedupeLeadingComponent = false;
   let hasTrustedSource = false;
-  let startsWithLowSignalContext = false;
 
   const emit = (line: StackFrameLine) => {
-    if (lines.length === 0 && line.isLowSignal) {
-      startsWithLowSignalContext = true;
-    }
     if (line.isTrustedSource) {
       hasTrustedSource = true;
     }
@@ -631,7 +627,7 @@ export const formatStackContext = (
 
   return {
     text: lines.join(""),
-    shouldAppendSelectorHint: startsWithLowSignalContext || !hasTrustedSource,
+    shouldAppendSelectorHint: !hasTrustedSource,
   };
 };
 
