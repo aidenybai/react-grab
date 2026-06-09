@@ -1,76 +1,79 @@
 ---
 name: react-grab
 description: >-
-  Use when the user wants a hands-free loop where grabbing UI elements in the
-  browser with React Grab feeds tasks to the agent automatically, with no
-  copy-paste or manual handoff. Triggers: "watch react grab", "monitor my
-  grabs", "auto-process react grab", "watch my clipboard for grabs". Not for a
-  one-off paste of a single grab; this is the continuous, always-on loop.
+  Peek at UI elements in the browser via React Grab — inspect components, view
+  source context & read element metadata in a continuous loop. Triggers: "peek
+  at my app", "peek at this element", "watch react grab", "monitor my grabs",
+  "auto-process react grab", "watch my clipboard for grabs". Not for a one-off
+  paste; this is the always-on peek loop.
 ---
 
 # React Grab
 
-The user selects UI elements in their browser and copies them with React Grab.
-`npx react-grab@latest pull` waits for new grabs and prints each as one line of
-JSON (usually one, sometimes a few if several were copied), starting the
-background watcher automatically the first time. Run it in a loop.
+You peek at UI elements in the browser with React Grab — selecting components to
+inspect source context, styles & metadata.
 
-## The loop
-
-Repeat until the user says stop:
-
-1. Wait for the next grab:
+Invoking this skill starts pulling:
 
 ```bash
 npx react-grab@latest pull --max-age 0
 ```
 
-It blocks until the user grabs something, then prints the new grab(s) — one JSON
-object per line. `--max-age 0` is important: it delivers every grab regardless of
-age, so a comment the user added while you were busy on the previous task isn't
-silently dropped (the default skips grabs older than ~5 min as stale). Act on
-every line. If your shell cancels the command before a grab arrives, just run it
-again — nothing is lost; the watcher keeps capturing in the background and `pull`
-resumes where it left off.
+This blocks until the user peeks at something, then prints 1 JSON object per
+line. The background watcher starts automatically on first run. Run it in a loop.
 
-2. Act on the grab (below).
+## The Loop
+
+Repeat until the user says stop:
+
+1. Pull — wait for the next peek:
+
+```bash
+npx react-grab@latest pull --max-age 0
+```
+
+`--max-age 0` delivers every peek regardless of age, so nothing the user added
+while you were busy is silently dropped (the default skips peeks older than
+~5 min as stale). Act on every line. If your shell cancels the command before a
+peek arrives, re-run it — nothing is lost; the watcher keeps capturing &
+`pull` resumes where it left off.
+
+2. Act on the peek (below).
 3. Go back to step 1.
 
-## A new grab while you're working wins
+## A New Peek While You're Working Wins
 
-The watcher never stops capturing — including while you're mid-task. A grab the
-user makes before you finish is them redirecting you, so it supersedes whatever
-you're doing. Don't make them wait for the old task to finish.
+The watcher never stops capturing — including mid-task. A new peek supersedes
+whatever you're doing. Don't make the user wait for the old task to finish.
 
-While acting on a grab:
+While acting on a peek:
 
-- Run anything slow (dev servers, builds, installs, test runs) as a background
-  process, never a blocking foreground call, so you stay free to notice new grabs.
+- Run anything slow (dev servers, builds, installs, test runs) in the background
+  so you stay free to notice new peeks.
 - Between steps, peek without blocking:
 
 ```bash
 npx react-grab@latest pull --max-age 0 --wait 0
 ```
 
-  Empty output means nothing new — keep going. If it prints a grab, the user has
-  moved on: stop the current task, cancel any background processes you started for
-  it, and act on the newest grab instead.
+Empty output means nothing new — keep going. If it prints a peek, stop the
+current task, cancel background processes you started for it & act on the newest
+peek instead.
 
-## Acting on a grab
+## Acting on a Peek
 
-Each grab JSON has `content` (the element's source references) and, in prompt
-mode, `prompt` (the user's typed instruction):
+Each peek JSON has `content` (source references) and, in prompt mode, `prompt`
+(the user's typed instruction):
 
-- **`prompt` present** → that comment IS the task. Execute it against the grabbed
-  source; `content` holds the references (`// path:line`, `in Component (at …)`),
-  so jump straight to that file.
+- **`prompt` present** → execute it against the peeked source. `content` holds
+  references (`// path:line`, `in Component (at …)`) — jump straight to that file.
 - **No `prompt`** → apply the standing instruction the user set when starting the
-  loop, or, if there is none, triage it (summarize component + `file:line`) and
-  wait for direction.
+  loop. If none exists, triage it (summarize component + `file:line`) & wait for
+  direction.
 
 ## Stopping
 
-When the user says stop, run this and don't pull again:
+When the user says stop, run this & don't peek again:
 
 ```bash
 npx react-grab@latest stop
