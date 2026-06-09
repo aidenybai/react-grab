@@ -41,7 +41,7 @@ interface CopyPayloadEntry {
 
 interface CopyPayload {
   content: string;
-  entries: CopyPayloadEntry[];
+  entries?: CopyPayloadEntry[];
 }
 
 const formatStackFramePayload = (
@@ -92,7 +92,7 @@ const getMetadataEntries = (
   finalContent: string,
   prependedPrompt: string | undefined,
 ): CopyPayloadEntry[] | undefined => {
-  if (!payload) return undefined;
+  if (!payload?.entries) return undefined;
   if (finalContent === rawContent) return payload.entries;
   if (payload.entries.length !== 1) return undefined;
   return [
