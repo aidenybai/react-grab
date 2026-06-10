@@ -31,9 +31,9 @@ import {
   getStackContext,
   getNearestComponentName,
   getComponentDisplayName,
-  isNextProjectRuntime,
   resolveSource,
 } from "./context.js";
+import { isNextProjectRuntime } from "../utils/is-next-project-runtime.js";
 import { createNoopApi } from "./noop-api.js";
 import { createEventListenerManager } from "./events.js";
 import { runCopyFlow } from "./copy.js";
@@ -645,13 +645,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           getContent: pluginRegistry.store.options.getContent,
           componentName: elementName,
         },
-        {
-          onBeforeCopy: pluginRegistry.hooks.onBeforeCopy,
-          transformCopyContent: pluginRegistry.hooks.transformCopyContent,
-          onAfterCopy: pluginRegistry.hooks.onAfterCopy,
-          onCopySuccess: pluginRegistry.hooks.onCopySuccess,
-          onCopyError: pluginRegistry.hooks.onCopyError,
-        },
+        pluginRegistry.hooks,
         elements,
         extraPrompt,
       );
@@ -2207,7 +2201,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const wasHandled = pluginRegistry.hooks.onOpenFile(filePath, lineNumber ?? undefined);
       if (!wasHandled) {
-        requestOpenFile(filePath, lineNumber ?? undefined, pluginRegistry.hooks.transformOpenFileUrl);
+        requestOpenFile(
+          filePath,
+          lineNumber ?? undefined,
+          pluginRegistry.hooks.transformOpenFileUrl,
+        );
       }
       return true;
     };
@@ -3683,7 +3681,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           componentName: source.componentName,
         };
       },
-      getStackContext: (element: Element) => getStackContext(element),
+      getStackContext,
       getState: (): ReactGrabState => ({
         isActive: isActivated(),
         isDragging: isDragging(),

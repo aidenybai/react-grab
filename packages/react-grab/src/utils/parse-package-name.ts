@@ -1,8 +1,8 @@
 import { normalizeFileName } from "bippy/source";
 import { safeDecodeURIComponent } from "./safe-decode-uri-component.js";
 
-const NODE_MODULES_PATTERN = /(?:^|[/\\])node_modules[/\\]/g;
-const VITE_OPTIMIZED_DEPS_PATTERN = /[/\\]\.vite[/\\]deps[^/\\]*[/\\]/g;
+const NODE_MODULES_PATTERN = /(?:^|[/\\])node_modules[/\\]/;
+const VITE_OPTIMIZED_DEPS_PATTERN = /[/\\]\.vite[/\\]deps[^/\\]*[/\\]/;
 const FILE_EXTENSION_PATTERN = /\.[mc]?[jt]sx?$/i;
 const VITE_INTERNAL_CHUNK_PATTERN = /^chunk-[A-Za-z0-9_-]+$/;
 const PATH_SEPARATOR_PATTERN = /[/\\]/;
@@ -39,13 +39,8 @@ const extractAfterLastMarker = (
   pattern: RegExp,
   read: (afterMarker: string) => string | null,
 ): string | null => {
-  let lastMatch: RegExpExecArray | null = null;
-  let match: RegExpExecArray | null;
-  while ((match = pattern.exec(input)) !== null) {
-    lastMatch = match;
-  }
-  if (!lastMatch) return null;
-  return read(input.slice(lastMatch.index + lastMatch[0].length));
+  const parts = input.split(pattern);
+  return parts.length > 1 ? read(parts[parts.length - 1]) : null;
 };
 
 const extractNameAtVersion = (segment: string | undefined): string | null =>

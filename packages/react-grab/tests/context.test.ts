@@ -3,21 +3,31 @@ import type { StackFrame } from "bippy/source";
 import {
   formatStackContext,
   selectResolvedSource,
-  type FramesBySourceKind,
+  type ResolvedSource,
 } from "../src/core/context.js";
 
-const emptyFramesByKind = (): FramesBySourceKind => ({
-  "app-source": [],
-  "ignored-app-source": [],
-  "package-source": [],
-});
-
-const fiberSource = {
+const fiberSource: ResolvedSource = {
   filePath: "/src/app/page.tsx",
   lineNumber: 1,
   columnNumber: 1,
   componentName: "Page",
-  sourceFileName: "/src/app/page.tsx",
+  kind: "app-source",
+};
+
+const ignoredFiberSource: ResolvedSource = {
+  filePath: "/src/components/ui/button.tsx",
+  lineNumber: 1,
+  columnNumber: 1,
+  componentName: "Button",
+  kind: "ignored-app-source",
+};
+
+const packageFiberSource: ResolvedSource = {
+  filePath: "/app/node_modules/react-tabs/dist/index.js",
+  lineNumber: 1,
+  columnNumber: 1,
+  componentName: "Tabs",
+  kind: "package-source",
 };
 
 const appFrame: StackFrame = {
@@ -43,60 +53,42 @@ const packageFrame: StackFrame = {
 
 describe("selectResolvedSource", () => {
   it("prefers the fiber source when it is app-source", () => {
-    const framesByKind = emptyFramesByKind();
-    framesByKind["app-source"].push(appFrame);
-
-    expect(selectResolvedSource(fiberSource, "app-source", framesByKind)).toBe(fiberSource);
+    expect(selectResolvedSource(fiberSource, [appFrame])).toBe(fiberSource);
   });
 
   it("prefers an app-source frame over a non-app fiber source", () => {
-    const framesByKind = emptyFramesByKind();
-    framesByKind["app-source"].push(appFrame);
-
-    expect(selectResolvedSource(fiberSource, "ignored-app-source", framesByKind)).toMatchObject({
+    expect(selectResolvedSource(ignoredFiberSource, [appFrame])).toMatchObject({
       filePath: "/src/app/widget.tsx",
       componentName: "Widget",
     });
   });
 
   it("prefers an ignored-app-source fiber over ignored or package frames", () => {
-    const framesByKind = emptyFramesByKind();
-    framesByKind["ignored-app-source"].push(ignoredFrame);
-    framesByKind["package-source"].push(packageFrame);
-
-    expect(selectResolvedSource(fiberSource, "ignored-app-source", framesByKind)).toBe(fiberSource);
+    expect(selectResolvedSource(ignoredFiberSource, [ignoredFrame, packageFrame])).toBe(
+      ignoredFiberSource,
+    );
   });
 
   it("falls back to an ignored-app-source frame over a package frame", () => {
-    const framesByKind = emptyFramesByKind();
-    framesByKind["ignored-app-source"].push(ignoredFrame);
-    framesByKind["package-source"].push(packageFrame);
-
-    expect(selectResolvedSource(null, "unknown", framesByKind)).toMatchObject({
+    expect(selectResolvedSource(null, [ignoredFrame, packageFrame])).toMatchObject({
       filePath: "/src/components/ui/button.tsx",
       componentName: "Button",
     });
   });
 
   it("prefers a package-source fiber over package frames", () => {
-    const framesByKind = emptyFramesByKind();
-    framesByKind["package-source"].push(packageFrame);
-
-    expect(selectResolvedSource(fiberSource, "package-source", framesByKind)).toBe(fiberSource);
+    expect(selectResolvedSource(packageFiberSource, [packageFrame])).toBe(packageFiberSource);
   });
 
   it("falls back to a package frame as the last resort", () => {
-    const framesByKind = emptyFramesByKind();
-    framesByKind["package-source"].push(packageFrame);
-
-    expect(selectResolvedSource(null, "unknown", framesByKind)).toMatchObject({
+    expect(selectResolvedSource(null, [packageFrame])).toMatchObject({
       filePath: "/app/node_modules/react-tabs/dist/index.js",
       componentName: "Tabs",
     });
   });
 
   it("returns null when no fiber source or frames resolve", () => {
-    expect(selectResolvedSource(null, "unknown", emptyFramesByKind())).toBe(null);
+    expect(selectResolvedSource(null, [])).toBe(null);
   });
 
   it("picks the first named frame within a kind over an earlier anonymous frame", () => {
@@ -105,10 +97,8 @@ describe("selectResolvedSource", () => {
       lineNumber: 2,
       columnNumber: 1,
     };
-    const framesByKind = emptyFramesByKind();
-    framesByKind["app-source"].push(anonymousFrame, appFrame);
 
-    expect(selectResolvedSource(null, "unknown", framesByKind)).toMatchObject({
+    expect(selectResolvedSource(null, [anonymousFrame, appFrame])).toMatchObject({
       filePath: "/src/app/widget.tsx",
       componentName: "Widget",
     });
@@ -158,17 +148,7 @@ describe("formatStackContext", () => {
   });
 
   it("requests a selector hint for an ignored components/ui leading source", () => {
-    const result = formatStackContext(
-      [],
-      {},
-      {
-        filePath: "/src/components/ui/button.tsx",
-        lineNumber: 1,
-        columnNumber: 1,
-        componentName: "Button",
-        sourceFileName: "src/components/ui/button.tsx",
-      },
-    );
+    const result = formatStackContext([], {}, ignoredFiberSource);
 
     expect(result.shouldAppendSelectorHint).toBe(true);
   });

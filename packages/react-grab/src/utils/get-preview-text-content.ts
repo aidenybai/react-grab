@@ -1,21 +1,19 @@
 import {
   PREVIEW_DESCENDANT_TEXT_TAGS,
   PREVIEW_SKIPPED_TEXT_TAGS,
+  PREVIEW_TEXT_MAX_LENGTH,
 } from "../constants.js";
 
 const collapseTextContent = (text: string): string => text.replace(/\s+/g, " ").trim();
 
 const getDirectTextContent = (element: Element): string => {
-  let directText = "";
+  const textParts: string[] = [];
   for (const node of element.childNodes) {
     if (node.nodeType !== Node.TEXT_NODE) continue;
-
-    const trimmed = collapseTextContent(node.textContent ?? "");
-    if (trimmed) {
-      directText += (directText ? " " : "") + trimmed;
-    }
+    const collapsedText = collapseTextContent(node.textContent ?? "");
+    if (collapsedText) textParts.push(collapsedText);
   }
-  return directText;
+  return textParts.join(" ");
 };
 
 const shouldSkipElementText = (element: Element): boolean => {
@@ -24,19 +22,32 @@ const shouldSkipElementText = (element: Element): boolean => {
   return PREVIEW_SKIPPED_TEXT_TAGS.has(element.tagName.toLowerCase());
 };
 
-const collectDescendantText = (node: Node, parts: string[]): void => {
+// Returns the remaining character budget so the walk can stop once it has
+// collected enough to fill PREVIEW_TEXT_MAX_LENGTH, instead of serializing an
+// entire (potentially huge) syntax-highlighted subtree only to truncate it.
+const collectDescendantText = (
+  node: Node,
+  textParts: string[],
+  remainingCharacterBudget: number,
+): number => {
   if (node.nodeType === Node.TEXT_NODE) {
-    const trimmed = collapseTextContent(node.textContent ?? "");
-    if (trimmed) parts.push(trimmed);
-    return;
+    const collapsedText = collapseTextContent(node.textContent ?? "");
+    if (!collapsedText) return remainingCharacterBudget;
+    textParts.push(collapsedText);
+    return remainingCharacterBudget - collapsedText.length;
   }
 
-  if (!(node instanceof Element)) return;
-  if (shouldSkipElementText(node)) return;
+  if (!(node instanceof Element) || shouldSkipElementText(node)) return remainingCharacterBudget;
 
   for (const childNode of node.childNodes) {
-    collectDescendantText(childNode, parts);
+    remainingCharacterBudget = collectDescendantText(
+      childNode,
+      textParts,
+      remainingCharacterBudget,
+    );
+    if (remainingCharacterBudget <= 0) break;
   }
+  return remainingCharacterBudget;
 };
 
 export const getPreviewTextContent = (element: Element, tagName: string): string => {
@@ -46,9 +57,7 @@ export const getPreviewTextContent = (element: Element, tagName: string): string
   if (!PREVIEW_DESCENDANT_TEXT_TAGS.has(tagName)) return directText;
   if (directText && element.children.length === 0) return directText;
 
-  const parts: string[] = [];
-  for (const childNode of element.childNodes) {
-    collectDescendantText(childNode, parts);
-  }
-  return collapseTextContent(parts.join(" "));
+  const textParts: string[] = [];
+  collectDescendantText(element, textParts, PREVIEW_TEXT_MAX_LENGTH);
+  return textParts.join(" ");
 };

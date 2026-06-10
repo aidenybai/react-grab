@@ -11,12 +11,12 @@ import {
 } from "./utils/pointer-events-freeze.js";
 import {
   getComponentDisplayName,
-  getHTMLPreview,
   getStack,
   getStackContext,
   formatElementInfo,
   resolveSource,
 } from "./core/context.js";
+import { getHTMLPreview } from "./core/html-preview.js";
 import { Fiber, getFiberFromHostInstance } from "bippy";
 import type { StackFrame } from "bippy/source";
 export type { StackFrame };
@@ -51,9 +51,7 @@ export interface ReactGrabElementContext {
  * ctx.filePath;      // "/src/components/Button.tsx"
  * ctx.lineNumber;    // 12
  */
-export const getElementContext = async (
-  element: Element,
-): Promise<ReactGrabElementContext> => {
+export const getElementContext = async (element: Element): Promise<ReactGrabElementContext> => {
   const [snippet, source, stack] = await Promise.all([
     formatElementInfo(element),
     resolveSource(element),

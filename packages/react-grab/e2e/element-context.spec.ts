@@ -245,6 +245,73 @@ test.describe("Element Context Fallback", () => {
       expect(clipboard).not.toContain("Decorative Hidden Label");
     });
 
+    test("should keep child placeholders alongside direct text in element info", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.page.evaluate(() => {
+        const wrapper = document.createElement("div");
+        Object.assign(wrapper.style, {
+          position: "fixed",
+          top: "200px",
+          left: "200px",
+          width: "260px",
+          height: "80px",
+          zIndex: "999",
+        });
+
+        const card = document.createElement("div");
+        card.id = "mixed-content-card";
+        card.append("Hello ");
+        const detail = document.createElement("span");
+        detail.textContent = "world";
+        card.appendChild(detail);
+
+        wrapper.appendChild(card);
+        document.body.appendChild(wrapper);
+      });
+
+      const elementInfo = await reactGrab.page.evaluate(() => {
+        const formatInfo = (window as { formatElementInfo?: (element: Element) => Promise<string> })
+          .formatElementInfo;
+        const element = document.querySelector("#mixed-content-card");
+        if (!element || !formatInfo) return null;
+        return formatInfo(element);
+      });
+
+      expect(elementInfo).toContain("Hello");
+      expect(elementInfo).toContain("<span ...>");
+    });
+
+    test("should preserve newlines inside attribute values in copied references", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.page.evaluate(() => {
+        const wrapper = document.createElement("div");
+        Object.assign(wrapper.style, {
+          position: "fixed",
+          top: "200px",
+          left: "200px",
+          width: "200px",
+          height: "80px",
+          zIndex: "999",
+        });
+
+        const saveButton = document.createElement("button");
+        saveButton.id = "multiline-label-button";
+        saveButton.setAttribute("aria-label", "Save\n  draft");
+        saveButton.textContent = "Save";
+
+        wrapper.appendChild(saveButton);
+        document.body.appendChild(wrapper);
+      });
+
+      const didCopy = await reactGrab.copyElementViaApi("#multiline-label-button");
+      expect(didCopy).toBe(true);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain('aria-label="Save\n  draft"');
+    });
+
     test("should include nested text for mixed inline content", async ({ reactGrab }) => {
       await reactGrab.page.evaluate(() => {
         const wrapper = document.createElement("div");

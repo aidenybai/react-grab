@@ -22,6 +22,10 @@ describe("classifySourcePath", () => {
       kind: "package-source",
       packageName: "@radix-ui/react-tabs",
     });
+    expect(classifySourcePath("/app/node_modules/react-tabs/dist/index.js")).toEqual({
+      kind: "package-source",
+      packageName: "react-tabs",
+    });
   });
 
   // The relative prefix is the only signal distinguishing a scoped dependency

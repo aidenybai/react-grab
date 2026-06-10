@@ -1,4 +1,4 @@
-import { isNextProjectRuntime } from "../core/context.js";
+import { isNextProjectRuntime } from "./is-next-project-runtime.js";
 import { getNextBasePath } from "./get-next-base-path.js";
 import { normalizeFilePath } from "./normalize-file-path.js";
 
@@ -29,13 +29,15 @@ export const requestOpenFile = async (
   lineNumber: number | undefined,
   transformUrl?: (url: string, filePath: string, lineNumber?: number) => string,
 ): Promise<void> => {
-  filePath = normalizeFilePath(filePath);
+  const normalizedFilePath = normalizeFilePath(filePath);
 
-  const wasOpenedByDevServer = await tryDevServerOpen(filePath, lineNumber).catch(() => false);
+  const wasOpenedByDevServer = await tryDevServerOpen(normalizedFilePath, lineNumber).catch(
+    () => false,
+  );
   if (wasOpenedByDevServer) return;
 
   const lineParam = lineNumber ? `&line=${lineNumber}` : "";
-  const rawUrl = `${OPEN_FILE_BASE_URL}/open-file?url=${encodeURIComponent(filePath)}${lineParam}`;
-  const url = transformUrl ? transformUrl(rawUrl, filePath, lineNumber) : rawUrl;
+  const rawUrl = `${OPEN_FILE_BASE_URL}/open-file?url=${encodeURIComponent(normalizedFilePath)}${lineParam}`;
+  const url = transformUrl ? transformUrl(rawUrl, normalizedFilePath, lineNumber) : rawUrl;
   window.open(url, "_blank", "noopener,noreferrer");
 };

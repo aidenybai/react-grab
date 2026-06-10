@@ -61,7 +61,7 @@ const buildElementPayloadEntry = async (element: Element): Promise<CopyPayloadEn
     resolveSource(element),
     getStack(element),
   ]);
-  const inlineReference = `[${referenceContext.replace(/\n\s+/g, " ")}]`;
+  const inlineReference = `[${referenceContext}]`;
   return {
     tagName: getTagName(element),
     componentName: source?.componentName ?? undefined,

@@ -1,20 +1,11 @@
-import { formatElementInfo } from "../core/context.js";
-
-interface GenerateSnippetOptions {
-  maxLines?: number;
-}
+import { formatElementInfo, type StackContextOptions } from "../core/context.js";
 
 export const generateSnippet = async (
   elements: Element[],
-  options: GenerateSnippetOptions = {},
+  options: StackContextOptions = {},
 ): Promise<string[]> => {
   const elementSnippetResults = await Promise.allSettled(
     elements.map((element) => formatElementInfo(element, options)),
   );
-
-  const elementSnippets = elementSnippetResults.map((result) =>
-    result.status === "fulfilled" ? result.value : "",
-  );
-
-  return elementSnippets;
+  return elementSnippetResults.map((result) => (result.status === "fulfilled" ? result.value : ""));
 };
