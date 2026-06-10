@@ -98,6 +98,16 @@ Both integrations accept the same options:
 | `src`     | `"https://unpkg.com/react-grab/dist/index.global.js"` | Script URL to load when the flag is set. |
 | `enabled` | `true`                                                | Set to `false` to skip injection.        |
 
+The Vite plugin also accepts `sourcemap` (default `true`), which enables `build.sourcemap` unless you already set it — React Grab needs sourcemaps to resolve component source locations in production builds. Pass `sourcemap: false` to opt out.
+
+For Next.js, enable production sourcemaps in your `next.config.ts` so React Grab can resolve component source locations:
+
+```ts
+const nextConfig = {
+  productionBrowserSourceMaps: true,
+};
+```
+
 ## Manual Installation
 
 If you cannot use the CLI, install React Grab manually for your framework:
