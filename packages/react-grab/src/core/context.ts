@@ -9,7 +9,10 @@ import {
 } from "bippy";
 import { DEFAULT_MAX_CONTEXT_LINES, MAX_TRACE_CONTEXT_LINES } from "../constants.js";
 import { normalizeFilePath } from "../utils/normalize-file-path.js";
-import { classifySourcePath, type SourcePathClassification } from "../utils/source-frame-policy.js";
+import {
+  classifySourcePath,
+  type SourcePathClassification,
+} from "../utils/classify-source-path.js";
 import { createElementSelector } from "../utils/create-element-selector.js";
 import { isNextProjectRuntime } from "../utils/is-next-project-runtime.js";
 import { enrichServerFrameLocations, symbolicateServerFrames } from "./next-server-frames.js";
@@ -18,6 +21,7 @@ import {
   isInternalComponentName,
   isUsefulComponentName,
 } from "../utils/is-useful-component-name.js";
+import type { SourceLocation } from "../types.js";
 
 const isSourceComponentName = (name: string): boolean => {
   if (name.length <= 1) return false;
@@ -64,13 +68,13 @@ const fetchStackForElement = async (element: Element): Promise<StackFrame[] | nu
 export const getStack = (element: Element): Promise<StackFrame[] | null> => {
   if (!isInstrumentationActive()) return Promise.resolve([]);
 
-  const resolvedElement = findNearestFiberElement(element);
-  const cached = stackCache.get(resolvedElement);
-  if (cached) return cached;
+  const nearestFiberElement = findNearestFiberElement(element);
+  const cachedStackPromise = stackCache.get(nearestFiberElement);
+  if (cachedStackPromise) return cachedStackPromise;
 
-  const promise = fetchStackForElement(resolvedElement);
-  stackCache.set(resolvedElement, promise);
-  return promise;
+  const stackPromise = fetchStackForElement(nearestFiberElement);
+  stackCache.set(nearestFiberElement, stackPromise);
+  return stackPromise;
 };
 
 export const getNearestComponentName = async (element: Element): Promise<string | null> => {
@@ -79,19 +83,12 @@ export const getNearestComponentName = async (element: Element): Promise<string 
   if (!stack) return null;
 
   for (const frame of stack) {
-    const name = toSourceComponentName(frame.functionName);
-    if (name) return name;
+    const componentName = toSourceComponentName(frame.functionName);
+    if (componentName) return componentName;
   }
 
   return null;
 };
-
-interface SourceLocation {
-  filePath: string;
-  lineNumber: number | null;
-  columnNumber: number | null;
-  componentName: string | null;
-}
 
 export interface ResolvedSource extends SourceLocation {
   kind: SourcePathClassification["kind"];
@@ -133,32 +130,18 @@ const getFiberSource = async (element: Element): Promise<ResolvedSource | null> 
 };
 
 const getCachedFiberSource = (element: Element): Promise<ResolvedSource | null> => {
-  const resolvedElement = findNearestFiberElement(element);
-  const cached = fiberSourceCache.get(resolvedElement);
-  if (cached) return cached;
+  const nearestFiberElement = findNearestFiberElement(element);
+  const cachedFiberSourcePromise = fiberSourceCache.get(nearestFiberElement);
+  if (cachedFiberSourcePromise) return cachedFiberSourcePromise;
 
   // Evict null resolutions so a later grab can retry once the fiber's source
   // metadata is attached, while still deduping concurrent in-flight lookups.
-  const promise = getFiberSource(resolvedElement).then((source) => {
-    if (!source) fiberSourceCache.delete(resolvedElement);
+  const fiberSourcePromise = getFiberSource(nearestFiberElement).then((source) => {
+    if (!source) fiberSourceCache.delete(nearestFiberElement);
     return source;
   });
-  fiberSourceCache.set(resolvedElement, promise);
-  return promise;
-};
-
-const resolveStackFrameSource = (
-  frame: StackFrame,
-  kind: SourcePathClassification["kind"],
-): ResolvedSource | null => {
-  if (!frame.fileName) return null;
-  return {
-    filePath: normalizeFilePath(frame.fileName),
-    lineNumber: frame.lineNumber ?? null,
-    columnNumber: frame.columnNumber ?? null,
-    componentName: toSourceComponentName(frame.functionName),
-    kind,
-  };
+  fiberSourceCache.set(nearestFiberElement, fiberSourcePromise);
+  return fiberSourcePromise;
 };
 
 const SOURCE_KIND_PREFERENCE_ORDER = [
@@ -173,11 +156,16 @@ export const selectResolvedSource = (
 ): ResolvedSource | null => {
   for (const kind of SOURCE_KIND_PREFERENCE_ORDER) {
     if (fiberSource?.kind === kind) return fiberSource;
-    const kindFrames = stack.filter((frame) => classifySourcePath(frame.fileName).kind === kind);
-    const frame = pickSourceFrame(kindFrames);
-    if (frame) {
-      const frameSource = resolveStackFrameSource(frame, kind);
-      if (frameSource) return frameSource;
+    const framesOfKind = stack.filter((frame) => classifySourcePath(frame.fileName).kind === kind);
+    const preferredFrame = pickSourceFrame(framesOfKind);
+    if (preferredFrame?.fileName) {
+      return {
+        filePath: normalizeFilePath(preferredFrame.fileName),
+        lineNumber: preferredFrame.lineNumber ?? null,
+        columnNumber: preferredFrame.columnNumber ?? null,
+        componentName: toSourceComponentName(preferredFrame.functionName),
+        kind,
+      };
     }
   }
   return null;
@@ -213,9 +201,9 @@ const getComponentNamesFromFiber = (element: Element, maxCount: number): string[
     (currentFiber) => {
       if (componentNames.length >= maxCount) return true;
       if (isCompositeFiber(currentFiber)) {
-        const name = getDisplayName(currentFiber.type);
-        if (name && isUsefulComponentName(name)) {
-          componentNames.push(name);
+        const displayName = getDisplayName(currentFiber.type);
+        if (displayName && isUsefulComponentName(displayName)) {
+          componentNames.push(displayName);
         }
       }
       return false;
@@ -326,18 +314,9 @@ export const formatStackContext = (
   let didDedupeLeadingComponent = false;
   let hasTrustedSource = false;
 
-  const emit = (line: StackFrameLine) => {
-    if (line.isTrustedSource) {
-      hasTrustedSource = true;
-    }
-    lines.push(line.text);
-  };
-
   if (leadingSource) {
-    emit({
-      text: formatSourceContextLine(leadingSource, isNextProject),
-      isTrustedSource: leadingSource.kind === "app-source",
-    });
+    hasTrustedSource = leadingSource.kind === "app-source";
+    lines.push(formatSourceContextLine(leadingSource, isNextProject));
   }
 
   for (const frame of stack) {
@@ -373,7 +352,8 @@ export const formatStackContext = (
     );
     if (frameLine === null) continue;
 
-    emit(frameLine);
+    if (frameLine.isTrustedSource) hasTrustedSource = true;
+    lines.push(frameLine.text);
     previousLibraryFrameKey = libraryFrameKey;
   }
 
@@ -399,34 +379,24 @@ const getTraceContext = async (
   element: Element,
   options: StackContextOptions = {},
 ): Promise<TraceContextResult> => {
-  const maxLines = options.maxLines ?? DEFAULT_MAX_CONTEXT_LINES;
   const leadingSource = await resolveLeadingSource(element);
   const stack = await getStack(element);
 
-  if (stack) {
-    const stackContext = formatStackContext(stack, options, leadingSource);
-    if (stackContext.text) return stackContext;
-  }
+  const stackContext = formatStackContext(stack ?? [], options, leadingSource);
+  if (stackContext.text) return stackContext;
 
-  if (leadingSource) {
-    return {
-      text: formatSourceContextLine(leadingSource, isNextProjectRuntime()),
-      shouldAppendSelectorHint: leadingSource.kind !== "app-source",
-    };
-  }
-
-  const componentNames = getComponentNamesFromFiber(findNearestFiberElement(element), maxLines);
+  const componentNames = getComponentNamesFromFiber(
+    findNearestFiberElement(element),
+    options.maxLines ?? DEFAULT_MAX_CONTEXT_LINES,
+  );
   if (componentNames.length > 0) {
     return {
-      text: componentNames.map((name) => `\n  in ${name}`).join(""),
+      text: componentNames.map((componentName) => `\n  in ${componentName}`).join(""),
       shouldAppendSelectorHint: true,
     };
   }
 
-  return {
-    text: "",
-    shouldAppendSelectorHint: true,
-  };
+  return { text: "", shouldAppendSelectorHint: true };
 };
 
 export const getStackContext = async (
@@ -437,15 +407,11 @@ export const getStackContext = async (
   return traceContext.text;
 };
 
-const composeElementContext = (
-  element: Element,
-  htmlPreview: string,
-  traceContext: TraceContextResult,
-): string => {
+const composeElementContext = (element: Element, traceContext: TraceContextResult): string => {
   const selectorHint = traceContext.shouldAppendSelectorHint
     ? `\n  selector: ${createElementSelector(element)}`
     : "";
-  return `${htmlPreview}${traceContext.text}${selectorHint}`;
+  return `${traceContext.text}${selectorHint}`;
 };
 
 export const getElementReferenceContext = async (
@@ -453,19 +419,15 @@ export const getElementReferenceContext = async (
   options: StackContextOptions = {},
 ): Promise<string> => {
   const traceContext = await getTraceContext(element, options);
-  const contextText = composeElementContext(element, "", traceContext);
-  return `${getInlineHTMLPreview(element)}${contextText.replace(/\n\s+/g, " ")}`;
+  return `${getInlineHTMLPreview(element)}${composeElementContext(element, traceContext).replace(/\n\s+/g, " ")}`;
 };
 
 export const formatElementInfo = async (
   element: Element,
   options: StackContextOptions = {},
 ): Promise<string> => {
-  const resolvedElement = findNearestFiberElement(element);
-  const htmlPreview = getHTMLPreview(resolvedElement);
-  return composeElementContext(
-    resolvedElement,
-    htmlPreview,
-    await getTraceContext(resolvedElement, options),
-  );
+  const nearestFiberElement = findNearestFiberElement(element);
+  const htmlPreview = getHTMLPreview(nearestFiberElement);
+  const traceContext = await getTraceContext(nearestFiberElement, options);
+  return `${htmlPreview}${composeElementContext(nearestFiberElement, traceContext)}`;
 };

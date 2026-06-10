@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { classifySourcePath } from "../src/utils/source-frame-policy.js";
+import { classifySourcePath } from "../src/utils/classify-source-path.js";
 
 describe("classifySourcePath", () => {
   it("classifies application source paths", () => {

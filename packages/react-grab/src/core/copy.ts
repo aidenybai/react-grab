@@ -3,6 +3,7 @@ import { copyContent } from "../utils/copy-content.js";
 import { normalizeError } from "../utils/normalize-error.js";
 import { getTagName } from "../utils/get-tag-name.js";
 import type { StackFrame } from "bippy/source";
+import type { ReactGrabEntry, ReactGrabStackFrame } from "../types.js";
 
 interface CopyFlowOptions {
   getContent?: (elements: Element[]) => Promise<string> | string;
@@ -17,36 +18,13 @@ interface CopyFlowHooks {
   onCopyError: (error: Error) => void;
 }
 
-interface CopyPayloadEntry {
-  tagName?: string;
-  componentName?: string;
-  content: string;
-  commentText?: string;
-  source?: {
-    filePath: string;
-    lineNumber: number | null;
-    columnNumber: number | null;
-    componentName: string | null;
-  } | null;
-  stackContext?: string;
-  frames?: Array<{
-    functionName?: string;
-    fileName?: string;
-    lineNumber?: number;
-    columnNumber?: number;
-    isServer?: boolean;
-    isSymbolicated?: boolean;
-  }>;
-}
-
 interface CopyPayload {
   content: string;
-  entries?: CopyPayloadEntry[];
+  entries?: ReactGrabEntry[];
 }
 
-const formatStackFramePayload = (
-  frame: StackFrame,
-): NonNullable<CopyPayloadEntry["frames"]>[number] => ({
+// Strips bippy's raw `source` stack-line text and `args` from the wire payload.
+const formatStackFramePayload = (frame: StackFrame): ReactGrabStackFrame => ({
   functionName: frame.functionName,
   fileName: frame.fileName,
   lineNumber: frame.lineNumber,
@@ -55,17 +33,16 @@ const formatStackFramePayload = (
   isSymbolicated: frame.isSymbolicated,
 });
 
-const buildElementPayloadEntry = async (element: Element): Promise<CopyPayloadEntry> => {
+const buildElementPayloadEntry = async (element: Element): Promise<ReactGrabEntry> => {
   const [referenceContext, source, stack] = await Promise.all([
     getElementReferenceContext(element),
     resolveSource(element),
     getStack(element),
   ]);
-  const inlineReference = `[${referenceContext}]`;
   return {
     tagName: getTagName(element),
     componentName: source?.componentName ?? undefined,
-    content: inlineReference,
+    content: `[${referenceContext}]`,
     source,
     stackContext: referenceContext,
     frames: (stack ?? []).map(formatStackFramePayload),
@@ -74,7 +51,7 @@ const buildElementPayloadEntry = async (element: Element): Promise<CopyPayloadEn
 
 const buildClipboardPayload = async (elements: Element[]): Promise<CopyPayload | null> => {
   const rawEntries = await Promise.all(elements.map(buildElementPayloadEntry));
-  const entriesByContent = new Map<string, CopyPayloadEntry>();
+  const entriesByContent = new Map<string, ReactGrabEntry>();
   for (const entry of rawEntries) {
     if (!entriesByContent.has(entry.content)) {
       entriesByContent.set(entry.content, entry);
@@ -88,12 +65,11 @@ const buildClipboardPayload = async (elements: Element[]): Promise<CopyPayload |
 
 const getMetadataEntries = (
   payload: CopyPayload | null,
-  rawContent: string,
   finalContent: string,
   prependedPrompt: string | undefined,
-): CopyPayloadEntry[] | undefined => {
+): ReactGrabEntry[] | undefined => {
   if (!payload?.entries) return undefined;
-  if (finalContent === rawContent) return payload.entries;
+  if (finalContent === payload.content) return payload.entries;
   if (payload.entries.length !== 1) return undefined;
   return [
     {
@@ -116,8 +92,8 @@ export const runCopyFlow = async (
   let finalContent = "";
 
   try {
-    const payload = options.getContent
-      ? { content: await options.getContent(elements), entries: undefined }
+    const payload: CopyPayload | null = options.getContent
+      ? { content: await options.getContent(elements) }
       : await buildClipboardPayload(elements);
     const rawContent = payload?.content;
 
@@ -128,7 +104,7 @@ export const runCopyFlow = async (
         : transformedContent;
       didCopy = copyContent(finalContent, {
         componentName: options.componentName,
-        entries: getMetadataEntries(payload, rawContent, finalContent, prependedPrompt),
+        entries: getMetadataEntries(payload, finalContent, prependedPrompt),
       });
     }
   } catch (error) {

@@ -10,40 +10,42 @@ import { truncateString } from "../utils/truncate-string.js";
 import { isInternalAttribute } from "../utils/strip-internal-attributes.js";
 import { getPreviewTextContent } from "../utils/get-preview-text-content.js";
 
-const truncateAttrValue = (value: string): string =>
-  truncateString(value, PREVIEW_ATTR_VALUE_MAX_LENGTH);
+const truncateAttrValue = (attributeValue: string): string =>
+  truncateString(attributeValue, PREVIEW_ATTR_VALUE_MAX_LENGTH);
 
 const formatPriorityAttrs = (element: Element): string => {
   const priorityAttrs: string[] = [];
 
-  for (const name of PREVIEW_PRIORITY_ATTRS) {
-    const value = element.getAttribute(name);
-    if (value) priorityAttrs.push(`${name}="${value}"`);
+  for (const attributeName of PREVIEW_PRIORITY_ATTRS) {
+    const attributeValue = element.getAttribute(attributeName);
+    if (attributeValue) priorityAttrs.push(`${attributeName}="${attributeValue}"`);
   }
 
   return priorityAttrs.length > 0 ? ` ${priorityAttrs.join(" ")}` : "";
 };
 
-const isClassOrStyleAttr = (name: string): boolean =>
-  name === "class" || name === "className" || name === "style";
+const isClassOrStyleAttr = (attributeName: string): boolean =>
+  attributeName === "class" || attributeName === "className" || attributeName === "style";
 
 const formatAttrsForPreview = (element: Element): string => {
   const identifyingParts: string[] = [];
   const remainingParts: string[] = [];
   let classAttr = "";
 
-  for (const { name, value } of element.attributes) {
-    if (isInternalAttribute(name)) continue;
-    if (isClassOrStyleAttr(name)) {
-      if (name !== "style" && value) {
-        classAttr = ` class="${truncateAttrValue(value)}"`;
+  for (const { name: attributeName, value: attributeValue } of element.attributes) {
+    if (isInternalAttribute(attributeName)) continue;
+    if (isClassOrStyleAttr(attributeName)) {
+      if (attributeName !== "style" && attributeValue) {
+        classAttr = ` class="${truncateAttrValue(attributeValue)}"`;
       }
       continue;
     }
-    if (PREVIEW_IDENTIFYING_ATTRS.has(name)) {
-      identifyingParts.push(value ? ` ${name}="${value}"` : ` ${name}`);
-    } else if (value) {
-      remainingParts.push(` ${name}="${truncateAttrValue(value)}"`);
+    if (PREVIEW_IDENTIFYING_ATTRS.has(attributeName)) {
+      identifyingParts.push(
+        attributeValue ? ` ${attributeName}="${attributeValue}"` : ` ${attributeName}`,
+      );
+    } else if (attributeValue) {
+      remainingParts.push(` ${attributeName}="${truncateAttrValue(attributeValue)}"`);
     }
   }
 

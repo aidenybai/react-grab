@@ -37,21 +37,6 @@ interface GrabEntry {
   componentName?: string;
   content?: string;
   commentText?: string;
-  source?: {
-    filePath: string;
-    lineNumber: number | null;
-    columnNumber?: number | null;
-    componentName: string | null;
-  } | null;
-  stackContext?: string;
-  frames?: Array<{
-    functionName?: string;
-    fileName?: string;
-    lineNumber?: number;
-    columnNumber?: number;
-    isServer?: boolean;
-    isSymbolicated?: boolean;
-  }>;
 }
 
 interface GrabRecord {

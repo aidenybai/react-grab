@@ -87,27 +87,27 @@ export const symbolicateServerFrames = async (frames: StackFrame[]): Promise<Sta
 
     if (!response.ok) return frames;
 
-    const results = (await response.json()) as NextJsFrameResult[];
-    const resolvedFrames = [...frames];
+    const symbolicationResults = (await response.json()) as NextJsFrameResult[];
+    const symbolicatedFrames = [...frames];
 
     for (let resultIndex = 0; resultIndex < serverFrameIndices.length; resultIndex++) {
-      const result = results[resultIndex];
-      if (result?.status !== "fulfilled") continue;
+      const symbolicationResult = symbolicationResults[resultIndex];
+      if (symbolicationResult?.status !== "fulfilled") continue;
 
-      const resolved = result.value?.originalStackFrame;
-      if (!resolved?.file || resolved.ignored) continue;
+      const originalStackFrame = symbolicationResult.value?.originalStackFrame;
+      if (!originalStackFrame?.file || originalStackFrame.ignored) continue;
 
       const originalFrameIndex = serverFrameIndices[resultIndex];
-      resolvedFrames[originalFrameIndex] = {
+      symbolicatedFrames[originalFrameIndex] = {
         ...frames[originalFrameIndex],
-        fileName: resolved.file,
-        lineNumber: resolved.line1 ?? undefined,
-        columnNumber: resolved.column1 ?? undefined,
+        fileName: originalStackFrame.file,
+        lineNumber: originalStackFrame.line1 ?? undefined,
+        columnNumber: originalStackFrame.column1 ?? undefined,
         isSymbolicated: true,
       };
     }
 
-    return resolvedFrames;
+    return symbolicatedFrames;
   } catch {
     return frames;
   } finally {
@@ -158,13 +158,13 @@ export const enrichServerFrameLocations = (
 
   return frames.map((frame) => {
     if (!frame.isServer || frame.fileName || !frame.functionName) return frame;
-    const resolved = serverFramesByName.get(frame.functionName);
-    if (!resolved) return frame;
+    const matchingServerFrame = serverFramesByName.get(frame.functionName);
+    if (!matchingServerFrame) return frame;
     return {
       ...frame,
-      fileName: resolved.fileName,
-      lineNumber: resolved.lineNumber,
-      columnNumber: resolved.columnNumber,
+      fileName: matchingServerFrame.fileName,
+      lineNumber: matchingServerFrame.lineNumber,
+      columnNumber: matchingServerFrame.columnNumber,
     };
   });
 };

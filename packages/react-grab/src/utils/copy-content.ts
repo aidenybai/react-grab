@@ -1,32 +1,7 @@
 import { VERSION } from "../constants.js";
+import type { ReactGrabEntry } from "../types.js";
 
 const REACT_GRAB_MIME_TYPE = "application/x-react-grab";
-
-interface ReactGrabEntry {
-  tagName?: string;
-  componentName?: string;
-  content: string;
-  commentText?: string;
-  source?: ReactGrabSourceInfo | null;
-  stackContext?: string;
-  frames?: ReactGrabStackFrame[];
-}
-
-interface ReactGrabSourceInfo {
-  filePath: string;
-  lineNumber: number | null;
-  columnNumber: number | null;
-  componentName: string | null;
-}
-
-interface ReactGrabStackFrame {
-  functionName?: string;
-  fileName?: string;
-  lineNumber?: number;
-  columnNumber?: number;
-  isServer?: boolean;
-  isSymbolicated?: boolean;
-}
 
 interface CopyContentOptions {
   componentName?: string;
