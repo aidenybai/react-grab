@@ -181,6 +181,32 @@ actions: [
 
 See [`packages/react-grab/src/types.ts`](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/types.ts) for the full `Plugin`, `PluginHooks`, and `PluginConfig` interfaces.
 
+### Warp
+
+The built-in Warp plugin adds a "Warp" action that copies the grabbed element context and opens [Warp](https://www.warp.dev) via its [URI scheme](https://docs.warp.dev/terminal/more-features/uri-scheme), so you can paste the context straight into Warp's agent:
+
+```js
+import { registerPlugin, warpPlugin } from "react-grab";
+
+registerPlugin(warpPlugin);
+```
+
+Use `createWarpPlugin` to customize how Warp opens:
+
+```js
+import { registerPlugin, createWarpPlugin } from "react-grab";
+
+registerPlugin(
+  createWarpPlugin({
+    newWindow: true, // open a new window instead of a tab
+    path: "/Users/me/project", // working directory for the new tab/window
+    launchConfig: "my-config", // open a saved Launch Configuration instead
+    tabConfig: "my-tab", // open a saved Tab Config instead
+    usePreview: true, // target Warp Preview (warppreview://)
+  }),
+);
+```
+
 ## Resources & Contributing Back
 
 Want to try it out? Check out [our demo](https://react-grab.com).
