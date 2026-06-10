@@ -5,6 +5,7 @@ import {
   POINTER_EVENTS_RESUME_DEBOUNCE_MS,
 } from "../constants.js";
 import { suspendPointerEventsFreeze, resumePointerEventsFreeze } from "./pointer-events-freeze.js";
+import { isWithinScope } from "./runtime-mode.js";
 
 interface PositionCache {
   clientX: number;
@@ -57,7 +58,7 @@ export const getElementsAtPoint = (clientX: number, clientY: number): Element[] 
   suspendPointerEventsFreeze();
   const elements = document.elementsFromPoint(clientX, clientY);
   scheduleResume();
-  return elements;
+  return elements.filter(isWithinScope);
 };
 
 export const getElementAtPosition = (clientX: number, clientY: number): Element | null => {
@@ -117,6 +118,10 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
   }
 
   scheduleResume();
+
+  if (!isWithinScope(result)) {
+    result = null;
+  }
 
   hoveredIframe =
     result instanceof HTMLIFrameElement

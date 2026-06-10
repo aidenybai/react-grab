@@ -26,6 +26,7 @@ import { freezePseudoStates, unfreezePseudoStates } from "../../utils/freeze-pse
 import { getButtonSpacingClass } from "../../utils/toolbar-layout.js";
 import { ToolbarContent } from "./toolbar-content.js";
 import { getVisualViewport } from "../../utils/get-visual-viewport.js";
+import { getScopeContainer } from "../../utils/runtime-mode.js";
 import {
   calculateExpandedPositionFromCollapsed,
   getCollapsedDimsForEdge,
@@ -383,6 +384,15 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     setPosition(getPositionFromEdgeAndRatio(snapEdge(), positionRatio(), newWidth, newHeight));
   };
 
+  // In scoped mode the toolbar is anchored to a container whose viewport box
+  // moves as the page scrolls, so it must re-anchor on scroll. Repositioning
+  // only (no ratio/resize dance) keeps it glued to the container edge.
+  const handleScopedScroll = () => {
+    if (!getScopeContainer()) return;
+    if (drag.isDragging() || drag.isSnapping()) return;
+    recalculatePosition();
+  };
+
   const handleResize = () => {
     if (drag.isDragging()) return;
 
@@ -521,6 +531,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     window.addEventListener("resize", handleResize);
     window.visualViewport?.addEventListener("resize", handleResize);
     window.visualViewport?.addEventListener("scroll", handleResize);
+    window.addEventListener("scroll", handleScopedScroll, { passive: true, capture: true });
 
     if (typeof ResizeObserver !== "undefined" && containerRef) {
       const observer = new ResizeObserver((entries) => {
@@ -562,6 +573,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     window.removeEventListener("resize", handleResize);
     window.visualViewport?.removeEventListener("resize", handleResize);
     window.visualViewport?.removeEventListener("scroll", handleResize);
+    window.removeEventListener("scroll", handleScopedScroll, { capture: true });
     clearTimeout(resizeTimeout);
     clearTimeout(collapseAnimationTimeout);
 

@@ -13,6 +13,7 @@ export const createNoopApi = (): ReactGrabAPI => ({
   getToolbarState: () => null,
   setToolbarState: NOOP,
   onToolbarStateChange: () => NOOP,
+  reset: NOOP,
   dispose: NOOP,
   copyElement: () => Promise.resolve(false),
   getSource: () => Promise.resolve(null),
