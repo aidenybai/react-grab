@@ -91,7 +91,7 @@ export const getNearestComponentName = async (element: Element): Promise<string 
 };
 
 export interface ResolvedSource extends SourceLocation {
-  source: SourcePathClassification["source"];
+  origin: SourcePathClassification["origin"];
 }
 
 const pickSourceFrame = (frames: StackFrame[]): StackFrame | null => {
@@ -120,7 +120,7 @@ const getFiberSource = async (element: Element): Promise<ResolvedSource | null> 
       columnNumber: source.columnNumber ?? null,
       componentName:
         toSourceComponentName(source.functionName) ?? getSourceComponentName(fiber._debugOwner),
-      source: classifySourcePath(source.fileName).source,
+      origin: classifySourcePath(source.fileName).origin,
     };
   } catch {
     return null;
@@ -142,25 +142,25 @@ const getCachedFiberSource = (element: Element): Promise<ResolvedSource | null> 
   return fiberSourcePromise;
 };
 
-const SOURCE_PREFERENCE_ORDER = ["app", "package"] as const;
+const ORIGIN_PREFERENCE_ORDER = ["app", "package"] as const;
 
 export const selectResolvedSource = (
   fiberSource: ResolvedSource | null,
   stack: StackFrame[],
 ): ResolvedSource | null => {
-  for (const source of SOURCE_PREFERENCE_ORDER) {
-    if (fiberSource?.source === source) return fiberSource;
-    const framesOfSource = stack.filter(
-      (frame) => classifySourcePath(frame.fileName).source === source,
+  for (const origin of ORIGIN_PREFERENCE_ORDER) {
+    if (fiberSource?.origin === origin) return fiberSource;
+    const framesOfOrigin = stack.filter(
+      (frame) => classifySourcePath(frame.fileName).origin === origin,
     );
-    const preferredFrame = pickSourceFrame(framesOfSource);
+    const preferredFrame = pickSourceFrame(framesOfOrigin);
     if (preferredFrame?.fileName) {
       return {
         filePath: normalizeFilePath(preferredFrame.fileName),
         lineNumber: preferredFrame.lineNumber ?? null,
         columnNumber: preferredFrame.columnNumber ?? null,
         componentName: toSourceComponentName(preferredFrame.functionName),
-        source,
+        origin,
       };
     }
   }
@@ -169,7 +169,7 @@ export const selectResolvedSource = (
 
 export const resolveSource = async (element: Element): Promise<ResolvedSource | null> => {
   const fiberSource = await getCachedFiberSource(element);
-  if (fiberSource?.source === "app") return fiberSource;
+  if (fiberSource?.origin === "app") return fiberSource;
 
   return selectResolvedSource(fiberSource, (await getStack(element)) ?? []);
 };
@@ -254,7 +254,7 @@ const formatStackFrameLine = (
   // Only app-owned frames contribute a file path; library frames render by
   // component name (e.g. "in Tabs (@radix-ui/react-tabs)") so node_modules
   // paths never compete with the resolved app source.
-  const appSourceFilePath = sourceClassification.source === "app" ? frame.fileName : null;
+  const appSourceFilePath = sourceClassification.origin === "app" ? frame.fileName : null;
 
   if (frame.isServer && !appSourceFilePath && (componentName || !frame.functionName)) {
     const serverTag = libraryPackage ? `${libraryPackage} at Server` : "at Server";
@@ -312,7 +312,7 @@ export const formatStackContext = (
   let untrustedLineCount = 0;
 
   if (leadingSource) {
-    hasTrustedSource = leadingSource.source === "app";
+    hasTrustedSource = leadingSource.origin === "app";
     lines.push(formatSourceContextLine(leadingSource, isNextProject));
   }
 
@@ -366,7 +366,7 @@ export const formatStackContext = (
 // node_modules paths is what this avoids.
 const resolveLeadingSource = async (element: Element): Promise<ResolvedSource | null> => {
   const fiberSource = await getCachedFiberSource(element);
-  return fiberSource?.source === "app" ? fiberSource : null;
+  return fiberSource?.origin === "app" ? fiberSource : null;
 };
 
 const getTraceContext = async (

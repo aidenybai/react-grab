@@ -11,7 +11,7 @@ const fiberSource: ResolvedSource = {
   lineNumber: 1,
   columnNumber: 1,
   componentName: "Page",
-  source: "app",
+  origin: "app",
 };
 
 const packageFiberSource: ResolvedSource = {
@@ -19,7 +19,7 @@ const packageFiberSource: ResolvedSource = {
   lineNumber: 1,
   columnNumber: 1,
   componentName: "Tabs",
-  source: "package",
+  origin: "package",
 };
 
 const appFrame: StackFrame = {
@@ -63,7 +63,7 @@ describe("selectResolvedSource", () => {
     expect(selectResolvedSource(null, [])).toBe(null);
   });
 
-  it("picks the first named frame within a source type over an earlier anonymous frame", () => {
+  it("picks the first named frame within an origin over an earlier anonymous frame", () => {
     const anonymousFrame: StackFrame = {
       fileName: "/src/app/anonymous.tsx",
       lineNumber: 2,
