@@ -325,6 +325,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let toolbarElement: HTMLDivElement | undefined;
     let stopToolbarMenuTracking: (() => void) | null = null;
     let stopEditPanelTracking: (() => void) | null = null;
+    let didSwitchEditTargetOnPointerDown = false;
 
     let shiftSelectionLabelAnchorRatioByElement = new WeakMap<Element, number>();
 
@@ -1447,6 +1448,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       position: Position,
       overrides: EditModeOverrides = {},
     ): boolean => editMode.trigger(element, position, overrides);
+
+    const tryHandleEditModeElementSwitch = (clientX: number, clientY: number): boolean => {
+      if (!editMode.isOpen() || store.contextMenuPosition !== null) return false;
+      const element = getElementsAtPoint(clientX, clientY).find(isValidGrabbableElement);
+      if (!element) return false;
+      const didSwitch = editMode.switchToElement(element, { x: clientX, y: clientY });
+      if (didSwitch) freezeAllAnimations([element]);
+      return didSwitch;
+    };
 
     const currentSelectionEditOverrides = (element: Element): EditModeOverrides => ({
       filePath: store.selectionFilePath ?? undefined,
@@ -2598,8 +2608,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (event.button !== 0) return;
         if (!event.isPrimary) return;
         actions.setTouchMode(event.pointerType === "touch");
+        didSwitchEditTargetOnPointerDown = false;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-        if (isModalPopoverOpen()) return;
+        if (isModalPopoverOpen()) {
+          if (tryHandleEditModeElementSwitch(event.clientX, event.clientY)) {
+            didSwitchEditTargetOnPointerDown = true;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+          }
+          return;
+        }
 
         if (isPromptMode()) {
           const bounds = selectionBounds();
@@ -2710,6 +2728,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       "click",
       (event: MouseEvent) => {
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
+        if (didSwitchEditTargetOnPointerDown) {
+          didSwitchEditTargetOnPointerDown = false;
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          return;
+        }
         if (isModalPopoverOpen()) return;
 
         if (isRendererActive() || didJustDrag()) {
@@ -3585,6 +3609,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 editPanelPosition={editPanelPosition()}
                 onEditPanelDismiss={editMode.dismiss}
                 onEditPanelSubmit={editMode.submit}
+                onEditPanelPendingEditsChange={editMode.setPendingEdits}
                 onEditPanelInteractingChange={editMode.setInteracting}
               />
             );

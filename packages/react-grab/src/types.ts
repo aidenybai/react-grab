@@ -243,7 +243,6 @@ export interface PendingEditsEntry {
 export interface PreviewStyles {
   apply: (cssProperties: readonly string[], cssValue: string) => void;
   restore: () => void;
-  forget: () => void;
   hasAppliedStyles: () => boolean;
 }
 
@@ -259,6 +258,7 @@ export interface EditPanelState {
   tagName?: string;
   htmlPreview?: string;
   initialSearchQuery?: string;
+  hasSessionEdits?: boolean;
 }
 
 export interface ContextMenuAction {
@@ -515,7 +515,8 @@ export interface ReactGrabRendererProps {
   editPanelState?: EditPanelState | null;
   editPanelPosition?: DropdownAnchor | null;
   onEditPanelDismiss?: () => void;
-  onEditPanelSubmit?: (prompt: string) => void;
+  onEditPanelSubmit?: (pendingEdits: PendingEdits) => void;
+  onEditPanelPendingEditsChange?: (pendingEdits: PendingEdits) => void;
   onEditPanelInteractingChange?: (interacting: boolean) => void;
 }
 

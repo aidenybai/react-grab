@@ -2,7 +2,6 @@ import { expect, test } from "./fixtures.js";
 import {
   ATTRIBUTE_NAME,
   BUTTON_SELECTOR,
-  CARD_SELECTOR,
   COPY_BUTTON_ATTR,
   DISCARD_PROMPT_IDLE_MS,
   EDIT_PANEL_ATTR,
@@ -33,6 +32,7 @@ import {
   isEditPanelCompact,
   isEditPanelVisible,
   isHeaderCopyButtonVisible,
+  MAIN_TITLE_SELECTOR,
   openDiscardPromptViaEscape,
   openEditPanel,
   readSessionStorageEntries,
@@ -226,9 +226,11 @@ test.describe("Style Panel", () => {
       expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).toBe(beforeTweak);
     });
 
-    test("click outside dismisses the panel", async ({ reactGrab }) => {
+    test("outside mousedown without a grabbable target dismisses the panel", async ({
+      reactGrab,
+    }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
-      await reactGrab.page.mouse.click(5, 5);
+      await dispatchOutsideDismiss(reactGrab.page);
       await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
     });
 
@@ -1389,7 +1391,7 @@ test.describe("Style Panel", () => {
     });
   });
 
-  test.describe("Selection lock", () => {
+  test.describe("Element switching", () => {
     test("panel stays open while pointer moves over other elements", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await reactGrab.page.mouse.move(10, 10);
@@ -1399,36 +1401,116 @@ test.describe("Style Panel", () => {
       expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
     });
 
-    test("clicking another element does not change selection", async ({ reactGrab }) => {
+    test("clicking another element switches the style target and keeps applied styles", async ({
+      reactGrab,
+    }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
-      const panelStateBeforeClick = await reactGrab.page.evaluate(
-        ({ attrName }) => {
-          const host = document.querySelector(`[${attrName}]`);
-          const shadowRoot = host?.shadowRoot;
-          const panel = shadowRoot?.querySelector("[data-react-grab-edit-panel]");
-          return panel ? "panel-open" : "panel-gone";
-        },
-        { attrName: ATTRIBUTE_NAME },
-      );
-      expect(panelStateBeforeClick).toBe("panel-open");
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+      const buttonStyleAfterTweak = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
+      expect(buttonStyleAfterTweak.length).toBeGreaterThan(0);
 
-      await reactGrab.page.locator(CARD_SELECTOR).first().click({ force: true });
+      await reactGrab.page.locator(MAIN_TITLE_SELECTOR).click({ force: true });
       await reactGrab.page.waitForTimeout(150);
 
-      const stateAfter = await reactGrab.page.evaluate(
-        ({ attrName, buttonSelector }) => {
-          const host = document.querySelector(`[${attrName}]`);
-          const shadowRoot = host?.shadowRoot;
-          const panel = shadowRoot?.querySelector("[data-react-grab-edit-panel]");
-          const buttonElement = document.querySelector(buttonSelector);
-          return {
-            panelStillOpen: panel !== null,
-            buttonStillExists: buttonElement !== null,
-          };
-        },
-        { attrName: ATTRIBUTE_NAME, buttonSelector: BUTTON_SELECTOR },
+      expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
+      expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).toBe(
+        buttonStyleAfterTweak,
       );
-      expect(stateAfter.buttonStillExists).toBe(true);
+
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+      const titleStyleAfterTweak = await getInlineStyleAttribute(
+        reactGrab.page,
+        MAIN_TITLE_SELECTOR,
+      );
+      expect(titleStyleAfterTweak.length).toBeGreaterThan(0);
+    });
+
+    test("edits compound across switched elements on copy", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+
+      await reactGrab.page.locator(MAIN_TITLE_SELECTOR).click({ force: true });
+      await reactGrab.page.waitForTimeout(150);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+
+      const buttonStyleBeforeCopy = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
+      const titleStyleBeforeCopy = await getInlineStyleAttribute(
+        reactGrab.page,
+        MAIN_TITLE_SELECTOR,
+      );
+
+      await reactGrab.page.keyboard.press("Enter");
+      await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
+      await expect
+        .poll(() => reactGrab.getClipboardContent())
+        .toContain("best expresses the underlying layout intent");
+      const clipboardContent = await reactGrab.getClipboardContent();
+      expect(clipboardContent.match(/```css/g)?.length).toBe(2);
+
+      expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).toBe(
+        buttonStyleBeforeCopy,
+      );
+      expect(await getInlineStyleAttribute(reactGrab.page, MAIN_TITLE_SELECTOR)).toBe(
+        titleStyleBeforeCopy,
+      );
+    });
+
+    test("discarding after switching restores every styled element", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      const buttonStyleBeforeTweak = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+
+      await reactGrab.page.locator(MAIN_TITLE_SELECTOR).click({ force: true });
+      await reactGrab.page.waitForTimeout(150);
+      const titleStyleBeforeTweak = await getInlineStyleAttribute(
+        reactGrab.page,
+        MAIN_TITLE_SELECTOR,
+      );
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+      expect(await getInlineStyleAttribute(reactGrab.page, MAIN_TITLE_SELECTOR)).not.toBe(
+        titleStyleBeforeTweak,
+      );
+
+      await openDiscardPromptViaEscape(reactGrab.page);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
+      await reactGrab.page.keyboard.press("Escape");
+      await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
+
+      expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).toBe(
+        buttonStyleBeforeTweak,
+      );
+      expect(await getInlineStyleAttribute(reactGrab.page, MAIN_TITLE_SELECTOR)).toBe(
+        titleStyleBeforeTweak,
+      );
+    });
+
+    test("session edits from a previous element keep the discard prompt armed", async ({
+      reactGrab,
+    }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      const buttonStyleBeforeTweak = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+
+      await reactGrab.page.locator(MAIN_TITLE_SELECTOR).click({ force: true });
+      await reactGrab.page.waitForTimeout(150);
+
+      await reactGrab.page.keyboard.press("Escape");
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
+
+      await reactGrab.page.keyboard.press("Escape");
+      await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
+      expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).toBe(
+        buttonStyleBeforeTweak,
+      );
     });
   });
 
