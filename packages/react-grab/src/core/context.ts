@@ -120,8 +120,6 @@ const getFiberSource = async (element: Element): Promise<ResolvedSource | null> 
       columnNumber: source.columnNumber ?? null,
       componentName:
         toSourceComponentName(source.functionName) ?? getSourceComponentName(fiber._debugOwner),
-      // Classify the raw path: normalizeFilePath strips the leading "./" that
-      // scoped-package detection relies on.
       kind: classifySourcePath(source.fileName).kind,
     };
   } catch {
@@ -144,11 +142,7 @@ const getCachedFiberSource = (element: Element): Promise<ResolvedSource | null> 
   return fiberSourcePromise;
 };
 
-const SOURCE_KIND_PREFERENCE_ORDER = [
-  "app-source",
-  "ignored-app-source",
-  "package-source",
-] as const;
+const SOURCE_KIND_PREFERENCE_ORDER = ["app-source", "package-source"] as const;
 
 export const selectResolvedSource = (
   fiberSource: ResolvedSource | null,
@@ -255,9 +249,9 @@ const formatStackFrameLine = (
   isNextProject: boolean,
 ): StackFrameLine | null => {
   const libraryPackage = sourceClassification.packageName;
-  // Only app-owned frames contribute a file path. Ignored UI-wrapper frames
-  // render by component name (e.g. "in Button") so they stay as context without
-  // surfacing a wrapper path that would compete with the resolved app source.
+  // Only app-owned frames contribute a file path; library frames render by
+  // component name (e.g. "in Tabs (@radix-ui/react-tabs)") so node_modules
+  // paths never compete with the resolved app source.
   const appSourceFilePath = sourceClassification.kind === "app-source" ? frame.fileName : null;
 
   if (frame.isServer && !appSourceFilePath && (componentName || !frame.functionName)) {
@@ -305,14 +299,15 @@ export const formatStackContext = (
   leadingSource: ResolvedSource | null = null,
 ): TraceContextResult => {
   const { maxLines = DEFAULT_MAX_CONTEXT_LINES } = options;
-  // max, not min: the dig-past-low-signal cap must sit above the soft budget
-  // (min would collapse it onto maxLines and disable digging entirely).
+  // max, not min: the extended cap must sit above the soft budget (min would
+  // collapse it onto maxLines and disable extension entirely).
   const hardMaxLines = Math.max(maxLines, MAX_TRACE_CONTEXT_LINES);
   const isNextProject = isNextProjectRuntime();
   const lines: string[] = [];
   let previousLibraryFrameKey: string | null = null;
   let didDedupeLeadingComponent = false;
   let hasTrustedSource = false;
+  let untrustedLineCount = 0;
 
   if (leadingSource) {
     hasTrustedSource = leadingSource.kind === "app-source";
@@ -320,9 +315,10 @@ export const formatStackContext = (
   }
 
   for (const frame of stack) {
-    // Past the soft budget, keep digging until a trusted app frame or the hard cap.
-    if (lines.length >= hardMaxLines) break;
-    if (lines.length >= maxLines && hasTrustedSource) break;
+    // Low-signal lines (no app file path) do not consume the budget: each one
+    // extends the allowance by one line, up to the hard cap, so library noise
+    // never crowds out app source locations.
+    if (lines.length >= Math.min(maxLines + untrustedLineCount, hardMaxLines)) break;
 
     const sourceClassification = classifySourcePath(frame.fileName);
 
@@ -353,6 +349,7 @@ export const formatStackContext = (
     if (frameLine === null) continue;
 
     if (frameLine.isTrustedSource) hasTrustedSource = true;
+    else untrustedLineCount += 1;
     lines.push(frameLine.text);
     previousLibraryFrameKey = libraryFrameKey;
   }
@@ -363,16 +360,11 @@ export const formatStackContext = (
   };
 };
 
-// Ignored components/ui sources are promoted to the leading line because their
-// frames are dropped from the stack body yet still back the selection metadata,
-// so the copied snippet would otherwise omit the resolved path. Package-only
-// sources are never promoted: surfacing node_modules paths is what this avoids.
+// Package sources are never promoted to the leading line: surfacing
+// node_modules paths is what this avoids.
 const resolveLeadingSource = async (element: Element): Promise<ResolvedSource | null> => {
   const fiberSource = await getCachedFiberSource(element);
-  if (fiberSource?.kind === "app-source") return fiberSource;
-
-  const fallbackSource = selectResolvedSource(fiberSource, (await getStack(element)) ?? []);
-  return fallbackSource?.kind === "ignored-app-source" ? fallbackSource : null;
+  return fiberSource?.kind === "app-source" ? fiberSource : null;
 };
 
 const getTraceContext = async (

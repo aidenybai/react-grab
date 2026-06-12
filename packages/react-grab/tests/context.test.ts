@@ -14,14 +14,6 @@ const fiberSource: ResolvedSource = {
   kind: "app-source",
 };
 
-const ignoredFiberSource: ResolvedSource = {
-  filePath: "/src/components/ui/button.tsx",
-  lineNumber: 1,
-  columnNumber: 1,
-  componentName: "Button",
-  kind: "ignored-app-source",
-};
-
 const packageFiberSource: ResolvedSource = {
   filePath: "/app/node_modules/react-tabs/dist/index.js",
   lineNumber: 1,
@@ -37,13 +29,6 @@ const appFrame: StackFrame = {
   columnNumber: 2,
 };
 
-const ignoredFrame: StackFrame = {
-  fileName: "/src/components/ui/button.tsx",
-  functionName: "Button",
-  lineNumber: 9,
-  columnNumber: 4,
-};
-
 const packageFrame: StackFrame = {
   fileName: "/app/node_modules/react-tabs/dist/index.js",
   functionName: "Tabs",
@@ -56,23 +41,10 @@ describe("selectResolvedSource", () => {
     expect(selectResolvedSource(fiberSource, [appFrame])).toBe(fiberSource);
   });
 
-  it("prefers an app-source frame over a non-app fiber source", () => {
-    expect(selectResolvedSource(ignoredFiberSource, [appFrame])).toMatchObject({
+  it("prefers an app-source frame over a package fiber source", () => {
+    expect(selectResolvedSource(packageFiberSource, [appFrame])).toMatchObject({
       filePath: "/src/app/widget.tsx",
       componentName: "Widget",
-    });
-  });
-
-  it("prefers an ignored-app-source fiber over ignored or package frames", () => {
-    expect(selectResolvedSource(ignoredFiberSource, [ignoredFrame, packageFrame])).toBe(
-      ignoredFiberSource,
-    );
-  });
-
-  it("falls back to an ignored-app-source frame over a package frame", () => {
-    expect(selectResolvedSource(null, [ignoredFrame, packageFrame])).toMatchObject({
-      filePath: "/src/components/ui/button.tsx",
-      componentName: "Button",
     });
   });
 
@@ -106,26 +78,37 @@ describe("selectResolvedSource", () => {
 });
 
 describe("formatStackContext", () => {
-  it("keeps UI-component frames by name while still surfacing the app frame", () => {
+  it("surfaces design-system wrapper frames with their file path", () => {
     const result = formatStackContext([
       { fileName: "src/components/ui/button.tsx", functionName: "Button" },
       { fileName: "src/app/page.tsx", functionName: "Page" },
     ]);
 
     expect(result.text).toContain("in Button");
-    expect(result.text).not.toContain("button.tsx");
+    expect(result.text).toContain("components/ui/button.tsx");
     expect(result.text).toContain("in Page");
     expect(result.text).toContain("app/page.tsx");
   });
 
-  it("omits anonymous UI-component frames that carry no name", () => {
-    const result = formatStackContext([
-      { fileName: "src/components/ui/button.tsx" },
-      { fileName: "src/app/page.tsx", functionName: "Page" },
-    ]);
+  it("extends the line budget by one per low-signal package line", () => {
+    const result = formatStackContext(
+      [
+        { fileName: "node_modules/react-tabs/dist/index.js", functionName: "Tabs" },
+        { fileName: "src/app/widget.tsx", functionName: "Widget" },
+        { fileName: "src/app/section.tsx", functionName: "Section" },
+        { fileName: "src/app/page.tsx", functionName: "Page" },
+        { fileName: "src/app/layout.tsx", functionName: "Layout" },
+      ],
+      { maxLines: 3 },
+    );
 
-    expect(result.text).not.toContain("button.tsx");
-    expect(result.text).toContain("in Page");
+    const lines = result.text.split("\n").filter(Boolean);
+    expect(lines).toHaveLength(4);
+    expect(result.text).toContain("in Tabs (react-tabs)");
+    expect(result.text).toContain("app/widget.tsx");
+    expect(result.text).toContain("app/section.tsx");
+    expect(result.text).toContain("app/page.tsx");
+    expect(result.text).not.toContain("app/layout.tsx");
   });
 
   it("digs past low-signal package frames to surface a deeper app source", () => {
@@ -145,11 +128,5 @@ describe("formatStackContext", () => {
     const result = formatStackContext([], {}, fiberSource);
 
     expect(result.shouldAppendSelectorHint).toBe(false);
-  });
-
-  it("requests a selector hint for an ignored components/ui leading source", () => {
-    const result = formatStackContext([], {}, ignoredFiberSource);
-
-    expect(result.shouldAppendSelectorHint).toBe(true);
   });
 });

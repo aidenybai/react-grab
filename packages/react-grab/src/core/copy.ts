@@ -1,4 +1,4 @@
-import { getElementReferenceContext, getStack, resolveSource } from "./context.js";
+import { getElementReferenceContext, getStack, getStackContext, resolveSource } from "./context.js";
 import { copyContent } from "../utils/copy-content.js";
 import { normalizeError } from "../utils/normalize-error.js";
 import { getTagName } from "../utils/get-tag-name.js";
@@ -34,8 +34,9 @@ const formatStackFramePayload = (frame: StackFrame): ReactGrabStackFrame => ({
 });
 
 const buildElementPayloadEntry = async (element: Element): Promise<ReactGrabEntry> => {
-  const [referenceContext, source, stack] = await Promise.all([
+  const [referenceContext, stackContext, source, stack] = await Promise.all([
     getElementReferenceContext(element),
+    getStackContext(element),
     resolveSource(element),
     getStack(element),
   ]);
@@ -44,7 +45,7 @@ const buildElementPayloadEntry = async (element: Element): Promise<ReactGrabEntr
     componentName: source?.componentName ?? undefined,
     content: `[${referenceContext}]`,
     source,
-    stackContext: referenceContext,
+    stackContext,
     frames: (stack ?? []).map(formatStackFramePayload),
   };
 };

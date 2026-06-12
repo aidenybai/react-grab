@@ -94,33 +94,65 @@ export const parsePackageName = (fileName: string | null | undefined): string | 
 
 const SCOPED_PACKAGE_PATTERN = /^@[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const PACKAGE_NAME_SEGMENT_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
-// A relative scoped path like `../@acme/app/...` has no node_modules marker to
-// prove it is third-party, so a monorepo's own app workspace would otherwise be
-// misread as a package. Best-effort allowlist of common first-party app dirs.
-const APPLICATION_PACKAGE_NAME_SEGMENTS = new Set(["app", "web", "website", "frontend", "client"]);
+// A scoped path like `@acme/app/...` or `../@acme/app/...` has no node_modules
+// marker to prove it is third-party, so a monorepo's own app workspace would
+// otherwise be misread as a package. Best-effort allowlist of common
+// first-party workspace names.
+const APPLICATION_PACKAGE_NAME_SEGMENTS = new Set([
+  "app",
+  "web",
+  "website",
+  "frontend",
+  "client",
+  "src",
+]);
 
-const stripRelativeSourcePathPrefix = (path: string): string | null => {
+// Bundler aliases (`@app/components/...`, `@components/forms/...`) reuse the
+// `@x/y` shape without being packages; real package scopes are org names, so
+// scopes matching common app directory names are treated as aliases.
+const ALIAS_SCOPE_SEGMENTS = new Set([
+  "app",
+  "src",
+  "components",
+  "pages",
+  "features",
+  "modules",
+  "hooks",
+  "lib",
+  "utils",
+  "ui",
+  "shared",
+  "common",
+  "core",
+  "styles",
+  "assets",
+]);
+
+const stripRelativeSourcePathPrefix = (path: string): string => {
   let remainingPath = path;
-  let didStripPrefix = false;
   while (remainingPath.startsWith("../") || remainingPath.startsWith("./")) {
-    didStripPrefix = true;
     remainingPath = remainingPath.slice(remainingPath.startsWith("../") ? 3 : 2);
   }
-  return didStripPrefix ? remainingPath : null;
+  return remainingPath;
 };
 
 const parseScopedPackageSourceName = (fileName: string): string | null => {
   const sourcePath = stripRelativeSourcePathPrefix(
     safeDecodeURIComponent(normalizeFileName(fileName)),
   );
-  if (!sourcePath) return null;
+  // Absolute paths (e.g. Vite's `/@fs/...`) point at first-party files; only
+  // relative or bare `@scope/package/...` paths can be unmarked dependencies.
+  if (sourcePath.startsWith("/")) return null;
 
-  const [scope, packageName] = splitPathSegments(sourcePath);
+  const [scope, packageName, ...innerPathSegments] = splitPathSegments(sourcePath);
   if (
     !scope ||
     !packageName ||
+    innerPathSegments.length === 0 ||
     !SCOPED_PACKAGE_PATTERN.test(scope) ||
+    ALIAS_SCOPE_SEGMENTS.has(scope.slice(1)) ||
     !PACKAGE_NAME_SEGMENT_PATTERN.test(packageName) ||
+    FILE_EXTENSION_PATTERN.test(packageName) ||
     APPLICATION_PACKAGE_NAME_SEGMENTS.has(packageName)
   ) {
     return null;
@@ -130,7 +162,8 @@ const parseScopedPackageSourceName = (fileName: string): string | null => {
 };
 
 // parsePackageName keys off node_modules/.vite/CDN markers; the scoped fallback
-// handles bare relative imports like `../@acme/ui/...` that carry no marker.
+// handles sourcemapped dependency paths like `../@acme/ui/...` or
+// `@radix-ui/react-tabs/src/tabs.tsx` that carry no marker.
 export const resolvePackageName = (fileName: string | null | undefined): string | null => {
   if (!fileName) return null;
   return parsePackageName(fileName) ?? parseScopedPackageSourceName(fileName);

@@ -28,26 +28,30 @@ describe("classifySourcePath", () => {
     });
   });
 
-  // The relative prefix is the only signal distinguishing a scoped dependency
-  // import from a `@alias/...` path, so a normalized path (leading "./" removed)
-  // can no longer be detected as a package. Callers must classify the raw path.
-  it("only detects relative scoped packages while the relative prefix survives", () => {
+  it("detects scoped packages with or without a relative prefix", () => {
     expect(classifySourcePath("./@radix-ui/react-tabs/src/tabs.tsx").kind).toBe("package-source");
-    expect(classifySourcePath("@radix-ui/react-tabs/src/tabs.tsx").kind).not.toBe("package-source");
+    expect(classifySourcePath("@radix-ui/react-tabs/src/tabs.tsx").kind).toBe("package-source");
   });
 
-  it("classifies default ignored app source paths", () => {
+  it("does not treat bundler alias paths as packages", () => {
+    expect(classifySourcePath("@app/components/tabs.tsx").kind).toBe("app-source");
+    expect(classifySourcePath("@components/forms/input.tsx").kind).toBe("app-source");
+    expect(classifySourcePath("@scope/tabs.tsx").kind).toBe("app-source");
+    expect(classifySourcePath("/@fs/Users/dev/project/src/tabs.tsx").kind).toBe("app-source");
+  });
+
+  it("classifies design-system wrapper paths as app source", () => {
     expect(classifySourcePath("components/ui/button.tsx")).toEqual({
-      kind: "ignored-app-source",
+      kind: "app-source",
       packageName: null,
     });
     expect(classifySourcePath("src/components/ui/dialog.tsx")).toEqual({
-      kind: "ignored-app-source",
+      kind: "app-source",
       packageName: null,
     });
   });
 
-  it("does not ignore nearby app source paths", () => {
+  it("classifies monorepo workspace paths as app source", () => {
     expect(classifySourcePath("../@company/app/src/tabs.tsx")).toEqual({
       kind: "app-source",
       packageName: null,
