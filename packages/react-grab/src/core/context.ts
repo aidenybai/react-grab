@@ -91,7 +91,7 @@ export const getNearestComponentName = async (element: Element): Promise<string 
 };
 
 export interface ResolvedSource extends SourceLocation {
-  kind: SourcePathClassification["kind"];
+  source: SourcePathClassification["source"];
 }
 
 const pickSourceFrame = (frames: StackFrame[]): StackFrame | null => {
@@ -120,7 +120,7 @@ const getFiberSource = async (element: Element): Promise<ResolvedSource | null> 
       columnNumber: source.columnNumber ?? null,
       componentName:
         toSourceComponentName(source.functionName) ?? getSourceComponentName(fiber._debugOwner),
-      kind: classifySourcePath(source.fileName).kind,
+      source: classifySourcePath(source.fileName).source,
     };
   } catch {
     return null;
@@ -142,23 +142,25 @@ const getCachedFiberSource = (element: Element): Promise<ResolvedSource | null> 
   return fiberSourcePromise;
 };
 
-const SOURCE_KIND_PREFERENCE_ORDER = ["app-source", "package-source"] as const;
+const SOURCE_PREFERENCE_ORDER = ["app", "package"] as const;
 
 export const selectResolvedSource = (
   fiberSource: ResolvedSource | null,
   stack: StackFrame[],
 ): ResolvedSource | null => {
-  for (const kind of SOURCE_KIND_PREFERENCE_ORDER) {
-    if (fiberSource?.kind === kind) return fiberSource;
-    const framesOfKind = stack.filter((frame) => classifySourcePath(frame.fileName).kind === kind);
-    const preferredFrame = pickSourceFrame(framesOfKind);
+  for (const source of SOURCE_PREFERENCE_ORDER) {
+    if (fiberSource?.source === source) return fiberSource;
+    const framesOfSource = stack.filter(
+      (frame) => classifySourcePath(frame.fileName).source === source,
+    );
+    const preferredFrame = pickSourceFrame(framesOfSource);
     if (preferredFrame?.fileName) {
       return {
         filePath: normalizeFilePath(preferredFrame.fileName),
         lineNumber: preferredFrame.lineNumber ?? null,
         columnNumber: preferredFrame.columnNumber ?? null,
         componentName: toSourceComponentName(preferredFrame.functionName),
-        kind,
+        source,
       };
     }
   }
@@ -167,7 +169,7 @@ export const selectResolvedSource = (
 
 export const resolveSource = async (element: Element): Promise<ResolvedSource | null> => {
   const fiberSource = await getCachedFiberSource(element);
-  if (fiberSource?.kind === "app-source") return fiberSource;
+  if (fiberSource?.source === "app") return fiberSource;
 
   return selectResolvedSource(fiberSource, (await getStack(element)) ?? []);
 };
@@ -252,7 +254,7 @@ const formatStackFrameLine = (
   // Only app-owned frames contribute a file path; library frames render by
   // component name (e.g. "in Tabs (@radix-ui/react-tabs)") so node_modules
   // paths never compete with the resolved app source.
-  const appSourceFilePath = sourceClassification.kind === "app-source" ? frame.fileName : null;
+  const appSourceFilePath = sourceClassification.source === "app" ? frame.fileName : null;
 
   if (frame.isServer && !appSourceFilePath && (componentName || !frame.functionName)) {
     const serverTag = libraryPackage ? `${libraryPackage} at Server` : "at Server";
@@ -310,7 +312,7 @@ export const formatStackContext = (
   let untrustedLineCount = 0;
 
   if (leadingSource) {
-    hasTrustedSource = leadingSource.kind === "app-source";
+    hasTrustedSource = leadingSource.source === "app";
     lines.push(formatSourceContextLine(leadingSource, isNextProject));
   }
 
@@ -364,7 +366,7 @@ export const formatStackContext = (
 // node_modules paths is what this avoids.
 const resolveLeadingSource = async (element: Element): Promise<ResolvedSource | null> => {
   const fiberSource = await getCachedFiberSource(element);
-  return fiberSource?.kind === "app-source" ? fiberSource : null;
+  return fiberSource?.source === "app" ? fiberSource : null;
 };
 
 const getTraceContext = async (
