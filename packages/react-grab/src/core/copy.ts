@@ -71,14 +71,18 @@ const getMetadataEntries = (
 ): ReactGrabEntry[] | undefined => {
   if (!payload?.entries) return undefined;
   if (finalContent === payload.content) return payload.entries;
-  if (payload.entries.length !== 1) return undefined;
-  return [
-    {
-      ...payload.entries[0],
-      content: finalContent,
-      commentText: prependedPrompt,
-    },
-  ];
+  if (payload.entries.length === 1) {
+    return [
+      {
+        ...payload.entries[0],
+        content: finalContent,
+        commentText: prependedPrompt,
+      },
+    ];
+  }
+  // Transformed multi-element content no longer maps 1:1 onto entries, so keep
+  // each entry's own reference content and only attach the prompt.
+  return payload.entries.map((entry) => ({ ...entry, commentText: prependedPrompt }));
 };
 
 export const runCopyFlow = async (

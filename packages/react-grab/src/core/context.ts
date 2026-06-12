@@ -309,18 +309,19 @@ export const formatStackContext = (
   let previousLibraryFrameKey: string | null = null;
   let didDedupeLeadingComponent = false;
   let hasTrustedSource = false;
-  let untrustedLineCount = 0;
+  let budgetedLineCount = 0;
 
   if (leadingSource) {
     hasTrustedSource = leadingSource.origin === "app";
+    budgetedLineCount += 1;
     lines.push(formatSourceContextLine(leadingSource, isNextProject));
   }
 
   for (const frame of stack) {
-    // Low-signal lines (no app file path) do not consume the budget: each one
-    // extends the allowance by one line, up to the hard cap, so library noise
-    // never crowds out app source locations.
-    if (lines.length >= Math.min(maxLines + untrustedLineCount, hardMaxLines)) break;
+    // Low-signal lines (no app file path) are free: they never consume the
+    // soft budget, only the hard cap, so library noise never crowds out app
+    // source locations.
+    if (budgetedLineCount >= maxLines || lines.length >= hardMaxLines) break;
 
     const sourceClassification = classifySourcePath(frame.fileName);
 
@@ -350,8 +351,10 @@ export const formatStackContext = (
     );
     if (frameLine === null) continue;
 
-    if (frameLine.isTrustedSource) hasTrustedSource = true;
-    else untrustedLineCount += 1;
+    if (frameLine.isTrustedSource) {
+      hasTrustedSource = true;
+      budgetedLineCount += 1;
+    }
     lines.push(frameLine.text);
     previousLibraryFrameKey = libraryFrameKey;
   }
