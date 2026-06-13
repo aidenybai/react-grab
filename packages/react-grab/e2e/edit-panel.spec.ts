@@ -1282,6 +1282,40 @@ test.describe("Style Panel", () => {
       expect(clipboardContent).not.toContain("padding-top: 24px;");
     });
 
+    test("copied prompt matches the preview across overlapping full, longhand, and axis aggregates", async ({
+      reactGrab,
+    }) => {
+      await openEditPanel(reactGrab, UNIFORM_PADDING_SELECTOR);
+      await setSearchInputValue(reactGrab.page, "p-6");
+      await expect
+        .poll(() =>
+          getInlineStyleProperty(reactGrab.page, UNIFORM_PADDING_SELECTOR, "padding-left"),
+        )
+        .toBe("24px");
+      await setSearchInputValue(reactGrab.page, "pt-8");
+      await expect
+        .poll(() => getInlineStyleProperty(reactGrab.page, UNIFORM_PADDING_SELECTOR, "padding-top"))
+        .toBe("32px");
+      // px-2 sends left/right back to their 8px original on top of the
+      // p-6 fan-out; it must still be emitted so the prompt doesn't claim
+      // padding: 24px covers the horizontal sides.
+      await setSearchInputValue(reactGrab.page, "px-2");
+      await expect
+        .poll(() =>
+          getInlineStyleProperty(reactGrab.page, UNIFORM_PADDING_SELECTOR, "padding-left"),
+        )
+        .toBe("8px");
+
+      await reactGrab.page.keyboard.press("Enter");
+      await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
+      await expect.poll(() => reactGrab.getClipboardContent()).toContain("padding-left: 8px;");
+      const clipboardContent = await reactGrab.getClipboardContent();
+      expect(clipboardContent).toContain("padding-top: 32px;");
+      expect(clipboardContent).toContain("padding-right: 8px;");
+      expect(clipboardContent).toContain("padding-bottom: 24px;");
+      expect(clipboardContent).not.toContain("padding-right: 24px;");
+    });
+
     test("header Copy button appears after a pending tweak and submits", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       expect(await isHeaderCopyButtonVisible(reactGrab.page)).toBe(false);

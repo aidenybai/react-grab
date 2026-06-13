@@ -547,8 +547,7 @@ export const openEditPanel = async (
   selector: string,
 ): Promise<void> => {
   await reactGrab.activate();
-  await reactGrab.hoverElement(selector);
-  await reactGrab.waitForSelectionBox();
+  await reactGrab.hoverUntilSelected(selector);
   await reactGrab.rightClickElement(selector);
   await reactGrab.clickContextMenuItem("Style");
   await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(true);

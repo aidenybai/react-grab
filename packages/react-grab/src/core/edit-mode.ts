@@ -74,7 +74,7 @@ export const createEditModeController = (
     position: Position,
     overrides: EditModeOverrides = {},
   ): boolean => {
-    // Re-entry would desync the existing preview from the panel's tweak store.
+    // Re-entry would desync the existing preview from the panel's style store.
     if (state() !== null) return false;
     const properties = buildEditableProperties(element);
     if (properties.length === 0) return false;

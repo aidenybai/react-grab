@@ -4,46 +4,46 @@ import type { EditableProperty, PendingEdit } from "../../types.js";
 import { createPropertySearchIndex } from "../../utils/property-search-index.js";
 import { arePropertyValuesEqual } from "./property-values-equal.js";
 
-type PropertyTweak =
+type PropertyStyle =
   | { kind: "numeric"; value: number }
   | { kind: "color"; value: string }
   | { kind: "enum"; value: string };
 
-interface CreateTweakStoreOptions {
+interface CreateStyleStoreOptions {
   initialProperties: EditableProperty[];
   searchQuery: () => string;
 }
 
-interface TweakStore {
+interface StyleStore {
   filteredProperties: () => EditableProperty[];
-  applyTweak: (property: EditableProperty, nextValue: number | string) => void;
+  applyStyle: (property: EditableProperty, nextValue: number | string) => void;
   buildPendingEdits: () => PendingEdit[];
-  hasPendingTweaks: () => boolean;
-  hasChangedTweakFor: (key: string) => boolean;
+  hasPendingStyles: () => boolean;
+  hasChangedStyleFor: (key: string) => boolean;
 }
 
-const hasChangedFromOriginal = (property: EditableProperty, tweak: PropertyTweak): boolean => {
+const hasChangedFromOriginal = (property: EditableProperty, style: PropertyStyle): boolean => {
   return (
-    property.kind === tweak.kind &&
-    !arePropertyValuesEqual(property, tweak.value, property.original)
+    property.kind === style.kind &&
+    !arePropertyValuesEqual(property, style.value, property.original)
   );
 };
 
-export const createTweakStore = (options: CreateTweakStoreOptions): TweakStore => {
+export const createStyleStore = (options: CreateStyleStoreOptions): StyleStore => {
   const { initialProperties, searchQuery } = options;
-  const [tweaksByKey, setTweaksByKey] = createSignal<Record<string, PropertyTweak>>({});
+  const [stylesByKey, setStylesByKey] = createSignal<Record<string, PropertyStyle>>({});
   const propertySearchIndex = createPropertySearchIndex(initialProperties);
 
   const baseFilteredProperties = createMemo<EditableProperty[]>(() => {
     const query = searchQuery();
-    const currentTweaks = tweaksByKey();
+    const currentStyles = stylesByKey();
     const candidates = query
       ? initialProperties
       : initialProperties.filter(
           (property) =>
             property.isPrioritized ||
             (property.isCanonical && !property.isDefault) ||
-            currentTweaks[property.key] !== undefined,
+            currentStyles[property.key] !== undefined,
         );
     return query ? propertySearchIndex.search(query) : candidates.slice(0, EDIT_PROPERTY_MAX_COUNT);
   });
@@ -51,25 +51,25 @@ export const createTweakStore = (options: CreateTweakStoreOptions): TweakStore =
   const propertyByKey = new Map(initialProperties.map((property) => [property.key, property]));
 
   const filteredProperties = createMemo<EditableProperty[]>(() => {
-    const currentTweaks = tweaksByKey();
-    const tweakedKeys = Object.keys(currentTweaks);
-    if (tweakedKeys.length === 0) return baseFilteredProperties();
+    const currentStyles = stylesByKey();
+    const styledKeys = Object.keys(currentStyles);
+    if (styledKeys.length === 0) return baseFilteredProperties();
 
     const numericValueByLonghand = new Map<string, number>();
-    for (const tweakedKey of tweakedKeys) {
-      const tweak = currentTweaks[tweakedKey];
-      if (tweak.kind !== "numeric") continue;
-      const tweakedProperty = propertyByKey.get(tweakedKey);
-      if (!tweakedProperty) continue;
-      for (const longhand of tweakedProperty.cssProperties) {
-        numericValueByLonghand.set(longhand, tweak.value);
+    for (const styledKey of styledKeys) {
+      const style = currentStyles[styledKey];
+      if (style.kind !== "numeric") continue;
+      const styledProperty = propertyByKey.get(styledKey);
+      if (!styledProperty) continue;
+      for (const longhand of styledProperty.cssProperties) {
+        numericValueByLonghand.set(longhand, style.value);
       }
     }
 
     return baseFilteredProperties().map((property) => {
-      const directTweak = currentTweaks[property.key];
-      if (directTweak !== undefined) {
-        return overrideValue(property, directTweak);
+      const directStyle = currentStyles[property.key];
+      if (directStyle !== undefined) {
+        return overrideValue(property, directStyle);
       }
       if (property.kind !== "numeric") return property;
       const firstLonghandValue = numericValueByLonghand.get(property.cssProperties[0]);
@@ -81,124 +81,125 @@ export const createTweakStore = (options: CreateTweakStoreOptions): TweakStore =
     });
   });
 
-  const overrideValue = (property: EditableProperty, tweak: PropertyTweak): EditableProperty => {
-    if (property.kind === "numeric" && tweak.kind === "numeric")
-      return { ...property, value: tweak.value };
-    if (property.kind === "color" && tweak.kind === "color")
-      return { ...property, value: tweak.value };
-    if (property.kind === "enum" && tweak.kind === "enum")
-      return { ...property, value: tweak.value };
+  const overrideValue = (property: EditableProperty, style: PropertyStyle): EditableProperty => {
+    if (property.kind === "numeric" && style.kind === "numeric")
+      return { ...property, value: style.value };
+    if (property.kind === "color" && style.kind === "color")
+      return { ...property, value: style.value };
+    if (property.kind === "enum" && style.kind === "enum")
+      return { ...property, value: style.value };
     return property;
   };
 
-  // Overlapping tweaks resolve last-write-wins, so every consumer that
+  // Overlapping styles resolve last-write-wins, so every consumer that
   // reads them (filteredProperties' fan-out, buildPendingEdits' forward
   // scan) must see them in commit order. A Record preserves insertion
   // order, so the just-committed key is kept last: re-committing the
   // current last key spreads it in place; committing any other key
-  // rebuilds the map, appends that key, and drops tweaks whose longhands
+  // rebuilds the map, appends that key, and drops styles whose longhands
   // are now fully covered (their preview was overwritten wholesale).
-  const applyTweak = (property: EditableProperty, nextValue: number | string) => {
-    let tweak: PropertyTweak;
+  const applyStyle = (property: EditableProperty, nextValue: number | string) => {
+    let style: PropertyStyle;
     if (property.kind === "numeric" && typeof nextValue === "number") {
-      tweak = { kind: "numeric", value: nextValue };
+      style = { kind: "numeric", value: nextValue };
     } else if (property.kind === "color" && typeof nextValue === "string") {
-      tweak = { kind: "color", value: nextValue };
+      style = { kind: "color", value: nextValue };
     } else if (property.kind === "enum" && typeof nextValue === "string") {
-      tweak = { kind: "enum", value: nextValue };
+      style = { kind: "enum", value: nextValue };
     } else {
       return;
     }
-    setTweaksByKey((current) => {
+    setStylesByKey((current) => {
       const existingKeys = Object.keys(current);
       if (existingKeys[existingKeys.length - 1] === property.key) {
-        return { ...current, [property.key]: tweak };
+        return { ...current, [property.key]: style };
       }
-      const next: Record<string, PropertyTweak> = {};
+      const next: Record<string, PropertyStyle> = {};
       for (const existingKey of existingKeys) {
         if (existingKey === property.key) continue;
         const existingProperty = propertyByKey.get(existingKey);
-        const isCoveredByNewTweak =
+        const isCoveredByNewStyle =
           existingProperty !== undefined &&
           existingProperty.cssProperties.every((longhand) =>
             property.cssProperties.includes(longhand),
           );
-        if (isCoveredByNewTweak) continue;
+        if (isCoveredByNewStyle) continue;
         next[existingKey] = current[existingKey];
       }
-      next[property.key] = tweak;
+      next[property.key] = style;
       return next;
     });
   };
 
   const buildPendingEdits = (): PendingEdit[] => {
-    const currentTweaks = tweaksByKey();
+    const currentStyles = stylesByKey();
     const pendingEdits: PendingEdit[] = [];
     const changedCssProperties = new Set<string>();
-    for (const tweakedKey of Object.keys(currentTweaks)) {
-      const tweak = currentTweaks[tweakedKey];
-      const property = propertyByKey.get(tweakedKey);
-      if (!property || property.kind !== tweak.kind) continue;
-      const isChanged = hasChangedFromOriginal(property, tweak);
-      // A back-to-original tweak still matters when an earlier (wider)
-      // tweak changed one of its longhands: `pt-4`, `p-6`, then top
+    for (const styledKey of Object.keys(currentStyles)) {
+      const style = currentStyles[styledKey];
+      const property = propertyByKey.get(styledKey);
+      if (!property || property.kind !== style.kind) continue;
+      const isChanged = hasChangedFromOriginal(property, style);
+      // A back-to-original style still matters when an earlier (wider)
+      // style changed one of its longhands: `pt-4`, `p-6`, then top
       // back to its original must emit `padding-top` or the prompt
       // claims the `padding: 24px` fan-out applies to the top side too.
-      const isOverridingChangedTweak =
+      const isOverridingChangedStyle =
         !isChanged &&
         property.cssProperties.some((cssProperty) => changedCssProperties.has(cssProperty));
-      if (!isChanged && !isOverridingChangedTweak) continue;
+      if (!isChanged && !isOverridingChangedStyle) continue;
       if (isChanged) {
         for (const cssProperty of property.cssProperties) changedCssProperties.add(cssProperty);
       }
-      if (property.kind === "numeric" && tweak.kind === "numeric") {
+      if (property.kind === "numeric" && style.kind === "numeric") {
         pendingEdits.push({
           kind: "numeric",
           key: property.key,
           cssProperties: property.cssProperties,
-          value: tweak.value,
+          value: style.value,
           unit: property.unit,
         });
-      } else if (property.kind === "color" && tweak.kind === "color") {
+      } else if (property.kind === "color" && style.kind === "color") {
         pendingEdits.push({
           kind: "color",
           key: property.key,
           cssProperties: property.cssProperties,
-          value: tweak.value,
+          value: style.value,
         });
-      } else if (property.kind === "enum" && tweak.kind === "enum") {
+      } else if (property.kind === "enum" && style.kind === "enum") {
         pendingEdits.push({
           kind: "enum",
           key: property.key,
           cssProperties: property.cssProperties,
-          value: tweak.value,
+          value: style.value,
         });
       }
     }
     return pendingEdits;
   };
 
-  const hasPendingTweaks = () => {
-    const currentTweaks = tweaksByKey();
+  const hasPendingStyles = () => {
+    const currentStyles = stylesByKey();
     for (const property of initialProperties) {
-      const tweak = currentTweaks[property.key];
-      if (tweak && hasChangedFromOriginal(property, tweak)) return true;
+      const style = currentStyles[property.key];
+      if (style && hasChangedFromOriginal(property, style)) return true;
     }
     return false;
   };
-  // A no-op commit must not count as tweaked, or Enter would submit
+
+  // A no-op commit must not count as changed, or Enter would submit
   // instead of opening the inline editor.
-  const hasChangedTweakFor = (key: string): boolean => {
-    const tweak = tweaksByKey()[key];
+  const hasChangedStyleFor = (key: string): boolean => {
+    const style = stylesByKey()[key];
     const property = propertyByKey.get(key);
-    return Boolean(tweak && property && hasChangedFromOriginal(property, tweak));
+    return Boolean(style && property && hasChangedFromOriginal(property, style));
   };
 
   return {
     filteredProperties,
-    applyTweak,
+    applyStyle,
     buildPendingEdits,
-    hasPendingTweaks,
-    hasChangedTweakFor,
+    hasPendingStyles,
+    hasChangedStyleFor,
   };
 };

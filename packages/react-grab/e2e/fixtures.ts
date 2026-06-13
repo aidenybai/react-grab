@@ -11,6 +11,8 @@ const TOOLBAR_SNAP_ANIMATION_WAIT_MS = 300;
 const TOOLBAR_SNAP_EDGE_THRESHOLD_PX = 30;
 const TOUCH_DRAG_STEPS = 10;
 const PAGE_SETUP_RETRY_BACKOFF_MS = 250;
+const SELECTION_HOVER_ATTEMPTS = 3;
+const SELECTION_HOVER_TIMEOUT_MS = 4_000;
 
 interface ContextMenuInfo {
   isVisible: boolean;
@@ -96,13 +98,14 @@ export interface ReactGrabPageObject {
   getOverlayHost: () => Locator;
   getShadowRoot: () => Promise<Element | null>;
   hoverElement: (selector: string) => Promise<void>;
+  hoverUntilSelected: (selector: string) => Promise<void>;
   clickElement: (selector: string) => Promise<void>;
   rightClickElement: (selector: string) => Promise<void>;
   rightClickAtPosition: (x: number, y: number) => Promise<void>;
   dragSelect: (startSelector: string, endSelector: string) => Promise<void>;
   getClipboardContent: () => Promise<string>;
   captureNextClipboardWrites: () => Promise<Record<string, string>>;
-  waitForSelectionBox: () => Promise<void>;
+  waitForSelectionBox: (timeout?: number) => Promise<void>;
   waitForSelectionSource: () => Promise<void>;
   isContextMenuVisible: () => Promise<boolean>;
   getContextMenuInfo: () => Promise<ContextMenuInfo>;
@@ -356,7 +359,7 @@ const createReactGrabPageObject = (
     });
   };
 
-  const waitForSelectionBox = async () => {
+  const waitForSelectionBox = async (timeout = 10_000) => {
     await page.waitForFunction(
       () => {
         const api = (
@@ -373,8 +376,24 @@ const createReactGrabPageObject = (
         return state?.isSelectionBoxVisible || state?.targetElement !== null;
       },
       undefined,
-      { timeout: 10_000 },
+      { timeout },
     );
+  };
+
+  // A single synthetic hover can race scroll-into-view for elements low
+  // in the page, leaving react-grab without a selection. Re-hover (moving
+  // the pointer away first so the move re-fires) until it registers.
+  const hoverUntilSelected = async (selector: string) => {
+    for (let attempt = 1; attempt <= SELECTION_HOVER_ATTEMPTS; attempt++) {
+      if (attempt > 1) await page.mouse.move(0, 0);
+      await hoverElement(selector);
+      try {
+        await waitForSelectionBox(SELECTION_HOVER_TIMEOUT_MS);
+        return;
+      } catch (error) {
+        if (attempt === SELECTION_HOVER_ATTEMPTS) throw error;
+      }
+    }
   };
 
   const waitForSelectionSource = async () => {
@@ -608,32 +627,7 @@ const createReactGrabPageObject = (
 
   const enterPromptMode = async (selector: string) => {
     await activate();
-    await hoverElement(selector);
-    const isSelected = await page
-      .waitForFunction(
-        () => {
-          const api = (
-            window as {
-              __REACT_GRAB__?: {
-                getState: () => {
-                  isSelectionBoxVisible: boolean;
-                  targetElement: unknown;
-                };
-              };
-            }
-          ).__REACT_GRAB__;
-          const state = api?.getState();
-          return state?.isSelectionBoxVisible || state?.targetElement !== null;
-        },
-        undefined,
-        { timeout: 5000 },
-      )
-      .then(() => true)
-      .catch(() => false);
-    if (!isSelected) {
-      await hoverElement(selector);
-      await waitForSelectionBox();
-    }
+    await hoverUntilSelected(selector);
     await rightClickElement(selector);
     await clickContextMenuItem("Comment");
     await waitForPromptMode(true);
@@ -1727,6 +1721,7 @@ const createReactGrabPageObject = (
     getOverlayHost,
     getShadowRoot,
     hoverElement,
+    hoverUntilSelected,
     clickElement,
     rightClickElement,
     rightClickAtPosition,
