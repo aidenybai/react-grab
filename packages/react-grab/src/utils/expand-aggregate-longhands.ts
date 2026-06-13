@@ -7,8 +7,8 @@ for (const group of AGGREGATE_GROUPS) {
   }
 }
 
-export const expandAggregateLonghands = (cssKey: string): string[] => {
-  if (cssKey.includes(",")) return cssKey.split(",");
-  const expansion = AGGREGATE_LONGHANDS.get(cssKey);
-  return expansion ? [...expansion] : [cssKey];
+export const expandAggregateLonghands = (propertyKey: string): string[] => {
+  if (propertyKey.includes(",")) return propertyKey.split(",");
+  const expansion = AGGREGATE_LONGHANDS.get(propertyKey);
+  return expansion ? [...expansion] : [propertyKey];
 };

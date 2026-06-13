@@ -1,7 +1,6 @@
 import type { Component, JSX } from "solid-js";
 import { cn } from "../../utils/cn.js";
 import { IconChevron } from "../icons/icon-chevron.jsx";
-import { getMinDimensionClass } from "../../utils/toolbar-layout.js";
 
 interface ToolbarContentProps {
   isCollapsed?: boolean;
@@ -31,7 +30,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
       ? `transition-[grid-template-rows] ${sizeDurationClass()} ease-drawer`
       : `transition-[grid-template-columns] ${sizeDurationClass()} ease-drawer`;
 
-  const minDimensionClass = () => getMinDimensionClass(isVertical());
+  const minDimensionClass = () => (isVertical() ? "min-h-0" : "min-w-0");
 
   const collapsedEdgeClasses = () => {
     if (!props.isCollapsed) return "";

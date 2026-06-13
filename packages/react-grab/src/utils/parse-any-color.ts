@@ -23,7 +23,8 @@ const REJECTED_FILL_STYLE_SENTINEL = "rgba(0, 0, 0, 0)";
 const OPAQUE_HEX_LENGTH = 7;
 const OKLCH_PATTERN =
   /^oklch\(\s*([+-]?\d*\.?\d+%?)\s+([+-]?\d*\.?\d+%?)\s+([+-]?\d*\.?\d+)(deg|grad|rad|turn)?(?:\s*\/\s*([+-]?\d*\.?\d+%?))?\s*\)$/i;
-const OKLCH_PERCENT_CHROMA_SCALE = 0.004;
+// Per CSS Color 4, 100% chroma in oklch() corresponds to 0.4.
+const OKLCH_PERCENT_CHROMA_SCALE = 0.4;
 const DEGREES_PER_GRAD = 0.9;
 const DEGREES_PER_RADIAN = 180 / Math.PI;
 const DEGREES_PER_TURN = 360;

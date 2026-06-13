@@ -36,12 +36,21 @@ export const measureBaseline = (target: Element): ComputedSnapshot | null => {
   }
 };
 
+// The baseline clone is forced to display:none, so its computed
+// `display` is always "none" and its width/height never resolve to
+// used layout values — comparing those keys against the target would
+// mark them "modified" on every element. Fall back to the heuristic.
+const LAYOUT_DEPENDENT_BASELINE_KEYS: ReadonlySet<string> = new Set(["display", "width", "height"]);
+
 export const isDefaultByBaseline = (
   property: EditableProperty,
   currentSnapshot: ComputedSnapshot,
   baselineSnapshot: ComputedSnapshot,
 ): boolean => {
   if (property.kind === "color") return false;
+  if (property.cssProperties.some((key) => LAYOUT_DEPENDENT_BASELINE_KEYS.has(key))) {
+    return isDefaultByHeuristic(property);
+  }
   return property.cssProperties.every((key) => {
     const currentValue = currentSnapshot[key];
     const baselineValue = baselineSnapshot[key];
@@ -72,6 +81,7 @@ export const isDefaultByHeuristic = (property: EditableProperty): boolean => {
   if (
     propertyKey === "width" ||
     propertyKey === "height" ||
+    propertyKey === "width,height" ||
     propertyKey.startsWith("max-") ||
     propertyKey.startsWith("min-")
   ) {

@@ -1,6 +1,5 @@
 import { Show, type Component } from "solid-js";
 import type { EnumEditableOption } from "../../types.js";
-import { pickNextOption } from "../../utils/pick-next-option.js";
 import { EDIT_LABEL_CLASS } from "./constants.js";
 import { StepArrow } from "./step-arrow.js";
 
@@ -9,18 +8,13 @@ interface CycleControlProps {
   value: string;
   options: ReadonlyArray<EnumEditableOption>;
   activeKey: "left" | "right" | null;
-  onCommit: (value: string) => void;
+  onStep: (direction: 1 | -1) => void;
 }
 
 export const CycleControl: Component<CycleControlProps> = (props) => {
   const currentLabel = () => {
     const match = props.options.find((option) => option.value === props.value);
     return match?.label ?? props.value;
-  };
-
-  const advance = (direction: 1 | -1) => {
-    const nextOption = pickNextOption(props.options, props.value, direction);
-    if (nextOption) props.onCommit(nextOption.value);
   };
 
   return (
@@ -34,7 +28,7 @@ export const CycleControl: Component<CycleControlProps> = (props) => {
         <StepArrow
           direction="left"
           active={props.activeKey === "left"}
-          onPointerDown={() => advance(-1)}
+          onPointerDown={() => props.onStep(-1)}
         />
         <span
           data-react-grab-ignore-events
@@ -48,12 +42,12 @@ export const CycleControl: Component<CycleControlProps> = (props) => {
           onClick={(event) => {
             event.preventDefault();
             event.stopPropagation();
-            advance(1);
+            props.onStep(1);
           }}
           onContextMenu={(event) => {
             event.preventDefault();
             event.stopPropagation();
-            advance(-1);
+            props.onStep(-1);
           }}
         >
           {currentLabel()}
@@ -61,7 +55,7 @@ export const CycleControl: Component<CycleControlProps> = (props) => {
         <StepArrow
           direction="right"
           active={props.activeKey === "right"}
-          onPointerDown={() => advance(1)}
+          onPointerDown={() => props.onStep(1)}
         />
       </div>
     </div>
