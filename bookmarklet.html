@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>React Grab Bookmarklet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Geist', system-ui, -apple-system, sans-serif;
+    max-width: 672px;
+    margin: 0 auto;
+    padding: 48px 32px;
+    background: #000;
+    color: #fff;
+  }
+  h1 {
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+  }
+  .shimmer {
+    background: linear-gradient(90deg, #f973ff, #ffb3ff, #ffe6ff, #f973ff);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 2.5s linear infinite;
+  }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  .subtitle {
+    color: #8f8f8f;
+    font-size: 16px;
+    line-height: 1.6;
+    margin-bottom: 32px;
+  }
+  a.bookmarklet {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: #292929;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 10px;
+    font-family: 'Geist', system-ui, sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    transition: all 0.3s;
+    cursor: grab;
+  }
+  a.bookmarklet:hover {
+    border-color: rgba(252, 78, 253, 0.5);
+    box-shadow: 0 0 20px rgba(252, 78, 253, 0.15);
+  }
+  a.bookmarklet:active { cursor: grabbing; }
+  .bookmarklet-icon {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    background: #fc4efd;
+    flex-shrink: 0;
+  }
+  .instructions {
+    margin-top: 32px;
+    padding: 16px 20px;
+    background: #292929;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .instructions p {
+    color: #8f8f8f;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .instructions p + p { margin-top: 8px; }
+  code {
+    font-family: 'Geist Mono', ui-monospace, monospace;
+    font-size: 13px;
+    color: #ff4fff;
+    background: rgba(252, 78, 253, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .step {
+    color: #5b5b5b;
+    font-family: 'Geist Mono', ui-monospace, monospace;
+    font-size: 13px;
+    margin-right: 8px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .shimmer { animation: none; }
+  }
+</style>
+</head>
+<body>
+  <h1><span class="shimmer">React Grab</span> Bookmarklet</h1>
+  <p class="subtitle">Drag this to your bookmarks bar to use React Grab on any site.</p>
+  <a class="bookmarklet" href="javascript:void((function(){var s=document.createElement('script');s.src='https://unpkg.com/react-grab/dist/index.global.js';s.crossOrigin='anonymous';document.head.appendChild(s);})())"><span class="bookmarklet-icon"></span>React Grab</a>
+  <div class="instructions">
+    <p><span class="step">1.</span> Drag the button above into your bookmarks bar</p>
+    <p><span class="step">2.</span> Visit any React site and click the bookmarklet</p>
+    <p><span class="step">3.</span> Hover over an element and press <code>&#x2318;C</code> to copy its component context</p>
+  </div>
+</body>
+</html>
