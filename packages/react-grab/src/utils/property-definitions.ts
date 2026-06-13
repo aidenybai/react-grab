@@ -72,16 +72,6 @@ export const FALLBACK_ZERO_PX: ReadonlySet<TrackedProperty> = new Set([
   "column-gap",
 ]);
 
-export const POSITION_KEYS: ReadonlySet<string> = new Set([
-  "top",
-  "right",
-  "bottom",
-  "left",
-  "top,right,bottom,left",
-  "top,bottom",
-  "left,right",
-]);
-
 // Keys whose CSS value is a pure number (no unit). Writing `10px` here
 // would be invalid CSS.
 export const UNITLESS_KEYS: ReadonlySet<string> = new Set(["z-index"]);
@@ -217,6 +207,12 @@ const INSET_AGGREGATES: readonly AggregateDefinition[] = [
   { key: "bottom", label: "bottom", longhands: ["bottom"] },
   { key: "left", label: "left", longhands: ["left"] },
 ];
+
+// Position rows allow negative values (overlays at `top: -8px`). The set
+// is exactly the inset aggregate keys — derived so the two can't drift.
+export const POSITION_KEYS: ReadonlySet<string> = new Set(
+  INSET_AGGREGATES.map((definition) => definition.key),
+);
 
 const BORDER_WIDTH_AGGREGATES: readonly AggregateDefinition[] = [
   {

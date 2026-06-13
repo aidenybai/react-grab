@@ -91,14 +91,13 @@ export const createTweakStore = (options: CreateTweakStoreOptions): TweakStore =
     return property;
   };
 
-  // Preview writes longhands last-write-wins, so every consumer that
-  // resolves overlapping tweaks (row display sync, prompt building)
-  // must see them in commit order. Key insertion order carries that:
-  // each commit re-inserts its key at the end, and tweaks whose
-  // longhands are fully covered by the new commit are dropped — their
-  // preview effect was just overwritten wholesale.
-  let lastCommittedTweakKey: string | null = null;
-
+  // Overlapping tweaks resolve last-write-wins, so every consumer that
+  // reads them (filteredProperties' fan-out, buildPendingEdits' forward
+  // scan) must see them in commit order. A Record preserves insertion
+  // order, so the just-committed key is kept last: re-committing the
+  // current last key spreads it in place; committing any other key
+  // rebuilds the map, appends that key, and drops tweaks whose longhands
+  // are now fully covered (their preview was overwritten wholesale).
   const applyTweak = (property: EditableProperty, nextValue: number | string) => {
     let tweak: PropertyTweak;
     if (property.kind === "numeric" && typeof nextValue === "number") {
@@ -110,14 +109,13 @@ export const createTweakStore = (options: CreateTweakStoreOptions): TweakStore =
     } else {
       return;
     }
-    if (lastCommittedTweakKey === property.key) {
-      setTweaksByKey((current) => ({ ...current, [property.key]: tweak }));
-      return;
-    }
-    lastCommittedTweakKey = property.key;
     setTweaksByKey((current) => {
+      const existingKeys = Object.keys(current);
+      if (existingKeys[existingKeys.length - 1] === property.key) {
+        return { ...current, [property.key]: tweak };
+      }
       const next: Record<string, PropertyTweak> = {};
-      for (const existingKey of Object.keys(current)) {
+      for (const existingKey of existingKeys) {
         if (existingKey === property.key) continue;
         const existingProperty = propertyByKey.get(existingKey);
         const isCoveredByNewTweak =

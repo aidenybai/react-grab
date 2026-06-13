@@ -178,9 +178,9 @@ export const hoverVisibleSlider = async (page: Page): Promise<void> => {
   );
 };
 
-export const getActiveTailwindLabelOrder = async (
+const getActiveTailwindLabelInfo = async (
   page: Page,
-): Promise<{ tailwindLeft: number | null; valueLeft: number | null }> =>
+): Promise<{ text: string | null; tailwindLeft: number | null; valueLeft: number | null }> =>
   page.evaluate(
     ({ attrName, tailwindLabelAttr }) => {
       const host = document.querySelector(`[${attrName}]`);
@@ -197,6 +197,7 @@ export const getActiveTailwindLabelOrder = async (
           ?.closest("[data-react-grab-value]")
           ?.querySelector<HTMLElement>("[data-react-grab-value-text]") ?? null;
       return {
+        text: tailwindLabel?.textContent ?? null,
         tailwindLeft: tailwindLabel?.getBoundingClientRect().left ?? null,
         valueLeft: valueText?.getBoundingClientRect().left ?? null,
       };
@@ -204,22 +205,15 @@ export const getActiveTailwindLabelOrder = async (
     { attrName: ATTRIBUTE_NAME, tailwindLabelAttr: TAILWIND_LABEL_ATTR },
   );
 
+export const getActiveTailwindLabelOrder = async (
+  page: Page,
+): Promise<{ tailwindLeft: number | null; valueLeft: number | null }> => {
+  const { tailwindLeft, valueLeft } = await getActiveTailwindLabelInfo(page);
+  return { tailwindLeft, valueLeft };
+};
+
 export const getActiveTailwindLabelText = async (page: Page): Promise<string | null> =>
-  page.evaluate(
-    ({ attrName, tailwindLabelAttr }) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      const tailwindLabelElements = Array.from(
-        shadowRoot?.querySelectorAll<HTMLElement>(
-          `[data-react-grab-edit-panel] [${tailwindLabelAttr}]`,
-        ) ?? [],
-      );
-      const tailwindLabel =
-        tailwindLabelElements.find((element) => element.getBoundingClientRect().width > 0) ?? null;
-      return tailwindLabel?.textContent ?? null;
-    },
-    { attrName: ATTRIBUTE_NAME, tailwindLabelAttr: TAILWIND_LABEL_ATTR },
-  );
+  (await getActiveTailwindLabelInfo(page)).text;
 
 export interface SearchInputFocusVisualState {
   isFocusVisible: boolean;

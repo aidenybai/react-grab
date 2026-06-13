@@ -19,13 +19,20 @@ export const buildNumericProperty = (
   isCanonical: boolean,
 ): NumericEditableProperty => {
   const normalized = normalizeForEdit(definition.key, rawValue);
-  const isInfiniteLength = normalized.value > CSS_LENGTH_INFINITY_THRESHOLD_PX;
+  // `rounded-full` resolves to calc(infinity * 1px), which browsers clamp
+  // to a huge px length. Only px-measured rows can hit it — unitless rows
+  // (z-index) keep their real value even when it legitimately exceeds the
+  // threshold. Pass 0 into propertyBounds so a value-derived max (size =
+  // value * 2) isn't itself inflated before we clamp to the bound.
+  const isInfiniteLength =
+    normalized.unit === "px" && Math.abs(normalized.value) > CSS_LENGTH_INFINITY_THRESHOLD_PX;
   const bounds = propertyBounds(
     definition.key,
     isInfiniteLength ? 0 : normalized.value,
     normalized.unit,
   );
-  const value = isInfiniteLength ? bounds.max : normalized.value;
+  const clampedInfiniteValue = normalized.value < 0 ? bounds.min : bounds.max;
+  const value = isInfiniteLength ? clampedInfiniteValue : normalized.value;
   return {
     kind: "numeric",
     key: definition.key,

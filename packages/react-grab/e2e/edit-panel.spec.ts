@@ -653,25 +653,27 @@ test.describe("Style Panel", () => {
     test("stepping an out-of-range value never jumps against the arrow direction", async ({
       reactGrab,
     }) => {
+      // 200px border-radius is above the 96px row max but applies no
+      // layout (unlike a 128px font, whose reflow makes the hover-based
+      // panel open flaky) so the regression is isolated cleanly.
       await reactGrab.page.evaluate((buttonSelector) => {
         const button = document.querySelector(buttonSelector);
-        if (button instanceof HTMLElement) button.style.fontSize = "128px";
+        if (button instanceof HTMLElement) button.style.borderRadius = "200px";
       }, BUTTON_SELECTOR);
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
-      await setSearchInputValue(reactGrab.page, "font size");
-      await expect.poll(() => getActivePropertyKey(reactGrab.page)).toBe("font-size");
+      await setSearchInputValue(reactGrab.page, "rounded");
+      await expect.poll(() => getActivePropertyKey(reactGrab.page)).toBe("border-radius");
 
+      // Stepping up from an above-max value is a no-op; settle then
+      // assert it held (can't poll for the absence of a change).
       await reactGrab.page.keyboard.press("ArrowRight");
       await reactGrab.page.waitForTimeout(80);
-      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "font-size")).toBe(
-        "128px",
-      );
+      expect(await getActivePropertyValue(reactGrab.page)).toBe("200px");
 
+      // ArrowLeft → 199 proves the step came off the real 200, not a
+      // clamp to the 96px max (which would land on 95).
       await reactGrab.page.keyboard.press("ArrowLeft");
-      await reactGrab.page.waitForTimeout(80);
-      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "font-size")).toBe(
-        "127px",
-      );
+      await expect.poll(() => getActivePropertyValue(reactGrab.page)).toBe("199px");
     });
 
     test("rounded-full's infinite radius displays as a finite clamped value", async ({
@@ -1029,12 +1031,11 @@ test.describe("Style Panel", () => {
 
     test("typing -m-4 applies a negative margin", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
-      await reactGrab.page.keyboard.type("-m-4");
-      await reactGrab.page.waitForTimeout(80);
+      await setSearchInputValue(reactGrab.page, "-m-4");
 
-      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "margin-top")).toBe(
-        "-16px",
-      );
+      await expect
+        .poll(() => getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "margin-top"))
+        .toBe("-16px");
       expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "margin-left")).toBe(
         "-16px",
       );
@@ -1042,12 +1043,11 @@ test.describe("Style Panel", () => {
 
     test("typing -mt-[8px] applies a negative arbitrary margin", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
-      await reactGrab.page.keyboard.type("-mt-[8px]");
-      await reactGrab.page.waitForTimeout(80);
+      await setSearchInputValue(reactGrab.page, "-mt-[8px]");
 
-      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "margin-top")).toBe(
-        "-8px",
-      );
+      await expect
+        .poll(() => getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "margin-top"))
+        .toBe("-8px");
     });
 
     test("typing font-mono applies font family + compact", async ({ reactGrab }) => {
