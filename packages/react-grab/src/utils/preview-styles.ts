@@ -40,11 +40,7 @@ export const createPreviewStyles = (element: Element): PreviewStyles => {
     baselineStyles.clear();
   };
 
-  const forget = (): void => {
-    baselineStyles.clear();
-  };
-
   const hasAppliedStyles = (): boolean => baselineStyles.size > 0;
 
-  return { apply, restore, forget, hasAppliedStyles };
+  return { apply, restore, hasAppliedStyles };
 };

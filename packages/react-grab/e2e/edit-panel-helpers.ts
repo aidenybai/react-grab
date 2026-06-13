@@ -11,7 +11,7 @@ export const TAILWIND_LABEL_ATTR = "data-react-grab-tailwind-label";
 export const IDLE_BUFFER_MS = 700;
 export const DISCARD_PROMPT_IDLE_MS = 2000;
 export const BUTTON_SELECTOR = "[data-testid='nested-button']";
-export const CARD_SELECTOR = "[data-testid='nested-card']";
+export const MAIN_TITLE_SELECTOR = "[data-testid='main-title']";
 
 export const isEditPanelVisible = async (page: Page): Promise<boolean> =>
   page.evaluate(

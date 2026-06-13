@@ -26,13 +26,13 @@ import type {
   EditableProperty,
   EditPanelState,
   OverlayDismissSource,
+  PendingEdits,
 } from "../../types.js";
 import { clampToRange } from "../../utils/clamp-to-range.js";
 import { cn } from "../../utils/cn.js";
 import { createAnchoredDropdown } from "../../utils/create-anchored-dropdown.js";
 import { findTailwindClass } from "../../utils/find-tailwind-class.js";
 import { formatEditableValue, roundEditableNumericValue } from "../../utils/format-css-value.js";
-import { formatSessionEditsPrompt } from "../../utils/format-edit-prompt.js";
 import { getShadowActiveElement } from "../../utils/get-shadow-active-element.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
 import { isEventFromOverlay } from "../../utils/is-event-from-overlay.js";
@@ -54,7 +54,8 @@ interface EditPanelProps {
   state: EditPanelState | null;
   position: DropdownAnchor | null;
   onDismiss: () => void;
-  onSubmit: (prompt: string) => void;
+  onSubmit: (pendingEdits: PendingEdits) => void;
+  onPendingEditsChange?: (pendingEdits: PendingEdits) => void;
   onInteractingChange?: (interacting: boolean) => void;
 }
 
@@ -68,6 +69,7 @@ export const EditPanel: Component<EditPanelProps> = (props) => (
             position={() => props.position}
             onDismiss={props.onDismiss}
             onSubmit={props.onSubmit}
+            onPendingEditsChange={props.onPendingEditsChange}
             onInteractingChange={props.onInteractingChange}
           />
         )}
@@ -80,7 +82,8 @@ interface EditPanelBodyProps {
   state: EditPanelState;
   position: () => DropdownAnchor | null;
   onDismiss: () => void;
-  onSubmit: (prompt: string) => void;
+  onSubmit: (pendingEdits: PendingEdits) => void;
+  onPendingEditsChange?: (pendingEdits: PendingEdits) => void;
   onInteractingChange?: (interacting: boolean) => void;
 }
 
@@ -107,6 +110,9 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   };
   const [activeIndex, setActiveIndex] = createSignal(firstNumericActiveIndex());
   const hasPendingStyles = createMemo(() => styleStore.hasPendingStyles());
+  const hasSubmittableEdits = createMemo(
+    () => hasPendingStyles() || Boolean(props.state.hasSessionEdits),
+  );
   const [isCompact, setIsCompact] = createSignal(false);
 
   let activeKeyTimerId: ReturnType<typeof setTimeout> | undefined;
@@ -246,6 +252,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   ) => {
     styleStore.applyStyle(property, nextValue);
     preview.apply(property.cssProperties, formatEditableValue(property, nextValue));
+    props.onPendingEditsChange?.(styleStore.buildPendingEdits());
     markAsInteracting();
     if (!options.isFromKeyRepeat) discardConfirmation.hide();
     if (options.flashDirection) flashActiveKey(options.flashDirection === 1 ? "right" : "left");
@@ -314,13 +321,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   );
 
   const handleSubmit = () => {
-    const pendingEdits = styleStore.buildPendingEdits();
-    const entry = {
-      filePath: props.state.filePath ?? "",
-      lineNumber: props.state.lineNumber ?? 0,
-      edits: pendingEdits,
-    };
-    props.onSubmit(formatSessionEditsPrompt(pendingEdits.length > 0 ? [entry] : []));
+    props.onSubmit(styleStore.buildPendingEdits());
   };
 
   const discardConfirmation = createDiscardConfirmation();
@@ -346,7 +347,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       closePanel("discard");
       return;
     }
-    if (!hasPendingStyles()) {
+    if (!hasSubmittableEdits()) {
       closePanel(preview.hasAppliedStyles() ? "discard" : "preserve");
       return;
     }
@@ -413,7 +414,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       // and the pending change is discarded instead of copied.
       const isUnchangedColor =
         property?.kind === "color" && !styleStore.hasChangedStyleFor(property.key);
-      if (isUnchangedColor && colorPickerTrigger && !hasPendingStyles()) {
+      if (isUnchangedColor && colorPickerTrigger && !hasSubmittableEdits()) {
         colorPickerTrigger();
         return;
       }
@@ -498,7 +499,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       discardConfirmation.cleanup();
       dropdown.clearAnimationHandles();
       setIsTransientInteraction(false);
-      preview.forget();
     });
   });
 
@@ -555,7 +555,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                 <div
                   class={cn(
                     "contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 h-fit px-2",
-                    hasPendingStyles() ? "w-full self-stretch justify-between" : "w-fit",
+                    hasSubmittableEdits() ? "w-full self-stretch justify-between" : "w-fit",
                   )}
                   onMouseEnter={() => setIsHeaderHovered(true)}
                   onMouseLeave={() => setIsHeaderHovered(false)}
@@ -567,7 +567,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                     onClick={() => {}}
                     shrink
                   />
-                  <Show when={hasPendingStyles()}>
+                  <Show when={hasSubmittableEdits()}>
                     <button
                       data-react-grab-ignore-events
                       data-react-grab-copy-button
