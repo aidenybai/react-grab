@@ -23,7 +23,6 @@ import {
 import { freezeUpdates } from "../../utils/freeze-updates.js";
 import { freezeGlobalAnimations, unfreezeGlobalAnimations } from "../../utils/freeze-animations.js";
 import { freezePseudoStates, unfreezePseudoStates } from "../../utils/freeze-pseudo-states.js";
-import { getButtonSpacingClass } from "../../utils/toolbar-layout.js";
 import { ToolbarContent } from "./toolbar-content.js";
 import { getVisualViewport } from "../../utils/get-visual-viewport.js";
 import {
@@ -114,7 +113,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const isVertical = () => snapEdge() === "left" || snapEdge() === "right";
 
-  const buttonSpacingClass = () => getButtonSpacingClass(isVertical());
+  const buttonSpacingClass = () => (isVertical() ? "mb-1.5" : "mr-1.5");
 
   const isActionActive = (actionId: string) => props.activeActionId === actionId;
   // Activation paths that bypass the toolbar buttons (keyboard hold, api.activate,
