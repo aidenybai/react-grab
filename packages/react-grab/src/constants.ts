@@ -42,6 +42,9 @@ export const AUTO_SCROLL_SPEED_PX = 10;
 
 export const Z_INDEX_OVERLAY = 2147483647;
 export const Z_INDEX_OVERLAY_CANVAS = 2147483645;
+// Transform handles sit above the selection canvas but below the style
+// panel so the panel's controls always win pointer events on overlap.
+export const Z_INDEX_TRANSFORM_OVERLAY = 2147483646;
 
 export const DRAG_LERP_FACTOR = 0.7;
 export const BASELINE_FRAME_DURATION_MS = 1000 / 60;
@@ -238,6 +241,19 @@ export const EDIT_SEARCH_SUBSTRING_SCORE = 1000;
 export const EDIT_SEARCH_POSITION_PENALTY = 100;
 export const EDIT_SEARCH_LENGTH_PENALTY = 1;
 export const EDIT_COMPACT_SLIDER_MIN_WIDTH_PX = 96;
+
+// Transform overlay shown over the selected element while the style panel is
+// open: a draggable frame to move the element plus square handles on its four
+// corners to resize it.
+export const TRANSFORM_HANDLE_SIZE_PX = 9;
+export const TRANSFORM_FRAME_BORDER_PX = 1;
+export const TRANSFORM_MIN_SIZE_PX = 4;
+// Reuse react-grab's overlay pink (same hue as the selection box) at full
+// opacity so the handles read as a solid accent.
+export const TRANSFORM_OVERLAY_ACCENT = overlayColor(1);
+// Thickness of the line marking where a dragged element will be reinserted.
+export const TRANSFORM_INDICATOR_THICKNESS_PX = 2;
+export const ELEMENT_DESCRIPTOR_TEXT_MAX_LENGTH = 24;
 
 export const CSS_VALUE_DECIMAL_PLACES = 2;
 export const OPACITY_PERCENT_MAX = 100;

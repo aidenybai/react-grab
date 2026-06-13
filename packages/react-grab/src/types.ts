@@ -240,6 +240,24 @@ export interface PendingEditsEntry {
   edits: PendingEdits;
 }
 
+// Why a style panel instance is being torn down — drives whether its edits are
+// kept and batched (retarget), reverted (dismiss), or kept on copy (submit).
+export type EditTeardownReason = "retarget" | "dismiss" | "submit";
+
+// An element's edits captured when switching away from it, so the session can
+// keep them applied, include them in the copied prompt, and revert them all on
+// discard.
+export interface ArchivedEdit {
+  entry: PendingEditsEntry;
+  movePrompt: string;
+  restore: () => void;
+}
+
+export interface ArchivedEdits {
+  entries: PendingEditsEntry[];
+  movePrompts: string[];
+}
+
 export interface PreviewStyles {
   apply: (cssProperties: readonly string[], cssValue: string) => void;
   restore: () => void;
@@ -419,6 +437,34 @@ export interface OverlayBounds {
   y: number;
 }
 
+export type TransformHandleId = "nw" | "ne" | "se" | "sw";
+
+export type DropPlacement = "before" | "after";
+
+// A plain viewport-space rectangle. Used both for the insertion indicator line
+// (where a dragged element will be reinserted) and the move drag ghost.
+export interface ViewportBox {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+export interface DropTarget {
+  reference: Element;
+  placement: DropPlacement;
+  indicator: ViewportBox;
+}
+
+// Viewport-space description of the manipulable box. `centerX`/`centerY` are
+// the element's geometric center; `width`/`height` are its layout box.
+export interface TransformFrame {
+  centerX: number;
+  centerY: number;
+  width: number;
+  height: number;
+}
+
 export type SelectionLabelStatus = "idle" | "copying" | "copied" | "fading" | "error";
 
 export interface SelectionLabelInstance {
@@ -517,6 +563,9 @@ export interface ReactGrabRendererProps {
   onEditPanelDismiss?: () => void;
   onEditPanelSubmit?: (prompt: string) => void;
   onEditPanelInteractingChange?: (interacting: boolean) => void;
+  editPanelTeardownReason?: () => EditTeardownReason;
+  onEditPanelArchive?: (item: ArchivedEdit) => void;
+  editPanelArchived?: () => ArchivedEdits;
 }
 
 export interface GrabbedBox {
