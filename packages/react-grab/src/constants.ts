@@ -341,3 +341,9 @@ export const RELEVANT_CSS_PROPERTIES = new Set([
   "object-fit",
   "object-position",
 ]);
+
+export const VIEWPORT_CLIPBOARD_DEBOUNCE_MS = 3000;
+export const VIEWPORT_SAMPLE_COLUMNS = 6;
+export const VIEWPORT_SAMPLE_ROWS = 6;
+export const VIEWPORT_SAMPLE_EDGE_INSET_PX = 8;
+export const VIEWPORT_MAX_ELEMENTS = 30;
