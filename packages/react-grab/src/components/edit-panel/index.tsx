@@ -124,10 +124,8 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     }),
   );
 
-  const filteredProperties = styleStore.filteredProperties;
-
   const activeProperty = createMemo<EditableProperty | null>(() => {
-    const properties = filteredProperties();
+    const properties = styleStore.filteredProperties();
     if (properties.length === 0) return null;
     const index = Math.min(Math.max(0, activeIndex()), properties.length - 1);
     return properties[index];
@@ -281,10 +279,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     if (stepActiveProperty(direction, shift, fromRepeat)) setIsCompact(true);
   };
 
-  const stepFromPointer = (direction: 1 | -1) => {
-    stepActiveProperty(direction, false, false);
-  };
-
   const stepController = createStepController({ step: stepFromKeyboard, isShiftHeld });
 
   const commitActive = (rawValue: number | string) => {
@@ -330,7 +324,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   };
 
   const discardConfirmation = createDiscardConfirmation();
-  const isPendingDismiss = discardConfirmation.isPending;
   let panelSurfaceRef: HTMLDivElement | undefined;
 
   const playShake = () => {
@@ -349,7 +342,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
 
   const attemptDismiss = (source: OverlayDismissSource) => {
     stepController.cancelRepeat();
-    if (isPendingDismiss()) {
+    if (discardConfirmation.isPending()) {
       closePanel("discard");
       return;
     }
@@ -368,7 +361,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   };
 
   const navigateActive = (direction: 1 | -1) => {
-    const properties = filteredProperties();
+    const properties = styleStore.filteredProperties();
     if (properties.length === 0) return;
     setActiveIndex((current) => (current + direction + properties.length) % properties.length);
     expandPanel();
@@ -411,7 +404,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     ArrowRight: (event) => pressArrowOrOpenColorPicker("ArrowRight", event),
     Tab: (event) => navigateActive(event.shiftKey ? -1 : 1),
     Enter: () => {
-      if (isPendingDismiss()) return;
+      if (discardConfirmation.isPending()) return;
       const property = activeProperty();
       const colorPickerTrigger = getCurrentColorPickerTrigger();
       // Opening the picker is only a convenience for an untouched color
@@ -432,7 +425,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   const handleSearchKeyDown = (event: KeyboardEvent) => {
     // Chromium reports keyCode 229 on the IME commit tick after isComposing resets.
     if (event.isComposing || event.keyCode === IME_COMPOSING_KEY_CODE) return;
-    if (isPendingDismiss()) {
+    if (discardConfirmation.isPending()) {
       const target = event.composedPath()[0];
       const isOnDiscardButton =
         target instanceof HTMLElement &&
@@ -475,7 +468,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       shouldIgnoreKeyboardEvent: (event) => {
         const target = event.composedPath()[0];
         return (
-          isPendingDismiss() &&
+          discardConfirmation.isPending() &&
           target instanceof HTMLElement &&
           target.closest("[data-react-grab-discard-button]") !== null
         );
@@ -556,7 +549,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
           }}
         >
           <Show
-            when={isPendingDismiss()}
+            when={discardConfirmation.isPending()}
             fallback={
               <Show when={!isCompact()}>
                 <div
@@ -705,7 +698,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
             />
           </div>
 
-          <Show when={filteredProperties().length > 0}>
+          <Show when={styleStore.filteredProperties().length > 0}>
             <div
               class={
                 isCompact()
@@ -715,12 +708,12 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
               style={isCompact() ? HIDDEN_FOCUS_PRESERVING_STYLE : undefined}
             >
               <PropertyList
-                properties={filteredProperties()}
+                properties={styleStore.filteredProperties()}
                 activeIndex={activeIndex()}
                 activeKey={activeKey()}
                 onHoverIndex={setActiveIndex}
                 onSelect={handleSelectProperty}
-                onStep={stepFromPointer}
+                onStep={(direction) => stepActiveProperty(direction, false, false)}
                 onCommit={commitActive}
                 onColorPickerRegister={registerColorPickerTrigger}
                 onEditComplete={ensureSearchFocused}
@@ -741,7 +734,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                 <ActivePropertyControl
                   property={compactProperty()}
                   activeKey={activeKey()}
-                  onStep={stepFromPointer}
+                  onStep={(direction) => stepActiveProperty(direction, false, false)}
                   onCommit={commitActive}
                   onEditComplete={ensureSearchFocused}
                   onInvalidCommit={playShake}
