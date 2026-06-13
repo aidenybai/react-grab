@@ -1,6 +1,9 @@
-import { getInlineHTMLPreview, getStackContext } from "./context.js";
+import { getElementReferenceContext, getStack, getStackContext, resolveSource } from "./context.js";
 import { copyContent } from "../utils/copy-content.js";
 import { normalizeError } from "../utils/normalize-error.js";
+import { getTagName } from "../utils/get-tag-name.js";
+import type { StackFrame } from "bippy/source";
+import type { ReactGrabEntry, ReactGrabStackFrame } from "../types.js";
 
 interface CopyFlowOptions {
   getContent?: (elements: Element[]) => Promise<string> | string;
@@ -15,16 +18,71 @@ interface CopyFlowHooks {
   onCopyError: (error: Error) => void;
 }
 
-const formatElementReference = async (element: Element): Promise<string> => {
-  const inlinePreview = getInlineHTMLPreview(element);
-  const inlineStack = (await getStackContext(element)).replace(/\n\s+/g, " ");
-  return `[${inlinePreview}${inlineStack}]`;
+interface CopyPayload {
+  content: string;
+  entries?: ReactGrabEntry[];
+}
+
+// Strips bippy's raw `source` stack-line text and `args` from the wire payload.
+const formatStackFramePayload = (frame: StackFrame): ReactGrabStackFrame => ({
+  functionName: frame.functionName,
+  fileName: frame.fileName,
+  lineNumber: frame.lineNumber,
+  columnNumber: frame.columnNumber,
+  isServer: frame.isServer,
+  isSymbolicated: frame.isSymbolicated,
+});
+
+const buildElementPayloadEntry = async (element: Element): Promise<ReactGrabEntry> => {
+  const [referenceContext, stackContext, source, stack] = await Promise.all([
+    getElementReferenceContext(element),
+    getStackContext(element),
+    resolveSource(element),
+    getStack(element),
+  ]);
+  return {
+    tagName: getTagName(element),
+    componentName: source?.componentName ?? undefined,
+    content: `[${referenceContext}]`,
+    source,
+    stackContext,
+    frames: (stack ?? []).map(formatStackFramePayload),
+  };
 };
 
-const buildClipboardPayload = async (elements: Element[]): Promise<string | null> => {
-  const references = await Promise.all(elements.map(formatElementReference));
-  const uniqueReferences = [...new Set(references)];
-  return uniqueReferences.length > 0 ? uniqueReferences.join("\n") : null;
+const buildClipboardPayload = async (elements: Element[]): Promise<CopyPayload | null> => {
+  const rawEntries = await Promise.all(elements.map(buildElementPayloadEntry));
+  const entriesByContent = new Map<string, ReactGrabEntry>();
+  for (const entry of rawEntries) {
+    if (!entriesByContent.has(entry.content)) {
+      entriesByContent.set(entry.content, entry);
+    }
+  }
+  const entries = [...entriesByContent.values()];
+  return entries.length > 0
+    ? { content: entries.map((entry) => entry.content).join("\n"), entries }
+    : null;
+};
+
+const getMetadataEntries = (
+  payload: CopyPayload | null,
+  finalContent: string,
+  prependedPrompt: string | undefined,
+): ReactGrabEntry[] | undefined => {
+  if (!payload?.entries) return undefined;
+  if (finalContent === payload.content) return payload.entries;
+  if (payload.entries.length === 1) {
+    return [
+      {
+        ...payload.entries[0],
+        content: finalContent,
+        commentText: prependedPrompt,
+      },
+    ];
+  }
+  // Transformed multi-element content no longer maps 1:1 onto entries, so keep
+  // each entry's own reference content and only attach the prompt.
+  return payload.entries.map((entry) => ({ ...entry, commentText: prependedPrompt }));
 };
 
 export const runCopyFlow = async (
@@ -39,16 +97,20 @@ export const runCopyFlow = async (
   let finalContent = "";
 
   try {
-    const rawContent = options.getContent
-      ? await options.getContent(elements)
+    const payload: CopyPayload | null = options.getContent
+      ? { content: await options.getContent(elements) }
       : await buildClipboardPayload(elements);
+    const rawContent = payload?.content;
 
     if (rawContent?.trim()) {
       const transformedContent = await hooks.transformCopyContent(rawContent, elements);
       finalContent = prependedPrompt
         ? `${prependedPrompt}\n${transformedContent}`
         : transformedContent;
-      didCopy = copyContent(finalContent, { componentName: options.componentName });
+      didCopy = copyContent(finalContent, {
+        componentName: options.componentName,
+        entries: getMetadataEntries(payload, finalContent, prependedPrompt),
+      });
     }
   } catch (error) {
     hooks.onCopyError(normalizeError(error));

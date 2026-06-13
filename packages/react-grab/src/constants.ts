@@ -20,6 +20,7 @@ export const INPUT_FOCUS_ACTIVATION_DELAY_MS = 400;
 export const INPUT_TEXT_SELECTION_ACTIVATION_DELAY_MS = 600;
 export const DEFAULT_KEY_HOLD_DURATION_MS = 100;
 export const DEFAULT_MAX_CONTEXT_LINES = 3;
+export const MAX_TRACE_CONTEXT_LINES = 20;
 export const SYMBOLICATION_TIMEOUT_MS = 5000;
 export const MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS = 200;
 export const FINDER_TIMEOUT_MS = 200;
@@ -71,7 +72,6 @@ export const ARROW_PANEL_OVERLAP_PX = 1;
 export const LABEL_GAP_PX = 4;
 export const PREVIEW_TEXT_MAX_LENGTH = 100;
 export const PREVIEW_ATTR_VALUE_MAX_LENGTH = 15;
-export const PREVIEW_MAX_ATTRS = 3;
 export const PREVIEW_PRIORITY_ATTRS: readonly string[] = [
   "id",
   "class",
@@ -104,6 +104,9 @@ export const PREVIEW_IDENTIFYING_ATTRS = new Set([
   "selected",
   "open",
 ]);
+
+export const PREVIEW_DESCENDANT_TEXT_TAGS = new Set(["a", "code", "pre"]);
+export const PREVIEW_SKIPPED_TEXT_TAGS = new Set(["script", "style", "template", "noscript"]);
 
 export const MODIFIER_KEYS: readonly string[] = ["Meta", "Control", "Shift", "Alt"];
 

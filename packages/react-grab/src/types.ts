@@ -615,3 +615,26 @@ export interface SelectionLabelProps {
   onHoverChange?: (isHovered: boolean) => void;
   hideArrow?: boolean;
 }
+
+export interface SourceLocation extends SourceInfo {
+  columnNumber: number | null;
+}
+
+export interface ReactGrabStackFrame {
+  functionName?: string;
+  fileName?: string;
+  lineNumber?: number;
+  columnNumber?: number;
+  isServer?: boolean;
+  isSymbolicated?: boolean;
+}
+
+export interface ReactGrabEntry {
+  tagName?: string;
+  componentName?: string;
+  content: string;
+  commentText?: string;
+  source?: SourceLocation | null;
+  stackContext?: string;
+  frames?: ReactGrabStackFrame[];
+}

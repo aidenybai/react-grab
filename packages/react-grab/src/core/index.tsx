@@ -31,9 +31,9 @@ import {
   getStackContext,
   getNearestComponentName,
   getComponentDisplayName,
-  isNextProjectRuntime,
   resolveSource,
 } from "./context.js";
+import { isNextProjectRuntime } from "../utils/is-next-project-runtime.js";
 import { createNoopApi } from "./noop-api.js";
 import { createEventListenerManager } from "./events.js";
 import { runCopyFlow } from "./copy.js";
@@ -89,7 +89,7 @@ import { isCLikeKey } from "../utils/is-c-like-key.js";
 import { isTargetKeyCombination } from "../utils/is-target-key-combination.js";
 import { parseActivationKey } from "../utils/parse-activation-key.js";
 import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
-import { openFile } from "../utils/open-file.js";
+import { requestOpenFile } from "../utils/open-file.js";
 import { combineBounds } from "../utils/combine-bounds.js";
 import type {
   Position,
@@ -645,13 +645,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           getContent: pluginRegistry.store.options.getContent,
           componentName: elementName,
         },
-        {
-          onBeforeCopy: pluginRegistry.hooks.onBeforeCopy,
-          transformCopyContent: pluginRegistry.hooks.transformCopyContent,
-          onAfterCopy: pluginRegistry.hooks.onAfterCopy,
-          onCopySuccess: pluginRegistry.hooks.onCopySuccess,
-          onCopyError: pluginRegistry.hooks.onCopyError,
-        },
+        pluginRegistry.hooks,
         elements,
         extraPrompt,
       );
@@ -2207,7 +2201,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const wasHandled = pluginRegistry.hooks.onOpenFile(filePath, lineNumber ?? undefined);
       if (!wasHandled) {
-        openFile(filePath, lineNumber ?? undefined, pluginRegistry.hooks.transformOpenFileUrl);
+        requestOpenFile(
+          filePath,
+          lineNumber ?? undefined,
+          pluginRegistry.hooks.transformOpenFileUrl,
+        );
       }
       return true;
     };
@@ -3723,7 +3721,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
   });
 };
 
-export { getStack, getElementContext as formatElementInfo } from "./context.js";
+export { getStack, formatElementInfo } from "./context.js";
 export { isInstrumentationActive } from "bippy";
 export { DEFAULT_THEME } from "./theme.js";
 

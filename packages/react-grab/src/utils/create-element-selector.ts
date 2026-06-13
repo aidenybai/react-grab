@@ -1,13 +1,6 @@
 import { isAcceptedAttr, findUniqueSelector } from "./find-unique-selector.js";
 import { FINDER_TIMEOUT_MS, SELECTOR_ATTR_VALUE_MAX_LENGTH_CHARS } from "../constants.js";
 
-const escapeCssIdentifier = (value: string): string => {
-  if (typeof CSS !== "undefined" && typeof CSS.escape === "function") {
-    return CSS.escape(value);
-  }
-  return value.replace(/[^a-zA-Z0-9_-]/g, (character) => `\\${character}`);
-};
-
 const getFinderRoot = (element: Element): Element =>
   element.ownerDocument.body ?? element.ownerDocument.documentElement;
 
@@ -18,6 +11,8 @@ const PREFERRED_SELECTOR_ATTRIBUTE_NAMES = new Set<string>([
   "data-cy",
   "data-qa",
   "aria-label",
+  "href",
+  "src",
   "role",
   "name",
   "title",
@@ -38,7 +33,7 @@ const isSelectorUniqueForElement = (element: Element, selector: string): boolean
 
 const createFastElementSelector = (element: Element): string | null => {
   if (element instanceof HTMLElement && element.id) {
-    const idSelector = `#${escapeCssIdentifier(element.id)}`;
+    const idSelector = `#${CSS.escape(element.id)}`;
     if (isSelectorUniqueForElement(element, idSelector)) return idSelector;
   }
 
@@ -70,7 +65,7 @@ const createNthChildSelector = (element: Element): string => {
   let currentElement: Element | null = element;
   while (currentElement) {
     if (currentElement instanceof HTMLElement && currentElement.id) {
-      segments.unshift(`#${escapeCssIdentifier(currentElement.id)}`);
+      segments.unshift(`#${CSS.escape(currentElement.id)}`);
       break;
     }
 
@@ -81,8 +76,7 @@ const createNthChildSelector = (element: Element): string => {
     }
 
     const siblings = Array.from(parentElement.children);
-    const siblingIndex = siblings.indexOf(currentElement);
-    const nthChild = siblingIndex >= 0 ? siblingIndex + 1 : 1;
+    const nthChild = siblings.indexOf(currentElement) + 1;
 
     segments.unshift(`${currentElement.tagName.toLowerCase()}:nth-child(${nthChild})`);
 

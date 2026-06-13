@@ -52,9 +52,9 @@ While acting on a grab:
 npx react-grab@latest pull --max-age 0 --wait 0
 ```
 
-  Empty output means nothing new — keep going. If it prints a grab, the user has
-  moved on: stop the current task, cancel any background processes you started for
-  it, and act on the newest grab instead.
+Empty output means nothing new — keep going. If it prints a grab, the user has
+moved on: stop the current task, cancel any background processes you started for
+it, and act on the newest grab instead.
 
 ## Acting on a grab
 
