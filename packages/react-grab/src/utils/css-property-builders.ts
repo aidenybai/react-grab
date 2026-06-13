@@ -4,7 +4,7 @@ import type {
   EnumEditableProperty,
   NumericEditableProperty,
 } from "../types.js";
-import { EDIT_TRANSPARENT_COLOR_HEX } from "../constants.js";
+import { CSS_LENGTH_INFINITY_THRESHOLD_PX, EDIT_TRANSPARENT_COLOR_HEX } from "../constants.js";
 import { propertyBounds } from "./css-property-bounds.js";
 import { normalizeForEdit } from "./css-value-resolution.js";
 import { parseAnyColor } from "./parse-any-color.js";
@@ -19,7 +19,13 @@ export const buildNumericProperty = (
   isCanonical: boolean,
 ): NumericEditableProperty => {
   const normalized = normalizeForEdit(definition.key, rawValue);
-  const bounds = propertyBounds(definition.key, normalized.value, normalized.unit);
+  const isInfiniteLength = normalized.value > CSS_LENGTH_INFINITY_THRESHOLD_PX;
+  const bounds = propertyBounds(
+    definition.key,
+    isInfiniteLength ? 0 : normalized.value,
+    normalized.unit,
+  );
+  const value = isInfiniteLength ? bounds.max : normalized.value;
   return {
     kind: "numeric",
     key: definition.key,
@@ -27,8 +33,8 @@ export const buildNumericProperty = (
     cssProperties: definition.longhands,
     min: bounds.min,
     max: bounds.max,
-    value: normalized.value,
-    original: normalized.value,
+    value,
+    original: value,
     unit: normalized.unit,
     tailwindAliases: tailwindAliasesForProperty(definition.key),
     isPrioritized: false,

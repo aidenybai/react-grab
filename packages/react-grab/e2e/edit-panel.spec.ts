@@ -18,6 +18,7 @@ import {
   getActivePropertyValue,
   getActiveSliderVisualState,
   getActiveTailwindLabelOrder,
+  getActiveTailwindLabelText,
   getEditPanelCompactAttr,
   getInlineStyleAttribute,
   getInlineStyleProperty,
@@ -38,6 +39,11 @@ import {
   setSearchInputValue,
   typeInSearchInput,
 } from "./edit-panel-helpers.js";
+
+// Leaf element (text-only table cell with uniform `p-2`) whose center
+// point hits the element itself — nested containers like the card
+// select whichever child sits at their center.
+const UNIFORM_PADDING_SELECTOR = "[data-testid='th-1']";
 
 test.describe("Style Panel", () => {
   test.beforeEach(async ({ reactGrab }) => {
@@ -631,6 +637,56 @@ test.describe("Style Panel", () => {
       }
     });
 
+    test("Tailwind label names the aggregate class on a uniform padding row", async ({
+      reactGrab,
+    }) => {
+      await openEditPanel(reactGrab, UNIFORM_PADDING_SELECTOR);
+      await expect.poll(() => getActivePropertyKey(reactGrab.page)).toBe("padding");
+      await reactGrab.page.keyboard.down("Shift");
+      try {
+        await expect.poll(() => getActiveTailwindLabelText(reactGrab.page)).toBe("p-2");
+      } finally {
+        await reactGrab.page.keyboard.up("Shift");
+      }
+    });
+
+    test("stepping an out-of-range value never jumps against the arrow direction", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.page.evaluate((buttonSelector) => {
+        const button = document.querySelector(buttonSelector);
+        if (button instanceof HTMLElement) button.style.fontSize = "128px";
+      }, BUTTON_SELECTOR);
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await setSearchInputValue(reactGrab.page, "font size");
+      await expect.poll(() => getActivePropertyKey(reactGrab.page)).toBe("font-size");
+
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "font-size")).toBe(
+        "128px",
+      );
+
+      await reactGrab.page.keyboard.press("ArrowLeft");
+      await reactGrab.page.waitForTimeout(80);
+      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "font-size")).toBe(
+        "127px",
+      );
+    });
+
+    test("rounded-full's infinite radius displays as a finite clamped value", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.page.evaluate((buttonSelector) => {
+        const button = document.querySelector(buttonSelector);
+        if (button instanceof HTMLElement) button.style.borderRadius = "calc(infinity * 1px)";
+      }, BUTTON_SELECTOR);
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await setSearchInputValue(reactGrab.page, "rounded");
+      await expect.poll(() => getActivePropertyKey(reactGrab.page)).toBe("border-radius");
+      expect(await getActivePropertyValue(reactGrab.page)).toBe("96px");
+    });
+
     test("ArrowUp / ArrowDown navigate the list, not the value", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       const initialActivePropertyKey = await getActivePropertyKey(reactGrab.page);
@@ -971,6 +1027,29 @@ test.describe("Style Panel", () => {
       expect(marginTopAfterTyping).toContain("20");
     });
 
+    test("typing -m-4 applies a negative margin", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.type("-m-4");
+      await reactGrab.page.waitForTimeout(80);
+
+      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "margin-top")).toBe(
+        "-16px",
+      );
+      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "margin-left")).toBe(
+        "-16px",
+      );
+    });
+
+    test("typing -mt-[8px] applies a negative arbitrary margin", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.type("-mt-[8px]");
+      await reactGrab.page.waitForTimeout(80);
+
+      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "margin-top")).toBe(
+        "-8px",
+      );
+    });
+
     test("typing font-mono applies font family + compact", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await reactGrab.page.keyboard.type("font-mono");
@@ -1146,6 +1225,61 @@ test.describe("Style Panel", () => {
 
       const afterCommit = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
       expect(afterCommit).toBe(inlineStyleAfterTweak);
+    });
+
+    test("copied prompt matches the preview when aggregate and longhand tweaks overlap", async ({
+      reactGrab,
+    }) => {
+      await openEditPanel(reactGrab, UNIFORM_PADDING_SELECTOR);
+      await setSearchInputValue(reactGrab.page, "pt-8");
+      await expect
+        .poll(() => getInlineStyleProperty(reactGrab.page, UNIFORM_PADDING_SELECTOR, "padding-top"))
+        .toBe("32px");
+      await setSearchInputValue(reactGrab.page, "p-6");
+      await expect
+        .poll(() => getInlineStyleProperty(reactGrab.page, UNIFORM_PADDING_SELECTOR, "padding-top"))
+        .toBe("24px");
+      await setSearchInputValue(reactGrab.page, "pt-1");
+      await expect
+        .poll(() => getInlineStyleProperty(reactGrab.page, UNIFORM_PADDING_SELECTOR, "padding-top"))
+        .toBe("4px");
+      expect(
+        await getInlineStyleProperty(reactGrab.page, UNIFORM_PADDING_SELECTOR, "padding-right"),
+      ).toBe("24px");
+
+      await reactGrab.page.keyboard.press("Enter");
+      await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
+      await expect.poll(() => reactGrab.getClipboardContent()).toContain("padding-top: 4px;");
+      const clipboardContent = await reactGrab.getClipboardContent();
+      expect(clipboardContent).toContain("padding-right: 24px;");
+      expect(clipboardContent).not.toContain("padding-top: 24px;");
+    });
+
+    test("copied prompt emits a longhand stepped back to its original under a changed aggregate", async ({
+      reactGrab,
+    }) => {
+      await openEditPanel(reactGrab, UNIFORM_PADDING_SELECTOR);
+      await setSearchInputValue(reactGrab.page, "pt-8");
+      await expect
+        .poll(() => getInlineStyleProperty(reactGrab.page, UNIFORM_PADDING_SELECTOR, "padding-top"))
+        .toBe("32px");
+      await setSearchInputValue(reactGrab.page, "p-6");
+      await expect
+        .poll(() => getInlineStyleProperty(reactGrab.page, UNIFORM_PADDING_SELECTOR, "padding-top"))
+        .toBe("24px");
+      // Back to the original 8px: the padding-top override must still
+      // be emitted or the prompt claims the p-6 fan-out covers the top.
+      await setSearchInputValue(reactGrab.page, "pt-2");
+      await expect
+        .poll(() => getInlineStyleProperty(reactGrab.page, UNIFORM_PADDING_SELECTOR, "padding-top"))
+        .toBe("8px");
+
+      await reactGrab.page.keyboard.press("Enter");
+      await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
+      await expect.poll(() => reactGrab.getClipboardContent()).toContain("padding-top: 8px;");
+      const clipboardContent = await reactGrab.getClipboardContent();
+      expect(clipboardContent).toContain("padding-right: 24px;");
+      expect(clipboardContent).not.toContain("padding-top: 24px;");
     });
 
     test("header Copy button appears after a pending tweak and submits", async ({ reactGrab }) => {

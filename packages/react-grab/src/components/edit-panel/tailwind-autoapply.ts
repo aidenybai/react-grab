@@ -244,40 +244,52 @@ export const createTailwindAutoApply = (
 
     const lengthPx = parseArbitraryLengthPx(value, ARBITRARY_LENGTH_HINT.test(rawValue.trim()));
     if (lengthPx === null) return false;
-    const cssKey = tailwindPrefixToProperty(arbitraryPrefix(arbitraryMatch[1]));
-    return cssKey ? commitLengthPx(cssKey, lengthPx) : false;
+    const rawPrefix = arbitraryMatch[1];
+    const isNegativePrefixed = rawPrefix.startsWith("-");
+    const cssKey = tailwindPrefixToProperty(
+      arbitraryPrefix(isNegativePrefixed ? rawPrefix.slice(1) : rawPrefix),
+    );
+    return cssKey ? commitLengthPx(cssKey, isNegativePrefixed ? -lengthPx : lengthPx) : false;
   };
 
   const applySingleClass = (rawQuery: string) => {
     if (applyArbitraryClass(rawQuery)) return;
     const query = normalizeTailwindClassInput(rawQuery);
-    const intentPrefix = query.replace(/-\d*$/, "").replace(/-$/, "");
+    // Canonical negative spelling: `-m-4` is margin -16px. Only the
+    // numeric path below understands the sign; colors and enums have
+    // no negative forms.
+    const isNegativePrefixed = query.startsWith("-");
+    const baseQuery = isNegativePrefixed ? query.slice(1) : query;
+    const intentPrefix = baseQuery.replace(/-\d*$/, "").replace(/-$/, "");
     const intentCssKey = intentPrefix ? tailwindPrefixToProperty(intentPrefix) : null;
     if (intentCssKey && hasTrackableTarget(intentCssKey)) setIsCompact(true);
 
-    if (applyColorClass(query, null)) return;
+    if (!isNegativePrefixed) {
+      if (applyColorClass(query, null)) return;
 
-    const enumMapping = tailwindClassToEnumValue(query);
-    if (enumMapping) {
-      const enumTarget = findEnum(initialProperties, enumMapping.property);
-      if (!enumTarget) return;
-      const option = enumTarget.options.find((entry) => entry.value === enumMapping.value);
-      if (option) {
-        setIsCompact(true);
-        commit(enumTarget, option.value, { shouldCompact: true });
+      const enumMapping = tailwindClassToEnumValue(query);
+      if (enumMapping) {
+        const enumTarget = findEnum(initialProperties, enumMapping.property);
+        if (!enumTarget) return;
+        const option = enumTarget.options.find((entry) => entry.value === enumMapping.value);
+        if (option) {
+          setIsCompact(true);
+          commit(enumTarget, option.value, { shouldCompact: true });
+        }
+        return;
       }
-      return;
     }
 
-    const tailwindClassMatch = query.match(TAILWIND_CLASS_PATTERN);
+    const tailwindClassMatch = baseQuery.match(TAILWIND_CLASS_PATTERN);
     if (!tailwindClassMatch) return;
     const cssKey = tailwindPrefixToProperty(tailwindClassMatch[1]);
     if (!cssKey) return;
     const rawNumber = Number.parseFloat(tailwindClassMatch[2]);
     if (!Number.isFinite(rawNumber)) return;
+    const signedNumber = isNegativePrefixed ? -rawNumber : rawNumber;
     const candidate = LITERAL_NUMBER_KEYS.has(cssKey)
-      ? rawNumber
-      : rawNumber * TAILWIND_SPACING_UNIT_PX;
+      ? signedNumber
+      : signedNumber * TAILWIND_SPACING_UNIT_PX;
 
     const numericTarget = findNumeric(initialProperties, cssKey);
     if (numericTarget) {
@@ -306,7 +318,8 @@ export const createTailwindAutoApply = (
 
   const isApplicableSingleClass = (normalizedQuery: string): boolean => {
     if (tailwindClassToEnumValue(normalizedQuery)) return true;
-    const tailwindClassMatch = normalizedQuery.match(TAILWIND_CLASS_PATTERN);
+    const baseQuery = normalizedQuery.startsWith("-") ? normalizedQuery.slice(1) : normalizedQuery;
+    const tailwindClassMatch = baseQuery.match(TAILWIND_CLASS_PATTERN);
     if (!tailwindClassMatch) return false;
     const cssKey = tailwindPrefixToProperty(tailwindClassMatch[1]);
     if (!cssKey) return false;

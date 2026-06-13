@@ -204,6 +204,23 @@ export const getActiveTailwindLabelOrder = async (
     { attrName: ATTRIBUTE_NAME, tailwindLabelAttr: TAILWIND_LABEL_ATTR },
   );
 
+export const getActiveTailwindLabelText = async (page: Page): Promise<string | null> =>
+  page.evaluate(
+    ({ attrName, tailwindLabelAttr }) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      const tailwindLabelElements = Array.from(
+        shadowRoot?.querySelectorAll<HTMLElement>(
+          `[data-react-grab-edit-panel] [${tailwindLabelAttr}]`,
+        ) ?? [],
+      );
+      const tailwindLabel =
+        tailwindLabelElements.find((element) => element.getBoundingClientRect().width > 0) ?? null;
+      return tailwindLabel?.textContent ?? null;
+    },
+    { attrName: ATTRIBUTE_NAME, tailwindLabelAttr: TAILWIND_LABEL_ATTR },
+  );
+
 export interface SearchInputFocusVisualState {
   isFocusVisible: boolean;
   outlineStyle: string;

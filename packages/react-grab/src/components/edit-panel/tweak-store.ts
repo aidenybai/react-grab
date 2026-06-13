@@ -91,6 +91,14 @@ export const createTweakStore = (options: CreateTweakStoreOptions): TweakStore =
     return property;
   };
 
+  // Preview writes longhands last-write-wins, so every consumer that
+  // resolves overlapping tweaks (row display sync, prompt building)
+  // must see them in commit order. Key insertion order carries that:
+  // each commit re-inserts its key at the end, and tweaks whose
+  // longhands are fully covered by the new commit are dropped — their
+  // preview effect was just overwritten wholesale.
+  let lastCommittedTweakKey: string | null = null;
+
   const applyTweak = (property: EditableProperty, nextValue: number | string) => {
     let tweak: PropertyTweak;
     if (property.kind === "numeric" && typeof nextValue === "number") {
@@ -102,16 +110,49 @@ export const createTweakStore = (options: CreateTweakStoreOptions): TweakStore =
     } else {
       return;
     }
-    setTweaksByKey((current) => ({ ...current, [property.key]: tweak }));
+    if (lastCommittedTweakKey === property.key) {
+      setTweaksByKey((current) => ({ ...current, [property.key]: tweak }));
+      return;
+    }
+    lastCommittedTweakKey = property.key;
+    setTweaksByKey((current) => {
+      const next: Record<string, PropertyTweak> = {};
+      for (const existingKey of Object.keys(current)) {
+        if (existingKey === property.key) continue;
+        const existingProperty = propertyByKey.get(existingKey);
+        const isCoveredByNewTweak =
+          existingProperty !== undefined &&
+          existingProperty.cssProperties.every((longhand) =>
+            property.cssProperties.includes(longhand),
+          );
+        if (isCoveredByNewTweak) continue;
+        next[existingKey] = current[existingKey];
+      }
+      next[property.key] = tweak;
+      return next;
+    });
   };
 
   const buildPendingEdits = (): PendingEdit[] => {
     const currentTweaks = tweaksByKey();
     const pendingEdits: PendingEdit[] = [];
+    const changedCssProperties = new Set<string>();
     for (const tweakedKey of Object.keys(currentTweaks)) {
       const tweak = currentTweaks[tweakedKey];
       const property = propertyByKey.get(tweakedKey);
-      if (!property || !hasChangedFromOriginal(property, tweak)) continue;
+      if (!property || property.kind !== tweak.kind) continue;
+      const isChanged = hasChangedFromOriginal(property, tweak);
+      // A back-to-original tweak still matters when an earlier (wider)
+      // tweak changed one of its longhands: `pt-4`, `p-6`, then top
+      // back to its original must emit `padding-top` or the prompt
+      // claims the `padding: 24px` fan-out applies to the top side too.
+      const isOverridingChangedTweak =
+        !isChanged &&
+        property.cssProperties.some((cssProperty) => changedCssProperties.has(cssProperty));
+      if (!isChanged && !isOverridingChangedTweak) continue;
+      if (isChanged) {
+        for (const cssProperty of property.cssProperties) changedCssProperties.add(cssProperty);
+      }
       if (property.kind === "numeric" && tweak.kind === "numeric") {
         pendingEdits.push({
           kind: "numeric",

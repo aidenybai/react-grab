@@ -237,6 +237,12 @@ export const EDIT_SEARCH_LENGTH_PENALTY = 1;
 export const EDIT_COMPACT_SLIDER_MIN_WIDTH_PX = 96;
 
 export const CSS_VALUE_DECIMAL_PLACES = 2;
+// Tailwind v4's `rounded-full` is calc(infinity * 1px). Browsers clamp
+// it to their internal length maximum (~3.36e7px in Chromium, ~1.79e7px
+// in Firefox, float max in WebKit) — all far past this threshold and
+// none a real length. Cap to the row's max bound instead of showing
+// (and re-emitting) 33554400px.
+export const CSS_LENGTH_INFINITY_THRESHOLD_PX = 1e7;
 export const OPACITY_PERCENT_MAX = 100;
 export const FONT_SIZE_LINE_HEIGHT_RATIO = 1.2;
 // Tailwind's spacing scale: `p-1` = 0.25rem = 4px, so each "unit"

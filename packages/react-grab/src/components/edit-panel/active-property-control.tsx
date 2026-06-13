@@ -61,7 +61,7 @@ export const ActivePropertyControl: Component<ActivePropertyControlProps> = (pro
           value={enumProp().value}
           options={enumProp().options}
           activeKey={props.activeKey}
-          onCommit={props.onCommit}
+          onStep={props.onStep}
         />
       )}
     </Match>

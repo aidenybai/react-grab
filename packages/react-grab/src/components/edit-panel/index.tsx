@@ -303,8 +303,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     if (!isShiftHeld()) return null;
     const property = activeProperty();
     if (!property || property.kind !== "numeric") return null;
-    const cssKey = property.cssProperties[0];
-    return cssKey ? findTailwindClass(cssKey, property.value) : null;
+    return findTailwindClass(property.key, property.value);
   });
 
   const autoApply = createTailwindAutoApply({
