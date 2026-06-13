@@ -17,16 +17,6 @@ import { EditPanel } from "./edit-panel/index.js";
 import { ToolbarMenu } from "./toolbar/toolbar-menu.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
-  const selectionDiscardPrompt = () =>
-    props.discardPrompt ??
-    (props.isPendingDismiss
-      ? {
-          kind: "standard",
-          onConfirm: props.onConfirmDismiss,
-          onCancel: props.onCancelDismiss,
-        }
-      : undefined);
-
   return (
     <>
       <OverlayCanvas
@@ -110,7 +100,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           onToggleExpand={props.onToggleExpand}
           selectionLabelShakeCount={props.selectionLabelShakeCount}
           onConfirmDismiss={props.onConfirmDismiss}
-          discardPrompt={selectionDiscardPrompt()}
+          discardPrompt={props.discardPrompt}
           onOpen={() => {
             if (props.selectionFilePath) {
               requestOpenFile(props.selectionFilePath, props.selectionLineNumber);

@@ -8,7 +8,6 @@ interface KeyboardSelectionController {
   clear: () => void;
   consumeMouseHandoff: () => boolean;
   showDismissPrompt: () => boolean;
-  cancelDismiss: () => void;
   takeSelection: (fallbackElement?: Element | null) => Element | null;
 }
 
@@ -24,10 +23,6 @@ export const createKeyboardSelectionController = (): KeyboardSelectionController
     selectedElement = null;
     isMouseHandoffArmed = false;
     setIsPendingDismiss(false);
-  };
-
-  const armMouseHandoff = () => {
-    if (connectedSelection()) isMouseHandoffArmed = true;
   };
 
   const takeSelection = (fallbackElement?: Element | null): Element | null => {
@@ -59,10 +54,6 @@ export const createKeyboardSelectionController = (): KeyboardSelectionController
       if (isPendingDismiss()) return false;
       setIsPendingDismiss(true);
       return true;
-    },
-    cancelDismiss: () => {
-      setIsPendingDismiss(false);
-      armMouseHandoff();
     },
     takeSelection,
   };

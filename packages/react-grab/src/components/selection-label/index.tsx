@@ -114,7 +114,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const handleGlobalKeyDown = (event: KeyboardEvent) => {
     if (isKeyboardEventTriggeredByInput(event)) return;
 
-    const isEnterToExpand = event.code === "Enter" && !props.isPromptMode && canInteract();
+    const isEnterToExpand =
+      event.code === "Enter" && !props.isPromptMode && !props.discardPrompt && canInteract();
 
     if (isEnterToExpand) {
       event.preventDefault();

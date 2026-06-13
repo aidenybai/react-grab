@@ -482,10 +482,8 @@ export interface ReactGrabRendererProps {
   onInputChange?: (value: string) => void;
   onInputSubmit?: () => void;
   onToggleExpand?: () => void;
-  isPendingDismiss?: boolean;
   selectionLabelShakeCount?: number;
   onConfirmDismiss?: () => void;
-  onCancelDismiss?: () => void;
   discardPrompt?: SelectionDiscardPrompt;
   toolbarVisible?: boolean;
   isActive?: boolean;
@@ -625,10 +623,8 @@ export interface SelectionLabelProps {
   onToggleExpand?: () => void;
   onOpen?: () => void;
   onDismiss?: () => void;
-  isPendingDismiss?: boolean;
   selectionLabelShakeCount?: number;
   onConfirmDismiss?: () => void;
-  onCancelDismiss?: () => void;
   discardPrompt?: SelectionDiscardPrompt;
   error?: string;
   onAcknowledgeError?: () => void;

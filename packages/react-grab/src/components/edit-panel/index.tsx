@@ -300,7 +300,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
 
   const stepController = createStepController({ step: stepFromKeyboard, isShiftHeld });
 
-  const commitActive = (rawValue: number | string, source: "keyboard" | "pointer" = "keyboard") => {
+  const commitActive = (rawValue: number | string, source: "keyboard" | "pointer") => {
     const property = activeProperty();
     if (!property) return;
     if (property.kind === "numeric" && typeof rawValue === "number") {

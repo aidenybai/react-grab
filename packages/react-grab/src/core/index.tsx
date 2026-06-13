@@ -1447,10 +1447,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleCancelDismiss = () => {
-      if (keyboardSelection.isPendingDismiss()) {
-        cancelArrowNavigationDismiss();
-        return;
-      }
       actions.setPendingDismiss(false);
     };
 
@@ -2110,10 +2106,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       clearArrowNavigation();
     };
 
-    const cancelArrowNavigationDismiss = () => {
-      keyboardSelection.cancelDismiss();
-    };
-
     const copyArrowNavigationSelection = () => {
       const selectedElement = keyboardSelection.takeSelection(store.frozenElement);
       if (!selectedElement) {
@@ -2662,7 +2654,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             showArrowNavigationDismissPrompt();
             return;
           }
-          if (keyboardSelection.isPendingDismiss()) return;
           actions.unfreeze();
           clearArrowNavigation();
         }

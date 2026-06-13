@@ -1,5 +1,3 @@
-import { createSignal } from "solid-js";
-
 interface PointerMovePromptHandoff {
   arm: () => void;
   clear: () => void;
@@ -7,17 +5,21 @@ interface PointerMovePromptHandoff {
 }
 
 export const createPointerMovePromptHandoff = (): PointerMovePromptHandoff => {
-  const [isArmed, setIsArmed] = createSignal(false);
+  let isArmed = false;
 
   const consume = (): boolean => {
-    if (!isArmed()) return false;
-    setIsArmed(false);
+    if (!isArmed) return false;
+    isArmed = false;
     return true;
   };
 
   return {
-    arm: () => setIsArmed(true),
-    clear: () => setIsArmed(false),
+    arm: () => {
+      isArmed = true;
+    },
+    clear: () => {
+      isArmed = false;
+    },
     consume,
   };
 };
