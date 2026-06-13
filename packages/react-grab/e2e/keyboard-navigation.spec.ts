@@ -1,4 +1,5 @@
 import { expect, test, type ReactGrabPageObject } from "./fixtures.js";
+import { isEditPanelVisible } from "./edit-panel-helpers.js";
 
 const ATTRIBUTE_NAME = "data-react-grab";
 
@@ -253,6 +254,65 @@ test.describe("Keyboard Navigation", () => {
     await reactGrab.page.keyboard.press("Enter");
 
     await expect.poll(() => reactGrab.isPendingDismissVisible()).toBe(false);
+  });
+
+  test("Enter on the focused Copy button copies without opening the Style panel", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.page.evaluate(() => navigator.clipboard.writeText(""));
+    await reactGrab.activate();
+    await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
+    await reactGrab.waitForSelectionBox();
+
+    await reactGrab.page.keyboard.press("ArrowUp");
+    await reactGrab.waitForSelectionBox();
+    await reactGrab.page.mouse.move(10, 10);
+    await expect.poll(() => reactGrab.isPendingDismissVisible()).toBe(true);
+
+    await reactGrab.page.locator("[data-react-grab-discard-copy]").focus();
+    await reactGrab.page.keyboard.press("Enter");
+
+    // Enter on Copy must copy, not fall through to the Enter-to-expand
+    // shortcut that would open the Style panel.
+    await expect.poll(() => reactGrab.getClipboardContent(), { timeout: 5000 }).not.toBe("");
+    expect(await isEditPanelVisible(reactGrab.page)).toBe(false);
+  });
+
+  test("Enter on the focused Yes button discards without copying", async ({ reactGrab }) => {
+    await reactGrab.page.evaluate(() => navigator.clipboard.writeText(""));
+    await reactGrab.activate();
+    await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
+    await reactGrab.waitForSelectionBox();
+
+    await reactGrab.page.keyboard.press("ArrowUp");
+    await reactGrab.waitForSelectionBox();
+    await reactGrab.page.mouse.move(10, 10);
+    await expect.poll(() => reactGrab.isPendingDismissVisible()).toBe(true);
+
+    await reactGrab.page.locator("[data-react-grab-discard-yes]").focus();
+    await reactGrab.page.keyboard.press("Enter");
+
+    await expect.poll(() => reactGrab.isPendingDismissVisible()).toBe(false);
+    expect(await reactGrab.getClipboardContent()).toBe("");
+  });
+
+  test("arrow keys are ignored while the discard-selection prompt is open", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
+    await reactGrab.waitForSelectionBox();
+
+    await reactGrab.page.keyboard.press("ArrowDown");
+    await reactGrab.waitForSelectionBox();
+    await reactGrab.page.mouse.move(0, 0);
+    await expect.poll(() => reactGrab.isPendingDismissVisible()).toBe(true);
+
+    // Navigation is suppressed while the prompt is up: a navigating key would
+    // re-select and clear the prompt, so it must stay open.
+    await reactGrab.page.keyboard.press("ArrowDown");
+    await reactGrab.page.waitForTimeout(100);
+    expect(await reactGrab.isPendingDismissVisible()).toBe(true);
   });
 });
 

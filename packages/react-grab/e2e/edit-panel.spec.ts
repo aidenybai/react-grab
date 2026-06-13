@@ -447,6 +447,91 @@ test.describe("Style Panel", () => {
       await reactGrab.page.keyboard.press("Escape");
       await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
     });
+
+    test("mouse movement without pending tweaks does not open the discard prompt", async ({
+      reactGrab,
+    }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+
+      await reactGrab.page.mouse.move(10, 10);
+      await reactGrab.page.waitForTimeout(80);
+
+      // Nothing was tweaked, so the handoff was never armed.
+      expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(false);
+    });
+
+    test("mouse-move discard prompt Yes reverts the keyboard tweak", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      const beforeTweak = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+      expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).not.toBe(beforeTweak);
+
+      await reactGrab.page.mouse.move(10, 10);
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
+
+      await clickDiscardButton(reactGrab.page, "confirm");
+      await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
+      expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).toBe(beforeTweak);
+    });
+
+    test("a fresh keyboard tweak re-arms the consumed pointer handoff", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+
+      await reactGrab.page.mouse.move(10, 10);
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
+
+      await clickDiscardButton(reactGrab.page, "cancel");
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(false);
+
+      // The handoff is one-shot, but a new keyboard commit re-arms it.
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+      await reactGrab.page.mouse.move(40, 40);
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
+    });
+
+    test("typing a tailwind class arms the mouse-move discard handoff", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      const beforeTweak = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
+      // px-4 (16px) differs from the button's px-2 (8px), so it's a real,
+      // submittable edit rather than a net-zero one.
+      await reactGrab.page.keyboard.type("px-4");
+      await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
+      expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).not.toBe(beforeTweak);
+
+      await reactGrab.page.mouse.move(10, 10);
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
+    });
+
+    test("touch pointer movement does not consume the keyboard handoff", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+
+      // A touch pointermove is ignored by the mouse-only handoff, so it must
+      // neither open the prompt nor consume the arm.
+      await reactGrab.page.evaluate(() => {
+        window.dispatchEvent(
+          new PointerEvent("pointermove", { pointerType: "touch", bubbles: true }),
+        );
+      });
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(false);
+
+      // The still-armed handoff fires on the next real mouse move.
+      await reactGrab.page.mouse.move(10, 10);
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
+    });
   });
 
   test.describe("Property listing", () => {
