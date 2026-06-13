@@ -79,6 +79,17 @@ const mergeEditsIntoEntry = (entry: PendingEditsEntry, edits: PendingEdits) => {
   }
 };
 
+const toSessionRecord = (
+  currentState: EditPanelState,
+  edits: PendingEdits,
+): EditSessionRecord => ({
+  element: currentState.element,
+  preview: currentState.preview,
+  filePath: currentState.filePath ?? "",
+  lineNumber: currentState.lineNumber ?? 0,
+  edits,
+});
+
 export const createEditModeController = (
   dependencies: EditModeDependencies,
 ): EditModeController => {
@@ -168,13 +179,7 @@ export const createEditModeController = (
     if (properties.length === 0) return false;
 
     if (currentPendingEdits.length > 0 || currentState.preview.hasAppliedStyles()) {
-      sessionRecords.push({
-        element: currentState.element,
-        preview: currentState.preview,
-        filePath: currentState.filePath ?? "",
-        lineNumber: currentState.lineNumber ?? 0,
-        edits: currentPendingEdits,
-      });
+      sessionRecords.push(toSessionRecord(currentState, currentPendingEdits));
     }
     currentPendingEdits = [];
 
@@ -189,10 +194,18 @@ export const createEditModeController = (
     });
 
     // The store's selection source still points at the previous element, so
-    // the new element's source is resolved directly instead.
+    // the new element's source is resolved directly instead. Resolution is
+    // async, so a fast switch can bank this element's record before it lands;
+    // patch any already-recorded visit of this element too, not just live state.
     void resolveSource(element)
       .then((source) => {
         if (!source) return;
+        for (const record of sessionRecords) {
+          if (record.element === element && !record.filePath) {
+            record.filePath = source.filePath;
+            record.lineNumber = source.lineNumber ?? 0;
+          }
+        }
         setState((current) => {
           if (!current || current.element !== element || current.filePath) return current;
           return {
@@ -217,13 +230,7 @@ export const createEditModeController = (
   ): PendingEditsEntry[] => {
     const records: EditSessionRecord[] = [
       ...sessionRecords,
-      {
-        element: currentState.element,
-        preview: currentState.preview,
-        filePath: currentState.filePath ?? "",
-        lineNumber: currentState.lineNumber ?? 0,
-        edits: pendingEdits,
-      },
+      toSessionRecord(currentState, pendingEdits),
     ];
 
     const entryByElement = new Map<Element, PendingEditsEntry>();
@@ -231,6 +238,11 @@ export const createEditModeController = (
       if (record.edits.length === 0) continue;
       const existingEntry = entryByElement.get(record.element);
       if (existingEntry) {
+        // A later visit may have resolved the source the first visit missed.
+        if (!existingEntry.filePath && record.filePath) {
+          existingEntry.filePath = record.filePath;
+          existingEntry.lineNumber = record.lineNumber;
+        }
         mergeEditsIntoEntry(existingEntry, record.edits);
         continue;
       }
