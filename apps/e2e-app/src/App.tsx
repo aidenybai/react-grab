@@ -57,6 +57,7 @@ const DeeplyNested = () => {
         <NestedCard title="Inner Card">
           <p data-testid="deeply-nested-text">This is deeply nested content</p>
           <button
+            type="button"
             className="bg-blue-500 text-white px-2 py-1 rounded text-sm"
             data-testid="nested-button"
           >
@@ -182,6 +183,7 @@ const DynamicElements = () => {
           >
             <span>{element.text}</span>
             <button
+              type="button"
               onClick={() => removeElement(element.id)}
               className="text-red-500 hover:text-red-700 px-2"
               data-testid={`remove-element-${element.id}`}
@@ -192,6 +194,7 @@ const DynamicElements = () => {
         ))}
       </div>
       <button
+        type="button"
         onClick={addElement}
         className="bg-blue-500 text-white px-4 py-2 rounded"
         data-testid="add-element-button"
@@ -253,7 +256,7 @@ const VariousElements = () => {
           <a href="#" className="text-blue-500 underline" data-testid="link-element">
             Link Element
           </a>
-          <button className="border px-2 py-1 rounded" data-testid="plain-button">
+          <button type="button" className="border px-2 py-1 rounded" data-testid="plain-button">
             Plain Button
           </button>
         </div>
@@ -392,6 +395,7 @@ const DropdownSection = () => {
       <h2 className="text-lg font-bold mb-4">Dropdown Test</h2>
       <div className="relative" ref={dropdownRef}>
         <button
+          type="button"
           onClick={() => setIsOpen(!isOpen)}
           className="bg-blue-500 text-white px-4 py-2 rounded"
           data-testid="dropdown-trigger"
@@ -404,18 +408,21 @@ const DropdownSection = () => {
             data-testid="dropdown-menu"
           >
             <button
+              type="button"
               className="w-full text-left px-4 py-2 hover:bg-gray-100"
               data-testid="dropdown-item-1"
             >
               Option 1
             </button>
             <button
+              type="button"
               className="w-full text-left px-4 py-2 hover:bg-gray-100"
               data-testid="dropdown-item-2"
             >
               Option 2
             </button>
             <button
+              type="button"
               className="w-full text-left px-4 py-2 hover:bg-gray-100"
               data-testid="dropdown-item-3"
             >
@@ -460,6 +467,7 @@ const ModalDialogSection = () => {
     <section className="border rounded-lg p-4" data-testid="modal-dialog-section">
       <h2 className="text-lg font-bold mb-4">Modal Dialog (pointerdown dismiss)</h2>
       <button
+        type="button"
         onClick={() => setIsOpen(true)}
         className="bg-indigo-500 text-white px-4 py-2 rounded"
         data-testid="modal-trigger"
@@ -483,12 +491,14 @@ const ModalDialogSection = () => {
               Click inside here while React Grab is active. The modal should NOT close.
             </p>
             <button
+              type="button"
               className="bg-blue-500 text-white px-3 py-1 rounded"
               data-testid="modal-inner-button"
             >
               Button Inside Modal
             </button>
             <button
+              type="button"
               onClick={() => setIsOpen(false)}
               className="ml-2 bg-gray-300 px-3 py-1 rounded"
               data-testid="modal-close-button"
@@ -547,6 +557,7 @@ const PointerUpModalSection = () => {
         Modal Dialog (pointerdown+pointerup dismiss, Headless UI style)
       </h2>
       <button
+        type="button"
         onClick={() => setIsOpen(true)}
         className="bg-teal-500 text-white px-4 py-2 rounded"
         data-testid="pointerup-modal-trigger"
@@ -567,12 +578,14 @@ const PointerUpModalSection = () => {
             <h3 className="text-lg font-bold mb-2">Headless UI Style Modal</h3>
             <p className="mb-4">Uses pointerdown+pointerup pair for outside detection.</p>
             <button
+              type="button"
               className="bg-blue-500 text-white px-3 py-1 rounded"
               data-testid="pointerup-modal-inner-button"
             >
               Button Inside Modal
             </button>
             <button
+              type="button"
               onClick={() => setIsOpen(false)}
               className="ml-2 bg-gray-300 px-3 py-1 rounded"
               data-testid="pointerup-modal-close-button"
@@ -594,6 +607,7 @@ const HiddenToggleSection = () => {
     <section className="border rounded-lg p-4" data-testid="hidden-toggle-section">
       <h2 className="text-lg font-bold mb-4">Visibility Toggle</h2>
       <button
+        type="button"
         onClick={() => setIsVisible(!isVisible)}
         className="bg-gray-500 text-white px-4 py-2 rounded mb-4"
         data-testid="toggle-visibility-button"

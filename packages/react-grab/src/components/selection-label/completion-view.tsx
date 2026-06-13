@@ -15,6 +15,7 @@ interface MoreOptionsButtonProps {
 const MoreOptionsButton: Component<MoreOptionsButtonProps> = (props) => {
   return (
     <button
+      type="button"
       data-react-grab-ignore-events
       data-react-grab-more-options
       class="group flex items-center justify-center size-4 rounded-sm cursor-pointer bg-transparent hover:bg-[var(--rg-surface-hover)] text-[var(--rg-text-secondary)] hover:text-[var(--rg-text-primary)] border-none outline-none p-0 shrink-0 press-scale"

@@ -58,6 +58,7 @@ export const DiscardPrompt: Component<DiscardPromptProps> = (props) => {
       <BottomSection>
         <div class="contain-layout shrink-0 flex items-center justify-end gap-[5px] w-full h-fit">
           <button
+            type="button"
             data-react-grab-discard-no
             class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[var(--rg-surface-hover)] [border-width:0.5px] border-solid border-[var(--rg-border-button)] cursor-pointer transition-all hover:bg-[var(--rg-surface-active)] press-scale h-[17px]"
             onClick={props.onCancel}
@@ -67,6 +68,7 @@ export const DiscardPrompt: Component<DiscardPromptProps> = (props) => {
             </span>
           </button>
           <button
+            type="button"
             data-react-grab-discard-yes
             class="contain-layout shrink-0 flex items-center justify-center gap-0.5 px-[3px] py-px rounded-sm bg-[var(--rg-error-bg)] cursor-pointer transition-all hover:bg-[var(--rg-error-bg-hover)] press-scale h-[17px]"
             onClick={props.onConfirm}
