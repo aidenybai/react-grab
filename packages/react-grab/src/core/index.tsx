@@ -3629,13 +3629,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 discardPrompt={
                   keyboardSelection.isPendingDismiss()
                     ? {
-                        kind: "keyboard-selection",
+                        isKeyboardSelection: true,
                         onConfirm: handleConfirmDismiss,
                         onCopy: copyArrowNavigationSelection,
                       }
                     : isPendingDismiss()
                       ? {
-                          kind: "standard",
                           onConfirm: handleConfirmDismiss,
                           onCancel: handleCancelDismiss,
                         }

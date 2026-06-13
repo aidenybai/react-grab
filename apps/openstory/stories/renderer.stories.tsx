@@ -322,9 +322,7 @@ const Scene = (props: SceneProps) => {
         isPromptMode={props.isPromptMode}
         inputValue={props.inputValue}
         discardPrompt={
-          props.isPendingDismiss
-            ? { kind: "standard", onConfirm: noop, onCancel: noop }
-            : undefined
+          props.isPendingDismiss ? { onConfirm: noop, onCancel: noop } : undefined
         }
         isFrozen={false}
         toolbarVisible={props.showToolbar}

@@ -572,23 +572,14 @@ export interface DiscardPromptProps {
   onCopy?: () => void;
 }
 
-export interface StandardSelectionDiscardPrompt {
-  kind: "standard";
+export interface SelectionDiscardPrompt {
+  isKeyboardSelection?: boolean;
   label?: string;
   cancelOnEscape?: boolean;
   onConfirm?: () => void;
   onCancel?: () => void;
+  onCopy?: () => void;
 }
-
-export interface KeyboardSelectionDiscardPrompt {
-  kind: "keyboard-selection";
-  onConfirm: () => void;
-  onCopy: () => void;
-}
-
-export type SelectionDiscardPrompt =
-  | StandardSelectionDiscardPrompt
-  | KeyboardSelectionDiscardPrompt;
 
 export interface ErrorViewProps {
   error: string;

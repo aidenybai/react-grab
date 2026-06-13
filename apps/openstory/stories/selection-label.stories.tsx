@@ -121,7 +121,7 @@ export const PendingDismiss: Story = {
     tagName: "header",
     componentName: "Header",
     isPromptMode: true,
-    discardPrompt: { kind: "standard", onConfirm: noop, onCancel: noop },
+    discardPrompt: { onConfirm: noop, onCancel: noop },
     inputValue: "tweak the spacing",
   },
 };

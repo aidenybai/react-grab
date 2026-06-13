@@ -543,24 +543,16 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               return (
                 <DiscardPrompt
                   label={
-                    currentDiscardPrompt.kind === "keyboard-selection"
+                    currentDiscardPrompt.isKeyboardSelection
                       ? "Discard selection?"
                       : currentDiscardPrompt.label
                   }
-                  showCancel={currentDiscardPrompt.kind === "standard"}
-                  cancelOnEscape={
-                    currentDiscardPrompt.kind === "standard"
-                      ? currentDiscardPrompt.cancelOnEscape
-                      : undefined
-                  }
+                  showCancel={!currentDiscardPrompt.isKeyboardSelection}
+                  cancelOnEscape={currentDiscardPrompt.cancelOnEscape}
                   onConfirm={currentDiscardPrompt.onConfirm}
-                  onCopy={
-                    currentDiscardPrompt.kind === "keyboard-selection"
-                      ? currentDiscardPrompt.onCopy
-                      : undefined
-                  }
+                  onCopy={currentDiscardPrompt.onCopy}
                   onCancel={() => {
-                    if (currentDiscardPrompt.kind === "standard") {
+                    if (!currentDiscardPrompt.isKeyboardSelection) {
                       currentDiscardPrompt.onCancel?.();
                     }
                     inputRef?.focus({ preventScroll: true });
