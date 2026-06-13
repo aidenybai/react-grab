@@ -224,15 +224,12 @@ export const createEditModeController = (
     return true;
   };
 
-  const buildSessionEntries = (
+  const buildSessionRecords = (
     currentState: EditPanelState,
     pendingEdits: PendingEdits,
-  ): PendingEditsEntry[] => {
-    const records: EditSessionRecord[] = [
-      ...sessionRecords,
-      toSessionRecord(currentState, pendingEdits),
-    ];
+  ): EditSessionRecord[] => [...sessionRecords, toSessionRecord(currentState, pendingEdits)];
 
+  const buildSessionEntries = (records: EditSessionRecord[]): PendingEditsEntry[] => {
     const entryByElement = new Map<Element, PendingEditsEntry>();
     for (const record of records) {
       if (record.edits.length === 0) continue;
@@ -255,11 +252,31 @@ export const createEditModeController = (
     return Array.from(entryByElement.values());
   };
 
+  // Copy keeps the preview of every element whose edits made it into the
+  // prompt, but a banked visit can hold preview styles with no net edits
+  // (e.g. tweaked then stepped back to original). Those never reach the
+  // prompt, so revert them like a discard would, or the page keeps stray
+  // inline styles the copy never described.
+  const restoreUneditedPreviews = (records: EditSessionRecord[]) => {
+    const editedElements = new Set<Element>();
+    for (const record of records) {
+      if (record.edits.length > 0) editedElements.add(record.element);
+    }
+    for (let recordIndex = records.length - 1; recordIndex >= 0; recordIndex--) {
+      const record = records[recordIndex];
+      if (record.edits.length === 0 && !editedElements.has(record.element)) {
+        record.preview.restore();
+      }
+    }
+  };
+
   const submit = (pendingEdits: PendingEdits) => {
     const currentState = state();
     if (!currentState) return;
     const element = currentState.element;
-    const prompt = formatSessionEditsPrompt(buildSessionEntries(currentState, pendingEdits));
+    const records = buildSessionRecords(currentState, pendingEdits);
+    const prompt = formatSessionEditsPrompt(buildSessionEntries(records));
+    restoreUneditedPreviews(records);
     clearAll();
     if (!dependencies.store.wasActivatedByToggle) {
       dependencies.actions.unfreeze();

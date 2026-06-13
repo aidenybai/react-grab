@@ -1490,6 +1490,37 @@ test.describe("Style Panel", () => {
       );
     });
 
+    test("copy reverts a switched-away element whose tweak was undone", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      const buttonStyleBeforeTweak = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+      await reactGrab.page.keyboard.press("ArrowLeft");
+      await reactGrab.page.waitForTimeout(80);
+
+      await reactGrab.page.locator(MAIN_TITLE_SELECTOR).click({ force: true });
+      await reactGrab.page.waitForTimeout(150);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+      const titleStyleBeforeCopy = await getInlineStyleAttribute(
+        reactGrab.page,
+        MAIN_TITLE_SELECTOR,
+      );
+
+      await reactGrab.page.keyboard.press("Enter");
+      await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
+      const clipboardContent = await reactGrab.getClipboardContent();
+      expect(clipboardContent.match(/```css/g)?.length).toBe(1);
+
+      // The button netted no edits, so copy must not leave it styled.
+      expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).toBe(
+        buttonStyleBeforeTweak,
+      );
+      expect(await getInlineStyleAttribute(reactGrab.page, MAIN_TITLE_SELECTOR)).toBe(
+        titleStyleBeforeCopy,
+      );
+    });
+
     test("session edits from a previous element keep the discard prompt armed", async ({
       reactGrab,
     }) => {
