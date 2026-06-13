@@ -23,7 +23,7 @@ interface ValueStepperProps {
   activeKey: "left" | "right" | null;
   onStep: (direction: 1 | -1) => void;
   label?: string;
-  onCommitValue?: (value: number) => void;
+  onCommitValue?: (value: number, source: "keyboard" | "pointer") => void;
   onEditComplete?: () => void;
   onInvalidCommit?: () => void;
   onInteract?: () => void;
@@ -74,7 +74,7 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
   };
 
   const commitDrag = (clientX: number, rect: DOMRect) => {
-    props.onCommitValue?.(positionToValue(clientX, rect));
+    props.onCommitValue?.(positionToValue(clientX, rect), "pointer");
   };
 
   const computeRubberStretch = (clientX: number, trackRect: DOMRect): number => {
@@ -177,7 +177,7 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
     }
     const parsed = Number.parseFloat(valueMatch[1]);
     if (Number.isFinite(parsed)) {
-      props.onCommitValue?.(parsed);
+      props.onCommitValue?.(parsed, "keyboard");
     } else {
       props.onInvalidCommit?.();
     }

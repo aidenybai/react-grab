@@ -9,6 +9,7 @@ import {
   IDLE_BUFFER_MS,
   SEARCH_INPUT_ATTR,
   clearEditStorage,
+  clickDiscardButton,
   clickHeaderCopyButton,
   dispatchOutsideDismiss,
   dragActiveSlider,
@@ -25,7 +26,6 @@ import {
   getOverlayFocusVisualStates,
   getPropertyRowBounds,
   getSearchInputFocusVisualState,
-  getVisibleSliderVisualState,
   getVisiblePropertyKeys,
   hoverVisibleSlider,
   isDiscardPromptVisible,
@@ -283,6 +283,110 @@ test.describe("Style Panel", () => {
       expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
       expect(await isEditPanelCompact(reactGrab.page)).toBe(false);
       expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
+    });
+
+    test("mouse movement after keyboard tweak opens discard prompt with Copy", async ({
+      reactGrab,
+    }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+      const inlineStyleAfterTweak = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
+      expect(inlineStyleAfterTweak.length).toBeGreaterThan(0);
+
+      await reactGrab.page.mouse.move(10, 10);
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
+      expect(await isEditPanelCompact(reactGrab.page)).toBe(false);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
+
+      await clickDiscardButton(reactGrab.page, "copy");
+      await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
+      expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).toBe(
+        inlineStyleAfterTweak,
+      );
+    });
+
+    test("canceling mouse-move discard prompt consumes the pointer handoff", async ({
+      reactGrab,
+    }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+
+      await reactGrab.page.mouse.move(10, 10);
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
+
+      await clickDiscardButton(reactGrab.page, "cancel");
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(false);
+
+      await reactGrab.page.mouse.move(20, 20);
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(false);
+    });
+
+    test("canceling outside-click discard prompt consumes the pointer handoff", async ({
+      reactGrab,
+    }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+
+      await dispatchOutsideDismiss(reactGrab.page);
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
+
+      await clickDiscardButton(reactGrab.page, "cancel");
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(false);
+
+      await reactGrab.page.mouse.move(20, 20);
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(false);
+    });
+
+    test("mouse movement while discard prompt is visible does not consume the handoff", async ({
+      reactGrab,
+    }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(80);
+
+      await openDiscardPromptViaEscape(reactGrab.page);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
+      await reactGrab.page.mouse.move(10, 10);
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
+
+      await clickDiscardButton(reactGrab.page, "cancel");
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(false);
+
+      await reactGrab.page.mouse.move(20, 20);
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(false);
+    });
+
+    test("keyboard navigation after pointer tweak does not arm mouse-move discard prompt", async ({
+      reactGrab,
+    }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await dragActiveSlider(reactGrab.page);
+      await reactGrab.page.waitForTimeout(80);
+      expect(await isHeaderCopyButtonVisible(reactGrab.page)).toBe(true);
+
+      await reactGrab.page.keyboard.press("ArrowDown");
+      await reactGrab.page.waitForTimeout(80);
+      await reactGrab.page.mouse.move(10, 10);
+      await reactGrab.page.waitForTimeout(80);
+
+      expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(false);
     });
 
     test("net-zero tweak dismiss restores preview inline styles", async ({ reactGrab }) => {
@@ -777,17 +881,16 @@ test.describe("Style Panel", () => {
       expect(await isEditPanelCompact(reactGrab.page)).toBe(true);
     });
 
-    test("compact slider shows unit marks on hover", async ({ reactGrab }) => {
+    test("compact keyboard tweak opens discard prompt on hover", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await reactGrab.page.keyboard.press("ArrowRight");
       await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
       expect(await isEditPanelCompact(reactGrab.page)).toBe(true);
-      const beforeHover = await getVisibleSliderVisualState(reactGrab.page);
-      expect(beforeHover.maxHashMarkOpacity).toBe(0);
+
       await hoverVisibleSlider(reactGrab.page);
       await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
-      const afterHover = await getVisibleSliderVisualState(reactGrab.page);
-      expect(afterHover.maxHashMarkOpacity).toBeGreaterThan(0);
+      expect(await isEditPanelCompact(reactGrab.page)).toBe(false);
+      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
     });
 
     test("typing in search re-expands the compact panel", async ({ reactGrab }) => {

@@ -138,6 +138,7 @@ import { generateId } from "../utils/generate-id.js";
 import { logRecoverableError } from "../utils/log-recoverable-error.js";
 import { getNearestEdge } from "../utils/get-nearest-edge.js";
 import { findShortcutAction } from "../utils/action-shortcuts.js";
+import { createKeyboardSelectionController } from "./keyboard-selection.js";
 
 const builtInPlugins = [copyPlugin, editPlugin, commentPlugin, openPlugin];
 
@@ -328,6 +329,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let didSwitchEditTargetOnPointerDown = false;
 
     let shiftSelectionLabelAnchorRatioByElement = new WeakMap<Element, number>();
+    const keyboardSelection = createKeyboardSelectionController();
+
+    const isElementDetectionBlocked = () =>
+      !isEnabled() ||
+      isPromptMode() ||
+      isSelectionInteractionLocked() ||
+      isModalPopoverOpen() ||
+      keyboardSelection.isPendingDismiss();
 
     const clearShiftSelectionLabelAnchors = () => {
       shiftSelectionLabelAnchorRatioByElement = new WeakMap<Element, number>();
@@ -487,7 +496,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
     let selectionSourceRequestVersion = 0;
     let componentNameDebounceTimerId: number | null = null;
-    let keyboardSelectedElement: Element | null = null;
     let pendingDefaultActionId: string | null = null;
     const [isPendingContextMenuSelect, setIsPendingContextMenuSelect] = createSignal(false);
     const [pendingToolbarActionId, setPendingToolbarActionId] = createSignal<string | null>(null);
@@ -790,7 +798,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const targetElement = createMemo(() => {
       void viewportVersion();
-      if (!isRendererActive() || isActivelyDragging() || isSelectionInteractionLocked())
+      if (
+        !isRendererActive() ||
+        isActivelyDragging() ||
+        isSelectionInteractionLocked() ||
+        keyboardSelection.isPendingDismiss()
+      )
         return null;
       const element = store.detectedElement;
       if (!isElementConnected(element)) return null;
@@ -1341,7 +1354,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       dismissToolbarMenu();
       stopShiftMultiSelecting();
       clearArrowNavigation();
-      keyboardSelectedElement = null;
+      keyboardSelection.clear();
       setIsPendingContextMenuSelect(false);
       setPendingToolbarActionId(null);
       if (wasDragging) {
@@ -1425,11 +1438,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleConfirmDismiss = () => {
+      if (keyboardSelection.isPendingDismiss()) {
+        discardArrowNavigationSelection();
+        return;
+      }
       actions.clearInputText();
       deactivateRenderer();
     };
 
     const handleCancelDismiss = () => {
+      if (keyboardSelection.isPendingDismiss()) {
+        cancelArrowNavigationDismiss();
+        return;
+      }
       actions.setPendingDismiss(false);
     };
 
@@ -1599,13 +1620,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         !store.pendingCommentMode &&
         !isPendingContextMenuSelect();
 
-      if (
-        !isEnabled() ||
-        isPromptMode() ||
-        (isFrozenPhase() && !shouldTrackPendingShiftSelection) ||
-        isSelectionInteractionLocked() ||
-        isModalPopoverOpen()
-      ) {
+      if (isElementDetectionBlocked() || (isFrozenPhase() && !shouldTrackPendingShiftSelection)) {
         return;
       }
 
@@ -1633,6 +1648,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         elementDetectionState.lastDetectionTimestamp = now;
         elementDetectionState.pendingDetectionScheduledAt = now;
         setTimeout(() => {
+          if (isElementDetectionBlocked()) {
+            elementDetectionState.pendingDetectionScheduledAt = 0;
+            return;
+          }
           const candidate = getElementAtPosition(
             elementDetectionState.latestPointerX,
             elementDetectionState.latestPointerY,
@@ -1676,7 +1695,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         stopShiftMultiSelecting();
       }
 
-      actions.startDrag({ x: clientX, y: clientY }, isShiftHeld);
+      const shouldPreserveKeyboardSelection = keyboardSelection.selectedElement() !== null;
+      actions.startDrag({ x: clientX, y: clientY }, isShiftHeld || shouldPreserveKeyboardSelection);
       actions.setPointer({ x: clientX, y: clientY });
       document.body.style.userSelect = "none";
 
@@ -1868,9 +1888,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         ? store.frozenElement
         : null;
 
-      const validKeyboardSelectedElement = isElementConnected(keyboardSelectedElement)
-        ? keyboardSelectedElement
-        : null;
+      const validKeyboardSelectedElement = keyboardSelection.selectedElement();
 
       const elementAtPointer =
         getElementsAtPoint(clientX, clientY).find(isValidGrabbableElement) ?? null;
@@ -1878,7 +1896,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         elementAtPointer ??
         (isElementConnected(store.detectedElement) ? store.detectedElement : null);
       const selectedElement =
-        selectedElementUnderPointer ?? validFrozenElement ?? validKeyboardSelectedElement;
+        validKeyboardSelectedElement ?? selectedElementUnderPointer ?? validFrozenElement;
       if (!selectedElement) return;
 
       // While Shift is held we only operate on the live elementAtPointer.
@@ -1900,10 +1918,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const didResolveFromFrozenElement =
         selectedElementUnderPointer === null && validFrozenElement === selectedElement;
-      const didResolveFromKeyboardElement =
-        selectedElementUnderPointer === null &&
-        validFrozenElement === null &&
-        validKeyboardSelectedElement === selectedElement;
+      const didResolveFromKeyboardElement = validKeyboardSelectedElement === selectedElement;
 
       if (didResolveFromFrozenElement) {
         positionX = pointer().x;
@@ -1917,10 +1932,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         positionY = clientY;
       }
 
-      keyboardSelectedElement = null;
-
       if (store.pendingCommentMode) {
         enterCommentModeForElement(selectedElement, positionX, positionY);
+        keyboardSelection.clear();
         return;
       }
 
@@ -1928,6 +1942,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         setIsPendingContextMenuSelect(false);
         const { wasIntercepted } = pluginRegistry.hooks.onElementSelect(selectedElement);
         if (wasIntercepted) return;
+        keyboardSelection.clear();
 
         freezeAllAnimations([selectedElement]);
         actions.setFrozenElement(selectedElement);
@@ -1951,6 +1966,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         cursorX: positionX,
         shouldDeactivateAfter,
       });
+      keyboardSelection.clear();
     };
 
     const cancelActiveDrag = () => {
@@ -2015,7 +2031,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const isEnterKey = originalKey === "Enter" || isEnterCode(event.code);
       const isOverlayActive = isActivated() || isHoldingKeys();
       const shouldBlockEnter =
-        isEnterKey && isOverlayActive && !isPromptMode() && !store.wasActivatedByToggle;
+        isEnterKey &&
+        isOverlayActive &&
+        !isPromptMode() &&
+        !keyboardSelection.isPendingDismiss() &&
+        !store.wasActivatedByToggle;
 
       if (shouldBlockEnter) {
         // React Grab inputs keep Enter so inline editors can commit.
@@ -2042,12 +2062,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setArrowNavigationElements([]);
       setArrowNavigationActiveIndex(0);
       arrowNavigator.clearHistory();
+      keyboardSelection.clear();
     };
 
-    const selectAndFocusElement = (element: Element) => {
+    const selectAndFocusElement = (element: Element, shouldPromptBeforeMouseHandoff = false) => {
       actions.setFrozenElement(element);
       actions.freeze();
-      keyboardSelectedElement = element;
+      keyboardSelection.select(element, { shouldPromptBeforeMouseHandoff });
 
       const center = getBoundsCenter(createElementBounds(element));
       actions.setPointer(center);
@@ -2074,13 +2095,46 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       setArrowNavigationActiveIndex(index);
       arrowNavigator.clearHistory();
-      selectAndFocusElement(targetElement);
+      selectAndFocusElement(targetElement, true);
+    };
+
+    const showArrowNavigationDismissPrompt = () => {
+      if (keyboardSelection.showDismissPrompt()) {
+        setSelectionLabelShakeCount((count) => count + 1);
+      }
+    };
+
+    const discardArrowNavigationSelection = () => {
+      keyboardSelection.clear();
+      actions.unfreeze();
+      clearArrowNavigation();
+    };
+
+    const cancelArrowNavigationDismiss = () => {
+      keyboardSelection.cancelDismiss();
+    };
+
+    const copyArrowNavigationSelection = () => {
+      const selectedElement = keyboardSelection.takeSelection(store.frozenElement);
+      if (!selectedElement) {
+        discardArrowNavigationSelection();
+        return;
+      }
+      const center = getBoundsCenter(createElementBounds(selectedElement));
+      clearArrowNavigation();
+      actions.setLastGrabbed(selectedElement);
+      performCopyWithLabel({
+        element: selectedElement,
+        cursorX: center.x,
+        shouldDeactivateAfter: store.wasActivatedByToggle,
+      });
     };
 
     const tryHandleArrowNavigation = (event: KeyboardEvent): boolean => {
       if (!isActivated()) return false;
       if (isPromptMode()) return false;
       if (isShiftMultiSelecting()) return false;
+      if (keyboardSelection.isPendingDismiss()) return false;
       if (!ARROW_KEYS.has(event.key)) return false;
       if (isAnyPopoverOpen()) return false;
 
@@ -2101,7 +2155,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (!nextElement && !isInitialSelection) return false;
         event.preventDefault();
         event.stopPropagation();
-        selectAndFocusElement(nextElement ?? currentElement);
+        selectAndFocusElement(nextElement ?? currentElement, true);
         return true;
       }
 
@@ -2114,7 +2168,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       event.preventDefault();
       event.stopPropagation();
-      selectAndFocusElement(elementToSelect);
+      selectAndFocusElement(elementToSelect, true);
 
       const newIndex = arrowNavigationElements().indexOf(elementToSelect);
       if (newIndex !== -1) {
@@ -2353,6 +2407,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     eventListenerManager.addWindowListener(
       "keydown",
       (event: KeyboardEvent) => {
+        if (keyboardSelection.isPendingDismiss() && isEnterCode(event.code)) {
+          const target = event.composedPath()[0];
+          const targetElement = target instanceof HTMLElement ? target : null;
+          if (targetElement?.closest("[data-react-grab-discard-copy]")) return;
+          if (targetElement?.closest("[data-react-grab-discard-yes]")) return;
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          handleConfirmDismiss();
+          return;
+        }
+
         blockEnterIfNeeded(event);
 
         if (!isEnabled()) {
@@ -2579,8 +2644,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const isTouchPointer = event.pointerType === "touch";
         actions.setTouchMode(isTouchPointer);
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-        if (isModalPopoverOpen()) return;
-        if (isSelectionInteractionLocked()) return;
+        if (isElementDetectionBlocked()) return;
         if (isTouchPointer && !isHoldingKeys() && !isActivated()) return;
         const isActiveState = isTouchPointer ? isHoldingKeys() : isActivated();
         // The flag check covers the small window after physical Shift
@@ -2594,6 +2658,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           !event.shiftKey &&
           !isShiftMultiSelecting()
         ) {
+          if (keyboardSelection.consumeMouseHandoff()) {
+            showArrowNavigationDismissPrompt();
+            return;
+          }
+          if (keyboardSelection.isPendingDismiss()) return;
           actions.unfreeze();
           clearArrowNavigation();
         }
@@ -2633,6 +2702,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           } else {
             handleInputCancel();
           }
+          return;
+        }
+
+        if (keyboardSelection.isPendingDismiss()) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
           return;
         }
 
@@ -2677,6 +2752,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (event: MouseEvent) => {
         if (!isRendererActive() || isCopying() || isPromptMode()) return;
         if (editMode.isOpen()) return;
+        if (keyboardSelection.isPendingDismiss()) {
+          event.preventDefault();
+          event.stopPropagation();
+          return;
+        }
 
         const isFromOverlay = isEventFromOverlay(event, "data-react-grab-ignore-events");
         const position = { x: event.clientX, y: event.clientY };
@@ -2802,12 +2882,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const redetectElementUnderPointer = () => {
       if (store.isTouchMode && !isHoldingKeys() && !isActivated()) return;
       if (
-        isEnabled() &&
-        !isPromptMode() &&
-        !isSelectionInteractionLocked() &&
+        !isElementDetectionBlocked() &&
         !isFrozenPhase() &&
         !isDragging() &&
-        store.contextMenuPosition === null &&
         store.frozenElements.length === 0
       ) {
         const candidate = getElementAtPosition(pointer().x, pointer().y);
@@ -3365,7 +3442,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         position,
         shouldDeferHideContextMenu: true,
         onBeforeCopy: () => {
-          keyboardSelectedElement = null;
+          keyboardSelection.clear();
         },
         customEnterPromptMode: () => {
           labelController.clearAll();
@@ -3556,10 +3633,23 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 onInputChange={actions.setInputText}
                 onInputSubmit={() => void handleInputSubmit()}
                 onToggleExpand={handleToggleExpand}
-                isPendingDismiss={isPendingDismiss()}
                 selectionLabelShakeCount={selectionLabelShakeCount()}
                 onConfirmDismiss={handleConfirmDismiss}
-                onCancelDismiss={handleCancelDismiss}
+                discardPrompt={
+                  keyboardSelection.isPendingDismiss()
+                    ? {
+                        kind: "keyboard-selection",
+                        onConfirm: handleConfirmDismiss,
+                        onCopy: copyArrowNavigationSelection,
+                      }
+                    : isPendingDismiss()
+                      ? {
+                          kind: "standard",
+                          onConfirm: handleConfirmDismiss,
+                          onCancel: handleCancelDismiss,
+                        }
+                      : undefined
+                }
                 toolbarVisible={pluginRegistry.store.theme.toolbar.enabled}
                 isActive={isActivated()}
                 onToggleActive={handleToggleActive}

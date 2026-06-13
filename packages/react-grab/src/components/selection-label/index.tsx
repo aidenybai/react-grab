@@ -84,10 +84,12 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     Boolean(props.shouldToggleExpandOnClick) &&
     Boolean(props.onToggleExpand) &&
     canInteract() &&
+    !props.discardPrompt &&
     !props.isPromptMode;
 
   const shouldEnablePointerEvents = (): boolean => {
     if (props.isPromptMode) return true;
+    if (props.discardPrompt) return true;
     if (canToggleExpand()) return true;
     if (isCompletedStatus() && (props.onDismiss || props.onShowContextMenu)) {
       return true;
@@ -345,7 +347,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const isArrowNavigationVisible = () => Boolean(props.arrowNavigationState?.isVisible);
 
   const isSinglePanelLine = createMemo(() => {
-    if (props.error || props.isPendingDismiss) return false;
+    if (props.error || props.discardPrompt) return false;
     if (canInteract() && (props.isPromptMode || isArrowNavigationVisible())) return false;
     return true;
   });
@@ -364,7 +366,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const handleContainerPointerDown = (event: PointerEvent) => {
     event.stopImmediatePropagation();
     const isEditableInputVisible =
-      canInteract() && props.isPromptMode && !props.isPendingDismiss && props.onSubmit;
+      canInteract() && props.isPromptMode && !props.discardPrompt && props.onSubmit;
     if (isEditableInputVisible && inputRef) {
       inputRef.focus({ preventScroll: true });
     }
@@ -441,7 +443,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             </div>
           </Show>
 
-          <Show when={canInteract() && !props.isPromptMode}>
+          <Show when={canInteract() && !props.isPromptMode && !props.discardPrompt}>
             <div
               class="contain-layout shrink-0 flex flex-col items-start w-fit h-fit"
               classList={{
@@ -474,7 +476,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             </div>
           </Show>
 
-          <Show when={canInteract() && props.isPromptMode && !props.isPendingDismiss}>
+          <Show when={canInteract() && props.isPromptMode && !props.discardPrompt}>
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start w-fit h-fit min-w-[150px] max-w-[280px]">
               <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 w-fit h-fit px-2 max-w-full">
                 <TagBadge
@@ -534,14 +536,37 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             </div>
           </Show>
 
-          <Show when={props.isPendingDismiss}>
-            <DiscardPrompt
-              onConfirm={props.onConfirmDismiss}
-              onCancel={() => {
-                props.onCancelDismiss?.();
-                inputRef?.focus({ preventScroll: true });
-              }}
-            />
+          <Show when={props.discardPrompt}>
+            {(discardPrompt) => {
+              const currentDiscardPrompt = discardPrompt();
+              return (
+                <DiscardPrompt
+                  label={
+                    currentDiscardPrompt.kind === "keyboard-selection"
+                      ? "Discard selection?"
+                      : currentDiscardPrompt.label
+                  }
+                  showCancel={currentDiscardPrompt.kind === "standard"}
+                  cancelOnEscape={
+                    currentDiscardPrompt.kind === "standard"
+                      ? currentDiscardPrompt.cancelOnEscape
+                      : undefined
+                  }
+                  onConfirm={currentDiscardPrompt.onConfirm}
+                  onCopy={
+                    currentDiscardPrompt.kind === "keyboard-selection"
+                      ? currentDiscardPrompt.onCopy
+                      : undefined
+                  }
+                  onCancel={() => {
+                    if (currentDiscardPrompt.kind === "standard") {
+                      currentDiscardPrompt.onCancel?.();
+                    }
+                    inputRef?.focus({ preventScroll: true });
+                  }}
+                />
+              );
+            }}
           </Show>
 
           <Show when={props.error}>

@@ -35,12 +35,14 @@ import { findTailwindClass } from "../../utils/find-tailwind-class.js";
 import { formatEditableValue, roundEditableNumericValue } from "../../utils/format-css-value.js";
 import { getShadowActiveElement } from "../../utils/get-shadow-active-element.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
+import { createPointerMovePromptHandoff } from "../../utils/create-pointer-move-prompt-handoff.js";
 import { isEventFromOverlay } from "../../utils/is-event-from-overlay.js";
 import { registerOverlayDismiss } from "../../utils/register-overlay-dismiss.js";
 import { suppressMenuEvent } from "../../utils/suppress-menu-event.js";
 import { TagBadge } from "../selection-label/tag-badge.js";
 import { ActivePropertyControl } from "./active-property-control.js";
 import { HIDDEN_FOCUS_PRESERVING_STYLE } from "./constants.js";
+import { EditPanelCopyButton } from "./copy-button.js";
 import { createDiscardConfirmation } from "./discard-confirmation.js";
 import { PropertyList } from "./property-list.js";
 import { arePropertyValuesEqual } from "./property-values-equal.js";
@@ -122,6 +124,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   const [isTransientInteraction, setIsTransientInteraction] = createSignal(false);
   const isInteracting = createMemo(() => isTransientInteraction() || hasPendingStyles());
   const [isHeaderHovered, setIsHeaderHovered] = createSignal(false);
+  const pointerMovePromptHandoff = createPointerMovePromptHandoff();
 
   const tagDisplay = createMemo(() =>
     getTagDisplay({
@@ -243,6 +246,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     shouldFocus?: boolean;
     shouldCompact?: boolean;
     isFromKeyRepeat?: boolean;
+    source?: "keyboard" | "pointer";
   }
 
   const commit = (
@@ -258,6 +262,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     if (options.flashDirection) flashActiveKey(options.flashDirection === 1 ? "right" : "left");
     if (options.shouldFocus) ensureSearchFocused();
     if (options.shouldCompact) setIsCompact(true);
+    if (options.source === "keyboard") pointerMovePromptHandoff.arm();
   };
 
   const isShiftHeld = createShiftTracker();
@@ -266,6 +271,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     direction: 1 | -1,
     shift: boolean,
     fromRepeat: boolean,
+    source: "keyboard" | "pointer",
   ): EditableProperty | null => {
     const property = activeProperty();
     if (!property) return null;
@@ -278,26 +284,34 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       flashDirection: direction,
       shouldFocus: true,
       isFromKeyRepeat: fromRepeat,
+      source,
     });
     return property;
   };
 
   const stepFromKeyboard = (direction: 1 | -1, shift: boolean, fromRepeat: boolean) => {
-    if (stepActiveProperty(direction, shift, fromRepeat)) setIsCompact(true);
+    if (!stepActiveProperty(direction, shift, fromRepeat, "keyboard")) return;
+    setIsCompact(true);
+  };
+
+  const stepFromPointer = (direction: 1 | -1) => {
+    stepActiveProperty(direction, false, false, "pointer");
   };
 
   const stepController = createStepController({ step: stepFromKeyboard, isShiftHeld });
 
-  const commitActive = (rawValue: number | string) => {
+  const commitActive = (rawValue: number | string, source: "keyboard" | "pointer" = "keyboard") => {
     const property = activeProperty();
     if (!property) return;
     if (property.kind === "numeric" && typeof rawValue === "number") {
       const clamped = roundEditableNumericValue(clampToRange(rawValue, property.min, property.max));
-      if (clamped !== property.value) commit(property, clamped);
+      if (clamped !== property.value) commit(property, clamped, { source });
       return;
     }
     if (typeof rawValue !== "string") return;
-    if (!arePropertyValuesEqual(property, rawValue, property.value)) commit(property, rawValue);
+    if (!arePropertyValuesEqual(property, rawValue, property.value)) {
+      commit(property, rawValue, { source });
+    }
   };
 
   const activeTailwindLabel = createMemo<string | null>(() => {
@@ -312,7 +326,9 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     searchQuery,
     isCompact,
     activeProperty,
-    commit,
+    commit: (property, value, options) => {
+      commit(property, value, { ...options, source: "keyboard" });
+    },
     setIsCompact,
   });
 
@@ -321,6 +337,8 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   );
 
   const handleSubmit = () => {
+    discardConfirmation.hide();
+    pointerMovePromptHandoff.clear();
     props.onSubmit(styleStore.buildPendingEdits());
   };
 
@@ -343,6 +361,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
 
   const attemptDismiss = (source: OverlayDismissSource) => {
     stepController.cancelRepeat();
+    if (source === "pointer") pointerMovePromptHandoff.clear();
     if (discardConfirmation.isPending()) {
       closePanel("discard");
       return;
@@ -366,6 +385,11 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     if (properties.length === 0) return;
     setActiveIndex((current) => (current + direction + properties.length) % properties.length);
     expandPanel();
+  };
+
+  const cancelDiscardPrompt = () => {
+    pointerMovePromptHandoff.clear();
+    discardConfirmation.hide();
   };
 
   let colorPickerTriggers: Array<() => void> = [];
@@ -486,13 +510,22 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     const handleWindowKeyUp = (event: KeyboardEvent) => {
       stepController.releaseKey(event.key);
     };
+    const handleWindowPointerMove = (event: PointerEvent) => {
+      if (event.pointerType !== "mouse") return;
+      if (discardConfirmation.isPending()) return;
+      if (!pointerMovePromptHandoff.consume()) return;
+      if (!hasSubmittableEdits()) return;
+      attemptDismiss("pointer");
+    };
     window.addEventListener("keydown", handleWindowKeyDown, { capture: true });
     window.addEventListener("keyup", handleWindowKeyUp, { capture: true });
+    window.addEventListener("pointermove", handleWindowPointerMove, { capture: true });
 
     onCleanup(() => {
       unregisterDismiss();
       window.removeEventListener("keydown", handleWindowKeyDown, { capture: true });
       window.removeEventListener("keyup", handleWindowKeyUp, { capture: true });
+      window.removeEventListener("pointermove", handleWindowPointerMove, { capture: true });
       clearTimeout(activeKeyTimerId);
       clearTimeout(interactingIdleTimerId);
       clearTimeout(inlineNumericReplaceTimerId);
@@ -568,21 +601,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                     shrink
                   />
                   <Show when={hasSubmittableEdits()}>
-                    <button
-                      data-react-grab-ignore-events
-                      data-react-grab-copy-button
-                      type="button"
-                      class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[var(--rg-surface-hover)] [border-width:0.5px] border-solid border-[var(--rg-border-button)] cursor-pointer transition-all hover:bg-[var(--rg-surface-active)] press-scale h-[17px]"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        handleSubmit();
-                      }}
-                    >
-                      <span class="text-[var(--rg-text-primary)] text-[13px] leading-3.5 font-sans font-medium">
-                        Copy
-                      </span>
-                    </button>
+                    <EditPanelCopyButton onCopy={handleSubmit} />
                   </Show>
                 </div>
               </Show>
@@ -609,13 +628,14 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                   onClick={(event) => {
                     event.preventDefault();
                     event.stopPropagation();
-                    discardConfirmation.hide();
+                    cancelDiscardPrompt();
                   }}
                 >
                   <span class="text-[var(--rg-text-primary)] text-[13px] leading-3.5 font-sans font-medium">
                     No
                   </span>
                 </button>
+                <EditPanelCopyButton discardAction="copy" onCopy={handleSubmit} />
                 <button
                   data-react-grab-ignore-events
                   data-react-grab-discard-button="confirm"
@@ -713,7 +733,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                 activeKey={activeKey()}
                 onHoverIndex={setActiveIndex}
                 onSelect={handleSelectProperty}
-                onStep={(direction) => stepActiveProperty(direction, false, false)}
+                onStep={stepFromPointer}
                 onCommit={commitActive}
                 onColorPickerRegister={registerColorPickerTrigger}
                 onEditComplete={ensureSearchFocused}
@@ -734,7 +754,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                 <ActivePropertyControl
                   property={compactProperty()}
                   activeKey={activeKey()}
-                  onStep={(direction) => stepActiveProperty(direction, false, false)}
+                  onStep={stepFromPointer}
                   onCommit={commitActive}
                   onEditComplete={ensureSearchFocused}
                   onInvalidCommit={playShake}

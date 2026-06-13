@@ -12,7 +12,7 @@ const stripHexAlpha = (hex: string): string => (hex.length === 9 ? hex.slice(0, 
 interface ColorPickerProps {
   label?: string;
   value: string;
-  onCommit: (value: string) => void;
+  onCommit: (value: string, source: "keyboard" | "pointer") => void;
   onEditComplete?: () => void;
   onInvalidCommit?: () => void;
   onRegisterTrigger?: (trigger: (() => void) | null, owner?: () => void) => void;
@@ -52,7 +52,7 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
     if (!normalizedHexColor) {
       props.onInvalidCommit?.();
     } else if (normalizedHexColor.toLowerCase() !== props.value.toLowerCase()) {
-      props.onCommit(normalizedHexColor);
+      props.onCommit(normalizedHexColor, "keyboard");
     }
     props.onEditComplete?.();
   };
@@ -170,7 +170,7 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
             const nextColorValue = pickedRgb + preservedAlpha;
             props.onInteract?.();
             if (nextColorValue && nextColorValue.toLowerCase() !== props.value.toLowerCase()) {
-              props.onCommit(nextColorValue);
+              props.onCommit(nextColorValue, "pointer");
             }
           }}
         />
