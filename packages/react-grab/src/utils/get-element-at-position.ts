@@ -103,15 +103,20 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
   let result: Element | null = null;
 
   // elementFromPoint returns the topmost element, but if it's not grabbable
-  // (e.g. a transparent overlay) we fall back to elementsFromPoint which
-  // returns the full z-ordered stack at that coordinate.
+  // (e.g. a transparent overlay) or out of scope (e.g. an external element
+  // overlapping the scoped container) we fall back to elementsFromPoint, which
+  // returns the full z-ordered stack, and take the first grabbable in-scope one.
   const topElement = document.elementFromPoint(clientX, clientY);
-  if (topElement && isValidGrabbableElement(topElement)) {
+  if (topElement && isValidGrabbableElement(topElement) && isWithinScope(topElement)) {
     result = topElement;
   } else {
     const elementsAtPoint = document.elementsFromPoint(clientX, clientY);
     for (const candidateElement of elementsAtPoint) {
-      if (candidateElement !== topElement && isValidGrabbableElement(candidateElement)) {
+      if (
+        candidateElement !== topElement &&
+        isValidGrabbableElement(candidateElement) &&
+        isWithinScope(candidateElement)
+      ) {
         result = candidateElement;
         break;
       }
@@ -119,10 +124,6 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
   }
 
   scheduleResume();
-
-  if (!isWithinScope(result)) {
-    result = null;
-  }
 
   hoveredIframe =
     result instanceof HTMLIFrameElement

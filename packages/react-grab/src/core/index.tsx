@@ -3783,7 +3783,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (enabled === isEnabled()) return;
         updateToolbarState({ enabled, collapsed: !enabled });
       },
-      getToolbarState: () => loadToolbarState(),
+      getToolbarState: () => currentToolbarState() ?? loadToolbarState(),
       setToolbarState: (state: Partial<ToolbarState>) => {
         // enabled stays coupled to collapsed unless explicitly set; every other
         // field falls back through updateToolbarState's base.
