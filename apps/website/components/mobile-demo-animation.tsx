@@ -303,7 +303,7 @@ export const MobileDemoAnimation = (): ReactElement => {
     const measurementTimer = setTimeout(measureElementPositions, 100);
     window.addEventListener("resize", measureElementPositions);
     visualViewport?.addEventListener("resize", measureElementPositions);
-    visualViewport?.addEventListener("scroll", measureElementPositions);
+    visualViewport?.addEventListener("scroll", measureElementPositions, { passive: true });
     return () => {
       clearTimeout(measurementTimer);
       window.removeEventListener("resize", measureElementPositions);
