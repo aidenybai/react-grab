@@ -1,21 +1,20 @@
 // Scope and mode for the active React Grab instance, held as a singleton so
-// utilities outside the init closure (hit-testing, viewport math, clipboard)
-// can read them without threading them through every call.
+// utilities outside the init closure (hit-testing, viewport math) can read them
+// without threading them through every call.
 //
 // - Scope container confines React Grab to one element instead of the whole
-//   page: hit-testing is filtered to the container's subtree, the toolbar
-//   treats the container's box as its viewport, and the host page is never
-//   frozen. It is a live DOM element so it must be set at runtime.
-// - Demo mode is a display-only showcase decided at BUILD time via
-//   `process.env.IS_DEMO`, so every demo-only branch is dead-code-eliminated
-//   from normal builds. Real user input is ignored and the clipboard is never
-//   written; the showcase is driven programmatically via synthetic events. The
-//   `react-grab/demo` entrypoint sets the scope container before init so the
-//   display-only overlay stays confined to its card.
+//   page: hit-testing is filtered to the container's subtree and the toolbar
+//   treats the container's box as its viewport. A live DOM element, so set at
+//   runtime; init owns its lifecycle (set after the single-init guard, cleared
+//   on cleanup).
+// - Demo mode is decided at BUILD time via `process.env.IS_DEMO`, so every
+//   demo-only branch is dead-code-eliminated from normal builds. It is
+//   display-only: real input is ignored and the clipboard/storage are never
+//   written; the showcase is driven via synthetic events (the demo build's
+//   createGrabDemo, which passes a container to init).
 //
-// Scope is a single shared slot, and React Grab mounts a single shadow host, so
-// only one scoped/demo instance can be active at a time (createGrabDemo enforces
-// this).
+// One shared scope slot and one shadow host, so only one demo instance can be
+// active at a time (createGrabDemo enforces this).
 
 let scopeContainer: HTMLElement | null = null;
 

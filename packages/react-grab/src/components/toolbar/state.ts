@@ -40,9 +40,8 @@ export const loadToolbarState = (): ToolbarState | null => {
 };
 
 export const saveToolbarState = (state: ToolbarState): void => {
-  // Demo mode never writes to the visitor's clipboard or storage; persisting
-  // here would clobber the real toolbar prefs of anyone running React Grab on
-  // the same origin.
+  // Demo mode is display-only; persisting would clobber the real toolbar prefs
+  // of anyone running React Grab on the same origin.
   if (IS_DEMO) return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));

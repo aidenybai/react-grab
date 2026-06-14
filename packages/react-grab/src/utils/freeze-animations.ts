@@ -118,8 +118,6 @@ const finishAnimations = (animations: Iterable<Animation>): void => {
 };
 
 export const freezeAllAnimations = (elements: Element[]): void => {
-  // Element-level freeze only touches the selected subtree, so it's safe in
-  // scoped (embedded) mode; demo mode is display-only and skips it entirely.
   if (IS_DEMO) return;
   if (elements.length === 0) return;
   if (areElementsSame(elements, lastInputElements)) return;
@@ -174,7 +172,6 @@ export const freezeAnimations = (elements: Element[]): (() => void) => {
 };
 
 export const freezeGlobalAnimations = (): void => {
-  // Demo mode must never pause the host page's animations.
   if (IS_DEMO) return;
   if (globalAnimationStyleElement) return;
 

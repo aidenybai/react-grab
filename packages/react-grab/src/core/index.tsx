@@ -279,7 +279,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       );
     });
 
-    // Demo mode is display-only and must never write to the host page's body.
     const setHostBodyStyle = (property: "userSelect" | "touchAction", value: string) => {
       if (IS_DEMO) return;
       document.body.style[property] = value;
@@ -880,7 +879,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     createEffect(
       on(isActivated, (activated) => {
         if (!activated) return;
-        // Demo mode must not pause the host app's React updates.
         if (IS_DEMO) return;
         if (!pluginRegistry.store.options.freezeReactUpdates) return;
         const unfreezeUpdates = freezeUpdates();
@@ -1326,8 +1324,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let cursorStyleElement: HTMLStyleElement | null = null;
 
     const setCursorOverride = (cursor: string | null) => {
-      // Demo mode must not restyle the host page's cursor; the demo paints its
-      // own cursor within its container.
       if (IS_DEMO) return;
       if (cursor) {
         if (!cursorStyleElement) {
@@ -2530,8 +2526,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (tryHandleBareKeyShortcut(event)) return;
         if (tryHandleTypeToEdit(event)) return;
 
-        // Demo mode is driven by the in-container toolbar / synthetic events, not
-        // the global hotkey, so the host page keeps native Cmd/Ctrl+C behavior.
+        // Demo mode never activates from the global hotkey.
         if (!didWindowJustRegainFocus && !IS_DEMO) {
           handleActivationKeys(event);
         }
@@ -3753,16 +3748,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return await copyResolvedElements(elementsArray);
     };
 
-    // Return to a clean slate without disposing: deactivate and drop any active
-    // selection / grabbed boxes. Used by the demo between showcase loops.
-    const resetAll = () => {
-      forceDeactivateAll();
-      dismissAllPopups();
-      actions.clearGrabbedBoxes();
-      actions.clearLabelInstances();
-      actions.setSelectionSource(null, null);
-    };
-
     const api: ReactGrabAPI = {
       activate: () => {
         actions.setPendingCommentMode(false);
@@ -3824,7 +3809,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           toolbarStateChangeCallbacks.delete(callback);
         };
       },
-      reset: resetAll,
+      // Clean slate without disposing: deactivate and drop selection/grabbed
+      // boxes. For the demo between showcase loops.
+      reset: () => {
+        forceDeactivateAll();
+        dismissAllPopups();
+        actions.clearGrabbedBoxes();
+        actions.clearLabelInstances();
+        actions.setSelectionSource(null, null);
+      },
       dispose: () => {
         disposed = true;
         hasInited = false;

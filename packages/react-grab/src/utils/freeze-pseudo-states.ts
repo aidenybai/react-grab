@@ -160,7 +160,6 @@ const restoreFrozenStates = (
 };
 
 export const freezePseudoStates = (cursorX?: number, cursorY?: number): void => {
-  // Demo mode is display-only and must never freeze the host page.
   if (IS_DEMO) return;
   if (isPointerEventsFreezeInstalled()) return;
 

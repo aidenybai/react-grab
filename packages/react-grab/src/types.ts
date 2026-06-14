@@ -347,7 +347,6 @@ export interface Options {
   /**
    * Confine React Grab to a single container element instead of the whole page.
    * Hit-testing, the toolbar viewport, and scroll re-anchoring are scoped to it.
-   * Set after the single-init guard so a no-op init never leaves scope dangling.
    * Used by the demo build to scope the showcase to its card.
    */
   container?: HTMLElement;

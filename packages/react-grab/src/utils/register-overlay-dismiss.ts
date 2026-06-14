@@ -14,7 +14,6 @@ interface RegisterOverlayDismissOptions {
 
 export const registerOverlayDismiss = (options: RegisterOverlayDismissOptions): (() => void) => {
   const handleKeyDown = (event: KeyboardEvent) => {
-    // Demo mode ignores real user input; only synthetic events drive dismissal.
     if (IS_DEMO && event.isTrusted) return;
     if (!options.isOpen()) return;
     if (options.shouldIgnoreKeyboardEvent?.(event)) return;

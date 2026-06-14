@@ -145,8 +145,6 @@ export const createToolbarDrag = (config: ToolbarDragConfig): ToolbarDragResult 
   };
 
   const handlePointerDown = (event: PointerEvent) => {
-    // Demo mode is display-only: a real user can't drag the toolbar, but
-    // synthetic events still can.
     if (IS_DEMO && event.isTrusted) return;
     if (event.button !== 0) return;
     if (config.isCollapsed()) return;
