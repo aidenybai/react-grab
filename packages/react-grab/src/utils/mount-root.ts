@@ -1,9 +1,8 @@
 import { MOUNT_ROOT_RECHECK_DELAY_MS, Z_INDEX_OVERLAY } from "../constants.js";
 import { detectCspNonce } from "./detect-csp-nonce.js";
 import { hideFromThirdParties } from "./hide-from-third-parties.js";
-import { REACT_GRAB_HOST_ATTRIBUTE } from "./runtime-mode.js";
 
-const ATTRIBUTE_NAME = REACT_GRAB_HOST_ATTRIBUTE;
+const ATTRIBUTE_NAME = "data-react-grab";
 
 const FONT_IMPORT =
   '@import url("https://fonts.googleapis.com/css2?family=Geist:wght@500&display=swap");';

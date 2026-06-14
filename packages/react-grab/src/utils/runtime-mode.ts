@@ -35,9 +35,3 @@ export const isWithinScope = (element: Element | null): boolean => {
 // `IS_DEMO` so every `if (IS_DEMO)` branch is dead-code-eliminated from normal
 // builds. A `() => ...` function call would not be inlined across modules.
 export const IS_DEMO: boolean = process.env.IS_DEMO === "true";
-
-// The attribute marking React Grab's shadow host. The demo build uses a
-// distinct host so it never collides with (or reuses the shadow root of) a
-// normal React Grab instance auto-mounted on the same page. Folds to the plain
-// `data-react-grab` in library builds, so their behavior is unchanged.
-export const REACT_GRAB_HOST_ATTRIBUTE = IS_DEMO ? "data-react-grab-demo" : "data-react-grab";

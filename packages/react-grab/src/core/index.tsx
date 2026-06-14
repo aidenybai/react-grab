@@ -20,7 +20,7 @@ import {
   hasTextSelectionOnPage,
 } from "../utils/is-keyboard-event-triggered-by-input.js";
 import { mountRoot } from "../utils/mount-root.js";
-import { setScopeContainer, IS_DEMO, REACT_GRAB_HOST_ATTRIBUTE } from "../utils/runtime-mode.js";
+import { setScopeContainer, IS_DEMO } from "../utils/runtime-mode.js";
 import { createComponentNameForElement } from "../utils/create-component-name-for-element.js";
 import { watchAppTheme } from "../utils/detect-app-theme.js";
 import {
@@ -78,6 +78,7 @@ import {
   WINDOW_REFOCUS_GRACE_PERIOD_MS,
   PREVIEW_TEXT_MAX_LENGTH,
   NEXTJS_REVALIDATION_DELAY_MS,
+  TOOLBAR_DEFAULT_POSITION_RATIO,
   DEFAULT_ACTION_ID,
   COMMENT_ACTION_ID,
   EDIT_ACTION_ID,
@@ -121,11 +122,7 @@ import { getScriptOptions } from "../utils/get-script-options.js";
 import { isEnterCode } from "../utils/is-enter-code.js";
 import { isMac } from "../utils/is-mac.js";
 import { isPositionInsideBounds } from "../utils/is-position-inside-bounds.js";
-import {
-  loadToolbarState,
-  saveToolbarState,
-  DEFAULT_TOOLBAR_STATE,
-} from "../components/toolbar/state.js";
+import { loadToolbarState, saveToolbarState } from "../components/toolbar/state.js";
 import { copyPlugin } from "./plugins/copy.js";
 import { commentPlugin } from "./plugins/comment.js";
 import { editPlugin } from "./plugins/edit.js";
@@ -368,24 +365,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       clearShiftSelectionLabelAnchors();
     };
 
-    // The single source for the enable/disable side effects shared by every
-    // toolbar-state writer: when the toolbar is disabled, tear down any active
-    // selection and popups. No-ops when the enabled value is unchanged.
-    const syncEnabledState = (enabled: boolean) => {
-      if (enabled === isEnabled()) return;
-      setIsEnabled(enabled);
-      if (!enabled) {
-        forceDeactivateAll();
-        dismissAllPopups();
-      }
-    };
-
     const updateToolbarState = (updates: Partial<ToolbarState>) => {
-      const base = currentToolbarState() ?? loadToolbarState() ?? DEFAULT_TOOLBAR_STATE;
-      const newState: ToolbarState = { ...base, ...updates };
+      const currentState = currentToolbarState() ?? loadToolbarState();
+      const newState: ToolbarState = {
+        edge: currentState?.edge ?? "bottom",
+        ratio: currentState?.ratio ?? TOOLBAR_DEFAULT_POSITION_RATIO,
+        collapsed: currentState?.collapsed ?? false,
+        enabled: currentState?.enabled ?? true,
+        defaultAction: currentState?.defaultAction ?? DEFAULT_ACTION_ID,
+        ...updates,
+      };
       saveToolbarState(newState);
       setCurrentToolbarState(newState);
-      syncEnabledState(newState.enabled);
       for (const callback of toolbarStateChangeCallbacks) {
         callback(newState);
       }
@@ -2912,7 +2903,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     eventListenerManager.addWindowListener(
       "focusin",
       (event: FocusEvent) => {
-        if (isEventFromOverlay(event, REACT_GRAB_HOST_ATTRIBUTE)) {
+        if (isEventFromOverlay(event, "data-react-grab")) {
           event.stopPropagation();
         }
       },
@@ -3704,10 +3695,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 enabled={isEnabled()}
                 shakeCount={toolbarShakeCount()}
                 onToolbarStateChange={(state) => {
-                  // The toolbar persists its own state, so this path mirrors it
-                  // into the signal + subscribers without re-saving.
                   setCurrentToolbarState(state);
-                  syncEnabledState(state.enabled);
+                  if (state.enabled !== isEnabled()) {
+                    setIsEnabled(state.enabled);
+                    if (!state.enabled) {
+                      forceDeactivateAll();
+                      dismissAllPopups();
+                    }
+                  }
                   toolbarStateChangeCallbacks.forEach((callback) => callback(state));
                 }}
                 onSubscribeToToolbarStateChanges={(callback) => {
@@ -3758,14 +3753,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return await copyResolvedElements(elementsArray);
     };
 
-    // Return to a clean slate without disposing, restoring the default toolbar.
+    // Return to a clean slate without disposing: deactivate and drop any active
+    // selection / grabbed boxes. Used by the demo between showcase loops.
     const resetAll = () => {
       forceDeactivateAll();
       dismissAllPopups();
       actions.clearGrabbedBoxes();
       actions.clearLabelInstances();
       actions.setSelectionSource(null, null);
-      updateToolbarState(DEFAULT_TOOLBAR_STATE);
     };
 
     const api: ReactGrabAPI = {
@@ -3792,15 +3787,34 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       isEnabled: () => isEnabled(),
       setEnabled: (enabled: boolean) => {
         if (enabled === isEnabled()) return;
+        setIsEnabled(enabled);
         updateToolbarState({ enabled, collapsed: !enabled });
+        if (!enabled) {
+          forceDeactivateAll();
+          dismissAllPopups();
+        }
       },
       getToolbarState: () => currentToolbarState() ?? loadToolbarState(),
       setToolbarState: (state: Partial<ToolbarState>) => {
-        // enabled stays coupled to collapsed unless explicitly set; every other
-        // field falls back through updateToolbarState's base.
-        const collapsed =
-          state.collapsed ?? currentToolbarState()?.collapsed ?? DEFAULT_TOOLBAR_STATE.collapsed;
-        updateToolbarState({ ...state, enabled: state.enabled ?? !collapsed });
+        const currentState = loadToolbarState();
+        const resolvedCollapsed = state.collapsed ?? currentState?.collapsed ?? false;
+        const newState: ToolbarState = {
+          edge: state.edge ?? currentState?.edge ?? "bottom",
+          ratio: state.ratio ?? currentState?.ratio ?? TOOLBAR_DEFAULT_POSITION_RATIO,
+          collapsed: resolvedCollapsed,
+          enabled: state.enabled ?? !resolvedCollapsed,
+          defaultAction: state.defaultAction ?? currentState?.defaultAction ?? DEFAULT_ACTION_ID,
+        };
+        saveToolbarState(newState);
+        setCurrentToolbarState(newState);
+        if (newState.enabled !== isEnabled()) {
+          setIsEnabled(newState.enabled);
+          if (!newState.enabled) {
+            forceDeactivateAll();
+            dismissAllPopups();
+          }
+        }
+        toolbarStateChangeCallbacks.forEach((callback) => callback(newState));
       },
       onToolbarStateChange: (callback: (state: ToolbarState) => void) => {
         toolbarStateChangeCallbacks.add(callback);

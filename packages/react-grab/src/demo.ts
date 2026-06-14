@@ -11,7 +11,7 @@ import { init } from "./core/index.js";
 import type { ReactGrabAPI } from "./types.js";
 import { lerp } from "./utils/lerp.js";
 import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "./utils/native-raf.js";
-import { getScopeContainer, REACT_GRAB_HOST_ATTRIBUTE } from "./utils/runtime-mode.js";
+import { getScopeContainer } from "./utils/runtime-mode.js";
 import {
   DEMO_CLICK_PULSE_MIN_SCALE,
   DEMO_CLICK_PULSE_MS,
@@ -22,6 +22,7 @@ import {
   Z_INDEX_OVERLAY,
 } from "./constants.js";
 
+const REACT_GRAB_HOST_ATTRIBUTE = "data-react-grab";
 const REACT_GRAB_INPUT_ATTRIBUTE = "data-react-grab-input";
 const CURSOR_SHADOW_FILTER_ID = "react-grab-demo-cursor-shadow";
 
