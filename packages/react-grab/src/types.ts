@@ -488,6 +488,10 @@ export interface ReactGrabRendererProps {
   toolbarVisible?: boolean;
   isActive?: boolean;
   onToggleActive?: () => void;
+  isScanning?: boolean;
+  scanAvailable?: boolean;
+  onToggleScan?: () => void;
+  scanCopiedToken?: number | null;
   onActivateAction?: (actionId: string) => void;
   activeActionId?: string | null;
   enabled?: boolean;
@@ -592,6 +596,52 @@ export interface CompletionViewProps {
   onDismiss?: () => void;
   onFadingChange?: (isFading: boolean) => void;
   onShowContextMenu?: () => void;
+}
+
+export interface ScanLoafScript {
+  sourceURL: string;
+  sourceFunctionName: string;
+  sourceCharPosition: number;
+  durationMs: number;
+  forcedStyleAndLayoutDurationMs: number;
+}
+
+export interface ScanLongAnimationFrame {
+  startTimeMs: number;
+  durationMs: number;
+  blockingDurationMs: number;
+  firstUIEventTimestampMs: number;
+  scripts: ScanLoafScript[];
+}
+
+export interface ScanFiberChange {
+  isFirstMount: boolean;
+  props: string[] | null;
+  state: boolean;
+  context: boolean;
+  hooks: number[];
+  parent: boolean;
+}
+
+export interface ScanRenderedFiber {
+  name: string;
+  selfDurationMs: number;
+  source: string | null;
+  change: ScanFiberChange | null;
+}
+
+export interface ScanCommit {
+  timestampMs: number;
+  totalActualDurationMs: number;
+  renderedFiberCount: number;
+  fibers: ScanRenderedFiber[];
+}
+
+export interface ScanTrace {
+  durationMs: number;
+  commitCount: number;
+  commits: ScanCommit[];
+  longAnimationFrames: ScanLongAnimationFrame[];
 }
 
 export interface SelectionLabelProps {
