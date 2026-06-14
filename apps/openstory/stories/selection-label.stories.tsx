@@ -17,7 +17,6 @@ const baseProps: SelectionLabelProps = {
   onSubmit: noop,
   onDismiss: noop,
   onConfirmDismiss: noop,
-  onCancelDismiss: noop,
   onAcknowledgeError: noop,
   onRetry: noop,
   onShowContextMenu: noop,
@@ -122,7 +121,7 @@ export const PendingDismiss: Story = {
     tagName: "header",
     componentName: "Header",
     isPromptMode: true,
-    isPendingDismiss: true,
+    discardPrompt: { onConfirm: noop, onCancel: noop },
     inputValue: "tweak the spacing",
   },
 };

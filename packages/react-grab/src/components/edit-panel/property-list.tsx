@@ -21,7 +21,7 @@ interface PropertyListProps {
   onHoverIndex: (index: number) => void;
   onSelect: (index: number) => void;
   onStep: (direction: 1 | -1) => void;
-  onCommit: (value: number | string) => void;
+  onCommit: (value: number | string, source: "keyboard" | "pointer") => void;
   onColorPickerRegister: (trigger: (() => void) | null, owner?: () => void) => void;
   onEditComplete: () => void;
   onInvalidCommit: () => void;

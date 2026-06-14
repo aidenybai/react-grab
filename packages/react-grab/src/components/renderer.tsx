@@ -98,10 +98,9 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           onInputChange={props.onInputChange}
           onSubmit={props.onInputSubmit}
           onToggleExpand={props.onToggleExpand}
-          isPendingDismiss={props.isPendingDismiss}
           selectionLabelShakeCount={props.selectionLabelShakeCount}
           onConfirmDismiss={props.onConfirmDismiss}
-          onCancelDismiss={props.onCancelDismiss}
+          discardPrompt={props.discardPrompt}
           onOpen={() => {
             if (props.selectionFilePath) {
               requestOpenFile(props.selectionFilePath, props.selectionLineNumber);

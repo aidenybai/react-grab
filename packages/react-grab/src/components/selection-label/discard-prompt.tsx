@@ -1,4 +1,4 @@
-import { onCleanup, onMount, type Component } from "solid-js";
+import { onCleanup, onMount, Show, type Component } from "solid-js";
 import type { DiscardPromptProps } from "../../types.js";
 import { confirmationFocusManager } from "../../utils/confirmation-focus-manager.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
@@ -7,6 +7,7 @@ import { BottomSection } from "./bottom-section.js";
 
 export const DiscardPrompt: Component<DiscardPromptProps> = (props) => {
   const instanceId = Symbol();
+  const shouldShowCancel = () => props.showCancel ?? true;
 
   const handleKeyDown = (event: KeyboardEvent) => {
     if (!confirmationFocusManager.isActive(instanceId)) return;
@@ -21,6 +22,20 @@ export const DiscardPrompt: Component<DiscardPromptProps> = (props) => {
     if (isEnter || isEscape) {
       event.preventDefault();
       event.stopPropagation();
+      const target = event.composedPath()[0];
+      const targetElement = target instanceof HTMLElement ? target : null;
+      if (isEnter && targetElement?.closest("[data-react-grab-discard-copy]")) {
+        props.onCopy?.();
+        return;
+      }
+      if (isEnter && targetElement?.closest("[data-react-grab-discard-no]")) {
+        props.onCancel?.();
+        return;
+      }
+      if (isEnter && targetElement?.closest("[data-react-grab-discard-yes]")) {
+        props.onConfirm?.();
+        return;
+      }
       if (isEscape && props.cancelOnEscape) {
         props.onCancel?.();
       } else {
@@ -57,15 +72,28 @@ export const DiscardPrompt: Component<DiscardPromptProps> = (props) => {
       </div>
       <BottomSection>
         <div class="contain-layout shrink-0 flex items-center justify-end gap-[5px] w-full h-fit">
-          <button
-            data-react-grab-discard-no
-            class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[var(--rg-surface-hover)] [border-width:0.5px] border-solid border-[var(--rg-border-button)] cursor-pointer transition-all hover:bg-[var(--rg-surface-active)] press-scale h-[17px]"
-            onClick={props.onCancel}
-          >
-            <span class="text-[var(--rg-text-primary)] text-[13px] leading-3.5 font-sans font-medium">
-              No
-            </span>
-          </button>
+          <Show when={shouldShowCancel()}>
+            <button
+              data-react-grab-discard-no
+              class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[var(--rg-surface-hover)] [border-width:0.5px] border-solid border-[var(--rg-border-button)] cursor-pointer transition-all hover:bg-[var(--rg-surface-active)] press-scale h-[17px]"
+              onClick={props.onCancel}
+            >
+              <span class="text-[var(--rg-text-primary)] text-[13px] leading-3.5 font-sans font-medium">
+                No
+              </span>
+            </button>
+          </Show>
+          <Show when={props.onCopy}>
+            <button
+              data-react-grab-discard-copy
+              class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[var(--rg-surface-hover)] [border-width:0.5px] border-solid border-[var(--rg-border-button)] cursor-pointer transition-all hover:bg-[var(--rg-surface-active)] press-scale h-[17px]"
+              onClick={props.onCopy}
+            >
+              <span class="text-[var(--rg-text-primary)] text-[13px] leading-3.5 font-sans font-medium">
+                Copy
+              </span>
+            </button>
+          </Show>
           <button
             data-react-grab-discard-yes
             class="contain-layout shrink-0 flex items-center justify-center gap-0.5 px-[3px] py-px rounded-sm bg-[var(--rg-error-bg)] cursor-pointer transition-all hover:bg-[var(--rg-error-bg-hover)] press-scale h-[17px]"

@@ -482,10 +482,9 @@ export interface ReactGrabRendererProps {
   onInputChange?: (value: string) => void;
   onInputSubmit?: () => void;
   onToggleExpand?: () => void;
-  isPendingDismiss?: boolean;
   selectionLabelShakeCount?: number;
   onConfirmDismiss?: () => void;
-  onCancelDismiss?: () => void;
+  discardPrompt?: SelectionDiscardPrompt;
   toolbarVisible?: boolean;
   isActive?: boolean;
   onToggleActive?: () => void;
@@ -566,9 +565,20 @@ export interface BottomSectionProps {
 
 export interface DiscardPromptProps {
   label?: string;
+  showCancel?: boolean;
   cancelOnEscape?: boolean;
   onConfirm?: () => void;
   onCancel?: () => void;
+  onCopy?: () => void;
+}
+
+export interface SelectionDiscardPrompt {
+  isKeyboardSelection?: boolean;
+  label?: string;
+  cancelOnEscape?: boolean;
+  onConfirm?: () => void;
+  onCancel?: () => void;
+  onCopy?: () => void;
 }
 
 export interface ErrorViewProps {
@@ -604,10 +614,9 @@ export interface SelectionLabelProps {
   onToggleExpand?: () => void;
   onOpen?: () => void;
   onDismiss?: () => void;
-  isPendingDismiss?: boolean;
   selectionLabelShakeCount?: number;
   onConfirmDismiss?: () => void;
-  onCancelDismiss?: () => void;
+  discardPrompt?: SelectionDiscardPrompt;
   error?: string;
   onAcknowledgeError?: () => void;
   onRetry?: () => void;

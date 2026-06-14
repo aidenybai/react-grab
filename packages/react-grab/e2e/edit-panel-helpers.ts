@@ -452,6 +452,24 @@ export const clickHeaderCopyButton = async (page: Page): Promise<void> => {
   );
 };
 
+export const clickDiscardButton = async (
+  page: Page,
+  action: "cancel" | "confirm" | "copy",
+): Promise<void> => {
+  await page.evaluate(
+    ({ attrName, actionName }) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      const button = shadowRoot?.querySelector<HTMLButtonElement>(
+        `[data-react-grab-discard-button='${actionName}']`,
+      );
+      if (!button) throw new Error("Discard button not found");
+      button.click();
+    },
+    { attrName: ATTRIBUTE_NAME, actionName: action },
+  );
+};
+
 export const dragActiveSlider = async (page: Page): Promise<void> => {
   const sliderBounds = await page.evaluate(
     ({ attrName, propertyAttr }) => {
