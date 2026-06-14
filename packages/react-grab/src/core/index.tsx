@@ -3796,7 +3796,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
       getToolbarState: () => currentToolbarState() ?? loadToolbarState(),
       setToolbarState: (state: Partial<ToolbarState>) => {
-        const currentState = loadToolbarState();
+        // Live signal first so partial updates keep prior fields even when
+        // persistence is gated off (demo mode), falling back to storage.
+        const currentState = currentToolbarState() ?? loadToolbarState();
         const resolvedCollapsed = state.collapsed ?? currentState?.collapsed ?? false;
         const newState: ToolbarState = {
           edge: state.edge ?? currentState?.edge ?? "bottom",
