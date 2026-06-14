@@ -1,6 +1,7 @@
 import { FROZEN_ELEMENT_ATTRIBUTE } from "../constants.js";
 import { createStyleElement } from "./create-style-element.js";
 import { freezeGsap, unfreezeGsap } from "./freeze-gsap.js";
+import { IS_DEMO } from "./runtime-mode.js";
 
 const FROZEN_STYLES = `
 [${FROZEN_ELEMENT_ATTRIBUTE}],
@@ -117,6 +118,7 @@ const finishAnimations = (animations: Iterable<Animation>): void => {
 };
 
 export const freezeAllAnimations = (elements: Element[]): void => {
+  if (IS_DEMO) return;
   if (elements.length === 0) return;
   if (areElementsSame(elements, lastInputElements)) return;
 
@@ -159,6 +161,7 @@ const unfreezeAllAnimations = (): void => {
 };
 
 export const freezeAnimations = (elements: Element[]): (() => void) => {
+  if (IS_DEMO) return () => {};
   if (elements.length === 0) {
     unfreezeAllAnimations();
     return () => {};
@@ -169,6 +172,7 @@ export const freezeAnimations = (elements: Element[]): (() => void) => {
 };
 
 export const freezeGlobalAnimations = (): void => {
+  if (IS_DEMO) return;
   if (globalAnimationStyleElement) return;
 
   globalAnimationStyleElement = createStyleElement(

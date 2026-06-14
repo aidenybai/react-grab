@@ -344,6 +344,12 @@ export interface Plugin {
 
 export interface Options {
   enabled?: boolean;
+  /**
+   * Confine React Grab to a single container element instead of the whole page.
+   * Hit-testing, the toolbar viewport, and scroll re-anchoring are scoped to it.
+   * Used by the demo build to scope the showcase to its card.
+   */
+  container?: HTMLElement;
   activationMode?: ActivationMode;
   keyHoldDuration?: number;
   allowActivationInsideInput?: boolean;
@@ -366,6 +372,7 @@ export interface Options {
 export interface SettableOptions extends Options {
   enabled?: never;
   telemetry?: never;
+  container?: never;
 }
 
 export interface SourceInfo {
@@ -399,6 +406,7 @@ export interface ReactGrabAPI {
   getToolbarState: () => ToolbarState | null;
   setToolbarState: (state: Partial<ToolbarState>) => void;
   onToolbarStateChange: (callback: (state: ToolbarState) => void) => () => void;
+  reset: () => void;
   dispose: () => void;
   copyElement: (elements: Element | Element[]) => Promise<boolean>;
   getSource: (element: Element) => Promise<SourceInfo | null>;
