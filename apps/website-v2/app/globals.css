@@ -136,7 +136,6 @@
     @apply bg-background text-foreground;
     font-size: 15px;
     line-height: 1.5;
-    -webkit-font-smoothing: antialiased;
   }
   html {
     @apply font-sans;

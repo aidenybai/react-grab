@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "pnpm --filter react-grab build:demo && next dev --turbopack",
     "build": "pnpm --filter react-grab build:demo && next build",
     "start": "next start"
   },
