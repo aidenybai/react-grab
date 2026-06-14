@@ -20,6 +20,7 @@ import {
   hasTextSelectionOnPage,
 } from "../utils/is-keyboard-event-triggered-by-input.js";
 import { mountRoot } from "../utils/mount-root.js";
+import { setScopeContainer, IS_DEMO, REACT_GRAB_HOST_ATTRIBUTE } from "../utils/runtime-mode.js";
 import { createComponentNameForElement } from "../utils/create-component-name-for-element.js";
 import { watchAppTheme } from "../utils/detect-app-theme.js";
 import {
@@ -77,7 +78,6 @@ import {
   WINDOW_REFOCUS_GRACE_PERIOD_MS,
   PREVIEW_TEXT_MAX_LENGTH,
   NEXTJS_REVALIDATION_DELAY_MS,
-  TOOLBAR_DEFAULT_POSITION_RATIO,
   DEFAULT_ACTION_ID,
   COMMENT_ACTION_ID,
   EDIT_ACTION_ID,
@@ -121,7 +121,11 @@ import { getScriptOptions } from "../utils/get-script-options.js";
 import { isEnterCode } from "../utils/is-enter-code.js";
 import { isMac } from "../utils/is-mac.js";
 import { isPositionInsideBounds } from "../utils/is-position-inside-bounds.js";
-import { loadToolbarState, saveToolbarState } from "../components/toolbar/state.js";
+import {
+  loadToolbarState,
+  saveToolbarState,
+  DEFAULT_TOOLBAR_STATE,
+} from "../components/toolbar/state.js";
 import { copyPlugin } from "./plugins/copy.js";
 import { commentPlugin } from "./plugins/comment.js";
 import { editPlugin } from "./plugins/edit.js";
@@ -267,16 +271,22 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       );
     });
 
+    // Demo mode is display-only and must never write to the host page's body.
+    const setHostBodyStyle = (property: "userSelect" | "touchAction", value: string) => {
+      if (IS_DEMO) return;
+      document.body.style[property] = value;
+    };
+
     createEffect(
       on(isActivated, (activated, previousActivated) => {
         if (activated && !previousActivated) {
           freezePseudoStates(pointer().x, pointer().y);
           freezeGlobalAnimations();
-          document.body.style.touchAction = "none";
+          setHostBodyStyle("touchAction", "none");
         } else if (!activated && previousActivated) {
           unfreezePseudoStates();
           unfreezeGlobalAnimations();
-          document.body.style.touchAction = "";
+          setHostBodyStyle("touchAction", "");
         }
       }),
     );
@@ -347,18 +357,24 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       clearShiftSelectionLabelAnchors();
     };
 
+    // The single source for the enable/disable side effects shared by every
+    // toolbar-state writer: when the toolbar is disabled, tear down any active
+    // selection and popups. No-ops when the enabled value is unchanged.
+    const syncEnabledState = (enabled: boolean) => {
+      if (enabled === isEnabled()) return;
+      setIsEnabled(enabled);
+      if (!enabled) {
+        forceDeactivateAll();
+        dismissAllPopups();
+      }
+    };
+
     const updateToolbarState = (updates: Partial<ToolbarState>) => {
-      const currentState = currentToolbarState() ?? loadToolbarState();
-      const newState: ToolbarState = {
-        edge: currentState?.edge ?? "bottom",
-        ratio: currentState?.ratio ?? TOOLBAR_DEFAULT_POSITION_RATIO,
-        collapsed: currentState?.collapsed ?? false,
-        enabled: currentState?.enabled ?? true,
-        defaultAction: currentState?.defaultAction ?? DEFAULT_ACTION_ID,
-        ...updates,
-      };
+      const base = currentToolbarState() ?? loadToolbarState() ?? DEFAULT_TOOLBAR_STATE;
+      const newState: ToolbarState = { ...base, ...updates };
       saveToolbarState(newState);
       setCurrentToolbarState(newState);
+      syncEnabledState(newState.enabled);
       for (const callback of toolbarStateChangeCallbacks) {
         callback(newState);
       }
@@ -862,6 +878,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     createEffect(
       on(isActivated, (activated) => {
         if (!activated) return;
+        // Demo mode must not pause the host app's React updates.
+        if (IS_DEMO) return;
         if (!pluginRegistry.store.options.freezeReactUpdates) return;
         const unfreezeUpdates = freezeUpdates();
         onCleanup(unfreezeUpdates);
@@ -1306,6 +1324,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let cursorStyleElement: HTMLStyleElement | null = null;
 
     const setCursorOverride = (cursor: string | null) => {
+      // Demo mode must not restyle the host page's cursor; the demo paints its
+      // own cursor within its container.
+      if (IS_DEMO) return;
       if (cursor) {
         if (!cursorStyleElement) {
           cursorStyleElement = document.createElement("style");
@@ -1358,7 +1379,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setIsPendingContextMenuSelect(false);
       setPendingToolbarActionId(null);
       if (wasDragging) {
-        document.body.style.userSelect = "";
+        setHostBodyStyle("userSelect", "");
       }
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
       autoScroller.stop();
@@ -1694,7 +1715,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const shouldPreserveKeyboardSelection = keyboardSelection.selectedElement() !== null;
       actions.startDrag({ x: clientX, y: clientY }, isShiftHeld || shouldPreserveKeyboardSelection);
       actions.setPointer({ x: clientX, y: clientY });
-      document.body.style.userSelect = "none";
+      setHostBodyStyle("userSelect", "none");
 
       scheduleDragPreviewUpdate(clientX, clientY);
 
@@ -1970,7 +1991,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       stopSpaceDragRepositioning();
       actions.cancelDrag();
       autoScroller.stop();
-      document.body.style.userSelect = "";
+      setHostBodyStyle("userSelect", "");
     };
 
     const handlePointerUp = (
@@ -2002,7 +2023,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
       stopSpaceDragRepositioning();
       autoScroller.stop();
-      document.body.style.userSelect = "";
+      setHostBodyStyle("userSelect", "");
 
       if (dragSelectionRect) {
         handleDragSelection(dragSelectionRect, hasModifierKeyHeld, isShiftHeld);
@@ -2396,9 +2417,24 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
+    // Demo mode ignores real user input but still processes synthetic events
+    // that drive the showcase, so the guard lives here once instead of being
+    // repeated inside every interaction handler. IS_DEMO is a build-time
+    // constant, so in normal builds this folds to `return handler` and the
+    // wrapper - which sits on hot pointer paths - is dead-code-eliminated.
+    const ignoreRealInput = <EventType extends Event>(
+      handler: (event: EventType) => void,
+    ): ((event: EventType) => void) => {
+      if (!IS_DEMO) return handler;
+      return (event: EventType): void => {
+        if (event.isTrusted) return;
+        handler(event);
+      };
+    };
+
     eventListenerManager.addWindowListener(
       "keydown",
-      (event: KeyboardEvent) => {
+      ignoreRealInput((event: KeyboardEvent) => {
         if (keyboardSelection.isPendingDismiss() && isEnterCode(event.code)) {
           const target = event.composedPath()[0];
           const targetElement = target instanceof HTMLElement ? target : null;
@@ -2492,16 +2528,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (tryHandleBareKeyShortcut(event)) return;
         if (tryHandleTypeToEdit(event)) return;
 
-        if (!didWindowJustRegainFocus) {
+        // Demo mode is driven by the in-container toolbar / synthetic events, not
+        // the global hotkey, so the host page keeps native Cmd/Ctrl+C behavior.
+        if (!didWindowJustRegainFocus && !IS_DEMO) {
           handleActivationKeys(event);
         }
-      },
+      }),
       { capture: true },
     );
 
     eventListenerManager.addWindowListener(
       "keyup",
-      (event: KeyboardEvent) => {
+      ignoreRealInput((event: KeyboardEvent) => {
         if (blockEnterIfNeeded(event)) return;
 
         if (isSpaceActivationKey(event) && isDragRepositioning()) {
@@ -2615,7 +2653,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             deactivateRenderer();
           }
         }
-      },
+      }),
       { capture: true },
     );
 
@@ -2625,13 +2663,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     });
 
-    eventListenerManager.addWindowListener("keypress", blockEnterIfNeeded, {
+    eventListenerManager.addWindowListener("keypress", ignoreRealInput(blockEnterIfNeeded), {
       capture: true,
     });
 
     eventListenerManager.addWindowListener(
       "pointermove",
-      (event: PointerEvent) => {
+      ignoreRealInput((event: PointerEvent) => {
         if (!event.isPrimary) return;
         const isTouchPointer = event.pointerType === "touch";
         actions.setTouchMode(isTouchPointer);
@@ -2658,13 +2696,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           clearArrowNavigation();
         }
         handlePointerMove(event.clientX, event.clientY, event.shiftKey);
-      },
+      }),
       { passive: true },
     );
 
     eventListenerManager.addWindowListener(
       "pointerdown",
-      (event: PointerEvent) => {
+      ignoreRealInput((event: PointerEvent) => {
         if (event.button !== 0) return;
         if (!event.isPrimary) return;
         actions.setTouchMode(event.pointerType === "touch");
@@ -2716,13 +2754,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           event.preventDefault();
           event.stopImmediatePropagation();
         }
-      },
+      }),
       { capture: true },
     );
 
     eventListenerManager.addWindowListener(
       "pointerup",
-      (event: PointerEvent) => {
+      ignoreRealInput((event: PointerEvent) => {
         if (event.button !== 0) return;
         if (!event.isPrimary) return;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
@@ -2734,13 +2772,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           event.preventDefault();
           event.stopImmediatePropagation();
         }
-      },
+      }),
       { capture: true },
     );
 
     eventListenerManager.addWindowListener(
       "contextmenu",
-      (event: MouseEvent) => {
+      ignoreRealInput((event: MouseEvent) => {
         if (!isRendererActive() || isCopying() || isPromptMode()) return;
         if (editMode.isOpen()) return;
         if (keyboardSelection.isPendingDismiss()) {
@@ -2786,7 +2824,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.setPointer(position);
         actions.freeze();
         openContextMenu(element, position);
-      },
+      }),
       { capture: true },
     );
 
@@ -2797,7 +2835,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     eventListenerManager.addWindowListener(
       "click",
-      (event: MouseEvent) => {
+      ignoreRealInput((event: MouseEvent) => {
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (didSwitchEditTargetOnPointerDown) {
           didSwitchEditTargetOnPointerDown = false;
@@ -2819,7 +2857,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             }
           }
         }
-      },
+      }),
       { capture: true },
     );
 
@@ -2863,7 +2901,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     eventListenerManager.addWindowListener(
       "focusin",
       (event: FocusEvent) => {
-        if (isEventFromOverlay(event, "data-react-grab")) {
+        if (isEventFromOverlay(event, REACT_GRAB_HOST_ATTRIBUTE)) {
           event.stopPropagation();
         }
       },
@@ -3009,14 +3047,21 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       grabbedBoxTimeouts.clear();
       labelController.cancelAllFades();
       autoScroller.stop();
-      document.body.style.userSelect = "";
-      document.body.style.touchAction = "";
+      setHostBodyStyle("userSelect", "");
+      setHostBodyStyle("touchAction", "");
       setCursorOverride(null);
       keyboardClaimer.restore();
+      setScopeContainer(null);
     });
 
     const resolvedCssText = typeof cssText === "string" ? cssText : "";
-    const { root: rendererRoot, host: rendererHost } = mountRoot(resolvedCssText);
+    // Demo mode is display-only: nothing inside the overlay should intercept the
+    // host page's real clicks or cursor (the showcase is driven via the API), so
+    // make the entire shadow overlay click-through.
+    const overlayCssText = IS_DEMO
+      ? `${resolvedCssText}\n* { pointer-events: none !important; }`
+      : resolvedCssText;
+    const { root: rendererRoot, host: rendererHost } = mountRoot(overlayCssText);
 
     const themeWatcher = watchAppTheme(rendererHost);
     onCleanup(themeWatcher.cleanup);
@@ -3648,14 +3693,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 enabled={isEnabled()}
                 shakeCount={toolbarShakeCount()}
                 onToolbarStateChange={(state) => {
+                  // The toolbar persists its own state, so this path mirrors it
+                  // into the signal + subscribers without re-saving.
                   setCurrentToolbarState(state);
-                  if (state.enabled !== isEnabled()) {
-                    setIsEnabled(state.enabled);
-                    if (!state.enabled) {
-                      forceDeactivateAll();
-                      dismissAllPopups();
-                    }
-                  }
+                  syncEnabledState(state.enabled);
                   toolbarStateChangeCallbacks.forEach((callback) => callback(state));
                 }}
                 onSubscribeToToolbarStateChanges={(callback) => {
@@ -3706,6 +3747,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return await copyResolvedElements(elementsArray);
     };
 
+    // Return to a clean slate without disposing, restoring the default toolbar.
+    const resetAll = () => {
+      forceDeactivateAll();
+      dismissAllPopups();
+      actions.clearGrabbedBoxes();
+      actions.clearLabelInstances();
+      actions.setSelectionSource(null, null);
+      updateToolbarState(DEFAULT_TOOLBAR_STATE);
+    };
+
     const api: ReactGrabAPI = {
       activate: () => {
         actions.setPendingCommentMode(false);
@@ -3730,34 +3781,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       isEnabled: () => isEnabled(),
       setEnabled: (enabled: boolean) => {
         if (enabled === isEnabled()) return;
-        setIsEnabled(enabled);
         updateToolbarState({ enabled, collapsed: !enabled });
-        if (!enabled) {
-          forceDeactivateAll();
-          dismissAllPopups();
-        }
       },
       getToolbarState: () => loadToolbarState(),
       setToolbarState: (state: Partial<ToolbarState>) => {
-        const currentState = loadToolbarState();
-        const resolvedCollapsed = state.collapsed ?? currentState?.collapsed ?? false;
-        const newState: ToolbarState = {
-          edge: state.edge ?? currentState?.edge ?? "bottom",
-          ratio: state.ratio ?? currentState?.ratio ?? TOOLBAR_DEFAULT_POSITION_RATIO,
-          collapsed: resolvedCollapsed,
-          enabled: state.enabled ?? !resolvedCollapsed,
-          defaultAction: state.defaultAction ?? currentState?.defaultAction ?? DEFAULT_ACTION_ID,
-        };
-        saveToolbarState(newState);
-        setCurrentToolbarState(newState);
-        if (newState.enabled !== isEnabled()) {
-          setIsEnabled(newState.enabled);
-          if (!newState.enabled) {
-            forceDeactivateAll();
-            dismissAllPopups();
-          }
-        }
-        toolbarStateChangeCallbacks.forEach((callback) => callback(newState));
+        // enabled stays coupled to collapsed unless explicitly set; every other
+        // field falls back through updateToolbarState's base.
+        const collapsed =
+          state.collapsed ?? currentToolbarState()?.collapsed ?? DEFAULT_TOOLBAR_STATE.collapsed;
+        updateToolbarState({ ...state, enabled: state.enabled ?? !collapsed });
       },
       onToolbarStateChange: (callback: (state: ToolbarState) => void) => {
         toolbarStateChangeCallbacks.add(callback);
@@ -3765,6 +3797,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           toolbarStateChangeCallbacks.delete(callback);
         };
       },
+      reset: resetAll,
       dispose: () => {
         disposed = true;
         hasInited = false;

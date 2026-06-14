@@ -399,6 +399,7 @@ export interface ReactGrabAPI {
   getToolbarState: () => ToolbarState | null;
   setToolbarState: (state: Partial<ToolbarState>) => void;
   onToolbarStateChange: (callback: (state: ToolbarState) => void) => () => void;
+  reset: () => void;
   dispose: () => void;
   copyElement: (elements: Element | Element[]) => Promise<boolean>;
   getSource: (element: Element) => Promise<SourceInfo | null>;

@@ -7,12 +7,13 @@ import {
 } from "../constants.js";
 import { isElementVisible } from "./is-element-visible.js";
 import { isRootElement } from "./is-root-element.js";
+import { REACT_GRAB_HOST_ATTRIBUTE } from "./runtime-mode.js";
 
 const isReactGrabElement = (element: Element): boolean => {
-  if (element.hasAttribute("data-react-grab")) return true;
+  if (element.hasAttribute(REACT_GRAB_HOST_ATTRIBUTE)) return true;
 
   const rootNode = element.getRootNode();
-  return rootNode instanceof ShadowRoot && rootNode.host.hasAttribute("data-react-grab");
+  return rootNode instanceof ShadowRoot && rootNode.host.hasAttribute(REACT_GRAB_HOST_ATTRIBUTE);
 };
 
 const isUserIgnoredElement = (element: Element): boolean =>

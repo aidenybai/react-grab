@@ -3,6 +3,7 @@ import type { Position } from "../types.js";
 import type { SnapEdge } from "../components/toolbar/state.js";
 import { TOOLBAR_DRAG_THRESHOLD_PX, TOOLBAR_SNAP_ANIMATION_DURATION_MS } from "../constants.js";
 import { nativeRequestAnimationFrame } from "./native-raf.js";
+import { IS_DEMO } from "./runtime-mode.js";
 import {
   getRatioFromPosition,
   getPositionFromEdgeAndRatio,
@@ -144,6 +145,9 @@ export const createToolbarDrag = (config: ToolbarDragConfig): ToolbarDragResult 
   };
 
   const handlePointerDown = (event: PointerEvent) => {
+    // Demo mode is display-only: a real user can't drag the toolbar, but
+    // synthetic events still can.
+    if (IS_DEMO && event.isTrusted) return;
     if (event.button !== 0) return;
     if (config.isCollapsed()) return;
 

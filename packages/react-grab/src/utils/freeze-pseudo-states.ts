@@ -1,4 +1,5 @@
 import { clearElementPositionCache } from "./get-element-at-position.js";
+import { IS_DEMO } from "./runtime-mode.js";
 import {
   installPointerEventsFreeze,
   isPointerEventsFreezeInstalled,
@@ -159,6 +160,8 @@ const restoreFrozenStates = (
 };
 
 export const freezePseudoStates = (cursorX?: number, cursorY?: number): void => {
+  // Demo mode is display-only and must never freeze the host page.
+  if (IS_DEMO) return;
   if (isPointerEventsFreezeInstalled()) return;
 
   for (const eventType of MOUSE_EVENTS_TO_BLOCK) {
