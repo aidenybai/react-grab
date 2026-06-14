@@ -45,8 +45,9 @@ interface GrabDemoController {
   hideCursor: () => void;
   /** Snap the cursor to a container-relative point without animating. */
   setCursorPosition: (x: number, y: number) => void;
-  /** Glide the cursor to a container-relative point, driving hover en route. */
-  moveCursor: (x: number, y: number, durationMs: number) => Promise<void>;
+  /** Glide the cursor to a container-relative point, driving hover en route.
+   * Pass buttons=1 to keep the primary button held (a drag). */
+  moveCursor: (x: number, y: number, durationMs: number, buttons?: number) => Promise<void>;
   /** Play the click "squish" on the cursor. */
   pulseCursor: (durationMs?: number) => Promise<void>;
   pointerMove: (x: number, y: number) => void;
@@ -54,6 +55,9 @@ interface GrabDemoController {
   pointerUp: (x: number, y: number) => void;
   /** Pulse, then synthesize a pointer down/up at a container-relative point. */
   click: (x: number, y: number) => Promise<void>;
+  /** Press at the current point, glide to a point with the button held (a
+   * drag-select), then release. */
+  drag: (toX: number, toY: number, durationMs: number) => Promise<void>;
   /** Synthesize keydown+keyup. Defaults to the element under the cursor. */
   pressKey: (key: string, target?: EventTarget) => void;
   /** Type into a React Grab input, one character at a time. */
@@ -213,7 +217,12 @@ export const createGrabDemo = (options: GrabDemoOptions): GrabDemoController => 
     });
   };
 
-  const moveCursor = (targetX: number, targetY: number, durationMs: number): Promise<void> => {
+  const moveCursor = (
+    targetX: number,
+    targetY: number,
+    durationMs: number,
+    buttons = 0,
+  ): Promise<void> => {
     const startX = position.x;
     const startY = position.y;
     return animate(durationMs, (progress) => {
@@ -221,7 +230,7 @@ export const createGrabDemo = (options: GrabDemoOptions): GrabDemoController => 
       position.x = lerp(startX, targetX, eased);
       position.y = lerp(startY, targetY, eased);
       applyCursorTransform();
-      pointerMove(position.x, position.y);
+      dispatchPointer("pointermove", position.x, position.y, buttons);
     });
   };
 
@@ -236,6 +245,14 @@ export const createGrabDemo = (options: GrabDemoOptions): GrabDemoController => 
     await pulseCursor();
     pointerDown(x, y);
     pointerUp(x, y);
+  };
+
+  // Press at the current point, glide to the target with the button held so
+  // React Grab tracks a marquee drag-select, then release.
+  const drag = async (toX: number, toY: number, durationMs: number): Promise<void> => {
+    pointerDown(position.x, position.y);
+    await moveCursor(toX, toY, durationMs, 1);
+    pointerUp(position.x, position.y);
   };
 
   const pressKey = (key: string, target: EventTarget = elementAtCursor()): void => {
@@ -322,6 +339,7 @@ export const createGrabDemo = (options: GrabDemoOptions): GrabDemoController => 
     pointerDown,
     pointerUp,
     click,
+    drag,
     pressKey,
     typeText,
     setInputValue,
