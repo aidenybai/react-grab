@@ -11,11 +11,7 @@ import { init } from "./core/index.js";
 import type { ReactGrabAPI } from "./types.js";
 import { lerp } from "./utils/lerp.js";
 import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "./utils/native-raf.js";
-import {
-  getScopeContainer,
-  REACT_GRAB_HOST_ATTRIBUTE,
-  setScopeContainer,
-} from "./utils/runtime-mode.js";
+import { getScopeContainer, REACT_GRAB_HOST_ATTRIBUTE } from "./utils/runtime-mode.js";
 import {
   DEMO_CLICK_PULSE_MIN_SCALE,
   DEMO_CLICK_PULSE_MS,
@@ -115,10 +111,9 @@ export const createGrabDemo = (options: GrabDemoOptions): GrabDemoController => 
     container.style.position = "relative";
   }
 
-  // Confine React Grab to the container so the overlay never touches the host
-  // page. The demo owns this lifecycle: set before init, cleared in dispose.
-  setScopeContainer(container);
-  const api = init();
+  // init() applies (and, on dispose, clears) the scope after its single-init
+  // guard, so a no-op init can never leave the scope pointing at this container.
+  const api = init({ container });
 
   if (showManagedCursor) {
     cursorElement = document.createElement("div");
@@ -323,8 +318,8 @@ export const createGrabDemo = (options: GrabDemoOptions): GrabDemoController => 
     cursorElement?.remove();
     cursorElement = null;
     if (didPromoteContainerPosition) container.style.position = "";
+    // api.dispose() runs init's cleanup, which clears the scope container.
     api.dispose();
-    setScopeContainer(null);
   };
 
   return {

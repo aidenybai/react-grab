@@ -208,10 +208,21 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
   }
   hasInited = true;
 
+  // Applied here - after the single-init guard - so a no-op init can never leave
+  // the scope singleton pointing at a disposed/aliased container. Reset on
+  // cleanup below. Set before the renderer mounts so the toolbar anchors to the
+  // container on first paint.
+  setScopeContainer(initialOptions.container ?? null);
+
   logIntro(initialOptions.telemetry !== false);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- omit init-only options that aren't part of SettableOptions
-  const { enabled: _enabled, telemetry: _telemetry, ...settableOptions } = initialOptions;
+  const {
+    enabled: _enabled,
+    telemetry: _telemetry,
+    container: _container,
+    ...settableOptions
+  } = initialOptions;
 
   return createRoot((dispose) => {
     let disposed = false;
