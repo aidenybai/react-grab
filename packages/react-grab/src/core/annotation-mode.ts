@@ -341,7 +341,12 @@ export const createAnnotationModeController = (
     if (!isActive() || isCapturing) return;
     finishStroke();
     commitActiveText();
-    if (committedItems.length === 0) return;
+    // Nothing drawn: exit instead of silently no-opping, so Enter/Copy give
+    // visible feedback (the overlay closes) rather than appearing frozen.
+    if (committedItems.length === 0) {
+      cancel();
+      return;
+    }
     isCapturing = true;
     const session = sessionId;
     // True only if this exact session is still the live one - guards every

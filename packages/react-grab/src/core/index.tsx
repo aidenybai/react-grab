@@ -114,6 +114,7 @@ import type {
 import { createEditModeController, type EditModeOverrides } from "./edit-mode.js";
 import { createAnnotationModeController } from "./annotation-mode.js";
 import { isScreenshotSupported } from "../utils/is-screenshot-supported.js";
+import { resolveActionEnabled } from "../utils/resolve-action-enabled.js";
 import { createPluginRegistry } from "./plugin-registry.js";
 import { createLabelController } from "./label-controller.js";
 import { createArrowNavigator } from "./arrow-navigation.js";
@@ -2321,6 +2322,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const action = findShortcutAction(pluginRegistry.store.actions, event);
       if (!action) return false;
 
+      const position = { x: pointer().x, y: pointer().y };
+      const immediateContext = buildImmediateActionContext(element, position);
+      // Don't run (or swallow the key for) a disabled action - e.g. Draw where
+      // screen capture is unavailable - and don't tear down prompt mode for it.
+      if (!resolveActionEnabled(action, immediateContext)) return false;
+
       if (isPromptMode()) {
         if (!runActionForCurrentSelection(action.id)) return false;
         event.preventDefault();
@@ -2328,8 +2335,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return true;
       }
 
-      const position = { x: pointer().x, y: pointer().y };
-      action.onAction(buildImmediateActionContext(element, position));
+      action.onAction(immediateContext);
 
       event.preventDefault();
       event.stopImmediatePropagation();
