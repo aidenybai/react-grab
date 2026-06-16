@@ -1,6 +1,10 @@
 {
   "name": "@react-grab/cli",
-  "version": "0.1.39",
+  "version": "0.1.44",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aidenybai/react-grab.git"
+  },
   "bin": {
     "react-grab": "./bin/cli.js"
   },
@@ -28,15 +32,13 @@
     "check": "vp check"
   },
   "dependencies": {
-    "agent-install": "^0.0.5",
+    "agent-install": "^0.0.6",
     "commander": "^14.0.3",
     "ignore": "^7.0.5",
-    "jsonc-parser": "^3.3.1",
     "ora": "^9.4.0",
     "package-manager-detector": "^1.6.0",
     "picocolors": "^1.1.1",
     "prompts": "^2.4.2",
-    "smol-toml": "^1.6.1",
     "tinyexec": "^1.1.2"
   },
   "devDependencies": {

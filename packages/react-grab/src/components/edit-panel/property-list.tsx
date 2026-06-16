@@ -21,7 +21,7 @@ interface PropertyListProps {
   onHoverIndex: (index: number) => void;
   onSelect: (index: number) => void;
   onStep: (direction: 1 | -1) => void;
-  onCommit: (value: number | string) => void;
+  onCommit: (value: number | string, source: "keyboard" | "pointer") => void;
   onColorPickerRegister: (trigger: (() => void) | null, owner?: () => void) => void;
   onEditComplete: () => void;
   onInvalidCommit: () => void;
@@ -156,7 +156,7 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
               type="button"
               role="menuitem"
               tabindex={-1}
-              class="relative z-1 contain-layout block w-full px-0 py-0 cursor-pointer text-left border-none bg-transparent min-h-[24px]"
+              class="relative z-1 contain-layout block w-full h-[24px] px-0 py-0 cursor-pointer text-left border-none bg-transparent"
               onPointerEnter={() => {
                 maybeActivateHoveredIndex(propertyIndex, "enter");
               }}
@@ -190,7 +190,7 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
               <Show
                 when={isActive()}
                 fallback={
-                  <div class="flex items-center justify-between w-full px-2 py-1 gap-2 min-h-[24px]">
+                  <div class="flex items-center justify-between w-full h-[24px] px-2 gap-2">
                     <span class="text-[13px] leading-4 font-sans font-medium text-[var(--rg-text-primary)] truncate min-w-0">
                       {property().label}
                     </span>
@@ -223,18 +223,20 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
                   </div>
                 }
               >
-                <ActivePropertyControl
-                  property={property()}
-                  activeKey={props.activeKey}
-                  onStep={props.onStep}
-                  onCommit={props.onCommit}
-                  onEditComplete={props.onEditComplete}
-                  onInvalidCommit={props.onInvalidCommit}
-                  onInteract={props.onInteract}
-                  onColorPickerRegister={props.onColorPickerRegister}
-                  showLabel
-                  tailwindLabel={props.activeTailwindLabel}
-                />
+                <div class="flex items-center w-full h-[24px]">
+                  <ActivePropertyControl
+                    property={property()}
+                    activeKey={props.activeKey}
+                    onStep={props.onStep}
+                    onCommit={props.onCommit}
+                    onEditComplete={props.onEditComplete}
+                    onInvalidCommit={props.onInvalidCommit}
+                    onInteract={props.onInteract}
+                    onColorPickerRegister={props.onColorPickerRegister}
+                    showLabel
+                    tailwindLabel={props.activeTailwindLabel}
+                  />
+                </div>
               </Show>
             </button>
           );

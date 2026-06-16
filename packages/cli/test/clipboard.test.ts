@@ -35,12 +35,14 @@ interface CapturedRecord {
   entries: { componentName?: string }[];
 }
 
-// Spawns `react-grab watch` (single-shot: exits on the first captured grab) and
-// returns the records written to history.jsonl. For the "ignores" case nothing
-// is captured, so the watcher never exits and is killed once the timeout lapses.
+// Spawns the foreground watch daemon body (polls until killed) and returns the
+// records written to history.jsonl. The watcher never exits on its own, so it is
+// always killed once the timeout lapses — captured grabs are read from disk.
+const POLL_MS = 100;
+
 const collectGrabs = (
   extraArgs: string[],
-  { timeoutMs = 6000 }: { timeoutMs?: number } = {},
+  { timeoutMs = 6000, minRecords = 0 }: { timeoutMs?: number; minRecords?: number } = {},
 ): Promise<CapturedRecord[]> =>
   new Promise((resolve) => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "rg-test-"));
@@ -66,9 +68,15 @@ const collectGrabs = (
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      clearInterval(poll);
       child.kill();
       resolve(readRecords());
     };
+    // Resolve as soon as the expected grabs land so capture tests stay fast; the
+    // "ignores" case sets no minimum and falls through to the timeout.
+    const poll = setInterval(() => {
+      if (minRecords > 0 && readRecords().length >= minRecords) finish();
+    }, POLL_MS);
     const timer = setTimeout(finish, timeoutMs);
     child.on("exit", finish);
   });
@@ -176,7 +184,7 @@ describe(`clipboard round-trip via text fallback (${process.platform})`, () => {
     const grabText =
       "<button>Save</button>\n\n// src/widgets/save-button.tsx:42\n  in SaveButton (at src/widgets/save-button.tsx:42:3)";
     if (!writeText(grabText)) return;
-    const records = await collectGrabs(["--text-only"], { timeoutMs: 6000 });
+    const records = await collectGrabs(["--text-only"], { timeoutMs: 6000, minRecords: 1 });
     expect(records.length >= 1).toBe(true);
     expect(records[0].source).toBe("text");
     expect(records[0].content).toMatch(/in SaveButton/);
@@ -222,7 +230,7 @@ describe(`clipboard round-trip via custom format (${process.platform})`, () => {
     "captures a structured grab end-to-end",
     async () => {
       if (!writeGrab({ text: "plain text alongside", grabJson })) return;
-      const records = await collectGrabs([], { timeoutMs: 20000 });
+      const records = await collectGrabs([], { timeoutMs: 20000, minRecords: 1 });
       expect(records.length >= 1).toBe(true);
       expect(records[0].source).toBe("custom");
       expect(records[0].entries[0].componentName).toBe("NavLink");

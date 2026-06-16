@@ -11,7 +11,7 @@ export const TAILWIND_LABEL_ATTR = "data-react-grab-tailwind-label";
 export const IDLE_BUFFER_MS = 700;
 export const DISCARD_PROMPT_IDLE_MS = 2000;
 export const BUTTON_SELECTOR = "[data-testid='nested-button']";
-export const CARD_SELECTOR = "[data-testid='nested-card']";
+export const MAIN_TITLE_SELECTOR = "[data-testid='main-title']";
 
 export const isEditPanelVisible = async (page: Page): Promise<boolean> =>
   page.evaluate(
@@ -178,9 +178,9 @@ export const hoverVisibleSlider = async (page: Page): Promise<void> => {
   );
 };
 
-export const getActiveTailwindLabelOrder = async (
+const getActiveTailwindLabelInfo = async (
   page: Page,
-): Promise<{ tailwindLeft: number | null; valueLeft: number | null }> =>
+): Promise<{ text: string | null; tailwindLeft: number | null; valueLeft: number | null }> =>
   page.evaluate(
     ({ attrName, tailwindLabelAttr }) => {
       const host = document.querySelector(`[${attrName}]`);
@@ -197,12 +197,23 @@ export const getActiveTailwindLabelOrder = async (
           ?.closest("[data-react-grab-value]")
           ?.querySelector<HTMLElement>("[data-react-grab-value-text]") ?? null;
       return {
+        text: tailwindLabel?.textContent ?? null,
         tailwindLeft: tailwindLabel?.getBoundingClientRect().left ?? null,
         valueLeft: valueText?.getBoundingClientRect().left ?? null,
       };
     },
     { attrName: ATTRIBUTE_NAME, tailwindLabelAttr: TAILWIND_LABEL_ATTR },
   );
+
+export const getActiveTailwindLabelOrder = async (
+  page: Page,
+): Promise<{ tailwindLeft: number | null; valueLeft: number | null }> => {
+  const { tailwindLeft, valueLeft } = await getActiveTailwindLabelInfo(page);
+  return { tailwindLeft, valueLeft };
+};
+
+export const getActiveTailwindLabelText = async (page: Page): Promise<string | null> =>
+  (await getActiveTailwindLabelInfo(page)).text;
 
 export interface SearchInputFocusVisualState {
   isFocusVisible: boolean;
@@ -441,6 +452,24 @@ export const clickHeaderCopyButton = async (page: Page): Promise<void> => {
   );
 };
 
+export const clickDiscardButton = async (
+  page: Page,
+  action: "cancel" | "confirm" | "copy",
+): Promise<void> => {
+  await page.evaluate(
+    ({ attrName, actionName }) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      const button = shadowRoot?.querySelector<HTMLButtonElement>(
+        `[data-react-grab-discard-button='${actionName}']`,
+      );
+      if (!button) throw new Error("Discard button not found");
+      button.click();
+    },
+    { attrName: ATTRIBUTE_NAME, actionName: action },
+  );
+};
+
 export const dragActiveSlider = async (page: Page): Promise<void> => {
   const sliderBounds = await page.evaluate(
     ({ attrName, propertyAttr }) => {
@@ -536,8 +565,7 @@ export const openEditPanel = async (
   selector: string,
 ): Promise<void> => {
   await reactGrab.activate();
-  await reactGrab.hoverElement(selector);
-  await reactGrab.waitForSelectionBox();
+  await reactGrab.hoverUntilSelected(selector);
   await reactGrab.rightClickElement(selector);
   await reactGrab.clickContextMenuItem("Style");
   await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(true);

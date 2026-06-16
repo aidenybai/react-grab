@@ -57,6 +57,12 @@ test.describe("Element Selection", () => {
     expect(clipboardMetadata.content).toContain("Todo List");
     expect(clipboardMetadata.entries).toHaveLength(1);
     expect(clipboardMetadata.entries[0].content).toContain("Todo List");
+    // The e2e dev server produces owner-stack frames without file names, so no
+    // source can resolve here; pin the explicit null to catch shape drift.
+    expect(clipboardMetadata.entries[0]).toHaveProperty("source", null);
+    expect(clipboardMetadata.entries[0].stackContext).toContain("TodoList");
+    expect(Array.isArray(clipboardMetadata.entries[0].frames)).toBe(true);
+    expect(clipboardMetadata.entries[0].frames.length).toBeGreaterThan(0);
   });
 
   // PR #349 ("fix: keep page interactive while grabbing") intentionally

@@ -5,9 +5,9 @@
 
 Copy any UI element for your agent.
 
-React Grab points agents to the actual source behind each selection, so edits are [**2× faster**](https://benchmarks.react-grab.com/) and more accurate.
+React Grab points agents to the actual source behind each selection. Agents are [**2× faster**](https://benchmark.react-grab.com/) and more accurate when using React Grab.
 
-### [Try out a demo! →](https://react-grab.com)
+[**Website →**](https://react-grab.com)
 
 ## Quick Start
 
@@ -25,20 +25,10 @@ React Grab turns a browser selection into source context your agent can use:
 2. Press **⌘C** or **Ctrl+C**.
 3. Paste the copied context into your agent.
 
-The copied context includes the selected element, source location, nearby code, and component stack:
+The copied context includes the selected element and its component stack with source locations:
 
 ```txt
-<a class="ml-auto inline-block text-sm" href="#">
-  Forgot your password?
-</a>
-
-// components/login-form.tsx:46
-  45| <div className="flex items-center">
-> 46|   <a className="ml-auto inline-block text-sm" href="#">
-  47|     Forgot your password?
-  48|   </a>
-
-  in LoginForm (at components/login-form.tsx:46:19)
+[<a class="ml-auto inline-block text-sm" href="#">Forgot your password?</a> in LoginForm (at components/login-form.tsx:46:19)]
 ```
 
 ## Manual Installation
@@ -136,9 +126,9 @@ if (process.env.NODE_ENV === "development") {
 
 ## Plugins
 
-Use plugins to extend React Grab's built-in UI with context menu actions, toolbar menu items, lifecycle hooks, and theme overrides. Plugins run within React Grab.
+Use plugins to extend React Grab's built-in UI with context menu actions, toolbar menu items, lifecycle hooks, and theme overrides.
 
-Register a plugin using the `registerPlugin` and `unregisterPlugin` exports:
+Register a plugin using the `registerPlugin` export:
 
 ```js
 import { registerPlugin } from "react-grab";
@@ -153,7 +143,7 @@ registerPlugin({
 });
 ```
 
-In React, register inside a `useEffect`:
+If writing in React, register inside a `useEffect`:
 
 ```jsx
 import { registerPlugin, unregisterPlugin } from "react-grab";
@@ -191,6 +181,7 @@ actions: [
   {
     id: "toggle-freeze",
     label: "Freeze",
+    // Only show in the toolbar
     target: "toolbar",
     isActive: () => isFrozen,
     onAction: () => toggleFreeze(),

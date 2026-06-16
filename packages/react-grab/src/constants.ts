@@ -20,6 +20,7 @@ export const INPUT_FOCUS_ACTIVATION_DELAY_MS = 400;
 export const INPUT_TEXT_SELECTION_ACTIVATION_DELAY_MS = 600;
 export const DEFAULT_KEY_HOLD_DURATION_MS = 100;
 export const DEFAULT_MAX_CONTEXT_LINES = 3;
+export const MAX_TRACE_CONTEXT_LINES = 20;
 export const SYMBOLICATION_TIMEOUT_MS = 5000;
 export const MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS = 200;
 export const FINDER_TIMEOUT_MS = 200;
@@ -71,7 +72,6 @@ export const ARROW_PANEL_OVERLAP_PX = 1;
 export const LABEL_GAP_PX = 4;
 export const PREVIEW_TEXT_MAX_LENGTH = 100;
 export const PREVIEW_ATTR_VALUE_MAX_LENGTH = 15;
-export const PREVIEW_MAX_ATTRS = 3;
 export const PREVIEW_PRIORITY_ATTRS: readonly string[] = [
   "id",
   "class",
@@ -104,6 +104,9 @@ export const PREVIEW_IDENTIFYING_ATTRS = new Set([
   "selected",
   "open",
 ]);
+
+export const PREVIEW_DESCENDANT_TEXT_TAGS = new Set(["a", "code", "pre"]);
+export const PREVIEW_SKIPPED_TEXT_TAGS = new Set(["script", "style", "template", "noscript"]);
 
 export const MODIFIER_KEYS: readonly string[] = ["Meta", "Control", "Shift", "Alt"];
 
@@ -173,13 +176,8 @@ export const MOUNT_ROOT_RECHECK_DELAY_MS = 1000;
 // Must match the CSS exit transition on dropdown components or the DOM
 // unmounts mid-animation.
 export const DROPDOWN_ANIMATION_DURATION_MS = 120;
-export const DROPDOWN_HOVER_OPEN_DELAY_MS = 200;
 export const DROPDOWN_VIEWPORT_PADDING_PX = 8;
 export const DROPDOWN_ANCHOR_GAP_PX = 8;
-export const SAFE_POLYGON_BUFFER_PX = 8;
-export const DROPDOWN_ICON_SIZE_PX = 11;
-export const DROPDOWN_MIN_WIDTH_PX = 180;
-export const DROPDOWN_MAX_WIDTH_PX = 280;
 export const TOOLBAR_MENU_MIN_WIDTH_PX = 100;
 export const DROPDOWN_OFFSCREEN_POSITION = { left: -9999, top: -9999 };
 
@@ -197,10 +195,10 @@ export const TEXTAREA_MAX_HEIGHT_PX = 95;
 export const EDIT_PROPERTY_LIST_MAX_HEIGHT_PX = 280;
 export const EDIT_PROPERTY_MAX_COUNT = 40;
 export const EDIT_TRANSPARENT_COLOR_HEX = "#00000000";
+export const EDIT_TRANSPARENT_COLOR_LABEL = "transparent";
 export const EDIT_ROOT_FONT_SIZE_PX = 16;
 export const EDIT_PANEL_MIN_WIDTH_PX = 200;
 export const EDIT_PANEL_MAX_WIDTH_PX = 320;
-export const EDIT_PANEL_POINTER_ANCHOR_WIDTH_PX = 0;
 export const EDIT_SHIFT_STEP_MULTIPLIER = 10;
 // Idle window after the last control-interact pulse before the
 // transient-interaction signal clears. Must comfortably exceed the
@@ -210,6 +208,7 @@ export const EDIT_SHIFT_STEP_MULTIPLIER = 10;
 export const EDIT_PANEL_ADJUSTING_IDLE_MS = 150;
 export const EDIT_DISCARD_PROMPT_IDLE_MS = 2000;
 export const EDIT_PANEL_ACTIVE_KEY_FLASH_MS = 100;
+export const EDIT_INLINE_NUMERIC_REPLACE_IDLE_MS = 500;
 export const EDIT_SLIDER_CLICK_THRESHOLD_PX = 3;
 export const EDIT_SLIDER_HASH_MARK_COUNT = 9;
 // Rubber-band: cursor must overshoot DEAD_ZONE_PX before the track
@@ -241,6 +240,12 @@ export const EDIT_SEARCH_LENGTH_PENALTY = 1;
 export const EDIT_COMPACT_SLIDER_MIN_WIDTH_PX = 96;
 
 export const CSS_VALUE_DECIMAL_PLACES = 2;
+// Tailwind v4's `rounded-full` is calc(infinity * 1px). Browsers clamp
+// it to their internal length maximum (~3.36e7px in Chromium, ~1.79e7px
+// in Firefox, float max in WebKit) — all far past this threshold and
+// none a real length. Cap to the row's max bound instead of showing
+// (and re-emitting) 33554400px.
+export const CSS_LENGTH_INFINITY_THRESHOLD_PX = 1e7;
 export const OPACITY_PERCENT_MAX = 100;
 export const FONT_SIZE_LINE_HEIGHT_RATIO = 1.2;
 // Tailwind's spacing scale: `p-1` = 0.25rem = 4px, so each "unit"

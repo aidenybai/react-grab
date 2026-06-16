@@ -66,6 +66,7 @@ const transformReadme = () => {
     .replace(/npx( -y)? react-grab@latest/g, "npx$1 grab@latest")
     .replace(/unpkg\.com\/react-grab/g, "unpkg.com/grab")
     .replace(/import\("react-grab"\)/g, 'import("grab")')
+    .replace(/import\("react-grab\/core"\)/g, 'import("grab/core")')
     .replace(/from "react-grab\/core"/g, 'from "grab/core"')
     .replace(/from "react-grab\/primitives"/g, 'from "grab/primitives"')
     .replace(/from "react-grab"/g, 'from "grab"');

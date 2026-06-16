@@ -7,7 +7,7 @@ import {
   FROZEN_GLOW_EDGE_PX,
   Z_INDEX_OVERLAY_CANVAS,
 } from "../constants.js";
-import { openFile } from "../utils/open-file.js";
+import { requestOpenFile } from "../utils/open-file.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
 import { OverlayCanvas } from "./overlay-canvas.js";
 import { SelectionLabel } from "./selection-label/index.js";
@@ -98,13 +98,12 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           onInputChange={props.onInputChange}
           onSubmit={props.onInputSubmit}
           onToggleExpand={props.onToggleExpand}
-          isPendingDismiss={props.isPendingDismiss}
           selectionLabelShakeCount={props.selectionLabelShakeCount}
           onConfirmDismiss={props.onConfirmDismiss}
-          onCancelDismiss={props.onCancelDismiss}
+          discardPrompt={props.discardPrompt}
           onOpen={() => {
             if (props.selectionFilePath) {
-              openFile(props.selectionFilePath, props.selectionLineNumber);
+              requestOpenFile(props.selectionFilePath, props.selectionLineNumber);
             }
           }}
           isContextMenuOpen={props.contextMenuPosition !== null}
@@ -179,6 +178,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         position={props.editPanelPosition ?? null}
         onDismiss={props.onEditPanelDismiss ?? (() => {})}
         onSubmit={props.onEditPanelSubmit ?? (() => {})}
+        onPendingEditsChange={props.onEditPanelPendingEditsChange}
         onInteractingChange={props.onEditPanelInteractingChange}
       />
     </>

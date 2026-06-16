@@ -2,6 +2,8 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { detect } from "package-manager-detector/detect";
 import ignore from "ignore";
+import { hasReactGrabSetupCode } from "./react-grab-code.js";
+import { getReactGrabSetupFileCandidates } from "./react-grab-setup-files.js";
 
 export type PackageManager = "npm" | "yarn" | "pnpm" | "bun";
 export type Framework = "next" | "vite" | "tanstack" | "webpack" | "sveltekit" | "unknown";
@@ -15,6 +17,7 @@ interface ProjectInfo {
   isMonorepo: boolean;
   projectRoot: string;
   hasReactGrab: boolean;
+  isReactGrabConfigured: boolean;
   reactGrabVersion: string | null;
   unsupportedFramework: UnsupportedFramework;
 }
@@ -318,11 +321,27 @@ const scanDirectoryForProjects = (
 
 const MAX_SCAN_DEPTH = 2;
 
+const normalizePathForComparison = (filePath: string): string => filePath.replace(/\\/g, "/");
+
 export const findReactProjects = (projectRoot: string): WorkspaceProject[] => {
-  if (detectMonorepo(projectRoot)) {
-    const workspaceProjects = findWorkspaceProjects(projectRoot);
-    if (workspaceProjects.length > 0) {
-      return workspaceProjects;
+  const monorepoRoot = detectMonorepo(projectRoot)
+    ? projectRoot
+    : findEnclosingMonorepoRoot(projectRoot);
+  if (monorepoRoot) {
+    const workspaceProjects = findWorkspaceProjects(monorepoRoot);
+    const localProject = projectRoot === monorepoRoot ? null : buildReactProject(projectRoot);
+    const projects = localProject
+      ? [
+          localProject,
+          ...workspaceProjects.filter(
+            (project) =>
+              normalizePathForComparison(project.path) !==
+              normalizePathForComparison(localProject.path),
+          ),
+        ]
+      : workspaceProjects;
+    if (projects.length > 0) {
+      return projects;
     }
   }
 
@@ -344,58 +363,27 @@ export const findReactProjects = (projectRoot: string): WorkspaceProject[] => {
   return [];
 };
 
-const hasReactGrabInFile = (filePath: string): boolean => {
+const hasReactGrabSetupInFile = (filePath: string): boolean => {
   if (!existsSync(filePath)) return false;
   try {
     const content = readFileSync(filePath, "utf-8");
-    const fuzzyPatterns = [
-      /["'`][^"'`]*react-grab/,
-      /react-grab[^"'`]*["'`]/,
-      /<[^>]*react-grab/i,
-      /import[^;]*react-grab/i,
-      /require[^)]*react-grab/i,
-      /from\s+[^;]*react-grab/i,
-      /src[^>]*react-grab/i,
-    ];
-    return fuzzyPatterns.some((pattern) => pattern.test(content));
+    return hasReactGrabSetupCode(content);
   } catch {
     return false;
   }
 };
 
-export const detectReactGrab = (projectRoot: string): boolean => {
+const detectReactGrabDependency = (projectRoot: string): boolean => {
   const dependencies = readMergedDependencies(projectRoot);
-  if (dependencies?.["react-grab"]) return true;
-
-  const filesToCheck = [
-    join(projectRoot, "app", "layout.tsx"),
-    join(projectRoot, "app", "layout.jsx"),
-    join(projectRoot, "src", "app", "layout.tsx"),
-    join(projectRoot, "src", "app", "layout.jsx"),
-    join(projectRoot, "pages", "_document.tsx"),
-    join(projectRoot, "pages", "_document.jsx"),
-    join(projectRoot, "instrumentation-client.ts"),
-    join(projectRoot, "instrumentation-client.js"),
-    join(projectRoot, "src", "instrumentation-client.ts"),
-    join(projectRoot, "src", "instrumentation-client.js"),
-    join(projectRoot, "index.html"),
-    join(projectRoot, "public", "index.html"),
-    join(projectRoot, "src", "index.tsx"),
-    join(projectRoot, "src", "index.ts"),
-    join(projectRoot, "src", "main.tsx"),
-    join(projectRoot, "src", "main.ts"),
-    join(projectRoot, "src", "routes", "__root.tsx"),
-    join(projectRoot, "src", "routes", "__root.jsx"),
-    join(projectRoot, "app", "routes", "__root.tsx"),
-    join(projectRoot, "app", "routes", "__root.jsx"),
-    join(projectRoot, "src", "hooks.client.ts"),
-    join(projectRoot, "src", "hooks.client.js"),
-    join(projectRoot, "src", "app.html"),
-    join(projectRoot, "src", "routes", "+layout.svelte"),
-  ];
-
-  return filesToCheck.some(hasReactGrabInFile);
+  return Boolean(dependencies?.["react-grab"]);
 };
+
+export const detectReactGrabConfigured = (projectRoot: string): boolean => {
+  return getReactGrabSetupFileCandidates(projectRoot).some(hasReactGrabSetupInFile);
+};
+
+export const detectReactGrab = (projectRoot: string): boolean =>
+  detectReactGrabDependency(projectRoot) || detectReactGrabConfigured(projectRoot);
 
 export const detectUnsupportedFramework = (projectRoot: string): UnsupportedFramework => {
   const dependencies = readMergedDependencies(projectRoot);
@@ -422,14 +410,17 @@ export const detectProject = async (projectRoot: string = process.cwd()): Promis
   const framework =
     localFramework === "unknown" ? detectFrameworkFromMonorepoRoot(projectRoot) : localFramework;
   const packageManager = await detectPackageManager(projectRoot);
+  const isMonorepo = detectMonorepo(projectRoot) || findEnclosingMonorepoRoot(projectRoot) !== null;
+  const isReactGrabConfigured = detectReactGrabConfigured(projectRoot);
 
   return {
     packageManager,
     framework,
     nextRouterType: framework === "next" ? detectNextRouterType(projectRoot) : "unknown",
-    isMonorepo: detectMonorepo(projectRoot),
+    isMonorepo,
     projectRoot,
-    hasReactGrab: detectReactGrab(projectRoot),
+    hasReactGrab: detectReactGrabDependency(projectRoot) || isReactGrabConfigured,
+    isReactGrabConfigured,
     reactGrabVersion: detectReactGrabVersion(projectRoot),
     unsupportedFramework: detectUnsupportedFramework(projectRoot),
   };

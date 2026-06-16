@@ -1,7 +1,7 @@
 const isClientSide = typeof window !== "undefined";
 
 const noopAnimationFrame = (_callback: FrameRequestCallback): number => 0;
-const noopCancelFrame = (_id: number): void => {};
+const noopCancelFrame = (_animationFrameId: number): void => {};
 
 // We read requestAnimationFrame from Window.prototype rather than the window
 // instance to bypass the GSAP freeze wrapper installed by freeze-gsap.ts.

@@ -45,12 +45,12 @@ const formatInitOptions = (hotkey: RecordedHotkey): string => {
 
 const createPromptInstallInstructions = (hotkey: RecordedHotkey | null): string => {
   const activationKeyInstruction = hotkey
-    ? `Set the activation key to "${hotkeyToString(hotkey)}". For Next.js Script tags, set data-options='{"activationKey":"${hotkeyToString(
+    ? `Set the shortcut to "${hotkeyToString(hotkey)}". For Next.js Script tags, set data-options='{"activationKey":"${hotkeyToString(
         hotkey,
       )}"}'. For Vite & TanStack Start, use react-grab/core and call init(${formatInitOptions(
         hotkey,
       )}).`
-    : "Keep the default activation key.";
+    : "Keep the default shortcut.";
 
   return `Set up React Grab in this workspace. If this is a monorepo, ask me which package to install it in.
 

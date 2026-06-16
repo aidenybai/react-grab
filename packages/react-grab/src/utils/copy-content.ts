@@ -1,13 +1,7 @@
 import { VERSION } from "../constants.js";
+import type { ReactGrabEntry } from "../types.js";
 
 const REACT_GRAB_MIME_TYPE = "application/x-react-grab";
-
-export interface ReactGrabEntry {
-  tagName?: string;
-  componentName?: string;
-  content: string;
-  commentText?: string;
-}
 
 interface CopyContentOptions {
   componentName?: string;

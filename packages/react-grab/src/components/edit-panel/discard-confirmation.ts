@@ -1,7 +1,7 @@
 import { createSignal, onCleanup, type Accessor } from "solid-js";
 import { EDIT_DISCARD_PROMPT_IDLE_MS } from "../../constants.js";
 
-export interface DiscardConfirmation {
+interface DiscardConfirmation {
   isPending: Accessor<boolean>;
   show: () => void;
   hide: () => void;

@@ -243,7 +243,6 @@ export interface PendingEditsEntry {
 export interface PreviewStyles {
   apply: (cssProperties: readonly string[], cssValue: string) => void;
   restore: () => void;
-  forget: () => void;
   hasAppliedStyles: () => boolean;
 }
 
@@ -259,6 +258,7 @@ export interface EditPanelState {
   tagName?: string;
   htmlPreview?: string;
   initialSearchQuery?: string;
+  hasSessionEdits?: boolean;
 }
 
 export interface ContextMenuAction {
@@ -355,10 +355,17 @@ export interface Options {
    * @default true
    */
   freezeReactUpdates?: boolean;
+  /**
+   * Whether to send the anonymous version check to react-grab.com on init.
+   * Set to false to skip the version-check request.
+   * @default true
+   */
+  telemetry?: boolean;
 }
 
 export interface SettableOptions extends Options {
   enabled?: never;
+  telemetry?: never;
 }
 
 export interface SourceInfo {
@@ -379,7 +386,6 @@ export interface DropdownAnchor {
   x: number;
   y: number;
   edge: ToolbarState["edge"];
-  toolbarWidth: number;
 }
 
 export interface ReactGrabAPI {
@@ -476,10 +482,9 @@ export interface ReactGrabRendererProps {
   onInputChange?: (value: string) => void;
   onInputSubmit?: () => void;
   onToggleExpand?: () => void;
-  isPendingDismiss?: boolean;
   selectionLabelShakeCount?: number;
   onConfirmDismiss?: () => void;
-  onCancelDismiss?: () => void;
+  discardPrompt?: SelectionDiscardPrompt;
   toolbarVisible?: boolean;
   isActive?: boolean;
   onToggleActive?: () => void;
@@ -509,7 +514,8 @@ export interface ReactGrabRendererProps {
   editPanelState?: EditPanelState | null;
   editPanelPosition?: DropdownAnchor | null;
   onEditPanelDismiss?: () => void;
-  onEditPanelSubmit?: (prompt: string) => void;
+  onEditPanelSubmit?: (pendingEdits: PendingEdits) => void;
+  onEditPanelPendingEditsChange?: (pendingEdits: PendingEdits) => void;
   onEditPanelInteractingChange?: (interacting: boolean) => void;
 }
 
@@ -551,7 +557,6 @@ export interface TagBadgeProps {
   onClick: (event: MouseEvent) => void;
   onHoverChange?: (hovered: boolean) => void;
   shrink?: boolean;
-  forceShowIcon?: boolean;
 }
 
 export interface BottomSectionProps {
@@ -560,9 +565,20 @@ export interface BottomSectionProps {
 
 export interface DiscardPromptProps {
   label?: string;
+  showCancel?: boolean;
   cancelOnEscape?: boolean;
   onConfirm?: () => void;
   onCancel?: () => void;
+  onCopy?: () => void;
+}
+
+export interface SelectionDiscardPrompt {
+  isKeyboardSelection?: boolean;
+  label?: string;
+  cancelOnEscape?: boolean;
+  onConfirm?: () => void;
+  onCancel?: () => void;
+  onCopy?: () => void;
 }
 
 export interface ErrorViewProps {
@@ -598,10 +614,9 @@ export interface SelectionLabelProps {
   onToggleExpand?: () => void;
   onOpen?: () => void;
   onDismiss?: () => void;
-  isPendingDismiss?: boolean;
   selectionLabelShakeCount?: number;
   onConfirmDismiss?: () => void;
-  onCancelDismiss?: () => void;
+  discardPrompt?: SelectionDiscardPrompt;
   error?: string;
   onAcknowledgeError?: () => void;
   onRetry?: () => void;
@@ -609,4 +624,27 @@ export interface SelectionLabelProps {
   onShowContextMenu?: () => void;
   onHoverChange?: (isHovered: boolean) => void;
   hideArrow?: boolean;
+}
+
+export interface SourceLocation extends SourceInfo {
+  columnNumber: number | null;
+}
+
+export interface ReactGrabStackFrame {
+  functionName?: string;
+  fileName?: string;
+  lineNumber?: number;
+  columnNumber?: number;
+  isServer?: boolean;
+  isSymbolicated?: boolean;
+}
+
+export interface ReactGrabEntry {
+  tagName?: string;
+  componentName?: string;
+  content: string;
+  commentText?: string;
+  source?: SourceLocation | null;
+  stackContext?: string;
+  frames?: ReactGrabStackFrame[];
 }

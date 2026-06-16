@@ -11,6 +11,7 @@ import {
   DROPDOWN_EDGE_TRANSFORM_ORIGIN,
   EDIT_PANEL_ACTIVE_KEY_FLASH_MS,
   EDIT_PANEL_ADJUSTING_IDLE_MS,
+  EDIT_INLINE_NUMERIC_REPLACE_IDLE_MS,
   EDIT_PANEL_MAX_WIDTH_PX,
   EDIT_PANEL_MIN_WIDTH_PX,
   EDIT_PROPERTY_LIST_MAX_HEIGHT_PX,
@@ -25,35 +26,38 @@ import type {
   EditableProperty,
   EditPanelState,
   OverlayDismissSource,
+  PendingEdits,
 } from "../../types.js";
 import { clampToRange } from "../../utils/clamp-to-range.js";
 import { cn } from "../../utils/cn.js";
 import { createAnchoredDropdown } from "../../utils/create-anchored-dropdown.js";
 import { findTailwindClass } from "../../utils/find-tailwind-class.js";
 import { formatEditableValue, roundEditableNumericValue } from "../../utils/format-css-value.js";
-import { formatSessionEditsPrompt } from "../../utils/format-edit-prompt.js";
 import { getShadowActiveElement } from "../../utils/get-shadow-active-element.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
+import { createPointerMovePromptHandoff } from "../../utils/create-pointer-move-prompt-handoff.js";
 import { isEventFromOverlay } from "../../utils/is-event-from-overlay.js";
 import { registerOverlayDismiss } from "../../utils/register-overlay-dismiss.js";
 import { suppressMenuEvent } from "../../utils/suppress-menu-event.js";
 import { TagBadge } from "../selection-label/tag-badge.js";
 import { ActivePropertyControl } from "./active-property-control.js";
 import { HIDDEN_FOCUS_PRESERVING_STYLE } from "./constants.js";
+import { EditPanelCopyButton } from "./copy-button.js";
 import { createDiscardConfirmation } from "./discard-confirmation.js";
 import { PropertyList } from "./property-list.js";
 import { arePropertyValuesEqual } from "./property-values-equal.js";
 import { createShiftTracker } from "./shift-tracker.js";
 import { createStepController } from "./step-controller.js";
 import { stepProperty } from "./step-property.js";
+import { createStyleStore } from "./style-store.js";
 import { createTailwindAutoApply } from "./tailwind-autoapply.js";
-import { createTweakStore } from "./tweak-store.js";
 
 interface EditPanelProps {
   state: EditPanelState | null;
   position: DropdownAnchor | null;
   onDismiss: () => void;
-  onSubmit: (prompt: string) => void;
+  onSubmit: (pendingEdits: PendingEdits) => void;
+  onPendingEditsChange?: (pendingEdits: PendingEdits) => void;
   onInteractingChange?: (interacting: boolean) => void;
 }
 
@@ -67,6 +71,7 @@ export const EditPanel: Component<EditPanelProps> = (props) => (
             position={() => props.position}
             onDismiss={props.onDismiss}
             onSubmit={props.onSubmit}
+            onPendingEditsChange={props.onPendingEditsChange}
             onInteractingChange={props.onInteractingChange}
           />
         )}
@@ -79,7 +84,8 @@ interface EditPanelBodyProps {
   state: EditPanelState;
   position: () => DropdownAnchor | null;
   onDismiss: () => void;
-  onSubmit: (prompt: string) => void;
+  onSubmit: (pendingEdits: PendingEdits) => void;
+  onPendingEditsChange?: (pendingEdits: PendingEdits) => void;
   onInteractingChange?: (interacting: boolean) => void;
 }
 
@@ -90,25 +96,35 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   const preview = props.state.preview;
 
   const [searchQuery, setSearchQuery] = createSignal(props.state.initialSearchQuery ?? "");
+  const [inlineNumericSearchQuery, setInlineNumericSearchQuery] = createSignal<string | null>(null);
   const [activeKey, setActiveKey] = createSignal<"left" | "right" | null>(null);
-  const tweakStore = createTweakStore({ initialProperties, searchQuery });
+  const styleStore = createStyleStore({
+    initialProperties,
+    searchQuery: () => inlineNumericSearchQuery() ?? searchQuery(),
+  });
   // Colors are pinned on top but aren't slider-steppable, so the arrow-key
   // cursor lands on the first numeric row instead.
   const firstNumericActiveIndex = (): number => {
-    const numericIndex = tweakStore
+    const numericIndex = styleStore
       .filteredProperties()
       .findIndex((property) => property.kind === "numeric");
     return numericIndex > 0 ? numericIndex : 0;
   };
   const [activeIndex, setActiveIndex] = createSignal(firstNumericActiveIndex());
-  const hasPendingTweaks = createMemo(() => tweakStore.hasPendingTweaks());
+  const hasPendingStyles = createMemo(() => styleStore.hasPendingStyles());
+  const hasSubmittableEdits = createMemo(
+    () => hasPendingStyles() || Boolean(props.state.hasSessionEdits),
+  );
   const [isCompact, setIsCompact] = createSignal(false);
 
   let activeKeyTimerId: ReturnType<typeof setTimeout> | undefined;
   let interactingIdleTimerId: ReturnType<typeof setTimeout> | undefined;
+  let inlineNumericReplaceTimerId: ReturnType<typeof setTimeout> | undefined;
+  let shouldReplaceInlineNumericInput = false;
   const [isTransientInteraction, setIsTransientInteraction] = createSignal(false);
-  const isInteracting = createMemo(() => isTransientInteraction() || hasPendingTweaks());
+  const isInteracting = createMemo(() => isTransientInteraction() || hasPendingStyles());
   const [isHeaderHovered, setIsHeaderHovered] = createSignal(false);
+  const pointerMovePromptHandoff = createPointerMovePromptHandoff();
 
   const tagDisplay = createMemo(() =>
     getTagDisplay({
@@ -117,10 +133,8 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     }),
   );
 
-  const filteredProperties = tweakStore.filteredProperties;
-
   const activeProperty = createMemo<EditableProperty | null>(() => {
-    const properties = filteredProperties();
+    const properties = styleStore.filteredProperties();
     if (properties.length === 0) return null;
     const index = Math.min(Math.max(0, activeIndex()), properties.length - 1);
     return properties[index];
@@ -162,11 +176,77 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     });
   };
 
+  const keepInlineNumericSearchQuery = () => {
+    if (inlineNumericSearchQuery() === null) setInlineNumericSearchQuery(searchQuery());
+  };
+
+  const cancelInlineNumericReplacement = () => {
+    shouldReplaceInlineNumericInput = false;
+    clearTimeout(inlineNumericReplaceTimerId);
+  };
+
+  const queueInlineNumericReplacement = () => {
+    shouldReplaceInlineNumericInput = false;
+    clearTimeout(inlineNumericReplaceTimerId);
+    inlineNumericReplaceTimerId = setTimeout(() => {
+      shouldReplaceInlineNumericInput = true;
+    }, EDIT_INLINE_NUMERIC_REPLACE_IDLE_MS);
+  };
+
+  const queueInlineNumericReplacementForQuery = (query: string) => {
+    const trimmedQuery = query.trim();
+    const numericDigits = trimmedQuery.replace(/^-/, "").replace(".", "");
+    if (/[a-z%]+$/i.test(trimmedQuery) || numericDigits.length > 1) {
+      queueInlineNumericReplacement();
+    } else cancelInlineNumericReplacement();
+  };
+
+  const replaceInlineNumericPrefix = (nextSearchQuery: string): string => {
+    if (!shouldReplaceInlineNumericInput) return nextSearchQuery;
+    const currentSearchQuery = searchQuery();
+    if (!currentSearchQuery || !nextSearchQuery.startsWith(currentSearchQuery)) {
+      cancelInlineNumericReplacement();
+      return nextSearchQuery;
+    }
+    const appendedQuery = nextSearchQuery.slice(currentSearchQuery.length);
+    if (!/^[-.\d]/.test(appendedQuery)) return nextSearchQuery;
+    cancelInlineNumericReplacement();
+    return appendedQuery;
+  };
+
+  const tryReplaceInlineNumericFromKey = (event: KeyboardEvent): boolean => {
+    if (!shouldReplaceInlineNumericInput) return false;
+    if (event.metaKey || event.ctrlKey || event.altKey) return false;
+    if (!/^[-.\d]$/.test(event.key)) return false;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    cancelInlineNumericReplacement();
+    const nextSearchQuery = event.key;
+    if (searchInputRef) searchInputRef.value = nextSearchQuery;
+    if (autoApply.tryApplyNumericValue(nextSearchQuery)) {
+      keepInlineNumericSearchQuery();
+      setSearchQuery(nextSearchQuery);
+      queueInlineNumericReplacementForQuery(nextSearchQuery);
+      ensureSearchFocused();
+      return true;
+    }
+    setSearchQuery(nextSearchQuery);
+    ensureSearchFocused();
+    return true;
+  };
+
+  const expandPanel = () => {
+    cancelInlineNumericReplacement();
+    setInlineNumericSearchQuery(null);
+    setIsCompact(false);
+  };
+
   interface CommitOptions {
     flashDirection?: 1 | -1;
     shouldFocus?: boolean;
     shouldCompact?: boolean;
     isFromKeyRepeat?: boolean;
+    source?: "keyboard" | "pointer";
   }
 
   const commit = (
@@ -174,21 +254,24 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     nextValue: number | string,
     options: CommitOptions = {},
   ) => {
-    tweakStore.applyTweak(property, nextValue);
+    styleStore.applyStyle(property, nextValue);
     preview.apply(property.cssProperties, formatEditableValue(property, nextValue));
+    props.onPendingEditsChange?.(styleStore.buildPendingEdits());
     markAsInteracting();
     if (!options.isFromKeyRepeat) discardConfirmation.hide();
     if (options.flashDirection) flashActiveKey(options.flashDirection === 1 ? "right" : "left");
     if (options.shouldFocus) ensureSearchFocused();
     if (options.shouldCompact) setIsCompact(true);
+    if (options.source === "keyboard") pointerMovePromptHandoff.arm();
   };
 
   const isShiftHeld = createShiftTracker();
 
-  const commitTweak = (
+  const stepActiveProperty = (
     direction: 1 | -1,
     shift: boolean,
     fromRepeat: boolean,
+    source: "keyboard" | "pointer",
   ): EditableProperty | null => {
     const property = activeProperty();
     if (!property) return null;
@@ -201,38 +284,41 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       flashDirection: direction,
       shouldFocus: true,
       isFromKeyRepeat: fromRepeat,
+      source,
     });
     return property;
   };
 
   const stepFromKeyboard = (direction: 1 | -1, shift: boolean, fromRepeat: boolean) => {
-    if (commitTweak(direction, shift, fromRepeat)) setIsCompact(true);
+    if (!stepActiveProperty(direction, shift, fromRepeat, "keyboard")) return;
+    setIsCompact(true);
   };
 
   const stepFromPointer = (direction: 1 | -1) => {
-    commitTweak(direction, false, false);
+    stepActiveProperty(direction, false, false, "pointer");
   };
 
   const stepController = createStepController({ step: stepFromKeyboard, isShiftHeld });
 
-  const commitActive = (rawValue: number | string) => {
+  const commitActive = (rawValue: number | string, source: "keyboard" | "pointer") => {
     const property = activeProperty();
     if (!property) return;
     if (property.kind === "numeric" && typeof rawValue === "number") {
       const clamped = roundEditableNumericValue(clampToRange(rawValue, property.min, property.max));
-      if (clamped !== property.value) commit(property, clamped);
+      if (clamped !== property.value) commit(property, clamped, { source });
       return;
     }
     if (typeof rawValue !== "string") return;
-    if (!arePropertyValuesEqual(property, rawValue, property.value)) commit(property, rawValue);
+    if (!arePropertyValuesEqual(property, rawValue, property.value)) {
+      commit(property, rawValue, { source });
+    }
   };
 
   const activeTailwindLabel = createMemo<string | null>(() => {
     if (!isShiftHeld()) return null;
     const property = activeProperty();
     if (!property || property.kind !== "numeric") return null;
-    const cssKey = property.cssProperties[0];
-    return cssKey ? findTailwindClass(cssKey, property.value) : null;
+    return findTailwindClass(property.key, property.value);
   });
 
   const autoApply = createTailwindAutoApply({
@@ -240,7 +326,9 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     searchQuery,
     isCompact,
     activeProperty,
-    commit,
+    commit: (property, value, options) => {
+      commit(property, value, { ...options, source: "keyboard" });
+    },
     setIsCompact,
   });
 
@@ -249,17 +337,12 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   );
 
   const handleSubmit = () => {
-    const pendingEdits = tweakStore.buildPendingEdits();
-    const entry = {
-      filePath: props.state.filePath ?? "",
-      lineNumber: props.state.lineNumber ?? 0,
-      edits: pendingEdits,
-    };
-    props.onSubmit(formatSessionEditsPrompt(pendingEdits.length > 0 ? [entry] : []));
+    discardConfirmation.hide();
+    pointerMovePromptHandoff.clear();
+    props.onSubmit(styleStore.buildPendingEdits());
   };
 
   const discardConfirmation = createDiscardConfirmation();
-  const isPendingDismiss = discardConfirmation.isPending;
   let panelSurfaceRef: HTMLDivElement | undefined;
 
   const playShake = () => {
@@ -278,11 +361,12 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
 
   const attemptDismiss = (source: OverlayDismissSource) => {
     stepController.cancelRepeat();
-    if (isPendingDismiss()) {
+    if (source === "pointer") pointerMovePromptHandoff.clear();
+    if (discardConfirmation.isPending()) {
       closePanel("discard");
       return;
     }
-    if (!hasPendingTweaks()) {
+    if (!hasSubmittableEdits()) {
       closePanel(preview.hasAppliedStyles() ? "discard" : "preserve");
       return;
     }
@@ -290,17 +374,22 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     // Escape stops there (so a stray Escape can't nuke pending changes on
     // the collapsed view); an outside click continues to the discard prompt.
     const wasCompact = isCompact();
-    setIsCompact(false);
+    expandPanel();
     if (source === "keyboard" && wasCompact) return;
     discardConfirmation.show();
     playShake();
   };
 
   const navigateActive = (direction: 1 | -1) => {
-    const properties = filteredProperties();
+    const properties = styleStore.filteredProperties();
     if (properties.length === 0) return;
     setActiveIndex((current) => (current + direction + properties.length) % properties.length);
-    setIsCompact(false);
+    expandPanel();
+  };
+
+  const cancelDiscardPrompt = () => {
+    pointerMovePromptHandoff.clear();
+    discardConfirmation.hide();
   };
 
   let colorPickerTriggers: Array<() => void> = [];
@@ -340,16 +429,16 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     ArrowRight: (event) => pressArrowOrOpenColorPicker("ArrowRight", event),
     Tab: (event) => navigateActive(event.shiftKey ? -1 : 1),
     Enter: () => {
-      if (isPendingDismiss()) return;
+      if (discardConfirmation.isPending()) return;
       const property = activeProperty();
       const colorPickerTrigger = getCurrentColorPickerTrigger();
       // Opening the picker is only a convenience for an untouched color
       // row with nothing else staged. If any edit is pending, Enter must
       // submit it — otherwise the picker interaction dismisses the panel
       // and the pending change is discarded instead of copied.
-      const isUntweakedColor =
-        property?.kind === "color" && !tweakStore.hasChangedTweakFor(property.key);
-      if (isUntweakedColor && colorPickerTrigger && !hasPendingTweaks()) {
+      const isUnchangedColor =
+        property?.kind === "color" && !styleStore.hasChangedStyleFor(property.key);
+      if (isUnchangedColor && colorPickerTrigger && !hasSubmittableEdits()) {
         colorPickerTrigger();
         return;
       }
@@ -361,7 +450,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   const handleSearchKeyDown = (event: KeyboardEvent) => {
     // Chromium reports keyCode 229 on the IME commit tick after isComposing resets.
     if (event.isComposing || event.keyCode === IME_COMPOSING_KEY_CODE) return;
-    if (isPendingDismiss()) {
+    if (discardConfirmation.isPending()) {
       const target = event.composedPath()[0];
       const isOnDiscardButton =
         target instanceof HTMLElement &&
@@ -404,7 +493,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       shouldIgnoreKeyboardEvent: (event) => {
         const target = event.composedPath()[0];
         return (
-          isPendingDismiss() &&
+          discardConfirmation.isPending() &&
           target instanceof HTMLElement &&
           target.closest("[data-react-grab-discard-button]") !== null
         );
@@ -415,24 +504,34 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
 
     const handleWindowKeyDown = (event: KeyboardEvent) => {
       if (isEventFromOverlay(event, "data-react-grab-input")) return;
+      if (tryReplaceInlineNumericFromKey(event)) return;
       handleSearchKeyDown(event);
     };
     const handleWindowKeyUp = (event: KeyboardEvent) => {
       stepController.releaseKey(event.key);
     };
+    const handleWindowPointerMove = (event: PointerEvent) => {
+      if (event.pointerType !== "mouse") return;
+      if (discardConfirmation.isPending()) return;
+      if (!pointerMovePromptHandoff.consume()) return;
+      if (!hasSubmittableEdits()) return;
+      attemptDismiss("pointer");
+    };
     window.addEventListener("keydown", handleWindowKeyDown, { capture: true });
     window.addEventListener("keyup", handleWindowKeyUp, { capture: true });
+    window.addEventListener("pointermove", handleWindowPointerMove, { capture: true });
 
     onCleanup(() => {
       unregisterDismiss();
       window.removeEventListener("keydown", handleWindowKeyDown, { capture: true });
       window.removeEventListener("keyup", handleWindowKeyUp, { capture: true });
+      window.removeEventListener("pointermove", handleWindowPointerMove, { capture: true });
       clearTimeout(activeKeyTimerId);
       clearTimeout(interactingIdleTimerId);
+      clearTimeout(inlineNumericReplaceTimerId);
       discardConfirmation.cleanup();
       dropdown.clearAnimationHandles();
       setIsTransientInteraction(false);
-      preview.forget();
     });
   });
 
@@ -483,13 +582,13 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
           }}
         >
           <Show
-            when={isPendingDismiss()}
+            when={discardConfirmation.isPending()}
             fallback={
               <Show when={!isCompact()}>
                 <div
                   class={cn(
                     "contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 h-fit px-2",
-                    hasPendingTweaks() ? "w-full self-stretch justify-between" : "w-fit",
+                    hasSubmittableEdits() ? "w-full self-stretch justify-between" : "w-fit",
                   )}
                   onMouseEnter={() => setIsHeaderHovered(true)}
                   onMouseLeave={() => setIsHeaderHovered(false)}
@@ -500,24 +599,9 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                     isClickable={false}
                     onClick={() => {}}
                     shrink
-                    forceShowIcon={false}
                   />
-                  <Show when={hasPendingTweaks()}>
-                    <button
-                      data-react-grab-ignore-events
-                      data-react-grab-copy-button
-                      type="button"
-                      class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[var(--rg-surface-hover)] [border-width:0.5px] border-solid border-[var(--rg-border-button)] cursor-pointer transition-all hover:bg-[var(--rg-surface-active)] press-scale h-[17px]"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        handleSubmit();
-                      }}
-                    >
-                      <span class="text-[var(--rg-text-primary)] text-[13px] leading-3.5 font-sans font-medium">
-                        Copy
-                      </span>
-                    </button>
+                  <Show when={hasSubmittableEdits()}>
+                    <EditPanelCopyButton onCopy={handleSubmit} />
                   </Show>
                 </div>
               </Show>
@@ -544,13 +628,14 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                   onClick={(event) => {
                     event.preventDefault();
                     event.stopPropagation();
-                    discardConfirmation.hide();
+                    cancelDiscardPrompt();
                   }}
                 >
                   <span class="text-[var(--rg-text-primary)] text-[13px] leading-3.5 font-sans font-medium">
                     No
                   </span>
                 </button>
+                <EditPanelCopyButton discardAction="copy" onCopy={handleSubmit} />
                 <button
                   data-react-grab-ignore-events
                   data-react-grab-discard-button="confirm"
@@ -601,12 +686,28 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
               }}
               value={searchQuery()}
               onInput={(event) => {
-                const nextSearchQuery = event.currentTarget.value;
+                const nextSearchQuery = replaceInlineNumericPrefix(event.currentTarget.value);
+                if (nextSearchQuery !== event.currentTarget.value) {
+                  event.currentTarget.value = nextSearchQuery;
+                }
+                if (autoApply.tryApplyNumericValue(nextSearchQuery)) {
+                  keepInlineNumericSearchQuery();
+                  setSearchQuery(nextSearchQuery);
+                  queueInlineNumericReplacementForQuery(nextSearchQuery);
+                  ensureSearchFocused();
+                  return;
+                }
+                cancelInlineNumericReplacement();
+                if (autoApply.isInlineNumericDraft(nextSearchQuery)) {
+                  keepInlineNumericSearchQuery();
+                  setSearchQuery(nextSearchQuery);
+                  ensureSearchFocused();
+                  return;
+                }
                 setSearchQuery(nextSearchQuery);
-                if (autoApply.tryApplyNumericValue(nextSearchQuery)) return;
-                if (autoApply.isInlineNumericDraft(nextSearchQuery)) return;
+                setInlineNumericSearchQuery(null);
                 setActiveIndex(nextSearchQuery.trim() === "" ? firstNumericActiveIndex() : 0);
-                setIsCompact(false);
+                expandPanel();
                 autoApply.applyTailwindClass(nextSearchQuery);
               }}
               onKeyDown={handleSearchKeyDown}
@@ -617,7 +718,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
             />
           </div>
 
-          <Show when={filteredProperties().length > 0}>
+          <Show when={styleStore.filteredProperties().length > 0}>
             <div
               class={
                 isCompact()
@@ -627,7 +728,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
               style={isCompact() ? HIDDEN_FOCUS_PRESERVING_STYLE : undefined}
             >
               <PropertyList
-                properties={filteredProperties()}
+                properties={styleStore.filteredProperties()}
                 activeIndex={activeIndex()}
                 activeKey={activeKey()}
                 onHoverIndex={setActiveIndex}

@@ -1,4 +1,54 @@
 import { expect, test, type ReactGrabPageObject } from "./fixtures.js";
+import { isEditPanelVisible } from "./edit-panel-helpers.js";
+
+const ATTRIBUTE_NAME = "data-react-grab";
+
+const clickSelectionDiscardButton = async (
+  reactGrab: ReactGrabPageObject,
+  action: "copy" | "yes",
+  options: { programmatic?: boolean } = {},
+): Promise<void> => {
+  if (!options.programmatic) {
+    await reactGrab.page.locator(`[data-react-grab-discard-${action}]`).click();
+    return;
+  }
+  await reactGrab.page.evaluate(
+    ({ attrName, actionName }) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      const button = shadowRoot?.querySelector<HTMLButtonElement>(
+        `[data-react-grab-discard-${actionName}]`,
+      );
+      if (!button) throw new Error(`Discard ${actionName} button not found`);
+      button.click();
+    },
+    { attrName: ATTRIBUTE_NAME, actionName: action },
+  );
+};
+
+const getSelectionDiscardPromptState = async (
+  reactGrab: ReactGrabPageObject,
+): Promise<{
+  promptText: string;
+  labelText: string;
+  hasCopy: boolean;
+  hasNo: boolean;
+  hasYes: boolean;
+}> => {
+  return reactGrab.page.evaluate((attrName) => {
+    const host = document.querySelector(`[${attrName}]`);
+    const shadowRoot = host?.shadowRoot;
+    const label = shadowRoot?.querySelector<HTMLElement>("[data-react-grab-selection-label]");
+    const prompt = shadowRoot?.querySelector<HTMLElement>("[data-react-grab-discard-prompt]");
+    return {
+      promptText: prompt?.textContent?.replace(/\s+/g, " ").trim() ?? "",
+      labelText: label?.textContent?.replace(/\s+/g, " ").trim() ?? "",
+      hasCopy: Boolean(prompt?.querySelector("[data-react-grab-discard-copy]")),
+      hasNo: Boolean(prompt?.querySelector("[data-react-grab-discard-no]")),
+      hasYes: Boolean(prompt?.querySelector("[data-react-grab-discard-yes]")),
+    };
+  }, ATTRIBUTE_NAME);
+};
 
 test.describe("Keyboard Navigation", () => {
   test("should navigate to next element with ArrowDown", async ({ reactGrab }) => {
@@ -62,7 +112,9 @@ test.describe("Keyboard Navigation", () => {
     expect(isVisible).toBe(true);
   });
 
-  test("should copy element after keyboard navigation with click", async ({ reactGrab }) => {
+  test("should copy element after keyboard navigation with mouse-move prompt", async ({
+    reactGrab,
+  }) => {
     await reactGrab.activate();
     await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
     await reactGrab.waitForSelectionBox();
@@ -73,15 +125,33 @@ test.describe("Keyboard Navigation", () => {
     const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li:nth-child(2)");
     const box = await secondItem.boundingBox();
     if (box) {
-      await reactGrab.page.mouse.click(box.x + 10, box.y + 10);
+      await reactGrab.page.mouse.move(box.x + 10, box.y + 10);
     }
-    await reactGrab.page.waitForTimeout(500);
+    await expect.poll(() => reactGrab.isPendingDismissVisible()).toBe(true);
+    await clickSelectionDiscardButton(reactGrab, "copy");
 
-    const clipboardContent = await reactGrab.getClipboardContent();
-    expect(clipboardContent).toBeTruthy();
+    await expect.poll(() => reactGrab.getClipboardContent(), { timeout: 5000 }).not.toBe("");
   });
 
-  test("should copy keyboard-selected element when clicking after mouse movement", async ({
+  test("should copy keyboard-selected element when clicking over previous mouse target", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.page.evaluate(() => navigator.clipboard.writeText(""));
+    await reactGrab.activate();
+    await reactGrab.hoverElement("[data-testid='todo-list'] h1");
+    await reactGrab.waitForSelectionBox();
+
+    await reactGrab.page.keyboard.press("ArrowLeft");
+    await reactGrab.waitForSelectionBox();
+
+    await reactGrab.page.mouse.down();
+    await reactGrab.page.mouse.up();
+
+    await expect.poll(() => reactGrab.getClipboardContent(), { timeout: 5000 }).toContain("[<div");
+    expect(await reactGrab.getClipboardContent()).not.toContain("[<h1");
+  });
+
+  test("should offer Copy for keyboard-selected element after mouse movement", async ({
     reactGrab,
   }) => {
     await reactGrab.activate();
@@ -99,18 +169,34 @@ test.describe("Keyboard Navigation", () => {
 
     await reactGrab.page.mouse.move(10, 10);
     await reactGrab.page.waitForTimeout(50);
+    await expect.poll(() => reactGrab.isPendingDismissVisible()).toBe(true);
 
-    await reactGrab.page.mouse.click(
-      selectionBoundsAfterArrow!.x + selectionBoundsAfterArrow!.width / 2,
-      selectionBoundsAfterArrow!.y + selectionBoundsAfterArrow!.height / 2,
-    );
-    await reactGrab.page.waitForTimeout(500);
+    await clickSelectionDiscardButton(reactGrab, "copy");
 
-    const clipboardContent = await reactGrab.getClipboardContent();
-    expect(clipboardContent).toBeTruthy();
+    await expect.poll(() => reactGrab.getClipboardContent(), { timeout: 5000 }).not.toBe("");
   });
 
-  test("should freeze selection when navigating with arrow keys", async ({ reactGrab }) => {
+  test("should copy keyboard-selected element with Enter on focused Copy prompt button", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
+    await reactGrab.waitForSelectionBox();
+
+    await reactGrab.page.keyboard.press("ArrowUp");
+    await reactGrab.waitForSelectionBox();
+    await reactGrab.page.mouse.move(10, 10);
+    await expect.poll(() => reactGrab.isPendingDismissVisible()).toBe(true);
+
+    await reactGrab.page.locator("[data-react-grab-discard-copy]").focus();
+    await reactGrab.page.keyboard.press("Enter");
+
+    await expect.poll(() => reactGrab.getClipboardContent(), { timeout: 5000 }).not.toBe("");
+  });
+
+  test("should prompt before mouse movement discards arrow-key selection", async ({
+    reactGrab,
+  }) => {
     await reactGrab.activate();
     await reactGrab.hoverElement("li:first-child");
     await reactGrab.waitForSelectionBox();
@@ -123,6 +209,110 @@ test.describe("Keyboard Navigation", () => {
 
     const isVisible = await reactGrab.isOverlayVisible();
     expect(isVisible).toBe(true);
+    expect(await reactGrab.isPendingDismissVisible()).toBe(true);
+    const prompt = await getSelectionDiscardPromptState(reactGrab);
+    expect(prompt.promptText).toBe("Discard selection?CopyYes");
+    expect(prompt.labelText).toBe("Discard selection?CopyYes");
+    expect(prompt.hasCopy).toBe(true);
+    expect(prompt.hasNo).toBe(false);
+    expect(prompt.hasYes).toBe(true);
+  });
+
+  test("should discard arrow-key selection when confirming mouse handoff", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverElement("li:first-child");
+    await reactGrab.waitForSelectionBox();
+
+    await reactGrab.page.keyboard.press("ArrowDown");
+    await reactGrab.waitForSelectionBox();
+    const selectionBoundsAfterArrow = await reactGrab.getSelectionBoxBounds();
+    expect(selectionBoundsAfterArrow).not.toBeNull();
+
+    await reactGrab.page.mouse.move(0, 0);
+    await expect.poll(() => reactGrab.isPendingDismissVisible()).toBe(true);
+    await reactGrab.page.mouse.move(400, 400);
+    await reactGrab.page.waitForTimeout(100);
+    expect(await reactGrab.isPendingDismissVisible()).toBe(true);
+    expect((await reactGrab.getState()).targetElement).toBeFalsy();
+
+    await clickSelectionDiscardButton(reactGrab, "yes");
+    await expect.poll(() => reactGrab.isPendingDismissVisible()).toBe(false);
+  });
+
+  test("should confirm discard selection with Enter", async ({ reactGrab }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverElement("li:first-child");
+    await reactGrab.waitForSelectionBox();
+
+    await reactGrab.page.keyboard.press("ArrowDown");
+    await reactGrab.waitForSelectionBox();
+    await reactGrab.page.mouse.move(0, 0);
+    await expect.poll(() => reactGrab.isPendingDismissVisible()).toBe(true);
+
+    await reactGrab.page.keyboard.press("Enter");
+
+    await expect.poll(() => reactGrab.isPendingDismissVisible()).toBe(false);
+  });
+
+  test("Enter on the focused Copy button copies without opening the Style panel", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.page.evaluate(() => navigator.clipboard.writeText(""));
+    await reactGrab.activate();
+    await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
+    await reactGrab.waitForSelectionBox();
+
+    await reactGrab.page.keyboard.press("ArrowUp");
+    await reactGrab.waitForSelectionBox();
+    await reactGrab.page.mouse.move(10, 10);
+    await expect.poll(() => reactGrab.isPendingDismissVisible()).toBe(true);
+
+    await reactGrab.page.locator("[data-react-grab-discard-copy]").focus();
+    await reactGrab.page.keyboard.press("Enter");
+
+    // Enter on Copy must copy, not fall through to the Enter-to-expand
+    // shortcut that would open the Style panel.
+    await expect.poll(() => reactGrab.getClipboardContent(), { timeout: 5000 }).not.toBe("");
+    expect(await isEditPanelVisible(reactGrab.page)).toBe(false);
+  });
+
+  test("Enter on the focused Yes button discards without copying", async ({ reactGrab }) => {
+    await reactGrab.page.evaluate(() => navigator.clipboard.writeText(""));
+    await reactGrab.activate();
+    await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
+    await reactGrab.waitForSelectionBox();
+
+    await reactGrab.page.keyboard.press("ArrowUp");
+    await reactGrab.waitForSelectionBox();
+    await reactGrab.page.mouse.move(10, 10);
+    await expect.poll(() => reactGrab.isPendingDismissVisible()).toBe(true);
+
+    await reactGrab.page.locator("[data-react-grab-discard-yes]").focus();
+    await reactGrab.page.keyboard.press("Enter");
+
+    await expect.poll(() => reactGrab.isPendingDismissVisible()).toBe(false);
+    expect(await reactGrab.getClipboardContent()).toBe("");
+  });
+
+  test("arrow keys are ignored while the discard-selection prompt is open", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
+    await reactGrab.waitForSelectionBox();
+
+    await reactGrab.page.keyboard.press("ArrowDown");
+    await reactGrab.waitForSelectionBox();
+    await reactGrab.page.mouse.move(0, 0);
+    await expect.poll(() => reactGrab.isPendingDismissVisible()).toBe(true);
+
+    // Navigation is suppressed while the prompt is up: a navigating key would
+    // re-select and clear the prompt, so it must stay open.
+    await reactGrab.page.keyboard.press("ArrowDown");
+    await reactGrab.page.waitForTimeout(100);
+    expect(await reactGrab.isPendingDismissVisible()).toBe(true);
   });
 });
 
@@ -148,6 +338,9 @@ test.describe("Navigation History and Wrapping", () => {
       await reactGrab.waitForSelectionBox();
     }
 
+    await reactGrab.page.locator(scenario.targetSelector).hover({ force: true });
+    await expect.poll(() => reactGrab.isPendingDismissVisible()).toBe(true);
+    await clickSelectionDiscardButton(reactGrab, "yes", { programmatic: true });
     await reactGrab.page.locator(scenario.targetSelector).click({ force: true });
 
     await expect

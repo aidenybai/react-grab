@@ -1,5 +1,35 @@
 # @react-grab/cli
 
+## 0.1.44
+
+### Patch Changes
+
+- 816db46: Add a confirmation prompt before showing the skill agent-selection view during install.
+
+## 0.1.43
+
+### Patch Changes
+
+- d930036: Set up automated npm releases via GitHub Actions using trusted publishing (OIDC).
+
+## 0.1.42
+
+### Patch Changes
+
+- fix
+
+## 0.1.41
+
+### Patch Changes
+
+- fix
+
+## 0.1.40
+
+### Patch Changes
+
+- fix
+
 ## 0.1.39
 
 ### Patch Changes

@@ -1,14 +1,14 @@
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { Command } from "commander";
-import { createReader, prepareWorkDir, watchForNextGrab } from "../utils/clipboard.js";
-
-const DEFAULT_INTERVAL_MS = 800;
-const DEFAULT_DIR = ".react-grab";
-
-// Native readers (read-clipboard.swift / .ps1) are copied next to the compiled
-// CLI at build time (see scripts/copy-native-readers.mjs).
-const readersDir = (): string => path.dirname(fileURLToPath(import.meta.url));
+import {
+  HISTORY_FILE_NAME,
+  NO_READER_MESSAGE,
+  createReader,
+  prepareWorkDir,
+  runWatchLoop,
+} from "../utils/clipboard.js";
+import { DEFAULT_WATCH_DIR, DEFAULT_WATCH_INTERVAL_MS } from "../utils/constants.js";
+import { claimDaemon, releaseDaemon } from "../utils/daemon.js";
 
 interface WatchOptions {
   dir: string;
@@ -17,51 +17,54 @@ interface WatchOptions {
   replayLast?: boolean;
 }
 
+const writeStatus = (message: string): void => {
+  process.stderr.write(`react-grab watch: ${message}\n`);
+};
+
+// The capture-daemon body that `pull` re-execs detached. Claims the per-dir lock
+// (exits quietly if another daemon already owns it), then polls the clipboard
+// into history.jsonl until the process is killed.
 export const watch = new Command()
   .name("watch")
-  .description("watch the clipboard for the next React Grab selection, print it, then exit")
-  .option("-d, --dir <dir>", "work dir for history.jsonl + cursor.txt", DEFAULT_DIR)
-  .option("-i, --interval <ms>", "clipboard poll interval in ms", String(DEFAULT_INTERVAL_MS))
+  .description("run the React Grab capture daemon in the foreground (used internally by `pull`)")
+  .option("-d, --dir <dir>", "work dir for history.jsonl + watch.pid", DEFAULT_WATCH_DIR)
+  .option("-i, --interval <ms>", "clipboard poll interval in ms", String(DEFAULT_WATCH_INTERVAL_MS))
   .option("--text-only", "skip the native reader and use the plain-text fallback")
   .option("--replay-last", "also capture the grab already on the clipboard at startup")
   .action((options: WatchOptions) => {
     const dir = path.resolve(options.dir);
-    const intervalMs = Number(options.interval);
-    const textOnly = Boolean(options.textOnly);
+    const intervalRaw = Number(options.interval);
+    const intervalMs =
+      Number.isFinite(intervalRaw) && intervalRaw > 0 ? intervalRaw : DEFAULT_WATCH_INTERVAL_MS;
 
     try {
       prepareWorkDir(dir);
     } catch (error) {
-      process.stderr.write(`react-grab watch: ${String((error as Error)?.message ?? error)}\n`);
+      writeStatus(String((error as Error)?.message ?? error));
       process.exit(1);
     }
 
-    const reader = createReader({ textOnly, readersDir: readersDir(), workDir: dir });
+    if (!claimDaemon(dir)) process.exit(0);
+    process.on("exit", () => releaseDaemon(dir));
+
+    const reader = createReader({ textOnly: Boolean(options.textOnly), workDir: dir });
     if (!reader) {
-      process.stderr.write(
-        "react-grab watch: no clipboard reader available. Linux: install xclip or wl-clipboard. macOS: install Xcode CLI tools (swiftc) or rely on pbpaste. Windows: ensure PowerShell is on PATH.\n",
-      );
+      writeStatus(NO_READER_MESSAGE);
       process.exit(1);
     }
 
-    process.stderr.write(
-      `react-grab watch: watching clipboard via ${reader.mode}; history → ${path.join(dir, "history.jsonl")} (Ctrl+C to stop)\n`,
+    writeStatus(
+      `watching clipboard via ${reader.mode}; history → ${path.join(dir, HISTORY_FILE_NAME)}`,
     );
 
-    watchForNextGrab({
+    runWatchLoop({
       reader,
       dir,
-      intervalMs: Number.isFinite(intervalMs) && intervalMs > 0 ? intervalMs : DEFAULT_INTERVAL_MS,
+      intervalMs,
       replayLast: Boolean(options.replayLast),
-      onWarn: (message) => process.stderr.write(`react-grab watch: ${message}\n`),
-    })
-      .then((grab) => {
-        if (!grab) process.exit(0);
-        process.stdout.write(`${JSON.stringify(grab)}\n`);
-        process.exit(0);
-      })
-      .catch((error) => {
-        process.stderr.write(`react-grab watch: ${String((error as Error)?.message ?? error)}\n`);
-        process.exit(1);
-      });
+      onWarn: writeStatus,
+    }).catch((error) => {
+      writeStatus(String((error as Error)?.message ?? error));
+      process.exit(1);
+    });
   });

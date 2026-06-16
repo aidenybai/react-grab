@@ -218,8 +218,8 @@ const generateSuggestions = (input: string): KeyChoice[] => {
 const CONFIG_OPTIONS: ConfigOption[] = [
   {
     id: "activationKey",
-    title: "Activation Key",
-    description: "The key used to activate React Grab (e.g., g, k, space)",
+    title: "Shortcut",
+    description: "The shortcut used to activate React Grab (e.g., g, k, space)",
   },
   {
     id: "activationMode",
@@ -261,7 +261,7 @@ export const configure = new Command()
   .alias("config")
   .description("configure React Grab options")
   .option("-y, --yes", "skip confirmation prompts", false)
-  .option("-k, --key <key>", "activation key (e.g., Meta+K, Ctrl+Shift+G, Space)")
+  .option("-k, --key <key>", "shortcut (e.g., Meta+K, Ctrl+Shift+G, Space)")
   .option("-m, --mode <mode>", "activation mode (toggle, hold)")
   .option("--hold-duration <ms>", "key hold duration in milliseconds (for hold mode)")
   .option("--allow-input <boolean>", "allow activation inside input fields (true/false)")
@@ -283,6 +283,16 @@ export const configure = new Command()
         preflightSpinner.fail("React Grab is not installed.");
         logger.break();
         logger.error(`Run ${highlighter.info("react-grab init")} first to install React Grab.`);
+        logger.break();
+        process.exit(1);
+      }
+
+      if (!projectInfo.isReactGrabConfigured) {
+        preflightSpinner.fail("React Grab is installed, but setup is missing.");
+        logger.break();
+        logger.error(
+          `Run ${highlighter.info("react-grab init")} to add the setup script/import before configuring options.`,
+        );
         logger.break();
         process.exit(1);
       }
@@ -361,7 +371,7 @@ export const configure = new Command()
         if (opts.key) {
           collectedOptions.activationKey = opts.key;
           logger.log(
-            `  Activation key: ${highlighter.info(formatActivationKeyDisplay(collectedOptions.activationKey))}`,
+            `  Shortcut: ${highlighter.info(formatActivationKeyDisplay(collectedOptions.activationKey))}`,
           );
         }
 
@@ -444,7 +454,7 @@ export const configure = new Command()
           collectedOptions.activationKey = comboToString(selectedCombo);
 
           logger.log(
-            `  Activation key: ${highlighter.info(formatActivationKeyDisplay(collectedOptions.activationKey))}`,
+            `  Shortcut: ${highlighter.info(formatActivationKeyDisplay(collectedOptions.activationKey))}`,
           );
         }
 

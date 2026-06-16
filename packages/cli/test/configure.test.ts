@@ -19,6 +19,7 @@ const mockExistsSync = vi.mocked(existsSync);
 const mockReadFileSync = vi.mocked(readFileSync);
 const mockWriteFileSync = vi.mocked(writeFileSync);
 const mockAccessSync = vi.mocked(accessSync);
+const toPosixPath = (path: unknown): string => String(path).replace(/\\/g, "/");
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -268,6 +269,73 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     expect(result.success).toBe(false);
     expect(result.message).toContain("Could not find file");
   });
+
+  it("should configure options in instrumentation-client when layout is not wired", () => {
+    const layoutWithoutReactGrab = `export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return <html><body>{children}</body></html>;
+}`;
+    const instrumentationWithReactGrab = `if (process.env.NODE_ENV === "development") {
+  void import("react-grab");
+}`;
+
+    mockExistsSync.mockImplementation((path) => {
+      const pathString = String(path);
+      return pathString.endsWith("layout.tsx") || pathString.endsWith("instrumentation-client.ts");
+    });
+    mockReadFileSync.mockImplementation((path) => {
+      if (String(path).endsWith("instrumentation-client.ts")) return instrumentationWithReactGrab;
+      return layoutWithoutReactGrab;
+    });
+
+    const options: ReactGrabOptions = {
+      activationKey: "Meta+K",
+    };
+
+    const result = previewOptionsTransform("/test", "next", "app", options);
+
+    expect(result.success).toBe(true);
+    expect(result.filePath).toContain("instrumentation-client.ts");
+    expect(result.newContent).toContain('void import("react-grab").then((m) => m.init(');
+    expect(result.newContent).toContain('"activationKey":"Meta+K"');
+  });
+
+  it("should configure options in the layout file that actually contains React Grab", () => {
+    const layoutWithoutReactGrab = `export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return <html><body>{children}</body></html>;
+}`;
+    const layoutWithReactGrab = `import Script from "next/script";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html>
+      <head>
+        <Script src="//unpkg.com/react-grab/dist/index.global.js" />
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}`;
+
+    mockExistsSync.mockImplementation((path) => {
+      const pathString = toPosixPath(path);
+      return pathString.endsWith("app/layout.tsx") || pathString.endsWith("src/app/layout.tsx");
+    });
+    mockReadFileSync.mockImplementation((path) => {
+      if (toPosixPath(path).includes("src/app/layout.tsx")) return layoutWithReactGrab;
+      return layoutWithoutReactGrab;
+    });
+
+    const options: ReactGrabOptions = {
+      activationKey: "Meta+K",
+    };
+
+    const result = previewOptionsTransform("/test", "next", "app", options);
+
+    expect(result.success).toBe(true);
+    expect(toPosixPath(result.filePath)).toContain("src/app/layout.tsx");
+    expect(result.newContent).toContain("data-options");
+    expect(result.newContent).toContain("Meta+K");
+  });
 });
 
 describe("previewOptionsTransform - Next.js Pages Router", () => {
@@ -357,6 +425,31 @@ import ReactDOM from "react-dom/client";`;
     expect(initCount).toBe(1);
   });
 
+  it("should replace subpath import with existing callback without double-chaining", () => {
+    const entryWithSubpathInit = `if (import.meta.env.DEV) {
+  import("react-grab/dist/index.global.js").then(({ init }) => init({"activationKey":"g"}));
+}
+
+import React from "react";
+import ReactDOM from "react-dom/client";`;
+
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("main.tsx"));
+    mockReadFileSync.mockReturnValue(entryWithSubpathInit);
+
+    const options: ReactGrabOptions = {
+      activationKey: "Meta+K",
+    };
+
+    const result = previewOptionsTransform("/test", "vite", "unknown", options);
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).toContain(
+      'import("react-grab").then((m) => m.init({"activationKey":"Meta+K"}))',
+    );
+    const initCount = (result.newContent!.match(/\.then\(/g) || []).length;
+    expect(initCount).toBe(1);
+  });
+
   it("should add multiple options to Vite import", () => {
     mockExistsSync.mockImplementation((path) => String(path).endsWith("main.tsx"));
     mockReadFileSync.mockReturnValue(entryWithReactGrab);
@@ -374,6 +467,29 @@ import ReactDOM from "react-dom/client";`;
     expect(result.newContent).toContain('"activationKey":"Alt+E"');
     expect(result.newContent).toContain('"activationMode":"toggle"');
     expect(result.newContent).toContain('"maxContextLines":10');
+  });
+
+  it("should add options to Vite subpath import", () => {
+    const entryWithSubpathReactGrab = `if (import.meta.env.DEV) {
+  import("react-grab/dist/index.global.js");
+}
+
+import React from "react";
+import ReactDOM from "react-dom/client";`;
+
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("main.tsx"));
+    mockReadFileSync.mockReturnValue(entryWithSubpathReactGrab);
+
+    const options: ReactGrabOptions = {
+      activationKey: "Meta+K",
+    };
+
+    const result = previewOptionsTransform("/test", "vite", "unknown", options);
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).toContain(
+      'import("react-grab").then((m) => m.init({"activationKey":"Meta+K"}))',
+    );
   });
 
   it("should fail when React Grab import not found", () => {
@@ -467,6 +583,72 @@ import ReactDOM from "react-dom/client";`;
     expect(result.newContent).toContain('"keyHoldDuration":300');
     expect(result.newContent).toContain('"allowActivationInsideInput":true');
     expect(result.newContent).toContain('"maxContextLines":7');
+  });
+});
+
+describe("previewOptionsTransform - TanStack Start", () => {
+  it("should preserve void when adding options to React Grab import", () => {
+    const rootWithReactGrab = `import { useEffect } from "react";
+import { Outlet, createRootRoute } from "@tanstack/react-router";
+
+export const Route = createRootRoute({ component: RootComponent });
+
+function RootComponent() {
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      void import("react-grab");
+    }
+  }, []);
+
+  return <Outlet />;
+}`;
+
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("__root.tsx"));
+    mockReadFileSync.mockReturnValue(rootWithReactGrab);
+
+    const options: ReactGrabOptions = {
+      activationKey: "Meta+K",
+    };
+
+    const result = previewOptionsTransform("/test", "tanstack", "unknown", options);
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).toContain(
+      'void import("react-grab/core").then(({ init }) => init({"activationKey":"Meta+K"}))',
+    );
+  });
+
+  it("should replace existing core init callback without double-chaining", () => {
+    const rootWithReactGrab = `import { useEffect } from "react";
+import { Outlet, createRootRoute } from "@tanstack/react-router";
+
+export const Route = createRootRoute({ component: RootComponent });
+
+function RootComponent() {
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      import("react-grab/core").then((m) => m.init({"activationKey":"g"}));
+    }
+  }, []);
+
+  return <Outlet />;
+}`;
+
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("__root.tsx"));
+    mockReadFileSync.mockReturnValue(rootWithReactGrab);
+
+    const options: ReactGrabOptions = {
+      activationKey: "Meta+K",
+    };
+
+    const result = previewOptionsTransform("/test", "tanstack", "unknown", options);
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).toContain(
+      'import("react-grab/core").then(({ init }) => init({"activationKey":"Meta+K"}))',
+    );
+    const initCount = (result.newContent!.match(/\.then\(/g) || []).length;
+    expect(initCount).toBe(1);
   });
 });
 

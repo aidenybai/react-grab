@@ -1,6 +1,8 @@
 import { createSignal, onCleanup, onMount, Show, type Component } from "solid-js";
 import { IME_COMPOSING_KEY_CODE } from "../../constants.js";
+import { formatColorLabel } from "../../utils/format-color-label.js";
 import { parseAnyColor } from "../../utils/parse-any-color.js";
+import { EDIT_LABEL_CLASS } from "./constants.js";
 
 // Native <input type="color"> only accepts `#rrggbb` (no alpha, no
 // shorthand). Strip the alpha byte if present so the picker opens at
@@ -10,7 +12,7 @@ const stripHexAlpha = (hex: string): string => (hex.length === 9 ? hex.slice(0, 
 interface ColorPickerProps {
   label?: string;
   value: string;
-  onCommit: (value: string) => void;
+  onCommit: (value: string, source: "keyboard" | "pointer") => void;
   onEditComplete?: () => void;
   onInvalidCommit?: () => void;
   onRegisterTrigger?: (trigger: (() => void) | null, owner?: () => void) => void;
@@ -18,12 +20,12 @@ interface ColorPickerProps {
   emphasized?: boolean;
 }
 
-const LABEL_CLASS = "text-[13px] leading-4 font-medium";
-const HEX_CLASS = "text-[12px] leading-4 font-medium tabular-nums uppercase";
+const HEX_CLASS = "text-[12px] leading-4 font-medium tabular-nums";
 
 export const ColorPicker: Component<ColorPickerProps> = (props) => {
   const [draftText, setDraftText] = createSignal<string | null>(null);
   const isEditing = () => draftText() !== null;
+  const displayValue = () => formatColorLabel(props.value);
   let nativePickerRef: HTMLInputElement | undefined;
 
   // isMounted gates the native picker's `onInput` against firing
@@ -50,7 +52,7 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
     if (!normalizedHexColor) {
       props.onInvalidCommit?.();
     } else if (normalizedHexColor.toLowerCase() !== props.value.toLowerCase()) {
-      props.onCommit(normalizedHexColor);
+      props.onCommit(normalizedHexColor, "keyboard");
     }
     props.onEditComplete?.();
   };
@@ -86,7 +88,7 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
     <div class="flex items-center gap-2 w-full px-2 h-[20px]">
       <Show when={props.label}>
         {(text) => (
-          <span class={`${LABEL_CLASS} text-[var(--rg-text-primary)] truncate min-w-0`}>
+          <span class={`${EDIT_LABEL_CLASS} text-[var(--rg-text-primary)] truncate min-w-0`}>
             {text()}
           </span>
         )}
@@ -97,14 +99,15 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
           fallback={
             <span
               class={`${HEX_CLASS} text-[var(--rg-text-primary)] cursor-text`}
+              data-react-grab-value={displayValue()}
               onPointerDown={(event) => event.stopPropagation()}
               onClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
-                setDraftText(props.value.replace(/^#/, "").toUpperCase());
+                setDraftText(displayValue());
               }}
             >
-              {props.value.toUpperCase()}
+              {displayValue()}
             </span>
           }
         >
@@ -164,10 +167,10 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
             const pickedRgb = event.currentTarget.value;
             const originalAlpha = props.value.length === 9 ? props.value.slice(7) : "";
             const preservedAlpha = originalAlpha.toLowerCase() === "00" ? "" : originalAlpha;
-            const next = pickedRgb + preservedAlpha;
+            const nextColorValue = pickedRgb + preservedAlpha;
             props.onInteract?.();
-            if (next && next.toLowerCase() !== props.value.toLowerCase()) {
-              props.onCommit(next);
+            if (nextColorValue && nextColorValue.toLowerCase() !== props.value.toLowerCase()) {
+              props.onCommit(nextColorValue, "pointer");
             }
           }}
         />

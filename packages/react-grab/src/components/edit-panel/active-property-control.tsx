@@ -9,7 +9,7 @@ interface ActivePropertyControlProps {
   property: EditableProperty;
   activeKey: "left" | "right" | null;
   onStep: (direction: 1 | -1) => void;
-  onCommit: (value: number | string) => void;
+  onCommit: (value: number | string, source: "keyboard" | "pointer") => void;
   onEditComplete: () => void;
   onInvalidCommit: () => void;
   onInteract: () => void;
@@ -61,7 +61,7 @@ export const ActivePropertyControl: Component<ActivePropertyControlProps> = (pro
           value={enumProp().value}
           options={enumProp().options}
           activeKey={props.activeKey}
-          onCommit={props.onCommit}
+          onStep={props.onStep}
         />
       )}
     </Match>

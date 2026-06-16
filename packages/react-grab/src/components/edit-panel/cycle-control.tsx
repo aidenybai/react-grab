@@ -1,6 +1,6 @@
 import { Show, type Component } from "solid-js";
 import type { EnumEditableOption } from "../../types.js";
-import { pickNextOption } from "../../utils/pick-next-option.js";
+import { EDIT_LABEL_CLASS } from "./constants.js";
 import { StepArrow } from "./step-arrow.js";
 
 interface CycleControlProps {
@@ -8,10 +8,8 @@ interface CycleControlProps {
   value: string;
   options: ReadonlyArray<EnumEditableOption>;
   activeKey: "left" | "right" | null;
-  onCommit: (value: string) => void;
+  onStep: (direction: 1 | -1) => void;
 }
-
-const LABEL_CLASS = "text-[13px] leading-4 font-medium";
 
 export const CycleControl: Component<CycleControlProps> = (props) => {
   const currentLabel = () => {
@@ -19,15 +17,10 @@ export const CycleControl: Component<CycleControlProps> = (props) => {
     return match?.label ?? props.value;
   };
 
-  const advance = (direction: 1 | -1) => {
-    const next = pickNextOption(props.options, props.value, direction);
-    if (next) props.onCommit(next.value);
-  };
-
   return (
     <div class="flex items-center gap-2 w-full px-2 h-[20px]">
       <Show when={props.label}>
-        <span class={`${LABEL_CLASS} text-[var(--rg-text-primary)] truncate min-w-0`}>
+        <span class={`${EDIT_LABEL_CLASS} text-[var(--rg-text-primary)] truncate min-w-0`}>
           {props.label}
         </span>
       </Show>
@@ -35,7 +28,7 @@ export const CycleControl: Component<CycleControlProps> = (props) => {
         <StepArrow
           direction="left"
           active={props.activeKey === "left"}
-          onPointerDown={() => advance(-1)}
+          onPointerDown={() => props.onStep(-1)}
         />
         <span
           data-react-grab-ignore-events
@@ -49,12 +42,12 @@ export const CycleControl: Component<CycleControlProps> = (props) => {
           onClick={(event) => {
             event.preventDefault();
             event.stopPropagation();
-            advance(1);
+            props.onStep(1);
           }}
           onContextMenu={(event) => {
             event.preventDefault();
             event.stopPropagation();
-            advance(-1);
+            props.onStep(-1);
           }}
         >
           {currentLabel()}
@@ -62,7 +55,7 @@ export const CycleControl: Component<CycleControlProps> = (props) => {
         <StepArrow
           direction="right"
           active={props.activeKey === "right"}
-          onPointerDown={() => advance(1)}
+          onPointerDown={() => props.onStep(1)}
         />
       </div>
     </div>

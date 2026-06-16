@@ -3,10 +3,7 @@ import type { Component } from "solid-js";
 interface StepArrowProps {
   direction: "left" | "right";
   active: boolean;
-  disabled?: boolean;
   onPointerDown?: () => void;
-  onPointerUp?: () => void;
-  onPointerLeave?: () => void;
 }
 
 const ARROW_BLOCK_LEFT_PATH =
@@ -20,14 +17,10 @@ const ACTIVE_TRANSLATE_PX = 2;
 const ACTIVE_SCALE = 1.12;
 
 export const StepArrow: Component<StepArrowProps> = (props) => {
-  const fill = () => (props.disabled ? IDLE_COLOR : props.active ? ACTIVE_COLOR : IDLE_COLOR);
+  const fill = () => (props.active ? ACTIVE_COLOR : IDLE_COLOR);
   const translateX = () =>
-    props.active && !props.disabled
-      ? props.direction === "left"
-        ? -ACTIVE_TRANSLATE_PX
-        : ACTIVE_TRANSLATE_PX
-      : 0;
-  const scale = () => (props.active && !props.disabled ? ACTIVE_SCALE : 1);
+    props.active ? (props.direction === "left" ? -ACTIVE_TRANSLATE_PX : ACTIVE_TRANSLATE_PX) : 0;
+  const scale = () => (props.active ? ACTIVE_SCALE : 1);
   const path = () => (props.direction === "left" ? ARROW_BLOCK_LEFT_PATH : ARROW_BLOCK_RIGHT_PATH);
 
   return (
@@ -38,14 +31,12 @@ export const StepArrow: Component<StepArrowProps> = (props) => {
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
-      onPointerDown={props.disabled ? undefined : props.onPointerDown}
-      onPointerUp={props.onPointerUp}
-      onPointerLeave={props.onPointerLeave}
+      onPointerDown={props.onPointerDown}
       style={{
         width: "16px",
         height: "16px",
         "flex-shrink": "0",
-        cursor: props.disabled ? "default" : "pointer",
+        cursor: "pointer",
         transform: `translateX(${translateX()}px) scale(${scale()})`,
         transition: props.active
           ? "transform 30ms cubic-bezier(0, 0, 0.2, 1)"
@@ -58,11 +49,7 @@ export const StepArrow: Component<StepArrowProps> = (props) => {
         fill-rule="evenodd"
         clip-rule="evenodd"
         style={{
-          transition: props.disabled
-            ? "fill 200ms ease"
-            : props.active
-              ? "fill 50ms ease"
-              : "fill 300ms ease",
+          transition: props.active ? "fill 50ms ease" : "fill 300ms ease",
         }}
       />
     </svg>

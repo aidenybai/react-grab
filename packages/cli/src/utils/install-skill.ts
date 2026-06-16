@@ -25,15 +25,25 @@ const agentLabel = (agent: SkillAgentType): string => getSkillAgentConfig(agent)
 
 // Universal agents share the canonical .agents/skills directory; others use
 // their own. Mirror where agent-install actually writes so removal lands.
-const installedSkillDir = (agent: SkillAgentType): string =>
+const installedSkillDir = (agent: SkillAgentType, global: boolean, cwd: string): string =>
   join(
     isUniversalSkillAgent(agent)
-      ? getCanonicalSkillsDir(true)
-      : getSkillAgentDir(agent, { global: true }),
+      ? getCanonicalSkillsDir(global, cwd)
+      : getSkillAgentDir(agent, { global, cwd }),
     SKILL_NAME,
   );
 
-export const promptSkillInstall = async ({ yes = false } = {}): Promise<boolean> => {
+interface PromptSkillInstallOptions {
+  yes?: boolean;
+  global?: boolean;
+  cwd?: string;
+}
+
+export const promptSkillInstall = async ({
+  yes = false,
+  global = false,
+  cwd = process.cwd(),
+}: PromptSkillInstallOptions = {}): Promise<boolean> => {
   const detectedAgents = await detectAvailableAgents();
   if (detectedAgents.length === 0) {
     logger.warn("No supported agents detected.");
@@ -42,10 +52,18 @@ export const promptSkillInstall = async ({ yes = false } = {}): Promise<boolean>
 
   let selectedAgents = detectedAgents;
   if (!yes) {
+    const { confirmed } = await prompts({
+      type: "confirm",
+      name: "confirmed",
+      message: `Install the React Grab skill (${global ? "global" : "this project"})?`,
+      initial: true,
+    });
+    if (!confirmed) return false;
+
     const { agents } = await prompts({
       type: "multiselect",
       name: "agents",
-      message: "Install the React Grab skill for:",
+      message: `Install the React Grab skill (${global ? "global" : "this project"}) for:`,
       choices: detectedAgents.map((agent) => ({
         title: agentLabel(agent),
         value: agent,
@@ -62,7 +80,8 @@ export const promptSkillInstall = async ({ yes = false } = {}): Promise<boolean>
   const { installed, failed } = await add({
     source: SKILL_SOURCE,
     agents: selectedAgents,
-    global: true,
+    global,
+    cwd,
     mode: "copy",
   });
 
@@ -79,15 +98,31 @@ export const promptSkillInstall = async ({ yes = false } = {}): Promise<boolean>
   return true;
 };
 
-export const removeSkill = async (): Promise<number> => {
+interface RemoveSkillOptions {
+  cwd?: string;
+  global?: boolean;
+}
+
+// Scoped like install (project unless global) so it won't delete a global install
+// from inside an unrelated project.
+export const removeSkill = async ({
+  cwd = process.cwd(),
+  global = false,
+}: RemoveSkillOptions = {}): Promise<number> => {
   const agents = await detectAvailableAgents();
-  const agentsWithSkill = agents.filter((agent) => existsSync(installedSkillDir(agent)));
-  // Universal agents share one canonical dir, so delete each distinct dir once.
-  for (const skillDir of new Set(agentsWithSkill.map(installedSkillDir))) {
+  const removedAgents: SkillAgentType[] = [];
+  const dirsToRemove = new Set<string>();
+  for (const agent of agents) {
+    const skillDir = installedSkillDir(agent, global, cwd);
+    if (!existsSync(skillDir)) continue;
+    removedAgents.push(agent);
+    dirsToRemove.add(skillDir);
+  }
+  for (const skillDir of dirsToRemove) {
     rmSync(skillDir, { recursive: true, force: true });
   }
-  for (const agent of agentsWithSkill) {
+  for (const agent of removedAgents) {
     logger.log(`  ${highlighter.success("\u2713")} ${agentLabel(agent)}`);
   }
-  return agentsWithSkill.length;
+  return removedAgents.length;
 };
