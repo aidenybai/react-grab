@@ -44,19 +44,15 @@ const findNearestFiberElement = (element: Element): Element => {
   return element;
 };
 
-// Elements rendered inside a `.map()` all share the same JSX source location, so
-// the source line alone can't tell list instances apart. React already
-// disambiguates siblings via their `key`, so we surface the nearest list-item
-// key. The walk stops at the first component boundary: a keyed host element
-// directly under its rendering component (or a keyed list-item component itself)
-// is the identity we want; keys further up belong to unrelated ancestor lists.
+// Elements rendered through `.map()` share one JSX source location, so the
+// source line alone can't tell list instances apart. React assigns a `key` only
+// to siblings in a list, so the nearest keyed fiber above the picked node is its
+// list-item identity.
 const getNearestListItemKey = (element: Element): string | null => {
   if (!isInstrumentationActive()) return null;
   let fiber: Fiber | null = getFiberFromHostInstance(findNearestFiberElement(element));
   while (fiber) {
-    const fiberKey = fiber.key;
-    if (fiberKey != null && String(fiberKey).length > 0) return String(fiberKey);
-    if (isCompositeFiber(fiber)) break;
+    if (fiber.key) return fiber.key;
     fiber = fiber.return;
   }
   return null;
