@@ -1634,8 +1634,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       toggleActivate();
     };
 
+    // Draw can be a stored default from a session/browser where capture was
+    // supported; fall back so the main toggle never resolves to a no-op action.
+    const effectiveDefaultActionId = (): string => {
+      const storedActionId = currentToolbarState()?.defaultAction ?? DEFAULT_ACTION_ID;
+      if (storedActionId === ANNOTATE_ACTION_ID && !isScreenshotSupported()) {
+        return DEFAULT_ACTION_ID;
+      }
+      return storedActionId;
+    };
+
     const handleToggleActive = () => {
-      handleActivateAction(currentToolbarState()?.defaultAction ?? DEFAULT_ACTION_ID);
+      handleActivateAction(effectiveDefaultActionId());
     };
 
     const enterCommentModeForElement = (element: Element, positionX: number, positionY: number) => {
@@ -3776,9 +3786,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 onContextMenuHide={deferHideContextMenu}
                 toolbarMenuPosition={toolbarMenuPosition()}
                 toolbarMenuActions={pluginRegistry.store.actions.filter(
-                  (action) => action.showInToolbarMenu === true,
+                  (action) =>
+                    action.showInToolbarMenu === true &&
+                    (action.id !== ANNOTATE_ACTION_ID || isScreenshotSupported()),
                 )}
-                defaultActionId={currentToolbarState()?.defaultAction ?? DEFAULT_ACTION_ID}
+                defaultActionId={effectiveDefaultActionId()}
                 onSetDefaultAction={handleSetDefaultAction}
                 onToggleToolbarMenu={handleToggleToolbarMenu}
                 onToolbarMenuDismiss={dismissToolbarMenu}

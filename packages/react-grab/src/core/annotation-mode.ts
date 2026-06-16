@@ -163,6 +163,9 @@ export const createAnnotationModeController = (
     if (event.button !== 0 || !overlay) return;
     event.preventDefault();
     event.stopPropagation();
+    // Ignore extra contacts while a stroke is already in progress so a second
+    // touch doesn't discard the first.
+    if (activePointerId !== null) return;
     const pageX = event.clientX + window.scrollX;
     const pageY = event.clientY + window.scrollY;
     lastPointer.x = pageX;
