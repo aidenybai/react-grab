@@ -1635,11 +1635,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       toggleActivate();
     };
 
-    // Draw can be a stored default from a session/browser where capture was
-    // supported; fall back so the main toggle never resolves to a no-op action.
+    // A stored default action can become disabled (e.g. Draw where screen
+    // capture is unsupported); fall back so the main toggle never resolves to a
+    // no-op action.
     const effectiveDefaultActionId = (): string => {
       const storedActionId = currentToolbarState()?.defaultAction ?? DEFAULT_ACTION_ID;
-      if (storedActionId === ANNOTATE_ACTION_ID && !isScreenshotSupported()) {
+      const storedAction = pluginRegistry.store.actions.find(
+        (action) => action.id === storedActionId,
+      );
+      if (storedAction && !resolveActionEnabled(storedAction, undefined)) {
         return DEFAULT_ACTION_ID;
       }
       return storedActionId;
@@ -3793,8 +3797,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 toolbarMenuPosition={toolbarMenuPosition()}
                 toolbarMenuActions={pluginRegistry.store.actions.filter(
                   (action) =>
-                    action.showInToolbarMenu === true &&
-                    (action.id !== ANNOTATE_ACTION_ID || isScreenshotSupported()),
+                    action.showInToolbarMenu === true && resolveActionEnabled(action, undefined),
                 )}
                 defaultActionId={effectiveDefaultActionId()}
                 onSetDefaultAction={handleSetDefaultAction}

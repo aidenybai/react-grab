@@ -9,10 +9,12 @@ export const annotatePlugin: Plugin = {
       {
         id: ANNOTATE_ACTION_ID,
         label: "Draw",
-        shortcut: "A",
+        shortcut: "D",
         shortcutModifier: false,
         showInToolbarMenu: true,
-        enabled: isScreenshotSupported,
+        // Resolve once at setup so the gate is a plain boolean - lets the toolbar
+        // menu/default-action code reuse resolveActionEnabled without a context.
+        enabled: isScreenshotSupported(),
         onAction: (context) => {
           context.enterAnnotateMode?.();
         },

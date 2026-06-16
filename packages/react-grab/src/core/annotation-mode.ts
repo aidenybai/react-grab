@@ -57,6 +57,10 @@ export const createAnnotationModeController = (
   // shot and tearing down the new session.
   let sessionId = 0;
   const lastPointer = { x: 0, y: 0 };
+  // Committed texts never mutate, so cache their measured widths to keep the
+  // hover hit-test off the measureText hot path.
+  const committedTextWidths = new WeakMap<AnnotationText, number>();
+  let isCursorOverText = false;
 
   const TEXT_FONT = `500 ${ANNOTATION_TEXT_FONT_PX}px "Geist", system-ui, -apple-system, sans-serif`;
 
@@ -126,22 +130,45 @@ export const createAnnotationModeController = (
     activeText = null;
   };
 
-  const isPointInText = (text: AnnotationText, pageX: number, pageY: number): boolean => {
-    if (!context) return false;
+  const measureTextWidth = (text: AnnotationText): number => {
+    if (!context) return 0;
     context.font = TEXT_FONT;
-    const width = context.measureText(text.value).width;
-    return (
-      pageX >= text.x - ANNOTATION_TEXT_HIT_PADDING_PX &&
-      pageX <= text.x + width + ANNOTATION_TEXT_HIT_PADDING_PX &&
-      pageY >= text.y - ANNOTATION_TEXT_HIT_PADDING_PX &&
-      pageY <= text.y + ANNOTATION_TEXT_FONT_PX + ANNOTATION_TEXT_HIT_PADDING_PX
-    );
+    return context.measureText(text.value).width;
   };
+
+  const measureCommittedTextWidth = (text: AnnotationText): number => {
+    let width = committedTextWidths.get(text);
+    if (width === undefined) {
+      width = measureTextWidth(text);
+      committedTextWidths.set(text, width);
+    }
+    return width;
+  };
+
+  const isPointWithinTextBox = (
+    text: AnnotationText,
+    width: number,
+    pageX: number,
+    pageY: number,
+  ): boolean =>
+    pageX >= text.x - ANNOTATION_TEXT_HIT_PADDING_PX &&
+    pageX <= text.x + width + ANNOTATION_TEXT_HIT_PADDING_PX &&
+    pageY >= text.y - ANNOTATION_TEXT_HIT_PADDING_PX &&
+    pageY <= text.y + ANNOTATION_TEXT_FONT_PX + ANNOTATION_TEXT_HIT_PADDING_PX;
+
+  // activeText mutates as the user types, so measure it fresh.
+  const isPointInActiveText = (text: AnnotationText, pageX: number, pageY: number): boolean =>
+    isPointWithinTextBox(text, measureTextWidth(text), pageX, pageY);
 
   const findCommittedTextAt = (pageX: number, pageY: number): number => {
     for (let index = committedItems.length - 1; index >= 0; index--) {
       const item = committedItems[index];
-      if (item.kind === "text" && isPointInText(item.text, pageX, pageY)) return index;
+      if (
+        item.kind === "text" &&
+        isPointWithinTextBox(item.text, measureCommittedTextWidth(item.text), pageX, pageY)
+      ) {
+        return index;
+      }
     }
     return -1;
   };
@@ -173,7 +200,7 @@ export const createAnnotationModeController = (
 
     // Clicking the note you're already typing keeps it open; clicking another
     // committed note reopens it for editing instead of starting a stroke.
-    if (activeText && isPointInText(activeText, pageX, pageY)) return;
+    if (activeText && isPointInActiveText(activeText, pageX, pageY)) return;
     const editIndex = findCommittedTextAt(pageX, pageY);
     commitActiveText();
     if (editIndex !== -1) {
@@ -196,7 +223,11 @@ export const createAnnotationModeController = (
     lastPointer.x = pageX;
     lastPointer.y = pageY;
     if (!activeStroke && overlay) {
-      overlay.style.cursor = findCommittedTextAt(pageX, pageY) !== -1 ? "text" : ANNOTATION_CURSOR;
+      const overText = findCommittedTextAt(pageX, pageY) !== -1;
+      if (overText !== isCursorOverText) {
+        isCursorOverText = overText;
+        overlay.style.cursor = overText ? "text" : ANNOTATION_CURSOR;
+      }
     }
     if (!activeStroke || event.pointerId !== activePointerId) return;
     event.preventDefault();
@@ -240,7 +271,10 @@ export const createAnnotationModeController = (
     scheduleRedraw();
   };
 
+  const suppressContextMenu = (event: Event) => event.preventDefault();
+
   const buildOverlay = () => {
+    isCursorOverText = false;
     overlay = document.createElement("div");
     overlay.setAttribute("data-react-grab-ignore-events", "");
     overlay.setAttribute("data-react-grab-annotation", "");
@@ -265,6 +299,8 @@ export const createAnnotationModeController = (
     overlay.addEventListener("pointermove", handlePointerMove);
     overlay.addEventListener("pointerup", handlePointerUp);
     overlay.addEventListener("pointercancel", handlePointerUp);
+    // Right-click would otherwise pop the native menu over the canvas.
+    overlay.addEventListener("contextmenu", suppressContextMenu);
     window.addEventListener("resize", resizeCanvas);
     // Strokes live in page coordinates; redraw on scroll to keep them pinned to
     // the page. Capture phase because scroll events don't bubble.
@@ -353,19 +389,18 @@ export const createAnnotationModeController = (
     // post-await step against the user exiting (or exiting and re-entering)
     // draw mode mid-capture.
     const isSessionLive = () => isActive() && sessionId === session;
-    hideChromeForCapture();
 
     try {
-      await delay(SCREENSHOT_CAPTURE_DELAY_MS);
-      // Don't open the screen-share prompt if the user left draw mode during the
-      // delay (Draw toggle, Escape, or dismissAllPopups).
-      if (!isSessionLive()) return;
-      const screenshot = await captureElementScreenshot({
-        x: 0,
-        y: 0,
-        width: window.innerWidth,
-        height: window.innerHeight,
-      });
+      const screenshot = await captureElementScreenshot(
+        { x: 0, y: 0, width: window.innerWidth, height: window.innerHeight },
+        // Hide chrome only for the frame grab (not the whole share prompt), then
+        // wait a beat so the live stream reflects the now-hidden chrome.
+        async () => {
+          if (!isSessionLive()) return;
+          hideChromeForCapture();
+          await delay(SCREENSHOT_CAPTURE_DELAY_MS);
+        },
+      );
       restoreChromeForCapture();
       // The mode may have been torn down (or restarted) while the permission
       // prompt was open - don't copy an image the user abandoned.
