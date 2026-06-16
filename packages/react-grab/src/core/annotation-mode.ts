@@ -206,7 +206,11 @@ export const createAnnotationModeController = (
     commitActiveText();
     if (editIndex !== -1) {
       const [removed] = committedItems.splice(editIndex, 1);
-      if (removed.kind === "text") activeText = removed.text;
+      if (removed.kind === "text") {
+        // Its width changes as it's re-edited; drop the now-stale cached width.
+        committedTextWidths.delete(removed.text);
+        activeText = removed.text;
+      }
       scheduleRedraw();
       return;
     }
