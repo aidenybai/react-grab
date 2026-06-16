@@ -276,8 +276,6 @@ export const DRAW_STROKE_SIZE_PX = 5;
 export const DRAW_STROKE_THINNING = 0.6;
 export const DRAW_STROKE_SMOOTHING = 0.5;
 export const DRAW_STROKE_STREAMLINE = 0.5;
-// Fallback pen pressure for devices that don't report it (mouse/trackpad).
-export const DRAW_DEFAULT_PRESSURE = 0.5;
 export const DRAW_TEXT_FONT_PX = 18;
 export const DRAW_CARET_WIDTH_PX = 2;
 export const DRAW_CARET_GAP_PX = 1;

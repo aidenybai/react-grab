@@ -4,7 +4,6 @@ import {
   DRAW_CARET_WIDTH_PX,
   DRAW_COLOR,
   DRAW_CURSOR,
-  DRAW_DEFAULT_PRESSURE,
   DRAW_TEXT_FONT_PX,
   DRAW_TEXT_HIT_PADDING_PX,
   IME_COMPOSING_KEY_CODE,
@@ -184,7 +183,7 @@ export const createDrawModeController = (
     activeStroke?.points.push({
       x: event.clientX + window.scrollX,
       y: event.clientY + window.scrollY,
-      pressure: event.pressure || DRAW_DEFAULT_PRESSURE,
+      pressure: event.pressure,
     });
   };
 

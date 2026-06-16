@@ -131,7 +131,7 @@ const waitForDrawPixels = async (reactGrab: ReactGrabPageObject) => {
   );
 };
 
-test.describe("Draw (draw) mode", () => {
+test.describe("Draw mode", () => {
   test("toolbar exposes a Draw button", async ({ reactGrab }) => {
     await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
     expect(await reactGrab.getToolbarActionPressed("draw")).toBe(false);
