@@ -33,6 +33,7 @@ export const getDrawStrokePath = (stroke: DrawStroke, isComplete: boolean): Path
       thinning: DRAW_STROKE_THINNING,
       smoothing: DRAW_STROKE_SMOOTHING,
       streamline: DRAW_STROKE_STREAMLINE,
+      simulatePressure: stroke.simulatePressure,
       last: isComplete,
     }),
   );

@@ -270,7 +270,7 @@ export const createDrawModeController = (
 
     activePointerId = event.pointerId;
     overlay.setPointerCapture(event.pointerId);
-    activeStroke = { points: [] };
+    activeStroke = { points: [], simulatePressure: event.pointerType !== "pen" };
     appendPoint(event);
     scheduleRedraw();
   };

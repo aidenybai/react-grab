@@ -11,6 +11,9 @@ export interface DrawPoint {
 
 export interface DrawStroke {
   points: DrawPoint[];
+  // Pen input carries real pressure, so use it; mouse/touch report a constant,
+  // so let perfect-freehand simulate width from velocity instead.
+  simulatePressure: boolean;
 }
 
 export interface DrawText {
