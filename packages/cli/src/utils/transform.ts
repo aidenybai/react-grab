@@ -303,17 +303,14 @@ const transformWebpack = (
 const transformSvelteKit = (
   projectRoot: string,
   reactGrabAlreadyConfigured: boolean,
-  force: boolean = false,
 ): TransformResult => {
-  if (!force) {
-    const existingReactGrabFile = findSvelteKitReactGrabFile(projectRoot);
-    if (existingReactGrabFile) {
-      const existingResult = checkExistingInstallation(
-        existingReactGrabFile,
-        reactGrabAlreadyConfigured,
-      );
-      if (existingResult) return existingResult;
-    }
+  const existingReactGrabFile = findSvelteKitReactGrabFile(projectRoot);
+  if (existingReactGrabFile) {
+    const existingResult = checkExistingInstallation(
+      existingReactGrabFile,
+      reactGrabAlreadyConfigured,
+    );
+    if (existingResult) return existingResult;
   }
 
   if (!existsSync(join(projectRoot, "src"))) {
@@ -327,10 +324,9 @@ const transformSvelteKit = (
   const existingHooks = findSvelteKitHooksClientFile(projectRoot);
 
   if (existingHooks) {
-    if (!force) {
-      const existing = checkExistingInstallation(existingHooks, reactGrabAlreadyConfigured);
-      if (existing) return existing;
-    }
+    const existing = checkExistingInstallation(existingHooks, reactGrabAlreadyConfigured);
+    if (existing) return existing;
+
     const originalContent = readFileSync(existingHooks, "utf-8");
     const newContent = `${SVELTEKIT_IMPORT}\n\n${originalContent}`;
     return {
@@ -467,7 +463,6 @@ export const previewTransform = (
   framework: Framework,
   nextRouterType: NextRouterType,
   reactGrabAlreadyConfigured: boolean = false,
-  force: boolean = false,
 ): TransformResult => {
   switch (framework) {
     case "next":
@@ -486,7 +481,7 @@ export const previewTransform = (
       return transformWebpack(projectRoot, reactGrabAlreadyConfigured);
 
     case "sveltekit":
-      return transformSvelteKit(projectRoot, reactGrabAlreadyConfigured, force);
+      return transformSvelteKit(projectRoot, reactGrabAlreadyConfigured);
 
     default:
       return {
