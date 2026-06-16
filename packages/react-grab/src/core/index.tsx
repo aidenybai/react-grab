@@ -335,6 +335,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       getRoot: () => rendererRoot,
       onOpen: () => {
         dismissToolbarMenu();
+        // Drop a leftover "Copied" toast from a prior session before reopening.
+        clearAnnotationCopiedToast();
         stopAnnotationMenuTracking?.();
         stopAnnotationMenuTracking = trackDropdownPosition(
           computeDropdownAnchor,
@@ -350,18 +352,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         // Track the toolbar continuously (same edge-aware anchor as the
         // Copy/Cancel menu) so a post-capture reflow - e.g. the screen-share
         // indicator bar collapsing - doesn't strand the toast at a stale spot.
-        stopAnnotationCopiedTracking?.();
+        clearAnnotationCopiedToast();
         stopAnnotationCopiedTracking = trackDropdownPosition(
           computeDropdownAnchor,
           setAnnotationCopiedPosition,
         );
-        if (annotationCopiedTimer !== null) clearTimeout(annotationCopiedTimer);
-        annotationCopiedTimer = window.setTimeout(() => {
-          stopAnnotationCopiedTracking?.();
-          stopAnnotationCopiedTracking = null;
-          setAnnotationCopiedPosition(null);
-          annotationCopiedTimer = null;
-        }, FEEDBACK_DURATION_MS);
+        annotationCopiedTimer = window.setTimeout(clearAnnotationCopiedToast, FEEDBACK_DURATION_MS);
       },
     });
 
@@ -377,6 +373,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let stopAnnotationMenuTracking: (() => void) | null = null;
     let stopAnnotationCopiedTracking: (() => void) | null = null;
     let didSwitchEditTargetOnPointerDown = false;
+
+    const clearAnnotationCopiedToast = () => {
+      stopAnnotationCopiedTracking?.();
+      stopAnnotationCopiedTracking = null;
+      if (annotationCopiedTimer !== null) {
+        clearTimeout(annotationCopiedTimer);
+        annotationCopiedTimer = null;
+      }
+      setAnnotationCopiedPosition(null);
+    };
 
     let shiftSelectionLabelAnchorRatioByElement = new WeakMap<Element, number>();
     const keyboardSelection = createKeyboardSelectionController();
@@ -3088,9 +3094,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       stopEditPanelTracking = null;
       stopAnnotationMenuTracking?.();
       stopAnnotationMenuTracking = null;
-      stopAnnotationCopiedTracking?.();
-      stopAnnotationCopiedTracking = null;
-      if (annotationCopiedTimer !== null) clearTimeout(annotationCopiedTimer);
+      clearAnnotationCopiedToast();
       grabbedBoxTimeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
       grabbedBoxTimeouts.clear();
       labelController.cancelAllFades();
@@ -3874,9 +3878,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         stopEditPanelTracking = null;
         stopAnnotationMenuTracking?.();
         stopAnnotationMenuTracking = null;
-        stopAnnotationCopiedTracking?.();
-        stopAnnotationCopiedTracking = null;
-        if (annotationCopiedTimer !== null) clearTimeout(annotationCopiedTimer);
+        clearAnnotationCopiedToast();
         toolbarStateChangeCallbacks.clear();
         dispose();
       },
