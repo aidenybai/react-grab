@@ -59,6 +59,9 @@ export const createDrawModeController = (
   // flattened onto the canvas on commit so the screenshot stays WYSIWYG.
   let textInput: HTMLInputElement | null = null;
   const textInputPosition = { x: 0, y: 0 };
+  // Last pointer position in client (viewport) coords, converted to page coords
+  // when placing a note - so scrolling without moving the mouse still drops the
+  // note under the cursor.
   const lastPointer = { x: 0, y: 0 };
   let isCursorOverText = false;
 
@@ -248,8 +251,8 @@ export const createDrawModeController = (
     if (activePointerId !== null) return;
     const pageX = event.clientX + window.scrollX;
     const pageY = event.clientY + window.scrollY;
-    lastPointer.x = pageX;
-    lastPointer.y = pageY;
+    lastPointer.x = event.clientX;
+    lastPointer.y = event.clientY;
 
     // Clicking away commits the open note before drawing or editing another.
     commitTextInput();
@@ -275,8 +278,8 @@ export const createDrawModeController = (
   const handlePointerMove = (event: PointerEvent) => {
     const pageX = event.clientX + window.scrollX;
     const pageY = event.clientY + window.scrollY;
-    lastPointer.x = pageX;
-    lastPointer.y = pageY;
+    lastPointer.x = event.clientX;
+    lastPointer.y = event.clientY;
     if (!activeStroke && overlay) {
       const overText = findCommittedTextAt(pageX, pageY) !== -1;
       if (overText !== isCursorOverText) {
@@ -399,8 +402,8 @@ export const createDrawModeController = (
     if (isActive()) return;
     setIsActive(true);
     sessionId += 1;
-    lastPointer.x = window.scrollX + window.innerWidth / 2;
-    lastPointer.y = window.scrollY + window.innerHeight / 2;
+    lastPointer.x = window.innerWidth / 2;
+    lastPointer.y = window.innerHeight / 2;
     buildOverlay();
     dependencies.onOpen?.();
   };
@@ -538,7 +541,7 @@ export const createDrawModeController = (
     ) {
       event.preventDefault();
       event.stopImmediatePropagation();
-      openTextInput(lastPointer.x, lastPointer.y, event.key);
+      openTextInput(lastPointer.x + window.scrollX, lastPointer.y + window.scrollY, event.key);
     }
   };
 
