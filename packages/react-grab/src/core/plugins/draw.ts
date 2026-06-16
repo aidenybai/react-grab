@@ -1,4 +1,3 @@
-import { DRAW_ACTION_ID } from "../../constants.js";
 import type { Plugin } from "../../types.js";
 import { isScreenshotSupported } from "../../utils/is-screenshot-supported.js";
 
@@ -7,7 +6,7 @@ export const drawPlugin: Plugin = {
   setup: () => ({
     actions: [
       {
-        id: DRAW_ACTION_ID,
+        id: "draw",
         label: "Draw",
         shortcut: "D",
         shortcutModifier: false,
