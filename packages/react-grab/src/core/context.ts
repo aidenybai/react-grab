@@ -44,6 +44,28 @@ const findNearestFiberElement = (element: Element): Element => {
   return element;
 };
 
+// Elements rendered through `.map()` share one JSX source location, so the
+// source line alone can't tell list instances apart. React assigns a `key` only
+// to siblings in a list, so we surface the nearest keyed fiber above the picked
+// node. The walk crosses at most one component boundary: enough to reach a key
+// on the list item's host element, on the list-item component itself, or on a
+// host wrapper around a list-item component, without wandering up to unrelated
+// ancestor keys (e.g. a route or transition `key` many components above).
+const getNearestListItemKey = (element: Element): string | null => {
+  if (!isInstrumentationActive()) return null;
+  let fiber: Fiber | null = getFiberFromHostInstance(findNearestFiberElement(element));
+  let componentBoundariesCrossed = 0;
+  while (fiber) {
+    if (fiber.key) return fiber.key;
+    if (isCompositeFiber(fiber)) {
+      componentBoundariesCrossed += 1;
+      if (componentBoundariesCrossed === 2) break;
+    }
+    fiber = fiber.return;
+  }
+  return null;
+};
+
 const stackCache = new WeakMap<Element, Promise<StackFrame[] | null>>();
 const fiberSourceCache = new WeakMap<Element, Promise<ResolvedSource | null>>();
 
@@ -405,10 +427,12 @@ export const getStackContext = async (
 };
 
 const composeElementContext = (element: Element, traceContext: TraceContextResult): string => {
+  const listItemKey = getNearestListItemKey(element);
+  const keyHint = listItemKey !== null ? `\n  key: "${listItemKey}"` : "";
   const selectorHint = traceContext.shouldAppendSelectorHint
     ? `\n  selector: ${createElementSelector(element)}`
     : "";
-  return `${traceContext.text}${selectorHint}`;
+  return `${traceContext.text}${keyHint}${selectorHint}`;
 };
 
 export const getElementReferenceContext = async (

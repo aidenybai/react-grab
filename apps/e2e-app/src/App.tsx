@@ -202,6 +202,34 @@ const DynamicElements = () => {
   );
 };
 
+const MappedCardBody = ({ label }: { label: string }) => {
+  return <p className="font-medium">{label}</p>;
+};
+
+const MappedCards = () => {
+  const cards = [
+    { id: "alpha", label: "Alpha card" },
+    { id: "bravo", label: "Bravo card" },
+  ];
+
+  return (
+    <section className="border rounded-lg p-4" data-testid="mapped-cards-section">
+      <h2 className="text-lg font-bold mb-4">Mapped Cards</h2>
+      <div className="space-y-2">
+        {cards.map((card) => (
+          <div
+            key={card.id}
+            className="p-2 bg-gray-100 rounded"
+            data-testid={`mapped-card-${card.id}`}
+          >
+            <MappedCardBody label={card.label} />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+};
+
 const EdgeElements = () => {
   return (
     <>
@@ -651,6 +679,8 @@ export default function App() {
       </header>
 
       <TodoList />
+
+      <MappedCards />
 
       <DeeplyNested />
 
