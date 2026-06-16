@@ -164,6 +164,14 @@ test.describe("Draw (annotation) mode", () => {
     await expect.poll(() => isDrawActive(reactGrab), { timeout: 2000 }).toBe(true);
   });
 
+  test("the D keyboard shortcut enters draw mode", async ({ reactGrab }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverElement("li:first-child");
+    await reactGrab.waitForSelectionBox();
+    await reactGrab.page.keyboard.press("d");
+    await expect.poll(() => isDrawActive(reactGrab), { timeout: STROKE_TIMEOUT_MS }).toBe(true);
+  });
+
   test("entering draw mode disables the other toolbar buttons", async ({ reactGrab }) => {
     await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
     await startDraw(reactGrab);
