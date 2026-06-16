@@ -1,6 +1,5 @@
 import { createSignal, type Accessor } from "solid-js";
 import {
-  DRAW_CARET_GAP_PX,
   DRAW_CARET_WIDTH_PX,
   DRAW_COLOR,
   DRAW_CURSOR,
@@ -42,25 +41,25 @@ export const createDrawModeController = (
   // Single ordered list so undo removes the genuinely-last action and later
   // items paint on top of earlier ones, regardless of stroke/text type.
   const committedItems: CommittedDraw[] = [];
-  // Cache finished strokes' outlines so per-frame redraws don't recompute them.
   const committedStrokePaths = new WeakMap<DrawStroke, Path2D>();
+  const committedTextWidths = new WeakMap<DrawText, number>();
   let activeStroke: DrawStroke | null = null;
-  let activeText: DrawText | null = null;
   let activePointerId: number | null = null;
   let redrawFrameId: number | null = null;
-  // The session id whose capture is in flight (null when idle). Scoped to the
-  // session so a stale capture from a torn-down session can't block a new one's
-  // Copy/Enter, and a stale capture's cleanup can't clear a newer one's flag.
-  let capturingSession: number | null = null;
   let restoreChrome: (() => void) | null = null;
   // Bumped on every start() so an in-flight capture from a prior session can
   // detect it was superseded after an await and bail instead of copying a stale
   // shot and tearing down the new session.
   let sessionId = 0;
+  // The session id whose capture is in flight (null when idle). Scoped to the
+  // session so a stale capture can't block a new one's Copy/Enter, and its
+  // cleanup can't clear a newer one's flag.
+  let capturingSession: number | null = null;
+  // The note being typed is a real <input> (native caret/selection/IME); it is
+  // flattened onto the canvas on commit so the screenshot stays WYSIWYG.
+  let textInput: HTMLInputElement | null = null;
+  const textInputPosition = { x: 0, y: 0 };
   const lastPointer = { x: 0, y: 0 };
-  // Committed texts never mutate, so cache their measured widths to keep the
-  // hover hit-test off the measureText hot path.
-  const committedTextWidths = new WeakMap<DrawText, number>();
   let isCursorOverText = false;
 
   const TEXT_FONT = `500 ${DRAW_TEXT_FONT_PX}px "Geist", system-ui, -apple-system, sans-serif`;
@@ -77,16 +76,12 @@ export const createDrawModeController = (
     redraw();
   };
 
-  const drawText = (text: DrawText, isEditing: boolean) => {
+  const drawText = (text: DrawText) => {
     if (!context) return;
     context.fillStyle = DRAW_COLOR;
     context.font = TEXT_FONT;
     context.textBaseline = "top";
     context.fillText(text.value, text.x, text.y);
-    if (isEditing) {
-      const caretX = text.x + context.measureText(text.value).width + DRAW_CARET_GAP_PX;
-      context.fillRect(caretX, text.y, DRAW_CARET_WIDTH_PX, DRAW_TEXT_FONT_PX);
-    }
   };
 
   const fillStroke = (stroke: DrawStroke, isComplete: boolean) => {
@@ -112,61 +107,41 @@ export const createDrawModeController = (
       if (item.kind === "stroke") {
         fillStroke(item.stroke, true);
       } else {
-        drawText(item.text, false);
+        drawText(item.text);
       }
     }
     if (activeStroke && activeStroke.points.length > 0) {
       fillStroke(activeStroke, false);
     }
-    if (activeText) {
-      drawText(activeText, true);
-    }
     context.restore();
   };
 
-  const commitActiveText = () => {
-    if (activeText && activeText.value.trim().length > 0) {
-      committedItems.push({ kind: "text", text: activeText });
-    }
-    activeText = null;
-  };
-
-  const measureTextWidth = (text: DrawText): number => {
+  const measureTextWidth = (value: string): number => {
     if (!context) return 0;
     context.font = TEXT_FONT;
-    return context.measureText(text.value).width;
+    return context.measureText(value).width;
   };
 
   const measureCommittedTextWidth = (text: DrawText): number => {
     let width = committedTextWidths.get(text);
     if (width === undefined) {
-      width = measureTextWidth(text);
+      width = measureTextWidth(text.value);
       committedTextWidths.set(text, width);
     }
     return width;
   };
 
-  const isPointWithinTextBox = (
-    text: DrawText,
-    width: number,
-    pageX: number,
-    pageY: number,
-  ): boolean =>
-    pageX >= text.x - DRAW_TEXT_HIT_PADDING_PX &&
-    pageX <= text.x + width + DRAW_TEXT_HIT_PADDING_PX &&
-    pageY >= text.y - DRAW_TEXT_HIT_PADDING_PX &&
-    pageY <= text.y + DRAW_TEXT_FONT_PX + DRAW_TEXT_HIT_PADDING_PX;
-
-  // activeText mutates as the user types, so measure it fresh.
-  const isPointInActiveText = (text: DrawText, pageX: number, pageY: number): boolean =>
-    isPointWithinTextBox(text, measureTextWidth(text), pageX, pageY);
-
   const findCommittedTextAt = (pageX: number, pageY: number): number => {
     for (let index = committedItems.length - 1; index >= 0; index--) {
       const item = committedItems[index];
+      if (item.kind !== "text") continue;
+      const { text } = item;
+      const width = measureCommittedTextWidth(text);
       if (
-        item.kind === "text" &&
-        isPointWithinTextBox(item.text, measureCommittedTextWidth(item.text), pageX, pageY)
+        pageX >= text.x - DRAW_TEXT_HIT_PADDING_PX &&
+        pageX <= text.x + width + DRAW_TEXT_HIT_PADDING_PX &&
+        pageY >= text.y - DRAW_TEXT_HIT_PADDING_PX &&
+        pageY <= text.y + DRAW_TEXT_FONT_PX + DRAW_TEXT_HIT_PADDING_PX
       ) {
         return index;
       }
@@ -179,6 +154,82 @@ export const createDrawModeController = (
     redrawFrameId = nativeRequestAnimationFrame(redraw);
   };
 
+  // Align the input's text with where the canvas draws the note once committed.
+  const positionTextInput = () => {
+    if (!textInput) return;
+    textInput.style.left = `${textInputPosition.x - window.scrollX}px`;
+    textInput.style.top = `${textInputPosition.y - window.scrollY}px`;
+  };
+
+  const resizeTextInput = () => {
+    if (!textInput) return;
+    // Leave room for the trailing caret so it isn't clipped at the text's end.
+    textInput.style.width = `${Math.ceil(measureTextWidth(textInput.value)) + DRAW_CARET_WIDTH_PX}px`;
+  };
+
+  const openTextInput = (pageX: number, pageY: number, initialValue: string) => {
+    if (!overlay) return;
+    commitTextInput();
+    textInputPosition.x = pageX;
+    textInputPosition.y = pageY;
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.value = initialValue;
+    input.setAttribute("data-react-grab-ignore-events", "");
+    Object.assign(input.style, {
+      position: "absolute",
+      margin: "0",
+      padding: "0",
+      border: "none",
+      background: "transparent",
+      font: TEXT_FONT,
+      lineHeight: `${DRAW_TEXT_FONT_PX}px`,
+      height: `${DRAW_TEXT_FONT_PX}px`,
+      color: DRAW_COLOR,
+      caretColor: DRAW_COLOR,
+      outline: "none",
+      boxSizing: "content-box",
+      pointerEvents: "auto",
+    } satisfies Partial<CSSStyleDeclaration>);
+    input.addEventListener("input", resizeTextInput);
+    input.addEventListener("blur", commitTextInput);
+
+    overlay.appendChild(input);
+    textInput = input;
+    resizeTextInput();
+    positionTextInput();
+    input.focus();
+    input.setSelectionRange(initialValue.length, initialValue.length);
+  };
+
+  const removeTextInput = (): HTMLInputElement | null => {
+    if (!textInput) return null;
+    const input = textInput;
+    textInput = null;
+    input.removeEventListener("input", resizeTextInput);
+    input.removeEventListener("blur", commitTextInput);
+    input.remove();
+    return input;
+  };
+
+  const commitTextInput = () => {
+    const input = removeTextInput();
+    if (!input) return;
+    const value = input.value;
+    if (value.trim().length > 0) {
+      committedItems.push({
+        kind: "text",
+        text: { x: textInputPosition.x, y: textInputPosition.y, value },
+      });
+    }
+    scheduleRedraw();
+  };
+
+  const discardTextInput = () => {
+    if (removeTextInput()) scheduleRedraw();
+  };
+
   const appendPoint = (event: PointerEvent) => {
     activeStroke?.points.push({
       x: event.clientX + window.scrollX,
@@ -189,27 +240,26 @@ export const createDrawModeController = (
 
   const handlePointerDown = (event: PointerEvent) => {
     if (event.button !== 0 || !overlay) return;
+    // Clicks inside the note's <input> position its caret natively.
+    if (event.target === textInput) return;
     event.preventDefault();
     event.stopPropagation();
-    // Ignore extra contacts while a stroke is already in progress so a second
-    // touch doesn't discard the first.
+    // Ignore extra contacts while a stroke is already in progress.
     if (activePointerId !== null) return;
     const pageX = event.clientX + window.scrollX;
     const pageY = event.clientY + window.scrollY;
     lastPointer.x = pageX;
     lastPointer.y = pageY;
 
-    // Clicking the note you're already typing keeps it open; clicking another
-    // committed note reopens it for editing instead of starting a stroke.
-    if (activeText && isPointInActiveText(activeText, pageX, pageY)) return;
+    // Clicking away commits the open note before drawing or editing another.
+    commitTextInput();
+
     const editIndex = findCommittedTextAt(pageX, pageY);
-    commitActiveText();
     if (editIndex !== -1) {
       const [removed] = committedItems.splice(editIndex, 1);
       if (removed.kind === "text") {
-        // Its width changes as it's re-edited; drop the now-stale cached width.
         committedTextWidths.delete(removed.text);
-        activeText = removed.text;
+        openTextInput(removed.text.x, removed.text.y, removed.text.value);
       }
       scheduleRedraw();
       return;
@@ -271,11 +321,9 @@ export const createDrawModeController = (
   };
 
   const undoLast = () => {
-    if (activeText) {
-      activeText = null;
-    } else if (activeStroke) {
-      // Releasing capture here matters when undoing while the pointer is still
-      // down; handlePointerUp would otherwise skip the release on id mismatch.
+    if (activeStroke) {
+      // Release here too: undoing mid-stroke leaves handlePointerUp unable to
+      // (its pointer id no longer matches).
       releaseActivePointerCapture();
       activeStroke = null;
       activePointerId = null;
@@ -286,6 +334,11 @@ export const createDrawModeController = (
   };
 
   const suppressContextMenu = (event: Event) => event.preventDefault();
+
+  const handleViewportScroll = () => {
+    positionTextInput();
+    scheduleRedraw();
+  };
 
   const buildOverlay = () => {
     isCursorOverText = false;
@@ -313,32 +366,30 @@ export const createDrawModeController = (
     overlay.addEventListener("pointermove", handlePointerMove);
     overlay.addEventListener("pointerup", handlePointerUp);
     overlay.addEventListener("pointercancel", handlePointerUp);
-    // Right-click would otherwise pop the native menu over the canvas.
     overlay.addEventListener("contextmenu", suppressContextMenu);
     window.addEventListener("resize", resizeCanvas);
-    // Strokes live in page coordinates; redraw on scroll to keep them pinned to
-    // the page. Capture phase because scroll events don't bubble.
-    window.addEventListener("scroll", scheduleRedraw, { capture: true, passive: true });
+    // Capture phase because scroll events don't bubble.
+    window.addEventListener("scroll", handleViewportScroll, { capture: true, passive: true });
 
     dependencies.getRoot().appendChild(overlay);
     resizeCanvas();
   };
 
   const teardown = () => {
+    removeTextInput();
     if (redrawFrameId !== null) {
       nativeCancelAnimationFrame(redrawFrameId);
       redrawFrameId = null;
     }
     restoreChromeForCapture();
     window.removeEventListener("resize", resizeCanvas);
-    window.removeEventListener("scroll", scheduleRedraw, { capture: true });
+    window.removeEventListener("scroll", handleViewportScroll, { capture: true });
     overlay?.remove();
     overlay = null;
     canvas = null;
     context = null;
     committedItems.length = 0;
     activeStroke = null;
-    activeText = null;
     activePointerId = null;
     setIsActive(false);
     dependencies.onClose?.();
@@ -380,8 +431,7 @@ export const createDrawModeController = (
     };
   };
 
-  // Idempotent so capture's cleanup and teardown (when the user exits mid-capture)
-  // can both call it without double-restoring.
+  // Idempotent so capture's cleanup and teardown (mid-capture exit) can both call it.
   const restoreChromeForCapture = () => {
     restoreChrome?.();
     restoreChrome = null;
@@ -393,7 +443,7 @@ export const createDrawModeController = (
     // Re-entrancy guard scoped to this session (e.g. Enter pressed twice).
     if (capturingSession === session) return;
     finishStroke();
-    commitActiveText();
+    commitTextInput();
     // Nothing drawn: exit instead of silently no-opping, so Enter/Copy give
     // visible feedback (the overlay closes) rather than appearing frozen.
     if (committedItems.length === 0) {
@@ -401,9 +451,6 @@ export const createDrawModeController = (
       return;
     }
     capturingSession = session;
-    // True only if this exact session is still the live one - guards every
-    // post-await step against the user exiting (or exiting and re-entering)
-    // draw mode mid-capture.
     const isSessionLive = () => isActive() && sessionId === session;
 
     try {
@@ -416,8 +463,8 @@ export const createDrawModeController = (
         },
       );
       restoreChromeForCapture();
-      // The mode may have been torn down (or restarted) while the permission
-      // prompt was open - don't copy an image the user abandoned.
+      // Torn down (or restarted) while the permission prompt was open - don't
+      // copy an image the user abandoned.
       if (!isSessionLive()) return;
       const copied = await copyImageToClipboard(screenshot);
       if (!isSessionLive()) return;
@@ -433,28 +480,36 @@ export const createDrawModeController = (
       logRecoverableError("Draw capture failed", error);
     } finally {
       restoreChromeForCapture();
-      // Only clear if still ours; a newer session may have started its own capture.
       if (capturingSession === session) capturingSession = null;
     }
   };
 
   const handleKeyDown = (event: KeyboardEvent) => {
     if (!isActive()) return;
-    // Chromium reports keyCode 229 on the IME commit tick after isComposing
-    // resets; ignore both so confirming a composition doesn't capture or corrupt
-    // an in-progress text note.
+
+    // While a note is open its <input> owns typing, caret, selection, IME and
+    // its own undo; intercept only commit (Enter) and discard (Escape), and not
+    // while an IME composition is using them.
+    if (textInput) {
+      if (event.isComposing) return;
+      if (event.key === "Enter") {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        void capture();
+      } else if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        discardTextInput();
+      }
+      return;
+    }
+
     if (event.isComposing || event.keyCode === IME_COMPOSING_KEY_CODE) return;
 
     if (event.key === "Escape") {
       event.preventDefault();
       event.stopImmediatePropagation();
-      // First Escape discards an in-progress text; a second exits the mode.
-      if (activeText) {
-        activeText = null;
-        scheduleRedraw();
-      } else {
-        cancel();
-      }
+      cancel();
       return;
     }
 
@@ -472,18 +527,8 @@ export const createDrawModeController = (
       return;
     }
 
-    if (event.key === "Backspace") {
-      if (!activeText) return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      activeText.value = activeText.value.slice(0, -1);
-      if (activeText.value.length === 0) activeText = null;
-      scheduleRedraw();
-      return;
-    }
-
-    // Typing a printable character drops/extends a text note at the cursor, but
-    // not mid-stroke - the user is drawing, not typing.
+    // A printable key (not mid-stroke) opens a note at the cursor and seeds it
+    // with that character; the <input> takes over from there.
     if (
       !activeStroke &&
       !event.metaKey &&
@@ -493,11 +538,7 @@ export const createDrawModeController = (
     ) {
       event.preventDefault();
       event.stopImmediatePropagation();
-      if (!activeText) {
-        activeText = { x: lastPointer.x, y: lastPointer.y, value: "" };
-      }
-      activeText.value += event.key;
-      scheduleRedraw();
+      openTextInput(lastPointer.x, lastPointer.y, event.key);
     }
   };
 

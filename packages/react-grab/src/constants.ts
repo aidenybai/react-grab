@@ -277,8 +277,8 @@ export const DRAW_STROKE_THINNING = 0.6;
 export const DRAW_STROKE_SMOOTHING = 0.5;
 export const DRAW_STROKE_STREAMLINE = 0.5;
 export const DRAW_TEXT_FONT_PX = 18;
+// Trailing space in the note <input> so its native caret isn't clipped.
 export const DRAW_CARET_WIDTH_PX = 2;
-export const DRAW_CARET_GAP_PX = 1;
 // Click slop around a committed text note when picking it for re-editing.
 export const DRAW_TEXT_HIT_PADDING_PX = 6;
 // A pen-nib cursor (same pencil as the toolbar icon, pink fill + white outline
