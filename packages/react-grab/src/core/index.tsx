@@ -346,13 +346,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         setAnnotationMenuPosition(null);
       },
       onCopied: () => {
-        // Show a "✓ Copied" toast anchored to the toolbar's nearest edge (same
-        // edge-aware anchor as the Copy/Cancel menu), then fade it out.
-        const anchor = computeDropdownAnchor();
-        if (!anchor) return;
-        setAnnotationCopiedPosition(anchor);
+        // Track the toolbar continuously (same edge-aware anchor as the
+        // Copy/Cancel menu) so a post-capture reflow - e.g. the screen-share
+        // indicator bar collapsing - doesn't strand the toast at a stale spot.
+        stopAnnotationCopiedTracking?.();
+        stopAnnotationCopiedTracking = trackDropdownPosition(
+          computeDropdownAnchor,
+          setAnnotationCopiedPosition,
+        );
         if (annotationCopiedTimer !== null) clearTimeout(annotationCopiedTimer);
         annotationCopiedTimer = window.setTimeout(() => {
+          stopAnnotationCopiedTracking?.();
+          stopAnnotationCopiedTracking = null;
           setAnnotationCopiedPosition(null);
           annotationCopiedTimer = null;
         }, FEEDBACK_DURATION_MS);
@@ -369,6 +374,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let stopToolbarMenuTracking: (() => void) | null = null;
     let stopEditPanelTracking: (() => void) | null = null;
     let stopAnnotationMenuTracking: (() => void) | null = null;
+    let stopAnnotationCopiedTracking: (() => void) | null = null;
     let didSwitchEditTargetOnPointerDown = false;
 
     let shiftSelectionLabelAnchorRatioByElement = new WeakMap<Element, number>();
@@ -3081,6 +3087,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       stopEditPanelTracking = null;
       stopAnnotationMenuTracking?.();
       stopAnnotationMenuTracking = null;
+      stopAnnotationCopiedTracking?.();
+      stopAnnotationCopiedTracking = null;
       if (annotationCopiedTimer !== null) clearTimeout(annotationCopiedTimer);
       grabbedBoxTimeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
       grabbedBoxTimeouts.clear();
@@ -3865,6 +3873,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         stopEditPanelTracking = null;
         stopAnnotationMenuTracking?.();
         stopAnnotationMenuTracking = null;
+        stopAnnotationCopiedTracking?.();
+        stopAnnotationCopiedTracking = null;
         if (annotationCopiedTimer !== null) clearTimeout(annotationCopiedTimer);
         toolbarStateChangeCallbacks.clear();
         dispose();
