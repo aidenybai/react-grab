@@ -100,6 +100,7 @@ import type {
   ReactGrabAPI,
   ReactGrabState,
   SelectionLabelInstance,
+  ContextMenuAction,
   ContextMenuActionContext,
   ArrowNavigationState,
   FrozenLabelEntry,
@@ -1635,15 +1636,21 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       toggleActivate();
     };
 
-    // A stored default action can become disabled (e.g. Draw where screen
-    // capture is unsupported); fall back so the main toggle never resolves to a
-    // no-op action.
+    // The toolbar menu / default picker has no element context, so judge an
+    // action only by its context-free enabled. A context-dependent (function)
+    // enabled is left in - it's evaluated per-element when the action runs.
+    const isMenuActionEnabled = (action: ContextMenuAction): boolean =>
+      typeof action.enabled === "function" ? true : action.enabled !== false;
+
+    // A stored default action can become unconditionally disabled (e.g. Draw
+    // where screen capture is unsupported); fall back so the main toggle never
+    // resolves to a no-op action.
     const effectiveDefaultActionId = (): string => {
       const storedActionId = currentToolbarState()?.defaultAction ?? DEFAULT_ACTION_ID;
       const storedAction = pluginRegistry.store.actions.find(
         (action) => action.id === storedActionId,
       );
-      if (storedAction && !resolveActionEnabled(storedAction, undefined)) {
+      if (storedAction && !isMenuActionEnabled(storedAction)) {
         return DEFAULT_ACTION_ID;
       }
       return storedActionId;
@@ -3796,8 +3803,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 onContextMenuHide={deferHideContextMenu}
                 toolbarMenuPosition={toolbarMenuPosition()}
                 toolbarMenuActions={pluginRegistry.store.actions.filter(
-                  (action) =>
-                    action.showInToolbarMenu === true && resolveActionEnabled(action, undefined),
+                  (action) => action.showInToolbarMenu === true && isMenuActionEnabled(action),
                 )}
                 defaultActionId={effectiveDefaultActionId()}
                 onSetDefaultAction={handleSetDefaultAction}
