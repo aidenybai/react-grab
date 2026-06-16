@@ -7,12 +7,10 @@ import {
   ANNOTATION_TEXT_FONT_PX,
   ANNOTATION_TEXT_HIT_PADDING_PX,
   IME_COMPOSING_KEY_CODE,
-  SCREENSHOT_CAPTURE_DELAY_MS,
   Z_INDEX_ANNOTATION_CANVAS,
 } from "../constants.js";
 import type { AnnotationStroke, AnnotationText, CommittedAnnotation } from "../types.js";
 import { captureElementScreenshot, copyImageToClipboard } from "../utils/capture-screenshot.js";
-import { delay } from "../utils/delay.js";
 import { getAnnotationStrokePath } from "../utils/get-annotation-stroke-path.js";
 import { logRecoverableError } from "../utils/log-recoverable-error.js";
 import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "../utils/native-raf.js";
@@ -393,12 +391,10 @@ export const createAnnotationModeController = (
     try {
       const screenshot = await captureElementScreenshot(
         { x: 0, y: 0, width: window.innerWidth, height: window.innerHeight },
-        // Hide chrome only for the frame grab (not the whole share prompt), then
-        // wait a beat so the live stream reflects the now-hidden chrome.
-        async () => {
+        // Hide chrome only for the frame grab, not the whole share prompt.
+        () => {
           if (!isSessionLive()) return;
           hideChromeForCapture();
-          await delay(SCREENSHOT_CAPTURE_DELAY_MS);
         },
       );
       restoreChromeForCapture();

@@ -1,9 +1,11 @@
 import {
+  SCREENSHOT_CAPTURE_DELAY_MS,
   VIDEO_METADATA_TIMEOUT_MS,
   VIDEO_READY_POLL_INTERVAL_MS,
   VIDEO_READY_TIMEOUT_MS,
 } from "../constants.js";
 import type { CurrentTabDisplayMediaOptions } from "../types.js";
+import { delay } from "./delay.js";
 
 export interface ElementBounds {
   x: number;
@@ -62,9 +64,10 @@ const captureVideoFrame = (video: HTMLVideoElement, bounds: ElementBounds): Prom
 
 export const captureElementScreenshot = async (
   bounds: ElementBounds,
-  // Runs after the stream is live but before the frame is grabbed, so callers
-  // can hide their own UI for the shot without hiding it for the whole prompt.
-  onBeforeGrab?: () => void | Promise<void>,
+  // Runs synchronously after the stream is live but before the frame is grabbed,
+  // so callers can hide their own UI for the shot without hiding it for the whole
+  // prompt. Kept sync so it can't stall the capture and leak the stream.
+  onBeforeGrab?: () => void,
 ): Promise<Blob> => {
   const displayMediaOptions: CurrentTabDisplayMediaOptions = {
     video: { displaySurface: "browser" },
@@ -118,7 +121,11 @@ export const captureElementScreenshot = async (
       checkReady();
     });
 
-    await onBeforeGrab?.();
+    if (onBeforeGrab) {
+      onBeforeGrab();
+      // Let the live stream paint the now-hidden chrome before grabbing.
+      await delay(SCREENSHOT_CAPTURE_DELAY_MS);
+    }
     return await captureVideoFrame(video, bounds);
   } finally {
     stream.getTracks().forEach((track) => track.stop());
