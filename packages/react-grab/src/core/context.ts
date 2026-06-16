@@ -44,6 +44,24 @@ const findNearestFiberElement = (element: Element): Element => {
   return element;
 };
 
+// Elements rendered inside a `.map()` all share the same JSX source location, so
+// the source line alone can't tell list instances apart. React already
+// disambiguates siblings via their `key`, so we surface the nearest list-item
+// key. The walk stops at the first component boundary: a keyed host element
+// directly under its rendering component (or a keyed list-item component itself)
+// is the identity we want; keys further up belong to unrelated ancestor lists.
+const getNearestListItemKey = (element: Element): string | null => {
+  if (!isInstrumentationActive()) return null;
+  let fiber: Fiber | null = getFiberFromHostInstance(findNearestFiberElement(element));
+  while (fiber) {
+    const fiberKey = fiber.key;
+    if (fiberKey != null && String(fiberKey).length > 0) return String(fiberKey);
+    if (isCompositeFiber(fiber)) break;
+    fiber = fiber.return;
+  }
+  return null;
+};
+
 const stackCache = new WeakMap<Element, Promise<StackFrame[] | null>>();
 const fiberSourceCache = new WeakMap<Element, Promise<ResolvedSource | null>>();
 
@@ -405,10 +423,12 @@ export const getStackContext = async (
 };
 
 const composeElementContext = (element: Element, traceContext: TraceContextResult): string => {
+  const listItemKey = getNearestListItemKey(element);
+  const keyHint = listItemKey !== null ? `\n  key: ${listItemKey}` : "";
   const selectorHint = traceContext.shouldAppendSelectorHint
     ? `\n  selector: ${createElementSelector(element)}`
     : "";
-  return `${traceContext.text}${selectorHint}`;
+  return `${traceContext.text}${keyHint}${selectorHint}`;
 };
 
 export const getElementReferenceContext = async (
