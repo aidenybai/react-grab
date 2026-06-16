@@ -2328,10 +2328,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!action) return false;
 
       const position = { x: pointer().x, y: pointer().y };
-      const immediateContext = buildImmediateActionContext(element, position);
-      // Don't run (or swallow the key for) a disabled action - e.g. Draw where
-      // screen capture is unavailable - and don't tear down prompt mode for it.
-      if (!resolveActionEnabled(action, immediateContext)) return false;
+      // Only build the context when needed: resolveActionEnabled needs one solely
+      // for function-typed `enabled`, and prompt mode rebuilds it itself. Don't
+      // run (or swallow the key for) a disabled action - e.g. Draw where screen
+      // capture is unavailable - and don't tear down prompt mode for it.
+      const enabledContext =
+        typeof action.enabled === "function"
+          ? buildImmediateActionContext(element, position)
+          : undefined;
+      if (!resolveActionEnabled(action, enabledContext)) return false;
 
       if (isPromptMode()) {
         if (!runActionForCurrentSelection(action.id)) return false;
@@ -2340,7 +2345,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return true;
       }
 
-      action.onAction(immediateContext);
+      action.onAction(enabledContext ?? buildImmediateActionContext(element, position));
 
       event.preventDefault();
       event.stopImmediatePropagation();

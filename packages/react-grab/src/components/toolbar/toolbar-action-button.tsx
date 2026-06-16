@@ -31,6 +31,7 @@ export const ToolbarActionButton: Component<ToolbarActionButtonProps> = (props) 
       aria-label={props.label}
       aria-pressed={Boolean(props.isActive)}
       aria-disabled={props.disabled ? "true" : undefined}
+      tabindex={props.disabled ? -1 : undefined}
       type="button"
       class={cn(props.class, props.disabled && "opacity-35 pointer-events-none")}
       onClick={(event) => !props.disabled && props.onClick?.(event)}
