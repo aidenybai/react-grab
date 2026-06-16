@@ -3808,25 +3808,33 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const api: ReactGrabAPI = {
+      // Draw mode owns the screen; selection-entering APIs no-op until it exits,
+      // mirroring the toolbar. deactivate/dispose exit Draw instead of blocking.
       activate: () => {
+        if (annotationMode.isActive()) return;
         actions.setPendingCommentMode(false);
         if (!isActivated() && isEnabled()) {
           toggleActivate();
         }
       },
       deactivate: () => {
+        annotationMode.cancel();
         if (isActivated() || isCopying()) {
           deactivateRenderer();
         }
       },
       toggle: () => {
+        if (annotationMode.isActive()) return;
         if (isActivated()) {
           deactivateRenderer();
         } else if (isEnabled()) {
           toggleActivate();
         }
       },
-      comment: handleComment,
+      comment: () => {
+        if (annotationMode.isActive()) return;
+        handleComment();
+      },
       annotate: toggleAnnotation,
       isActive: () => isActivated(),
       isEnabled: () => isEnabled(),
