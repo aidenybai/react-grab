@@ -42,6 +42,26 @@ const hasConfigFile = (projectRoot: string, configBaseName: string): boolean =>
     existsSync(join(projectRoot, `${configBaseName}.${extension}`)),
   );
 
+const findConfigFile = (projectRoot: string, configBaseName: string): string | null => {
+  for (const extension of CONFIG_EXTENSIONS) {
+    const configPath = join(projectRoot, `${configBaseName}.${extension}`);
+    if (existsSync(configPath)) return configPath;
+  }
+  return null;
+};
+
+const hasSvelteKitConfigFile = (projectRoot: string): boolean => {
+  const configPath = findConfigFile(projectRoot, "svelte.config");
+  if (!configPath) return false;
+
+  try {
+    const content = readFileSync(configPath, "utf-8");
+    return content.includes("@sveltejs/kit") || /\bkit\s*:/.test(content);
+  } catch {
+    return false;
+  }
+};
+
 const readMergedDependencies = (projectRoot: string): Record<string, string> | null => {
   const packageJsonPath = join(projectRoot, "package.json");
   if (!existsSync(packageJsonPath)) return null;
@@ -71,7 +91,7 @@ const detectFrameworkFromDependencies = (
 const detectFrameworkFromConfigFiles = (projectRoot: string): Framework => {
   if (hasConfigFile(projectRoot, "next.config")) return "next";
   if (hasConfigFile(projectRoot, "app.config")) return "tanstack";
-  if (hasConfigFile(projectRoot, "svelte.config")) return "sveltekit";
+  if (hasSvelteKitConfigFile(projectRoot)) return "sveltekit";
   if (hasConfigFile(projectRoot, "vite.config")) return "vite";
   if (hasConfigFile(projectRoot, "webpack.config")) return "webpack";
   return "unknown";

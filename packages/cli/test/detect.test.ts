@@ -140,6 +140,50 @@ describe("detectFramework", () => {
     expect(detectFramework("/test")).toBe("vite");
   });
 
+  it("should detect Vite instead of SvelteKit for plain Svelte apps", () => {
+    mockExistsSync.mockImplementation((path) => {
+      const pathString = toPosixPath(path);
+      if (pathString === "/test/package.json") return true;
+      if (pathString === "/test/svelte.config.js") return true;
+      if (pathString === "/test/vite.config.ts") return true;
+      return false;
+    });
+    mockReadFileSync.mockImplementation((path) => {
+      const pathString = toPosixPath(path);
+      if (pathString === "/test/package.json") {
+        return JSON.stringify({ dependencies: { react: "18.0.0" } });
+      }
+      if (pathString === "/test/svelte.config.js") {
+        return 'import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";\nexport default { preprocess: vitePreprocess() };';
+      }
+      return "";
+    });
+
+    expect(detectFramework("/test")).toBe("vite");
+  });
+
+  it("should detect SvelteKit from svelte.config when dependencies are unavailable", () => {
+    mockExistsSync.mockImplementation((path) => {
+      const pathString = toPosixPath(path);
+      if (pathString === "/test/package.json") return true;
+      if (pathString === "/test/svelte.config.js") return true;
+      if (pathString === "/test/vite.config.ts") return true;
+      return false;
+    });
+    mockReadFileSync.mockImplementation((path) => {
+      const pathString = toPosixPath(path);
+      if (pathString === "/test/package.json") {
+        return JSON.stringify({ dependencies: { react: "18.0.0" } });
+      }
+      if (pathString === "/test/svelte.config.js") {
+        return "export default { kit: {} };";
+      }
+      return "";
+    });
+
+    expect(detectFramework("/test")).toBe("sveltekit");
+  });
+
   it("should detect Next.js from next.config.mjs without next in deps", () => {
     mockExistsSync.mockImplementation((path) => {
       const pathString = toPosixPath(path);
