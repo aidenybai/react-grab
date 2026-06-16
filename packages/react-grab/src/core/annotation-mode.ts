@@ -10,7 +10,7 @@ import {
   SCREENSHOT_CAPTURE_DELAY_MS,
   Z_INDEX_ANNOTATION_CANVAS,
 } from "../constants.js";
-import type { AnnotationStroke, AnnotationText } from "../types.js";
+import type { AnnotationStroke, AnnotationText, CommittedAnnotation } from "../types.js";
 import { captureElementScreenshot, copyImageToClipboard } from "../utils/capture-screenshot.js";
 import { delay } from "../utils/delay.js";
 import { getAnnotationStrokePath } from "../utils/get-annotation-stroke-path.js";
@@ -41,8 +41,9 @@ export const createAnnotationModeController = (
   let canvas: HTMLCanvasElement | null = null;
   let context: CanvasRenderingContext2D | null = null;
 
-  const committedStrokes: AnnotationStroke[] = [];
-  const committedTexts: AnnotationText[] = [];
+  // Single ordered list so undo removes the genuinely-last action and later
+  // items paint on top of earlier ones, regardless of stroke/text type.
+  const committedItems: CommittedAnnotation[] = [];
   // Cache finished strokes' outlines so per-frame redraws don't recompute them.
   const committedStrokePaths = new WeakMap<AnnotationStroke, Path2D>();
   let activeStroke: AnnotationStroke | null = null;
@@ -79,28 +80,34 @@ export const createAnnotationModeController = (
     }
   };
 
+  const fillStroke = (stroke: AnnotationStroke, isComplete: boolean) => {
+    if (!context) return;
+    let path = isComplete ? committedStrokePaths.get(stroke) : undefined;
+    if (!path) {
+      path = getAnnotationStrokePath(stroke, isComplete);
+      if (isComplete) committedStrokePaths.set(stroke, path);
+    }
+    context.fillStyle = ANNOTATION_COLOR;
+    context.fill(path);
+  };
+
   const redraw = () => {
     redrawFrameId = null;
     if (!context) return;
     context.clearRect(0, 0, window.innerWidth, window.innerHeight);
-    // Strokes/text are stored in page coordinates; offsetting by the scroll
-    // position pins them to the content so they ride along with scroll/resize.
+    // Items are stored in page coordinates; offsetting by the scroll position
+    // pins them to the content so they ride along with scroll/resize.
     context.save();
     context.translate(-window.scrollX, -window.scrollY);
-    context.fillStyle = ANNOTATION_COLOR;
-    for (const stroke of committedStrokes) {
-      let path = committedStrokePaths.get(stroke);
-      if (!path) {
-        path = getAnnotationStrokePath(stroke, true);
-        committedStrokePaths.set(stroke, path);
+    for (const item of committedItems) {
+      if (item.kind === "stroke") {
+        fillStroke(item.stroke, true);
+      } else {
+        drawText(item.text, false);
       }
-      context.fill(path);
     }
     if (activeStroke && activeStroke.points.length > 0) {
-      context.fill(getAnnotationStrokePath(activeStroke, false));
-    }
-    for (const text of committedTexts) {
-      drawText(text, false);
+      fillStroke(activeStroke, false);
     }
     if (activeText) {
       drawText(activeText, true);
@@ -110,7 +117,7 @@ export const createAnnotationModeController = (
 
   const commitActiveText = () => {
     if (activeText && activeText.value.trim().length > 0) {
-      committedTexts.push(activeText);
+      committedItems.push({ kind: "text", text: activeText });
     }
     activeText = null;
   };
@@ -128,8 +135,9 @@ export const createAnnotationModeController = (
   };
 
   const findCommittedTextAt = (pageX: number, pageY: number): number => {
-    for (let index = committedTexts.length - 1; index >= 0; index--) {
-      if (isPointInText(committedTexts[index], pageX, pageY)) return index;
+    for (let index = committedItems.length - 1; index >= 0; index--) {
+      const item = committedItems[index];
+      if (item.kind === "text" && isPointInText(item.text, pageX, pageY)) return index;
     }
     return -1;
   };
@@ -162,7 +170,8 @@ export const createAnnotationModeController = (
     const editIndex = findCommittedTextAt(pageX, pageY);
     commitActiveText();
     if (editIndex !== -1) {
-      activeText = committedTexts.splice(editIndex, 1)[0];
+      const [removed] = committedItems.splice(editIndex, 1);
+      if (removed.kind === "text") activeText = removed.text;
       scheduleRedraw();
       return;
     }
@@ -197,7 +206,7 @@ export const createAnnotationModeController = (
 
   const finishStroke = () => {
     if (activeStroke && activeStroke.points.length > 0) {
-      committedStrokes.push(activeStroke);
+      committedItems.push({ kind: "stroke", stroke: activeStroke });
     }
     activeStroke = null;
     activePointerId = null;
@@ -218,10 +227,8 @@ export const createAnnotationModeController = (
     } else if (activeStroke) {
       activeStroke = null;
       activePointerId = null;
-    } else if (committedStrokes.length > 0) {
-      committedStrokes.pop();
     } else {
-      committedTexts.pop();
+      committedItems.pop();
     }
     scheduleRedraw();
   };
@@ -272,8 +279,7 @@ export const createAnnotationModeController = (
     overlay = null;
     canvas = null;
     context = null;
-    committedStrokes.length = 0;
-    committedTexts.length = 0;
+    committedItems.length = 0;
     activeStroke = null;
     activeText = null;
     activePointerId = null;
@@ -327,7 +333,7 @@ export const createAnnotationModeController = (
     if (!isActive() || isCapturing) return;
     finishStroke();
     commitActiveText();
-    if (committedStrokes.length === 0 && committedTexts.length === 0) return;
+    if (committedItems.length === 0) return;
     isCapturing = true;
     hideChromeForCapture();
 

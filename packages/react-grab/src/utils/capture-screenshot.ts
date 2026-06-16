@@ -68,13 +68,14 @@ export const captureElementScreenshot = async (bounds: ElementBounds): Promise<B
   const stream = await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
 
   const video = document.createElement("video");
-  video.srcObject = stream;
-  video.autoplay = true;
-  video.playsInline = true;
 
   // Stop the capture stream on any failure below, not just a frame-draw error -
   // otherwise a metadata/ready-state rejection leaves the tab "sharing" forever.
   try {
+    video.srcObject = stream;
+    video.autoplay = true;
+    video.playsInline = true;
+
     await new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error("Video metadata loading timed out"));

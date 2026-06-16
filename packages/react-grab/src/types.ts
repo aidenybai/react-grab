@@ -19,6 +19,12 @@ export interface AnnotationText {
   value: string;
 }
 
+// Committed strokes and texts share one ordered list so undo and z-order both
+// follow insertion order.
+export type CommittedAnnotation =
+  | { kind: "stroke"; stroke: AnnotationStroke }
+  | { kind: "text"; text: AnnotationText };
+
 // `preferCurrentTab` is a non-standard Chromium option missing from lib.dom.
 export interface CurrentTabDisplayMediaOptions extends DisplayMediaStreamOptions {
   preferCurrentTab?: boolean;
