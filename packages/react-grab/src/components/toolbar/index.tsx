@@ -1,6 +1,7 @@
-import { createEffect, createSignal, on, onCleanup, onMount, type Component } from "solid-js";
+import { createEffect, createSignal, on, onCleanup, onMount, Show, type Component } from "solid-js";
 import type { Position } from "../../types.js";
 import { cn } from "../../utils/cn.js";
+import { isScreenshotSupported } from "../../utils/is-screenshot-supported.js";
 import { loadToolbarState, saveToolbarState, type SnapEdge, type ToolbarState } from "./state.js";
 import { IconSelect } from "../icons/icon-select.jsx";
 import { IconComment } from "../icons/icon-comment.jsx";
@@ -121,6 +122,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   // While annotating, the canvas owns the screen - the other tools are locked
   // out so the only paths forward are the annotation menu's Copy/Cancel.
   const isAnnotating = () => props.activeActionId === ANNOTATE_ACTION_ID;
+  // Draw needs screen capture + clipboard-image write; hide it where unsupported.
+  const canDraw = isScreenshotSupported();
   // Activation paths that bypass the toolbar buttons (keyboard hold, api.activate,
   // post-copy reactivation) never set activeActionId, so a null id while active
   // means the implicit default copy/select flow - keep the select icon's
@@ -762,24 +765,26 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               tooltipPosition={tooltipPosition()}
               tooltip="Style"
             />
-            <ToolbarActionButton
-              actionId={ANNOTATE_ACTION_ID}
-              label="Draw on screen"
-              isActive={isActionActive(ANNOTATE_ACTION_ID)}
-              class={actionButtonClass}
-              wrapperClass={actionButtonWrapperClass()}
-              onClick={handleAnnotate}
-              {...createFreezeHandlers(ANNOTATE_ACTION_ID)}
-              icon={
-                <IconAnnotate
-                  size={14}
-                  class={actionIconClass(isActionActive(ANNOTATE_ACTION_ID))}
-                />
-              }
-              tooltipVisible={isTooltipVisible(ANNOTATE_ACTION_ID)}
-              tooltipPosition={tooltipPosition()}
-              tooltip="Draw"
-            />
+            <Show when={canDraw}>
+              <ToolbarActionButton
+                actionId={ANNOTATE_ACTION_ID}
+                label="Draw on screen"
+                isActive={isActionActive(ANNOTATE_ACTION_ID)}
+                class={actionButtonClass}
+                wrapperClass={actionButtonWrapperClass()}
+                onClick={handleAnnotate}
+                {...createFreezeHandlers(ANNOTATE_ACTION_ID)}
+                icon={
+                  <IconAnnotate
+                    size={14}
+                    class={actionIconClass(isActionActive(ANNOTATE_ACTION_ID))}
+                  />
+                }
+                tooltipVisible={isTooltipVisible(ANNOTATE_ACTION_ID)}
+                tooltipPosition={tooltipPosition()}
+                tooltip="Draw"
+              />
+            </Show>
           </>
         }
       />

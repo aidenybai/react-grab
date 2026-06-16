@@ -52,6 +52,10 @@ export const createAnnotationModeController = (
   let redrawFrameId: number | null = null;
   let isCapturing = false;
   let restoreChrome: (() => void) | null = null;
+  // Bumped on every start() so an in-flight capture from a prior session can
+  // detect it was superseded after an await and bail instead of copying a stale
+  // shot and tearing down the new session.
+  let sessionId = 0;
   const lastPointer = { x: 0, y: 0 };
 
   const TEXT_FONT = `500 ${ANNOTATION_TEXT_FONT_PX}px "Geist", system-ui, -apple-system, sans-serif`;
@@ -290,6 +294,7 @@ export const createAnnotationModeController = (
   const start = () => {
     if (isActive()) return;
     setIsActive(true);
+    sessionId += 1;
     lastPointer.x = window.scrollX + window.innerWidth / 2;
     lastPointer.y = window.scrollY + window.innerHeight / 2;
     buildOverlay();
@@ -335,13 +340,18 @@ export const createAnnotationModeController = (
     commitActiveText();
     if (committedItems.length === 0) return;
     isCapturing = true;
+    const session = sessionId;
+    // True only if this exact session is still the live one - guards every
+    // post-await step against the user exiting (or exiting and re-entering)
+    // draw mode mid-capture.
+    const isSessionLive = () => isActive() && sessionId === session;
     hideChromeForCapture();
 
     try {
       await delay(SCREENSHOT_CAPTURE_DELAY_MS);
       // Don't open the screen-share prompt if the user left draw mode during the
       // delay (Draw toggle, Escape, or dismissAllPopups).
-      if (!isActive()) return;
+      if (!isSessionLive()) return;
       const screenshot = await captureElementScreenshot({
         x: 0,
         y: 0,
@@ -349,10 +359,12 @@ export const createAnnotationModeController = (
         height: window.innerHeight,
       });
       restoreChromeForCapture();
-      // The mode may have been torn down while the permission prompt was open -
-      // don't copy an image the user abandoned.
-      if (!isActive()) return;
-      if (await copyImageToClipboard(screenshot)) {
+      // The mode may have been torn down (or restarted) while the permission
+      // prompt was open - don't copy an image the user abandoned.
+      if (!isSessionLive()) return;
+      const copied = await copyImageToClipboard(screenshot);
+      if (!isSessionLive()) return;
+      if (copied) {
         dependencies.onCopied?.();
         teardown();
       } else {

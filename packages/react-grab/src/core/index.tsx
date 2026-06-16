@@ -113,6 +113,7 @@ import type {
 } from "../types.js";
 import { createEditModeController, type EditModeOverrides } from "./edit-mode.js";
 import { createAnnotationModeController } from "./annotation-mode.js";
+import { isScreenshotSupported } from "../utils/is-screenshot-supported.js";
 import { createPluginRegistry } from "./plugin-registry.js";
 import { createLabelController } from "./label-controller.js";
 import { createArrowNavigator } from "./arrow-navigation.js";
@@ -1573,7 +1574,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const startAnnotation = () => {
-      if (!isEnabled() || annotationMode.isActive()) return;
+      if (!isEnabled() || annotationMode.isActive() || !isScreenshotSupported()) return;
       dismissAllPopups();
       keyboardSelection.clear();
       if (isActivated()) {
