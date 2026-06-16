@@ -6,6 +6,7 @@ import {
   ANNOTATION_CURSOR,
   ANNOTATION_TEXT_FONT_PX,
   ANNOTATION_TEXT_HIT_PADDING_PX,
+  IME_COMPOSING_KEY_CODE,
   SCREENSHOT_CAPTURE_DELAY_MS,
   Z_INDEX_ANNOTATION_CANVAS,
 } from "../constants.js";
@@ -49,6 +50,7 @@ export const createAnnotationModeController = (
   let activePointerId: number | null = null;
   let redrawFrameId: number | null = null;
   let isCapturing = false;
+  let restoreChrome: (() => void) | null = null;
   const lastPointer = { x: 0, y: 0 };
 
   const TEXT_FONT = `500 ${ANNOTATION_TEXT_FONT_PX}px "Geist", system-ui, -apple-system, sans-serif`;
@@ -263,6 +265,7 @@ export const createAnnotationModeController = (
       nativeCancelAnimationFrame(redrawFrameId);
       redrawFrameId = null;
     }
+    restoreChromeForCapture();
     window.removeEventListener("resize", resizeCanvas);
     window.removeEventListener("scroll", scheduleRedraw, { capture: true });
     overlay?.remove();
@@ -294,8 +297,8 @@ export const createAnnotationModeController = (
 
   // The drawing canvas stays visible so the screen capture includes it
   // (WYSIWYG); react-grab's own chrome (toolbar + Copy/Cancel menu) is hidden so
-  // it stays out of the shot. Returns a function that restores prior visibility.
-  const hideChromeForCapture = (): (() => void) => {
+  // it stays out of the shot.
+  const hideChromeForCapture = () => {
     const root = dependencies.getRoot();
     const restorers = ["[data-react-grab-toolbar]", "[data-react-grab-annotation-menu]"].map(
       (selector) => {
@@ -308,9 +311,16 @@ export const createAnnotationModeController = (
         };
       },
     );
-    return () => {
+    restoreChrome = () => {
       for (const restore of restorers) restore();
     };
+  };
+
+  // Idempotent so capture's cleanup and teardown (when the user exits mid-capture)
+  // can both call it without double-restoring.
+  const restoreChromeForCapture = () => {
+    restoreChrome?.();
+    restoreChrome = null;
   };
 
   const capture = async () => {
@@ -319,20 +329,22 @@ export const createAnnotationModeController = (
     commitActiveText();
     if (committedStrokes.length === 0 && committedTexts.length === 0) return;
     isCapturing = true;
-
-    const restoreChrome = hideChromeForCapture();
+    hideChromeForCapture();
 
     try {
       await delay(SCREENSHOT_CAPTURE_DELAY_MS);
+      // Don't open the screen-share prompt if the user left draw mode during the
+      // delay (Draw toggle, Escape, or dismissAllPopups).
+      if (!isActive()) return;
       const screenshot = await captureElementScreenshot({
         x: 0,
         y: 0,
         width: window.innerWidth,
         height: window.innerHeight,
       });
-      restoreChrome();
-      // The mode may have been torn down (cancel/dispose) while the capture
-      // permission prompt was open - don't copy an image the user abandoned.
+      restoreChromeForCapture();
+      // The mode may have been torn down while the permission prompt was open -
+      // don't copy an image the user abandoned.
       if (!isActive()) return;
       if (await copyImageToClipboard(screenshot)) {
         dependencies.onCopied?.();
@@ -341,17 +353,21 @@ export const createAnnotationModeController = (
         logRecoverableError("Annotation copy to clipboard failed", null);
       }
     } catch (error) {
-      restoreChrome();
       // Dismissing the browser's screen-share prompt is a normal user action.
       if (error instanceof DOMException && error.name === "NotAllowedError") return;
       logRecoverableError("Annotation capture failed", error);
     } finally {
+      restoreChromeForCapture();
       isCapturing = false;
     }
   };
 
   const handleKeyDown = (event: KeyboardEvent) => {
     if (!isActive()) return;
+    // Chromium reports keyCode 229 on the IME commit tick after isComposing
+    // resets; ignore both so confirming a composition doesn't capture or corrupt
+    // an in-progress text note.
+    if (event.isComposing || event.keyCode === IME_COMPOSING_KEY_CODE) return;
 
     if (event.key === "Escape") {
       event.preventDefault();

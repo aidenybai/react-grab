@@ -72,44 +72,46 @@ export const captureElementScreenshot = async (bounds: ElementBounds): Promise<B
   video.autoplay = true;
   video.playsInline = true;
 
-  await new Promise<void>((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      reject(new Error("Video metadata loading timed out"));
-    }, VIDEO_METADATA_TIMEOUT_MS);
-
-    video.onerror = () => {
-      clearTimeout(timeout);
-      reject(new Error("Video failed to load"));
-    };
-
-    video.onloadedmetadata = () => {
-      clearTimeout(timeout);
-      void video.play();
-      resolve();
-    };
-  });
-
-  await new Promise<void>((resolve, reject) => {
-    const startTime = Date.now();
-
-    const checkReady = () => {
-      if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-        resolve();
-        return;
-      }
-
-      if (Date.now() - startTime >= VIDEO_READY_TIMEOUT_MS) {
-        reject(new Error("Video frame not ready within timeout"));
-        return;
-      }
-
-      setTimeout(checkReady, VIDEO_READY_POLL_INTERVAL_MS);
-    };
-
-    checkReady();
-  });
-
+  // Stop the capture stream on any failure below, not just a frame-draw error -
+  // otherwise a metadata/ready-state rejection leaves the tab "sharing" forever.
   try {
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error("Video metadata loading timed out"));
+      }, VIDEO_METADATA_TIMEOUT_MS);
+
+      video.onerror = () => {
+        clearTimeout(timeout);
+        reject(new Error("Video failed to load"));
+      };
+
+      video.onloadedmetadata = () => {
+        clearTimeout(timeout);
+        void video.play();
+        resolve();
+      };
+    });
+
+    await new Promise<void>((resolve, reject) => {
+      const startTime = Date.now();
+
+      const checkReady = () => {
+        if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+          resolve();
+          return;
+        }
+
+        if (Date.now() - startTime >= VIDEO_READY_TIMEOUT_MS) {
+          reject(new Error("Video frame not ready within timeout"));
+          return;
+        }
+
+        setTimeout(checkReady, VIDEO_READY_POLL_INTERVAL_MS);
+      };
+
+      checkReady();
+    });
+
     return await captureVideoFrame(video, bounds);
   } finally {
     stream.getTracks().forEach((track) => track.stop());
