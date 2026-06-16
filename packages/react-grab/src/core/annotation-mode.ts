@@ -48,7 +48,10 @@ export const createAnnotationModeController = (
   let activeText: AnnotationText | null = null;
   let activePointerId: number | null = null;
   let redrawFrameId: number | null = null;
-  let isCapturing = false;
+  // The session id whose capture is in flight (null when idle). Scoped to the
+  // session so a stale capture from a torn-down session can't block a new one's
+  // Copy/Enter, and a stale capture's cleanup can't clear a newer one's flag.
+  let capturingSession: number | null = null;
   let restoreChrome: (() => void) | null = null;
   // Bumped on every start() so an in-flight capture from a prior session can
   // detect it was superseded after an await and bail instead of copying a stale
@@ -240,10 +243,17 @@ export const createAnnotationModeController = (
     scheduleRedraw();
   };
 
+  const releaseActivePointerCapture = () => {
+    if (activePointerId !== null && overlay?.hasPointerCapture(activePointerId)) {
+      overlay.releasePointerCapture(activePointerId);
+    }
+  };
+
   const finishStroke = () => {
     if (activeStroke && activeStroke.points.length > 0) {
       committedItems.push({ kind: "stroke", stroke: activeStroke });
     }
+    releaseActivePointerCapture();
     activeStroke = null;
     activePointerId = null;
     scheduleRedraw();
@@ -253,7 +263,6 @@ export const createAnnotationModeController = (
     if (event.pointerId !== activePointerId) return;
     event.preventDefault();
     event.stopPropagation();
-    overlay?.releasePointerCapture(event.pointerId);
     finishStroke();
   };
 
@@ -261,6 +270,9 @@ export const createAnnotationModeController = (
     if (activeText) {
       activeText = null;
     } else if (activeStroke) {
+      // Releasing capture here matters when undoing while the pointer is still
+      // down; handlePointerUp would otherwise skip the release on id mismatch.
+      releaseActivePointerCapture();
       activeStroke = null;
       activePointerId = null;
     } else {
@@ -372,7 +384,10 @@ export const createAnnotationModeController = (
   };
 
   const capture = async () => {
-    if (!isActive() || isCapturing) return;
+    if (!isActive()) return;
+    const session = sessionId;
+    // Re-entrancy guard scoped to this session (e.g. Enter pressed twice).
+    if (capturingSession === session) return;
     finishStroke();
     commitActiveText();
     // Nothing drawn: exit instead of silently no-opping, so Enter/Copy give
@@ -381,8 +396,7 @@ export const createAnnotationModeController = (
       cancel();
       return;
     }
-    isCapturing = true;
-    const session = sessionId;
+    capturingSession = session;
     // True only if this exact session is still the live one - guards every
     // post-await step against the user exiting (or exiting and re-entering)
     // draw mode mid-capture.
@@ -415,7 +429,8 @@ export const createAnnotationModeController = (
       logRecoverableError("Annotation capture failed", error);
     } finally {
       restoreChromeForCapture();
-      isCapturing = false;
+      // Only clear if still ours; a newer session may have started its own capture.
+      if (capturingSession === session) capturingSession = null;
     }
   };
 
