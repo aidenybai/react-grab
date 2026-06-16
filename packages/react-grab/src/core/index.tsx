@@ -81,6 +81,7 @@ import {
   DEFAULT_ACTION_ID,
   COMMENT_ACTION_ID,
   EDIT_ACTION_ID,
+  ANNOTATE_ACTION_ID,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { hideFromThirdParties } from "../utils/hide-from-third-parties.js";
@@ -111,6 +112,7 @@ import type {
   ElementLabelVariant,
 } from "../types.js";
 import { createEditModeController, type EditModeOverrides } from "./edit-mode.js";
+import { createAnnotationModeController } from "./annotation-mode.js";
 import { createPluginRegistry } from "./plugin-registry.js";
 import { createLabelController } from "./label-controller.js";
 import { createArrowNavigator } from "./arrow-navigation.js";
@@ -126,6 +128,7 @@ import { copyPlugin } from "./plugins/copy.js";
 import { commentPlugin } from "./plugins/comment.js";
 import { editPlugin } from "./plugins/edit.js";
 import { openPlugin } from "./plugins/open.js";
+import { annotatePlugin } from "./plugins/annotate.js";
 import {
   freezeAnimations,
   freezeAllAnimations,
@@ -140,7 +143,7 @@ import { getNearestEdge } from "../utils/get-nearest-edge.js";
 import { findShortcutAction } from "../utils/action-shortcuts.js";
 import { createKeyboardSelectionController } from "./keyboard-selection.js";
 
-const builtInPlugins = [copyPlugin, editPlugin, commentPlugin, openPlugin];
+const builtInPlugins = [copyPlugin, editPlugin, commentPlugin, annotatePlugin, openPlugin];
 
 interface CopyWithLabelOptions {
   element: Element;
@@ -293,6 +296,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [isToolbarSelectHovered, setIsToolbarSelectHovered] = createSignal(false);
     const [toolbarMenuPosition, setToolbarMenuPosition] = createSignal<DropdownAnchor | null>(null);
     const [editPanelPosition, setEditPanelPosition] = createSignal<DropdownAnchor | null>(null);
+    const [annotationMenuPosition, setAnnotationMenuPosition] = createSignal<DropdownAnchor | null>(
+      null,
+    );
+    const [annotationCopiedPosition, setAnnotationCopiedPosition] =
+      createSignal<DropdownAnchor | null>(null);
+    let annotationCopiedTimer: number | null = null;
     // Forward-ref wrappers because activateRenderer / deactivateRenderer /
     // performCopyWithLabel are declared later in this scope. The wrappers
     // are captured by the controller; the underlying lookups happen at
@@ -317,6 +326,39 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
     });
 
+    // rendererRoot is created later in this scope; the getter is only invoked
+    // when annotation mode actually opens, by which point the binding is
+    // initialized (same TDZ-safe pattern as editMode above). onOpen/onClose
+    // anchor the Copy/Cancel menu to the toolbar exactly like the edit panel.
+    const annotationMode = createAnnotationModeController({
+      getRoot: () => rendererRoot,
+      onOpen: () => {
+        dismissToolbarMenu();
+        stopAnnotationMenuTracking?.();
+        stopAnnotationMenuTracking = trackDropdownPosition(
+          computeDropdownAnchor,
+          setAnnotationMenuPosition,
+        );
+      },
+      onClose: () => {
+        stopAnnotationMenuTracking?.();
+        stopAnnotationMenuTracking = null;
+        setAnnotationMenuPosition(null);
+      },
+      onCopied: () => {
+        // Show a "✓ Copied" toast anchored to the toolbar's nearest edge (same
+        // edge-aware anchor as the Copy/Cancel menu), then fade it out.
+        const anchor = computeDropdownAnchor();
+        if (!anchor) return;
+        setAnnotationCopiedPosition(anchor);
+        if (annotationCopiedTimer !== null) clearTimeout(annotationCopiedTimer);
+        annotationCopiedTimer = window.setTimeout(() => {
+          setAnnotationCopiedPosition(null);
+          annotationCopiedTimer = null;
+        }, FEEDBACK_DURATION_MS);
+      },
+    });
+
     const isModalPopoverOpen = createMemo(
       () => store.contextMenuPosition !== null || editMode.isOpen(),
     );
@@ -326,6 +368,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let toolbarElement: HTMLDivElement | undefined;
     let stopToolbarMenuTracking: (() => void) | null = null;
     let stopEditPanelTracking: (() => void) | null = null;
+    let stopAnnotationMenuTracking: (() => void) | null = null;
     let didSwitchEditTargetOnPointerDown = false;
 
     let shiftSelectionLabelAnchorRatioByElement = new WeakMap<Element, number>();
@@ -505,6 +548,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       debouncedElementForComponentName,
     );
     const toolbarActiveActionId = createMemo(() => {
+      if (annotationMode.isActive()) return ANNOTATE_ACTION_ID;
       if (editMode.isOpen()) return EDIT_ACTION_ID;
       if (isCommentMode()) return COMMENT_ACTION_ID;
       if (isPendingContextMenuSelect()) return pendingToolbarActionId();
@@ -1522,7 +1566,32 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return true;
     };
 
+    const startAnnotation = () => {
+      if (!isEnabled() || annotationMode.isActive()) return;
+      dismissAllPopups();
+      keyboardSelection.clear();
+      if (isActivated()) {
+        deactivateRenderer();
+      }
+      clearPendingToolbarSelection();
+      annotationMode.start();
+    };
+
+    const toggleAnnotation = () => {
+      if (annotationMode.isActive()) {
+        annotationMode.cancel();
+      } else {
+        startAnnotation();
+      }
+    };
+
     const handleActivateAction = (actionId: string) => {
+      if (actionId === ANNOTATE_ACTION_ID) {
+        toggleAnnotation();
+        return;
+      }
+      // Annotation mode owns the screen; other tools are locked until it exits.
+      if (annotationMode.isActive()) return;
       if (isActivated()) {
         // While still choosing an element, clicking a different action switches
         // the pending action in place instead of tearing down selection mode;
@@ -2399,6 +2468,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     eventListenerManager.addWindowListener(
       "keydown",
       (event: KeyboardEvent) => {
+        if (annotationMode.isActive()) {
+          annotationMode.handleKeyDown(event);
+          return;
+        }
+
         if (keyboardSelection.isPendingDismiss() && isEnterCode(event.code)) {
           const target = event.composedPath()[0];
           const targetElement = target instanceof HTMLElement ? target : null;
@@ -3005,6 +3079,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       stopToolbarMenuTracking = null;
       stopEditPanelTracking?.();
       stopEditPanelTracking = null;
+      stopAnnotationMenuTracking?.();
+      stopAnnotationMenuTracking = null;
+      if (annotationCopiedTimer !== null) clearTimeout(annotationCopiedTimer);
       grabbedBoxTimeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
       grabbedBoxTimeouts.clear();
       labelController.cancelAllFades();
@@ -3382,6 +3459,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         hideContextMenuAction();
       };
 
+      const enterAnnotateModeAction = () => {
+        startAnnotation();
+        hideContextMenuAction();
+      };
+
       const context: ContextMenuActionContext = {
         element,
         elements,
@@ -3391,6 +3473,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         tagName,
         enterPromptMode: customEnterPromptMode ?? defaultEnterPromptMode,
         enterEditMode: enterEditModeAction,
+        enterAnnotateMode: enterAnnotateModeAction,
         copy: copyAction,
         hooks: {
           transformHtmlContent: pluginRegistry.hooks.transformHtmlContent,
@@ -3514,6 +3597,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.hideContextMenu();
       dismissToolbarMenu();
       editMode.dismiss();
+      annotationMode.cancel();
     };
 
     const handleToggleToolbarMenu = () => {
@@ -3691,6 +3775,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 onEditPanelSubmit={editMode.submit}
                 onEditPanelPendingEditsChange={editMode.setPendingEdits}
                 onEditPanelInteractingChange={editMode.setInteracting}
+                annotationMenuPosition={annotationMenuPosition()}
+                annotationCopiedPosition={annotationCopiedPosition()}
+                onAnnotationCopy={() => void annotationMode.capture()}
+                onAnnotationCancel={annotationMode.cancel}
               />
             );
           }, rendererRoot);
@@ -3726,6 +3814,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
       },
       comment: handleComment,
+      annotate: toggleAnnotation,
       isActive: () => isActivated(),
       isEnabled: () => isEnabled(),
       setEnabled: (enabled: boolean) => {
@@ -3768,11 +3857,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       dispose: () => {
         disposed = true;
         hasInited = false;
+        annotationMode.cancel();
         disposeRenderer?.();
         stopToolbarMenuTracking?.();
         stopToolbarMenuTracking = null;
         stopEditPanelTracking?.();
         stopEditPanelTracking = null;
+        stopAnnotationMenuTracking?.();
+        stopAnnotationMenuTracking = null;
+        if (annotationCopiedTimer !== null) clearTimeout(annotationCopiedTimer);
         toolbarStateChangeCallbacks.clear();
         dispose();
       },

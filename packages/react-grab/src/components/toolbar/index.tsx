@@ -5,6 +5,7 @@ import { loadToolbarState, saveToolbarState, type SnapEdge, type ToolbarState } 
 import { IconSelect } from "../icons/icon-select.jsx";
 import { IconComment } from "../icons/icon-comment.jsx";
 import { IconStyle } from "../icons/icon-style.jsx";
+import { IconAnnotate } from "../icons/icon-annotate.jsx";
 import { ToolbarActionButton } from "./toolbar-action-button.jsx";
 import {
   TOOLBAR_SNAP_MARGIN_PX,
@@ -19,6 +20,7 @@ import {
   DEFAULT_ACTION_ID,
   COMMENT_ACTION_ID,
   EDIT_ACTION_ID,
+  ANNOTATE_ACTION_ID,
 } from "../../constants.js";
 import { freezeUpdates } from "../../utils/freeze-updates.js";
 import { freezeGlobalAnimations, unfreezeGlobalAnimations } from "../../utils/freeze-animations.js";
@@ -116,6 +118,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const buttonSpacingClass = () => (isVertical() ? "mb-1.5" : "mr-1.5");
 
   const isActionActive = (actionId: string) => props.activeActionId === actionId;
+  // While annotating, the canvas owns the screen - the other tools are locked
+  // out so the only paths forward are the annotation menu's Copy/Cancel.
+  const isAnnotating = () => props.activeActionId === ANNOTATE_ACTION_ID;
   // Activation paths that bypass the toolbar buttons (keyboard hold, api.activate,
   // post-copy reactivation) never set activeActionId, so a null id while active
   // means the implicit default copy/select flow - keep the select icon's
@@ -280,6 +285,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     props.onActivateAction?.(COMMENT_ACTION_ID),
   );
   const handleStyle = drag.createDragAwareHandler(() => props.onActivateAction?.(EDIT_ACTION_ID));
+  const handleAnnotate = drag.createDragAwareHandler(() =>
+    props.onActivateAction?.(ANNOTATE_ACTION_ID),
+  );
 
   const actionButtonClass =
     "group contain-layout flex items-center justify-center cursor-pointer interactive-scale a11y-hitbox";
@@ -699,6 +707,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             <ToolbarActionButton
               actionId={DEFAULT_ACTION_ID}
               isToggle
+              disabled={isAnnotating()}
               ref={(element) => (selectButtonRef = element)}
               label={isCopyActive() ? "Stop selecting element" : "Copy element"}
               isActive={isCopyActive()}
@@ -727,6 +736,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               actionId={COMMENT_ACTION_ID}
               label="Comment on element"
               isActive={isActionActive(COMMENT_ACTION_ID)}
+              disabled={isAnnotating()}
               class={actionButtonClass}
               wrapperClass={actionButtonWrapperClass()}
               onClick={handleComment}
@@ -742,6 +752,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               actionId={EDIT_ACTION_ID}
               label="Style element"
               isActive={isActionActive(EDIT_ACTION_ID)}
+              disabled={isAnnotating()}
               class={actionButtonClass}
               wrapperClass={actionButtonWrapperClass()}
               onClick={handleStyle}
@@ -750,6 +761,24 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               tooltipVisible={isTooltipVisible(EDIT_ACTION_ID)}
               tooltipPosition={tooltipPosition()}
               tooltip="Style"
+            />
+            <ToolbarActionButton
+              actionId={ANNOTATE_ACTION_ID}
+              label="Draw on screen"
+              isActive={isActionActive(ANNOTATE_ACTION_ID)}
+              class={actionButtonClass}
+              wrapperClass={actionButtonWrapperClass()}
+              onClick={handleAnnotate}
+              {...createFreezeHandlers(ANNOTATE_ACTION_ID)}
+              icon={
+                <IconAnnotate
+                  size={14}
+                  class={actionIconClass(isActionActive(ANNOTATE_ACTION_ID))}
+                />
+              }
+              tooltipVisible={isTooltipVisible(ANNOTATE_ACTION_ID)}
+              tooltipPosition={tooltipPosition()}
+              tooltip="Draw"
             />
           </>
         }

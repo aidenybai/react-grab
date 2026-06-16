@@ -3,6 +3,27 @@ export interface Position {
   y: number;
 }
 
+export interface AnnotationPoint {
+  x: number;
+  y: number;
+  pressure: number;
+}
+
+export interface AnnotationStroke {
+  points: AnnotationPoint[];
+}
+
+export interface AnnotationText {
+  x: number;
+  y: number;
+  value: string;
+}
+
+// `preferCurrentTab` is a non-standard Chromium option missing from lib.dom.
+export interface CurrentTabDisplayMediaOptions extends DisplayMediaStreamOptions {
+  preferCurrentTab?: boolean;
+}
+
 export type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object
     ? T[P] extends (...args: unknown[]) => unknown
@@ -149,6 +170,7 @@ export interface ActionContext {
   componentName?: string;
   tagName?: string;
   enterPromptMode?: () => void;
+  enterAnnotateMode?: () => void;
   hooks: ActionContextHooks;
   performWithFeedback: (action: () => Promise<boolean>) => Promise<void>;
   hideContextMenu: () => void;
@@ -393,6 +415,7 @@ export interface ReactGrabAPI {
   deactivate: () => void;
   toggle: () => void;
   comment: () => void;
+  annotate: () => void;
   isActive: () => boolean;
   isEnabled: () => boolean;
   setEnabled: (enabled: boolean) => void;
@@ -517,6 +540,10 @@ export interface ReactGrabRendererProps {
   onEditPanelSubmit?: (pendingEdits: PendingEdits) => void;
   onEditPanelPendingEditsChange?: (pendingEdits: PendingEdits) => void;
   onEditPanelInteractingChange?: (interacting: boolean) => void;
+  annotationMenuPosition?: DropdownAnchor | null;
+  annotationCopiedPosition?: DropdownAnchor | null;
+  onAnnotationCopy?: () => void;
+  onAnnotationCancel?: () => void;
 }
 
 export interface GrabbedBox {

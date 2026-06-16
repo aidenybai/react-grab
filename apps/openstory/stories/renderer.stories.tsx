@@ -321,9 +321,7 @@ const Scene = (props: SceneProps) => {
         mouseX={mouseX()}
         isPromptMode={props.isPromptMode}
         inputValue={props.inputValue}
-        discardPrompt={
-          props.isPendingDismiss ? { onConfirm: noop, onCancel: noop } : undefined
-        }
+        discardPrompt={props.isPendingDismiss ? { onConfirm: noop, onCancel: noop } : undefined}
         isFrozen={false}
         toolbarVisible={props.showToolbar}
         isActive={props.isActive}
