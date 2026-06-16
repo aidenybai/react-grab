@@ -10,27 +10,27 @@ import { ShortcutHint } from "../shortcut-hint.js";
 import { createMenuHighlight } from "../../utils/create-menu-highlight.js";
 import { AnchoredDropdownPanel } from "./anchored-dropdown-panel.js";
 
-interface AnnotationMenuProps {
+interface DrawMenuProps {
   position: DropdownAnchor | null;
   onCopy: () => void;
   onCancel: () => void;
 }
 
-interface AnnotationMenuItem {
+interface DrawMenuItem {
   label: string;
   shortcut: string;
   emphasis: boolean;
   run: () => void;
 }
 
-export const AnnotationMenu: Component<AnnotationMenuProps> = (props) => {
+export const DrawMenu: Component<DrawMenuProps> = (props) => {
   const { containerRef, highlightRef, updateHighlight, clearHighlight } = createMenuHighlight({
     topCornerRadiusPx: MENU_PANEL_CORNER_RADIUS_PX,
     bottomCornerRadiusPx: MENU_PANEL_CORNER_RADIUS_PX,
     cornerShape: MENU_HIGHLIGHT_CORNER_SHAPE,
   });
 
-  const items = (): AnnotationMenuItem[] => [
+  const items = (): DrawMenuItem[] => [
     { label: "Copy", shortcut: "Enter", emphasis: true, run: props.onCopy },
     { label: "Cancel", shortcut: "Esc", emphasis: false, run: props.onCancel },
   ];
@@ -38,7 +38,7 @@ export const AnnotationMenu: Component<AnnotationMenuProps> = (props) => {
   return (
     <AnchoredDropdownPanel
       position={props.position}
-      dataAttr="data-react-grab-annotation-menu"
+      dataAttr="data-react-grab-draw-menu"
       interactive
     >
       <div

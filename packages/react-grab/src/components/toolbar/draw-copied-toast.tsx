@@ -3,12 +3,12 @@ import type { DropdownAnchor } from "../../types.js";
 import { IconCheck } from "../icons/icon-check.jsx";
 import { AnchoredDropdownPanel } from "./anchored-dropdown-panel.js";
 
-interface AnnotationCopiedToastProps {
+interface DrawCopiedToastProps {
   position: DropdownAnchor | null;
 }
 
-export const AnnotationCopiedToast: Component<AnnotationCopiedToastProps> = (props) => (
-  <AnchoredDropdownPanel position={props.position} dataAttr="data-react-grab-annotation-copied">
+export const DrawCopiedToast: Component<DrawCopiedToastProps> = (props) => (
+  <AnchoredDropdownPanel position={props.position} dataAttr="data-react-grab-draw-copied">
     <div
       role="status"
       aria-live="polite"

@@ -3,17 +3,17 @@ export interface Position {
   y: number;
 }
 
-export interface AnnotationPoint {
+export interface DrawPoint {
   x: number;
   y: number;
   pressure: number;
 }
 
-export interface AnnotationStroke {
-  points: AnnotationPoint[];
+export interface DrawStroke {
+  points: DrawPoint[];
 }
 
-export interface AnnotationText {
+export interface DrawText {
   x: number;
   y: number;
   value: string;
@@ -21,9 +21,9 @@ export interface AnnotationText {
 
 // Committed strokes and texts share one ordered list so undo and z-order both
 // follow insertion order.
-export type CommittedAnnotation =
-  | { kind: "stroke"; stroke: AnnotationStroke }
-  | { kind: "text"; text: AnnotationText };
+export type CommittedDraw =
+  | { kind: "stroke"; stroke: DrawStroke }
+  | { kind: "text"; text: DrawText };
 
 // `preferCurrentTab` is a non-standard Chromium option missing from lib.dom.
 export interface CurrentTabDisplayMediaOptions extends DisplayMediaStreamOptions {
@@ -176,7 +176,7 @@ export interface ActionContext {
   componentName?: string;
   tagName?: string;
   enterPromptMode?: () => void;
-  enterAnnotateMode?: () => void;
+  enterDrawMode?: () => void;
   hooks: ActionContextHooks;
   performWithFeedback: (action: () => Promise<boolean>) => Promise<void>;
   hideContextMenu: () => void;
@@ -421,7 +421,7 @@ export interface ReactGrabAPI {
   deactivate: () => void;
   toggle: () => void;
   comment: () => void;
-  annotate: () => void;
+  draw: () => void;
   isActive: () => boolean;
   isEnabled: () => boolean;
   setEnabled: (enabled: boolean) => void;
@@ -546,10 +546,10 @@ export interface ReactGrabRendererProps {
   onEditPanelSubmit?: (pendingEdits: PendingEdits) => void;
   onEditPanelPendingEditsChange?: (pendingEdits: PendingEdits) => void;
   onEditPanelInteractingChange?: (interacting: boolean) => void;
-  annotationMenuPosition?: DropdownAnchor | null;
-  annotationCopiedPosition?: DropdownAnchor | null;
-  onAnnotationCopy?: () => void;
-  onAnnotationCancel?: () => void;
+  drawMenuPosition?: DropdownAnchor | null;
+  drawCopiedPosition?: DropdownAnchor | null;
+  onDrawCopy?: () => void;
+  onDrawCancel?: () => void;
 }
 
 export interface GrabbedBox {

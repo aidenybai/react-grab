@@ -81,7 +81,7 @@ import {
   DEFAULT_ACTION_ID,
   COMMENT_ACTION_ID,
   EDIT_ACTION_ID,
-  ANNOTATE_ACTION_ID,
+  DRAW_ACTION_ID,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { hideFromThirdParties } from "../utils/hide-from-third-parties.js";
@@ -113,7 +113,7 @@ import type {
   ElementLabelVariant,
 } from "../types.js";
 import { createEditModeController, type EditModeOverrides } from "./edit-mode.js";
-import { createAnnotationModeController } from "./annotation-mode.js";
+import { createDrawModeController } from "./draw-mode.js";
 import { isScreenshotSupported } from "../utils/is-screenshot-supported.js";
 import { resolveActionEnabled } from "../utils/resolve-action-enabled.js";
 import { createPluginRegistry } from "./plugin-registry.js";
@@ -131,7 +131,7 @@ import { copyPlugin } from "./plugins/copy.js";
 import { commentPlugin } from "./plugins/comment.js";
 import { editPlugin } from "./plugins/edit.js";
 import { openPlugin } from "./plugins/open.js";
-import { annotatePlugin } from "./plugins/annotate.js";
+import { drawPlugin } from "./plugins/draw.js";
 import {
   freezeAnimations,
   freezeAllAnimations,
@@ -146,7 +146,7 @@ import { getNearestEdge } from "../utils/get-nearest-edge.js";
 import { findShortcutAction } from "../utils/action-shortcuts.js";
 import { createKeyboardSelectionController } from "./keyboard-selection.js";
 
-const builtInPlugins = [copyPlugin, editPlugin, commentPlugin, annotatePlugin, openPlugin];
+const builtInPlugins = [copyPlugin, editPlugin, commentPlugin, drawPlugin, openPlugin];
 
 interface CopyWithLabelOptions {
   element: Element;
@@ -299,12 +299,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [isToolbarSelectHovered, setIsToolbarSelectHovered] = createSignal(false);
     const [toolbarMenuPosition, setToolbarMenuPosition] = createSignal<DropdownAnchor | null>(null);
     const [editPanelPosition, setEditPanelPosition] = createSignal<DropdownAnchor | null>(null);
-    const [annotationMenuPosition, setAnnotationMenuPosition] = createSignal<DropdownAnchor | null>(
-      null,
-    );
-    const [annotationCopiedPosition, setAnnotationCopiedPosition] =
-      createSignal<DropdownAnchor | null>(null);
-    let annotationCopiedTimer: number | null = null;
+    const [drawMenuPosition, setDrawMenuPosition] = createSignal<DropdownAnchor | null>(null);
+    const [drawCopiedPosition, setDrawCopiedPosition] = createSignal<DropdownAnchor | null>(null);
+    let drawCopiedTimer: number | null = null;
     // Forward-ref wrappers because activateRenderer / deactivateRenderer /
     // performCopyWithLabel are declared later in this scope. The wrappers
     // are captured by the controller; the underlying lookups happen at
@@ -330,36 +327,33 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     // rendererRoot is created later in this scope; the getter is only invoked
-    // when annotation mode actually opens, by which point the binding is
+    // when draw mode actually opens, by which point the binding is
     // initialized (same TDZ-safe pattern as editMode above). onOpen/onClose
     // anchor the Copy/Cancel menu to the toolbar exactly like the edit panel.
-    const annotationMode = createAnnotationModeController({
+    const drawMode = createDrawModeController({
       getRoot: () => rendererRoot,
       onOpen: () => {
         dismissToolbarMenu();
         // Drop a leftover "Copied" toast from a prior session before reopening.
-        clearAnnotationCopiedToast();
-        stopAnnotationMenuTracking?.();
-        stopAnnotationMenuTracking = trackDropdownPosition(
-          computeDropdownAnchor,
-          setAnnotationMenuPosition,
-        );
+        clearDrawCopiedToast();
+        stopDrawMenuTracking?.();
+        stopDrawMenuTracking = trackDropdownPosition(computeDropdownAnchor, setDrawMenuPosition);
       },
       onClose: () => {
-        stopAnnotationMenuTracking?.();
-        stopAnnotationMenuTracking = null;
-        setAnnotationMenuPosition(null);
+        stopDrawMenuTracking?.();
+        stopDrawMenuTracking = null;
+        setDrawMenuPosition(null);
       },
       onCopied: () => {
         // Track the toolbar continuously (same edge-aware anchor as the
         // Copy/Cancel menu) so a post-capture reflow - e.g. the screen-share
         // indicator bar collapsing - doesn't strand the toast at a stale spot.
-        clearAnnotationCopiedToast();
-        stopAnnotationCopiedTracking = trackDropdownPosition(
+        clearDrawCopiedToast();
+        stopDrawCopiedTracking = trackDropdownPosition(
           computeDropdownAnchor,
-          setAnnotationCopiedPosition,
+          setDrawCopiedPosition,
         );
-        annotationCopiedTimer = window.setTimeout(clearAnnotationCopiedToast, FEEDBACK_DURATION_MS);
+        drawCopiedTimer = window.setTimeout(clearDrawCopiedToast, FEEDBACK_DURATION_MS);
       },
     });
 
@@ -372,18 +366,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let toolbarElement: HTMLDivElement | undefined;
     let stopToolbarMenuTracking: (() => void) | null = null;
     let stopEditPanelTracking: (() => void) | null = null;
-    let stopAnnotationMenuTracking: (() => void) | null = null;
-    let stopAnnotationCopiedTracking: (() => void) | null = null;
+    let stopDrawMenuTracking: (() => void) | null = null;
+    let stopDrawCopiedTracking: (() => void) | null = null;
     let didSwitchEditTargetOnPointerDown = false;
 
-    const clearAnnotationCopiedToast = () => {
-      stopAnnotationCopiedTracking?.();
-      stopAnnotationCopiedTracking = null;
-      if (annotationCopiedTimer !== null) {
-        clearTimeout(annotationCopiedTimer);
-        annotationCopiedTimer = null;
+    const clearDrawCopiedToast = () => {
+      stopDrawCopiedTracking?.();
+      stopDrawCopiedTracking = null;
+      if (drawCopiedTimer !== null) {
+        clearTimeout(drawCopiedTimer);
+        drawCopiedTimer = null;
       }
-      setAnnotationCopiedPosition(null);
+      setDrawCopiedPosition(null);
     };
 
     let shiftSelectionLabelAnchorRatioByElement = new WeakMap<Element, number>();
@@ -563,7 +557,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       debouncedElementForComponentName,
     );
     const toolbarActiveActionId = createMemo(() => {
-      if (annotationMode.isActive()) return ANNOTATE_ACTION_ID;
+      if (drawMode.isActive()) return DRAW_ACTION_ID;
       if (editMode.isOpen()) return EDIT_ACTION_ID;
       if (isCommentMode()) return COMMENT_ACTION_ID;
       if (isPendingContextMenuSelect()) return pendingToolbarActionId();
@@ -1581,32 +1575,32 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return true;
     };
 
-    const startAnnotation = () => {
-      if (!isEnabled() || annotationMode.isActive() || !isScreenshotSupported()) return;
+    const startDraw = () => {
+      if (!isEnabled() || drawMode.isActive() || !isScreenshotSupported()) return;
       dismissAllPopups();
       keyboardSelection.clear();
       if (isActivated()) {
         deactivateRenderer();
       }
       clearPendingToolbarSelection();
-      annotationMode.start();
+      drawMode.start();
     };
 
-    const toggleAnnotation = () => {
-      if (annotationMode.isActive()) {
-        annotationMode.cancel();
+    const toggleDraw = () => {
+      if (drawMode.isActive()) {
+        drawMode.cancel();
       } else {
-        startAnnotation();
+        startDraw();
       }
     };
 
     const handleActivateAction = (actionId: string) => {
-      if (actionId === ANNOTATE_ACTION_ID) {
-        toggleAnnotation();
+      if (actionId === DRAW_ACTION_ID) {
+        toggleDraw();
         return;
       }
-      // Annotation mode owns the screen; other tools are locked until it exits.
-      if (annotationMode.isActive()) return;
+      // Draw mode owns the screen; other tools are locked until it exits.
+      if (drawMode.isActive()) return;
       if (isActivated()) {
         // While still choosing an element, clicking a different action switches
         // the pending action in place instead of tearing down selection mode;
@@ -2508,8 +2502,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     eventListenerManager.addWindowListener(
       "keydown",
       (event: KeyboardEvent) => {
-        if (annotationMode.isActive()) {
-          annotationMode.handleKeyDown(event);
+        if (drawMode.isActive()) {
+          drawMode.handleKeyDown(event);
           return;
         }
 
@@ -3119,9 +3113,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       stopToolbarMenuTracking = null;
       stopEditPanelTracking?.();
       stopEditPanelTracking = null;
-      stopAnnotationMenuTracking?.();
-      stopAnnotationMenuTracking = null;
-      clearAnnotationCopiedToast();
+      stopDrawMenuTracking?.();
+      stopDrawMenuTracking = null;
+      clearDrawCopiedToast();
       grabbedBoxTimeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
       grabbedBoxTimeouts.clear();
       labelController.cancelAllFades();
@@ -3499,8 +3493,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         hideContextMenuAction();
       };
 
-      const enterAnnotateModeAction = () => {
-        startAnnotation();
+      const enterDrawModeAction = () => {
+        startDraw();
         hideContextMenuAction();
       };
 
@@ -3513,7 +3507,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         tagName,
         enterPromptMode: customEnterPromptMode ?? defaultEnterPromptMode,
         enterEditMode: enterEditModeAction,
-        enterAnnotateMode: enterAnnotateModeAction,
+        enterDrawMode: enterDrawModeAction,
         copy: copyAction,
         hooks: {
           transformHtmlContent: pluginRegistry.hooks.transformHtmlContent,
@@ -3637,7 +3631,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.hideContextMenu();
       dismissToolbarMenu();
       editMode.dismiss();
-      annotationMode.cancel();
+      drawMode.cancel();
     };
 
     const handleToggleToolbarMenu = () => {
@@ -3815,10 +3809,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 onEditPanelSubmit={editMode.submit}
                 onEditPanelPendingEditsChange={editMode.setPendingEdits}
                 onEditPanelInteractingChange={editMode.setInteracting}
-                annotationMenuPosition={annotationMenuPosition()}
-                annotationCopiedPosition={annotationCopiedPosition()}
-                onAnnotationCopy={() => void annotationMode.capture()}
-                onAnnotationCancel={annotationMode.cancel}
+                drawMenuPosition={drawMenuPosition()}
+                drawCopiedPosition={drawCopiedPosition()}
+                onDrawCopy={() => void drawMode.capture()}
+                onDrawCancel={drawMode.cancel}
               />
             );
           }, rendererRoot);
@@ -3838,20 +3832,20 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       // Draw mode owns the screen; selection-entering APIs no-op until it exits,
       // mirroring the toolbar. deactivate/dispose exit Draw instead of blocking.
       activate: () => {
-        if (annotationMode.isActive()) return;
+        if (drawMode.isActive()) return;
         actions.setPendingCommentMode(false);
         if (!isActivated() && isEnabled()) {
           toggleActivate();
         }
       },
       deactivate: () => {
-        annotationMode.cancel();
+        drawMode.cancel();
         if (isActivated() || isCopying()) {
           deactivateRenderer();
         }
       },
       toggle: () => {
-        if (annotationMode.isActive()) return;
+        if (drawMode.isActive()) return;
         if (isActivated()) {
           deactivateRenderer();
         } else if (isEnabled()) {
@@ -3859,10 +3853,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
       },
       comment: () => {
-        if (annotationMode.isActive()) return;
+        if (drawMode.isActive()) return;
         handleComment();
       },
-      annotate: toggleAnnotation,
+      draw: toggleDraw,
       isActive: () => isActivated(),
       isEnabled: () => isEnabled(),
       setEnabled: (enabled: boolean) => {
@@ -3905,15 +3899,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       dispose: () => {
         disposed = true;
         hasInited = false;
-        annotationMode.cancel();
+        drawMode.cancel();
         disposeRenderer?.();
         stopToolbarMenuTracking?.();
         stopToolbarMenuTracking = null;
         stopEditPanelTracking?.();
         stopEditPanelTracking = null;
-        stopAnnotationMenuTracking?.();
-        stopAnnotationMenuTracking = null;
-        clearAnnotationCopiedToast();
+        stopDrawMenuTracking?.();
+        stopDrawMenuTracking = null;
+        clearDrawCopiedToast();
         toolbarStateChangeCallbacks.clear();
         dispose();
       },

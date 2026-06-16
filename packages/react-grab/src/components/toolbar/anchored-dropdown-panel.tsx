@@ -15,7 +15,7 @@ interface AnchoredDropdownPanelProps {
   children: JSX.Element;
 }
 
-// The shared shell for toolbar-anchored dropdowns (toolbar menu, annotation
+// The shared shell for toolbar-anchored dropdowns (toolbar menu, draw
 // Copy/Cancel menu, "Copied" toast): edge-aware positioning + enter/exit
 // animation. Callers provide only the panel contents.
 export const AnchoredDropdownPanel: Component<AnchoredDropdownPanelProps> = (props) => {

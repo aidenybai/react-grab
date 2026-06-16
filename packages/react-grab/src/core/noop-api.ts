@@ -7,7 +7,7 @@ export const createNoopApi = (): ReactGrabAPI => ({
   deactivate: NOOP,
   toggle: NOOP,
   comment: NOOP,
-  annotate: NOOP,
+  draw: NOOP,
   isActive: () => false,
   isEnabled: () => false,
   setEnabled: NOOP,

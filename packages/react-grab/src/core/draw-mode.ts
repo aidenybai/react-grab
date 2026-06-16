@@ -1,28 +1,28 @@
 import { createSignal, type Accessor } from "solid-js";
 import {
-  ANNOTATION_CARET_GAP_PX,
-  ANNOTATION_CARET_WIDTH_PX,
-  ANNOTATION_COLOR,
-  ANNOTATION_CURSOR,
-  ANNOTATION_TEXT_FONT_PX,
-  ANNOTATION_TEXT_HIT_PADDING_PX,
+  DRAW_CARET_GAP_PX,
+  DRAW_CARET_WIDTH_PX,
+  DRAW_COLOR,
+  DRAW_CURSOR,
+  DRAW_TEXT_FONT_PX,
+  DRAW_TEXT_HIT_PADDING_PX,
   IME_COMPOSING_KEY_CODE,
-  Z_INDEX_ANNOTATION_CANVAS,
+  Z_INDEX_DRAW_CANVAS,
 } from "../constants.js";
-import type { AnnotationStroke, AnnotationText, CommittedAnnotation } from "../types.js";
+import type { DrawStroke, DrawText, CommittedDraw } from "../types.js";
 import { captureElementScreenshot, copyImageToClipboard } from "../utils/capture-screenshot.js";
-import { getAnnotationStrokePath } from "../utils/get-annotation-stroke-path.js";
+import { getDrawStrokePath } from "../utils/get-draw-stroke-path.js";
 import { logRecoverableError } from "../utils/log-recoverable-error.js";
 import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "../utils/native-raf.js";
 
-interface AnnotationModeDependencies {
+interface DrawModeDependencies {
   getRoot: () => HTMLElement;
   onOpen?: () => void;
   onClose?: () => void;
   onCopied?: () => void;
 }
 
-export interface AnnotationModeController {
+export interface DrawModeController {
   isActive: Accessor<boolean>;
   start: () => void;
   cancel: () => void;
@@ -30,9 +30,9 @@ export interface AnnotationModeController {
   handleKeyDown: (event: KeyboardEvent) => void;
 }
 
-export const createAnnotationModeController = (
-  dependencies: AnnotationModeDependencies,
-): AnnotationModeController => {
+export const createDrawModeController = (
+  dependencies: DrawModeDependencies,
+): DrawModeController => {
   const [isActive, setIsActive] = createSignal(false);
 
   let overlay: HTMLDivElement | null = null;
@@ -41,11 +41,11 @@ export const createAnnotationModeController = (
 
   // Single ordered list so undo removes the genuinely-last action and later
   // items paint on top of earlier ones, regardless of stroke/text type.
-  const committedItems: CommittedAnnotation[] = [];
+  const committedItems: CommittedDraw[] = [];
   // Cache finished strokes' outlines so per-frame redraws don't recompute them.
-  const committedStrokePaths = new WeakMap<AnnotationStroke, Path2D>();
-  let activeStroke: AnnotationStroke | null = null;
-  let activeText: AnnotationText | null = null;
+  const committedStrokePaths = new WeakMap<DrawStroke, Path2D>();
+  let activeStroke: DrawStroke | null = null;
+  let activeText: DrawText | null = null;
   let activePointerId: number | null = null;
   let redrawFrameId: number | null = null;
   // The session id whose capture is in flight (null when idle). Scoped to the
@@ -60,10 +60,10 @@ export const createAnnotationModeController = (
   const lastPointer = { x: 0, y: 0 };
   // Committed texts never mutate, so cache their measured widths to keep the
   // hover hit-test off the measureText hot path.
-  const committedTextWidths = new WeakMap<AnnotationText, number>();
+  const committedTextWidths = new WeakMap<DrawText, number>();
   let isCursorOverText = false;
 
-  const TEXT_FONT = `500 ${ANNOTATION_TEXT_FONT_PX}px "Geist", system-ui, -apple-system, sans-serif`;
+  const TEXT_FONT = `500 ${DRAW_TEXT_FONT_PX}px "Geist", system-ui, -apple-system, sans-serif`;
 
   const resizeCanvas = () => {
     if (!canvas) return;
@@ -77,26 +77,26 @@ export const createAnnotationModeController = (
     redraw();
   };
 
-  const drawText = (text: AnnotationText, isEditing: boolean) => {
+  const drawText = (text: DrawText, isEditing: boolean) => {
     if (!context) return;
-    context.fillStyle = ANNOTATION_COLOR;
+    context.fillStyle = DRAW_COLOR;
     context.font = TEXT_FONT;
     context.textBaseline = "top";
     context.fillText(text.value, text.x, text.y);
     if (isEditing) {
-      const caretX = text.x + context.measureText(text.value).width + ANNOTATION_CARET_GAP_PX;
-      context.fillRect(caretX, text.y, ANNOTATION_CARET_WIDTH_PX, ANNOTATION_TEXT_FONT_PX);
+      const caretX = text.x + context.measureText(text.value).width + DRAW_CARET_GAP_PX;
+      context.fillRect(caretX, text.y, DRAW_CARET_WIDTH_PX, DRAW_TEXT_FONT_PX);
     }
   };
 
-  const fillStroke = (stroke: AnnotationStroke, isComplete: boolean) => {
+  const fillStroke = (stroke: DrawStroke, isComplete: boolean) => {
     if (!context) return;
     let path = isComplete ? committedStrokePaths.get(stroke) : undefined;
     if (!path) {
-      path = getAnnotationStrokePath(stroke, isComplete);
+      path = getDrawStrokePath(stroke, isComplete);
       if (isComplete) committedStrokePaths.set(stroke, path);
     }
-    context.fillStyle = ANNOTATION_COLOR;
+    context.fillStyle = DRAW_COLOR;
     context.fill(path);
   };
 
@@ -131,13 +131,13 @@ export const createAnnotationModeController = (
     activeText = null;
   };
 
-  const measureTextWidth = (text: AnnotationText): number => {
+  const measureTextWidth = (text: DrawText): number => {
     if (!context) return 0;
     context.font = TEXT_FONT;
     return context.measureText(text.value).width;
   };
 
-  const measureCommittedTextWidth = (text: AnnotationText): number => {
+  const measureCommittedTextWidth = (text: DrawText): number => {
     let width = committedTextWidths.get(text);
     if (width === undefined) {
       width = measureTextWidth(text);
@@ -147,18 +147,18 @@ export const createAnnotationModeController = (
   };
 
   const isPointWithinTextBox = (
-    text: AnnotationText,
+    text: DrawText,
     width: number,
     pageX: number,
     pageY: number,
   ): boolean =>
-    pageX >= text.x - ANNOTATION_TEXT_HIT_PADDING_PX &&
-    pageX <= text.x + width + ANNOTATION_TEXT_HIT_PADDING_PX &&
-    pageY >= text.y - ANNOTATION_TEXT_HIT_PADDING_PX &&
-    pageY <= text.y + ANNOTATION_TEXT_FONT_PX + ANNOTATION_TEXT_HIT_PADDING_PX;
+    pageX >= text.x - DRAW_TEXT_HIT_PADDING_PX &&
+    pageX <= text.x + width + DRAW_TEXT_HIT_PADDING_PX &&
+    pageY >= text.y - DRAW_TEXT_HIT_PADDING_PX &&
+    pageY <= text.y + DRAW_TEXT_FONT_PX + DRAW_TEXT_HIT_PADDING_PX;
 
   // activeText mutates as the user types, so measure it fresh.
-  const isPointInActiveText = (text: AnnotationText, pageX: number, pageY: number): boolean =>
+  const isPointInActiveText = (text: DrawText, pageX: number, pageY: number): boolean =>
     isPointWithinTextBox(text, measureTextWidth(text), pageX, pageY);
 
   const findCommittedTextAt = (pageX: number, pageY: number): number => {
@@ -231,7 +231,7 @@ export const createAnnotationModeController = (
       const overText = findCommittedTextAt(pageX, pageY) !== -1;
       if (overText !== isCursorOverText) {
         isCursorOverText = overText;
-        overlay.style.cursor = overText ? "text" : ANNOTATION_CURSOR;
+        overlay.style.cursor = overText ? "text" : DRAW_CURSOR;
       }
     }
     if (!activeStroke || event.pointerId !== activePointerId) return;
@@ -291,12 +291,12 @@ export const createAnnotationModeController = (
     isCursorOverText = false;
     overlay = document.createElement("div");
     overlay.setAttribute("data-react-grab-ignore-events", "");
-    overlay.setAttribute("data-react-grab-annotation", "");
+    overlay.setAttribute("data-react-grab-draw", "");
     Object.assign(overlay.style, {
       position: "fixed",
       inset: "0",
-      zIndex: String(Z_INDEX_ANNOTATION_CANVAS),
-      cursor: ANNOTATION_CURSOR,
+      zIndex: String(Z_INDEX_DRAW_CANVAS),
+      cursor: DRAW_CURSOR,
       touchAction: "none",
       pointerEvents: "auto",
     } satisfies Partial<CSSStyleDeclaration>);
@@ -364,7 +364,7 @@ export const createAnnotationModeController = (
   // it stays out of the shot.
   const hideChromeForCapture = () => {
     const root = dependencies.getRoot();
-    const restorers = ["[data-react-grab-toolbar]", "[data-react-grab-annotation-menu]"].map(
+    const restorers = ["[data-react-grab-toolbar]", "[data-react-grab-draw-menu]"].map(
       (selector) => {
         const element = root.querySelector<HTMLElement>(selector);
         if (!element) return () => {};
@@ -425,12 +425,12 @@ export const createAnnotationModeController = (
         dependencies.onCopied?.();
         teardown();
       } else {
-        logRecoverableError("Annotation copy to clipboard failed", null);
+        logRecoverableError("Draw copy to clipboard failed", null);
       }
     } catch (error) {
       // Dismissing the browser's screen-share prompt is a normal user action.
       if (error instanceof DOMException && error.name === "NotAllowedError") return;
-      logRecoverableError("Annotation capture failed", error);
+      logRecoverableError("Draw capture failed", error);
     } finally {
       restoreChromeForCapture();
       // Only clear if still ours; a newer session may have started its own capture.

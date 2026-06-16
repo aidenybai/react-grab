@@ -138,7 +138,7 @@ export const TOOLBAR_DEFAULT_POSITION_RATIO = 0.5;
 export const DEFAULT_ACTION_ID = "copy";
 export const COMMENT_ACTION_ID = "comment";
 export const EDIT_ACTION_ID = "edit";
-export const ANNOTATE_ACTION_ID = "annotate";
+export const DRAW_ACTION_ID = "draw";
 
 export const TOOLTIP_DELAY_MS = 400;
 export const TOOLTIP_GRACE_PERIOD_MS = 800;
@@ -267,26 +267,26 @@ export const VIDEO_METADATA_TIMEOUT_MS = 5000;
 export const VIDEO_READY_POLL_INTERVAL_MS = 10;
 export const VIDEO_READY_TIMEOUT_MS = 2000;
 
-// Annotation mode (freehand drawing + text → screenshot to clipboard).
+// Draw mode (freehand drawing + text → screenshot to clipboard).
 // Reuse the shared overlay/brand color (the same magenta-pink the selection
-// highlights use) so annotations match the rest of the interface.
-export const ANNOTATION_COLOR = overlayColor(1);
-export const Z_INDEX_ANNOTATION_CANVAS = Z_INDEX_OVERLAY - 1;
-export const ANNOTATION_STROKE_SIZE_PX = 5;
-export const ANNOTATION_STROKE_THINNING = 0.6;
-export const ANNOTATION_STROKE_SMOOTHING = 0.5;
-export const ANNOTATION_STROKE_STREAMLINE = 0.5;
-export const ANNOTATION_TEXT_FONT_PX = 18;
-export const ANNOTATION_CARET_WIDTH_PX = 2;
-export const ANNOTATION_CARET_GAP_PX = 1;
+// highlights use) so draws match the rest of the interface.
+export const DRAW_COLOR = overlayColor(1);
+export const Z_INDEX_DRAW_CANVAS = Z_INDEX_OVERLAY - 1;
+export const DRAW_STROKE_SIZE_PX = 5;
+export const DRAW_STROKE_THINNING = 0.6;
+export const DRAW_STROKE_SMOOTHING = 0.5;
+export const DRAW_STROKE_STREAMLINE = 0.5;
+export const DRAW_TEXT_FONT_PX = 18;
+export const DRAW_CARET_WIDTH_PX = 2;
+export const DRAW_CARET_GAP_PX = 1;
 // Click slop around a committed text note when picking it for re-editing.
-export const ANNOTATION_TEXT_HIT_PADDING_PX = 6;
+export const DRAW_TEXT_HIT_PADDING_PX = 6;
 // A pen-nib cursor (same pencil as the toolbar icon, pink fill + white outline
 // for contrast). There is no native "pen" cursor keyword, so this is a custom
 // SVG data URI with the hotspot anchored at the nib (bottom-left, 2,22).
-const ANNOTATION_CURSOR_SVG =
+const DRAW_CURSOR_SVG =
   '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" fill="#d239c0" stroke="#ffffff" stroke-width="1.1" stroke-linejoin="round" d="M18.1213 2.70681C16.9498 1.53523 15.0503 1.53523 13.8787 2.7068L12.8879 3.69756L12.8786 3.7068L3.99997 12.5855L3.99238 12.5931L3.0572 13.5283L2.01006 20.8583C1.96555 21.1699 2.07034 21.4842 2.2929 21.7068C2.51547 21.9294 2.82984 22.0342 3.14143 21.9896L10.4714 20.9425L11.4142 19.9997L20.2929 11.121L21.2929 10.121C22.4645 8.94945 22.4645 7.04995 21.2929 5.87838L18.1213 2.70681ZM4.17852 19.8212L4.70712 16.121L7.87869 19.2926L4.17852 19.8212ZM16.7071 4.29265C16.3166 3.90212 15.6834 3.90212 15.2929 4.29265C14.9024 4.68317 14.9024 5.31634 15.2929 5.70686L18.2929 8.70686C18.6834 9.09739 19.3166 9.09739 19.7071 8.70686C20.0976 8.31634 20.0976 7.68317 19.7071 7.29265L16.7071 4.29265Z"/></svg>';
-export const ANNOTATION_CURSOR = `url("data:image/svg+xml,${encodeURIComponent(ANNOTATION_CURSOR_SVG)}") 2 22, crosshair`;
+export const DRAW_CURSOR = `url("data:image/svg+xml,${encodeURIComponent(DRAW_CURSOR_SVG)}") 2 22, crosshair`;
 
 export const RELEVANT_CSS_PROPERTIES = new Set([
   "display",

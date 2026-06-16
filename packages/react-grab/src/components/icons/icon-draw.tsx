@@ -1,11 +1,11 @@
 import type { Component } from "solid-js";
 
-interface IconAnnotateProps {
+interface IconDrawProps {
   size?: number;
   class?: string;
 }
 
-export const IconAnnotate: Component<IconAnnotateProps> = (props) => {
+export const IconDraw: Component<IconDrawProps> = (props) => {
   const size = () => props.size ?? 14;
 
   return (

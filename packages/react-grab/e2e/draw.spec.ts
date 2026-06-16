@@ -10,19 +10,17 @@ interface DrawnPixels {
   dpr: number;
 }
 
-const callAnnotate = (reactGrab: ReactGrabPageObject): Promise<void> =>
+const callDraw = (reactGrab: ReactGrabPageObject): Promise<void> =>
   reactGrab.page.evaluate(() => {
-    (window as { __REACT_GRAB__?: { annotate: () => void } }).__REACT_GRAB__?.annotate();
+    (window as { __REACT_GRAB__?: { draw: () => void } }).__REACT_GRAB__?.draw();
   });
 
 const startDraw = async (reactGrab: ReactGrabPageObject) => {
-  await callAnnotate(reactGrab);
+  await callDraw(reactGrab);
   await reactGrab.page.waitForFunction(
     (attr) =>
       Boolean(
-        document
-          .querySelector(`[${attr}]`)
-          ?.shadowRoot?.querySelector("[data-react-grab-annotation]"),
+        document.querySelector(`[${attr}]`)?.shadowRoot?.querySelector("[data-react-grab-draw]"),
       ),
     ATTR,
     { timeout: STROKE_TIMEOUT_MS },
@@ -33,9 +31,7 @@ const isDrawActive = (reactGrab: ReactGrabPageObject): Promise<boolean> =>
   reactGrab.page.evaluate(
     (attr) =>
       Boolean(
-        document
-          .querySelector(`[${attr}]`)
-          ?.shadowRoot?.querySelector("[data-react-grab-annotation]"),
+        document.querySelector(`[${attr}]`)?.shadowRoot?.querySelector("[data-react-grab-draw]"),
       ),
     ATTR,
   );
@@ -43,7 +39,7 @@ const isDrawActive = (reactGrab: ReactGrabPageObject): Promise<boolean> =>
 const clickDrawButton = (reactGrab: ReactGrabPageObject): Promise<void> =>
   reactGrab.page.evaluate((attr) => {
     const root = document.querySelector(`[${attr}]`)?.shadowRoot;
-    root?.querySelector<HTMLButtonElement>('[data-react-grab-toolbar-action="annotate"]')?.click();
+    root?.querySelector<HTMLButtonElement>('[data-react-grab-toolbar-action="draw"]')?.click();
   }, ATTR);
 
 const isToolbarActionDisabled = (
@@ -62,7 +58,7 @@ const isToolbarActionDisabled = (
 const getDrawMenuLabels = (reactGrab: ReactGrabPageObject): Promise<string[]> =>
   reactGrab.page.evaluate((attr) => {
     const root = document.querySelector(`[${attr}]`)?.shadowRoot;
-    const menu = root?.querySelector("[data-react-grab-annotation-menu]");
+    const menu = root?.querySelector("[data-react-grab-draw-menu]");
     if (!menu) return [];
     return Array.from(menu.querySelectorAll('[role="menuitem"] > span:first-child')).map(
       (span) => span.textContent?.trim() ?? "",
@@ -75,7 +71,7 @@ const clickDrawMenuItem = (reactGrab: ReactGrabPageObject, label: string): Promi
       const root = document.querySelector(`[${attr}]`)?.shadowRoot;
       const items = Array.from(
         root?.querySelectorAll<HTMLButtonElement>(
-          '[data-react-grab-annotation-menu] [role="menuitem"]',
+          '[data-react-grab-draw-menu] [role="menuitem"]',
         ) ?? [],
       );
       items.find((button) => (button.textContent ?? "").includes(itemLabel))?.click();
@@ -95,7 +91,7 @@ const drawStroke = async (reactGrab: ReactGrabPageObject, points: Array<[number,
 const getDrawnPixels = (reactGrab: ReactGrabPageObject): Promise<DrawnPixels> =>
   reactGrab.page.evaluate((attr) => {
     const root = document.querySelector(`[${attr}]`)?.shadowRoot;
-    const canvas = root?.querySelector<HTMLCanvasElement>("[data-react-grab-annotation] canvas");
+    const canvas = root?.querySelector<HTMLCanvasElement>("[data-react-grab-draw] canvas");
     if (!canvas) return { count: 0, centroidY: null, dpr: window.devicePixelRatio };
     const context = canvas.getContext("2d");
     if (!context) return { count: 0, centroidY: null, dpr: window.devicePixelRatio };
@@ -121,7 +117,7 @@ const waitForDrawPixels = async (reactGrab: ReactGrabPageObject) => {
   await reactGrab.page.waitForFunction(
     (attr) => {
       const root = document.querySelector(`[${attr}]`)?.shadowRoot;
-      const canvas = root?.querySelector<HTMLCanvasElement>("[data-react-grab-annotation] canvas");
+      const canvas = root?.querySelector<HTMLCanvasElement>("[data-react-grab-draw] canvas");
       const context = canvas?.getContext("2d");
       if (!context || !canvas) return false;
       const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
@@ -135,10 +131,10 @@ const waitForDrawPixels = async (reactGrab: ReactGrabPageObject) => {
   );
 };
 
-test.describe("Draw (annotation) mode", () => {
+test.describe("Draw (draw) mode", () => {
   test("toolbar exposes a Draw button", async ({ reactGrab }) => {
     await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
-    expect(await reactGrab.getToolbarActionPressed("annotate")).toBe(false);
+    expect(await reactGrab.getToolbarActionPressed("draw")).toBe(false);
   });
 
   test("Draw is listed in the toolbar menu", async ({ reactGrab }) => {
@@ -149,12 +145,12 @@ test.describe("Draw (annotation) mode", () => {
     expect(labels.some((label) => label.includes("Draw"))).toBe(true);
   });
 
-  test("api.annotate() enters draw mode and toggles back off", async ({ reactGrab }) => {
+  test("api.draw() enters draw mode and toggles back off", async ({ reactGrab }) => {
     await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
     await startDraw(reactGrab);
     expect(await isDrawActive(reactGrab)).toBe(true);
 
-    await callAnnotate(reactGrab);
+    await callDraw(reactGrab);
     await expect.poll(() => isDrawActive(reactGrab), { timeout: 2000 }).toBe(false);
   });
 
@@ -179,7 +175,7 @@ test.describe("Draw (annotation) mode", () => {
     expect(await isToolbarActionDisabled(reactGrab, "copy")).toBe(true);
     expect(await isToolbarActionDisabled(reactGrab, "comment")).toBe(true);
     expect(await isToolbarActionDisabled(reactGrab, "edit")).toBe(true);
-    expect(await isToolbarActionDisabled(reactGrab, "annotate")).toBe(false);
+    expect(await isToolbarActionDisabled(reactGrab, "draw")).toBe(false);
   });
 
   test("draw mode shows a Copy / Cancel menu", async ({ reactGrab }) => {

@@ -1,10 +1,10 @@
 import {
-  ANNOTATION_STROKE_SIZE_PX,
-  ANNOTATION_STROKE_SMOOTHING,
-  ANNOTATION_STROKE_STREAMLINE,
-  ANNOTATION_STROKE_THINNING,
+  DRAW_STROKE_SIZE_PX,
+  DRAW_STROKE_SMOOTHING,
+  DRAW_STROKE_STREAMLINE,
+  DRAW_STROKE_THINNING,
 } from "../constants.js";
-import type { AnnotationStroke } from "../types.js";
+import type { DrawStroke } from "../types.js";
 import { getStroke, type Vec2 } from "./perfect-freehand.js";
 
 // Join each outline point to the midpoint of the next with a quadratic curve -
@@ -26,13 +26,13 @@ const buildPath2DFromOutline = (outline: Vec2[]): Path2D => {
   return path;
 };
 
-export const getAnnotationStrokePath = (stroke: AnnotationStroke, isComplete: boolean): Path2D =>
+export const getDrawStrokePath = (stroke: DrawStroke, isComplete: boolean): Path2D =>
   buildPath2DFromOutline(
     getStroke(stroke.points, {
-      size: ANNOTATION_STROKE_SIZE_PX,
-      thinning: ANNOTATION_STROKE_THINNING,
-      smoothing: ANNOTATION_STROKE_SMOOTHING,
-      streamline: ANNOTATION_STROKE_STREAMLINE,
+      size: DRAW_STROKE_SIZE_PX,
+      thinning: DRAW_STROKE_THINNING,
+      smoothing: DRAW_STROKE_SMOOTHING,
+      streamline: DRAW_STROKE_STREAMLINE,
       last: isComplete,
     }),
   );
