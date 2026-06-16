@@ -50,7 +50,7 @@ test.describe("Element Context Fallback", () => {
       await reactGrab.clickElement(mappedItem);
 
       const clipboard = await reactGrab.getClipboardContent();
-      expect(clipboard).toContain("key: 2");
+      expect(clipboard).toContain('key: "2"');
     });
 
     test("should surface the list-item key for mapped component instances", async ({
@@ -64,7 +64,21 @@ test.describe("Element Context Fallback", () => {
       await reactGrab.clickElement(todoItem);
 
       const clipboard = await reactGrab.getClipboardContent();
-      expect(clipboard).toContain("key: 3");
+      expect(clipboard).toContain('key: "3"');
+    });
+
+    test("should surface the wrapper key when picking inside a mapped child component", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+
+      const cardBody = "[data-testid='mapped-card-bravo'] p";
+      await reactGrab.hoverElement(cardBody);
+      await reactGrab.waitForSelectionBox();
+      await reactGrab.clickElement(cardBody);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain('key: "bravo"');
     });
   });
 
