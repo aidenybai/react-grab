@@ -59,6 +59,10 @@ export const createDrawModeController = (
   // flattened onto the canvas on commit so the screenshot stays WYSIWYG.
   let textInput: HTMLInputElement | null = null;
   const textInputPosition = { x: 0, y: 0 };
+  // Index in committedItems of the note being re-edited (null for a new note) so
+  // it can be hidden behind its <input> and updated in place on commit - rather
+  // than spliced out, which lost it on discard.
+  let editingIndex: number | null = null;
   // Last pointer position in client (viewport) coords, converted to page coords
   // when placing a note - so scrolling without moving the mouse still drops the
   // note under the cursor.
@@ -77,6 +81,7 @@ export const createDrawModeController = (
     context = canvas.getContext("2d");
     if (context) context.scale(devicePixelRatio, devicePixelRatio);
     redraw();
+    positionTextInput();
   };
 
   const drawText = (text: DrawText) => {
@@ -106,7 +111,10 @@ export const createDrawModeController = (
     // pins them to the content so they ride along with scroll/resize.
     context.save();
     context.translate(-window.scrollX, -window.scrollY);
-    for (const item of committedItems) {
+    for (let index = 0; index < committedItems.length; index++) {
+      // The note being re-edited is shown by its <input> instead.
+      if (index === editingIndex) continue;
+      const item = committedItems[index];
       if (item.kind === "stroke") {
         fillStroke(item.stroke, true);
       } else {
@@ -172,7 +180,6 @@ export const createDrawModeController = (
 
   const openTextInput = (pageX: number, pageY: number, initialValue: string) => {
     if (!overlay) return;
-    commitTextInput();
     textInputPosition.x = pageX;
     textInputPosition.y = pageY;
 
@@ -220,17 +227,26 @@ export const createDrawModeController = (
     const input = removeTextInput();
     if (!input) return;
     const value = input.value;
-    if (value.trim().length > 0) {
-      committedItems.push({
-        kind: "text",
-        text: { x: textInputPosition.x, y: textInputPosition.y, value },
-      });
+    const note: CommittedDraw | null =
+      value.trim().length > 0
+        ? { kind: "text", text: { x: textInputPosition.x, y: textInputPosition.y, value } }
+        : null;
+    if (editingIndex !== null) {
+      // Update the re-edited note in place (or drop it if cleared to empty).
+      if (note) committedItems[editingIndex] = note;
+      else committedItems.splice(editingIndex, 1);
+      editingIndex = null;
+    } else if (note) {
+      committedItems.push(note);
     }
     scheduleRedraw();
   };
 
   const discardTextInput = () => {
-    if (removeTextInput()) scheduleRedraw();
+    if (!removeTextInput()) return;
+    // Leave the re-edited note as it was; just stop hiding it behind the input.
+    editingIndex = null;
+    scheduleRedraw();
   };
 
   const appendPoint = (event: PointerEvent) => {
@@ -259,10 +275,10 @@ export const createDrawModeController = (
 
     const editIndex = findCommittedTextAt(pageX, pageY);
     if (editIndex !== -1) {
-      const [removed] = committedItems.splice(editIndex, 1);
-      if (removed.kind === "text") {
-        committedTextWidths.delete(removed.text);
-        openTextInput(removed.text.x, removed.text.y, removed.text.value);
+      const item = committedItems[editIndex];
+      if (item.kind === "text") {
+        editingIndex = editIndex;
+        openTextInput(item.text.x, item.text.y, item.text.value);
       }
       scheduleRedraw();
       return;
@@ -392,6 +408,7 @@ export const createDrawModeController = (
     canvas = null;
     context = null;
     committedItems.length = 0;
+    editingIndex = null;
     activeStroke = null;
     activePointerId = null;
     setIsActive(false);
@@ -453,6 +470,12 @@ export const createDrawModeController = (
       cancel();
       return;
     }
+    // Paint synchronously so the screen grab can't race the scheduled redraw.
+    if (redrawFrameId !== null) {
+      nativeCancelAnimationFrame(redrawFrameId);
+      redrawFrameId = null;
+    }
+    redraw();
     capturingSession = session;
     const isSessionLive = () => isActive() && sessionId === session;
 
@@ -523,7 +546,11 @@ export const createDrawModeController = (
       return;
     }
 
-    if ((event.metaKey || event.ctrlKey) && (event.key === "z" || event.key === "Z")) {
+    if (
+      (event.metaKey || event.ctrlKey) &&
+      !event.shiftKey &&
+      (event.key === "z" || event.key === "Z")
+    ) {
       event.preventDefault();
       event.stopImmediatePropagation();
       undoLast();
