@@ -483,8 +483,15 @@ export const createAnnotationModeController = (
       return;
     }
 
-    // Typing a printable character drops/extends a text note at the cursor.
-    if (!event.metaKey && !event.ctrlKey && !event.altKey && event.key.length === 1) {
+    // Typing a printable character drops/extends a text note at the cursor, but
+    // not mid-stroke - the user is drawing, not typing.
+    if (
+      !activeStroke &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      !event.altKey &&
+      event.key.length === 1
+    ) {
       event.preventDefault();
       event.stopImmediatePropagation();
       if (!activeText) {
