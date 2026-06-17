@@ -1,8 +1,8 @@
 import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "./native-raf.js";
+import { parseAnyColor } from "./parse-any-color.js";
+import { parseHexChannels } from "./parse-color.js";
 
 type AppTheme = "dark" | "light";
-
-const isAppTheme = (token: string): token is AppTheme => token === "dark" || token === "light";
 
 interface ThemeWatcherResult {
   theme: AppTheme;
@@ -26,21 +26,6 @@ const PRESENCE_ATTRIBUTES: readonly { attribute: string; theme: AppTheme }[] = [
 
 const LUMINANCE_DARK_THRESHOLD = 0.18;
 
-// Matches both legacy comma-separated (Chrome <101, Firefox <113) and modern
-// space-separated (Chrome 101+, Firefox 113+, Safari 15+) computed rgb/rgba.
-//   legacy:  rgba(18, 18, 18, 1)  or  rgb(18, 18, 18)
-//   modern:  rgb(18 18 18)        or  rgb(18 18 18 / 1)
-const RGB_PATTERN =
-  /rgba?\(\s*(\d+(?:\.\d+)?)\s*[,\s]\s*(\d+(?:\.\d+)?)\s*[,\s]\s*(\d+(?:\.\d+)?)(?:\s*[,/]\s*(\d+(?:\.\d+)?))?\s*\)/;
-
-const isTransparent = (backgroundColor: string): boolean => {
-  if (backgroundColor === "transparent") return true;
-  const rgbMatch = backgroundColor.match(RGB_PATTERN);
-  if (!rgbMatch) return false;
-  const alpha = rgbMatch[4];
-  return alpha !== undefined && Number(alpha) === 0;
-};
-
 const relativeLuminance = (red: number, green: number, blue: number): number => {
   const [linearRed, linearGreen, linearBlue] = [red, green, blue].map((channel) => {
     const normalized = channel / 255;
@@ -49,19 +34,16 @@ const relativeLuminance = (red: number, green: number, blue: number): number => 
   return 0.2126 * linearRed + 0.7152 * linearGreen + 0.0722 * linearBlue;
 };
 
-const themeFromBackgroundLuminance = (): AppTheme | null => {
-  const target = document.body ?? document.documentElement;
-  const backgroundColor = getComputedStyle(target).backgroundColor;
-  if (!backgroundColor || isTransparent(backgroundColor)) {
-    return null;
-  }
-  const rgbMatch = backgroundColor.match(RGB_PATTERN);
-  if (!rgbMatch) return null;
-  const luminance = relativeLuminance(
-    Number(rgbMatch[1]),
-    Number(rgbMatch[2]),
-    Number(rgbMatch[3]),
-  );
+// `parseAnyColor` resolves the full CSS color grammar (named/rgb/hsl/hwb via
+// canvas, plus oklch via exact math) to a hex string, which `parseHexChannels`
+// turns into channels - covering modern computed values like `oklch(...)` that a
+// naive `rgb()` parse would miss.
+const themeFromElementBackground = (element: HTMLElement): AppTheme | null => {
+  const hex = parseAnyColor(getComputedStyle(element).backgroundColor);
+  const channels = hex ? parseHexChannels(hex) : null;
+  // A transparent background tells us nothing about the rendered theme.
+  if (!channels || channels.alpha === 0) return null;
+  const luminance = relativeLuminance(channels.red, channels.green, channels.blue);
   return luminance < LUMINANCE_DARK_THRESHOLD ? "dark" : "light";
 };
 
@@ -72,45 +54,75 @@ const themeFromAttributeValue = (attributeValue: string): AppTheme | null => {
   return null;
 };
 
-// CSS color-scheme can be multi-value ("light dark" or "dark light").
-// First listed value is the preferred scheme; fall back to includes-check
-// for single-value strings.
+// `color-scheme` only forces a theme when it lists a single value. When it
+// lists both ("light dark" / "dark light") the active scheme is chosen by the
+// user's OS preference and reflected in the actual paint - token order does NOT
+// decide it - so we defer to luminance / prefers-color-scheme instead of
+// guessing the first token.
 const themeFromColorScheme = (colorSchemeValue: string): AppTheme | null => {
   const normalized = colorSchemeValue.trim().toLowerCase();
   if (!normalized || normalized === "normal" || normalized === "auto") return null;
 
   const tokens = normalized.split(/\s+/);
-  return tokens.find(isAppTheme) ?? null;
+  const allowsDark = tokens.includes("dark");
+  const allowsLight = tokens.includes("light");
+  if (allowsDark && allowsLight) return null;
+  if (allowsDark) return "dark";
+  if (allowsLight) return "light";
+  return null;
 };
 
-const detectTheme = (): AppTheme => {
-  const htmlElement = document.documentElement;
+const themeFromColorSchemeOf = (element: HTMLElement): AppTheme | null => {
+  const colorSchemeValue = element.style.colorScheme || getComputedStyle(element).colorScheme;
+  return colorSchemeValue ? themeFromColorScheme(colorSchemeValue) : null;
+};
 
-  if (htmlElement.classList.contains("dark")) return "dark";
-  if (htmlElement.classList.contains("light")) return "light";
+// Most frameworks mark the theme on <html> (Tailwind, next-themes), but some
+// put it on <body> (a few Bootstrap/MUI setups and hand-rolled apps), so both
+// roots are inspected.
+const themeFromElementMarkers = (element: HTMLElement): AppTheme | null => {
+  if (element.classList.contains("dark")) return "dark";
+  if (element.classList.contains("light")) return "light";
 
   for (const attributeName of THEME_ATTRIBUTES) {
-    const attributeValue = htmlElement.getAttribute(attributeName);
+    const attributeValue = element.getAttribute(attributeName);
     if (!attributeValue) continue;
     const result = themeFromAttributeValue(attributeValue);
     if (result) return result;
   }
 
   for (const { attribute, theme } of PRESENCE_ATTRIBUTES) {
-    if (htmlElement.hasAttribute(attribute)) return theme;
+    if (element.hasAttribute(attribute)) return theme;
   }
 
-  const colorSchemeProperty =
-    htmlElement.style.colorScheme || getComputedStyle(htmlElement).colorScheme;
-  if (colorSchemeProperty) {
-    const result = themeFromColorScheme(colorSchemeProperty);
-    if (result) return result;
+  return null;
+};
+
+const firstThemeFromRoots = (
+  roots: readonly (HTMLElement | null)[],
+  classify: (element: HTMLElement) => AppTheme | null,
+): AppTheme | null => {
+  for (const root of roots) {
+    if (!root) continue;
+    const theme = classify(root);
+    if (theme) return theme;
   }
+  return null;
+};
 
-  const luminanceResult = themeFromBackgroundLuminance();
-  if (luminanceResult) return luminanceResult;
+const detectTheme = (): AppTheme => {
+  // Explicit theme markers and `color-scheme` are inspected root-first; the
+  // painted background is read body-first, since frameworks usually paint the
+  // page background on <body> while declaring the theme on <html>.
+  const rootFirst = [document.documentElement, document.body] as const;
+  const bodyFirst = [document.body, document.documentElement] as const;
 
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  return (
+    firstThemeFromRoots(rootFirst, themeFromElementMarkers) ??
+    firstThemeFromRoots(rootFirst, themeFromColorSchemeOf) ??
+    firstThemeFromRoots(bodyFirst, themeFromElementBackground) ??
+    (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+  );
 };
 
 const invertTheme = (theme: AppTheme): AppTheme => (theme === "dark" ? "light" : "dark");
