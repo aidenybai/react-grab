@@ -163,6 +163,34 @@ describe("formatStackContext", () => {
     expect(detailed.text).toContain("app/e.tsx");
   });
 
+  it("collapses consecutive duplicate trace lines", () => {
+    const result = formatStackContext([
+      { fileName: "src/components/ui/sidebar.tsx", functionName: "SidebarMenu" },
+      { fileName: "src/components/ui/sidebar.tsx", functionName: "SidebarMenu" },
+      { fileName: "src/components/ui/sidebar.tsx", functionName: "SidebarMenu" },
+      { fileName: "src/app/page.tsx", functionName: "Page" },
+    ]);
+
+    const sidebarLineCount = result.text
+      .split("\n")
+      .filter((line) => line.includes("SidebarMenu")).length;
+    expect(sidebarLineCount).toBe(1);
+    expect(result.text).toContain("app/page.tsx");
+  });
+
+  it("keeps non-consecutive repeats of the same line", () => {
+    const result = formatStackContext([
+      { fileName: "src/components/ui/card.tsx", functionName: "Card" },
+      { fileName: "src/app/section.tsx", functionName: "Section" },
+      { fileName: "src/components/ui/card.tsx", functionName: "Card" },
+    ]);
+
+    const cardLineCount = result.text
+      .split("\n")
+      .filter((line) => line.includes("in Card")).length;
+    expect(cardLineCount).toBe(2);
+  });
+
   it("keeps the hard cap when maxLines is non-finite", () => {
     const stack: StackFrame[] = Array.from({ length: 40 }, (_unused, index) => ({
       fileName: `src/app/feature-${index}.tsx`,

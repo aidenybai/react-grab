@@ -390,6 +390,13 @@ export const formatStackContext = (
     );
     if (frameLine === null) continue;
 
+    // Shared-UI frames are now surfaced for free, so a single primitives file
+    // (e.g. several sidebar parts, or a recursive component) can emit the same
+    // line repeatedly - especially under bundlers where we omit line numbers and
+    // identical-looking frames collapse to the same text. Skip consecutive
+    // duplicates so the trace stays readable.
+    if (frameLine.text === lines[lines.length - 1]) continue;
+
     if (frameLine.isAppSource) hasTrustedSource = true;
     if (frameLine.consumesBudget) budgetedLineCount += 1;
     lines.push(frameLine.text);
