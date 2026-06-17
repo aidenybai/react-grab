@@ -33,6 +33,21 @@ const installedSkillDir = (agent: SkillAgentType, global: boolean, cwd: string):
     SKILL_NAME,
   );
 
+export interface InstallSkillOptions {
+  agents?: SkillAgentType[];
+  global?: boolean;
+  cwd?: string;
+}
+
+export const installSkill = async ({
+  agents,
+  global = false,
+  cwd = process.cwd(),
+}: InstallSkillOptions = {}): Promise<Awaited<ReturnType<typeof add>>> => {
+  const targetAgents = agents ?? (await detectAvailableAgents());
+  return add({ source: SKILL_SOURCE, agents: targetAgents, global, cwd, mode: "copy" });
+};
+
 interface PromptSkillInstallOptions {
   yes?: boolean;
   global?: boolean;
@@ -77,13 +92,7 @@ export const promptSkillInstall = async ({
   }
 
   const installSpinner = spinner("Installing React Grab skill.").start();
-  const { installed, failed } = await add({
-    source: SKILL_SOURCE,
-    agents: selectedAgents,
-    global,
-    cwd,
-    mode: "copy",
-  });
+  const { installed, failed } = await installSkill({ agents: selectedAgents, global, cwd });
 
   if (installed.length === 0) {
     installSpinner.fail("Failed to install React Grab skill.");
