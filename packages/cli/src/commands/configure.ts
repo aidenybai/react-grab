@@ -239,7 +239,7 @@ const CONFIG_OPTIONS: ConfigOption[] = [
   {
     id: "maxContextLines",
     title: "Max Context Lines",
-    description: "Number of surrounding code lines to include in context",
+    description: "Max source-location lines in copied context (raise for large apps)",
   },
 ];
 
