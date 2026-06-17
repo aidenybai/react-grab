@@ -5,6 +5,7 @@ import {
   selectResolvedSource,
   type ResolvedSource,
 } from "../src/core/context.js";
+import { MAX_TRACE_CONTEXT_LINES } from "../src/constants.js";
 
 const fiberSource: ResolvedSource = {
   filePath: "/src/app/page.tsx",
@@ -160,6 +161,31 @@ describe("formatStackContext", () => {
     const detailed = formatStackContext(stack, { maxLines: 5 });
     expect(detailed.text.split("\n").filter(Boolean)).toHaveLength(5);
     expect(detailed.text).toContain("app/e.tsx");
+  });
+
+  it("keeps the hard cap when maxLines is non-finite", () => {
+    const stack: StackFrame[] = Array.from({ length: 40 }, (_unused, index) => ({
+      fileName: `src/app/feature-${index}.tsx`,
+      functionName: `Feature${index}`,
+    }));
+
+    for (const invalidMaxLines of [Number.NaN, Number.POSITIVE_INFINITY, -5]) {
+      const result = formatStackContext(stack, { maxLines: invalidMaxLines });
+      const lines = result.text.split("\n").filter(Boolean);
+      expect(lines.length).toBeLessThanOrEqual(MAX_TRACE_CONTEXT_LINES);
+    }
+  });
+
+  it("falls back to the default budget when maxLines is NaN", () => {
+    const stack: StackFrame[] = [
+      { fileName: "src/app/a.tsx", functionName: "A" },
+      { fileName: "src/app/b.tsx", functionName: "B" },
+      { fileName: "src/app/c.tsx", functionName: "C" },
+      { fileName: "src/app/d.tsx", functionName: "D" },
+    ];
+
+    const result = formatStackContext(stack, { maxLines: Number.NaN });
+    expect(result.text.split("\n").filter(Boolean)).toHaveLength(3);
   });
 
   it("digs past low-signal package frames to surface a deeper app source", () => {

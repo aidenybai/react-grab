@@ -7,7 +7,8 @@ import {
   traverseFiber,
   type Fiber,
 } from "bippy";
-import { DEFAULT_MAX_CONTEXT_LINES, MAX_TRACE_CONTEXT_LINES } from "../constants.js";
+import { MAX_TRACE_CONTEXT_LINES } from "../constants.js";
+import { resolveMaxContextLines } from "../utils/resolve-max-context-lines.js";
 import { normalizeFilePath } from "../utils/normalize-file-path.js";
 import {
   classifySourcePath,
@@ -336,7 +337,7 @@ export const formatStackContext = (
   options: StackContextOptions = {},
   leadingSource: ResolvedSource | null = null,
 ): TraceContextResult => {
-  const { maxLines = DEFAULT_MAX_CONTEXT_LINES } = options;
+  const maxLines = resolveMaxContextLines(options.maxLines);
   // max, not min: the extended cap must sit above the soft budget (min would
   // collapse it onto maxLines and disable extension entirely).
   const hardMaxLines = Math.max(maxLines, MAX_TRACE_CONTEXT_LINES);
@@ -420,7 +421,7 @@ const getTraceContext = async (
 
   const componentNames = getComponentNamesFromFiber(
     findNearestFiberElement(element),
-    options.maxLines ?? DEFAULT_MAX_CONTEXT_LINES,
+    resolveMaxContextLines(options.maxLines),
   );
   if (componentNames.length > 0) {
     return {
