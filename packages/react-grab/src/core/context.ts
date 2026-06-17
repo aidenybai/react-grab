@@ -265,13 +265,10 @@ const formatSourceContextLine = (source: SourceLocation, isNextProject: boolean)
 
 interface StackFrameLine {
   text: string;
-  // True for any real app-owned source file. Drives selector-hint suppression:
-  // once we've surfaced a genuine app location, the consumer doesn't need a CSS
-  // selector fallback.
+  // A real app-owned source file: suppresses the CSS selector-hint fallback.
   isAppSource: boolean;
-  // True only for high-signal app source. Shared-UI / design-system frames are
-  // app source (isAppSource) but, like package frames, are surfaced for free so
-  // a wrapper-heavy trace can reach the meaningful surface beneath them.
+  // High-signal app source that spends the line budget. Shared-UI frames are
+  // app source but free, like package frames.
   consumesBudget: boolean;
 }
 

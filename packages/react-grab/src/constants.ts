@@ -21,11 +21,9 @@ export const INPUT_TEXT_SELECTION_ACTIVATION_DELAY_MS = 600;
 export const DEFAULT_KEY_HOLD_DURATION_MS = 100;
 export const DEFAULT_MAX_CONTEXT_LINES = 3;
 export const MAX_TRACE_CONTEXT_LINES = 20;
-// App-owned directories that hold reusable, feature-agnostic UI building
-// blocks (shadcn's components/ui, a monorepo packages/ui design system,
-// headless primitives, etc.). Frames from these are still surfaced, but
-// like node_modules frames they don't spend the compact line budget, so a
-// wrapper-heavy element's trace can dig past them to the meaningful surface.
+// Path segments marking app-owned reusable UI directories (shadcn's
+// components/ui, a monorepo packages/ui, headless primitives). See
+// is-shared-ui-source-path for how these are treated.
 export const SHARED_UI_SOURCE_PATH_SEGMENTS: readonly string[] = [
   "/ui/",
   "/design-system/",
