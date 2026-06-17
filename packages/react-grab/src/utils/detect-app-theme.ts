@@ -1,4 +1,5 @@
 import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "./native-raf.js";
+import { parseCssColor } from "./parse-css-color.js";
 
 type AppTheme = "dark" | "light";
 
@@ -26,21 +27,6 @@ const PRESENCE_ATTRIBUTES: readonly { attribute: string; theme: AppTheme }[] = [
 
 const LUMINANCE_DARK_THRESHOLD = 0.18;
 
-// Matches both legacy comma-separated (Chrome <101, Firefox <113) and modern
-// space-separated (Chrome 101+, Firefox 113+, Safari 15+) computed rgb/rgba.
-//   legacy:  rgba(18, 18, 18, 1)  or  rgb(18, 18, 18)
-//   modern:  rgb(18 18 18)        or  rgb(18 18 18 / 1)
-const RGB_PATTERN =
-  /rgba?\(\s*(\d+(?:\.\d+)?)\s*[,\s]\s*(\d+(?:\.\d+)?)\s*[,\s]\s*(\d+(?:\.\d+)?)(?:\s*[,/]\s*(\d+(?:\.\d+)?))?\s*\)/;
-
-const isTransparent = (backgroundColor: string): boolean => {
-  if (backgroundColor === "transparent") return true;
-  const rgbMatch = backgroundColor.match(RGB_PATTERN);
-  if (!rgbMatch) return false;
-  const alpha = rgbMatch[4];
-  return alpha !== undefined && Number(alpha) === 0;
-};
-
 const relativeLuminance = (red: number, green: number, blue: number): number => {
   const [linearRed, linearGreen, linearBlue] = [red, green, blue].map((channel) => {
     const normalized = channel / 255;
@@ -49,21 +35,19 @@ const relativeLuminance = (red: number, green: number, blue: number): number => 
   return 0.2126 * linearRed + 0.7152 * linearGreen + 0.0722 * linearBlue;
 };
 
-const themeFromBackgroundLuminance = (): AppTheme | null => {
-  const target = document.body ?? document.documentElement;
-  const backgroundColor = getComputedStyle(target).backgroundColor;
-  if (!backgroundColor || isTransparent(backgroundColor)) {
-    return null;
-  }
-  const rgbMatch = backgroundColor.match(RGB_PATTERN);
-  if (!rgbMatch) return null;
-  const luminance = relativeLuminance(
-    Number(rgbMatch[1]),
-    Number(rgbMatch[2]),
-    Number(rgbMatch[3]),
-  );
+const themeFromElementBackground = (element: HTMLElement | null): AppTheme | null => {
+  if (!element) return null;
+  const parsed = parseCssColor(getComputedStyle(element).backgroundColor);
+  // A transparent background tells us nothing about the rendered theme.
+  if (!parsed || parsed.alpha === 0) return null;
+  const luminance = relativeLuminance(parsed.red, parsed.green, parsed.blue);
   return luminance < LUMINANCE_DARK_THRESHOLD ? "dark" : "light";
 };
+
+// Prefer the body's painted background, but fall back to <html> when the body is
+// transparent (frameworks frequently paint the page background on the root).
+const themeFromBackgroundLuminance = (): AppTheme | null =>
+  themeFromElementBackground(document.body) ?? themeFromElementBackground(document.documentElement);
 
 const themeFromAttributeValue = (attributeValue: string): AppTheme | null => {
   const normalized = attributeValue.toLowerCase();
