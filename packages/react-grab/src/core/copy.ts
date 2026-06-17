@@ -8,6 +8,7 @@ import type { ReactGrabEntry, ReactGrabStackFrame } from "../types.js";
 interface CopyFlowOptions {
   getContent?: (elements: Element[]) => Promise<string> | string;
   componentName?: string;
+  maxContextLines?: number;
 }
 
 interface CopyFlowHooks {
@@ -33,10 +34,14 @@ const formatStackFramePayload = (frame: StackFrame): ReactGrabStackFrame => ({
   isSymbolicated: frame.isSymbolicated,
 });
 
-const buildElementPayloadEntry = async (element: Element): Promise<ReactGrabEntry> => {
+const buildElementPayloadEntry = async (
+  element: Element,
+  maxContextLines?: number,
+): Promise<ReactGrabEntry> => {
+  const stackOptions = { maxLines: maxContextLines };
   const [referenceContext, stackContext, source, stack] = await Promise.all([
-    getElementReferenceContext(element),
-    getStackContext(element),
+    getElementReferenceContext(element, stackOptions),
+    getStackContext(element, stackOptions),
     resolveSource(element),
     getStack(element),
   ]);
@@ -50,8 +55,13 @@ const buildElementPayloadEntry = async (element: Element): Promise<ReactGrabEntr
   };
 };
 
-const buildClipboardPayload = async (elements: Element[]): Promise<CopyPayload | null> => {
-  const rawEntries = await Promise.all(elements.map(buildElementPayloadEntry));
+const buildClipboardPayload = async (
+  elements: Element[],
+  maxContextLines?: number,
+): Promise<CopyPayload | null> => {
+  const rawEntries = await Promise.all(
+    elements.map((element) => buildElementPayloadEntry(element, maxContextLines)),
+  );
   const entriesByContent = new Map<string, ReactGrabEntry>();
   for (const entry of rawEntries) {
     if (!entriesByContent.has(entry.content)) {
@@ -99,7 +109,7 @@ export const runCopyFlow = async (
   try {
     const payload: CopyPayload | null = options.getContent
       ? { content: await options.getContent(elements) }
-      : await buildClipboardPayload(elements);
+      : await buildClipboardPayload(elements, options.maxContextLines);
     const rawContent = payload?.content;
 
     if (rawContent?.trim()) {

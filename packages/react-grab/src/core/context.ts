@@ -14,6 +14,7 @@ import {
   type SourcePathClassification,
 } from "../utils/classify-source-path.js";
 import { createElementSelector } from "../utils/create-element-selector.js";
+import { isSharedUiSourcePath } from "../utils/is-shared-ui-source-path.js";
 import { isNextProjectRuntime } from "../utils/is-next-project-runtime.js";
 import { enrichServerFrameLocations, symbolicateServerFrames } from "./next-server-frames.js";
 import { getHTMLPreview, getInlineHTMLPreview } from "./html-preview.js";
@@ -263,8 +264,20 @@ const formatSourceContextLine = (source: SourceLocation, isNextProject: boolean)
 
 interface StackFrameLine {
   text: string;
-  isTrustedSource: boolean;
+  // True for any real app-owned source file. Drives selector-hint suppression:
+  // once we've surfaced a genuine app location, the consumer doesn't need a CSS
+  // selector fallback.
+  isAppSource: boolean;
+  // True only for high-signal app source. Shared-UI / design-system frames are
+  // app source (isAppSource) but, like package frames, are surfaced for free so
+  // a wrapper-heavy trace can reach the meaningful surface beneath them.
+  consumesBudget: boolean;
 }
+
+const LOW_SIGNAL_FRAME: Pick<StackFrameLine, "isAppSource" | "consumesBudget"> = {
+  isAppSource: false,
+  consumesBudget: false,
+};
 
 const formatStackFrameLine = (
   frame: StackFrame,
@@ -282,7 +295,7 @@ const formatStackFrameLine = (
     const serverTag = libraryPackage ? `${libraryPackage} at Server` : "at Server";
     return {
       text: `\n  in ${componentName ?? "<anonymous>"} (${serverTag})`,
-      isTrustedSource: false,
+      ...LOW_SIGNAL_FRAME,
     };
   }
 
@@ -291,12 +304,12 @@ const formatStackFrameLine = (
       text: libraryPackage
         ? `\n  in ${componentName} (${libraryPackage})`
         : `\n  in ${componentName}`,
-      isTrustedSource: false,
+      ...LOW_SIGNAL_FRAME,
     };
   }
 
   if (libraryPackage) {
-    return { text: `\n  in ${libraryPackage}`, isTrustedSource: false };
+    return { text: `\n  in ${libraryPackage}`, ...LOW_SIGNAL_FRAME };
   }
 
   if (appSourceFilePath) {
@@ -310,7 +323,8 @@ const formatStackFrameLine = (
         },
         isNextProject,
       ),
-      isTrustedSource: true,
+      isAppSource: true,
+      consumesBudget: !isSharedUiSourcePath(appSourceFilePath),
     };
   }
 
@@ -335,14 +349,16 @@ export const formatStackContext = (
 
   if (leadingSource) {
     hasTrustedSource = leadingSource.origin === "app";
-    budgetedLineCount += 1;
+    // A shared-UI leading source means the user grabbed a primitive directly;
+    // keep its budget free so the feature ancestors that consume it surface.
+    if (!isSharedUiSourcePath(leadingSource.filePath)) budgetedLineCount += 1;
     lines.push(formatSourceContextLine(leadingSource, isNextProject));
   }
 
   for (const frame of stack) {
-    // Low-signal lines (no app file path) are free: they never consume the
-    // soft budget, only the hard cap, so library noise never crowds out app
-    // source locations.
+    // Low-signal lines (library frames and shared-UI/design-system app frames)
+    // are free: they never consume the soft budget, only the hard cap, so
+    // wrapper noise never crowds out the meaningful app source locations.
     if (budgetedLineCount >= maxLines || lines.length >= hardMaxLines) break;
 
     const sourceClassification = classifySourcePath(frame.fileName);
@@ -373,10 +389,8 @@ export const formatStackContext = (
     );
     if (frameLine === null) continue;
 
-    if (frameLine.isTrustedSource) {
-      hasTrustedSource = true;
-      budgetedLineCount += 1;
-    }
+    if (frameLine.isAppSource) hasTrustedSource = true;
+    if (frameLine.consumesBudget) budgetedLineCount += 1;
     lines.push(frameLine.text);
     previousLibraryFrameKey = libraryFrameKey;
   }

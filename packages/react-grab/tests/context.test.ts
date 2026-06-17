@@ -111,6 +111,57 @@ describe("formatStackContext", () => {
     expect(result.text).not.toContain("app/layout.tsx");
   });
 
+  it("does not let shared-UI wrapper frames spend the compact line budget", () => {
+    const result = formatStackContext(
+      [
+        { fileName: "src/components/ui/sidebar.tsx", functionName: "Sidebar" },
+        { fileName: "src/components/ui/sidebar.tsx", functionName: "SidebarContent" },
+        { fileName: "src/components/ui/button.tsx", functionName: "Button" },
+        { fileName: "src/app/dashboard/page.tsx", functionName: "DashboardPage" },
+        { fileName: "src/app/layout.tsx", functionName: "RootLayout" },
+      ],
+      { maxLines: 3 },
+    );
+
+    expect(result.text).toContain("components/ui/sidebar.tsx");
+    expect(result.text).toContain("components/ui/button.tsx");
+    expect(result.text).toContain("app/dashboard/page.tsx");
+    expect(result.text).toContain("app/layout.tsx");
+    expect(result.shouldAppendSelectorHint).toBe(false);
+  });
+
+  it("surfaces deeper feature source past a wrapper chain without a selector hint", () => {
+    const result = formatStackContext(
+      [
+        { fileName: "src/components/ui/dialog.tsx", functionName: "Dialog" },
+        { fileName: "src/components/ui/dialog.tsx", functionName: "DialogContent" },
+        { fileName: "src/components/ui/scroll-area.tsx", functionName: "ScrollArea" },
+        { fileName: "src/features/builder/builder.tsx", functionName: "Builder" },
+      ],
+      { maxLines: 1 },
+    );
+
+    expect(result.text).toContain("features/builder/builder.tsx");
+    expect(result.shouldAppendSelectorHint).toBe(false);
+  });
+
+  it("honors a raised maxLines to surface more feature source", () => {
+    const stack: StackFrame[] = [
+      { fileName: "src/app/a.tsx", functionName: "A" },
+      { fileName: "src/app/b.tsx", functionName: "B" },
+      { fileName: "src/app/c.tsx", functionName: "C" },
+      { fileName: "src/app/d.tsx", functionName: "D" },
+      { fileName: "src/app/e.tsx", functionName: "E" },
+    ];
+
+    const compact = formatStackContext(stack, { maxLines: 3 });
+    expect(compact.text.split("\n").filter(Boolean)).toHaveLength(3);
+
+    const detailed = formatStackContext(stack, { maxLines: 5 });
+    expect(detailed.text.split("\n").filter(Boolean)).toHaveLength(5);
+    expect(detailed.text).toContain("app/e.tsx");
+  });
+
   it("digs past low-signal package frames to surface a deeper app source", () => {
     const result = formatStackContext([
       { fileName: "node_modules/react-tabs/dist/index.js", functionName: "Tabs" },

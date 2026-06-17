@@ -653,6 +653,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         {
           getContent: pluginRegistry.store.options.getContent,
           componentName: elementName,
+          maxContextLines: pluginRegistry.store.options.maxContextLines,
         },
         pluginRegistry.hooks,
         elements,
@@ -3786,7 +3787,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           componentName: source.componentName,
         };
       },
-      getStackContext,
+      getStackContext: (element: Element) =>
+        getStackContext(element, { maxLines: pluginRegistry.store.options.maxContextLines }),
       getState: (): ReactGrabState => ({
         isActive: isActivated(),
         isDragging: isDragging(),
