@@ -3,8 +3,6 @@ import { parseCssColor } from "./parse-css-color.js";
 
 type AppTheme = "dark" | "light";
 
-const isAppTheme = (token: string): token is AppTheme => token === "dark" || token === "light";
-
 interface ThemeWatcherResult {
   theme: AppTheme;
   cleanup: () => void;
@@ -56,40 +54,63 @@ const themeFromAttributeValue = (attributeValue: string): AppTheme | null => {
   return null;
 };
 
-// CSS color-scheme can be multi-value ("light dark" or "dark light").
-// First listed value is the preferred scheme; fall back to includes-check
-// for single-value strings.
+// `color-scheme` only forces a theme when it lists a single value. When it
+// lists both ("light dark" / "dark light") the active scheme is chosen by the
+// user's OS preference and reflected in the actual paint - token order does NOT
+// decide it - so we defer to luminance / prefers-color-scheme instead of
+// guessing the first token.
 const themeFromColorScheme = (colorSchemeValue: string): AppTheme | null => {
   const normalized = colorSchemeValue.trim().toLowerCase();
   if (!normalized || normalized === "normal" || normalized === "auto") return null;
 
   const tokens = normalized.split(/\s+/);
-  return tokens.find(isAppTheme) ?? null;
+  const allowsDark = tokens.includes("dark");
+  const allowsLight = tokens.includes("light");
+  if (allowsDark && allowsLight) return null;
+  if (allowsDark) return "dark";
+  if (allowsLight) return "light";
+  return null;
 };
 
-const detectTheme = (): AppTheme => {
-  const htmlElement = document.documentElement;
+const themeFromColorSchemeOf = (element: HTMLElement): AppTheme | null => {
+  const colorSchemeValue = element.style.colorScheme || getComputedStyle(element).colorScheme;
+  return colorSchemeValue ? themeFromColorScheme(colorSchemeValue) : null;
+};
 
-  if (htmlElement.classList.contains("dark")) return "dark";
-  if (htmlElement.classList.contains("light")) return "light";
+// Most frameworks mark the theme on <html> (Tailwind, next-themes), but some
+// put it on <body> (a few Bootstrap/MUI setups and hand-rolled apps), so both
+// roots are inspected.
+const themeFromElementMarkers = (element: HTMLElement): AppTheme | null => {
+  if (element.classList.contains("dark")) return "dark";
+  if (element.classList.contains("light")) return "light";
 
   for (const attributeName of THEME_ATTRIBUTES) {
-    const attributeValue = htmlElement.getAttribute(attributeName);
+    const attributeValue = element.getAttribute(attributeName);
     if (!attributeValue) continue;
     const result = themeFromAttributeValue(attributeValue);
     if (result) return result;
   }
 
   for (const { attribute, theme } of PRESENCE_ATTRIBUTES) {
-    if (htmlElement.hasAttribute(attribute)) return theme;
+    if (element.hasAttribute(attribute)) return theme;
   }
 
-  const colorSchemeProperty =
-    htmlElement.style.colorScheme || getComputedStyle(htmlElement).colorScheme;
-  if (colorSchemeProperty) {
-    const result = themeFromColorScheme(colorSchemeProperty);
-    if (result) return result;
-  }
+  return null;
+};
+
+const detectTheme = (): AppTheme => {
+  const htmlElement = document.documentElement;
+  const bodyElement = document.body;
+
+  const markerTheme =
+    themeFromElementMarkers(htmlElement) ??
+    (bodyElement ? themeFromElementMarkers(bodyElement) : null);
+  if (markerTheme) return markerTheme;
+
+  const colorSchemeTheme =
+    themeFromColorSchemeOf(htmlElement) ??
+    (bodyElement ? themeFromColorSchemeOf(bodyElement) : null);
+  if (colorSchemeTheme) return colorSchemeTheme;
 
   const luminanceResult = themeFromBackgroundLuminance();
   if (luminanceResult) return luminanceResult;
