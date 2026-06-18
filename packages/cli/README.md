@@ -86,17 +86,17 @@ console.log(result.didChangeFile); // whether an entry file was modified
 console.log(result.transform.filePath); // the file that was (or would be) edited
 ```
 
-| Option                  | Type                    | Description                                                                                    |
-| ----------------------- | ----------------------- | ---------------------------------------------------------------------------------------------- |
-| `cwd`                   | `string`                | Project directory (default: `process.cwd()`)                                                   |
-| `framework`             | `Framework`             | Override framework detection                                                                   |
-| `nextRouterType`        | `NextRouterType`        | Override Next.js router detection (`app` / `pages`)                                            |
-| `packageManager`        | `PackageManager`        | Override package-manager detection                                                             |
-| `force`                 | `boolean`               | Re-run setup even when React Grab is already configured (does not rewrite existing setup code) |
-| `skipPackageInstall`    | `boolean`               | Skip installing the `react-grab` npm package                                                   |
-| `skipTransform`         | `boolean`               | Skip editing the framework entry file                                                          |
-| `dryRun`                | `boolean`               | Compute the changes without installing or writing                                              |
-| `installPackageOptions` | `InstallPackageOptions` | Passed through to `installPackages` (e.g. `silent`, `isDev`)                                   |
+| Option                  | Type                                                     | Description                                                                                                             |
+| ----------------------- | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `cwd`                   | `string`                                                 | Project directory (default: `process.cwd()`)                                                                            |
+| `framework`             | `Framework`                                              | Override framework detection                                                                                            |
+| `nextRouterType`        | `NextRouterType`                                         | Override Next.js router detection (`app` / `pages`)                                                                     |
+| `packageManager`        | `PackageManager`                                         | Override package-manager detection                                                                                      |
+| `force`                 | `boolean`                                                | Re-run setup even when React Grab is already configured (does not rewrite existing setup code)                          |
+| `skipPackageInstall`    | `boolean`                                                | Skip installing the `react-grab` npm package                                                                            |
+| `skipTransform`         | `boolean`                                                | Skip editing the framework entry file                                                                                   |
+| `dryRun`                | `boolean`                                                | Compute the changes without installing or writing                                                                       |
+| `installPackageOptions` | `Omit<InstallPackageOptions, "cwd" \| "packageManager">` | Passed through to `installPackages` (e.g. `silent`, `isDev`); `cwd`/`packageManager` are controlled by the orchestrator |
 
 Failures throw a `ReactGrabInstallError` with a `code` (`"unsupported-framework"`, `"unknown-framework"`, `"transform-failed"`, `"install-failed"`, `"write-failed"`) so callers can branch on the cause. The original error is preserved on `error.cause`.
 
