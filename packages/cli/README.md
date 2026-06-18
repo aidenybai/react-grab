@@ -92,7 +92,6 @@ console.log(result.transform.filePath); // the file that was (or would be) edite
 | `framework`             | `Framework`                                              | Override framework detection                                                                                            |
 | `nextRouterType`        | `NextRouterType`                                         | Override Next.js router detection (`app` / `pages`)                                                                     |
 | `packageManager`        | `PackageManager`                                         | Override package-manager detection                                                                                      |
-| `force`                 | `boolean`                                                | Re-run setup even when React Grab is already configured (does not rewrite existing setup code)                          |
 | `skipPackageInstall`    | `boolean`                                                | Skip installing the `react-grab` npm package                                                                            |
 | `skipTransform`         | `boolean`                                                | Skip editing the framework entry file                                                                                   |
 | `dryRun`                | `boolean`                                                | Compute the changes without installing or writing                                                                       |
@@ -152,7 +151,7 @@ await installSkill({ cwd: project.projectRoot });
 
 The full export surface, each with its TypeScript types:
 
-- Detection: `detectProject`, `detectFramework`, `detectPackageManager`, `detectNextRouterType`, `detectReactGrab`, `findReactProjects`
+- Detection: `detectProject`, `detectFramework`, `detectPackageManager`, `detectNextRouterType`, `detectReactGrab`, `detectReactGrabConfigured`, `detectUnsupportedFramework`, `findReactProjects`
 - Transforms: `previewTransform`, `previewOptionsTransform`, `previewCdnTransform`, `applyTransform`, `hasFrameworkEntryPoint`
 - Installation: `installPackages`, `getPackagesToInstall`, `installSkill`, `removeSkill`
 

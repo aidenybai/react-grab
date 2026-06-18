@@ -31,7 +31,6 @@ export interface InstallReactGrabOptions {
   framework?: Framework;
   nextRouterType?: NextRouterType;
   packageManager?: PackageManager;
-  force?: boolean;
   skipPackageInstall?: boolean;
   skipTransform?: boolean;
   dryRun?: boolean;
@@ -87,7 +86,7 @@ export const installReactGrab = async (
     project.projectRoot,
     framework,
     nextRouterType,
-    alreadyConfigured && !options.force,
+    alreadyConfigured,
   );
 
   if (!transform.success && !options.skipTransform) {

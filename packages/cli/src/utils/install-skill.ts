@@ -10,8 +10,6 @@ import {
   isUniversalSkillAgent,
 } from "agent-install/skill";
 import { detectAvailableAgents } from "./detect-agents.js";
-import { highlighter } from "./highlighter.js";
-import { logger } from "./logger.js";
 
 const SKILL_NAME = "react-grab";
 
@@ -56,7 +54,7 @@ interface RemoveSkillOptions {
 export const removeSkill = async ({
   cwd = process.cwd(),
   global = false,
-}: RemoveSkillOptions = {}): Promise<number> => {
+}: RemoveSkillOptions = {}): Promise<SkillAgentType[]> => {
   const agents = await detectAvailableAgents();
   const removedAgents: SkillAgentType[] = [];
   const dirsToRemove = new Set<string>();
@@ -69,8 +67,5 @@ export const removeSkill = async ({
   for (const skillDir of dirsToRemove) {
     rmSync(skillDir, { recursive: true, force: true });
   }
-  for (const agent of removedAgents) {
-    logger.log(`  ${highlighter.success("\u2713")} ${agentLabel(agent)}`);
-  }
-  return removedAgents.length;
+  return removedAgents;
 };
