@@ -24,6 +24,9 @@ const parseOptionsFromJson = (rawValue: unknown): Partial<Options> | null => {
   if (typeof rawValue.activationKey === "string") {
     parsedOptions.activationKey = rawValue.activationKey;
   }
+  if (typeof rawValue.maxContextLines === "number" && Number.isFinite(rawValue.maxContextLines)) {
+    parsedOptions.maxContextLines = rawValue.maxContextLines;
+  }
   if (typeof rawValue.freezeReactUpdates === "boolean") {
     parsedOptions.freezeReactUpdates = rawValue.freezeReactUpdates;
   }

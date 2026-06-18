@@ -171,6 +171,14 @@ Even after resolving source locations, the component hierarchy often contains fr
 
 `getComponentDisplayName` walks up the fiber tree from the target element and returns the first composite fiber whose display name passes all of these filters. The result is typically the user's own component - the one they'd actually want to find in their editor.
 
+### Context line budget
+
+`formatStackContext` in [core/context.ts](../src/core/context.ts) caps how many lines the copied trace contains using two limits. The _soft budget_ (`maxLines`, defaulting to `DEFAULT_MAX_CONTEXT_LINES` = 3) keeps the common case compact, and the _hard cap_ (`MAX_TRACE_CONTEXT_LINES` = 20) bounds the worst case. Only high-signal app-source frames spend the soft budget; low-signal frames are surfaced "for free" and count only against the hard cap, so wrapper noise never crowds out the meaningful source.
+
+Low-signal covers two kinds of frame. The first is library frames from `node_modules`, which render by component name (`in Tabs (@radix-ui/react-tabs)`) rather than competing with app paths. The second is app-owned shared-UI / design-system frames - files under a `components/ui/`, `packages/ui/`, `design-system(s)/`, or `primitives/` segment (shadcn's `components/ui`, a monorepo `packages/ui`, headless primitives), detected by [utils/is-shared-ui-source-path.ts](../src/utils/is-shared-ui-source-path.ts). A bare `ui/` segment is deliberately excluded so Next's `app/ui/` feature convention is not mistaken for a primitive library. These are real source files, so they're still shown with their path and still satisfy the "trusted source" check that suppresses the selector-hint fallback - they just don't spend the budget. This is what lets a wrapper-heavy element (common in large Next apps) dig through its UI primitives to the actual feature surface by default.
+
+When the default still isn't deep enough, the public `maxContextLines` option raises the soft budget. It flows from `Options` through the plugin registry into the copy flow and the `getStackContext` API, and can also be set via the script tag's `data-options` attribute.
+
 ### Opening in editor
 
 The final step of the pipeline is [utils/open-file.ts](../src/utils/open-file.ts), which takes a resolved file path and optional line number and tries to open it in the user's code editor. It first attempts the dev server's built-in open-in-editor endpoint: `/__open-in-editor` for Vite or `/__nextjs_launch-editor` for Next.js. Both of these dev servers include middleware that launches the user's configured `$EDITOR` (or `$VISUAL`) with the file path and line number, so the file opens directly in their editor without any browser interaction.
@@ -199,6 +207,6 @@ The registry provides several ways to call hooks, each suited to a different use
 
 The three built-in plugins are registered during `init()` through the same `register()` path that external plugins use, so there is nothing architecturally special about them:
 
-- **copy** registers the default "Copy" context-menu action that copies a single-line `[<tag …> in Component (at path:line) …]` reference per selected element, including up to `DEFAULT_MAX_CONTEXT_LINES` (3) frames from the component stack.
+- **copy** registers the default "Copy" context-menu action that copies a single-line `[<tag …> in Component (at path:line) …]` reference per selected element, including up to `DEFAULT_MAX_CONTEXT_LINES` (3) budgeted frames from the component stack (raise via the `maxContextLines` option; see "Context line budget" below).
 - **comment** registers the "Comment" action that enters prompt mode.
 - **open** registers the "Open in editor" action that calls `openFile` with the resolved source location, running the URL through the `transformOpenFileUrl` hook pipeline first.

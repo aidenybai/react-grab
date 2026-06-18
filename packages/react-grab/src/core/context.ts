@@ -7,13 +7,15 @@ import {
   traverseFiber,
   type Fiber,
 } from "bippy";
-import { DEFAULT_MAX_CONTEXT_LINES, MAX_TRACE_CONTEXT_LINES } from "../constants.js";
+import { MAX_TRACE_CONTEXT_LINES } from "../constants.js";
+import { resolveMaxContextLines } from "../utils/resolve-max-context-lines.js";
 import { normalizeFilePath } from "../utils/normalize-file-path.js";
 import {
   classifySourcePath,
   type SourcePathClassification,
 } from "../utils/classify-source-path.js";
 import { createElementSelector } from "../utils/create-element-selector.js";
+import { isSharedUiSourcePath } from "../utils/is-shared-ui-source-path.js";
 import { isNextProjectRuntime } from "../utils/is-next-project-runtime.js";
 import { enrichServerFrameLocations, symbolicateServerFrames } from "./next-server-frames.js";
 import { getHTMLPreview, getInlineHTMLPreview } from "./html-preview.js";
@@ -263,8 +265,17 @@ const formatSourceContextLine = (source: SourceLocation, isNextProject: boolean)
 
 interface StackFrameLine {
   text: string;
-  isTrustedSource: boolean;
+  // A real app-owned source file: suppresses the CSS selector-hint fallback.
+  isAppSource: boolean;
+  // High-signal app source that spends the line budget. Shared-UI frames are
+  // app source but free, like package frames.
+  consumesBudget: boolean;
 }
+
+const LOW_SIGNAL_FRAME: Pick<StackFrameLine, "isAppSource" | "consumesBudget"> = {
+  isAppSource: false,
+  consumesBudget: false,
+};
 
 const formatStackFrameLine = (
   frame: StackFrame,
@@ -282,7 +293,7 @@ const formatStackFrameLine = (
     const serverTag = libraryPackage ? `${libraryPackage} at Server` : "at Server";
     return {
       text: `\n  in ${componentName ?? "<anonymous>"} (${serverTag})`,
-      isTrustedSource: false,
+      ...LOW_SIGNAL_FRAME,
     };
   }
 
@@ -291,12 +302,12 @@ const formatStackFrameLine = (
       text: libraryPackage
         ? `\n  in ${componentName} (${libraryPackage})`
         : `\n  in ${componentName}`,
-      isTrustedSource: false,
+      ...LOW_SIGNAL_FRAME,
     };
   }
 
   if (libraryPackage) {
-    return { text: `\n  in ${libraryPackage}`, isTrustedSource: false };
+    return { text: `\n  in ${libraryPackage}`, ...LOW_SIGNAL_FRAME };
   }
 
   if (appSourceFilePath) {
@@ -310,7 +321,8 @@ const formatStackFrameLine = (
         },
         isNextProject,
       ),
-      isTrustedSource: true,
+      isAppSource: true,
+      consumesBudget: !isSharedUiSourcePath(appSourceFilePath),
     };
   }
 
@@ -322,9 +334,11 @@ export const formatStackContext = (
   options: StackContextOptions = {},
   leadingSource: ResolvedSource | null = null,
 ): TraceContextResult => {
-  const { maxLines = DEFAULT_MAX_CONTEXT_LINES } = options;
-  // max, not min: the extended cap must sit above the soft budget (min would
-  // collapse it onto maxLines and disable extension entirely).
+  const maxLines = resolveMaxContextLines(options.maxLines);
+  // max, not min: the extended cap must sit above the soft budget. A
+  // caller-raised maxContextLines is allowed to lift the hard cap past
+  // MAX_TRACE_CONTEXT_LINES on purpose (opting into a deeper trace); min would
+  // collapse the cap onto maxLines and disable the free low-signal extension.
   const hardMaxLines = Math.max(maxLines, MAX_TRACE_CONTEXT_LINES);
   const isNextProject = isNextProjectRuntime();
   const lines: string[] = [];
@@ -335,14 +349,18 @@ export const formatStackContext = (
 
   if (leadingSource) {
     hasTrustedSource = leadingSource.origin === "app";
-    budgetedLineCount += 1;
+    // A shared-UI leading source means the user grabbed a primitive directly;
+    // keep its budget free so the feature ancestors that consume it surface.
+    if (!isSharedUiSourcePath(leadingSource.filePath)) budgetedLineCount += 1;
     lines.push(formatSourceContextLine(leadingSource, isNextProject));
   }
 
   for (const frame of stack) {
-    // Low-signal lines (no app file path) are free: they never consume the
-    // soft budget, only the hard cap, so library noise never crowds out app
-    // source locations.
+    // maxLines is the budget for high-signal app-source frames. Low-signal
+    // lines (library frames and shared-UI/design-system app frames) are free:
+    // they never consume the soft budget, only the hard cap, so wrapper noise
+    // never crowds out the meaningful app source locations. maxLines of 0 is
+    // therefore the minimal trace: only the leading source line, if any.
     if (budgetedLineCount >= maxLines || lines.length >= hardMaxLines) break;
 
     const sourceClassification = classifySourcePath(frame.fileName);
@@ -373,10 +391,15 @@ export const formatStackContext = (
     );
     if (frameLine === null) continue;
 
-    if (frameLine.isTrustedSource) {
-      hasTrustedSource = true;
-      budgetedLineCount += 1;
-    }
+    // Shared-UI frames are now surfaced for free, so a single primitives file
+    // (e.g. several sidebar parts, or a recursive component) can emit the same
+    // line repeatedly - especially under bundlers where we omit line numbers and
+    // identical-looking frames collapse to the same text. Skip consecutive
+    // duplicates so the trace stays readable.
+    if (frameLine.text === lines[lines.length - 1]) continue;
+
+    if (frameLine.isAppSource) hasTrustedSource = true;
+    if (frameLine.consumesBudget) budgetedLineCount += 1;
     lines.push(frameLine.text);
     previousLibraryFrameKey = libraryFrameKey;
   }
@@ -406,7 +429,7 @@ const getTraceContext = async (
 
   const componentNames = getComponentNamesFromFiber(
     findNearestFiberElement(element),
-    options.maxLines ?? DEFAULT_MAX_CONTEXT_LINES,
+    resolveMaxContextLines(options.maxLines),
   );
   if (componentNames.length > 0) {
     return {

@@ -5,6 +5,7 @@ import {
   selectResolvedSource,
   type ResolvedSource,
 } from "../src/core/context.js";
+import { MAX_TRACE_CONTEXT_LINES } from "../src/constants.js";
 
 const fiberSource: ResolvedSource = {
   filePath: "/src/app/page.tsx",
@@ -109,6 +110,108 @@ describe("formatStackContext", () => {
     expect(result.text).toContain("app/section.tsx");
     expect(result.text).toContain("app/page.tsx");
     expect(result.text).not.toContain("app/layout.tsx");
+  });
+
+  it("does not let shared-UI wrapper frames spend the compact line budget", () => {
+    const result = formatStackContext(
+      [
+        { fileName: "src/components/ui/sidebar.tsx", functionName: "Sidebar" },
+        { fileName: "src/components/ui/sidebar.tsx", functionName: "SidebarContent" },
+        { fileName: "src/components/ui/button.tsx", functionName: "Button" },
+        { fileName: "src/app/dashboard/page.tsx", functionName: "DashboardPage" },
+        { fileName: "src/app/layout.tsx", functionName: "RootLayout" },
+      ],
+      { maxLines: 3 },
+    );
+
+    expect(result.text).toContain("components/ui/sidebar.tsx");
+    expect(result.text).toContain("components/ui/button.tsx");
+    expect(result.text).toContain("app/dashboard/page.tsx");
+    expect(result.text).toContain("app/layout.tsx");
+    expect(result.shouldAppendSelectorHint).toBe(false);
+  });
+
+  it("surfaces deeper feature source past a wrapper chain without a selector hint", () => {
+    const result = formatStackContext(
+      [
+        { fileName: "src/components/ui/dialog.tsx", functionName: "Dialog" },
+        { fileName: "src/components/ui/dialog.tsx", functionName: "DialogContent" },
+        { fileName: "src/components/ui/scroll-area.tsx", functionName: "ScrollArea" },
+        { fileName: "src/features/builder/builder.tsx", functionName: "Builder" },
+      ],
+      { maxLines: 1 },
+    );
+
+    expect(result.text).toContain("features/builder/builder.tsx");
+    expect(result.shouldAppendSelectorHint).toBe(false);
+  });
+
+  it("honors a raised maxLines to surface more feature source", () => {
+    const stack: StackFrame[] = [
+      { fileName: "src/app/a.tsx", functionName: "A" },
+      { fileName: "src/app/b.tsx", functionName: "B" },
+      { fileName: "src/app/c.tsx", functionName: "C" },
+      { fileName: "src/app/d.tsx", functionName: "D" },
+      { fileName: "src/app/e.tsx", functionName: "E" },
+    ];
+
+    const compact = formatStackContext(stack, { maxLines: 3 });
+    expect(compact.text.split("\n").filter(Boolean)).toHaveLength(3);
+
+    const detailed = formatStackContext(stack, { maxLines: 5 });
+    expect(detailed.text.split("\n").filter(Boolean)).toHaveLength(5);
+    expect(detailed.text).toContain("app/e.tsx");
+  });
+
+  it("collapses consecutive duplicate trace lines", () => {
+    const result = formatStackContext([
+      { fileName: "src/components/ui/sidebar.tsx", functionName: "SidebarMenu" },
+      { fileName: "src/components/ui/sidebar.tsx", functionName: "SidebarMenu" },
+      { fileName: "src/components/ui/sidebar.tsx", functionName: "SidebarMenu" },
+      { fileName: "src/app/page.tsx", functionName: "Page" },
+    ]);
+
+    const sidebarLineCount = result.text
+      .split("\n")
+      .filter((line) => line.includes("SidebarMenu")).length;
+    expect(sidebarLineCount).toBe(1);
+    expect(result.text).toContain("app/page.tsx");
+  });
+
+  it("keeps non-consecutive repeats of the same line", () => {
+    const result = formatStackContext([
+      { fileName: "src/components/ui/card.tsx", functionName: "Card" },
+      { fileName: "src/app/section.tsx", functionName: "Section" },
+      { fileName: "src/components/ui/card.tsx", functionName: "Card" },
+    ]);
+
+    const cardLineCount = result.text.split("\n").filter((line) => line.includes("in Card")).length;
+    expect(cardLineCount).toBe(2);
+  });
+
+  it("keeps the hard cap when maxLines is non-finite", () => {
+    const stack: StackFrame[] = Array.from({ length: 40 }, (_unused, index) => ({
+      fileName: `src/app/feature-${index}.tsx`,
+      functionName: `Feature${index}`,
+    }));
+
+    for (const invalidMaxLines of [Number.NaN, Number.POSITIVE_INFINITY, -5]) {
+      const result = formatStackContext(stack, { maxLines: invalidMaxLines });
+      const lines = result.text.split("\n").filter(Boolean);
+      expect(lines.length).toBeLessThanOrEqual(MAX_TRACE_CONTEXT_LINES);
+    }
+  });
+
+  it("falls back to the default budget when maxLines is NaN", () => {
+    const stack: StackFrame[] = [
+      { fileName: "src/app/a.tsx", functionName: "A" },
+      { fileName: "src/app/b.tsx", functionName: "B" },
+      { fileName: "src/app/c.tsx", functionName: "C" },
+      { fileName: "src/app/d.tsx", functionName: "D" },
+    ];
+
+    const result = formatStackContext(stack, { maxLines: Number.NaN });
+    expect(result.text.split("\n").filter(Boolean)).toHaveLength(3);
   });
 
   it("digs past low-signal package frames to surface a deeper app source", () => {

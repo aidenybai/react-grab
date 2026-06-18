@@ -350,6 +350,16 @@ export interface Options {
   activationKey?: ActivationKey;
   getContent?: (elements: Element[]) => Promise<string> | string;
   /**
+   * Maximum number of source-location lines included in the copied / prompted
+   * context for a grabbed element. Larger apps often render a target through
+   * several wrapper components, so the compact default can point an agent at a
+   * wrapper instead of the meaningful surface. Raise this to opt into a deeper,
+   * more detailed trace. Low-signal library frames are always surfaced for free
+   * and never count against this budget.
+   * @default 3
+   */
+  maxContextLines?: number;
+  /**
    * Whether to freeze React state updates while React Grab is active.
    * This prevents UI changes from interfering with element selection.
    * @default true

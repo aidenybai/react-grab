@@ -20,7 +20,7 @@ import type {
   ActionContext,
 } from "../types.js";
 import { DEFAULT_THEME, deepMergeTheme } from "./theme.js";
-import { DEFAULT_KEY_HOLD_DURATION_MS } from "../constants.js";
+import { DEFAULT_KEY_HOLD_DURATION_MS, DEFAULT_MAX_CONTEXT_LINES } from "../constants.js";
 
 interface RegisteredPlugin {
   plugin: Plugin;
@@ -33,6 +33,7 @@ interface OptionsState {
   allowActivationInsideInput: boolean;
   activationKey: ActivationKey | undefined;
   getContent: ((elements: Element[]) => Promise<string> | string) | undefined;
+  maxContextLines: number;
   freezeReactUpdates: boolean;
 }
 
@@ -42,6 +43,7 @@ const DEFAULT_OPTIONS: OptionsState = {
   allowActivationInsideInput: true,
   activationKey: undefined,
   getContent: undefined,
+  maxContextLines: DEFAULT_MAX_CONTEXT_LINES,
   freezeReactUpdates: true,
 };
 
@@ -105,6 +107,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     "allowActivationInsideInput",
     "activationKey",
     "getContent",
+    "maxContextLines",
     "freezeReactUpdates",
   ];
 
