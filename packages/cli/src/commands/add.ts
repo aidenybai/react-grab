@@ -5,7 +5,7 @@ import { detectNonInteractive } from "../utils/is-non-interactive.js";
 import { detectProject } from "../utils/detect.js";
 import { handleError } from "../utils/handle-error.js";
 import { highlighter } from "../utils/highlighter.js";
-import { promptSkillInstall } from "../utils/install-skill.js";
+import { promptSkillInstall } from "../utils/prompt-skill-install.js";
 import { logger } from "../utils/logger.js";
 import { spinner } from "../utils/spinner.js";
 

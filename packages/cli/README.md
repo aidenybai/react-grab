@@ -112,6 +112,7 @@ import {
   previewTransform,
   applyTransform,
   installPackages,
+  getPackagesToInstall,
   installSkill,
 } from "@react-grab/cli/api";
 
@@ -124,13 +125,14 @@ const transform = previewTransform(
 );
 
 if (!project.hasReactGrab) {
-  await installPackages(["react-grab"], {
+  await installPackages(getPackagesToInstall(), {
     cwd: project.projectRoot,
     packageManager: project.packageManager,
   });
 }
 
-if (transform.success && transform.newContent) {
+// `noChanges` is set when React Grab is already wired up, so guard on it too
+if (transform.success && transform.newContent && !transform.noChanges) {
   applyTransform(transform); // writes transform.newContent to transform.filePath
 }
 

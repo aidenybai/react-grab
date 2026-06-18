@@ -112,7 +112,8 @@ export const installReactGrab = async (
     }
   }
 
-  const hasPendingFileChange = Boolean(transform.newContent) && !transform.noChanges;
+  const hasPendingFileChange =
+    !transform.noChanges && Boolean(transform.originalContent) && Boolean(transform.newContent);
   const didChangeFile = hasPendingFileChange && !options.skipTransform && !options.dryRun;
 
   if (didChangeFile) {
