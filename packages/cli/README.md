@@ -69,11 +69,11 @@ npx grab@latest configure
 
 ## Node API
 
-The same primitives that power the CLI are exposed under `@react-grab/cli/api`, so you can build your own installer or wrap React Grab setup inside another tool. The API has no side effects on import (unlike the CLI entry, which parses `argv` immediately).
+`@react-grab/cli/api` exposes the same primitives that power the CLI, so you can build your own installer or wrap React Grab setup inside another tool. Importing it runs no code, unlike the CLI entry (`.`), which parses `argv` on import.
 
 ### `installReactGrab(options?)`
 
-High-level, non-interactive orchestrator. Detects the project, installs the `react-grab` package with the detected package manager, and applies the framework-specific dev-only setup. Returns a structured result instead of printing or exiting.
+A high-level, non-interactive orchestrator. It detects the project, installs `react-grab` with the detected package manager, and applies the framework-specific development-only setup. It returns a structured result instead of printing or exiting.
 
 ```ts
 import { installReactGrab } from "@react-grab/cli/api";
@@ -98,9 +98,17 @@ console.log(result.transform.filePath); // the file that was (or would be) edite
 | `dryRun`                | `boolean`                                                | Compute the changes without installing or writing                                                                       |
 | `installPackageOptions` | `Omit<InstallPackageOptions, "cwd" \| "packageManager">` | Passed through to `installPackages` (e.g. `silent`, `isDev`); `cwd`/`packageManager` are controlled by the orchestrator |
 
-Failures throw a `ReactGrabInstallError` with a `code` (`"unsupported-framework"`, `"unknown-framework"`, `"transform-failed"`, `"install-failed"`, `"write-failed"`) so callers can branch on the cause. The original error is preserved on `error.cause`.
+Failures throw a `ReactGrabInstallError` whose `code` identifies the cause, with the original error preserved on `error.cause`:
 
-`installReactGrab` operates on a single project at `cwd` (it does not walk a monorepo). Point `cwd` at the app you want to configure; to discover apps in a monorepo first, use the exported `findReactProjects` helper. Calling it with default options mutates the project: it runs your package manager and edits a framework entry file. Use `dryRun: true` to compute the changes (returned on `result.transform`) without installing or writing.
+- `unsupported-framework`: framework has no automatic setup (Remix, Astro, SvelteKit, Gatsby)
+- `unknown-framework`: no supported framework detected
+- `transform-failed`: entry file could not be located or edited
+- `install-failed`: package manager failed to install `react-grab`
+- `write-failed`: edited file could not be written
+
+`installReactGrab` configures a single project at `cwd` and does not walk a monorepo. Point `cwd` at the app you want to set up, or call `findReactProjects` first to locate the apps in a workspace.
+
+By default the call mutates your project: it runs the package manager and edits a framework entry file. Pass `dryRun: true` to compute the change set (returned on `result.transform`) without installing or writing.
 
 ### Low-level building blocks
 
@@ -123,7 +131,11 @@ const transform = previewTransform(
   project.nextRouterType,
   project.isReactGrabConfigured,
 );
+```
 
+Install the package only when it's missing, then write the previewed edit. `previewTransform` sets `noChanges` when React Grab is already wired up, so guard on it before calling `applyTransform`, which writes `transform.newContent` to `transform.filePath`:
+
+```ts
 if (!project.hasReactGrab) {
   await installPackages(getPackagesToInstall(), {
     cwd: project.projectRoot,
@@ -131,16 +143,18 @@ if (!project.hasReactGrab) {
   });
 }
 
-// `noChanges` is set when React Grab is already wired up, so guard on it too
 if (transform.success && transform.newContent && !transform.noChanges) {
-  applyTransform(transform); // writes transform.newContent to transform.filePath
+  applyTransform(transform);
 }
 
-// Optionally install the agent skill for all detected agents
 await installSkill({ cwd: project.projectRoot });
 ```
 
-Exposed helpers include `detectProject`, `detectFramework`, `detectPackageManager`, `detectNextRouterType`, `detectReactGrab`, `findReactProjects`, `previewTransform`, `previewOptionsTransform`, `previewCdnTransform`, `applyTransform`, `hasFrameworkEntryPoint`, `installPackages`, `getPackagesToInstall`, `installSkill`, and `removeSkill`, along with their TypeScript types.
+The full export surface, each with its TypeScript types:
+
+- Detection: `detectProject`, `detectFramework`, `detectPackageManager`, `detectNextRouterType`, `detectReactGrab`, `findReactProjects`
+- Transforms: `previewTransform`, `previewOptionsTransform`, `previewCdnTransform`, `applyTransform`, `hasFrameworkEntryPoint`
+- Installation: `installPackages`, `getPackagesToInstall`, `installSkill`, `removeSkill`
 
 ## Supported Frameworks
 
