@@ -10,7 +10,7 @@ export type Framework = "next" | "vite" | "tanstack" | "webpack" | "unknown";
 export type NextRouterType = "app" | "pages" | "unknown";
 export type UnsupportedFramework = "remix" | "astro" | "sveltekit" | "gatsby" | null;
 
-interface ProjectInfo {
+export interface ProjectInfo {
   packageManager: PackageManager;
   framework: Framework;
   nextRouterType: NextRouterType;

@@ -5,7 +5,7 @@ import pc from "picocolors";
 import { detectNonInteractive } from "../utils/is-non-interactive.js";
 import { prompts } from "../utils/prompts.js";
 import { applyTransformWithFeedback, installPackagesWithFeedback } from "../utils/cli-helpers.js";
-import { promptSkillInstall } from "../utils/install-skill.js";
+import { promptSkillInstall } from "../utils/prompt-skill-install.js";
 import {
   detectProject,
   findReactProjects,
