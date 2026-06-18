@@ -86,19 +86,21 @@ console.log(result.didChangeFile); // whether an entry file was modified
 console.log(result.transform.filePath); // the file that was (or would be) edited
 ```
 
-| Option                  | Type                    | Description                                                  |
-| ----------------------- | ----------------------- | ------------------------------------------------------------ |
-| `cwd`                   | `string`                | Project directory (default: `process.cwd()`)                 |
-| `framework`             | `Framework`             | Override framework detection                                 |
-| `nextRouterType`        | `NextRouterType`        | Override Next.js router detection (`app` / `pages`)          |
-| `packageManager`        | `PackageManager`        | Override package-manager detection                           |
-| `force`                 | `boolean`               | Re-apply setup even if React Grab is already configured      |
-| `skipPackageInstall`    | `boolean`               | Skip installing the `react-grab` npm package                 |
-| `skipTransform`         | `boolean`               | Skip editing the framework entry file                        |
-| `dryRun`                | `boolean`               | Compute the changes without installing or writing            |
-| `installPackageOptions` | `InstallPackageOptions` | Passed through to `installPackages` (e.g. `silent`, `isDev`) |
+| Option                  | Type                    | Description                                                                                    |
+| ----------------------- | ----------------------- | ---------------------------------------------------------------------------------------------- |
+| `cwd`                   | `string`                | Project directory (default: `process.cwd()`)                                                   |
+| `framework`             | `Framework`             | Override framework detection                                                                   |
+| `nextRouterType`        | `NextRouterType`        | Override Next.js router detection (`app` / `pages`)                                            |
+| `packageManager`        | `PackageManager`        | Override package-manager detection                                                             |
+| `force`                 | `boolean`               | Re-run setup even when React Grab is already configured (does not rewrite existing setup code) |
+| `skipPackageInstall`    | `boolean`               | Skip installing the `react-grab` npm package                                                   |
+| `skipTransform`         | `boolean`               | Skip editing the framework entry file                                                          |
+| `dryRun`                | `boolean`               | Compute the changes without installing or writing                                              |
+| `installPackageOptions` | `InstallPackageOptions` | Passed through to `installPackages` (e.g. `silent`, `isDev`)                                   |
 
-Failures throw a `ReactGrabInstallError` with a `code` (`"unsupported-framework"`, `"unknown-framework"`, `"transform-failed"`, `"write-failed"`) so callers can branch on the cause.
+Failures throw a `ReactGrabInstallError` with a `code` (`"unsupported-framework"`, `"unknown-framework"`, `"transform-failed"`, `"install-failed"`, `"write-failed"`) so callers can branch on the cause. The original error is preserved on `error.cause`.
+
+`installReactGrab` operates on a single project at `cwd` (it does not walk a monorepo). Point `cwd` at the app you want to configure; to discover apps in a monorepo first, use the exported `findReactProjects` helper. Calling it with default options mutates the project: it runs your package manager and edits a framework entry file. Use `dryRun: true` to compute the changes (returned on `result.transform`) without installing or writing.
 
 ### Low-level building blocks
 

@@ -1,23 +1,26 @@
+import { resolve } from "node:path";
 import {
+  detectNextRouterType,
   detectProject,
   type Framework,
   type NextRouterType,
   type PackageManager,
 } from "./detect.js";
-import { installPackages, type InstallPackageOptions } from "./install.js";
+import { getPackagesToInstall, installPackages, type InstallPackageOptions } from "./install.js";
 import { applyTransform, previewTransform, type TransformResult } from "./transform.js";
 
 export type ReactGrabInstallErrorCode =
   | "unsupported-framework"
   | "unknown-framework"
   | "transform-failed"
+  | "install-failed"
   | "write-failed";
 
 export class ReactGrabInstallError extends Error {
   readonly code: ReactGrabInstallErrorCode;
 
-  constructor(message: string, code: ReactGrabInstallErrorCode) {
-    super(message);
+  constructor(message: string, code: ReactGrabInstallErrorCode, options?: ErrorOptions) {
+    super(message, options);
     this.name = "ReactGrabInstallError";
     this.code = code;
   }
@@ -32,7 +35,7 @@ export interface InstallReactGrabOptions {
   skipPackageInstall?: boolean;
   skipTransform?: boolean;
   dryRun?: boolean;
-  installPackageOptions?: InstallPackageOptions;
+  installPackageOptions?: Omit<InstallPackageOptions, "cwd" | "packageManager">;
 }
 
 export interface InstallReactGrabResult {
@@ -50,11 +53,10 @@ export interface InstallReactGrabResult {
 export const installReactGrab = async (
   options: InstallReactGrabOptions = {},
 ): Promise<InstallReactGrabResult> => {
-  const cwd = options.cwd ?? process.cwd();
+  const cwd = resolve(options.cwd ?? process.cwd());
   const project = await detectProject(cwd);
 
   const framework = options.framework ?? project.framework;
-  const nextRouterType = options.nextRouterType ?? project.nextRouterType;
   const packageManager = options.packageManager ?? project.packageManager;
 
   if (project.unsupportedFramework && !options.framework) {
@@ -71,6 +73,14 @@ export const installReactGrab = async (
     );
   }
 
+  // Detection only resolves the router type when the *detected* framework is
+  // Next.js, so derive it ourselves when the caller overrides to Next.
+  const nextRouterType =
+    options.nextRouterType ??
+    (framework === "next" && project.nextRouterType === "unknown"
+      ? detectNextRouterType(project.projectRoot)
+      : project.nextRouterType);
+
   const alreadyConfigured = project.isReactGrabConfigured;
 
   const transform = previewTransform(
@@ -80,18 +90,26 @@ export const installReactGrab = async (
     alreadyConfigured && !options.force,
   );
 
-  if (!transform.success) {
+  if (!transform.success && !options.skipTransform) {
     throw new ReactGrabInstallError(transform.message, "transform-failed");
   }
 
   const didInstallPackage = !options.skipPackageInstall && !options.dryRun && !project.hasReactGrab;
 
   if (didInstallPackage) {
-    await installPackages(["react-grab"], {
-      cwd: project.projectRoot,
-      packageManager,
-      ...options.installPackageOptions,
-    });
+    try {
+      await installPackages(getPackagesToInstall(), {
+        ...options.installPackageOptions,
+        cwd: project.projectRoot,
+        packageManager,
+      });
+    } catch (error) {
+      throw new ReactGrabInstallError(
+        error instanceof Error ? error.message : "Failed to install the react-grab package.",
+        "install-failed",
+        { cause: error },
+      );
+    }
   }
 
   const hasPendingFileChange = Boolean(transform.newContent) && !transform.noChanges;
