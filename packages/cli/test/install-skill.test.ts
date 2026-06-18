@@ -1,4 +1,5 @@
 import { vi, describe, expect, it, beforeEach } from "vite-plus/test";
+import { join } from "node:path";
 
 vi.mock("node:fs", () => ({
   existsSync: vi.fn(),
@@ -52,7 +53,7 @@ describe("installSkill", () => {
     expect(mockDetectAvailableAgents).toHaveBeenCalledTimes(1);
     expect(mockAdd).toHaveBeenCalledWith(
       expect.objectContaining({
-        source: expect.stringContaining("skills/react-grab"),
+        source: expect.stringContaining(join("skills", "react-grab")),
         agents: ["claude-code", "cursor"],
         global: false,
         cwd: "/app",
@@ -80,7 +81,7 @@ describe("removeSkill", () => {
 
     expect(removed).toEqual(["claude-code"]);
     expect(mockRmSync).toHaveBeenCalledTimes(1);
-    expect(mockRmSync).toHaveBeenCalledWith("/app/.claude-code/react-grab", {
+    expect(mockRmSync).toHaveBeenCalledWith(join("/app/.claude-code", "react-grab"), {
       recursive: true,
       force: true,
     });
@@ -105,7 +106,7 @@ describe("removeSkill", () => {
 
     expect(removed).toEqual(["universal"]);
     expect(mockGetCanonicalSkillsDir).toHaveBeenCalledWith(true, "/app");
-    expect(mockRmSync).toHaveBeenCalledWith("/app/.agents/skills/react-grab", {
+    expect(mockRmSync).toHaveBeenCalledWith(join("/app/.agents/skills", "react-grab"), {
       recursive: true,
       force: true,
     });
