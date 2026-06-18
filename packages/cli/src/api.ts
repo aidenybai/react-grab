@@ -1,6 +1,5 @@
 export {
   detectFramework,
-  detectMonorepo,
   detectNextRouterType,
   detectPackageManager,
   detectProject,

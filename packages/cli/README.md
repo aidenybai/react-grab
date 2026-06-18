@@ -116,7 +116,7 @@ import {
   installSkill,
 } from "@react-grab/cli/api";
 
-const project = await detectProject(cwd);
+const project = await detectProject(process.cwd());
 const transform = previewTransform(
   project.projectRoot,
   project.framework,

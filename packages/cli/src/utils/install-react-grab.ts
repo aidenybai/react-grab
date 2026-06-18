@@ -112,8 +112,9 @@ export const installReactGrab = async (
     }
   }
 
-  const hasPendingFileChange =
-    !transform.noChanges && Boolean(transform.originalContent) && Boolean(transform.newContent);
+  // Mirrors applyTransform's own write guard (it does not require originalContent),
+  // so an empty source file still receives the injected setup.
+  const hasPendingFileChange = !transform.noChanges && Boolean(transform.newContent);
   const didChangeFile = hasPendingFileChange && !options.skipTransform && !options.dryRun;
 
   if (didChangeFile) {
