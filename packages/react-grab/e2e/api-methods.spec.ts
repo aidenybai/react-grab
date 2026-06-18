@@ -201,6 +201,34 @@ test.describe("API Methods", () => {
     });
   });
 
+  test.describe("maxContextLines via setOptions", () => {
+    test("raising maxContextLines surfaces more source lines than the compact default", async ({
+      reactGrab,
+    }) => {
+      const getStackLineCount = (selector: string) =>
+        reactGrab.page.evaluate(async (sel) => {
+          const api = (
+            window as {
+              __REACT_GRAB__?: { getStackContext: (el: Element) => Promise<string> };
+            }
+          ).__REACT_GRAB__;
+          const element = document.querySelector(sel);
+          if (!api || !element) return -1;
+          const text = await api.getStackContext(element);
+          return text.split("\n").filter(Boolean).length;
+        }, selector);
+
+      await reactGrab.updateOptions({ maxContextLines: 1 });
+      const compactLineCount = await getStackLineCount("[data-testid='nested-button']");
+
+      await reactGrab.updateOptions({ maxContextLines: 12 });
+      const detailedLineCount = await getStackLineCount("[data-testid='nested-button']");
+
+      expect(compactLineCount).toBeGreaterThanOrEqual(1);
+      expect(detailedLineCount).toBeGreaterThan(compactLineCount);
+    });
+  });
+
   test.describe("dispose()", () => {
     test("should set hasInited to false on dispose", async ({ reactGrab }) => {
       await reactGrab.activate();

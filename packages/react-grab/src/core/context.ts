@@ -335,8 +335,10 @@ export const formatStackContext = (
   leadingSource: ResolvedSource | null = null,
 ): TraceContextResult => {
   const maxLines = resolveMaxContextLines(options.maxLines);
-  // max, not min: the extended cap must sit above the soft budget (min would
-  // collapse it onto maxLines and disable extension entirely).
+  // max, not min: the extended cap must sit above the soft budget. A
+  // caller-raised maxContextLines is allowed to lift the hard cap past
+  // MAX_TRACE_CONTEXT_LINES on purpose (opting into a deeper trace); min would
+  // collapse the cap onto maxLines and disable the free low-signal extension.
   const hardMaxLines = Math.max(maxLines, MAX_TRACE_CONTEXT_LINES);
   const isNextProject = isNextProjectRuntime();
   const lines: string[] = [];
@@ -354,9 +356,11 @@ export const formatStackContext = (
   }
 
   for (const frame of stack) {
-    // Low-signal lines (library frames and shared-UI/design-system app frames)
-    // are free: they never consume the soft budget, only the hard cap, so
-    // wrapper noise never crowds out the meaningful app source locations.
+    // maxLines is the budget for high-signal app-source frames. Low-signal
+    // lines (library frames and shared-UI/design-system app frames) are free:
+    // they never consume the soft budget, only the hard cap, so wrapper noise
+    // never crowds out the meaningful app source locations. maxLines of 0 is
+    // therefore the minimal trace: only the leading source line, if any.
     if (budgetedLineCount >= maxLines || lines.length >= hardMaxLines) break;
 
     const sourceClassification = classifySourcePath(frame.fileName);

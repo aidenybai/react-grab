@@ -22,10 +22,13 @@ export const DEFAULT_KEY_HOLD_DURATION_MS = 100;
 export const DEFAULT_MAX_CONTEXT_LINES = 3;
 export const MAX_TRACE_CONTEXT_LINES = 20;
 // Path segments marking app-owned reusable UI directories (shadcn's
-// components/ui, a monorepo packages/ui, headless primitives). See
-// is-shared-ui-source-path for how these are treated.
+// components/ui, a monorepo packages/ui, headless primitives). A bare `/ui/`
+// is deliberately excluded: Next's App Router convention places feature code
+// under `app/ui/`, so matching any `ui` segment would demote real features.
+// See is-shared-ui-source-path for how these are treated.
 export const SHARED_UI_SOURCE_PATH_SEGMENTS: readonly string[] = [
-  "/ui/",
+  "/components/ui/",
+  "/packages/ui/",
   "/design-system/",
   "/design-systems/",
   "/primitives/",

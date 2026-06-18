@@ -13,10 +13,6 @@ describe("isSharedUiSourcePath", () => {
     expect(isSharedUiSourcePath("src/primitives/dialog.tsx")).toBe(true);
   });
 
-  it("matches a root-level ui directory", () => {
-    expect(isSharedUiSourcePath("ui/button.tsx")).toBe(true);
-  });
-
   it("is case-insensitive", () => {
     expect(isSharedUiSourcePath("src/components/UI/Sidebar.tsx")).toBe(true);
   });
@@ -25,6 +21,12 @@ describe("isSharedUiSourcePath", () => {
     expect(isSharedUiSourcePath("app/(dashboard)/builder/[id]/page.tsx")).toBe(false);
     expect(isSharedUiSourcePath("src/features/builder/builder.tsx")).toBe(false);
     expect(isSharedUiSourcePath("src/components/header.tsx")).toBe(false);
+  });
+
+  it("does not match Next's app/ui feature convention", () => {
+    expect(isSharedUiSourcePath("app/ui/dashboard/cards.tsx")).toBe(false);
+    expect(isSharedUiSourcePath("src/app/(dashboard)/ui/settings.tsx")).toBe(false);
+    expect(isSharedUiSourcePath("ui/button.tsx")).toBe(false);
   });
 
   it("does not match a filename that merely starts with ui", () => {

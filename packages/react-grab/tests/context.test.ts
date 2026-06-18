@@ -185,9 +185,7 @@ describe("formatStackContext", () => {
       { fileName: "src/components/ui/card.tsx", functionName: "Card" },
     ]);
 
-    const cardLineCount = result.text
-      .split("\n")
-      .filter((line) => line.includes("in Card")).length;
+    const cardLineCount = result.text.split("\n").filter((line) => line.includes("in Card")).length;
     expect(cardLineCount).toBe(2);
   });
 
