@@ -7,7 +7,7 @@ const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8")) as {
 
 export default defineConfig({
   pack: {
-    entry: ["src/cli.ts"],
+    entry: ["src/cli.ts", "src/api.ts"],
     format: ["cjs", "esm"],
     dts: true,
     clean: true,
