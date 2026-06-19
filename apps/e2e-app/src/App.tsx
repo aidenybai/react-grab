@@ -334,7 +334,7 @@ const VariousElements = () => {
             data-testid="img-element"
           />
           <div
-            className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded"
+            className="size-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded"
             data-testid="gradient-div"
           />
         </div>
@@ -361,11 +361,11 @@ const AnimatedElements = () => {
       <h2 className="text-lg font-bold mb-4">Animated Elements</h2>
       <div className="space-y-4">
         <div
-          className="w-8 h-8 bg-blue-500 rounded-full animate-pulse"
+          className="size-8 bg-blue-500 rounded-full animate-pulse"
           data-testid="animated-pulse"
         />
-        <div className="w-8 h-8 bg-green-500 rounded animate-spin" data-testid="animated-spin" />
-        <div className="w-8 h-8 bg-red-500 rounded animate-bounce" data-testid="animated-bounce" />
+        <div className="size-8 bg-green-500 rounded animate-spin" data-testid="animated-spin" />
+        <div className="size-8 bg-red-500 rounded animate-bounce" data-testid="animated-bounce" />
       </div>
     </section>
   );
@@ -376,7 +376,7 @@ const ZeroDimensionElements = () => {
     <section className="border rounded-lg p-4" data-testid="zero-dimension-section">
       <h2 className="text-lg font-bold mb-4">Edge Case Elements</h2>
       <div className="space-y-2">
-        <div className="w-0 h-0" data-testid="zero-size-element" />
+        <div className="size-0" data-testid="zero-size-element" />
         <div className="invisible" data-testid="invisible-element">
           Invisible Element
         </div>
