@@ -18,22 +18,23 @@ declare global {
 
 let cachedResult: boolean | null = null;
 
-const supportsFloat16Canvas = (): boolean => {
-  try {
-    const probeContext = document
-      .createElement("canvas")
-      .getContext("2d", { colorType: "float16" });
-    return probeContext?.getContextAttributes().colorType === "float16";
-  } catch {
-    return false;
-  }
+// Probes the full extended-range capability the overlay relies on: a float16
+// 2D backing plus the method that switches the visible canvas into HDR. Without
+// both, boosting colors past SDR white only oversaturates a clamped canvas.
+const supportsHdrCanvas = (): boolean => {
+  const probeCanvas = document.createElement("canvas");
+  const probeContext = probeCanvas.getContext("2d", { colorType: "float16" });
+  return (
+    typeof probeCanvas.configureHighDynamicRange === "function" &&
+    probeContext?.getContextAttributes().colorType === "float16"
+  );
 };
 
 export const supportsHdr = (): boolean => {
   if (cachedResult !== null) return cachedResult;
 
   try {
-    cachedResult = window.matchMedia("(dynamic-range: high)").matches && supportsFloat16Canvas();
+    cachedResult = window.matchMedia("(dynamic-range: high)").matches && supportsHdrCanvas();
   } catch {
     cachedResult = false;
   }
