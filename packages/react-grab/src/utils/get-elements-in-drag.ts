@@ -190,10 +190,16 @@ const filterElementsInDrag = (
 };
 
 const removeNestedElements = (elements: Element[]): Element[] => {
+  // Drop any element that has an ancestor also in the set. Walking each
+  // element's parent chain against a membership Set is O(n·depth) — the
+  // previous elements.some(contains) form was O(n²) over the candidate set,
+  // which spikes on dense drags (large-drag-selection covers it).
+  const elementSet = new Set(elements);
   return elements.filter((element) => {
-    return !elements.some(
-      (otherElement) => otherElement !== element && otherElement.contains(element),
-    );
+    for (let ancestor = element.parentElement; ancestor; ancestor = ancestor.parentElement) {
+      if (elementSet.has(ancestor)) return false;
+    }
+    return true;
   });
 };
 
