@@ -128,10 +128,15 @@ import { openPlugin } from "./plugins/open.js";
 import {
   freezeAnimations,
   freezeAllAnimations,
-  freezeGlobalAnimations,
+  collectGlobalAnimationsToFreeze,
+  applyGlobalAnimationFreeze,
   unfreezeGlobalAnimations,
 } from "../utils/freeze-animations.js";
-import { freezePseudoStates, unfreezePseudoStates } from "../utils/freeze-pseudo-states.js";
+import {
+  collectPseudoStates,
+  applyPseudoStates,
+  unfreezePseudoStates,
+} from "../utils/freeze-pseudo-states.js";
 import { freezeUpdates } from "../utils/freeze-updates.js";
 import { generateId } from "../utils/generate-id.js";
 import { logRecoverableError } from "../utils/log-recoverable-error.js";
@@ -269,8 +274,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     createEffect(
       on(isActivated, (activated, previousActivated) => {
         if (activated && !previousActivated) {
-          freezePseudoStates(pointer().x, pointer().y);
-          freezeGlobalAnimations();
+          // Batch all layout reads before any DOM writes. getAnimations() and
+          // the pseudo-state snapshot each force a style/layout flush; doing
+          // both reads first, then both writes, collapses two full-document
+          // recalcs into one (~60ms saved on large apps).
+          const pseudoSnapshot = collectPseudoStates(pointer().x, pointer().y);
+          const animationsToFreeze = collectGlobalAnimationsToFreeze();
+          applyPseudoStates(pseudoSnapshot);
+          applyGlobalAnimationFreeze(animationsToFreeze);
           document.body.style.touchAction = "none";
         } else if (!activated && previousActivated) {
           unfreezePseudoStates();

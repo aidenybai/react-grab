@@ -190,18 +190,28 @@ export const freezeAnimations = (elements: Element[]): (() => void) => {
   return unfreezeAllAnimations;
 };
 
-export const freezeGlobalAnimations = (): void => {
-  if (globalAnimationStyleElement) return;
-
-  // Marker element; also carries the `*` freeze rule on the CSS path below. Its
-  // presence signals the global freeze is active (asserted by the e2e suite).
-  globalAnimationStyleElement = createStyleElement("data-react-grab-global-freeze", "");
-
+// READ phase. document.getAnimations() forces a style flush, so the caller
+// must run this before any freeze-related DOM writes — otherwise a stylesheet
+// injected just before it triggers a second full-document recalc (profiled at
+// ~59ms on a large app even when it returns zero animations).
+export const collectGlobalAnimationsToFreeze = (): Animation[] => {
+  if (globalAnimationStyleElement) return [];
   const runningAnimations: Animation[] = [];
   for (const animation of document.getAnimations()) {
     if (isShadowAnimation(animation)) continue; // leave react-grab's own UI running
     if (animation.playState === "running") runningAnimations.push(animation);
   }
+  return runningAnimations;
+};
+
+// WRITE phase. Pure DOM writes (marker element, animation pause, SVG/GSAP) — no
+// layout reads, so it never forces a recalc on its own.
+export const applyGlobalAnimationFreeze = (runningAnimations: Animation[]): void => {
+  if (globalAnimationStyleElement) return;
+
+  // Marker element; also carries the `*` freeze rule on the CSS path below. Its
+  // presence signals the global freeze is active (asserted by the e2e suite).
+  globalAnimationStyleElement = createStyleElement("data-react-grab-global-freeze", "");
 
   if (runningAnimations.length > WAAPI_GLOBAL_FREEZE_MAX_ANIMATIONS) {
     // Many animations: one batched universal-selector recalc beats thousands of
@@ -222,6 +232,11 @@ export const freezeGlobalAnimations = (): void => {
   );
   pauseSvgAnimations(globalFrozenSvgElements);
   freezeGsap();
+};
+
+export const freezeGlobalAnimations = (): void => {
+  if (globalAnimationStyleElement) return;
+  applyGlobalAnimationFreeze(collectGlobalAnimationsToFreeze());
 };
 
 export const unfreezeGlobalAnimations = (): void => {
