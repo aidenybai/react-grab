@@ -577,6 +577,35 @@ test.describe("@perf benchmarks", () => {
     );
   });
 
+  test("activate-deactivate-dense-animations @perf", async ({ page, perfDom }, testInfo) => {
+    // Dense variant of activate-with-many-animations: 4000 CSS-animated divs.
+    // Isolates the freeze path's UNSCOPED document.getAnimations() walk
+    // (freeze-animations.ts) — it is O(total running animations on the page)
+    // and runs on every activate (collect/pause) and deactivate (finish).
+    // At 150 that walk hides under the ~8.3ms frame floor; at 4000 it surfaces
+    // as long tasks / LoAF, making any future scoping/caching of getAnimations
+    // measurable here instead of invisible. Animations are transform/opacity
+    // (compositor-only), so the main-thread cost this captures is react-grab's
+    // traversal, not the browser animating them.
+    await perfDom.installCssAnimations(4000);
+
+    await recordScenario(
+      page,
+      testInfo,
+      "activate-deactivate-dense-animations",
+      async () => {
+        for (let cycleIndex = 0; cycleIndex < 20; cycleIndex++) {
+          await page.evaluate(() => window.__REACT_GRAB__?.activate?.());
+          await idleFrame(page, 1);
+          await page.evaluate(() => window.__REACT_GRAB__?.deactivate?.());
+          await idleFrame(page, 1);
+        }
+        await idleFrame(page, 4);
+      },
+      { samples: 2 },
+    );
+  });
+
   test("deactivate-with-many-frozen-elements @perf", async ({ reactGrab, page }, testInfo) => {
     // Shift-click 15 elements (multi-freeze), then deactivate. Stresses
     // the bulk-unfreeze of frozen elements, frozenElementBoundsAccessors
