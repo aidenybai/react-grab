@@ -606,6 +606,32 @@ test.describe("@perf benchmarks", () => {
     );
   });
 
+  test("activate-large-dom-sparse-animations @perf", async ({ page, perfDom }, testInfo) => {
+    // The realistic shape of a real app: a LARGE DOM (thousands of nodes) with
+    // only a HANDFUL of animated elements. Guards the activate/deactivate freeze
+    // path against costs that scale with total DOM size rather than with the
+    // number of things actually animating — the global `* { animation-play-state:
+    // paused }` recalc measures ~5ms here, so this is the floor it must stay near.
+    await perfDom.installDenseFlat(8000);
+    await perfDom.installCssAnimations(12);
+
+    await recordScenario(
+      page,
+      testInfo,
+      "activate-large-dom-sparse-animations",
+      async () => {
+        for (let cycleIndex = 0; cycleIndex < 20; cycleIndex++) {
+          await page.evaluate(() => window.__REACT_GRAB__?.activate?.());
+          await idleFrame(page, 1);
+          await page.evaluate(() => window.__REACT_GRAB__?.deactivate?.());
+          await idleFrame(page, 1);
+        }
+        await idleFrame(page, 4);
+      },
+      { samples: 2 },
+    );
+  });
+
   test("deactivate-with-many-frozen-elements @perf", async ({ reactGrab, page }, testInfo) => {
     // Shift-click 15 elements (multi-freeze), then deactivate. Stresses
     // the bulk-unfreeze of frozen elements, frozenElementBoundsAccessors
