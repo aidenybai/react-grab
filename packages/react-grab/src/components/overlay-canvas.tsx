@@ -18,6 +18,7 @@ import {
 } from "../constants.js";
 import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "../utils/native-raf.js";
 import { supportsDisplayP3 } from "../utils/supports-display-p3.js";
+import { supportsHdr } from "../utils/supports-hdr.js";
 import { adjustLerpForFrameDuration } from "../utils/adjust-lerp-for-frame-duration.js";
 
 const DEFAULT_LAYER_STYLE = {
@@ -94,6 +95,10 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
   let grabbedAnimations: AnimatedBounds[] = [];
 
   const canvasColorSpace: PredefinedColorSpace = supportsDisplayP3() ? "display-p3" : "srgb";
+  const isHdrCanvas = supportsHdr();
+  const canvasContextOptions: CanvasRenderingContext2DSettings = isHdrCanvas
+    ? { colorSpace: canvasColorSpace, colorType: "float16" }
+    : { colorSpace: canvasColorSpace };
 
   const createOffscreenLayer = (
     layerWidth: number,
@@ -101,7 +106,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     scaleFactor: number,
   ): OffscreenLayer => {
     const canvas = new OffscreenCanvas(layerWidth * scaleFactor, layerHeight * scaleFactor);
-    const context = canvas.getContext("2d", { colorSpace: canvasColorSpace });
+    const context = canvas.getContext("2d", canvasContextOptions);
     if (context) {
       context.scale(scaleFactor, scaleFactor);
     }
@@ -120,7 +125,15 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     canvasRef.style.width = `${canvasWidth}px`;
     canvasRef.style.height = `${canvasHeight}px`;
 
-    mainContext = canvasRef.getContext("2d", { colorSpace: canvasColorSpace });
+    if (isHdrCanvas) {
+      // Enable extended-range output, then cap the requested headroom so the
+      // brighter-than-white highlight does not make the compositor dim the rest
+      // of the SDR page. `supportsHdr()` already verified both are available.
+      canvasRef.configureHighDynamicRange?.({ mode: "extended" });
+      canvasRef.style.setProperty("dynamic-range-limit", "constrained");
+    }
+
+    mainContext = canvasRef.getContext("2d", canvasContextOptions);
     if (mainContext) {
       mainContext.scale(devicePixelRatio, devicePixelRatio);
     }

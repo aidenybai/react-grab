@@ -62,10 +62,10 @@ export const LERP_CONVERGENCE_THRESHOLD_PX = 0.5;
 export const OPACITY_CONVERGENCE_THRESHOLD = 0.01;
 export const MIN_DEVICE_PIXEL_RATIO = 2;
 
-export const OVERLAY_BORDER_COLOR_DRAG = overlayColor(0.4);
-export const OVERLAY_FILL_COLOR_DRAG = overlayColor(0.05);
-export const OVERLAY_BORDER_COLOR_DEFAULT = overlayColor(0.5);
-export const OVERLAY_FILL_COLOR_DEFAULT = overlayColor(0.08);
+export const OVERLAY_BORDER_COLOR_DRAG = overlayColor(0.4, true);
+export const OVERLAY_FILL_COLOR_DRAG = overlayColor(0.05, true);
+export const OVERLAY_BORDER_COLOR_DEFAULT = overlayColor(0.5, true);
+export const OVERLAY_FILL_COLOR_DEFAULT = overlayColor(0.08, true);
 export const FROZEN_GLOW_COLOR = overlayColor(0.15);
 export const FROZEN_GLOW_EDGE_PX = 50;
 
