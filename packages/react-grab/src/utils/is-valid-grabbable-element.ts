@@ -51,18 +51,18 @@ const isFullViewportOverlay = (computedStyle: CSSStyleDeclaration): boolean => {
   return !isNaN(zIndex) && zIndex > OVERLAY_Z_INDEX_THRESHOLD;
 };
 
-interface VisibilityCache {
-  isVisible: boolean;
+interface GrabbableCache {
+  isGrabbable: boolean;
   timestamp: number;
 }
 
-let visibilityCache = new WeakMap<Element, VisibilityCache>();
+let visibilityCache = new WeakMap<Element, GrabbableCache>();
 
 export const clearVisibilityCache = (): void => {
-  visibilityCache = new WeakMap<Element, VisibilityCache>();
+  visibilityCache = new WeakMap<Element, GrabbableCache>();
 };
 
-export const isValidGrabbableElement = (element: Element): boolean => {
+const computeIsGrabbable = (element: Element): boolean => {
   if (isRootElement(element)) {
     return false;
   }
@@ -75,18 +75,9 @@ export const isValidGrabbableElement = (element: Element): boolean => {
     return false;
   }
 
-  const now = performance.now();
-  const cached = visibilityCache.get(element);
-
-  if (cached && now - cached.timestamp < VISIBILITY_CACHE_TTL_MS) {
-    return cached.isVisible;
-  }
-
   const computedStyle = window.getComputedStyle(element);
 
-  const isVisible = isElementVisible(element, computedStyle);
-  if (!isVisible) {
-    visibilityCache.set(element, { isVisible: false, timestamp: now });
+  if (!isElementVisible(element, computedStyle)) {
     return false;
   }
 
@@ -94,16 +85,25 @@ export const isValidGrabbableElement = (element: Element): boolean => {
     element.clientWidth / window.innerWidth >= VIEWPORT_COVERAGE_THRESHOLD &&
     element.clientHeight / window.innerHeight >= VIEWPORT_COVERAGE_THRESHOLD;
 
-  if (couldBeOverlay) {
-    if (isDevToolsOverlay(computedStyle)) {
-      return false;
-    }
-    if (isFullViewportOverlay(computedStyle)) {
-      return false;
-    }
+  if (couldBeOverlay && (isDevToolsOverlay(computedStyle) || isFullViewportOverlay(computedStyle))) {
+    return false;
   }
 
-  visibilityCache.set(element, { isVisible: true, timestamp: now });
-
   return true;
+};
+
+export const isValidGrabbableElement = (element: Element): boolean => {
+  // Cache the full decision (including the structural checks' ancestor walk and
+  // the getComputedStyle) so a hit short-circuits before any of it runs. A miss
+  // always writes back, so overlay rejections are cached too.
+  const now = performance.now();
+  const cached = visibilityCache.get(element);
+
+  if (cached && now - cached.timestamp < VISIBILITY_CACHE_TTL_MS) {
+    return cached.isGrabbable;
+  }
+
+  const isGrabbable = computeIsGrabbable(element);
+  visibilityCache.set(element, { isGrabbable, timestamp: now });
+  return isGrabbable;
 };

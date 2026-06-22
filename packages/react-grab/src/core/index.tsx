@@ -63,7 +63,6 @@ import {
   KEYDOWN_SPAM_TIMEOUT_MS,
   DRAG_THRESHOLD_PX,
   ELEMENT_DETECTION_THROTTLE_MS,
-  PENDING_DETECTION_STALENESS_MS,
   COMPONENT_NAME_DEBOUNCE_MS,
   DRAG_PREVIEW_DEBOUNCE_MS,
   MODIFIER_KEYS,
@@ -444,9 +443,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const elementDetectionState = {
       lastDetectionTimestamp: 0,
-      pendingDetectionScheduledAt: 0,
-      latestPointerX: 0,
-      latestPointerY: 0,
     };
     let dragPreviewDebounceTimerId: number | null = null;
     const [debouncedDragPointer, setDebouncedDragPointer] = createSignal<{
@@ -1623,9 +1619,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       actions.setPointer({ x: clientX, y: clientY });
 
-      elementDetectionState.latestPointerX = clientX;
-      elementDetectionState.latestPointerY = clientY;
-
       if (shouldTrackPendingShiftSelection) {
         const candidate = getElementAtPosition(clientX, clientY);
         if (candidate !== store.detectedElement) {
@@ -1634,30 +1627,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return;
       }
 
+      // This handler is already coalesced to one call per animation frame (see
+      // queuePointerMove), so run detection inline rather than deferring it into
+      // a separate macrotask — the throttle below bounds how often the
+      // forced-recalc hit-test runs, and detecting in-frame lets the overlay
+      // update before paint instead of a frame late.
       const now = performance.now();
-      const isDetectionPending =
-        elementDetectionState.pendingDetectionScheduledAt > 0 &&
-        now - elementDetectionState.pendingDetectionScheduledAt < PENDING_DETECTION_STALENESS_MS;
-      if (
-        now - elementDetectionState.lastDetectionTimestamp >= ELEMENT_DETECTION_THROTTLE_MS &&
-        !isDetectionPending
-      ) {
+      if (now - elementDetectionState.lastDetectionTimestamp >= ELEMENT_DETECTION_THROTTLE_MS) {
         elementDetectionState.lastDetectionTimestamp = now;
-        elementDetectionState.pendingDetectionScheduledAt = now;
-        setTimeout(() => {
-          if (isElementDetectionBlocked()) {
-            elementDetectionState.pendingDetectionScheduledAt = 0;
-            return;
-          }
-          const candidate = getElementAtPosition(
-            elementDetectionState.latestPointerX,
-            elementDetectionState.latestPointerY,
-          );
-          if (candidate !== store.detectedElement) {
-            actions.setDetectedElement(candidate);
-          }
-          elementDetectionState.pendingDetectionScheduledAt = 0;
-        });
+        const candidate = getElementAtPosition(clientX, clientY);
+        if (candidate !== store.detectedElement) {
+          actions.setDetectedElement(candidate);
+        }
       }
 
       if (isDragging()) {
