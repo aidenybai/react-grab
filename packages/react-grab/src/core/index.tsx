@@ -1685,6 +1685,37 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
+    // Coalesce raw pointermove events into one handler call per animation frame.
+    // High-frequency mice/trackpads fire many moves per frame; processing each
+    // re-runs the setPointer signal write and detection scheduling for
+    // coordinates that are immediately superseded. Keep only the latest sample
+    // and flush it aligned with paint.
+    let pointerMoveFrameId: number | null = null;
+    let pendingPointerMove: { x: number; y: number; shift: boolean } | null = null;
+    const flushPointerMove = () => {
+      pointerMoveFrameId = null;
+      const sample = pendingPointerMove;
+      pendingPointerMove = null;
+      if (sample) handlePointerMove(sample.x, sample.y, sample.shift);
+    };
+    const queuePointerMove = (clientX: number, clientY: number, isShiftHeld: boolean) => {
+      pendingPointerMove = { x: clientX, y: clientY, shift: isShiftHeld };
+      if (pointerMoveFrameId === null) {
+        pointerMoveFrameId = nativeRequestAnimationFrame(flushPointerMove);
+      }
+    };
+    // Apply any buffered move synchronously before a button event so down/up
+    // never act on a hover position older than the pointer's last sample.
+    const flushPendingPointerMove = () => {
+      if (pointerMoveFrameId !== null) {
+        nativeCancelAnimationFrame(pointerMoveFrameId);
+        flushPointerMove();
+      }
+    };
+    onCleanup(() => {
+      if (pointerMoveFrameId !== null) nativeCancelAnimationFrame(pointerMoveFrameId);
+    });
+
     const handlePointerDown = (clientX: number, clientY: number, isShiftHeld: boolean) => {
       if (!isRendererActive() || isSelectionInteractionLocked()) return false;
 
@@ -2658,7 +2689,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           actions.unfreeze();
           clearArrowNavigation();
         }
-        handlePointerMove(event.clientX, event.clientY, event.shiftKey);
+        queuePointerMove(event.clientX, event.clientY, event.shiftKey);
       },
       { passive: true },
     );
@@ -2668,6 +2699,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (event: PointerEvent) => {
         if (event.button !== 0) return;
         if (!event.isPrimary) return;
+        flushPendingPointerMove();
         actions.setTouchMode(event.pointerType === "touch");
         didSwitchEditTargetOnPointerDown = false;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
@@ -2726,6 +2758,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (event: PointerEvent) => {
         if (event.button !== 0) return;
         if (!event.isPrimary) return;
+        flushPendingPointerMove();
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (isModalPopoverOpen()) return;
         const isActive = isRendererActive() || isSelectionInteractionLocked() || isDragging();
