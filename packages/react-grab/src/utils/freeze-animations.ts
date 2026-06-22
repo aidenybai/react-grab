@@ -19,6 +19,14 @@ const GLOBAL_FREEZE_STYLES = `
 
 const SVG_ROOT_SELECTOR = "svg";
 
+// Pausing animations individually via WAAPI avoids the full-document style
+// recalc that a universal `*` selector forces — profiled at ~62ms on a real
+// (CSS-heavy) app even with a single animation on the page. But each WAAPI
+// pause/finish has a per-animation cost, so above this many running animations
+// one batched `*`-selector recalc wins. Real apps sit far below this; the
+// threshold only guards pathological animation-heavy pages.
+const WAAPI_GLOBAL_FREEZE_MAX_ANIMATIONS = 200;
+
 let styleElement: HTMLStyleElement | null = null;
 let frozenElements: Element[] = [];
 let frozenSvgElements: SVGSVGElement[] = [];
@@ -26,6 +34,11 @@ let lastInputElements: Element[] = [];
 
 let globalAnimationStyleElement: HTMLStyleElement | null = null;
 let globalFrozenSvgElements: SVGSVGElement[] = [];
+// Animations paused directly (WAAPI path); empty when the `*`-selector CSS path
+// was used instead. globalUsedCssFreeze records which path freeze took so
+// unfreeze can mirror it.
+let globalFrozenWaapiAnimations: Animation[] = [];
+let globalUsedCssFreeze = false;
 // An SVG can be frozen by both the element-level and global freeze, so we track
 // a depth counter per element and only unpause when all layers are removed.
 const svgFreezeDepthMap = new Map<SVGSVGElement, number>();
@@ -116,6 +129,15 @@ const finishAnimations = (animations: Iterable<Animation>): void => {
   }
 };
 
+// Animations whose target lives in a shadow root are react-grab's own toolbar/
+// label animations — the global freeze must leave them running.
+// @see https://github.com/aidenybai/react-grab/issues/163
+const isShadowAnimation = (animation: Animation): boolean => {
+  if (!(animation.effect instanceof KeyframeEffect)) return false;
+  const target = animation.effect.target;
+  return target instanceof Element && target.getRootNode() instanceof ShadowRoot;
+};
+
 export const freezeAllAnimations = (elements: Element[]): void => {
   if (elements.length === 0) return;
   if (areElementsSame(elements, lastInputElements)) return;
@@ -171,10 +193,30 @@ export const freezeAnimations = (elements: Element[]): (() => void) => {
 export const freezeGlobalAnimations = (): void => {
   if (globalAnimationStyleElement) return;
 
-  globalAnimationStyleElement = createStyleElement(
-    "data-react-grab-global-freeze",
-    GLOBAL_FREEZE_STYLES,
-  );
+  // Marker element; also carries the `*` freeze rule on the CSS path below. Its
+  // presence signals the global freeze is active (asserted by the e2e suite).
+  globalAnimationStyleElement = createStyleElement("data-react-grab-global-freeze", "");
+
+  const runningAnimations: Animation[] = [];
+  for (const animation of document.getAnimations()) {
+    if (isShadowAnimation(animation)) continue; // leave react-grab's own UI running
+    if (animation.playState === "running") runningAnimations.push(animation);
+  }
+
+  if (runningAnimations.length > WAAPI_GLOBAL_FREEZE_MAX_ANIMATIONS) {
+    // Many animations: one batched universal-selector recalc beats thousands of
+    // individual WAAPI pauses.
+    globalAnimationStyleElement.textContent = GLOBAL_FREEZE_STYLES;
+    globalUsedCssFreeze = true;
+    globalFrozenWaapiAnimations = [];
+  } else {
+    // Few animations (the common case): pause them directly. This touches only
+    // the animating elements instead of forcing a full-document style recalc.
+    for (const animation of runningAnimations) animation.pause();
+    globalFrozenWaapiAnimations = runningAnimations;
+    globalUsedCssFreeze = false;
+  }
+
   globalFrozenSvgElements = collectFrozenSvgElements(
     Array.from(document.querySelectorAll(SVG_ROOT_SELECTOR)),
   );
@@ -185,33 +227,42 @@ export const freezeGlobalAnimations = (): void => {
 export const unfreezeGlobalAnimations = (): void => {
   if (!globalAnimationStyleElement) return;
 
-  // All paused animations must be finished before the freeze stylesheet is
-  // removed, because simply removing animation-play-state:paused would resume
-  // them from their mid-point and create visual jumps (e.g. a dropdown snapping
-  // through its entry animation). finish() advances them to their end state,
-  // and the interim transition:none rule prevents any visual flash during cleanup.
-  globalAnimationStyleElement.textContent = `
+  if (globalUsedCssFreeze) {
+    // CSS path. All paused animations must be finished before the freeze
+    // stylesheet is removed, because simply removing animation-play-state:paused
+    // would resume them from their mid-point and create visual jumps. finish()
+    // advances them to their end state; the interim transition:none rule
+    // prevents any visual flash during cleanup. Shadow-root animations are
+    // skipped so react-grab's own toolbar/label animations aren't finished.
+    globalAnimationStyleElement.textContent = `
 *, *::before, *::after {
   transition: none !important;
 }
 `;
-
-  // Animations inside shadow roots are skipped because the freeze CSS only
-  // affects main-document elements (shadow DOM provides style encapsulation),
-  // so calling finish() on animations the freeze never paused would break
-  // react-grab's own toolbar and label animations.
-  // @see https://github.com/aidenybai/react-grab/issues/163
-  const animationsToFinish: Animation[] = [];
-  for (const animation of document.getAnimations()) {
-    if (animation.effect instanceof KeyframeEffect) {
-      const target = animation.effect.target;
-      if (target instanceof Element && target.getRootNode() instanceof ShadowRoot) {
-        continue;
+    const animationsToFinish: Animation[] = [];
+    for (const animation of document.getAnimations()) {
+      if (isShadowAnimation(animation)) continue;
+      animationsToFinish.push(animation);
+    }
+    finishAnimations(animationsToFinish);
+    globalUsedCssFreeze = false;
+  } else {
+    // WAAPI path: restore the specific animations we paused. Finite animations
+    // advance to their end (finish()) so they don't jump backward through their
+    // timeline; infinite ones (finish() throws) resume looping (play()).
+    for (const animation of globalFrozenWaapiAnimations) {
+      try {
+        animation.finish();
+      } catch {
+        try {
+          animation.play();
+        } catch {
+          // animation was cancelled or its target detached during the freeze
+        }
       }
     }
-    animationsToFinish.push(animation);
+    globalFrozenWaapiAnimations = [];
   }
-  finishAnimations(animationsToFinish);
 
   globalAnimationStyleElement.remove();
   globalAnimationStyleElement = null;
