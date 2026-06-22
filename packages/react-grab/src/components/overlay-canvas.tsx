@@ -126,11 +126,12 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     canvasRef.style.height = `${canvasHeight}px`;
 
     if (isHdrCanvas) {
-      // Enable extended-range output, then cap the requested headroom so the
-      // brighter-than-white highlight does not make the compositor dim the rest
-      // of the SDR page. `supportsHdr()` already verified both are available.
+      // Use the full HDR headroom: the highlight glows far brighter than white
+      // and the compositor dims the surrounding SDR page to make room, which is
+      // the intended dramatic effect. `no-limit` also overrides any inherited
+      // dynamic-range-limit from the host page.
       canvasRef.configureHighDynamicRange?.({ mode: "extended" });
-      canvasRef.style.setProperty("dynamic-range-limit", "constrained");
+      canvasRef.style.setProperty("dynamic-range-limit", "no-limit");
     }
 
     mainContext = canvasRef.getContext("2d", canvasContextOptions);

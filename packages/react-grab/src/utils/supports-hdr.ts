@@ -18,15 +18,11 @@ declare global {
 
 let cachedResult: boolean | null = null;
 
-// An extended-range canvas on its own reserves the display's *full* HDR
-// headroom, which forces the compositor to dim all surrounding SDR content to
-// make room. We therefore only enable HDR when we can also cap that headroom
-// via `dynamic-range-limit: constrained` — the spec value meant for SDR and HDR
-// content coexisting comfortably. Requiring it here guarantees we never trade
-// page-wide dimming for a brighter highlight.
-const supportsConstrainedHdrCanvas = (): boolean => {
-  if (!CSS.supports("dynamic-range-limit", "constrained")) return false;
-
+// Probes the extended-range capability the overlay relies on: a float16 2D
+// backing plus the method that switches the visible canvas into HDR. With both,
+// the highlight can be drawn far brighter than SDR white, and the compositor
+// dims surrounding SDR content to make headroom — the intended dramatic effect.
+const supportsHdrCanvas = (): boolean => {
   const probeCanvas = document.createElement("canvas");
   const probeContext = probeCanvas.getContext("2d", { colorType: "float16" });
   return (
@@ -39,8 +35,7 @@ export const supportsHdr = (): boolean => {
   if (cachedResult !== null) return cachedResult;
 
   try {
-    cachedResult =
-      window.matchMedia("(dynamic-range: high)").matches && supportsConstrainedHdrCanvas();
+    cachedResult = window.matchMedia("(dynamic-range: high)").matches && supportsHdrCanvas();
   } catch {
     cachedResult = false;
   }
