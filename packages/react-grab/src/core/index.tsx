@@ -63,6 +63,7 @@ import {
   KEYDOWN_SPAM_TIMEOUT_MS,
   DRAG_THRESHOLD_PX,
   ELEMENT_DETECTION_THROTTLE_MS,
+  PENDING_DETECTION_STALENESS_MS,
   COMPONENT_NAME_DEBOUNCE_MS,
   DRAG_PREVIEW_DEBOUNCE_MS,
   MODIFIER_KEYS,
@@ -274,10 +275,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     createEffect(
       on(isActivated, (activated, previousActivated) => {
         if (activated && !previousActivated) {
-          // Batch all layout reads before any DOM writes. getAnimations() and
-          // the pseudo-state snapshot each force a style/layout flush; doing
-          // both reads first, then both writes, collapses two full-document
-          // recalcs into one (~60ms saved on large apps).
+          // Batch all layout reads before any DOM writes. The pseudo-state
+          // snapshot (getComputedStyle/elementFromPoint) and getAnimations()
+          // each force a style/layout flush; doing both reads first, then both
+          // writes, collapses two full-document recalcs into one.
           const pseudoSnapshot = collectPseudoStates(pointer().x, pointer().y);
           const animationsToFreeze = collectGlobalAnimationsToFreeze();
           applyPseudoStates(pseudoSnapshot);
@@ -454,6 +455,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const elementDetectionState = {
       lastDetectionTimestamp: 0,
+      pendingDetectionScheduledAt: 0,
+      latestPointerX: 0,
+      latestPointerY: 0,
     };
     let dragPreviewDebounceTimerId: number | null = null;
     const [debouncedDragPointer, setDebouncedDragPointer] = createSignal<{
@@ -1630,6 +1634,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       actions.setPointer({ x: clientX, y: clientY });
 
+      elementDetectionState.latestPointerX = clientX;
+      elementDetectionState.latestPointerY = clientY;
+
       if (shouldTrackPendingShiftSelection) {
         const candidate = getElementAtPosition(clientX, clientY);
         if (candidate !== store.detectedElement) {
@@ -1638,18 +1645,30 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return;
       }
 
-      // This handler is already coalesced to one call per animation frame (see
-      // queuePointerMove), so run detection inline rather than deferring it into
-      // a separate macrotask — the throttle below bounds how often the
-      // forced-recalc hit-test runs, and detecting in-frame lets the overlay
-      // update before paint instead of a frame late.
       const now = performance.now();
-      if (now - elementDetectionState.lastDetectionTimestamp >= ELEMENT_DETECTION_THROTTLE_MS) {
+      const isDetectionPending =
+        elementDetectionState.pendingDetectionScheduledAt > 0 &&
+        now - elementDetectionState.pendingDetectionScheduledAt < PENDING_DETECTION_STALENESS_MS;
+      if (
+        now - elementDetectionState.lastDetectionTimestamp >= ELEMENT_DETECTION_THROTTLE_MS &&
+        !isDetectionPending
+      ) {
         elementDetectionState.lastDetectionTimestamp = now;
-        const candidate = getElementAtPosition(clientX, clientY);
-        if (candidate !== store.detectedElement) {
-          actions.setDetectedElement(candidate);
-        }
+        elementDetectionState.pendingDetectionScheduledAt = now;
+        setTimeout(() => {
+          if (isElementDetectionBlocked()) {
+            elementDetectionState.pendingDetectionScheduledAt = 0;
+            return;
+          }
+          const candidate = getElementAtPosition(
+            elementDetectionState.latestPointerX,
+            elementDetectionState.latestPointerY,
+          );
+          if (candidate !== store.detectedElement) {
+            actions.setDetectedElement(candidate);
+          }
+          elementDetectionState.pendingDetectionScheduledAt = 0;
+        });
       }
 
       if (isDragging()) {
@@ -1676,37 +1695,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
       }
     };
-
-    // Coalesce raw pointermove events into one handler call per animation frame.
-    // High-frequency mice/trackpads fire many moves per frame; processing each
-    // re-runs the setPointer signal write and detection scheduling for
-    // coordinates that are immediately superseded. Keep only the latest sample
-    // and flush it aligned with paint.
-    let pointerMoveFrameId: number | null = null;
-    let pendingPointerMove: { x: number; y: number; shift: boolean } | null = null;
-    const flushPointerMove = () => {
-      pointerMoveFrameId = null;
-      const sample = pendingPointerMove;
-      pendingPointerMove = null;
-      if (sample) handlePointerMove(sample.x, sample.y, sample.shift);
-    };
-    const queuePointerMove = (clientX: number, clientY: number, isShiftHeld: boolean) => {
-      pendingPointerMove = { x: clientX, y: clientY, shift: isShiftHeld };
-      if (pointerMoveFrameId === null) {
-        pointerMoveFrameId = nativeRequestAnimationFrame(flushPointerMove);
-      }
-    };
-    // Apply any buffered move synchronously before a button event so down/up
-    // never act on a hover position older than the pointer's last sample.
-    const flushPendingPointerMove = () => {
-      if (pointerMoveFrameId !== null) {
-        nativeCancelAnimationFrame(pointerMoveFrameId);
-        flushPointerMove();
-      }
-    };
-    onCleanup(() => {
-      if (pointerMoveFrameId !== null) nativeCancelAnimationFrame(pointerMoveFrameId);
-    });
 
     const handlePointerDown = (clientX: number, clientY: number, isShiftHeld: boolean) => {
       if (!isRendererActive() || isSelectionInteractionLocked()) return false;
@@ -2681,7 +2669,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           actions.unfreeze();
           clearArrowNavigation();
         }
-        queuePointerMove(event.clientX, event.clientY, event.shiftKey);
+        handlePointerMove(event.clientX, event.clientY, event.shiftKey);
       },
       { passive: true },
     );
@@ -2691,7 +2679,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (event: PointerEvent) => {
         if (event.button !== 0) return;
         if (!event.isPrimary) return;
-        flushPendingPointerMove();
         actions.setTouchMode(event.pointerType === "touch");
         didSwitchEditTargetOnPointerDown = false;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
@@ -2750,7 +2737,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (event: PointerEvent) => {
         if (event.button !== 0) return;
         if (!event.isPrimary) return;
-        flushPendingPointerMove();
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (isModalPopoverOpen()) return;
         const isActive = isRendererActive() || isSelectionInteractionLocked() || isDragging();
