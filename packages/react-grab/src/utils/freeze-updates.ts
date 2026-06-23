@@ -339,21 +339,44 @@ const resumeFiber = (fiber: Fiber): void => {
   }
 };
 
-// Two single-callback recursors instead of a polymorphic `(fiber, cb) => ...`.
-// Keeping the indirect call site monomorphic per traversal lets V8 inline the
-// callback and avoids "wrong call target" deopts when freeze/unfreeze alternate.
-const traverseFibersAndPause = (fiber: Fiber | null): void => {
-  if (!fiber) return;
-  if (isCompositeFiber(fiber)) pauseFiber(fiber);
-  traverseFibersAndPause(fiber.child);
-  traverseFibersAndPause(fiber.sibling);
+// Iterative pre-order walk over the fiber subtree rooted at `root`, via the
+// child/sibling/return pointers. Iterative (not recursive) because a large app
+// can have tens of thousands of fibers nested deep enough to blow the call
+// stack, and it avoids per-node call overhead. Two single-purpose copies keep
+// the visit call site monomorphic (a shared `(root, visit)` form deopted when
+// freeze/unfreeze alternated over the same subtree).
+const traverseFibersAndPause = (root: Fiber | null): void => {
+  let node = root;
+  while (node) {
+    if (isCompositeFiber(node)) pauseFiber(node);
+    if (node.child) {
+      node = node.child;
+      continue;
+    }
+    while (node !== root && !node.sibling) {
+      node = node.return as Fiber | null;
+      if (!node) return;
+    }
+    if (node === root) return;
+    node = node.sibling;
+  }
 };
 
-const traverseFibersAndResume = (fiber: Fiber | null): void => {
-  if (!fiber) return;
-  if (isCompositeFiber(fiber)) resumeFiber(fiber);
-  traverseFibersAndResume(fiber.child);
-  traverseFibersAndResume(fiber.sibling);
+const traverseFibersAndResume = (root: Fiber | null): void => {
+  let node = root;
+  while (node) {
+    if (isCompositeFiber(node)) resumeFiber(node);
+    if (node.child) {
+      node = node.child;
+      continue;
+    }
+    while (node !== root && !node.sibling) {
+      node = node.return as Fiber | null;
+      if (!node) return;
+    }
+    if (node === root) return;
+    node = node.sibling;
+  }
 };
 
 const patchDispatcher = (dispatcher: object): void => {
