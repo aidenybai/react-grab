@@ -11,7 +11,10 @@ const ensureDevServer = async () => {
   try {
     await fetch(BASE_URL);
   } catch {
-    const appDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "../../../apps/e2e-app");
+    const appDirectory = resolve(
+      dirname(fileURLToPath(import.meta.url)),
+      "../../../apps/e2e-app-vite",
+    );
     execSync("pnpm dev &", { cwd: appDirectory, stdio: "ignore" });
 
     for (let elapsed = 0; elapsed < 30_000; elapsed += 500) {

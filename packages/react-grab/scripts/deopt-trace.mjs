@@ -17,7 +17,7 @@ const E2E_APP_URL = process.env.DEOPT_TRACE_E2E_URL || "http://localhost:5175";
 const PERF_GRID_PATH = process.env.DEOPT_TRACE_PAGE_PATH || "/?perf=grid&rows=50&cols=10";
 const SERVER_READY_TIMEOUT_MS = Number(process.env.DEOPT_TRACE_SERVER_TIMEOUT_MS) || 60_000;
 const CDP_READY_TIMEOUT_MS = Number(process.env.DEOPT_TRACE_CDP_TIMEOUT_MS) || 20_000;
-const E2E_APP_FILTER = process.env.DEOPT_TRACE_E2E_FILTER || "@react-grab/e2e-app";
+const E2E_APP_FILTER = process.env.DEOPT_TRACE_E2E_FILTER || "@react-grab/e2e-app-vite";
 const DIST_ENTRY = resolve(PACKAGE_ROOT, "dist/index.js");
 
 const resolveChromeBinary = () => {

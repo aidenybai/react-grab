@@ -669,6 +669,12 @@ export default function App() {
     <div className="min-h-[200vh] p-12 flex flex-col gap-8 pb-32">
       <EdgeElements />
 
+      {/* Shared target for the cross-framework smoke spec (.both.spec.ts); the
+          Next fixture exposes the same data-testid so one spec runs on both. */}
+      <button type="button" data-testid="grab-smoke-target">
+        Smoke target
+      </button>
+
       <header className="mb-4">
         <h1 className="text-2xl font-bold" data-testid="main-title">
           React Grab E2E Test Page

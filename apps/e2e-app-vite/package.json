@@ -1,5 +1,5 @@
 {
-  "name": "@react-grab/e2e-app",
+  "name": "@react-grab/e2e-app-vite",
   "private": true,
   "type": "module",
   "scripts": {
