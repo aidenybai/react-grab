@@ -18,6 +18,7 @@ import { createElementSelector } from "../utils/create-element-selector.js";
 import { isSharedUiSourcePath } from "../utils/is-shared-ui-source-path.js";
 import { isNextProjectRuntime } from "../utils/is-next-project-runtime.js";
 import { enrichServerFrameLocations, symbolicateServerFrames } from "./next-server-frames.js";
+import { runQueuedSourceFetch } from "../utils/source-fetch-queue.js";
 import { getHTMLPreview, getInlineHTMLPreview } from "./html-preview.js";
 import {
   isInternalComponentName,
@@ -71,23 +72,28 @@ const getNearestListItemKey = (element: Element): string | null => {
 const stackCache = new WeakMap<Element, Promise<StackFrame[] | null>>();
 const fiberSourceCache = new WeakMap<Element, Promise<ResolvedSource | null>>();
 
-const fetchStackForElement = async (element: Element): Promise<StackFrame[] | null> => {
-  try {
-    const fiber = getFiberFromHostInstance(element);
-    if (!fiber) return null;
+// getOwnerStack fetches the element's bundle and source map, and on Next.js the
+// symbolication POST adds another request. Both go through the source-fetch
+// queue so a hover storm (drag-select) or a multi-element copy never fans out
+// more concurrent requests than the connection pool can serve.
+const fetchStackForElement = (element: Element): Promise<StackFrame[] | null> =>
+  runQueuedSourceFetch(async () => {
+    try {
+      const fiber = getFiberFromHostInstance(element);
+      if (!fiber) return null;
 
-    const frames = await getOwnerStack(fiber);
+      const frames = await getOwnerStack(fiber);
 
-    if (isNextProjectRuntime()) {
-      const enrichedFrames = enrichServerFrameLocations(fiber, frames);
-      return await symbolicateServerFrames(enrichedFrames);
+      if (isNextProjectRuntime()) {
+        const enrichedFrames = enrichServerFrameLocations(fiber, frames);
+        return await symbolicateServerFrames(enrichedFrames);
+      }
+
+      return frames;
+    } catch {
+      return null;
     }
-
-    return frames;
-  } catch {
-    return null;
-  }
-};
+  }, null);
 
 export const getStack = (element: Element): Promise<StackFrame[] | null> => {
   if (!isInstrumentationActive()) return Promise.resolve([]);
@@ -96,7 +102,14 @@ export const getStack = (element: Element): Promise<StackFrame[] | null> => {
   const cachedStackPromise = stackCache.get(nearestFiberElement);
   if (cachedStackPromise) return cachedStackPromise;
 
-  const stackPromise = fetchStackForElement(nearestFiberElement);
+  // Evict failed or timed-out resolutions (null) so a later grab can retry once
+  // the page's own fetches free a connection, while still deduping concurrent
+  // in-flight lookups. A resolved empty array is a real "no frames" answer and
+  // stays cached. Mirrors getCachedFiberSource.
+  const stackPromise = fetchStackForElement(nearestFiberElement).then((stack) => {
+    if (stack === null) stackCache.delete(nearestFiberElement);
+    return stack;
+  });
   stackCache.set(nearestFiberElement, stackPromise);
   return stackPromise;
 };
@@ -129,27 +142,30 @@ const getSourceComponentName = (fiber: Fiber | undefined): string | null => {
 };
 
 // getSource reads React's own dev-only debug data, so it works without bippy
-// instrumentation, but it can throw while parsing owner stacks.
-const getFiberSource = async (element: Element): Promise<ResolvedSource | null> => {
-  const fiber = getFiberFromHostInstance(findNearestFiberElement(element));
-  if (!fiber) return null;
+// instrumentation, but it fetches the element's bundle/source map to map the
+// location, so it runs through the source-fetch queue alongside getOwnerStack:
+// both compete for the same connection pool and neither has its own timeout.
+const getFiberSource = (element: Element): Promise<ResolvedSource | null> =>
+  runQueuedSourceFetch(async () => {
+    const fiber = getFiberFromHostInstance(findNearestFiberElement(element));
+    if (!fiber) return null;
 
-  try {
-    const source = await getSource(fiber);
-    if (!source?.fileName) return null;
+    try {
+      const source = await getSource(fiber);
+      if (!source?.fileName) return null;
 
-    return {
-      filePath: normalizeFilePath(source.fileName),
-      lineNumber: source.lineNumber ?? null,
-      columnNumber: source.columnNumber ?? null,
-      componentName:
-        toSourceComponentName(source.functionName) ?? getSourceComponentName(fiber._debugOwner),
-      origin: classifySourcePath(source.fileName).origin,
-    };
-  } catch {
-    return null;
-  }
-};
+      return {
+        filePath: normalizeFilePath(source.fileName),
+        lineNumber: source.lineNumber ?? null,
+        columnNumber: source.columnNumber ?? null,
+        componentName:
+          toSourceComponentName(source.functionName) ?? getSourceComponentName(fiber._debugOwner),
+        origin: classifySourcePath(source.fileName).origin,
+      };
+    } catch {
+      return null;
+    }
+  }, null);
 
 const getCachedFiberSource = (element: Element): Promise<ResolvedSource | null> => {
   const nearestFiberElement = findNearestFiberElement(element);

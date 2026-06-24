@@ -82,6 +82,11 @@ export const symbolicateServerFrames = async (frames: StackFrame[]): Promise<Sta
         isEdgeServer: false,
         isAppDirectory: true,
       }),
+      // The one source-resolution request react-grab issues itself (bippy's
+      // bundle fetches are outside our control). High priority lets the browser
+      // prefer it over the app's in-flight data fetches when a connection frees,
+      // shortening the grab's tail latency.
+      priority: "high",
       signal: controller.signal,
     });
 
