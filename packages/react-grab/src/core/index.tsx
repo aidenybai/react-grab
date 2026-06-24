@@ -751,19 +751,28 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const dragRect = passedDragRect ?? store.frozenDragRect;
       const isMultiSelect = allTargetElements.length > 1;
 
-      const selectionBounds =
+      // Reuse the live selection-box bounds when copying the currently-selected
+      // element: the selectionBounds memo already holds them (computed during the
+      // overlay render and cached until the next viewport change). Re-measuring
+      // via createElementBounds() here instead forces a full-document style/layout
+      // recalc — ~85ms on large apps — because the freeze stylesheet has dirtied
+      // style since the box was last measured. Falls back to a fresh measure when
+      // copying an element that isn't the current selection (e.g. context menu).
+      const reusableSelectionBounds =
+        !isMultiSelect && element === selectionElement() ? selectionBounds() : undefined;
+      const labelBounds =
         dragRect && isMultiSelect
           ? createBoundsFromDragRect(dragRect)
-          : createElementBounds(element);
+          : (reusableSelectionBounds ?? createElementBounds(element));
 
-      const labelCursorX = isMultiSelect ? selectionBounds.x + selectionBounds.width / 2 : cursorX;
+      const labelCursorX = isMultiSelect ? labelBounds.x + labelBounds.width / 2 : cursorX;
 
       const tagName = getTagName(element);
       clearCopyFeedbackCooldown();
       actions.startCopy();
 
       const labelInstanceId = tagName
-        ? labelController.createInstance(selectionBounds, tagName, undefined, "copying", {
+        ? labelController.createInstance(labelBounds, tagName, undefined, "copying", {
             element,
             mouseX: labelCursorX,
             elements: selectedElements,
