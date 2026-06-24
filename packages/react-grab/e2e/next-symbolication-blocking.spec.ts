@@ -84,4 +84,21 @@ test.describe("Next server-frame symbolication", () => {
     expect(result.completed).toBe(true);
     expect(result.completed && result.trace.trim().length).toBeGreaterThan(0);
   });
+
+  test("resolves full source on a later grab after a stalled symbolication grab", async ({
+    reactGrab,
+  }) => {
+    // A transient symbolication failure must not permanently degrade resolution.
+    // Grab once while the endpoint is stalled (completes degraded, no hang)...
+    await reactGrab.page.route(SYMBOLICATION_ENDPOINT, () => {});
+    const stalled = await formatWithinBudget(reactGrab.page, SERVER_ELEMENT);
+    expect(stalled.completed).toBe(true);
+
+    // ...then, once it recovers, a later grab of a different element resolves
+    // the real source again (no poisoned cache from the failure).
+    await reactGrab.page.unroute(SYMBOLICATION_ENDPOINT);
+    const recovered = await formatWithinBudget(reactGrab.page, '[data-testid="server-card-title"]');
+    expect(recovered.completed).toBe(true);
+    expect(recovered.completed && recovered.trace).toContain("server-card.tsx");
+  });
 });
