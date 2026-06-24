@@ -129,10 +129,15 @@ import { openPlugin } from "./plugins/open.js";
 import {
   freezeAnimations,
   freezeAllAnimations,
-  freezeGlobalAnimations,
+  collectGlobalAnimationsToFreeze,
+  applyGlobalAnimationFreeze,
   unfreezeGlobalAnimations,
 } from "../utils/freeze-animations.js";
-import { freezePseudoStates, unfreezePseudoStates } from "../utils/freeze-pseudo-states.js";
+import {
+  collectPseudoStates,
+  applyPseudoStates,
+  unfreezePseudoStates,
+} from "../utils/freeze-pseudo-states.js";
 import { freezeUpdates } from "../utils/freeze-updates.js";
 import { generateId } from "../utils/generate-id.js";
 import { logRecoverableError } from "../utils/log-recoverable-error.js";
@@ -270,8 +275,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     createEffect(
       on(isActivated, (activated, previousActivated) => {
         if (activated && !previousActivated) {
-          freezePseudoStates(pointer().x, pointer().y);
-          freezeGlobalAnimations();
+          // Batch all layout reads before any DOM writes. The pseudo-state
+          // snapshot (getComputedStyle/elementFromPoint) and getAnimations()
+          // each force a style/layout flush; doing both reads first, then both
+          // writes, collapses two full-document recalcs into one.
+          const pseudoSnapshot = collectPseudoStates(pointer().x, pointer().y);
+          const animationsToFreeze = collectGlobalAnimationsToFreeze();
+          applyPseudoStates(pseudoSnapshot);
+          applyGlobalAnimationFreeze(animationsToFreeze);
           document.body.style.touchAction = "none";
         } else if (!activated && previousActivated) {
           unfreezePseudoStates();
@@ -740,19 +751,28 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const dragRect = passedDragRect ?? store.frozenDragRect;
       const isMultiSelect = allTargetElements.length > 1;
 
-      const selectionBounds =
+      // Reuse the live selection-box bounds when copying the currently-selected
+      // element: the selectionBounds memo already holds them (computed during the
+      // overlay render and cached until the next viewport change). Re-measuring
+      // via createElementBounds() here instead forces a full-document style/layout
+      // recalc — ~85ms on large apps — because the freeze stylesheet has dirtied
+      // style since the box was last measured. Falls back to a fresh measure when
+      // copying an element that isn't the current selection (e.g. context menu).
+      const reusableSelectionBounds =
+        !isMultiSelect && element === selectionElement() ? selectionBounds() : undefined;
+      const labelBounds =
         dragRect && isMultiSelect
           ? createBoundsFromDragRect(dragRect)
-          : createElementBounds(element);
+          : (reusableSelectionBounds ?? createElementBounds(element));
 
-      const labelCursorX = isMultiSelect ? selectionBounds.x + selectionBounds.width / 2 : cursorX;
+      const labelCursorX = isMultiSelect ? labelBounds.x + labelBounds.width / 2 : cursorX;
 
       const tagName = getTagName(element);
       clearCopyFeedbackCooldown();
       actions.startCopy();
 
       const labelInstanceId = tagName
-        ? labelController.createInstance(selectionBounds, tagName, undefined, "copying", {
+        ? labelController.createInstance(labelBounds, tagName, undefined, "copying", {
             element,
             mouseX: labelCursorX,
             elements: selectedElements,
@@ -1373,7 +1393,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         previousFocused !== document.activeElement &&
         isElementConnected(previousFocused)
       ) {
-        previousFocused.focus();
+        // preventScroll: restoring focus must not scroll the previously-focused
+        // element into view — that jumps the page when the user grabbed
+        // something after scrolling away from it.
+        previousFocused.focus({ preventScroll: true });
       }
       pluginRegistry.hooks.onDeactivate();
     };
@@ -1887,28 +1910,36 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const validKeyboardSelectedElement = keyboardSelection.selectedElement();
 
-      const elementAtPointer =
+      // Resolve what's genuinely under the pointer via a live hit-test. We tried
+      // skipping this on a plain click and reusing store.detectedElement, but
+      // detection lags the pointer: a click right after keyboard navigation (or a
+      // fast click before the detection rAF flushes) then selects a stale
+      // element. The hit-test is the only reliable read of the click target, so
+      // both single-select and Shift multi-select use it.
+      const liveElementAtPointer = (): Element | null =>
         getElementsAtPoint(clientX, clientY).find(isValidGrabbableElement) ?? null;
-      const selectedElementUnderPointer =
-        elementAtPointer ??
-        (isElementConnected(store.detectedElement) ? store.detectedElement : null);
-      const selectedElement =
-        validKeyboardSelectedElement ?? selectedElementUnderPointer ?? validFrozenElement;
-      if (!selectedElement) return;
 
-      // While Shift is held we only operate on the live elementAtPointer.
-      // Falling through to the non-shift path would let the
+      // While Shift is held we only operate on the live element under the
+      // pointer. Falling through to the non-shift path would let the
       // selectedElement fallback chain resolve to the previously-frozen
       // element and fire an unintended single-element copy that races
       // with the eventual commitShiftMultiSelection on Shift release. So
       // we always return when Shift is held: toggle when an element is
       // under the pointer, no-op when it isn't.
       if (isShiftHeld && !store.pendingCommentMode && !isPendingContextMenuSelect()) {
+        const elementAtPointer = liveElementAtPointer();
         if (elementAtPointer !== null) {
           toggleShiftMultiSelection(elementAtPointer, { x: clientX, y: clientY });
         }
         return;
       }
+
+      const selectedElementUnderPointer =
+        liveElementAtPointer() ??
+        (isElementConnected(store.detectedElement) ? store.detectedElement : null);
+      const selectedElement =
+        validKeyboardSelectedElement ?? selectedElementUnderPointer ?? validFrozenElement;
+      if (!selectedElement) return;
 
       let positionX: number;
       let positionY: number;

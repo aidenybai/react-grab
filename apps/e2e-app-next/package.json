@@ -1,0 +1,22 @@
+{
+  "name": "@react-grab/e2e-app-next",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --turbopack --port 5176",
+    "build": "next build",
+    "start": "next start --port 5176"
+  },
+  "dependencies": {
+    "next": "^16.2.6",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "react-grab": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^6.0.3"
+  }
+}

@@ -176,4 +176,24 @@ test.describe("Activation Mode Configuration", () => {
     const state = await reactGrab.getState();
     expect(typeof state.isActive).toBe("boolean");
   });
+
+  test("restoring focus on deactivate does not scroll the page", async ({ reactGrab, page }) => {
+    // Focus a near-top element, then scroll far away from it so restoring focus
+    // to it on deactivate would jump the page back up without preventScroll.
+    await page.locator("[data-testid='grab-smoke-target']").focus();
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    const scrollBeforeGrab = await page.evaluate(() => window.scrollY);
+    expect(scrollBeforeGrab).toBeGreaterThan(0);
+
+    await reactGrab.activate();
+    // The copy flow moves focus through the clipboard textarea, so the
+    // previously-focused element no longer holds focus and deactivate's restore
+    // actually runs (a bare activate→deactivate leaves focus untouched).
+    await reactGrab.copyElementViaApi("[data-testid='footer']");
+    await reactGrab.deactivate();
+
+    // Focus is restored with { preventScroll: true }, so the viewport stays put.
+    const scrollAfterGrab = await page.evaluate(() => window.scrollY);
+    expect(scrollAfterGrab).toBe(scrollBeforeGrab);
+  });
 });

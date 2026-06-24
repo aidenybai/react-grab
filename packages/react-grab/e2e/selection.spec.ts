@@ -269,4 +269,25 @@ test.describe("Selection Bounds and Mutations", () => {
 
     await expect.poll(() => reactGrab.getClipboardContent()).toContain("deeply nested");
   });
+
+  test("selects page content through a modal's body pointer-events:none", async ({
+    reactGrab,
+    page,
+  }) => {
+    // Open a Radix-style modal that sets `body { pointer-events: none }`.
+    await page.locator("[data-testid='pe-modal-trigger']").click();
+    await expect
+      .poll(() => page.evaluate(() => document.body.style.pointerEvents))
+      .toBe("none");
+
+    await reactGrab.activate();
+    // The hit-test override must see through the page's pointer-events:none so an
+    // element outside the popover is still detectable. Without it,
+    // elementsFromPoint returns nothing and selection never registers.
+    await reactGrab.hoverUntilSelected("[data-testid='pe-outside-target']");
+    expect(await reactGrab.isSelectionBoxVisible()).toBe(true);
+
+    await reactGrab.clickElement("[data-testid='pe-outside-target']");
+    await expect.poll(() => reactGrab.getClipboardContent()).toContain("outside the popover");
+  });
 });

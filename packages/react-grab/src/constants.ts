@@ -34,6 +34,12 @@ export const SHARED_UI_SOURCE_PATH_SEGMENTS: readonly string[] = [
   "/primitives/",
 ];
 export const SYMBOLICATION_TIMEOUT_MS = 5000;
+// Upper bound on a single queued source-resolution fetch (bundle, source map,
+// and symbolication together). Sits above SYMBOLICATION_TIMEOUT_MS so the
+// symbolication POST degrades on its own first; this only fires when bippy's
+// un-cancelable bundle fetch is stuck behind a saturated connection pool, and
+// exists to free the queue slot rather than to bound normal latency.
+export const SOURCE_FETCH_TIMEOUT_MS = 8000;
 export const MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS = 200;
 export const FINDER_TIMEOUT_MS = 200;
 export const MAX_SELECTOR_COMBINATIONS = 10_000;

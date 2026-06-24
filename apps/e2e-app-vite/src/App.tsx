@@ -658,6 +658,50 @@ const usePerfGridConfig = (): { rowCount: number; columnCount: number } | null =
   };
 };
 
+// Replicates the Radix/modal-library pattern of setting `body { pointer-events:
+// none }` while open (re-enabling it only on the popover). react-grab must still
+// hit-test page content outside the popover; this fixture guards that
+// see-through. Default-closed and cleaned up on close so it never leaks the
+// body style into other tests.
+const PointerEventsModalSection = () => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const previousPointerEvents = document.body.style.pointerEvents;
+    document.body.style.pointerEvents = "none";
+    return () => {
+      document.body.style.pointerEvents = previousPointerEvents;
+    };
+  }, [isOpen]);
+
+  return (
+    <section className="border rounded-lg p-4" data-testid="pe-modal-section">
+      <h2 className="text-lg font-bold mb-2">Pointer-Events Modal (Radix-style)</h2>
+      <button
+        onClick={() => setIsOpen((open) => !open)}
+        className="bg-purple-500 text-white px-4 py-2 rounded"
+        style={{ pointerEvents: "auto" }}
+        data-testid="pe-modal-trigger"
+      >
+        {isOpen ? "Close" : "Open"} PE Modal
+      </button>
+      <p className="mt-2" data-testid="pe-outside-target">
+        Grabbable content outside the popover.
+      </p>
+      {isOpen && (
+        <div
+          className="mt-2 border rounded p-2"
+          style={{ pointerEvents: "auto" }}
+          data-testid="pe-popover"
+        >
+          Popover content
+        </div>
+      )}
+    </section>
+  );
+};
+
 export default function App() {
   const perfConfig = usePerfGridConfig();
 
@@ -668,6 +712,12 @@ export default function App() {
   return (
     <div className="min-h-[200vh] p-12 flex flex-col gap-8 pb-32">
       <EdgeElements />
+
+      {/* Shared target for the cross-framework smoke spec (.both.spec.ts); the
+          Next fixture exposes the same data-testid so one spec runs on both. */}
+      <button type="button" data-testid="grab-smoke-target">
+        Smoke target
+      </button>
 
       <header className="mb-4">
         <h1 className="text-2xl font-bold" data-testid="main-title">
@@ -701,6 +751,8 @@ export default function App() {
       <ModalDialogSection />
 
       <PointerUpModalSection />
+
+      <PointerEventsModalSection />
 
       <HiddenToggleSection />
 

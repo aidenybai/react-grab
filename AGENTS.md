@@ -137,7 +137,7 @@ The root `package.json` has `pnpm.onlyBuiltDependencies` configured for `@parcel
 
 ### Playwright
 
-E2E tests (`pnpm test` at root) run Playwright against the `e2e-app` Vite dev server on port 5175 (auto-started by the Playwright config). Chromium must be installed: `npx --prefix packages/react-grab playwright install chromium --with-deps`.
+E2E tests (`pnpm test` at root) run Playwright against two fixture apps, auto-started by the Playwright config: the `e2e-app-vite` Vite dev server on port 5175 (the `chromium`/`chromium-touch` projects) and the `e2e-app-next` Next dev server on port 5176 (the `chromium-next` project, for Next-runtime paths like server-frame symbolication). Chromium must be installed: `npx --prefix packages/react-grab playwright install chromium --with-deps`.
 
 ### Key commands reference
 
@@ -151,4 +151,5 @@ See root `package.json` scripts and `CONTRIBUTING.md` for the full list. Quick r
 - **Typecheck**: `pnpm typecheck` - tsc on react-grab package
 - **Format**: `pnpm format` - oxfmt
 - **CLI dev**: `npm_command=exec node packages/cli/dist/cli.js`
-- **Test app**: `pnpm --filter @react-grab/e2e-app dev` (port 5175, lives in `apps/e2e-app`)
+- **Test app (Vite)**: `pnpm --filter @react-grab/e2e-app-vite dev` (port 5175, lives in `apps/e2e-app-vite`)
+- **Test app (Next)**: `pnpm --filter @react-grab/e2e-app-next dev` (port 5176, lives in `apps/e2e-app-next`)

@@ -99,6 +99,32 @@ for (const scenarioName of [...currentReports.keys()].sort()) {
   );
 }
 
+// Scenario-specific scalar metrics the standard columns can't express (e.g.
+// source-resolution latency under a saturated connection pool). Rendered as a
+// separate table so the main one stays uncluttered.
+const extraRows = [];
+for (const scenarioName of [...currentReports.keys()].sort()) {
+  const currentReport = currentReports.get(scenarioName);
+  const baselineReport = baselineReports.get(scenarioName);
+  if (!baselineReport || !currentReport.extra) continue;
+  for (const metricName of Object.keys(currentReport.extra).sort()) {
+    const currentValue = currentReport.extra[metricName];
+    const baselineValue = baselineReport.extra?.[metricName];
+    if (typeof currentValue !== "number" || typeof baselineValue !== "number") continue;
+    extraRows.push(
+      `| ${scenarioName} | ${metricName} | ${formatDeltaCell(baselineValue, currentValue)} |`,
+    );
+  }
+}
+if (extraRows.length > 0) {
+  lines.push("");
+  lines.push("### Scenario-specific metrics");
+  lines.push("");
+  lines.push("| Scenario | Metric | Baseline → Current (ms) |");
+  lines.push("|----------|--------|-------------------------|");
+  lines.push(...extraRows);
+}
+
 for (const baselineOnlyName of baselineReports.keys()) {
   if (!currentReports.has(baselineOnlyName)) scenariosOnlyInBaseline.push(baselineOnlyName);
 }

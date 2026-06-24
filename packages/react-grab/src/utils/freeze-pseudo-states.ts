@@ -158,16 +158,19 @@ const restoreFrozenStates = (
   storageMap.clear();
 };
 
-export const freezePseudoStates = (cursorX?: number, cursorY?: number): void => {
-  if (isPointerEventsFreezeInstalled()) return;
+interface PseudoFreezeSnapshot {
+  hoverStates: FrozenPseudoState[];
+  focusStates: FrozenPseudoState[];
+}
 
-  for (const eventType of MOUSE_EVENTS_TO_BLOCK) {
-    document.addEventListener(eventType, stopEvent, true);
-  }
-
-  for (const eventType of FOCUS_EVENTS_TO_BLOCK) {
-    document.addEventListener(eventType, preventFocusChange, true);
-  }
+// READ phase. collectHoveredElements (elementFromPoint) and freezeElement
+// (getComputedStyle) force layout/style flushes, so the caller must run this
+// before any freeze-related DOM writes to avoid a second forced recalc.
+export const collectPseudoStates = (
+  cursorX?: number,
+  cursorY?: number,
+): PseudoFreezeSnapshot | null => {
+  if (isPointerEventsFreezeInstalled()) return null;
 
   const hoverStates: FrozenPseudoState[] = [];
   const isCursorInViewport =
@@ -193,10 +196,30 @@ export const freezePseudoStates = (cursorX?: number, cursorY?: number): void => 
     if (state) focusStates.push(state);
   }
 
-  applyFrozenStates(hoverStates, frozenHoverElements);
-  applyFrozenStates(focusStates, frozenFocusElements);
+  return { hoverStates, focusStates };
+};
+
+// WRITE phase. Event blockers + inline-style pins + pointer-events stylesheet —
+// no layout reads, so it never forces a recalc on its own.
+export const applyPseudoStates = (snapshot: PseudoFreezeSnapshot | null): void => {
+  if (!snapshot) return;
+
+  for (const eventType of MOUSE_EVENTS_TO_BLOCK) {
+    document.addEventListener(eventType, stopEvent, true);
+  }
+
+  for (const eventType of FOCUS_EVENTS_TO_BLOCK) {
+    document.addEventListener(eventType, preventFocusChange, true);
+  }
+
+  applyFrozenStates(snapshot.hoverStates, frozenHoverElements);
+  applyFrozenStates(snapshot.focusStates, frozenFocusElements);
 
   installPointerEventsFreeze();
+};
+
+export const freezePseudoStates = (cursorX?: number, cursorY?: number): void => {
+  applyPseudoStates(collectPseudoStates(cursorX, cursorY));
 };
 
 export const unfreezePseudoStates = (): void => {

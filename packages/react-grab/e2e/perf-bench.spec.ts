@@ -127,6 +127,64 @@ test.describe("@perf benchmarks", () => {
     expect.soft(aggregate.inp).toBeLessThan(INP_SOFT_LIMIT_MS);
   });
 
+  // The "Grabbing… forever" case. Source resolution (bundle + source-map fetches
+  // via bippy) shares the dev server's per-origin connection pool with the app's
+  // own traffic. When the app saturates that pool, react-grab's source fetches
+  // queue behind it; unbounded, the grab waits out the app (or hangs). This
+  // saturates the pool, then measures grab→copy completion as the sourceResolveMs
+  // extra metric. The source-fetch queue's timeout + abort keeps it bounded
+  // (~8s) instead of waiting the full saturation window — the perf diff surfaces
+  // that against the base ref. INP/frames can't express this off-main-thread wait.
+  test("copy-under-saturated-network @perf", async ({ reactGrab, page }, testInfo) => {
+    const TARGET_SELECTOR = "[data-testid='nested-card']";
+    const SATURATING_REQUEST_COUNT = 10;
+    // Each saturating request resolves rather than hanging forever, so the base
+    // ref (no timeout) still completes and the diff has two numbers to compare.
+    const SATURATING_REQUEST_MS = 12_000;
+
+    await reactGrab.activate();
+
+    let sourceResolveMs = 0;
+    await recordScenario(
+      page,
+      testInfo,
+      "copy-under-saturated-network",
+      async () => {
+        await page.evaluate(
+          ({ count, ms }) => {
+            for (let index = 0; index < count; index++) {
+              fetch(`/__slow?ms=${ms}&i=${index}`).catch(() => {});
+            }
+          },
+          { count: SATURATING_REQUEST_COUNT, ms: SATURATING_REQUEST_MS },
+        );
+        // Let the requests claim the connection pool before grabbing.
+        await page.waitForTimeout(300);
+
+        sourceResolveMs = await page.evaluate(async (selector) => {
+          const api = (
+            window as unknown as {
+              __REACT_GRAB__?: { copyElement: (element: Element) => Promise<boolean> };
+            }
+          ).__REACT_GRAB__;
+          const element = document.querySelector(selector);
+          if (!api || !element) return 0;
+          const startTimestamp = performance.now();
+          await api.copyElement(element);
+          return performance.now() - startTimestamp;
+        }, TARGET_SELECTOR);
+      },
+      { samples: 1, collectExtraMetrics: () => ({ sourceResolveMs }) },
+    );
+    await reactGrab.deactivate();
+
+    // A bounded grab, not a hang. Generous because the base ref legitimately
+    // waits out the saturating requests (~12s); this only trips on a true hang,
+    // while the bounded-vs-unbounded improvement shows in the sourceResolveMs diff.
+    expect.soft(sourceResolveMs).toBeGreaterThan(0);
+    expect.soft(sourceResolveMs).toBeLessThan(SATURATING_REQUEST_MS + 8_000);
+  });
+
   test("drag-selection-sweep @perf", async ({ reactGrab, page }, testInfo) => {
     await goToPerfGrid(page);
 
@@ -564,6 +622,61 @@ test.describe("@perf benchmarks", () => {
       page,
       testInfo,
       "activate-with-many-animations",
+      async () => {
+        for (let cycleIndex = 0; cycleIndex < 20; cycleIndex++) {
+          await page.evaluate(() => window.__REACT_GRAB__?.activate?.());
+          await idleFrame(page, 1);
+          await page.evaluate(() => window.__REACT_GRAB__?.deactivate?.());
+          await idleFrame(page, 1);
+        }
+        await idleFrame(page, 4);
+      },
+      { samples: 2 },
+    );
+  });
+
+  test("activate-deactivate-dense-animations @perf", async ({ page, perfDom }, testInfo) => {
+    // Dense variant of activate-with-many-animations: 4000 CSS-animated divs.
+    // Isolates the freeze path's UNSCOPED document.getAnimations() walk
+    // (freeze-animations.ts) — it is O(total running animations on the page)
+    // and runs on every activate (collect/pause) and deactivate (finish).
+    // At 150 that walk hides under the ~8.3ms frame floor; at 4000 it surfaces
+    // as long tasks / LoAF, making any future scoping/caching of getAnimations
+    // measurable here instead of invisible. Animations are transform/opacity
+    // (compositor-only), so the main-thread cost this captures is react-grab's
+    // traversal, not the browser animating them.
+    await perfDom.installCssAnimations(4000);
+
+    await recordScenario(
+      page,
+      testInfo,
+      "activate-deactivate-dense-animations",
+      async () => {
+        for (let cycleIndex = 0; cycleIndex < 20; cycleIndex++) {
+          await page.evaluate(() => window.__REACT_GRAB__?.activate?.());
+          await idleFrame(page, 1);
+          await page.evaluate(() => window.__REACT_GRAB__?.deactivate?.());
+          await idleFrame(page, 1);
+        }
+        await idleFrame(page, 4);
+      },
+      { samples: 2 },
+    );
+  });
+
+  test("activate-large-dom-sparse-animations @perf", async ({ page, perfDom }, testInfo) => {
+    // The realistic shape of a real app: a LARGE DOM (thousands of nodes) with
+    // only a HANDFUL of animated elements. Guards the activate/deactivate freeze
+    // path against costs that scale with total DOM size rather than with the
+    // number of things actually animating — the global `* { animation-play-state:
+    // paused }` recalc measures ~5ms here, so this is the floor it must stay near.
+    await perfDom.installDenseFlat(8000);
+    await perfDom.installCssAnimations(12);
+
+    await recordScenario(
+      page,
+      testInfo,
+      "activate-large-dom-sparse-animations",
       async () => {
         for (let cycleIndex = 0; cycleIndex < 20; cycleIndex++) {
           await page.evaluate(() => window.__REACT_GRAB__?.activate?.());

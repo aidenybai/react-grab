@@ -43,7 +43,10 @@ interface NextJsRequestFrame {
   arguments: string[];
 }
 
-export const symbolicateServerFrames = async (frames: StackFrame[]): Promise<StackFrame[]> => {
+export const symbolicateServerFrames = async (
+  frames: StackFrame[],
+  externalSignal?: AbortSignal,
+): Promise<StackFrame[]> => {
   const serverFrameIndices: number[] = [];
   const requestFrames: NextJsRequestFrame[] = [];
 
@@ -63,8 +66,15 @@ export const symbolicateServerFrames = async (frames: StackFrame[]): Promise<Sta
 
   if (requestFrames.length === 0) return frames;
 
+  // Abort on either our own timeout or the caller's signal (the source-fetch
+  // queue's timeout). Without the external signal, a queue timeout would release
+  // its slot while this POST kept running, holding a dev-server connection past
+  // the concurrency cap the queue exists to enforce.
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), SYMBOLICATION_TIMEOUT_MS);
+  const handleExternalAbort = () => controller.abort();
+  if (externalSignal?.aborted) controller.abort();
+  externalSignal?.addEventListener("abort", handleExternalAbort);
 
   try {
     // Next.js dev server (>=15.2) exposes a batched symbolication endpoint that
@@ -82,6 +92,11 @@ export const symbolicateServerFrames = async (frames: StackFrame[]): Promise<Sta
         isEdgeServer: false,
         isAppDirectory: true,
       }),
+      // The one source-resolution request react-grab issues itself (bippy's
+      // bundle fetches are outside our control). High priority lets the browser
+      // prefer it over the app's in-flight data fetches when a connection frees,
+      // shortening the grab's tail latency.
+      priority: "high",
       signal: controller.signal,
     });
 
@@ -112,6 +127,7 @@ export const symbolicateServerFrames = async (frames: StackFrame[]): Promise<Sta
     return frames;
   } finally {
     clearTimeout(timeout);
+    externalSignal?.removeEventListener("abort", handleExternalAbort);
   }
 };
 

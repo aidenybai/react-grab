@@ -289,6 +289,7 @@ export const attachPerfReport = async (
   aggregate: PerfScenarioAggregate,
   perSample: PerfScenarioAggregate[],
   baseline: PerfScenarioAggregate | null = null,
+  extra: Record<string, number> | undefined = undefined,
 ): Promise<void> => {
   const runLabel = process.env.PERF_LABEL ?? "current";
   const reportJson = JSON.stringify(
@@ -297,6 +298,7 @@ export const attachPerfReport = async (
       label: runLabel,
       samples: perSample.length,
       aggregate,
+      extra,
       // Skip perSample when there's only one — it would just duplicate aggregate.
       perSample: perSample.length > 1 ? perSample : undefined,
       baseline,
@@ -397,6 +399,13 @@ export interface RecordScenarioOptions {
    * and silently measure no-op iterations.
    */
   beforeEachSample?: () => Promise<void>;
+  /**
+   * Scenario-specific scalar metrics (in ms) the standard aggregate can't
+   * express — e.g. an off-main-thread wait like source-resolution latency under
+   * a saturated connection pool. Collected after the last sample and persisted
+   * under `extra` in the report so the perf diff can surface it.
+   */
+  collectExtraMetrics?: () => Record<string, number>;
 }
 
 export const recordScenario = async (
@@ -434,8 +443,23 @@ export const recordScenario = async (
     perSampleAggregates.length === 1
       ? perSampleAggregates[0]
       : medianAcrossSamples(perSampleAggregates);
-  await attachPerfReport(testInfo, scenarioName, medianAggregate, perSampleAggregates, baseline);
+  const extra = options.collectExtraMetrics?.();
+  await attachPerfReport(
+    testInfo,
+    scenarioName,
+    medianAggregate,
+    perSampleAggregates,
+    baseline,
+    extra,
+  );
   logAggregate(scenarioName, medianAggregate);
+  if (extra) {
+    console.log(
+      `  ${Object.entries(extra)
+        .map(([key, value]) => `${key}=${Math.round(value)}ms`)
+        .join("  ")}`,
+    );
+  }
   return medianAggregate;
 };
 
