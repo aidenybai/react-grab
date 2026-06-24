@@ -1907,28 +1907,38 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const validKeyboardSelectedElement = keyboardSelection.selectedElement();
 
-      const elementAtPointer =
+      // The live getElementsAtPoint hit-test forces a full-document style/layout
+      // recalc (~68ms on large pages) because it suspends/resumes the
+      // pointer-events freeze stylesheet. Compute it lazily so the common
+      // single-click path can avoid it: a plain click resolves to the
+      // already-detected element instead — that is exactly what the selection
+      // box is highlighting, so it's both faster and WYSIWYG-correct. Only Shift
+      // multi-select (which must read whatever is under the pointer right now)
+      // and the no-detection fallback pay for the live hit-test.
+      const liveElementAtPointer = (): Element | null =>
         getElementsAtPoint(clientX, clientY).find(isValidGrabbableElement) ?? null;
-      const selectedElementUnderPointer =
-        elementAtPointer ??
-        (isElementConnected(store.detectedElement) ? store.detectedElement : null);
-      const selectedElement =
-        validKeyboardSelectedElement ?? selectedElementUnderPointer ?? validFrozenElement;
-      if (!selectedElement) return;
 
-      // While Shift is held we only operate on the live elementAtPointer.
-      // Falling through to the non-shift path would let the
+      // While Shift is held we only operate on the live element under the
+      // pointer. Falling through to the non-shift path would let the
       // selectedElement fallback chain resolve to the previously-frozen
       // element and fire an unintended single-element copy that races
       // with the eventual commitShiftMultiSelection on Shift release. So
       // we always return when Shift is held: toggle when an element is
       // under the pointer, no-op when it isn't.
       if (isShiftHeld && !store.pendingCommentMode && !isPendingContextMenuSelect()) {
+        const elementAtPointer = liveElementAtPointer();
         if (elementAtPointer !== null) {
           toggleShiftMultiSelection(elementAtPointer, { x: clientX, y: clientY });
         }
         return;
       }
+
+      const selectedElementUnderPointer =
+        (isElementConnected(store.detectedElement) ? store.detectedElement : null) ??
+        liveElementAtPointer();
+      const selectedElement =
+        validKeyboardSelectedElement ?? selectedElementUnderPointer ?? validFrozenElement;
+      if (!selectedElement) return;
 
       let positionX: number;
       let positionY: number;
