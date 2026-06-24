@@ -95,7 +95,7 @@ const fetchStackForElement = (element: Element): Promise<StackFrame[] | null> =>
 
       if (isNextProjectRuntime()) {
         const enrichedFrames = enrichServerFrameLocations(fiber, frames);
-        return await symbolicateServerFrames(enrichedFrames);
+        return await symbolicateServerFrames(enrichedFrames, signal);
       }
 
       return frames;
