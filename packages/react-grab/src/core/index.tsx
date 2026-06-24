@@ -1936,9 +1936,24 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return;
       }
 
-      const selectedElementUnderPointer =
-        (isElementConnected(store.detectedElement) ? store.detectedElement : null) ??
-        liveElementAtPointer();
+      // Trust the already-detected element only when the click actually lands on
+      // the selection box it's drawn under, reusing the cached selectionBounds so
+      // there's no fresh layout read. When the click is elsewhere — e.g. right
+      // after keyboard navigation, before a pointermove has re-detected under the
+      // cursor — detection is stale, so fall back to the live hit-test and select
+      // what is genuinely under the pointer.
+      const connectedDetectedElement = isElementConnected(store.detectedElement)
+        ? store.detectedElement
+        : null;
+      const currentSelectionBounds = selectionBounds();
+      const clickLandsOnDetectedElement =
+        connectedDetectedElement !== null &&
+        connectedDetectedElement === selectionElement() &&
+        currentSelectionBounds !== undefined &&
+        isPositionInsideBounds({ x: clientX, y: clientY }, currentSelectionBounds);
+      const selectedElementUnderPointer = clickLandsOnDetectedElement
+        ? connectedDetectedElement
+        : liveElementAtPointer();
       const selectedElement =
         validKeyboardSelectedElement ?? selectedElementUnderPointer ?? validFrozenElement;
       if (!selectedElement) return;
