@@ -1393,7 +1393,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         previousFocused !== document.activeElement &&
         isElementConnected(previousFocused)
       ) {
-        previousFocused.focus();
+        // preventScroll: restoring focus must not scroll the previously-focused
+        // element into view — that jumps the page when the user grabbed
+        // something after scrolling away from it.
+        previousFocused.focus({ preventScroll: true });
       }
       pluginRegistry.hooks.onDeactivate();
     };
