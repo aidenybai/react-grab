@@ -114,4 +114,85 @@ describe("runQueuedSourceFetch", () => {
     await wait(TEST_TIMEOUT_MS);
     expect(await result).toBe("fallback");
   });
+
+  it("returns the task's resolved value (not the fallback) when it settles in time", async () => {
+    const result = await runQueuedSourceFetch(
+      () => Promise.resolve("real-value"),
+      "fallback",
+      TEST_TIMEOUT_MS,
+    );
+    expect(result).toBe("real-value");
+  });
+
+  it("does not abort the signal when the task settles before the timeout", async () => {
+    let capturedSignal: AbortSignal | undefined;
+    await runQueuedSourceFetch(
+      (signal) => {
+        capturedSignal = signal;
+        return Promise.resolve("done");
+      },
+      "fallback",
+      TEST_TIMEOUT_MS,
+    );
+    expect(capturedSignal?.aborted).toBe(false);
+  });
+
+  it("admits queued tasks in FIFO order as slots free", async () => {
+    const deferreds = Array.from({ length: 5 }, () => createDeferred<string>());
+    const startOrder: number[] = [];
+
+    deferreds.forEach((deferred, index) =>
+      runQueuedSourceFetch(
+        () => {
+          startOrder.push(index);
+          return deferred.promise;
+        },
+        "fallback",
+        TEST_TIMEOUT_MS,
+      ),
+    );
+
+    await flushMicrotasks();
+    // Only the first three (the cap) have started.
+    expect(startOrder).toEqual([0, 1, 2]);
+
+    // Freeing slot 1 admits task 3; freeing slot 0 admits task 4 — in order.
+    deferreds[1].resolve("done");
+    await flushMicrotasks();
+    expect(startOrder).toEqual([0, 1, 2, 3]);
+
+    deferreds[0].resolve("done");
+    await flushMicrotasks();
+    expect(startOrder).toEqual([0, 1, 2, 3, 4]);
+
+    for (const deferred of deferreds) deferred.resolve("done");
+  });
+
+  it("releases a slot when a task rejects, so the queue does not deadlock", async () => {
+    const rejecting = Array.from({ length: 3 }, () => createDeferred<string>());
+    const rejectingResults = rejecting.map((deferred) =>
+      runQueuedSourceFetch(() => deferred.promise, "fallback", TEST_TIMEOUT_MS),
+    );
+    // Swallow the rejections at the call site (the queue re-throws them).
+    rejectingResults.forEach((result) => result.catch(() => {}));
+
+    let laterStarted = false;
+    const laterResult = runQueuedSourceFetch(
+      () => {
+        laterStarted = true;
+        return Promise.resolve("later");
+      },
+      "fallback",
+      TEST_TIMEOUT_MS,
+    );
+
+    await flushMicrotasks();
+    expect(laterStarted).toBe(false);
+
+    // All three in-flight tasks reject; their slots must free for the queued task.
+    for (const deferred of rejecting) deferred.reject(new Error("fetch failed"));
+
+    expect(await laterResult).toBe("later");
+    expect(laterStarted).toBe(true);
+  });
 });
