@@ -86,6 +86,7 @@
     "build:profiling": "pnpm run prebuild && NODE_ENV=profiling REACT_GRAB_NO_MINIFY=true REACT_GRAB_SOURCEMAP=true vp pack",
     "dev": "concurrently \"pnpm:css:watch\" \"vp pack --watch\"",
     "test": "vp test run tests && playwright test",
+    "test:unit": "vp test run tests",
     "test:perf": "playwright test --grep @perf --reporter=list",
     "test:perf:baseline": "PERF_LABEL=baseline playwright test --grep @perf --reporter=list",
     "test:expect": "bun e2e/react-grab.expect.ts",
