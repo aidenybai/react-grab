@@ -87,6 +87,21 @@ describe("runQueuedSourceFetch", () => {
     expect(laterStarted).toBe(true);
   });
 
+  it("aborts the task's signal when the timeout fires", async () => {
+    let capturedSignal: AbortSignal | undefined;
+    const result = runQueuedSourceFetch(
+      (signal) => {
+        capturedSignal = signal;
+        return new Promise<string>(() => {});
+      },
+      "timed-out",
+      TEST_TIMEOUT_MS,
+    );
+
+    expect(await result).toBe("timed-out");
+    expect(capturedSignal?.aborted).toBe(true);
+  });
+
   it("does not surface a late rejection from a fetch that already timed out", async () => {
     const rejectsLate = createDeferred<string>();
     rejectsLate.promise.catch(() => {});

@@ -51,33 +51,36 @@ const releaseSlot = (): void => {
 };
 
 // Runs a source-resolution fetch under the concurrency cap, releasing its slot
-// when the fetch settles or after SOURCE_FETCH_TIMEOUT_MS, whichever comes
-// first.
+// when the task settles or after SOURCE_FETCH_TIMEOUT_MS, whichever comes first.
+//
+// The task receives an AbortSignal that fires on timeout. Passing it to the
+// fetches bippy makes (via its fetchFn hook) cancels the in-flight request, so a
+// stuck fetch releases both its queue slot and its real connection rather than
+// lingering. Without this the cap would be soft under a sustained hang.
 //
 // The timeout is a backstop, not a latency budget: a healthy fetch finishes well
 // under it, and source paths for app-owned components resolve from React's own
 // fiber data without any network at all, so a timeout degrades only the deeper
-// trace context, never the primary source path. It exists because bippy's bundle
-// fetch has no AbortSignal we can cancel; without an upper bound, one stuck fetch
-// would hold its slot forever and stall every queued grab behind it. The orphaned
-// fetch keeps running and still occupies a real connection until the browser
-// settles it, so the cap is soft under a sustained hang, but the queue and the
-// grab both stay responsive.
+// trace context, never the primary source path.
 export const runQueuedSourceFetch = async <T>(
-  task: () => Promise<T>,
+  task: (signal: AbortSignal) => Promise<T>,
   fallback: T,
   timeoutMs: number = SOURCE_FETCH_TIMEOUT_MS,
 ): Promise<T> => {
   await acquireSlot();
 
+  const controller = new AbortController();
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<T>((resolve) => {
-    timeoutId = setTimeout(() => resolve(fallback), timeoutMs);
+    timeoutId = setTimeout(() => {
+      controller.abort();
+      resolve(fallback);
+    }, timeoutMs);
   });
 
-  const taskPromise = task();
+  const taskPromise = task(controller.signal);
   // Swallow a late rejection from a fetch that already lost the timeout race, so
-  // an orphaned request never surfaces as an unhandled rejection.
+  // an aborted request never surfaces as an unhandled rejection.
   taskPromise.catch(() => {});
 
   try {

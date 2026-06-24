@@ -72,17 +72,26 @@ const getNearestListItemKey = (element: Element): string | null => {
 const stackCache = new WeakMap<Element, Promise<StackFrame[] | null>>();
 const fiberSourceCache = new WeakMap<Element, Promise<ResolvedSource | null>>();
 
+// Bundle/source-map fetches that bippy makes on react-grab's behalf. Routing
+// them through our own fetch lets us mark them high priority (so they jump the
+// app's in-flight data fetches when a connection frees) and cancel them via the
+// queue's abort signal when the source-fetch timeout fires.
+const createSourceFetch =
+  (signal: AbortSignal) =>
+  (url: string): Promise<Response> =>
+    fetch(url, { signal, priority: "high" });
+
 // getOwnerStack fetches the element's bundle and source map, and on Next.js the
 // symbolication POST adds another request. Both go through the source-fetch
 // queue so a hover storm (drag-select) or a multi-element copy never fans out
 // more concurrent requests than the connection pool can serve.
 const fetchStackForElement = (element: Element): Promise<StackFrame[] | null> =>
-  runQueuedSourceFetch(async () => {
+  runQueuedSourceFetch(async (signal) => {
     try {
       const fiber = getFiberFromHostInstance(element);
       if (!fiber) return null;
 
-      const frames = await getOwnerStack(fiber);
+      const frames = await getOwnerStack(fiber, true, createSourceFetch(signal));
 
       if (isNextProjectRuntime()) {
         const enrichedFrames = enrichServerFrameLocations(fiber, frames);
@@ -146,12 +155,12 @@ const getSourceComponentName = (fiber: Fiber | undefined): string | null => {
 // location, so it runs through the source-fetch queue alongside getOwnerStack:
 // both compete for the same connection pool and neither has its own timeout.
 const getFiberSource = (element: Element): Promise<ResolvedSource | null> =>
-  runQueuedSourceFetch(async () => {
+  runQueuedSourceFetch(async (signal) => {
     const fiber = getFiberFromHostInstance(findNearestFiberElement(element));
     if (!fiber) return null;
 
     try {
-      const source = await getSource(fiber);
+      const source = await getSource(fiber, true, createSourceFetch(signal));
       if (!source?.fileName) return null;
 
       return {
