@@ -1910,14 +1910,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const validKeyboardSelectedElement = keyboardSelection.selectedElement();
 
-      // The live getElementsAtPoint hit-test forces a full-document style/layout
-      // recalc (~68ms on large pages) because it suspends/resumes the
-      // pointer-events freeze stylesheet. Compute it lazily so the common
-      // single-click path can avoid it: a plain click resolves to the
-      // already-detected element instead — that is exactly what the selection
-      // box is highlighting, so it's both faster and WYSIWYG-correct. Only Shift
-      // multi-select (which must read whatever is under the pointer right now)
-      // and the no-detection fallback pay for the live hit-test.
+      // Resolve what's genuinely under the pointer via a live hit-test. We tried
+      // skipping this on a plain click and reusing store.detectedElement, but
+      // detection lags the pointer: a click right after keyboard navigation (or a
+      // fast click before the detection rAF flushes) then selects a stale
+      // element. The hit-test is the only reliable read of the click target, so
+      // both single-select and Shift multi-select use it.
       const liveElementAtPointer = (): Element | null =>
         getElementsAtPoint(clientX, clientY).find(isValidGrabbableElement) ?? null;
 
@@ -1936,24 +1934,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return;
       }
 
-      // Trust the already-detected element only when the click actually lands on
-      // the selection box it's drawn under, reusing the cached selectionBounds so
-      // there's no fresh layout read. When the click is elsewhere — e.g. right
-      // after keyboard navigation, before a pointermove has re-detected under the
-      // cursor — detection is stale, so fall back to the live hit-test and select
-      // what is genuinely under the pointer.
-      const connectedDetectedElement = isElementConnected(store.detectedElement)
-        ? store.detectedElement
-        : null;
-      const currentSelectionBounds = selectionBounds();
-      const clickLandsOnDetectedElement =
-        connectedDetectedElement !== null &&
-        connectedDetectedElement === selectionElement() &&
-        currentSelectionBounds !== undefined &&
-        isPositionInsideBounds({ x: clientX, y: clientY }, currentSelectionBounds);
-      const selectedElementUnderPointer = clickLandsOnDetectedElement
-        ? connectedDetectedElement
-        : liveElementAtPointer();
+      const selectedElementUnderPointer =
+        liveElementAtPointer() ??
+        (isElementConnected(store.detectedElement) ? store.detectedElement : null);
       const selectedElement =
         validKeyboardSelectedElement ?? selectedElementUnderPointer ?? validFrozenElement;
       if (!selectedElement) return;
