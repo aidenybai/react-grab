@@ -1,3 +1,5 @@
+export { REACT_GRAB_ATTRIBUTE_NAME as ATTRIBUTE_NAME } from "../src/constants.js";
+
 export const SHIFT_LABEL_CLICK_ANCHOR_RATIO = 0.25;
 export const SHIFT_LABEL_SECOND_CLICK_ANCHOR_RATIO = 0.75;
 export const SHIFT_LABEL_ANCHORED_COUNT = 2;

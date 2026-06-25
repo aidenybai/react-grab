@@ -1,7 +1,6 @@
 import { expect, test, type ReactGrabPageObject } from "./fixtures.js";
 import { isEditPanelVisible } from "./edit-panel-helpers.js";
-
-const ATTRIBUTE_NAME = "data-react-grab";
+import { ATTRIBUTE_NAME } from "./constants.js";
 
 const clickSelectionDiscardButton = async (
   reactGrab: ReactGrabPageObject,

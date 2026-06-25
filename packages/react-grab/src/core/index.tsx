@@ -81,6 +81,7 @@ import {
   DEFAULT_ACTION_ID,
   COMMENT_ACTION_ID,
   EDIT_ACTION_ID,
+  REACT_GRAB_ATTRIBUTE_NAME,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { hideFromThirdParties } from "../utils/hide-from-third-parties.js";
@@ -2895,7 +2896,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     eventListenerManager.addWindowListener(
       "focusin",
       (event: FocusEvent) => {
-        if (isEventFromOverlay(event, "data-react-grab")) {
+        if (isEventFromOverlay(event, REACT_GRAB_ATTRIBUTE_NAME)) {
           event.stopPropagation();
         }
       },
