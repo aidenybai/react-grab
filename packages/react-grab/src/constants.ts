@@ -130,8 +130,6 @@ export const MODIFIER_KEYS: readonly string[] = ["Meta", "Control", "Shift", "Al
 
 export const ARROW_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
 
-export const REACT_GRAB_ATTRIBUTE_NAME = "data-react-grab";
-
 export const FROZEN_ELEMENT_ATTRIBUTE = "data-react-grab-frozen";
 
 export const USER_IGNORE_ATTRIBUTE = "data-react-grab-ignore";

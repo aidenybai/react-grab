@@ -1,4 +1,4 @@
-export { REACT_GRAB_ATTRIBUTE_NAME as ATTRIBUTE_NAME } from "../src/constants.js";
+export { REACT_GRAB_ATTRIBUTE_NAME as ATTRIBUTE_NAME } from "../src/utils/react-grab-attribute-name.js";
 
 export const SHIFT_LABEL_CLICK_ANCHOR_RATIO = 0.25;
 export const SHIFT_LABEL_SECOND_CLICK_ANCHOR_RATIO = 0.75;
