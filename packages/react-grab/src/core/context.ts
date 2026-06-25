@@ -71,18 +71,26 @@ const getNearestListItemKeyFiber = (element: Element): Fiber | null => {
   return null;
 };
 
+// Surfacing the list-item key is a hint, never worth a network round-trip - it
+// must not add latency to a grab or block it from completing (e.g. when the
+// dev-server connection pool is saturated). So the key check reuses only the
+// source maps the leading-source resolution already warmed: this fetch rejects,
+// turning bippy's resolution into a cache-only lookup. A cache miss yields a null
+// snippet and the key is surfaced as before.
+const rejectUncachedSourceFetch = (): Promise<Response> =>
+  Promise.reject(new Error("react-grab: list-item key check is cache-only"));
+
 // `fiber.key` is React's resolved key, with no trace of how it was written, so a
 // spread that overrode it (`<li key={id} {...item}>`, or a key sourced entirely
 // from `<li {...item}>`) reports a value that won't match the `key={…}` an agent
 // reads at that JSX site. We confirm the key against the element's source before
-// surfacing it; if the source can't be read we keep surfacing it (the common,
+// surfacing it; if the source isn't cached we keep surfacing it (the common,
 // spread-free case is unaffected).
-const isListItemKeyTrustworthy = (fiber: Fiber): Promise<boolean> =>
-  runQueuedSourceFetch(async (signal) => {
-    const snippet = await getFiberSourceSnippet(fiber, createSourceFetch(signal));
-    if (snippet === null) return true;
-    return !isKeyOverriddenBySpread(snippet);
-  }, true);
+const isListItemKeyTrustworthy = async (fiber: Fiber): Promise<boolean> => {
+  const snippet = await getFiberSourceSnippet(fiber, rejectUncachedSourceFetch);
+  if (snippet === null) return true;
+  return !isKeyOverriddenBySpread(snippet);
+};
 
 const resolveListItemKeyHint = async (element: Element): Promise<string> => {
   const keyedFiber = getNearestListItemKeyFiber(element);
