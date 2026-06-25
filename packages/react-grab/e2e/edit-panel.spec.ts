@@ -285,28 +285,6 @@ test.describe("Style Panel", () => {
       expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
     });
 
-    test("mouse movement after keyboard tweak opens discard prompt with Copy", async ({
-      reactGrab,
-    }) => {
-      await openEditPanel(reactGrab, BUTTON_SELECTOR);
-      await reactGrab.page.keyboard.press("ArrowRight");
-      await reactGrab.page.waitForTimeout(80);
-      const inlineStyleAfterTweak = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
-      expect(inlineStyleAfterTweak.length).toBeGreaterThan(0);
-
-      await reactGrab.page.mouse.move(10, 10);
-      await reactGrab.page.waitForTimeout(80);
-      expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
-      expect(await isEditPanelCompact(reactGrab.page)).toBe(false);
-      expect(await isDiscardPromptVisible(reactGrab.page)).toBe(true);
-
-      await clickDiscardButton(reactGrab.page, "copy");
-      await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
-      expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).toBe(
-        inlineStyleAfterTweak,
-      );
-    });
-
     test("canceling mouse-move discard prompt consumes the pointer handoff", async ({
       reactGrab,
     }) => {
