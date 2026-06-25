@@ -1510,6 +1510,55 @@ test.describe("Style Panel", () => {
       expect(clipboardContent).not.toContain("padding-top: 8px;");
     });
 
+    test("copied prompt annotates a length matching a design token", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, UNIFORM_PADDING_SELECTOR);
+      await setSearchInputValue(reactGrab.page, "p-4");
+      await expect
+        .poll(() => getInlineStyleProperty(reactGrab.page, UNIFORM_PADDING_SELECTOR, "padding-top"))
+        .toBe("16px");
+
+      await reactGrab.page.keyboard.press("Enter");
+      await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
+      await expect
+        .poll(() => reactGrab.getClipboardContent())
+        .toContain("/* var(--rg-test-space-4) */");
+      const clipboardContent = await reactGrab.getClipboardContent();
+      expect(clipboardContent).toContain("padding-top: 16px; /* var(--rg-test-space-4) */");
+      expect(clipboardContent).toContain("Prefer the design token");
+    });
+
+    test("copied prompt annotates a color matching a design token", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await setSearchInputValue(reactGrab.page, "text-[#123456]");
+      await expect
+        .poll(() => getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "color"))
+        .not.toBe("");
+
+      await reactGrab.page.keyboard.press("Enter");
+      await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
+      await expect
+        .poll(() => reactGrab.getClipboardContent())
+        .toContain("/* var(--rg-test-brand) */");
+      const clipboardContent = await reactGrab.getClipboardContent();
+      expect(clipboardContent).toContain("color: #123456; /* var(--rg-test-brand) */");
+    });
+
+    test("copied prompt leaves a non-token length unannotated", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, UNIFORM_PADDING_SELECTOR);
+      // 17px has no matching design token, so the prompt keeps the raw value.
+      await setSearchInputValue(reactGrab.page, "p-[17px]");
+      await expect
+        .poll(() => getInlineStyleProperty(reactGrab.page, UNIFORM_PADDING_SELECTOR, "padding-top"))
+        .toBe("17px");
+
+      await reactGrab.page.keyboard.press("Enter");
+      await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
+      await expect.poll(() => reactGrab.getClipboardContent()).toContain("padding-top: 17px;");
+      const clipboardContent = await reactGrab.getClipboardContent();
+      expect(clipboardContent).not.toContain("/* var(");
+      expect(clipboardContent).not.toContain("Prefer the design token");
+    });
+
     test("header Copy button appears after a pending tweak and submits", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       expect(await isHeaderCopyButtonVisible(reactGrab.page)).toBe(false);

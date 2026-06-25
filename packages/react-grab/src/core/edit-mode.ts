@@ -7,6 +7,7 @@ import type {
   PreviewStyles,
 } from "../types.js";
 import { buildEditableProperties } from "../utils/build-editable-properties.js";
+import { collectDesignTokens } from "../utils/collect-design-tokens.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
 import { formatSessionEditsPrompt } from "../utils/format-edit-prompt.js";
 import { getTagName } from "../utils/get-tag-name.js";
@@ -244,6 +245,7 @@ export const createEditModeController = (
         filePath: record.filePath,
         lineNumber: record.lineNumber,
         edits: [...record.edits],
+        designTokens: collectDesignTokens(record.element),
       });
     }
     return Array.from(entryByElement.values());

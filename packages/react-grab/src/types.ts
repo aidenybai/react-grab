@@ -234,10 +234,23 @@ export type PendingEdit = NumericPendingEdit | ColorPendingEdit | EnumPendingEdi
 
 export type PendingEdits = PendingEdit[];
 
+export interface DesignTokenResolver {
+  // Whether the page exposes any color/length design tokens at all.
+  readonly hasTokens: boolean;
+  // Returns the matching custom property name (e.g. "--primary") for a hex
+  // color, or null when no token resolves to that value.
+  matchColor: (hex: string) => string | null;
+  // Returns the matching custom property name for a px length, gated on the
+  // token name sharing the css property's family so unrelated scales that
+  // happen to share a value (font-size vs spacing) don't cross-match.
+  matchLength: (px: number, cssProperty: string) => string | null;
+}
+
 export interface PendingEditsEntry {
   filePath: string;
   lineNumber: number;
   edits: PendingEdits;
+  designTokens?: DesignTokenResolver;
 }
 
 export interface PreviewStyles {
