@@ -15,6 +15,8 @@ import { Toolbar } from "./toolbar/index.js";
 import { ContextMenu } from "./context-menu.js";
 import { EditPanel } from "./edit-panel/index.js";
 import { ToolbarMenu } from "./toolbar/toolbar-menu.js";
+import { DrawMenu } from "./toolbar/draw-menu.js";
+import { DrawCopiedToast } from "./toolbar/draw-copied-toast.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
   return (
@@ -173,6 +175,12 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         onSetDefaultAction={props.onSetDefaultAction ?? (() => {})}
         onDismiss={props.onToolbarMenuDismiss ?? (() => {})}
       />
+      <DrawMenu
+        position={props.drawMenuPosition ?? null}
+        onCopy={props.onDrawCopy ?? (() => {})}
+        onCancel={props.onDrawCancel ?? (() => {})}
+      />
+      <DrawCopiedToast position={props.drawCopiedPosition ?? null} />
       <EditPanel
         state={props.editPanelState ?? null}
         position={props.editPanelPosition ?? null}

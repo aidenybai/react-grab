@@ -79,10 +79,7 @@ const mergeEditsIntoEntry = (entry: PendingEditsEntry, edits: PendingEdits) => {
   }
 };
 
-const toSessionRecord = (
-  currentState: EditPanelState,
-  edits: PendingEdits,
-): EditSessionRecord => ({
+const toSessionRecord = (currentState: EditPanelState, edits: PendingEdits): EditSessionRecord => ({
   element: currentState.element,
   preview: currentState.preview,
   filePath: currentState.filePath ?? "",

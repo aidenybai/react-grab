@@ -3,6 +3,36 @@ export interface Position {
   y: number;
 }
 
+export interface DrawPoint {
+  x: number;
+  y: number;
+  pressure: number;
+}
+
+export interface DrawStroke {
+  points: DrawPoint[];
+  // Pen input carries real pressure, so use it; mouse/touch report a constant,
+  // so let perfect-freehand simulate width from velocity instead.
+  simulatePressure: boolean;
+}
+
+export interface DrawText {
+  x: number;
+  y: number;
+  value: string;
+}
+
+// Committed strokes and texts share one ordered list so undo and z-order both
+// follow insertion order.
+export type CommittedDraw =
+  | { kind: "stroke"; stroke: DrawStroke }
+  | { kind: "text"; text: DrawText };
+
+// `preferCurrentTab` is a non-standard Chromium option missing from lib.dom.
+export interface CurrentTabDisplayMediaOptions extends DisplayMediaStreamOptions {
+  preferCurrentTab?: boolean;
+}
+
 export type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object
     ? T[P] extends (...args: unknown[]) => unknown
@@ -149,6 +179,7 @@ export interface ActionContext {
   componentName?: string;
   tagName?: string;
   enterPromptMode?: () => void;
+  enterDrawMode?: () => void;
   hooks: ActionContextHooks;
   performWithFeedback: (action: () => Promise<boolean>) => Promise<void>;
   hideContextMenu: () => void;
@@ -403,6 +434,7 @@ export interface ReactGrabAPI {
   deactivate: () => void;
   toggle: () => void;
   comment: () => void;
+  draw: () => void;
   isActive: () => boolean;
   isEnabled: () => boolean;
   setEnabled: (enabled: boolean) => void;
@@ -527,6 +559,10 @@ export interface ReactGrabRendererProps {
   onEditPanelSubmit?: (pendingEdits: PendingEdits) => void;
   onEditPanelPendingEditsChange?: (pendingEdits: PendingEdits) => void;
   onEditPanelInteractingChange?: (interacting: boolean) => void;
+  drawMenuPosition?: DropdownAnchor | null;
+  drawCopiedPosition?: DropdownAnchor | null;
+  onDrawCopy?: () => void;
+  onDrawCancel?: () => void;
 }
 
 export interface GrabbedBox {

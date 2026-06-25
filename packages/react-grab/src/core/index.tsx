@@ -81,6 +81,7 @@ import {
   DEFAULT_ACTION_ID,
   COMMENT_ACTION_ID,
   EDIT_ACTION_ID,
+  DRAW_ACTION_ID,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { hideFromThirdParties } from "../utils/hide-from-third-parties.js";
@@ -99,6 +100,7 @@ import type {
   ReactGrabAPI,
   ReactGrabState,
   SelectionLabelInstance,
+  ContextMenuAction,
   ContextMenuActionContext,
   ArrowNavigationState,
   FrozenLabelEntry,
@@ -111,6 +113,9 @@ import type {
   ElementLabelVariant,
 } from "../types.js";
 import { createEditModeController, type EditModeOverrides } from "./edit-mode.js";
+import { createDrawModeController } from "./draw-mode.js";
+import { isScreenshotSupported } from "../utils/is-screenshot-supported.js";
+import { resolveActionEnabled } from "../utils/resolve-action-enabled.js";
 import { createPluginRegistry } from "./plugin-registry.js";
 import { createLabelController } from "./label-controller.js";
 import { createArrowNavigator } from "./arrow-navigation.js";
@@ -126,6 +131,7 @@ import { copyPlugin } from "./plugins/copy.js";
 import { commentPlugin } from "./plugins/comment.js";
 import { editPlugin } from "./plugins/edit.js";
 import { openPlugin } from "./plugins/open.js";
+import { drawPlugin } from "./plugins/draw.js";
 import {
   freezeAnimations,
   freezeAllAnimations,
@@ -145,7 +151,7 @@ import { getNearestEdge } from "../utils/get-nearest-edge.js";
 import { findShortcutAction } from "../utils/action-shortcuts.js";
 import { createKeyboardSelectionController } from "./keyboard-selection.js";
 
-const builtInPlugins = [copyPlugin, editPlugin, commentPlugin, openPlugin];
+const builtInPlugins = [copyPlugin, editPlugin, commentPlugin, drawPlugin, openPlugin];
 
 interface CopyWithLabelOptions {
   element: Element;
@@ -304,6 +310,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [isToolbarSelectHovered, setIsToolbarSelectHovered] = createSignal(false);
     const [toolbarMenuPosition, setToolbarMenuPosition] = createSignal<DropdownAnchor | null>(null);
     const [editPanelPosition, setEditPanelPosition] = createSignal<DropdownAnchor | null>(null);
+    const [drawMenuPosition, setDrawMenuPosition] = createSignal<DropdownAnchor | null>(null);
+    const [drawCopiedPosition, setDrawCopiedPosition] = createSignal<DropdownAnchor | null>(null);
+    let drawCopiedTimer: number | null = null;
     // Forward-ref wrappers because activateRenderer / deactivateRenderer /
     // performCopyWithLabel are declared later in this scope. The wrappers
     // are captured by the controller; the underlying lookups happen at
@@ -328,6 +337,37 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
     });
 
+    // rendererRoot is created later in this scope; the getter is only invoked
+    // when draw mode actually opens, by which point the binding is
+    // initialized (same TDZ-safe pattern as editMode above). onOpen/onClose
+    // anchor the Copy/Cancel menu to the toolbar exactly like the edit panel.
+    const drawMode = createDrawModeController({
+      getRoot: () => rendererRoot,
+      onOpen: () => {
+        dismissToolbarMenu();
+        // Drop a leftover "Copied" toast from a prior session before reopening.
+        clearDrawCopiedToast();
+        stopDrawMenuTracking?.();
+        stopDrawMenuTracking = trackDropdownPosition(computeDropdownAnchor, setDrawMenuPosition);
+      },
+      onClose: () => {
+        stopDrawMenuTracking?.();
+        stopDrawMenuTracking = null;
+        setDrawMenuPosition(null);
+      },
+      onCopied: () => {
+        // Track the toolbar continuously (same edge-aware anchor as the
+        // Copy/Cancel menu) so a post-capture reflow - e.g. the screen-share
+        // indicator bar collapsing - doesn't strand the toast at a stale spot.
+        clearDrawCopiedToast();
+        stopDrawCopiedTracking = trackDropdownPosition(
+          computeDropdownAnchor,
+          setDrawCopiedPosition,
+        );
+        drawCopiedTimer = window.setTimeout(clearDrawCopiedToast, FEEDBACK_DURATION_MS);
+      },
+    });
+
     const isModalPopoverOpen = createMemo(
       () => store.contextMenuPosition !== null || editMode.isOpen(),
     );
@@ -337,7 +377,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let toolbarElement: HTMLDivElement | undefined;
     let stopToolbarMenuTracking: (() => void) | null = null;
     let stopEditPanelTracking: (() => void) | null = null;
+    let stopDrawMenuTracking: (() => void) | null = null;
+    let stopDrawCopiedTracking: (() => void) | null = null;
     let didSwitchEditTargetOnPointerDown = false;
+
+    const clearDrawCopiedToast = () => {
+      stopDrawCopiedTracking?.();
+      stopDrawCopiedTracking = null;
+      if (drawCopiedTimer !== null) {
+        clearTimeout(drawCopiedTimer);
+        drawCopiedTimer = null;
+      }
+      setDrawCopiedPosition(null);
+    };
 
     let shiftSelectionLabelAnchorRatioByElement = new WeakMap<Element, number>();
     const keyboardSelection = createKeyboardSelectionController();
@@ -516,6 +568,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       debouncedElementForComponentName,
     );
     const toolbarActiveActionId = createMemo(() => {
+      if (drawMode.isActive()) return DRAW_ACTION_ID;
       if (editMode.isOpen()) return EDIT_ACTION_ID;
       if (isCommentMode()) return COMMENT_ACTION_ID;
       if (isPendingContextMenuSelect()) return pendingToolbarActionId();
@@ -1546,7 +1599,32 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return true;
     };
 
+    const startDraw = () => {
+      if (!isEnabled() || drawMode.isActive() || !isScreenshotSupported()) return;
+      dismissAllPopups();
+      keyboardSelection.clear();
+      if (isActivated()) {
+        deactivateRenderer();
+      }
+      clearPendingToolbarSelection();
+      drawMode.start();
+    };
+
+    const toggleDraw = () => {
+      if (drawMode.isActive()) {
+        drawMode.cancel();
+      } else {
+        startDraw();
+      }
+    };
+
     const handleActivateAction = (actionId: string) => {
+      if (actionId === DRAW_ACTION_ID) {
+        toggleDraw();
+        return;
+      }
+      // Draw mode owns the screen; other tools are locked until it exits.
+      if (drawMode.isActive()) return;
       if (isActivated()) {
         // While still choosing an element, clicking a different action switches
         // the pending action in place instead of tearing down selection mode;
@@ -1576,8 +1654,28 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       toggleActivate();
     };
 
+    // The toolbar menu / default picker has no element context, so judge an
+    // action only by its context-free enabled. A context-dependent (function)
+    // enabled is left in - it's evaluated per-element when the action runs.
+    const isMenuActionEnabled = (action: ContextMenuAction): boolean =>
+      typeof action.enabled === "function" ? true : action.enabled !== false;
+
+    // A stored default action can become unconditionally disabled (e.g. Draw
+    // where screen capture is unsupported); fall back so the main toggle never
+    // resolves to a no-op action.
+    const effectiveDefaultActionId = (): string => {
+      const storedActionId = currentToolbarState()?.defaultAction ?? DEFAULT_ACTION_ID;
+      const storedAction = pluginRegistry.store.actions.find(
+        (action) => action.id === storedActionId,
+      );
+      if (storedAction && !isMenuActionEnabled(storedAction)) {
+        return DEFAULT_ACTION_ID;
+      }
+      return storedActionId;
+    };
+
     const handleToggleActive = () => {
-      handleActivateAction(currentToolbarState()?.defaultAction ?? DEFAULT_ACTION_ID);
+      handleActivateAction(effectiveDefaultActionId());
     };
 
     const enterCommentModeForElement = (element: Element, positionX: number, positionY: number) => {
@@ -2261,6 +2359,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const action = findShortcutAction(pluginRegistry.store.actions, event);
       if (!action) return false;
 
+      const position = { x: pointer().x, y: pointer().y };
+      // Only build the context when needed: resolveActionEnabled needs one solely
+      // for function-typed `enabled`, and prompt mode rebuilds it itself. Don't
+      // run (or swallow the key for) a disabled action - e.g. Draw where screen
+      // capture is unavailable - and don't tear down prompt mode for it.
+      const enabledContext =
+        typeof action.enabled === "function"
+          ? buildImmediateActionContext(element, position)
+          : undefined;
+      if (!resolveActionEnabled(action, enabledContext)) return false;
+
       if (isPromptMode()) {
         if (!runActionForCurrentSelection(action.id)) return false;
         event.preventDefault();
@@ -2268,8 +2377,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return true;
       }
 
-      const position = { x: pointer().x, y: pointer().y };
-      action.onAction(buildImmediateActionContext(element, position));
+      action.onAction(enabledContext ?? buildImmediateActionContext(element, position));
 
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -2431,6 +2539,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     eventListenerManager.addWindowListener(
       "keydown",
       (event: KeyboardEvent) => {
+        if (drawMode.isActive()) {
+          drawMode.handleKeyDown(event);
+          return;
+        }
+
         if (keyboardSelection.isPendingDismiss() && isEnterCode(event.code)) {
           const target = event.composedPath()[0];
           const targetElement = target instanceof HTMLElement ? target : null;
@@ -3037,6 +3150,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       stopToolbarMenuTracking = null;
       stopEditPanelTracking?.();
       stopEditPanelTracking = null;
+      stopDrawMenuTracking?.();
+      stopDrawMenuTracking = null;
+      clearDrawCopiedToast();
       grabbedBoxTimeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
       grabbedBoxTimeouts.clear();
       labelController.cancelAllFades();
@@ -3414,6 +3530,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         hideContextMenuAction();
       };
 
+      const enterDrawModeAction = () => {
+        startDraw();
+        hideContextMenuAction();
+      };
+
       const context: ContextMenuActionContext = {
         element,
         elements,
@@ -3423,6 +3544,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         tagName,
         enterPromptMode: customEnterPromptMode ?? defaultEnterPromptMode,
         enterEditMode: enterEditModeAction,
+        enterDrawMode: enterDrawModeAction,
         copy: copyAction,
         hooks: {
           transformHtmlContent: pluginRegistry.hooks.transformHtmlContent,
@@ -3546,6 +3668,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.hideContextMenu();
       dismissToolbarMenu();
       editMode.dismiss();
+      drawMode.cancel();
     };
 
     const handleToggleToolbarMenu = () => {
@@ -3711,9 +3834,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 onContextMenuHide={deferHideContextMenu}
                 toolbarMenuPosition={toolbarMenuPosition()}
                 toolbarMenuActions={pluginRegistry.store.actions.filter(
-                  (action) => action.showInToolbarMenu === true,
+                  (action) => action.showInToolbarMenu === true && isMenuActionEnabled(action),
                 )}
-                defaultActionId={currentToolbarState()?.defaultAction ?? DEFAULT_ACTION_ID}
+                defaultActionId={effectiveDefaultActionId()}
                 onSetDefaultAction={handleSetDefaultAction}
                 onToggleToolbarMenu={handleToggleToolbarMenu}
                 onToolbarMenuDismiss={dismissToolbarMenu}
@@ -3723,6 +3846,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 onEditPanelSubmit={editMode.submit}
                 onEditPanelPendingEditsChange={editMode.setPendingEdits}
                 onEditPanelInteractingChange={editMode.setInteracting}
+                drawMenuPosition={drawMenuPosition()}
+                drawCopiedPosition={drawCopiedPosition()}
+                onDrawCopy={() => void drawMode.capture()}
+                onDrawCancel={drawMode.cancel}
               />
             );
           }, rendererRoot);
@@ -3739,25 +3866,34 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const api: ReactGrabAPI = {
+      // Draw mode owns the screen; selection-entering APIs no-op until it exits,
+      // mirroring the toolbar. deactivate/dispose exit Draw instead of blocking.
       activate: () => {
+        if (drawMode.isActive()) return;
         actions.setPendingCommentMode(false);
         if (!isActivated() && isEnabled()) {
           toggleActivate();
         }
       },
       deactivate: () => {
+        drawMode.cancel();
         if (isActivated() || isCopying()) {
           deactivateRenderer();
         }
       },
       toggle: () => {
+        if (drawMode.isActive()) return;
         if (isActivated()) {
           deactivateRenderer();
         } else if (isEnabled()) {
           toggleActivate();
         }
       },
-      comment: handleComment,
+      comment: () => {
+        if (drawMode.isActive()) return;
+        handleComment();
+      },
+      draw: toggleDraw,
       isActive: () => isActivated(),
       isEnabled: () => isEnabled(),
       setEnabled: (enabled: boolean) => {
@@ -3800,11 +3936,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       dispose: () => {
         disposed = true;
         hasInited = false;
+        drawMode.cancel();
         disposeRenderer?.();
         stopToolbarMenuTracking?.();
         stopToolbarMenuTracking = null;
         stopEditPanelTracking?.();
         stopEditPanelTracking = null;
+        stopDrawMenuTracking?.();
+        stopDrawMenuTracking = null;
+        clearDrawCopiedToast();
         toolbarStateChangeCallbacks.clear();
         dispose();
       },

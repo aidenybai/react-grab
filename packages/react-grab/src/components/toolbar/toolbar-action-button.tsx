@@ -1,4 +1,5 @@
 import { Show, type Component, type JSX } from "solid-js";
+import { cn } from "../../utils/cn.js";
 import { Tooltip } from "../tooltip.jsx";
 
 interface ToolbarActionButtonProps {
@@ -6,6 +7,7 @@ interface ToolbarActionButtonProps {
   label: string;
   isActive?: boolean;
   isToggle?: boolean;
+  disabled?: boolean;
   class?: string;
   wrapperClass?: string;
   ref?: (element: HTMLButtonElement) => void;
@@ -28,16 +30,18 @@ export const ToolbarActionButton: Component<ToolbarActionButtonProps> = (props) 
       data-react-grab-toolbar-action={props.actionId}
       aria-label={props.label}
       aria-pressed={Boolean(props.isActive)}
+      aria-disabled={props.disabled ? "true" : undefined}
+      tabindex={props.disabled ? -1 : undefined}
       type="button"
-      class={props.class}
-      onClick={props.onClick}
+      class={cn(props.class, props.disabled && "opacity-35 pointer-events-none")}
+      onClick={(event) => !props.disabled && props.onClick?.(event)}
       on:contextmenu={(event) => props.onContextMenu?.(event)}
       onMouseEnter={props.onMouseEnter}
       onMouseLeave={props.onMouseLeave}
     >
       {props.icon}
     </button>
-    <Show when={props.tooltip}>
+    <Show when={props.tooltip && !props.disabled}>
       <Tooltip visible={Boolean(props.tooltipVisible)} position={props.tooltipPosition ?? "top"}>
         {props.tooltip}
       </Tooltip>
