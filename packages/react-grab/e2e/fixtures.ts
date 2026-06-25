@@ -1,6 +1,7 @@
 import { test as base, expect, Page, Locator } from "@playwright/test";
-import { createCoverageFixture } from "@react-grab/playwright-coverage";
 import { COVERAGE_RAW_DIR } from "./coverage-config.js";
+
+const COVERAGE_ENABLED = Boolean(process.env.COVERAGE);
 
 const ATTRIBUTE_NAME = "data-react-grab";
 const DEFAULT_KEY_HOLD_DURATION_MS = 200;
@@ -1816,10 +1817,21 @@ const createReactGrabPageObject = (
 };
 
 export const test = base.extend<{ reactGrab: ReactGrabPageObject; coverageCapture: void }>({
-  // Auto fixture (only active under COVERAGE=1) that captures V8 JS coverage for
-  // every test. `reactGrab` depends on it so it starts before the page
-  // navigates, and `page.coverage` only exists on Chromium so it self-guards.
-  coverageCapture: createCoverageFixture({ rawDir: COVERAGE_RAW_DIR }),
+  // Captures V8 JS coverage for every test under COVERAGE. `reactGrab` depends
+  // on it so it starts before the page navigates. The coverage package is
+  // imported lazily (and built) only on coverage runs, so normal and perf runs
+  // never need its dist; off-coverage this is a no-op.
+  coverageCapture: [
+    async ({ page }, use) => {
+      if (!COVERAGE_ENABLED) {
+        await use();
+        return;
+      }
+      const { captureCoverage } = await import("@react-grab/playwright-coverage");
+      await captureCoverage(page, COVERAGE_RAW_DIR, use);
+    },
+    { auto: true },
+  ],
 
   reactGrab: async ({ page, coverageCapture }, use) => {
     void coverageCapture;
