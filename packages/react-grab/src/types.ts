@@ -244,6 +244,11 @@ export interface DesignTokenResolver {
   // token name sharing the css property's family so unrelated scales that
   // happen to share a value (font-size vs spacing) don't cross-match.
   matchLength: (px: number, cssProperty: string) => string | null;
+  // Returns the next/previous px value on the css property's token scale
+  // relative to `px`, or null when there is no token scale for the family or
+  // `px` sits outside it (so the caller can fall back to a raw step instead of
+  // dead-ending or teleporting across the scale).
+  stepLength: (px: number, direction: 1 | -1, cssProperty: string) => number | null;
 }
 
 export interface PendingEditsEntry {
@@ -272,6 +277,7 @@ export interface EditPanelState {
   htmlPreview?: string;
   initialSearchQuery?: string;
   hasSessionEdits?: boolean;
+  designTokens?: DesignTokenResolver;
 }
 
 export interface ContextMenuAction {

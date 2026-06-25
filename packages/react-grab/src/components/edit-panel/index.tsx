@@ -276,7 +276,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   ): EditableProperty | null => {
     const property = activeProperty();
     if (!property) return null;
-    const nextValue = stepProperty(property, direction, shift);
+    const nextValue = stepProperty(property, direction, shift, props.state.designTokens);
     if (nextValue === null) {
       flashActiveKey(direction === 1 ? "right" : "left");
       return null;

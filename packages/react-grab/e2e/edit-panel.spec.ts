@@ -855,6 +855,51 @@ test.describe("Style Panel", () => {
       expect(await getActivePropertyValue(reactGrab.page)).toBe("96px");
     });
 
+    test("ArrowRight/ArrowLeft snap a length through the design-token scale", async ({
+      reactGrab,
+    }) => {
+      await openEditPanel(reactGrab, UNIFORM_PADDING_SELECTOR);
+      await setSearchInputValue(reactGrab.page, "padding");
+      await expect.poll(() => getActivePropertyKey(reactGrab.page)).toBe("padding");
+
+      // p-2 (8px) starts inside the [--rg-test-space-4: 16px, --rg-test-space-6: 24px]
+      // scale, so the arrows snap to the next/previous token rather than ±1px.
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await expect
+        .poll(() => getInlineStyleProperty(reactGrab.page, UNIFORM_PADDING_SELECTOR, "padding-top"))
+        .toBe("16px");
+
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await expect
+        .poll(() => getInlineStyleProperty(reactGrab.page, UNIFORM_PADDING_SELECTOR, "padding-top"))
+        .toBe("24px");
+
+      await reactGrab.page.keyboard.press("ArrowLeft");
+      await expect
+        .poll(() => getInlineStyleProperty(reactGrab.page, UNIFORM_PADDING_SELECTOR, "padding-top"))
+        .toBe("16px");
+    });
+
+    test("ArrowRight past the top of the token scale falls back to a raw step", async ({
+      reactGrab,
+    }) => {
+      await openEditPanel(reactGrab, UNIFORM_PADDING_SELECTOR);
+      await setSearchInputValue(reactGrab.page, "padding");
+      await expect.poll(() => getActivePropertyKey(reactGrab.page)).toBe("padding");
+
+      // 8px → 16px → 24px walks the token scale; the next press is at the
+      // scale's max token, so it nudges by a raw pixel instead of dead-ending.
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await expect
+        .poll(() => getInlineStyleProperty(reactGrab.page, UNIFORM_PADDING_SELECTOR, "padding-top"))
+        .toBe("24px");
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await expect
+        .poll(() => getInlineStyleProperty(reactGrab.page, UNIFORM_PADDING_SELECTOR, "padding-top"))
+        .toBe("25px");
+    });
+
     test("ArrowUp / ArrowDown navigate the list, not the value", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       const initialActivePropertyKey = await getActivePropertyKey(reactGrab.page);
@@ -1703,9 +1748,12 @@ test.describe("Style Panel", () => {
     test("copy reverts a switched-away element whose tweak was undone", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       const buttonStyleBeforeTweak = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
+      const buttonOriginalValue = (await getActivePropertyValue(reactGrab.page)) ?? "";
       await reactGrab.page.keyboard.press("ArrowRight");
       await reactGrab.page.waitForTimeout(80);
-      await reactGrab.page.keyboard.press("ArrowLeft");
+      // Token snapping makes ArrowRight/ArrowLeft asymmetric, so restore the
+      // exact original value to net the button's edits back to zero.
+      await setSearchInputValue(reactGrab.page, buttonOriginalValue.replace(/[^\d.-]/g, ""));
       await reactGrab.page.waitForTimeout(80);
 
       await reactGrab.page.locator(MAIN_TITLE_SELECTOR).click({ force: true });

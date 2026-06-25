@@ -144,6 +144,7 @@ export const collectDesignTokens = (element: Element): DesignTokenResolver => {
   const computed = getComputedStyle(element);
   const colorNameByHex = new Map<string, string>();
   const lengthTokensByPx = new Map<number, LengthToken[]>();
+  const lengthPxByFamily = new Map<TokenFamily, Set<number>>();
 
   for (const tokenName of customPropertyNames) {
     const rawValue = computed.getPropertyValue(tokenName).trim();
@@ -151,13 +152,16 @@ export const collectDesignTokens = (element: Element): DesignTokenResolver => {
 
     const lengthPx = lengthValueToPx(rawValue);
     if (lengthPx !== null) {
+      const families = familiesFromTokenName(tokenName);
       const tokens = lengthTokensByPx.get(lengthPx);
-      const lengthToken: LengthToken = {
-        name: tokenName,
-        families: familiesFromTokenName(tokenName),
-      };
+      const lengthToken: LengthToken = { name: tokenName, families };
       if (tokens) tokens.push(lengthToken);
       else lengthTokensByPx.set(lengthPx, [lengthToken]);
+      for (const family of families) {
+        const familyValues = lengthPxByFamily.get(family);
+        if (familyValues) familyValues.add(lengthPx);
+        else lengthPxByFamily.set(family, new Set([lengthPx]));
+      }
       continue;
     }
 
@@ -171,9 +175,42 @@ export const collectDesignTokens = (element: Element): DesignTokenResolver => {
 
   if (colorNameByHex.size === 0 && lengthTokensByPx.size === 0) return EMPTY_RESOLVER;
 
+  const sortedLengthPxByFamily = new Map<TokenFamily, number[]>();
+  for (const [family, values] of lengthPxByFamily) {
+    sortedLengthPxByFamily.set(
+      family,
+      Array.from(values).sort((left, right) => left - right),
+    );
+  }
+
   const matchColor = (hex: string): string | null => {
     const normalizedHex = parseAnyColor(hex)?.toLowerCase();
     return normalizedHex ? (colorNameByHex.get(normalizedHex) ?? null) : null;
+  };
+
+  const stepLength = (px: number, direction: 1 | -1, cssProperty: string): number | null => {
+    const family = familyForCssProperty(cssProperty);
+    if (family === null) return null;
+    const scale = sortedLengthPxByFamily.get(family);
+    if (!scale || scale.length === 0) return null;
+    const current = Math.round(px);
+    // Above the largest token the user is fine-tuning past the scale, so both
+    // directions defer to the raw step rather than teleporting back onto it.
+    if (current > scale[scale.length - 1]) return null;
+    if (direction === 1) {
+      // The first token greater than the current value — this also pulls a
+      // below-scale value (8px under a 16px floor) up onto the scale.
+      for (const value of scale) {
+        if (value > current) return value;
+      }
+      return null;
+    }
+    // Below the smallest token there is no lower token to snap down to.
+    if (current <= scale[0]) return null;
+    for (let scaleIndex = scale.length - 1; scaleIndex >= 0; scaleIndex--) {
+      if (scale[scaleIndex] < current) return scale[scaleIndex];
+    }
+    return null;
   };
 
   const matchLength = (px: number, cssProperty: string): string | null => {
@@ -191,11 +228,12 @@ export const collectDesignTokens = (element: Element): DesignTokenResolver => {
     return best;
   };
 
-  return { hasTokens: true, matchColor, matchLength };
+  return { hasTokens: true, matchColor, matchLength, stepLength };
 };
 
 const EMPTY_RESOLVER: DesignTokenResolver = {
   hasTokens: false,
   matchColor: () => null,
   matchLength: () => null,
+  stepLength: () => null,
 };
