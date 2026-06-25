@@ -1,8 +1,16 @@
 import { defineConfig, devices, type Project } from "@playwright/test";
 import path from "path";
 import { fileURLToPath } from "url";
+import { cleanRawCoverage } from "@react-grab/playwright-coverage";
+import { COVERAGE_RAW_DIR } from "./e2e/coverage-config.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// COVERAGE wires the per-test V8 capture fixture, a sourcemapped/unminified
+// build, and a globalTeardown that writes the report. Clearing the raw dir as
+// the config loads (once, before any test) keeps stale dumps out of the merge.
+const isCoverageRun = Boolean(process.env.COVERAGE);
+if (isCoverageRun) cleanRawCoverage(COVERAGE_RAW_DIR);
 
 const VITE_URL = "http://localhost:5175";
 const NEXT_URL = "http://localhost:5176";
@@ -40,7 +48,7 @@ const nextProject: Project = {
 
 // Under COVERAGE the dist must carry source maps (and stay unminified) so V8
 // byte ranges remap cleanly back onto src/*.ts(x).
-const reactGrabBuildCommand = process.env.COVERAGE
+const reactGrabBuildCommand = isCoverageRun
   ? "pnpm --filter react-grab build:coverage"
   : "pnpm --filter react-grab build";
 
@@ -75,6 +83,7 @@ export default defineConfig({
     trace: "on-first-retry",
     permissions: ["clipboard-read", "clipboard-write"],
   },
+  globalTeardown: isCoverageRun ? path.resolve(__dirname, "e2e/coverage-teardown.ts") : undefined,
   projects: isPerfRun ? viteProjects : [...viteProjects, nextProject],
   webServer: isPerfRun ? [viteWebServer] : [viteWebServer, nextWebServer],
 });

@@ -88,7 +88,7 @@
     "dev": "concurrently \"pnpm:css:watch\" \"vp pack --watch\"",
     "test": "vp test run tests && playwright test",
     "test:unit": "vp test run tests",
-    "test:coverage": "tsx scripts/run-coverage.ts",
+    "test:coverage": "COVERAGE=1 playwright test",
     "test:perf": "playwright test --grep @perf --reporter=list",
     "test:perf:baseline": "PERF_LABEL=baseline playwright test --grep @perf --reporter=list",
     "test:expect": "bun e2e/react-grab.expect.ts",
