@@ -635,7 +635,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                     No
                   </span>
                 </button>
-                <EditPanelCopyButton discardAction="copy" onCopy={handleSubmit} />
                 <button
                   data-react-grab-ignore-events
                   data-react-grab-discard-button="confirm"

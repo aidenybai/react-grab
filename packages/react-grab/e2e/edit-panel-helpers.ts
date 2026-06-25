@@ -454,7 +454,7 @@ export const clickHeaderCopyButton = async (page: Page): Promise<void> => {
 
 export const clickDiscardButton = async (
   page: Page,
-  action: "cancel" | "confirm" | "copy",
+  action: "cancel" | "confirm",
 ): Promise<void> => {
   await page.evaluate(
     ({ attrName, actionName }) => {
