@@ -47,13 +47,16 @@ export const captureCoverage = async (
     }
   }
 
-  await use();
-
-  if (started) {
-    try {
-      writeRawCoverage(rawDir, await page.coverage.stopJSCoverage());
-    } catch {
-      // ignore: coverage is best-effort
+  try {
+    await use();
+  } finally {
+    // finally so a failing test still flushes the coverage it did exercise.
+    if (started) {
+      try {
+        writeRawCoverage(rawDir, await page.coverage.stopJSCoverage());
+      } catch {
+        // ignore: coverage is best-effort
+      }
     }
   }
 };
