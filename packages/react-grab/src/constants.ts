@@ -21,6 +21,10 @@ export const INPUT_TEXT_SELECTION_ACTIVATION_DELAY_MS = 600;
 export const DEFAULT_KEY_HOLD_DURATION_MS = 100;
 export const DEFAULT_MAX_CONTEXT_LINES = 3;
 export const MAX_TRACE_CONTEXT_LINES = 20;
+// How many original-source lines to read from a keyed element's JSX call site
+// when checking whether a spread overrides its `key` - enough to span a
+// multi-line opening tag without scanning the whole file.
+export const SOURCE_SNIPPET_MAX_LINES = 12;
 // Path segments marking app-owned reusable UI directories (shadcn's
 // components/ui, a monorepo packages/ui, headless primitives). A bare `/ui/`
 // is deliberately excluded: Next's App Router convention places feature code

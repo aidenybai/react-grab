@@ -19,6 +19,8 @@ import { isSharedUiSourcePath } from "../utils/is-shared-ui-source-path.js";
 import { isNextProjectRuntime } from "../utils/is-next-project-runtime.js";
 import { enrichServerFrameLocations, symbolicateServerFrames } from "./next-server-frames.js";
 import { runQueuedSourceFetch } from "../utils/source-fetch-queue.js";
+import { getFiberSourceSnippet } from "../utils/get-fiber-source-snippet.js";
+import { isKeyOverriddenBySpread } from "../utils/is-key-overridden-by-spread.js";
 import { getHTMLPreview, getInlineHTMLPreview } from "./html-preview.js";
 import {
   isInternalComponentName,
@@ -54,12 +56,12 @@ const findNearestFiberElement = (element: Element): Element => {
 // on the list item's host element, on the list-item component itself, or on a
 // host wrapper around a list-item component, without wandering up to unrelated
 // ancestor keys (e.g. a route or transition `key` many components above).
-const getNearestListItemKey = (element: Element): string | null => {
+const getNearestListItemKeyFiber = (element: Element): Fiber | null => {
   if (!isInstrumentationActive()) return null;
   let fiber: Fiber | null = getFiberFromHostInstance(findNearestFiberElement(element));
   let componentBoundariesCrossed = 0;
   while (fiber) {
-    if (fiber.key) return fiber.key;
+    if (fiber.key) return fiber;
     if (isCompositeFiber(fiber)) {
       componentBoundariesCrossed += 1;
       if (componentBoundariesCrossed === 2) break;
@@ -67,6 +69,27 @@ const getNearestListItemKey = (element: Element): string | null => {
     fiber = fiber.return;
   }
   return null;
+};
+
+// `fiber.key` is React's resolved key, with no trace of how it was written, so a
+// spread that overrode it (`<li key={id} {...item}>`, or a key sourced entirely
+// from `<li {...item}>`) reports a value that won't match the `key={…}` an agent
+// reads at that JSX site. We confirm the key against the element's source before
+// surfacing it; if the source can't be read we keep surfacing it (the common,
+// spread-free case is unaffected).
+const isListItemKeyTrustworthy = (fiber: Fiber): Promise<boolean> =>
+  runQueuedSourceFetch(async (signal) => {
+    const snippet = await getFiberSourceSnippet(fiber, createSourceFetch(signal));
+    if (snippet === null) return true;
+    return !isKeyOverriddenBySpread(snippet);
+  }, true);
+
+const resolveListItemKeyHint = async (element: Element): Promise<string> => {
+  const keyedFiber = getNearestListItemKeyFiber(element);
+  const listItemKey = keyedFiber?.key;
+  if (!listItemKey) return "";
+  if (!(await isListItemKeyTrustworthy(keyedFiber))) return "";
+  return `\n  key: "${listItemKey}"`;
 };
 
 const stackCache = new WeakMap<Element, Promise<StackFrame[] | null>>();
@@ -474,9 +497,11 @@ export const getStackContext = async (
   return traceContext.text;
 };
 
-const composeElementContext = (element: Element, traceContext: TraceContextResult): string => {
-  const listItemKey = getNearestListItemKey(element);
-  const keyHint = listItemKey !== null ? `\n  key: "${listItemKey}"` : "";
+const composeElementContext = async (
+  element: Element,
+  traceContext: TraceContextResult,
+): Promise<string> => {
+  const keyHint = await resolveListItemKeyHint(element);
   const selectorHint = traceContext.shouldAppendSelectorHint
     ? `\n  selector: ${createElementSelector(element)}`
     : "";
@@ -488,7 +513,8 @@ export const getElementReferenceContext = async (
   options: StackContextOptions = {},
 ): Promise<string> => {
   const traceContext = await getTraceContext(element, options);
-  return `${getInlineHTMLPreview(element)}${composeElementContext(element, traceContext).replace(/\n\s+/g, " ")}`;
+  const elementContext = await composeElementContext(element, traceContext);
+  return `${getInlineHTMLPreview(element)}${elementContext.replace(/\n\s+/g, " ")}`;
 };
 
 export const formatElementInfo = async (
@@ -498,5 +524,6 @@ export const formatElementInfo = async (
   const nearestFiberElement = findNearestFiberElement(element);
   const htmlPreview = getHTMLPreview(nearestFiberElement);
   const traceContext = await getTraceContext(nearestFiberElement, options);
-  return `${htmlPreview}${composeElementContext(nearestFiberElement, traceContext)}`;
+  const elementContext = await composeElementContext(nearestFiberElement, traceContext);
+  return `${htmlPreview}${elementContext}`;
 };
