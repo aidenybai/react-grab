@@ -1,0 +1,46 @@
+{
+  "name": "@react-grab/playwright-coverage",
+  "version": "0.1.47",
+  "private": true,
+  "description": "Collect native V8 JS coverage from a Playwright run and remap it onto original sources",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aidenybai/react-grab.git"
+  },
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "scripts": {
+    "build": "vp pack",
+    "typecheck": "tsc --noEmit",
+    "lint": "vp lint",
+    "format": "vp fmt",
+    "check": "vp check"
+  },
+  "dependencies": {
+    "monocart-coverage-reports": "^2.12.12"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "@types/node": "^25.6.2",
+    "vite-plus": "^0.1.20"
+  },
+  "peerDependencies": {
+    "@playwright/test": ">=1.40.0"
+  }
+}

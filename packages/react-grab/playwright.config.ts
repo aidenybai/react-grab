@@ -38,11 +38,17 @@ const nextProject: Project = {
   testMatch: [NEXT_SPEC_PATTERN, CROSS_FRAMEWORK_PATTERN],
 };
 
+// Under COVERAGE the dist must carry source maps (and stay unminified) so V8
+// byte ranges remap cleanly back onto src/*.ts(x).
+const reactGrabBuildCommand = process.env.COVERAGE
+  ? "pnpm --filter react-grab build:coverage"
+  : "pnpm --filter react-grab build";
+
 const viteWebServer = {
   // Builds react-grab so the dev server picks up whichever src is checked out
   // (the perf workflow swaps it to the base ref). react-grab's build does not
   // clean dist, so the Next server reading it concurrently is safe.
-  command: "pnpm --filter react-grab build && pnpm dev",
+  command: `${reactGrabBuildCommand} && pnpm dev`,
   url: VITE_URL,
   reuseExistingServer: !process.env.CI,
   cwd: path.resolve(__dirname, "../../apps/e2e-app-vite"),
