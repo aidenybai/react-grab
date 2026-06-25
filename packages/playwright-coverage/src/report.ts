@@ -62,8 +62,11 @@ const urlToLocalPath = (url: string): string | null => {
   // Vite serves out-of-root files (e.g. a linked dist) as http://host/@fs/<abs>.
   try {
     const { pathname } = new URL(url);
-    const fsIndex = pathname.indexOf("/@fs/");
-    if (fsIndex !== -1) return decodeURIComponent(pathname.slice(fsIndex + 4));
+    const fsMarker = "/@fs";
+    const fsIndex = pathname.indexOf(`${fsMarker}/`);
+    // Keep the marker's trailing slash so the result stays an absolute path
+    // (`/@fs/Users/x` -> `/Users/x`), not a relative one.
+    if (fsIndex !== -1) return decodeURIComponent(pathname.slice(fsIndex + fsMarker.length));
   } catch {
     return null;
   }

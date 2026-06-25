@@ -57,7 +57,10 @@ const viteWebServer = {
   // clean dist, so the Next server reading it concurrently is safe.
   command: `${reactGrabBuildCommand} && pnpm dev`,
   url: VITE_URL,
-  reuseExistingServer: !process.env.CI,
+  // Under COVERAGE never reuse a running server: it may serve a minified dist
+  // with no sibling .map, which silently yields empty/misleading coverage.
+  // Forcing a fresh start guarantees the sourcemapped build:coverage runs.
+  reuseExistingServer: !process.env.CI && !isCoverageRun,
   cwd: path.resolve(__dirname, "../../apps/e2e-app-vite"),
   timeout: 60_000,
 };
@@ -65,7 +68,7 @@ const viteWebServer = {
 const nextWebServer = {
   command: "pnpm dev",
   url: NEXT_URL,
-  reuseExistingServer: !process.env.CI,
+  reuseExistingServer: !process.env.CI && !isCoverageRun,
   cwd: path.resolve(__dirname, "../../apps/e2e-app-next"),
   timeout: 120_000,
 };
