@@ -276,9 +276,7 @@ test.describe("Selection Bounds and Mutations", () => {
   }) => {
     // Open a Radix-style modal that sets `body { pointer-events: none }`.
     await page.locator("[data-testid='pe-modal-trigger']").click();
-    await expect
-      .poll(() => page.evaluate(() => document.body.style.pointerEvents))
-      .toBe("none");
+    await expect.poll(() => page.evaluate(() => document.body.style.pointerEvents)).toBe("none");
 
     await reactGrab.activate();
     // The hit-test override must see through the page's pointer-events:none so an

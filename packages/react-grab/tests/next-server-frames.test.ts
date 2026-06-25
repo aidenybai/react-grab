@@ -98,7 +98,9 @@ describe("symbolicateServerFrames", () => {
 
   it("returns the original frames when the endpoint responds with an error", async () => {
     globalThis.fetch = (() =>
-      Promise.resolve(new Response("error", { status: 500 }))) as FetchStub as typeof globalThis.fetch;
+      Promise.resolve(
+        new Response("error", { status: 500 }),
+      )) as FetchStub as typeof globalThis.fetch;
 
     const frames = [makeServerFrame()];
     expect(await symbolicateServerFrames(frames)).toEqual(frames);
@@ -108,7 +110,12 @@ describe("symbolicateServerFrames", () => {
 interface CapturedRequest {
   url: string;
   body: {
-    frames: Array<{ file: string; methodName: string; line1: number | null; column1: number | null }>;
+    frames: Array<{
+      file: string;
+      methodName: string;
+      line1: number | null;
+      column1: number | null;
+    }>;
     isServer: boolean;
     isEdgeServer: boolean;
     isAppDirectory: boolean;
@@ -140,12 +147,9 @@ const fulfilled = (file: string, line1: number, column1: number, ignored = false
 describe("symbolicateServerFrames — success path", () => {
   it("requests only the server frames, devirtualized, with the Next app-dir flags", async () => {
     let captured: CapturedRequest | undefined;
-    globalThis.fetch = respondWith(
-      [fulfilled("app/page.tsx", 12, 3)],
-      (request) => {
-        captured = request;
-      },
-    );
+    globalThis.fetch = respondWith([fulfilled("app/page.tsx", 12, 3)], (request) => {
+      captured = request;
+    });
 
     const frames = [makeClientFrame(), makeServerFrame()];
     await symbolicateServerFrames(frames);
@@ -167,10 +171,7 @@ describe("symbolicateServerFrames — success path", () => {
     const frames = [clientA, serverB, clientC, serverD];
 
     // Results are indexed by server-frame order: [serverB, serverD].
-    globalThis.fetch = respondWith([
-      fulfilled("app/b.tsx", 11, 1),
-      fulfilled("app/d.tsx", 33, 3),
-    ]);
+    globalThis.fetch = respondWith([fulfilled("app/b.tsx", 11, 1), fulfilled("app/d.tsx", 33, 3)]);
 
     const result = await symbolicateServerFrames(frames);
 
@@ -227,7 +228,10 @@ describe("symbolicateServerFrames — success path", () => {
     globalThis.fetch = respondWith([
       { status: "rejected", reason: "boom" },
       fulfilled("app/ignored.tsx", 1, 1, true),
-      { status: "fulfilled", value: { originalStackFrame: { file: null, line1: 1, column1: 1, ignored: false } } },
+      {
+        status: "fulfilled",
+        value: { originalStackFrame: { file: null, line1: 1, column1: 1, ignored: false } },
+      },
       fulfilled("app/ok.tsx", 9, 9),
     ]);
 

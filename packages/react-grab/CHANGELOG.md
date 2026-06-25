@@ -7,7 +7,6 @@
 - 5407d4e: Surface deeper copy context for wrapper-heavy elements. App-owned shared-UI / design-system frames (files under `components/ui/`, `packages/ui/`, `design-system(s)/`, or `primitives/`, e.g. shadcn's `components/ui` or a monorepo `packages/ui`) are now treated like `node_modules` frames: still shown, but exempt from the compact line budget, so a grabbed wrapper digs through its UI primitives to the meaningful feature source by default. Adds a `maxContextLines` option (also settable via the script `data-options` attribute) to raise the budget further for large apps and agent/edit prompts — restoring the option the CLI already writes.
 
   Also hardens the trace: a non-finite/negative `maxContextLines` no longer disables the hard line cap (it falls back to the default), and consecutive duplicate trace lines from shared-UI frames are collapsed so the output stays readable.
-
   - @react-grab/cli@0.1.47
 
 ## 0.1.46
@@ -15,7 +14,6 @@
 ### Patch Changes
 
 - b85b9b1: Make app theme detection (which drives the overlay's inverted theme) more robust:
-
   - Read background luminance through the existing `parseAnyColor` helper so pages whose background is authored with `oklch()` (e.g. Tailwind v4) are no longer mis-detected. Browsers serialize these computed colors in their own color space rather than `rgb()`, so the previous `rgb()`-only luminance heuristic silently failed and fell back to `prefers-color-scheme` — a forced-light page then looked dark to dark-OS visitors.
   - Treat a dual `color-scheme` (`light dark` / `dark light`) as "decided by the OS preference / actual paint" instead of blindly trusting the first listed token, which mis-detected dark-OS visitors on sites that opt into both schemes.
   - Inspect `<body>` in addition to `<html>` for theme markers (class, `data-theme`/`data-bs-theme`/etc., and presence attributes) so apps that theme the body are detected.
