@@ -38,13 +38,32 @@ const relativeLuminance = (red: number, green: number, blue: number): number => 
 // canvas, plus oklch via exact math) to a hex string, which `parseHexChannels`
 // turns into channels - covering modern computed values like `oklch(...)` that a
 // naive `rgb()` parse would miss.
-const themeFromElementBackground = (element: HTMLElement): AppTheme | null => {
-  const hex = parseAnyColor(getComputedStyle(element).backgroundColor);
+const themeFromColor = (color: string): AppTheme | null => {
+  const hex = parseAnyColor(color);
   const channels = hex ? parseHexChannels(hex) : null;
-  // A transparent background tells us nothing about the rendered theme.
+  // A fully transparent color tells us nothing about the rendered theme.
   if (!channels || channels.alpha === 0) return null;
   const luminance = relativeLuminance(channels.red, channels.green, channels.blue);
   return luminance < LUMINANCE_DARK_THRESHOLD ? "dark" : "light";
+};
+
+const themeFromElementBackground = (element: HTMLElement): AppTheme | null =>
+  themeFromColor(getComputedStyle(element).backgroundColor);
+
+// When nothing on the page is painted, the visible backdrop is the UA canvas,
+// whose color is exposed on no element. The `Canvas` system color resolves to
+// exactly that, honoring the root element's used `color-scheme` (so it tracks
+// the OS preference only when the page opted into a dark-capable scheme, and
+// stays light under the default `normal`). A throwaway probe attached under
+// <html> inherits the root scheme - deliberately not <body>, whose scheme does
+// not drive the canvas - and reads the precise color the browser paints.
+const themeFromCanvasBackdrop = (): AppTheme | null => {
+  const probe = document.createElement("div");
+  probe.style.cssText = "position:fixed;width:0;height:0;background-color:Canvas";
+  document.documentElement.appendChild(probe);
+  const theme = themeFromColor(getComputedStyle(probe).backgroundColor);
+  probe.remove();
+  return theme;
 };
 
 const themeFromAttributeValue = (attributeValue: string): AppTheme | null => {
@@ -69,13 +88,6 @@ const themeFromColorSchemeOf = (element: HTMLElement): AppTheme | null => {
   if (allowsDark === allowsLight) return null;
   return allowsDark ? "dark" : "light";
 };
-
-// The UA only paints a dark default canvas (and lets `prefers-color-scheme`
-// drive the rendered theme) when the root element opts into a `color-scheme`
-// listing `dark` - typically `light dark`. A scheme declared on <body> does not
-// affect the canvas, so only <html> is inspected.
-const rootColorSchemeFollowsOs = (): boolean =>
-  getColorSchemeTokens(document.documentElement).includes("dark");
 
 // Most frameworks mark the theme on <html> (Tailwind, next-themes), but some
 // put it on <body> (a few Bootstrap/MUI setups and hand-rolled apps), so both
@@ -117,17 +129,15 @@ const detectTheme = (): AppTheme => {
   const rootFirst = [document.documentElement, document.body] as const;
   const bodyFirst = [document.body, document.documentElement] as const;
 
-  const explicit =
+  // With nothing explicit and nothing painted, the `Canvas` backdrop is the
+  // rendered truth; `light` is only a last resort if it cannot be read.
+  return (
     firstThemeFromRoots(rootFirst, themeFromElementMarkers) ??
     firstThemeFromRoots(rootFirst, themeFromColorSchemeOf) ??
-    firstThemeFromRoots(bodyFirst, themeFromElementBackground);
-  if (explicit) return explicit;
-
-  // No theme marker, no single-value `color-scheme`, and no painted background.
-  // The OS preference only governs the rendered canvas when the root element
-  // opted into a scheme that includes `dark`; otherwise the canvas is light.
-  if (!rootColorSchemeFollowsOs()) return "light";
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    firstThemeFromRoots(bodyFirst, themeFromElementBackground) ??
+    themeFromCanvasBackdrop() ??
+    "light"
+  );
 };
 
 const invertTheme = (theme: AppTheme): AppTheme => (theme === "dark" ? "light" : "dark");
