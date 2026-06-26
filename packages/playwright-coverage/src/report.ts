@@ -68,7 +68,8 @@ const urlToLocalPath = (url: string): string | null => {
     // (`/@fs/Users/x` -> `/Users/x`), not a relative one.
     if (fsIndex !== -1) return decodeURIComponent(pathname.slice(fsIndex + fsMarker.length));
   } catch {
-    return null;
+    // `url` is a bare filesystem path, not a parseable URL; fall through to the
+    // absolute-path check below rather than dropping the entry.
   }
   if (isAbsolute(url) && existsSync(url)) return url;
   return null;

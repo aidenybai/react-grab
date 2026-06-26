@@ -11,25 +11,33 @@ import {
 // so the report reflects whatever tests actually drove a page. Only wired in
 // when COVERAGE is set, so a normal run never touches it.
 const globalTeardown = async (): Promise<void> => {
-  const summary = await generateCoverageReport({
-    rawDir: COVERAGE_RAW_DIR,
-    outputDir: COVERAGE_OUTPUT_DIR,
-    baseDir: REPO_ROOT,
-    name: "react-grab coverage",
-    sourceFilter: isReactGrabSource,
-  });
+  // Best-effort: a report-generation failure (e.g. the lazy monocart import)
+  // must never fail an otherwise-green suite, mirroring the capture fixture.
+  try {
+    const summary = await generateCoverageReport({
+      rawDir: COVERAGE_RAW_DIR,
+      outputDir: COVERAGE_OUTPUT_DIR,
+      baseDir: REPO_ROOT,
+      name: "react-grab coverage",
+      sourceFilter: isReactGrabSource,
+    });
 
-  if (!summary) {
-    console.warn("No V8 coverage captured (Chromium-only; check that tests ran and drove a page).");
-    return;
+    if (!summary) {
+      console.warn(
+        "No V8 coverage captured (Chromium-only; check that tests ran and drove a page).",
+      );
+      return;
+    }
+
+    console.log(
+      `\nreact-grab line coverage: ${summary.pctLines.toFixed(2)}% (${summary.coveredLines}/${summary.totalLines} lines across ${summary.fileCount} files)`,
+    );
+    console.log(
+      `Reports written to ${relative(process.cwd(), COVERAGE_OUTPUT_DIR) || COVERAGE_OUTPUT_DIR}`,
+    );
+  } catch (error) {
+    console.warn("Failed to generate coverage report:", error);
   }
-
-  console.log(
-    `\nreact-grab line coverage: ${summary.pctLines.toFixed(2)}% (${summary.coveredLines}/${summary.totalLines} lines across ${summary.fileCount} files)`,
-  );
-  console.log(
-    `Reports written to ${relative(process.cwd(), COVERAGE_OUTPUT_DIR) || COVERAGE_OUTPUT_DIR}`,
-  );
 };
 
 export default globalTeardown;
