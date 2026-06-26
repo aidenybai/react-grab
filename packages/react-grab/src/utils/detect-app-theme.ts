@@ -77,6 +77,16 @@ const themeFromColorSchemeOf = (element: HTMLElement): AppTheme | null => {
   return colorSchemeValue ? themeFromColorScheme(colorSchemeValue) : null;
 };
 
+// The UA only paints a dark default canvas (and lets `prefers-color-scheme`
+// drive the rendered theme) when the page opts in with a `color-scheme` that
+// lists `dark` - typically `light dark`. With the default `normal` scheme the
+// canvas stays light no matter the OS preference, so a transparent page must
+// NOT be classified by `prefers-color-scheme` in that case.
+const pageColorSchemeFollowsOs = (element: HTMLElement): boolean => {
+  const colorSchemeValue = element.style.colorScheme || getComputedStyle(element).colorScheme;
+  return colorSchemeValue ? colorSchemeValue.toLowerCase().split(/\s+/).includes("dark") : false;
+};
+
 // Most frameworks mark the theme on <html> (Tailwind, next-themes), but some
 // put it on <body> (a few Bootstrap/MUI setups and hand-rolled apps), so both
 // roots are inspected.
@@ -117,12 +127,18 @@ const detectTheme = (): AppTheme => {
   const rootFirst = [document.documentElement, document.body] as const;
   const bodyFirst = [document.body, document.documentElement] as const;
 
-  return (
+  const explicit =
     firstThemeFromRoots(rootFirst, themeFromElementMarkers) ??
     firstThemeFromRoots(rootFirst, themeFromColorSchemeOf) ??
-    firstThemeFromRoots(bodyFirst, themeFromElementBackground) ??
-    (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
-  );
+    firstThemeFromRoots(bodyFirst, themeFromElementBackground);
+  if (explicit) return explicit;
+
+  // No theme marker, no single-value `color-scheme`, and no painted background.
+  // The OS preference only governs the rendered canvas when the page opted into
+  // a scheme that includes `dark`; otherwise the canvas is light.
+  const followsOs = rootFirst.some(pageColorSchemeFollowsOs);
+  if (!followsOs) return "light";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 };
 
 const invertTheme = (theme: AppTheme): AppTheme => (theme === "dark" ? "light" : "dark");

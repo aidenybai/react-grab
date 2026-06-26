@@ -110,6 +110,28 @@ test.describe("App Theme Detection", () => {
     );
   });
 
+  // A page with no theme marker, no painted background, and the default
+  // `color-scheme: normal` renders a white UA canvas regardless of the OS
+  // preference - the browser only paints a dark canvas when the page opts into a
+  // scheme that lists `dark`. Such a page must be treated as light, not
+  // misclassified by `prefers-color-scheme`.
+  test("treats an undeclared transparent page as light under a dark OS preference", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.page.emulateMedia({ colorScheme: "dark" });
+    await reactGrab.page.evaluate(() => {
+      document.documentElement.classList.remove("dark", "light");
+      document.documentElement.style.colorScheme = "";
+      document.body.style.colorScheme = "";
+      document.documentElement.style.backgroundColor = "";
+      document.body.style.backgroundColor = "";
+    });
+
+    expect(await waitForOverlayTheme(reactGrab, OVERLAY_THEME_ON_LIGHT_APP)).toBe(
+      OVERLAY_THEME_ON_LIGHT_APP,
+    );
+  });
+
   // Some apps (and a few Bootstrap/MUI setups) mark the theme on <body> rather
   // than <html>; the previous detector only inspected the document element.
   test("honors a theme marker set on the body element", async ({ reactGrab }) => {
