@@ -81,9 +81,12 @@ const themeFromColorSchemeOf = (element: HTMLElement): AppTheme | null => {
 // drive the rendered theme) when the page opts in with a `color-scheme` that
 // lists `dark` - typically `light dark`. With the default `normal` scheme the
 // canvas stays light no matter the OS preference, so a transparent page must
-// NOT be classified by `prefers-color-scheme` in that case.
-const pageColorSchemeFollowsOs = (element: HTMLElement): boolean => {
-  const colorSchemeValue = element.style.colorScheme || getComputedStyle(element).colorScheme;
+// NOT be classified by `prefers-color-scheme` in that case. Only the root
+// element's `color-scheme` governs the canvas backdrop - a scheme declared on
+// <body> does not - so this is inspected on <html> alone.
+const rootColorSchemeFollowsOs = (): boolean => {
+  const root = document.documentElement;
+  const colorSchemeValue = root.style.colorScheme || getComputedStyle(root).colorScheme;
   return colorSchemeValue ? colorSchemeValue.toLowerCase().split(/\s+/).includes("dark") : false;
 };
 
@@ -134,10 +137,9 @@ const detectTheme = (): AppTheme => {
   if (explicit) return explicit;
 
   // No theme marker, no single-value `color-scheme`, and no painted background.
-  // The OS preference only governs the rendered canvas when the page opted into
-  // a scheme that includes `dark`; otherwise the canvas is light.
-  const followsOs = rootFirst.some(pageColorSchemeFollowsOs);
-  if (!followsOs) return "light";
+  // The OS preference only governs the rendered canvas when the root element
+  // opted into a scheme that includes `dark`; otherwise the canvas is light.
+  if (!rootColorSchemeFollowsOs()) return "light";
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 };
 

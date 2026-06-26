@@ -132,6 +132,26 @@ test.describe("App Theme Detection", () => {
     );
   });
 
+  // Only the root element's `color-scheme` governs the UA canvas backdrop, so a
+  // dual scheme declared on <body> (with <html> left `normal`) does NOT make the
+  // canvas follow the OS - it stays light. The OS preference must be ignored here.
+  test("ignores a dual color-scheme on body when the root element stays normal", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.page.emulateMedia({ colorScheme: "dark" });
+    await reactGrab.page.evaluate(() => {
+      document.documentElement.classList.remove("dark", "light");
+      document.documentElement.style.colorScheme = "";
+      document.documentElement.style.backgroundColor = "";
+      document.body.style.backgroundColor = "";
+      document.body.style.colorScheme = "light dark";
+    });
+
+    expect(await waitForOverlayTheme(reactGrab, OVERLAY_THEME_ON_LIGHT_APP)).toBe(
+      OVERLAY_THEME_ON_LIGHT_APP,
+    );
+  });
+
   // Some apps (and a few Bootstrap/MUI setups) mark the theme on <body> rather
   // than <html>; the previous detector only inspected the document element.
   test("honors a theme marker set on the body element", async ({ reactGrab }) => {
