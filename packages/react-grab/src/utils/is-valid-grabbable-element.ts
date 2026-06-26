@@ -1,13 +1,13 @@
 import {
   DEV_TOOLS_OVERLAY_Z_INDEX_THRESHOLD,
   OVERLAY_Z_INDEX_THRESHOLD,
+  REACT_GRAB_ATTRIBUTE_NAME,
   USER_IGNORE_ATTRIBUTE,
   VIEWPORT_COVERAGE_THRESHOLD,
   VISIBILITY_CACHE_TTL_MS,
 } from "../constants.js";
 import { isElementVisible } from "./is-element-visible.js";
 import { isRootElement } from "./is-root-element.js";
-import { REACT_GRAB_ATTRIBUTE_NAME } from "./react-grab-attribute-name.js";
 
 const isReactGrabElement = (element: Element): boolean => {
   if (element.hasAttribute(REACT_GRAB_ATTRIBUTE_NAME)) return true;

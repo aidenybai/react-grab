@@ -1,7 +1,10 @@
-import { MOUNT_ROOT_RECHECK_DELAY_MS, Z_INDEX_OVERLAY } from "../constants.js";
+import {
+  MOUNT_ROOT_RECHECK_DELAY_MS,
+  REACT_GRAB_ATTRIBUTE_NAME,
+  Z_INDEX_OVERLAY,
+} from "../constants.js";
 import { detectCspNonce } from "./detect-csp-nonce.js";
 import { hideFromThirdParties } from "./hide-from-third-parties.js";
-import { REACT_GRAB_ATTRIBUTE_NAME } from "./react-grab-attribute-name.js";
 
 const FONT_IMPORT =
   '@import url("https://fonts.googleapis.com/css2?family=Geist:wght@500&display=swap");';

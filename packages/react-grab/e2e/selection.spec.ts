@@ -1,4 +1,5 @@
 import { test, expect } from "./fixtures.js";
+import { ATTRIBUTE_NAME } from "./constants.js";
 
 test.describe("Element Selection", () => {
   test("should show selection box when hovering over element while active", async ({
@@ -8,13 +9,13 @@ test.describe("Element Selection", () => {
     await reactGrab.hoverElement("li");
     await reactGrab.waitForSelectionBox();
 
-    const hasSelectionContent = await reactGrab.page.evaluate(() => {
-      const host = document.querySelector("[data-react-grab]");
+    const hasSelectionContent = await reactGrab.page.evaluate((attrName) => {
+      const host = document.querySelector(`[${attrName}]`);
       const shadowRoot = host?.shadowRoot;
       if (!shadowRoot) return false;
-      const root = shadowRoot.querySelector("[data-react-grab]");
+      const root = shadowRoot.querySelector(`[${attrName}]`);
       return root !== null && root.innerHTML.length > 0;
-    });
+    }, ATTRIBUTE_NAME);
 
     expect(hasSelectionContent).toBe(true);
   });
