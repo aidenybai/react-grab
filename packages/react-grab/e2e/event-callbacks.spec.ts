@@ -87,8 +87,7 @@ test.describe("Event Callbacks", () => {
 
     test("onElementSelect should fire when element is clicked", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
       await reactGrab.clearCallbackHistory();
 
       await reactGrab.clickElement("li:first-child");
@@ -177,8 +176,7 @@ test.describe("Event Callbacks", () => {
   test.describe("Copy Callbacks", () => {
     test("onBeforeCopy should fire before clipboard write", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("h1");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("h1");
       await reactGrab.clearCallbackHistory();
 
       await reactGrab.clickElement("h1");
@@ -192,8 +190,7 @@ test.describe("Event Callbacks", () => {
 
     test("onAfterCopy should fire after clipboard write", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
       await reactGrab.clearCallbackHistory();
 
       await reactGrab.clickElement("li:first-child");
@@ -207,8 +204,7 @@ test.describe("Event Callbacks", () => {
 
     test("onCopySuccess should fire with content on successful copy", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("h1");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("h1");
       await reactGrab.clearCallbackHistory();
 
       await reactGrab.clickElement("h1");
@@ -222,8 +218,7 @@ test.describe("Event Callbacks", () => {
 
     test("copy callbacks should fire in correct order", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
       await reactGrab.clearCallbackHistory();
 
       await reactGrab.clickElement("li:first-child");
@@ -291,8 +286,7 @@ test.describe("Event Callbacks", () => {
       await reactGrab.activate();
       await reactGrab.clearCallbackHistory();
 
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
       await reactGrab.page.waitForTimeout(100);
 
       const history = await reactGrab.getCallbackHistory();
@@ -323,8 +317,7 @@ test.describe("Event Callbacks", () => {
 
     test("onGrabbedBox should fire when element is grabbed", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
       await reactGrab.clearCallbackHistory();
 
       await reactGrab.clickElement("li:first-child");
@@ -340,8 +333,7 @@ test.describe("Event Callbacks", () => {
   test.describe("Context Menu Callback", () => {
     test("onContextMenu should fire on right-click", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
       await reactGrab.clearCallbackHistory();
 
       await reactGrab.rightClickElement("li:first-child");
@@ -383,8 +375,7 @@ test.describe("Event Callbacks", () => {
       await reactGrab.clearCallbackHistory();
 
       await reactGrab.activate();
-      await reactGrab.hoverElement("h1");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("h1");
       await reactGrab.clickElement("h1");
       await reactGrab.page.waitForTimeout(500);
 

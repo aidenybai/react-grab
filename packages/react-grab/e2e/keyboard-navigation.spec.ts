@@ -52,8 +52,7 @@ const getSelectionDiscardPromptState = async (
 test.describe("Keyboard Navigation", () => {
   test("should navigate to next element with ArrowDown", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("li:first-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("li:first-child");
 
     await reactGrab.page.keyboard.press("ArrowDown");
     await reactGrab.waitForSelectionBox();
@@ -64,8 +63,7 @@ test.describe("Keyboard Navigation", () => {
 
   test("should navigate to previous element with ArrowUp", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("li:nth-child(3)");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("li:nth-child(3)");
 
     await reactGrab.page.keyboard.press("ArrowUp");
     await reactGrab.waitForSelectionBox();
@@ -76,8 +74,7 @@ test.describe("Keyboard Navigation", () => {
 
   test("should navigate to parent element with ArrowLeft", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("li:first-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("li:first-child");
 
     await reactGrab.page.keyboard.press("ArrowLeft");
     await reactGrab.waitForSelectionBox();
@@ -88,8 +85,7 @@ test.describe("Keyboard Navigation", () => {
 
   test("should navigate to child element with ArrowRight", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("ul");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("ul");
 
     await reactGrab.page.keyboard.press("ArrowRight");
     await reactGrab.waitForSelectionBox();
@@ -100,8 +96,7 @@ test.describe("Keyboard Navigation", () => {
 
   test("should maintain activation during keyboard navigation", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("li:first-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("li:first-child");
 
     await reactGrab.page.keyboard.press("ArrowDown");
     await reactGrab.page.keyboard.press("ArrowDown");
@@ -115,8 +110,7 @@ test.describe("Keyboard Navigation", () => {
     reactGrab,
   }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:first-child");
 
     await reactGrab.page.keyboard.press("ArrowDown");
     await reactGrab.waitForSelectionBox();
@@ -137,8 +131,7 @@ test.describe("Keyboard Navigation", () => {
   }) => {
     await reactGrab.page.evaluate(() => navigator.clipboard.writeText(""));
     await reactGrab.activate();
-    await reactGrab.hoverElement("[data-testid='todo-list'] h1");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] h1");
 
     await reactGrab.page.keyboard.press("ArrowLeft");
     await reactGrab.waitForSelectionBox();
@@ -154,8 +147,7 @@ test.describe("Keyboard Navigation", () => {
     reactGrab,
   }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:first-child");
 
     const initialBounds = await reactGrab.getSelectionBoxBounds();
     expect(initialBounds).not.toBeNull();
@@ -179,8 +171,7 @@ test.describe("Keyboard Navigation", () => {
     reactGrab,
   }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:first-child");
 
     await reactGrab.page.keyboard.press("ArrowUp");
     await reactGrab.waitForSelectionBox();
@@ -197,8 +188,7 @@ test.describe("Keyboard Navigation", () => {
     reactGrab,
   }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("li:first-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("li:first-child");
 
     await reactGrab.page.keyboard.press("ArrowDown");
     await reactGrab.waitForSelectionBox();
@@ -221,8 +211,7 @@ test.describe("Keyboard Navigation", () => {
     reactGrab,
   }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("li:first-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("li:first-child");
 
     await reactGrab.page.keyboard.press("ArrowDown");
     await reactGrab.waitForSelectionBox();
@@ -260,8 +249,7 @@ test.describe("Keyboard Navigation", () => {
   }) => {
     await reactGrab.page.evaluate(() => navigator.clipboard.writeText(""));
     await reactGrab.activate();
-    await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:first-child");
 
     await reactGrab.page.keyboard.press("ArrowUp");
     await reactGrab.waitForSelectionBox();
@@ -280,8 +268,7 @@ test.describe("Keyboard Navigation", () => {
   test("Enter on the focused Yes button discards without copying", async ({ reactGrab }) => {
     await reactGrab.page.evaluate(() => navigator.clipboard.writeText(""));
     await reactGrab.activate();
-    await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:first-child");
 
     await reactGrab.page.keyboard.press("ArrowUp");
     await reactGrab.waitForSelectionBox();
@@ -327,8 +314,7 @@ test.describe("Navigation History and Wrapping", () => {
     scenario: ArrowUpBoundaryClickSelectionScenario,
   ) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("li:first-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("li:first-child");
 
     await reactGrab.page.evaluate(() => navigator.clipboard.writeText(""));
 
@@ -349,8 +335,7 @@ test.describe("Navigation History and Wrapping", () => {
 
   test("ArrowLeft should go back to previous element", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("li:first-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("li:first-child");
 
     await reactGrab.pressArrowDown();
     await reactGrab.pressArrowDown();
@@ -364,8 +349,7 @@ test.describe("Navigation History and Wrapping", () => {
 
   test("multiple ArrowDown should navigate through siblings", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("li:first-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("li:first-child");
 
     await reactGrab.pressArrowDown();
     await reactGrab.pressArrowDown();
@@ -378,8 +362,7 @@ test.describe("Navigation History and Wrapping", () => {
 
   test("ArrowUp at first sibling should stay on element", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("li:first-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("li:first-child");
 
     await reactGrab.pressArrowUp();
     await reactGrab.waitForSelectionBox();
@@ -416,8 +399,7 @@ test.describe("Navigation History and Wrapping", () => {
 
   test("ArrowDown at last sibling should stay on element", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("li:last-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("li:last-child");
 
     await reactGrab.pressArrowDown();
     await reactGrab.waitForSelectionBox();
@@ -428,8 +410,7 @@ test.describe("Navigation History and Wrapping", () => {
 
   test("navigation should work on deeply nested elements", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("[data-testid='deeply-nested-text']");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("[data-testid='deeply-nested-text']");
 
     await reactGrab.pressArrowLeft();
     await reactGrab.waitForSelectionBox();
@@ -440,8 +421,7 @@ test.describe("Navigation History and Wrapping", () => {
 
   test("keyboard navigation should update selection label", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("li:first-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("li:first-child");
 
     const labelBefore = await reactGrab.getSelectionLabelInfo();
 
@@ -458,8 +438,7 @@ test.describe("Navigation History and Wrapping", () => {
 test.describe("ArrowUp Vertical Traversal", () => {
   test("ArrowUp should reach parent element from child", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:first-child");
 
     const initialLabel = await reactGrab.getSelectionLabelInfo();
 
@@ -475,8 +454,7 @@ test.describe("ArrowUp Vertical Traversal", () => {
 
   test("repeated ArrowUp should not oscillate between elements", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:first-child");
 
     const visitedTags: string[] = [];
     for (let step = 0; step < 8; step++) {
@@ -501,8 +479,7 @@ test.describe("ArrowUp Vertical Traversal", () => {
 
   test("ArrowUp bounds should never shrink", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:first-child");
 
     let previousBounds = await reactGrab.getSelectionBoxBounds();
     expect(previousBounds).not.toBeNull();
@@ -528,8 +505,7 @@ test.describe("ArrowUp Vertical Traversal", () => {
 
   test("ArrowDown should reverse ArrowUp and maintain selection", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:first-child");
 
     await reactGrab.pressArrowUp();
     await reactGrab.waitForSelectionBox();

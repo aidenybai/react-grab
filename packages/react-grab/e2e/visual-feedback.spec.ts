@@ -4,8 +4,7 @@ test.describe("Visual Feedback", () => {
   test.describe("Selection Box", () => {
     test("selection box should match element bounds", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       const elementBounds = await reactGrab.getElementBounds("li:first-child");
       const selectionBounds = await reactGrab.getSelectionBoxBounds();
@@ -21,13 +20,11 @@ test.describe("Visual Feedback", () => {
     test("selection box should update when hovering different elements", async ({ reactGrab }) => {
       await reactGrab.activate();
 
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
       await reactGrab.page.waitForTimeout(100);
       const bounds1 = await reactGrab.getSelectionBoxBounds();
 
-      await reactGrab.hoverElement("h1");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("h1");
       await reactGrab.page.waitForTimeout(100);
       const bounds2 = await reactGrab.getSelectionBoxBounds();
 
@@ -38,8 +35,7 @@ test.describe("Visual Feedback", () => {
 
     test("selection box should track scrolling element", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       const boundsBefore = await reactGrab.getSelectionBoxBounds();
 
@@ -118,8 +114,7 @@ test.describe("Visual Feedback", () => {
   test.describe("Grabbed Box", () => {
     test("grabbed box should appear after element click", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       await reactGrab.clickElement("li:first-child");
       await reactGrab.page.waitForTimeout(200);
@@ -130,8 +125,7 @@ test.describe("Visual Feedback", () => {
 
     test("grabbed box should fade out after delay", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       await reactGrab.clickElement("li:first-child");
 
@@ -145,8 +139,7 @@ test.describe("Visual Feedback", () => {
   test.describe("Selection Label", () => {
     test("label should show tag name", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("h1");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("h1");
       await reactGrab.waitForSelectionLabel();
 
       const labelInfo = await reactGrab.getSelectionLabelInfo();
@@ -164,8 +157,7 @@ test.describe("Visual Feedback", () => {
 
     test("label should position below element by default", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("h1");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("h1");
 
       const elementBounds = await reactGrab.getElementBounds("h1");
       const labelInfo = await reactGrab.getSelectionLabelInfo();
@@ -176,8 +168,7 @@ test.describe("Visual Feedback", () => {
 
     test("label should be clamped to viewport", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("[data-testid='edge-bottom-left']");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("[data-testid='edge-bottom-left']");
       await reactGrab.waitForSelectionLabel();
 
       const labelInfo = await reactGrab.getSelectionLabelInfo();
@@ -186,8 +177,7 @@ test.describe("Visual Feedback", () => {
 
     test("label and arrow should stay within bounds at left edge", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("[data-testid='edge-top-left']");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("[data-testid='edge-top-left']");
       await reactGrab.waitForSelectionLabel();
 
       await expect(async () => {
@@ -207,8 +197,7 @@ test.describe("Visual Feedback", () => {
 
     test("label and arrow should stay within bounds at right edge", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("[data-testid='edge-top-right']");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("[data-testid='edge-top-right']");
       await reactGrab.waitForSelectionLabel();
 
       await expect(async () => {
@@ -228,8 +217,7 @@ test.describe("Visual Feedback", () => {
 
     test("label and arrow should stay within bounds at bottom-left edge", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("[data-testid='edge-bottom-left']");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("[data-testid='edge-bottom-left']");
       await reactGrab.waitForSelectionLabel();
 
       await expect(async () => {
@@ -251,8 +239,7 @@ test.describe("Visual Feedback", () => {
   test.describe("Status Transitions", () => {
     test("should show copying status during copy", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       await reactGrab.clickElement("li:first-child");
 
@@ -262,8 +249,7 @@ test.describe("Visual Feedback", () => {
 
     test("should transition to copied status after copy", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       await reactGrab.clickElement("li:first-child");
 
@@ -274,8 +260,7 @@ test.describe("Visual Feedback", () => {
   test.describe("Arrow Direction", () => {
     test("arrow should point down when label is below element", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("h1");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("h1");
 
       const labelInfo = await reactGrab.getSelectionLabelInfo();
       expect(labelInfo.isVisible).toBe(true);
@@ -284,8 +269,7 @@ test.describe("Visual Feedback", () => {
     test("arrow should adjust when near viewport bottom", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.scrollPage(500);
-      await reactGrab.hoverElement("[data-testid='footer']");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("[data-testid='footer']");
       await reactGrab.waitForSelectionLabel();
 
       const labelInfo = await reactGrab.getSelectionLabelInfo();
@@ -296,8 +280,7 @@ test.describe("Visual Feedback", () => {
   test.describe("Multiple Visual Elements", () => {
     test("selection box and label should be synchronized", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
       await reactGrab.waitForSelectionLabel();
 
       const selectionVisible = await reactGrab.isSelectionBoxVisible();
@@ -309,8 +292,7 @@ test.describe("Visual Feedback", () => {
 
     test("all visual elements should update on viewport change", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       await reactGrab.setViewportSize(1024, 768);
       await reactGrab.page.waitForTimeout(200);

@@ -32,8 +32,7 @@ test.describe("Toolbar Selection Hover", () => {
   test.describe("Selection Mode", () => {
     test("should hide selection box when hovering toolbar", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li");
 
       await expect.poll(() => reactGrab.isSelectionBoxVisible(), { timeout: 2000 }).toBe(true);
 
@@ -44,8 +43,7 @@ test.describe("Toolbar Selection Hover", () => {
 
     test("should hide selection label when hovering toolbar", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li");
 
       await expect.poll(() => reactGrab.isSelectionLabelVisible(), { timeout: 2000 }).toBe(true);
 
@@ -56,8 +54,7 @@ test.describe("Toolbar Selection Hover", () => {
 
     test("should restore selection after moving mouse back from toolbar", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li");
 
       await hoverToolbar(reactGrab.page);
 
@@ -74,8 +71,7 @@ test.describe("Toolbar Selection Hover", () => {
       reactGrab,
     }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li");
 
       await reactGrab.rightClickElement("li");
 
@@ -90,8 +86,7 @@ test.describe("Toolbar Selection Hover", () => {
       reactGrab,
     }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li");
 
       await reactGrab.rightClickElement("li");
 
@@ -108,8 +103,7 @@ test.describe("Toolbar Selection Hover", () => {
       reactGrab,
     }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li");
 
       await reactGrab.rightClickElement("li");
 

@@ -7,8 +7,7 @@ test.describe("Element Context Fallback", () => {
     }) => {
       await reactGrab.activate();
 
-      await reactGrab.hoverElement("[data-testid='todo-list'] h1");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("[data-testid='todo-list'] h1");
       await reactGrab.clickElement("[data-testid='todo-list'] h1");
 
       const clipboard = await reactGrab.getClipboardContent();
@@ -19,8 +18,7 @@ test.describe("Element Context Fallback", () => {
     test("should produce useful context for nested elements", async ({ reactGrab }) => {
       await reactGrab.activate();
 
-      await reactGrab.hoverElement("[data-testid='nested-button']");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("[data-testid='nested-button']");
       await reactGrab.clickElement("[data-testid='nested-button']");
 
       const clipboard = await reactGrab.getClipboardContent();
@@ -32,8 +30,7 @@ test.describe("Element Context Fallback", () => {
       await reactGrab.activate();
 
       const todoItem = "[data-testid='todo-list'] ul li:first-child span";
-      await reactGrab.hoverElement(todoItem);
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected(todoItem);
       await reactGrab.clickElement(todoItem);
 
       const clipboard = await reactGrab.getClipboardContent();
@@ -45,8 +42,7 @@ test.describe("Element Context Fallback", () => {
       await reactGrab.activate();
 
       const mappedItem = "[data-testid='dynamic-element-2']";
-      await reactGrab.hoverElement(mappedItem);
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected(mappedItem);
       await reactGrab.clickElement(mappedItem);
 
       const clipboard = await reactGrab.getClipboardContent();
@@ -59,8 +55,7 @@ test.describe("Element Context Fallback", () => {
       await reactGrab.activate();
 
       const todoItem = "[data-testid='todo-list'] ul li:nth-child(3) span";
-      await reactGrab.hoverElement(todoItem);
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected(todoItem);
       await reactGrab.clickElement(todoItem);
 
       const clipboard = await reactGrab.getClipboardContent();
@@ -73,8 +68,7 @@ test.describe("Element Context Fallback", () => {
       await reactGrab.activate();
 
       const cardBody = "[data-testid='mapped-card-bravo'] p";
-      await reactGrab.hoverElement(cardBody);
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected(cardBody);
       await reactGrab.clickElement(cardBody);
 
       const clipboard = await reactGrab.getClipboardContent();
@@ -107,8 +101,7 @@ test.describe("Element Context Fallback", () => {
 
       await reactGrab.activate();
 
-      await reactGrab.hoverElement("#plain-dom-element");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("#plain-dom-element");
       await reactGrab.clickElement("#plain-dom-element");
 
       const clipboard = await reactGrab.getClipboardContent();
@@ -138,8 +131,7 @@ test.describe("Element Context Fallback", () => {
 
       await reactGrab.activate();
 
-      await reactGrab.hoverElement("#test-svg-icon");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("#test-svg-icon");
       await reactGrab.clickElement("#test-svg-icon");
 
       const clipboard = await reactGrab.getClipboardContent();
@@ -171,8 +163,7 @@ test.describe("Element Context Fallback", () => {
 
       await reactGrab.activate();
 
-      await reactGrab.hoverElement("#long-dom-element");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("#long-dom-element");
       await reactGrab.clickElement("#long-dom-element");
 
       const clipboard = await reactGrab.getClipboardContent();

@@ -4,8 +4,7 @@ test.describe("Context Menu", () => {
   test.describe("Visibility", () => {
     test("should show context menu on right-click while active", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li");
       await reactGrab.rightClickElement("li");
 
       const isContextMenuVisible = await reactGrab.isContextMenuVisible();
@@ -24,8 +23,7 @@ test.describe("Context Menu", () => {
 
     test("should show context menu after keyboard activation", async ({ reactGrab }) => {
       await reactGrab.activateViaKeyboard();
-      await reactGrab.hoverElement("li");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li");
       await reactGrab.rightClickElement("li");
 
       const isContextMenuVisible = await reactGrab.isContextMenuVisible();
@@ -36,8 +34,7 @@ test.describe("Context Menu", () => {
       reactGrab,
     }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li");
 
       await reactGrab.page.keyboard.down(reactGrab.modifierKey);
       await reactGrab.page.keyboard.down("c");
@@ -54,8 +51,7 @@ test.describe("Context Menu", () => {
 
     test("should show context menu with Copy and Open items", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li");
       await reactGrab.rightClickElement("li");
 
       const isContextMenuVisible = await reactGrab.isContextMenuVisible();
@@ -72,8 +68,7 @@ test.describe("Context Menu", () => {
   test.describe("Menu Items", () => {
     test("should copy element when clicking Copy", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("[data-testid='todo-list'] h1");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("[data-testid='todo-list'] h1");
       await reactGrab.rightClickElement("[data-testid='todo-list'] h1");
       await reactGrab.clickContextMenuItem("Copy");
 
@@ -85,8 +80,7 @@ test.describe("Context Menu", () => {
 
     test("should copy list item content correctly", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
       await reactGrab.rightClickElement("li:first-child");
       await reactGrab.clickContextMenuItem("Copy");
 
@@ -98,8 +92,7 @@ test.describe("Context Menu", () => {
 
     test("should have Copy always enabled", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li");
       await reactGrab.rightClickElement("li");
 
       const isCopyEnabled = await reactGrab.isContextMenuItemEnabled("Copy");
@@ -110,8 +103,7 @@ test.describe("Context Menu", () => {
   test.describe("Dismissal", () => {
     test("should dismiss context menu on Escape", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li");
       await reactGrab.rightClickElement("li");
 
       const isVisibleBefore = await reactGrab.isContextMenuVisible();
@@ -124,8 +116,7 @@ test.describe("Context Menu", () => {
 
     test("should dismiss context menu when clicking outside", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li");
       await reactGrab.rightClickElement("li");
 
       const isVisibleBefore = await reactGrab.isContextMenuVisible();
@@ -138,8 +129,7 @@ test.describe("Context Menu", () => {
 
     test("should dismiss context menu after Copy action", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li");
       await reactGrab.rightClickElement("li");
 
       await reactGrab.clickContextMenuItem("Copy");
@@ -153,8 +143,7 @@ test.describe("Context Menu", () => {
   test.describe("Selection Freezing", () => {
     test("should freeze element selection while context menu is open", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("h1");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("h1");
       await reactGrab.rightClickElement("h1");
 
       const isContextMenuVisible = await reactGrab.isContextMenuVisible();
@@ -169,8 +158,7 @@ test.describe("Context Menu", () => {
 
     test("should maintain context menu while moving mouse", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("h1");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("h1");
       await reactGrab.rightClickElement("h1");
 
       await reactGrab.page.mouse.move(500, 500);
@@ -186,16 +174,14 @@ test.describe("Context Menu", () => {
       reactGrab,
     }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("h1");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("h1");
       await reactGrab.rightClickElement("h1");
       await reactGrab.clickContextMenuItem("Copy");
 
       await reactGrab.page.waitForTimeout(300);
 
       await reactGrab.activate();
-      await reactGrab.hoverElement("li");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li");
       await reactGrab.rightClickElement("li");
 
       const isContextMenuVisible = await reactGrab.isContextMenuVisible();
@@ -206,8 +192,7 @@ test.describe("Context Menu", () => {
       reactGrab,
     }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("h1");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("h1");
       await reactGrab.rightClickElement("h1");
 
       await reactGrab.page.mouse.click(10, 10);
@@ -229,8 +214,7 @@ test.describe("Context Menu", () => {
     test("should show context menu on different elements consecutively", async ({ reactGrab }) => {
       await reactGrab.activate();
 
-      await reactGrab.hoverElement("h1");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("h1");
       await reactGrab.rightClickElement("h1");
       const firstMenuVisible = await reactGrab.isContextMenuVisible();
       expect(firstMenuVisible).toBe(true);
@@ -239,8 +223,7 @@ test.describe("Context Menu", () => {
       await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
       await reactGrab.rightClickElement("li:first-child");
 
       const secondMenuVisible = await reactGrab.isContextMenuVisible();
@@ -252,8 +235,7 @@ test.describe("Context Menu", () => {
     }) => {
       await reactGrab.activate();
 
-      await reactGrab.hoverElement("h1");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("h1");
       await reactGrab.rightClickElement("h1");
       const firstMenuVisible = await reactGrab.isContextMenuVisible();
       expect(firstMenuVisible).toBe(true);
@@ -270,8 +252,7 @@ test.describe("Context Menu", () => {
   test.describe("Keyboard Navigation Integration", () => {
     test("should show context menu after keyboard navigation", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       await reactGrab.pressArrowDown();
       await reactGrab.waitForSelectionBox();
@@ -286,8 +267,7 @@ test.describe("Context Menu", () => {
       reactGrab,
     }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       await reactGrab.pressArrowDown();
       await reactGrab.page.waitForTimeout(100);
@@ -306,8 +286,7 @@ test.describe("Context Menu", () => {
   test.describe("Element-specific Behavior", () => {
     test("should show context menu for heading element", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("h1");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("h1");
       await reactGrab.rightClickElement("h1");
 
       const isContextMenuVisible = await reactGrab.isContextMenuVisible();
@@ -316,8 +295,7 @@ test.describe("Context Menu", () => {
 
     test("should show context menu for list element", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("ul");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("ul");
       await reactGrab.rightClickElement("ul");
 
       const isContextMenuVisible = await reactGrab.isContextMenuVisible();
@@ -326,8 +304,7 @@ test.describe("Context Menu", () => {
 
     test("should show context menu for list item element", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:nth-child(2)");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:nth-child(2)");
       await reactGrab.rightClickElement("li:nth-child(2)");
 
       const isContextMenuVisible = await reactGrab.isContextMenuVisible();
@@ -341,8 +318,7 @@ test.describe("Context Menu", () => {
       await reactGrab.scrollPage(100);
       await reactGrab.page.waitForTimeout(100);
 
-      await reactGrab.hoverElement("li");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li");
       await reactGrab.rightClickElement("li");
 
       const isContextMenuVisible = await reactGrab.isContextMenuVisible();
@@ -351,16 +327,14 @@ test.describe("Context Menu", () => {
 
     test("should allow reopening after dismiss and copy flow", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li");
       await reactGrab.rightClickElement("li");
       await reactGrab.clickContextMenuItem("Copy");
 
       await reactGrab.page.waitForTimeout(500);
 
       await reactGrab.activate();
-      await reactGrab.hoverElement("h1");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("h1");
       await reactGrab.rightClickElement("h1");
 
       const isContextMenuVisible = await reactGrab.isContextMenuVisible();
@@ -369,8 +343,7 @@ test.describe("Context Menu", () => {
 
     test("should copy different elements via context menu", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("[data-testid='todo-list'] h1");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("[data-testid='todo-list'] h1");
       await reactGrab.rightClickElement("[data-testid='todo-list'] h1");
       await reactGrab.clickContextMenuItem("Copy");
       await reactGrab.page.waitForTimeout(1600);
@@ -380,8 +353,7 @@ test.describe("Context Menu", () => {
 
       await reactGrab.activate();
       await reactGrab.page.waitForTimeout(100);
-      await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:first-child");
       await reactGrab.rightClickElement("[data-testid='todo-list'] li:first-child");
       await reactGrab.clickContextMenuItem("Copy");
       await reactGrab.page.waitForTimeout(500);
@@ -395,8 +367,7 @@ test.describe("Context Menu", () => {
   test.describe("Context Menu Positioning", () => {
     test("context menu should appear near click position", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:first-child");
       await reactGrab.rightClickElement("[data-testid='todo-list'] li:first-child");
       await reactGrab.page.waitForTimeout(200);
 
@@ -407,8 +378,7 @@ test.describe("Context Menu", () => {
 
     test("context menu should stay within viewport at bottom edge", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("[data-testid='edge-bottom-left']");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("[data-testid='edge-bottom-left']");
       await reactGrab.rightClickElement("[data-testid='edge-bottom-left']");
 
       const menuInfo = await reactGrab.getContextMenuInfo();
@@ -421,8 +391,7 @@ test.describe("Context Menu", () => {
 
     test("context menu should stay within viewport at right edge", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("[data-testid='edge-top-right']");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("[data-testid='edge-top-right']");
       await reactGrab.rightClickElement("[data-testid='edge-top-right']");
 
       const menuInfo = await reactGrab.getContextMenuInfo();
@@ -463,8 +432,7 @@ test.describe("Context Menu", () => {
       });
 
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
       await reactGrab.rightClickElement("li:first-child");
 
       const menuInfo = await reactGrab.getContextMenuInfo();
@@ -500,8 +468,7 @@ test.describe("Context Menu", () => {
       });
 
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
       await reactGrab.rightClickElement("li:first-child");
       await reactGrab.page.waitForTimeout(100);
 
@@ -539,8 +506,7 @@ test.describe("Context Menu", () => {
       });
 
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
       await reactGrab.rightClickElement("li:first-child");
 
       const menuInfo = await reactGrab.getContextMenuInfo();
@@ -586,8 +552,7 @@ test.describe("Context Menu", () => {
       });
 
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
       await reactGrab.rightClickElement("li:first-child");
 
       const menuInfo = await reactGrab.getContextMenuInfo();
@@ -624,8 +589,7 @@ test.describe("Context Menu", () => {
       });
 
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
       await reactGrab.rightClickElement("li:first-child");
       await reactGrab.page.waitForTimeout(100);
 
@@ -664,8 +628,7 @@ test.describe("Context Menu", () => {
       });
 
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
       await reactGrab.rightClickElement("li:first-child");
 
       const isDisabled = await reactGrab.page.evaluate((attrName) => {
@@ -709,8 +672,7 @@ test.describe("Context Menu", () => {
       });
 
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
       await reactGrab.rightClickElement("li:first-child");
 
       const enabledTagName = await reactGrab.page.evaluate(

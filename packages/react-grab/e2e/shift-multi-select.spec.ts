@@ -276,6 +276,9 @@ test.describe("Shift Multi-Select", () => {
     const secondLabelAnchorX =
       secondBox.x + secondBox.width * SHIFT_LABEL_SECOND_CLICK_ANCHOR_RATIO;
 
+    await reactGrab.page.mouse.move(firstLabelAnchorX, firstBox.y + firstBox.height / 2);
+    await reactGrab.waitForSelectionBox();
+
     await reactGrab.page.keyboard.up("Shift");
     await reactGrab.page.keyboard.down("Shift");
     await reactGrab.page.mouse.click(firstLabelAnchorX, firstBox.y + firstBox.height / 2);

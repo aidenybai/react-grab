@@ -255,8 +255,7 @@ test.describe("Malformed Events", () => {
       const errors = collectPageErrors(reactGrab.page);
 
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       await dispatchMalformedEvent(
         reactGrab.page,

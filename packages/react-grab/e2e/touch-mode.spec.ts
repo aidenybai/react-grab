@@ -65,8 +65,7 @@ test.describe("Touch Mode", () => {
     test("touch should select element", async ({ reactGrab }) => {
       await reactGrab.activate();
 
-      await reactGrab.hoverElement("[data-testid='todo-list'] h1");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("[data-testid='todo-list'] h1");
 
       const element = reactGrab.page.locator("[data-testid='todo-list'] h1");
       const box = await element.boundingBox();
@@ -164,8 +163,7 @@ test.describe("Touch Mode", () => {
     test("should handle switch from mouse to touch", async ({ reactGrab }) => {
       await reactGrab.activate();
 
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       await reactGrab.touchTap("li:nth-child(2)");
 
@@ -182,8 +180,7 @@ test.describe("Touch Mode", () => {
       await expect.poll(() => reactGrab.isOverlayVisible(), { timeout: 5000 }).toBe(false);
 
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:nth-child(3)");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:nth-child(3)");
       await reactGrab.clickElement("li:nth-child(3)");
 
       await expect.poll(() => reactGrab.getClipboardContent(), { timeout: 5000 }).toBeTruthy();

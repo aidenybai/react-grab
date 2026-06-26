@@ -4,6 +4,13 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// COVERAGE wires a sourcemapped/unminified build, the per-test V8 capture
+// fixture, and globalSetup/globalTeardown that clear the raw dir and write the
+// report. The coverage package (and its build) is only touched on these runs:
+// globalSetup/Teardown and the fixture all load it lazily, so normal and perf
+// runs never need @react-grab/playwright-coverage to be built.
+const isCoverageRun = Boolean(process.env.COVERAGE);
+
 const VITE_URL = "http://localhost:5175";
 const NEXT_URL = "http://localhost:5176";
 
@@ -17,7 +24,6 @@ const CROSS_FRAMEWORK_PATTERN = /\.both\.spec\.ts/;
 // stimulate the Vite app. Skip the Next dev server and project there so those
 // runs stay Vite-only and never block on a second dev server they don't use.
 const isPerfRun = Boolean(process.env.PERF_LABEL);
-const isCoverageRun = Boolean(process.env.COVERAGE);
 const shouldRunViteOnly = isPerfRun || isCoverageRun;
 
 const viteProjects: Project[] = [
@@ -39,13 +45,22 @@ const nextProject: Project = {
   testMatch: [NEXT_SPEC_PATTERN, CROSS_FRAMEWORK_PATTERN],
 };
 
+// Under COVERAGE the dist must carry source maps (and stay unminified) so V8
+// byte ranges remap cleanly back onto src/*.ts(x).
+const reactGrabBuildCommand = isCoverageRun
+  ? "pnpm --filter react-grab build:coverage"
+  : "pnpm --filter react-grab build";
+
 const viteWebServer = {
   // Builds react-grab so the dev server picks up whichever src is checked out
   // (the perf workflow swaps it to the base ref). react-grab's build does not
   // clean dist, so the Next server reading it concurrently is safe.
-  command: "pnpm --filter react-grab build && pnpm dev",
+  command: `${reactGrabBuildCommand} && pnpm dev`,
   url: VITE_URL,
-  reuseExistingServer: !process.env.CI,
+  // Under COVERAGE never reuse a running server: it may serve a minified dist
+  // with no sibling .map, which silently yields empty/misleading coverage.
+  // Forcing a fresh start guarantees the sourcemapped build:coverage runs.
+  reuseExistingServer: !process.env.CI && !isCoverageRun,
   cwd: path.resolve(__dirname, "../../apps/e2e-app-vite"),
   timeout: 60_000,
 };
@@ -53,7 +68,7 @@ const viteWebServer = {
 const nextWebServer = {
   command: "pnpm dev",
   url: NEXT_URL,
-  reuseExistingServer: !process.env.CI,
+  reuseExistingServer: !process.env.CI && !isCoverageRun,
   cwd: path.resolve(__dirname, "../../apps/e2e-app-next"),
   timeout: 120_000,
 };
@@ -70,6 +85,8 @@ export default defineConfig({
     trace: "on-first-retry",
     permissions: ["clipboard-read", "clipboard-write"],
   },
+  globalSetup: isCoverageRun ? path.resolve(__dirname, "e2e/coverage-setup.ts") : undefined,
+  globalTeardown: isCoverageRun ? path.resolve(__dirname, "e2e/coverage-teardown.ts") : undefined,
   projects: shouldRunViteOnly ? viteProjects : [...viteProjects, nextProject],
   webServer: shouldRunViteOnly ? [viteWebServer] : [viteWebServer, nextWebServer],
 });

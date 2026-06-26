@@ -100,8 +100,7 @@ test.describe("Toolbar Action Buttons", () => {
     test("context menu Comment marks only the Comment button as pressed", async ({ reactGrab }) => {
       await waitForToolbar(reactGrab);
       await reactGrab.activate();
-      await reactGrab.hoverElement(BUTTON_SELECTOR);
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected(BUTTON_SELECTOR);
       await reactGrab.rightClickElement(BUTTON_SELECTOR);
       await reactGrab.clickContextMenuItem("Comment");
 
@@ -116,8 +115,7 @@ test.describe("Toolbar Action Buttons", () => {
     test("Comment button selects an element into prompt mode", async ({ reactGrab }) => {
       await waitForToolbar(reactGrab);
       await reactGrab.clickToolbarAction("comment");
-      await reactGrab.hoverElement(LIST_ITEM_SELECTOR);
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected(LIST_ITEM_SELECTOR);
       await reactGrab.clickElement(LIST_ITEM_SELECTOR);
 
       await expect.poll(() => reactGrab.isPromptModeActive(), { timeout: 2000 }).toBe(true);
@@ -126,8 +124,7 @@ test.describe("Toolbar Action Buttons", () => {
     test("Style button selects an element into the style panel", async ({ reactGrab }) => {
       await waitForToolbar(reactGrab);
       await reactGrab.clickToolbarAction("edit");
-      await reactGrab.hoverElement(BUTTON_SELECTOR);
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected(BUTTON_SELECTOR);
       await reactGrab.clickElement(BUTTON_SELECTOR);
 
       await expect.poll(() => isEditPanelVisible(reactGrab.page), { timeout: 2000 }).toBe(true);
@@ -138,8 +135,7 @@ test.describe("Toolbar Action Buttons", () => {
     }) => {
       await waitForToolbar(reactGrab);
       await reactGrab.clickToolbarAction("comment");
-      await reactGrab.hoverElement(BUTTON_SELECTOR);
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected(BUTTON_SELECTOR);
       await reactGrab.clickElement(BUTTON_SELECTOR);
       await reactGrab.typeInInput("Discard this comment");
       await reactGrab.page.mouse.click(10, 10);
@@ -158,8 +154,7 @@ test.describe("Toolbar Action Buttons", () => {
     }) => {
       await waitForToolbar(reactGrab);
       await reactGrab.clickToolbarAction("comment");
-      await reactGrab.hoverElement(BUTTON_SELECTOR);
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected(BUTTON_SELECTOR);
       await reactGrab.clickElement(BUTTON_SELECTOR);
       await reactGrab.typeInInput("Discard this comment");
       await reactGrab.page.mouse.click(10, 10);
@@ -178,8 +173,7 @@ test.describe("Toolbar Action Buttons", () => {
     }) => {
       await waitForToolbar(reactGrab);
       await reactGrab.clickToolbarAction("edit");
-      await reactGrab.hoverElement(BUTTON_SELECTOR);
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected(BUTTON_SELECTOR);
       await reactGrab.rightClickElement(BUTTON_SELECTOR);
       await reactGrab.clickContextMenuItem("Comment");
       await reactGrab.typeInInput("Discard this context comment");
@@ -203,8 +197,7 @@ test.describe("Toolbar Action Buttons", () => {
         .toBe(true);
 
       await reactGrab.clickToolbarAction("edit");
-      await reactGrab.hoverElement(BUTTON_SELECTOR);
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected(BUTTON_SELECTOR);
       await reactGrab.clickElement(BUTTON_SELECTOR);
 
       await expect.poll(() => isEditPanelVisible(reactGrab.page), { timeout: 2000 }).toBe(true);
@@ -216,8 +209,7 @@ test.describe("Toolbar Action Buttons", () => {
     }) => {
       await waitForToolbar(reactGrab);
       await reactGrab.clickToolbarAction("comment");
-      await reactGrab.hoverElement(BUTTON_SELECTOR);
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected(BUTTON_SELECTOR);
 
       await reactGrab.page.keyboard.press("s");
 

@@ -66,8 +66,7 @@ test.describe("Style Panel", () => {
 
     test("context menu rows have no focus ring", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement(BUTTON_SELECTOR);
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected(BUTTON_SELECTOR);
       await reactGrab.rightClickElement(BUTTON_SELECTOR);
       const focusVisualStates = await getOverlayFocusVisualStates(
         reactGrab.page,
@@ -117,8 +116,7 @@ test.describe("Style Panel", () => {
 
     test("S opens Style from the context menu", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement(BUTTON_SELECTOR);
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected(BUTTON_SELECTOR);
       await reactGrab.rightClickElement(BUTTON_SELECTOR);
 
       await reactGrab.page.keyboard.press("s");
@@ -127,8 +125,7 @@ test.describe("Style Panel", () => {
 
     test("Enter triggers Comment from the context menu", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement(BUTTON_SELECTOR);
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected(BUTTON_SELECTOR);
       await reactGrab.rightClickElement(BUTTON_SELECTOR);
 
       await reactGrab.page.keyboard.press("Enter");
@@ -1099,8 +1096,7 @@ test.describe("Style Panel", () => {
 
     test("type-to-edit: hover + type m then t → margin-top focused", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement(BUTTON_SELECTOR);
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected(BUTTON_SELECTOR);
       await reactGrab.page.keyboard.type("mt", { delay: 50 });
       await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(true);
       await reactGrab.page.waitForTimeout(80);
@@ -1122,8 +1118,7 @@ test.describe("Style Panel", () => {
       reactGrab,
     }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement(BUTTON_SELECTOR);
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected(BUTTON_SELECTOR);
       await reactGrab.page.keyboard.type("mt-", { delay: 50 });
       await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(true);
       await reactGrab.page.waitForTimeout(80);
@@ -1718,8 +1713,7 @@ test.describe("Style Panel", () => {
       });
       await reactGrab.registerCommentAction();
       await reactGrab.activate();
-      await reactGrab.hoverElement(BUTTON_SELECTOR);
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected(BUTTON_SELECTOR);
       await reactGrab.rightClickElement(BUTTON_SELECTOR);
       await reactGrab.clickContextMenuItem("Comment");
       await expect.poll(() => reactGrab.isPromptModeActive()).toBe(true);
