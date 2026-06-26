@@ -2155,11 +2155,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       });
     };
 
-    const tryHandleArrowNavigation = (event: KeyboardEvent): boolean => {
+    const tryHandleArrowNavigation = (
+      event: KeyboardEvent,
+      options: { allowPendingKeyboardSelection?: boolean } = {},
+    ): boolean => {
       if (!isActivated()) return false;
       if (isPromptMode()) return false;
       if (isShiftMultiSelecting()) return false;
-      if (keyboardSelection.isPendingDismiss()) return false;
+      if (keyboardSelection.isPendingDismiss() && !options.allowPendingKeyboardSelection)
+        return false;
       if (!ARROW_KEYS.has(event.key)) return false;
       if (isAnyPopoverOpen()) return false;
 
@@ -2175,9 +2179,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const isVertical = event.key === "ArrowUp" || event.key === "ArrowDown";
 
       if (!isVertical) {
-        clearArrowNavigation();
         const nextElement = arrowNavigator.findNext(event.key, currentElement);
         if (!nextElement && !isInitialSelection) return false;
+        clearArrowNavigation();
         event.preventDefault();
         event.stopPropagation();
         selectAndFocusElement(nextElement ?? currentElement, true);
@@ -2214,6 +2218,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isSelectionInteractionLocked()) return null;
       if (isAnyPopoverOpen()) return null;
       return store.frozenElement || targetElement();
+    };
+
+    const getBareKeyShortcut = (event: KeyboardEvent) => {
+      const element = canDispatchBareKey(event);
+      if (!element) return null;
+
+      const action = findShortcutAction(pluginRegistry.store.actions, event);
+      if (!action) return null;
+
+      return { element, action };
     };
 
     const buildImmediateActionContext = (
@@ -2256,11 +2270,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const tryHandleBareKeyShortcut = (event: KeyboardEvent): boolean => {
-      const element = canDispatchBareKey(event);
-      if (!element) return false;
-
-      const action = findShortcutAction(pluginRegistry.store.actions, event);
-      if (!action) return false;
+      const shortcut = getBareKeyShortcut(event);
+      if (!shortcut) return false;
+      const { element, action } = shortcut;
 
       if (isPromptMode()) {
         if (!runActionForCurrentSelection(action.id)) return false;
@@ -2429,19 +2441,37 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
+    const isKeyboardSelectionPromptButtonEnter = (event: KeyboardEvent): boolean => {
+      if (!isEnterCode(event.code)) return false;
+      const target = event.composedPath()[0];
+      const targetElement = target instanceof HTMLElement ? target : null;
+      return Boolean(
+        targetElement?.closest("[data-react-grab-discard-copy]") ||
+          targetElement?.closest("[data-react-grab-discard-yes]"),
+      );
+    };
+
+    const tryHandleKeyboardSelectionPromptPassThrough = (event: KeyboardEvent): boolean => {
+      if (!keyboardSelection.isPendingDismiss()) return false;
+      if (isKeyboardSelectionPromptButtonEnter(event)) return true;
+
+      const shouldHandleArrow = ARROW_KEYS.has(event.key);
+      const shouldHandleBareShortcut = getBareKeyShortcut(event) !== null;
+      if (!shouldHandleArrow && !shouldHandleBareShortcut) return false;
+
+      if (shouldHandleArrow) {
+        return tryHandleArrowNavigation(event, { allowPendingKeyboardSelection: true });
+      }
+
+      if (!tryHandleBareKeyShortcut(event)) return false;
+      clearArrowNavigation();
+      return true;
+    };
+
     eventListenerManager.addWindowListener(
       "keydown",
       (event: KeyboardEvent) => {
-        if (keyboardSelection.isPendingDismiss() && isEnterCode(event.code)) {
-          const target = event.composedPath()[0];
-          const targetElement = target instanceof HTMLElement ? target : null;
-          if (targetElement?.closest("[data-react-grab-discard-copy]")) return;
-          if (targetElement?.closest("[data-react-grab-discard-yes]")) return;
-          event.preventDefault();
-          event.stopImmediatePropagation();
-          handleConfirmDismiss();
-          return;
-        }
+        if (tryHandleKeyboardSelectionPromptPassThrough(event)) return;
 
         blockEnterIfNeeded(event);
 
