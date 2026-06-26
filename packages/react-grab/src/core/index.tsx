@@ -2155,11 +2155,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       });
     };
 
-    const tryHandleArrowNavigation = (event: KeyboardEvent): boolean => {
+    const tryHandleArrowNavigation = (
+      event: KeyboardEvent,
+      options: { allowPendingKeyboardSelection?: boolean } = {},
+    ): boolean => {
       if (!isActivated()) return false;
       if (isPromptMode()) return false;
       if (isShiftMultiSelecting()) return false;
-      if (keyboardSelection.isPendingDismiss()) return false;
+      if (keyboardSelection.isPendingDismiss() && !options.allowPendingKeyboardSelection)
+        return false;
       if (!ARROW_KEYS.has(event.key)) return false;
       if (isAnyPopoverOpen()) return false;
 
@@ -2175,9 +2179,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const isVertical = event.key === "ArrowUp" || event.key === "ArrowDown";
 
       if (!isVertical) {
-        clearArrowNavigation();
         const nextElement = arrowNavigator.findNext(event.key, currentElement);
         if (!nextElement && !isInitialSelection) return false;
+        clearArrowNavigation();
         event.preventDefault();
         event.stopPropagation();
         selectAndFocusElement(nextElement ?? currentElement, true);
@@ -2455,14 +2459,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const shouldHandleBareShortcut = getBareKeyShortcut(event) !== null;
       if (!shouldHandleArrow && !shouldHandleBareShortcut) return false;
 
-      clearArrowNavigation();
-
       if (shouldHandleArrow) {
-        tryHandleArrowNavigation(event);
-        return true;
+        return tryHandleArrowNavigation(event, { allowPendingKeyboardSelection: true });
       }
 
-      tryHandleBareKeyShortcut(event);
+      if (!tryHandleBareKeyShortcut(event)) return false;
+      clearArrowNavigation();
       return true;
     };
 
