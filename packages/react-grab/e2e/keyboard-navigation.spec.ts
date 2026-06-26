@@ -53,7 +53,7 @@ const showKeyboardSelectionDiscardPrompt = async (reactGrab: ReactGrabPageObject
   await reactGrab.activate();
   await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
   await reactGrab.waitForSelectionBox();
-  await reactGrab.page.keyboard.press("ArrowDown");
+  await reactGrab.pressArrowDown();
   await reactGrab.waitForSelectionBox();
   await reactGrab.page.mouse.move(0, 0);
   await expect.poll(() => reactGrab.isPendingDismissVisible()).toBe(true);
@@ -254,7 +254,7 @@ test.describe("Keyboard Navigation", () => {
     await reactGrab.registerCommentAction();
     await showKeyboardSelectionDiscardPrompt(reactGrab);
 
-    await reactGrab.page.keyboard.press("Enter");
+    await reactGrab.pressEnter();
 
     await expect.poll(() => reactGrab.isPromptModeActive()).toBe(true);
     expect(await reactGrab.isPendingDismissVisible()).toBe(false);
@@ -263,7 +263,7 @@ test.describe("Keyboard Navigation", () => {
   test("S should continue through the discard-selection prompt", async ({ reactGrab }) => {
     await showKeyboardSelectionDiscardPrompt(reactGrab);
 
-    await reactGrab.page.keyboard.press("s");
+    await reactGrab.pressKey("s");
 
     await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(true);
     expect(await reactGrab.isPendingDismissVisible()).toBe(false);
@@ -314,7 +314,7 @@ test.describe("Keyboard Navigation", () => {
   }) => {
     await showKeyboardSelectionDiscardPrompt(reactGrab);
 
-    await reactGrab.page.keyboard.press("ArrowDown");
+    await reactGrab.pressArrowDown();
     await reactGrab.waitForSelectionBox();
 
     expect(await reactGrab.isPendingDismissVisible()).toBe(false);

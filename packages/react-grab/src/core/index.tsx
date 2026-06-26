@@ -2139,13 +2139,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       clearArrowNavigation();
     };
 
-    const clearKeyboardSelectionHandoffPrompt = () => {
-      keyboardSelection.clear();
-      setArrowNavigationElements([]);
-      setArrowNavigationActiveIndex(0);
-      arrowNavigator.clearHistory();
-    };
-
     const copyArrowNavigationSelection = () => {
       const selectedElement = keyboardSelection.takeSelection(store.frozenElement);
       if (!selectedElement) {
@@ -2223,6 +2216,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return store.frozenElement || targetElement();
     };
 
+    const getBareKeyShortcut = (event: KeyboardEvent) => {
+      const element = canDispatchBareKey(event);
+      if (!element) return null;
+
+      const action = findShortcutAction(pluginRegistry.store.actions, event);
+      if (!action) return null;
+
+      return { element, action };
+    };
+
     const buildImmediateActionContext = (
       element: Element,
       position: Position,
@@ -2263,11 +2266,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const tryHandleBareKeyShortcut = (event: KeyboardEvent): boolean => {
-      const element = canDispatchBareKey(event);
-      if (!element) return false;
-
-      const action = findShortcutAction(pluginRegistry.store.actions, event);
-      if (!action) return false;
+      const shortcut = getBareKeyShortcut(event);
+      if (!shortcut) return false;
+      const { element, action } = shortcut;
 
       if (isPromptMode()) {
         if (!runActionForCurrentSelection(action.id)) return false;
@@ -2436,29 +2437,33 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
-    const isKeyboardSelectionPassThroughShortcut = (event: KeyboardEvent): boolean => {
-      if (event.metaKey || event.ctrlKey || event.altKey) return false;
-      if (event.repeat) return false;
-      if (isKeyboardEventTriggeredByInput(event)) return false;
-      return Boolean(findShortcutAction(pluginRegistry.store.actions, event));
+    const isKeyboardSelectionPromptButtonEnter = (event: KeyboardEvent): boolean => {
+      if (!isEnterCode(event.code)) return false;
+      const target = event.composedPath()[0];
+      const targetElement = target instanceof HTMLElement ? target : null;
+      return Boolean(
+        targetElement?.closest("[data-react-grab-discard-copy]") ||
+          targetElement?.closest("[data-react-grab-discard-yes]"),
+      );
     };
 
     eventListenerManager.addWindowListener(
       "keydown",
       (event: KeyboardEvent) => {
+        const isKeyboardSelectionPendingDismiss = keyboardSelection.isPendingDismiss();
         const shouldPassThroughKeyboardSelectionPrompt =
-          keyboardSelection.isPendingDismiss() &&
-          (ARROW_KEYS.has(event.key) || isKeyboardSelectionPassThroughShortcut(event));
+          isKeyboardSelectionPendingDismiss &&
+          (ARROW_KEYS.has(event.key) || getBareKeyShortcut(event) !== null);
 
-        if (keyboardSelection.isPendingDismiss() && isEnterCode(event.code)) {
-          const target = event.composedPath()[0];
-          const targetElement = target instanceof HTMLElement ? target : null;
-          if (targetElement?.closest("[data-react-grab-discard-copy]")) return;
-          if (targetElement?.closest("[data-react-grab-discard-yes]")) return;
+        if (
+          isKeyboardSelectionPendingDismiss &&
+          isKeyboardSelectionPromptButtonEnter(event)
+        ) {
+          return;
         }
 
         if (shouldPassThroughKeyboardSelectionPrompt) {
-          clearKeyboardSelectionHandoffPrompt();
+          clearArrowNavigation();
         }
 
         if (!shouldPassThroughKeyboardSelectionPrompt) {
