@@ -54,41 +54,28 @@ const themeFromAttributeValue = (attributeValue: string): AppTheme | null => {
   return null;
 };
 
-// `color-scheme` only forces a theme when it lists a single value. When it
-// lists both ("light dark" / "dark light") the active scheme is chosen by the
-// user's OS preference and reflected in the actual paint - token order does NOT
-// decide it - so we defer to luminance / prefers-color-scheme instead of
-// guessing the first token.
-const themeFromColorScheme = (colorSchemeValue: string): AppTheme | null => {
-  const normalized = colorSchemeValue.trim().toLowerCase();
-  if (!normalized || normalized === "normal" || normalized === "auto") return null;
-
-  const tokens = normalized.split(/\s+/);
-  const allowsDark = tokens.includes("dark");
-  const allowsLight = tokens.includes("light");
-  if (allowsDark && allowsLight) return null;
-  if (allowsDark) return "dark";
-  if (allowsLight) return "light";
-  return null;
+const getColorSchemeTokens = (element: HTMLElement): readonly string[] => {
+  const colorSchemeValue = element.style.colorScheme || getComputedStyle(element).colorScheme;
+  return colorSchemeValue ? colorSchemeValue.trim().toLowerCase().split(/\s+/) : [];
 };
 
+// `color-scheme` only forces a theme when it lists a single value. When it lists
+// both ("light dark") the active scheme follows the OS preference, not token
+// order, so we defer; `normal`/`auto` list neither and likewise defer.
 const themeFromColorSchemeOf = (element: HTMLElement): AppTheme | null => {
-  const colorSchemeValue = element.style.colorScheme || getComputedStyle(element).colorScheme;
-  return colorSchemeValue ? themeFromColorScheme(colorSchemeValue) : null;
+  const tokens = getColorSchemeTokens(element);
+  const allowsDark = tokens.includes("dark");
+  const allowsLight = tokens.includes("light");
+  if (allowsDark === allowsLight) return null;
+  return allowsDark ? "dark" : "light";
 };
 
 // The UA only paints a dark default canvas (and lets `prefers-color-scheme`
-// drive the rendered theme) when the page opts in with a `color-scheme` that
-// lists `dark` - typically `light dark`. With the default `normal` scheme the
-// canvas stays light no matter the OS preference, so a transparent page must
-// NOT be classified by `prefers-color-scheme` in that case. Only the root
-// element's `color-scheme` governs the canvas backdrop - a scheme declared on
-// <body> does not - so this is inspected on <html> alone.
-const rootColorSchemeFollowsOs = (): boolean => {
-  const root = document.documentElement;
-  const colorSchemeValue = root.style.colorScheme || getComputedStyle(root).colorScheme;
-  return colorSchemeValue ? colorSchemeValue.toLowerCase().split(/\s+/).includes("dark") : false;
-};
+// drive the rendered theme) when the root element opts into a `color-scheme`
+// listing `dark` - typically `light dark`. A scheme declared on <body> does not
+// affect the canvas, so only <html> is inspected.
+const rootColorSchemeFollowsOs = (): boolean =>
+  getColorSchemeTokens(document.documentElement).includes("dark");
 
 // Most frameworks mark the theme on <html> (Tailwind, next-themes), but some
 // put it on <body> (a few Bootstrap/MUI setups and hand-rolled apps), so both
