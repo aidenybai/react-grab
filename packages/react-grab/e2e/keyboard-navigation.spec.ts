@@ -262,6 +262,7 @@ test.describe("Keyboard Navigation", () => {
 
   test("S should continue through the discard-selection prompt", async ({ reactGrab }) => {
     await showKeyboardSelectionDiscardPrompt(reactGrab);
+    await reactGrab.page.locator("[data-react-grab-discard-copy]").focus();
 
     await reactGrab.pressKey("s");
 

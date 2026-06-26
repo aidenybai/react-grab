@@ -2447,28 +2447,31 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       );
     };
 
+    const tryHandleKeyboardSelectionPromptPassThrough = (event: KeyboardEvent): boolean => {
+      if (!keyboardSelection.isPendingDismiss()) return false;
+      if (isKeyboardSelectionPromptButtonEnter(event)) return true;
+
+      const shouldHandleArrow = ARROW_KEYS.has(event.key);
+      const shouldHandleBareShortcut = getBareKeyShortcut(event) !== null;
+      if (!shouldHandleArrow && !shouldHandleBareShortcut) return false;
+
+      clearArrowNavigation();
+
+      if (shouldHandleArrow) {
+        tryHandleArrowNavigation(event);
+        return true;
+      }
+
+      tryHandleBareKeyShortcut(event);
+      return true;
+    };
+
     eventListenerManager.addWindowListener(
       "keydown",
       (event: KeyboardEvent) => {
-        const isKeyboardSelectionPendingDismiss = keyboardSelection.isPendingDismiss();
-        const shouldPassThroughKeyboardSelectionPrompt =
-          isKeyboardSelectionPendingDismiss &&
-          (ARROW_KEYS.has(event.key) || getBareKeyShortcut(event) !== null);
+        if (tryHandleKeyboardSelectionPromptPassThrough(event)) return;
 
-        if (
-          isKeyboardSelectionPendingDismiss &&
-          isKeyboardSelectionPromptButtonEnter(event)
-        ) {
-          return;
-        }
-
-        if (shouldPassThroughKeyboardSelectionPrompt) {
-          clearArrowNavigation();
-        }
-
-        if (!shouldPassThroughKeyboardSelectionPrompt) {
-          blockEnterIfNeeded(event);
-        }
+        blockEnterIfNeeded(event);
 
         if (!isEnabled()) {
           if (isTargetKeyCombination(event, pluginRegistry.store.options) && !event.repeat) {
