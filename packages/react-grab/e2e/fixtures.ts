@@ -1,5 +1,8 @@
 import { test as base, expect, Page, Locator } from "@playwright/test";
 import { ATTRIBUTE_NAME } from "./constants.js";
+import { COVERAGE_RAW_DIR } from "./coverage-config.js";
+
+const COVERAGE_ENABLED = Boolean(process.env.COVERAGE);
 
 const DEFAULT_KEY_HOLD_DURATION_MS = 200;
 const ACTIVATION_BUFFER_MS = 200;
@@ -1813,8 +1816,25 @@ const createReactGrabPageObject = (
   };
 };
 
-export const test = base.extend<{ reactGrab: ReactGrabPageObject }>({
-  reactGrab: async ({ page }, use) => {
+export const test = base.extend<{ reactGrab: ReactGrabPageObject; coverageCapture: void }>({
+  // Captures V8 JS coverage for every test under COVERAGE. `reactGrab` depends
+  // on it so it starts before the page navigates. The coverage package is
+  // imported lazily (and built) only on coverage runs, so normal and perf runs
+  // never need its dist; off-coverage this is a no-op.
+  coverageCapture: [
+    async ({ page }, use) => {
+      if (!COVERAGE_ENABLED) {
+        await use();
+        return;
+      }
+      const { captureCoverage } = await import("@react-grab/playwright-coverage");
+      await captureCoverage(page, COVERAGE_RAW_DIR, use);
+    },
+    { auto: true },
+  ],
+
+  reactGrab: async ({ page, coverageCapture }, use) => {
+    void coverageCapture;
     const waitForApiReady = async () => {
       await page.waitForFunction(
         () => {

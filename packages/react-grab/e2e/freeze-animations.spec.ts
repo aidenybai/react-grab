@@ -112,8 +112,7 @@ test.describe("Freeze Animations", () => {
       reactGrab,
     }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
       await reactGrab.page.waitForTimeout(200);
 
       const shadowAnimationCountBefore = await reactGrab.page.evaluate((attrName) => {
@@ -180,8 +179,7 @@ test.describe("Freeze Animations", () => {
       await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
       await reactGrab.waitForSelectionLabel();
 
       const labelInfo = await reactGrab.getSelectionLabelInfo();
@@ -252,8 +250,7 @@ test.describe("Freeze Animations", () => {
       reactGrab,
     }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
       await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.deactivate();

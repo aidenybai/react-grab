@@ -101,16 +101,14 @@ test.describe("Activation Key Configuration", () => {
   test.describe("Selection with default config", () => {
     test("should show selection box", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("[data-testid='todo-list'] h1");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("[data-testid='todo-list'] h1");
 
       expect(await reactGrab.isSelectionBoxVisible()).toBe(true);
     });
 
     test("should copy element", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("[data-testid='todo-list'] h1");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("[data-testid='todo-list'] h1");
 
       await reactGrab.clickElement("[data-testid='todo-list'] h1");
       await reactGrab.page.waitForTimeout(500);

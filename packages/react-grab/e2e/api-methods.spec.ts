@@ -92,8 +92,7 @@ test.describe("API Methods", () => {
 
     test("should return isCopying correctly during copy", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("h1");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("h1");
 
       await reactGrab.clickElement("h1");
 
@@ -339,8 +338,7 @@ test.describe("API Methods", () => {
     test("API should work after multiple activation cycles", async ({ reactGrab }) => {
       for (let i = 0; i < 3; i++) {
         await reactGrab.activate();
-        await reactGrab.hoverElement("li");
-        await reactGrab.waitForSelectionBox();
+        await reactGrab.hoverUntilSelected("li");
         await reactGrab.deactivate();
       }
 

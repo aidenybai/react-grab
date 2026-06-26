@@ -4,8 +4,7 @@ test.describe("Overlay Filtering", () => {
   test.describe("React-grab elements should not be selectable", () => {
     test("should not select react-grab host element", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       const selectedElement = await reactGrab.page.evaluate(() => {
         const api = (
@@ -24,8 +23,7 @@ test.describe("Overlay Filtering", () => {
 
     test("should not select elements inside react-grab shadow DOM", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       const isInsideShadowDom = await reactGrab.page.evaluate(() => {
         const api = (
@@ -51,8 +49,7 @@ test.describe("Overlay Filtering", () => {
 
     test("should select page elements through react-grab overlay", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       const tagName = await reactGrab.page.evaluate(() => {
         const api = (
@@ -88,8 +85,7 @@ test.describe("Overlay Filtering", () => {
 
     test("clicking through overlay should copy correct element", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("[data-testid='todo-list'] h1");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("[data-testid='todo-list'] h1");
       await reactGrab.clickElement("[data-testid='todo-list'] h1");
 
       await expect.poll(() => reactGrab.getClipboardContent()).toContain("Todo List");

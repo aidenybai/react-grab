@@ -57,8 +57,7 @@ test.describe("Toolbar Menu", () => {
       await expect.poll(() => reactGrab.isToolbarMenuVisible(), { timeout: 2000 }).toBe(true);
 
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
       await reactGrab.rightClickElement("li:first-child");
 
       await expect.poll(() => reactGrab.isToolbarMenuVisible(), { timeout: 2000 }).toBe(false);

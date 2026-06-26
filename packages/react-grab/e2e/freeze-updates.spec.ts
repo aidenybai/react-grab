@@ -179,8 +179,7 @@ test.describe("Freeze Updates", () => {
       };
 
       await reactGrab.activate();
-      await reactGrab.hoverElement("[data-testid='dynamic-section']");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("[data-testid='dynamic-section']");
       await reactGrab.deactivate();
 
       const countBefore = await getElementCount();

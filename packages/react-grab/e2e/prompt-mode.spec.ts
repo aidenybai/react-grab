@@ -7,8 +7,7 @@ test.describe("Prompt Mode", () => {
     }) => {
       await reactGrab.registerCommentAction();
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       await reactGrab.rightClickElement("li:first-child");
       await reactGrab.clickContextMenuItem("Comment");
@@ -18,8 +17,7 @@ test.describe("Prompt Mode", () => {
 
     test("single click should copy without entering prompt mode", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       await reactGrab.clickElement("li:first-child");
 
@@ -265,8 +263,7 @@ test.describe("Prompt Mode", () => {
       await reactGrab.activate();
       await reactGrab.scrollPage(100);
 
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       await reactGrab.rightClickElement("li:first-child");
       await reactGrab.clickContextMenuItem("Comment");

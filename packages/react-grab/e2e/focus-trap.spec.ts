@@ -111,8 +111,7 @@ test.describe("Focus Trap Resistance", () => {
       await reactGrab.activate();
       await injectFocusTrap(reactGrab.page);
 
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       const isVisible = await reactGrab.isSelectionBoxVisible();
       expect(isVisible).toBe(true);
@@ -122,8 +121,7 @@ test.describe("Focus Trap Resistance", () => {
       await injectFocusTrap(reactGrab.page);
       await reactGrab.activate();
 
-      await reactGrab.hoverElement("#trap-button");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("#trap-button");
 
       const isVisible = await reactGrab.isSelectionBoxVisible();
       expect(isVisible).toBe(true);
@@ -133,12 +131,10 @@ test.describe("Focus Trap Resistance", () => {
       await injectFocusTrap(reactGrab.page);
       await reactGrab.activate();
 
-      await reactGrab.hoverElement("#trap-input-1");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("#trap-input-1");
       const bounds1 = await reactGrab.getSelectionBoxBounds();
 
-      await reactGrab.hoverElement("#trap-button");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("#trap-button");
       const bounds2 = await reactGrab.getSelectionBoxBounds();
 
       if (bounds1 && bounds2) {
@@ -153,8 +149,7 @@ test.describe("Focus Trap Resistance", () => {
       await injectFocusTrap(reactGrab.page);
       await reactGrab.activate();
 
-      await reactGrab.hoverElement("#trap-button");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("#trap-button");
       await reactGrab.clickElement("#trap-button");
 
       await expect.poll(() => reactGrab.getClipboardContent(), { timeout: 2000 }).toBeTruthy();
@@ -164,8 +159,7 @@ test.describe("Focus Trap Resistance", () => {
       await reactGrab.activate();
       await injectFocusTrap(reactGrab.page);
 
-      await reactGrab.hoverElement("h1");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("h1");
       await reactGrab.clickElement("h1");
 
       await expect.poll(() => reactGrab.getClipboardContent(), { timeout: 2000 }).toBeTruthy();
@@ -222,8 +216,7 @@ test.describe("Focus Trap Resistance", () => {
       await injectFocusTrap(reactGrab.page);
       await reactGrab.activate();
 
-      await reactGrab.hoverElement("#trap-button");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("#trap-button");
       await reactGrab.rightClickElement("#trap-button");
 
       const isVisible = await reactGrab.isContextMenuVisible();
@@ -236,8 +229,7 @@ test.describe("Focus Trap Resistance", () => {
       await injectFocusTrap(reactGrab.page);
       await reactGrab.activate();
 
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       await reactGrab.pressArrowDown();
       await reactGrab.waitForSelectionBox();
@@ -254,8 +246,7 @@ test.describe("Focus Trap Resistance", () => {
       await injectFocusTrap(reactGrab.page);
       await reactGrab.activate();
 
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       await reactGrab.deactivate();
 
@@ -269,14 +260,12 @@ test.describe("Focus Trap Resistance", () => {
       await injectFocusTrap(reactGrab.page);
       await reactGrab.activate();
 
-      await reactGrab.hoverElement("#trap-button");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("#trap-button");
 
       await removeFocusTrap(reactGrab.page);
       await reactGrab.page.waitForTimeout(100);
 
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       const isVisible = await reactGrab.isSelectionBoxVisible();
       expect(isVisible).toBe(true);
@@ -284,14 +273,12 @@ test.describe("Focus Trap Resistance", () => {
 
     test("should work when focus trap appears after activation", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       await injectFocusTrap(reactGrab.page);
       await reactGrab.page.waitForTimeout(100);
 
-      await reactGrab.hoverElement("h1");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("h1");
 
       const isVisible = await reactGrab.isSelectionBoxVisible();
       expect(isVisible).toBe(true);

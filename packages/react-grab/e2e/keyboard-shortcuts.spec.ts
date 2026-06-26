@@ -3,8 +3,7 @@ import { test, expect } from "./fixtures.js";
 test.describe("Keyboard Shortcuts", () => {
   test("should copy selected element when clicking", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("[data-testid='todo-list'] h1");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] h1");
 
     await reactGrab.clickElement("[data-testid='todo-list'] h1");
     await reactGrab.page.waitForTimeout(500);
@@ -15,8 +14,7 @@ test.describe("Keyboard Shortcuts", () => {
 
   test("should deactivate when pressing Escape while hovering", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("li:first-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("li:first-child");
 
     await reactGrab.pressEscape();
     await reactGrab.page.waitForTimeout(100);
@@ -36,8 +34,7 @@ test.describe("Keyboard Shortcuts", () => {
 
   test("should copy list item when clicked", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("[data-testid='todo-list'] li:nth-child(2)");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:nth-child(2)");
 
     await reactGrab.clickElement("[data-testid='todo-list'] li:nth-child(2)");
     await reactGrab.page.waitForTimeout(500);
@@ -48,8 +45,7 @@ test.describe("Keyboard Shortcuts", () => {
 
   test("should keep overlay active while navigating with arrow keys", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("li:first-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("li:first-child");
 
     for (let i = 0; i < 5; i++) {
       await reactGrab.page.keyboard.press("ArrowDown");
@@ -62,8 +58,7 @@ test.describe("Keyboard Shortcuts", () => {
 
   test("should deactivate after successful click copy in toggle mode", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("li:first-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("li:first-child");
 
     await reactGrab.clickElement("li:first-child");
     await reactGrab.page.waitForTimeout(2000);
