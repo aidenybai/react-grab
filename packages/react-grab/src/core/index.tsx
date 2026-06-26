@@ -2139,6 +2139,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       clearArrowNavigation();
     };
 
+    const clearKeyboardSelectionHandoffPrompt = () => {
+      keyboardSelection.clear();
+      setArrowNavigationElements([]);
+      setArrowNavigationActiveIndex(0);
+      arrowNavigator.clearHistory();
+    };
+
     const copyArrowNavigationSelection = () => {
       const selectedElement = keyboardSelection.takeSelection(store.frozenElement);
       if (!selectedElement) {
@@ -2429,21 +2436,34 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
+    const isKeyboardSelectionPassThroughShortcut = (event: KeyboardEvent): boolean => {
+      if (event.metaKey || event.ctrlKey || event.altKey) return false;
+      if (event.repeat) return false;
+      if (isKeyboardEventTriggeredByInput(event)) return false;
+      return Boolean(findShortcutAction(pluginRegistry.store.actions, event));
+    };
+
     eventListenerManager.addWindowListener(
       "keydown",
       (event: KeyboardEvent) => {
+        const shouldPassThroughKeyboardSelectionPrompt =
+          keyboardSelection.isPendingDismiss() &&
+          (ARROW_KEYS.has(event.key) || isKeyboardSelectionPassThroughShortcut(event));
+
         if (keyboardSelection.isPendingDismiss() && isEnterCode(event.code)) {
           const target = event.composedPath()[0];
           const targetElement = target instanceof HTMLElement ? target : null;
           if (targetElement?.closest("[data-react-grab-discard-copy]")) return;
           if (targetElement?.closest("[data-react-grab-discard-yes]")) return;
-          event.preventDefault();
-          event.stopImmediatePropagation();
-          handleConfirmDismiss();
-          return;
         }
 
-        blockEnterIfNeeded(event);
+        if (shouldPassThroughKeyboardSelectionPrompt) {
+          clearKeyboardSelectionHandoffPrompt();
+        }
+
+        if (!shouldPassThroughKeyboardSelectionPrompt) {
+          blockEnterIfNeeded(event);
+        }
 
         if (!isEnabled()) {
           if (isTargetKeyCombination(event, pluginRegistry.store.options) && !event.repeat) {
