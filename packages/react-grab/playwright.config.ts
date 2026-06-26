@@ -13,11 +13,12 @@ const NEXT_SPEC_PATTERN = /next-.*\.spec\.ts/;
 // Smoke specs that must hold on both frameworks; they run under both projects.
 const CROSS_FRAMEWORK_PATTERN = /\.both\.spec\.ts/;
 
-// The @perf bench (PERF_LABEL set by test-perf.yml) only stimulates the Vite
-// app, and that workflow has no separate build step. Skip the Next dev server
-// and project there so the run stays Vite-only and never blocks on a second
-// dev server it doesn't use.
+// The @perf bench (PERF_LABEL set by test-perf.yml) and coverage runs only
+// stimulate the Vite app. Skip the Next dev server and project there so those
+// runs stay Vite-only and never block on a second dev server they don't use.
 const isPerfRun = Boolean(process.env.PERF_LABEL);
+const isCoverageRun = Boolean(process.env.COVERAGE);
+const shouldRunViteOnly = isPerfRun || isCoverageRun;
 
 const viteProjects: Project[] = [
   {
@@ -69,6 +70,6 @@ export default defineConfig({
     trace: "on-first-retry",
     permissions: ["clipboard-read", "clipboard-write"],
   },
-  projects: isPerfRun ? viteProjects : [...viteProjects, nextProject],
-  webServer: isPerfRun ? [viteWebServer] : [viteWebServer, nextWebServer],
+  projects: shouldRunViteOnly ? viteProjects : [...viteProjects, nextProject],
+  webServer: shouldRunViteOnly ? [viteWebServer] : [viteWebServer, nextWebServer],
 });
