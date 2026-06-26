@@ -1,8 +1,9 @@
 import type { Page } from "@playwright/test";
 import { expect } from "./fixtures.js";
 import type { ReactGrabPageObject } from "./fixtures.js";
+import { ATTRIBUTE_NAME } from "./constants.js";
 
-export const ATTRIBUTE_NAME = "data-react-grab";
+export { ATTRIBUTE_NAME };
 export const EDIT_PANEL_ATTR = "data-react-grab-edit-panel";
 export const EDIT_PROPERTY_ATTR = "data-react-grab-edit-property";
 export const SEARCH_INPUT_ATTR = "data-react-grab-input";

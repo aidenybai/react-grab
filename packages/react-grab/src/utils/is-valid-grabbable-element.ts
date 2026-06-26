@@ -1,6 +1,7 @@
 import {
   DEV_TOOLS_OVERLAY_Z_INDEX_THRESHOLD,
   OVERLAY_Z_INDEX_THRESHOLD,
+  REACT_GRAB_ATTRIBUTE_NAME,
   USER_IGNORE_ATTRIBUTE,
   VIEWPORT_COVERAGE_THRESHOLD,
   VISIBILITY_CACHE_TTL_MS,
@@ -9,10 +10,10 @@ import { isElementVisible } from "./is-element-visible.js";
 import { isRootElement } from "./is-root-element.js";
 
 const isReactGrabElement = (element: Element): boolean => {
-  if (element.hasAttribute("data-react-grab")) return true;
+  if (element.hasAttribute(REACT_GRAB_ATTRIBUTE_NAME)) return true;
 
   const rootNode = element.getRootNode();
-  return rootNode instanceof ShadowRoot && rootNode.host.hasAttribute("data-react-grab");
+  return rootNode instanceof ShadowRoot && rootNode.host.hasAttribute(REACT_GRAB_ATTRIBUTE_NAME);
 };
 
 const isUserIgnoredElement = (element: Element): boolean =>

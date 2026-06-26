@@ -1,6 +1,5 @@
 import { test, expect } from "./fixtures.js";
-
-const ATTRIBUTE_NAME = "data-react-grab";
+import { ATTRIBUTE_NAME } from "./constants.js";
 
 const hoverToolbar = async (page: import("@playwright/test").Page) => {
   const toolbarRect = await page.evaluate((attrName) => {

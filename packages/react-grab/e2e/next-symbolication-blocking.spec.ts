@@ -19,9 +19,11 @@ const formatWithinBudget = (page: Page, selector: string) =>
   Promise.race([
     page
       .evaluate((sel) => {
-        const format = (window as unknown as {
-          formatElementInfo: (element: Element) => Promise<string>;
-        }).formatElementInfo;
+        const format = (
+          window as unknown as {
+            formatElementInfo: (element: Element) => Promise<string>;
+          }
+        ).formatElementInfo;
         return format(document.querySelector(sel) as Element);
       }, selector)
       .then((trace) => ({ completed: true as const, trace })),

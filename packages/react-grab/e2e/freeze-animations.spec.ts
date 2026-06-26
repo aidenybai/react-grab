@@ -1,7 +1,6 @@
 import type { Page } from "@playwright/test";
 import { test, expect } from "./fixtures.js";
-
-const ATTRIBUTE_NAME = "data-react-grab";
+import { ATTRIBUTE_NAME } from "./constants.js";
 
 const simulateGsapPresence = (page: Page): Promise<void> =>
   page.evaluate(() => {

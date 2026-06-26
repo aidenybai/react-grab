@@ -1,8 +1,10 @@
-import { MOUNT_ROOT_RECHECK_DELAY_MS, Z_INDEX_OVERLAY } from "../constants.js";
+import {
+  MOUNT_ROOT_RECHECK_DELAY_MS,
+  REACT_GRAB_ATTRIBUTE_NAME,
+  Z_INDEX_OVERLAY,
+} from "../constants.js";
 import { detectCspNonce } from "./detect-csp-nonce.js";
 import { hideFromThirdParties } from "./hide-from-third-parties.js";
-
-const ATTRIBUTE_NAME = "data-react-grab";
 
 const FONT_IMPORT =
   '@import url("https://fonts.googleapis.com/css2?family=Geist:wght@500&display=swap");';
@@ -16,7 +18,7 @@ const attachHostToBody = (host: HTMLElement): void => {
   // If the app replaces or clones <body>, a shadowless clone of our host can
   // end up in the new body. Purge those so queries targeting the real host
   // (which owns the shadow DOM) aren't shadowed by the zombie.
-  const candidateHosts = document.querySelectorAll<HTMLElement>(`[${ATTRIBUTE_NAME}]`);
+  const candidateHosts = document.querySelectorAll<HTMLElement>(`[${REACT_GRAB_ATTRIBUTE_NAME}]`);
   for (const candidate of candidateHosts) {
     if (candidate === host) continue;
     if (candidate.parentNode === host) continue;
@@ -49,9 +51,9 @@ interface MountRootResult {
 }
 
 export const mountRoot = (cssText?: string): MountRootResult => {
-  const mountedHosts = document.querySelectorAll<HTMLElement>(`[${ATTRIBUTE_NAME}]`);
+  const mountedHosts = document.querySelectorAll<HTMLElement>(`[${REACT_GRAB_ATTRIBUTE_NAME}]`);
   for (const mountedHost of mountedHosts) {
-    const mountedRoot = mountedHost.shadowRoot?.querySelector(`[${ATTRIBUTE_NAME}]`);
+    const mountedRoot = mountedHost.shadowRoot?.querySelector(`[${REACT_GRAB_ATTRIBUTE_NAME}]`);
     if (mountedRoot instanceof HTMLDivElement) {
       return { root: mountedRoot, host: mountedHost };
     }
@@ -60,7 +62,7 @@ export const mountRoot = (cssText?: string): MountRootResult => {
 
   const host = document.createElement("div");
 
-  host.setAttribute(ATTRIBUTE_NAME, "true");
+  host.setAttribute(REACT_GRAB_ATTRIBUTE_NAME, "true");
   hideFromThirdParties(host);
   host.style.zIndex = String(Z_INDEX_OVERLAY);
   host.style.position = "fixed";
@@ -77,7 +79,7 @@ export const mountRoot = (cssText?: string): MountRootResult => {
 
   const root = document.createElement("div");
 
-  root.setAttribute(ATTRIBUTE_NAME, "true");
+  root.setAttribute(REACT_GRAB_ATTRIBUTE_NAME, "true");
 
   shadowRoot.appendChild(root);
 
