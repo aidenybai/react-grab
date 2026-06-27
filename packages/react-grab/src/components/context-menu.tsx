@@ -248,15 +248,19 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
         props.onHide();
       };
 
-      // Enter activates the highlighted row directly via its registered
-      // onSelect (which already closes the menu); with no active row we fall
-      // through so an action that binds Enter as its own shortcut still fires.
+      // A highlighted row absorbs Enter: run its onSelect (which closes the
+      // menu) when enabled, otherwise swallow the key. We must not fall through
+      // to a global Enter shortcut while a row is active, or a disabled
+      // selection would silently invoke a different action. Only with no active
+      // row does Enter reach an action that binds Enter as its own shortcut.
       if (event.key === "Enter") {
         const activeItem = menuStore.getActiveItem();
-        if (activeItem && activeItem.isEnabled()) {
-          event.preventDefault();
-          event.stopPropagation();
-          activeItem.onSelect();
+        if (activeItem) {
+          if (activeItem.isEnabled()) {
+            event.preventDefault();
+            event.stopPropagation();
+            activeItem.onSelect();
+          }
           return;
         }
       }
