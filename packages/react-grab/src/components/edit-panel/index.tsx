@@ -47,7 +47,7 @@ import { EditPanelCopyButton } from "./copy-button.js";
 import { createDiscardConfirmation } from "./discard-confirmation.js";
 import { PropertyList } from "./property-list.js";
 import { arePropertyValuesEqual } from "./property-values-equal.js";
-import { createShiftTracker } from "./shift-tracker.js";
+import { createModifierTracker } from "./modifier-tracker.js";
 import { createStepController } from "./step-controller.js";
 import { stepProperty } from "./step-property.js";
 import { createStyleStore } from "./style-store.js";
@@ -266,17 +266,25 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     if (options.source === "keyboard") pointerMovePromptHandoff.arm();
   };
 
-  const isShiftHeld = createShiftTracker();
+  const isShiftHeld = createModifierTracker((event) => event.shiftKey);
+  const isAltHeld = createModifierTracker((event) => event.altKey);
 
   const stepActiveProperty = (
     direction: 1 | -1,
-    shift: boolean,
+    shiftHeld: boolean,
+    altHeld: boolean,
     fromRepeat: boolean,
     source: "keyboard" | "pointer",
   ): EditableProperty | null => {
     const property = activeProperty();
     if (!property) return null;
-    const nextValue = stepProperty(property, direction, shift);
+    const nextValue = stepProperty(
+      property,
+      direction,
+      shiftHeld,
+      altHeld,
+      props.state.designTokens,
+    );
     if (nextValue === null) {
       flashActiveKey(direction === 1 ? "right" : "left");
       return null;
@@ -290,16 +298,21 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     return property;
   };
 
-  const stepFromKeyboard = (direction: 1 | -1, shift: boolean, fromRepeat: boolean) => {
-    if (!stepActiveProperty(direction, shift, fromRepeat, "keyboard")) return;
+  const stepFromKeyboard = (
+    direction: 1 | -1,
+    shiftHeld: boolean,
+    altHeld: boolean,
+    fromRepeat: boolean,
+  ) => {
+    if (!stepActiveProperty(direction, shiftHeld, altHeld, fromRepeat, "keyboard")) return;
     setIsCompact(true);
   };
 
   const stepFromPointer = (direction: 1 | -1) => {
-    stepActiveProperty(direction, false, false, "pointer");
+    stepActiveProperty(direction, false, false, false, "pointer");
   };
 
-  const stepController = createStepController({ step: stepFromKeyboard, isShiftHeld });
+  const stepController = createStepController({ step: stepFromKeyboard, isShiftHeld, isAltHeld });
 
   const commitActive = (rawValue: number | string, source: "keyboard" | "pointer") => {
     const property = activeProperty();
@@ -420,7 +433,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       if (!event.repeat) getCurrentColorPickerTrigger()?.();
       return;
     }
-    stepController.pressArrow(key, event.repeat, event.shiftKey);
+    stepController.pressArrow(key, event.repeat, event.shiftKey, event.altKey);
   };
 
   const keyHandlers: Record<string, (event: KeyboardEvent) => void> = {

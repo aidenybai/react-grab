@@ -98,8 +98,26 @@ const getCanvasContext = (): CanvasRenderingContext2D | null => {
   if (canvasContext) return canvasContext;
   if (typeof document === "undefined") return null;
   const canvas = document.createElement("canvas");
-  canvasContext = canvas.getContext("2d");
+  canvasContext = canvas.getContext("2d", { willReadFrequently: true });
   return canvasContext;
+};
+
+// Last resort for colors the canvas accepts but reflects back in a non-sRGB
+// form rather than `#rgb`/`rgb()` — modern wide-gamut syntaxes like `lab()`,
+// `lch()`, `oklab()`, and `color()`. Computed design tokens commonly land here
+// (Tailwind v4 / shadcn resolve `oklch(...)` to `lab(...)` in getComputedStyle),
+// so painting one pixel and reading it back lets the browser do the gamut
+// conversion to sRGB bytes for us.
+const rasterizeColorToHex = (
+  canvasContext2d: CanvasRenderingContext2D,
+  cssColor: string,
+): string | null => {
+  canvasContext2d.clearRect(0, 0, 1, 1);
+  canvasContext2d.fillStyle = cssColor;
+  canvasContext2d.fillRect(0, 0, 1, 1);
+  const pixel = canvasContext2d.getImageData(0, 0, 1, 1).data;
+  if (pixel[3] === 0) return EDIT_TRANSPARENT_COLOR_HEX;
+  return rgbaChannelsToHex(pixel[0], pixel[1], pixel[2], pixel[3] / 255);
 };
 
 export const parseAnyColor = (input: string): string | null => {
@@ -133,5 +151,5 @@ export const parseAnyColor = (input: string): string | null => {
   }
   if (resolved.startsWith("#") && resolved.length === OPAQUE_HEX_LENGTH) return resolved;
   if (resolved.startsWith("rgb")) return rgbStringToHex(resolved);
-  return null;
+  return rasterizeColorToHex(canvasContext2d, trimmedColorInput);
 };

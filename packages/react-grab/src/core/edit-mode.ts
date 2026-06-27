@@ -1,5 +1,6 @@
 import { createSignal, type Accessor } from "solid-js";
 import type {
+  DesignTokenResolver,
   EditPanelState,
   PendingEdits,
   PendingEditsEntry,
@@ -7,6 +8,7 @@ import type {
   PreviewStyles,
 } from "../types.js";
 import { buildEditableProperties } from "../utils/build-editable-properties.js";
+import { collectDesignTokens } from "../utils/collect-design-tokens.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
 import { formatSessionEditsPrompt } from "../utils/format-edit-prompt.js";
 import { getTagName } from "../utils/get-tag-name.js";
@@ -27,6 +29,7 @@ interface EditSessionRecord {
   filePath: string;
   lineNumber: number;
   edits: PendingEdits;
+  designTokens?: DesignTokenResolver;
 }
 
 interface EditModeDependencies {
@@ -85,6 +88,7 @@ const toSessionRecord = (currentState: EditPanelState, edits: PendingEdits): Edi
   filePath: currentState.filePath ?? "",
   lineNumber: currentState.lineNumber ?? 0,
   edits,
+  designTokens: currentState.designTokens,
 });
 
 export const createEditModeController = (
@@ -152,6 +156,7 @@ export const createEditModeController = (
       componentName: overrides.componentName,
       tagName: overrides.tagName ?? getTagName(element),
       initialSearchQuery: overrides.initialSearchQuery,
+      designTokens: collectDesignTokens(element),
     });
 
     resolveComponentNameIntoState(element);
@@ -188,6 +193,7 @@ export const createEditModeController = (
       preview: createPreviewStyles(element),
       tagName: getTagName(element),
       hasSessionEdits: sessionRecords.some((record) => record.edits.length > 0),
+      designTokens: collectDesignTokens(element),
     });
 
     // The store's selection source still points at the previous element, so
@@ -244,6 +250,7 @@ export const createEditModeController = (
         filePath: record.filePath,
         lineNumber: record.lineNumber,
         edits: [...record.edits],
+        designTokens: record.designTokens,
       });
     }
     return Array.from(entryByElement.values());

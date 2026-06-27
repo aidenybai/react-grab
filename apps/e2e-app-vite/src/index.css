@@ -1,1 +1,9 @@
 @import "tailwindcss";
+
+/* Library-agnostic design tokens used by the design-token prompt e2e test.
+   Definition-only (never referenced), so they add no visual change. */
+:root {
+  --rg-test-space-4: 16px;
+  --rg-test-space-6: 24px;
+  --rg-test-brand: #123456;
+}
