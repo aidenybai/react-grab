@@ -31,6 +31,7 @@ import { IconLoader } from "../icons/icon-loader.jsx";
 import { Arrow } from "./arrow.js";
 import { TagBadge } from "./tag-badge.js";
 import { BottomSection } from "./bottom-section.js";
+import { Surface } from "../ui/surface.js";
 import { DiscardPrompt } from "./discard-prompt.js";
 import { ErrorView } from "./error-view.js";
 import { CompletionView } from "./completion-view.js";
@@ -418,16 +419,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           />
         </Show>
 
-        <div
-          ref={panelRef}
-          class={cn(
-            "contain-layout flex items-center gap-[5px] antialiased w-fit h-fit p-0 [font-synthesis:none]",
-            isSinglePanelLine()
-              ? "rounded-full"
-              : "rounded-[14px] [corner-shape:superellipse(1.25)]",
-            "bg-[var(--rg-panel-bg)]",
-            isShaking() && "animate-shake",
-          )}
+        <Surface
+          ref={(element) => (panelRef = element)}
+          shape={isSinglePanelLine() ? "pill" : "panel"}
+          class={cn("flex items-center gap-[5px] w-fit h-fit p-0", isShaking() && "animate-shake")}
           style={{
             display: isCompletedStatus() && !props.error ? "none" : undefined,
           }}
@@ -569,7 +564,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               onRetry={props.onRetry}
             />
           </Show>
-        </div>
+        </Surface>
       </div>
     </Show>
   );

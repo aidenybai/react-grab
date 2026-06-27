@@ -2,6 +2,7 @@ import { createSignal, onCleanup, onMount, Show, type Component } from "solid-js
 import { IME_COMPOSING_KEY_CODE } from "../../constants.js";
 import { formatColorLabel } from "../../utils/format-color-label.js";
 import { parseAnyColor } from "../../utils/parse-any-color.js";
+import { Input } from "../ui/input.js";
 import { EDIT_LABEL_CLASS } from "./constants.js";
 
 // Native <input type="color"> only accepts `#rrggbb` (no alpha, no
@@ -111,23 +112,11 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
             </span>
           }
         >
-          <input
-            ref={(element) => {
-              queueMicrotask(() => {
-                element.focus();
-                element.select();
-              });
-            }}
-            data-react-grab-ignore-events
-            data-react-grab-input
-            type="text"
+          <Input
+            autoFocusSelect
             inputmode="text"
             aria-label="Style color hex"
-            autocapitalize="none"
-            autocorrect="off"
-            autocomplete="off"
-            spellcheck={false}
-            class={`${HEX_CLASS} bg-transparent border-none outline-none text-[var(--rg-text-primary)] p-0 m-0 text-right`}
+            class={`${HEX_CLASS} text-right`}
             style={{
               "field-sizing": "content",
               "min-width": "32px",

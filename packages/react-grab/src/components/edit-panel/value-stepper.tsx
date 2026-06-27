@@ -12,6 +12,7 @@ import {
 } from "../../constants.js";
 import { formatDisplayValue } from "../../utils/format-css-value.js";
 import { Slot } from "../slot.js";
+import { Input } from "../ui/input.js";
 import { EDIT_LABEL_CLASS } from "./constants.js";
 import { StepArrow } from "./step-arrow.js";
 
@@ -330,23 +331,11 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
               </span>
             }
           >
-            <input
-              ref={(element) => {
-                queueMicrotask(() => {
-                  element.focus();
-                  element.select();
-                });
-              }}
-              data-react-grab-ignore-events
-              data-react-grab-input
-              type="text"
+            <Input
+              autoFocusSelect
               inputmode="decimal"
               aria-label="Style value"
-              autocapitalize="none"
-              autocorrect="off"
-              autocomplete="off"
-              spellcheck={false}
-              class={`${VALUE_CLASS} bg-transparent border-none outline-none text-[var(--rg-text-primary)] p-0 m-0 text-right pointer-events-auto ml-auto`}
+              class={`${VALUE_CLASS} text-right pointer-events-auto ml-auto`}
               style={{
                 "field-sizing": "content",
                 "min-width": "16px",
