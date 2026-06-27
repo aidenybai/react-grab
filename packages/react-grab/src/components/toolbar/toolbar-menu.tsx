@@ -8,8 +8,7 @@ import {
   Z_INDEX_OVERLAY,
 } from "../../constants.js";
 import { cn } from "../../utils/cn.js";
-import { ShortcutHint } from "../shortcut-hint.js";
-import { createMenuHighlight } from "../../utils/create-menu-highlight.js";
+import { Menu, createMenuStore } from "../menu/index.js";
 import { suppressMenuEvent } from "../../utils/suppress-menu-event.js";
 import { createAnchoredDropdown } from "../../utils/create-anchored-dropdown.js";
 import { registerOverlayDismiss } from "../../utils/register-overlay-dismiss.js";
@@ -24,27 +23,19 @@ interface ToolbarMenuProps {
 
 export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
-  const {
-    containerRef: highlightContainerRef,
-    highlightRef,
-    updateHighlight,
-    clearHighlight,
-  } = createMenuHighlight({
-    topCornerRadiusPx: MENU_PANEL_CORNER_RADIUS_PX,
-    bottomCornerRadiusPx: MENU_PANEL_CORNER_RADIUS_PX,
-    cornerShape: MENU_HIGHLIGHT_CORNER_SHAPE,
+  const menuStore = createMenuStore({
+    clearActiveOnPointerLeave: true,
+    highlight: {
+      topCornerRadiusPx: MENU_PANEL_CORNER_RADIUS_PX,
+      bottomCornerRadiusPx: MENU_PANEL_CORNER_RADIUS_PX,
+      cornerShape: MENU_HIGHLIGHT_CORNER_SHAPE,
+    },
   });
 
   const dropdown = createAnchoredDropdown(
     () => containerRef,
     () => props.position,
   );
-
-  const handleActionClick = (action: ContextMenuAction, event: Event) => {
-    event.stopPropagation();
-    props.onSetDefaultAction(action.id);
-    props.onDismiss();
-  };
 
   onMount(() => {
     dropdown.measure();
@@ -85,67 +76,50 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
         onClick={suppressMenuEvent}
         onContextMenu={suppressMenuEvent}
       >
-        <div
-          class={cn(
-            "contain-layout flex flex-col rounded-[14px] antialiased w-fit h-fit overflow-hidden [font-synthesis:none] [corner-shape:superellipse(1.25)]",
-            "bg-[var(--rg-panel-bg)]",
-          )}
+        <Menu.Panel
+          class="overflow-hidden"
           style={{ "min-width": `${TOOLBAR_MENU_MIN_WIDTH_PX}px` }}
         >
-          <div
-            ref={highlightContainerRef}
-            role="menu"
-            aria-orientation="vertical"
-            aria-label="Default action"
-            class="relative flex flex-col"
-          >
-            <div
-              ref={highlightRef}
-              aria-hidden="true"
-              class="pointer-events-none absolute opacity-0 transition-[top,left,width,height,opacity,border-radius] duration-75 ease-out bg-[var(--rg-surface-hover)]"
-            />
-            <For each={props.actions}>
-              {(action) => {
-                const isDefault = () => action.id === props.defaultActionId;
+          <Menu.Provider store={menuStore}>
+            <Menu.List label="Default action">
+              <For each={props.actions}>
+                {(action) => {
+                  const isDefault = () => action.id === props.defaultActionId;
 
-                return (
-                  <button
-                    data-react-grab-ignore-events
-                    data-react-grab-menu-item={action.id}
-                    type="button"
-                    role="menuitemradio"
-                    aria-checked={isDefault()}
-                    class="relative z-1 contain-layout flex items-center justify-between w-full px-2 py-1 cursor-pointer text-left border-none bg-transparent"
-                    onPointerDown={(event) => event.stopPropagation()}
-                    onPointerEnter={(event) => updateHighlight(event.currentTarget)}
-                    onPointerLeave={clearHighlight}
-                    onClick={(event) => handleActionClick(action, event)}
-                  >
-                    <span
-                      class={cn(
-                        "text-[13px] leading-4 font-sans font-medium",
-                        isDefault()
-                          ? "text-[var(--rg-text-primary)]"
-                          : "text-[var(--rg-text-secondary)]",
-                      )}
+                  return (
+                    <Menu.Item
+                      value={action.id}
+                      role="menuitemradio"
+                      checked={isDefault()}
+                      onSelect={() => {
+                        props.onSetDefaultAction(action.id);
+                        props.onDismiss();
+                      }}
                     >
-                      {action.label}
-                    </span>
-                    <Show when={action.shortcut}>
-                      {(shortcutKey) => (
-                        <ShortcutHint
-                          shortcut={shortcutKey()}
-                          modifier={action.shortcutModifier}
-                          class="text-[11px] font-sans text-[var(--rg-text-secondary)] ml-4"
-                        />
-                      )}
-                    </Show>
-                  </button>
-                );
-              }}
-            </For>
-          </div>
-        </div>
+                      <Menu.Label
+                        class={
+                          isDefault()
+                            ? "text-[var(--rg-text-primary)]"
+                            : "text-[var(--rg-text-secondary)]"
+                        }
+                      >
+                        {action.label}
+                      </Menu.Label>
+                      <Show when={action.shortcut}>
+                        {(shortcutKey) => (
+                          <Menu.Shortcut
+                            shortcut={shortcutKey()}
+                            modifier={action.shortcutModifier}
+                          />
+                        )}
+                      </Show>
+                    </Menu.Item>
+                  );
+                }}
+              </For>
+            </Menu.List>
+          </Menu.Provider>
+        </Menu.Panel>
       </div>
     </Show>
   );

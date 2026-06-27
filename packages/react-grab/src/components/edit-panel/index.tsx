@@ -40,6 +40,7 @@ import { isEventFromOverlay } from "../../utils/is-event-from-overlay.js";
 import { registerOverlayDismiss } from "../../utils/register-overlay-dismiss.js";
 import { suppressMenuEvent } from "../../utils/suppress-menu-event.js";
 import { TagBadge } from "../selection-label/tag-badge.js";
+import { Surface } from "../ui/surface.js";
 import { ActivePropertyControl } from "./active-property-control.js";
 import { HIDDEN_FOCUS_PRESERVING_STYLE } from "./constants.js";
 import { EditPanelCopyButton } from "./copy-button.js";
@@ -571,9 +572,9 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
         onClick={suppressMenuEvent}
         onContextMenu={suppressMenuEvent}
       >
-        <div
-          ref={panelSurfaceRef}
-          class="contain-layout flex flex-col justify-center items-start rounded-[14px] overflow-hidden antialiased w-fit h-fit [font-synthesis:none] [corner-shape:superellipse(1.25)] bg-[var(--rg-panel-bg)]"
+        <Surface
+          ref={(element) => (panelSurfaceRef = element)}
+          class="flex flex-col justify-center items-start overflow-hidden w-fit h-fit"
           style={{
             "min-width": isCompact() ? undefined : `${EDIT_PANEL_MIN_WIDTH_PX}px`,
             "max-width": `${EDIT_PANEL_MAX_WIDTH_PX}px`,
@@ -766,7 +767,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
               </div>
             )}
           </Show>
-        </div>
+        </Surface>
       </div>
     </Show>
   );

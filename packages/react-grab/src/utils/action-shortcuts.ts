@@ -1,7 +1,6 @@
 import type { ContextMenuAction } from "../types.js";
 
 interface FindShortcutActionOptions {
-  activeAction?: ContextMenuAction | null;
   includeModifierShortcuts?: boolean;
 }
 
@@ -17,7 +16,7 @@ export const findShortcutAction = (
   if (!event.key) return null;
 
   if (isEnterShortcut(event)) {
-    return options.activeAction ?? actions.find((action) => action.shortcut === "Enter") ?? null;
+    return actions.find((action) => action.shortcut === "Enter") ?? null;
   }
 
   if (event.repeat) return null;
