@@ -24,7 +24,7 @@ export const createVariants =
     for (const group in schema) {
       const chosen = selection[group] ?? config.defaultVariants?.[group];
       if (chosen === undefined) continue;
-      const className = schema[group][chosen as string];
+      const className = schema[group][String(chosen)];
       if (className) picked.push(className);
     }
     return cn(...picked);

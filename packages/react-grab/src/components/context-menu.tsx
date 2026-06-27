@@ -46,7 +46,7 @@ interface ContextMenuProps {
   onHide: () => void;
 }
 
-interface MenuItem {
+interface ContextMenuRow {
   label: string;
   action: () => void;
   enabled: boolean;
@@ -147,7 +147,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     return { left: positionLeft, top: positionTop, arrowLeft, arrowPosition };
   });
 
-  const menuItems = createMemo<MenuItem[]>(() => {
+  const menuItems = createMemo<ContextMenuRow[]>(() => {
     const pluginActions = props.actions ?? [];
     const context = props.actionContext;
 

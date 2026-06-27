@@ -15,9 +15,6 @@ interface MenuItemProps {
 export const MenuItem: Component<MenuItemProps> = (props) => {
   const store = useMenuStore();
   const domId = store.createItemId();
-  // Captured at mount so registration/cleanup stay keyed on a stable value
-  // even if the component instance is reused for a different row.
-  const itemValue = props.value;
   const role = (): "menuitem" | "menuitemradio" => props.role ?? "menuitem";
   const isEnabled = (): boolean => !props.disabled;
   const isActive = (): boolean => store.activeValue() === props.value;
@@ -27,13 +24,13 @@ export const MenuItem: Component<MenuItemProps> = (props) => {
   onMount(() => {
     if (!buttonElement) return;
     store.registerItem({
-      value: itemValue,
+      value: props.value,
       domId,
       element: buttonElement,
       isEnabled,
       onSelect: () => props.onSelect?.(),
     });
-    onCleanup(() => store.unregisterItem(itemValue));
+    onCleanup(() => store.unregisterItem(props.value));
   });
 
   return (
