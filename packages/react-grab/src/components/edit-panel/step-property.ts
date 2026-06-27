@@ -10,6 +10,7 @@ export const stepProperty = (
   property: EditableProperty,
   direction: 1 | -1,
   shift: boolean,
+  alt: boolean,
   designTokens?: DesignTokenResolver,
 ): number | string | null => {
   if (property.kind === "enum") {
@@ -26,9 +27,10 @@ export const stepProperty = (
   const upperBound = Math.max(property.max, property.value);
 
   // A plain arrow on a px property walks the project's token scale so values
-  // snap through the design system; Shift keeps the coarse raw step, and an
-  // off-scale value falls through to the raw step below so it never dead-ends.
-  if (!shift && property.unit === "px" && designTokens?.hasTokens) {
+  // snap through the design system. Both modifiers opt out of snapping for a
+  // raw step — Shift coarse (×10), Alt fine (±1) — and an off-scale value
+  // falls through to the raw step below so it never dead-ends.
+  if (!shift && !alt && property.unit === "px" && designTokens?.hasTokens) {
     const tokenStep = designTokens.stepLength(property.value, direction, property.cssProperties[0]);
     if (tokenStep !== null) {
       const clampedTokenStep = roundEditableNumericValue(

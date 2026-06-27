@@ -900,6 +900,23 @@ test.describe("Style Panel", () => {
         .toBe("25px");
     });
 
+    test("Alt+ArrowRight does a fine raw step instead of snapping to a token", async ({
+      reactGrab,
+    }) => {
+      await openEditPanel(reactGrab, UNIFORM_PADDING_SELECTOR);
+      await setSearchInputValue(reactGrab.page, "padding");
+      await expect.poll(() => getActivePropertyKey(reactGrab.page)).toBe("padding");
+
+      // Plain ArrowRight would snap 8px up to the 16px token; Alt opts out for
+      // a precise ±1px nudge so values can land between tokens.
+      await reactGrab.page.keyboard.down("Alt");
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.keyboard.up("Alt");
+      await expect
+        .poll(() => getInlineStyleProperty(reactGrab.page, UNIFORM_PADDING_SELECTOR, "padding-top"))
+        .toBe("9px");
+    });
+
     test("ArrowUp / ArrowDown navigate the list, not the value", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       const initialActivePropertyKey = await getActivePropertyKey(reactGrab.page);

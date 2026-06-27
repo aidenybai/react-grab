@@ -10,13 +10,14 @@ type Direction = 1 | -1;
 const getDirectionForKey = (key: ArrowKey): Direction => (key === "ArrowLeft" ? -1 : 1);
 
 interface StepControllerOptions {
-  step: (direction: Direction, shift: boolean, isRepeat: boolean) => void;
+  step: (direction: Direction, shift: boolean, alt: boolean, isRepeat: boolean) => void;
   isShiftHeld: Accessor<boolean>;
+  isAltHeld: Accessor<boolean>;
 }
 
 export interface StepController {
   readonly heldDirection: Accessor<-1 | 0 | 1>;
-  pressArrow: (key: ArrowKey, isRepeat: boolean, shiftKey: boolean) => void;
+  pressArrow: (key: ArrowKey, isRepeat: boolean, shiftKey: boolean, altKey: boolean) => void;
   releaseKey: (key: string) => void;
   cancelRepeat: () => void;
 }
@@ -46,17 +47,22 @@ export const createStepController = (options: StepControllerOptions): StepContro
     const direction = getDirectionForKey(key);
     repeatInitialDelayId = setTimeout(() => {
       repeatIntervalId = setInterval(() => {
-        options.step(direction, options.isShiftHeld(), true);
+        options.step(direction, options.isShiftHeld(), options.isAltHeld(), true);
       }, EDIT_STEP_REPEAT_INTERVAL_MS);
     }, EDIT_STEP_REPEAT_INITIAL_DELAY_MS);
   };
 
-  const pressArrow = (key: ArrowKey, isRepeat: boolean, shiftKey: boolean): void => {
+  const pressArrow = (
+    key: ArrowKey,
+    isRepeat: boolean,
+    shiftKey: boolean,
+    altKey: boolean,
+  ): void => {
     if (isRepeat) return;
     const direction = getDirectionForKey(key);
     startRepeat(key);
     setHeldDirection(direction);
-    options.step(direction, shiftKey, false);
+    options.step(direction, shiftKey, altKey, false);
   };
 
   const releaseKey = (key: string) => {
