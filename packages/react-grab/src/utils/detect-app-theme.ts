@@ -30,7 +30,7 @@ const LUMINANCE_DARK_THRESHOLD = 0.18;
 // it expects a dark surface behind it, so it reveals a dark theme.
 const LIGHT_TEXT_LUMINANCE_THRESHOLD = 0.5;
 
-const relativeLuminance = (red: number, green: number, blue: number): number => {
+const getRelativeLuminance = (red: number, green: number, blue: number): number => {
   const [linearRed, linearGreen, linearBlue] = [red, green, blue].map((channel) => {
     const normalized = channel / 255;
     return normalized <= 0.03928 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4;
@@ -42,22 +42,22 @@ const relativeLuminance = (red: number, green: number, blue: number): number => 
 // canvas, plus oklch via exact math) to a hex string, which `parseHexChannels`
 // turns into channels - covering modern computed values like `oklch(...)` that a
 // naive `rgb()` parse would miss.
-const luminanceOfColor = (color: string): number | null => {
+const getColorLuminance = (color: string): number | null => {
   const hex = parseAnyColor(color);
   const channels = hex ? parseHexChannels(hex) : null;
   // A fully transparent color tells us nothing about the rendered theme.
   if (!channels || channels.alpha === 0) return null;
-  return relativeLuminance(channels.red, channels.green, channels.blue);
+  return getRelativeLuminance(channels.red, channels.green, channels.blue);
 };
 
-const themeFromBackgroundColor = (color: string): AppTheme | null => {
-  const luminance = luminanceOfColor(color);
+const getThemeFromBackgroundColor = (color: string): AppTheme | null => {
+  const luminance = getColorLuminance(color);
   if (luminance === null) return null;
   return luminance < LUMINANCE_DARK_THRESHOLD ? "dark" : "light";
 };
 
-const themeFromElementBackground = (element: HTMLElement): AppTheme | null =>
-  themeFromBackgroundColor(getComputedStyle(element).backgroundColor);
+const getThemeFromElementBackground = (element: HTMLElement): AppTheme | null =>
+  getThemeFromBackgroundColor(getComputedStyle(element).backgroundColor);
 
 // When nothing is painted we can't read a wrapper-themed app's real backdrop,
 // but its text color still betrays the intent: near-white text only makes sense
@@ -65,8 +65,8 @@ const themeFromElementBackground = (element: HTMLElement): AppTheme | null =>
 // the page, unlike <body> which may opt into its own), and only conclude `dark`
 // - dark text is the default even on undeclared light pages, so it defers to the
 // Canvas backdrop instead.
-const themeFromRootForegroundText = (): AppTheme | null => {
-  const luminance = luminanceOfColor(getComputedStyle(document.documentElement).color);
+const getThemeFromRootForegroundText = (): AppTheme | null => {
+  const luminance = getColorLuminance(getComputedStyle(document.documentElement).color);
   if (luminance === null) return null;
   return luminance > LIGHT_TEXT_LUMINANCE_THRESHOLD ? "dark" : null;
 };
@@ -78,16 +78,16 @@ const themeFromRootForegroundText = (): AppTheme | null => {
 // stays light under the default `normal`). A throwaway probe attached under
 // <html> inherits the root scheme - deliberately not <body>, whose scheme does
 // not drive the canvas - and reads the precise color the browser paints.
-const themeFromCanvasBackdrop = (): AppTheme | null => {
-  const probe = document.createElement("div");
-  probe.style.cssText = "position:fixed;width:0;height:0;background-color:Canvas";
-  document.documentElement.appendChild(probe);
-  const theme = themeFromBackgroundColor(getComputedStyle(probe).backgroundColor);
-  probe.remove();
+const getThemeFromCanvasBackdrop = (): AppTheme | null => {
+  const probeElement = document.createElement("div");
+  probeElement.style.cssText = "position:fixed;width:0;height:0;background-color:Canvas";
+  document.documentElement.appendChild(probeElement);
+  const theme = getThemeFromBackgroundColor(getComputedStyle(probeElement).backgroundColor);
+  probeElement.remove();
   return theme;
 };
 
-const themeFromAttributeValue = (attributeValue: string): AppTheme | null => {
+const getThemeFromAttributeValue = (attributeValue: string): AppTheme | null => {
   const normalized = attributeValue.toLowerCase();
   if (normalized === "dark") return "dark";
   if (normalized === "light") return "light";
@@ -102,7 +102,7 @@ const getColorSchemeTokens = (element: HTMLElement): readonly string[] => {
 // `color-scheme` only forces a theme when it lists a single value. When it lists
 // both ("light dark") the active scheme follows the OS preference, not token
 // order, so we defer; `normal`/`auto` list neither and likewise defer.
-const themeFromColorSchemeOf = (element: HTMLElement): AppTheme | null => {
+const getThemeFromColorScheme = (element: HTMLElement): AppTheme | null => {
   const tokens = getColorSchemeTokens(element);
   const allowsDark = tokens.includes("dark");
   const allowsLight = tokens.includes("light");
@@ -113,15 +113,15 @@ const themeFromColorSchemeOf = (element: HTMLElement): AppTheme | null => {
 // Most frameworks mark the theme on <html> (Tailwind, next-themes), but some
 // put it on <body> (a few Bootstrap/MUI setups and hand-rolled apps), so both
 // roots are inspected.
-const themeFromElementMarkers = (element: HTMLElement): AppTheme | null => {
+const getThemeFromElementMarkers = (element: HTMLElement): AppTheme | null => {
   if (element.classList.contains("dark")) return "dark";
   if (element.classList.contains("light")) return "light";
 
   for (const attributeName of THEME_ATTRIBUTES) {
     const attributeValue = element.getAttribute(attributeName);
     if (!attributeValue) continue;
-    const result = themeFromAttributeValue(attributeValue);
-    if (result) return result;
+    const markerTheme = getThemeFromAttributeValue(attributeValue);
+    if (markerTheme) return markerTheme;
   }
 
   for (const { attribute, theme } of PRESENCE_ATTRIBUTES) {
@@ -131,13 +131,13 @@ const themeFromElementMarkers = (element: HTMLElement): AppTheme | null => {
   return null;
 };
 
-const firstThemeFromRoots = (
+const getFirstThemeFromRoots = (
   roots: readonly (HTMLElement | null)[],
-  classify: (element: HTMLElement) => AppTheme | null,
+  getThemeForElement: (element: HTMLElement) => AppTheme | null,
 ): AppTheme | null => {
   for (const root of roots) {
     if (!root) continue;
-    const theme = classify(root);
+    const theme = getThemeForElement(root);
     if (theme) return theme;
   }
   return null;
@@ -154,11 +154,11 @@ const detectTheme = (): AppTheme => {
   // dark wrapper, then the `Canvas` backdrop is the rendered truth; `light` is
   // only a last resort if neither can be read.
   return (
-    firstThemeFromRoots(rootFirst, themeFromElementMarkers) ??
-    firstThemeFromRoots(rootFirst, themeFromColorSchemeOf) ??
-    firstThemeFromRoots(bodyFirst, themeFromElementBackground) ??
-    themeFromRootForegroundText() ??
-    themeFromCanvasBackdrop() ??
+    getFirstThemeFromRoots(rootFirst, getThemeFromElementMarkers) ??
+    getFirstThemeFromRoots(rootFirst, getThemeFromColorScheme) ??
+    getFirstThemeFromRoots(bodyFirst, getThemeFromElementBackground) ??
+    getThemeFromRootForegroundText() ??
+    getThemeFromCanvasBackdrop() ??
     "light"
   );
 };
