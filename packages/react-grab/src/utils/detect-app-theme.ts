@@ -26,9 +26,12 @@ const PRESENCE_ATTRIBUTES: readonly { attribute: string; theme: AppTheme }[] = [
 ];
 
 const LUMINANCE_DARK_THRESHOLD = 0.18;
-// Text brighter than this is near-white; an app only paints near-white text when
-// it expects a dark surface behind it, so it reveals a dark theme.
-const LIGHT_TEXT_LUMINANCE_THRESHOLD = 0.5;
+// Text this light sits well above any light theme's (dark) body text, so it only
+// appears when the app paints onto a dark surface - revealing a dark theme.
+const LIGHT_TEXT_LUMINANCE_THRESHOLD = 0.6;
+// Faint text composites toward the backdrop, making its own color an unreliable
+// theme signal, so the foreground heuristic ignores anything more translucent.
+const OPAQUE_TEXT_MIN_ALPHA = 0.5;
 
 const getRelativeLuminance = (red: number, green: number, blue: number): number => {
   const [linearRed, linearGreen, linearBlue] = [red, green, blue].map((channel) => {
@@ -42,11 +45,12 @@ const getRelativeLuminance = (red: number, green: number, blue: number): number 
 // canvas, plus oklch via exact math) to a hex string, which `parseHexChannels`
 // turns into channels - covering modern computed values like `oklch(...)` that a
 // naive `rgb()` parse would miss.
-const getColorLuminance = (color: string): number | null => {
+const getColorLuminance = (color: string, minAlpha = 0): number | null => {
   const hex = parseAnyColor(color);
   const channels = hex ? parseHexChannels(hex) : null;
-  // A fully transparent color tells us nothing about the rendered theme.
-  if (!channels || channels.alpha === 0) return null;
+  // Too transparent to composite into a reliable signal - a fully transparent
+  // color tells us nothing, and faint text bleeds into whatever sits behind it.
+  if (!channels || channels.alpha <= minAlpha) return null;
   return getRelativeLuminance(channels.red, channels.green, channels.blue);
 };
 
@@ -60,13 +64,16 @@ const getThemeFromElementBackground = (element: HTMLElement): AppTheme | null =>
   getThemeFromBackgroundColor(getComputedStyle(element).backgroundColor);
 
 // When nothing is painted we can't read a wrapper-themed app's real backdrop,
-// but its text color still betrays the intent: near-white text only makes sense
-// over a dark surface. Read it from the root (whose used `color-scheme` governs
-// the page, unlike <body> which may opt into its own), and only conclude `dark`
-// - dark text is the default even on undeclared light pages, so it defers to the
-// Canvas backdrop instead.
+// but its text color still betrays the intent: light text only makes sense over
+// a dark surface. Read it from the root (whose used `color-scheme` governs the
+// page, unlike <body> which may opt into its own), require a near-opaque color,
+// and only conclude `dark` - dark text is the default even on undeclared light
+// pages, so it defers to the Canvas backdrop instead.
 const getThemeFromRootForegroundText = (): AppTheme | null => {
-  const luminance = getColorLuminance(getComputedStyle(document.documentElement).color);
+  const luminance = getColorLuminance(
+    getComputedStyle(document.documentElement).color,
+    OPAQUE_TEXT_MIN_ALPHA,
+  );
   if (luminance === null) return null;
   return luminance > LIGHT_TEXT_LUMINANCE_THRESHOLD ? "dark" : null;
 };
@@ -80,7 +87,10 @@ const getThemeFromRootForegroundText = (): AppTheme | null => {
 // not drive the canvas - and reads the precise color the browser paints.
 const getThemeFromCanvasBackdrop = (): AppTheme | null => {
   const probeElement = document.createElement("div");
-  probeElement.style.cssText = "position:fixed;width:0;height:0;background-color:Canvas";
+  // Inline `!important` outranks any author `!important` rule that might target
+  // the probe (e.g. a global `div { background: ... !important }`) and corrupt
+  // the Canvas read.
+  probeElement.style.cssText = "position:fixed;width:0;height:0;background-color:Canvas!important";
   document.documentElement.appendChild(probeElement);
   const theme = getThemeFromBackgroundColor(getComputedStyle(probeElement).backgroundColor);
   probeElement.remove();

@@ -345,6 +345,32 @@ const FRAMEWORK_SCENARIOS: ThemeScenario[] = [
     },
     expected: OVERLAY_THEME_ON_LIGHT_APP,
   },
+  {
+    title: "translucent light root text is ignored (it composites toward the backdrop)",
+    os: "light",
+    mutate: () => {
+      document.documentElement.style.color = "rgba(229, 229, 229, 0.3)";
+    },
+    expected: OVERLAY_THEME_ON_LIGHT_APP,
+  },
+  {
+    title: "mid-gray root text is not over-classified as a dark theme",
+    os: "light",
+    mutate: () => {
+      document.documentElement.style.color = "rgb(150, 150, 150)";
+    },
+    expected: OVERLAY_THEME_ON_LIGHT_APP,
+  },
+  {
+    title: "a global `!important` background rule cannot corrupt the Canvas probe",
+    os: "light",
+    mutate: () => {
+      const styleElement = document.createElement("style");
+      styleElement.textContent = "div { background-color: rgb(0, 0, 0) !important }";
+      document.head.appendChild(styleElement);
+    },
+    expected: OVERLAY_THEME_ON_LIGHT_APP,
+  },
 ];
 
 test.describe("App Theme Detection - framework conventions", () => {
