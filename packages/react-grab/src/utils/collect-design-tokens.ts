@@ -106,6 +106,40 @@ const preferToken = (candidate: string, incumbent: string | null): boolean => {
   return candidate < incumbent;
 };
 
+// Discrete scales (Radix/Chakra spacing, Tailwind `--text-*`, …) snap to the
+// neighbouring token; an off-scale value returns null so the caller can fall
+// back to a raw step instead of teleporting across the scale.
+const nextValueInScale = (
+  scale: readonly number[],
+  current: number,
+  direction: 1 | -1,
+): number | null => {
+  if (current > scale[scale.length - 1]) return null;
+  if (direction === 1) {
+    // The first token greater than current also pulls a below-scale value
+    // (8px under a 16px floor) up onto the scale.
+    for (const value of scale) {
+      if (value > current) return value;
+    }
+    return null;
+  }
+  // Below the smallest token there is no lower token to snap down to.
+  if (current <= scale[0]) return null;
+  for (let scaleIndex = scale.length - 1; scaleIndex >= 0; scaleIndex--) {
+    if (scale[scaleIndex] < current) return scale[scaleIndex];
+  }
+  return null;
+};
+
+// Tailwind exposes spacing/sizing as `calc(var(--spacing) * N)` with a single
+// base unit rather than discrete tokens, so the arrows walk that grid.
+const nextValueOnGrid = (current: number, direction: 1 | -1, unitPx: number): number | null => {
+  const gridIndex =
+    direction === 1 ? Math.floor(current / unitPx) + 1 : Math.ceil(current / unitPx) - 1;
+  const next = gridIndex * unitPx;
+  return next < 0 ? null : next;
+};
+
 const collectCustomPropertyNames = (): Set<string> => {
   const names = new Set<string>();
   for (const styleSheet of Array.from(document.styleSheets)) {
@@ -197,38 +231,10 @@ export const collectDesignTokens = (element: Element): DesignTokenResolver => {
     if (family === null) return null;
     const current = Math.round(px);
 
-    // A discrete token scale (Radix/Chakra spacing, Tailwind `--text-*`, …)
-    // wins when present: snap to its neighbours and defer off-scale values to
-    // the raw step.
     const scale = sortedLengthPxByFamily.get(family);
-    if (scale && scale.length >= 2) {
-      // Above the largest token the user is fine-tuning past the scale.
-      if (current > scale[scale.length - 1]) return null;
-      if (direction === 1) {
-        // The first token greater than current also pulls a below-scale value
-        // (8px under a 16px floor) up onto the scale.
-        for (const value of scale) {
-          if (value > current) return value;
-        }
-        return null;
-      }
-      // Below the smallest token there is no lower token to snap down to.
-      if (current <= scale[0]) return null;
-      for (let scaleIndex = scale.length - 1; scaleIndex >= 0; scaleIndex--) {
-        if (scale[scaleIndex] < current) return scale[scaleIndex];
-      }
-      return null;
-    }
-
-    // No discrete scale: walk Tailwind's spacing/sizing grid (multiples of the
-    // `--spacing` base unit) so the arrows still move by the design system step.
+    if (scale && scale.length >= 2) return nextValueInScale(scale, current, direction);
     if ((family === "spacing" || family === "size") && spacingBaseUnitPx) {
-      const gridIndex =
-        direction === 1
-          ? Math.floor(current / spacingBaseUnitPx) + 1
-          : Math.ceil(current / spacingBaseUnitPx) - 1;
-      const next = gridIndex * spacingBaseUnitPx;
-      return next < 0 ? null : next;
+      return nextValueOnGrid(current, direction, spacingBaseUnitPx);
     }
     return null;
   };

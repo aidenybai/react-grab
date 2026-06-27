@@ -29,7 +29,15 @@ const tokenForDeclaration = (
   return null;
 };
 
-const formatEntryCss = (pendingEditsEntry: PendingEditsEntry): string[] => {
+interface FormattedEntry {
+  header: string;
+  cssLines: string[];
+  usesToken: boolean;
+}
+
+const formatEntryCss = (
+  pendingEditsEntry: PendingEditsEntry,
+): { lines: string[]; usesToken: boolean } => {
   const declarationByCssProperty = new Map<string, CssDeclaration>();
   for (const pendingEdit of pendingEditsEntry.edits) {
     const cssValue = formatCssValue(pendingEdit);
@@ -37,41 +45,34 @@ const formatEntryCss = (pendingEditsEntry: PendingEditsEntry): string[] => {
       declarationByCssProperty.set(cssProperty, { edit: pendingEdit, cssValue });
     }
   }
-  return Array.from(declarationByCssProperty, ([cssProperty, declaration]) => {
+  let usesToken = false;
+  const lines = Array.from(declarationByCssProperty, ([cssProperty, declaration]) => {
     const tokenName = tokenForDeclaration(cssProperty, declaration, pendingEditsEntry.designTokens);
+    if (tokenName) usesToken = true;
     const tokenHint = tokenName ? ` /* var(${tokenName}) */` : "";
     return `${cssProperty}: ${declaration.cssValue};${tokenHint}`;
   });
+  return { lines, usesToken };
 };
-
-const TOKEN_HINT_MARKER = "/* var(";
 
 const formatEntryHeader = (pendingEditsEntry: PendingEditsEntry): string =>
   pendingEditsEntry.filePath ? `${pendingEditsEntry.filePath}:${pendingEditsEntry.lineNumber}` : "";
 
 const wrapCssBlock = (cssLines: string[]): string => ["```css", ...cssLines, "```"].join("\n");
 
-interface FormattedEntry {
-  header: string;
-  cssLines: string[];
-}
-
 export const formatSessionEditsPrompt = (pendingEditsEntries: PendingEditsEntry[]): string => {
   if (pendingEditsEntries.length === 0) return "";
 
-  const formattedEntries: FormattedEntry[] = pendingEditsEntries.map((pendingEditsEntry) => ({
-    header: formatEntryHeader(pendingEditsEntry),
-    cssLines: formatEntryCss(pendingEditsEntry),
-  }));
+  const formattedEntries: FormattedEntry[] = pendingEditsEntries.map((pendingEditsEntry) => {
+    const { lines, usesToken } = formatEntryCss(pendingEditsEntry);
+    return { header: formatEntryHeader(pendingEditsEntry), cssLines: lines, usesToken };
+  });
 
   const sections: string[] = [
     "Apply these style changes canonically (CSS = visual intent; choose the source change that best expresses the underlying layout intent):",
   ];
 
-  const hasTokenHint = formattedEntries.some((entry) =>
-    entry.cssLines.some((line) => line.includes(TOKEN_HINT_MARKER)),
-  );
-  if (hasTokenHint) {
+  if (formattedEntries.some((entry) => entry.usesToken)) {
     sections.push(
       "Prefer the design token shown in each `/* var(--token) */` comment over the raw value when it matches the project's intent.",
     );
