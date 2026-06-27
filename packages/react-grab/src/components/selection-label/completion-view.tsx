@@ -1,8 +1,7 @@
-import { createSignal, onCleanup, onMount, Show, type Component } from "solid-js";
+import { createSignal, onCleanup, Show, type Component } from "solid-js";
 import type { CompletionViewProps } from "../../types.js";
 import { FEEDBACK_DURATION_MS, FADE_DURATION_MS } from "../../constants.js";
-import { confirmationFocusManager } from "../../utils/confirmation-focus-manager.js";
-import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
+import { createConfirmationKeyboard } from "../../utils/create-confirmation-keyboard.js";
 import { IconReturn } from "../icons/icon-return.jsx";
 import { IconEllipsis } from "../icons/icon-ellipsis.jsx";
 import { cn } from "../../utils/cn.js";
@@ -40,7 +39,6 @@ const MoreOptionsButton: Component<MoreOptionsButtonProps> = (props) => {
 };
 
 export const CompletionView: Component<CompletionViewProps> = (props) => {
-  const instanceId = Symbol();
   let fadeTimeoutId: number | undefined;
   let dismissTimeoutId: number | undefined;
   const [didCopy, setDidCopy] = createSignal(false);
@@ -67,37 +65,20 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
     }, FEEDBACK_DURATION_MS - FADE_DURATION_MS);
   };
 
-  const handleKeyDown = (event: KeyboardEvent) => {
-    if (!confirmationFocusManager.isActive(instanceId)) return;
-
-    const isEnter = event.code === "Enter";
-    const isEscape = event.code === "Escape";
-
-    if (isKeyboardEventTriggeredByInput(event)) return;
-
-    if (isEnter) {
+  const { claimFocus } = createConfirmationKeyboard({
+    onEnter: (event) => {
       event.preventDefault();
       event.stopPropagation();
       handleAccept();
-    } else if (isEscape) {
+    },
+    onEscape: (event) => {
       event.preventDefault();
       event.stopPropagation();
       props.onDismiss?.();
-    }
-  };
-
-  const handleFocus = () => {
-    confirmationFocusManager.claim(instanceId);
-  };
-
-  onMount(() => {
-    confirmationFocusManager.claim(instanceId);
-    window.addEventListener("keydown", handleKeyDown, { capture: true });
+    },
   });
 
   onCleanup(() => {
-    confirmationFocusManager.release(instanceId);
-    window.removeEventListener("keydown", handleKeyDown, { capture: true });
     if (fadeTimeoutId !== undefined) window.clearTimeout(fadeTimeoutId);
     if (dismissTimeoutId !== undefined) window.clearTimeout(dismissTimeoutId);
   });
@@ -111,8 +92,8 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
       aria-atomic="true"
       class="shrink-0 flex flex-col justify-center items-end w-fit h-fit max-w-[280px] transition-opacity duration-100 ease-out"
       style={{ opacity: isFading() ? 0 : 1 }}
-      onPointerDown={handleFocus}
-      onClick={handleFocus}
+      onPointerDown={claimFocus}
+      onClick={claimFocus}
     >
       <Show when={!didCopy() && props.onDismiss}>
         <div class="contain-layout shrink-0 flex items-center justify-between gap-2 pt-1.5 pb-1 px-2 w-full h-fit">
