@@ -15,6 +15,7 @@ const THEME_ATTRIBUTES = [
   "data-color-scheme",
   "data-bs-theme",
   "data-mui-color-scheme",
+  "data-mantine-color-scheme",
 ] as const;
 
 // MUI with `colorSchemeSelector: 'data'` sets bare presence attributes
