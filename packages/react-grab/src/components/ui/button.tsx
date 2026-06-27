@@ -27,7 +27,7 @@ export const Button: Component<ButtonProps> = (props) => {
   return (
     <button
       type={local.type ?? "button"}
-      class={cn(buttonVariants({ variant: local.variant ?? "chip" }), local.class)}
+      class={cn(buttonVariants({ variant: local.variant }), local.class)}
       {...rest}
     />
   );

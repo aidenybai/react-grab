@@ -21,7 +21,5 @@ interface SurfaceProps extends JSX.HTMLAttributes<HTMLDivElement> {
 
 export const Surface: Component<SurfaceProps> = (props) => {
   const [local, rest] = splitProps(props, ["shape", "class"]);
-  return (
-    <div class={cn(surfaceVariants({ shape: local.shape ?? "panel" }), local.class)} {...rest} />
-  );
+  return <div class={cn(surfaceVariants({ shape: local.shape }), local.class)} {...rest} />;
 };

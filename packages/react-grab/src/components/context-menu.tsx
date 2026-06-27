@@ -47,6 +47,7 @@ interface ContextMenuProps {
 }
 
 interface ContextMenuRow {
+  id: string;
   label: string;
   action: () => void;
   enabled: boolean;
@@ -152,6 +153,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     const context = props.actionContext;
 
     return pluginActions.map((action) => ({
+      id: action.id,
       label: action.label,
       action: () => {
         if (context) {
@@ -334,7 +336,8 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
                 <For each={menuItems()}>
                   {(item) => (
                     <Menu.Item
-                      value={item.label.toLowerCase()}
+                      value={item.id}
+                      dataId={item.label.toLowerCase()}
                       disabled={!item.enabled}
                       onSelect={() => {
                         item.action();

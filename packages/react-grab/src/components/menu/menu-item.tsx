@@ -4,6 +4,10 @@ import { useMenuStore } from "./menu-context.js";
 
 interface MenuItemProps {
   value: string;
+  // Test/debug hook rendered as data-react-grab-menu-item. Defaults to
+  // `value`; pass explicitly when the store identity must stay unique but the
+  // attribute should read as something else (e.g. a human label).
+  dataId?: string;
   role?: "menuitem" | "menuitemradio";
   disabled?: boolean;
   checked?: boolean;
@@ -38,7 +42,7 @@ export const MenuItem: Component<MenuItemProps> = (props) => {
       ref={buttonElement}
       id={domId}
       data-react-grab-ignore-events
-      data-react-grab-menu-item={props.value}
+      data-react-grab-menu-item={props.dataId ?? props.value}
       type="button"
       role={role()}
       aria-checked={role() === "menuitemradio" ? Boolean(props.checked) : undefined}
