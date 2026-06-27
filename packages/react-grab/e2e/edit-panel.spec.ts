@@ -836,9 +836,12 @@ test.describe("Style Panel", () => {
       await reactGrab.page.waitForTimeout(80);
       expect(await getActivePropertyValue(reactGrab.page)).toBe("200px");
 
-      // ArrowLeft → 199 proves the step came off the real 200, not a
-      // clamp to the 96px max (which would land on 95).
+      // Alt opts out of token snapping for a raw step: ArrowLeft → 199 proves
+      // the step came off the real 200, not a clamp to the 96px max (which
+      // would land on 95).
+      await reactGrab.page.keyboard.down("Alt");
       await reactGrab.page.keyboard.press("ArrowLeft");
+      await reactGrab.page.keyboard.up("Alt");
       await expect.poll(() => getActivePropertyValue(reactGrab.page)).toBe("199px");
     });
 

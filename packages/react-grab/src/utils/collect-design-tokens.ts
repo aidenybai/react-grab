@@ -116,17 +116,16 @@ const nextValueInScale = (
   current: number,
   direction: 1 | -1,
 ): number | null => {
-  if (current > scale[scale.length - 1]) return null;
   if (direction === 1) {
-    // The first token greater than current also pulls a below-scale value
-    // (8px under a 16px floor) up onto the scale.
+    // First token above current. Also pulls a below-scale value up onto the
+    // floor; yields null past the top token so the caller falls back to raw.
     for (const value of scale) {
       if (value > current) return value;
     }
     return null;
   }
-  // Below the smallest token there is no lower token to snap down to.
-  if (current <= scale[0]) return null;
+  // First token below current. Also pulls an above-scale value down onto the
+  // top token; yields null past the floor so the caller falls back to raw.
   for (let scaleIndex = scale.length - 1; scaleIndex >= 0; scaleIndex--) {
     if (scale[scaleIndex] < current) return scale[scaleIndex];
   }
