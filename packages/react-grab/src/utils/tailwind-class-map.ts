@@ -275,14 +275,14 @@ export const normalizeTailwindClassInput = (query: string): string =>
 const isTailwindArbitraryColor = (value: string): boolean =>
   CSS_COLOR_ARBITRARY_PATTERN.test(value) && !CSS_LENGTH_ARBITRARY_PATTERN.test(value);
 
-const tailwindClassTail = (baseClassName: string, prefix: string): string | null => {
+const getTailwindClassTail = (baseClassName: string, prefix: string): string | null => {
   if (baseClassName === prefix) return "";
   const prefixWithSeparator = `${prefix}-`;
   if (!baseClassName.startsWith(prefixWithSeparator)) return null;
   return baseClassName.slice(prefixWithSeparator.length);
 };
 
-export const tailwindColorPropertyForClassName = (className: string): string | null => {
+export const getTailwindColorPropertyForClassName = (className: string): string | null => {
   const baseClassName = stripTailwindModifiers(normalizeTailwindClassInput(className));
   const prefix = matchTailwindPrefix(baseClassName);
   if (!prefix) return null;
@@ -295,7 +295,7 @@ export const tailwindColorPropertyForClassName = (className: string): string | n
     return isTailwindArbitraryColor(arbitraryValue) ? propertyKey : null;
   }
 
-  const tail = tailwindClassTail(baseClassName, prefix);
+  const tail = getTailwindClassTail(baseClassName, prefix);
   if (tail === null) return null;
   if (prefix === "bg" && tail === "") return propertyKey;
   if ((prefix === "fill" || prefix === "stroke") && tail === "") return propertyKey;
@@ -313,13 +313,13 @@ const TAILWIND_KEYWORD_COLOR_HEX: Partial<Record<string, string>> = {
 // Returns null for arbitrary values, theme tokens (primary/accent/…), the
 // `current`/`inherit` keywords, and prefix-only classes (`bg`) — none of
 // which map to a fixed palette hex.
-export const tailwindNamedColorHex = (className: string): string | null => {
+export const getTailwindNamedColorHex = (className: string): string | null => {
   const baseClassName = stripTailwindModifiers(normalizeTailwindClassInput(className));
   const prefix = matchTailwindPrefix(baseClassName);
   if (!prefix || TAILWIND_COLOR_PREFIX_TO_PROPERTY[prefix] === undefined) return null;
   if (baseClassName.includes("[")) return null;
 
-  const tail = tailwindClassTail(baseClassName, prefix);
+  const tail = getTailwindClassTail(baseClassName, prefix);
   if (!tail) return null;
 
   const keywordHex = TAILWIND_KEYWORD_COLOR_HEX[tail];
@@ -412,25 +412,25 @@ const TAILWIND_CLASS_TO_ENUM_VALUE: Partial<Record<string, TailwindEnumValueMapp
   "border-none": { property: "border-style", value: "none" },
 };
 
-export const tailwindPropertyKeysForSearchQuery = (query: string): string[] => {
+export const getTailwindPropertyKeysForSearchQuery = (query: string): string[] => {
   const normalizedQuery = normalizeTailwindClassInput(query);
   if (!normalizedQuery) return [];
 
   const enumMapping = tailwindClassToEnumValue(normalizedQuery);
   if (enumMapping) return [enumMapping.property];
 
-  const colorPropertyKey = tailwindColorPropertyForClassName(normalizedQuery);
+  const colorPropertyKey = getTailwindColorPropertyForClassName(normalizedQuery);
   if (colorPropertyKey) return [colorPropertyKey];
   return [];
 };
 
-export const tailwindPrefixPropertyKeysForSearchQuery = (query: string): string[] => {
+export const getTailwindPrefixPropertyKeysForSearchQuery = (query: string): string[] => {
   const normalizedQuery = normalizeTailwindClassInput(query);
   if (!normalizedQuery) return [];
 
   const prefix = matchTailwindPrefix(normalizedQuery);
   if (!prefix) return [];
-  const tail = tailwindClassTail(stripTailwindModifiers(normalizedQuery), prefix);
+  const tail = getTailwindClassTail(stripTailwindModifiers(normalizedQuery), prefix);
   if (tail === null || !isTailwindPrefixFallbackValue(prefix, tail)) return [];
   const prefixPropertyKey = tailwindPrefixToProperty(prefix);
   return prefixPropertyKey ? [prefixPropertyKey] : [];
@@ -458,7 +458,7 @@ export const getElementTailwindProperties = (element: Element): Set<string> => {
   return properties;
 };
 
-export const tailwindAliasesForProperty = (property: string): string[] =>
+export const getTailwindAliasesForProperty = (property: string): string[] =>
   PROPERTY_ALIASES[property] ?? [];
 
 export const tailwindPrefixToProperty = (prefix: string): string | null => {

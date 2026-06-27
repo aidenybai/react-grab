@@ -15,8 +15,8 @@ import { splitNegativePrefix } from "../../utils/split-negative-prefix.js";
 import {
   normalizeTailwindClassInput,
   tailwindClassToEnumValue,
-  tailwindColorPropertyForClassName,
-  tailwindNamedColorHex,
+  getTailwindColorPropertyForClassName,
+  getTailwindNamedColorHex,
   tailwindPrefixToProperty,
 } from "../../utils/tailwind-class-map.js";
 
@@ -78,7 +78,7 @@ const cleanArbitraryValue = (rawValue: string): string => {
   return /(?:var|url)\(/i.test(value) ? value : value.replace(/_/g, " ");
 };
 
-const arbitraryPrefix = (rawPrefix: string): string => {
+const getArbitraryPrefix = (rawPrefix: string): string => {
   const lastVariantColon = rawPrefix.lastIndexOf(":");
   const withoutVariant = lastVariantColon >= 0 ? rawPrefix.slice(lastVariantColon + 1) : rawPrefix;
   const withoutImportant = withoutVariant.startsWith("!")
@@ -113,7 +113,7 @@ const findNumericLonghands = (
   return Array.from(matchedByRowKey.values());
 };
 
-const clampedFor = (property: NumericEditableProperty, candidate: number): number =>
+const getClampedValue = (property: NumericEditableProperty, candidate: number): number =>
   roundEditableNumericValue(clampToRange(candidate, property.min, property.max));
 
 interface TailwindAutoApplyOptions {
@@ -196,7 +196,7 @@ export const createTailwindAutoApply = (
     if (parsed.unit !== "" && parsed.unit !== propertyUnit) {
       return isUnitDraftForProperty(parsed.unit, property.unit);
     }
-    const nextValue = clampedFor(property, parsed.value);
+    const nextValue = getClampedValue(property, parsed.value);
     if (nextValue !== property.value) commit(property, nextValue);
     return true;
   };
@@ -207,7 +207,7 @@ export const createTailwindAutoApply = (
       // px lengths only apply to px-measured props, not opacity/z-index.
       if (numericTarget.unit !== "px") return false;
       setIsCompact(true);
-      commit(numericTarget, clampedFor(numericTarget, value), { shouldCompact: true });
+      commit(numericTarget, getClampedValue(numericTarget, value), { shouldCompact: true });
       return true;
     }
     const sideProperties = findNumericLonghands(initialProperties, propertyKey);
@@ -215,7 +215,7 @@ export const createTailwindAutoApply = (
     setIsCompact(true);
     batch(() => {
       for (const sideProperty of sideProperties) {
-        commit(sideProperty, clampedFor(sideProperty, value), { shouldCompact: true });
+        commit(sideProperty, getClampedValue(sideProperty, value), { shouldCompact: true });
       }
     });
     return true;
@@ -226,12 +226,12 @@ export const createTailwindAutoApply = (
   // (`bg-red-500`, resolved here). A null arbitraryValue means "resolve
   // the named token".
   const applyColorClass = (rawClass: string, arbitraryValue: string | null): boolean => {
-    const colorCssKey = tailwindColorPropertyForClassName(rawClass);
+    const colorCssKey = getTailwindColorPropertyForClassName(rawClass);
     if (!colorCssKey) return false;
     const colorTarget = findColor(initialProperties, colorCssKey);
     if (!colorTarget) return false;
     const colorHex =
-      arbitraryValue === null ? tailwindNamedColorHex(rawClass) : parseAnyColor(arbitraryValue);
+      arbitraryValue === null ? getTailwindNamedColorHex(rawClass) : parseAnyColor(arbitraryValue);
     if (!colorHex) return false;
     setIsCompact(true);
     commit(colorTarget, colorHex, { shouldCompact: true });
@@ -249,7 +249,7 @@ export const createTailwindAutoApply = (
     const lengthPx = parseArbitraryLengthPx(value, ARBITRARY_LENGTH_HINT.test(rawValue.trim()));
     if (lengthPx === null) return false;
     const { isNegative, base: basePrefix } = splitNegativePrefix(arbitraryMatch[1]);
-    const propertyKey = tailwindPrefixToProperty(arbitraryPrefix(basePrefix));
+    const propertyKey = tailwindPrefixToProperty(getArbitraryPrefix(basePrefix));
     return propertyKey ? commitLengthPx(propertyKey, isNegative ? -lengthPx : lengthPx) : false;
   };
 
@@ -293,7 +293,7 @@ export const createTailwindAutoApply = (
 
     const numericTarget = findNumeric(initialProperties, propertyKey);
     if (numericTarget) {
-      commit(numericTarget, clampedFor(numericTarget, candidate), { shouldCompact: true });
+      commit(numericTarget, getClampedValue(numericTarget, candidate), { shouldCompact: true });
       return;
     }
 
@@ -316,7 +316,7 @@ export const createTailwindAutoApply = (
     if (sideProperties.length === 0) return;
     batch(() => {
       for (const sideProperty of sideProperties) {
-        commit(sideProperty, clampedFor(sideProperty, candidate), { shouldCompact: true });
+        commit(sideProperty, getClampedValue(sideProperty, candidate), { shouldCompact: true });
       }
     });
   };

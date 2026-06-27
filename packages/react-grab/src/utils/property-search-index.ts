@@ -11,8 +11,8 @@ import {
 import type { EditableProperty } from "../types.js";
 import { isNumericQuery } from "./is-numeric-query.js";
 import {
-  tailwindPrefixPropertyKeysForSearchQuery,
-  tailwindPropertyKeysForSearchQuery,
+  getTailwindPrefixPropertyKeysForSearchQuery,
+  getTailwindPropertyKeysForSearchQuery,
 } from "./tailwind-class-map.js";
 
 interface PropertySearchEntry {
@@ -35,7 +35,7 @@ export interface PropertySearchIndex {
 const normalizeSearchText = (value: string): string =>
   value.toLowerCase().replace(/[^a-z0-9]+/g, "");
 
-const enumOptionTexts = (property: EditableProperty): readonly string[] => {
+const getEnumOptionTexts = (property: EditableProperty): readonly string[] => {
   if (property.kind !== "enum") return [];
   const optionSearchTerms: string[] = [];
   for (const option of property.options) {
@@ -57,7 +57,7 @@ const createSearchEntries = (properties: readonly EditableProperty[]): PropertyS
         searchEntries.push({ property, originalIndex, kind: "alias", term: normalizedAlias });
       }
     }
-    for (const optionSearchTerm of enumOptionTexts(property)) {
+    for (const optionSearchTerm of getEnumOptionTexts(property)) {
       searchEntries.push({
         property,
         originalIndex,
@@ -142,12 +142,12 @@ export const createPropertySearchIndex = (properties: EditableProperty[]): Prope
     const candidatesByKey = new Map<string, PropertySearchCandidate>();
     addPropertyKeyCandidates(
       candidatesByKey,
-      tailwindPropertyKeysForSearchQuery(query),
+      getTailwindPropertyKeysForSearchQuery(query),
       EDIT_SEARCH_TAILWIND_INTENT_SCORE,
     );
     addPropertyKeyCandidates(
       candidatesByKey,
-      tailwindPrefixPropertyKeysForSearchQuery(query),
+      getTailwindPrefixPropertyKeysForSearchQuery(query),
       EDIT_SEARCH_TAILWIND_PREFIX_SCORE,
     );
     for (const searchEntry of searchEntries) {
