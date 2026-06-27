@@ -6,7 +6,7 @@ import { formatDisplayValue } from "../../utils/format-css-value.js";
 import { ActivePropertyControl } from "./active-property-control.js";
 import { narrowColor, narrowEnum, narrowNumeric } from "./narrow-property.js";
 
-const enumDisplayValue = (property: EditableProperty): string => {
+const getEnumDisplayValue = (property: EditableProperty): string => {
   const enumProperty = narrowEnum(property);
   if (!enumProperty) return "";
   return (
@@ -215,7 +215,7 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
                       <Match when={narrowEnum(property())}>
                         {(enumProp) => (
                           <span class="text-[11px] font-sans text-[var(--rg-text-secondary)] shrink-0">
-                            {enumDisplayValue(enumProp())}
+                            {getEnumDisplayValue(enumProp())}
                           </span>
                         )}
                       </Match>

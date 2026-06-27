@@ -7,7 +7,7 @@ import {
 type ArrowKey = "ArrowLeft" | "ArrowRight";
 type Direction = 1 | -1;
 
-const directionFor = (key: ArrowKey): Direction => (key === "ArrowLeft" ? -1 : 1);
+const getDirectionForKey = (key: ArrowKey): Direction => (key === "ArrowLeft" ? -1 : 1);
 
 interface StepControllerOptions {
   step: (direction: Direction, shift: boolean, isRepeat: boolean) => void;
@@ -43,7 +43,7 @@ export const createStepController = (options: StepControllerOptions): StepContro
   const startRepeat = (key: ArrowKey) => {
     clearRepeatTimers();
     pressedArrowKey = key;
-    const direction = directionFor(key);
+    const direction = getDirectionForKey(key);
     repeatInitialDelayId = setTimeout(() => {
       repeatIntervalId = setInterval(() => {
         options.step(direction, options.isShiftHeld(), true);
@@ -53,7 +53,7 @@ export const createStepController = (options: StepControllerOptions): StepContro
 
   const pressArrow = (key: ArrowKey, isRepeat: boolean, shiftKey: boolean): void => {
     if (isRepeat) return;
-    const direction = directionFor(key);
+    const direction = getDirectionForKey(key);
     startRepeat(key);
     setHeldDirection(direction);
     options.step(direction, shiftKey, false);

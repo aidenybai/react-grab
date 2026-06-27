@@ -11,7 +11,7 @@ import { parseAnyColor } from "./parse-any-color.js";
 import { parseHexChannels } from "./parse-color.js";
 import type { NumericValue } from "./parse-numeric-value.js";
 import type { AggregateDefinition, EnumPropertyDefinition } from "./property-definitions.js";
-import { tailwindAliasesForProperty } from "./tailwind-class-map.js";
+import { getTailwindAliasesForProperty } from "./tailwind-class-map.js";
 
 export const buildNumericProperty = (
   definition: AggregateDefinition,
@@ -43,7 +43,7 @@ export const buildNumericProperty = (
     value,
     original: value,
     unit: normalized.unit,
-    tailwindAliases: tailwindAliasesForProperty(definition.key),
+    tailwindAliases: getTailwindAliasesForProperty(definition.key),
     isPrioritized: false,
     isDefault: false,
     isCanonical,
@@ -68,7 +68,7 @@ export const buildColorProperty = (
     cssProperties: [cssKey],
     value,
     original: value,
-    tailwindAliases: tailwindAliasesForProperty(cssKey),
+    tailwindAliases: getTailwindAliasesForProperty(cssKey),
     isPrioritized: alwaysShow,
     isDefault: false,
     isCanonical: true,
@@ -92,7 +92,7 @@ export const buildEnumProperty = (
     value: trimmedCssValue,
     original: trimmedCssValue,
     options,
-    tailwindAliases: tailwindAliasesForProperty(definition.key),
+    tailwindAliases: getTailwindAliasesForProperty(definition.key),
     isPrioritized: false,
     isDefault: false,
     isCanonical: true,
