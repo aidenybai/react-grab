@@ -1,0 +1,67 @@
+import { onCleanup, onMount, type Component, type JSX } from "solid-js";
+import { cn } from "../../utils/cn.js";
+import { useMenuStore } from "./menu-context.js";
+
+interface MenuItemProps {
+  value: string;
+  role?: "menuitem" | "menuitemradio";
+  disabled?: boolean;
+  checked?: boolean;
+  class?: string;
+  onSelect?: () => void;
+  children: JSX.Element;
+}
+
+export const MenuItem: Component<MenuItemProps> = (props) => {
+  const store = useMenuStore();
+  const itemId = store.createItemId();
+  const role = (): "menuitem" | "menuitemradio" => props.role ?? "menuitem";
+  const isEnabled = (): boolean => !props.disabled;
+  const isActive = (): boolean => store.activeItemId() === itemId;
+
+  let buttonElement: HTMLButtonElement | undefined;
+
+  onMount(() => {
+    if (!buttonElement) return;
+    store.registerItem({
+      id: itemId,
+      element: buttonElement,
+      isEnabled,
+      onSelect: () => props.onSelect?.(),
+    });
+    onCleanup(() => store.unregisterItem(itemId));
+  });
+
+  return (
+    <button
+      ref={buttonElement}
+      id={itemId}
+      data-react-grab-ignore-events
+      data-react-grab-menu-item={props.value}
+      type="button"
+      role={role()}
+      aria-checked={role() === "menuitemradio" ? Boolean(props.checked) : undefined}
+      aria-disabled={Boolean(props.disabled)}
+      tabindex={store.keyboardNavigation ? (isActive() ? 0 : -1) : undefined}
+      disabled={props.disabled}
+      class={cn(
+        "relative z-1 contain-layout flex items-center justify-between w-full px-2 py-1 cursor-pointer text-left border-none bg-transparent disabled:opacity-40 disabled:cursor-default",
+        props.class,
+      )}
+      onPointerDown={(event) => event.stopPropagation()}
+      onPointerEnter={() => {
+        if (isEnabled()) store.setActiveItem(itemId);
+      }}
+      onPointerLeave={() => {
+        if (store.clearActiveOnPointerLeave) store.setActiveItem(null);
+      }}
+      onClick={(event) => {
+        event.stopPropagation();
+        if (!isEnabled()) return;
+        props.onSelect?.();
+      }}
+    >
+      {props.children}
+    </button>
+  );
+};
