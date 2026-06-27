@@ -142,7 +142,17 @@ const nextValueOnGrid = (current: number, direction: 1 | -1, unitPx: number): nu
   return next < 0 ? null : next;
 };
 
+// The custom-property *names* are document-global and unchanged across element
+// switches, so the (O(rules)) stylesheet walk is memoized. Keying on the sheet
+// count invalidates it when stylesheets are added/removed (HMR, dynamic styles)
+// — token name sets effectively never change without that. Values still resolve
+// per element since custom properties cascade/scope.
+let cachedNames: { styleSheetCount: number; names: Set<string> } | null = null;
+
 const collectCustomPropertyNames = (): Set<string> => {
+  const styleSheetCount = document.styleSheets.length;
+  if (cachedNames && cachedNames.styleSheetCount === styleSheetCount) return cachedNames.names;
+
   const customPropertyNames = new Set<string>();
   for (const styleSheet of Array.from(document.styleSheets)) {
     let rules: CSSRuleList;
@@ -154,6 +164,7 @@ const collectCustomPropertyNames = (): Set<string> => {
     }
     collectNamesFromRules(rules, customPropertyNames);
   }
+  cachedNames = { styleSheetCount, names: customPropertyNames };
   return customPropertyNames;
 };
 
@@ -240,10 +251,15 @@ export const collectDesignTokens = (element: Element): DesignTokenResolver => {
     const current = Math.round(px);
 
     const scale = sortedLengthPxByFamily.get(family);
+    // A real multi-step scale always wins.
     if (scale && scale.length >= 2) return nextValueInScale(scale, current, direction);
+    // Spacing/sizing without a discrete scale ride Tailwind's `--spacing` grid.
     if ((family === "spacing" || family === "size") && spacingBaseUnitPx) {
       return nextValueOnGrid(current, direction, spacingBaseUnitPx);
     }
+    // A lone token (e.g. a single `--radius`) can still be reached from nearby
+    // values rather than dead-ending on a raw step.
+    if (scale) return nextValueInScale(scale, current, direction);
     return null;
   };
 
