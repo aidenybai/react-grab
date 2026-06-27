@@ -3,6 +3,7 @@ import type { DiscardPromptProps } from "../../types.js";
 import { confirmationFocusManager } from "../../utils/confirmation-focus-manager.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
 import { IconReturn } from "../icons/icon-return.jsx";
+import { Button } from "../ui/button.js";
 import { BottomSection } from "./bottom-section.js";
 
 export const DiscardPrompt: Component<DiscardPromptProps> = (props) => {
@@ -73,37 +74,30 @@ export const DiscardPrompt: Component<DiscardPromptProps> = (props) => {
       <BottomSection>
         <div class="contain-layout shrink-0 flex items-center justify-end gap-[5px] w-full h-fit">
           <Show when={shouldShowCancel()}>
-            <button
-              data-react-grab-discard-no
-              class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[var(--rg-surface-hover)] [border-width:0.5px] border-solid border-[var(--rg-border-button)] cursor-pointer transition-all hover:bg-[var(--rg-surface-active)] press-scale h-[17px]"
-              onClick={props.onCancel}
-            >
+            <Button data-react-grab-discard-no onClick={props.onCancel}>
               <span class="text-[var(--rg-text-primary)] text-[13px] leading-3.5 font-sans font-medium">
                 No
               </span>
-            </button>
+            </Button>
           </Show>
           <Show when={props.onCopy}>
-            <button
-              data-react-grab-discard-copy
-              class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[var(--rg-surface-hover)] [border-width:0.5px] border-solid border-[var(--rg-border-button)] cursor-pointer transition-all hover:bg-[var(--rg-surface-active)] press-scale h-[17px]"
-              onClick={props.onCopy}
-            >
+            <Button data-react-grab-discard-copy onClick={props.onCopy}>
               <span class="text-[var(--rg-text-primary)] text-[13px] leading-3.5 font-sans font-medium">
                 Copy
               </span>
-            </button>
+            </Button>
           </Show>
-          <button
+          <Button
+            variant="destructive"
+            class="gap-0.5"
             data-react-grab-discard-yes
-            class="contain-layout shrink-0 flex items-center justify-center gap-0.5 px-[3px] py-px rounded-sm bg-[var(--rg-error-bg)] cursor-pointer transition-all hover:bg-[var(--rg-error-bg-hover)] press-scale h-[17px]"
             onClick={props.onConfirm}
           >
             <span class="text-[var(--rg-error-text)] text-[13px] leading-3.5 font-sans font-medium">
               Yes
             </span>
             <IconReturn size={10} class="text-[var(--rg-error-text)] opacity-50" />
-          </button>
+          </Button>
         </div>
       </BottomSection>
     </div>

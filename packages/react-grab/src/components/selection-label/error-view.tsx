@@ -3,6 +3,7 @@ import type { ErrorViewProps } from "../../types.js";
 import { confirmationFocusManager } from "../../utils/confirmation-focus-manager.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
 import { IconRetry } from "../icons/icon-retry.jsx";
+import { Button } from "../ui/button.js";
 import { BottomSection } from "./bottom-section.js";
 
 export const ErrorView: Component<ErrorViewProps> = (props) => {
@@ -66,31 +67,29 @@ export const ErrorView: Component<ErrorViewProps> = (props) => {
         <BottomSection>
           <div class="contain-layout shrink-0 flex items-center justify-end gap-[5px] w-full h-fit">
             <Show when={props.onRetry}>
-              <button
+              <Button
                 data-react-grab-retry
-                type="button"
+                class="gap-1"
                 aria-keyshortcuts="Enter"
-                class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-[var(--rg-surface-hover)] [border-width:0.5px] border-solid border-[var(--rg-border-button)] cursor-pointer transition-all hover:bg-[var(--rg-surface-active)] press-scale h-[17px]"
                 onClick={props.onRetry}
               >
                 <span class="text-[var(--rg-text-primary)] text-[13px] leading-3.5 font-sans font-medium">
                   Retry
                 </span>
                 <IconRetry size={10} aria-hidden="true" class="text-[var(--rg-text-secondary)]" />
-              </button>
+              </Button>
             </Show>
             <Show when={props.onAcknowledge}>
-              <button
+              <Button
                 data-react-grab-error-ok
-                type="button"
+                class="gap-1"
                 aria-keyshortcuts="Escape"
-                class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-[var(--rg-surface-hover)] [border-width:0.5px] border-solid border-[var(--rg-border-button)] cursor-pointer transition-all hover:bg-[var(--rg-surface-active)] press-scale h-[17px]"
                 onClick={props.onAcknowledge}
               >
                 <span class="text-[var(--rg-text-primary)] text-[13px] leading-3.5 font-sans font-medium">
                   Ok
                 </span>
-              </button>
+              </Button>
             </Show>
           </div>
         </BottomSection>
