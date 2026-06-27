@@ -194,43 +194,43 @@ const FRAMEWORK_SCENARIOS: ThemeScenario[] = [
     expected: OVERLAY_THEME_ON_LIGHT_APP,
   },
   {
-    title: "next-themes `data-theme=\"dark\"` attribute",
+    title: 'next-themes `data-theme="dark"` attribute',
     os: "light",
     mutate: () => document.documentElement.setAttribute("data-theme", "dark"),
     expected: OVERLAY_THEME_ON_DARK_APP,
   },
   {
-    title: "case-insensitive `data-theme=\"DARK\"`",
+    title: 'case-insensitive `data-theme="DARK"`',
     os: "light",
     mutate: () => document.documentElement.setAttribute("data-theme", "DARK"),
     expected: OVERLAY_THEME_ON_DARK_APP,
   },
   {
-    title: "MUI `data-mui-color-scheme=\"dark\"`",
+    title: 'MUI `data-mui-color-scheme="dark"`',
     os: "light",
     mutate: () => document.documentElement.setAttribute("data-mui-color-scheme", "dark"),
     expected: OVERLAY_THEME_ON_DARK_APP,
   },
   {
-    title: "Bootstrap `data-bs-theme=\"dark\"`",
+    title: 'Bootstrap `data-bs-theme="dark"`',
     os: "light",
     mutate: () => document.documentElement.setAttribute("data-bs-theme", "dark"),
     expected: OVERLAY_THEME_ON_DARK_APP,
   },
   {
-    title: "Mantine `data-mantine-color-scheme=\"dark\"`",
+    title: 'Mantine `data-mantine-color-scheme="dark"`',
     os: "light",
     mutate: () => document.documentElement.setAttribute("data-mantine-color-scheme", "dark"),
     expected: OVERLAY_THEME_ON_DARK_APP,
   },
   {
-    title: "generic `data-mode=\"dark\"`",
+    title: 'generic `data-mode="dark"`',
     os: "light",
     mutate: () => document.documentElement.setAttribute("data-mode", "dark"),
     expected: OVERLAY_THEME_ON_DARK_APP,
   },
   {
-    title: "generic `data-color-scheme=\"dark\"`",
+    title: 'generic `data-color-scheme="dark"`',
     os: "light",
     mutate: () => document.documentElement.setAttribute("data-color-scheme", "dark"),
     expected: OVERLAY_THEME_ON_DARK_APP,
@@ -318,6 +318,30 @@ const FRAMEWORK_SCENARIOS: ThemeScenario[] = [
     os: "dark",
     mutate: () => {
       document.body.style.backgroundColor = "rgba(0, 0, 0, 0)";
+    },
+    expected: OVERLAY_THEME_ON_LIGHT_APP,
+  },
+  {
+    title: "wrapper-themed dark app: near-white root text on a transparent page resolves to dark",
+    os: "light",
+    mutate: () => {
+      document.documentElement.style.color = "rgb(229, 229, 229)";
+    },
+    expected: OVERLAY_THEME_ON_DARK_APP,
+  },
+  {
+    title: "dark root text on a transparent page stays light (defers to the Canvas backdrop)",
+    os: "dark",
+    mutate: () => {
+      document.documentElement.style.color = "rgb(17, 17, 17)";
+    },
+    expected: OVERLAY_THEME_ON_LIGHT_APP,
+  },
+  {
+    title: "light text on <body> only (root untouched) is ignored - root governs the page theme",
+    os: "dark",
+    mutate: () => {
+      document.body.style.color = "rgb(229, 229, 229)";
     },
     expected: OVERLAY_THEME_ON_LIGHT_APP,
   },

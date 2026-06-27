@@ -26,6 +26,9 @@ const PRESENCE_ATTRIBUTES: readonly { attribute: string; theme: AppTheme }[] = [
 ];
 
 const LUMINANCE_DARK_THRESHOLD = 0.18;
+// Text brighter than this is near-white; an app only paints near-white text when
+// it expects a dark surface behind it, so it reveals a dark theme.
+const LIGHT_TEXT_LUMINANCE_THRESHOLD = 0.5;
 
 const relativeLuminance = (red: number, green: number, blue: number): number => {
   const [linearRed, linearGreen, linearBlue] = [red, green, blue].map((channel) => {
@@ -39,17 +42,34 @@ const relativeLuminance = (red: number, green: number, blue: number): number => 
 // canvas, plus oklch via exact math) to a hex string, which `parseHexChannels`
 // turns into channels - covering modern computed values like `oklch(...)` that a
 // naive `rgb()` parse would miss.
-const themeFromColor = (color: string): AppTheme | null => {
+const luminanceOfColor = (color: string): number | null => {
   const hex = parseAnyColor(color);
   const channels = hex ? parseHexChannels(hex) : null;
   // A fully transparent color tells us nothing about the rendered theme.
   if (!channels || channels.alpha === 0) return null;
-  const luminance = relativeLuminance(channels.red, channels.green, channels.blue);
+  return relativeLuminance(channels.red, channels.green, channels.blue);
+};
+
+const themeFromBackgroundColor = (color: string): AppTheme | null => {
+  const luminance = luminanceOfColor(color);
+  if (luminance === null) return null;
   return luminance < LUMINANCE_DARK_THRESHOLD ? "dark" : "light";
 };
 
 const themeFromElementBackground = (element: HTMLElement): AppTheme | null =>
-  themeFromColor(getComputedStyle(element).backgroundColor);
+  themeFromBackgroundColor(getComputedStyle(element).backgroundColor);
+
+// When nothing is painted we can't read a wrapper-themed app's real backdrop,
+// but its text color still betrays the intent: near-white text only makes sense
+// over a dark surface. Read it from the root (whose used `color-scheme` governs
+// the page, unlike <body> which may opt into its own), and only conclude `dark`
+// - dark text is the default even on undeclared light pages, so it defers to the
+// Canvas backdrop instead.
+const themeFromRootForegroundText = (): AppTheme | null => {
+  const luminance = luminanceOfColor(getComputedStyle(document.documentElement).color);
+  if (luminance === null) return null;
+  return luminance > LIGHT_TEXT_LUMINANCE_THRESHOLD ? "dark" : null;
+};
 
 // When nothing on the page is painted, the visible backdrop is the UA canvas,
 // whose color is exposed on no element. The `Canvas` system color resolves to
@@ -62,7 +82,7 @@ const themeFromCanvasBackdrop = (): AppTheme | null => {
   const probe = document.createElement("div");
   probe.style.cssText = "position:fixed;width:0;height:0;background-color:Canvas";
   document.documentElement.appendChild(probe);
-  const theme = themeFromColor(getComputedStyle(probe).backgroundColor);
+  const theme = themeFromBackgroundColor(getComputedStyle(probe).backgroundColor);
   probe.remove();
   return theme;
 };
@@ -130,12 +150,14 @@ const detectTheme = (): AppTheme => {
   const rootFirst = [document.documentElement, document.body] as const;
   const bodyFirst = [document.body, document.documentElement] as const;
 
-  // With nothing explicit and nothing painted, the `Canvas` backdrop is the
-  // rendered truth; `light` is only a last resort if it cannot be read.
+  // With nothing explicit and nothing painted, near-white root text reveals a
+  // dark wrapper, then the `Canvas` backdrop is the rendered truth; `light` is
+  // only a last resort if neither can be read.
   return (
     firstThemeFromRoots(rootFirst, themeFromElementMarkers) ??
     firstThemeFromRoots(rootFirst, themeFromColorSchemeOf) ??
     firstThemeFromRoots(bodyFirst, themeFromElementBackground) ??
+    themeFromRootForegroundText() ??
     themeFromCanvasBackdrop() ??
     "light"
   );
