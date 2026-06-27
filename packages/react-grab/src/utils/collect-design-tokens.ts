@@ -1,6 +1,7 @@
-import { EDIT_ROOT_FONT_SIZE_PX } from "../constants.js";
 import type { DesignTokenResolver } from "../types.js";
+import { roundEditableNumericValue } from "./format-css-value.js";
 import { parseAnyColor } from "./parse-any-color.js";
+import { parseNumericValue } from "./parse-numeric-value.js";
 
 // Design tokens are surfaced through CSS custom properties regardless of
 // the styling library (shadcn, Radix, Chakra, MUI, Tailwind v4 `@theme`,
@@ -19,11 +20,13 @@ type TokenFamily =
 
 interface LengthToken {
   name: string;
-  families: ReadonlySet<TokenFamily>;
+  family: TokenFamily;
 }
 
-const LENGTH_VALUE_PATTERN = /^(-?\d*\.?\d+)(px|rem)$/i;
-
+// Ordered most-specific first so first-match-wins resolves `--font-size-*` to
+// font-size before the generic "size" keyword (and `letter`/`leading` before
+// the geometric families), preventing typography tokens from leaking into the
+// width/height scale.
 const FAMILY_NAME_KEYWORDS: ReadonlyArray<{ keyword: string; family: TokenFamily }> = [
   { keyword: "letter", family: "letter-spacing" },
   { keyword: "tracking", family: "letter-spacing" },
@@ -50,13 +53,12 @@ const FAMILY_NAME_KEYWORDS: ReadonlyArray<{ keyword: string; family: TokenFamily
   { keyword: "height", family: "size" },
 ];
 
-const familiesFromTokenName = (tokenName: string): Set<TokenFamily> => {
+const familyForTokenName = (tokenName: string): TokenFamily | null => {
   const normalizedName = tokenName.toLowerCase();
-  const families = new Set<TokenFamily>();
   for (const { keyword, family } of FAMILY_NAME_KEYWORDS) {
-    if (normalizedName.includes(keyword)) families.add(family);
+    if (normalizedName.includes(keyword)) return family;
   }
-  return families;
+  return null;
 };
 
 const familyForCssProperty = (cssProperty: string): TokenFamily | null => {
@@ -89,12 +91,12 @@ const familyForCssProperty = (cssProperty: string): TokenFamily | null => {
 };
 
 const lengthValueToPx = (rawValue: string): number | null => {
-  const match = rawValue.trim().match(LENGTH_VALUE_PATTERN);
-  if (!match) return null;
-  const magnitude = Number.parseFloat(match[1]);
-  if (!Number.isFinite(magnitude)) return null;
-  const px = match[2].toLowerCase() === "rem" ? magnitude * EDIT_ROOT_FONT_SIZE_PX : magnitude;
-  return Math.round(px);
+  const parsed = parseNumericValue(rawValue);
+  // Only true lengths (px/rem/em resolve to px); reject %, unitless ratios,
+  // calc(), and keywords so font-weight/line-height values aren't mistaken for
+  // a length scale.
+  if (!parsed || parsed.unit !== "px") return null;
+  return roundEditableNumericValue(parsed.value);
 };
 
 // A token reference is only useful if it is shorter / more semantic than
@@ -141,7 +143,7 @@ const nextValueOnGrid = (current: number, direction: 1 | -1, unitPx: number): nu
 };
 
 const collectCustomPropertyNames = (): Set<string> => {
-  const names = new Set<string>();
+  const customPropertyNames = new Set<string>();
   for (const styleSheet of Array.from(document.styleSheets)) {
     let rules: CSSRuleList;
     try {
@@ -150,23 +152,30 @@ const collectCustomPropertyNames = (): Set<string> => {
     } catch {
       continue;
     }
-    collectNamesFromRules(rules, names);
+    collectNamesFromRules(rules, customPropertyNames);
   }
-  return names;
+  return customPropertyNames;
 };
 
-const collectNamesFromRules = (rules: CSSRuleList, names: Set<string>) => {
+const collectNamesFromRules = (rules: CSSRuleList, customPropertyNames: Set<string>) => {
   for (const rule of Array.from(rules)) {
     if (rule instanceof CSSStyleRule) {
       const declaration = rule.style;
       for (let propertyIndex = 0; propertyIndex < declaration.length; propertyIndex++) {
         const propertyName = declaration.item(propertyIndex);
-        if (propertyName.startsWith("--")) names.add(propertyName);
+        if (propertyName.startsWith("--")) customPropertyNames.add(propertyName);
       }
     } else if (rule instanceof CSSGroupingRule) {
-      collectNamesFromRules(rule.cssRules, names);
+      collectNamesFromRules(rule.cssRules, customPropertyNames);
     }
   }
+};
+
+const EMPTY_RESOLVER: DesignTokenResolver = {
+  hasTokens: false,
+  matchColor: () => null,
+  matchLength: () => null,
+  stepLength: () => null,
 };
 
 export const collectDesignTokens = (element: Element): DesignTokenResolver => {
@@ -175,27 +184,26 @@ export const collectDesignTokens = (element: Element): DesignTokenResolver => {
   const customPropertyNames = collectCustomPropertyNames();
   if (customPropertyNames.size === 0) return EMPTY_RESOLVER;
 
-  const computed = getComputedStyle(element);
+  const computedStyle = getComputedStyle(element);
   const colorNameByHex = new Map<string, string>();
   const lengthTokensByPx = new Map<number, LengthToken[]>();
   const lengthPxByFamily = new Map<TokenFamily, Set<number>>();
-  // Tailwind exposes spacing (and sizing) as `calc(var(--spacing) * N)` rather
-  // than discrete per-step tokens, so the single base unit is the scale.
+  // Tailwind derives every spacing/sizing step from one `--spacing` base unit
+  // instead of emitting a discrete scale, so capture it for nextValueOnGrid.
   let spacingBaseUnitPx: number | null = null;
 
   for (const tokenName of customPropertyNames) {
-    const rawValue = computed.getPropertyValue(tokenName).trim();
+    const rawValue = computedStyle.getPropertyValue(tokenName).trim();
     if (!rawValue) continue;
 
     const lengthPx = lengthValueToPx(rawValue);
     if (lengthPx !== null) {
       if (tokenName === "--spacing" && lengthPx > 0) spacingBaseUnitPx = lengthPx;
-      const families = familiesFromTokenName(tokenName);
-      const tokens = lengthTokensByPx.get(lengthPx);
-      const lengthToken: LengthToken = { name: tokenName, families };
-      if (tokens) tokens.push(lengthToken);
-      else lengthTokensByPx.set(lengthPx, [lengthToken]);
-      for (const family of families) {
+      const family = familyForTokenName(tokenName);
+      if (family !== null) {
+        const tokensAtPx = lengthTokensByPx.get(lengthPx);
+        if (tokensAtPx) tokensAtPx.push({ name: tokenName, family });
+        else lengthTokensByPx.set(lengthPx, [{ name: tokenName, family }]);
         const familyValues = lengthPxByFamily.get(family);
         if (familyValues) familyValues.add(lengthPx);
         else lengthPxByFamily.set(family, new Set([lengthPx]));
@@ -240,26 +248,20 @@ export const collectDesignTokens = (element: Element): DesignTokenResolver => {
   };
 
   const matchLength = (px: number, cssProperty: string): string | null => {
-    const tokens = lengthTokensByPx.get(Math.round(px));
-    if (!tokens) return null;
     const family = familyForCssProperty(cssProperty);
-    let best: string | null = null;
-    for (const token of tokens) {
-      // A purely numeric value (16px) collides across unrelated scales
-      // (font-size, spacing, radius), so only a token whose name signals
-      // the same family is a trustworthy match.
-      if (family === null || !token.families.has(family)) continue;
-      if (preferToken(token.name, best)) best = token.name;
+    if (family === null) return null;
+    const tokensAtPx = lengthTokensByPx.get(Math.round(px));
+    if (!tokensAtPx) return null;
+    // A purely numeric value (16px) collides across unrelated scales
+    // (font-size, spacing, radius), so only a token in the same family is a
+    // trustworthy match.
+    let bestTokenName: string | null = null;
+    for (const token of tokensAtPx) {
+      if (token.family !== family) continue;
+      if (preferToken(token.name, bestTokenName)) bestTokenName = token.name;
     }
-    return best;
+    return bestTokenName;
   };
 
   return { hasTokens: true, matchColor, matchLength, stepLength };
-};
-
-const EMPTY_RESOLVER: DesignTokenResolver = {
-  hasTokens: false,
-  matchColor: () => null,
-  matchLength: () => null,
-  stepLength: () => null,
 };

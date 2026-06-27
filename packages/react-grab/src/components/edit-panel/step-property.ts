@@ -9,8 +9,8 @@ import { pickNextOption } from "../../utils/pick-next-option.js";
 export const stepProperty = (
   property: EditableProperty,
   direction: 1 | -1,
-  shift: boolean,
-  alt: boolean,
+  shiftHeld: boolean,
+  altHeld: boolean,
   designTokens?: DesignTokenResolver,
 ): number | string | null => {
   if (property.kind === "enum") {
@@ -30,7 +30,7 @@ export const stepProperty = (
   // snap through the design system. Both modifiers opt out of snapping for a
   // raw step — Shift coarse (×10), Alt fine (±1) — and an off-scale value
   // falls through to the raw step below so it never dead-ends.
-  if (!shift && !alt && property.unit === "px" && designTokens?.hasTokens) {
+  if (!shiftHeld && !altHeld && property.unit === "px" && designTokens?.hasTokens) {
     const tokenStep = designTokens.stepLength(property.value, direction, property.cssProperties[0]);
     if (tokenStep !== null) {
       const clampedTokenStep = roundEditableNumericValue(
@@ -40,7 +40,7 @@ export const stepProperty = (
     }
   }
 
-  const multiplier = shift ? EDIT_SHIFT_STEP_MULTIPLIER : 1;
+  const multiplier = shiftHeld ? EDIT_SHIFT_STEP_MULTIPLIER : 1;
   const candidate = roundEditableNumericValue(
     clampToRange(property.value + direction * multiplier, lowerBound, upperBound),
   );

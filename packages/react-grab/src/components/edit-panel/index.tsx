@@ -271,14 +271,20 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
 
   const stepActiveProperty = (
     direction: 1 | -1,
-    shift: boolean,
-    alt: boolean,
+    shiftHeld: boolean,
+    altHeld: boolean,
     fromRepeat: boolean,
     source: "keyboard" | "pointer",
   ): EditableProperty | null => {
     const property = activeProperty();
     if (!property) return null;
-    const nextValue = stepProperty(property, direction, shift, alt, props.state.designTokens);
+    const nextValue = stepProperty(
+      property,
+      direction,
+      shiftHeld,
+      altHeld,
+      props.state.designTokens,
+    );
     if (nextValue === null) {
       flashActiveKey(direction === 1 ? "right" : "left");
       return null;
@@ -294,11 +300,11 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
 
   const stepFromKeyboard = (
     direction: 1 | -1,
-    shift: boolean,
-    alt: boolean,
+    shiftHeld: boolean,
+    altHeld: boolean,
     fromRepeat: boolean,
   ) => {
-    if (!stepActiveProperty(direction, shift, alt, fromRepeat, "keyboard")) return;
+    if (!stepActiveProperty(direction, shiftHeld, altHeld, fromRepeat, "keyboard")) return;
     setIsCompact(true);
   };
 
