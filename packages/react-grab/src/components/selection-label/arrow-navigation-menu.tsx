@@ -1,7 +1,7 @@
 import { createEffect, For, Show, type Component } from "solid-js";
 import type { ArrowNavigationItem } from "../../types.js";
 import { MENU_HIGHLIGHT_CORNER_SHAPE, MENU_PANEL_CORNER_RADIUS_PX } from "../../constants.js";
-import { createMenuHighlight } from "../../utils/create-menu-highlight.js";
+import { Menu, createMenuStore } from "../menu/index.js";
 import { BottomSection } from "./bottom-section.js";
 
 interface ArrowNavigationMenuProps {
@@ -11,110 +11,58 @@ interface ArrowNavigationMenuProps {
 }
 
 export const ArrowNavigationMenu: Component<ArrowNavigationMenuProps> = (props) => {
-  const {
-    containerRef: highlightContainerRef,
-    highlightRef,
-    updateHighlight,
-    clearHighlight,
-  } = createMenuHighlight({
-    bottomCornerRadiusPx: MENU_PANEL_CORNER_RADIUS_PX,
-    cornerShape: MENU_HIGHLIGHT_CORNER_SHAPE,
+  const menuStore = createMenuStore({
+    keyboardNavigation: true,
+    requirePointerMove: true,
+    value: () => String(props.activeIndex),
+    onValueChange: (value) => {
+      if (value !== null) props.onSelect(Number(value));
+    },
+    highlight: {
+      bottomCornerRadiusPx: MENU_PANEL_CORNER_RADIUS_PX,
+      cornerShape: MENU_HIGHLIGHT_CORNER_SHAPE,
+    },
   });
 
-  let menuItemsRef: HTMLDivElement | undefined;
-  let didPointerMove = false;
-
-  const getMenuItemByIndex = (itemIndex: number): HTMLButtonElement | undefined => {
-    if (!menuItemsRef) return undefined;
-    const activeMenuButton = menuItemsRef.querySelector<HTMLButtonElement>(
-      `[data-react-grab-arrow-nav-index="${itemIndex}"]`,
-    );
-    return activeMenuButton ?? undefined;
-  };
-
-  // When items change we reset pointer tracking so that keyboard-driven
-  // active index changes are not overridden by phantom pointerenter events
-  // fired when the highlight element repositions under the cursor.
+  // The active row is driven by keyboard from the host; resetting the
+  // pointer-move gate whenever the chain changes keeps a phantom
+  // pointerenter (fired when the highlight repositions under a stationary
+  // cursor) from hijacking that keyboard-driven selection.
   createEffect(() => {
     void props.items;
-    didPointerMove = false;
-  });
-
-  createEffect(() => {
-    const activeMenuItem = getMenuItemByIndex(props.activeIndex);
-    if (activeMenuItem) {
-      updateHighlight(activeMenuItem);
-    }
+    menuStore.resetPointerMove();
   });
 
   return (
     <BottomSection>
-      <div
-        ref={(element) => {
-          menuItemsRef = element;
-          highlightContainerRef(element);
-        }}
-        role="menu"
-        aria-orientation="vertical"
-        aria-label="Navigate parent elements"
-        class="relative flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5"
-        onPointerMove={() => {
-          didPointerMove = true;
-        }}
-      >
-        <div
-          ref={highlightRef}
-          aria-hidden="true"
-          class="pointer-events-none absolute opacity-0 transition-[top,left,width,height,opacity,border-radius] duration-75 ease-out bg-[var(--rg-surface-hover)]"
-        />
-        <For each={props.items}>
-          {(item, itemIndex) => (
-            <button
-              data-react-grab-ignore-events
-              data-react-grab-arrow-nav-item={item.tagName}
-              data-react-grab-arrow-nav-index={itemIndex()}
-              type="button"
-              role="menuitemradio"
-              aria-checked={itemIndex() === props.activeIndex}
-              tabindex={itemIndex() === props.activeIndex ? 0 : -1}
-              class="relative z-1 contain-layout flex items-center w-full px-2 py-1 cursor-pointer text-left border-none bg-transparent"
-              onPointerDown={(event) => event.stopPropagation()}
-              onPointerEnter={(event) => {
-                updateHighlight(event.currentTarget);
-                if (didPointerMove) {
-                  props.onSelect(itemIndex());
-                }
-              }}
-              onPointerLeave={() => {
-                const activeMenuItem = getMenuItemByIndex(props.activeIndex);
-                if (activeMenuItem) {
-                  updateHighlight(activeMenuItem);
-                } else {
-                  clearHighlight();
-                }
-              }}
-              onClick={(event) => {
-                event.stopPropagation();
-                props.onSelect(itemIndex());
-              }}
-            >
-              <span
-                class="text-[13px] leading-4 h-fit font-medium overflow-hidden text-ellipsis whitespace-nowrap min-w-0 transition-colors"
-                classList={{
-                  "text-[var(--rg-text-primary)]": itemIndex() === props.activeIndex,
-                  "text-[var(--rg-text-secondary)]": itemIndex() !== props.activeIndex,
-                }}
+      <Menu.Provider store={menuStore}>
+        <Menu.List label="Navigate parent elements" class="w-[calc(100%+16px)] -mx-2 -my-1.5">
+          <For each={props.items}>
+            {(item, itemIndex) => (
+              <Menu.Item
+                value={String(itemIndex())}
+                role="menuitemradio"
+                checked={itemIndex() === props.activeIndex}
+                onSelect={() => props.onSelect(itemIndex())}
               >
-                <Show when={item.componentName}>
-                  {item.componentName}
-                  <span class="text-[var(--rg-text-secondary)]">.</span>
-                </Show>
-                {item.tagName}
-              </span>
-            </button>
-          )}
-        </For>
-      </div>
+                <span
+                  class="text-[13px] leading-4 h-fit font-medium overflow-hidden text-ellipsis whitespace-nowrap min-w-0 transition-colors"
+                  classList={{
+                    "text-[var(--rg-text-primary)]": itemIndex() === props.activeIndex,
+                    "text-[var(--rg-text-secondary)]": itemIndex() !== props.activeIndex,
+                  }}
+                >
+                  <Show when={item.componentName}>
+                    {item.componentName}
+                    <span class="text-[var(--rg-text-secondary)]">.</span>
+                  </Show>
+                  {item.tagName}
+                </span>
+              </Menu.Item>
+            )}
+          </For>
+        </Menu.List>
+      </Menu.Provider>
     </BottomSection>
   );
 };

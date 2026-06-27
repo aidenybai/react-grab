@@ -76,11 +76,8 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
         onClick={suppressMenuEvent}
         onContextMenu={suppressMenuEvent}
       >
-        <div
-          class={cn(
-            "contain-layout flex flex-col rounded-[14px] antialiased w-fit h-fit overflow-hidden [font-synthesis:none] [corner-shape:superellipse(1.25)]",
-            "bg-[var(--rg-panel-bg)]",
-          )}
+        <Menu.Panel
+          class="overflow-hidden"
           style={{ "min-width": `${TOOLBAR_MENU_MIN_WIDTH_PX}px` }}
         >
           <Menu.Provider store={menuStore}>
@@ -122,7 +119,7 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
               </For>
             </Menu.List>
           </Menu.Provider>
-        </div>
+        </Menu.Panel>
       </div>
     </Show>
   );

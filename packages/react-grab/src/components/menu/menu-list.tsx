@@ -21,11 +21,10 @@ export const MenuList: Component<MenuListProps> = (props) => {
       role="menu"
       aria-orientation="vertical"
       aria-label={props.label}
-      aria-activedescendant={
-        store.keyboardNavigation ? (store.activeItemId() ?? undefined) : undefined
-      }
+      aria-activedescendant={store.keyboardNavigation ? store.activeDescendantId() : undefined}
       tabindex={store.keyboardNavigation ? -1 : undefined}
       class={cn("relative flex flex-col", props.class)}
+      onPointerMove={() => store.notePointerMove()}
     >
       <div
         ref={store.setHighlightRail}

@@ -23,7 +23,6 @@ import {
   MENU_PANEL_CORNER_RADIUS_PX,
   Z_INDEX_OVERLAY,
 } from "../constants.js";
-import { cn } from "../utils/cn.js";
 import { Arrow } from "./selection-label/arrow.js";
 import { TagBadge } from "./selection-label/tag-badge.js";
 import { BottomSection } from "./selection-label/bottom-section.js";
@@ -248,15 +247,14 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       };
 
       // Enter activates the highlighted row directly via its registered
-      // onSelect; with no active row we fall through so an action that binds
-      // Enter as its own shortcut still fires.
+      // onSelect (which already closes the menu); with no active row we fall
+      // through so an action that binds Enter as its own shortcut still fires.
       if (event.key === "Enter") {
         const activeItem = menuStore.getActiveItem();
         if (activeItem && activeItem.isEnabled()) {
           event.preventDefault();
           event.stopPropagation();
           activeItem.onSelect();
-          props.onHide();
           return;
         }
       }
@@ -310,12 +308,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
           leftOffsetPx={computedPosition().arrowLeft}
         />
 
-        <div
-          class={cn(
-            "contain-layout flex flex-col justify-center items-start rounded-[14px] antialiased w-fit h-fit min-w-[100px] [font-synthesis:none] [corner-shape:superellipse(1.25)]",
-            "bg-[var(--rg-panel-bg)]",
-          )}
-        >
+        <Menu.Panel class="justify-center items-start min-w-[100px]">
           <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 w-fit h-fit px-2">
             <TagBadge
               tagName={tagDisplayResult().tagName}
@@ -360,7 +353,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
               </Menu.List>
             </Menu.Provider>
           </BottomSection>
-        </div>
+        </Menu.Panel>
       </div>
     </Show>
   );

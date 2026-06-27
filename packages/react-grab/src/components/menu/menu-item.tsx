@@ -14,28 +14,32 @@ interface MenuItemProps {
 
 export const MenuItem: Component<MenuItemProps> = (props) => {
   const store = useMenuStore();
-  const itemId = store.createItemId();
+  const domId = store.createItemId();
+  // Captured at mount so registration/cleanup stay keyed on a stable value
+  // even if the component instance is reused for a different row.
+  const itemValue = props.value;
   const role = (): "menuitem" | "menuitemradio" => props.role ?? "menuitem";
   const isEnabled = (): boolean => !props.disabled;
-  const isActive = (): boolean => store.activeItemId() === itemId;
+  const isActive = (): boolean => store.activeValue() === props.value;
 
   let buttonElement: HTMLButtonElement | undefined;
 
   onMount(() => {
     if (!buttonElement) return;
     store.registerItem({
-      id: itemId,
+      value: itemValue,
+      domId,
       element: buttonElement,
       isEnabled,
       onSelect: () => props.onSelect?.(),
     });
-    onCleanup(() => store.unregisterItem(itemId));
+    onCleanup(() => store.unregisterItem(itemValue));
   });
 
   return (
     <button
       ref={buttonElement}
-      id={itemId}
+      id={domId}
       data-react-grab-ignore-events
       data-react-grab-menu-item={props.value}
       type="button"
@@ -50,7 +54,7 @@ export const MenuItem: Component<MenuItemProps> = (props) => {
       )}
       onPointerDown={(event) => event.stopPropagation()}
       onPointerEnter={() => {
-        if (isEnabled()) store.setActiveItem(itemId);
+        if (isEnabled() && store.canActivateOnHover()) store.setActiveItem(props.value);
       }}
       onPointerLeave={() => {
         if (store.clearActiveOnPointerLeave) store.setActiveItem(null);

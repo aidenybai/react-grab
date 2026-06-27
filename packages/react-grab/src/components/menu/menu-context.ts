@@ -1,7 +1,8 @@
 import { createContext, useContext, type Accessor } from "solid-js";
 
 export interface MenuItemRegistration {
-  id: string;
+  value: string;
+  domId: string;
   element: HTMLButtonElement;
   isEnabled: () => boolean;
   onSelect: () => void;
@@ -10,11 +11,15 @@ export interface MenuItemRegistration {
 export interface MenuStore {
   keyboardNavigation: boolean;
   clearActiveOnPointerLeave: boolean;
-  activeItemId: Accessor<string | null>;
-  setActiveItem: (id: string | null) => void;
+  activeValue: Accessor<string | null>;
+  activeDescendantId: Accessor<string | undefined>;
+  setActiveItem: (value: string | null) => void;
   createItemId: () => string;
+  canActivateOnHover: () => boolean;
+  notePointerMove: () => void;
+  resetPointerMove: () => void;
   registerItem: (registration: MenuItemRegistration) => void;
-  unregisterItem: (id: string) => void;
+  unregisterItem: (value: string) => void;
   getActiveItem: () => MenuItemRegistration | undefined;
   selectFirst: () => void;
   selectLast: () => void;
