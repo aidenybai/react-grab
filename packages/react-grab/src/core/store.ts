@@ -5,6 +5,7 @@ import { OFFSCREEN_POSITION } from "../constants.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
+import { resolveLiveElement } from "../utils/resolve-live-element.js";
 
 interface FrozenDragRect {
   pageX: number;
@@ -131,6 +132,7 @@ interface GrabActions {
   toggleFrozenElement: (element: Element) => void;
   addFrozenElements: (elements: Element[]) => void;
   setFrozenDragRect: (rect: FrozenDragRect | null) => void;
+  relinkLiveElements: () => void;
   setCopyStart: (position: Position, element: Element) => void;
   setLastGrabbed: (element: Element | null) => void;
   setWasActivatedByToggle: (value: boolean) => void;
@@ -480,6 +482,42 @@ const createGrabStore = (input: GrabStoreInput) => {
 
     setFrozenDragRect: (rect: FrozenDragRect | null) => {
       setStore("frozenDragRect", rect);
+    },
+
+    // Re-resolve any tracked element whose DOM node was swapped out by latching
+    // onto its fiber. Cheap when nothing detached: the isConnected guard skips
+    // the fiber lookup for every still-attached element.
+    relinkLiveElements: () => {
+      const relink = (element: Element | null): Element | null =>
+        element && !element.isConnected ? resolveLiveElement(element) : element;
+
+      setStore(
+        produce((draft) => {
+          let didRelinkFrozen = false;
+          for (let index = 0; index < draft.frozenElements.length; index += 1) {
+            const element = draft.frozenElements[index];
+            if (element.isConnected) continue;
+            const liveElement = resolveLiveElement(element);
+            if (liveElement && liveElement !== element) {
+              draft.frozenElements[index] = liveElement;
+              didRelinkFrozen = true;
+            }
+          }
+
+          if (didRelinkFrozen) {
+            draft.frozenElement = draft.frozenElements.length > 0 ? draft.frozenElements[0] : null;
+          } else {
+            const liveFrozen = relink(draft.frozenElement);
+            if (liveFrozen) draft.frozenElement = liveFrozen;
+          }
+
+          const liveDetected = relink(draft.detectedElement);
+          if (liveDetected) draft.detectedElement = liveDetected;
+
+          const liveContextMenu = relink(draft.contextMenuElement);
+          if (liveContextMenu) draft.contextMenuElement = liveContextMenu;
+        }),
+      );
     },
 
     setCopyStart: (position: Position, element: Element) => {

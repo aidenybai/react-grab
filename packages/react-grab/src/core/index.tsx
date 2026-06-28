@@ -841,7 +841,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!element) return;
 
       const intervalId = setInterval(() => {
-        if (!isElementConnected(element)) {
+        if (isElementConnected(store.detectedElement)) return;
+        actions.relinkLiveElements();
+        if (!isElementConnected(store.detectedElement)) {
           actions.setDetectedElement(null);
         }
       }, BOUNDS_RECALC_INTERVAL_MS);
@@ -2447,7 +2449,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const targetElement = target instanceof HTMLElement ? target : null;
       return Boolean(
         targetElement?.closest("[data-react-grab-discard-copy]") ||
-          targetElement?.closest("[data-react-grab-discard-yes]"),
+        targetElement?.closest("[data-react-grab-discard-yes]"),
       );
     };
 
@@ -2951,6 +2953,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleViewportChange = () => {
       invalidateInteractionCaches();
+      actions.relinkLiveElements();
       redetectElementUnderPointer();
       actions.incrementViewportVersion();
       actions.updateContextMenuPosition();
@@ -3019,6 +3022,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (boundsRecalcIntervalId !== null) return;
 
         boundsRecalcIntervalId = window.setInterval(() => {
+          actions.relinkLiveElements();
           scheduleBoundsSync();
         }, BOUNDS_RECALC_INTERVAL_MS);
         return;
