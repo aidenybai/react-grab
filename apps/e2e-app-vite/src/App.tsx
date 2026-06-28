@@ -641,6 +641,41 @@ const HiddenToggleSection = () => {
   );
 };
 
+// Renders the selection target as the sole host child of a component so a
+// `key` flip forces React to unmount the old DOM node and mount a fresh one
+// (new host fiber) under the same surviving parent fiber. react-grab should
+// latch the held selection back onto the new node via the fiber.
+const FiberSwapTarget = ({ swapped }: { swapped: boolean }) => {
+  return swapped ? (
+    <div key="swapped" className="p-4 bg-orange-100 rounded" data-testid="fiber-swap-target">
+      Swapped fiber node
+    </div>
+  ) : (
+    <div key="initial" className="p-4 bg-orange-100 rounded" data-testid="fiber-swap-target">
+      Initial fiber node
+    </div>
+  );
+};
+
+const FiberSwapSection = () => {
+  const [swapped, setSwapped] = useState(false);
+
+  useEffect(() => {
+    (window as unknown as { __triggerFiberSwap?: () => void }).__triggerFiberSwap = () =>
+      setSwapped((previous) => !previous);
+    return () => {
+      delete (window as unknown as { __triggerFiberSwap?: () => void }).__triggerFiberSwap;
+    };
+  }, []);
+
+  return (
+    <section className="border rounded-lg p-4" data-testid="fiber-swap-section">
+      <h2 className="text-lg font-bold mb-4">Fiber Swap</h2>
+      <FiberSwapTarget swapped={swapped} />
+    </section>
+  );
+};
+
 const usePerfGridConfig = (): { rowCount: number; columnCount: number } | null => {
   if (typeof window === "undefined") return null;
   const params = new URLSearchParams(window.location.search);
@@ -755,6 +790,8 @@ export default function App() {
       <PointerEventsModalSection />
 
       <HiddenToggleSection />
+
+      <FiberSwapSection />
 
       <div
         className="h-96 flex items-center justify-center bg-gray-100 rounded-lg"
