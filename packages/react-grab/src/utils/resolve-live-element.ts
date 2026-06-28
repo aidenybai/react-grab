@@ -5,22 +5,36 @@ import {
   isHostFiber,
   type Fiber,
 } from "bippy";
-import { MAX_FIBER_RELINK_DEPTH } from "../constants.js";
 
-const connectedHostElement = (fiber: Fiber): Element | null => {
-  const node = fiber.stateNode;
-  return node instanceof Element && node.isConnected ? node : null;
-};
+// Parent fiber of each tracked element, captured while it was still mounted.
+// React mutates a fiber's `return`/`alternate` to null when it unmounts, so the
+// only link from a swapped-out node back to the live tree is an ancestor fiber
+// recorded before the unmount. The parent survives the child's remount.
+const ancestorFiberByElement = new WeakMap<Element, Fiber>();
 
-const liveHostElementsFromFiber = (fiber: Fiber): Element[] => {
+const liveHostElementFromFiber = (fiber: Fiber, tagName: string): Element | null => {
   const latest = getLatestFiber(fiber);
   const hostFibers = isHostFiber(latest) ? [latest] : getNearestHostFibers(latest);
-  const elements: Element[] = [];
+  let fallback: Element | null = null;
   for (const hostFiber of hostFibers) {
-    const element = connectedHostElement(hostFiber);
-    if (element) elements.push(element);
+    const node = hostFiber.stateNode;
+    if (!(node instanceof Element) || !node.isConnected) continue;
+    // Prefer a recovered node whose tag matches the original so we latch onto
+    // the swapped element rather than an unrelated sibling host.
+    if (node.tagName === tagName) return node;
+    fallback ??= node;
   }
-  return elements;
+  return fallback;
+};
+
+// Records the parent fiber of a still-connected element so its replacement can
+// be recovered later. Cheap and idempotent: skips disconnected elements and
+// anything already tracked.
+export const trackElementFiber = (element: Element): void => {
+  if (!element.isConnected) return;
+  if (ancestorFiberByElement.has(element)) return;
+  const parentFiber = getFiberFromHostInstance(element)?.return;
+  if (parentFiber) ancestorFiberByElement.set(element, parentFiber);
 };
 
 // When React swaps the DOM node backing a selected element — a conditional
@@ -30,28 +44,25 @@ const liveHostElementsFromFiber = (fiber: Fiber): Element[] => {
 // stable identity that survives the swap, so we re-resolve the current host
 // node from it and latch the selection onto the new DOM node.
 //
-// A detached node still carries its `__reactFiber$` back-reference, so we can
-// reach the captured fiber and walk its (now stale) `return` chain. For each
-// ancestor we map back to the live, double-buffered fiber via getLatestFiber
-// and read its connected host node. We start at the captured fiber and climb
-// only a bounded number of ancestors so recovery never jumps to the root, and
-// prefer a recovered node whose tag matches the original to avoid latching
-// onto a sibling.
+// First we try the element's own fiber in case React kept it and only swapped
+// its host instance. Otherwise we fall back to the ancestor fiber captured by
+// trackElementFiber while the element was alive and read its current host
+// descendant.
 export const resolveLiveElement = (element: Element): Element | null => {
   if (element.isConnected) return element;
 
-  let fiber: Fiber | null = getFiberFromHostInstance(element);
-  if (!fiber) return null;
-
   const tagName = element.tagName;
-  let depth = 0;
-  while (fiber && depth <= MAX_FIBER_RELINK_DEPTH) {
-    const liveElements = liveHostElementsFromFiber(fiber);
-    if (liveElements.length > 0) {
-      return liveElements.find((live) => live.tagName === tagName) ?? liveElements[0];
-    }
-    fiber = fiber.return;
-    depth += 1;
+
+  const ownFiber = getFiberFromHostInstance(element);
+  if (ownFiber) {
+    const liveFromOwn = liveHostElementFromFiber(ownFiber, tagName);
+    if (liveFromOwn) return liveFromOwn;
+  }
+
+  const ancestorFiber = ancestorFiberByElement.get(element);
+  if (ancestorFiber) {
+    const liveFromAncestor = liveHostElementFromFiber(ancestorFiber, tagName);
+    if (liveFromAncestor) return liveFromAncestor;
   }
 
   return null;

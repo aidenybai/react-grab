@@ -5,7 +5,7 @@ import { OFFSCREEN_POSITION } from "../constants.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
-import { resolveLiveElement } from "../utils/resolve-live-element.js";
+import { resolveLiveElement, trackElementFiber } from "../utils/resolve-live-element.js";
 
 interface FrozenDragRect {
   pageX: number;
@@ -484,22 +484,37 @@ const createGrabStore = (input: GrabStoreInput) => {
       setStore("frozenDragRect", rect);
     },
 
-    // Re-resolve any tracked element whose DOM node was swapped out by latching
-    // onto its fiber. Cheap when nothing detached: the isConnected guard skips
-    // the fiber lookup for every still-attached element.
+    // Keep tracked elements latched onto their fiber across DOM swaps: record a
+    // surviving ancestor fiber while an element is connected, and re-resolve the
+    // live node once it detaches. Cheap when nothing detached — the isConnected
+    // guard skips the recovery work for every still-attached element.
     relinkLiveElements: () => {
-      const relink = (element: Element | null): Element | null =>
-        element && !element.isConnected ? resolveLiveElement(element) : element;
-
       setStore(
         produce((draft) => {
+          const relinkSingle = (
+            key: "frozenElement" | "detectedElement" | "contextMenuElement",
+          ) => {
+            const element = draft[key];
+            if (!element) return;
+            if (element.isConnected) {
+              trackElementFiber(element);
+              return;
+            }
+            const liveElement = resolveLiveElement(element);
+            if (liveElement) draft[key] = liveElement;
+          };
+
           let didRelinkFrozen = false;
           for (let index = 0; index < draft.frozenElements.length; index += 1) {
             const element = draft.frozenElements[index];
-            if (element.isConnected) continue;
+            if (element.isConnected) {
+              trackElementFiber(element);
+              continue;
+            }
             const liveElement = resolveLiveElement(element);
             if (liveElement && liveElement !== element) {
               draft.frozenElements[index] = liveElement;
+              trackElementFiber(liveElement);
               didRelinkFrozen = true;
             }
           }
@@ -507,15 +522,10 @@ const createGrabStore = (input: GrabStoreInput) => {
           if (didRelinkFrozen) {
             draft.frozenElement = draft.frozenElements.length > 0 ? draft.frozenElements[0] : null;
           } else {
-            const liveFrozen = relink(draft.frozenElement);
-            if (liveFrozen) draft.frozenElement = liveFrozen;
+            relinkSingle("frozenElement");
           }
-
-          const liveDetected = relink(draft.detectedElement);
-          if (liveDetected) draft.detectedElement = liveDetected;
-
-          const liveContextMenu = relink(draft.contextMenuElement);
-          if (liveContextMenu) draft.contextMenuElement = liveContextMenu;
+          relinkSingle("detectedElement");
+          relinkSingle("contextMenuElement");
         }),
       );
     },

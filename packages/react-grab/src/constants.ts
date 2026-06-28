@@ -55,11 +55,6 @@ export const BOUNDS_CACHE_TTL_MS = 16;
 export const BORDER_RADIUS_CACHE_TTL_MS = 200;
 export const BOUNDS_RECALC_INTERVAL_MS = 100;
 
-// How many fiber ancestors to walk when re-resolving a selected element whose
-// DOM node was swapped out. Bounded so recovery never climbs to the root and
-// latches onto an unrelated, much larger ancestor.
-export const MAX_FIBER_RELINK_DEPTH = 8;
-
 export const AUTO_SCROLL_EDGE_THRESHOLD_PX = 25;
 export const AUTO_SCROLL_SPEED_PX = 10;
 
