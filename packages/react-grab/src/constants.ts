@@ -152,6 +152,11 @@ export const TOOLBAR_COLLAPSED_LONG_PX = 30;
 // can flip true mid-fade-in and start a dim transition on the outer
 // container while the inner content is still materializing.
 export const TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS = 260;
+// Window after the toolbar swaps between its action buttons and the prompt
+// input during which the recenter transform is snapped instead of glided. The
+// content swap changes width instantly, so a transform transition here would
+// slide the pill sideways to recenter; snapping keeps the swap in place.
+export const TOOLBAR_PROMPT_SWAP_SETTLE_MS = 140;
 export const TOOLBAR_DEFAULT_WIDTH_PX = 78;
 export const TOOLBAR_DEFAULT_HEIGHT_PX = 28;
 export const TOOLBAR_DEFAULT_POSITION_RATIO = 0.5;

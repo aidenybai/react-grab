@@ -35,6 +35,7 @@ interface OptionsState {
   getContent: ((elements: Element[]) => Promise<string> | string) | undefined;
   maxContextLines: number;
   freezeReactUpdates: boolean;
+  promptInToolbar: boolean;
 }
 
 const DEFAULT_OPTIONS: OptionsState = {
@@ -45,6 +46,7 @@ const DEFAULT_OPTIONS: OptionsState = {
   getContent: undefined,
   maxContextLines: DEFAULT_MAX_CONTEXT_LINES,
   freezeReactUpdates: true,
+  promptInToolbar: false,
 };
 
 interface PluginStoreState {
@@ -109,6 +111,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     "getContent",
     "maxContextLines",
     "freezeReactUpdates",
+    "promptInToolbar",
   ];
 
   const setOptions = (optionUpdates: SettableOptions) => {

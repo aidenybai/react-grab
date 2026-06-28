@@ -264,6 +264,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return currentState.state === "active" && Boolean(currentState.isPromptMode);
     });
     const isCommentMode = createMemo(() => store.pendingCommentMode || isPromptMode());
+    // With promptInToolbar enabled, the plain copy/select path opens the toolbar
+    // prompt input first so a prompt can be optionally added before copying;
+    // submitting empty just copies the element.
+    const isPromptOnSelectEnabled = () => Boolean(pluginRegistry.store.options.promptInToolbar);
     const isPendingDismiss = createMemo(() => {
       const currentState = current();
       return (
@@ -1878,6 +1882,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return;
       }
 
+      if (isPromptOnSelectEnabled() && !hasModifierKeyHeld) {
+        enterCommentModeForElement(firstElement, center.x, center.y);
+        return;
+      }
+
       const shouldDeactivateAfter = store.wasActivatedByToggle && !hasModifierKeyHeld;
 
       performCopyWithLabel({
@@ -1986,9 +1995,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return;
       }
 
-      const shouldDeactivateAfter = store.wasActivatedByToggle && !hasModifierKeyHeld;
-
       actions.setLastGrabbed(selectedElement);
+
+      if (isPromptOnSelectEnabled() && !hasModifierKeyHeld) {
+        enterCommentModeForElement(selectedElement, positionX, positionY);
+        keyboardSelection.clear();
+        return;
+      }
+
+      const shouldDeactivateAfter = store.wasActivatedByToggle && !hasModifierKeyHeld;
 
       performCopyWithLabel({
         element: selectedElement,
@@ -3682,6 +3697,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 isFrozen={isFrozenPhase() || isActivated() || isToolbarSelectHovered()}
                 inputValue={store.inputText}
                 isPromptMode={isPromptMode()}
+                promptInToolbar={Boolean(pluginRegistry.store.options.promptInToolbar)}
                 onShowContextMenuInstance={handleShowContextMenuInstance}
                 onLabelInstanceHoverChange={labelController.handleHoverChange}
                 onInputChange={actions.setInputText}

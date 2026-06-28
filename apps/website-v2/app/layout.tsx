@@ -36,7 +36,7 @@ export default function RootLayout({
       className={`${inter.variable} ${geistMono.variable} antialiased`}
     >
       <body>
-        <script src="/script.js" defer />
+        <script src="/script.js" data-options='{"promptInToolbar": true}' defer />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <TooltipProvider>{children}</TooltipProvider>
         </ThemeProvider>

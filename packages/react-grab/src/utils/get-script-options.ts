@@ -30,6 +30,9 @@ const parseOptionsFromJson = (rawValue: unknown): Partial<Options> | null => {
   if (typeof rawValue.freezeReactUpdates === "boolean") {
     parsedOptions.freezeReactUpdates = rawValue.freezeReactUpdates;
   }
+  if (typeof rawValue.promptInToolbar === "boolean") {
+    parsedOptions.promptInToolbar = rawValue.promptInToolbar;
+  }
   if (typeof rawValue.telemetry === "boolean") {
     parsedOptions.telemetry = rawValue.telemetry;
   }

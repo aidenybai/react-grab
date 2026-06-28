@@ -1,4 +1,4 @@
-import { createEffect, createSignal, on, onCleanup, onMount, type Component } from "solid-js";
+import { createEffect, createSignal, on, onCleanup, onMount, Show, type Component } from "solid-js";
 import type { Position } from "../../types.js";
 import { cn } from "../../utils/cn.js";
 import { loadToolbarState, saveToolbarState, type SnapEdge, type ToolbarState } from "./state.js";
@@ -6,10 +6,12 @@ import { IconSelect } from "../icons/icon-select.jsx";
 import { IconComment } from "../icons/icon-comment.jsx";
 import { IconStyle } from "../icons/icon-style.jsx";
 import { ToolbarActionButton } from "./toolbar-action-button.jsx";
+import { ToolbarPromptBar } from "./toolbar-prompt-bar.jsx";
 import {
   TOOLBAR_SNAP_MARGIN_PX,
   TOOLBAR_FADE_IN_DELAY_MS,
   TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS,
+  TOOLBAR_PROMPT_SWAP_SETTLE_MS,
   TOOLBAR_DEFAULT_WIDTH_PX,
   TOOLBAR_DEFAULT_HEIGHT_PX,
   TOOLBAR_DEFAULT_POSITION_RATIO,
@@ -49,6 +51,11 @@ interface ToolbarProps {
   onSelectHoverChange?: (isHovered: boolean) => void;
   onContainerRef?: (element: HTMLDivElement) => void;
   onToggleToolbarMenu?: () => void;
+  isPromptMode?: boolean;
+  promptInputValue?: string;
+  onPromptInput?: (value: string) => void;
+  onPromptSubmit?: () => void;
+  onPromptCancel?: () => void;
 }
 
 interface FreezeHandlersOptions {
@@ -77,6 +84,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [isToolbarHovered, setIsToolbarHovered] = createSignal(false);
   const [selectIconRotationDeg, setSelectIconRotationDeg] = createSignal(0);
   const [hoveredActionId, setHoveredActionId] = createSignal<string | null>(null);
+  const [isPromptSwapping, setIsPromptSwapping] = createSignal(false);
   const drag = createToolbarDrag({
     getContainerRef: () => containerRef,
     isCollapsed,
@@ -175,6 +183,21 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       options?.onHoverChange?.(false);
     },
   });
+
+  createEffect(
+    on(
+      () => props.isPromptMode,
+      () => {
+        setIsPromptSwapping(true);
+        const settleTimeout = setTimeout(
+          () => setIsPromptSwapping(false),
+          TOOLBAR_PROMPT_SWAP_SETTLE_MS,
+        );
+        onCleanup(() => clearTimeout(settleTimeout));
+      },
+      { defer: true },
+    ),
+  );
 
   createEffect(
     on(
@@ -573,6 +596,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   };
 
   const getCursorClass = (): string => {
+    if (props.isPromptMode) {
+      return "cursor-auto";
+    }
     if (isCollapsed()) {
       return "cursor-pointer";
     }
@@ -590,12 +616,16 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     isCollapseAnimating() ||
     isChevronPressed();
 
-  const shouldDim = (): boolean => Boolean(props.isActive) && !isInteracting();
+  const shouldDim = (): boolean =>
+    Boolean(props.isActive) && !isInteracting() && !props.isPromptMode;
 
   const getTransitionClass = (): string => {
     // Drag must follow the pointer frame-to-frame; any transform transition
     // here would lag the toolbar behind the cursor.
-    if (isResizing() || drag.isDragging()) {
+    // No transform transition while the prompt input is open: the pill resizes
+    // as text wraps, and gliding the recenter would slide it around mid-typing.
+    // isPromptSwapping keeps the exit (back to action buttons) snapped too.
+    if (isResizing() || drag.isDragging() || isPromptSwapping() || props.isPromptMode) {
       return "";
     }
     if (drag.isSnapping()) {
@@ -645,7 +675,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       }}
       on:pointerdown={(event) => {
         stopEventPropagation(event);
-        drag.handlePointerDown(event);
+        if (!props.isPromptMode) drag.handlePointerDown(event);
       }}
       on:mousedown={stopEventPropagation}
       onMouseEnter={() => {
@@ -657,6 +687,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         props.onSelectHoverChange?.(false);
       }}
     >
+      <Show
+        when={props.isPromptMode}
+        fallback={
       <ToolbarContent
         isCollapsed={isCollapsed()}
         snapEdge={snapEdge()}
@@ -754,6 +787,16 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           </>
         }
       />
+        }
+      >
+        <ToolbarPromptBar
+          value={props.promptInputValue ?? ""}
+          onValueChange={(value) => props.onPromptInput?.(value)}
+          onSubmit={() => props.onPromptSubmit?.()}
+          onCancel={() => props.onPromptCancel?.()}
+          onSelectClick={() => props.onPromptCancel?.()}
+        />
+      </Show>
     </div>
   );
 };

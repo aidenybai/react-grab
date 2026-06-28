@@ -366,6 +366,14 @@ export interface Options {
    */
   freezeReactUpdates?: boolean;
   /**
+   * Render the prompt-mode input inline on the toolbar (the toolbar swaps its
+   * action buttons for a text input + send button) instead of as a floating
+   * label anchored to the selected element. Activation is unchanged: enter
+   * comment/prompt mode, then select an element.
+   * @default false
+   */
+  promptInToolbar?: boolean;
+  /**
    * Whether to send the anonymous version check to react-grab.com on init.
    * Set to false to skip the version-check request.
    * @default true
@@ -487,6 +495,7 @@ export interface ReactGrabRendererProps {
   isFrozen?: boolean;
   inputValue?: string;
   isPromptMode?: boolean;
+  promptInToolbar?: boolean;
   onShowContextMenuInstance?: (instanceId: string) => void;
   onLabelInstanceHoverChange?: (instanceId: string, isHovered: boolean) => void;
   onInputChange?: (value: string) => void;

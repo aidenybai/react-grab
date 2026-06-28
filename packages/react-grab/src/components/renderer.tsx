@@ -89,7 +89,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           selectionBounds={props.selectionBounds}
           mouseX={props.mouseX}
           visible={props.selectionLabelVisible}
-          isPromptMode={props.isPromptMode}
+          isPromptMode={props.promptInToolbar ? false : props.isPromptMode}
           inputValue={props.inputValue}
           status={props.selectionLabelStatus}
           arrowNavigationState={props.selectionArrowNavigationState}
@@ -153,6 +153,11 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           onSelectHoverChange={props.onToolbarSelectHoverChange}
           onContainerRef={props.onToolbarRef}
           onToggleToolbarMenu={props.onToggleToolbarMenu}
+          isPromptMode={Boolean(props.promptInToolbar && props.isPromptMode)}
+          promptInputValue={props.inputValue}
+          onPromptInput={props.onInputChange}
+          onPromptSubmit={props.onInputSubmit}
+          onPromptCancel={props.onConfirmDismiss}
         />
       </Show>
       <ContextMenu
