@@ -500,7 +500,9 @@ const createGrabStore = (input: GrabStoreInput) => {
       setStore("frozenDragRect", rect);
     },
 
-    // Keep tracked elements latched onto their fiber across DOM swaps. The
+    // Keep every element the overlay anchors to — the selection, the detected
+    // hover target, the context-menu target, and the post-copy "Copied" labels
+    // and grabbed-box flashes — latched onto its fiber across DOM swaps. The
     // pre-pass records each connected element's fiber (so a later swap can be
     // recovered) and notes whether anything detached; tracking must run every
     // tick while elements are alive. The store is only mutated through the far
@@ -508,7 +510,7 @@ const createGrabStore = (input: GrabStoreInput) => {
     // (nothing-detached) path — including per-frame scroll — stays allocation-light.
     relinkLiveElements: () => {
       let hasDetachedElement = false;
-      const trackOrFlagDetached = (element: Element | null) => {
+      const trackOrFlagDetached = (element: Element | null | undefined) => {
         if (!element) return;
         if (element.isConnected) trackElementFiber(element);
         else hasDetachedElement = true;
@@ -518,6 +520,11 @@ const createGrabStore = (input: GrabStoreInput) => {
       trackOrFlagDetached(store.frozenElement);
       trackOrFlagDetached(store.detectedElement);
       trackOrFlagDetached(store.contextMenuElement);
+      for (const instance of store.labelInstances) {
+        trackOrFlagDetached(instance.element);
+        instance.elements?.forEach(trackOrFlagDetached);
+      }
+      for (const box of store.grabbedBoxes) trackOrFlagDetached(box.element);
 
       if (!hasDetachedElement) return;
 
@@ -536,6 +543,19 @@ const createGrabStore = (input: GrabStoreInput) => {
               : relinkElement(draft.frozenElement);
           draft.detectedElement = relinkElement(draft.detectedElement);
           draft.contextMenuElement = relinkElement(draft.contextMenuElement);
+
+          for (const instance of draft.labelInstances) {
+            if (instance.element) instance.element = relinkElement(instance.element) ?? undefined;
+            if (instance.elements) {
+              for (let index = 0; index < instance.elements.length; index += 1) {
+                const liveElement = relinkElement(instance.elements[index]);
+                if (liveElement) instance.elements[index] = liveElement;
+              }
+            }
+          }
+          for (const box of draft.grabbedBoxes) {
+            if (box.element) box.element = relinkElement(box.element) ?? undefined;
+          }
         }),
       );
     },

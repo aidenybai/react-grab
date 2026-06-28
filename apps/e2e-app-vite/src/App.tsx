@@ -650,10 +650,17 @@ const HiddenToggleSection = () => {
 // Renders the selection target as the sole host child of a component so a
 // `key` flip forces React to unmount the old DOM node and mount a fresh one
 // (new host fiber) under the same surviving parent fiber. react-grab should
-// latch the held selection back onto the new node via the fiber.
+// latch the held selection and post-copy label back onto the new node via the
+// fiber. The swapped variant is offset downward so an anchored label visibly
+// moves when it re-resolves.
 const FiberSwapTarget = ({ swapped }: { swapped: boolean }) => {
   return swapped ? (
-    <div key="swapped" className="p-4 bg-orange-100 rounded" data-testid="fiber-swap-target">
+    <div
+      key="swapped"
+      className="p-4 bg-orange-100 rounded"
+      style={{ marginTop: 150 }}
+      data-testid="fiber-swap-target"
+    >
       Swapped fiber node
     </div>
   ) : (
