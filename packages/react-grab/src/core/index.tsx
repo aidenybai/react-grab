@@ -842,8 +842,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const intervalId = setInterval(() => {
         actions.relinkLiveElements();
+        // The hovered node can be swapped out by a re-render the freeze didn't
+        // catch (e.g. a dangerouslySetInnerHTML block re-highlighting). If fiber
+        // recovery couldn't relink it, re-detect under the pointer so the
+        // selection latches onto its replacement instead of vanishing.
         if (!isElementConnected(store.detectedElement)) {
-          actions.setDetectedElement(null);
+          redetectElementUnderPointer();
         }
       }, BOUNDS_RECALC_INTERVAL_MS);
 
