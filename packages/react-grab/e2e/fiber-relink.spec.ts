@@ -2,6 +2,7 @@ import { test, expect } from "./fixtures.js";
 
 interface FiberSwapWindow {
   __triggerFiberSwap?: () => void;
+  __triggerInnerHtmlSwap?: () => void;
   __REACT_GRAB__?: {
     getState: () => { targetElement: Element | null };
   };
@@ -66,5 +67,27 @@ test.describe("Fiber-latched selection", () => {
         { timeout: 1200 },
       )
       .toBeGreaterThan(40);
+  });
+
+  // Tokens rendered through dangerouslySetInnerHTML (syntax-highlighted code on
+  // the website) have no fiber of their own. Replacing the host's innerHTML
+  // detaches the selected token; recovery must anchor to the fibered host div
+  // and re-find the token by its DOM path.
+  test("re-resolves a selected innerHTML node with no fiber of its own", async ({
+    reactGrab,
+    page,
+  }) => {
+    await reactGrab.updateOptions({ freezeReactUpdates: false });
+
+    await reactGrab.activate();
+    await reactGrab.hoverUntilSelected(".inner-html-token");
+
+    await expect.poll(() => page.evaluate(getSelectionTargetText)).toBe("token-initial");
+
+    await page.evaluate(() => (window as unknown as FiberSwapWindow).__triggerInnerHtmlSwap?.());
+
+    await expect.poll(() => page.evaluate(getSelectionTargetText)).toBe("token-swapped");
+
+    expect(await reactGrab.isSelectionBoxVisible()).toBe(true);
   });
 });

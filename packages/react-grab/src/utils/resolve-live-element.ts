@@ -6,22 +6,36 @@ import {
   type Fiber,
 } from "bippy";
 
-// Parent fiber of each tracked element, captured while it was still mounted.
-// React mutates a fiber's `return`/`alternate` to null when it unmounts, so the
-// only link from a swapped-out node back to the live tree is an ancestor fiber
-// recorded before the unmount. The parent survives the child's remount.
-const ancestorFiberByElement = new WeakMap<Element, Fiber>();
+interface ElementAnchor {
+  // Nearest ancestor (or the element itself) that React manages via a fiber.
+  // Content rendered through `dangerouslySetInnerHTML` — e.g. syntax-highlighted
+  // code — has no fiber of its own, so we anchor to the nearest fibered host and
+  // re-find the element by the DOM path below it after a re-render.
+  anchorElement: Element;
+  // Parent fiber of the anchor, used to recover the anchor when React remounts
+  // it: a fiber's own `return`/`alternate` are nulled on unmount, so the link
+  // back to the live tree has to come from an ancestor that survives.
+  anchorParentFiber: Fiber;
+  // Child-index chain from the anchor down to the tracked element; empty when
+  // the element is itself the anchor.
+  domPath: number[];
+  targetTagName: string;
+}
 
-// Resolves the fiber's current host node whose tag matches the original. The
-// tag match keeps recovery from latching onto an unrelated host when the
-// original element type is gone; same-tag siblings under a shared ancestor
-// can't be told apart and resolve to the first match, which still leaves the
-// selection on a valid node instead of dropping it.
+// Recovery metadata for each tracked element, captured while it was still
+// mounted (React nulls the fiber pointers on unmount, so this must be recorded
+// before the swap).
+const anchorByElement = new WeakMap<Element, ElementAnchor>();
+
 const liveHostElementFromFiber = (fiber: Fiber, tagName: string): Element | null => {
   const latest = getLatestFiber(fiber);
   const hostFibers = isHostFiber(latest) ? [latest] : getNearestHostFibers(latest);
   for (const hostFiber of hostFibers) {
     const node = hostFiber.stateNode;
+    // The tag match keeps recovery from latching onto an unrelated host when the
+    // original element type is gone. Same-tag siblings under a shared ancestor
+    // can't be told apart and resolve to the first match, which still leaves the
+    // selection on a valid node instead of dropping it.
     if (node instanceof Element && node.isConnected && node.tagName === tagName) {
       return node;
     }
@@ -29,43 +43,64 @@ const liveHostElementFromFiber = (fiber: Fiber, tagName: string): Element | null
   return null;
 };
 
-// Records the parent fiber of a still-connected element so its replacement can
-// be recovered later. Cheap and idempotent: skips disconnected elements and
-// anything already tracked.
+const followDomPath = (root: Element, domPath: number[]): Element | null => {
+  let node: Element = root;
+  for (const childIndex of domPath) {
+    const child = node.children[childIndex];
+    if (!child) return null;
+    node = child;
+  }
+  return node;
+};
+
+// Walks up to the nearest fiber-managed ancestor, recording the DOM path taken
+// so a non-fibered element (innerHTML content) can be re-found beneath it.
+const findAnchor = (element: Element): ElementAnchor | null => {
+  const domPath: number[] = [];
+  let anchorElement: Element | null = element;
+  let anchorFiber = getFiberFromHostInstance(anchorElement);
+  while (anchorElement && !anchorFiber) {
+    const parent: Element | null = anchorElement.parentElement;
+    if (!parent) return null;
+    domPath.unshift(Array.prototype.indexOf.call(parent.children, anchorElement));
+    anchorElement = parent;
+    anchorFiber = getFiberFromHostInstance(anchorElement);
+  }
+  const anchorParentFiber = anchorFiber?.return;
+  if (!anchorElement || !anchorParentFiber) return null;
+  return { anchorElement, anchorParentFiber, domPath, targetTagName: element.tagName };
+};
+
+// Records how to recover an element after a DOM swap. Cheap and idempotent:
+// skips disconnected elements and anything already tracked.
 export const trackElementFiber = (element: Element): void => {
   if (!element.isConnected) return;
-  if (ancestorFiberByElement.has(element)) return;
-  const parentFiber = getFiberFromHostInstance(element)?.return;
-  if (parentFiber) ancestorFiberByElement.set(element, parentFiber);
+  if (anchorByElement.has(element)) return;
+  const anchor = findAnchor(element);
+  if (anchor) anchorByElement.set(element, anchor);
 };
 
 // When React swaps the DOM node backing a selected element — a conditional
-// remount (`cond ? <a/> : <button/>`), a route/view transition, or an
-// animation library reparenting nodes — the originally captured Element
-// detaches and the selection box plus copied context break. The fiber is the
-// stable identity that survives the swap, so we re-resolve the current host
-// node from it and latch the selection onto the new DOM node.
-//
-// First we try the element's own fiber in case React kept it and only swapped
-// its host instance. Otherwise we fall back to the ancestor fiber captured by
-// trackElementFiber while the element was alive and read its current host
-// descendant.
+// remount, a route/view transition, an animation library reparenting nodes, or
+// a `dangerouslySetInnerHTML` subtree (syntax-highlighted code) being replaced —
+// the originally captured Element detaches and the selection box, copied
+// context, and post-copy label break. We recover by resolving the nearest
+// surviving fibered ancestor and re-walking the recorded DOM path to the
+// element's replacement.
 export const resolveLiveElement = (element: Element): Element | null => {
   if (element.isConnected) return element;
 
-  const tagName = element.tagName;
+  const anchor = anchorByElement.get(element);
+  if (!anchor) return null;
 
-  const ownFiber = getFiberFromHostInstance(element);
-  if (ownFiber) {
-    const liveFromOwn = liveHostElementFromFiber(ownFiber, tagName);
-    if (liveFromOwn) return liveFromOwn;
+  const liveAnchor = anchor.anchorElement.isConnected
+    ? anchor.anchorElement
+    : liveHostElementFromFiber(anchor.anchorParentFiber, anchor.anchorElement.tagName);
+  if (!liveAnchor) return null;
+
+  const recovered = followDomPath(liveAnchor, anchor.domPath);
+  if (recovered && recovered.isConnected && recovered.tagName === anchor.targetTagName) {
+    return recovered;
   }
-
-  const ancestorFiber = ancestorFiberByElement.get(element);
-  if (ancestorFiber) {
-    const liveFromAncestor = liveHostElementFromFiber(ancestorFiber, tagName);
-    if (liveFromAncestor) return liveFromAncestor;
-  }
-
   return null;
 };

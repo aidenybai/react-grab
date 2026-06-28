@@ -4,6 +4,7 @@ import { PerfGrid } from "./perf-grid";
 declare global {
   interface Window {
     __triggerFiberSwap?: () => void;
+    __triggerInnerHtmlSwap?: () => void;
   }
 }
 
@@ -688,6 +689,35 @@ const FiberSwapSection = () => {
   );
 };
 
+// Mirrors the website's syntax-highlighted code blocks: the inner token nodes
+// are rendered via dangerouslySetInnerHTML, so they have no React fiber. A swap
+// replaces the whole subtree (new DOM nodes at the same path). react-grab should
+// re-find a selected token by anchoring to the fibered host div.
+const InnerHtmlSwapSection = () => {
+  const [variant, setVariant] = useState(0);
+
+  useEffect(() => {
+    window.__triggerInnerHtmlSwap = () => setVariant((previous) => previous + 1);
+    return () => {
+      delete window.__triggerInnerHtmlSwap;
+    };
+  }, []);
+
+  const tokenLabel = variant === 0 ? "token-initial" : "token-swapped";
+  const html = `<pre class="font-mono"><code><span class="inner-html-token">${tokenLabel}</span></code></pre>`;
+
+  return (
+    <section className="border rounded-lg p-4" data-testid="inner-html-swap-section">
+      <h2 className="text-lg font-bold mb-4">Inner HTML Swap</h2>
+      <div
+        className="p-4 bg-slate-100 rounded"
+        data-testid="inner-html-host"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    </section>
+  );
+};
+
 const usePerfGridConfig = (): { rowCount: number; columnCount: number } | null => {
   if (typeof window === "undefined") return null;
   const params = new URLSearchParams(window.location.search);
@@ -804,6 +834,8 @@ export default function App() {
       <HiddenToggleSection />
 
       <FiberSwapSection />
+
+      <InnerHtmlSwapSection />
 
       <div
         className="h-96 flex items-center justify-center bg-gray-100 rounded-lg"
