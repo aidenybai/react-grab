@@ -5,6 +5,7 @@ import {
   isHostFiber,
   type Fiber,
 } from "bippy";
+import { indexInParent } from "./index-in-parent.js";
 
 interface ElementAnchor {
   // Nearest ancestor (or the element itself) that React manages via a fiber.
@@ -60,10 +61,8 @@ const findAnchor = (element: Element): ElementAnchor | null => {
   let anchorElement: Element | null = element;
   let anchorFiber = getFiberFromHostInstance(anchorElement);
   while (anchorElement && !anchorFiber) {
-    const parent: Element | null = anchorElement.parentElement;
-    if (!parent) return null;
-    domPath.unshift(Array.prototype.indexOf.call(parent.children, anchorElement));
-    anchorElement = parent;
+    domPath.unshift(indexInParent(anchorElement));
+    anchorElement = anchorElement.parentElement;
     anchorFiber = getFiberFromHostInstance(anchorElement);
   }
   const anchorParentFiber = anchorFiber?.return;

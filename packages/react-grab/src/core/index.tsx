@@ -2952,7 +2952,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleViewportChange = () => {
       invalidateInteractionCaches();
-      actions.relinkLiveElements();
       redetectElementUnderPointer();
       actions.incrementViewportVersion();
       actions.updateContextMenuPosition();
@@ -3217,7 +3216,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!pluginRegistry.store.theme.grabbedBoxes.enabled) return [];
       void viewportVersion();
       return store.grabbedBoxes.map((box) => {
-        if (!box.element || !document.body.contains(box.element)) {
+        if (!isElementConnected(box.element)) {
           return box;
         }
         return {

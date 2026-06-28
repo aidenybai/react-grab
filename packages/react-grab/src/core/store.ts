@@ -67,12 +67,11 @@ interface GrabStoreInput {
   keyHoldDuration: number;
 }
 
-// Returns the live element to use for a tracked slot: records the fiber while
+// Returns the live element for a tracked slot: records the fiber while
 // connected so a future swap can be recovered, and re-resolves the current node
 // once it has detached. Keeps the old reference when recovery fails so callers
 // never lose the slot to a transient null.
-const relinkElement = (element: Element | null): Element | null => {
-  if (!element) return null;
+const relinkElement = (element: Element): Element => {
   if (element.isConnected) {
     trackElementFiber(element);
     return element;
@@ -81,6 +80,38 @@ const relinkElement = (element: Element | null): Element | null => {
   if (!liveElement) return element;
   trackElementFiber(liveElement);
   return liveElement;
+};
+
+// Re-resolves every element the overlay anchors to — the selection, the hover
+// target, the context-menu target, and the post-copy "Copied" labels and
+// grabbed-box flashes — so they all follow the same DOM swaps. Run on the
+// recalc interval; assigning the same reference back is a no-op for solid, so
+// connected elements produce no store notifications.
+const relinkSlots = (draft: GrabStore): void => {
+  for (let index = 0; index < draft.frozenElements.length; index += 1) {
+    draft.frozenElements[index] = relinkElement(draft.frozenElements[index]);
+  }
+  // frozenElement mirrors frozenElements[0] when the array is populated (see
+  // updateFrozenElements); it only stands alone in freeze / prompt mode, where
+  // it is recovered on its own.
+  draft.frozenElement =
+    draft.frozenElements.length > 0
+      ? draft.frozenElements[0]
+      : draft.frozenElement && relinkElement(draft.frozenElement);
+  draft.detectedElement = draft.detectedElement && relinkElement(draft.detectedElement);
+  draft.contextMenuElement = draft.contextMenuElement && relinkElement(draft.contextMenuElement);
+
+  for (const instance of draft.labelInstances) {
+    if (instance.element) instance.element = relinkElement(instance.element);
+    if (instance.elements) {
+      for (let index = 0; index < instance.elements.length; index += 1) {
+        instance.elements[index] = relinkElement(instance.elements[index]);
+      }
+    }
+  }
+  for (const box of draft.grabbedBoxes) {
+    if (box.element) box.element = relinkElement(box.element);
+  }
 };
 
 const createInitialStore = (input: GrabStoreInput): GrabStore => ({
@@ -500,64 +531,8 @@ const createGrabStore = (input: GrabStoreInput) => {
       setStore("frozenDragRect", rect);
     },
 
-    // Keep every element the overlay anchors to — the selection, the detected
-    // hover target, the context-menu target, and the post-copy "Copied" labels
-    // and grabbed-box flashes — latched onto its fiber across DOM swaps. The
-    // pre-pass records each connected element's fiber (so a later swap can be
-    // recovered) and notes whether anything detached; tracking must run every
-    // tick while elements are alive. The store is only mutated through the far
-    // costlier produce when something actually needs recovery, so the common
-    // (nothing-detached) path — including per-frame scroll — stays allocation-light.
     relinkLiveElements: () => {
-      let hasDetachedElement = false;
-      const trackOrFlagDetached = (element: Element | null | undefined) => {
-        if (!element) return;
-        if (element.isConnected) trackElementFiber(element);
-        else hasDetachedElement = true;
-      };
-
-      for (const frozenElement of store.frozenElements) trackOrFlagDetached(frozenElement);
-      trackOrFlagDetached(store.frozenElement);
-      trackOrFlagDetached(store.detectedElement);
-      trackOrFlagDetached(store.contextMenuElement);
-      for (const instance of store.labelInstances) {
-        trackOrFlagDetached(instance.element);
-        instance.elements?.forEach(trackOrFlagDetached);
-      }
-      for (const box of store.grabbedBoxes) trackOrFlagDetached(box.element);
-
-      if (!hasDetachedElement) return;
-
-      setStore(
-        produce((draft) => {
-          for (let index = 0; index < draft.frozenElements.length; index += 1) {
-            const liveElement = relinkElement(draft.frozenElements[index]);
-            if (liveElement) draft.frozenElements[index] = liveElement;
-          }
-          // frozenElement mirrors frozenElements[0] when the array is populated
-          // (see updateFrozenElements); it only stands alone in freeze / prompt
-          // mode, where it is recovered on its own.
-          draft.frozenElement =
-            draft.frozenElements.length > 0
-              ? draft.frozenElements[0]
-              : relinkElement(draft.frozenElement);
-          draft.detectedElement = relinkElement(draft.detectedElement);
-          draft.contextMenuElement = relinkElement(draft.contextMenuElement);
-
-          for (const instance of draft.labelInstances) {
-            if (instance.element) instance.element = relinkElement(instance.element) ?? undefined;
-            if (instance.elements) {
-              for (let index = 0; index < instance.elements.length; index += 1) {
-                const liveElement = relinkElement(instance.elements[index]);
-                if (liveElement) instance.elements[index] = liveElement;
-              }
-            }
-          }
-          for (const box of draft.grabbedBoxes) {
-            if (box.element) box.element = relinkElement(box.element) ?? undefined;
-          }
-        }),
-      );
+      setStore(produce(relinkSlots));
     },
 
     setCopyStart: (position: Position, element: Element) => {
