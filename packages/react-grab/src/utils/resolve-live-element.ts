@@ -12,19 +12,21 @@ import {
 // recorded before the unmount. The parent survives the child's remount.
 const ancestorFiberByElement = new WeakMap<Element, Fiber>();
 
+// Resolves the fiber's current host node whose tag matches the original. The
+// tag match keeps recovery from latching onto an unrelated host when the
+// original element type is gone; same-tag siblings under a shared ancestor
+// can't be told apart and resolve to the first match, which still leaves the
+// selection on a valid node instead of dropping it.
 const liveHostElementFromFiber = (fiber: Fiber, tagName: string): Element | null => {
   const latest = getLatestFiber(fiber);
   const hostFibers = isHostFiber(latest) ? [latest] : getNearestHostFibers(latest);
-  let fallback: Element | null = null;
   for (const hostFiber of hostFibers) {
     const node = hostFiber.stateNode;
-    if (!(node instanceof Element) || !node.isConnected) continue;
-    // Prefer a recovered node whose tag matches the original so we latch onto
-    // the swapped element rather than an unrelated sibling host.
-    if (node.tagName === tagName) return node;
-    fallback ??= node;
+    if (node instanceof Element && node.isConnected && node.tagName === tagName) {
+      return node;
+    }
   }
-  return fallback;
+  return null;
 };
 
 // Records the parent fiber of a still-connected element so its replacement can

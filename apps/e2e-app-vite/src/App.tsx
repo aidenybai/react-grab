@@ -1,6 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { PerfGrid } from "./perf-grid";
 
+declare global {
+  interface Window {
+    __triggerFiberSwap?: () => void;
+  }
+}
+
 interface Todo {
   id: number;
   title: string;
@@ -661,10 +667,9 @@ const FiberSwapSection = () => {
   const [swapped, setSwapped] = useState(false);
 
   useEffect(() => {
-    (window as unknown as { __triggerFiberSwap?: () => void }).__triggerFiberSwap = () =>
-      setSwapped((previous) => !previous);
+    window.__triggerFiberSwap = () => setSwapped((previous) => !previous);
     return () => {
-      delete (window as unknown as { __triggerFiberSwap?: () => void }).__triggerFiberSwap;
+      delete window.__triggerFiberSwap;
     };
   }, []);
 

@@ -67,6 +67,22 @@ interface GrabStoreInput {
   keyHoldDuration: number;
 }
 
+// Returns the live element to use for a tracked slot: records the fiber while
+// connected so a future swap can be recovered, and re-resolves the current node
+// once it has detached. Keeps the old reference when recovery fails so callers
+// never lose the slot to a transient null.
+const relinkElement = (element: Element | null): Element | null => {
+  if (!element) return null;
+  if (element.isConnected) {
+    trackElementFiber(element);
+    return element;
+  }
+  const liveElement = resolveLiveElement(element);
+  if (!liveElement) return element;
+  trackElementFiber(liveElement);
+  return liveElement;
+};
+
 const createInitialStore = (input: GrabStoreInput): GrabStore => ({
   selectionInteractionLockDepth: 0,
 
@@ -484,48 +500,42 @@ const createGrabStore = (input: GrabStoreInput) => {
       setStore("frozenDragRect", rect);
     },
 
-    // Keep tracked elements latched onto their fiber across DOM swaps: record a
-    // surviving ancestor fiber while an element is connected, and re-resolve the
-    // live node once it detaches. Cheap when nothing detached — the isConnected
-    // guard skips the recovery work for every still-attached element.
+    // Keep tracked elements latched onto their fiber across DOM swaps. The
+    // pre-pass records each connected element's fiber (so a later swap can be
+    // recovered) and notes whether anything detached; tracking must run every
+    // tick while elements are alive. The store is only mutated through the far
+    // costlier produce when something actually needs recovery, so the common
+    // (nothing-detached) path — including per-frame scroll — stays allocation-light.
     relinkLiveElements: () => {
+      let hasDetachedElement = false;
+      const trackOrFlagDetached = (element: Element | null) => {
+        if (!element) return;
+        if (element.isConnected) trackElementFiber(element);
+        else hasDetachedElement = true;
+      };
+
+      for (const frozenElement of store.frozenElements) trackOrFlagDetached(frozenElement);
+      trackOrFlagDetached(store.frozenElement);
+      trackOrFlagDetached(store.detectedElement);
+      trackOrFlagDetached(store.contextMenuElement);
+
+      if (!hasDetachedElement) return;
+
       setStore(
         produce((draft) => {
-          const relinkSingle = (
-            key: "frozenElement" | "detectedElement" | "contextMenuElement",
-          ) => {
-            const element = draft[key];
-            if (!element) return;
-            if (element.isConnected) {
-              trackElementFiber(element);
-              return;
-            }
-            const liveElement = resolveLiveElement(element);
-            if (liveElement) draft[key] = liveElement;
-          };
-
-          let didRelinkFrozen = false;
           for (let index = 0; index < draft.frozenElements.length; index += 1) {
-            const element = draft.frozenElements[index];
-            if (element.isConnected) {
-              trackElementFiber(element);
-              continue;
-            }
-            const liveElement = resolveLiveElement(element);
-            if (liveElement && liveElement !== element) {
-              draft.frozenElements[index] = liveElement;
-              trackElementFiber(liveElement);
-              didRelinkFrozen = true;
-            }
+            const liveElement = relinkElement(draft.frozenElements[index]);
+            if (liveElement) draft.frozenElements[index] = liveElement;
           }
-
-          if (didRelinkFrozen) {
-            draft.frozenElement = draft.frozenElements.length > 0 ? draft.frozenElements[0] : null;
-          } else {
-            relinkSingle("frozenElement");
-          }
-          relinkSingle("detectedElement");
-          relinkSingle("contextMenuElement");
+          // frozenElement mirrors frozenElements[0] when the array is populated
+          // (see updateFrozenElements); it only stands alone in freeze / prompt
+          // mode, where it is recovered on its own.
+          draft.frozenElement =
+            draft.frozenElements.length > 0
+              ? draft.frozenElements[0]
+              : relinkElement(draft.frozenElement);
+          draft.detectedElement = relinkElement(draft.detectedElement);
+          draft.contextMenuElement = relinkElement(draft.contextMenuElement);
         }),
       );
     },

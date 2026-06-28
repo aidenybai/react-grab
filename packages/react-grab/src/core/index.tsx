@@ -841,7 +841,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!element) return;
 
       const intervalId = setInterval(() => {
-        if (isElementConnected(store.detectedElement)) return;
         actions.relinkLiveElements();
         if (!isElementConnected(store.detectedElement)) {
           actions.setDetectedElement(null);
