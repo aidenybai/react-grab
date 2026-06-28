@@ -1,30 +1,38 @@
 import { test, expect, type ReactGrabPageObject } from "./fixtures.js";
 
-// Covers the freeze dispatcher patching for hooks beyond useState. The harness
-// in the Vite fixture (FreezeHookHarness) bumps each value through a handler
-// that bypasses useState, so a frozen page must HOLD the displayed value while
-// frozen and resume normal updates once unfrozen. This drives the
-// freeze-updates.ts pause/resume paths the useState-only freeze-updates.spec
-// never reaches: useReducer / useTransition / useSyncExternalStore hook-queue
-// pausing and (notably) context-dependency pause/resume.
+// Covers react-grab's freeze dispatcher patching for hooks beyond useState. The
+// FreezeHookHarness fixture exposes a useReducer, useTransition,
+// useSyncExternalStore, and context-backed counter; each holds its displayed
+// value while the page is frozen (prompt mode) and resumes afterwards. This
+// drives the freeze-updates.ts pause/resume paths the useState-only
+// freeze-updates.spec never reaches, notably context-dependency pause/resume.
 
 const FREEZE_TARGET = "[data-testid='dynamic-element-1']";
 
+// Async React work scheduled by a click needs a beat to (not) commit before we
+// read, so the freeze-hold assertion can actually catch a leaked update and the
+// post-unfreeze baseline is stable. Mirrors freeze-updates.spec's settle waits.
+const FREEZE_SETTLE_MS = 150;
+
 const readCount = async (reactGrab: ReactGrabPageObject, testId: string): Promise<number> => {
   const text = await reactGrab.page.locator(`[data-testid='${testId}']`).textContent();
-  return Number(text?.trim());
+  if (text === null) throw new Error(`Counter "${testId}" not found`);
+  return Number(text.trim());
 };
 
+// While react-grab is active its overlay intercepts pointer events, so a real
+// click would be swallowed. Dispatch a synthetic DOM click straight to the
+// element instead, matching the approach in freeze-updates.spec.
 const clickByTestId = async (reactGrab: ReactGrabPageObject, testId: string): Promise<void> => {
   await reactGrab.page.evaluate((id) => {
-    const button = document.querySelector(`[data-testid='${id}']`) as HTMLButtonElement | null;
+    const button = document.querySelector<HTMLElement>(`[data-testid='${id}']`);
     button?.click();
   }, testId);
 };
 
 // Verifies a hook-driven counter is frozen while the page is frozen, then bumps
 // normally once unfrozen. `countTestId` shows the value; `incrementTestId` bumps
-// it via a handler that does not go through useState.
+// it.
 const assertFreezeHoldsThenResumes = async (
   reactGrab: ReactGrabPageObject,
   countTestId: string,
@@ -35,12 +43,14 @@ const assertFreezeHoldsThenResumes = async (
   await reactGrab.enterPromptMode(FREEZE_TARGET);
   await clickByTestId(reactGrab, incrementTestId);
   await clickByTestId(reactGrab, incrementTestId);
+  await reactGrab.page.waitForTimeout(FREEZE_SETTLE_MS);
 
   // Frozen: the displayed value must not move while the page is frozen.
   expect(await readCount(reactGrab, countTestId)).toBe(before);
 
   await reactGrab.pressEscape();
   await reactGrab.deactivate();
+  await reactGrab.page.waitForTimeout(FREEZE_SETTLE_MS);
 
   // Unfrozen: a fresh bump increments from whatever value settled after
   // unfreeze, proving the hook queue was restored cleanly.
@@ -70,7 +80,7 @@ test.describe("Freeze Hook Buffering", () => {
     await assertFreezeHoldsThenResumes(reactGrab, "context-count", "context-increment");
   });
 
-  test("all hook counters stay frozen together during a freeze cycle", async ({ reactGrab }) => {
+  test("all hook counters stay frozen together during one freeze cycle", async ({ reactGrab }) => {
     const reducerBefore = await readCount(reactGrab, "reducer-count");
     const transitionBefore = await readCount(reactGrab, "transition-count");
     const storeBefore = await readCount(reactGrab, "store-count");
@@ -81,6 +91,7 @@ test.describe("Freeze Hook Buffering", () => {
     await clickByTestId(reactGrab, "transition-increment");
     await clickByTestId(reactGrab, "store-increment");
     await clickByTestId(reactGrab, "context-increment");
+    await reactGrab.page.waitForTimeout(FREEZE_SETTLE_MS);
 
     expect(await readCount(reactGrab, "reducer-count")).toBe(reducerBefore);
     expect(await readCount(reactGrab, "transition-count")).toBe(transitionBefore);
@@ -89,10 +100,5 @@ test.describe("Freeze Hook Buffering", () => {
 
     await reactGrab.pressEscape();
     await reactGrab.deactivate();
-
-    // After unfreeze every counter accepts a fresh update again.
-    const reducerAfter = await readCount(reactGrab, "reducer-count");
-    await clickByTestId(reactGrab, "reducer-increment");
-    await expect.poll(() => readCount(reactGrab, "reducer-count")).toBe(reducerAfter + 1);
   });
 });
