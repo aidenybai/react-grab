@@ -507,6 +507,8 @@ export interface ReactGrabRendererProps {
   inputValue?: string;
   isPromptMode?: boolean;
   onShowContextMenuInstance?: (instanceId: string) => void;
+  onRetryInstance?: (instanceId: string) => void;
+  onAcknowledgeErrorInstance?: (instanceId: string) => void;
   onLabelInstanceHoverChange?: (instanceId: string, isHovered: boolean) => void;
   onInputChange?: (value: string) => void;
   onInputSubmit?: () => void;
