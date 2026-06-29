@@ -112,8 +112,14 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     if (!canvasRef) return;
 
     devicePixelRatio = Math.max(window.devicePixelRatio || 1, MIN_DEVICE_PIXEL_RATIO);
-    canvasWidth = window.innerWidth;
-    canvasHeight = window.innerHeight;
+    // Size to the layout viewport (documentElement.clientWidth/Height), not
+    // window.innerWidth/Height. Under browser zoom the latter shrink to the
+    // visual viewport while getBoundingClientRect — which positions the boxes —
+    // keeps returning full layout coordinates, so a canvas sized to innerWidth
+    // draws the selection box off-canvas for anything past the shrunken edge
+    // (the "selection box gone entirely when zoomed" bug).
+    canvasWidth = document.documentElement.clientWidth || window.innerWidth;
+    canvasHeight = document.documentElement.clientHeight || window.innerHeight;
 
     canvasRef.width = canvasWidth * devicePixelRatio;
     canvasRef.height = canvasHeight * devicePixelRatio;
