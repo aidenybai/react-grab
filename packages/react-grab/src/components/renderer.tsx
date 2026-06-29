@@ -108,6 +108,8 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
               }
               return () => props.onShowContextMenuInstance?.(currentInstance.id);
             })()}
+            onRetry={() => props.onRetryInstance?.(instance().id)}
+            onAcknowledgeError={() => props.onAcknowledgeErrorInstance?.(instance().id)}
             onHoverChange={(isHovered) =>
               props.onLabelInstanceHoverChange?.(instance().id, isHovered)
             }

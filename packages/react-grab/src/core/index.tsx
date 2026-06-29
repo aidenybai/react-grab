@@ -656,16 +656,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const labelController = createLabelController(actions, () => store.labelInstances);
 
-    const executeCopyOperation = async (
+    // Per-label retry closures, registered when a copy fails so the error
+    // view's Retry button (and Enter key) can re-run the exact same operation.
+    const retryCopyByInstanceId = new Map<string, () => void>();
+
+    const attemptClipboardAndLabel = async (
       clipboardOperation: () => Promise<boolean>,
       labelInstanceIds: string[] | null,
-      shouldDeactivateAfter?: boolean,
-    ) => {
-      clearCopyFeedbackCooldown();
-      if (current().state !== "copying") {
-        actions.startCopy();
-      }
-
+    ): Promise<boolean> => {
       let didSucceed = false;
       let errorMessage: string | undefined;
 
@@ -680,6 +678,62 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         for (const labelInstanceId of labelInstanceIds) {
           labelController.updateAfterCopy(labelInstanceId, didSucceed, errorMessage);
         }
+      }
+
+      return didSucceed;
+    };
+
+    const registerCopyRetry = (
+      didSucceed: boolean,
+      clipboardOperation: () => Promise<boolean>,
+      labelInstanceIds: string[],
+    ) => {
+      if (didSucceed) {
+        for (const labelInstanceId of labelInstanceIds) {
+          retryCopyByInstanceId.delete(labelInstanceId);
+        }
+        return;
+      }
+
+      const retry = () => {
+        for (const labelInstanceId of labelInstanceIds) {
+          labelController.markRetrying(labelInstanceId);
+          retryCopyByInstanceId.delete(labelInstanceId);
+        }
+        void attemptClipboardAndLabel(clipboardOperation, labelInstanceIds).then(
+          (didRetrySucceed) =>
+            registerCopyRetry(didRetrySucceed, clipboardOperation, labelInstanceIds),
+        );
+      };
+
+      for (const labelInstanceId of labelInstanceIds) {
+        retryCopyByInstanceId.set(labelInstanceId, retry);
+      }
+    };
+
+    const handleRetryInstance = (instanceId: string) => {
+      retryCopyByInstanceId.get(instanceId)?.();
+    };
+
+    const handleAcknowledgeErrorInstance = (instanceId: string) => {
+      retryCopyByInstanceId.delete(instanceId);
+      labelController.dismissInstance(instanceId);
+    };
+
+    const executeCopyOperation = async (
+      clipboardOperation: () => Promise<boolean>,
+      labelInstanceIds: string[] | null,
+      shouldDeactivateAfter?: boolean,
+    ) => {
+      clearCopyFeedbackCooldown();
+      if (current().state !== "copying") {
+        actions.startCopy();
+      }
+
+      const didSucceed = await attemptClipboardAndLabel(clipboardOperation, labelInstanceIds);
+
+      if (labelInstanceIds) {
+        registerCopyRetry(didSucceed, clipboardOperation, labelInstanceIds);
       }
 
       if (current().state !== "copying") return;
@@ -778,6 +832,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           const normalizedMessage = normalizeErrorMessage(error, "Action failed");
           for (const labelInstanceId of copy.labelInstanceIds) {
             labelController.updateAfterCopy(labelInstanceId, false, normalizedMessage);
+          }
+          if (copy.labelInstanceIds.length > 0) {
+            registerCopyRetry(
+              false,
+              () => copyElementsToClipboard(copy.targetElements, copy.extraPrompt, undefined),
+              copy.labelInstanceIds,
+            );
           }
           if (current().state === "copying") {
             actions.unfreeze();
@@ -3825,6 +3886,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 inputValue={store.inputText}
                 isPromptMode={isPromptMode()}
                 onShowContextMenuInstance={handleShowContextMenuInstance}
+                onRetryInstance={handleRetryInstance}
+                onAcknowledgeErrorInstance={handleAcknowledgeErrorInstance}
                 onLabelInstanceHoverChange={labelController.handleHoverChange}
                 onInputChange={actions.setInputText}
                 onInputSubmit={() => void handleInputSubmit()}

@@ -54,6 +54,8 @@ interface LabelController {
     status: SelectionLabelInstance["status"],
   ) => string[];
   updateAfterCopy: (instanceId: string, didSucceed: boolean, errorMessage?: string) => void;
+  markRetrying: (instanceId: string) => void;
+  dismissInstance: (instanceId: string) => void;
   cancelAllFades: () => void;
   clearAll: () => void;
   handleHoverChange: (instanceId: string, isHovered: boolean) => void;
@@ -175,6 +177,16 @@ export const createLabelController = (
     scheduleFade(instanceId);
   };
 
+  const markRetrying = (instanceId: string) => {
+    cancelFade(instanceId);
+    store.updateLabelInstance(instanceId, "copying");
+  };
+
+  const dismissInstance = (instanceId: string) => {
+    cancelFade(instanceId);
+    store.removeLabelInstance(instanceId);
+  };
+
   const handleHoverChange = (instanceId: string, isHovered: boolean) => {
     if (isHovered) {
       cancelFade(instanceId);
@@ -195,6 +207,8 @@ export const createLabelController = (
     createInstance,
     createPerElementInstances,
     updateAfterCopy,
+    markRetrying,
+    dismissInstance,
     cancelAllFades,
     clearAll,
     handleHoverChange,
