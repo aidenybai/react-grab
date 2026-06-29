@@ -1,6 +1,34 @@
-import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { StackFrame } from "bippy/source";
-import { symbolicateServerFrames } from "../src/core/next-server-frames.js";
+import type { Fiber } from "bippy";
+import {
+  enrichServerFrameLocations,
+  symbolicateServerFrames,
+} from "../src/core/next-server-frames.js";
+
+// enrichServerFrameLocations walks the fiber tree via bippy to recover server
+// frame file locations from React's owner debug stacks. Stub bippy so the merge
+// logic is exercised deterministically without a real fiber tree. The runtime
+// helpers below are unused by symbolicateServerFrames, so its tests are
+// unaffected.
+interface DebugFiber {
+  _debugStack?: { stack: string };
+}
+interface DebugRoot {
+  fibers: DebugFiber[];
+}
+
+vi.mock("bippy", () => ({
+  traverseFiber: (root: DebugRoot, selector: (fiber: DebugFiber) => boolean) => {
+    for (const fiber of root.fibers) selector(fiber);
+  },
+}));
+
+vi.mock("bippy/source", () => ({
+  hasDebugStack: (fiber: DebugFiber) => Boolean(fiber._debugStack),
+  formatOwnerStack: (stack: string) => stack,
+  parseStack: (ownerStack: string) => JSON.parse(ownerStack) as StackFrame[],
+}));
 
 // symbolicateServerFrames touches only `document` (for the Next base path) and
 // the global `fetch`, both stubbed here so the POST behavior can be asserted in
@@ -242,5 +270,103 @@ describe("symbolicateServerFrames — success path", () => {
     expect(result[1].fileName).not.toBe("app/ignored.tsx");
     expect(result[2].isSymbolicated).toBeFalsy();
     expect(result[3]).toMatchObject({ fileName: "app/ok.tsx", isSymbolicated: true });
+  });
+
+  it("falls back to <unknown> and null positions for a server frame missing that metadata", async () => {
+    let captured: CapturedRequest | undefined;
+    globalThis.fetch = respondWith([fulfilled("app/z.tsx", 1, 1)], (request) => {
+      captured = request;
+    });
+
+    const bareFrame = {
+      fileName: "rsc://React/Server/webpack-internal:///./app/z.tsx?1",
+      isServer: true,
+    } as StackFrame;
+
+    await symbolicateServerFrames([bareFrame]);
+
+    expect(captured?.body.frames[0].methodName).toBe("<unknown>");
+    expect(captured?.body.frames[0].line1).toBe(null);
+    expect(captured?.body.frames[0].column1).toBe(null);
+  });
+});
+
+const makeUnresolvedServerFrame = (functionName: string): StackFrame =>
+  ({ functionName, fileName: undefined, isServer: true }) as StackFrame;
+
+const makeDebugRoot = (fibers: DebugFiber[]): Fiber => ({ fibers }) as unknown as Fiber;
+
+const debugFiber = (frames: Array<Partial<StackFrame>>): DebugFiber => ({
+  _debugStack: { stack: JSON.stringify(frames) },
+});
+
+describe("enrichServerFrameLocations", () => {
+  it("returns the frames untouched when none are unresolved server frames", () => {
+    const frames = [makeClientFrame(), makeServerFrame()];
+    const root = makeDebugRoot([]);
+    expect(enrichServerFrameLocations(root, frames)).toBe(frames);
+  });
+
+  it("returns the frames untouched when the debug stack yields no server frames", () => {
+    const frames = [makeUnresolvedServerFrame("ServerComponent")];
+    // A fiber whose owner stack holds only client URLs contributes nothing.
+    const root = makeDebugRoot([
+      debugFiber([{ functionName: "ClientThing", fileName: "/src/widget.tsx" }]),
+    ]);
+    expect(enrichServerFrameLocations(root, frames)).toBe(frames);
+  });
+
+  it("fills file/line/column from the first matching owner-stack frame by name", () => {
+    const unresolved = makeUnresolvedServerFrame("Page");
+    const resolvedClient = makeClientFrame();
+    const frames = [resolvedClient, unresolved];
+
+    const root = makeDebugRoot([
+      debugFiber([
+        {
+          functionName: "Page",
+          fileName: "rsc://React/Server/webpack-internal:///./app/page.tsx?9",
+          lineNumber: 42,
+          columnNumber: 7,
+        },
+        // A later duplicate by name must be ignored (first match wins).
+        {
+          functionName: "Page",
+          fileName: "rsc://React/Server/webpack-internal:///./app/other.tsx?9",
+          lineNumber: 99,
+          columnNumber: 99,
+        },
+        // Frames without a server URL or without a name are skipped.
+        { functionName: "Client", fileName: "/src/x.tsx", lineNumber: 1, columnNumber: 1 },
+        { fileName: "rsc://React/Server/webpack-internal:///./app/noname.tsx", lineNumber: 2 },
+      ]),
+    ]);
+
+    const result = enrichServerFrameLocations(root, frames);
+
+    expect(result[0]).toBe(resolvedClient);
+    expect(result[1]).toMatchObject({
+      functionName: "Page",
+      fileName: "rsc://React/Server/webpack-internal:///./app/page.tsx?9",
+      lineNumber: 42,
+      columnNumber: 7,
+    });
+  });
+
+  it("leaves an unresolved server frame alone when no owner-stack name matches", () => {
+    const unresolved = makeUnresolvedServerFrame("Missing");
+    const root = makeDebugRoot([
+      debugFiber([
+        {
+          functionName: "SomethingElse",
+          fileName: "rsc://React/Server/webpack-internal:///./app/else.tsx?1",
+          lineNumber: 5,
+          columnNumber: 5,
+        },
+      ]),
+    ]);
+
+    const result = enrichServerFrameLocations(root, [unresolved]);
+    expect(result[0].fileName).toBeFalsy();
   });
 });
