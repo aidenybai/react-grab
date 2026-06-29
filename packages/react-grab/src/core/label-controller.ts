@@ -171,10 +171,13 @@ export const createLabelController = (
   const updateAfterCopy = (instanceId: string, didSucceed: boolean, errorMessage?: string) => {
     if (didSucceed) {
       store.updateLabelInstance(instanceId, "copied");
+      scheduleFade(instanceId);
     } else {
+      // Errors are actionable (Retry/Ok), so the label persists until it is
+      // acknowledged or superseded by the next grab instead of auto-fading.
+      cancelFade(instanceId);
       store.updateLabelInstance(instanceId, "error", errorMessage || "Unknown error");
     }
-    scheduleFade(instanceId);
   };
 
   const markRetrying = (instanceId: string) => {
@@ -194,11 +197,9 @@ export const createLabelController = (
     }
     const instance = getLabelInstances().find((labelInstance) => labelInstance.id === instanceId);
     if (!instance) return;
-    if (
-      instance.status === "copied" ||
-      instance.status === "error" ||
-      instance.status === "fading"
-    ) {
+    // Error labels are dismissed explicitly (Retry/Ok), so unhovering must not
+    // start a fade; only the transient copied/fading labels fade on hover-out.
+    if (instance.status === "copied" || instance.status === "fading") {
       scheduleFade(instanceId);
     }
   };

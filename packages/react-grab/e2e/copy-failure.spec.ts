@@ -95,6 +95,24 @@ test.describe("Copy failure feedback", () => {
     expect(instances.some((instance) => instance.status === "error")).toBe(false);
   });
 
+  test("keeps the error label visible past the success-label fade window", async ({
+    reactGrab,
+  }) => {
+    await forceCopyResult(reactGrab, false);
+
+    await reactGrab.activate();
+    await reactGrab.hoverUntilSelected("li");
+    await reactGrab.clickElement("li");
+    await readErrorView(reactGrab);
+
+    // A copied label fades after ~1.5s; an actionable error must outlast it.
+    await reactGrab.page.waitForTimeout(2000);
+
+    expect(await isErrorViewGone(reactGrab)).toBe(false);
+    const instances = await reactGrab.getLabelInstancesInfo();
+    expect(instances.some((instance) => instance.status === "error")).toBe(true);
+  });
+
   test("Ok dismisses the error label", async ({ reactGrab }) => {
     await forceCopyResult(reactGrab, false);
 
