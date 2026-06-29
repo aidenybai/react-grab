@@ -2995,6 +2995,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       });
       visualViewport.addEventListener("scroll", handleViewportChange, {
         signal,
+        passive: true,
       });
     }
 
