@@ -57,6 +57,7 @@ import {
 } from "../utils/create-bounds-from-drag-rect.js";
 import { getTagName } from "../utils/get-tag-name.js";
 import { buildElementHierarchy } from "../utils/build-element-hierarchy.js";
+import { isHorizontallyGrabbable } from "../utils/is-horizontally-grabbable.js";
 import { resolveActivationPolicy } from "../utils/resolve-activation-policy.js";
 import {
   ARROW_KEYS,
@@ -541,6 +542,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     const arrowNavigator = createArrowNavigator(isValidGrabbableElement, createElementBounds);
+    const isNavigableSibling = (element: Element) =>
+      isHorizontallyGrabbable(element, isValidGrabbableElement);
 
     const autoScroller = createAutoScroller(
       pointer,
@@ -2125,7 +2128,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const openArrowNavigationMenu = (anchorElement: Element) => {
-      const entries = buildElementHierarchy(anchorElement, isValidGrabbableElement);
+      const entries = buildElementHierarchy(
+        anchorElement,
+        isValidGrabbableElement,
+        isNavigableSibling,
+      );
       setArrowNavigationEntries(entries);
       const anchorIndex = entries.findIndex((entry) => entry.element === anchorElement);
       setArrowNavigationActiveIndex(Math.max(0, anchorIndex));

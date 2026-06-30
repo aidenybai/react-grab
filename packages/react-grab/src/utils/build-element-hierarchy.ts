@@ -19,27 +19,39 @@ interface ElementStep {
 // Each entry carries the indentation depth and whether it is the last among
 // its displayed siblings so the dropdown can draw a terminal-style tree.
 //
+// Siblings are filtered with `isSiblingNavigable` (the stricter predicate that
+// ArrowLeft/ArrowRight use) so every sibling row in the tree is also reachable
+// by the horizontal arrow keys; ancestors and children use the looser
+// `isGrabbable` that matches Up/Down and click selection.
+//
 // Traversal is bounded by the render caps (it stops once enough grabbable
 // neighbors are found) so opening the menu on a large list/grid does not run a
 // visibility check over every sibling or child.
 export const buildElementHierarchy = (
   selectedElement: Element,
   isGrabbable: GrabbablePredicate,
+  isSiblingNavigable: GrabbablePredicate,
 ): HierarchyEntry[] => {
-  const collectGrabbable = (start: Element | null, step: ElementStep, max: number): Element[] => {
+  const collect = (
+    start: Element | null,
+    step: ElementStep,
+    max: number,
+    predicate: GrabbablePredicate,
+  ): Element[] => {
     const collected: Element[] = [];
     let current = start;
     while (current && collected.length < max) {
-      if (isGrabbable(current)) collected.push(current);
+      if (predicate(current)) collected.push(current);
       current = step(current);
     }
     return collected;
   };
 
-  const ancestors = collectGrabbable(
+  const ancestors = collect(
     selectedElement.parentElement,
     (element) => element.parentElement,
     MAX_HIERARCHY_ANCESTORS,
+    isGrabbable,
   );
   ancestors.reverse();
 
@@ -54,15 +66,17 @@ export const buildElementHierarchy = (
   // Collect up to a full sibling budget on each side, then keep a window
   // centered on the selection, spending any unused budget on the longer side.
   const siblingBudget = MAX_HIERARCHY_SIBLINGS - 1;
-  const before = collectGrabbable(
+  const before = collect(
     selectedElement.previousElementSibling,
     (element) => element.previousElementSibling,
     siblingBudget,
+    isSiblingNavigable,
   );
-  const after = collectGrabbable(
+  const after = collect(
     selectedElement.nextElementSibling,
     (element) => element.nextElementSibling,
     siblingBudget,
+    isSiblingNavigable,
   );
   const beforeShown = Math.min(
     before.length,
@@ -75,10 +89,11 @@ export const buildElementHierarchy = (
     ...after.slice(0, afterShown),
   ];
 
-  const children = collectGrabbable(
+  const children = collect(
     selectedElement.firstElementChild,
     (element) => element.nextElementSibling,
     MAX_HIERARCHY_CHILDREN,
+    isGrabbable,
   );
 
   const lastSiblingIndex = siblings.length - 1;

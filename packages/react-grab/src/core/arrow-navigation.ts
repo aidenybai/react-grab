@@ -1,8 +1,9 @@
-import { MAX_ARROW_NAVIGATION_HISTORY, MIN_HORIZONTAL_NAV_SIZE_PX } from "../constants.js";
+import { MAX_ARROW_NAVIGATION_HISTORY } from "../constants.js";
 import type { OverlayBounds } from "../types.js";
 import { getElementsAtPoint } from "../utils/get-element-at-position.js";
 import { getVisibleBoundsCenter } from "../utils/get-visible-bounds-center.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
+import { isHorizontallyGrabbable } from "../utils/is-horizontally-grabbable.js";
 
 interface ElementValidator {
   (element: Element): boolean;
@@ -56,17 +57,6 @@ export const createArrowNavigator = (
     return findVerticalNext(currentElement, -1);
   };
 
-  const isSvgInternal = (element: Element): boolean =>
-    element instanceof SVGElement && !(element instanceof SVGSVGElement);
-
-  const hasMeaningfulSize = (element: Element): boolean => {
-    const rect = element.getBoundingClientRect();
-    return rect.width >= MIN_HORIZONTAL_NAV_SIZE_PX || rect.height >= MIN_HORIZONTAL_NAV_SIZE_PX;
-  };
-
-  const isHorizontallyGrabbable = (element: Element): boolean =>
-    isValidGrabbableElement(element) && !isSvgInternal(element) && hasMeaningfulSize(element);
-
   // ArrowLeft/ArrowRight walk strictly between DOM siblings of the current
   // element (previous/back, next/forward), skipping non-grabbable or
   // zero-size siblings. Climbing to parents and descending into children is
@@ -77,7 +67,7 @@ export const createArrowNavigator = (
 
     let sibling = getSibling(currentElement);
     while (sibling) {
-      if (isHorizontallyGrabbable(sibling)) {
+      if (isHorizontallyGrabbable(sibling, isValidGrabbableElement)) {
         // Moving sideways invalidates the vertical Up history, otherwise the
         // next ArrowDown would retrace into the branch we just left.
         navigationHistory = [];
