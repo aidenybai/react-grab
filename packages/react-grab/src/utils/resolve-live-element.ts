@@ -28,10 +28,31 @@ interface ElementAnchor {
 // before the swap).
 const anchorByElement = new WeakMap<Element, ElementAnchor>();
 
-const liveHostElementFromFiber = (fiber: Fiber, tagName: string): Element | null => {
-  const latest = getLatestFiber(fiber);
-  const hostFibers = isHostFiber(latest) ? [latest] : getNearestHostFibers(latest);
-  for (const hostFiber of hostFibers) {
+// Host fibers rendered as children of the anchor's parent fiber — the level
+// where the swapped-out anchor lived. When the parent is a component fiber,
+// getNearestHostFibers already returns its host children. When the parent is
+// itself a host fiber (the common case of one host element nested inside
+// another within the same component, e.g. a keyed `<li>` inside a `<ul>`),
+// getNearestHostFibers returns that parent host itself rather than descending,
+// so we step one level down and collect the host fibers under each child. Using
+// the parent host directly would compare its tag against the child's and never
+// match, dropping the selection.
+const candidateHostFibers = (parentFiber: Fiber): Fiber[] => {
+  const latest = getLatestFiber(parentFiber);
+  if (!isHostFiber(latest)) return getNearestHostFibers(latest);
+
+  const hostFibers: Fiber[] = [];
+  let child: Fiber | null = latest.child;
+  while (child) {
+    if (isHostFiber(child)) hostFibers.push(child);
+    else hostFibers.push(...getNearestHostFibers(child));
+    child = child.sibling;
+  }
+  return hostFibers;
+};
+
+const liveHostElementFromFiber = (parentFiber: Fiber, tagName: string): Element | null => {
+  for (const hostFiber of candidateHostFibers(parentFiber)) {
     const node = hostFiber.stateNode;
     // The tag match keeps recovery from latching onto an unrelated host when the
     // original element type is gone. Same-tag siblings under a shared ancestor

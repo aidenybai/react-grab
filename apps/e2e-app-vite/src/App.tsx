@@ -4,6 +4,7 @@ import { PerfGrid } from "./perf-grid";
 declare global {
   interface Window {
     __triggerFiberSwap?: () => void;
+    __triggerNestedFiberSwap?: () => void;
     __triggerInnerHtmlSwap?: () => void;
   }
 }
@@ -689,6 +690,45 @@ const FiberSwapSection = () => {
   );
 };
 
+// Like FiberSwapSection, but the keyed target is a host element nested directly
+// inside another host element within the SAME component, so the target fiber's
+// parent fiber is a host fiber (a `<div>`) rather than a component fiber. This
+// is the common shape of keyed lists (`<li>` inside `<ul>`). Fiber recovery has
+// to descend into the host parent's children to re-find the swapped node — using
+// the host parent directly compares its tag against the child's and never
+// matches, dropping the selection.
+const NestedFiberSwapSection = () => {
+  const [swapped, setSwapped] = useState(false);
+
+  useEffect(() => {
+    window.__triggerNestedFiberSwap = () => setSwapped((previous) => !previous);
+    return () => {
+      delete window.__triggerNestedFiberSwap;
+    };
+  }, []);
+
+  return (
+    <section className="border rounded-lg p-4" data-testid="nested-fiber-swap-section">
+      <h2 className="text-lg font-bold mb-4">Nested Fiber Swap</h2>
+      <div className="p-4 bg-purple-100 rounded">
+        {swapped ? (
+          <span
+            key="swapped"
+            data-testid="nested-fiber-swap-target"
+            style={{ display: "inline-block", marginTop: 150 }}
+          >
+            Swapped nested node
+          </span>
+        ) : (
+          <span key="initial" data-testid="nested-fiber-swap-target">
+            Initial nested node
+          </span>
+        )}
+      </div>
+    </section>
+  );
+};
+
 // Mirrors the website's syntax-highlighted code blocks: the inner token nodes
 // are rendered via dangerouslySetInnerHTML, so they have no React fiber. A swap
 // replaces the whole subtree (new DOM nodes at the same path). react-grab should
@@ -834,6 +874,8 @@ export default function App() {
       <HiddenToggleSection />
 
       <FiberSwapSection />
+
+      <NestedFiberSwapSection />
 
       <InnerHtmlSwapSection />
 

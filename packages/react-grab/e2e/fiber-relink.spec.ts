@@ -2,6 +2,7 @@ import { test, expect } from "./fixtures.js";
 
 interface FiberSwapWindow {
   __triggerFiberSwap?: () => void;
+  __triggerNestedFiberSwap?: () => void;
   __triggerInnerHtmlSwap?: () => void;
   __REACT_GRAB__?: {
     getState: () => { targetElement: Element | null };
@@ -67,6 +68,29 @@ test.describe("Fiber-latched selection", () => {
         { timeout: 1200 },
       )
       .toBeGreaterThan(40);
+  });
+
+  // The selected node is a host element nested directly inside another host
+  // element (a `<span>` inside a `<div>`) within the same component, so its
+  // parent fiber is a host fiber — the shape of keyed lists. Recovery has to
+  // descend into the host parent's children to re-find the swapped node; using
+  // the host parent itself compares the wrong tag and drops the selection.
+  test("re-resolves a swapped-out node whose parent fiber is a host element", async ({
+    reactGrab,
+    page,
+  }) => {
+    await reactGrab.updateOptions({ freezeReactUpdates: false });
+
+    await reactGrab.activate();
+    await reactGrab.hoverUntilSelected("[data-testid='nested-fiber-swap-target']");
+
+    await expect.poll(() => page.evaluate(getSelectionTargetText)).toBe("Initial nested node");
+
+    await page.evaluate(() => (window as unknown as FiberSwapWindow).__triggerNestedFiberSwap?.());
+
+    await expect.poll(() => page.evaluate(getSelectionTargetText)).toBe("Swapped nested node");
+
+    expect(await reactGrab.isSelectionBoxVisible()).toBe(true);
   });
 
   // Tokens rendered through dangerouslySetInnerHTML (syntax-highlighted code on
