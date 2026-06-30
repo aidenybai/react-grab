@@ -110,7 +110,8 @@
   },
   "dependencies": {
     "@react-grab/cli": "workspace:*",
-    "bippy": "^0.5.42"
+    "bippy": "^0.5.42",
+    "use-sync-external-store": "^1.6.0"
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",
@@ -121,6 +122,7 @@
     "@types/babel__core": "^7.20.5",
     "@types/node": "^25.6.2",
     "@types/react": "^19.2.14",
+    "@types/use-sync-external-store": "^1.5.0",
     "babel-preset-solid": "^1.9.12",
     "concurrently": "^9.2.1",
     "expect-sdk": "^0.1.2",

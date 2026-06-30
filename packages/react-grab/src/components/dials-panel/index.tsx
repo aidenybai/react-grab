@@ -146,7 +146,7 @@ export const DialsPanel: Component<DialsPanelProps> = (props) => {
       isPanelEngaged = isWithinPanel(event);
     };
     const handleWindowKeyDown = (event: KeyboardEvent) => {
-      if (!isPanelEngaged) return;
+      if (!isPanelEngaged || !props.position) return;
       const target = event.composedPath()[0];
       if (target instanceof HTMLElement && target.closest("input, textarea")) return;
       handleKeyDown(event);

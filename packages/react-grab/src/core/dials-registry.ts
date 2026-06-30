@@ -114,7 +114,10 @@ export const createDialsRegistry = (): DialsRegistry => {
     }
     listeners.add(callback);
     return () => {
-      listeners?.delete(callback);
+      const current = listenersById.get(id);
+      if (!current) return;
+      current.delete(callback);
+      if (current.size === 0) listenersById.delete(id);
     };
   };
 

@@ -106,14 +106,19 @@ const stepDecimals = (step: number): number => {
   return fraction ? Math.min(6, fraction.length) : 2;
 };
 
+const DEFAULT_SPRING: SpringValue = {
+  type: "spring",
+  visualDuration: DIAL_SPRING_DEFAULT_VISUAL_DURATION_S,
+  bounce: DIAL_SPRING_DEFAULT_BOUNCE,
+};
+
 export const readSpring = (raw: DialValue): SpringValue =>
-  typeof raw === "object"
+  typeof raw === "object" &&
+  raw !== null &&
+  typeof raw.visualDuration === "number" &&
+  typeof raw.bounce === "number"
     ? raw
-    : {
-        type: "spring",
-        visualDuration: DIAL_SPRING_DEFAULT_VISUAL_DURATION_S,
-        bounce: DIAL_SPRING_DEFAULT_BOUNCE,
-      };
+    : DEFAULT_SPRING;
 
 export const buildDialViewModel = (
   panels: DialPanelRuntime[],

@@ -1,4 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+// Shim resolves to React's built-in on 18+ and a userland impl on 17, keeping
+// the `react-grab/react` entry safe for the package's `react >=17` peer range.
+import { useSyncExternalStore } from "use-sync-external-store/shim";
 import type {
   DialConfig,
   DialControl,

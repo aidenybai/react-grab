@@ -3643,6 +3643,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         setDialsPanelPosition(null);
       }
     });
+    onCleanup(() => {
+      stopDialsPanelTracking?.();
+      stopDialsPanelTracking = null;
+    });
 
     const handleShowContextMenuInstance = (instanceId: string) => {
       const instance = store.labelInstances.find(
