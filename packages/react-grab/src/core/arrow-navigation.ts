@@ -77,7 +77,12 @@ export const createArrowNavigator = (
 
     let sibling = getSibling(currentElement);
     while (sibling) {
-      if (isHorizontallyGrabbable(sibling)) return sibling;
+      if (isHorizontallyGrabbable(sibling)) {
+        // Moving sideways invalidates the vertical Up history, otherwise the
+        // next ArrowDown would retrace into the branch we just left.
+        navigationHistory = [];
+        return sibling;
+      }
       sibling = getSibling(sibling);
     }
     return null;

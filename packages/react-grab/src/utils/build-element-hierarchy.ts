@@ -9,56 +9,77 @@ interface GrabbablePredicate {
   (element: Element): boolean;
 }
 
-const windowAroundSelected = (
-  elements: Element[],
-  selectedIndex: number,
-  maxCount: number,
-): Element[] => {
-  if (elements.length <= maxCount) return elements;
-  const half = Math.floor(maxCount / 2);
-  let start = Math.max(0, selectedIndex - half);
-  if (start + maxCount > elements.length) {
-    start = elements.length - maxCount;
-  }
-  return elements.slice(start, start + maxCount);
-};
+interface ElementStep {
+  (element: Element): Element | null;
+}
 
 // Builds a flat, pre-order list describing the DOM neighborhood of the
 // selected element: its grabbable ancestor spine (the "stack"), the grabbable
 // siblings it sits among, and its grabbable direct children nested underneath.
 // Each entry carries the indentation depth and whether it is the last among
 // its displayed siblings so the dropdown can draw a terminal-style tree.
+//
+// Traversal is bounded by the render caps (it stops once enough grabbable
+// neighbors are found) so opening the menu on a large list/grid does not run a
+// visibility check over every sibling or child.
 export const buildElementHierarchy = (
   selectedElement: Element,
   isGrabbable: GrabbablePredicate,
 ): HierarchyEntry[] => {
-  const ancestors: Element[] = [];
-  let ancestor = selectedElement.parentElement;
-  while (ancestor && ancestors.length < MAX_HIERARCHY_ANCESTORS) {
-    if (isGrabbable(ancestor)) ancestors.push(ancestor);
-    ancestor = ancestor.parentElement;
-  }
+  const collectGrabbable = (start: Element | null, step: ElementStep, max: number): Element[] => {
+    const collected: Element[] = [];
+    let current = start;
+    while (current && collected.length < max) {
+      if (isGrabbable(current)) collected.push(current);
+      current = step(current);
+    }
+    return collected;
+  };
+
+  const ancestors = collectGrabbable(
+    selectedElement.parentElement,
+    (element) => element.parentElement,
+    MAX_HIERARCHY_ANCESTORS,
+  );
   ancestors.reverse();
 
-  const entries: HierarchyEntry[] = [];
-  ancestors.forEach((ancestorElement, ancestorIndex) => {
-    entries.push({ element: ancestorElement, depth: ancestorIndex, isLast: true });
-  });
+  const entries: HierarchyEntry[] = ancestors.map((ancestorElement, ancestorIndex) => ({
+    element: ancestorElement,
+    depth: ancestorIndex,
+    isLast: true,
+  }));
 
   const selectedDepth = ancestors.length;
 
-  const parentElement = selectedElement.parentElement;
-  const siblingPool = parentElement
-    ? Array.from(parentElement.children).filter(
-        (child) => child === selectedElement || isGrabbable(child),
-      )
-    : [selectedElement];
-  const selectedSiblingIndex = Math.max(0, siblingPool.indexOf(selectedElement));
-  const siblings = windowAroundSelected(siblingPool, selectedSiblingIndex, MAX_HIERARCHY_SIBLINGS);
+  // Collect up to a full sibling budget on each side, then keep a window
+  // centered on the selection, spending any unused budget on the longer side.
+  const siblingBudget = MAX_HIERARCHY_SIBLINGS - 1;
+  const before = collectGrabbable(
+    selectedElement.previousElementSibling,
+    (element) => element.previousElementSibling,
+    siblingBudget,
+  );
+  const after = collectGrabbable(
+    selectedElement.nextElementSibling,
+    (element) => element.nextElementSibling,
+    siblingBudget,
+  );
+  const beforeShown = Math.min(
+    before.length,
+    Math.max(Math.floor(siblingBudget / 2), siblingBudget - after.length),
+  );
+  const afterShown = Math.min(after.length, siblingBudget - beforeShown);
+  const siblings = [
+    ...before.slice(0, beforeShown).reverse(),
+    selectedElement,
+    ...after.slice(0, afterShown),
+  ];
 
-  const children = Array.from(selectedElement.children)
-    .filter(isGrabbable)
-    .slice(0, MAX_HIERARCHY_CHILDREN);
+  const children = collectGrabbable(
+    selectedElement.firstElementChild,
+    (element) => element.nextElementSibling,
+    MAX_HIERARCHY_CHILDREN,
+  );
 
   const lastSiblingIndex = siblings.length - 1;
   const lastChildIndex = children.length - 1;

@@ -2829,15 +2829,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (event: MouseEvent) => {
         if (!isRendererActive() || isCopying() || isPromptMode()) return;
         if (editMode.isOpen()) return;
-        // A right-click is an explicit pick: abandon any pending keyboard
-        // selection (and its discard prompt) so the context menu opens for the
-        // element under the cursor. The discard prompt overlay sits on the
-        // cursor, so we must also bypass the overlay early-return below and
-        // resolve the page element beneath it.
-        const hadPendingDismiss = keyboardSelection.isPendingDismiss();
-        if (hadPendingDismiss) {
-          clearArrowNavigation();
-        }
 
         const isFromOverlay = isEventFromOverlay(event, "data-react-grab-ignore-events");
         const position = { x: event.clientX, y: event.clientY };
@@ -2845,9 +2836,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           isFromOverlay && store.frozenElements.length > 1
             ? getFrozenElementAtPosition(position)
             : null;
+        // A right-click is an explicit pick. When it lands on a grab overlay
+        // (hierarchy menu or the keyboard-selection discard prompt) mid
+        // navigation, dismiss it and fall through to resolve the page element
+        // beneath; openContextMenu clears the keyboard selection once a menu
+        // actually opens, so nothing is torn down when there is no target.
         if (isFromOverlay && arrowNavigationElements().length > 0) {
           clearArrowNavigation();
-        } else if (isFromOverlay && !overlayFrozenElement && !hadPendingDismiss) {
+        } else if (isFromOverlay && !overlayFrozenElement) {
           return;
         }
 
