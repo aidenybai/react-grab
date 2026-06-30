@@ -137,6 +137,19 @@ export interface AgentContext<T = unknown> {
 // previews the overlay (active while held, hidden on release).
 export type ActivationMode = "toggle" | "hold" | "preview";
 
+// Behavioral axes of an ActivationMode, so the activation handlers ask what a
+// gesture should do rather than re-deriving it from the mode name everywhere.
+export interface ActivationPolicy {
+  // "hold"/"preview": the overlay is momentary and drops when the key releases.
+  keepsOverlayWhileHeld: boolean;
+  // "toggle": a hold held past the timer becomes a persistent session.
+  persistsCompletedHold: boolean;
+  // "preview": releasing before the hold timer fires toggles a persistent session.
+  tapTogglesSession: boolean;
+  // "preview": swallow the activation key's native action (e.g. Space scroll).
+  suppressActivationKeyDefault: boolean;
+}
+
 export type OverlayDismissSource = "keyboard" | "pointer";
 
 export interface ActionContextHooks {
