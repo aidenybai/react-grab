@@ -131,6 +131,11 @@ export const DialsPanel: Component<DialsPanelProps> = (props) => {
   };
 
   let isPanelEngaged = false;
+  // Dismissing (anchor → null) must also drop engagement; otherwise a reopened
+  // panel would treat keys as engaged without a fresh click inside it.
+  createEffect(() => {
+    if (!props.position) isPanelEngaged = false;
+  });
 
   const isWithinPanel = (event: Event): boolean => {
     const target = event.composedPath()[0];
