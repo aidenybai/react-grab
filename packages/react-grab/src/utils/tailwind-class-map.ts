@@ -75,6 +75,21 @@ const TAILWIND_PREFIX_TO_PROPERTY: Partial<Record<string, string>> = {
 };
 
 const EXTRA_PROPERTY_ALIASES: Record<string, string[]> = {
+  // Spelled-out nouns for natural-language comparatives ("more padding",
+  // "less line height"). Tailwind prefixes (p, m, w, …) are already folded in
+  // below; these add the words users actually type.
+  padding: ["padding", "pad"],
+  margin: ["margin"],
+  gap: ["gap", "gutter"],
+  width: ["width"],
+  height: ["height"],
+  "border-radius": ["radius", "border radius", "rounding", "roundness", "corners"],
+  "border-width": ["border", "border width", "border thickness"],
+  "letter-spacing": ["letter spacing", "tracking"],
+  "line-height": ["line height", "leading"],
+  "z-index": ["z index", "depth"],
+  "font-weight": ["weight", "font weight", "boldness"],
+  opacity: ["opacity"],
   "font-size": ["font-size", "font size", "text-size", "text size"],
   color: ["color", "text-color", "text color", "text-colour", "text colour", "foreground", "fg"],
   "background-color": [
@@ -460,6 +475,32 @@ export const getElementTailwindProperties = (element: Element): Set<string> => {
 
 export const getTailwindAliasesForProperty = (property: string): string[] =>
   PROPERTY_ALIASES[property] ?? [];
+
+const normalizeAliasText = (value: string): string =>
+  value.toLowerCase().replace(/[^a-z0-9]+/g, "");
+
+// Reverse of PROPERTY_ALIASES: a spelled-out noun or tailwind prefix back to
+// its css property key. First spelling wins on collision so prefix-derived
+// keys (set up before EXTRA_PROPERTY_ALIASES) take precedence.
+const PROPERTY_KEY_BY_ALIAS = ((): Map<string, string> => {
+  const aliasToKey = new Map<string, string>();
+  for (const [property, aliases] of Object.entries(PROPERTY_ALIASES)) {
+    if (!aliases) continue;
+    for (const alias of aliases) {
+      const normalizedAlias = normalizeAliasText(alias);
+      if (normalizedAlias && !aliasToKey.has(normalizedAlias)) {
+        aliasToKey.set(normalizedAlias, property);
+      }
+    }
+  }
+  return aliasToKey;
+})();
+
+export const propertyKeyForAlias = (text: string): string | null => {
+  const normalized = normalizeAliasText(text);
+  if (!normalized) return null;
+  return PROPERTY_KEY_BY_ALIAS.get(normalized) ?? null;
+};
 
 export const tailwindPrefixToProperty = (prefix: string): string | null => {
   const propertyKey = TAILWIND_PREFIX_TO_PROPERTY[prefix];
