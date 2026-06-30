@@ -82,26 +82,31 @@ test.describe("Keyboard Navigation", () => {
     expect(isVisible).toBe(true);
   });
 
-  test("should navigate to parent element with ArrowLeft", async ({ reactGrab }) => {
+  test("should navigate to a sibling with ArrowLeft", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverUntilSelected("li:first-child");
+    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:nth-child(2)");
 
     await reactGrab.page.keyboard.press("ArrowLeft");
     await reactGrab.waitForSelectionBox();
 
-    const isVisible = await reactGrab.isOverlayVisible();
-    expect(isVisible).toBe(true);
+    // The previous sibling is another list item, not the parent or a child.
+    const labelInfo = await reactGrab.getSelectionLabelInfo();
+    expect(labelInfo.isVisible).toBe(true);
+    expect(labelInfo.tagName).toBe("li");
   });
 
-  test("should navigate to child element with ArrowRight", async ({ reactGrab }) => {
+  test("should navigate to a sibling with ArrowRight", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverUntilSelected("ul");
+    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:first-child");
 
     await reactGrab.page.keyboard.press("ArrowRight");
     await reactGrab.waitForSelectionBox();
 
-    const isVisible = await reactGrab.isOverlayVisible();
-    expect(isVisible).toBe(true);
+    // The next sibling is another list item; ArrowRight no longer descends
+    // into the item's inner content (which would report a "span").
+    const labelInfo = await reactGrab.getSelectionLabelInfo();
+    expect(labelInfo.isVisible).toBe(true);
+    expect(labelInfo.tagName).toBe("li");
   });
 
   test("should maintain activation during keyboard navigation", async ({ reactGrab }) => {
@@ -143,7 +148,7 @@ test.describe("Keyboard Navigation", () => {
     await reactGrab.activate();
     await reactGrab.hoverUntilSelected("[data-testid='todo-list'] h1");
 
-    await reactGrab.page.keyboard.press("ArrowLeft");
+    await reactGrab.page.keyboard.press("ArrowUp");
     await reactGrab.waitForSelectionBox();
 
     await reactGrab.page.mouse.down();

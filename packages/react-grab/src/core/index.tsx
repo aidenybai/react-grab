@@ -2191,17 +2191,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const isVertical = event.key === "ArrowUp" || event.key === "ArrowDown";
 
-      if (!isVertical) {
-        const nextElement = arrowNavigator.findNext(event.key, currentElement);
-        if (!nextElement && !isInitialSelection) return false;
-        clearArrowNavigation();
-        event.preventDefault();
-        event.stopPropagation();
-        selectAndFocusElement(nextElement ?? currentElement, true);
-        return true;
-      }
-
       const nextElement = arrowNavigator.findNext(event.key, currentElement);
+      // Horizontal (sibling) navigation at a boundary leaves the key
+      // unconsumed so it can scroll the page; vertical navigation always
+      // commits, falling back to the current element at the stack edge.
+      if (!nextElement && !isVertical && !isInitialSelection) return false;
       const elementToSelect = nextElement ?? currentElement;
 
       event.preventDefault();
