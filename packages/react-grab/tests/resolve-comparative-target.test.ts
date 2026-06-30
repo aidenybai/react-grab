@@ -136,4 +136,9 @@ describe("resolveComparativeTargets", () => {
     expect(resolve("dimmer")?.targets.map((target) => target.key)).toEqual(["opacity"]);
     expect(resolve("roomier")?.targets.map((target) => target.key)).toEqual(["padding"]);
   });
+
+  it("resolves a misspelled subject via fuzzy matching", () => {
+    expect(resolve("more paddng")?.targets.map((target) => target.key)).toEqual(["padding"]);
+    expect(resolve("less opacty")?.targets.map((target) => target.key)).toEqual(["opacity"]);
+  });
 });

@@ -1,5 +1,6 @@
 import type { ComparativeIntent, ComparativeResolution, EditableProperty } from "../types.js";
 import { expandAggregateLonghands } from "./expand-aggregate-longhands.js";
+import { isTypoMatch } from "./fuzzy-match.js";
 import { AGGREGATE_GROUPS } from "./property-definitions.js";
 import { propertyKeyForAlias } from "./tailwind-class-map.js";
 
@@ -36,6 +37,7 @@ const matchSubjectProperty = (
   const normalizedSubject = normalizeSubject(subject);
   if (!normalizedSubject) return null;
   let prefixMatch: EditableProperty | null = null;
+  let typoMatch: EditableProperty | null = null;
   for (const property of properties) {
     const terms = [property.key, property.label, ...property.tailwindAliases];
     for (const term of terms) {
@@ -49,9 +51,12 @@ const matchSubjectProperty = (
       ) {
         prefixMatch = property;
       }
+      if (!prefixMatch && !typoMatch && isTypoMatch(normalizedSubject, normalizedTerm)) {
+        typoMatch = property;
+      }
     }
   }
-  return prefixMatch;
+  return prefixMatch ?? typoMatch;
 };
 
 const findPropertiesForKey = (

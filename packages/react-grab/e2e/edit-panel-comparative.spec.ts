@@ -68,6 +68,18 @@ test.describe("Style Panel Comparative Commands", () => {
     expect(secondApply).toBe(firstApply);
   });
 
+  test("tolerates a typo in the comparative ('biger')", async ({ reactGrab }) => {
+    await openEditPanel(reactGrab, BUTTON_SELECTOR);
+
+    await applyComparative(reactGrab.page, "font size");
+    const baseline = parsePx(await getActivePropertyValue(reactGrab.page));
+
+    await applyComparative(reactGrab.page, "biger");
+    expect(await getActivePropertyKey(reactGrab.page)).toBe("font-size");
+    const enlarged = parsePx(await getActivePropertyValue(reactGrab.page));
+    expect(enlarged).toBeGreaterThan(baseline);
+  });
+
   test("'too big' shrinks font size", async ({ reactGrab }) => {
     await openEditPanel(reactGrab, BUTTON_SELECTOR);
 

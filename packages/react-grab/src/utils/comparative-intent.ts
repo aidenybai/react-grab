@@ -7,6 +7,8 @@ import {
 } from "../constants.js";
 import type { ComparativeIntent } from "../types.js";
 import { clampToRange } from "./clamp-to-range.js";
+import { findClosestWord } from "./fuzzy-match.js";
+import { propertyKeyForAlias } from "./tailwind-class-map.js";
 
 const SIZE = ["font-size", "width", "height"];
 const WIDTH = ["width", "max-width", "min-width"];
@@ -235,6 +237,16 @@ const STOPWORDS = new Set([
   "looking",
 ]);
 
+// Snapshots of each vocabulary for fuzzy fallback. Order within each list is
+// the priority used on ties; categories themselves are tried in the same
+// order as the exact checks below.
+const POLAR_WORDS = Array.from(POLAR_ADJECTIVES.keys());
+const AMPLIFIER_WORD_LIST = Array.from(AMPLIFIER_WORDS);
+const DIMINISHER_WORD_LIST = Array.from(DIMINISHER_WORDS);
+const COMMAND_WORD_LIST = Array.from(COMMAND_VERBS);
+const INCREASE_WORD_LIST = Array.from(INCREASE_VERBS);
+const DECREASE_WORD_LIST = Array.from(DECREASE_VERBS);
+
 const AMPLIFIER_PHRASE_PATTERN = /\ba\s+(?:lot|ton|whole\s+lot)\b/g;
 const DIMINISHER_PHRASE_PATTERN = /\ba\s+(?:bit|little|tad|touch|smidge|hair)\b/g;
 // "too much/many <x>" reads as "trim x" without amplifying, so it is matched
@@ -330,6 +342,45 @@ export const parseComparativeIntent = (rawQuery: string): ComparativeIntent | nu
       continue;
     }
     if (STOPWORDS.has(token)) continue;
+
+    // Typo fallback. Skipped for any token that already names a property
+    // (e.g. "border", "right") so a one-edit neighbor like "bolder"/"tight"
+    // can never hijack a legitimate property search.
+    if (propertyKeyForAlias(token) === null) {
+      if (findClosestWord(token, AMPLIFIER_WORD_LIST)) {
+        amplifierCount++;
+        continue;
+      }
+      if (findClosestWord(token, DIMINISHER_WORD_LIST)) {
+        diminisherCount++;
+        continue;
+      }
+      if (findClosestWord(token, COMMAND_WORD_LIST)) {
+        hasCommandVerb = true;
+        continue;
+      }
+      if (findClosestWord(token, INCREASE_WORD_LIST)) {
+        genericSign = 1;
+        genericVerbCount++;
+        continue;
+      }
+      if (findClosestWord(token, DECREASE_WORD_LIST)) {
+        genericSign = -1;
+        genericVerbCount++;
+        continue;
+      }
+      const polarWord = findClosestWord(token, POLAR_WORDS);
+      if (polarWord) {
+        const polar = POLAR_ADJECTIVES.get(polarWord);
+        if (polar) {
+          polarCount++;
+          if (polar.isComparativeForm) hasStrongPolar = true;
+          if (!polarAdjective) polarAdjective = polar;
+        }
+        continue;
+      }
+    }
+
     subjectTokens.push(token);
   }
 

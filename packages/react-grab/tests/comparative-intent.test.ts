@@ -127,6 +127,27 @@ describe("parseComparativeIntent", () => {
     expect(intent?.subject).toBeNull();
   });
 
+  it("tolerates single-character typos in adjectives and verbs", () => {
+    expect(parseComparativeIntent("biger")?.dimensionCandidates).toContain("font-size");
+    expect(parseComparativeIntent("biger")?.direction).toBe(1);
+    expect(parseComparativeIntent("smaler")?.direction).toBe(-1);
+    expect(parseComparativeIntent("widder")?.dimensionCandidates).toContain("width");
+
+    const increase = parseComparativeIntent("incrase the padding");
+    expect(increase?.subject).toBe("padding");
+    expect(increase?.direction).toBe(1);
+
+    expect(parseComparativeIntent("slighty bigger")?.magnitude).toBe(0.5);
+  });
+
+  it("never coerces a real property word into a typo'd adjective", () => {
+    // "border" is one edit from "bolder", "right" from "tight" — both must
+    // stay plain property searches, not comparative commands.
+    expect(parseComparativeIntent("border")).toBeNull();
+    expect(parseComparativeIntent("right")).toBeNull();
+    expect(parseComparativeIntent("color")).toBeNull();
+  });
+
   it("handles inverse opacity adjectives independent of more/less", () => {
     const moreTransparent = parseComparativeIntent("more transparent");
     expect(moreTransparent?.dimensionCandidates).toContain("opacity");
