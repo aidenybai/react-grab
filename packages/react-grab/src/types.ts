@@ -438,6 +438,192 @@ export interface ReactGrabAPI {
   unregisterPlugin: (name: string) => void;
   getPlugins: () => string[];
   getDisplayName: (element: Element) => string | null;
+  registerDials: (panel: DialPanelInput) => () => void;
+  updateDialValue: (id: string, path: string, value: DialValue) => void;
+  updateDialValues: (id: string, values: Record<string, DialValue>) => void;
+  resetDials: (id: string) => void;
+  getDialValues: (id: string) => Record<string, DialValue> | null;
+  subscribeDials: (id: string, callback: () => void) => () => void;
+}
+
+export interface SpringValue {
+  type: "spring";
+  visualDuration: number;
+  bounce: number;
+}
+
+export type DialValue = number | string | boolean | SpringValue;
+
+export interface DialNumberConfig {
+  type: "number";
+  default: number;
+  min?: number;
+  max?: number;
+  step?: number;
+}
+
+export interface DialColorConfig {
+  type: "color";
+  default: string;
+}
+
+export interface DialToggleConfig {
+  type: "toggle";
+  default: boolean;
+}
+
+export interface DialTextConfig {
+  type: "text";
+  default?: string;
+  placeholder?: string;
+}
+
+export interface DialSelectConfig {
+  type: "select";
+  options: ReadonlyArray<string | { value: string; label: string }>;
+  default?: string;
+}
+
+export interface DialSpringConfig {
+  type: "spring";
+  visualDuration?: number;
+  bounce?: number;
+}
+
+export interface DialActionConfig {
+  type: "action";
+  label?: string;
+}
+
+export type DialControlConfig =
+  | number
+  | readonly [number, number, number]
+  | readonly [number, number, number, number]
+  | boolean
+  | string
+  | DialNumberConfig
+  | DialColorConfig
+  | DialToggleConfig
+  | DialTextConfig
+  | DialSelectConfig
+  | DialSpringConfig
+  | DialActionConfig
+  | DialConfig;
+
+export interface DialConfig {
+  [key: string]: DialControlConfig | boolean | undefined;
+  _collapsed?: boolean;
+}
+
+export type ResolvedDialValue<T> = T extends number
+  ? number
+  : T extends readonly number[]
+    ? number
+    : T extends boolean
+      ? boolean
+      : T extends DialNumberConfig
+        ? number
+        : T extends DialToggleConfig
+          ? boolean
+          : T extends DialColorConfig | DialTextConfig | DialSelectConfig
+            ? string
+            : T extends DialSpringConfig
+              ? SpringValue
+              : T extends DialActionConfig
+                ? never
+                : T extends string
+                  ? string
+                  : T extends DialConfig
+                    ? ResolvedDialValues<T>
+                    : never;
+
+export type ResolvedDialValues<C> = {
+  [K in keyof C as C[K] extends DialActionConfig
+    ? never
+    : K extends "_collapsed"
+      ? never
+      : K]: ResolvedDialValue<C[K]>;
+};
+
+export interface DialEnumOption {
+  value: string;
+  label: string;
+}
+
+interface DialControlBase {
+  key: string;
+  path: string;
+  label: string;
+}
+
+export interface DialNumberControl extends DialControlBase {
+  kind: "number";
+  default: number;
+  min: number;
+  max: number;
+  step: number;
+}
+
+export interface DialColorControl extends DialControlBase {
+  kind: "color";
+  default: string;
+}
+
+export interface DialSelectControl extends DialControlBase {
+  kind: "select";
+  default: string;
+  options: DialEnumOption[];
+}
+
+export interface DialToggleControl extends DialControlBase {
+  kind: "toggle";
+  default: boolean;
+}
+
+export interface DialTextControl extends DialControlBase {
+  kind: "text";
+  default: string;
+  placeholder?: string;
+}
+
+export interface DialSpringControl extends DialControlBase {
+  kind: "spring";
+  default: SpringValue;
+}
+
+export interface DialActionControl extends DialControlBase {
+  kind: "action";
+}
+
+export interface DialFolderControl extends DialControlBase {
+  kind: "folder";
+  collapsed: boolean;
+  children: DialControl[];
+}
+
+export type DialControl =
+  | DialNumberControl
+  | DialColorControl
+  | DialSelectControl
+  | DialToggleControl
+  | DialTextControl
+  | DialSpringControl
+  | DialActionControl
+  | DialFolderControl;
+
+export interface DialPanelInput {
+  id: string;
+  name: string;
+  controls: DialControl[];
+  onAction?: (path: string) => void;
+}
+
+export interface DialPanelRuntime {
+  id: string;
+  name: string;
+  controls: DialControl[];
+  valuesByPath: Record<string, DialValue>;
+  onAction?: (path: string) => void;
 }
 
 export interface OverlayBounds {
@@ -539,6 +725,7 @@ export interface ReactGrabRendererProps {
   defaultActionId?: string;
   onSetDefaultAction?: (actionId: string) => void;
   onToggleToolbarMenu?: () => void;
+  onToolbarFadeInComplete?: () => void;
   onToolbarMenuDismiss?: () => void;
   editPanelState?: EditPanelState | null;
   editPanelPosition?: DropdownAnchor | null;
@@ -546,6 +733,11 @@ export interface ReactGrabRendererProps {
   onEditPanelSubmit?: (pendingEdits: PendingEdits) => void;
   onEditPanelPendingEditsChange?: (pendingEdits: PendingEdits) => void;
   onEditPanelInteractingChange?: (interacting: boolean) => void;
+  dialsPanels?: DialPanelRuntime[];
+  dialsPanelPosition?: DropdownAnchor | null;
+  onDialCommit?: (id: string, path: string, value: DialValue) => void;
+  onDialTriggerAction?: (id: string, path: string) => void;
+  onDialsPanelDismiss?: () => void;
 }
 
 export interface GrabbedBox {

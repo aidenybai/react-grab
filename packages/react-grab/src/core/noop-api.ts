@@ -36,4 +36,10 @@ export const createNoopApi = (): ReactGrabAPI => ({
   unregisterPlugin: NOOP,
   getPlugins: () => [],
   getDisplayName: () => null,
+  registerDials: () => NOOP,
+  updateDialValue: NOOP,
+  updateDialValues: NOOP,
+  resetDials: NOOP,
+  getDialValues: () => null,
+  subscribeDials: () => NOOP,
 });

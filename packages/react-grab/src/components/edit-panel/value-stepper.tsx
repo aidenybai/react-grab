@@ -29,6 +29,7 @@ interface ValueStepperProps {
   onInvalidCommit?: () => void;
   onInteract?: () => void;
   emphasized?: boolean;
+  baseTrack?: boolean;
   tailwindLabel?: string | null;
 }
 
@@ -246,7 +247,7 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
         onPointerCancel={releaseDrag}
         onLostPointerCapture={releaseDrag}
       >
-        <Show when={props.emphasized}>
+        <Show when={props.emphasized || props.baseTrack}>
           <div
             data-react-grab-slider-base
             aria-hidden="true"

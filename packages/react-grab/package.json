@@ -69,6 +69,16 @@
         "default": "./dist/primitives.cjs"
       }
     },
+    "./react": {
+      "import": {
+        "types": "./dist/react.d.ts",
+        "default": "./dist/react.js"
+      },
+      "require": {
+        "types": "./dist/react.d.cts",
+        "default": "./dist/react.cjs"
+      }
+    },
     "./src/*": "./src/*",
     "./styles.css": "./dist/styles.css",
     "./dist/styles.css": "./dist/styles.css",

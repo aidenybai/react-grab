@@ -142,6 +142,10 @@ export const DEV_TOOLS_OVERLAY_Z_INDEX_THRESHOLD = 2147483600;
 
 export const TOOLBAR_SNAP_MARGIN_PX = 16;
 export const TOOLBAR_FADE_IN_DELAY_MS = 500;
+// Must match the `duration-400` opacity transition in the toolbar's default
+// getTransitionClass(): consumers (e.g. the dials panel) wait this long after
+// the fade-in starts before treating the toolbar as fully visible.
+export const TOOLBAR_FADE_IN_TRANSITION_MS = 400;
 export const TOOLBAR_SNAP_ANIMATION_DURATION_MS = 300;
 export const TOOLBAR_DRAG_THRESHOLD_PX = 5;
 export const TOOLBAR_VELOCITY_MULTIPLIER_MS = 150;
@@ -219,6 +223,16 @@ export const EDIT_TRANSPARENT_COLOR_LABEL = "transparent";
 export const EDIT_ROOT_FONT_SIZE_PX = 16;
 export const EDIT_PANEL_MIN_WIDTH_PX = 200;
 export const EDIT_PANEL_MAX_WIDTH_PX = 320;
+
+export const DIAL_PANEL_MIN_WIDTH_PX = 220;
+export const DIAL_PANEL_MAX_WIDTH_PX = 300;
+export const DIAL_PANEL_MAX_HEIGHT_PX = 420;
+export const DIAL_SPRING_DEFAULT_VISUAL_DURATION_S = 0.5;
+export const DIAL_SPRING_DEFAULT_BOUNCE = 0.2;
+export const DIAL_SPRING_VISUAL_DURATION_MIN_S = 0.1;
+export const DIAL_SPRING_VISUAL_DURATION_MAX_S = 1;
+export const DIAL_SPRING_BOUNCE_MIN = 0;
+export const DIAL_SPRING_BOUNCE_MAX = 1;
 export const EDIT_SHIFT_STEP_MULTIPLIER = 10;
 // Idle window after the last control-interact pulse before the
 // transient-interaction signal clears. Must comfortably exceed the

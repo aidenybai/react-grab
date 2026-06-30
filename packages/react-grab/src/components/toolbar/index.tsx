@@ -9,6 +9,7 @@ import { ToolbarActionButton } from "./toolbar-action-button.jsx";
 import {
   TOOLBAR_SNAP_MARGIN_PX,
   TOOLBAR_FADE_IN_DELAY_MS,
+  TOOLBAR_FADE_IN_TRANSITION_MS,
   TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS,
   TOOLBAR_DEFAULT_WIDTH_PX,
   TOOLBAR_DEFAULT_HEIGHT_PX,
@@ -49,6 +50,7 @@ interface ToolbarProps {
   onSelectHoverChange?: (isHovered: boolean) => void;
   onContainerRef?: (element: HTMLDivElement) => void;
   onToggleToolbarMenu?: () => void;
+  onFadeInComplete?: () => void;
 }
 
 interface FreezeHandlersOptions {
@@ -548,12 +550,17 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       onCleanup(() => observer.disconnect());
     }
 
+    let fadeCompleteTimeout: ReturnType<typeof setTimeout> | undefined;
     const fadeInTimeout = setTimeout(() => {
       setIsVisible(true);
+      fadeCompleteTimeout = setTimeout(() => {
+        props.onFadeInComplete?.();
+      }, TOOLBAR_FADE_IN_TRANSITION_MS);
     }, TOOLBAR_FADE_IN_DELAY_MS);
 
     onCleanup(() => {
       clearTimeout(fadeInTimeout);
+      clearTimeout(fadeCompleteTimeout);
     });
   });
 

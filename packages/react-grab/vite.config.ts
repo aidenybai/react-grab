@@ -56,7 +56,7 @@ export default defineConfig({
       plugins: [solidWebBrowserPlugin(), cssTextPlugin(), solidBabelPlugin()],
     },
     {
-      entry: ["./src/index.ts", "./src/core/index.tsx", "./src/primitives.ts"],
+      entry: ["./src/index.ts", "./src/core/index.tsx", "./src/primitives.ts", "./src/react.ts"],
       format: ["cjs", "esm"],
       dts: true,
       clean: false,
