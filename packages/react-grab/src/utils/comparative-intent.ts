@@ -16,6 +16,7 @@ const BORDER_WIDTH = ["border-width"];
 const RADIUS = ["border-radius"];
 const OPACITY = ["opacity"];
 const TRACKING = ["letter-spacing"];
+const SPACING = ["padding", "gap"];
 
 interface PolarAdjective {
   candidates: readonly string[];
@@ -86,15 +87,22 @@ const POLAR_DEFINITIONS: ReadonlyArray<{
     candidates: RADIUS,
     direction: -1,
   },
-  { base: ["opaque"], comparative: ["opaquer"], candidates: OPACITY, direction: 1 },
+  { base: ["opaque", "solid"], comparative: ["opaquer"], candidates: OPACITY, direction: 1 },
   {
-    base: ["transparent", "translucent", "faded", "faint", "see-through", "seethrough"],
-    comparative: ["fainter", "faintest"],
+    base: ["transparent", "translucent", "faded", "faint", "see-through", "seethrough", "dim"],
+    comparative: ["fainter", "faintest", "dimmer", "dimmest"],
     candidates: OPACITY,
     direction: -1,
   },
   { base: ["loose"], comparative: ["looser", "loosest"], candidates: TRACKING, direction: 1 },
   { base: ["tight"], comparative: ["tighter", "tightest"], candidates: TRACKING, direction: -1 },
+  {
+    base: ["roomy", "airy", "spacious"],
+    comparative: ["roomier", "airier"],
+    candidates: SPACING,
+    direction: 1,
+  },
+  { base: ["cramped", "crowded"], comparative: [], candidates: SPACING, direction: -1 },
 ];
 
 const POLAR_ADJECTIVES = ((): Map<string, PolarAdjective> => {
@@ -135,6 +143,7 @@ const INCREASE_VERBS = new Set([
   "bumped",
   "extra",
   "plus",
+  "up",
 ]);
 
 const DECREASE_VERBS = new Set([
@@ -152,7 +161,10 @@ const DECREASE_VERBS = new Set([
   "dropped",
   "lessen",
   "minimize",
+  "minimise",
   "trim",
+  "down",
+  "shave",
 ]);
 
 const COMMAND_VERBS = new Set(["make", "set", "turn", "render", "get", "give", "keep"]);
@@ -173,6 +185,11 @@ const AMPLIFIER_WORDS = new Set([
   "tons",
   "loads",
   "crazy",
+  "so",
+  "real",
+  "ridiculously",
+  "absurdly",
+  "noticeably",
 ]);
 
 const DIMINISHER_WORDS = new Set([
@@ -199,14 +216,30 @@ const STOPWORDS = new Set([
   "my",
   "your",
   "please",
-  "too",
   "and",
   "for",
   "on",
+  "can",
+  "could",
+  "would",
+  "you",
+  "i",
+  "im",
+  "want",
+  "wanna",
+  "need",
+  "needs",
+  "just",
+  "look",
+  "looks",
+  "looking",
 ]);
 
 const AMPLIFIER_PHRASE_PATTERN = /\ba\s+(?:lot|ton|whole\s+lot)\b/g;
 const DIMINISHER_PHRASE_PATTERN = /\ba\s+(?:bit|little|tad|touch|smidge|hair)\b/g;
+// "too much/many <x>" reads as "trim x" without amplifying, so it is matched
+// as a unit before the bare "much" amplifier is counted.
+const TOO_MUCH_PHRASE_PATTERN = /\btoo\s+(?:much|many)\b/g;
 
 const countAndStrip = (text: string, pattern: RegExp): { text: string; count: number } => {
   let count = 0;
@@ -233,7 +266,8 @@ export const parseComparativeIntent = (rawQuery: string): ComparativeIntent | nu
   const lowered = rawQuery.toLowerCase().trim();
   if (!lowered) return null;
 
-  const amplifierPhrases = countAndStrip(lowered, AMPLIFIER_PHRASE_PATTERN);
+  const tooMuchPhrases = countAndStrip(lowered, TOO_MUCH_PHRASE_PATTERN);
+  const amplifierPhrases = countAndStrip(tooMuchPhrases.text, AMPLIFIER_PHRASE_PATTERN);
   const diminisherPhrases = countAndStrip(amplifierPhrases.text, DIMINISHER_PHRASE_PATTERN);
   let amplifierCount = amplifierPhrases.count;
   let diminisherCount = diminisherPhrases.count;
@@ -246,6 +280,11 @@ export const parseComparativeIntent = (rawQuery: string): ComparativeIntent | nu
   let genericSign: 1 | -1 | 0 = 0;
   let genericVerbCount = 0;
   let hasCommandVerb = false;
+  // "too big" → smaller; "not big enough" → bigger. Tracked separately so the
+  // direction resolver can flip or reinforce the adjective.
+  let hasExcessCue = tooMuchPhrases.count > 0;
+  let hasNegationCue = false;
+  let hasEnoughCue = false;
   const subjectTokens: string[] = [];
 
   for (const token of tokens) {
@@ -255,6 +294,18 @@ export const parseComparativeIntent = (rawQuery: string): ComparativeIntent | nu
     }
     if (DIMINISHER_WORDS.has(token)) {
       diminisherCount++;
+      continue;
+    }
+    if (token === "too") {
+      hasExcessCue = true;
+      continue;
+    }
+    if (token === "not" || token === "isnt" || token === "no") {
+      hasNegationCue = true;
+      continue;
+    }
+    if (token === "enough") {
+      hasEnoughCue = true;
       continue;
     }
     if (COMMAND_VERBS.has(token)) {
@@ -282,12 +333,15 @@ export const parseComparativeIntent = (rawQuery: string): ComparativeIntent | nu
     subjectTokens.push(token);
   }
 
+  const hasNotEnoughCue = hasNegationCue && hasEnoughCue;
   const hasSignal =
     hasStrongPolar ||
     hasCommandVerb ||
     amplifierCount > 0 ||
     diminisherCount > 0 ||
     genericVerbCount > 0 ||
+    hasExcessCue ||
+    hasNotEnoughCue ||
     polarCount >= 2;
   if (!hasSignal) return null;
 
@@ -295,11 +349,24 @@ export const parseComparativeIntent = (rawQuery: string): ComparativeIntent | nu
   let dimensionCandidates: readonly string[] | null;
   if (polarAdjective) {
     dimensionCandidates = polarAdjective.candidates;
-    const shouldInvert = genericSign === -1;
-    direction = shouldInvert ? (polarAdjective.direction === 1 ? -1 : 1) : polarAdjective.direction;
+    // A decrease cue flips the adjective's natural direction: "less wide" →
+    // wider, "too big" → smaller. "not big enough" keeps it (reinforces).
+    let inversions = 0;
+    if (genericSign === -1) inversions++;
+    if (hasExcessCue) inversions++;
+    direction =
+      inversions % 2 === 1 ? (polarAdjective.direction === 1 ? -1 : 1) : polarAdjective.direction;
   } else if (genericSign !== 0) {
     dimensionCandidates = null;
     direction = genericSign;
+  } else if (hasExcessCue) {
+    // "too much padding" → trim the named property.
+    dimensionCandidates = null;
+    direction = -1;
+  } else if (hasNotEnoughCue) {
+    // "not enough padding" → add to the named property.
+    dimensionCandidates = null;
+    direction = 1;
   } else {
     return null;
   }

@@ -121,4 +121,19 @@ describe("resolveComparativeTargets", () => {
     expect(resolution?.direction).toBe(-1);
     expect(resolution?.magnitude).toBe(2);
   });
+
+  it("resolves excess and shortage commands", () => {
+    const tooMuch = resolve("too much padding");
+    expect(tooMuch?.targets.map((target) => target.key)).toEqual(["padding"]);
+    expect(tooMuch?.direction).toBe(-1);
+
+    const notEnough = resolve("not enough opacity");
+    expect(notEnough?.targets.map((target) => target.key)).toEqual(["opacity"]);
+    expect(notEnough?.direction).toBe(1);
+  });
+
+  it("resolves extra opacity and spacing adjectives", () => {
+    expect(resolve("dimmer")?.targets.map((target) => target.key)).toEqual(["opacity"]);
+    expect(resolve("roomier")?.targets.map((target) => target.key)).toEqual(["padding"]);
+  });
 });

@@ -68,6 +68,18 @@ test.describe("Style Panel Comparative Commands", () => {
     expect(secondApply).toBe(firstApply);
   });
 
+  test("'too big' shrinks font size", async ({ reactGrab }) => {
+    await openEditPanel(reactGrab, BUTTON_SELECTOR);
+
+    await applyComparative(reactGrab.page, "font size");
+    const baseline = parsePx(await getActivePropertyValue(reactGrab.page));
+
+    await applyComparative(reactGrab.page, "too big");
+    expect(await getActivePropertyKey(reactGrab.page)).toBe("font-size");
+    const shrunk = parsePx(await getActivePropertyValue(reactGrab.page));
+    expect(shrunk).toBeLessThan(baseline);
+  });
+
   test("'more padding' increases padding on every side", async ({ reactGrab }) => {
     await openEditPanel(reactGrab, UNIFORM_PADDING_SELECTOR);
 

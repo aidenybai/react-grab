@@ -83,7 +83,7 @@ const EXTRA_PROPERTY_ALIASES: Record<string, string[]> = {
   gap: ["gap", "gutter"],
   width: ["width"],
   height: ["height"],
-  "border-radius": ["radius", "border radius", "rounding", "roundness", "corners"],
+  "border-radius": ["radius", "border radius", "rounding", "roundness", "corner", "corners"],
   "border-width": ["border", "border width", "border thickness"],
   "letter-spacing": ["letter spacing", "tracking"],
   "line-height": ["line height", "leading"],

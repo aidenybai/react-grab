@@ -73,6 +73,60 @@ describe("parseComparativeIntent", () => {
     expect(intent?.dimensionCandidates).toContain("font-size");
   });
 
+  it("inverts the direction for 'too X' and reinforces for 'not X enough'", () => {
+    const tooBig = parseComparativeIntent("too big");
+    expect(tooBig?.dimensionCandidates).toContain("font-size");
+    expect(tooBig?.direction).toBe(-1);
+
+    expect(parseComparativeIntent("too small")?.direction).toBe(1);
+    expect(parseComparativeIntent("way too wide")?.direction).toBe(-1);
+    expect(parseComparativeIntent("way too wide")?.magnitude).toBe(2);
+
+    const notBigEnough = parseComparativeIntent("not big enough");
+    expect(notBigEnough?.dimensionCandidates).toContain("font-size");
+    expect(notBigEnough?.direction).toBe(1);
+  });
+
+  it("treats 'too much X' / 'not enough X' as subject commands", () => {
+    const tooMuch = parseComparativeIntent("too much padding");
+    expect(tooMuch?.subject).toBe("padding");
+    expect(tooMuch?.direction).toBe(-1);
+    expect(tooMuch?.magnitude).toBe(1);
+
+    const notEnough = parseComparativeIntent("not enough margin");
+    expect(notEnough?.subject).toBe("margin");
+    expect(notEnough?.direction).toBe(1);
+  });
+
+  it("inverts a comparative adjective under less", () => {
+    expect(parseComparativeIntent("less wide")?.direction).toBe(-1);
+    expect(parseComparativeIntent("less narrow")?.direction).toBe(1);
+  });
+
+  it("recognizes up/down directional verbs and extra synonyms", () => {
+    const up = parseComparativeIntent("bump up the padding");
+    expect(up?.subject).toBe("padding");
+    expect(up?.direction).toBe(1);
+
+    const down = parseComparativeIntent("shave down the border");
+    expect(down?.subject).toBe("border");
+    expect(down?.direction).toBe(-1);
+  });
+
+  it("understands extra opacity and spacing adjectives", () => {
+    expect(parseComparativeIntent("dimmer")?.dimensionCandidates).toContain("opacity");
+    expect(parseComparativeIntent("dimmer")?.direction).toBe(-1);
+    expect(parseComparativeIntent("roomier")?.dimensionCandidates).toContain("padding");
+    expect(parseComparativeIntent("roomier")?.direction).toBe(1);
+  });
+
+  it("ignores conversational filler around the command", () => {
+    const intent = parseComparativeIntent("can you make this a little bigger please");
+    expect(intent?.dimensionCandidates).toContain("font-size");
+    expect(intent?.direction).toBe(1);
+    expect(intent?.subject).toBeNull();
+  });
+
   it("handles inverse opacity adjectives independent of more/less", () => {
     const moreTransparent = parseComparativeIntent("more transparent");
     expect(moreTransparent?.dimensionCandidates).toContain("opacity");
