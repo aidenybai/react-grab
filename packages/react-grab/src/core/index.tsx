@@ -230,7 +230,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const isHoldingKeys = createMemo(() => current().state === "holding");
     const isActivated = createMemo(() => current().state === "active");
     const activationPolicy = () =>
-      resolveActivationPolicy(pluginRegistry.store.options.activationMode);
+      resolveActivationPolicy(
+        pluginRegistry.store.options.activationMode,
+        Boolean(pluginRegistry.store.options.activationKey),
+      );
     const isFrozenPhase = createMemo(() => {
       const currentState = current();
       return currentState.state === "active" && currentState.phase === "frozen";
