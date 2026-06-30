@@ -2820,13 +2820,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             ? getFrozenElementAtPosition(position)
             : null;
         // A right-click is an explicit pick. When it lands on a grab overlay
-        // (hierarchy menu or the keyboard-selection discard prompt) mid
-        // navigation, dismiss it and fall through to resolve the page element
-        // beneath; openContextMenu clears the keyboard selection once a menu
-        // actually opens, so nothing is torn down when there is no target.
+        // (hierarchy menu, or the keyboard-selection discard prompt that sits on
+        // the cursor) mid navigation, fall through to resolve the page element
+        // beneath instead of bailing; openContextMenu clears the keyboard
+        // selection once a menu opens, so nothing is torn down with no target.
+        const hadPendingDismiss = keyboardSelection.isPendingDismiss();
         if (isFromOverlay && arrowNavigationElements().length > 0) {
           clearArrowNavigation();
-        } else if (isFromOverlay && !overlayFrozenElement) {
+        } else if (isFromOverlay && !overlayFrozenElement && !hadPendingDismiss) {
           return;
         }
 

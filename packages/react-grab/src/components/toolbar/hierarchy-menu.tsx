@@ -45,6 +45,7 @@ export const HierarchyMenu: Component<HierarchyMenuProps> = (props) => {
     <AnchoredDropdownSurface
       position={props.position}
       dataAttribute="data-react-grab-hierarchy-menu"
+      interactive={false}
     >
       <Menu.Panel
         class="overflow-hidden"

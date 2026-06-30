@@ -13,6 +13,9 @@ interface AnchoredDropdownSurfaceProps {
   dataAttribute: string;
   // When provided, the surface dismisses on outside click / Escape.
   onDismiss?: () => void;
+  // When false the surface is display-only (pointer-events: none): it never
+  // captures clicks, so page selection works through it. Defaults to true.
+  interactive?: boolean;
   children: JSX.Element;
 }
 
@@ -22,6 +25,8 @@ interface AnchoredDropdownSurfaceProps {
 // to the page. Consumers supply only their panel contents.
 export const AnchoredDropdownSurface: Component<AnchoredDropdownSurfaceProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
+
+  const isInteractive = () => props.interactive !== false;
 
   const dropdown = createAnchoredDropdown(
     () => containerRef,
@@ -59,7 +64,7 @@ export const AnchoredDropdownSurface: Component<AnchoredDropdownSurfaceProps> = 
           top: `${dropdown.displayPosition().top}px`,
           left: `${dropdown.displayPosition().left}px`,
           "z-index": `${Z_INDEX_OVERLAY}`,
-          "pointer-events": dropdown.isAnimatedIn() ? "auto" : "none",
+          "pointer-events": isInteractive() && dropdown.isAnimatedIn() ? "auto" : "none",
           "transform-origin": DROPDOWN_EDGE_TRANSFORM_ORIGIN[dropdown.lastAnchorEdge()],
           opacity: dropdown.isAnimatedIn() ? "1" : "0",
           transform: dropdown.isAnimatedIn() ? "scale(1)" : "scale(0.92)",
