@@ -1,72 +1,11 @@
-import { useState, useRef, useEffect } from "react";
-import { useReactGrab } from "react-grab/react";
+import { lazy, Suspense, useState, useRef, useEffect } from "react";
 import { PerfGrid } from "./perf-grid";
 
-const DialKitCard = () => {
-  const params = useReactGrab("Card", {
-    blur: [0, 0, 40],
-    scale: 1.2,
-    radius: [24, 0, 80],
-    color: "#ff5500",
-    background: "#0b1020",
-    label: "React Grab",
-    visible: true,
-    layout: { type: "select", options: ["stack", "fan", "grid"], default: "stack" },
-    shadow: {
-      _collapsed: false,
-      blur: [24, 0, 80],
-      opacity: [0.4, 0, 1],
-    },
-    spring: { type: "spring", visualDuration: 0.5, bounce: 0.2 },
-  });
-
-  return (
-    <section className="border rounded-lg p-4" data-testid="dialkit-section">
-      <h2 className="text-lg font-bold mb-4">useReactGrab() Demo</h2>
-      <div className="flex items-center justify-center h-72">
-        <div
-          data-testid="dialkit-card"
-          style={{
-            opacity: params.visible ? 1 : 0,
-            filter: `blur(${params.blur}px)`,
-            transform: `scale(${params.scale})`,
-            borderRadius: `${params.radius}px`,
-            color: params.color,
-            background: params.background,
-            boxShadow: `0 8px ${params.shadow.blur}px rgba(0,0,0,${params.shadow.opacity})`,
-            transition: `transform ${params.spring.visualDuration}s, filter 0.2s, border-radius 0.2s`,
-            width: 220,
-            height: 140,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontWeight: 600,
-            fontSize: 18,
-          }}
-        >
-          {params.label} ({params.layout})
-        </div>
-      </div>
-    </section>
-  );
-};
-
-const SceneDials = () => {
-  const params = useReactGrab("Scene", {
-    fov: [50, 10, 120],
-    wireframe: false,
-    quality: { type: "select", options: ["low", "medium", "high"], default: "medium" },
-  });
-
-  return (
-    <section className="border rounded-lg p-4" data-testid="dialkit-section-2">
-      <h2 className="text-lg font-bold mb-4">Second useReactGrab() Hook</h2>
-      <div className="text-sm text-gray-600" data-testid="scene-readout">
-        FOV {params.fov} · {params.quality} · {params.wireframe ? "wireframe" : "solid"}
-      </div>
-    </section>
-  );
-};
+// Lazy + gated so the always-on dials demo never bundles into the default app:
+// it would otherwise statically import react-grab/react (a PR-only export the
+// perf baseline build cannot resolve) and overlap the selection prompt other
+// specs click. Open `/?dials` to preview the multi-hook layout.
+const DialsDemo = lazy(() => import("./dials-demo"));
 
 interface Todo {
   id: number;
@@ -725,6 +664,15 @@ const usePerfGridConfig = (): { rowCount: number; columnCount: number } | null =
   };
 };
 
+// The dials demo renders an always-on, toolbar-anchored panel that overlaps the
+// selection copy/discard prompt other specs click. Gate it behind `?dials` so the
+// default page (every existing spec) stays overlay-free; open `/?dials` to preview.
+const useDialsDemoEnabled = (): boolean => {
+  if (typeof window === "undefined") return false;
+  const value = new URLSearchParams(window.location.search).get("dials");
+  return value !== null && value !== "0" && value !== "false";
+};
+
 // Replicates the Radix/modal-library pattern of setting `body { pointer-events:
 // none }` while open (re-enabling it only on the popover). react-grab must still
 // hit-test page content outside the popover; this fixture guards that
@@ -771,6 +719,7 @@ const PointerEventsModalSection = () => {
 
 export default function App() {
   const perfConfig = usePerfGridConfig();
+  const dialsDemoEnabled = useDialsDemoEnabled();
 
   if (perfConfig) {
     return <PerfGrid rowCount={perfConfig.rowCount} columnCount={perfConfig.columnCount} />;
@@ -795,9 +744,11 @@ export default function App() {
         </p>
       </header>
 
-      <DialKitCard />
-
-      <SceneDials />
+      {dialsDemoEnabled && (
+        <Suspense fallback={null}>
+          <DialsDemo />
+        </Suspense>
+      )}
 
       <TodoList />
 
