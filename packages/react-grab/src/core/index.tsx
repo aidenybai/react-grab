@@ -58,7 +58,6 @@ import {
 import { getTagName } from "../utils/get-tag-name.js";
 import { buildElementHierarchy } from "../utils/build-element-hierarchy.js";
 import { isHorizontallyGrabbable } from "../utils/is-horizontally-grabbable.js";
-import { resolveActivationPolicy } from "../utils/resolve-activation-policy.js";
 import {
   ARROW_KEYS,
   FEEDBACK_DURATION_MS,
@@ -230,11 +229,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const isHoldingKeys = createMemo(() => current().state === "holding");
     const isActivated = createMemo(() => current().state === "active");
-    const activationPolicy = () =>
-      resolveActivationPolicy(
-        pluginRegistry.store.options.activationMode,
-        Boolean(pluginRegistry.store.options.activationKey),
-      );
     const isFrozenPhase = createMemo(() => {
       const currentState = current();
       return currentState.state === "active" && currentState.phase === "frozen";
@@ -443,7 +437,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (!previouslyHolding || currentlyHolding || !isActivated()) {
           return;
         }
-        if (activationPolicy().persistsCompletedHold) {
+        if (pluginRegistry.store.options.activationMode !== "hold") {
           actions.setWasActivatedByToggle(true);
         }
         pluginRegistry.hooks.onActivate();
@@ -535,12 +529,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isActivated()) return DEFAULT_ACTION_ID;
       return null;
     });
-    const [arrowNavigationEntries, setArrowNavigationEntries] = createSignal<HierarchyEntry[]>([]);
-    const [arrowNavigationActiveIndex, setArrowNavigationActiveIndex] = createSignal(0);
-    const arrowNavigationElements = createMemo(() =>
-      arrowNavigationEntries().map((entry) => entry.element),
-    );
-
     const arrowNavigator = createArrowNavigator(isValidGrabbableElement, createElementBounds);
     const isNavigableSibling = (element: Element) =>
       isHorizontallyGrabbable(element, isValidGrabbableElement);
@@ -852,6 +840,33 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const effectiveElement = createMemo(
       () => store.frozenElement || (isFrozenPhase() ? null : targetElement()),
     );
+
+    // The hierarchy dropdown mirrors whatever element is being selected: the
+    // hovered element, or the frozen/keyboard-navigated one. It is suppressed in
+    // the modes where it would be noise or would intercept input (prompt, shift
+    // multi-select, copying, an open popover, or a pending mouse-handoff).
+    const hierarchySourceElement = createMemo(() => {
+      if (!isActivated()) return null;
+      if (isPromptMode() || isShiftMultiSelecting() || isCopying()) return null;
+      if (store.contextMenuPosition !== null || editMode.isOpen()) return null;
+      if (keyboardSelection.isPendingDismiss()) return null;
+      return effectiveElement();
+    });
+
+    const arrowNavigationEntries = createMemo<HierarchyEntry[]>(() => {
+      const source = hierarchySourceElement();
+      return source
+        ? buildElementHierarchy(source, isValidGrabbableElement, isNavigableSibling)
+        : [];
+    });
+    const arrowNavigationElements = createMemo(() =>
+      arrowNavigationEntries().map((entry) => entry.element),
+    );
+    const arrowNavigationActiveIndex = createMemo(() => {
+      const source = hierarchySourceElement();
+      return source ? Math.max(0, arrowNavigationElements().indexOf(source)) : 0;
+    });
+    const hasHierarchySource = createMemo(() => hierarchySourceElement() !== null);
 
     createEffect(() => {
       const element = store.detectedElement;
@@ -2104,14 +2119,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       capture: true,
     });
 
+    // The dropdown itself derives from hierarchySourceElement, so clearing
+    // navigation only needs to reset the keyboard-selection bookkeeping; the
+    // menu hides on its own once nothing is being selected.
     const clearArrowNavigation = () => {
-      setArrowNavigationEntries([]);
-      setArrowNavigationActiveIndex(0);
       arrowNavigator.clearHistory();
       keyboardSelection.clear();
-      stopHierarchyMenuTracking?.();
-      stopHierarchyMenuTracking = null;
-      setHierarchyMenuPosition(null);
     };
 
     const selectAndFocusElement = (element: Element, shouldPromptBeforeMouseHandoff = false) => {
@@ -2127,30 +2140,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
-    const openArrowNavigationMenu = (anchorElement: Element) => {
-      const entries = buildElementHierarchy(
-        anchorElement,
-        isValidGrabbableElement,
-        isNavigableSibling,
-      );
-      setArrowNavigationEntries(entries);
-      const anchorIndex = entries.findIndex((entry) => entry.element === anchorElement);
-      setArrowNavigationActiveIndex(Math.max(0, anchorIndex));
-      if (!stopHierarchyMenuTracking) {
-        stopHierarchyMenuTracking = trackDropdownPosition(
-          computeDropdownAnchor,
-          setHierarchyMenuPosition,
-        );
-      }
-    };
-
     const handleArrowNavigationSelect = (index: number) => {
       const targetElement = arrowNavigationElements()[index];
       if (!targetElement) return;
 
       arrowNavigator.clearHistory();
       selectAndFocusElement(targetElement, true);
-      openArrowNavigationMenu(targetElement);
     };
 
     const showArrowNavigationDismissPrompt = () => {
@@ -2214,7 +2209,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       event.preventDefault();
       event.stopPropagation();
       selectAndFocusElement(elementToSelect, true);
-      openArrowNavigationMenu(elementToSelect);
 
       return true;
     };
@@ -2370,14 +2364,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       isVisible: arrowNavigationEntries().length > 0,
     }));
 
-    // The toolbar-anchored hierarchy dropdown floats over page content, so it
-    // must release its pointer events the moment the user hands off to the
-    // mouse (pending dismiss). Otherwise it intercepts clicks/right-clicks
-    // meant for the page or the discard prompt.
-    const hierarchyMenuVisiblePosition = createMemo(() =>
-      keyboardSelection.isPendingDismiss() ? null : hierarchyMenuPosition(),
-    );
-
     const handleActivationKeys = (event: KeyboardEvent): void => {
       if (
         !pluginRegistry.store.options.allowActivationInsideInput &&
@@ -2443,13 +2429,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isCopying() || didJustCopy()) return;
 
       if (!isHoldingKeys()) {
-        // Preview mode's activation key is typically Space; stop the page from
-        // scrolling on the initial press. The default Cmd/Ctrl+C path must NOT
-        // preventDefault here so the native copy-to-activate flow still works.
-        if (activationPolicy().suppressActivationKeyDefault) {
-          event.preventDefault();
-        }
-
         const keyHoldDuration =
           pluginRegistry.store.options.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS;
 
@@ -2644,7 +2623,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         const hasCustomShortcut = Boolean(pluginRegistry.store.options.activationKey);
 
-        const policy = activationPolicy();
+        const isHoldMode = pluginRegistry.store.options.activationMode === "hold";
         const isDragGestureInProgress = isDragging();
 
         if (isActivated()) {
@@ -2657,7 +2636,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               return;
             if (hasModalPopover) return;
             deactivateRenderer();
-          } else if (policy.keepsOverlayWhileHeld && isReleasingActivationKey) {
+          } else if (isHoldMode && isReleasingActivationKey) {
             if (keydownSpamTimerId !== null) {
               window.clearTimeout(keydownSpamTimerId);
               keydownSpamTimerId = null;
@@ -2698,12 +2677,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             resetCopyConfirmation();
             if (shouldActivateAfterCopy) {
               actions.activate();
-            } else if (policy.tapTogglesSession && isHoldingKeys()) {
-              // Released before the hold timer fired: treat it as a tap and
-              // toggle a persistent session on (holding instead previews and
-              // is handled by the isActivated branch above on release).
-              actions.setWasActivatedByToggle(true);
-              activateRenderer();
             } else {
               actions.releaseHold();
             }
@@ -3600,6 +3573,21 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       };
     };
 
+    // Keep the hierarchy dropdown anchored to the toolbar while there is an
+    // element being selected, and tear the tracker down when there is not.
+    createEffect(() => {
+      if (hasHierarchySource()) {
+        stopHierarchyMenuTracking ??= trackDropdownPosition(
+          computeDropdownAnchor,
+          setHierarchyMenuPosition,
+        );
+      } else if (stopHierarchyMenuTracking) {
+        stopHierarchyMenuTracking();
+        stopHierarchyMenuTracking = null;
+        setHierarchyMenuPosition(null);
+      }
+    });
+
     const dismissToolbarMenu = () => {
       stopToolbarMenuTracking?.();
       stopToolbarMenuTracking = null;
@@ -3702,7 +3690,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 selectionLabelVisible={selectionLabelVisible()}
                 selectionLabelStatus="idle"
                 selectionArrowNavigationState={arrowNavigationState()}
-                hierarchyMenuPosition={hierarchyMenuVisiblePosition()}
+                hierarchyMenuPosition={hierarchyMenuPosition()}
                 onArrowNavigationSelect={handleArrowNavigationSelect}
                 labelInstances={computedLabelInstances()}
                 dragVisible={dragVisible()}

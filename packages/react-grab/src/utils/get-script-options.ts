@@ -12,11 +12,7 @@ const parseOptionsFromJson = (rawValue: unknown): Partial<Options> | null => {
   if (typeof rawValue.enabled === "boolean") {
     parsedOptions.enabled = rawValue.enabled;
   }
-  if (
-    rawValue.activationMode === "toggle" ||
-    rawValue.activationMode === "hold" ||
-    rawValue.activationMode === "preview"
-  ) {
+  if (rawValue.activationMode === "toggle" || rawValue.activationMode === "hold") {
     parsedOptions.activationMode = rawValue.activationMode;
   }
   if (typeof rawValue.keyHoldDuration === "number" && Number.isFinite(rawValue.keyHoldDuration)) {
