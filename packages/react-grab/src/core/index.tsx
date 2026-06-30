@@ -306,6 +306,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [isToolbarSelectHovered, setIsToolbarSelectHovered] = createSignal(false);
     const [toolbarMenuPosition, setToolbarMenuPosition] = createSignal<DropdownAnchor | null>(null);
     const [editPanelPosition, setEditPanelPosition] = createSignal<DropdownAnchor | null>(null);
+    const [hierarchyMenuPosition, setHierarchyMenuPosition] = createSignal<DropdownAnchor | null>(
+      null,
+    );
     // Forward-ref wrappers because activateRenderer / deactivateRenderer /
     // performCopyWithLabel are declared later in this scope. The wrappers
     // are captured by the controller; the underlying lookups happen at
@@ -339,6 +342,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let toolbarElement: HTMLDivElement | undefined;
     let stopToolbarMenuTracking: (() => void) | null = null;
     let stopEditPanelTracking: (() => void) | null = null;
+    let stopHierarchyMenuTracking: (() => void) | null = null;
     let didSwitchEditTargetOnPointerDown = false;
 
     let shiftSelectionLabelAnchorRatioByElement = new WeakMap<Element, number>();
@@ -2096,6 +2100,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setArrowNavigationActiveIndex(0);
       arrowNavigator.clearHistory();
       keyboardSelection.clear();
+      stopHierarchyMenuTracking?.();
+      stopHierarchyMenuTracking = null;
+      setHierarchyMenuPosition(null);
     };
 
     const selectAndFocusElement = (element: Element, shouldPromptBeforeMouseHandoff = false) => {
@@ -2116,6 +2123,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setArrowNavigationEntries(entries);
       const anchorIndex = entries.findIndex((entry) => entry.element === anchorElement);
       setArrowNavigationActiveIndex(Math.max(0, anchorIndex));
+      if (!stopHierarchyMenuTracking) {
+        stopHierarchyMenuTracking = trackDropdownPosition(
+          computeDropdownAnchor,
+          setHierarchyMenuPosition,
+        );
+      }
     };
 
     const handleArrowNavigationSelect = (index: number) => {
@@ -3661,6 +3674,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 selectionLabelVisible={selectionLabelVisible()}
                 selectionLabelStatus="idle"
                 selectionArrowNavigationState={arrowNavigationState()}
+                hierarchyMenuPosition={hierarchyMenuPosition()}
                 onArrowNavigationSelect={handleArrowNavigationSelect}
                 labelInstances={computedLabelInstances()}
                 dragVisible={dragVisible()}

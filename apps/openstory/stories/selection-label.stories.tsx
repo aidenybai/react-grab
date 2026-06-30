@@ -71,25 +71,6 @@ export const IdleWithFilePath: Story = {
   },
 };
 
-export const IdleArrowNavigation: Story = {
-  args: {
-    tagName: "button",
-    componentName: "Button",
-    arrowNavigationState: {
-      isVisible: true,
-      activeIndex: 2,
-      items: [
-        { tagName: "main", componentName: "App", depth: 0, isLast: true },
-        { tagName: "div", componentName: "Card", depth: 1, isLast: true },
-        { tagName: "button", componentName: "Button", depth: 2, isLast: false },
-        { tagName: "span", depth: 3, isLast: true },
-        { tagName: "a", componentName: "Link", depth: 2, isLast: true },
-      ],
-    },
-    onArrowNavigationSelect: noop,
-  },
-};
-
 export const PromptEmpty: Story = {
   args: {
     tagName: "div",

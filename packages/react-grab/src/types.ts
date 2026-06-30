@@ -508,6 +508,7 @@ export interface ReactGrabRendererProps {
   selectionLabelVisible?: boolean;
   selectionLabelStatus?: SelectionLabelStatus;
   selectionArrowNavigationState?: ArrowNavigationState;
+  hierarchyMenuPosition?: DropdownAnchor | null;
   onArrowNavigationSelect?: (index: number) => void;
   labelInstances?: SelectionLabelInstance[];
   dragVisible?: boolean;
@@ -651,8 +652,6 @@ export interface SelectionLabelProps {
   statusText?: string;
   filePath?: string;
   shouldToggleExpandOnClick?: boolean;
-  arrowNavigationState?: ArrowNavigationState;
-  onArrowNavigationSelect?: (index: number) => void;
   onInputChange?: (value: string) => void;
   onSubmit?: () => void;
   onToggleExpand?: () => void;
