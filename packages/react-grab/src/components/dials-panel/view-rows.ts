@@ -115,7 +115,9 @@ export const readSpring = (raw: DialValue): SpringValue =>
 export const buildDialViewModel = (
   panels: DialPanelRuntime[],
   handlers: DialViewHandlers,
+  query = "",
 ): DialViewModel => {
+  const normalizedQuery = query.trim().toLowerCase();
   const rows: DialViewRow[] = [];
   const navEntries: DialNavEntry[] = [];
 
@@ -147,6 +149,58 @@ export const buildDialViewModel = (
     return collapsed;
   };
 
+  const emitSpringRows = (panelId: string, springPath: string, depth: number) => {
+    rows.push({
+      type: "spring-viz",
+      key: `${panelId}::${springPath}::viz`,
+      depth,
+      panelId,
+      springPath,
+    });
+    for (const fieldConfig of SPRING_FIELDS) {
+      rows.push({
+        type: "spring-field",
+        key: `${panelId}::${springPath}::${fieldConfig.field}`,
+        navIndex: pushNav({
+          adjust: (direction, large) => {
+            const spring = readSpring(handlers.getValue(panelId, springPath));
+            const stepAmount = SPRING_FIELD_STEP * (large ? 4 : 1);
+            const next = Number(
+              clampToRange(
+                spring[fieldConfig.field] + direction * stepAmount,
+                fieldConfig.min,
+                fieldConfig.max,
+              ).toFixed(stepDecimals(SPRING_FIELD_STEP)),
+            );
+            if (next !== spring[fieldConfig.field]) {
+              handlers.commit(panelId, springPath, { ...spring, [fieldConfig.field]: next });
+            }
+          },
+          activate: () => {},
+        }),
+        depth,
+        panelId,
+        springPath,
+        field: fieldConfig.field,
+        label: fieldConfig.label,
+        min: fieldConfig.min,
+        max: fieldConfig.max,
+        step: SPRING_FIELD_STEP,
+      });
+    }
+  };
+
+  const emitLeaf = (panelId: string, control: DialControl, depth: number) => {
+    rows.push({
+      type: "leaf",
+      key: `${panelId}::${control.path}`,
+      navIndex: pushNav(buildLeafNavEntry(panelId, control, handlers)),
+      depth,
+      panelId,
+      control,
+    });
+  };
+
   const walk = (panelId: string, controls: DialControl[], depth: number) => {
     for (const control of controls) {
       if (control.kind === "folder") {
@@ -163,69 +217,51 @@ export const buildDialViewModel = (
 
       if (control.kind === "spring") {
         const collapsed = pushCollapsibleHeader(panelId, control.path, control.label, depth, false);
-        if (collapsed) continue;
-        const springPath = control.path;
-        rows.push({
-          type: "spring-viz",
-          key: `${panelId}::${springPath}::viz`,
-          depth: depth + 1,
-          panelId,
-          springPath,
-        });
-        for (const fieldConfig of SPRING_FIELDS) {
-          rows.push({
-            type: "spring-field",
-            key: `${panelId}::${springPath}::${fieldConfig.field}`,
-            navIndex: pushNav({
-              adjust: (direction, large) => {
-                const spring = readSpring(handlers.getValue(panelId, springPath));
-                const stepAmount = SPRING_FIELD_STEP * (large ? 4 : 1);
-                const next = Number(
-                  clampToRange(
-                    spring[fieldConfig.field] + direction * stepAmount,
-                    fieldConfig.min,
-                    fieldConfig.max,
-                  ).toFixed(stepDecimals(SPRING_FIELD_STEP)),
-                );
-                if (next !== spring[fieldConfig.field]) {
-                  handlers.commit(panelId, springPath, { ...spring, [fieldConfig.field]: next });
-                }
-              },
-              activate: () => {},
-            }),
-            depth: depth + 1,
-            panelId,
-            springPath,
-            field: fieldConfig.field,
-            label: fieldConfig.label,
-            min: fieldConfig.min,
-            max: fieldConfig.max,
-            step: SPRING_FIELD_STEP,
-          });
-        }
+        if (!collapsed) emitSpringRows(panelId, control.path, depth + 1);
         continue;
       }
 
-      rows.push({
-        type: "leaf",
-        key: `${panelId}::${control.path}`,
-        navIndex: pushNav(buildLeafNavEntry(panelId, control, handlers)),
-        depth,
-        panelId,
-        control,
-      });
+      emitLeaf(panelId, control, depth);
     }
   };
 
-  panels.forEach((panel, panelIndex) => {
-    rows.push({
-      type: "title",
-      key: `${panel.id}::title`,
-      name: panel.name,
-      showDivider: panelIndex > 0,
-    });
-    walk(panel.id, panel.controls, 0);
-  });
+  const collectMatching = (controls: DialControl[], out: DialControl[]) => {
+    for (const control of controls) {
+      if (control.kind === "folder") {
+        collectMatching(control.children, out);
+        continue;
+      }
+      if (control.label.toLowerCase().includes(normalizedQuery)) out.push(control);
+    }
+  };
+
+  let renderedPanelCount = 0;
+  for (const panel of panels) {
+    if (normalizedQuery) {
+      const matched: DialControl[] = [];
+      collectMatching(panel.controls, matched);
+      if (matched.length === 0) continue;
+      rows.push({
+        type: "title",
+        key: `${panel.id}::title`,
+        name: panel.name,
+        showDivider: renderedPanelCount > 0,
+      });
+      for (const control of matched) {
+        if (control.kind === "spring") emitSpringRows(panel.id, control.path, 0);
+        else emitLeaf(panel.id, control, 0);
+      }
+    } else {
+      rows.push({
+        type: "title",
+        key: `${panel.id}::title`,
+        name: panel.name,
+        showDivider: renderedPanelCount > 0,
+      });
+      walk(panel.id, panel.controls, 0);
+    }
+    renderedPanelCount += 1;
+  }
 
   return { rows, navEntries };
 };

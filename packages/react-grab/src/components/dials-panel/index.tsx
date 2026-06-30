@@ -39,6 +39,7 @@ export const DialsPanel: Component<DialsPanelProps> = (props) => {
   const [collapsedOverrides, setCollapsedOverrides] = createSignal(new Map<string, boolean>());
   const [activeIndex, setActiveIndex] = createSignal(-1);
   const [activeKey, setActiveKey] = createSignal<"left" | "right" | null>(null);
+  const [searchQuery, setSearchQuery] = createSignal("");
 
   const flashActiveKey = (key: "left" | "right") => {
     setActiveKey(key);
@@ -70,13 +71,17 @@ export const DialsPanel: Component<DialsPanelProps> = (props) => {
   };
 
   const viewModel = createMemo(() =>
-    buildDialViewModel(props.panels, {
-      getValue,
-      commit: props.onCommit,
-      triggerAction: props.onTriggerAction,
-      isCollapsed,
-      setCollapsed,
-    }),
+    buildDialViewModel(
+      props.panels,
+      {
+        getValue,
+        commit: props.onCommit,
+        triggerAction: props.onTriggerAction,
+        isCollapsed,
+        setCollapsed,
+      },
+      searchQuery(),
+    ),
   );
 
   createEffect(() => {
@@ -201,6 +206,25 @@ export const DialsPanel: Component<DialsPanelProps> = (props) => {
             "scrollbar-width": "none",
           }}
         >
+          <div class="shrink-0 px-2 pb-1.5 mb-1 [border-bottom-width:0.5px] border-solid border-[var(--rg-border-subtle)]">
+            <input
+              type="text"
+              data-react-grab-ignore-events
+              data-react-grab-input
+              aria-label="Search dials"
+              autocapitalize="none"
+              autocorrect="off"
+              autocomplete="off"
+              spellcheck={false}
+              class="w-full p-0 m-0 bg-transparent border-none outline-none text-[var(--rg-text-primary)] placeholder:text-[var(--rg-text-secondary)] text-[13px] leading-4 font-medium"
+              value={searchQuery()}
+              onInput={(event) => {
+                setSearchQuery(event.currentTarget.value);
+                setActiveIndex(-1);
+              }}
+              placeholder="Search"
+            />
+          </div>
           <DialRows
             rows={viewModel().rows}
             activeIndex={activeIndex()}
