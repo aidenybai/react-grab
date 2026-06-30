@@ -293,6 +293,21 @@ export interface ContextMenuAction {
 export interface ArrowNavigationItem {
   tagName: string;
   componentName?: string;
+  // Indentation level within the hierarchy tree (0 = outermost ancestor).
+  depth: number;
+  // Whether this row is the last among its displayed siblings, used to pick
+  // the terminal-style connector glyph (└─ vs ├─).
+  isLast: boolean;
+}
+
+// Internal hierarchy node that pairs a real DOM element with its position in
+// the rendered ancestor/sibling/child tree. The element reference is kept in
+// core (never sent to the renderer) so a clicked row can resolve back to the
+// element to select.
+export interface HierarchyEntry {
+  element: Element;
+  depth: number;
+  isLast: boolean;
 }
 
 export interface ArrowNavigationState {

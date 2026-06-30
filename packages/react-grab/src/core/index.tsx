@@ -48,7 +48,6 @@ import { isElementConnected } from "../utils/is-element-connected.js";
 import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
 import { getElementAnchorRatio } from "../utils/get-element-anchor-ratio.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
-import { getVisibleBoundsCenter } from "../utils/get-visible-bounds-center.js";
 import { invalidateInteractionCaches } from "../utils/invalidate-interaction-caches.js";
 import { normalizeErrorMessage } from "../utils/normalize-error.js";
 import {
@@ -57,6 +56,7 @@ import {
   createPageRectFromBounds,
 } from "../utils/create-bounds-from-drag-rect.js";
 import { getTagName } from "../utils/get-tag-name.js";
+import { buildElementHierarchy } from "../utils/build-element-hierarchy.js";
 import {
   ARROW_KEYS,
   FEEDBACK_DURATION_MS,
@@ -102,6 +102,7 @@ import type {
   SelectionLabelInstance,
   ContextMenuActionContext,
   ArrowNavigationState,
+  HierarchyEntry,
   FrozenLabelEntry,
   PerformWithFeedbackOptions,
   SettableOptions,
@@ -523,8 +524,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isActivated()) return DEFAULT_ACTION_ID;
       return null;
     });
-    const [arrowNavigationElements, setArrowNavigationElements] = createSignal<Element[]>([]);
+    const [arrowNavigationEntries, setArrowNavigationEntries] = createSignal<HierarchyEntry[]>([]);
     const [arrowNavigationActiveIndex, setArrowNavigationActiveIndex] = createSignal(0);
+    const arrowNavigationElements = createMemo(() =>
+      arrowNavigationEntries().map((entry) => entry.element),
+    );
 
     const arrowNavigator = createArrowNavigator(isValidGrabbableElement, createElementBounds);
 
@@ -2088,7 +2092,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     const clearArrowNavigation = () => {
-      setArrowNavigationElements([]);
+      setArrowNavigationEntries([]);
       setArrowNavigationActiveIndex(0);
       arrowNavigator.clearHistory();
       keyboardSelection.clear();
@@ -2108,23 +2112,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const openArrowNavigationMenu = (anchorElement: Element) => {
-      const bounds = createElementBounds(anchorElement);
-      const probePoint = getVisibleBoundsCenter(bounds);
-      const elementsAtPoint = getElementsAtPoint(probePoint.x, probePoint.y)
-        .filter(isValidGrabbableElement)
-        .reverse();
-
-      setArrowNavigationElements(elementsAtPoint);
-      setArrowNavigationActiveIndex(Math.max(0, elementsAtPoint.indexOf(anchorElement)));
+      const entries = buildElementHierarchy(anchorElement, isValidGrabbableElement);
+      setArrowNavigationEntries(entries);
+      const anchorIndex = entries.findIndex((entry) => entry.element === anchorElement);
+      setArrowNavigationActiveIndex(Math.max(0, anchorIndex));
     };
 
     const handleArrowNavigationSelect = (index: number) => {
       const targetElement = arrowNavigationElements()[index];
       if (!targetElement) return;
 
-      setArrowNavigationActiveIndex(index);
       arrowNavigator.clearHistory();
       selectAndFocusElement(targetElement, true);
+      openArrowNavigationMenu(targetElement);
     };
 
     const showArrowNavigationDismissPrompt = () => {
@@ -2188,23 +2188,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return true;
       }
 
-      if (arrowNavigationElements().length === 0) {
-        openArrowNavigationMenu(currentElement);
-      }
-
       const nextElement = arrowNavigator.findNext(event.key, currentElement);
       const elementToSelect = nextElement ?? currentElement;
 
       event.preventDefault();
       event.stopPropagation();
       selectAndFocusElement(elementToSelect, true);
-
-      const newIndex = arrowNavigationElements().indexOf(elementToSelect);
-      if (newIndex !== -1) {
-        setArrowNavigationActiveIndex(newIndex);
-      } else {
-        openArrowNavigationMenu(elementToSelect);
-      }
+      openArrowNavigationMenu(elementToSelect);
 
       return true;
     };
@@ -2346,16 +2336,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const arrowNavigationItems = createMemo(() =>
-      arrowNavigationElements().map((element) => ({
-        tagName: getTagName(element) || "element",
-        componentName: getComponentDisplayName(element) ?? undefined,
+      arrowNavigationEntries().map((entry) => ({
+        tagName: getTagName(entry.element) || "element",
+        componentName: getComponentDisplayName(entry.element) ?? undefined,
+        depth: entry.depth,
+        isLast: entry.isLast,
       })),
     );
 
     const arrowNavigationState = createMemo<ArrowNavigationState>(() => ({
       items: arrowNavigationItems(),
       activeIndex: arrowNavigationActiveIndex(),
-      isVisible: arrowNavigationElements().length > 0,
+      isVisible: arrowNavigationEntries().length > 0,
     }));
 
     const handleActivationKeys = (event: KeyboardEvent): void => {
@@ -2447,7 +2439,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const targetElement = target instanceof HTMLElement ? target : null;
       return Boolean(
         targetElement?.closest("[data-react-grab-discard-copy]") ||
-          targetElement?.closest("[data-react-grab-discard-yes]"),
+        targetElement?.closest("[data-react-grab-discard-yes]"),
       );
     };
 

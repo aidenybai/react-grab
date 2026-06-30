@@ -1,6 +1,10 @@
 import { createEffect, For, Show, type Component } from "solid-js";
 import type { ArrowNavigationItem } from "../../types.js";
-import { MENU_HIGHLIGHT_CORNER_SHAPE, MENU_PANEL_CORNER_RADIUS_PX } from "../../constants.js";
+import {
+  HIERARCHY_INDENT_PX,
+  MENU_HIGHLIGHT_CORNER_SHAPE,
+  MENU_PANEL_CORNER_RADIUS_PX,
+} from "../../constants.js";
 import { Menu, createMenuStore } from "../menu/index.js";
 import { BottomSection } from "./bottom-section.js";
 
@@ -36,7 +40,7 @@ export const ArrowNavigationMenu: Component<ArrowNavigationMenuProps> = (props) 
   return (
     <BottomSection>
       <Menu.Provider store={menuStore}>
-        <Menu.List label="Navigate parent elements" class="w-[calc(100%+16px)] -mx-2 -my-1.5">
+        <Menu.List label="Navigate element hierarchy" class="w-[calc(100%+16px)] -mx-2 -my-1.5">
           <For each={props.items}>
             {(item, itemIndex) => (
               <Menu.Item
@@ -45,18 +49,29 @@ export const ArrowNavigationMenu: Component<ArrowNavigationMenuProps> = (props) 
                 checked={itemIndex() === props.activeIndex}
                 onSelect={() => props.onSelect(itemIndex())}
               >
-                <span
-                  class="text-[13px] leading-4 h-fit font-medium overflow-hidden text-ellipsis whitespace-nowrap min-w-0 transition-colors"
-                  classList={{
-                    "text-[var(--rg-text-primary)]": itemIndex() === props.activeIndex,
-                    "text-[var(--rg-text-secondary)]": itemIndex() !== props.activeIndex,
-                  }}
-                >
-                  <Show when={item.componentName}>
-                    {item.componentName}
-                    <span class="text-[var(--rg-text-secondary)]">.</span>
+                <span class="flex items-center min-w-0 w-full">
+                  <Show when={item.depth > 0}>
+                    <span
+                      aria-hidden="true"
+                      class="shrink-0 font-mono text-[11px] leading-4 text-[var(--rg-text-secondary)] opacity-60 mr-1"
+                      style={{ "padding-left": `${(item.depth - 1) * HIERARCHY_INDENT_PX}px` }}
+                    >
+                      {item.isLast ? "└─" : "├─"}
+                    </span>
                   </Show>
-                  {item.tagName}
+                  <span
+                    class="text-[13px] leading-4 h-fit font-medium overflow-hidden text-ellipsis whitespace-nowrap min-w-0 transition-colors"
+                    classList={{
+                      "text-[var(--rg-text-primary)]": itemIndex() === props.activeIndex,
+                      "text-[var(--rg-text-secondary)]": itemIndex() !== props.activeIndex,
+                    }}
+                  >
+                    <Show when={item.componentName}>
+                      {item.componentName}
+                      <span class="text-[var(--rg-text-secondary)]">.</span>
+                    </Show>
+                    {item.tagName}
+                  </span>
                 </span>
               </Menu.Item>
             )}
