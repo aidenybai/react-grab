@@ -106,6 +106,7 @@ export const DialActiveControl: Component<DialActiveControlProps> = (props) => (
         const select = control();
         const currentValue = () => (typeof props.value === "string" ? props.value : select.default);
         const cycle = (direction: 1 | -1) => {
+          if (select.options.length === 0) return;
           const currentIndex = select.options.findIndex(
             (option) => option.value === currentValue(),
           );

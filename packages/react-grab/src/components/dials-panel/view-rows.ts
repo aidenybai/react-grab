@@ -27,6 +27,9 @@ interface DialTitleRow {
   key: string;
   name: string;
   showDivider: boolean;
+  collapsible: boolean;
+  collapsed: boolean;
+  navIndex: number;
 }
 
 interface DialFolderRow {
@@ -235,29 +238,51 @@ export const buildDialViewModel = (
     }
   };
 
+  // A single panel needs no name - the whole panel IS that one set of dials.
+  // With multiple panels, each name becomes a collapsible group header so the
+  // sources stay visually distinct and individually foldable.
+  const showPanelHeaders = panels.length > 1;
+
+  const pushPanelHeader = (panel: DialPanelRuntime, showDivider: boolean, collapsible: boolean) => {
+    const key = `${panel.id}::group`;
+    const collapsed = collapsible && handlers.isCollapsed(key, false);
+    rows.push({
+      type: "title",
+      key,
+      name: panel.name,
+      showDivider,
+      collapsible,
+      collapsed,
+      navIndex: collapsible
+        ? pushNav({
+            adjust: (direction) => handlers.setCollapsed(key, direction < 0),
+            activate: () => handlers.setCollapsed(key, !collapsed),
+          })
+        : -1,
+    });
+    return collapsed;
+  };
+
   let renderedPanelCount = 0;
   for (const panel of panels) {
     if (normalizedQuery) {
       const matched: DialControl[] = [];
       collectMatching(panel.controls, matched);
       if (matched.length === 0) continue;
-      rows.push({
-        type: "title",
-        key: `${panel.id}::title`,
-        name: panel.name,
-        showDivider: renderedPanelCount > 0,
-      });
+      if (showPanelHeaders) pushPanelHeader(panel, renderedPanelCount > 0, false);
       for (const control of matched) {
-        if (control.kind === "spring") emitSpringRows(panel.id, control.path, 0);
-        else emitLeaf(panel.id, control, 0);
+        if (control.kind === "spring") {
+          const collapsed = pushCollapsibleHeader(panel.id, control.path, control.label, 0, false);
+          if (!collapsed) emitSpringRows(panel.id, control.path, 0);
+        } else {
+          emitLeaf(panel.id, control, 0);
+        }
       }
     } else {
-      rows.push({
-        type: "title",
-        key: `${panel.id}::title`,
-        name: panel.name,
-        showDivider: renderedPanelCount > 0,
-      });
+      if (showPanelHeaders && pushPanelHeader(panel, renderedPanelCount > 0, true)) {
+        renderedPanelCount += 1;
+        continue;
+      }
       walk(panel.id, panel.controls, 0);
     }
     renderedPanelCount += 1;
@@ -290,6 +315,7 @@ const buildLeafNavEntry = (
   }
   if (control.kind === "select") {
     const cycle = (direction: 1 | -1) => {
+      if (control.options.length === 0) return;
       const current = handlers.getValue(panelId, path);
       const value = typeof current === "string" ? current : control.default;
       const currentIndex = control.options.findIndex((option) => option.value === value);

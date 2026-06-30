@@ -3930,8 +3930,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       getPlugins: () => pluginRegistry.getPluginNames(),
       getDisplayName: getComponentDisplayName,
       registerDials: (panel) => {
+        const isNewPanel = dialsRegistry.getValues(panel.id) === null;
         const dispose = dialsRegistry.register(panel);
-        setIsDialsPanelOpen(true);
+        // Only auto-open on first registration; a config/name change re-registers
+        // the same panel and must not reopen one the user explicitly dismissed.
+        if (isNewPanel) setIsDialsPanelOpen(true);
         return dispose;
       },
       updateDialValue: dialsRegistry.setValue,

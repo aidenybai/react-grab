@@ -79,6 +79,7 @@ export const createDialsRegistry = (): DialsRegistry => {
     setStore("panels", (panels) => panels.filter((panel) => panel.id !== id));
     snapshotById.delete(id);
     defaultsById.delete(id);
+    listenersById.delete(id);
   };
 
   const setValue = (id: string, path: string, value: DialValue) => {

@@ -198,12 +198,11 @@ export const DialsPanel: Component<DialsPanelProps> = (props) => {
         onContextMenu={suppressMenuEvent}
       >
         <Surface
-          class="flex flex-col overflow-y-auto overflow-x-hidden w-fit py-1.5"
+          class="flex flex-col overflow-hidden w-fit py-1.5"
           style={{
             "min-width": `${DIAL_PANEL_MIN_WIDTH_PX}px`,
             "max-width": `${DIAL_PANEL_MAX_WIDTH_PX}px`,
             "max-height": `${DIAL_PANEL_MAX_HEIGHT_PX}px`,
-            "scrollbar-width": "none",
           }}
         >
           <div class="shrink-0 px-2 pb-1.5 mb-1 [border-bottom-width:0.5px] border-solid border-[var(--rg-border-subtle)]">

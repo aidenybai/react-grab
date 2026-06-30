@@ -31,10 +31,11 @@ interface InferredRange {
 
 const inferNumberRange = (value: number): InferredRange => {
   const magnitude = Math.abs(value);
-  if (magnitude <= 1) return { min: 0, max: 1, step: 0.01 };
-  if (magnitude <= 10) return { min: 0, max: value * 3, step: 0.1 };
-  if (magnitude <= 100) return { min: 0, max: value * 3, step: 1 };
-  return { min: 0, max: value * 3, step: 10 };
+  const step = magnitude <= 1 ? 0.01 : magnitude <= 10 ? 0.1 : magnitude <= 100 ? 1 : 10;
+  const bound = magnitude <= 1 ? 1 : magnitude * 3;
+  // Bracket toward the sign of the default so a negative default isn't clamped
+  // to 0 by an inverted (min > max) range.
+  return value < 0 ? { min: -bound, max: 0, step } : { min: 0, max: bound, step };
 };
 
 const isHexColor = (value: string): boolean => HEX_COLOR_PATTERN.test(value);

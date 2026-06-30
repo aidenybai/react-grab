@@ -58,13 +58,20 @@ const useDials = <C extends DialConfig>(
 
   const onActionRef = useRef(options?.onAction);
   onActionRef.current = options?.onAction;
+  const nameRef = useRef(name);
+  nameRef.current = name;
+  const controlsRef = useRef(controls);
+  controlsRef.current = controls;
 
+  // Register on mount, unregister on unmount. Keyed on the stable id alone so a
+  // name/config change never tears the panel down - the registry merges and
+  // preserves existing values only when the panel is still registered.
   useEffect(() => {
     const register = (api: ReactGrabAPI): (() => void) =>
       api.registerDials({
         id,
-        name,
-        controls,
+        name: nameRef.current,
+        controls: controlsRef.current,
         onAction: (path) => onActionRef.current?.(path),
       });
 
@@ -86,14 +93,44 @@ const useDials = <C extends DialConfig>(
       window.removeEventListener("react-grab:init", handleInit);
       dispose?.();
     };
+  }, [id]);
+
+  // Sync name/controls changes by re-registering (merge-preserving) without
+  // unregistering first, so values survive and a dismissed panel stays closed.
+  const didMountRef = useRef(false);
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
+    getApi()?.registerDials({
+      id,
+      name,
+      controls,
+      onAction: (path) => onActionRef.current?.(path),
+    });
   }, [id, name, controls]);
 
   const subscribe = useCallback(
     (onStoreChange: () => void): (() => void) => {
       const api = getApi();
       if (api) return api.subscribeDials(id, onStoreChange);
-      window.addEventListener("react-grab:init", onStoreChange);
-      return () => window.removeEventListener("react-grab:init", onStoreChange);
+
+      // Mounted before react-grab booted: bridge to the live store once it is
+      // ready (and notify), otherwise post-init value changes never re-render.
+      let unsubscribe: (() => void) | undefined;
+      const handleInit = () => {
+        const readyApi = getApi();
+        if (!readyApi) return;
+        window.removeEventListener("react-grab:init", handleInit);
+        unsubscribe = readyApi.subscribeDials(id, onStoreChange);
+        onStoreChange();
+      };
+      window.addEventListener("react-grab:init", handleInit);
+      return () => {
+        window.removeEventListener("react-grab:init", handleInit);
+        unsubscribe?.();
+      };
     },
     [id],
   );
