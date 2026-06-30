@@ -131,7 +131,11 @@ export interface AgentContext<T = unknown> {
   sessionId?: string;
 }
 
-export type ActivationMode = "toggle" | "hold";
+// "toggle": press to turn the overlay on, press again to turn it off.
+// "hold": overlay is active only while the activation key is held.
+// "preview": a quick tap toggles persistent activation; holding the key
+// previews the overlay (active while held, hidden on release).
+export type ActivationMode = "toggle" | "hold" | "preview";
 
 export type OverlayDismissSource = "keyboard" | "pointer";
 

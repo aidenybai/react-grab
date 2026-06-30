@@ -436,7 +436,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (!previouslyHolding || currentlyHolding || !isActivated()) {
           return;
         }
-        if (pluginRegistry.store.options.activationMode !== "hold") {
+        const activationMode = pluginRegistry.store.options.activationMode;
+        // "hold" and "preview" keep the overlay momentary while held; only
+        // "toggle" promotes a completed hold into a persistent session.
+        if (activationMode !== "hold" && activationMode !== "preview") {
           actions.setWasActivatedByToggle(true);
         }
         pluginRegistry.hooks.onActivate();
@@ -2430,6 +2433,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isCopying() || didJustCopy()) return;
 
       if (!isHoldingKeys()) {
+        // Preview mode's activation key is typically Space; stop the page from
+        // scrolling on the initial press. The default Cmd/Ctrl+C path must NOT
+        // preventDefault here so the native copy-to-activate flow still works.
+        if (pluginRegistry.store.options.activationMode === "preview") {
+          event.preventDefault();
+        }
+
         const keyHoldDuration =
           pluginRegistry.store.options.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS;
 
@@ -2625,6 +2635,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const hasCustomShortcut = Boolean(pluginRegistry.store.options.activationKey);
 
         const isHoldMode = pluginRegistry.store.options.activationMode === "hold";
+        const isPreviewMode = pluginRegistry.store.options.activationMode === "preview";
         const isDragGestureInProgress = isDragging();
 
         if (isActivated()) {
@@ -2637,7 +2648,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               return;
             if (hasModalPopover) return;
             deactivateRenderer();
-          } else if (isHoldMode && isReleasingActivationKey) {
+          } else if ((isHoldMode || isPreviewMode) && isReleasingActivationKey) {
             if (keydownSpamTimerId !== null) {
               window.clearTimeout(keydownSpamTimerId);
               keydownSpamTimerId = null;
@@ -2678,6 +2689,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             resetCopyConfirmation();
             if (shouldActivateAfterCopy) {
               actions.activate();
+            } else if (isPreviewMode && isHoldingKeys()) {
+              // Released before the hold timer fired: treat it as a tap and
+              // toggle a persistent session on (holding instead previews and
+              // is handled by the isActivated branch above on release).
+              actions.setWasActivatedByToggle(true);
+              activateRenderer();
             } else {
               actions.releaseHold();
             }

@@ -1,4 +1,4 @@
-import { test, expect } from "./fixtures.js";
+import { test, expect, type ReactGrabPageObject } from "./fixtures.js";
 
 test.describe("Activation Key Configuration", () => {
   test.describe.configure({ mode: "serial" });
@@ -195,6 +195,48 @@ test.describe("Activation Key Configuration", () => {
 
       await reactGrab.activateViaKeyboard();
       expect(await reactGrab.isOverlayVisible()).toBe(true);
+    });
+  });
+
+  test.describe("Preview activation mode", () => {
+    const tapKey = async (reactGrab: ReactGrabPageObject) => {
+      await reactGrab.page.keyboard.down("Space");
+      await reactGrab.page.waitForTimeout(40);
+      await reactGrab.page.keyboard.up("Space");
+    };
+
+    test("tap toggles a persistent session on and off", async ({ reactGrab }) => {
+      await reactGrab.updateOptions({
+        activationKey: "Space",
+        activationMode: "preview",
+        keyHoldDuration: 250,
+      });
+      await reactGrab.page.click("body", { position: { x: 10, y: 10 } });
+      // Outlast the post-focus grace period that suppresses activation keys.
+      await reactGrab.page.waitForTimeout(250);
+
+      await tapKey(reactGrab);
+      await expect.poll(() => reactGrab.isOverlayVisible(), { timeout: 1000 }).toBe(true);
+
+      await tapKey(reactGrab);
+      await expect.poll(() => reactGrab.isOverlayVisible(), { timeout: 1000 }).toBe(false);
+    });
+
+    test("holding previews the overlay and hides it on release", async ({ reactGrab }) => {
+      await reactGrab.updateOptions({
+        activationKey: "Space",
+        activationMode: "preview",
+        keyHoldDuration: 120,
+      });
+      await reactGrab.page.click("body", { position: { x: 10, y: 10 } });
+      // Outlast the post-focus grace period that suppresses activation keys.
+      await reactGrab.page.waitForTimeout(250);
+
+      await reactGrab.page.keyboard.down("Space");
+      await expect.poll(() => reactGrab.isOverlayVisible(), { timeout: 1000 }).toBe(true);
+
+      await reactGrab.page.keyboard.up("Space");
+      await expect.poll(() => reactGrab.isOverlayVisible(), { timeout: 1000 }).toBe(false);
     });
   });
 
