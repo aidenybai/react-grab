@@ -2363,6 +2363,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       isVisible: arrowNavigationEntries().length > 0,
     }));
 
+    // The toolbar-anchored hierarchy dropdown floats over page content, so it
+    // must release its pointer events the moment the user hands off to the
+    // mouse (pending dismiss). Otherwise it intercepts clicks/right-clicks
+    // meant for the page or the discard prompt.
+    const hierarchyMenuVisiblePosition = createMemo(() =>
+      keyboardSelection.isPendingDismiss() ? null : hierarchyMenuPosition(),
+    );
+
     const handleActivationKeys = (event: KeyboardEvent): void => {
       if (
         !pluginRegistry.store.options.allowActivationInsideInput &&
@@ -2811,10 +2819,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (event: MouseEvent) => {
         if (!isRendererActive() || isCopying() || isPromptMode()) return;
         if (editMode.isOpen()) return;
-        if (keyboardSelection.isPendingDismiss()) {
-          event.preventDefault();
-          event.stopPropagation();
-          return;
+        // A right-click is an explicit pick: abandon any pending keyboard
+        // selection (and its discard prompt) so the context menu opens for the
+        // element under the cursor. The discard prompt overlay sits on the
+        // cursor, so we must also bypass the overlay early-return below and
+        // resolve the page element beneath it.
+        const hadPendingDismiss = keyboardSelection.isPendingDismiss();
+        if (hadPendingDismiss) {
+          clearArrowNavigation();
         }
 
         const isFromOverlay = isEventFromOverlay(event, "data-react-grab-ignore-events");
@@ -2825,7 +2837,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             : null;
         if (isFromOverlay && arrowNavigationElements().length > 0) {
           clearArrowNavigation();
-        } else if (isFromOverlay && !overlayFrozenElement) {
+        } else if (isFromOverlay && !overlayFrozenElement && !hadPendingDismiss) {
           return;
         }
 
@@ -3674,7 +3686,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 selectionLabelVisible={selectionLabelVisible()}
                 selectionLabelStatus="idle"
                 selectionArrowNavigationState={arrowNavigationState()}
-                hierarchyMenuPosition={hierarchyMenuPosition()}
+                hierarchyMenuPosition={hierarchyMenuVisiblePosition()}
                 onArrowNavigationSelect={handleArrowNavigationSelect}
                 labelInstances={computedLabelInstances()}
                 dragVisible={dragVisible()}
