@@ -49,6 +49,10 @@ jobs:
         run: |
           git fetch origin "${{ github.base_ref }}" --depth=1
           if git cat-file -e "origin/${{ github.base_ref }}:packages/react-grab/src" 2>/dev/null; then
+            # Remove HEAD's src first so files this PR ADDS don't linger and import
+            # symbols the base ref never exported (a `checkout -- path` only updates
+            # files present in the base tree, leaving PR-only files behind).
+            git rm -r --quiet --ignore-unmatch packages/react-grab/src
             git checkout "origin/${{ github.base_ref }}" -- packages/react-grab/src
             echo "swapped=true" >> "$GITHUB_OUTPUT"
             echo "Swapped react-grab/src to origin/${{ github.base_ref }} ($(git rev-parse "origin/${{ github.base_ref }}"))"
