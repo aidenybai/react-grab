@@ -296,11 +296,7 @@ export const parseComparativeIntent = (rawQuery: string): ComparativeIntent | nu
   if (polarAdjective) {
     dimensionCandidates = polarAdjective.candidates;
     const shouldInvert = genericSign === -1;
-    direction = shouldInvert
-      ? polarAdjective.direction === 1
-        ? -1
-        : 1
-      : polarAdjective.direction;
+    direction = shouldInvert ? (polarAdjective.direction === 1 ? -1 : 1) : polarAdjective.direction;
   } else if (genericSign !== 0) {
     dimensionCandidates = null;
     direction = genericSign;
@@ -311,8 +307,7 @@ export const parseComparativeIntent = (rawQuery: string): ComparativeIntent | nu
   const subject = subjectTokens.join(" ").trim() || null;
   if (!polarAdjective && !subject) return null;
 
-  const extraRepeats =
-    Math.max(0, polarCount - 1) + Math.max(0, genericVerbCount - 1);
+  const extraRepeats = Math.max(0, polarCount - 1) + Math.max(0, genericVerbCount - 1);
   const magnitude = computeMagnitude(amplifierCount, diminisherCount, extraRepeats);
 
   return { subject, dimensionCandidates, direction, magnitude };

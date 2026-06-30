@@ -343,7 +343,11 @@ export const createTailwindAutoApply = (
     setIsCompact(true);
     batch(() => {
       for (const target of resolution.targets) {
-        const nextValue = computeComparativeValue(target, resolution.direction, resolution.magnitude);
+        const nextValue = computeComparativeValue(
+          target,
+          resolution.direction,
+          resolution.magnitude,
+        );
         if (nextValue !== null) commit(target, nextValue, { shouldCompact: true });
       }
     });
