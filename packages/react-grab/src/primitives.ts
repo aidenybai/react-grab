@@ -1,9 +1,8 @@
+import { freezeAnimations } from "./utils/freeze-animations.js";
 import {
-  freezeAnimations,
-  freezeGlobalAnimations,
-  unfreezeGlobalAnimations,
-} from "./utils/freeze-animations.js";
-import { freezePseudoStates, unfreezePseudoStates } from "./utils/freeze-pseudo-states.js";
+  freezeGlobalInteractions,
+  unfreezeGlobalInteractions,
+} from "./utils/freeze-global-interactions.js";
 import { freezeUpdates } from "./utils/freeze-updates.js";
 import {
   suspendPointerEventsFreeze,
@@ -115,8 +114,7 @@ export const freeze = (elements?: Element[]): void => {
   _isFreezeActive = true;
   freezeCleanupFns.add(freezeUpdates());
   freezeCleanupFns.add(freezeAnimations(elements ?? [document.body]));
-  freezeGlobalAnimations();
-  freezePseudoStates();
+  freezeGlobalInteractions();
 };
 
 /**
@@ -135,8 +133,7 @@ export const unfreeze = (): void => {
   }
   freezeCleanupFns.clear();
   freezeAnimations([]);
-  unfreezeGlobalAnimations();
-  unfreezePseudoStates();
+  unfreezeGlobalInteractions();
 };
 
 /**

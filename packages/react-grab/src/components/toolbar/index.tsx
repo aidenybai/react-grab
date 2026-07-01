@@ -21,8 +21,10 @@ import {
   EDIT_ACTION_ID,
 } from "../../constants.js";
 import { freezeUpdates } from "../../utils/freeze-updates.js";
-import { freezeGlobalAnimations, unfreezeGlobalAnimations } from "../../utils/freeze-animations.js";
-import { freezePseudoStates, unfreezePseudoStates } from "../../utils/freeze-pseudo-states.js";
+import {
+  freezeGlobalInteractions,
+  unfreezeGlobalInteractions,
+} from "../../utils/freeze-global-interactions.js";
 import { ToolbarContent } from "./toolbar-content.js";
 import { getVisualViewport } from "../../utils/get-visual-viewport.js";
 import {
@@ -89,8 +91,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       if (unfreezeUpdatesCallback) {
         unfreezeUpdatesCallback();
         unfreezeUpdatesCallback = null;
-        unfreezeGlobalAnimations();
-        unfreezePseudoStates();
+        unfreezeGlobalInteractions();
       }
     },
     onPositionUpdate: (newPosition) => setPosition(newPosition),
@@ -155,8 +156,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       setHoveredActionId(actionId);
       if (options?.shouldFreezeInteractions !== false && !unfreezeUpdatesCallback) {
         unfreezeUpdatesCallback = freezeUpdates();
-        freezeGlobalAnimations();
-        freezePseudoStates(event.clientX, event.clientY);
+        freezeGlobalInteractions(event.clientX, event.clientY);
       }
       options?.onHoverChange?.(true);
     },
@@ -169,8 +169,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       ) {
         unfreezeUpdatesCallback?.();
         unfreezeUpdatesCallback = null;
-        unfreezeGlobalAnimations();
-        unfreezePseudoStates();
+        unfreezeGlobalInteractions();
       }
       options?.onHoverChange?.(false);
     },
@@ -564,7 +563,11 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     clearTimeout(resizeTimeout);
     clearTimeout(collapseAnimationTimeout);
 
-    unfreezeUpdatesCallback?.();
+    if (unfreezeUpdatesCallback) {
+      unfreezeUpdatesCallback();
+      unfreezeUpdatesCallback = null;
+      unfreezeGlobalInteractions();
+    }
   });
 
   const currentPosition = () => {

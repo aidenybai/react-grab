@@ -258,7 +258,7 @@ test.describe("@perf benchmarks", () => {
       hoverTargets.push({ x: box.x + box.width / 2, y: box.y + box.height / 2 });
     }
     if (hoverTargets.length === 0) {
-      test.skip(true, "no animated targets in e2e-app");
+      test.skip(true, "no animated targets in e2e-app-vite");
       return;
     }
 

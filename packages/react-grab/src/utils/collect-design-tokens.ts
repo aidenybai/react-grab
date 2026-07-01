@@ -149,11 +149,11 @@ const nextValueOnGrid = (current: number, direction: 1 | -1, unitPx: number): nu
 let cachedNames: { styleSheetCount: number; names: Set<string> } | null = null;
 
 const collectCustomPropertyNames = (): Set<string> => {
-  const styleSheetCount = document.styleSheets.length;
+  const styleSheetCount = document.styleSheets.length + document.adoptedStyleSheets.length;
   if (cachedNames && cachedNames.styleSheetCount === styleSheetCount) return cachedNames.names;
 
   const customPropertyNames = new Set<string>();
-  for (const styleSheet of Array.from(document.styleSheets)) {
+  for (const styleSheet of [...Array.from(document.styleSheets), ...document.adoptedStyleSheets]) {
     let rules: CSSRuleList;
     try {
       // Cross-origin stylesheets throw on `.cssRules` access.

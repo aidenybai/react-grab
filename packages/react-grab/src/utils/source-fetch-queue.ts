@@ -1,30 +1,4 @@
-import { SOURCE_FETCH_TIMEOUT_MS } from "../constants.js";
-
-// Cap on react-grab's own concurrent source-resolution fetches.
-//
-// Resolving a grabbed element's source location fetches its JS bundle and source
-// map (through bippy) and, on Next.js, POSTs to the dev symbolication endpoint.
-// In development these run over HTTP/1.1, where Chrome keeps at most ~6 open
-// connections per origin. A real app's data fetches routinely hold all 6 (a
-// dashboard waiting on several slow API calls), so a react-grab fetch waits in
-// the browser's connection queue behind them. That wait is what surfaces as the
-// "Grabbing…" state never resolving.
-//
-// We cannot speed up the app's requests, so we avoid adding to the pressure
-// instead: capping our own in-flight fetches below the pool size leaves
-// connections for the page and bounds the fan-out when a drag-select hovers
-// dozens of elements in a row. Without the cap each hovered element starts its
-// own fetch at once, and react-grab becomes part of the saturation it is
-// waiting on.
-//
-// This is deliberately NOT the `keepalive` request limit. `keepalive` (the
-// modern navigator.sendBeacon) keeps a request alive across a page navigation,
-// but the Fetch spec caps its body at 64 KB and allows only ~15 inflight
-// keepalive requests for the whole page; source bundles are larger than 64 KB
-// and a grab never navigates away, so keepalive does not apply here. The limit
-// we work around is the ordinary per-origin connection pool, which constrains
-// every fetch whether or not it sets keepalive.
-const MAX_CONCURRENT_SOURCE_FETCHES = 3;
+import { MAX_CONCURRENT_SOURCE_FETCHES, SOURCE_FETCH_TIMEOUT_MS } from "../constants.js";
 
 let activeFetchCount = 0;
 const waitingForSlot: Array<() => void> = [];

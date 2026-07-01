@@ -95,7 +95,7 @@ On unfreeze, animations are `finish()`ed rather than resumed. This is deliberate
 
 The module [utils/freeze-pseudo-states.ts](../src/utils/freeze-pseudo-states.ts) handles CSS pseudo-classes like `:hover` and `:focus`. When the user activates grab mode and hovers over an element, that element may have styles that only apply in the `:hover` state (e.g. a button changing color). As soon as the pointer moves to the react-grab overlay, the browser removes the `:hover` state from the original element and the visual appearance changes.
 
-To prevent this, `freezePseudoStates` captures the current computed styles that are associated with the `:hover` and `:focus` pseudo-classes and applies them as inline styles on the element. This way, even after the pointer moves away, the element continues to look exactly as it did when the user first pointed at it. On unfreeze, the injected inline styles are removed.
+To prevent this, `collectPseudoStates`/`applyPseudoStates` (batched behind `freezeGlobalInteractions` in [utils/freeze-global-interactions.ts](../src/utils/freeze-global-interactions.ts)) capture the current computed styles that are associated with the `:hover` and `:focus` pseudo-classes and apply them as inline styles on the element. This way, even after the pointer moves away, the element continues to look exactly as it did when the user first pointed at it. On unfreeze, the injected inline styles are removed.
 
 ## Notes about the overlay
 

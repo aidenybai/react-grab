@@ -35,6 +35,12 @@ interface NextJsFrameResult {
   value?: { originalStackFrame: NextJsOriginalFrame | null };
 }
 
+const isNextJsFrameResult = (candidate: unknown): candidate is NextJsFrameResult =>
+  typeof candidate === "object" &&
+  candidate !== null &&
+  "status" in candidate &&
+  typeof candidate.status === "string";
+
 interface NextJsRequestFrame {
   file: string;
   methodName: string;
@@ -102,12 +108,14 @@ export const symbolicateServerFrames = async (
 
     if (!response.ok) return frames;
 
-    const symbolicationResults = (await response.json()) as NextJsFrameResult[];
+    const symbolicationResults: unknown = await response.json();
+    if (!Array.isArray(symbolicationResults)) return frames;
     const symbolicatedFrames = [...frames];
 
     for (let resultIndex = 0; resultIndex < serverFrameIndices.length; resultIndex++) {
-      const symbolicationResult = symbolicationResults[resultIndex];
-      if (symbolicationResult?.status !== "fulfilled") continue;
+      const symbolicationResult: unknown = symbolicationResults[resultIndex];
+      if (!isNextJsFrameResult(symbolicationResult)) continue;
+      if (symbolicationResult.status !== "fulfilled") continue;
 
       const originalStackFrame = symbolicationResult.value?.originalStackFrame;
       if (!originalStackFrame?.file || originalStackFrame.ignored) continue;

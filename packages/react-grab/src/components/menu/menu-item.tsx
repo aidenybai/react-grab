@@ -27,14 +27,17 @@ export const MenuItem: Component<MenuItemProps> = (props) => {
 
   onMount(() => {
     if (!buttonElement) return;
+    // Registration is not reactive, so capture `value` once and unregister the
+    // same identity even if props.value were to change on a live row.
+    const registeredValue = props.value;
     store.registerItem({
-      value: props.value,
+      value: registeredValue,
       domId,
       element: buttonElement,
       isEnabled,
       onSelect: () => props.onSelect?.(),
     });
-    onCleanup(() => store.unregisterItem(props.value));
+    onCleanup(() => store.unregisterItem(registeredValue));
   });
 
   return (
