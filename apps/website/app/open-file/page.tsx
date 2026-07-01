@@ -31,13 +31,17 @@ const EDITORS: EditorOption[] = [
 const STORAGE_KEY = "react-grab-preferred-editor";
 
 const getEditorUrl = (editor: Editor, filePath: string, lineNumber?: number): string => {
+  // The query param arrives decoded, so a raw `&`, `#`, or `?` in the path
+  // would be parsed as URL structure by the editor and truncate the file path.
+  // Re-encode everything except `/` (path separators stay literal).
+  const encodedPath = encodeURIComponent(filePath).replace(/%2F/g, "/");
   if (editor === "webstorm") {
     const lineParam = lineNumber ? `&line=${lineNumber}` : "";
-    return `webstorm://open?file=${filePath}${lineParam}`;
+    return `webstorm://open?file=${encodedPath}${lineParam}`;
   }
 
   const lineParam = lineNumber ? `:${lineNumber}` : "";
-  return `${editor}://file/${filePath}${lineParam}`;
+  return `${editor}://file/${encodedPath}${lineParam}`;
 };
 
 const OpenFileContent = () => {

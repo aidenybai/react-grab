@@ -1,3 +1,5 @@
+import { getScopeContainer } from "./runtime-mode.js";
+
 interface VisualViewportInfo {
   width: number;
   height: number;
@@ -6,6 +8,17 @@ interface VisualViewportInfo {
 }
 
 export const getVisualViewport = (): VisualViewportInfo => {
+  const scopeContainer = getScopeContainer();
+  if (scopeContainer) {
+    const rect = scopeContainer.getBoundingClientRect();
+    return {
+      width: rect.width,
+      height: rect.height,
+      offsetLeft: rect.left,
+      offsetTop: rect.top,
+    };
+  }
+
   const visualViewport = window.visualViewport;
   if (visualViewport) {
     return {

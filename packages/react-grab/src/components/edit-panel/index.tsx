@@ -29,6 +29,7 @@ import type {
   PendingEdits,
 } from "../../types.js";
 import { clampToRange } from "../../utils/clamp-to-range.js";
+import { focusInOverlay } from "../../utils/focus-in-overlay.js";
 import { cn } from "../../utils/cn.js";
 import { createAnchoredDropdown } from "../../utils/create-anchored-dropdown.js";
 import { findTailwindClass } from "../../utils/find-tailwind-class.js";
@@ -181,7 +182,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     queueMicrotask(() => {
       if (!searchInputRef) return;
       if (getShadowActiveElement(searchInputRef) !== searchInputRef) {
-        searchInputRef.focus({ preventScroll: true });
+        focusInOverlay(searchInputRef, { preventScroll: true });
       }
     });
   };
@@ -484,7 +485,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
 
   onMount(() => {
     queueMicrotask(() => {
-      searchInputRef?.focus({ preventScroll: true });
+      focusInOverlay(searchInputRef, { preventScroll: true });
       if (searchInputRef) {
         const length = searchInputRef.value.length;
         searchInputRef.setSelectionRange(length, length);

@@ -13,7 +13,7 @@
     "@vercel/analytics": "^2.0.1",
     "calligraph": "^1.4.1",
     "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
+    "cnfast": "^0.0.4",
     "lucide-react": "^1.14.0",
     "motion": "^12.38.0",
     "next": "^16.2.6",
@@ -22,7 +22,6 @@
     "react-dom": "19.2.6",
     "react-grab": "workspace:*",
     "shiki": "^4.0.2",
-    "tailwind-merge": "^3.5.0",
     "web-haptics": "^0.0.6"
   },
   "devDependencies": {

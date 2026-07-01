@@ -22,6 +22,7 @@ import {
   Z_INDEX_OVERLAY,
 } from "../../constants.js";
 import { autoResizeTextarea } from "../../utils/auto-resize-textarea.js";
+import { focusInOverlay } from "../../utils/focus-in-overlay.js";
 import { getArrowSize } from "../../utils/get-arrow-size.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
 import { cn } from "../../utils/cn.js";
@@ -370,7 +371,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     const isEditableInputVisible =
       canInteract() && props.isPromptMode && !props.discardPrompt && props.onSubmit;
     if (isEditableInputVisible && inputRef) {
-      inputRef.focus({ preventScroll: true });
+      focusInOverlay(inputRef, { preventScroll: true });
     }
   };
 
@@ -493,7 +494,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                       // synchronously can fail or cause a scroll jump.
                       if (props.onSubmit) {
                         queueMicrotask(() => {
-                          element.focus({ preventScroll: true });
+                          focusInOverlay(element, { preventScroll: true });
                           autoResizeTextarea(element, TEXTAREA_MAX_HEIGHT_PX);
                         });
                       }
@@ -546,7 +547,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   if (!discardPrompt.isKeyboardSelection) {
                     discardPrompt.onCancel?.();
                   }
-                  inputRef?.focus({ preventScroll: true });
+                  focusInOverlay(inputRef, { preventScroll: true });
                 }}
               />
             )}

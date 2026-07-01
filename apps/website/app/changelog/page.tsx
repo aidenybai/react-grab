@@ -77,7 +77,7 @@ const ChangelogPage = () => {
 
         <div className="flex flex-col mt-8 gap-8">
           {entries.map((entry) => (
-            <div key={entry.version} className="flex flex-col gap-2">
+            <div key={`${entry.version}-${entry.changeType}`} className="flex flex-col gap-2">
               <div className="flex items-center gap-3">
                 <span className="text-foreground font-mono text-sm font-medium">
                   {entry.version}

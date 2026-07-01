@@ -20,6 +20,7 @@ import {
   hasTextSelectionOnPage,
 } from "../utils/is-keyboard-event-triggered-by-input.js";
 import { mountRoot } from "../utils/mount-root.js";
+import { getScopeContainer, setScopeContainer, IS_DEMO } from "../utils/runtime-mode.js";
 import { createComponentNameForElement } from "../utils/create-component-name-for-element.js";
 import { watchAppTheme } from "../utils/detect-app-theme.js";
 import {
@@ -203,10 +204,26 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
   }
   hasInited = true;
 
-  logIntro(initialOptions.telemetry !== false);
+  // Applied here - after the single-init guard - so a no-op init can never leave
+  // the scope singleton pointing at a disposed/aliased container. Reset on
+  // cleanup below. Set before the renderer mounts so the toolbar anchors to the
+  // container on first paint.
+  setScopeContainer(initialOptions.container ?? null);
+
+  // The demo build is a display-only showcase, not an install: no console
+  // banner, no version-check fetch (whose "outdated" nag would hit every
+  // visitor whenever the bundled version drifts from the published one).
+  if (!IS_DEMO) {
+    logIntro(initialOptions.telemetry !== false);
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- omit init-only options that aren't part of SettableOptions
-  const { enabled: _enabled, telemetry: _telemetry, ...settableOptions } = initialOptions;
+  const {
+    enabled: _enabled,
+    telemetry: _telemetry,
+    container: _container,
+    ...settableOptions
+  } = initialOptions;
 
   return createRoot((dispose) => {
     let disposed = false;
@@ -266,14 +283,21 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       );
     });
 
+    const setHostBodyStyle = (property: "userSelect" | "touchAction", value: string) => {
+      if (IS_DEMO) return;
+      document.body.style[property] = value;
+    };
+
     createEffect(
       on(isActivated, (activated, previousActivated) => {
         if (activated && !previousActivated) {
+          // Demo-safe: the collect/apply phases inside are gated on IS_DEMO at
+          // the util level, so this never freezes the host page in demo builds.
           freezeGlobalInteractions(pointer().x, pointer().y);
-          document.body.style.touchAction = "none";
+          setHostBodyStyle("touchAction", "none");
         } else if (!activated && previousActivated) {
           unfreezeGlobalInteractions();
-          document.body.style.touchAction = "";
+          setHostBodyStyle("touchAction", "");
         }
       }),
     );
@@ -869,6 +893,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     createEffect(
       on(isActivated, (activated) => {
         if (!activated) return;
+        if (IS_DEMO) return;
         if (!pluginRegistry.store.options.freezeReactUpdates) return;
         const unfreezeUpdates = freezeUpdates();
         onCleanup(unfreezeUpdates);
@@ -1313,6 +1338,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let cursorStyleElement: HTMLStyleElement | null = null;
 
     const setCursorOverride = (cursor: string | null) => {
+      if (IS_DEMO) return;
       if (cursor) {
         if (!cursorStyleElement) {
           cursorStyleElement = document.createElement("style");
@@ -1365,7 +1391,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setIsPendingContextMenuSelect(false);
       setPendingToolbarActionId(null);
       if (wasDragging) {
-        document.body.style.userSelect = "";
+        setHostBodyStyle("userSelect", "");
       }
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
       autoScroller.stop();
@@ -1704,7 +1730,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const shouldPreserveKeyboardSelection = keyboardSelection.selectedElement() !== null;
       actions.startDrag({ x: clientX, y: clientY }, isShiftHeld || shouldPreserveKeyboardSelection);
       actions.setPointer({ x: clientX, y: clientY });
-      document.body.style.userSelect = "none";
+      setHostBodyStyle("userSelect", "none");
 
       scheduleDragPreviewUpdate(clientX, clientY);
 
@@ -1988,7 +2014,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       stopSpaceDragRepositioning();
       actions.cancelDrag();
       autoScroller.stop();
-      document.body.style.userSelect = "";
+      setHostBodyStyle("userSelect", "");
     };
 
     const handlePointerUp = (
@@ -2020,7 +2046,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
       stopSpaceDragRepositioning();
       autoScroller.stop();
-      document.body.style.userSelect = "";
+      setHostBodyStyle("userSelect", "");
 
       if (dragSelectionRect) {
         handleDragSelection(dragSelectionRect, hasModifierKeyHeld, isShiftHeld);
@@ -2034,6 +2060,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const keyboardClaimer = setupKeyboardEventClaimer();
 
     const blockEnterIfNeeded = (event: KeyboardEvent) => {
+      // Demo mode never intercepts the host page's real input, so a trusted
+      // Enter must pass through even while the showcase has React Grab active.
+      if (IS_DEMO && event.isTrusted) return false;
       let originalKey: string;
       try {
         originalKey = keyboardClaimer.originalKeyDescriptor?.get
@@ -2156,7 +2185,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const isInitialSelection = !currentElement;
 
       if (!currentElement) {
-        currentElement = getElementAtPosition(window.innerWidth / 2, window.innerHeight / 2);
+        // When scoped to a container, probe its center: hit-testing filters to
+        // the container's subtree, so the window center would miss whenever the
+        // container doesn't cover it and arrow navigation could never start.
+        const scopeRect = getScopeContainer()?.getBoundingClientRect();
+        currentElement = scopeRect
+          ? getElementAtPosition(
+              scopeRect.left + scopeRect.width / 2,
+              scopeRect.top + scopeRect.height / 2,
+            )
+          : getElementAtPosition(window.innerWidth / 2, window.innerHeight / 2);
       }
 
       if (!currentElement) return false;
@@ -2453,9 +2491,24 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return true;
     };
 
+    // Demo mode ignores real user input but still processes synthetic events
+    // that drive the showcase, so the guard lives here once instead of being
+    // repeated inside every interaction handler. IS_DEMO is a build-time
+    // constant, so in normal builds this folds to `return handler` and the
+    // wrapper - which sits on hot pointer paths - is dead-code-eliminated.
+    const ignoreRealInput = <EventType extends Event>(
+      handler: (event: EventType) => void,
+    ): ((event: EventType) => void) => {
+      if (!IS_DEMO) return handler;
+      return (event: EventType): void => {
+        if (event.isTrusted) return;
+        handler(event);
+      };
+    };
+
     eventListenerManager.addWindowListener(
       "keydown",
-      (event: KeyboardEvent) => {
+      ignoreRealInput((event: KeyboardEvent) => {
         if (tryHandleKeyboardSelectionPromptPassThrough(event)) return;
 
         blockEnterIfNeeded(event);
@@ -2540,16 +2593,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (tryHandleBareKeyShortcut(event)) return;
         if (tryHandleTypeToEdit(event)) return;
 
-        if (!didWindowJustRegainFocus) {
+        // Demo mode never activates from the global hotkey.
+        if (!didWindowJustRegainFocus && !IS_DEMO) {
           handleActivationKeys(event);
         }
-      },
+      }),
       { capture: true },
     );
 
     eventListenerManager.addWindowListener(
       "keyup",
-      (event: KeyboardEvent) => {
+      ignoreRealInput((event: KeyboardEvent) => {
         if (blockEnterIfNeeded(event)) return;
 
         if (isSpaceActivationKey(event) && isDragRepositioning()) {
@@ -2663,7 +2717,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             deactivateRenderer();
           }
         }
-      },
+      }),
       { capture: true },
     );
 
@@ -2673,13 +2727,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     });
 
-    eventListenerManager.addWindowListener("keypress", blockEnterIfNeeded, {
+    eventListenerManager.addWindowListener("keypress", ignoreRealInput(blockEnterIfNeeded), {
       capture: true,
     });
 
     eventListenerManager.addWindowListener(
       "pointermove",
-      (event: PointerEvent) => {
+      ignoreRealInput((event: PointerEvent) => {
         if (!event.isPrimary) return;
         const isTouchPointer = event.pointerType === "touch";
         actions.setTouchMode(isTouchPointer);
@@ -2706,13 +2760,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           clearArrowNavigation();
         }
         handlePointerMove(event.clientX, event.clientY, event.shiftKey);
-      },
+      }),
       { passive: true },
     );
 
     eventListenerManager.addWindowListener(
       "pointerdown",
-      (event: PointerEvent) => {
+      ignoreRealInput((event: PointerEvent) => {
         if (event.button !== 0) return;
         if (!event.isPrimary) return;
         actions.setTouchMode(event.pointerType === "touch");
@@ -2764,13 +2818,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           event.preventDefault();
           event.stopImmediatePropagation();
         }
-      },
+      }),
       { capture: true },
     );
 
     eventListenerManager.addWindowListener(
       "pointerup",
-      (event: PointerEvent) => {
+      ignoreRealInput((event: PointerEvent) => {
         if (event.button !== 0) return;
         if (!event.isPrimary) return;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
@@ -2782,13 +2836,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           event.preventDefault();
           event.stopImmediatePropagation();
         }
-      },
+      }),
       { capture: true },
     );
 
     eventListenerManager.addWindowListener(
       "contextmenu",
-      (event: MouseEvent) => {
+      ignoreRealInput((event: MouseEvent) => {
         if (!isRendererActive() || isCopying() || isPromptMode()) return;
         if (editMode.isOpen()) return;
         if (keyboardSelection.isPendingDismiss()) {
@@ -2834,18 +2888,21 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.setPointer(position);
         actions.freeze();
         openContextMenu(element, position);
-      },
+      }),
       { capture: true },
     );
 
-    eventListenerManager.addWindowListener("pointercancel", (event: PointerEvent) => {
-      if (!event.isPrimary) return;
-      cancelActiveDrag();
-    });
+    eventListenerManager.addWindowListener(
+      "pointercancel",
+      ignoreRealInput((event: PointerEvent) => {
+        if (!event.isPrimary) return;
+        cancelActiveDrag();
+      }),
+    );
 
     eventListenerManager.addWindowListener(
       "click",
-      (event: MouseEvent) => {
+      ignoreRealInput((event: MouseEvent) => {
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (didSwitchEditTargetOnPointerDown) {
           didSwitchEditTargetOnPointerDown = false;
@@ -2867,42 +2924,49 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             }
           }
         }
-      },
+      }),
       { capture: true },
     );
 
-    eventListenerManager.addDocumentListener("visibilitychange", () => {
-      if (document.hidden) {
-        actions.clearGrabbedBoxes();
-        const storeActivationTimestamp = store.activationTimestamp;
-        if (
-          isActivated() &&
-          !isPromptMode() &&
-          storeActivationTimestamp !== null &&
-          Date.now() - storeActivationTimestamp > BLUR_DEACTIVATION_THRESHOLD_MS
-        ) {
-          deactivateRenderer();
+    // These react to the real environment (tab switches, window focus), which
+    // the scripted demo must ignore: a visitor blurring the window mid-showcase
+    // would otherwise cancel the synthetic drag or deactivate the renderer
+    // under the still-running choreography. ignoreRealInput can't cover them
+    // because they aren't dispatchable input events.
+    if (!IS_DEMO) {
+      eventListenerManager.addDocumentListener("visibilitychange", () => {
+        if (document.hidden) {
+          actions.clearGrabbedBoxes();
+          const storeActivationTimestamp = store.activationTimestamp;
+          if (
+            isActivated() &&
+            !isPromptMode() &&
+            storeActivationTimestamp !== null &&
+            Date.now() - storeActivationTimestamp > BLUR_DEACTIVATION_THRESHOLD_MS
+          ) {
+            deactivateRenderer();
+          }
         }
-      }
-    });
+      });
 
-    // On blur we release the hold state (modifier keyup events are lost when
-    // the window loses focus) but do not deactivate if already active, since
-    // the user may alt-tab back.
-    eventListenerManager.addWindowListener("blur", () => {
-      cancelActiveDrag();
-      if (isHoldingKeys()) {
-        clearHoldTimer();
-        actions.releaseHold();
-        resetCopyConfirmation();
-      }
-      // Modifier keyup events are lost on blur, so a shift release that
-      // would have committed the multi-selection never fires. Clear the
-      // flag here so the pointermove unfreeze guard and the arrow
-      // navigation guard don't stay blocked indefinitely. Frozen elements
-      // are intentionally preserved so the user can resume on refocus.
-      stopShiftMultiSelecting();
-    });
+      // On blur we release the hold state (modifier keyup events are lost when
+      // the window loses focus) but do not deactivate if already active, since
+      // the user may alt-tab back.
+      eventListenerManager.addWindowListener("blur", () => {
+        cancelActiveDrag();
+        if (isHoldingKeys()) {
+          clearHoldTimer();
+          actions.releaseHold();
+          resetCopyConfirmation();
+        }
+        // Modifier keyup events are lost on blur, so a shift release that
+        // would have committed the multi-selection never fires. Clear the
+        // flag here so the pointermove unfreeze guard and the arrow
+        // navigation guard don't stay blocked indefinitely. Frozen elements
+        // are intentionally preserved so the user can resume on refocus.
+        stopShiftMultiSelecting();
+      });
+    }
 
     eventListenerManager.addWindowListener("focus", () => {
       lastWindowFocusTimestamp = Date.now();
@@ -3032,6 +3096,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     eventListenerManager.addDocumentListener(
       "copy",
       (event: ClipboardEvent) => {
+        // Demo mode never intercepts the host page's real clipboard.
+        if (IS_DEMO && event.isTrusted) return;
         if (isPromptMode() || isEventFromOverlay(event, "data-react-grab-ignore-events")) {
           return;
         }
@@ -3057,14 +3123,21 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       grabbedBoxTimeouts.clear();
       labelController.cancelAllFades();
       autoScroller.stop();
-      document.body.style.userSelect = "";
-      document.body.style.touchAction = "";
+      setHostBodyStyle("userSelect", "");
+      setHostBodyStyle("touchAction", "");
       setCursorOverride(null);
       keyboardClaimer.restore();
+      setScopeContainer(null);
     });
 
     const resolvedCssText = typeof cssText === "string" ? cssText : "";
-    const { root: rendererRoot, host: rendererHost } = mountRoot(resolvedCssText);
+    // Demo mode is display-only: nothing inside the overlay should intercept the
+    // host page's real clicks or cursor (the showcase is driven via the API), so
+    // make the entire shadow overlay click-through.
+    const overlayCssText = IS_DEMO
+      ? `${resolvedCssText}\n* { pointer-events: none !important; }`
+      : resolvedCssText;
+    const { root: rendererRoot, host: rendererHost } = mountRoot(overlayCssText);
 
     const themeWatcher = watchAppTheme(rendererHost);
     onCleanup(themeWatcher.cleanup);
@@ -3785,9 +3858,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           dismissAllPopups();
         }
       },
-      getToolbarState: () => loadToolbarState(),
+      getToolbarState: () => currentToolbarState() ?? loadToolbarState(),
       setToolbarState: (state: Partial<ToolbarState>) => {
-        const currentState = loadToolbarState();
+        // Live signal first so partial updates keep prior fields even when
+        // persistence is gated off (demo mode), falling back to storage.
+        const currentState = currentToolbarState() ?? loadToolbarState();
         const resolvedCollapsed = state.collapsed ?? currentState?.collapsed ?? false;
         const newState: ToolbarState = {
           edge: state.edge ?? currentState?.edge ?? "bottom",
@@ -3812,6 +3887,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return () => {
           toolbarStateChangeCallbacks.delete(callback);
         };
+      },
+      // Clean slate without disposing: deactivate and drop selection/grabbed
+      // boxes. For the demo between showcase loops.
+      reset: () => {
+        forceDeactivateAll();
+        dismissAllPopups();
+        actions.clearGrabbedBoxes();
+        actions.clearLabelInstances();
+        actions.setSelectionSource(null, null);
       },
       dispose: () => {
         disposed = true;

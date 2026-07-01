@@ -1,5 +1,6 @@
 import type { ToolbarState } from "../../types.js";
 import { DEFAULT_ACTION_ID, TOOLBAR_DEFAULT_POSITION_RATIO } from "../../constants.js";
+import { IS_DEMO } from "../../utils/runtime-mode.js";
 
 export type { ToolbarState };
 export type SnapEdge = "top" | "bottom" | "left" | "right";
@@ -7,6 +8,9 @@ export type SnapEdge = "top" | "bottom" | "left" | "right";
 const STORAGE_KEY = "react-grab-toolbar-state";
 
 export const loadToolbarState = (): ToolbarState | null => {
+  // Demo mode is display-only and must stay deterministic, so it never reads the
+  // visitor's persisted toolbar prefs - it always starts from the defaults.
+  if (IS_DEMO) return null;
   try {
     const serializedToolbarState = localStorage.getItem(STORAGE_KEY);
     if (!serializedToolbarState) return null;
@@ -36,6 +40,9 @@ export const loadToolbarState = (): ToolbarState | null => {
 };
 
 export const saveToolbarState = (state: ToolbarState): void => {
+  // Demo mode is display-only; persisting would clobber the real toolbar prefs
+  // of anyone running React Grab on the same origin.
+  if (IS_DEMO) return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (error) {
