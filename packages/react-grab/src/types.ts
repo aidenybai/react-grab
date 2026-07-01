@@ -290,6 +290,11 @@ export interface ContextMenuAction {
   onAction: (context: ContextMenuActionContext) => void | Promise<void>;
 }
 
+// A predicate over a DOM element (e.g. "is this element grabbable?").
+export interface ElementPredicate {
+  (element: Element): boolean;
+}
+
 // A single rendered row of the hierarchy dropdown (renderer-facing: no element
 // reference, only what is drawn).
 export interface HierarchyItem {

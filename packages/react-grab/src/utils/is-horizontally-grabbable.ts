@@ -1,4 +1,5 @@
 import { MIN_HORIZONTAL_NAV_SIZE_PX } from "../constants.js";
+import type { ElementPredicate } from "../types.js";
 
 const isSvgInternal = (element: Element): boolean =>
   element instanceof SVGElement && !(element instanceof SVGSVGElement);
@@ -14,6 +15,6 @@ const hasMeaningfulSize = (element: Element): boolean => {
 // the looser grabbable check, so this is shared to keep the two in sync.
 export const isHorizontallyGrabbable = (
   element: Element,
-  isValidGrabbableElement: (element: Element) => boolean,
+  isValidGrabbableElement: ElementPredicate,
 ): boolean =>
   isValidGrabbableElement(element) && !isSvgInternal(element) && hasMeaningfulSize(element);

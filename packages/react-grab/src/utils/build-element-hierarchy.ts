@@ -3,11 +3,7 @@ import {
   MAX_HIERARCHY_CHILDREN,
   MAX_HIERARCHY_SIBLINGS,
 } from "../constants.js";
-import type { HierarchyEntry } from "../types.js";
-
-interface GrabbablePredicate {
-  (element: Element): boolean;
-}
+import type { ElementPredicate, HierarchyEntry } from "../types.js";
 
 interface ElementStep {
   (element: Element): Element | null;
@@ -29,14 +25,14 @@ interface ElementStep {
 // visibility check over every sibling or child.
 export const buildElementHierarchy = (
   selectedElement: Element,
-  isGrabbable: GrabbablePredicate,
-  isSiblingNavigable: GrabbablePredicate,
+  isGrabbable: ElementPredicate,
+  isSiblingNavigable: ElementPredicate,
 ): HierarchyEntry[] => {
   const collectGrabbable = (
     start: Element | null,
     nextFrom: ElementStep,
     maxCount: number,
-    isMatch: GrabbablePredicate,
+    isMatch: ElementPredicate,
   ): Element[] => {
     const collected: Element[] = [];
     let current = start;

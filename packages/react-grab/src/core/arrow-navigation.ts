@@ -1,13 +1,9 @@
 import { MAX_ARROW_NAVIGATION_HISTORY } from "../constants.js";
-import type { OverlayBounds } from "../types.js";
+import type { ElementPredicate, OverlayBounds } from "../types.js";
 import { getElementsAtPoint } from "../utils/get-element-at-position.js";
 import { getVisibleBoundsCenter } from "../utils/get-visible-bounds-center.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
 import { isHorizontallyGrabbable } from "../utils/is-horizontally-grabbable.js";
-
-interface ElementValidator {
-  (element: Element): boolean;
-}
 
 interface BoundsCalculator {
   (element: Element): OverlayBounds;
@@ -19,7 +15,7 @@ interface ArrowNavigator {
 }
 
 export const createArrowNavigator = (
-  isValidGrabbableElement: ElementValidator,
+  isValidGrabbableElement: ElementPredicate,
   createElementBounds: BoundsCalculator,
 ): ArrowNavigator => {
   let navigationHistory: Element[] = [];
