@@ -13,14 +13,16 @@ interface KeyboardSelectionController {
 
 export const createKeyboardSelectionController = (): KeyboardSelectionController => {
   const [isPendingDismiss, setIsPendingDismiss] = createSignal(false);
-  let selectedElement: Element | null = null;
+  const [selectedElement, setSelectedElement] = createSignal<Element | null>(null);
   let isMouseHandoffArmed = false;
 
-  const connectedSelection = (): Element | null =>
-    isElementConnected(selectedElement) ? selectedElement : null;
+  const connectedSelection = (): Element | null => {
+    const element = selectedElement();
+    return isElementConnected(element) ? element : null;
+  };
 
   const clear = () => {
-    selectedElement = null;
+    setSelectedElement(null);
     isMouseHandoffArmed = false;
     setIsPendingDismiss(false);
   };
@@ -36,7 +38,7 @@ export const createKeyboardSelectionController = (): KeyboardSelectionController
     selectedElement: connectedSelection,
     isPendingDismiss,
     select: (element, options) => {
-      selectedElement = element;
+      setSelectedElement(element);
       setIsPendingDismiss(false);
       isMouseHandoffArmed = Boolean(options?.shouldPromptBeforeMouseHandoff);
     },

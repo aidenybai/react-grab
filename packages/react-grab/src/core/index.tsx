@@ -852,7 +852,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isPromptMode() || isShiftMultiSelecting() || isCopying()) return null;
       if (isAnyPopoverOpen()) return null;
       if (keyboardSelection.isPendingDismiss()) return null;
-      return isShiftKeyHeld() ? effectiveElement() : store.frozenElement;
+      // Without Shift the tree only follows an active keyboard-navigation
+      // selection — not every frozen element, so it stays hidden during
+      // drag-marquee selection or after a non-deactivating mouse copy.
+      return isShiftKeyHeld() ? effectiveElement() : keyboardSelection.selectedElement();
     });
 
     const hierarchyEntries = createMemo<HierarchyEntry[]>(() => {
