@@ -158,6 +158,50 @@ export interface ActionContext {
 export interface ContextMenuActionContext extends ActionContext {
   copy?: () => void;
   enterEditMode?: () => void;
+  enterHistoryMode?: () => void;
+}
+
+export type HistoryChangeKind = "props" | "state" | "context";
+
+export interface HistoryChange {
+  kind: HistoryChangeKind;
+  label: string;
+  prev: string;
+  next: string;
+}
+
+export interface HistoryFiberChange {
+  fiberId: number;
+  displayName: string;
+  changes: HistoryChange[];
+}
+
+// One React commit that mutated at least one composite fiber. Ordered oldest
+// to newest by the recorder.
+export interface HistoryEntry {
+  id: number;
+  timestamp: number;
+  fibers: HistoryFiberChange[];
+}
+
+// A single point on one component's timeline, projected from a HistoryEntry
+// down to just the changes for the component being inspected.
+export interface HistoryMoment {
+  id: number;
+  timestamp: number;
+  changes: HistoryChange[];
+}
+
+export interface HistoryPanelState {
+  element: Element;
+  position: Position;
+  componentName?: string;
+  tagName?: string;
+  filePath?: string;
+  lineNumber?: number;
+  moments: HistoryMoment[];
+  // Index into `moments`; starts on the most recent moment.
+  cursor: number;
 }
 
 interface EditablePropertyBase {
@@ -546,6 +590,11 @@ export interface ReactGrabRendererProps {
   onEditPanelSubmit?: (pendingEdits: PendingEdits) => void;
   onEditPanelPendingEditsChange?: (pendingEdits: PendingEdits) => void;
   onEditPanelInteractingChange?: (interacting: boolean) => void;
+  historyPanelState?: HistoryPanelState | null;
+  historyPanelPosition?: DropdownAnchor | null;
+  onHistoryPanelDismiss?: () => void;
+  onHistoryPanelStep?: (direction: 1 | -1) => void;
+  onHistoryPanelSubmit?: () => void;
 }
 
 export interface GrabbedBox {

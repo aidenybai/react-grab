@@ -81,6 +81,7 @@ import {
   DEFAULT_ACTION_ID,
   COMMENT_ACTION_ID,
   EDIT_ACTION_ID,
+  HISTORY_ACTION_ID,
   REACT_GRAB_ATTRIBUTE_NAME,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
@@ -112,6 +113,7 @@ import type {
   ElementLabelVariant,
 } from "../types.js";
 import { createEditModeController, type EditModeOverrides } from "./edit-mode.js";
+import { createHistoryModeController } from "./history-mode.js";
 import { createPluginRegistry } from "./plugin-registry.js";
 import { createLabelController } from "./label-controller.js";
 import { createArrowNavigator } from "./arrow-navigation.js";
@@ -126,6 +128,7 @@ import { loadToolbarState, saveToolbarState } from "../components/toolbar/state.
 import { copyPlugin } from "./plugins/copy.js";
 import { commentPlugin } from "./plugins/comment.js";
 import { editPlugin } from "./plugins/edit.js";
+import { historyPlugin } from "./plugins/history.js";
 import { openPlugin } from "./plugins/open.js";
 import {
   freezeAnimations,
@@ -146,7 +149,7 @@ import { getNearestEdge } from "../utils/get-nearest-edge.js";
 import { findShortcutAction } from "../utils/action-shortcuts.js";
 import { createKeyboardSelectionController } from "./keyboard-selection.js";
 
-const builtInPlugins = [copyPlugin, editPlugin, commentPlugin, openPlugin];
+const builtInPlugins = [copyPlugin, editPlugin, historyPlugin, commentPlugin, openPlugin];
 
 interface CopyWithLabelOptions {
   element: Element;
@@ -305,6 +308,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [isToolbarSelectHovered, setIsToolbarSelectHovered] = createSignal(false);
     const [toolbarMenuPosition, setToolbarMenuPosition] = createSignal<DropdownAnchor | null>(null);
     const [editPanelPosition, setEditPanelPosition] = createSignal<DropdownAnchor | null>(null);
+    const [historyPanelPosition, setHistoryPanelPosition] = createSignal<DropdownAnchor | null>(
+      null,
+    );
     // Forward-ref wrappers because activateRenderer / deactivateRenderer /
     // performCopyWithLabel are declared later in this scope. The wrappers
     // are captured by the controller; the underlying lookups happen at
@@ -329,8 +335,30 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
     });
 
+    const historyMode = createHistoryModeController({
+      store,
+      actions,
+      isActivated,
+      activateRenderer: () => activateRenderer(),
+      deactivateRenderer: () => deactivateRenderer(),
+      performCopyWithLabel: (options) => performCopyWithLabel(options),
+      onOpen: () => {
+        dismissToolbarMenu();
+        stopHistoryPanelTracking?.();
+        stopHistoryPanelTracking = trackDropdownPosition(
+          computeHistoryPanelAnchor,
+          setHistoryPanelPosition,
+        );
+      },
+      onClose: () => {
+        stopHistoryPanelTracking?.();
+        stopHistoryPanelTracking = null;
+        setHistoryPanelPosition(null);
+      },
+    });
+
     const isModalPopoverOpen = createMemo(
-      () => store.contextMenuPosition !== null || editMode.isOpen(),
+      () => store.contextMenuPosition !== null || editMode.isOpen() || historyMode.isOpen(),
     );
     const isAnyPopoverOpen = createMemo(
       () => isModalPopoverOpen() || toolbarMenuPosition() !== null,
@@ -338,6 +366,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let toolbarElement: HTMLDivElement | undefined;
     let stopToolbarMenuTracking: (() => void) | null = null;
     let stopEditPanelTracking: (() => void) | null = null;
+    let stopHistoryPanelTracking: (() => void) | null = null;
     let didSwitchEditTargetOnPointerDown = false;
 
     let shiftSelectionLabelAnchorRatioByElement = new WeakMap<Element, number>();
@@ -518,6 +547,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
     const toolbarActiveActionId = createMemo(() => {
       if (editMode.isOpen()) return EDIT_ACTION_ID;
+      if (historyMode.isOpen()) return HISTORY_ACTION_ID;
       if (isCommentMode()) return COMMENT_ACTION_ID;
       if (isPendingContextMenuSelect()) return pendingToolbarActionId();
       if (isActivated()) return DEFAULT_ACTION_ID;
@@ -1373,6 +1403,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       stopSpaceDragRepositioning();
       actions.deactivate();
       editMode.resetWithDiscard();
+      historyMode.reset();
       dismissToolbarMenu();
       stopShiftMultiSelecting();
       clearArrowNavigation();
@@ -1491,6 +1522,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       overrides: EditModeOverrides = {},
     ): boolean => editMode.trigger(element, position, overrides);
 
+    const openHistoryMode = (
+      element: Element,
+      position: Position,
+      overrides: EditModeOverrides = {},
+    ): boolean => historyMode.trigger(element, position, overrides);
+
     const tryHandleEditModeElementSwitch = (clientX: number, clientY: number): boolean => {
       if (!editMode.isOpen() || store.contextMenuPosition !== null) return false;
       const element = getElementsAtPoint(clientX, clientY).find(isValidGrabbableElement);
@@ -1533,6 +1570,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (actionId === EDIT_ACTION_ID) {
         const didOpen = openEditMode(element, position, currentSelectionEditOverrides(element));
+        if (!didOpen) return true;
+        actions.clearInputText();
+        actions.exitPromptMode();
+        clearPendingToolbarSelection();
+        return true;
+      }
+
+      if (actionId === HISTORY_ACTION_ID) {
+        const didOpen = openHistoryMode(element, position, currentSelectionEditOverrides(element));
         if (!didOpen) return true;
         actions.clearInputText();
         actions.exitPromptMode();
@@ -1603,6 +1649,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (actionId === EDIT_ACTION_ID) {
         openEditMode(element, position, currentSelectionEditOverrides(element));
+        return;
+      }
+
+      if (actionId === HISTORY_ACTION_ID) {
+        openHistoryMode(element, position, currentSelectionEditOverrides(element));
         return;
       }
 
@@ -2316,6 +2367,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isCopying()) return false;
       if (store.contextMenuPosition !== null) return false;
       if (editMode.isOpen()) return false;
+      if (historyMode.isOpen()) return false;
 
       const isShiftF10 = event.key === "F10" && event.shiftKey;
       const isContextMenuKey = event.key === "ContextMenu";
@@ -2447,7 +2499,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const targetElement = target instanceof HTMLElement ? target : null;
       return Boolean(
         targetElement?.closest("[data-react-grab-discard-copy]") ||
-          targetElement?.closest("[data-react-grab-discard-yes]"),
+        targetElement?.closest("[data-react-grab-discard-yes]"),
       );
     };
 
@@ -2806,6 +2858,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (event: MouseEvent) => {
         if (!isRendererActive() || isCopying() || isPromptMode()) return;
         if (editMode.isOpen()) return;
+        if (historyMode.isOpen()) return;
         if (keyboardSelection.isPendingDismiss()) {
           event.preventDefault();
           event.stopPropagation();
@@ -3068,6 +3121,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       stopToolbarMenuTracking = null;
       stopEditPanelTracking?.();
       stopEditPanelTracking = null;
+      stopHistoryPanelTracking?.();
+      stopHistoryPanelTracking = null;
       grabbedBoxTimeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
       grabbedBoxTimeouts.clear();
       labelController.cancelAllFades();
@@ -3445,6 +3500,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         hideContextMenuAction();
       };
 
+      const enterHistoryModeAction = () => {
+        const didOpen = openHistoryMode(element, position, {
+          filePath,
+          lineNumber,
+          componentName,
+          tagName,
+        });
+        if (didOpen) {
+          clearPendingToolbarSelection();
+        }
+        hideContextMenuAction();
+      };
+
       const context: ContextMenuActionContext = {
         element,
         elements,
@@ -3454,6 +3522,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         tagName,
         enterPromptMode: customEnterPromptMode ?? defaultEnterPromptMode,
         enterEditMode: enterEditModeAction,
+        enterHistoryMode: enterHistoryModeAction,
         copy: copyAction,
         hooks: {
           transformHtmlContent: pluginRegistry.hooks.transformHtmlContent,
@@ -3547,6 +3616,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       };
     };
 
+    const computeHistoryPanelAnchor = (): DropdownAnchor | null => {
+      const toolbarAnchor = computeDropdownAnchor();
+      if (toolbarAnchor) return toolbarAnchor;
+      const state = historyMode.state();
+      if (!state) return null;
+      return {
+        x: state.position.x,
+        y: state.position.y,
+        edge: "bottom",
+      };
+    };
+
     // Keep sibling dropdown tracking independent; sharing one RAF id breaks anchoring.
     const trackDropdownPosition = (
       getAnchor: () => DropdownAnchor | null,
@@ -3577,6 +3658,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.hideContextMenu();
       dismissToolbarMenu();
       editMode.dismiss();
+      historyMode.dismiss();
     };
 
     const handleToggleToolbarMenu = () => {
@@ -3585,6 +3667,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       } else {
         actions.hideContextMenu();
         if (editMode.isOpen()) editMode.closePreservingRenderer();
+        if (historyMode.isOpen()) historyMode.closePreservingRenderer();
         stopToolbarMenuTracking?.();
         stopToolbarMenuTracking = trackDropdownPosition(
           computeDropdownAnchor,
@@ -3619,6 +3702,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setTimeout(() => {
         dismissToolbarMenu();
         if (editMode.isOpen()) editMode.closePreservingRenderer();
+        if (historyMode.isOpen()) historyMode.closePreservingRenderer();
         if (!isActivated()) {
           actions.setWasActivatedByToggle(true);
           activateRenderer();
@@ -3754,6 +3838,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 onEditPanelSubmit={editMode.submit}
                 onEditPanelPendingEditsChange={editMode.setPendingEdits}
                 onEditPanelInteractingChange={editMode.setInteracting}
+                historyPanelState={historyMode.state()}
+                historyPanelPosition={historyPanelPosition()}
+                onHistoryPanelDismiss={historyMode.dismiss}
+                onHistoryPanelStep={historyMode.step}
+                onHistoryPanelSubmit={historyMode.submit}
               />
             );
           }, rendererRoot);
@@ -3836,6 +3925,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         stopToolbarMenuTracking = null;
         stopEditPanelTracking?.();
         stopEditPanelTracking = null;
+        stopHistoryPanelTracking?.();
+        stopHistoryPanelTracking = null;
         toolbarStateChangeCallbacks.clear();
         dispose();
       },

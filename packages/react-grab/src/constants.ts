@@ -158,6 +158,20 @@ export const TOOLBAR_DEFAULT_POSITION_RATIO = 0.5;
 export const DEFAULT_ACTION_ID = "copy";
 export const COMMENT_ACTION_ID = "comment";
 export const EDIT_ACTION_ID = "edit";
+export const HISTORY_ACTION_ID = "history";
+
+// Render-history recorder bounds. The recorder observes every React commit, so
+// the per-commit work and retained memory must both stay capped to avoid
+// leaking or degrading a busy app over time.
+export const HISTORY_MAX_ENTRIES = 300;
+export const HISTORY_MAX_FIBERS_PER_ENTRY = 40;
+export const HISTORY_MAX_CHANGES_PER_FIBER = 8;
+export const HISTORY_MAX_VALUE_LENGTH = 80;
+// Upper bound on moments shown for one component in the time-travel panel.
+export const HISTORY_MAX_MOMENTS = 100;
+
+export const HISTORY_PANEL_MIN_WIDTH_PX = 220;
+export const HISTORY_PANEL_MAX_WIDTH_PX = 340;
 
 export const TOOLTIP_DELAY_MS = 400;
 export const TOOLTIP_GRACE_PERIOD_MS = 800;

@@ -14,6 +14,7 @@ import { SelectionLabel } from "./selection-label/index.js";
 import { Toolbar } from "./toolbar/index.js";
 import { ContextMenu } from "./context-menu.js";
 import { EditPanel } from "./edit-panel/index.js";
+import { HistoryPanel } from "./history-panel/index.js";
 import { ToolbarMenu } from "./toolbar/toolbar-menu.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
@@ -180,6 +181,13 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         onSubmit={props.onEditPanelSubmit ?? (() => {})}
         onPendingEditsChange={props.onEditPanelPendingEditsChange}
         onInteractingChange={props.onEditPanelInteractingChange}
+      />
+      <HistoryPanel
+        state={props.historyPanelState ?? null}
+        position={props.historyPanelPosition ?? null}
+        onDismiss={props.onHistoryPanelDismiss ?? (() => {})}
+        onStep={props.onHistoryPanelStep ?? (() => {})}
+        onSubmit={props.onHistoryPanelSubmit ?? (() => {})}
       />
     </>
   );
