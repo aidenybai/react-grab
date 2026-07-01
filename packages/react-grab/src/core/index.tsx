@@ -125,6 +125,7 @@ import { isEnterCode } from "../utils/is-enter-code.js";
 import { isMac } from "../utils/is-mac.js";
 import { isPositionInsideBounds } from "../utils/is-position-inside-bounds.js";
 import { loadToolbarState, saveToolbarState } from "../components/toolbar/state.js";
+import { createModifierTracker } from "../components/edit-panel/modifier-tracker.js";
 import { copyPlugin } from "./plugins/copy.js";
 import { commentPlugin } from "./plugins/comment.js";
 import { editPlugin } from "./plugins/edit.js";
@@ -305,7 +306,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       savedToolbarState,
     );
     const [isToolbarSelectHovered, setIsToolbarSelectHovered] = createSignal(false);
-    const [isShiftKeyHeld, setIsShiftKeyHeld] = createSignal(false);
+    const isShiftKeyHeld = createModifierTracker((event) => event.shiftKey);
     const [toolbarMenuPosition, setToolbarMenuPosition] = createSignal<DropdownAnchor | null>(null);
     const [editPanelPosition, setEditPanelPosition] = createSignal<DropdownAnchor | null>(null);
     const [hierarchyMenuPosition, setHierarchyMenuPosition] = createSignal<DropdownAnchor | null>(
@@ -344,7 +345,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let toolbarElement: HTMLDivElement | undefined;
     let stopToolbarMenuTracking: (() => void) | null = null;
     let stopEditPanelTracking: (() => void) | null = null;
-    let stopHierarchyMenuTracking: (() => void) | null = null;
     let didSwitchEditTargetOnPointerDown = false;
 
     let shiftSelectionLabelAnchorRatioByElement = new WeakMap<Element, number>();
@@ -2480,7 +2480,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     eventListenerManager.addWindowListener(
       "keydown",
       (event: KeyboardEvent) => {
-        setIsShiftKeyHeld(event.shiftKey);
         if (tryHandleKeyboardSelectionPromptPassThrough(event)) return;
 
         blockEnterIfNeeded(event);
@@ -2575,7 +2574,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     eventListenerManager.addWindowListener(
       "keyup",
       (event: KeyboardEvent) => {
-        setIsShiftKeyHeld(event.shiftKey);
         if (blockEnterIfNeeded(event)) return;
 
         if (isSpaceActivationKey(event) && isDragRepositioning()) {
@@ -2919,7 +2917,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     // the window loses focus) but do not deactivate if already active, since
     // the user may alt-tab back.
     eventListenerManager.addWindowListener("blur", () => {
-      setIsShiftKeyHeld(false);
       cancelActiveDrag();
       if (isHoldingKeys()) {
         clearHoldTimer();
@@ -3583,18 +3580,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     // Keep the hierarchy dropdown anchored to the toolbar while there is an
-    // element being selected, and tear the tracker down when there is not.
+    // element being selected; Solid tears the tracker down when the source
+    // clears or the root disposes.
     createEffect(() => {
-      if (hasHierarchySource()) {
-        stopHierarchyMenuTracking ??= trackDropdownPosition(
-          computeDropdownAnchor,
-          setHierarchyMenuPosition,
-        );
-      } else if (stopHierarchyMenuTracking) {
-        stopHierarchyMenuTracking();
-        stopHierarchyMenuTracking = null;
+      if (!hasHierarchySource()) return;
+      const stopTracking = trackDropdownPosition(computeDropdownAnchor, setHierarchyMenuPosition);
+      onCleanup(() => {
+        stopTracking();
         setHierarchyMenuPosition(null);
-      }
+      });
     });
 
     const dismissToolbarMenu = () => {

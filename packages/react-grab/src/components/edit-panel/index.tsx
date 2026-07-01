@@ -554,6 +554,11 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     ensureSearchFocused();
   };
 
+  // Intentionally not built on AnchoredDropdownSurface: unlike the toolbar and
+  // hierarchy menus, this panel is a focus-trapping dialog that needs its own
+  // container ref, dialog ARIA, compact-mode attribute, a list-height CSS var,
+  // and source-aware dismissal — folding those into the shared surface would
+  // add per-consumer optionality without simplifying anything here.
   return (
     <Show when={dropdown.shouldMount()}>
       <div
