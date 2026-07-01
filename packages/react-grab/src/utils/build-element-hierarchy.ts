@@ -32,22 +32,22 @@ export const buildElementHierarchy = (
   isGrabbable: GrabbablePredicate,
   isSiblingNavigable: GrabbablePredicate,
 ): HierarchyEntry[] => {
-  const collect = (
+  const collectGrabbable = (
     start: Element | null,
-    step: ElementStep,
-    max: number,
-    predicate: GrabbablePredicate,
+    nextFrom: ElementStep,
+    maxCount: number,
+    isMatch: GrabbablePredicate,
   ): Element[] => {
     const collected: Element[] = [];
     let current = start;
-    while (current && collected.length < max) {
-      if (predicate(current)) collected.push(current);
-      current = step(current);
+    while (current && collected.length < maxCount) {
+      if (isMatch(current)) collected.push(current);
+      current = nextFrom(current);
     }
     return collected;
   };
 
-  const ancestors = collect(
+  const ancestors = collectGrabbable(
     selectedElement.parentElement,
     (element) => element.parentElement,
     MAX_HIERARCHY_ANCESTORS,
@@ -66,13 +66,13 @@ export const buildElementHierarchy = (
   // Collect up to a full sibling budget on each side, then keep a window
   // centered on the selection, spending any unused budget on the longer side.
   const siblingBudget = MAX_HIERARCHY_SIBLINGS - 1;
-  const before = collect(
+  const before = collectGrabbable(
     selectedElement.previousElementSibling,
     (element) => element.previousElementSibling,
     siblingBudget,
     isSiblingNavigable,
   );
-  const after = collect(
+  const after = collectGrabbable(
     selectedElement.nextElementSibling,
     (element) => element.nextElementSibling,
     siblingBudget,
@@ -89,7 +89,7 @@ export const buildElementHierarchy = (
     ...after.slice(0, afterShown),
   ];
 
-  const children = collect(
+  const children = collectGrabbable(
     selectedElement.firstElementChild,
     (element) => element.nextElementSibling,
     MAX_HIERARCHY_CHILDREN,

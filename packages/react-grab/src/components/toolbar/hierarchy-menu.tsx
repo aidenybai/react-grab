@@ -1,5 +1,5 @@
-import { createEffect, For, Show, type Component } from "solid-js";
-import type { ArrowNavigationState, DropdownAnchor } from "../../types.js";
+import { For, Show, type Component } from "solid-js";
+import type { HierarchyState, DropdownAnchor } from "../../types.js";
 import {
   HIERARCHY_INDENT_PX,
   HIERARCHY_MENU_MIN_WIDTH_PX,
@@ -11,34 +11,23 @@ import { AnchoredDropdownSurface } from "../ui/anchored-dropdown-surface.js";
 
 interface HierarchyMenuProps {
   position: DropdownAnchor | null;
-  state?: ArrowNavigationState;
-  onSelect?: (index: number) => void;
+  state?: HierarchyState;
 }
 
+// Display-only tree of the current selection's DOM neighborhood. It is
+// non-interactive (see AnchoredDropdownSurface interactive={false}); the active
+// row is driven entirely by keyboard navigation in core via `state.activeIndex`,
+// which feeds the menu store's controlled highlight.
 export const HierarchyMenu: Component<HierarchyMenuProps> = (props) => {
   const activeIndex = () => props.state?.activeIndex ?? 0;
 
   const menuStore = createMenuStore({
-    keyboardNavigation: true,
-    requirePointerMove: true,
     value: () => String(activeIndex()),
-    onValueChange: (value) => {
-      if (value !== null) props.onSelect?.(Number(value));
-    },
     highlight: {
       topCornerRadiusPx: MENU_PANEL_CORNER_RADIUS_PX,
       bottomCornerRadiusPx: MENU_PANEL_CORNER_RADIUS_PX,
       cornerShape: MENU_HIGHLIGHT_CORNER_SHAPE,
     },
-  });
-
-  // The active row is driven by keyboard from the host; resetting the
-  // pointer-move gate whenever the chain changes keeps a phantom
-  // pointerenter (fired when the highlight repositions under a stationary
-  // cursor) from hijacking that keyboard-driven selection.
-  createEffect(() => {
-    void props.state?.items;
-    menuStore.resetPointerMove();
   });
 
   return (
@@ -59,7 +48,6 @@ export const HierarchyMenu: Component<HierarchyMenuProps> = (props) => {
                   value={String(itemIndex())}
                   role="menuitemradio"
                   checked={itemIndex() === activeIndex()}
-                  onSelect={() => props.onSelect?.(itemIndex())}
                 >
                   <span class="flex items-center min-w-0 w-full">
                     <Show when={item.depth > 0}>

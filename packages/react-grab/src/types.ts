@@ -290,7 +290,9 @@ export interface ContextMenuAction {
   onAction: (context: ContextMenuActionContext) => void | Promise<void>;
 }
 
-export interface ArrowNavigationItem {
+// A single rendered row of the hierarchy dropdown (renderer-facing: no element
+// reference, only what is drawn).
+export interface HierarchyItem {
   tagName: string;
   componentName?: string;
   // Indentation level within the hierarchy tree (0 = outermost ancestor).
@@ -302,18 +304,16 @@ export interface ArrowNavigationItem {
 
 // Internal hierarchy node that pairs a real DOM element with its position in
 // the rendered ancestor/sibling/child tree. The element reference is kept in
-// core (never sent to the renderer) so a clicked row can resolve back to the
-// element to select.
+// core (never sent to the renderer).
 export interface HierarchyEntry {
   element: Element;
   depth: number;
   isLast: boolean;
 }
 
-export interface ArrowNavigationState {
-  items: ArrowNavigationItem[];
+export interface HierarchyState {
+  items: HierarchyItem[];
   activeIndex: number;
-  isVisible: boolean;
 }
 
 export interface PerformWithFeedbackOptions {
@@ -507,9 +507,8 @@ export interface ReactGrabRendererProps {
   selectionComponentName?: string;
   selectionLabelVisible?: boolean;
   selectionLabelStatus?: SelectionLabelStatus;
-  selectionArrowNavigationState?: ArrowNavigationState;
+  hierarchyState?: HierarchyState;
   hierarchyMenuPosition?: DropdownAnchor | null;
-  onArrowNavigationSelect?: (index: number) => void;
   labelInstances?: SelectionLabelInstance[];
   dragVisible?: boolean;
   dragBounds?: OverlayBounds;

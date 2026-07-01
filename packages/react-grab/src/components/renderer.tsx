@@ -172,11 +172,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         onSetDefaultAction={props.onSetDefaultAction ?? (() => {})}
         onDismiss={props.onToolbarMenuDismiss ?? (() => {})}
       />
-      <HierarchyMenu
-        position={props.hierarchyMenuPosition ?? null}
-        state={props.selectionArrowNavigationState}
-        onSelect={props.onArrowNavigationSelect}
-      />
+      <HierarchyMenu position={props.hierarchyMenuPosition ?? null} state={props.hierarchyState} />
       <EditPanel
         state={props.editPanelState ?? null}
         position={props.editPanelPosition ?? null}

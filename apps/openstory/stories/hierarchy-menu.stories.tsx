@@ -1,12 +1,11 @@
 import type { Meta, StoryObj } from "openstory/solid";
 import { expect, waitFor } from "openstory/test";
 import { HierarchyMenu } from "react-grab/src/components/toolbar/hierarchy-menu.js";
-import type { ArrowNavigationState, DropdownAnchor } from "react-grab/src/types.js";
+import type { HierarchyState, DropdownAnchor } from "react-grab/src/types.js";
 import { Canvas, TargetBox } from "./target-box.js";
-import { noop } from "./noop.js";
 
 interface HierarchyMenuSceneProps {
-  state: ArrowNavigationState;
+  state: HierarchyState;
 }
 
 const ANCHOR: DropdownAnchor = { x: 220, y: 120, edge: "top" };
@@ -16,7 +15,7 @@ const meta: Meta<HierarchyMenuSceneProps> = {
   render: (args) => (
     <Canvas>
       <TargetBox />
-      <HierarchyMenu position={ANCHOR} state={args.state} onSelect={noop} />
+      <HierarchyMenu position={ANCHOR} state={args.state} />
     </Canvas>
   ),
   play: async ({ canvasElement }) => {
@@ -26,7 +25,6 @@ const meta: Meta<HierarchyMenuSceneProps> = {
   },
   args: {
     state: {
-      isVisible: true,
       activeIndex: 2,
       items: [
         { tagName: "main", componentName: "App", depth: 0, isLast: true },
@@ -48,7 +46,6 @@ export const Basic: Story = {};
 export const DeepNesting: Story = {
   args: {
     state: {
-      isVisible: true,
       activeIndex: 4,
       items: [
         { tagName: "body", depth: 0, isLast: true },

@@ -102,7 +102,7 @@ import type {
   ReactGrabState,
   SelectionLabelInstance,
   ContextMenuActionContext,
-  ArrowNavigationState,
+  HierarchyState,
   HierarchyEntry,
   FrozenLabelEntry,
   PerformWithFeedbackOptions,
@@ -853,18 +853,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return store.frozenElement;
     });
 
-    const arrowNavigationEntries = createMemo<HierarchyEntry[]>(() => {
+    const hierarchyEntries = createMemo<HierarchyEntry[]>(() => {
       const source = hierarchySourceElement();
       return source
         ? buildElementHierarchy(source, isValidGrabbableElement, isNavigableSibling)
         : [];
     });
-    const arrowNavigationElements = createMemo(() =>
-      arrowNavigationEntries().map((entry) => entry.element),
-    );
-    const arrowNavigationActiveIndex = createMemo(() => {
+    const hierarchyElements = createMemo(() => hierarchyEntries().map((entry) => entry.element));
+    const hierarchyActiveIndex = createMemo(() => {
       const source = hierarchySourceElement();
-      return source ? Math.max(0, arrowNavigationElements().indexOf(source)) : 0;
+      return source ? Math.max(0, hierarchyElements().indexOf(source)) : 0;
     });
     const hasHierarchySource = createMemo(() => hierarchySourceElement() !== null);
 
@@ -2140,14 +2138,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
-    const handleArrowNavigationSelect = (index: number) => {
-      const targetElement = arrowNavigationElements()[index];
-      if (!targetElement) return;
-
-      arrowNavigator.clearHistory();
-      selectAndFocusElement(targetElement, true);
-    };
-
     const showArrowNavigationDismissPrompt = () => {
       if (keyboardSelection.showDismissPrompt()) {
         setSelectionLabelShakeCount((count) => count + 1);
@@ -2358,8 +2348,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return true;
     };
 
-    const arrowNavigationItems = createMemo(() =>
-      arrowNavigationEntries().map((entry) => ({
+    const hierarchyItems = createMemo(() =>
+      hierarchyEntries().map((entry) => ({
         tagName: getTagName(entry.element) || "element",
         componentName: getComponentDisplayName(entry.element) ?? undefined,
         depth: entry.depth,
@@ -2367,10 +2357,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       })),
     );
 
-    const arrowNavigationState = createMemo<ArrowNavigationState>(() => ({
-      items: arrowNavigationItems(),
-      activeIndex: arrowNavigationActiveIndex(),
-      isVisible: arrowNavigationEntries().length > 0,
+    const hierarchyState = createMemo<HierarchyState>(() => ({
+      items: hierarchyItems(),
+      activeIndex: hierarchyActiveIndex(),
     }));
 
     const handleActivationKeys = (event: KeyboardEvent): void => {
@@ -2834,7 +2823,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         // beneath instead of bailing; openContextMenu clears the keyboard
         // selection once a menu opens, so nothing is torn down with no target.
         const hadPendingDismiss = keyboardSelection.isPendingDismiss();
-        if (isFromOverlay && arrowNavigationElements().length > 0) {
+        if (isFromOverlay && hierarchyElements().length > 0) {
           clearArrowNavigation();
         } else if (isFromOverlay && !overlayFrozenElement && !hadPendingDismiss) {
           return;
@@ -3699,9 +3688,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 selectionComponentName={resolvedComponentName()}
                 selectionLabelVisible={selectionLabelVisible()}
                 selectionLabelStatus="idle"
-                selectionArrowNavigationState={arrowNavigationState()}
+                hierarchyState={hierarchyState()}
                 hierarchyMenuPosition={hierarchyMenuPosition()}
-                onArrowNavigationSelect={handleArrowNavigationSelect}
                 labelInstances={computedLabelInstances()}
                 dragVisible={dragVisible()}
                 dragBounds={dragBounds()}
