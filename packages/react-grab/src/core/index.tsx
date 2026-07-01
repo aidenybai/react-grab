@@ -841,16 +841,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       () => store.frozenElement || (isFrozenPhase() ? null : targetElement()),
     );
 
-    // The hierarchy dropdown mirrors whatever element is being selected: the
-    // hovered element, or the frozen/keyboard-navigated one. It is suppressed in
-    // the modes where it would be noise or would intercept input (prompt, shift
+    // The hierarchy dropdown appears only while keyboard-navigating a frozen
+    // selection (arrow keys / Tab), not on raw hover. It is suppressed in the
+    // modes where it would be noise or would intercept input (prompt, shift
     // multi-select, copying, an open popover, or a pending mouse-handoff).
     const hierarchySourceElement = createMemo(() => {
       if (!isActivated()) return null;
       if (isPromptMode() || isShiftMultiSelecting() || isCopying()) return null;
       if (store.contextMenuPosition !== null || editMode.isOpen()) return null;
       if (keyboardSelection.isPendingDismiss()) return null;
-      return effectiveElement();
+      return store.frozenElement;
     });
 
     const arrowNavigationEntries = createMemo<HierarchyEntry[]>(() => {
@@ -2176,6 +2176,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       });
     };
 
+    // Tab / Shift+Tab mirror horizontal (sibling) navigation; arrow keys map to
+    // themselves. Any other key is not a navigation key.
+    const resolveNavigationKey = (event: KeyboardEvent): string | null => {
+      if (ARROW_KEYS.has(event.key)) return event.key;
+      if (event.key === "Tab") return event.shiftKey ? "ArrowLeft" : "ArrowRight";
+      return null;
+    };
+
     const tryHandleArrowNavigation = (
       event: KeyboardEvent,
       options: { allowPendingKeyboardSelection?: boolean } = {},
@@ -2185,7 +2193,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isShiftMultiSelecting()) return false;
       if (keyboardSelection.isPendingDismiss() && !options.allowPendingKeyboardSelection)
         return false;
-      if (!ARROW_KEYS.has(event.key)) return false;
+      const navigationKey = resolveNavigationKey(event);
+      if (!navigationKey) return false;
       if (isAnyPopoverOpen()) return false;
 
       let currentElement = effectiveElement();
@@ -2197,9 +2206,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (!currentElement) return false;
 
-      const isVertical = event.key === "ArrowUp" || event.key === "ArrowDown";
+      const isVertical = navigationKey === "ArrowUp" || navigationKey === "ArrowDown";
 
-      const nextElement = arrowNavigator.findNext(event.key, currentElement);
+      const nextElement = arrowNavigator.findNext(navigationKey, currentElement);
       // Horizontal (sibling) navigation at a boundary leaves the key
       // unconsumed so it can scroll the page; vertical navigation always
       // commits, falling back to the current element at the stack edge.
@@ -2461,11 +2470,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!keyboardSelection.isPendingDismiss()) return false;
       if (isKeyboardSelectionPromptButtonEnter(event)) return true;
 
-      const shouldHandleArrow = ARROW_KEYS.has(event.key);
+      const shouldHandleNavigation = resolveNavigationKey(event) !== null;
       const shouldHandleBareShortcut = getBareKeyShortcut(event) !== null;
-      if (!shouldHandleArrow && !shouldHandleBareShortcut) return false;
+      if (!shouldHandleNavigation && !shouldHandleBareShortcut) return false;
 
-      if (shouldHandleArrow) {
+      if (shouldHandleNavigation) {
         return tryHandleArrowNavigation(event, { allowPendingKeyboardSelection: true });
       }
 

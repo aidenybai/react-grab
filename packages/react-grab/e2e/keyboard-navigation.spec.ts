@@ -109,6 +109,32 @@ test.describe("Keyboard Navigation", () => {
     expect(labelInfo.tagName).toBe("li");
   });
 
+  test("Tab should navigate to the next sibling like ArrowRight", async ({ reactGrab }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:first-child");
+
+    await reactGrab.page.keyboard.press("Tab");
+    await reactGrab.waitForSelectionBox();
+
+    const labelInfo = await reactGrab.getSelectionLabelInfo();
+    expect(labelInfo.isVisible).toBe(true);
+    expect(labelInfo.tagName).toBe("li");
+  });
+
+  test("Shift+Tab should navigate to the previous sibling like ArrowLeft", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:nth-child(2)");
+
+    await reactGrab.page.keyboard.press("Shift+Tab");
+    await reactGrab.waitForSelectionBox();
+
+    const labelInfo = await reactGrab.getSelectionLabelInfo();
+    expect(labelInfo.isVisible).toBe(true);
+    expect(labelInfo.tagName).toBe("li");
+  });
+
   test("should maintain activation during keyboard navigation", async ({ reactGrab }) => {
     await reactGrab.activate();
     await reactGrab.hoverUntilSelected("li:first-child");
