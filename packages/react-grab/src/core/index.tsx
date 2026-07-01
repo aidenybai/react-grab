@@ -850,7 +850,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const hierarchySourceElement = createMemo(() => {
       if (!isActivated()) return null;
       if (isPromptMode() || isShiftMultiSelecting() || isCopying()) return null;
-      if (store.contextMenuPosition !== null || editMode.isOpen()) return null;
+      if (isAnyPopoverOpen()) return null;
       if (keyboardSelection.isPendingDismiss()) return null;
       return isShiftKeyHeld() ? effectiveElement() : store.frozenElement;
     });
