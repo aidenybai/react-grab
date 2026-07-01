@@ -305,6 +305,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       savedToolbarState,
     );
     const [isToolbarSelectHovered, setIsToolbarSelectHovered] = createSignal(false);
+    const [isShiftKeyHeld, setIsShiftKeyHeld] = createSignal(false);
     const [toolbarMenuPosition, setToolbarMenuPosition] = createSignal<DropdownAnchor | null>(null);
     const [editPanelPosition, setEditPanelPosition] = createSignal<DropdownAnchor | null>(null);
     const [hierarchyMenuPosition, setHierarchyMenuPosition] = createSignal<DropdownAnchor | null>(
@@ -841,16 +842,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       () => store.frozenElement || (isFrozenPhase() ? null : targetElement()),
     );
 
-    // The hierarchy dropdown appears only while keyboard-navigating a frozen
-    // selection (arrow keys / Tab), not on raw hover. It is suppressed in the
-    // modes where it would be noise or would intercept input (prompt, shift
+    // The hierarchy dropdown appears while keyboard-navigating a frozen
+    // selection (arrow keys / Tab), and — for on-demand inspection — for the
+    // hovered element whenever Shift is held. It is suppressed in the modes
+    // where it would be noise or would intercept input (prompt, shift
     // multi-select, copying, an open popover, or a pending mouse-handoff).
     const hierarchySourceElement = createMemo(() => {
       if (!isActivated()) return null;
       if (isPromptMode() || isShiftMultiSelecting() || isCopying()) return null;
       if (store.contextMenuPosition !== null || editMode.isOpen()) return null;
       if (keyboardSelection.isPendingDismiss()) return null;
-      return store.frozenElement;
+      return isShiftKeyHeld() ? effectiveElement() : store.frozenElement;
     });
 
     const hierarchyEntries = createMemo<HierarchyEntry[]>(() => {
@@ -2478,6 +2480,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     eventListenerManager.addWindowListener(
       "keydown",
       (event: KeyboardEvent) => {
+        setIsShiftKeyHeld(event.shiftKey);
         if (tryHandleKeyboardSelectionPromptPassThrough(event)) return;
 
         blockEnterIfNeeded(event);
@@ -2572,6 +2575,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     eventListenerManager.addWindowListener(
       "keyup",
       (event: KeyboardEvent) => {
+        setIsShiftKeyHeld(event.shiftKey);
         if (blockEnterIfNeeded(event)) return;
 
         if (isSpaceActivationKey(event) && isDragRepositioning()) {
@@ -2915,6 +2919,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     // the window loses focus) but do not deactivate if already active, since
     // the user may alt-tab back.
     eventListenerManager.addWindowListener("blur", () => {
+      setIsShiftKeyHeld(false);
       cancelActiveDrag();
       if (isHoldingKeys()) {
         clearHoldTimer();
