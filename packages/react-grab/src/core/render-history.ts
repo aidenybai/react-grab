@@ -32,6 +32,23 @@ let isRecording = false;
 // so the handler stays a single monomorphic function (no per-commit closure).
 let pendingFibers: HistoryFiberChange[] = [];
 
+// Records a change only when the two renders format differently. Objects and
+// arrays get a new identity on nearly every render (inline literals), so an
+// identity-only diff whose readable value is unchanged is pure noise and is
+// dropped rather than shown as a confusing "X → X" row.
+const pushChange = (
+  changes: HistoryChange[],
+  kind: HistoryChange["kind"],
+  label: string,
+  prevValue: unknown,
+  nextValue: unknown,
+): void => {
+  const prev = formatHistoryValue(prevValue);
+  const next = formatHistoryValue(nextValue);
+  if (prev === next) return;
+  changes.push({ kind, label, prev, next });
+};
+
 const captureFiberChanges = (fiber: Fiber): HistoryChange[] => {
   const changes: HistoryChange[] = [];
 
@@ -39,12 +56,7 @@ const captureFiberChanges = (fiber: Fiber): HistoryChange[] => {
     if (changes.length >= HISTORY_MAX_CHANGES_PER_FIBER) return true;
     if (propName === "children") return;
     if (Object.is(nextValue, prevValue)) return;
-    changes.push({
-      kind: "props",
-      label: propName,
-      prev: formatHistoryValue(prevValue),
-      next: formatHistoryValue(nextValue),
-    });
+    pushChange(changes, "props", propName, prevValue, nextValue);
   });
 
   // Only useState/useReducer hooks carry an update `queue`; useMemo/useRef/
@@ -58,12 +70,13 @@ const captureFiberChanges = (fiber: Fiber): HistoryChange[] => {
     stateIndex += 1;
     if (!prevNode) return;
     if (Object.is(nextNode.memoizedState, prevNode.memoizedState)) return;
-    changes.push({
-      kind: "state",
-      label: `state ${currentStateIndex}`,
-      prev: formatHistoryValue(prevNode.memoizedState),
-      next: formatHistoryValue(nextNode.memoizedState),
-    });
+    pushChange(
+      changes,
+      "state",
+      `state ${currentStateIndex}`,
+      prevNode.memoizedState,
+      nextNode.memoizedState,
+    );
   });
 
   return changes;
