@@ -2459,11 +2459,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!keyboardSelection.isPendingDismiss()) return false;
       if (isKeyboardSelectionPromptButtonEnter(event)) return true;
 
-      const shouldHandleNavigation = resolveNavigationKey(event) !== null;
+      // Only arrows continue navigation through the discard prompt; Tab/Shift+Tab
+      // are left to native focus traversal so the prompt's Copy/Discard buttons
+      // stay keyboard-reachable.
+      const shouldHandleArrow = ARROW_KEYS.has(event.key);
       const shouldHandleBareShortcut = getBareKeyShortcut(event) !== null;
-      if (!shouldHandleNavigation && !shouldHandleBareShortcut) return false;
+      if (!shouldHandleArrow && !shouldHandleBareShortcut) return false;
 
-      if (shouldHandleNavigation) {
+      if (shouldHandleArrow) {
         return tryHandleArrowNavigation(event, { allowPendingKeyboardSelection: true });
       }
 
@@ -2820,14 +2823,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         // A right-click is an explicit pick. When it lands on a grab overlay
         // (hierarchy menu, or the keyboard-selection discard prompt that sits on
         // the cursor) mid navigation, fall through to resolve the page element
-        // beneath instead of bailing; openContextMenu clears the keyboard
-        // selection once a menu opens, so nothing is torn down with no target.
+        // beneath instead of bailing. Keyboard-selection state is only cleared
+        // later by openContextMenu, once a real target is confirmed, so nothing
+        // is torn down when no element resolves.
         const hadPendingDismiss = keyboardSelection.isPendingDismiss();
-        if (isFromOverlay && hierarchyElements().length > 0) {
-          clearArrowNavigation();
-        } else if (isFromOverlay && !overlayFrozenElement && !hadPendingDismiss) {
-          return;
-        }
+        const isBareOverlayRightClick =
+          isFromOverlay &&
+          !overlayFrozenElement &&
+          !hadPendingDismiss &&
+          hierarchyElements().length === 0;
+        if (isBareOverlayRightClick) return;
 
         if (isModalPopoverOpen()) {
           event.preventDefault();
