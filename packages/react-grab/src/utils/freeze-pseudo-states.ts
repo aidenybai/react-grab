@@ -25,7 +25,7 @@ const FOCUS_EVENTS_TO_BLOCK = ["focus", "blur", "focusin", "focusout"] as const;
 // Before disabling pointer-events we snapshot current :hover and :focus computed
 // values (background-color, box-shadow, opacity, etc.) onto inline styles so
 // elements keep their visual state (e.g. a hovered button stays highlighted).
-const HOVER_STYLE_PROPERTIES = [
+export const HOVER_STYLE_PROPERTIES = [
   "background-color",
   "color",
   "border-color",
@@ -38,7 +38,7 @@ const HOVER_STYLE_PROPERTIES = [
   "visibility",
 ] as const;
 
-const FOCUS_STYLE_PROPERTIES = [
+export const FOCUS_STYLE_PROPERTIES = [
   "background-color",
   "color",
   "border-color",
@@ -119,7 +119,7 @@ const collectHoveredElements = (cursorX: number, cursorY: number): HTMLElement[]
   return hoveredElements;
 };
 
-const collectFocusedElements = (): HTMLElement[] => {
+export const collectFocusedElements = (): HTMLElement[] => {
   const focusedElements: HTMLElement[] = [];
   let current: Element | null = document.activeElement;
   while (current && current !== document.body) {

@@ -158,6 +158,21 @@ export interface ActionContext {
 export interface ContextMenuActionContext extends ActionContext {
   copy?: () => void;
   enterEditMode?: () => void;
+  enterTimeMachine?: () => void;
+}
+
+export interface TimeMachineTimelineEntry {
+  id: number;
+  componentName: string;
+  changeCount: number;
+  timestamp: number;
+}
+
+export interface TimeMachinePanelState {
+  element?: Element;
+  position: Position;
+  componentName?: string;
+  tagName?: string;
 }
 
 interface EditablePropertyBase {
@@ -595,6 +610,12 @@ export interface ReactGrabRendererProps {
   onEditPanelSubmit?: (pendingEdits: PendingEdits) => void;
   onEditPanelPendingEditsChange?: (pendingEdits: PendingEdits) => void;
   onEditPanelInteractingChange?: (interacting: boolean) => void;
+  timeMachineState?: TimeMachinePanelState | null;
+  timeMachinePosition?: DropdownAnchor | null;
+  timeMachineEntries?: TimeMachineTimelineEntry[];
+  timeMachineCursor?: number;
+  onTimeMachineTravel?: (cursor: number) => void;
+  onTimeMachineDismiss?: () => void;
 }
 
 export interface GrabbedBox {
