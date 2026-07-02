@@ -2190,6 +2190,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return false;
       const navigationKey = resolveNavigationKey(event);
       if (!navigationKey) return false;
+      // Never hijack arrows/Tab from an editable control, regardless of caller
+      // (the discard-prompt pass-through and overlay paths reach here before the
+      // main keydown's editable-control guard).
+      if (isKeyboardEventTriggeredByInput(event)) return false;
       if (isAnyPopoverOpen()) return false;
 
       let currentElement = effectiveElement();
