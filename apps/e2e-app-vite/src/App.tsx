@@ -1,5 +1,11 @@
-import { useState, useRef, useEffect } from "react";
+import { lazy, Suspense, useState, useRef, useEffect } from "react";
 import { PerfGrid } from "./perf-grid";
+
+// Lazy + gated so the always-on dials demo never bundles into the default app:
+// it would otherwise statically import react-grab/react (a PR-only export the
+// perf baseline build cannot resolve) and overlap the selection prompt other
+// specs click. Open `/?dials` to preview the multi-hook layout.
+const DialsDemo = lazy(() => import("./dials-demo"));
 
 interface Todo {
   id: number;
@@ -658,6 +664,15 @@ const usePerfGridConfig = (): { rowCount: number; columnCount: number } | null =
   };
 };
 
+// The dials demo renders an always-on, toolbar-anchored panel that overlaps the
+// selection copy/discard prompt other specs click. Gate it behind `?dials` so the
+// default page (every existing spec) stays overlay-free; open `/?dials` to preview.
+const useDialsDemoEnabled = (): boolean => {
+  if (typeof window === "undefined") return false;
+  const value = new URLSearchParams(window.location.search).get("dials");
+  return value !== null && value !== "0" && value !== "false";
+};
+
 // Replicates the Radix/modal-library pattern of setting `body { pointer-events:
 // none }` while open (re-enabling it only on the popover). react-grab must still
 // hit-test page content outside the popover; this fixture guards that
@@ -704,6 +719,7 @@ const PointerEventsModalSection = () => {
 
 export default function App() {
   const perfConfig = usePerfGridConfig();
+  const dialsDemoEnabled = useDialsDemoEnabled();
 
   if (perfConfig) {
     return <PerfGrid rowCount={perfConfig.rowCount} columnCount={perfConfig.columnCount} />;
@@ -727,6 +743,12 @@ export default function App() {
           Comprehensive test page for E2E testing
         </p>
       </header>
+
+      {dialsDemoEnabled && (
+        <Suspense fallback={null}>
+          <DialsDemo />
+        </Suspense>
+      )}
 
       <TodoList />
 

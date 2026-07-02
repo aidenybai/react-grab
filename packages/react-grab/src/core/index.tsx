@@ -112,6 +112,7 @@ import type {
   ElementLabelVariant,
 } from "../types.js";
 import { createEditModeController, type EditModeOverrides } from "./edit-mode.js";
+import { createDialsRegistry } from "./dials-registry.js";
 import { createPluginRegistry } from "./plugin-registry.js";
 import { createLabelController } from "./label-controller.js";
 import { createArrowNavigator } from "./arrow-navigation.js";
@@ -290,6 +291,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [isToolbarSelectHovered, setIsToolbarSelectHovered] = createSignal(false);
     const [toolbarMenuPosition, setToolbarMenuPosition] = createSignal<DropdownAnchor | null>(null);
     const [editPanelPosition, setEditPanelPosition] = createSignal<DropdownAnchor | null>(null);
+    const [dialsPanelPosition, setDialsPanelPosition] = createSignal<DropdownAnchor | null>(null);
+    const [isDialsPanelOpen, setIsDialsPanelOpen] = createSignal(true);
+    const [isToolbarFadedIn, setIsToolbarFadedIn] = createSignal(false);
+    const dialsRegistry = createDialsRegistry();
+    let stopDialsPanelTracking: (() => void) | null = null;
     // Forward-ref wrappers because activateRenderer / deactivateRenderer /
     // performCopyWithLabel are declared later in this scope. The wrappers
     // are captured by the controller; the underlying lookups happen at
@@ -1533,6 +1539,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleActivateAction = (actionId: string) => {
+      // The Style button doubles as the dials panel toggle whenever a
+      // useReactGrab() panel is registered, so the dials live under the
+      // same affordance as element styling.
+      if (actionId === EDIT_ACTION_ID && dialsRegistry.store.panels.length > 0) {
+        setIsDialsPanelOpen((open) => !open);
+        return;
+      }
       if (isActivated()) {
         // While still choosing an element, clicking a different action switches
         // the pending action in place instead of tearing down selection mode;
@@ -3582,6 +3595,44 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       updateToolbarState({ defaultAction: actionId });
     };
 
+    const handleDialsPanelDismiss = () => {
+      setIsDialsPanelOpen(false);
+    };
+
+    // The dials panel is non-modal and anchors to the toolbar like the other
+    // dropdowns, but it stays open on load instead of being triggered by a
+    // grab. It yields whenever a modal popover (edit/context/toolbar menu)
+    // takes over the same anchor.
+    const shouldShowDialsPanel = createMemo(
+      () =>
+        isDialsPanelOpen() &&
+        isToolbarFadedIn() &&
+        dialsRegistry.store.panels.length > 0 &&
+        isEnabled() &&
+        !editMode.isOpen() &&
+        store.contextMenuPosition === null &&
+        toolbarMenuPosition() === null,
+    );
+
+    createEffect(() => {
+      if (shouldShowDialsPanel()) {
+        if (!stopDialsPanelTracking) {
+          stopDialsPanelTracking = trackDropdownPosition(
+            computeDropdownAnchor,
+            setDialsPanelPosition,
+          );
+        }
+      } else {
+        stopDialsPanelTracking?.();
+        stopDialsPanelTracking = null;
+        setDialsPanelPosition(null);
+      }
+    });
+    onCleanup(() => {
+      stopDialsPanelTracking?.();
+      stopDialsPanelTracking = null;
+    });
+
     const handleShowContextMenuInstance = (instanceId: string) => {
       const instance = store.labelInstances.find(
         (labelInstance) => labelInstance.id === instanceId,
@@ -3732,6 +3783,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 defaultActionId={currentToolbarState()?.defaultAction ?? DEFAULT_ACTION_ID}
                 onSetDefaultAction={handleSetDefaultAction}
                 onToggleToolbarMenu={handleToggleToolbarMenu}
+                onToolbarFadeInComplete={() => setIsToolbarFadedIn(true)}
                 onToolbarMenuDismiss={dismissToolbarMenu}
                 editPanelState={editMode.state()}
                 editPanelPosition={editPanelPosition()}
@@ -3739,6 +3791,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 onEditPanelSubmit={editMode.submit}
                 onEditPanelPendingEditsChange={editMode.setPendingEdits}
                 onEditPanelInteractingChange={editMode.setInteracting}
+                dialsPanels={dialsRegistry.store.panels}
+                dialsPanelPosition={dialsPanelPosition()}
+                onDialCommit={dialsRegistry.setValue}
+                onDialTriggerAction={dialsRegistry.triggerAction}
+                onDialsPanelDismiss={handleDialsPanelDismiss}
               />
             );
           }, rendererRoot);
@@ -3861,6 +3918,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
       getPlugins: () => pluginRegistry.getPluginNames(),
       getDisplayName: getComponentDisplayName,
+      registerDials: (panel) => {
+        const isNewPanel = dialsRegistry.getValues(panel.id) === null;
+        const dispose = dialsRegistry.register(panel);
+        // Only auto-open on first registration; a config/name change re-registers
+        // the same panel and must not reopen one the user explicitly dismissed.
+        if (isNewPanel) setIsDialsPanelOpen(true);
+        return dispose;
+      },
+      updateDialValue: dialsRegistry.setValue,
+      updateDialValues: dialsRegistry.setValues,
+      resetDials: dialsRegistry.reset,
+      getDialValues: dialsRegistry.getValues,
+      subscribeDials: dialsRegistry.subscribe,
     };
 
     for (const plugin of builtInPlugins) {

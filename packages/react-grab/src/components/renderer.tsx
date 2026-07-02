@@ -14,6 +14,7 @@ import { SelectionLabel } from "./selection-label/index.js";
 import { Toolbar } from "./toolbar/index.js";
 import { ContextMenu } from "./context-menu.js";
 import { EditPanel } from "./edit-panel/index.js";
+import { DialsPanel } from "./dials-panel/index.js";
 import { ToolbarMenu } from "./toolbar/toolbar-menu.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
@@ -153,6 +154,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           onSelectHoverChange={props.onToolbarSelectHoverChange}
           onContainerRef={props.onToolbarRef}
           onToggleToolbarMenu={props.onToggleToolbarMenu}
+          onFadeInComplete={props.onToolbarFadeInComplete}
         />
       </Show>
       <ContextMenu
@@ -180,6 +182,14 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         onSubmit={props.onEditPanelSubmit ?? (() => {})}
         onPendingEditsChange={props.onEditPanelPendingEditsChange}
         onInteractingChange={props.onEditPanelInteractingChange}
+      />
+      <DialsPanel
+        panels={props.dialsPanels ?? []}
+        position={props.dialsPanelPosition ?? null}
+        onCommit={props.onDialCommit ?? (() => {})}
+        onTriggerAction={props.onDialTriggerAction ?? (() => {})}
+        onInteract={() => {}}
+        onDismiss={props.onDialsPanelDismiss ?? (() => {})}
       />
     </>
   );
