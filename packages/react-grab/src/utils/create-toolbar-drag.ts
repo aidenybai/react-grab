@@ -3,6 +3,7 @@ import type { Position } from "../types.js";
 import type { SnapEdge } from "../components/toolbar/state.js";
 import { TOOLBAR_DRAG_THRESHOLD_PX, TOOLBAR_SNAP_ANIMATION_DURATION_MS } from "../constants.js";
 import { nativeRequestAnimationFrame } from "./native-raf.js";
+import { ignoreRealInput } from "./runtime-mode.js";
 import {
   getRatioFromPosition,
   getPositionFromEdgeAndRatio,
@@ -143,7 +144,7 @@ export const createToolbarDrag = (config: ToolbarDragConfig): ToolbarDragResult 
     });
   };
 
-  const handlePointerDown = (event: PointerEvent) => {
+  const handlePointerDown = ignoreRealInput((event: PointerEvent) => {
     if (event.button !== 0) return;
     if (config.isCollapsed()) return;
 
@@ -172,7 +173,7 @@ export const createToolbarDrag = (config: ToolbarDragConfig): ToolbarDragResult 
     window.addEventListener("pointermove", handleWindowPointerMove, { signal });
     window.addEventListener("pointerup", handleWindowPointerUp, { signal });
     window.addEventListener("pointercancel", handleWindowPointerUp, { signal });
-  };
+  });
 
   const createDragAwareHandler = (callback: () => void) => (event: MouseEvent) => {
     event.stopImmediatePropagation();

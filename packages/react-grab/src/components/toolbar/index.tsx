@@ -27,6 +27,8 @@ import {
 } from "../../utils/freeze-global-interactions.js";
 import { ToolbarContent } from "./toolbar-content.js";
 import { getVisualViewport } from "../../utils/get-visual-viewport.js";
+import { getScopeContainer, ignoreRealInput } from "../../utils/runtime-mode.js";
+import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "../../utils/native-raf.js";
 import {
   calculateExpandedPositionFromCollapsed,
   getCollapsedDimsForEdge,
@@ -216,7 +218,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           return;
         }
 
-        const handlePointerMove = (event: PointerEvent | MouseEvent) => {
+        const handlePointerMove = ignoreRealInput((event: PointerEvent | MouseEvent) => {
           if (!selectButtonRef) return;
           const rect = selectButtonRef.getBoundingClientRect();
           const centerX = rect.left + rect.width / 2;
@@ -229,7 +231,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           setSelectIconRotationDeg((previousRotationDeg) =>
             accumulateRotationDeg(previousRotationDeg, desiredRotationDeg),
           );
-        };
+        });
 
         window.addEventListener("pointermove", handlePointerMove, { passive: true });
         onCleanup(() => {
@@ -384,6 +386,22 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     setPosition(getPositionFromEdgeAndRatio(snapEdge(), positionRatio(), newWidth, newHeight));
   };
 
+  // In scoped mode the toolbar is anchored to a container whose viewport box
+  // moves as the page scrolls, so it must re-anchor on scroll. Repositioning
+  // only (no ratio/resize dance) keeps it glued to the container edge.
+  // rAF-coalesced: scroll events fire per frame (and from every nested
+  // scroller, since the listener captures), but one reposition per frame is
+  // all the anchor needs.
+  let scopedScrollFrameId: number | null = null;
+  const handleScopedScroll = () => {
+    if (drag.isDragging() || drag.isSnapping()) return;
+    if (scopedScrollFrameId !== null) return;
+    scopedScrollFrameId = nativeRequestAnimationFrame(() => {
+      scopedScrollFrameId = null;
+      recalculatePosition();
+    });
+  };
+
   const handleResize = () => {
     if (drag.isDragging()) return;
 
@@ -522,6 +540,23 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     window.addEventListener("resize", handleResize);
     window.visualViewport?.addEventListener("resize", handleResize);
     window.visualViewport?.addEventListener("scroll", handleResize);
+    // Scoped re-anchoring only matters when init() was given a container
+    // (`container` is public library API, not demo-only); unscoped pages —
+    // the normal case — register nothing and pay nothing on scroll. The scope
+    // is init-only and set before the renderer mounts, so checking once here
+    // (and in the matching cleanup) is stable.
+    const scopeContainer = getScopeContainer();
+    if (scopeContainer) {
+      window.addEventListener("scroll", handleScopedScroll, { passive: true, capture: true });
+      // The container's box is the toolbar's viewport, so a layout-only
+      // container resize (e.g. a responsive aspect-ratio change) must
+      // re-anchor just like a scroll does.
+      if (typeof ResizeObserver !== "undefined") {
+        const scopeResizeObserver = new ResizeObserver(handleScopedScroll);
+        scopeResizeObserver.observe(scopeContainer);
+        onCleanup(() => scopeResizeObserver.disconnect());
+      }
+    }
 
     if (typeof ResizeObserver !== "undefined" && containerRef) {
       const observer = new ResizeObserver((entries) => {
@@ -563,6 +598,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     window.removeEventListener("resize", handleResize);
     window.visualViewport?.removeEventListener("resize", handleResize);
     window.visualViewport?.removeEventListener("scroll", handleResize);
+    // Unconditional: removing a never-added listener is a no-op, and the scope
+    // singleton may already be cleared by init's own cleanup at this point.
+    window.removeEventListener("scroll", handleScopedScroll, { capture: true });
+    if (scopedScrollFrameId !== null) nativeCancelAnimationFrame(scopedScrollFrameId);
     clearTimeout(resizeTimeout);
     clearTimeout(collapseAnimationTimeout);
 

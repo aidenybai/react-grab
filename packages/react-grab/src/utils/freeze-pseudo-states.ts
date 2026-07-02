@@ -1,4 +1,5 @@
 import { clearElementPositionCache } from "./get-element-at-position.js";
+import { IS_DEMO } from "./runtime-mode.js";
 import {
   installPointerEventsFreeze,
   isPointerEventsFreezeInstalled,
@@ -170,6 +171,9 @@ export const collectPseudoStates = (
   cursorX?: number,
   cursorY?: number,
 ): PseudoFreezeSnapshot | null => {
+  // Demo mode is display-only and must never freeze (or force a style flush
+  // on) the host page. applyPseudoStates bails on the null snapshot.
+  if (IS_DEMO) return null;
   if (isPointerEventsFreezeInstalled()) return null;
 
   const hoverStates: FrozenPseudoState[] = [];

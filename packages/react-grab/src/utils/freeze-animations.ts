@@ -1,6 +1,7 @@
 import { FROZEN_ELEMENT_ATTRIBUTE, WAAPI_GLOBAL_FREEZE_MAX_ANIMATIONS } from "../constants.js";
 import { createStyleElement } from "./create-style-element.js";
 import { freezeGsap, unfreezeGsap } from "./freeze-gsap.js";
+import { IS_DEMO } from "./runtime-mode.js";
 
 const FROZEN_STYLES = `
 [${FROZEN_ELEMENT_ATTRIBUTE}],
@@ -131,6 +132,7 @@ const isShadowAnimation = (animation: Animation): boolean => {
 };
 
 export const freezeAllAnimations = (elements: Element[]): void => {
+  if (IS_DEMO) return;
   if (elements.length === 0) return;
   if (areElementsSame(elements, lastInputElements)) return;
 
@@ -173,6 +175,7 @@ const unfreezeAllAnimations = (): void => {
 };
 
 export const freezeAnimations = (elements: Element[]): (() => void) => {
+  if (IS_DEMO) return () => {};
   if (elements.length === 0) {
     unfreezeAllAnimations();
     return () => {};
@@ -187,6 +190,9 @@ export const freezeAnimations = (elements: Element[]): (() => void) => {
 // injected just before it triggers a second full-document recalc (profiled at
 // ~59ms on a large app even when it returns zero animations).
 export const collectGlobalAnimationsToFreeze = (): Animation[] => {
+  // Demo mode is display-only and must never freeze (or force a style flush
+  // on) the host page.
+  if (IS_DEMO) return [];
   if (globalAnimationStyleElement) return [];
   const runningAnimations: Animation[] = [];
   for (const animation of document.getAnimations()) {
@@ -199,6 +205,7 @@ export const collectGlobalAnimationsToFreeze = (): Animation[] => {
 // WRITE phase. Pure DOM writes (marker element, animation pause, SVG/GSAP) — no
 // layout reads, so it never forces a recalc on its own.
 export const applyGlobalAnimationFreeze = (runningAnimations: Animation[]): void => {
+  if (IS_DEMO) return;
   if (globalAnimationStyleElement) return;
 
   // Marker element; also carries the `*` freeze rule on the CSS path below. Its

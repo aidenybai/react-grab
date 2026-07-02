@@ -1,290 +1,286 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
 
-html,
-body {
-  min-height: 100vh;
-  overflow-x: clip;
+/*
+ * React Grab shares the "Paper" editorial design language of react-bench and
+ * million.dev: a canvas/card surface, hairline rules, an ink→prose→faint ink
+ * ramp, an editorial-orange brand accent, and the licensed trial type families
+ * (EK Baumer Uniwidth sans, Test Signifier serif, GT Mechanik data/numeric,
+ * Geist Mono). shadcn's neutral tokens below are remapped onto this palette so
+ * the shadcn primitives inherit the same look instead of a second gray scale.
+ */
+@theme {
+  /* Surfaces */
+  --color-canvas: color(display-p3 0.98026 0.98026 0.98026);
+  --color-line: color(display-p3 0.8954 0.8954 0.8954);
+  --color-hairline: #e1e1e1;
+
+  /* Ink ramp */
+  --color-ink: #0a0a0a;
+  --color-title: #242424;
+  --color-label: #2a2a2a;
+  --color-prose: #616161;
+  --color-meta: #484848;
+  --color-faint: #9a9a9a;
+
+  /* Inline code chip */
+  --color-code: #ededed;
+  --color-code-ink: #3d3d3d;
+
+  /* Editorial-orange brand accent (chroma-balanced for the light background) */
+  --color-brand: color(display-p3 0.90663 0.41591 0.13661);
+
+  /* Type families — the licensed trial fonts declared via @font-face below.
+     sans  = editorial body, nav, chrome  (EK Baumer Uniwidth)
+     serif = display title, headings      (Test Signifier)
+     mono  = eyebrows, code, chrome        (Geist Mono) */
+  --font-heading: "Test Signifier", Georgia, "Times New Roman", serif;
+  --font-sans: "EK Baumer Uniwidth", var(--font-geist-sans), system-ui, sans-serif;
+  --font-serif: "Test Signifier", Georgia, "Times New Roman", serif;
+  --font-mono: var(--font-geist-mono), "Geist Mono Fallback", ui-monospace, monospace;
+
+  /* Type scale (font-size / line-height pairs) */
+  --text-eyebrow: 12px;
+  --text-eyebrow--line-height: 25px;
+  --text-body: 15px;
+  --text-body--line-height: 24px;
+  --text-h3: 16px;
+  --text-h3--line-height: 25px;
+  --text-h2: 22px;
+  --text-h2--line-height: 1.2;
+  --text-display: 39px;
+  --text-display--line-height: 1.05;
 }
 
-@keyframes shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
-}
-
-.shimmer-text {
-  background: linear-gradient(
-    90deg,
-    #818181 0%,
-    #818181 35%,
-    #ffffff 50%,
-    #818181 65%,
-    #818181 100%
-  );
-  background-size: 150% 100%;
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: shimmer 1s ease-in-out infinite;
-}
-
-.shimmer-text-pink {
-  background: linear-gradient(
-    90deg,
-    #f973ff 0%,
-    #ffb3ff 25%,
-    #ffe6ff 50%,
-    #ffb3ff 75%,
-    #f973ff 100%
-  );
-  background-size: 200% 100%;
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: shimmer 2.5s linear infinite;
-}
-
-@keyframes logo-shimmer {
-  0% {
-    filter: drop-shadow(0 0 0 rgba(252, 78, 253, 0));
-    transform: scale(1);
-  }
-  50% {
-    filter: drop-shadow(0 0 16px rgba(252, 78, 253, 0.9));
-    transform: scale(1.04);
-  }
-  100% {
-    filter: drop-shadow(0 0 0 rgba(252, 78, 253, 0));
-    transform: scale(1);
-  }
-}
-
-.logo-shimmer-once {
-  animation: logo-shimmer 0.9s ease-out;
-  will-change: transform, filter;
-  transform-origin: center;
-  backface-visibility: hidden;
-  transform: translateZ(0);
-}
-
-@keyframes arrow-bounce {
-  0%,
-  100% {
-    transform: translate(0, 0);
-  }
-  50% {
-    transform: translate(25px, 25px);
-  }
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .logo-shimmer-once:hover {
-    animation: logo-shimmer 0.9s ease-out;
-  }
-
-  .react-grab-logo:hover .react-grab-arrow {
-    animation: arrow-bounce var(--arrow-animation-duration, 400ms) ease-in-out infinite;
-  }
-}
-
-::selection {
-  background: #d75fcb33;
-  color: #d75fcb;
-}
-
-::-moz-selection {
-  background: #d75fcb33;
-  color: #d75fcb;
-}
-
-.highlighted-code .line-changed {
-  background-color: rgba(34, 197, 94, 0.15);
-  border-left: 1px solid rgb(34, 197, 94, 0.75);
-  padding-left: 0.5rem;
-  display: inline-block;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-* {
-  scrollbar-width: thin;
-  scrollbar-color: oklch(0.3 0 0) oklch(0 0 0);
-}
-
-.dark *::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-.dark *::-webkit-scrollbar-track {
-  background: oklch(0 0 0);
-}
-
-.dark *::-webkit-scrollbar-thumb {
-  background-color: oklch(0.3 0 0);
-  border-radius: 4px;
-}
-
-.dark *::-webkit-scrollbar-thumb:hover {
-  background-color: oklch(0.4 0 0);
-}
-
+/* shadcn semantic tokens → Paper palette. Everything references --color-*
+   (defined above and flipped under .dark) so the shadcn primitives track the
+   editorial theme with the light/dark toggle. */
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
+  --color-link: var(--link);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --color-selection: var(--selection);
+  --color-selection-foreground: var(--selection-foreground);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --radius: 0.5rem;
+
+  --background: var(--color-canvas);
+  --foreground: var(--color-prose);
+  --card: var(--color-canvas);
+  --card-foreground: var(--color-ink);
+  --popover: var(--color-canvas);
+  --popover-foreground: var(--color-ink);
+  --primary: var(--color-ink);
+  --primary-foreground: var(--color-canvas);
+  --secondary: color(display-p3 0.955 0.955 0.955);
+  --secondary-foreground: var(--color-ink);
+  --muted: color(display-p3 0.955 0.955 0.955);
+  --muted-foreground: var(--color-meta);
+  --accent: color(display-p3 0.955 0.955 0.955);
+  --accent-foreground: var(--color-ink);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --border: var(--color-line);
+  --input: var(--color-line);
+  --ring: var(--color-faint);
+  --chart-1: var(--color-brand);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: var(--color-canvas);
+  --sidebar-foreground: var(--color-prose);
+  --sidebar-primary: var(--color-ink);
+  --sidebar-primary-foreground: var(--color-canvas);
+  --sidebar-accent: color(display-p3 0.955 0.955 0.955);
+  --sidebar-accent-foreground: var(--color-ink);
+  --sidebar-border: var(--color-line);
+  --sidebar-ring: var(--color-faint);
+
+  --link: var(--color-brand);
+  --selection: var(--color-ink);
+  --selection-foreground: var(--color-canvas);
 }
 
+/*
+ * Dark theme. Overrides the Paper --color-* tokens (which the shadcn tokens
+ * above reference), so a single .dark class flips both systems. Values are the
+ * original dark Paper export.
+ */
 .dark {
-  --background: oklch(0 0 0);
-  --foreground: oklch(1 0 0);
-  --card: oklch(0.159 0 0);
-  --card-foreground: oklch(1 0 0);
-  --popover: oklch(0.218 0 0);
-  --popover-foreground: oklch(1 0 0);
-  --primary: oklch(1 0 0);
-  --primary-foreground: oklch(0 0 0);
-  --secondary: oklch(0.218 0 0);
-  --secondary-foreground: oklch(1 0 0);
-  --muted: oklch(0.218 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.248 0 0);
-  --accent-foreground: oklch(1 0 0);
+  --color-canvas: color(display-p3 0.054 0.054 0.054);
+  --color-line: color(display-p3 0.106 0.106 0.106);
+  --color-hairline: #1d1d1d;
+
+  --color-ink: #e8e8e8;
+  --color-title: #c6c6c6;
+  --color-label: #bfbfbf;
+  --color-prose: #848484;
+  --color-meta: #9d9d9d;
+  --color-faint: #515151;
+
+  --color-code: #282828;
+  --color-code-ink: #b4b4b4;
+
+  --color-brand: color(display-p3 1 0.514 0.261);
+
+  --secondary: color(display-p3 0.14 0.14 0.14);
+  --muted: color(display-p3 0.14 0.14 0.14);
+  --accent: color(display-p3 0.14 0.14 0.14);
+  --accent-foreground: var(--color-ink);
+  --secondary-foreground: var(--color-ink);
+  --sidebar-accent: color(display-p3 0.14 0.14 0.14);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 12%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.159 0 0);
-  --sidebar-foreground: oklch(1 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.218 0 0);
-  --sidebar-accent-foreground: oklch(1 0 0);
-  --sidebar-border: oklch(1 0 0 / 12%);
-  --sidebar-ring: oklch(0.556 0 0);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
+/* Licensed trial fonts ported from the Paper design. */
+@font-face {
+  font-family: "EK Baumer Uniwidth";
+  src: url("/fonts/ekbaumeruniwidthtrial-regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
 }
-
-.touch-hitbox {
-  position: relative;
+@font-face {
+  font-family: "EK Baumer Uniwidth";
+  src: url("/fonts/ekbaumeruniwidthtrial-medium.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
 }
-
-.touch-hitbox::before {
-  content: "";
-  position: absolute;
-  display: block;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 100%;
-  height: 100%;
-  min-height: 44px;
-  min-width: 44px;
+@font-face {
+  font-family: "Test Signifier";
+  src: url("/fonts/test-signifier-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Test Signifier";
+  src: url("/fonts/test-signifier-medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Test Signifier";
+  src: url("/fonts/test-signifier-regular-italic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  /* Kill the elastic rubber-band: overscroll bounce transiently offsets the
+     viewport, which desyncs React Grab's viewport-space hover tracking in the
+     demo. Set on both html and body so the viewport picks it up. */
+  html,
+  body {
+    overscroll-behavior: none;
+  }
+  html {
+    @apply font-sans;
+    scroll-behavior: smooth;
+  }
   body {
     @apply bg-background text-foreground;
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    font-synthesis: none;
+    -webkit-font-smoothing: antialiased;
   }
-  button:not(:disabled),
-  [role="button"]:not(:disabled) {
-    cursor: pointer;
+  /* Inverted highlight — near-foreground fill, near-background text. Token-driven
+     so it flips with the theme. */
+  ::selection {
+    background: var(--selection);
+    color: var(--selection-foreground);
+  }
+  ::-moz-selection {
+    background: var(--selection);
+    color: var(--selection-foreground);
   }
 }
 
-[data-react-grab] {
-  @media (max-width: 767px) {
-    display: none !important;
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Diagonal hairline hatch — a faint "instrument panel" texture used behind the
+   masthead and footer. The stroke color is supplied via --line. */
+.paper-hatch {
+  --line: var(--color-hairline);
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--line) 0,
+    var(--line) 1px,
+    transparent 1px,
+    transparent 7px
+  );
+}
+
+/* Page entrance: the main content fades in on first paint. */
+.page-fade-in {
+  animation: page-fade-in 120ms ease-out both;
+}
+
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-fade-in {
+    animation: none;
+    opacity: 1;
   }
 }

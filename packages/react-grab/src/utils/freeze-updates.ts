@@ -15,6 +15,7 @@ import {
   type FiberRoot,
 } from "bippy";
 import { logRecoverableError } from "./log-recoverable-error.js";
+import { IS_DEMO } from "./runtime-mode.js";
 
 interface FiberRootLike extends FiberRoot {
   current: Fiber | null;
@@ -549,6 +550,9 @@ const initializeFreezeSupport = (): void => {
 };
 
 export const freezeUpdates = (): (() => void) => {
+  // Demo mode is display-only and must never pause the host app's React renders,
+  // even via the toolbar's own (ungated) freeze path.
+  if (IS_DEMO) return () => {};
   if (isUpdatesPaused) return () => {};
 
   initializeFreezeSupport();

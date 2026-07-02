@@ -1,29 +1,18 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { ReactGrabLogo } from "@/components/react-grab-logo";
+import { PageHeader } from "@/components/page-header";
+import { REACT_GRAB_PINK } from "@/lib/constants";
 
 const NotFound = () => {
   return (
-    <div className="min-h-screen bg-background px-4 py-6 sm:px-8 sm:py-8">
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-2 pt-4 text-base sm:pt-8 sm:text-lg">
-        <Link
-          href="/"
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-all mb-4 underline underline-offset-4 opacity-50 hover:opacity-100"
-        >
-          <ArrowLeft size={16} />
-          Back to home
-        </Link>
-
-        <div className="inline-flex" style={{ padding: "2px" }}>
-          <Link href="/" className="transition-opacity hover:opacity-80">
-            <ReactGrabLogo width={42} height={42} className="logo-shimmer-once" />
-          </Link>
-        </div>
-
-        <div className="text-foreground mt-4">
-          <span className="font-bold shimmer-text-pink">404</span> &middot; Couldn&apos;t grab this
-          page.
-        </div>
+    <div className="min-h-screen bg-background px-6 py-8 text-prose sm:px-8">
+      <div className="mx-auto flex w-full max-w-2xl flex-col pt-8">
+        <PageHeader
+          title={
+            <>
+              <span style={{ color: REACT_GRAB_PINK }}>404</span>
+              {" · Couldn't grab this page."}
+            </>
+          }
+        />
       </div>
     </div>
   );

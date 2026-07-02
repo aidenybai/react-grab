@@ -16,6 +16,9 @@ export default defineConfig({
   },
   define: {
     "process.env.VERSION": JSON.stringify("[DEV]"),
+    // react-grab source reads this at module scope (utils/runtime-mode.ts);
+    // without a define, the bare `process` access throws in the browser.
+    "process.env.IS_DEMO": JSON.stringify(""),
   },
   esbuild: {
     jsx: "automatic",

@@ -9,6 +9,7 @@ import {
   DRAG_SELECTION_EDGE_INSET_PX,
 } from "../constants.js";
 import { isRootElement } from "./is-root-element.js";
+import { isWithinScope } from "./runtime-mode.js";
 import { clampToRange } from "./clamp-to-range.js";
 
 const calculateIntersectionArea = (rect1: Rect, rect2: Rect): number => {
@@ -150,6 +151,7 @@ const filterElementsInDrag = (
   const validCandidates: Element[] = [];
   for (const candidateElement of candidates) {
     if (!shouldCheckCoverage && isRootElement(candidateElement)) continue;
+    if (!isWithinScope(candidateElement)) continue;
     if (!isValidGrabbableElement(candidateElement)) continue;
     validCandidates.push(candidateElement);
   }

@@ -177,6 +177,10 @@ export const LIGHT_TEXT_LUMINANCE_THRESHOLD = 0.6;
 // theme signal, so the foreground heuristic ignores anything more translucent.
 export const OPAQUE_TEXT_MIN_ALPHA = 0.5;
 
+// Marks the overlay's comment/edit input; queried by the demo driver and the
+// Enter-blocking and prompt-mode checks in core.
+export const REACT_GRAB_INPUT_ATTRIBUTE = "data-react-grab-input";
+
 export const USER_IGNORE_ATTRIBUTE = "data-react-grab-ignore";
 
 export const VIEWPORT_COVERAGE_THRESHOLD = 0.9;
@@ -328,6 +332,16 @@ export const SELECTION_LABEL_OFFSCREEN_PX = -9999;
 export const SHIFT_SELECTION_LABEL_MIN_ANCHOR_RATIO = 0;
 export const SHIFT_SELECTION_LABEL_MAX_ANCHOR_RATIO = 1;
 export const SHIFT_SELECTION_LABEL_FALLBACK_ANCHOR_RATIO = 0;
+
+// Demo driver (react-grab/demo). The pointer artwork is 19×26 with its tip near
+// the top-left, so the cursor element is offset by these so the tip — not the
+// bounding box — lands on the animation target.
+export const DEMO_CURSOR_TIP_X_PX = 5;
+export const DEMO_CURSOR_TIP_Y_PX = 4;
+export const DEMO_CURSOR_FADE_MS = 300;
+export const DEMO_CLICK_PULSE_MS = 220;
+export const DEMO_CLICK_PULSE_MIN_SCALE = 0.8;
+export const DEMO_TYPE_CHAR_MS = 55;
 
 export const RELEVANT_CSS_PROPERTIES = new Set([
   "display",

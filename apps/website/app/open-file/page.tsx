@@ -1,16 +1,15 @@
 "use client";
 
 import { useQueryState, parseAsStringLiteral } from "nuqs";
-import { useState, useEffect, useCallback, Suspense, useRef } from "react";
-import { ReactGrabLogo } from "@/components/react-grab-logo";
-import { cn } from "@/utils/cn";
+import { useState, useEffect, useCallback, Suspense, useRef, type ReactNode } from "react";
+import Link from "next/link";
+import { ChevronDown, ArrowUpRight } from "lucide-react";
 import { IconCursor } from "@/components/icons/icon-cursor";
 import { IconVSCode } from "@/components/icons/icon-vscode";
 import { IconZed } from "@/components/icons/icon-zed";
 import { IconWebStorm } from "@/components/icons/icon-webstorm";
-import { ChevronDown, ArrowUpRight } from "lucide-react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const EDITOR_OPTIONS = ["cursor", "vscode", "zed", "webstorm"] as const;
 type Editor = (typeof EDITOR_OPTIONS)[number];
@@ -18,7 +17,7 @@ type Editor = (typeof EDITOR_OPTIONS)[number];
 interface EditorOption {
   id: Editor;
   name: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
 }
 
 const EDITORS: EditorOption[] = [
@@ -31,14 +30,27 @@ const EDITORS: EditorOption[] = [
 const STORAGE_KEY = "react-grab-preferred-editor";
 
 const getEditorUrl = (editor: Editor, filePath: string, lineNumber?: number): string => {
+  // The query param arrives decoded, so a raw `&`, `#`, or `?` in the path
+  // would be parsed as URL structure by the editor and truncate the file path.
+  // Re-encode everything except `/` (path separators stay literal).
+  const encodedPath = encodeURIComponent(filePath).replace(/%2F/g, "/");
   if (editor === "webstorm") {
     const lineParam = lineNumber ? `&line=${lineNumber}` : "";
-    return `webstorm://open?file=${filePath}${lineParam}`;
+    return `webstorm://open?file=${encodedPath}${lineParam}`;
   }
 
   const lineParam = lineNumber ? `:${lineNumber}` : "";
-  return `${editor}://file/${filePath}${lineParam}`;
+  return `${editor}://file/${encodedPath}${lineParam}`;
 };
+
+const Wordmark = () => (
+  <Link
+    href="/"
+    className="font-sans text-h3 font-medium text-title transition-colors hover:text-ink"
+  >
+    React Grab
+  </Link>
+);
 
 const OpenFileContent = () => {
   const [filePath] = useQueryState("url");
@@ -57,14 +69,14 @@ const OpenFileContent = () => {
     const params = new URLSearchParams(window.location.search);
     if (params.has("raw")) return { editor: "cursor", hasSaved: false };
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved && EDITORS.some((e) => e.id === saved)) {
+    if (saved && EDITORS.some((editor) => editor.id === saved)) {
       return { editor: saved as Editor, hasSaved: true };
     }
     return { editor: "cursor", hasSaved: false };
   };
 
   const [preferredEditor, setPreferredEditor] = useState<Editor>(() => {
-    if (editorParam && EDITORS.some((e) => e.id === editorParam)) return editorParam;
+    if (editorParam && EDITORS.some((editor) => editor.id === editorParam)) return editorParam;
     return getInitialEditor().editor;
   });
   const [didAttemptOpen, setDidAttemptOpen] = useState(false);
@@ -126,18 +138,18 @@ const OpenFileContent = () => {
   };
 
   const fileName = resolvedFilePath.split("/").pop() ?? "file";
-  const selectedEditor = EDITORS.find((e) => e.id === preferredEditor);
+  const selectedEditor = EDITORS.find((editor) => editor.id === preferredEditor);
 
   if (!resolvedFilePath) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <div className="w-full max-w-md rounded-lg border border-border bg-card p-8 text-center shadow-lg">
+        <div className="w-full max-w-md rounded-lg border border-line bg-card p-8 text-center">
           <div className="mb-6 flex justify-center">
-            <ReactGrabLogo width={100} height={40} />
+            <Wordmark />
           </div>
-          <div className="text-muted-foreground text-sm">
+          <div className="text-sm text-prose">
             No file specified. Add{" "}
-            <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
+            <code className="rounded bg-code px-1.5 py-0.5 font-mono text-xs text-code-ink">
               ?url=path/to/file
             </code>{" "}
             to the URL.
@@ -150,38 +162,35 @@ const OpenFileContent = () => {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <div className="mb-8">
-        <Link href="/">
-          <ReactGrabLogo width={160} height={60} className="logo-shimmer-once" />
-        </Link>
+        <Wordmark />
       </div>
 
-      <div className="w-full max-w-lg rounded-lg border border-border bg-card p-8 shadow-lg">
-        <div className="mb-2 flex flex-wrap items-center gap-2 text-lg text-foreground/80">
+      <div className="w-full max-w-lg rounded-lg border border-line bg-card p-8">
+        <div className="mb-2 flex flex-wrap items-center gap-2 text-lg text-label">
           <span>Opening</span>
-          <span className="inline-flex items-center rounded bg-muted px-2 py-0.5 font-mono text-sm text-foreground/80">
+          <span className="inline-flex items-center rounded bg-code px-2 py-0.5 font-mono text-sm text-code-ink">
             {fileName}
           </span>
           {lineNumber && (
             <>
               <span>at line</span>
-              <span className="inline-flex items-center rounded bg-muted px-2 py-0.5 font-mono text-sm text-foreground/80">
+              <span className="inline-flex items-center rounded bg-code px-2 py-0.5 font-mono text-sm text-code-ink">
                 {lineNumber}
               </span>
             </>
           )}
         </div>
 
-        <div className="mb-6 break-all font-mono text-sm text-muted-foreground">
-          {resolvedFilePath}
-        </div>
+        <div className="mb-6 break-all font-mono text-sm text-prose">{resolvedFilePath}</div>
 
-        <div className="mb-6 inline-flex items-stretch rounded-lg border border-border bg-muted/50">
+        <div className="mb-6 inline-flex items-stretch rounded-lg border border-line bg-canvas">
           <div className="relative" ref={dropdownRef}>
             <Button
               type="button"
               variant="ghost"
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="h-auto rounded-l-lg rounded-r-none px-4 py-2.5"
+              aria-expanded={isDropdownOpen}
+              className="h-auto rounded-l-lg rounded-r-none px-4 py-2.5 text-label hover:text-ink aria-expanded:text-ink"
             >
               <span className="opacity-70">{selectedEditor?.icon}</span>
               <span>{selectedEditor?.name}</span>
@@ -192,7 +201,7 @@ const OpenFileContent = () => {
             </Button>
 
             {isDropdownOpen && (
-              <div className="absolute left-0 top-full z-10 mt-1 min-w-[160px] overflow-hidden rounded-lg border border-border bg-card shadow-lg">
+              <div className="absolute left-0 top-full z-10 mt-1 min-w-[160px] overflow-hidden rounded-lg border border-line bg-card shadow-lg">
                 {EDITORS.map((editor) => (
                   <Button
                     key={editor.id}
@@ -200,10 +209,10 @@ const OpenFileContent = () => {
                     variant="ghost"
                     onClick={() => handleEditorChange(editor.id)}
                     className={cn(
-                      "h-auto w-full justify-start rounded-none gap-2.5 px-4 py-2.5",
+                      "h-auto w-full justify-start gap-2.5 rounded-none px-4 py-2.5",
                       preferredEditor === editor.id
-                        ? "bg-muted text-foreground"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground/80",
+                        ? "bg-muted text-ink"
+                        : "text-prose hover:bg-muted hover:text-label",
                     )}
                   >
                     <span className="opacity-70">{editor.icon}</span>
@@ -214,20 +223,20 @@ const OpenFileContent = () => {
             )}
           </div>
 
-          <div className="w-px bg-border" />
+          <div className="w-px bg-line" />
 
           <Button
             type="button"
             variant="ghost"
             onClick={handleOpen}
-            className="h-auto rounded-l-none rounded-r-lg px-4 py-2.5"
+            className="h-auto rounded-l-none rounded-r-lg px-4 py-2.5 text-label hover:text-ink"
           >
             <span>Open</span>
             <ArrowUpRight size={14} className="opacity-50" />
           </Button>
         </div>
 
-        <div className="space-y-1 text-xs text-muted-foreground">
+        <div className="space-y-1 text-xs text-faint">
           <p>Your preference will be saved for future use.</p>
           <p>Only open files from trusted sources.</p>
         </div>
@@ -238,16 +247,16 @@ const OpenFileContent = () => {
         variant="ghost"
         size="sm"
         onClick={() => setIsInfoOpen(!isInfoOpen)}
-        className="mt-8 gap-1.5 text-muted-foreground/50 hover:text-muted-foreground"
+        className="mt-8 gap-1.5 text-faint hover:text-prose"
       >
         <span>What is React Grab?</span>
         <ChevronDown size={10} className={cn("transition-transform", isInfoOpen && "rotate-180")} />
       </Button>
 
       {isInfoOpen && (
-        <p className="mt-2 text-center text-xs text-muted-foreground/60">
+        <p className="mt-2 max-w-sm text-center text-xs text-faint">
           Select any element in your React app and copy its context to AI tools.{" "}
-          <Link href="/" className="underline hover:text-muted-foreground">
+          <Link href="/" className="underline hover:text-prose">
             Learn more
           </Link>
         </p>
@@ -261,7 +270,7 @@ const OpenFilePage = () => {
     <Suspense
       fallback={
         <div className="flex min-h-screen items-center justify-center bg-background p-4">
-          <ReactGrabLogo width={160} height={60} className="animate-pulse" />
+          <span className="animate-pulse font-sans text-h3 font-medium text-title">React Grab</span>
         </div>
       }
     >

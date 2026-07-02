@@ -7,6 +7,8 @@ import {
   DROPDOWN_VIEWPORT_PADDING_PX,
 } from "../constants.js";
 import { getAnchoredDropdownPosition } from "./get-anchored-dropdown-position.js";
+import { getVisualViewport } from "./get-visual-viewport.js";
+import { getScopeContainer } from "./runtime-mode.js";
 import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "./native-raf.js";
 
 interface AnchoredDropdownResult {
@@ -96,21 +98,37 @@ export const createAnchoredDropdown = (
     window.visualViewport?.addEventListener("resize", handleViewportChange);
     window.visualViewport?.addEventListener("scroll", handleViewportChange);
 
+    // Scoped instances clamp to the container's box, so its resizes must
+    // invalidate the position like a window resize does.
+    const scopeContainer = getScopeContainer();
+    let scopeResizeObserver: ResizeObserver | undefined;
+    if (scopeContainer && typeof ResizeObserver !== "undefined") {
+      scopeResizeObserver = new ResizeObserver(handleViewportChange);
+      scopeResizeObserver.observe(scopeContainer);
+    }
+
     onCleanup(() => {
       window.removeEventListener("resize", handleViewportChange);
       window.visualViewport?.removeEventListener("resize", handleViewportChange);
       window.visualViewport?.removeEventListener("scroll", handleViewportChange);
+      scopeResizeObserver?.disconnect();
     });
   });
 
   const displayPosition = createMemo((previousPosition: { left: number; top: number }) => {
     viewportVersion();
+    // Scope-aware: inside a scoped instance (demo showcases) the container's
+    // box is the viewport, so the dropdown stays within the showcase card
+    // instead of spilling over the host page.
+    const viewport = getVisualViewport();
     const position = getAnchoredDropdownPosition({
       anchor: anchorAccessor(),
       measuredWidth: measuredWidth(),
       measuredHeight: measuredHeight(),
-      viewportWidth: window.innerWidth,
-      viewportHeight: window.innerHeight,
+      viewportLeft: viewport.offsetLeft,
+      viewportTop: viewport.offsetTop,
+      viewportWidth: viewport.width,
+      viewportHeight: viewport.height,
       anchorGapPx: DROPDOWN_ANCHOR_GAP_PX,
       viewportPaddingPx: DROPDOWN_VIEWPORT_PADDING_PX,
       offscreenPosition: DROPDOWN_OFFSCREEN_POSITION,

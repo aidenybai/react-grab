@@ -26,7 +26,19 @@ export const parseChangelog = (markdown: string): ChangelogEntry[] => {
 
     const changeTypeMatch = line.match(/^### (.+)/);
     if (changeTypeMatch && currentEntry) {
-      currentEntry.changeType = changeTypeMatch[1];
+      // A version can have several sections (e.g. "Minor Changes" followed by
+      // "Patch Changes"); emit one entry per section so bullets keep their own
+      // label instead of merging under the last heading.
+      if (currentEntry.changeType && currentEntry.changes.length > 0) {
+        entries.push(currentEntry);
+        currentEntry = {
+          version: currentEntry.version,
+          changeType: changeTypeMatch[1],
+          changes: [],
+        };
+      } else {
+        currentEntry.changeType = changeTypeMatch[1];
+      }
       continue;
     }
 

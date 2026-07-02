@@ -1,7 +1,6 @@
 import {
   DEV_TOOLS_OVERLAY_Z_INDEX_THRESHOLD,
   OVERLAY_Z_INDEX_THRESHOLD,
-  REACT_GRAB_ATTRIBUTE_NAME,
   USER_IGNORE_ATTRIBUTE,
   VIEWPORT_COVERAGE_THRESHOLD,
   VISIBILITY_CACHE_TTL_MS,
@@ -9,11 +8,20 @@ import {
 import { isElementVisible } from "./is-element-visible.js";
 import { isRootElement } from "./is-root-element.js";
 
+// Checks both the library and demo host attributes (not just this build's
+// REACT_GRAB_ATTRIBUTE_NAME): when a real instance and the demo build coexist
+// on one page (each with its own host), neither may treat the other's overlay
+// as grabbable page content.
+const REACT_GRAB_HOST_ATTRIBUTES = ["data-react-grab", "data-react-grab-demo"];
+
+const hasReactGrabAttribute = (element: Element): boolean =>
+  REACT_GRAB_HOST_ATTRIBUTES.some((attribute) => element.hasAttribute(attribute));
+
 const isReactGrabElement = (element: Element): boolean => {
-  if (element.hasAttribute(REACT_GRAB_ATTRIBUTE_NAME)) return true;
+  if (hasReactGrabAttribute(element)) return true;
 
   const rootNode = element.getRootNode();
-  return rootNode instanceof ShadowRoot && rootNode.host.hasAttribute(REACT_GRAB_ATTRIBUTE_NAME);
+  return rootNode instanceof ShadowRoot && hasReactGrabAttribute(rootNode.host);
 };
 
 const isUserIgnoredElement = (element: Element): boolean =>

@@ -9,7 +9,6 @@ packages/cli/skills
 coverage
 .coverage-v8
 react-grab-extension.zip
-apps/website/public/script.js
 test-results
 playwright-report
 .vercel

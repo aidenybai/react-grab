@@ -1,6 +1,7 @@
 import { onCleanup, onMount } from "solid-js";
 import { confirmationFocusManager } from "./confirmation-focus-manager.js";
 import { isKeyboardEventTriggeredByInput } from "./is-keyboard-event-triggered-by-input.js";
+import { ignoreRealInput } from "./runtime-mode.js";
 
 interface ConfirmationKeyboardHandlers {
   onEnter?: (event: KeyboardEvent) => void;
@@ -20,7 +21,7 @@ export const createConfirmationKeyboard = (
 ): ConfirmationKeyboardController => {
   const instanceId = Symbol();
 
-  const handleKeyDown = (event: KeyboardEvent): void => {
+  const handleKeyDown = ignoreRealInput((event: KeyboardEvent): void => {
     if (!confirmationFocusManager.isActive(instanceId)) return;
     if (isKeyboardEventTriggeredByInput(event)) return;
     if (event.code === "Enter") {
@@ -28,7 +29,7 @@ export const createConfirmationKeyboard = (
     } else if (event.code === "Escape") {
       handlers.onEscape?.(event);
     }
-  };
+  });
 
   onMount(() => {
     confirmationFocusManager.claim(instanceId);
