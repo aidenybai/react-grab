@@ -31,6 +31,83 @@ The copied context includes the selected element and its component stack with so
 [<a class="ml-auto inline-block text-sm" href="#">Forgot your password?</a> in LoginForm (at components/login-form.tsx:46:19)]
 ```
 
+## Query Flag Loader (works in production)
+
+Want React Grab available in any environment (including production), but only when you opt in? Use the flag loader integrations. They inject a tiny inline script that only loads React Grab when the page URL contains `?grab=1` (or `?grab=true`). The flag persists in `sessionStorage` for the rest of the tab session, and `?grab=0` (or `?grab=false`) turns it back off.
+
+#### Vite
+
+Add the plugin to your `vite.config.ts`:
+
+```ts
+import { defineConfig } from "vite";
+import { reactGrab } from "react-grab/vite";
+
+export default defineConfig({
+  plugins: [reactGrab()],
+});
+```
+
+#### Next.js (App router)
+
+Render the `<ReactGrab />` component inside your `app/layout.tsx`:
+
+```jsx
+import { ReactGrab } from "react-grab/next";
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <head>
+        <ReactGrab />
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}
+```
+
+#### Next.js (Pages router)
+
+Render it inside your `pages/_document.tsx`:
+
+```jsx
+import { Html, Head, Main, NextScript } from "next/document";
+import { ReactGrab } from "react-grab/next";
+
+export default function Document() {
+  return (
+    <Html lang="en">
+      <Head>
+        <ReactGrab />
+      </Head>
+      <body>
+        <Main />
+        <NextScript />
+      </body>
+    </Html>
+  );
+}
+```
+
+Both integrations accept the same options:
+
+| Option    | Default                                               | Description                              |
+| --------- | ----------------------------------------------------- | ---------------------------------------- |
+| `flag`    | `"grab"`                                              | Query parameter name to check.           |
+| `src`     | `"https://unpkg.com/grab/dist/index.global.js"` | Script URL to load when the flag is set. |
+| `enabled` | `true`                                                | Set to `false` to skip injection.        |
+
+The Vite plugin also accepts `sourcemap` (default `true`), which enables `build.sourcemap` unless you already set it — React Grab needs sourcemaps to resolve component source locations in production builds. Pass `sourcemap: false` to opt out.
+
+For Next.js, enable production sourcemaps in your `next.config.ts` so React Grab can resolve component source locations:
+
+```ts
+const nextConfig = {
+  productionBrowserSourceMaps: true,
+};
+```
+
 ## Manual Installation
 
 If you cannot use the CLI, install React Grab manually for your framework:
