@@ -113,8 +113,11 @@ let _isFreezeActive = false;
 export const freeze = (elements?: Element[]): void => {
   _isFreezeActive = true;
   freezeCleanupFns.add(freezeUpdates());
-  freezeCleanupFns.add(freezeAnimations(elements ?? [document.body]));
+  // Batched layout reads must run before freezeAnimations injects its
+  // stylesheet and sets frozen attributes, or those writes force a second
+  // full-document style recalc under the reads.
   freezeGlobalInteractions();
+  freezeCleanupFns.add(freezeAnimations(elements ?? [document.body]));
 };
 
 /**

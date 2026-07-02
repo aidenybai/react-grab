@@ -56,6 +56,14 @@ export const SOURCE_FETCH_TIMEOUT_MS = 8000;
 // dozens of elements in a row. Without the cap each hovered element starts its
 // own fetch at once, and react-grab becomes part of the saturation it is
 // waiting on.
+//
+// This is deliberately NOT the `keepalive` request limit. `keepalive` (the
+// modern navigator.sendBeacon) keeps a request alive across a page navigation,
+// but the Fetch spec caps its body at 64 KB and allows only ~15 inflight
+// keepalive requests for the whole page; source bundles are larger than 64 KB
+// and a grab never navigates away, so keepalive does not apply here. The limit
+// we work around is the ordinary per-origin connection pool, which constrains
+// every fetch whether or not it sets keepalive.
 export const MAX_CONCURRENT_SOURCE_FETCHES = 3;
 export const MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS = 200;
 export const FINDER_TIMEOUT_MS = 200;
@@ -159,6 +167,8 @@ export const FROZEN_ELEMENT_ATTRIBUTE = "data-react-grab-frozen";
 // threshold only guards pathological animation-heavy pages.
 export const WAAPI_GLOBAL_FREEZE_MAX_ANIMATIONS = 200;
 
+// Theme-detection thresholds (see detect-app-theme.ts). A background below
+// this relative luminance reads as a dark theme.
 export const LUMINANCE_DARK_THRESHOLD = 0.18;
 // Text this light sits well above any light theme's (dark) body text, so it only
 // appears when the app paints onto a dark surface - revealing a dark theme.

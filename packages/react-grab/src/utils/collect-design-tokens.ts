@@ -142,18 +142,32 @@ const nextValueOnGrid = (current: number, direction: 1 | -1, unitPx: number): nu
 };
 
 // The custom-property *names* are document-global and unchanged across element
-// switches, so the (O(rules)) stylesheet walk is memoized. Keying on the sheet
-// count invalidates it when stylesheets are added/removed (HMR, dynamic styles)
-// — token name sets effectively never change without that. Values still resolve
-// per element since custom properties cascade/scope.
-let cachedNames: { styleSheetCount: number; names: Set<string> } | null = null;
+// switches, so the (O(rules)) stylesheet walk is memoized. Keying on the two
+// sheet counts (separately, so a swap between the lists cannot alias) invalidates
+// it when stylesheets are added/removed (HMR, dynamic styles) — token name sets
+// effectively never change without that. Values still resolve per element since
+// custom properties cascade/scope.
+let cachedNames: {
+  documentSheetCount: number;
+  adoptedSheetCount: number;
+  names: Set<string>;
+} | null = null;
 
 const collectCustomPropertyNames = (): Set<string> => {
-  const styleSheetCount = document.styleSheets.length + document.adoptedStyleSheets.length;
-  if (cachedNames && cachedNames.styleSheetCount === styleSheetCount) return cachedNames.names;
+  // Missing on older Safari/Firefox.
+  const adoptedStyleSheets = document.adoptedStyleSheets ?? [];
+  const documentSheetCount = document.styleSheets.length;
+  const adoptedSheetCount = adoptedStyleSheets.length;
+  if (
+    cachedNames &&
+    cachedNames.documentSheetCount === documentSheetCount &&
+    cachedNames.adoptedSheetCount === adoptedSheetCount
+  ) {
+    return cachedNames.names;
+  }
 
   const customPropertyNames = new Set<string>();
-  for (const styleSheet of [...Array.from(document.styleSheets), ...document.adoptedStyleSheets]) {
+  for (const styleSheet of [...Array.from(document.styleSheets), ...adoptedStyleSheets]) {
     let rules: CSSRuleList;
     try {
       // Cross-origin stylesheets throw on `.cssRules` access.
@@ -163,7 +177,7 @@ const collectCustomPropertyNames = (): Set<string> => {
     }
     collectNamesFromRules(rules, customPropertyNames);
   }
-  cachedNames = { styleSheetCount, names: customPropertyNames };
+  cachedNames = { documentSheetCount, adoptedSheetCount, names: customPropertyNames };
   return customPropertyNames;
 };
 

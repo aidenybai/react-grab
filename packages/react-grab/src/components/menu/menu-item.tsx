@@ -27,8 +27,8 @@ export const MenuItem: Component<MenuItemProps> = (props) => {
 
   onMount(() => {
     if (!buttonElement) return;
-    // Registration is not reactive, so capture `value` once and unregister the
-    // same identity even if props.value were to change on a live row.
+    // Solid props are live getters; without this capture the onCleanup below
+    // could unregister a different value than was registered.
     const registeredValue = props.value;
     store.registerItem({
       value: registeredValue,

@@ -79,6 +79,13 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [isToolbarHovered, setIsToolbarHovered] = createSignal(false);
   const [selectIconRotationDeg, setSelectIconRotationDeg] = createSignal(0);
   const [hoveredActionId, setHoveredActionId] = createSignal<string | null>(null);
+
+  const releaseInteractionFreeze = () => {
+    unfreezeUpdatesCallback?.();
+    unfreezeUpdatesCallback = null;
+    unfreezeGlobalInteractions();
+  };
+
   const drag = createToolbarDrag({
     getContainerRef: () => containerRef,
     isCollapsed,
@@ -88,11 +95,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       // clear the hover here or the tooltip flashes at the snapped position
       // once isDragging/isSnapping settle.
       setHoveredActionId(null);
-      if (unfreezeUpdatesCallback) {
-        unfreezeUpdatesCallback();
-        unfreezeUpdatesCallback = null;
-        unfreezeGlobalInteractions();
-      }
+      if (unfreezeUpdatesCallback) releaseInteractionFreeze();
     },
     onPositionUpdate: (newPosition) => setPosition(newPosition),
     onSnapEdgeChange: (edge, ratio) => {
@@ -167,9 +170,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         !props.isActive &&
         !props.isContextMenuOpen
       ) {
-        unfreezeUpdatesCallback?.();
-        unfreezeUpdatesCallback = null;
-        unfreezeGlobalInteractions();
+        releaseInteractionFreeze();
       }
       options?.onHoverChange?.(false);
     },
@@ -563,11 +564,15 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     clearTimeout(resizeTimeout);
     clearTimeout(collapseAnimationTimeout);
 
-    if (unfreezeUpdatesCallback) {
+    if (!unfreezeUpdatesCallback) return;
+    // While grab mode is active, core owns the global freeze and releases it on
+    // deactivation; only release it here when this hover latch is the sole owner.
+    if (props.isActive) {
       unfreezeUpdatesCallback();
       unfreezeUpdatesCallback = null;
-      unfreezeGlobalInteractions();
+      return;
     }
+    releaseInteractionFreeze();
   });
 
   const currentPosition = () => {
