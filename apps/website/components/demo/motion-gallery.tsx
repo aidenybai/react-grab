@@ -18,16 +18,16 @@ MotionTile.displayName = "MotionTile";
 export const MotionGallery = () => (
   <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
     <MotionTile label="Bounce">
-      <span className="size-4 animate-bounce rounded-full bg-brand" />
+      <span className="size-4 rounded-full bg-brand motion-safe:animate-bounce" />
     </MotionTile>
     <MotionTile label="Spin">
-      <span className="size-8 animate-spin rounded-md border-2 border-line border-t-brand" />
+      <span className="size-8 rounded-md border-2 border-line border-t-brand motion-safe:animate-spin" />
     </MotionTile>
     <MotionTile label="Ping">
       <PingDot sizeClass="size-4" />
     </MotionTile>
     <MotionTile label="Pulse">
-      <span className="size-8 animate-pulse rounded-md bg-code" />
+      <span className="size-8 rounded-md bg-code motion-safe:animate-pulse" />
     </MotionTile>
   </div>
 );
