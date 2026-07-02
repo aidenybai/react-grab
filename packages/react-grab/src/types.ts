@@ -3,6 +3,22 @@ export interface Position {
   y: number;
 }
 
+export interface EyeDropperResult {
+  sRGBHex: string;
+}
+
+export interface EyeDropperInstance {
+  open: (options?: { signal?: AbortSignal }) => Promise<EyeDropperResult>;
+}
+
+declare global {
+  interface Window {
+    EyeDropper?: {
+      new (): EyeDropperInstance;
+    };
+  }
+}
+
 export type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object
     ? T[P] extends (...args: unknown[]) => unknown

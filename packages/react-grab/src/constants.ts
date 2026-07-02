@@ -205,6 +205,8 @@ export const TOOLBAR_DEFAULT_POSITION_RATIO = 0.5;
 export const DEFAULT_ACTION_ID = "copy";
 export const COMMENT_ACTION_ID = "comment";
 export const EDIT_ACTION_ID = "edit";
+export const COLOR_PICKER_ACTION_ID = "color-picker";
+export const COLOR_PICK_FEEDBACK_DURATION_MS = 2000;
 
 export const TOOLTIP_DELAY_MS = 400;
 export const TOOLTIP_GRACE_PERIOD_MS = 800;
