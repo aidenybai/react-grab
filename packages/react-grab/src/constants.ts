@@ -312,6 +312,22 @@ export const EDIT_SEARCH_POSITION_PENALTY = 100;
 export const EDIT_SEARCH_LENGTH_PENALTY = 1;
 export const EDIT_COMPACT_SLIDER_MIN_WIDTH_PX = 96;
 
+// Natural-language comparative edits ("make it bigger", "way more padding").
+// A single step nudges a numeric property by BASE_RATIO of its current value,
+// floored per-unit so properties sitting at 0 still move a sensible amount.
+export const COMPARATIVE_BASE_RATIO = 0.25;
+export const COMPARATIVE_LENGTH_FLOOR_PX = 4;
+export const COMPARATIVE_OPACITY_FLOOR_PERCENT = 10;
+export const COMPARATIVE_Z_INDEX_FLOOR = 1;
+export const COMPARATIVE_UNITLESS_FLOOR = 1;
+// Intensity multipliers: "much"/"way" amplify, "slightly"/"a bit" damp, and a
+// repeated adjective ("big bigger", "more more") stacks via the repeat factor.
+export const COMPARATIVE_AMPLIFIER_FACTOR = 2;
+export const COMPARATIVE_DIMINISHER_FACTOR = 0.5;
+export const COMPARATIVE_REPEAT_FACTOR = 1.5;
+export const COMPARATIVE_MIN_MAGNITUDE = 0.25;
+export const COMPARATIVE_MAX_MAGNITUDE = 8;
+
 export const CSS_VALUE_DECIMAL_PLACES = 2;
 // Tailwind v4's `rounded-full` is calc(infinity * 1px). Browsers clamp
 // it to their internal length maximum (~3.36e7px in Chromium, ~1.79e7px
