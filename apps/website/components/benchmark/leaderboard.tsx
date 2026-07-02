@@ -95,7 +95,12 @@ const Row = ({ row }: { row: BenchmarkRow }) => {
 export const BenchmarkLeaderboard = () => {
   return (
     <div className="flex flex-col">
-      <div className="scrollbar-none -mx-6 overflow-x-auto px-6 sm:mx-0 sm:px-0">
+      <div
+        role="region"
+        aria-label="Benchmark results"
+        tabIndex={0}
+        className="scrollbar-none -mx-6 overflow-x-auto px-6 sm:mx-0 sm:px-0"
+      >
         <div className="flex min-w-[480px] flex-col font-mono">
           <div className={`${COLS} h-11 border-b border-hairline`}>
             <span className="font-sans text-body text-prose">Resolver</span>

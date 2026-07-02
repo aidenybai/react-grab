@@ -77,7 +77,10 @@ export const GET = async (request: Request) => {
 
   // If the font assets can't be fetched, still serve a card with Satori's
   // default font rather than a broken social preview.
-  const fonts = await getFonts(request).catch(() => null);
+  const fonts = await getFonts(request).catch((error) => {
+    console.error("[og] failed to load fonts, falling back to default", error);
+    return null;
+  });
 
   return new ImageResponse(
     <div
