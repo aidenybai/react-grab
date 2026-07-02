@@ -41,6 +41,10 @@ interface GrabDemoKeyModifiers {
 interface GrabDemoOptions {
   /** The element the showcase is confined to. The cursor is painted inside it. */
   container: HTMLElement;
+  /** Optional narrower scope for React Grab itself (hit-testing, toolbar
+   * anchoring). Lets the cursor roam the full showcase container while the
+   * grab surface is a single panel inside it. Defaults to `container`. */
+  scopeContainer?: HTMLElement;
 }
 
 interface GrabDemoController {
@@ -81,7 +85,7 @@ const easeInOutCubic = (progress: number): number =>
   progress < 0.5 ? 4 * progress * progress * progress : 1 - (-2 * progress + 2) ** 3 / 2;
 
 export const createGrabDemo = (options: GrabDemoOptions): GrabDemoController => {
-  const { container } = options;
+  const { container, scopeContainer } = options;
 
   const position: GrabDemoPoint = { x: 0, y: 0 };
   let cursorScale = 1;
@@ -115,7 +119,7 @@ export const createGrabDemo = (options: GrabDemoOptions): GrabDemoController => 
 
   // init() applies (and, on dispose, clears) the scope after its single-init
   // guard, so a no-op init can never leave the scope pointing at this container.
-  const api = init({ container });
+  const api = init({ container: scopeContainer ?? container });
 
   const cursorElement = document.createElement("div");
   cursorElement.setAttribute("aria-hidden", "true");
