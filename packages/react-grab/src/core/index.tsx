@@ -2525,16 +2525,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     eventListenerManager.addWindowListener(
       "keydown",
-<<<<<<< HEAD
       ignoreRealInput((event: KeyboardEvent) => {
-=======
-      (event: KeyboardEvent) => {
         // Editable controls keep their native arrow/Tab keys (caret movement,
         // focus traversal). This one guard covers every navigation path in this
         // handler — the discard-prompt pass-through, the overlay branch, and the
         // main path — and precedes the active-mode preventDefault below.
         if (resolveNavigationKey(event) && isKeyboardEventTriggeredByInput(event)) return;
->>>>>>> origin/main
         if (tryHandleKeyboardSelectionPromptPassThrough(event)) return;
 
         blockEnterIfNeeded(event);
