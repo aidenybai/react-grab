@@ -13,7 +13,7 @@ interface ActivePropertyControlProps {
   onEditComplete: () => void;
   onInvalidCommit: () => void;
   onInteract: () => void;
-  onColorPickerRegister?: (trigger: (() => void) | null, owner?: () => void) => void;
+  onColorPickerRegister?: (trigger: () => void) => () => void;
   showLabel: boolean;
   tailwindLabel?: string | null;
   emphasized?: boolean;

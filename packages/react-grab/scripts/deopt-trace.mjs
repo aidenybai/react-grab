@@ -51,7 +51,7 @@ const waitForServer = async (url, timeoutMs) => {
 };
 
 const startDevServer = () => {
-  log(`starting e2e-app dev server (pnpm --filter ${E2E_APP_FILTER} dev) ...`);
+  log(`starting e2e-app-vite dev server (pnpm --filter ${E2E_APP_FILTER} dev) ...`);
   const child = spawn("pnpm", ["--filter", E2E_APP_FILTER, "dev"], {
     cwd: REPO_ROOT,
     stdio: ["ignore", "pipe", "pipe"],
@@ -421,7 +421,7 @@ const runScenarios = async (page) => {
 // synthetic per-cell loops above never touch (context menu, keyboard nav, copy
 // flow, modals, drag through real listeners, etc.).
 const runFullAppScenarios = async (page) => {
-  log("navigating to full e2e-app");
+  log("navigating to full e2e-app-vite");
   await page.goto(E2E_APP_URL, { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => Boolean(window.__REACT_GRAB__), null, { timeout: 10_000 });
   await page.waitForSelector("[data-testid='todo-list']", { timeout: 10_000 });

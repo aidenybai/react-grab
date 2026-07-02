@@ -130,18 +130,11 @@ import { copyPlugin } from "./plugins/copy.js";
 import { commentPlugin } from "./plugins/comment.js";
 import { editPlugin } from "./plugins/edit.js";
 import { openPlugin } from "./plugins/open.js";
+import { freezeAnimations, freezeAllAnimations } from "../utils/freeze-animations.js";
 import {
-  freezeAnimations,
-  freezeAllAnimations,
-  collectGlobalAnimationsToFreeze,
-  applyGlobalAnimationFreeze,
-  unfreezeGlobalAnimations,
-} from "../utils/freeze-animations.js";
-import {
-  collectPseudoStates,
-  applyPseudoStates,
-  unfreezePseudoStates,
-} from "../utils/freeze-pseudo-states.js";
+  freezeGlobalInteractions,
+  unfreezeGlobalInteractions,
+} from "../utils/freeze-global-interactions.js";
 import { freezeUpdates } from "../utils/freeze-updates.js";
 import { generateId } from "../utils/generate-id.js";
 import { logRecoverableError } from "../utils/log-recoverable-error.js";
@@ -279,18 +272,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     createEffect(
       on(isActivated, (activated, previousActivated) => {
         if (activated && !previousActivated) {
-          // Batch all layout reads before any DOM writes. The pseudo-state
-          // snapshot (getComputedStyle/elementFromPoint) and getAnimations()
-          // each force a style/layout flush; doing both reads first, then both
-          // writes, collapses two full-document recalcs into one.
-          const pseudoSnapshot = collectPseudoStates(pointer().x, pointer().y);
-          const animationsToFreeze = collectGlobalAnimationsToFreeze();
-          applyPseudoStates(pseudoSnapshot);
-          applyGlobalAnimationFreeze(animationsToFreeze);
+          freezeGlobalInteractions(pointer().x, pointer().y);
           document.body.style.touchAction = "none";
         } else if (!activated && previousActivated) {
-          unfreezePseudoStates();
-          unfreezeGlobalAnimations();
+          unfreezeGlobalInteractions();
           document.body.style.touchAction = "";
         }
       }),

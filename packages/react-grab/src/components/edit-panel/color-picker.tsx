@@ -16,7 +16,7 @@ interface ColorPickerProps {
   onCommit: (value: string, source: "keyboard" | "pointer") => void;
   onEditComplete?: () => void;
   onInvalidCommit?: () => void;
-  onRegisterTrigger?: (trigger: (() => void) | null, owner?: () => void) => void;
+  onRegisterTrigger?: (trigger: () => void) => () => void;
   onInteract?: () => void;
   emphasized?: boolean;
 }
@@ -41,8 +41,8 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
 
   onMount(() => {
     const openPicker = () => nativePickerRef?.click();
-    props.onRegisterTrigger?.(openPicker);
-    onCleanup(() => props.onRegisterTrigger?.(null, openPicker));
+    const unregisterTrigger = props.onRegisterTrigger?.(openPicker);
+    onCleanup(() => unregisterTrigger?.());
   });
 
   const commitHex = () => {

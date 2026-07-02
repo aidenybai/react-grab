@@ -1,4 +1,5 @@
 import { createSignal, type Accessor } from "solid-js";
+import { createPointerMovePromptHandoff } from "../utils/create-pointer-move-prompt-handoff.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
 
 interface KeyboardSelectionController {
@@ -14,7 +15,7 @@ interface KeyboardSelectionController {
 export const createKeyboardSelectionController = (): KeyboardSelectionController => {
   const [isPendingDismiss, setIsPendingDismiss] = createSignal(false);
   const [selectedElement, setSelectedElement] = createSignal<Element | null>(null);
-  let isMouseHandoffArmed = false;
+  const mouseHandoff = createPointerMovePromptHandoff();
 
   const connectedSelection = (): Element | null => {
     const element = selectedElement();
@@ -23,7 +24,7 @@ export const createKeyboardSelectionController = (): KeyboardSelectionController
 
   const clear = () => {
     setSelectedElement(null);
-    isMouseHandoffArmed = false;
+    mouseHandoff.clear();
     setIsPendingDismiss(false);
   };
 
@@ -40,14 +41,11 @@ export const createKeyboardSelectionController = (): KeyboardSelectionController
     select: (element, options) => {
       setSelectedElement(element);
       setIsPendingDismiss(false);
-      isMouseHandoffArmed = Boolean(options?.shouldPromptBeforeMouseHandoff);
+      if (options?.shouldPromptBeforeMouseHandoff) mouseHandoff.arm();
+      else mouseHandoff.clear();
     },
     clear,
-    consumeMouseHandoff: () => {
-      if (!isMouseHandoffArmed) return false;
-      isMouseHandoffArmed = false;
-      return connectedSelection() !== null;
-    },
+    consumeMouseHandoff: () => mouseHandoff.consume() && connectedSelection() !== null,
     showDismissPrompt: () => {
       if (!connectedSelection()) {
         clear();

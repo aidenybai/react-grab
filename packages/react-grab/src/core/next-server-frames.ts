@@ -23,17 +23,38 @@ const devirtualizeServerUrl = (url: string): string => {
   return url;
 };
 
-interface NextJsOriginalFrame {
-  file: string | null;
+interface UsableOriginalFrame {
+  file: string;
   line1: number | null;
   column1: number | null;
-  ignored: boolean;
 }
 
-interface NextJsFrameResult {
-  status: string;
-  value?: { originalStackFrame: NextJsOriginalFrame | null };
-}
+// Validates one entry of the dev server's PromiseSettledResult[] response down
+// to exactly the fields the frame rewrite consumes; anything malformed (or
+// rejected/ignored) degrades to the unsymbolicated frame.
+const extractUsableOriginalFrame = (result: unknown): UsableOriginalFrame | null => {
+  if (typeof result !== "object" || result === null) return null;
+  if (!("status" in result) || result.status !== "fulfilled") return null;
+  if (!("value" in result) || typeof result.value !== "object" || result.value === null)
+    return null;
+  if (!("originalStackFrame" in result.value)) return null;
+  const originalFrame = result.value.originalStackFrame;
+  if (typeof originalFrame !== "object" || originalFrame === null) return null;
+  if (!("file" in originalFrame) || typeof originalFrame.file !== "string" || !originalFrame.file)
+    return null;
+  if ("ignored" in originalFrame && Boolean(originalFrame.ignored)) return null;
+  return {
+    file: originalFrame.file,
+    line1:
+      "line1" in originalFrame && typeof originalFrame.line1 === "number"
+        ? originalFrame.line1
+        : null,
+    column1:
+      "column1" in originalFrame && typeof originalFrame.column1 === "number"
+        ? originalFrame.column1
+        : null,
+  };
+};
 
 interface NextJsRequestFrame {
   file: string;
@@ -102,22 +123,20 @@ export const symbolicateServerFrames = async (
 
     if (!response.ok) return frames;
 
-    const symbolicationResults = (await response.json()) as NextJsFrameResult[];
+    const symbolicationResults: unknown = await response.json();
+    if (!Array.isArray(symbolicationResults)) return frames;
     const symbolicatedFrames = [...frames];
 
     for (let resultIndex = 0; resultIndex < serverFrameIndices.length; resultIndex++) {
-      const symbolicationResult = symbolicationResults[resultIndex];
-      if (symbolicationResult?.status !== "fulfilled") continue;
-
-      const originalStackFrame = symbolicationResult.value?.originalStackFrame;
-      if (!originalStackFrame?.file || originalStackFrame.ignored) continue;
+      const originalFrame = extractUsableOriginalFrame(symbolicationResults[resultIndex]);
+      if (!originalFrame) continue;
 
       const originalFrameIndex = serverFrameIndices[resultIndex];
       symbolicatedFrames[originalFrameIndex] = {
         ...frames[originalFrameIndex],
-        fileName: originalStackFrame.file,
-        lineNumber: originalStackFrame.line1 ?? undefined,
-        columnNumber: originalStackFrame.column1 ?? undefined,
+        fileName: originalFrame.file,
+        lineNumber: originalFrame.line1 ?? undefined,
+        columnNumber: originalFrame.column1 ?? undefined,
         isSymbolicated: true,
       };
     }

@@ -40,6 +40,7 @@ import { isEventFromOverlay } from "../../utils/is-event-from-overlay.js";
 import { registerOverlayDismiss } from "../../utils/register-overlay-dismiss.js";
 import { suppressMenuEvent } from "../../utils/suppress-menu-event.js";
 import { TagBadge } from "../selection-label/tag-badge.js";
+import { Button } from "../ui/button.js";
 import { Surface } from "../ui/surface.js";
 import { ActivePropertyControl } from "./active-property-control.js";
 import { HIDDEN_FOCUS_PRESERVING_STYLE } from "./constants.js";
@@ -88,6 +89,14 @@ interface EditPanelBodyProps {
   onSubmit: (pendingEdits: PendingEdits) => void;
   onPendingEditsChange?: (pendingEdits: PendingEdits) => void;
   onInteractingChange?: (interacting: boolean) => void;
+}
+
+interface CommitOptions {
+  flashDirection?: 1 | -1;
+  shouldFocus?: boolean;
+  shouldCompact?: boolean;
+  isFromKeyRepeat?: boolean;
+  source?: "keyboard" | "pointer";
 }
 
 const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
@@ -241,14 +250,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     setInlineNumericSearchQuery(null);
     setIsCompact(false);
   };
-
-  interface CommitOptions {
-    flashDirection?: 1 | -1;
-    shouldFocus?: boolean;
-    shouldCompact?: boolean;
-    isFromKeyRepeat?: boolean;
-    source?: "keyboard" | "pointer";
-  }
 
   const commit = (
     property: EditableProperty,
@@ -407,21 +408,13 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   };
 
   let colorPickerTriggers: Array<() => void> = [];
-  const registerColorPickerTrigger = (trigger: (() => void) | null, owner?: () => void) => {
-    if (trigger === null) {
-      if (owner === undefined) {
-        colorPickerTriggers = [];
-        return;
-      }
-      colorPickerTriggers = colorPickerTriggers.filter(
-        (registeredTrigger) => registeredTrigger !== owner,
-      );
-      return;
-    }
-    colorPickerTriggers = colorPickerTriggers.filter(
-      (registeredTrigger) => registeredTrigger !== trigger,
-    );
+  const registerColorPickerTrigger = (trigger: () => void) => {
     colorPickerTriggers.push(trigger);
+    return () => {
+      colorPickerTriggers = colorPickerTriggers.filter(
+        (registeredTrigger) => registeredTrigger !== trigger,
+      );
+    };
   };
 
   const getCurrentColorPickerTrigger = () => {
@@ -639,11 +632,9 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                 Discard edits?
               </span>
               <div class="flex items-center gap-[5px]">
-                <button
+                <Button
                   data-react-grab-ignore-events
                   data-react-grab-discard-button="cancel"
-                  type="button"
-                  class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[var(--rg-surface-hover)] [border-width:0.5px] border-solid border-[var(--rg-border-button)] cursor-pointer transition-all hover:bg-[var(--rg-surface-active)] press-scale h-[17px]"
                   onClick={(event) => {
                     event.preventDefault();
                     event.stopPropagation();
@@ -653,12 +644,11 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                   <span class="text-[var(--rg-text-primary)] text-[13px] leading-3.5 font-sans font-medium">
                     No
                   </span>
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="destructive"
                   data-react-grab-ignore-events
                   data-react-grab-discard-button="confirm"
-                  type="button"
-                  class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[var(--rg-error-bg)] cursor-pointer transition-all hover:bg-[var(--rg-error-bg-hover)] press-scale h-[17px]"
                   onClick={(event) => {
                     event.preventDefault();
                     event.stopPropagation();
@@ -668,7 +658,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                   <span class="text-[var(--rg-error-text)] text-[13px] leading-3.5 font-sans font-medium">
                     Yes
                   </span>
-                </button>
+                </Button>
               </div>
             </div>
           </Show>

@@ -22,7 +22,7 @@ interface PropertyListProps {
   onSelect: (index: number) => void;
   onStep: (direction: 1 | -1) => void;
   onCommit: (value: number | string, source: "keyboard" | "pointer") => void;
-  onColorPickerRegister: (trigger: (() => void) | null, owner?: () => void) => void;
+  onColorPickerRegister: (trigger: () => void) => () => void;
   onEditComplete: () => void;
   onInvalidCommit: () => void;
   onInteract: () => void;

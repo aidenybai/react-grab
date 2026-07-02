@@ -510,29 +510,24 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             </div>
           </Show>
 
-          <Show when={props.discardPrompt}>
-            {(discardPrompt) => {
-              const currentDiscardPrompt = discardPrompt();
-              return (
-                <DiscardPrompt
-                  label={
-                    currentDiscardPrompt.isKeyboardSelection
-                      ? "Discard selection?"
-                      : currentDiscardPrompt.label
+          <Show when={props.discardPrompt} keyed>
+            {(discardPrompt) => (
+              <DiscardPrompt
+                label={
+                  discardPrompt.isKeyboardSelection ? "Discard selection?" : discardPrompt.label
+                }
+                showCancel={!discardPrompt.isKeyboardSelection}
+                cancelOnEscape={discardPrompt.cancelOnEscape}
+                onConfirm={discardPrompt.onConfirm}
+                onCopy={discardPrompt.onCopy}
+                onCancel={() => {
+                  if (!discardPrompt.isKeyboardSelection) {
+                    discardPrompt.onCancel?.();
                   }
-                  showCancel={!currentDiscardPrompt.isKeyboardSelection}
-                  cancelOnEscape={currentDiscardPrompt.cancelOnEscape}
-                  onConfirm={currentDiscardPrompt.onConfirm}
-                  onCopy={currentDiscardPrompt.onCopy}
-                  onCancel={() => {
-                    if (!currentDiscardPrompt.isKeyboardSelection) {
-                      currentDiscardPrompt.onCancel?.();
-                    }
-                    inputRef?.focus({ preventScroll: true });
-                  }}
-                />
-              );
-            }}
+                  inputRef?.focus({ preventScroll: true });
+                }}
+              />
+            )}
           </Show>
 
           <Show when={props.error}>
