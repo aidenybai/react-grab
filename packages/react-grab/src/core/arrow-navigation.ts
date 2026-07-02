@@ -1,16 +1,8 @@
-import {
-  HORIZONTAL_NAV_RECT_MATCH_TOLERANCE_PX,
-  MAX_ARROW_NAVIGATION_HISTORY,
-  MIN_HORIZONTAL_NAV_SIZE_PX,
-} from "../constants.js";
-import type { OverlayBounds } from "../types.js";
+import { MAX_ARROW_NAVIGATION_HISTORY } from "../constants.js";
+import type { ElementPredicate, OverlayBounds } from "../types.js";
 import { getElementsAtPoint } from "../utils/get-element-at-position.js";
 import { getVisibleBoundsCenter } from "../utils/get-visible-bounds-center.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
-
-interface ElementValidator {
-  (element: Element): boolean;
-}
 
 interface BoundsCalculator {
   (element: Element): OverlayBounds;
@@ -22,7 +14,8 @@ interface ArrowNavigator {
 }
 
 export const createArrowNavigator = (
-  isValidGrabbableElement: ElementValidator,
+  isValidGrabbableElement: ElementPredicate,
+  isNavigableSibling: ElementPredicate,
   createElementBounds: BoundsCalculator,
 ): ArrowNavigator => {
   let navigationHistory: Element[] = [];
@@ -60,86 +53,25 @@ export const createArrowNavigator = (
     return findVerticalNext(currentElement, -1);
   };
 
-  const isSvgInternal = (element: Element): boolean =>
-    element instanceof SVGElement && !(element instanceof SVGSVGElement);
-
-  const hasMeaningfulSize = (element: Element): boolean => {
-    const rect = element.getBoundingClientRect();
-    return rect.width >= MIN_HORIZONTAL_NAV_SIZE_PX || rect.height >= MIN_HORIZONTAL_NAV_SIZE_PX;
-  };
-
-  const doRectsMatch = (rectA: DOMRect, rectB: DOMRect): boolean =>
-    Math.abs(rectA.x - rectB.x) <= HORIZONTAL_NAV_RECT_MATCH_TOLERANCE_PX &&
-    Math.abs(rectA.y - rectB.y) <= HORIZONTAL_NAV_RECT_MATCH_TOLERANCE_PX &&
-    Math.abs(rectA.width - rectB.width) <= HORIZONTAL_NAV_RECT_MATCH_TOLERANCE_PX &&
-    Math.abs(rectA.height - rectB.height) <= HORIZONTAL_NAV_RECT_MATCH_TOLERANCE_PX;
-
-  const isHorizontallyGrabbable = (element: Element): boolean =>
-    isValidGrabbableElement(element) && !isSvgInternal(element) && hasMeaningfulSize(element);
-
+  // ArrowLeft/ArrowRight walk strictly between DOM siblings of the current
+  // element (previous/back, next/forward), skipping non-grabbable or
+  // zero-size siblings. Climbing to parents and descending into children is
+  // handled by the vertical (Up/Down) traversal instead.
   const findHorizontal = (currentElement: Element, isForward: boolean): Element | null => {
-    const currentRect = currentElement.getBoundingClientRect();
-
-    const isVisuallyDistinct = (candidate: Element): boolean =>
-      !doRectsMatch(candidate.getBoundingClientRect(), currentRect);
-
-    const findEdgeDescendant = (parentElement: Element): Element | null => {
-      if (parentElement instanceof SVGSVGElement) return null;
-
-      const children = Array.from(parentElement.children);
-      const ordered = isForward ? children : children.reverse();
-      for (const childElement of ordered) {
-        if (isForward) {
-          if (isHorizontallyGrabbable(childElement) && isVisuallyDistinct(childElement))
-            return childElement;
-          const descendant = findEdgeDescendant(childElement);
-          if (descendant) return descendant;
-        } else {
-          const descendant = findEdgeDescendant(childElement);
-          if (descendant) return descendant;
-          if (isHorizontallyGrabbable(childElement) && isVisuallyDistinct(childElement))
-            return childElement;
-        }
-      }
-      return null;
-    };
-
     const getSibling = (element: Element) =>
       isForward ? element.nextElementSibling : element.previousElementSibling;
 
-    let nextElement: Element | null = null;
-
-    if (isForward) {
-      nextElement = findEdgeDescendant(currentElement);
-    }
-
-    if (!nextElement) {
-      let searchElement: Element | null = currentElement;
-      while (searchElement) {
-        let sibling = getSibling(searchElement);
-        while (sibling) {
-          if (isHorizontallyGrabbable(sibling) && isVisuallyDistinct(sibling)) {
-            nextElement = sibling;
-            break;
-          }
-          const descendant = findEdgeDescendant(sibling);
-          if (descendant) {
-            nextElement = descendant;
-            break;
-          }
-          sibling = getSibling(sibling);
-        }
-        if (nextElement) break;
-        const parentElement: HTMLElement | null = searchElement.parentElement;
-        if (!isForward && parentElement && isHorizontallyGrabbable(parentElement)) {
-          nextElement = parentElement;
-          break;
-        }
-        searchElement = parentElement;
+    let sibling = getSibling(currentElement);
+    while (sibling) {
+      if (isNavigableSibling(sibling)) {
+        // Moving sideways invalidates the vertical Up history, otherwise the
+        // next ArrowDown would retrace into the branch we just left.
+        navigationHistory = [];
+        return sibling;
       }
+      sibling = getSibling(sibling);
     }
-
-    return nextElement;
+    return null;
   };
 
   const findNext = (key: string, currentElement: Element): Element | null => {

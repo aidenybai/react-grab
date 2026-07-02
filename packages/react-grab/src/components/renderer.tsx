@@ -15,6 +15,7 @@ import { Toolbar } from "./toolbar/index.js";
 import { ContextMenu } from "./context-menu.js";
 import { EditPanel } from "./edit-panel/index.js";
 import { ToolbarMenu } from "./toolbar/toolbar-menu.js";
+import { HierarchyMenu } from "./toolbar/hierarchy-menu.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
   return (
@@ -92,8 +93,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           isPromptMode={props.isPromptMode}
           inputValue={props.inputValue}
           status={props.selectionLabelStatus}
-          arrowNavigationState={props.selectionArrowNavigationState}
-          onArrowNavigationSelect={props.onArrowNavigationSelect}
           filePath={props.selectionFilePath}
           onInputChange={props.onInputChange}
           onSubmit={props.onInputSubmit}
@@ -173,6 +172,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         onSetDefaultAction={props.onSetDefaultAction ?? (() => {})}
         onDismiss={props.onToolbarMenuDismiss ?? (() => {})}
       />
+      <HierarchyMenu position={props.hierarchyMenuPosition ?? null} state={props.hierarchyState} />
       <EditPanel
         state={props.editPanelState ?? null}
         position={props.editPanelPosition ?? null}
