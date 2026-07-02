@@ -3,7 +3,6 @@ import type { ElementPredicate, OverlayBounds } from "../types.js";
 import { getElementsAtPoint } from "../utils/get-element-at-position.js";
 import { getVisibleBoundsCenter } from "../utils/get-visible-bounds-center.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
-import { isHorizontallyGrabbable } from "../utils/is-horizontally-grabbable.js";
 
 interface BoundsCalculator {
   (element: Element): OverlayBounds;
@@ -16,6 +15,7 @@ interface ArrowNavigator {
 
 export const createArrowNavigator = (
   isValidGrabbableElement: ElementPredicate,
+  isNavigableSibling: ElementPredicate,
   createElementBounds: BoundsCalculator,
 ): ArrowNavigator => {
   let navigationHistory: Element[] = [];
@@ -63,7 +63,7 @@ export const createArrowNavigator = (
 
     let sibling = getSibling(currentElement);
     while (sibling) {
-      if (isHorizontallyGrabbable(sibling, isValidGrabbableElement)) {
+      if (isNavigableSibling(sibling)) {
         // Moving sideways invalidates the vertical Up history, otherwise the
         // next ArrowDown would retrace into the branch we just left.
         navigationHistory = [];

@@ -8,9 +8,8 @@ import { registerOverlayDismiss } from "../../utils/register-overlay-dismiss.js"
 
 interface AnchoredDropdownSurfaceProps {
   position: DropdownAnchor | null;
-  // Test/debug hook applied as a bare attribute on the positioned container
-  // (e.g. "data-react-grab-toolbar-menu").
-  dataAttribute: string;
+  // Test/debug hook applied as a bare attribute on the positioned container.
+  dataAttribute: "data-react-grab-toolbar-menu" | "data-react-grab-hierarchy-menu";
   // When provided, the surface dismisses on outside click / Escape.
   onDismiss?: () => void;
   // When false the surface is display-only (pointer-events: none): it never

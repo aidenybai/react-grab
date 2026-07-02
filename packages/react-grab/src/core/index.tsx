@@ -125,7 +125,7 @@ import { isEnterCode } from "../utils/is-enter-code.js";
 import { isMac } from "../utils/is-mac.js";
 import { isPositionInsideBounds } from "../utils/is-position-inside-bounds.js";
 import { loadToolbarState, saveToolbarState } from "../components/toolbar/state.js";
-import { createModifierTracker } from "../components/edit-panel/modifier-tracker.js";
+import { createModifierTracker } from "../utils/modifier-tracker.js";
 import { copyPlugin } from "./plugins/copy.js";
 import { commentPlugin } from "./plugins/comment.js";
 import { editPlugin } from "./plugins/edit.js";
@@ -530,9 +530,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isActivated()) return DEFAULT_ACTION_ID;
       return null;
     });
-    const arrowNavigator = createArrowNavigator(isValidGrabbableElement, createElementBounds);
+    // Composed once so ArrowLeft/ArrowRight reachability and the hierarchy
+    // tree's sibling rows can never diverge.
     const isNavigableSibling = (element: Element) =>
       isHorizontallyGrabbable(element, isValidGrabbableElement);
+    const arrowNavigator = createArrowNavigator(
+      isValidGrabbableElement,
+      isNavigableSibling,
+      createElementBounds,
+    );
 
     const autoScroller = createAutoScroller(
       pointer,
@@ -864,10 +870,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         ? buildElementHierarchy(source, isValidGrabbableElement, isNavigableSibling)
         : [];
     });
-    const hierarchyElements = createMemo(() => hierarchyEntries().map((entry) => entry.element));
     const hierarchyActiveIndex = createMemo(() => {
       const source = hierarchySourceElement();
-      return source ? Math.max(0, hierarchyElements().indexOf(source)) : 0;
+      if (!source) return 0;
+      return Math.max(
+        0,
+        hierarchyEntries().findIndex((entry) => entry.element === source),
+      );
     });
     const hasHierarchySource = createMemo(() => hierarchySourceElement() !== null);
 
@@ -1410,7 +1419,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       editMode.resetWithDiscard();
       dismissToolbarMenu();
       stopShiftMultiSelecting();
-      clearArrowNavigation();
+      clearKeyboardNavigation();
       keyboardSelection.clear();
       setIsPendingContextMenuSelect(false);
       setPendingToolbarActionId(null);
@@ -1499,7 +1508,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleConfirmDismiss = () => {
       if (keyboardSelection.isPendingDismiss()) {
-        discardArrowNavigationSelection();
+        discardKeyboardSelection();
         return;
       }
       actions.clearInputText();
@@ -1626,7 +1635,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       stopShiftMultiSelecting();
       dismissAllPopups();
       actions.showContextMenu(position, element);
-      clearArrowNavigation();
+      clearKeyboardNavigation();
       pluginRegistry.hooks.onContextMenu(element, position);
     };
 
@@ -1806,7 +1815,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         isElementStillSelected ? element : store.frozenElements[store.frozenElements.length - 1],
       );
       actions.freeze();
-      clearArrowNavigation();
+      clearKeyboardNavigation();
     };
 
     const commitShiftMultiSelection = () => {
@@ -1884,7 +1893,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.setPointer(getBoundsCenter(createElementBounds(lastElement)));
         actions.setLastGrabbed(lastElement);
         actions.freeze();
-        clearArrowNavigation();
+        clearKeyboardNavigation();
         return;
       }
 
@@ -2125,7 +2134,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     // The dropdown itself derives from hierarchySourceElement, so clearing
     // navigation only needs to reset the keyboard-selection bookkeeping; the
     // menu hides on its own once nothing is being selected.
-    const clearArrowNavigation = () => {
+    const clearKeyboardNavigation = () => {
       arrowNavigator.clearHistory();
       keyboardSelection.clear();
     };
@@ -2143,26 +2152,26 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
-    const showArrowNavigationDismissPrompt = () => {
+    const showKeyboardSelectionDismissPrompt = () => {
       if (keyboardSelection.showDismissPrompt()) {
         setSelectionLabelShakeCount((count) => count + 1);
       }
     };
 
-    const discardArrowNavigationSelection = () => {
+    const discardKeyboardSelection = () => {
       keyboardSelection.clear();
       actions.unfreeze();
-      clearArrowNavigation();
+      clearKeyboardNavigation();
     };
 
-    const copyArrowNavigationSelection = () => {
+    const copyKeyboardSelection = () => {
       const selectedElement = keyboardSelection.takeSelection(store.frozenElement);
       if (!selectedElement) {
-        discardArrowNavigationSelection();
+        discardKeyboardSelection();
         return;
       }
       const center = getBoundsCenter(createElementBounds(selectedElement));
-      clearArrowNavigation();
+      clearKeyboardNavigation();
       actions.setLastGrabbed(selectedElement);
       performCopyWithLabel({
         element: selectedElement,
@@ -2179,7 +2188,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return null;
     };
 
-    const tryHandleArrowNavigation = (
+    const tryHandleNavigationKey = (
       event: KeyboardEvent,
       options: { allowPendingKeyboardSelection?: boolean } = {},
     ): boolean => {
@@ -2204,9 +2213,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const isVertical = navigationKey === "ArrowUp" || navigationKey === "ArrowDown";
 
       const nextElement = arrowNavigator.findNext(navigationKey, currentElement);
-      // Horizontal (sibling) navigation at a boundary leaves the key
-      // unconsumed so it can scroll the page; vertical navigation always
-      // commits, falling back to the current element at the stack edge.
+      // Horizontal (sibling) navigation at a boundary is a no-op — the key is
+      // left unhandled rather than re-selecting the current element; vertical
+      // navigation always commits, falling back to the current element at the
+      // stack edge.
       if (!nextElement && !isVertical && !isInitialSelection) return false;
       const elementToSelect = nextElement ?? currentElement;
 
@@ -2464,19 +2474,20 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!keyboardSelection.isPendingDismiss()) return false;
       if (isKeyboardSelectionPromptButtonEnter(event)) return true;
 
-      // Only arrows continue navigation through the discard prompt; Tab/Shift+Tab
-      // are left to native focus traversal so the prompt's Copy/Discard buttons
-      // stay keyboard-reachable.
+      // Only arrows continue navigation through the discard prompt; Tab and
+      // Shift+Tab are not treated as sibling navigation here so that focus
+      // already inside the prompt can traverse its Copy/Discard buttons
+      // natively.
       const shouldHandleArrow = ARROW_KEYS.has(event.key);
       const shouldHandleBareShortcut = getBareKeyShortcut(event) !== null;
       if (!shouldHandleArrow && !shouldHandleBareShortcut) return false;
 
       if (shouldHandleArrow) {
-        return tryHandleArrowNavigation(event, { allowPendingKeyboardSelection: true });
+        return tryHandleNavigationKey(event, { allowPendingKeyboardSelection: true });
       }
 
       if (!tryHandleBareKeyShortcut(event)) return false;
-      clearArrowNavigation();
+      clearKeyboardNavigation();
       return true;
     };
 
@@ -2530,7 +2541,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           }
 
           if (isFromOverlay && ARROW_KEYS.has(event.key)) {
-            if (tryHandleArrowNavigation(event)) return;
+            if (tryHandleNavigationKey(event)) return;
           }
 
           return;
@@ -2561,7 +2572,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const didWindowJustRegainFocus =
           Date.now() - lastWindowFocusTimestamp < WINDOW_REFOCUS_GRACE_PERIOD_MS;
 
-        if (tryHandleArrowNavigation(event)) return;
+        if (tryHandleNavigationKey(event)) return;
         if (tryHandleOpenFileShortcut(event)) return;
         if (tryHandleContextMenuKey(event)) return;
         if (tryHandleBareKeyShortcut(event)) return;
@@ -2726,11 +2737,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           !isShiftMultiSelecting()
         ) {
           if (keyboardSelection.consumeMouseHandoff()) {
-            showArrowNavigationDismissPrompt();
+            showKeyboardSelectionDismissPrompt();
             return;
           }
           actions.unfreeze();
-          clearArrowNavigation();
+          clearKeyboardNavigation();
         }
         handlePointerMove(event.clientX, event.clientY, event.shiftKey);
       },
@@ -2833,10 +2844,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         // is torn down when no element resolves.
         const hadPendingDismiss = keyboardSelection.isPendingDismiss();
         const isBareOverlayRightClick =
-          isFromOverlay &&
-          !overlayFrozenElement &&
-          !hadPendingDismiss &&
-          hierarchyElements().length === 0;
+          isFromOverlay && !overlayFrozenElement && !hadPendingDismiss && !hasHierarchySource();
         if (isBareOverlayRightClick) return;
 
         if (isModalPopoverOpen()) {
@@ -3721,7 +3729,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                     ? {
                         isKeyboardSelection: true,
                         onConfirm: handleConfirmDismiss,
-                        onCopy: copyArrowNavigationSelection,
+                        onCopy: copyKeyboardSelection,
                       }
                     : isPendingDismiss()
                       ? {

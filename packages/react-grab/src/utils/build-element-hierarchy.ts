@@ -1,6 +1,7 @@
 import {
   MAX_HIERARCHY_ANCESTORS,
   MAX_HIERARCHY_CHILDREN,
+  MAX_HIERARCHY_SCAN_STEPS,
   MAX_HIERARCHY_SIBLINGS,
 } from "../constants.js";
 import type { ElementPredicate, HierarchyEntry } from "../types.js";
@@ -20,9 +21,10 @@ interface ElementStep {
 // by the horizontal arrow keys; ancestors and children use the looser
 // `isGrabbable` that matches Up/Down and click selection.
 //
-// Traversal is bounded by the render caps (it stops once enough grabbable
-// neighbors are found) so opening the menu on a large list/grid does not run a
-// visibility check over every sibling or child.
+// Traversal is bounded by the render caps and, because the predicates force
+// layout per candidate, by a hard step cap — so opening the menu on a large
+// list/grid never runs a visibility check over every sibling or child even
+// when most candidates fail the predicate.
 export const buildElementHierarchy = (
   selectedElement: Element,
   isGrabbable: ElementPredicate,
@@ -36,9 +38,11 @@ export const buildElementHierarchy = (
   ): Element[] => {
     const collected: Element[] = [];
     let current = start;
-    while (current && collected.length < maxCount) {
+    let stepsTaken = 0;
+    while (current && collected.length < maxCount && stepsTaken < MAX_HIERARCHY_SCAN_STEPS) {
       if (isMatch(current)) collected.push(current);
       current = nextFrom(current);
+      stepsTaken += 1;
     }
     return collected;
   };
