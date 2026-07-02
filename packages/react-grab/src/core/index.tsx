@@ -2190,9 +2190,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return false;
       const navigationKey = resolveNavigationKey(event);
       if (!navigationKey) return false;
-      // Leave arrows/Tab to native editing and focus traversal when a page
-      // input, textarea, or other editable control has focus.
-      if (isKeyboardEventTriggeredByInput(event)) return false;
       if (isAnyPopoverOpen()) return false;
 
       let currentElement = effectiveElement();
@@ -2556,6 +2553,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             return;
           }
         }
+
+        // When a page input, textarea, or other editable control has focus, let
+        // its own arrow/Tab keys drive native caret movement and focus traversal
+        // instead of sibling navigation or the active-mode key capture below.
+        if (resolveNavigationKey(event) && isKeyboardEventTriggeredByInput(event)) return;
 
         if (isActivated() && !MODIFIER_KEYS.includes(event.key)) {
           event.preventDefault();
