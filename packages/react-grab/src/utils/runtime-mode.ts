@@ -39,3 +39,19 @@ export const isWithinScope = (element: Element | null): boolean => {
 // defeat the define replacement the demo build relies on, so without a define
 // the bare `process` access throws in the browser. See apps/openstory/vite.config.ts.
 export const IS_DEMO: boolean = process.env.IS_DEMO === "true";
+
+// Demo mode ignores real user input but still processes the synthetic events
+// that drive the showcase. Every input-event listener gates through this at
+// REGISTRATION so the policy lives in one place; in normal builds it returns
+// the handler unchanged (IS_DEMO folds to false), so hot event paths pay
+// nothing. Environment events (visibilitychange, blur, scroll, resize) are
+// not input and must keep receiving trusted events — don't wrap those.
+export const ignoreRealInput = <EventType extends Event>(
+  handler: (event: EventType) => void,
+): ((event: EventType) => void) => {
+  if (!IS_DEMO) return handler;
+  return (event: EventType): void => {
+    if (event.isTrusted) return;
+    handler(event);
+  };
+};

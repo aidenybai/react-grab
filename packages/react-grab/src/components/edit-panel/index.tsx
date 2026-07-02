@@ -19,6 +19,7 @@ import {
   EDIT_VALUE_BUMP_MS,
   EDIT_VALUE_BUMP_PX,
   IME_COMPOSING_KEY_CODE,
+  REACT_GRAB_INPUT_ATTRIBUTE,
   Z_INDEX_OVERLAY,
 } from "../../constants.js";
 import type {
@@ -511,7 +512,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     });
 
     const handleWindowKeyDown = (event: KeyboardEvent) => {
-      if (isEventFromOverlay(event, "data-react-grab-input")) return;
+      if (isEventFromOverlay(event, REACT_GRAB_INPUT_ATTRIBUTE)) return;
       if (tryReplaceInlineNumericFromKey(event)) return;
       handleSearchKeyDown(event);
     };

@@ -7,7 +7,6 @@ import type { GrabDemoController } from "react-grab/dist/demo.js";
 const TRAVEL_MS = 850;
 const DRAG_MS = 520;
 const HOLD_MS = 1100;
-const TYPE_CHAR_MS = 55;
 const STEP_MS = 170;
 const COMMENT_OPEN_MS = 400;
 const PRE_SUBMIT_MS = 500;
@@ -117,7 +116,7 @@ export const GrabDemo = () => {
     if (!isActive(loopId)) return;
 
     const input = demo.getInput();
-    if (input) await demo.typeText(COMMENT_TEXT, input, TYPE_CHAR_MS);
+    if (input) await demo.typeText(COMMENT_TEXT, input);
     if (!isActive(loopId)) return;
     await demo.wait(PRE_SUBMIT_MS);
     if (!isActive(loopId)) return;
@@ -232,7 +231,8 @@ export const GrabDemo = () => {
   };
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    const container = containerRef.current;
+    if (!container) return;
     if (sampleRef.current) originalHtmlRef.current = sampleRef.current.innerHTML;
     let disposed = false;
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -241,9 +241,11 @@ export const GrabDemo = () => {
     // its hover latched onto whatever slid under the cursor's old client point.
     // The demo cursor is anchored to the container (it scrolls with the page), so
     // re-emitting a pointer move at its current point re-glues the hover to the
-    // right element. rAF-coalesced so a scroll burst dispatches at most once/frame.
+    // right element. rAF-coalesced so a scroll burst dispatches at most once/frame;
+    // gated on playingRef so idle/paused states pay nothing on scroll.
     let scrollFrameId: number | null = null;
     const handleScroll = () => {
+      if (!playingRef.current) return;
       if (scrollFrameId !== null) return;
       scrollFrameId = requestAnimationFrame(() => {
         scrollFrameId = null;
@@ -254,23 +256,52 @@ export const GrabDemo = () => {
 
     // React Grab's demo build ignores real user input, so the scripted cursor
     // can't be fought by stray clicks/keys. Loaded lazily because it's a
-    // browser-only bundle that must not run during SSR.
-    import("react-grab/dist/demo.js")
-      .then(({ createGrabDemo }) => {
-        if (disposed || !containerRef.current) return;
-        const demo = createGrabDemo({ container: containerRef.current });
-        demoRef.current = demo;
-        const rest = restPosition();
-        demo.setCursorPosition(rest.x, rest.y);
-        if (!prefersReducedMotion) startPlaying();
-      })
-      .catch((error) => {
-        console.error("[react-grab] failed to load demo bundle; run `pnpm build:demo`", error);
-      });
+    // browser-only bundle that must not run during SSR — and only once the card
+    // is actually visible, so visitors who never reach it don't pay for it.
+    let loadStarted = false;
+    const loadDemo = () => {
+      if (loadStarted) return;
+      loadStarted = true;
+      import("react-grab/dist/demo.js")
+        .then(({ createGrabDemo }) => {
+          if (disposed || !containerRef.current) return;
+          const demo = createGrabDemo({ container: containerRef.current });
+          demoRef.current = demo;
+          const rest = restPosition();
+          demo.setCursorPosition(rest.x, rest.y);
+          if (!prefersReducedMotion) startPlaying();
+        })
+        .catch((error) => {
+          console.error("[react-grab] failed to load demo bundle; run `pnpm build:demo`", error);
+        });
+    };
+
+    // Pause the loop while the card is off-screen (no point dispatching
+    // synthetic events nobody can see) and resume on return. Only auto-resume
+    // what auto-pause stopped, so a manual pause sticks across scrolling.
+    let didAutoPause = false;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry) return;
+        if (entry.isIntersecting) {
+          loadDemo();
+          if (didAutoPause) {
+            didAutoPause = false;
+            startPlaying();
+          }
+        } else if (playingRef.current) {
+          didAutoPause = true;
+          stopPlaying();
+        }
+      },
+      { threshold: 0.2 },
+    );
+    observer.observe(container);
 
     return () => {
       disposed = true;
       playingRef.current = false;
+      observer.disconnect();
       window.removeEventListener("scroll", handleScroll, { capture: true });
       if (scrollFrameId !== null) cancelAnimationFrame(scrollFrameId);
       demoRef.current?.dispose();

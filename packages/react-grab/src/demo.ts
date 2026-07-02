@@ -20,10 +20,10 @@ import {
   DEMO_CURSOR_TIP_Y_PX,
   DEMO_TYPE_CHAR_MS,
   REACT_GRAB_ATTRIBUTE_NAME,
+  REACT_GRAB_INPUT_ATTRIBUTE,
   Z_INDEX_OVERLAY,
 } from "./constants.js";
 
-const REACT_GRAB_INPUT_ATTRIBUTE = "data-react-grab-input";
 const CURSOR_SHADOW_FILTER_ID = "react-grab-demo-cursor-shadow";
 
 // macOS-style pointer (19×26) whose tip sits near the top-left; the cursor
@@ -132,6 +132,25 @@ export const createGrabDemo = (options: GrabDemoOptions): GrabDemoController => 
   // Synthetic pointer events carry isTrusted=false, so React Grab's demo gate
   // lets them through while ignoring real input. Coordinates are container-
   // relative and converted to client space here.
+  const createPointerEvent = (
+    type: "pointermove" | "pointerdown" | "pointerup",
+    clientX: number,
+    clientY: number,
+    buttons: number,
+  ): PointerEvent =>
+    new PointerEvent(type, {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+      clientX,
+      clientY,
+      button: 0,
+      buttons,
+      pointerId: 1,
+      pointerType: "mouse",
+      isPrimary: true,
+    });
+
   const dispatchPointer = (
     type: "pointermove" | "pointerdown" | "pointerup",
     x: number,
@@ -142,20 +161,17 @@ export const createGrabDemo = (options: GrabDemoOptions): GrabDemoController => 
     const clientX = rect.left + x;
     const clientY = rect.top + y;
     const target = document.elementFromPoint(clientX, clientY) ?? document.body;
-    target.dispatchEvent(
-      new PointerEvent(type, {
-        bubbles: true,
-        cancelable: true,
-        composed: true,
-        clientX,
-        clientY,
-        button: 0,
-        buttons,
-        pointerId: 1,
-        pointerType: "mouse",
-        isPrimary: true,
-      }),
-    );
+    target.dispatchEvent(createPointerEvent(type, clientX, clientY, buttons));
+  };
+
+  // Per-frame moves during a glide: React Grab's window listeners only read the
+  // coordinates, so dispatching on the container with a rect cached at glide
+  // start skips the per-frame getBoundingClientRect + elementFromPoint (two
+  // forced layout/hit-test passes at ~60fps in the looping showcase). A scroll
+  // mid-glide shifts the rect, but the host page's scroll → syncPointer path
+  // already re-anchors with a fresh rect.
+  const dispatchMoveWithRect = (rect: DOMRect, x: number, y: number, buttons: number): void => {
+    container.dispatchEvent(createPointerEvent("pointermove", rect.left + x, rect.top + y, buttons));
   };
 
   const pointerMove = (x: number, y: number): void => dispatchPointer("pointermove", x, y, 0);
@@ -241,11 +257,18 @@ export const createGrabDemo = (options: GrabDemoOptions): GrabDemoController => 
   ): Promise<void> => {
     const startX = position.x;
     const startY = position.y;
+    const rect = container.getBoundingClientRect();
+    const token = cancelToken;
     return animate(durationMs, (progress) => {
       const eased = easeInOutCubic(progress);
       position.x = lerp(startX, targetX, eased);
       position.y = lerp(startY, targetY, eased);
       applyCursorTransform();
+      dispatchMoveWithRect(rect, position.x, position.y, buttons);
+    }).then(() => {
+      // One precise move at the destination: fresh rect + real hit test, so the
+      // final hover is exact even if the cached rect went stale mid-glide.
+      if (token !== cancelToken) return;
       dispatchPointer("pointermove", position.x, position.y, buttons);
     });
   };

@@ -177,6 +177,10 @@ export const LIGHT_TEXT_LUMINANCE_THRESHOLD = 0.6;
 // theme signal, so the foreground heuristic ignores anything more translucent.
 export const OPAQUE_TEXT_MIN_ALPHA = 0.5;
 
+// Marks the overlay's comment/edit input; queried by the demo driver and the
+// Enter-blocking and prompt-mode checks in core.
+export const REACT_GRAB_INPUT_ATTRIBUTE = "data-react-grab-input";
+
 export const USER_IGNORE_ATTRIBUTE = "data-react-grab-ignore";
 
 export const VIEWPORT_COVERAGE_THRESHOLD = 0.9;

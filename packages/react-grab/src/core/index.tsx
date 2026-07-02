@@ -20,7 +20,12 @@ import {
   hasTextSelectionOnPage,
 } from "../utils/is-keyboard-event-triggered-by-input.js";
 import { mountRoot } from "../utils/mount-root.js";
-import { getScopeContainer, setScopeContainer, IS_DEMO } from "../utils/runtime-mode.js";
+import {
+  getScopeContainer,
+  setScopeContainer,
+  ignoreRealInput,
+  IS_DEMO,
+} from "../utils/runtime-mode.js";
 import { createComponentNameForElement } from "../utils/create-component-name-for-element.js";
 import { watchAppTheme } from "../utils/detect-app-theme.js";
 import {
@@ -83,6 +88,7 @@ import {
   COMMENT_ACTION_ID,
   EDIT_ACTION_ID,
   REACT_GRAB_ATTRIBUTE_NAME,
+  REACT_GRAB_INPUT_ATTRIBUTE,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { hideFromThirdParties } from "../utils/hide-from-third-parties.js";
@@ -893,7 +899,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     createEffect(
       on(isActivated, (activated) => {
         if (!activated) return;
-        if (IS_DEMO) return;
         if (!pluginRegistry.store.options.freezeReactUpdates) return;
         const unfreezeUpdates = freezeUpdates();
         onCleanup(unfreezeUpdates);
@@ -2060,9 +2065,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const keyboardClaimer = setupKeyboardEventClaimer();
 
     const blockEnterIfNeeded = (event: KeyboardEvent) => {
-      // Demo mode never intercepts the host page's real input, so a trusted
-      // Enter must pass through even while the showcase has React Grab active.
-      if (IS_DEMO && event.isTrusted) return false;
       let originalKey: string;
       try {
         originalKey = keyboardClaimer.originalKeyDescriptor?.get
@@ -2082,7 +2084,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (shouldBlockEnter) {
         // React Grab inputs keep Enter so inline editors can commit.
-        if (isEventFromOverlay(event, "data-react-grab-input")) return false;
+        if (isEventFromOverlay(event, REACT_GRAB_INPUT_ATTRIBUTE)) return false;
         keyboardClaimer.claimedEvents.add(event);
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -2091,13 +2093,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return false;
     };
 
-    eventListenerManager.addDocumentListener("keydown", blockEnterIfNeeded, {
+    eventListenerManager.addDocumentListener("keydown", ignoreRealInput(blockEnterIfNeeded), {
       capture: true,
     });
-    eventListenerManager.addDocumentListener("keyup", blockEnterIfNeeded, {
+    eventListenerManager.addDocumentListener("keyup", ignoreRealInput(blockEnterIfNeeded), {
       capture: true,
     });
-    eventListenerManager.addDocumentListener("keypress", blockEnterIfNeeded, {
+    eventListenerManager.addDocumentListener("keypress", ignoreRealInput(blockEnterIfNeeded), {
       capture: true,
     });
 
@@ -2491,21 +2493,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return true;
     };
 
-    // Demo mode ignores real user input but still processes synthetic events
-    // that drive the showcase, so the guard lives here once instead of being
-    // repeated inside every interaction handler. IS_DEMO is a build-time
-    // constant, so in normal builds this folds to `return handler` and the
-    // wrapper - which sits on hot pointer paths - is dead-code-eliminated.
-    const ignoreRealInput = <EventType extends Event>(
-      handler: (event: EventType) => void,
-    ): ((event: EventType) => void) => {
-      if (!IS_DEMO) return handler;
-      return (event: EventType): void => {
-        if (event.isTrusted) return;
-        handler(event);
-      };
-    };
-
     eventListenerManager.addWindowListener(
       "keydown",
       ignoreRealInput((event: KeyboardEvent) => {
@@ -2523,7 +2510,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const isEnterToActivateInput =
           isEnterCode(event.code) && isHoldingKeys() && !isPromptMode();
 
-        const isFromReactGrabInput = isEventFromOverlay(event, "data-react-grab-input");
+        const isFromReactGrabInput = isEventFromOverlay(event, REACT_GRAB_INPUT_ATTRIBUTE);
         if (
           isPromptMode() &&
           isTargetKeyCombination(event, pluginRegistry.store.options) &&
@@ -3095,16 +3082,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     eventListenerManager.addDocumentListener(
       "copy",
-      (event: ClipboardEvent) => {
-        // Demo mode never intercepts the host page's real clipboard.
-        if (IS_DEMO && event.isTrusted) return;
+      ignoreRealInput((event: ClipboardEvent) => {
         if (isPromptMode() || isEventFromOverlay(event, "data-react-grab-ignore-events")) {
           return;
         }
         if (isRendererActive()) {
           event.preventDefault();
         }
-      },
+      }),
       { capture: true },
     );
 

@@ -17,12 +17,8 @@ const nextConfig: NextConfig = {
       permanent: false,
     },
     {
+      // :path* matches zero or more segments, so this covers bare /blog too.
       source: "/blog/:path*",
-      destination: "/",
-      permanent: true,
-    },
-    {
-      source: "/blog",
       destination: "/",
       permanent: true,
     },

@@ -16,6 +16,16 @@ const fetchFont = async (request: Request, path: string) => {
   return response.arrayBuffer();
 };
 
+// The font files are immutable static assets, so fetch them once per isolate
+// instead of twice per social-card request. Only the request origin is needed
+// to resolve the URLs, which is why the promise is keyed off the first request.
+let fontsPromise: Promise<[ArrayBuffer, ArrayBuffer]> | null = null;
+const getFonts = (request: Request) =>
+  (fontsPromise ??= Promise.all([
+    fetchFont(request, "/fonts/ekbaumeruniwidthtrial-regular.otf"),
+    fetchFont(request, "/fonts/ekbaumeruniwidthtrial-medium.otf"),
+  ]));
+
 const ReactGrabLogo = () => (
   <svg width="52" height="52" viewBox="0 0 294 294" fill="none" xmlns="http://www.w3.org/2000/svg">
     <g clipPath="url(#clip0_og)">
@@ -58,10 +68,7 @@ export const GET = async (request: Request) => {
   const title = searchParams.get("title") ?? "React Grab";
   const subtitle = searchParams.get("subtitle");
 
-  const [baumerRegular, baumerMedium] = await Promise.all([
-    fetchFont(request, "/fonts/ekbaumeruniwidthtrial-regular.otf"),
-    fetchFont(request, "/fonts/ekbaumeruniwidthtrial-medium.otf"),
-  ]);
+  const [baumerRegular, baumerMedium] = await getFonts(request);
 
   return new ImageResponse(
     <div

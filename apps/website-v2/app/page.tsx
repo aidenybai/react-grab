@@ -12,17 +12,14 @@ export default function HomePage() {
         <p>Copy any UI element for your coding agent.</p>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <p>
-          React Grab points your agent at the exact source behind what you see, getting it to the
-          right code{" "}
-          <AccentLink href="/benchmarks" external={false}>
-            2× faster
-          </AccentLink>
-          . It
-          works in Claude Code, Codex, and Cursor.
-        </p>
-      </div>
+      <p>
+        React Grab points your agent at the exact source behind what you see, getting it to the
+        right code{" "}
+        <AccentLink href="/benchmarks" external={false}>
+          2× faster
+        </AccentLink>
+        . It works in Claude Code, Codex, and Cursor.
+      </p>
 
       <div className="flex flex-col gap-3">
         <p>Run this command in your project:</p>

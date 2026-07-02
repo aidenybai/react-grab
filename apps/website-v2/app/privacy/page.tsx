@@ -1,30 +1,12 @@
-import type { Metadata } from "next";
+import { createPageMetadata } from "@/lib/metadata";
 import { AccentLink } from "@/components/prose";
 import { PageHeader } from "@/components/page-header";
 
-const title = "Privacy Policy";
-const description = "Privacy policy for React Grab browser extension and website";
-const ogImageUrl = `/api/og?title=${encodeURIComponent(title)}&subtitle=${encodeURIComponent(description)}`;
-
-export const metadata: Metadata = {
-  title: `${title} - React Grab`,
-  description,
-  openGraph: {
-    title: `${title} - React Grab`,
-    description,
-    url: "/privacy",
-    siteName: "React Grab",
-    images: [{ url: ogImageUrl, width: 1200, height: 630, alt: `React Grab - ${title}` }],
-    locale: "en_US",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: `${title} - React Grab`,
-    description,
-    images: [ogImageUrl],
-  },
-};
+export const metadata = createPageMetadata({
+  title: "Privacy Policy",
+  description: "Privacy policy for React Grab browser extension and website",
+  path: "/privacy",
+});
 
 const PrivacyPage = () => {
   return (

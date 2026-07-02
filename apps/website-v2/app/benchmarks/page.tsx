@@ -1,32 +1,14 @@
-import type { Metadata } from "next";
+import { createPageMetadata } from "@/lib/metadata";
 import { AccentLink } from "@/components/prose";
 import { PageHeader } from "@/components/page-header";
 import { BenchmarkLeaderboard } from "@/components/benchmark/leaderboard";
 import { TOTAL_CASES, LAST_BENCHMARKED } from "@/components/benchmark/data";
 
-const title = "Benchmarks";
-const description = "How React Grab helps coding agents find the right source file, faster.";
-const ogImageUrl = `/api/og?title=${encodeURIComponent(title)}&subtitle=${encodeURIComponent(description)}`;
-
-export const metadata: Metadata = {
-  title: `${title} - React Grab`,
-  description,
-  openGraph: {
-    title: `${title} - React Grab`,
-    description,
-    url: "/benchmarks",
-    siteName: "React Grab",
-    images: [{ url: ogImageUrl, width: 1200, height: 630, alt: `React Grab - ${title}` }],
-    locale: "en_US",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: `${title} - React Grab`,
-    description,
-    images: [ogImageUrl],
-  },
-};
+export const metadata = createPageMetadata({
+  title: "Benchmarks",
+  description: "How React Grab helps coding agents find the right source file, faster.",
+  path: "/benchmarks",
+});
 
 const BenchmarksPage = () => {
   return (

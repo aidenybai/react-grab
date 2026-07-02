@@ -1,32 +1,14 @@
-import type { Metadata } from "next";
+import { createPageMetadata } from "@/lib/metadata";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { parseChangelog } from "@/utils/parse-changelog";
 import { PageHeader } from "@/components/page-header";
 
-const title = "Changelog";
-const description = "Release notes and version history for React Grab";
-const ogImageUrl = `/api/og?title=${encodeURIComponent(title)}&subtitle=${encodeURIComponent(description)}`;
-
-export const metadata: Metadata = {
-  title: `${title} - React Grab`,
-  description,
-  openGraph: {
-    title: `${title} - React Grab`,
-    description,
-    url: "/changelog",
-    siteName: "React Grab",
-    images: [{ url: ogImageUrl, width: 1200, height: 630, alt: `React Grab - ${title}` }],
-    locale: "en_US",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: `${title} - React Grab`,
-    description,
-    images: [ogImageUrl],
-  },
-};
+export const metadata = createPageMetadata({
+  title: "Changelog",
+  description: "Release notes and version history for React Grab",
+  path: "/changelog",
+});
 
 const getChangelog = () => {
   const changelogPath = join(process.cwd(), "..", "..", "packages", "react-grab", "CHANGELOG.md");

@@ -2,6 +2,8 @@
 
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import { LINK_CLASS_NAME } from "@/components/prose";
+import { cn } from "@/lib/utils";
 
 /**
  * Text-based light/dark toggle matching the mono footer chrome. Gated on mount
@@ -21,7 +23,7 @@ export const ThemeSwitch = () => {
       type="button"
       onClick={() => setTheme(next)}
       aria-label={`Switch to ${next} theme`}
-      className="cursor-pointer text-prose underline decoration-prose/30 underline-offset-[3px] transition-colors hover:text-label hover:decoration-label"
+      className={cn("cursor-pointer", LINK_CLASS_NAME)}
       suppressHydrationWarning
     >
       {mounted ? (next === "dark" ? "Dark mode" : "Light mode") : "Theme"}
