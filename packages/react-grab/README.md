@@ -11,7 +11,7 @@ React Grab points agents to the actual source behind each selection. Agents are 
 
 ## Quick Start
 
-Run this at your project root:
+Run this command at your project root (where `next.config.ts`, `vite.config.ts`, or `svelte.config.js` is located):
 
 ```bash
 npx grab@latest init
@@ -93,6 +93,16 @@ export default function Document() {
 Add this at the top of your main entry file (e.g., `src/main.tsx`):
 
 ```tsx
+if (import.meta.env.DEV) {
+  import("react-grab");
+}
+```
+
+#### SvelteKit
+
+Add this to `src/hooks.client.ts`:
+
+```ts
 if (import.meta.env.DEV) {
   import("react-grab");
 }

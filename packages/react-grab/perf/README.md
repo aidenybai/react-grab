@@ -36,6 +36,16 @@ The intended workflow is:
 
 The only thresholds asserted in-test are absolute Web Vitals caps (currently `INP < 100ms` soft-asserted on a couple of interaction-heavy scenarios). These hold across reasonable hardware; they're not derived from a committed baseline.
 
+## Historical stage snapshots
+
+| stage                    | scenario `viewportInvalidationBurst` (median) | scenario `multiFreezeInvalidationBurst` (median) | `hoverSweep` (total over 1500 events) |
+| ------------------------ | --------------------------------------------- | ------------------------------------------------ | ------------------------------------- |
+| `stage-0-baseline`       | 70.4                                          | 77.3                                             | 38.9                                  |
+| `stage-3-mapArray`       | 70.0                                          | 78.1                                             | 42.6                                  |
+| `stage-4-hoist-signals`  | 74.25                                         | 78.7                                             | 35.4                                  |
+| `stage-5-no-produce`     | 71.0                                          | 76.8                                             | 35.8                                  |
+| `stage-6-current-signal` | 76.15                                         | 81.95                                            | 47.2                                  |
+
 ## Report shape
 
 Each `perf/<label>/<scenario>.json` looks like:
