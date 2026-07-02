@@ -584,13 +584,15 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
           }
         }
 
+        // Boxes stay in the store for their full fade-out, so an animation
+        // whose box is gone was cleared explicitly (reset/escape) and must
+        // not linger — an orphaned remnant can't track layout shifts and
+        // would freeze at stale coordinates.
         grabbedAnimations = grabbedAnimations.filter((animation) => {
           if (animation.id.startsWith("label-")) {
             return activeLabelIds.has(animation.id);
           }
-          if (boxesById.has(animation.id)) return true;
-          if (animation.createdAt && animation.opacity > 0) return true;
-          return false;
+          return boxesById.has(animation.id);
         });
 
         scheduleAnimationFrame();

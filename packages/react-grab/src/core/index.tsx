@@ -66,6 +66,7 @@ import { buildElementHierarchy } from "../utils/build-element-hierarchy.js";
 import { isHorizontallyGrabbable } from "../utils/is-horizontally-grabbable.js";
 import {
   ARROW_KEYS,
+  FADE_DURATION_MS,
   FEEDBACK_DURATION_MS,
   KEYDOWN_SPAM_TIMEOUT_MS,
   DRAG_THRESHOLD_PX,
@@ -115,6 +116,7 @@ import type {
   PerformWithFeedbackOptions,
   SettableOptions,
   SourceInfo,
+  SelectedElementPayload,
   Plugin,
   ToolbarState,
   DropdownAnchor,
@@ -586,15 +588,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.addGrabbedBox(newBox);
       pluginRegistry.hooks.onGrabbedBox(bounds, element);
 
+      // Keep the box in the store through the canvas fade-out so its bounds
+      // keep tracking the element; once removed, the canvas remnant is
+      // orphaned and would freeze at stale coordinates if layout shifts.
       const timeoutId = window.setTimeout(() => {
         grabbedBoxTimeouts.delete(boxId);
         actions.removeGrabbedBox(boxId);
-      }, FEEDBACK_DURATION_MS);
+      }, FEEDBACK_DURATION_MS + FADE_DURATION_MS);
       grabbedBoxTimeouts.set(boxId, timeoutId);
     };
 
     const notifyElementsSelected = async (elements: Element[]): Promise<void> => {
-      const elementsPayload = await Promise.all(
+      const elementsPayload: SelectedElementPayload[] = await Promise.all(
         elements.map(async (element) => {
           const source = await resolveSource(element);
           let componentName = source?.componentName ?? null;

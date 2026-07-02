@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import type { ReactNode } from "react";
+import { GithubLink } from "@/components/github-link";
 
 interface PageHeaderProps {
   title: ReactNode;
@@ -16,7 +17,10 @@ export const PageHeader = ({ title, subtitle }: PageHeaderProps) => (
       <ArrowLeft size={13} />
       React Grab
     </Link>
-    <h1 className="text-h2 font-medium text-title">{title}</h1>
+    <div className="flex items-center justify-between">
+      <h1 className="text-h2 font-medium text-title">{title}</h1>
+      <GithubLink />
+    </div>
     {subtitle && <p className="text-prose">{subtitle}</p>}
   </header>
 );

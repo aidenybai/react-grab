@@ -430,6 +430,27 @@ export interface SourceInfo {
   componentName: string | null;
 }
 
+export interface SelectedElementPayload {
+  tagName: string;
+  id?: string;
+  className?: string;
+  textContent?: string;
+  componentName?: string;
+  filePath?: string;
+  lineNumber?: number;
+  columnNumber?: number;
+}
+
+export interface ElementSelectedEventDetail {
+  elements: SelectedElementPayload[];
+}
+
+declare global {
+  interface WindowEventMap {
+    "react-grab:element-selected": CustomEvent<ElementSelectedEventDetail>;
+  }
+}
+
 export interface ToolbarState {
   edge: "top" | "bottom" | "left" | "right";
   ratio: number;

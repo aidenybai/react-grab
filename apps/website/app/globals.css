@@ -244,6 +244,61 @@
   }
 }
 
+/* Demo-page animations (/demo): a seamless half-width marquee loop, scaleY
+   equalizer bars, and an indeterminate progress sweep. */
+@theme {
+  --animate-marquee: marquee 24s linear infinite;
+  --animate-equalize: equalize 1s ease-in-out infinite;
+  --animate-progress-sweep: progress-sweep 1.4s ease-in-out infinite;
+  --animate-reload-bar: reload-bar 700ms ease-out both;
+
+  @keyframes reload-bar {
+    0% {
+      width: 0%;
+      opacity: 1;
+    }
+    70% {
+      opacity: 1;
+    }
+    100% {
+      width: 100%;
+      opacity: 0;
+    }
+  }
+
+  @keyframes marquee {
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  @keyframes equalize {
+    0%,
+    100% {
+      transform: scaleY(0.25);
+    }
+    50% {
+      transform: scaleY(1);
+    }
+  }
+  @keyframes progress-sweep {
+    from {
+      left: -40%;
+    }
+    to {
+      left: 105%;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee,
+  .animate-equalize,
+  .animate-progress-sweep,
+  .animate-reload-bar {
+    animation: none;
+  }
+}
+
 @utility scrollbar-none {
   scrollbar-width: none;
   &::-webkit-scrollbar {

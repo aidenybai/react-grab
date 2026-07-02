@@ -9,6 +9,7 @@ import { IconVSCode } from "@/components/icons/icon-vscode";
 import { IconZed } from "@/components/icons/icon-zed";
 import { IconWebStorm } from "@/components/icons/icon-webstorm";
 import { Button } from "@/components/ui/button";
+import { GithubLink } from "@/components/github-link";
 import { cn } from "@/lib/utils";
 
 const EDITOR_OPTIONS = ["cursor", "vscode", "zed", "webstorm"] as const;
@@ -143,6 +144,7 @@ const OpenFileContent = () => {
   if (!resolvedFilePath) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <GithubLink className="fixed top-5 right-5" />
         <div className="w-full max-w-md rounded-lg border border-line bg-card p-8 text-center">
           <div className="mb-6 flex justify-center">
             <Wordmark />
@@ -161,6 +163,7 @@ const OpenFileContent = () => {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+      <GithubLink className="fixed top-5 right-5" />
       <div className="mb-8">
         <Wordmark />
       </div>

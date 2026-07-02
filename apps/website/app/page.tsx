@@ -1,3 +1,4 @@
+import { GithubLink } from "@/components/github-link";
 import { GrabDemo } from "@/components/grab-demo";
 import { InstallCommand } from "@/components/install-command";
 import { PageShell } from "@/components/page-shell";
@@ -8,7 +9,10 @@ export default function HomePage() {
   return (
     <PageShell>
       <div className="flex flex-col gap-3 pt-20">
-        <h1 className="font-sans text-h2 font-semibold text-title">React Grab</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="font-sans text-h2 font-semibold text-title">React Grab</h1>
+          <GithubLink />
+        </div>
         <p>Copy any UI element for your coding agent.</p>
       </div>
 
