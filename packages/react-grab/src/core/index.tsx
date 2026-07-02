@@ -846,7 +846,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       // Without Shift the tree only follows an active keyboard-navigation
       // selection — not every frozen element, so it stays hidden during
       // drag-marquee selection or after a non-deactivating mouse copy.
-      return isShiftKeyHeld() ? effectiveElement() : keyboardSelection.selectedElement();
+      if (!isShiftKeyHeld()) return keyboardSelection.selectedElement();
+      // With Shift the tree reveals the element under the cursor. While frozen
+      // there is no live hover (pointer-move skips detection), so use the frozen
+      // selection; while hovering, prefer the freshly hovered element over any
+      // lingering frozenElement — cancelDrag / finishJustDragged return to the
+      // "hovering" phase without clearing it.
+      return isFrozenPhase() ? effectiveElement() : (targetElement() ?? store.frozenElement);
     });
 
     const hierarchyEntries = createMemo<HierarchyEntry[]>(() => {
@@ -2184,6 +2190,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return false;
       const navigationKey = resolveNavigationKey(event);
       if (!navigationKey) return false;
+      // Leave arrows/Tab to native editing and focus traversal when a page
+      // input, textarea, or other editable control has focus.
+      if (isKeyboardEventTriggeredByInput(event)) return false;
       if (isAnyPopoverOpen()) return false;
 
       let currentElement = effectiveElement();
