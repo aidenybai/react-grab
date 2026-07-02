@@ -2190,10 +2190,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return false;
       const navigationKey = resolveNavigationKey(event);
       if (!navigationKey) return false;
-      // Never hijack arrows/Tab from an editable control, regardless of caller
-      // (the discard-prompt pass-through and overlay paths reach here before the
-      // main keydown's editable-control guard).
-      if (isKeyboardEventTriggeredByInput(event)) return false;
       if (isAnyPopoverOpen()) return false;
 
       let currentElement = effectiveElement();
@@ -2462,6 +2458,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       // copies when the Copy button is focused) and returns to selection.
       // Handing it off here keeps Enter from running a bare-key shortcut (e.g.
       // the default action) and dropping into that mode instead.
+      //
+      // Invariant: this yields the event rather than consuming it. DiscardPrompt
+      // registers its own window keydown (capture) listener after this one, so
+      // returning early WITHOUT stopping propagation lets that later listener
+      // resolve Copy-vs-Discard from button focus. Do not add stopPropagation on
+      // this path, or the prompt will never see Enter.
       if (isEnterCode(event.code)) return true;
 
       // Only arrows continue navigation through the discard prompt; Tab and
@@ -2484,6 +2486,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     eventListenerManager.addWindowListener(
       "keydown",
       (event: KeyboardEvent) => {
+        // Editable controls keep their native arrow/Tab keys (caret movement,
+        // focus traversal). This one guard covers every navigation path in this
+        // handler — the discard-prompt pass-through, the overlay branch, and the
+        // main path — and precedes the active-mode preventDefault below.
+        if (resolveNavigationKey(event) && isKeyboardEventTriggeredByInput(event)) return;
         if (tryHandleKeyboardSelectionPromptPassThrough(event)) return;
 
         blockEnterIfNeeded(event);
@@ -2552,11 +2559,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             return;
           }
         }
-
-        // When a page input, textarea, or other editable control has focus, let
-        // its own arrow/Tab keys drive native caret movement and focus traversal
-        // instead of sibling navigation or the active-mode key capture below.
-        if (resolveNavigationKey(event) && isKeyboardEventTriggeredByInput(event)) return;
 
         if (isActivated() && !MODIFIER_KEYS.includes(event.key)) {
           event.preventDefault();
