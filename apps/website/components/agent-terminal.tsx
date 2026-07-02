@@ -173,7 +173,7 @@ export const AgentTerminal = ({ controllerRef }: AgentTerminalProps) => {
             className="flex flex-col gap-0.5 rounded-b-md border-x border-b px-2.5 pt-1 pb-2 font-mono text-[11px] leading-relaxed"
             style={{ borderColor: CLAUDE_CORAL }}
           >
-            <span className="text-ink">Opus 4.5</span>
+            <span className="text-ink">Fable 5</span>
             <span className="text-faint">~/Developer/app</span>
           </div>
         </div>
