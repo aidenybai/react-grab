@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { PerfGrid } from "./perf-grid";
+import { FreezeHookHarness } from "./freeze-hook-harness";
 
 interface Todo {
   id: number;
@@ -755,6 +756,8 @@ export default function App() {
       <PointerEventsModalSection />
 
       <HiddenToggleSection />
+
+      <FreezeHookHarness />
 
       <div
         className="h-96 flex items-center justify-center bg-gray-100 rounded-lg"
