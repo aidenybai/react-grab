@@ -6,16 +6,28 @@
 // undo/redo log. Restoring does NOT use React DevTools' overrideHookState:
 // when React Refresh (Vite/Next dev) creates the DevTools hook before bippy
 // loads, the injected renderer object is never retained anywhere reachable,
-// so the bridge is unavailable exactly where react-grab runs most. Instead,
-// travel replays values through each hook's own queue.dispatch — the stable
-// setState dispatcher React stores on the hook queue — which is exact for
-// useState-family hooks because basicStateReducer invokes a function action
-// with the current state (dispatching `() => value` always lands on value).
+// so the bridge is unavailable exactly where react-grab runs most. Instead:
+//
+// - useState-family hooks replay through their own queue.dispatch — the
+//   stable setState dispatcher React stores on the hook queue — which is
+//   exact because basicStateReducer invokes a function action with the
+//   current state (dispatching `() => value` always lands on value).
+// - useReducer hooks cannot be forced through dispatch (actions feed the
+//   app's reducer), so travel writes the hook's memoizedState/baseState
+//   directly on both the fiber and its alternate — making the resulting
+//   commit diff-invisible — and then forces the component to re-render by
+//   "wiggling" the nearest useState queue (a sentinel dispatch immediately
+//   superseded by the current value, netting zero).
+// - useSyncExternalStore is deliberately NOT tracked: its state lives in an
+//   external store with no generic setter, and React's consistency check
+//   re-reads getSnapshot() after every render, immediately reverting any
+//   forced hook value — so its changes are neither recorded nor restored.
 import {
   ForwardRefTag,
   FunctionComponentTag,
   SimpleMemoComponentTag,
   getDisplayName,
+  getLatestFiber,
   instrument,
   secure,
   traverseRenderedFibers,
@@ -48,11 +60,16 @@ import {
 
 interface RestorableHookQueue {
   dispatch: (action: unknown) => void;
+  lastRenderedReducer?: unknown;
   lastRenderedState?: unknown;
 }
 
+type RestorableHookKind = "state" | "reducer";
+
 interface TimeMachineHookChange {
+  kind: RestorableHookKind;
   queueRef: WeakRef<RestorableHookQueue>;
+  fiberRef: WeakRef<Fiber>;
   previousValue: unknown;
   nextValue: unknown;
 }
@@ -153,15 +170,26 @@ const isHookStatefulFiber = (fiber: Fiber): boolean =>
   fiber.tag === ForwardRefTag ||
   fiber.tag === SimpleMemoComponentTag;
 
-const getRestorableHookQueue = (hookNode: MemoizedState): RestorableHookQueue | null => {
+interface RestorableHookTarget {
+  queue: RestorableHookQueue;
+  kind: RestorableHookKind;
+}
+
+// Requiring lastRenderedReducer scopes tracking to useState/useReducer:
+// useSyncExternalStore's queue carries a getSnapshot instead (its state lives
+// in an external store that cannot be written back), and useActionState's
+// queue carries the action — neither is recordable-and-restorable.
+const getRestorableHookTarget = (hookNode: MemoizedState): RestorableHookTarget | null => {
   const queue: unknown = hookNode.queue;
   if (typeof queue !== "object" || queue === null) return null;
   if (!("dispatch" in queue) || typeof queue.dispatch !== "function") return null;
   if (!("lastRenderedReducer" in queue)) return null;
   const reducer = queue.lastRenderedReducer;
   if (!isStateReducerFunction(reducer)) return null;
-  if (!isRestorableStateReducer(reducer)) return null;
-  return queue as RestorableHookQueue;
+  return {
+    queue: queue as RestorableHookQueue,
+    kind: isRestorableStateReducer(reducer) ? "state" : "reducer",
+  };
 };
 
 // Hooks live on fiber.memoizedState as a linked list; walking the current and
@@ -174,19 +202,21 @@ const collectHookChanges = (fiber: Fiber): TimeMachineHookChange[] | null => {
   let currentHook: MemoizedState | null = fiber.memoizedState;
   let previousHook: MemoizedState | null = alternate.memoizedState;
   while (currentHook && previousHook && typeof currentHook === "object") {
-    const queue = getRestorableHookQueue(currentHook);
-    if (queue) {
+    const target = getRestorableHookTarget(currentHook);
+    if (target) {
       if (!Object.is(currentHook.memoizedState, previousHook.memoizedState)) {
-        if (!consumeTravelExpectation(queue, currentHook.memoizedState)) {
+        if (!consumeTravelExpectation(target.queue, currentHook.memoizedState)) {
           changes ??= [];
           changes.push({
-            queueRef: new WeakRef(queue),
+            kind: target.kind,
+            queueRef: new WeakRef(target.queue),
+            fiberRef: new WeakRef(fiber),
             previousValue: previousHook.memoizedState,
             nextValue: currentHook.memoizedState,
           });
         }
       } else {
-        settleTravelExpectations(queue, currentHook.memoizedState);
+        settleTravelExpectations(target.queue, currentHook.memoizedState);
       }
     }
     currentHook = currentHook.next;
@@ -439,37 +469,166 @@ export const getTimeMachineCursor = (): number => travelCursor;
 
 export const hasTimeMachineHistory = (): boolean => history.length > 0;
 
-const applyHookValue = (change: TimeMachineHookChange, value: unknown): void => {
+// The value a queue is about to land on: the tail of its in-flight travel
+// expectations if any, otherwise its last rendered state.
+const readQueueLogicalValue = (queue: RestorableHookQueue): unknown => {
+  const expectations = pendingTravelValues.get(queue);
+  const tailExpectation = expectations?.[expectations.length - 1];
+  if (tailExpectation) return tailExpectation.value;
+  return queue.lastRenderedState;
+};
+
+// Returns true when a render was actually scheduled (a skipped no-op
+// dispatch schedules nothing).
+const applyStateHookValue = (change: TimeMachineHookChange, value: unknown): boolean => {
   const queue = change.queueRef.deref();
-  if (!queue) return;
+  if (!queue) return false;
   // Skipping the no-op dispatch matters beyond perf: React's eager bailout
   // would never commit it, leaving a stale expected value that could swallow
   // a future legitimate change to the same value. With dispatches already in
   // flight, queue.lastRenderedState is stale, so the value the queue is about
   // to land on is the tail of the expectation list.
+  if (Object.is(readQueueLogicalValue(queue), value)) return false;
   const expectations = pendingTravelValues.get(queue) ?? [];
-  const tailExpectation = expectations[expectations.length - 1];
-  if (tailExpectation) {
-    if (Object.is(tailExpectation.value, value)) return;
-  } else if ("lastRenderedState" in queue && Object.is(queue.lastRenderedState, value)) {
-    return;
-  }
   expectations.push({ value, dispatchedAt: Date.now() });
   pendingTravelValues.set(queue, expectations);
   try {
     queue.dispatch(() => value);
+    return true;
   } catch (error) {
     expectations.pop();
     if (expectations.length === 0) {
       pendingTravelValues.delete(queue);
     }
     logRecoverableError("Time machine failed to restore hook state", error);
+    return false;
   }
 };
 
+const findHookByQueue = (fiber: Fiber, queue: RestorableHookQueue): MemoizedState | null => {
+  let hookNode: MemoizedState | null = fiber.memoizedState;
+  while (hookNode && typeof hookNode === "object") {
+    if (hookNode.queue === queue) return hookNode;
+    hookNode = hookNode.next;
+  }
+  return null;
+};
+
+// React's render-phase bailout discards a render whose props identity and
+// hook states all end where they started — which describes both a fiber
+// whose reducer hook was written directly (no scheduling state changed) and
+// a net-zero wiggle. Cloning memoizedProps flips beginWork's oldProps !==
+// newProps check so the render commits; the same trick React DevTools'
+// overrideHookState uses. Shallow clone, so memo comparisons stay equal.
+const invalidatePropsIdentity = (fiber: Fiber): void => {
+  const memoizedProps: unknown = fiber.memoizedProps;
+  if (typeof memoizedProps !== "object" || memoizedProps === null) return;
+  fiber.memoizedProps = { ...memoizedProps };
+};
+
+// useReducer state cannot be forced through dispatch (actions feed the app's
+// reducer), so travel writes the hook's memoizedState/baseState directly on
+// BOTH the fiber and its alternate. Writing both sides is what keeps the
+// next render truthful (React clones hooks from whichever fiber is current)
+// and makes the forced commit diff-invisible to the recorder — new and old
+// memoizedState compare equal, so no bogus entry and no expectation
+// bookkeeping is needed.
+const writeReducerHookValue = (change: TimeMachineHookChange, value: unknown): boolean => {
+  const queue = change.queueRef.deref();
+  const recordedFiber = change.fiberRef.deref();
+  if (!queue || !recordedFiber) return false;
+  const latestFiber = getLatestFiber(recordedFiber);
+  let didWrite = false;
+  for (const fiber of [latestFiber, latestFiber.alternate]) {
+    const hook = fiber ? findHookByQueue(fiber, queue) : null;
+    if (!hook) continue;
+    if (!Object.is(hook.memoizedState, value)) didWrite = true;
+    hook.memoizedState = value;
+    hook.baseState = value;
+  }
+  if (didWrite) {
+    // Keeps React's eager-dispatch bailout comparing future real actions
+    // against the travelled state instead of the stale one.
+    queue.lastRenderedState = value;
+    invalidatePropsIdentity(latestFiber);
+  }
+  return didWrite;
+};
+
+const WIGGLE_SENTINEL = Object.freeze({});
+
+const wiggleStateQueueOnFiber = (fiber: Fiber): boolean => {
+  let hookNode: MemoizedState | null = fiber.memoizedState;
+  while (hookNode && typeof hookNode === "object") {
+    const target = getRestorableHookTarget(hookNode);
+    if (target && target.kind === "state") {
+      const restoreValue = readQueueLogicalValue(target.queue);
+      // The wiggle nets to zero, so this fiber's own bailout must also be
+      // defeated or React discards the forced render entirely.
+      invalidatePropsIdentity(fiber);
+      try {
+        target.queue.dispatch(() => WIGGLE_SENTINEL);
+        target.queue.dispatch(() => restoreValue);
+        return true;
+      } catch (error) {
+        logRecoverableError("Time machine failed to force a re-render", error);
+        return false;
+      }
+    }
+    hookNode = hookNode.next;
+  }
+  return false;
+};
+
+// A directly-written reducer hook changes no scheduling state, so nothing
+// re-renders the component and the DOM would keep showing the old output.
+// With no reachable renderer.scheduleUpdate (see module header), the render
+// is forced by "wiggling" a useState queue: one dispatch to a unique sentinel
+// (guaranteed to schedule) and one straight back to its logical value. The
+// batch nets to zero — the commit shows no diff for the wiggled hook — but
+// the render it forces re-reads the reducer hook's written state. A sibling
+// hook on the same fiber is preferred; a reducer-only component borrows the
+// nearest function-component ancestor with state instead, whose re-render
+// reaches the reducer fiber because its props identity was invalidated.
+const forceFiberRender = (fiber: Fiber): boolean => {
+  let currentFiber: Fiber | null = getLatestFiber(fiber);
+  while (currentFiber) {
+    if (isHookStatefulFiber(currentFiber) && wiggleStateQueueOnFiber(currentFiber)) {
+      return true;
+    }
+    currentFiber = currentFiber.return;
+  }
+  return false;
+};
+
 const applyEntryValues = (entry: TimeMachineEntry, shouldApplyNext: boolean): void => {
+  // Reducer writes go first so the render forced by this step's state
+  // dispatches (or by the wiggle) commits them in the same pass.
+  let fibersAwaitingRender: Set<Fiber> | null = null;
   for (const change of entry.changes) {
-    applyHookValue(change, shouldApplyNext ? change.nextValue : change.previousValue);
+    if (change.kind !== "reducer") continue;
+    const value = shouldApplyNext ? change.nextValue : change.previousValue;
+    const recordedFiber = change.fiberRef.deref();
+    if (writeReducerHookValue(change, value) && recordedFiber) {
+      fibersAwaitingRender ??= new Set();
+      fibersAwaitingRender.add(getLatestFiber(recordedFiber));
+    }
+  }
+
+  for (const change of entry.changes) {
+    if (change.kind !== "state") continue;
+    const value = shouldApplyNext ? change.nextValue : change.previousValue;
+    const didScheduleRender = applyStateHookValue(change, value);
+    if (didScheduleRender && fibersAwaitingRender) {
+      const dispatchedFiber = change.fiberRef.deref();
+      if (dispatchedFiber) fibersAwaitingRender.delete(getLatestFiber(dispatchedFiber));
+    }
+  }
+
+  if (fibersAwaitingRender) {
+    for (const fiber of fibersAwaitingRender) {
+      forceFiberRender(fiber);
+    }
   }
 };
 

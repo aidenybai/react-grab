@@ -235,6 +235,73 @@ test.describe("Time Machine", () => {
     await expect(reactGrab.page.locator(TOGGLEABLE_ELEMENT_SELECTOR)).toBeVisible();
   });
 
+  test("travels useReducer state on a component with a sibling useState", async ({ reactGrab }) => {
+    const incrementButton = reactGrab.page.locator("[data-testid='mixed-hooks-increment']");
+    const countText = reactGrab.page.locator("[data-testid='mixed-hooks-count']");
+    await incrementButton.scrollIntoViewIfNeeded();
+    await incrementButton.click();
+    await expect(countText).toHaveText("1");
+    await incrementButton.click();
+    await expect(countText).toHaveText("2");
+
+    await clickToolbarTimeMachineButton(reactGrab);
+    await expect.poll(() => isTimeMachinePanelVisible(reactGrab.page)).toBe(true);
+
+    await reactGrab.pressArrowLeft();
+    await expect(countText).toHaveText("1");
+    await reactGrab.pressArrowLeft();
+    await expect(countText).toHaveText("0");
+    await reactGrab.pressArrowRight();
+    await expect(countText).toHaveText("1");
+    await reactGrab.pressArrowRight();
+    await expect(countText).toHaveText("2");
+    await expect.poll(() => getTimeMachineValueText(reactGrab.page)).toBe("2/2");
+  });
+
+  test("travels useReducer state on a reducer-only component", async ({ reactGrab }) => {
+    const incrementButton = reactGrab.page.locator("[data-testid='reducer-only-increment']");
+    const countText = reactGrab.page.locator("[data-testid='reducer-only-count']");
+    await incrementButton.scrollIntoViewIfNeeded();
+    await incrementButton.click();
+    await expect(countText).toHaveText("1");
+    await incrementButton.click();
+    await expect(countText).toHaveText("2");
+
+    await clickToolbarTimeMachineButton(reactGrab);
+    await expect.poll(() => isTimeMachinePanelVisible(reactGrab.page)).toBe(true);
+
+    await reactGrab.pressArrowLeft();
+    await expect(countText).toHaveText("1");
+    await reactGrab.pressArrowLeft();
+    await expect(countText).toHaveText("0");
+    await reactGrab.pressArrowRight();
+    await reactGrab.pressArrowRight();
+    await expect(countText).toHaveText("2");
+    await expect.poll(() => getTimeMachineValueText(reactGrab.page)).toBe("2/2");
+  });
+
+  test("useSyncExternalStore changes are neither recorded nor travelled", async ({ reactGrab }) => {
+    await recordVisibilityToggles(reactGrab);
+
+    const storeButton = reactGrab.page.locator("[data-testid='external-store-increment']");
+    const storeCount = reactGrab.page.locator("[data-testid='external-store-count']");
+    await storeButton.scrollIntoViewIfNeeded();
+    await storeButton.click();
+    await expect(storeCount).toHaveText("1");
+
+    await clickToolbarTimeMachineButton(reactGrab);
+    await expect.poll(() => isTimeMachinePanelVisible(reactGrab.page)).toBe(true);
+    // Only the two visibility toggles were recorded; the external store
+    // change created no timeline entry.
+    expect(await getTimeMachineValueText(reactGrab.page)).toBe("2/2");
+
+    await reactGrab.pressArrowLeft();
+    await reactGrab.pressArrowLeft();
+    await expect(reactGrab.page.locator(TOGGLEABLE_ELEMENT_SELECTOR)).toBeVisible();
+    // Rewinding leaves external-store state untouched.
+    await expect(storeCount).toHaveText("1");
+  });
+
   test("rewinding pins the hover styling captured with each change", async ({ reactGrab }) => {
     const toggleButton = reactGrab.page.locator(TOGGLE_BUTTON_SELECTOR);
     await toggleButton.scrollIntoViewIfNeeded();
