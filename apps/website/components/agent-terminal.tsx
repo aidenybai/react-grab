@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { TrafficLights } from "@/components/traffic-lights";
 
 const TYPE_CHAR_MS = 14;
 const WORK_TICK_MS = 120;
@@ -19,6 +20,7 @@ export interface AgentTerminalController {
   showDiff: (removedLine: string, addedLine: string) => void;
   finishWork: () => void;
   typeReply: (text: string) => Promise<void>;
+  pause: () => void;
   reset: () => void;
 }
 
@@ -27,11 +29,11 @@ interface DiffContent {
   addedLine: string;
 }
 
-export const AgentTerminal = ({
-  controllerRef,
-}: {
+interface AgentTerminalProps {
   controllerRef: React.RefObject<AgentTerminalController | null>;
-}) => {
+}
+
+export const AgentTerminal = ({ controllerRef }: AgentTerminalProps) => {
   const [chipText, setChipText] = useState<string | null>(null);
   const [promptText, setPromptText] = useState("");
   const [isBusy, setIsBusy] = useState(false);
@@ -87,6 +89,7 @@ export const AgentTerminal = ({
         await typeText(sessionRef.current, text, setPromptText);
       },
       startWork: () => {
+        stopWorkTicker();
         setWorkPhase("working");
         const startedAt = Date.now();
         workIntervalRef.current = setInterval(() => {
@@ -113,6 +116,12 @@ export const AgentTerminal = ({
         if (sessionRef.current !== session) return;
         setIsBusy(false);
       },
+      // Freezes the transcript mid-story (halts typing and the work ticker)
+      // without clearing it, so a paused demo doesn't keep animating.
+      pause: () => {
+        sessionRef.current += 1;
+        stopWorkTicker();
+      },
       reset: () => {
         sessionRef.current += 1;
         clearTranscript();
@@ -138,9 +147,7 @@ export const AgentTerminal = ({
     <div className="flex h-full w-full flex-col overflow-hidden rounded-lg border border-line bg-canvas">
       <div className="relative flex h-10 items-center justify-center border-b border-line px-3">
         <div className="absolute left-3 flex items-center gap-1.5">
-          <span className="size-2.5 rounded-full bg-[#ff5f57]" />
-          <span className="size-2.5 rounded-full bg-[#febc2e]" />
-          <span className="size-2.5 rounded-full bg-line" />
+          <TrafficLights />
         </div>
         <span className="font-mono text-xs text-faint">Terminal</span>
       </div>

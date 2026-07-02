@@ -34,6 +34,8 @@ export type {
   Plugin,
   PluginConfig,
   PluginHooks,
+  SelectedElementPayload,
+  ElementSelectedEventDetail,
 } from "./types.js";
 
 import { init } from "./core/index.js";

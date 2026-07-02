@@ -3,8 +3,10 @@
 import { Pause, Play, RotateCcw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { GrabDemoController } from "react-grab/dist/demo.js";
+import type { ElementSelectedEventDetail, SelectedElementPayload } from "react-grab";
 import { AgentTerminal, type AgentTerminalController } from "@/components/agent-terminal";
-import { formatElementReference, type GrabbedElementPayload } from "@/lib/element-reference";
+import { TrafficLights } from "@/components/traffic-lights";
+import { formatElementReference } from "@/lib/element-reference";
 
 const TRAVEL_MS = 850;
 const HOVER_SETTLE_MS = 350;
@@ -24,29 +26,38 @@ const EDITED_HEADLINE_FONT_SIZE_PX = 52;
 const PROMPT_TEXT = "make this bigger";
 const DIFF_REMOVED_LINE = '- <h1 className="text-[39px]">';
 const DIFF_ADDED_LINE = '+ <h1 className="text-[52px]">';
-// Below Tailwind's md breakpoint the terminal floats over the browser stage
-// instead of sitting beside it.
-const TERMINAL_OVERLAY_QUERY = "(max-width: 767px)";
 
-const FALLBACK_GRABBED_ELEMENT: GrabbedElementPayload = {
+// Thrown by step() when the loop is paused or superseded; runLoop treats it as
+// a clean unwind, so runStory reads as a linear storyboard without a
+// cancellation check after every beat.
+const LOOP_CANCELLED = Symbol("loop-cancelled");
+
+// Only shown if the real react-grab:element-selected event never fired; the
+// location is illustrative, not load-bearing.
+const FALLBACK_GRABBED_ELEMENT: SelectedElementPayload = {
   tagName: "h1",
   componentName: "GrabDemo",
   filePath: "components/grab-demo.tsx",
-  lineNumber: 52,
-  columnNumber: 9,
+  lineNumber: 361,
+  columnNumber: 13,
 };
 
-const RoundButton = ({
-  label,
-  className,
-  onClick,
-  children,
-}: {
+// Below md the terminal floats over the browser stage; at md+ it sits beside
+// it and reveals by animating its width (the inner panel is right-anchored so
+// it emerges edge-first).
+const TERMINAL_OVERLAY_CLASS =
+  "absolute inset-x-3 bottom-14 z-10 h-44 drop-shadow-xl transition-[opacity,transform] duration-300 ease-out";
+const TERMINAL_SIDEBAR_CLASS =
+  "md:relative md:inset-x-auto md:bottom-auto md:z-auto md:h-auto md:translate-y-0 md:opacity-100 md:drop-shadow-none md:shrink-0 md:overflow-hidden md:transition-[width] md:duration-[450ms]";
+
+interface RoundButtonProps {
   label: string;
   className: string;
   onClick: () => void;
   children: React.ReactNode;
-}) => (
+}
+
+const RoundButton = ({ label, className, onClick, children }: RoundButtonProps) => (
   <button
     type="button"
     aria-label={label}
@@ -60,10 +71,11 @@ const RoundButton = ({
 export const GrabDemo = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const browserPanelRef = useRef<HTMLDivElement>(null);
+  const terminalWrapperRef = useRef<HTMLDivElement>(null);
   const sampleRef = useRef<HTMLHeadingElement>(null);
   const demoRef = useRef<GrabDemoController | undefined>(undefined);
   const terminalRef = useRef<AgentTerminalController | null>(null);
-  const lastGrabbedElementRef = useRef<GrabbedElementPayload | null>(null);
+  const lastGrabbedElementRef = useRef<SelectedElementPayload | null>(null);
   const playingRef = useRef(false);
   // Bumped on every startPlaying so a stale loop (left awaiting after a fast
   // pause→play) bails instead of running alongside the new one.
@@ -74,6 +86,13 @@ export const GrabDemo = () => {
   const [isReloading, setIsReloading] = useState(false);
   const [isTerminalRevealed, setIsTerminalRevealed] = useState(false);
   const isTerminalRevealedRef = useRef(false);
+
+  // The async loop reads the ref (state snapshots go stale across awaits);
+  // JSX reads the state. One setter keeps the pair in lockstep.
+  const setTerminalRevealed = (isRevealed: boolean) => {
+    isTerminalRevealedRef.current = isRevealed;
+    setIsTerminalRevealed(isRevealed);
+  };
 
   // True only for the currently-owned play session. Re-checked after every
   // awaited step so pausing (or a newer loop) unwinds this one.
@@ -86,6 +105,14 @@ export const GrabDemo = () => {
     return { x: container.clientWidth * REST_X_RATIO, y: container.clientHeight * REST_Y_RATIO };
   };
 
+  // The terminal is in overlay (floating) mode whenever its wrapper is
+  // absolutely positioned — the same fact the responsive classes encode, so
+  // the choreography can't desync from a breakpoint retune.
+  const isTerminalOverlaying = () => {
+    const wrapper = terminalWrapperRef.current;
+    return Boolean(wrapper && getComputedStyle(wrapper).position === "absolute");
+  };
+
   // One coherent loop, mirroring the real workflow: grab the headline, paste
   // it into the agent terminal, prompt, watch the agent read and edit the
   // file, and see the headline change as if the edit hot-reloaded.
@@ -93,100 +120,93 @@ export const GrabDemo = () => {
     const demo = demoRef.current;
     const card = sampleRef.current;
     const terminal = terminalRef.current;
-    if (!demo || !card || !terminal) return;
+    // Bailing with a plain return would let the while in runLoop spin hot.
+    if (!demo || !card || !terminal) throw LOOP_CANCELLED;
+
+    // Awaits an action, then unwinds the whole story if the loop was paused or
+    // superseded while it ran.
+    const step = async (action: Promise<unknown> | void) => {
+      await action;
+      if (!isActive(loopId)) throw LOOP_CANCELLED;
+    };
 
     const target = demo.centerOf(card);
-    await demo.moveCursor(target.x, target.y, TRAVEL_MS);
-    if (!isActive(loopId)) return;
+    await step(demo.moveCursor(target.x, target.y, TRAVEL_MS));
     // Activate only once the cursor is already over the headline; activating
     // before the travel would flash a hover highlight across everything the
     // cursor passes (including the whole container).
     demo.api.activate();
     demo.syncPointer();
-    await demo.wait(HOVER_SETTLE_MS);
-    if (!isActive(loopId)) return;
+    await step(demo.wait(HOVER_SETTLE_MS));
     // Authentic grab: click the element so React Grab runs its real copy flow
     // and shows the "Copied" label.
-    await demo.click(target.x, target.y);
-    if (!isActive(loopId)) return;
-    await demo.wait(COPY_SETTLE_MS);
-    if (!isActive(loopId)) return;
+    await step(demo.click(target.x, target.y));
+    await step(demo.wait(COPY_SETTLE_MS));
 
     // Copy done: drop the overlay before leaving the browser window so the
     // hover highlight doesn't chase the cursor across the terminal.
     demo.api.reset();
     if (!isTerminalRevealedRef.current) {
-      // First grab: the terminal slides out from under the browser window.
-      isTerminalRevealedRef.current = true;
-      setIsTerminalRevealed(true);
-      await demo.wait(REVEAL_MS);
-      if (!isActive(loopId)) return;
+      setTerminalRevealed(true);
+      await step(demo.wait(REVEAL_MS));
     }
 
     // The cursor carries the grab across windows and clicks the prompt.
     const promptElement = terminal.getPromptElement();
     if (promptElement) {
       const promptTarget = demo.centerOf(promptElement);
-      await demo.moveCursor(promptTarget.x, promptTarget.y, TRAVEL_MS);
-      if (!isActive(loopId)) return;
-      await demo.pulseCursor();
-      if (!isActive(loopId)) return;
+      await step(demo.moveCursor(promptTarget.x, promptTarget.y, TRAVEL_MS));
+      await step(demo.pulseCursor());
     }
 
     const grabbed = lastGrabbedElementRef.current ?? FALLBACK_GRABBED_ELEMENT;
     terminal.paste(formatElementReference(grabbed));
-    await demo.wait(PASTE_SETTLE_MS);
-    if (!isActive(loopId)) return;
+    await step(demo.wait(PASTE_SETTLE_MS));
 
-    await terminal.typePrompt(PROMPT_TEXT);
-    if (!isActive(loopId)) return;
-    await demo.wait(PRE_SUBMIT_MS);
-    if (!isActive(loopId)) return;
+    await step(terminal.typePrompt(PROMPT_TEXT));
+    await step(demo.wait(PRE_SUBMIT_MS));
 
     // Prompt submitted: the cursor steps back toward the browser window to
     // watch the agent's edit land.
     terminal.startWork();
     const rest = restPosition();
-    await demo.moveCursor(rest.x, rest.y, TRAVEL_MS);
-    if (!isActive(loopId)) return;
-    await demo.wait(WORK_BEFORE_DIFF_MS);
-    if (!isActive(loopId)) return;
+    await step(demo.moveCursor(rest.x, rest.y, TRAVEL_MS));
+    await step(demo.wait(WORK_BEFORE_DIFF_MS));
 
-    // On small screens the terminal floats over the stage, so it dips away
-    // before the edit lands — otherwise it would cover the growing headline.
-    // It re-reveals on the next loop's grab.
-    if (window.matchMedia(TERMINAL_OVERLAY_QUERY).matches) {
-      isTerminalRevealedRef.current = false;
-      setIsTerminalRevealed(false);
-      await demo.wait(OVERLAY_DISMISS_MS);
-      if (!isActive(loopId)) return;
+    // In overlay mode the terminal covers the stage, so it dips away before
+    // the edit lands — otherwise it would hide the growing headline. It
+    // re-reveals on the next loop's grab.
+    if (isTerminalOverlaying()) {
+      setTerminalRevealed(false);
+      await step(demo.wait(OVERLAY_DISMISS_MS));
     }
 
     terminal.showDiff(DIFF_REMOVED_LINE, DIFF_ADDED_LINE);
     // The agent's edit "hot-reloads": the headline grows in the browser pane.
     setIsHeadlineEdited(true);
-    await demo.wait(WORK_AFTER_DIFF_MS);
-    if (!isActive(loopId)) return;
+    await step(demo.wait(WORK_AFTER_DIFF_MS));
 
     terminal.finishWork();
-    await terminal.typeReply("The headline is bigger now.");
-    if (!isActive(loopId)) return;
-    await demo.wait(DONE_HOLD_MS);
+    await step(terminal.typeReply("The headline is bigger now."));
+    await step(demo.wait(DONE_HOLD_MS));
+
+    // Loop restart plays as a page reload: the blue load bar sweeps across,
+    // the headline reverts, and the terminal clears for a fresh session.
+    terminal.reset();
+    setIsHeadlineEdited(false);
+    setIsReloading(true);
+    await demo.wait(RELOAD_MS);
+    setIsReloading(false);
+    await step(demo.wait(REST_PAUSE_MS));
   };
 
   const runLoop = async (loopId: number) => {
-    while (isActive(loopId)) {
-      await runStory(loopId);
-      if (!isActive(loopId)) break;
-      // Loop restart plays as a page reload: the blue load bar sweeps across,
-      // the headline reverts, and the terminal clears for a fresh session.
-      terminalRef.current?.reset();
-      setIsHeadlineEdited(false);
-      setIsReloading(true);
-      await demoRef.current?.wait(RELOAD_MS);
-      setIsReloading(false);
-      if (!isActive(loopId)) break;
-      await demoRef.current?.wait(REST_PAUSE_MS);
+    try {
+      while (isActive(loopId)) {
+        await runStory(loopId);
+      }
+    } catch (thrown) {
+      if (thrown !== LOOP_CANCELLED) throw thrown;
     }
   };
 
@@ -204,9 +224,12 @@ export const GrabDemo = () => {
     playingRef.current = false;
     setPlaying(false);
     // cancel() settles the in-flight wait/animation so the awaiting loop unwinds
-    // and exits on its next playingRef check instead of starting a second loop.
+    // and exits on its next step() check instead of starting a second loop.
     demoRef.current?.cancel();
     demoRef.current?.api.reset();
+    // Otherwise a pause (or scroll-away auto-pause) mid-story leaves the work
+    // ticker and typing animations running indefinitely off-screen.
+    terminalRef.current?.pause();
   };
 
   const togglePlaying = () => {
@@ -222,8 +245,7 @@ export const GrabDemo = () => {
     terminalRef.current?.reset();
     setIsHeadlineEdited(false);
     setIsReloading(false);
-    setIsTerminalRevealed(false);
-    isTerminalRevealedRef.current = false;
+    setTerminalRevealed(false);
     const demo = demoRef.current;
     if (demo) {
       demo.api.reset();
@@ -242,9 +264,8 @@ export const GrabDemo = () => {
     // The scripted click runs React Grab's real copy flow, which dispatches
     // this event with the element's real source location — captured here so
     // the terminal pastes the same reference a real grab would produce.
-    const handleElementSelected = (event: Event) => {
-      const customEvent = event as CustomEvent<{ elements: GrabbedElementPayload[] }>;
-      const firstElement = customEvent.detail?.elements?.[0];
+    const handleElementSelected = (event: CustomEvent<ElementSelectedEventDetail>) => {
+      const firstElement = event.detail?.elements?.[0];
       if (firstElement) lastGrabbedElementRef.current = firstElement;
     };
     window.addEventListener("react-grab:element-selected", handleElementSelected);
@@ -345,9 +366,7 @@ export const GrabDemo = () => {
           className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-line"
         >
           <div className="relative flex h-10 items-center gap-1.5 border-b border-line px-3">
-            <span className="size-2.5 rounded-full bg-[#ff5f57]" />
-            <span className="size-2.5 rounded-full bg-[#febc2e]" />
-            <span className="size-2.5 rounded-full bg-line" />
+            <TrafficLights />
             <span className="absolute left-1/2 -translate-x-1/2 rounded border border-line px-6 py-0.5 font-mono text-xs text-faint">
               localhost:3000
             </span>
@@ -386,16 +405,15 @@ export const GrabDemo = () => {
           </RoundButton>
         </div>
 
-        {/* The terminal appears on the first grab. At md+ it slides out from
-            under the browser window (width animates, inner panel is
-            right-anchored so it emerges edge-first). Below md it floats on top
-            of the browser stage instead, rising from the bottom edge. */}
+        {/* The terminal appears on the first grab: floating over the stage
+            below md, sliding out beside the browser at md+. */}
         <div
-          className={`absolute inset-x-3 bottom-14 z-10 h-44 drop-shadow-xl transition-[opacity,transform] duration-300 ease-out md:relative md:inset-x-auto md:bottom-auto md:z-auto md:h-auto md:translate-y-0 md:opacity-100 md:drop-shadow-none md:shrink-0 md:overflow-hidden md:transition-[width] md:duration-[450ms] ${
+          ref={terminalWrapperRef}
+          className={`${TERMINAL_OVERLAY_CLASS} ${TERMINAL_SIDEBAR_CLASS} ${
             isTerminalRevealed
-              ? "translate-y-0 opacity-100"
-              : "pointer-events-none translate-y-4 opacity-0 md:pointer-events-auto"
-          } ${isTerminalRevealed ? "md:w-[18.75rem]" : "md:w-0"}`}
+              ? "translate-y-0 opacity-100 md:w-[18.75rem]"
+              : "pointer-events-none translate-y-4 opacity-0 md:pointer-events-auto md:w-0"
+          }`}
         >
           <div className="h-full w-full md:absolute md:top-0 md:right-0 md:w-72">
             <AgentTerminal controllerRef={terminalRef} />

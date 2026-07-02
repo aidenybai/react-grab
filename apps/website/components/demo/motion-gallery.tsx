@@ -1,7 +1,12 @@
 import type { ReactNode } from "react";
 import { PingDot } from "@/components/demo/ping-dot";
 
-const MotionTile = ({ label, children }: { label: string; children: ReactNode }) => (
+interface MotionTileProps {
+  label: string;
+  children: ReactNode;
+}
+
+const MotionTile = ({ label, children }: MotionTileProps) => (
   <div className="flex flex-col items-center gap-3 rounded-lg border border-line p-5">
     <div className="flex h-14 items-center justify-center">{children}</div>
     <span className="font-mono text-xs uppercase tracking-widest text-faint">{label}</span>

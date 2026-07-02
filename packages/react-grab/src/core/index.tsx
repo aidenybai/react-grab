@@ -116,6 +116,7 @@ import type {
   PerformWithFeedbackOptions,
   SettableOptions,
   SourceInfo,
+  SelectedElementPayload,
   Plugin,
   ToolbarState,
   DropdownAnchor,
@@ -598,7 +599,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const notifyElementsSelected = async (elements: Element[]): Promise<void> => {
-      const elementsPayload = await Promise.all(
+      const elementsPayload: SelectedElementPayload[] = await Promise.all(
         elements.map(async (element) => {
           const source = await resolveSource(element);
           let componentName = source?.componentName ?? null;

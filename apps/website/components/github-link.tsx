@@ -1,6 +1,10 @@
 import { IconGithub } from "@/components/icons/icon-github";
 
-export const GithubLink = ({ className = "" }: { className?: string }) => (
+interface GithubLinkProps {
+  className?: string;
+}
+
+export const GithubLink = ({ className = "" }: GithubLinkProps) => (
   <a
     href="https://github.com/aidenybai/react-grab"
     target="_blank"

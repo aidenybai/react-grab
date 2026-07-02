@@ -50,13 +50,22 @@ const INVOICES = [
   { id: "INV-0045", customer: "Wayne Enterprises", status: "Overdue", amount: "$540.00" },
 ];
 
-const Kbd = ({ children }: { children: ReactNode }) => (
+interface KbdProps {
+  children: ReactNode;
+}
+
+const Kbd = ({ children }: KbdProps) => (
   <kbd className="rounded bg-code px-1.5 py-0.5 font-mono text-xs text-code-ink">{children}</kbd>
 );
 
 Kbd.displayName = "Kbd";
 
-const DemoSection = ({ label, children }: { label: string; children: ReactNode }) => (
+interface DemoSectionProps {
+  label: string;
+  children: ReactNode;
+}
+
+const DemoSection = ({ label, children }: DemoSectionProps) => (
   <section className="flex flex-col gap-4">
     <h2 className="font-mono text-xs uppercase tracking-widest text-faint">{label}</h2>
     {children}

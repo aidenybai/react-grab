@@ -12,6 +12,9 @@ export const ReactGrabLoader = () => {
     const script = document.createElement("script");
     script.src = "/script.js";
     script.dataset.reactGrabLoader = "true";
+    // A transient load failure would otherwise leave the marker tag in <head>
+    // and block every future attempt for the session.
+    script.onerror = () => script.remove();
     document.head.appendChild(script);
   }, []);
 

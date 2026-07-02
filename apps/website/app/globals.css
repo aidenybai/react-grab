@@ -290,6 +290,15 @@
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee,
+  .animate-equalize,
+  .animate-progress-sweep,
+  .animate-reload-bar {
+    animation: none;
+  }
+}
+
 @utility scrollbar-none {
   scrollbar-width: none;
   &::-webkit-scrollbar {
