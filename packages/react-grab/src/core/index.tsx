@@ -826,8 +826,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!element) return;
 
       const intervalId = setInterval(() => {
-        if (!isElementConnected(element)) {
-          actions.setDetectedElement(null);
+        actions.relinkLiveElements();
+        // The hovered node can be swapped out by a re-render the freeze didn't
+        // catch (e.g. a dangerouslySetInnerHTML block re-highlighting). If fiber
+        // recovery couldn't relink it, re-detect under the pointer so the
+        // selection latches onto its replacement instead of vanishing.
+        if (!isElementConnected(store.detectedElement)) {
+          redetectElementUnderPointer();
         }
       }, BOUNDS_RECALC_INTERVAL_MS);
 
@@ -3004,6 +3009,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (boundsRecalcIntervalId !== null) return;
 
         boundsRecalcIntervalId = window.setInterval(() => {
+          actions.relinkLiveElements();
           scheduleBoundsSync();
         }, BOUNDS_RECALC_INTERVAL_MS);
         return;
@@ -3199,7 +3205,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!pluginRegistry.store.theme.grabbedBoxes.enabled) return [];
       void viewportVersion();
       return store.grabbedBoxes.map((box) => {
-        if (!box.element || !document.body.contains(box.element)) {
+        if (!isElementConnected(box.element)) {
           return box;
         }
         return {

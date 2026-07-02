@@ -5,6 +5,7 @@ import { OFFSCREEN_POSITION } from "../constants.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
+import { resolveLiveElement, trackElementFiber } from "../utils/resolve-live-element.js";
 
 interface FrozenDragRect {
   pageX: number;
@@ -65,6 +66,53 @@ interface GrabStore {
 interface GrabStoreInput {
   keyHoldDuration: number;
 }
+
+// Returns the live element for a tracked slot: records the fiber while
+// connected so a future swap can be recovered, and re-resolves the current node
+// once it has detached. Keeps the old reference when recovery fails so callers
+// never lose the slot to a transient null.
+const relinkElement = (element: Element): Element => {
+  if (element.isConnected) {
+    trackElementFiber(element);
+    return element;
+  }
+  const liveElement = resolveLiveElement(element);
+  if (!liveElement) return element;
+  trackElementFiber(liveElement);
+  return liveElement;
+};
+
+// Re-resolves every element the overlay anchors to — the selection, the hover
+// target, the context-menu target, and the post-copy "Copied" labels and
+// grabbed-box flashes — so they all follow the same DOM swaps. Run on the
+// recalc interval; assigning the same reference back is a no-op for solid, so
+// connected elements produce no store notifications.
+const relinkSlots = (draft: GrabStore): void => {
+  for (let index = 0; index < draft.frozenElements.length; index += 1) {
+    draft.frozenElements[index] = relinkElement(draft.frozenElements[index]);
+  }
+  // frozenElement mirrors frozenElements[0] when the array is populated (see
+  // updateFrozenElements); it only stands alone in freeze / prompt mode, where
+  // it is recovered on its own.
+  draft.frozenElement =
+    draft.frozenElements.length > 0
+      ? draft.frozenElements[0]
+      : draft.frozenElement && relinkElement(draft.frozenElement);
+  draft.detectedElement = draft.detectedElement && relinkElement(draft.detectedElement);
+  draft.contextMenuElement = draft.contextMenuElement && relinkElement(draft.contextMenuElement);
+
+  for (const instance of draft.labelInstances) {
+    if (instance.element) instance.element = relinkElement(instance.element);
+    if (instance.elements) {
+      for (let index = 0; index < instance.elements.length; index += 1) {
+        instance.elements[index] = relinkElement(instance.elements[index]);
+      }
+    }
+  }
+  for (const box of draft.grabbedBoxes) {
+    if (box.element) box.element = relinkElement(box.element);
+  }
+};
 
 const createInitialStore = (input: GrabStoreInput): GrabStore => ({
   selectionInteractionLockDepth: 0,
@@ -131,6 +179,7 @@ interface GrabActions {
   toggleFrozenElement: (element: Element) => void;
   addFrozenElements: (elements: Element[]) => void;
   setFrozenDragRect: (rect: FrozenDragRect | null) => void;
+  relinkLiveElements: () => void;
   setCopyStart: (position: Position, element: Element) => void;
   setLastGrabbed: (element: Element | null) => void;
   setWasActivatedByToggle: (value: boolean) => void;
@@ -480,6 +529,10 @@ const createGrabStore = (input: GrabStoreInput) => {
 
     setFrozenDragRect: (rect: FrozenDragRect | null) => {
       setStore("frozenDragRect", rect);
+    },
+
+    relinkLiveElements: () => {
+      setStore(produce(relinkSlots));
     },
 
     setCopyStart: (position: Position, element: Element) => {
