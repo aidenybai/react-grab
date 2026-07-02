@@ -9,27 +9,51 @@ interface ClearTimerFunction {
   (timerId: number | undefined): void;
 }
 
-const isClientSide = typeof window !== "undefined";
+interface UnwrappedTimerFunctions {
+  setTimeout: ScheduleTimerFunction;
+  clearTimeout: ClearTimerFunction;
+  setInterval: ScheduleTimerFunction;
+  clearInterval: ClearTimerFunction;
+}
 
-const noopSchedule: ScheduleTimerFunction = () => 0;
-const noopClear: ClearTimerFunction = () => {};
+// Unlike requestAnimationFrame, the timer functions live as own properties of
+// the window instance (not on Window.prototype), so there is no prototype to
+// recover natives from once the time machine's page-clock freeze wraps them.
+// And this module lives in the lazily-loaded renderer chunk, which evaluates
+// AFTER those wrappers install — binding window.setTimeout at module load
+// would capture the wrapper and react-grab's own UI timers (hold-to-repeat
+// scrubbing, flash timers) would park during a rewind. Instead the page-clock
+// module registers the pre-wrapper functions it captured at interception
+// time, and every call resolves through that registry, falling back to the
+// live window functions when no interception has installed.
+let unwrappedTimers: UnwrappedTimerFunctions | null = null;
 
-// Captured at module load, before the time machine's page-clock freeze wraps
-// the window timer functions (mirroring native-raf.ts): react-grab's own UI —
-// hold-to-repeat scrubbing, flash timers — must keep ticking while the page's
-// scheduling is suspended during a rewind.
-export const nativeSetTimeout: ScheduleTimerFunction = isClientSide
-  ? window.setTimeout.bind(window)
-  : noopSchedule;
+export const registerUnwrappedTimers = (timers: UnwrappedTimerFunctions): void => {
+  unwrappedTimers ??= timers;
+};
 
-export const nativeClearTimeout: ClearTimerFunction = isClientSide
-  ? window.clearTimeout.bind(window)
-  : noopClear;
+export const nativeSetTimeout: ScheduleTimerFunction = (handler, delayMs) =>
+  unwrappedTimers
+    ? unwrappedTimers.setTimeout(handler, delayMs)
+    : window.setTimeout(handler, delayMs);
 
-export const nativeSetInterval: ScheduleTimerFunction = isClientSide
-  ? window.setInterval.bind(window)
-  : noopSchedule;
+export const nativeClearTimeout: ClearTimerFunction = (timerId) => {
+  if (unwrappedTimers) {
+    unwrappedTimers.clearTimeout(timerId);
+  } else {
+    window.clearTimeout(timerId);
+  }
+};
 
-export const nativeClearInterval: ClearTimerFunction = isClientSide
-  ? window.clearInterval.bind(window)
-  : noopClear;
+export const nativeSetInterval: ScheduleTimerFunction = (handler, delayMs) =>
+  unwrappedTimers
+    ? unwrappedTimers.setInterval(handler, delayMs)
+    : window.setInterval(handler, delayMs);
+
+export const nativeClearInterval: ClearTimerFunction = (timerId) => {
+  if (unwrappedTimers) {
+    unwrappedTimers.clearInterval(timerId);
+  } else {
+    window.clearInterval(timerId);
+  }
+};

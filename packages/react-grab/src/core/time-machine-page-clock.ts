@@ -14,6 +14,8 @@
 // through MessageChannel, so travel commits still flush while frozen, and
 // react-grab's own UI schedules through native-raf/native-timers, which
 // bypass these wrappers.
+import { registerUnwrappedTimers } from "../utils/native-timers.js";
+
 let isPageClockFrozen = false;
 let isInstalled = false;
 
@@ -31,6 +33,17 @@ export const installPageClockInterception = (): void => {
   const previousSetTimeout = window.setTimeout.bind(window);
   const previousClearTimeout = window.clearTimeout.bind(window);
   const previousSetInterval = window.setInterval.bind(window);
+  const previousClearInterval = window.clearInterval.bind(window);
+
+  // Hands react-grab's own UI (which loads later, in the lazy renderer
+  // chunk) a freeze-bypassing path — its timers must keep firing while the
+  // page's clock is suspended during a rewind.
+  registerUnwrappedTimers({
+    setTimeout: previousSetTimeout,
+    clearTimeout: previousClearTimeout,
+    setInterval: previousSetInterval,
+    clearInterval: previousClearInterval,
+  });
 
   window.requestAnimationFrame = (callback: FrameRequestCallback): number => {
     let frameId = 0;
