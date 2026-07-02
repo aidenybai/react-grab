@@ -19,17 +19,19 @@ interface MenuItemProps {
 export const MenuItem: Component<MenuItemProps> = (props) => {
   const store = useMenuStore();
   const domId = store.createItemId();
+  // The store identity is fixed for the lifetime of the row. Solid props are
+  // live getters, so capture `value` once and use the same identity for
+  // registration, hover/active checks, and cleanup — otherwise a reactive
+  // `value` change would desync them.
+  const registeredValue = props.value;
   const role = (): "menuitem" | "menuitemradio" => props.role ?? "menuitem";
   const isEnabled = (): boolean => !props.disabled;
-  const isActive = (): boolean => store.activeValue() === props.value;
+  const isActive = (): boolean => store.activeValue() === registeredValue;
 
   let buttonElement: HTMLButtonElement | undefined;
 
   onMount(() => {
     if (!buttonElement) return;
-    // Solid props are live getters; without this capture the onCleanup below
-    // could unregister a different value than was registered.
-    const registeredValue = props.value;
     store.registerItem({
       value: registeredValue,
       domId,
@@ -45,7 +47,7 @@ export const MenuItem: Component<MenuItemProps> = (props) => {
       ref={buttonElement}
       id={domId}
       data-react-grab-ignore-events
-      data-react-grab-menu-item={props.dataId ?? props.value}
+      data-react-grab-menu-item={props.dataId ?? registeredValue}
       type="button"
       role={role()}
       aria-checked={role() === "menuitemradio" ? Boolean(props.checked) : undefined}
@@ -58,7 +60,7 @@ export const MenuItem: Component<MenuItemProps> = (props) => {
       )}
       onPointerDown={(event) => event.stopPropagation()}
       onPointerEnter={() => {
-        if (isEnabled() && store.canActivateOnHover()) store.setActiveItem(props.value);
+        if (isEnabled() && store.canActivateOnHover()) store.setActiveItem(registeredValue);
       }}
       onPointerLeave={() => {
         if (store.clearActiveOnPointerLeave) store.setActiveItem(null);

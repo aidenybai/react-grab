@@ -83,7 +83,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const releaseInteractionFreeze = () => {
     unfreezeUpdatesCallback?.();
     unfreezeUpdatesCallback = null;
-    unfreezeGlobalInteractions();
+    // While grab mode is active, core owns the global freeze and releases it
+    // on deactivation; only release it when this hover latch is the sole owner.
+    if (!props.isActive) unfreezeGlobalInteractions();
   };
 
   const drag = createToolbarDrag({
@@ -564,15 +566,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     clearTimeout(resizeTimeout);
     clearTimeout(collapseAnimationTimeout);
 
-    if (!unfreezeUpdatesCallback) return;
-    // While grab mode is active, core owns the global freeze and releases it on
-    // deactivation; only release it here when this hover latch is the sole owner.
-    if (props.isActive) {
-      unfreezeUpdatesCallback();
-      unfreezeUpdatesCallback = null;
-      return;
-    }
-    releaseInteractionFreeze();
+    if (unfreezeUpdatesCallback) releaseInteractionFreeze();
   });
 
   const currentPosition = () => {
