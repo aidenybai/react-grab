@@ -14,9 +14,6 @@
 // through MessageChannel, so travel commits still flush while frozen, and
 // react-grab's own UI schedules through native-raf/native-timers, which
 // bypass these wrappers.
-import { nativeRequestAnimationFrame } from "../utils/native-raf.js";
-import { nativeSetTimeout } from "../utils/native-timers.js";
-
 let isPageClockFrozen = false;
 let isInstalled = false;
 
@@ -42,7 +39,10 @@ export const installPageClockInterception = (): void => {
         parkedRafCallbacks.set(frameId, callback);
         return;
       }
-      callback(timestamp);
+      // Matches the native invocation context — browsers call rAF and timer
+      // callbacks with `this === window`, and sloppy-mode page code relies
+      // on that.
+      callback.call(window, timestamp);
     });
     return frameId;
   };
@@ -59,10 +59,10 @@ export const installPageClockInterception = (): void => {
     let timerId = 0;
     timerId = previousSetTimeout(() => {
       if (isPageClockFrozen) {
-        parkedTimeoutCallbacks.set(timerId, () => handler(...args));
+        parkedTimeoutCallbacks.set(timerId, () => handler.apply(window, args));
         return;
       }
-      handler(...args);
+      handler.apply(window, args);
     }, delayMs);
     return timerId;
   }) as typeof window.setTimeout;
@@ -78,7 +78,7 @@ export const installPageClockInterception = (): void => {
     }
     return previousSetInterval(() => {
       if (isPageClockFrozen) return;
-      handler(...args);
+      handler.apply(window, args);
     }, delayMs);
   }) as typeof window.setInterval;
 };
@@ -89,10 +89,12 @@ export const freezePageClock = (): void => {
   isPageClockFrozen = true;
 };
 
-// Parked callbacks replay through the real scheduler rather than running
-// synchronously: an rAF callback invoked outside a frame (or a timer callback
-// re-entering React mid-travel) is exactly the kind of inconsistency the
-// freeze exists to prevent.
+// Parked callbacks replay through the (still-wrapped) scheduler rather than
+// running synchronously or natively: synchronous invocation would run rAF
+// callbacks outside a frame and re-enter React mid-travel, and the native
+// scheduler would let them fire even if the clock re-freezes before the next
+// frame (a quick scrub back after returning to now) — routing through the
+// wrappers re-parks them instead.
 export const releasePageClock = (): void => {
   if (!isPageClockFrozen) return;
   isPageClockFrozen = false;
@@ -100,12 +102,12 @@ export const releasePageClock = (): void => {
   const rafCallbacksToReplay = Array.from(parkedRafCallbacks.values());
   parkedRafCallbacks.clear();
   for (const callback of rafCallbacksToReplay) {
-    nativeRequestAnimationFrame(callback);
+    window.requestAnimationFrame(callback);
   }
 
   const timeoutCallbacksToReplay = Array.from(parkedTimeoutCallbacks.values());
   parkedTimeoutCallbacks.clear();
   for (const callback of timeoutCallbacksToReplay) {
-    nativeSetTimeout(callback, 0);
+    window.setTimeout(callback, 0);
   }
 };

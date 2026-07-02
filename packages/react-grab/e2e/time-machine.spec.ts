@@ -362,6 +362,27 @@ test.describe("Time Machine", () => {
     await expect.poll(() => getSpinnerAnimationPlayState(reactGrab.page)).toBe("running");
   });
 
+  test("reopening while rewound re-freezes page animations", async ({ reactGrab }) => {
+    await recordVisibilityToggles(reactGrab);
+    await clickToolbarTimeMachineButton(reactGrab);
+    await expect.poll(() => isTimeMachinePanelVisible(reactGrab.page)).toBe(true);
+
+    await reactGrab.pressArrowLeft();
+    await expect.poll(() => getSpinnerAnimationPlayState(reactGrab.page)).toBe("paused");
+
+    await reactGrab.pressEscape();
+    await expect.poll(() => isTimeMachinePanelVisible(reactGrab.page)).toBe(false);
+    await expect.poll(() => getSpinnerAnimationPlayState(reactGrab.page)).toBe("running");
+
+    await clickToolbarTimeMachineButton(reactGrab);
+    await expect.poll(() => isTimeMachinePanelVisible(reactGrab.page)).toBe(true);
+    await expect.poll(() => getTimeMachineValueText(reactGrab.page)).toBe("1/2");
+    await expect.poll(() => getSpinnerAnimationPlayState(reactGrab.page)).toBe("paused");
+
+    await reactGrab.pressArrowRight();
+    await expect.poll(() => getSpinnerAnimationPlayState(reactGrab.page)).toBe("running");
+  });
+
   test("Escape dismisses the panel and keeps the travelled state", async ({ reactGrab }) => {
     await recordVisibilityToggles(reactGrab);
     await openTimeMachinePanel(reactGrab, TOGGLE_BUTTON_SELECTOR);

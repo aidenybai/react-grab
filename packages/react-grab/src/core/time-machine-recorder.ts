@@ -440,10 +440,13 @@ export const stopTimeMachineRecorder = (): void => {
 
 // Closing the panel keeps the travelled state but lets time flow again — a
 // page whose animations stay frozen (or hover styles stay pinned) after the
-// scrubber is gone reads as broken, not as time-travelled.
+// scrubber is gone reads as broken, not as time-travelled. Reopening while
+// the cursor still sits in the past re-enters the frozen-time regime.
 export const setTimeMachinePanelOpen = (isOpen: boolean): void => {
   isPanelOpen = isOpen;
-  if (!isOpen) {
+  if (isOpen) {
+    syncTimeFreezeToCursor();
+  } else {
     releasePageClock();
     releaseAnimationClock();
     releaseInteractionPins();
@@ -632,6 +635,24 @@ const applyEntryValues = (entry: TimeMachineEntry, shouldApplyNext: boolean): vo
   }
 };
 
+// Rewinding state without rewinding motion or interaction visuals looks
+// broken, so while the cursor sits in the past the page's scheduling and
+// animation clocks are frozen at the rewound moment and the hover/focus/
+// active styling captured with the current entry is pinned back on; at the
+// newest entry, time flows again and the live pseudo-classes take over.
+const syncTimeFreezeToCursor = (): void => {
+  if (travelCursor < history.length) {
+    const rewoundMomentEntry = history[Math.max(0, travelCursor - 1)];
+    freezePageClock();
+    syncAnimationClock(rewoundMomentEntry.timestamp);
+    applyInteractionSnapshot(travelCursor === 0 ? null : rewoundMomentEntry.interactionSnapshot);
+  } else {
+    releasePageClock();
+    releaseAnimationClock();
+    releaseInteractionPins();
+  }
+};
+
 export const travelTimeMachineTo = (targetCursor: number): void => {
   const clampedCursor = Math.max(0, Math.min(history.length, Math.round(targetCursor)));
   if (clampedCursor === travelCursor) return;
@@ -643,20 +664,6 @@ export const travelTimeMachineTo = (targetCursor: number): void => {
     applyEntryValues(history[travelCursor], true);
     travelCursor += 1;
   }
-  // Rewinding state without rewinding motion or interaction visuals looks
-  // broken, so while the cursor sits in the past the page's animation clock
-  // is frozen at the rewound moment and the hover/focus/active styling
-  // captured with the current entry is pinned back on; at the newest entry,
-  // time flows again and the live pseudo-classes take over.
-  if (travelCursor < history.length) {
-    const rewoundMomentEntry = history[Math.max(0, travelCursor - 1)];
-    freezePageClock();
-    syncAnimationClock(rewoundMomentEntry.timestamp);
-    applyInteractionSnapshot(travelCursor === 0 ? null : rewoundMomentEntry.interactionSnapshot);
-  } else {
-    releasePageClock();
-    releaseAnimationClock();
-    releaseInteractionPins();
-  }
+  syncTimeFreezeToCursor();
   notifyHistoryChange();
 };
