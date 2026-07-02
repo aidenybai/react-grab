@@ -244,6 +244,13 @@
   }
 }
 
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* Diagonal hairline hatch — a faint "instrument panel" texture used behind the
    masthead and footer. The stroke color is supplied via --line. */
 .paper-hatch {

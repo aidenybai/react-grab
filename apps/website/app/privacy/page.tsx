@@ -34,13 +34,14 @@ const PrivacyPage = () => {
           <section>
             <p className="mb-2 font-medium text-title">Data Collection</p>
             <p className="mb-2">
-              React Grab does NOT collect, store, or transmit any personal data. Specifically:
+              The React Grab extension and library do NOT collect, store, or transmit any personal
+              data. Specifically:
             </p>
             <ul className="list-disc space-y-1 pl-6">
               <li>We do not collect any personally identifiable information</li>
               <li>We do not track your browsing history</li>
               <li>We do not store any data about the websites you visit</li>
-              <li>We do not use analytics or tracking services</li>
+              <li>We do not use analytics or tracking services in the extension</li>
               <li>We do not use cookies for tracking purposes</li>
             </ul>
           </section>
@@ -93,9 +94,22 @@ const PrivacyPage = () => {
           <section>
             <p className="mb-2 font-medium text-title">Third-Party Services</p>
             <p>
-              React Grab does not integrate with any third-party analytics, tracking, or advertising
-              services. The extension operates entirely offline and does not make any external
-              network requests.
+              The React Grab extension does not integrate with any third-party analytics, tracking,
+              or advertising services. The extension operates entirely offline and does not make any
+              external network requests.
+            </p>
+          </section>
+
+          <section>
+            <p className="mb-2 font-medium text-title">Website Analytics</p>
+            <p>
+              This website (react-grab.com) uses{" "}
+              <AccentLink href="https://vercel.com/docs/analytics/privacy-policy">
+                Vercel Analytics
+              </AccentLink>{" "}
+              to measure aggregate page views. It does not use cookies, does not collect personally
+              identifiable information, and does not track visitors across sites. This applies only
+              to the website, never to the extension or library.
             </p>
           </section>
 
@@ -124,7 +138,9 @@ const PrivacyPage = () => {
                 GitHub repository
               </AccentLink>{" "}
               or join our{" "}
-              <AccentLink href="https://discord.com/invite/G7zxfUzkm7">Discord community</AccentLink>
+              <AccentLink href="https://discord.com/invite/G7zxfUzkm7">
+                Discord community
+              </AccentLink>
               .
             </p>
           </section>
@@ -132,8 +148,9 @@ const PrivacyPage = () => {
           <section className="border-t border-line pt-6">
             <p className="mb-2 font-medium text-title">Summary</p>
             <p>
-              React Grab respects your privacy. We don&apos;t collect, store, or transmit any of
-              your personal data. The extension works entirely locally on your device.
+              React Grab respects your privacy. The extension and library don&apos;t collect, store,
+              or transmit any of your personal data and work entirely locally on your device. The
+              website uses only anonymous, cookie-free page-view analytics.
             </p>
           </section>
         </div>

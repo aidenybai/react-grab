@@ -63,7 +63,10 @@ const Row = ({ row }: { row: BenchmarkRow }) => {
   const textColor = row.highlight ? REACT_GRAB_PINK : "var(--color-title)";
   const barColor = row.highlight ? REACT_GRAB_PINK : "var(--color-meta)";
   return (
-    <div className={`${COLS} group/row h-11.5 border-b border-hairline`} style={{ color: textColor }}>
+    <div
+      className={`${COLS} group/row h-11.5 border-b border-hairline`}
+      style={{ color: textColor }}
+    >
       <a
         href={row.href}
         target="_blank"
@@ -91,37 +94,41 @@ const Row = ({ row }: { row: BenchmarkRow }) => {
  */
 export const BenchmarkLeaderboard = () => {
   return (
-    <div className="flex flex-col font-mono">
-      <div className={`${COLS} h-11 border-b border-hairline`}>
-        <span className="font-sans text-body text-prose">Resolver</span>
-        <span className="text-right font-sans text-body text-prose">Time</span>
-        <span />
-        <span className="text-right font-sans text-body text-prose">Acc.</span>
-        <span className="text-right font-sans text-body text-prose">Solved</span>
-      </div>
+    <div className="flex flex-col">
+      <div className="scrollbar-none -mx-6 overflow-x-auto px-6 sm:mx-0 sm:px-0">
+        <div className="flex min-w-[480px] flex-col font-mono">
+          <div className={`${COLS} h-11 border-b border-hairline`}>
+            <span className="font-sans text-body text-prose">Resolver</span>
+            <span className="text-right font-sans text-body text-prose">Time</span>
+            <span />
+            <span className="text-right font-sans text-body text-prose">Acc.</span>
+            <span className="text-right font-sans text-body text-prose">Solved</span>
+          </div>
 
-      <div className="flex flex-col">
-        {BENCHMARK_ROWS.map((row) => (
-          <Row key={row.resolver} row={row} />
-        ))}
-      </div>
+          <div className="flex flex-col">
+            {BENCHMARK_ROWS.map((row) => (
+              <Row key={row.resolver} row={row} />
+            ))}
+          </div>
 
-      <div className={`${COLS} pt-1.5`}>
-        <span />
-        <span />
-        <div className="relative h-6 text-[13px] text-prose">
-          {TICKS.map((tick, index) => (
-            <span
-              key={tick}
-              className="absolute top-0 -translate-x-1/2"
-              style={{ left: `${index * 20}%` }}
-            >
-              {tick}
-            </span>
-          ))}
+          <div className={`${COLS} pt-1.5`}>
+            <span />
+            <span />
+            <div className="relative h-6 text-[13px] text-prose">
+              {TICKS.map((tick, index) => (
+                <span
+                  key={tick}
+                  className="absolute top-0 -translate-x-1/2"
+                  style={{ left: `${index * 20}%` }}
+                >
+                  {tick}
+                </span>
+              ))}
+            </div>
+            <span />
+            <span />
+          </div>
         </div>
-        <span />
-        <span />
       </div>
 
       <p className="pt-1 font-sans text-[11px] text-prose">

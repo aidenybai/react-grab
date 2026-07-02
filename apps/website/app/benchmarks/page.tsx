@@ -21,8 +21,8 @@ const BenchmarksPage = () => {
 
         <p className="mt-6 leading-relaxed">
           Each resolver is Claude Code plus one browser-side tool, given a natural-language
-          description of a UI element and asked to name the file that defines it. React Grab ties for
-          the best accuracy at <span className="text-title">96%</span> and is the fastest at{" "}
+          description of a UI element and asked to name the file that defines it. React Grab ties
+          for the best accuracy at <span className="text-title">96%</span> and is the fastest at{" "}
           <span className="text-title">20.7s</span>. The next accurate tool takes 30.7s.
         </p>
 
@@ -33,7 +33,9 @@ const BenchmarksPage = () => {
         <p className="mt-6 text-sm text-prose">
           {TOTAL_CASES} test cases · Last benchmarked {LAST_BENCHMARKED} ·{" "}
           <AccentLink href="https://benchmark.react-grab.com">Full breakdown</AccentLink> ·{" "}
-          <AccentLink href="https://github.com/aidenybai/react-bench">Source &amp; methodology</AccentLink>
+          <AccentLink href="https://github.com/aidenybai/react-bench">
+            Source &amp; methodology
+          </AccentLink>
         </p>
       </div>
     </div>

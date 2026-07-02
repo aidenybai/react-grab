@@ -258,6 +258,12 @@ export const GrabDemo = () => {
     // can't be fought by stray clicks/keys. Loaded lazily because it's a
     // browser-only bundle that must not run during SSR — and only once the card
     // is actually visible, so visitors who never reach it don't pay for it.
+    // Pause the loop while the card is off-screen (no point dispatching
+    // synthetic events nobody can see) and resume on return. Only auto-resume
+    // what auto-pause stopped, so a manual pause sticks across scrolling.
+    let didAutoPause = false;
+    let isCardVisible = false;
+
     let loadStarted = false;
     const loadDemo = () => {
       if (loadStarted) return;
@@ -269,20 +275,24 @@ export const GrabDemo = () => {
           demoRef.current = demo;
           const rest = restPosition();
           demo.setCursorPosition(rest.x, rest.y);
-          if (!prefersReducedMotion) startPlaying();
+          if (prefersReducedMotion) return;
+          // The import can resolve after the card has already been scrolled
+          // back out of view; defer to the observer's auto-resume in that case.
+          if (isCardVisible) {
+            startPlaying();
+          } else {
+            didAutoPause = true;
+          }
         })
         .catch((error) => {
           console.error("[react-grab] failed to load demo bundle; run `pnpm build:demo`", error);
         });
     };
 
-    // Pause the loop while the card is off-screen (no point dispatching
-    // synthetic events nobody can see) and resume on return. Only auto-resume
-    // what auto-pause stopped, so a manual pause sticks across scrolling.
-    let didAutoPause = false;
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!entry) return;
+        isCardVisible = entry.isIntersecting;
         if (entry.isIntersecting) {
           loadDemo();
           if (didAutoPause) {

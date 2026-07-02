@@ -9,7 +9,7 @@ export const InstallCommand = () => {
   const [copied, setCopied] = useState(false);
 
   const copy = () => {
-    void navigator.clipboard?.writeText(COMMAND);
+    navigator.clipboard?.writeText(COMMAND).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
@@ -27,12 +27,15 @@ export const InstallCommand = () => {
       </div>
       <button
         type="button"
-        aria-label="Copy install command"
+        aria-label={copied ? "Copied install command" : "Copy install command"}
         onClick={copy}
         className="-m-2 shrink-0 p-2 text-faint transition-colors hover:text-ink"
       >
         {copied ? <Check size={16} /> : <Copy size={16} />}
       </button>
+      <span role="status" className="sr-only">
+        {copied ? "Copied to clipboard" : ""}
+      </span>
     </div>
   );
 };

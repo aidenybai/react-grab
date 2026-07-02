@@ -13,18 +13,25 @@ const BRAND = "#e5642a";
 
 const fetchFont = async (request: Request, path: string) => {
   const response = await fetch(new URL(path, request.url));
+  if (!response.ok) {
+    throw new Error(`Failed to fetch font ${path}: ${response.status}`);
+  }
   return response.arrayBuffer();
 };
 
 // The font files are immutable static assets, so fetch them once per isolate
 // instead of twice per social-card request. Only the request origin is needed
 // to resolve the URLs, which is why the promise is keyed off the first request.
+// A failed fetch clears the memo so a transient error isn't cached forever.
 let fontsPromise: Promise<[ArrayBuffer, ArrayBuffer]> | null = null;
 const getFonts = (request: Request) =>
   (fontsPromise ??= Promise.all([
     fetchFont(request, "/fonts/ekbaumeruniwidthtrial-regular.otf"),
     fetchFont(request, "/fonts/ekbaumeruniwidthtrial-medium.otf"),
-  ]));
+  ]).catch((error) => {
+    fontsPromise = null;
+    throw error;
+  }));
 
 const ReactGrabLogo = () => (
   <svg width="52" height="52" viewBox="0 0 294 294" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -68,7 +75,9 @@ export const GET = async (request: Request) => {
   const title = searchParams.get("title") ?? "React Grab";
   const subtitle = searchParams.get("subtitle");
 
-  const [baumerRegular, baumerMedium] = await getFonts(request);
+  // If the font assets can't be fetched, still serve a card with Satori's
+  // default font rather than a broken social preview.
+  const fonts = await getFonts(request).catch(() => null);
 
   return new ImageResponse(
     <div
@@ -148,10 +157,12 @@ export const GET = async (request: Request) => {
     {
       width: 1200,
       height: 630,
-      fonts: [
-        { name: "EK Baumer", data: baumerRegular, style: "normal", weight: 400 },
-        { name: "EK Baumer", data: baumerMedium, style: "normal", weight: 500 },
-      ],
+      ...(fonts && {
+        fonts: [
+          { name: "EK Baumer", data: fonts[0], style: "normal", weight: 400 },
+          { name: "EK Baumer", data: fonts[1], style: "normal", weight: 500 },
+        ],
+      }),
     },
   );
 };

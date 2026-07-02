@@ -171,7 +171,9 @@ export const createGrabDemo = (options: GrabDemoOptions): GrabDemoController => 
   // mid-glide shifts the rect, but the host page's scroll → syncPointer path
   // already re-anchors with a fresh rect.
   const dispatchMoveWithRect = (rect: DOMRect, x: number, y: number, buttons: number): void => {
-    container.dispatchEvent(createPointerEvent("pointermove", rect.left + x, rect.top + y, buttons));
+    container.dispatchEvent(
+      createPointerEvent("pointermove", rect.left + x, rect.top + y, buttons),
+    );
   };
 
   const pointerMove = (x: number, y: number): void => dispatchPointer("pointermove", x, y, 0);
@@ -191,7 +193,8 @@ export const createGrabDemo = (options: GrabDemoOptions): GrabDemoController => 
   // whatever slid under it). Re-dispatching with the current container rect
   // re-maps to the right client point and re-anchors the hover. heldButtons keeps
   // a marquee drag intact if a scroll lands mid-drag.
-  const syncPointer = (): void => dispatchPointer("pointermove", position.x, position.y, heldButtons);
+  const syncPointer = (): void =>
+    dispatchPointer("pointermove", position.x, position.y, heldButtons);
 
   const elementAtCursor = (): Element => {
     const rect = container.getBoundingClientRect();
