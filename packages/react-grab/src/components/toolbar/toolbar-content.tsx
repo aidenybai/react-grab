@@ -98,7 +98,12 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
     <div
       data-react-grab-toolbar-panel
       class={cn(
-        "flex items-center justify-center rounded-full antialiased relative overflow-visible [font-synthesis:none]",
+        // rounded-full is calc(infinity * 1px); transitioning border-radius
+        // from that clamped huge value to the collapsed 10px/0 stays pill-
+        // shaped for the whole duration and snaps on the last frame. 13px is
+        // half the expanded 26px thickness, so it renders identically to
+        // rounded-full but interpolates visibly in sync with the collapse.
+        "flex items-center justify-center rounded-[13px] antialiased relative overflow-visible [font-synthesis:none]",
         outerTransitionClass(),
         isVertical() && "flex-col",
         "bg-[var(--rg-panel-bg)] [box-shadow:var(--rg-shadow)]",
