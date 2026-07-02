@@ -353,3 +353,7 @@ export const GrabDemo = () => {
     </div>
   );
 };
+
+// Production minification mangles the function name (the grab label would read
+// "S.h1"), and displayName survives it.
+GrabDemo.displayName = "GrabDemo";
