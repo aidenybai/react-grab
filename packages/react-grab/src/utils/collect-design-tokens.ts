@@ -142,18 +142,39 @@ const nextValueOnGrid = (current: number, direction: 1 | -1, unitPx: number): nu
 };
 
 // The custom-property *names* are document-global and unchanged across element
-// switches, so the (O(rules)) stylesheet walk is memoized. Keying on the sheet
-// count invalidates it when stylesheets are added/removed (HMR, dynamic styles)
-// — token name sets effectively never change without that. Values still resolve
-// per element since custom properties cascade/scope.
-let cachedNames: { styleSheetCount: number; names: Set<string> } | null = null;
+// switches, so the (O(rules)) stylesheet walk is memoized. Keying on the
+// document sheet count plus the adopted sheet identities invalidates it when
+// stylesheets are added/removed/swapped (HMR, dynamic styles) — token name sets
+// effectively never change without that. Values still resolve per element since
+// custom properties cascade/scope.
+let cachedNames: {
+  documentSheetCount: number;
+  adoptedSheets: readonly CSSStyleSheet[];
+  names: Set<string>;
+} | null = null;
+
+const areSheetsSame = (
+  previousSheets: readonly CSSStyleSheet[],
+  currentSheets: readonly CSSStyleSheet[],
+): boolean =>
+  previousSheets.length === currentSheets.length &&
+  previousSheets.every((sheet, sheetIndex) => sheet === currentSheets[sheetIndex]);
 
 const collectCustomPropertyNames = (): Set<string> => {
-  const styleSheetCount = document.styleSheets.length;
-  if (cachedNames && cachedNames.styleSheetCount === styleSheetCount) return cachedNames.names;
+  // `document.adoptedStyleSheets` is missing on older Safari/Firefox, and is a
+  // live array — snapshot it so the cached copy can't be mutated in place.
+  const adoptedSheets = Array.from(document.adoptedStyleSheets ?? []);
+  const documentSheetCount = document.styleSheets.length;
+  if (
+    cachedNames &&
+    cachedNames.documentSheetCount === documentSheetCount &&
+    areSheetsSame(cachedNames.adoptedSheets, adoptedSheets)
+  ) {
+    return cachedNames.names;
+  }
 
   const customPropertyNames = new Set<string>();
-  for (const styleSheet of Array.from(document.styleSheets)) {
+  for (const styleSheet of [...document.styleSheets, ...adoptedSheets]) {
     let rules: CSSRuleList;
     try {
       // Cross-origin stylesheets throw on `.cssRules` access.
@@ -163,7 +184,7 @@ const collectCustomPropertyNames = (): Set<string> => {
     }
     collectNamesFromRules(rules, customPropertyNames);
   }
-  cachedNames = { styleSheetCount, names: customPropertyNames };
+  cachedNames = { documentSheetCount, adoptedSheets, names: customPropertyNames };
   return customPropertyNames;
 };
 

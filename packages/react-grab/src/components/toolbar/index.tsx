@@ -21,8 +21,10 @@ import {
   EDIT_ACTION_ID,
 } from "../../constants.js";
 import { freezeUpdates } from "../../utils/freeze-updates.js";
-import { freezeGlobalAnimations, unfreezeGlobalAnimations } from "../../utils/freeze-animations.js";
-import { freezePseudoStates, unfreezePseudoStates } from "../../utils/freeze-pseudo-states.js";
+import {
+  freezeGlobalInteractions,
+  unfreezeGlobalInteractions,
+} from "../../utils/freeze-global-interactions.js";
 import { ToolbarContent } from "./toolbar-content.js";
 import { getVisualViewport } from "../../utils/get-visual-viewport.js";
 import {
@@ -77,6 +79,15 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [isToolbarHovered, setIsToolbarHovered] = createSignal(false);
   const [selectIconRotationDeg, setSelectIconRotationDeg] = createSignal(0);
   const [hoveredActionId, setHoveredActionId] = createSignal<string | null>(null);
+
+  const releaseInteractionFreeze = () => {
+    unfreezeUpdatesCallback?.();
+    unfreezeUpdatesCallback = null;
+    // While grab mode is active, core owns the global freeze and releases it
+    // on deactivation; only release it when this hover latch is the sole owner.
+    if (!props.isActive) unfreezeGlobalInteractions();
+  };
+
   const drag = createToolbarDrag({
     getContainerRef: () => containerRef,
     isCollapsed,
@@ -86,12 +97,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       // clear the hover here or the tooltip flashes at the snapped position
       // once isDragging/isSnapping settle.
       setHoveredActionId(null);
-      if (unfreezeUpdatesCallback) {
-        unfreezeUpdatesCallback();
-        unfreezeUpdatesCallback = null;
-        unfreezeGlobalAnimations();
-        unfreezePseudoStates();
-      }
+      if (unfreezeUpdatesCallback) releaseInteractionFreeze();
     },
     onPositionUpdate: (newPosition) => setPosition(newPosition),
     onSnapEdgeChange: (edge, ratio) => {
@@ -155,8 +161,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       setHoveredActionId(actionId);
       if (options?.shouldFreezeInteractions !== false && !unfreezeUpdatesCallback) {
         unfreezeUpdatesCallback = freezeUpdates();
-        freezeGlobalAnimations();
-        freezePseudoStates(event.clientX, event.clientY);
+        freezeGlobalInteractions(event.clientX, event.clientY);
       }
       options?.onHoverChange?.(true);
     },
@@ -167,10 +172,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         !props.isActive &&
         !props.isContextMenuOpen
       ) {
-        unfreezeUpdatesCallback?.();
-        unfreezeUpdatesCallback = null;
-        unfreezeGlobalAnimations();
-        unfreezePseudoStates();
+        releaseInteractionFreeze();
       }
       options?.onHoverChange?.(false);
     },
@@ -564,7 +566,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     clearTimeout(resizeTimeout);
     clearTimeout(collapseAnimationTimeout);
 
-    unfreezeUpdatesCallback?.();
+    if (unfreezeUpdatesCallback) releaseInteractionFreeze();
   });
 
   const currentPosition = () => {

@@ -1,4 +1,4 @@
-import { FROZEN_ELEMENT_ATTRIBUTE } from "../constants.js";
+import { FROZEN_ELEMENT_ATTRIBUTE, WAAPI_GLOBAL_FREEZE_MAX_ANIMATIONS } from "../constants.js";
 import { createStyleElement } from "./create-style-element.js";
 import { freezeGsap, unfreezeGsap } from "./freeze-gsap.js";
 
@@ -18,14 +18,6 @@ const GLOBAL_FREEZE_STYLES = `
 `;
 
 const SVG_ROOT_SELECTOR = "svg";
-
-// Pausing animations individually via WAAPI avoids the full-document style
-// recalc that a universal `*` selector forces — profiled at ~62ms on a real
-// (CSS-heavy) app even with a single animation on the page. But each WAAPI
-// pause/finish has a per-animation cost, so above this many running animations
-// one batched `*`-selector recalc wins. Real apps sit far below this; the
-// threshold only guards pathological animation-heavy pages.
-const WAAPI_GLOBAL_FREEZE_MAX_ANIMATIONS = 200;
 
 let styleElement: HTMLStyleElement | null = null;
 let frozenElements: Element[] = [];
@@ -198,7 +190,7 @@ export const collectGlobalAnimationsToFreeze = (): Animation[] => {
   if (globalAnimationStyleElement) return [];
   const runningAnimations: Animation[] = [];
   for (const animation of document.getAnimations()) {
-    if (isShadowAnimation(animation)) continue; // leave react-grab's own UI running
+    if (isShadowAnimation(animation)) continue;
     if (animation.playState === "running") runningAnimations.push(animation);
   }
   return runningAnimations;
@@ -232,11 +224,6 @@ export const applyGlobalAnimationFreeze = (runningAnimations: Animation[]): void
   );
   pauseSvgAnimations(globalFrozenSvgElements);
   freezeGsap();
-};
-
-export const freezeGlobalAnimations = (): void => {
-  if (globalAnimationStyleElement) return;
-  applyGlobalAnimationFreeze(collectGlobalAnimationsToFreeze());
 };
 
 export const unfreezeGlobalAnimations = (): void => {

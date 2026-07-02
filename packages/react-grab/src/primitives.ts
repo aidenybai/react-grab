@@ -1,9 +1,8 @@
+import { freezeAnimations } from "./utils/freeze-animations.js";
 import {
-  freezeAnimations,
-  freezeGlobalAnimations,
-  unfreezeGlobalAnimations,
-} from "./utils/freeze-animations.js";
-import { freezePseudoStates, unfreezePseudoStates } from "./utils/freeze-pseudo-states.js";
+  freezeGlobalInteractions,
+  unfreezeGlobalInteractions,
+} from "./utils/freeze-global-interactions.js";
 import { freezeUpdates } from "./utils/freeze-updates.js";
 import {
   suspendPointerEventsFreeze,
@@ -114,9 +113,11 @@ let _isFreezeActive = false;
 export const freeze = (elements?: Element[]): void => {
   _isFreezeActive = true;
   freezeCleanupFns.add(freezeUpdates());
+  // Batched layout reads must run before freezeAnimations injects its
+  // stylesheet and sets frozen attributes, or those writes force a second
+  // full-document style recalc under the reads.
+  freezeGlobalInteractions();
   freezeCleanupFns.add(freezeAnimations(elements ?? [document.body]));
-  freezeGlobalAnimations();
-  freezePseudoStates();
 };
 
 /**
@@ -135,8 +136,7 @@ export const unfreeze = (): void => {
   }
   freezeCleanupFns.clear();
   freezeAnimations([]);
-  unfreezeGlobalAnimations();
-  unfreezePseudoStates();
+  unfreezeGlobalInteractions();
 };
 
 /**

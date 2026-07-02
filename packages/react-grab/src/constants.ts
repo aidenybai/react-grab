@@ -40,6 +40,31 @@ export const SYMBOLICATION_TIMEOUT_MS = 5000;
 // un-cancelable bundle fetch is stuck behind a saturated connection pool, and
 // exists to free the queue slot rather than to bound normal latency.
 export const SOURCE_FETCH_TIMEOUT_MS = 8000;
+// Cap on react-grab's own concurrent source-resolution fetches.
+//
+// Resolving a grabbed element's source location fetches its JS bundle and source
+// map (through bippy) and, on Next.js, POSTs to the dev symbolication endpoint.
+// In development these run over HTTP/1.1, where Chrome keeps at most ~6 open
+// connections per origin. A real app's data fetches routinely hold all 6 (a
+// dashboard waiting on several slow API calls), so a react-grab fetch waits in
+// the browser's connection queue behind them. That wait is what surfaces as the
+// "Grabbing…" state never resolving.
+//
+// We cannot speed up the app's requests, so we avoid adding to the pressure
+// instead: capping our own in-flight fetches below the pool size leaves
+// connections for the page and bounds the fan-out when a drag-select hovers
+// dozens of elements in a row. Without the cap each hovered element starts its
+// own fetch at once, and react-grab becomes part of the saturation it is
+// waiting on.
+//
+// This is deliberately NOT the `keepalive` request limit. `keepalive` (the
+// modern navigator.sendBeacon) keeps a request alive across a page navigation,
+// but the Fetch spec caps its body at 64 KB and allows only ~15 inflight
+// keepalive requests for the whole page; source bundles are larger than 64 KB
+// and a grab never navigates away, so keepalive does not apply here. The limit
+// we work around is the ordinary per-origin connection pool, which constrains
+// every fetch whether or not it sets keepalive.
+export const MAX_CONCURRENT_SOURCE_FETCHES = 3;
 export const MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS = 200;
 export const FINDER_TIMEOUT_MS = 200;
 export const MAX_SELECTOR_COMBINATIONS = 10_000;
@@ -133,6 +158,24 @@ export const ARROW_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRi
 export { REACT_GRAB_ATTRIBUTE_NAME } from "./utils/react-grab-attribute-name.js";
 
 export const FROZEN_ELEMENT_ATTRIBUTE = "data-react-grab-frozen";
+
+// Pausing animations individually via WAAPI avoids the full-document style
+// recalc that a universal `*` selector forces — profiled at ~62ms on a real
+// (CSS-heavy) app even with a single animation on the page. But each WAAPI
+// pause/finish has a per-animation cost, so above this many running animations
+// one batched `*`-selector recalc wins. Real apps sit far below this; the
+// threshold only guards pathological animation-heavy pages.
+export const WAAPI_GLOBAL_FREEZE_MAX_ANIMATIONS = 200;
+
+// Theme-detection thresholds (see detect-app-theme.ts). A background below
+// this relative luminance reads as a dark theme.
+export const LUMINANCE_DARK_THRESHOLD = 0.18;
+// Text this light sits well above any light theme's (dark) body text, so it only
+// appears when the app paints onto a dark surface - revealing a dark theme.
+export const LIGHT_TEXT_LUMINANCE_THRESHOLD = 0.6;
+// Faint text composites toward the backdrop, making its own color an unreliable
+// theme signal, so the foreground heuristic ignores anything more translucent.
+export const OPAQUE_TEXT_MIN_ALPHA = 0.5;
 
 export const USER_IGNORE_ATTRIBUTE = "data-react-grab-ignore";
 

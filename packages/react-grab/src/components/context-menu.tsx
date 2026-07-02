@@ -256,11 +256,9 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       if (event.key === "Enter") {
         const activeItem = menuStore.getActiveItem();
         if (activeItem) {
-          if (activeItem.isEnabled()) {
-            event.preventDefault();
-            event.stopPropagation();
-            activeItem.onSelect();
-          }
+          event.preventDefault();
+          event.stopPropagation();
+          if (activeItem.isEnabled()) activeItem.onSelect();
           return;
         }
       }

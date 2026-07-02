@@ -218,10 +218,6 @@ export const applyPseudoStates = (snapshot: PseudoFreezeSnapshot | null): void =
   installPointerEventsFreeze();
 };
 
-export const freezePseudoStates = (cursorX?: number, cursorY?: number): void => {
-  applyPseudoStates(collectPseudoStates(cursorX, cursorY));
-};
-
 export const unfreezePseudoStates = (): void => {
   clearElementPositionCache();
 

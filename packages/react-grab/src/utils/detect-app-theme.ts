@@ -1,3 +1,8 @@
+import {
+  LIGHT_TEXT_LUMINANCE_THRESHOLD,
+  LUMINANCE_DARK_THRESHOLD,
+  OPAQUE_TEXT_MIN_ALPHA,
+} from "../constants.js";
 import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "./native-raf.js";
 import { parseAnyColor } from "./parse-any-color.js";
 import { parseHexChannels } from "./parse-color.js";
@@ -24,14 +29,6 @@ const PRESENCE_ATTRIBUTES: readonly { attribute: string; theme: AppTheme }[] = [
   { attribute: "data-dark", theme: "dark" },
   { attribute: "data-light", theme: "light" },
 ];
-
-const LUMINANCE_DARK_THRESHOLD = 0.18;
-// Text this light sits well above any light theme's (dark) body text, so it only
-// appears when the app paints onto a dark surface - revealing a dark theme.
-const LIGHT_TEXT_LUMINANCE_THRESHOLD = 0.6;
-// Faint text composites toward the backdrop, making its own color an unreliable
-// theme signal, so the foreground heuristic ignores anything more translucent.
-const OPAQUE_TEXT_MIN_ALPHA = 0.5;
 
 const getRelativeLuminance = (red: number, green: number, blue: number): number => {
   const [linearRed, linearGreen, linearBlue] = [red, green, blue].map((channel) => {
