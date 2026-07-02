@@ -309,6 +309,42 @@ test.describe("Keyboard Navigation", () => {
     expect(await reactGrab.isPromptModeActive()).toBe(false);
   });
 
+  test("Enter at the discard prompt discards and resumes selection", async ({ reactGrab }) => {
+    await reactGrab.page.evaluate(() => navigator.clipboard.writeText(""));
+    await reactGrab.registerCommentAction();
+    await showKeyboardSelectionDiscardPrompt(reactGrab);
+
+    await reactGrab.pressEnter();
+
+    await expect.poll(() => reactGrab.isPendingDismissVisible()).toBe(false);
+    // Neither the Enter-bound Comment action nor a copy runs — it just discards.
+    expect(await reactGrab.isPromptModeActive()).toBe(false);
+    expect(await reactGrab.getClipboardContent()).toBe("");
+
+    // Back in selection mode: hovering another element updates the label.
+    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] h1");
+    const labelInfo = await reactGrab.getSelectionLabelInfo();
+    expect(labelInfo.isVisible).toBe(true);
+    expect(labelInfo.tagName).toBe("h1");
+  });
+
+  test("Enter with the Copy button focused copies through the discard prompt", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.page.evaluate(() => navigator.clipboard.writeText(""));
+    await reactGrab.registerCommentAction();
+    await showKeyboardSelectionDiscardPrompt(reactGrab);
+    await reactGrab.page.locator("[data-react-grab-discard-copy]").focus();
+
+    await reactGrab.pressEnter();
+
+    // Focus routing still wins: Enter on Copy copies rather than discarding or
+    // running the Enter-bound default action.
+    await expect.poll(() => reactGrab.getClipboardContent(), { timeout: 5000 }).not.toBe("");
+    expect(await reactGrab.isPromptModeActive()).toBe(false);
+    expect(await reactGrab.isPendingDismissVisible()).toBe(false);
+  });
+
   test("S should continue through the discard-selection prompt", async ({ reactGrab }) => {
     await showKeyboardSelectionDiscardPrompt(reactGrab);
     await reactGrab.page.locator("[data-react-grab-discard-copy]").focus();
