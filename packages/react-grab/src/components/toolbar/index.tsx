@@ -545,8 +545,17 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     // the normal case — register nothing and pay nothing on scroll. The scope
     // is init-only and set before the renderer mounts, so checking once here
     // (and in the matching cleanup) is stable.
-    if (getScopeContainer()) {
+    const scopeContainer = getScopeContainer();
+    if (scopeContainer) {
       window.addEventListener("scroll", handleScopedScroll, { passive: true, capture: true });
+      // The container's box is the toolbar's viewport, so a layout-only
+      // container resize (e.g. a responsive aspect-ratio change) must
+      // re-anchor just like a scroll does.
+      if (typeof ResizeObserver !== "undefined") {
+        const scopeResizeObserver = new ResizeObserver(handleScopedScroll);
+        scopeResizeObserver.observe(scopeContainer);
+        onCleanup(() => scopeResizeObserver.disconnect());
+      }
     }
 
     if (typeof ResizeObserver !== "undefined" && containerRef) {

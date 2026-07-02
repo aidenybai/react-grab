@@ -1,4 +1,4 @@
-import { createSignal, onCleanup, onMount, type Component } from "solid-js";
+import { createEffect, createSignal, onCleanup, onMount, type Component } from "solid-js";
 import {
   FADE_DURATION_MS,
   FROZEN_GLOW_COLOR,
@@ -25,8 +25,9 @@ export const FrozenGlow: Component<FrozenGlowProps> = (props) => {
   const [scopeRect, setScopeRect] = createSignal(measureRect());
 
   if (scopeContainer) {
+    const handleViewportChange = () => setScopeRect(measureRect());
+
     onMount(() => {
-      const handleViewportChange = () => setScopeRect(measureRect());
       const resizeObserver = new ResizeObserver(handleViewportChange);
       resizeObserver.observe(scopeContainer);
       window.addEventListener("scroll", handleViewportChange, { capture: true, passive: true });
@@ -36,6 +37,13 @@ export const FrozenGlow: Component<FrozenGlowProps> = (props) => {
         window.removeEventListener("scroll", handleViewportChange, { capture: true });
         window.removeEventListener("resize", handleViewportChange);
       });
+    });
+
+    // ResizeObserver misses position-only layout shifts (e.g. content above
+    // the container expanding while the showcase is idle), so re-measure at
+    // the moment the glow fades in — the only time a stale rect would show.
+    createEffect(() => {
+      if (props.visible) handleViewportChange();
     });
   }
 
