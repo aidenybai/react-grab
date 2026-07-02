@@ -381,6 +381,14 @@ export interface Plugin {
   setup?: (api: ReactGrabAPI, hooks: ActionContextHooks) => PluginConfig | void;
 }
 
+export interface WarpPluginOptions {
+  usePreview?: boolean;
+  newWindow?: boolean;
+  path?: string;
+  launchConfig?: string;
+  tabConfig?: string;
+}
+
 export interface Options {
   enabled?: boolean;
   /**
