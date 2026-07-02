@@ -27,7 +27,7 @@ import {
 } from "../../utils/freeze-global-interactions.js";
 import { ToolbarContent } from "./toolbar-content.js";
 import { getVisualViewport } from "../../utils/get-visual-viewport.js";
-import { getScopeContainer } from "../../utils/runtime-mode.js";
+import { getScopeContainer, ignoreRealInput } from "../../utils/runtime-mode.js";
 import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "../../utils/native-raf.js";
 import {
   calculateExpandedPositionFromCollapsed,
@@ -218,7 +218,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           return;
         }
 
-        const handlePointerMove = (event: PointerEvent | MouseEvent) => {
+        const handlePointerMove = ignoreRealInput((event: PointerEvent | MouseEvent) => {
           if (!selectButtonRef) return;
           const rect = selectButtonRef.getBoundingClientRect();
           const centerX = rect.left + rect.width / 2;
@@ -231,7 +231,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           setSelectIconRotationDeg((previousRotationDeg) =>
             accumulateRotationDeg(previousRotationDeg, desiredRotationDeg),
           );
-        };
+        });
 
         window.addEventListener("pointermove", handlePointerMove, { passive: true });
         onCleanup(() => {

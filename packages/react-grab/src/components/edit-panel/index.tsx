@@ -39,6 +39,7 @@ import { getShadowActiveElement } from "../../utils/get-shadow-active-element.js
 import { getTagDisplay } from "../../utils/get-tag-display.js";
 import { createPointerMovePromptHandoff } from "../../utils/create-pointer-move-prompt-handoff.js";
 import { isEventFromOverlay } from "../../utils/is-event-from-overlay.js";
+import { ignoreRealInput } from "../../utils/runtime-mode.js";
 import { registerOverlayDismiss } from "../../utils/register-overlay-dismiss.js";
 import { suppressMenuEvent } from "../../utils/suppress-menu-event.js";
 import { TagBadge } from "../selection-label/tag-badge.js";
@@ -511,21 +512,21 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
       shouldIgnoreInputEvents: true,
     });
 
-    const handleWindowKeyDown = (event: KeyboardEvent) => {
+    const handleWindowKeyDown = ignoreRealInput((event: KeyboardEvent) => {
       if (isEventFromOverlay(event, REACT_GRAB_INPUT_ATTRIBUTE)) return;
       if (tryReplaceInlineNumericFromKey(event)) return;
       handleSearchKeyDown(event);
-    };
-    const handleWindowKeyUp = (event: KeyboardEvent) => {
+    });
+    const handleWindowKeyUp = ignoreRealInput((event: KeyboardEvent) => {
       stepController.releaseKey(event.key);
-    };
-    const handleWindowPointerMove = (event: PointerEvent) => {
+    });
+    const handleWindowPointerMove = ignoreRealInput((event: PointerEvent) => {
       if (event.pointerType !== "mouse") return;
       if (discardConfirmation.isPending()) return;
       if (!pointerMovePromptHandoff.consume()) return;
       if (!hasSubmittableEdits()) return;
       attemptDismiss("pointer");
-    };
+    });
     window.addEventListener("keydown", handleWindowKeyDown, { capture: true });
     window.addEventListener("keyup", handleWindowKeyUp, { capture: true });
     window.addEventListener("pointermove", handleWindowPointerMove, { capture: true });

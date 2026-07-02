@@ -32,6 +32,7 @@ import { resolveActionEnabled } from "../utils/resolve-action-enabled.js";
 import { nativeRequestAnimationFrame } from "../utils/native-raf.js";
 import { suppressMenuEvent } from "../utils/suppress-menu-event.js";
 import { registerOverlayDismiss } from "../utils/register-overlay-dismiss.js";
+import { ignoreRealInput } from "../utils/runtime-mode.js";
 import { findShortcutAction } from "../utils/action-shortcuts.js";
 
 interface ContextMenuProps {
@@ -274,11 +275,12 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       onDismiss: props.onDismiss,
       shouldIgnoreRightClick: true,
     });
-    window.addEventListener("keydown", handleKeyDown, { capture: true });
+    const gatedHandleKeyDown = ignoreRealInput(handleKeyDown);
+    window.addEventListener("keydown", gatedHandleKeyDown, { capture: true });
 
     onCleanup(() => {
       unregisterOverlayDismiss();
-      window.removeEventListener("keydown", handleKeyDown, { capture: true });
+      window.removeEventListener("keydown", gatedHandleKeyDown, { capture: true });
     });
   });
 

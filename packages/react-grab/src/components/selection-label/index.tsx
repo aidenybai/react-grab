@@ -25,7 +25,7 @@ import { autoResizeTextarea } from "../../utils/auto-resize-textarea.js";
 import { focusInOverlay } from "../../utils/focus-in-overlay.js";
 import { getArrowSize } from "../../utils/get-arrow-size.js";
 import { getVisualViewport } from "../../utils/get-visual-viewport.js";
-import { getScopeContainer } from "../../utils/runtime-mode.js";
+import { getScopeContainer, ignoreRealInput } from "../../utils/runtime-mode.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
 import { cn } from "../../utils/cn.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
@@ -113,7 +113,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     setViewportVersion((version) => version + 1);
   };
 
-  const handleGlobalKeyDown = (event: KeyboardEvent) => {
+  const handleGlobalKeyDown = ignoreRealInput((event: KeyboardEvent) => {
     if (isKeyboardEventTriggeredByInput(event)) return;
 
     const isEnterToExpand =
@@ -124,7 +124,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       event.stopImmediatePropagation();
       props.onToggleExpand?.();
     }
-  };
+  });
 
   onMount(() => {
     const scopeContainer = getScopeContainer();
