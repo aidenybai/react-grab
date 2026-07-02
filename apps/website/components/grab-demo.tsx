@@ -229,6 +229,7 @@ export const GrabDemo = () => {
       demo.api.reset();
       const rest = restPosition();
       demo.setCursorPosition(rest.x, rest.y);
+      startPlaying();
     }
   };
 
