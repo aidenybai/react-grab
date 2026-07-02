@@ -295,14 +295,18 @@ test.describe("Keyboard Navigation", () => {
     await expect.poll(() => reactGrab.isPendingDismissVisible()).toBe(false);
   });
 
-  test("Enter should continue through the discard-selection prompt", async ({ reactGrab }) => {
+  test("Enter discards the keyboard selection instead of running the default action", async ({
+    reactGrab,
+  }) => {
     await reactGrab.registerCommentAction();
     await showKeyboardSelectionDiscardPrompt(reactGrab);
 
     await reactGrab.pressEnter();
 
-    await expect.poll(() => reactGrab.isPromptModeActive()).toBe(true);
-    expect(await reactGrab.isPendingDismissVisible()).toBe(false);
+    // The prompt's "Yes" affordance is the return key, so Enter must discard
+    // and return to selection rather than fall through to the default action.
+    await expect.poll(() => reactGrab.isPendingDismissVisible()).toBe(false);
+    expect(await reactGrab.isPromptModeActive()).toBe(false);
   });
 
   test("S should continue through the discard-selection prompt", async ({ reactGrab }) => {

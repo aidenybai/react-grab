@@ -2455,19 +2455,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
-    const isKeyboardSelectionPromptButtonEnter = (event: KeyboardEvent): boolean => {
-      if (!isEnterCode(event.code)) return false;
-      const target = event.composedPath()[0];
-      const targetElement = target instanceof HTMLElement ? target : null;
-      return Boolean(
-        targetElement?.closest("[data-react-grab-discard-copy]") ||
-        targetElement?.closest("[data-react-grab-discard-yes]"),
-      );
-    };
-
     const tryHandleKeyboardSelectionPromptPassThrough = (event: KeyboardEvent): boolean => {
       if (!keyboardSelection.isPendingDismiss()) return false;
-      if (isKeyboardSelectionPromptButtonEnter(event)) return true;
+      // Enter belongs to the discard prompt's own confirmation handler: its
+      // "Yes" button shows the return key, so Enter confirms the discard (or
+      // copies when the Copy button is focused) and returns to selection.
+      // Handing it off here keeps Enter from running a bare-key shortcut (e.g.
+      // the default action) and dropping into that mode instead.
+      if (isEnterCode(event.code)) return true;
 
       // Only arrows continue navigation through the discard prompt; Tab and
       // Shift+Tab are not treated as sibling navigation here so that focus
