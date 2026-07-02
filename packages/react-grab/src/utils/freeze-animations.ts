@@ -125,7 +125,7 @@ const finishAnimations = (animations: Iterable<Animation>): void => {
 // Animations whose target lives in a shadow root are react-grab's own toolbar/
 // label animations — the global freeze must leave them running.
 // @see https://github.com/aidenybai/react-grab/issues/163
-const isShadowAnimation = (animation: Animation): boolean => {
+export const isShadowAnimation = (animation: Animation): boolean => {
   if (!(animation.effect instanceof KeyframeEffect)) return false;
   const target = animation.effect.target;
   return target instanceof Element && target.getRootNode() instanceof ShadowRoot;

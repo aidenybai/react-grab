@@ -3,6 +3,12 @@ import {
   EDIT_STEP_REPEAT_INITIAL_DELAY_MS,
   EDIT_STEP_REPEAT_INTERVAL_MS,
 } from "../../constants.js";
+import {
+  nativeClearInterval,
+  nativeClearTimeout,
+  nativeSetInterval,
+  nativeSetTimeout,
+} from "../../utils/native-timers.js";
 
 type ArrowKey = "ArrowLeft" | "ArrowRight";
 type Direction = 1 | -1;
@@ -25,12 +31,14 @@ export interface StepController {
 export const createStepController = (options: StepControllerOptions): StepController => {
   const [heldDirection, setHeldDirection] = createSignal<-1 | 0 | 1>(0);
   let pressedArrowKey: ArrowKey | null = null;
-  let repeatInitialDelayId: ReturnType<typeof setTimeout> | null = null;
-  let repeatIntervalId: ReturnType<typeof setInterval> | null = null;
+  let repeatInitialDelayId: number | null = null;
+  let repeatIntervalId: number | null = null;
 
+  // Native timers, not window timers: hold-to-repeat must keep firing while
+  // the time machine's page-clock freeze suspends the page's own scheduling.
   const clearRepeatTimers = () => {
-    if (repeatInitialDelayId !== null) clearTimeout(repeatInitialDelayId);
-    if (repeatIntervalId !== null) clearInterval(repeatIntervalId);
+    if (repeatInitialDelayId !== null) nativeClearTimeout(repeatInitialDelayId);
+    if (repeatIntervalId !== null) nativeClearInterval(repeatIntervalId);
     repeatInitialDelayId = null;
     repeatIntervalId = null;
     pressedArrowKey = null;
@@ -45,8 +53,8 @@ export const createStepController = (options: StepControllerOptions): StepContro
     clearRepeatTimers();
     pressedArrowKey = key;
     const direction = getDirectionForKey(key);
-    repeatInitialDelayId = setTimeout(() => {
-      repeatIntervalId = setInterval(() => {
+    repeatInitialDelayId = nativeSetTimeout(() => {
+      repeatIntervalId = nativeSetInterval(() => {
         options.step(direction, options.isShiftHeld(), options.isAltHeld(), true);
       }, EDIT_STEP_REPEAT_INTERVAL_MS);
     }, EDIT_STEP_REPEAT_INITIAL_DELAY_MS);
