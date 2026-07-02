@@ -102,7 +102,7 @@ export const createAnchoredDropdown = (
     // invalidate the position like a window resize does.
     const scopeContainer = getScopeContainer();
     let scopeResizeObserver: ResizeObserver | undefined;
-    if (scopeContainer) {
+    if (scopeContainer && typeof ResizeObserver !== "undefined") {
       scopeResizeObserver = new ResizeObserver(handleViewportChange);
       scopeResizeObserver.observe(scopeContainer);
     }

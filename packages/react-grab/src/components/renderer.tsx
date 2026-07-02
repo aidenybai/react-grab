@@ -1,15 +1,10 @@
 import { Index, Show, type Component } from "solid-js";
 import type { ReactGrabRendererProps } from "../types.js";
-import {
-  DEFAULT_ACTION_ID,
-  FADE_DURATION_MS,
-  FROZEN_GLOW_COLOR,
-  FROZEN_GLOW_EDGE_PX,
-  Z_INDEX_OVERLAY_CANVAS,
-} from "../constants.js";
+import { DEFAULT_ACTION_ID } from "../constants.js";
 import { requestOpenFile } from "../utils/open-file.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
 import { OverlayCanvas } from "./overlay-canvas.js";
+import { FrozenGlow } from "./frozen-glow.js";
 import { SelectionLabel } from "./selection-label/index.js";
 import { Toolbar } from "./toolbar/index.js";
 import { ContextMenu } from "./context-menu.js";
@@ -30,26 +25,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         grabbedBoxes={props.grabbedBoxes}
         labelInstances={props.labelInstances}
       />
-      {/* translateZ(0) promotes to its own compositor layer so opacity
-          transitions skip main-thread repaints; contain:strict with
-          will-change:opacity pre-allocates the layer. */}
-      <div
-        style={{
-          position: "fixed",
-          top: 0,
-          right: 0,
-          bottom: 0,
-          left: 0,
-          "pointer-events": "none",
-          "z-index": Z_INDEX_OVERLAY_CANVAS,
-          opacity: props.isFrozen ? 1 : 0,
-          transition: `opacity ${FADE_DURATION_MS}ms ease-out`,
-          "will-change": "opacity",
-          contain: "strict",
-          transform: "translateZ(0)",
-          "box-shadow": `inset 0 0 ${FROZEN_GLOW_EDGE_PX}px ${FROZEN_GLOW_COLOR}`,
-        }}
-      />
+      <FrozenGlow visible={props.isFrozen ?? false} />
       <Show when={props.selectionLabelVisible && (props.frozenLabelEntries?.length ?? 0) > 0}>
         <Index each={props.frozenLabelEntries ?? []}>
           {(entry, entryIndex) => (
