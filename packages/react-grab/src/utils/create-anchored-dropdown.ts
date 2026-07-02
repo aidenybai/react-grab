@@ -8,6 +8,7 @@ import {
 } from "../constants.js";
 import { getAnchoredDropdownPosition } from "./get-anchored-dropdown-position.js";
 import { getVisualViewport } from "./get-visual-viewport.js";
+import { getScopeContainer } from "./runtime-mode.js";
 import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "./native-raf.js";
 
 interface AnchoredDropdownResult {
@@ -97,10 +98,20 @@ export const createAnchoredDropdown = (
     window.visualViewport?.addEventListener("resize", handleViewportChange);
     window.visualViewport?.addEventListener("scroll", handleViewportChange);
 
+    // Scoped instances clamp to the container's box, so its resizes must
+    // invalidate the position like a window resize does.
+    const scopeContainer = getScopeContainer();
+    let scopeResizeObserver: ResizeObserver | undefined;
+    if (scopeContainer) {
+      scopeResizeObserver = new ResizeObserver(handleViewportChange);
+      scopeResizeObserver.observe(scopeContainer);
+    }
+
     onCleanup(() => {
       window.removeEventListener("resize", handleViewportChange);
       window.visualViewport?.removeEventListener("resize", handleViewportChange);
       window.visualViewport?.removeEventListener("scroll", handleViewportChange);
+      scopeResizeObserver?.disconnect();
     });
   });
 
