@@ -2,6 +2,12 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["react-grab"],
+  // The /script.js route streams the library bundle off disk with readFile,
+  // which output tracing can't follow — without this the file is missing from
+  // the deployed function and the route 500s on Vercel.
+  outputFileTracingIncludes: {
+    "/script.js": ["../../packages/react-grab/dist/index.global.js"],
+  },
   devIndicators: false,
   productionBrowserSourceMaps: true,
   redirects: async () => [
