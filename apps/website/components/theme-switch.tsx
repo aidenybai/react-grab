@@ -23,7 +23,7 @@ export const ThemeSwitch = () => {
       type="button"
       onClick={() => setTheme(next)}
       aria-label={`Switch to ${next} theme`}
-      className={cn("cursor-pointer", LINK_CLASS_NAME)}
+      className={cn("cursor-pointer whitespace-nowrap", LINK_CLASS_NAME)}
       suppressHydrationWarning
     >
       {mounted ? (next === "dark" ? "Dark mode" : "Light mode") : "Theme"}

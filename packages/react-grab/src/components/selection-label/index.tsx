@@ -24,6 +24,7 @@ import {
 import { autoResizeTextarea } from "../../utils/auto-resize-textarea.js";
 import { focusInOverlay } from "../../utils/focus-in-overlay.js";
 import { getArrowSize } from "../../utils/get-arrow-size.js";
+import { getVisualViewport } from "../../utils/get-visual-viewport.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
 import { cn } from "../../utils/cn.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
@@ -211,11 +212,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         };
       }
 
-      const visualViewport = window.visualViewport;
-      const viewportLeft = visualViewport?.offsetLeft ?? 0;
-      const viewportTop = visualViewport?.offsetTop ?? 0;
-      const viewportRight = viewportLeft + (visualViewport?.width ?? window.innerWidth);
-      const viewportBottom = viewportTop + (visualViewport?.height ?? window.innerHeight);
+      // Scope-aware: inside a scoped instance (demo showcases) the container's
+      // box is the viewport, so the label stays within the showcase card
+      // instead of spilling over the host page.
+      const viewport = getVisualViewport();
+      const viewportLeft = viewport.offsetLeft;
+      const viewportTop = viewport.offsetTop;
+      const viewportRight = viewportLeft + viewport.width;
+      const viewportBottom = viewportTop + viewport.height;
 
       const isSelectionVisibleInViewport =
         bounds.x + bounds.width > viewportLeft &&

@@ -323,7 +323,7 @@ export const GrabDemo = () => {
     <div className="relative w-full">
       <div
         ref={containerRef}
-        className="paper-hatch relative flex aspect-[2/1] w-full items-center justify-center overflow-hidden rounded-lg border border-line text-center"
+        className="paper-hatch relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg border border-line text-center sm:aspect-[2/1]"
       >
         <h1
           ref={sampleRef}

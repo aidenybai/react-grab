@@ -10,8 +10,8 @@ export const SiteFooter = () => {
   return (
     <footer className="flex flex-col gap-6">
       <hr className="border-line" />
-      <div className="flex items-center justify-between gap-6">
-        <div className="flex items-center gap-5">
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
           <AccentLink href="https://github.com/aidenybai/react-grab">GitHub</AccentLink>
           <AccentLink href="https://github.com/aidenybai/react-grab#readme">Docs</AccentLink>
           <AccentLink href="/benchmarks" external={false}>
