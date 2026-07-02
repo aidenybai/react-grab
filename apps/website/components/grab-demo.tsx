@@ -214,6 +214,11 @@ export const GrabDemo = () => {
     if (playingRef.current) return;
     const demo = demoRef.current;
     if (!demo) return;
+    // A pause can land mid-story, after the headline edit; the new session
+    // replays from the grab, so restore the pre-edit stage and transcript
+    // first or the story would grab an already-"fixed" headline.
+    terminalRef.current?.reset();
+    setIsHeadlineEdited(false);
     playingRef.current = true;
     setPlaying(true);
     demo.showCursor();
@@ -242,8 +247,6 @@ export const GrabDemo = () => {
 
   const reset = () => {
     stopPlaying();
-    terminalRef.current?.reset();
-    setIsHeadlineEdited(false);
     setIsReloading(false);
     setTerminalRevealed(false);
     const demo = demoRef.current;
