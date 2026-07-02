@@ -33,6 +33,11 @@ const CURSOR_SVG = `<svg width="19" height="26" viewBox="0 0 19 26" fill="none" 
 type GrabDemoInput = HTMLInputElement | HTMLTextAreaElement;
 type GrabDemoPoint = Position;
 
+interface GrabDemoKeyModifiers {
+  altKey?: boolean;
+  shiftKey?: boolean;
+}
+
 interface GrabDemoOptions {
   /** The element the showcase is confined to. The cursor is painted inside it. */
   container: HTMLElement;
@@ -55,7 +60,7 @@ interface GrabDemoController {
    * drag-select), then release. */
   drag: (toX: number, toY: number, durationMs: number) => Promise<void>;
   /** Synthesize keydown+keyup. Defaults to the element under the cursor. */
-  pressKey: (key: string, target?: EventTarget) => void;
+  pressKey: (key: string, target?: EventTarget, modifiers?: GrabDemoKeyModifiers) => void;
   /** Type into a React Grab input, one character at a time. */
   typeText: (text: string, target: GrabDemoInput, perCharMs?: number) => Promise<void>;
   /** Set an input's value via the native setter so React's tracker sees it. */
@@ -303,13 +308,21 @@ export const createGrabDemo = (options: GrabDemoOptions): GrabDemoController => 
     pointerUp(position.x, position.y);
   };
 
-  const pressKey = (key: string, target: EventTarget = elementAtCursor()): void => {
-    target.dispatchEvent(
-      new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, composed: true }),
-    );
-    target.dispatchEvent(
-      new KeyboardEvent("keyup", { key, bubbles: true, cancelable: true, composed: true }),
-    );
+  const pressKey = (
+    key: string,
+    target: EventTarget = elementAtCursor(),
+    modifiers: GrabDemoKeyModifiers = {},
+  ): void => {
+    const eventInit: KeyboardEventInit = {
+      key,
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+      altKey: modifiers.altKey ?? false,
+      shiftKey: modifiers.shiftKey ?? false,
+    };
+    target.dispatchEvent(new KeyboardEvent("keydown", eventInit));
+    target.dispatchEvent(new KeyboardEvent("keyup", eventInit));
   };
 
   const setInputValue = (input: GrabDemoInput, value: string): void => {
@@ -401,4 +414,4 @@ if (typeof window !== "undefined") {
   window.__REACT_GRAB_DEMO__ = { createGrabDemo };
 }
 
-export type { GrabDemoOptions, GrabDemoController };
+export type { GrabDemoOptions, GrabDemoController, GrabDemoKeyModifiers };

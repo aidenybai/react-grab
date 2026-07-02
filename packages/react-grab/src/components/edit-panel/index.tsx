@@ -50,7 +50,7 @@ import { EditPanelCopyButton } from "./copy-button.js";
 import { createDiscardConfirmation } from "./discard-confirmation.js";
 import { PropertyList } from "./property-list.js";
 import { arePropertyValuesEqual } from "./property-values-equal.js";
-import { createModifierTracker } from "./modifier-tracker.js";
+import { createModifierTracker } from "../../utils/modifier-tracker.js";
 import { createStepController } from "./step-controller.js";
 import { stepProperty } from "./step-property.js";
 import { createStyleStore } from "./style-store.js";
@@ -549,6 +549,11 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     ensureSearchFocused();
   };
 
+  // Intentionally not built on AnchoredDropdownSurface: unlike the toolbar and
+  // hierarchy menus, this panel is a focus-trapping dialog that needs its own
+  // container ref, dialog ARIA, compact-mode attribute, a list-height CSS var,
+  // and source-aware dismissal — folding those into the shared surface would
+  // add per-consumer optionality without simplifying anything here.
   return (
     <Show when={dropdown.shouldMount()}>
       <div

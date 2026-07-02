@@ -468,7 +468,9 @@ const createReactGrabPageObject = (
         if (!shadowRoot) return !expectedVisible;
         const root = shadowRoot.querySelector(`[${attrName}]`);
         if (!root) return !expectedVisible;
-        const menuItem = root.querySelector("[data-react-grab-menu-item]");
+        const menuItem = root.querySelector(
+          "[data-react-grab-context-menu] [data-react-grab-menu-item]",
+        );
         return expectedVisible ? menuItem !== null : menuItem === null;
       },
       { attrName: ATTRIBUTE_NAME, expectedVisible: visible },
@@ -500,7 +502,9 @@ const createReactGrabPageObject = (
       if (!shadowRoot) return false;
       const root = shadowRoot.querySelector(`[${attrName}]`);
       if (!root) return false;
-      const menuItem = root.querySelector("[data-react-grab-menu-item]");
+      const menuItem = root.querySelector(
+        "[data-react-grab-context-menu] [data-react-grab-menu-item]",
+      );
       return menuItem !== null;
     }, ATTRIBUTE_NAME);
   };
@@ -514,7 +518,7 @@ const createReactGrabPageObject = (
         const root = shadowRoot.querySelector(`[${attrName}]`);
         if (!root) throw new Error("No inner root found");
         const button = root.querySelector<HTMLButtonElement>(
-          `[data-react-grab-menu-item="${itemLabel.toLowerCase()}"]`,
+          `[data-react-grab-context-menu] [data-react-grab-menu-item="${itemLabel.toLowerCase()}"]`,
         );
         if (!button) throw new Error(`Context menu item "${itemLabel}" not found`);
         button.click();
@@ -582,7 +586,7 @@ const createReactGrabPageObject = (
         const root = shadowRoot.querySelector(`[${attrName}]`);
         if (!root) return false;
         const button = root.querySelector<HTMLButtonElement>(
-          `[data-react-grab-menu-item="${itemLabel.toLowerCase()}"]`,
+          `[data-react-grab-context-menu] [data-react-grab-menu-item="${itemLabel.toLowerCase()}"]`,
         );
         return button ? !button.disabled : false;
       },

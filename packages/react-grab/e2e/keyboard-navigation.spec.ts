@@ -82,26 +82,82 @@ test.describe("Keyboard Navigation", () => {
     expect(isVisible).toBe(true);
   });
 
-  test("should navigate to parent element with ArrowLeft", async ({ reactGrab }) => {
+  test("should navigate to a sibling with ArrowLeft", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverUntilSelected("li:first-child");
+    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:nth-child(2)");
 
     await reactGrab.page.keyboard.press("ArrowLeft");
     await reactGrab.waitForSelectionBox();
 
-    const isVisible = await reactGrab.isOverlayVisible();
-    expect(isVisible).toBe(true);
+    // The previous sibling is another list item, not the parent or a child.
+    const labelInfo = await reactGrab.getSelectionLabelInfo();
+    expect(labelInfo.isVisible).toBe(true);
+    expect(labelInfo.tagName).toBe("li");
   });
 
-  test("should navigate to child element with ArrowRight", async ({ reactGrab }) => {
+  test("should navigate to a sibling with ArrowRight", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverUntilSelected("ul");
+    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:first-child");
 
     await reactGrab.page.keyboard.press("ArrowRight");
     await reactGrab.waitForSelectionBox();
 
-    const isVisible = await reactGrab.isOverlayVisible();
-    expect(isVisible).toBe(true);
+    // The next sibling is another list item; ArrowRight no longer descends
+    // into the item's inner content (which would report a "span").
+    const labelInfo = await reactGrab.getSelectionLabelInfo();
+    expect(labelInfo.isVisible).toBe(true);
+    expect(labelInfo.tagName).toBe("li");
+  });
+
+  test("Tab should navigate to the next sibling like ArrowRight", async ({ reactGrab }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:first-child");
+
+    await reactGrab.page.keyboard.press("Tab");
+    await reactGrab.waitForSelectionBox();
+
+    const labelInfo = await reactGrab.getSelectionLabelInfo();
+    expect(labelInfo.isVisible).toBe(true);
+    expect(labelInfo.tagName).toBe("li");
+  });
+
+  test("Shift+Tab should navigate to the previous sibling like ArrowLeft", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:nth-child(2)");
+
+    await reactGrab.page.keyboard.press("Shift+Tab");
+    await reactGrab.waitForSelectionBox();
+
+    const labelInfo = await reactGrab.getSelectionLabelInfo();
+    expect(labelInfo.isVisible).toBe(true);
+    expect(labelInfo.tagName).toBe("li");
+  });
+
+  test("holding Shift reveals the hierarchy dropdown on hover", async ({ reactGrab }) => {
+    const isHierarchyMenuVisible = () =>
+      reactGrab.page.evaluate(
+        (attrName) =>
+          Boolean(
+            document
+              .querySelector(`[${attrName}]`)
+              ?.shadowRoot?.querySelector("[data-react-grab-hierarchy-menu]"),
+          ),
+        ATTRIBUTE_NAME,
+      );
+
+    await reactGrab.activate();
+    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:first-child");
+
+    // Not shown on plain hover.
+    expect(await isHierarchyMenuVisible()).toBe(false);
+
+    await reactGrab.page.keyboard.down("Shift");
+    await expect.poll(isHierarchyMenuVisible, { timeout: 1000 }).toBe(true);
+
+    await reactGrab.page.keyboard.up("Shift");
+    await expect.poll(isHierarchyMenuVisible, { timeout: 1000 }).toBe(false);
   });
 
   test("should maintain activation during keyboard navigation", async ({ reactGrab }) => {
@@ -143,7 +199,7 @@ test.describe("Keyboard Navigation", () => {
     await reactGrab.activate();
     await reactGrab.hoverUntilSelected("[data-testid='todo-list'] h1");
 
-    await reactGrab.page.keyboard.press("ArrowLeft");
+    await reactGrab.page.keyboard.press("ArrowUp");
     await reactGrab.waitForSelectionBox();
 
     await reactGrab.page.mouse.down();
@@ -239,13 +295,53 @@ test.describe("Keyboard Navigation", () => {
     await expect.poll(() => reactGrab.isPendingDismissVisible()).toBe(false);
   });
 
-  test("Enter should continue through the discard-selection prompt", async ({ reactGrab }) => {
+  test("Enter discards the keyboard selection instead of running the default action", async ({
+    reactGrab,
+  }) => {
     await reactGrab.registerCommentAction();
     await showKeyboardSelectionDiscardPrompt(reactGrab);
 
     await reactGrab.pressEnter();
 
-    await expect.poll(() => reactGrab.isPromptModeActive()).toBe(true);
+    // The prompt's "Yes" affordance is the return key, so Enter must discard
+    // and return to selection rather than fall through to the default action.
+    await expect.poll(() => reactGrab.isPendingDismissVisible()).toBe(false);
+    expect(await reactGrab.isPromptModeActive()).toBe(false);
+  });
+
+  test("Enter at the discard prompt discards and resumes selection", async ({ reactGrab }) => {
+    await reactGrab.page.evaluate(() => navigator.clipboard.writeText(""));
+    await reactGrab.registerCommentAction();
+    await showKeyboardSelectionDiscardPrompt(reactGrab);
+
+    await reactGrab.pressEnter();
+
+    await expect.poll(() => reactGrab.isPendingDismissVisible()).toBe(false);
+    // Neither the Enter-bound Comment action nor a copy runs — it just discards.
+    expect(await reactGrab.isPromptModeActive()).toBe(false);
+    expect(await reactGrab.getClipboardContent()).toBe("");
+
+    // Back in selection mode: hovering another element updates the label.
+    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] h1");
+    const labelInfo = await reactGrab.getSelectionLabelInfo();
+    expect(labelInfo.isVisible).toBe(true);
+    expect(labelInfo.tagName).toBe("h1");
+  });
+
+  test("Enter with the Copy button focused copies through the discard prompt", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.page.evaluate(() => navigator.clipboard.writeText(""));
+    await reactGrab.registerCommentAction();
+    await showKeyboardSelectionDiscardPrompt(reactGrab);
+    await reactGrab.page.locator("[data-react-grab-discard-copy]").focus();
+
+    await reactGrab.pressEnter();
+
+    // Focus routing still wins: Enter on Copy copies rather than discarding or
+    // running the Enter-bound default action.
+    await expect.poll(() => reactGrab.getClipboardContent(), { timeout: 5000 }).not.toBe("");
+    expect(await reactGrab.isPromptModeActive()).toBe(false);
     expect(await reactGrab.isPendingDismissVisible()).toBe(false);
   });
 

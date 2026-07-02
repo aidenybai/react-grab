@@ -290,15 +290,35 @@ export interface ContextMenuAction {
   onAction: (context: ContextMenuActionContext) => void | Promise<void>;
 }
 
-export interface ArrowNavigationItem {
-  tagName: string;
-  componentName?: string;
+// A predicate over a DOM element (e.g. "is this element grabbable?").
+export interface ElementPredicate {
+  (element: Element): boolean;
 }
 
-export interface ArrowNavigationState {
-  items: ArrowNavigationItem[];
+// A single rendered row of the hierarchy dropdown (renderer-facing: no element
+// reference, only what is drawn).
+export interface HierarchyItem {
+  tagName: string;
+  componentName?: string;
+  // Indentation level within the hierarchy tree (0 = outermost ancestor).
+  depth: number;
+  // Whether this row is the last among its displayed siblings, used to pick
+  // the terminal-style connector glyph (└─ vs ├─).
+  isLast: boolean;
+}
+
+// Internal hierarchy node that pairs a real DOM element with its position in
+// the rendered ancestor/sibling/child tree. The element reference is kept in
+// core (never sent to the renderer).
+export interface HierarchyEntry {
+  element: Element;
+  depth: number;
+  isLast: boolean;
+}
+
+export interface HierarchyState {
+  items: HierarchyItem[];
   activeIndex: number;
-  isVisible: boolean;
 }
 
 export interface PerformWithFeedbackOptions {
@@ -500,8 +520,8 @@ export interface ReactGrabRendererProps {
   selectionComponentName?: string;
   selectionLabelVisible?: boolean;
   selectionLabelStatus?: SelectionLabelStatus;
-  selectionArrowNavigationState?: ArrowNavigationState;
-  onArrowNavigationSelect?: (index: number) => void;
+  hierarchyState?: HierarchyState;
+  hierarchyMenuPosition?: DropdownAnchor | null;
   labelInstances?: SelectionLabelInstance[];
   dragVisible?: boolean;
   dragBounds?: OverlayBounds;
@@ -644,8 +664,6 @@ export interface SelectionLabelProps {
   statusText?: string;
   filePath?: string;
   shouldToggleExpandOnClick?: boolean;
-  arrowNavigationState?: ArrowNavigationState;
-  onArrowNavigationSelect?: (index: number) => void;
   onInputChange?: (value: string) => void;
   onSubmit?: () => void;
   onToggleExpand?: () => void;

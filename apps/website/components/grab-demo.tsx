@@ -151,19 +151,21 @@ export const GrabDemo = () => {
     }
     // Search to a numeric property (it becomes the active row), then "slider-drag"
     // its value with the arrow keys — right steps it up, left steps it back.
+    // Alt opts out of design-token snapping: a bare arrow would walk the token
+    // ladder (39 → 22 → 15) and visibly collapse the headline mid-demo.
     demo.setInputValue(input, "font size");
     await demo.wait(SEARCH_SETTLE_MS);
     if (!isActive(loopId)) return;
     for (let step = 0; step < TWEAK_UP_STEPS; step += 1) {
       if (!isActive(loopId)) break;
-      demo.pressKey("ArrowRight", input);
+      demo.pressKey("ArrowRight", input, { altKey: true });
       await demo.wait(STEP_MS);
     }
     await demo.wait(STEP_REVERSE_PAUSE_MS);
     if (!isActive(loopId)) return;
     for (let step = 0; step < TWEAK_DOWN_STEPS; step += 1) {
       if (!isActive(loopId)) break;
-      demo.pressKey("ArrowLeft", input);
+      demo.pressKey("ArrowLeft", input, { altKey: true });
       await demo.wait(STEP_MS);
     }
     await demo.wait(HOLD_MS);

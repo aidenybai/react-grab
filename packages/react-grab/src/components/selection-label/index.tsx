@@ -38,7 +38,6 @@ import { Surface } from "../ui/surface.js";
 import { DiscardPrompt } from "./discard-prompt.js";
 import { ErrorView } from "./error-view.js";
 import { CompletionView } from "./completion-view.js";
-import { ArrowNavigationMenu } from "./arrow-navigation-menu.js";
 
 interface LabelPosition {
   left: number;
@@ -101,7 +100,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     if (props.status === "error" && (props.onAcknowledgeError || props.onRetry)) {
       return true;
     }
-    if (props.arrowNavigationState?.isVisible) return true;
     return false;
   };
 
@@ -358,11 +356,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       elementsCount: props.elementsCount,
     });
 
-  const isArrowNavigationVisible = () => Boolean(props.arrowNavigationState?.isVisible);
-
   const isSinglePanelLine = createMemo(() => {
     if (props.error || props.discardPrompt) return false;
-    if (canInteract() && (props.isPromptMode || isArrowNavigationVisible())) return false;
+    if (canInteract() && props.isPromptMode) return false;
     return true;
   });
 
@@ -452,19 +448,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           </Show>
 
           <Show when={canInteract() && !props.isPromptMode && !props.discardPrompt}>
-            <div
-              class="contain-layout shrink-0 flex flex-col items-start w-fit h-fit"
-              classList={{
-                "min-w-[100px]": isArrowNavigationVisible(),
-              }}
-            >
-              <div
-                class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit px-2"
-                classList={{
-                  "py-1.5": !isArrowNavigationVisible(),
-                  "pt-1.5 pb-1": isArrowNavigationVisible(),
-                }}
-              >
+            <div class="contain-layout shrink-0 flex flex-col items-start w-fit h-fit">
+              <div class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit px-2 py-1.5">
                 <TagBadge
                   tagName={tagDisplayResult().tagName}
                   componentName={tagDisplayResult().componentName}
@@ -474,13 +459,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   shrink
                 />
               </div>
-              <Show when={props.arrowNavigationState?.isVisible}>
-                <ArrowNavigationMenu
-                  items={props.arrowNavigationState!.items}
-                  activeIndex={props.arrowNavigationState!.activeIndex}
-                  onSelect={(index) => props.onArrowNavigationSelect?.(index)}
-                />
-              </Show>
             </div>
           </Show>
 
