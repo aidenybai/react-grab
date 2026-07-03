@@ -18,6 +18,9 @@ import { idleFrame, recordScenario } from "./perf-recorder.js";
 // web-vitals "needs improvement" threshold is 200ms; we cap synthetic
 // headless runs at 100ms so a real regression stands out from noise.
 const INP_SOFT_LIMIT_MS = 100;
+// Massive-grid scenarios render ~35k React cells and intentionally run at
+// single-digit fps, so they blow past the default 60s budget on CI runners.
+const MASSIVE_GRID_TEST_TIMEOUT_MS = 300_000;
 
 // Perf scenarios are timing-sensitive — retries don't make a flaky
 // measurement less flaky, they just waste minutes of CI. If a scenario
@@ -907,6 +910,7 @@ test.describe("@perf benchmarks", () => {
   });
 
   test("drag-sweep-massive-grid @perf", async ({ reactGrab, page }, testInfo) => {
+    test.setTimeout(MASSIVE_GRID_TEST_TIMEOUT_MS);
     // ~35k React cells (>100k DOM nodes counting the inner spans). Full
     // viewport drag sweeps stress getElementsInDrag's elementsFromPoint
     // sampling, coverage filtering, and removeNestedElements at the scale
@@ -942,6 +946,7 @@ test.describe("@perf benchmarks", () => {
   });
 
   test("drag-commit-massive-grid @perf", async ({ reactGrab, page }, testInfo) => {
+    test.setTimeout(MASSIVE_GRID_TEST_TIMEOUT_MS);
     // Same massive grid, but the drag commits: exercises the full copy
     // pipeline (freeze, payload build with innerText reads, clipboard)
     // against a huge accumulated selection.
@@ -972,6 +977,7 @@ test.describe("@perf benchmarks", () => {
   });
 
   test("drag-freeze-animation-storm @perf", async ({ reactGrab, page, perfDom }, testInfo) => {
+    test.setTimeout(MASSIVE_GRID_TEST_TIMEOUT_MS);
     // Drag selection over a grid while 1500 CSS animations run: commit
     // triggers freezeAnimations on the selected set, and every drag frame
     // competes with the compositor for style/layout work.
