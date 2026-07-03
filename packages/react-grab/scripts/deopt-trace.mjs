@@ -123,7 +123,11 @@ const launchChromeWithDeoptTrace = async () => {
     "about:blank",
   ];
   log(`launching ${chromeBinary} with js-flags: ${jsFlags}`);
+  await mkdir(userDataDir, { recursive: true });
+  // cwd matters: --log-deopt makes V8 drop isolate-*-v8.log files into the
+  // Chrome process's cwd, so point it at the throwaway profile dir.
   const child = spawn(chromeBinary, args, {
+    cwd: userDataDir,
     stdio: ["ignore", "pipe", "pipe"],
     env: { ...process.env },
   });
