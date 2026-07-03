@@ -1,3 +1,7 @@
+import {
+  bakeBackdropFilterUnderlays,
+  collectBackdropFilterElements,
+} from "./capture/bake-backdrop-filters";
 import { cloneComposedTree } from "./capture/clone-tree";
 import { createStyleSandbox } from "./capture/default-styles";
 import {
@@ -29,11 +33,13 @@ import type {
   CaptureResult,
   ElementReadSnapshot,
   IframeContentSnapshot,
+  InternalCaptureContext,
   ResolvedCaptureOptions,
   StyleDeclarationMap,
   StyleRegistry,
   StyleSandbox,
 } from "./types";
+import { applyBakedBackdropBackground } from "./utils/apply-baked-backdrop-background";
 import { computeAutoBleed } from "./utils/compute-auto-bleed";
 import { findInheritedBackgroundColor } from "./utils/find-inherited-background-color";
 import { isHtmlElement } from "./utils/is-html-element";
@@ -63,6 +69,8 @@ const buildClassNameMap = (
   registry: StyleRegistry,
   rootElement: Element,
   outputGeometry: CaptureOutputGeometry,
+  suppressedBackdropElements: Set<Element> | null,
+  bakedBackdropPngByElement: Map<Element, string>,
 ): Map<Element, string> => {
   const classNameByElement = new Map<Element, string>();
   const emittedStylesByElement = new Map<Element, StyleDeclarationMap>();
@@ -98,6 +106,14 @@ const buildClassNameMap = (
     }
     if (element === rootElement) {
       applyRootStyleOverrides(diffedBase, outputGeometry);
+    }
+    if (suppressedBackdropElements?.has(element)) {
+      diffedBase["visibility"] = "hidden";
+      delete diffedBase["backdrop-filter"];
+    }
+    const bakedBackdropPngDataUrl = bakedBackdropPngByElement.get(element);
+    if (bakedBackdropPngDataUrl) {
+      applyBakedBackdropBackground(diffedBase, snapshot.styles, bakedBackdropPngDataUrl);
     }
     emittedStylesByElement.set(element, diffedBase);
   }
@@ -177,9 +193,10 @@ const captureSameOriginIframeContents = async (
   return iframeContentByElement;
 };
 
-export const captureNode = async (
+const captureNodeInternal = async (
   element: Element,
-  options: CaptureOptions = {},
+  resolvedOptions: ResolvedCaptureOptions,
+  internalContext: InternalCaptureContext,
 ): Promise<CaptureResult> => {
   const ownerDocument = element.ownerDocument;
   const defaultView = ownerDocument.defaultView;
@@ -187,16 +204,6 @@ export const captureNode = async (
   if (!element.isConnected) {
     throw new Error("captureNode requires an element attached to a document");
   }
-  const resolvedOptions: ResolvedCaptureOptions = {
-    scale: options.scale ?? DEFAULT_SCALE,
-    pixelRatio: options.pixelRatio ?? defaultView.devicePixelRatio,
-    backgroundColor: options.backgroundColor,
-    embedFonts: options.embedFonts ?? true,
-    bleed: options.bleed ?? DEFAULT_BLEED_PX,
-    filterNode: options.filterNode,
-    timeoutMs: options.timeoutMs ?? DEFAULT_RESOURCE_TIMEOUT_MS,
-    abortSignal: options.abortSignal,
-  };
   resolvedOptions.abortSignal?.throwIfAborted();
   activeCaptureDocuments.add(ownerDocument);
   try {
@@ -255,6 +262,30 @@ export const captureNode = async (
       resolvedOptions,
     );
     resolvedOptions.abortSignal?.throwIfAborted();
+    let bakedBackdropPngByElement = new Map<Element, string>();
+    if (!internalContext.skipBackdropFilterBaking) {
+      const backdropFilterElements = collectBackdropFilterElements(snapshotByElement, element);
+      if (backdropFilterElements.length > 0) {
+        const underlayResult = await captureNodeInternal(
+          element,
+          { ...resolvedOptions, scale: 1, bleed: 0 },
+          {
+            suppressedBackdropElements: new Set(backdropFilterElements),
+            skipBackdropFilterBaking: true,
+          },
+        );
+        bakedBackdropPngByElement = bakeBackdropFilterUnderlays({
+          underlayCanvas: await underlayResult.toCanvas(),
+          ownerDocument,
+          rootElement: element,
+          backdropFilterElements,
+          snapshotByElement,
+          pixelRatio: resolvedOptions.pixelRatio,
+          backgroundColor: resolvedOptions.backgroundColor,
+        });
+      }
+    }
+    resolvedOptions.abortSignal?.throwIfAborted();
     const sandbox = createStyleSandbox(ownerDocument);
     let svgMarkup: string;
     try {
@@ -265,6 +296,8 @@ export const captureNode = async (
         registry,
         element,
         outputGeometry,
+        internalContext.suppressedBackdropElements,
+        bakedBackdropPngByElement,
       );
       const clone = cloneComposedTree(element, {
         ownerDocument,
@@ -316,6 +349,28 @@ export const captureNode = async (
   } finally {
     activeCaptureDocuments.delete(ownerDocument);
   }
+};
+
+export const captureNode = async (
+  element: Element,
+  options: CaptureOptions = {},
+): Promise<CaptureResult> => {
+  const defaultView = element.ownerDocument.defaultView;
+  if (!defaultView) throw new Error("captureNode requires an element attached to a window");
+  const resolvedOptions: ResolvedCaptureOptions = {
+    scale: options.scale ?? DEFAULT_SCALE,
+    pixelRatio: options.pixelRatio ?? defaultView.devicePixelRatio,
+    backgroundColor: options.backgroundColor,
+    embedFonts: options.embedFonts ?? true,
+    bleed: options.bleed ?? DEFAULT_BLEED_PX,
+    filterNode: options.filterNode,
+    timeoutMs: options.timeoutMs ?? DEFAULT_RESOURCE_TIMEOUT_MS,
+    abortSignal: options.abortSignal,
+  };
+  return captureNodeInternal(element, resolvedOptions, {
+    suppressedBackdropElements: null,
+    skipBackdropFilterBaking: false,
+  });
 };
 
 export type { CaptureOptions, CaptureResult } from "./types";

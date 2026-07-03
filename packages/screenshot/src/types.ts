@@ -87,6 +87,21 @@ export interface DiffStylesInput {
   parentEmittedStyles: StyleDeclarationMap | null;
 }
 
+export interface InternalCaptureContext {
+  suppressedBackdropElements: Set<Element> | null;
+  skipBackdropFilterBaking: boolean;
+}
+
+export interface BakeBackdropFilterUnderlaysInput {
+  underlayCanvas: HTMLCanvasElement;
+  ownerDocument: Document;
+  rootElement: Element;
+  backdropFilterElements: Element[];
+  snapshotByElement: Map<Element, ElementReadSnapshot>;
+  pixelRatio: number;
+  backgroundColor: string | undefined;
+}
+
 export interface IframeContentSnapshot {
   pngDataUrl: string;
   widthPx: number;

@@ -118,6 +118,7 @@ export const fixtureManifest: FixtureSpec[] = [
     screenshotClipExpandPx: 80,
     captureBleed: "auto",
   },
+  { id: "lim-backdrop-filter", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "lim-marker-lists", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   {
     // Rotated/scaled edges and glyphs are rasterized twice (live compositor vs
