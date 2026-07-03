@@ -1,14 +1,53 @@
 import { GENERATED_CLASS_PREFIX } from "../constants";
 import type { StyleDeclarationMap, StyleRegistry, StyleRuleRecord } from "../types";
 
-const buildDeclarationBlock = (styles: StyleDeclarationMap): string =>
-  Object.keys(styles)
-    .sort()
-    .map((propertyName) => `${propertyName}:${styles[propertyName]};`)
-    .join("");
+const buildDeclarationBlock = (styles: StyleDeclarationMap): string => {
+  const propertyNames = Object.keys(styles).sort();
+  let declarationBlock = "";
+  for (let propertyIndex = 0; propertyIndex < propertyNames.length; propertyIndex++) {
+    const propertyName = propertyNames[propertyIndex];
+    declarationBlock += `${propertyName}:${styles[propertyName]};`;
+  }
+  return declarationBlock;
+};
+
+const buildInsertionOrderDeclarationBlock = (styles: StyleDeclarationMap): string => {
+  let declarationBlock = "";
+  for (const propertyName in styles) {
+    declarationBlock += `${propertyName}:${styles[propertyName]};`;
+  }
+  return declarationBlock;
+};
+
+const buildSortedSignature = (
+  baseStyles: StyleDeclarationMap,
+  beforeStyles: StyleDeclarationMap | null,
+  afterStyles: StyleDeclarationMap | null,
+  firstLetterStyles: StyleDeclarationMap | null,
+  markerStyles: StyleDeclarationMap | null,
+): string =>
+  `${buildDeclarationBlock(baseStyles)}` +
+  `|before:${beforeStyles ? buildDeclarationBlock(beforeStyles) : ""}` +
+  `|after:${afterStyles ? buildDeclarationBlock(afterStyles) : ""}` +
+  `|first-letter:${firstLetterStyles ? buildDeclarationBlock(firstLetterStyles) : ""}` +
+  `|marker:${markerStyles ? buildDeclarationBlock(markerStyles) : ""}`;
+
+const buildInsertionOrderSignature = (
+  baseStyles: StyleDeclarationMap,
+  beforeStyles: StyleDeclarationMap | null,
+  afterStyles: StyleDeclarationMap | null,
+  firstLetterStyles: StyleDeclarationMap | null,
+  markerStyles: StyleDeclarationMap | null,
+): string =>
+  `${buildInsertionOrderDeclarationBlock(baseStyles)}` +
+  `|before:${beforeStyles ? buildInsertionOrderDeclarationBlock(beforeStyles) : ""}` +
+  `|after:${afterStyles ? buildInsertionOrderDeclarationBlock(afterStyles) : ""}` +
+  `|first-letter:${firstLetterStyles ? buildInsertionOrderDeclarationBlock(firstLetterStyles) : ""}` +
+  `|marker:${markerStyles ? buildInsertionOrderDeclarationBlock(markerStyles) : ""}`;
 
 export const createStyleRegistry = (): StyleRegistry => {
   const classNameBySignature = new Map<string, string>();
+  const classNameByInsertionOrderSignature = new Map<string, string>();
   const rules: StyleRuleRecord[] = [];
 
   const register = (
@@ -18,16 +57,34 @@ export const createStyleRegistry = (): StyleRegistry => {
     firstLetterStyles: StyleDeclarationMap | null,
     markerStyles: StyleDeclarationMap | null,
   ): string => {
-    const signature =
-      `${buildDeclarationBlock(baseStyles)}` +
-      `|before:${beforeStyles ? buildDeclarationBlock(beforeStyles) : ""}` +
-      `|after:${afterStyles ? buildDeclarationBlock(afterStyles) : ""}` +
-      `|first-letter:${firstLetterStyles ? buildDeclarationBlock(firstLetterStyles) : ""}` +
-      `|marker:${markerStyles ? buildDeclarationBlock(markerStyles) : ""}`;
+    // Identical diffed maps built through the same code paths share insertion
+    // order, so an order-sensitive signature resolves most duplicates without
+    // paying the per-element key sort; the sorted signature stays the source
+    // of truth so order-divergent duplicates still collapse into one class.
+    const insertionOrderSignature = buildInsertionOrderSignature(
+      baseStyles,
+      beforeStyles,
+      afterStyles,
+      firstLetterStyles,
+      markerStyles,
+    );
+    const fastPathClassName = classNameByInsertionOrderSignature.get(insertionOrderSignature);
+    if (fastPathClassName) return fastPathClassName;
+    const signature = buildSortedSignature(
+      baseStyles,
+      beforeStyles,
+      afterStyles,
+      firstLetterStyles,
+      markerStyles,
+    );
     const existingClassName = classNameBySignature.get(signature);
-    if (existingClassName) return existingClassName;
+    if (existingClassName) {
+      classNameByInsertionOrderSignature.set(insertionOrderSignature, existingClassName);
+      return existingClassName;
+    }
     const className = `${GENERATED_CLASS_PREFIX}${rules.length + 1}`;
     classNameBySignature.set(signature, className);
+    classNameByInsertionOrderSignature.set(insertionOrderSignature, className);
     rules.push({
       className,
       baseStyles,
