@@ -1,6 +1,5 @@
 import { getOwnerStack, getSource, type StackFrame } from "bippy/source";
 import {
-  getFiberFromHostInstance,
   isInstrumentationActive,
   getDisplayName,
   isCompositeFiber,
@@ -15,6 +14,7 @@ import {
   type SourcePathClassification,
 } from "../utils/classify-source-path.js";
 import { createElementSelector } from "../utils/create-element-selector.js";
+import { getFiberFromElement } from "../utils/get-fiber-from-element.js";
 import { isSharedUiSourcePath } from "../utils/is-shared-ui-source-path.js";
 import { isNextProjectRuntime } from "../utils/is-next-project-runtime.js";
 import { enrichServerFrameLocations, symbolicateServerFrames } from "./next-server-frames.js";
@@ -41,7 +41,7 @@ const findNearestFiberElement = (element: Element): Element => {
   if (!isInstrumentationActive()) return element;
   let current: Element | null = element;
   while (current) {
-    if (getFiberFromHostInstance(current)) return current;
+    if (getFiberFromElement(current)) return current;
     current = current.parentElement;
   }
   return element;
@@ -56,7 +56,7 @@ const findNearestFiberElement = (element: Element): Element => {
 // ancestor keys (e.g. a route or transition `key` many components above).
 const getNearestListItemKey = (element: Element): string | null => {
   if (!isInstrumentationActive()) return null;
-  let fiber: Fiber | null = getFiberFromHostInstance(findNearestFiberElement(element));
+  let fiber: Fiber | null = getFiberFromElement(findNearestFiberElement(element));
   let componentBoundariesCrossed = 0;
   while (fiber) {
     if (fiber.key) return fiber.key;
@@ -88,7 +88,7 @@ const createSourceFetch =
 const fetchStackForElement = (element: Element): Promise<StackFrame[] | null> =>
   runQueuedSourceFetch(async (signal) => {
     try {
-      const fiber = getFiberFromHostInstance(element);
+      const fiber = getFiberFromElement(element);
       if (!fiber) return null;
 
       const frames = await getOwnerStack(fiber, true, createSourceFetch(signal));
@@ -156,7 +156,7 @@ const getSourceComponentName = (fiber: Fiber | undefined): string | null => {
 // both compete for the same connection pool and neither has its own timeout.
 const getFiberSource = (element: Element): Promise<ResolvedSource | null> =>
   runQueuedSourceFetch(async (signal) => {
-    const fiber = getFiberFromHostInstance(findNearestFiberElement(element));
+    const fiber = getFiberFromElement(findNearestFiberElement(element));
     if (!fiber) return null;
 
     try {
@@ -237,7 +237,7 @@ interface TraceContextResult {
 
 const getComponentNamesFromFiber = (element: Element, maxCount: number): string[] => {
   if (!isInstrumentationActive()) return [];
-  const fiber = getFiberFromHostInstance(element);
+  const fiber = getFiberFromElement(element);
   if (!fiber) return [];
 
   const componentNames: string[] = [];

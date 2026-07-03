@@ -114,6 +114,7 @@ test.describe("Combinatorial Interactions", () => {
     test("Escape mid-drag should cancel the drag and deactivate the overlay", async ({
       reactGrab,
     }) => {
+      await reactGrab.page.evaluate(() => navigator.clipboard.writeText(""));
       await reactGrab.activate();
 
       const firstItem = reactGrab.page.locator("li").first();

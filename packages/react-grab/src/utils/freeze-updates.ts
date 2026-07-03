@@ -8,12 +8,12 @@
 import {
   _fiberRoots,
   getRDTHook,
-  getFiberFromHostInstance,
   isCompositeFiber,
   type Fiber,
   type ReactRenderer,
   type FiberRoot,
 } from "bippy";
+import { getFiberFromElement } from "./get-fiber-from-element.js";
 import { logRecoverableError } from "./log-recoverable-error.js";
 import { IS_DEMO } from "./runtime-mode.js";
 
@@ -107,7 +107,7 @@ const collectFiberRoots = (): Set<FiberRootLike> => {
   const collectedRoots = new Set<FiberRootLike>();
 
   const traverseDOM = (element: Element): void => {
-    const fiber = getFiberFromHostInstance(element);
+    const fiber = getFiberFromElement(element);
     if (fiber) {
       const fiberRoot = getFiberRoot(fiber);
       if (fiberRoot) collectedRoots.add(fiberRoot);
