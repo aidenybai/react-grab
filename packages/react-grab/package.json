@@ -93,7 +93,7 @@
     "test:coverage": "COVERAGE=1 playwright test",
     "test:perf": "playwright test --grep @perf --reporter=list",
     "test:perf:trace": "PERF_TRACE=1 playwright test --grep @perf --reporter=list",
-    "test:perf:full": "PERF_TRACE=1 playwright test --grep @perf --reporter=list && node scripts/deopt-trace.mjs && node scripts/analyze-perf-trace.mjs",
+    "test:perf:full": "PERF_TRACE=1 playwright test --grep @perf --reporter=list && node scripts/deopt-trace.mjs && node scripts/analyze-perf-trace.mjs perf/${PERF_LABEL:-current}",
     "perf:analyze": "node scripts/analyze-perf-trace.mjs",
     "test:perf:baseline": "PERF_LABEL=baseline playwright test --grep @perf --reporter=list",
     "test:expect": "bun e2e/react-grab.expect.ts",

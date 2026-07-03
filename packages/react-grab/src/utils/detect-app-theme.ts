@@ -191,6 +191,16 @@ const getThemeInputsFingerprint = (): string => {
     }
     const inlineStyle = element.style;
     fingerprintParts.push(inlineStyle.colorScheme, inlineStyle.backgroundColor, inlineStyle.color);
+    // Inline custom properties (e.g. `--background`) can drive the computed
+    // background/color through `var()` references in stylesheets, so they are
+    // part of the theme inputs even though the direct color properties are not
+    // touched.
+    for (let propertyIndex = 0; propertyIndex < inlineStyle.length; propertyIndex++) {
+      const propertyName = inlineStyle[propertyIndex];
+      if (propertyName.startsWith("--")) {
+        fingerprintParts.push(`${propertyName}:${inlineStyle.getPropertyValue(propertyName)}`);
+      }
+    }
   }
   return fingerprintParts.join("|");
 };

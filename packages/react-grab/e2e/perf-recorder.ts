@@ -396,6 +396,7 @@ const captureScenarioCpuProfile = async (
     );
     if (stopOutcome === "deadline") {
       console.warn(`[perf] ${scenarioName}: Profiler.stop timed out; skipping .cpuprofile`);
+      await detachQuietly(profilerSession);
     }
   } catch (captureError) {
     console.warn(`[perf] ${scenarioName}: cpu profile capture failed:`, captureError);
