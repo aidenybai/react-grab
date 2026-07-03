@@ -11,7 +11,7 @@ import net from "node:net";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = resolve(__dirname, "..");
 const REPO_ROOT = resolve(__dirname, "../../..");
-const OUTPUT_DIR = resolve(PACKAGE_ROOT, "perf");
+const OUTPUT_DIR = resolve(PACKAGE_ROOT, "perf", process.env.PERF_LABEL ?? "current");
 
 const E2E_APP_URL = process.env.DEOPT_TRACE_E2E_URL || "http://localhost:5175";
 const PERF_GRID_PATH = process.env.DEOPT_TRACE_PAGE_PATH || "/?perf=grid&rows=50&cols=10";
@@ -588,14 +588,17 @@ const runFullAppScenarios = async (page) => {
 const parseDeopts = (stderrText) => {
   const lines = stderrText.split(/\r?\n/);
   const deoptLines = lines.filter(
-    (line) => line.startsWith("[deoptimizing") || line.startsWith("[bailout"),
+    (line) =>
+      (line.startsWith("[deoptimizing") || line.startsWith("[bailout")) &&
+      !line.startsWith("[bailout end") &&
+      !line.startsWith("[deoptimizing end"),
   );
   const grouped = new Map();
   for (const line of deoptLines) {
-    const reasonMatch = line.match(/reason: ([^,\]]+)/);
+    const reasonMatch = line.match(/reason: (.*?)\): begin/) || line.match(/reason: ([^,\])]+)/);
     const fnMatch =
       line.match(/<JSFunction ([^ ]+)\s+\(sfi = ([^)]+)\)>/) || line.match(/<JSFunction ([^>]+)>/);
-    const kindMatch = line.match(/kind:\s*([A-Za-z]+)/);
+    const kindMatch = line.match(/kind:\s*([A-Za-z-]+)/);
     const positionMatch =
       line.match(/at\s+<([^>]+)>:(\d+)/) || line.match(/<([^:>]+):(\d+):(\d+)>/);
     const eventType = line.startsWith("[deoptimizing") ? "deopt" : "bailout";
@@ -676,17 +679,17 @@ const main = async () => {
 
   const stderrText = chromeHandle.getStderr();
   await mkdir(OUTPUT_DIR, { recursive: true });
-  const stderrPath = resolve(OUTPUT_DIR, "deopt-trace.stderr.log");
+  const stderrPath = resolve(OUTPUT_DIR, "deopt.stderr.log");
   await writeFile(stderrPath, stderrText);
   log(`wrote raw chrome stderr to ${stderrPath} (${stderrText.length} bytes)`);
 
   const { totalDeoptLines, deoptLines, summary } = parseDeopts(stderrText);
-  const summaryPath = resolve(OUTPUT_DIR, "deopt-trace.summary.json");
+  const summaryPath = resolve(OUTPUT_DIR, "deopt.summary.json");
   await writeFile(
     summaryPath,
     JSON.stringify({ totalDeoptLines, uniqueSites: summary.length, summary }, null, 2),
   );
-  const rawDeoptPath = resolve(OUTPUT_DIR, "deopt-trace.lines.log");
+  const rawDeoptPath = resolve(OUTPUT_DIR, "deopt.lines.log");
   await writeFile(rawDeoptPath, deoptLines.join("\n"));
   log(
     `wrote ${totalDeoptLines} deopt lines (${summary.length} unique) to ${summaryPath} and ${rawDeoptPath}`,

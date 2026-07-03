@@ -21,7 +21,9 @@ const loadReportsFromDir = async (dirPath) => {
     if (!entry.endsWith(".json")) continue;
     if (entry.endsWith(".trace.json")) continue;
     const raw = await readFile(resolve(dirPath, entry), "utf8");
-    reportsByScenario.set(entry.replace(/\.json$/, ""), JSON.parse(raw));
+    const report = JSON.parse(raw);
+    if (!report?.aggregate) continue;
+    reportsByScenario.set(entry.replace(/\.json$/, ""), report);
   }
   return reportsByScenario;
 };
@@ -44,6 +46,13 @@ const formatDeltaCell = (baselineValue, currentValue) => {
   if (percentChange > REGRESSION_PERCENT_THRESHOLD) return `**${cellBody}** ▲`;
   if (percentChange < IMPROVEMENT_PERCENT_THRESHOLD) return `*${cellBody}* ▼`;
   return cellBody;
+};
+
+const formatMemoryCell = (baselineReport, currentReport, deltaFieldName) => {
+  const baselineValue = baselineReport.memory?.delta?.[deltaFieldName];
+  const currentValue = currentReport.memory?.delta?.[deltaFieldName];
+  if (typeof baselineValue !== "number" || typeof currentValue !== "number") return "-";
+  return formatDeltaCell(baselineValue, currentValue);
 };
 
 const baselineReports = await loadReportsFromDir(baselineDir);
@@ -71,10 +80,10 @@ lines.push(
 );
 lines.push("");
 lines.push(
-  "| Scenario | INP (ms) | LongTasks sum (ms) | LoAF sum (ms) | Frames p95 (ms) | Frames max (ms) |",
+  "| Scenario | INP (ms) | LongTasks sum (ms) | LoAF sum (ms) | Frames p95 (ms) | Frames max (ms) | \u0394heap (KB) | \u0394nodes |",
 );
 lines.push(
-  "|----------|----------|--------------------|---------------|------------------|------------------|",
+  "|----------|----------|--------------------|---------------|------------------|------------------|------------|--------|",
 );
 
 const scenariosOnlyInCurrent = [];
@@ -95,7 +104,9 @@ for (const scenarioName of [...currentReports.keys()].sort()) {
       `| ${formatDeltaCell(baselineAggregate.longTasks.sum, currentAggregate.longTasks.sum)} ` +
       `| ${formatDeltaCell(baselineAggregate.longAnimationFrames.sum, currentAggregate.longAnimationFrames.sum)} ` +
       `| ${formatDeltaCell(baselineAggregate.frames.p95, currentAggregate.frames.p95)} ` +
-      `| ${formatDeltaCell(baselineAggregate.frames.max, currentAggregate.frames.max)} |`,
+      `| ${formatDeltaCell(baselineAggregate.frames.max, currentAggregate.frames.max)} ` +
+      `| ${formatMemoryCell(baselineReport, currentReport, "jsHeapUsedKb")} ` +
+      `| ${formatMemoryCell(baselineReport, currentReport, "domNodes")} |`,
   );
 }
 

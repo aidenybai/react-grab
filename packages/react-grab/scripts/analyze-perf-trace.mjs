@@ -1,10 +1,13 @@
 #!/usr/bin/env node
-// Analyzes CPU profiles captured by the @perf bench (PERF_TRACE=1) and prints
-// function-level hotspots attributed to react-grab code. Reads the V8
-// .cpuprofile files written by perf-recorder.ts (also understands the older
-// *.trace.json format with embedded Profile/ProfileChunk events), computes
-// self time per call frame, and groups by function so the top of the report
-// is the next thing worth optimizing.
+// One-stop report over everything a labeled perf run produced:
+//   - scenario metric reports (*.json from perf-recorder.ts): INP, LoAF,
+//     FPS, and memory deltas per scenario
+//   - V8 CPU profiles (*.cpuprofile, PERF_TRACE=1): function-level self-time
+//     hotspots attributed to react-grab code (also understands the older
+//     *.trace.json format with embedded Profile/ProfileChunk events)
+//   - V8 deopt summary (deopt.summary.json from scripts/deopt-trace.mjs):
+//     top deopt/bailout sites
+// The top of each section is the next thing worth optimizing.
 //
 // Usage:
 //   node scripts/analyze-perf-trace.mjs [perf/<label>] [--top=30] [--all] [--md=<output.md>]
@@ -127,6 +130,59 @@ const analyzeProfileFile = async (profileFilePath) => {
 
 const formatMs = (microseconds) => (microseconds / 1000).toFixed(2);
 
+const renderScenarioMetricsSection = async (metricFileNames) => {
+  const lines = [
+    `\n## Scenario metrics`,
+    "",
+    "| scenario | inp ms | long tasks | loaf max ms | fps mean | fps 5% low | dropped % | \u0394heap KB | \u0394nodes | \u0394listeners |",
+    "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+  ];
+  let renderedRowCount = 0;
+  for (const metricFileName of metricFileNames.sort()) {
+    let report;
+    try {
+      report = JSON.parse(await readFile(resolve(profileDir, metricFileName), "utf8"));
+    } catch {
+      continue;
+    }
+    const aggregate = report?.aggregate;
+    if (!aggregate) continue;
+    const fps = aggregate.fps ?? {};
+    const memoryDelta = report.memory?.delta ?? {};
+    const formatCell = (value) => (value === undefined ? "-" : value);
+    lines.push(
+      `| ${report.scenario ?? metricFileName} | ${aggregate.inp} | ${aggregate.longTasks?.count ?? "-"} | ` +
+        `${aggregate.longAnimationFrames?.max ?? "-"} | ${formatCell(fps.mean)} | ${formatCell(fps.p5Low)} | ` +
+        `${formatCell(fps.droppedFramePercent)} | ${formatCell(memoryDelta.jsHeapUsedKb)} | ` +
+        `${formatCell(memoryDelta.domNodes)} | ${formatCell(memoryDelta.jsEventListeners)} |`,
+    );
+    renderedRowCount += 1;
+  }
+  return renderedRowCount > 0 ? lines.join("\n") : null;
+};
+
+const renderDeoptSection = async () => {
+  let deoptSummary;
+  try {
+    deoptSummary = JSON.parse(await readFile(resolve(profileDir, "deopt.summary.json"), "utf8"));
+  } catch {
+    return null;
+  }
+  const lines = [
+    `\n## V8 deopts (from scripts/deopt-trace.mjs)`,
+    `total deopt lines: ${deoptSummary.totalDeoptLines} | unique sites: ${deoptSummary.uniqueSites}`,
+    "",
+    "| count | type | kind | reason | function | position |",
+    "| ---: | --- | --- | --- | --- | --- |",
+  ];
+  for (const entry of (deoptSummary.summary ?? []).slice(0, topCount)) {
+    lines.push(
+      `| ${entry.count} | ${entry.eventType} | ${entry.kind} | ${entry.reason} | \`${entry.fn}\` | \`${entry.position}\` |`,
+    );
+  }
+  return lines.join("\n");
+};
+
 const renderScenarioReport = (scenarioName, analysis) => {
   const lines = [];
   lines.push(`\n## ${scenarioName}`);
@@ -149,21 +205,28 @@ const renderScenarioReport = (scenarioName, analysis) => {
 };
 
 const main = async () => {
-  let profileFileNames;
+  let directoryEntries;
   try {
-    profileFileNames = (await readdir(profileDir)).filter(
-      (entry) => entry.endsWith(".cpuprofile") || entry.endsWith(".trace.json"),
-    );
+    directoryEntries = await readdir(profileDir);
   } catch {
-    console.error(`No profile dir at ${profileDir}. Run: PERF_TRACE=1 pnpm test:perf`);
+    console.error(`No perf run dir at ${profileDir}. Run: pnpm test:perf:trace`);
     process.exit(1);
   }
-  if (profileFileNames.length === 0) {
-    console.error(`No *.cpuprofile files in ${profileDir}. Run: PERF_TRACE=1 pnpm test:perf`);
+  const profileFileNames = directoryEntries.filter(
+    (entry) => entry.endsWith(".cpuprofile") || entry.endsWith(".trace.json"),
+  );
+  const metricFileNames = directoryEntries.filter(
+    (entry) =>
+      entry.endsWith(".json") && !entry.endsWith(".trace.json") && !entry.startsWith("deopt."),
+  );
+  if (profileFileNames.length === 0 && metricFileNames.length === 0) {
+    console.error(`No perf outputs in ${profileDir}. Run: pnpm test:perf:trace`);
     process.exit(1);
   }
 
-  const reportSections = [`# Perf CPU profile hotspot analysis`, `profile dir: \`${profileDir}\``];
+  const reportSections = [`# Perf run analysis`, `run dir: \`${profileDir}\``];
+  const scenarioMetricsSection = await renderScenarioMetricsSection(metricFileNames);
+  if (scenarioMetricsSection) reportSections.push(scenarioMetricsSection);
   const combinedByFunctionKey = new Map();
 
   for (const profileFileName of profileFileNames.sort()) {
@@ -197,7 +260,9 @@ const main = async () => {
       `| ${formatMs(hotspot.selfMicroseconds)} | ${hotspot.scenarioCount} | \`${hotspot.functionName}\` | \`${hotspot.location}\` |`,
     );
   }
-  reportSections.push(combinedLines.join("\n"));
+  if (combinedHotspots.length > 0) reportSections.push(combinedLines.join("\n"));
+  const deoptSection = await renderDeoptSection();
+  if (deoptSection) reportSections.push(deoptSection);
 
   const fullReport = reportSections.join("\n");
   console.log(fullReport);

@@ -29,12 +29,34 @@ export interface PerfStatsSummary {
   max: number;
 }
 
+export interface PerfFpsSummary {
+  mean: number;
+  p5Low: number;
+  droppedFrames: number;
+  droppedFramePercent: number;
+}
+
 export interface PerfScenarioAggregate {
   inp: number;
   interactions: number;
   longTasks: { count: number; sum: number; max: number };
   longAnimationFrames: { count: number; sum: number; max: number; maxBlocking: number };
   frames: PerfStatsSummary;
+  fps: PerfFpsSummary;
+}
+
+export interface PerfMemorySnapshot {
+  jsHeapUsedKb: number;
+  jsHeapTotalKb: number;
+  domNodes: number;
+  jsEventListeners: number;
+  documents: number;
+}
+
+export interface PerfMemoryMetrics {
+  before: PerfMemorySnapshot;
+  after: PerfMemorySnapshot;
+  delta: PerfMemorySnapshot;
 }
 
 // Installed lazily on the first `startRecording` call (via page.evaluate)
@@ -166,6 +188,26 @@ const summarize = (values: number[]): PerfStatsSummary => {
 };
 
 const roundTo3 = (value: number): number => Number(value.toFixed(3));
+
+// A rAF delta beyond this means at least one whole 60Hz frame was skipped.
+const DROPPED_FRAME_DELTA_MS = 25;
+
+const summarizeFps = (frameDeltas: number[]): PerfFpsSummary => {
+  if (frameDeltas.length === 0) {
+    return { mean: 0, p5Low: 0, droppedFrames: 0, droppedFramePercent: 0 };
+  }
+  const sortedDeltas = [...frameDeltas].sort((a, b) => a - b);
+  const totalMs = sortedDeltas.reduce((accum, delta) => accum + delta, 0);
+  const p95Delta =
+    sortedDeltas[Math.min(sortedDeltas.length - 1, Math.floor(sortedDeltas.length * 0.95))];
+  const droppedFrames = sortedDeltas.filter((delta) => delta > DROPPED_FRAME_DELTA_MS).length;
+  return {
+    mean: roundTo3(totalMs === 0 ? 0 : (frameDeltas.length / totalMs) * 1000),
+    p5Low: roundTo3(p95Delta === 0 ? 0 : 1000 / p95Delta),
+    droppedFrames,
+    droppedFramePercent: roundTo3((droppedFrames / frameDeltas.length) * 100),
+  };
+};
 const sumRounded = (values: number[]): number =>
   roundTo3(values.reduce((accum, value) => accum + value, 0));
 const maxRounded = (values: number[]): number =>
@@ -190,6 +232,7 @@ export const aggregateRawSnapshot = (rawSnapshot: PerfRawSnapshot): PerfScenario
       maxBlocking: maxRounded(loafBlocking),
     },
     frames: summarize(rawSnapshot.frameDeltas),
+    fps: summarizeFps(rawSnapshot.frameDeltas),
   };
 };
 
@@ -278,6 +321,46 @@ const stopCdpTrace = async (
   await writeFile(resolve(labelDirPath, `${scenarioName}.cpuprofile`), profileJson);
 };
 
+// --- Memory tracking (always on) ----------------------------------------
+//
+// Reads renderer memory counters via the CDP `Performance` domain around the
+// metric samples, with a forced GC (`HeapProfiler.collectGarbage`) before
+// each reading so the before/after delta approximates *retained* growth
+// (leaked nodes, listeners, detached documents) rather than transient garbage.
+
+const startMemoryProbe = async (page: Page): Promise<CDPSession> => {
+  const cdpSession = await page.context().newCDPSession(page);
+  await cdpSession.send("Performance.enable");
+  await cdpSession.send("HeapProfiler.enable");
+  return cdpSession;
+};
+
+const readMemorySnapshot = async (cdpSession: CDPSession): Promise<PerfMemorySnapshot> => {
+  await cdpSession.send("HeapProfiler.collectGarbage");
+  const { metrics } = await cdpSession.send("Performance.getMetrics");
+  const metricValuesByName = new Map<string, number>();
+  for (const metric of metrics) metricValuesByName.set(metric.name, metric.value);
+  const metricValue = (metricName: string): number => metricValuesByName.get(metricName) ?? 0;
+  return {
+    jsHeapUsedKb: Math.round(metricValue("JSHeapUsedSize") / 1024),
+    jsHeapTotalKb: Math.round(metricValue("JSHeapTotalSize") / 1024),
+    domNodes: metricValue("Nodes"),
+    jsEventListeners: metricValue("JSEventListeners"),
+    documents: metricValue("Documents"),
+  };
+};
+
+const diffMemorySnapshots = (
+  before: PerfMemorySnapshot,
+  after: PerfMemorySnapshot,
+): PerfMemorySnapshot => ({
+  jsHeapUsedKb: after.jsHeapUsedKb - before.jsHeapUsedKb,
+  jsHeapTotalKb: after.jsHeapTotalKb - before.jsHeapTotalKb,
+  domNodes: after.domNodes - before.domNodes,
+  jsEventListeners: after.jsEventListeners - before.jsEventListeners,
+  documents: after.documents - before.documents,
+});
+
 const raceDeadline = <ResultType>(
   work: Promise<ResultType>,
   deadlineMs: number,
@@ -335,6 +418,7 @@ export const attachPerfReport = async (
   perSample: PerfScenarioAggregate[],
   baseline: PerfScenarioAggregate | null = null,
   extra: Record<string, number> | undefined = undefined,
+  memory: PerfMemoryMetrics | undefined = undefined,
 ): Promise<void> => {
   const runLabel = process.env.PERF_LABEL ?? "current";
   const reportJson = JSON.stringify(
@@ -343,6 +427,7 @@ export const attachPerfReport = async (
       label: runLabel,
       samples: perSample.length,
       aggregate,
+      memory,
       extra,
       // Skip perSample when there's only one — it would just duplicate aggregate.
       perSample: perSample.length > 1 ? perSample : undefined,
@@ -412,6 +497,12 @@ const medianAcrossSamples = (samples: PerfScenarioAggregate[]): PerfScenarioAggr
       p95: medianOfNumbers(samples.map((sample) => sample.frames.p95)),
       max: medianOfNumbers(samples.map((sample) => sample.frames.max)),
     },
+    fps: {
+      mean: medianOfNumbers(samples.map((sample) => sample.fps.mean)),
+      p5Low: medianOfNumbers(samples.map((sample) => sample.fps.p5Low)),
+      droppedFrames: medianOfNumbers(samples.map((sample) => sample.fps.droppedFrames)),
+      droppedFramePercent: medianOfNumbers(samples.map((sample) => sample.fps.droppedFramePercent)),
+    },
   };
 };
 
@@ -466,6 +557,14 @@ export const recordScenario = async (
   // so diffs are doable straight from the file.
   const baseline =
     options.baseline === undefined ? await loadCommittedBaseline(scenarioName) : options.baseline;
+  let memoryProbe: CDPSession | null = null;
+  let memoryBefore: PerfMemorySnapshot | null = null;
+  try {
+    memoryProbe = await startMemoryProbe(page);
+    memoryBefore = await readMemorySnapshot(memoryProbe);
+  } catch (probeError) {
+    console.warn(`[perf] ${scenarioName}: memory probe unavailable:`, probeError);
+  }
   const perSampleAggregates: PerfScenarioAggregate[] = [];
   for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex++) {
     if (options.beforeEachSample) await options.beforeEachSample();
@@ -479,6 +578,26 @@ export const recordScenario = async (
       rawSnapshot = await stopRecording(page);
     }
     perSampleAggregates.push(aggregateRawSnapshot(rawSnapshot));
+  }
+  let memory: PerfMemoryMetrics | undefined;
+  if (memoryProbe && memoryBefore) {
+    try {
+      const memoryAfter = await readMemorySnapshot(memoryProbe);
+      memory = {
+        before: memoryBefore,
+        after: memoryAfter,
+        delta: diffMemorySnapshots(memoryBefore, memoryAfter),
+      };
+    } catch (probeError) {
+      console.warn(`[perf] ${scenarioName}: memory read failed:`, probeError);
+    }
+  }
+  if (memoryProbe) {
+    try {
+      await memoryProbe.detach();
+    } catch {
+      // ignore
+    }
   }
   // The CPU profile is captured on a dedicated extra pass so the sampler's
   // overhead (and its sporadic renderer stall — see the comment above
@@ -500,8 +619,9 @@ export const recordScenario = async (
     perSampleAggregates,
     baseline,
     extra,
+    memory,
   );
-  logAggregate(scenarioName, medianAggregate);
+  logAggregate(scenarioName, medianAggregate, memory);
   if (extra) {
     console.log(
       `  ${Object.entries(extra)
@@ -512,7 +632,16 @@ export const recordScenario = async (
   return medianAggregate;
 };
 
-const logAggregate = (scenarioName: string, aggregate: PerfScenarioAggregate): void => {
+const logAggregate = (
+  scenarioName: string,
+  aggregate: PerfScenarioAggregate,
+  memory: PerfMemoryMetrics | undefined,
+): void => {
+  const memoryLine = memory
+    ? `\n  memory Δheap=${memory.delta.jsHeapUsedKb}KB Δnodes=${memory.delta.domNodes} ` +
+      `Δlisteners=${memory.delta.jsEventListeners} Δdocuments=${memory.delta.documents} ` +
+      `(heap ${memory.after.jsHeapUsedKb}KB, nodes ${memory.after.domNodes})`
+    : "";
   // eslint-disable-next-line no-console
   console.log(
     `\n[perf] ${scenarioName}\n` +
@@ -520,6 +649,8 @@ const logAggregate = (scenarioName: string, aggregate: PerfScenarioAggregate): v
       `longTasks=${aggregate.longTasks.count}/${aggregate.longTasks.sum}ms (max ${aggregate.longTasks.max}ms)\n` +
       `  loaf=${aggregate.longAnimationFrames.count}/${aggregate.longAnimationFrames.sum}ms ` +
       `(max ${aggregate.longAnimationFrames.max}ms, blocking ${aggregate.longAnimationFrames.maxBlocking}ms)\n` +
-      `  frames p50=${aggregate.frames.median}ms p95=${aggregate.frames.p95}ms max=${aggregate.frames.max}ms (${aggregate.frames.count} frames)`,
+      `  frames p50=${aggregate.frames.median}ms p95=${aggregate.frames.p95}ms max=${aggregate.frames.max}ms (${aggregate.frames.count} frames)\n` +
+      `  fps mean=${aggregate.fps.mean} p5Low=${aggregate.fps.p5Low} dropped=${aggregate.fps.droppedFrames} (${aggregate.fps.droppedFramePercent}%)` +
+      memoryLine,
   );
 };

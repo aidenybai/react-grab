@@ -6,6 +6,8 @@ The 25 `@perf` scenarios in `e2e/perf-bench.spec.ts` run under the same Playwrig
 - **Long Tasks** — count / sum / max from `PerformanceObserver({ entryType: "longtask" })`.
 - **Long Animation Frames** — count / sum / max duration / max blocking from `entryType: "long-animation-frame"`.
 - **Frame deltas** — p50 / p95 / max via `requestAnimationFrame` deltas.
+- **FPS** — mean / 5% low / dropped-frame count and % derived from the frame deltas (a delta > 25ms counts as at least one skipped 60Hz frame).
+- **Memory** — JS heap used/total, DOM nodes, JS event listeners, and documents via CDP `Performance.getMetrics`, read before and after the metric samples with a forced GC (`HeapProfiler.collectGarbage`) so the delta approximates _retained_ growth (leaks) rather than transient garbage.
 
 Per-sample median across N samples (default 3, configurable per scenario; js-framework-benchmark methodology). Mean + stddev are also recorded so variance is visible.
 
@@ -19,7 +21,9 @@ pnpm test:perf                                # only @perf scenarios via --grep
 pnpm test:perf:baseline                       # writes perf/baseline/<scenario>.json
 PERF_LABEL=feature pnpm test:perf             # writes perf/feature/<scenario>.json
 pnpm test:perf:trace                          # also dumps perf/<label>/<scenario>.cpuprofile
-pnpm perf:analyze perf/<label>                # function-level self-time hotspot table from the .cpuprofile dumps
+pnpm perf:deopt                               # V8 deopt/bailout trace → perf/<label>/deopt.summary.json (own Chrome launch with --js-flags)
+pnpm test:perf:full                           # trace suite + deopt trace + combined analysis in one go
+pnpm perf:analyze perf/<label>                # combined report: scenario metrics (INP/LoAF/FPS/memory), cpuprofile hotspots, deopt sites
 # Or load a .cpuprofile in Chrome DevTools "Performance" panel for the full flame chart.
 # Pair with `pnpm build:profiling` (or `pnpm --filter react-grab build:profiling` from root) so symbols are unminified.
 #
@@ -52,7 +56,8 @@ Each `perf/<label>/<scenario>.json` looks like:
   "scenario": "hover-in-selection-mode",
   "label": "current",
   "samples": 3,
-  "aggregate": { "inp": 0, "longTasks": {...}, "frames": {...}, ... },
+  "aggregate": { "inp": 0, "longTasks": {...}, "frames": {...}, "fps": {...}, ... },
+  "memory": { "before": {...}, "after": {...}, "delta": {...} },
   "perSample": [ ... ],
   "baseline": { ... },
   "recordedAt": "..."
@@ -62,6 +67,11 @@ Each `perf/<label>/<scenario>.json` looks like:
 - `aggregate` — median across `samples` runs.
 - `perSample` — raw per-run aggregates so you can eyeball variance / spot outlier samples.
 - `baseline` — the previous local baseline (from `perf/baseline/<scenario>.json` if present, else `null`).
+- `memory` — GC-forced CDP memory counters before/after the samples plus their delta; a persistent positive `delta` across runs points at a leak (retained nodes/listeners).
+
+## Deopt trace
+
+`pnpm perf:deopt` (`scripts/deopt-trace.mjs`) launches its own Chrome with `--js-flags="--trace-deopt ..."` (V8 flags must be set at process launch, so this can't run inside the Playwright-managed browser), drives synthetic + full-app scenarios, and parses the deopt/bailout lines from Chrome's stderr into `perf/<label>/deopt.summary.json`. `perf:analyze` folds the top sites into its report. Pair with `pnpm build:profiling` so function names in deopt lines are unminified.
 
 ## Scenarios
 
