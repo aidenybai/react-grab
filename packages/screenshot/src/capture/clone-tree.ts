@@ -34,7 +34,9 @@ const isSerializableAttribute = (attribute: Attr): boolean => {
 };
 
 const sanitizeCloneAttributes = (clone: Element): void => {
-  for (const attribute of [...clone.attributes]) {
+  const attributes = clone.attributes;
+  for (let attributeIndex = attributes.length - 1; attributeIndex >= 0; attributeIndex--) {
+    const attribute = attributes[attributeIndex];
     if (REMOVED_ATTRIBUTE_NAMES.has(attribute.name) || !isSerializableAttribute(attribute)) {
       clone.removeAttributeNode(attribute);
       continue;

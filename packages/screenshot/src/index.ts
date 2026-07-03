@@ -66,6 +66,24 @@ const diffFirstLetterStyles = (snapshot: ElementReadSnapshot): StyleDeclarationM
   return diffed;
 };
 
+const diffPseudoStyles = (
+  sandbox: StyleSandbox,
+  element: Element,
+  pseudoStyles: StyleDeclarationMap | null,
+  pseudoSelector: string,
+): StyleDeclarationMap | null => {
+  if (!pseudoStyles) return null;
+  const diffedPseudo = diffStyles({
+    styles: pseudoStyles,
+    baseline: sandbox.getBaseline(element, pseudoSelector, pseudoStyles["font-size"]),
+    parentStyles: null,
+    parentEmittedStyles: null,
+  });
+  applySizeFreezingPolicy(diffedPseudo, pseudoStyles, null, false, null);
+  diffedPseudo["content"] = pseudoStyles["content"] ?? "none";
+  return diffedPseudo;
+};
+
 const buildClassNameMap = (
   snapshotByElement: Map<Element, ElementReadSnapshot>,
   sandbox: StyleSandbox,
@@ -124,27 +142,12 @@ const buildClassNameMap = (
   for (const [element, snapshot] of snapshotByElement) {
     const diffedBase = emittedStylesByElement.get(element);
     if (!diffedBase) continue;
-    const diffPseudoStyles = (
-      pseudoStyles: StyleDeclarationMap | null,
-      pseudoSelector: string,
-    ): StyleDeclarationMap | null => {
-      if (!pseudoStyles) return null;
-      const diffedPseudo = diffStyles({
-        styles: pseudoStyles,
-        baseline: sandbox.getBaseline(element, pseudoSelector, pseudoStyles["font-size"]),
-        parentStyles: null,
-        parentEmittedStyles: null,
-      });
-      applySizeFreezingPolicy(diffedPseudo, pseudoStyles, null, false, null);
-      diffedPseudo["content"] = pseudoStyles["content"] ?? "none";
-      return diffedPseudo;
-    };
     classNameByElement.set(
       element,
       registry.register(
         diffedBase,
-        diffPseudoStyles(snapshot.beforeStyles, "::before"),
-        diffPseudoStyles(snapshot.afterStyles, "::after"),
+        diffPseudoStyles(sandbox, element, snapshot.beforeStyles, "::before"),
+        diffPseudoStyles(sandbox, element, snapshot.afterStyles, "::after"),
         diffFirstLetterStyles(snapshot),
         diffMarkerStyles(snapshot.markerStyles, snapshot.styles),
       ),
@@ -336,29 +339,31 @@ const captureNodeInternal = async (
         iframeContentByElement,
       });
       if (!clone) throw new Error("captureNode could not clone the target element");
-      await raceWithAbortSignal(
-        inlineSvgUseReferences({
+      // svg <use> inlining appends defs whose resources must be picked up by
+      // resource inlining, so those two stay ordered; font embedding only
+      // reads document @font-face rules and can overlap both.
+      const inlineCloneResources = async (): Promise<void> => {
+        await inlineSvgUseReferences({
           clone,
           rules: registry.rules,
           sourceDocument: ownerDocument,
           timeoutMs: resolvedOptions.timeoutMs,
-        }),
+        });
+        await inlineExternalResources(clone, registry.rules, resolvedOptions.timeoutMs);
+      };
+      const [, fontEmbedCss] = await raceWithAbortSignal(
+        Promise.all([
+          inlineCloneResources(),
+          resolvedOptions.embedFonts
+            ? buildFontEmbedCss(
+                collectUsedFontFamilies(registry.rules),
+                ownerDocument,
+                resolvedOptions.timeoutMs,
+              )
+            : Promise.resolve(""),
+        ]),
         resolvedOptions.abortSignal,
       );
-      await raceWithAbortSignal(
-        inlineExternalResources(clone, registry.rules, resolvedOptions.timeoutMs),
-        resolvedOptions.abortSignal,
-      );
-      const fontEmbedCss = resolvedOptions.embedFonts
-        ? await raceWithAbortSignal(
-            buildFontEmbedCss(
-              collectUsedFontFamilies(registry.rules),
-              ownerDocument,
-              resolvedOptions.timeoutMs,
-            ),
-            resolvedOptions.abortSignal,
-          )
-        : "";
       svgMarkup = serializeToSvgMarkup({
         clone,
         cssText: `${fontEmbedCss}\n${registry.toCssText()}`,

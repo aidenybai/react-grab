@@ -10,6 +10,10 @@ import {
 import type { CaptureOutputGeometry, DiffStylesInput, StyleDeclarationMap } from "../types";
 import { isInheritedStyleProp } from "../utils/is-inherited-style-prop";
 
+const CURRENTCOLOR_BORDER_STYLE_PROPS = new Set(
+  CURRENTCOLOR_DEFAULT_STYLE_PROPS.filter((propertyName) => propertyName.includes("border")),
+);
+
 export const diffStyles = ({
   styles,
   baseline,
@@ -21,21 +25,24 @@ export const diffStyles = ({
   for (const propertyName in styles) {
     const propertyValue = styles[propertyName];
     if (propertyValue === undefined) continue;
+    if (propertyValue !== baseline[propertyName]) {
+      diffed[propertyName] = propertyValue;
+      continue;
+    }
     const isForcedConcreteValue =
       CONCRETE_VALUE_STYLE_PROPS.has(propertyName) &&
       !(hasNativeAppearance && BORDER_WIDTH_STYLE_PROPS.has(propertyName));
-    if (isForcedConcreteValue || propertyValue !== baseline[propertyName]) {
-      diffed[propertyName] = propertyValue;
-    }
+    if (isForcedConcreteValue) diffed[propertyName] = propertyValue;
   }
+  const ownColor = styles["color"];
   for (const currentColorProp of CURRENTCOLOR_DEFAULT_STYLE_PROPS) {
     const propertyValue = styles[currentColorProp];
     if (propertyValue === undefined) continue;
     const isNativeAppearanceBorderColor =
       hasNativeAppearance &&
-      currentColorProp.includes("border") &&
+      CURRENTCOLOR_BORDER_STYLE_PROPS.has(currentColorProp) &&
       propertyValue === baseline[currentColorProp];
-    if (propertyValue === styles["color"] || isNativeAppearanceBorderColor) {
+    if (propertyValue === ownColor || isNativeAppearanceBorderColor) {
       delete diffed[currentColorProp];
     } else {
       diffed[currentColorProp] = propertyValue;

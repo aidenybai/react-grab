@@ -17,6 +17,9 @@ export const DEFAULT_BLEED_PX = 0;
 export const SHADOW_BLUR_EXTENT_FACTOR = 1.5;
 export const FILTER_BLUR_EXTENT_SIGMA_FACTOR = 3;
 
+export const BASE64_ENCODE_CHUNK_SIZE_BYTES = 0x8000;
+export const DEFAULT_BLOB_MIME_TYPE = "application/octet-stream";
+
 export const GENERATED_CLASS_PREFIX = "rgs-";
 export const SVG_NAMESPACE_URI = "http://www.w3.org/2000/svg";
 export const XHTML_NAMESPACE_URI = "http://www.w3.org/1999/xhtml";
