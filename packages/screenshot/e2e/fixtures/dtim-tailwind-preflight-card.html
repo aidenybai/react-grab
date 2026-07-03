@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>dtim tailwind preflight card</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 500 900;
+        font-style: normal;
+      }
+      /* Tailwind Preflight reset (the phantom-border / default-style-diff trap). */
+      *,
+      :after,
+      :before {
+        border-style: none;
+        border-color: #e5e7eb;
+        box-sizing: border-box;
+      }
+      :after,
+      :before {
+        --tw-content: "";
+      }
+      html {
+        -webkit-text-size-adjust: 100%;
+        font-family: "Inter Fixture", ui-sans-serif, system-ui, sans-serif;
+        line-height: 1.5;
+        tab-size: 4;
+      }
+      body {
+        line-height: inherit;
+        margin: 0;
+        background: #e8e8e8;
+      }
+      h3 {
+        font-size: inherit;
+        font-weight: inherit;
+      }
+      dd,
+      dl,
+      h3,
+      p {
+        margin: 0;
+      }
+      *,
+      :after,
+      :before {
+        --tw-border-spacing-x: 0;
+        --tw-border-spacing-y: 0;
+        --tw-translate-x: 0;
+        --tw-translate-y: 0;
+        --tw-rotate: 0;
+        --tw-skew-x: 0;
+        --tw-skew-y: 0;
+        --tw-scale-x: 1;
+        --tw-scale-y: 1;
+        --tw-scroll-snap-strictness: proximity;
+        --tw-ring-offset-width: 0px;
+        --tw-ring-offset-color: #fff;
+        --tw-ring-color: rgba(59, 130, 246, 0.5);
+        --tw-ring-offset-shadow: 0 0 #0000;
+        --tw-ring-shadow: 0 0 #0000;
+        --tw-shadow: 0 0 #0000;
+        --tw-shadow-colored: 0 0 #0000;
+      }
+      .m-auto {
+        margin: auto;
+      }
+      .mx-auto {
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .mt-2 {
+        margin-top: 0.5rem;
+      }
+      .mt-1 {
+        margin-top: 0.25rem;
+      }
+      .mt-5 {
+        margin-top: 1.25rem;
+      }
+      .block {
+        display: block;
+      }
+      .flex {
+        display: flex;
+      }
+      .grid {
+        display: grid;
+      }
+      .w-3\/4 {
+        width: 75%;
+      }
+      .grid-cols-1 {
+        grid-template-columns: repeat(1, minmax(0, 1fr));
+      }
+      .items-baseline {
+        align-items: baseline;
+      }
+      .justify-center {
+        justify-content: center;
+      }
+      .divide-y > :not([hidden]) ~ :not([hidden]) {
+        --tw-divide-y-reverse: 0;
+        border-bottom-width: calc(1px * var(--tw-divide-y-reverse));
+        border-top-width: calc(1px * (1 - var(--tw-divide-y-reverse)));
+      }
+      .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+        --tw-divide-opacity: 1;
+        border-color: rgb(229 231 235 / var(--tw-divide-opacity));
+      }
+      .overflow-hidden {
+        overflow: hidden;
+      }
+      .rounded-lg {
+        border-radius: 0.5rem;
+      }
+      .bg-white {
+        --tw-bg-opacity: 1;
+        background-color: rgb(255 255 255 / var(--tw-bg-opacity));
+      }
+      .bg-gray-100 {
+        --tw-bg-opacity: 1;
+        background-color: rgb(243 244 246 / var(--tw-bg-opacity));
+      }
+      .py-4 {
+        padding-bottom: 1rem;
+        padding-top: 1rem;
+      }
+      .px-4 {
+        padding-left: 1rem;
+        padding-right: 1rem;
+      }
+      .py-5 {
+        padding-bottom: 1.25rem;
+        padding-top: 1.25rem;
+      }
+      .px-2\.5 {
+        padding-left: 0.625rem;
+        padding-right: 0.625rem;
+      }
+      .py-0\.5 {
+        padding-bottom: 0.125rem;
+        padding-top: 0.125rem;
+      }
+      .text-center {
+        text-align: center;
+      }
+      .text-right {
+        text-align: right;
+      }
+      .text-5xl {
+        font-size: 3rem;
+        line-height: 1;
+      }
+      .text-base {
+        font-size: 1rem;
+        line-height: 1.5rem;
+      }
+      .text-sm {
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+      }
+      .text-2xl {
+        font-size: 1.5rem;
+        line-height: 2rem;
+      }
+      .font-extrabold {
+        font-weight: 800;
+      }
+      .font-medium {
+        font-weight: 500;
+      }
+      .font-semibold {
+        font-weight: 600;
+      }
+      .leading-6 {
+        line-height: 1.5rem;
+      }
+      .text-gray-800 {
+        --tw-text-opacity: 1;
+        color: rgb(31 41 55 / var(--tw-text-opacity));
+      }
+      .text-gray-500 {
+        --tw-text-opacity: 1;
+        color: rgb(107 114 128 / var(--tw-text-opacity));
+      }
+      .text-gray-900 {
+        --tw-text-opacity: 1;
+        color: rgb(17 24 39 / var(--tw-text-opacity));
+      }
+      .text-indigo-600 {
+        --tw-text-opacity: 1;
+        color: rgb(79 70 229 / var(--tw-text-opacity));
+      }
+      .text-green-500 {
+        --tw-text-opacity: 1;
+        color: rgb(34 197 94 / var(--tw-text-opacity));
+      }
+      .shadow {
+        --tw-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+        --tw-shadow-colored:
+          0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color);
+      }
+      .shadow {
+        box-shadow:
+          var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000),
+          var(--tw-shadow);
+      }
+      /* Viewport-dependent classes baked in at the fixture width (>=1024px viewport). */
+      .sm\:p-6 {
+        padding: 1.5rem;
+      }
+      .md\:mt-2 {
+        margin-top: 0.5rem;
+      }
+      .md\:block {
+        display: block;
+      }
+      .md\:grid-cols-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .md\:divide-y-0 > :not([hidden]) ~ :not([hidden]) {
+        --tw-divide-y-reverse: 0;
+        border-bottom-width: calc(0px * var(--tw-divide-y-reverse));
+        border-top-width: calc(0px * (1 - var(--tw-divide-y-reverse)));
+      }
+      .md\:divide-x > :not([hidden]) ~ :not([hidden]) {
+        --tw-divide-x-reverse: 0;
+        border-left-width: calc(1px * (1 - var(--tw-divide-x-reverse)));
+        border-right-width: calc(1px * var(--tw-divide-x-reverse));
+      }
+      .lg\:mt-0 {
+        margin-top: 0;
+      }
+      .lg\:flex {
+        display: flex;
+      }
+      #target {
+        width: 700px;
+        height: 400px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="rounded-lg bg-gray-100 px-4 py-4" id="target">
+      <div>
+        <h3 class="mt-5 text-2xl leading-6 font-medium text-gray-900">Results</h3>
+        <dl
+          class="m-auto w-3/4 mt-5 grid grid-cols-1 rounded-lg bg-white overflow-hidden shadow divide-y divide-gray-200 md:grid-cols-2 md:divide-y-0 md:divide-x"
+        >
+          <div class="px-4 py-5 sm:p-6">
+            <dt class="text-center text-base font-extrabold text-gray-900">
+              ABC <br />
+              DEF ABC ABC
+            </dt>
+            <dd class="mt-1 flex justify-center items-baseline md:block lg:flex">
+              <div class="text-gray-500">
+                <div
+                  class="mx-auto px-2.5 py-0.5 text-5xl font-extrabold text-green-500 md:mt-2 lg:mt-0"
+                >
+                  <p class="text-center">50.00%</p>
+                </div>
+                <div class="text-center text-sm">
+                  <span class="font-semibold text-indigo-600">5</span> de
+                  <span class="font-semibold text-indigo-600">10</span>
+                  resueltas
+                </div>
+              </div>
+            </dd>
+          </div>
+          <div class="px-4 py-5 sm:p-6">
+            <dt class="text-center text-base font-extrabold text-gray-900">
+              Audiencias<br />
+              celebradas
+            </dt>
+            <dd class="mt-1 flex justify-center items-baseline md:block lg:flex">
+              <div class="text-gray-500">
+                <div
+                  class="mx-auto px-2.5 py-0.5 text-5xl font-extrabold text-green-500 md:mt-2 lg:mt-0"
+                >
+                  <p class="text-center">10</p>
+                </div>
+                <div class="text-center text-sm">
+                  <span class="font-semibold text-indigo-600">5</span> Aud. Preliminares
+                </div>
+                <div class="text-center text-sm">
+                  <span class="font-semibold text-indigo-600">5</span> Aud. Vista de Causa
+                </div>
+              </div>
+            </dd>
+          </div>
+        </dl>
+      </div>
+      <p class="text-sm text-gray-800 text-right mt-2">Last update: 2023-02-04</p>
+    </div>
+  </body>
+</html>

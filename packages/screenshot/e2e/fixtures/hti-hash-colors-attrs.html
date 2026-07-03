@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>hti hash colors attrs</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 100px;
+        height: 9px;
+        background: #ffffff;
+      }
+      .red {
+        background-color: #ff0000;
+      }
+      .green {
+        background-color: green;
+      }
+      .blue {
+        background-color: #0000ff;
+      }
+      .red,
+      .green,
+      .blue {
+        height: 3px;
+        border: 1px solid lightgrey;
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      "#" characters both in hex colors and in an attribute value must
+      round-trip through the serialized SVG data URI without truncation.
+    -->
+    <div id="target">
+      <div class="red" data-stroke="#234"></div>
+      <div class="green"></div>
+      <div class="blue"></div>
+    </div>
+  </body>
+</html>

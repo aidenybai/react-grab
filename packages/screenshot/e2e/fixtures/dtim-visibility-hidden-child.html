@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>dtim visibility hidden child</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 320px;
+        height: 60px;
+        background: #ffffff;
+        box-sizing: border-box;
+        padding: 10px;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 18px;
+        color: #000000;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <!-- #167 guard: the explicit visibility:hidden span must stay hidden and
+           leave a blank gap between "shown" and "after" — the gap is the
+           pixel signal. -->
+      <div id="vis">shown<span id="gone" style="visibility: hidden">hidden</span>after</div>
+    </div>
+  </body>
+</html>

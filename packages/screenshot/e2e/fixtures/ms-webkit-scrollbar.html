@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ms webkit scrollbar</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 120px;
+        height: 120px;
+        background: #ffffff;
+      }
+      .scrollbar {
+        display: block;
+        width: 100px;
+        height: 100px;
+        overflow: auto;
+      }
+      .scrollbar::-webkit-scrollbar {
+        width: 5px;
+        height: 8px;
+        background-color: #aaa;
+      }
+      .scrollbar::-webkit-scrollbar-thumb {
+        background: #000;
+      }
+      .filler {
+        width: 200px;
+        height: 400px;
+        background: linear-gradient(135deg, #2f6fdb 0 40%, #f4c542 40% 100%);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="scrollbar">
+        <div class="filler"></div>
+      </div>
+    </div>
+  </body>
+</html>

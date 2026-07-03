@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>hti fontawesome brand icon</title>
+    <style>
+      /*
+        Minimal inline subset of @fortawesome/fontawesome-free all.css:
+        the brands @font-face + base icon rules + the .fa-apper glyph.
+      */
+      @font-face {
+        font-family: "Font Awesome 6 Brands";
+        font-style: normal;
+        font-weight: 400;
+        font-display: block;
+        src: url("./assets/hti-fa-brands-400.woff2") format("woff2");
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        padding: 16px;
+        width: 100px;
+        height: 100px;
+        font-size: 60px;
+        background-color: white;
+      }
+      .fab {
+        font-family: "Font Awesome 6 Brands";
+        font-weight: 400;
+        display: inline-block;
+        font-style: normal;
+        font-variant: normal;
+        line-height: 1;
+        text-rendering: auto;
+      }
+      .fa-apper::before {
+        content: "\f371";
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <i class="fab fa-apper"></i>
+    </div>
+  </body>
+</html>

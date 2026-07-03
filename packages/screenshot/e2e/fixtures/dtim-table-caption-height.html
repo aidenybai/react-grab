@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>dtim table caption height</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      /* #209: copying the computed height onto a captioned table grows it by
+         the caption height and pushes "Bottom text" out of the capture. The
+         red bottom text staying visible is the pixel signal. */
+      #target {
+        width: 200px;
+        height: 140px;
+        background: #ffffff;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 14px;
+        color: #000000;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <table>
+        <caption>
+          A Table Caption
+        </caption>
+        <thead>
+          <tr>
+            <th>A</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Long text text text text text text text</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="color: red">Bottom text</div>
+    </div>
+  </body>
+</html>

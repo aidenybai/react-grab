@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>03 gradients</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 480px;
+        height: 320px;
+        background: #101418;
+        position: relative;
+      }
+      .linear {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        width: 216px;
+        height: 80px;
+        background: linear-gradient(115deg, #f4c542 0%, #e4572e 35%, #7a3b8f 70%, #2f6fdb 100%);
+      }
+      .hard-stops {
+        position: absolute;
+        top: 16px;
+        left: 248px;
+        width: 216px;
+        height: 80px;
+        background: linear-gradient(
+          to right,
+          #1f6f54 0 25%,
+          #f4c542 25% 50%,
+          #c0392b 50% 75%,
+          #14304f 75% 100%
+        );
+      }
+      .radial {
+        position: absolute;
+        top: 112px;
+        left: 16px;
+        width: 140px;
+        height: 92px;
+        background: radial-gradient(
+          circle at 30% 40%,
+          #ffffff 0%,
+          #f4c542 30%,
+          #c0392b 70%,
+          #14304f 100%
+        );
+      }
+      .radial-ellipse {
+        position: absolute;
+        top: 112px;
+        left: 172px;
+        width: 140px;
+        height: 92px;
+        background: radial-gradient(
+          ellipse farthest-corner at 80% 20%,
+          #dfe9f5 0%,
+          #2f6fdb 55%,
+          #101418 100%
+        );
+      }
+      .conic {
+        position: absolute;
+        top: 112px;
+        left: 328px;
+        width: 136px;
+        height: 92px;
+        background: conic-gradient(
+          from 45deg at 50% 50%,
+          #f4c542,
+          #e4572e,
+          #7a3b8f,
+          #2f6fdb,
+          #1f6f54,
+          #f4c542
+        );
+      }
+      .repeating {
+        position: absolute;
+        top: 220px;
+        left: 16px;
+        width: 216px;
+        height: 84px;
+        background: repeating-linear-gradient(-45deg, #2f6fdb 0 12px, #14304f 12px 24px);
+      }
+      .layered {
+        position: absolute;
+        top: 220px;
+        left: 248px;
+        width: 216px;
+        height: 84px;
+        background:
+          radial-gradient(circle at 75% 30%, rgba(244, 197, 66, 0.9) 0%, rgba(244, 197, 66, 0) 45%),
+          repeating-linear-gradient(
+            90deg,
+            rgba(255, 255, 255, 0.25) 0 6px,
+            rgba(255, 255, 255, 0) 6px 24px
+          ),
+          linear-gradient(to bottom, #7a3b8f, #c0392b);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="linear"></div>
+      <div class="hard-stops"></div>
+      <div class="radial"></div>
+      <div class="radial-ellipse"></div>
+      <div class="conic"></div>
+      <div class="repeating"></div>
+      <div class="layered"></div>
+    </div>
+  </body>
+</html>

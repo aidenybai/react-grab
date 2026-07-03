@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>dtim css mask icon</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 120px;
+        height: 60px;
+        background: #ffffff;
+        box-sizing: border-box;
+        padding: 10px;
+      }
+      /* #195: longhand mask-image url — if the mask url is dropped the icon
+         paints as a solid red square (or blank), which the diff catches. */
+      #maskicon {
+        display: inline-block;
+        width: 40px;
+        height: 40px;
+        background-color: red;
+        -webkit-mask-image: url("./assets/shape.svg");
+        mask-image: url("./assets/shape.svg");
+        -webkit-mask-size: 40px 40px;
+        mask-size: 40px 40px;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+      }
+      /* #127: the mask SHORTHAND carries the url and must survive too. */
+      #shortmask {
+        display: inline-block;
+        width: 40px;
+        height: 40px;
+        margin-left: 10px;
+        background-color: #2f6fdb;
+        -webkit-mask: url("./assets/shape.svg") center / contain no-repeat;
+        mask: url("./assets/shape.svg") center / contain no-repeat;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target"><i id="maskicon"></i><i id="shortmask"></i></div>
+  </body>
+</html>

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>dtim textarea user value</title>
+    <style>
+      @font-face {
+        font-family: "Geist Mono Fixture";
+        src: url("./assets/dtim-geist-mono.woff2") format("woff2");
+        font-weight: 400 700;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 400px;
+        height: 200px;
+        box-sizing: border-box;
+        background-color: white;
+        padding: 16px;
+      }
+      textarea {
+        height: 100%;
+        width: 100%;
+        box-sizing: border-box;
+        font-family: "Geist Mono Fixture", monospace;
+        font-size: 20px;
+        border: 1px solid grey;
+        padding: 16px;
+        background: #ffffff;
+        color: #000000;
+        resize: none;
+        outline: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <textarea id="input"></textarea>
+    </div>
+    <script>
+      // Multi-line user value set via the property, not element content.
+      document.getElementById("input").value = "USER\nINPUT";
+    </script>
+  </body>
+</html>

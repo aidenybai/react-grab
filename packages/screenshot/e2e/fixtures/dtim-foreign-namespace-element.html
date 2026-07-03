@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>dtim foreign namespace element</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 280px;
+        height: 100px;
+        background: #ffffff;
+        box-sizing: border-box;
+        padding: 10px;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 16px;
+        color: #000000;
+      }
+      .banner {
+        background: #2f6fdb;
+        color: #ffffff;
+        padding: 4px 8px;
+        margin-bottom: 6px;
+      }
+      .footer {
+        background: #f4c542;
+        color: #14304f;
+        padding: 4px 8px;
+        margin-top: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="banner">before the foreign node</div>
+      <div id="foreign-slot"></div>
+      <div class="footer">after the foreign node</div>
+    </div>
+    <script>
+      // #151: an element in a non-HTML/SVG/MathML namespace is a real Element
+      // but has no .style object; the capture must not crash on it and the
+      // surrounding content must still render.
+      const foreignElement = document.createElementNS("http://example.com/ns", "thing");
+      foreignElement.id = "foreign";
+      foreignElement.textContent = "x";
+      document.getElementById("foreign-slot").appendChild(foreignElement);
+    </script>
+  </body>
+</html>

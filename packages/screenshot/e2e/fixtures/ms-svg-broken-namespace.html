@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ms svg broken namespace</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 100px;
+        height: 102px;
+        background: #ffffff;
+        overflow: hidden;
+      }
+      #box {
+        border: 1px solid red;
+        position: relative;
+        height: 100px;
+      }
+      svg {
+        position: absolute;
+        left: 5px;
+        top: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div id="box">
+        <svg xmlns="http://www.w3.org/1999/xhtml" height="94px" width="94px">
+          <path
+            d="M10 10 H 90 V 90 H 10 L 10 10"
+            transform="translate(1,1)"
+            pointer-events="visibleStroke"
+            version="1.1"
+            xmlns="http://www.w3.org/1999/xhtml"
+            fill="none"
+            stroke="#456"
+            stroke-width="4"
+            shape-rendering="crispEdges"
+          />
+        </svg>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>dtim svg image href</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 60px;
+        height: 60px;
+        background: #ffffff;
+        box-sizing: border-box;
+        padding: 10px;
+      }
+      svg {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <!-- #121: an SVG <image> references its bitmap via href (not .src); the
+           bitmap must be fetched and rendered inside the svg. -->
+      <svg width="40" height="40" xmlns="http://www.w3.org/2000/svg">
+        <image id="img" href="./assets/dtim-image.png" width="40" height="40"></image>
+      </svg>
+    </div>
+  </body>
+</html>

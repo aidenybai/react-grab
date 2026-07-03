@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>snap form values indeterminate</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 360px;
+        height: 280px;
+        background: #ffffff;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 14px;
+        color: #1d2731;
+        box-sizing: border-box;
+        padding: 16px;
+      }
+      .row {
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      input[type="text"],
+      textarea,
+      select {
+        font-family: inherit;
+        font-size: 14px;
+      }
+      input[type="text"] {
+        width: 200px;
+      }
+      textarea {
+        width: 220px;
+        height: 60px;
+        resize: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="row">
+        <input id="txt" type="text" />
+      </div>
+      <div class="row">
+        <input id="chk-on" type="checkbox" /> checked
+        <input id="chk-ind" type="checkbox" /> indeterminate
+      </div>
+      <div class="row">
+        <textarea id="ta">original markup text</textarea>
+      </div>
+      <div class="row">
+        <select id="sel">
+          <option value="a">alpha option</option>
+          <option value="b">beta option</option>
+        </select>
+      </div>
+    </div>
+    <script>
+      // Live form state set via JS — none of it is reflected in attributes.
+      document.getElementById("txt").value = "typed live value";
+      document.getElementById("chk-on").checked = true;
+      // indeterminate is a JS-only flag (no attribute equivalent)
+      document.getElementById("chk-ind").indeterminate = true;
+      // pending textarea value differs from its markup textContent
+      document.getElementById("ta").value = "typed over the original";
+      document.getElementById("sel").value = "b";
+    </script>
+  </body>
+</html>

@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>snap css counters</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 440px;
+        height: 480px;
+        background: #ffffff;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 14px;
+        color: #1d2731;
+        box-sizing: border-box;
+        padding: 12px 16px;
+      }
+      h2 {
+        margin: 8px 0 2px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #5a6b7c;
+      }
+      ol,
+      ul {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      /* #235 — counter(item) ")" must join WITHOUT a space; the grid parent
+         with a max-content column makes a spurious " )" wrap visibly. */
+      .reg-235-ol {
+        counter-reset: item;
+        display: grid;
+        grid-template-columns: max-content;
+        width: 120px;
+      }
+      .reg-235-li::before {
+        counter-increment: item;
+        content: counter(item) ")";
+        color: #c0392b;
+        margin-right: 4px;
+      }
+      /* #19 — counter-set on the pseudo overrides the value to 41 */
+      .cset-ol {
+        counter-reset: item;
+      }
+      .cset-li::before {
+        counter-set: item 41;
+        content: counter(item);
+        color: #2f6fdb;
+        margin-right: 4px;
+      }
+      /* counters(sec, ".") nesting */
+      .nest-ol {
+        counter-reset: sec;
+      }
+      .nest-ol li {
+        counter-increment: sec;
+      }
+      .nest-ol li::before {
+        content: counters(sec, ".") " ";
+        color: #1f6f54;
+      }
+      .nest-ol ol {
+        counter-reset: sec;
+        padding-left: 18px;
+      }
+      /* upper-alpha + decimal-leading-zero styles */
+      .alpha::before {
+        counter-reset: a 3;
+        counter-increment: a;
+        content: counter(a, upper-alpha);
+        color: #7a3b8f;
+        font-weight: 400;
+      }
+      .lead-zero::before {
+        counter-reset: n 4;
+        counter-increment: n;
+        content: counter(n, decimal-leading-zero);
+        color: #e4572e;
+      }
+      /* li value attribute drives the list-item counter (real markers) */
+      .val-ol {
+        list-style: decimal;
+        padding-left: 26px;
+        color: #14304f;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <h2>#235 counter joined to ")" (grid parent)</h2>
+      <ol class="reg-235-ol">
+        <li class="reg-235-li">alpha</li>
+        <li class="reg-235-li">beta</li>
+        <li class="reg-235-li">gamma</li>
+      </ol>
+      <h2>#19 counter-set overrides to 41</h2>
+      <ol class="cset-ol">
+        <li class="cset-li">answer</li>
+      </ol>
+      <h2>counters(sec, ".") nesting</h2>
+      <ol class="nest-ol">
+        <li>
+          top one
+          <ol>
+            <li>inner one</li>
+            <li>inner two</li>
+          </ol>
+        </li>
+        <li>top two</li>
+      </ol>
+      <h2>upper-alpha and decimal-leading-zero</h2>
+      <div><span class="alpha"></span> — alpha style resolves to D</div>
+      <div><span class="lead-zero"></span> — leading zero resolves to 05</div>
+      <h2>li value attribute</h2>
+      <ol class="val-ol">
+        <li value="10">starts at ten</li>
+        <li>then eleven</li>
+      </ol>
+    </div>
+  </body>
+</html>

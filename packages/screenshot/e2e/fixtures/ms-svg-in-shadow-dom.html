@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ms svg in shadow dom</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 100px;
+        height: 40px;
+        background: #ffffff;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target"></div>
+    <script>
+      const targetElement = document.querySelector("#target");
+
+      const buildShadowHost = () => {
+        const host = document.createElement("div");
+        const shadowRoot = host.attachShadow({ mode: "open" });
+        const template = document.createElement("template");
+        template.innerHTML = `
+ <style>
+    svg {
+      display: block;
+      fill: none;
+      stroke: none;
+    }
+  </style>
+  <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="34.510866141732286" height="34.510708661417326" viewBox="-0.5 -0.5 34.010866141732286 34.010708661417326" preserveAspectRatio="none"><g data-title="rounded rectangle 2"><defs><path data-title="roundRect" id="geometry-0-394559725" d="M 0 16.505354330708663 A 16.505354330708663 16.505354330708663 0 0 1 16.50535433070866 -3.552713678800501e-15 L 16.505511811023624 0 A 16.505354330708663 16.505354330708663 0 0 1 33.01086614173229 16.50535433070866 L 33.010866141732286 16.505354330708663 A 16.505354330708663 16.505354330708663 0 0 1 16.505511811023624 33.010708661417326 L 16.505354330708663 33.010708661417326 A 16.505354330708663 16.505354330708663 0 0 1 0 16.505354330708666 Z"></path><linearGradient id="color-450450831-394559725" x1="49.99%" y1="0%" x2="50%" y2="100%"><stop offset="30%" stop-color="rgba(242,153,12,1)"></stop><stop offset="100%" stop-color="rgba(182,115,9,1)"></stop></linearGradient></defs><g data-title="shape"><use xlink:href="#geometry-0-394559725" fill="url(#color-450450831-394559725)" stroke="rgba(248,194,109,1)" stroke-width="1"></use></g></g></svg>
+`;
+        shadowRoot.appendChild(template.content.cloneNode(true));
+        return host;
+      };
+
+      targetElement.appendChild(buildShadowHost());
+    </script>
+  </body>
+</html>

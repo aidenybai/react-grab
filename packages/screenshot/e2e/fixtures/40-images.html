@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>40 images</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 520px;
+        height: 340px;
+        background: #1d2731;
+        display: grid;
+        grid-template-columns: repeat(4, 116px);
+        grid-template-rows: repeat(2, 146px);
+        gap: 12px;
+        padding: 12px;
+        box-sizing: border-box;
+        justify-content: center;
+      }
+      img {
+        width: 116px;
+        height: 146px;
+        display: block;
+        background: #3a4a5a;
+      }
+      .fit-fill {
+        object-fit: fill;
+      }
+      .fit-cover {
+        object-fit: cover;
+      }
+      .fit-cover-corner {
+        object-fit: cover;
+        object-position: left top;
+      }
+      .fit-contain {
+        object-fit: contain;
+      }
+      .fit-none {
+        object-fit: none;
+        object-position: 30% 70%;
+      }
+      .fit-scale-down {
+        object-fit: scale-down;
+      }
+      .rounded {
+        object-fit: cover;
+        border-radius: 18px;
+        border: 4px solid #f4c542;
+        box-sizing: border-box;
+      }
+      .vector {
+        object-fit: contain;
+        background: #dfe9f5;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <img class="fit-fill" src="./assets/photo-landscape.png" alt="" />
+      <img class="fit-cover" src="./assets/photo-landscape.png" alt="" />
+      <img class="fit-cover-corner" src="./assets/photo-portrait.png" alt="" />
+      <img class="fit-contain" src="./assets/photo-landscape.png" alt="" />
+      <img class="fit-none" src="./assets/photo-landscape.png" alt="" />
+      <img class="fit-scale-down" src="./assets/photo-portrait.png" alt="" />
+      <img class="rounded" src="./assets/photo-portrait.png" alt="" />
+      <img class="vector" src="./assets/shape.svg" alt="" />
+    </div>
+  </body>
+</html>

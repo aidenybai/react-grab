@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>snap zero width borders</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 420px;
+        height: 220px;
+        background: #ffffff;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 13px;
+        color: #1d2731;
+        box-sizing: border-box;
+        padding: 20px;
+        display: grid;
+        grid-template-columns: repeat(2, 170px);
+        gap: 20px;
+      }
+      /* #390/#362 — none of these zero/none borders may paint even a faint
+         hairline in the capture. */
+      .b-none {
+        border: none;
+        background: #dfe9f5;
+        height: 60px;
+      }
+      .b-zero {
+        border: 0 solid red;
+        background: #f7f3ea;
+        height: 60px;
+      }
+      /* only the visible top side may render */
+      .b-mixed {
+        border-top: 3px solid blue;
+        border-bottom: 0 solid red;
+        border-left: 0;
+        border-right: none;
+        background: #f4c542;
+        height: 60px;
+      }
+      /* ECharts/Tailwind canvas case: border: 0 solid red on a <canvas> */
+      canvas {
+        border: 0 solid red;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="b-none">border: none</div>
+      <div class="b-zero">border: 0 solid red</div>
+      <div class="b-mixed">top 3px blue only</div>
+      <canvas id="c362" width="170" height="60"></canvas>
+    </div>
+    <script>
+      var canvas = document.getElementById("c362");
+      var context = canvas.getContext("2d");
+      context.fillStyle = "#c0392b";
+      context.fillRect(0, 0, 170, 60);
+      context.fillStyle = "#ffffff";
+      context.fillRect(20, 20, 130, 20);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>dtim pseudo before after</title>
+    <style>
+      @font-face {
+        font-family: "Geist Mono Fixture";
+        src: url("./assets/dtim-geist-mono.woff2") format("woff2");
+        font-weight: 400 700;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        background-color: white;
+        color: black;
+        font-family: "Geist Mono Fixture", monospace;
+        font-size: 20px;
+        height: 400px;
+        width: 400px;
+      }
+      div.only-before::before {
+        content: "JustBefore";
+      }
+      div.only-after::after {
+        content: "JustAfter";
+      }
+      div.both::before {
+        content: "BothBefore";
+      }
+      div.both::after {
+        content: "BothAfter";
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div style="padding-left: 10px">
+        AAA&nbsp;
+        <div class="only-before">&nbsp;BBB&nbsp;</div>
+        <div class="only-after">&nbsp;CCC&nbsp;</div>
+        <div class="both">&nbsp;DDD&nbsp;</div>
+        EEE
+      </div>
+    </div>
+  </body>
+</html>

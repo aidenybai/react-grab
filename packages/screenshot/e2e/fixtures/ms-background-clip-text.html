@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ms background clip text</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 320px;
+        height: 60px;
+        background: #ffffff;
+        font-family: "Inter Fixture", sans-serif;
+      }
+      .clip-text {
+        display: inline;
+        font-weight: 700;
+        font-size: 20px;
+        -webkit-text-fill-color: transparent;
+        -webkit-background-clip: text;
+        background-image: linear-gradient(
+          90deg,
+          rgb(131, 58, 180) 25%,
+          rgb(253, 29, 29) 50%,
+          rgb(252, 176, 69) 80%
+        );
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="clip-text">TEST TEMPLATE</div>
+    </div>
+  </body>
+</html>

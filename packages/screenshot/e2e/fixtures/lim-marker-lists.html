@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>lim marker lists</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 420px;
+        height: 340px;
+        background: #ffffff;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 15px;
+        color: #1d2731;
+        box-sizing: border-box;
+        padding: 16px 24px;
+      }
+      ol,
+      ul {
+        margin: 0 0 14px 0;
+        padding-left: 34px;
+      }
+      .colored-ol ::marker {
+        color: #c0392b;
+        font-weight: 700;
+        font-size: 19px;
+      }
+      .custom-ul li::marker {
+        content: "\2192\2002";
+        color: #1f7a4d;
+      }
+      .nested-outer > li::marker {
+        color: #2457a8;
+        font-size: 17px;
+      }
+      .nested-inner {
+        margin-bottom: 0;
+      }
+      .nested-inner > li::marker {
+        color: #b8860b;
+        content: "\25c6\2002";
+        font-size: 11px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <ol class="colored-ol">
+        <li>ordered one, big red bold marker</li>
+        <li>ordered two</li>
+        <li>ordered three</li>
+      </ol>
+      <ul class="custom-ul">
+        <li>arrow content marker</li>
+        <li>second arrow row</li>
+      </ul>
+      <ul class="nested-outer">
+        <li>
+          outer blue disc
+          <ul class="nested-inner">
+            <li>inner gold diamond</li>
+            <li>inner gold diamond two</li>
+          </ul>
+        </li>
+        <li>outer blue disc two</li>
+      </ul>
+    </div>
+  </body>
+</html>

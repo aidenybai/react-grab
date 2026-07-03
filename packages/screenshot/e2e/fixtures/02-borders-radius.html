@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>02 borders and radius</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 420px;
+        height: 300px;
+        background: #f7f3ea;
+        position: relative;
+      }
+      .uniform {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        width: 100px;
+        height: 70px;
+        background: #dfe9f5;
+        border: 6px solid #2f6fdb;
+        border-radius: 12px;
+      }
+      .per-side {
+        position: absolute;
+        top: 20px;
+        left: 160px;
+        width: 110px;
+        height: 70px;
+        background: #fdf1d6;
+        border-top: 2px solid #c0392b;
+        border-right: 8px solid #1f6f54;
+        border-bottom: 14px solid #2f6fdb;
+        border-left: 5px solid #f4c542;
+      }
+      .styles {
+        position: absolute;
+        top: 20px;
+        left: 310px;
+        width: 84px;
+        height: 70px;
+        background: #ffffff;
+        border-top: 4px dashed #14304f;
+        border-right: 4px dotted #c0392b;
+        border-bottom: 6px double #1f6f54;
+        border-left: 4px solid #7a3b8f;
+      }
+      .circle {
+        position: absolute;
+        top: 130px;
+        left: 20px;
+        width: 90px;
+        height: 90px;
+        background: #1f6f54;
+        border: 5px solid #f4c542;
+        border-radius: 50%;
+      }
+      .ellipse {
+        position: absolute;
+        top: 130px;
+        left: 150px;
+        width: 130px;
+        height: 90px;
+        background: #7a3b8f;
+        border-radius: 60px 20px 40px 10px / 30px 50px 10px 40px;
+      }
+      .pill {
+        position: absolute;
+        top: 150px;
+        left: 310px;
+        width: 90px;
+        height: 44px;
+        background: #c0392b;
+        border: 3px solid #14304f;
+        border-radius: 999px;
+      }
+      .nested-rounded {
+        position: absolute;
+        top: 236px;
+        left: 20px;
+        width: 380px;
+        height: 48px;
+        background: #dfe9f5;
+        border: 2px solid #2f6fdb;
+        border-radius: 24px 8px 24px 8px;
+        padding: 6px 0 0 10px;
+        box-sizing: border-box;
+      }
+      .nested-rounded .chip {
+        width: 120px;
+        height: 28px;
+        background: #2f6fdb;
+        border-radius: 14px 2px 14px 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="uniform"></div>
+      <div class="per-side"></div>
+      <div class="styles"></div>
+      <div class="circle"></div>
+      <div class="ellipse"></div>
+      <div class="pill"></div>
+      <div class="nested-rounded"><div class="chip"></div></div>
+    </div>
+  </body>
+</html>

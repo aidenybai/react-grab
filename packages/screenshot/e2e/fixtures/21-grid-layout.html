@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>21 grid layout</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 520px;
+        height: 340px;
+        background: #f7f3ea;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 12px;
+        color: #ffffff;
+        display: grid;
+        grid-template-areas:
+          "header header header"
+          "nav    main   aside"
+          "nav    main   widget"
+          "footer footer widget";
+        grid-template-columns: 100px 1fr 130px;
+        grid-template-rows: 44px 1fr 70px 40px;
+        gap: 8px;
+        padding: 10px;
+        box-sizing: border-box;
+      }
+      .header {
+        grid-area: header;
+        background: #14304f;
+        display: grid;
+        place-items: center;
+      }
+      .nav {
+        grid-area: nav;
+        background: #1f6f54;
+        display: grid;
+        grid-auto-rows: 24px;
+        gap: 6px;
+        padding: 8px;
+        box-sizing: border-box;
+        align-content: start;
+      }
+      .nav div {
+        background: rgba(255, 255, 255, 0.25);
+      }
+      .main {
+        grid-area: main;
+        background: #ffffff;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        grid-auto-rows: 40px;
+        gap: 6px;
+        padding: 8px;
+        box-sizing: border-box;
+      }
+      .main .tile {
+        background: #2f6fdb;
+        display: grid;
+        place-items: center;
+      }
+      .main .tile.wide {
+        grid-column: span 2;
+        background: #e4572e;
+      }
+      .main .tile.big {
+        grid-column: span 2;
+        grid-row: span 2;
+        background: #7a3b8f;
+      }
+      .aside {
+        grid-area: aside;
+        background: #c0392b;
+        display: grid;
+        justify-items: end;
+        align-content: space-between;
+        padding: 8px;
+        box-sizing: border-box;
+      }
+      .aside div {
+        height: 14px;
+        background: #f4c542;
+      }
+      .aside div:nth-child(1) {
+        width: 80px;
+      }
+      .aside div:nth-child(2) {
+        width: 50px;
+      }
+      .aside div:nth-child(3) {
+        width: 100px;
+      }
+      .widget {
+        grid-area: widget;
+        background: #f4c542;
+        color: #14304f;
+        display: grid;
+        place-items: center;
+      }
+      .footer {
+        grid-area: footer;
+        background: #1d2731;
+        display: grid;
+        place-items: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="header">template areas</div>
+      <div class="nav">
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+      </div>
+      <div class="main">
+        <div class="tile">1</div>
+        <div class="tile wide">2 wide</div>
+        <div class="tile">3</div>
+        <div class="tile big">4 big</div>
+        <div class="tile">5</div>
+        <div class="tile">6</div>
+        <div class="tile wide">7 wide</div>
+      </div>
+      <div class="aside">
+        <div></div>
+        <div></div>
+        <div></div>
+      </div>
+      <div class="widget">widget</div>
+      <div class="footer">footer spanning columns</div>
+    </div>
+  </body>
+</html>

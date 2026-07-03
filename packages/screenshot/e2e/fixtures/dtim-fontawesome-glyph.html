@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>dtim fontawesome glyph</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Font Awesome 6 Free";
+        font-style: normal;
+        font-weight: 900;
+        font-display: block;
+        src: url("./assets/dtim-fa-solid-900.woff2") format("woff2");
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        box-sizing: border-box;
+        padding: 16px;
+        width: 232px;
+        height: 232px;
+        font-size: 32px;
+        background-color: white;
+        color: black;
+        font-family: "Inter Fixture", sans-serif;
+      }
+      .fa {
+        font-family: "Font Awesome 6 Free";
+        font-weight: 900;
+        font-style: normal;
+        display: inline-block;
+        line-height: 1;
+      }
+      .fa-xmark::before {
+        content: "\f00d";
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">HELLO <i class="fa fa-xmark"></i> THERE</div>
+  </body>
+</html>

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>snap line clamp</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 260px;
+        height: 340px;
+        background: #ffffff;
+        font-family: "Inter Fixture", sans-serif;
+        color: #1d2731;
+        box-sizing: border-box;
+        padding: 14px;
+      }
+      .clamp2 {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+        width: 200px;
+        font-size: 16px;
+        line-height: 20px;
+        background: #eef1f5;
+      }
+      .outer-386 {
+        width: 200px;
+        margin-top: 16px;
+        border: 1px solid #cfd8e2;
+        padding: 6px;
+      }
+      .outer-386 .clamp2 {
+        margin: 0;
+        background: #f7f3ea;
+      }
+      .clamp5 {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 5;
+        overflow: hidden;
+        width: 200px;
+        margin-top: 16px;
+        font-size: 16px;
+        line-height: 20px;
+        background: #dfe9f5;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="clamp2">
+        Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut
+        labore et dolore magna aliqua.
+      </div>
+      <div class="outer-386">
+        <div class="clamp2">
+          Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut
+          labore.
+        </div>
+      </div>
+      <div class="clamp5">Short</div>
+    </div>
+  </body>
+</html>

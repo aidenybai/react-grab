@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>snap blob urls</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 440px;
+        height: 280px;
+        background: #ffffff;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 12px;
+        color: #1d2731;
+        box-sizing: border-box;
+        padding: 16px;
+        display: grid;
+        grid-template-columns: repeat(3, 130px);
+        gap: 14px;
+        align-content: start;
+      }
+      figure {
+        margin: 0;
+      }
+      figcaption {
+        margin-top: 4px;
+      }
+      #blob-img,
+      #blob-srcset {
+        display: block;
+        width: 120px;
+        height: 70px;
+      }
+      #blob-style-bg,
+      .blob-css-bg {
+        width: 120px;
+        height: 70px;
+      }
+      #blob-svg-image {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <figure>
+        <img id="blob-img" alt="" />
+        <figcaption>img src=blob:</figcaption>
+      </figure>
+      <figure>
+        <svg id="blob-svg-image" width="120" height="70">
+          <image id="blob-image-el" width="120" height="70"></image>
+        </svg>
+        <figcaption>svg image href=blob:</figcaption>
+      </figure>
+      <figure>
+        <div id="blob-style-bg"></div>
+        <figcaption>inline style url(blob:)</figcaption>
+      </figure>
+      <figure>
+        <div class="blob-css-bg"></div>
+        <figcaption>&lt;style&gt; url(blob:)</figcaption>
+      </figure>
+      <figure>
+        <img id="blob-srcset" alt="" />
+        <figcaption>img srcset=blob:</figcaption>
+      </figure>
+    </div>
+    <script>
+      // URL.createObjectURL is synchronous — all blob URLs exist before load.
+      function svgBlobUrl(color, label) {
+        var markup =
+          '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="70">' +
+          '<rect width="120" height="70" fill="' +
+          color +
+          '"/>' +
+          '<rect x="10" y="10" width="100" height="50" fill="#ffffff" opacity="0.35"/>' +
+          "</svg>";
+        return URL.createObjectURL(new Blob([markup], { type: "image/svg+xml" }));
+      }
+
+      document.getElementById("blob-img").src = svgBlobUrl("#c0392b");
+      document.getElementById("blob-image-el").setAttribute("href", svgBlobUrl("#2f6fdb"));
+      document.getElementById("blob-style-bg").style.backgroundImage =
+        "url(" + svgBlobUrl("#1f6f54") + ")";
+
+      var styleTag = document.createElement("style");
+      styleTag.textContent =
+        ".blob-css-bg { background-image: url(" + svgBlobUrl("#e4572e") + "); }";
+      document.head.appendChild(styleTag);
+
+      document.getElementById("blob-srcset").setAttribute("srcset", svgBlobUrl("#7a3b8f") + " 1x");
+    </script>
+  </body>
+</html>

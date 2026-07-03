@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>hti svg use hidden sprite</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+        color: #14304f;
+      }
+      #target {
+        width: 100px;
+        height: 100px;
+        background: #ffffff;
+        overflow: hidden;
+      }
+      #root {
+        border: 1px solid red;
+        position: relative;
+        height: 100px;
+      }
+      svg {
+        width: 100%;
+        height: 100%;
+      }
+      .icon {
+        display: inline-block;
+        width: 0.9285714285714285em;
+        height: 1em;
+        stroke-width: 0;
+        stroke: currentColor;
+        fill: currentColor;
+        vertical-align: middle;
+        top: -1px;
+        position: relative;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div id="root">
+        <div>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            xmlns:xlink="http://www.w3.org/1999/xlink"
+            class="icon"
+          >
+            <use xlink:href="#icon-home"></use>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <!--
+      The sprite <symbol> lives OUTSIDE #target in a zero-size hidden
+      container — the capture must resolve <use> across the subtree boundary.
+    -->
+    <div style="position: absolute; width: 0; height: 0; overflow: hidden">
+      <svg
+        style="position: absolute; width: 0; height: 0; overflow: hidden"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        xmlns:xlink="http://www.w3.org/1999/xlink"
+      >
+        <defs>
+          <symbol id="icon-home" viewBox="0 0 26 28">
+            <title>home</title>
+            <path
+              d="M22 15.5v7.5c0 0.547-0.453 1-1 1h-6v-6h-4v6h-6c-0.547 0-1-0.453-1-1v-7.5c0-0.031 0.016-0.063 0.016-0.094l8.984-7.406 8.984 7.406c0.016 0.031 0.016 0.063 0.016 0.094zM25.484 14.422l-0.969 1.156c-0.078 0.094-0.203 0.156-0.328 0.172h-0.047c-0.125 0-0.234-0.031-0.328-0.109l-10.813-9.016-10.813 9.016c-0.109 0.078-0.234 0.125-0.375 0.109-0.125-0.016-0.25-0.078-0.328-0.172l-0.969-1.156c-0.172-0.203-0.141-0.531 0.063-0.703l11.234-9.359c0.656-0.547 1.719-0.547 2.375 0l3.813 3.187v-3.047c0-0.281 0.219-0.5 0.5-0.5h3c0.281 0 0.5 0.219 0.5 0.5v6.375l3.422 2.844c0.203 0.172 0.234 0.5 0.063 0.703z"
+            ></path>
+          </symbol>
+        </defs>
+      </svg>
+    </div>
+  </body>
+</html>

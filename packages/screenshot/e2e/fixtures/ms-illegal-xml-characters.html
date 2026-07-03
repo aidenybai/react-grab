@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ms illegal xml characters</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 10px;
+        height: 10px;
+        background-color: red;
+      }
+      /* Chromium paints raw C0 controls and lone surrogates as hexbox glyphs
+         that XML 1.0 cannot carry in any form (not even as character
+         references), so their pixels are unreproducible by an SVG-serialized
+         capture. The spans stay in the DOM to exercise the full
+         strip-and-serialize path (the original upstream test only asserted
+         "does not throw"); they are hidden so the pixel check verifies the
+         box renders and serialization stayed valid. */
+      #target span {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target"></div>
+    <script>
+      const targetElement = document.querySelector("#target");
+
+      [
+        // U+0000-U+0008
+        ...Array.from({ length: 0x0008 }, (_, index) => String.fromCharCode(index)),
+        // U+000B-U+000C
+        "\u000B",
+        "\u000C",
+        // U+000E-U+001F
+        ...Array.from({ length: 0x001f - 0x000e }, (_, index) =>
+          String.fromCharCode(0x000e + index),
+        ),
+        // U+D800-U+DFFF
+        ...Array.from({ length: 0xdfff - 0xd800 }, (_, index) =>
+          String.fromCharCode(0xd800 + index),
+        ),
+        // U+FFFE-U+FFFF
+        "\uFFFE",
+        "\uFFFF",
+      ].forEach((unicodeCharacter) => {
+        const span = document.createElement("span");
+        span.innerHTML = unicodeCharacter;
+        targetElement.appendChild(span);
+      });
+    </script>
+  </body>
+</html>

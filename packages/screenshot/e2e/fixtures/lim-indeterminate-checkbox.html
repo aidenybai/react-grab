@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>lim indeterminate checkbox</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 320px;
+        height: 180px;
+        background: #ffffff;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 14px;
+        color: #1d2731;
+        box-sizing: border-box;
+        padding: 16px;
+      }
+      .row {
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      input[type="checkbox"] {
+        margin: 0;
+      }
+      .big {
+        width: 26px;
+        height: 26px;
+      }
+      .accented {
+        accent-color: #c0392b;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="row"><input id="ind-default" type="checkbox" /> default indeterminate</div>
+      <div class="row">
+        <input id="ind-accent" type="checkbox" class="accented" /> custom accent
+      </div>
+      <div class="row"><input id="ind-big" type="checkbox" class="big" /> sized 26px</div>
+    </div>
+    <script>
+      for (const checkboxId of ["ind-default", "ind-accent", "ind-big"]) {
+        document.getElementById(checkboxId).indeterminate = true;
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>55 scrolled flex and grid containers</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 420px;
+        height: 260px;
+        background: #22303c;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      .flex-scroller {
+        display: flex;
+        gap: 10px;
+        width: 380px;
+        height: 90px;
+        overflow: auto;
+        scrollbar-width: none;
+        background: #ffffff;
+      }
+      .flex-scroller div {
+        flex: 0 0 70px;
+        height: 70px;
+        margin-top: 10px;
+      }
+      .flex-scroller div:nth-child(odd) {
+        background: #2f6fdb;
+      }
+      .flex-scroller div:nth-child(even) {
+        background: #e4572e;
+      }
+      .flex-scroller div:nth-child(5) {
+        background: #1f6f54;
+        border-radius: 50%;
+      }
+      .grid-scroller {
+        display: grid;
+        grid-template-columns: repeat(8, 90px);
+        grid-auto-rows: 40px;
+        gap: 8px;
+        width: 380px;
+        height: 90px;
+        margin-top: 20px;
+        overflow: auto;
+        scrollbar-width: none;
+        background: #f7f3ea;
+      }
+      .grid-scroller div:nth-child(odd) {
+        background: #7a3b8f;
+      }
+      .grid-scroller div:nth-child(even) {
+        background: #caa53d;
+      }
+      .grid-scroller div:nth-child(11) {
+        background: #d13636;
+        border-radius: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="flex-scroller" id="flex-scroller">
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+      </div>
+      <div class="grid-scroller" id="grid-scroller">
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+      </div>
+    </div>
+    <script>
+      document.querySelector("#flex-scroller").scrollLeft = 140;
+      const gridScroller = document.querySelector("#grid-scroller");
+      gridScroller.scrollLeft = 120;
+      gridScroller.scrollTop = 30;
+    </script>
+  </body>
+</html>

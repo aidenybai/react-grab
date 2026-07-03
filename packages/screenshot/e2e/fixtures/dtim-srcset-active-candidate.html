@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>dtim srcset active candidate</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      /* 40em at 16px = 640px. The sizes attribute always resolves to the 40em
+         slot (the min-width:1px condition matches every viewport), so at
+         DPR 1 the browser picks the smallest candidate with density >= 1:
+         tall.png (1060w / 640px = 1.66x). The capture must embed that ACTIVE
+         candidate (currentSrc), not src.png. */
+      #target {
+        background-color: white;
+        width: 640px;
+        height: 700px;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 16px;
+        color: #000000;
+        overflow: hidden;
+      }
+      article {
+        margin: 1em;
+        max-width: 60em;
+        min-width: 20em;
+        border: 4em solid #880e4f;
+        border-radius: 7em;
+        padding: 1.5em;
+      }
+      article img {
+        display: block;
+        max-width: 100%;
+        border: 1px solid #888888;
+        box-shadow: 0 0.5em 0.3em #888888;
+        margin-bottom: 1.25em;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <article>
+        <p>
+          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, urna eu tincidunt
+          consectetur, nisi nisl aliquam enim, nec dictum nisi nisl euismod enim. Pellentesque
+          habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas.
+        </p>
+        <img
+          src="./assets/dtim-srcset-src.png"
+          srcset="
+            ./assets/dtim-srcset-wide.png 3724w,
+            ./assets/dtim-srcset-4by3.png 1961w,
+            ./assets/dtim-srcset-tall.png 1060w
+          "
+          sizes="(min-width: 1px) 40em, 30em"
+          alt="Test."
+        />
+        <p>
+          Yo, fo shizzle my bizzle, just chillin' in the hizzle with the drizzle, sippin' on some
+          sizzurp while the beats fizzle. Rollin' down the street, laid back, mind on my money and
+          my money on my mind.
+        </p>
+      </article>
+    </div>
+  </body>
+</html>

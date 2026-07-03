@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>snap invalid xml chars</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 400px;
+        height: 200px;
+        background: #ffffff;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 14px;
+        color: #1d2731;
+        box-sizing: border-box;
+        padding: 16px;
+      }
+      #etx-text {
+        background: #dfe9f5;
+        width: 240px;
+        padding: 4px 8px;
+      }
+      #etx-input {
+        display: block;
+        margin-top: 10px;
+        width: 220px;
+        font-family: inherit;
+        font-size: 14px;
+        appearance: none;
+        border: 1px solid #9aa8b6;
+        border-radius: 0;
+        background: #ffffff;
+        padding: 4px 6px;
+        /* Chrome paints U+0003 as a visible control glyph; transparent text
+           keeps the capture comparison pixel-neutral whether the capture
+           strips the char or keeps it, while the value still has to survive
+           serialization without an EncodingError. */
+        color: transparent;
+      }
+      .ctl {
+        display: inline-block;
+        width: 0;
+        overflow: hidden;
+        vertical-align: baseline;
+      }
+      pre {
+        background: #f7f3ea;
+        padding: 6px 8px;
+        width: 240px;
+        font-family: "Inter Fixture", sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <!-- #425: U+0003 control chars injected below must not break capture
+           (EncodingError) and must be stripped from the serialization. -->
+      <div id="etx-text"></div>
+      <input id="etx-input" type="text" />
+      <input id="etx-hidden" type="hidden" />
+      <pre id="ws">
+keep	tab
+and newline</pre
+      >
+    </div>
+    <script>
+      var ETX = String.fromCharCode(3); // U+0003, illegal in XML 1.0
+      // Visible text with an embedded U+0003. Chrome paints the raw control
+      // char as a glyph, so it lives inside a zero-width clip span: the page
+      // renders "cellvalue" whether or not the capture strips the char, but
+      // the character IS part of the captured text content.
+      var etxText = document.getElementById("etx-text");
+      etxText.appendChild(document.createTextNode("cell"));
+      var clip = document.createElement("span");
+      clip.className = "ctl";
+      clip.textContent = ETX;
+      etxText.appendChild(clip);
+      etxText.appendChild(document.createTextNode("value"));
+      document.getElementById("etx-input").value = "a" + ETX + "b" + ETX + "c";
+      // ExtJS-style delimiter payload in a hidden input value
+      document.getElementById("etx-hidden").value = ETX + "0" + ETX + "0" + ETX;
+    </script>
+  </body>
+</html>

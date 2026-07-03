@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ms css counter</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 100px;
+        height: 100px;
+        background-color: red;
+      }
+      span {
+        content: counter(number);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <span></span>
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+  </body>
+</html>

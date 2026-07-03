@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>dtim border reset preflight</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      /* #203: Tailwind-Preflight-style reset. border-style is solid with
+         border-width 0 everywhere — if the capture drops the zero width, the
+         CSS initial `medium` (~3px) phantom border paints on every element. */
+      * {
+        border-width: 0;
+        border-style: solid;
+        border-color: rgb(229, 231, 235);
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 300px;
+        height: 120px;
+        background: #ffffff;
+        box-sizing: border-box;
+        padding: 10px;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 16px;
+        color: #14304f;
+      }
+      .box {
+        background: #eef1f5;
+        padding: 8px;
+        margin-bottom: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div id="inner" class="box">hello world</div>
+      <div class="box">
+        <span>nested <em>content</em> stays borderless</span>
+      </div>
+    </div>
+  </body>
+</html>

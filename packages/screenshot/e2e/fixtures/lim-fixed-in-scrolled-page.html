@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>lim fixed in scrolled page</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+        height: 2000px;
+      }
+      .scroll-spacer {
+        height: 600px;
+      }
+      #target {
+        width: 400px;
+        height: 300px;
+        background: #ffffff;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 14px;
+        color: #1d2731;
+        box-sizing: border-box;
+        padding: 16px;
+      }
+      /* With the page scrolled to 500, the banner (viewport top 140) paints
+         over the middle of #target (document top 600 = viewport top 100). */
+      .fixed-banner {
+        position: fixed;
+        top: 140px;
+        left: 40px;
+        width: 240px;
+        height: 48px;
+        line-height: 48px;
+        text-align: center;
+        background: #e4572e;
+        color: #ffffff;
+      }
+      .anchored-wrap {
+        position: relative;
+        margin-top: 120px;
+        height: 120px;
+        background: #dfe9f5;
+        border: 3px solid #14304f;
+      }
+      .fixed-chip {
+        position: fixed;
+        top: 260px;
+        left: 300px;
+        width: 70px;
+        height: 30px;
+        line-height: 30px;
+        text-align: center;
+        background: #1f7a4d;
+        color: #ffffff;
+      }
+      .flow-row {
+        padding: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="scroll-spacer"></div>
+    <div id="target">
+      <div class="flow-row">page scrolled to 500, fixed boxes must stay put</div>
+      <div class="fixed-banner">fixed banner</div>
+      <div class="anchored-wrap">
+        <div class="flow-row">relative wrapper</div>
+        <div class="fixed-chip">chip</div>
+      </div>
+    </div>
+    <script>
+      window.scrollTo(0, 500);
+    </script>
+  </body>
+</html>

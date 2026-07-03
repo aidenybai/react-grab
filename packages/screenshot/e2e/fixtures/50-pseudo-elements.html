@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>50 pseudo elements</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 480px;
+        height: 320px;
+        background: #ffffff;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 14px;
+        color: #1d2731;
+        padding: 24px;
+        box-sizing: border-box;
+        position: relative;
+      }
+      .badge-host {
+        position: relative;
+        display: inline-block;
+        width: 140px;
+        height: 44px;
+        background: #2f6fdb;
+        color: #ffffff;
+        line-height: 44px;
+        text-align: center;
+        border-radius: 6px;
+      }
+      .badge-host::after {
+        content: "9";
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        width: 24px;
+        height: 24px;
+        background: #c0392b;
+        color: #ffffff;
+        border-radius: 50%;
+        line-height: 24px;
+        text-align: center;
+        font-size: 12px;
+      }
+      .quoted {
+        margin: 26px 0 0;
+        font-size: 16px;
+      }
+      .quoted::before {
+        content: "\201C";
+        font-size: 34px;
+        color: #f4c542;
+        vertical-align: -8px;
+        margin-right: 4px;
+      }
+      .quoted::after {
+        content: "\201D  — attributed";
+        color: #7a8894;
+        font-size: 12px;
+      }
+      .ruled {
+        margin: 24px 0 0;
+        position: relative;
+        padding-left: 18px;
+      }
+      .ruled::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 2px;
+        bottom: 2px;
+        width: 6px;
+        background: linear-gradient(#1f6f54, #f4c542);
+        border-radius: 3px;
+      }
+      .arrow-box {
+        position: absolute;
+        left: 24px;
+        bottom: 46px;
+        width: 180px;
+        height: 48px;
+        background: #14304f;
+        color: #dfe9f5;
+        line-height: 48px;
+        text-align: center;
+        border-radius: 6px;
+      }
+      .arrow-box::after {
+        content: "";
+        position: absolute;
+        left: 30px;
+        bottom: -12px;
+        border-left: 12px solid transparent;
+        border-right: 12px solid transparent;
+        border-top: 12px solid #14304f;
+      }
+      .counterweight {
+        position: absolute;
+        right: 24px;
+        bottom: 30px;
+        width: 170px;
+        height: 80px;
+        background: #f7f3ea;
+        border: 1px solid #d7cfc0;
+      }
+      .counterweight::before {
+        content: "";
+        position: absolute;
+        inset: 8px;
+        background: repeating-linear-gradient(-45deg, #e4572e 0 6px, #f7f3ea 6px 12px);
+      }
+      .counterweight::after {
+        content: "overlay";
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        color: #14304f;
+        background: rgba(255, 255, 255, 0.65);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        font-size: 11px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="badge-host">Inbox</div>
+      <p class="quoted">Pseudo content renders without real DOM nodes.</p>
+      <p class="ruled">A gradient rule drawn entirely by a ::before element.</p>
+      <div class="arrow-box">tooltip tail</div>
+      <div class="counterweight"></div>
+    </div>
+  </body>
+</html>

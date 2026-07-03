@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>hti pixel grid</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #ffffff;
+      }
+      #target {
+        width: 30px;
+        height: 30px;
+        background: #ffffff;
+      }
+      .pixel {
+        width: 10px;
+        height: 10px;
+        float: left;
+      }
+      .top {
+        background-color: rgb(255, 0, 0);
+      }
+      .middle {
+        background-color: rgb(0, 255, 0);
+      }
+      .bottom {
+        background-color: rgb(0, 0, 255);
+      }
+      .left {
+        clear: left;
+      }
+      .center {
+        opacity: 0.4;
+      }
+      .right {
+        opacity: 0.2;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="pixel top left"></div>
+      <div class="pixel top center"></div>
+      <div class="pixel top right"></div>
+      <div class="pixel middle left"></div>
+      <div class="pixel middle center"></div>
+      <div class="pixel middle right"></div>
+      <div class="pixel bottom left"></div>
+      <div class="pixel bottom center"></div>
+      <div class="pixel bottom right"></div>
+    </div>
+  </body>
+</html>

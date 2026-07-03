@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>snap video poster fallback</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 400px;
+        height: 280px;
+        background: #14304f;
+        box-sizing: border-box;
+        padding: 40px;
+      }
+      video {
+        display: block;
+        width: 320px;
+        height: 200px;
+        background: #000000;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <!-- No <source>, preload=none: there is never a decodable frame, so
+           the capture must fall back to painting the poster. The poster is
+           320x200, exactly the video box, so no letterboxing ambiguity. -->
+      <video poster="./assets/photo-landscape.png" preload="none" muted playsinline></video>
+    </div>
+  </body>
+</html>

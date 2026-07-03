@@ -1,0 +1,251 @@
+import {
+  DEFAULT_ACCENT_COLOR,
+  IFRAME_PLACEHOLDER_BACKGROUND_COLOR,
+  SVG_NAMESPACE_URI,
+  SVG_PAINT_PRESENTATION_ATTRIBUTES,
+  SVG_TEMPLATE_CONTAINER_TAGS,
+  TRANSPARENT_PIXEL_DATA_URL,
+} from "../constants";
+import type { CloneContext, StyleDeclarationMap } from "../types";
+import { buildIndeterminateCheckboxStyle } from "../utils/build-indeterminate-checkbox-style";
+import { getComposedChildNodes } from "../utils/get-composed-child-nodes";
+import { isElementNode } from "../utils/is-element-node";
+import { isHtmlElementOfTag } from "../utils/is-html-element-of-tag";
+import { parsePx } from "../utils/parse-px";
+import { resolveUrl } from "../utils/resolve-url";
+import { sanitizeSvgSubtreeForSerialization } from "../utils/sanitize-svg-subtree";
+import { selectSrcsetCandidate } from "../utils/select-srcset-candidate";
+import { stripInvalidXmlCharacters } from "../utils/strip-invalid-xml-characters";
+import { freezeFixedDescendants } from "./freeze-fixed";
+import { freezeStickyDescendants } from "./freeze-sticky";
+import { applyScrollOffsets } from "./scroll-offsets";
+
+const PLAIN_XML_ATTRIBUTE_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_.-]*$/;
+const REMOVED_ATTRIBUTE_NAMES = new Set(["class", "style", "srcset", "sizes", "loading", "slot"]);
+
+const isSerializableAttribute = (attribute: Attr): boolean => {
+  if (attribute.namespaceURI === null) {
+    return attribute.name !== "xmlns" && PLAIN_XML_ATTRIBUTE_NAME_PATTERN.test(attribute.name);
+  }
+  return (
+    (attribute.prefix === null || PLAIN_XML_ATTRIBUTE_NAME_PATTERN.test(attribute.prefix)) &&
+    PLAIN_XML_ATTRIBUTE_NAME_PATTERN.test(attribute.localName)
+  );
+};
+
+const sanitizeCloneAttributes = (clone: Element): void => {
+  for (const attribute of [...clone.attributes]) {
+    if (REMOVED_ATTRIBUTE_NAMES.has(attribute.name) || !isSerializableAttribute(attribute)) {
+      clone.removeAttributeNode(attribute);
+      continue;
+    }
+    const sanitizedValue = stripInvalidXmlCharacters(attribute.value);
+    if (sanitizedValue !== attribute.value) attribute.value = sanitizedValue;
+  }
+};
+
+const isSvgTemplateContainer = (element: Element): boolean =>
+  element.namespaceURI === SVG_NAMESPACE_URI && SVG_TEMPLATE_CONTAINER_TAGS.has(element.localName);
+
+// Presentation attributes sit below class rules in the cascade, but our diffed
+// classes omit properties equal to the UA default, which would let a stale
+// attribute (e.g. fill="red" overridden by CSS) win inside the capture.
+const stripSvgPaintPresentationAttributes = (clone: Element): void => {
+  for (const attributeName of SVG_PAINT_PRESENTATION_ATTRIBUTES) {
+    if (clone.hasAttribute(attributeName)) clone.removeAttribute(attributeName);
+  }
+};
+
+const freezeImage = (image: HTMLImageElement): Element | null => {
+  const cloned = image.cloneNode(false);
+  if (!isElementNode(cloned)) return null;
+  let frozenSrc = image.currentSrc || image.src;
+  if (!frozenSrc && image.srcset) {
+    const srcsetCandidateUrl = selectSrcsetCandidate(
+      image.srcset,
+      image.offsetWidth,
+      image.ownerDocument.defaultView?.devicePixelRatio ?? 1,
+    );
+    if (srcsetCandidateUrl) frozenSrc = resolveUrl(srcsetCandidateUrl, image.baseURI);
+  }
+  if (frozenSrc) cloned.setAttribute("src", frozenSrc);
+  return cloned;
+};
+
+const freezeCanvas = (canvas: HTMLCanvasElement, ownerDocument: Document): Element => {
+  const frozenImage = ownerDocument.createElement("img");
+  frozenImage.setAttribute("width", String(canvas.width));
+  frozenImage.setAttribute("height", String(canvas.height));
+  try {
+    frozenImage.setAttribute("src", canvas.toDataURL());
+  } catch {
+    frozenImage.setAttribute("src", TRANSPARENT_PIXEL_DATA_URL);
+  }
+  return frozenImage;
+};
+
+const freezeVideo = (
+  video: HTMLVideoElement,
+  ownerDocument: Document,
+  styles: StyleDeclarationMap,
+): Element => {
+  const frozenImage = ownerDocument.createElement("img");
+  let frozenSrc = "";
+  if (video.videoWidth > 0 && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+    const scratchCanvas = ownerDocument.createElement("canvas");
+    scratchCanvas.width = video.videoWidth;
+    scratchCanvas.height = video.videoHeight;
+    const scratchContext = scratchCanvas.getContext("2d");
+    if (scratchContext) {
+      try {
+        scratchContext.drawImage(video, 0, 0);
+        frozenSrc = scratchCanvas.toDataURL();
+      } catch {
+        frozenSrc = "";
+      }
+    }
+    frozenImage.setAttribute("width", String(video.videoWidth));
+    frozenImage.setAttribute("height", String(video.videoHeight));
+    scratchCanvas.width = 0;
+    scratchCanvas.height = 0;
+  }
+  if (!frozenSrc) frozenSrc = video.poster || TRANSPARENT_PIXEL_DATA_URL;
+  frozenImage.setAttribute("src", frozenSrc);
+  // The video-to-img swap invalidates the baseline diff for object-fit: the UA
+  // gives <video> object-fit:contain while <img> defaults to fill, so the
+  // poster/frame fitting must be pinned inline.
+  frozenImage.setAttribute(
+    "style",
+    `object-fit:${styles["object-fit"] ?? "contain"};` +
+      `object-position:${styles["object-position"] ?? "50% 50%"};`,
+  );
+  return frozenImage;
+};
+
+const reflectFormState = (element: Element, clone: Element, styles: StyleDeclarationMap): void => {
+  if (isHtmlElementOfTag(element, "input")) {
+    clone.setAttribute("value", element.value);
+    if (element.checked) clone.setAttribute("checked", "");
+    else clone.removeAttribute("checked");
+    if (element.type === "checkbox" && element.indeterminate) {
+      const accentColorValue = styles["accent-color"];
+      clone.setAttribute(
+        "style",
+        buildIndeterminateCheckboxStyle(
+          parsePx(styles["width"]),
+          parsePx(styles["height"]),
+          accentColorValue && accentColorValue !== "auto" ? accentColorValue : DEFAULT_ACCENT_COLOR,
+        ),
+      );
+    }
+  } else if (isHtmlElementOfTag(element, "option")) {
+    if (element.selected) clone.setAttribute("selected", "");
+    else clone.removeAttribute("selected");
+  }
+};
+
+const hasVisibleOverflowOnly = (
+  overflowX: string | undefined,
+  overflowY: string | undefined,
+): boolean =>
+  (overflowX === undefined || overflowX === "visible") &&
+  (overflowY === undefined || overflowY === "visible");
+
+const buildIframeClone = (element: HTMLIFrameElement, context: CloneContext): Element => {
+  const clone = context.ownerDocument.createElement("div");
+  const iframeContent = context.iframeContentByElement.get(element);
+  if (iframeContent) {
+    const canvasBackground = iframeContent.canvasBackgroundColor
+      ? `background:${iframeContent.canvasBackgroundColor};`
+      : "";
+    clone.setAttribute("style", `overflow:hidden;${canvasBackground}`);
+    const contentImage = context.ownerDocument.createElement("img");
+    contentImage.setAttribute("src", iframeContent.pngDataUrl);
+    contentImage.setAttribute(
+      "style",
+      `display:block;width:${iframeContent.widthPx}px;height:${iframeContent.heightPx}px;`,
+    );
+    clone.appendChild(contentImage);
+  } else {
+    clone.setAttribute("style", `background:${IFRAME_PLACEHOLDER_BACKGROUND_COLOR};`);
+  }
+  return clone;
+};
+
+const cloneElementNode = (element: Element, context: CloneContext): Element | null => {
+  if (isSvgTemplateContainer(element)) {
+    const verbatimClone = element.cloneNode(true);
+    if (!isElementNode(verbatimClone)) return null;
+    sanitizeSvgSubtreeForSerialization(verbatimClone);
+    return verbatimClone;
+  }
+  const snapshot = context.snapshotByElement.get(element);
+  if (!snapshot) return null;
+  let clone: Element | null;
+  let shouldCloneChildren = true;
+  let isSynthesizedClone = false;
+  if (isHtmlElementOfTag(element, "iframe")) {
+    clone = buildIframeClone(element, context);
+    shouldCloneChildren = false;
+    isSynthesizedClone = true;
+  } else if (isHtmlElementOfTag(element, "canvas")) {
+    clone = freezeCanvas(element, context.ownerDocument);
+    shouldCloneChildren = false;
+    isSynthesizedClone = true;
+  } else if (isHtmlElementOfTag(element, "video")) {
+    clone = freezeVideo(element, context.ownerDocument, snapshot.styles);
+    shouldCloneChildren = false;
+    isSynthesizedClone = true;
+  } else if (isHtmlElementOfTag(element, "img")) {
+    clone = freezeImage(element);
+    shouldCloneChildren = false;
+  } else if (isHtmlElementOfTag(element, "textarea")) {
+    const cloned = element.cloneNode(false);
+    clone = isElementNode(cloned) ? cloned : null;
+    shouldCloneChildren = false;
+  } else {
+    const cloned = element.cloneNode(false);
+    clone = isElementNode(cloned) ? cloned : null;
+  }
+  if (!clone) return null;
+  if (!isSynthesizedClone) sanitizeCloneAttributes(clone);
+  reflectFormState(element, clone, snapshot.styles);
+  const className = context.classNameByElement.get(element);
+  if (className) clone.setAttribute("class", className);
+  if (className && element.namespaceURI === SVG_NAMESPACE_URI) {
+    stripSvgPaintPresentationAttributes(clone);
+  }
+  if (isHtmlElementOfTag(element, "textarea")) {
+    clone.textContent = stripInvalidXmlCharacters(element.value);
+  }
+  context.cloneByElement.set(element, clone);
+  if (shouldCloneChildren) {
+    for (const childNode of getComposedChildNodes(element)) {
+      if (isElementNode(childNode)) {
+        const childClone = cloneElementNode(childNode, context);
+        if (childClone) clone.appendChild(childClone);
+      } else if (childNode.nodeType === Node.TEXT_NODE) {
+        clone.appendChild(
+          context.ownerDocument.createTextNode(
+            stripInvalidXmlCharacters(childNode.textContent ?? ""),
+          ),
+        );
+      }
+    }
+  }
+  const hasScrollOffset = snapshot.scrollLeft !== 0 || snapshot.scrollTop !== 0;
+  if (
+    hasScrollOffset &&
+    !hasVisibleOverflowOnly(snapshot.styles["overflow-x"], snapshot.styles["overflow-y"])
+  ) {
+    applyScrollOffsets(clone, snapshot.scrollLeft, snapshot.scrollTop, context.ownerDocument);
+    freezeStickyDescendants(element, context);
+  }
+  return clone;
+};
+
+export const cloneComposedTree = (rootElement: Element, context: CloneContext): Element | null => {
+  const clone = cloneElementNode(rootElement, context);
+  if (clone) freezeFixedDescendants(rootElement, context);
+  return clone;
+};

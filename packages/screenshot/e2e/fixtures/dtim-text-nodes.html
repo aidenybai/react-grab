@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>dtim text nodes</title>
+    <style>
+      @font-face {
+        font-family: "Geist Mono Fixture";
+        src: url("./assets/dtim-geist-mono.woff2") format("woff2");
+        font-weight: 400 700;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        background-color: white;
+        color: black;
+        font-family: "Geist Mono Fixture", monospace;
+        font-size: 20px;
+        width: 300px;
+        height: 60px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div>
+        SOME TEXT
+        <div>SOME MORE TEXT</div>
+      </div>
+    </div>
+  </body>
+</html>

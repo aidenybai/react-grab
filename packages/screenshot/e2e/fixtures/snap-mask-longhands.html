@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>snap mask longhands</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 360px;
+        height: 160px;
+        background: #dfe9f5;
+        box-sizing: border-box;
+        padding: 30px;
+        display: flex;
+        gap: 40px;
+      }
+      .m {
+        width: 50px;
+        height: 50px;
+        background: red;
+        flex: none;
+      }
+      /* #402 verbatim: with mask-mode:luminance a black→transparent gradient
+         hides the whole box. If mask-mode is lost (alpha mask), the top half
+         paints red. */
+      .lum-hidden {
+        mask-image: linear-gradient(black, transparent);
+        mask-mode: luminance;
+      }
+      /* luminance with white→black: top visible, bottom hidden. Dropping
+         mask-mode leaves the whole box visible. */
+      .lum-fade {
+        mask-image: linear-gradient(white, black);
+        mask-mode: luminance;
+      }
+      /* #402 mask-composite: full layer minus a circle — subtract must
+         survive re-inlining, otherwise the hole disappears. */
+      .composite {
+        mask-image:
+          linear-gradient(black, black),
+          radial-gradient(circle 15px at 25px 25px, black 98%, transparent 100%);
+        mask-composite: subtract;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="m lum-hidden"></div>
+      <div class="m lum-fade"></div>
+      <div class="m composite"></div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>dtim svg use out of subtree</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 120px;
+        height: 60px;
+        background: #ffffff;
+        box-sizing: border-box;
+        padding: 10px;
+      }
+      #target svg {
+        display: block;
+        float: left;
+        margin-right: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- The sprite is a SIBLING of #target — outside the captured subtree.
+         That out-of-target placement is the #139/#215 bug: the <use>
+         references must still resolve in the capture. -->
+    <svg style="display: none" xmlns="http://www.w3.org/2000/svg">
+      <symbol id="icon-star" viewBox="0 0 10 10">
+        <path
+          id="starpath"
+          d="M5 0 L6 4 L10 4 L7 6 L8 10 L5 7 L2 10 L3 6 L0 4 L4 4 Z"
+          fill="currentColor"
+        ></path>
+      </symbol>
+      <symbol id="diamond" viewBox="0 0 10 10">
+        <rect id="symrect" x="2" y="2" width="6" height="6" fill="red"></rect>
+      </symbol>
+    </svg>
+
+    <div id="target">
+      <!-- currentColor must flow into the out-of-subtree symbol. -->
+      <div style="color: red">
+        <svg class="icon" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
+          <use xlink:href="#icon-star" href="#icon-star"></use>
+        </svg>
+      </div>
+      <svg width="20" height="20" xmlns="http://www.w3.org/2000/svg">
+        <use href="#diamond" width="20" height="20"></use>
+      </svg>
+      <!-- In-subtree defs target: must render AND must not be duplicated. -->
+      <svg width="20" height="20" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <rect id="inside" x="0" y="0" width="6" height="6" fill="blue"></rect>
+        </defs>
+        <use href="#inside" width="20" height="20"></use>
+      </svg>
+    </div>
+  </body>
+</html>

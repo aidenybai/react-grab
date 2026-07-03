@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ms svg external symbol</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 224px;
+        height: 80px;
+        background: #dfe9f5;
+        display: flex;
+        gap: 8px;
+        padding: 8px;
+        box-sizing: border-box;
+      }
+      .chip {
+        display: inline-block;
+        width: 64px;
+        height: 64px;
+      }
+      .chip svg {
+        display: block;
+        width: 64px;
+        height: 64px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <span class="chip" style="color: red">
+        <!-- With href -->
+        <svg viewBox="0 0 24 24"><use href="./assets/ms-externalsymbol.svg#icon" /></svg>
+      </span>
+
+      <span class="chip" style="color: yellow">
+        <!-- With legacy xlink:href -->
+        <svg viewBox="0 0 24 24"><use xlink:href="./assets/ms-externalsymbol.svg#icon" /></svg>
+      </span>
+
+      <span class="chip" style="color: green">
+        <!-- With both xlink:href and href, but only href should be used when both are present -->
+        <svg viewBox="0 0 24 24">
+          <use xlink:href="some-invalid-ignored-stuff" href="./assets/ms-externalsymbol.svg#icon" />
+        </svg>
+      </span>
+    </div>
+  </body>
+</html>

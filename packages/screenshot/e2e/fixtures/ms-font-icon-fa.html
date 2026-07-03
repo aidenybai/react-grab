@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ms font icon fa</title>
+    <style>
+      @font-face {
+        font-family: "Font Awesome 5 Free";
+        font-display: block;
+        font-weight: 900;
+        src: url("./assets/ms-fa-solid-900.woff2") format("woff2");
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 48px;
+        height: 48px;
+        background: #ffffff;
+        font-size: 40px;
+      }
+      .fa {
+        font-family: "Font Awesome 5 Free";
+        font-weight: 900;
+
+        -moz-osx-font-smoothing: grayscale;
+        -webkit-font-smoothing: antialiased;
+        display: inline-block;
+        font-style: normal;
+        font-variant: normal;
+        line-height: 1;
+        text-rendering: auto;
+      }
+      .fa-list-ol:before {
+        content: "\f0cb";
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <span class="fa fa-list-ol"></span>
+    </div>
+  </body>
+</html>

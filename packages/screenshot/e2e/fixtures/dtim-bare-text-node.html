@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>dtim bare text node</title>
+    <style>
+      @font-face {
+        font-family: "Geist Mono Fixture";
+        src: url("./assets/dtim-geist-mono.woff2") format("woff2");
+        font-weight: 400 700;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target,
+      #target * {
+        color: black;
+        font-family: "Geist Mono Fixture", monospace;
+        font-size: 20px;
+        font-style: normal;
+        font-weight: bold;
+        font-variant: normal;
+      }
+      #target * {
+        background-color: white;
+      }
+      #target {
+        text-align: center;
+        width: 500px;
+        height: 100px;
+        box-sizing: border-box;
+        padding: 20px;
+        background-color: brown;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- The first child of #target is a bare text node, then a comment, then an element. -->
+    <div id="target">
+      BARE TEXT NODES ARE FUN
+      <!-- This is a comment -->
+      <div>IGNORE ME</div>
+    </div>
+  </body>
+</html>

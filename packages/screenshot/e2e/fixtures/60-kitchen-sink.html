@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>60 kitchen sink</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 600px;
+        height: 400px;
+        background: #eef1f5;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 12px;
+        color: #1d2731;
+        display: grid;
+        grid-template-rows: 56px 1fr 64px;
+        grid-template-columns: 1fr;
+        box-sizing: border-box;
+        position: relative;
+        overflow: hidden;
+      }
+      .masthead {
+        background: linear-gradient(105deg, #14304f, #2f6fdb 60%, #7a3b8f);
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 16px;
+      }
+      .masthead h1 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 700;
+        text-shadow: 1px 2px 3px rgba(0, 0, 0, 0.6);
+      }
+      .masthead .pill {
+        position: relative;
+        background: #f4c542;
+        color: #14304f;
+        padding: 4px 14px;
+        border-radius: 999px;
+        font-weight: 700;
+      }
+      .masthead .pill::after {
+        content: "3";
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        width: 18px;
+        height: 18px;
+        background: #c0392b;
+        color: #ffffff;
+        border-radius: 50%;
+        font-size: 10px;
+        line-height: 18px;
+        text-align: center;
+      }
+      .deck {
+        display: grid;
+        grid-template-columns: 170px 1fr 150px;
+        gap: 12px;
+        padding: 12px 16px;
+        min-height: 0;
+      }
+      .media-card {
+        background: #ffffff;
+        border-radius: 8px;
+        box-shadow:
+          0 2px 4px rgba(0, 0, 0, 0.2),
+          0 8px 16px rgba(20, 48, 79, 0.25);
+        padding: 10px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .media-card img {
+        width: 150px;
+        height: 92px;
+        object-fit: cover;
+        border-radius: 4px;
+        display: block;
+      }
+      .media-card .caption {
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        font-size: 10px;
+        color: #5a6b7c;
+      }
+      .media-card canvas {
+        display: block;
+        background: #dfe9f5;
+      }
+      .list-panel {
+        background: #ffffff;
+        border-radius: 8px;
+        border: 1px solid #cfd8e2;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .list-panel .panel-title {
+        background: #1f6f54;
+        color: #ffffff;
+        padding: 6px 10px;
+        font-weight: 700;
+      }
+      .list-scroller {
+        overflow: auto;
+        scrollbar-width: none;
+        flex: 1;
+      }
+      .list-scroller .entry {
+        height: 30px;
+        line-height: 30px;
+        padding-left: 10px;
+        border-bottom: 1px solid #e4e9ef;
+      }
+      .list-scroller .entry:nth-child(3n) {
+        background: #f4f7fa;
+      }
+      .side-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .side-stack .sticker {
+        height: 74px;
+        background: repeating-linear-gradient(-45deg, #e4572e 0 10px, #f4c542 10px 20px);
+        border-radius: 6px;
+        transform: rotate(-4deg);
+        box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 0.6);
+      }
+      .side-stack .frost {
+        height: 66px;
+        background: url("./assets/pattern-tile.png");
+        border-radius: 6px;
+        position: relative;
+      }
+      .side-stack .frost::after {
+        content: "tiled";
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: rgba(255, 255, 255, 0.55);
+        color: #14304f;
+        font-weight: 700;
+      }
+      .side-stack input[type="text"] {
+        height: 26px;
+        font-family: inherit;
+        font-size: 12px;
+        padding: 0 6px;
+        border: 1px solid #9aa8b6;
+        border-radius: 4px;
+        background: #ffffff;
+        box-sizing: border-box;
+        width: 150px;
+      }
+      .statusbar {
+        background: #1d2731;
+        color: #c8d4e0;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 0 16px;
+      }
+      .statusbar .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #1f6f54;
+        box-shadow: 0 0 0 3px rgba(31, 111, 84, 0.4);
+      }
+      .statusbar .meter {
+        flex: 1;
+        height: 8px;
+        background: #35414d;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .statusbar .meter div {
+        width: 62%;
+        height: 8px;
+        background: linear-gradient(to right, #f4c542, #e4572e);
+      }
+      .statusbar em {
+        font-style: italic;
+        text-decoration: underline wavy #f4c542 1px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="masthead">
+        <h1>Kitchen sink capture</h1>
+        <div class="pill">alerts</div>
+      </div>
+      <div class="deck">
+        <div class="media-card">
+          <img src="./assets/photo-landscape.png" alt="" />
+          <span class="caption">object-fit cover</span>
+          <canvas id="spark" width="150" height="40"></canvas>
+        </div>
+        <div class="list-panel">
+          <div class="panel-title">Scrolled ledger</div>
+          <div class="list-scroller" id="ledger">
+            <div class="entry">entry 01 — opening balance</div>
+            <div class="entry">entry 02 — coffee beans</div>
+            <div class="entry">entry 03 — woff2 subset</div>
+            <div class="entry">entry 04 — pixel budget</div>
+            <div class="entry">entry 05 — bitblt crop</div>
+            <div class="entry">entry 06 — conic swatch</div>
+            <div class="entry">entry 07 — shadow host</div>
+            <div class="entry">entry 08 — slotted node</div>
+            <div class="entry">entry 09 — closing balance</div>
+            <div class="entry">entry 10 — carried forward</div>
+          </div>
+          <div id="chip-host"><span slot="label">slotted chip</span></div>
+        </div>
+        <div class="side-stack">
+          <div class="sticker"></div>
+          <div class="frost"></div>
+          <input type="text" id="sink-input" />
+        </div>
+      </div>
+      <div class="statusbar">
+        <div class="dot"></div>
+        <div class="meter"><div></div></div>
+        <em>sixty-two percent</em>
+        <span>v1.0</span>
+      </div>
+    </div>
+    <script>
+      const sparkCanvas = document.querySelector("#spark");
+      const sparkContext = sparkCanvas.getContext("2d");
+      sparkContext.strokeStyle = "#2f6fdb";
+      sparkContext.lineWidth = 2;
+      sparkContext.beginPath();
+      const sparkPoints = [30, 12, 22, 8, 26, 14, 30, 6, 18, 10];
+      sparkPoints.forEach((pointValue, pointIndex) => {
+        const pointX = 5 + pointIndex * 15.5;
+        if (pointIndex === 0) {
+          sparkContext.moveTo(pointX, pointValue);
+        } else {
+          sparkContext.lineTo(pointX, pointValue);
+        }
+      });
+      sparkContext.stroke();
+      sparkContext.fillStyle = "#c0392b";
+      sparkContext.fillRect(0, 34, 150, 6);
+
+      document.querySelector("#ledger").scrollTop = 96;
+      document.querySelector("#sink-input").value = "typed value";
+
+      const chipHost = document.querySelector("#chip-host");
+      const chipShadowRoot = chipHost.attachShadow({ mode: "open" });
+      chipShadowRoot.innerHTML = `
+        <style>
+          .chip-row {
+            display: flex;
+            gap: 6px;
+            padding: 6px 10px;
+            background: #dfe9f5;
+          }
+          ::slotted([slot="label"]) {
+            background: #7a3b8f;
+            color: #ffffff;
+            padding: 1px 8px;
+            border-radius: 999px;
+          }
+          .shadow-chip {
+            background: #14304f;
+            color: #ffffff;
+            padding: 1px 8px;
+            border-radius: 999px;
+          }
+        </style>
+        <div class="chip-row">
+          <slot name="label">fallback</slot>
+          <span class="shadow-chip">shadow chip</span>
+        </div>
+      `;
+    </script>
+  </body>
+</html>

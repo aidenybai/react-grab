@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ms svg css fill foreignobject</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 120px;
+        height: 120px;
+        background: #ffffff;
+        overflow: hidden;
+      }
+      .rect {
+        fill: black;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <rect class="rect" x="10" y="10" fill="red" width="100" height="100" />
+        <foreignObject
+          x="20"
+          y="20"
+          width="120"
+          height="120"
+          requiredExtensions="http://www.w3.org/1999/xhtml"
+        >
+          <span style="display: inline-block; width: 32px; height: 32px; background: red"></span>
+        </foreignObject>
+      </svg>
+    </div>
+  </body>
+</html>

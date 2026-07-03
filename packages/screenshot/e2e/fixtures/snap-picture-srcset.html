@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>snap picture srcset</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 420px;
+        height: 300px;
+        background: #ffffff;
+        box-sizing: border-box;
+        padding: 20px;
+        display: flex;
+        gap: 20px;
+        align-items: flex-start;
+      }
+      picture img {
+        display: block;
+        width: 160px;
+        height: 240px;
+      }
+      .lazy {
+        display: block;
+        width: 160px;
+        height: 100px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <!-- The <img> src is a 1px data-URI placeholder; the browser resolves
+           the real candidate from <source srcset>. The capture must render
+           the resolved candidate, not the placeholder. -->
+      <picture>
+        <source srcset="./assets/photo-portrait.png" />
+        <img
+          src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/w8AAn8B9p6Q2wAAAABJRU5ErkJggg=="
+          alt=""
+        />
+      </picture>
+      <!-- Lazy-hint variant: data-src is only a hint; no lazy loader runs, so
+           the visible truth is the gray placeholder and the capture must NOT
+           swap in the data-src candidate on its own. -->
+      <img
+        class="lazy"
+        src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='100'%3E%3Crect width='160' height='100' fill='%239aa8b6'/%3E%3C/svg%3E"
+        data-src="./assets/photo-landscape.png"
+        alt=""
+      />
+    </div>
+  </body>
+</html>

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>snap content visibility</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 400px;
+        height: 300px;
+        background: #ffffff;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 15px;
+        color: #1d2731;
+        box-sizing: border-box;
+        padding: 16px;
+      }
+      /* #281 — on-screen content-visibility:auto content renders and must
+         appear in the capture. */
+      .cv-auto {
+        content-visibility: auto;
+        contain-intrinsic-size: auto 80px;
+        background: #dfe9f5;
+        padding: 10px;
+      }
+      /* NEW-10 — content-visibility:hidden children must stay hidden (the
+         section's own background still paints, leaving a flat gap). */
+      .cv-hidden {
+        content-visibility: hidden;
+        contain-intrinsic-size: 0 80px;
+        height: 80px;
+        margin-top: 14px;
+        background: #f7f3ea;
+      }
+      .cv-hidden .leak {
+        background: #c0392b;
+        color: #ffffff;
+        padding: 20px;
+      }
+      .after-block {
+        margin-top: 14px;
+        background: #14304f;
+        color: #ffffff;
+        padding: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <section class="cv-auto">
+        content-visibility auto: this text is on screen, so it is rendered and must be present in
+        the capture.
+      </section>
+      <section class="cv-hidden">
+        <div class="leak">this bright box must NOT paint</div>
+      </section>
+      <div class="after-block">layout anchor below the hidden gap</div>
+    </div>
+  </body>
+</html>

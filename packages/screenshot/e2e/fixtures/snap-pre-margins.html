@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>snap pre margins</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 360px;
+        height: 220px;
+        background: #ffffff;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 14px;
+        color: #1d2731;
+        box-sizing: border-box;
+        padding: 16px;
+      }
+      .edge {
+        height: 30px;
+        background: #2f6fdb;
+      }
+      .edge.bottom {
+        background: #c0392b;
+      }
+      /* The <pre> keeps its UA default margins (1em 0). If the capture
+         normalizes/drops them, both colored edges shift. Font pinned so the
+         only variable is the margin handling. */
+      pre {
+        font-family: "Inter Fixture", sans-serif;
+        background: #f7f3ea;
+        padding: 6px 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="edge"></div>
+      <pre>
+line one
+  line two indented
+line three</pre
+      >
+      <div class="edge bottom"></div>
+    </div>
+  </body>
+</html>

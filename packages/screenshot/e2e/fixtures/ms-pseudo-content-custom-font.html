@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ms pseudo content custom font</title>
+    <style>
+      @font-face {
+        font-family: "Ms Custom Font";
+        font-style: normal;
+        font-weight: 400;
+        src: url("./assets/ms-latin.woff2") format("woff2");
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 200px;
+        height: 120px;
+        background: #ffffff;
+        font-family: "Ms Custom Font";
+        font-size: 20px;
+        line-height: 30px;
+      }
+      .with-before::before {
+        content: "BEFORE";
+      }
+      .with-after::after {
+        content: "AFTER";
+      }
+      .with-both::before {
+        content: "BEFORE-";
+      }
+      .with-both::after {
+        content: "AFTER";
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="with-before"></div>
+      <div class="with-after"></div>
+      <div class="with-both"></div>
+    </div>
+  </body>
+</html>

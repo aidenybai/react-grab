@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>snap icon font ligature</title>
+    <style>
+      /* Local Material-Icons-style ligature subset: "home" and "star"
+         resolve to icon glyphs via the GSUB `liga` feature. */
+      @font-face {
+        font-family: "Material Icons";
+        src: url("./assets/snap-material-icons-subset.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 360px;
+        height: 200px;
+        background: #ffffff;
+        box-sizing: border-box;
+        padding: 20px;
+      }
+      .material-icons {
+        font-family: "Material Icons";
+        font-weight: normal;
+        font-style: normal;
+        display: inline-block;
+        line-height: 1;
+        letter-spacing: normal;
+        text-transform: none;
+        white-space: nowrap;
+        word-wrap: normal;
+        font-feature-settings: "liga";
+        -webkit-font-smoothing: antialiased;
+      }
+      .big {
+        font-size: 99px;
+        color: #14304f;
+      }
+      .small {
+        font-size: 24px;
+        color: #c0392b;
+        vertical-align: top;
+        margin-left: 16px;
+      }
+      .small-2 {
+        font-size: 24px;
+        color: #1f6f54;
+        vertical-align: top;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <span class="material-icons big">home</span>
+      <span class="material-icons small">star</span>
+      <span class="material-icons small-2">home</span>
+    </div>
+  </body>
+</html>

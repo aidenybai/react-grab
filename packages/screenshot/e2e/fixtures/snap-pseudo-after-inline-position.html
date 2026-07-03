@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>snap pseudo after inline position</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      /* snapVisual avatar-card demo, pinned to a local font. The card width
+         puts "Juan Martin Pro" close to the wrap point: dropped leading
+         space, lost bold inheritance or a narrowed <strong> makes " Pro"
+         wrap onto / overlap the "zumerlab" line. */
+      #target {
+        width: 320px;
+        height: 180px;
+        background: #f4f5f7;
+        box-sizing: border-box;
+        padding: 32px;
+        font:
+          14px/1.5 "Inter Fixture",
+          sans-serif;
+        color: #1a1d24;
+      }
+      .grid {
+        display: grid;
+        gap: 24px;
+        grid-template-columns: 1fr;
+      }
+      .card {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+      }
+      .card h2 {
+        margin: 0 0 8px;
+        font-size: 14px;
+      }
+      .avatar-row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+      .avatar {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: conic-gradient(from 220deg, #ff8a3d, #d63d4d, #6f5cff, #2f6df6, #ff8a3d);
+        display: grid;
+        place-items: center;
+        color: white;
+        font-weight: 700;
+        font-size: 22px;
+        box-shadow:
+          inset 0 0 0 3px white,
+          0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+      .avatar-meta strong {
+        display: block;
+      }
+      .avatar-meta span.zlab {
+        opacity: 0.7;
+        font-size: 12px;
+      }
+      .avatar-meta strong::after {
+        content: " Pro";
+        color: #6f5cff;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="grid">
+        <div class="card" data-test="avatar">
+          <h2>Avatar</h2>
+          <div class="avatar-row">
+            <div class="avatar">JM</div>
+            <div class="avatar-meta">
+              <strong>Juan Martin</strong>
+              <span class="zlab">zumerlab</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

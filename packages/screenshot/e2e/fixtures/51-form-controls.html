@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>51 form controls</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 480px;
+        height: 320px;
+        background: #f4f6f8;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 13px;
+        color: #1d2731;
+        padding: 20px;
+        box-sizing: border-box;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px 16px;
+        align-content: start;
+        accent-color: #2f6fdb;
+      }
+      label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      input[type="text"] {
+        width: 190px;
+        height: 26px;
+        font-family: inherit;
+        font-size: 13px;
+        padding: 0 6px;
+        border: 1px solid #9aa8b6;
+        border-radius: 4px;
+        box-sizing: border-box;
+        background: #ffffff;
+      }
+      input[type="text"]:disabled {
+        background: #e3e7eb;
+        color: #8a97a4;
+      }
+      select {
+        width: 190px;
+        height: 28px;
+        font-family: inherit;
+        font-size: 13px;
+      }
+      textarea {
+        grid-column: 1 / -1;
+        width: 440px;
+        height: 72px;
+        font-family: inherit;
+        font-size: 13px;
+        padding: 6px;
+        border: 1px solid #9aa8b6;
+        border-radius: 4px;
+        box-sizing: border-box;
+        resize: none;
+        background: #ffffff;
+      }
+      button {
+        width: 120px;
+        height: 30px;
+        font-family: inherit;
+        font-size: 13px;
+        background: #2f6fdb;
+        color: #ffffff;
+        border: none;
+        border-radius: 5px;
+      }
+      input[type="range"] {
+        width: 190px;
+      }
+      progress {
+        width: 190px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <input type="text" value="attribute value" />
+      <input type="text" id="typed-input" />
+      <input type="text" value="disabled field" disabled />
+      <input type="text" placeholder="placeholder only" />
+      <label><input type="checkbox" checked /> subscribed</label>
+      <label><input type="checkbox" /> unsubscribed</label>
+      <label><input type="radio" name="tier" /> basic</label>
+      <label><input type="radio" name="tier" checked /> premium</label>
+      <select>
+        <option>first option</option>
+        <option selected>selected option</option>
+        <option>third option</option>
+      </select>
+      <select id="scripted-select">
+        <option value="a">alpha</option>
+        <option value="b">beta</option>
+        <option value="c">gamma</option>
+      </select>
+      <input type="range" min="0" max="100" value="70" />
+      <progress max="100" value="45"></progress>
+      <textarea id="notes">
+First line of the note.
+Second line set as text content.</textarea
+      >
+      <button>Submit form</button>
+    </div>
+    <script>
+      document.querySelector("#typed-input").value = "typed via property";
+      document.querySelector("#scripted-select").value = "c";
+      document.querySelector("#notes").value =
+        "Replaced via the value property.\nStill two lines long.";
+    </script>
+  </body>
+</html>

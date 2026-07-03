@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>dtim flex fractional widths</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      /* #168: deliberately 201px wide — (201 - 2*3px gap) / 3 = 65px per item,
+         but combined with space-between and flex:1 the resolved widths are
+         fractional; the clone must lay out identically (sub-pixel snapping). */
+      #target {
+        width: 201px;
+        height: 20px;
+        background: #ffffff;
+      }
+      #flex {
+        display: flex;
+        gap: 3px;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .it {
+        flex: 1;
+        height: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div id="flex">
+        <div class="it" style="background: red"></div>
+        <div class="it" style="background: green"></div>
+        <div class="it" style="background: blue"></div>
+      </div>
+    </div>
+  </body>
+</html>

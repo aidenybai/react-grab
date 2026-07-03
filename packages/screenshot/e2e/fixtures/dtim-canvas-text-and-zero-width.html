@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>dtim canvas text and zero width</title>
+    <style>
+      @font-face {
+        font-family: "Geist Mono Fixture";
+        src: url("./assets/dtim-geist-mono.woff2") format("woff2");
+        font-weight: 400 700;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 200px;
+        height: 160px;
+        background-color: lightgrey;
+        font-family: "Geist Mono Fixture", monospace;
+        font-size: 14px;
+        color: black;
+        box-sizing: border-box;
+        padding: 8px;
+        text-align: center;
+      }
+      #content {
+        width: 100px;
+        height: 100px;
+        display: block;
+        margin: 0 auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <canvas id="content" width="100" height="100"></canvas>
+      BLANK_TEMPLATE
+      <!-- A zero-width canvas has no pixel data and must not break the capture.
+           (CSS height only; its pixel buffer stays 0 wide.) -->
+      <canvas width="0" style="height: 24px; vertical-align: middle"></canvas>
+    </div>
+    <script>
+      // Same drawing as the original canvas spec: white fill + a large "0".
+      const canvasElement = document.getElementById("content");
+      const canvasContext = canvasElement.getContext("2d");
+      canvasContext.fillStyle = "#ffffff";
+      canvasContext.fillRect(0, 0, canvasElement.width, canvasElement.height);
+      canvasContext.fillStyle = "#000000";
+      canvasContext.font = "100px monospace";
+      canvasContext.textAlign = "center";
+      canvasContext.textBaseline = "middle";
+      canvasContext.fillText("0", canvasElement.width / 2, canvasElement.height / 2);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>52 scrolled container</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 420px;
+        height: 300px;
+        background: #14304f;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 13px;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      .scroller {
+        width: 380px;
+        height: 180px;
+        overflow: auto;
+        scrollbar-width: none;
+        background: #ffffff;
+        color: #1d2731;
+      }
+      .canvas-area {
+        width: 640px;
+        position: relative;
+      }
+      .row {
+        height: 36px;
+        line-height: 36px;
+        padding-left: 12px;
+        width: 640px;
+        box-sizing: border-box;
+      }
+      .row:nth-child(odd) {
+        background: #dfe9f5;
+      }
+      .row:nth-child(even) {
+        background: #f7f3ea;
+      }
+      .marker {
+        position: absolute;
+        top: 150px;
+        left: 420px;
+        width: 120px;
+        height: 60px;
+        background: #e4572e;
+        color: #ffffff;
+        display: grid;
+        place-items: center;
+      }
+      .inner-scroller {
+        width: 380px;
+        height: 60px;
+        margin-top: 20px;
+        overflow: auto;
+        scrollbar-width: none;
+        background: #1f6f54;
+      }
+      .inner-strip {
+        display: flex;
+        width: 900px;
+      }
+      .inner-strip div {
+        width: 60px;
+        height: 60px;
+        flex: none;
+        display: grid;
+        place-items: center;
+        color: #ffffff;
+      }
+      .inner-strip div:nth-child(odd) {
+        background: #2f6fdb;
+      }
+      .inner-strip div:nth-child(even) {
+        background: #7a3b8f;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="scroller" id="outer-scroller">
+        <div class="canvas-area">
+          <div class="row">row 1 — top of the list</div>
+          <div class="row">row 2 — this fixture scrolls both axes</div>
+          <div class="row">row 3 — vertical offset is 130 pixels</div>
+          <div class="row">row 4 — horizontal offset is 90 pixels</div>
+          <div class="row">row 5 — content extends to 640px wide</div>
+          <div class="row">row 6 — the orange marker sits off-origin</div>
+          <div class="row">row 7 — capture must reproduce the clip</div>
+          <div class="row">row 8 — bottom row rarely visible</div>
+          <div class="row">row 9 — the very last row</div>
+          <div class="marker">marker</div>
+        </div>
+      </div>
+      <div class="inner-scroller" id="inner-scroller">
+        <div class="inner-strip">
+          <div>1</div>
+          <div>2</div>
+          <div>3</div>
+          <div>4</div>
+          <div>5</div>
+          <div>6</div>
+          <div>7</div>
+          <div>8</div>
+          <div>9</div>
+          <div>10</div>
+          <div>11</div>
+          <div>12</div>
+          <div>13</div>
+          <div>14</div>
+          <div>15</div>
+        </div>
+      </div>
+    </div>
+    <script>
+      const outerScroller = document.querySelector("#outer-scroller");
+      outerScroller.scrollTop = 130;
+      outerScroller.scrollLeft = 90;
+      document.querySelector("#inner-scroller").scrollLeft = 210;
+    </script>
+  </body>
+</html>
