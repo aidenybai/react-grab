@@ -75,7 +75,7 @@ const diffPseudoStyles = (
   if (!pseudoStyles) return null;
   const diffedPseudo = diffStyles({
     styles: pseudoStyles,
-    baseline: sandbox.getBaseline(element, pseudoSelector, pseudoStyles["font-size"]),
+    baseline: sandbox.getBaseline(element, pseudoSelector, pseudoStyles),
     parentStyles: null,
     parentEmittedStyles: null,
   });
@@ -101,7 +101,7 @@ const buildClassNameMap = (
       : undefined;
     const diffedBase = diffStyles({
       styles: snapshot.styles,
-      baseline: sandbox.getBaseline(element, null, snapshot.styles["font-size"]),
+      baseline: sandbox.getBaseline(element, null, snapshot.styles),
       parentStyles: parentSnapshot?.styles ?? null,
       parentEmittedStyles: snapshot.parentElement
         ? (emittedStylesByElement.get(snapshot.parentElement) ?? null)
@@ -242,7 +242,9 @@ const captureNodeInternal = async (
   resolvedOptions.abortSignal?.throwIfAborted();
   activeCaptureDocuments.add(ownerDocument);
   try {
-    await raceWithAbortSignal(ownerDocument.fonts.ready, resolvedOptions.abortSignal);
+    if (ownerDocument.fonts.status !== "loaded") {
+      await raceWithAbortSignal(ownerDocument.fonts.ready, resolvedOptions.abortSignal);
+    }
     const boundingRect = element.getBoundingClientRect();
     const boundingBoxWidth = Math.ceil(boundingRect.right) - Math.floor(boundingRect.left);
     const boundingBoxHeight = Math.ceil(boundingRect.bottom) - Math.floor(boundingRect.top);

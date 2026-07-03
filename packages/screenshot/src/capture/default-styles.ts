@@ -44,8 +44,9 @@ export const createStyleSandbox = (sourceDocument: Document): StyleSandbox => {
   const getBaseline = (
     element: Element,
     pseudoSelector: string | null,
-    fontSize: string | undefined,
+    snapshotStyles: StyleDeclarationMap,
   ): StyleDeclarationMap => {
+    const fontSize = snapshotStyles["font-size"];
     const cacheKey = buildBaselineCacheKey(element, pseudoSelector, fontSize);
     const cachedBaseline = baselineCache.get(cacheKey);
     if (cachedBaseline) return cachedBaseline;
@@ -68,8 +69,13 @@ export const createStyleSandbox = (sourceDocument: Document): StyleSandbox => {
     }
     if (fontSize) probeElement.setAttribute("style", `font-size:${fontSize};`);
     sandboxBody.appendChild(mountedElement);
+    // The diff only reads baseline values for properties present in the
+    // element's own snapshot, so the probe reads just those instead of all
+    // ~350 longhands. A cached baseline reused by a snapshot with more
+    // properties merely over-emits those extra properties' computed values.
     const baseline = snapshotComputedStyle(
       sandboxView.getComputedStyle(probeElement, pseudoSelector ?? undefined),
+      Object.keys(snapshotStyles),
     );
     mountedElement.remove();
     baselineCache.set(cacheKey, baseline);
