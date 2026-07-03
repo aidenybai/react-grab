@@ -17,6 +17,10 @@ const MIME_TYPES_BY_EXTENSION = {
   ".js": "text/javascript; charset=utf-8",
   ".mjs": "text/javascript; charset=utf-8",
   ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
   ".svg": "image/svg+xml",
   ".woff2": "font/woff2",
 };

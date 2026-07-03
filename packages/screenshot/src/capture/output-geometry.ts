@@ -1,19 +1,10 @@
-import { LINEAR_TRANSFORM_IDENTITY_EPSILON, MIN_CAPTURE_DIMENSION_PX } from "../constants";
-import type {
-  CaptureOutputGeometry,
-  ComputeRootOutputGeometryInput,
-  LinearTransform,
-} from "../types";
+import { MIN_CAPTURE_DIMENSION_PX } from "../constants";
+import type { CaptureOutputGeometry, ComputeRootOutputGeometryInput } from "../types";
 import { composeElementLinearTransform } from "../utils/compose-element-linear-transform";
 import { getRenderedParentElement } from "../utils/get-rendered-parent-element";
 import { isHtmlElement } from "../utils/is-html-element";
+import { isIdentityLinearTransform } from "../utils/is-identity-linear-transform";
 import { multiplyLinearTransforms } from "../utils/multiply-linear-transforms";
-
-const isIdentityLinearTransform = (linear: LinearTransform): boolean =>
-  Math.abs(linear.a - 1) < LINEAR_TRANSFORM_IDENTITY_EPSILON &&
-  Math.abs(linear.b) < LINEAR_TRANSFORM_IDENTITY_EPSILON &&
-  Math.abs(linear.c) < LINEAR_TRANSFORM_IDENTITY_EPSILON &&
-  Math.abs(linear.d - 1) < LINEAR_TRANSFORM_IDENTITY_EPSILON;
 
 const buildUntransformedGeometry = (
   layoutWidthPx: number,

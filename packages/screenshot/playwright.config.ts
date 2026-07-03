@@ -42,6 +42,26 @@ export default defineConfig({
       use: chromiumDeterminismUse,
     },
     {
+      name: "webkit-fidelity",
+      testDir: "e2e",
+      use: {
+        browserName: "webkit",
+        viewport: { width: VIEWPORT_WIDTH_PX, height: VIEWPORT_HEIGHT_PX },
+        deviceScaleFactor: DEVICE_SCALE_FACTOR,
+        contextOptions: { reducedMotion: "reduce" },
+      },
+    },
+    {
+      name: "firefox-fidelity",
+      testDir: "e2e",
+      use: {
+        browserName: "firefox",
+        viewport: { width: VIEWPORT_WIDTH_PX, height: VIEWPORT_HEIGHT_PX },
+        deviceScaleFactor: DEVICE_SCALE_FACTOR,
+        contextOptions: { reducedMotion: "reduce" },
+      },
+    },
+    {
       name: "chromium-bench",
       testDir: "bench",
       timeout: BENCH_TEST_TIMEOUT_MS,

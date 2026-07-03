@@ -8,6 +8,15 @@ export interface HarnessCaptureResult {
   toPngDataUrl: () => Promise<string>;
 }
 
+export type FixtureBrowserEngine = "chromium" | "webkit" | "firefox";
+
+export interface FixtureBrowserOverride {
+  maxDiffRatio?: number;
+  maxMeanChannelDelta?: number;
+  maxDimensionDeltaPx?: number;
+  skip?: boolean;
+}
+
 export interface FixtureSpec {
   id: string;
   maxDiffRatio: number;
@@ -18,7 +27,10 @@ export interface FixtureSpec {
   screenshotClipTargetAabb?: boolean;
   screenshotClipExpandPx?: number;
   captureBleed?: number | "auto";
+  preserveAnimations?: boolean;
   skip?: boolean;
+  webkit?: FixtureBrowserOverride;
+  firefox?: FixtureBrowserOverride;
 }
 
 export interface TargetAabbClip {
@@ -34,6 +46,7 @@ export interface ReactGrabScreenshotGlobal {
 
 export interface FidelityScoreEntry {
   id: string;
+  browser: FixtureBrowserEngine;
   score: number;
   budget: number;
   meanChannelDelta: number;

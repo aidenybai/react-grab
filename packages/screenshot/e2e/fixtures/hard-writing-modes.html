@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>hard writing modes</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #eef1f5;
+      }
+      #target {
+        display: flex;
+        gap: 16px;
+        width: 560px;
+        height: 300px;
+        background: #ffffff;
+        padding: 20px;
+        box-sizing: border-box;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 15px;
+        color: #1d2731;
+        overflow: hidden;
+      }
+      .vertical {
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+        background: #f6f1e7;
+        padding: 10px;
+        height: 240px;
+        border-left: 3px solid #b5432a;
+      }
+      .vertical-upright {
+        writing-mode: vertical-lr;
+        text-orientation: upright;
+        letter-spacing: 4px;
+        background: #e3ecf7;
+        padding: 10px;
+        height: 240px;
+      }
+      .rtl {
+        direction: rtl;
+        unicode-bidi: bidi-override;
+        width: 170px;
+        background: #eaf6ef;
+        padding: 12px;
+        text-align: right;
+        text-decoration: underline wavy #d23b2e;
+        text-underline-offset: 5px;
+      }
+      .spaced {
+        width: 150px;
+        letter-spacing: -1px;
+        word-spacing: 8px;
+        line-height: 2.2;
+        text-decoration: line-through double #2f6fdb;
+        text-transform: uppercase;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="vertical">vertical rl flow with mixed orientation glyphs</div>
+      <div class="vertical-upright">UPRIGHT</div>
+      <div class="rtl">reversed bidi override text runs right to left here</div>
+      <div class="spaced">negative tracking wide words</div>
+    </div>
+  </body>
+</html>

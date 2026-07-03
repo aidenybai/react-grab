@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>hard scroll sticky nested</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 460px;
+        height: 300px;
+        background: #ffffff;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 13px;
+        color: #1d2731;
+        overflow-y: scroll;
+        box-sizing: border-box;
+      }
+      .sticky-header {
+        position: sticky;
+        top: 0;
+        background: #14304f;
+        color: #ffffff;
+        padding: 12px 16px;
+        font-size: 16px;
+        z-index: 2;
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 16px;
+        border-bottom: 1px solid #d8dee6;
+      }
+      .row:nth-child(odd) {
+        background: #f4f7fb;
+      }
+      .h-scroll {
+        display: flex;
+        gap: 10px;
+        overflow-x: scroll;
+        padding: 10px 16px;
+        background: #eef1f5;
+      }
+      .h-card {
+        flex: 0 0 130px;
+        height: 70px;
+        border-radius: 8px;
+        color: #ffffff;
+        display: grid;
+        place-items: center;
+      }
+      .h-card:nth-child(1) {
+        background: #d23b2e;
+      }
+      .h-card:nth-child(2) {
+        background: #2f6fdb;
+      }
+      .h-card:nth-child(3) {
+        background: #14a06c;
+      }
+      .h-card:nth-child(4) {
+        background: #7a3b8f;
+      }
+      .h-card:nth-child(5) {
+        background: #b5432a;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="sticky-header">Sticky header stays pinned</div>
+      <div class="row"><span>alpha</span><span>100</span></div>
+      <div class="row"><span>bravo</span><span>250</span></div>
+      <div class="h-scroll">
+        <div class="h-card">one</div>
+        <div class="h-card">two</div>
+        <div class="h-card">three</div>
+        <div class="h-card">four</div>
+        <div class="h-card">five</div>
+      </div>
+      <div class="row"><span>charlie</span><span>375</span></div>
+      <div class="row"><span>delta</span><span>412</span></div>
+      <div class="row"><span>echo</span><span>577</span></div>
+      <div class="row"><span>foxtrot</span><span>640</span></div>
+      <div class="row"><span>golf</span><span>703</span></div>
+      <div class="row"><span>hotel</span><span>866</span></div>
+      <div class="row"><span>india</span><span>929</span></div>
+    </div>
+    <script>
+      const scrolledTarget = document.getElementById("target");
+      scrolledTarget.scrollTop = 90;
+      document.querySelector(".h-scroll").scrollLeft = 60;
+    </script>
+  </body>
+</html>

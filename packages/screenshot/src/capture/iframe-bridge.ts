@@ -15,13 +15,12 @@ export const requestIframeContentViaBridge = (
   pixelRatio: number,
 ): Promise<IframeContentSnapshot | null> => {
   const contentWindow = iframe.contentWindow;
-  const parentView = iframe.ownerDocument.defaultView;
-  if (!contentWindow || !parentView) return Promise.resolve(null);
+  if (!contentWindow) return Promise.resolve(null);
   const requestId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
   return new Promise((resolve) => {
     const settle = (snapshot: IframeContentSnapshot | null): void => {
-      parentView.clearTimeout(timeoutId);
-      parentView.removeEventListener("message", handleMessage);
+      window.clearTimeout(timeoutId);
+      window.removeEventListener("message", handleMessage);
       resolve(snapshot);
     };
     const handleMessage = (event: MessageEvent): void => {
@@ -35,8 +34,12 @@ export const requestIframeContentViaBridge = (
         canvasBackgroundColor: response.backgroundColor,
       });
     };
-    const timeoutId = parentView.setTimeout(() => settle(null), IFRAME_BRIDGE_RESPONSE_TIMEOUT_MS);
-    parentView.addEventListener("message", handleMessage);
+    // The response lands on the realm that sends the request (event.source on
+    // the bridge side is this realm's window, even when the iframe belongs to a
+    // nested same-origin document), so the listener goes on the module's own
+    // window rather than the iframe's parent view.
+    const timeoutId = window.setTimeout(() => settle(null), IFRAME_BRIDGE_RESPONSE_TIMEOUT_MS);
+    window.addEventListener("message", handleMessage);
     const request: IframeBridgeRequestMessage = {
       type: IFRAME_BRIDGE_REQUEST_MESSAGE_TYPE,
       requestId,

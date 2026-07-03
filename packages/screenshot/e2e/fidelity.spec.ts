@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
@@ -15,7 +15,12 @@ import {
   SCORES_REPORT_RELATIVE_PATH,
 } from "./constants";
 import { fixtureManifest } from "./fixture-manifest";
-import type { FidelityScoreEntry, HarnessCaptureOptions, TargetAabbClip } from "./types";
+import type {
+  FidelityScoreEntry,
+  FixtureBrowserEngine,
+  HarnessCaptureOptions,
+  TargetAabbClip,
+} from "./types";
 import { cropPng } from "./utils/crop-png";
 import { decodePngDataUrl } from "./utils/decode-png-data-url";
 import { computeMeanChannelDelta } from "./utils/mean-channel-delta";
@@ -27,13 +32,23 @@ const scoresReportPath = resolve(packageRootPath, SCORES_REPORT_RELATIVE_PATH);
 
 const fidelityScores: FidelityScoreEntry[] = [];
 
+const resolveBrowserEngine = (browserName: string | undefined): FixtureBrowserEngine => {
+  if (browserName === "webkit" || browserName === "firefox") return browserName;
+  return "chromium";
+};
+
 test.describe("fidelity", () => {
   for (const fixture of fixtureManifest) {
     test(fixture.id, async ({ page }, testInfo) => {
-      test.skip(Boolean(fixture.skip), "fixture disabled in manifest");
+      const browserEngine = resolveBrowserEngine(testInfo.project.use.browserName);
+      const browserOverride = browserEngine === "chromium" ? undefined : fixture[browserEngine];
+      test.skip(
+        Boolean(fixture.skip) || Boolean(browserOverride?.skip),
+        "fixture disabled in manifest",
+      );
 
       await page.goto(`/${fixture.id}.html`);
-      await stabilizePage(page);
+      await stabilizePage(page, { preserveAnimations: Boolean(fixture.preserveAnimations) });
       if (fixture.waitMs !== undefined) {
         await page.waitForTimeout(fixture.waitMs);
       }
@@ -89,13 +104,13 @@ test.describe("fidelity", () => {
         expectedPngBuffer = await page.screenshot({
           clip: targetAabbClip,
           scale: "css",
-          animations: "disabled",
+          animations: fixture.preserveAnimations ? "allow" : "disabled",
           caret: "hide",
         });
       } else {
         expectedPngBuffer = await page.locator("#target").screenshot({
           scale: "css",
-          animations: "disabled",
+          animations: fixture.preserveAnimations ? "allow" : "disabled",
           caret: "hide",
         });
       }
@@ -103,7 +118,10 @@ test.describe("fidelity", () => {
       const actualPng = decodePngDataUrl(actualPngDataUrl);
       const expectedPng = PNG.sync.read(expectedPngBuffer);
 
-      const maxDimensionDeltaPx = fixture.maxDimensionDeltaPx ?? DEFAULT_MAX_DIMENSION_DELTA_PX;
+      const maxDimensionDeltaPx =
+        browserOverride?.maxDimensionDeltaPx ??
+        fixture.maxDimensionDeltaPx ??
+        DEFAULT_MAX_DIMENSION_DELTA_PX;
       expect(
         Math.abs(actualPng.width - expectedPng.width),
         `width delta between capture (${actualPng.width}px) and screenshot (${expectedPng.width}px)`,
@@ -145,21 +163,34 @@ test.describe("fidelity", () => {
       await testInfo.attach("actual", { path: actualPngPath, contentType: "image/png" });
       await testInfo.attach("diff", { path: diffPngPath, contentType: "image/png" });
 
-      fidelityScores.push({
+      const maxDiffRatio = browserOverride?.maxDiffRatio ?? fixture.maxDiffRatio;
+      const scoreEntry: FidelityScoreEntry = {
         id: fixture.id,
+        browser: browserEngine,
         score,
-        budget: fixture.maxDiffRatio,
+        budget: maxDiffRatio,
         meanChannelDelta,
         widthPx: intersectionWidthPx,
         heightPx: intersectionHeightPx,
-      });
+      };
+      fidelityScores.push(scoreEntry);
+      // A test failure restarts the worker and wipes the in-memory score list,
+      // so every entry is also appended to a per-project JSONL as it is measured.
+      mkdirSync(dirname(scoresReportPath), { recursive: true });
+      appendFileSync(
+        scoresReportPath.replace(/\.json$/, `-${testInfo.project.name}.jsonl`),
+        `${JSON.stringify(scoreEntry)}\n`,
+      );
 
       expect(
         score,
-        `diff ratio ${score.toFixed(SCORE_DECIMAL_PLACES)} exceeds budget ${fixture.maxDiffRatio}`,
-      ).toBeLessThanOrEqual(fixture.maxDiffRatio);
+        `diff ratio ${score.toFixed(SCORE_DECIMAL_PLACES)} exceeds budget ${maxDiffRatio}`,
+      ).toBeLessThanOrEqual(maxDiffRatio);
 
-      const maxMeanChannelDelta = fixture.maxMeanChannelDelta ?? DEFAULT_MAX_MEAN_CHANNEL_DELTA;
+      const maxMeanChannelDelta =
+        browserOverride?.maxMeanChannelDelta ??
+        fixture.maxMeanChannelDelta ??
+        DEFAULT_MAX_MEAN_CHANNEL_DELTA;
       expect(
         meanChannelDelta,
         `mean channel delta ${meanChannelDelta.toFixed(SCORE_DECIMAL_PLACES)} exceeds budget ${maxMeanChannelDelta}`,

@@ -1,5 +1,14 @@
-import type { BakeBackdropFilterUnderlaysInput, ElementReadSnapshot } from "../types";
+import { TRANSPARENT_BACKGROUND_COLOR } from "../constants";
+import type {
+  BakeBackdropFilterUnderlaysInput,
+  ElementReadSnapshot,
+  LinearTransform,
+} from "../types";
+import { composeElementLinearTransform } from "../utils/compose-element-linear-transform";
 import { computeFilterExtent } from "../utils/compute-filter-extent";
+import { invertLinearTransform } from "../utils/invert-linear-transform";
+import { isIdentityLinearTransform } from "../utils/is-identity-linear-transform";
+import { multiplyLinearTransforms } from "../utils/multiply-linear-transforms";
 
 export const collectBackdropFilterElements = (
   snapshotByElement: Map<Element, ElementReadSnapshot>,
@@ -16,6 +25,40 @@ export const collectBackdropFilterElements = (
   return backdropFilterElements;
 };
 
+const IDENTITY_LINEAR_TRANSFORM: LinearTransform = { a: 1, b: 0, c: 0, d: 1 };
+
+// The baked underlay is painted in the element's untransformed layout box and
+// then re-transformed with the clone, so the device-space transform of the
+// element (its own transform composed with every ancestor's up to the capture
+// root) must be undone when mapping the sampled backdrop into the box. An
+// affine map sends the box center to the center of the transformed
+// parallelogram, which is also the center of its AABB, so mapping about the
+// two centers needs only the linear part.
+const composeChainLinearTransform = (
+  element: Element,
+  rootElement: Element,
+  snapshotByElement: Map<Element, ElementReadSnapshot>,
+): LinearTransform => {
+  let composed = IDENTITY_LINEAR_TRANSFORM;
+  let currentElement: Element | null = element;
+  while (currentElement) {
+    const snapshot = snapshotByElement.get(currentElement);
+    if (snapshot) {
+      composed = multiplyLinearTransforms(
+        composeElementLinearTransform({
+          transform: snapshot.styles["transform"],
+          rotate: snapshot.styles["rotate"],
+          scale: snapshot.styles["scale"],
+        }),
+        composed,
+      );
+    }
+    if (currentElement === rootElement) break;
+    currentElement = currentElement.parentElement;
+  }
+  return composed;
+};
+
 const renderFilteredBackdropRegion = (
   input: BakeBackdropFilterUnderlaysInput,
   regionLeftPx: number,
@@ -24,7 +67,7 @@ const renderFilteredBackdropRegion = (
   regionHeightPx: number,
   marginPx: number,
   backdropFilterValue: string,
-): string | null => {
+): HTMLCanvasElement | null => {
   const { underlayCanvas, ownerDocument, pixelRatio, backgroundColor } = input;
   const expandedWidthPx = regionWidthPx + 2 * marginPx;
   const expandedHeightPx = regionHeightPx + 2 * marginPx;
@@ -62,11 +105,69 @@ const renderFilteredBackdropRegion = (
     expandedWidthPx,
     expandedHeightPx,
   );
-  try {
-    return filteredCanvas.toDataURL();
-  } catch {
-    return null;
+  return filteredCanvas;
+};
+
+const mapFilteredRegionIntoLayoutBox = (
+  input: BakeBackdropFilterUnderlaysInput,
+  filteredCanvas: HTMLCanvasElement,
+  regionWidthPx: number,
+  regionHeightPx: number,
+  boxWidthPx: number,
+  boxHeightPx: number,
+  inverseLinear: LinearTransform,
+): HTMLCanvasElement | null => {
+  const { ownerDocument, pixelRatio } = input;
+  const boxCanvas = ownerDocument.createElement("canvas");
+  boxCanvas.width = Math.max(1, Math.round(boxWidthPx * pixelRatio));
+  boxCanvas.height = Math.max(1, Math.round(boxHeightPx * pixelRatio));
+  const boxContext = boxCanvas.getContext("2d");
+  if (!boxContext) return null;
+  boxContext.scale(pixelRatio, pixelRatio);
+  boxContext.translate(boxWidthPx / 2, boxHeightPx / 2);
+  boxContext.transform(inverseLinear.a, inverseLinear.b, inverseLinear.c, inverseLinear.d, 0, 0);
+  boxContext.drawImage(
+    filteredCanvas,
+    -regionWidthPx / 2,
+    -regionHeightPx / 2,
+    regionWidthPx,
+    regionHeightPx,
+  );
+  return boxCanvas;
+};
+
+// Later panes in paint order sample a backdrop that already contains earlier
+// panes rendered with their effect, so each pane's filtered result plus its own
+// background color is composited back onto the shared underlay before the next
+// pane is baked. Children, borders, and corner rounding of the pane are not
+// re-painted here - an approximation that only shows where panes overlap.
+const compositeBakedPaneOntoUnderlay = (
+  input: BakeBackdropFilterUnderlaysInput,
+  bakedBoxCanvas: HTMLCanvasElement,
+  regionCenterXPx: number,
+  regionCenterYPx: number,
+  boxWidthPx: number,
+  boxHeightPx: number,
+  chainLinear: LinearTransform,
+  paneBackgroundColor: string | undefined,
+): void => {
+  const underlayContext = input.underlayCanvas.getContext("2d");
+  if (!underlayContext) return;
+  underlayContext.save();
+  underlayContext.setTransform(input.pixelRatio, 0, 0, input.pixelRatio, 0, 0);
+  underlayContext.translate(regionCenterXPx, regionCenterYPx);
+  underlayContext.transform(chainLinear.a, chainLinear.b, chainLinear.c, chainLinear.d, 0, 0);
+  underlayContext.translate(-boxWidthPx / 2, -boxHeightPx / 2);
+  underlayContext.drawImage(bakedBoxCanvas, 0, 0, boxWidthPx, boxHeightPx);
+  if (
+    paneBackgroundColor &&
+    paneBackgroundColor !== TRANSPARENT_BACKGROUND_COLOR &&
+    paneBackgroundColor !== "transparent"
+  ) {
+    underlayContext.fillStyle = paneBackgroundColor;
+    underlayContext.fillRect(0, 0, boxWidthPx, boxHeightPx);
   }
+  underlayContext.restore();
 };
 
 export const bakeBackdropFilterUnderlays = (
@@ -82,7 +183,12 @@ export const bakeBackdropFilterUnderlays = (
     const regionWidthPx = Math.round(elementRect.width);
     const regionHeightPx = Math.round(elementRect.height);
     if (regionWidthPx <= 0 || regionHeightPx <= 0) continue;
-    const bakedPngDataUrl = renderFilteredBackdropRegion(
+    const chainLinear = composeChainLinearTransform(
+      backdropElement,
+      input.rootElement,
+      input.snapshotByElement,
+    );
+    const filteredCanvas = renderFilteredBackdropRegion(
       input,
       elementRect.left - rootRect.left,
       elementRect.top - rootRect.top,
@@ -91,7 +197,47 @@ export const bakeBackdropFilterUnderlays = (
       Math.ceil(computeFilterExtent(backdropFilterValue)),
       backdropFilterValue,
     );
-    if (bakedPngDataUrl) bakedPngByElement.set(backdropElement, bakedPngDataUrl);
+    if (!filteredCanvas) continue;
+    let bakedBoxCanvas = filteredCanvas;
+    let boxWidthPx = regionWidthPx;
+    let boxHeightPx = regionHeightPx;
+    if (!isIdentityLinearTransform(chainLinear)) {
+      const inverseLinear = invertLinearTransform(chainLinear);
+      if (!inverseLinear) continue;
+      const layoutBoxWidthPx =
+        backdropElement instanceof HTMLElement ? backdropElement.offsetWidth : 0;
+      const layoutBoxHeightPx =
+        backdropElement instanceof HTMLElement ? backdropElement.offsetHeight : 0;
+      if (layoutBoxWidthPx <= 0 || layoutBoxHeightPx <= 0) continue;
+      const mappedCanvas = mapFilteredRegionIntoLayoutBox(
+        input,
+        filteredCanvas,
+        regionWidthPx,
+        regionHeightPx,
+        layoutBoxWidthPx,
+        layoutBoxHeightPx,
+        inverseLinear,
+      );
+      if (!mappedCanvas) continue;
+      bakedBoxCanvas = mappedCanvas;
+      boxWidthPx = layoutBoxWidthPx;
+      boxHeightPx = layoutBoxHeightPx;
+    }
+    compositeBakedPaneOntoUnderlay(
+      input,
+      bakedBoxCanvas,
+      elementRect.left - rootRect.left + elementRect.width / 2,
+      elementRect.top - rootRect.top + elementRect.height / 2,
+      boxWidthPx,
+      boxHeightPx,
+      chainLinear,
+      snapshot?.styles["background-color"],
+    );
+    try {
+      bakedPngByElement.set(backdropElement, bakedBoxCanvas.toDataURL());
+    } catch {
+      continue;
+    }
   }
   return bakedPngByElement;
 };

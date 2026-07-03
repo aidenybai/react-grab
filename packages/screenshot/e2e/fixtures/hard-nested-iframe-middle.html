@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>hard nested iframe middle</title>
+    <style>
+      body {
+        margin: 0;
+        background: #eaf6ef;
+      }
+      .strip {
+        margin: 12px;
+        width: 220px;
+        height: 26px;
+        background: #2a6b4f;
+      }
+      iframe {
+        margin: 0 12px;
+        width: 250px;
+        height: 120px;
+        border: 3px solid #7a3b8f;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="strip"></div>
+    <iframe
+      src="http://127.0.0.1:5179/lim-cross-origin-iframe-frame.html"
+      title="inner cross origin frame"
+    ></iframe>
+  </body>
+</html>

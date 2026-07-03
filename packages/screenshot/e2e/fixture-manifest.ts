@@ -1,4 +1,12 @@
 import {
+  FIREFOX_BACKDROP_MISSING_MAX_DIFF_RATIO,
+  FIREFOX_BACKDROP_MISSING_MAX_MEAN_CHANNEL_DELTA,
+  FIREFOX_EDGE_ANTIALIAS_MAX_DIFF_RATIO,
+  FIREFOX_EDGE_ANTIALIAS_MAX_MEAN_CHANNEL_DELTA,
+  FIREFOX_SUBTLE_RASTER_MAX_DIFF_RATIO,
+  FIREFOX_SUBTLE_RASTER_MAX_MEAN_CHANNEL_DELTA,
+  FIREFOX_TEXT_METRICS_MAX_DIFF_RATIO,
+  FIREFOX_TEXT_METRICS_MAX_MEAN_CHANNEL_DELTA,
   FORM_CONTROLS_MAX_DIFF_RATIO,
   FORM_CONTROLS_MAX_MEAN_CHANNEL_DELTA,
   INDETERMINATE_FORM_MAX_DIFF_RATIO,
@@ -6,16 +14,82 @@ import {
   STRICT_MAX_DIFF_RATIO,
   TRANSFORMED_ROOT_MAX_DIFF_RATIO,
   TRANSFORMED_ROOT_MAX_MEAN_CHANNEL_DELTA,
+  WEBKIT_FORM_CHROME_MAX_DIFF_RATIO,
+  WEBKIT_FORM_CHROME_MAX_MEAN_CHANNEL_DELTA,
+  WEBKIT_GLYPH_RASTER_MAX_DIFF_RATIO,
+  WEBKIT_GLYPH_RASTER_MAX_MEAN_CHANNEL_DELTA,
+  WEBKIT_MEDIA_CHROME_MAX_DIFF_RATIO,
+  WEBKIT_MEDIA_CHROME_MAX_MEAN_CHANNEL_DELTA,
+  WEBKIT_ROTATED_EDGE_MAX_DIFF_RATIO,
+  WEBKIT_ROTATED_EDGE_MAX_MEAN_CHANNEL_DELTA,
+  WEBKIT_SVG_FALLBACK_MAX_DIFF_RATIO,
+  WEBKIT_SVG_FALLBACK_MAX_MEAN_CHANNEL_DELTA,
 } from "./constants";
-import type { FixtureSpec } from "./types";
+import type { FixtureBrowserOverride, FixtureSpec } from "./types";
+
+// Firefox rasterizes foreignObject SVG images with its own line-height rounding
+// and glyph antialiasing, so text-dense fixtures diverge from the native
+// screenshot even though wrapping and content match (diff confined to glyph
+// pixels and per-line vertical drift).
+const firefoxTextMetricsOverride: FixtureBrowserOverride = {
+  maxDiffRatio: FIREFOX_TEXT_METRICS_MAX_DIFF_RATIO,
+  maxMeanChannelDelta: FIREFOX_TEXT_METRICS_MAX_MEAN_CHANNEL_DELTA,
+};
+
+// Headless Firefox skips backdrop-filter compositing in the native
+// ground-truth screenshot (no blur/brightness under the panes), while the
+// capture bakes the filtered underlay, so the panes disagree by design.
+const firefoxBackdropMissingOverride: FixtureBrowserOverride = {
+  maxDiffRatio: FIREFOX_BACKDROP_MISSING_MAX_DIFF_RATIO,
+  maxMeanChannelDelta: FIREFOX_BACKDROP_MISSING_MAX_MEAN_CHANNEL_DELTA,
+};
+
+// Firefox-only sub-percent divergence spread across edges, gradients, and
+// image resampling between the live compositor and the decoded SVG image.
+const firefoxSubtleRasterOverride: FixtureBrowserOverride = {
+  maxDiffRatio: FIREFOX_SUBTLE_RASTER_MAX_DIFF_RATIO,
+  maxMeanChannelDelta: FIREFOX_SUBTLE_RASTER_MAX_MEAN_CHANNEL_DELTA,
+};
+
+// Firefox antialiases box edges and decoded JPEG/PNG pixels slightly
+// differently inside SVG images; the diff is a thin halo around edges.
+const firefoxEdgeAntialiasOverride: FixtureBrowserOverride = {
+  maxDiffRatio: FIREFOX_EDGE_ANTIALIAS_MAX_DIFF_RATIO,
+  maxMeanChannelDelta: FIREFOX_EDGE_ANTIALIAS_MAX_MEAN_CHANNEL_DELTA,
+};
+
+// WebKit rasterizes glyphs inside SVG images with different antialiasing than
+// the live page, so text-dense fixtures flag most glyph pixels.
+const webkitGlyphRasterOverride: FixtureBrowserOverride = {
+  maxDiffRatio: WEBKIT_GLYPH_RASTER_MAX_DIFF_RATIO,
+  maxMeanChannelDelta: WEBKIT_GLYPH_RASTER_MAX_MEAN_CHANNEL_DELTA,
+};
+
+// WebKit renders elements with broken/foreign namespaces differently in the
+// live page vs the sandboxed SVG image document.
+const webkitSvgFallbackOverride: FixtureBrowserOverride = {
+  maxDiffRatio: WEBKIT_SVG_FALLBACK_MAX_DIFF_RATIO,
+  maxMeanChannelDelta: WEBKIT_SVG_FALLBACK_MAX_MEAN_CHANNEL_DELTA,
+};
+
+// WebKit paints native media/scrollbar chrome (poster letterboxing, custom
+// scrollbar pseudo-elements) that the capture reproduces with plain CSS.
+const webkitMediaChromeOverride: FixtureBrowserOverride = {
+  maxDiffRatio: WEBKIT_MEDIA_CHROME_MAX_DIFF_RATIO,
+  maxMeanChannelDelta: WEBKIT_MEDIA_CHROME_MAX_MEAN_CHANNEL_DELTA,
+};
 
 export const fixtureManifest: FixtureSpec[] = [
   { id: "01-solid-box", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "02-borders-radius", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "03-gradients", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "04-transforms", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
-  { id: "10-typography", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
-  { id: "11-text-styles", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
+  { id: "10-typography", maxDiffRatio: STRICT_MAX_DIFF_RATIO, firefox: firefoxTextMetricsOverride },
+  {
+    id: "11-text-styles",
+    maxDiffRatio: STRICT_MAX_DIFF_RATIO,
+    firefox: firefoxTextMetricsOverride,
+  },
   { id: "20-flex-layout", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "21-grid-layout", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "30-box-shadows", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
@@ -29,12 +103,66 @@ export const fixtureManifest: FixtureSpec[] = [
     maxMeanChannelDelta: FORM_CONTROLS_MAX_MEAN_CHANNEL_DELTA,
   },
   { id: "52-scrolled-container", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
-  { id: "53-shadow-dom", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
+  {
+    id: "53-shadow-dom",
+    maxDiffRatio: STRICT_MAX_DIFF_RATIO,
+    firefox: firefoxSubtleRasterOverride,
+  },
   { id: "54-canvas-2d", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "55-scrolled-flex-grid", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "60-kitchen-sink", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "70-stress", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
-  { id: "dtim-anchor-underline-reset", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
+  {
+    id: "hard-animation-paused",
+    maxDiffRatio: STRICT_MAX_DIFF_RATIO,
+    preserveAnimations: true,
+  },
+  {
+    id: "hard-waapi-paused",
+    maxDiffRatio: STRICT_MAX_DIFF_RATIO,
+    preserveAnimations: true,
+  },
+  {
+    id: "hard-backdrop-stacked",
+    maxDiffRatio: STRICT_MAX_DIFF_RATIO,
+    firefox: firefoxBackdropMissingOverride,
+  },
+  {
+    // Same rotated-edge antialiasing class as lim-transformed-root-rotated;
+    // measured 0.00218 / mean 1.03 with the diff confined to the rotated
+    // perimeter and the glass pane's blurred edge.
+    id: "hard-backdrop-in-transformed-root",
+    maxDiffRatio: TRANSFORMED_ROOT_MAX_DIFF_RATIO,
+    maxMeanChannelDelta: TRANSFORMED_ROOT_MAX_MEAN_CHANNEL_DELTA,
+    screenshotClipTargetAabb: true,
+    firefox: firefoxSubtleRasterOverride,
+  },
+  { id: "hard-blend-clip-mask", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
+  { id: "hard-writing-modes", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
+  { id: "hard-scroll-sticky-nested", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
+  {
+    // WebKit rasterizes the rotated iframe's rounded border and box-shadow
+    // differently between the live compositor and the SVG image; the diff is a
+    // ring around the rotated card's perimeter.
+    id: "hard-cross-origin-iframe-styled",
+    maxDiffRatio: STRICT_MAX_DIFF_RATIO,
+    webkit: {
+      maxDiffRatio: WEBKIT_ROTATED_EDGE_MAX_DIFF_RATIO,
+      maxMeanChannelDelta: WEBKIT_ROTATED_EDGE_MAX_MEAN_CHANNEL_DELTA,
+    },
+  },
+  { id: "hard-nested-iframe", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
+  {
+    id: "hard-stress-combo",
+    maxDiffRatio: STRICT_MAX_DIFF_RATIO,
+    preserveAnimations: true,
+    firefox: firefoxEdgeAntialiasOverride,
+  },
+  {
+    id: "dtim-anchor-underline-reset",
+    maxDiffRatio: STRICT_MAX_DIFF_RATIO,
+    firefox: firefoxEdgeAntialiasOverride,
+  },
   { id: "dtim-background-clip-gloss-text", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "dtim-bare-text-node", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "dtim-bigger-repeated-strips", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
@@ -48,7 +176,11 @@ export const fixtureManifest: FixtureSpec[] = [
   { id: "dtim-fontawesome-glyph", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "dtim-foreign-namespace-element", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "dtim-heading-font-size-override", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
-  { id: "dtim-html-anchor-attr-selector", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
+  {
+    id: "dtim-html-anchor-attr-selector",
+    maxDiffRatio: STRICT_MAX_DIFF_RATIO,
+    firefox: firefoxSubtleRasterOverride,
+  },
   { id: "dtim-icon-font-pseudo", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "dtim-images-nested", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   {
@@ -64,13 +196,29 @@ export const fixtureManifest: FixtureSpec[] = [
   { id: "dtim-pseudo-before-after", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "dtim-small-strips", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "dtim-srcset-active-candidate", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
-  { id: "dtim-svg-broken-namespace", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
-  { id: "dtim-svg-image-href", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
+  {
+    id: "dtim-svg-broken-namespace",
+    maxDiffRatio: STRICT_MAX_DIFF_RATIO,
+    webkit: webkitSvgFallbackOverride,
+  },
+  {
+    id: "dtim-svg-image-href",
+    maxDiffRatio: STRICT_MAX_DIFF_RATIO,
+    firefox: firefoxEdgeAntialiasOverride,
+  },
   { id: "dtim-svg-rect", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "dtim-svg-use-out-of-subtree", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "dtim-table-caption-height", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
-  { id: "dtim-table-zero-padding", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
-  { id: "dtim-tailwind-preflight-card", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
+  {
+    id: "dtim-table-zero-padding",
+    maxDiffRatio: STRICT_MAX_DIFF_RATIO,
+    webkit: webkitGlyphRasterOverride,
+  },
+  {
+    id: "dtim-tailwind-preflight-card",
+    maxDiffRatio: STRICT_MAX_DIFF_RATIO,
+    firefox: firefoxTextMetricsOverride,
+  },
   { id: "dtim-text-nodes", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "dtim-textarea-user-value", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "dtim-visibility-hidden-child", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
@@ -85,16 +233,28 @@ export const fixtureManifest: FixtureSpec[] = [
   { id: "hti-lazy-images", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "hti-pixel-grid", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "hti-pseudo-content", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
-  { id: "hti-select-options", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
+  {
+    id: "hti-select-options",
+    maxDiffRatio: STRICT_MAX_DIFF_RATIO,
+    firefox: firefoxTextMetricsOverride,
+  },
   { id: "hti-small-strips", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
-  { id: "hti-svg-broken-namespace", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
+  {
+    id: "hti-svg-broken-namespace",
+    maxDiffRatio: STRICT_MAX_DIFF_RATIO,
+    webkit: webkitSvgFallbackOverride,
+  },
   { id: "hti-svg-css-fill", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "hti-svg-image-href", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "hti-svg-rect", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "hti-svg-use-hidden-sprite", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "hti-text-nodes", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "hti-textarea-user-value", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
-  { id: "hti-video-poster", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
+  {
+    id: "hti-video-poster",
+    maxDiffRatio: STRICT_MAX_DIFF_RATIO,
+    webkit: webkitMediaChromeOverride,
+  },
   { id: "hti-webp-image", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "lim-cross-origin-font-face", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   {
@@ -103,11 +263,21 @@ export const fixtureManifest: FixtureSpec[] = [
     scrollTargetIntoViewBeforeScreenshot: true,
   },
   { id: "lim-fixed-in-scrolled-page", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
-  { id: "lim-indeterminate-checkbox", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
+  {
+    // WebKit paints its own native checkbox chrome, so the pixel replica of
+    // the indeterminate dash diverges slightly more than in Chromium.
+    id: "lim-indeterminate-checkbox",
+    maxDiffRatio: STRICT_MAX_DIFF_RATIO,
+    webkit: {
+      maxDiffRatio: WEBKIT_FORM_CHROME_MAX_DIFF_RATIO,
+      maxMeanChannelDelta: WEBKIT_FORM_CHROME_MAX_MEAN_CHANNEL_DELTA,
+    },
+  },
   {
     id: "lim-lazy-image-offscreen",
     maxDiffRatio: STRICT_MAX_DIFF_RATIO,
     scrollTargetIntoViewBeforeScreenshot: true,
+    firefox: firefoxEdgeAntialiasOverride,
   },
   {
     // bleed:"auto" resolves to 80px here (1.5 x 40px blur + 8px spread + 12px
@@ -120,7 +290,11 @@ export const fixtureManifest: FixtureSpec[] = [
   },
   { id: "lim-backdrop-filter", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "lim-cross-origin-iframe", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
-  { id: "lim-marker-lists", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
+  {
+    id: "lim-marker-lists",
+    maxDiffRatio: STRICT_MAX_DIFF_RATIO,
+    firefox: firefoxTextMetricsOverride,
+  },
   {
     // Rotated/scaled edges and glyphs are rasterized twice (live compositor vs
     // decoded SVG image) with independently antialiased diagonals; measured
@@ -138,6 +312,7 @@ export const fixtureManifest: FixtureSpec[] = [
     maxDiffRatio: TRANSFORMED_ROOT_MAX_DIFF_RATIO,
     maxMeanChannelDelta: TRANSFORMED_ROOT_MAX_MEAN_CHANNEL_DELTA,
     screenshotClipTargetAabb: true,
+    firefox: firefoxSubtleRasterOverride,
   },
   {
     id: "lim-transformed-root-in-scaled-ancestor",
@@ -146,7 +321,11 @@ export const fixtureManifest: FixtureSpec[] = [
   },
   { id: "ms-background-clip-text", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "ms-background-color", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
-  { id: "ms-background-image-jpeg", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
+  {
+    id: "ms-background-image-jpeg",
+    maxDiffRatio: STRICT_MAX_DIFF_RATIO,
+    firefox: firefoxEdgeAntialiasOverride,
+  },
   { id: "ms-border-em-width", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "ms-border-image", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "ms-comment-node", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
@@ -169,7 +348,11 @@ export const fixtureManifest: FixtureSpec[] = [
   { id: "ms-max-height-important-override", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "ms-nested-shadow-dom", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "ms-pseudo-content-custom-font", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
-  { id: "ms-svg-broken-namespace", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
+  {
+    id: "ms-svg-broken-namespace",
+    maxDiffRatio: STRICT_MAX_DIFF_RATIO,
+    webkit: webkitSvgFallbackOverride,
+  },
   { id: "ms-svg-css-fill-foreignobject", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "ms-svg-external-symbol", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "ms-svg-in-shadow-dom", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
@@ -183,10 +366,18 @@ export const fixtureManifest: FixtureSpec[] = [
     maxMeanChannelDelta: FORM_CONTROLS_MAX_MEAN_CHANNEL_DELTA,
   },
   { id: "ms-video-poster", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
-  { id: "ms-webkit-scrollbar", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
+  {
+    id: "ms-webkit-scrollbar",
+    maxDiffRatio: STRICT_MAX_DIFF_RATIO,
+    webkit: webkitMediaChromeOverride,
+  },
   { id: "snap-blob-urls", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "snap-content-visibility", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
-  { id: "snap-css-counters", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
+  {
+    id: "snap-css-counters",
+    maxDiffRatio: STRICT_MAX_DIFF_RATIO,
+    firefox: firefoxTextMetricsOverride,
+  },
   { id: "snap-css-variables", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   {
     // The indeterminate dash is reproduced by a pixel replica (JS-only property,
@@ -195,6 +386,7 @@ export const fixtureManifest: FixtureSpec[] = [
     id: "snap-form-values-indeterminate",
     maxDiffRatio: INDETERMINATE_FORM_MAX_DIFF_RATIO,
     maxMeanChannelDelta: INDETERMINATE_FORM_MAX_MEAN_CHANNEL_DELTA,
+    firefox: firefoxSubtleRasterOverride,
   },
   { id: "snap-icon-font-ligature", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "snap-individual-transforms", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
@@ -204,9 +396,17 @@ export const fixtureManifest: FixtureSpec[] = [
   { id: "snap-outline-no-border", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "snap-picture-srcset", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "snap-pre-margins", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
-  { id: "snap-pseudo-after-inline-position", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
+  {
+    id: "snap-pseudo-after-inline-position",
+    maxDiffRatio: STRICT_MAX_DIFF_RATIO,
+    firefox: firefoxTextMetricsOverride,
+  },
   { id: "snap-pseudo-border-spacer", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
-  { id: "snap-pseudo-first-letter", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
+  {
+    id: "snap-pseudo-first-letter",
+    maxDiffRatio: STRICT_MAX_DIFF_RATIO,
+    firefox: firefoxTextMetricsOverride,
+  },
   { id: "snap-shadow-css-vars", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "snap-sticky-in-scroll", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "snap-svg-defs-gradient-use", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
@@ -214,4 +414,15 @@ export const fixtureManifest: FixtureSpec[] = [
   { id: "snap-video-poster-fallback", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "snap-width-softening-boxes", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "snap-zero-width-borders", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
+  { id: "real-repo-file-browser", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
+  {
+    id: "real-dashboard-analytics",
+    maxDiffRatio: STRICT_MAX_DIFF_RATIO,
+    firefox: firefoxSubtleRasterOverride,
+  },
+  {
+    id: "real-landing-glass",
+    maxDiffRatio: STRICT_MAX_DIFF_RATIO,
+    firefox: firefoxSubtleRasterOverride,
+  },
 ];
