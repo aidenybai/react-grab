@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
 
 jobs:
   test-perf:
@@ -81,7 +82,46 @@ jobs:
       # ─── Diff & surface ────────────────────────────────────────────────
       - name: Compute baseline-vs-current diff
         if: always() && github.event_name == 'pull_request'
-        run: node packages/react-grab/scripts/diff-perf-runs.mjs packages/react-grab/perf/baseline packages/react-grab/perf/current | tee -a "$GITHUB_STEP_SUMMARY"
+        run: |
+          node packages/react-grab/scripts/diff-perf-runs.mjs packages/react-grab/perf/baseline packages/react-grab/perf/current | tee perf-diff.md >> "$GITHUB_STEP_SUMMARY"
+
+      # Sticky PR comment: created on the first run, updated in place on
+      # every subsequent push so the PR isn't spammed with one comment per
+      # commit. Skipped for forks, whose GITHUB_TOKEN is read-only.
+      - name: Post perf diff as PR comment
+        if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { readFileSync } = require("node:fs");
+            const marker = "<!-- perf-diff-comment -->";
+            let diffBody;
+            try {
+              diffBody = readFileSync("perf-diff.md", "utf8").trim();
+            } catch {
+              return;
+            }
+            if (!diffBody) return;
+            const body = `${marker}\n${diffBody}\n\n<sub>Commit ${context.payload.pull_request.head.sha.slice(0, 7)} · full reports in the \`perf-bench-${context.payload.pull_request.number}\` artifact.</sub>`;
+            const { data: comments } = await github.rest.issues.listComments({
+              ...context.repo,
+              issue_number: context.payload.pull_request.number,
+              per_page: 100,
+            });
+            const existingComment = comments.find((comment) => comment.body?.startsWith(marker));
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                ...context.repo,
+                comment_id: existingComment.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                ...context.repo,
+                issue_number: context.payload.pull_request.number,
+                body,
+              });
+            }
 
       - name: Upload perf reports
         if: always()
