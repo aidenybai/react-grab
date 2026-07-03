@@ -79,6 +79,17 @@ export const CONCRETE_VALUE_STYLE_PROPS = new Set([
   "border-left-width",
 ]);
 
+// On appearance:auto controls, an authored border width - even one equal to
+// the UA default - counts as author styling and switches Chromium off the
+// native themed painting (white select chrome since ~M143) onto legacy
+// ButtonFace rendering, so equal-to-baseline widths must stay omitted there.
+export const BORDER_WIDTH_STYLE_PROPS = new Set([
+  "border-top-width",
+  "border-right-width",
+  "border-bottom-width",
+  "border-left-width",
+]);
+
 export const SIZE_STYLE_PROPS = ["width", "height", "inline-size", "block-size"];
 
 // Table box sizes come from the table layout algorithm; freezing them as hard

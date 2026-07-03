@@ -1,4 +1,5 @@
 import {
+  BORDER_WIDTH_STYLE_PROPS,
   CONCRETE_VALUE_STYLE_PROPS,
   CURRENTCOLOR_DEFAULT_STYLE_PROPS,
   MARKER_STYLE_PROPS,
@@ -16,18 +17,29 @@ export const diffStyles = ({
   parentEmittedStyles,
 }: DiffStylesInput): StyleDeclarationMap => {
   const diffed: StyleDeclarationMap = {};
+  const hasNativeAppearance = styles["appearance"] === "auto";
   for (const propertyName in styles) {
     const propertyValue = styles[propertyName];
     if (propertyValue === undefined) continue;
-    if (CONCRETE_VALUE_STYLE_PROPS.has(propertyName) || propertyValue !== baseline[propertyName]) {
+    const isForcedConcreteValue =
+      CONCRETE_VALUE_STYLE_PROPS.has(propertyName) &&
+      !(hasNativeAppearance && BORDER_WIDTH_STYLE_PROPS.has(propertyName));
+    if (isForcedConcreteValue || propertyValue !== baseline[propertyName]) {
       diffed[propertyName] = propertyValue;
     }
   }
   for (const currentColorProp of CURRENTCOLOR_DEFAULT_STYLE_PROPS) {
     const propertyValue = styles[currentColorProp];
     if (propertyValue === undefined) continue;
-    if (propertyValue === styles["color"]) delete diffed[currentColorProp];
-    else diffed[currentColorProp] = propertyValue;
+    const isNativeAppearanceBorderColor =
+      hasNativeAppearance &&
+      currentColorProp.includes("border") &&
+      propertyValue === baseline[currentColorProp];
+    if (propertyValue === styles["color"] || isNativeAppearanceBorderColor) {
+      delete diffed[currentColorProp];
+    } else {
+      diffed[currentColorProp] = propertyValue;
+    }
   }
   if (parentEmittedStyles && parentStyles) {
     for (const propertyName in parentEmittedStyles) {
