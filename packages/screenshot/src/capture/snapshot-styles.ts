@@ -5,7 +5,12 @@ import {
   SVG_TEMPLATE_CONTAINER_TAGS,
   UNRECURSED_CLONE_TAGS,
 } from "../constants";
-import type { ElementReadSnapshot, MemoizedElementStyles, StyleDeclarationMap } from "../types";
+import type {
+  ComposedTreeSnapshot,
+  ElementReadSnapshot,
+  MemoizedElementStyles,
+  StyleDeclarationMap,
+} from "../types";
 import { buildStyleMemoDescriptor } from "../utils/build-style-memo-descriptor";
 import { getComposedChildNodes } from "../utils/get-composed-child-nodes";
 import { isElementNode } from "../utils/is-element-node";
@@ -31,7 +36,7 @@ export const snapshotComposedTree = (
   rootElement: Element,
   defaultView: Window & typeof globalThis,
   filterNode: ((element: Element) => boolean) | undefined,
-): Map<Element, ElementReadSnapshot> => {
+): ComposedTreeSnapshot => {
   const snapshotByElement = new Map<Element, ElementReadSnapshot>();
   const pseudoPreflight = preflightPseudoRules(rootElement.ownerDocument);
   let relevantProps = createRelevantStylePropRegistry(rootElement.ownerDocument);
@@ -160,6 +165,7 @@ export const snapshotComposedTree = (
       parentElement,
       scrollLeft: element.scrollLeft,
       scrollTop: element.scrollTop,
+      memoKey,
     });
     if (UNRECURSED_CLONE_TAGS.has(element.localName)) return;
     const childIsInShadowTree = isInShadowTree || Boolean(element.shadowRoot);
@@ -169,5 +175,5 @@ export const snapshotComposedTree = (
   };
 
   visit(rootElement, null, false, 0);
-  return snapshotByElement;
+  return { snapshotByElement, perElementPropertyNames };
 };

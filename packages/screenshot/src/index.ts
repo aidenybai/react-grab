@@ -5,8 +5,10 @@ import {
 import { cloneComposedTree } from "./capture/clone-tree";
 import { createStyleSandbox } from "./capture/default-styles";
 import {
+  applyPerElementStyleDiff,
   applyRootStyleOverrides,
   applySizeFreezingPolicy,
+  canReusePerElementDiffs,
   diffMarkerStyles,
   diffStyles,
 } from "./capture/diff-styles";
@@ -86,6 +88,7 @@ const diffPseudoStyles = (
 
 const buildClassNameMap = (
   snapshotByElement: Map<Element, ElementReadSnapshot>,
+  perElementPropertyNames: readonly string[],
   sandbox: StyleSandbox,
   registry: StyleRegistry,
   rootElement: Element,
@@ -95,18 +98,38 @@ const buildClassNameMap = (
 ): Map<Element, string> => {
   const classNameByElement = new Map<Element, string>();
   const emittedStylesByElement = new Map<Element, StyleDeclarationMap>();
+  const canReuseDiffs = canReusePerElementDiffs(perElementPropertyNames);
+  const cachedDiffByMemoKey = new Map<number, StyleDeclarationMap>();
   for (const [element, snapshot] of snapshotByElement) {
     const parentSnapshot = snapshot.parentElement
       ? snapshotByElement.get(snapshot.parentElement)
       : undefined;
-    const diffedBase = diffStyles({
-      styles: snapshot.styles,
-      baseline: sandbox.getBaseline(element, null, snapshot.styles),
-      parentStyles: parentSnapshot?.styles ?? null,
-      parentEmittedStyles: snapshot.parentElement
-        ? (emittedStylesByElement.get(snapshot.parentElement) ?? null)
-        : null,
-    });
+    const cachedDiff =
+      canReuseDiffs && snapshot.memoKey !== -1
+        ? cachedDiffByMemoKey.get(snapshot.memoKey)
+        : undefined;
+    let diffedBase: StyleDeclarationMap;
+    if (cachedDiff) {
+      diffedBase = { ...cachedDiff };
+      applyPerElementStyleDiff(
+        diffedBase,
+        snapshot.styles,
+        sandbox.getBaseline(element, null, snapshot.styles),
+        perElementPropertyNames,
+      );
+    } else {
+      diffedBase = diffStyles({
+        styles: snapshot.styles,
+        baseline: sandbox.getBaseline(element, null, snapshot.styles),
+        parentStyles: parentSnapshot?.styles ?? null,
+        parentEmittedStyles: snapshot.parentElement
+          ? (emittedStylesByElement.get(snapshot.parentElement) ?? null)
+          : null,
+      });
+      if (canReuseDiffs && snapshot.memoKey !== -1) {
+        cachedDiffByMemoKey.set(snapshot.memoKey, { ...diffedBase });
+      }
+    }
     applySizeFreezingPolicy(
       diffedBase,
       snapshot.styles,
@@ -260,7 +283,7 @@ const captureNodeInternal = async (
       MIN_CAPTURE_DIMENSION_PX,
       layoutHeight > 0 ? layoutHeight : boundingBoxHeight,
     );
-    const snapshotByElement = snapshotComposedTree(
+    const { snapshotByElement, perElementPropertyNames } = snapshotComposedTree(
       element,
       defaultView,
       resolvedOptions.filterNode,
@@ -326,6 +349,7 @@ const captureNodeInternal = async (
       const registry = createStyleRegistry();
       const classNameByElement = buildClassNameMap(
         snapshotByElement,
+        perElementPropertyNames,
         sandbox,
         registry,
         element,

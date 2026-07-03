@@ -59,6 +59,12 @@ export interface ElementReadSnapshot {
   parentElement: Element | null;
   scrollLeft: number;
   scrollTop: number;
+  memoKey: number;
+}
+
+export interface ComposedTreeSnapshot {
+  snapshotByElement: Map<Element, ElementReadSnapshot>;
+  perElementPropertyNames: readonly string[];
 }
 
 export interface PseudoRulePreflight {

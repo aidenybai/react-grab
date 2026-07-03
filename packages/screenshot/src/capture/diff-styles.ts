@@ -61,6 +61,45 @@ export const diffStyles = ({
   return diffed;
 };
 
+// Rewrites only the per-element (layout-dependent) properties of a diff copied
+// from a memo-identical element, mirroring the main diffStyles loop for those
+// properties. Valid only while per-element properties are non-inherited and
+// outside the currentcolor set (see canReusePerElementDiffs).
+export const applyPerElementStyleDiff = (
+  diffed: StyleDeclarationMap,
+  styles: StyleDeclarationMap,
+  baseline: StyleDeclarationMap,
+  perElementPropertyNames: readonly string[],
+): void => {
+  const hasNativeAppearance = styles["appearance"] === "auto";
+  for (const propertyName of perElementPropertyNames) {
+    const propertyValue = styles[propertyName];
+    if (propertyValue === undefined) {
+      delete diffed[propertyName];
+      continue;
+    }
+    if (propertyValue !== baseline[propertyName]) {
+      diffed[propertyName] = propertyValue;
+      continue;
+    }
+    const isForcedConcreteValue =
+      CONCRETE_VALUE_STYLE_PROPS.has(propertyName) &&
+      !(hasNativeAppearance && BORDER_WIDTH_STYLE_PROPS.has(propertyName));
+    if (isForcedConcreteValue) diffed[propertyName] = propertyValue;
+    else delete diffed[propertyName];
+  }
+};
+
+export const canReusePerElementDiffs = (perElementPropertyNames: readonly string[]): boolean =>
+  perElementPropertyNames.every(
+    (propertyName) =>
+      !isInheritedStyleProp(propertyName) &&
+      !CURRENTCOLOR_DEFAULT_STYLE_PROPS.includes(propertyName) &&
+      propertyName !== "appearance" &&
+      propertyName !== "color" &&
+      propertyName !== "font-size",
+  );
+
 const isMarkerStyleProp = (propertyName: string): boolean =>
   propertyName.startsWith("font") || MARKER_STYLE_PROPS.has(propertyName);
 
