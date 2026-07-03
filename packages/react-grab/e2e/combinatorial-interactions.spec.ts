@@ -3,6 +3,9 @@ import { goToSizedPerfGrid } from "./perf-fixtures.js";
 import { openEditPanel, isEditPanelVisible, BUTTON_SELECTOR } from "./edit-panel-helpers.js";
 
 const STATE_SETTLE_WAIT_MS = 300;
+// Copy commits run source resolution before writing the clipboard, which can
+// take well past the default 5s poll on loaded CI runners.
+const CLIPBOARD_COMMIT_TIMEOUT_MS = 15_000;
 const MASSIVE_GRID_ROWS = 200;
 const MASSIVE_GRID_COLUMNS = 50;
 
@@ -124,6 +127,7 @@ test.describe("Combinatorial Interactions", () => {
 
       await reactGrab.pressEscape();
       await expect.poll(async () => (await reactGrab.getState()).isActive).toBe(false);
+      await expect.poll(async () => (await reactGrab.getState()).isDragging).toBe(false);
       await reactGrab.page.mouse.up();
       await reactGrab.page.waitForTimeout(STATE_SETTLE_WAIT_MS);
 
@@ -313,14 +317,14 @@ test.describe("Combinatorial Interactions", () => {
       await reactGrab.dragSelect("[data-testid='perf-cell-0-0']", "[data-testid='perf-cell-4-9']");
 
       await expect
-        .poll(() => reactGrab.getClipboardContent(), { timeout: 15_000 })
+        .poll(() => reactGrab.getClipboardContent(), { timeout: CLIPBOARD_COMMIT_TIMEOUT_MS })
         .toContain("perf-cell-0-0");
       await expect.poll(async () => (await reactGrab.getState()).isDragging).toBe(false);
     });
   });
 
   test.describe("Arrow navigation crossed with other features", () => {
-    test("drag selection after arrow-freeze overrides the frozen selection", async ({
+    test("drag selection after discarding an arrow-frozen selection commits normally", async ({
       reactGrab,
     }) => {
       await reactGrab.activate();
@@ -328,12 +332,23 @@ test.describe("Combinatorial Interactions", () => {
       await reactGrab.pressArrowUp();
       await reactGrab.waitForSelectionBox();
 
+      // Mouse movement over an arrow-frozen selection arms the discard
+      // prompt, which swallows the next pointerdown. Walk through the
+      // prompt deterministically before dragging — otherwise whether the
+      // drag starts depends on pointermove/pointerdown delivery order.
+      await reactGrab.page.mouse.move(0, 0);
+      await expect.poll(() => reactGrab.isPendingDismissVisible()).toBe(true);
+      await reactGrab.pressEnter();
+      await expect.poll(() => reactGrab.isPendingDismissVisible()).toBe(false);
+
       await reactGrab.dragSelect(
         "[data-testid='todo-list'] li:first-child",
         "[data-testid='todo-list'] li:last-child",
       );
 
-      await expect.poll(() => reactGrab.getClipboardContent()).not.toBe("");
+      await expect
+        .poll(() => reactGrab.getClipboardContent(), { timeout: CLIPBOARD_COMMIT_TIMEOUT_MS })
+        .not.toBe("");
       expect((await reactGrab.getState()).isDragging).toBe(false);
     });
 
