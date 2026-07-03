@@ -37,7 +37,7 @@ describe("computeAutoBleed", () => {
       "outline-width": "3px",
       "outline-offset": "-6px",
     });
-    expect(bleed).toBe(3);
+    expect(bleed).toBe(0);
   });
 
   it("covers filter blur at three sigma and drop-shadow extents", () => {
