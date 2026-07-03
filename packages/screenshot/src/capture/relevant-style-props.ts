@@ -1,9 +1,15 @@
-import { ALWAYS_SNAPSHOT_STYLE_PROPS, WAAPI_KEYFRAME_META_KEYS } from "../constants";
+import {
+  ALWAYS_SNAPSHOT_STYLE_PROPS,
+  PER_ELEMENT_SNAPSHOT_STYLE_PROPS,
+  WAAPI_KEYFRAME_META_KEYS,
+} from "../constants";
 import type { RelevantStylePropRegistry } from "../types";
 import { isCssGroupingRule } from "../utils/is-css-grouping-rule";
 import { isCssImportRule } from "../utils/is-css-import-rule";
 import { isCssKeyframesRule } from "../utils/is-css-keyframes-rule";
 import { isCssStyleRule } from "../utils/is-css-style-rule";
+import { isElementScopedGroupingRule } from "../utils/is-element-scoped-grouping-rule";
+import { isMemoSafeSelector } from "../utils/is-memo-safe-selector";
 import { shouldSkipStyleProp } from "../utils/should-skip-style-prop";
 import { visitDocumentCssRules } from "../utils/visit-document-css-rules";
 import { waapiKeyframePropToCssProp } from "../utils/waapi-keyframe-prop-to-css-prop";
@@ -20,6 +26,8 @@ export const createRelevantStylePropRegistry = (
 ): RelevantStylePropRegistry | null => {
   const seenProps = new Set<string>();
   const propertyNames: string[] = [];
+  let isMemoSafe = true;
+  let isPseudoContentMemoSafe = true;
   const addProp = (propertyName: string): void => {
     if (seenProps.has(propertyName)) return;
     seenProps.add(propertyName);
@@ -29,23 +37,41 @@ export const createRelevantStylePropRegistry = (
 
   const addDeclarationProps = (declaration: CSSStyleDeclaration): void => {
     for (let propertyIndex = 0; propertyIndex < declaration.length; propertyIndex++) {
-      addProp(declaration.item(propertyIndex));
+      const propertyName = declaration.item(propertyIndex);
+      if (
+        isMemoSafe &&
+        (propertyName === "animation-name" || propertyName === "transition-property") &&
+        declaration.getPropertyValue(propertyName) !== "none"
+      ) {
+        isMemoSafe = false;
+      }
+      if (isPseudoContentMemoSafe && propertyName === "content") {
+        const contentValue = declaration.getPropertyValue("content");
+        if (contentValue.includes("attr(") || contentValue.includes("counter")) {
+          isPseudoContentMemoSafe = false;
+        }
+      }
+      addProp(propertyName);
     }
   };
 
   const addRuleProps = (rule: CSSRule): void => {
     if (isCssStyleRule(rule)) {
+      if (isMemoSafe && !isMemoSafeSelector(rule.selectorText)) isMemoSafe = false;
       addDeclarationProps(rule.style);
     } else if (isCssKeyframesRule(rule)) {
       for (const keyframeRule of rule.cssRules) {
         if (keyframeRule instanceof CSSKeyframeRule) addDeclarationProps(keyframeRule.style);
       }
+    } else if (isCssGroupingRule(rule) && isElementScopedGroupingRule(rule)) {
+      isMemoSafe = false;
     }
   };
 
   const addWaapiAnimationProps = (): void => {
     if (typeof sourceDocument.getAnimations !== "function") return;
     for (const animation of sourceDocument.getAnimations()) {
+      isMemoSafe = false;
       const animationEffect = animation.effect;
       if (!(animationEffect instanceof KeyframeEffect)) continue;
       for (const keyframe of animationEffect.getKeyframes()) {
@@ -72,6 +98,9 @@ export const createRelevantStylePropRegistry = (
   );
   if (hasInaccessibleSheet) return null;
   addWaapiAnimationProps();
+  const perElementPropertyNames = PER_ELEMENT_SNAPSHOT_STYLE_PROPS.filter((propertyName) =>
+    seenProps.has(propertyName),
+  );
 
   const addInlineStyleProps = (inlineStyle: CSSStyleDeclaration): void => {
     addDeclarationProps(inlineStyle);
@@ -100,5 +129,12 @@ export const createRelevantStylePropRegistry = (
     return true;
   };
 
-  return { propertyNames, addInlineStyleProps, addShadowRootStyleProps };
+  return {
+    propertyNames,
+    perElementPropertyNames,
+    isStyleMemoSafe: () => isMemoSafe,
+    isPseudoContentMemoSafe: () => isPseudoContentMemoSafe,
+    addInlineStyleProps,
+    addShadowRootStyleProps,
+  };
 };

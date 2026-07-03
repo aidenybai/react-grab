@@ -57,6 +57,56 @@ export const snapshotPseudoStyles = (
   return styles;
 };
 
+// Used when no stylesheet sets content via attr()/counter(), so pseudo
+// presence and content are identical across elements with the same memo key
+// and only layout-dependent props need re-reading.
+export const snapshotTrustedMemoizedPseudoStyles = (
+  element: Element,
+  pseudoSelector: string,
+  defaultView: Window & typeof globalThis,
+  perElementPropertyNames: readonly string[],
+  memoizedStyles: StyleDeclarationMap | null,
+): StyleDeclarationMap | null => {
+  if (!memoizedStyles) return null;
+  const computedStyle = defaultView.getComputedStyle(element, pseudoSelector);
+  const styles: StyleDeclarationMap = { ...memoizedStyles };
+  for (const propertyName of perElementPropertyNames) {
+    const propertyValue = computedStyle.getPropertyValue(propertyName);
+    if (propertyValue !== "") styles[propertyName] = propertyValue;
+    else delete styles[propertyName];
+  }
+  return styles;
+};
+
+// The content value is re-read per element because attr()/counter() usage can
+// resolve differently for elements that match identical rules; a mismatch with
+// the memoized presence falls back to a full read.
+export const snapshotMemoizedPseudoStyles = (
+  element: Element,
+  pseudoSelector: string,
+  defaultView: Window & typeof globalThis,
+  relevantPropertyNames: readonly string[] | null,
+  perElementPropertyNames: readonly string[],
+  memoizedStyles: StyleDeclarationMap | null,
+): StyleDeclarationMap | null => {
+  const computedStyle = defaultView.getComputedStyle(element, pseudoSelector);
+  const contentValue = computedStyle.getPropertyValue("content");
+  if (contentValue === "" || contentValue === "none" || contentValue === "normal") return null;
+  if (!memoizedStyles) {
+    const styles = snapshotComputedStyle(computedStyle, relevantPropertyNames);
+    styles.content = contentValue;
+    return styles;
+  }
+  const styles: StyleDeclarationMap = { ...memoizedStyles };
+  for (const propertyName of perElementPropertyNames) {
+    const propertyValue = computedStyle.getPropertyValue(propertyName);
+    if (propertyValue !== "") styles[propertyName] = propertyValue;
+    else delete styles[propertyName];
+  }
+  styles.content = contentValue;
+  return styles;
+};
+
 export const snapshotFirstLetterStyles = (
   element: Element,
   defaultView: Window & typeof globalThis,

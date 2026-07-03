@@ -1,7 +1,7 @@
 export const DEFAULT_SCALE = 1;
 export const DEFAULT_RESOURCE_TIMEOUT_MS = 8000;
 export const RESOURCE_CACHE_CAP = 150;
-export const BASELINE_CACHE_CAP = 30;
+export const BASELINE_CACHE_CAP = 256;
 export const MAX_CANVAS_DIMENSION_PX = 16384;
 export const MIN_CAPTURE_DIMENSION_PX = 1;
 export const SANDBOX_OFFSCREEN_LEFT_PX = -9999;
@@ -357,6 +357,34 @@ export const ALWAYS_SNAPSHOT_STYLE_PROPS = [
   "empty-cells",
   "table-layout",
   "content-visibility",
+];
+
+// Properties whose getComputedStyle resolved value depends on the element's
+// own layout (used sizes, resolved percentages, matrix-serialized transforms,
+// grid track sizing), so they can differ between elements that match the exact
+// same style rules and must be re-read per element even on a memo hit.
+export const PER_ELEMENT_SNAPSHOT_STYLE_PROPS = [
+  "width",
+  "height",
+  "inline-size",
+  "block-size",
+  "top",
+  "right",
+  "bottom",
+  "left",
+  "margin-top",
+  "margin-right",
+  "margin-bottom",
+  "margin-left",
+  "padding-top",
+  "padding-right",
+  "padding-bottom",
+  "padding-left",
+  "transform",
+  "transform-origin",
+  "perspective-origin",
+  "grid-template-columns",
+  "grid-template-rows",
 ];
 
 export const FULL_SNAPSHOT_TAGS = new Set([

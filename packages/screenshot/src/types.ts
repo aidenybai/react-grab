@@ -37,8 +37,17 @@ export interface StyleDeclarationMap {
 
 export interface RelevantStylePropRegistry {
   propertyNames: string[];
+  perElementPropertyNames: string[];
+  isStyleMemoSafe: () => boolean;
+  isPseudoContentMemoSafe: () => boolean;
   addInlineStyleProps: (inlineStyle: CSSStyleDeclaration) => void;
   addShadowRootStyleProps: (shadowRoot: ShadowRoot) => boolean;
+}
+
+export interface MemoizedElementStyles {
+  styles: StyleDeclarationMap;
+  beforeStyles: StyleDeclarationMap | null;
+  afterStyles: StyleDeclarationMap | null;
 }
 
 export interface ElementReadSnapshot {
