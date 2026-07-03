@@ -14,6 +14,7 @@ interface TimelineDot {
   cursorPosition: number;
   entryId: number;
   laneIndex: number;
+  hasPerfIssue: boolean;
 }
 
 interface TimelineLane {
@@ -65,7 +66,12 @@ export const TimeMachineTimeline: Component<TimeMachineTimelineProps> = (props) 
           laneIndex = overflowLaneIndex;
         }
       }
-      dots.push({ cursorPosition: entryIndex + 1, entryId: entry.id, laneIndex });
+      dots.push({
+        cursorPosition: entryIndex + 1,
+        entryId: entry.id,
+        laneIndex,
+        hasPerfIssue: entry.hasPerfIssue,
+      });
     }
 
     return { lanes, dots };
@@ -168,9 +174,14 @@ export const TimeMachineTimeline: Component<TimeMachineTimelineProps> = (props) 
               isAtPlayhead()
                 ? TIME_MACHINE_TIMELINE_ACTIVE_DOT_SIZE_PX
                 : TIME_MACHINE_TIMELINE_DOT_SIZE_PX;
+            const dotBackground = () => {
+              if (dot.hasPerfIssue) return "var(--rg-error-text)";
+              return isApplied() ? "var(--rg-text-primary)" : "var(--rg-text-secondary)";
+            };
             return (
               <div
                 data-react-grab-timeline-dot={dot.entryId}
+                data-react-grab-timeline-dot-perf={dot.hasPerfIssue ? "" : undefined}
                 class="absolute rounded-full pointer-events-none"
                 style={{
                   left: `calc(${positionPercent(dot.cursorPosition)}% - ${dotSizePx() / 2}px)`,
@@ -180,8 +191,8 @@ export const TimeMachineTimeline: Component<TimeMachineTimelineProps> = (props) 
                   }px`,
                   width: `${dotSizePx()}px`,
                   height: `${dotSizePx()}px`,
-                  background: isApplied() ? "var(--rg-text-primary)" : "var(--rg-text-secondary)",
-                  opacity: isApplied() ? 0.9 : 0.3,
+                  background: dotBackground(),
+                  opacity: isApplied() ? 0.9 : dot.hasPerfIssue ? 0.5 : 0.3,
                   transition:
                     "opacity 120ms ease, width 120ms ease, height 120ms ease, top 120ms ease, left 120ms ease",
                 }}

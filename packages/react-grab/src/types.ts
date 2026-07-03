@@ -166,6 +166,11 @@ export interface TimeMachineTimelineEntry {
   componentName: string;
   changeCount: number;
   timestamp: number;
+  renderCount: number;
+  renderDurationMs: number;
+  loafDurationMs: number;
+  loafBlockingMs: number;
+  hasPerfIssue: boolean;
 }
 
 export interface TimeMachinePanelState {

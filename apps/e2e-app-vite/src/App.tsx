@@ -712,6 +712,34 @@ const ExternalStoreCounter = () => {
   );
 };
 
+const blockMainThread = (durationMs: number) => {
+  const blockStart = performance.now();
+  while (performance.now() - blockStart < durationMs) {
+    // Busy-wait: fixture for slow-render / long-animation-frame detection.
+  }
+};
+
+// Every increment blocks the main thread during render, producing both a
+// slow commit (profiling actualDuration) and a long-animation-frame entry
+// for the time machine's perf attribution to flag.
+const JankyCounter = () => {
+  const [count, setCount] = useState(0);
+  if (count > 0) blockMainThread(80);
+
+  return (
+    <div className="flex items-center gap-2">
+      <span data-testid="janky-count">{count}</span>
+      <button
+        onClick={() => setCount((previous) => previous + 1)}
+        className="border px-2 py-1 rounded"
+        data-testid="janky-increment"
+      >
+        Janky Increment
+      </button>
+    </div>
+  );
+};
+
 const ReducerSection = () => {
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -730,6 +758,7 @@ const ReducerSection = () => {
           <ReducerOnlyCounter />
           <MixedHooksCounter />
           <ExternalStoreCounter />
+          <JankyCounter />
         </div>
       )}
     </section>

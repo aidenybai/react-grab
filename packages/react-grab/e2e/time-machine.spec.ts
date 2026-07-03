@@ -53,6 +53,39 @@ const getTimeMachineClockText = async (page: Page): Promise<string | null> =>
     { attrName: ATTRIBUTE_NAME, clockAttr: TIME_MACHINE_CLOCK_ATTR },
   );
 
+const LIVE_PILL_ATTR = "data-react-grab-time-machine-live";
+
+const getLivePillState = async (page: Page): Promise<string | null> =>
+  page.evaluate(
+    ({ attrName, livePillAttr }) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      if (!shadowRoot) return null;
+      const livePill = shadowRoot.querySelector(`[${livePillAttr}]`);
+      return livePill?.getAttribute(livePillAttr) ?? null;
+    },
+    { attrName: ATTRIBUTE_NAME, livePillAttr: LIVE_PILL_ATTR },
+  );
+
+const clickLivePill = async (page: Page): Promise<void> =>
+  page.evaluate(
+    ({ attrName, livePillAttr }) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      const livePill = shadowRoot?.querySelector<HTMLButtonElement>(`[${livePillAttr}]`);
+      livePill?.click();
+    },
+    { attrName: ATTRIBUTE_NAME, livePillAttr: LIVE_PILL_ATTR },
+  );
+
+const hasPerfFlaggedTimelineDot = async (page: Page): Promise<boolean> =>
+  page.evaluate((attrName) => {
+    const host = document.querySelector(`[${attrName}]`);
+    const shadowRoot = host?.shadowRoot;
+    if (!shadowRoot) return false;
+    return shadowRoot.querySelector("[data-react-grab-timeline-dot-perf]") !== null;
+  }, ATTRIBUTE_NAME);
+
 const openTimeMachinePanel = async (
   reactGrab: ReactGrabPageObject,
   selector: string,
@@ -421,5 +454,35 @@ test.describe("Time Machine", () => {
 
     await openTimeMachinePanel(reactGrab, TOGGLE_BUTTON_SELECTOR);
     await expect.poll(() => getTimeMachineValueText(reactGrab.page)).toBe("1/1");
+  });
+
+  test("Live pill grays out while rewound and returns to now on click", async ({ reactGrab }) => {
+    await recordVisibilityToggles(reactGrab);
+    await openTimeMachinePanel(reactGrab, TOGGLE_BUTTON_SELECTOR);
+
+    expect(await getLivePillState(reactGrab.page)).toBe("true");
+
+    await reactGrab.pressArrowLeft();
+    await expect.poll(() => getLivePillState(reactGrab.page)).toBe("false");
+    await expect(reactGrab.page.locator(TOGGLEABLE_ELEMENT_SELECTOR)).toBeHidden();
+
+    await clickLivePill(reactGrab.page);
+    await expect.poll(() => getLivePillState(reactGrab.page)).toBe("true");
+    await expect.poll(() => getTimeMachineValueText(reactGrab.page)).toBe("2/2");
+    await expect.poll(() => getTimeMachineClockText(reactGrab.page)).toBe("Now");
+    await expect(reactGrab.page.locator(TOGGLEABLE_ELEMENT_SELECTOR)).toBeVisible();
+  });
+
+  test("a janky commit is flagged as a performance issue on the timeline", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.page.click("[data-testid='janky-increment']");
+    await expect(reactGrab.page.locator("[data-testid='janky-count']")).toHaveText("1");
+
+    await clickToolbarTimeMachineButton(reactGrab);
+    await expect.poll(() => isTimeMachinePanelVisible(reactGrab.page)).toBe(true);
+    // Long-animation-frame entries deliver asynchronously after the janky
+    // frame ends; the slow-render flag covers profiling builds immediately.
+    await expect.poll(() => hasPerfFlaggedTimelineDot(reactGrab.page)).toBe(true);
   });
 });

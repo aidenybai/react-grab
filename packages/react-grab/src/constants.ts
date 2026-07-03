@@ -365,6 +365,16 @@ export const TIME_MACHINE_SETTLE_COALESCE_WINDOW_MS = 700;
 // must stay two scrub steps. Only ambient commits (timers, animation loops,
 // network) are burst/settle candidates.
 export const TIME_MACHINE_INPUT_ATTRIBUTION_WINDOW_MS = 200;
+// One 60fps frame budget: an entry whose commit spent longer than this
+// rendering is flagged as a performance issue on the timeline. React only
+// populates render durations in profiling builds (default-on in dev), so
+// plain production builds report 0 and never false-flag.
+export const TIME_MACHINE_SLOW_RENDER_THRESHOLD_MS = 16;
+// Covers the drift between an entry's Date.now() timestamp and a
+// long-animation-frame's performance.timeOrigin-based window when deciding
+// whether the entry's commit happened inside that frame.
+export const TIME_MACHINE_LOAF_ATTRIBUTION_SLACK_MS = 50;
+export const LONG_ANIMATION_FRAME_ENTRY_TYPE = "long-animation-frame";
 
 export const IME_COMPOSING_KEY_CODE = 229;
 export const SELECTION_LABEL_OFFSCREEN_PX = -9999;

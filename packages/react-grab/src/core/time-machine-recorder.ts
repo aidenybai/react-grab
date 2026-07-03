@@ -28,7 +28,9 @@ import {
   SimpleMemoComponentTag,
   getDisplayName,
   getLatestFiber,
+  getTimings,
   instrument,
+  isCompositeFiber,
   secure,
   traverseRenderedFibers,
   type Fiber,
@@ -37,10 +39,13 @@ import {
   type RenderPhase,
 } from "bippy";
 import {
+  LONG_ANIMATION_FRAME_ENTRY_TYPE,
   TIME_MACHINE_COALESCE_WINDOW_MS,
   TIME_MACHINE_INPUT_ATTRIBUTION_WINDOW_MS,
+  TIME_MACHINE_LOAF_ATTRIBUTION_SLACK_MS,
   TIME_MACHINE_MAX_ENTRIES,
   TIME_MACHINE_SETTLE_COALESCE_WINDOW_MS,
+  TIME_MACHINE_SLOW_RENDER_THRESHOLD_MS,
   TIME_MACHINE_TRAVEL_EXPECTATION_TTL_MS,
 } from "../constants.js";
 import type { TimeMachineTimelineEntry } from "../types.js";
@@ -80,6 +85,10 @@ interface TimeMachineEntry {
   changes: TimeMachineHookChange[];
   timestamp: number;
   interactionSnapshot: TimeMachineInteractionSnapshot | null;
+  renderCount: number;
+  renderDurationMs: number;
+  loafDurationMs: number;
+  loafBlockingMs: number;
 }
 
 // Only useState-family hooks are exactly restorable via a function action;
@@ -315,6 +324,8 @@ const tryCoalesceIntoLastEntry = (changes: TimeMachineHookChange[], now: number)
     }
   }
   lastEntry.timestamp = now;
+  lastEntry.renderCount += commitRenderCount;
+  lastEntry.renderDurationMs += commitRenderDurationMs;
   return true;
 };
 
@@ -344,6 +355,10 @@ const recordEntry = (componentName: string, changes: TimeMachineHookChange[]): v
     changes,
     timestamp: now,
     interactionSnapshot: captureInteractionSnapshot(),
+    renderCount: commitRenderCount,
+    renderDurationMs: commitRenderDurationMs,
+    loafDurationMs: 0,
+    loafBlockingMs: 0,
   });
   if (history.length > TIME_MACHINE_MAX_ENTRIES) {
     history.splice(0, history.length - TIME_MACHINE_MAX_ENTRIES);
@@ -358,8 +373,18 @@ const recordEntry = (componentName: string, changes: TimeMachineHookChange[]): v
 // existed in the real app.
 let commitChanges: TimeMachineHookChange[] | null = null;
 let commitComponentName: string | null = null;
+let commitRenderCount = 0;
+let commitRenderDurationMs = 0;
 
 const handleRenderedFiber = (fiber: Fiber, phase: RenderPhase): void => {
+  if (phase === "unmount") return;
+  if (isCompositeFiber(fiber)) {
+    commitRenderCount += 1;
+    // Self time (actualDuration minus children) so a commit's cost sums each
+    // component once; only populated in React profiling builds (default-on in
+    // dev), plain production builds report 0.
+    commitRenderDurationMs += Math.max(0, getTimings(fiber).selfTime);
+  }
   if (phase !== "update") return;
   if (!isHookStatefulFiber(fiber)) return;
   const changes = collectHookChanges(fiber);
@@ -377,6 +402,8 @@ const handleCommitFiberRoot = (_rendererId: number, root: FiberRoot): void => {
   try {
     commitChanges = null;
     commitComponentName = null;
+    commitRenderCount = 0;
+    commitRenderDurationMs = 0;
     traverseRenderedFibers(root, handleRenderedFiber);
     if (commitChanges) {
       recordEntry(commitComponentName ?? "Anonymous", commitChanges);
@@ -395,8 +422,60 @@ const markUserInput = (): void => {
 
 const USER_INPUT_EVENTS = ["pointerdown", "pointerup", "keydown"] as const;
 
+// The `long-animation-frame` entry shape is not yet in the DOM lib types.
+interface LongAnimationFrameTiming extends PerformanceEntry {
+  blockingDuration?: number;
+}
+
+let loafObserver: PerformanceObserver | null = null;
+
+// A commit that triggers a long animation frame lands inside that frame's
+// window, so the LoAF is charged to the newest entry whose timestamp falls
+// within it. LoAF entries deliver asynchronously — after the frame ends —
+// which is why attribution happens by time window instead of at commit time.
+const attributeLongAnimationFrame = (loafEntry: LongAnimationFrameTiming): boolean => {
+  const frameStartEpochMs =
+    performance.timeOrigin + loafEntry.startTime - TIME_MACHINE_LOAF_ATTRIBUTION_SLACK_MS;
+  const frameEndEpochMs =
+    performance.timeOrigin +
+    loafEntry.startTime +
+    loafEntry.duration +
+    TIME_MACHINE_LOAF_ATTRIBUTION_SLACK_MS;
+  for (let entryIndex = history.length - 1; entryIndex >= 0; entryIndex--) {
+    const entry = history[entryIndex];
+    if (entry.timestamp > frameEndEpochMs) continue;
+    if (entry.timestamp < frameStartEpochMs) break;
+    entry.loafDurationMs += loafEntry.duration;
+    entry.loafBlockingMs += loafEntry.blockingDuration ?? 0;
+    return true;
+  }
+  return false;
+};
+
+const handleLongAnimationFrames = (entryList: PerformanceObserverEntryList): void => {
+  if (!isRecording) return;
+  let didAttribute = false;
+  for (const entry of entryList.getEntries()) {
+    if (attributeLongAnimationFrame(entry)) didAttribute = true;
+  }
+  if (didAttribute) notifyHistoryChange();
+};
+
+const startLongAnimationFrameObserver = (): void => {
+  if (loafObserver) return;
+  if (typeof PerformanceObserver === "undefined") return;
+  if (!PerformanceObserver.supportedEntryTypes?.includes(LONG_ANIMATION_FRAME_ENTRY_TYPE)) return;
+  loafObserver = new PerformanceObserver(handleLongAnimationFrames);
+  try {
+    loafObserver.observe({ type: LONG_ANIMATION_FRAME_ENTRY_TYPE, buffered: false });
+  } catch {
+    loafObserver = null;
+  }
+};
+
 export const startTimeMachineRecorder = (): void => {
   isRecording = true;
+  startLongAnimationFrameObserver();
   if (isInstrumented) return;
   isInstrumented = true;
   // Passive capture listeners so coalescing can tell user-driven commits
@@ -435,6 +514,8 @@ export const stopTimeMachineRecorder = (): void => {
   history = [];
   travelCursor = 0;
   pendingTravelValues = new WeakMap();
+  loafObserver?.disconnect();
+  loafObserver = null;
   notifyHistoryChange();
 };
 
@@ -466,6 +547,12 @@ export const getTimeMachineTimeline = (): TimeMachineTimelineEntry[] =>
     componentName: entry.componentName,
     changeCount: entry.changes.length,
     timestamp: entry.timestamp,
+    renderCount: entry.renderCount,
+    renderDurationMs: entry.renderDurationMs,
+    loafDurationMs: entry.loafDurationMs,
+    loafBlockingMs: entry.loafBlockingMs,
+    hasPerfIssue:
+      entry.loafDurationMs > 0 || entry.renderDurationMs > TIME_MACHINE_SLOW_RENDER_THRESHOLD_MS,
   }));
 
 export const getTimeMachineCursor = (): number => travelCursor;

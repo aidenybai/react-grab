@@ -17,6 +17,7 @@ import type {
 } from "../../types.js";
 import { cn } from "../../utils/cn.js";
 import { createAnchoredDropdown } from "../../utils/create-anchored-dropdown.js";
+import { formatEntryPerf } from "../../utils/format-entry-perf.js";
 import { formatRelativeTime } from "../../utils/format-relative-time.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
 import { isEventFromOverlay } from "../../utils/is-event-from-overlay.js";
@@ -91,11 +92,18 @@ const TimeMachinePanelBody: Component<TimeMachinePanelBodyProps> = (props) => {
     return currentEntry()?.componentName ?? "Start";
   };
 
+  const isLive = () => props.cursor() >= totalEntries();
+
   const clockLabel = () => {
-    if (props.cursor() >= totalEntries()) return "Now";
+    if (isLive()) return "Now";
     const entry = currentEntry();
     if (!entry) return "Start";
     return formatRelativeTime(entry.timestamp);
+  };
+
+  const perfLabel = () => {
+    const entry = currentEntry();
+    return entry ? formatEntryPerf(entry) : null;
   };
 
   // Native timer: the flash must clear while the time machine's page-clock
@@ -240,12 +248,51 @@ const TimeMachinePanelBody: Component<TimeMachinePanelBodyProps> = (props) => {
                 shrink
               />
             </Show>
-            <span
-              data-react-grab-time-machine-clock
-              class="text-[11px] leading-4 text-[var(--rg-text-secondary)] tabular-nums whitespace-nowrap"
-            >
-              {clockLabel()}
-            </span>
+            <div class="flex items-center gap-1.5 min-w-0">
+              <Show when={perfLabel()}>
+                {(label) => (
+                  <span
+                    data-react-grab-time-machine-perf
+                    class="text-[11px] leading-4 text-[var(--rg-error-text)] tabular-nums whitespace-nowrap"
+                  >
+                    {label()}
+                  </span>
+                )}
+              </Show>
+              <span
+                data-react-grab-time-machine-clock
+                class="text-[11px] leading-4 text-[var(--rg-text-secondary)] tabular-nums whitespace-nowrap"
+              >
+                {clockLabel()}
+              </span>
+              <button
+                type="button"
+                data-react-grab-time-machine-live={isLive() ? "true" : "false"}
+                aria-label={isLive() ? "Live" : "Return to live"}
+                title={isLive() ? "Live" : "Return to live"}
+                class={cn(
+                  "flex items-center gap-1 rounded-[4px] px-1 py-px -my-px text-[11px] leading-4 font-medium whitespace-nowrap transition-colors duration-120",
+                  isLive()
+                    ? "text-[var(--rg-error-text)] cursor-default"
+                    : "text-[var(--rg-text-secondary)] cursor-pointer hover:text-[var(--rg-text-primary)] hover:bg-[var(--rg-surface-active)]",
+                )}
+                onClick={() => {
+                  if (isLive()) return;
+                  props.onTravel(totalEntries());
+                }}
+              >
+                <span
+                  aria-hidden="true"
+                  class={cn("rounded-full", isLive() && "animate-pulse")}
+                  style={{
+                    width: "5px",
+                    height: "5px",
+                    background: isLive() ? "var(--rg-error-text)" : "var(--rg-text-secondary)",
+                  }}
+                />
+                Live
+              </button>
+            </div>
           </div>
           <Show when={totalEntries() > 0}>
             <TimeMachineTimeline
