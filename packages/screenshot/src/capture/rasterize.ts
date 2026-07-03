@@ -2,6 +2,7 @@ import { DECODE_SETTLE_FRAME_COUNT, MAX_CANVAS_DIMENSION_PX } from "../constants
 import type { CaptureResult, ResolvedCaptureOptions } from "../types";
 import { blobToDataUrl } from "../utils/blob-to-data-url";
 import { canvasToBlob } from "../utils/canvas-to-blob";
+import { isBlinkEngine } from "../utils/is-blink-engine";
 import { raceWithAbortSignal } from "../utils/race-with-abort-signal";
 import { waitForAnimationFrames } from "../utils/wait-for-animation-frames";
 
@@ -23,9 +24,13 @@ export const createCaptureResult = (
       svgImage.decoding = "sync";
       svgImage.src = svgDataUrl;
       await svgImage.decode();
-      // decode() can resolve before nested data-URL resources inside the
-      // foreignObject finish compositing; two animation frames let them settle.
-      await waitForAnimationFrames(DECODE_SETTLE_FRAME_COUNT);
+      // In Gecko and WebKit, decode() can resolve before nested data-URL
+      // resources inside the foreignObject finish compositing; two animation
+      // frames let them settle. Blink fully rasterizes before decode()
+      // resolves, so the settle there would only add ~2 frames of latency.
+      if (!isBlinkEngine()) {
+        await waitForAnimationFrames(DECODE_SETTLE_FRAME_COUNT);
+      }
       return svgImage;
     })().catch((decodeError: unknown) => {
       decodedImagePromise = null;

@@ -47,11 +47,12 @@ export const snapshotPseudoStyles = (
   element: Element,
   pseudoSelector: string,
   defaultView: Window & typeof globalThis,
+  relevantPropertyNames: readonly string[] | null,
 ): StyleDeclarationMap | null => {
   const computedStyle = defaultView.getComputedStyle(element, pseudoSelector);
   const contentValue = computedStyle.getPropertyValue("content");
   if (contentValue === "" || contentValue === "none" || contentValue === "normal") return null;
-  const styles = snapshotComputedStyle(computedStyle);
+  const styles = snapshotComputedStyle(computedStyle, relevantPropertyNames);
   styles.content = contentValue;
   return styles;
 };

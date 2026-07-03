@@ -14,3 +14,8 @@ export const MS_DECIMAL_PLACES = 1;
 export const PNG_KILOBYTES_DECIMAL_PLACES = 1;
 
 export const BENCH_RESULTS_RELATIVE_PATH = "test-results/bench-results.json";
+
+export const CPU_PROFILE_SAMPLING_INTERVAL_US = 100;
+export const CPU_PROFILE_CAPTURE_DEADLINE_MS = 60_000;
+export const CPU_PROFILE_STOP_DEADLINE_MS = 10_000;
+export const PROFILED_CAPTURE_RUN_COUNT = 10;

@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
-import type { BrowserContext, Page } from "@playwright/test";
+import type { BrowserContext, Page, TestInfo } from "@playwright/test";
 import { PNG } from "pngjs";
 import { CAPTURE_PIXEL_RATIO, CAPTURE_SCALE, SCORE_DECIMAL_PLACES } from "../e2e/constants";
 import { decodePngDataUrl } from "../e2e/utils/decode-png-data-url";
@@ -19,9 +19,11 @@ import {
   MS_DECIMAL_PLACES,
   P95_QUANTILE,
   PNG_KILOBYTES_DECIMAL_PLACES,
+  PROFILED_CAPTURE_RUN_COUNT,
   WARM_RUN_COUNT,
 } from "./constants";
 import type { BenchAdapterKey, BenchLibrarySpec, BenchResultEntry, BenchRunOutcome } from "./types";
+import { captureCpuProfile } from "./utils/capture-cpu-profile";
 import { computeQuantile } from "./utils/compute-quantile";
 import { pngDataUrlByteLength } from "./utils/png-data-url-byte-length";
 import { scorePngPair } from "./utils/score-png-pair";
@@ -217,9 +219,34 @@ const printFixtureTable = (fixtureId: string, fixtureResults: BenchResultEntry[]
   }
 };
 
+const profileOurLibraryOnFixture = async (
+  context: BrowserContext,
+  testInfo: TestInfo,
+  fixtureId: string,
+): Promise<void> => {
+  const ourLibrary = benchLibraries.find((library) => library.id === OUR_LIBRARY_ID);
+  if (!ourLibrary) return;
+  const page = await context.newPage();
+  try {
+    await page.goto(`/${fixtureId}.html`);
+    await stabilizePage(page);
+    await page.addScriptTag({ path: resolve(packageRootPath, ourLibrary.bundleRelativePath) });
+    await runBenchInPage(page, ourLibrary.adapterKey, 0);
+    await captureCpuProfile(page, testInfo, fixtureId, async () => {
+      await runBenchInPage(page, ourLibrary.adapterKey, PROFILED_CAPTURE_RUN_COUNT - 1);
+    });
+  } finally {
+    await page.close().catch(() => undefined);
+  }
+};
+
 test.describe("benchmark", () => {
   for (const fixtureId of benchFixtureIds) {
-    test(fixtureId, async ({ context }) => {
+    test(fixtureId, async ({ context }, testInfo) => {
+      if (process.env.PERF_TRACE) {
+        await profileOurLibraryOnFixture(context, testInfo, fixtureId);
+        return;
+      }
       const expectedPage = await context.newPage();
       await expectedPage.goto(`/${fixtureId}.html`);
       await stabilizePage(expectedPage);

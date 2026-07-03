@@ -58,6 +58,8 @@
     "test:unit": "vp test run tests",
     "test:ui": "playwright test --ui",
     "bench": "pnpm build && playwright test --project chromium-bench",
+    "bench:trace": "pnpm build && PERF_TRACE=1 playwright test --project chromium-bench",
+    "perf:analyze": "node scripts/analyze-perf-trace.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "vp lint",
     "format": "vp fmt",

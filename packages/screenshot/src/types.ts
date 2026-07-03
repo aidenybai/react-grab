@@ -35,6 +35,12 @@ export interface StyleDeclarationMap {
   [propertyName: string]: string;
 }
 
+export interface RelevantStylePropRegistry {
+  propertyNames: string[];
+  addInlineStyleProps: (inlineStyle: CSSStyleDeclaration) => void;
+  addShadowRootStyleProps: (shadowRoot: ShadowRoot) => boolean;
+}
+
 export interface ElementReadSnapshot {
   styles: StyleDeclarationMap;
   beforeStyles: StyleDeclarationMap | null;
