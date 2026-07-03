@@ -30,8 +30,7 @@ const server = createServer(async (request, response) => {
   const resolvedFilePath = resolve(servedRootPath, `.${servedPathname}`);
 
   const isInsideServedRoot =
-    resolvedFilePath === servedRootPath ||
-    resolvedFilePath.startsWith(`${servedRootPath}${sep}`);
+    resolvedFilePath === servedRootPath || resolvedFilePath.startsWith(`${servedRootPath}${sep}`);
   if (!isInsideServedRoot) {
     response.writeHead(403, { "content-type": "text/plain; charset=utf-8" });
     response.end("forbidden");

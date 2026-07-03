@@ -42,9 +42,7 @@ describe("computeAutoBleed", () => {
 
   it("covers filter blur at three sigma and drop-shadow extents", () => {
     expect(computeAutoBleed({ filter: "blur(10px)" })).toBe(30);
-    expect(
-      computeAutoBleed({ filter: "drop-shadow(rgba(0, 0, 0, 0.5) 6px -8px 10px)" }),
-    ).toBe(23);
+    expect(computeAutoBleed({ filter: "drop-shadow(rgba(0, 0, 0, 0.5) 6px -8px 10px)" })).toBe(23);
   });
 
   it("takes the maximum across sources", () => {

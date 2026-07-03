@@ -9,8 +9,7 @@ const IDENTITY_LINEAR_TRANSFORM: LinearTransform = { a: 1, b: 0, c: 0, d: 1 };
 export const composeElementLinearTransform = (
   transformValues: ElementTransformStyleValues,
 ): LinearTransform => {
-  let composed =
-    parseTransformMatrix(transformValues.transform) ?? IDENTITY_LINEAR_TRANSFORM;
+  let composed = parseTransformMatrix(transformValues.transform) ?? IDENTITY_LINEAR_TRANSFORM;
   const scaleLinear = parseScaleLinear(transformValues.scale);
   if (scaleLinear) composed = multiplyLinearTransforms(scaleLinear, composed);
   const rotateLinear = parseRotateLinear(transformValues.rotate);

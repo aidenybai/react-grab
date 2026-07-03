@@ -218,7 +218,8 @@ const captureIframeContents = async (
   );
   for (let iframeIndex = 0; iframeIndex < crossOriginIframes.length; iframeIndex += 1) {
     const contentSnapshot = crossOriginSnapshots[iframeIndex];
-    if (contentSnapshot) iframeContentByElement.set(crossOriginIframes[iframeIndex], contentSnapshot);
+    if (contentSnapshot)
+      iframeContentByElement.set(crossOriginIframes[iframeIndex], contentSnapshot);
   }
   return iframeContentByElement;
 };

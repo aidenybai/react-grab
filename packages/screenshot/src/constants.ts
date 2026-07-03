@@ -58,8 +58,7 @@ export const TRANSPARENT_PIXEL_DATA_URL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
 export const IFRAME_PLACEHOLDER_BACKGROUND_COLOR = "#d9d9d9";
 export const IFRAME_BRIDGE_REQUEST_MESSAGE_TYPE = "react-grab-screenshot:iframe-capture-request";
-export const IFRAME_BRIDGE_RESPONSE_MESSAGE_TYPE =
-  "react-grab-screenshot:iframe-capture-response";
+export const IFRAME_BRIDGE_RESPONSE_MESSAGE_TYPE = "react-grab-screenshot:iframe-capture-response";
 export const IFRAME_BRIDGE_RESPONSE_TIMEOUT_MS = 2000;
 
 // box-sizing: Chromium's border-box theming for form controls comes from

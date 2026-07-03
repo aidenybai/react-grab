@@ -22,19 +22,27 @@ describe("parseTransformMatrix", () => {
   });
 
   it("extracts the linear part of a 2d matrix", () => {
-    expectLinearCloseTo(parseTransformMatrix("matrix(1, 2, 3, 4, 50, 60)") ?? { a: 0, b: 0, c: 0, d: 0 }, {
-      a: 1,
-      b: 2,
-      c: 3,
-      d: 4,
-    });
+    expectLinearCloseTo(
+      parseTransformMatrix("matrix(1, 2, 3, 4, 50, 60)") ?? { a: 0, b: 0, c: 0, d: 0 },
+      {
+        a: 1,
+        b: 2,
+        c: 3,
+        d: 4,
+      },
+    );
   });
 
   it("flattens a matrix3d to its top-left 2x2 block", () => {
     const flattened = parseTransformMatrix(
       "matrix3d(0.7, 0.1, 0, 0, -0.2, 0.9, 0, 0, 0, 0, 1, 0, 10, 20, 30, 1)",
     );
-    expectLinearCloseTo(flattened ?? { a: 0, b: 0, c: 0, d: 0 }, { a: 0.7, b: 0.1, c: -0.2, d: 0.9 });
+    expectLinearCloseTo(flattened ?? { a: 0, b: 0, c: 0, d: 0 }, {
+      a: 0.7,
+      b: 0.1,
+      c: -0.2,
+      d: 0.9,
+    });
   });
 
   it("rejects malformed values", () => {

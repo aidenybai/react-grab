@@ -67,8 +67,18 @@ export const computeRootOutputGeometry = ({
     return buildUntransformedGeometry(layoutWidthPx, layoutHeightPx, bleedPx);
   }
   const { a, b, c, d } = composedLinear;
-  const cornerXs = [0, a * layoutWidthPx, c * layoutHeightPx, a * layoutWidthPx + c * layoutHeightPx];
-  const cornerYs = [0, b * layoutWidthPx, d * layoutHeightPx, b * layoutWidthPx + d * layoutHeightPx];
+  const cornerXs = [
+    0,
+    a * layoutWidthPx,
+    c * layoutHeightPx,
+    a * layoutWidthPx + c * layoutHeightPx,
+  ];
+  const cornerYs = [
+    0,
+    b * layoutWidthPx,
+    d * layoutHeightPx,
+    b * layoutWidthPx + d * layoutHeightPx,
+  ];
   const minX = Math.floor(Math.min(...cornerXs));
   const minY = Math.floor(Math.min(...cornerYs));
   const maxX = Math.ceil(Math.max(...cornerXs));

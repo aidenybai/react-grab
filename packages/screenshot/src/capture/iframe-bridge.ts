@@ -35,10 +35,7 @@ export const requestIframeContentViaBridge = (
         canvasBackgroundColor: response.backgroundColor,
       });
     };
-    const timeoutId = parentView.setTimeout(
-      () => settle(null),
-      IFRAME_BRIDGE_RESPONSE_TIMEOUT_MS,
-    );
+    const timeoutId = parentView.setTimeout(() => settle(null), IFRAME_BRIDGE_RESPONSE_TIMEOUT_MS);
     parentView.addEventListener("message", handleMessage);
     const request: IframeBridgeRequestMessage = {
       type: IFRAME_BRIDGE_REQUEST_MESSAGE_TYPE,
@@ -56,10 +53,16 @@ export const createIframeBridge = (
     heightPx: number;
   }>,
 ): (() => void) => {
+  // Mutually-embedding documents with bridges on both sides would otherwise
+  // recurse forever (capture -> bridge request -> capture -> ...); ignoring
+  // requests while a bridge capture is in flight breaks the cycle and lets
+  // the requester time out to the flat placeholder.
+  let isBridgeCaptureInFlight = false;
   const handleMessage = (event: MessageEvent): void => {
     const request = parseIframeBridgeRequestMessage(event.data);
     const requestSource = event.source;
-    if (!request || !requestSource) return;
+    if (!request || !requestSource || isBridgeCaptureInFlight) return;
+    isBridgeCaptureInFlight = true;
     void captureDocumentRoot(request.pixelRatio)
       .then((capture) => {
         requestSource.postMessage(
@@ -77,6 +80,9 @@ export const createIframeBridge = (
       .catch(() => {
         // A failed capture sends no response; the requesting side times out
         // and falls back to the flat iframe placeholder.
+      })
+      .finally(() => {
+        isBridgeCaptureInFlight = false;
       });
   };
   window.addEventListener("message", handleMessage);

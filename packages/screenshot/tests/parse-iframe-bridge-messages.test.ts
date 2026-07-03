@@ -41,9 +41,10 @@ describe("parseIframeBridgeRequestMessage", () => {
 describe("parseIframeBridgeResponseMessage", () => {
   it("accepts a well-formed response", () => {
     expect(parseIframeBridgeResponseMessage(validResponse)).toEqual(validResponse);
-    expect(
-      parseIframeBridgeResponseMessage({ ...validResponse, backgroundColor: null }),
-    ).toEqual({ ...validResponse, backgroundColor: null });
+    expect(parseIframeBridgeResponseMessage({ ...validResponse, backgroundColor: null })).toEqual({
+      ...validResponse,
+      backgroundColor: null,
+    });
   });
 
   it("rejects malformed responses", () => {
