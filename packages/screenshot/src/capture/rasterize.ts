@@ -16,6 +16,9 @@ export const createCaptureResult = (
   // <foreignObject> (whatwg/html#10641); the equivalent data URL stays origin-clean,
   // so the shared decoded image must load from a data URL.
   const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgMarkup)}`;
+  // The settle frames only exist for nested data-URL resources (inlined images,
+  // fonts) still compositing after decode(); a capture without any skips them.
+  const hasNestedDataUrlResources = svgMarkup.includes("data:");
   let decodedImagePromise: Promise<HTMLImageElement> | null = null;
 
   const decodeSvgImage = (): Promise<HTMLImageElement> => {
@@ -28,7 +31,7 @@ export const createCaptureResult = (
       // resources inside the foreignObject finish compositing; two animation
       // frames let them settle. Blink fully rasterizes before decode()
       // resolves, so the settle there would only add ~2 frames of latency.
-      if (!isBlinkEngine()) {
+      if (!isBlinkEngine() && hasNestedDataUrlResources) {
         await waitForAnimationFrames(DECODE_SETTLE_FRAME_COUNT);
       }
       return svgImage;

@@ -83,7 +83,7 @@ const buildClassNameMap = (
       : undefined;
     const diffedBase = diffStyles({
       styles: snapshot.styles,
-      baseline: sandbox.getBaseline(element, null, snapshot.styles["font-size"]),
+      baseline: sandbox.getBaseline(element, null, snapshot.styles),
       parentStyles: parentSnapshot?.styles ?? null,
       parentEmittedStyles: snapshot.parentElement
         ? (emittedStylesByElement.get(snapshot.parentElement) ?? null)
@@ -131,7 +131,7 @@ const buildClassNameMap = (
       if (!pseudoStyles) return null;
       const diffedPseudo = diffStyles({
         styles: pseudoStyles,
-        baseline: sandbox.getBaseline(element, pseudoSelector, pseudoStyles["font-size"]),
+        baseline: sandbox.getBaseline(element, pseudoSelector, pseudoStyles),
         parentStyles: null,
         parentEmittedStyles: null,
       });
@@ -239,7 +239,9 @@ const captureNodeInternal = async (
   resolvedOptions.abortSignal?.throwIfAborted();
   activeCaptureDocuments.add(ownerDocument);
   try {
-    await raceWithAbortSignal(ownerDocument.fonts.ready, resolvedOptions.abortSignal);
+    if (ownerDocument.fonts.status !== "loaded") {
+      await raceWithAbortSignal(ownerDocument.fonts.ready, resolvedOptions.abortSignal);
+    }
     const boundingRect = element.getBoundingClientRect();
     const boundingBoxWidth = Math.ceil(boundingRect.right) - Math.floor(boundingRect.left);
     const boundingBoxHeight = Math.ceil(boundingRect.bottom) - Math.floor(boundingRect.top);
@@ -336,29 +338,29 @@ const captureNodeInternal = async (
         iframeContentByElement,
       });
       if (!clone) throw new Error("captureNode could not clone the target element");
-      await raceWithAbortSignal(
-        inlineSvgUseReferences({
+      // inlineExternalResources must run after inlineSvgUseReferences (imported
+      // defs can add url() references), but font embedding only reads font-family
+      // values, so its fetches overlap the resource-inlining ones.
+      const inlineResourcesPromise = (async () => {
+        await inlineSvgUseReferences({
           clone,
           rules: registry.rules,
           sourceDocument: ownerDocument,
           timeoutMs: resolvedOptions.timeoutMs,
-        }),
-        resolvedOptions.abortSignal,
-      );
-      await raceWithAbortSignal(
-        inlineExternalResources(clone, registry.rules, resolvedOptions.timeoutMs),
-        resolvedOptions.abortSignal,
-      );
-      const fontEmbedCss = resolvedOptions.embedFonts
-        ? await raceWithAbortSignal(
-            buildFontEmbedCss(
-              collectUsedFontFamilies(registry.rules),
-              ownerDocument,
-              resolvedOptions.timeoutMs,
-            ),
-            resolvedOptions.abortSignal,
+        });
+        await inlineExternalResources(clone, registry.rules, resolvedOptions.timeoutMs);
+      })();
+      const fontEmbedCssPromise = resolvedOptions.embedFonts
+        ? buildFontEmbedCss(
+            collectUsedFontFamilies(registry.rules),
+            ownerDocument,
+            resolvedOptions.timeoutMs,
           )
-        : "";
+        : Promise.resolve("");
+      const [, fontEmbedCss] = await raceWithAbortSignal(
+        Promise.all([inlineResourcesPromise, fontEmbedCssPromise]),
+        resolvedOptions.abortSignal,
+      );
       svgMarkup = serializeToSvgMarkup({
         clone,
         cssText: `${fontEmbedCss}\n${registry.toCssText()}`,

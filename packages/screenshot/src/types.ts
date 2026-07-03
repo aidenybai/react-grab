@@ -83,7 +83,7 @@ export interface StyleSandbox {
   getBaseline: (
     element: Element,
     pseudoSelector: string | null,
-    fontSize: string | undefined,
+    snapshotStyles: StyleDeclarationMap,
   ) => StyleDeclarationMap;
   dispose: () => void;
 }
