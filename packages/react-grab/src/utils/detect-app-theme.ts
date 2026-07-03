@@ -227,6 +227,15 @@ export const watchAppTheme = (
   const applyTheme = (): AppTheme => {
     const inputsFingerprint = getThemeInputsFingerprint();
     if (inputsFingerprint === lastInputsFingerprint && lastAppliedTheme !== null) {
+      // Even when re-detection is skipped, flush pending style with one
+      // targeted read. Skipping every read here lets invalidations from the
+      // freeze path's universal-selector rule churn accumulate until
+      // document.getAnimations() flushes them as a full-document animation
+      // update — profiled at seconds of extra long tasks per activate cycle
+      // with thousands of CSS animations. This read is still far cheaper than
+      // detectTheme, whose probe element and multiple getComputedStyle calls
+      // this short-circuit exists to avoid.
+      void getComputedStyle(document.body).backgroundColor;
       return lastAppliedTheme;
     }
     lastInputsFingerprint = inputsFingerprint;
