@@ -8,7 +8,6 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
   test-perf:
@@ -85,11 +84,44 @@ jobs:
         run: |
           node packages/react-grab/scripts/diff-perf-runs.mjs packages/react-grab/perf/baseline packages/react-grab/perf/current | tee perf-diff.md >> "$GITHUB_STEP_SUMMARY"
 
-      # Sticky PR comment: created on the first run, updated in place on
-      # every subsequent push so the PR isn't spammed with one comment per
-      # commit. Skipped for forks, whose GITHUB_TOKEN is read-only.
+      - name: Upload perf diff
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-diff
+          path: perf-diff.md
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload perf reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-bench-${{ github.event.pull_request.number || github.sha }}
+          path: packages/react-grab/perf/
+          if-no-files-found: warn
+          retention-days: 14
+
+  # Separate job so the write-scoped token never coexists with the bench
+  # job, which builds and executes the PR's own code. This job runs no
+  # repo code at all — it only downloads the diff artifact and posts it.
+  # Sticky comment: created once, updated in place on later pushes.
+  perf-comment:
+    needs: test-perf
+    if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Download perf diff
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: perf-diff
+
       - name: Post perf diff as PR comment
-        if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/github-script@v7
         with:
           script: |
@@ -122,12 +154,3 @@ jobs:
                 body,
               });
             }
-
-      - name: Upload perf reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: perf-bench-${{ github.event.pull_request.number || github.sha }}
-          path: packages/react-grab/perf/
-          if-no-files-found: warn
-          retention-days: 14
