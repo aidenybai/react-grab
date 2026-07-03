@@ -172,6 +172,29 @@ const detectTheme = (): AppTheme => {
 
 const invertTheme = (theme: AppTheme): AppTheme => (theme === "dark" ? "light" : "dark");
 
+// Attribute-level snapshot of everything the mutation-driven re-detection can
+// react to. Reading it never forces style recalc, unlike detectTheme whose
+// getComputedStyle calls do — which made every unrelated body style write
+// (e.g. our own user-select/touch-action toggles) trigger a forced recalc per
+// frame. If this fingerprint is unchanged, the mutation cannot have changed
+// the detected theme, so detectTheme is skipped.
+const getThemeInputsFingerprint = (): string => {
+  const fingerprintParts: string[] = [];
+  for (const element of [document.documentElement, document.body]) {
+    if (!element) continue;
+    fingerprintParts.push(element.className);
+    for (const attributeName of THEME_ATTRIBUTES) {
+      fingerprintParts.push(element.getAttribute(attributeName) ?? "");
+    }
+    for (const { attribute } of PRESENCE_ATTRIBUTES) {
+      fingerprintParts.push(element.hasAttribute(attribute) ? "1" : "");
+    }
+    const inlineStyle = element.style;
+    fingerprintParts.push(inlineStyle.colorScheme, inlineStyle.backgroundColor, inlineStyle.color);
+  }
+  return fingerprintParts.join("|");
+};
+
 const OBSERVED_ATTRIBUTES: string[] = [
   "class",
   "style",
@@ -188,9 +211,15 @@ export const watchAppTheme = (
   onChange?: (reactGrabTheme: AppTheme) => void,
 ): ThemeWatcherResult => {
   let lastAppliedTheme: AppTheme | null = null;
+  let lastInputsFingerprint: string | null = null;
   let pendingFrame: number | null = null;
 
   const applyTheme = (): AppTheme => {
+    const inputsFingerprint = getThemeInputsFingerprint();
+    if (inputsFingerprint === lastInputsFingerprint && lastAppliedTheme !== null) {
+      return lastAppliedTheme;
+    }
+    lastInputsFingerprint = inputsFingerprint;
     const appTheme = detectTheme();
     const reactGrabTheme = invertTheme(appTheme);
     if (reactGrabTheme !== lastAppliedTheme) {
@@ -232,15 +261,22 @@ export const watchAppTheme = (
     bodyObserver.observe(document.documentElement, { childList: true });
   }
 
+  // An OS preference flip changes computed values without touching any
+  // observed attribute, so the fingerprint short-circuit must be bypassed.
+  const handleMediaChange = (): void => {
+    lastInputsFingerprint = null;
+    scheduleApplyTheme();
+  };
+
   const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-  mediaQuery.addEventListener("change", scheduleApplyTheme);
+  mediaQuery.addEventListener("change", handleMediaChange);
 
   return {
     theme: initialTheme,
     cleanup: () => {
       bodyObserver?.disconnect();
       observer.disconnect();
-      mediaQuery.removeEventListener("change", scheduleApplyTheme);
+      mediaQuery.removeEventListener("change", handleMediaChange);
       if (pendingFrame !== null) {
         nativeCancelAnimationFrame(pendingFrame);
       }

@@ -92,6 +92,8 @@
     "pretest:coverage": "pnpm --filter @react-grab/playwright-coverage build",
     "test:coverage": "COVERAGE=1 playwright test",
     "test:perf": "playwright test --grep @perf --reporter=list",
+    "test:perf:trace": "PERF_TRACE=1 playwright test --grep @perf --reporter=list",
+    "perf:analyze": "node scripts/analyze-perf-trace.mjs",
     "test:perf:baseline": "PERF_LABEL=baseline playwright test --grep @perf --reporter=list",
     "test:expect": "bun e2e/react-grab.expect.ts",
     "typecheck": "tsc --noEmit",

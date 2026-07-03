@@ -204,83 +204,128 @@ export const stopRecording = (page: Page): Promise<PerfRawSnapshot> =>
     return window.__PERF_BENCH__.stop();
   });
 
-// --- Optional Chrome CPU trace capture ----------------------------------
+// --- Optional CPU profile capture (PERF_TRACE=1) ------------------------
 //
-// Enabled with PERF_TRACE=1. Streams the chrome://tracing JSON for the
-// scenario window via CDP and writes it to perf/<label>/<scenario>.trace.json.
-// Drop the resulting file into Chrome DevTools "Performance" panel
-// (or `chrome://tracing`) for full flame chart + function-level attribution.
-// Use with `pnpm build:profiling` so the trace shows readable function names
-// instead of minified `B`/`na`/etc.
+// Captures a V8 sampling CPU profile for the scenario window via the CDP
+// `Profiler` domain and writes it to perf/<label>/<scenario>.cpuprofile.
+// Load it in Chrome DevTools ("Performance" panel > load profile) for a
+// flame chart, or run `node scripts/analyze-perf-trace.mjs perf/<label>` for
+// a self-time hotspot table. Pair with `pnpm build:profiling` so symbols are
+// unminified.
+//
+// Deliberately uses the Profiler domain, NOT Tracing with the
+// disabled-by-default-v8.cpu_profiler category: starting the profiler through
+// the Tracing domain wedges the renderer main thread for minutes inside
+// react-dom's click dispatch in headless Chromium (reproducible via the
+// copy-then-deactivate-stress scenario), while the Profiler domain is far
+// less intrusive.
+//
+// Even the Profiler domain can sporadically wedge the headless renderer:
+// with the sampler active, a copy click can spin the main thread at 100%
+// CPU in native code ("(program)" samples) for seconds to minutes,
+// regardless of sampling interval or headless mode. The profiled pass is
+// therefore run AFTER (and separately from) the metric samples, is bounded
+// by a hard deadline, and never fails the test — a wedged capture only
+// costs that scenario's .cpuprofile.
+
+// V8's default sampling interval. Lowering it (e.g. to 100us) makes the
+// renderer stall described above dramatically more likely and longer.
+const CPU_PROFILE_SAMPLING_INTERVAL_US = 1000;
+const CPU_PROFILE_CAPTURE_DEADLINE_MS = 60_000;
+const CPU_PROFILE_STOP_DEADLINE_MS = 10_000;
 
 interface CdpTraceCapture {
-  events: unknown[];
   cdpSession: CDPSession;
-  onDataCollected: (payload: { value: unknown[] }) => void;
-  onComplete: () => void;
-  completionPromise: Promise<void>;
 }
 
-export const startCdpTrace = async (page: Page): Promise<CdpTraceCapture | null> => {
-  if (process.env.PERF_TRACE !== "1") return null;
+const startCdpTrace = async (page: Page): Promise<CdpTraceCapture> => {
   const cdpSession = await page.context().newCDPSession(page);
-  const events: unknown[] = [];
-  let resolveComplete: () => void = () => {};
-  const completionPromise = new Promise<void>((resolveTimer) => {
-    resolveComplete = resolveTimer;
+  await cdpSession.send("Profiler.enable");
+  await cdpSession.send("Profiler.setSamplingInterval", {
+    interval: CPU_PROFILE_SAMPLING_INTERVAL_US,
   });
-  const onDataCollected = (payload: { value: unknown[] }): void => {
-    if (Array.isArray(payload?.value)) events.push(...payload.value);
-  };
-  const onComplete = (): void => resolveComplete();
-  cdpSession.on("Tracing.dataCollected", onDataCollected);
-  cdpSession.on("Tracing.tracingComplete", onComplete);
-  await cdpSession.send("Tracing.start", {
-    transferMode: "ReportEvents",
-    // Same categories DevTools "Performance" uses by default. Includes the
-    // V8 sampling CPU profiler so function-level cost is attributable.
-    categories: [
-      "blink.user_timing",
-      "devtools.timeline",
-      "disabled-by-default-devtools.timeline",
-      "disabled-by-default-devtools.timeline.frame",
-      "disabled-by-default-devtools.timeline.stack",
-      "disabled-by-default-v8.cpu_profiler",
-      "loading",
-      "v8.execute",
-    ].join(","),
-  });
-  return { events, cdpSession, onDataCollected, onComplete, completionPromise };
+  await cdpSession.send("Profiler.start");
+  return { cdpSession };
 };
 
-export const stopCdpTrace = async (
+const stopCdpTrace = async (
   testInfo: TestInfo,
   scenarioName: string,
-  capture: CdpTraceCapture | null,
+  capture: CdpTraceCapture,
 ): Promise<void> => {
-  if (!capture) return;
-  await capture.cdpSession.send("Tracing.end");
-  await capture.completionPromise;
-  capture.cdpSession.off("Tracing.dataCollected", capture.onDataCollected);
-  capture.cdpSession.off("Tracing.tracingComplete", capture.onComplete);
+  let profileJson: string | null = null;
   try {
-    await capture.cdpSession.detach();
-  } catch {
-    // ignore
+    const { profile } = (await capture.cdpSession.send("Profiler.stop")) as {
+      profile: unknown;
+    };
+    profileJson = JSON.stringify(profile);
+  } finally {
+    try {
+      await capture.cdpSession.detach();
+    } catch {
+      // ignore
+    }
   }
+  if (!profileJson) return;
 
   const runLabel = process.env.PERF_LABEL ?? "current";
-  // Chrome DevTools accepts both `{traceEvents: [...]}` and a bare array.
-  // Use the explicit object form so the file extension `.trace.json` is
-  // immediately recognized.
-  const traceJson = JSON.stringify({ traceEvents: capture.events });
-  await testInfo.attach(`perf-${scenarioName}.trace.json`, {
-    body: traceJson,
+  await testInfo.attach(`perf-${scenarioName}.cpuprofile`, {
+    body: profileJson,
     contentType: "application/json",
   });
   const labelDirPath = resolve(PACKAGE_PERF_DIR, runLabel);
   await mkdir(labelDirPath, { recursive: true });
-  await writeFile(resolve(labelDirPath, `${scenarioName}.trace.json`), traceJson);
+  await writeFile(resolve(labelDirPath, `${scenarioName}.cpuprofile`), profileJson);
+};
+
+const raceDeadline = <ResultType>(
+  work: Promise<ResultType>,
+  deadlineMs: number,
+): Promise<ResultType | "deadline"> =>
+  Promise.race([
+    work,
+    new Promise<"deadline">((resolveDeadline) => {
+      setTimeout(() => resolveDeadline("deadline"), deadlineMs);
+    }),
+  ]);
+
+const captureScenarioCpuProfile = async (
+  page: Page,
+  testInfo: TestInfo,
+  scenarioName: string,
+  scenarioBody: () => Promise<void>,
+): Promise<void> => {
+  let capture: CdpTraceCapture | null = null;
+  try {
+    capture = await startCdpTrace(page);
+    const bodyPromise = scenarioBody().then(() => "done" as const);
+    bodyPromise.catch(() => {});
+    const bodyOutcome = await raceDeadline(bodyPromise, CPU_PROFILE_CAPTURE_DEADLINE_MS);
+    if (bodyOutcome === "deadline") {
+      console.warn(
+        `[perf] ${scenarioName}: profiled pass exceeded ${CPU_PROFILE_CAPTURE_DEADLINE_MS}ms ` +
+          `(known headless renderer stall under the V8 sampler); skipping .cpuprofile`,
+      );
+      await capture.cdpSession.detach();
+      return;
+    }
+    const stopOutcome = await raceDeadline(
+      stopCdpTrace(testInfo, scenarioName, capture).then(() => "done" as const),
+      CPU_PROFILE_STOP_DEADLINE_MS,
+    );
+    if (stopOutcome === "deadline") {
+      console.warn(`[perf] ${scenarioName}: Profiler.stop timed out; skipping .cpuprofile`);
+    }
+  } catch (captureError) {
+    console.warn(`[perf] ${scenarioName}: cpu profile capture failed:`, captureError);
+    if (capture) {
+      try {
+        await capture.cdpSession.detach();
+      } catch {
+        // ignore
+      }
+    }
+  }
 };
 
 export const attachPerfReport = async (
@@ -424,20 +469,24 @@ export const recordScenario = async (
   const perSampleAggregates: PerfScenarioAggregate[] = [];
   for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex++) {
     if (options.beforeEachSample) await options.beforeEachSample();
-    // CDP traces are 5-100MB each; capturing only the first sample keeps
-    // disk usage sane while still giving you something to drop into DevTools.
-    const cdpTrace = sampleIndex === 0 ? await startCdpTrace(page) : null;
     await startRecording(page);
-    // try/finally so the observer disconnects and CDP trace flushes even
-    // if the scenario body throws mid-measurement.
+    // try/finally so the observer disconnects even if the scenario body
+    // throws mid-measurement.
     let rawSnapshot: PerfRawSnapshot | null = null;
     try {
       await scenarioBody();
     } finally {
       rawSnapshot = await stopRecording(page);
-      await stopCdpTrace(testInfo, scenarioName, cdpTrace);
     }
     perSampleAggregates.push(aggregateRawSnapshot(rawSnapshot));
+  }
+  // The CPU profile is captured on a dedicated extra pass so the sampler's
+  // overhead (and its sporadic renderer stall — see the comment above
+  // CPU_PROFILE_SAMPLING_INTERVAL_US) never pollutes the metric samples or
+  // fails the test.
+  if (process.env.PERF_TRACE === "1") {
+    if (options.beforeEachSample) await options.beforeEachSample();
+    await captureScenarioCpuProfile(page, testInfo, scenarioName, scenarioBody);
   }
   const medianAggregate =
     perSampleAggregates.length === 1

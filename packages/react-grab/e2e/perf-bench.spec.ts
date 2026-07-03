@@ -3,9 +3,9 @@
 // user input and captures browser-native signals via the recorder
 // installed by `perf-recorder.ts`: INP (Event Timing), LoAF, Long Tasks,
 // frame deltas. For function-level attribution, run with `PERF_TRACE=1` —
-// each scenario also dumps a Chrome trace JSON (load it via DevTools
-// "Performance" panel; pair with `pnpm build:profiling` so symbols are
-// unminified).
+// each scenario also dumps a V8 .cpuprofile (load it via DevTools
+// "Performance" panel, or run `node scripts/analyze-perf-trace.mjs` for a
+// hotspot table; pair with `pnpm build:profiling` so symbols are unminified).
 import { expect, getPerfGridCenters, goToPerfGrid, test } from "./perf-fixtures.js";
 import { idleFrame, recordScenario } from "./perf-recorder.js";
 

@@ -11,9 +11,8 @@
 # baseline with `pnpm test:perf:baseline` and diff against it during
 # optimization work. CI compares its own runs across commits via the
 # uploaded artifact (.github/workflows/test-perf.yml).
-current/
-baseline/
-feature/
+*/
 
-# CDP trace dumps (PERF_TRACE=1) are 5-100MB each. Always local, never committed.
+# CPU profile dumps (PERF_TRACE=1). Always local, never committed.
 *.trace.json
+*.cpuprofile

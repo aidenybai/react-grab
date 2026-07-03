@@ -18,14 +18,21 @@ pnpm test                                     # everything, perf scenarios inclu
 pnpm test:perf                                # only @perf scenarios via --grep
 pnpm test:perf:baseline                       # writes perf/baseline/<scenario>.json
 PERF_LABEL=feature pnpm test:perf             # writes perf/feature/<scenario>.json
-PERF_TRACE=1 pnpm test:perf --grep <name>     # also dumps perf/<label>/<scenario>.trace.json
-# Drop the .trace.json into Chrome DevTools "Performance" panel for the full flame chart.
+pnpm test:perf:trace                          # also dumps perf/<label>/<scenario>.cpuprofile
+pnpm perf:analyze perf/<label>                # function-level self-time hotspot table from the .cpuprofile dumps
+# Or load a .cpuprofile in Chrome DevTools "Performance" panel for the full flame chart.
 # Pair with `pnpm build:profiling` (or `pnpm --filter react-grab build:profiling` from root) so symbols are unminified.
+#
+# The .cpuprofile comes from a dedicated extra pass per scenario (V8 sampling
+# profiler via the CDP Profiler domain), so sampler overhead never pollutes the
+# metric samples. The sampler can sporadically wedge the headless renderer for
+# seconds to minutes (see e2e/perf-recorder.ts); the capture is deadline-bounded
+# and best-effort — a wedged capture only skips that scenario's profile.
 ```
 
 ## Baselines are machine-local
 
-`perf/<label>/*.json` and `*.trace.json` are gitignored (see `perf/.gitignore`), so per-run bench outputs and CDP traces stay local. **Per-scenario baselines aren't committed.** That's intentional — headless Chromium timings on a 4-core Linux runner look nothing like an M-series Mac. Committing one machine's numbers as the canonical baseline would be misleading the moment anyone else opened the file.
+`perf/<label>/*.json` and `*.cpuprofile` are gitignored (see `perf/.gitignore`), so per-run bench outputs and CDP traces stay local. **Per-scenario baselines aren't committed.** That's intentional — headless Chromium timings on a 4-core Linux runner look nothing like an M-series Mac. Committing one machine's numbers as the canonical baseline would be misleading the moment anyone else opened the file.
 
 (The `stage-*.json` files at the top of `perf/` are an exception: they're snapshots of an older deopt-trace bench kept as historical context for prior optimization passes, not active baselines for this suite.)
 
