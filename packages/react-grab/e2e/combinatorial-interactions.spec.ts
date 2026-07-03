@@ -1,6 +1,10 @@
 import { test, expect } from "./fixtures.js";
+import { goToSizedPerfGrid } from "./perf-fixtures.js";
+import { openEditPanel, isEditPanelVisible, BUTTON_SELECTOR } from "./edit-panel-helpers.js";
 
 const STATE_SETTLE_WAIT_MS = 300;
+const MASSIVE_GRID_ROWS = 200;
+const MASSIVE_GRID_COLUMNS = 50;
 
 test.describe("Combinatorial Interactions", () => {
   test.describe("Prompt mode under interrupts", () => {
@@ -276,6 +280,144 @@ test.describe("Combinatorial Interactions", () => {
 
       const state = await reactGrab.getState();
       expect(state.isDragging).toBe(false);
+    });
+  });
+
+  test.describe("Drag across a massive DOM", () => {
+    test("cancelled drag sweep across ~10k React cells cleans up without committing", async ({
+      reactGrab,
+    }) => {
+      await goToSizedPerfGrid(reactGrab.page, MASSIVE_GRID_ROWS, MASSIVE_GRID_COLUMNS);
+      await reactGrab.activate();
+      const clipboardBefore = await reactGrab.getClipboardContent();
+
+      const viewport = reactGrab.page.viewportSize() ?? { width: 1280, height: 720 };
+      await reactGrab.page.mouse.move(20, 80);
+      await reactGrab.page.mouse.down();
+      await reactGrab.page.mouse.move(viewport.width - 40, viewport.height - 40, { steps: 12 });
+      expect((await reactGrab.getState()).isDragging).toBe(true);
+
+      await reactGrab.pressEscape();
+      await expect.poll(async () => (await reactGrab.getState()).isActive).toBe(false);
+      await reactGrab.page.mouse.up();
+
+      const state = await reactGrab.getState();
+      expect(state.isDragging).toBe(false);
+      expect(await reactGrab.getClipboardContent()).toBe(clipboardBefore);
+    });
+
+    test("committed drag over a dense region copies without hanging", async ({ reactGrab }) => {
+      await goToSizedPerfGrid(reactGrab.page, MASSIVE_GRID_ROWS, MASSIVE_GRID_COLUMNS);
+      await reactGrab.activate();
+
+      await reactGrab.dragSelect("[data-testid='perf-cell-0-0']", "[data-testid='perf-cell-4-9']");
+
+      await expect
+        .poll(() => reactGrab.getClipboardContent(), { timeout: 15_000 })
+        .toContain("perf-cell-0-0");
+      await expect.poll(async () => (await reactGrab.getState()).isDragging).toBe(false);
+    });
+  });
+
+  test.describe("Arrow navigation crossed with other features", () => {
+    test("drag selection after arrow-freeze overrides the frozen selection", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+      await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:first-child");
+      await reactGrab.pressArrowUp();
+      await reactGrab.waitForSelectionBox();
+
+      await reactGrab.dragSelect(
+        "[data-testid='todo-list'] li:first-child",
+        "[data-testid='todo-list'] li:last-child",
+      );
+
+      await expect.poll(() => reactGrab.getClipboardContent()).not.toBe("");
+      expect((await reactGrab.getState()).isDragging).toBe(false);
+    });
+
+    test("arrow keys while the context menu is open do not move the frozen selection", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+      await reactGrab.hoverUntilSelected("[data-testid='main-title']");
+      await reactGrab.rightClickElement("[data-testid='main-title']");
+      await expect.poll(() => reactGrab.isContextMenuVisible()).toBe(true);
+
+      const boundsBefore = await reactGrab.getSelectionBoxBounds();
+      await reactGrab.pressArrowUp();
+      await reactGrab.pressArrowDown();
+      await reactGrab.page.waitForTimeout(STATE_SETTLE_WAIT_MS);
+
+      expect(await reactGrab.isContextMenuVisible()).toBe(true);
+      const boundsAfter = await reactGrab.getSelectionBoxBounds();
+      expect(boundsAfter).toEqual(boundsBefore);
+    });
+
+    test("style panel opens for an arrow-frozen ancestor selection", async ({ reactGrab }) => {
+      await reactGrab.activate();
+      await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:first-child");
+      await reactGrab.pressArrowUp();
+      await reactGrab.waitForSelectionBox();
+
+      const bounds = await reactGrab.getSelectionBoxBounds();
+      if (!bounds) throw new Error("Expected a frozen selection box");
+      await reactGrab.rightClickAtPosition(
+        bounds.x + bounds.width / 2,
+        bounds.y + bounds.height / 2,
+      );
+      await expect.poll(() => reactGrab.isContextMenuVisible()).toBe(true);
+      await reactGrab.clickContextMenuItem("Style");
+
+      await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(true);
+    });
+
+    test("arrow keys typed inside the prompt textarea do not move the selection", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.enterPromptMode("[data-testid='main-title']");
+      await reactGrab.typeInInput("hello");
+
+      await reactGrab.pressArrowLeft();
+      await reactGrab.pressArrowLeft();
+      await reactGrab.typeInInput("XX");
+
+      expect(await reactGrab.isPromptModeActive()).toBe(true);
+      expect(await reactGrab.getInputValue()).toBe("helXXlo");
+    });
+  });
+
+  test.describe("Style panel crossed with lifecycle", () => {
+    test("style panel survives a viewport resize", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+
+      await reactGrab.setViewportSize(1000, 650);
+      await reactGrab.page.waitForTimeout(STATE_SETTLE_WAIT_MS);
+
+      expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
+    });
+
+    test("style panel survives page scrolling", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+
+      await reactGrab.scrollPage(300);
+      await reactGrab.page.waitForTimeout(STATE_SETTLE_WAIT_MS);
+
+      expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
+    });
+
+    test("dispose while the style panel is open tears down and allows reinitialization", async ({
+      reactGrab,
+    }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+
+      await reactGrab.dispose();
+      await reactGrab.page.waitForTimeout(STATE_SETTLE_WAIT_MS);
+
+      await reactGrab.reinitialize();
+      await reactGrab.activate();
+      expect(await reactGrab.isOverlayVisible()).toBe(true);
     });
   });
 });

@@ -17,6 +17,19 @@ export const goToPerfGrid = async (page: Page): Promise<void> => {
   );
 };
 
+export const goToSizedPerfGrid = async (
+  page: Page,
+  rowCount: number,
+  columnCount: number,
+): Promise<void> => {
+  await page.goto(`/?perf=grid&rows=${rowCount}&cols=${columnCount}`);
+  await page.waitForFunction(
+    ({ selector, threshold }) => document.querySelectorAll(selector).length >= threshold,
+    { selector: PERF_GRID_SELECTOR, threshold: rowCount * columnCount },
+    { timeout: 60_000 },
+  );
+};
+
 export interface PerfGridCenter {
   x: number;
   y: number;

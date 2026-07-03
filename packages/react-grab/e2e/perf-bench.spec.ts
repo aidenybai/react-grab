@@ -6,7 +6,13 @@
 // each scenario also dumps a V8 .cpuprofile (load it via DevTools
 // "Performance" panel, or run `node scripts/analyze-perf-trace.mjs` for a
 // hotspot table; pair with `pnpm build:profiling` so symbols are unminified).
-import { expect, getPerfGridCenters, goToPerfGrid, test } from "./perf-fixtures.js";
+import {
+  expect,
+  getPerfGridCenters,
+  goToPerfGrid,
+  goToSizedPerfGrid,
+  test,
+} from "./perf-fixtures.js";
 import { idleFrame, recordScenario } from "./perf-recorder.js";
 
 // web-vitals "needs improvement" threshold is 200ms; we cap synthetic
@@ -898,5 +904,138 @@ test.describe("@perf benchmarks", () => {
     );
     await page.keyboard.press("Escape");
     await page.setViewportSize({ width: 1280, height: 720 });
+  });
+
+  test("drag-sweep-massive-grid @perf", async ({ reactGrab, page }, testInfo) => {
+    // ~35k React cells (>100k DOM nodes counting the inner spans). Full
+    // viewport drag sweeps stress getElementsInDrag's elementsFromPoint
+    // sampling, coverage filtering, and removeNestedElements at the scale
+    // where real apps report drag lag.
+    await goToSizedPerfGrid(page, 700, 50);
+
+    await recordScenario(
+      page,
+      testInfo,
+      "drag-sweep-massive-grid",
+      async () => {
+        const viewport = page.viewportSize() ?? { width: 1280, height: 720 };
+        for (let dragIndex = 0; dragIndex < 3; dragIndex++) {
+          await page.mouse.move(20, 80, { steps: 1 });
+          await page.mouse.down();
+          await page.mouse.move(viewport.width - 40, viewport.height - 40, { steps: 20 });
+          // Cancel instead of committing so the measurement isolates drag
+          // tracking from the copy pipeline.
+          await page.keyboard.press("Escape");
+          await page.mouse.up();
+          await page.waitForTimeout(60);
+        }
+        await idleFrame(page, 4);
+      },
+      {
+        samples: 2,
+        beforeEachSample: async () => {
+          await reactGrab.activate();
+          await idleFrame(page, 2);
+        },
+      },
+    );
+  });
+
+  test("drag-commit-massive-grid @perf", async ({ reactGrab, page }, testInfo) => {
+    // Same massive grid, but the drag commits: exercises the full copy
+    // pipeline (freeze, payload build with innerText reads, clipboard)
+    // against a huge accumulated selection.
+    await goToSizedPerfGrid(page, 700, 50);
+
+    await recordScenario(
+      page,
+      testInfo,
+      "drag-commit-massive-grid",
+      async () => {
+        const viewport = page.viewportSize() ?? { width: 1280, height: 720 };
+        await page.mouse.move(20, 80, { steps: 1 });
+        await page.mouse.down();
+        await page.mouse.move(viewport.width - 40, viewport.height - 40, { steps: 12 });
+        await page.mouse.up();
+        await page.waitForTimeout(400);
+        await page.keyboard.press("Escape");
+        await idleFrame(page, 4);
+      },
+      {
+        samples: 2,
+        beforeEachSample: async () => {
+          await reactGrab.activate();
+          await idleFrame(page, 2);
+        },
+      },
+    );
+  });
+
+  test("drag-freeze-animation-storm @perf", async ({ reactGrab, page, perfDom }, testInfo) => {
+    // Drag selection over a grid while 1500 CSS animations run: commit
+    // triggers freezeAnimations on the selected set, and every drag frame
+    // competes with the compositor for style/layout work.
+    await goToSizedPerfGrid(page, 200, 30);
+    await perfDom.installCssAnimations(1500);
+
+    await recordScenario(
+      page,
+      testInfo,
+      "drag-freeze-animation-storm",
+      async () => {
+        const viewport = page.viewportSize() ?? { width: 1280, height: 720 };
+        for (let dragIndex = 0; dragIndex < 3; dragIndex++) {
+          await page.mouse.move(40, 100, { steps: 1 });
+          await page.mouse.down();
+          await page.mouse.move(viewport.width - 60, viewport.height - 60, { steps: 16 });
+          await page.mouse.up();
+          await page.waitForTimeout(150);
+          await page.keyboard.press("Escape");
+          await page.waitForTimeout(40);
+        }
+        await idleFrame(page, 4);
+      },
+      {
+        samples: 2,
+        beforeEachSample: async () => {
+          await reactGrab.activate();
+          await idleFrame(page, 2);
+        },
+      },
+    );
+  });
+
+  test("arrow-navigation-storm @perf", async ({ reactGrab, page }, testInfo) => {
+    // Rapid arrow-key traversal over the perf grid: every press re-runs
+    // hierarchy building, sibling resolution, and frozen-selection
+    // re-rendering.
+    await goToPerfGrid(page);
+
+    const gridCells = await getPerfGridCenters(page, 1);
+    const startCell = gridCells[0];
+
+    await recordScenario(
+      page,
+      testInfo,
+      "arrow-navigation-storm",
+      async () => {
+        const arrowSequence = ["ArrowUp", "ArrowDown", "ArrowRight", "ArrowLeft"];
+        for (let pressIndex = 0; pressIndex < 60; pressIndex++) {
+          await page.keyboard.press(arrowSequence[pressIndex % arrowSequence.length]);
+          await page.waitForTimeout(20);
+        }
+        await page.keyboard.press("Escape");
+        await page.keyboard.press("Escape");
+        await idleFrame(page, 4);
+      },
+      {
+        samples: 2,
+        beforeEachSample: async () => {
+          await reactGrab.activate();
+          await page.mouse.move(startCell.x, startCell.y, { steps: 1 });
+          await page.waitForTimeout(150);
+        },
+      },
+    );
   });
 });
