@@ -19,4 +19,5 @@ meta.json
 .agents/skills/*
 .claude.expect
 .mcp.json
-!.agents/skills/react-grabisolate-*-v8.log
+!.agents/skills/react-grab
+isolate-*-v8.log

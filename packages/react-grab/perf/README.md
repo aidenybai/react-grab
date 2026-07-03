@@ -38,8 +38,6 @@ pnpm perf:analyze perf/<label>                # combined report: scenario metric
 
 `perf/<label>/*.json` and `*.cpuprofile` are gitignored (see `perf/.gitignore`), so per-run bench outputs and CDP traces stay local. **Per-scenario baselines aren't committed.** That's intentional — headless Chromium timings on a 4-core Linux runner look nothing like an M-series Mac. Committing one machine's numbers as the canonical baseline would be misleading the moment anyone else opened the file.
 
-(The `stage-*.json` files at the top of `perf/` are an exception: they're snapshots of an older deopt-trace bench kept as historical context for prior optimization passes, not active baselines for this suite.)
-
 The intended workflow is:
 
 - **Local optimization work** — record a baseline before your change with `pnpm test:perf:baseline`, then re-run `pnpm test:perf` after each iteration. `recordScenario` auto-loads `perf/baseline/<scenario>.json` and embeds it under the `baseline` key in every report, so diffs are doable straight from the per-scenario JSON.

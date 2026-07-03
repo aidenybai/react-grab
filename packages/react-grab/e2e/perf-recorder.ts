@@ -213,7 +213,7 @@ const sumRounded = (values: number[]): number =>
 const maxRounded = (values: number[]): number =>
   values.length === 0 ? 0 : roundTo3(Math.max(...values));
 
-export const aggregateRawSnapshot = (rawSnapshot: PerfRawSnapshot): PerfScenarioAggregate => {
+const aggregateRawSnapshot = (rawSnapshot: PerfRawSnapshot): PerfScenarioAggregate => {
   const loafDurations = rawSnapshot.longAnimationFrames.map((frame) => frame.duration);
   const loafBlocking = rawSnapshot.longAnimationFrames.map((frame) => frame.blockingDuration);
 
@@ -236,12 +236,12 @@ export const aggregateRawSnapshot = (rawSnapshot: PerfRawSnapshot): PerfScenario
   };
 };
 
-export const startRecording = async (page: Page): Promise<void> => {
+const startRecording = async (page: Page): Promise<void> => {
   await page.evaluate(installPerfRecorderScript);
   await page.evaluate(() => window.__PERF_BENCH__!.start());
 };
 
-export const stopRecording = (page: Page): Promise<PerfRawSnapshot> =>
+const stopRecording = (page: Page): Promise<PerfRawSnapshot> =>
   page.evaluate(() => {
     if (!window.__PERF_BENCH__) throw new Error("perf recorder not installed");
     return window.__PERF_BENCH__.stop();
@@ -277,37 +277,35 @@ const CPU_PROFILE_SAMPLING_INTERVAL_US = 1000;
 const CPU_PROFILE_CAPTURE_DEADLINE_MS = 60_000;
 const CPU_PROFILE_STOP_DEADLINE_MS = 10_000;
 
-interface CdpTraceCapture {
-  cdpSession: CDPSession;
-}
+const detachQuietly = async (cdpSession: CDPSession): Promise<void> => {
+  try {
+    await cdpSession.detach();
+  } catch {
+    // ignore
+  }
+};
 
-const startCdpTrace = async (page: Page): Promise<CdpTraceCapture> => {
+const startCpuProfiler = async (page: Page): Promise<CDPSession> => {
   const cdpSession = await page.context().newCDPSession(page);
   await cdpSession.send("Profiler.enable");
   await cdpSession.send("Profiler.setSamplingInterval", {
     interval: CPU_PROFILE_SAMPLING_INTERVAL_US,
   });
   await cdpSession.send("Profiler.start");
-  return { cdpSession };
+  return cdpSession;
 };
 
-const stopCdpTrace = async (
+const stopCpuProfilerAndWrite = async (
   testInfo: TestInfo,
   scenarioName: string,
-  capture: CdpTraceCapture,
+  cdpSession: CDPSession,
 ): Promise<void> => {
   let profileJson: string | null = null;
   try {
-    const { profile } = (await capture.cdpSession.send("Profiler.stop")) as {
-      profile: unknown;
-    };
+    const { profile } = await cdpSession.send("Profiler.stop");
     profileJson = JSON.stringify(profile);
   } finally {
-    try {
-      await capture.cdpSession.detach();
-    } catch {
-      // ignore
-    }
+    await detachQuietly(cdpSession);
   }
   if (!profileJson) return;
 
@@ -378,9 +376,9 @@ const captureScenarioCpuProfile = async (
   scenarioName: string,
   scenarioBody: () => Promise<void>,
 ): Promise<void> => {
-  let capture: CdpTraceCapture | null = null;
+  let profilerSession: CDPSession | null = null;
   try {
-    capture = await startCdpTrace(page);
+    profilerSession = await startCpuProfiler(page);
     const bodyPromise = scenarioBody().then(() => "done" as const);
     bodyPromise.catch(() => {});
     const bodyOutcome = await raceDeadline(bodyPromise, CPU_PROFILE_CAPTURE_DEADLINE_MS);
@@ -389,11 +387,11 @@ const captureScenarioCpuProfile = async (
         `[perf] ${scenarioName}: profiled pass exceeded ${CPU_PROFILE_CAPTURE_DEADLINE_MS}ms ` +
           `(known headless renderer stall under the V8 sampler); skipping .cpuprofile`,
       );
-      await capture.cdpSession.detach();
+      await detachQuietly(profilerSession);
       return;
     }
     const stopOutcome = await raceDeadline(
-      stopCdpTrace(testInfo, scenarioName, capture).then(() => "done" as const),
+      stopCpuProfilerAndWrite(testInfo, scenarioName, profilerSession).then(() => "done" as const),
       CPU_PROFILE_STOP_DEADLINE_MS,
     );
     if (stopOutcome === "deadline") {
@@ -401,17 +399,11 @@ const captureScenarioCpuProfile = async (
     }
   } catch (captureError) {
     console.warn(`[perf] ${scenarioName}: cpu profile capture failed:`, captureError);
-    if (capture) {
-      try {
-        await capture.cdpSession.detach();
-      } catch {
-        // ignore
-      }
-    }
+    if (profilerSession) await detachQuietly(profilerSession);
   }
 };
 
-export const attachPerfReport = async (
+const attachPerfReport = async (
   testInfo: TestInfo,
   scenarioName: string,
   aggregate: PerfScenarioAggregate,
@@ -592,13 +584,7 @@ export const recordScenario = async (
       console.warn(`[perf] ${scenarioName}: memory read failed:`, probeError);
     }
   }
-  if (memoryProbe) {
-    try {
-      await memoryProbe.detach();
-    } catch {
-      // ignore
-    }
-  }
+  if (memoryProbe) await detachQuietly(memoryProbe);
   // The CPU profile is captured on a dedicated extra pass so the sampler's
   // overhead (and its sporadic renderer stall — see the comment above
   // CPU_PROFILE_SAMPLING_INTERVAL_US) never pollutes the metric samples or
