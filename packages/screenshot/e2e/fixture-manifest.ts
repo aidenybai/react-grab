@@ -109,6 +109,15 @@ export const fixtureManifest: FixtureSpec[] = [
     maxDiffRatio: STRICT_MAX_DIFF_RATIO,
     scrollTargetIntoViewBeforeScreenshot: true,
   },
+  {
+    // bleed:"auto" resolves to 80px here (1.5 x 40px blur + 8px spread + 12px
+    // y-offset), so the clip expands the element AABB by the same 80px.
+    id: "lim-bleed-box-shadow",
+    maxDiffRatio: STRICT_MAX_DIFF_RATIO,
+    screenshotClipTargetAabb: true,
+    screenshotClipExpandPx: 80,
+    captureBleed: "auto",
+  },
   { id: "lim-marker-lists", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   {
     // Rotated/scaled edges and glyphs are rasterized twice (live compositor vs
