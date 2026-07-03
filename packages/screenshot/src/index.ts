@@ -209,7 +209,8 @@ const captureIframeContents = async (
         heightPx: nestedResult.height,
         canvasBackgroundColor: findDocumentBackgroundColor(contentDocument),
       });
-    } catch {
+    } catch (nestedCaptureError) {
+      if (options.abortSignal?.aborted) throw nestedCaptureError;
       // A failed nested capture falls back to the flat iframe placeholder.
     }
   }

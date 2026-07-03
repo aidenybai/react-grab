@@ -32,7 +32,7 @@ const computeOutlineBleed = (styles: StyleDeclarationMap): number => {
   if (!outlineStyle || outlineStyle === "none") return 0;
   const outlineWidth = parsePx(styles["outline-width"]);
   if (outlineWidth <= 0) return 0;
-  return outlineWidth + Math.max(0, parsePx(styles["outline-offset"]));
+  return Math.max(0, outlineWidth + parsePx(styles["outline-offset"]));
 };
 
 export const computeAutoBleed = (rootStyles: StyleDeclarationMap): number =>
