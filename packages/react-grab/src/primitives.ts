@@ -16,11 +16,10 @@ import {
   resolveSource,
 } from "./core/context.js";
 import { getHTMLPreview } from "./core/html-preview.js";
-import { Fiber } from "bippy";
+import { Fiber, getFiberFromHostInstance } from "bippy";
 import type { StackFrame } from "bippy/source";
 export type { StackFrame };
 import { createElementSelector } from "./utils/create-element-selector.js";
-import { getFiberFromElement } from "./utils/get-fiber-from-element.js";
 import { extractElementCss, disposeBaselineStyles } from "./utils/extract-element-css.js";
 import { requestOpenFile } from "./utils/open-file.js";
 
@@ -60,7 +59,7 @@ export const getElementContext = async (element: Element): Promise<ReactGrabElem
   const stackString = await getStackContext(element);
   const htmlPreview = getHTMLPreview(element);
   const componentName = getComponentDisplayName(element);
-  const fiber = getFiberFromElement(element);
+  const fiber = getFiberFromHostInstance(element);
   const selector = createElementSelector(element);
   const styles = extractElementCss(element);
 

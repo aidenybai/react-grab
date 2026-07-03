@@ -7,13 +7,13 @@
 // coupled to React internals, so all replay paths use try/catch.
 import {
   _fiberRoots,
+  getFiberFromHostInstance,
   getRDTHook,
   isCompositeFiber,
   type Fiber,
   type ReactRenderer,
   type FiberRoot,
 } from "bippy";
-import { getFiberFromElement } from "./get-fiber-from-element.js";
 import { logRecoverableError } from "./log-recoverable-error.js";
 import { IS_DEMO } from "./runtime-mode.js";
 
@@ -107,7 +107,7 @@ const collectFiberRoots = (): Set<FiberRootLike> => {
   const collectedRoots = new Set<FiberRootLike>();
 
   const traverseDOM = (element: Element): void => {
-    const fiber = getFiberFromElement(element);
+    const fiber = getFiberFromHostInstance(element);
     if (fiber) {
       const fiberRoot = getFiberRoot(fiber);
       if (fiberRoot) collectedRoots.add(fiberRoot);
