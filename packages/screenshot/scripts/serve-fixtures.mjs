@@ -9,6 +9,7 @@ if (!Number.isInteger(serverPort) || serverPort <= 0) {
   process.exit(1);
 }
 const fixturesRootPath = fileURLToPath(new URL("../e2e/fixtures", import.meta.url));
+const distRootPath = fileURLToPath(new URL("../dist", import.meta.url));
 
 const MIME_TYPES_BY_EXTENSION = {
   ".html": "text/html; charset=utf-8",
@@ -23,12 +24,15 @@ const MIME_TYPES_BY_EXTENSION = {
 const server = createServer(async (request, response) => {
   const requestUrl = new URL(request.url ?? "/", `http://localhost:${serverPort}`);
   const decodedPathname = decodeURIComponent(requestUrl.pathname);
-  const resolvedFilePath = resolve(fixturesRootPath, `.${decodedPathname}`);
+  const isDistRequest = decodedPathname.startsWith("/dist/");
+  const servedRootPath = isDistRequest ? distRootPath : fixturesRootPath;
+  const servedPathname = isDistRequest ? decodedPathname.slice("/dist".length) : decodedPathname;
+  const resolvedFilePath = resolve(servedRootPath, `.${servedPathname}`);
 
-  const isInsideFixturesRoot =
-    resolvedFilePath === fixturesRootPath ||
-    resolvedFilePath.startsWith(`${fixturesRootPath}${sep}`);
-  if (!isInsideFixturesRoot) {
+  const isInsideServedRoot =
+    resolvedFilePath === servedRootPath ||
+    resolvedFilePath.startsWith(`${servedRootPath}${sep}`);
+  if (!isInsideServedRoot) {
     response.writeHead(403, { "content-type": "text/plain; charset=utf-8" });
     response.end("forbidden");
     return;

@@ -5,6 +5,7 @@ export interface CaptureOptions {
   embedFonts?: boolean;
   bleed?: number | "auto";
   filterNode?: (element: Element) => boolean;
+  resolveIframeContent?: (iframe: HTMLIFrameElement) => Promise<string | null>;
   timeoutMs?: number;
   abortSignal?: AbortSignal;
 }
@@ -25,6 +26,7 @@ export interface ResolvedCaptureOptions {
   embedFonts: boolean;
   bleed: number | "auto";
   filterNode: ((element: Element) => boolean) | undefined;
+  resolveIframeContent: ((iframe: HTMLIFrameElement) => Promise<string | null>) | undefined;
   timeoutMs: number;
   abortSignal: AbortSignal | undefined;
 }
@@ -100,6 +102,21 @@ export interface BakeBackdropFilterUnderlaysInput {
   snapshotByElement: Map<Element, ElementReadSnapshot>;
   pixelRatio: number;
   backgroundColor: string | undefined;
+}
+
+export interface IframeBridgeRequestMessage {
+  type: string;
+  requestId: string;
+  pixelRatio: number;
+}
+
+export interface IframeBridgeResponseMessage {
+  type: string;
+  requestId: string;
+  pngDataUrl: string;
+  widthPx: number;
+  heightPx: number;
+  backgroundColor: string | null;
 }
 
 export interface IframeContentSnapshot {

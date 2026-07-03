@@ -11,6 +11,7 @@ import {
   diffStyles,
 } from "./capture/diff-styles";
 import { buildFontEmbedCss, collectUsedFontFamilies } from "./capture/embed-fonts";
+import { createIframeBridge, requestIframeContentViaBridge } from "./capture/iframe-bridge";
 import { inlineExternalResources } from "./capture/inline-resources";
 import { inlineSvgUseReferences } from "./capture/inline-svg-defs";
 import { applyEscapedBottomMarginTransfers } from "./capture/margin-collapse";
@@ -41,10 +42,12 @@ import type {
 } from "./types";
 import { applyBakedBackdropBackground } from "./utils/apply-baked-backdrop-background";
 import { computeAutoBleed } from "./utils/compute-auto-bleed";
+import { findDocumentBackgroundColor } from "./utils/find-document-background-color";
 import { findInheritedBackgroundColor } from "./utils/find-inherited-background-color";
 import { isHtmlElement } from "./utils/is-html-element";
 import { isHtmlElementOfTag } from "./utils/is-html-element-of-tag";
 import { isReplacedElement } from "./utils/is-replaced-element";
+import { measureImageDataUrl } from "./utils/measure-image-data-url";
 import { raceWithAbortSignal } from "./utils/race-with-abort-signal";
 
 const isFirstLetterStyleProp = (propertyName: string): boolean =>
@@ -152,17 +155,45 @@ const buildClassNameMap = (
 
 const activeCaptureDocuments = new Set<Document>();
 
-const captureSameOriginIframeContents = async (
+const resolveCrossOriginIframeContent = async (
+  iframe: HTMLIFrameElement,
+  options: ResolvedCaptureOptions,
+): Promise<IframeContentSnapshot | null> => {
+  if (options.resolveIframeContent) {
+    try {
+      const resolvedDataUrl = await options.resolveIframeContent(iframe);
+      if (resolvedDataUrl) {
+        const measuredSize = await measureImageDataUrl(resolvedDataUrl);
+        if (measuredSize) {
+          return {
+            pngDataUrl: resolvedDataUrl,
+            widthPx: measuredSize.widthPx,
+            heightPx: measuredSize.heightPx,
+            canvasBackgroundColor: null,
+          };
+        }
+      }
+    } catch {
+      // A failed hook falls through to the postMessage bridge attempt.
+    }
+  }
+  return requestIframeContentViaBridge(iframe, options.pixelRatio);
+};
+
+const captureIframeContents = async (
   snapshotByElement: Map<Element, ElementReadSnapshot>,
   options: ResolvedCaptureOptions,
 ): Promise<Map<Element, IframeContentSnapshot>> => {
   const iframeContentByElement = new Map<Element, IframeContentSnapshot>();
+  const crossOriginIframes: HTMLIFrameElement[] = [];
   for (const element of snapshotByElement.keys()) {
     if (!isHtmlElementOfTag(element, "iframe")) continue;
     const contentDocument = element.contentDocument;
     const contentRoot = contentDocument?.documentElement;
-    const contentView = contentDocument?.defaultView;
-    if (!contentDocument || !contentRoot || !contentView) continue;
+    if (!contentDocument || !contentRoot || !contentDocument.defaultView) {
+      crossOriginIframes.push(element);
+      continue;
+    }
     if (activeCaptureDocuments.has(contentDocument)) continue;
     try {
       const nestedResult = await captureNode(contentRoot, {
@@ -172,23 +203,22 @@ const captureSameOriginIframeContents = async (
         timeoutMs: options.timeoutMs,
         abortSignal: options.abortSignal,
       });
-      const rootBackground = contentView.getComputedStyle(contentRoot).backgroundColor;
-      const bodyBackground = contentDocument.body
-        ? contentView.getComputedStyle(contentDocument.body).backgroundColor
-        : "";
-      const canvasBackgroundColor =
-        [rootBackground, bodyBackground].find(
-          (backgroundColor) => backgroundColor && backgroundColor !== TRANSPARENT_BACKGROUND_COLOR,
-        ) ?? null;
       iframeContentByElement.set(element, {
         pngDataUrl: await nestedResult.toPngDataUrl(),
         widthPx: nestedResult.width,
         heightPx: nestedResult.height,
-        canvasBackgroundColor,
+        canvasBackgroundColor: findDocumentBackgroundColor(contentDocument),
       });
     } catch {
       // A failed nested capture falls back to the flat iframe placeholder.
     }
+  }
+  const crossOriginSnapshots = await Promise.all(
+    crossOriginIframes.map((iframe) => resolveCrossOriginIframeContent(iframe, options)),
+  );
+  for (let iframeIndex = 0; iframeIndex < crossOriginIframes.length; iframeIndex += 1) {
+    const contentSnapshot = crossOriginSnapshots[iframeIndex];
+    if (contentSnapshot) iframeContentByElement.set(crossOriginIframes[iframeIndex], contentSnapshot);
   }
   return iframeContentByElement;
 };
@@ -257,10 +287,7 @@ const captureNodeInternal = async (
         resolvedOptions.backgroundColor = findInheritedBackgroundColor(element) || undefined;
       }
     }
-    const iframeContentByElement = await captureSameOriginIframeContents(
-      snapshotByElement,
-      resolvedOptions,
-    );
+    const iframeContentByElement = await captureIframeContents(snapshotByElement, resolvedOptions);
     resolvedOptions.abortSignal?.throwIfAborted();
     let bakedBackdropPngByElement = new Map<Element, string>();
     if (!internalContext.skipBackdropFilterBaking) {
@@ -364,6 +391,7 @@ export const captureNode = async (
     embedFonts: options.embedFonts ?? true,
     bleed: options.bleed ?? DEFAULT_BLEED_PX,
     filterNode: options.filterNode,
+    resolveIframeContent: options.resolveIframeContent,
     timeoutMs: options.timeoutMs ?? DEFAULT_RESOURCE_TIMEOUT_MS,
     abortSignal: options.abortSignal,
   };
@@ -372,5 +400,15 @@ export const captureNode = async (
     skipBackdropFilterBaking: false,
   });
 };
+
+export const enableIframeBridge = (): (() => void) =>
+  createIframeBridge(async (pixelRatio) => {
+    const captureResult = await captureNode(document.documentElement, { scale: 1, pixelRatio });
+    return {
+      pngDataUrl: await captureResult.toPngDataUrl(),
+      widthPx: captureResult.width,
+      heightPx: captureResult.height,
+    };
+  });
 
 export type { CaptureOptions, CaptureResult } from "./types";
