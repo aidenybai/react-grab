@@ -18,6 +18,7 @@ import {
   getDocumentStyleEpoch,
   getAttributeGenerationByElement,
 } from "./document-change-tracker";
+import { buildInlineCarryText } from "../utils/build-inline-carry-text";
 import { buildStyleMemoDescriptor } from "../utils/build-style-memo-descriptor";
 import { getComposedChildNodes } from "../utils/get-composed-child-nodes";
 import { isElementNode } from "../utils/is-element-node";
@@ -68,6 +69,7 @@ export const snapshotComposedTree = (
   prunedElements: ReadonlySet<Element> | undefined,
 ): ComposedTreeSnapshot => {
   const snapshotByElement = new Map<Element, ElementReadSnapshot>();
+  const inlineCarryTextByElement = new Map<Element, string>();
   const pseudoPreflight = preflightPseudoRules(rootElement.ownerDocument);
   let relevantProps = createRelevantStylePropRegistry(rootElement.ownerDocument);
   if (relevantProps) {
@@ -192,12 +194,21 @@ export const snapshotComposedTree = (
         ? relevantProps.propertyNames
         : null;
     let memoKey = NO_MEMO_KEY;
+    let inlineCarryText = "";
     if (
       relevantPropertyNames &&
       relevantProps?.isStyleMemoSafe() &&
       isMemoizableHtmlElement &&
       parentMemoKey !== NO_MEMO_KEY
     ) {
+      if (
+        relevantProps.isInlineCarrySafe() &&
+        isHtmlElement(element) &&
+        element.hasAttribute("style")
+      ) {
+        inlineCarryText = buildInlineCarryText(element.style);
+        if (inlineCarryText !== "") inlineCarryTextByElement.set(element, inlineCarryText);
+      }
       const persistedElementKey =
         attributeGenerationByElement !== null &&
         (attributeGenerationByElement.get(element) ?? 0) <= adoptedAttributeGeneration
@@ -213,6 +224,7 @@ export const snapshotComposedTree = (
           element,
           perElementProps,
           relevantProps?.styleRelevantAttributeNames ?? null,
+          inlineCarryText !== "",
         );
         let descriptorKeys = memoKeysByParentKey.get(parentMemoKey);
         if (descriptorKeys === undefined) {
@@ -387,5 +399,6 @@ export const snapshotComposedTree = (
     snapshotByElement,
     perElementPropertyNames,
     persistedVariantEmittedStyles: isStorePersistable ? variantEmittedStyles : null,
+    inlineCarryTextByElement,
   };
 };

@@ -566,3 +566,21 @@ image document, avoidable by first decoding a tiny SVG carrying just the
 @font-face blocks (page fonts unused by the capture), and prewarm changes
 nothing (28-31ms either way). Cold decode overhead is first-run process/JIT
 warmup, not font parsing. No change.
+
+## Iteration 59 — memo-carry for inline style declarations (kept)
+
+Unique inline declarations on class-matched elements used to fragment the memo
+descriptor (each cell with `style="padding:...;background:..."` built its own
+snapshot). Now non-inherited, geometry-independent longhands
+(MEMO_CARRY_INLINE_STYLE_PROPS: background layers, border color/style/radius,
+paddings) key the descriptor by name only and their declared values ride on
+the clone's style attribute, where inline-over-class precedence mirrors the
+source cascade. Carrying disables itself capture-wide when any author rule
+declares an !important carriable prop or any backdrop-filter exists (baked
+underlays must own background layers), and per element when the inline style
+holds backdrop-filter, !important, url(), or var(). Geometry consumers
+(margin-collapse, freeze-fixed, freeze-sticky) read padding live since a
+memo-hit snapshot can hold the seed's padding. 71-mega-grid (1,600 uniquely
+inline-styled cells): snapshot 413 -> 132ms, warm 778 -> 423ms, cold 924 ->
+503ms. 70-stress/60-kitchen-sink neutral. Full 3-engine fidelity + 77 unit
+tests green.

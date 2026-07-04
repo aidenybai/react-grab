@@ -2,6 +2,7 @@ import { MARGIN_ESCAPE_GEOMETRY_TOLERANCE_PX } from "../constants";
 import type { ElementReadSnapshot, StyleDeclarationMap } from "../types";
 import { getComposedChildNodes } from "../utils/get-composed-child-nodes";
 import { isElementNode } from "../utils/is-element-node";
+import { isHtmlElement } from "../utils/is-html-element";
 import { parsePx } from "../utils/parse-px";
 
 const BLOCK_LEVEL_DISPLAY_VALUES = new Set(["block", "list-item", "flex", "grid", "table"]);
@@ -15,12 +16,23 @@ const isInFlow = (styles: StyleDeclarationMap): boolean => {
   );
 };
 
-const canBottomMarginEscape = (styles: StyleDeclarationMap): boolean => {
+// With an inline padding-bottom the memo-hit snapshot can hold the seed's
+// value (the element's own value rides on the clone), so it is re-read live.
+const resolvePaddingBottom = (element: Element, styles: StyleDeclarationMap): number => {
+  if (isHtmlElement(element) && element.style.paddingBottom !== "") {
+    const computedStyle = element.ownerDocument.defaultView?.getComputedStyle(element);
+    return parsePx(computedStyle?.getPropertyValue("padding-bottom"));
+  }
+  return parsePx(styles["padding-bottom"]);
+};
+
+const canBottomMarginEscape = (element: Element, styles: StyleDeclarationMap): boolean => {
   const display = styles["display"];
   if (display !== "block" && display !== "list-item") return false;
   if (!isInFlow(styles)) return false;
   if (styles["overflow-x"] !== "visible" || styles["overflow-y"] !== "visible") return false;
-  return parsePx(styles["padding-bottom"]) === 0 && parsePx(styles["border-bottom-width"]) === 0;
+  if (parsePx(styles["border-bottom-width"]) !== 0) return false;
+  return resolvePaddingBottom(element, styles) === 0;
 };
 
 const isCollapsibleBlockChild = (styles: StyleDeclarationMap): boolean =>
@@ -64,7 +76,7 @@ export const applyEscapedBottomMarginTransfers = (
     if (memoizedMargin !== undefined) return memoizedMargin;
     escapedMarginByElement.set(element, 0);
     const snapshot = snapshotByElement.get(element);
-    if (!snapshot || !canBottomMarginEscape(snapshot.styles)) return 0;
+    if (!snapshot || !canBottomMarginEscape(element, snapshot.styles)) return 0;
     if (snapshot.scrollTop !== 0 || snapshot.scrollLeft !== 0) return 0;
     const lastChild = findLastInFlowElementChild(element);
     if (!lastChild) return 0;

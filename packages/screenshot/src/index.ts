@@ -531,7 +531,12 @@ const captureNodeInternal = async (
     );
     prefetchExternalResources(element, resolvedOptions.timeoutMs);
     const snapshotStartMs = performance.now();
-    const { snapshotByElement, perElementPropertyNames, persistedVariantEmittedStyles } =
+    const {
+      snapshotByElement,
+      perElementPropertyNames,
+      persistedVariantEmittedStyles,
+      inlineCarryTextByElement,
+    } =
       internalContext.presnapshottedTree ??
       snapshotComposedTree(
         element,
@@ -609,6 +614,7 @@ const captureNodeInternal = async (
               snapshotByElement,
               perElementPropertyNames,
               persistedVariantEmittedStyles,
+              inlineCarryTextByElement,
             },
           },
         );
@@ -679,6 +685,7 @@ const captureNodeInternal = async (
         cloneByElement: new Map(),
         iframeContentByElement,
         prunedElements: resolvedOptions.prunedElements,
+        inlineCarryTextByElement,
       });
       if (!clone) throw new Error("captureNode could not clone the target element");
       lastCaptureTimings.buildMs = performance.now() - buildStartMs;

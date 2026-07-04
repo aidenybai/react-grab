@@ -358,6 +358,40 @@ export const PER_ELEMENT_SNAPSHOT_STYLE_PROPS = [
 
 export const INSET_STYLE_PROPS = ["top", "right", "bottom", "left"];
 
+// Non-inherited longhands whose inline declarations can be carried verbatim
+// onto the clone's style attribute instead of splitting the memo class: the
+// clone document re-resolves them (em/%/currentColor) against the same frozen
+// context, and inline precedence over the emitted class rules mirrors the
+// source cascade. Excludes props read back for geometry/bleed/backdrop logic
+// (margins, border-widths, box-shadow, outline) and everything inherited.
+export const MEMO_CARRY_INLINE_STYLE_PROPS = new Set([
+  "background-color",
+  "background-image",
+  "background-position-x",
+  "background-position-y",
+  "background-size",
+  "background-repeat",
+  "background-attachment",
+  "background-origin",
+  "background-clip",
+  "border-top-color",
+  "border-right-color",
+  "border-bottom-color",
+  "border-left-color",
+  "border-top-style",
+  "border-right-style",
+  "border-bottom-style",
+  "border-left-style",
+  "border-top-left-radius",
+  "border-top-right-radius",
+  "border-bottom-right-radius",
+  "border-bottom-left-radius",
+  "padding-top",
+  "padding-right",
+  "padding-bottom",
+  "padding-left",
+]);
+
 // Per-element props whose resolved value is pinned by the matched rules as
 // long as every declaration reaching them stays in this set's units.
 export const CLASS_STABLE_CANDIDATE_STYLE_PROPS = new Set([

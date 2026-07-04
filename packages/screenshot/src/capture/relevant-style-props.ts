@@ -4,6 +4,7 @@ import {
   ATTRIBUTE_SELECTOR_NAME_PATTERN,
   CLASS_STABLE_CANDIDATE_STYLE_PROPS,
   INSET_STYLE_PROPS,
+  MEMO_CARRY_INLINE_STYLE_PROPS,
   PER_ELEMENT_SNAPSHOT_STYLE_PROPS,
   BOX_RELATIVE_VALUE_PATTERN,
   STABLE_DECLARED_VALUE_PATTERN,
@@ -44,6 +45,12 @@ export const createRelevantStylePropRegistry = (
   const propertyNames: string[] = [];
   let isMemoSafe = true;
   let isPseudoContentMemoSafe = true;
+  // Inline carry moves a declaration's precedence to the clone's style
+  // attribute, which is only cascade-equivalent when no author rule can beat
+  // the source inline declaration: any !important rule on a carriable prop,
+  // or any backdrop-filter (whose baked underlay must own background-image),
+  // disables carrying for the whole capture.
+  let isInlineCarrySafe = true;
   let isInitialScanDone = false;
   const animatedProps = new Set<string>();
   // Margins, paddings, and insets normally resolve per element (percentages,
@@ -177,6 +184,16 @@ export const createRelevantStylePropRegistry = (
         }
       }
       checkDeclaredValueStability(declaration, propertyName, selectorText);
+      if (
+        isInlineCarrySafe &&
+        (propertyName === "backdrop-filter" ||
+          propertyName === "-webkit-backdrop-filter" ||
+          (selectorText !== undefined &&
+            MEMO_CARRY_INLINE_STYLE_PROPS.has(propertyName) &&
+            declaration.getPropertyPriority(propertyName) === "important"))
+      ) {
+        isInlineCarrySafe = false;
+      }
       addProp(propertyName);
     }
   };
@@ -281,5 +298,6 @@ export const createRelevantStylePropRegistry = (
     isPseudoContentMemoSafe: () => isPseudoContentMemoSafe,
     addInlineStyleProps,
     addShadowRootStyleProps,
+    isInlineCarrySafe: () => isInlineCarrySafe,
   };
 };

@@ -57,8 +57,16 @@ export const freezeFixedDescendants = (rootElement: Element, context: CloneConte
       frozenTop =
         fixedRect.top - containingRect.top - parsePx(containingStyles["border-top-width"]);
       if (hasScrollWrapperInClone(containingSnapshot)) {
-        frozenLeft += containingSnapshot.scrollLeft - parsePx(containingStyles["padding-left"]);
-        frozenTop += containingSnapshot.scrollTop - parsePx(containingStyles["padding-top"]);
+        // Live padding reads: a memo-hit snapshot can hold the seed's padding
+        // when the container's own padding rides inline on the clone.
+        const containingComputedStyle =
+          containingElement.ownerDocument.defaultView?.getComputedStyle(containingElement);
+        frozenLeft +=
+          containingSnapshot.scrollLeft -
+          parsePx(containingComputedStyle?.getPropertyValue("padding-left"));
+        frozenTop +=
+          containingSnapshot.scrollTop -
+          parsePx(containingComputedStyle?.getPropertyValue("padding-top"));
       }
     } else {
       const rootRect = rootElement.getBoundingClientRect();
@@ -74,7 +82,7 @@ export const freezeFixedDescendants = (rootElement: Element, context: CloneConte
     }
     fixedClone.setAttribute(
       "style",
-      `position:absolute;top:${frozenTop}px;left:${frozenLeft}px;right:auto;bottom:auto;margin:0;`,
+      `${fixedClone.getAttribute("style") ?? ""}position:absolute;top:${frozenTop}px;left:${frozenLeft}px;right:auto;bottom:auto;margin:0;`,
     );
   }
 };

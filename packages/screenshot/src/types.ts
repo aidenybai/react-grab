@@ -59,6 +59,7 @@ export interface RelevantStylePropRegistry {
   isPseudoContentMemoSafe: () => boolean;
   addInlineStyleProps: (inlineStyle: CSSStyleDeclaration) => void;
   addShadowRootStyleProps: (shadowRoot: ShadowRoot) => boolean;
+  isInlineCarrySafe: () => boolean;
 }
 
 export interface MemoizedElementStyles {
@@ -84,6 +85,7 @@ export interface ComposedTreeSnapshot {
   snapshotByElement: Map<Element, ElementReadSnapshot>;
   perElementPropertyNames: readonly string[];
   persistedVariantEmittedStyles: Map<number, Map<string, StyleDeclarationMap>> | null;
+  inlineCarryTextByElement: Map<Element, string>;
 }
 
 export interface PseudoRulePreflight {
@@ -193,6 +195,7 @@ export interface CloneContext {
   cloneByElement: Map<Element, Element>;
   iframeContentByElement: Map<Element, IframeContentSnapshot>;
   prunedElements: ReadonlySet<Element> | undefined;
+  inlineCarryTextByElement: Map<Element, string>;
 }
 
 export interface InlineSvgUseReferencesInput {

@@ -11,14 +11,18 @@ export const freezeStickyDescendants = (scrollContainer: Element, context: Clone
   if (!containerSnapshot) return;
   const containerRect = scrollContainer.getBoundingClientRect();
   const containerStyles = containerSnapshot.styles;
+  // Live padding reads: a memo-hit snapshot can hold the seed's padding when
+  // the container's own padding rides inline on the clone.
+  const containerComputedStyle =
+    scrollContainer.ownerDocument.defaultView?.getComputedStyle(scrollContainer);
   const contentOriginLeft =
     containerRect.left +
     parsePx(containerStyles["border-left-width"]) +
-    parsePx(containerStyles["padding-left"]);
+    parsePx(containerComputedStyle?.getPropertyValue("padding-left"));
   const contentOriginTop =
     containerRect.top +
     parsePx(containerStyles["border-top-width"]) +
-    parsePx(containerStyles["padding-top"]);
+    parsePx(containerComputedStyle?.getPropertyValue("padding-top"));
 
   const pinStickyClone = (stickyElement: Element, snapshot: ElementReadSnapshot): void => {
     const stickyClone = context.cloneByElement.get(stickyElement);
@@ -37,7 +41,7 @@ export const freezeStickyDescendants = (scrollContainer: Element, context: Clone
     const frozenTop = stickyRect.top - contentOriginTop + containerSnapshot.scrollTop;
     stickyClone.setAttribute(
       "style",
-      `position:absolute;top:${frozenTop}px;left:${frozenLeft}px;right:auto;bottom:auto;margin:0;`,
+      `${stickyClone.getAttribute("style") ?? ""}position:absolute;top:${frozenTop}px;left:${frozenLeft}px;right:auto;bottom:auto;margin:0;`,
     );
   };
 

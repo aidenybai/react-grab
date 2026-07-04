@@ -262,6 +262,16 @@ const cloneElementNode = (
   if (!clone) return null;
   if (context.prunedElements?.has(element)) shouldCloneChildren = false;
   reflectFormState(element, clone, snapshot.styles);
+  const inlineCarryText = context.inlineCarryTextByElement.get(element);
+  if (inlineCarryText !== undefined) {
+    // Prepending keeps replica-specific inline styling (indeterminate
+    // checkbox dash, frozen video fitting) winning over carried props.
+    const existingStyleText = clone.getAttribute("style");
+    clone.setAttribute(
+      "style",
+      existingStyleText ? inlineCarryText + existingStyleText : inlineCarryText,
+    );
+  }
   const className = context.classNameByElement.get(element);
   if (className) clone.setAttribute("class", className);
   if (className && element.namespaceURI === SVG_NAMESPACE_URI) {
