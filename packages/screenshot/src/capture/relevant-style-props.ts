@@ -85,12 +85,12 @@ export const createRelevantStylePropRegistry = (
   const isUnconditionallyUnstable = (propertyName: string): boolean =>
     layoutUnstableProps.has(propertyName) && unstableSelectorsByProp.get(propertyName) === null;
   const checkDeclaredValueStability = (
-    declaration: CSSStyleDeclaration,
     propertyName: string,
+    declaredValue: string,
     selectorText?: string,
   ): void => {
     if (propertyName === "position") {
-      if (declaration.getPropertyValue("position") !== "static") {
+      if (declaredValue !== "static") {
         for (const insetProp of INSET_STYLE_PROPS) markLayoutUnstable(insetProp, selectorText);
       }
       return;
@@ -98,9 +98,8 @@ export const createRelevantStylePropRegistry = (
     // A mid-flight transition holds per-element intermediate values that no
     // rule declares, so transitioned candidates lose their stability proof.
     if (propertyName === "transition-property") {
-      const transitionedValue = declaration.getPropertyValue("transition-property");
       for (const candidateProp of CLASS_STABLE_CANDIDATE_STYLE_PROPS) {
-        if (transitionedValue.includes("all") || transitionedValue.includes(candidateProp)) {
+        if (declaredValue.includes("all") || declaredValue.includes(candidateProp)) {
           markLayoutUnstable(candidateProp, selectorText);
         }
       }
@@ -112,14 +111,14 @@ export const createRelevantStylePropRegistry = (
     // pinned by the matched rules.
     if (propertyName === "transform") {
       if (isUnconditionallyUnstable("transform")) return;
-      if (BOX_RELATIVE_VALUE_PATTERN.test(declaration.getPropertyValue("transform"))) {
+      if (BOX_RELATIVE_VALUE_PATTERN.test(declaredValue)) {
         markLayoutUnstable("transform", selectorText);
       }
       return;
     }
     if (CLASS_STABLE_CANDIDATE_STYLE_PROPS.has(propertyName)) {
       if (isUnconditionallyUnstable(propertyName)) return;
-      if (!STABLE_DECLARED_VALUE_PATTERN.test(declaration.getPropertyValue(propertyName))) {
+      if (!STABLE_DECLARED_VALUE_PATTERN.test(declaredValue)) {
         markLayoutUnstable(propertyName, selectorText);
       }
       return;
@@ -129,10 +128,7 @@ export const createRelevantStylePropRegistry = (
     const logicalGroupPrefix = ["margin-", "padding-", "inset"].find((groupPrefix) =>
       propertyName.startsWith(groupPrefix),
     );
-    if (
-      logicalGroupPrefix !== undefined &&
-      !STABLE_DECLARED_VALUE_PATTERN.test(declaration.getPropertyValue(propertyName))
-    ) {
+    if (logicalGroupPrefix !== undefined && !STABLE_DECLARED_VALUE_PATTERN.test(declaredValue)) {
       const physicalPrefix = logicalGroupPrefix === "inset" ? "" : logicalGroupPrefix;
       for (const candidateProp of CLASS_STABLE_CANDIDATE_STYLE_PROPS) {
         if (
@@ -183,7 +179,11 @@ export const createRelevantStylePropRegistry = (
           isPseudoContentMemoSafe = false;
         }
       }
-      checkDeclaredValueStability(declaration, propertyName, selectorText);
+      checkDeclaredValueStability(
+        propertyName,
+        declaration.getPropertyValue(propertyName),
+        selectorText,
+      );
       if (
         isInlineCarrySafe &&
         (propertyName === "backdrop-filter" ||
@@ -265,6 +265,26 @@ export const createRelevantStylePropRegistry = (
     addDeclarationProps(inlineStyle);
   };
 
+  // Raw-parsed inline declarations arrive pre-expanded to longhands; a
+  // shorthand's declared value tested against a longhand's stability pattern
+  // is conservative (multi-token or keyword-bearing values fail the anchored
+  // pattern and mark the longhand unstable).
+  const addParsedInlineDeclaration = (propertyName: string, declaredValue: string): void => {
+    if (isPseudoContentMemoSafe && propertyName === "content") {
+      if (declaredValue.includes("attr(") || declaredValue.includes("counter")) {
+        isPseudoContentMemoSafe = false;
+      }
+    }
+    checkDeclaredValueStability(propertyName, declaredValue);
+    if (
+      isInlineCarrySafe &&
+      (propertyName === "backdrop-filter" || propertyName === "-webkit-backdrop-filter")
+    ) {
+      isInlineCarrySafe = false;
+    }
+    addProp(propertyName);
+  };
+
   const addRuleListProps = (rules: CSSRuleList): void => {
     for (const rule of rules) {
       addRuleProps(rule);
@@ -297,6 +317,7 @@ export const createRelevantStylePropRegistry = (
     isStyleMemoSafe: () => isMemoSafe,
     isPseudoContentMemoSafe: () => isPseudoContentMemoSafe,
     addInlineStyleProps,
+    addParsedInlineDeclaration,
     addShadowRootStyleProps,
     isInlineCarrySafe: () => isInlineCarrySafe,
   };

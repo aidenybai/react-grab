@@ -58,6 +58,7 @@ export interface RelevantStylePropRegistry {
   isStyleMemoSafe: () => boolean;
   isPseudoContentMemoSafe: () => boolean;
   addInlineStyleProps: (inlineStyle: CSSStyleDeclaration) => void;
+  addParsedInlineDeclaration: (propertyName: string, declaredValue: string) => void;
   addShadowRootStyleProps: (shadowRoot: ShadowRoot) => boolean;
   isInlineCarrySafe: () => boolean;
 }
@@ -86,6 +87,12 @@ export interface ComposedTreeSnapshot {
   perElementPropertyNames: readonly string[];
   persistedVariantEmittedStyles: Map<number, Map<string, StyleDeclarationMap>> | null;
   inlineCarryTextByElement: Map<Element, string>;
+}
+
+export interface ParsedInlineDeclaration {
+  propertyName: string;
+  propertyValue: string;
+  isImportant: boolean;
 }
 
 export interface InlineStyleScan {

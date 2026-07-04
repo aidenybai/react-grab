@@ -598,3 +598,19 @@ Map<styleText, InlineStyleScan>, and registry ingestion runs once per unique
 text. 71-mega-grid: snapshot 136 -> 104ms, warm 435 -> 393ms.
 70-stress/60-kitchen-sink neutral. Full 3-engine fidelity (412x3) + 77 unit
 tests green.
+
+## Iteration 61 — raw style-attribute parsing with shorthand splitting (kept)
+
+Inline CSSOM reads (getPropertyValue/item/getPropertyPriority) still dominated
+snapshot on inline-styled trees. Plain style texts (no strings, url()/var(),
+comments, escapes, or non-whitespace control chars) now parse by raw
+";"/":" splitting: registry ingestion feeds scratch-expanded longhands with
+the declared value (conservative against the anchored stability pattern),
+and the memo scan classifies each declaration by its longhand expansion.
+Mixed shorthands (border: mixes carriable colors/styles with geometry-read
+widths) split into per-longhand declarations through a detached scratch
+style, so their unique carriable values ride the carry text instead of
+fragmenting the descriptor — this also shrinks the emitted SVG (decode
+72 -> 54ms, encode 133 -> 107ms on mega-grid). 71-mega-grid: snapshot
+104 -> 81ms, warm 395 -> 324ms. 70-stress/60-kitchen-sink neutral. Full
+3-engine fidelity (412x3) + 77 unit tests green.

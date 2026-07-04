@@ -413,6 +413,14 @@ export const CLASS_STABLE_CANDIDATE_STYLE_PROPS = new Set([
 // var(), and anything unrecognized stay per-element.
 export const BOX_RELATIVE_VALUE_PATTERN = /%|calc\(|var\(|min\(|max\(|clamp\(/;
 
+// Style-attribute texts containing strings, url()/var(), comments, escapes,
+// or non-whitespace control characters can embed ";"/":" inside values, so
+// only texts free of them take the raw-split parsing fast path. Tab, LF, FF,
+// and CR are CSS whitespace and stay allowed.
+// eslint-disable-next-line no-control-regex
+export const UNSAFE_INLINE_STYLE_TEXT_PATTERN =
+  /["'\\]|url\(|var\(|\/\*|[\u0000-\u0008\u000b\u000e-\u001f]/i;
+
 export const STABLE_DECLARED_VALUE_PATTERN =
   /^(0|-?\d*\.?\d+(px|em|rem|ch|ex|pt|pc|cm|mm|in|vw|vh|vmin|vmax))( (0|-?\d*\.?\d+(px|em|rem|ch|ex|pt|pc|cm|mm|in|vw|vh|vmin|vmax)))*$/;
 

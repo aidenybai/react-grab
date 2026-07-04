@@ -20,6 +20,8 @@ import {
   getAttributeGenerationByElement,
 } from "./document-change-tracker";
 import { buildInlineStyleScan } from "../utils/build-inline-style-scan";
+import { buildParsedInlineStyleScan } from "../utils/build-parsed-inline-style-scan";
+import { parseInlineStyleDeclarations } from "../utils/parse-inline-style-declarations";
 import { buildStyleMemoDescriptor } from "../utils/build-style-memo-descriptor";
 import { getComposedChildNodes } from "../utils/get-composed-child-nodes";
 import { isElementNode } from "../utils/is-element-node";
@@ -194,8 +196,17 @@ export const snapshotComposedTree = (
       const inlineStyleText = element.getAttribute("style") ?? "";
       const cachedScan = inlineStyleScanByText.get(inlineStyleText);
       if (cachedScan === undefined) {
-        if (relevantProps) relevantProps.addInlineStyleProps(element.style);
-        inlineStyleScan = buildInlineStyleScan(element.style, perElementProps);
+        const parsedDeclarations = parseInlineStyleDeclarations(inlineStyleText);
+        if (parsedDeclarations !== null) {
+          inlineStyleScan = buildParsedInlineStyleScan(
+            parsedDeclarations,
+            perElementProps,
+            relevantProps,
+          );
+        } else {
+          if (relevantProps) relevantProps.addInlineStyleProps(element.style);
+          inlineStyleScan = buildInlineStyleScan(element.style, perElementProps);
+        }
         inlineStyleScanByText.set(inlineStyleText, inlineStyleScan);
       } else {
         inlineStyleScan = cachedScan;
