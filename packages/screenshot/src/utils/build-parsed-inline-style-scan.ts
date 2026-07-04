@@ -1,5 +1,5 @@
 import { MEMO_CARRY_INLINE_STYLE_PROPS } from "../constants";
-import type { InlineStyleScan, ParsedInlineDeclaration, RelevantStylePropRegistry } from "../types";
+import type { InlineStyleScan, ParsedInlineDeclaration } from "../types";
 import { expandStylePropLonghands } from "./expand-style-prop-longhands";
 import { splitShorthandDeclaration } from "./split-shorthand-declaration";
 
@@ -13,18 +13,16 @@ import { splitShorthandDeclaration } from "./split-shorthand-declaration";
 export const buildParsedInlineStyleScan = (
   declarations: readonly ParsedInlineDeclaration[],
   perElementProps: ReadonlySet<string>,
-  relevantProps: RelevantStylePropRegistry | null,
 ): InlineStyleScan => {
   let isCarryBlocked = false;
+  const registryFeed: (readonly [string, string])[] = [];
   for (const declaration of declarations) {
     const propertyName = declaration.propertyName;
     if (propertyName === "backdrop-filter" || propertyName === "-webkit-backdrop-filter") {
       isCarryBlocked = true;
     }
-    if (relevantProps !== null) {
-      for (const longhandName of expandStylePropLonghands(propertyName)) {
-        relevantProps.addParsedInlineDeclaration(longhandName, declaration.propertyValue);
-      }
+    for (const longhandName of expandStylePropLonghands(propertyName)) {
+      registryFeed.push([longhandName, declaration.propertyValue]);
     }
   }
   let carryText = "";
@@ -66,5 +64,5 @@ export const buildParsedInlineStyleScan = (
     }
     appendDeclaration(declaration, isCarryAllowed && isEveryLonghandCarriable);
   }
-  return { carryText, descriptorWithCarry, descriptorPlain };
+  return { carryText, descriptorWithCarry, descriptorPlain, registryFeed };
 };

@@ -41,5 +41,6 @@ export const buildInlineStyleScan = (
     carryText: stripInvalidXmlCharacters(carryText),
     descriptorWithCarry,
     descriptorPlain,
+    registryFeed: null,
   };
 };

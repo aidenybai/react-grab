@@ -614,3 +614,19 @@ fragmenting the descriptor — this also shrinks the emitted SVG (decode
 72 -> 54ms, encode 133 -> 107ms on mega-grid). 71-mega-grid: snapshot
 104 -> 81ms, warm 395 -> 324ms. 70-stress/60-kitchen-sink neutral. Full
 3-engine fidelity (412x3) + 77 unit tests green.
+
+## Iteration 62 — persistent inline-scan store with initial-scan registry replay (kept)
+
+Parsed inline scans now persist across captures in a per-document store keyed
+by sheet signature (rule count + style epoch) plus the per-element lane join.
+Each scan records its registry feed (longhand name/value pairs); on repeat
+captures the persisted feeds replay inside registry creation — before the
+per-element lane and the relevant-prop count are derived — so inline-added
+props no longer appear as mid-walk growth. That growth had been silently
+blocking memo-store persistence (and the mid-walk markLayoutUnstable flip was
+disabling memoization) on inline-styled documents: mega-grid never adopted its
+memo store across captures. Now the store converges by the third capture
+(scan store persists on capture 1, memo store persists on capture 2, adopted
+from capture 3). 71-mega-grid: snapshot 81 -> 31ms, warm 324 -> 284ms.
+70-stress/60-kitchen-sink neutral. Full 3-engine fidelity (412x3) + 77 unit
+tests green.

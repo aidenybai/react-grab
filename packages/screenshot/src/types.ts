@@ -99,6 +99,7 @@ export interface InlineStyleScan {
   carryText: string;
   descriptorWithCarry: string;
   descriptorPlain: string;
+  registryFeed: readonly (readonly [string, string])[] | null;
 }
 
 export interface PseudoRulePreflight {

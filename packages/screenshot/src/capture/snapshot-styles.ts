@@ -60,7 +60,14 @@ interface PersistentMemoStore {
   nextMemoKey: number;
 }
 
+interface PersistentInlineScanStore {
+  sheetSignature: string;
+  laneSignature: string;
+  scanByText: Map<string, InlineStyleScan>;
+}
+
 const persistentMemoStoreByDocument = new WeakMap<Document, PersistentMemoStore>();
+const persistentInlineScanStoreByDocument = new WeakMap<Document, PersistentInlineScanStore>();
 
 const hasRunningAnimations = (sourceDocument: Document): boolean =>
   typeof sourceDocument.getAnimations !== "function" || sourceDocument.getAnimations().length > 0;
@@ -73,9 +80,31 @@ export const snapshotComposedTree = (
 ): ComposedTreeSnapshot => {
   const snapshotByElement = new Map<Element, ElementReadSnapshot>();
   const inlineCarryTextByElement = new Map<Element, string>();
-  const inlineStyleScanByText = new Map<string, InlineStyleScan>();
   const pseudoPreflight = preflightPseudoRules(rootElement.ownerDocument);
-  let relevantProps = createRelevantStylePropRegistry(rootElement.ownerDocument);
+  // Parsed inline scans are pure functions of the style text under fixed
+  // stylesheets and a fixed per-element lane, so they persist across captures.
+  // Their registry feeds replay inside registry creation — before the lane and
+  // the relevant-prop count are derived — so repeat captures of inline-styled
+  // documents see no mid-walk prop growth and keep an adoptable memo store.
+  const sheetSignature =
+    `${countAccessibleCssRules(rootElement.ownerDocument)}|` +
+    `${getDocumentStyleEpoch(rootElement.ownerDocument)}`;
+  const persistedScanStore = persistentInlineScanStoreByDocument.get(rootElement.ownerDocument);
+  const isScanStoreSheetValid =
+    persistedScanStore !== undefined && persistedScanStore.sheetSignature === sheetSignature;
+  let persistedInlineFeed: (readonly [string, string])[] | null = null;
+  if (isScanStoreSheetValid) {
+    persistedInlineFeed = [];
+    for (const persistedScan of persistedScanStore.scanByText.values()) {
+      if (persistedScan.registryFeed !== null) {
+        persistedInlineFeed.push(...persistedScan.registryFeed);
+      }
+    }
+  }
+  let relevantProps = createRelevantStylePropRegistry(
+    rootElement.ownerDocument,
+    persistedInlineFeed,
+  );
   if (relevantProps) {
     // Inline styles on ancestors outside the capture root can cascade
     // inherited properties into it; their property names must join the
@@ -92,6 +121,12 @@ export const snapshotComposedTree = (
   }
   const perElementPropertyNames = relevantProps?.perElementPropertyNames ?? [];
   const perElementProps: ReadonlySet<string> = new Set(perElementPropertyNames);
+  const laneSignature = perElementPropertyNames.join(",");
+  const inlineStyleScanByText =
+    isScanStoreSheetValid && persistedScanStore.laneSignature === laneSignature
+      ? persistedScanStore.scanByText
+      : new Map<string, InlineStyleScan>();
+  const captureLocalScanByText = new Map<string, InlineStyleScan>();
   const perElementLaneActions = buildPerElementLaneActions(perElementPropertyNames);
   // A lane property whose instability comes only from memo-safe, pseudo-free
   // selectors varies only inside the classes matching them; the seed's match
@@ -194,22 +229,25 @@ export const snapshotComposedTree = (
     let inlineStyleScan: InlineStyleScan | null = null;
     if (element.hasAttribute("style") && isHtmlElement(element)) {
       const inlineStyleText = element.getAttribute("style") ?? "";
-      const cachedScan = inlineStyleScanByText.get(inlineStyleText);
-      if (cachedScan === undefined) {
+      inlineStyleScan =
+        inlineStyleScanByText.get(inlineStyleText) ??
+        captureLocalScanByText.get(inlineStyleText) ??
+        null;
+      if (inlineStyleScan === null) {
         const parsedDeclarations = parseInlineStyleDeclarations(inlineStyleText);
         if (parsedDeclarations !== null) {
-          inlineStyleScan = buildParsedInlineStyleScan(
-            parsedDeclarations,
-            perElementProps,
-            relevantProps,
-          );
+          inlineStyleScan = buildParsedInlineStyleScan(parsedDeclarations, perElementProps);
+          if (relevantProps && inlineStyleScan.registryFeed !== null) {
+            for (const [longhandName, declaredValue] of inlineStyleScan.registryFeed) {
+              relevantProps.addParsedInlineDeclaration(longhandName, declaredValue);
+            }
+          }
+          inlineStyleScanByText.set(inlineStyleText, inlineStyleScan);
         } else {
           if (relevantProps) relevantProps.addInlineStyleProps(element.style);
           inlineStyleScan = buildInlineStyleScan(element.style, perElementProps);
+          captureLocalScanByText.set(inlineStyleText, inlineStyleScan);
         }
-        inlineStyleScanByText.set(inlineStyleText, inlineStyleScan);
-      } else {
-        inlineStyleScan = cachedScan;
       }
     }
     const relevantPropertyNames =
@@ -418,6 +456,15 @@ export const snapshotComposedTree = (
     });
   } else {
     persistentMemoStoreByDocument.delete(rootElement.ownerDocument);
+  }
+  if (relevantProps !== null && inlineStyleScanByText.size <= PERSISTED_MEMO_STORE_ENTRY_CAP) {
+    persistentInlineScanStoreByDocument.set(rootElement.ownerDocument, {
+      sheetSignature,
+      laneSignature,
+      scanByText: inlineStyleScanByText,
+    });
+  } else {
+    persistentInlineScanStoreByDocument.delete(rootElement.ownerDocument);
   }
   return {
     snapshotByElement,

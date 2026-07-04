@@ -32,6 +32,7 @@ import { waapiKeyframePropToCssProp } from "../utils/waapi-keyframe-prop-to-css-
 // fall back to full snapshots.
 export const createRelevantStylePropRegistry = (
   sourceDocument: Document,
+  persistedInlineFeed: readonly (readonly [string, string])[] | null,
 ): RelevantStylePropRegistry | null => {
   const seenProps = new Set<string>();
   const styleRelevantAttributeNames = new Set<string>(ALWAYS_STYLE_RELEVANT_ATTRIBUTE_NAMES);
@@ -170,6 +171,26 @@ export const createRelevantStylePropRegistry = (
     addProp(propertyName);
   };
 
+  // Raw-parsed inline declarations arrive pre-expanded to longhands; a
+  // shorthand's declared value tested against a longhand's stability pattern
+  // is conservative (multi-token or keyword-bearing values fail the anchored
+  // pattern and mark the longhand unstable).
+  const addParsedInlineDeclaration = (propertyName: string, declaredValue: string): void => {
+    if (isPseudoContentMemoSafe && propertyName === "content") {
+      if (declaredValue.includes("attr(") || declaredValue.includes("counter")) {
+        isPseudoContentMemoSafe = false;
+      }
+    }
+    checkDeclaredValueStability(propertyName, declaredValue);
+    if (
+      isInlineCarrySafe &&
+      (propertyName === "backdrop-filter" || propertyName === "-webkit-backdrop-filter")
+    ) {
+      isInlineCarrySafe = false;
+    }
+    addProp(propertyName);
+  };
+
   const addDeclarationProps = (declaration: CSSStyleDeclaration, selectorText?: string): void => {
     for (let propertyIndex = 0; propertyIndex < declaration.length; propertyIndex++) {
       const propertyName = declaration.item(propertyIndex);
@@ -248,6 +269,14 @@ export const createRelevantStylePropRegistry = (
   );
   if (hasInaccessibleSheet) return null;
   addWaapiAnimationProps();
+  // Replayed feeds from persisted inline scans join the initial scan: their
+  // instability marks land before the per-element lane is derived, so the
+  // lane already covers them and the mid-walk memo-off flip is not needed.
+  if (persistedInlineFeed !== null) {
+    for (const [longhandName, declaredValue] of persistedInlineFeed) {
+      addParsedInlineDeclaration(longhandName, declaredValue);
+    }
+  }
   isInitialScanDone = true;
   const perElementPropertyNames = [
     ...PER_ELEMENT_SNAPSHOT_STYLE_PROPS.filter(
@@ -263,26 +292,6 @@ export const createRelevantStylePropRegistry = (
 
   const addInlineStyleProps = (inlineStyle: CSSStyleDeclaration): void => {
     addDeclarationProps(inlineStyle);
-  };
-
-  // Raw-parsed inline declarations arrive pre-expanded to longhands; a
-  // shorthand's declared value tested against a longhand's stability pattern
-  // is conservative (multi-token or keyword-bearing values fail the anchored
-  // pattern and mark the longhand unstable).
-  const addParsedInlineDeclaration = (propertyName: string, declaredValue: string): void => {
-    if (isPseudoContentMemoSafe && propertyName === "content") {
-      if (declaredValue.includes("attr(") || declaredValue.includes("counter")) {
-        isPseudoContentMemoSafe = false;
-      }
-    }
-    checkDeclaredValueStability(propertyName, declaredValue);
-    if (
-      isInlineCarrySafe &&
-      (propertyName === "backdrop-filter" || propertyName === "-webkit-backdrop-filter")
-    ) {
-      isInlineCarrySafe = false;
-    }
-    addProp(propertyName);
   };
 
   const addRuleListProps = (rules: CSSRuleList): void => {
