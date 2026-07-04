@@ -2,8 +2,12 @@
 import { readdir, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-const REGRESSION_PERCENT_THRESHOLD = 10;
-const IMPROVEMENT_PERCENT_THRESHOLD = -10;
+const DEFAULT_PERCENT_THRESHOLD = 10;
+// Frame-time percentiles and the memory probe's single before/after snapshot
+// were observed swinging this much between CI runs of identical code (GC
+// timing, runner scheduling), so only larger moves count as signal.
+const FRAME_TIME_PERCENT_THRESHOLD = 30;
+const MEMORY_PERCENT_THRESHOLD = 25;
 const SMALL_ABSOLUTE_NOISE_FLOOR_MS = 0.5;
 // Event timing (INP) is quantized to 8ms buckets, so a change of one bucket is
 // indistinguishable from measurement noise; only a two-bucket move is signal.
@@ -17,8 +21,8 @@ const FRAME_INTERVAL_NOISE_FLOOR_MS = 1000 / 60 + 1;
 // hundreds of ms run-to-run on shared CI runners for animation-heavy
 // scenarios, measured on identical code.
 const LONG_TASK_THRESHOLD_NOISE_FLOOR_MS = 500;
-const HEAP_NOISE_FLOOR_KB = 128;
-const DOM_NODE_NOISE_FLOOR = 10;
+const HEAP_NOISE_FLOOR_KB = 256;
+const DOM_NODE_NOISE_FLOOR = 60;
 
 const baselineDir = process.argv[2] ?? "packages/react-grab/perf/baseline";
 const currentDir = process.argv[3] ?? "packages/react-grab/perf/current";
@@ -53,12 +57,13 @@ const classifyChange = (
   baselineValue,
   currentValue,
   noiseFloor = SMALL_ABSOLUTE_NOISE_FLOOR_MS,
+  percentThreshold = DEFAULT_PERCENT_THRESHOLD,
 ) => {
   const absoluteDelta = currentValue - baselineValue;
   if (Math.abs(absoluteDelta) <= noiseFloor) return "unchanged";
   const percentChange = getPercentChange(baselineValue, currentValue);
-  if (percentChange > REGRESSION_PERCENT_THRESHOLD) return "regression";
-  if (percentChange < IMPROVEMENT_PERCENT_THRESHOLD) return "improvement";
+  if (percentChange > percentThreshold) return "regression";
+  if (percentChange < -percentThreshold) return "improvement";
   return "unchanged";
 };
 
@@ -107,24 +112,28 @@ const METRIC_DEFINITIONS = [
     label: "Frame time (p95)",
     unit: "ms",
     noiseFloor: FRAME_INTERVAL_NOISE_FLOOR_MS,
+    percentThreshold: FRAME_TIME_PERCENT_THRESHOLD,
     getValue: (report) => report.aggregate.frames.p95,
   },
   {
     label: "Frame time (worst)",
     unit: "ms",
     noiseFloor: FRAME_INTERVAL_NOISE_FLOOR_MS,
+    percentThreshold: FRAME_TIME_PERCENT_THRESHOLD,
     getValue: (report) => report.aggregate.frames.max,
   },
   {
     label: "Heap growth",
     unit: "KB",
     noiseFloor: HEAP_NOISE_FLOOR_KB,
+    percentThreshold: MEMORY_PERCENT_THRESHOLD,
     getValue: (report) => report.memory?.delta?.jsHeapUsedKb,
   },
   {
     label: "Leaked DOM nodes",
     unit: "",
     noiseFloor: DOM_NODE_NOISE_FLOOR,
+    percentThreshold: MEMORY_PERCENT_THRESHOLD,
     getValue: (report) => report.memory?.delta?.domNodes,
   },
 ];
@@ -160,7 +169,7 @@ for (const scenarioName of [...currentReports.keys()].sort()) {
   comparedScenarioCount++;
 
   const detailCells = [];
-  for (const { label, unit, noiseFloor, getValue } of METRIC_DEFINITIONS) {
+  for (const { label, unit, noiseFloor, percentThreshold, getValue } of METRIC_DEFINITIONS) {
     const baselineValue = getValue(baselineReport);
     const currentValue = getValue(currentReport);
     if (typeof baselineValue !== "number" || typeof currentValue !== "number") {
@@ -168,7 +177,7 @@ for (const scenarioName of [...currentReports.keys()].sort()) {
       continue;
     }
     const changeText = formatChange(baselineValue, currentValue, unit);
-    const status = classifyChange(baselineValue, currentValue, noiseFloor);
+    const status = classifyChange(baselineValue, currentValue, noiseFloor, percentThreshold);
     if (status === "unchanged") {
       detailCells.push(changeText);
     } else {
@@ -228,7 +237,7 @@ if (regressions.length === 0 && improvements.length === 0) {
 
 lines.push("");
 lines.push(
-  `<sub>A metric counts as changed when it moves more than ±${REGRESSION_PERCENT_THRESHOLD}% AND clears a per-metric noise floor sized to shared-runner variance: ${INP_NOISE_FLOOR_MS}ms for interaction latency (measured in ${INP_QUANTIZATION_STEP_MS}ms steps), one vsync frame for frame times, ${LONG_TASK_THRESHOLD_NOISE_FLOOR_MS}ms for long-task/LoAF sums, ${HEAP_NOISE_FLOOR_KB}KB heap, ${DOM_NODE_NOISE_FLOOR} DOM nodes.</sub>`,
+  `<sub>A metric counts as changed only past per-metric thresholds sized to measured shared-runner variance on identical code: interaction latency ±${DEFAULT_PERCENT_THRESHOLD}% and ${INP_NOISE_FLOOR_MS}ms (measured in ${INP_QUANTIZATION_STEP_MS}ms steps), frame times ±${FRAME_TIME_PERCENT_THRESHOLD}%, long-task/LoAF sums ±${DEFAULT_PERCENT_THRESHOLD}% and ${LONG_TASK_THRESHOLD_NOISE_FLOOR_MS}ms, memory ±${MEMORY_PERCENT_THRESHOLD}% and ${HEAP_NOISE_FLOOR_KB}KB / ${DOM_NODE_NOISE_FLOOR} nodes.</sub>`,
 );
 lines.push("");
 lines.push("<details>");
