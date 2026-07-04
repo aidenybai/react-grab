@@ -88,6 +88,12 @@ export const applyPerElementLaneReads = (
     }
     const propertyName = perElementPropertyNames[laneIndex];
     const propertyValue = computedStyle.getPropertyValue(propertyName);
-    targetStyles[propertyName] = propertyValue !== "" ? propertyValue : undefined;
+    const normalizedValue = propertyValue !== "" ? propertyValue : undefined;
+    // Values matching the seed's (visible through the prototype) are skipped
+    // so memo-hit maps keep only true deviations as own properties, keeping
+    // variant keys short and dictionary-mode writes rare.
+    if (targetStyles[propertyName] !== normalizedValue) {
+      targetStyles[propertyName] = normalizedValue;
+    }
   }
 };

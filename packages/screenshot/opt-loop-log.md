@@ -470,3 +470,13 @@ firstElementChild/nextElementSibling directly instead of iterating the full
 childNodes list (skipping the NodeList iterator and per-text-node element
 checks). 70-stress warm snapshotMs 12.1 -> 11.1. Unit 77/77; Chromium
 fidelity 412/412 green.
+
+## Iteration 48 — skip seed-equal lane writes on memo-hit style maps
+
+applyPerElementLaneReads wrote every lane value as an own property even when
+it matched the seed's value visible through the prototype; now seed-equal
+values are skipped, so memo-hit maps keep only true deviations as own
+properties (shorter variant keys, fewer dictionary-mode writes). Perf
+neutral-to-slightly-positive on the harness (within noise); kept as a
+structural cleanup that shrinks per-element state. Unit 77/77; Chromium
+fidelity 412/412 green.
