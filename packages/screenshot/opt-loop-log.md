@@ -67,6 +67,15 @@ four longhands plus the combine logic, costing more than the two direct longhand
 reads it replaced. Reverted.
 
 ### Iteration 18 — prefetch external resources before the read pass (KEPT)
+
+Technique: image/svg-image/@font-face URL fetches previously started only after
+snapshot + clone completed; a fire-and-forget prefetch now warms the resource
+cache at capture start so network latency overlaps the CPU phases.
+Metrics: localhost fixture assets resolve in ~6ms so the harness delta sits inside
+cold-run noise; the win scales with real network latency. Unit 77/77, chromium
+fidelity 412/412 green.
+
+### Iteration 18 — prefetch external resources before the read pass (KEPT)
 Technique: image/svg-image/@font-face URL fetches previously started only after
 snapshot + clone completed; a fire-and-forget prefetch now warms the resource
 cache at capture start so network latency overlaps the CPU phases.
