@@ -57,6 +57,30 @@ const sanitizeCloneAttributes = (clone: Element): void => {
   }
 };
 
+// Cheaper than cloneNode(false) + sanitize for typical elements: the class
+// attribute (usually the only one) is dropped anyway, so building an empty
+// element and copying just the serializable attributes skips the copy-then-
+// remove churn.
+const createSanitizedClone = (element: Element, ownerDocument: Document): Element => {
+  const clone = ownerDocument.createElementNS(
+    element.namespaceURI,
+    element.prefix === null ? element.localName : `${element.prefix}:${element.localName}`,
+  );
+  const attributes = element.attributes;
+  for (let attributeIndex = 0; attributeIndex < attributes.length; attributeIndex++) {
+    const attribute = attributes[attributeIndex];
+    if (REMOVED_ATTRIBUTE_NAMES.has(attribute.name) || !isSerializableAttribute(attribute)) {
+      continue;
+    }
+    clone.setAttributeNS(
+      attribute.namespaceURI,
+      attribute.name,
+      stripInvalidXmlCharacters(attribute.value),
+    );
+  }
+  return clone;
+};
+
 const isSvgTemplateContainer = (element: Element): boolean =>
   element.namespaceURI === SVG_NAMESPACE_URI && SVG_TEMPLATE_CONTAINER_TAGS.has(element.localName);
 
@@ -200,33 +224,27 @@ const cloneElementNode = (
   if (!snapshot) return null;
   let clone: Element | null;
   let shouldCloneChildren = true;
-  let isSynthesizedClone = false;
   if (isHtmlElementOfTag(element, "iframe")) {
     clone = buildIframeClone(element, context);
     shouldCloneChildren = false;
-    isSynthesizedClone = true;
   } else if (isHtmlElementOfTag(element, "canvas")) {
     clone = freezeCanvas(element, context.ownerDocument);
     shouldCloneChildren = false;
-    isSynthesizedClone = true;
   } else if (isHtmlElementOfTag(element, "video")) {
     clone = freezeVideo(element, context.ownerDocument, snapshot.styles);
     shouldCloneChildren = false;
-    isSynthesizedClone = true;
   } else if (isHtmlElementOfTag(element, "img")) {
     clone = freezeImage(element);
+    if (clone) sanitizeCloneAttributes(clone);
     shouldCloneChildren = false;
   } else if (isHtmlElementOfTag(element, "textarea")) {
-    const cloned = element.cloneNode(false);
-    clone = isElementNode(cloned) ? cloned : null;
+    clone = createSanitizedClone(element, context.ownerDocument);
     shouldCloneChildren = false;
   } else {
-    const cloned = element.cloneNode(false);
-    clone = isElementNode(cloned) ? cloned : null;
+    clone = createSanitizedClone(element, context.ownerDocument);
   }
   if (!clone) return null;
   if (context.prunedElements?.has(element)) shouldCloneChildren = false;
-  if (!isSynthesizedClone) sanitizeCloneAttributes(clone);
   reflectFormState(element, clone, snapshot.styles);
   const className = context.classNameByElement.get(element);
   if (className) clone.setAttribute("class", className);

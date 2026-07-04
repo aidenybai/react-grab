@@ -240,3 +240,14 @@ cache on rules whose url() values it rewrites so those rebuild fresh.
 Metrics: neutral-to-slightly-positive (70-stress warm 37.7ms, kitchen-sink
 6.4ms); removes a full second pass over rule maps. Unit 77/77, chromium
 fidelity 412/412 green.
+
+### Iteration 26 — build clones attribute-selectively instead of cloneNode+strip (KEPT)
+
+Technique: the generic clone path did cloneNode(false) (copying every
+attribute, including class/style that are always removed) and then a reverse
+sanitize pass with removeAttributeNode churn. createSanitizedClone now builds
+an empty element via createElementNS and copies only serializable, non-removed
+attributes (sanitizing values on the way in) — for the typical class-only
+element that is zero attribute writes.
+Metrics: 70-stress warm 36.1ms / cold 178.7ms (best so far). Unit 77/77,
+chromium fidelity 412/412 green.
