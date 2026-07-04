@@ -101,7 +101,8 @@
   },
   "dependencies": {
     "@react-grab/cli": "workspace:*",
-    "bippy": "^0.5.42"
+    "bippy": "^0.5.42",
+    "fast-html-to-image": "workspace:*"
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",

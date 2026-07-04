@@ -290,6 +290,9 @@ importers:
       bippy:
         specifier: ^0.5.42
         version: 0.5.42(react@19.2.6)
+      fast-html-to-image:
+        specifier: workspace:*
+        version: link:../screenshot
       react:
         specifier: 19.2.6
         version: 19.2.6
@@ -8408,7 +8411,7 @@ snapshots:
       string-width: 8.2.1
       type-fest: 4.41.0
       wrap-ansi: 9.0.2
-      ws: 8.20.0
+      ws: 8.21.0
       yoga-layout: 3.2.1
     optionalDependencies:
       '@types/react': 19.2.14
