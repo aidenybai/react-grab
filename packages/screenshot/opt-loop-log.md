@@ -218,3 +218,14 @@ deviations (empty for the common seed-identical hit).
 Metrics: buildMs ~14.8 -> ~13.5ms on 70-stress (small, within noise band, kept
 as structurally cheaper: near-empty keys, no per-prop value concat). Unit
 77/77, chromium fidelity 412/412 green.
+
+### Iteration 24 — drop the sorted registry signature (KEPT)
+
+Technique: instrumentation showed the sorted "source of truth" signature never
+collapsed a single duplicate on 70-stress (347 register calls, 240 fast-path
+misses, 0 sorted-signature hits) while paying a full key sort + second string
+build per miss. The insertion-order signature is now the class identity;
+order-divergent equal maps (never observed) would merely emit a redundant rule
+with identical declarations — zero fidelity impact.
+Metrics: 70-stress warm 37.6ms median; registry self time roughly halved.
+Unit 77/77, chromium fidelity 412/412 green.
