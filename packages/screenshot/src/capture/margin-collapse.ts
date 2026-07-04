@@ -89,7 +89,12 @@ export const applyEscapedBottomMarginTransfers = (
     if (escapedMargin <= parsePx(snapshot.styles["margin-bottom"])) continue;
     const emittedStyles = emittedStylesByElement.get(element);
     if (emittedStyles) {
-      emittedStyles["margin-bottom"] = `${escapedMargin}px`;
+      // Copy-on-write: the emitted map may be shared across memo-identical
+      // elements, and the escaped margin belongs to this element only.
+      emittedStylesByElement.set(element, {
+        ...emittedStyles,
+        "margin-bottom": `${escapedMargin}px`,
+      });
       transferredElements.add(element);
     }
   }

@@ -163,10 +163,42 @@ const buildClassNameMap = (
   const emittedStylesByElement = new Map<Element, StyleDeclarationMap>();
   const canReuseDiffs = canReusePerElementDiffs(perElementPropertyNames);
   const cachedDiffByMemoKey = new Map<number, StyleDeclarationMap>();
+  const variantKeyByElement = new Map<Element, string>();
+  const emittedStylesByVariant = new Map<number, Map<string, StyleDeclarationMap>>();
   for (const [element, snapshot] of snapshotByElement) {
     const parentSnapshot = snapshot.parentElement
       ? snapshotByElement.get(snapshot.parentElement)
       : undefined;
+    // Elements sharing a memo key and identical per-element values (plus the
+    // parent display feeding the freeze policy) produce byte-identical emitted
+    // maps, so the whole diff/freeze pass runs once per variant and repeats
+    // share the object (margin transfers copy-on-write before mutating).
+    const canShareEmittedStyles =
+      canReuseDiffs &&
+      snapshot.memoKey !== -1 &&
+      element !== rootElement &&
+      !suppressedBackdropElements?.has(element) &&
+      !bakedBackdropPngByElement.has(element);
+    let variantEmittedStyles: Map<string, StyleDeclarationMap> | undefined;
+    if (canShareEmittedStyles) {
+      const variantKey = buildVariantKey(
+        snapshot,
+        parentSnapshot?.styles["display"] ?? null,
+        perElementPropertyNames,
+      );
+      variantKeyByElement.set(element, variantKey);
+      variantEmittedStyles = emittedStylesByVariant.get(snapshot.memoKey);
+      if (variantEmittedStyles === undefined) {
+        variantEmittedStyles = new Map();
+        emittedStylesByVariant.set(snapshot.memoKey, variantEmittedStyles);
+      } else {
+        const sharedEmittedStyles = variantEmittedStyles.get(variantKey);
+        if (sharedEmittedStyles !== undefined) {
+          emittedStylesByElement.set(element, sharedEmittedStyles);
+          continue;
+        }
+      }
+    }
     const cachedDiff =
       canReuseDiffs && snapshot.memoKey !== -1
         ? cachedDiffByMemoKey.get(snapshot.memoKey)
@@ -223,6 +255,9 @@ const buildClassNameMap = (
       applyBakedBackdropBackground(diffedBase, snapshot.styles, bakedBackdropPngDataUrl);
     }
     emittedStylesByElement.set(element, diffedBase);
+    if (variantEmittedStyles) {
+      variantEmittedStyles.set(variantKeyByElement.get(element) ?? "", diffedBase);
+    }
   }
   const marginTransferredElements = applyEscapedBottomMarginTransfers(
     rootElement,
@@ -254,7 +289,9 @@ const buildClassNameMap = (
     let variantClassNames: Map<string, string> | undefined;
     let variantKey = "";
     if (canReuseSeedClassName) {
-      variantKey = buildVariantKey(snapshot, parentDisplay, perElementPropertyNames);
+      variantKey =
+        variantKeyByElement.get(element) ??
+        buildVariantKey(snapshot, parentDisplay, perElementPropertyNames);
       variantClassNames = variantClassNamesByMemoKey.get(snapshot.memoKey);
       if (variantClassNames === undefined) {
         variantClassNames = new Map();
