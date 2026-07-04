@@ -14,17 +14,24 @@ export const serializeToSvgMarkup = ({
   cssText,
   width,
   height,
+  clip,
   ownerDocument,
 }: SerializeSvgInput): string => {
   const svgElement = ownerDocument.createElementNS(SVG_NAMESPACE_URI, "svg");
-  svgElement.setAttribute("width", String(width));
-  svgElement.setAttribute("height", String(height));
-  svgElement.setAttribute("viewBox", `0 0 ${width} ${height}`);
+  // A clipped viewBox makes the region the SVG's intrinsic raster: the engine
+  // only rasterizes the region's pixels at decode/draw time, so region capture
+  // never pays full-page rasterization cost.
+  svgElement.setAttribute("width", String(clip ? clip.width : width));
+  svgElement.setAttribute("height", String(clip ? clip.height : height));
+  svgElement.setAttribute(
+    "viewBox",
+    clip ? `${clip.x} ${clip.y} ${clip.width} ${clip.height}` : `0 0 ${width} ${height}`,
+  );
   const styleElement = ownerDocument.createElementNS(SVG_NAMESPACE_URI, "style");
   styleElement.textContent = `${NORMALIZATION_CSS}\n${cssText}`;
   const foreignObjectElement = ownerDocument.createElementNS(SVG_NAMESPACE_URI, "foreignObject");
-  foreignObjectElement.setAttribute("width", "100%");
-  foreignObjectElement.setAttribute("height", "100%");
+  foreignObjectElement.setAttribute("width", String(width));
+  foreignObjectElement.setAttribute("height", String(height));
   const wrapperElement = ownerDocument.createElementNS(XHTML_NAMESPACE_URI, "div");
   wrapperElement.setAttribute(
     "style",

@@ -23,7 +23,7 @@ export const createCaptureResult = (
   width: number,
   height: number,
   options: ResolvedCaptureOptions,
-  clipRect: CaptureRegionRect | null = null,
+  canvasClipRect: CaptureRegionRect | null = null,
 ): CaptureResult => {
   // Chromium and WebKit taint canvases drawn from blob-URL SVGs that contain a
   // <foreignObject> (whatwg/html#10641); the equivalent data URL stays origin-clean,
@@ -55,8 +55,8 @@ export const createCaptureResult = (
     return decodedImagePromise;
   };
 
-  const outputWidth = clipRect ? Math.max(1, Math.ceil(clipRect.width)) : width;
-  const outputHeight = clipRect ? Math.max(1, Math.ceil(clipRect.height)) : height;
+  const outputWidth = canvasClipRect ? Math.max(1, Math.ceil(canvasClipRect.width)) : width;
+  const outputHeight = canvasClipRect ? Math.max(1, Math.ceil(canvasClipRect.height)) : height;
 
   const toCanvas = async (): Promise<HTMLCanvasElement> => {
     const svgImage = await raceWithAbortSignal(decodeSvgImage(), options.abortSignal);
@@ -78,14 +78,14 @@ export const createCaptureResult = (
       renderingContext.fillRect(0, 0, canvas.width, canvas.height);
     }
     renderingContext.scale(rasterScale * clampRatio, rasterScale * clampRatio);
-    if (clipRect) renderingContext.translate(-clipRect.x, -clipRect.y);
+    if (canvasClipRect) renderingContext.translate(-canvasClipRect.x, -canvasClipRect.y);
     renderingContext.drawImage(svgImage, 0, 0, width, height);
     return canvas;
   };
 
   const toBlob = (): Promise<Blob> => {
-    const clipKey = clipRect
-      ? `${clipRect.x},${clipRect.y},${clipRect.width},${clipRect.height}`
+    const clipKey = canvasClipRect
+      ? `${canvasClipRect.x},${canvasClipRect.y},${canvasClipRect.width},${canvasClipRect.height}`
       : "";
     const cacheKey = `${options.scale}|${options.pixelRatio}|${options.backgroundColor ?? ""}|${width}|${height}|${clipKey}|${svgMarkup}`;
     const cachedPngBlobPromise = encodedPngCache.get(cacheKey);

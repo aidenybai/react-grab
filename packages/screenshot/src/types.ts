@@ -236,5 +236,6 @@ export interface SerializeSvgInput {
   cssText: string;
   width: number;
   height: number;
+  clip: CaptureRegionRect | null;
   ownerDocument: Document;
 }

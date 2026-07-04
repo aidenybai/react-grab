@@ -13,9 +13,14 @@ export const PSEUDO_PREFLIGHT_RULE_BUDGET = 1000;
 export const MARGIN_ESCAPE_GEOMETRY_TOLERANCE_PX = 0.6;
 export const LINEAR_TRANSFORM_IDENTITY_EPSILON = 0.0001;
 export const DEFAULT_BLEED_PX = 0;
-// Shadows, blurs, and text overflow painted by culled subtrees can reach into
-// the region; 256px covers 3-sigma falloff of the largest blur seen in the
-// fixture corpus with generous headroom.
+// Region culling keeps everything within this distance of the region
+// unconditionally; it covers ink overflow the AABB walk cannot see cheaply
+// (glyph overhang from italics/swashes, decoration/underline extent).
+export const REGION_INK_OVERFLOW_MARGIN_PX = 32;
+// Elements between the ink margin and this distance get a precise paint-bleed
+// check (box-shadow/filter/outline/text-shadow extents); anything farther out
+// is culled without style reads, so blurs reaching farther than this are
+// ignored by design.
 export const DEFAULT_REGION_CULL_MARGIN_PX = 256;
 // box-shadow blur-radius b means a Gaussian with sigma = b/2, so 1.5b covers
 // 3 sigma (>99% of the falloff); filter blur(r) sets sigma = r directly.

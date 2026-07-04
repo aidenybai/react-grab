@@ -67,6 +67,11 @@ const regionManifest: RegionFixtureSpec[] = [
     ...textHeavyEngineOverrides,
   },
   {
+    id: "lim-bleed-box-shadow",
+    region: { x: 480, y: 100, width: 300, height: 250 },
+    maxDiffRatio: STRICT_MAX_DIFF_RATIO,
+  },
+  {
     id: "site-video-grid-light",
     region: { x: 451, y: 133, width: 333, height: 257 },
     maxDiffRatio: STRICT_MAX_DIFF_RATIO,

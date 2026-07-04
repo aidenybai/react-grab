@@ -53,6 +53,7 @@ import { findInheritedBackgroundColor } from "./utils/find-inherited-background-
 import { isHtmlElement } from "./utils/is-html-element";
 import { isHtmlElementOfTag } from "./utils/is-html-element-of-tag";
 import { isReplacedElement } from "./utils/is-replaced-element";
+import { isWebKitEngine } from "./utils/is-webkit-engine";
 import { measureImageDataUrl } from "./utils/measure-image-data-url";
 import { raceWithAbortSignal } from "./utils/race-with-abort-signal";
 
@@ -309,6 +310,14 @@ const captureNodeInternal = async (
       layoutHeightPx: captureHeight,
       bleedPx,
     });
+    const clipRect = resolvedOptions.clip
+      ? {
+          x: resolvedOptions.clip.x + outputGeometry.contentOffsetLeftPx,
+          y: resolvedOptions.clip.y + outputGeometry.contentOffsetTopPx,
+          width: resolvedOptions.clip.width,
+          height: resolvedOptions.clip.height,
+        }
+      : null;
     if (resolvedOptions.backgroundColor === undefined) {
       const rootBackgroundColor = rootSnapshot.styles["background-color"];
       const isRootBackgroundTransparent =
@@ -396,24 +405,23 @@ const captureNodeInternal = async (
         ]),
         resolvedOptions.abortSignal,
       );
+      // WebKit rasterizes a panned viewBox over foreignObject content
+      // incorrectly (it fits the full page into the crop), so there the crop
+      // happens at the canvas instead of inside the SVG.
       svgMarkup = serializeToSvgMarkup({
         clone,
         cssText: `${fontEmbedCss}\n${registry.toCssText()}`,
         width: outputGeometry.outputWidthPx,
         height: outputGeometry.outputHeightPx,
+        clip: isWebKitEngine() ? null : clipRect,
         ownerDocument,
       });
     } finally {
       sandbox.dispose();
     }
-    const clipRect = resolvedOptions.clip
-      ? {
-          x: resolvedOptions.clip.x + outputGeometry.contentOffsetLeftPx,
-          y: resolvedOptions.clip.y + outputGeometry.contentOffsetTopPx,
-          width: resolvedOptions.clip.width,
-          height: resolvedOptions.clip.height,
-        }
-      : null;
+    if (clipRect && !isWebKitEngine()) {
+      return createCaptureResult(svgMarkup, clipRect.width, clipRect.height, resolvedOptions);
+    }
     return createCaptureResult(
       svgMarkup,
       outputGeometry.outputWidthPx,
@@ -465,7 +473,13 @@ export const captureRegion = async (
   const resolvedOptions: ResolvedCaptureOptions = {
     scale: options.scale ?? DEFAULT_SCALE,
     pixelRatio: options.pixelRatio ?? defaultView.devicePixelRatio,
-    backgroundColor: options.backgroundColor,
+    // A region can extend past the root's box into the page canvas area the
+    // body background propagates to, which the capture paints as nothing; the
+    // document background fills it like the on-screen canvas does.
+    backgroundColor:
+      options.backgroundColor ??
+      findDocumentBackgroundColor(rootElement.ownerDocument) ??
+      undefined,
     embedFonts: options.embedFonts ?? true,
     bleed: 0,
     clip: {

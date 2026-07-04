@@ -1,4 +1,6 @@
+import { REGION_INK_OVERFLOW_MARGIN_PX } from "../constants";
 import type { CaptureRegionRect } from "../types";
+import { computeAutoBleed } from "./compute-auto-bleed";
 import { getComposedChildNodes } from "./get-composed-child-nodes";
 import { isElementNode } from "./is-element-node";
 
@@ -20,6 +22,26 @@ const isHollowSafeDisplay = (display: string): boolean =>
   !display.startsWith("ruby") &&
   !display.startsWith("inline-table");
 
+const computeElementPaintBleed = (
+  element: Element,
+  defaultView: Window & typeof globalThis,
+): number => {
+  const computedStyle = defaultView.getComputedStyle(element);
+  const bleed = computeAutoBleed({
+    "box-shadow": computedStyle.getPropertyValue("box-shadow"),
+    filter: computedStyle.getPropertyValue("filter"),
+    "outline-style": computedStyle.getPropertyValue("outline-style"),
+    "outline-width": computedStyle.getPropertyValue("outline-width"),
+    "outline-offset": computedStyle.getPropertyValue("outline-offset"),
+  });
+  // text-shadow shares box-shadow's <offset offset blur> grammar, so the
+  // box-shadow extent parser bounds its outward reach too.
+  const textShadowBleed = computeAutoBleed({
+    "box-shadow": computedStyle.getPropertyValue("text-shadow"),
+  });
+  return Math.max(bleed, textShadowBleed);
+};
+
 export const collectRegionPrunedElements = (
   rootElement: Element,
   region: CaptureRegionRect,
@@ -28,16 +50,39 @@ export const collectRegionPrunedElements = (
   const prunedElements = new Set<Element>();
   const defaultView = rootElement.ownerDocument.defaultView;
   if (!defaultView) return prunedElements;
-  const regionRight = region.x + region.width;
-  const regionBottom = region.y + region.height;
+  const keepLeft = region.x - REGION_INK_OVERFLOW_MARGIN_PX;
+  const keepTop = region.y - REGION_INK_OVERFLOW_MARGIN_PX;
+  const keepRight = region.x + region.width + REGION_INK_OVERFLOW_MARGIN_PX;
+  const keepBottom = region.y + region.height + REGION_INK_OVERFLOW_MARGIN_PX;
+  const scanLeft = region.x - cullMarginPx;
+  const scanTop = region.y - cullMarginPx;
+  const scanRight = region.x + region.width + cullMarginPx;
+  const scanBottom = region.y + region.height + cullMarginPx;
 
   const visit = (element: Element): SubtreeExtent => {
     const boundingRect = element.getBoundingClientRect();
+    const intersectsKeepRect =
+      boundingRect.left < keepRight &&
+      boundingRect.right > keepLeft &&
+      boundingRect.top < keepBottom &&
+      boundingRect.bottom > keepTop;
+    const intersectsScanRect =
+      boundingRect.left < scanRight &&
+      boundingRect.right > scanLeft &&
+      boundingRect.top < scanBottom &&
+      boundingRect.bottom > scanTop;
+    // Only elements in the scan band (outside the keep rect but within
+    // cullMarginPx of the region) pay the style reads; shadows/blurs reaching
+    // farther than cullMarginPx are ignored by design.
+    const paintBleed =
+      !intersectsKeepRect && intersectsScanRect
+        ? computeElementPaintBleed(element, defaultView)
+        : 0;
     const extent: SubtreeExtent = {
-      left: boundingRect.left,
-      top: boundingRect.top,
-      right: boundingRect.right,
-      bottom: boundingRect.bottom,
+      left: boundingRect.left - paintBleed,
+      top: boundingRect.top - paintBleed,
+      right: boundingRect.right + paintBleed,
+      bottom: boundingRect.bottom + paintBleed,
     };
     let hasChildContent = false;
     for (const childNode of getComposedChildNodes(element)) {
@@ -53,13 +98,13 @@ export const collectRegionPrunedElements = (
       }
     }
     if (!hasChildContent) return extent;
-    const intersectsRegion =
-      extent.left - cullMarginPx < regionRight &&
-      extent.right + cullMarginPx > region.x &&
-      extent.top - cullMarginPx < regionBottom &&
-      extent.bottom + cullMarginPx > region.y;
+    const subtreeIntersectsKeepRect =
+      extent.left < keepRight &&
+      extent.right > keepLeft &&
+      extent.top < keepBottom &&
+      extent.bottom > keepTop;
     if (
-      !intersectsRegion &&
+      !subtreeIntersectsKeepRect &&
       element !== rootElement &&
       isHollowSafeDisplay(defaultView.getComputedStyle(element).getPropertyValue("display"))
     ) {
