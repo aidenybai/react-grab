@@ -32,7 +32,7 @@ export interface ResolvedCaptureOptions {
 }
 
 export interface StyleDeclarationMap {
-  [propertyName: string]: string;
+  [propertyName: string]: string | undefined;
 }
 
 export interface RelevantStylePropRegistry {

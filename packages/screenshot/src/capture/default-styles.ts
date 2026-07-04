@@ -73,9 +73,11 @@ export const createStyleSandbox = (sourceDocument: Document): StyleSandbox => {
     // element's own snapshot, so the probe reads just those instead of all
     // ~350 longhands. A cached baseline reused by a snapshot with more
     // properties merely over-emits those extra properties' computed values.
+    const snapshotPropertyNames: string[] = [];
+    for (const propertyName in snapshotStyles) snapshotPropertyNames.push(propertyName);
     const baseline = snapshotComputedStyle(
       sandboxView.getComputedStyle(probeElement, pseudoSelector ?? undefined),
-      Object.keys(snapshotStyles),
+      snapshotPropertyNames,
     );
     mountedElement.remove();
     baselineCache.set(cacheKey, baseline);

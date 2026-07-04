@@ -90,11 +90,13 @@ export const snapshotComposedTree = (
     const computedStyle = defaultView.getComputedStyle(element);
     let styles: StyleDeclarationMap;
     if (memoized) {
-      styles = { ...memoized.styles };
+      // Prototype delegation instead of spreading ~340 shared properties per
+      // memo hit; absent per-element values shadow the base with undefined,
+      // which every consumer already treats as "not present".
+      styles = Object.create(memoized.styles);
       for (const propertyName of perElementPropertyNames) {
         const propertyValue = computedStyle.getPropertyValue(propertyName);
-        if (propertyValue !== "") styles[propertyName] = propertyValue;
-        else delete styles[propertyName];
+        styles[propertyName] = propertyValue !== "" ? propertyValue : undefined;
       }
     } else {
       if (parentElement !== null && computedStyle.getPropertyValue("display") === "none") return;

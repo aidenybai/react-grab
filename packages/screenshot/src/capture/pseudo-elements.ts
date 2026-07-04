@@ -69,11 +69,10 @@ export const snapshotTrustedMemoizedPseudoStyles = (
 ): StyleDeclarationMap | null => {
   if (!memoizedStyles) return null;
   const computedStyle = defaultView.getComputedStyle(element, pseudoSelector);
-  const styles: StyleDeclarationMap = { ...memoizedStyles };
+  const styles: StyleDeclarationMap = Object.create(memoizedStyles);
   for (const propertyName of perElementPropertyNames) {
     const propertyValue = computedStyle.getPropertyValue(propertyName);
-    if (propertyValue !== "") styles[propertyName] = propertyValue;
-    else delete styles[propertyName];
+    styles[propertyName] = propertyValue !== "" ? propertyValue : undefined;
   }
   return styles;
 };
@@ -97,11 +96,10 @@ export const snapshotMemoizedPseudoStyles = (
     styles.content = contentValue;
     return styles;
   }
-  const styles: StyleDeclarationMap = { ...memoizedStyles };
+  const styles: StyleDeclarationMap = Object.create(memoizedStyles);
   for (const propertyName of perElementPropertyNames) {
     const propertyValue = computedStyle.getPropertyValue(propertyName);
-    if (propertyValue !== "") styles[propertyName] = propertyValue;
-    else delete styles[propertyName];
+    styles[propertyName] = propertyValue !== "" ? propertyValue : undefined;
   }
   styles.content = contentValue;
   return styles;

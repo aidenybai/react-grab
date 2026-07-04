@@ -7,6 +7,7 @@ import type { CaptureResult, ResolvedCaptureOptions } from "../types";
 import { blobToDataUrl } from "../utils/blob-to-data-url";
 import { canvasToBlob } from "../utils/canvas-to-blob";
 import { createFifoCache } from "../utils/create-fifo-cache";
+import { encodeSvgDataUrl } from "../utils/encode-svg-data-url";
 import { isBlinkEngine } from "../utils/is-blink-engine";
 import { raceWithAbortSignal } from "../utils/race-with-abort-signal";
 import { waitForAnimationFrames } from "../utils/wait-for-animation-frames";
@@ -26,7 +27,7 @@ export const createCaptureResult = (
   // Chromium and WebKit taint canvases drawn from blob-URL SVGs that contain a
   // <foreignObject> (whatwg/html#10641); the equivalent data URL stays origin-clean,
   // so the shared decoded image must load from a data URL.
-  const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgMarkup)}`;
+  const svgDataUrl = encodeSvgDataUrl(svgMarkup);
   // The settle frames only exist for nested data-URL resources (inlined images,
   // fonts) still compositing after decode(); a capture without any skips them.
   const hasNestedDataUrlResources = svgMarkup.includes("data:");
