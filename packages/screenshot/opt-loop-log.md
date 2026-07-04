@@ -507,3 +507,21 @@ The tracker's WeakMap<Element, number> is now fetched once per capture when
 the persisted memo store is adopted and read directly in visit. Perf neutral
 on the harness (within noise); kept as a structural win removing a
 per-element indirection. Unit 77/77; Chromium fidelity 412/412 green.
+
+## Iteration 52 — probe: getBoundingClientRect vs width/height lane reads (rejected)
+
+Warm gpv distribution (count-calls): width/height are ~half of all warm
+getPropertyValue calls (1607 each on 70-stress). Probed replacing the two
+reads with one getBoundingClientRect: 1.29ms vs 2.13ms per pass, but the
+border/padding subtraction + px re-serialization needed to recover content-box
+values erases the ~0.8ms and risks subpixel drift on tables/replaced boxes.
+REJECTED — measured, not landed.
+
+## Iteration 53 — probe: custom PNG encode via CompressionStream (rejected)
+
+Encode is now the top warm phase on real-site fixtures (19-24ms of ~32ms).
+Probed a full custom encoder (getImageData + sub-filter + CompressionStream
+deflate + hand-built chunks, pixel-verified lossless): readback 3ms + filter
+7ms + assemble 2ms are cheap, but CompressionStream deflate takes 132ms on
+3.6MB filtered data (no compression-level knob) vs 31ms for native toBlob.
+REJECTED — native PNG encode remains the floor.
