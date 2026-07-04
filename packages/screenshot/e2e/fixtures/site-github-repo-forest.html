@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>site-github-repo-forest</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #888888;
+      }
+      #target {
+        width: 1000px;
+        height: 700px;
+        background: #101a12;
+        color: #dcefe0;
+        font-family: "Inter Fixture", sans-serif;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .repo-head {
+        padding: 20px 28px 0;
+      }
+      .repo-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 20px;
+      }
+      .repo-title b {
+        color: #4ade80;
+      }
+      .repo-badge {
+        font-size: 12px;
+        color: #8dab94;
+        border: 1px solid #2d4a35;
+        border-radius: 999px;
+        padding: 1px 8px;
+      }
+      .repo-stats {
+        display: flex;
+        gap: 8px;
+        margin: 14px 0;
+      }
+      .repo-stats span {
+        font-size: 12px;
+        border: 1px solid #2d4a35;
+        background: #16241a;
+        border-radius: 6px;
+        padding: 4px 10px;
+      }
+      .repo-tabs {
+        display: flex;
+        gap: 20px;
+        border-bottom: 1px solid #2d4a35;
+        padding: 0 28px;
+        font-size: 14px;
+      }
+      .repo-tabs span {
+        padding: 10px 4px;
+        color: #8dab94;
+      }
+      .repo-tabs .active {
+        color: #dcefe0;
+        border-bottom: 2px solid #fd8c73;
+        font-weight: 700;
+      }
+      .repo-main {
+        padding: 20px 28px;
+      }
+      .branch-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      .branch-btn {
+        font-size: 13px;
+        font-weight: 700;
+        background: #1e3123;
+        border: 1px solid #2d4a35;
+        border-radius: 6px;
+        padding: 6px 12px;
+      }
+      .clone-btn {
+        margin-left: auto;
+        font-size: 13px;
+        font-weight: 700;
+        color: #101a12;
+        background: #86efac;
+        border-radius: 6px;
+        padding: 7px 14px;
+      }
+      .file-table {
+        border: 1px solid #2d4a35;
+        border-radius: 6px;
+        overflow: hidden;
+        background: #16241a;
+      }
+      .commit-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: #1e3123;
+        padding: 10px 14px;
+        font-size: 13px;
+      }
+      .commit-row .sha {
+        margin-left: auto;
+        font-family: monospace;
+        color: #8dab94;
+      }
+      .file-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 14px;
+        border-top: 1px solid #2d4a35;
+        font-size: 13px;
+      }
+      .file-icon {
+        width: 14px;
+        height: 12px;
+        background: #8dab94;
+        opacity: 0.55;
+        clip-path: polygon(0 15%, 40% 15%, 50% 0, 100% 0, 100% 100%, 0 100%);
+      }
+      .file-icon.dir {
+        background: #4ade80;
+        opacity: 1;
+      }
+      .file-name {
+        color: #dcefe0;
+        width: 150px;
+      }
+      .file-msg {
+        color: #8dab94;
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .file-when {
+        color: #8dab94;
+        font-size: 12px;
+      }
+      .readme {
+        margin-top: 18px;
+        border: 1px solid #2d4a35;
+        border-radius: 6px;
+        background: #16241a;
+        padding: 18px 22px;
+      }
+      .readme h2 {
+        margin: 0 0 8px;
+        font-size: 20px;
+        border-bottom: 1px solid #2d4a35;
+        padding-bottom: 8px;
+      }
+      .readme p {
+        font-size: 14px;
+        line-height: 1.6;
+        color: #8dab94;
+        margin: 8px 0;
+      }
+      .readme code {
+        background: #1e3123;
+        border-radius: 4px;
+        padding: 1px 6px;
+        font-size: 12px;
+        font-family: monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="repo-head">
+        <div class="repo-title">
+          <span
+            style="
+              display: inline-block;
+              width: 22px;
+              height: 22px;
+              border-radius: 6px;
+              background: linear-gradient(135deg, #2f6fdb, #b8860b);
+              flex: none;
+            "
+          ></span>
+          aidenybai / <b>fast-html-to-image</b> <span class="repo-badge">Public</span>
+        </div>
+        <div class="repo-stats">
+          <span>Watch 42</span><span>Fork 310</span><span>Star 18.4k</span>
+        </div>
+      </div>
+      <div class="repo-tabs">
+        <span class="active">Code</span><span>Issues 51</span><span>Pull requests 12</span
+        ><span>Actions</span><span>Wiki</span><span>Settings</span>
+      </div>
+      <div class="repo-main">
+        <div class="branch-bar">
+          <span class="branch-btn">main</span
+          ><span style="font-size: 13px; color: #8dab94">28 branches · 104 tags</span
+          ><span class="clone-btn">Code</span>
+        </div>
+        <div class="file-table">
+          <div class="commit-row">
+            <span
+              style="
+                display: inline-block;
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #b8860b, #4338ca);
+                flex: none;
+              "
+            ></span
+            ><b>aiden</b> perf: minimal-escape svg data urls
+            <span class="sha">84953a6 · 2,341 commits</span>
+          </div>
+
+          <div class="file-row">
+            <span class="file-icon dir"></span>
+            <span class="file-name">src</span>
+            <span class="file-msg">refactor capture pipeline</span>
+            <span class="file-when">2 days ago</span>
+          </div>
+          <div class="file-row">
+            <span class="file-icon dir"></span>
+            <span class="file-name">e2e</span>
+            <span class="file-msg">add fixture manifest</span>
+            <span class="file-when">5 days ago</span>
+          </div>
+          <div class="file-row">
+            <span class="file-icon dir"></span>
+            <span class="file-name">docs</span>
+            <span class="file-msg">architecture notes</span>
+            <span class="file-when">last week</span>
+          </div>
+          <div class="file-row">
+            <span class="file-icon"></span>
+            <span class="file-name">package.json</span>
+            <span class="file-msg">bump version</span>
+            <span class="file-when">3 hours ago</span>
+          </div>
+          <div class="file-row">
+            <span class="file-icon"></span>
+            <span class="file-name">README.md</span>
+            <span class="file-msg">update benchmarks</span>
+            <span class="file-when">yesterday</span>
+          </div>
+          <div class="file-row">
+            <span class="file-icon"></span>
+            <span class="file-name">vite.config.ts</span>
+            <span class="file-msg">enable minify</span>
+            <span class="file-when">2 weeks ago</span>
+          </div>
+          <div class="file-row">
+            <span class="file-icon"></span>
+            <span class="file-name">tsconfig.json</span>
+            <span class="file-msg">strict mode</span>
+            <span class="file-when">last month</span>
+          </div>
+        </div>
+        <div class="readme">
+          <h2>fast-html-to-image</h2>
+          <p>
+            Screenshot any DOM node, in the browser, with high fidelity. Give it an element and get
+            back a pixel-accurate PNG of exactly what the user sees.
+          </p>
+          <p>
+            Install with <code>npm install fast-html-to-image</code> and capture via
+            <code>captureNode(element)</code>. Zero runtime dependencies.
+          </p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

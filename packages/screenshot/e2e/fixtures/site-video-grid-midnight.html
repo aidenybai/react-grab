@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>site-video-grid-midnight</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #888888;
+      }
+      #target {
+        width: 1080px;
+        height: 700px;
+        background: #0a0e1a;
+        color: #dbe2f4;
+        font-family: "Inter Fixture", sans-serif;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .vg-head {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding: 12px 24px;
+        border-bottom: 1px solid #273049;
+        background: #111726;
+      }
+      .vg-logo {
+        font-weight: 700;
+        font-size: 20px;
+        letter-spacing: -1px;
+      }
+      .vg-logo b {
+        color: #ff0033;
+      }
+      .vg-search {
+        flex: 1;
+        max-width: 480px;
+        border: 1px solid #273049;
+        border-radius: 999px;
+        padding: 8px 16px;
+        font-size: 14px;
+        color: #8591ad;
+        background: #0a0e1a;
+      }
+      .vg-chips {
+        display: flex;
+        gap: 10px;
+        padding: 12px 24px;
+      }
+      .vg-chips span {
+        font-size: 13px;
+        background: #1a2236;
+        border-radius: 8px;
+        padding: 6px 12px;
+      }
+      .vg-chips span:first-child {
+        background: #dbe2f4;
+        color: #0a0e1a;
+      }
+      .vg-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 18px;
+        padding: 8px 24px;
+      }
+      .thumb {
+        position: relative;
+        aspect-ratio: 16 / 9;
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .thumb-0 {
+        background: linear-gradient(120deg, #1c2a4a, #b83280);
+      }
+      .thumb-1 {
+        background: url("./assets/photo-landscape.png") center / cover;
+      }
+      .thumb-2 {
+        background: repeating-linear-gradient(45deg, #0f766e 0 28px, #134e4a 28px 56px);
+      }
+      .thumb-3 {
+        background: linear-gradient(200deg, #7c2d12, #fbbf24);
+      }
+      .thumb-4 {
+        background: url("./assets/pattern-tile.png");
+      }
+      .thumb-5 {
+        background: radial-gradient(circle at 30% 30%, #4338ca, #0b0f2a);
+      }
+      .duration {
+        position: absolute;
+        right: 6px;
+        bottom: 6px;
+        background: rgba(0, 0, 0, 0.85);
+        color: #ffffff;
+        font-size: 11px;
+        border-radius: 4px;
+        padding: 2px 5px;
+      }
+      .video-meta {
+        display: flex;
+        gap: 10px;
+        padding: 10px 2px;
+      }
+      .video-title {
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1.3;
+      }
+      .video-sub {
+        font-size: 12px;
+        color: #8591ad;
+        margin-top: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="vg-head">
+        <span class="vg-logo"><b>▶</b> MeTube</span>
+        <div class="vg-search">Search</div>
+        <span
+          style="
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #d23b2e, #7a3b8f);
+            flex: none;
+          "
+        ></span>
+      </div>
+      <div class="vg-chips">
+        <span>All</span><span>JavaScript</span><span>Live</span><span>Rust</span><span>Music</span
+        ><span>Podcasts</span>
+      </div>
+      <div class="vg-grid">
+        <div class="video-card">
+          <div class="thumb thumb-0"><span class="duration">24:31</span></div>
+          <div class="video-meta">
+            <span
+              style="
+                display: inline-block;
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #14a06c, #0f766e);
+                flex: none;
+              "
+            ></span>
+            <div>
+              <div class="video-title">Building a browser screenshot engine from scratch</div>
+              <div class="video-sub">CodeStream</div>
+              <div class="video-sub">812K views · 3 weeks ago</div>
+            </div>
+          </div>
+        </div>
+        <div class="video-card">
+          <div class="thumb thumb-1"><span class="duration">18:02</span></div>
+          <div class="video-meta">
+            <span
+              style="
+                display: inline-block;
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #7a3b8f, #be185d);
+                flex: none;
+              "
+            ></span>
+            <div>
+              <div class="video-title">Why your web app is slow (and how to fix it)</div>
+              <div class="video-sub">PerfLab</div>
+              <div class="video-sub">1.4M views · 2 months ago</div>
+            </div>
+          </div>
+        </div>
+        <div class="video-card">
+          <div class="thumb thumb-2"><span class="duration">12:44</span></div>
+          <div class="video-meta">
+            <span
+              style="
+                display: inline-block;
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #b8860b, #4338ca);
+                flex: none;
+              "
+            ></span>
+            <div>
+              <div class="video-title">CSS grid tricks nobody told you about</div>
+              <div class="video-sub">LayoutLand</div>
+              <div class="video-sub">302K views · 6 days ago</div>
+            </div>
+          </div>
+        </div>
+        <div class="video-card">
+          <div class="thumb thumb-3"><span class="duration">31:09</span></div>
+          <div class="video-meta">
+            <span
+              style="
+                display: inline-block;
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #0f766e, #d23b2e);
+                flex: none;
+              "
+            ></span>
+            <div>
+              <div class="video-title">I benchmarked every DOM-to-image library</div>
+              <div class="video-sub">BenchBoy</div>
+              <div class="video-sub">97K views · 1 day ago</div>
+            </div>
+          </div>
+        </div>
+        <div class="video-card">
+          <div class="thumb thumb-4"><span class="duration">42:17</span></div>
+          <div class="video-meta">
+            <span
+              style="
+                display: inline-block;
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #be185d, #2f6fdb);
+                flex: none;
+              "
+            ></span>
+            <div>
+              <div class="video-title">Rust vs Zig vs C: systems showdown</div>
+              <div class="video-sub">LowLevelLuke</div>
+              <div class="video-sub">2.1M views · 5 months ago</div>
+            </div>
+          </div>
+        </div>
+        <div class="video-card">
+          <div class="thumb thumb-5"><span class="duration">9:58</span></div>
+          <div class="video-meta">
+            <span
+              style="
+                display: inline-block;
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #4338ca, #14a06c);
+                flex: none;
+              "
+            ></span>
+            <div>
+              <div class="video-title">The dark art of font subsetting</div>
+              <div class="video-sub">TypeNerd</div>
+              <div class="video-sub">56K views · 2 weeks ago</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

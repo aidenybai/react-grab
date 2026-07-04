@@ -10,6 +10,7 @@ const range = (count) => Array.from({ length: count }, (_, index) => index);
 const themes = {
   light: {
     name: "light",
+    isDark: false,
     bg: "#f6f8fa",
     surface: "#ffffff",
     surfaceAlt: "#eef1f4",
@@ -26,6 +27,7 @@ const themes = {
   },
   dark: {
     name: "dark",
+    isDark: true,
     bg: "#0d1117",
     surface: "#161b22",
     surfaceAlt: "#21262d",
@@ -39,6 +41,142 @@ const themes = {
     bad: "#f85149",
     chipBg: "#121d2f",
     chipText: "#58a6ff",
+  },
+  sepia: {
+    name: "sepia",
+    isDark: false,
+    bg: "#f4ecd8",
+    surface: "#fbf5e6",
+    surfaceAlt: "#ece1c8",
+    border: "#d8c9a3",
+    text: "#3d3021",
+    textSoft: "#7a6a4f",
+    accent: "#8a5a1e",
+    accentText: "#fbf5e6",
+    good: "#4d7031",
+    warn: "#9a6700",
+    bad: "#a83232",
+    chipBg: "#ecdbb4",
+    chipText: "#8a5a1e",
+  },
+  midnight: {
+    name: "midnight",
+    isDark: true,
+    bg: "#0a0e1a",
+    surface: "#111726",
+    surfaceAlt: "#1a2236",
+    border: "#273049",
+    text: "#dbe2f4",
+    textSoft: "#8591ad",
+    accent: "#7c8cf8",
+    accentText: "#0a0e1a",
+    good: "#4ade80",
+    warn: "#facc15",
+    bad: "#f87171",
+    chipBg: "#1c2440",
+    chipText: "#a5b4fc",
+  },
+  ocean: {
+    name: "ocean",
+    isDark: false,
+    bg: "#eef6f9",
+    surface: "#ffffff",
+    surfaceAlt: "#dcedf3",
+    border: "#b8d8e3",
+    text: "#0f3345",
+    textSoft: "#4e7484",
+    accent: "#0e7490",
+    accentText: "#ffffff",
+    good: "#0f766e",
+    warn: "#b45309",
+    bad: "#be123c",
+    chipBg: "#cffafe",
+    chipText: "#0e7490",
+  },
+  forest: {
+    name: "forest",
+    isDark: true,
+    bg: "#101a12",
+    surface: "#16241a",
+    surfaceAlt: "#1e3123",
+    border: "#2d4a35",
+    text: "#dcefe0",
+    textSoft: "#8dab94",
+    accent: "#4ade80",
+    accentText: "#101a12",
+    good: "#86efac",
+    warn: "#fbbf24",
+    bad: "#fb7185",
+    chipBg: "#173626",
+    chipText: "#6ee7a0",
+  },
+  rose: {
+    name: "rose",
+    isDark: false,
+    bg: "#fdf2f5",
+    surface: "#ffffff",
+    surfaceAlt: "#fbe4ec",
+    border: "#f3c6d6",
+    text: "#4c1226",
+    textSoft: "#96566e",
+    accent: "#be1856",
+    accentText: "#ffffff",
+    good: "#15803d",
+    warn: "#a16207",
+    bad: "#b91c1c",
+    chipBg: "#fcd8e4",
+    chipText: "#be1856",
+  },
+  violet: {
+    name: "violet",
+    isDark: true,
+    bg: "#16111f",
+    surface: "#1e1729",
+    surfaceAlt: "#2a2038",
+    border: "#3d2f52",
+    text: "#e9e2f7",
+    textSoft: "#a294bd",
+    accent: "#a78bfa",
+    accentText: "#16111f",
+    good: "#34d399",
+    warn: "#fbbf24",
+    bad: "#fb7185",
+    chipBg: "#2b2145",
+    chipText: "#c4b5fd",
+  },
+  amber: {
+    name: "amber",
+    isDark: false,
+    bg: "#fffbeb",
+    surface: "#ffffff",
+    surfaceAlt: "#fdf0c8",
+    border: "#f2dd9a",
+    text: "#432c07",
+    textSoft: "#8a6d31",
+    accent: "#b45309",
+    accentText: "#ffffff",
+    good: "#3f6212",
+    warn: "#92400e",
+    bad: "#b91c1c",
+    chipBg: "#fde9a8",
+    chipText: "#92400e",
+  },
+  slate: {
+    name: "slate",
+    isDark: true,
+    bg: "#1b2230",
+    surface: "#232c3d",
+    surfaceAlt: "#2c374c",
+    border: "#3c4a63",
+    text: "#e2e8f0",
+    textSoft: "#94a3b8",
+    accent: "#38bdf8",
+    accentText: "#1b2230",
+    good: "#34d399",
+    warn: "#fbbf24",
+    bad: "#f87171",
+    chipBg: "#243b53",
+    chipText: "#7dd3fc",
   },
 };
 
@@ -495,7 +633,7 @@ archetypes["link-aggregator"] = (t) => {
     widthPx: 900,
     heightPx: 660,
     css: `
-      #target { background: ${t.name === "dark" ? "#1a1a10" : "#f6f6ef"}; }
+      #target { background: ${t.isDark ? "#1a1a10" : "#f6f6ef"}; }
       .hn-bar { background: #ff6600; color: #1f2328; display: flex; align-items: center; gap: 10px; padding: 4px 8px; font-size: 13px; }
       .hn-bar b { border: 1px solid #ffffff; padding: 1px 3px; }
       .story { display: flex; gap: 6px; padding: 5px 10px; align-items: baseline; }
@@ -637,9 +775,9 @@ archetypes["email-inbox"] = (t) => {
       .gm-nav { padding: 14px 8px; font-size: 14px; }
       .gm-compose { background: ${t.chipBg}; color: ${t.chipText}; border-radius: 14px; padding: 12px 20px; font-weight: 700; display: inline-block; margin: 0 0 14px 8px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15); }
       .gm-nav div.item { padding: 7px 16px; border-radius: 0 999px 999px 0; color: ${t.text}; }
-      .gm-nav div.item.active { background: ${t.name === "dark" ? "#3c2b1e" : "#fce8e6"}; font-weight: 700; }
+      .gm-nav div.item.active { background: ${t.isDark ? "#3c2b1e" : "#fce8e6"}; font-weight: 700; }
       .gm-nav div.item span { float: right; font-size: 12px; color: ${t.textSoft}; }
-      .mail { display: flex; align-items: center; gap: 10px; padding: 9px 16px; border-bottom: 1px solid ${t.border}; font-size: 13px; background: ${t.name === "dark" ? "#10151c" : "#f2f6fc"}; }
+      .mail { display: flex; align-items: center; gap: 10px; padding: 9px 16px; border-bottom: 1px solid ${t.border}; font-size: 13px; background: ${t.isDark ? "#10151c" : "#f2f6fc"}; }
       .mail.unread { background: ${t.surface}; }
       .mail.unread .from, .mail.unread .subj b { font-weight: 700; }
       .mail .from { width: 140px; flex: none; font-weight: 400; }
@@ -694,7 +832,7 @@ archetypes["team-chat"] = (t) => {
     heightPx: 680,
     css: `
       .sl-wrap { display: grid; grid-template-columns: 220px 1fr; height: 100%; }
-      .sl-side { background: ${t.name === "dark" ? "#19171d" : "#3f0e40"}; color: #ffffff; padding: 14px 0; font-size: 14px; }
+      .sl-side { background: ${t.isDark ? "#19171d" : "#3f0e40"}; color: #ffffff; padding: 14px 0; font-size: 14px; }
       .sl-team { font-weight: 700; font-size: 16px; padding: 0 16px 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.15); }
       .sl-section { color: rgba(255, 255, 255, 0.6); padding: 14px 16px 6px; font-size: 13px; }
       .sl-chan { padding: 4px 16px; color: rgba(255, 255, 255, 0.75); }
@@ -784,11 +922,11 @@ archetypes["kanban-board"] = (t) => {
       .kb-top { display: flex; align-items: center; gap: 12px; padding: 12px 18px; color: #ffffff; font-weight: 700; font-size: 16px; background: rgba(0, 0, 0, 0.2); }
       .kb-top span.badge { font-weight: 400; font-size: 12px; background: rgba(255, 255, 255, 0.25); border-radius: 4px; padding: 3px 8px; }
       .kb-cols { display: flex; gap: 14px; padding: 16px 18px; align-items: flex-start; }
-      .kb-col { width: 258px; background: ${t.name === "dark" ? "#101204" : "#f1f2f4"}; color: ${t.name === "dark" ? "#b6c2cf" : "#172b4d"}; border-radius: 12px; padding: 10px; }
+      .kb-col { width: 258px; background: ${t.isDark ? "#101204" : "#f1f2f4"}; color: ${t.isDark ? "#b6c2cf" : "#172b4d"}; border-radius: 12px; padding: 10px; }
       .kb-col-head { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; padding: 4px 6px 10px; }
       .kb-dot { width: 10px; height: 10px; border-radius: 50%; }
       .kb-count { margin-left: auto; font-weight: 400; font-size: 12px; opacity: 0.7; }
-      .kb-card { background: ${t.name === "dark" ? "#22272b" : "#ffffff"}; border-radius: 8px; padding: 10px 12px; font-size: 13px; line-height: 1.4; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(9, 30, 66, 0.25); }
+      .kb-card { background: ${t.isDark ? "#22272b" : "#ffffff"}; border-radius: 8px; padding: 10px 12px; font-size: 13px; line-height: 1.4; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(9, 30, 66, 0.25); }
       .kb-card-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
       .kb-tag { font-size: 11px; font-weight: 700; border-radius: 4px; padding: 2px 6px; }
       .kb-add { font-size: 13px; opacity: 0.7; padding: 6px; }`,
@@ -798,7 +936,7 @@ archetypes["kanban-board"] = (t) => {
   };
 };
 
-archetypes["music-player"] = (_t) => {
+archetypes["music-player"] = (t) => {
   const tracks = [
     ["Midnight Compile", "The Segfaults", "3:42"],
     ["Garbage Collector Blues", "Heap & The Stacks", "4:15"],
@@ -822,17 +960,17 @@ archetypes["music-player"] = (_t) => {
     widthPx: 980,
     heightPx: 700,
     css: `
-      #target { background: linear-gradient(180deg, #3d1f5c 0%, #121212 42%); color: #ffffff; }
+      #target { background: linear-gradient(180deg, ${t.isDark ? "#3d1f5c" : t.accent} 0%, #121212 42%); color: #ffffff; }
       .sp-head { display: flex; align-items: flex-end; gap: 22px; padding: 40px 30px 24px; }
       .sp-cover { width: 180px; height: 180px; border-radius: 6px; background: linear-gradient(135deg, #ff6a3d, #a12568, #21d4fd); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5); }
       .sp-kind { font-size: 12px; font-weight: 700; }
       .sp-title { font-size: 46px; font-weight: 700; letter-spacing: -2px; margin: 6px 0; }
       .sp-meta { font-size: 13px; color: rgba(255, 255, 255, 0.7); }
       .sp-controls { display: flex; align-items: center; gap: 22px; padding: 16px 30px; }
-      .sp-play { width: 52px; height: 52px; border-radius: 50%; background: #1ed760; display: flex; align-items: center; justify-content: center; color: #000000; font-size: 20px; }
+      .sp-play { width: 52px; height: 52px; border-radius: 50%; background: ${t.isDark ? "#1ed760" : t.chipBg}; display: flex; align-items: center; justify-content: center; color: #000000; font-size: 20px; }
       .track { display: flex; align-items: center; gap: 14px; padding: 8px 30px; font-size: 14px; }
       .track:hover { background: rgba(255, 255, 255, 0.08); }
-      .track.playing .track-title { color: #1ed760; }
+      .track.playing .track-title { color: ${t.isDark ? "#1ed760" : t.chipBg}; }
       .track-num { width: 16px; color: rgba(255, 255, 255, 0.6); font-size: 13px; }
       .track-art { width: 38px; height: 38px; border-radius: 4px; flex: none; }
       .track-info { flex: 1; }
@@ -851,7 +989,7 @@ archetypes["music-player"] = (_t) => {
   };
 };
 
-archetypes["streaming-rows"] = (_t) => {
+archetypes["streaming-rows"] = (t) => {
   const row = (label, seed) => `
     <div class="nf-row-label">${label}</div>
     <div class="nf-row">${range(6)
@@ -866,8 +1004,8 @@ archetypes["streaming-rows"] = (_t) => {
     css: `
       #target { background: #141414; color: #ffffff; }
       .nf-top { display: flex; align-items: center; gap: 24px; padding: 14px 40px; font-size: 14px; position: absolute; top: 0; left: 0; right: 0; z-index: 2; }
-      .nf-logo { color: #e50914; font-weight: 700; font-size: 24px; letter-spacing: -1px; }
-      .nf-hero { height: 340px; background: linear-gradient(90deg, rgba(0, 0, 0, 0.9) 20%, transparent 60%), linear-gradient(200deg, #40196d, #97144d 60%, #1a1a2e); display: flex; flex-direction: column; justify-content: center; padding: 0 40px; }
+      .nf-logo { color: ${t.isDark ? "#e50914" : t.accent}; font-weight: 700; font-size: 24px; letter-spacing: -1px; }
+      .nf-hero { height: 340px; background: linear-gradient(90deg, rgba(0, 0, 0, 0.9) 20%, transparent 60%), linear-gradient(200deg, ${t.isDark ? "#40196d" : t.accent}, #97144d 60%, #1a1a2e); display: flex; flex-direction: column; justify-content: center; padding: 0 40px; }
       .nf-hero h1 { font-size: 44px; margin: 0 0 10px; letter-spacing: -1px; text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7); }
       .nf-hero p { max-width: 420px; font-size: 15px; line-height: 1.5; color: rgba(255, 255, 255, 0.85); margin: 0 0 18px; }
       .nf-btns { display: flex; gap: 12px; }
@@ -928,7 +1066,7 @@ archetypes["search-results"] = (t) => {
       .g-stats { padding: 12px 26px 4px 200px; font-size: 13px; color: ${t.textSoft}; }
       .result { padding: 12px 26px 8px 200px; max-width: 820px; }
       .crumb { font-size: 12px; color: ${t.textSoft}; }
-      .r-title { font-size: 19px; color: ${t.name === "dark" ? "#8ab4f8" : "#1a0dab"}; display: block; margin: 3px 0; }
+      .r-title { font-size: 19px; color: ${t.isDark ? "#8ab4f8" : "#1a0dab"}; display: block; margin: 3px 0; }
       .result p { font-size: 14px; line-height: 1.55; color: ${t.textSoft}; margin: 0; }`,
     body: `
       <div class="g-head"><div class="g-logo"><span>S</span><span>e</span><span>e</span><span>k</span><span>l</span><span>e</span></div><div class="g-box">fastest dom to image library</div></div>
@@ -1407,7 +1545,7 @@ archetypes["settings-page"] = (t) => {
           <h1>Preferences</h1>
           <div class="sub">Customize how the app looks and behaves.</div>
           <div class="st-group">
-            <div class="st-row"><div class="info"><div class="title">Theme</div><div class="desc">Sync with your system or pick a side.</div></div><span class="st-select">${t.name === "dark" ? "Dark" : "Light"} ▾</span></div>
+            <div class="st-row"><div class="info"><div class="title">Theme</div><div class="desc">Sync with your system or pick a side.</div></div><span class="st-select">${t.isDark ? "Dark" : "Light"} ▾</span></div>
             <div class="st-row"><div class="info"><div class="title">Compact density</div><div class="desc">Show more content with tighter spacing.</div></div>${toggle(true)}</div>
             <div class="st-row"><div class="info"><div class="title">Reduce motion</div><div class="desc">Minimize animations across the interface.</div></div>${toggle(false)}</div>
           </div>
@@ -1425,7 +1563,7 @@ archetypes["landing-hero"] = (t) => ({
   widthPx: 1100,
   heightPx: 700,
   css: `
-    #target { background: ${t.name === "dark" ? "radial-gradient(1000px 500px at 70% -10%, #1e2a5a, #0b0d17)" : "radial-gradient(1000px 500px at 70% -10%, #dbeafe, #f8fafc)"}; }
+    #target { background: ${t.isDark ? "radial-gradient(1000px 500px at 70% -10%, #1e2a5a, #0b0d17)" : "radial-gradient(1000px 500px at 70% -10%, #dbeafe, #f8fafc)"}; }
     .lh-nav { display: flex; align-items: center; gap: 26px; padding: 20px 48px; font-size: 14px; }
     .lh-logo { font-weight: 700; font-size: 17px; }
     .lh-nav .cta { margin-left: auto; background: ${t.text}; color: ${t.bg}; border-radius: 8px; padding: 8px 16px; font-weight: 700; }
@@ -1461,20 +1599,39 @@ modern-screenshot    1424.1ms</pre>
     </div>`,
 });
 
-let fixtureIndex = 0;
+const firefoxTextMetricsArchetypes = new Set([
+  "github-repo",
+  "product-page",
+  "pricing-tiers",
+  "wiki-article",
+  "streaming-rows",
+  "search-results",
+  "blog-article",
+  "profile-page",
+  "checkout-form",
+  "analytics-dashboard",
+  "docs-site",
+  "qa-question",
+  "news-front",
+  "settings-page",
+  "landing-hero",
+]);
+
 const fixtureIds = [];
+const manifestEntries = [];
 for (const [archetypeName, buildArchetype] of Object.entries(archetypes)) {
-  for (const themeName of ["light", "dark"]) {
-    fixtureIndex += 1;
-    const theme = themes[themeName];
+  for (const theme of Object.values(themes)) {
     const spec = buildArchetype(theme);
-    const id = `site-${String(fixtureIndex).padStart(2, "0")}-${archetypeName}-${themeName}`;
+    const id = `site-${archetypeName}-${theme.name}`;
     const html = page(id, theme, spec.widthPx, spec.heightPx, spec.css, spec.body);
     writeFileSync(join(fixturesDir, `${id}.html`), html);
     fixtureIds.push(id);
+    manifestEntries.push(
+      firefoxTextMetricsArchetypes.has(archetypeName)
+        ? `  {\n    id: "${id}",\n    maxDiffRatio: STRICT_MAX_DIFF_RATIO,\n    firefox: firefoxTextMetricsOverride,\n  },`
+        : `  { id: "${id}", maxDiffRatio: STRICT_MAX_DIFF_RATIO },`,
+    );
   }
 }
 console.log(`${fixtureIds.length} fixtures written`);
-console.log(
-  fixtureIds.map((id) => `  { id: "${id}", maxDiffRatio: STRICT_MAX_DIFF_RATIO },`).join("\n"),
-);
+console.log(manifestEntries.join("\n"));

@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>site-link-aggregator-violet</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #888888;
+      }
+      #target {
+        width: 900px;
+        height: 660px;
+        background: #16111f;
+        color: #e9e2f7;
+        font-family: "Inter Fixture", sans-serif;
+        overflow: hidden;
+        position: relative;
+      }
+
+      #target {
+        background: #1a1a10;
+      }
+      .hn-bar {
+        background: #ff6600;
+        color: #1f2328;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 4px 8px;
+        font-size: 13px;
+      }
+      .hn-bar b {
+        border: 1px solid #ffffff;
+        padding: 1px 3px;
+      }
+      .story {
+        display: flex;
+        gap: 6px;
+        padding: 5px 10px;
+        align-items: baseline;
+      }
+      .rank {
+        color: #a294bd;
+        font-size: 13px;
+        min-width: 22px;
+        text-align: right;
+      }
+      .vote {
+        color: #999999;
+        font-size: 10px;
+      }
+      .story-title {
+        font-size: 13.5px;
+        color: #e9e2f7;
+      }
+      .domain {
+        font-size: 11px;
+        color: #a294bd;
+      }
+      .story-meta {
+        font-size: 10.5px;
+        color: #a294bd;
+        padding-top: 1px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="hn-bar">
+        <b>Y</b><span style="font-weight: 700">Hacker Newz</span
+        ><span>new | past | comments | ask | show | jobs | submit</span
+        ><span style="margin-left: auto">login</span>
+      </div>
+
+      <div class="story">
+        <span class="rank">1.</span><span class="vote">▲</span>
+        <div>
+          <span class="story-title"
+            >Show HN: I made a DOM screenshot library 6x faster than snapdom</span
+          >
+          <span class="domain">(github.com/aidenybai)</span>
+          <div class="story-meta">412 points by user1 2 hours ago | hide | 187 comments</div>
+        </div>
+      </div>
+      <div class="story">
+        <span class="rank">2.</span><span class="vote">▲</span>
+        <div>
+          <span class="story-title">The case against microservices in 2026</span>
+          <span class="domain">(blog.pragmatic.dev)</span>
+          <div class="story-meta">890 points by user2 3 hours ago | hide | 542 comments</div>
+        </div>
+      </div>
+      <div class="story">
+        <span class="rank">3.</span><span class="vote">▲</span>
+        <div>
+          <span class="story-title">PostgreSQL 19 released</span>
+          <span class="domain">(postgresql.org)</span>
+          <div class="story-meta">1204 points by user3 4 hours ago | hide | 318 comments</div>
+        </div>
+      </div>
+      <div class="story">
+        <span class="rank">4.</span><span class="vote">▲</span>
+        <div>
+          <span class="story-title">Why we rewrote our compiler in Rust (again)</span>
+          <span class="domain">(buildfast.io)</span>
+          <div class="story-meta">233 points by user4 5 hours ago | hide | 401 comments</div>
+        </div>
+      </div>
+      <div class="story">
+        <span class="rank">5.</span><span class="vote">▲</span>
+        <div>
+          <span class="story-title">Ask HN: How do you handle on-call burnout?</span>
+          <div class="story-meta">156 points by user5 6 hours ago | hide | 289 comments</div>
+        </div>
+      </div>
+      <div class="story">
+        <span class="rank">6.</span><span class="vote">▲</span>
+        <div>
+          <span class="story-title">Font subsetting reduced our page weight by 74%</span>
+          <span class="domain">(perf.wiki)</span>
+          <div class="story-meta">98 points by user6 7 hours ago | hide | 44 comments</div>
+        </div>
+      </div>
+      <div class="story">
+        <span class="rank">7.</span><span class="vote">▲</span>
+        <div>
+          <span class="story-title">A deep dive into Chromium's PNG encoder</span>
+          <span class="domain">(chromium.googlesource.com)</span>
+          <div class="story-meta">310 points by user7 8 hours ago | hide | 122 comments</div>
+        </div>
+      </div>
+      <div class="story">
+        <span class="rank">8.</span><span class="vote">▲</span>
+        <div>
+          <span class="story-title"
+            >Launch HN: Pixelperfect (YC S26) – Visual regression testing</span
+          >
+          <div class="story-meta">77 points by user8 9 hours ago | hide | 63 comments</div>
+        </div>
+      </div>
+      <div class="story">
+        <span class="rank">9.</span><span class="vote">▲</span>
+        <div>
+          <span class="story-title">The forgotten history of XHTML</span>
+          <span class="domain">(webhistory.org)</span>
+          <div class="story-meta">445 points by user9 10 hours ago | hide | 267 comments</div>
+        </div>
+      </div>
+      <div class="story">
+        <span class="rank">10.</span><span class="vote">▲</span>
+        <div>
+          <span class="story-title">Zero-copy deserialization in practice</span>
+          <span class="domain">(lowlevel.blog)</span>
+          <div class="story-meta">189 points by user10 11 hours ago | hide | 71 comments</div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

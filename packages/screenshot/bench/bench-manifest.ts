@@ -42,8 +42,8 @@ export const benchFixtureIds: string[] = [
   "41-background-images",
   "60-kitchen-sink",
   "70-stress",
-  "site-05-video-grid-light",
-  "site-21-kanban-board-light",
-  "site-37-analytics-dashboard-light",
-  "site-45-news-front-light",
+  "site-video-grid-light",
+  "site-kanban-board-light",
+  "site-analytics-dashboard-light",
+  "site-news-front-light",
 ];

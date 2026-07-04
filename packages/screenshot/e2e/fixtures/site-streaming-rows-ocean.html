@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>site-streaming-rows-ocean</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #888888;
+      }
+      #target {
+        width: 1100px;
+        height: 700px;
+        background: #eef6f9;
+        color: #0f3345;
+        font-family: "Inter Fixture", sans-serif;
+        overflow: hidden;
+        position: relative;
+      }
+
+      #target {
+        background: #141414;
+        color: #ffffff;
+      }
+      .nf-top {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        padding: 14px 40px;
+        font-size: 14px;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 2;
+      }
+      .nf-logo {
+        color: #0e7490;
+        font-weight: 700;
+        font-size: 24px;
+        letter-spacing: -1px;
+      }
+      .nf-hero {
+        height: 340px;
+        background:
+          linear-gradient(90deg, rgba(0, 0, 0, 0.9) 20%, transparent 60%),
+          linear-gradient(200deg, #0e7490, #97144d 60%, #1a1a2e);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 0 40px;
+      }
+      .nf-hero h1 {
+        font-size: 44px;
+        margin: 0 0 10px;
+        letter-spacing: -1px;
+        text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
+      }
+      .nf-hero p {
+        max-width: 420px;
+        font-size: 15px;
+        line-height: 1.5;
+        color: rgba(255, 255, 255, 0.85);
+        margin: 0 0 18px;
+      }
+      .nf-btns {
+        display: flex;
+        gap: 12px;
+      }
+      .nf-btns span {
+        border-radius: 4px;
+        padding: 9px 22px;
+        font-weight: 700;
+        font-size: 15px;
+      }
+      .nf-btns .play {
+        background: #ffffff;
+        color: #000000;
+      }
+      .nf-btns .info {
+        background: rgba(109, 109, 110, 0.7);
+      }
+      .nf-row-label {
+        font-size: 17px;
+        font-weight: 700;
+        padding: 18px 40px 8px;
+      }
+      .nf-row {
+        display: flex;
+        gap: 8px;
+        padding: 0 40px;
+      }
+      .nf-card {
+        position: relative;
+        width: 166px;
+        height: 94px;
+        border-radius: 4px;
+        flex: none;
+      }
+      .nf-rank {
+        position: absolute;
+        left: 6px;
+        bottom: 2px;
+        font-size: 40px;
+        font-weight: 700;
+        -webkit-text-stroke: 2px #ffffff;
+        color: #141414;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="nf-top">
+        <span class="nf-logo">WEBFLIX</span><span>Home</span><span>TV Shows</span><span>Movies</span
+        ><span>My List</span
+        ><span style="margin-left: auto"
+          ><span
+            style="
+              display: inline-block;
+              width: 28px;
+              height: 28px;
+              border-radius: 4px;
+              background: linear-gradient(135deg, #14a06c, #0f766e);
+              flex: none;
+            "
+          ></span
+        ></span>
+      </div>
+      <div class="nf-hero">
+        <h1>The Rendering Engine</h1>
+        <p>
+          A documentary crew follows six browser engineers as they race to ship a new compositor
+          before the merge window closes.
+        </p>
+        <div class="nf-btns">
+          <span class="play">▶ Play</span><span class="info">ⓘ More Info</span>
+        </div>
+      </div>
+
+      <div class="nf-row-label">Trending Now</div>
+      <div class="nf-row">
+        <div class="nf-card" style="background: linear-gradient(0deg, #d23b2e, #0b0b0f 80%)">
+          <span class="nf-rank">1</span>
+        </div>
+        <div class="nf-card" style="background: linear-gradient(40deg, #2f6fdb, #0b0b0f 80%)">
+          <span class="nf-rank">2</span>
+        </div>
+        <div class="nf-card" style="background: linear-gradient(80deg, #14a06c, #0b0b0f 80%)">
+          <span class="nf-rank">3</span>
+        </div>
+        <div class="nf-card" style="background: linear-gradient(120deg, #7a3b8f, #0b0b0f 80%)">
+          <span class="nf-rank">4</span>
+        </div>
+        <div class="nf-card" style="background: linear-gradient(160deg, #b8860b, #0b0b0f 80%)">
+          <span class="nf-rank">5</span>
+        </div>
+        <div class="nf-card" style="background: linear-gradient(200deg, #0f766e, #0b0b0f 80%)">
+          <span class="nf-rank">6</span>
+        </div>
+      </div>
+
+      <div class="nf-row-label">Because you watched The Bug Hunt</div>
+      <div class="nf-row">
+        <div class="nf-card" style="background: linear-gradient(120deg, #7a3b8f, #0b0b0f 80%)">
+          <span class="nf-rank">1</span>
+        </div>
+        <div class="nf-card" style="background: linear-gradient(160deg, #b8860b, #0b0b0f 80%)">
+          <span class="nf-rank">2</span>
+        </div>
+        <div class="nf-card" style="background: linear-gradient(200deg, #0f766e, #0b0b0f 80%)">
+          <span class="nf-rank">3</span>
+        </div>
+        <div class="nf-card" style="background: linear-gradient(240deg, #be185d, #0b0b0f 80%)">
+          <span class="nf-rank">4</span>
+        </div>
+        <div class="nf-card" style="background: linear-gradient(280deg, #4338ca, #0b0b0f 80%)">
+          <span class="nf-rank">5</span>
+        </div>
+        <div class="nf-card" style="background: linear-gradient(320deg, #d23b2e, #0b0b0f 80%)">
+          <span class="nf-rank">6</span>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

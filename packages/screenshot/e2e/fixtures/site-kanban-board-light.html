@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>site-kanban-board-light</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #888888;
+      }
+      #target {
+        width: 1100px;
+        height: 640px;
+        background: #f6f8fa;
+        color: #1f2328;
+        font-family: "Inter Fixture", sans-serif;
+        overflow: hidden;
+        position: relative;
+      }
+
+      #target {
+        background: linear-gradient(135deg, #0079bf, #5067c5);
+      }
+      .kb-top {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 18px;
+        color: #ffffff;
+        font-weight: 700;
+        font-size: 16px;
+        background: rgba(0, 0, 0, 0.2);
+      }
+      .kb-top span.badge {
+        font-weight: 400;
+        font-size: 12px;
+        background: rgba(255, 255, 255, 0.25);
+        border-radius: 4px;
+        padding: 3px 8px;
+      }
+      .kb-cols {
+        display: flex;
+        gap: 14px;
+        padding: 16px 18px;
+        align-items: flex-start;
+      }
+      .kb-col {
+        width: 258px;
+        background: #f1f2f4;
+        color: #172b4d;
+        border-radius: 12px;
+        padding: 10px;
+      }
+      .kb-col-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        font-weight: 700;
+        padding: 4px 6px 10px;
+      }
+      .kb-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+      }
+      .kb-count {
+        margin-left: auto;
+        font-weight: 400;
+        font-size: 12px;
+        opacity: 0.7;
+      }
+      .kb-card {
+        background: #ffffff;
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-size: 13px;
+        line-height: 1.4;
+        margin-bottom: 8px;
+        box-shadow: 0 1px 2px rgba(9, 30, 66, 0.25);
+      }
+      .kb-card-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 8px;
+      }
+      .kb-tag {
+        font-size: 11px;
+        font-weight: 700;
+        border-radius: 4px;
+        padding: 2px 6px;
+      }
+      .kb-add {
+        font-size: 13px;
+        opacity: 0.7;
+        padding: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="kb-top">
+        Capture Engine Roadmap <span class="badge">Board</span><span class="badge">Private</span
+        ><span style="margin-left: auto; display: flex"
+          ><span
+            style="
+              display: inline-block;
+              width: 26px;
+              height: 26px;
+              border-radius: 50%;
+              background: linear-gradient(135deg, #d23b2e, #7a3b8f);
+              flex: none;
+            "
+          ></span
+          ><span
+            style="
+              display: inline-block;
+              width: 26px;
+              height: 26px;
+              border-radius: 50%;
+              background: linear-gradient(135deg, #2f6fdb, #b8860b);
+              flex: none;
+            "
+          ></span
+          ><span
+            style="
+              display: inline-block;
+              width: 26px;
+              height: 26px;
+              border-radius: 50%;
+              background: linear-gradient(135deg, #14a06c, #0f766e);
+              flex: none;
+            "
+          ></span
+        ></span>
+      </div>
+      <div class="kb-cols">
+        <div class="kb-col">
+          <div class="kb-col-head">
+            <span class="kb-dot" style="background: #8590a2"></span>Backlog
+            <span class="kb-count">3</span>
+          </div>
+
+          <div class="kb-card">
+            Firefox settle-frame skip regression check
+            <div class="kb-card-foot">
+              <span class="kb-tag" style="background: #8590a222; color: #8590a2">PERF-11</span
+              ><span
+                style="
+                  display: inline-block;
+                  width: 22px;
+                  height: 22px;
+                  border-radius: 50%;
+                  background: linear-gradient(135deg, #d23b2e, #7a3b8f);
+                  flex: none;
+                "
+              ></span>
+            </div>
+          </div>
+          <div class="kb-card">
+            Investigate AVIF output option
+            <div class="kb-card-foot">
+              <span class="kb-tag" style="background: #8590a222; color: #8590a2">PERF-12</span
+              ><span
+                style="
+                  display: inline-block;
+                  width: 22px;
+                  height: 22px;
+                  border-radius: 50%;
+                  background: linear-gradient(135deg, #2f6fdb, #b8860b);
+                  flex: none;
+                "
+              ></span>
+            </div>
+          </div>
+          <div class="kb-card">
+            Iframe bridge timeout tuning
+            <div class="kb-card-foot">
+              <span class="kb-tag" style="background: #8590a222; color: #8590a2">PERF-13</span
+              ><span
+                style="
+                  display: inline-block;
+                  width: 22px;
+                  height: 22px;
+                  border-radius: 50%;
+                  background: linear-gradient(135deg, #14a06c, #0f766e);
+                  flex: none;
+                "
+              ></span>
+            </div>
+          </div>
+          <div class="kb-add">+ Add a card</div>
+        </div>
+        <div class="kb-col">
+          <div class="kb-col-head">
+            <span class="kb-dot" style="background: #2f6fdb"></span>In Progress
+            <span class="kb-count">2</span>
+          </div>
+
+          <div class="kb-card">
+            Prototype-delegated style maps
+            <div class="kb-card-foot">
+              <span class="kb-tag" style="background: #2f6fdb22; color: #2f6fdb">PERF-11</span
+              ><span
+                style="
+                  display: inline-block;
+                  width: 22px;
+                  height: 22px;
+                  border-radius: 50%;
+                  background: linear-gradient(135deg, #d23b2e, #7a3b8f);
+                  flex: none;
+                "
+              ></span>
+            </div>
+          </div>
+          <div class="kb-card">
+            Site fixture generator (50 pages)
+            <div class="kb-card-foot">
+              <span class="kb-tag" style="background: #2f6fdb22; color: #2f6fdb">PERF-12</span
+              ><span
+                style="
+                  display: inline-block;
+                  width: 22px;
+                  height: 22px;
+                  border-radius: 50%;
+                  background: linear-gradient(135deg, #2f6fdb, #b8860b);
+                  flex: none;
+                "
+              ></span>
+            </div>
+          </div>
+          <div class="kb-add">+ Add a card</div>
+        </div>
+        <div class="kb-col">
+          <div class="kb-col-head">
+            <span class="kb-dot" style="background: #b8860b"></span>In Review
+            <span class="kb-count">2</span>
+          </div>
+
+          <div class="kb-card">
+            Minimal-escape SVG data URLs
+            <div class="kb-card-foot">
+              <span class="kb-tag" style="background: #b8860b22; color: #b8860b">PERF-11</span
+              ><span
+                style="
+                  display: inline-block;
+                  width: 22px;
+                  height: 22px;
+                  border-radius: 50%;
+                  background: linear-gradient(135deg, #d23b2e, #7a3b8f);
+                  flex: none;
+                "
+              ></span>
+            </div>
+          </div>
+          <div class="kb-card">
+            Animated memo grid fixture
+            <div class="kb-card-foot">
+              <span class="kb-tag" style="background: #b8860b22; color: #b8860b">PERF-12</span
+              ><span
+                style="
+                  display: inline-block;
+                  width: 22px;
+                  height: 22px;
+                  border-radius: 50%;
+                  background: linear-gradient(135deg, #2f6fdb, #b8860b);
+                  flex: none;
+                "
+              ></span>
+            </div>
+          </div>
+          <div class="kb-add">+ Add a card</div>
+        </div>
+        <div class="kb-col">
+          <div class="kb-col-head">
+            <span class="kb-dot" style="background: #14a06c"></span>Done
+            <span class="kb-count">4</span>
+          </div>
+
+          <div class="kb-card">
+            PNG raster cache
+            <div class="kb-card-foot">
+              <span class="kb-tag" style="background: #14a06c22; color: #14a06c">PERF-11</span
+              ><span
+                style="
+                  display: inline-block;
+                  width: 22px;
+                  height: 22px;
+                  border-radius: 50%;
+                  background: linear-gradient(135deg, #d23b2e, #7a3b8f);
+                  flex: none;
+                "
+              ></span>
+            </div>
+          </div>
+          <div class="kb-card">
+            Memoized diff-cache
+            <div class="kb-card-foot">
+              <span class="kb-tag" style="background: #14a06c22; color: #14a06c">PERF-12</span
+              ><span
+                style="
+                  display: inline-block;
+                  width: 22px;
+                  height: 22px;
+                  border-radius: 50%;
+                  background: linear-gradient(135deg, #2f6fdb, #b8860b);
+                  flex: none;
+                "
+              ></span>
+            </div>
+          </div>
+          <div class="kb-card">
+            Baseline probe batching
+            <div class="kb-card-foot">
+              <span class="kb-tag" style="background: #14a06c22; color: #14a06c">PERF-13</span
+              ><span
+                style="
+                  display: inline-block;
+                  width: 22px;
+                  height: 22px;
+                  border-radius: 50%;
+                  background: linear-gradient(135deg, #14a06c, #0f766e);
+                  flex: none;
+                "
+              ></span>
+            </div>
+          </div>
+          <div class="kb-card">
+            Uint8Array base64 fast path
+            <div class="kb-card-foot">
+              <span class="kb-tag" style="background: #14a06c22; color: #14a06c">PERF-14</span
+              ><span
+                style="
+                  display: inline-block;
+                  width: 22px;
+                  height: 22px;
+                  border-radius: 50%;
+                  background: linear-gradient(135deg, #7a3b8f, #be185d);
+                  flex: none;
+                "
+              ></span>
+            </div>
+          </div>
+          <div class="kb-add">+ Add a card</div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

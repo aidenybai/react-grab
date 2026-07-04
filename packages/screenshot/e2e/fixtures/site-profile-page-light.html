@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>site-profile-page-light</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #888888;
+      }
+      #target {
+        width: 900px;
+        height: 700px;
+        background: #f6f8fa;
+        color: #1f2328;
+        font-family: "Inter Fixture", sans-serif;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .li-cover {
+        height: 140px;
+        background: linear-gradient(110deg, #0a66c2, #16437e, #6b2d5c);
+      }
+      .li-card {
+        background: #ffffff;
+        border: 1px solid #d0d7de;
+        border-radius: 10px;
+        margin: -60px 24px 16px;
+        padding: 0 24px 20px;
+        position: relative;
+      }
+      .li-avatar {
+        width: 130px;
+        height: 130px;
+        border-radius: 50%;
+        border: 4px solid #ffffff;
+        background: linear-gradient(135deg, #2f6fdb, #14a06c);
+        margin-top: -40px;
+      }
+      .li-name {
+        font-size: 24px;
+        font-weight: 700;
+        margin-top: 10px;
+      }
+      .li-headline {
+        font-size: 15px;
+        margin: 2px 0;
+      }
+      .li-meta {
+        font-size: 13px;
+        color: #57606a;
+      }
+      .li-meta b {
+        color: #0969da;
+      }
+      .li-btns {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .li-btns span {
+        border-radius: 999px;
+        padding: 6px 16px;
+        font-size: 14px;
+        font-weight: 700;
+      }
+      .li-btns .primary {
+        background: #0a66c2;
+        color: #ffffff;
+      }
+      .li-btns .secondary {
+        color: #0a66c2;
+        border: 1px solid #0a66c2;
+      }
+      .li-section {
+        background: #ffffff;
+        border: 1px solid #d0d7de;
+        border-radius: 10px;
+        margin: 0 24px 16px;
+        padding: 18px 24px;
+      }
+      .li-section h2 {
+        font-size: 18px;
+        margin: 0 0 12px;
+      }
+      .li-exp {
+        display: flex;
+        gap: 14px;
+        padding: 8px 0;
+      }
+      .li-exp-body {
+        font-size: 14px;
+      }
+      .li-exp-body .role {
+        font-weight: 700;
+      }
+      .li-exp-body .co,
+      .li-exp-body .when {
+        color: #57606a;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="li-cover"></div>
+      <div class="li-card">
+        <div class="li-avatar"></div>
+        <div class="li-name">Jordan Reyes</div>
+        <div class="li-headline">Staff Engineer · Browser Performance · Ex-rendering team</div>
+        <div class="li-meta">
+          San Francisco Bay Area · <b>2,847 followers</b> · <b>500+ connections</b>
+        </div>
+        <div class="li-btns">
+          <span class="primary">Connect</span><span class="secondary">Message</span
+          ><span class="secondary">More</span>
+        </div>
+      </div>
+      <div class="li-section">
+        <h2>Experience</h2>
+        <div class="li-exp">
+          <span
+            style="
+              display: inline-block;
+              width: 44px;
+              height: 44px;
+              border-radius: 8px;
+              background: linear-gradient(135deg, #2f6fdb, #b8860b);
+              flex: none;
+            "
+          ></span>
+          <div class="li-exp-body">
+            <div class="role">Staff Software Engineer</div>
+            <div class="co">Million Software · Full-time</div>
+            <div class="when">Jan 2024 – Present · 2 yrs 6 mos</div>
+          </div>
+        </div>
+        <div class="li-exp">
+          <span
+            style="
+              display: inline-block;
+              width: 44px;
+              height: 44px;
+              border-radius: 8px;
+              background: linear-gradient(135deg, #0f766e, #d23b2e);
+              flex: none;
+            "
+          ></span>
+          <div class="li-exp-body">
+            <div class="role">Senior Engineer, Rendering</div>
+            <div class="co">BrowserCorp</div>
+            <div class="when">2019 – 2024 · 5 yrs</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

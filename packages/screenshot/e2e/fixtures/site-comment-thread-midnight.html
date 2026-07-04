@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>site-comment-thread-midnight</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #888888;
+      }
+      #target {
+        width: 780px;
+        height: 700px;
+        background: #0a0e1a;
+        color: #dbe2f4;
+        font-family: "Inter Fixture", sans-serif;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .thread-head {
+        padding: 16px 20px;
+        border-bottom: 1px solid #273049;
+        background: #111726;
+      }
+      .thread-sub {
+        font-size: 12px;
+        color: #8591ad;
+        margin-bottom: 6px;
+      }
+      .thread-title {
+        font-size: 19px;
+        font-weight: 700;
+        line-height: 1.3;
+      }
+      .thread-body {
+        font-size: 14px;
+        color: #8591ad;
+        margin-top: 8px;
+        line-height: 1.5;
+      }
+      .cmt {
+        position: relative;
+        padding: 10px 20px 2px;
+      }
+      .cmt-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+      }
+      .cmt-head span {
+        color: #8591ad;
+        font-size: 12px;
+      }
+      .cmt p {
+        margin: 6px 0 6px 30px;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      .cmt-actions {
+        display: flex;
+        gap: 14px;
+        margin-left: 30px;
+        font-size: 12px;
+        color: #8591ad;
+        padding-bottom: 4px;
+      }
+      .cmt-line {
+        position: absolute;
+        left: 30px;
+        top: 40px;
+        bottom: 0;
+        width: 2px;
+        background: #273049;
+        border-radius: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="thread-head">
+        <div class="thread-sub">r/webdev · Posted by u/pixel_pusher · 9h</div>
+        <div class="thread-title">
+          We replaced html2canvas with a foreignObject-based capture and cut screenshot time by 90%
+        </div>
+        <div class="thread-body">
+          Full writeup with flamegraphs in the comments. Happy to answer questions about the gnarly
+          parts (cross-origin fonts, canvas taint, iframe bridging).
+        </div>
+      </div>
+
+      <div class="cmt" style="margin-left: 0px">
+        <div class="cmt-head">
+          <span
+            style="
+              display: inline-block;
+              width: 22px;
+              height: 22px;
+              border-radius: 50%;
+              background: linear-gradient(135deg, #d23b2e, #7a3b8f);
+              flex: none;
+            "
+          ></span
+          ><b>svg_wizard</b><span>· 1h · 342 points</span>
+        </div>
+        <div class="cmt-line"></div>
+        <p>
+          The canvas taint issue with blob URLs bit us too. Data URLs are the only origin-clean path
+          in Chromium — see whatwg/html#10641.
+        </p>
+        <div class="cmt-actions">
+          <span>⬆ 342</span><span>⬇</span><span>Reply</span><span>Share</span>
+        </div>
+      </div>
+
+      <div class="cmt" style="margin-left: 26px">
+        <div class="cmt-head">
+          <span
+            style="
+              display: inline-block;
+              width: 22px;
+              height: 22px;
+              border-radius: 50%;
+              background: linear-gradient(135deg, #2f6fdb, #b8860b);
+              flex: none;
+            "
+          ></span
+          ><b>pixel_pusher</b><span>· 2h · 128 points</span>
+        </div>
+        <div class="cmt-line"></div>
+        <p>Exactly. We keep everything on data URLs and it stays clean in all three engines.</p>
+        <div class="cmt-actions">
+          <span>⬆ 128</span><span>⬇</span><span>Reply</span><span>Share</span>
+        </div>
+      </div>
+
+      <div class="cmt" style="margin-left: 52px">
+        <div class="cmt-head">
+          <span
+            style="
+              display: inline-block;
+              width: 22px;
+              height: 22px;
+              border-radius: 50%;
+              background: linear-gradient(135deg, #14a06c, #0f766e);
+              flex: none;
+            "
+          ></span
+          ><b>perf_goblin</b><span>· 3h · 55 points</span>
+        </div>
+        <div class="cmt-line"></div>
+        <p>How do you handle @font-face from cross-origin stylesheets? That was our blocker.</p>
+        <div class="cmt-actions">
+          <span>⬆ 55</span><span>⬇</span><span>Reply</span><span>Share</span>
+        </div>
+      </div>
+
+      <div class="cmt" style="margin-left: 78px">
+        <div class="cmt-head">
+          <span
+            style="
+              display: inline-block;
+              width: 22px;
+              height: 22px;
+              border-radius: 50%;
+              background: linear-gradient(135deg, #7a3b8f, #be185d);
+              flex: none;
+            "
+          ></span
+          ><b>pixel_pusher</b><span>· 4h · 71 points</span>
+        </div>
+        <div class="cmt-line"></div>
+        <p>
+          Re-fetch the CSS with CORS mode and inline the woff2 as base64. Works everywhere except
+          opaque responses.
+        </p>
+        <div class="cmt-actions">
+          <span>⬆ 71</span><span>⬇</span><span>Reply</span><span>Share</span>
+        </div>
+      </div>
+
+      <div class="cmt" style="margin-left: 0px">
+        <div class="cmt-head">
+          <span
+            style="
+              display: inline-block;
+              width: 22px;
+              height: 22px;
+              border-radius: 50%;
+              background: linear-gradient(135deg, #b8860b, #4338ca);
+              flex: none;
+            "
+          ></span
+          ><b>grumpy_dev</b><span>· 5h · 209 points</span>
+        </div>
+        <div class="cmt-line"></div>
+        <p>
+          html2canvas re-implements the entire CSS engine in JS. It was always going to lose to
+          letting the browser render.
+        </p>
+        <div class="cmt-actions">
+          <span>⬆ 209</span><span>⬇</span><span>Reply</span><span>Share</span>
+        </div>
+      </div>
+
+      <div class="cmt" style="margin-left: 26px">
+        <div class="cmt-head">
+          <span
+            style="
+              display: inline-block;
+              width: 22px;
+              height: 22px;
+              border-radius: 50%;
+              background: linear-gradient(135deg, #0f766e, #d23b2e);
+              flex: none;
+            "
+          ></span
+          ><b>layout_lord</b><span>· 6h · 84 points</span>
+        </div>
+        <div class="cmt-line"></div>
+        <p>It made sense in 2013. The platform caught up.</p>
+        <div class="cmt-actions">
+          <span>⬆ 84</span><span>⬇</span><span>Reply</span><span>Share</span>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

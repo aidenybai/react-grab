@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>site-email-inbox-dark</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #888888;
+      }
+      #target {
+        width: 1080px;
+        height: 660px;
+        background: #0d1117;
+        color: #e6edf3;
+        font-family: "Inter Fixture", sans-serif;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .gm-top {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 10px 18px;
+        background: #161b22;
+        border-bottom: 1px solid #30363d;
+      }
+      .gm-logo {
+        font-size: 20px;
+        font-weight: 700;
+      }
+      .gm-logo span {
+        color: #ea4335;
+      }
+      .gm-search {
+        flex: 1;
+        max-width: 560px;
+        background: #21262d;
+        border-radius: 999px;
+        padding: 10px 18px;
+        font-size: 14px;
+        color: #8d96a0;
+      }
+      .gm-body {
+        display: grid;
+        grid-template-columns: 200px 1fr;
+      }
+      .gm-nav {
+        padding: 14px 8px;
+        font-size: 14px;
+      }
+      .gm-compose {
+        background: #121d2f;
+        color: #58a6ff;
+        border-radius: 14px;
+        padding: 12px 20px;
+        font-weight: 700;
+        display: inline-block;
+        margin: 0 0 14px 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+      }
+      .gm-nav div.item {
+        padding: 7px 16px;
+        border-radius: 0 999px 999px 0;
+        color: #e6edf3;
+      }
+      .gm-nav div.item.active {
+        background: #3c2b1e;
+        font-weight: 700;
+      }
+      .gm-nav div.item span {
+        float: right;
+        font-size: 12px;
+        color: #8d96a0;
+      }
+      .mail {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 16px;
+        border-bottom: 1px solid #30363d;
+        font-size: 13px;
+        background: #10151c;
+      }
+      .mail.unread {
+        background: #161b22;
+      }
+      .mail.unread .from,
+      .mail.unread .subj b {
+        font-weight: 700;
+      }
+      .mail .from {
+        width: 140px;
+        flex: none;
+        font-weight: 400;
+      }
+      .mail .subj {
+        flex: 1;
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .mail .subj b {
+        font-weight: 400;
+      }
+      .prev {
+        color: #8d96a0;
+      }
+      .when {
+        font-size: 12px;
+        color: #8d96a0;
+        flex: none;
+      }
+      .chk {
+        width: 14px;
+        height: 14px;
+        border: 1px solid #8d96a0;
+        border-radius: 2px;
+        flex: none;
+      }
+      .star {
+        color: #30363d;
+        flex: none;
+      }
+      .star.on {
+        color: #f4b400;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="gm-top">
+        <span class="gm-logo">G<span>mail</span></span>
+        <div class="gm-search">Search mail</div>
+        <span
+          style="
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #7a3b8f, #be185d);
+            flex: none;
+          "
+        ></span>
+      </div>
+      <div class="gm-body">
+        <div class="gm-nav">
+          <div class="gm-compose">✏ Compose</div>
+          <div class="item active">Inbox <span>2</span></div>
+          <div class="item">Starred</div>
+          <div class="item">Snoozed</div>
+          <div class="item">Sent</div>
+          <div class="item">Drafts <span>7</span></div>
+          <div class="item">Spam <span>131</span></div>
+        </div>
+        <div>
+          <div class="mail unread">
+            <span class="chk"></span><span class="star">★</span>
+            <span class="from">GitHub</span>
+            <span class="subj"
+              ><b>[react-grab] PR #523: screenshot — CI passed</b>
+              <span class="prev">— All 18 checks have passed on screenshot-new.</span></span
+            >
+            <span class="when">5:12 AM</span>
+          </div>
+          <div class="mail unread">
+            <span class="chk"></span><span class="star on">★</span>
+            <span class="from">Vercel</span>
+            <span class="subj"
+              ><b>Deployment ready: react-grab-website</b>
+              <span class="prev">— Your production deployment is now live.</span></span
+            >
+            <span class="when">4:48 AM</span>
+          </div>
+          <div class="mail">
+            <span class="chk"></span><span class="star">★</span>
+            <span class="from">Linear</span>
+            <span class="subj"
+              ><b>12 issues assigned to you in Cycle 14</b>
+              <span class="prev">— Capture pipeline hardening, WebKit raster quirks…</span></span
+            >
+            <span class="when">Yesterday</span>
+          </div>
+          <div class="mail">
+            <span class="chk"></span><span class="star">★</span>
+            <span class="from">Stripe</span>
+            <span class="subj"
+              ><b>Your invoice for June is available</b>
+              <span class="prev">— Amount due: $290.00 — auto-pay scheduled.</span></span
+            >
+            <span class="when">Yesterday</span>
+          </div>
+          <div class="mail">
+            <span class="chk"></span><span class="star on">★</span>
+            <span class="from">npm</span>
+            <span class="subj"
+              ><b>Package published: fast-html-to-image@0.0.1</b>
+              <span class="prev">— You published a new package version.</span></span
+            >
+            <span class="when">Jul 1</span>
+          </div>
+          <div class="mail">
+            <span class="chk"></span><span class="star">★</span>
+            <span class="from">Datadog</span>
+            <span class="subj"
+              ><b>[P2] Latency alert resolved: capture-api</b>
+              <span class="prev">— p95 back under 120ms after 14 minutes.</span></span
+            >
+            <span class="when">Jul 1</span>
+          </div>
+          <div class="mail">
+            <span class="chk"></span><span class="star">★</span>
+            <span class="from">Figma</span>
+            <span class="subj"
+              ><b>Mia left 4 comments in 'Landing v3'</b>
+              <span class="prev">— Can we make the hero CTA pop more?</span></span
+            >
+            <span class="when">Jun 30</span>
+          </div>
+          <div class="mail">
+            <span class="chk"></span><span class="star">★</span>
+            <span class="from">Calendly</span>
+            <span class="subj"
+              ><b>Reminder: perf review tomorrow 10:00</b>
+              <span class="prev">— You have an upcoming meeting.</span></span
+            >
+            <span class="when">Jun 30</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

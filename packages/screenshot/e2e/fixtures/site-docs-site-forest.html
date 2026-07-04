@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>site-docs-site-forest</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #888888;
+      }
+      #target {
+        width: 1080px;
+        height: 700px;
+        background: #101a12;
+        color: #dcefe0;
+        font-family: "Inter Fixture", sans-serif;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .doc-top {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        padding: 12px 24px;
+        border-bottom: 1px solid #2d4a35;
+        font-size: 14px;
+        background: #16241a;
+      }
+      .doc-logo {
+        font-weight: 700;
+      }
+      .doc-search {
+        margin-left: auto;
+        border: 1px solid #2d4a35;
+        border-radius: 8px;
+        padding: 6px 14px;
+        font-size: 13px;
+        color: #8dab94;
+        background: #101a12;
+      }
+      .doc-search kbd {
+        border: 1px solid #2d4a35;
+        border-radius: 4px;
+        padding: 0 5px;
+        font-size: 11px;
+        margin-left: 14px;
+      }
+      .doc-body {
+        display: grid;
+        grid-template-columns: 230px 1fr 180px;
+      }
+      .doc-nav {
+        border-right: 1px solid #2d4a35;
+        padding: 18px 16px;
+        font-size: 13px;
+      }
+      .doc-nav .group {
+        font-weight: 700;
+        margin: 12px 0 6px;
+      }
+      .doc-nav .link {
+        padding: 4px 10px;
+        color: #8dab94;
+        border-left: 2px solid #2d4a35;
+      }
+      .doc-nav .link.active {
+        color: #4ade80;
+        border-left-color: #4ade80;
+        font-weight: 700;
+      }
+      .doc-main {
+        padding: 26px 40px;
+      }
+      .doc-main h1 {
+        font-size: 30px;
+        margin: 0 0 8px;
+        letter-spacing: -0.5px;
+      }
+      .doc-main .lead {
+        font-size: 16px;
+        color: #8dab94;
+        margin-bottom: 20px;
+      }
+      .doc-main h2 {
+        font-size: 20px;
+        margin: 24px 0 8px;
+        border-bottom: 1px solid #2d4a35;
+        padding-bottom: 6px;
+      }
+      .doc-main p {
+        font-size: 14px;
+        line-height: 1.7;
+      }
+      .doc-main code {
+        background: #1e3123;
+        border-radius: 4px;
+        padding: 1px 6px;
+        font-size: 13px;
+        font-family: monospace;
+      }
+      .callout {
+        border: 1px solid #4ade8044;
+        background: #173626;
+        border-radius: 8px;
+        padding: 12px 16px;
+        font-size: 13px;
+        line-height: 1.6;
+        margin: 14px 0;
+      }
+      pre.doc-code {
+        background: #0d1117;
+        color: #e6edf3;
+        border-radius: 8px;
+        padding: 14px 18px;
+        font-size: 13px;
+        line-height: 1.65;
+      }
+      pre.doc-code .cm {
+        color: #8b949e;
+      }
+      pre.doc-code .kw {
+        color: #ff7b72;
+      }
+      pre.doc-code .str {
+        color: #a5d6ff;
+      }
+      pre.doc-code .fn {
+        color: #d2a8ff;
+      }
+      .doc-toc {
+        padding: 26px 16px;
+        font-size: 12px;
+        color: #8dab94;
+        line-height: 2;
+      }
+      .doc-toc b {
+        color: #dcefe0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="doc-top">
+        <span class="doc-logo">⚡ fast-html-to-image</span><span>Docs</span><span>API</span
+        ><span>Blog</span>
+        <div class="doc-search">Search docs <kbd>⌘K</kbd></div>
+      </div>
+      <div class="doc-body">
+        <div class="doc-nav">
+          <div class="group">Getting started</div>
+          <div class="link">Installation</div>
+          <div class="link active">Quickstart</div>
+          <div class="link">Options</div>
+          <div class="group">Guides</div>
+          <div class="link">Cross-origin content</div>
+          <div class="link">Web fonts</div>
+          <div class="link">Iframes</div>
+        </div>
+        <div class="doc-main">
+          <h1>Quickstart</h1>
+          <div class="lead">Capture your first pixel-accurate screenshot in under a minute.</div>
+          <h2>Capture a node</h2>
+          <p>
+            Call <code>captureNode</code> with any element. The returned handle exposes lazy
+            encoders so you only pay for the formats you use.
+          </p>
+          <pre class="doc-code"><span class="cm">// capture and copy to clipboard</span>
+<span class="kw">import</span> { captureNode } <span class="kw">from</span> <span class="str">"fast-html-to-image"</span>;
+
+<span class="kw">const</span> result = <span class="kw">await</span> <span class="fn">captureNode</span>(element, { scale: <span class="str">2</span> });
+<span class="kw">const</span> blob = <span class="kw">await</span> result.<span class="fn">toBlob</span>();</pre>
+          <div class="callout">
+            <b>Note:</b> repeat captures of an unchanged DOM reuse the encoded PNG automatically —
+            warm captures typically complete in under 100ms.
+          </div>
+        </div>
+        <div class="doc-toc">
+          <b>On this page</b><br />Capture a node<br />Choosing a scale<br />Handling fonts<br />Next
+          steps
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>site-pricing-tiers-dark</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #888888;
+      }
+      #target {
+        width: 980px;
+        height: 640px;
+        background: #0d1117;
+        color: #e6edf3;
+        font-family: "Inter Fixture", sans-serif;
+        overflow: hidden;
+        position: relative;
+      }
+
+      #target {
+        background: linear-gradient(180deg, #0d1117, #21262d);
+      }
+      .pt-head {
+        text-align: center;
+        padding: 40px 0 8px;
+      }
+      .pt-head h1 {
+        font-size: 34px;
+        margin: 0;
+        letter-spacing: -1px;
+      }
+      .pt-head p {
+        color: #8d96a0;
+        font-size: 15px;
+      }
+      .tiers {
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+        padding: 24px;
+      }
+      .tier {
+        position: relative;
+        width: 280px;
+        border: 1px solid #30363d;
+        border-radius: 14px;
+        background: #161b22;
+        padding: 24px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      }
+      .tier.hot {
+        border: 2px solid #635bff;
+        transform: translateY(-10px);
+        box-shadow: 0 12px 30px rgba(99, 91, 255, 0.25);
+      }
+      .hot-badge {
+        position: absolute;
+        top: -12px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #635bff;
+        color: #ffffff;
+        font-size: 11px;
+        font-weight: 700;
+        border-radius: 999px;
+        padding: 3px 12px;
+      }
+      .tier-name {
+        font-weight: 700;
+        font-size: 16px;
+      }
+      .tier-price {
+        font-size: 34px;
+        margin: 8px 0 2px;
+      }
+      .tier-price span {
+        font-size: 14px;
+        color: #8d96a0;
+      }
+      .tier-sub {
+        color: #8d96a0;
+        font-size: 13px;
+        margin-bottom: 14px;
+      }
+      .tier-cta {
+        text-align: center;
+        border-radius: 999px;
+        padding: 9px 0;
+        font-size: 14px;
+        font-weight: 700;
+        background: #21262d;
+      }
+      .tier.hot .tier-cta {
+        background: #635bff;
+        color: #ffffff;
+      }
+      .tier ul {
+        list-style: none;
+        padding: 0;
+        margin: 16px 0 0;
+        font-size: 13px;
+      }
+      .tier li {
+        padding: 5px 0 5px 22px;
+        position: relative;
+        color: #e6edf3;
+      }
+      .tier li::before {
+        content: "✓";
+        position: absolute;
+        left: 0;
+        color: #635bff;
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="pt-head">
+        <h1>Pricing that scales with you</h1>
+        <p>Always know what you will pay. No hidden fees.</p>
+      </div>
+      <div class="tiers">
+        <div class="tier">
+          <div class="tier-name">Hobby</div>
+          <div class="tier-price">$0<span></span></div>
+          <div class="tier-sub">For side projects</div>
+          <div class="tier-cta">Get started</div>
+          <ul>
+            <li>1 project</li>
+            <li>10K captures/mo</li>
+            <li>Community support</li>
+          </ul>
+        </div>
+        <div class="tier hot">
+          <div class="hot-badge">Most popular</div>
+          <div class="tier-name">Pro</div>
+          <div class="tier-price">$29<span>/mo</span></div>
+          <div class="tier-sub">For growing teams</div>
+          <div class="tier-cta">Start free trial</div>
+          <ul>
+            <li>Unlimited projects</li>
+            <li>1M captures/mo</li>
+            <li>Priority support</li>
+            <li>Custom fonts</li>
+            <li>SLA 99.9%</li>
+          </ul>
+        </div>
+        <div class="tier">
+          <div class="tier-name">Enterprise</div>
+          <div class="tier-price">Custom<span></span></div>
+          <div class="tier-sub">For large orgs</div>
+          <div class="tier-cta">Get started</div>
+          <ul>
+            <li>Dedicated infra</li>
+            <li>SSO / SAML</li>
+            <li>Audit logs</li>
+            <li>99.99% SLA</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

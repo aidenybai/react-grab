@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>site-checkout-form-rose</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #888888;
+      }
+      #target {
+        width: 1000px;
+        height: 700px;
+        background: #fdf2f5;
+        color: #4c1226;
+        font-family: "Inter Fixture", sans-serif;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .co-wrap {
+        display: grid;
+        grid-template-columns: 1fr 380px;
+        height: 100%;
+      }
+      .co-form {
+        padding: 34px 44px;
+        background: #ffffff;
+      }
+      .co-form h1 {
+        font-size: 20px;
+        margin: 0 0 20px;
+      }
+      .co-label {
+        font-size: 13px;
+        font-weight: 700;
+        margin: 14px 0 6px;
+      }
+      .co-input {
+        border: 1px solid #f3c6d6;
+        border-radius: 6px;
+        padding: 10px 12px;
+        font-size: 14px;
+        color: #96566e;
+        background: #fdf2f5;
+      }
+      .co-row {
+        display: flex;
+        gap: 10px;
+      }
+      .co-row .co-input {
+        flex: 1;
+      }
+      input.co-real {
+        width: 100%;
+        border: 1px solid #f3c6d6;
+        border-radius: 6px;
+        padding: 10px 12px;
+        font-size: 14px;
+        background: #fdf2f5;
+        color: #4c1226;
+        font-family: inherit;
+      }
+      .co-pay {
+        margin-top: 24px;
+        width: 100%;
+        background: #635bff;
+        color: #ffffff;
+        border-radius: 6px;
+        text-align: center;
+        padding: 12px 0;
+        font-size: 15px;
+        font-weight: 700;
+      }
+      .co-summary {
+        background: #fbe4ec;
+        padding: 34px 36px;
+        border-left: 1px solid #f3c6d6;
+      }
+      .co-item {
+        display: flex;
+        gap: 12px;
+        font-size: 14px;
+        margin-bottom: 16px;
+      }
+      .co-item-thumb {
+        width: 46px;
+        height: 46px;
+        border-radius: 8px;
+        flex: none;
+      }
+      .co-item .amt {
+        margin-left: auto;
+      }
+      .co-total {
+        display: flex;
+        font-size: 14px;
+        padding: 8px 0;
+      }
+      .co-total span:last-child {
+        margin-left: auto;
+      }
+      .co-total.grand {
+        border-top: 1px solid #f3c6d6;
+        font-weight: 700;
+        margin-top: 8px;
+        padding-top: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="co-wrap">
+        <div class="co-form">
+          <h1>Pay with card</h1>
+          <div class="co-label">Email</div>
+          <input class="co-real" value="jordan@example.com" />
+          <div class="co-label">Card information</div>
+          <input class="co-real" value="4242 4242 4242 4242" />
+          <div class="co-row" style="margin-top: 8px">
+            <div class="co-input">12 / 28</div>
+            <div class="co-input">CVC</div>
+          </div>
+          <div class="co-label">Name on card</div>
+          <input class="co-real" value="Jordan Reyes" />
+          <div class="co-label">Country or region</div>
+          <div class="co-input">United States ▾</div>
+          <div class="co-pay">Pay $328.00</div>
+        </div>
+        <div class="co-summary">
+          <div style="font-size: 13px; color: #96566e">Pay DevTools Inc.</div>
+          <div style="font-size: 30px; font-weight: 700; margin: 4px 0 24px">$328.00</div>
+          <div class="co-item">
+            <span
+              class="co-item-thumb"
+              style="background: linear-gradient(135deg, #2f6fdb, #7a3b8f)"
+            ></span>
+            <div>
+              Pro plan × 12 months
+              <div style="color: #96566e; font-size: 12px">Billed annually</div>
+            </div>
+            <span class="amt">$290.00</span>
+          </div>
+          <div class="co-item">
+            <span
+              class="co-item-thumb"
+              style="background: linear-gradient(135deg, #14a06c, #b8860b)"
+            ></span>
+            <div>Extra seats × 2</div>
+            <span class="amt">$38.00</span>
+          </div>
+          <div class="co-total"><span>Subtotal</span><span>$328.00</span></div>
+          <div class="co-total"><span>Tax</span><span>$0.00</span></div>
+          <div class="co-total grand"><span>Total due</span><span>$328.00</span></div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>site-blog-article-light</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #888888;
+      }
+      #target {
+        width: 760px;
+        height: 700px;
+        background: #f6f8fa;
+        color: #1f2328;
+        font-family: "Inter Fixture", sans-serif;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .md-head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 28px 80px 0;
+      }
+      .md-author {
+        font-size: 14px;
+      }
+      .md-author div:last-child {
+        color: #57606a;
+        font-size: 13px;
+      }
+      .md-follow {
+        margin-left: auto;
+        color: #1a7f37;
+        border: 1px solid #1a7f37;
+        border-radius: 999px;
+        font-size: 13px;
+        padding: 5px 14px;
+      }
+      article {
+        padding: 18px 80px;
+      }
+      article h1 {
+        font-size: 34px;
+        letter-spacing: -1px;
+        line-height: 1.15;
+        margin: 0 0 6px;
+      }
+      .md-sub {
+        font-size: 18px;
+        color: #57606a;
+        margin-bottom: 20px;
+      }
+      article p {
+        font-family: Georgia, serif;
+        font-size: 17px;
+        line-height: 1.75;
+        margin: 0 0 18px;
+      }
+      article p:first-of-type::first-letter {
+        font-size: 52px;
+        float: left;
+        line-height: 0.9;
+        padding-right: 8px;
+        font-family: Georgia, serif;
+      }
+      blockquote {
+        border-left: 3px solid #1f2328;
+        margin: 0 0 18px;
+        padding-left: 18px;
+        font-style: italic;
+        font-family: Georgia, serif;
+        font-size: 19px;
+        line-height: 1.6;
+      }
+      pre {
+        background: #eef1f4;
+        border-radius: 6px;
+        padding: 14px 16px;
+        font-size: 13px;
+        line-height: 20px;
+        overflow: hidden;
+      }
+      pre .kw {
+        color: #0969da;
+      }
+      pre .str {
+        color: #1a7f37;
+      }
+      pre .fn {
+        color: #9a6700;
+      }
+      .md-claps {
+        display: flex;
+        gap: 18px;
+        color: #57606a;
+        font-size: 14px;
+        border-top: 1px solid #d0d7de;
+        margin: 0 80px;
+        padding: 14px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="md-head">
+        <span
+          style="
+            display: inline-block;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #14a06c, #0f766e);
+            flex: none;
+          "
+        ></span>
+        <div class="md-author">
+          <div><b>Elena Vasquez</b> · <span style="color: #1a7f37">Member only</span></div>
+          <div>12 min read · Jun 28, 2026</div>
+        </div>
+        <span class="md-follow">Follow</span>
+      </div>
+      <article>
+        <h1>The browser is the best screenshot engine you already have</h1>
+        <div class="md-sub">Why re-implementing CSS in JavaScript was always a dead end</div>
+        <p>
+          For a decade, taking a screenshot of a DOM node meant one thing: html2canvas. It parsed
+          your styles, walked your layout, and painted every border-radius by hand onto a canvas. It
+          was heroic. It was also doomed.
+        </p>
+        <blockquote>
+          Every line of CSS the platform ships is a line your library now has to reimplement —
+          forever.
+        </blockquote>
+        <p>
+          The alternative hides in an SVG element from 2001. Wrap your markup in a
+          <code>foreignObject</code>, hand it to the browser as an image, and the real layout engine
+          does the painting:
+        </p>
+        <pre><span class="kw">const</span> svg = <span class="str">`&lt;svg xmlns="..."&gt;&lt;foreignObject&gt;${markup}&lt;/foreignObject&gt;&lt;/svg&gt;`</span>;
+img.src = <span class="str">"data:image/svg+xml,"</span> + <span class="fn">encode</span>(svg);
+ctx.<span class="fn">drawImage</span>(img, 0, 0);</pre>
+        <p>
+          The hard part is not the rasterization — it is capturing the state the browser will not
+          serialize for you: computed styles, form values, canvas frames, and fonts locked behind
+          cross-origin stylesheets.
+        </p>
+      </article>
+      <div class="md-claps">
+        <span>👏 2.4K</span><span>💬 87</span><span style="margin-left: auto">🔖 &nbsp; ↗</span>
+      </div>
+    </div>
+  </body>
+</html>
