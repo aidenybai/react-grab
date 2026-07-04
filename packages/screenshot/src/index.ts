@@ -5,6 +5,9 @@ import {
 import {
   buildCaptureReuseOptionsKey,
   getReusableCapture,
+  markRegionPromotionFailed,
+  recordRegionCapture,
+  shouldPromoteRegionCapture,
   storeReusableCapture,
 } from "./capture/capture-reuse";
 import { cloneComposedTree } from "./capture/clone-tree";
@@ -701,6 +704,8 @@ const captureNodeInternal = async (
         heightPx: resultHeightPx,
         clipRect: resultClipRect,
         resolvedBackgroundColor: resolvedOptions.backgroundColor,
+        contentOffsetLeftPx: outputGeometry.contentOffsetLeftPx,
+        contentOffsetTopPx: outputGeometry.contentOffsetTopPx,
       });
     }
     return createCaptureResult(
@@ -775,6 +780,46 @@ export const captureRegion = async (
     timeoutMs: options.timeoutMs ?? DEFAULT_RESOURCE_TIMEOUT_MS,
     abortSignal: options.abortSignal,
   };
+  // Repeat region captures over an unchanged document (drag selection) are
+  // served by clipping one cached full-page capture at the canvas, instead of
+  // re-reading and re-serializing a culled tree per rect.
+  const cliplessOptions: ResolvedCaptureOptions = {
+    ...resolvedOptions,
+    clip: undefined,
+    prunedElements: undefined,
+  };
+  const cliplessKey = buildCaptureReuseOptionsKey(cliplessOptions);
+  if (cliplessKey !== null && resolvedOptions.clip) {
+    const regionClip = resolvedOptions.clip;
+    const buildClippedResultFromReuse = (): CaptureResult | null => {
+      const reusableCapture = getReusableCapture(rootElement, cliplessKey);
+      if (!reusableCapture || reusableCapture.clipRect !== null) return null;
+      return createCaptureResult(
+        reusableCapture.svgMarkup,
+        reusableCapture.widthPx,
+        reusableCapture.heightPx,
+        { ...cliplessOptions, backgroundColor: reusableCapture.resolvedBackgroundColor },
+        {
+          x: regionClip.x + reusableCapture.contentOffsetLeftPx,
+          y: regionClip.y + reusableCapture.contentOffsetTopPx,
+          width: regionClip.width,
+          height: regionClip.height,
+        },
+      );
+    };
+    const clippedFromCache = buildClippedResultFromReuse();
+    if (clippedFromCache) return clippedFromCache;
+    if (shouldPromoteRegionCapture(rootElement)) {
+      await captureNodeInternal(rootElement, cliplessOptions, {
+        suppressedBackdropElements: null,
+        skipBackdropFilterBaking: false,
+      });
+      const promotedResult = buildClippedResultFromReuse();
+      if (promotedResult) return promotedResult;
+      markRegionPromotionFailed(rootElement);
+    }
+  }
+  recordRegionCapture(rootElement);
   return captureNodeInternal(rootElement, resolvedOptions, {
     suppressedBackdropElements: null,
     skipBackdropFilterBaking: false,

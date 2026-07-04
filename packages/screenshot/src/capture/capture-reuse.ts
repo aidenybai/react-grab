@@ -9,6 +9,8 @@ interface ReusableCaptureArgs {
   heightPx: number;
   clipRect: CaptureRegionRect | null;
   resolvedBackgroundColor: string | undefined;
+  contentOffsetLeftPx: number;
+  contentOffsetTopPx: number;
 }
 
 interface CaptureReuseEntry extends ReusableCaptureArgs {
@@ -30,6 +32,47 @@ interface CaptureReuseEntry extends ReusableCaptureArgs {
 }
 
 const reuseEntryByRoot = new WeakMap<Element, CaptureReuseEntry>();
+
+interface RegionCaptureHistory {
+  epoch: number;
+  captureCount: number;
+  unpromotableEpoch: number;
+}
+
+const regionHistoryByRoot = new WeakMap<Element, RegionCaptureHistory>();
+
+export const shouldPromoteRegionCapture = (rootElement: Element): boolean => {
+  const history = regionHistoryByRoot.get(rootElement);
+  if (!history) return false;
+  const epoch = getDocumentEpoch(rootElement.ownerDocument);
+  return (
+    history.epoch === epoch && history.captureCount >= 1 && history.unpromotableEpoch !== epoch
+  );
+};
+
+export const recordRegionCapture = (rootElement: Element): void => {
+  const epoch = getDocumentEpoch(rootElement.ownerDocument);
+  const history = regionHistoryByRoot.get(rootElement);
+  if (history && history.epoch === epoch) {
+    history.captureCount++;
+    return;
+  }
+  regionHistoryByRoot.set(rootElement, {
+    epoch,
+    captureCount: 1,
+    unpromotableEpoch: history?.unpromotableEpoch ?? -1,
+  });
+};
+
+export const markRegionPromotionFailed = (rootElement: Element): void => {
+  const epoch = getDocumentEpoch(rootElement.ownerDocument);
+  const history = regionHistoryByRoot.get(rootElement);
+  if (history) {
+    history.unpromotableEpoch = epoch;
+    return;
+  }
+  regionHistoryByRoot.set(rootElement, { epoch, captureCount: 0, unpromotableEpoch: epoch });
+};
 
 // Elements whose rendered pixels can change without any DOM mutation or event
 // the epoch tracker sees (painting surfaces, embedded documents, SMIL).

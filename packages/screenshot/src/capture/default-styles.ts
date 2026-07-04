@@ -5,6 +5,7 @@ import {
   SVG_NAMESPACE_URI,
 } from "../constants";
 import type { StyleDeclarationMap, StyleSandbox } from "../types";
+import { EPOCH_IGNORED_ATTRIBUTE } from "./document-change-tracker";
 import { createFifoCache } from "../utils/create-fifo-cache";
 import { isHtmlElementOfTag } from "../utils/is-html-element-of-tag";
 import { snapshotComputedStyle } from "../utils/snapshot-computed-style";
@@ -35,6 +36,7 @@ export const createStyleSandbox = (sourceDocument: Document): StyleSandbox => {
           `width:${SANDBOX_SIZE_PX}px;height:${SANDBOX_SIZE_PX}px;border:0;`,
       );
       iframe.setAttribute("aria-hidden", "true");
+      iframe.setAttribute(EPOCH_IGNORED_ATTRIBUTE, "");
       (sourceDocument.body ?? sourceDocument.documentElement).appendChild(iframe);
       sandboxIframe = iframe;
     }

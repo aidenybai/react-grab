@@ -341,3 +341,27 @@ Metrics: warm repeat captures 70-stress 34.4 -> 1.7ms, analytics-dashboard
 (animations) correctly ineligible and unchanged. Mutation/form/scroll
 invalidation verified by probe script. Unit 77/77; fidelity 412 chromium +
 824 webkit/firefox all green.
+
+## Iteration 35 — box shorthand lane reads (REVERTED)
+
+Replaced the 4 margin/padding/inset longhand getPropertyValue reads with one
+shorthand read plus expansion. snapshotMs 20.7 -> 19.8ms on mutated-warm
+70-stress — inside noise, and shorthand serialization differs across engines.
+Not worth the complexity; reverted.
+
+## Iteration 36 — drag-pattern region capture reuse
+
+The harness now mutates a hidden toggle between warm runs so medians measure
+the true changed-DOM path instead of the iteration-34 reuse hit (70-stress
+mutated-warm baseline: 121.5ms, dominated by native PNG decode/raster/encode).
+New optimization: repeat captureRegion calls over an unchanged document (the
+react-grab drag-selection pattern) promote to one cached unculled full-page
+capture and serve every subsequent rect by canvas-clipping its markup — the
+decoded SVG image cache then makes each frame pay only region-sized raster +
+encode. Promotion happens on the second same-epoch region capture and is
+remembered per epoch when storage is refused, so ineligible pages never pay
+a doubled capture twice. Also marks the style-sandbox iframe with an
+epoch-ignored attribute so its own insertion/load events no longer invalidate
+epoch-keyed caches. Drag simulation (12 growing rects): steady-state frame
+9ms on 70-stress (was 27+) and 2.4ms on analytics-dashboard (was ~13).
+Unit 77/77; fidelity 412 chromium + 824 webkit/firefox all green.
