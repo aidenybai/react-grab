@@ -1,5 +1,10 @@
 import { GENERATED_CLASS_PREFIX } from "../constants";
-import type { StyleDeclarationMap, StyleRegistry, StyleRuleRecord } from "../types";
+import type {
+  StyleDeclarationMap,
+  StyleRegistry,
+  StyleRuleDeclarationBlocks,
+  StyleRuleRecord,
+} from "../types";
 
 const buildInsertionOrderDeclarationBlock = (styles: StyleDeclarationMap): string => {
   let declarationBlock = "";
@@ -8,19 +13,6 @@ const buildInsertionOrderDeclarationBlock = (styles: StyleDeclarationMap): strin
   }
   return declarationBlock;
 };
-
-const buildInsertionOrderSignature = (
-  baseStyles: StyleDeclarationMap,
-  beforeStyles: StyleDeclarationMap | null,
-  afterStyles: StyleDeclarationMap | null,
-  firstLetterStyles: StyleDeclarationMap | null,
-  markerStyles: StyleDeclarationMap | null,
-): string =>
-  `${buildInsertionOrderDeclarationBlock(baseStyles)}` +
-  `|before:${beforeStyles ? buildInsertionOrderDeclarationBlock(beforeStyles) : ""}` +
-  `|after:${afterStyles ? buildInsertionOrderDeclarationBlock(afterStyles) : ""}` +
-  `|first-letter:${firstLetterStyles ? buildInsertionOrderDeclarationBlock(firstLetterStyles) : ""}` +
-  `|marker:${markerStyles ? buildInsertionOrderDeclarationBlock(markerStyles) : ""}`;
 
 export const createStyleRegistry = (): StyleRegistry => {
   const classNameByInsertionOrderSignature = new Map<string, string>();
@@ -37,13 +29,19 @@ export const createStyleRegistry = (): StyleRegistry => {
     // order, so an order-sensitive signature is enough to collapse duplicates;
     // order-divergent equal maps (never observed on the profiled fixtures)
     // merely emit a redundant rule with identical declarations.
-    const insertionOrderSignature = buildInsertionOrderSignature(
-      baseStyles,
-      beforeStyles,
-      afterStyles,
-      firstLetterStyles,
-      markerStyles,
-    );
+    const cachedBlocks: StyleRuleDeclarationBlocks = {
+      base: buildInsertionOrderDeclarationBlock(baseStyles),
+      before: beforeStyles ? buildInsertionOrderDeclarationBlock(beforeStyles) : "",
+      after: afterStyles ? buildInsertionOrderDeclarationBlock(afterStyles) : "",
+      firstLetter: firstLetterStyles ? buildInsertionOrderDeclarationBlock(firstLetterStyles) : "",
+      marker: markerStyles ? buildInsertionOrderDeclarationBlock(markerStyles) : "",
+    };
+    const insertionOrderSignature =
+      `${cachedBlocks.base}` +
+      `|before:${cachedBlocks.before}` +
+      `|after:${cachedBlocks.after}` +
+      `|first-letter:${cachedBlocks.firstLetter}` +
+      `|marker:${cachedBlocks.marker}`;
     const fastPathClassName = classNameByInsertionOrderSignature.get(insertionOrderSignature);
     if (fastPathClassName) return fastPathClassName;
     const className = `${GENERATED_CLASS_PREFIX}${rules.length + 1}`;
@@ -55,6 +53,7 @@ export const createStyleRegistry = (): StyleRegistry => {
       afterStyles,
       firstLetterStyles,
       markerStyles,
+      cachedBlocks,
     });
     return className;
   };
@@ -64,19 +63,22 @@ export const createStyleRegistry = (): StyleRegistry => {
   const toCssText = (): string =>
     rules
       .map((rule) => {
-        let ruleText = `.${rule.className}{${buildInsertionOrderDeclarationBlock(rule.baseStyles)}}`;
-        if (rule.beforeStyles) {
-          ruleText += `\n.${rule.className}::before{${buildInsertionOrderDeclarationBlock(rule.beforeStyles)}}`;
+        const blocks: StyleRuleDeclarationBlocks = rule.cachedBlocks ?? {
+          base: buildInsertionOrderDeclarationBlock(rule.baseStyles),
+          before: rule.beforeStyles ? buildInsertionOrderDeclarationBlock(rule.beforeStyles) : "",
+          after: rule.afterStyles ? buildInsertionOrderDeclarationBlock(rule.afterStyles) : "",
+          firstLetter: rule.firstLetterStyles
+            ? buildInsertionOrderDeclarationBlock(rule.firstLetterStyles)
+            : "",
+          marker: rule.markerStyles ? buildInsertionOrderDeclarationBlock(rule.markerStyles) : "",
+        };
+        let ruleText = `.${rule.className}{${blocks.base}}`;
+        if (blocks.before) ruleText += `\n.${rule.className}::before{${blocks.before}}`;
+        if (blocks.after) ruleText += `\n.${rule.className}::after{${blocks.after}}`;
+        if (blocks.firstLetter) {
+          ruleText += `\n.${rule.className}::first-letter{${blocks.firstLetter}}`;
         }
-        if (rule.afterStyles) {
-          ruleText += `\n.${rule.className}::after{${buildInsertionOrderDeclarationBlock(rule.afterStyles)}}`;
-        }
-        if (rule.firstLetterStyles) {
-          ruleText += `\n.${rule.className}::first-letter{${buildInsertionOrderDeclarationBlock(rule.firstLetterStyles)}}`;
-        }
-        if (rule.markerStyles) {
-          ruleText += `\n.${rule.className}::marker{${buildInsertionOrderDeclarationBlock(rule.markerStyles)}}`;
-        }
+        if (blocks.marker) ruleText += `\n.${rule.className}::marker{${blocks.marker}}`;
         return ruleText;
       })
       .join("\n");

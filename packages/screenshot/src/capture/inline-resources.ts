@@ -57,6 +57,7 @@ export const inlineExternalResources = async (
       for (const propertyName in styles) {
         const propertyValue = styles[propertyName];
         if (propertyValue === undefined || !propertyValue.includes("url(")) continue;
+        rule.cachedBlocks = null;
         inliningTasks.push(
           replaceCssUrls(propertyValue, async (url) => {
             if (!isInlinableUrl(url)) return url;

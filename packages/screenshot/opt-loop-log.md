@@ -229,3 +229,14 @@ order-divergent equal maps (never observed) would merely emit a redundant rule
 with identical declarations — zero fidelity impact.
 Metrics: 70-stress warm 37.6ms median; registry self time roughly halved.
 Unit 77/77, chromium fidelity 412/412 green.
+
+### Iteration 25 — reuse register-time declaration blocks in toCssText (KEPT)
+
+Technique: register already builds every rule's declaration blocks for the
+insertion-order signature; toCssText rebuilt all ~212KB of them from the style
+maps a second time. Rules now carry the register-time blocks (cachedBlocks)
+and toCssText concatenates them directly; inlineExternalResources nulls the
+cache on rules whose url() values it rewrites so those rebuild fresh.
+Metrics: neutral-to-slightly-positive (70-stress warm 37.7ms, kitchen-sink
+6.4ms); removes a full second pass over rule maps. Unit 77/77, chromium
+fidelity 412/412 green.

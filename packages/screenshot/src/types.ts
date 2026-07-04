@@ -98,6 +98,15 @@ export interface StyleRuleRecord {
   afterStyles: StyleDeclarationMap | null;
   firstLetterStyles: StyleDeclarationMap | null;
   markerStyles: StyleDeclarationMap | null;
+  cachedBlocks: StyleRuleDeclarationBlocks | null;
+}
+
+export interface StyleRuleDeclarationBlocks {
+  base: string;
+  before: string;
+  after: string;
+  firstLetter: string;
+  marker: string;
 }
 
 export interface StyleRegistry {
