@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>site-27-search-results-light</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #888888;
+      }
+      #target {
+        width: 960px;
+        height: 700px;
+        background: #f6f8fa;
+        color: #1f2328;
+        font-family: "Inter Fixture", sans-serif;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .g-head {
+        display: flex;
+        align-items: center;
+        gap: 26px;
+        padding: 20px 26px 0;
+      }
+      .g-logo {
+        font-size: 26px;
+        font-weight: 700;
+      }
+      .g-logo span:nth-child(1) {
+        color: #4285f4;
+      }
+      .g-logo span:nth-child(2) {
+        color: #ea4335;
+      }
+      .g-logo span:nth-child(3) {
+        color: #fbbc05;
+      }
+      .g-logo span:nth-child(4) {
+        color: #4285f4;
+      }
+      .g-logo span:nth-child(5) {
+        color: #34a853;
+      }
+      .g-logo span:nth-child(6) {
+        color: #ea4335;
+      }
+      .g-box {
+        flex: 1;
+        max-width: 560px;
+        border: 1px solid #d0d7de;
+        border-radius: 999px;
+        padding: 11px 20px;
+        font-size: 15px;
+        box-shadow: 0 1px 6px rgba(32, 33, 36, 0.18);
+        background: #ffffff;
+      }
+      .g-tabs {
+        display: flex;
+        gap: 24px;
+        padding: 16px 26px 10px 200px;
+        font-size: 13px;
+        color: #57606a;
+        border-bottom: 1px solid #d0d7de;
+      }
+      .g-tabs .active {
+        color: #0969da;
+        border-bottom: 3px solid #0969da;
+        padding-bottom: 9px;
+        margin-bottom: -11px;
+        font-weight: 700;
+      }
+      .g-stats {
+        padding: 12px 26px 4px 200px;
+        font-size: 13px;
+        color: #57606a;
+      }
+      .result {
+        padding: 12px 26px 8px 200px;
+        max-width: 820px;
+      }
+      .crumb {
+        font-size: 12px;
+        color: #57606a;
+      }
+      .r-title {
+        font-size: 19px;
+        color: #1a0dab;
+        display: block;
+        margin: 3px 0;
+      }
+      .result p {
+        font-size: 14px;
+        line-height: 1.55;
+        color: #57606a;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="g-head">
+        <div class="g-logo">
+          <span>S</span><span>e</span><span>e</span><span>k</span><span>l</span><span>e</span>
+        </div>
+        <div class="g-box">fastest dom to image library</div>
+      </div>
+      <div class="g-tabs">
+        <span class="active">All</span><span>Images</span><span>Videos</span><span>News</span
+        ><span>Forums</span><span>More</span>
+      </div>
+      <div class="g-stats">About 2,340,000 results (0.31 seconds)</div>
+
+      <div class="result">
+        <div class="crumb">npmjs.com › package › fast-html-to-image</div>
+        <a class="r-title">fast-html-to-image - npm</a>
+        <p>
+          Fast, high-fidelity DOM node to image capture. Screenshot any DOM node in the browser and
+          get back a pixel-accurate PNG. Zero runtime dependencies.
+        </p>
+      </div>
+      <div class="result">
+        <div class="crumb">github.com › aidenybai › react-grab</div>
+        <a class="r-title">GitHub - aidenybai/react-grab</a>
+        <p>
+          Browser overlay tool that lets developers visually select DOM elements and copy structured
+          context to clipboard for AI coding agents.
+        </p>
+      </div>
+      <div class="result">
+        <div class="crumb">stackoverflow.com › questions › 60724</div>
+        <a class="r-title">How to screenshot a DOM element with JavaScript - Stack Overflow</a>
+        <p>
+          The modern approach serializes the node into an SVG foreignObject and rasterizes it on a
+          canvas, which preserves computed styles and web fonts.
+        </p>
+      </div>
+      <div class="result">
+        <div class="crumb">perfbench.dev › dom-capture</div>
+        <a class="r-title">html-to-image vs snapdom vs modern-screenshot: 2026 benchmark</a>
+        <p>
+          We measured cold and warm capture across 20 fixtures. The fastest library completed the
+          stress fixture in 89ms warm, 6x faster than the median.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

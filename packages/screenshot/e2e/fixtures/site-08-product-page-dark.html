@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>site-08-product-page-dark</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #888888;
+      }
+      #target {
+        width: 1040px;
+        height: 700px;
+        background: #0d1117;
+        color: #e6edf3;
+        font-family: "Inter Fixture", sans-serif;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .pp-wrap {
+        display: grid;
+        grid-template-columns: 440px 1fr 260px;
+        gap: 26px;
+        padding: 26px;
+      }
+      .pp-gallery {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .pp-hero {
+        height: 360px;
+        border-radius: 8px;
+        background: url("./assets/photo-portrait.png") center / cover;
+        border: 1px solid #30363d;
+      }
+      .pp-thumbs {
+        display: flex;
+        gap: 8px;
+      }
+      .pp-thumbs span {
+        width: 56px;
+        height: 56px;
+        border-radius: 6px;
+        border: 1px solid #30363d;
+      }
+      .pp-title {
+        font-size: 22px;
+        line-height: 1.3;
+        margin: 0 0 6px;
+      }
+      .pp-rating {
+        color: #de7921;
+        font-size: 14px;
+        margin-bottom: 10px;
+      }
+      .pp-rating span {
+        color: #2f81f7;
+      }
+      .pp-price {
+        font-size: 26px;
+      }
+      .pp-price sup {
+        font-size: 13px;
+      }
+      .pp-bullets {
+        padding-left: 18px;
+        font-size: 13px;
+        line-height: 1.7;
+        color: #e6edf3;
+      }
+      .pp-buy {
+        border: 1px solid #30363d;
+        border-radius: 10px;
+        padding: 18px;
+        background: #161b22;
+        font-size: 13px;
+      }
+      .pp-buy .price {
+        font-size: 22px;
+        margin-bottom: 6px;
+      }
+      .pp-buy .ship {
+        color: #8d96a0;
+        margin-bottom: 4px;
+      }
+      .pp-buy .stock {
+        color: #3fb950;
+        font-size: 16px;
+        margin: 8px 0;
+      }
+      .btn {
+        display: block;
+        text-align: center;
+        border-radius: 999px;
+        padding: 9px 0;
+        font-size: 13px;
+        margin-top: 8px;
+      }
+      .btn.cart {
+        background: #ffd814;
+        color: #111111;
+      }
+      .btn.buy {
+        background: #fa8900;
+        color: #111111;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="pp-wrap">
+        <div class="pp-gallery">
+          <div class="pp-hero"></div>
+          <div class="pp-thumbs">
+            <span style="background: linear-gradient(135deg, #d23b2e, #14a06c)"></span
+            ><span style="background: linear-gradient(135deg, #2f6fdb, #7a3b8f)"></span
+            ><span style="background: linear-gradient(135deg, #14a06c, #b8860b)"></span
+            ><span style="background: linear-gradient(135deg, #7a3b8f, #0f766e)"></span
+            ><span style="background: linear-gradient(135deg, #b8860b, #be185d)"></span
+            ><span style="background: linear-gradient(135deg, #0f766e, #4338ca)"></span>
+          </div>
+        </div>
+        <div>
+          <h1 class="pp-title">
+            Mechanical Keyboard Pro X — Hot-swappable, RGB, 87-key TKL Layout with PBT Keycaps
+          </h1>
+          <div class="pp-rating">
+            ★★★★☆ <span>12,408 ratings</span> | <span>1K+ bought in past month</span>
+          </div>
+          <hr style="border: none; border-top: 1px solid #30363d" />
+          <div class="pp-price">
+            <sup>$</sup>149<sup>99</sup>
+            <span style="font-size: 13px; color: #8d96a0">List: <s>$199.99</s></span>
+          </div>
+          <ul class="pp-bullets">
+            <li>Gasket-mounted plate with silicone dampening for a softer typing feel</li>
+            <li>Tri-mode connectivity: 2.4GHz wireless, Bluetooth 5.1, USB-C wired</li>
+            <li>Full N-key rollover with 1000Hz polling in wired mode</li>
+            <li>South-facing RGB LEDs compatible with shine-through keycaps</li>
+            <li>4000mAh battery: up to 200 hours with backlight off</li>
+          </ul>
+        </div>
+        <div class="pp-buy">
+          <div class="price">$149.99</div>
+          <div class="ship">FREE delivery <b>Tuesday, July 8</b></div>
+          <div class="ship">Or fastest delivery <b>Tomorrow, 8am</b></div>
+          <div class="stock">In Stock</div>
+          <div class="btn cart">Add to Cart</div>
+          <div class="btn buy">Buy Now</div>
+          <div style="margin-top: 10px; color: #8d96a0">
+            Ships from BuyBig.com<br />Sold by KeebWorld
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

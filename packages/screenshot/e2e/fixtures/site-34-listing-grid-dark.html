@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>site-34-listing-grid-dark</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #888888;
+      }
+      #target {
+        width: 1080px;
+        height: 700px;
+        background: #0d1117;
+        color: #e6edf3;
+        font-family: "Inter Fixture", sans-serif;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .bnb-head {
+        display: flex;
+        align-items: center;
+        padding: 16px 40px;
+        border-bottom: 1px solid #30363d;
+      }
+      .bnb-logo {
+        color: #ff385c;
+        font-weight: 700;
+        font-size: 20px;
+      }
+      .bnb-search {
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        border: 1px solid #30363d;
+        border-radius: 999px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        font-size: 14px;
+        background: #161b22;
+      }
+      .bnb-search span {
+        padding: 10px 18px;
+        border-right: 1px solid #30363d;
+      }
+      .bnb-search span:last-child {
+        border-right: none;
+        color: #8d96a0;
+      }
+      .bnb-filters {
+        display: flex;
+        gap: 26px;
+        padding: 14px 40px;
+        font-size: 12px;
+        color: #8d96a0;
+        border-bottom: 1px solid #30363d;
+      }
+      .bnb-filters span:first-child {
+        color: #e6edf3;
+        font-weight: 700;
+        border-bottom: 2px solid #e6edf3;
+        padding-bottom: 12px;
+        margin-bottom: -15px;
+      }
+      .bnb-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 22px;
+        padding: 22px 40px;
+      }
+      .bnb-photo {
+        position: relative;
+        aspect-ratio: 20 / 19;
+        border-radius: 14px;
+      }
+      .bnb-fav {
+        position: absolute;
+        top: 10px;
+        right: 12px;
+        color: #ffffff;
+        font-size: 18px;
+      }
+      .bnb-badge {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: #ffffff;
+        color: #222222;
+        font-size: 11px;
+        font-weight: 700;
+        border-radius: 999px;
+        padding: 4px 10px;
+      }
+      .bnb-title {
+        display: flex;
+        justify-content: space-between;
+        font-size: 14px;
+        margin-top: 9px;
+      }
+      .bnb-sub {
+        font-size: 13px;
+        color: #8d96a0;
+        margin: 1px 0;
+      }
+      .bnb-price {
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="bnb-head">
+        <span class="bnb-logo">⌂ airhouse</span>
+        <div class="bnb-search">
+          <span><b>Anywhere</b></span
+          ><span><b>Any week</b></span
+          ><span>Add guests 🔍</span>
+        </div>
+        <span
+          style="
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #be185d, #2f6fdb);
+            flex: none;
+          "
+        ></span>
+      </div>
+      <div class="bnb-filters">
+        <span>Cabins</span><span>Beachfront</span><span>Amazing views</span><span>Tiny homes</span
+        ><span>Treehouses</span><span>Domes</span><span>Lakefront</span>
+      </div>
+      <div class="bnb-grid">
+        <div class="bnb-card">
+          <div class="bnb-photo" style="background: linear-gradient(0deg, #d23b2e, #0f766e)">
+            <span class="bnb-fav">♡</span><span class="bnb-badge">Guest favorite</span>
+          </div>
+          <div class="bnb-title"><b>Modern loft in SoMa</b><span>★ 4.92</span></div>
+          <div class="bnb-sub">Individual host · 2 beds</div>
+          <div class="bnb-price"><b>$210</b> night</div>
+        </div>
+        <div class="bnb-card">
+          <div class="bnb-photo" style="background: linear-gradient(55deg, #2f6fdb, #be185d)">
+            <span class="bnb-fav">♡</span>
+          </div>
+          <div class="bnb-title"><b>Beach house with deck</b><span>★ 4.88</span></div>
+          <div class="bnb-sub">Individual host · 3 beds</div>
+          <div class="bnb-price"><b>$385</b> night</div>
+        </div>
+        <div class="bnb-card">
+          <div class="bnb-photo" style="background: linear-gradient(110deg, #14a06c, #4338ca)">
+            <span class="bnb-fav">♡</span>
+          </div>
+          <div class="bnb-title"><b>Cozy A-frame cabin</b><span>★ 4.97</span></div>
+          <div class="bnb-sub">Individual host · 4 beds</div>
+          <div class="bnb-price"><b>$168</b> night</div>
+        </div>
+        <div class="bnb-card">
+          <div class="bnb-photo" style="background: linear-gradient(165deg, #7a3b8f, #d23b2e)">
+            <span class="bnb-fav">♡</span>
+          </div>
+          <div class="bnb-title"><b>Downtown studio</b><span>★ 4.71</span></div>
+          <div class="bnb-sub">Individual host · 5 beds</div>
+          <div class="bnb-price"><b>$120</b> night</div>
+        </div>
+        <div class="bnb-card">
+          <div class="bnb-photo" style="background: linear-gradient(220deg, #b8860b, #2f6fdb)">
+            <span class="bnb-fav">♡</span>
+          </div>
+          <div class="bnb-title"><b>Treehouse getaway</b><span>★ 4.99</span></div>
+          <div class="bnb-sub">Individual host · 6 beds</div>
+          <div class="bnb-price"><b>$240</b> night</div>
+        </div>
+        <div class="bnb-card">
+          <div class="bnb-photo" style="background: linear-gradient(275deg, #0f766e, #14a06c)">
+            <span class="bnb-fav">♡</span>
+          </div>
+          <div class="bnb-title"><b>Desert dome</b><span>★ 4.85</span></div>
+          <div class="bnb-sub">Individual host · 7 beds</div>
+          <div class="bnb-price"><b>$199</b> night</div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

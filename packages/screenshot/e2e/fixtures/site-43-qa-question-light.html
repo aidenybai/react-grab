@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>site-43-qa-question-light</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #888888;
+      }
+      #target {
+        width: 980px;
+        height: 700px;
+        background: #f6f8fa;
+        color: #1f2328;
+        font-family: "Inter Fixture", sans-serif;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .so-top {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 10px 22px;
+        border-bottom: 3px solid #f48225;
+        font-size: 13px;
+        background: #ffffff;
+      }
+      .so-logo {
+        font-size: 17px;
+      }
+      .so-logo b {
+        color: #f48225;
+      }
+      .so-wrap {
+        padding: 18px 22px;
+      }
+      .so-wrap h1 {
+        font-size: 23px;
+        font-weight: 400;
+        margin: 0 0 8px;
+      }
+      .so-meta {
+        font-size: 13px;
+        color: #57606a;
+        border-bottom: 1px solid #d0d7de;
+        padding-bottom: 10px;
+        margin-bottom: 14px;
+      }
+      .so-meta b {
+        color: #1f2328;
+        font-weight: 400;
+      }
+      .so-post {
+        display: flex;
+        gap: 16px;
+      }
+      .so-votes {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        color: #57606a;
+      }
+      .so-votes .arrow {
+        width: 36px;
+        height: 36px;
+        border: 1px solid #d0d7de;
+        border-radius: 50%;
+        text-align: center;
+        line-height: 34px;
+        font-size: 16px;
+      }
+      .so-votes .count {
+        font-size: 20px;
+      }
+      .so-votes .check {
+        color: #1a7f37;
+        font-size: 26px;
+      }
+      .so-body {
+        flex: 1;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+      .so-body pre {
+        background: #eef1f4;
+        border-radius: 6px;
+        padding: 12px 14px;
+        font-size: 13px;
+        line-height: 20px;
+      }
+      .so-tags {
+        margin: 12px 0;
+      }
+      .so-tags span {
+        background: #ddf4ff;
+        color: #0969da;
+        font-size: 12px;
+        border-radius: 4px;
+        padding: 4px 8px;
+        margin-right: 6px;
+      }
+      .so-author {
+        margin-left: auto;
+        background: #ddf4ff;
+        border-radius: 6px;
+        padding: 8px 10px;
+        font-size: 12px;
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .so-answer-head {
+        font-size: 18px;
+        margin: 20px 0 12px;
+        border-top: 1px solid #d0d7de;
+        padding-top: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="so-top">
+        <span class="so-logo">stack<b>exchange</b></span
+        ><span
+          style="
+            flex: 1;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            padding: 7px 12px;
+            color: #57606a;
+            background: #f6f8fa;
+          "
+          >🔍 Search…</span
+        >
+      </div>
+      <div class="so-wrap">
+        <h1>Why does drawing an SVG blob URL onto canvas taint it in Chromium?</h1>
+        <div class="so-meta">
+          Asked <b>2 years ago</b> · Modified <b>3 months ago</b> · Viewed <b>48k times</b>
+        </div>
+        <div class="so-post">
+          <div class="so-votes">
+            <span class="arrow">▲</span><span class="count">127</span><span class="arrow">▼</span>
+          </div>
+          <div class="so-body">
+            <p>
+              I serialize a DOM subtree into an SVG with <code>foreignObject</code> and draw it on a
+              canvas. With a <b>data URL</b> everything works, but with a <b>blob URL</b> the canvas
+              becomes tainted and <code>toDataURL()</code> throws a SecurityError:
+            </p>
+            <pre>
+const url = URL.createObjectURL(svgBlob);
+img.src = url; // canvas tainted after drawImage
+ctx.drawImage(img, 0, 0);
+canvas.toDataURL(); // SecurityError</pre
+            >
+            <p>Why are blob URLs treated differently from data URLs here?</p>
+            <div class="so-tags">
+              <span>javascript</span><span>canvas</span><span>svg</span><span>security</span>
+            </div>
+            <div style="display: flex">
+              <div class="so-author">
+                <span
+                  style="
+                    display: inline-block;
+                    width: 30px;
+                    height: 30px;
+                    border-radius: 4px;
+                    background: linear-gradient(135deg, #7a3b8f, #be185d);
+                    flex: none;
+                  "
+                ></span>
+                <div>
+                  <span style="color: #0969da">render_nerd</span><br /><b>12.4k</b> ● 34 ● 71
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="so-answer-head">2 Answers</div>
+        <div class="so-post">
+          <div class="so-votes">
+            <span class="arrow">▲</span><span class="count">214</span><span class="arrow">▼</span
+            ><span class="check">✔</span>
+          </div>
+          <div class="so-body">
+            <p>
+              This is tracked in <b>whatwg/html#10641</b>. Chromium treats SVG-in-blob as
+              potentially able to reference other same-origin resources whose loads it cannot prove
+              side-effect free, so it conservatively taints. Data URLs carry the entire document
+              inline, so the load is provably self-contained — keep everything on
+              <code>data:image/svg+xml</code> and the canvas stays origin-clean in all engines.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

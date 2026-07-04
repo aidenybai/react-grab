@@ -19,7 +19,7 @@ await page.addStyleTag({
 });
 await page.evaluate(() => document.fonts.ready);
 await page.addScriptTag({
-  path: "/Users/aidenybai/Developer/react-grab/packages/screenshot/dist/index.global.js",
+  path: new URL("../dist/index.global.js", import.meta.url).pathname,
 });
 const result = await page.evaluate(async (wantSvg) => {
   const target = document.querySelector("#target");

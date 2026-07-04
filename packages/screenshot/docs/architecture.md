@@ -142,7 +142,7 @@ These blind spots were found by mutation-testing the harness during development 
 
 ## Notes about the benchmark
 
-[bench/benchmark.spec.ts](../bench/benchmark.spec.ts) runs `captureNode` head-to-head against snapdom, modern-screenshot, html-to-image, html2canvas, and dom-to-image-more ([bench/bench-manifest.ts](../bench/bench-manifest.ts)) on six fixtures from the fidelity corpus, using the same stabilized pages and the same deterministic browser config.
+[bench/benchmark.spec.ts](../bench/benchmark.spec.ts) runs `captureNode` head-to-head against snapdom, modern-screenshot, html-to-image, html2canvas, and dom-to-image-more ([bench/bench-manifest.ts](../bench/bench-manifest.ts)) on ten fixtures from the fidelity corpus (six synthetic pages plus the four heaviest real-website pages), using the same stabilized pages and the same deterministic browser config.
 
 The methodology is built around two things benchmark suites usually get wrong:
 
