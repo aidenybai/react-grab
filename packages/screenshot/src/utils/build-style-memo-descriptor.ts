@@ -24,11 +24,13 @@ export const buildStyleMemoDescriptor = (
     if (!includeAllAttributes && !styleRelevantAttributeNames.has(attributeName)) continue;
     descriptor += `|${attributeName}=${attribute.value}`;
   }
-  const inlineStyle = element.style;
-  for (let propertyIndex = 0; propertyIndex < inlineStyle.length; propertyIndex++) {
-    const propertyName = inlineStyle.item(propertyIndex);
-    if (perElementProps.has(propertyName)) continue;
-    descriptor += `|${propertyName}:${inlineStyle.getPropertyValue(propertyName)}!${inlineStyle.getPropertyPriority(propertyName)}`;
+  if (element.hasAttribute("style")) {
+    const inlineStyle = element.style;
+    for (let propertyIndex = 0; propertyIndex < inlineStyle.length; propertyIndex++) {
+      const propertyName = inlineStyle.item(propertyIndex);
+      if (perElementProps.has(propertyName)) continue;
+      descriptor += `|${propertyName}:${inlineStyle.getPropertyValue(propertyName)}!${inlineStyle.getPropertyPriority(propertyName)}`;
+    }
   }
   return descriptor;
 };

@@ -261,3 +261,14 @@ data URLs. Markup references can only come from SVG presentation attributes
 so the scan now skips non-SVG elements entirely and avoids the intermediate
 element-array allocation.
 Metrics: 70-stress warm 35.4ms. Unit 77/77, chromium fidelity 412/412 green.
+
+### Iteration 28 — gate inline-style access behind hasAttribute("style") (KEPT)
+
+Technique: the snapshot walk and the memo descriptor touched element.style
+(materializing the inline CSSStyleDeclaration) for every element even though
+almost none carry a style attribute; a hasAttribute("style") gate now guards
+both call sites (programmatic el.style writes always reflect into the
+attribute, so the gate is sound).
+Metrics: neutral within noise (70-stress warm 35.3ms), removes per-element
+CSSStyleDeclaration materialization. Unit 77/77, chromium fidelity 412/412
+green.

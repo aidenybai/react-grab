@@ -113,7 +113,7 @@ export const snapshotComposedTree = (
     }
     const isMemoizableHtmlElement =
       isHtmlElement(element) && !isInShadowTree && !FULL_SNAPSHOT_TAGS.has(element.localName);
-    if (relevantProps && isHtmlElement(element) && element.style.length > 0) {
+    if (relevantProps && element.hasAttribute("style") && isHtmlElement(element)) {
       relevantProps.addInlineStyleProps(element.style);
     }
     const relevantPropertyNames =
