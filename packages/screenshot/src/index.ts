@@ -97,34 +97,32 @@ interface CachedPseudoDiffs {
   afterDiff: StyleDeclarationMap | null;
 }
 
-interface SeedRuleRecord {
-  snapshot: ElementReadSnapshot;
-  parentDisplay: string | null;
-}
+const VARIANT_KEY_SEPARATOR = "\x1f";
 
-const arePerElementValuesEqual = (
-  seedStyles: StyleDeclarationMap,
-  styles: StyleDeclarationMap,
-  perElementPropertyNames: readonly string[],
-): boolean => {
-  for (const propertyName of perElementPropertyNames) {
-    if (seedStyles[propertyName] !== styles[propertyName]) return false;
-  }
-  return true;
-};
-
-const arePseudoSnapshotsEqual = (
-  seedPseudoStyles: StyleDeclarationMap | null,
+const appendPseudoVariantPart = (
+  variantKey: string,
   pseudoStyles: StyleDeclarationMap | null,
   perElementPropertyNames: readonly string[],
-): boolean => {
-  if (seedPseudoStyles === null || pseudoStyles === null) {
-    return seedPseudoStyles === pseudoStyles;
+): string => {
+  if (pseudoStyles === null) return `${variantKey}${VARIANT_KEY_SEPARATOR}\x00`;
+  variantKey += `${VARIANT_KEY_SEPARATOR}${pseudoStyles["content"] ?? ""}`;
+  for (const propertyName of perElementPropertyNames) {
+    variantKey += `${VARIANT_KEY_SEPARATOR}${pseudoStyles[propertyName] ?? ""}`;
   }
-  return (
-    seedPseudoStyles["content"] === pseudoStyles["content"] &&
-    arePerElementValuesEqual(seedPseudoStyles, pseudoStyles, perElementPropertyNames)
-  );
+  return variantKey;
+};
+
+const buildVariantKey = (
+  snapshot: ElementReadSnapshot,
+  parentDisplay: string | null,
+  perElementPropertyNames: readonly string[],
+): string => {
+  let variantKey = parentDisplay ?? "";
+  for (const propertyName of perElementPropertyNames) {
+    variantKey += `${VARIANT_KEY_SEPARATOR}${snapshot.styles[propertyName] ?? ""}`;
+  }
+  variantKey = appendPseudoVariantPart(variantKey, snapshot.beforeStyles, perElementPropertyNames);
+  return appendPseudoVariantPart(variantKey, snapshot.afterStyles, perElementPropertyNames);
 };
 
 const reusePseudoDiff = (
@@ -232,8 +230,7 @@ const buildClassNameMap = (
     emittedStylesByElement,
   );
   const cachedPseudoDiffsByMemoKey = new Map<number, CachedPseudoDiffs>();
-  const seedRuleByMemoKey = new Map<number, SeedRuleRecord>();
-  const seedClassNameByMemoKey = new Map<number, string>();
+  const variantClassNamesByMemoKey = new Map<number, Map<string, string>>();
   for (const [element, snapshot] of snapshotByElement) {
     const diffedBase = emittedStylesByElement.get(element);
     if (!diffedBase) continue;
@@ -254,32 +251,18 @@ const buildClassNameMap = (
       ? snapshotByElement.get(snapshot.parentElement)
       : undefined;
     const parentDisplay = parentSnapshot?.styles["display"] ?? null;
+    let variantClassNames: Map<string, string> | undefined;
+    let variantKey = "";
     if (canReuseSeedClassName) {
-      const seedRule = seedRuleByMemoKey.get(snapshot.memoKey);
-      if (seedRule === undefined) {
-        seedRuleByMemoKey.set(snapshot.memoKey, { snapshot, parentDisplay });
+      variantKey = buildVariantKey(snapshot, parentDisplay, perElementPropertyNames);
+      variantClassNames = variantClassNamesByMemoKey.get(snapshot.memoKey);
+      if (variantClassNames === undefined) {
+        variantClassNames = new Map();
+        variantClassNamesByMemoKey.set(snapshot.memoKey, variantClassNames);
       } else {
-        const seedClassName = seedClassNameByMemoKey.get(snapshot.memoKey);
-        if (
-          seedClassName !== undefined &&
-          seedRule.parentDisplay === parentDisplay &&
-          arePerElementValuesEqual(
-            seedRule.snapshot.styles,
-            snapshot.styles,
-            perElementPropertyNames,
-          ) &&
-          arePseudoSnapshotsEqual(
-            seedRule.snapshot.beforeStyles,
-            snapshot.beforeStyles,
-            perElementPropertyNames,
-          ) &&
-          arePseudoSnapshotsEqual(
-            seedRule.snapshot.afterStyles,
-            snapshot.afterStyles,
-            perElementPropertyNames,
-          )
-        ) {
-          classNameByElement.set(element, seedClassName);
+        const variantClassName = variantClassNames.get(variantKey);
+        if (variantClassName !== undefined) {
+          classNameByElement.set(element, variantClassName);
           continue;
         }
       }
@@ -325,9 +308,7 @@ const buildClassNameMap = (
       diffMarkerStyles(snapshot.markerStyles, snapshot.styles),
     );
     classNameByElement.set(element, className);
-    if (canReuseSeedClassName && seedRuleByMemoKey.get(snapshot.memoKey)?.snapshot === snapshot) {
-      seedClassNameByMemoKey.set(snapshot.memoKey, className);
-    }
+    if (variantClassNames) variantClassNames.set(variantKey, className);
   }
   return classNameByElement;
 };
