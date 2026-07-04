@@ -5,7 +5,20 @@ import { resolve } from "node:path";
 const REGRESSION_PERCENT_THRESHOLD = 10;
 const IMPROVEMENT_PERCENT_THRESHOLD = -10;
 const SMALL_ABSOLUTE_NOISE_FLOOR_MS = 0.5;
+// Event timing (INP) is quantized to 8ms buckets, so a change of one bucket is
+// indistinguishable from measurement noise; only a two-bucket move is signal.
 const INP_QUANTIZATION_STEP_MS = 8;
+const INP_NOISE_FLOOR_MS = INP_QUANTIZATION_STEP_MS * 2;
+// Single-frame metrics (p95/max over ~60 frames) move in whole vsync steps on
+// a shared runner whenever one frame slips, so one frame of movement is noise.
+const FRAME_INTERVAL_NOISE_FLOOR_MS = 1000 / 60 + 1;
+// Long task / LoAF sums have a reporting cliff at the 50ms threshold (a task
+// jittering across it appears/disappears wholesale from the sum) and swing by
+// hundreds of ms run-to-run on shared CI runners for animation-heavy
+// scenarios, measured on identical code.
+const LONG_TASK_THRESHOLD_NOISE_FLOOR_MS = 500;
+const HEAP_NOISE_FLOOR_KB = 128;
+const DOM_NODE_NOISE_FLOOR = 10;
 
 const baselineDir = process.argv[2] ?? "packages/react-grab/perf/baseline";
 const currentDir = process.argv[3] ?? "packages/react-grab/perf/current";
@@ -36,9 +49,13 @@ const getPercentChange = (baselineValue, currentValue) => {
   return (absoluteDelta / baselineMagnitude) * 100;
 };
 
-const classifyChange = (baselineValue, currentValue) => {
+const classifyChange = (
+  baselineValue,
+  currentValue,
+  noiseFloor = SMALL_ABSOLUTE_NOISE_FLOOR_MS,
+) => {
   const absoluteDelta = currentValue - baselineValue;
-  if (Math.abs(absoluteDelta) < SMALL_ABSOLUTE_NOISE_FLOOR_MS) return "unchanged";
+  if (Math.abs(absoluteDelta) <= noiseFloor) return "unchanged";
   const percentChange = getPercentChange(baselineValue, currentValue);
   if (percentChange > REGRESSION_PERCENT_THRESHOLD) return "regression";
   if (percentChange < IMPROVEMENT_PERCENT_THRESHOLD) return "improvement";
@@ -71,36 +88,43 @@ const METRIC_DEFINITIONS = [
   {
     label: "Interaction latency (INP)",
     unit: "ms",
+    noiseFloor: INP_NOISE_FLOOR_MS,
     getValue: (report) => report.aggregate.inp,
   },
   {
     label: "Main-thread blocking (long tasks)",
     unit: "ms",
+    noiseFloor: LONG_TASK_THRESHOLD_NOISE_FLOOR_MS,
     getValue: (report) => report.aggregate.longTasks.sum,
   },
   {
     label: "Janky frames (LoAF total)",
     unit: "ms",
+    noiseFloor: LONG_TASK_THRESHOLD_NOISE_FLOOR_MS,
     getValue: (report) => report.aggregate.longAnimationFrames.sum,
   },
   {
     label: "Frame time (p95)",
     unit: "ms",
+    noiseFloor: FRAME_INTERVAL_NOISE_FLOOR_MS,
     getValue: (report) => report.aggregate.frames.p95,
   },
   {
     label: "Frame time (worst)",
     unit: "ms",
+    noiseFloor: FRAME_INTERVAL_NOISE_FLOOR_MS,
     getValue: (report) => report.aggregate.frames.max,
   },
   {
     label: "Heap growth",
     unit: "KB",
+    noiseFloor: HEAP_NOISE_FLOOR_KB,
     getValue: (report) => report.memory?.delta?.jsHeapUsedKb,
   },
   {
     label: "Leaked DOM nodes",
     unit: "",
+    noiseFloor: DOM_NODE_NOISE_FLOOR,
     getValue: (report) => report.memory?.delta?.domNodes,
   },
 ];
@@ -136,7 +160,7 @@ for (const scenarioName of [...currentReports.keys()].sort()) {
   comparedScenarioCount++;
 
   const detailCells = [];
-  for (const { label, unit, getValue } of METRIC_DEFINITIONS) {
+  for (const { label, unit, noiseFloor, getValue } of METRIC_DEFINITIONS) {
     const baselineValue = getValue(baselineReport);
     const currentValue = getValue(currentReport);
     if (typeof baselineValue !== "number" || typeof currentValue !== "number") {
@@ -144,7 +168,7 @@ for (const scenarioName of [...currentReports.keys()].sort()) {
       continue;
     }
     const changeText = formatChange(baselineValue, currentValue, unit);
-    const status = classifyChange(baselineValue, currentValue);
+    const status = classifyChange(baselineValue, currentValue, noiseFloor);
     if (status === "unchanged") {
       detailCells.push(changeText);
     } else {
@@ -204,7 +228,7 @@ if (regressions.length === 0 && improvements.length === 0) {
 
 lines.push("");
 lines.push(
-  `<sub>A metric counts as changed when it moves more than ±${REGRESSION_PERCENT_THRESHOLD}% and at least ${SMALL_ABSOLUTE_NOISE_FLOOR_MS}ms. Interaction latency is measured in ${INP_QUANTIZATION_STEP_MS}ms steps, so single-step moves on fast scenarios can be noise.</sub>`,
+  `<sub>A metric counts as changed when it moves more than ±${REGRESSION_PERCENT_THRESHOLD}% AND clears a per-metric noise floor sized to shared-runner variance: ${INP_NOISE_FLOOR_MS}ms for interaction latency (measured in ${INP_QUANTIZATION_STEP_MS}ms steps), one vsync frame for frame times, ${LONG_TASK_THRESHOLD_NOISE_FLOOR_MS}ms for long-task/LoAF sums, ${HEAP_NOISE_FLOOR_KB}KB heap, ${DOM_NODE_NOISE_FLOOR} DOM nodes.</sub>`,
 );
 lines.push("");
 lines.push("<details>");
