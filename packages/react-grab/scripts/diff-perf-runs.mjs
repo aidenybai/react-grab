@@ -8,6 +8,11 @@ const DEFAULT_PERCENT_THRESHOLD = 10;
 // timing, runner scheduling), so only larger moves count as signal.
 const FRAME_TIME_PERCENT_THRESHOLD = 30;
 const MEMORY_PERCENT_THRESHOLD = 25;
+// Saturated scenarios (hundreds of ms per interaction) inherit the runner's
+// scheduling variance proportionally — identical code measured ±25% across CI
+// runs — so heavy baselines need the wide threshold regardless of metric.
+const HEAVY_BASELINE_MS = 100;
+const HEAVY_BASELINE_PERCENT_THRESHOLD = 30;
 const SMALL_ABSOLUTE_NOISE_FLOOR_MS = 0.5;
 // Event timing (INP) is quantized to 8ms buckets, so a change of one bucket is
 // indistinguishable from measurement noise; only a two-bucket move is signal.
@@ -56,14 +61,19 @@ const getPercentChange = (baselineValue, currentValue) => {
 const classifyChange = (
   baselineValue,
   currentValue,
+  unit,
   noiseFloor = SMALL_ABSOLUTE_NOISE_FLOOR_MS,
   percentThreshold = DEFAULT_PERCENT_THRESHOLD,
 ) => {
   const absoluteDelta = currentValue - baselineValue;
   if (Math.abs(absoluteDelta) <= noiseFloor) return "unchanged";
+  const effectiveThreshold =
+    unit === "ms" && Math.abs(baselineValue) >= HEAVY_BASELINE_MS
+      ? Math.max(percentThreshold, HEAVY_BASELINE_PERCENT_THRESHOLD)
+      : percentThreshold;
   const percentChange = getPercentChange(baselineValue, currentValue);
-  if (percentChange > percentThreshold) return "regression";
-  if (percentChange < -percentThreshold) return "improvement";
+  if (percentChange > effectiveThreshold) return "regression";
+  if (percentChange < -effectiveThreshold) return "improvement";
   return "unchanged";
 };
 
@@ -177,7 +187,7 @@ for (const scenarioName of [...currentReports.keys()].sort()) {
       continue;
     }
     const changeText = formatChange(baselineValue, currentValue, unit);
-    const status = classifyChange(baselineValue, currentValue, noiseFloor, percentThreshold);
+    const status = classifyChange(baselineValue, currentValue, unit, noiseFloor, percentThreshold);
     if (status === "unchanged") {
       detailCells.push(changeText);
     } else {
@@ -192,7 +202,7 @@ for (const scenarioName of [...currentReports.keys()].sort()) {
     const baselineValue = baselineReport.extra?.[metricName];
     if (typeof currentValue !== "number" || typeof baselineValue !== "number") continue;
     const changeText = formatChange(baselineValue, currentValue, "ms");
-    const status = classifyChange(baselineValue, currentValue);
+    const status = classifyChange(baselineValue, currentValue, "ms");
     if (status !== "unchanged") {
       changedRows.push({ scenarioName, metricLabel: metricName, changeText, status });
     }
@@ -237,7 +247,7 @@ if (regressions.length === 0 && improvements.length === 0) {
 
 lines.push("");
 lines.push(
-  `<sub>A metric counts as changed only past per-metric thresholds sized to measured shared-runner variance on identical code: interaction latency ±${DEFAULT_PERCENT_THRESHOLD}% and ${INP_NOISE_FLOOR_MS}ms (measured in ${INP_QUANTIZATION_STEP_MS}ms steps), frame times ±${FRAME_TIME_PERCENT_THRESHOLD}%, long-task/LoAF sums ±${DEFAULT_PERCENT_THRESHOLD}% and ${LONG_TASK_THRESHOLD_NOISE_FLOOR_MS}ms, memory ±${MEMORY_PERCENT_THRESHOLD}% and ${HEAP_NOISE_FLOOR_KB}KB / ${DOM_NODE_NOISE_FLOOR} nodes.</sub>`,
+  `<sub>A metric counts as changed only past per-metric thresholds sized to measured shared-runner variance on identical code: interaction latency ±${DEFAULT_PERCENT_THRESHOLD}% and ${INP_NOISE_FLOOR_MS}ms (measured in ${INP_QUANTIZATION_STEP_MS}ms steps), frame times ±${FRAME_TIME_PERCENT_THRESHOLD}%, long-task/LoAF sums ±${DEFAULT_PERCENT_THRESHOLD}% and ${LONG_TASK_THRESHOLD_NOISE_FLOOR_MS}ms, memory ±${MEMORY_PERCENT_THRESHOLD}% and ${HEAP_NOISE_FLOOR_KB}KB / ${DOM_NODE_NOISE_FLOOR} nodes; any ms metric with a ≥${HEAVY_BASELINE_MS}ms baseline needs ±${HEAVY_BASELINE_PERCENT_THRESHOLD}%.</sub>`,
 );
 lines.push("");
 lines.push("<details>");
