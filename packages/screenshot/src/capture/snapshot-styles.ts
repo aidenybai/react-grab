@@ -23,6 +23,7 @@ import { buildInlineStyleScan } from "../utils/build-inline-style-scan";
 import { buildParsedInlineStyleScan } from "../utils/build-parsed-inline-style-scan";
 import { parseInlineStyleDeclarations } from "../utils/parse-inline-style-declarations";
 import { buildStyleMemoDescriptor } from "../utils/build-style-memo-descriptor";
+import { collectInlineStyleFeed } from "../utils/collect-inline-style-feed";
 import { getComposedChildNodes } from "../utils/get-composed-child-nodes";
 import { isElementNode } from "../utils/is-element-node";
 import { isHtmlElement } from "../utils/is-html-element";
@@ -85,20 +86,20 @@ export const snapshotComposedTree = (
   const pseudoPreflight = preflightPseudoRules(rootElement.ownerDocument);
   // Parsed inline scans are pure functions of the style text under fixed
   // stylesheets and a fixed per-element lane, so they persist across captures.
-  // Their registry feeds replay inside registry creation — before the lane and
-  // the relevant-prop count are derived — so repeat captures of inline-styled
-  // documents see no mid-walk prop growth and keep an adoptable memo store.
+  // Their registry feeds (or on first capture, a pre-scan of every style
+  // attribute under the root) replay inside registry creation — before the
+  // lane and the relevant-prop count are derived — so inline declarations
+  // never surface as memo-disabling mid-walk additions.
   const sheetSignature =
     `${countAccessibleCssRules(rootElement.ownerDocument)}|` +
     `${getDocumentStyleEpoch(rootElement.ownerDocument)}`;
   const persistedScanStore = persistentInlineScanStoreByDocument.get(rootElement.ownerDocument);
   const isScanStoreSheetValid =
     persistedScanStore !== undefined && persistedScanStore.sheetSignature === sheetSignature;
-  const persistedInlineFeed = isScanStoreSheetValid ? persistedScanStore.dedupedFeed : null;
-  let relevantProps = createRelevantStylePropRegistry(
-    rootElement.ownerDocument,
-    persistedInlineFeed,
-  );
+  const inlineFeed = isScanStoreSheetValid
+    ? persistedScanStore.dedupedFeed
+    : collectInlineStyleFeed(rootElement);
+  let relevantProps = createRelevantStylePropRegistry(rootElement.ownerDocument, inlineFeed);
   if (relevantProps) {
     // Inline styles on ancestors outside the capture root can cascade
     // inherited properties into it; their property names must join the

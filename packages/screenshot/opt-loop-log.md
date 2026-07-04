@@ -650,3 +650,14 @@ though inline-styled trees repeat the same few name:value pairs endlessly.
 Expansions now cache process-wide by name:value key (importance reapplied on
 mismatch), capped at SPLIT_SHORTHAND_CACHE_CAP. Cold-path win on first
 captures; warm neutral. Full 3-engine fidelity (412x3) + 77 unit tests green.
+
+## Iteration 65 — first-capture inline style pre-scan (kept)
+
+On a first capture, inline declarations were discovered mid-walk, flipping
+memoization off partway through and blocking memo-store persistence until the
+persisted-scan feeds existed (capture 3 adoption). collectInlineStyleFeed now
+pre-scans every [style] attribute under the root (parsed fast path, CSSOM
+fallback) and replays it into registry creation before the lane derivation,
+exactly like persisted feeds. Memo store persists from capture 1; adoption
+lands on capture 2 (mega-grid capture-2 snapshot 140ms -> 36ms). Warm and
+cold medians unchanged. Full 3-engine fidelity (412x3) + 77 unit tests green.
