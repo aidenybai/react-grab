@@ -100,6 +100,36 @@ export const canReusePerElementDiffs = (perElementPropertyNames: readonly string
       propertyName !== "font-size",
   );
 
+// Drops emitted declarations that cannot affect paint: box-relative origins
+// while their driving property is none, and logical sizes that alias the
+// already-emitted physical ones in horizontal-tb writing mode. The values are
+// forced-concrete per-element resolutions, so eliding them removes the
+// largest per-rule byte contributors from the serialized CSS.
+export const applyPaintIrrelevantElision = (
+  diffed: StyleDeclarationMap,
+  styles: StyleDeclarationMap,
+): void => {
+  if (
+    diffed["transform-origin"] !== undefined &&
+    (styles["transform"] ?? "none") === "none" &&
+    (styles["rotate"] ?? "none") === "none" &&
+    (styles["scale"] ?? "none") === "none"
+  ) {
+    delete diffed["transform-origin"];
+  }
+  if (diffed["perspective-origin"] !== undefined && (styles["perspective"] ?? "none") === "none") {
+    delete diffed["perspective-origin"];
+  }
+  if (styles["writing-mode"] === "horizontal-tb") {
+    if (diffed["inline-size"] !== undefined && diffed["inline-size"] === diffed["width"]) {
+      delete diffed["inline-size"];
+    }
+    if (diffed["block-size"] !== undefined && diffed["block-size"] === diffed["height"]) {
+      delete diffed["block-size"];
+    }
+  }
+};
+
 const isMarkerStyleProp = (propertyName: string): boolean =>
   propertyName.startsWith("font") || MARKER_STYLE_PROPS.has(propertyName);
 

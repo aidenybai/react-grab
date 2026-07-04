@@ -16,6 +16,7 @@ import { createStyleSandbox } from "./capture/default-styles";
 import {
   applyPerElementStyleDiff,
   applyRootStyleOverrides,
+  applyPaintIrrelevantElision,
   applySizeFreezingPolicy,
   canReusePerElementDiffs,
   diffMarkerStyles,
@@ -100,6 +101,7 @@ const diffPseudoStyles = (
     parentEmittedStyles: null,
   });
   applySizeFreezingPolicy(diffedPseudo, pseudoStyles, null, false, null);
+  applyPaintIrrelevantElision(diffedPseudo, pseudoStyles);
   diffedPseudo["content"] = pseudoStyles["content"] ?? "none";
   return diffedPseudo;
 };
@@ -174,6 +176,7 @@ const reusePseudoDiff = (
     perElementPropertyNames,
   );
   applySizeFreezingPolicy(diffedPseudo, pseudoStyles, null, false, null);
+  applyPaintIrrelevantElision(diffedPseudo, pseudoStyles);
   diffedPseudo["content"] = pseudoStyles["content"] ?? "none";
   return diffedPseudo;
 };
@@ -285,6 +288,7 @@ const buildClassNameMap = (
       isReplacedElement(element),
       element.localName,
     );
+    applyPaintIrrelevantElision(diffedBase, snapshot.styles);
     if (isHtmlElementOfTag(element, "iframe")) {
       const displayValue = snapshot.styles["display"] ?? "inline";
       diffedBase["display"] = displayValue === "inline" ? "inline-block" : displayValue;
