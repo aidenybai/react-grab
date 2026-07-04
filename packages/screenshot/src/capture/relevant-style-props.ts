@@ -52,18 +52,39 @@ export const createRelevantStylePropRegistry = (
   // the matched rules — which the memo descriptor already keys — so they can
   // leave the per-element re-read lane entirely.
   const layoutUnstableProps = new Set<string>();
-  const markLayoutUnstable = (propertyName: string): void => {
-    if (layoutUnstableProps.has(propertyName)) return;
-    layoutUnstableProps.add(propertyName);
-    if (isInitialScanDone) isMemoSafe = false;
+  // An instability caused only by memo-safe, pseudo-free rule selectors is
+  // scoped to the elements matching them: the selector list is recorded so the
+  // per-element lane read can be skipped for memo classes whose seed matches
+  // none of them. Any other source (inline styles, pseudo selectors,
+  // transitions, animations) makes the property unconditionally unstable.
+  const unstableSelectorsByProp = new Map<string, string[] | null>();
+  const markLayoutUnstable = (propertyName: string, selectorText?: string): void => {
+    const scopedSelector =
+      selectorText !== undefined && !selectorText.includes(":") ? selectorText : null;
+    if (!layoutUnstableProps.has(propertyName)) {
+      layoutUnstableProps.add(propertyName);
+      if (isInitialScanDone) isMemoSafe = false;
+      unstableSelectorsByProp.set(propertyName, scopedSelector === null ? null : [scopedSelector]);
+      return;
+    }
+    const existingSelectors = unstableSelectorsByProp.get(propertyName);
+    if (existingSelectors === null || existingSelectors === undefined) {
+      unstableSelectorsByProp.set(propertyName, null);
+      return;
+    }
+    if (scopedSelector === null) unstableSelectorsByProp.set(propertyName, null);
+    else existingSelectors.push(scopedSelector);
   };
+  const isUnconditionallyUnstable = (propertyName: string): boolean =>
+    layoutUnstableProps.has(propertyName) && unstableSelectorsByProp.get(propertyName) === null;
   const checkDeclaredValueStability = (
     declaration: CSSStyleDeclaration,
     propertyName: string,
+    selectorText?: string,
   ): void => {
     if (propertyName === "position") {
       if (declaration.getPropertyValue("position") !== "static") {
-        for (const insetProp of INSET_STYLE_PROPS) markLayoutUnstable(insetProp);
+        for (const insetProp of INSET_STYLE_PROPS) markLayoutUnstable(insetProp, selectorText);
       }
       return;
     }
@@ -73,7 +94,7 @@ export const createRelevantStylePropRegistry = (
       const transitionedValue = declaration.getPropertyValue("transition-property");
       for (const candidateProp of CLASS_STABLE_CANDIDATE_STYLE_PROPS) {
         if (transitionedValue.includes("all") || transitionedValue.includes(candidateProp)) {
-          markLayoutUnstable(candidateProp);
+          markLayoutUnstable(candidateProp, selectorText);
         }
       }
       return;
@@ -83,16 +104,16 @@ export const createRelevantStylePropRegistry = (
     // var); when every declared transform is box-independent the matrix is
     // pinned by the matched rules.
     if (propertyName === "transform") {
-      if (layoutUnstableProps.has("transform")) return;
+      if (isUnconditionallyUnstable("transform")) return;
       if (BOX_RELATIVE_VALUE_PATTERN.test(declaration.getPropertyValue("transform"))) {
-        markLayoutUnstable("transform");
+        markLayoutUnstable("transform", selectorText);
       }
       return;
     }
     if (CLASS_STABLE_CANDIDATE_STYLE_PROPS.has(propertyName)) {
-      if (layoutUnstableProps.has(propertyName)) return;
+      if (isUnconditionallyUnstable(propertyName)) return;
       if (!STABLE_DECLARED_VALUE_PATTERN.test(declaration.getPropertyValue(propertyName))) {
-        markLayoutUnstable(propertyName);
+        markLayoutUnstable(propertyName, selectorText);
       }
       return;
     }
@@ -112,7 +133,7 @@ export const createRelevantStylePropRegistry = (
             ? INSET_STYLE_PROPS.includes(candidateProp)
             : candidateProp.startsWith(physicalPrefix)
         ) {
-          markLayoutUnstable(candidateProp);
+          markLayoutUnstable(candidateProp, selectorText);
         }
       }
     }
@@ -141,11 +162,12 @@ export const createRelevantStylePropRegistry = (
       if (isInitialScanDone) isMemoSafe = false;
       animatedProps.add(propertyName);
       layoutUnstableProps.add(propertyName);
+      unstableSelectorsByProp.set(propertyName, null);
     }
     addProp(propertyName);
   };
 
-  const addDeclarationProps = (declaration: CSSStyleDeclaration): void => {
+  const addDeclarationProps = (declaration: CSSStyleDeclaration, selectorText?: string): void => {
     for (let propertyIndex = 0; propertyIndex < declaration.length; propertyIndex++) {
       const propertyName = declaration.item(propertyIndex);
       if (isPseudoContentMemoSafe && propertyName === "content") {
@@ -154,7 +176,7 @@ export const createRelevantStylePropRegistry = (
           isPseudoContentMemoSafe = false;
         }
       }
-      checkDeclaredValueStability(declaration, propertyName);
+      checkDeclaredValueStability(declaration, propertyName, selectorText);
       addProp(propertyName);
     }
   };
@@ -163,7 +185,7 @@ export const createRelevantStylePropRegistry = (
     if (isCssStyleRule(rule)) {
       if (isMemoSafe && !isMemoSafeSelector(rule.selectorText)) isMemoSafe = false;
       addSelectorAttributeNames(rule.selectorText);
-      addDeclarationProps(rule.style);
+      addDeclarationProps(rule.style, rule.selectorText);
     } else if (isCssKeyframesRule(rule)) {
       for (const keyframeRule of rule.cssRules) {
         if (!(keyframeRule instanceof CSSKeyframeRule)) continue;
@@ -253,6 +275,8 @@ export const createRelevantStylePropRegistry = (
     propertyNames,
     styleRelevantAttributeNames,
     perElementPropertyNames,
+    getUnstableSelectorList: (propertyName: string) =>
+      unstableSelectorsByProp.get(propertyName) ?? null,
     isStyleMemoSafe: () => isMemoSafe,
     isPseudoContentMemoSafe: () => isPseudoContentMemoSafe,
     addInlineStyleProps,

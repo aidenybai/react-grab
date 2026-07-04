@@ -182,3 +182,17 @@ and filter, so an unchanged tree reuses the previous bake (pane PNG list) instea
 of re-rendering the blur and re-encoding pane PNGs each capture.
 Metrics: hard-stress-combo warm 10 -> 4.7ms (backdropMs 7.4 -> 2.3); other fixtures
 neutral. Unit 77/77, chromium fidelity 412/412 green.
+
+### Iteration 21 — selector-scoped lane instability (per-memo-class skip masks) (KEPT)
+
+Technique: a lane property whose instability comes only from memo-safe,
+pseudo-free rule selectors (e.g. `.badge { margin-left: auto }`) only varies
+inside memo classes matching those selectors. The registry now records the
+selector list per conditionally-unstable property; at memo-seed time the seed's
+match result builds a laneSkipMask stored on the memo entry, and hits skip the
+per-element getPropertyValue for masked properties (inheriting the seed's value
+through the prototype). Any non-rule instability source (inline styles, pseudo
+selectors, transitions, animations) keeps the property unconditionally unstable.
+Metrics: 70-stress getPropertyValue 18,747 -> 15,838/run (-2.9k margin reads);
+warm ~40-43ms (small win inside the noise band). Unit 77/77, chromium fidelity
+412/412 green.

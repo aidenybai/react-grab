@@ -47,8 +47,10 @@ export const applyPerElementLaneReads = (
   computedStyle: CSSStyleDeclaration,
   perElementPropertyNames: readonly string[],
   laneActions: readonly number[],
+  laneSkipMask: readonly boolean[] | null = null,
 ): void => {
   for (let laneIndex = 0; laneIndex < perElementPropertyNames.length; laneIndex++) {
+    if (laneSkipMask !== null && laneSkipMask[laneIndex]) continue;
     const laneAction = laneActions[laneIndex];
     if (laneAction !== PER_ELEMENT_LANE_READ) {
       if (laneAction === PER_ELEMENT_LANE_INLINE_SIZE) {

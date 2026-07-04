@@ -59,6 +59,38 @@ export const snapshotComposedTree = (
   const perElementPropertyNames = relevantProps?.perElementPropertyNames ?? [];
   const perElementProps: ReadonlySet<string> = new Set(perElementPropertyNames);
   const perElementLaneActions = buildPerElementLaneActions(perElementPropertyNames);
+  // A lane property whose instability comes only from memo-safe, pseudo-free
+  // selectors varies only inside the classes matching them; the seed's match
+  // result (pinned by the memo descriptor chain) decides whether hits in its
+  // class can skip the per-element read.
+  const laneUnstableSelectors = perElementPropertyNames.map((lanePropertyName) => {
+    const unstableSelectorList = relevantProps?.getUnstableSelectorList(lanePropertyName) ?? null;
+    return unstableSelectorList !== null && unstableSelectorList.length > 0
+      ? unstableSelectorList.join(",")
+      : null;
+  });
+  const hasConditionalLaneProps = laneUnstableSelectors.some(
+    (unstableSelector) => unstableSelector !== null,
+  );
+  const buildLaneSkipMask = (seedElement: Element): readonly boolean[] | null => {
+    if (!hasConditionalLaneProps) return null;
+    let skipMask: boolean[] | null = null;
+    for (let laneIndex = 0; laneIndex < laneUnstableSelectors.length; laneIndex++) {
+      const unstableSelector = laneUnstableSelectors[laneIndex];
+      if (unstableSelector === null) continue;
+      let doesSeedMatch = true;
+      try {
+        doesSeedMatch = seedElement.matches(unstableSelector);
+      } catch {
+        doesSeedMatch = true;
+      }
+      if (!doesSeedMatch) {
+        skipMask ??= new Array<boolean>(laneUnstableSelectors.length).fill(false);
+        skipMask[laneIndex] = true;
+      }
+    }
+    return skipMask;
+  };
   const activeElement = rootElement.ownerDocument.activeElement;
   // Interning nests parent-key -> descriptor instead of hashing one long
   // concatenated ancestry string per element.
@@ -133,6 +165,7 @@ export const snapshotComposedTree = (
         computedStyle,
         perElementPropertyNames,
         perElementLaneActions,
+        memoized.laneSkipMask,
       );
     } else {
       if (parentElement !== null && computedStyle.getPropertyValue("display") === "none") return;
@@ -155,6 +188,7 @@ export const snapshotComposedTree = (
           perElementPropertyNames,
           perElementLaneActions,
           memoized.beforeStyles,
+          memoized.laneSkipMask,
         );
         afterStyles = snapshotTrustedMemoizedPseudoStyles(
           element,
@@ -163,6 +197,7 @@ export const snapshotComposedTree = (
           perElementPropertyNames,
           perElementLaneActions,
           memoized.afterStyles,
+          memoized.laneSkipMask,
         );
       } else if (memoized) {
         beforeStyles = snapshotMemoizedPseudoStyles(
@@ -173,6 +208,7 @@ export const snapshotComposedTree = (
           perElementPropertyNames,
           perElementLaneActions,
           memoized.beforeStyles,
+          memoized.laneSkipMask,
         );
         afterStyles = snapshotMemoizedPseudoStyles(
           element,
@@ -182,6 +218,7 @@ export const snapshotComposedTree = (
           perElementPropertyNames,
           perElementLaneActions,
           memoized.afterStyles,
+          memoized.laneSkipMask,
         );
       } else {
         beforeStyles = snapshotPseudoStyles(
@@ -194,7 +231,12 @@ export const snapshotComposedTree = (
       }
     }
     if (memoKey !== NO_MEMO_KEY && !memoized && !isMemoExcluded) {
-      memoizedStylesByKey.set(memoKey, { styles, beforeStyles, afterStyles });
+      memoizedStylesByKey.set(memoKey, {
+        styles,
+        beforeStyles,
+        afterStyles,
+        laneSkipMask: buildLaneSkipMask(element),
+      });
     }
     const overflowX = styles["overflow-x"];
     const overflowY = styles["overflow-y"];

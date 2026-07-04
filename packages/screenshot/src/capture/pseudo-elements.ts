@@ -68,11 +68,18 @@ export const snapshotTrustedMemoizedPseudoStyles = (
   perElementPropertyNames: readonly string[],
   perElementLaneActions: readonly number[],
   memoizedStyles: StyleDeclarationMap | null,
+  laneSkipMask: readonly boolean[] | null,
 ): StyleDeclarationMap | null => {
   if (!memoizedStyles) return null;
   const computedStyle = defaultView.getComputedStyle(element, pseudoSelector);
   const styles: StyleDeclarationMap = Object.create(memoizedStyles);
-  applyPerElementLaneReads(styles, computedStyle, perElementPropertyNames, perElementLaneActions);
+  applyPerElementLaneReads(
+    styles,
+    computedStyle,
+    perElementPropertyNames,
+    perElementLaneActions,
+    laneSkipMask,
+  );
   return styles;
 };
 
@@ -87,6 +94,7 @@ export const snapshotMemoizedPseudoStyles = (
   perElementPropertyNames: readonly string[],
   perElementLaneActions: readonly number[],
   memoizedStyles: StyleDeclarationMap | null,
+  laneSkipMask: readonly boolean[] | null,
 ): StyleDeclarationMap | null => {
   const computedStyle = defaultView.getComputedStyle(element, pseudoSelector);
   const contentValue = computedStyle.getPropertyValue("content");
@@ -97,7 +105,13 @@ export const snapshotMemoizedPseudoStyles = (
     return styles;
   }
   const styles: StyleDeclarationMap = Object.create(memoizedStyles);
-  applyPerElementLaneReads(styles, computedStyle, perElementPropertyNames, perElementLaneActions);
+  applyPerElementLaneReads(
+    styles,
+    computedStyle,
+    perElementPropertyNames,
+    perElementLaneActions,
+    laneSkipMask,
+  );
   styles.content = contentValue;
   return styles;
 };

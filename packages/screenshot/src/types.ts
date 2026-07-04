@@ -54,6 +54,7 @@ export interface RelevantStylePropRegistry {
   propertyNames: string[];
   perElementPropertyNames: string[];
   styleRelevantAttributeNames: ReadonlySet<string>;
+  getUnstableSelectorList: (propertyName: string) => readonly string[] | null;
   isStyleMemoSafe: () => boolean;
   isPseudoContentMemoSafe: () => boolean;
   addInlineStyleProps: (inlineStyle: CSSStyleDeclaration) => void;
@@ -64,6 +65,7 @@ export interface MemoizedElementStyles {
   styles: StyleDeclarationMap;
   beforeStyles: StyleDeclarationMap | null;
   afterStyles: StyleDeclarationMap | null;
+  laneSkipMask: readonly boolean[] | null;
 }
 
 export interface ElementReadSnapshot {
