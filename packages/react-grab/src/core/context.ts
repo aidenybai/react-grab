@@ -17,6 +17,7 @@ import {
 import { createElementSelector } from "../utils/create-element-selector.js";
 import { isSharedUiSourcePath } from "../utils/is-shared-ui-source-path.js";
 import { isNextProjectRuntime } from "../utils/is-next-project-runtime.js";
+import { formatComponentNameLines } from "../utils/format-component-name-lines.js";
 import { enrichServerFrameLocations, symbolicateServerFrames } from "./next-server-frames.js";
 import { runQueuedSourceFetch } from "../utils/source-fetch-queue.js";
 import { getHTMLPreview, getInlineHTMLPreview } from "./html-preview.js";
@@ -457,19 +458,17 @@ const resolveLeadingSource = async (element: Element): Promise<ResolvedSource | 
   return fiberSource?.origin === "app" ? fiberSource : null;
 };
 
-// When the owner stack yields no high-signal app frame (common when a bundler
-// serves generated/virtual sources, or when only library wrappers like Radix
-// appear as owners), the trace names the grabbed primitive but none of the
-// feature components that render it. The fiber return chain still knows those
-// ancestors, so surface their names as low-confidence context.
+// When the owner stack yields only library or generated sources, the trace
+// names the grabbed primitive but not the feature components rendering it.
+// The fiber return chain still knows those ancestors, so surface their names.
 const appendFiberAncestorNames = (
   element: Element,
   stackContext: TraceContextResult,
-  maxCount: number,
+  maxAncestorCount: number,
 ): TraceContextResult => {
   const ancestorNames = getComponentNamesFromFiber(
     findNearestFiberElement(element),
-    maxCount + stackContext.renderedComponentNames.size,
+    maxAncestorCount + stackContext.renderedComponentNames.size,
   );
   const missingAncestorNames = ancestorNames
     .filter(
@@ -477,12 +476,12 @@ const appendFiberAncestorNames = (
         isSourceComponentName(ancestorName) &&
         !stackContext.renderedComponentNames.has(ancestorName),
     )
-    .slice(0, maxCount);
+    .slice(0, maxAncestorCount);
   if (missingAncestorNames.length === 0) return stackContext;
 
   return {
     ...stackContext,
-    text: `${stackContext.text}${missingAncestorNames.map((ancestorName) => `\n  in ${ancestorName}`).join("")}`,
+    text: `${stackContext.text}${formatComponentNameLines(missingAncestorNames)}`,
   };
 };
 
@@ -493,34 +492,19 @@ const getTraceContext = async (
   const leadingSource = await resolveLeadingSource(element);
   const stack = await getStack(element);
 
+  const maxLines = resolveMaxContextLines(options.maxLines);
   const stackContext = formatStackContext(stack ?? [], options, leadingSource);
   if (stackContext.text) {
     if (stackContext.hasBudgetedStackFrame) return stackContext;
-    return appendFiberAncestorNames(
-      element,
-      stackContext,
-      resolveMaxContextLines(options.maxLines),
-    );
+    return appendFiberAncestorNames(element, stackContext, maxLines);
   }
 
-  const componentNames = getComponentNamesFromFiber(
-    findNearestFiberElement(element),
-    resolveMaxContextLines(options.maxLines),
-  );
-  if (componentNames.length > 0) {
-    return {
-      text: componentNames.map((componentName) => `\n  in ${componentName}`).join(""),
-      shouldAppendSelectorHint: true,
-      hasBudgetedStackFrame: false,
-      renderedComponentNames: new Set(componentNames),
-    };
-  }
-
+  const componentNames = getComponentNamesFromFiber(findNearestFiberElement(element), maxLines);
   return {
-    text: "",
+    text: formatComponentNameLines(componentNames),
     shouldAppendSelectorHint: true,
     hasBudgetedStackFrame: false,
-    renderedComponentNames: new Set(),
+    renderedComponentNames: new Set(componentNames),
   };
 };
 
