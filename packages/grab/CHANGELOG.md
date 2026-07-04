@@ -1,5 +1,11 @@
 # grab
 
+## 0.1.48
+
+### Patch Changes
+
+- @react-grab/cli@0.1.48
+
 ## 0.1.47
 
 ### Patch Changes
