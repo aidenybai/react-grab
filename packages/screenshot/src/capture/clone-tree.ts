@@ -1,10 +1,12 @@
 import {
+  CLONE_PROTOTYPE_CACHE_CAP,
   DEFAULT_ACCENT_COLOR,
   IFRAME_PLACEHOLDER_BACKGROUND_COLOR,
   SVG_NAMESPACE_URI,
   SVG_PAINT_PRESENTATION_ATTRIBUTES,
   SVG_TEMPLATE_CONTAINER_TAGS,
   TRANSPARENT_PIXEL_DATA_URL,
+  XHTML_NAMESPACE_URI,
 } from "../constants";
 import type { CloneContext, StyleDeclarationMap } from "../types";
 import { buildIndeterminateCheckboxStyle } from "../utils/build-indeterminate-checkbox-style";
@@ -22,6 +24,25 @@ import { applyScrollOffsets } from "./scroll-offsets";
 
 const PLAIN_XML_ATTRIBUTE_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_.-]*$/;
 const REMOVED_ATTRIBUTE_NAMES = new Set(["class", "style", "srcset", "sizes", "loading", "slot"]);
+
+// Tags whose clones get replica-specific attributes (form state reflection or
+// freeze replicas) and so can never share a prototype.
+const PROTOTYPE_EXCLUDED_TAGS = new Set(["input", "select", "option", "textarea"]);
+
+// Solid-style template instantiation: the typical clone is tag + emitted
+// class + carried inline text with every source attribute dropped, so one
+// prototype per (tag, class, carry) combination is built once and stamped out
+// with cloneNode, replacing per-element createElement + setAttribute pairs.
+const clonePrototypeByKey = new Map<string, Element>();
+
+const hasOnlyDroppedAttributes = (element: Element): boolean => {
+  const attributes = element.attributes;
+  for (let attributeIndex = 0; attributeIndex < attributes.length; attributeIndex++) {
+    const attributeName = attributes[attributeIndex].name;
+    if (attributeName !== "class" && attributeName !== "style") return false;
+  }
+  return true;
+};
 
 const attributeNameValidityCache = new Map<string, boolean>();
 
@@ -62,10 +83,13 @@ const sanitizeCloneAttributes = (clone: Element): void => {
 // element and copying just the serializable attributes skips the copy-then-
 // remove churn.
 const createSanitizedClone = (element: Element, ownerDocument: Document): Element => {
-  const clone = ownerDocument.createElementNS(
-    element.namespaceURI,
-    element.prefix === null ? element.localName : `${element.prefix}:${element.localName}`,
-  );
+  const clone =
+    element.namespaceURI === XHTML_NAMESPACE_URI && element.prefix === null
+      ? ownerDocument.createElement(element.localName)
+      : ownerDocument.createElementNS(
+          element.namespaceURI,
+          element.prefix === null ? element.localName : `${element.prefix}:${element.localName}`,
+        );
   const attributes = element.attributes;
   for (let attributeIndex = 0; attributeIndex < attributes.length; attributeIndex++) {
     const attribute = attributes[attributeIndex];
@@ -240,6 +264,7 @@ const cloneElementNode = (
   if (!snapshot) return null;
   let clone: Element | null;
   let shouldCloneChildren = true;
+  let isPrototypeClone = false;
   if (isHtmlElementOfTag(element, "iframe")) {
     clone = buildIframeClone(element, context);
     shouldCloneChildren = false;
@@ -256,13 +281,45 @@ const cloneElementNode = (
   } else if (isHtmlElementOfTag(element, "textarea")) {
     clone = createSanitizedClone(element, context.ownerDocument);
     shouldCloneChildren = false;
+  } else if (
+    element.namespaceURI === XHTML_NAMESPACE_URI &&
+    element.prefix === null &&
+    !PROTOTYPE_EXCLUDED_TAGS.has(element.localName) &&
+    hasOnlyDroppedAttributes(element)
+  ) {
+    const prototypeClassName = context.classNameByElement.get(element) ?? "";
+    const prototypeCarryText = context.inlineCarryTextByElement.get(element) ?? "";
+    if (prototypeClassName === "" && prototypeCarryText === "") {
+      clone = context.ownerDocument.createElement(element.localName);
+    } else {
+      const prototypeKey = `${element.localName}|${prototypeClassName}|${prototypeCarryText}`;
+      let prototypeElement = clonePrototypeByKey.get(prototypeKey);
+      if (prototypeElement === undefined) {
+        prototypeElement = context.ownerDocument.createElement(element.localName);
+        if (prototypeClassName !== "") {
+          prototypeElement.setAttribute("class", prototypeClassName);
+        }
+        if (prototypeCarryText !== "") {
+          prototypeElement.setAttribute("style", prototypeCarryText);
+        }
+        if (clonePrototypeByKey.size >= CLONE_PROTOTYPE_CACHE_CAP) {
+          clonePrototypeByKey.clear();
+        }
+        clonePrototypeByKey.set(prototypeKey, prototypeElement);
+      }
+      const stampedClone = prototypeElement.cloneNode(false);
+      clone = isElementNode(stampedClone) ? stampedClone : null;
+      isPrototypeClone = true;
+    }
   } else {
     clone = createSanitizedClone(element, context.ownerDocument);
   }
   if (!clone) return null;
   if (context.prunedElements?.has(element)) shouldCloneChildren = false;
   reflectFormState(element, clone, snapshot.styles);
-  const inlineCarryText = context.inlineCarryTextByElement.get(element);
+  const inlineCarryText = isPrototypeClone
+    ? undefined
+    : context.inlineCarryTextByElement.get(element);
   if (inlineCarryText !== undefined) {
     // Prepending keeps replica-specific inline styling (indeterminate
     // checkbox dash, frozen video fitting) winning over carried props.
@@ -272,7 +329,7 @@ const cloneElementNode = (
       existingStyleText ? inlineCarryText + existingStyleText : inlineCarryText,
     );
   }
-  const className = context.classNameByElement.get(element);
+  const className = isPrototypeClone ? undefined : context.classNameByElement.get(element);
   if (className) clone.setAttribute("class", className);
   if (className && element.namespaceURI === SVG_NAMESPACE_URI) {
     stripSvgPaintPresentationAttributes(clone);
@@ -283,7 +340,15 @@ const cloneElementNode = (
   context.cloneByElement.set(element, clone);
   if (shouldCloneChildren) {
     const childIsInShadowTree = isInShadowTree || Boolean(element.shadowRoot);
-    if (!childIsInShadowTree) {
+    const onlyChildNode = element.firstChild;
+    if (
+      !childIsInShadowTree &&
+      onlyChildNode !== null &&
+      onlyChildNode === element.lastChild &&
+      onlyChildNode.nodeType === Node.TEXT_NODE
+    ) {
+      clone.textContent = stripInvalidXmlCharacters(onlyChildNode.textContent ?? "");
+    } else if (!childIsInShadowTree) {
       for (
         let childNode = element.firstChild;
         childNode !== null;

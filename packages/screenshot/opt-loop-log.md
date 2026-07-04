@@ -661,3 +661,19 @@ fallback) and replays it into registry creation before the lane derivation,
 exactly like persisted feeds. Memo store persists from capture 1; adoption
 lands on capture 2 (mega-grid capture-2 snapshot 140ms -> 36ms). Warm and
 cold medians unchanged. Full 3-engine fidelity (412x3) + 77 unit tests green.
+
+## Iteration 66 — clone walk single-text-child fast path + XHTML createElement (kept)
+
+Borrowed from Inferno/Solid's single-child specialization: elements whose only
+child is one text node now set clone.textContent directly instead of
+createTextNode + appendChild per child, and XHTML clones use createElement
+(faster than createElementNS in Chromium). mega-grid warm build 31.3ms ->
+~28ms, median 262 -> 255. Full 3-engine fidelity + unit green.
+
+## Iteration 67 — Solid-style clone prototype stamping (kept)
+
+The typical clone is tag + emitted class + carried inline text with every
+source attribute dropped. One prototype per (tag, class, carry) combination is
+now built once and stamped with cloneNode(false), replacing per-element
+createElement + setAttribute pairs (Solid template instantiation). mega-grid
+warm build 31.3 -> 26.5ms. Full 3-engine fidelity (412x3) + 77 unit green.
