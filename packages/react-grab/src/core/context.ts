@@ -238,7 +238,11 @@ interface TraceContextResult {
   renderedComponentNames: Set<string>;
 }
 
-const getComponentNamesFromFiber = (element: Element, maxCount: number): string[] => {
+const getComponentNamesFromFiber = (
+  element: Element,
+  maxCount: number,
+  shouldIncludeName: (componentName: string) => boolean = () => true,
+): string[] => {
   if (!isInstrumentationActive()) return [];
   const fiber = getFiberFromHostInstance(element);
   if (!fiber) return [];
@@ -250,7 +254,7 @@ const getComponentNamesFromFiber = (element: Element, maxCount: number): string[
       if (componentNames.length >= maxCount) return true;
       if (isCompositeFiber(currentFiber)) {
         const displayName = getDisplayName(currentFiber.type);
-        if (displayName && isUsefulComponentName(displayName)) {
+        if (displayName && isUsefulComponentName(displayName) && shouldIncludeName(displayName)) {
           componentNames.push(displayName);
         }
       }
@@ -466,17 +470,12 @@ const appendFiberAncestorNames = (
   stackContext: TraceContextResult,
   maxAncestorCount: number,
 ): TraceContextResult => {
-  const ancestorNames = getComponentNamesFromFiber(
+  const missingAncestorNames = getComponentNamesFromFiber(
     findNearestFiberElement(element),
-    maxAncestorCount + stackContext.renderedComponentNames.size,
+    maxAncestorCount,
+    (ancestorName) =>
+      isSourceComponentName(ancestorName) && !stackContext.renderedComponentNames.has(ancestorName),
   );
-  const missingAncestorNames = ancestorNames
-    .filter(
-      (ancestorName) =>
-        isSourceComponentName(ancestorName) &&
-        !stackContext.renderedComponentNames.has(ancestorName),
-    )
-    .slice(0, maxAncestorCount);
   if (missingAncestorNames.length === 0) return stackContext;
 
   return {
