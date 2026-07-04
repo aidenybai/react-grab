@@ -302,3 +302,12 @@ can be skipped during full snapshots (per-rule prop groups + element.matches).
 Result: 70-stress warm 35.6 -> 43ms — per-element property subsets fragment the
 style-registry signatures (insertion-order keyed), so class dedup drops and the
 diff/serialize cost outweighs the skipped getPropertyValue reads. Reverted.
+
+## Iteration 32 — scoped snapshot reads via pre-queried match sets (REVERTED)
+
+Retried iteration 31 replacing per-element matches() with one-time
+querySelectorAll match WeakSets to eliminate the matching overhead.
+Result: 70-stress warm 35.6 -> 38.6ms — still slower than unscoped reads, so
+the cost is downstream (fragmented snapshot key sets breaking style-registry
+signature dedup and diff caching), not selector matching. Scoping full-snapshot
+property reads by matched rules is a dead end on these fixtures. Reverted.
