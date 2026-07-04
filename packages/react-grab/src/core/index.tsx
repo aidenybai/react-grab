@@ -2788,7 +2788,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
         handlePointerMove(event.clientX, event.clientY, event.shiftKey);
       }),
-      { passive: true },
+      // capture (like every other pointer listener here) so detection
+      // survives apps that stopPropagation() pointermove below window level
+      // (gesture libraries, analytics/session-replay SDKs); passive because
+      // the handler never calls preventDefault.
+      { passive: true, capture: true },
     );
 
     eventListenerManager.addWindowListener(
