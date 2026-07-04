@@ -63,8 +63,11 @@ export const snapshotComposedTree = (
   const perElementProps: ReadonlySet<string> = new Set(perElementPropertyNames);
   const perElementLaneActions = buildPerElementLaneActions(perElementPropertyNames);
   const activeElement = rootElement.ownerDocument.activeElement;
-  const memoKeyByAncestry = new Map<string, number>();
+  // Interning nests parent-key -> descriptor instead of hashing one long
+  // concatenated ancestry string per element.
+  const memoKeysByParentKey = new Map<number, Map<string, number>>();
   const memoizedStylesByKey = new Map<number, MemoizedElementStyles>();
+  let nextMemoKey = 0;
 
   const visit = (
     element: Element,
@@ -96,11 +99,20 @@ export const snapshotComposedTree = (
       isMemoizableHtmlElement &&
       parentMemoKey !== NO_MEMO_KEY
     ) {
-      const ancestryKey = `${parentMemoKey}>${buildStyleMemoDescriptor(element, perElementProps, relevantProps?.styleRelevantAttributeNames ?? null)}`;
-      const internedKey = memoKeyByAncestry.get(ancestryKey);
+      const descriptor = buildStyleMemoDescriptor(
+        element,
+        perElementProps,
+        relevantProps?.styleRelevantAttributeNames ?? null,
+      );
+      let descriptorKeys = memoKeysByParentKey.get(parentMemoKey);
+      if (descriptorKeys === undefined) {
+        descriptorKeys = new Map();
+        memoKeysByParentKey.set(parentMemoKey, descriptorKeys);
+      }
+      const internedKey = descriptorKeys.get(descriptor);
       if (internedKey === undefined) {
-        memoKey = memoKeyByAncestry.size;
-        memoKeyByAncestry.set(ancestryKey, memoKey);
+        memoKey = nextMemoKey++;
+        descriptorKeys.set(descriptor, memoKey);
       } else {
         memoKey = internedKey;
       }
