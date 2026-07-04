@@ -1,6 +1,7 @@
 import {
   bakeBackdropFilterUnderlays,
   collectBackdropFilterElements,
+  computeBackdropUnderlayClip,
 } from "./capture/bake-backdrop-filters";
 import {
   buildCaptureReuseOptionsKey,
@@ -518,12 +519,14 @@ const captureNodeInternal = async (
     );
     prefetchExternalResources(element, resolvedOptions.timeoutMs);
     const snapshotStartMs = performance.now();
-    const { snapshotByElement, perElementPropertyNames } = snapshotComposedTree(
-      element,
-      defaultView,
-      resolvedOptions.filterNode,
-      resolvedOptions.prunedElements,
-    );
+    const { snapshotByElement, perElementPropertyNames } =
+      internalContext.presnapshottedTree ??
+      snapshotComposedTree(
+        element,
+        defaultView,
+        resolvedOptions.filterNode,
+        resolvedOptions.prunedElements,
+      );
     lastCaptureTimings.snapshotMs = performance.now() - snapshotStartMs;
     const rootSnapshot = snapshotByElement.get(element);
     if (!rootSnapshot) {
@@ -571,22 +574,34 @@ const captureNodeInternal = async (
     if (!internalContext.skipBackdropFilterBaking) {
       const backdropFilterElements = collectBackdropFilterElements(snapshotByElement, element);
       if (backdropFilterElements.length > 0) {
+        const paneRects = backdropFilterElements.map((backdropElement) =>
+          backdropElement.getBoundingClientRect(),
+        );
+        // The clip rect and the bake's pixel reads share the untransformed
+        // root box coordinate space, which a transformed root breaks.
+        const underlayClip = outputGeometry.rootLinearTransform
+          ? undefined
+          : computeBackdropUnderlayClip(
+              backdropFilterElements,
+              paneRects,
+              snapshotByElement,
+              boundingRect,
+            );
         const underlayResult = await captureNodeInternal(
           element,
-          { ...resolvedOptions, scale: 1, bleed: 0, clip: undefined },
+          { ...resolvedOptions, scale: 1, bleed: 0, clip: underlayClip },
           {
             suppressedBackdropElements: new Set(backdropFilterElements),
             skipBackdropFilterBaking: true,
+            presnapshottedTree: { snapshotByElement, perElementPropertyNames },
           },
         );
         // The underlay markup plus each pane's device rect and filter fully
         // determine the baked pixels, so an unchanged tree reuses the previous
         // bake instead of re-rendering the blur and re-encoding pane PNGs.
-        const paneRects = backdropFilterElements.map((backdropElement) =>
-          backdropElement.getBoundingClientRect(),
-        );
         const bakeCacheKey =
           `${resolvedOptions.pixelRatio}|${resolvedOptions.backgroundColor ?? ""}|` +
+          `${underlayClip?.x ?? 0},${underlayClip?.y ?? 0}|` +
           backdropFilterElements
             .map(
               (backdropElement, paneIndex) =>
@@ -611,6 +626,8 @@ const captureNodeInternal = async (
             snapshotByElement,
             pixelRatio: resolvedOptions.pixelRatio,
             backgroundColor: resolvedOptions.backgroundColor,
+            underlayOffsetLeftPx: underlayClip?.x ?? 0,
+            underlayOffsetTopPx: underlayClip?.y ?? 0,
           });
           bakedBackdropPngCache.set(
             bakeCacheKey,

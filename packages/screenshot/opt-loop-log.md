@@ -365,3 +365,21 @@ epoch-ignored attribute so its own insertion/load events no longer invalidate
 epoch-keyed caches. Drag simulation (12 growing rects): steady-state frame
 9ms on 70-stress (was 27+) and 2.4ms on analytics-dashboard (was ~13).
 Unit 77/77; fidelity 412 chromium + 824 webkit/firefox all green.
+
+## Iteration 37 — reuse the outer snapshot in the backdrop underlay capture
+
+The backdrop-baking underlay pass ran a second full capture pipeline including
+a redundant computed-style snapshot of the same tree; the outer snapshot map is
+now threaded through InternalCaptureContext.presnapshottedTree and reused.
+hard-stress-combo mutated-warm backdropMs 11.1 -> 10.1ms. All suites green.
+
+## Iteration 38 — clip the backdrop underlay capture to the pane union
+
+The bake only samples each pane's rect expanded by its filter extent, so the
+underlay capture is now clipped to the union of those regions (intersected
+with the root box) instead of decoding and rasterizing the full page; the bake
+reads/composites at offset coordinates. Skipped for transformed roots, whose
+output geometry breaks the shared coordinate space (caught by
+hard-backdrop-in-transformed-root at 0.0177 before the guard).
+hard-stress-combo mutated-warm backdropMs 10.1 -> 8ms, cold 67 -> 50ms.
+Unit 77/77; fidelity 412 chromium + 824 webkit/firefox all green.

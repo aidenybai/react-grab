@@ -141,6 +141,14 @@ export interface DiffStylesInput {
 export interface InternalCaptureContext {
   suppressedBackdropElements: Set<Element> | null;
   skipBackdropFilterBaking: boolean;
+  presnapshottedTree?: ComposedTreeSnapshot;
+}
+
+export interface BackdropUnderlayClip {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 
 export interface BakeBackdropFilterUnderlaysInput {
@@ -151,6 +159,8 @@ export interface BakeBackdropFilterUnderlaysInput {
   snapshotByElement: Map<Element, ElementReadSnapshot>;
   pixelRatio: number;
   backgroundColor: string | undefined;
+  underlayOffsetLeftPx: number;
+  underlayOffsetTopPx: number;
 }
 
 export interface IframeBridgeRequestMessage {

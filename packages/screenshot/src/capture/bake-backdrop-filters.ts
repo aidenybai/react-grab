@@ -1,5 +1,6 @@
 import { TRANSPARENT_BACKGROUND_COLOR } from "../constants";
 import type {
+  BackdropUnderlayClip,
   BakeBackdropFilterUnderlaysInput,
   ElementReadSnapshot,
   LinearTransform,
@@ -9,6 +10,42 @@ import { computeFilterExtent } from "../utils/compute-filter-extent";
 import { invertLinearTransform } from "../utils/invert-linear-transform";
 import { isIdentityLinearTransform } from "../utils/is-identity-linear-transform";
 import { multiplyLinearTransforms } from "../utils/multiply-linear-transforms";
+
+// The bake only samples pixels inside each pane's rect expanded by its
+// filter extent, so the underlay capture can be clipped to the union of those
+// regions (intersected with the root box) instead of paying full-page decode,
+// raster, and pixel readback.
+export const computeBackdropUnderlayClip = (
+  backdropFilterElements: Element[],
+  paneRects: DOMRect[],
+  snapshotByElement: Map<Element, ElementReadSnapshot>,
+  rootRect: DOMRect,
+): BackdropUnderlayClip => {
+  let left = Number.POSITIVE_INFINITY;
+  let top = Number.POSITIVE_INFINITY;
+  let right = Number.NEGATIVE_INFINITY;
+  let bottom = Number.NEGATIVE_INFINITY;
+  backdropFilterElements.forEach((backdropElement, paneIndex) => {
+    const paneRect = paneRects[paneIndex];
+    const backdropFilterValue =
+      snapshotByElement.get(backdropElement)?.styles["backdrop-filter"] ?? "";
+    const marginPx = Math.ceil(computeFilterExtent(backdropFilterValue));
+    left = Math.min(left, paneRect.left - rootRect.left - marginPx);
+    top = Math.min(top, paneRect.top - rootRect.top - marginPx);
+    right = Math.max(right, paneRect.right - rootRect.left + marginPx);
+    bottom = Math.max(bottom, paneRect.bottom - rootRect.top + marginPx);
+  });
+  const clippedLeft = Math.max(0, Math.floor(left));
+  const clippedTop = Math.max(0, Math.floor(top));
+  const clippedRight = Math.min(Math.ceil(rootRect.width), Math.ceil(right));
+  const clippedBottom = Math.min(Math.ceil(rootRect.height), Math.ceil(bottom));
+  return {
+    x: clippedLeft,
+    y: clippedTop,
+    width: Math.max(1, clippedRight - clippedLeft),
+    height: Math.max(1, clippedBottom - clippedTop),
+  };
+};
 
 export const collectBackdropFilterElements = (
   snapshotByElement: Map<Element, ElementReadSnapshot>,
@@ -68,7 +105,14 @@ const renderFilteredBackdropRegion = (
   marginPx: number,
   backdropFilterValue: string,
 ): HTMLCanvasElement | null => {
-  const { underlayCanvas, ownerDocument, pixelRatio, backgroundColor } = input;
+  const {
+    underlayCanvas,
+    ownerDocument,
+    pixelRatio,
+    backgroundColor,
+    underlayOffsetLeftPx,
+    underlayOffsetTopPx,
+  } = input;
   const expandedWidthPx = regionWidthPx + 2 * marginPx;
   const expandedHeightPx = regionHeightPx + 2 * marginPx;
   const expandedCanvas = ownerDocument.createElement("canvas");
@@ -82,8 +126,8 @@ const renderFilteredBackdropRegion = (
   }
   expandedContext.drawImage(
     underlayCanvas,
-    (regionLeftPx - marginPx) * pixelRatio,
-    (regionTopPx - marginPx) * pixelRatio,
+    (regionLeftPx - underlayOffsetLeftPx - marginPx) * pixelRatio,
+    (regionTopPx - underlayOffsetTopPx - marginPx) * pixelRatio,
     expandedCanvas.width,
     expandedCanvas.height,
     0,
@@ -155,7 +199,10 @@ const compositeBakedPaneOntoUnderlay = (
   if (!underlayContext) return;
   underlayContext.save();
   underlayContext.setTransform(input.pixelRatio, 0, 0, input.pixelRatio, 0, 0);
-  underlayContext.translate(regionCenterXPx, regionCenterYPx);
+  underlayContext.translate(
+    regionCenterXPx - input.underlayOffsetLeftPx,
+    regionCenterYPx - input.underlayOffsetTopPx,
+  );
   underlayContext.transform(chainLinear.a, chainLinear.b, chainLinear.c, chainLinear.d, 0, 0);
   underlayContext.translate(-boxWidthPx / 2, -boxHeightPx / 2);
   underlayContext.drawImage(bakedBoxCanvas, 0, 0, boxWidthPx, boxHeightPx);
