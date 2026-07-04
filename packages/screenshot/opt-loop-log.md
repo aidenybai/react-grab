@@ -54,3 +54,10 @@ a) getComposedChildNodes returns the live childNodes list directly unless a slot
 b) element.scrollLeft/scrollTop (layout-flushing) are only read when the element can
    actually hold a scroll offset (html/body, or overflow-x/y not visible).
 Metrics: 70-stress warm 80.4 -> 73.8ms. Scroll/shadow/slot/sticky fidelity subset green (39).
+
+### Iteration 15 — margin shorthand group read in the per-element lane (REVERTED)
+Technique: replace the margin-top + margin-left lane getPropertyValue calls with a
+single getPropertyValue("margin") shorthand read split into the four longhands.
+Metrics: 70-stress warm 39.9 -> 44.3ms — Blink's shorthand serialization resolves all
+four longhands plus the combine logic, costing more than the two direct longhand
+reads it replaced. Reverted.
