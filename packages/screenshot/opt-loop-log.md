@@ -383,3 +383,15 @@ output geometry breaks the shared coordinate space (caught by
 hard-backdrop-in-transformed-root at 0.0177 before the guard).
 hard-stress-combo mutated-warm backdropMs 10.1 -> 8ms, cold 67 -> 50ms.
 Unit 77/77; fidelity 412 chromium + 824 webkit/firefox all green.
+
+## Iteration 39 — hoist identical pseudo blocks into selector-list rules
+
+cssstats showed 25.8KB of duplicate declarations remaining in the emitted
+stylesheet, nearly all inside per-class ::before/::after blocks that the
+base-declaration hoisting never touched. Identical whole pseudo blocks are now
+grouped into one `.a::before,.b::before{...}` rule (equal specificity, so the
+cascade is unchanged); duplicate bytes drop 25788 -> 2397 on 70-stress,
+shrinking the SVG markup the engine must parse on every decode.
+Warm medians neutral-to-slightly-better; markup size win compounds with the
+decoded-image and reuse caches. Unit 77/77; fidelity 412 chromium +
+824 webkit/firefox all green.

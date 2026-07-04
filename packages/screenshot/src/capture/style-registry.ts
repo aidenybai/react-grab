@@ -98,6 +98,11 @@ export const createStyleRegistry = (): StyleRegistry => {
         (declarationsByClassListKey.get(classListKey) ?? "") + declaration,
       );
     }
+    // Identical whole pseudo blocks repeat verbatim across classes on
+    // pseudo-heavy pages; grouping them into selector-list rules keeps
+    // specificity equal, so the cascade result is unchanged.
+    const beforeClassListsByBlock = new Map<string, string[]>();
+    const afterClassListsByBlock = new Map<string, string[]>();
     let cssText = "";
     for (const [classListKey, declarations] of declarationsByClassListKey) {
       cssText += `.${classListKey}{${declarations}}\n`;
@@ -125,11 +130,26 @@ export const createStyleRegistry = (): StyleRegistry => {
       const markerBlock =
         blocks?.marker ??
         (rule.markerStyles ? buildInsertionOrderDeclarationBlock(rule.markerStyles) : "");
-      if (beforeBlock) ruleText += `\n.${rule.className}::before{${beforeBlock}}`;
-      if (afterBlock) ruleText += `\n.${rule.className}::after{${afterBlock}}`;
+      if (beforeBlock) {
+        const beforeClassList = beforeClassListsByBlock.get(beforeBlock);
+        if (beforeClassList === undefined)
+          beforeClassListsByBlock.set(beforeBlock, [rule.className]);
+        else beforeClassList.push(rule.className);
+      }
+      if (afterBlock) {
+        const afterClassList = afterClassListsByBlock.get(afterBlock);
+        if (afterClassList === undefined) afterClassListsByBlock.set(afterBlock, [rule.className]);
+        else afterClassList.push(rule.className);
+      }
       if (firstLetterBlock) ruleText += `\n.${rule.className}::first-letter{${firstLetterBlock}}`;
       if (markerBlock) ruleText += `\n.${rule.className}::marker{${markerBlock}}`;
       cssText += `${ruleText}\n`;
+    }
+    for (const [beforeBlock, classList] of beforeClassListsByBlock) {
+      cssText += `.${classList.join("::before,.")}::before{${beforeBlock}}\n`;
+    }
+    for (const [afterBlock, classList] of afterClassListsByBlock) {
+      cssText += `.${classList.join("::after,.")}::after{${afterBlock}}\n`;
     }
     const finalCssText = cssText.slice(0, -1);
     cssTextCache.set(cssTextCacheKey, finalCssText);
