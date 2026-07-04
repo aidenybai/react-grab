@@ -3,6 +3,7 @@ import {
   CLASS_STABLE_CANDIDATE_STYLE_PROPS,
   INSET_STYLE_PROPS,
   PER_ELEMENT_SNAPSHOT_STYLE_PROPS,
+  BOX_RELATIVE_VALUE_PATTERN,
   STABLE_DECLARED_VALUE_PATTERN,
   WAAPI_KEYFRAME_META_KEYS,
 } from "../constants";
@@ -64,6 +65,17 @@ export const createRelevantStylePropRegistry = (
         if (transitionedValue.includes("all") || transitionedValue.includes(candidateProp)) {
           markLayoutUnstable(candidateProp);
         }
+      }
+      return;
+    }
+    // A computed transform serializes to a constant matrix unless a length
+    // inside it resolves against the element's own box (percentages, calc,
+    // var); when every declared transform is box-independent the matrix is
+    // pinned by the matched rules.
+    if (propertyName === "transform") {
+      if (layoutUnstableProps.has("transform")) return;
+      if (BOX_RELATIVE_VALUE_PATTERN.test(declaration.getPropertyValue("transform"))) {
+        markLayoutUnstable("transform");
       }
       return;
     }

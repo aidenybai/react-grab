@@ -5,17 +5,29 @@ export const PER_ELEMENT_LANE_INLINE_SIZE = 1;
 export const PER_ELEMENT_LANE_BLOCK_SIZE = 2;
 export const PER_ELEMENT_LANE_TRANSFORM_ORIGIN = 3;
 export const PER_ELEMENT_LANE_PERSPECTIVE_ORIGIN = 4;
+export const PER_ELEMENT_LANE_GRID_TEMPLATE = 5;
 
 export const buildPerElementLaneActions = (
   perElementPropertyNames: readonly string[],
-): number[] =>
-  perElementPropertyNames.map((propertyName) => {
+): number[] => {
+  // Gating grid-template reads on the memoized display is only sound when
+  // display itself cannot vary within a memo class (i.e. is not animated into
+  // the per-element lane).
+  const hasPerElementDisplay = perElementPropertyNames.includes("display");
+  return perElementPropertyNames.map((propertyName) => {
     if (propertyName === "inline-size") return PER_ELEMENT_LANE_INLINE_SIZE;
     if (propertyName === "block-size") return PER_ELEMENT_LANE_BLOCK_SIZE;
     if (propertyName === "transform-origin") return PER_ELEMENT_LANE_TRANSFORM_ORIGIN;
     if (propertyName === "perspective-origin") return PER_ELEMENT_LANE_PERSPECTIVE_ORIGIN;
+    if (
+      !hasPerElementDisplay &&
+      (propertyName === "grid-template-columns" || propertyName === "grid-template-rows")
+    ) {
+      return PER_ELEMENT_LANE_GRID_TEMPLATE;
+    }
     return PER_ELEMENT_LANE_READ;
   });
+};
 
 // Skips per-element getPropertyValue reads whose value is derivable from ones
 // already read: inline/block-size mirror width/height in horizontal-tb writing
@@ -44,7 +56,9 @@ export const applyPerElementLaneReads = (
         }
       } else if (laneAction === PER_ELEMENT_LANE_TRANSFORM_ORIGIN) {
         if (targetStyles["transform"] === "none") continue;
-      } else if ((targetStyles["perspective"] ?? "none") === "none") {
+      } else if (laneAction === PER_ELEMENT_LANE_PERSPECTIVE_ORIGIN) {
+        if ((targetStyles["perspective"] ?? "none") === "none") continue;
+      } else if (!(targetStyles["display"] ?? "").includes("grid")) {
         continue;
       }
     }

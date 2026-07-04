@@ -406,6 +406,7 @@ export const INSET_STYLE_PROPS = ["top", "right", "bottom", "left"];
 // long as every declaration reaching them stays in this set's units.
 export const CLASS_STABLE_CANDIDATE_STYLE_PROPS = new Set([
   ...INSET_STYLE_PROPS,
+  "transform",
   "margin-top",
   "margin-right",
   "margin-bottom",
@@ -420,6 +421,8 @@ export const CLASS_STABLE_CANDIDATE_STYLE_PROPS = new Set([
 // lengths, font-relative lengths (font-size is pinned by the memo key), and
 // viewport-relative lengths (constant page-wide). Percentages, auto, calc(),
 // var(), and anything unrecognized stay per-element.
+export const BOX_RELATIVE_VALUE_PATTERN = /%|calc\(|var\(|min\(|max\(|clamp\(/;
+
 export const STABLE_DECLARED_VALUE_PATTERN =
   /^(0|-?\d*\.?\d+(px|em|rem|ch|ex|pt|pc|cm|mm|in|vw|vh|vmin|vmax))( (0|-?\d*\.?\d+(px|em|rem|ch|ex|pt|pc|cm|mm|in|vw|vh|vmin|vmax)))*$/;
 
