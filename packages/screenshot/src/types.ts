@@ -53,6 +53,7 @@ export interface StyleDeclarationMap {
 export interface RelevantStylePropRegistry {
   propertyNames: string[];
   perElementPropertyNames: string[];
+  styleRelevantAttributeNames: ReadonlySet<string>;
   isStyleMemoSafe: () => boolean;
   isPseudoContentMemoSafe: () => boolean;
   addInlineStyleProps: (inlineStyle: CSSStyleDeclaration) => void;

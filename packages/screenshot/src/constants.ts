@@ -394,6 +394,51 @@ export const FULL_SNAPSHOT_TAGS = new Set([
   "audio",
 ]);
 
+// Attributes that reach rendering without appearing in author CSS: class/lang
+// feed selectors, dir/hidden/href feed UA rules, and the rest are legacy
+// presentational hints the UA maps onto styles. Attribute names found in
+// author [attr] selectors (and id, when any #-selector exists) are added at
+// scan time.
+export const ALWAYS_STYLE_RELEVANT_ATTRIBUTE_NAMES = [
+  "class",
+  "lang",
+  "dir",
+  "hidden",
+  "href",
+  "type",
+  "contenteditable",
+  "slot",
+  "part",
+  "width",
+  "height",
+  "align",
+  "valign",
+  "bgcolor",
+  "background",
+  "border",
+  "color",
+  "face",
+  "size",
+  "nowrap",
+  "cellspacing",
+  "cellpadding",
+  "hspace",
+  "vspace",
+  "char",
+  "charoff",
+  "frame",
+  "rules",
+  "start",
+  "value",
+  "reversed",
+  "colspan",
+  "rowspan",
+  "span",
+  "clear",
+];
+
+export const ATTRIBUTE_SELECTOR_NAME_PATTERN = /\[\s*(?:[\w-]+\|)?([\w-]+)/g;
+
 export const NON_PAINTING_STYLE_PROPS = new Set([
   "cursor",
   "pointer-events",

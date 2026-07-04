@@ -1,5 +1,7 @@
 import {
   ALWAYS_SNAPSHOT_STYLE_PROPS,
+  ALWAYS_STYLE_RELEVANT_ATTRIBUTE_NAMES,
+  ATTRIBUTE_SELECTOR_NAME_PATTERN,
   CLASS_STABLE_CANDIDATE_STYLE_PROPS,
   INSET_STYLE_PROPS,
   PER_ELEMENT_SNAPSHOT_STYLE_PROPS,
@@ -31,6 +33,14 @@ export const createRelevantStylePropRegistry = (
   sourceDocument: Document,
 ): RelevantStylePropRegistry | null => {
   const seenProps = new Set<string>();
+  const styleRelevantAttributeNames = new Set<string>(ALWAYS_STYLE_RELEVANT_ATTRIBUTE_NAMES);
+  const addSelectorAttributeNames = (selectorText: string): void => {
+    if (selectorText.includes("#")) styleRelevantAttributeNames.add("id");
+    if (!selectorText.includes("[")) return;
+    for (const attributeMatch of selectorText.matchAll(ATTRIBUTE_SELECTOR_NAME_PATTERN)) {
+      styleRelevantAttributeNames.add(attributeMatch[1].toLowerCase());
+    }
+  };
   const propertyNames: string[] = [];
   let isMemoSafe = true;
   let isPseudoContentMemoSafe = true;
@@ -148,6 +158,7 @@ export const createRelevantStylePropRegistry = (
   const addRuleProps = (rule: CSSRule): void => {
     if (isCssStyleRule(rule)) {
       if (isMemoSafe && !isMemoSafeSelector(rule.selectorText)) isMemoSafe = false;
+      addSelectorAttributeNames(rule.selectorText);
       addDeclarationProps(rule.style);
     } else if (isCssKeyframesRule(rule)) {
       for (const keyframeRule of rule.cssRules) {
@@ -236,6 +247,7 @@ export const createRelevantStylePropRegistry = (
 
   return {
     propertyNames,
+    styleRelevantAttributeNames,
     perElementPropertyNames,
     isStyleMemoSafe: () => isMemoSafe,
     isPseudoContentMemoSafe: () => isPseudoContentMemoSafe,

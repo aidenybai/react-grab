@@ -96,7 +96,7 @@ export const snapshotComposedTree = (
       isMemoizableHtmlElement &&
       parentMemoKey !== NO_MEMO_KEY
     ) {
-      const ancestryKey = `${parentMemoKey}>${buildStyleMemoDescriptor(element, perElementProps)}`;
+      const ancestryKey = `${parentMemoKey}>${buildStyleMemoDescriptor(element, perElementProps, relevantProps?.styleRelevantAttributeNames ?? null)}`;
       const internedKey = memoKeyByAncestry.get(ancestryKey);
       if (internedKey === undefined) {
         memoKey = memoKeyByAncestry.size;
