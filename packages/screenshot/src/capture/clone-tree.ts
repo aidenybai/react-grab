@@ -210,6 +210,7 @@ const cloneElementNode = (element: Element, context: CloneContext): Element | nu
     clone = isElementNode(cloned) ? cloned : null;
   }
   if (!clone) return null;
+  if (context.prunedElements?.has(element)) shouldCloneChildren = false;
   if (!isSynthesizedClone) sanitizeCloneAttributes(clone);
   reflectFormState(element, clone, snapshot.styles);
   const className = context.classNameByElement.get(element);

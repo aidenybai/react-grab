@@ -1,13 +1,26 @@
+export interface CaptureRegionRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface CaptureOptions {
   scale?: number;
   pixelRatio?: number;
   backgroundColor?: string;
   embedFonts?: boolean;
   bleed?: number | "auto";
+  clip?: CaptureRegionRect;
   filterNode?: (element: Element) => boolean;
   resolveIframeContent?: (iframe: HTMLIFrameElement) => Promise<string | null>;
   timeoutMs?: number;
   abortSignal?: AbortSignal;
+}
+
+export interface CaptureRegionOptions extends Omit<CaptureOptions, "clip" | "bleed"> {
+  root?: Element;
+  cullMarginPx?: number;
 }
 
 export interface CaptureResult {
@@ -25,6 +38,8 @@ export interface ResolvedCaptureOptions {
   backgroundColor: string | undefined;
   embedFonts: boolean;
   bleed: number | "auto";
+  clip: CaptureRegionRect | undefined;
+  prunedElements: ReadonlySet<Element> | undefined;
   filterNode: ((element: Element) => boolean) | undefined;
   resolveIframeContent: ((iframe: HTMLIFrameElement) => Promise<string | null>) | undefined;
   timeoutMs: number;
@@ -153,6 +168,7 @@ export interface CloneContext {
   snapshotByElement: Map<Element, ElementReadSnapshot>;
   cloneByElement: Map<Element, Element>;
   iframeContentByElement: Map<Element, IframeContentSnapshot>;
+  prunedElements: ReadonlySet<Element> | undefined;
 }
 
 export interface InlineSvgUseReferencesInput {

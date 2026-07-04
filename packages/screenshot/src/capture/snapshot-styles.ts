@@ -36,6 +36,7 @@ export const snapshotComposedTree = (
   rootElement: Element,
   defaultView: Window & typeof globalThis,
   filterNode: ((element: Element) => boolean) | undefined,
+  prunedElements: ReadonlySet<Element> | undefined,
 ): ComposedTreeSnapshot => {
   const snapshotByElement = new Map<Element, ElementReadSnapshot>();
   const pseudoPreflight = preflightPseudoRules(rootElement.ownerDocument);
@@ -170,6 +171,7 @@ export const snapshotComposedTree = (
       memoKey,
     });
     if (UNRECURSED_CLONE_TAGS.has(element.localName)) return;
+    if (prunedElements?.has(element)) return;
     const childIsInShadowTree = isInShadowTree || Boolean(element.shadowRoot);
     for (const childNode of getComposedChildNodes(element)) {
       if (isElementNode(childNode)) visit(childNode, element, childIsInShadowTree, memoKey);

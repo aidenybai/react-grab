@@ -118,6 +118,13 @@ SVG `<use>` is the odd one out because its targets often live entirely outside t
 
 The optional `backgroundColor` is filled before the draw, `toBlob` encodes PNG via `canvas.toBlob`, and `toPngDataUrl` goes blob-first through a `FileReader` rather than `canvas.toDataURL`.
 
+## Notes about region capture
+
+`captureRegion` in [index.ts](../src/index.ts) captures an arbitrary viewport-coordinate rectangle by running the normal pipeline on `document.documentElement` (or a caller-supplied `root`) with two additions:
+
+- **Crop at rasterization.** The public `clip` option (element border-box coordinates) is translated into SVG space using the output geometry's content offsets and passed to `createCaptureResult`, which sizes the canvas to the clip rect and translates the draw. The full-page SVG is still decoded once, but the canvas allocation and the native PNG encode — the dominant cost at page sizes — only pay for the region's pixels. The clip rect participates in the raster PNG cache key.
+- **Out-of-region subtree culling.** [utils/collect-region-pruned-elements.ts](../src/utils/collect-region-pruned-elements.ts) walks the tree once, computing each subtree's client-rect AABB union bottom-up. Subtrees whose union, inflated by `cullMarginPx` (default 256px, covering shadow/blur bleed), misses the region are _hollowed_: the element itself is still snapshotted and cloned (its used size is pinned by the computed-style diff, so in-region layout cannot shift) but its children and text are dropped from both the read pass and the clone. Boxes the diff cannot size-pin (non-replaced inlines, table internals, ruby, `display: contents`) are never hollowed, since collapsing them would reflow in-region content. Culling is what makes small-region captures of heavy pages cheap — the read/serialize passes scale with surviving content, not page size.
+
 ## Notes about caching and lifetimes
 
 There are two lifetime tiers:

@@ -30,6 +30,18 @@ await result.toSvgDataUrl(); // the intermediate SVG, before rasterization
 
 The IIFE build exposes the same API as `window.FastHtmlToImage.captureNode`.
 
+### Region capture
+
+```ts
+import { captureRegion } from "fast-html-to-image";
+
+const result = await captureRegion({ x: 120, y: 80, width: 400, height: 300 });
+```
+
+`captureRegion` screenshots an arbitrary pixel rectangle of the page in viewport (client) coordinates — it doesn't have to align with any element, so it fits drag-to-select capture. It captures from `document.documentElement` (override with `root`), crops at rasterization so the canvas and PNG encode only pay for the region, and hollows out subtrees that paint entirely outside the region (keeping their pinned boxes so in-region layout is unchanged). `cullMarginPx` (default `256`) controls how far outside the region content is still kept to cover shadows/blur that bleed inward; pass a negative value to disable culling. Accepts all `captureNode` options except `clip` and `bleed`.
+
+`captureNode` also accepts a `clip` option — a rect in the element's own coordinate space (border-box origin) — to crop any capture without the region culling.
+
 ### Options
 
 ```ts
@@ -42,6 +54,7 @@ captureNode(element, options);
 | `pixelRatio`           | `number`                                                 | `window.devicePixelRatio` | Device pixel ratio for the output canvas                                                                                                                                                                 |
 | `backgroundColor`      | `string`                                                 | `undefined` (inherited)   | Fill color painted behind the capture. When omitted and the target's own background is transparent, the nearest ancestor's background color is used; pass `"transparent"` to force a transparent capture |
 | `embedFonts`           | `boolean`                                                | `true`                    | Inline used `@font-face` fonts as data URLs                                                                                                                                                              |
+| `clip`                 | `{ x, y, width, height }`                                | `undefined`               | Crop the output to a rect in the element's border-box coordinate space (CSS px)                                                                                                                          |
 | `bleed`                | `number \| "auto"`                                       | `0`                       | Extra padding (CSS px) captured around the border box so outer effects (box-shadows, outlines, blur/drop-shadow filters) aren't clipped; `"auto"` computes the needed extent from the root's styles      |
 | `filterNode`           | `(element: Element) => boolean`                          | `undefined`               | Return `false` to exclude an element and its subtree                                                                                                                                                     |
 | `resolveIframeContent` | `(iframe: HTMLIFrameElement) => Promise<string \| null>` | `undefined`               | Async hook to supply an image data URL for cross-origin iframes; return `null` to fall through to the postMessage bridge                                                                                 |

@@ -24,6 +24,10 @@ export const WEBKIT_ROTATED_EDGE_MAX_DIFF_RATIO = 0.12;
 export const WEBKIT_FORM_CHROME_MAX_DIFF_RATIO = 0.014;
 
 export const FIREFOX_TEXT_METRICS_MAX_DIFF_RATIO = 0.17;
+// A region cropped to headline-only content concentrates Gecko's foreignObject
+// line-height rounding offset (diff PNG shows pure vertical text ghosting)
+// with no non-text pixels to dilute the ratio.
+export const FIREFOX_TEXT_METRICS_DENSE_REGION_MAX_DIFF_RATIO = 0.19;
 export const FIREFOX_BACKDROP_MISSING_MAX_DIFF_RATIO = 0.24;
 export const FIREFOX_SUBTLE_RASTER_MAX_DIFF_RATIO = 0.035;
 export const FIREFOX_EDGE_ANTIALIAS_MAX_DIFF_RATIO = 0.013;
@@ -40,6 +44,7 @@ export const WEBKIT_ROTATED_EDGE_MAX_MEAN_CHANNEL_DELTA = 8;
 export const WEBKIT_FORM_CHROME_MAX_MEAN_CHANNEL_DELTA = 2;
 
 export const FIREFOX_TEXT_METRICS_MAX_MEAN_CHANNEL_DELTA = 32;
+export const FIREFOX_TEXT_METRICS_DENSE_REGION_MAX_MEAN_CHANNEL_DELTA = 34;
 export const FIREFOX_BACKDROP_MISSING_MAX_MEAN_CHANNEL_DELTA = 21;
 export const FIREFOX_SUBTLE_RASTER_MAX_MEAN_CHANNEL_DELTA = 8.5;
 export const FIREFOX_EDGE_ANTIALIAS_MAX_MEAN_CHANNEL_DELTA = 2;

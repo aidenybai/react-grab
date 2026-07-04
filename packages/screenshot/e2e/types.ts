@@ -33,6 +33,22 @@ export interface FixtureSpec {
   firefox?: FixtureBrowserOverride;
 }
 
+export interface RegionRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface RegionFixtureSpec {
+  id: string;
+  region: RegionRect;
+  maxDiffRatio: number;
+  maxMeanChannelDelta?: number;
+  webkit?: FixtureBrowserOverride;
+  firefox?: FixtureBrowserOverride;
+}
+
 export interface TargetAabbClip {
   x: number;
   y: number;
@@ -42,6 +58,10 @@ export interface TargetAabbClip {
 
 export interface FastHtmlToImageGlobal {
   captureNode: (element: Element, options?: HarnessCaptureOptions) => Promise<HarnessCaptureResult>;
+  captureRegion: (
+    region: RegionRect,
+    options?: HarnessCaptureOptions,
+  ) => Promise<HarnessCaptureResult>;
 }
 
 export interface FidelityScoreEntry {

@@ -24,6 +24,7 @@ import { snapshotComposedTree } from "./capture/snapshot-styles";
 import { createStyleRegistry } from "./capture/style-registry";
 import {
   DEFAULT_BLEED_PX,
+  DEFAULT_REGION_CULL_MARGIN_PX,
   DEFAULT_RESOURCE_TIMEOUT_MS,
   DEFAULT_SCALE,
   FIRST_LETTER_STYLE_PROP_PREFIXES,
@@ -33,6 +34,8 @@ import {
 import type {
   CaptureOptions,
   CaptureOutputGeometry,
+  CaptureRegionOptions,
+  CaptureRegionRect,
   CaptureResult,
   ElementReadSnapshot,
   IframeContentSnapshot,
@@ -43,6 +46,7 @@ import type {
   StyleSandbox,
 } from "./types";
 import { applyBakedBackdropBackground } from "./utils/apply-baked-backdrop-background";
+import { collectRegionPrunedElements } from "./utils/collect-region-pruned-elements";
 import { computeAutoBleed } from "./utils/compute-auto-bleed";
 import { findDocumentBackgroundColor } from "./utils/find-document-background-color";
 import { findInheritedBackgroundColor } from "./utils/find-inherited-background-color";
@@ -287,6 +291,7 @@ const captureNodeInternal = async (
       element,
       defaultView,
       resolvedOptions.filterNode,
+      resolvedOptions.prunedElements,
     );
     const rootSnapshot = snapshotByElement.get(element);
     if (!rootSnapshot) {
@@ -325,7 +330,7 @@ const captureNodeInternal = async (
       if (backdropFilterElements.length > 0) {
         const underlayResult = await captureNodeInternal(
           element,
-          { ...resolvedOptions, scale: 1, bleed: 0 },
+          { ...resolvedOptions, scale: 1, bleed: 0, clip: undefined },
           {
             suppressedBackdropElements: new Set(backdropFilterElements),
             skipBackdropFilterBaking: true,
@@ -363,6 +368,7 @@ const captureNodeInternal = async (
         snapshotByElement,
         cloneByElement: new Map(),
         iframeContentByElement,
+        prunedElements: resolvedOptions.prunedElements,
       });
       if (!clone) throw new Error("captureNode could not clone the target element");
       // svg <use> inlining appends defs whose resources must be picked up by
@@ -400,11 +406,20 @@ const captureNodeInternal = async (
     } finally {
       sandbox.dispose();
     }
+    const clipRect = resolvedOptions.clip
+      ? {
+          x: resolvedOptions.clip.x + outputGeometry.contentOffsetLeftPx,
+          y: resolvedOptions.clip.y + outputGeometry.contentOffsetTopPx,
+          width: resolvedOptions.clip.width,
+          height: resolvedOptions.clip.height,
+        }
+      : null;
     return createCaptureResult(
       svgMarkup,
       outputGeometry.outputWidthPx,
       outputGeometry.outputHeightPx,
       resolvedOptions,
+      clipRect,
     );
   } finally {
     activeCaptureDocuments.delete(ownerDocument);
@@ -423,12 +438,49 @@ export const captureNode = async (
     backgroundColor: options.backgroundColor,
     embedFonts: options.embedFonts ?? true,
     bleed: options.bleed ?? DEFAULT_BLEED_PX,
+    clip: options.clip,
+    prunedElements: undefined,
     filterNode: options.filterNode,
     resolveIframeContent: options.resolveIframeContent,
     timeoutMs: options.timeoutMs ?? DEFAULT_RESOURCE_TIMEOUT_MS,
     abortSignal: options.abortSignal,
   };
   return captureNodeInternal(element, resolvedOptions, {
+    suppressedBackdropElements: null,
+    skipBackdropFilterBaking: false,
+  });
+};
+
+export const captureRegion = async (
+  region: CaptureRegionRect,
+  options: CaptureRegionOptions = {},
+): Promise<CaptureResult> => {
+  const rootElement = options.root ?? document.documentElement;
+  const defaultView = rootElement.ownerDocument.defaultView;
+  if (!defaultView) throw new Error("captureRegion requires an element attached to a window");
+  const rootRect = rootElement.getBoundingClientRect();
+  const cullMarginPx = options.cullMarginPx ?? DEFAULT_REGION_CULL_MARGIN_PX;
+  const prunedElements =
+    cullMarginPx >= 0 ? collectRegionPrunedElements(rootElement, region, cullMarginPx) : undefined;
+  const resolvedOptions: ResolvedCaptureOptions = {
+    scale: options.scale ?? DEFAULT_SCALE,
+    pixelRatio: options.pixelRatio ?? defaultView.devicePixelRatio,
+    backgroundColor: options.backgroundColor,
+    embedFonts: options.embedFonts ?? true,
+    bleed: 0,
+    clip: {
+      x: region.x - rootRect.left,
+      y: region.y - rootRect.top,
+      width: region.width,
+      height: region.height,
+    },
+    prunedElements,
+    filterNode: options.filterNode,
+    resolveIframeContent: options.resolveIframeContent,
+    timeoutMs: options.timeoutMs ?? DEFAULT_RESOURCE_TIMEOUT_MS,
+    abortSignal: options.abortSignal,
+  };
+  return captureNodeInternal(rootElement, resolvedOptions, {
     suppressedBackdropElements: null,
     skipBackdropFilterBaking: false,
   });
@@ -444,4 +496,9 @@ export const enableIframeBridge = (): (() => void) =>
     };
   });
 
-export type { CaptureOptions, CaptureResult } from "./types";
+export type {
+  CaptureOptions,
+  CaptureRegionOptions,
+  CaptureRegionRect,
+  CaptureResult,
+} from "./types";
