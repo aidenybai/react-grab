@@ -1,10 +1,18 @@
-import { GENERATED_CLASS_PREFIX } from "../constants";
+import { CSS_TEXT_CACHE_CAP, GENERATED_CLASS_PREFIX } from "../constants";
 import type {
   StyleDeclarationMap,
   StyleRegistry,
   StyleRuleDeclarationBlocks,
   StyleRuleRecord,
 } from "../types";
+import { createFifoCache } from "../utils/create-fifo-cache";
+import { getResourceCacheGeneration } from "./resource-loader";
+
+// The emitted stylesheet is a pure function of the registered rule signatures
+// (captured before the inline pass rewrites url() values) and the resource
+// cache state that rewrite draws from, so repeat captures of an unchanged tree
+// can reuse the previous text instead of re-grouping declarations.
+const cssTextCache = createFifoCache<string>(CSS_TEXT_CACHE_CAP);
 
 const buildInsertionOrderDeclarationBlock = (styles: StyleDeclarationMap): string => {
   let declarationBlock = "";
@@ -48,6 +56,7 @@ export const createStyleRegistry = (): StyleRegistry => {
     classNameByInsertionOrderSignature.set(insertionOrderSignature, className);
     rules.push({
       className,
+      signature: insertionOrderSignature,
       baseStyles,
       beforeStyles,
       afterStyles,
@@ -66,6 +75,10 @@ export const createStyleRegistry = (): StyleRegistry => {
   // and all emitted rules share specificity, so hoisting cannot change the
   // cascade result.
   const toCssText = (): string => {
+    let cssTextCacheKey = `${getResourceCacheGeneration()}`;
+    for (const rule of rules) cssTextCacheKey += `\u0000${rule.signature}`;
+    const cachedCssText = cssTextCache.get(cssTextCacheKey);
+    if (cachedCssText !== undefined) return cachedCssText;
     const classListsByDeclaration = new Map<string, string[]>();
     for (const rule of rules) {
       const baseStyles = rule.baseStyles;
@@ -118,7 +131,9 @@ export const createStyleRegistry = (): StyleRegistry => {
       if (markerBlock) ruleText += `\n.${rule.className}::marker{${markerBlock}}`;
       cssText += `${ruleText}\n`;
     }
-    return cssText.slice(0, -1);
+    const finalCssText = cssText.slice(0, -1);
+    cssTextCache.set(cssTextCacheKey, finalCssText);
+    return finalCssText;
   };
 
   return { rules, register, toCssText };

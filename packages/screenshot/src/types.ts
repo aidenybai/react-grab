@@ -93,6 +93,7 @@ export interface PseudoRulePreflight {
 
 export interface StyleRuleRecord {
   className: string;
+  signature: string;
   baseStyles: StyleDeclarationMap;
   beforeStyles: StyleDeclarationMap | null;
   afterStyles: StyleDeclarationMap | null;

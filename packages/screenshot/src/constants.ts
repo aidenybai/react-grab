@@ -3,6 +3,7 @@ export const DEFAULT_RESOURCE_TIMEOUT_MS = 8000;
 export const RESOURCE_CACHE_CAP = 150;
 export const BASELINE_CACHE_CAP = 256;
 export const RASTER_PNG_CACHE_CAP = 2;
+export const CSS_TEXT_CACHE_CAP = 8;
 export const DECODED_SVG_IMAGE_CACHE_CAP = 2;
 export const BAKED_BACKDROP_CACHE_CAP = 2;
 export const MAX_CANVAS_DIMENSION_PX = 16384;

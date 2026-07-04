@@ -311,3 +311,14 @@ Result: 70-stress warm 35.6 -> 38.6ms — still slower than unscoped reads, so
 the cost is downstream (fragmented snapshot key sets breaking style-registry
 signature dedup and diff caching), not selector matching. Scoping full-snapshot
 property reads by matched rules is a dead end on these fixtures. Reverted.
+
+## Iteration 33 — cross-capture stylesheet text cache
+
+Hotspot: toCssText was 3.2ms/run on 70-stress warm (declaration re-grouping +
+residual rebuild each capture). The emitted stylesheet is a pure function of
+the registered rule signatures (pre-inline) and the resource cache state the
+url() rewrite draws from, so toCssText now keys a module-level FIFO cache on
+resource-cache generation + joined rule signatures and reuses the previous
+text for unchanged trees.
+Metrics: 70-stress warm 35.4 -> 34.4ms (21 runs); others neutral. Unit 77/77,
+chromium fidelity 412/412 green.
