@@ -1,8 +1,8 @@
 import { getOwnerStack, getSource, type StackFrame } from "bippy/source";
 import {
-  getFiberFromHostInstance,
   isInstrumentationActive,
   getDisplayName,
+  getFiberFromHostInstance,
   isCompositeFiber,
   traverseFiber,
   type Fiber,

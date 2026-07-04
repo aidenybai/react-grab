@@ -7,8 +7,8 @@
 // coupled to React internals, so all replay paths use try/catch.
 import {
   _fiberRoots,
-  getRDTHook,
   getFiberFromHostInstance,
+  getRDTHook,
   isCompositeFiber,
   type Fiber,
   type ReactRenderer,
