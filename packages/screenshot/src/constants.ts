@@ -417,7 +417,6 @@ export const BOX_RELATIVE_VALUE_PATTERN = /%|calc\(|var\(|min\(|max\(|clamp\(/;
 // or non-whitespace control characters can embed ";"/":" inside values, so
 // only texts free of them take the raw-split parsing fast path. Tab, LF, FF,
 // and CR are CSS whitespace and stay allowed.
-// eslint-disable-next-line no-control-regex
 export const UNSAFE_INLINE_STYLE_TEXT_PATTERN =
   /["'\\]|url\(|var\(|\/\*|[\u0000-\u0008\u000b\u000e-\u001f]/i;
 
