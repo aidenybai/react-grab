@@ -430,3 +430,11 @@ Collapsed margin/padding/inset longhand quadruples into shorthands at emission.
 cssLen only dropped 101653 -> 101351: the diff pass already omits
 baseline-equal sides, so complete quadruples are rare in emitted maps. Neutral
 perf for added complexity — reverted.
+
+## Iteration 43 — shared scratch canvas for the encode path
+
+Allocating a 2400x4800 canvas zero-fills its backing store (~18ms probe:
+fresh 22.9ms vs reused 4.7ms). toBlob/toPngDataUrl now draw into a shared
+scratch canvas guarded by a busy flag (concurrent captures fall back to a
+fresh canvas); toCanvas still returns a caller-owned canvas. 70-stress warm
+rasterMs 12.2 -> 6.3, median 110 -> 106. Unit 77/77; fidelity 412 + 824 green.

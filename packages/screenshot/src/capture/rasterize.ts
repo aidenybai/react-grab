@@ -27,6 +27,24 @@ const decodedSvgImageCache = createFifoCache<Promise<HTMLImageElement>>(
   DECODED_SVG_IMAGE_CACHE_CAP,
 );
 
+// Allocating a large canvas zero-fills its backing store (~18ms at
+// 2400x4800), so the internal encode path draws into one shared scratch
+// canvas that is never handed to callers; toCanvas still returns a fresh
+// canvas the caller owns.
+let scratchCanvas: HTMLCanvasElement | null = null;
+let isScratchCanvasBusy = false;
+
+const acquireScratchCanvas = (): HTMLCanvasElement | null => {
+  if (isScratchCanvasBusy) return null;
+  scratchCanvas ??= document.createElement("canvas");
+  isScratchCanvasBusy = true;
+  return scratchCanvas;
+};
+
+const releaseScratchCanvas = (): void => {
+  isScratchCanvasBusy = false;
+};
+
 export const createCaptureResult = (
   svgMarkup: string,
   width: number,
@@ -70,7 +88,7 @@ export const createCaptureResult = (
   const outputWidth = canvasClipRect ? Math.max(1, Math.ceil(canvasClipRect.width)) : width;
   const outputHeight = canvasClipRect ? Math.max(1, Math.ceil(canvasClipRect.height)) : height;
 
-  const toCanvas = async (): Promise<HTMLCanvasElement> => {
+  const renderToCanvas = async (canvas: HTMLCanvasElement): Promise<HTMLCanvasElement> => {
     const svgImage = await raceWithAbortSignal(decodeSvgImage(), options.abortSignal);
     const rasterStartMs = performance.now();
     const rasterScale = options.scale * options.pixelRatio;
@@ -81,14 +99,20 @@ export const createCaptureResult = (
       MAX_CANVAS_DIMENSION_PX / Math.max(1, rawCanvasWidth),
       MAX_CANVAS_DIMENSION_PX / Math.max(1, rawCanvasHeight),
     );
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.floor(rawCanvasWidth * clampRatio));
-    canvas.height = Math.max(1, Math.floor(rawCanvasHeight * clampRatio));
+    const canvasWidth = Math.max(1, Math.floor(rawCanvasWidth * clampRatio));
+    const canvasHeight = Math.max(1, Math.floor(rawCanvasHeight * clampRatio));
     const renderingContext = canvas.getContext("2d");
     if (!renderingContext) throw new Error("Could not acquire a 2d canvas context");
+    if (canvas.width !== canvasWidth || canvas.height !== canvasHeight) {
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
+    } else {
+      renderingContext.setTransform(1, 0, 0, 1, 0, 0);
+      renderingContext.clearRect(0, 0, canvasWidth, canvasHeight);
+    }
     if (options.backgroundColor) {
       renderingContext.fillStyle = options.backgroundColor;
-      renderingContext.fillRect(0, 0, canvas.width, canvas.height);
+      renderingContext.fillRect(0, 0, canvasWidth, canvasHeight);
     }
     renderingContext.scale(rasterScale * clampRatio, rasterScale * clampRatio);
     if (canvasClipRect) renderingContext.translate(-canvasClipRect.x, -canvasClipRect.y);
@@ -97,6 +121,9 @@ export const createCaptureResult = (
     return canvas;
   };
 
+  const toCanvas = (): Promise<HTMLCanvasElement> =>
+    renderToCanvas(document.createElement("canvas"));
+
   const toBlob = (): Promise<Blob> => {
     const clipKey = canvasClipRect
       ? `${canvasClipRect.x},${canvasClipRect.y},${canvasClipRect.width},${canvasClipRect.height}`
@@ -104,12 +131,17 @@ export const createCaptureResult = (
     const cacheKey = `${options.scale}|${options.pixelRatio}|${options.backgroundColor ?? ""}|${width}|${height}|${clipKey}|${svgMarkup}`;
     const cachedPngBlobPromise = encodedPngCache.get(cacheKey);
     if (cachedPngBlobPromise) return cachedPngBlobPromise;
-    const pngBlobPromise = toCanvas().then(async (renderedCanvas) => {
-      const encodeStartMs = performance.now();
-      const pngBlob = await canvasToBlob(renderedCanvas);
-      lastCaptureTimings.encodeMs = performance.now() - encodeStartMs;
-      return pngBlob;
-    });
+    const acquiredScratchCanvas = acquireScratchCanvas();
+    const pngBlobPromise = renderToCanvas(acquiredScratchCanvas ?? document.createElement("canvas"))
+      .then(async (renderedCanvas) => {
+        const encodeStartMs = performance.now();
+        const pngBlob = await canvasToBlob(renderedCanvas);
+        lastCaptureTimings.encodeMs = performance.now() - encodeStartMs;
+        return pngBlob;
+      })
+      .finally(() => {
+        if (acquiredScratchCanvas !== null) releaseScratchCanvas();
+      });
     encodedPngCache.set(cacheKey, pngBlobPromise);
     pngBlobPromise.catch(() => {
       encodedPngCache.delete(cacheKey);
