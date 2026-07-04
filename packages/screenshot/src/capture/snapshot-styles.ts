@@ -75,8 +75,7 @@ export const snapshotComposedTree = (
       relevantPropertyNames &&
       relevantProps?.isStyleMemoSafe() &&
       isMemoizableHtmlElement &&
-      parentMemoKey !== NO_MEMO_KEY &&
-      element !== activeElement
+      parentMemoKey !== NO_MEMO_KEY
     ) {
       const ancestryKey = `${parentMemoKey}>${buildStyleMemoDescriptor(element, perElementProps)}`;
       const internedKey = memoKeyByAncestry.get(ancestryKey);
@@ -87,7 +86,13 @@ export const snapshotComposedTree = (
         memoKey = internedKey;
       }
     }
-    const memoized = memoKey !== NO_MEMO_KEY ? memoizedStylesByKey.get(memoKey) : undefined;
+    // The active element can carry UA focus styling (e.g. :focus-visible
+    // outline) that peers with an identical descriptor lack, so it neither
+    // reads nor seeds the memo cache; its descendants still memoize because
+    // author :focus rules already force the memo off entirely.
+    const isMemoExcluded = element === activeElement;
+    const memoized =
+      memoKey !== NO_MEMO_KEY && !isMemoExcluded ? memoizedStylesByKey.get(memoKey) : undefined;
     const computedStyle = defaultView.getComputedStyle(element);
     let styles: StyleDeclarationMap;
     if (memoized) {
@@ -154,7 +159,7 @@ export const snapshotComposedTree = (
         afterStyles = snapshotPseudoStyles(element, "::after", defaultView, relevantPropertyNames);
       }
     }
-    if (memoKey !== NO_MEMO_KEY && !memoized) {
+    if (memoKey !== NO_MEMO_KEY && !memoized && !isMemoExcluded) {
       memoizedStylesByKey.set(memoKey, { styles, beforeStyles, afterStyles });
     }
     snapshotByElement.set(element, {
@@ -168,7 +173,7 @@ export const snapshotComposedTree = (
       parentElement,
       scrollLeft: element.scrollLeft,
       scrollTop: element.scrollTop,
-      memoKey,
+      memoKey: isMemoExcluded ? NO_MEMO_KEY : memoKey,
     });
     if (UNRECURSED_CLONE_TAGS.has(element.localName)) return;
     if (prunedElements?.has(element)) return;

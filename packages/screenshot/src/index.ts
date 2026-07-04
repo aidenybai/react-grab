@@ -54,6 +54,7 @@ import { isHtmlElement } from "./utils/is-html-element";
 import { isHtmlElementOfTag } from "./utils/is-html-element-of-tag";
 import { isReplacedElement } from "./utils/is-replaced-element";
 import { isWebKitEngine } from "./utils/is-webkit-engine";
+import { lastCaptureTimings } from "./capture/phase-timings";
 import { measureImageDataUrl } from "./utils/measure-image-data-url";
 import { raceWithAbortSignal } from "./utils/race-with-abort-signal";
 
@@ -288,12 +289,14 @@ const captureNodeInternal = async (
       MIN_CAPTURE_DIMENSION_PX,
       layoutHeight > 0 ? layoutHeight : boundingBoxHeight,
     );
+    const snapshotStartMs = performance.now();
     const { snapshotByElement, perElementPropertyNames } = snapshotComposedTree(
       element,
       defaultView,
       resolvedOptions.filterNode,
       resolvedOptions.prunedElements,
     );
+    lastCaptureTimings.snapshotMs = performance.now() - snapshotStartMs;
     const rootSnapshot = snapshotByElement.get(element);
     if (!rootSnapshot) {
       throw new Error("captureNode target was excluded by filterNode or is not capturable");
@@ -331,9 +334,12 @@ const captureNodeInternal = async (
         resolvedOptions.backgroundColor = findInheritedBackgroundColor(element) || undefined;
       }
     }
+    const iframesStartMs = performance.now();
     const iframeContentByElement = await captureIframeContents(snapshotByElement, resolvedOptions);
+    lastCaptureTimings.iframesMs = performance.now() - iframesStartMs;
     resolvedOptions.abortSignal?.throwIfAborted();
     let bakedBackdropPngByElement = new Map<Element, string>();
+    const backdropStartMs = performance.now();
     if (!internalContext.skipBackdropFilterBaking) {
       const backdropFilterElements = collectBackdropFilterElements(snapshotByElement, element);
       if (backdropFilterElements.length > 0) {
@@ -356,10 +362,12 @@ const captureNodeInternal = async (
         });
       }
     }
+    lastCaptureTimings.backdropMs = performance.now() - backdropStartMs;
     resolvedOptions.abortSignal?.throwIfAborted();
     const sandbox = createStyleSandbox(ownerDocument);
     let svgMarkup: string;
     try {
+      const buildStartMs = performance.now();
       const registry = createStyleRegistry();
       const classNameByElement = buildClassNameMap(
         snapshotByElement,
@@ -380,6 +388,8 @@ const captureNodeInternal = async (
         prunedElements: resolvedOptions.prunedElements,
       });
       if (!clone) throw new Error("captureNode could not clone the target element");
+      lastCaptureTimings.buildMs = performance.now() - buildStartMs;
+      const inlineStartMs = performance.now();
       // svg <use> inlining appends defs whose resources must be picked up by
       // resource inlining, so those two stay ordered; font embedding only
       // reads document @font-face rules and can overlap both.
@@ -405,6 +415,8 @@ const captureNodeInternal = async (
         ]),
         resolvedOptions.abortSignal,
       );
+      lastCaptureTimings.inlineMs = performance.now() - inlineStartMs;
+      const serializeStartMs = performance.now();
       // WebKit rasterizes a panned viewBox over foreignObject content
       // incorrectly (it fits the full page into the crop), so there the crop
       // happens at the canvas instead of inside the SVG.
@@ -416,6 +428,7 @@ const captureNodeInternal = async (
         clip: isWebKitEngine() ? null : clipRect,
         ownerDocument,
       });
+      lastCaptureTimings.serializeMs = performance.now() - serializeStartMs;
     } finally {
       sandbox.dispose();
     }
@@ -499,6 +512,8 @@ export const captureRegion = async (
     skipBackdropFilterBaking: false,
   });
 };
+
+export { lastCaptureTimings } from "./capture/phase-timings";
 
 export const enableIframeBridge = (): (() => void) =>
   createIframeBridge(async (pixelRatio) => {

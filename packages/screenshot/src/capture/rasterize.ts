@@ -11,6 +11,7 @@ import { encodeSvgDataUrl } from "../utils/encode-svg-data-url";
 import { isBlinkEngine } from "../utils/is-blink-engine";
 import { raceWithAbortSignal } from "../utils/race-with-abort-signal";
 import { waitForAnimationFrames } from "../utils/wait-for-animation-frames";
+import { lastCaptureTimings } from "./phase-timings";
 
 // The serialized SVG markup inlines every external resource (images, fonts,
 // iframe rasters) as data URLs, so markup + raster parameters fully determine
@@ -36,6 +37,7 @@ export const createCaptureResult = (
 
   const decodeSvgImage = (): Promise<HTMLImageElement> => {
     decodedImagePromise ??= (async () => {
+      const decodeStartMs = performance.now();
       const svgImage = new Image();
       svgImage.decoding = "sync";
       svgImage.src = svgDataUrl;
@@ -47,6 +49,7 @@ export const createCaptureResult = (
       if (!isBlinkEngine() && hasNestedDataUrlResources) {
         await waitForAnimationFrames(DECODE_SETTLE_FRAME_COUNT);
       }
+      lastCaptureTimings.decodeMs = performance.now() - decodeStartMs;
       return svgImage;
     })().catch((decodeError: unknown) => {
       decodedImagePromise = null;
@@ -60,6 +63,7 @@ export const createCaptureResult = (
 
   const toCanvas = async (): Promise<HTMLCanvasElement> => {
     const svgImage = await raceWithAbortSignal(decodeSvgImage(), options.abortSignal);
+    const rasterStartMs = performance.now();
     const rasterScale = options.scale * options.pixelRatio;
     const rawCanvasWidth = Math.ceil(outputWidth * rasterScale);
     const rawCanvasHeight = Math.ceil(outputHeight * rasterScale);
@@ -80,6 +84,7 @@ export const createCaptureResult = (
     renderingContext.scale(rasterScale * clampRatio, rasterScale * clampRatio);
     if (canvasClipRect) renderingContext.translate(-canvasClipRect.x, -canvasClipRect.y);
     renderingContext.drawImage(svgImage, 0, 0, width, height);
+    lastCaptureTimings.rasterMs = performance.now() - rasterStartMs;
     return canvas;
   };
 
@@ -90,7 +95,12 @@ export const createCaptureResult = (
     const cacheKey = `${options.scale}|${options.pixelRatio}|${options.backgroundColor ?? ""}|${width}|${height}|${clipKey}|${svgMarkup}`;
     const cachedPngBlobPromise = encodedPngCache.get(cacheKey);
     if (cachedPngBlobPromise) return cachedPngBlobPromise;
-    const pngBlobPromise = toCanvas().then(canvasToBlob);
+    const pngBlobPromise = toCanvas().then(async (renderedCanvas) => {
+      const encodeStartMs = performance.now();
+      const pngBlob = await canvasToBlob(renderedCanvas);
+      lastCaptureTimings.encodeMs = performance.now() - encodeStartMs;
+      return pngBlob;
+    });
     encodedPngCache.set(cacheKey, pngBlobPromise);
     pngBlobPromise.catch(() => {
       encodedPngCache.delete(cacheKey);
