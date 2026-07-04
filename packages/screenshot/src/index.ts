@@ -104,6 +104,26 @@ const bakedBackdropPngCache = createFifoCache<string[]>(BAKED_BACKDROP_CACHE_CAP
 
 const VARIANT_KEY_SEPARATOR = "\x1f";
 
+// Memo-hit style maps delegate to the seed's map through their prototype, so
+// only own properties whose value actually shadows the seed's can distinguish
+// variants inside a memo class; the key encodes just those deviations (indexed
+// so different properties with equal values cannot collide).
+const appendStyleDeviations = (
+  variantKey: string,
+  styles: StyleDeclarationMap,
+  perElementPropertyNames: readonly string[],
+): string => {
+  const seedStyles: StyleDeclarationMap | null = Object.getPrototypeOf(styles);
+  for (let propertyIndex = 0; propertyIndex < perElementPropertyNames.length; propertyIndex++) {
+    const propertyName = perElementPropertyNames[propertyIndex];
+    if (!Object.hasOwn(styles, propertyName)) continue;
+    const ownValue = styles[propertyName];
+    if (seedStyles !== null && seedStyles[propertyName] === ownValue) continue;
+    variantKey += `${VARIANT_KEY_SEPARATOR}${propertyIndex}:${ownValue ?? ""}`;
+  }
+  return variantKey;
+};
+
 const appendPseudoVariantPart = (
   variantKey: string,
   pseudoStyles: StyleDeclarationMap | null,
@@ -111,10 +131,7 @@ const appendPseudoVariantPart = (
 ): string => {
   if (pseudoStyles === null) return `${variantKey}${VARIANT_KEY_SEPARATOR}\x00`;
   variantKey += `${VARIANT_KEY_SEPARATOR}${pseudoStyles["content"] ?? ""}`;
-  for (const propertyName of perElementPropertyNames) {
-    variantKey += `${VARIANT_KEY_SEPARATOR}${pseudoStyles[propertyName] ?? ""}`;
-  }
-  return variantKey;
+  return appendStyleDeviations(variantKey, pseudoStyles, perElementPropertyNames);
 };
 
 const buildVariantKey = (
@@ -123,9 +140,7 @@ const buildVariantKey = (
   perElementPropertyNames: readonly string[],
 ): string => {
   let variantKey = parentDisplay ?? "";
-  for (const propertyName of perElementPropertyNames) {
-    variantKey += `${VARIANT_KEY_SEPARATOR}${snapshot.styles[propertyName] ?? ""}`;
-  }
+  variantKey = appendStyleDeviations(variantKey, snapshot.styles, perElementPropertyNames);
   variantKey = appendPseudoVariantPart(variantKey, snapshot.beforeStyles, perElementPropertyNames);
   return appendPseudoVariantPart(variantKey, snapshot.afterStyles, perElementPropertyNames);
 };

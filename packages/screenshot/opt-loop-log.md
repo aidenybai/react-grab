@@ -207,3 +207,14 @@ non-replaced (guarded off when display itself is in the per-element lane).
 Pseudo-element lane reads always qualify as non-replaced.
 Metrics: 70-stress getPropertyValue 15,838 -> 15,562/run; warm 38.1ms median.
 Unit 77/77, chromium fidelity 412/412 green.
+
+### Iteration 23 — deviation-only variant keys (KEPT)
+
+Technique: variant keys concatenated every per-element lane value (~90 string
+appends per element across base/::before/::after). Memo-hit maps delegate to
+the seed through their prototype, so only own properties whose value shadows
+the seed's can distinguish variants; the key now encodes just those indexed
+deviations (empty for the common seed-identical hit).
+Metrics: buildMs ~14.8 -> ~13.5ms on 70-stress (small, within noise band, kept
+as structurally cheaper: near-empty keys, no per-prop value concat). Unit
+77/77, chromium fidelity 412/412 green.
