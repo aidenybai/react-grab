@@ -64,6 +64,8 @@ interface PersistentInlineScanStore {
   sheetSignature: string;
   laneSignature: string;
   scanByText: Map<string, InlineStyleScan>;
+  dedupedFeed: readonly (readonly [string, string])[];
+  feedScanCount: number;
 }
 
 const persistentMemoStoreByDocument = new WeakMap<Document, PersistentMemoStore>();
@@ -92,15 +94,7 @@ export const snapshotComposedTree = (
   const persistedScanStore = persistentInlineScanStoreByDocument.get(rootElement.ownerDocument);
   const isScanStoreSheetValid =
     persistedScanStore !== undefined && persistedScanStore.sheetSignature === sheetSignature;
-  let persistedInlineFeed: (readonly [string, string])[] | null = null;
-  if (isScanStoreSheetValid) {
-    persistedInlineFeed = [];
-    for (const persistedScan of persistedScanStore.scanByText.values()) {
-      if (persistedScan.registryFeed !== null) {
-        persistedInlineFeed.push(...persistedScan.registryFeed);
-      }
-    }
-  }
+  const persistedInlineFeed = isScanStoreSheetValid ? persistedScanStore.dedupedFeed : null;
   let relevantProps = createRelevantStylePropRegistry(
     rootElement.ownerDocument,
     persistedInlineFeed,
@@ -458,10 +452,31 @@ export const snapshotComposedTree = (
     persistentMemoStoreByDocument.delete(rootElement.ownerDocument);
   }
   if (relevantProps !== null && inlineStyleScanByText.size <= PERSISTED_MEMO_STORE_ENTRY_CAP) {
+    const isFeedCurrent =
+      isScanStoreSheetValid &&
+      persistedScanStore.scanByText === inlineStyleScanByText &&
+      persistedScanStore.feedScanCount === inlineStyleScanByText.size;
+    let dedupedFeed = isFeedCurrent ? persistedScanStore.dedupedFeed : null;
+    if (dedupedFeed === null) {
+      const seenFeedKeys = new Set<string>();
+      const rebuiltFeed: (readonly [string, string])[] = [];
+      for (const persistedScan of inlineStyleScanByText.values()) {
+        if (persistedScan.registryFeed === null) continue;
+        for (const feedEntry of persistedScan.registryFeed) {
+          const feedKey = `${feedEntry[0]}|${feedEntry[1]}`;
+          if (seenFeedKeys.has(feedKey)) continue;
+          seenFeedKeys.add(feedKey);
+          rebuiltFeed.push(feedEntry);
+        }
+      }
+      dedupedFeed = rebuiltFeed;
+    }
     persistentInlineScanStoreByDocument.set(rootElement.ownerDocument, {
       sheetSignature,
       laneSignature,
       scanByText: inlineStyleScanByText,
+      dedupedFeed,
+      feedScanCount: inlineStyleScanByText.size,
     });
   } else {
     persistentInlineScanStoreByDocument.delete(rootElement.ownerDocument);

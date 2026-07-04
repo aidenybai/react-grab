@@ -630,3 +630,14 @@ memo store across captures. Now the store converges by the third capture
 from capture 3). 71-mega-grid: snapshot 81 -> 31ms, warm 324 -> 284ms.
 70-stress/60-kitchen-sink neutral. Full 3-engine fidelity (412x3) + 77 unit
 tests green.
+
+## Iteration 63 — deduped, cached registry replay feed (kept)
+
+The persisted-scan replay flattened every scan's registry feed into a fresh
+array each capture (~16k entries with heavy duplication on mega-grid) and fed
+each entry through checkDeclaredValueStability. The store now carries a
+deduped feed (unique longhand|value pairs), rebuilt only when the scan map
+gained entries, so repeat captures replay ~10x fewer declarations and skip
+the flatten. 71-mega-grid: warm 284 -> 262ms, snapshot 31 -> 29ms.
+70-stress/60-kitchen-sink neutral. Full 3-engine fidelity (412x3) + 77 unit
+tests green.
