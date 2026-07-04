@@ -346,6 +346,16 @@ export const snapshotComposedTree = (
     if (UNRECURSED_CLONE_TAGS.has(element.localName)) return;
     if (prunedElements?.has(element)) return;
     const childIsInShadowTree = isInShadowTree || Boolean(element.shadowRoot);
+    if (!childIsInShadowTree) {
+      for (
+        let childElement = element.firstElementChild;
+        childElement !== null;
+        childElement = childElement.nextElementSibling
+      ) {
+        visit(childElement, element, false, memoKey);
+      }
+      return;
+    }
     for (const childNode of getComposedChildNodes(element, childIsInShadowTree)) {
       if (isElementNode(childNode)) visit(childNode, element, childIsInShadowTree, memoKey);
     }

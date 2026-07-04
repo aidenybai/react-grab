@@ -462,3 +462,11 @@ an adopted store reuses the interned key directly for elements with no
 attribute mutations since persist (parent-key equality pins the ancestry),
 skipping the descriptor string build entirely. 70-stress warm snapshotMs
 14 -> 12.1, median 106 -> 101.3. Unit 77/77; fidelity 412 + 824 green.
+
+## Iteration 47 — element-sibling traversal in the snapshot walk
+
+Outside shadow trees the snapshot visit only needs elements, so it now walks
+firstElementChild/nextElementSibling directly instead of iterating the full
+childNodes list (skipping the NodeList iterator and per-text-node element
+checks). 70-stress warm snapshotMs 12.1 -> 11.1. Unit 77/77; Chromium
+fidelity 412/412 green.
