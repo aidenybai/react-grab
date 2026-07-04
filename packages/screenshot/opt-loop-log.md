@@ -423,3 +423,10 @@ previously seen (memoKey, variantKey) pair. Root, suppressed-backdrop, and
 baked elements stay excluded from sharing as before; the maps drop with the
 store on any signature change. 70-stress mutated-warm buildMs 11.9 -> 9.3.
 Unit 77/77; fidelity 412 chromium + 824 webkit/firefox all green.
+
+## Iteration 42 — box-edge shorthand collapsing (REVERTED)
+
+Collapsed margin/padding/inset longhand quadruples into shorthands at emission.
+cssLen only dropped 101653 -> 101351: the diff pass already omits
+baseline-equal sides, so complete quadruples are rare in emitted maps. Neutral
+perf for added complexity — reverted.
