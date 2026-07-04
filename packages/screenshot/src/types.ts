@@ -88,6 +88,12 @@ export interface ComposedTreeSnapshot {
   inlineCarryTextByElement: Map<Element, string>;
 }
 
+export interface InlineStyleScan {
+  carryText: string;
+  descriptorWithCarry: string;
+  descriptorPlain: string;
+}
+
 export interface PseudoRulePreflight {
   definesBeforeAfter: boolean;
   definesFirstLetter: boolean;

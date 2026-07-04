@@ -9,6 +9,7 @@ import {
 import type {
   ComposedTreeSnapshot,
   ElementReadSnapshot,
+  InlineStyleScan,
   MemoizedElementStyles,
   StyleDeclarationMap,
 } from "../types";
@@ -18,7 +19,7 @@ import {
   getDocumentStyleEpoch,
   getAttributeGenerationByElement,
 } from "./document-change-tracker";
-import { buildInlineCarryText } from "../utils/build-inline-carry-text";
+import { buildInlineStyleScan } from "../utils/build-inline-style-scan";
 import { buildStyleMemoDescriptor } from "../utils/build-style-memo-descriptor";
 import { getComposedChildNodes } from "../utils/get-composed-child-nodes";
 import { isElementNode } from "../utils/is-element-node";
@@ -70,6 +71,7 @@ export const snapshotComposedTree = (
 ): ComposedTreeSnapshot => {
   const snapshotByElement = new Map<Element, ElementReadSnapshot>();
   const inlineCarryTextByElement = new Map<Element, string>();
+  const inlineStyleScanByText = new Map<string, InlineStyleScan>();
   const pseudoPreflight = preflightPseudoRules(rootElement.ownerDocument);
   let relevantProps = createRelevantStylePropRegistry(rootElement.ownerDocument);
   if (relevantProps) {
@@ -184,8 +186,20 @@ export const snapshotComposedTree = (
     }
     const isMemoizableHtmlElement =
       isHtmlElement(element) && !isInShadowTree && !FULL_SNAPSHOT_TAGS.has(element.localName);
-    if (relevantProps && element.hasAttribute("style") && isHtmlElement(element)) {
-      relevantProps.addInlineStyleProps(element.style);
+    // Identical style-attribute texts parse to identical declaration lists,
+    // so registry ingestion and the descriptor/carry scan both key off the
+    // raw text and run once per unique text.
+    let inlineStyleScan: InlineStyleScan | null = null;
+    if (element.hasAttribute("style") && isHtmlElement(element)) {
+      const inlineStyleText = element.getAttribute("style") ?? "";
+      const cachedScan = inlineStyleScanByText.get(inlineStyleText);
+      if (cachedScan === undefined) {
+        if (relevantProps) relevantProps.addInlineStyleProps(element.style);
+        inlineStyleScan = buildInlineStyleScan(element.style, perElementProps);
+        inlineStyleScanByText.set(inlineStyleText, inlineStyleScan);
+      } else {
+        inlineStyleScan = cachedScan;
+      }
     }
     const relevantPropertyNames =
       relevantProps &&
@@ -201,12 +215,8 @@ export const snapshotComposedTree = (
       isMemoizableHtmlElement &&
       parentMemoKey !== NO_MEMO_KEY
     ) {
-      if (
-        relevantProps.isInlineCarrySafe() &&
-        isHtmlElement(element) &&
-        element.hasAttribute("style")
-      ) {
-        inlineCarryText = buildInlineCarryText(element.style);
+      if (inlineStyleScan !== null && relevantProps.isInlineCarrySafe()) {
+        inlineCarryText = inlineStyleScan.carryText;
         if (inlineCarryText !== "") inlineCarryTextByElement.set(element, inlineCarryText);
       }
       const persistedElementKey =
@@ -222,9 +232,12 @@ export const snapshotComposedTree = (
       } else {
         const descriptor = buildStyleMemoDescriptor(
           element,
-          perElementProps,
           relevantProps?.styleRelevantAttributeNames ?? null,
-          inlineCarryText !== "",
+          inlineStyleScan === null
+            ? ""
+            : inlineCarryText !== ""
+              ? inlineStyleScan.descriptorWithCarry
+              : inlineStyleScan.descriptorPlain,
         );
         let descriptorKeys = memoKeysByParentKey.get(parentMemoKey);
         if (descriptorKeys === undefined) {

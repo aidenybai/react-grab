@@ -584,3 +584,17 @@ memo-hit snapshot can hold the seed's padding. 71-mega-grid (1,600 uniquely
 inline-styled cells): snapshot 413 -> 132ms, warm 778 -> 423ms, cold 924 ->
 503ms. 70-stress/60-kitchen-sink neutral. Full 3-engine fidelity + 77 unit
 tests green.
+
+## Iteration 60 — single-pass, text-keyed inline style scan (kept)
+
+Profiling 71-mega-grid warm runs showed inline CSSOM access (getPropertyValue
+818ms, item 165ms, getPropertyPriority 163ms across 10 runs) split across
+three separate loops per styled element: registry ingestion, carry-text
+build, and descriptor build. Identical style-attribute texts parse to
+identical declaration lists, so all three now key off the raw attribute text:
+one buildInlineStyleScan pass produces the carry text plus both descriptor
+variants (carry-marked and plain), cached per capture in a
+Map<styleText, InlineStyleScan>, and registry ingestion runs once per unique
+text. 71-mega-grid: snapshot 136 -> 104ms, warm 435 -> 393ms.
+70-stress/60-kitchen-sink neutral. Full 3-engine fidelity (412x3) + 77 unit
+tests green.
