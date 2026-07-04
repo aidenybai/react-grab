@@ -8,6 +8,7 @@ export {
 export { commentPlugin } from "./core/plugins/comment.js";
 export { openPlugin } from "./core/plugins/open.js";
 export { generateSnippet } from "./utils/generate-snippet.js";
+export { startTraceMode } from "./trace/trace-mode.js";
 export type {
   Options,
   ReactGrabAPI,
