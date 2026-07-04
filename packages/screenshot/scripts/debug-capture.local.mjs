@@ -23,7 +23,7 @@ await page.addScriptTag({
 });
 const result = await page.evaluate(async (wantSvg) => {
   const target = document.querySelector("#target");
-  const captureResult = await window.ReactGrabScreenshot.captureNode(target, {
+  const captureResult = await window.HtmlToImageFast.captureNode(target, {
     pixelRatio: 1,
     scale: 1,
   });

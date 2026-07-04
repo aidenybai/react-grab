@@ -1,11 +1,11 @@
 {
-  "name": "@react-grab/screenshot",
+  "name": "html-to-image-fast",
   "version": "0.0.1",
-  "description": "High-fidelity DOM node to image capture",
+  "description": "Fast, high-fidelity DOM node to image capture",
   "keywords": [
     "capture",
     "dom-to-image",
-    "react-grab",
+    "html-to-image",
     "screenshot"
   ],
   "homepage": "https://react-grab.com",
@@ -19,7 +19,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/aidenybai/react-grab.git"
+    "url": "git+https://github.com/aidenybai/react-grab.git",
+    "directory": "packages/screenshot"
   },
   "files": [
     "dist",

@@ -1,6 +1,6 @@
 # Architecture Documentation
 
-This document covers how @react-grab/screenshot's internals work. It's intended to aid in understanding the code, in understanding the tricks the library uses to reproduce a live DOM subtree pixel-for-pixel inside an SVG `<foreignObject>`, and hopefully to enable people to modify the code. Many of the techniques described here are inherently fragile because they sit on top of browser behaviors that were never specified for this purpose: computed-style enumeration order, `foreignObject` rasterization quirks, canvas tainting rules, and per-engine differences in how UA default styles are applied. The current approach is not necessarily the best or only way to do these things, and some of these details will need to change as browsers evolve.
+This document covers how html-to-image-fast's internals work. It's intended to aid in understanding the code, in understanding the tricks the library uses to reproduce a live DOM subtree pixel-for-pixel inside an SVG `<foreignObject>`, and hopefully to enable people to modify the code. Many of the techniques described here are inherently fragile because they sit on top of browser behaviors that were never specified for this purpose: computed-style enumeration order, `foreignObject` rasterization quirks, canvas tainting rules, and per-engine differences in how UA default styles are applied. The current approach is not necessarily the best or only way to do these things, and some of these details will need to change as browsers evolve.
 
 ### Design principles
 

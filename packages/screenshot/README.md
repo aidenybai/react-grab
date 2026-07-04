@@ -1,6 +1,6 @@
-# @react-grab/screenshot
+# html-to-image-fast
 
-[![version](https://img.shields.io/npm/v/@react-grab/screenshot?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/@react-grab/screenshot)
+[![version](https://img.shields.io/npm/v/html-to-image-fast?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/html-to-image-fast)
 
 Screenshot any DOM node, in the browser, with high fidelity.
 
@@ -9,13 +9,13 @@ Give it an element and get back a pixel-accurate PNG of exactly what the user se
 ## Install
 
 ```bash
-npm install @react-grab/screenshot
+npm install html-to-image-fast
 ```
 
 ## Usage
 
 ```ts
-import { captureNode } from "@react-grab/screenshot";
+import { captureNode } from "html-to-image-fast";
 
 const result = await captureNode(document.querySelector("#card"));
 
@@ -28,7 +28,7 @@ await result.toCanvas(); // HTMLCanvasElement
 await result.toSvgDataUrl(); // the intermediate SVG, before rasterization
 ```
 
-The IIFE build exposes the same API as `window.ReactGrabScreenshot.captureNode`.
+The IIFE build exposes the same API as `window.HtmlToImageFast.captureNode`.
 
 ### Options
 
@@ -88,7 +88,7 @@ Cross-origin iframe content is unreadable from the parent page. Two escape hatch
 
 ```ts
 // inside the cross-origin iframe's page
-import { enableIframeBridge } from "@react-grab/screenshot";
+import { enableIframeBridge } from "html-to-image-fast";
 const disableBridge = enableIframeBridge();
 ```
 

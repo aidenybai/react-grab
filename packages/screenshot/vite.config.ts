@@ -15,7 +15,7 @@ const modulePack: PackUserConfig = {
 const iifePack: PackUserConfig = {
   entry: ["src/index.ts"],
   format: ["iife"],
-  globalName: "ReactGrabScreenshot",
+  globalName: "HtmlToImageFast",
   dts: false,
   clean: false,
   platform: "browser",

@@ -50,7 +50,7 @@ const runBenchInPage = (
         (element: HTMLElement) => Promise<string>
       > = {
         "react-grab": async (element) => {
-          const captureResult = await window.ReactGrabScreenshot.captureNode(element, {
+          const captureResult = await window.HtmlToImageFast.captureNode(element, {
             scale,
             pixelRatio,
           });
