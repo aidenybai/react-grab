@@ -163,11 +163,22 @@ cache at capture start so network latency overlaps the CPU phases.
 Metrics: localhost fixture assets resolve in ~6ms so the harness delta sits inside
 cold-run noise; the win scales with real network latency. Unit 77/77, chromium
 fidelity 412/412 green.
+
 ### Iteration 19 — cheap invalid-XML detection + attribute-name validity cache (KEPT)
 
 Technique: the invalid-XML detection regex carried lookarounds that are slow to
 test per string; clean strings (the overwhelming case) now exit through a plain
 character-class test plus native String.isWellFormed. Attribute-name XML validity
-is memoized by name (names repeat heavily: class/style/id/data-*).
+is memoized by name (names repeat heavily: class/style/id/data-\*).
 Metrics: 70-stress warm ~39.8ms (small win inside noise band; strip+sanitize were
 ~3ms/run in the profile). Unit 77/77, chromium fidelity 412/412 green.
+
+### Iteration 20 — decoded-SVG-image cache + baked-backdrop bake cache (KEPT)
+
+Technique: (a) decoded SVG images are immutable, so a small FIFO keyed by the SVG
+data URL lets repeat rasterizations of identical markup skip the decode; (b) the
+backdrop bake is fully determined by the underlay markup + each pane's device rect
+and filter, so an unchanged tree reuses the previous bake (pane PNG list) instead
+of re-rendering the blur and re-encoding pane PNGs each capture.
+Metrics: hard-stress-combo warm 10 -> 4.7ms (backdropMs 7.4 -> 2.3); other fixtures
+neutral. Unit 77/77, chromium fidelity 412/412 green.

@@ -24,6 +24,7 @@ import { prefetchExternalResources } from "./capture/prefetch-resources";
 import { snapshotComposedTree } from "./capture/snapshot-styles";
 import { createStyleRegistry } from "./capture/style-registry";
 import {
+  BAKED_BACKDROP_CACHE_CAP,
   DEFAULT_BLEED_PX,
   DEFAULT_REGION_CULL_MARGIN_PX,
   DEFAULT_RESOURCE_TIMEOUT_MS,
@@ -49,6 +50,7 @@ import type {
 import { applyBakedBackdropBackground } from "./utils/apply-baked-backdrop-background";
 import { collectRegionPrunedElements } from "./utils/collect-region-pruned-elements";
 import { computeAutoBleed } from "./utils/compute-auto-bleed";
+import { createFifoCache } from "./utils/create-fifo-cache";
 import { findDocumentBackgroundColor } from "./utils/find-document-background-color";
 import { findInheritedBackgroundColor } from "./utils/find-inherited-background-color";
 import { isHtmlElement } from "./utils/is-html-element";
@@ -97,6 +99,8 @@ interface CachedPseudoDiffs {
   beforeDiff: StyleDeclarationMap | null;
   afterDiff: StyleDeclarationMap | null;
 }
+
+const bakedBackdropPngCache = createFifoCache<string[]>(BAKED_BACKDROP_CACHE_CAP);
 
 const VARIANT_KEY_SEPARATOR = "\x1f";
 
@@ -534,15 +538,46 @@ const captureNodeInternal = async (
             skipBackdropFilterBaking: true,
           },
         );
-        bakedBackdropPngByElement = bakeBackdropFilterUnderlays({
-          underlayCanvas: await underlayResult.toCanvas(),
-          ownerDocument,
-          rootElement: element,
-          backdropFilterElements,
-          snapshotByElement,
-          pixelRatio: resolvedOptions.pixelRatio,
-          backgroundColor: resolvedOptions.backgroundColor,
-        });
+        // The underlay markup plus each pane's device rect and filter fully
+        // determine the baked pixels, so an unchanged tree reuses the previous
+        // bake instead of re-rendering the blur and re-encoding pane PNGs.
+        const paneRects = backdropFilterElements.map((backdropElement) =>
+          backdropElement.getBoundingClientRect(),
+        );
+        const bakeCacheKey =
+          `${resolvedOptions.pixelRatio}|${resolvedOptions.backgroundColor ?? ""}|` +
+          backdropFilterElements
+            .map(
+              (backdropElement, paneIndex) =>
+                `${paneRects[paneIndex].x},${paneRects[paneIndex].y},` +
+                `${paneRects[paneIndex].width},${paneRects[paneIndex].height},` +
+                `${snapshotByElement.get(backdropElement)?.styles["backdrop-filter"] ?? ""}`,
+            )
+            .join(";") +
+          `|${await underlayResult.toSvgDataUrl()}`;
+        const cachedPaneList = bakedBackdropPngCache.get(bakeCacheKey);
+        if (cachedPaneList && cachedPaneList.length === backdropFilterElements.length) {
+          backdropFilterElements.forEach((backdropElement, paneIndex) => {
+            const bakedPng = cachedPaneList[paneIndex];
+            if (bakedPng) bakedBackdropPngByElement.set(backdropElement, bakedPng);
+          });
+        } else {
+          bakedBackdropPngByElement = bakeBackdropFilterUnderlays({
+            underlayCanvas: await underlayResult.toCanvas(),
+            ownerDocument,
+            rootElement: element,
+            backdropFilterElements,
+            snapshotByElement,
+            pixelRatio: resolvedOptions.pixelRatio,
+            backgroundColor: resolvedOptions.backgroundColor,
+          });
+          bakedBackdropPngCache.set(
+            bakeCacheKey,
+            backdropFilterElements.map(
+              (backdropElement) => bakedBackdropPngByElement.get(backdropElement) ?? "",
+            ),
+          );
+        }
       }
     }
     lastCaptureTimings.backdropMs = performance.now() - backdropStartMs;

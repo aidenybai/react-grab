@@ -1,5 +1,6 @@
 import {
   DECODE_SETTLE_FRAME_COUNT,
+  DECODED_SVG_IMAGE_CACHE_CAP,
   MAX_CANVAS_DIMENSION_PX,
   RASTER_PNG_CACHE_CAP,
 } from "../constants";
@@ -19,6 +20,13 @@ import { lastCaptureTimings } from "./phase-timings";
 // already-encoded PNG instead of paying decode + native PNG encode again.
 const encodedPngCache = createFifoCache<Promise<Blob>>(RASTER_PNG_CACHE_CAP);
 
+// A decoded SVG image is immutable, so repeat rasterizations of identical
+// markup (unchanged trees, backdrop underlay re-captures) can skip the SVG
+// decode entirely and only pay the canvas draw.
+const decodedSvgImageCache = createFifoCache<Promise<HTMLImageElement>>(
+  DECODED_SVG_IMAGE_CACHE_CAP,
+);
+
 export const createCaptureResult = (
   svgMarkup: string,
   width: number,
@@ -33,10 +41,10 @@ export const createCaptureResult = (
   // The settle frames only exist for nested data-URL resources (inlined images,
   // fonts) still compositing after decode(); a capture without any skips them.
   const hasNestedDataUrlResources = svgMarkup.includes("data:");
-  let decodedImagePromise: Promise<HTMLImageElement> | null = null;
-
   const decodeSvgImage = (): Promise<HTMLImageElement> => {
-    decodedImagePromise ??= (async () => {
+    const cachedImagePromise = decodedSvgImageCache.get(svgDataUrl);
+    if (cachedImagePromise) return cachedImagePromise;
+    const decodedImagePromise = (async () => {
       const decodeStartMs = performance.now();
       const svgImage = new Image();
       svgImage.decoding = "sync";
@@ -51,9 +59,10 @@ export const createCaptureResult = (
       }
       lastCaptureTimings.decodeMs = performance.now() - decodeStartMs;
       return svgImage;
-    })().catch((decodeError: unknown) => {
-      decodedImagePromise = null;
-      throw decodeError;
+    })();
+    decodedSvgImageCache.set(svgDataUrl, decodedImagePromise);
+    decodedImagePromise.catch(() => {
+      decodedSvgImageCache.delete(svgDataUrl);
     });
     return decodedImagePromise;
   };
