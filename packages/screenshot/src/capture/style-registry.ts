@@ -96,21 +96,23 @@ export const createStyleRegistry = (): StyleRegistry => {
     return className;
   };
 
+  // Emitted maps hold longhands only, so declaration order never changes the
+  // cascade result and the key sort can be skipped when printing.
   const toCssText = (): string =>
     rules
       .map((rule) => {
-        let ruleText = `.${rule.className}{${buildDeclarationBlock(rule.baseStyles)}}`;
+        let ruleText = `.${rule.className}{${buildInsertionOrderDeclarationBlock(rule.baseStyles)}}`;
         if (rule.beforeStyles) {
-          ruleText += `\n.${rule.className}::before{${buildDeclarationBlock(rule.beforeStyles)}}`;
+          ruleText += `\n.${rule.className}::before{${buildInsertionOrderDeclarationBlock(rule.beforeStyles)}}`;
         }
         if (rule.afterStyles) {
-          ruleText += `\n.${rule.className}::after{${buildDeclarationBlock(rule.afterStyles)}}`;
+          ruleText += `\n.${rule.className}::after{${buildInsertionOrderDeclarationBlock(rule.afterStyles)}}`;
         }
         if (rule.firstLetterStyles) {
-          ruleText += `\n.${rule.className}::first-letter{${buildDeclarationBlock(rule.firstLetterStyles)}}`;
+          ruleText += `\n.${rule.className}::first-letter{${buildInsertionOrderDeclarationBlock(rule.firstLetterStyles)}}`;
         }
         if (rule.markerStyles) {
-          ruleText += `\n.${rule.className}::marker{${buildDeclarationBlock(rule.markerStyles)}}`;
+          ruleText += `\n.${rule.className}::marker{${buildInsertionOrderDeclarationBlock(rule.markerStyles)}}`;
         }
         return ruleText;
       })
