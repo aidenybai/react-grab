@@ -469,12 +469,14 @@ const appendFiberAncestorNames = (
 ): TraceContextResult => {
   const existingLineCount = stackContext.text.split("\n").filter(Boolean).length;
   const remainingLineBudget = Math.max(
-    0,
+    maxCount,
     Math.max(maxCount, MAX_TRACE_CONTEXT_LINES) - existingLineCount,
   );
-  if (remainingLineBudget === 0) return stackContext;
 
-  const ancestorNames = getComponentNamesFromFiber(findNearestFiberElement(element), maxCount);
+  const ancestorNames = getComponentNamesFromFiber(
+    findNearestFiberElement(element),
+    remainingLineBudget + stackContext.renderedComponentNames.size,
+  );
   const missingAncestorNames = ancestorNames
     .filter(
       (ancestorName) =>
