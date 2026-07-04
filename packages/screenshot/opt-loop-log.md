@@ -641,3 +641,12 @@ gained entries, so repeat captures replay ~10x fewer declarations and skip
 the flatten. 71-mega-grid: warm 284 -> 262ms, snapshot 31 -> 29ms.
 70-stress/60-kitchen-sink neutral. Full 3-engine fidelity (412x3) + 77 unit
 tests green.
+
+## Iteration 64 — process-wide shorthand-split cache (kept)
+
+splitShorthandDeclaration ran the scratch-style expansion for every shorthand
+declaration of every unique style text (25ms of cold profile on mega-grid),
+though inline-styled trees repeat the same few name:value pairs endlessly.
+Expansions now cache process-wide by name:value key (importance reapplied on
+mismatch), capped at SPLIT_SHORTHAND_CACHE_CAP. Cold-path win on first
+captures; warm neutral. Full 3-engine fidelity (412x3) + 77 unit tests green.
