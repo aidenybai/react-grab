@@ -235,7 +235,7 @@ export const watchAppTheme = (
       // with thousands of CSS animations. This read is still far cheaper than
       // detectTheme, whose probe element and multiple getComputedStyle calls
       // this short-circuit exists to avoid.
-      void getComputedStyle(document.body).backgroundColor;
+      void getComputedStyle(document.body ?? document.documentElement).backgroundColor;
       return lastAppliedTheme;
     }
     lastInputsFingerprint = inputsFingerprint;

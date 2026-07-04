@@ -559,33 +559,37 @@ export const recordScenario = async (
     console.warn(`[perf] ${scenarioName}: memory probe unavailable:`, probeError);
   }
   const perSampleAggregates: PerfScenarioAggregate[] = [];
-  for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex++) {
-    if (options.beforeEachSample) await options.beforeEachSample();
-    await startRecording(page);
-    // try/finally so the observer disconnects even if the scenario body
-    // throws mid-measurement.
-    let rawSnapshot: PerfRawSnapshot | null = null;
-    try {
-      await scenarioBody();
-    } finally {
-      rawSnapshot = await stopRecording(page);
-    }
-    perSampleAggregates.push(aggregateRawSnapshot(rawSnapshot));
-  }
   let memory: PerfMemoryMetrics | undefined;
-  if (memoryProbe && memoryBefore) {
-    try {
-      const memoryAfter = await readMemorySnapshot(memoryProbe);
-      memory = {
-        before: memoryBefore,
-        after: memoryAfter,
-        delta: diffMemorySnapshots(memoryBefore, memoryAfter),
-      };
-    } catch (probeError) {
-      console.warn(`[perf] ${scenarioName}: memory read failed:`, probeError);
+  // try/finally so the probe's CDP session detaches even if a sample throws.
+  try {
+    for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex++) {
+      if (options.beforeEachSample) await options.beforeEachSample();
+      await startRecording(page);
+      // try/finally so the observer disconnects even if the scenario body
+      // throws mid-measurement.
+      let rawSnapshot: PerfRawSnapshot | null = null;
+      try {
+        await scenarioBody();
+      } finally {
+        rawSnapshot = await stopRecording(page);
+      }
+      perSampleAggregates.push(aggregateRawSnapshot(rawSnapshot));
     }
+    if (memoryProbe && memoryBefore) {
+      try {
+        const memoryAfter = await readMemorySnapshot(memoryProbe);
+        memory = {
+          before: memoryBefore,
+          after: memoryAfter,
+          delta: diffMemorySnapshots(memoryBefore, memoryAfter),
+        };
+      } catch (probeError) {
+        console.warn(`[perf] ${scenarioName}: memory read failed:`, probeError);
+      }
+    }
+  } finally {
+    if (memoryProbe) await detachQuietly(memoryProbe);
   }
-  if (memoryProbe) await detachQuietly(memoryProbe);
   // The CPU profile is captured on a dedicated extra pass so the sampler's
   // overhead (and its sporadic renderer stall — see the comment above
   // CPU_PROFILE_SAMPLING_INTERVAL_US) never pollutes the metric samples or
