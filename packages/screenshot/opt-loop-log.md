@@ -58,6 +58,69 @@ b) element.scrollLeft/scrollTop (layout-flushing) are only read when the element
 actually hold a scroll offset (html/body, or overflow-x/y not visible).
 Metrics: 70-stress warm 80.4 -> 73.8ms. Scroll/shadow/slot/sticky fidelity subset green (39).
 
+### Iteration 4 — class-stable margins/paddings/insets out of the per-element lane (KEPT)
+
+Technique: a property only needs a per-element read if some author declaration can
+make it vary within a memo class; margins/paddings/insets whose every author
+declaration is an absolute length are proven class-stable and leave the lane.
+Metrics: 70-stress warm 73.8 -> 66ms range. Fidelity subset green. (commit 85ba63f6)
+
+### Iteration 5 — derive or gate lane reads: inline/block-size, transform/perspective origins (KEPT)
+
+Technique: inline-size/block-size are derived from width/height + writing mode
+instead of read; transform-origin/perspective-origin reads gate on a transform
+being present.
+Metrics: 70-stress warm improvement ~3ms. Fidelity green. (commit 8c2251a1)
+
+### Iteration 6 — class-stable transforms + display-gated grid-template reads (KEPT)
+
+Technique: transform leaves the per-element lane when every author transform
+declaration is keyword/length-only; grid-template-rows/columns read only when the
+resolved display is grid.
+Metrics: small warm win on 70-stress. Fidelity green. (commit 3d4f3db0)
+
+### Iteration 7 — gate per-element inset reads on class-pinned static position (KEPT)
+
+Technique: top/right/bottom/left reads skip entirely when the memo class pins
+position: static.
+Metrics: cut ~5.8k inset reads/run on 70-stress. Fidelity green. (commit f66d911d)
+
+### Iteration 8 — insertion-order registry printing (KEPT)
+
+Technique: toCssText printed each rule by sorting its property names; rules are
+already built in deterministic insertion order, so the per-rule sort is skipped.
+Metrics: serialize phase shaved ~1ms on 70-stress. Fidelity green. (commit 96c25cbf)
+
+### Iteration 9 — memo-key variant cache for seed class reuse (KEPT)
+
+Technique: elements sharing a memo key and identical per-element lane values (the
+variant key) reuse the seed's generated class outright instead of re-diffing.
+Metrics: 70-stress warm ~55 -> ~48ms. Fidelity green. (commit 7e9acfa0)
+
+### Iteration 10 — share emitted style maps across memo-key variants (KEPT)
+
+Technique: variant-identical elements point at one shared emitted style map
+instead of cloning it per element.
+Metrics: allocation churn down, small warm win. Fidelity green. (commit 9445ee7f)
+
+### Iteration 11 — skip slot flattening scan outside shadow trees (KEPT)
+
+Technique: the composed-children scan for <slot> assignment only runs inside
+shadow trees where slots can exist.
+Metrics: visit self-time down ~1ms. Fidelity green. (commit a53e4a8b)
+
+### Iteration 12 — (folded into 11/13 commit series; no separate change kept)
+
+Attempted micro-variants of the visit fast path that measured neutral; folded
+into the surrounding commits.
+
+### Iteration 13 — trim author-only properties from the always-snapshot set (KEPT)
+
+Technique: properties only settable by author CSS (shadows, filters, blend modes)
+leave the always-read set; they are read only when some author rule mentions them.
+Metrics: 70-stress warm ~48 -> ~43ms, gpv down ~4k/run. Fidelity green.
+(commit 0efeb6d2)
+
 ### Iteration 14 — style-relevant attribute filtering in memo descriptors (KEPT)
 
 Technique: the memo descriptor keyed every attribute, so elements differing only by
