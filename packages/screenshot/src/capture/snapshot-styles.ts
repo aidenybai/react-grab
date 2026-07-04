@@ -1,5 +1,6 @@
 import {
   FULL_SNAPSHOT_TAGS,
+  PERSISTED_MEMO_STORE_ENTRY_CAP,
   SKIPPED_CLONE_TAGS,
   SVG_NAMESPACE_URI,
   SVG_TEMPLATE_CONTAINER_TAGS,
@@ -11,6 +12,8 @@ import type {
   MemoizedElementStyles,
   StyleDeclarationMap,
 } from "../types";
+import { countAccessibleCssRules } from "./capture-reuse";
+import { getDocumentStyleEpoch } from "./document-change-tracker";
 import { buildStyleMemoDescriptor } from "../utils/build-style-memo-descriptor";
 import { getComposedChildNodes } from "../utils/get-composed-child-nodes";
 import { isElementNode } from "../utils/is-element-node";
@@ -33,6 +36,18 @@ const isSvgTemplateContainer = (element: Element): boolean =>
   element.namespaceURI === SVG_NAMESPACE_URI && SVG_TEMPLATE_CONTAINER_TAGS.has(element.localName);
 
 const NO_MEMO_KEY = -1;
+
+interface PersistentMemoStore {
+  signature: string;
+  memoKeysByParentKey: Map<number, Map<string, number>>;
+  memoizedStylesByKey: Map<number, MemoizedElementStyles>;
+  nextMemoKey: number;
+}
+
+const persistentMemoStoreByDocument = new WeakMap<Document, PersistentMemoStore>();
+
+const hasRunningAnimations = (sourceDocument: Document): boolean =>
+  typeof sourceDocument.getAnimations !== "function" || sourceDocument.getAnimations().length > 0;
 
 export const snapshotComposedTree = (
   rootElement: Element,
@@ -93,11 +108,36 @@ export const snapshotComposedTree = (
     return skipMask;
   };
   const activeElement = rootElement.ownerDocument.activeElement;
+  // Memo-safe selectors plus the descriptor chain fully determine every
+  // non-lane computed value, so with unchanged stylesheets and no running
+  // animations or transitions the memo cache stays valid across captures of
+  // the same document; unique-descriptor elements then pay only lane reads
+  // instead of a full snapshot on every repeat capture.
+  const initialRelevantPropCount = relevantProps?.propertyNames.length ?? 0;
+  const memoStoreSignature =
+    relevantProps !== null &&
+    relevantProps.isStyleMemoSafe() &&
+    !hasRunningAnimations(rootElement.ownerDocument)
+      ? `${countAccessibleCssRules(rootElement.ownerDocument)}|` +
+        `${getDocumentStyleEpoch(rootElement.ownerDocument)}|` +
+        `${defaultView.innerWidth}x${defaultView.innerHeight}x${defaultView.devicePixelRatio}|` +
+        `${initialRelevantPropCount}|${perElementPropertyNames.join(",")}`
+      : null;
+  const persistedStore =
+    memoStoreSignature !== null
+      ? persistentMemoStoreByDocument.get(rootElement.ownerDocument)
+      : undefined;
+  const isStoreAdopted =
+    persistedStore !== undefined && persistedStore.signature === memoStoreSignature;
   // Interning nests parent-key -> descriptor instead of hashing one long
   // concatenated ancestry string per element.
-  const memoKeysByParentKey = new Map<number, Map<string, number>>();
-  const memoizedStylesByKey = new Map<number, MemoizedElementStyles>();
-  let nextMemoKey = 0;
+  const memoKeysByParentKey = isStoreAdopted
+    ? persistedStore.memoKeysByParentKey
+    : new Map<number, Map<string, number>>();
+  const memoizedStylesByKey = isStoreAdopted
+    ? persistedStore.memoizedStylesByKey
+    : new Map<number, MemoizedElementStyles>();
+  let nextMemoKey = isStoreAdopted ? persistedStore.nextMemoKey : 0;
 
   const visit = (
     element: Element,
@@ -272,5 +312,21 @@ export const snapshotComposedTree = (
   };
 
   visit(rootElement, null, false, 0);
+  if (
+    memoStoreSignature !== null &&
+    relevantProps !== null &&
+    relevantProps.isStyleMemoSafe() &&
+    relevantProps.propertyNames.length === initialRelevantPropCount &&
+    memoizedStylesByKey.size <= PERSISTED_MEMO_STORE_ENTRY_CAP
+  ) {
+    persistentMemoStoreByDocument.set(rootElement.ownerDocument, {
+      signature: memoStoreSignature,
+      memoKeysByParentKey,
+      memoizedStylesByKey,
+      nextMemoKey,
+    });
+  } else {
+    persistentMemoStoreByDocument.delete(rootElement.ownerDocument);
+  }
   return { snapshotByElement, perElementPropertyNames };
 };

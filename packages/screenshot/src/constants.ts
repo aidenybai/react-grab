@@ -5,6 +5,7 @@ export const BASELINE_CACHE_CAP = 256;
 export const RASTER_PNG_CACHE_CAP = 2;
 export const CSS_TEXT_CACHE_CAP = 8;
 export const DECODED_SVG_IMAGE_CACHE_CAP = 2;
+export const PERSISTED_MEMO_STORE_ENTRY_CAP = 8192;
 export const BAKED_BACKDROP_CACHE_CAP = 2;
 export const MAX_CANVAS_DIMENSION_PX = 16384;
 export const MIN_CAPTURE_DIMENSION_PX = 1;

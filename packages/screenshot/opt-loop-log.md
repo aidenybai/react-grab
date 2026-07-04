@@ -395,3 +395,20 @@ shrinking the SVG markup the engine must parse on every decode.
 Warm medians neutral-to-slightly-better; markup size win compounds with the
 decoded-image and reuse caches. Unit 77/77; fidelity 412 chromium +
 824 webkit/firefox all green.
+
+## Iteration 40 — persist the style memo cache across captures
+
+Call counting showed ~9k of the 15.7k mutated-warm getPropertyValue reads were
+full snapshots of unique-descriptor elements that miss the within-capture memo
+every time. The memo store (descriptor-interned keys + memoized style maps) now
+persists per document across captures: memo-safe selectors plus the descriptor
+chain fully determine every non-lane computed value, so with unchanged
+stylesheets and no running animations the cache stays valid and unique elements
+pay only lane reads on repeat captures. Guarded by a signature of CSS rule
+count, a new stylesheet-mutation epoch (bumped when mutations touch style/link
+elements), viewport/DPR, and the relevant-prop set; the store is dropped when
+inline styles grow the relevant set mid-walk or the entry count exceeds
+PERSISTED_MEMO_STORE_ENTRY_CAP. Probe verifies a same-rule-count stylesheet
+text edit invalidates it. 70-stress mutated-warm gpv 15675 -> 6616,
+snapshotMs 21.2 -> 13.4, median 121.7 -> 111ms. Unit 77/77; fidelity
+412 chromium + 824 webkit/firefox all green.

@@ -93,7 +93,7 @@ export const buildCaptureReuseOptionsKey = (options: ResolvedCaptureOptions): st
   );
 };
 
-const countAccessibleCssRules = (sourceDocument: Document): number => {
+export const countAccessibleCssRules = (sourceDocument: Document): number => {
   let ruleCount = 0;
   visitDocumentCssRules(
     sourceDocument,
