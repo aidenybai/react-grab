@@ -696,3 +696,11 @@ the PNG container by hand — Sub-filtered scanlines + CompressionStream
 error. WebKit 70-stress warm median 776 -> 457ms (encode 655 -> 181ms).
 Chromium/Firefox keep their native encoders. Full 3-engine fidelity (412x3,
 including WebKit decoding the hand-built PNGs) + 77 unit green.
+
+## Iteration 70 — None filter in the WebKit PNG encoder (kept)
+
+Measured on the 70-stress raster, the None filter both deflates faster and
+compresses smaller than Sub (497KB vs 644KB; long literal runs suit zlib's
+matcher), and the row copy becomes a plain set(). WebKit 70-stress warm
+median 457 -> 442ms (encode 181 -> 165ms). Chromium unaffected (mega-grid
+265, 70-stress 98). Full 3-engine fidelity (412x3) + 77 unit green.

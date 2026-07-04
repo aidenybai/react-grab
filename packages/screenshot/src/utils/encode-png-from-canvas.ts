@@ -1,5 +1,3 @@
-import { PNG_SUB_FILTER_TYPE } from "../constants";
-
 const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10];
 
 let crcTable: Uint32Array | null = null;
@@ -38,8 +36,9 @@ const buildChunk = (chunkType: string, chunkData: Uint8Array): Uint8Array<ArrayB
   return chunk;
 };
 
-// The Sub filter (delta against the previous pixel) compresses flat UI rasters
-// nearly as well as libpng's adaptive per-row choice at a fraction of the cost.
+// On flat UI rasters the None filter both deflates faster and compresses
+// smaller than Sub (long literal runs suit zlib's matcher), and the row copy
+// is a plain set().
 const buildFilteredScanlines = (
   pixelBytes: Uint8ClampedArray,
   width: number,
@@ -49,15 +48,12 @@ const buildFilteredScanlines = (
   const filteredBytes = new Uint8Array((rowByteCount + 1) * height);
   let writeOffset = 0;
   for (let rowIndex = 0; rowIndex < height; rowIndex++) {
-    const rowStart = rowIndex * rowByteCount;
-    filteredBytes[writeOffset++] = PNG_SUB_FILTER_TYPE;
-    for (let byteIndex = 0; byteIndex < 4; byteIndex++) {
-      filteredBytes[writeOffset++] = pixelBytes[rowStart + byteIndex];
-    }
-    for (let byteIndex = 4; byteIndex < rowByteCount; byteIndex++) {
-      filteredBytes[writeOffset++] =
-        (pixelBytes[rowStart + byteIndex] - pixelBytes[rowStart + byteIndex - 4]) & 0xff;
-    }
+    writeOffset++;
+    filteredBytes.set(
+      pixelBytes.subarray(rowIndex * rowByteCount, (rowIndex + 1) * rowByteCount),
+      writeOffset,
+    );
+    writeOffset += rowByteCount;
   }
   return filteredBytes;
 };

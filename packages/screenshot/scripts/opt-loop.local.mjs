@@ -13,7 +13,7 @@ const fixtures = process.env.FIXTURES
 const warmRuns = Number(process.env.RUNS ?? 11);
 
 const bundle = readFileSync(new URL("../dist/index.global.js", import.meta.url), "utf8");
-const browserType = { chromium, firefox, webkit }[process.env.BROWSER ?? "chromium"];
+const browserType = { chromium, firefox, webkit }[process.env.BROWSER] ?? chromium;
 const browser = await browserType.launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 const results = {};
