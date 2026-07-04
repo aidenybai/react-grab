@@ -16,10 +16,7 @@ import { getComposedChildNodes } from "../utils/get-composed-child-nodes";
 import { isElementNode } from "../utils/is-element-node";
 import { isHtmlElement } from "../utils/is-html-element";
 import { isZeroScaleOverlay } from "../utils/is-zero-scale-overlay";
-import {
-  applyPerElementLaneReads,
-  buildPerElementLaneActions,
-} from "../utils/per-element-lane";
+import { applyPerElementLaneReads, buildPerElementLaneActions } from "../utils/per-element-lane";
 import { snapshotComputedStyle } from "../utils/snapshot-computed-style";
 import {
   preflightPseudoRules,

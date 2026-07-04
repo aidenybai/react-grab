@@ -107,7 +107,11 @@ export const createRelevantStylePropRegistry = (
     ) {
       const physicalPrefix = logicalGroupPrefix === "inset" ? "" : logicalGroupPrefix;
       for (const candidateProp of CLASS_STABLE_CANDIDATE_STYLE_PROPS) {
-        if (physicalPrefix === "" ? INSET_STYLE_PROPS.includes(candidateProp) : candidateProp.startsWith(physicalPrefix)) {
+        if (
+          physicalPrefix === ""
+            ? INSET_STYLE_PROPS.includes(candidateProp)
+            : candidateProp.startsWith(physicalPrefix)
+        ) {
           markLayoutUnstable(candidateProp);
         }
       }

@@ -20,6 +20,7 @@ import { applyEscapedBottomMarginTransfers } from "./capture/margin-collapse";
 import { computeRootOutputGeometry } from "./capture/output-geometry";
 import { createCaptureResult } from "./capture/rasterize";
 import { serializeToSvgMarkup } from "./capture/serialize-svg";
+import { prefetchExternalResources } from "./capture/prefetch-resources";
 import { snapshotComposedTree } from "./capture/snapshot-styles";
 import { createStyleRegistry } from "./capture/style-registry";
 import {
@@ -470,6 +471,7 @@ const captureNodeInternal = async (
       MIN_CAPTURE_DIMENSION_PX,
       layoutHeight > 0 ? layoutHeight : boundingBoxHeight,
     );
+    prefetchExternalResources(element, resolvedOptions.timeoutMs);
     const snapshotStartMs = performance.now();
     const { snapshotByElement, perElementPropertyNames } = snapshotComposedTree(
       element,

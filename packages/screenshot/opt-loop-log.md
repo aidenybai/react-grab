@@ -29,6 +29,7 @@ Baseline (chromium, pixelRatio 1, median of 9 / cold = first):
 ## Iterations
 
 ### Iteration 1 — activeElement memo-key poisoning fix (KEPT)
+
 Technique: profiling attribution (brain: measure before optimizing) + hidden-state audit.
 Finding: `element !== activeElement` in the memoKey condition gave `document.body`
 (the default activeElement) NO_MEMO_KEY, which cascaded to every descendant —
@@ -40,6 +41,7 @@ Metrics (70-stress, chromium, pixelRatio 1): warm 191 -> 90ms, cold 402 -> 247ms
 gpv 254k -> 47k; memo keys 1 -> 72. All 412 chromium fidelity/region tests green.
 
 ### Iteration 2 — pseudo-diff cache per memo key (KEPT)
+
 Technique: extend the base-diff memo reuse (iter-round earlier) to ::before/::after diffs.
 Memo-hit elements re-ran the full ~139-prop pseudo diff per element; now the diff is
 cached per memo key and hits only re-apply the per-element lane + size freezing, falling
@@ -47,17 +49,27 @@ back to a full diff when pseudo presence or content differs from the cache seed.
 Metrics: 70-stress warm 90.3 -> 80.4ms. Pseudo/marker/stress fidelity subset green (17).
 
 ### Iteration 3 — slot-free child fast path + gated scroll reads (KEPT)
+
 Technique: avoid per-node array allocation and layout-flushing reads (brain: don't pay
 for the general case on the common path).
 a) getComposedChildNodes returns the live childNodes list directly unless a slot child
-   exists (slots only assign inside shadow trees), skipping an array copy per element.
+exists (slots only assign inside shadow trees), skipping an array copy per element.
 b) element.scrollLeft/scrollTop (layout-flushing) are only read when the element can
-   actually hold a scroll offset (html/body, or overflow-x/y not visible).
+actually hold a scroll offset (html/body, or overflow-x/y not visible).
 Metrics: 70-stress warm 80.4 -> 73.8ms. Scroll/shadow/slot/sticky fidelity subset green (39).
 
 ### Iteration 15 — margin shorthand group read in the per-element lane (REVERTED)
+
 Technique: replace the margin-top + margin-left lane getPropertyValue calls with a
 single getPropertyValue("margin") shorthand read split into the four longhands.
 Metrics: 70-stress warm 39.9 -> 44.3ms — Blink's shorthand serialization resolves all
 four longhands plus the combine logic, costing more than the two direct longhand
 reads it replaced. Reverted.
+
+### Iteration 18 — prefetch external resources before the read pass (KEPT)
+Technique: image/svg-image/@font-face URL fetches previously started only after
+snapshot + clone completed; a fire-and-forget prefetch now warms the resource
+cache at capture start so network latency overlaps the CPU phases.
+Metrics: localhost fixture assets resolve in ~6ms so the harness delta sits inside
+cold-run noise; the win scales with real network latency. Unit 77/77, chromium
+fidelity 412/412 green.
