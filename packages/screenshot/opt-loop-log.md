@@ -543,3 +543,10 @@ Extended the elision policy to drop top/right/bottom/left when position is
 static. Zero byte change on 70-stress and the site fixtures (static insets
 already match the probe baseline and are never emitted), so the extra
 per-element loop bought nothing. REVERTED.
+
+## Iteration 56 — probe: declaration-hoisting cost/benefit in toCssText (validated, no change)
+
+Checked whether the selector-list declaration hoisting inflates SVG-document
+style recalc (more matched rules per element). Ungrouped per-class rules:
+161.8KB CSS, decode 19-20ms, 70-stress warm 106ms. Hoisted (current): 93.9KB,
+decode 18ms, warm 100ms. Hoisting wins on both axes; kept as is.
