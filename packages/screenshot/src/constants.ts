@@ -2,6 +2,7 @@ export const DEFAULT_SCALE = 1;
 export const DEFAULT_RESOURCE_TIMEOUT_MS = 8000;
 export const RESOURCE_CACHE_CAP = 150;
 export const BASELINE_CACHE_CAP = 256;
+export const RASTER_PNG_CACHE_CAP = 2;
 export const MAX_CANVAS_DIMENSION_PX = 16384;
 export const MIN_CAPTURE_DIMENSION_PX = 1;
 export const SANDBOX_OFFSCREEN_LEFT_PX = -9999;

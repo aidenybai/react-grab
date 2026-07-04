@@ -11,5 +11,8 @@ export const createFifoCache = <Value>(capacity: number): FifoCache<Value> => {
       }
       entries.set(key, value);
     },
+    delete: (key) => {
+      entries.delete(key);
+    },
   };
 };

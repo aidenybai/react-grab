@@ -1,10 +1,21 @@
-import { DECODE_SETTLE_FRAME_COUNT, MAX_CANVAS_DIMENSION_PX } from "../constants";
+import {
+  DECODE_SETTLE_FRAME_COUNT,
+  MAX_CANVAS_DIMENSION_PX,
+  RASTER_PNG_CACHE_CAP,
+} from "../constants";
 import type { CaptureResult, ResolvedCaptureOptions } from "../types";
 import { blobToDataUrl } from "../utils/blob-to-data-url";
 import { canvasToBlob } from "../utils/canvas-to-blob";
+import { createFifoCache } from "../utils/create-fifo-cache";
 import { isBlinkEngine } from "../utils/is-blink-engine";
 import { raceWithAbortSignal } from "../utils/race-with-abort-signal";
 import { waitForAnimationFrames } from "../utils/wait-for-animation-frames";
+
+// The serialized SVG markup inlines every external resource (images, fonts,
+// iframe rasters) as data URLs, so markup + raster parameters fully determine
+// the output pixels; repeat captures of an unchanged tree can reuse the
+// already-encoded PNG instead of paying decode + native PNG encode again.
+const encodedPngCache = createFifoCache<Promise<Blob>>(RASTER_PNG_CACHE_CAP);
 
 export const createCaptureResult = (
   svgMarkup: string,
@@ -66,7 +77,17 @@ export const createCaptureResult = (
     return canvas;
   };
 
-  const toBlob = async (): Promise<Blob> => canvasToBlob(await toCanvas());
+  const toBlob = (): Promise<Blob> => {
+    const cacheKey = `${options.scale}|${options.pixelRatio}|${options.backgroundColor ?? ""}|${width}|${height}|${svgMarkup}`;
+    const cachedPngBlobPromise = encodedPngCache.get(cacheKey);
+    if (cachedPngBlobPromise) return cachedPngBlobPromise;
+    const pngBlobPromise = toCanvas().then(canvasToBlob);
+    encodedPngCache.set(cacheKey, pngBlobPromise);
+    pngBlobPromise.catch(() => {
+      encodedPngCache.delete(cacheKey);
+    });
+    return pngBlobPromise;
+  };
   const toPngDataUrl = async (): Promise<string> => blobToDataUrl(await toBlob());
   const toSvgDataUrl = (): Promise<string> => Promise.resolve(svgDataUrl);
 

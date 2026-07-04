@@ -165,6 +165,7 @@ export interface InlineSvgUseReferencesInput {
 export interface FifoCache<Value> {
   get: (key: string) => Value | undefined;
   set: (key: string, value: Value) => void;
+  delete: (key: string) => void;
 }
 
 export interface SrcsetCandidate {
