@@ -677,3 +677,10 @@ source attribute dropped. One prototype per (tag, class, carry) combination is
 now built once and stamped with cloneNode(false), replacing per-element
 createElement + setAttribute pairs (Solid template instantiation). mega-grid
 warm build 31.3 -> 26.5ms. Full 3-engine fidelity (412x3) + 77 unit green.
+
+## Iteration 68 — getAttributeNames in prototype eligibility check (kept)
+
+hasOnlyDroppedAttributes indexed NamedNodeMap entries, forcing Blink to
+materialize lazy Attr nodes (4.9ms/run on mega-grid). hasAttributes() +
+getAttributeNames() reads the names without Attr materialization. mega-grid
+warm build 26.5 -> 23.9ms. Full 3-engine fidelity (412x3) + 77 unit green.

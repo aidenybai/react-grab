@@ -35,10 +35,11 @@ const PROTOTYPE_EXCLUDED_TAGS = new Set(["input", "select", "option", "textarea"
 // with cloneNode, replacing per-element createElement + setAttribute pairs.
 const clonePrototypeByKey = new Map<string, Element>();
 
+// getAttributeNames avoids materializing lazy Attr nodes, unlike NamedNodeMap
+// indexing.
 const hasOnlyDroppedAttributes = (element: Element): boolean => {
-  const attributes = element.attributes;
-  for (let attributeIndex = 0; attributeIndex < attributes.length; attributeIndex++) {
-    const attributeName = attributes[attributeIndex].name;
+  if (!element.hasAttributes()) return true;
+  for (const attributeName of element.getAttributeNames()) {
     if (attributeName !== "class" && attributeName !== "style") return false;
   }
   return true;
