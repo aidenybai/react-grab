@@ -58,6 +58,16 @@ b) element.scrollLeft/scrollTop (layout-flushing) are only read when the element
 actually hold a scroll offset (html/body, or overflow-x/y not visible).
 Metrics: 70-stress warm 80.4 -> 73.8ms. Scroll/shadow/slot/sticky fidelity subset green (39).
 
+### Iteration 14 — style-relevant attribute filtering in memo descriptors (KEPT)
+
+Technique: the memo descriptor keyed every attribute, so elements differing only by
+id/data-\*/aria-\* never shared a snapshot. The CSS scan now collects attribute names
+appearing in [attr] selectors (plus id when any #-selector exists); descriptors keep
+only those, a curated presentational-hint set, and class/lang. Shadow hosts keep all
+attributes (:host([...]) rules live in incrementally scanned shadow sheets).
+Metrics: 70-stress warm 43.4 -> 40.4ms, 60-kitchen-sink 7.6 -> 7.0ms. Unit 77/77,
+chromium fidelity 412/412 green.
+
 ### Iteration 15 — margin shorthand group read in the per-element lane (REVERTED)
 
 Technique: replace the margin-top + margin-left lane getPropertyValue calls with a
@@ -66,16 +76,24 @@ Metrics: 70-stress warm 39.9 -> 44.3ms — Blink's shorthand serialization resol
 four longhands plus the combine logic, costing more than the two direct longhand
 reads it replaced. Reverted.
 
+### Iteration 16 — memo-keyed baseline lookup (KEPT, neutral)
+
+Technique: getBaseline built a string cache key (tag|pseudo|font-size) per element;
+those inputs are pinned by the memo key, so buildClassNameMap now resolves baselines
+through a number-keyed per-memo-class map.
+Metrics: 70-stress warm ~40ms (within noise). Unit 77/77, chromium fidelity 412/412.
+
+### Iteration 17 — nested memo-key interning (KEPT, neutral)
+
+Technique: memo keys were interned through one long `${parentKey}>${descriptor}`
+string per element, paying a concat + full string hash each visit; interning now
+nests a number-keyed map of parent key -> descriptor map.
+Metrics: 70-stress warm ~39-40ms (within noise). Unit 77/77, chromium fidelity
+412/412 green. GPV floor measured at 18.7k calls/run (~13.8ms) on 70-stress:
+lane 7k, insets 1.5k, ~110 memo-miss seeds x ~90 props ~10k.
+
 ### Iteration 18 — prefetch external resources before the read pass (KEPT)
 
-Technique: image/svg-image/@font-face URL fetches previously started only after
-snapshot + clone completed; a fire-and-forget prefetch now warms the resource
-cache at capture start so network latency overlaps the CPU phases.
-Metrics: localhost fixture assets resolve in ~6ms so the harness delta sits inside
-cold-run noise; the win scales with real network latency. Unit 77/77, chromium
-fidelity 412/412 green.
-
-### Iteration 18 — prefetch external resources before the read pass (KEPT)
 Technique: image/svg-image/@font-face URL fetches previously started only after
 snapshot + clone completed; a fire-and-forget prefetch now warms the resource
 cache at capture start so network latency overlaps the CPU phases.
