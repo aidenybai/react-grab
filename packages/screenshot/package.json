@@ -1,5 +1,5 @@
 {
-  "name": "html-to-image-fast",
+  "name": "fast-html-to-image",
   "version": "0.0.1",
   "description": "Fast, high-fidelity DOM node to image capture",
   "keywords": [

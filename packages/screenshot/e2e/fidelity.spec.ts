@@ -67,7 +67,7 @@ test.describe("fidelity", () => {
         if (!targetElement) {
           throw new Error("fixture is missing a #target element");
         }
-        const captureResult = await window.HtmlToImageFast.captureNode(targetElement, options);
+        const captureResult = await window.FastHtmlToImage.captureNode(targetElement, options);
         return captureResult.toPngDataUrl();
       }, captureOptions);
 

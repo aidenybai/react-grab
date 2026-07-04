@@ -40,7 +40,7 @@ export interface TargetAabbClip {
   height: number;
 }
 
-export interface HtmlToImageFastGlobal {
+export interface FastHtmlToImageGlobal {
   captureNode: (element: Element, options?: HarnessCaptureOptions) => Promise<HarnessCaptureResult>;
 }
 
@@ -56,6 +56,6 @@ export interface FidelityScoreEntry {
 
 declare global {
   interface Window {
-    HtmlToImageFast: HtmlToImageFastGlobal;
+    FastHtmlToImage: FastHtmlToImageGlobal;
   }
 }

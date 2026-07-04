@@ -15,7 +15,7 @@ const modulePack: PackUserConfig = {
 const iifePack: PackUserConfig = {
   entry: ["src/index.ts"],
   format: ["iife"],
-  globalName: "HtmlToImageFast",
+  globalName: "FastHtmlToImage",
   dts: false,
   clean: false,
   platform: "browser",

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Hotspot report over a labeled perf run's V8 CPU profiles (*.cpuprofile,
 // produced by `PERF_TRACE=1 pnpm bench`): function-level self-time attributed
-// to html-to-image-fast code. The top of each section is the next thing
+// to fast-html-to-image code. The top of each section is the next thing
 // worth optimizing.
 //
 // Usage:
