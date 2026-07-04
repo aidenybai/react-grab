@@ -322,9 +322,20 @@ const stopCpuProfilerAndWrite = async (
 // --- Memory tracking (always on) ----------------------------------------
 //
 // Reads renderer memory counters via the CDP `Performance` domain around the
-// metric samples, with a forced GC (`HeapProfiler.collectGarbage`) before
-// each reading so the before/after delta approximates *retained* growth
-// (leaked nodes, listeners, detached documents) rather than transient garbage.
+// metric samples, with forced GC (`HeapProfiler.collectGarbage`) before each
+// reading so the before/after delta approximates *retained* growth (leaked
+// nodes, listeners, detached documents) rather than transient garbage.
+//
+// A single collectGarbage pass is not enough for a stable reading: it can
+// leave FinalizationRegistry / weak-callback garbage that only the *next*
+// pass collects, and detached-node accounting lags a frame. So each reading
+// loops GC → settle (double rAF + timeout, letting pending mounts/unmounts
+// and finalizers run) → read, until the heap and node counts stop moving
+// between passes (or a pass cap, for pages that allocate continuously).
+
+const GC_STABILIZATION_MAX_PASSES = 6;
+const GC_STABLE_HEAP_EPSILON_KB = 64;
+const GC_SETTLE_DELAY_MS = 50;
 
 const startMemoryProbe = async (page: Page): Promise<CDPSession> => {
   const cdpSession = await page.context().newCDPSession(page);
@@ -333,8 +344,7 @@ const startMemoryProbe = async (page: Page): Promise<CDPSession> => {
   return cdpSession;
 };
 
-const readMemorySnapshot = async (cdpSession: CDPSession): Promise<PerfMemorySnapshot> => {
-  await cdpSession.send("HeapProfiler.collectGarbage");
+const readRawMemoryMetrics = async (cdpSession: CDPSession): Promise<PerfMemorySnapshot> => {
   const { metrics } = await cdpSession.send("Performance.getMetrics");
   const metricValuesByName = new Map<string, number>();
   for (const metric of metrics) metricValuesByName.set(metric.name, metric.value);
@@ -346,6 +356,37 @@ const readMemorySnapshot = async (cdpSession: CDPSession): Promise<PerfMemorySna
     jsEventListeners: metricValue("JSEventListeners"),
     documents: metricValue("Documents"),
   };
+};
+
+const readMemorySnapshot = async (
+  cdpSession: CDPSession,
+  page: Page,
+): Promise<PerfMemorySnapshot> => {
+  let previousReading: PerfMemorySnapshot | null = null;
+  for (let passIndex = 0; passIndex < GC_STABILIZATION_MAX_PASSES; passIndex++) {
+    await cdpSession.send("HeapProfiler.collectGarbage");
+    await page.evaluate(
+      (settleDelayMs) =>
+        new Promise<void>((resolveSettle) => {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              setTimeout(resolveSettle, settleDelayMs);
+            });
+          });
+        }),
+      GC_SETTLE_DELAY_MS,
+    );
+    const currentReading = await readRawMemoryMetrics(cdpSession);
+    const isStable =
+      previousReading !== null &&
+      Math.abs(currentReading.jsHeapUsedKb - previousReading.jsHeapUsedKb) <
+        GC_STABLE_HEAP_EPSILON_KB &&
+      currentReading.domNodes === previousReading.domNodes;
+    if (isStable) return currentReading;
+    previousReading = currentReading;
+  }
+  if (!previousReading) throw new Error("memory snapshot produced no reading");
+  return previousReading;
 };
 
 const diffMemorySnapshots = (
@@ -554,7 +595,7 @@ export const recordScenario = async (
   let memoryBefore: PerfMemorySnapshot | null = null;
   try {
     memoryProbe = await startMemoryProbe(page);
-    memoryBefore = await readMemorySnapshot(memoryProbe);
+    memoryBefore = await readMemorySnapshot(memoryProbe, page);
   } catch (probeError) {
     console.warn(`[perf] ${scenarioName}: memory probe unavailable:`, probeError);
   }
@@ -574,10 +615,23 @@ export const recordScenario = async (
         rawSnapshot = await stopRecording(page);
       }
       perSampleAggregates.push(aggregateRawSnapshot(rawSnapshot));
+      // Re-baseline memory after the first sample: one-time warmup
+      // allocations (JIT code objects, lazily-initialized module state,
+      // framework caches) land in sample 0 and vary heavily run to run.
+      // Measuring growth from the end of sample 0 to the end of the last
+      // sample captures steady-state (per-iteration) growth, which is the
+      // signal leak detection actually wants.
+      if (sampleIndex === 0 && sampleCount > 1 && memoryProbe && memoryBefore) {
+        try {
+          memoryBefore = await readMemorySnapshot(memoryProbe, page);
+        } catch (probeError) {
+          console.warn(`[perf] ${scenarioName}: memory re-baseline failed:`, probeError);
+        }
+      }
     }
     if (memoryProbe && memoryBefore) {
       try {
-        const memoryAfter = await readMemorySnapshot(memoryProbe);
+        const memoryAfter = await readMemorySnapshot(memoryProbe, page);
         memory = {
           before: memoryBefore,
           after: memoryAfter,
