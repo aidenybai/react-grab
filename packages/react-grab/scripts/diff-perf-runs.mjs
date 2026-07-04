@@ -26,7 +26,11 @@ const FRAME_INTERVAL_NOISE_FLOOR_MS = 1000 / 60 + 1;
 // hundreds of ms run-to-run on shared CI runners for animation-heavy
 // scenarios, measured on identical code.
 const LONG_TASK_THRESHOLD_NOISE_FLOOR_MS = 500;
-const HEAP_NOISE_FLOOR_KB = 256;
+// Even with GC-stabilized, median-of-samples readings, heap deltas on
+// app-dominated scenarios still swing a few hundred KB between CI runs
+// (shared-runner GC scheduling); real leaks compound per iteration and
+// clear this floor quickly.
+const HEAP_NOISE_FLOOR_KB = 512;
 const DOM_NODE_NOISE_FLOOR = 60;
 
 const baselineDir = process.argv[2] ?? "packages/react-grab/perf/baseline";
@@ -64,7 +68,16 @@ const classifyChange = (
   unit,
   noiseFloor = SMALL_ABSOLUTE_NOISE_FLOOR_MS,
   percentThreshold = DEFAULT_PERCENT_THRESHOLD,
+  clampAtZero = false,
 ) => {
+  // Memory deltas can come out negative (GC reclaimed pre-scenario garbage
+  // inside the measured window). Negative retained "growth" is a measurement
+  // artifact, not an improvement, and percent change against a negative
+  // baseline is meaningless — clamp to zero before classifying.
+  if (clampAtZero) {
+    baselineValue = Math.max(0, baselineValue);
+    currentValue = Math.max(0, currentValue);
+  }
   const absoluteDelta = currentValue - baselineValue;
   if (Math.abs(absoluteDelta) <= noiseFloor) return "unchanged";
   const effectiveThreshold =
@@ -137,6 +150,7 @@ const METRIC_DEFINITIONS = [
     unit: "KB",
     noiseFloor: HEAP_NOISE_FLOOR_KB,
     percentThreshold: MEMORY_PERCENT_THRESHOLD,
+    clampAtZero: true,
     getValue: (report) => report.memory?.delta?.jsHeapUsedKb,
   },
   {
@@ -144,6 +158,7 @@ const METRIC_DEFINITIONS = [
     unit: "",
     noiseFloor: DOM_NODE_NOISE_FLOOR,
     percentThreshold: MEMORY_PERCENT_THRESHOLD,
+    clampAtZero: true,
     getValue: (report) => report.memory?.delta?.domNodes,
   },
 ];
@@ -179,7 +194,14 @@ for (const scenarioName of [...currentReports.keys()].sort()) {
   comparedScenarioCount++;
 
   const detailCells = [];
-  for (const { label, unit, noiseFloor, percentThreshold, getValue } of METRIC_DEFINITIONS) {
+  for (const {
+    label,
+    unit,
+    noiseFloor,
+    percentThreshold,
+    clampAtZero,
+    getValue,
+  } of METRIC_DEFINITIONS) {
     const baselineValue = getValue(baselineReport);
     const currentValue = getValue(currentReport);
     if (typeof baselineValue !== "number" || typeof currentValue !== "number") {
@@ -187,7 +209,14 @@ for (const scenarioName of [...currentReports.keys()].sort()) {
       continue;
     }
     const changeText = formatChange(baselineValue, currentValue, unit);
-    const status = classifyChange(baselineValue, currentValue, unit, noiseFloor, percentThreshold);
+    const status = classifyChange(
+      baselineValue,
+      currentValue,
+      unit,
+      noiseFloor,
+      percentThreshold,
+      clampAtZero ?? false,
+    );
     if (status === "unchanged") {
       detailCells.push(changeText);
     } else {
