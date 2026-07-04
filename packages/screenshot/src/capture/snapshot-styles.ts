@@ -45,6 +45,20 @@ export const snapshotComposedTree = (
   const snapshotByElement = new Map<Element, ElementReadSnapshot>();
   const pseudoPreflight = preflightPseudoRules(rootElement.ownerDocument);
   let relevantProps = createRelevantStylePropRegistry(rootElement.ownerDocument);
+  if (relevantProps) {
+    // Inline styles on ancestors outside the capture root can cascade
+    // inherited properties into it; their property names must join the
+    // relevant set before any snapshot is taken.
+    for (
+      let ancestorElement = rootElement.parentElement;
+      ancestorElement !== null;
+      ancestorElement = ancestorElement.parentElement
+    ) {
+      if (isHtmlElement(ancestorElement) && ancestorElement.style.length > 0) {
+        relevantProps.addInlineStyleProps(ancestorElement.style);
+      }
+    }
+  }
   const perElementPropertyNames = relevantProps?.perElementPropertyNames ?? [];
   const perElementProps: ReadonlySet<string> = new Set(perElementPropertyNames);
   const perElementLaneActions = buildPerElementLaneActions(perElementPropertyNames);
