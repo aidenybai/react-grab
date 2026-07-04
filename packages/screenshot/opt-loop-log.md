@@ -451,3 +451,14 @@ work alive through the decode/raster phases). Reverted.
 Forced the scratch canvas to a CPU backing store hoping to skip a GPU
 readback in toBlob. No measurable change (a 2400x4800 canvas is already
 CPU-backed in Chromium) — reverted.
+
+## Iteration 46 — per-element memo-key reuse via attribute-mutation generations
+
+The memo descriptor is a pure function of an element's own attributes/inline
+style, so the change tracker now records a per-element attribute-mutation
+generation (WeakMap updated from MutationObserver attribute records). The
+persisted memo store keeps a WeakMap of element -> {memoKey, parentMemoKey};
+an adopted store reuses the interned key directly for elements with no
+attribute mutations since persist (parent-key equality pins the ancestry),
+skipping the descriptor string build entirely. 70-stress warm snapshotMs
+14 -> 12.1, median 106 -> 101.3. Unit 77/77; fidelity 412 + 824 green.

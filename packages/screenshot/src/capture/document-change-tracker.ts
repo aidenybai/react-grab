@@ -1,9 +1,15 @@
 interface DocumentEpochs {
   epoch: number;
   styleEpoch: number;
+  attributeGeneration: number;
 }
 
-const trackerByDocument = new WeakMap<Document, () => DocumentEpochs>();
+interface DocumentChangeTracker {
+  readEpochs: () => DocumentEpochs;
+  attributeGenerationByElement: WeakMap<Element, number>;
+}
+
+const trackerByDocument = new WeakMap<Document, DocumentChangeTracker>();
 
 // Marks capture-internal document artifacts (e.g. the style sandbox iframe)
 // whose mutations and load events must not invalidate epoch-keyed caches.
@@ -64,8 +70,9 @@ const isObservableMutationRecord = (record: MutationRecord): boolean => {
 // scrolling, user input, resource loads, resizes, font loads, or :target
 // changes. Mutations inside shadow roots are NOT observed; callers must keep
 // shadow-hosting trees out of epoch-keyed caches.
-const createDocumentEpochReader = (sourceDocument: Document): (() => DocumentEpochs) => {
-  const epochs: DocumentEpochs = { epoch: 0, styleEpoch: 0 };
+const createDocumentChangeTracker = (sourceDocument: Document): DocumentChangeTracker => {
+  const epochs: DocumentEpochs = { epoch: 0, styleEpoch: 0, attributeGeneration: 0 };
+  const attributeGenerationByElement = new WeakMap<Element, number>();
   const bumpEpoch = (): void => {
     epochs.epoch++;
   };
@@ -76,6 +83,15 @@ const createDocumentEpochReader = (sourceDocument: Document): (() => DocumentEpo
   const applyMutationRecords = (records: MutationRecord[]): void => {
     if (records.some(isObservableMutationRecord)) epochs.epoch++;
     if (records.some(touchesStyleSource)) epochs.styleEpoch++;
+    let didBumpAttributeGeneration = false;
+    for (const record of records) {
+      if (record.type !== "attributes" || record.target.nodeType !== Node.ELEMENT_NODE) continue;
+      if (!didBumpAttributeGeneration) {
+        epochs.attributeGeneration++;
+        didBumpAttributeGeneration = true;
+      }
+      attributeGenerationByElement.set(record.target as Element, epochs.attributeGeneration);
+    }
   };
   const mutationObserver = new MutationObserver(applyMutationRecords);
   mutationObserver.observe(sourceDocument.documentElement, {
@@ -95,23 +111,38 @@ const createDocumentEpochReader = (sourceDocument: Document): (() => DocumentEpo
     }
   }
   sourceDocument.fonts.addEventListener("loadingdone", bumpEpoch);
-  return () => {
-    applyMutationRecords(mutationObserver.takeRecords());
-    return epochs;
+  return {
+    readEpochs: () => {
+      applyMutationRecords(mutationObserver.takeRecords());
+      return epochs;
+    },
+    attributeGenerationByElement,
   };
 };
 
-const readDocumentEpochs = (sourceDocument: Document): DocumentEpochs => {
-  let readEpochs = trackerByDocument.get(sourceDocument);
-  if (readEpochs === undefined) {
-    readEpochs = createDocumentEpochReader(sourceDocument);
-    trackerByDocument.set(sourceDocument, readEpochs);
+const getDocumentChangeTracker = (sourceDocument: Document): DocumentChangeTracker => {
+  let tracker = trackerByDocument.get(sourceDocument);
+  if (tracker === undefined) {
+    tracker = createDocumentChangeTracker(sourceDocument);
+    trackerByDocument.set(sourceDocument, tracker);
   }
-  return readEpochs();
+  return tracker;
 };
+
+const readDocumentEpochs = (sourceDocument: Document): DocumentEpochs =>
+  getDocumentChangeTracker(sourceDocument).readEpochs();
 
 export const getDocumentEpoch = (sourceDocument: Document): number =>
   readDocumentEpochs(sourceDocument).epoch;
 
 export const getDocumentStyleEpoch = (sourceDocument: Document): number =>
   readDocumentEpochs(sourceDocument).styleEpoch;
+
+// Flushes pending mutation records and returns the current attribute
+// generation; an element whose recorded generation is at or below a
+// previously read value has had no attribute mutations since that read.
+export const getDocumentAttributeGeneration = (sourceDocument: Document): number =>
+  readDocumentEpochs(sourceDocument).attributeGeneration;
+
+export const getElementAttributeGeneration = (sourceDocument: Document, element: Element): number =>
+  getDocumentChangeTracker(sourceDocument).attributeGenerationByElement.get(element) ?? 0;

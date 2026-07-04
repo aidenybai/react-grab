@@ -13,7 +13,11 @@ import type {
   StyleDeclarationMap,
 } from "../types";
 import { countAccessibleCssRules } from "./capture-reuse";
-import { getDocumentStyleEpoch } from "./document-change-tracker";
+import {
+  getDocumentAttributeGeneration,
+  getDocumentStyleEpoch,
+  getElementAttributeGeneration,
+} from "./document-change-tracker";
 import { buildStyleMemoDescriptor } from "../utils/build-style-memo-descriptor";
 import { getComposedChildNodes } from "../utils/get-composed-child-nodes";
 import { isElementNode } from "../utils/is-element-node";
@@ -37,11 +41,18 @@ const isSvgTemplateContainer = (element: Element): boolean =>
 
 const NO_MEMO_KEY = -1;
 
+interface PersistedElementMemoKey {
+  memoKey: number;
+  parentMemoKey: number;
+}
+
 interface PersistentMemoStore {
   signature: string;
   memoKeysByParentKey: Map<number, Map<string, number>>;
   memoizedStylesByKey: Map<number, MemoizedElementStyles>;
   variantEmittedStyles: Map<number, Map<string, StyleDeclarationMap>>;
+  memoKeyByElement: WeakMap<Element, PersistedElementMemoKey>;
+  attributeGeneration: number;
   nextMemoKey: number;
 }
 
@@ -141,6 +152,17 @@ export const snapshotComposedTree = (
   const variantEmittedStyles = isStoreAdopted
     ? persistedStore.variantEmittedStyles
     : new Map<number, Map<string, StyleDeclarationMap>>();
+  const memoKeyByElement = isStoreAdopted
+    ? persistedStore.memoKeyByElement
+    : new WeakMap<Element, PersistedElementMemoKey>();
+  // The memo descriptor is a pure function of an element's own attributes and
+  // inline style, so an element with no attribute mutations since the store
+  // was persisted resolves to the same descriptor; its interned memo key can
+  // be reused directly (parent key equality pins the ancestry) without
+  // rebuilding the descriptor string.
+  const adoptedAttributeGeneration = isStoreAdopted ? persistedStore.attributeGeneration : -1;
+  const currentAttributeGeneration =
+    memoStoreSignature !== null ? getDocumentAttributeGeneration(rootElement.ownerDocument) : -1;
   let nextMemoKey = isStoreAdopted ? persistedStore.nextMemoKey : 0;
 
   const visit = (
@@ -173,22 +195,36 @@ export const snapshotComposedTree = (
       isMemoizableHtmlElement &&
       parentMemoKey !== NO_MEMO_KEY
     ) {
-      const descriptor = buildStyleMemoDescriptor(
-        element,
-        perElementProps,
-        relevantProps?.styleRelevantAttributeNames ?? null,
-      );
-      let descriptorKeys = memoKeysByParentKey.get(parentMemoKey);
-      if (descriptorKeys === undefined) {
-        descriptorKeys = new Map();
-        memoKeysByParentKey.set(parentMemoKey, descriptorKeys);
-      }
-      const internedKey = descriptorKeys.get(descriptor);
-      if (internedKey === undefined) {
-        memoKey = nextMemoKey++;
-        descriptorKeys.set(descriptor, memoKey);
+      const persistedElementKey =
+        isStoreAdopted &&
+        getElementAttributeGeneration(rootElement.ownerDocument, element) <=
+          adoptedAttributeGeneration
+          ? memoKeyByElement.get(element)
+          : undefined;
+      if (
+        persistedElementKey !== undefined &&
+        persistedElementKey.parentMemoKey === parentMemoKey
+      ) {
+        memoKey = persistedElementKey.memoKey;
       } else {
-        memoKey = internedKey;
+        const descriptor = buildStyleMemoDescriptor(
+          element,
+          perElementProps,
+          relevantProps?.styleRelevantAttributeNames ?? null,
+        );
+        let descriptorKeys = memoKeysByParentKey.get(parentMemoKey);
+        if (descriptorKeys === undefined) {
+          descriptorKeys = new Map();
+          memoKeysByParentKey.set(parentMemoKey, descriptorKeys);
+        }
+        const internedKey = descriptorKeys.get(descriptor);
+        if (internedKey === undefined) {
+          memoKey = nextMemoKey++;
+          descriptorKeys.set(descriptor, memoKey);
+        } else {
+          memoKey = internedKey;
+        }
+        memoKeyByElement.set(element, { memoKey, parentMemoKey });
       }
     }
     // The active element can carry UA focus styling (e.g. :focus-visible
@@ -328,6 +364,8 @@ export const snapshotComposedTree = (
       memoKeysByParentKey,
       memoizedStylesByKey,
       variantEmittedStyles,
+      memoKeyByElement,
+      attributeGeneration: currentAttributeGeneration,
       nextMemoKey,
     });
   } else {
