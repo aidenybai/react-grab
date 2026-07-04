@@ -550,3 +550,10 @@ Checked whether the selector-list declaration hoisting inflates SVG-document
 style recalc (more matched rules per element). Ungrouped per-class rules:
 161.8KB CSS, decode 19-20ms, 70-stress warm 106ms. Hoisted (current): 93.9KB,
 decode 18ms, warm 100ms. Hoisting wins on both axes; kept as is.
+
+## Iteration 57 — probe: willReadFrequently CPU canvas for encode readback (rejected)
+
+Checked whether toBlob readback from a GPU-backed canvas inflates the encode
+phase. gpu vs {willReadFrequently:true} on 70-stress (1280x2400): encode
+39-41ms in both variants (headless Chromium already software-rasters), draw
+0ms after first frame. Native PNG encode floor reconfirmed. No change.
