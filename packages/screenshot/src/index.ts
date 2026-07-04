@@ -163,6 +163,22 @@ const buildClassNameMap = (
   const emittedStylesByElement = new Map<Element, StyleDeclarationMap>();
   const canReuseDiffs = canReusePerElementDiffs(perElementPropertyNames);
   const cachedDiffByMemoKey = new Map<number, StyleDeclarationMap>();
+  // Baselines are keyed by tag/input-type/font-size, all pinned by the memo
+  // key, so the per-element key-building and cache lookup inside getBaseline
+  // collapses to one number-keyed lookup per memo class.
+  const baselineByMemoKey = new Map<number, StyleDeclarationMap>();
+  const getElementBaseline = (
+    element: Element,
+    snapshot: ElementReadSnapshot,
+  ): StyleDeclarationMap => {
+    if (snapshot.memoKey === -1) return sandbox.getBaseline(element, null, snapshot.styles);
+    let baseline = baselineByMemoKey.get(snapshot.memoKey);
+    if (baseline === undefined) {
+      baseline = sandbox.getBaseline(element, null, snapshot.styles);
+      baselineByMemoKey.set(snapshot.memoKey, baseline);
+    }
+    return baseline;
+  };
   const variantKeyByElement = new Map<Element, string>();
   const emittedStylesByVariant = new Map<number, Map<string, StyleDeclarationMap>>();
   for (const [element, snapshot] of snapshotByElement) {
@@ -209,13 +225,13 @@ const buildClassNameMap = (
       applyPerElementStyleDiff(
         diffedBase,
         snapshot.styles,
-        sandbox.getBaseline(element, null, snapshot.styles),
+        getElementBaseline(element, snapshot),
         perElementPropertyNames,
       );
     } else {
       diffedBase = diffStyles({
         styles: snapshot.styles,
-        baseline: sandbox.getBaseline(element, null, snapshot.styles),
+        baseline: getElementBaseline(element, snapshot),
         parentStyles: parentSnapshot?.styles ?? null,
         parentEmittedStyles: snapshot.parentElement
           ? (emittedStylesByElement.get(snapshot.parentElement) ?? null)
