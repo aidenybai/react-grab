@@ -272,3 +272,15 @@ attribute, so the gate is sound).
 Metrics: neutral within noise (70-stress warm 35.3ms), removes per-element
 CSSStyleDeclaration materialization. Unit 77/77, chromium fidelity 412/412
 green.
+
+## Iteration 29 — hoist duplicate declarations into selector-list rules
+
+Hotspot: 132KB of the 207KB declaration bytes on 70-stress were verbatim
+name:value duplicates repeated across the 319 per-class rules. toCssText now
+groups base declarations shared by >=2 classes into selector-list rules keyed
+by the exact class set (safe: each property appears at most once per class and
+all emitted rules share specificity), leaving only singleton declarations in
+per-class rules.
+Metrics: SVG 259KB -> 172KB (CSS 212KB -> 125KB); 70-stress cold 185 -> 172ms,
+warm flat 35.3ms; site fixtures each ~1ms faster warm. Unit 77/77, chromium
+fidelity 412/412 green.

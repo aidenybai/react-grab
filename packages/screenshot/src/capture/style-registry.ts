@@ -59,29 +59,67 @@ export const createStyleRegistry = (): StyleRegistry => {
   };
 
   // Emitted maps hold longhands only, so declaration order never changes the
-  // cascade result and the key sort can be skipped when printing.
-  const toCssText = (): string =>
-    rules
-      .map((rule) => {
-        const blocks: StyleRuleDeclarationBlocks = rule.cachedBlocks ?? {
-          base: buildInsertionOrderDeclarationBlock(rule.baseStyles),
-          before: rule.beforeStyles ? buildInsertionOrderDeclarationBlock(rule.beforeStyles) : "",
-          after: rule.afterStyles ? buildInsertionOrderDeclarationBlock(rule.afterStyles) : "",
-          firstLetter: rule.firstLetterStyles
-            ? buildInsertionOrderDeclarationBlock(rule.firstLetterStyles)
-            : "",
-          marker: rule.markerStyles ? buildInsertionOrderDeclarationBlock(rule.markerStyles) : "",
-        };
-        let ruleText = `.${rule.className}{${blocks.base}}`;
-        if (blocks.before) ruleText += `\n.${rule.className}::before{${blocks.before}}`;
-        if (blocks.after) ruleText += `\n.${rule.className}::after{${blocks.after}}`;
-        if (blocks.firstLetter) {
-          ruleText += `\n.${rule.className}::first-letter{${blocks.firstLetter}}`;
-        }
-        if (blocks.marker) ruleText += `\n.${rule.className}::marker{${blocks.marker}}`;
-        return ruleText;
-      })
-      .join("\n");
+  // cascade result and the key sort can be skipped when printing. Base
+  // declarations repeated verbatim across classes (most of the stylesheet on
+  // class-heavy pages) are hoisted into selector-list rules keyed by the exact
+  // set of classes sharing them; each property appears at most once per class
+  // and all emitted rules share specificity, so hoisting cannot change the
+  // cascade result.
+  const toCssText = (): string => {
+    const classListsByDeclaration = new Map<string, string[]>();
+    for (const rule of rules) {
+      const baseStyles = rule.baseStyles;
+      for (const propertyName in baseStyles) {
+        const declaration = `${propertyName}:${baseStyles[propertyName]};`;
+        const classList = classListsByDeclaration.get(declaration);
+        if (classList === undefined) classListsByDeclaration.set(declaration, [rule.className]);
+        else classList.push(rule.className);
+      }
+    }
+    const declarationsByClassListKey = new Map<string, string>();
+    for (const [declaration, classList] of classListsByDeclaration) {
+      if (classList.length < 2) continue;
+      const classListKey = classList.join(",.");
+      declarationsByClassListKey.set(
+        classListKey,
+        (declarationsByClassListKey.get(classListKey) ?? "") + declaration,
+      );
+    }
+    let cssText = "";
+    for (const [classListKey, declarations] of declarationsByClassListKey) {
+      cssText += `.${classListKey}{${declarations}}\n`;
+    }
+    for (const rule of rules) {
+      const baseStyles = rule.baseStyles;
+      let residualBlock = "";
+      for (const propertyName in baseStyles) {
+        const declaration = `${propertyName}:${baseStyles[propertyName]};`;
+        const classList = classListsByDeclaration.get(declaration);
+        if (classList !== undefined && classList.length >= 2) continue;
+        residualBlock += declaration;
+      }
+      let ruleText = `.${rule.className}{${residualBlock}}`;
+      const blocks: StyleRuleDeclarationBlocks | null = rule.cachedBlocks;
+      const beforeBlock =
+        blocks?.before ??
+        (rule.beforeStyles ? buildInsertionOrderDeclarationBlock(rule.beforeStyles) : "");
+      const afterBlock =
+        blocks?.after ??
+        (rule.afterStyles ? buildInsertionOrderDeclarationBlock(rule.afterStyles) : "");
+      const firstLetterBlock =
+        blocks?.firstLetter ??
+        (rule.firstLetterStyles ? buildInsertionOrderDeclarationBlock(rule.firstLetterStyles) : "");
+      const markerBlock =
+        blocks?.marker ??
+        (rule.markerStyles ? buildInsertionOrderDeclarationBlock(rule.markerStyles) : "");
+      if (beforeBlock) ruleText += `\n.${rule.className}::before{${beforeBlock}}`;
+      if (afterBlock) ruleText += `\n.${rule.className}::after{${afterBlock}}`;
+      if (firstLetterBlock) ruleText += `\n.${rule.className}::first-letter{${firstLetterBlock}}`;
+      if (markerBlock) ruleText += `\n.${rule.className}::marker{${markerBlock}}`;
+      cssText += `${ruleText}\n`;
+    }
+    return cssText.slice(0, -1);
+  };
 
   return { rules, register, toCssText };
 };
