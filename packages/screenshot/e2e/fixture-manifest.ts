@@ -118,6 +118,18 @@ export const fixtureManifest: FixtureSpec[] = [
     preserveAnimations: true,
   },
   {
+    // WebKit offsets the animated box-shadow glow around the rotated cards in
+    // the SVG raster relative to the live compositor; identical output with
+    // memoization disabled confirms it is engine divergence, not a stale memo.
+    id: "hard-animation-memo-grid",
+    maxDiffRatio: STRICT_MAX_DIFF_RATIO,
+    preserveAnimations: true,
+    webkit: {
+      maxDiffRatio: WEBKIT_ROTATED_EDGE_MAX_DIFF_RATIO,
+      maxMeanChannelDelta: WEBKIT_ROTATED_EDGE_MAX_MEAN_CHANNEL_DELTA,
+    },
+  },
+  {
     id: "hard-waapi-paused",
     maxDiffRatio: STRICT_MAX_DIFF_RATIO,
     preserveAnimations: true,
