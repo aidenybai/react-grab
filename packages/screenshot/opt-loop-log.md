@@ -488,3 +488,13 @@ trees instead of iterating getComposedChildNodes (NodeList iterator + per-node
 composition checks); shadow-hosted subtrees keep the composed walk. 70-stress
 warm buildMs 9.1 -> 7.9, median 104.1 -> 100.4. Unit 77/77; Chromium fidelity
 412/412 green.
+
+## Iteration 50 — own-key iteration for variant-deviation keys
+
+appendStyleDeviations now iterates the style map's own keys (post-iteration-48
+these are only true deviations from the seed) with a prebuilt
+propertyName -> laneIndex map, instead of scanning all per-element lane names
+with Object.hasOwn per property. Cost is now O(deviations) rather than
+O(lanes) per element. Perf neutral on the harness (median ~100-102ms on
+70-stress, within noise); kept as a structural win that scales with lane-list
+growth. Unit 77/77; Chromium fidelity 412/412 green.
