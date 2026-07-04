@@ -400,6 +400,29 @@ export const PER_ELEMENT_SNAPSHOT_STYLE_PROPS = [
   "grid-template-rows",
 ];
 
+export const INSET_STYLE_PROPS = ["top", "right", "bottom", "left"];
+
+// Per-element props whose resolved value is pinned by the matched rules as
+// long as every declaration reaching them stays in this set's units.
+export const CLASS_STABLE_CANDIDATE_STYLE_PROPS = new Set([
+  ...INSET_STYLE_PROPS,
+  "margin-top",
+  "margin-right",
+  "margin-bottom",
+  "margin-left",
+  "padding-top",
+  "padding-right",
+  "padding-bottom",
+  "padding-left",
+]);
+
+// Values whose resolution cannot depend on the element's own layout: absolute
+// lengths, font-relative lengths (font-size is pinned by the memo key), and
+// viewport-relative lengths (constant page-wide). Percentages, auto, calc(),
+// var(), and anything unrecognized stay per-element.
+export const STABLE_DECLARED_VALUE_PATTERN =
+  /^(0|-?\d*\.?\d+(px|em|rem|ch|ex|pt|pc|cm|mm|in|vw|vh|vmin|vmax))( (0|-?\d*\.?\d+(px|em|rem|ch|ex|pt|pc|cm|mm|in|vw|vh|vmin|vmax)))*$/;
+
 export const FULL_SNAPSHOT_TAGS = new Set([
   "input",
   "select",

@@ -1,6 +1,9 @@
 import {
   ALWAYS_SNAPSHOT_STYLE_PROPS,
+  CLASS_STABLE_CANDIDATE_STYLE_PROPS,
+  INSET_STYLE_PROPS,
   PER_ELEMENT_SNAPSHOT_STYLE_PROPS,
+  STABLE_DECLARED_VALUE_PATTERN,
   WAAPI_KEYFRAME_META_KEYS,
 } from "../constants";
 import type { RelevantStylePropRegistry } from "../types";
@@ -32,6 +35,62 @@ export const createRelevantStylePropRegistry = (
   let isPseudoContentMemoSafe = true;
   let isInitialScanDone = false;
   const animatedProps = new Set<string>();
+  // Margins, paddings, and insets normally resolve per element (percentages,
+  // auto, positioned offsets), but when every declaration that could reach
+  // them uses a viewport/font/absolute unit their resolved value is pinned by
+  // the matched rules — which the memo descriptor already keys — so they can
+  // leave the per-element re-read lane entirely.
+  const layoutUnstableProps = new Set<string>();
+  const markLayoutUnstable = (propertyName: string): void => {
+    if (layoutUnstableProps.has(propertyName)) return;
+    layoutUnstableProps.add(propertyName);
+    if (isInitialScanDone) isMemoSafe = false;
+  };
+  const checkDeclaredValueStability = (
+    declaration: CSSStyleDeclaration,
+    propertyName: string,
+  ): void => {
+    if (propertyName === "position") {
+      if (declaration.getPropertyValue("position") !== "static") {
+        for (const insetProp of INSET_STYLE_PROPS) markLayoutUnstable(insetProp);
+      }
+      return;
+    }
+    // A mid-flight transition holds per-element intermediate values that no
+    // rule declares, so transitioned candidates lose their stability proof.
+    if (propertyName === "transition-property") {
+      const transitionedValue = declaration.getPropertyValue("transition-property");
+      for (const candidateProp of CLASS_STABLE_CANDIDATE_STYLE_PROPS) {
+        if (transitionedValue.includes("all") || transitionedValue.includes(candidateProp)) {
+          markLayoutUnstable(candidateProp);
+        }
+      }
+      return;
+    }
+    if (CLASS_STABLE_CANDIDATE_STYLE_PROPS.has(propertyName)) {
+      if (layoutUnstableProps.has(propertyName)) return;
+      if (!STABLE_DECLARED_VALUE_PATTERN.test(declaration.getPropertyValue(propertyName))) {
+        markLayoutUnstable(propertyName);
+      }
+      return;
+    }
+    // Logical properties resolve onto writing-mode-dependent physical
+    // longhands, so an unstable logical value taints its whole physical group.
+    const logicalGroupPrefix = ["margin-", "padding-", "inset"].find((groupPrefix) =>
+      propertyName.startsWith(groupPrefix),
+    );
+    if (
+      logicalGroupPrefix !== undefined &&
+      !STABLE_DECLARED_VALUE_PATTERN.test(declaration.getPropertyValue(propertyName))
+    ) {
+      const physicalPrefix = logicalGroupPrefix === "inset" ? "" : logicalGroupPrefix;
+      for (const candidateProp of CLASS_STABLE_CANDIDATE_STYLE_PROPS) {
+        if (physicalPrefix === "" ? INSET_STYLE_PROPS.includes(candidateProp) : candidateProp.startsWith(physicalPrefix)) {
+          markLayoutUnstable(candidateProp);
+        }
+      }
+    }
+  };
   const addProp = (propertyName: string): void => {
     if (seenProps.has(propertyName)) return;
     seenProps.add(propertyName);
@@ -55,6 +114,7 @@ export const createRelevantStylePropRegistry = (
     } else if (!animatedProps.has(propertyName)) {
       if (isInitialScanDone) isMemoSafe = false;
       animatedProps.add(propertyName);
+      layoutUnstableProps.add(propertyName);
     }
     addProp(propertyName);
   };
@@ -68,6 +128,7 @@ export const createRelevantStylePropRegistry = (
           isPseudoContentMemoSafe = false;
         }
       }
+      checkDeclaredValueStability(declaration, propertyName);
       addProp(propertyName);
     }
   };
@@ -123,7 +184,12 @@ export const createRelevantStylePropRegistry = (
   addWaapiAnimationProps();
   isInitialScanDone = true;
   const perElementPropertyNames = [
-    ...PER_ELEMENT_SNAPSHOT_STYLE_PROPS.filter((propertyName) => seenProps.has(propertyName)),
+    ...PER_ELEMENT_SNAPSHOT_STYLE_PROPS.filter(
+      (propertyName) =>
+        seenProps.has(propertyName) &&
+        (!CLASS_STABLE_CANDIDATE_STYLE_PROPS.has(propertyName) ||
+          layoutUnstableProps.has(propertyName)),
+    ),
     ...[...animatedProps].filter(
       (propertyName) => !PER_ELEMENT_SNAPSHOT_STYLE_PROPS.includes(propertyName),
     ),
