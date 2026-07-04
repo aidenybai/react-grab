@@ -290,6 +290,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
   const compositeAllLayers = () => {
     if (!mainContext || !canvasRef) return;
+    if (canvasWidth <= 0 || canvasHeight <= 0) return;
 
     mainContext.setTransform(1, 0, 0, 1, 0, 0);
     mainContext.clearRect(0, 0, canvasRef.width, canvasRef.height);

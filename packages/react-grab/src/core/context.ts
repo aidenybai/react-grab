@@ -17,6 +17,7 @@ import {
 import { createElementSelector } from "../utils/create-element-selector.js";
 import { isSharedUiSourcePath } from "../utils/is-shared-ui-source-path.js";
 import { isNextProjectRuntime } from "../utils/is-next-project-runtime.js";
+import { formatComponentNameLines } from "../utils/format-component-name-lines.js";
 import { enrichServerFrameLocations, symbolicateServerFrames } from "./next-server-frames.js";
 import { runQueuedSourceFetch } from "../utils/source-fetch-queue.js";
 import { getHTMLPreview, getInlineHTMLPreview } from "./html-preview.js";
@@ -233,9 +234,15 @@ export interface StackContextOptions {
 interface TraceContextResult {
   text: string;
   shouldAppendSelectorHint: boolean;
+  hasBudgetedStackFrame: boolean;
+  renderedComponentNames: Set<string>;
 }
 
-const getComponentNamesFromFiber = (element: Element, maxCount: number): string[] => {
+const getComponentNamesFromFiber = (
+  element: Element,
+  maxCount: number,
+  shouldIncludeName: (componentName: string) => boolean = () => true,
+): string[] => {
   if (!isInstrumentationActive()) return [];
   const fiber = getFiberFromHostInstance(element);
   if (!fiber) return [];
@@ -247,7 +254,7 @@ const getComponentNamesFromFiber = (element: Element, maxCount: number): string[
       if (componentNames.length >= maxCount) return true;
       if (isCompositeFiber(currentFiber)) {
         const displayName = getDisplayName(currentFiber.type);
-        if (displayName && isUsefulComponentName(displayName)) {
+        if (displayName && isUsefulComponentName(displayName) && shouldIncludeName(displayName)) {
           componentNames.push(displayName);
         }
       }
@@ -367,16 +374,23 @@ export const formatStackContext = (
   const hardMaxLines = Math.max(maxLines, MAX_TRACE_CONTEXT_LINES);
   const isNextProject = isNextProjectRuntime();
   const lines: string[] = [];
+  const renderedComponentNames = new Set<string>();
   let previousLibraryFrameKey: string | null = null;
   let didDedupeLeadingComponent = false;
   let hasTrustedSource = false;
+  let hasBudgetedStackFrame = false;
   let budgetedLineCount = 0;
+
+  const addComponentName = (componentName: string | null | undefined) => {
+    if (componentName) renderedComponentNames.add(componentName);
+  };
 
   if (leadingSource) {
     hasTrustedSource = leadingSource.origin === "app";
     // A shared-UI leading source means the user grabbed a primitive directly;
     // keep its budget free so the feature ancestors that consume it surface.
     if (!isSharedUiSourcePath(leadingSource.filePath)) budgetedLineCount += 1;
+    addComponentName(leadingSource.componentName);
     lines.push(formatSourceContextLine(leadingSource, isNextProject));
   }
 
@@ -424,7 +438,11 @@ export const formatStackContext = (
     if (frameLine.text === lines[lines.length - 1]) continue;
 
     if (frameLine.isAppSource) hasTrustedSource = true;
-    if (frameLine.consumesBudget) budgetedLineCount += 1;
+    if (frameLine.consumesBudget) {
+      budgetedLineCount += 1;
+      hasBudgetedStackFrame = true;
+    }
+    addComponentName(componentName);
     lines.push(frameLine.text);
     previousLibraryFrameKey = libraryFrameKey;
   }
@@ -432,6 +450,8 @@ export const formatStackContext = (
   return {
     text: lines.join(""),
     shouldAppendSelectorHint: !hasTrustedSource,
+    hasBudgetedStackFrame,
+    renderedComponentNames,
   };
 };
 
@@ -442,6 +462,28 @@ const resolveLeadingSource = async (element: Element): Promise<ResolvedSource | 
   return fiberSource?.origin === "app" ? fiberSource : null;
 };
 
+// When the owner stack yields only library or generated sources, the trace
+// names the grabbed primitive but not the feature components rendering it.
+// The fiber return chain still knows those ancestors, so surface their names.
+const appendFiberAncestorNames = (
+  element: Element,
+  stackContext: TraceContextResult,
+  maxAncestorCount: number,
+): TraceContextResult => {
+  const missingAncestorNames = getComponentNamesFromFiber(
+    findNearestFiberElement(element),
+    maxAncestorCount,
+    (ancestorName) =>
+      isSourceComponentName(ancestorName) && !stackContext.renderedComponentNames.has(ancestorName),
+  );
+  if (missingAncestorNames.length === 0) return stackContext;
+
+  return {
+    ...stackContext,
+    text: `${stackContext.text}${formatComponentNameLines(missingAncestorNames)}`,
+  };
+};
+
 const getTraceContext = async (
   element: Element,
   options: StackContextOptions = {},
@@ -449,21 +491,20 @@ const getTraceContext = async (
   const leadingSource = await resolveLeadingSource(element);
   const stack = await getStack(element);
 
+  const maxLines = resolveMaxContextLines(options.maxLines);
   const stackContext = formatStackContext(stack ?? [], options, leadingSource);
-  if (stackContext.text) return stackContext;
-
-  const componentNames = getComponentNamesFromFiber(
-    findNearestFiberElement(element),
-    resolveMaxContextLines(options.maxLines),
-  );
-  if (componentNames.length > 0) {
-    return {
-      text: componentNames.map((componentName) => `\n  in ${componentName}`).join(""),
-      shouldAppendSelectorHint: true,
-    };
+  if (stackContext.text) {
+    if (stackContext.hasBudgetedStackFrame) return stackContext;
+    return appendFiberAncestorNames(element, stackContext, maxLines);
   }
 
-  return { text: "", shouldAppendSelectorHint: true };
+  const componentNames = getComponentNamesFromFiber(findNearestFiberElement(element), maxLines);
+  return {
+    text: formatComponentNameLines(componentNames),
+    shouldAppendSelectorHint: true,
+    hasBudgetedStackFrame: false,
+    renderedComponentNames: new Set(componentNames),
+  };
 };
 
 export const getStackContext = async (
