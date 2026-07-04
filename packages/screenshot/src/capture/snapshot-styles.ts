@@ -199,7 +199,7 @@ export const snapshotComposedTree = (
     if (UNRECURSED_CLONE_TAGS.has(element.localName)) return;
     if (prunedElements?.has(element)) return;
     const childIsInShadowTree = isInShadowTree || Boolean(element.shadowRoot);
-    for (const childNode of getComposedChildNodes(element)) {
+    for (const childNode of getComposedChildNodes(element, childIsInShadowTree)) {
       if (isElementNode(childNode)) visit(childNode, element, childIsInShadowTree, memoKey);
     }
   };

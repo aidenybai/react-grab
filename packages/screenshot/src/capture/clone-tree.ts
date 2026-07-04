@@ -174,7 +174,11 @@ const buildIframeClone = (element: HTMLIFrameElement, context: CloneContext): El
   return clone;
 };
 
-const cloneElementNode = (element: Element, context: CloneContext): Element | null => {
+const cloneElementNode = (
+  element: Element,
+  context: CloneContext,
+  isInShadowTree = false,
+): Element | null => {
   if (isSvgTemplateContainer(element)) {
     const verbatimClone = element.cloneNode(true);
     if (!isElementNode(verbatimClone)) return null;
@@ -223,9 +227,10 @@ const cloneElementNode = (element: Element, context: CloneContext): Element | nu
   }
   context.cloneByElement.set(element, clone);
   if (shouldCloneChildren) {
-    for (const childNode of getComposedChildNodes(element)) {
+    const childIsInShadowTree = isInShadowTree || Boolean(element.shadowRoot);
+    for (const childNode of getComposedChildNodes(element, childIsInShadowTree)) {
       if (isElementNode(childNode)) {
-        const childClone = cloneElementNode(childNode, context);
+        const childClone = cloneElementNode(childNode, context, childIsInShadowTree);
         if (childClone) clone.appendChild(childClone);
       } else if (childNode.nodeType === Node.TEXT_NODE) {
         clone.appendChild(
