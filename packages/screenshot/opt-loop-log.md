@@ -438,3 +438,16 @@ fresh 22.9ms vs reused 4.7ms). toBlob/toPngDataUrl now draw into a shared
 scratch canvas guarded by a busy flag (concurrent captures fall back to a
 fresh canvas); toCanvas still returns a caller-owned canvas. 70-stress warm
 rasterMs 12.2 -> 6.3, median 110 -> 106. Unit 77/77; fidelity 412 + 824 green.
+
+## Iteration 44 — batched baseline probe prewarm (REVERTED)
+
+Mounted all missing baseline probes before the diff loop and kept them mounted
+to amortize sandbox layout flushes. Regressed instead: 60-kitchen-sink cold
+55 -> 105ms (persistently mounted probes keep the sandbox iframe's style/layout
+work alive through the decode/raster phases). Reverted.
+
+## Iteration 45 — willReadFrequently on the raster context (REVERTED)
+
+Forced the scratch canvas to a CPU backing store hoping to skip a GPU
+readback in toBlob. No measurable change (a 2400x4800 canvas is already
+CPU-backed in Chromium) — reverted.
