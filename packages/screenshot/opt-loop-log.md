@@ -163,3 +163,11 @@ cache at capture start so network latency overlaps the CPU phases.
 Metrics: localhost fixture assets resolve in ~6ms so the harness delta sits inside
 cold-run noise; the win scales with real network latency. Unit 77/77, chromium
 fidelity 412/412 green.
+### Iteration 19 — cheap invalid-XML detection + attribute-name validity cache (KEPT)
+
+Technique: the invalid-XML detection regex carried lookarounds that are slow to
+test per string; clean strings (the overwhelming case) now exit through a plain
+character-class test plus native String.isWellFormed. Attribute-name XML validity
+is memoized by name (names repeat heavily: class/style/id/data-*).
+Metrics: 70-stress warm ~39.8ms (small win inside noise band; strip+sanitize were
+~3ms/run in the profile). Unit 77/77, chromium fidelity 412/412 green.

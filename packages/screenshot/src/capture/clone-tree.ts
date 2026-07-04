@@ -23,9 +23,20 @@ import { applyScrollOffsets } from "./scroll-offsets";
 const PLAIN_XML_ATTRIBUTE_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_.-]*$/;
 const REMOVED_ATTRIBUTE_NAMES = new Set(["class", "style", "srcset", "sizes", "loading", "slot"]);
 
+const attributeNameValidityCache = new Map<string, boolean>();
+
+const isPlainXmlAttributeName = (attributeName: string): boolean => {
+  let isValid = attributeNameValidityCache.get(attributeName);
+  if (isValid === undefined) {
+    isValid = PLAIN_XML_ATTRIBUTE_NAME_PATTERN.test(attributeName);
+    attributeNameValidityCache.set(attributeName, isValid);
+  }
+  return isValid;
+};
+
 const isSerializableAttribute = (attribute: Attr): boolean => {
   if (attribute.namespaceURI === null) {
-    return attribute.name !== "xmlns" && PLAIN_XML_ATTRIBUTE_NAME_PATTERN.test(attribute.name);
+    return attribute.name !== "xmlns" && isPlainXmlAttributeName(attribute.name);
   }
   return (
     (attribute.prefix === null || PLAIN_XML_ATTRIBUTE_NAME_PATTERN.test(attribute.prefix)) &&
