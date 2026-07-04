@@ -209,6 +209,22 @@ const buildIframeClone = (element: HTMLIFrameElement, context: CloneContext): El
   return clone;
 };
 
+const appendChildClone = (
+  clone: Element,
+  childNode: Node,
+  context: CloneContext,
+  isInShadowTree: boolean,
+): void => {
+  if (isElementNode(childNode)) {
+    const childClone = cloneElementNode(childNode, context, isInShadowTree);
+    if (childClone) clone.appendChild(childClone);
+  } else if (childNode.nodeType === Node.TEXT_NODE) {
+    clone.appendChild(
+      context.ownerDocument.createTextNode(stripInvalidXmlCharacters(childNode.textContent ?? "")),
+    );
+  }
+};
+
 const cloneElementNode = (
   element: Element,
   context: CloneContext,
@@ -257,16 +273,17 @@ const cloneElementNode = (
   context.cloneByElement.set(element, clone);
   if (shouldCloneChildren) {
     const childIsInShadowTree = isInShadowTree || Boolean(element.shadowRoot);
-    for (const childNode of getComposedChildNodes(element, childIsInShadowTree)) {
-      if (isElementNode(childNode)) {
-        const childClone = cloneElementNode(childNode, context, childIsInShadowTree);
-        if (childClone) clone.appendChild(childClone);
-      } else if (childNode.nodeType === Node.TEXT_NODE) {
-        clone.appendChild(
-          context.ownerDocument.createTextNode(
-            stripInvalidXmlCharacters(childNode.textContent ?? ""),
-          ),
-        );
+    if (!childIsInShadowTree) {
+      for (
+        let childNode = element.firstChild;
+        childNode !== null;
+        childNode = childNode.nextSibling
+      ) {
+        appendChildClone(clone, childNode, context, false);
+      }
+    } else {
+      for (const childNode of getComposedChildNodes(element, childIsInShadowTree)) {
+        appendChildClone(clone, childNode, context, childIsInShadowTree);
       }
     }
   }

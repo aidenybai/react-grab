@@ -480,3 +480,11 @@ properties (shorter variant keys, fewer dictionary-mode writes). Perf
 neutral-to-slightly-positive on the harness (within noise); kept as a
 structural cleanup that shrinks per-element state. Unit 77/77; Chromium
 fidelity 412/412 green.
+
+## Iteration 49 — sibling-pointer child walk in the clone pass
+
+cloneElementNode now walks firstChild/nextSibling directly outside shadow
+trees instead of iterating getComposedChildNodes (NodeList iterator + per-node
+composition checks); shadow-hosted subtrees keep the composed walk. 70-stress
+warm buildMs 9.1 -> 7.9, median 104.1 -> 100.4. Unit 77/77; Chromium fidelity
+412/412 green.
