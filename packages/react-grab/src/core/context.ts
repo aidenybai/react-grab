@@ -233,6 +233,8 @@ export interface StackContextOptions {
 interface TraceContextResult {
   text: string;
   shouldAppendSelectorHint: boolean;
+  hasBudgetedStackFrame: boolean;
+  renderedComponentNames: Set<string>;
 }
 
 const getComponentNamesFromFiber = (element: Element, maxCount: number): string[] => {
@@ -367,16 +369,23 @@ export const formatStackContext = (
   const hardMaxLines = Math.max(maxLines, MAX_TRACE_CONTEXT_LINES);
   const isNextProject = isNextProjectRuntime();
   const lines: string[] = [];
+  const renderedComponentNames = new Set<string>();
   let previousLibraryFrameKey: string | null = null;
   let didDedupeLeadingComponent = false;
   let hasTrustedSource = false;
+  let hasBudgetedStackFrame = false;
   let budgetedLineCount = 0;
+
+  const addComponentName = (componentName: string | null | undefined) => {
+    if (componentName) renderedComponentNames.add(componentName);
+  };
 
   if (leadingSource) {
     hasTrustedSource = leadingSource.origin === "app";
     // A shared-UI leading source means the user grabbed a primitive directly;
     // keep its budget free so the feature ancestors that consume it surface.
     if (!isSharedUiSourcePath(leadingSource.filePath)) budgetedLineCount += 1;
+    addComponentName(leadingSource.componentName);
     lines.push(formatSourceContextLine(leadingSource, isNextProject));
   }
 
@@ -424,7 +433,11 @@ export const formatStackContext = (
     if (frameLine.text === lines[lines.length - 1]) continue;
 
     if (frameLine.isAppSource) hasTrustedSource = true;
-    if (frameLine.consumesBudget) budgetedLineCount += 1;
+    if (frameLine.consumesBudget) {
+      budgetedLineCount += 1;
+      hasBudgetedStackFrame = true;
+    }
+    addComponentName(componentName);
     lines.push(frameLine.text);
     previousLibraryFrameKey = libraryFrameKey;
   }
@@ -432,6 +445,8 @@ export const formatStackContext = (
   return {
     text: lines.join(""),
     shouldAppendSelectorHint: !hasTrustedSource,
+    hasBudgetedStackFrame,
+    renderedComponentNames,
   };
 };
 
@@ -442,6 +457,29 @@ const resolveLeadingSource = async (element: Element): Promise<ResolvedSource | 
   return fiberSource?.origin === "app" ? fiberSource : null;
 };
 
+// When the owner stack yields no high-signal app frame (common when a bundler
+// serves generated/virtual sources, or when only library wrappers like Radix
+// appear as owners), the trace names the grabbed primitive but none of the
+// feature components that render it. The fiber return chain still knows those
+// ancestors, so surface their names as low-confidence context.
+const appendFiberAncestorNames = (
+  element: Element,
+  stackContext: TraceContextResult,
+  maxCount: number,
+): TraceContextResult => {
+  const ancestorNames = getComponentNamesFromFiber(findNearestFiberElement(element), maxCount);
+  const missingAncestorNames = ancestorNames.filter(
+    (ancestorName) =>
+      isSourceComponentName(ancestorName) && !stackContext.renderedComponentNames.has(ancestorName),
+  );
+  if (missingAncestorNames.length === 0) return stackContext;
+
+  return {
+    ...stackContext,
+    text: `${stackContext.text}${missingAncestorNames.map((ancestorName) => `\n  in ${ancestorName}`).join("")}`,
+  };
+};
+
 const getTraceContext = async (
   element: Element,
   options: StackContextOptions = {},
@@ -450,7 +488,14 @@ const getTraceContext = async (
   const stack = await getStack(element);
 
   const stackContext = formatStackContext(stack ?? [], options, leadingSource);
-  if (stackContext.text) return stackContext;
+  if (stackContext.text) {
+    if (stackContext.hasBudgetedStackFrame) return stackContext;
+    return appendFiberAncestorNames(
+      element,
+      stackContext,
+      resolveMaxContextLines(options.maxLines),
+    );
+  }
 
   const componentNames = getComponentNamesFromFiber(
     findNearestFiberElement(element),
@@ -460,10 +505,17 @@ const getTraceContext = async (
     return {
       text: componentNames.map((componentName) => `\n  in ${componentName}`).join(""),
       shouldAppendSelectorHint: true,
+      hasBudgetedStackFrame: false,
+      renderedComponentNames: new Set(componentNames),
     };
   }
 
-  return { text: "", shouldAppendSelectorHint: true };
+  return {
+    text: "",
+    shouldAppendSelectorHint: true,
+    hasBudgetedStackFrame: false,
+    renderedComponentNames: new Set(),
+  };
 };
 
 export const getStackContext = async (

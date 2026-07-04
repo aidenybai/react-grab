@@ -232,4 +232,20 @@ describe("formatStackContext", () => {
 
     expect(result.shouldAppendSelectorHint).toBe(false);
   });
+
+  it("reports when no high-signal stack frame was rendered", () => {
+    const libraryOnly = formatStackContext([packageFrame], {}, fiberSource);
+    expect(libraryOnly.hasBudgetedStackFrame).toBe(false);
+
+    const withAppFrame = formatStackContext([appFrame], {}, fiberSource);
+    expect(withAppFrame.hasBudgetedStackFrame).toBe(true);
+  });
+
+  it("collects rendered component names for downstream deduplication", () => {
+    const result = formatStackContext([packageFrame, appFrame], {}, fiberSource);
+
+    expect(result.renderedComponentNames.has("Page")).toBe(true);
+    expect(result.renderedComponentNames.has("Tabs")).toBe(true);
+    expect(result.renderedComponentNames.has("Widget")).toBe(true);
+  });
 });
