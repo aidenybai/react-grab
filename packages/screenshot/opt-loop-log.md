@@ -294,3 +294,11 @@ now also fires loads for url() references in style rules and inline style
 attributes, so those fetches overlap the read/clone phases.
 Metrics: 60-kitchen-sink cold 83 -> 72ms (inline 39 -> 27ms); other fixtures
 neutral. Unit 77/77, chromium fidelity 412/412 green.
+
+## Iteration 31 — selector-scoped full-snapshot property reads (REVERTED)
+
+Hypothesis: non-inherited props declared only in rules an element doesn't match
+can be skipped during full snapshots (per-rule prop groups + element.matches).
+Result: 70-stress warm 35.6 -> 43ms — per-element property subsets fragment the
+style-registry signatures (insertion-order keyed), so class dedup drops and the
+diff/serialize cost outweighs the skipped getPropertyValue reads. Reverted.
