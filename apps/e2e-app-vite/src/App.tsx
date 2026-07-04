@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useReducer, useSyncExternalStore } from "react";
 import { PerfGrid } from "./perf-grid";
 
 interface Todo {
@@ -614,6 +614,157 @@ const PointerUpModalSection = () => {
   );
 };
 
+interface CounterState {
+  count: number;
+}
+
+type CounterAction = { type: "increment" } | { type: "decrement" };
+
+const counterReducer = (state: CounterState, action: CounterAction): CounterState => {
+  switch (action.type) {
+    case "increment":
+      return { count: state.count + 1 };
+    case "decrement":
+      return { count: state.count - 1 };
+    default:
+      return state;
+  }
+};
+
+// Reducer-only component (no useState of its own): time-machine travel must
+// force its re-render through a stateful ancestor.
+const ReducerOnlyCounter = () => {
+  const [state, dispatch] = useReducer(counterReducer, { count: 0 });
+
+  return (
+    <div className="flex items-center gap-2">
+      <span data-testid="reducer-only-count">{state.count}</span>
+      <button
+        onClick={() => dispatch({ type: "increment" })}
+        className="border px-2 py-1 rounded"
+        data-testid="reducer-only-increment"
+      >
+        Increment
+      </button>
+    </div>
+  );
+};
+
+// useReducer alongside useState on the same fiber: time-machine travel can
+// force its re-render through the sibling useState queue.
+const MixedHooksCounter = () => {
+  const [step, setStep] = useState(1);
+  const [state, dispatch] = useReducer(counterReducer, { count: 0 });
+
+  return (
+    <div className="flex items-center gap-2">
+      <span data-testid="mixed-hooks-count">{state.count}</span>
+      <button
+        onClick={() => dispatch({ type: "increment" })}
+        className="border px-2 py-1 rounded"
+        data-testid="mixed-hooks-increment"
+      >
+        Increment
+      </button>
+      <button
+        onClick={() => setStep((previous) => previous + 1)}
+        className="border px-2 py-1 rounded"
+        data-testid="mixed-hooks-step"
+      >
+        Step {step}
+      </button>
+    </div>
+  );
+};
+
+const externalStore = {
+  value: 0,
+  listeners: new Set<() => void>(),
+  increment() {
+    this.value += 1;
+    this.listeners.forEach((listener) => listener());
+  },
+  subscribe(listener: () => void) {
+    externalStore.listeners.add(listener);
+    return () => externalStore.listeners.delete(listener);
+  },
+  getSnapshot() {
+    return externalStore.value;
+  },
+};
+
+// useSyncExternalStore state lives outside React and cannot be restored by
+// the time machine — it must be neither recorded nor travelled.
+const ExternalStoreCounter = () => {
+  const value = useSyncExternalStore(externalStore.subscribe, externalStore.getSnapshot);
+
+  return (
+    <div className="flex items-center gap-2">
+      <span data-testid="external-store-count">{value}</span>
+      <button
+        onClick={() => externalStore.increment()}
+        className="border px-2 py-1 rounded"
+        data-testid="external-store-increment"
+      >
+        Increment
+      </button>
+    </div>
+  );
+};
+
+const blockMainThread = (durationMs: number) => {
+  const blockStart = performance.now();
+  while (performance.now() - blockStart < durationMs) {
+    // Busy-wait: fixture for slow-render / long-animation-frame detection.
+  }
+};
+
+// Every increment blocks the main thread during render, producing both a
+// slow commit (profiling actualDuration) and a long-animation-frame entry
+// for the time machine's perf attribution to flag.
+const JankyCounter = () => {
+  const [count, setCount] = useState(0);
+  if (count > 0) blockMainThread(80);
+
+  return (
+    <div className="flex items-center gap-2">
+      <span data-testid="janky-count">{count}</span>
+      <button
+        onClick={() => setCount((previous) => previous + 1)}
+        className="border px-2 py-1 rounded"
+        data-testid="janky-increment"
+      >
+        Janky Increment
+      </button>
+    </div>
+  );
+};
+
+const ReducerSection = () => {
+  const [isExpanded, setIsExpanded] = useState(true);
+
+  return (
+    <section className="border rounded-lg p-4" data-testid="reducer-section">
+      <h2 className="text-lg font-bold mb-4">Reducer Counters</h2>
+      <button
+        onClick={() => setIsExpanded((previous) => !previous)}
+        className="border px-2 py-1 rounded mb-2"
+        data-testid="reducer-section-toggle"
+      >
+        {isExpanded ? "Collapse" : "Expand"}
+      </button>
+      {isExpanded && (
+        <div className="space-y-2">
+          <ReducerOnlyCounter />
+          <MixedHooksCounter />
+          <ExternalStoreCounter />
+          <JankyCounter />
+        </div>
+      )}
+    </section>
+  );
+};
+
 const HiddenToggleSection = () => {
   const [isVisible, setIsVisible] = useState(true);
   const elementRef = useRef<HTMLDivElement>(null);
@@ -753,6 +904,8 @@ export default function App() {
       <PointerUpModalSection />
 
       <PointerEventsModalSection />
+
+      <ReducerSection />
 
       <HiddenToggleSection />
 

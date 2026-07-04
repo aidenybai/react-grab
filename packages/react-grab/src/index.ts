@@ -7,6 +7,7 @@ export {
 } from "./core/index.js";
 export { commentPlugin } from "./core/plugins/comment.js";
 export { openPlugin } from "./core/plugins/open.js";
+export { timeMachinePlugin } from "./core/plugins/time-machine.js";
 export { generateSnippet } from "./utils/generate-snippet.js";
 export type {
   Options,
@@ -36,6 +37,8 @@ export type {
   PluginHooks,
   SelectedElementPayload,
   ElementSelectedEventDetail,
+  TimeMachinePanelState,
+  TimeMachineTimelineEntry,
 } from "./types.js";
 
 import { init } from "./core/index.js";

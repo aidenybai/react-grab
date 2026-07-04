@@ -9,6 +9,7 @@ import { SelectionLabel } from "./selection-label/index.js";
 import { Toolbar } from "./toolbar/index.js";
 import { ContextMenu } from "./context-menu.js";
 import { EditPanel } from "./edit-panel/index.js";
+import { TimeMachinePanel } from "./time-machine-panel/index.js";
 import { ToolbarMenu } from "./toolbar/toolbar-menu.js";
 import { HierarchyMenu } from "./toolbar/hierarchy-menu.js";
 
@@ -156,6 +157,14 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         onSubmit={props.onEditPanelSubmit ?? (() => {})}
         onPendingEditsChange={props.onEditPanelPendingEditsChange}
         onInteractingChange={props.onEditPanelInteractingChange}
+      />
+      <TimeMachinePanel
+        state={props.timeMachineState ?? null}
+        position={props.timeMachinePosition ?? null}
+        entries={props.timeMachineEntries ?? []}
+        cursor={props.timeMachineCursor ?? 0}
+        onTravel={props.onTimeMachineTravel ?? (() => {})}
+        onDismiss={props.onTimeMachineDismiss ?? (() => {})}
       />
     </>
   );

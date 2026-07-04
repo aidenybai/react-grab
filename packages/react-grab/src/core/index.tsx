@@ -89,6 +89,7 @@ import {
   DEFAULT_ACTION_ID,
   COMMENT_ACTION_ID,
   EDIT_ACTION_ID,
+  TIME_MACHINE_ACTION_ID,
   REACT_GRAB_ATTRIBUTE_NAME,
   REACT_GRAB_INPUT_ATTRIBUTE,
 } from "../constants.js";
@@ -139,6 +140,9 @@ import { copyPlugin } from "./plugins/copy.js";
 import { commentPlugin } from "./plugins/comment.js";
 import { editPlugin } from "./plugins/edit.js";
 import { openPlugin } from "./plugins/open.js";
+import { timeMachinePlugin } from "./plugins/time-machine.js";
+import { stopTimeMachineRecorder } from "./time-machine-recorder.js";
+import { createTimeMachineController, type TimeMachineTriggerOptions } from "./time-machine.js";
 import { freezeAnimations, freezeAllAnimations } from "../utils/freeze-animations.js";
 import {
   freezeGlobalInteractions,
@@ -149,9 +153,10 @@ import { generateId } from "../utils/generate-id.js";
 import { logRecoverableError } from "../utils/log-recoverable-error.js";
 import { getNearestEdge } from "../utils/get-nearest-edge.js";
 import { findShortcutAction } from "../utils/action-shortcuts.js";
+import { resolveActionEnabled } from "../utils/resolve-action-enabled.js";
 import { createKeyboardSelectionController } from "./keyboard-selection.js";
 
-const builtInPlugins = [copyPlugin, editPlugin, commentPlugin, openPlugin];
+const builtInPlugins = [copyPlugin, editPlugin, commentPlugin, openPlugin, timeMachinePlugin];
 
 interface CopyWithLabelOptions {
   element: Element;
@@ -353,8 +358,30 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
     });
 
+    const [timeMachinePosition, setTimeMachinePosition] = createSignal<DropdownAnchor | null>(null);
+    const timeMachine = createTimeMachineController({
+      store,
+      actions,
+      isActivated,
+      activateRenderer: () => activateRenderer(),
+      deactivateRenderer: () => deactivateRenderer(),
+      onOpen: () => {
+        dismissToolbarMenu();
+        stopTimeMachineTracking?.();
+        stopTimeMachineTracking = trackDropdownPosition(
+          computeTimeMachineAnchor,
+          setTimeMachinePosition,
+        );
+      },
+      onClose: () => {
+        stopTimeMachineTracking?.();
+        stopTimeMachineTracking = null;
+        setTimeMachinePosition(null);
+      },
+    });
+
     const isModalPopoverOpen = createMemo(
-      () => store.contextMenuPosition !== null || editMode.isOpen(),
+      () => store.contextMenuPosition !== null || editMode.isOpen() || timeMachine.isOpen(),
     );
     const isAnyPopoverOpen = createMemo(
       () => isModalPopoverOpen() || toolbarMenuPosition() !== null,
@@ -362,6 +389,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let toolbarElement: HTMLDivElement | undefined;
     let stopToolbarMenuTracking: (() => void) | null = null;
     let stopEditPanelTracking: (() => void) | null = null;
+    let stopTimeMachineTracking: (() => void) | null = null;
     let didSwitchEditTargetOnPointerDown = false;
 
     let shiftSelectionLabelAnchorRatioByElement = new WeakMap<Element, number>();
@@ -542,6 +570,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
     const toolbarActiveActionId = createMemo(() => {
       if (editMode.isOpen()) return EDIT_ACTION_ID;
+      if (timeMachine.isOpen()) return TIME_MACHINE_ACTION_ID;
       if (isCommentMode()) return COMMENT_ACTION_ID;
       if (isPendingContextMenuSelect()) return pendingToolbarActionId();
       if (isActivated()) return DEFAULT_ACTION_ID;
@@ -951,9 +980,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       onCleanup(cleanup);
     });
 
+    // Time travel replays state through each hook's queue.dispatch, which the
+    // React-updates freeze would buffer until deactivation — so the freeze is
+    // suspended while the time machine panel is open.
+    const shouldFreezeReactUpdates = createMemo(() => isActivated() && !timeMachine.isOpen());
+
     createEffect(
-      on(isActivated, (activated) => {
-        if (!activated) return;
+      on(shouldFreezeReactUpdates, (shouldFreeze) => {
+        if (!shouldFreeze) return;
         if (!pluginRegistry.store.options.freezeReactUpdates) return;
         const unfreezeUpdates = freezeUpdates();
         onCleanup(unfreezeUpdates);
@@ -1444,6 +1478,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       stopSpaceDragRepositioning();
       actions.deactivate();
       editMode.resetWithDiscard();
+      timeMachine.reset();
       dismissToolbarMenu();
       stopShiftMultiSelecting();
       clearKeyboardNavigation();
@@ -1551,6 +1586,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         editMode.dismiss();
         return;
       }
+      if (timeMachine.isOpen()) {
+        timeMachine.dismiss();
+        return;
+      }
       const element = store.frozenElement || targetElement();
       if (!element) return;
       openEditMode(element, { x: pointer().x, y: pointer().y });
@@ -1561,6 +1600,30 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       position: Position,
       overrides: EditModeOverrides = {},
     ): boolean => editMode.trigger(element, position, overrides);
+
+    const openTimeMachine = (
+      position: Position,
+      options: TimeMachineTriggerOptions = {},
+    ): boolean => timeMachine.trigger(position, options);
+
+    // The toolbar opens history as a selection-free utility: the panel
+    // anchors to the toolbar and the app keeps running live (no activation,
+    // no freeze), so the timeline can even be watched filling up.
+    const toggleToolbarTimeMachine = () => {
+      if (timeMachine.isOpen()) {
+        timeMachine.closePreservingRenderer();
+        return;
+      }
+      if (!isEnabled()) return;
+      actions.hideContextMenu();
+      dismissToolbarMenu();
+      if (editMode.isOpen()) editMode.closePreservingRenderer();
+      const anchor = computeDropdownAnchor();
+      openTimeMachine({
+        x: anchor?.x ?? window.innerWidth / 2,
+        y: anchor?.y ?? window.innerHeight / 2,
+      });
+    };
 
     const tryHandleEditModeElementSwitch = (clientX: number, clientY: number): boolean => {
       if (!editMode.isOpen() || store.contextMenuPosition !== null) return false;
@@ -1619,6 +1682,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleActivateAction = (actionId: string) => {
+      if (actionId === TIME_MACHINE_ACTION_ID) {
+        toggleToolbarTimeMachine();
+        return;
+      }
       if (isActivated()) {
         // While still choosing an element, clicking a different action switches
         // the pending action in place instead of tearing down selection mode;
@@ -2328,6 +2395,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!shortcut) return false;
       const { element, action } = shortcut;
 
+      const position = { x: pointer().x, y: pointer().y };
+      const actionContext = buildImmediateActionContext(element, position);
+      // A disabled action (e.g. History before any state change) must not
+      // swallow the key from the host app.
+      if (!resolveActionEnabled(action, actionContext)) return false;
+
       if (isPromptMode()) {
         if (!runActionForCurrentSelection(action.id)) return false;
         event.preventDefault();
@@ -2335,8 +2408,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return true;
       }
 
-      const position = { x: pointer().x, y: pointer().y };
-      action.onAction(buildImmediateActionContext(element, position));
+      action.onAction(actionContext);
 
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -2370,6 +2442,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isCopying()) return false;
       if (store.contextMenuPosition !== null) return false;
       if (editMode.isOpen()) return false;
+      if (timeMachine.isOpen()) return false;
 
       const isShiftF10 = event.key === "F10" && event.shiftKey;
       const isContextMenuKey = event.key === "ContextMenu";
@@ -3528,6 +3601,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         hideContextMenuAction();
       };
 
+      const enterTimeMachineAction = () => {
+        const didOpen = openTimeMachine(position, {
+          element,
+          componentName,
+          tagName,
+        });
+        if (didOpen) {
+          clearPendingToolbarSelection();
+        }
+        hideContextMenuAction();
+      };
+
       const context: ContextMenuActionContext = {
         element,
         elements,
@@ -3537,6 +3622,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         tagName,
         enterPromptMode: customEnterPromptMode ?? defaultEnterPromptMode,
         enterEditMode: enterEditModeAction,
+        enterTimeMachine: enterTimeMachineAction,
         copy: copyAction,
         hooks: {
           transformHtmlContent: pluginRegistry.hooks.transformHtmlContent,
@@ -3630,6 +3716,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       };
     };
 
+    const computeTimeMachineAnchor = (): DropdownAnchor | null => {
+      const toolbarAnchor = computeDropdownAnchor();
+      if (toolbarAnchor) return toolbarAnchor;
+      const state = timeMachine.state();
+      if (!state) return null;
+      return {
+        x: state.position.x,
+        y: state.position.y,
+        edge: "bottom",
+      };
+    };
+
     // Keep sibling dropdown tracking independent; sharing one RAF id breaks anchoring.
     const trackDropdownPosition = (
       getAnchor: () => DropdownAnchor | null,
@@ -3672,6 +3770,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.hideContextMenu();
       dismissToolbarMenu();
       editMode.dismiss();
+      timeMachine.dismiss();
     };
 
     const handleToggleToolbarMenu = () => {
@@ -3680,6 +3779,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       } else {
         actions.hideContextMenu();
         if (editMode.isOpen()) editMode.closePreservingRenderer();
+        if (timeMachine.isOpen()) timeMachine.closePreservingRenderer();
         stopToolbarMenuTracking?.();
         stopToolbarMenuTracking = trackDropdownPosition(
           computeDropdownAnchor,
@@ -3849,6 +3949,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 onEditPanelSubmit={editMode.submit}
                 onEditPanelPendingEditsChange={editMode.setPendingEdits}
                 onEditPanelInteractingChange={editMode.setInteracting}
+                timeMachineState={timeMachine.state()}
+                timeMachinePosition={timeMachinePosition()}
+                timeMachineEntries={timeMachine.entries()}
+                timeMachineCursor={timeMachine.cursor()}
+                onTimeMachineTravel={timeMachine.travelTo}
+                onTimeMachineDismiss={timeMachine.dismiss}
               />
             );
           }, rendererRoot);
@@ -3937,11 +4043,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       dispose: () => {
         disposed = true;
         hasInited = false;
+        // The recorder's timeline, panel-open flag, and frozen animation
+        // clock are module state that outlives this Solid root — without
+        // this, disposing mid-rewind leaves the page's animations frozen
+        // and a re-init inherits a stale timeline.
+        timeMachine.reset();
+        stopTimeMachineRecorder();
         disposeRenderer?.();
         stopToolbarMenuTracking?.();
         stopToolbarMenuTracking = null;
         stopEditPanelTracking?.();
         stopEditPanelTracking = null;
+        stopTimeMachineTracking?.();
+        stopTimeMachineTracking = null;
         toolbarStateChangeCallbacks.clear();
         dispose();
       },

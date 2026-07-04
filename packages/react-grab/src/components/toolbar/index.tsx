@@ -4,6 +4,7 @@ import { cn } from "../../utils/cn.js";
 import { loadToolbarState, saveToolbarState, type SnapEdge, type ToolbarState } from "./state.js";
 import { IconSelect } from "../icons/icon-select.jsx";
 import { IconComment } from "../icons/icon-comment.jsx";
+import { IconHistory } from "../icons/icon-history.jsx";
 import { IconStyle } from "../icons/icon-style.jsx";
 import { ToolbarActionButton } from "./toolbar-action-button.jsx";
 import {
@@ -19,6 +20,7 @@ import {
   DEFAULT_ACTION_ID,
   COMMENT_ACTION_ID,
   EDIT_ACTION_ID,
+  TIME_MACHINE_ACTION_ID,
 } from "../../constants.js";
 import { freezeUpdates } from "../../utils/freeze-updates.js";
 import {
@@ -157,11 +159,20 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     event.stopImmediatePropagation();
   };
 
+  // While the time machine panel is open the app must stay live: time travel
+  // replays state through hook dispatchers, which the hover-time React
+  // updates freeze would buffer instead of committing.
+  const isTimeMachineOpen = () => props.activeActionId === TIME_MACHINE_ACTION_ID;
+
   const createFreezeHandlers = (actionId: string, options?: FreezeHandlersOptions) => ({
     onMouseEnter: (event: MouseEvent) => {
       if (drag.isDragging()) return;
       setHoveredActionId(actionId);
-      if (options?.shouldFreezeInteractions !== false && !unfreezeUpdatesCallback) {
+      if (
+        options?.shouldFreezeInteractions !== false &&
+        !unfreezeUpdatesCallback &&
+        !isTimeMachineOpen()
+      ) {
         unfreezeUpdatesCallback = freezeUpdates();
         freezeGlobalInteractions(event.clientX, event.clientY);
       }
@@ -193,8 +204,12 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   createEffect(
     on(
-      () => [props.isActive, props.isContextMenuOpen] as const,
-      ([isActive, isContextMenuOpen]) => {
+      () => [props.isActive, props.isContextMenuOpen, isTimeMachineOpen()] as const,
+      ([isActive, isContextMenuOpen, isTimeMachinePanelOpen]) => {
+        if (isTimeMachinePanelOpen && unfreezeUpdatesCallback) {
+          releaseInteractionFreeze();
+          return;
+        }
         if (!isActive && !isContextMenuOpen && unfreezeUpdatesCallback) {
           unfreezeUpdatesCallback();
           unfreezeUpdatesCallback = null;
@@ -284,6 +299,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     props.onActivateAction?.(COMMENT_ACTION_ID),
   );
   const handleStyle = drag.createDragAwareHandler(() => props.onActivateAction?.(EDIT_ACTION_ID));
+  const handleTimeMachine = drag.createDragAwareHandler(() =>
+    props.onActivateAction?.(TIME_MACHINE_ACTION_ID),
+  );
 
   const actionButtonClass =
     "group contain-layout flex items-center justify-center cursor-pointer interactive-scale a11y-hitbox";
@@ -791,6 +809,24 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               tooltipVisible={isTooltipVisible(EDIT_ACTION_ID)}
               tooltipPosition={tooltipPosition()}
               tooltip="Style"
+            />
+            <ToolbarActionButton
+              actionId={TIME_MACHINE_ACTION_ID}
+              label="Time machine"
+              isActive={isActionActive(TIME_MACHINE_ACTION_ID)}
+              class={actionButtonClass}
+              wrapperClass={actionButtonWrapperClass()}
+              onClick={handleTimeMachine}
+              {...createFreezeHandlers(TIME_MACHINE_ACTION_ID)}
+              icon={
+                <IconHistory
+                  size={14}
+                  class={actionIconClass(isActionActive(TIME_MACHINE_ACTION_ID))}
+                />
+              }
+              tooltipVisible={isTooltipVisible(TIME_MACHINE_ACTION_ID)}
+              tooltipPosition={tooltipPosition()}
+              tooltip="Time Machine"
             />
           </>
         }

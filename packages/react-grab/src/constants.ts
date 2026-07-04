@@ -205,6 +205,7 @@ export const TOOLBAR_DEFAULT_POSITION_RATIO = 0.5;
 export const DEFAULT_ACTION_ID = "copy";
 export const COMMENT_ACTION_ID = "comment";
 export const EDIT_ACTION_ID = "edit";
+export const TIME_MACHINE_ACTION_ID = "time-machine";
 
 export const TOOLTIP_DELAY_MS = 400;
 export const TOOLTIP_GRACE_PERIOD_MS = 800;
@@ -326,6 +327,54 @@ export const FONT_SIZE_LINE_HEIGHT_RATIO = 1.2;
 export const TAILWIND_SPACING_UNIT_PX = 4;
 
 export const PIXELS_PER_REM = 16;
+
+export const TIME_MACHINE_MAX_ENTRIES = 200;
+export const TIME_MACHINE_PANEL_MIN_WIDTH_PX = 280;
+export const TIME_MACHINE_PANEL_MAX_WIDTH_PX = 360;
+export const TIME_MACHINE_TIMELINE_MAX_TRACKS = 4;
+export const TIME_MACHINE_TIMELINE_LANE_HEIGHT_PX = 16;
+export const TIME_MACHINE_TIMELINE_DOT_SIZE_PX = 5;
+export const TIME_MACHINE_TIMELINE_ACTIVE_DOT_SIZE_PX = 7;
+export const TIME_MACHINE_TIMELINE_LABEL_WIDTH_PX = 76;
+export const TIME_MACHINE_TIMELINE_PLAYHEAD_WIDTH_PX = 2;
+export const TIME_MACHINE_TIMELINE_HASH_MARK_COUNT = 3;
+export const TIME_MACHINE_TRAVEL_EXPECTATION_TTL_MS = 1000;
+// Travel state commits flush asynchronously and remounted elements start
+// their CSS animations on the frame after insertion, so newborn animations
+// are swept for over a few frames after each travel step.
+export const TIME_MACHINE_ANIMATION_SETTLE_SWEEP_FRAMES = 3;
+export const TIME_MACHINE_MAX_INTERACTION_ELEMENTS = 24;
+// Animation-driven state (text scrambles, count-ups, springs) commits on
+// every tick — often across many small component instances (e.g. one per
+// text grapheme). Consecutive commits within this rolling window coalesce
+// into one timeline entry, so a timeline position is always a quiet-period
+// "settled moment" and scrubbing never lands on a transient mid-animation
+// frame. The window sits above animation tick cadence (16-70ms staggers)
+// but below deliberate human double-interaction speed (~150ms+).
+export const TIME_MACHINE_COALESCE_WINDOW_MS = 120;
+// Text-morph/exit-transition libraries commit once to START a transition and
+// once more to clean up when it FINISHES a few hundred ms later; landing
+// between the two shows both the old and new content overlapping. A commit
+// that only touches hook queues already changed by the previous entry is
+// such a settling commit — never a new interaction — so it coalesces across
+// this longer window, keyed on queue identity so a distinct user action on
+// another control is never swallowed.
+export const TIME_MACHINE_SETTLE_COALESCE_WINDOW_MS = 700;
+// A commit this close after a pointer/keyboard event is user-driven, and
+// user-driven commits never coalesce — two quick clicks on the same toggle
+// must stay two scrub steps. Only ambient commits (timers, animation loops,
+// network) are burst/settle candidates.
+export const TIME_MACHINE_INPUT_ATTRIBUTION_WINDOW_MS = 200;
+// One 60fps frame budget: an entry whose commit spent longer than this
+// rendering is flagged as a performance issue on the timeline. React only
+// populates render durations in profiling builds (default-on in dev), so
+// plain production builds report 0 and never false-flag.
+export const TIME_MACHINE_SLOW_RENDER_THRESHOLD_MS = 16;
+// Covers the drift between an entry's Date.now() timestamp and a
+// long-animation-frame's performance.timeOrigin-based window when deciding
+// whether the entry's commit happened inside that frame.
+export const TIME_MACHINE_LOAF_ATTRIBUTION_SLACK_MS = 50;
+export const LONG_ANIMATION_FRAME_ENTRY_TYPE = "long-animation-frame";
 
 export const IME_COMPOSING_KEY_CODE = 229;
 export const SELECTION_LABEL_OFFSCREEN_PX = -9999;
