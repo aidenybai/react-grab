@@ -187,6 +187,7 @@ const buildClassNameMap = (
   outputGeometry: CaptureOutputGeometry,
   suppressedBackdropElements: Set<Element> | null,
   bakedBackdropPngByElement: Map<Element, string>,
+  persistedVariantEmittedStyles: Map<number, Map<string, StyleDeclarationMap>> | null,
 ): Map<Element, string> => {
   const classNameByElement = new Map<Element, string>();
   const emittedStylesByElement = new Map<Element, StyleDeclarationMap>();
@@ -209,7 +210,11 @@ const buildClassNameMap = (
     return baseline;
   };
   const variantKeyByElement = new Map<Element, string>();
-  const emittedStylesByVariant = new Map<number, Map<string, StyleDeclarationMap>>();
+  // Variant emitted maps are pure functions of the memoized styles, the
+  // variant key, and the tag baselines, so they persist alongside the memo
+  // store and let repeat captures skip the diff/freeze pass entirely.
+  const emittedStylesByVariant =
+    persistedVariantEmittedStyles ?? new Map<number, Map<string, StyleDeclarationMap>>();
   for (const [element, snapshot] of snapshotByElement) {
     const parentSnapshot = snapshot.parentElement
       ? snapshotByElement.get(snapshot.parentElement)
@@ -519,7 +524,7 @@ const captureNodeInternal = async (
     );
     prefetchExternalResources(element, resolvedOptions.timeoutMs);
     const snapshotStartMs = performance.now();
-    const { snapshotByElement, perElementPropertyNames } =
+    const { snapshotByElement, perElementPropertyNames, persistedVariantEmittedStyles } =
       internalContext.presnapshottedTree ??
       snapshotComposedTree(
         element,
@@ -593,7 +598,11 @@ const captureNodeInternal = async (
           {
             suppressedBackdropElements: new Set(backdropFilterElements),
             skipBackdropFilterBaking: true,
-            presnapshottedTree: { snapshotByElement, perElementPropertyNames },
+            presnapshottedTree: {
+              snapshotByElement,
+              perElementPropertyNames,
+              persistedVariantEmittedStyles,
+            },
           },
         );
         // The underlay markup plus each pane's device rect and filter fully
@@ -654,6 +663,7 @@ const captureNodeInternal = async (
         outputGeometry,
         internalContext.suppressedBackdropElements,
         bakedBackdropPngByElement,
+        persistedVariantEmittedStyles,
       );
       const clone = cloneComposedTree(element, {
         ownerDocument,

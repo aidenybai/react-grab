@@ -41,6 +41,7 @@ interface PersistentMemoStore {
   signature: string;
   memoKeysByParentKey: Map<number, Map<string, number>>;
   memoizedStylesByKey: Map<number, MemoizedElementStyles>;
+  variantEmittedStyles: Map<number, Map<string, StyleDeclarationMap>>;
   nextMemoKey: number;
 }
 
@@ -137,6 +138,9 @@ export const snapshotComposedTree = (
   const memoizedStylesByKey = isStoreAdopted
     ? persistedStore.memoizedStylesByKey
     : new Map<number, MemoizedElementStyles>();
+  const variantEmittedStyles = isStoreAdopted
+    ? persistedStore.variantEmittedStyles
+    : new Map<number, Map<string, StyleDeclarationMap>>();
   let nextMemoKey = isStoreAdopted ? persistedStore.nextMemoKey : 0;
 
   const visit = (
@@ -312,21 +316,26 @@ export const snapshotComposedTree = (
   };
 
   visit(rootElement, null, false, 0);
-  if (
+  const isStorePersistable =
     memoStoreSignature !== null &&
     relevantProps !== null &&
     relevantProps.isStyleMemoSafe() &&
     relevantProps.propertyNames.length === initialRelevantPropCount &&
-    memoizedStylesByKey.size <= PERSISTED_MEMO_STORE_ENTRY_CAP
-  ) {
+    memoizedStylesByKey.size <= PERSISTED_MEMO_STORE_ENTRY_CAP;
+  if (isStorePersistable) {
     persistentMemoStoreByDocument.set(rootElement.ownerDocument, {
       signature: memoStoreSignature,
       memoKeysByParentKey,
       memoizedStylesByKey,
+      variantEmittedStyles,
       nextMemoKey,
     });
   } else {
     persistentMemoStoreByDocument.delete(rootElement.ownerDocument);
   }
-  return { snapshotByElement, perElementPropertyNames };
+  return {
+    snapshotByElement,
+    perElementPropertyNames,
+    persistedVariantEmittedStyles: isStorePersistable ? variantEmittedStyles : null,
+  };
 };

@@ -412,3 +412,14 @@ PERSISTED_MEMO_STORE_ENTRY_CAP. Probe verifies a same-rule-count stylesheet
 text edit invalidates it. 70-stress mutated-warm gpv 15675 -> 6616,
 snapshotMs 21.2 -> 13.4, median 121.7 -> 111ms. Unit 77/77; fidelity
 412 chromium + 824 webkit/firefox all green.
+
+## Iteration 41 — persist variant emitted-style maps alongside the memo store
+
+With memo keys now stable across captures (iteration 40), the per-variant
+emitted style maps built by buildClassNameMap are pure functions of the
+memoized styles, the variant key, and the tag baselines — so they join the
+persistent memo store and repeat captures skip the diff/freeze pass for every
+previously seen (memoKey, variantKey) pair. Root, suppressed-backdrop, and
+baked elements stay excluded from sharing as before; the maps drop with the
+store on any signature change. 70-stress mutated-warm buildMs 11.9 -> 9.3.
+Unit 77/77; fidelity 412 chromium + 824 webkit/firefox all green.

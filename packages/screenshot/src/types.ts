@@ -83,6 +83,7 @@ export interface ElementReadSnapshot {
 export interface ComposedTreeSnapshot {
   snapshotByElement: Map<Element, ElementReadSnapshot>;
   perElementPropertyNames: readonly string[];
+  persistedVariantEmittedStyles: Map<number, Map<string, StyleDeclarationMap>> | null;
 }
 
 export interface PseudoRulePreflight {
