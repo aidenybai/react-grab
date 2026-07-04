@@ -557,3 +557,12 @@ Checked whether toBlob readback from a GPU-backed canvas inflates the encode
 phase. gpu vs {willReadFrequently:true} on 70-stress (1280x2400): encode
 39-41ms in both variants (headless Chromium already software-rasters), draw
 0ms after first frame. Native PNG encode floor reconfirmed. No change.
+
+## Iteration 58 — probe: font-decode prewarm before SVG decode (rejected)
+
+Hypothesis: cold decodeMs (~30ms vs 18ms warm) pays woff2 parse per fresh SVG
+image document, avoidable by first decoding a tiny SVG carrying just the
+@font-face blocks. Measured on 70-stress: the emitted SVG contains zero
+@font-face blocks (page fonts unused by the capture), and prewarm changes
+nothing (28-31ms either way). Cold decode overhead is first-run process/JIT
+warmup, not font parsing. No change.
