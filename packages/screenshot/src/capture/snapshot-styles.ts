@@ -162,6 +162,13 @@ export const snapshotComposedTree = (
     if (memoKey !== NO_MEMO_KEY && !memoized && !isMemoExcluded) {
       memoizedStylesByKey.set(memoKey, { styles, beforeStyles, afterStyles });
     }
+    const overflowX = styles["overflow-x"];
+    const overflowY = styles["overflow-y"];
+    const canHoldScrollOffset =
+      element.localName === "html" ||
+      element.localName === "body" ||
+      (overflowX !== undefined && overflowX !== "visible") ||
+      (overflowY !== undefined && overflowY !== "visible");
     snapshotByElement.set(element, {
       styles,
       beforeStyles,
@@ -171,8 +178,11 @@ export const snapshotComposedTree = (
         : null,
       markerStyles: captureMarker ? snapshotMarkerStyles(element, defaultView) : null,
       parentElement,
-      scrollLeft: element.scrollLeft,
-      scrollTop: element.scrollTop,
+      // Viewport scroll lives on html/body regardless of their computed
+      // overflow, so only non-root elements skip the (layout-flushing)
+      // scroll reads when overflow keeps them unscrollable.
+      scrollLeft: canHoldScrollOffset ? element.scrollLeft : 0,
+      scrollTop: canHoldScrollOffset ? element.scrollTop : 0,
       memoKey: isMemoExcluded ? NO_MEMO_KEY : memoKey,
     });
     if (UNRECURSED_CLONE_TAGS.has(element.localName)) return;

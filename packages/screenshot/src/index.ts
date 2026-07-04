@@ -92,6 +92,65 @@ const diffPseudoStyles = (
   return diffedPseudo;
 };
 
+interface CachedPseudoDiffs {
+  beforeDiff: StyleDeclarationMap | null;
+  afterDiff: StyleDeclarationMap | null;
+}
+
+interface SeedRuleRecord {
+  snapshot: ElementReadSnapshot;
+  parentDisplay: string | null;
+}
+
+const arePerElementValuesEqual = (
+  seedStyles: StyleDeclarationMap,
+  styles: StyleDeclarationMap,
+  perElementPropertyNames: readonly string[],
+): boolean => {
+  for (const propertyName of perElementPropertyNames) {
+    if (seedStyles[propertyName] !== styles[propertyName]) return false;
+  }
+  return true;
+};
+
+const arePseudoSnapshotsEqual = (
+  seedPseudoStyles: StyleDeclarationMap | null,
+  pseudoStyles: StyleDeclarationMap | null,
+  perElementPropertyNames: readonly string[],
+): boolean => {
+  if (seedPseudoStyles === null || pseudoStyles === null) {
+    return seedPseudoStyles === pseudoStyles;
+  }
+  return (
+    seedPseudoStyles["content"] === pseudoStyles["content"] &&
+    arePerElementValuesEqual(seedPseudoStyles, pseudoStyles, perElementPropertyNames)
+  );
+};
+
+const reusePseudoDiff = (
+  cachedDiff: StyleDeclarationMap | null,
+  sandbox: StyleSandbox,
+  element: Element,
+  pseudoStyles: StyleDeclarationMap | null,
+  pseudoSelector: string,
+  perElementPropertyNames: readonly string[],
+): StyleDeclarationMap | null => {
+  if (!pseudoStyles) return null;
+  if (!cachedDiff || cachedDiff["content"] !== (pseudoStyles["content"] ?? "none")) {
+    return diffPseudoStyles(sandbox, element, pseudoStyles, pseudoSelector);
+  }
+  const diffedPseudo: StyleDeclarationMap = { ...cachedDiff };
+  applyPerElementStyleDiff(
+    diffedPseudo,
+    pseudoStyles,
+    sandbox.getBaseline(element, pseudoSelector, pseudoStyles),
+    perElementPropertyNames,
+  );
+  applySizeFreezingPolicy(diffedPseudo, pseudoStyles, null, false, null);
+  diffedPseudo["content"] = pseudoStyles["content"] ?? "none";
+  return diffedPseudo;
+};
+
 const buildClassNameMap = (
   snapshotByElement: Map<Element, ElementReadSnapshot>,
   perElementPropertyNames: readonly string[],
@@ -167,20 +226,108 @@ const buildClassNameMap = (
     }
     emittedStylesByElement.set(element, diffedBase);
   }
-  applyEscapedBottomMarginTransfers(rootElement, snapshotByElement, emittedStylesByElement);
+  const marginTransferredElements = applyEscapedBottomMarginTransfers(
+    rootElement,
+    snapshotByElement,
+    emittedStylesByElement,
+  );
+  const cachedPseudoDiffsByMemoKey = new Map<number, CachedPseudoDiffs>();
+  const seedRuleByMemoKey = new Map<number, SeedRuleRecord>();
+  const seedClassNameByMemoKey = new Map<number, string>();
   for (const [element, snapshot] of snapshotByElement) {
     const diffedBase = emittedStylesByElement.get(element);
     if (!diffedBase) continue;
-    classNameByElement.set(
-      element,
-      registry.register(
-        diffedBase,
-        diffPseudoStyles(sandbox, element, snapshot.beforeStyles, "::before"),
-        diffPseudoStyles(sandbox, element, snapshot.afterStyles, "::after"),
-        diffFirstLetterStyles(snapshot),
-        diffMarkerStyles(snapshot.markerStyles, snapshot.styles),
-      ),
+    // Baselines are keyed by tag/input-type/pseudo/font-size, and a shared
+    // memo key pins all of those (font-size is never in the per-element lane
+    // when diff reuse is on), so two memo-identical elements whose per-element
+    // values also match are guaranteed to register the exact same rule.
+    const canReuseSeedClassName =
+      canReuseDiffs &&
+      snapshot.memoKey !== -1 &&
+      element !== rootElement &&
+      snapshot.firstLetterStyles === null &&
+      snapshot.markerStyles === null &&
+      !marginTransferredElements.has(element) &&
+      !suppressedBackdropElements?.has(element) &&
+      !bakedBackdropPngByElement.has(element);
+    const parentSnapshot = snapshot.parentElement
+      ? snapshotByElement.get(snapshot.parentElement)
+      : undefined;
+    const parentDisplay = parentSnapshot?.styles["display"] ?? null;
+    if (canReuseSeedClassName) {
+      const seedRule = seedRuleByMemoKey.get(snapshot.memoKey);
+      if (seedRule === undefined) {
+        seedRuleByMemoKey.set(snapshot.memoKey, { snapshot, parentDisplay });
+      } else {
+        const seedClassName = seedClassNameByMemoKey.get(snapshot.memoKey);
+        if (
+          seedClassName !== undefined &&
+          seedRule.parentDisplay === parentDisplay &&
+          arePerElementValuesEqual(
+            seedRule.snapshot.styles,
+            snapshot.styles,
+            perElementPropertyNames,
+          ) &&
+          arePseudoSnapshotsEqual(
+            seedRule.snapshot.beforeStyles,
+            snapshot.beforeStyles,
+            perElementPropertyNames,
+          ) &&
+          arePseudoSnapshotsEqual(
+            seedRule.snapshot.afterStyles,
+            snapshot.afterStyles,
+            perElementPropertyNames,
+          )
+        ) {
+          classNameByElement.set(element, seedClassName);
+          continue;
+        }
+      }
+    }
+    const cachedPseudoDiffs =
+      canReuseDiffs && snapshot.memoKey !== -1
+        ? cachedPseudoDiffsByMemoKey.get(snapshot.memoKey)
+        : undefined;
+    let beforeDiff: StyleDeclarationMap | null;
+    let afterDiff: StyleDeclarationMap | null;
+    if (cachedPseudoDiffs) {
+      beforeDiff = reusePseudoDiff(
+        cachedPseudoDiffs.beforeDiff,
+        sandbox,
+        element,
+        snapshot.beforeStyles,
+        "::before",
+        perElementPropertyNames,
+      );
+      afterDiff = reusePseudoDiff(
+        cachedPseudoDiffs.afterDiff,
+        sandbox,
+        element,
+        snapshot.afterStyles,
+        "::after",
+        perElementPropertyNames,
+      );
+    } else {
+      beforeDiff = diffPseudoStyles(sandbox, element, snapshot.beforeStyles, "::before");
+      afterDiff = diffPseudoStyles(sandbox, element, snapshot.afterStyles, "::after");
+      if (canReuseDiffs && snapshot.memoKey !== -1) {
+        cachedPseudoDiffsByMemoKey.set(snapshot.memoKey, {
+          beforeDiff: beforeDiff ? { ...beforeDiff } : null,
+          afterDiff: afterDiff ? { ...afterDiff } : null,
+        });
+      }
+    }
+    const className = registry.register(
+      diffedBase,
+      beforeDiff,
+      afterDiff,
+      diffFirstLetterStyles(snapshot),
+      diffMarkerStyles(snapshot.markerStyles, snapshot.styles),
     );
+    classNameByElement.set(element, className);
+    if (canReuseSeedClassName && seedRuleByMemoKey.get(snapshot.memoKey)?.snapshot === snapshot) {
+      seedClassNameByMemoKey.set(snapshot.memoKey, className);
+    }
   }
   return classNameByElement;
 };

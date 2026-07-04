@@ -36,8 +36,9 @@ export const applyEscapedBottomMarginTransfers = (
   rootElement: Element,
   snapshotByElement: Map<Element, ElementReadSnapshot>,
   emittedStylesByElement: Map<Element, StyleDeclarationMap>,
-): void => {
+): Set<Element> => {
   const escapedMarginByElement = new Map<Element, number>();
+  const transferredElements = new Set<Element>();
 
   const findLastInFlowElementChild = (element: Element): Element | null => {
     const childNodes = getComposedChildNodes(element);
@@ -87,6 +88,10 @@ export const applyEscapedBottomMarginTransfers = (
     if (escapedMargin <= 0) continue;
     if (escapedMargin <= parsePx(snapshot.styles["margin-bottom"])) continue;
     const emittedStyles = emittedStylesByElement.get(element);
-    if (emittedStyles) emittedStyles["margin-bottom"] = `${escapedMargin}px`;
+    if (emittedStyles) {
+      emittedStyles["margin-bottom"] = `${escapedMargin}px`;
+      transferredElements.add(element);
+    }
   }
+  return transferredElements;
 };

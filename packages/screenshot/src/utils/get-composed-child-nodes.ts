@@ -1,8 +1,17 @@
 import { isElementNode } from "./is-element-node";
 import { isHtmlElementOfTag } from "./is-html-element-of-tag";
 
-export const getComposedChildNodes = (element: Element): Node[] => {
+export const getComposedChildNodes = (element: Element): ArrayLike<Node> & Iterable<Node> => {
   const rootChildNodes = element.shadowRoot ? element.shadowRoot.childNodes : element.childNodes;
+  let hasSlotChild = false;
+  for (let index = 0; index < rootChildNodes.length; index += 1) {
+    const childNode = rootChildNodes[index];
+    if (isElementNode(childNode) && childNode.localName === "slot") {
+      hasSlotChild = true;
+      break;
+    }
+  }
+  if (!hasSlotChild) return rootChildNodes;
   const composedChildNodes: Node[] = [];
   for (const childNode of rootChildNodes) {
     if (isElementNode(childNode) && isHtmlElementOfTag(childNode, "slot")) {
