@@ -16,7 +16,7 @@ import { countAccessibleCssRules } from "./capture-reuse";
 import {
   getDocumentAttributeGeneration,
   getDocumentStyleEpoch,
-  getElementAttributeGeneration,
+  getAttributeGenerationByElement,
 } from "./document-change-tracker";
 import { buildStyleMemoDescriptor } from "../utils/build-style-memo-descriptor";
 import { getComposedChildNodes } from "../utils/get-composed-child-nodes";
@@ -161,6 +161,9 @@ export const snapshotComposedTree = (
   // be reused directly (parent key equality pins the ancestry) without
   // rebuilding the descriptor string.
   const adoptedAttributeGeneration = isStoreAdopted ? persistedStore.attributeGeneration : -1;
+  const attributeGenerationByElement = isStoreAdopted
+    ? getAttributeGenerationByElement(rootElement.ownerDocument)
+    : null;
   const currentAttributeGeneration =
     memoStoreSignature !== null ? getDocumentAttributeGeneration(rootElement.ownerDocument) : -1;
   let nextMemoKey = isStoreAdopted ? persistedStore.nextMemoKey : 0;
@@ -196,9 +199,8 @@ export const snapshotComposedTree = (
       parentMemoKey !== NO_MEMO_KEY
     ) {
       const persistedElementKey =
-        isStoreAdopted &&
-        getElementAttributeGeneration(rootElement.ownerDocument, element) <=
-          adoptedAttributeGeneration
+        attributeGenerationByElement !== null &&
+        (attributeGenerationByElement.get(element) ?? 0) <= adoptedAttributeGeneration
           ? memoKeyByElement.get(element)
           : undefined;
       if (

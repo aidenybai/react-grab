@@ -144,5 +144,7 @@ export const getDocumentStyleEpoch = (sourceDocument: Document): number =>
 export const getDocumentAttributeGeneration = (sourceDocument: Document): number =>
   readDocumentEpochs(sourceDocument).attributeGeneration;
 
-export const getElementAttributeGeneration = (sourceDocument: Document, element: Element): number =>
-  getDocumentChangeTracker(sourceDocument).attributeGenerationByElement.get(element) ?? 0;
+export const getAttributeGenerationByElement = (
+  sourceDocument: Document,
+): WeakMap<Element, number> =>
+  getDocumentChangeTracker(sourceDocument).attributeGenerationByElement;

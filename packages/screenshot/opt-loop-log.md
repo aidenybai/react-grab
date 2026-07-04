@@ -498,3 +498,12 @@ with Object.hasOwn per property. Cost is now O(deviations) rather than
 O(lanes) per element. Perf neutral on the harness (median ~100-102ms on
 70-stress, within noise); kept as a structural win that scales with lane-list
 growth. Unit 77/77; Chromium fidelity 412/412 green.
+
+## Iteration 51 — hoist attribute-generation map lookup out of visit
+
+getElementAttributeGeneration resolved the per-document change tracker on
+every visited element (WeakMap<Document, tracker> lookup + call per element).
+The tracker's WeakMap<Element, number> is now fetched once per capture when
+the persisted memo store is adopted and read directly in visit. Perf neutral
+on the harness (within noise); kept as a structural win removing a
+per-element indirection. Unit 77/77; Chromium fidelity 412/412 green.
