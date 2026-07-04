@@ -536,3 +536,10 @@ the top per-rule byte contributors (inline-size alone 2.3KB on 70-stress);
 serialized CSS shrinks 102.0KB -> 93.9KB. Warm ~neutral, cold 178.9 -> 168.9ms
 on 70-stress (smaller CSS parse/recalc in the SVG document). Unit 77/77;
 Chromium fidelity 412/412 green.
+
+## Iteration 55 — probe: inset elision for static-position elements (rejected)
+
+Extended the elision policy to drop top/right/bottom/left when position is
+static. Zero byte change on 70-stress and the site fixtures (static insets
+already match the probe baseline and are never emitted), so the extra
+per-element loop bought nothing. REVERTED.
