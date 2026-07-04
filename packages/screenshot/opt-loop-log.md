@@ -284,3 +284,13 @@ per-class rules.
 Metrics: SVG 259KB -> 172KB (CSS 212KB -> 125KB); 70-stress cold 185 -> 172ms,
 warm flat 35.3ms; site fixtures each ~1ms faster warm. Unit 77/77, chromium
 fidelity 412/412 green.
+
+## Iteration 30 — prefetch CSS url() resources (backgrounds, masks) at capture start
+
+Hotspot: 60-kitchen-sink cold inlineMs was 39ms — CSS background-image /
+mask url() fetches only started during the inline pass, after snapshot+build.
+prefetchExternalResources previously only warmed <img>/<image>/@font-face; it
+now also fires loads for url() references in style rules and inline style
+attributes, so those fetches overlap the read/clone phases.
+Metrics: 60-kitchen-sink cold 83 -> 72ms (inline 39 -> 27ms); other fixtures
+neutral. Unit 77/77, chromium fidelity 412/412 green.

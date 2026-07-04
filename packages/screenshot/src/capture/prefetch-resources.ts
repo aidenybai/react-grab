@@ -1,5 +1,6 @@
 import { XLINK_NAMESPACE_URI } from "../constants";
 import { isCssFontFaceRule } from "../utils/is-css-font-face-rule";
+import { isCssStyleRule } from "../utils/is-css-style-rule";
 import { replaceCssUrls } from "../utils/replace-css-urls";
 import { resolveUrl } from "../utils/resolve-url";
 import { visitDocumentCssRules } from "../utils/visit-document-css-rules";
@@ -7,6 +8,19 @@ import { loadResourceAsDataUrl } from "./resource-loader";
 
 const isPrefetchableUrl = (url: string): boolean =>
   url.length > 0 && !url.startsWith("data:") && !url.startsWith("#") && !url.startsWith("about:");
+
+const prefetchCssTextUrls = (cssText: string, baseUrl: string | null, timeoutMs: number): void => {
+  if (!cssText.includes("url(")) return;
+  void replaceCssUrls(cssText, (url) => {
+    if (!url.startsWith("data:")) {
+      const absoluteUrl = resolveUrl(url, baseUrl);
+      if (isPrefetchableUrl(absoluteUrl)) {
+        void loadResourceAsDataUrl(absoluteUrl, timeoutMs);
+      }
+    }
+    return Promise.resolve(url);
+  });
+};
 
 // Fire-and-forget loads into the resource cache so network fetches overlap the
 // style read and clone phases instead of serializing after them; the inline
@@ -26,22 +40,14 @@ export const prefetchExternalResources = (rootElement: Element, timeoutMs: numbe
       void loadResourceAsDataUrl(hrefUrl, timeoutMs);
     }
   }
+  for (const styledElement of rootElement.querySelectorAll('[style*="url("]')) {
+    prefetchCssTextUrls(styledElement.getAttribute("style") ?? "", null, timeoutMs);
+  }
   visitDocumentCssRules(
     rootElement.ownerDocument,
     (rule, baseUrl) => {
-      if (isCssFontFaceRule(rule)) {
-        const ruleCssText = rule.cssText;
-        if (ruleCssText.includes("url(")) {
-          void replaceCssUrls(ruleCssText, (url) => {
-            if (!url.startsWith("data:")) {
-              const absoluteUrl = resolveUrl(url, baseUrl);
-              if (isPrefetchableUrl(absoluteUrl)) {
-                void loadResourceAsDataUrl(absoluteUrl, timeoutMs);
-              }
-            }
-            return Promise.resolve(url);
-          });
-        }
+      if (isCssFontFaceRule(rule) || isCssStyleRule(rule)) {
+        prefetchCssTextUrls(rule.cssText, baseUrl, timeoutMs);
       }
       return false;
     },
