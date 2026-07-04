@@ -6,6 +6,9 @@ export const PER_ELEMENT_LANE_BLOCK_SIZE = 2;
 export const PER_ELEMENT_LANE_TRANSFORM_ORIGIN = 3;
 export const PER_ELEMENT_LANE_PERSPECTIVE_ORIGIN = 4;
 export const PER_ELEMENT_LANE_GRID_TEMPLATE = 5;
+export const PER_ELEMENT_LANE_INSET = 6;
+
+const INSET_PROPERTY_NAMES = new Set(["top", "right", "bottom", "left"]);
 
 export const buildPerElementLaneActions = (
   perElementPropertyNames: readonly string[],
@@ -14,6 +17,7 @@ export const buildPerElementLaneActions = (
   // display itself cannot vary within a memo class (i.e. is not animated into
   // the per-element lane).
   const hasPerElementDisplay = perElementPropertyNames.includes("display");
+  const hasPerElementPosition = perElementPropertyNames.includes("position");
   return perElementPropertyNames.map((propertyName) => {
     if (propertyName === "inline-size") return PER_ELEMENT_LANE_INLINE_SIZE;
     if (propertyName === "block-size") return PER_ELEMENT_LANE_BLOCK_SIZE;
@@ -24,6 +28,9 @@ export const buildPerElementLaneActions = (
       (propertyName === "grid-template-columns" || propertyName === "grid-template-rows")
     ) {
       return PER_ELEMENT_LANE_GRID_TEMPLATE;
+    }
+    if (!hasPerElementPosition && INSET_PROPERTY_NAMES.has(propertyName)) {
+      return PER_ELEMENT_LANE_INSET;
     }
     return PER_ELEMENT_LANE_READ;
   });
@@ -58,6 +65,11 @@ export const applyPerElementLaneReads = (
         if (targetStyles["transform"] === "none") continue;
       } else if (laneAction === PER_ELEMENT_LANE_PERSPECTIVE_ORIGIN) {
         if ((targetStyles["perspective"] ?? "none") === "none") continue;
+      } else if (laneAction === PER_ELEMENT_LANE_INSET) {
+        // Inset values only affect paint on positioned boxes; for a
+        // class-pinned static position the seed's value delegates through
+        // harmlessly.
+        if ((targetStyles["position"] ?? "static") === "static") continue;
       } else if (!(targetStyles["display"] ?? "").includes("grid")) {
         continue;
       }
