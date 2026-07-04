@@ -251,3 +251,13 @@ attributes (sanitizing values on the way in) — for the typical class-only
 element that is zero attribute writes.
 Metrics: 70-stress warm 36.1ms / cold 178.7ms (best so far). Unit 77/77,
 chromium fidelity 412/412 green.
+
+### Iteration 27 — scope svg-defs reference scan to SVG-namespace elements (KEPT)
+
+Technique: the url(#...) reference scan walked every clone element and
+substring-scanned every attribute value — including multi-hundred-KB img src
+data URLs. Markup references can only come from SVG presentation attributes
+(style attrs are stripped and CSS refs are collected from registered rules),
+so the scan now skips non-SVG elements entirely and avoids the intermediate
+element-array allocation.
+Metrics: 70-stress warm 35.4ms. Unit 77/77, chromium fidelity 412/412 green.

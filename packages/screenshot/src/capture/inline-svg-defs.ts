@@ -73,14 +73,21 @@ export const inlineSvgUseReferences = async ({
         externalReferencesByUrl.set(externalUrl, references);
       }
     }
-    for (const element of listSelfAndDescendants(subtreeRoot, "*")) {
+    // url(#...) can only enter markup through SVG presentation attributes:
+    // the style attribute is stripped from clones and CSS-borne references
+    // are collected from the registered rules instead, so HTML elements
+    // (whose src data URLs are expensive to substring-scan) are skipped.
+    const scanElementAttributes = (element: Element): void => {
+      if (element.namespaceURI !== SVG_NAMESPACE_URI) return;
       for (const attribute of element.attributes) {
         if (!attribute.value.includes("url(")) continue;
         for (const referenceMatch of attribute.value.matchAll(URL_FRAGMENT_REFERENCE_PATTERN)) {
           enqueueFragmentId(referenceMatch[1], lookupDocuments);
         }
       }
-    }
+    };
+    scanElementAttributes(subtreeRoot);
+    for (const element of subtreeRoot.querySelectorAll("*")) scanElementAttributes(element);
   };
 
   let defsElement: Element | null = null;
