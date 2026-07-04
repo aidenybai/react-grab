@@ -1,6 +1,7 @@
 import { PSEUDO_PREFLIGHT_RULE_BUDGET } from "../constants";
 import type { PseudoRulePreflight, StyleDeclarationMap } from "../types";
 import { isCssStyleRule } from "../utils/is-css-style-rule";
+import { applyPerElementLaneReads } from "../utils/per-element-lane";
 import { snapshotComputedStyle } from "../utils/snapshot-computed-style";
 import { visitDocumentCssRules } from "../utils/visit-document-css-rules";
 
@@ -65,15 +66,13 @@ export const snapshotTrustedMemoizedPseudoStyles = (
   pseudoSelector: string,
   defaultView: Window & typeof globalThis,
   perElementPropertyNames: readonly string[],
+  perElementLaneActions: readonly number[],
   memoizedStyles: StyleDeclarationMap | null,
 ): StyleDeclarationMap | null => {
   if (!memoizedStyles) return null;
   const computedStyle = defaultView.getComputedStyle(element, pseudoSelector);
   const styles: StyleDeclarationMap = Object.create(memoizedStyles);
-  for (const propertyName of perElementPropertyNames) {
-    const propertyValue = computedStyle.getPropertyValue(propertyName);
-    styles[propertyName] = propertyValue !== "" ? propertyValue : undefined;
-  }
+  applyPerElementLaneReads(styles, computedStyle, perElementPropertyNames, perElementLaneActions);
   return styles;
 };
 
@@ -86,6 +85,7 @@ export const snapshotMemoizedPseudoStyles = (
   defaultView: Window & typeof globalThis,
   relevantPropertyNames: readonly string[] | null,
   perElementPropertyNames: readonly string[],
+  perElementLaneActions: readonly number[],
   memoizedStyles: StyleDeclarationMap | null,
 ): StyleDeclarationMap | null => {
   const computedStyle = defaultView.getComputedStyle(element, pseudoSelector);
@@ -97,10 +97,7 @@ export const snapshotMemoizedPseudoStyles = (
     return styles;
   }
   const styles: StyleDeclarationMap = Object.create(memoizedStyles);
-  for (const propertyName of perElementPropertyNames) {
-    const propertyValue = computedStyle.getPropertyValue(propertyName);
-    styles[propertyName] = propertyValue !== "" ? propertyValue : undefined;
-  }
+  applyPerElementLaneReads(styles, computedStyle, perElementPropertyNames, perElementLaneActions);
   styles.content = contentValue;
   return styles;
 };

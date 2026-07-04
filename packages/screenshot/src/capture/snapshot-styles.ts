@@ -16,6 +16,10 @@ import { getComposedChildNodes } from "../utils/get-composed-child-nodes";
 import { isElementNode } from "../utils/is-element-node";
 import { isHtmlElement } from "../utils/is-html-element";
 import { isZeroScaleOverlay } from "../utils/is-zero-scale-overlay";
+import {
+  applyPerElementLaneReads,
+  buildPerElementLaneActions,
+} from "../utils/per-element-lane";
 import { snapshotComputedStyle } from "../utils/snapshot-computed-style";
 import {
   preflightPseudoRules,
@@ -43,6 +47,7 @@ export const snapshotComposedTree = (
   let relevantProps = createRelevantStylePropRegistry(rootElement.ownerDocument);
   const perElementPropertyNames = relevantProps?.perElementPropertyNames ?? [];
   const perElementProps: ReadonlySet<string> = new Set(perElementPropertyNames);
+  const perElementLaneActions = buildPerElementLaneActions(perElementPropertyNames);
   const activeElement = rootElement.ownerDocument.activeElement;
   const memoKeyByAncestry = new Map<string, number>();
   const memoizedStylesByKey = new Map<number, MemoizedElementStyles>();
@@ -100,10 +105,12 @@ export const snapshotComposedTree = (
       // memo hit; absent per-element values shadow the base with undefined,
       // which every consumer already treats as "not present".
       styles = Object.create(memoized.styles);
-      for (const propertyName of perElementPropertyNames) {
-        const propertyValue = computedStyle.getPropertyValue(propertyName);
-        styles[propertyName] = propertyValue !== "" ? propertyValue : undefined;
-      }
+      applyPerElementLaneReads(
+        styles,
+        computedStyle,
+        perElementPropertyNames,
+        perElementLaneActions,
+      );
     } else {
       if (parentElement !== null && computedStyle.getPropertyValue("display") === "none") return;
       styles = snapshotComputedStyle(computedStyle, relevantPropertyNames);
@@ -123,6 +130,7 @@ export const snapshotComposedTree = (
           "::before",
           defaultView,
           perElementPropertyNames,
+          perElementLaneActions,
           memoized.beforeStyles,
         );
         afterStyles = snapshotTrustedMemoizedPseudoStyles(
@@ -130,6 +138,7 @@ export const snapshotComposedTree = (
           "::after",
           defaultView,
           perElementPropertyNames,
+          perElementLaneActions,
           memoized.afterStyles,
         );
       } else if (memoized) {
@@ -139,6 +148,7 @@ export const snapshotComposedTree = (
           defaultView,
           relevantPropertyNames,
           perElementPropertyNames,
+          perElementLaneActions,
           memoized.beforeStyles,
         );
         afterStyles = snapshotMemoizedPseudoStyles(
@@ -147,6 +157,7 @@ export const snapshotComposedTree = (
           defaultView,
           relevantPropertyNames,
           perElementPropertyNames,
+          perElementLaneActions,
           memoized.afterStyles,
         );
       } else {
