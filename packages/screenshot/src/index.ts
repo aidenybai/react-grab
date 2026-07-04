@@ -2,6 +2,11 @@ import {
   bakeBackdropFilterUnderlays,
   collectBackdropFilterElements,
 } from "./capture/bake-backdrop-filters";
+import {
+  buildCaptureReuseOptionsKey,
+  getReusableCapture,
+  storeReusableCapture,
+} from "./capture/capture-reuse";
 import { cloneComposedTree } from "./capture/clone-tree";
 import { createStyleSandbox } from "./capture/default-styles";
 import {
@@ -475,6 +480,24 @@ const captureNodeInternal = async (
     if (ownerDocument.fonts.status !== "loaded") {
       await raceWithAbortSignal(ownerDocument.fonts.ready, resolvedOptions.abortSignal);
     }
+    const reuseOptionsKey =
+      !internalContext.skipBackdropFilterBaking &&
+      internalContext.suppressedBackdropElements === null
+        ? buildCaptureReuseOptionsKey(resolvedOptions)
+        : null;
+    if (reuseOptionsKey !== null) {
+      const reusableCapture = getReusableCapture(element, reuseOptionsKey);
+      if (reusableCapture) {
+        resolvedOptions.backgroundColor = reusableCapture.resolvedBackgroundColor;
+        return createCaptureResult(
+          reusableCapture.svgMarkup,
+          reusableCapture.widthPx,
+          reusableCapture.heightPx,
+          resolvedOptions,
+          reusableCapture.clipRect,
+        );
+      }
+    }
     const boundingRect = element.getBoundingClientRect();
     const boundingBoxWidth = Math.ceil(boundingRect.right) - Math.floor(boundingRect.left);
     const boundingBoxHeight = Math.ceil(boundingRect.bottom) - Math.floor(boundingRect.top);
@@ -665,15 +688,27 @@ const captureNodeInternal = async (
     } finally {
       sandbox.dispose();
     }
-    if (clipRect && !isWebKitEngine()) {
-      return createCaptureResult(svgMarkup, clipRect.width, clipRect.height, resolvedOptions);
+    const isCanvasClipped = Boolean(clipRect) && isWebKitEngine();
+    const resultWidthPx =
+      clipRect && !isCanvasClipped ? clipRect.width : outputGeometry.outputWidthPx;
+    const resultHeightPx =
+      clipRect && !isCanvasClipped ? clipRect.height : outputGeometry.outputHeightPx;
+    const resultClipRect = clipRect && !isCanvasClipped ? null : clipRect;
+    if (reuseOptionsKey !== null) {
+      storeReusableCapture(element, reuseOptionsKey, snapshotByElement, {
+        svgMarkup,
+        widthPx: resultWidthPx,
+        heightPx: resultHeightPx,
+        clipRect: resultClipRect,
+        resolvedBackgroundColor: resolvedOptions.backgroundColor,
+      });
     }
     return createCaptureResult(
       svgMarkup,
-      outputGeometry.outputWidthPx,
-      outputGeometry.outputHeightPx,
+      resultWidthPx,
+      resultHeightPx,
       resolvedOptions,
-      clipRect,
+      resultClipRect,
     );
   } finally {
     activeCaptureDocuments.delete(ownerDocument);

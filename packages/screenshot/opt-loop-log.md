@@ -322,3 +322,22 @@ resource-cache generation + joined rule signatures and reuses the previous
 text for unchanged trees.
 Metrics: 70-stress warm 35.4 -> 34.4ms (21 runs); others neutral. Unit 77/77,
 chromium fidelity 412/412 green.
+
+## Iteration 34 — unchanged-document full capture reuse
+
+Insight: on an idle page, repeat captures with the same options are pure — the
+whole serialized SVG can be reused if nothing observable changed. Added a
+per-document epoch tracker (MutationObserver + scroll/input/change/load/error/
+toggle/resize/hashchange/popstate/fonts listeners; document-change-tracker.ts)
+and a WeakMap reuse cache (capture-reuse.ts) storing the final SVG markup +
+output geometry keyed on resolved options. Reuse is gated hard: identical
+epoch, activeElement, window scroll/viewport/DPR, deep CSS rule count, live
+per-element scrollLeft/Top and form value/checked verification, zero running
+animations; storage refuses trees containing canvas/video/iframe/embed/SMIL,
+shadow roots, or documents with :hover/:active/:focus/:target rules or
+inaccessible sheets (mutations invisible to the guards).
+Metrics: warm repeat captures 70-stress 34.4 -> 1.7ms, analytics-dashboard
+9 -> 0.3ms, video-grid 11 -> 0.3ms; kitchen-sink (canvas) and stress-combo
+(animations) correctly ineligible and unchanged. Mutation/form/scroll
+invalidation verified by probe script. Unit 77/77; fidelity 412 chromium +
+824 webkit/firefox all green.
