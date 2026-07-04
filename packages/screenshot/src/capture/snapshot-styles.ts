@@ -15,6 +15,7 @@ import { buildStyleMemoDescriptor } from "../utils/build-style-memo-descriptor";
 import { getComposedChildNodes } from "../utils/get-composed-child-nodes";
 import { isElementNode } from "../utils/is-element-node";
 import { isHtmlElement } from "../utils/is-html-element";
+import { isReplacedElement } from "../utils/is-replaced-element";
 import { isZeroScaleOverlay } from "../utils/is-zero-scale-overlay";
 import { applyPerElementLaneReads, buildPerElementLaneActions } from "../utils/per-element-lane";
 import { snapshotComputedStyle } from "../utils/snapshot-computed-style";
@@ -166,6 +167,7 @@ export const snapshotComposedTree = (
         perElementPropertyNames,
         perElementLaneActions,
         memoized.laneSkipMask,
+        !isReplacedElement(element),
       );
     } else {
       if (parentElement !== null && computedStyle.getPropertyValue("display") === "none") return;

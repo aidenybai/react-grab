@@ -7,8 +7,10 @@ export const PER_ELEMENT_LANE_TRANSFORM_ORIGIN = 3;
 export const PER_ELEMENT_LANE_PERSPECTIVE_ORIGIN = 4;
 export const PER_ELEMENT_LANE_GRID_TEMPLATE = 5;
 export const PER_ELEMENT_LANE_INSET = 6;
+export const PER_ELEMENT_LANE_SIZE = 7;
 
 const INSET_PROPERTY_NAMES = new Set(["top", "right", "bottom", "left"]);
+const SIZE_PROPERTY_NAMES = new Set(["width", "height"]);
 
 export const buildPerElementLaneActions = (
   perElementPropertyNames: readonly string[],
@@ -32,6 +34,9 @@ export const buildPerElementLaneActions = (
     if (!hasPerElementPosition && INSET_PROPERTY_NAMES.has(propertyName)) {
       return PER_ELEMENT_LANE_INSET;
     }
+    if (!hasPerElementDisplay && SIZE_PROPERTY_NAMES.has(propertyName)) {
+      return PER_ELEMENT_LANE_SIZE;
+    }
     return PER_ELEMENT_LANE_READ;
   });
 };
@@ -48,6 +53,7 @@ export const applyPerElementLaneReads = (
   perElementPropertyNames: readonly string[],
   laneActions: readonly number[],
   laneSkipMask: readonly boolean[] | null = null,
+  isNonReplacedBox = false,
 ): void => {
   for (let laneIndex = 0; laneIndex < perElementPropertyNames.length; laneIndex++) {
     if (laneSkipMask !== null && laneSkipMask[laneIndex]) continue;
@@ -72,6 +78,10 @@ export const applyPerElementLaneReads = (
         // class-pinned static position the seed's value delegates through
         // harmlessly.
         if ((targetStyles["position"] ?? "static") === "static") continue;
+      } else if (laneAction === PER_ELEMENT_LANE_SIZE) {
+        // Size freezing deletes width/height for non-replaced inline boxes,
+        // so their per-element reads are pure waste.
+        if (isNonReplacedBox && targetStyles["display"] === "inline") continue;
       } else if (!(targetStyles["display"] ?? "").includes("grid")) {
         continue;
       }

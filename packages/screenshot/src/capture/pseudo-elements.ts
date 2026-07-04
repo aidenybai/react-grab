@@ -79,6 +79,7 @@ export const snapshotTrustedMemoizedPseudoStyles = (
     perElementPropertyNames,
     perElementLaneActions,
     laneSkipMask,
+    true,
   );
   return styles;
 };
@@ -111,6 +112,7 @@ export const snapshotMemoizedPseudoStyles = (
     perElementPropertyNames,
     perElementLaneActions,
     laneSkipMask,
+    true,
   );
   styles.content = contentValue;
   return styles;

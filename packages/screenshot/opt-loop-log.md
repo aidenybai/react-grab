@@ -196,3 +196,14 @@ selectors, transitions, animations) keeps the property unconditionally unstable.
 Metrics: 70-stress getPropertyValue 18,747 -> 15,838/run (-2.9k margin reads);
 warm ~40-43ms (small win inside the noise band). Unit 77/77, chromium fidelity
 412/412 green.
+
+### Iteration 22 — skip size lane reads for non-replaced inline boxes (KEPT)
+
+Technique: applySizeFreezingPolicy deletes width/height/inline-size/block-size
+for non-replaced display:inline boxes, so their per-element lane reads on memo
+hits are pure waste. New PER_ELEMENT_LANE_SIZE action skips the width/height
+getPropertyValue when the class-pinned display is inline and the element is
+non-replaced (guarded off when display itself is in the per-element lane).
+Pseudo-element lane reads always qualify as non-replaced.
+Metrics: 70-stress getPropertyValue 15,838 -> 15,562/run; warm 38.1ms median.
+Unit 77/77, chromium fidelity 412/412 green.
