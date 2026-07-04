@@ -684,3 +684,15 @@ hasOnlyDroppedAttributes indexed NamedNodeMap entries, forcing Blink to
 materialize lazy Attr nodes (4.9ms/run on mega-grid). hasAttributes() +
 getAttributeNames() reads the names without Attr materialization. mega-grid
 warm build 26.5 -> 23.9ms. Full 3-engine fidelity (412x3) + 77 unit green.
+
+## Iteration 69 — WebKit fast PNG encode (CompressionStream + software canvas) (kept)
+
+WebKit's warm 70-stress spent 655ms in canvas.toBlob: the PNG encoder there is
+an order of magnitude slower than Blink's, and the GPU canvas readback added a
+full flush. Two changes: (1) on WebKit the raster canvas is created with
+willReadFrequently (getImageData 627ms -> 8ms), and (2) canvasToBlob assembles
+the PNG container by hand — Sub-filtered scanlines + CompressionStream
+("deflate") IDAT + table-driven CRC32 — falling back to native toBlob on any
+error. WebKit 70-stress warm median 776 -> 457ms (encode 655 -> 181ms).
+Chromium/Firefox keep their native encoders. Full 3-engine fidelity (412x3,
+including WebKit decoding the hand-built PNGs) + 77 unit green.

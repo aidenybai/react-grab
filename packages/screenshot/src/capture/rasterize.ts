@@ -10,6 +10,7 @@ import { canvasToBlob } from "../utils/canvas-to-blob";
 import { createFifoCache } from "../utils/create-fifo-cache";
 import { encodeSvgDataUrl } from "../utils/encode-svg-data-url";
 import { isBlinkEngine } from "../utils/is-blink-engine";
+import { isWebKitEngine } from "../utils/is-webkit-engine";
 import { raceWithAbortSignal } from "../utils/race-with-abort-signal";
 import { waitForAnimationFrames } from "../utils/wait-for-animation-frames";
 import { lastCaptureTimings } from "./phase-timings";
@@ -101,7 +102,12 @@ export const createCaptureResult = (
     );
     const canvasWidth = Math.max(1, Math.floor(rawCanvasWidth * clampRatio));
     const canvasHeight = Math.max(1, Math.floor(rawCanvasHeight * clampRatio));
-    const renderingContext = canvas.getContext("2d");
+    // A software (willReadFrequently) canvas keeps WebKit's getImageData
+    // readback in the fast PNG encode path from paying a GPU flush.
+    const renderingContext = canvas.getContext(
+      "2d",
+      isWebKitEngine() ? { willReadFrequently: true } : undefined,
+    );
     if (!renderingContext) throw new Error("Could not acquire a 2d canvas context");
     if (canvas.width !== canvasWidth || canvas.height !== canvasHeight) {
       canvas.width = canvasWidth;
