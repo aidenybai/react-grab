@@ -165,6 +165,7 @@ export const TanstackTableSection = () => {
           value={globalFilter}
           onChange={(event) => setGlobalFilter(event.target.value)}
           placeholder="filter tasks"
+          aria-label="Filter table tasks"
           data-testid="table-filter-input"
           className="w-48 rounded border px-2 py-1 font-mono text-xs"
         />
@@ -180,17 +181,35 @@ export const TanstackTableSection = () => {
         <thead>
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id} className="border-b">
-              {headerGroup.headers.map((header) => (
-                <th
-                  key={header.id}
-                  data-testid={`table-header-${header.column.id}`}
-                  onClick={header.column.getToggleSortingHandler()}
-                  className="h-8 cursor-pointer select-none whitespace-nowrap px-2 text-left text-xs font-semibold"
-                >
-                  {flexRender(header.column.columnDef.header, header.getContext())}
-                  {{ asc: " ↑", desc: " ↓" }[header.column.getIsSorted() as string] ?? ""}
-                </th>
-              ))}
+              {headerGroup.headers.map((header) => {
+                const sortDirection = header.column.getIsSorted();
+                const toggleSorting = header.column.getToggleSortingHandler();
+                return (
+                  <th
+                    key={header.id}
+                    data-testid={`table-header-${header.column.id}`}
+                    onClick={toggleSorting}
+                    onKeyDown={(event) => {
+                      if (event.key !== "Enter" && event.key !== " ") return;
+                      event.preventDefault();
+                      toggleSorting?.(event);
+                    }}
+                    tabIndex={header.column.getCanSort() ? 0 : undefined}
+                    role={header.column.getCanSort() ? "button" : undefined}
+                    aria-sort={
+                      sortDirection === "asc"
+                        ? "ascending"
+                        : sortDirection === "desc"
+                          ? "descending"
+                          : "none"
+                    }
+                    className="h-8 cursor-pointer select-none whitespace-nowrap px-2 text-left text-xs font-semibold"
+                  >
+                    {flexRender(header.column.columnDef.header, header.getContext())}
+                    {{ asc: " ↑", desc: " ↓" }[sortDirection as string] ?? ""}
+                  </th>
+                );
+              })}
             </tr>
           ))}
         </thead>

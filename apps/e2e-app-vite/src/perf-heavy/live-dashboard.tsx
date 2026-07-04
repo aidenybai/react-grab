@@ -93,11 +93,11 @@ const StatCard = ({ stat }: { stat: StatCardData }) => (
   </div>
 );
 
-const FeedRow = memo(({ row, highlightedId }: { row: TrialRow; highlightedId: string | null }) => (
+const FeedRow = memo(({ row, isHighlighted }: { row: TrialRow; isHighlighted: boolean }) => (
   <li
     data-heavy-feed-row
     className={`flex items-center gap-3 border-b px-2 py-1.5 text-xs ${
-      highlightedId === row.id ? "bg-yellow-50" : ""
+      isHighlighted ? "bg-yellow-50" : ""
     }`}
   >
     <span className="font-mono text-[10px] text-gray-400">{row.id}</span>
@@ -133,7 +133,7 @@ export const LiveDashboardSection = () => {
       </div>
       <ul className="rounded border" data-testid="dashboard-feed">
         {feedRows.map((row) => (
-          <FeedRow key={row.id} row={row} highlightedId={highlightedId} />
+          <FeedRow key={row.id} row={row} isHighlighted={highlightedId === row.id} />
         ))}
       </ul>
     </section>

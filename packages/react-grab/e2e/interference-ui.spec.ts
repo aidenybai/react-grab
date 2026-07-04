@@ -165,24 +165,23 @@ test.describe("interference: kanban pointer-capture dnd", () => {
     if (!zoomedCardBounds) return;
 
     const zoomedCardId = await zoomedCard.getAttribute("data-kanban-card");
-    // Re-approach until the card (or a descendant) is the detected target —
-    // the very first synthetic move after activation can land on a stale
-    // ancestor, same as hoverUntilSelected handles for plain selectors.
+    // Aim at the card's bottom padding strip so the card div itself (not a
+    // text span inside it) is the deepest element under the pointer, and
+    // re-approach until it is the detected target — the very first synthetic
+    // move after activation can land on a stale ancestor.
+    const paddingTargetX = zoomedCardBounds.x + zoomedCardBounds.width / 2;
+    const paddingTargetY = zoomedCardBounds.y + zoomedCardBounds.height - 3;
     const HOVER_ATTEMPTS = 3;
     for (let attemptIndex = 1; attemptIndex <= HOVER_ATTEMPTS; attemptIndex++) {
       if (attemptIndex > 1) await page.mouse.move(0, 0);
-      await page.mouse.move(
-        zoomedCardBounds.x + zoomedCardBounds.width / 2,
-        zoomedCardBounds.y + zoomedCardBounds.height / 2,
-        { steps: 4 },
-      );
+      await page.mouse.move(paddingTargetX, paddingTargetY, { steps: 4 });
       try {
         await page.waitForFunction(
           (cardId) => {
             const state = window.__REACT_GRAB__?.getState?.();
             const targetElement = state?.targetElement;
             if (!(targetElement instanceof Element)) return false;
-            return targetElement.closest(`[data-kanban-card="${cardId}"]`) !== null;
+            return targetElement.getAttribute("data-kanban-card") === cardId;
           },
           zoomedCardId,
           { timeout: 2000 },
@@ -195,17 +194,13 @@ test.describe("interference: kanban pointer-capture dnd", () => {
     const selectionBounds = await reactGrab.getSelectionBoxBounds();
     expect(selectionBounds).not.toBeNull();
     if (!selectionBounds) return;
-    // The selection must track the *visual* (transformed) geometry: whatever
-    // was detected (the card or a descendant) must sit inside the card's
-    // scaled on-screen rect, not its untransformed layout rect.
-    expect(selectionBounds.x).toBeGreaterThanOrEqual(zoomedCardBounds.x - 2);
-    expect(selectionBounds.y).toBeGreaterThanOrEqual(zoomedCardBounds.y - 2);
-    expect(selectionBounds.x + selectionBounds.width).toBeLessThanOrEqual(
-      zoomedCardBounds.x + zoomedCardBounds.width + 2,
-    );
-    expect(selectionBounds.y + selectionBounds.height).toBeLessThanOrEqual(
-      zoomedCardBounds.y + zoomedCardBounds.height + 2,
-    );
+    // The detected target IS the card, so its selection rect must equal the
+    // card's *visual* (scale-transformed) geometry, not its untransformed
+    // layout size — the layout rect is ~8% wider under KANBAN_ZOOM_SCALE.
+    expect(Math.abs(selectionBounds.x - zoomedCardBounds.x)).toBeLessThan(2);
+    expect(Math.abs(selectionBounds.y - zoomedCardBounds.y)).toBeLessThan(2);
+    expect(Math.abs(selectionBounds.width - zoomedCardBounds.width)).toBeLessThan(2);
+    expect(Math.abs(selectionBounds.height - zoomedCardBounds.height)).toBeLessThan(2);
     await reactGrab.deactivate();
   });
 });

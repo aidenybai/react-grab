@@ -32,6 +32,28 @@ export const HeatmapSection = () => {
   const gridRef = useRef<HTMLDivElement>(null);
   const [hoveredCell, setHoveredCell] = useState<HoveredCell | null>(null);
 
+  const gridCells = useMemo(
+    () =>
+      cells.map((cell) => (
+        <button
+          key={`${cell.rowIndex}-${cell.columnIndex}`}
+          type="button"
+          data-hm-row={cell.rowIndex}
+          data-hm-col={cell.columnIndex}
+          data-hm-value={cell.value}
+          data-testid={`heatmap-cell-${cell.rowIndex}-${cell.columnIndex}`}
+          className="flex h-6 cursor-pointer items-center justify-center font-mono text-[9px] tabular-nums"
+          style={{
+            backgroundColor: `rgba(37, 99, 235, ${cell.value})`,
+            color: cell.value > 0.55 ? "white" : "#111827",
+          }}
+        >
+          {Math.round(cell.value * 100)}
+        </button>
+      )),
+    [cells],
+  );
+
   const handleMouseMove = (event: MouseEvent<HTMLDivElement>) => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
@@ -92,23 +114,7 @@ export const HeatmapSection = () => {
         className="grid w-fit"
         style={{ gridTemplateColumns: `repeat(${HEATMAP_COLUMN_COUNT}, 28px)` }}
       >
-        {cells.map((cell) => (
-          <button
-            key={`${cell.rowIndex}-${cell.columnIndex}`}
-            type="button"
-            data-hm-row={cell.rowIndex}
-            data-hm-col={cell.columnIndex}
-            data-hm-value={cell.value}
-            data-testid={`heatmap-cell-${cell.rowIndex}-${cell.columnIndex}`}
-            className="flex h-6 cursor-pointer items-center justify-center font-mono text-[9px] tabular-nums"
-            style={{
-              backgroundColor: `rgba(37, 99, 235, ${cell.value})`,
-              color: cell.value > 0.55 ? "white" : "#111827",
-            }}
-          >
-            {Math.round(cell.value * 100)}
-          </button>
-        ))}
+        {gridCells}
       </div>
       {hoveredCell && (
         <div

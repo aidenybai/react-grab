@@ -15,11 +15,14 @@ import { expect, getElementCenters, goToHeavyView, test } from "./perf-fixtures.
 import { idleFrame, recordScenario } from "./perf-recorder.js";
 
 const INP_SOFT_LIMIT_MS = 100;
-// INP thresholds only hold on dedicated perf runs (PERF_LABEL set, quiet
-// machine, minified build). In the full parallel suite the workers contend
-// for cores, and under COVERAGE the build is unminified + V8-instrumented —
-// both inflate INP for reasons that are not regressions.
-const SHOULD_ASSERT_INP = Boolean(process.env.PERF_LABEL) && !process.env.COVERAGE;
+// These scenarios measure app-dominated work (sorting/filtering 2000 rows),
+// so absolute INP is hardware-bound: fine on a quiet dev machine, way over
+// budget on CI runners regardless of react-grab's code (CI catches real
+// regressions via the baseline-vs-current diff instead). Also skip under
+// parallel local suites (worker contention) and COVERAGE (unminified,
+// V8-instrumented build).
+const SHOULD_ASSERT_INP =
+  Boolean(process.env.PERF_LABEL) && !process.env.COVERAGE && !process.env.CI;
 const TABLE_ROW_SELECTOR = "[data-heavy-table-row]";
 const VIRTUAL_ROW_SELECTOR = "[data-heavy-virtual-row]";
 const HEATMAP_CELL_SELECTOR = "[data-testid^='heatmap-cell-']";

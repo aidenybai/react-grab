@@ -74,6 +74,10 @@ export const KanbanBoardSection = () => {
     setDragState(null);
   };
 
+  const handleCardPointerCancel = () => {
+    setDragState(null);
+  };
+
   const draggedCard = dragState ? cardById.get(dragState.cardId) : null;
 
   return (
@@ -107,6 +111,7 @@ export const KanbanBoardSection = () => {
                     onPointerDown={(event) => handleCardPointerDown(event, cardId)}
                     onPointerMove={handleCardPointerMove}
                     onPointerUp={handleCardPointerUp}
+                    onPointerCancel={handleCardPointerCancel}
                     className={`cursor-grab touch-none rounded border bg-white p-2 text-xs shadow-sm ${
                       isBeingDragged ? "opacity-40" : ""
                     }`}

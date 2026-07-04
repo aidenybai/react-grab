@@ -20,8 +20,9 @@ import { expect, getElementCenters, goToHeavyView, test } from "./perf-fixtures.
 import { idleFrame, recordScenario } from "./perf-recorder.js";
 
 const EDITOR_TYPING_INP_SOFT_LIMIT_MS = 200;
-// See perf-heavy.spec.ts: INP asserts only hold on dedicated perf runs.
-const SHOULD_ASSERT_INP = Boolean(process.env.PERF_LABEL) && !process.env.COVERAGE;
+// See perf-heavy.spec.ts: absolute INP asserts are local-only guardrails.
+const SHOULD_ASSERT_INP =
+  Boolean(process.env.PERF_LABEL) && !process.env.COVERAGE && !process.env.CI;
 const CANVAS_MARKER_SELECTOR = "[data-canvas-marker]";
 const WAAPI_TILE_SELECTOR = "[data-waapi-tile]";
 const RAF_MUTATOR_SELECTOR = "[data-raf-mutator]";
