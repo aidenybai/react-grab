@@ -761,3 +761,20 @@ to the RGBA path on the first transparent pixel; IHDR color type flips to 2.
 25% less deflate input/output. WebKit warm: 70-stress 434 -> 410ms (encode
 162 -> 134), mega-grid 463 -> 431ms (encode 191 -> 158). 412x3 fidelity + 77
 unit green.
+
+## Iteration 77 — lane-probe variant keys (kept)
+
+buildVariantKey enumerated own style keys with Object.keys (a fresh array per
+element and per pseudo map) then mapped each name through an index Map. Own
+properties on memo-hit maps can only be per-element-lane names, so probing
+the lane array with Object.hasOwn yields identical deviation keys with zero
+allocation, and the propertyIndexByName Map goes away. Warm medians flat
+within noise (mega-grid ~246); this is a GC-pressure reduction (GC was 16ms/
+run in the profile). 412x3 fidelity + 77 unit green.
+
+## Iteration 77b — CompressionStream PNG path on Chromium (REJECTED probe)
+
+Tried routing Chromium through the hand-rolled encoder now that opaque RGB
+packing shrinks deflate input: encodeMs 105 -> 215 on mega-grid. Blink's
+native toBlob encodes off-thread and its zlib is faster than its
+CompressionStream plumbing; keep the hand-rolled path WebKit-only.

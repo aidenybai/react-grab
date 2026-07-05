@@ -116,18 +116,20 @@ const bakedBackdropPngCache = createFifoCache<string[]>(BAKED_BACKDROP_CACHE_CAP
 const VARIANT_KEY_SEPARATOR = "\x1f";
 
 // Memo-hit style maps delegate to the seed's map through their prototype, so
-// only own properties whose value actually shadows the seed's can distinguish
-// variants inside a memo class; the key encodes just those deviations (indexed
-// so different properties with equal values cannot collide).
+// only own per-element-lane properties whose value actually shadows the
+// seed's can distinguish variants inside a memo class; the key encodes just
+// those deviations (indexed so different properties with equal values cannot
+// collide). Probing the lane names directly avoids the per-element array
+// Object.keys would allocate.
 const appendStyleDeviations = (
   variantKey: string,
   styles: StyleDeclarationMap,
-  propertyIndexByName: ReadonlyMap<string, number>,
+  perElementPropertyNames: readonly string[],
 ): string => {
   const seedStyles: StyleDeclarationMap | null = Object.getPrototypeOf(styles);
-  for (const propertyName of Object.keys(styles)) {
-    const propertyIndex = propertyIndexByName.get(propertyName);
-    if (propertyIndex === undefined) continue;
+  for (let propertyIndex = 0; propertyIndex < perElementPropertyNames.length; propertyIndex++) {
+    const propertyName = perElementPropertyNames[propertyIndex];
+    if (!Object.hasOwn(styles, propertyName)) continue;
     const ownValue = styles[propertyName];
     if (seedStyles !== null && seedStyles[propertyName] === ownValue) continue;
     variantKey += `${VARIANT_KEY_SEPARATOR}${propertyIndex}:${ownValue ?? ""}`;
@@ -138,22 +140,22 @@ const appendStyleDeviations = (
 const appendPseudoVariantPart = (
   variantKey: string,
   pseudoStyles: StyleDeclarationMap | null,
-  propertyIndexByName: ReadonlyMap<string, number>,
+  perElementPropertyNames: readonly string[],
 ): string => {
   if (pseudoStyles === null) return `${variantKey}${VARIANT_KEY_SEPARATOR}\x00`;
   variantKey += `${VARIANT_KEY_SEPARATOR}${pseudoStyles["content"] ?? ""}`;
-  return appendStyleDeviations(variantKey, pseudoStyles, propertyIndexByName);
+  return appendStyleDeviations(variantKey, pseudoStyles, perElementPropertyNames);
 };
 
 const buildVariantKey = (
   snapshot: ElementReadSnapshot,
   parentDisplay: string | null,
-  propertyIndexByName: ReadonlyMap<string, number>,
+  perElementPropertyNames: readonly string[],
 ): string => {
   let variantKey = parentDisplay ?? "";
-  variantKey = appendStyleDeviations(variantKey, snapshot.styles, propertyIndexByName);
-  variantKey = appendPseudoVariantPart(variantKey, snapshot.beforeStyles, propertyIndexByName);
-  return appendPseudoVariantPart(variantKey, snapshot.afterStyles, propertyIndexByName);
+  variantKey = appendStyleDeviations(variantKey, snapshot.styles, perElementPropertyNames);
+  variantKey = appendPseudoVariantPart(variantKey, snapshot.beforeStyles, perElementPropertyNames);
+  return appendPseudoVariantPart(variantKey, snapshot.afterStyles, perElementPropertyNames);
 };
 
 const reusePseudoDiff = (
@@ -195,9 +197,6 @@ const buildClassNameMap = (
   const classNameByElement = new Map<Element, string>();
   const emittedStylesByElement = new Map<Element, StyleDeclarationMap>();
   const canReuseDiffs = canReusePerElementDiffs(perElementPropertyNames);
-  const propertyIndexByName = new Map(
-    perElementPropertyNames.map((propertyName, propertyIndex) => [propertyName, propertyIndex]),
-  );
   const cachedDiffByMemoKey = new Map<number, StyleDeclarationMap>();
   // Baselines are keyed by tag/input-type/font-size, all pinned by the memo
   // key, so the per-element key-building and cache lookup inside getBaseline
@@ -240,7 +239,7 @@ const buildClassNameMap = (
       const variantKey = buildVariantKey(
         snapshot,
         parentSnapshot?.styles["display"] ?? null,
-        propertyIndexByName,
+        perElementPropertyNames,
       );
       variantKeyByElement.set(element, variantKey);
       variantEmittedStyles = emittedStylesByVariant.get(snapshot.memoKey);
@@ -348,7 +347,7 @@ const buildClassNameMap = (
     if (canReuseSeedClassName) {
       variantKey =
         variantKeyByElement.get(element) ??
-        buildVariantKey(snapshot, parentDisplay, propertyIndexByName);
+        buildVariantKey(snapshot, parentDisplay, perElementPropertyNames);
       variantClassNames = variantClassNamesByMemoKey.get(snapshot.memoKey);
       if (variantClassNames === undefined) {
         variantClassNames = new Map();
