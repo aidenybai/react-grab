@@ -153,3 +153,22 @@ the full 3-engine fidelity suite (412 fixtures × Chromium/WebKit/Firefox).
 - Sub PNG filter on WebKit: slower and larger than None on UI rasters.
 - Full-string re-verification of memoized styles: defeats the point; the
   descriptor already proves class identity.
+- Lossy WebP (`toBlob("image/webp", 0.8-0.9)`): ~275-320ms in every engine at
+  mega-grid size — 10x slower than JPEG despite smaller output.
+- `createImageBitmap(svgImage)`: bitmap creation (41-75ms) costs more than one
+  drawImage, and repeat draws are already cache-covered.
+- SVG root `text-rendering`/`shape-rendering: optimizeSpeed`: the hints do not
+  propagate into HTML painted inside foreignObject; WebKit raster unchanged.
+- `alpha:false`/`desynchronized` context hints: no measurable toBlob change in
+  any engine.
+- GPU (non-willReadFrequently) canvas for the WebKit JPEG render: toBlob from
+  a GPU canvas stalls on readback (118 → 661ms end-to-end); the software
+  scratch canvas wins whenever pixels leave the canvas, not just for
+  getImageData.
+
+## Encoding escape hatch
+
+- JPEG is the only cheap lossy exit past the PNG encode floor: WebKit
+  225→29ms, Firefox 86→20ms, Chromium 42→27ms at mega-grid raster size.
+  Exposed as `toJpegBlob`/`toJpegDataUrl` (default quality 0.92, opaque white
+  fallback since JPEG has no alpha channel).

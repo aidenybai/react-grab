@@ -896,3 +896,41 @@ Added toJpegBlob(quality?)/toJpegDataUrl(quality?) to CaptureResult (default
 quality 0.92, white fallback background since JPEG has no alpha), sharing the
 scratch canvas render. Opt-in lossy escape hatch past the PNG encode floor;
 covered by a 3-engine e2e spec. 413x3 fidelity + 77 unit green.
+
+## Iteration 91 — lossy WebP output (REJECTED probe)
+
+Probed toBlob("image/webp", 0.8-0.9) across engines on the 71-mega-grid
+raster: ~275-320ms in all three (10x slower than JPEG, slower than PNG
+everywhere but WebKit). Files are smaller (~500KB vs ~765KB JPEG-80) but the
+encoders are uniformly slow; not worth an API surface.
+
+## Iteration 92 — createImageBitmap raster caching (REJECTED probe)
+
+Probed createImageBitmap(svgImage) + bitmap draws against repeated
+drawImage(svgImage): bitmap draws are ~0ms but creation costs 75ms (Blink) /
+41ms (WebKit) — more than a single draw, and repeat-draw cases are already
+covered by the encoded-PNG and decoded-image caches.
+
+## Iteration 93 — SVG markup size breakdown (measurement)
+
+71-mega-grid serialized SVG is 658KB: 16KB style rules, 0KB data URLs, the
+rest element markup for ~7k elements. Decode cost is foreignObject layout,
+not parse; no compressible fat left in the markup itself.
+
+## Iteration 94 — WebKit software-canvas choice re-verified (probe, kept as is)
+
+willReadFrequently makes WebKit drawImage ~2.5x slower (91ms vs 36ms) but
+draw+getImageData total is 358ms software vs 864ms GPU at DPR2 capture size —
+the GPU readback stall dominates. The existing software-canvas choice stands.
+
+## Iteration 95 — context attribute sweep (REJECTED probe)
+
+alpha:false / desynchronized context hints changed nothing measurable for
+toBlob in any engine (drawImage deltas disappear once encode dominates).
+
+## Iteration 96 — GPU scratch canvas for JPEG on WebKit (REJECTED)
+
+Tried splitting the scratch canvas per readback mode so the JPEG render could
+skip willReadFrequently on WebKit: end-to-end toJpegBlob regressed 118ms →
+661ms — WebKit's toBlob from a GPU canvas pays a far larger readback stall
+than the software draw penalty. Reverted to the single software scratch.
