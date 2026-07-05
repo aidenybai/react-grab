@@ -704,3 +704,13 @@ compresses smaller than Sub (497KB vs 644KB; long literal runs suit zlib's
 matcher), and the row copy becomes a plain set(). WebKit 70-stress warm
 median 457 -> 442ms (encode 181 -> 165ms). Chromium unaffected (mega-grid
 265, 70-stress 98). Full 3-engine fidelity (412x3) + 77 unit green.
+
+## Iteration 71 — monomorphic tag dispatch in cloneElementNode (kept)
+
+The clone walk paid five sequential isHtmlElementOfTag namespace+tag checks
+plus an unconditional reflectFormState call per element. The XHTML-ness and
+localName are now computed once per element and every special-case branch
+(iframe/canvas/video/img/textarea, form-state reflection) keys off that
+string, so the common div/span path falls through on failed string compares
+alone. Chromium mega-grid buildMs 23.9 -> 22.9, warm median ~254 -> ~250ms.
+Full 3-engine fidelity (412x3) + 77 unit green.

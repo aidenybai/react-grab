@@ -263,29 +263,30 @@ const cloneElementNode = (
   }
   const snapshot = context.snapshotByElement.get(element);
   if (!snapshot) return null;
+  const isXhtmlElement = element.namespaceURI === XHTML_NAMESPACE_URI && element.prefix === null;
+  const tagName = isXhtmlElement ? element.localName : "";
   let clone: Element | null;
   let shouldCloneChildren = true;
   let isPrototypeClone = false;
-  if (isHtmlElementOfTag(element, "iframe")) {
+  if (tagName === "iframe" && isHtmlElementOfTag(element, "iframe")) {
     clone = buildIframeClone(element, context);
     shouldCloneChildren = false;
-  } else if (isHtmlElementOfTag(element, "canvas")) {
+  } else if (tagName === "canvas" && isHtmlElementOfTag(element, "canvas")) {
     clone = freezeCanvas(element, context.ownerDocument);
     shouldCloneChildren = false;
-  } else if (isHtmlElementOfTag(element, "video")) {
+  } else if (tagName === "video" && isHtmlElementOfTag(element, "video")) {
     clone = freezeVideo(element, context.ownerDocument, snapshot.styles);
     shouldCloneChildren = false;
-  } else if (isHtmlElementOfTag(element, "img")) {
+  } else if (tagName === "img" && isHtmlElementOfTag(element, "img")) {
     clone = freezeImage(element);
     if (clone) sanitizeCloneAttributes(clone);
     shouldCloneChildren = false;
-  } else if (isHtmlElementOfTag(element, "textarea")) {
+  } else if (tagName === "textarea") {
     clone = createSanitizedClone(element, context.ownerDocument);
     shouldCloneChildren = false;
   } else if (
-    element.namespaceURI === XHTML_NAMESPACE_URI &&
-    element.prefix === null &&
-    !PROTOTYPE_EXCLUDED_TAGS.has(element.localName) &&
+    isXhtmlElement &&
+    !PROTOTYPE_EXCLUDED_TAGS.has(tagName) &&
     hasOnlyDroppedAttributes(element)
   ) {
     const prototypeClassName = context.classNameByElement.get(element) ?? "";
@@ -317,7 +318,9 @@ const cloneElementNode = (
   }
   if (!clone) return null;
   if (context.prunedElements?.has(element)) shouldCloneChildren = false;
-  reflectFormState(element, clone, snapshot.styles);
+  if (tagName === "input" || tagName === "option") {
+    reflectFormState(element, clone, snapshot.styles);
+  }
   const inlineCarryText = isPrototypeClone
     ? undefined
     : context.inlineCarryTextByElement.get(element);
@@ -335,7 +338,7 @@ const cloneElementNode = (
   if (className && element.namespaceURI === SVG_NAMESPACE_URI) {
     stripSvgPaintPresentationAttributes(clone);
   }
-  if (isHtmlElementOfTag(element, "textarea")) {
+  if (tagName === "textarea" && isHtmlElementOfTag(element, "textarea")) {
     clone.textContent = stripInvalidXmlCharacters(element.value);
   }
   context.cloneByElement.set(element, clone);
