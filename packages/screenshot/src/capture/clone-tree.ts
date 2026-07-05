@@ -39,8 +39,8 @@ const clonePrototypeByKey = new Map<string, Element>();
 // per-element array getAttributeNames allocates and materializing lazy Attr
 // nodes via NamedNodeMap indexing.
 const hasOnlyDroppedAttributes = (element: Element): boolean => {
+  if (!element.hasAttributes()) return true;
   const attributeCount = element.attributes.length;
-  if (attributeCount === 0) return true;
   if (attributeCount > 2) return false;
   let droppedCount = element.hasAttribute("class") ? 1 : 0;
   if (element.hasAttribute("style")) droppedCount += 1;

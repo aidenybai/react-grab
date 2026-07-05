@@ -793,3 +793,18 @@ and no per-capture concatenation happens. Cache semantics unchanged (same
 Re-probed Gecko with the opaque-RGB hand-rolled encoder: encodeMs 86 -> 159
 on mega-grid warm. Gecko's native toBlob remains the fastest path there;
 hand-rolled stays WebKit-only.
+
+## Iteration 79 — prewarm() export (kept)
+
+First captures pay one-time costs (baseline-probe sandbox, stylesheet rule
+scan, font fetches, scratch canvas zero-fill, JIT). A best-effort prewarm()
+export runs a throwaway offscreen 16px capture so apps can pay those at idle:
+mega-grid first-capture 438 -> 409ms median after prewarm. Also gated
+hasOnlyDroppedAttributes behind hasAttributes() so attribute-free elements
+skip the NamedNodeMap allocation. 412x3 fidelity + 77 unit green.
+
+## Iteration 79b — lossless WebP encode on Blink (REJECTED probe)
+
+Probed toBlob("image/webp", 1) as a faster encode: 196ms vs 72ms PNG on a
+mega-grid-sized canvas (and 679ms at quality 0.99). Blink's WebP-lossless
+encoder is ~3x slower than its PNG path; no format escape hatch worth adding.

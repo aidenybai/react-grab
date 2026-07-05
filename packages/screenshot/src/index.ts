@@ -866,6 +866,28 @@ export const captureRegion = async (
   });
 };
 
+// Warms the cold-capture machinery (baseline-probe sandbox, stylesheet rule
+// scan, font-embed CSS cache, scratch canvas, JIT) with a throwaway offscreen
+// capture so the first real capture pays warm-path costs. Best-effort: any
+// failure is swallowed.
+export const prewarm = async (targetDocument: Document = document): Promise<void> => {
+  const hostElement = targetDocument.body ?? targetDocument.documentElement;
+  if (!hostElement) return;
+  const probeElement = targetDocument.createElement("div");
+  probeElement.style.cssText =
+    "position:absolute;left:-99999px;top:0;width:16px;height:16px;background:#fff;";
+  probeElement.textContent = "prewarm";
+  hostElement.appendChild(probeElement);
+  try {
+    const probeResult = await captureNode(probeElement);
+    await probeResult.toBlob();
+  } catch {
+    return;
+  } finally {
+    probeElement.remove();
+  }
+};
+
 export { lastCaptureTimings } from "./capture/phase-timings";
 
 export const enableIframeBridge = (): (() => void) =>

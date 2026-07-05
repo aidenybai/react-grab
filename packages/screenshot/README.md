@@ -42,6 +42,16 @@ const result = await captureRegion({ x: 120, y: 80, width: 400, height: 300 });
 
 `captureNode` also accepts a `clip` option — a rect in the element's own coordinate space (border-box origin) — to crop any capture without the region culling.
 
+### Prewarming
+
+```ts
+import { prewarm } from "fast-html-to-image";
+
+prewarm(); // e.g. at app idle, before the first capture
+```
+
+The first capture on a page pays one-time costs (baseline style probes, stylesheet rule scan, font fetches, canvas allocation, JIT warmup). `prewarm()` runs a throwaway offscreen capture so those costs are paid ahead of time and the first real capture runs at warm-path speed. Best-effort and safe to call multiple times.
+
 ### Options
 
 ```ts
