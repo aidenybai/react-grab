@@ -96,6 +96,9 @@ export const applyEscapedBottomMarginTransfers = (
 
   for (const [element, snapshot] of snapshotByElement) {
     if (element === rootElement) continue;
+    const display = snapshot.styles["display"];
+    if (display !== "block" && display !== "list-item") continue;
+    if (element.firstElementChild === null && !element.shadowRoot) continue;
     const escapedMargin = computeEscapedBottomMargin(element);
     if (escapedMargin <= 0) continue;
     if (escapedMargin <= parsePx(snapshot.styles["margin-bottom"])) continue;

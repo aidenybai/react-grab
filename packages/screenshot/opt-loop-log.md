@@ -714,3 +714,13 @@ localName are now computed once per element and every special-case branch
 string, so the common div/span path falls through on failed string compares
 alone. Chromium mega-grid buildMs 23.9 -> 22.9, warm median ~254 -> ~250ms.
 Full 3-engine fidelity (412x3) + 77 unit green.
+
+## Iteration 72 — margin-collapse escape pass pre-gates (kept)
+
+The escaped-bottom-margin transfer loop called computeEscapedBottomMargin for
+every snapshot element. Only block/list-item elements with element children
+can transfer, so those two checks (styles map read + firstElementChild) now
+gate the call, skipping the memo-map/parsePx machinery for the vast majority.
+Chromium mega-grid warm ~250 -> ~244ms. Full 3-engine fidelity (412x3) + 77
+unit green. Also reviewed chenglou/pretext per user request (no portable code;
+patterns already in use) and added docs/learnings.md, maintained from here on.
