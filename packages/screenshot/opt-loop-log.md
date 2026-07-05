@@ -724,3 +724,20 @@ gate the call, skipping the memo-map/parsePx machinery for the vast majority.
 Chromium mega-grid warm ~250 -> ~244ms. Full 3-engine fidelity (412x3) + 77
 unit green. Also reviewed chenglou/pretext per user request (no portable code;
 patterns already in use) and added docs/learnings.md, maintained from here on.
+
+## Iteration 73 — hasAttributes gate before inline-style lookup (kept)
+
+The snapshot walk asked hasAttribute("style") for every element; most elements
+in template-heavy pages carry no attributes at all, so a hasAttributes()
+boolean now gates the string-keyed attribute probe. Neutral-to-small win;
+chromium 412 green (behavior-identical by construction).
+
+## Iteration 74 — sibling-walk in findLastInFlowElementChild (REJECTED)
+
+Replacing the getComposedChildNodes reverse index walk with a
+lastChild/previousSibling walk broke dtim-custom-element-slots: elements
+inside shadow trees compose slot children, which the sibling walk skipped.
+A :scope>slot querySelector guard would cost more than the NodeList scan it
+avoided (the original only allocates when a slot child exists). Reverted.
+Lesson recorded in docs/learnings.md: composed-tree helpers must stay the
+single source of child iteration wherever shadow DOM can appear.

@@ -222,7 +222,7 @@ export const snapshotComposedTree = (
     // so registry ingestion and the descriptor/carry scan both key off the
     // raw text and run once per unique text.
     let inlineStyleScan: InlineStyleScan | null = null;
-    if (element.hasAttribute("style") && isHtmlElement(element)) {
+    if (element.hasAttributes() && element.hasAttribute("style") && isHtmlElement(element)) {
       const inlineStyleText = element.getAttribute("style") ?? "";
       inlineStyleScan =
         inlineStyleScanByText.get(inlineStyleText) ??
