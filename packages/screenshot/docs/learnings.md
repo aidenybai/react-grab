@@ -172,3 +172,49 @@ the full 3-engine fidelity suite (412 fixtures × Chromium/WebKit/Firefox).
   225→29ms, Firefox 86→20ms, Chromium 42→27ms at mega-grid raster size.
   Exposed as `toJpegBlob`/`toJpegDataUrl` (default quality 0.92, opaque white
   fallback since JPEG has no alpha channel).
+
+## HTML-in-canvas probe (Chromium 147)
+
+`ctx.drawElement` now exists behind `--enable-blink-features=CanvasDrawElement`.
+Working recipe: the drawn element must be an immediate child of a `<canvas
+layoutsubtree>` that is itself painted (visible in the DOM — hidden canvases
+fail with "No cached paint record"), wait two rAFs for the paint record, then
+`ctx.drawElement(child, x, y)` draws in <1ms. Feeding the pipeline's styled
+clone plus the registry `<style>` text into the canvas subtree scores
+diffRatio 0.03-0.07 on heavy fixtures (0.44 on image-heavy pages — data-URL
+fonts/images need load settling before the paint record snapshots). Gaps to
+close when this reaches stable: resource settling inside the canvas subtree,
+scroll pinning, and pseudo-element parity; the prize is skipping serialize +
+SVG decode entirely on Blink.
+
+## @font-face variant pruning
+
+Kept: css-fonts-4 style-then-weight matching per (family, unicode-range)
+group over the declared faces, requested with every used (style, weight)
+variant plus the UA defaults omissions can stand for (400/700,
+normal/italic). Faces outside the union can never render, so their sources
+are never fetched. Bail out per family on unparsable descriptors,
+non-default font-stretch, or font-variation-settings; bail out globally when
+any used weight fails to parse. Weight matching quirks worth remembering:
+requests in 400-500 prefer the window up to 500 ascending before falling
+below; variable ranges containing the request count as exact.
+
+## Parallel JS deflate (rejected)
+
+fflate zlibSync loses to WebKit's native CompressionStream single-threaded
+(741 vs 656ms on a 49MB probe payload), so even a pigz-style worker split
+(independent raw-deflate chunks terminated with empty stored blocks, adler32
+combined) only ties the existing 133ms encode after transfer + stitch costs.
+Not worth a dependency plus worker plumbing.
+
+## Subtree incremental serialization (rejected)
+
+After a single mutation on a 10k-element page, recapture spends 132ms in JS
+(snapshot 84 / build 39 / serialize 9) and 201ms in native raster+encode that
+changed pixels always pay. Caching serialized subtree markup keyed by
+per-element attribute generation could only attack the 132ms and is unsound
+without content-addressed class names plus detection of sibling
+combinators, :has, :nth-child, and CSS counters — any of which restyle
+subtrees whose own attributes never changed. The unchanged-DOM case is
+already ~6ms via capture reuse; partial-mutation savings do not justify the
+fidelity risk.

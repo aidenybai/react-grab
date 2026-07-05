@@ -976,3 +976,45 @@ unchanged element resolves from the capture-reuse and raster caches: on
 71-mega-grid, prewarm 452ms off the critical path, then captureNode+toBlob
 6ms. Fits react-grab's hover-then-click flow. Covered by a 3-engine e2e spec;
 documentless overload unchanged.
+
+## Iteration 102 — parallel JS deflate for WebKit PNG (rejected)
+
+fflate zlibSync on the WebKit raster payload is slower single-threaded than
+native CompressionStream (741-754 vs 656ms on the unfiltered probe input), so
+a pigz-style 4-worker split lands at best around the existing 133ms
+CompressionStream encode after worker transfer and stream stitching — no win
+for a new dependency plus worker plumbing. Rejected.
+
+## Iteration 103 — @font-face variant pruning (kept)
+
+buildFontEmbedCss now replicates the css-fonts-4 style/weight matching
+algorithm per (family, unicode-range) group and drops faces no used
+(style, weight) variant can ever select, before their sources are fetched.
+Used variants come from the diffed rule styles plus the UA-default variants
+omissions can stand for (400/700, normal/italic); families with unparsable
+descriptors, non-default font-stretch, or variation settings keep every face.
+On the new lim-font-weight-pruning fixture (5 declared weights, 2 used) the
+embed drops 5 faces to 2 fetches/decodes. New unit tests for the matching
+algorithm; 3-engine e2e asserts the pruned embed count.
+
+## Iteration 104 — HTML-in-canvas re-probe (documented, not shipped)
+
+Playwright Chromium 147 now exposes ctx.drawElement behind
+--enable-blink-features=CanvasDrawElement. Mechanism validated: element must
+be an immediate canvas child with layoutsubtree, painted (visible) so a paint
+record exists; draw itself is <1ms. Feeding our styled clone + registry CSS
+into the canvas subtree renders at diffRatio 0.03-0.07 on heavy fixtures
+(0.44 on image-heavy kitchen-sink — data-URL resources need load settling),
+far above the 0.005 budget and flag-only, so still not shippable. Wire-up
+notes kept in docs/learnings.md for when the origin trial reaches stable.
+
+## Iteration 105 — subtree incremental serialization (assessed, rejected)
+
+Quantified the ceiling on 71-mega-grid (10k elements): after one style
+mutation, recapture is 342ms = 132ms JS (snapshot 84, build 39, serialize 9)
+
+- 201ms native decode/raster/encode. Subtree markup caching could shave only
+  the 132ms JS in the partial-mutation case, and is fidelity-hazardous:
+  capture-global class numbering, sibling/:has/:nth-child selectors, and CSS
+  counters let a mutation restyle "unchanged" subtrees. The unchanged-DOM case
+  is already 6ms via the capture-reuse cache. Rejected as risk > win.
