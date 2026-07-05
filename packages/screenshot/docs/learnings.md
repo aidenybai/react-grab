@@ -66,7 +66,13 @@ the full 3-engine fidelity suite (412 fixtures × Chromium/WebKit/Firefox).
   keep native there.
 - Identical serialized SVG markup fully determines output pixels, so a small
   keyed raster cache (markup + scale/pixelRatio/background) reuses the encoded
-  PNG for repeat captures of an unchanged DOM.
+  PNG for repeat captures of an unchanged DOM. Nest the raster params under
+  the markup string as the cache key instead of concatenating them into a
+  fresh multi-MB rope per capture.
+- Fully opaque rasters (the common case with an opaque capture background)
+  pack as truecolor-without-alpha PNG in the hand-rolled WebKit encoder: 25%
+  less deflate input, WebKit 70-stress encode 162 → 134ms. One optimistic
+  pass verifies alpha==255 and bails to RGBA on the first transparent pixel.
 
 ## Cold start
 
@@ -74,6 +80,9 @@ the full 3-engine fidelity suite (412 fixtures × Chromium/WebKit/Firefox).
   378 → 254ms.
 - Settle-frame skipping is safe on WebKit/Gecko when no nested data-URL
   resources exist.
+- A best-effort `prewarm()` (throwaway offscreen 16px capture) pays the
+  baseline-probe sandbox, stylesheet rule scan, font fetches, scratch-canvas
+  zero-fill, and JIT warmup at idle: mega-grid first capture 438 → 409ms.
 
 ## Cross-cutting
 
@@ -85,6 +94,9 @@ the full 3-engine fidelity suite (412 fixtures × Chromium/WebKit/Firefox).
   skips non-block elements and elements without element children up front.
 - Keep indirect call sites monomorphic and object shapes stable (V8 hidden
   classes); prefer for-loops and preallocated arrays in the walk.
+- Own properties on memo-hit style maps can only be per-element-lane names,
+  so variant keys probe the lane array with `Object.hasOwn` instead of
+  allocating `Object.keys` arrays per element and pseudo map.
 
 ## Framework research (SolidJS, ivi, Inferno, pretext)
 
@@ -112,7 +124,12 @@ the full 3-engine fidelity suite (412 fixtures × Chromium/WebKit/Firefox).
 - CSS Typed OM / cssText bulk reads: slower than per-prop getPropertyValue for
   our property counts.
 - Worker/tile-based PNG encode on Chromium: no faster than native toBlob.
-- CompressionStream PNG encode on Firefox: slower than native.
+- CompressionStream PNG encode on Firefox: slower than native, even after
+  opaque-RGB packing cut deflate input 25% (86 → 159ms on mega-grid).
+- CompressionStream PNG encode on Chromium: 105 → 215ms on mega-grid; Blink
+  encodes off-main-thread and its zlib beats its CompressionStream plumbing.
+- Lossless WebP (`toBlob("image/webp", 1)`) on Blink: ~3× slower than its PNG
+  encoder (196 vs 72ms at mega-grid size).
 - Sub PNG filter on WebKit: slower and larger than None on UI rasters.
 - Full-string re-verification of memoized styles: defeats the point; the
   descriptor already proves class identity.
