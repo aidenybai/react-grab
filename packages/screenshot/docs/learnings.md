@@ -98,7 +98,22 @@ the full 3-engine fidelity suite (412 fixtures × Chromium/WebKit/Firefox).
   so variant keys probe the lane array with `Object.hasOwn` instead of
   allocating `Object.keys` arrays per element and pseudo map.
 
-## Framework research (SolidJS, ivi, Inferno, pretext)
+## Rasterization back-end research (WebGL, HTML-in-canvas)
+
+- There is no WebGL/WebGPU path for rasterizing HTML: textures can only be
+  sourced from images/canvases/videos, so the SVG foreignObject decode stays
+  the only cross-browser HTML rasterizer. GPU paths would also still pay the
+  same readback + PNG encode, which is where the raster time actually goes.
+- Chrome's HTML-in-canvas proposal (`ctx.placeElement()` / `ctx.drawElement()`
+  \+ the `layoutsubtree` canvas attribute) could one day skip the
+  clone/serialize/decode pipeline entirely on Blink, but it is an origin-trial
+  API and absent from current Playwright Chromium even with
+  `--enable-experimental-web-platform-features` — worth a capability probe
+  once it ships.
+- `createImageBitmap` from an SVG blob is unsupported in Chromium
+  (crbug.com/1049671), so no worker-side decode either.
+
+## Framework research (SolidJS, ivi, Inferno, pretext, oveo)
 
 - SolidJS: template cloning (`cloneNode` on a hoisted prototype) transferred
   directly as the clone-prototype cache above. Fine-grained invalidation does
@@ -107,6 +122,11 @@ the full 3-engine fidelity suite (412 fixtures × Chromium/WebKit/Firefox).
 - ivi/Inferno: monomorphic dispatch and flag-based node classification
   transferred as the single tag-dispatch restructure; vnode diffing itself has
   no analog in a one-shot capture.
+- oveo (localvoid): build-time optimizer (expression hoisting, dedupe, global
+  hoisting/singletons) driven by explicit `hoist()` annotations or externs
+  files. Our hot paths already hoist regexes/caches/constants to module scope
+  by hand, and the remaining wins are bundle-size oriented; nothing to adopt
+  at runtime.
 - pretext (chenglou): validates patterns already in use — two-phase
   prepare/layout split (≈ our persisted memo stores), capability-detected
   per-engine corrections cached outside the hot path (≈ our baseline probes),
