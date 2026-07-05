@@ -489,6 +489,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       x: number;
       y: number;
     } | null>(null);
+    const [scrollVersion, setScrollVersion] = createSignal(0);
     const scheduleDragPreviewUpdate = (clientX: number, clientY: number) => {
       if (dragPreviewDebounceTimerId !== null) {
         clearTimeout(dragPreviewDebounceTimerId);
@@ -498,6 +499,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         setDebouncedDragPointer({ x: clientX, y: clientY });
         dragPreviewDebounceTimerId = null;
       }, DRAG_PREVIEW_DEBOUNCE_MS);
+    };
+    const releaseDragPreview = () => {
+      if (dragPreviewDebounceTimerId !== null) {
+        clearTimeout(dragPreviewDebounceTimerId);
+        dragPreviewDebounceTimerId = null;
+      }
+      setDebouncedDragPointer(null);
+      // Memos hold their last value until re-read. Once the drag is over
+      // nothing may render the preview again, which would pin the captured
+      // Element[] (and any since-detached subtrees) in memory — reading the
+      // invalidated memo here recomputes it to [] and drops those references.
+      void dragPreviewElements();
     };
     let keydownSpamTimerId: number | null = null;
     const activationHoldState = {
@@ -1111,8 +1124,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return createFlatOverlayBounds(drag);
     });
 
-    const dragPreviewBounds = createMemo((): OverlayBounds[] => {
-      void viewportVersion();
+    // Membership (which elements the marquee covers) is the expensive half:
+    // getElementsInDrag hit-tests up to ~100 sample points and validates every
+    // candidate. It must NOT subscribe to viewportVersion — the 100ms bounds
+    // interval bumps that signal while a drag is held still, which re-ran the
+    // full sampling pass per tick and saturated the main thread on dense DOMs.
+    // scrollVersion only changes on real scroll/resize, when content actually
+    // moves under the marquee.
+    const dragPreviewElements = createMemo((): Element[] => {
+      void scrollVersion();
 
       if (!isDraggingBeyondThreshold()) return [];
 
@@ -1121,10 +1141,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const drag = calculateDragRectangle(pointer.x, pointer.y);
       const elements = getElementsInDrag(drag, isValidGrabbableElement);
-      const previewElements =
-        elements.length > 0 ? elements : getElementsInDrag(drag, isValidGrabbableElement, false);
+      return elements.length > 0
+        ? elements
+        : getElementsInDrag(drag, isValidGrabbableElement, false);
+    });
 
-      return previewElements.map((element) => createElementBounds(element));
+    const dragPreviewBounds = createMemo((): OverlayBounds[] => {
+      void viewportVersion();
+      return dragPreviewElements().map((element) => createElementBounds(element));
     });
 
     const selectionBoundsMultiple = createMemo((): OverlayBounds[] => {
@@ -1452,6 +1476,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setPendingToolbarActionId(null);
       if (wasDragging) {
         setHostBodyStyle("userSelect", "");
+        releaseDragPreview();
       }
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
       autoScroller.stop();
@@ -1733,14 +1758,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const isDetectionPending =
         elementDetectionState.pendingDetectionScheduledAt > 0 &&
         now - elementDetectionState.pendingDetectionScheduledAt < PENDING_DETECTION_STALENESS_MS;
+      // Hover detection is skipped during an active drag: targetElement()
+      // discards the result anyway, and each hit-test costs a full
+      // elementFromPoint pass (~20ms on 100k-node DOMs). cancelActiveDrag
+      // redetects on cancel; a committed drag enters the frozen phase.
       if (
+        !isActivelyDragging() &&
         now - elementDetectionState.lastDetectionTimestamp >= ELEMENT_DETECTION_THROTTLE_MS &&
         !isDetectionPending
       ) {
         elementDetectionState.lastDetectionTimestamp = now;
         elementDetectionState.pendingDetectionScheduledAt = now;
         setTimeout(() => {
-          if (isElementDetectionBlocked()) {
+          if (isElementDetectionBlocked() || isActivelyDragging()) {
             elementDetectionState.pendingDetectionScheduledAt = 0;
             return;
           }
@@ -2072,9 +2102,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const cancelActiveDrag = () => {
       if (!isDragging()) return;
       stopSpaceDragRepositioning();
+      releaseDragPreview();
       actions.cancelDrag();
       autoScroller.stop();
       setHostBodyStyle("userSelect", "");
+      // Detection pauses during active drags, so restore the hover target for
+      // the element under the cursor without waiting for the next pointermove.
+      redetectElementUnderPointer();
     };
 
     const handlePointerUp = (
@@ -2085,11 +2119,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     ) => {
       if (!isDragging()) return;
 
-      if (dragPreviewDebounceTimerId !== null) {
-        clearTimeout(dragPreviewDebounceTimerId);
-        dragPreviewDebounceTimerId = null;
-      }
-      setDebouncedDragPointer(null);
+      releaseDragPreview();
 
       const dragDistance = calculateDragDistance(clientX, clientY);
       const wasDragGesture =
@@ -3032,6 +3062,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const handleViewportChange = () => {
       invalidateInteractionCaches();
       redetectElementUnderPointer();
+      setScrollVersion((version) => version + 1);
       actions.incrementViewportVersion();
       actions.updateContextMenuPosition();
     };

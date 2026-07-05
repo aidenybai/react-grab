@@ -65,11 +65,7 @@ interface VisibilityCache {
   timestamp: number;
 }
 
-let visibilityCache = new WeakMap<Element, VisibilityCache>();
-
-export const clearVisibilityCache = (): void => {
-  visibilityCache = new WeakMap<Element, VisibilityCache>();
-};
+const visibilityCache = new WeakMap<Element, VisibilityCache>();
 
 export const isValidGrabbableElement = (element: Element): boolean => {
   if (isRootElement(element)) {
@@ -91,9 +87,7 @@ export const isValidGrabbableElement = (element: Element): boolean => {
     return cached.isVisible;
   }
 
-  const computedStyle = window.getComputedStyle(element);
-
-  const isVisible = isElementVisible(element, computedStyle);
+  const isVisible = isElementVisible(element);
   if (!isVisible) {
     visibilityCache.set(element, { isVisible: false, timestamp: now });
     return false;
@@ -104,6 +98,10 @@ export const isValidGrabbableElement = (element: Element): boolean => {
     element.clientHeight / window.innerHeight >= VIEWPORT_COVERAGE_THRESHOLD;
 
   if (couldBeOverlay) {
+    // getComputedStyle is deferred to this branch on purpose: it is the
+    // expensive call in this function and only viewport-covering elements
+    // need the overlay heuristics.
+    const computedStyle = window.getComputedStyle(element);
     if (isDevToolsOverlay(computedStyle)) {
       return false;
     }
