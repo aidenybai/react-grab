@@ -934,3 +934,36 @@ Tried splitting the scratch canvas per readback mode so the JPEG render could
 skip willReadFrequently on WebKit: end-to-end toJpegBlob regressed 118ms →
 661ms — WebKit's toBlob from a GPU canvas pays a far larger readback stall
 than the software draw penalty. Reverted to the single software scratch.
+
+## Iteration 97 — cold snapshot gap attribution (measurement)
+
+Single-property getComputedStyle reads over all 4,808 mega-grid elements cost
+only ~9ms cold and ~8ms repeated — Blink's style resolution itself is not the
+cold cost. The 144ms cold snapshot (vs 31ms warm) is the full ~340-property
+read per unique memo class on first capture, which bulk cssText/Typed OM
+reads already lost to (see rejected approaches). Cold snapshot is at its
+correctness floor.
+
+## Iteration 98 — @font-face weight/style pruning (researched, not implemented)
+
+Faces of a used family that no used weight resolves to could be dropped from
+the embed CSS to shrink cold fetches and decode. Unsafe naively: CSS
+font-matching picks the *nearest* face, so dropping a face that is the
+nearest match for a synthesized weight changes rendered pixels; a correct
+version must replicate the font-selection algorithm per (family, style)
+bucket. Fixture corpus uses system fonts, so the win is unmeasurable in the
+harness; deferred until a real-site benchmark with multi-weight webfonts
+exists.
+
+## Iteration 99 — full-suite re-verification (green)
+
+413x3 fidelity (Chromium/WebKit/Firefox, incl. the new jpeg-output spec) + 77
+unit tests green; lint/typecheck/format clean.
+
+## Iteration 100 — final baselines (loop complete)
+
+Chromium 21-run medians: 71-mega-grid 264ms warm, 70-stress 98ms,
+60-kitchen-sink 37ms. Firefox 70-stress 172ms, WebKit 402ms. Remaining time
+is native decode/raster/PNG-encode floors in every engine; JS overhead per
+warm capture is ~15ms on the heaviest fixture. The lossy JPEG path
+(iteration 90) is the documented escape hatch past the PNG floor.
