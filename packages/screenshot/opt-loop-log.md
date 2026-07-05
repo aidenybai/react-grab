@@ -837,3 +837,11 @@ draw+read (the GPU->CPU sync dwarfs the software SVG paint); (b) an opaque
 context ({alpha:false}) = 155ms draw, identical to RGBA. The draw cost is
 CoreGraphics painting the foreignObject subtree in software - an engine floor,
 like Blink's PNG encode. getImageData itself is 8ms with willReadFrequently.
+
+## Iteration 83 — JS deflate PNG encode on Blink (REJECTED probe)
+
+Probed replacing Blink's native toBlob PNG encode (the largest warm phase on
+71-mega-grid, ~107ms) with getImageData + fflate zlibSync at low compression
+levels: level 1 = 206ms, level 2 = 174ms vs 42ms native on a 1280x2200 raster.
+Blink's SIMD zlib plus off-main-thread encode is ~4-5x faster than the best JS
+deflate even before filtering costs; native toBlob stays.
