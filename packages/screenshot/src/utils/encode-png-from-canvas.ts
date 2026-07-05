@@ -58,6 +58,31 @@ const buildFilteredScanlines = (
   return filteredBytes;
 };
 
+// Fully opaque rasters (the common case with an opaque capture background)
+// pack as truecolor without alpha: 25% less deflate input and output. Returns
+// null on the first non-opaque pixel so the caller falls back to RGBA.
+const buildOpaqueRgbScanlines = (
+  pixelBytes: Uint8ClampedArray,
+  width: number,
+  height: number,
+): Uint8Array<ArrayBuffer> | null => {
+  const filteredBytes = new Uint8Array((width * 3 + 1) * height);
+  let readOffset = 0;
+  let writeOffset = 0;
+  for (let rowIndex = 0; rowIndex < height; rowIndex++) {
+    filteredBytes[writeOffset++] = 0;
+    for (let columnIndex = 0; columnIndex < width; columnIndex++) {
+      if (pixelBytes[readOffset + 3] !== 255) return null;
+      filteredBytes[writeOffset] = pixelBytes[readOffset];
+      filteredBytes[writeOffset + 1] = pixelBytes[readOffset + 1];
+      filteredBytes[writeOffset + 2] = pixelBytes[readOffset + 2];
+      readOffset += 4;
+      writeOffset += 3;
+    }
+  }
+  return filteredBytes;
+};
+
 const deflateWithZlibWrapper = async (
   inputBytes: Uint8Array<ArrayBuffer>,
 ): Promise<Uint8Array<ArrayBuffer>> => {
@@ -77,14 +102,15 @@ export const encodePngFromCanvas = async (canvas: HTMLCanvasElement): Promise<Bl
   if (renderingContext === null) throw new Error("Could not acquire a 2d canvas context");
   const { width, height } = canvas;
   const imageData = renderingContext.getImageData(0, 0, width, height);
-  const filteredBytes = buildFilteredScanlines(imageData.data, width, height);
+  const opaqueRgbBytes = buildOpaqueRgbScanlines(imageData.data, width, height);
+  const filteredBytes = opaqueRgbBytes ?? buildFilteredScanlines(imageData.data, width, height);
   const compressedBytes = await deflateWithZlibWrapper(filteredBytes);
   const headerData = new Uint8Array(13);
   const headerView = new DataView(headerData.buffer);
   headerView.setUint32(0, width);
   headerView.setUint32(4, height);
   headerData[8] = 8;
-  headerData[9] = 6;
+  headerData[9] = opaqueRgbBytes !== null ? 2 : 6;
   return new Blob(
     [
       new Uint8Array(PNG_SIGNATURE),

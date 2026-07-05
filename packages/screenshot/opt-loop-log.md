@@ -751,3 +751,13 @@ targeted hasAttribute probes decides the same predicate allocation-free
 present). mega-grid buildMs ~22.9 -> ~22. Chromium had one infra-only
 failure (test attach ENOENT race on expected.png); the fixture passes in
 isolation at 0.00004. WebKit 412 + Firefox 412 + 77 unit green.
+
+## Iteration 76 — opaque RGB PNG packing on WebKit (kept)
+
+The hand-rolled WebKit PNG encoder always emitted truecolor+alpha even though
+captures with an opaque background produce fully opaque rasters. A single
+optimistic pass now packs RGB scanlines while verifying alpha==255, bailing
+to the RGBA path on the first transparent pixel; IHDR color type flips to 2.
+25% less deflate input/output. WebKit warm: 70-stress 434 -> 410ms (encode
+162 -> 134), mega-grid 463 -> 431ms (encode 191 -> 158). 412x3 fidelity + 77
+unit green.
