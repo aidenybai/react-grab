@@ -336,9 +336,15 @@ const cloneElementNode = (
     );
   }
   const className = isPrototypeClone ? undefined : context.classNameByElement.get(element);
-  if (className) clone.setAttribute("class", className);
-  if (className && element.namespaceURI === SVG_NAMESPACE_URI) {
-    stripSvgPaintPresentationAttributes(clone);
+  if (className) {
+    if (isXhtmlElement) {
+      clone.className = className;
+    } else {
+      clone.setAttribute("class", className);
+      if (element.namespaceURI === SVG_NAMESPACE_URI) {
+        stripSvgPaintPresentationAttributes(clone);
+      }
+    }
   }
   if (tagName === "textarea" && isHtmlElementOfTag(element, "textarea")) {
     clone.textContent = stripInvalidXmlCharacters(element.value);

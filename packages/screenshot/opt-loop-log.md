@@ -818,3 +818,12 @@ synchronously during decode layout, so the gate now checks for data:image
 dtim-background-clip-gloss-text/ms-background-clip-text before the gate was
 widened). Firefox 70-stress warm 244 -> 164ms, WebKit 410 -> 370ms. 412x3
 fidelity + 77 unit green.
+
+## Iteration 81 — direct className assignment (kept)
+
+ivi/Inferno assign element.className directly instead of setAttribute("class")
+because the IDL reflection skips the attribute-name interning and general
+setAttribute plumbing. Non-prototype XHTML clones now assign className
+directly (SVG keeps setAttribute; SVGElement.className is SVGAnimatedString).
+Warm medians flat-to-slightly-better (kitchen-sink 22.5 -> 21.1); kept as a
+structural micro-win. 412x3 fidelity + 77 unit green.
