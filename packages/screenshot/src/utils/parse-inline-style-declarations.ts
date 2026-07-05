@@ -12,7 +12,13 @@ export const parseInlineStyleDeclarations = (
 ): ParsedInlineDeclaration[] | null => {
   if (UNSAFE_INLINE_STYLE_TEXT_PATTERN.test(styleText)) return null;
   const declarations: ParsedInlineDeclaration[] = [];
-  for (const declarationText of styleText.split(";")) {
+  const textLength = styleText.length;
+  let segmentStart = 0;
+  while (segmentStart <= textLength) {
+    let segmentEnd = styleText.indexOf(";", segmentStart);
+    if (segmentEnd === -1) segmentEnd = textLength;
+    const declarationText = styleText.slice(segmentStart, segmentEnd);
+    segmentStart = segmentEnd + 1;
     const colonIndex = declarationText.indexOf(":");
     if (colonIndex === -1) {
       if (declarationText.trim() !== "") return null;
@@ -22,7 +28,7 @@ export const parseInlineStyleDeclarations = (
     if (propertyName === "" || propertyName.startsWith("--")) return null;
     let propertyValue = declarationText.slice(colonIndex + 1).trim();
     let isImportant = false;
-    if (/!\s*important$/i.test(propertyValue)) {
+    if (propertyValue.includes("!") && /!\s*important$/i.test(propertyValue)) {
       isImportant = true;
       propertyValue = propertyValue.slice(0, propertyValue.lastIndexOf("!")).trim();
     }

@@ -845,3 +845,25 @@ Probed replacing Blink's native toBlob PNG encode (the largest warm phase on
 levels: level 1 = 206ms, level 2 = 174ms vs 42ms native on a 1280x2200 raster.
 Blink's SIMD zlib plus off-main-thread encode is ~4-5x faster than the best JS
 deflate even before filtering costs; native toBlob stays.
+
+## Iteration 84 — index-scan inline style parsing (kept)
+
+parseInlineStyleDeclarations split(";") allocated a segment array per unique
+style text and ran an /!important/ regex on every value. The parser now walks
+indexOf(";") segments in place and gates the regex behind an includes("!")
+check. Cold snapshot path allocation cut; timings flat within noise (cold
+mega-grid ~435ms). 412x3 fidelity + 77 unit green.
+
+## Iteration 85 — single getAttribute style probe in visit (kept)
+
+visit probed hasAttributes() + hasAttribute("style") + getAttribute("style")
+per element; a single getAttribute("style") null-check covers all three.
+Timings flat within noise; one DOM call per element instead of three. 412x3
+fidelity + 77 unit green.
+
+## Iteration 86 — skip img.decode() before drawImage on Blink (REJECTED probe)
+
+Probed replacing await img.decode() with a bare onload wait to see if Blink
+double-rasterizes (once in decode, once in drawImage): decode path 200ms vs
+onload path 205ms end-to-end on 71-mega-grid. The foreignObject layout+paint
+happens exactly once either way; decode() just fronts it. No change.
