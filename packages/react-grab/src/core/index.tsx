@@ -48,7 +48,10 @@ import {
   getElementAtPosition,
   getElementsAtPoint,
 } from "../utils/get-element-at-position.js";
-import { isValidGrabbableElement } from "../utils/is-valid-grabbable-element.js";
+import {
+  clearVisibilityCache,
+  isValidGrabbableElement,
+} from "../utils/is-valid-grabbable-element.js";
 import { isRootElement } from "../utils/is-root-element.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
 import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
@@ -3067,6 +3070,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.updateContextMenuPosition();
     };
 
+    // Unlike scroll, resize can flip visibility synchronously (media and
+    // container queries), so the visibility cache's TTL is not a safe
+    // staleness bound here. Resize is rare enough that the extra
+    // getComputedStyle refill cost doesn't matter.
+    const handleViewportResize = () => {
+      clearVisibilityCache();
+      handleViewportChange();
+    };
+
     eventListenerManager.addWindowListener("scroll", handleViewportChange, {
       capture: true,
     });
@@ -3095,13 +3107,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       previousViewportWidth = currentViewportWidth;
       previousViewportHeight = currentViewportHeight;
 
-      handleViewportChange();
+      handleViewportResize();
     });
 
     const visualViewport = window.visualViewport;
     if (visualViewport) {
       const { signal } = eventListenerManager;
-      visualViewport.addEventListener("resize", handleViewportChange, {
+      visualViewport.addEventListener("resize", handleViewportResize, {
         signal,
       });
       visualViewport.addEventListener("scroll", handleViewportChange, {

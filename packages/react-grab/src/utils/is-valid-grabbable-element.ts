@@ -65,7 +65,14 @@ interface VisibilityCache {
   timestamp: number;
 }
 
-const visibilityCache = new WeakMap<Element, VisibilityCache>();
+let visibilityCache = new WeakMap<Element, VisibilityCache>();
+
+// Only for resize paths: media/container queries can flip visibility
+// synchronously on resize, so the TTL alone is not a safe staleness bound
+// there. Scroll paths must NOT call this — see invalidate-interaction-caches.
+export const clearVisibilityCache = (): void => {
+  visibilityCache = new WeakMap<Element, VisibilityCache>();
+};
 
 export const isValidGrabbableElement = (element: Element): boolean => {
   if (isRootElement(element)) {

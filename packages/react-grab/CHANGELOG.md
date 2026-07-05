@@ -7,7 +7,6 @@
 - bc3a591: Fix the grab hanging on "Grabbing…" when the app saturates the dev server's connection pool. Source resolution (bundle and source-map fetches via bippy, plus Next.js server-frame symbolication) now runs through a concurrency-capped, abortable queue with a timeout, so it no longer queues indefinitely behind the app's own requests. Requires bippy ≥0.5.42 so an aborted source-map fetch no longer poisons bippy's cache and later grabs recover.
 
   Also fixes:
-
   - A click immediately after keyboard navigation selecting a stale element instead of the one under the pointer.
   - The page jumping when focus is restored after a grab (focus now restores with `preventScroll`).
   - Being unable to select page content while a modal sets `body { pointer-events: none }` (e.g. Radix), via a hit-test override.
@@ -30,7 +29,6 @@
 - 5407d4e: Surface deeper copy context for wrapper-heavy elements. App-owned shared-UI / design-system frames (files under `components/ui/`, `packages/ui/`, `design-system(s)/`, or `primitives/`, e.g. shadcn's `components/ui` or a monorepo `packages/ui`) are now treated like `node_modules` frames: still shown, but exempt from the compact line budget, so a grabbed wrapper digs through its UI primitives to the meaningful feature source by default. Adds a `maxContextLines` option (also settable via the script `data-options` attribute) to raise the budget further for large apps and agent/edit prompts — restoring the option the CLI already writes.
 
   Also hardens the trace: a non-finite/negative `maxContextLines` no longer disables the hard line cap (it falls back to the default), and consecutive duplicate trace lines from shared-UI frames are collapsed so the output stays readable.
-
   - @react-grab/cli@0.1.47
 
 ## 0.1.46
