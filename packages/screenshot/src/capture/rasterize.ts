@@ -59,9 +59,13 @@ export const createCaptureResult = (
   // <foreignObject> (whatwg/html#10641); the equivalent data URL stays origin-clean,
   // so the shared decoded image must load from a data URL.
   const svgDataUrl = encodeSvgDataUrl(svgMarkup);
-  // The settle frames only exist for nested data-URL resources (inlined images,
-  // fonts) still compositing after decode(); a capture without any skips them.
-  const hasNestedDataUrlResources = svgMarkup.includes("data:");
+  // The settle frames only exist for content still compositing after
+  // decode(): nested raster data-URL resources, and background-clip:text
+  // (Gecko paints the text mask a frame late). Inlined fonts apply
+  // synchronously during the decode layout, so font-only captures skip the
+  // two-frame wait.
+  const hasNestedDataUrlResources =
+    svgMarkup.includes("data:image") || svgMarkup.includes("background-clip:text");
   const decodeSvgImage = (): Promise<HTMLImageElement> => {
     const cachedImagePromise = decodedSvgImageCache.get(svgDataUrl);
     if (cachedImagePromise) return cachedImagePromise;

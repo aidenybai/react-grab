@@ -808,3 +808,13 @@ skip the NamedNodeMap allocation. 412x3 fidelity + 77 unit green.
 Probed toBlob("image/webp", 1) as a faster encode: 196ms vs 72ms PNG on a
 mega-grid-sized canvas (and 679ms at quality 0.99). Blink's WebP-lossless
 encoder is ~3x slower than its PNG path; no format escape hatch worth adding.
+
+## Iteration 80 — settle frames gated to raster resources (kept)
+
+Gecko/WebKit paid two settle animation frames (~33ms) whenever the SVG
+contained any data: URL, including font-only captures. Inlined fonts apply
+synchronously during decode layout, so the gate now checks for data:image
+(plus background-clip:text, which Gecko composites a frame late — caught by
+dtim-background-clip-gloss-text/ms-background-clip-text before the gate was
+widened). Firefox 70-stress warm 244 -> 164ms, WebKit 410 -> 370ms. 412x3
+fidelity + 77 unit green.
