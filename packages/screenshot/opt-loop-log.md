@@ -827,3 +827,13 @@ setAttribute plumbing. Non-prototype XHTML clones now assign className
 directly (SVG keeps setAttribute; SVGElement.className is SVGAnimatedString).
 Warm medians flat-to-slightly-better (kitchen-sink 22.5 -> 21.1); kept as a
 structural micro-win. 412x3 fidelity + 77 unit green.
+
+## Iteration 82 — WebKit raster-path probes (REJECTED probes)
+
+WebKit's 70-stress rasterMs (~171) is the largest cross-engine phase. Probed
+two escape hatches on a 1280x2400 raster: (a) GPU-canvas drawImage + copy to a
+willReadFrequently canvas + getImageData = 500ms vs 168ms straight software
+draw+read (the GPU->CPU sync dwarfs the software SVG paint); (b) an opaque
+context ({alpha:false}) = 155ms draw, identical to RGBA. The draw cost is
+CoreGraphics painting the foreignObject subtree in software - an engine floor,
+like Blink's PNG encode. getImageData itself is 8ms with willReadFrequently.
