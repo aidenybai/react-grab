@@ -948,7 +948,7 @@ correctness floor.
 
 Faces of a used family that no used weight resolves to could be dropped from
 the embed CSS to shrink cold fetches and decode. Unsafe naively: CSS
-font-matching picks the *nearest* face, so dropping a face that is the
+font-matching picks the _nearest_ face, so dropping a face that is the
 nearest match for a synthesized weight changes rendered pixels; a correct
 version must replicate the font-selection algorithm per (family, style)
 bucket. Fixture corpus uses system fonts, so the win is unmeasurable in the
@@ -967,3 +967,12 @@ Chromium 21-run medians: 71-mega-grid 264ms warm, 70-stress 98ms,
 is native decode/raster/PNG-encode floors in every engine; JS overhead per
 warm capture is ~15ms on the heaviest fixture. The lossy JPEG path
 (iteration 90) is the documented escape hatch past the PNG floor.
+
+## Iteration 101 — prewarm(element) targeted prewarming (kept)
+
+prewarm now accepts the element you expect to capture and runs the full
+throwaway capture (including PNG encode) on it, so a later captureNode of the
+unchanged element resolves from the capture-reuse and raster caches: on
+71-mega-grid, prewarm 452ms off the critical path, then captureNode+toBlob
+6ms. Fits react-grab's hover-then-click flow. Covered by a 3-engine e2e spec;
+documentless overload unchanged.

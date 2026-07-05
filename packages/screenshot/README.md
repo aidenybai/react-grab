@@ -50,9 +50,10 @@ const result = await captureRegion({ x: 120, y: 80, width: 400, height: 300 });
 import { prewarm } from "fast-html-to-image";
 
 prewarm(); // e.g. at app idle, before the first capture
+prewarm(element); // e.g. on hover, before capturing that element on click
 ```
 
-The first capture on a page pays one-time costs (baseline style probes, stylesheet rule scan, font fetches, canvas allocation, JIT warmup). `prewarm()` runs a throwaway offscreen capture so those costs are paid ahead of time and the first real capture runs at warm-path speed. Best-effort and safe to call multiple times.
+The first capture on a page pays one-time costs (baseline style probes, stylesheet rule scan, font fetches, canvas allocation, JIT warmup). `prewarm()` runs a throwaway offscreen capture so those costs are paid ahead of time and the first real capture runs at warm-path speed. Passing the element you expect to capture runs the full throwaway capture on it, so a later `captureNode` of the unchanged element resolves from the reuse and raster caches (near-instant). Best-effort and safe to call multiple times.
 
 ### Options
 

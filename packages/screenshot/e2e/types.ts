@@ -66,6 +66,7 @@ export interface FastHtmlToImageGlobal {
     region: RegionRect,
     options?: HarnessCaptureOptions,
   ) => Promise<HarnessCaptureResult>;
+  prewarm: (target?: Document | Element) => Promise<void>;
 }
 
 export interface FidelityScoreEntry {

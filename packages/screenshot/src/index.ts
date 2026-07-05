@@ -868,12 +868,23 @@ export const captureRegion = async (
 
 // Warms the cold-capture machinery (baseline-probe sandbox, stylesheet rule
 // scan, font-embed CSS cache, scratch canvas, JIT) with a throwaway offscreen
-// capture so the first real capture pays warm-path costs. Best-effort: any
-// failure is swallowed.
-export const prewarm = async (targetDocument: Document = document): Promise<void> => {
-  const hostElement = targetDocument.body ?? targetDocument.documentElement;
+// capture so the first real capture pays warm-path costs. Passing the element
+// you expect to capture runs the full throwaway capture on it, so a later
+// captureNode of an unchanged tree resolves from the reuse and raster caches.
+// Best-effort: any failure is swallowed.
+export const prewarm = async (target: Document | Element = document): Promise<void> => {
+  if (target instanceof Element) {
+    try {
+      const targetResult = await captureNode(target);
+      await targetResult.toBlob();
+    } catch {
+      // Swallowed: prewarm must never surface capture errors.
+    }
+    return;
+  }
+  const hostElement = target.body ?? target.documentElement;
   if (!hostElement) return;
-  const probeElement = targetDocument.createElement("div");
+  const probeElement = target.createElement("div");
   probeElement.style.cssText =
     "position:absolute;left:-99999px;top:0;width:16px;height:16px;background:#fff;";
   probeElement.textContent = "prewarm";
