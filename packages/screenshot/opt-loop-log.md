@@ -741,3 +741,13 @@ A :scope>slot querySelector guard would cost more than the NodeList scan it
 avoided (the original only allocates when a slot child exists). Reverted.
 Lesson recorded in docs/learnings.md: composed-tree helpers must stay the
 single source of child iteration wherever shadow DOM can appear.
+
+## Iteration 75 — count-based hasOnlyDroppedAttributes (kept)
+
+getAttributeNames allocated a fresh string array per clone-eligible element
+(50ms self over 10 mega-grid runs). NamedNodeMap.length plus at most two
+targeted hasAttribute probes decides the same predicate allocation-free
+(attribute names are unique, so count equality proves only class/style are
+present). mega-grid buildMs ~22.9 -> ~22. Chromium had one infra-only
+failure (test attach ENOENT race on expected.png); the fixture passes in
+isolation at 0.00004. WebKit 412 + Firefox 412 + 77 unit green.

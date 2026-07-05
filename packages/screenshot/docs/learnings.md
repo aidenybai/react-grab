@@ -103,6 +103,12 @@ the full 3-engine fidelity suite (412 fixtures × Chromium/WebKit/Firefox).
 
 ## Rejected approaches
 
+- Sibling-walk child iteration in the margin-collapse pass: skipped slot
+  composition for elements inside shadow trees and broke a custom-element
+  fixture. Composed-tree helpers must stay the single source of child
+  iteration wherever shadow DOM can appear; the helper already returns the
+  live NodeList allocation-free in the common case.
+
 - CSS Typed OM / cssText bulk reads: slower than per-prop getPropertyValue for
   our property counts.
 - Worker/tile-based PNG encode on Chromium: no faster than native toBlob.
