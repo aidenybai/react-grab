@@ -22,7 +22,11 @@ import {
   diffMarkerStyles,
   diffStyles,
 } from "./capture/diff-styles";
-import { buildFontEmbedCss, collectUsedFontFamilies } from "./capture/embed-fonts";
+import {
+  buildFontEmbedCss,
+  collectUsedFontFamilies,
+  collectUsedFontVariants,
+} from "./capture/embed-fonts";
 import { createIframeBridge, requestIframeContentViaBridge } from "./capture/iframe-bridge";
 import { inlineExternalResources } from "./capture/inline-resources";
 import { inlineSvgUseReferences } from "./capture/inline-svg-defs";
@@ -709,6 +713,7 @@ const captureNodeInternal = async (
                 collectUsedFontFamilies(registry.rules),
                 ownerDocument,
                 resolvedOptions.timeoutMs,
+                collectUsedFontVariants(registry.rules),
               )
             : Promise.resolve(""),
         ]),

@@ -331,6 +331,7 @@ export const fixtureManifest: FixtureSpec[] = [
     maxDiffRatio: STRICT_MAX_DIFF_RATIO,
     screenshotClipTargetAabb: true,
   },
+  { id: "lim-font-weight-pruning", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "ms-background-clip-text", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   { id: "ms-background-color", maxDiffRatio: STRICT_MAX_DIFF_RATIO },
   {

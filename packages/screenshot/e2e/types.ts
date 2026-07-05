@@ -8,6 +8,7 @@ export interface HarnessCaptureResult {
   width: number;
   height: number;
   toPngDataUrl: () => Promise<string>;
+  toSvgDataUrl: () => Promise<string>;
   toJpegBlob: (quality?: number) => Promise<Blob>;
   toJpegDataUrl: (quality?: number) => Promise<string>;
 }
