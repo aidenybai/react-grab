@@ -29,7 +29,9 @@ export interface CaptureResult {
   toSvgDataUrl: () => Promise<string>;
   toCanvas: () => Promise<HTMLCanvasElement>;
   toBlob: () => Promise<Blob>;
+  toJpegBlob: (quality?: number) => Promise<Blob>;
   toPngDataUrl: () => Promise<string>;
+  toJpegDataUrl: (quality?: number) => Promise<string>;
 }
 
 export interface ResolvedCaptureOptions {

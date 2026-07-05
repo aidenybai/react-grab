@@ -5,7 +5,11 @@ export interface HarnessCaptureOptions {
 }
 
 export interface HarnessCaptureResult {
+  width: number;
+  height: number;
   toPngDataUrl: () => Promise<string>;
+  toJpegBlob: (quality?: number) => Promise<Blob>;
+  toJpegDataUrl: (quality?: number) => Promise<string>;
 }
 
 export type FixtureBrowserEngine = "chromium" | "webkit" | "firefox";

@@ -82,6 +82,16 @@ export const applyPerElementLaneReads = (
         // Size freezing deletes width/height for non-replaced inline boxes,
         // so their per-element reads are pure waste.
         if (isNonReplacedBox && targetStyles["display"] === "inline") continue;
+        // IDL property access resolves the same used value as
+        // getPropertyValue without the name lookup, and width/height are the
+        // two hottest lane reads.
+        const sizeName = perElementPropertyNames[laneIndex];
+        const sizeValue = sizeName === "width" ? computedStyle.width : computedStyle.height;
+        const normalizedSizeValue = sizeValue !== "" ? sizeValue : undefined;
+        if (targetStyles[sizeName] !== normalizedSizeValue) {
+          targetStyles[sizeName] = normalizedSizeValue;
+        }
+        continue;
       } else if (!(targetStyles["display"] ?? "").includes("grid")) {
         continue;
       }

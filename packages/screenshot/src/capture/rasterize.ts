@@ -1,12 +1,15 @@
 import {
   DECODE_SETTLE_FRAME_COUNT,
   DECODED_SVG_IMAGE_CACHE_CAP,
+  DEFAULT_JPEG_QUALITY,
+  JPEG_FALLBACK_BACKGROUND_COLOR,
   MAX_CANVAS_DIMENSION_PX,
   RASTER_PNG_CACHE_CAP,
 } from "../constants";
 import type { CaptureRegionRect, CaptureResult, ResolvedCaptureOptions } from "../types";
 import { blobToDataUrl } from "../utils/blob-to-data-url";
 import { canvasToBlob } from "../utils/canvas-to-blob";
+import { canvasToJpegBlob } from "../utils/canvas-to-jpeg-blob";
 import { createFifoCache } from "../utils/create-fifo-cache";
 import { encodeSvgDataUrl } from "../utils/encode-svg-data-url";
 import { isBlinkEngine } from "../utils/is-blink-engine";
@@ -95,7 +98,10 @@ export const createCaptureResult = (
   const outputWidth = canvasClipRect ? Math.max(1, Math.ceil(canvasClipRect.width)) : width;
   const outputHeight = canvasClipRect ? Math.max(1, Math.ceil(canvasClipRect.height)) : height;
 
-  const renderToCanvas = async (canvas: HTMLCanvasElement): Promise<HTMLCanvasElement> => {
+  const renderToCanvas = async (
+    canvas: HTMLCanvasElement,
+    fallbackBackgroundColor?: string,
+  ): Promise<HTMLCanvasElement> => {
     const svgImage = await raceWithAbortSignal(decodeSvgImage(), options.abortSignal);
     const rasterStartMs = performance.now();
     const rasterScale = options.scale * options.pixelRatio;
@@ -122,8 +128,9 @@ export const createCaptureResult = (
       renderingContext.setTransform(1, 0, 0, 1, 0, 0);
       renderingContext.clearRect(0, 0, canvasWidth, canvasHeight);
     }
-    if (options.backgroundColor) {
-      renderingContext.fillStyle = options.backgroundColor;
+    const backgroundColor = options.backgroundColor ?? fallbackBackgroundColor;
+    if (backgroundColor) {
+      renderingContext.fillStyle = backgroundColor;
       renderingContext.fillRect(0, 0, canvasWidth, canvasHeight);
     }
     renderingContext.scale(rasterScale * clampRatio, rasterScale * clampRatio);
@@ -166,8 +173,36 @@ export const createCaptureResult = (
     });
     return pngBlobPromise;
   };
+  // JPEG cannot store alpha, so undefined backgrounds fall back to opaque
+  // white instead of encoding transparent pixels as black.
+  const toJpegBlob = async (quality: number = DEFAULT_JPEG_QUALITY): Promise<Blob> => {
+    const acquiredScratchCanvas = acquireScratchCanvas();
+    try {
+      const renderedCanvas = await renderToCanvas(
+        acquiredScratchCanvas ?? document.createElement("canvas"),
+        JPEG_FALLBACK_BACKGROUND_COLOR,
+      );
+      const encodeStartMs = performance.now();
+      const jpegBlob = await canvasToJpegBlob(renderedCanvas, quality);
+      lastCaptureTimings.encodeMs = performance.now() - encodeStartMs;
+      return jpegBlob;
+    } finally {
+      if (acquiredScratchCanvas !== null) releaseScratchCanvas();
+    }
+  };
   const toPngDataUrl = async (): Promise<string> => blobToDataUrl(await toBlob());
+  const toJpegDataUrl = async (quality?: number): Promise<string> =>
+    blobToDataUrl(await toJpegBlob(quality));
   const toSvgDataUrl = (): Promise<string> => Promise.resolve(svgDataUrl);
 
-  return { width: outputWidth, height: outputHeight, toSvgDataUrl, toCanvas, toBlob, toPngDataUrl };
+  return {
+    width: outputWidth,
+    height: outputHeight,
+    toSvgDataUrl,
+    toCanvas,
+    toBlob,
+    toJpegBlob,
+    toPngDataUrl,
+    toJpegDataUrl,
+  };
 };

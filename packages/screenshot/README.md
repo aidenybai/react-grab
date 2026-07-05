@@ -24,6 +24,8 @@ result.height;
 
 await result.toPngDataUrl(); // "data:image/png;base64,..."
 await result.toBlob(); // PNG Blob (e.g. for clipboard or upload)
+await result.toJpegBlob(0.9); // lossy JPEG, 3-8x faster to encode than PNG
+await result.toJpegDataUrl(); // default quality 0.92; transparent areas become white
 await result.toCanvas(); // HTMLCanvasElement
 await result.toSvgDataUrl(); // the intermediate SVG, before rasterization
 ```

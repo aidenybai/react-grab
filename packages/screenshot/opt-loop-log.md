@@ -867,3 +867,32 @@ Probed replacing await img.decode() with a bare onload wait to see if Blink
 double-rasterizes (once in decode, once in drawImage): decode path 200ms vs
 onload path 205ms end-to-end on 71-mega-grid. The foreignObject layout+paint
 happens exactly once either way; decode() just fronts it. No change.
+
+## Iteration 87 — IDL size reads in the per-element lane (kept)
+
+width/height are the two hottest lane reads (1615 each on 70-stress); the
+PER_ELEMENT_LANE_SIZE branch now reads computedStyle.width/.height via IDL
+reflection instead of getPropertyValue name lookup (~10% cheaper per read in
+the earlier rect-vs-gpv probe). Timings flat within noise; 413x3 fidelity + 77
+unit green.
+
+## Iteration 88 — SVG rendering hints on WebKit (REJECTED probe)
+
+Probed text-rendering/shape-rendering="optimizeSpeed" on the SVG root to
+speed WebKit's 177ms software foreignObject paint: 167ms hinted vs 163ms
+plain. The hints don't propagate into HTML painting inside foreignObject.
+
+## Iteration 89 — WebKit native toBlob re-verification (probe, custom path confirmed)
+
+Re-probed WebKit's native canvas.toBlob against our CompressionStream PNG
+packer on the 70-stress raster: native 330ms vs ~133ms custom. The hand-rolled
+packer with opaque-RGB packing stays ~2.5x faster.
+
+## Iteration 90 — JPEG output path (kept)
+
+toBlob("image/jpeg") is dramatically cheaper than PNG in every engine on the
+71-mega-grid raster: WebKit 225→29ms (8x), Firefox 86→20ms, Chromium 42→27ms.
+Added toJpegBlob(quality?)/toJpegDataUrl(quality?) to CaptureResult (default
+quality 0.92, white fallback background since JPEG has no alpha), sharing the
+scratch canvas render. Opt-in lossy escape hatch past the PNG encode floor;
+covered by a 3-engine e2e spec. 413x3 fidelity + 77 unit green.
