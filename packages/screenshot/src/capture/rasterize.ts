@@ -19,7 +19,9 @@ import { lastCaptureTimings } from "./phase-timings";
 // iframe rasters) as data URLs, so markup + raster parameters fully determine
 // the output pixels; repeat captures of an unchanged tree can reuse the
 // already-encoded PNG instead of paying decode + native PNG encode again.
-const encodedPngCache = createFifoCache<Promise<Blob>>(RASTER_PNG_CACHE_CAP);
+// Nesting params under the markup key avoids concatenating a fresh
+// multi-megabyte cache-key string per capture.
+const encodedPngCache = createFifoCache<Map<string, Promise<Blob>>>(RASTER_PNG_CACHE_CAP);
 
 // A decoded SVG image is immutable, so repeat rasterizations of identical
 // markup (unchanged trees, backdrop underlay re-captures) can skip the SVG
@@ -134,8 +136,9 @@ export const createCaptureResult = (
     const clipKey = canvasClipRect
       ? `${canvasClipRect.x},${canvasClipRect.y},${canvasClipRect.width},${canvasClipRect.height}`
       : "";
-    const cacheKey = `${options.scale}|${options.pixelRatio}|${options.backgroundColor ?? ""}|${width}|${height}|${clipKey}|${svgMarkup}`;
-    const cachedPngBlobPromise = encodedPngCache.get(cacheKey);
+    const paramsKey = `${options.scale}|${options.pixelRatio}|${options.backgroundColor ?? ""}|${width}|${height}|${clipKey}`;
+    let blobPromisesByParams = encodedPngCache.get(svgMarkup);
+    const cachedPngBlobPromise = blobPromisesByParams?.get(paramsKey);
     if (cachedPngBlobPromise) return cachedPngBlobPromise;
     const acquiredScratchCanvas = acquireScratchCanvas();
     const pngBlobPromise = renderToCanvas(acquiredScratchCanvas ?? document.createElement("canvas"))
@@ -148,9 +151,14 @@ export const createCaptureResult = (
       .finally(() => {
         if (acquiredScratchCanvas !== null) releaseScratchCanvas();
       });
-    encodedPngCache.set(cacheKey, pngBlobPromise);
+    if (blobPromisesByParams === undefined) {
+      blobPromisesByParams = new Map();
+      encodedPngCache.set(svgMarkup, blobPromisesByParams);
+    }
+    const paramsMap = blobPromisesByParams;
+    paramsMap.set(paramsKey, pngBlobPromise);
     pngBlobPromise.catch(() => {
-      encodedPngCache.delete(cacheKey);
+      paramsMap.delete(paramsKey);
     });
     return pngBlobPromise;
   };

@@ -778,3 +778,18 @@ Tried routing Chromium through the hand-rolled encoder now that opaque RGB
 packing shrinks deflate input: encodeMs 105 -> 215 on mega-grid. Blink's
 native toBlob encodes off-thread and its zlib is faster than its
 CompressionStream plumbing; keep the hand-rolled path WebKit-only.
+
+## Iteration 78 — nested raster-cache keys (kept)
+
+toBlob built its PNG-cache key by concatenating the raster params with the
+full multi-megabyte SVG markup, allocating (and later hashing) a fresh
+multi-MB rope per capture. The cache now nests a small params map under the
+markup string itself, so the already-flattened markup is the only large key
+and no per-capture concatenation happens. Cache semantics unchanged (same
+(markup, params) identity); GC-pressure win. 412x3 fidelity + 77 unit green.
+
+## Iteration 78b — CompressionStream PNG path on Firefox (REJECTED probe)
+
+Re-probed Gecko with the opaque-RGB hand-rolled encoder: encodeMs 86 -> 159
+on mega-grid warm. Gecko's native toBlob remains the fastest path there;
+hand-rolled stays WebKit-only.
