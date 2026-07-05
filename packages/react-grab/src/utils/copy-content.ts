@@ -1,8 +1,8 @@
-import { VERSION } from "../constants.js";
+import { REACT_GRAB_MIME_TYPE } from "../constants.js";
 import type { ReactGrabEntry } from "../types.js";
+import { buildReactGrabMetadata } from "./build-react-grab-metadata.js";
+import { escapeHtml } from "./escape-html.js";
 import { IS_DEMO } from "./runtime-mode.js";
-
-const REACT_GRAB_MIME_TYPE = "application/x-react-grab";
 
 interface CopyContentOptions {
   componentName?: string;
@@ -10,16 +10,6 @@ interface CopyContentOptions {
   commentText?: string;
   entries?: ReactGrabEntry[];
 }
-
-interface ReactGrabMetadata {
-  version: string;
-  content: string;
-  entries: ReactGrabEntry[];
-  timestamp: number;
-}
-
-const escapeHtml = (text: string): string =>
-  text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 export const copyContent = (content: string, options?: CopyContentOptions): boolean => {
   // Demo mode never touches the visitor's real clipboard (and synthetic events
@@ -36,12 +26,7 @@ export const copyContent = (content: string, options?: CopyContentOptions): bool
       commentText: options?.commentText,
     },
   ];
-  const reactGrabMetadata: ReactGrabMetadata = {
-    version: VERSION,
-    content,
-    entries,
-    timestamp: Date.now(),
-  };
+  const reactGrabMetadata = buildReactGrabMetadata(content, entries);
 
   // The clipboard receives three formats: plain text for terminals and editors,
   // HTML-escaped content for rich text fields like Notion or Google Docs, and a

@@ -699,6 +699,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           getContent: pluginRegistry.store.options.getContent,
           componentName: elementName,
           maxContextLines: pluginRegistry.store.options.maxContextLines,
+          screenshot: pluginRegistry.store.options.screenshot,
         },
         pluginRegistry.hooks,
         elements,

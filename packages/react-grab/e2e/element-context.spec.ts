@@ -10,7 +10,7 @@ test.describe("Element Context Fallback", () => {
       await reactGrab.hoverUntilSelected("[data-testid='todo-list'] h1");
       await reactGrab.clickElement("[data-testid='todo-list'] h1");
 
-      const clipboard = await reactGrab.getClipboardContent();
+      const clipboard = await reactGrab.waitForClipboardContent();
       expect(clipboard).toMatch(/^\[<\w+[\s>]/);
       expect(clipboard).toContain("TodoList");
     });
@@ -21,7 +21,7 @@ test.describe("Element Context Fallback", () => {
       await reactGrab.hoverUntilSelected("[data-testid='nested-button']");
       await reactGrab.clickElement("[data-testid='nested-button']");
 
-      const clipboard = await reactGrab.getClipboardContent();
+      const clipboard = await reactGrab.waitForClipboardContent();
       expect(clipboard).toMatch(/^\[<\w+[\s>]/);
       expect(clipboard).toContain("NestedCard");
     });
@@ -33,7 +33,7 @@ test.describe("Element Context Fallback", () => {
       await reactGrab.hoverUntilSelected(todoItem);
       await reactGrab.clickElement(todoItem);
 
-      const clipboard = await reactGrab.getClipboardContent();
+      const clipboard = await reactGrab.waitForClipboardContent();
       expect(clipboard).toMatch(/^\[<\w+[\s>]/);
       expect(clipboard).toContain("TodoItem");
     });
@@ -45,7 +45,7 @@ test.describe("Element Context Fallback", () => {
       await reactGrab.hoverUntilSelected(mappedItem);
       await reactGrab.clickElement(mappedItem);
 
-      const clipboard = await reactGrab.getClipboardContent();
+      const clipboard = await reactGrab.waitForClipboardContent();
       expect(clipboard).toContain('key: "2"');
     });
 
@@ -58,7 +58,7 @@ test.describe("Element Context Fallback", () => {
       await reactGrab.hoverUntilSelected(todoItem);
       await reactGrab.clickElement(todoItem);
 
-      const clipboard = await reactGrab.getClipboardContent();
+      const clipboard = await reactGrab.waitForClipboardContent();
       expect(clipboard).toContain('key: "3"');
     });
 
@@ -71,7 +71,7 @@ test.describe("Element Context Fallback", () => {
       await reactGrab.hoverUntilSelected(cardBody);
       await reactGrab.clickElement(cardBody);
 
-      const clipboard = await reactGrab.getClipboardContent();
+      const clipboard = await reactGrab.waitForClipboardContent();
       expect(clipboard).toContain('key: "bravo"');
     });
   });
@@ -104,7 +104,7 @@ test.describe("Element Context Fallback", () => {
       await reactGrab.hoverUntilSelected("#plain-dom-element");
       await reactGrab.clickElement("#plain-dom-element");
 
-      const clipboard = await reactGrab.getClipboardContent();
+      const clipboard = await reactGrab.waitForClipboardContent();
       expect(clipboard).toContain("plain-dom-element");
       expect(clipboard).toContain("Plain DOM content");
     });
@@ -134,7 +134,7 @@ test.describe("Element Context Fallback", () => {
       await reactGrab.hoverUntilSelected("#test-svg-icon");
       await reactGrab.clickElement("#test-svg-icon");
 
-      const clipboard = await reactGrab.getClipboardContent();
+      const clipboard = await reactGrab.waitForClipboardContent();
       expect(clipboard).toContain("<svg");
       expect(clipboard).toContain('id="test-svg-icon"');
       expect(clipboard).toContain('class="icon-class"');
@@ -166,7 +166,7 @@ test.describe("Element Context Fallback", () => {
       await reactGrab.hoverUntilSelected("#long-dom-element");
       await reactGrab.clickElement("#long-dom-element");
 
-      const clipboard = await reactGrab.getClipboardContent();
+      const clipboard = await reactGrab.waitForClipboardContent();
       expect(clipboard).toContain("long-dom-element");
       expect(clipboard.length).toBeLessThanOrEqual(510);
     });
@@ -203,7 +203,7 @@ test.describe("Element Context Fallback", () => {
       const didCopy = await reactGrab.copyElementViaApi("pre.shiki");
       expect(didCopy).toBe(true);
 
-      const clipboard = await reactGrab.getClipboardContent();
+      const clipboard = await reactGrab.waitForClipboardContent();
       expect(clipboard).toContain("<pre");
       expect(clipboard).toContain("git add .github/workflows/react-doctor.yml");
       expect(clipboard).toContain('git commit -m "Add React Doctor to CI"');
@@ -239,7 +239,7 @@ test.describe("Element Context Fallback", () => {
       );
       expect(didCopy).toBe(true);
 
-      const clipboard = await reactGrab.getClipboardContent();
+      const clipboard = await reactGrab.waitForClipboardContent();
       expect(clipboard).toContain('<a href="/docs/ci-and-prs/github-actions-setup"');
       expect(clipboard).toContain("GitHub Actions setup");
       expect(clipboard).not.toContain("# GitHub Actions setup");
@@ -271,7 +271,7 @@ test.describe("Element Context Fallback", () => {
       const didCopy = await reactGrab.copyElementViaApi("[data-testid='decorative-hidden-label']");
       expect(didCopy).toBe(true);
 
-      const clipboard = await reactGrab.getClipboardContent();
+      const clipboard = await reactGrab.waitForClipboardContent();
       expect(clipboard).toContain('aria-hidden="true"');
       expect(clipboard).not.toContain("Decorative Hidden Label");
     });
@@ -339,7 +339,7 @@ test.describe("Element Context Fallback", () => {
       const didCopy = await reactGrab.copyElementViaApi("#multiline-label-button");
       expect(didCopy).toBe(true);
 
-      const clipboard = await reactGrab.getClipboardContent();
+      const clipboard = await reactGrab.waitForClipboardContent();
       expect(clipboard).toContain('aria-label="Save\n  draft"');
     });
 
@@ -369,7 +369,7 @@ test.describe("Element Context Fallback", () => {
       const didCopy = await reactGrab.copyElementViaApi("a[href='/docs/mixed-content']");
       expect(didCopy).toBe(true);
 
-      const clipboard = await reactGrab.getClipboardContent();
+      const clipboard = await reactGrab.waitForClipboardContent();
       expect(clipboard).toContain("Read the docs");
       expect(clipboard).not.toContain("<em ...>");
     });

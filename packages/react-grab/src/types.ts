@@ -405,6 +405,14 @@ export interface Options {
    */
   maxContextLines?: number;
   /**
+   * Copy a screenshot of the grabbed element(s) alongside the text context.
+   * The image carries a printed note pointing the agent at the source files
+   * behind the pixels. Falls back to text-only copying when the async
+   * Clipboard API is unavailable.
+   * @default true
+   */
+  screenshot?: boolean;
+  /**
    * Whether to freeze React state updates while React Grab is active.
    * This prevents UI changes from interfering with element selection.
    * @default true
@@ -713,6 +721,13 @@ export interface ReactGrabStackFrame {
   columnNumber?: number;
   isServer?: boolean;
   isSymbolicated?: boolean;
+}
+
+export interface ReactGrabMetadata {
+  version: string;
+  content: string;
+  entries: ReactGrabEntry[];
+  timestamp: number;
 }
 
 export interface ReactGrabEntry {

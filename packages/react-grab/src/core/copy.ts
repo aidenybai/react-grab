@@ -1,5 +1,8 @@
 import { getElementReferenceContext, getStack, getStackContext, resolveSource } from "./context.js";
+import { buildAgentNoteLines } from "../utils/build-agent-note-lines.js";
 import { copyContent } from "../utils/copy-content.js";
+import { copyContentWithScreenshot } from "../utils/copy-content-with-screenshot.js";
+import { renderAnnotatedScreenshot } from "../utils/render-annotated-screenshot.js";
 import { normalizeError } from "../utils/normalize-error.js";
 import { getTagName } from "../utils/get-tag-name.js";
 import type { StackFrame } from "bippy/source";
@@ -9,6 +12,7 @@ interface CopyFlowOptions {
   getContent?: (elements: Element[]) => Promise<string> | string;
   componentName?: string;
   maxContextLines?: number;
+  screenshot?: boolean;
 }
 
 interface CopyFlowHooks {
@@ -117,10 +121,18 @@ export const runCopyFlow = async (
       finalContent = prependedPrompt
         ? `${prependedPrompt}\n${transformedContent}`
         : transformedContent;
-      didCopy = copyContent(finalContent, {
-        componentName: options.componentName,
-        entries: getMetadataEntries(payload, finalContent, prependedPrompt),
-      });
+      const entries = getMetadataEntries(payload, finalContent, prependedPrompt);
+      if (options.screenshot !== false) {
+        didCopy = await copyContentWithScreenshot(finalContent, entries ?? [], () =>
+          renderAnnotatedScreenshot(elements, buildAgentNoteLines(entries ?? [])),
+        );
+      }
+      if (!didCopy) {
+        didCopy = copyContent(finalContent, {
+          componentName: options.componentName,
+          entries,
+        });
+      }
     }
   } catch (error) {
     hooks.onCopyError(normalizeError(error));

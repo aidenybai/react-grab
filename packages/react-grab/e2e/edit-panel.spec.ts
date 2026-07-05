@@ -1569,7 +1569,7 @@ test.describe("Style Panel", () => {
 
       await reactGrab.page.keyboard.press("Enter");
       await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
-      const clipboardContent = await reactGrab.getClipboardContent();
+      const clipboardContent = await reactGrab.waitForClipboardContent();
       expect(clipboardContent).toContain("padding-top: 28px;");
       expect(clipboardContent).toContain("padding-right: 28px;");
       expect(clipboardContent).not.toContain("padding-top: 8px;");
@@ -1723,8 +1723,9 @@ test.describe("Style Panel", () => {
       await expect
         .poll(() => reactGrab.getClipboardContent())
         .toContain("best expresses the underlying layout intent");
-      const clipboardContent = await reactGrab.getClipboardContent();
-      expect(clipboardContent.match(/```css/g)?.length).toBe(2);
+      await expect
+        .poll(async () => (await reactGrab.getClipboardContent()).match(/```css/g)?.length)
+        .toBe(2);
 
       expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).toBe(
         buttonStyleBeforeCopy,
@@ -1787,8 +1788,9 @@ test.describe("Style Panel", () => {
 
       await reactGrab.page.keyboard.press("Enter");
       await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
-      const clipboardContent = await reactGrab.getClipboardContent();
-      expect(clipboardContent.match(/```css/g)?.length).toBe(1);
+      await expect
+        .poll(async () => (await reactGrab.waitForClipboardContent()).match(/```css/g)?.length)
+        .toBe(1);
 
       // The button netted no edits, so copy must not leave it styled.
       expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).toBe(
