@@ -79,7 +79,11 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 1,
   workers: process.env.CI ? 4 : undefined,
-  timeout: 60_000,
+  // Traced runs (PERF_TRACE=1) add a profiled extra pass per scenario, and the
+  // V8 sampler can sporadically wedge the headless renderer for minutes (see
+  // perf-recorder.ts); the extra headroom lets the wedge clear instead of
+  // failing the run.
+  timeout: process.env.PERF_TRACE === "1" ? 360_000 : 60_000,
   reporter: "html",
   use: {
     trace: "on-first-retry",

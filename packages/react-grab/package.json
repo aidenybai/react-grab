@@ -1,6 +1,6 @@
 {
   "name": "react-grab",
-  "version": "0.1.47",
+  "version": "0.1.48",
   "description": "Select context for coding agents directly from your website",
   "keywords": [
     "agent",
@@ -92,6 +92,9 @@
     "pretest:coverage": "pnpm --filter @react-grab/playwright-coverage build",
     "test:coverage": "COVERAGE=1 playwright test",
     "test:perf": "playwright test --grep @perf --reporter=list",
+    "test:perf:trace": "PERF_TRACE=1 playwright test --grep @perf --reporter=list",
+    "test:perf:full": "PERF_TRACE=1 playwright test --grep @perf --reporter=list && node scripts/deopt-trace.mjs && node scripts/analyze-perf-trace.mjs perf/${PERF_LABEL:-current}",
+    "perf:analyze": "node scripts/analyze-perf-trace.mjs",
     "test:perf:baseline": "PERF_LABEL=baseline playwright test --grep @perf --reporter=list",
     "test:expect": "bun e2e/react-grab.expect.ts",
     "typecheck": "tsc --noEmit",
@@ -101,7 +104,7 @@
   },
   "dependencies": {
     "@react-grab/cli": "workspace:*",
-    "bippy": "^0.5.42",
+    "bippy": "^0.5.43",
     "fast-html-to-image": "workspace:*"
   },
   "devDependencies": {

@@ -29,12 +29,34 @@ export interface PerfStatsSummary {
   max: number;
 }
 
+export interface PerfFpsSummary {
+  mean: number;
+  p5Low: number;
+  droppedFrames: number;
+  droppedFramePercent: number;
+}
+
 export interface PerfScenarioAggregate {
   inp: number;
   interactions: number;
   longTasks: { count: number; sum: number; max: number };
   longAnimationFrames: { count: number; sum: number; max: number; maxBlocking: number };
   frames: PerfStatsSummary;
+  fps: PerfFpsSummary;
+}
+
+export interface PerfMemorySnapshot {
+  jsHeapUsedKb: number;
+  jsHeapTotalKb: number;
+  domNodes: number;
+  jsEventListeners: number;
+  documents: number;
+}
+
+export interface PerfMemoryMetrics {
+  before: PerfMemorySnapshot;
+  after: PerfMemorySnapshot;
+  delta: PerfMemorySnapshot;
 }
 
 // Installed lazily on the first `startRecording` call (via page.evaluate)
@@ -166,12 +188,32 @@ const summarize = (values: number[]): PerfStatsSummary => {
 };
 
 const roundTo3 = (value: number): number => Number(value.toFixed(3));
+
+// A rAF delta beyond this means at least one whole 60Hz frame was skipped.
+const DROPPED_FRAME_DELTA_MS = 25;
+
+const summarizeFps = (frameDeltas: number[]): PerfFpsSummary => {
+  if (frameDeltas.length === 0) {
+    return { mean: 0, p5Low: 0, droppedFrames: 0, droppedFramePercent: 0 };
+  }
+  const sortedDeltas = [...frameDeltas].sort((a, b) => a - b);
+  const totalMs = sortedDeltas.reduce((accum, delta) => accum + delta, 0);
+  const p95Delta =
+    sortedDeltas[Math.min(sortedDeltas.length - 1, Math.floor(sortedDeltas.length * 0.95))];
+  const droppedFrames = sortedDeltas.filter((delta) => delta > DROPPED_FRAME_DELTA_MS).length;
+  return {
+    mean: roundTo3(totalMs === 0 ? 0 : (frameDeltas.length / totalMs) * 1000),
+    p5Low: roundTo3(p95Delta === 0 ? 0 : 1000 / p95Delta),
+    droppedFrames,
+    droppedFramePercent: roundTo3((droppedFrames / frameDeltas.length) * 100),
+  };
+};
 const sumRounded = (values: number[]): number =>
   roundTo3(values.reduce((accum, value) => accum + value, 0));
 const maxRounded = (values: number[]): number =>
   values.length === 0 ? 0 : roundTo3(Math.max(...values));
 
-export const aggregateRawSnapshot = (rawSnapshot: PerfRawSnapshot): PerfScenarioAggregate => {
+const aggregateRawSnapshot = (rawSnapshot: PerfRawSnapshot): PerfScenarioAggregate => {
   const loafDurations = rawSnapshot.longAnimationFrames.map((frame) => frame.duration);
   const loafBlocking = rawSnapshot.longAnimationFrames.map((frame) => frame.blockingDuration);
 
@@ -190,106 +232,247 @@ export const aggregateRawSnapshot = (rawSnapshot: PerfRawSnapshot): PerfScenario
       maxBlocking: maxRounded(loafBlocking),
     },
     frames: summarize(rawSnapshot.frameDeltas),
+    fps: summarizeFps(rawSnapshot.frameDeltas),
   };
 };
 
-export const startRecording = async (page: Page): Promise<void> => {
+const startRecording = async (page: Page): Promise<void> => {
   await page.evaluate(installPerfRecorderScript);
   await page.evaluate(() => window.__PERF_BENCH__!.start());
 };
 
-export const stopRecording = (page: Page): Promise<PerfRawSnapshot> =>
+const stopRecording = (page: Page): Promise<PerfRawSnapshot> =>
   page.evaluate(() => {
     if (!window.__PERF_BENCH__) throw new Error("perf recorder not installed");
     return window.__PERF_BENCH__.stop();
   });
 
-// --- Optional Chrome CPU trace capture ----------------------------------
+// --- Optional CPU profile capture (PERF_TRACE=1) ------------------------
 //
-// Enabled with PERF_TRACE=1. Streams the chrome://tracing JSON for the
-// scenario window via CDP and writes it to perf/<label>/<scenario>.trace.json.
-// Drop the resulting file into Chrome DevTools "Performance" panel
-// (or `chrome://tracing`) for full flame chart + function-level attribution.
-// Use with `pnpm build:profiling` so the trace shows readable function names
-// instead of minified `B`/`na`/etc.
+// Captures a V8 sampling CPU profile for the scenario window via the CDP
+// `Profiler` domain and writes it to perf/<label>/<scenario>.cpuprofile.
+// Load it in Chrome DevTools ("Performance" panel > load profile) for a
+// flame chart, or run `node scripts/analyze-perf-trace.mjs perf/<label>` for
+// a self-time hotspot table. Pair with `pnpm build:profiling` so symbols are
+// unminified.
+//
+// Deliberately uses the Profiler domain, NOT Tracing with the
+// disabled-by-default-v8.cpu_profiler category: starting the profiler through
+// the Tracing domain wedges the renderer main thread for minutes inside
+// react-dom's click dispatch in headless Chromium (reproducible via the
+// copy-then-deactivate-stress scenario), while the Profiler domain is far
+// less intrusive.
+//
+// Even the Profiler domain can sporadically wedge the headless renderer:
+// with the sampler active, a copy click can spin the main thread at 100%
+// CPU in native code ("(program)" samples) for seconds to minutes,
+// regardless of sampling interval or headless mode. The profiled pass is
+// therefore run AFTER (and separately from) the metric samples, is bounded
+// by a hard deadline, and never fails the test — a wedged capture only
+// costs that scenario's .cpuprofile.
 
-interface CdpTraceCapture {
-  events: unknown[];
-  cdpSession: CDPSession;
-  onDataCollected: (payload: { value: unknown[] }) => void;
-  onComplete: () => void;
-  completionPromise: Promise<void>;
-}
+// V8's default sampling interval. Lowering it (e.g. to 100us) makes the
+// renderer stall described above dramatically more likely and longer.
+const CPU_PROFILE_SAMPLING_INTERVAL_US = 1000;
+const CPU_PROFILE_CAPTURE_DEADLINE_MS = 60_000;
+const CPU_PROFILE_STOP_DEADLINE_MS = 10_000;
 
-export const startCdpTrace = async (page: Page): Promise<CdpTraceCapture | null> => {
-  if (process.env.PERF_TRACE !== "1") return null;
-  const cdpSession = await page.context().newCDPSession(page);
-  const events: unknown[] = [];
-  let resolveComplete: () => void = () => {};
-  const completionPromise = new Promise<void>((resolveTimer) => {
-    resolveComplete = resolveTimer;
-  });
-  const onDataCollected = (payload: { value: unknown[] }): void => {
-    if (Array.isArray(payload?.value)) events.push(...payload.value);
-  };
-  const onComplete = (): void => resolveComplete();
-  cdpSession.on("Tracing.dataCollected", onDataCollected);
-  cdpSession.on("Tracing.tracingComplete", onComplete);
-  await cdpSession.send("Tracing.start", {
-    transferMode: "ReportEvents",
-    // Same categories DevTools "Performance" uses by default. Includes the
-    // V8 sampling CPU profiler so function-level cost is attributable.
-    categories: [
-      "blink.user_timing",
-      "devtools.timeline",
-      "disabled-by-default-devtools.timeline",
-      "disabled-by-default-devtools.timeline.frame",
-      "disabled-by-default-devtools.timeline.stack",
-      "disabled-by-default-v8.cpu_profiler",
-      "loading",
-      "v8.execute",
-    ].join(","),
-  });
-  return { events, cdpSession, onDataCollected, onComplete, completionPromise };
-};
-
-export const stopCdpTrace = async (
-  testInfo: TestInfo,
-  scenarioName: string,
-  capture: CdpTraceCapture | null,
-): Promise<void> => {
-  if (!capture) return;
-  await capture.cdpSession.send("Tracing.end");
-  await capture.completionPromise;
-  capture.cdpSession.off("Tracing.dataCollected", capture.onDataCollected);
-  capture.cdpSession.off("Tracing.tracingComplete", capture.onComplete);
+const detachQuietly = async (cdpSession: CDPSession): Promise<void> => {
   try {
-    await capture.cdpSession.detach();
+    await cdpSession.detach();
   } catch {
     // ignore
   }
+};
+
+const startCpuProfiler = async (page: Page): Promise<CDPSession> => {
+  const cdpSession = await page.context().newCDPSession(page);
+  await cdpSession.send("Profiler.enable");
+  await cdpSession.send("Profiler.setSamplingInterval", {
+    interval: CPU_PROFILE_SAMPLING_INTERVAL_US,
+  });
+  await cdpSession.send("Profiler.start");
+  return cdpSession;
+};
+
+const stopCpuProfilerAndWrite = async (
+  testInfo: TestInfo,
+  scenarioName: string,
+  cdpSession: CDPSession,
+): Promise<void> => {
+  let profileJson: string | null = null;
+  try {
+    const { profile } = await cdpSession.send("Profiler.stop");
+    profileJson = JSON.stringify(profile);
+  } finally {
+    await detachQuietly(cdpSession);
+  }
+  if (!profileJson) return;
 
   const runLabel = process.env.PERF_LABEL ?? "current";
-  // Chrome DevTools accepts both `{traceEvents: [...]}` and a bare array.
-  // Use the explicit object form so the file extension `.trace.json` is
-  // immediately recognized.
-  const traceJson = JSON.stringify({ traceEvents: capture.events });
-  await testInfo.attach(`perf-${scenarioName}.trace.json`, {
-    body: traceJson,
+  await testInfo.attach(`perf-${scenarioName}.cpuprofile`, {
+    body: profileJson,
     contentType: "application/json",
   });
   const labelDirPath = resolve(PACKAGE_PERF_DIR, runLabel);
   await mkdir(labelDirPath, { recursive: true });
-  await writeFile(resolve(labelDirPath, `${scenarioName}.trace.json`), traceJson);
+  await writeFile(resolve(labelDirPath, `${scenarioName}.cpuprofile`), profileJson);
 };
 
-export const attachPerfReport = async (
+// --- Memory tracking (always on) ----------------------------------------
+//
+// Reads renderer memory counters via the CDP `Performance` domain around the
+// metric samples, with forced GC (`HeapProfiler.collectGarbage`) before each
+// reading so the before/after delta approximates *retained* growth (leaked
+// nodes, listeners, detached documents) rather than transient garbage.
+//
+// A single collectGarbage pass is not enough for a stable reading: it can
+// leave FinalizationRegistry / weak-callback garbage that only the *next*
+// pass collects, and detached-node accounting lags a frame. So each reading
+// loops GC → settle (double rAF + timeout, letting pending mounts/unmounts
+// and finalizers run) → read, until the heap and node counts stop moving
+// between passes (or a pass cap, for pages that allocate continuously).
+
+const GC_STABILIZATION_MAX_PASSES = 6;
+const GC_STABLE_HEAP_EPSILON_KB = 64;
+const GC_SETTLE_DELAY_MS = 50;
+
+const startMemoryProbe = async (page: Page): Promise<CDPSession> => {
+  const cdpSession = await page.context().newCDPSession(page);
+  await cdpSession.send("Performance.enable");
+  await cdpSession.send("HeapProfiler.enable");
+  return cdpSession;
+};
+
+const readRawMemoryMetrics = async (cdpSession: CDPSession): Promise<PerfMemorySnapshot> => {
+  const { metrics } = await cdpSession.send("Performance.getMetrics");
+  const metricValuesByName = new Map<string, number>();
+  for (const metric of metrics) metricValuesByName.set(metric.name, metric.value);
+  const metricValue = (metricName: string): number => metricValuesByName.get(metricName) ?? 0;
+  return {
+    jsHeapUsedKb: Math.round(metricValue("JSHeapUsedSize") / 1024),
+    jsHeapTotalKb: Math.round(metricValue("JSHeapTotalSize") / 1024),
+    domNodes: metricValue("Nodes"),
+    jsEventListeners: metricValue("JSEventListeners"),
+    documents: metricValue("Documents"),
+  };
+};
+
+const readMemorySnapshot = async (
+  cdpSession: CDPSession,
+  page: Page,
+): Promise<PerfMemorySnapshot> => {
+  let previousReading: PerfMemorySnapshot | null = null;
+  for (let passIndex = 0; passIndex < GC_STABILIZATION_MAX_PASSES; passIndex++) {
+    await cdpSession.send("HeapProfiler.collectGarbage");
+    await page.evaluate(
+      (settleDelayMs) =>
+        new Promise<void>((resolveSettle) => {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              setTimeout(resolveSettle, settleDelayMs);
+            });
+          });
+        }),
+      GC_SETTLE_DELAY_MS,
+    );
+    const currentReading = await readRawMemoryMetrics(cdpSession);
+    const isStable =
+      previousReading !== null &&
+      Math.abs(currentReading.jsHeapUsedKb - previousReading.jsHeapUsedKb) <
+        GC_STABLE_HEAP_EPSILON_KB &&
+      currentReading.domNodes === previousReading.domNodes;
+    if (isStable) return currentReading;
+    previousReading = currentReading;
+  }
+  if (!previousReading) throw new Error("memory snapshot produced no reading");
+  return previousReading;
+};
+
+const diffMemorySnapshots = (
+  before: PerfMemorySnapshot,
+  after: PerfMemorySnapshot,
+): PerfMemorySnapshot => ({
+  jsHeapUsedKb: after.jsHeapUsedKb - before.jsHeapUsedKb,
+  jsHeapTotalKb: after.jsHeapTotalKb - before.jsHeapTotalKb,
+  domNodes: after.domNodes - before.domNodes,
+  jsEventListeners: after.jsEventListeners - before.jsEventListeners,
+  documents: after.documents - before.documents,
+});
+
+const medianOfValues = (values: number[]): number => {
+  const sortedValues = [...values].sort((leftValue, rightValue) => leftValue - rightValue);
+  const middleIndex = Math.floor(sortedValues.length / 2);
+  return sortedValues.length % 2 === 1
+    ? sortedValues[middleIndex]
+    : Math.round((sortedValues[middleIndex - 1] + sortedValues[middleIndex]) / 2);
+};
+
+// Component-wise median across per-sample deltas. A single before/after
+// window is hostage to whatever one-off retention (app caches, JIT code,
+// GC-timing residue) happened to land inside it; the median of per-sample
+// deltas rejects those spikes and reports steady-state per-iteration growth.
+const medianMemoryDelta = (deltas: PerfMemorySnapshot[]): PerfMemorySnapshot => ({
+  jsHeapUsedKb: medianOfValues(deltas.map((delta) => delta.jsHeapUsedKb)),
+  jsHeapTotalKb: medianOfValues(deltas.map((delta) => delta.jsHeapTotalKb)),
+  domNodes: medianOfValues(deltas.map((delta) => delta.domNodes)),
+  jsEventListeners: medianOfValues(deltas.map((delta) => delta.jsEventListeners)),
+  documents: medianOfValues(deltas.map((delta) => delta.documents)),
+});
+
+const raceDeadline = <ResultType>(
+  work: Promise<ResultType>,
+  deadlineMs: number,
+): Promise<ResultType | "deadline"> =>
+  Promise.race([
+    work,
+    new Promise<"deadline">((resolveDeadline) => {
+      setTimeout(() => resolveDeadline("deadline"), deadlineMs);
+    }),
+  ]);
+
+const captureScenarioCpuProfile = async (
+  page: Page,
+  testInfo: TestInfo,
+  scenarioName: string,
+  scenarioBody: () => Promise<void>,
+): Promise<void> => {
+  let profilerSession: CDPSession | null = null;
+  try {
+    profilerSession = await startCpuProfiler(page);
+    const bodyPromise = scenarioBody().then(() => "done" as const);
+    bodyPromise.catch(() => {});
+    const bodyOutcome = await raceDeadline(bodyPromise, CPU_PROFILE_CAPTURE_DEADLINE_MS);
+    if (bodyOutcome === "deadline") {
+      console.warn(
+        `[perf] ${scenarioName}: profiled pass exceeded ${CPU_PROFILE_CAPTURE_DEADLINE_MS}ms ` +
+          `(known headless renderer stall under the V8 sampler); skipping .cpuprofile`,
+      );
+      await detachQuietly(profilerSession);
+      return;
+    }
+    const stopOutcome = await raceDeadline(
+      stopCpuProfilerAndWrite(testInfo, scenarioName, profilerSession).then(() => "done" as const),
+      CPU_PROFILE_STOP_DEADLINE_MS,
+    );
+    if (stopOutcome === "deadline") {
+      console.warn(`[perf] ${scenarioName}: Profiler.stop timed out; skipping .cpuprofile`);
+      await detachQuietly(profilerSession);
+    }
+  } catch (captureError) {
+    console.warn(`[perf] ${scenarioName}: cpu profile capture failed:`, captureError);
+    if (profilerSession) await detachQuietly(profilerSession);
+  }
+};
+
+const attachPerfReport = async (
   testInfo: TestInfo,
   scenarioName: string,
   aggregate: PerfScenarioAggregate,
   perSample: PerfScenarioAggregate[],
   baseline: PerfScenarioAggregate | null = null,
   extra: Record<string, number> | undefined = undefined,
+  memory: PerfMemoryMetrics | undefined = undefined,
 ): Promise<void> => {
   const runLabel = process.env.PERF_LABEL ?? "current";
   const reportJson = JSON.stringify(
@@ -298,6 +481,7 @@ export const attachPerfReport = async (
       label: runLabel,
       samples: perSample.length,
       aggregate,
+      memory,
       extra,
       // Skip perSample when there's only one — it would just duplicate aggregate.
       perSample: perSample.length > 1 ? perSample : undefined,
@@ -367,6 +551,12 @@ const medianAcrossSamples = (samples: PerfScenarioAggregate[]): PerfScenarioAggr
       p95: medianOfNumbers(samples.map((sample) => sample.frames.p95)),
       max: medianOfNumbers(samples.map((sample) => sample.frames.max)),
     },
+    fps: {
+      mean: medianOfNumbers(samples.map((sample) => sample.fps.mean)),
+      p5Low: medianOfNumbers(samples.map((sample) => sample.fps.p5Low)),
+      droppedFrames: medianOfNumbers(samples.map((sample) => sample.fps.droppedFrames)),
+      droppedFramePercent: medianOfNumbers(samples.map((sample) => sample.fps.droppedFramePercent)),
+    },
   };
 };
 
@@ -421,23 +611,71 @@ export const recordScenario = async (
   // so diffs are doable straight from the file.
   const baseline =
     options.baseline === undefined ? await loadCommittedBaseline(scenarioName) : options.baseline;
+  let memoryProbe: CDPSession | null = null;
+  let memoryBefore: PerfMemorySnapshot | null = null;
+  try {
+    memoryProbe = await startMemoryProbe(page);
+    memoryBefore = await readMemorySnapshot(memoryProbe, page);
+  } catch (probeError) {
+    console.warn(`[perf] ${scenarioName}: memory probe unavailable:`, probeError);
+  }
   const perSampleAggregates: PerfScenarioAggregate[] = [];
-  for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex++) {
-    if (options.beforeEachSample) await options.beforeEachSample();
-    // CDP traces are 5-100MB each; capturing only the first sample keeps
-    // disk usage sane while still giving you something to drop into DevTools.
-    const cdpTrace = sampleIndex === 0 ? await startCdpTrace(page) : null;
-    await startRecording(page);
-    // try/finally so the observer disconnects and CDP trace flushes even
-    // if the scenario body throws mid-measurement.
-    let rawSnapshot: PerfRawSnapshot | null = null;
-    try {
-      await scenarioBody();
-    } finally {
-      rawSnapshot = await stopRecording(page);
-      await stopCdpTrace(testInfo, scenarioName, cdpTrace);
+  const perSampleMemoryDeltas: PerfMemorySnapshot[] = [];
+  let previousMemorySnapshot = memoryBefore;
+  let lastMemorySnapshot: PerfMemorySnapshot | null = null;
+  let memory: PerfMemoryMetrics | undefined;
+  // try/finally so the probe's CDP session detaches even if a sample throws.
+  try {
+    for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex++) {
+      if (options.beforeEachSample) await options.beforeEachSample();
+      await startRecording(page);
+      // try/finally so the observer disconnects even if the scenario body
+      // throws mid-measurement.
+      let rawSnapshot: PerfRawSnapshot | null = null;
+      try {
+        await scenarioBody();
+      } finally {
+        rawSnapshot = await stopRecording(page);
+      }
+      perSampleAggregates.push(aggregateRawSnapshot(rawSnapshot));
+      // Snapshot after every sample so memory growth can be aggregated
+      // per-sample (median) instead of one whole-scenario window. The
+      // sample-0 delta is recorded but excluded when other samples exist:
+      // one-time warmup allocations (JIT code objects, lazily-initialized
+      // module state, framework caches) land there and vary run to run,
+      // while steady-state per-iteration growth is the actual leak signal.
+      if (memoryProbe && previousMemorySnapshot) {
+        try {
+          const sampleEndSnapshot = await readMemorySnapshot(memoryProbe, page);
+          perSampleMemoryDeltas.push(
+            diffMemorySnapshots(previousMemorySnapshot, sampleEndSnapshot),
+          );
+          previousMemorySnapshot = sampleEndSnapshot;
+          lastMemorySnapshot = sampleEndSnapshot;
+        } catch (probeError) {
+          console.warn(`[perf] ${scenarioName}: memory read failed:`, probeError);
+        }
+      }
     }
-    perSampleAggregates.push(aggregateRawSnapshot(rawSnapshot));
+    if (memoryBefore && lastMemorySnapshot && perSampleMemoryDeltas.length > 0) {
+      const steadyStateDeltas =
+        perSampleMemoryDeltas.length > 1 ? perSampleMemoryDeltas.slice(1) : perSampleMemoryDeltas;
+      memory = {
+        before: memoryBefore,
+        after: lastMemorySnapshot,
+        delta: medianMemoryDelta(steadyStateDeltas),
+      };
+    }
+  } finally {
+    if (memoryProbe) await detachQuietly(memoryProbe);
+  }
+  // The CPU profile is captured on a dedicated extra pass so the sampler's
+  // overhead (and its sporadic renderer stall — see the comment above
+  // CPU_PROFILE_SAMPLING_INTERVAL_US) never pollutes the metric samples or
+  // fails the test.
+  if (process.env.PERF_TRACE === "1") {
+    if (options.beforeEachSample) await options.beforeEachSample();
+    await captureScenarioCpuProfile(page, testInfo, scenarioName, scenarioBody);
   }
   const medianAggregate =
     perSampleAggregates.length === 1
@@ -451,8 +689,9 @@ export const recordScenario = async (
     perSampleAggregates,
     baseline,
     extra,
+    memory,
   );
-  logAggregate(scenarioName, medianAggregate);
+  logAggregate(scenarioName, medianAggregate, memory);
   if (extra) {
     console.log(
       `  ${Object.entries(extra)
@@ -463,7 +702,16 @@ export const recordScenario = async (
   return medianAggregate;
 };
 
-const logAggregate = (scenarioName: string, aggregate: PerfScenarioAggregate): void => {
+const logAggregate = (
+  scenarioName: string,
+  aggregate: PerfScenarioAggregate,
+  memory: PerfMemoryMetrics | undefined,
+): void => {
+  const memoryLine = memory
+    ? `\n  memory Δheap=${memory.delta.jsHeapUsedKb}KB Δnodes=${memory.delta.domNodes} ` +
+      `Δlisteners=${memory.delta.jsEventListeners} Δdocuments=${memory.delta.documents} ` +
+      `(heap ${memory.after.jsHeapUsedKb}KB, nodes ${memory.after.domNodes})`
+    : "";
   // eslint-disable-next-line no-console
   console.log(
     `\n[perf] ${scenarioName}\n` +
@@ -471,6 +719,8 @@ const logAggregate = (scenarioName: string, aggregate: PerfScenarioAggregate): v
       `longTasks=${aggregate.longTasks.count}/${aggregate.longTasks.sum}ms (max ${aggregate.longTasks.max}ms)\n` +
       `  loaf=${aggregate.longAnimationFrames.count}/${aggregate.longAnimationFrames.sum}ms ` +
       `(max ${aggregate.longAnimationFrames.max}ms, blocking ${aggregate.longAnimationFrames.maxBlocking}ms)\n` +
-      `  frames p50=${aggregate.frames.median}ms p95=${aggregate.frames.p95}ms max=${aggregate.frames.max}ms (${aggregate.frames.count} frames)`,
+      `  frames p50=${aggregate.frames.median}ms p95=${aggregate.frames.p95}ms max=${aggregate.frames.max}ms (${aggregate.frames.count} frames)\n` +
+      `  fps mean=${aggregate.fps.mean} p5Low=${aggregate.fps.p5Low} dropped=${aggregate.fps.droppedFrames} (${aggregate.fps.droppedFramePercent}%)` +
+      memoryLine,
   );
 };
