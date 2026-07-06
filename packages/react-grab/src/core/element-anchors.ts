@@ -5,7 +5,7 @@ import {
   isHostFiber,
   type Fiber,
 } from "bippy";
-import { indexInParent } from "./index-in-parent.js";
+import { indexInParent } from "../utils/index-in-parent.js";
 
 interface ElementAnchor {
   // Nearest ancestor (or the element itself) that React manages via a fiber.
@@ -17,6 +17,10 @@ interface ElementAnchor {
   // it: a fiber's own `return`/`alternate` are nulled on unmount, so the link
   // back to the live tree has to come from an ancestor that survives.
   anchorParentFiber: Fiber;
+  // Position of the anchor among its parent's element children, used to re-find
+  // the anchor's replacement when the parent fiber is itself a host fiber (a
+  // keyed host element nested directly under another host element).
+  anchorIndexInParent: number;
   // Child-index chain from the anchor down to the tracked element; empty when
   // the element is itself the anchor.
   domPath: number[];
@@ -28,16 +32,29 @@ interface ElementAnchor {
 // before the swap).
 const anchorByElement = new WeakMap<Element, ElementAnchor>();
 
-const liveHostElementFromFiber = (fiber: Fiber, tagName: string): Element | null => {
-  const latest = getLatestFiber(fiber);
-  const hostFibers = isHostFiber(latest) ? [latest] : getNearestHostFibers(latest);
-  for (const hostFiber of hostFibers) {
+const resolveLiveAnchor = (anchor: ElementAnchor): Element | null => {
+  if (anchor.anchorElement.isConnected) return anchor.anchorElement;
+
+  const anchorTagName = anchor.anchorElement.tagName;
+  const latestParentFiber = getLatestFiber(anchor.anchorParentFiber);
+
+  // A host parent fiber keeps its DOM node across a keyed swap of its child, so
+  // the replacement sits at the anchor's recorded child index — an exact lookup
+  // that same-tag siblings can't confuse.
+  if (isHostFiber(latestParentFiber)) {
+    const parentNode = latestParentFiber.stateNode;
+    if (!(parentNode instanceof Element) || !parentNode.isConnected) return null;
+    const candidate = parentNode.children[anchor.anchorIndexInParent];
+    return candidate && candidate.tagName === anchorTagName ? candidate : null;
+  }
+
+  for (const hostFiber of getNearestHostFibers(latestParentFiber)) {
     const node = hostFiber.stateNode;
     // The tag match keeps recovery from latching onto an unrelated host when the
-    // original element type is gone. Same-tag siblings under a shared ancestor
-    // can't be told apart and resolve to the first match, which still leaves the
-    // selection on a valid node instead of dropping it.
-    if (node instanceof Element && node.isConnected && node.tagName === tagName) {
+    // original element type is gone. Same-tag siblings under a shared composite
+    // ancestor can't be told apart and resolve to the first match, which still
+    // leaves the selection on a valid node instead of dropping it.
+    if (node instanceof Element && node.isConnected && node.tagName === anchorTagName) {
       return node;
     }
   }
@@ -67,14 +84,28 @@ const findAnchor = (element: Element): ElementAnchor | null => {
   }
   const anchorParentFiber = anchorFiber?.return;
   if (!anchorElement || !anchorParentFiber) return null;
-  return { anchorElement, anchorParentFiber, domPath, targetTagName: element.tagName };
+  return {
+    anchorElement,
+    anchorParentFiber,
+    anchorIndexInParent: indexInParent(anchorElement),
+    domPath,
+    targetTagName: element.tagName,
+  };
 };
 
-// Records how to recover an element after a DOM swap. Cheap and idempotent:
-// skips disconnected elements and anything already tracked.
-export const trackElementFiber = (element: Element): void => {
+const isAnchorFresh = (anchor: ElementAnchor, element: Element): boolean =>
+  anchor.anchorElement.isConnected &&
+  anchor.anchorIndexInParent === indexInParent(anchor.anchorElement) &&
+  followDomPath(anchor.anchorElement, anchor.domPath) === element;
+
+// Records how to recover an element after a DOM swap. Keeps the anchor fresh
+// across sibling reorders: an existing record is reused only while its DOM
+// positions still hold, so revalidation stays cheap (no fiber lookups) on the
+// common no-change tick.
+export const trackElementAnchor = (element: Element): void => {
   if (!element.isConnected) return;
-  if (anchorByElement.has(element)) return;
+  const existingAnchor = anchorByElement.get(element);
+  if (existingAnchor && isAnchorFresh(existingAnchor, element)) return;
   const anchor = findAnchor(element);
   if (anchor) anchorByElement.set(element, anchor);
 };
@@ -92,9 +123,7 @@ export const resolveLiveElement = (element: Element): Element | null => {
   const anchor = anchorByElement.get(element);
   if (!anchor) return null;
 
-  const liveAnchor = anchor.anchorElement.isConnected
-    ? anchor.anchorElement
-    : liveHostElementFromFiber(anchor.anchorParentFiber, anchor.anchorElement.tagName);
+  const liveAnchor = resolveLiveAnchor(anchor);
   if (!liveAnchor) return null;
 
   const recovered = followDomPath(liveAnchor, anchor.domPath);

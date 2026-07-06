@@ -1020,11 +1020,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!element) return;
 
       const intervalId = setInterval(() => {
-        actions.relinkLiveElements();
         // The hovered node can be swapped out by a re-render the freeze didn't
-        // catch (e.g. a dangerouslySetInnerHTML block re-highlighting). If fiber
-        // recovery couldn't relink it, re-detect under the pointer so the
-        // selection latches onto its replacement instead of vanishing.
+        // catch (e.g. a dangerouslySetInnerHTML block re-highlighting). Fiber
+        // recovery is attempted on demand here because the bounds-recalc
+        // interval — the periodic relink owner — only runs while the overlay is
+        // active; if recovery can't relink it, re-detect under the pointer so
+        // the selection latches onto its replacement instead of vanishing.
+        if (!isElementConnected(store.detectedElement)) {
+          actions.relinkLiveElements();
+        }
         if (!isElementConnected(store.detectedElement)) {
           redetectElementUnderPointer();
         }
@@ -1080,7 +1084,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const getSelectionElement = (): Element | undefined => {
       if (store.isTouchMode && isDragging()) {
         const detected = store.detectedElement;
-        if (!detected || isRootElement(detected)) return undefined;
+        if (!isElementConnected(detected) || isRootElement(detected)) return undefined;
         return detected;
       }
       const element = effectiveElement();

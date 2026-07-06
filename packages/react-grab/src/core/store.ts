@@ -5,7 +5,7 @@ import { OFFSCREEN_POSITION } from "../constants.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
-import { resolveLiveElement, trackElementFiber } from "../utils/resolve-live-element.js";
+import { resolveLiveElement, trackElementAnchor } from "./element-anchors.js";
 
 interface FrozenDragRect {
   pageX: number;
@@ -67,18 +67,13 @@ interface GrabStoreInput {
   keyHoldDuration: number;
 }
 
-// Returns the live element for a tracked slot: records the fiber while
-// connected so a future swap can be recovered, and re-resolves the current node
-// once it has detached. Keeps the old reference when recovery fails so callers
-// never lose the slot to a transient null.
+// Returns the live element for a tracked slot: keeps the recovery anchor fresh
+// while connected, and re-resolves the current node once it has detached. Keeps
+// the old reference when recovery fails so callers never lose the slot to a
+// transient null.
 const relinkElement = (element: Element): Element => {
-  if (element.isConnected) {
-    trackElementFiber(element);
-    return element;
-  }
-  const liveElement = resolveLiveElement(element);
-  if (!liveElement) return element;
-  trackElementFiber(liveElement);
+  const liveElement = resolveLiveElement(element) ?? element;
+  trackElementAnchor(liveElement);
   return liveElement;
 };
 
@@ -86,18 +81,15 @@ const relinkElement = (element: Element): Element => {
 // target, the context-menu target, and the post-copy "Copied" labels and
 // grabbed-box flashes — so they all follow the same DOM swaps. Run on the
 // recalc interval; assigning the same reference back is a no-op for solid, so
-// connected elements produce no store notifications.
+// connected elements produce no store notifications. Each slot is relinked in
+// place: frozenElement is NOT re-derived from frozenElements[0] here, because
+// enterPromptMode sets it standalone (prompt on a non-first multi-selected
+// element) and re-deriving would snap the prompt back to the first selection.
 const relinkSlots = (draft: GrabStore): void => {
   for (let index = 0; index < draft.frozenElements.length; index += 1) {
     draft.frozenElements[index] = relinkElement(draft.frozenElements[index]);
   }
-  // frozenElement mirrors frozenElements[0] when the array is populated (see
-  // updateFrozenElements); it only stands alone in freeze / prompt mode, where
-  // it is recovered on its own.
-  draft.frozenElement =
-    draft.frozenElements.length > 0
-      ? draft.frozenElements[0]
-      : draft.frozenElement && relinkElement(draft.frozenElement);
+  draft.frozenElement = draft.frozenElement && relinkElement(draft.frozenElement);
   draft.detectedElement = draft.detectedElement && relinkElement(draft.detectedElement);
   draft.contextMenuElement = draft.contextMenuElement && relinkElement(draft.contextMenuElement);
 
@@ -221,6 +213,9 @@ const createGrabStore = (input: GrabStoreInput) => {
         mutator(draft);
         draft.frozenElement = draft.frozenElements.length > 0 ? draft.frozenElements[0] : null;
         draft.frozenDragRect = null;
+        for (const frozenElement of draft.frozenElements) {
+          trackElementAnchor(frozenElement);
+        }
       }),
     );
   };
@@ -303,6 +298,7 @@ const createGrabStore = (input: GrabStoreInput) => {
       if (current().state === "active") {
         const elementToFreeze = store.frozenElement ?? store.detectedElement;
         if (elementToFreeze) {
+          trackElementAnchor(elementToFreeze);
           setStore("frozenElement", elementToFreeze);
         }
         setActivePhase("frozen");
@@ -439,6 +435,7 @@ const createGrabStore = (input: GrabStoreInput) => {
     enterPromptMode: (position: Position, element: Element) => {
       const bounds = createElementBounds(element);
       const { x: selectionCenterX } = getBoundsCenter(bounds);
+      trackElementAnchor(element);
 
       batch(() => {
         setStore("copyStart", position);
@@ -491,6 +488,7 @@ const createGrabStore = (input: GrabStoreInput) => {
     },
 
     setDetectedElement: (element: Element | null) => {
+      if (element) trackElementAnchor(element);
       setStore("detectedElement", element);
     },
 
@@ -580,6 +578,7 @@ const createGrabStore = (input: GrabStoreInput) => {
     },
 
     addGrabbedBox: (box: GrabbedBox) => {
+      if (box.element) trackElementAnchor(box.element);
       setStore("grabbedBoxes", (boxes) => [...boxes, box]);
     },
 
@@ -592,6 +591,10 @@ const createGrabStore = (input: GrabStoreInput) => {
     },
 
     addLabelInstance: (instance: SelectionLabelInstance) => {
+      if (instance.element) trackElementAnchor(instance.element);
+      for (const instanceElement of instance.elements ?? []) {
+        trackElementAnchor(instanceElement);
+      }
       setStore("labelInstances", (instances) => [...instances, instance]);
     },
 
@@ -629,6 +632,7 @@ const createGrabStore = (input: GrabStoreInput) => {
     showContextMenu: (position: Position, element: Element) => {
       const bounds = createElementBounds(element);
       const { x: centerX, y: centerY } = getBoundsCenter(bounds);
+      trackElementAnchor(element);
       batch(() => {
         setStore("contextMenuPosition", position);
         setStore("contextMenuElement", element);

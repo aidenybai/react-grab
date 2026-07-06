@@ -693,6 +693,17 @@ const FiberSwapSection = () => {
     <section className="border rounded-lg p-4" data-testid="fiber-swap-section">
       <h2 className="text-lg font-bold mb-4">Fiber Swap</h2>
       <FiberSwapTarget swapped={swapped} />
+      {/* Keyed host element nested directly under another host element (no
+          composite component in between): the swapped node's fiber parent is
+          the section's host fiber, exercising the host-under-host recovery
+          path that composite-parent targets like FiberSwapTarget never hit. */}
+      <div
+        key={swapped ? "host-swapped" : "host-initial"}
+        className="p-4 mt-4 bg-teal-100 rounded"
+        data-testid="host-swap-target"
+      >
+        {swapped ? "Swapped host-under-host node" : "Initial host-under-host node"}
+      </div>
     </section>
   );
 };

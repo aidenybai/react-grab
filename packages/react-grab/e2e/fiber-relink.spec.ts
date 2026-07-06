@@ -1,4 +1,5 @@
 import { test, expect } from "./fixtures.js";
+import type { Page } from "@playwright/test";
 
 interface FiberSwapWindow {
   __triggerFiberSwap?: () => void;
@@ -8,10 +9,43 @@ interface FiberSwapWindow {
   };
 }
 
+const SELECTION_TEXT_ATTEMPTS = 4;
+const HOVER_MOVE_STEPS = 5;
+const SELECTION_TEXT_POLL_TIMEOUT_MS = 1_000;
+
 const getSelectionTargetText = () =>
   (window as unknown as FiberSwapWindow).__REACT_GRAB__
     ?.getState()
     .targetElement?.textContent?.trim();
+
+// hoverUntilSelected resolves once ANY element is selected; when the synthetic
+// hover races scroll-into-view the selection can land on a different element,
+// and a single post-scroll pointermove can be swallowed entirely. Scroll the
+// target into view first, then walk the pointer to it in steps (real
+// intermediate pointermoves) until it is the actual selection target.
+const hoverUntilSelectionTextIs = async (page: Page, selector: string, expectedText: string) => {
+  const target = page.locator(selector).first();
+  await target.scrollIntoViewIfNeeded();
+  for (let attempt = 1; attempt <= SELECTION_TEXT_ATTEMPTS; attempt++) {
+    const bounds = await target.boundingBox();
+    if (bounds) {
+      await page.mouse.move(bounds.x - 5, bounds.y - 5);
+      await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2, {
+        steps: HOVER_MOVE_STEPS,
+      });
+    }
+    try {
+      await expect
+        .poll(() => page.evaluate(getSelectionTargetText), {
+          timeout: SELECTION_TEXT_POLL_TIMEOUT_MS,
+        })
+        .toBe(expectedText);
+      return;
+    } catch (error) {
+      if (attempt === SELECTION_TEXT_ATTEMPTS) throw error;
+    }
+  }
+};
 
 test.describe("Fiber-latched selection", () => {
   // When React swaps the DOM node backing a held selection (a keyed remount
@@ -27,9 +61,11 @@ test.describe("Fiber-latched selection", () => {
     await reactGrab.updateOptions({ freezeReactUpdates: false });
 
     await reactGrab.activate();
-    await reactGrab.hoverUntilSelected("[data-testid='fiber-swap-target']");
-
-    await expect.poll(() => page.evaluate(getSelectionTargetText)).toBe("Initial fiber node");
+    await hoverUntilSelectionTextIs(
+      page,
+      "[data-testid='fiber-swap-target']",
+      "Initial fiber node",
+    );
 
     await page.evaluate(() => (window as unknown as FiberSwapWindow).__triggerFiberSwap?.());
 
@@ -49,7 +85,11 @@ test.describe("Fiber-latched selection", () => {
     await reactGrab.updateOptions({ freezeReactUpdates: false });
 
     await reactGrab.activate();
-    await reactGrab.hoverUntilSelected("[data-testid='fiber-swap-target']");
+    await hoverUntilSelectionTextIs(
+      page,
+      "[data-testid='fiber-swap-target']",
+      "Initial fiber node",
+    );
     await reactGrab.clickElement("[data-testid='fiber-swap-target']");
     await expect.poll(() => reactGrab.getLabelStatusText(), { timeout: 2000 }).toBe("Copied");
 
@@ -69,6 +109,32 @@ test.describe("Fiber-latched selection", () => {
       .toBeGreaterThan(40);
   });
 
+  // A keyed host element nested directly under another host element has a host
+  // fiber as its fiber parent (no composite component in between), so recovery
+  // cannot search a composite subtree — it must re-find the replacement at the
+  // anchor's recorded child index under the surviving parent host node.
+  test("re-resolves a swapped node whose fiber parent is itself a host fiber", async ({
+    reactGrab,
+    page,
+  }) => {
+    await reactGrab.updateOptions({ freezeReactUpdates: false });
+
+    await reactGrab.activate();
+    await hoverUntilSelectionTextIs(
+      page,
+      "[data-testid='host-swap-target']",
+      "Initial host-under-host node",
+    );
+
+    await page.evaluate(() => (window as unknown as FiberSwapWindow).__triggerFiberSwap?.());
+
+    await expect
+      .poll(() => page.evaluate(getSelectionTargetText))
+      .toBe("Swapped host-under-host node");
+
+    expect(await reactGrab.isSelectionBoxVisible()).toBe(true);
+  });
+
   // Tokens rendered through dangerouslySetInnerHTML (syntax-highlighted code on
   // the website) have no fiber of their own. Replacing the host's innerHTML
   // detaches the selected token; recovery must anchor to the fibered host div
@@ -80,9 +146,7 @@ test.describe("Fiber-latched selection", () => {
     await reactGrab.updateOptions({ freezeReactUpdates: false });
 
     await reactGrab.activate();
-    await reactGrab.hoverUntilSelected(".inner-html-token");
-
-    await expect.poll(() => page.evaluate(getSelectionTargetText)).toBe("token-initial");
+    await hoverUntilSelectionTextIs(page, ".inner-html-token", "token-initial");
 
     await page.evaluate(() => (window as unknown as FiberSwapWindow).__triggerInnerHtmlSwap?.());
 
