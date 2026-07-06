@@ -88,6 +88,7 @@ const buildLabelInstance = (options: BuildLabelInstanceOptions): SelectionLabelI
 export const createLabelController = (
   store: LabelStoreBridge,
   getLabelInstances: () => readonly SelectionLabelInstance[],
+  onClearAll?: () => void,
 ): LabelController => {
   const fadeTimeouts = new Map<string, number>();
 
@@ -109,6 +110,7 @@ export const createLabelController = (
   const clearAll = () => {
     cancelAllFades();
     store.clearLabelInstances();
+    onClearAll?.();
   };
 
   const scheduleFade = (instanceId: string) => {

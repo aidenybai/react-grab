@@ -553,6 +553,11 @@ const createGrabStore = (input: GrabStoreInput) => {
           setStore("labelInstances", index, "status", status);
           if (errorMessage !== undefined) {
             setStore("labelInstances", index, "errorMessage", errorMessage);
+          } else if (status !== "error") {
+            // errorMessage is only meaningful in the error state; leaving it set
+            // after a retry (copying) or success (copied) keeps the Retry/Ok
+            // panel visible, since the view renders on the message, not status.
+            setStore("labelInstances", index, "errorMessage", undefined);
           }
         });
       }

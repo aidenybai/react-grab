@@ -194,6 +194,11 @@ interface LabeledCopyOptions {
   onComplete?: () => void;
 }
 
+interface CopyRetryEntry {
+  operation: () => Promise<boolean>;
+  siblingIds: Set<string>;
+}
+
 let hasInited = false;
 const toolbarStateChangeCallbacks = new Set<(state: ToolbarState) => void>();
 
@@ -654,11 +659,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       );
     };
 
-    const labelController = createLabelController(actions, () => store.labelInstances);
+    // Per-label retry entries, registered when a copy fails so the error view's
+    // Retry button (and Enter key) can re-run the exact same operation. Grouped
+    // instances (a multi-element grab) share one entry whose siblingIds set is
+    // the live membership: acknowledging one instance drops it from the set so a
+    // later Retry never resurrects a dismissed label.
+    const retryCopyByInstanceId = new Map<string, CopyRetryEntry>();
 
-    // Per-label retry closures, registered when a copy fails so the error
-    // view's Retry button (and Enter key) can re-run the exact same operation.
-    const retryCopyByInstanceId = new Map<string, () => void>();
+    const labelController = createLabelController(
+      actions,
+      () => store.labelInstances,
+      () => retryCopyByInstanceId.clear(),
+    );
 
     const attemptClipboardAndLabel = async (
       clipboardOperation: () => Promise<boolean>,
@@ -695,27 +707,30 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return;
       }
 
-      const retry = () => {
-        for (const labelInstanceId of labelInstanceIds) {
-          labelController.markRetrying(labelInstanceId);
-          retryCopyByInstanceId.delete(labelInstanceId);
-        }
-        void attemptClipboardAndLabel(clipboardOperation, labelInstanceIds).then(
-          (didRetrySucceed) =>
-            registerCopyRetry(didRetrySucceed, clipboardOperation, labelInstanceIds),
-        );
+      const entry: CopyRetryEntry = {
+        operation: clipboardOperation,
+        siblingIds: new Set(labelInstanceIds),
       };
-
       for (const labelInstanceId of labelInstanceIds) {
-        retryCopyByInstanceId.set(labelInstanceId, retry);
+        retryCopyByInstanceId.set(labelInstanceId, entry);
       }
     };
 
     const handleRetryInstance = (instanceId: string) => {
-      retryCopyByInstanceId.get(instanceId)?.();
+      const entry = retryCopyByInstanceId.get(instanceId);
+      if (!entry) return;
+      const idsToRetry = [...entry.siblingIds];
+      for (const labelInstanceId of idsToRetry) {
+        labelController.markRetrying(labelInstanceId);
+        retryCopyByInstanceId.delete(labelInstanceId);
+      }
+      void attemptClipboardAndLabel(entry.operation, idsToRetry).then((didRetrySucceed) =>
+        registerCopyRetry(didRetrySucceed, entry.operation, idsToRetry),
+      );
     };
 
     const handleAcknowledgeErrorInstance = (instanceId: string) => {
+      retryCopyByInstanceId.get(instanceId)?.siblingIds.delete(instanceId);
       retryCopyByInstanceId.delete(instanceId);
       labelController.dismissInstance(instanceId);
     };
@@ -836,7 +851,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           if (copy.labelInstanceIds.length > 0) {
             registerCopyRetry(
               false,
-              () => copyElementsToClipboard(copy.targetElements, copy.extraPrompt, undefined),
+              () =>
+                getNearestComponentName(copy.primaryElement).then((componentName) =>
+                  copyElementsToClipboard(
+                    copy.targetElements,
+                    copy.extraPrompt,
+                    componentName ?? undefined,
+                  ),
+                ),
               copy.labelInstanceIds,
             );
           }
