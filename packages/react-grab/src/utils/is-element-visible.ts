@@ -12,12 +12,25 @@ const CHECK_VISIBILITY_OPTIONS = {
   visibilityProperty: true,
 };
 
+const STRUCTURAL_VISIBILITY_OPTIONS = {
+  checkVisibilityCSS: true,
+  visibilityProperty: true,
+};
+
 export const isElementVisible = (
   element: Element,
   computedStyle?: CSSStyleDeclaration,
 ): boolean => {
   if (supportsCheckVisibility && !computedStyle) {
-    return element.checkVisibility(CHECK_VISIBILITY_OPTIONS);
+    if (element.checkVisibility(CHECK_VISIBILITY_OPTIONS)) return true;
+    if (!element.checkVisibility(STRUCTURAL_VISIBILITY_OPTIONS)) return false;
+    // Only an opacity:0 somewhere in the ancestor chain remains. An ancestor's
+    // opacity is NOT a reliable invisibility signal while react-grab is active:
+    // the pointer-events freeze suppresses :hover, so hover-revealed UI
+    // (opacity-0 row toolbars revealed by .row:hover) reads opacity:0 for the
+    // whole session and would become unreachable. Match the element's own
+    // opacity only - hit-testability decides the rest.
+    return window.getComputedStyle(element).opacity !== "0";
   }
   const style = computedStyle ?? window.getComputedStyle(element);
   return style.display !== "none" && style.visibility !== "hidden" && style.opacity !== "0";
