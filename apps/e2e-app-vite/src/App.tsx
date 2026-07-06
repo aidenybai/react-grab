@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { PerfGrid } from "./perf-grid";
+import { HeavyPage, parseHeavyView, type HeavyView } from "./perf-heavy/heavy-page";
 
 interface Todo {
   id: number;
@@ -641,6 +642,13 @@ const HiddenToggleSection = () => {
   );
 };
 
+const usePerfHeavyView = (): HeavyView | null => {
+  if (typeof window === "undefined") return null;
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("perf") !== "heavy") return null;
+  return parseHeavyView(params.get("view"));
+};
+
 const usePerfGridConfig = (): { rowCount: number; columnCount: number } | null => {
   if (typeof window === "undefined") return null;
   const params = new URLSearchParams(window.location.search);
@@ -704,9 +712,14 @@ const PointerEventsModalSection = () => {
 
 export default function App() {
   const perfConfig = usePerfGridConfig();
+  const heavyView = usePerfHeavyView();
 
   if (perfConfig) {
     return <PerfGrid rowCount={perfConfig.rowCount} columnCount={perfConfig.columnCount} />;
+  }
+
+  if (heavyView) {
+    return <HeavyPage view={heavyView} />;
   }
 
   return (

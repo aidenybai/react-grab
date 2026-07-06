@@ -25,6 +25,8 @@ const FOCUS_EVENTS_TO_BLOCK = ["focus", "blur", "focusin", "focusout"] as const;
 // Before disabling pointer-events we snapshot current :hover and :focus computed
 // values (background-color, box-shadow, opacity, etc.) onto inline styles so
 // elements keep their visual state (e.g. a hovered button stays highlighted).
+// display is pinned so hover-revealed dropdowns/tooltips under the cursor
+// (display:none until :hover) stay open once the freeze drops :hover.
 const HOVER_STYLE_PROPERTIES = [
   "background-color",
   "color",
@@ -36,6 +38,7 @@ const HOVER_STYLE_PROPERTIES = [
   "filter",
   "scale",
   "visibility",
+  "display",
 ] as const;
 
 const FOCUS_STYLE_PROPERTIES = [

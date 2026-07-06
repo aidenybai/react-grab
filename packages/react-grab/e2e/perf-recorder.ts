@@ -322,9 +322,20 @@ const stopCpuProfilerAndWrite = async (
 // --- Memory tracking (always on) ----------------------------------------
 //
 // Reads renderer memory counters via the CDP `Performance` domain around the
-// metric samples, with a forced GC (`HeapProfiler.collectGarbage`) before
-// each reading so the before/after delta approximates *retained* growth
-// (leaked nodes, listeners, detached documents) rather than transient garbage.
+// metric samples, with forced GC (`HeapProfiler.collectGarbage`) before each
+// reading so the before/after delta approximates *retained* growth (leaked
+// nodes, listeners, detached documents) rather than transient garbage.
+//
+// A single collectGarbage pass is not enough for a stable reading: it can
+// leave FinalizationRegistry / weak-callback garbage that only the *next*
+// pass collects, and detached-node accounting lags a frame. So each reading
+// loops GC → settle (double rAF + timeout, letting pending mounts/unmounts
+// and finalizers run) → read, until the heap and node counts stop moving
+// between passes (or a pass cap, for pages that allocate continuously).
+
+const GC_STABILIZATION_MAX_PASSES = 6;
+const GC_STABLE_HEAP_EPSILON_KB = 64;
+const GC_SETTLE_DELAY_MS = 50;
 
 const startMemoryProbe = async (page: Page): Promise<CDPSession> => {
   const cdpSession = await page.context().newCDPSession(page);
@@ -333,8 +344,7 @@ const startMemoryProbe = async (page: Page): Promise<CDPSession> => {
   return cdpSession;
 };
 
-const readMemorySnapshot = async (cdpSession: CDPSession): Promise<PerfMemorySnapshot> => {
-  await cdpSession.send("HeapProfiler.collectGarbage");
+const readRawMemoryMetrics = async (cdpSession: CDPSession): Promise<PerfMemorySnapshot> => {
   const { metrics } = await cdpSession.send("Performance.getMetrics");
   const metricValuesByName = new Map<string, number>();
   for (const metric of metrics) metricValuesByName.set(metric.name, metric.value);
@@ -348,6 +358,37 @@ const readMemorySnapshot = async (cdpSession: CDPSession): Promise<PerfMemorySna
   };
 };
 
+const readMemorySnapshot = async (
+  cdpSession: CDPSession,
+  page: Page,
+): Promise<PerfMemorySnapshot> => {
+  let previousReading: PerfMemorySnapshot | null = null;
+  for (let passIndex = 0; passIndex < GC_STABILIZATION_MAX_PASSES; passIndex++) {
+    await cdpSession.send("HeapProfiler.collectGarbage");
+    await page.evaluate(
+      (settleDelayMs) =>
+        new Promise<void>((resolveSettle) => {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              setTimeout(resolveSettle, settleDelayMs);
+            });
+          });
+        }),
+      GC_SETTLE_DELAY_MS,
+    );
+    const currentReading = await readRawMemoryMetrics(cdpSession);
+    const isStable =
+      previousReading !== null &&
+      Math.abs(currentReading.jsHeapUsedKb - previousReading.jsHeapUsedKb) <
+        GC_STABLE_HEAP_EPSILON_KB &&
+      currentReading.domNodes === previousReading.domNodes;
+    if (isStable) return currentReading;
+    previousReading = currentReading;
+  }
+  if (!previousReading) throw new Error("memory snapshot produced no reading");
+  return previousReading;
+};
+
 const diffMemorySnapshots = (
   before: PerfMemorySnapshot,
   after: PerfMemorySnapshot,
@@ -357,6 +398,26 @@ const diffMemorySnapshots = (
   domNodes: after.domNodes - before.domNodes,
   jsEventListeners: after.jsEventListeners - before.jsEventListeners,
   documents: after.documents - before.documents,
+});
+
+const medianOfValues = (values: number[]): number => {
+  const sortedValues = [...values].sort((leftValue, rightValue) => leftValue - rightValue);
+  const middleIndex = Math.floor(sortedValues.length / 2);
+  return sortedValues.length % 2 === 1
+    ? sortedValues[middleIndex]
+    : Math.round((sortedValues[middleIndex - 1] + sortedValues[middleIndex]) / 2);
+};
+
+// Component-wise median across per-sample deltas. A single before/after
+// window is hostage to whatever one-off retention (app caches, JIT code,
+// GC-timing residue) happened to land inside it; the median of per-sample
+// deltas rejects those spikes and reports steady-state per-iteration growth.
+const medianMemoryDelta = (deltas: PerfMemorySnapshot[]): PerfMemorySnapshot => ({
+  jsHeapUsedKb: medianOfValues(deltas.map((delta) => delta.jsHeapUsedKb)),
+  jsHeapTotalKb: medianOfValues(deltas.map((delta) => delta.jsHeapTotalKb)),
+  domNodes: medianOfValues(deltas.map((delta) => delta.domNodes)),
+  jsEventListeners: medianOfValues(deltas.map((delta) => delta.jsEventListeners)),
+  documents: medianOfValues(deltas.map((delta) => delta.documents)),
 });
 
 const raceDeadline = <ResultType>(
@@ -554,11 +615,14 @@ export const recordScenario = async (
   let memoryBefore: PerfMemorySnapshot | null = null;
   try {
     memoryProbe = await startMemoryProbe(page);
-    memoryBefore = await readMemorySnapshot(memoryProbe);
+    memoryBefore = await readMemorySnapshot(memoryProbe, page);
   } catch (probeError) {
     console.warn(`[perf] ${scenarioName}: memory probe unavailable:`, probeError);
   }
   const perSampleAggregates: PerfScenarioAggregate[] = [];
+  const perSampleMemoryDeltas: PerfMemorySnapshot[] = [];
+  let previousMemorySnapshot = memoryBefore;
+  let lastMemorySnapshot: PerfMemorySnapshot | null = null;
   let memory: PerfMemoryMetrics | undefined;
   // try/finally so the probe's CDP session detaches even if a sample throws.
   try {
@@ -574,18 +638,33 @@ export const recordScenario = async (
         rawSnapshot = await stopRecording(page);
       }
       perSampleAggregates.push(aggregateRawSnapshot(rawSnapshot));
-    }
-    if (memoryProbe && memoryBefore) {
-      try {
-        const memoryAfter = await readMemorySnapshot(memoryProbe);
-        memory = {
-          before: memoryBefore,
-          after: memoryAfter,
-          delta: diffMemorySnapshots(memoryBefore, memoryAfter),
-        };
-      } catch (probeError) {
-        console.warn(`[perf] ${scenarioName}: memory read failed:`, probeError);
+      // Snapshot after every sample so memory growth can be aggregated
+      // per-sample (median) instead of one whole-scenario window. The
+      // sample-0 delta is recorded but excluded when other samples exist:
+      // one-time warmup allocations (JIT code objects, lazily-initialized
+      // module state, framework caches) land there and vary run to run,
+      // while steady-state per-iteration growth is the actual leak signal.
+      if (memoryProbe && previousMemorySnapshot) {
+        try {
+          const sampleEndSnapshot = await readMemorySnapshot(memoryProbe, page);
+          perSampleMemoryDeltas.push(
+            diffMemorySnapshots(previousMemorySnapshot, sampleEndSnapshot),
+          );
+          previousMemorySnapshot = sampleEndSnapshot;
+          lastMemorySnapshot = sampleEndSnapshot;
+        } catch (probeError) {
+          console.warn(`[perf] ${scenarioName}: memory read failed:`, probeError);
+        }
       }
+    }
+    if (memoryBefore && lastMemorySnapshot && perSampleMemoryDeltas.length > 0) {
+      const steadyStateDeltas =
+        perSampleMemoryDeltas.length > 1 ? perSampleMemoryDeltas.slice(1) : perSampleMemoryDeltas;
+      memory = {
+        before: memoryBefore,
+        after: lastMemorySnapshot,
+        delta: medianMemoryDelta(steadyStateDeltas),
+      };
     }
   } finally {
     if (memoryProbe) await detachQuietly(memoryProbe);

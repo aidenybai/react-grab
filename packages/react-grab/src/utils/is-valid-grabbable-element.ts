@@ -67,6 +67,9 @@ interface VisibilityCache {
 
 let visibilityCache = new WeakMap<Element, VisibilityCache>();
 
+// Only for resize paths: media/container queries can flip visibility
+// synchronously on resize, so the TTL alone is not a safe staleness bound
+// there. Scroll paths must NOT call this — see invalidate-interaction-caches.
 export const clearVisibilityCache = (): void => {
   visibilityCache = new WeakMap<Element, VisibilityCache>();
 };
@@ -91,9 +94,7 @@ export const isValidGrabbableElement = (element: Element): boolean => {
     return cached.isVisible;
   }
 
-  const computedStyle = window.getComputedStyle(element);
-
-  const isVisible = isElementVisible(element, computedStyle);
+  const isVisible = isElementVisible(element);
   if (!isVisible) {
     visibilityCache.set(element, { isVisible: false, timestamp: now });
     return false;
@@ -104,6 +105,10 @@ export const isValidGrabbableElement = (element: Element): boolean => {
     element.clientHeight / window.innerHeight >= VIEWPORT_COVERAGE_THRESHOLD;
 
   if (couldBeOverlay) {
+    // getComputedStyle is deferred to this branch on purpose: it is the
+    // expensive call in this function and only viewport-covering elements
+    // need the overlay heuristics.
+    const computedStyle = window.getComputedStyle(element);
     if (isDevToolsOverlay(computedStyle)) {
       return false;
     }
