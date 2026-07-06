@@ -197,6 +197,7 @@ interface LabeledCopyOptions {
 interface CopyRetryEntry {
   operation: () => Promise<boolean>;
   siblingIds: Set<string>;
+  shouldDeactivateAfter: boolean;
 }
 
 let hasInited = false;
@@ -699,6 +700,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       didSucceed: boolean,
       clipboardOperation: () => Promise<boolean>,
       labelInstanceIds: string[],
+      shouldDeactivateAfter: boolean,
     ) => {
       if (didSucceed) {
         for (const labelInstanceId of labelInstanceIds) {
@@ -710,29 +712,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const entry: CopyRetryEntry = {
         operation: clipboardOperation,
         siblingIds: new Set(labelInstanceIds),
+        shouldDeactivateAfter,
       };
       for (const labelInstanceId of labelInstanceIds) {
         retryCopyByInstanceId.set(labelInstanceId, entry);
       }
-    };
-
-    const handleRetryInstance = (instanceId: string) => {
-      const entry = retryCopyByInstanceId.get(instanceId);
-      if (!entry) return;
-      const idsToRetry = [...entry.siblingIds];
-      for (const labelInstanceId of idsToRetry) {
-        labelController.markRetrying(labelInstanceId);
-        retryCopyByInstanceId.delete(labelInstanceId);
-      }
-      void attemptClipboardAndLabel(entry.operation, idsToRetry).then((didRetrySucceed) =>
-        registerCopyRetry(didRetrySucceed, entry.operation, idsToRetry),
-      );
-    };
-
-    const handleAcknowledgeErrorInstance = (instanceId: string) => {
-      retryCopyByInstanceId.get(instanceId)?.siblingIds.delete(instanceId);
-      retryCopyByInstanceId.delete(instanceId);
-      labelController.dismissInstance(instanceId);
     };
 
     const executeCopyOperation = async (
@@ -748,7 +732,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const didSucceed = await attemptClipboardAndLabel(clipboardOperation, labelInstanceIds);
 
       if (labelInstanceIds) {
-        registerCopyRetry(didSucceed, clipboardOperation, labelInstanceIds);
+        registerCopyRetry(
+          didSucceed,
+          clipboardOperation,
+          labelInstanceIds,
+          Boolean(shouldDeactivateAfter),
+        );
       }
 
       if (current().state !== "copying") return;
@@ -765,6 +754,26 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       } else {
         actions.unfreeze();
       }
+    };
+
+    const handleRetryInstance = (instanceId: string) => {
+      const entry = retryCopyByInstanceId.get(instanceId);
+      if (!entry) return;
+      const idsToRetry = [...entry.siblingIds];
+      for (const labelInstanceId of idsToRetry) {
+        labelController.markRetrying(labelInstanceId);
+        retryCopyByInstanceId.delete(labelInstanceId);
+      }
+      // Route through the full copy path (not just the clipboard attempt) so a
+      // recovered copy runs the same completion side effects as a first-try
+      // success: completeCopy, re-activate or deactivate, and feedback cooldown.
+      void executeCopyOperation(entry.operation, idsToRetry, entry.shouldDeactivateAfter);
+    };
+
+    const handleAcknowledgeErrorInstance = (instanceId: string) => {
+      retryCopyByInstanceId.get(instanceId)?.siblingIds.delete(instanceId);
+      retryCopyByInstanceId.delete(instanceId);
+      labelController.dismissInstance(instanceId);
     };
 
     const copyResolvedElements = (
@@ -860,6 +869,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                   ),
                 ),
               copy.labelInstanceIds,
+              Boolean(copy.shouldDeactivateAfter),
             );
           }
           if (current().state === "copying") {

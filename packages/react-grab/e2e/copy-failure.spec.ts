@@ -95,6 +95,27 @@ test.describe("Copy failure feedback", () => {
     expect(instances.some((instance) => instance.status === "error")).toBe(false);
   });
 
+  test("Retry runs the full copy lifecycle so the overlay is not left stuck copying", async ({
+    reactGrab,
+  }) => {
+    await forceCopyResult(reactGrab, false);
+
+    await reactGrab.activate();
+    await reactGrab.hoverUntilSelected("li");
+    await reactGrab.clickElement("li");
+    await readErrorView(reactGrab);
+
+    await forceCopyResult(reactGrab, true);
+    await clickErrorButton(reactGrab, "data-react-grab-retry");
+
+    await expect.poll(() => isErrorViewGone(reactGrab), { timeout: 5000 }).toBe(true);
+    // A recovered copy must complete like a first-try success: the state
+    // machine leaves the copying state instead of stalling in it.
+    await expect
+      .poll(async () => (await reactGrab.getState()).isCopying, { timeout: 5000 })
+      .toBe(false);
+  });
+
   test("keeps the error label visible past the success-label fade window", async ({
     reactGrab,
   }) => {
