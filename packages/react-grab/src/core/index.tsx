@@ -1020,8 +1020,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!element) return;
 
       const intervalId = setInterval(() => {
-        if (!isElementConnected(element)) {
-          actions.setDetectedElement(null);
+        // The hovered node can be swapped out by a re-render the freeze didn't
+        // catch (e.g. a dangerouslySetInnerHTML block re-highlighting). Fiber
+        // recovery is attempted on demand here because the bounds-recalc
+        // interval — the periodic relink owner — only runs while the overlay is
+        // active; if recovery can't relink it, re-detect under the pointer so
+        // the selection latches onto its replacement instead of vanishing.
+        if (!isElementConnected(store.detectedElement)) {
+          actions.relinkLiveElements();
+        }
+        if (!isElementConnected(store.detectedElement)) {
+          redetectElementUnderPointer();
         }
       }, BOUNDS_RECALC_INTERVAL_MS);
 
@@ -1075,7 +1084,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const getSelectionElement = (): Element | undefined => {
       if (store.isTouchMode && isDragging()) {
         const detected = store.detectedElement;
-        if (!detected || isRootElement(detected)) return undefined;
+        if (!isElementConnected(detected) || isRootElement(detected)) return undefined;
         return detected;
       }
       const element = effectiveElement();
@@ -3235,6 +3244,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (boundsRecalcIntervalId !== null) return;
 
         boundsRecalcIntervalId = window.setInterval(() => {
+          actions.relinkLiveElements();
           scheduleBoundsSync();
         }, BOUNDS_RECALC_INTERVAL_MS);
         return;
@@ -3437,7 +3447,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!pluginRegistry.store.theme.grabbedBoxes.enabled) return [];
       void viewportVersion();
       return store.grabbedBoxes.map((box) => {
-        if (!box.element || !document.body.contains(box.element)) {
+        if (!isElementConnected(box.element)) {
           return box;
         }
         return {
