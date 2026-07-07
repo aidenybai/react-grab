@@ -132,8 +132,11 @@ const handleToolbarStateChange = async (state: ToolbarState): Promise<void> => {
 };
 
 window.addEventListener("message", (event: MessageEvent) => {
-  // Only trust messages from the extension's own ISOLATED-world bridge on this
-  // window; cross-origin iframes can postMessage the parent with these types.
+  // Blocks cross-origin iframes from driving the tool by postMessaging the
+  // parent window. Same-page scripts can still post these types, but they
+  // share this JS context and can already call window.__REACT_GRAB__
+  // directly, so a stronger handshake would add nothing (any token held here
+  // is readable by the page).
   if (event.source !== window) return;
 
   if (
