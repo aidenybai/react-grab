@@ -1,5 +1,7 @@
 // This script runs in ISOLATED world and bridges chrome.runtime messages to MAIN world
 
+import { isToolbarState } from "../is-toolbar-state.js";
+
 chrome.storage.onChanged.addListener((changes) => {
   if (changes.react_grab_enabled) {
     const newEnabled = changes.react_grab_enabled.newValue ?? true;
@@ -28,6 +30,13 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 });
 
 window.addEventListener("message", (event) => {
+  // Blocks cross-origin iframes from postMessaging the parent window into
+  // extension storage. Same-page scripts can still post these types — a
+  // shared-secret handshake with the MAIN world is impossible since any token
+  // exchanged over this channel is readable by the page — which is why the
+  // payload is also shape-validated before it is persisted.
+  if (event.source !== window) return;
+
   if (event.data?.type === "__REACT_GRAB_QUERY_STATE__") {
     chrome.storage.local.get(["react_grab_enabled", "react_grab_toolbar_state"], (result) => {
       const enabled = result.react_grab_enabled ?? true;
@@ -44,7 +53,10 @@ window.addEventListener("message", (event) => {
     });
   }
 
-  if (event.data?.type === "__REACT_GRAB_TOOLBAR_STATE_SAVE__") {
+  if (
+    event.data?.type === "__REACT_GRAB_TOOLBAR_STATE_SAVE__" &&
+    isToolbarState(event.data.state)
+  ) {
     chrome.storage.local.set({ react_grab_toolbar_state: event.data.state });
   }
 });

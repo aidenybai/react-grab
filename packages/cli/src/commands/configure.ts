@@ -8,11 +8,11 @@ import { highlighter } from "../utils/highlighter.js";
 import { logger } from "../utils/logger.js";
 import { spinner } from "../utils/spinner.js";
 import {
-  applyTransform,
   previewCdnTransform,
   previewOptionsTransform,
   type ReactGrabOptions,
 } from "../utils/transform.js";
+import { applyTransformWithFeedback } from "../utils/cli-helpers.js";
 import {
   MAX_SUGGESTIONS_COUNT,
   MAX_KEY_HOLD_DURATION_MS,
@@ -341,16 +341,7 @@ export const configure = new Command()
           }
         }
 
-        const writeSpinner = spinner(`Applying changes to ${result.filePath}.`).start();
-        const writeResult = applyTransform(result);
-        if (!writeResult.success) {
-          writeSpinner.fail();
-          logger.break();
-          logger.error(writeResult.error || "Failed to write file.");
-          logger.break();
-          process.exit(1);
-        }
-        writeSpinner.succeed();
+        applyTransformWithFeedback(result);
 
         logger.break();
         logger.log(`${highlighter.success("Success!")} CDN updated.`);
@@ -579,16 +570,7 @@ export const configure = new Command()
           }
         }
 
-        const writeSpinner = spinner(`Applying changes to ${result.filePath}.`).start();
-        const writeResult = applyTransform(result);
-        if (!writeResult.success) {
-          writeSpinner.fail();
-          logger.break();
-          logger.error(writeResult.error || "Failed to write file.");
-          logger.break();
-          process.exit(1);
-        }
-        writeSpinner.succeed();
+        applyTransformWithFeedback(result);
       } else {
         logger.break();
         logger.log("No changes needed.");

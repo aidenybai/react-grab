@@ -9,7 +9,6 @@ import type {
 } from "../types.js";
 import { buildEditableProperties } from "../utils/build-editable-properties.js";
 import { collectDesignTokens } from "../utils/collect-design-tokens.js";
-import { createElementBounds } from "../utils/create-element-bounds.js";
 import { formatSessionEditsPrompt } from "../utils/format-edit-prompt.js";
 import { getTagName } from "../utils/get-tag-name.js";
 import { createPreviewStyles } from "../utils/preview-styles.js";
@@ -148,7 +147,6 @@ export const createEditModeController = (
     setState({
       element,
       position,
-      selectionBounds: createElementBounds(element),
       properties,
       preview: createPreviewStyles(element),
       filePath: resolvedFilePath,
@@ -188,7 +186,6 @@ export const createEditModeController = (
     setState({
       element,
       position,
-      selectionBounds: createElementBounds(element),
       properties,
       preview: createPreviewStyles(element),
       tagName: getTagName(element),

@@ -40,7 +40,7 @@ jobs:
       # ─── Baseline run (PR only) ────────────────────────────────────────
       # Swap `packages/react-grab/src/` to the base ref so the same
       # bench harness measures the OLD library code. The harness itself
-      # (`e2e/perf-*.ts`, `scripts/diff-perf-runs.mjs`) and the e2e-app
+      # (`e2e/perf-*.ts`, `scripts/diff-perf-runs.mjs`) and the fixture-app
       # stimulus stay at HEAD so the only variable across runs is
       # react-grab's source.
       - name: Swap react-grab src to base ref

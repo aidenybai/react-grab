@@ -1,7 +1,8 @@
 import { init } from "react-grab/core";
-import type { Options, ReactGrabAPI } from "react-grab";
+import type { Options, ReactGrabAPI, ToolbarState } from "react-grab";
 import TurndownService from "turndown";
 import { LOCALHOST_INIT_DELAY_MS, STATE_QUERY_TIMEOUT_MS } from "../constants.js";
+import { isToolbarState } from "../is-toolbar-state.js";
 
 declare global {
   interface Window {
@@ -16,13 +17,6 @@ const isLocalhost =
 
 const turndownService = new TurndownService();
 
-interface ToolbarState {
-  edge: "top" | "bottom" | "left" | "right";
-  ratio: number;
-  collapsed: boolean;
-  enabled: boolean;
-}
-
 let extensionApi: ReactGrabAPI | null = null;
 let lastToolbarState: ToolbarState | null = null;
 let isApplyingExternalState = false;
@@ -36,7 +30,8 @@ const handleToolbarStateFromApi = (toolbarState: ToolbarState | null): void => {
     lastToolbarState.edge === toolbarState.edge &&
     lastToolbarState.ratio === toolbarState.ratio &&
     lastToolbarState.collapsed === toolbarState.collapsed &&
-    lastToolbarState.enabled === toolbarState.enabled
+    lastToolbarState.enabled === toolbarState.enabled &&
+    lastToolbarState.defaultAction === toolbarState.defaultAction
   ) {
     return;
   }
@@ -137,11 +132,24 @@ const handleToolbarStateChange = async (state: ToolbarState): Promise<void> => {
 };
 
 window.addEventListener("message", (event: MessageEvent) => {
-  if (event.data?.type === "__REACT_GRAB_EXTENSION_TOGGLE__") {
+  // Blocks cross-origin iframes from driving the tool by postMessaging the
+  // parent window. Same-page scripts can still post these types, but they
+  // share this JS context and can already call window.__REACT_GRAB__
+  // directly, so a stronger handshake would add nothing (any token held here
+  // is readable by the page).
+  if (event.source !== window) return;
+
+  if (
+    event.data?.type === "__REACT_GRAB_EXTENSION_TOGGLE__" &&
+    typeof event.data.enabled === "boolean"
+  ) {
     void handleToggle(event.data.enabled);
   }
 
-  if (event.data?.type === "__REACT_GRAB_TOOLBAR_STATE_CHANGE__") {
+  if (
+    event.data?.type === "__REACT_GRAB_TOOLBAR_STATE_CHANGE__" &&
+    isToolbarState(event.data.state)
+  ) {
     void handleToolbarStateChange(event.data.state);
   }
 });
@@ -158,12 +166,15 @@ const queryInitialState = (): Promise<InitialState> => {
     }, STATE_QUERY_TIMEOUT_MS);
 
     const handler = (event: MessageEvent) => {
+      if (event.source !== window) return;
       if (event.data?.type === "__REACT_GRAB_STATE_RESPONSE__") {
         clearTimeout(timeout);
         window.removeEventListener("message", handler);
         resolve({
           enabled: event.data.enabled ?? true,
-          toolbarState: event.data.toolbarState ?? null,
+          // Validate on read too: storage may hold a value written before
+          // saves were shape-checked.
+          toolbarState: isToolbarState(event.data.toolbarState) ? event.data.toolbarState : null,
         });
       }
     };
