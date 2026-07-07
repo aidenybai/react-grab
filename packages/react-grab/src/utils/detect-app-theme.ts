@@ -224,8 +224,7 @@ export const watchAppTheme = (
   let lastInputsFingerprint: string | null = null;
   let pendingFrame: number | null = null;
 
-  const applyTheme = (): AppTheme => {
-    const inputsFingerprint = getThemeInputsFingerprint();
+  const applyTheme = (inputsFingerprint = getThemeInputsFingerprint()): AppTheme => {
     if (inputsFingerprint === lastInputsFingerprint && lastAppliedTheme !== null) {
       // Even when re-detection is skipped, flush pending style with one
       // targeted read. Skipping every read here lets invalidations from the
@@ -249,6 +248,12 @@ export const watchAppTheme = (
     return reactGrabTheme;
   };
 
+  const cancelScheduledApplyTheme = (): void => {
+    if (pendingFrame === null) return;
+    nativeCancelAnimationFrame(pendingFrame);
+    pendingFrame = null;
+  };
+
   const scheduleApplyTheme = () => {
     if (pendingFrame !== null) return;
     pendingFrame = nativeRequestAnimationFrame(() => {
@@ -259,7 +264,17 @@ export const watchAppTheme = (
 
   const initialTheme = applyTheme();
 
-  const observer = new MutationObserver(scheduleApplyTheme);
+  const handleThemeInputMutation = (): void => {
+    const inputsFingerprint = getThemeInputsFingerprint();
+    if (inputsFingerprint === lastInputsFingerprint) {
+      scheduleApplyTheme();
+      return;
+    }
+    cancelScheduledApplyTheme();
+    applyTheme(inputsFingerprint);
+  };
+
+  const observer = new MutationObserver(handleThemeInputMutation);
   observer.observe(document.documentElement, OBSERVER_OPTIONS);
 
   let bodyObserver: MutationObserver | null = null;
@@ -275,7 +290,7 @@ export const watchAppTheme = (
       bodyObserver!.disconnect();
       bodyObserver = null;
       observer.observe(document.body, OBSERVER_OPTIONS);
-      applyTheme();
+      handleThemeInputMutation();
     });
     bodyObserver.observe(document.documentElement, { childList: true });
   }
@@ -296,9 +311,7 @@ export const watchAppTheme = (
       bodyObserver?.disconnect();
       observer.disconnect();
       mediaQuery.removeEventListener("change", handleMediaChange);
-      if (pendingFrame !== null) {
-        nativeCancelAnimationFrame(pendingFrame);
-      }
+      cancelScheduledApplyTheme();
     },
   };
 };

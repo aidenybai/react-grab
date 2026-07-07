@@ -35,6 +35,24 @@ const resolveOverlayThemeForBackground = async (
   return waitForOverlayTheme(reactGrab, expectedTheme);
 };
 
+const getOverlayThemeObservedDuringBodyStyleMutation = async (
+  reactGrab: ReactGrabPageObject,
+  backgroundColor: string,
+): Promise<string | null> =>
+  reactGrab.page.evaluate(
+    (color) =>
+      new Promise<string | null>((resolve) => {
+        const host = document.querySelector("[data-react-grab]");
+        const observer = new MutationObserver(() => {
+          observer.disconnect();
+          resolve(host?.getAttribute("data-rg-theme") ?? null);
+        });
+        observer.observe(document.body, { attributes: true, attributeFilter: ["style"] });
+        document.body.style.backgroundColor = color;
+      }),
+    backgroundColor,
+  );
+
 test.describe("App Theme Detection", () => {
   // Regression: modern browsers serialize computed colors authored with oklch()
   // in their own color space, so the previous rgb()-only parser failed to read
@@ -63,6 +81,26 @@ test.describe("App Theme Detection", () => {
       reactGrab,
       "oklch(0.145 0 0)",
       OVERLAY_THEME_ON_DARK_APP,
+    );
+
+    expect(overlayTheme).toBe(OVERLAY_THEME_ON_DARK_APP);
+  });
+
+  test("updates before the next frame when a body background mutation changes the theme", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.page.emulateMedia({ colorScheme: "light" });
+    await reactGrab.page.evaluate(() => {
+      document.documentElement.classList.remove("dark", "light");
+      document.body.style.backgroundColor = "rgb(255, 255, 255)";
+    });
+    expect(await waitForOverlayTheme(reactGrab, OVERLAY_THEME_ON_LIGHT_APP)).toBe(
+      OVERLAY_THEME_ON_LIGHT_APP,
+    );
+
+    const overlayTheme = await getOverlayThemeObservedDuringBodyStyleMutation(
+      reactGrab,
+      "rgb(17, 17, 17)",
     );
 
     expect(overlayTheme).toBe(OVERLAY_THEME_ON_DARK_APP);
