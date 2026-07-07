@@ -14,6 +14,11 @@ interface ThemeWatcherResult {
   cleanup: () => void;
 }
 
+interface ThemeInputsFingerprint {
+  immediate: string;
+  full: string;
+}
+
 const THEME_ATTRIBUTES = [
   "data-theme",
   "data-mode",
@@ -172,25 +177,38 @@ const detectTheme = (): AppTheme => {
 
 const invertTheme = (theme: AppTheme): AppTheme => (theme === "dark" ? "light" : "dark");
 
-// Attribute-level snapshot of everything the mutation-driven re-detection can
-// react to. Reading it never forces style recalc, unlike detectTheme whose
-// getComputedStyle calls do — which made every unrelated body style write
-// (e.g. our own user-select/touch-action toggles) trigger a forced recalc per
-// frame. If this fingerprint is unchanged, the mutation cannot have changed
-// the detected theme, so detectTheme is skipped.
-const getThemeInputsFingerprint = (): string => {
-  const fingerprintParts: string[] = [];
+// Attribute-level snapshot of direct theme signals. Reading it never forces
+// style recalc, unlike detectTheme whose getComputedStyle calls do — which made
+// every unrelated body style write (e.g. our own user-select/touch-action
+// toggles) trigger a forced recalc per frame.
+const getImmediateThemeInputsFingerprint = (): string => {
+  const immediateFingerprintParts: string[] = [];
   for (const element of [document.documentElement, document.body]) {
     if (!element) continue;
-    fingerprintParts.push(element.className);
+    immediateFingerprintParts.push(element.className);
     for (const attributeName of THEME_ATTRIBUTES) {
-      fingerprintParts.push(element.getAttribute(attributeName) ?? "");
+      immediateFingerprintParts.push(element.getAttribute(attributeName) ?? "");
     }
     for (const { attribute } of PRESENCE_ATTRIBUTES) {
-      fingerprintParts.push(element.hasAttribute(attribute) ? "1" : "");
+      immediateFingerprintParts.push(element.hasAttribute(attribute) ? "1" : "");
     }
     const inlineStyle = element.style;
-    fingerprintParts.push(inlineStyle.colorScheme, inlineStyle.backgroundColor, inlineStyle.color);
+    immediateFingerprintParts.push(
+      inlineStyle.colorScheme,
+      inlineStyle.backgroundColor,
+      inlineStyle.color,
+    );
+  }
+  return immediateFingerprintParts.join("|");
+};
+
+const getThemeInputsFingerprint = (
+  immediate = getImmediateThemeInputsFingerprint(),
+): ThemeInputsFingerprint => {
+  const customPropertyFingerprintParts: string[] = [];
+  for (const element of [document.documentElement, document.body]) {
+    if (!element) continue;
+    const inlineStyle = element.style;
     // Inline custom properties (e.g. `--background`) can drive the computed
     // background/color through `var()` references in stylesheets, so they are
     // part of the theme inputs even though the direct color properties are not
@@ -198,11 +216,17 @@ const getThemeInputsFingerprint = (): string => {
     for (let propertyIndex = 0; propertyIndex < inlineStyle.length; propertyIndex++) {
       const propertyName = inlineStyle[propertyIndex];
       if (propertyName.startsWith("--")) {
-        fingerprintParts.push(`${propertyName}:${inlineStyle.getPropertyValue(propertyName)}`);
+        customPropertyFingerprintParts.push(
+          `${propertyName}:${inlineStyle.getPropertyValue(propertyName)}`,
+        );
       }
     }
   }
-  return fingerprintParts.join("|");
+  const customProperties = customPropertyFingerprintParts.join("|");
+  return {
+    immediate,
+    full: customProperties ? `${immediate}|${customProperties}` : immediate,
+  };
 };
 
 const OBSERVED_ATTRIBUTES: string[] = [
@@ -221,11 +245,11 @@ export const watchAppTheme = (
   onChange?: (reactGrabTheme: AppTheme) => void,
 ): ThemeWatcherResult => {
   let lastAppliedTheme: AppTheme | null = null;
-  let lastInputsFingerprint: string | null = null;
+  let lastInputsFingerprint: ThemeInputsFingerprint | null = null;
   let pendingFrame: number | null = null;
 
-  const applyTheme = (inputsFingerprint = getThemeInputsFingerprint()): AppTheme => {
-    if (inputsFingerprint === lastInputsFingerprint && lastAppliedTheme !== null) {
+  const applyThemeForFingerprint = (inputsFingerprint: ThemeInputsFingerprint): AppTheme => {
+    if (inputsFingerprint.full === lastInputsFingerprint?.full && lastAppliedTheme !== null) {
       // Even when re-detection is skipped, flush pending style with one
       // targeted read. Skipping every read here lets invalidations from the
       // freeze path's universal-selector rule churn accumulate until
@@ -248,6 +272,8 @@ export const watchAppTheme = (
     return reactGrabTheme;
   };
 
+  const applyCurrentTheme = (): AppTheme => applyThemeForFingerprint(getThemeInputsFingerprint());
+
   const cancelScheduledApplyTheme = (): void => {
     if (pendingFrame === null) return;
     nativeCancelAnimationFrame(pendingFrame);
@@ -258,20 +284,20 @@ export const watchAppTheme = (
     if (pendingFrame !== null) return;
     pendingFrame = nativeRequestAnimationFrame(() => {
       pendingFrame = null;
-      applyTheme();
+      applyCurrentTheme();
     });
   };
 
-  const initialTheme = applyTheme();
+  const initialTheme = applyCurrentTheme();
 
   const handleThemeInputMutation = (): void => {
-    const inputsFingerprint = getThemeInputsFingerprint();
-    if (inputsFingerprint === lastInputsFingerprint) {
+    const immediateFingerprint = getImmediateThemeInputsFingerprint();
+    if (immediateFingerprint === lastInputsFingerprint?.immediate) {
       scheduleApplyTheme();
       return;
     }
     cancelScheduledApplyTheme();
-    applyTheme(inputsFingerprint);
+    applyThemeForFingerprint(getThemeInputsFingerprint(immediateFingerprint));
   };
 
   const observer = new MutationObserver(handleThemeInputMutation);
@@ -285,9 +311,9 @@ export const watchAppTheme = (
     // Body may not exist yet during early script execution; observe it once
     // it appears and re-evaluate (the initial background may differ from
     // the fallback used above).
-    bodyObserver = new MutationObserver(() => {
+    bodyObserver = new MutationObserver((_mutationRecords, bodyAvailabilityObserver) => {
       if (!document.body) return;
-      bodyObserver!.disconnect();
+      bodyAvailabilityObserver.disconnect();
       bodyObserver = null;
       observer.observe(document.body, OBSERVER_OPTIONS);
       handleThemeInputMutation();

@@ -1,4 +1,5 @@
 import { test, expect, type ReactGrabPageObject } from "./fixtures.js";
+import { ATTRIBUTE_NAME } from "./constants.js";
 
 // react-grab paints its overlay in the *inverse* of the detected app theme so it
 // stays legible. The host therefore carries `data-rg-theme="dark"` on a light app
@@ -34,24 +35,6 @@ const resolveOverlayThemeForBackground = async (
 
   return waitForOverlayTheme(reactGrab, expectedTheme);
 };
-
-const getOverlayThemeObservedDuringBodyStyleMutation = async (
-  reactGrab: ReactGrabPageObject,
-  backgroundColor: string,
-): Promise<string | null> =>
-  reactGrab.page.evaluate(
-    (color) =>
-      new Promise<string | null>((resolve) => {
-        const host = document.querySelector("[data-react-grab]");
-        const observer = new MutationObserver(() => {
-          observer.disconnect();
-          resolve(host?.getAttribute("data-rg-theme") ?? null);
-        });
-        observer.observe(document.body, { attributes: true, attributeFilter: ["style"] });
-        document.body.style.backgroundColor = color;
-      }),
-    backgroundColor,
-  );
 
 test.describe("App Theme Detection", () => {
   // Regression: modern browsers serialize computed colors authored with oklch()
@@ -98,9 +81,21 @@ test.describe("App Theme Detection", () => {
       OVERLAY_THEME_ON_LIGHT_APP,
     );
 
-    const overlayTheme = await getOverlayThemeObservedDuringBodyStyleMutation(
-      reactGrab,
-      "rgb(17, 17, 17)",
+    const overlayTheme = await reactGrab.page.evaluate(
+      ({ attributeName, backgroundColor }) =>
+        new Promise<string | null>((resolve) => {
+          const host = document.querySelector(`[${attributeName}]`);
+          const observer = new MutationObserver(() => {
+            observer.disconnect();
+            resolve(host?.getAttribute("data-rg-theme") ?? null);
+          });
+          observer.observe(document.body, { attributes: true, attributeFilter: ["style"] });
+          document.body.style.backgroundColor = backgroundColor;
+        }),
+      {
+        attributeName: ATTRIBUTE_NAME,
+        backgroundColor: "rgb(17, 17, 17)",
+      },
     );
 
     expect(overlayTheme).toBe(OVERLAY_THEME_ON_DARK_APP);
