@@ -267,14 +267,12 @@ export interface PreviewStyles {
 export interface EditPanelState {
   element: Element;
   position: Position;
-  selectionBounds: OverlayBounds;
   properties: EditableProperty[];
   preview: PreviewStyles;
   filePath?: string;
   lineNumber?: number;
   componentName?: string;
   tagName?: string;
-  htmlPreview?: string;
   initialSearchQuery?: string;
   hasSessionEdits?: boolean;
   designTokens?: DesignTokenResolver;

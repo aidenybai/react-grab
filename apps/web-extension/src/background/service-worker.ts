@@ -2,8 +2,7 @@ const STORAGE_KEY = "react_grab_enabled";
 
 const getGlobalEnabled = async (): Promise<boolean> => {
   const result = await chrome.storage.local.get(STORAGE_KEY);
-  const enabled = result[STORAGE_KEY] ?? true;
-  return enabled;
+  return result[STORAGE_KEY] !== false;
 };
 
 const setGlobalEnabled = async (enabled: boolean): Promise<void> => {

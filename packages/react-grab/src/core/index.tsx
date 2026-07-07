@@ -269,10 +269,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       );
     });
     // True only when the drag has actually moved beyond the click threshold.
-    // We use this for selection-visibility decisions so a click (which
-    // momentarily enters the dragging-select phase between pointerdown and
-    // pointerup) does not flash the selection bounds off and back on.
-    const isActivelyDragging = createMemo(() => {
+    // We use this for selection/drag-box visibility decisions so a click
+    // (which momentarily enters the dragging-select phase between pointerdown
+    // and pointerup) does not flash the selection bounds off and back on.
+    const isDraggingBeyondThreshold = createMemo(() => {
       if (!isDragging()) return false;
       const deltaX = Math.abs(pointer().x + window.scrollX - store.dragStart.x);
       const deltaY = Math.abs(pointer().y + window.scrollY - store.dragStart.y);
@@ -752,6 +752,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.activate();
         startCopyFeedbackCooldown();
       } else {
+        // Leave the copying state before clearing the selection: unfreeze is a
+        // no-op outside the active state, and staying in copying strands the
+        // overlay (progress cursor, dead hover, swallowed activation keys).
+        actions.activate();
         actions.unfreeze();
       }
     };
@@ -873,7 +877,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             );
           }
           if (current().state === "copying") {
-            actions.unfreeze();
+            if (copy.shouldDeactivateAfter) {
+              deactivateRenderer();
+            } else {
+              actions.activate();
+              actions.unfreeze();
+            }
           }
         });
     };
@@ -963,7 +972,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       void viewportVersion();
       if (
         !isRendererActive() ||
-        isActivelyDragging() ||
+        isDraggingBeyondThreshold() ||
         isSelectionInteractionLocked() ||
         keyboardSelection.isPendingDismiss()
       )
@@ -1100,7 +1109,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (store.isTouchMode && isDragging()) {
         return isRendererActive();
       }
-      return isRendererActive() && !isActivelyDragging();
+      return isRendererActive() && !isDraggingBeyondThreshold();
     };
 
     const frozenElementBoundsAccessors = mapArray(
@@ -1179,14 +1188,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         y: Math.abs(endPageY - store.dragStart.y),
       };
     };
-
-    const isDraggingBeyondThreshold = createMemo(() => {
-      if (!isDragging()) return false;
-
-      const dragDistance = calculateDragDistance(pointer().x, pointer().y);
-
-      return dragDistance.x > DRAG_THRESHOLD_PX || dragDistance.y > DRAG_THRESHOLD_PX;
-    });
 
     const calculateDragRectangle = (endX: number, endY: number) => {
       const { pageX: endPageX, pageY: endPageY } = toPageCoordinates(endX, endY);
@@ -1683,14 +1684,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
       const element = store.frozenElement || targetElement();
       if (!element) return;
-      openEditMode(element, { x: pointer().x, y: pointer().y });
+      editMode.trigger(element, { x: pointer().x, y: pointer().y });
     };
-
-    const openEditMode = (
-      element: Element,
-      position: Position,
-      overrides: EditModeOverrides = {},
-    ): boolean => editMode.trigger(element, position, overrides);
 
     const tryHandleEditModeElementSwitch = (clientX: number, clientY: number): boolean => {
       if (!editMode.isOpen() || store.contextMenuPosition !== null) return false;
@@ -1733,7 +1728,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
 
       if (actionId === EDIT_ACTION_ID) {
-        const didOpen = openEditMode(element, position, currentSelectionEditOverrides(element));
+        const didOpen = editMode.trigger(element, position, currentSelectionEditOverrides(element));
         if (!didOpen) return true;
         actions.clearInputText();
         actions.exitPromptMode();
@@ -1803,7 +1798,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!actionId) return;
 
       if (actionId === EDIT_ACTION_ID) {
-        openEditMode(element, position, currentSelectionEditOverrides(element));
+        editMode.trigger(element, position, currentSelectionEditOverrides(element));
         return;
       }
 
@@ -1868,14 +1863,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       // elementFromPoint pass (~20ms on 100k-node DOMs). cancelActiveDrag
       // redetects on cancel; a committed drag enters the frozen phase.
       if (
-        !isActivelyDragging() &&
+        !isDraggingBeyondThreshold() &&
         now - elementDetectionState.lastDetectionTimestamp >= ELEMENT_DETECTION_THROTTLE_MS &&
         !isDetectionPending
       ) {
         elementDetectionState.lastDetectionTimestamp = now;
         elementDetectionState.pendingDetectionScheduledAt = now;
         setTimeout(() => {
-          if (isElementDetectionBlocked() || isActivelyDragging()) {
+          if (isElementDetectionBlocked() || isDraggingBeyondThreshold()) {
             elementDetectionState.pendingDetectionScheduledAt = 0;
             return;
           }
@@ -2979,7 +2974,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const didHandle = handlePointerDown(event.clientX, event.clientY, event.shiftKey);
         if (didHandle) {
           if (event.pointerId !== undefined) {
-            document.documentElement.setPointerCapture(event.pointerId);
+            // setPointerCapture throws NotFoundError for inactive pointer ids
+            // (synthetic events, some Firefox touch paths); a throw here would
+            // skip preventDefault and leak the pointerdown to the app while a
+            // drag is already tracked.
+            try {
+              document.documentElement.setPointerCapture(event.pointerId);
+            } catch {}
           }
           event.preventDefault();
           event.stopImmediatePropagation();
@@ -3666,7 +3667,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       };
 
       const enterEditModeAction = () => {
-        const didOpen = openEditMode(element, position, {
+        const didOpen = editMode.trigger(element, position, {
           filePath,
           lineNumber,
           componentName,

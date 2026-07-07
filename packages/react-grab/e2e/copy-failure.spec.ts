@@ -116,6 +116,26 @@ test.describe("Copy failure feedback", () => {
       .toBe(false);
   });
 
+  test("a failed copy that keeps the overlay open leaves the copying state", async ({
+    reactGrab,
+  }) => {
+    await forceCopyResult(reactGrab, false);
+
+    await reactGrab.activate();
+    await reactGrab.hoverUntilSelected("li");
+    // Modifier-click keeps the overlay active after the copy, which is the
+    // path that used to strand the state machine in "copying" on failure.
+    await reactGrab.page
+      .locator("li")
+      .first()
+      .click({ force: true, modifiers: ["ControlOrMeta"] });
+    await readErrorView(reactGrab);
+
+    await expect
+      .poll(async () => (await reactGrab.getState()).isCopying, { timeout: 5000 })
+      .toBe(false);
+  });
+
   test("keeps the error label visible past the success-label fade window", async ({
     reactGrab,
   }) => {

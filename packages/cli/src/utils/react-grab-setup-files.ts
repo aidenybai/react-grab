@@ -69,9 +69,6 @@ export const findLayoutFile = (projectRoot: string): string | null =>
 export const findDocumentFile = (projectRoot: string): string | null =>
   findExistingFile(getDocumentFileCandidates(projectRoot));
 
-export const findInstrumentationFile = (projectRoot: string): string | null =>
-  findExistingFile(getInstrumentationFileCandidates(projectRoot));
-
 export const findIndexHtml = (projectRoot: string): string | null =>
   findExistingFile(getIndexHtmlCandidates(projectRoot));
 
