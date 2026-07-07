@@ -101,6 +101,42 @@ test.describe("App Theme Detection", () => {
     expect(overlayTheme).toBe(OVERLAY_THEME_ON_DARK_APP);
   });
 
+  test("updates before the next frame when a CSS variable background changes the theme", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.page.emulateMedia({ colorScheme: "light" });
+    await reactGrab.page.evaluate(() => {
+      document.documentElement.classList.remove("dark", "light");
+      document.documentElement.style.setProperty("--background", "rgb(255, 255, 255)");
+      document.body.style.backgroundColor = "var(--background)";
+    });
+    expect(await waitForOverlayTheme(reactGrab, OVERLAY_THEME_ON_LIGHT_APP)).toBe(
+      OVERLAY_THEME_ON_LIGHT_APP,
+    );
+
+    const overlayTheme = await reactGrab.page.evaluate(
+      ({ attributeName, backgroundColor }) =>
+        new Promise<string | null>((resolve) => {
+          const host = document.querySelector(`[${attributeName}]`);
+          const observer = new MutationObserver(() => {
+            observer.disconnect();
+            resolve(host?.getAttribute("data-rg-theme") ?? null);
+          });
+          observer.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ["style"],
+          });
+          document.documentElement.style.setProperty("--background", backgroundColor);
+        }),
+      {
+        attributeName: ATTRIBUTE_NAME,
+        backgroundColor: "rgb(17, 17, 17)",
+      },
+    );
+
+    expect(overlayTheme).toBe(OVERLAY_THEME_ON_DARK_APP);
+  });
+
   // `color-scheme: light dark` advertises support for both schemes; the active
   // one follows the OS preference, not the token order. Previously the first
   // token ("light") was always returned, mis-detecting dark-OS visitors.

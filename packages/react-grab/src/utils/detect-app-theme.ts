@@ -14,11 +14,6 @@ interface ThemeWatcherResult {
   cleanup: () => void;
 }
 
-interface ThemeInputsFingerprint {
-  immediate: string;
-  full: string;
-}
-
 const THEME_ATTRIBUTES = [
   "data-theme",
   "data-mode",
@@ -177,38 +172,25 @@ const detectTheme = (): AppTheme => {
 
 const invertTheme = (theme: AppTheme): AppTheme => (theme === "dark" ? "light" : "dark");
 
-// Attribute-level snapshot of direct theme signals. Reading it never forces
-// style recalc, unlike detectTheme whose getComputedStyle calls do — which made
-// every unrelated body style write (e.g. our own user-select/touch-action
-// toggles) trigger a forced recalc per frame.
-const getImmediateThemeInputsFingerprint = (): string => {
-  const immediateFingerprintParts: string[] = [];
+// Attribute-level snapshot of everything the mutation-driven re-detection can
+// react to. Reading it never forces style recalc, unlike detectTheme whose
+// getComputedStyle calls do — which made every unrelated body style write
+// (e.g. our own user-select/touch-action toggles) trigger a forced recalc per
+// frame. If this fingerprint is unchanged, the mutation cannot have changed
+// the detected theme, so detectTheme is skipped.
+const getThemeInputsFingerprint = (): string => {
+  const fingerprintParts: string[] = [];
   for (const element of [document.documentElement, document.body]) {
     if (!element) continue;
-    immediateFingerprintParts.push(element.className);
+    fingerprintParts.push(element.className);
     for (const attributeName of THEME_ATTRIBUTES) {
-      immediateFingerprintParts.push(element.getAttribute(attributeName) ?? "");
+      fingerprintParts.push(element.getAttribute(attributeName) ?? "");
     }
     for (const { attribute } of PRESENCE_ATTRIBUTES) {
-      immediateFingerprintParts.push(element.hasAttribute(attribute) ? "1" : "");
+      fingerprintParts.push(element.hasAttribute(attribute) ? "1" : "");
     }
     const inlineStyle = element.style;
-    immediateFingerprintParts.push(
-      inlineStyle.colorScheme,
-      inlineStyle.backgroundColor,
-      inlineStyle.color,
-    );
-  }
-  return immediateFingerprintParts.join("|");
-};
-
-const getThemeInputsFingerprint = (
-  immediate = getImmediateThemeInputsFingerprint(),
-): ThemeInputsFingerprint => {
-  const customPropertyFingerprintParts: string[] = [];
-  for (const element of [document.documentElement, document.body]) {
-    if (!element) continue;
-    const inlineStyle = element.style;
+    fingerprintParts.push(inlineStyle.colorScheme, inlineStyle.backgroundColor, inlineStyle.color);
     // Inline custom properties (e.g. `--background`) can drive the computed
     // background/color through `var()` references in stylesheets, so they are
     // part of the theme inputs even though the direct color properties are not
@@ -216,17 +198,11 @@ const getThemeInputsFingerprint = (
     for (let propertyIndex = 0; propertyIndex < inlineStyle.length; propertyIndex++) {
       const propertyName = inlineStyle[propertyIndex];
       if (propertyName.startsWith("--")) {
-        customPropertyFingerprintParts.push(
-          `${propertyName}:${inlineStyle.getPropertyValue(propertyName)}`,
-        );
+        fingerprintParts.push(`${propertyName}:${inlineStyle.getPropertyValue(propertyName)}`);
       }
     }
   }
-  const customProperties = customPropertyFingerprintParts.join("|");
-  return {
-    immediate,
-    full: customProperties ? `${immediate}|${customProperties}` : immediate,
-  };
+  return fingerprintParts.join("|");
 };
 
 const OBSERVED_ATTRIBUTES: string[] = [
@@ -245,11 +221,11 @@ export const watchAppTheme = (
   onChange?: (reactGrabTheme: AppTheme) => void,
 ): ThemeWatcherResult => {
   let lastAppliedTheme: AppTheme | null = null;
-  let lastInputsFingerprint: ThemeInputsFingerprint | null = null;
+  let lastInputsFingerprint: string | null = null;
   let pendingFrame: number | null = null;
 
-  const applyThemeForFingerprint = (inputsFingerprint: ThemeInputsFingerprint): AppTheme => {
-    if (inputsFingerprint.full === lastInputsFingerprint?.full && lastAppliedTheme !== null) {
+  const applyThemeForFingerprint = (inputsFingerprint: string): AppTheme => {
+    if (inputsFingerprint === lastInputsFingerprint && lastAppliedTheme !== null) {
       // Even when re-detection is skipped, flush pending style with one
       // targeted read. Skipping every read here lets invalidations from the
       // freeze path's universal-selector rule churn accumulate until
@@ -291,13 +267,13 @@ export const watchAppTheme = (
   const initialTheme = applyCurrentTheme();
 
   const handleThemeInputMutation = (): void => {
-    const immediateFingerprint = getImmediateThemeInputsFingerprint();
-    if (immediateFingerprint === lastInputsFingerprint?.immediate) {
+    const inputsFingerprint = getThemeInputsFingerprint();
+    if (inputsFingerprint === lastInputsFingerprint) {
       scheduleApplyTheme();
       return;
     }
     cancelScheduledApplyTheme();
-    applyThemeForFingerprint(getThemeInputsFingerprint(immediateFingerprint));
+    applyThemeForFingerprint(inputsFingerprint);
   };
 
   const observer = new MutationObserver(handleThemeInputMutation);
