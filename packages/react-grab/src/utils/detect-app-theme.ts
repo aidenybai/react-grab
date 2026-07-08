@@ -224,8 +224,7 @@ export const watchAppTheme = (
   let lastInputsFingerprint: string | null = null;
   let pendingFrame: number | null = null;
 
-  const applyTheme = (): AppTheme => {
-    const inputsFingerprint = getThemeInputsFingerprint();
+  const applyThemeForFingerprint = (inputsFingerprint: string): AppTheme => {
     if (inputsFingerprint === lastInputsFingerprint && lastAppliedTheme !== null) {
       // Even when re-detection is skipped, flush pending style with one
       // targeted read. Skipping every read here lets invalidations from the
@@ -249,17 +248,35 @@ export const watchAppTheme = (
     return reactGrabTheme;
   };
 
+  const applyCurrentTheme = (): AppTheme => applyThemeForFingerprint(getThemeInputsFingerprint());
+
+  const cancelScheduledApplyTheme = (): void => {
+    if (pendingFrame === null) return;
+    nativeCancelAnimationFrame(pendingFrame);
+    pendingFrame = null;
+  };
+
   const scheduleApplyTheme = () => {
     if (pendingFrame !== null) return;
     pendingFrame = nativeRequestAnimationFrame(() => {
       pendingFrame = null;
-      applyTheme();
+      applyCurrentTheme();
     });
   };
 
-  const initialTheme = applyTheme();
+  const initialTheme = applyCurrentTheme();
 
-  const observer = new MutationObserver(scheduleApplyTheme);
+  const handleThemeInputMutation = (): void => {
+    const inputsFingerprint = getThemeInputsFingerprint();
+    if (inputsFingerprint === lastInputsFingerprint) {
+      scheduleApplyTheme();
+      return;
+    }
+    cancelScheduledApplyTheme();
+    applyThemeForFingerprint(inputsFingerprint);
+  };
+
+  const observer = new MutationObserver(handleThemeInputMutation);
   observer.observe(document.documentElement, OBSERVER_OPTIONS);
 
   let bodyObserver: MutationObserver | null = null;
@@ -270,12 +287,12 @@ export const watchAppTheme = (
     // Body may not exist yet during early script execution; observe it once
     // it appears and re-evaluate (the initial background may differ from
     // the fallback used above).
-    bodyObserver = new MutationObserver(() => {
+    bodyObserver = new MutationObserver((_mutationRecords, bodyAvailabilityObserver) => {
       if (!document.body) return;
-      bodyObserver!.disconnect();
+      bodyAvailabilityObserver.disconnect();
       bodyObserver = null;
       observer.observe(document.body, OBSERVER_OPTIONS);
-      applyTheme();
+      handleThemeInputMutation();
     });
     bodyObserver.observe(document.documentElement, { childList: true });
   }
@@ -296,9 +313,7 @@ export const watchAppTheme = (
       bodyObserver?.disconnect();
       observer.disconnect();
       mediaQuery.removeEventListener("change", handleMediaChange);
-      if (pendingFrame !== null) {
-        nativeCancelAnimationFrame(pendingFrame);
-      }
+      cancelScheduledApplyTheme();
     },
   };
 };
