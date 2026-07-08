@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>dtim pseudo background image</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 160px;
+        height: 44px;
+        background: #ffffff;
+        box-sizing: border-box;
+        padding: 10px;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 16px;
+        color: #000000;
+      }
+      /* #16: a background-image on a ::before pseudo-element lives in a
+         stylesheet rule, not an element style — it must still render. */
+      #p16::before {
+        content: "";
+        display: inline-block;
+        vertical-align: middle;
+        width: 20px;
+        height: 20px;
+        margin-right: 6px;
+        background-image: url("./assets/pattern-tile.png");
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div id="p16">x</div>
+    </div>
+  </body>
+</html>

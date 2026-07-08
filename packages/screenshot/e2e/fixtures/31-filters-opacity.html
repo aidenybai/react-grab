@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>31 filters and opacity</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 480px;
+        height: 320px;
+        background: #f5f2ec;
+        position: relative;
+      }
+      .stripes {
+        width: 100px;
+        height: 70px;
+        background: repeating-linear-gradient(
+          90deg,
+          #2f6fdb 0 10px,
+          #f4c542 10px 20px,
+          #c0392b 20px 30px
+        );
+      }
+      .blurred {
+        position: absolute;
+        top: 30px;
+        left: 30px;
+        filter: blur(2px);
+      }
+      .grayscaled {
+        position: absolute;
+        top: 30px;
+        left: 190px;
+        filter: grayscale(1);
+      }
+      .sepia-rotated {
+        position: absolute;
+        top: 30px;
+        left: 350px;
+        filter: sepia(0.9) hue-rotate(90deg);
+      }
+      .bright-contrast {
+        position: absolute;
+        top: 140px;
+        left: 30px;
+        filter: brightness(1.4) contrast(1.6) saturate(0.6);
+      }
+      .drop-shadowed {
+        position: absolute;
+        top: 140px;
+        left: 190px;
+        width: 100px;
+        height: 70px;
+        background: #1f6f54;
+        clip-path: polygon(50% 0, 100% 100%, 0 100%);
+        filter: drop-shadow(6px 6px 4px rgba(20, 48, 79, 0.6));
+      }
+      .half-opaque {
+        position: absolute;
+        top: 140px;
+        left: 350px;
+        width: 100px;
+        height: 70px;
+        background: #7a3b8f;
+        opacity: 0.5;
+      }
+      .half-opaque .nested {
+        width: 50px;
+        height: 35px;
+        margin: 17px 0 0 25px;
+        background: #14304f;
+        opacity: 0.6;
+      }
+      .blend-a,
+      .blend-b,
+      .blend-c {
+        position: absolute;
+        width: 90px;
+        height: 90px;
+        border-radius: 50%;
+        mix-blend-mode: multiply;
+      }
+      .blend-a {
+        top: 216px;
+        left: 60px;
+        background: #e4572e;
+      }
+      .blend-b {
+        top: 216px;
+        left: 120px;
+        background: #2f6fdb;
+      }
+      .blend-c {
+        top: 216px;
+        left: 180px;
+        background: #f4c542;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="stripes blurred"></div>
+      <div class="stripes grayscaled"></div>
+      <div class="stripes sepia-rotated"></div>
+      <div class="stripes bright-contrast"></div>
+      <div class="drop-shadowed"></div>
+      <div class="half-opaque"><div class="nested"></div></div>
+      <div class="blend-a"></div>
+      <div class="blend-b"></div>
+      <div class="blend-c"></div>
+    </div>
+  </body>
+</html>

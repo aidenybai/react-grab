@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ms mask image svg</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 400px;
+        height: 400px;
+        background: #ffffff;
+      }
+      .masked {
+        width: 400px;
+        height: 400px;
+        background: linear-gradient(
+          90deg,
+          rgb(131, 58, 180) 25%,
+          rgb(253, 29, 29) 50%,
+          rgb(252, 176, 69) 80%
+        );
+        -webkit-mask-image: url(./assets/ms-mask.svg);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="masked"></div>
+    </div>
+  </body>
+</html>

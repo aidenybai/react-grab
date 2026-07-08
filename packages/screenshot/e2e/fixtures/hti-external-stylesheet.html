@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>hti external stylesheet</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 100px;
+        height: 100px !important;
+        background: #ffffff;
+        border: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      The red background comes ONLY from the external <link> stylesheet placed
+      inside the captured subtree, like the original sheet/node.html.
+    -->
+    <div id="target">
+      <link rel="stylesheet" href="./assets/hti-sheet.css" />
+    </div>
+  </body>
+</html>

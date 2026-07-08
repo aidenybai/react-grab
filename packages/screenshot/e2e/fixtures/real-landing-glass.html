@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>real landing glass</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #101014;
+      }
+      #target {
+        position: relative;
+        width: 920px;
+        height: 640px;
+        background: #0a0a0f;
+        font-family: "Inter Fixture", sans-serif;
+        color: #ededf0;
+        overflow: hidden;
+      }
+      .glow {
+        position: absolute;
+        border-radius: 50%;
+      }
+      .glow.violet {
+        left: 180px;
+        top: -140px;
+        width: 560px;
+        height: 400px;
+        background: radial-gradient(ellipse, rgba(124, 58, 237, 0.45), transparent 70%);
+      }
+      .glow.cyan {
+        left: -120px;
+        top: 240px;
+        width: 480px;
+        height: 380px;
+        background: radial-gradient(ellipse, rgba(34, 211, 238, 0.22), transparent 70%);
+      }
+      .nav {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        margin: 18px 40px 0;
+        padding: 12px 20px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 12px;
+        background: rgba(20, 20, 28, 0.55);
+        backdrop-filter: blur(12px) saturate(1.4);
+        font-size: 13px;
+      }
+      .nav .logo {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 700;
+        font-size: 15px;
+      }
+      .nav .logo .mark {
+        width: 20px;
+        height: 20px;
+        border-radius: 5px;
+        background: linear-gradient(135deg, #7c3aed, #22d3ee);
+      }
+      .nav .links {
+        display: flex;
+        gap: 18px;
+        color: #9d9daa;
+      }
+      .nav .cta {
+        margin-left: auto;
+        background: #ededf0;
+        color: #0a0a0f;
+        font-weight: 700;
+        border-radius: 8px;
+        padding: 7px 14px;
+      }
+      .hero {
+        position: relative;
+        text-align: center;
+        padding: 64px 100px 40px;
+      }
+      .badge {
+        display: inline-block;
+        border: 1px solid rgba(124, 58, 237, 0.5);
+        border-radius: 999px;
+        padding: 4px 14px;
+        font-size: 12px;
+        color: #c4b5fd;
+        background: rgba(124, 58, 237, 0.12);
+      }
+      .hero h1 {
+        margin: 20px 0 0;
+        font-size: 52px;
+        line-height: 1.1;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        background: linear-gradient(180deg, #ffffff 30%, #8a8a96);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .hero p {
+        margin: 18px auto 0;
+        max-width: 520px;
+        color: #9d9daa;
+        font-size: 16px;
+        line-height: 1.6;
+      }
+      .hero-actions {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 26px;
+      }
+      .button-primary {
+        background: linear-gradient(135deg, #7c3aed, #4f46e5);
+        border-radius: 8px;
+        padding: 10px 22px;
+        font-weight: 700;
+        font-size: 14px;
+        box-shadow: 0 8px 30px rgba(124, 58, 237, 0.4);
+      }
+      .button-ghost {
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 8px;
+        padding: 10px 22px;
+        font-size: 14px;
+        color: #c9c9d2;
+      }
+      .feature-grid {
+        position: relative;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        margin: 28px 40px 0;
+      }
+      .feature-card {
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        background: rgba(24, 24, 32, 0.7);
+        backdrop-filter: blur(8px);
+        padding: 18px;
+      }
+      .feature-card .icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        font-size: 15px;
+        margin-bottom: 12px;
+      }
+      .feature-card:nth-child(1) .icon {
+        background: rgba(124, 58, 237, 0.25);
+        color: #c4b5fd;
+      }
+      .feature-card:nth-child(2) .icon {
+        background: rgba(34, 211, 238, 0.2);
+        color: #67e8f9;
+      }
+      .feature-card:nth-child(3) .icon {
+        background: rgba(244, 114, 182, 0.2);
+        color: #f9a8d4;
+      }
+      .feature-card h3 {
+        margin: 0 0 6px;
+        font-size: 15px;
+        font-weight: 700;
+      }
+      .feature-card p {
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.55;
+        color: #9d9daa;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="glow violet"></div>
+      <div class="glow cyan"></div>
+      <div class="nav">
+        <span class="logo"><span class="mark"></span>Lumen</span>
+        <span class="links">
+          <span>Features</span><span>Docs</span><span>Pricing</span><span>Blog</span>
+        </span>
+        <span class="cta">Get Started</span>
+      </div>
+      <div class="hero">
+        <span class="badge">Now in public beta →</span>
+        <h1>Ship interfaces at the speed of thought</h1>
+        <p>
+          Lumen compiles your design system into zero-runtime components, with streaming server
+          rendering and edge-native data loading built in.
+        </p>
+        <div class="hero-actions">
+          <span class="button-primary">Start Building</span>
+          <span class="button-ghost">Read the Docs</span>
+        </div>
+      </div>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="icon">◈</div>
+          <h3>Zero-runtime styling</h3>
+          <p>
+            Styles compile to static CSS at build time — nothing ships to the client but class
+            names.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="icon">⚡</div>
+          <h3>Streaming SSR</h3>
+          <p>
+            Suspense-ready streaming out of the box, with selective hydration for interactive
+            islands.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="icon">◎</div>
+          <h3>Edge-native data</h3>
+          <p>
+            Co-locate loaders with components and deploy them to 300+ edge locations in one command.
+          </p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

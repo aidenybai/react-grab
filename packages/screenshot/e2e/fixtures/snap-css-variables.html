@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>snap css variables</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      /* #348 — custom props defined on :root and mid-tree must resolve to
+         computed values in the capture. Unresolved var() falls back to
+         initial (transparent background / black text / no border), which is
+         visibly wrong. */
+      :root {
+        --main-color: rgb(255, 0, 0);
+        --panel-bg: #dfe9f5;
+        --edge: 4px solid #2f6fdb;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 400px;
+        height: 240px;
+        background: #ffffff;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 15px;
+        color: #1d2731;
+        box-sizing: border-box;
+        padding: 16px;
+      }
+      .t348 {
+        color: var(--main-color);
+      }
+      .panel {
+        background: var(--panel-bg);
+        border: var(--edge);
+        padding: 10px;
+        margin-top: 12px;
+        --local-accent: #1f6f54;
+      }
+      .panel .accent {
+        background: var(--local-accent);
+        color: #ffffff;
+        display: inline-block;
+        padding: 4px 10px;
+      }
+      .fallback {
+        margin-top: 12px;
+        background: var(--missing-var, #f4c542);
+        padding: 6px 10px;
+        width: 200px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="t348">red text via :root var</div>
+      <div class="panel">
+        panel background + border from :root vars
+        <div><span class="accent">mid-tree var</span></div>
+      </div>
+      <div class="fallback">fallback color used</div>
+    </div>
+  </body>
+</html>

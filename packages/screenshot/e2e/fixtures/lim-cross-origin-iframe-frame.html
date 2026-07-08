@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>lim cross origin iframe frame</title>
+    <style>
+      body {
+        margin: 0;
+        background: #f4e9d8;
+      }
+      .banner {
+        margin: 20px;
+        width: 200px;
+        height: 60px;
+        background: #b5432a;
+      }
+      .stripe {
+        margin: 0 20px;
+        width: 240px;
+        height: 30px;
+        background: #2a6b4f;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="banner"></div>
+    <div class="stripe"></div>
+    <script src="/dist/index.global.js"></script>
+    <script>
+      window.FastHtmlToImage.enableIframeBridge();
+    </script>
+  </body>
+</html>

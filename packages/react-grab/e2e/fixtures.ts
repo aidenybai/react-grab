@@ -107,7 +107,9 @@ export interface ReactGrabPageObject {
   rightClickAtPosition: (x: number, y: number) => Promise<void>;
   dragSelect: (startSelector: string, endSelector: string) => Promise<void>;
   getClipboardContent: () => Promise<string>;
-  captureNextClipboardWrites: () => Promise<Record<string, string>>;
+  waitForClipboardContent: () => Promise<string>;
+  getClipboardItemTypes: () => Promise<string[]>;
+  readClipboardItemText: (mimeType: string) => Promise<string | null>;
   waitForSelectionBox: (timeout?: number) => Promise<void>;
   waitForSelectionSource: () => Promise<void>;
   isContextMenuVisible: () => Promise<boolean>;
@@ -333,33 +335,25 @@ const createReactGrabPageObject = (
     return page.evaluate(() => navigator.clipboard.readText());
   };
 
-  const captureNextClipboardWrites = async () => {
-    return page.evaluate(() => {
-      return new Promise<Record<string, string>>((resolve) => {
-        const originalSetData = DataTransfer.prototype.setData;
-        const clipboardWrites: Record<string, string> = {};
-        DataTransfer.prototype.setData = function (type: string, value: string) {
-          clipboardWrites[type] = value;
-          return originalSetData.call(this, type, value);
-        };
+  const waitForClipboardContent = async () => {
+    await expect.poll(() => getClipboardContent(), { timeout: 10_000 }).not.toBe("");
+    return getClipboardContent();
+  };
 
-        const cleanup = () => {
-          DataTransfer.prototype.setData = originalSetData;
-          resolve(clipboardWrites);
-        };
-
-        const safetyTimeout = setTimeout(cleanup, 5000);
-
-        document.addEventListener(
-          "copy",
-          () => {
-            clearTimeout(safetyTimeout);
-            queueMicrotask(cleanup);
-          },
-          { once: true, capture: true },
-        );
-      });
+  const getClipboardItemTypes = async () => {
+    return page.evaluate(async () => {
+      const [clipboardItem] = await navigator.clipboard.read();
+      return clipboardItem ? [...clipboardItem.types] : [];
     });
+  };
+
+  const readClipboardItemText = async (mimeType: string) => {
+    return page.evaluate(async (requestedType) => {
+      const [clipboardItem] = await navigator.clipboard.read();
+      if (!clipboardItem?.types.includes(requestedType)) return null;
+      const typedBlob = await clipboardItem.getType(requestedType);
+      return typedBlob.text();
+    }, mimeType);
   };
 
   const waitForSelectionBox = async (timeout = 10_000) => {
@@ -1734,7 +1728,9 @@ const createReactGrabPageObject = (
     rightClickAtPosition,
     dragSelect,
     getClipboardContent,
-    captureNextClipboardWrites,
+    waitForClipboardContent,
+    getClipboardItemTypes,
+    readClipboardItemText,
     waitForSelectionBox,
     waitForSelectionSource,
     isContextMenuVisible,
@@ -1879,6 +1875,10 @@ export const test = base.extend<{ reactGrab: ReactGrabPageObject; coverageCaptur
     };
 
     await initializePage();
+
+    // The clipboard persists across tests in the same worker's browser, so
+    // stale content from a prior test would satisfy clipboard polls too early.
+    await page.evaluate(() => navigator.clipboard.writeText(""));
 
     const activationModifierKey = await getBrowserModifierKey(page);
     const feedbackModifierKey = getHostModifierKey();

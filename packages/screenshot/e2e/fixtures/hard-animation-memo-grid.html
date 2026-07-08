@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>hard animation memo grid</title>
+    <style>
+      body {
+        margin: 0;
+        background: #10141a;
+      }
+      #target {
+        width: 560px;
+        height: 320px;
+        background: #1b222c;
+        box-sizing: border-box;
+        padding: 20px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        font-family: sans-serif;
+        overflow: hidden;
+      }
+      @keyframes glow {
+        from {
+          box-shadow: 0 0 0 rgba(244, 197, 66, 0);
+          border-color: #2f6fdb;
+        }
+        to {
+          box-shadow: 0 0 22px rgba(244, 197, 66, 0.9);
+          border-color: #f4c542;
+        }
+      }
+      .pulse-card {
+        border: 3px solid #2f6fdb;
+        border-radius: 10px;
+        background: #232d3a;
+        animation: glow 6s linear -2s paused;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="pulse-card"></div>
+      <div class="pulse-card"></div>
+      <div class="pulse-card"></div>
+      <div class="pulse-card"></div>
+      <div class="pulse-card"></div>
+      <div class="pulse-card"></div>
+      <div class="pulse-card"></div>
+      <div class="pulse-card"></div>
+    </div>
+    <script>
+      const pulseCards = document.querySelectorAll(".pulse-card");
+      pulseCards.forEach((pulseCard, cardIndex) => {
+        const waapiAnimation = pulseCard.animate(
+          [
+            { opacity: 0.25, transform: "scale(0.7) rotate(0deg)", backgroundColor: "#232d3a" },
+            { opacity: 1, transform: "scale(1) rotate(24deg)", backgroundColor: "#7a3b8f" },
+          ],
+          { duration: 4000, fill: "both" },
+        );
+        waapiAnimation.pause();
+        waapiAnimation.currentTime = 400 * cardIndex;
+      });
+    </script>
+  </body>
+</html>

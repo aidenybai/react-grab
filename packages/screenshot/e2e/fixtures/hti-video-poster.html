@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>hti video poster</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 240px;
+        height: 160px;
+        background: #101418;
+      }
+      video {
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      Video with a poster and NO playable source: the poster image must
+      render as the video surface. Controls dropped from the original for
+      determinism (they auto-hide/animate).
+    -->
+    <div id="target">
+      <video poster="./assets/hti-video-poster.png" preload="none"></video>
+    </div>
+  </body>
+</html>

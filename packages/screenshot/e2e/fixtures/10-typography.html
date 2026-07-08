@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>10 typography</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 560px;
+        height: 360px;
+        background: #ffffff;
+        color: #14202c;
+        font-family: "Inter Fixture", sans-serif;
+        padding: 24px;
+        box-sizing: border-box;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 28px;
+        font-weight: 700;
+        line-height: 1.2;
+      }
+      .subtitle {
+        margin: 0 0 16px;
+        font-size: 14px;
+        color: #5a6b7c;
+        line-height: 1.4;
+      }
+      .body-copy {
+        margin: 0 0 12px;
+        font-size: 16px;
+        line-height: 1.6;
+      }
+      .body-copy strong {
+        font-weight: 700;
+      }
+      .tight {
+        margin: 0 0 12px;
+        font-size: 13px;
+        line-height: 1.15;
+        color: #2b3a49;
+      }
+      .fine-print {
+        margin: 0;
+        font-size: 11px;
+        line-height: 1.5;
+        color: #7a8894;
+      }
+      .numerals {
+        margin: 12px 0 0;
+        font-size: 20px;
+        font-weight: 700;
+        color: #2f6fdb;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <h1>Quartz vixens jump; blowzy fjord.</h1>
+      <p class="subtitle">
+        A pangram-driven specimen of the bundled Inter subset at multiple sizes.
+      </p>
+      <p class="body-copy">
+        The quick brown fox jumps over the lazy dog while
+        <strong>seventy-two bold glyphs</strong> measure kerning, hinting, and baseline snapping
+        across the rasterized capture.
+      </p>
+      <p class="tight">
+        Tightly leaded copy stresses line-height rounding: packed lines expose any half-pixel drift
+        between the live render and the serialized clone when wrapped over several rows of small
+        text.
+      </p>
+      <p class="numerals">0123456789 — $48,215.09 (+3.7%)</p>
+      <p class="fine-print">
+        Fine print at eleven pixels: gluing hairline strokes to the pixel grid is the hardest case
+        for anti-aliased fidelity comparisons.
+      </p>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>hard backdrop in transformed root</title>
+    <style>
+      body {
+        margin: 0;
+        background: #dfe6ee;
+      }
+      .stage {
+        padding: 90px;
+      }
+      #target {
+        position: relative;
+        width: 360px;
+        height: 220px;
+        background: linear-gradient(120deg, #1c3aa9 0%, #d43f8d 60%, #f7b32b 100%);
+        transform: rotate(4deg) scale(1.1);
+        transform-origin: 50% 50%;
+        overflow: hidden;
+      }
+      .dot {
+        position: absolute;
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+      }
+      .dot-a {
+        left: 30px;
+        top: 24px;
+        background: #14a06c;
+      }
+      .dot-b {
+        left: 230px;
+        top: 110px;
+        background: #d23b2e;
+      }
+      .glass {
+        position: absolute;
+        left: 50px;
+        top: 55px;
+        width: 250px;
+        height: 110px;
+        backdrop-filter: blur(7px) saturate(1.6);
+        background: rgba(255, 255, 255, 0.22);
+        border-radius: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="stage">
+      <div id="target">
+        <div class="dot dot-a"></div>
+        <div class="dot dot-b"></div>
+        <div class="glass"></div>
+      </div>
+    </div>
+  </body>
+</html>

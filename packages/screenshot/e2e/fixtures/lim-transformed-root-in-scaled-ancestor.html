@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>lim transformed root in scaled ancestor</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e2e8f0;
+      }
+      .zoom-surface {
+        margin: 70px 0 0 90px;
+        width: 480px;
+        transform: scale(0.75);
+        transform-origin: 0 0;
+      }
+      #target {
+        width: 420px;
+        height: 240px;
+        background: #ffffff;
+        border: 4px solid #7a1f4d;
+        border-radius: 10px;
+        box-sizing: border-box;
+        padding: 20px;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 16px;
+        color: #1d2731;
+      }
+      .swatches {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-top: 16px;
+      }
+      .swatch {
+        height: 56px;
+        border-radius: 8px;
+      }
+      .swatch:nth-child(1) {
+        background: #2f6fdb;
+      }
+      .swatch:nth-child(2) {
+        background: #1f7a4d;
+      }
+      .swatch:nth-child(3) {
+        background: #f0a202;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="zoom-surface">
+      <div id="target">
+        <strong>Root inside scale(0.75) ancestor</strong>
+        <div class="swatches">
+          <div class="swatch"></div>
+          <div class="swatch"></div>
+          <div class="swatch"></div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

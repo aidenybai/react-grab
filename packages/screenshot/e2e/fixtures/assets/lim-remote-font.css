@@ -1,0 +1,7 @@
+@font-face {
+  font-family: "Inter Remote Fixture";
+  src: url("./inter-latin-700-normal.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  unicode-range: U+0000-00FF;
+}

@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      @font-face {
+        font-family: "Inter Pruned";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 100;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Pruned";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 300;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Pruned";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Pruned";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Pruned";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 900;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #ffffff;
+      }
+      #target {
+        width: 640px;
+        padding: 24px;
+        font-family: "Inter Pruned", sans-serif;
+        color: #1c2733;
+        background: #f4f7fa;
+      }
+      .regular-text {
+        font-weight: 400;
+        font-size: 18px;
+      }
+      .bold-text {
+        font-weight: 700;
+        font-size: 18px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <p class="regular-text">Regular weight paragraph rendered at 400.</p>
+      <p class="bold-text">Bold weight paragraph rendered at 700.</p>
+      <p class="regular-text">Only two of the five declared faces can ever match.</p>
+    </div>
+  </body>
+</html>

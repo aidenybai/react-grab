@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ms nested shadow dom</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 100px;
+        height: 100px;
+        background: #ffffff;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target"></div>
+    <script>
+      const targetElement = document.querySelector("#target");
+
+      const buildShadowHost = () => {
+        const host = document.createElement("div");
+        host.style.backgroundColor = "red";
+        host.style.width = "80px";
+        host.style.height = "80px";
+        const nestedHost = document.createElement("div");
+        nestedHost.style.backgroundColor = "blue";
+        nestedHost.style.width = "50px";
+        nestedHost.style.height = "50px";
+        const innerDiv = document.createElement("div");
+        innerDiv.style.backgroundColor = "black";
+        innerDiv.style.width = "20px";
+        innerDiv.style.height = "20px";
+        nestedHost.attachShadow({ mode: "open" }).appendChild(innerDiv);
+        host.attachShadow({ mode: "open" }).appendChild(nestedHost);
+        return host;
+      };
+
+      targetElement.appendChild(buildShadowHost());
+    </script>
+  </body>
+</html>

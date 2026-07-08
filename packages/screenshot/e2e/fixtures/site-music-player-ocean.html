@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>site-music-player-ocean</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #888888;
+      }
+      #target {
+        width: 980px;
+        height: 700px;
+        background: #eef6f9;
+        color: #0f3345;
+        font-family: "Inter Fixture", sans-serif;
+        overflow: hidden;
+        position: relative;
+      }
+
+      #target {
+        background: linear-gradient(180deg, #0e7490 0%, #121212 42%);
+        color: #ffffff;
+      }
+      .sp-head {
+        display: flex;
+        align-items: flex-end;
+        gap: 22px;
+        padding: 40px 30px 24px;
+      }
+      .sp-cover {
+        width: 180px;
+        height: 180px;
+        border-radius: 6px;
+        background: linear-gradient(135deg, #ff6a3d, #a12568, #21d4fd);
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+      }
+      .sp-kind {
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .sp-title {
+        font-size: 46px;
+        font-weight: 700;
+        letter-spacing: -2px;
+        margin: 6px 0;
+      }
+      .sp-meta {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.7);
+      }
+      .sp-controls {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        padding: 16px 30px;
+      }
+      .sp-play {
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        background: #cffafe;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #000000;
+        font-size: 20px;
+      }
+      .track {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 8px 30px;
+        font-size: 14px;
+      }
+      .track:hover {
+        background: rgba(255, 255, 255, 0.08);
+      }
+      .track.playing .track-title {
+        color: #cffafe;
+      }
+      .track-num {
+        width: 16px;
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 13px;
+      }
+      .track-art {
+        width: 38px;
+        height: 38px;
+        border-radius: 4px;
+        flex: none;
+      }
+      .track-info {
+        flex: 1;
+      }
+      .track-artist {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.6);
+      }
+      .track-dur {
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 13px;
+      }
+      .now-bar {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: #181818;
+        border-top: 1px solid #282828;
+        padding: 10px 16px;
+        font-size: 12px;
+      }
+      .now-progress {
+        flex: 1;
+        height: 4px;
+        border-radius: 2px;
+        background: #4d4d4d;
+        position: relative;
+      }
+      .now-progress::before {
+        content: "";
+        position: absolute;
+        inset: 0 62% 0 0;
+        background: #ffffff;
+        border-radius: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="sp-head">
+        <div class="sp-cover"></div>
+        <div>
+          <div class="sp-kind">Playlist</div>
+          <div class="sp-title">Deep Focus Coding</div>
+          <div class="sp-meta">Made for you · 6 songs, 24 min</div>
+        </div>
+      </div>
+      <div class="sp-controls">
+        <div class="sp-play">▶</div>
+        <span style="font-size: 22px; color: #1ed760">＋</span
+        ><span style="font-size: 22px; color: rgba(255, 255, 255, 0.6)">⋯</span>
+      </div>
+
+      <div class="track">
+        <span class="track-num">1</span>
+        <span
+          class="track-art"
+          style="background: linear-gradient(135deg, #d23b2e, #b8860b)"
+        ></span>
+        <div class="track-info">
+          <div class="track-title">Midnight Compile</div>
+          <div class="track-artist">The Segfaults</div>
+        </div>
+        <span class="track-dur">3:42</span>
+      </div>
+      <div class="track playing">
+        <span class="track-num">▶</span>
+        <span
+          class="track-art"
+          style="background: linear-gradient(135deg, #2f6fdb, #0f766e)"
+        ></span>
+        <div class="track-info">
+          <div class="track-title">Garbage Collector Blues</div>
+          <div class="track-artist">Heap & The Stacks</div>
+        </div>
+        <span class="track-dur">4:15</span>
+      </div>
+      <div class="track">
+        <span class="track-num">3</span>
+        <span
+          class="track-art"
+          style="background: linear-gradient(135deg, #14a06c, #be185d)"
+        ></span>
+        <div class="track-info">
+          <div class="track-title">Async Awakening</div>
+          <div class="track-artist">Promise All-Stars</div>
+        </div>
+        <span class="track-dur">2:58</span>
+      </div>
+      <div class="track">
+        <span class="track-num">4</span>
+        <span
+          class="track-art"
+          style="background: linear-gradient(135deg, #7a3b8f, #4338ca)"
+        ></span>
+        <div class="track-info">
+          <div class="track-title">Cache Invalidation</div>
+          <div class="track-artist">The Hard Problems</div>
+        </div>
+        <span class="track-dur">5:03</span>
+      </div>
+      <div class="track">
+        <span class="track-num">5</span>
+        <span
+          class="track-art"
+          style="background: linear-gradient(135deg, #b8860b, #d23b2e)"
+        ></span>
+        <div class="track-info">
+          <div class="track-title">Off By One</div>
+          <div class="track-artist">Array Index</div>
+        </div>
+        <span class="track-dur">3:21</span>
+      </div>
+      <div class="track">
+        <span class="track-num">6</span>
+        <span
+          class="track-art"
+          style="background: linear-gradient(135deg, #0f766e, #2f6fdb)"
+        ></span>
+        <div class="track-info">
+          <div class="track-title">Tail Call</div>
+          <div class="track-artist">The Optimizers</div>
+        </div>
+        <span class="track-dur">4:44</span>
+      </div>
+      <div class="now-bar">
+        <span
+          style="
+            display: inline-block;
+            width: 34px;
+            height: 34px;
+            border-radius: 4px;
+            background: linear-gradient(135deg, #0f766e, #d23b2e);
+            flex: none;
+          "
+        ></span>
+        <div>
+          <b>Garbage Collector Blues</b>
+          <div style="color: rgba(255, 255, 255, 0.6)">Heap &amp; The Stacks</div>
+        </div>
+        <span style="margin-left: auto">1:34</span>
+        <div class="now-progress"></div>
+        <span>4:15</span>
+      </div>
+    </div>
+  </body>
+</html>

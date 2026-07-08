@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>site-news-front-violet</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #888888;
+      }
+      #target {
+        width: 1100px;
+        height: 700px;
+        background: #16111f;
+        color: #e9e2f7;
+        font-family: "Inter Fixture", sans-serif;
+        overflow: hidden;
+        position: relative;
+      }
+
+      #target {
+        font-family: Georgia, serif;
+      }
+      .np-mast {
+        text-align: center;
+        border-bottom: 3px double #e9e2f7;
+        padding: 18px 0 10px;
+      }
+      .np-mast h1 {
+        font-size: 40px;
+        margin: 0;
+        letter-spacing: 2px;
+      }
+      .np-date {
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 11px;
+        color: #a294bd;
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 26px;
+        border-bottom: 1px solid #3d2f52;
+      }
+      .np-grid {
+        display: grid;
+        grid-template-columns: 2fr 1.2fr 1fr;
+        gap: 0;
+      }
+      .np-col {
+        padding: 18px 22px;
+        border-right: 1px solid #3d2f52;
+      }
+      .np-col:last-child {
+        border-right: none;
+      }
+      .np-lead h2 {
+        font-size: 30px;
+        line-height: 1.15;
+        margin: 0 0 8px;
+        font-weight: 700;
+      }
+      .np-photo {
+        height: 220px;
+        background: url("./assets/photo-landscape.png") center / cover;
+        margin-bottom: 8px;
+      }
+      .np-caption {
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 11px;
+        color: #a294bd;
+        margin-bottom: 10px;
+      }
+      .np-col p {
+        font-size: 14px;
+        line-height: 1.55;
+        margin: 0 0 10px;
+      }
+      .np-byline {
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #a294bd;
+        margin-bottom: 6px;
+      }
+      .np-item {
+        border-bottom: 1px solid #3d2f52;
+        padding: 10px 0;
+      }
+      .np-item h3 {
+        font-size: 17px;
+        line-height: 1.25;
+        margin: 0 0 4px;
+      }
+      .np-item p {
+        font-size: 13px;
+        color: #a294bd;
+        margin: 0;
+      }
+      .np-opinion {
+        background: #2a2038;
+        margin: -18px -22px;
+        padding: 18px 22px;
+        height: calc(100% + 36px);
+      }
+      .np-opinion .np-byline {
+        color: #fb7185;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="np-mast"><h1>The Daily Renderer</h1></div>
+      <div class="np-date">
+        <span>VOL. CXXIV · No. 43,112</span><span>FRIDAY, JULY 3, 2026</span><span>$4.00</span>
+      </div>
+      <div class="np-grid">
+        <div class="np-col np-lead">
+          <div class="np-byline">Browser Engines</div>
+          <h2>Compositor Thread Reaches Quorum: All Major Engines Now Rasterize Off Main</h2>
+          <div class="np-photo"></div>
+          <div class="np-caption">
+            Engineers watch tile rasterization telemetry at the annual layout summit. Photo: Staff
+          </div>
+          <p>
+            After a decade of incremental architecture work, the last holdout engine moved its final
+            paint phase off the main thread on Tuesday, closing an era in which a busy event loop
+            could visibly stall scrolling.
+          </p>
+          <p>
+            The change, years in the making, required untangling synchronous DOM APIs that had
+            assumed direct access to layout state since the 1990s.
+          </p>
+        </div>
+        <div class="np-col">
+          <div class="np-item">
+            <div class="np-byline">Standards</div>
+            <h3>foreignObject Turns 25, Quietly Powers a Screenshot Renaissance</h3>
+            <p>
+              The obscure SVG element from 2001 now underpins nearly every in-browser capture tool.
+            </p>
+          </div>
+          <div class="np-item">
+            <h3>Font Foundries Adopt Incremental Transfer by Default</h3>
+            <p>Page weights drop as subsetting moves into the protocol layer.</p>
+          </div>
+          <div class="np-item">
+            <h3>WASM GC Lands in Long-Term Support Releases</h3>
+            <p>Managed languages report 40 percent smaller binaries.</p>
+          </div>
+        </div>
+        <div class="np-col">
+          <div class="np-opinion">
+            <div class="np-byline">Opinion</div>
+            <div class="np-item" style="border-bottom: 1px solid #3d2f52">
+              <h3>Stop Shipping Ten Megabytes of JavaScript</h3>
+              <p>A plea from your users' batteries. By the editorial board.</p>
+            </div>
+            <div class="np-item" style="border-bottom: none">
+              <h3>In Defense of Tables for Layout</h3>
+              <p>A contrarian looks back, fondly. By M. Cascade.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

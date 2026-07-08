@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>53 shadow dom</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 480px;
+        height: 320px;
+        background: #f7f3ea;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 13px;
+        color: #1d2731;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      .light-title {
+        color: #c0392b;
+        font-size: 15px;
+      }
+      .light-body {
+        letter-spacing: 1px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div id="card-host">
+        <span slot="title" class="light-title">Slotted light-DOM title</span>
+        <p class="light-body">Default-slot paragraph carrying light styles.</p>
+        <span slot="footer">footer chip</span>
+      </div>
+      <div id="empty-host"></div>
+    </div>
+    <script>
+      const cardHost = document.querySelector("#card-host");
+      const cardShadowRoot = cardHost.attachShadow({ mode: "open" });
+      cardShadowRoot.innerHTML = `
+        <style>
+          .frame {
+            border: 2px solid #2f6fdb;
+            border-radius: 8px;
+            background: #ffffff;
+            padding: 12px;
+          }
+          header {
+            background: #14304f;
+            color: #dfe9f5;
+            padding: 6px 10px;
+            margin: -12px -12px 10px;
+            border-radius: 6px 6px 0 0;
+          }
+          ::slotted(.light-title) {
+            text-decoration: underline;
+          }
+          ::slotted(p) {
+            margin: 0 0 10px;
+            background: #dfe9f5;
+            padding: 6px;
+          }
+          .footer-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+          }
+          ::slotted([slot="footer"]) {
+            background: #f4c542;
+            color: #14304f;
+            padding: 2px 10px;
+            border-radius: 999px;
+          }
+          .shadow-only {
+            width: 90px;
+            height: 24px;
+            background: #7a3b8f;
+            color: #ffffff;
+            display: grid;
+            place-items: center;
+            border-radius: 4px;
+          }
+        </style>
+        <div class="frame">
+          <header><slot name="title">fallback title</slot></header>
+          <slot></slot>
+          <div class="footer-row">
+            <slot name="footer">no footer</slot>
+            <div class="shadow-only">shadow</div>
+            <div id="nested-host"></div>
+          </div>
+        </div>
+      `;
+
+      const nestedHost = cardShadowRoot.querySelector("#nested-host");
+      const nestedShadowRoot = nestedHost.attachShadow({ mode: "open" });
+      nestedShadowRoot.innerHTML = `
+        <style>
+          .pip {
+            width: 72px;
+            height: 24px;
+            background: #1f6f54;
+            color: #ffffff;
+            display: grid;
+            place-items: center;
+            border-radius: 4px;
+          }
+        </style>
+        <div class="pip">nested</div>
+      `;
+
+      const emptyHost = document.querySelector("#empty-host");
+      const emptyShadowRoot = emptyHost.attachShadow({ mode: "open" });
+      emptyShadowRoot.innerHTML = `
+        <style>
+          .fallback-frame {
+            margin-top: 14px;
+            border: 2px dashed #c0392b;
+            padding: 10px;
+            background: #ffffff;
+          }
+        </style>
+        <div class="fallback-frame">
+          <slot>Fallback content renders because nothing is assigned.</slot>
+        </div>
+      `;
+    </script>
+  </body>
+</html>

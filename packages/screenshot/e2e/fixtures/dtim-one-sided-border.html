@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>dtim one sided border</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 60px;
+        height: 60px;
+        background: #ffffff;
+        box-sizing: border-box;
+        padding: 10px;
+      }
+      /* #12: ONLY border-left is set; no other side may inherit its 5px width. */
+      #oneside {
+        border-left: 5px solid rgb(0, 128, 0);
+        width: 20px;
+        height: 20px;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 12px;
+        color: #000000;
+        background: #f4c542;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div id="oneside">x</div>
+    </div>
+  </body>
+</html>

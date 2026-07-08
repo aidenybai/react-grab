@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>70 stress</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 1200px;
+        height: 2400px;
+        background: #eef1f5;
+        font-family: "Inter Fixture", sans-serif;
+        color: #1d2731;
+        box-sizing: border-box;
+        overflow: hidden;
+      }
+      .stress-masthead {
+        height: 96px;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        padding: 0 24px;
+        background: linear-gradient(115deg, #14304f, #2f6fdb 55%, #7a3b8f);
+        color: #ffffff;
+      }
+      .stress-masthead .headline {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .stress-masthead h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 700;
+        text-shadow: 1px 2px 3px rgba(0, 0, 0, 0.5);
+      }
+      .stress-masthead .subtitle {
+        font-size: 12px;
+        font-weight: 400;
+        color: #c8d4e0;
+      }
+      .stat-row {
+        margin-left: auto;
+        display: flex;
+        gap: 10px;
+      }
+      .stat-chip {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.35);
+        border-radius: 6px;
+        padding: 6px 14px;
+      }
+      .stat-chip .stat-value {
+        font-size: 16px;
+        font-weight: 700;
+      }
+      .stat-chip .stat-label {
+        font-size: 9px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+      }
+      #card-grid {
+        display: grid;
+        grid-template-columns: repeat(6, 190px);
+        grid-auto-rows: 86px;
+        gap: 8px;
+        padding: 8px 10px;
+      }
+      .card {
+        background: #ffffff;
+        border: 1px solid #cfd8e2;
+        border-radius: 6px;
+        box-shadow:
+          0 1px 2px rgba(20, 48, 79, 0.18),
+          0 4px 8px rgba(20, 48, 79, 0.12);
+        box-sizing: border-box;
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        overflow: hidden;
+      }
+      .card-head {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .avatar {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        position: relative;
+        flex: none;
+      }
+      .avatar::after {
+        content: "";
+        position: absolute;
+        right: -1px;
+        bottom: -1px;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #2fbf71;
+        border: 1px solid #ffffff;
+      }
+      .card-title {
+        font-size: 13px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .badge {
+        margin-left: auto;
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        padding: 1px 6px;
+        border-radius: 999px;
+      }
+      .badge::before {
+        content: "• ";
+      }
+      .card-body {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+      }
+      .line-strong {
+        font-size: 12px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .line-soft {
+        font-size: 10px;
+        font-weight: 400;
+        color: #5a6b7c;
+        white-space: nowrap;
+      }
+      .meter {
+        margin-top: auto;
+        height: 6px;
+        border-radius: 3px;
+        background: #e4e9ef;
+        overflow: hidden;
+      }
+      .meter-fill {
+        height: 6px;
+        background: linear-gradient(to right, #2f6fdb, #7a3b8f);
+      }
+      .hue-0 .avatar {
+        background: linear-gradient(135deg, #2f6fdb, #14304f);
+      }
+      .hue-1 .avatar {
+        background: linear-gradient(135deg, #e4572e, #7a1f0f);
+      }
+      .hue-2 .avatar {
+        background: linear-gradient(135deg, #2fbf71, #14523a);
+      }
+      .hue-3 .avatar {
+        background: linear-gradient(135deg, #f4c542, #9a6b0f);
+      }
+      .hue-4 .avatar {
+        background: linear-gradient(135deg, #7a3b8f, #3a1247);
+      }
+      .hue-5 .avatar {
+        background: linear-gradient(135deg, #1d99a8, #0c3f47);
+      }
+      .hue-0 .badge {
+        background: #dbe7fb;
+        color: #14304f;
+      }
+      .hue-1 .badge {
+        background: #fbe0d7;
+        color: #7a1f0f;
+      }
+      .hue-2 .badge {
+        background: #d7f3e4;
+        color: #14523a;
+      }
+      .hue-3 .badge {
+        background: #fbf1d2;
+        color: #9a6b0f;
+      }
+      .hue-4 .badge {
+        background: #ecdcf2;
+        color: #3a1247;
+      }
+      .hue-5 .badge {
+        background: #d6eef1;
+        color: #0c3f47;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="stress-masthead">
+        <svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true">
+          <defs>
+            <linearGradient id="stress-mark" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#f4c542" />
+              <stop offset="1" stop-color="#e4572e" />
+            </linearGradient>
+          </defs>
+          <rect x="2" y="2" width="44" height="44" rx="10" fill="url(#stress-mark)" />
+          <path
+            d="M14 30 L22 16 L28 26 L34 18"
+            stroke="#ffffff"
+            stroke-width="3"
+            fill="none"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <circle cx="34" cy="18" r="3" fill="#ffffff" />
+        </svg>
+        <div class="headline">
+          <h1>Stress board</h1>
+          <span class="subtitle">144 cards, seeded deterministic layout</span>
+        </div>
+        <div class="stat-row" id="stat-row"></div>
+      </div>
+      <div id="card-grid"></div>
+    </div>
+    <script>
+      const CARD_COUNT = 144;
+      const HUE_CLASS_COUNT = 6;
+      const badgeLabels = ["alpha", "beta", "gamma", "delta"];
+      const cardMarkupParts = [];
+      for (let cardIndex = 0; cardIndex < CARD_COUNT; cardIndex++) {
+        const hueClassIndex = cardIndex % HUE_CLASS_COUNT;
+        const badgeLabel = badgeLabels[cardIndex % badgeLabels.length];
+        const metricValue = 1000 + ((cardIndex * 197) % 9000);
+        const deltaValue = (cardIndex * 13) % 40;
+        const meterWidthPx = 40 + ((cardIndex * 37) % 120);
+        const cardNumber = String(cardIndex + 1).padStart(3, "0");
+        cardMarkupParts.push(
+          `<div class="card hue-${hueClassIndex}">` +
+            `<div class="card-head">` +
+            `<div class="avatar"></div>` +
+            `<span class="card-title">Card ${cardNumber}</span>` +
+            `<span class="badge">${badgeLabel}</span>` +
+            `</div>` +
+            `<div class="card-body">` +
+            `<span class="line-strong">metric ${metricValue}</span>` +
+            `<span class="line-soft">delta +${deltaValue} units steady</span>` +
+            `</div>` +
+            `<div class="meter"><div class="meter-fill" style="width: ${meterWidthPx}px"></div></div>` +
+            `</div>`,
+        );
+      }
+      document.querySelector("#card-grid").innerHTML = cardMarkupParts.join("");
+
+      const statEntries = [
+        ["144", "cards"],
+        ["1.4k", "nodes"],
+        ["6", "hues"],
+      ];
+      document.querySelector("#stat-row").innerHTML = statEntries
+        .map(
+          ([statValue, statLabel]) =>
+            `<div class="stat-chip">` +
+            `<span class="stat-value">${statValue}</span>` +
+            `<span class="stat-label">${statLabel}</span>` +
+            `</div>`,
+        )
+        .join("");
+    </script>
+  </body>
+</html>

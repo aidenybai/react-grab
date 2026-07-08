@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>41 background images</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 520px;
+        height: 340px;
+        background: #f7f3ea;
+        position: relative;
+      }
+      #target > div {
+        position: absolute;
+        width: 150px;
+        height: 96px;
+        background-color: #dfe9f5;
+      }
+      .tiled {
+        top: 16px;
+        left: 16px;
+        background-image: url("./assets/pattern-tile.png");
+        background-repeat: repeat;
+      }
+      .no-repeat-center {
+        top: 16px;
+        left: 186px;
+        background-image: url("./assets/shape.svg");
+        background-repeat: no-repeat;
+        background-position: center;
+      }
+      .sized-cover {
+        top: 16px;
+        left: 356px;
+        background-image: url("./assets/photo-landscape.png");
+        background-size: cover;
+        background-position: center;
+      }
+      .sized-contain {
+        top: 128px;
+        left: 16px;
+        background-image: url("./assets/photo-portrait.png");
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: right bottom;
+        background-color: #14304f;
+      }
+      .offset-tile {
+        top: 128px;
+        left: 186px;
+        background-image: url("./assets/pattern-tile.png");
+        background-repeat: repeat-x;
+        background-position: 10px 30px;
+        background-size: 48px 48px;
+      }
+      .multi-layer {
+        top: 128px;
+        left: 356px;
+        background-image:
+          url("./assets/shape.svg"),
+          repeating-linear-gradient(
+            45deg,
+            rgba(228, 87, 46, 0.4) 0 8px,
+            rgba(255, 255, 255, 0) 8px 16px
+          ),
+          linear-gradient(to right, #f4c542, #c0392b);
+        background-repeat: no-repeat, repeat, no-repeat;
+        background-position:
+          center,
+          0 0,
+          0 0;
+        background-size:
+          56px 56px,
+          auto,
+          cover;
+      }
+      .clipped {
+        top: 240px;
+        left: 16px;
+        width: 490px;
+        height: 84px;
+        padding: 14px;
+        box-sizing: border-box;
+        border: 8px dashed #2f6fdb;
+        background-image: url("./assets/pattern-tile.png");
+        background-clip: content-box;
+        background-origin: content-box;
+        background-color: #ffffff;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="tiled"></div>
+      <div class="no-repeat-center"></div>
+      <div class="sized-cover"></div>
+      <div class="sized-contain"></div>
+      <div class="offset-tile"></div>
+      <div class="multi-layer"></div>
+      <div class="clipped"></div>
+    </div>
+  </body>
+</html>

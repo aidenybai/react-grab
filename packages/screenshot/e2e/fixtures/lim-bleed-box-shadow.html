@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>lim bleed box shadow</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #dfe6ee;
+      }
+      #target {
+        margin: 120px 0 0 120px;
+        width: 320px;
+        height: 180px;
+        background: #ffffff;
+        border-radius: 14px;
+        box-shadow: 0px 12px 40px 8px rgba(20, 40, 60, 0.55);
+        box-sizing: border-box;
+        padding: 20px;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 15px;
+        color: #1d2731;
+      }
+      .accent {
+        margin-top: 14px;
+        height: 40px;
+        background: #2f6fdb;
+        border-radius: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <strong>Shadowed card</strong> captured with bleed
+      <div class="accent"></div>
+    </div>
+  </body>
+</html>

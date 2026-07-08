@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>04 transforms</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 480px;
+        height: 320px;
+        background: #f7f3ea;
+        position: relative;
+        overflow: hidden;
+      }
+      .rotated {
+        position: absolute;
+        top: 40px;
+        left: 40px;
+        width: 90px;
+        height: 60px;
+        background: #2f6fdb;
+        transform: rotate(15deg);
+      }
+      .scaled {
+        position: absolute;
+        top: 40px;
+        left: 190px;
+        width: 100px;
+        height: 70px;
+        background: #1f6f54;
+        transform: scale(0.75, 1.2);
+      }
+      .skewed {
+        position: absolute;
+        top: 40px;
+        left: 340px;
+        width: 90px;
+        height: 60px;
+        background: #c0392b;
+        transform: skew(14deg, 4deg);
+      }
+      .translated {
+        position: absolute;
+        top: 150px;
+        left: 20px;
+        width: 80px;
+        height: 56px;
+        background: #f4c542;
+        transform: translate(24px, 18px);
+      }
+      .origin-corner {
+        position: absolute;
+        top: 170px;
+        left: 180px;
+        width: 90px;
+        height: 60px;
+        background: #7a3b8f;
+        transform: rotate(-20deg);
+        transform-origin: top left;
+      }
+      .nested-outer {
+        position: absolute;
+        top: 170px;
+        left: 320px;
+        width: 120px;
+        height: 110px;
+        background: #14304f;
+        transform: rotate(10deg) scale(0.9);
+      }
+      .nested-inner {
+        width: 70px;
+        height: 50px;
+        margin: 30px 0 0 25px;
+        background: #e4572e;
+        transform: rotate(-25deg) translateX(6px);
+      }
+      .combined {
+        position: absolute;
+        top: 250px;
+        left: 60px;
+        width: 110px;
+        height: 50px;
+        background: #dfe9f5;
+        border: 3px solid #2f6fdb;
+        transform: translate(10px, -6px) rotate(8deg) scale(1.1) skewX(-6deg);
+        transform-origin: 20% 80%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="rotated"></div>
+      <div class="scaled"></div>
+      <div class="skewed"></div>
+      <div class="translated"></div>
+      <div class="origin-corner"></div>
+      <div class="nested-outer"><div class="nested-inner"></div></div>
+      <div class="combined"></div>
+    </div>
+  </body>
+</html>

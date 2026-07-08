@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>lim backdrop filter</title>
+    <style>
+      body {
+        margin: 0;
+        background: #dfe6ee;
+      }
+      #target {
+        position: relative;
+        width: 360px;
+        height: 240px;
+        background: linear-gradient(120deg, #1c3aa9 0%, #d43f8d 55%, #f7b32b 100%);
+        overflow: hidden;
+      }
+      .dot {
+        position: absolute;
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+      }
+      .dot-green {
+        left: 40px;
+        top: 30px;
+        background: #14a06c;
+      }
+      .dot-red {
+        left: 220px;
+        top: 110px;
+        background: #d23b2e;
+      }
+      .glass {
+        position: absolute;
+        left: 60px;
+        top: 60px;
+        width: 240px;
+        height: 120px;
+        backdrop-filter: blur(8px);
+        background: rgba(255, 255, 255, 0.25);
+        border-radius: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="dot dot-green"></div>
+      <div class="dot dot-red"></div>
+      <div class="glass"></div>
+    </div>
+  </body>
+</html>

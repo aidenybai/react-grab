@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>hard waapi paused</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e2d6;
+      }
+      #target {
+        position: relative;
+        width: 480px;
+        height: 280px;
+        background: #f6f1e7;
+        overflow: hidden;
+      }
+      .card {
+        position: absolute;
+        left: 30px;
+        top: 30px;
+        width: 140px;
+        height: 90px;
+        background: #b5432a;
+      }
+      .chip {
+        position: absolute;
+        left: 240px;
+        top: 40px;
+        width: 100px;
+        height: 100px;
+        background: #2a6b4f;
+      }
+      .bar {
+        position: absolute;
+        left: 30px;
+        top: 180px;
+        width: 400px;
+        height: 40px;
+        background: #1d2731;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="card"></div>
+      <div class="chip"></div>
+      <div class="bar"></div>
+    </div>
+    <script>
+      const pauseAtMs = (animation, currentTimeMs) => {
+        animation.pause();
+        animation.currentTime = currentTimeMs;
+      };
+      pauseAtMs(
+        document.querySelector(".card").animate(
+          [
+            { transform: "rotate(0deg) translateX(0)", borderRadius: "0px" },
+            { transform: "rotate(180deg) translateX(120px)", borderRadius: "45px" },
+          ],
+          { duration: 10000, fill: "both" },
+        ),
+        3500,
+      );
+      pauseAtMs(
+        document.querySelector(".chip").animate(
+          [
+            { opacity: 1, transform: "scale(1) skewX(0deg)" },
+            { opacity: 0.2, transform: "scale(1.6) skewX(-20deg)" },
+          ],
+          { duration: 8000, fill: "both" },
+        ),
+        5000,
+      );
+      pauseAtMs(
+        document.querySelector(".bar").animate(
+          [
+            { clipPath: "inset(0 100% 0 0)", backgroundColor: "#1d2731" },
+            { clipPath: "inset(0 0 0 0)", backgroundColor: "#2f6fdb" },
+          ],
+          { duration: 6000, fill: "both" },
+        ),
+        2400,
+      );
+    </script>
+  </body>
+</html>

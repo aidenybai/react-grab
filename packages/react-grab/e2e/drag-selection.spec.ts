@@ -278,9 +278,8 @@ test.describe("Drag Selection with Scroll", () => {
 
     if (count > 0) {
       await reactGrab.dragSelect("li:first-child", "li:nth-child(2)");
-      await reactGrab.page.waitForTimeout(500);
 
-      const clipboardContent = await reactGrab.getClipboardContent();
+      const clipboardContent = await reactGrab.waitForClipboardContent();
       expect(clipboardContent).toBeTruthy();
     }
   });
@@ -316,9 +315,8 @@ test.describe("Drag Selection with Scroll", () => {
       await reactGrab.page.mouse.down();
       await reactGrab.page.mouse.move(box.x + 200, box.y + 100, { steps: 5 });
       await reactGrab.page.mouse.up();
-      await reactGrab.page.waitForTimeout(500);
 
-      const clipboardContent = await reactGrab.getClipboardContent();
+      const clipboardContent = await reactGrab.waitForClipboardContent();
       expect(clipboardContent).toBeTruthy();
     }
   });

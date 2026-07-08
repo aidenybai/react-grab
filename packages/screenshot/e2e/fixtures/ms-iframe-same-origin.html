@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ms iframe same origin</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 320px;
+        height: 170px;
+        background: #ffffff;
+        padding: 10px;
+        box-sizing: border-box;
+      }
+      iframe {
+        display: block;
+        width: 300px;
+        height: 150px;
+        border: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <iframe src="./assets/ms-iframe-content.html" width="300" height="150"></iframe>
+    </div>
+  </body>
+</html>

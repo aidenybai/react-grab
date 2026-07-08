@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>11 text styles</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 560px;
+        height: 360px;
+        background: #fbf8f1;
+        color: #1d2731;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 17px;
+        padding: 24px;
+        box-sizing: border-box;
+      }
+      p {
+        margin: 0 0 15px;
+      }
+      .shadowed {
+        font-size: 24px;
+        font-weight: 700;
+        color: #2f6fdb;
+        text-shadow:
+          2px 2px 0 #f4c542,
+          4px 4px 6px rgba(20, 48, 79, 0.55),
+          -1px -1px 0 #ffffff;
+      }
+      .wavy {
+        text-decoration: underline wavy #c0392b 2px;
+        text-underline-offset: 4px;
+      }
+      .thick-underline {
+        text-decoration: underline solid #1f6f54 4px;
+        text-underline-offset: 2px;
+      }
+      .struck {
+        text-decoration: line-through double #7a3b8f;
+      }
+      .overlined {
+        text-decoration: overline dotted #e4572e 2px;
+      }
+      .spaced {
+        letter-spacing: 3px;
+        word-spacing: 10px;
+        text-transform: uppercase;
+        font-size: 14px;
+      }
+      .caps {
+        font-variant: small-caps;
+        font-size: 19px;
+      }
+      .slanted {
+        font-style: italic;
+        color: #35506b;
+      }
+      .highlighted {
+        background: #f4c542;
+        color: #14304f;
+        padding: 1px 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <p class="shadowed">Layered shadows over amber offsets</p>
+      <p>
+        A <span class="wavy">wavy crimson underline</span> meets a
+        <span class="thick-underline">four-pixel green rule</span> and a
+        <span class="struck">double strike-through</span> mid-sentence.
+      </p>
+      <p class="overlined">Dotted overline running the full line of text.</p>
+      <p class="spaced">Tracked and transformed uppercase spacing</p>
+      <p class="caps">Small Caps Render Petite Capitals Here</p>
+      <p class="slanted">
+        Synthetic italics lean every glyph, and a
+        <span class="highlighted">highlighted run</span> paints behind the text box without shifting
+        the baseline.
+      </p>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>snap pseudo border spacer</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 420px;
+        height: 380px;
+        background: #ffffff;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 14px;
+        color: #1d2731;
+        box-sizing: border-box;
+        padding: 20px;
+      }
+      /* #419 — empty-content pseudo whose ONLY paint is a border-bottom
+         hairline. Dropping it removes the red underline. */
+      .b419-empty {
+        position: relative;
+        width: 240px;
+        padding-bottom: 8px;
+      }
+      .b419-empty::before {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        border-bottom: 1px solid red;
+      }
+      /* #419 — content plus border-bottom: both the glyph and the underline
+         must survive. */
+      .b419-text {
+        margin-top: 24px;
+        width: 240px;
+      }
+      .b419-text::before {
+        content: "B";
+        border-bottom: 1px solid red;
+        margin-right: 6px;
+        color: #2f6fdb;
+      }
+      /* #418 — antd vertical-centering spacer: an empty inline-block
+         height:100% pseudo. Dropping it collapses the centering and the
+         "modal" chip jumps to the top. */
+      .centerer {
+        margin-top: 24px;
+        height: 200px;
+        text-align: center;
+        background: #dfe9f5;
+      }
+      .centerer::before {
+        content: "";
+        display: inline-block;
+        width: 0;
+        height: 100%;
+        vertical-align: middle;
+      }
+      .modal {
+        display: inline-block;
+        vertical-align: middle;
+        background: #14304f;
+        color: #ffffff;
+        padding: 10px 22px;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="b419-empty">host with hairline below</div>
+      <div class="b419-text">host with lettered pseudo</div>
+      <div class="centerer"><span class="modal">modal</span></div>
+    </div>
+  </body>
+</html>

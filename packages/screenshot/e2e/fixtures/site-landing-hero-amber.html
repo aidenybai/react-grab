@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>site-landing-hero-amber</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #888888;
+      }
+      #target {
+        width: 1100px;
+        height: 700px;
+        background: #fffbeb;
+        color: #432c07;
+        font-family: "Inter Fixture", sans-serif;
+        overflow: hidden;
+        position: relative;
+      }
+
+      #target {
+        background: radial-gradient(1000px 500px at 70% -10%, #dbeafe, #f8fafc);
+      }
+      .lh-nav {
+        display: flex;
+        align-items: center;
+        gap: 26px;
+        padding: 20px 48px;
+        font-size: 14px;
+      }
+      .lh-logo {
+        font-weight: 700;
+        font-size: 17px;
+      }
+      .lh-nav .cta {
+        margin-left: auto;
+        background: #432c07;
+        color: #fffbeb;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-weight: 700;
+      }
+      .lh-hero {
+        text-align: center;
+        padding: 48px 120px 0;
+      }
+      .lh-pill {
+        display: inline-block;
+        font-size: 12px;
+        font-weight: 700;
+        border: 1px solid #f2dd9a;
+        border-radius: 999px;
+        padding: 5px 14px;
+        background: #ffffff;
+        margin-bottom: 18px;
+      }
+      .lh-pill span {
+        color: #b45309;
+      }
+      .lh-hero h1 {
+        font-size: 56px;
+        letter-spacing: -2.5px;
+        line-height: 1.05;
+        margin: 0 0 16px;
+        background: linear-gradient(180deg, #432c07, #8a6d31);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .lh-hero p {
+        font-size: 18px;
+        color: #8a6d31;
+        max-width: 560px;
+        margin: 0 auto 26px;
+        line-height: 1.5;
+      }
+      .lh-btns {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+      }
+      .lh-btns span {
+        border-radius: 10px;
+        padding: 12px 24px;
+        font-size: 15px;
+        font-weight: 700;
+      }
+      .lh-btns .primary {
+        background: #b45309;
+        color: #ffffff;
+        box-shadow: 0 8px 24px #b4530955;
+      }
+      .lh-btns .ghost {
+        border: 1px solid #f2dd9a;
+        background: #ffffff;
+      }
+      .lh-term {
+        max-width: 640px;
+        margin: 40px auto 0;
+        border-radius: 12px 12px 0 0;
+        background: #0d1117;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+        border: 1px solid #30363d;
+        text-align: left;
+      }
+      .lh-term-bar {
+        display: flex;
+        gap: 6px;
+        padding: 10px 14px;
+        border-bottom: 1px solid #30363d;
+      }
+      .lh-term-bar span {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+      }
+      .lh-term pre {
+        margin: 0;
+        padding: 16px 18px;
+        color: #e6edf3;
+        font-size: 13px;
+        line-height: 1.7;
+      }
+      .lh-term .p {
+        color: #7ee787;
+      }
+      .lh-term .c {
+        color: #8b949e;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="lh-nav">
+        <span class="lh-logo">⚡ fast-html-to-image</span><span>Docs</span><span>Benchmarks</span
+        ><span>Changelog</span><span class="cta">Get started</span>
+      </div>
+      <div class="lh-hero">
+        <div class="lh-pill">🎉 <span>v0.0.1 — now on npm</span></div>
+        <h1>Screenshot the DOM.<br />Pixel-perfect. Fast.</h1>
+        <p>
+          The fastest in-browser capture engine. Computed-style memoization, raster caching, and a
+          fidelity suite with 200+ fixtures across three engines.
+        </p>
+        <div class="lh-btns">
+          <span class="primary">npm install fast-html-to-image</span
+          ><span class="ghost">Read the docs →</span>
+        </div>
+        <div class="lh-term">
+          <div class="lh-term-bar">
+            <span style="background: #ff5f57"></span><span style="background: #febc2e"></span
+            ><span style="background: #28c840"></span>
+          </div>
+          <pre><span class="p">❯</span> pnpm bench
+<span class="c"># 70-stress · median of 20 runs</span>
+fast-html-to-image   <span class="p">89.5ms</span>
+snapdom              694.6ms
+modern-screenshot    1424.1ms</pre>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

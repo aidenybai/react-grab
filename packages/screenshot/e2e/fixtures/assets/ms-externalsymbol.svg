@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <symbol id="icon" fill="none" viewBox="0 0 24 24">
+    <path
+        stroke="currentColor"
+        d="M16 22v-4a4 4 0 0 0-8 0v4m13-11.85v7.82c0 2.22-1.8 4.03-4 4.03H7c-2.2 0-4-1.8-4-4.03v-7.82c0-1.21.54-2.36 1.47-3.12l5-4.12a3.97 3.97 0 0 1 5.06 0l5 4.12A4.05 4.05 0 0 1 21 10.15Z"
+    />
+    </symbol>
+</svg>

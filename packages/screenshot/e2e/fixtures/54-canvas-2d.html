@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>54 canvas 2d</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 440px;
+        height: 300px;
+        background: #14202c;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      canvas {
+        display: block;
+        background: #ffffff;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <canvas id="scene" width="400" height="260"></canvas>
+    </div>
+    <script>
+      const canvas = document.querySelector("#scene");
+      const context = canvas.getContext("2d");
+
+      const gradient = context.createLinearGradient(0, 0, 400, 0);
+      gradient.addColorStop(0, "#2f6fdb");
+      gradient.addColorStop(0.5, "#7a3b8f");
+      gradient.addColorStop(1, "#e4572e");
+      context.fillStyle = gradient;
+      context.fillRect(0, 0, 400, 70);
+
+      for (let column = 0; column < 10; column++) {
+        context.fillStyle = column % 2 === 0 ? "#dfe9f5" : "#f4c542";
+        context.fillRect(10 + column * 39, 84, 30, 26);
+      }
+
+      context.beginPath();
+      context.arc(70, 180, 44, 0, Math.PI * 2);
+      context.fillStyle = "#1f6f54";
+      context.fill();
+      context.lineWidth = 6;
+      context.strokeStyle = "#14304f";
+      context.stroke();
+
+      context.beginPath();
+      context.moveTo(150, 230);
+      context.bezierCurveTo(190, 120, 260, 250, 310, 150);
+      context.lineWidth = 4;
+      context.strokeStyle = "#c0392b";
+      context.stroke();
+
+      context.globalAlpha = 0.55;
+      context.fillStyle = "#f4c542";
+      context.fillRect(230, 160, 90, 70);
+      context.fillStyle = "#2f6fdb";
+      context.fillRect(270, 190, 90, 60);
+      context.globalAlpha = 1;
+
+      context.font = "20px sans-serif";
+      context.fillStyle = "#14202c";
+      context.fillText("canvas snapshot", 150, 140);
+
+      const radial = context.createRadialGradient(360, 60, 4, 360, 60, 36);
+      radial.addColorStop(0, "#ffffff");
+      radial.addColorStop(1, "rgba(255,255,255,0)");
+      context.fillStyle = radial;
+      context.fillRect(320, 20, 80, 80);
+    </script>
+  </body>
+</html>

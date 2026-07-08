@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>lim lazy image offscreen</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      .lazy-distance-spacer {
+        height: 8000px;
+      }
+      #target {
+        width: 360px;
+        height: 150px;
+        background: #ffffff;
+        box-sizing: border-box;
+        padding: 16px;
+        display: flex;
+        gap: 16px;
+      }
+      img {
+        display: block;
+        width: 150px;
+        height: 100px;
+        object-fit: cover;
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      8000px below the viewport puts both images outside Chromium's lazy-load
+      distance window: at capture time naturalWidth is 0 and currentSrc is
+      empty, so the capture must force-resolve the pending source itself.
+      Ground truth scrolls #target into view and waits for the loads.
+    -->
+    <div class="lazy-distance-spacer"></div>
+    <div id="target">
+      <img src="./assets/photo-landscape.png" loading="lazy" alt="" />
+      <img
+        srcset="./assets/photo-portrait.png 300w, ./assets/photo-landscape.png 900w"
+        sizes="150px"
+        loading="lazy"
+        alt=""
+      />
+    </div>
+  </body>
+</html>

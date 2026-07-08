@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>snap shadow css vars</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      /* Custom props defined OUTSIDE the shadow scopes; shadow styles consume
+         them via var() and the values must be seeded into each scope. */
+      :root {
+        --brand: hotpink;
+        --surface: #dfe9f5;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 400px;
+        height: 240px;
+        background: #ffffff;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 14px;
+        color: #1d2731;
+        box-sizing: border-box;
+        padding: 16px;
+      }
+      #host-two {
+        /* host-level custom prop overrides the :root value inside scope 2 */
+        --brand: #1f6f54;
+        display: block;
+        margin-top: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div id="host-one"></div>
+      <div id="host-two"></div>
+      <div class="light-btn btn">light DOM .btn is NOT scoped</div>
+    </div>
+    <script>
+      var hostOne = document.getElementById("host-one");
+      var rootOne = hostOne.attachShadow({ mode: "open" });
+      rootOne.innerHTML =
+        "<style>" +
+        ".btn { color: var(--brand); background: var(--surface); " +
+        "  padding: 8px 12px; border: 2px solid var(--brand); }" +
+        "</style>" +
+        '<div class="btn">scope one uses :root --brand (hotpink)</div>';
+
+      var hostTwo = document.getElementById("host-two");
+      var rootTwo = hostTwo.attachShadow({ mode: "open" });
+      rootTwo.innerHTML =
+        "<style>" +
+        ".btn { color: #ffffff; background: var(--brand); " +
+        "  padding: 8px 12px; border-radius: 8px; }" +
+        "</style>" +
+        '<div class="btn">scope two uses host --brand (green)</div>';
+    </script>
+  </body>
+</html>

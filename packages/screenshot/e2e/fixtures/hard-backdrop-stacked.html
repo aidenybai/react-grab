@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>hard backdrop stacked</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #dfe6ee;
+      }
+      #target {
+        position: relative;
+        width: 520px;
+        height: 320px;
+        background: linear-gradient(115deg, #0b2545 0%, #8b2fa8 45%, #ef7b45 100%);
+        overflow: hidden;
+        font-family: "Inter Fixture", sans-serif;
+      }
+      #target img {
+        position: absolute;
+        left: 260px;
+        top: 20px;
+        width: 220px;
+        height: 160px;
+      }
+      .headline {
+        position: absolute;
+        left: 24px;
+        top: 18px;
+        color: #ffffff;
+        font-size: 30px;
+        font-weight: 700;
+      }
+      .dot {
+        position: absolute;
+        width: 90px;
+        height: 90px;
+        border-radius: 50%;
+      }
+      .dot-a {
+        left: 40px;
+        top: 90px;
+        background: #14a06c;
+      }
+      .dot-b {
+        left: 130px;
+        top: 190px;
+        background: #f4c542;
+      }
+      .glass-frost {
+        position: absolute;
+        left: 30px;
+        top: 70px;
+        width: 260px;
+        height: 150px;
+        backdrop-filter: blur(10px) saturate(1.8);
+        background: rgba(255, 255, 255, 0.18);
+        border: 2px solid rgba(255, 255, 255, 0.55);
+        border-radius: 20px;
+      }
+      .glass-dark {
+        position: absolute;
+        left: 210px;
+        top: 150px;
+        width: 260px;
+        height: 130px;
+        backdrop-filter: brightness(0.6) contrast(1.4) hue-rotate(40deg);
+        background: rgba(20, 24, 40, 0.25);
+        transform: rotate(-5deg);
+        border-radius: 8px;
+      }
+      .glass-dark span {
+        display: block;
+        padding: 18px 20px;
+        color: #ffe9a8;
+        font-size: 18px;
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <span class="headline">Stacked glass</span>
+      <img src="./assets/photo-landscape.png" alt="landscape" />
+      <div class="dot dot-a"></div>
+      <div class="dot dot-b"></div>
+      <div class="glass-frost"></div>
+      <div class="glass-dark"><span>rotated darkened pane</span></div>
+    </div>
+  </body>
+</html>

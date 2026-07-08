@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>real dashboard analytics</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #f0f0f3;
+      }
+      #target {
+        display: grid;
+        grid-template-columns: 200px 1fr;
+        width: 960px;
+        height: 620px;
+        background: #fafafa;
+        font-family: "Inter Fixture", sans-serif;
+        color: #09090b;
+        overflow: hidden;
+      }
+      .sidebar {
+        background: #18181b;
+        color: #a1a1aa;
+        padding: 16px 12px;
+        font-size: 13px;
+      }
+      .sidebar .brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #fafafa;
+        font-weight: 700;
+        font-size: 15px;
+        padding: 6px 8px 18px;
+      }
+      .sidebar .brand .logo {
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        background: linear-gradient(135deg, #8b5cf6, #ec4899);
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px;
+        border-radius: 6px;
+        margin-bottom: 2px;
+      }
+      .nav-item.active {
+        background: #27272a;
+        color: #fafafa;
+        font-weight: 700;
+      }
+      .main {
+        padding: 20px 24px;
+        overflow: hidden;
+      }
+      .main-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 18px;
+      }
+      .main-header h1 {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 700;
+      }
+      .date-chip {
+        border: 1px solid #e4e4e7;
+        border-radius: 6px;
+        background: #ffffff;
+        padding: 6px 12px;
+        font-size: 13px;
+        color: #52525b;
+      }
+      .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+        margin-bottom: 16px;
+      }
+      .stat-card {
+        background: #ffffff;
+        border: 1px solid #e4e4e7;
+        border-radius: 10px;
+        padding: 14px 16px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      }
+      .stat-card .label {
+        font-size: 12px;
+        color: #71717a;
+      }
+      .stat-card .value {
+        font-size: 22px;
+        font-weight: 700;
+        margin-top: 4px;
+      }
+      .stat-card .trend {
+        font-size: 11px;
+        margin-top: 4px;
+      }
+      .trend.up {
+        color: #16a34a;
+      }
+      .trend.down {
+        color: #dc2626;
+      }
+      .panel-row {
+        display: grid;
+        grid-template-columns: 3fr 2fr;
+        gap: 14px;
+      }
+      .panel {
+        background: #ffffff;
+        border: 1px solid #e4e4e7;
+        border-radius: 10px;
+        padding: 14px 16px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      }
+      .panel h2 {
+        margin: 0 0 12px;
+        font-size: 14px;
+        font-weight: 700;
+      }
+      .bar-chart {
+        display: flex;
+        align-items: flex-end;
+        gap: 10px;
+        height: 180px;
+      }
+      .bar {
+        flex: 1;
+        background: #18181b;
+        border-radius: 4px 4px 0 0;
+      }
+      .bar:nth-child(1) {
+        height: 42%;
+      }
+      .bar:nth-child(2) {
+        height: 68%;
+      }
+      .bar:nth-child(3) {
+        height: 55%;
+      }
+      .bar:nth-child(4) {
+        height: 91%;
+      }
+      .bar:nth-child(5) {
+        height: 63%;
+      }
+      .bar:nth-child(6) {
+        height: 77%;
+      }
+      .bar:nth-child(7) {
+        height: 48%;
+      }
+      .bar:nth-child(8) {
+        height: 85%;
+      }
+      .bar:nth-child(9) {
+        height: 59%;
+      }
+      .bar:nth-child(10) {
+        height: 72%;
+      }
+      .bar:nth-child(11) {
+        height: 39%;
+      }
+      .bar:nth-child(12) {
+        height: 96%;
+      }
+      .sale-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 0;
+        border-bottom: 1px solid #f4f4f5;
+        font-size: 13px;
+      }
+      .sale-row:last-child {
+        border-bottom: none;
+      }
+      .sale-avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        color: #ffffff;
+        font-size: 12px;
+        font-weight: 700;
+        display: grid;
+        place-items: center;
+      }
+      .sale-row .who {
+        display: flex;
+        flex-direction: column;
+      }
+      .sale-row .who small {
+        color: #71717a;
+        font-size: 11px;
+      }
+      .sale-row .amount {
+        margin-left: auto;
+        font-weight: 700;
+      }
+      .spark {
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="sidebar">
+        <div class="brand"><span class="logo"></span>Acme Inc</div>
+        <div class="nav-item active">▦ Overview</div>
+        <div class="nav-item">▤ Customers</div>
+        <div class="nav-item">▥ Products</div>
+        <div class="nav-item">▧ Analytics</div>
+        <div class="nav-item">⚙ Settings</div>
+      </div>
+      <div class="main">
+        <div class="main-header">
+          <h1>Dashboard</h1>
+          <span class="date-chip">Jan 20, 2026 – Feb 09, 2026</span>
+        </div>
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="label">Total Revenue</div>
+            <div class="value">$45,231.89</div>
+            <div class="trend up">+20.1% from last month</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Subscriptions</div>
+            <div class="value">+2,350</div>
+            <div class="trend up">+180.1% from last month</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Sales</div>
+            <div class="value">+12,234</div>
+            <div class="trend down">-4.5% from last month</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Active Now</div>
+            <div class="value">+573</div>
+            <div class="trend up">+201 since last hour</div>
+          </div>
+        </div>
+        <div class="panel-row">
+          <div class="panel">
+            <h2>Overview</h2>
+            <div class="bar-chart">
+              <div class="bar"></div>
+              <div class="bar"></div>
+              <div class="bar"></div>
+              <div class="bar"></div>
+              <div class="bar"></div>
+              <div class="bar"></div>
+              <div class="bar"></div>
+              <div class="bar"></div>
+              <div class="bar"></div>
+              <div class="bar"></div>
+              <div class="bar"></div>
+              <div class="bar"></div>
+            </div>
+            <svg
+              class="spark"
+              width="100%"
+              height="46"
+              viewBox="0 0 500 46"
+              preserveAspectRatio="none"
+            >
+              <polyline
+                points="0,38 40,30 80,34 120,22 160,26 200,14 240,20 280,10 320,16 360,7 400,13 440,4 500,9"
+                fill="none"
+                stroke="#8b5cf6"
+                stroke-width="2"
+              />
+              <polygon
+                points="0,38 40,30 80,34 120,22 160,26 200,14 240,20 280,10 320,16 360,7 400,13 440,4 500,9 500,46 0,46"
+                fill="#8b5cf6"
+                opacity="0.12"
+              />
+            </svg>
+          </div>
+          <div class="panel">
+            <h2>Recent Sales</h2>
+            <div class="sale-row">
+              <span class="sale-avatar" style="background: #2f6fdb">OM</span>
+              <span class="who">Olivia Martin<small>olivia.martin@email.com</small></span>
+              <span class="amount">+$1,999.00</span>
+            </div>
+            <div class="sale-row">
+              <span class="sale-avatar" style="background: #14a06c">JL</span>
+              <span class="who">Jackson Lee<small>jackson.lee@email.com</small></span>
+              <span class="amount">+$39.00</span>
+            </div>
+            <div class="sale-row">
+              <span class="sale-avatar" style="background: #d23b2e">IN</span>
+              <span class="who">Isabella Nguyen<small>isabella.nguyen@email.com</small></span>
+              <span class="amount">+$299.00</span>
+            </div>
+            <div class="sale-row">
+              <span class="sale-avatar" style="background: #7a3b8f">WK</span>
+              <span class="who">William Kim<small>will@email.com</small></span>
+              <span class="amount">+$99.00</span>
+            </div>
+            <div class="sale-row">
+              <span class="sale-avatar" style="background: #b5432a">SD</span>
+              <span class="who">Sofia Davis<small>sofia.davis@email.com</small></span>
+              <span class="amount">+$39.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>hard blend clip mask</title>
+    <style>
+      body {
+        margin: 0;
+        background: #f0ede6;
+      }
+      #target {
+        position: relative;
+        width: 520px;
+        height: 300px;
+        background: linear-gradient(100deg, #f6f1e7 0%, #cfd8e3 100%);
+        overflow: hidden;
+        isolation: isolate;
+      }
+      .blend {
+        position: absolute;
+        width: 140px;
+        height: 140px;
+        border-radius: 50%;
+      }
+      .blend-multiply {
+        left: 30px;
+        top: 30px;
+        background: #d23b2e;
+        mix-blend-mode: multiply;
+      }
+      .blend-screen {
+        left: 110px;
+        top: 60px;
+        background: #2f6fdb;
+        mix-blend-mode: screen;
+      }
+      .blend-overlay {
+        left: 70px;
+        top: 120px;
+        background: #14a06c;
+        mix-blend-mode: overlay;
+      }
+      .clipped {
+        position: absolute;
+        left: 260px;
+        top: 24px;
+        width: 220px;
+        height: 120px;
+        background: repeating-linear-gradient(45deg, #7a3b8f 0 18px, #f4c542 18px 36px);
+        clip-path: polygon(50% 0, 100% 38%, 82% 100%, 18% 100%, 0 38%);
+      }
+      .masked {
+        position: absolute;
+        left: 260px;
+        top: 160px;
+        width: 220px;
+        height: 110px;
+        background: conic-gradient(from 45deg, #d23b2e, #2f6fdb, #14a06c, #d23b2e);
+        -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 50%, #000 55%, transparent 78%);
+        mask-image: radial-gradient(ellipse 90% 70% at 50% 50%, #000 55%, transparent 78%);
+      }
+      .clipped-inset {
+        position: absolute;
+        left: 40px;
+        top: 220px;
+        width: 180px;
+        height: 60px;
+        background: #1d2731;
+        clip-path: inset(8px 20px 8px 20px round 18px 4px 18px 4px);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="blend blend-multiply"></div>
+      <div class="blend blend-screen"></div>
+      <div class="blend blend-overlay"></div>
+      <div class="clipped"></div>
+      <div class="masked"></div>
+      <div class="clipped-inset"></div>
+    </div>
+  </body>
+</html>

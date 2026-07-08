@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>dtim bigger repeated strips</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 100px;
+        height: 165px;
+        background: #ffffff;
+      }
+      .red {
+        background-color: red;
+      }
+      .green {
+        background-color: green;
+      }
+      .blue {
+        background-color: blue;
+      }
+      .red,
+      .green,
+      .blue {
+        height: 3px;
+        border: 1px solid lightgrey;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target"></div>
+    <script>
+      // The original spec grows the node by cloning the strip group 10 times
+      // (11 identical children total) before rendering. Reproduce that
+      // synchronously so capture sees a larger-than-typical node.
+      const targetElement = document.getElementById("target");
+      const stripGroup = document.createElement("div");
+      stripGroup.className = "dom-child-node";
+      stripGroup.innerHTML =
+        '<div class="red"></div><div class="green"></div><div class="blue"></div>';
+      targetElement.appendChild(stripGroup);
+      for (let cloneIndex = 0; cloneIndex < 10; cloneIndex += 1) {
+        targetElement.appendChild(stripGroup.cloneNode(true));
+      }
+    </script>
+  </body>
+</html>

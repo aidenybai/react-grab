@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>snap outline no border</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 360px;
+        height: 200px;
+        background: #ffffff;
+        box-sizing: border-box;
+        padding: 30px;
+        display: flex;
+        gap: 50px;
+      }
+      /* stabilizeLayout path: a visible outline with NO border must render
+         at the correct offset outside the box edge. */
+      .outlined {
+        width: 100px;
+        height: 100px;
+        background: #dfe9f5;
+        outline: 3px solid #c0392b;
+        outline-offset: 4px;
+      }
+      .outlined-tight {
+        width: 100px;
+        height: 100px;
+        background: #f4c542;
+        outline: 5px solid #2f6fdb;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="outlined"></div>
+      <div class="outlined-tight"></div>
+    </div>
+  </body>
+</html>

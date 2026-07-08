@@ -1,0 +1,2 @@
+# Intentionally malformed HTML (parser-created illegal attribute fixture)
+e2e/fixtures/ms-malformed-attribute.html

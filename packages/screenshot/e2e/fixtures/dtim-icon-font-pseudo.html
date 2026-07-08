@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>dtim icon font pseudo</title>
+    <style>
+      @font-face {
+        font-family: "Ico149";
+        src: url("./assets/dtim-fa-solid-900.woff2") format("woff2");
+        font-weight: 900;
+        font-style: normal;
+        font-display: block;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 160px;
+        height: 60px;
+        background: #ffffff;
+        box-sizing: border-box;
+        padding: 10px;
+      }
+      /* #149: an @font-face icon glyph delivered purely via ::before content.
+         \f005 is the FontAwesome solid star glyph. */
+      #icon::before {
+        content: "\f005";
+        font-family: "Ico149";
+        font-weight: 900;
+        font-size: 30px;
+        color: #c0392b;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target"><span id="icon"></span></div>
+  </body>
+</html>

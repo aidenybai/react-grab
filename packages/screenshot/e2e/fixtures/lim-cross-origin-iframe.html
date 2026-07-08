@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>lim cross origin iframe</title>
+    <style>
+      body {
+        margin: 0;
+        background: #dfe6ee;
+      }
+      #target {
+        width: 360px;
+        height: 220px;
+        background: #ffffff;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      iframe {
+        width: 300px;
+        height: 160px;
+        border: 4px solid #1d2731;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <iframe
+        src="http://127.0.0.1:5179/lim-cross-origin-iframe-frame.html"
+        title="cross origin frame"
+      ></iframe>
+    </div>
+  </body>
+</html>

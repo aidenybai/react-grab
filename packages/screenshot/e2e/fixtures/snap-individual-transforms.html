@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>snap individual transforms</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 480px;
+        height: 360px;
+        background: #ffffff;
+        box-sizing: border-box;
+        padding: 40px;
+        display: grid;
+        grid-template-columns: repeat(3, 120px);
+        grid-template-rows: repeat(2, 130px);
+        gap: 20px;
+      }
+      .box {
+        width: 80px;
+        height: 80px;
+        display: grid;
+        place-items: center;
+        color: #ffffff;
+        font: 13px sans-serif;
+      }
+      /* classic matrix transform */
+      .t-matrix {
+        background: #2f6fdb;
+        transform: matrix(0.9, 0.2, -0.2, 0.9, 10, 5);
+      }
+      /* individual transform properties (rotate: / scale: / translate:) */
+      .t-rotate {
+        background: #c0392b;
+        rotate: 15deg;
+      }
+      .t-scale {
+        background: #1f6f54;
+        scale: 0.8 1.1;
+      }
+      .t-translate {
+        background: #7a3b8f;
+        translate: 12px 8px;
+      }
+      .t-combo {
+        background: #e4572e;
+        rotate: -10deg;
+        scale: 1.15;
+        translate: 6px -4px;
+      }
+      /* individual props compose ON TOP of the transform shorthand */
+      .t-both {
+        background: #14304f;
+        transform: rotate(20deg);
+        rotate: 10deg;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="box t-matrix">matrix</div>
+      <div class="box t-rotate">rotate:</div>
+      <div class="box t-scale">scale:</div>
+      <div class="box t-translate">translate:</div>
+      <div class="box t-combo">combo</div>
+      <div class="box t-both">both</div>
+    </div>
+  </body>
+</html>

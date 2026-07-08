@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>dtim external stylesheet</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 100px;
+        height: 100px !important;
+        background-color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <!-- The external stylesheet link lives INSIDE the captured subtree, as in
+           the original; its #target { background-color: red } rule must win. -->
+      <link rel="stylesheet" href="./assets/dtim-sheet.css" />
+    </div>
+  </body>
+</html>

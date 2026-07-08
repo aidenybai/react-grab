@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ms font face cascade layer</title>
+    <style>
+      @font-face {
+        font-family: "NoLayerFont";
+        font-style: normal;
+        font-weight: 400;
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+      }
+
+      .font-family-nolayer {
+        font-family: "NoLayerFont";
+      }
+
+      @layer base, font;
+
+      @layer base {
+        #target {
+          width: 380px;
+          font-size: 40px;
+        }
+      }
+
+      @layer font {
+        @font-face {
+          font-family: "LayerFont";
+          font-style: normal;
+          font-weight: 400;
+          src: url("./assets/ms-latin.woff2") format("woff2");
+        }
+
+        .font-family-layer {
+          font-family: "LayerFont";
+        }
+      }
+
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        height: 144px;
+        line-height: 48px;
+        background: #ffffff;
+        overflow: hidden;
+        /* fallback control line pinned to a local family, not system sans */
+        font-family: "NoLayerFont";
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="font-family-nolayer">no layer</div>
+      <div class="font-family-layer">with layer</div>
+      <div class="">no font</div>
+    </div>
+  </body>
+</html>

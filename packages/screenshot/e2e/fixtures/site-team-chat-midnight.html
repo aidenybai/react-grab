@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>site-team-chat-midnight</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #888888;
+      }
+      #target {
+        width: 1020px;
+        height: 680px;
+        background: #0a0e1a;
+        color: #dbe2f4;
+        font-family: "Inter Fixture", sans-serif;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .sl-wrap {
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        height: 100%;
+      }
+      .sl-side {
+        background: #19171d;
+        color: #ffffff;
+        padding: 14px 0;
+        font-size: 14px;
+      }
+      .sl-team {
+        font-weight: 700;
+        font-size: 16px;
+        padding: 0 16px 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      }
+      .sl-section {
+        color: rgba(255, 255, 255, 0.6);
+        padding: 14px 16px 6px;
+        font-size: 13px;
+      }
+      .sl-chan {
+        padding: 4px 16px;
+        color: rgba(255, 255, 255, 0.75);
+      }
+      .sl-chan.active {
+        background: #1164a3;
+        color: #ffffff;
+        font-weight: 700;
+      }
+      .sl-chan .dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #2bac76;
+        margin-right: 6px;
+      }
+      .sl-main {
+        display: flex;
+        flex-direction: column;
+        background: #111726;
+      }
+      .sl-chan-head {
+        padding: 12px 18px;
+        border-bottom: 1px solid #273049;
+        font-weight: 700;
+        font-size: 15px;
+      }
+      .sl-chan-head span {
+        font-weight: 400;
+        font-size: 13px;
+        color: #8591ad;
+        margin-left: 10px;
+      }
+      .msg {
+        display: flex;
+        gap: 10px;
+        padding: 8px 18px;
+      }
+      .msg:hover {
+        background: #1a2236;
+      }
+      .msg-head {
+        font-size: 14px;
+      }
+      .msg-head span {
+        font-size: 11px;
+        color: #8591ad;
+        margin-left: 6px;
+      }
+      .msg-text {
+        font-size: 14px;
+        line-height: 1.45;
+      }
+      .sl-input {
+        margin: auto 18px 16px;
+        border: 1px solid #273049;
+        border-radius: 8px;
+        padding: 12px 14px;
+        font-size: 14px;
+        color: #8591ad;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="sl-wrap">
+        <div class="sl-side">
+          <div class="sl-team">million.dev</div>
+          <div class="sl-section">Channels</div>
+          <div class="sl-chan"># general</div>
+          <div class="sl-chan active"># perf</div>
+          <div class="sl-chan"># releases</div>
+          <div class="sl-chan"># random</div>
+          <div class="sl-section">Direct messages</div>
+          <div class="sl-chan"><span class="dot"></span>sara</div>
+          <div class="sl-chan"><span class="dot"></span>dev</div>
+        </div>
+        <div class="sl-main">
+          <div class="sl-chan-head">
+            # perf <span>6 members · Pinned: benchmark dashboard</span>
+          </div>
+
+          <div class="msg">
+            <span
+              style="
+                display: inline-block;
+                width: 36px;
+                height: 36px;
+                border-radius: 8px;
+                background: linear-gradient(135deg, #d23b2e, #7a3b8f);
+                flex: none;
+              "
+            ></span>
+            <div>
+              <div class="msg-head"><b>aiden</b> <span>9:02 AM</span></div>
+              <div class="msg-text">warm capture is at 89.5ms on 70-stress now</div>
+            </div>
+          </div>
+          <div class="msg">
+            <span
+              style="
+                display: inline-block;
+                width: 36px;
+                height: 36px;
+                border-radius: 8px;
+                background: linear-gradient(135deg, #2f6fdb, #b8860b);
+                flex: none;
+              "
+            ></span>
+            <div>
+              <div class="msg-head"><b>sara</b> <span>9:03 AM</span></div>
+              <div class="msg-text">what got it under 100?</div>
+            </div>
+          </div>
+          <div class="msg">
+            <span
+              style="
+                display: inline-block;
+                width: 36px;
+                height: 36px;
+                border-radius: 8px;
+                background: linear-gradient(135deg, #d23b2e, #7a3b8f);
+                flex: none;
+              "
+            ></span>
+            <div>
+              <div class="msg-head"><b>aiden</b> <span>9:04 AM</span></div>
+              <div class="msg-text">
+                prototype-delegated style maps + reusing the encoded PNG when markup hash matches.
+                the spread of ~340 props per memo hit was pure GC churn
+              </div>
+            </div>
+          </div>
+          <div class="msg">
+            <span
+              style="
+                display: inline-block;
+                width: 36px;
+                height: 36px;
+                border-radius: 8px;
+                background: linear-gradient(135deg, #14a06c, #0f766e);
+                flex: none;
+              "
+            ></span>
+            <div>
+              <div class="msg-head"><b>dev</b> <span>9:07 AM</span></div>
+              <div class="msg-text">did you check WebKit? it always finds a way</div>
+            </div>
+          </div>
+          <div class="msg">
+            <span
+              style="
+                display: inline-block;
+                width: 36px;
+                height: 36px;
+                border-radius: 8px;
+                background: linear-gradient(135deg, #d23b2e, #7a3b8f);
+                flex: none;
+              "
+            ></span>
+            <div>
+              <div class="msg-head"><b>aiden</b> <span>9:08 AM</span></div>
+              <div class="msg-text">312 fidelity tests green on webkit + firefox 🎉</div>
+            </div>
+          </div>
+          <div class="msg">
+            <span
+              style="
+                display: inline-block;
+                width: 36px;
+                height: 36px;
+                border-radius: 8px;
+                background: linear-gradient(135deg, #7a3b8f, #be185d);
+                flex: none;
+              "
+            ></span>
+            <div>
+              <div class="msg-head"><b>mia</b> <span>9:15 AM</span></div>
+              <div class="msg-text">shipping it. cutting the release after standup</div>
+            </div>
+          </div>
+          <div class="sl-input">Message #perf</div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

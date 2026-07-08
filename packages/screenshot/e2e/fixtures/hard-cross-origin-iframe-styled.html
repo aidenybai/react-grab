@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>hard cross origin iframe styled</title>
+    <style>
+      body {
+        margin: 0;
+        background: #dfe6ee;
+      }
+      #target {
+        position: relative;
+        width: 420px;
+        height: 280px;
+        background: linear-gradient(135deg, #f6f1e7, #cfd8e3);
+        padding: 24px;
+        box-sizing: border-box;
+        overflow: hidden;
+      }
+      iframe {
+        width: 300px;
+        height: 170px;
+        border: 5px solid #1d2731;
+        border-radius: 18px;
+        box-shadow: 8px 12px 24px rgba(0, 0, 0, 0.45);
+        transform: rotate(-4deg) translateX(20px);
+        display: block;
+      }
+      .badge {
+        position: absolute;
+        right: 20px;
+        bottom: 18px;
+        width: 120px;
+        height: 34px;
+        background: #d23b2e;
+        color: #ffffff;
+        font-family: sans-serif;
+        font-size: 14px;
+        line-height: 34px;
+        text-align: center;
+        border-radius: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <iframe
+        src="http://127.0.0.1:5179/lim-cross-origin-iframe-frame.html"
+        title="styled cross origin frame"
+      ></iframe>
+      <div class="badge">overlay badge</div>
+    </div>
+  </body>
+</html>

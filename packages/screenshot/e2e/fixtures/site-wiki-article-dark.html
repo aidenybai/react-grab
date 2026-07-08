@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>site-wiki-article-dark</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #888888;
+      }
+      #target {
+        width: 1060px;
+        height: 700px;
+        background: #0d1117;
+        color: #e6edf3;
+        font-family: "Inter Fixture", sans-serif;
+        overflow: hidden;
+        position: relative;
+      }
+
+      #target {
+        font-family: Georgia, "Times New Roman", serif;
+      }
+      .wk-top {
+        border-bottom: 1px solid #30363d;
+        padding: 10px 20px;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 13px;
+        display: flex;
+        gap: 16px;
+        color: #8d96a0;
+      }
+      .wk-top b {
+        color: #e6edf3;
+      }
+      .wk-body {
+        display: grid;
+        grid-template-columns: 170px 1fr 250px;
+        gap: 22px;
+        padding: 16px 20px;
+      }
+      .wk-nav {
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 12px;
+        color: #2f81f7;
+        line-height: 2;
+      }
+      .wk-nav div:first-child {
+        color: #8d96a0;
+        font-weight: 700;
+      }
+      h1.wk-title {
+        font-weight: 400;
+        font-size: 28px;
+        margin: 0 0 2px;
+        border-bottom: 1px solid #30363d;
+        padding-bottom: 4px;
+      }
+      .wk-sub {
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 12px;
+        color: #8d96a0;
+        margin-bottom: 10px;
+      }
+      .wk-article p {
+        font-size: 14px;
+        line-height: 1.65;
+        margin: 0 0 12px;
+      }
+      .wk-article a {
+        color: #2f81f7;
+        text-decoration: none;
+      }
+      .wk-toc {
+        border: 1px solid #30363d;
+        background: #21262d;
+        padding: 10px 16px;
+        font-size: 13px;
+        display: inline-block;
+        margin-bottom: 12px;
+      }
+      .wk-toc div {
+        line-height: 1.9;
+      }
+      .wk-toc span {
+        color: #2f81f7;
+      }
+      .infobox {
+        border: 1px solid #30363d;
+        background: #21262d;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 12px;
+      }
+      .infobox .ib-title {
+        background: #b0c4de;
+        color: #1f2328;
+        text-align: center;
+        font-weight: 700;
+        padding: 6px;
+      }
+      .infobox .ib-img {
+        height: 130px;
+        background: url("./assets/photo-landscape.png") center / cover;
+        margin: 8px;
+      }
+      .infobox table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .infobox td {
+        padding: 4px 8px;
+        vertical-align: top;
+        line-height: 1.4;
+      }
+      .infobox td:first-child {
+        font-weight: 700;
+        width: 40%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="wk-top">
+        <b>Wikiverse</b><span>Article</span><span>Talk</span
+        ><span style="margin-left: auto">Read · Edit · View history</span>
+      </div>
+      <div class="wk-body">
+        <div class="wk-nav">
+          <div>Contents</div>
+          <div>(Top)</div>
+          <div>History</div>
+          <div>Rendering model</div>
+          <div>Performance</div>
+          <div>See also</div>
+          <div>References</div>
+        </div>
+        <div class="wk-article">
+          <h1 class="wk-title">Scalable Vector Graphics</h1>
+          <div class="wk-sub">From Wikiverse, the free encyclopedia</div>
+          <p>
+            <b>Scalable Vector Graphics</b> (<b>SVG</b>) is an <a>XML</a>-based vector graphics
+            format for defining two-dimensional graphics, having support for interactivity and
+            animation. The SVG specification is an open standard developed by the
+            <a>World Wide Web Consortium</a> since 1999.
+          </p>
+          <div class="wk-toc">
+            <div><b>Contents</b></div>
+            <div><span>1 History</span></div>
+            <div><span>2 Rendering model</span></div>
+            <div><span>3 Performance considerations</span></div>
+            <div><span>4 See also</span></div>
+          </div>
+          <p>
+            SVG images are defined in a vector graphics format and stored in XML text files. SVG
+            images can thus be scaled in size without loss of quality, and SVG files can be
+            searched, indexed, scripted, and <a>compressed</a>. The XML text files can be created
+            and edited with text editors or vector graphics editors, and are rendered by most web
+            browsers.
+          </p>
+          <p>
+            A <a>foreignObject</a> element allows arbitrary XHTML content to be embedded inside an
+            SVG document, which browsers rasterize using their standard CSS layout engine. This
+            capability underlies most in-browser DOM screenshot techniques.
+          </p>
+        </div>
+        <div class="infobox">
+          <div class="ib-title">Scalable Vector Graphics</div>
+          <div class="ib-img"></div>
+          <table>
+            <tr>
+              <td>Extension</td>
+              <td>.svg, .svgz</td>
+            </tr>
+            <tr>
+              <td>MIME type</td>
+              <td>image/svg+xml</td>
+            </tr>
+            <tr>
+              <td>Developed by</td>
+              <td>W3C</td>
+            </tr>
+            <tr>
+              <td>Initial release</td>
+              <td>4 September 2001</td>
+            </tr>
+            <tr>
+              <td>Type of format</td>
+              <td>Vector graphics</td>
+            </tr>
+            <tr>
+              <td>Extended from</td>
+              <td>XML</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>20 flex layout</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 520px;
+        height: 340px;
+        background: #f2f5f9;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 12px;
+        color: #14202c;
+        display: flex;
+        flex-direction: column;
+        box-sizing: border-box;
+        padding: 12px;
+        gap: 10px;
+      }
+      .toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #14304f;
+        color: #dfe9f5;
+        height: 40px;
+        padding: 0 12px;
+        flex: none;
+      }
+      .toolbar .actions {
+        display: flex;
+        gap: 6px;
+      }
+      .toolbar .actions div {
+        width: 40px;
+        height: 22px;
+        background: #2f6fdb;
+        border-radius: 4px;
+      }
+      .content {
+        display: flex;
+        flex: 1;
+        gap: 10px;
+        min-height: 0;
+      }
+      .sidebar {
+        flex: 0 0 110px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 8px;
+        background: #dfe9f5;
+        padding: 10px;
+        box-sizing: border-box;
+      }
+      .sidebar .nav-item {
+        height: 20px;
+        background: #7a3b8f;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 8px;
+      }
+      .sidebar .nav-item:nth-child(1) {
+        width: 90px;
+      }
+      .sidebar .nav-item:nth-child(2) {
+        width: 70px;
+      }
+      .sidebar .nav-item:nth-child(3) {
+        width: 80px;
+        order: -1;
+        background: #1f6f54;
+      }
+      .gallery {
+        flex: 1;
+        display: flex;
+        flex-wrap: wrap;
+        align-content: flex-start;
+        gap: 8px;
+        background: #ffffff;
+        padding: 10px;
+        box-sizing: border-box;
+        min-width: 0;
+      }
+      .gallery .card {
+        flex: 1 1 90px;
+        height: 54px;
+        background: #e4572e;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+      }
+      .gallery .card.tall {
+        flex-grow: 2;
+        background: #2f6fdb;
+      }
+      .gallery .card.narrow {
+        flex: 0 1 60px;
+        background: #f4c542;
+        color: #14304f;
+      }
+      .footer {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        height: 34px;
+        background: #1d2731;
+        color: #c8d4e0;
+        padding: 0 12px;
+        flex: none;
+      }
+      .footer .grow {
+        flex: 1;
+        text-align: right;
+        font-size: 10px;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="toolbar">
+        <span>Flexbox stress</span>
+        <div class="actions">
+          <div></div>
+          <div></div>
+          <div></div>
+        </div>
+      </div>
+      <div class="content">
+        <div class="sidebar">
+          <div class="nav-item">Alpha</div>
+          <div class="nav-item">Beta</div>
+          <div class="nav-item">Gamma</div>
+        </div>
+        <div class="gallery">
+          <div class="card">one</div>
+          <div class="card tall">two</div>
+          <div class="card narrow">3</div>
+          <div class="card">four</div>
+          <div class="card narrow">5</div>
+          <div class="card tall">six</div>
+          <div class="card">seven</div>
+        </div>
+      </div>
+      <div class="footer">
+        <span>baseline</span>
+        <span style="font-size: 16px">aligned</span>
+        <span class="grow"
+          >this trailing label grows, truncates with an ellipsis when the row runs out of
+          space</span
+        >
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>hti svg broken namespace</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 100px;
+        height: 100px;
+        background: #ffffff;
+        overflow: hidden;
+      }
+      #root {
+        border: 1px solid red;
+        position: relative;
+        height: 100px;
+      }
+      svg {
+        position: absolute;
+        left: 5px;
+        top: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      The xmlns attributes deliberately point at the XHTML namespace (broken
+      for SVG), exactly as in the original svg-ns resource.
+    -->
+    <div id="target">
+      <div id="root">
+        <svg xmlns="http://www.w3.org/1999/xhtml" height="94px" width="94px">
+          <path
+            d="M10 10 H 90 V 90 H 10 L 10 10"
+            transform="translate(1,1)"
+            pointer-events="visibleStroke"
+            version="1.1"
+            xmlns="http://www.w3.org/1999/xhtml"
+            fill="none"
+            stroke="#456"
+            stroke-width="4"
+            shape-rendering="crispEdges"
+          />
+        </svg>
+      </div>
+    </div>
+  </body>
+</html>

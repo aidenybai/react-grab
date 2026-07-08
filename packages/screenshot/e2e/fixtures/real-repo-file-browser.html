@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>real repo file browser</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e6e9ed;
+      }
+      #target {
+        width: 900px;
+        background: #ffffff;
+        font-family: "Inter Fixture", sans-serif;
+        color: #1f2328;
+        font-size: 14px;
+        border: 1px solid #d1d9e0;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .repo-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 16px 20px;
+        border-bottom: 1px solid #d1d9e0;
+      }
+      .avatar {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #7a3b8f, #2f6fdb);
+      }
+      .repo-name {
+        font-size: 18px;
+      }
+      .repo-name b {
+        font-weight: 700;
+      }
+      .visibility-badge {
+        border: 1px solid #d1d9e0;
+        border-radius: 999px;
+        padding: 1px 8px;
+        font-size: 12px;
+        color: #59636e;
+      }
+      .header-actions {
+        margin-left: auto;
+        display: flex;
+        gap: 8px;
+      }
+      .action-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        border: 1px solid #d1d9e0;
+        border-radius: 6px;
+        background: #f6f8fa;
+        padding: 4px 10px;
+        font-size: 12px;
+        color: #25292e;
+      }
+      .action-button .count {
+        font-weight: 700;
+      }
+      .tabs {
+        display: flex;
+        gap: 4px;
+        padding: 0 12px;
+        border-bottom: 1px solid #d1d9e0;
+      }
+      .tab {
+        padding: 10px 12px;
+        color: #59636e;
+        border-bottom: 2px solid transparent;
+      }
+      .tab.active {
+        color: #1f2328;
+        font-weight: 700;
+        border-bottom-color: #fd8c73;
+      }
+      .tab .pill {
+        background: #eff2f5;
+        border-radius: 999px;
+        padding: 1px 7px;
+        font-size: 12px;
+        margin-left: 4px;
+      }
+      .branch-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 20px;
+      }
+      .branch-select {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid #d1d9e0;
+        border-radius: 6px;
+        background: #f6f8fa;
+        padding: 5px 12px;
+        font-weight: 700;
+        font-size: 13px;
+      }
+      .branch-select::after {
+        content: "▾";
+        font-size: 10px;
+        color: #59636e;
+      }
+      .lang-bar {
+        display: flex;
+        height: 8px;
+        margin: 0 20px 14px;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .lang-bar span:nth-child(1) {
+        width: 55%;
+        background: #3178c6;
+      }
+      .lang-bar span:nth-child(2) {
+        width: 25%;
+        background: #f1e05a;
+      }
+      .lang-bar span:nth-child(3) {
+        width: 12%;
+        background: #563d7c;
+      }
+      .lang-bar span:nth-child(4) {
+        width: 8%;
+        background: #e34c26;
+      }
+      .file-table {
+        margin: 0 20px 20px;
+        border: 1px solid #d1d9e0;
+        border-radius: 6px;
+        overflow: hidden;
+      }
+      .commit-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: #f6f8fa;
+        padding: 10px 16px;
+        border-bottom: 1px solid #d1d9e0;
+        color: #59636e;
+        font-size: 13px;
+      }
+      .commit-row .sha {
+        margin-left: auto;
+        font-family: monospace;
+        color: #0969da;
+      }
+      .file-row {
+        display: grid;
+        grid-template-columns: 24px 260px 1fr 110px;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 16px;
+        border-bottom: 1px solid #eff2f5;
+        font-size: 13px;
+      }
+      .file-row:last-child {
+        border-bottom: none;
+      }
+      .file-row .icon {
+        color: #59636e;
+      }
+      .file-row .icon.dir {
+        color: #54aeff;
+      }
+      .file-row .name {
+        color: #1f2328;
+      }
+      .file-row .message {
+        color: #59636e;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .file-row .age {
+        color: #59636e;
+        text-align: right;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="repo-header">
+        <span class="avatar"></span>
+        <span class="repo-name">acme / <b>ui-kit</b></span>
+        <span class="visibility-badge">Public</span>
+        <span class="header-actions">
+          <span class="action-button">☆ Star <span class="count">12.4k</span></span>
+          <span class="action-button">⑂ Fork <span class="count">986</span></span>
+        </span>
+      </div>
+      <div class="tabs">
+        <span class="tab active">Code</span>
+        <span class="tab">Issues <span class="pill">128</span></span>
+        <span class="tab">Pull requests <span class="pill">42</span></span>
+        <span class="tab">Actions</span>
+        <span class="tab">Wiki</span>
+        <span class="tab">Settings</span>
+      </div>
+      <div class="branch-row">
+        <span class="branch-select">main</span>
+        <span style="color: #59636e; font-size: 13px">128 branches · 36 tags</span>
+      </div>
+      <div class="lang-bar"><span></span><span></span><span></span><span></span></div>
+      <div class="file-table">
+        <div class="commit-row">
+          <span class="avatar" style="width: 20px; height: 20px"></span>
+          <b>mira-dev</b>
+          <span>fix: debounce resize observer callbacks</span>
+          <span class="sha">a41f9c2</span>
+        </div>
+        <div class="file-row">
+          <span class="icon dir">▣</span><span class="name">.github/workflows</span>
+          <span class="message">ci: shard playwright suite across four runners</span>
+          <span class="age">2 days ago</span>
+        </div>
+        <div class="file-row">
+          <span class="icon dir">▣</span><span class="name">packages/core</span>
+          <span class="message">feat: portal-aware focus trap</span>
+          <span class="age">5 hours ago</span>
+        </div>
+        <div class="file-row">
+          <span class="icon dir">▣</span><span class="name">packages/react</span>
+          <span class="message">fix: debounce resize observer callbacks</span>
+          <span class="age">1 hour ago</span>
+        </div>
+        <div class="file-row">
+          <span class="icon dir">▣</span><span class="name">examples</span>
+          <span class="message">docs: add streaming SSR example</span>
+          <span class="age">3 weeks ago</span>
+        </div>
+        <div class="file-row">
+          <span class="icon">▤</span><span class="name">.npmrc</span>
+          <span class="message">chore: pin registry</span>
+          <span class="age">2 months ago</span>
+        </div>
+        <div class="file-row">
+          <span class="icon">▤</span><span class="name">package.json</span>
+          <span class="message">release: v4.2.0</span>
+          <span class="age">1 hour ago</span>
+        </div>
+        <div class="file-row">
+          <span class="icon">▤</span><span class="name">README.md</span>
+          <span class="message">docs: rewrite quick start</span>
+          <span class="age">4 days ago</span>
+        </div>
+        <div class="file-row">
+          <span class="icon">▤</span><span class="name">tsconfig.json</span>
+          <span class="message">chore: enable isolatedDeclarations</span>
+          <span class="age">2 weeks ago</span>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

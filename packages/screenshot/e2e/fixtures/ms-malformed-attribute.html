@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ms malformed attribute</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 100px;
+        height: 100px;
+        background-color: red;
+      }
+      .abnormal-attribute {
+        width: 40px;
+        height: 40px;
+        background-color: black;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="abnormal-attribute" " ></div>
+    </div>
+  </body>
+</html>

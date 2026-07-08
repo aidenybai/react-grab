@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>snap svg defs gradient use</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 420px;
+        height: 200px;
+        background: #ffffff;
+        box-sizing: border-box;
+        padding: 20px;
+        display: flex;
+        gap: 16px;
+        align-items: center;
+      }
+      #target svg.slot {
+        width: 56px;
+        height: 56px;
+        display: block;
+        flex: none;
+      }
+      .defs-holder {
+        position: absolute;
+        width: 0;
+        height: 0;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <!-- out-of-root <symbol> via modern href -->
+      <svg class="slot" viewBox="0 0 10 10">
+        <use href="#icon-star" fill="#c0392b"></use>
+      </svg>
+      <!-- out-of-root <symbol> via legacy xlink:href -->
+      <svg class="slot" viewBox="0 0 10 10" xmlns:xlink="http://www.w3.org/1999/xlink">
+        <use xlink:href="#legacy-icon" fill="#2f6fdb"></use>
+      </svg>
+      <!-- id with CSS-special characters (CSS.escape path) -->
+      <svg class="slot" viewBox="0 0 10 10">
+        <use href="#icon:weird.*" fill="#1f6f54"></use>
+      </svg>
+      <!-- out-of-root <defs><linearGradient> referenced by fill=url(#grad1) -->
+      <svg class="slot" viewBox="0 0 10 10">
+        <rect x="0" y="0" width="10" height="10" fill="url(#grad1)"></rect>
+      </svg>
+      <!-- symbol already inside the capture root: must not be duplicated -->
+      <svg class="slot" viewBox="0 0 10 10">
+        <symbol id="local-dot" viewBox="0 0 10 10">
+          <circle cx="5" cy="5" r="4"></circle>
+        </symbol>
+        <use href="#local-dot" fill="#7a3b8f"></use>
+      </svg>
+    </div>
+    <!-- Global sprite/defs sheet OUTSIDE the capture root -->
+    <svg class="defs-holder" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+      <symbol id="icon-star" viewBox="0 0 10 10">
+        <path
+          d="M5 0 L6.2 3.5 L10 3.8 L7 6.1 L8.1 10 L5 7.8 L1.9 10 L3 6.1 L0 3.8 L3.8 3.5 Z"
+        ></path>
+      </symbol>
+      <symbol id="legacy-icon" viewBox="0 0 10 10">
+        <path d="M0 0 L10 0 L5 10 Z"></path>
+      </symbol>
+      <symbol id="icon:weird.*" viewBox="0 0 10 10">
+        <rect x="1" y="1" width="8" height="8" rx="2"></rect>
+      </symbol>
+      <defs>
+        <linearGradient id="grad1" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#f4c542"></stop>
+          <stop offset="1" stop-color="#e4572e"></stop>
+        </linearGradient>
+      </defs>
+    </svg>
+  </body>
+</html>

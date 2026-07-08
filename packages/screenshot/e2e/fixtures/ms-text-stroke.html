@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ms text stroke</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 320px;
+        height: 60px;
+        background: #ffffff;
+        font-family: "Inter Fixture", sans-serif;
+      }
+      .stroked {
+        display: inline;
+        font-weight: 700;
+        font-size: 20px;
+        -webkit-text-stroke: 2px black;
+        -webkit-text-fill-color: red;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="stroked">TEST TEMPLATE</div>
+    </div>
+  </body>
+</html>

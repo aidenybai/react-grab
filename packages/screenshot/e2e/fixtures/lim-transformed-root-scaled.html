@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>lim transformed root scaled</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #f2ede4;
+      }
+      .stage {
+        padding: 60px 0 0 80px;
+      }
+      #target {
+        width: 300px;
+        height: 180px;
+        transform: scale(1.4, 0.85);
+        background: #ffffff;
+        border: 3px solid #1f7a4d;
+        box-sizing: border-box;
+        padding: 18px;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 14px;
+        color: #1d2731;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        margin-top: 14px;
+      }
+      .cell {
+        flex: 1;
+        height: 44px;
+        background: #2f6fdb;
+        border-radius: 8px;
+      }
+      .cell + .cell {
+        background: #e4572e;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="stage">
+      <div id="target">
+        <strong>Scaled root</strong> scale(1.4, 0.85)
+        <div class="row">
+          <div class="cell"></div>
+          <div class="cell"></div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

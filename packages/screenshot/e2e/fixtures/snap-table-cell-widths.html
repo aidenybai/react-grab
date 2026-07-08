@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>snap table cell widths</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 600px;
+        height: 240px;
+        background: #ffffff;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 14px;
+        color: #1d2731;
+        box-sizing: border-box;
+        padding: 16px;
+      }
+      /* #429 — auto-layout table: cells take their width from content. A
+         frozen hard width makes the long cell wrap at other DPR / metrics. */
+      .auto-table td {
+        background: #dfe9f5;
+        padding: 4px 8px;
+      }
+      .auto-table td + td {
+        background: #f7f3ea;
+      }
+      /* #434 — CSS-sized table keeps width:100% and the class-sized label
+         cell keeps its 100px as a floor. */
+      .t434 {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+      .t434 .label {
+        width: 100px;
+        background: #f4c542;
+      }
+      .t434 td {
+        border: 1px solid #000;
+        padding: 4px 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <table class="auto-table">
+        <tbody>
+          <tr>
+            <td>Case 1:</td>
+            <td>some longer cell content 2024-09-16</td>
+          </tr>
+          <tr>
+            <td>Case 2:</td>
+            <td>another cell value here</td>
+          </tr>
+        </tbody>
+      </table>
+      <table class="t434">
+        <tbody>
+          <tr>
+            <td class="label">note1:</td>
+            <td>test</td>
+          </tr>
+          <tr>
+            <td class="label">note2:</td>
+            <td>the second column stretches to fill the full table width</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>

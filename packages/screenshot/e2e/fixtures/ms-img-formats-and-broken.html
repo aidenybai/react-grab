@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ms img formats and broken</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 448px;
+        height: 116px;
+        background: #ffffff;
+        padding: 8px;
+        box-sizing: border-box;
+        display: flex;
+        gap: 8px;
+      }
+      img {
+        width: 100px;
+        height: 100px;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <img src="./assets/ms-image.png" width="100" height="100" />
+      <img src="./assets/ms-image.jpeg" width="100" height="100" />
+      <img src="./assets/ms-image.webp" width="100" height="100" />
+      <img src="./assets/ms-error.png" width="100" height="100" />
+    </div>
+  </body>
+</html>

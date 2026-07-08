@@ -34,6 +34,7 @@ interface OptionsState {
   activationKey: ActivationKey | undefined;
   getContent: ((elements: Element[]) => Promise<string> | string) | undefined;
   maxContextLines: number;
+  screenshot: boolean;
   freezeReactUpdates: boolean;
 }
 
@@ -44,6 +45,7 @@ const DEFAULT_OPTIONS: OptionsState = {
   activationKey: undefined,
   getContent: undefined,
   maxContextLines: DEFAULT_MAX_CONTEXT_LINES,
+  screenshot: true,
   freezeReactUpdates: true,
 };
 
@@ -108,6 +110,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     "activationKey",
     "getContent",
     "maxContextLines",
+    "screenshot",
     "freezeReactUpdates",
   ];
 

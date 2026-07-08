@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ms svg symbol currentcolor</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 160px;
+        height: 80px;
+        background: #dfe9f5;
+        display: flex;
+        gap: 8px;
+        padding: 8px;
+        box-sizing: border-box;
+      }
+      .chip {
+        display: inline-block;
+        width: 64px;
+        height: 64px;
+      }
+      .chip svg {
+        display: block;
+        width: 64px;
+        height: 64px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <span class="chip" style="color: red">
+        <svg><use xlink:href="#icon" /></svg>
+      </span>
+
+      <span class="chip" style="color: yellow">
+        <svg><use xlink:href="#icon" /></svg>
+      </span>
+
+      <svg style="display: none">
+        <symbol id="icon" fill="none" viewBox="0 0 24 24">
+          <path
+            stroke="currentColor"
+            d="M16 22v-4a4 4 0 0 0-8 0v4m13-11.85v7.82c0 2.22-1.8 4.03-4 4.03H7c-2.2 0-4-1.8-4-4.03v-7.82c0-1.21.54-2.36 1.47-3.12l5-4.12a3.97 3.97 0 0 1 5.06 0l5 4.12A4.05 4.05 0 0 1 21 10.15Z"
+          />
+        </symbol>
+      </svg>
+    </div>
+  </body>
+</html>

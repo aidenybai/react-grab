@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>dtim pixel grid opacity</title>
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      /* #target is opaque white, so the 0.4 / 0.2 opacity columns composite to
+         exact, assertable colors over white. */
+      #target {
+        width: 30px;
+        height: 30px;
+        background: #ffffff;
+      }
+      .pixel {
+        width: 10px;
+        height: 10px;
+        float: left;
+      }
+      .top {
+        background-color: rgb(255, 0, 0);
+      }
+      .middle {
+        background-color: rgb(0, 255, 0);
+      }
+      .bottom {
+        background-color: rgb(0, 0, 255);
+      }
+      .left {
+        clear: left;
+      }
+      .center {
+        opacity: 0.4;
+      }
+      .right {
+        opacity: 0.2;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="pixel top left"></div>
+      <div class="pixel top center"></div>
+      <div class="pixel top right"></div>
+      <div class="pixel middle left"></div>
+      <div class="pixel middle center"></div>
+      <div class="pixel middle right"></div>
+      <div class="pixel bottom left"></div>
+      <div class="pixel bottom center"></div>
+      <div class="pixel bottom right"></div>
+    </div>
+  </body>
+</html>

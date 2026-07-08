@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>dtim input user value</title>
+    <style>
+      @font-face {
+        font-family: "Geist Mono Fixture";
+        src: url("./assets/dtim-geist-mono.woff2") format("woff2");
+        font-weight: 400 700;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 400px;
+        height: 112px;
+        background-color: white;
+        box-sizing: border-box;
+        padding: 16px;
+      }
+      input {
+        height: 100%;
+        width: 100%;
+        box-sizing: border-box;
+        font-family: "Geist Mono Fixture", monospace;
+        font-size: 20px;
+        border: 1px solid grey;
+        padding: 16px;
+        background: #ffffff;
+        color: #000000;
+        outline: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <input id="input" />
+    </div>
+    <script>
+      // The value is set via the property (user-typed), not the attribute —
+      // exactly what the original spec exercises.
+      document.getElementById("input").value = "USER INPUT";
+    </script>
+  </body>
+</html>

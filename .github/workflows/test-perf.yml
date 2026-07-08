@@ -34,6 +34,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      # react-grab's dist imports workspace deps (e.g. fast-html-to-image),
+      # so their dists must exist before the webServer's filtered rebuild.
+      - name: Build packages
+        run: pnpm build
+
       - name: Install Playwright browsers
         run: pnpm --filter react-grab exec playwright install chromium --with-deps
 

@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>hard animation paused</title>
+    <style>
+      body {
+        margin: 0;
+        background: #10141a;
+      }
+      #target {
+        position: relative;
+        width: 560px;
+        height: 320px;
+        background: #1b222c;
+        overflow: hidden;
+        font-family: sans-serif;
+      }
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @keyframes drift {
+        from {
+          transform: translate(0, 0) scale(1);
+        }
+        to {
+          transform: translate(260px, 120px) scale(0.4);
+        }
+      }
+      @keyframes fade {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0;
+        }
+      }
+      @keyframes slide-bg {
+        from {
+          background-position: 0 0;
+        }
+        to {
+          background-position: 400px 0;
+        }
+      }
+      @keyframes recolor {
+        from {
+          filter: hue-rotate(0deg) saturate(1);
+        }
+        to {
+          filter: hue-rotate(360deg) saturate(3);
+        }
+      }
+      @keyframes grow {
+        from {
+          width: 40px;
+          border-radius: 0;
+        }
+        to {
+          width: 360px;
+          border-radius: 24px;
+        }
+      }
+      .spinner {
+        position: absolute;
+        left: 40px;
+        top: 36px;
+        width: 90px;
+        height: 90px;
+        background: conic-gradient(#f4c542, #d23b2e, #2f6fdb, #f4c542);
+        animation: spin 8s linear -2.5s paused;
+      }
+      .drifter {
+        position: absolute;
+        left: 60px;
+        top: 40px;
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        background: #14a06c;
+        animation: drift 10s linear -4s paused;
+      }
+      .fader {
+        position: absolute;
+        left: 220px;
+        top: 30px;
+        width: 120px;
+        height: 60px;
+        background: #d23b2e;
+        animation: fade 10s linear -3s paused;
+      }
+      .slider {
+        position: absolute;
+        left: 40px;
+        top: 170px;
+        width: 300px;
+        height: 44px;
+        background: repeating-linear-gradient(90deg, #2f6fdb 0 25px, #f4c542 25px 50px);
+        animation: slide-bg 20s linear -7s paused;
+      }
+      .recolored {
+        position: absolute;
+        left: 400px;
+        top: 40px;
+        width: 110px;
+        height: 110px;
+        background: linear-gradient(135deg, #d23b2e, #2f6fdb);
+        animation: recolor 12s linear -5s paused;
+      }
+      .grower {
+        position: absolute;
+        left: 40px;
+        top: 240px;
+        height: 48px;
+        background: #7a3b8f;
+        color: #ffffff;
+        font-size: 14px;
+        line-height: 48px;
+        white-space: nowrap;
+        overflow: hidden;
+        animation: grow 16s linear -6s paused;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="spinner"></div>
+      <div class="drifter"></div>
+      <div class="fader"></div>
+      <div class="slider"></div>
+      <div class="recolored"></div>
+      <div class="grower">frozen mid-keyframe growth</div>
+    </div>
+  </body>
+</html>

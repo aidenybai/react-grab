@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>hard stress combo</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #10141a;
+      }
+      #target {
+        position: relative;
+        width: 600px;
+        height: 380px;
+        background: linear-gradient(160deg, #0b2545 0%, #13315c 55%, #134074 100%);
+        overflow: hidden;
+        font-family: "Inter Fixture", sans-serif;
+        isolation: isolate;
+      }
+      @keyframes orbit {
+        from {
+          transform: rotate(0deg) translateX(70px) rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg) translateX(70px) rotate(-360deg);
+        }
+      }
+      .gradient-title {
+        position: absolute;
+        left: 24px;
+        top: 18px;
+        font-size: 34px;
+        font-weight: 700;
+        background: linear-gradient(90deg, #f4c542, #ef7b45, #d43f8d);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .orbiter {
+        position: absolute;
+        left: 470px;
+        top: 70px;
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 30%, #ffe9a8, #f4c542 60%, #b5432a);
+        animation: orbit 12s linear -3s paused;
+      }
+      .blend-disc {
+        position: absolute;
+        left: 380px;
+        top: 40px;
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        background: #d23b2e;
+        mix-blend-mode: screen;
+      }
+      .clip-banner {
+        position: absolute;
+        left: 24px;
+        top: 80px;
+        width: 300px;
+        height: 70px;
+        background: repeating-linear-gradient(-45deg, #14a06c 0 16px, #0d7350 16px 32px);
+        clip-path: polygon(0 0, 100% 0, 92% 100%, 0 100%);
+        color: #ffffff;
+        font-size: 18px;
+        line-height: 70px;
+        text-indent: 18px;
+        text-shadow: 1px 2px 2px rgba(0, 0, 0, 0.5);
+      }
+      .tilted-card {
+        position: absolute;
+        left: 40px;
+        top: 180px;
+        width: 220px;
+        height: 130px;
+        background: #f6f1e7;
+        transform: rotate(-6deg) skewX(-3deg);
+        border-radius: 12px;
+        box-shadow:
+          0 14px 30px rgba(0, 0, 0, 0.5),
+          inset 0 0 0 4px #b5432a;
+        color: #1d2731;
+        font-size: 15px;
+        padding: 14px;
+        box-sizing: border-box;
+      }
+      .tilted-card::after {
+        content: "▲ 42%";
+        position: absolute;
+        right: 12px;
+        bottom: 10px;
+        color: #14a06c;
+        font-size: 20px;
+      }
+      .glass-bar {
+        position: absolute;
+        left: 250px;
+        top: 210px;
+        width: 320px;
+        height: 90px;
+        backdrop-filter: blur(9px) brightness(1.2);
+        background: rgba(255, 255, 255, 0.14);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-radius: 16px;
+        transform: rotate(2deg);
+      }
+      .glass-bar span {
+        display: block;
+        padding: 16px 20px;
+        color: #ffffff;
+        font-size: 17px;
+      }
+      .outline-chip {
+        position: absolute;
+        left: 300px;
+        top: 320px;
+        width: 170px;
+        height: 36px;
+        background: #7a3b8f;
+        color: #ffffff;
+        font-size: 14px;
+        line-height: 36px;
+        text-align: center;
+        border-radius: 999px;
+        outline: 3px dashed #f4c542;
+        outline-offset: 4px;
+      }
+      .emoji-row {
+        position: absolute;
+        left: 40px;
+        top: 328px;
+        font-size: 24px;
+        letter-spacing: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <span class="gradient-title">Stress combo</span>
+      <div class="blend-disc"></div>
+      <div class="orbiter"></div>
+      <div class="clip-banner">clipped banner strip</div>
+      <div class="tilted-card">tilted card with inset ring and drop shadow</div>
+      <div class="glass-bar"><span>frosted glass over everything</span></div>
+      <div class="outline-chip">offset dashed outline</div>
+      <div class="emoji-row">🚀🎨🔥</div>
+    </div>
+  </body>
+</html>

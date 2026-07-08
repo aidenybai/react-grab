@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>hti select options</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 320px;
+        height: 40px;
+        background: #ffffff;
+      }
+      select {
+        width: 100px;
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      Three variants of the original select test in one fixture: the capture
+      must render the currently-selected option text of each <select>.
+    -->
+    <div id="target">
+      <select>
+        <option selected>first</option>
+        <option>second</option>
+        <option>third</option>
+      </select>
+      <select>
+        <option>first</option>
+        <option selected>second</option>
+        <option>third</option>
+      </select>
+      <select>
+        <option>first</option>
+        <option>second</option>
+        <option selected>third</option>
+      </select>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>site-social-feed-light</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #888888;
+      }
+      #target {
+        width: 620px;
+        height: 700px;
+        background: #f6f8fa;
+        color: #1f2328;
+        font-family: "Inter Fixture", sans-serif;
+        overflow: hidden;
+        position: relative;
+      }
+
+      #target {
+        border-left: 1px solid #d0d7de;
+        border-right: 1px solid #d0d7de;
+      }
+      .feed-head {
+        position: sticky;
+        top: 0;
+        padding: 14px 18px;
+        font-weight: 700;
+        font-size: 18px;
+        border-bottom: 1px solid #d0d7de;
+        background: #ffffff;
+      }
+      .composer {
+        display: flex;
+        gap: 12px;
+        padding: 14px 18px;
+        border-bottom: 1px solid #d0d7de;
+        background: #ffffff;
+      }
+      .composer-input {
+        flex: 1;
+        font-size: 17px;
+        color: #57606a;
+        padding-top: 8px;
+      }
+      .composer-post {
+        align-self: flex-start;
+        background: #0969da;
+        color: #ffffff;
+        font-weight: 700;
+        font-size: 14px;
+        border-radius: 999px;
+        padding: 8px 18px;
+      }
+      .post {
+        display: flex;
+        gap: 12px;
+        padding: 14px 18px;
+        border-bottom: 1px solid #d0d7de;
+        background: #ffffff;
+      }
+      .post-body {
+        flex: 1;
+        min-width: 0;
+      }
+      .post-head {
+        font-size: 14px;
+      }
+      .post-head span {
+        color: #57606a;
+        font-weight: 400;
+      }
+      .post-body p {
+        margin: 4px 0 10px;
+        font-size: 15px;
+        line-height: 1.4;
+      }
+      .post-actions {
+        display: flex;
+        justify-content: space-between;
+        max-width: 360px;
+        color: #57606a;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="feed-head">Home</div>
+      <div class="composer">
+        <span
+          style="
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #be185d, #2f6fdb);
+            flex: none;
+          "
+        ></span>
+        <div class="composer-input">What is happening?!</div>
+        <div class="composer-post">Post</div>
+      </div>
+
+      <div class="post">
+        <span
+          style="
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #d23b2e, #7a3b8f);
+            flex: none;
+          "
+        ></span>
+        <div class="post-body">
+          <div class="post-head"><b>Sara Chen</b> <span>@sara_builds · 1h</span></div>
+          <p>
+            Shipped a 6x faster DOM screenshot library today. Computed-style memoization is
+            criminally underrated.
+          </p>
+          <div class="post-actions">
+            <span>💬 284</span><span>🔁 98</span><span>❤️ 1.2K</span><span>📊 8.4K</span>
+          </div>
+        </div>
+      </div>
+      <div class="post">
+        <span
+          style="
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #2f6fdb, #b8860b);
+            flex: none;
+          "
+        ></span>
+        <div class="post-body">
+          <div class="post-head"><b>Dev Patel</b> <span>@devpatel · 2h</span></div>
+          <p>hot take: most perf problems are just getComputedStyle in a loop</p>
+          <div class="post-actions">
+            <span>💬 97</span><span>🔁 23</span><span>❤️ 410</span><span>📊 2870K</span>
+          </div>
+        </div>
+      </div>
+      <div class="post">
+        <span
+          style="
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #14a06c, #0f766e);
+            flex: none;
+          "
+        ></span>
+        <div class="post-body">
+          <div class="post-head"><b>Mia Torres</b> <span>@miatorres · 3h</span></div>
+          <p>
+            Reading the WHATWG spec on foreignObject taint rules so you do not have to. Thread
+            below.
+          </p>
+          <div class="post-actions">
+            <span>💬 51</span><span>🔁 40</span><span>❤️ 220</span><span>📊 1540K</span>
+          </div>
+        </div>
+      </div>
+      <div class="post">
+        <span
+          style="
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #7a3b8f, #be185d);
+            flex: none;
+          "
+        ></span>
+        <div class="post-body">
+          <div class="post-head"><b>Ken Adams</b> <span>@kenadams · 4h</span></div>
+          <p>benchmarks or it did not happen</p>
+          <div class="post-actions">
+            <span>💬 12</span><span>🔁 5</span><span>❤️ 88</span><span>📊 616K</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

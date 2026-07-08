@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>snap sticky in scroll</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 360px;
+        height: 260px;
+        background: #14304f;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 13px;
+        box-sizing: border-box;
+        padding: 20px;
+      }
+      /* position:sticky header inside a scrolled overflow container: with
+         scrollTop=50 the orange header must render pinned at the top of the
+         scroller while the rows underneath are offset. */
+      .scroller {
+        width: 320px;
+        height: 160px;
+        overflow: auto;
+        scrollbar-width: none;
+        background: #ffffff;
+        color: #1d2731;
+        position: relative;
+      }
+      .sticky-head {
+        position: sticky;
+        top: 0;
+        height: 32px;
+        line-height: 32px;
+        padding-left: 10px;
+        background: #e4572e;
+        color: #ffffff;
+      }
+      .row {
+        height: 30px;
+        line-height: 30px;
+        padding-left: 10px;
+      }
+      .row:nth-child(odd) {
+        background: #dfe9f5;
+      }
+      .row:nth-child(even) {
+        background: #f7f3ea;
+      }
+      .legend {
+        margin-top: 14px;
+        color: #c8d4e0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="scroller" id="scroller">
+        <div class="sticky-head">sticky header</div>
+        <div class="row">row 1</div>
+        <div class="row">row 2</div>
+        <div class="row">row 3</div>
+        <div class="row">row 4</div>
+        <div class="row">row 5</div>
+        <div class="row">row 6</div>
+        <div class="row">row 7</div>
+        <div class="row">row 8</div>
+      </div>
+      <div class="legend">scrollTop = 50, header stays pinned</div>
+    </div>
+    <script>
+      document.getElementById("scroller").scrollTop = 50;
+    </script>
+  </body>
+</html>

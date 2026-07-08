@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>dtim html anchor attr selector</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 16px;
+      }
+      #target {
+        color: #000000;
+        height: 132px;
+        width: 232px;
+        box-sizing: border-box;
+        background-color: lightgrey;
+        text-align: center;
+        padding: 16px;
+      }
+      /* #90: the <a href> is an HTML anchor and must match this HTML attribute
+         selector (not be misclassified as an SVG <a>). */
+      a[href="#target"] {
+        color: #000000;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <span><a href="#target">dom-to-image-more/issues/90</a></span>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>site-calendar-week-sepia</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #888888;
+      }
+      #target {
+        width: 1080px;
+        height: 700px;
+        background: #f4ecd8;
+        color: #3d3021;
+        font-family: "Inter Fixture", sans-serif;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .cal-head {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 14px 22px;
+        border-bottom: 1px solid #d8c9a3;
+        background: #fbf5e6;
+      }
+      .cal-head h1 {
+        font-size: 20px;
+        font-weight: 400;
+        margin: 0;
+      }
+      .cal-today {
+        border: 1px solid #d8c9a3;
+        border-radius: 6px;
+        padding: 6px 14px;
+        font-size: 13px;
+      }
+      .cal-days {
+        display: grid;
+        grid-template-columns: 60px repeat(5, 1fr);
+        border-bottom: 1px solid #d8c9a3;
+        font-size: 12px;
+        color: #7a6a4f;
+        text-align: center;
+        padding: 8px 0;
+        background: #fbf5e6;
+      }
+      .cal-days b {
+        display: block;
+        font-size: 20px;
+        color: #3d3021;
+      }
+      .cal-days .today b {
+        background: #8a5a1e;
+        color: #ffffff;
+        border-radius: 50%;
+        width: 34px;
+        height: 34px;
+        line-height: 34px;
+        margin: 0 auto;
+      }
+      .cal-grid {
+        display: grid;
+        grid-template-columns: 60px repeat(5, 1fr);
+        grid-template-rows: repeat(10, 52px);
+        position: relative;
+      }
+      .cal-hour {
+        grid-column: 1;
+        font-size: 10px;
+        color: #7a6a4f;
+        text-align: right;
+        padding-right: 8px;
+        border-top: 1px solid #d8c9a3;
+      }
+      .cal-cell {
+        border-top: 1px solid #d8c9a3;
+        border-left: 1px solid #d8c9a3;
+      }
+      .cal-event {
+        margin: 1px 4px;
+        border-radius: 5px;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 4px 6px;
+        overflow: hidden;
+      }
+      .cal-event span {
+        font-weight: 400;
+        opacity: 0.8;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="cal-head">
+        <span style="font-size: 18px">📅</span>
+        <h1><b>June</b> 2026</h1>
+        <span class="cal-today">Today</span
+        ><span style="margin-left: auto; font-size: 13px; color: #7a6a4f">Week ▾</span>
+      </div>
+      <div class="cal-days">
+        <span></span><span>MON<b>29</b></span
+        ><span>TUE<b>30</b></span
+        ><span class="today">WED<b>1</b></span
+        ><span>THU<b>2</b></span
+        ><span>FRI<b>3</b></span>
+      </div>
+      <div class="cal-grid">
+        <div class="cal-hour" style="grid-row: 1">8:00</div>
+        <div class="cal-hour" style="grid-row: 2">9:00</div>
+        <div class="cal-hour" style="grid-row: 3">10:00</div>
+        <div class="cal-hour" style="grid-row: 4">11:00</div>
+        <div class="cal-hour" style="grid-row: 5">12:00</div>
+        <div class="cal-hour" style="grid-row: 6">13:00</div>
+        <div class="cal-hour" style="grid-row: 7">14:00</div>
+        <div class="cal-hour" style="grid-row: 8">15:00</div>
+        <div class="cal-hour" style="grid-row: 9">16:00</div>
+        <div class="cal-hour" style="grid-row: 10">17:00</div>
+        <div class="cal-cell" style="grid-column: 2; grid-row: 1"></div>
+        <div class="cal-cell" style="grid-column: 3; grid-row: 1"></div>
+        <div class="cal-cell" style="grid-column: 4; grid-row: 1"></div>
+        <div class="cal-cell" style="grid-column: 5; grid-row: 1"></div>
+        <div class="cal-cell" style="grid-column: 6; grid-row: 1"></div>
+        <div class="cal-cell" style="grid-column: 2; grid-row: 2"></div>
+        <div class="cal-cell" style="grid-column: 3; grid-row: 2"></div>
+        <div class="cal-cell" style="grid-column: 4; grid-row: 2"></div>
+        <div class="cal-cell" style="grid-column: 5; grid-row: 2"></div>
+        <div class="cal-cell" style="grid-column: 6; grid-row: 2"></div>
+        <div class="cal-cell" style="grid-column: 2; grid-row: 3"></div>
+        <div class="cal-cell" style="grid-column: 3; grid-row: 3"></div>
+        <div class="cal-cell" style="grid-column: 4; grid-row: 3"></div>
+        <div class="cal-cell" style="grid-column: 5; grid-row: 3"></div>
+        <div class="cal-cell" style="grid-column: 6; grid-row: 3"></div>
+        <div class="cal-cell" style="grid-column: 2; grid-row: 4"></div>
+        <div class="cal-cell" style="grid-column: 3; grid-row: 4"></div>
+        <div class="cal-cell" style="grid-column: 4; grid-row: 4"></div>
+        <div class="cal-cell" style="grid-column: 5; grid-row: 4"></div>
+        <div class="cal-cell" style="grid-column: 6; grid-row: 4"></div>
+        <div class="cal-cell" style="grid-column: 2; grid-row: 5"></div>
+        <div class="cal-cell" style="grid-column: 3; grid-row: 5"></div>
+        <div class="cal-cell" style="grid-column: 4; grid-row: 5"></div>
+        <div class="cal-cell" style="grid-column: 5; grid-row: 5"></div>
+        <div class="cal-cell" style="grid-column: 6; grid-row: 5"></div>
+        <div class="cal-cell" style="grid-column: 2; grid-row: 6"></div>
+        <div class="cal-cell" style="grid-column: 3; grid-row: 6"></div>
+        <div class="cal-cell" style="grid-column: 4; grid-row: 6"></div>
+        <div class="cal-cell" style="grid-column: 5; grid-row: 6"></div>
+        <div class="cal-cell" style="grid-column: 6; grid-row: 6"></div>
+        <div class="cal-cell" style="grid-column: 2; grid-row: 7"></div>
+        <div class="cal-cell" style="grid-column: 3; grid-row: 7"></div>
+        <div class="cal-cell" style="grid-column: 4; grid-row: 7"></div>
+        <div class="cal-cell" style="grid-column: 5; grid-row: 7"></div>
+        <div class="cal-cell" style="grid-column: 6; grid-row: 7"></div>
+        <div class="cal-cell" style="grid-column: 2; grid-row: 8"></div>
+        <div class="cal-cell" style="grid-column: 3; grid-row: 8"></div>
+        <div class="cal-cell" style="grid-column: 4; grid-row: 8"></div>
+        <div class="cal-cell" style="grid-column: 5; grid-row: 8"></div>
+        <div class="cal-cell" style="grid-column: 6; grid-row: 8"></div>
+        <div class="cal-cell" style="grid-column: 2; grid-row: 9"></div>
+        <div class="cal-cell" style="grid-column: 3; grid-row: 9"></div>
+        <div class="cal-cell" style="grid-column: 4; grid-row: 9"></div>
+        <div class="cal-cell" style="grid-column: 5; grid-row: 9"></div>
+        <div class="cal-cell" style="grid-column: 6; grid-row: 9"></div>
+        <div class="cal-cell" style="grid-column: 2; grid-row: 10"></div>
+        <div class="cal-cell" style="grid-column: 3; grid-row: 10"></div>
+        <div class="cal-cell" style="grid-column: 4; grid-row: 10"></div>
+        <div class="cal-cell" style="grid-column: 5; grid-row: 10"></div>
+        <div class="cal-cell" style="grid-column: 6; grid-row: 10"></div>
+
+        <div
+          class="cal-event"
+          style="
+            grid-column: 2;
+            grid-row: 2 / span 2;
+            background: #2f6fdb22;
+            border-left: 3px solid #2f6fdb;
+            color: #2f6fdb;
+          "
+        >
+          Standup<br /><span>9:00 – 10:00</span>
+        </div>
+        <div
+          class="cal-event"
+          style="
+            grid-column: 2;
+            grid-row: 6 / span 3;
+            background: #14a06c22;
+            border-left: 3px solid #14a06c;
+            color: #14a06c;
+          "
+        >
+          Perf review<br /><span>13:00 – 15:00</span>
+        </div>
+        <div
+          class="cal-event"
+          style="
+            grid-column: 3;
+            grid-row: 3 / span 4;
+            background: #7a3b8f22;
+            border-left: 3px solid #7a3b8f;
+            color: #7a3b8f;
+          "
+        >
+          Deep work: capture pipeline<br /><span>10:00 – 12:00</span>
+        </div>
+        <div
+          class="cal-event"
+          style="
+            grid-column: 4;
+            grid-row: 2 / span 2;
+            background: #2f6fdb22;
+            border-left: 3px solid #2f6fdb;
+            color: #2f6fdb;
+          "
+        >
+          Standup<br /><span>9:00 – 10:00</span>
+        </div>
+        <div
+          class="cal-event"
+          style="
+            grid-column: 4;
+            grid-row: 7 / span 2;
+            background: #b8860b22;
+            border-left: 3px solid #b8860b;
+            color: #b8860b;
+          "
+        >
+          1:1 with Sara<br /><span>14:00 – 15:00</span>
+        </div>
+        <div
+          class="cal-event"
+          style="
+            grid-column: 5;
+            grid-row: 4 / span 3;
+            background: #be185d22;
+            border-left: 3px solid #be185d;
+            color: #be185d;
+          "
+        >
+          Release cut<br /><span>11:00 – 13:00</span>
+        </div>
+        <div
+          class="cal-event"
+          style="
+            grid-column: 6;
+            grid-row: 2 / span 2;
+            background: #2f6fdb22;
+            border-left: 3px solid #2f6fdb;
+            color: #2f6fdb;
+          "
+        >
+          Standup<br /><span>9:00 – 10:00</span>
+        </div>
+        <div
+          class="cal-event"
+          style="
+            grid-column: 6;
+            grid-row: 8 / span 4;
+            background: #0f766e22;
+            border-left: 3px solid #0f766e;
+            color: #0f766e;
+          "
+        >
+          Fixture triage<br /><span>15:00 – 17:00</span>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

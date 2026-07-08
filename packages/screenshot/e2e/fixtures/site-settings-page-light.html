@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>site-settings-page-light</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #888888;
+      }
+      #target {
+        width: 940px;
+        height: 680px;
+        background: #f6f8fa;
+        color: #1f2328;
+        font-family: "Inter Fixture", sans-serif;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .st-wrap {
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        height: 100%;
+      }
+      .st-nav {
+        border-right: 1px solid #d0d7de;
+        padding: 22px 14px;
+        font-size: 14px;
+        background: #ffffff;
+      }
+      .st-nav .item {
+        padding: 7px 12px;
+        border-radius: 8px;
+        color: #57606a;
+      }
+      .st-nav .item.active {
+        background: #eef1f4;
+        color: #1f2328;
+        font-weight: 700;
+      }
+      .st-main {
+        padding: 26px 36px;
+      }
+      .st-main h1 {
+        font-size: 22px;
+        margin: 0 0 4px;
+      }
+      .st-main .sub {
+        font-size: 13px;
+        color: #57606a;
+        margin-bottom: 22px;
+      }
+      .st-group {
+        border: 1px solid #d0d7de;
+        border-radius: 12px;
+        background: #ffffff;
+        margin-bottom: 18px;
+        overflow: hidden;
+      }
+      .st-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 18px;
+        border-bottom: 1px solid #d0d7de;
+      }
+      .st-row:last-child {
+        border-bottom: none;
+      }
+      .st-row .info {
+        flex: 1;
+      }
+      .st-row .title {
+        font-size: 14px;
+        font-weight: 700;
+      }
+      .st-row .desc {
+        font-size: 12.5px;
+        color: #57606a;
+        margin-top: 2px;
+      }
+      .tgl {
+        width: 40px;
+        height: 22px;
+        border-radius: 999px;
+        background: #d0d7de;
+        position: relative;
+        flex: none;
+      }
+      .tgl.on {
+        background: #1a7f37;
+      }
+      .tgl .knob {
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #ffffff;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      }
+      .tgl.on .knob {
+        left: 20px;
+      }
+      .st-select {
+        border: 1px solid #d0d7de;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 13px;
+        background: #f6f8fa;
+      }
+      .danger {
+        color: #cf222e;
+        border: 1px solid #cf222e;
+        border-radius: 8px;
+        padding: 7px 14px;
+        font-size: 13px;
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="st-wrap">
+        <div class="st-nav">
+          <div class="item">Account</div>
+          <div class="item active">Preferences</div>
+          <div class="item">Notifications</div>
+          <div class="item">Security</div>
+          <div class="item">Billing</div>
+          <div class="item">API keys</div>
+        </div>
+        <div class="st-main">
+          <h1>Preferences</h1>
+          <div class="sub">Customize how the app looks and behaves.</div>
+          <div class="st-group">
+            <div class="st-row">
+              <div class="info">
+                <div class="title">Theme</div>
+                <div class="desc">Sync with your system or pick a side.</div>
+              </div>
+              <span class="st-select">Light ▾</span>
+            </div>
+            <div class="st-row">
+              <div class="info">
+                <div class="title">Compact density</div>
+                <div class="desc">Show more content with tighter spacing.</div>
+              </div>
+              <span class="tgl on"><span class="knob"></span></span>
+            </div>
+            <div class="st-row">
+              <div class="info">
+                <div class="title">Reduce motion</div>
+                <div class="desc">Minimize animations across the interface.</div>
+              </div>
+              <span class="tgl"><span class="knob"></span></span>
+            </div>
+          </div>
+          <div class="st-group">
+            <div class="st-row">
+              <div class="info">
+                <div class="title">Desktop notifications</div>
+                <div class="desc">Get notified when a capture batch completes.</div>
+              </div>
+              <span class="tgl on"><span class="knob"></span></span>
+            </div>
+            <div class="st-row">
+              <div class="info">
+                <div class="title">Weekly digest</div>
+                <div class="desc">A summary of usage and perf regressions, every Monday.</div>
+              </div>
+              <span class="tgl"><span class="knob"></span></span>
+            </div>
+          </div>
+          <span class="danger">Delete workspace</span>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -14,7 +14,7 @@ import { isRootElement } from "./is-root-element.js";
 // as grabbable page content.
 const REACT_GRAB_HOST_ATTRIBUTES = ["data-react-grab", "data-react-grab-demo"];
 
-const hasReactGrabAttribute = (element: Element): boolean =>
+export const hasReactGrabAttribute = (element: Element): boolean =>
   REACT_GRAB_HOST_ATTRIBUTES.some((attribute) => element.hasAttribute(attribute));
 
 const isReactGrabElement = (element: Element): boolean => {

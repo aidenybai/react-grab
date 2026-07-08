@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>hti input user value</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 400px;
+        height: 100px;
+        background-color: white;
+        padding: 1em;
+      }
+      input {
+        height: 100%;
+        width: 100%;
+        font-family: "Inter Fixture", monospace;
+        font-size: 20px;
+        border: 1px solid grey;
+        padding: 1em;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <input id="input" />
+    </div>
+    <script>
+      /* The value is set programmatically, like the original test: the
+         capture must read the live .value, not the value attribute. */
+      document.getElementById("input").value = "USER INPUT";
+    </script>
+  </body>
+</html>

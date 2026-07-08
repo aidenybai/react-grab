@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ms font family fallback</title>
+    <style>
+      @font-face {
+        font-family: "Ms Custom Font";
+        font-style: normal;
+        font-weight: 400;
+        src: url("./assets/ms-latin.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        font-style: normal;
+        font-weight: 400;
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 380px;
+        height: 144px;
+        font-size: 40px;
+        line-height: 48px;
+        background: #ffffff;
+        overflow: hidden;
+        font-family: "Inter Fixture";
+      }
+      .font-family-custom {
+        font-family: "Ms Custom Font";
+      }
+      .font-family-multiple {
+        font-family:
+          "Ms Missing Font", "Ms Also Missing Font", "Inter Fixture", "Ms Custom Font", sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="font-family-custom">custom</div>
+      <div class="font-family-multiple">multiple</div>
+      <div style="color: rgb(0, 255, 255)">
+        <div style="font-family: unset; color: rgb(0, 0, 0)">COLOR</div>
+      </div>
+    </div>
+  </body>
+</html>

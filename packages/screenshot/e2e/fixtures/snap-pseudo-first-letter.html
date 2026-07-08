@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>snap pseudo first letter</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 420px;
+        height: 220px;
+        background: #ffffff;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 15px;
+        line-height: 22px;
+        color: #1d2731;
+        box-sizing: border-box;
+        padding: 20px;
+      }
+      p {
+        margin: 0;
+        width: 380px;
+      }
+      p::first-letter {
+        font-size: 3em;
+        color: #c0392b;
+        font-weight: 700;
+        float: left;
+        line-height: 0.85;
+        padding-right: 6px;
+      }
+      p + p {
+        margin-top: 14px;
+      }
+      p + p::first-letter {
+        font-size: 200%;
+        color: #2f6fdb;
+        float: none;
+        font-weight: 400;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <p>
+        Drop caps are the classic first-letter treatment: the initial glyph is enlarged, recolored
+        and floated so the following lines of the paragraph wrap around it just like in print
+        typography.
+      </p>
+      <p>Hola mundo! This one keeps the letter inline at double size.</p>
+    </div>
+  </body>
+</html>

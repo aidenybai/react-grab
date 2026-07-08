@@ -142,6 +142,7 @@ import { copyPlugin } from "./plugins/copy.js";
 import { commentPlugin } from "./plugins/comment.js";
 import { editPlugin } from "./plugins/edit.js";
 import { openPlugin } from "./plugins/open.js";
+import { screenshotPlugin } from "./plugins/screenshot.js";
 import { freezeAnimations, freezeAllAnimations } from "../utils/freeze-animations.js";
 import {
   freezeGlobalInteractions,
@@ -154,7 +155,7 @@ import { getNearestEdge } from "../utils/get-nearest-edge.js";
 import { findShortcutAction } from "../utils/action-shortcuts.js";
 import { createKeyboardSelectionController } from "./keyboard-selection.js";
 
-const builtInPlugins = [copyPlugin, editPlugin, commentPlugin, openPlugin];
+const builtInPlugins = [copyPlugin, editPlugin, commentPlugin, openPlugin, screenshotPlugin];
 
 interface CopyWithLabelOptions {
   element: Element;
@@ -796,6 +797,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           getContent: pluginRegistry.store.options.getContent,
           componentName: elementName,
           maxContextLines: pluginRegistry.store.options.maxContextLines,
+          screenshot: pluginRegistry.store.options.screenshot,
         },
         pluginRegistry.hooks,
         elements,

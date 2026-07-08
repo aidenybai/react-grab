@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>lim cross origin font face</title>
+    <!--
+      127.0.0.1 and localhost on the same port are different origins, so this
+      stylesheet's cssRules are CORS-blocked in the CSSOM (like Google Fonts)
+      while the sheet itself still applies and the font still loads.
+    -->
+    <link rel="stylesheet" href="http://127.0.0.1:5179/assets/lim-remote-font.css" />
+    <style>
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 420px;
+        height: 200px;
+        background: #ffffff;
+        font-family: "Inter Remote Fixture", sans-serif;
+        font-weight: 700;
+        font-size: 26px;
+        color: #1d2731;
+        box-sizing: border-box;
+        padding: 20px;
+      }
+      .small {
+        font-size: 15px;
+        margin-top: 12px;
+        color: #14304f;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div>Cross-origin font face</div>
+      <div class="small">Embedded from a CORS-blocked stylesheet on 127.0.0.1</div>
+    </div>
+  </body>
+</html>

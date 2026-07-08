@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>dtim anchor underline reset</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 320px;
+        height: 80px;
+        background: #ffffff;
+        box-sizing: border-box;
+        padding: 10px;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 18px;
+      }
+      /* #227 part 1: the page removes the UA underline from a[href]; the
+         capture must not re-underline it. The control anchor keeps the UA
+         default underline. */
+      a.reset {
+        text-decoration: none;
+      }
+      #target a {
+        color: #2f6fdb;
+        display: block;
+        margin-bottom: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <a class="reset" id="lnk" href="https://example.com">a link without underline</a>
+      <a id="control" href="https://example.com">a default underlined link</a>
+    </div>
+  </body>
+</html>

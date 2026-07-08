@@ -42,10 +42,14 @@ test.describe("Element Selection", () => {
     await reactGrab.activate();
     await reactGrab.hoverUntilSelected("[data-testid='todo-list'] h1");
 
-    const copyPayloadPromise = reactGrab.captureNextClipboardWrites();
     await reactGrab.clickElement("[data-testid='todo-list'] h1");
-    const copyPayload = await copyPayloadPromise;
-    const clipboardMetadataText = copyPayload["application/x-react-grab"];
+    await expect.poll(() => reactGrab.getClipboardContent()).toContain("Todo List");
+
+    const clipboardItemTypes = await reactGrab.getClipboardItemTypes();
+    expect(clipboardItemTypes).toContain("image/png");
+    const clipboardMetadataText = await reactGrab.readClipboardItemText(
+      "web application/x-react-grab",
+    );
     if (!clipboardMetadataText) {
       throw new Error("Missing React Grab clipboard metadata");
     }

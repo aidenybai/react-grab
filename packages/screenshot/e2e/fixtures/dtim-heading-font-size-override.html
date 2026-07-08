@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>dtim heading font size override</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      /* #227 part 2: parent at 24px; #hd overridden to 1em (= 24px), which
+         coincides with the UA default h2 size (1.5em of 16px = 24px). If the
+         override is dropped, the output h2 re-applies UA 1.5em -> 36px and
+         the layout visibly grows. The control h2 keeps the UA 1.5em (36px). */
+      #target {
+        width: 360px;
+        height: 180px;
+        background: #ffffff;
+        box-sizing: border-box;
+        padding: 10px;
+        font-size: 24px;
+        font-family: "Inter Fixture", sans-serif;
+        color: #14304f;
+      }
+      #hd {
+        font-size: 1em;
+      }
+      h2 {
+        margin: 8px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <h2 id="hd">Heading</h2>
+      <h2 id="control">Control</h2>
+    </div>
+  </body>
+</html>

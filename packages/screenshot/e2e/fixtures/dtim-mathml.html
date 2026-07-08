@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>dtim mathml</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 240px;
+        height: 80px;
+        background: #ffffff;
+        box-sizing: border-box;
+        padding: 10px;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 24px;
+        color: #14304f;
+      }
+      math {
+        font-family: "Inter Fixture", sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      before
+      <math id="m"
+        ><mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow></math
+      >
+      after
+    </div>
+  </body>
+</html>

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>hti bigger</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 100px;
+        height: 99px;
+        background: #ffffff;
+      }
+      .dom-child-node {
+        height: auto;
+      }
+      .red {
+        background-color: red;
+      }
+      .green {
+        background-color: green;
+      }
+      .blue {
+        background-color: blue;
+      }
+      .red,
+      .green,
+      .blue {
+        height: 3px;
+        border: 1px solid lightgrey;
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      The original test cloned the strip group 10 times via JS (11 groups
+      total); this script reproduces that synchronously before load.
+    -->
+    <div id="target">
+      <div class="dom-child-node">
+        <div class="red"></div>
+        <div class="green"></div>
+        <div class="blue"></div>
+      </div>
+    </div>
+    <script>
+      const parentNode = document.getElementById("target");
+      const childNode = parentNode.querySelector(".dom-child-node");
+      for (let cloneIndex = 0; cloneIndex < 10; cloneIndex += 1) {
+        parentNode.appendChild(childNode.cloneNode(true));
+      }
+    </script>
+  </body>
+</html>

@@ -20,6 +20,18 @@ export const INPUT_FOCUS_ACTIVATION_DELAY_MS = 400;
 export const INPUT_TEXT_SELECTION_ACTIVATION_DELAY_MS = 600;
 export const DEFAULT_KEY_HOLD_DURATION_MS = 100;
 export const DEFAULT_MAX_CONTEXT_LINES = 3;
+
+export const REACT_GRAB_MIME_TYPE = "application/x-react-grab";
+// The async Clipboard API only accepts custom formats behind the "web " prefix.
+export const WEB_REACT_GRAB_MIME_TYPE = `web ${REACT_GRAB_MIME_TYPE}`;
+
+export const SCREENSHOT_NOTE_FONT_SIZE_PX = 11;
+export const SCREENSHOT_NOTE_LINE_HEIGHT_PX = 16;
+export const SCREENSHOT_NOTE_PADDING_PX = 10;
+export const SCREENSHOT_NOTE_MAX_LINES_CAP = 6;
+export const SCREENSHOT_NOTE_BACKGROUND = "#0d1117";
+export const SCREENSHOT_NOTE_TEXT_COLOR = "#e6edf3";
+export const SCREENSHOT_NOTE_HEADER_COLOR = "#7ee787";
 export const MAX_TRACE_CONTEXT_LINES = 20;
 // Path segments marking app-owned reusable UI directories (shadcn's
 // components/ui, a monorepo packages/ui, headless primitives). A bare `/ui/`

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>hard nested iframe</title>
+    <style>
+      body {
+        margin: 0;
+        background: #dfe6ee;
+      }
+      #target {
+        width: 380px;
+        height: 260px;
+        background: #ffffff;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      iframe {
+        width: 300px;
+        height: 200px;
+        border: 4px solid #1d2731;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <iframe src="/hard-nested-iframe-middle.html" title="same origin middle frame"></iframe>
+    </div>
+  </body>
+</html>

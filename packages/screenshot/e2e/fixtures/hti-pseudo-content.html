@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>hti pseudo content</title>
+    <style>
+      @font-face {
+        font-family: "Inter Fixture";
+        src: url("./assets/inter-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #e8e8e8;
+      }
+      #target {
+        width: 400px;
+        height: 100px;
+        background-color: white;
+        font-family: "Inter Fixture", sans-serif;
+        font-size: 20px;
+      }
+      .with-before::before {
+        content: "JUSTBEFORE";
+      }
+      .with-after::after {
+        content: "JUSTAFTER";
+      }
+      .with-both::before {
+        content: "BOTHBEFORE";
+      }
+      .with-both::after {
+        content: "BOTHAFTER";
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">
+      <div class="with-before"></div>
+      <div class="with-after"></div>
+      <div class="with-both"></div>
+    </div>
+  </body>
+</html>

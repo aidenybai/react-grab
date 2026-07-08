@@ -1,0 +1,83 @@
+{
+  "name": "fast-html-to-image",
+  "version": "0.0.1",
+  "description": "Fast, high-fidelity DOM node to image capture",
+  "keywords": [
+    "capture",
+    "dom-to-image",
+    "html-to-image",
+    "screenshot"
+  ],
+  "homepage": "https://react-grab.com",
+  "bugs": {
+    "url": "https://github.com/aidenybai/react-grab/issues"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Aiden Bai",
+    "email": "aiden@million.dev"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aidenybai/react-grab.git",
+    "directory": "packages/screenshot"
+  },
+  "files": [
+    "dist",
+    "package.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "browser": "dist/index.global.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./dist/*": "./dist/*.js",
+    "./dist/*.js": "./dist/*.js"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "NODE_ENV=production vp pack",
+    "dev": "vp pack --watch",
+    "prepublishOnly": "pnpm build",
+    "test": "vp test run tests && pnpm build && playwright test --project chromium-fidelity",
+    "test:unit": "vp test run tests",
+    "test:ui": "playwright test --ui",
+    "bench": "pnpm build && playwright test --project chromium-bench",
+    "bench:trace": "pnpm build && PERF_TRACE=1 playwright test --project chromium-bench",
+    "perf:analyze": "node scripts/analyze-perf-trace.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "vp lint",
+    "format": "vp fmt",
+    "check": "vp check"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "@types/node": "^25.6.2",
+    "@types/pngjs": "^6.0.5",
+    "@zumer/snapdom": "^2.12.9",
+    "dom-to-image-more": "^3.10.0",
+    "happy-dom": "^20.10.2",
+    "html-to-image": "^1.11.13",
+    "html2canvas": "^1.4.1",
+    "modern-screenshot": "^4.7.0",
+    "pixelmatch": "^7.1.0",
+    "pngjs": "^7.0.0",
+    "vite-plus": "^0.1.20"
+  }
+}
