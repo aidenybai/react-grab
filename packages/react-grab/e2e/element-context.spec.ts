@@ -175,6 +175,7 @@ test.describe("Element Context Fallback", () => {
         const svgElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         svgElement.style.width = "50px";
         svgElement.style.height = "50px";
+        svgElement.setAttribute("role", "img");
         const pathElement = document.createElementNS("http://www.w3.org/2000/svg", "path");
         pathElement.setAttribute("d", "M0 0h24v24H0z");
         svgElement.appendChild(pathElement);
