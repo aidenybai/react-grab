@@ -8,8 +8,8 @@ import {
 } from "./framework-helpers.js";
 
 test.describe("production framework degradation", () => {
-  test.beforeEach((unusedFixtures, testInfo) => {
-    void unusedFixtures;
+  test.beforeEach(({ page }, testInfo) => {
+    void page;
     test.skip(
       !isProductionProject(testInfo.project.name),
       "Production invariants only apply to optimized builds",
