@@ -30,6 +30,7 @@ const SELECTOR_TARGET_QUERY = [
 const isBroadSelectorTarget = (element: Element): boolean => {
   const { body, documentElement } = element.ownerDocument;
   if (element === body || element === documentElement) return true;
+  if (!body) return false;
 
   const bodyDescendantCount = body.getElementsByTagName("*").length;
   if (bodyDescendantCount === 0) return false;
