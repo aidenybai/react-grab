@@ -13,6 +13,13 @@ describe("isUsefulComponentName", () => {
     expect(isUsefulComponentName("TooltipProviderProvider")).toBe(false);
   });
 
+  it.each(["ThemeContext.Consumer", "Theme.Context", "ThemeContext.Provider"])(
+    "filters the React context wrapper %s",
+    (componentName) => {
+      expect(isUsefulComponentName(componentName)).toBe(false);
+    },
+  );
+
   it.each([
     "Slot",
     "SlotClone",

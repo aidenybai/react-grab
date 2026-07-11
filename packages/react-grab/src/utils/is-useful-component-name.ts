@@ -71,6 +71,9 @@ const REACT_INTERNAL_COMPONENT_NAMES = new Set([
 
 const LIBRARY_INTERNAL_COMPONENT_NAMES = new Set(["MotionDOMComponent", "Slot", "SlotClone"]);
 const LIBRARY_INTERNAL_COMPONENT_SUFFIXES = [
+  ".Consumer",
+  ".Context",
+  ".Provider",
   ".Slot",
   ".SlotClone",
   ".Slottable",

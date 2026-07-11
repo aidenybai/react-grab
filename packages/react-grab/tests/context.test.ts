@@ -81,6 +81,7 @@ describe("selectResolvedSource", () => {
     const internalFrames: StackFrame[] = [
       { fileName: "/src/app/slot.tsx", functionName: "SlotClone" },
       { fileName: "/src/app/anonymous.tsx", functionName: "Anonymous" },
+      { fileName: "/src/app/theme-context.tsx", functionName: "ThemeContext.Provider" },
       appFrame,
     ];
 
