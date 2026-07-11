@@ -21,6 +21,7 @@ import type { StackFrame } from "bippy/source";
 export type { StackFrame };
 import { createElementSelector } from "./utils/create-element-selector.js";
 import { extractElementCss, disposeBaselineStyles } from "./utils/extract-element-css.js";
+import { findSelectorTarget } from "./utils/find-selector-target.js";
 import { requestOpenFile } from "./utils/open-file.js";
 
 export interface ReactGrabElementContext {
@@ -60,7 +61,7 @@ export const getElementContext = async (element: Element): Promise<ReactGrabElem
   const htmlPreview = getHTMLPreview(element);
   const componentName = getComponentDisplayName(element);
   const fiber = getFiberFromHostInstance(element);
-  const selector = createElementSelector(element);
+  const selector = createElementSelector(findSelectorTarget(element));
   const styles = extractElementCss(element);
 
   return {

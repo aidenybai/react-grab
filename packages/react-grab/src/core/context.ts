@@ -242,10 +242,13 @@ export const selectResolvedSource = (
 
   const highSignalStackSource = resolveStackSource(highSignalAppFrames, "app");
   if (highSignalStackSource) return highSignalStackSource;
-  if (fiberSource?.origin === "app") return fiberSource;
+  if (fiberSource?.origin === "app" && !isGeneratedBundleSourcePath(fiberSource.filePath)) {
+    return fiberSource;
+  }
 
   const sharedUiStackSource = resolveStackSource(appFrames, "app");
   if (sharedUiStackSource) return sharedUiStackSource;
+  if (fiberSource?.origin === "app") return fiberSource;
 
   if (fiberSource?.origin === "package") return fiberSource;
   const packageFrames = stack.filter(

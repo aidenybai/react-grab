@@ -80,6 +80,23 @@ describe("selectResolvedSource", () => {
     );
   });
 
+  it("prefers an editable shared-UI owner over a generated bundle", () => {
+    const generatedBundleFiberSource: ResolvedSource = {
+      ...fiberSource,
+      filePath: "/assets/routes-CYmCBTcT.js",
+      componentName: "Rc",
+    };
+    const sharedUiFrame: StackFrame = {
+      fileName: "/src/components/ui/button.tsx",
+      functionName: "Button",
+    };
+
+    expect(selectResolvedSource(generatedBundleFiberSource, [sharedUiFrame])).toMatchObject({
+      filePath: "/src/components/ui/button.tsx",
+      componentName: "Button",
+    });
+  });
+
   it("keeps a shared-UI fiber source when no feature owner frame exists", () => {
     const sharedUiFiberSource: ResolvedSource = {
       ...fiberSource,
