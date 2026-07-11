@@ -201,19 +201,41 @@ test.describe("Element Context Fallback", () => {
         const button = document.createElement("button");
         button.className = "source-less-control";
         const span = document.createElement("span");
-        span.id = "source-less-nested-control";
+        span.className = "source-less-control-leaf";
         span.textContent = "Nested control";
         button.appendChild(span);
         labeledRegion.appendChild(button);
         document.body.appendChild(labeledRegion);
       });
 
-      const didCopy = await reactGrab.copyElementViaApi("#source-less-nested-control");
+      const didCopy = await reactGrab.copyElementViaApi(".source-less-control-leaf");
       expect(didCopy).toBe(true);
 
       const clipboard = await reactGrab.getClipboardContent();
       expect(clipboard).toContain(".source-less-control");
       expect(clipboard).not.toContain('selector: [aria-label="Distant labeled region"]');
+    });
+
+    test("should prefer a unique id over a distant labeled region", async ({ reactGrab }) => {
+      await reactGrab.page.evaluate(() => {
+        const labeledRegion = document.createElement("section");
+        labeledRegion.setAttribute("aria-label", "Broad labeled region");
+        const identifiedTarget = document.createElement("div");
+        identifiedTarget.id = "source-less-identified-target";
+        const span = document.createElement("span");
+        span.className = "source-less-identified-leaf";
+        span.textContent = "Identified target";
+        identifiedTarget.appendChild(span);
+        labeledRegion.appendChild(identifiedTarget);
+        document.body.appendChild(labeledRegion);
+      });
+
+      const didCopy = await reactGrab.copyElementViaApi(".source-less-identified-leaf");
+      expect(didCopy).toBe(true);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain("selector: #source-less-identified-target");
+      expect(clipboard).not.toContain('selector: [aria-label="Broad labeled region"]');
     });
 
     test("should truncate long outerHTML to max length", async ({ reactGrab }) => {

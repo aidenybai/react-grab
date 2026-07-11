@@ -1,4 +1,5 @@
 const SELECTOR_TARGET_QUERY = [
+  "[id]",
   "[data-testid]",
   "[data-test-id]",
   "[data-test]",
