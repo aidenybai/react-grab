@@ -256,6 +256,9 @@ export const selectResolvedSource = (
 
 export const resolveSource = async (element: Element): Promise<ResolvedSource | null> => {
   const fiberSource = await getCachedFiberSource(element);
+  if (fiberSource?.origin === "app" && isTrustedAppSourcePath(fiberSource.filePath)) {
+    return fiberSource;
+  }
   return selectResolvedSource(fiberSource, (await getStack(element)) ?? []);
 };
 
