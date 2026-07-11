@@ -104,7 +104,7 @@
   },
   "dependencies": {
     "@react-grab/cli": "workspace:*",
-    "bippy": "^0.5.43"
+    "bippy": "^0.6.0"
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",

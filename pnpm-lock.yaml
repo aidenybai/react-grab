@@ -297,8 +297,8 @@ importers:
         specifier: workspace:*
         version: link:../cli
       bippy:
-        specifier: ^0.5.43
-        version: 0.5.43(react@19.2.6)
+        specifier: ^0.6.0
+        version: 0.6.0(react@19.2.6)
       react:
         specifier: 19.2.6
         version: 19.2.6
@@ -3891,8 +3891,8 @@ packages:
   bignumber.js@9.3.1:
     resolution: {integrity: sha512-Ko0uX15oIUS7wJ3Rb30Fs6SkVbLmPBAKdlm7q9+ak9bbIeFf0MwuBsQV6z7+X768/cHsfg+WlysDWJcmthjsjQ==}
 
-  bippy@0.5.43:
-    resolution: {integrity: sha512-Tvu7b1M7+d8b9/YHaCeODEsi2CgbuoBql+dWSBrNnCuqJ1gMUeY3i0r+319hvjjl5GVBP6FFWxrKnq3fhZER0w==}
+  bippy@0.6.0:
+    resolution: {integrity: sha512-6rdykmrQPOxyylsctFS3I1veDBWP03c2TbdD3sOowQ1w/3Y1FUQE52MhuNOyFvFQTNOxZOofRvdA1a0L/3Aagw==}
     peerDependencies:
       react: 19.2.6
 
@@ -10765,7 +10765,7 @@ snapshots:
 
   bignumber.js@9.3.1: {}
 
-  bippy@0.5.43(react@19.2.6):
+  bippy@0.6.0(react@19.2.6):
     dependencies:
       react: 19.2.6
 
