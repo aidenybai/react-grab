@@ -1,3 +1,5 @@
+import { BROAD_SELECTOR_TARGET_DESCENDANT_RATIO } from "../constants.js";
+
 const SELECTOR_TARGET_QUERY = [
   "[id]",
   "[data-testid]",
@@ -25,5 +27,19 @@ const SELECTOR_TARGET_QUERY = [
   '[role="spinbutton"]',
 ].join(",");
 
-export const findSelectorTarget = (element: Element): Element =>
-  element.closest(SELECTOR_TARGET_QUERY) ?? element;
+const isBroadSelectorTarget = (element: Element): boolean => {
+  const { body, documentElement } = element.ownerDocument;
+  if (element === body || element === documentElement) return true;
+
+  const bodyDescendantCount = body.getElementsByTagName("*").length;
+  if (bodyDescendantCount === 0) return false;
+
+  const elementDescendantCount = element.getElementsByTagName("*").length;
+  return elementDescendantCount / bodyDescendantCount >= BROAD_SELECTOR_TARGET_DESCENDANT_RATIO;
+};
+
+export const findSelectorTarget = (element: Element): Element => {
+  const selectorTarget = element.closest(SELECTOR_TARGET_QUERY);
+  if (!selectorTarget || isBroadSelectorTarget(selectorTarget)) return element;
+  return selectorTarget;
+};

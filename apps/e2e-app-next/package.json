@@ -5,9 +5,9 @@
   "scripts": {
     "dev": "next dev --turbopack --port 5176",
     "build": "next build",
-    "build:production-test": "cp tsconfig.json .tsconfig-production-test.json && NEXT_DIST_DIR=.next-production NEXT_TSCONFIG_PATH=.tsconfig-production-test.json next build",
+    "build:production-test": "node run-production-test.mjs build build",
     "start": "next start --port 5176",
-    "start:production-test": "next start --port 5177",
+    "start:production-test": "node run-production-test.mjs start start --port 5177",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

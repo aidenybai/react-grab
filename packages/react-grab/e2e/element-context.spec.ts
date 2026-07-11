@@ -238,6 +238,24 @@ test.describe("Element Context Fallback", () => {
       expect(clipboard).not.toContain('selector: [aria-label="Broad labeled region"]');
     });
 
+    test("should not elevate a leaf to the application mount root", async ({ reactGrab }) => {
+      await reactGrab.page.evaluate(() => {
+        const applicationRoot = document.getElementById("root");
+        if (!applicationRoot) throw new Error("Missing application root");
+        const leaf = document.createElement("div");
+        leaf.className = "source-less-root-leaf";
+        leaf.textContent = "Root-nested leaf";
+        applicationRoot.appendChild(leaf);
+      });
+
+      const didCopy = await reactGrab.copyElementViaApi(".source-less-root-leaf");
+      expect(didCopy).toBe(true);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain(".source-less-root-leaf");
+      expect(clipboard).not.toContain("selector: #root]");
+    });
+
     test("should truncate long outerHTML to max length", async ({ reactGrab }) => {
       await reactGrab.page.evaluate(() => {
         const wrapper = document.createElement("div");

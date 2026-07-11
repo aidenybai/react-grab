@@ -118,4 +118,6 @@ jobs:
         run: pnpm typecheck:fixtures
 
       - name: Verify generated fixture files
-        run: git diff --exit-code -- apps/e2e-app-vite apps/e2e-app-vite-upstream apps/e2e-app-next apps/e2e-app-tanstack-start
+        run: |
+          git diff --exit-code -- apps/e2e-app-vite apps/e2e-app-vite-upstream apps/e2e-app-next apps/e2e-app-tanstack-start
+          test -z "$(git ls-files --others --exclude-standard -- apps/e2e-app-vite apps/e2e-app-vite-upstream apps/e2e-app-next apps/e2e-app-tanstack-start)"
