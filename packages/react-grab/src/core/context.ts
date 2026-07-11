@@ -33,7 +33,6 @@ const isSourceComponentName = (name: string): boolean => {
   if (name.length <= 1) return false;
   if (isInternalComponentName(name)) return false;
   if (name[0] !== name[0].toUpperCase()) return false;
-  if (name.endsWith("Provider") || name.endsWith("Context")) return false;
   return true;
 };
 

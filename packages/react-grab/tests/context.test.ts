@@ -156,6 +156,42 @@ describe("selectResolvedSource", () => {
       componentName: "Widget",
     });
   });
+
+  it("skips placeholder and slot-wrapper frame names", () => {
+    const internalFrames: StackFrame[] = [
+      { fileName: "/src/app/slot.tsx", functionName: "SlotClone" },
+      { fileName: "/src/app/anonymous.tsx", functionName: "Anonymous" },
+      { fileName: "/src/app/theme-context.tsx", functionName: "ThemeContext.Provider" },
+      appFrame,
+    ];
+
+    expect(selectResolvedSource(null, internalFrames)).toMatchObject({
+      filePath: "/src/app/widget.tsx",
+      componentName: "Widget",
+    });
+  });
+
+  it("keeps authored provider and context frame names", () => {
+    expect(
+      selectResolvedSource(null, [
+        { fileName: "/src/app/auth-provider.tsx", functionName: "AuthProvider" },
+        appFrame,
+      ]),
+    ).toMatchObject({
+      filePath: "/src/app/auth-provider.tsx",
+      componentName: "AuthProvider",
+    });
+
+    expect(
+      selectResolvedSource(null, [
+        { fileName: "/src/app/cart-context.tsx", functionName: "CartContext" },
+        appFrame,
+      ]),
+    ).toMatchObject({
+      filePath: "/src/app/cart-context.tsx",
+      componentName: "CartContext",
+    });
+  });
 });
 
 describe("formatStackContext", () => {
