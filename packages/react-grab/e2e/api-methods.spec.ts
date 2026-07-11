@@ -217,15 +217,13 @@ test.describe("API Methods", () => {
           return text.split("\n").filter(Boolean).length;
         }, selector);
 
+      const contextTargetSelector = "[data-testid='todo-list'] ul li:first-child span";
+
       await reactGrab.updateOptions({ maxContextLines: 1 });
-      const compactLineCount = await getStackLineCount(
-        "[data-testid='todo-list'] ul li:first-child span",
-      );
+      const compactLineCount = await getStackLineCount(contextTargetSelector);
 
       await reactGrab.updateOptions({ maxContextLines: 12 });
-      const detailedLineCount = await getStackLineCount(
-        "[data-testid='todo-list'] ul li:first-child span",
-      );
+      const detailedLineCount = await getStackLineCount(contextTargetSelector);
 
       expect(compactLineCount).toBeGreaterThanOrEqual(1);
       expect(detailedLineCount).toBeGreaterThan(compactLineCount);
