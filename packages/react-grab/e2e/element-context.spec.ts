@@ -23,7 +23,7 @@ test.describe("Element Context Fallback", () => {
 
       const clipboard = await reactGrab.getClipboardContent();
       expect(clipboard).toMatch(/^\[<\w+[\s>]/);
-      expect(clipboard).toContain("NestedCard");
+      expect(clipboard).toContain("DeeplyNested");
     });
 
     test("should produce useful context for todo items", async ({ reactGrab }) => {
@@ -73,6 +73,22 @@ test.describe("Element Context Fallback", () => {
 
       const clipboard = await reactGrab.getClipboardContent();
       expect(clipboard).toContain('key: "bravo"');
+    });
+
+    test("should not surface a key for a keyed replacement outside a list", async ({
+      reactGrab,
+    }) => {
+      const didCopy = await reactGrab.copyElementViaApi("[data-testid='fiber-swap-target']");
+
+      expect(didCopy).toBe(true);
+      expect(await reactGrab.getClipboardContent()).not.toContain("key:");
+    });
+
+    test("should not surface a key for an unkeyed owner target", async ({ reactGrab }) => {
+      const didCopy = await reactGrab.copyElementViaApi("[data-testid='direct-owner-target']");
+
+      expect(didCopy).toBe(true);
+      expect(await reactGrab.getClipboardContent()).not.toContain("key:");
     });
   });
 
@@ -140,6 +156,104 @@ test.describe("Element Context Fallback", () => {
       expect(clipboard).toContain('class="icon-class"');
       expect(clipboard).toContain('aria-label="Close the modal dialog"');
       expect(clipboard).not.toContain("viewBox");
+    });
+
+    test("should use a semantic link selector for a source-less SVG path", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.page.evaluate(() => {
+        const wrapper = document.createElement("div");
+        Object.assign(wrapper.style, {
+          position: "fixed",
+          top: "200px",
+          left: "200px",
+          zIndex: "999",
+        });
+        const link = document.createElement("a");
+        link.href = "/source-less-icon";
+        link.setAttribute("aria-label", "Source-less icon link");
+        const svgElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svgElement.style.width = "50px";
+        svgElement.style.height = "50px";
+        svgElement.setAttribute("role", "img");
+        const pathElement = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        pathElement.setAttribute("d", "M0 0h24v24H0z");
+        svgElement.appendChild(pathElement);
+        link.appendChild(svgElement);
+        wrapper.appendChild(link);
+        document.body.appendChild(wrapper);
+      });
+
+      const didCopy = await reactGrab.copyElementViaApi(
+        "a[aria-label='Source-less icon link'] path",
+      );
+      expect(didCopy).toBe(true);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain("<path");
+      expect(clipboard).toContain('selector: [aria-label="Source-less icon link"]');
+    });
+
+    test("should prefer a nearby control over a distant labeled region", async ({ reactGrab }) => {
+      await reactGrab.page.evaluate(() => {
+        const labeledRegion = document.createElement("section");
+        labeledRegion.setAttribute("aria-label", "Distant labeled region");
+        const button = document.createElement("button");
+        button.className = "source-less-control";
+        const span = document.createElement("span");
+        span.className = "source-less-control-leaf";
+        span.textContent = "Nested control";
+        button.appendChild(span);
+        labeledRegion.appendChild(button);
+        document.body.appendChild(labeledRegion);
+      });
+
+      const didCopy = await reactGrab.copyElementViaApi(".source-less-control-leaf");
+      expect(didCopy).toBe(true);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain(".source-less-control");
+      expect(clipboard).not.toContain('selector: [aria-label="Distant labeled region"]');
+    });
+
+    test("should prefer a unique id over a distant labeled region", async ({ reactGrab }) => {
+      await reactGrab.page.evaluate(() => {
+        const labeledRegion = document.createElement("section");
+        labeledRegion.setAttribute("aria-label", "Broad labeled region");
+        const identifiedTarget = document.createElement("div");
+        identifiedTarget.id = "source-less-identified-target";
+        const span = document.createElement("span");
+        span.className = "source-less-identified-leaf";
+        span.textContent = "Identified target";
+        identifiedTarget.appendChild(span);
+        labeledRegion.appendChild(identifiedTarget);
+        document.body.appendChild(labeledRegion);
+      });
+
+      const didCopy = await reactGrab.copyElementViaApi(".source-less-identified-leaf");
+      expect(didCopy).toBe(true);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain("selector: #source-less-identified-target");
+      expect(clipboard).not.toContain('selector: [aria-label="Broad labeled region"]');
+    });
+
+    test("should not elevate a leaf to the application mount root", async ({ reactGrab }) => {
+      await reactGrab.page.evaluate(() => {
+        const applicationRoot = document.getElementById("root");
+        if (!applicationRoot) throw new Error("Missing application root");
+        const leaf = document.createElement("div");
+        leaf.className = "source-less-root-leaf";
+        leaf.textContent = "Root-nested leaf";
+        applicationRoot.appendChild(leaf);
+      });
+
+      const didCopy = await reactGrab.copyElementViaApi(".source-less-root-leaf");
+      expect(didCopy).toBe(true);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain(".source-less-root-leaf");
+      expect(clipboard).not.toMatch(/selector: #root\]$/);
     });
 
     test("should truncate long outerHTML to max length", async ({ reactGrab }) => {

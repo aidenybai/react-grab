@@ -15,6 +15,8 @@ import {
   type SourcePathClassification,
 } from "../utils/classify-source-path.js";
 import { createElementSelector } from "../utils/create-element-selector.js";
+import { findSelectorTarget } from "../utils/find-selector-target.js";
+import { isGeneratedBundleSourcePath } from "../utils/is-generated-bundle-source-path.js";
 import { isSharedUiSourcePath } from "../utils/is-shared-ui-source-path.js";
 import { isNextProjectRuntime } from "../utils/is-next-project-runtime.js";
 import { formatComponentNameLines } from "../utils/format-component-name-lines.js";
@@ -38,6 +40,9 @@ const isSourceComponentName = (name: string): boolean => {
 const toSourceComponentName = (name: string | null | undefined): string | null =>
   name && isSourceComponentName(name) ? name : null;
 
+const isTrustedAppSourcePath = (fileName: string | null | undefined): boolean =>
+  !isSharedUiSourcePath(fileName) && !isGeneratedBundleSourcePath(fileName);
+
 const findNearestFiberElement = (element: Element): Element => {
   if (!isInstrumentationActive()) return element;
   let current: Element | null = element;
@@ -55,12 +60,22 @@ const findNearestFiberElement = (element: Element): Element => {
 // on the list item's host element, on the list-item component itself, or on a
 // host wrapper around a list-item component, without wandering up to unrelated
 // ancestor keys (e.g. a route or transition `key` many components above).
-const getNearestListItemKey = (element: Element): string | null => {
-  if (!isInstrumentationActive()) return null;
-  let fiber: Fiber | null = getFiberFromHostInstance(findNearestFiberElement(element));
+const hasKeyedSibling = (fiber: Fiber): boolean => {
+  let siblingFiber = fiber.return?.child ?? null;
+  while (siblingFiber) {
+    if (siblingFiber !== fiber && siblingFiber.key !== null) return true;
+    siblingFiber = siblingFiber.sibling;
+  }
+  return false;
+};
+
+const findNearestListItemKey = (startingFiber: Fiber | null): string | null => {
+  let fiber = startingFiber;
   let componentBoundariesCrossed = 0;
   while (fiber) {
-    if (fiber.key) return fiber.key;
+    if (fiber.key !== null && hasKeyedSibling(fiber)) {
+      return String(fiber.key);
+    }
     if (isCompositeFiber(fiber)) {
       componentBoundariesCrossed += 1;
       if (componentBoundariesCrossed === 2) break;
@@ -68,6 +83,11 @@ const getNearestListItemKey = (element: Element): string | null => {
     fiber = fiber.return;
   }
   return null;
+};
+
+const getNearestListItemKey = (element: Element): string | null => {
+  if (!isInstrumentationActive()) return null;
+  return findNearestListItemKey(getFiberFromHostInstance(findNearestFiberElement(element)));
 };
 
 const stackCache = new WeakMap<Element, Promise<StackFrame[] | null>>();
@@ -192,17 +212,14 @@ const getCachedFiberSource = (element: Element): Promise<ResolvedSource | null> 
   return fiberSourcePromise;
 };
 
-const ORIGIN_PREFERENCE_ORDER = ["app", "package"] as const;
-
 export const selectResolvedSource = (
   fiberSource: ResolvedSource | null,
   stack: StackFrame[],
 ): ResolvedSource | null => {
-  for (const origin of ORIGIN_PREFERENCE_ORDER) {
-    if (fiberSource?.origin === origin) return fiberSource;
-    const framesOfOrigin = stack.filter(
-      (frame) => classifySourcePath(frame.fileName).origin === origin,
-    );
+  const resolveStackSource = (
+    framesOfOrigin: StackFrame[],
+    origin: SourcePathClassification["origin"],
+  ): ResolvedSource | null => {
     const preferredFrame = pickSourceFrame(framesOfOrigin);
     if (preferredFrame?.fileName) {
       return {
@@ -213,14 +230,38 @@ export const selectResolvedSource = (
         origin,
       };
     }
+    return null;
+  };
+
+  const appFrames = stack.filter((frame) => classifySourcePath(frame.fileName).origin === "app");
+  const highSignalAppFrames = appFrames.filter((frame) => isTrustedAppSourcePath(frame.fileName));
+
+  if (fiberSource?.origin === "app" && isTrustedAppSourcePath(fiberSource.filePath)) {
+    return fiberSource;
   }
-  return null;
+
+  const highSignalStackSource = resolveStackSource(highSignalAppFrames, "app");
+  if (highSignalStackSource) return highSignalStackSource;
+  if (fiberSource?.origin === "app" && !isGeneratedBundleSourcePath(fiberSource.filePath)) {
+    return fiberSource;
+  }
+
+  const sharedUiStackSource = resolveStackSource(appFrames, "app");
+  if (sharedUiStackSource) return sharedUiStackSource;
+  if (fiberSource?.origin === "app") return fiberSource;
+
+  if (fiberSource?.origin === "package") return fiberSource;
+  const packageFrames = stack.filter(
+    (frame) => classifySourcePath(frame.fileName).origin === "package",
+  );
+  return resolveStackSource(packageFrames, "package");
 };
 
 export const resolveSource = async (element: Element): Promise<ResolvedSource | null> => {
   const fiberSource = await getCachedFiberSource(element);
-  if (fiberSource?.origin === "app") return fiberSource;
-
+  if (fiberSource?.origin === "app" && isTrustedAppSourcePath(fiberSource.filePath)) {
+    return fiberSource;
+  }
   return selectResolvedSource(fiberSource, (await getStack(element)) ?? []);
 };
 
@@ -354,7 +395,7 @@ const formatStackFrameLine = (
         isNextProject,
       ),
       isAppSource: true,
-      consumesBudget: !isSharedUiSourcePath(appSourceFilePath),
+      consumesBudget: isTrustedAppSourcePath(appSourceFilePath),
     };
   }
 
@@ -386,10 +427,12 @@ export const formatStackContext = (
   };
 
   if (leadingSource) {
-    hasTrustedSource = leadingSource.origin === "app";
-    // A shared-UI leading source means the user grabbed a primitive directly;
-    // keep its budget free so the feature ancestors that consume it surface.
-    if (!isSharedUiSourcePath(leadingSource.filePath)) budgetedLineCount += 1;
+    const leadingSourceConsumesBudget =
+      leadingSource.origin === "app" && isTrustedAppSourcePath(leadingSource.filePath);
+    hasTrustedSource = leadingSourceConsumesBudget;
+    // A low-signal leading source means the user grabbed a primitive or generated
+    // bundle directly; keep its budget free so feature ancestors can surface.
+    if (leadingSourceConsumesBudget) budgetedLineCount += 1;
     addComponentName(leadingSource.componentName);
     lines.push(formatSourceContextLine(leadingSource, isNextProject));
   }
@@ -437,7 +480,7 @@ export const formatStackContext = (
     // duplicates so the trace stays readable.
     if (frameLine.text === lines[lines.length - 1]) continue;
 
-    if (frameLine.isAppSource) hasTrustedSource = true;
+    if (frameLine.isAppSource && frameLine.consumesBudget) hasTrustedSource = true;
     if (frameLine.consumesBudget) {
       budgetedLineCount += 1;
       hasBudgetedStackFrame = true;
@@ -457,9 +500,12 @@ export const formatStackContext = (
 
 // Package sources are never promoted to the leading line: surfacing
 // node_modules paths is what this avoids.
-const resolveLeadingSource = async (element: Element): Promise<ResolvedSource | null> => {
-  const fiberSource = await getCachedFiberSource(element);
-  return fiberSource?.origin === "app" ? fiberSource : null;
+const resolveLeadingSource = (
+  fiberSource: ResolvedSource | null,
+  stack: StackFrame[],
+): ResolvedSource | null => {
+  const resolvedSource = selectResolvedSource(fiberSource, stack);
+  return resolvedSource?.origin === "app" ? resolvedSource : null;
 };
 
 // When the owner stack yields only library or generated sources, the trace
@@ -488,11 +534,13 @@ const getTraceContext = async (
   element: Element,
   options: StackContextOptions = {},
 ): Promise<TraceContextResult> => {
-  const leadingSource = await resolveLeadingSource(element);
+  const fiberSource = await getCachedFiberSource(element);
   const stack = await getStack(element);
+  const resolvedStack = stack ?? [];
+  const leadingSource = resolveLeadingSource(fiberSource, resolvedStack);
 
   const maxLines = resolveMaxContextLines(options.maxLines);
-  const stackContext = formatStackContext(stack ?? [], options, leadingSource);
+  const stackContext = formatStackContext(resolvedStack, options, leadingSource);
   if (stackContext.text) {
     if (stackContext.hasBudgetedStackFrame) return stackContext;
     return appendFiberAncestorNames(element, stackContext, maxLines);
@@ -519,7 +567,7 @@ const composeElementContext = (element: Element, traceContext: TraceContextResul
   const listItemKey = getNearestListItemKey(element);
   const keyHint = listItemKey !== null ? `\n  key: "${listItemKey}"` : "";
   const selectorHint = traceContext.shouldAppendSelectorHint
-    ? `\n  selector: ${createElementSelector(element)}`
+    ? `\n  selector: ${createElementSelector(findSelectorTarget(element))}`
     : "";
   return `${traceContext.text}${keyHint}${selectorHint}`;
 };

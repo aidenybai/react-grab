@@ -1,0 +1,25 @@
+{
+  "name": "@react-grab/e2e-app-vite-upstream",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5181 --strictPort",
+    "build": "vite build",
+    "preview": "vite preview --port 5182 --strictPort",
+    "start:production-test": "vite preview --port 5182 --strictPort",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "react-grab": "workspace:*",
+    "react-router-dom": "^7.9.6"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.1.4"
+  }
+}

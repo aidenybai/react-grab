@@ -11,38 +11,90 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // runs never need @react-grab/playwright-coverage to be built.
 const isCoverageRun = Boolean(process.env.COVERAGE);
 
-const VITE_URL = "http://localhost:5175";
-const NEXT_URL = "http://localhost:5176";
+const VITE_PLUS_DEVELOPMENT_URL = "http://localhost:5175";
+const NEXT_DEVELOPMENT_URL = "http://localhost:5176";
+const NEXT_PRODUCTION_URL = "http://localhost:5177";
+const TANSTACK_DEVELOPMENT_URL = "http://localhost:5178";
+const TANSTACK_PRODUCTION_URL = "http://localhost:5179";
+const VITE_PLUS_PRODUCTION_URL = "http://localhost:5180";
+const VITE_UPSTREAM_DEVELOPMENT_URL = "http://localhost:5181";
+const VITE_UPSTREAM_PRODUCTION_URL = "http://localhost:5182";
 
-// Specs targeting the Next runtime (server-frame symbolication, blocking
-// requests). They run only under chromium-next.
-const NEXT_SPEC_PATTERN = /next-.*\.spec\.ts/;
-// Smoke specs that must hold on both frameworks; they run under both projects.
-const CROSS_FRAMEWORK_PATTERN = /\.both\.spec\.ts/;
+const NEXT_DEVELOPMENT_SPEC_PATTERN = /next-(?!production-).*\.spec\.ts/;
+const VITE_PLUS_PRODUCTION_SPEC_PATTERN = /framework-production\.spec\.ts/;
+const FRAMEWORK_SPEC_PATTERN = /framework\/.*\.spec\.ts/;
 
 // The @perf bench (PERF_LABEL set by test-perf.yml) and coverage runs only
-// stimulate the Vite app. Skip the Next dev server and project there so those
-// runs stay Vite-only and never block on a second dev server they don't use.
+// stimulate the Vite development app. Skip all other framework servers and
+// projects so those runs stay isolated from servers they don't use.
 const isPerfRun = Boolean(process.env.PERF_LABEL);
 const shouldRunViteOnly = isPerfRun || isCoverageRun;
 
-const viteProjects: Project[] = [
-  {
-    name: "chromium",
-    use: { ...devices["Desktop Chrome"], baseURL: VITE_URL },
-    testIgnore: [/touch-mode\.spec\.ts/, NEXT_SPEC_PATTERN],
-  },
-  {
-    name: "chromium-touch",
-    use: { ...devices["Desktop Chrome"], hasTouch: true, baseURL: VITE_URL },
-    testMatch: /touch-mode\.spec\.ts/,
-  },
-];
+const vitePlusDevelopmentProject: Project = {
+  name: "vite-plus-development",
+  use: { ...devices["Desktop Chrome"], baseURL: VITE_PLUS_DEVELOPMENT_URL },
+  testIgnore: [
+    /touch-mode\.spec\.ts/,
+    NEXT_DEVELOPMENT_SPEC_PATTERN,
+    VITE_PLUS_PRODUCTION_SPEC_PATTERN,
+    FRAMEWORK_SPEC_PATTERN,
+  ],
+};
 
-const nextProject: Project = {
-  name: "chromium-next",
-  use: { ...devices["Desktop Chrome"], baseURL: NEXT_URL },
-  testMatch: [NEXT_SPEC_PATTERN, CROSS_FRAMEWORK_PATTERN],
+const vitePlusTouchProject: Project = {
+  name: "vite-plus-touch",
+  use: {
+    ...devices["Desktop Chrome"],
+    hasTouch: true,
+    baseURL: VITE_PLUS_DEVELOPMENT_URL,
+  },
+  testMatch: /touch-mode\.spec\.ts/,
+};
+
+const vitePlusProductionProject: Project = {
+  name: "vite-plus-production",
+  use: { ...devices["Desktop Chrome"], baseURL: VITE_PLUS_PRODUCTION_URL },
+  testMatch: VITE_PLUS_PRODUCTION_SPEC_PATTERN,
+};
+
+const viteUpstreamDevelopmentProject: Project = {
+  name: "vite-upstream-development",
+  use: { ...devices["Desktop Chrome"], baseURL: VITE_UPSTREAM_DEVELOPMENT_URL },
+  testMatch: FRAMEWORK_SPEC_PATTERN,
+};
+
+const viteUpstreamProductionProject: Project = {
+  name: "vite-upstream-production",
+  use: { ...devices["Desktop Chrome"], baseURL: VITE_UPSTREAM_PRODUCTION_URL },
+  testMatch: FRAMEWORK_SPEC_PATTERN,
+};
+
+const nextDevelopmentProject: Project = {
+  name: "next-development",
+  use: { ...devices["Desktop Chrome"], baseURL: NEXT_DEVELOPMENT_URL },
+  testMatch: [NEXT_DEVELOPMENT_SPEC_PATTERN, FRAMEWORK_SPEC_PATTERN],
+};
+
+const nextProductionProject: Project = {
+  name: "next-production",
+  use: { ...devices["Desktop Chrome"], baseURL: NEXT_PRODUCTION_URL },
+  testMatch: FRAMEWORK_SPEC_PATTERN,
+};
+
+const tanstackDevelopmentProject: Project = {
+  name: "tanstack-development",
+  fullyParallel: false,
+  workers: 1,
+  use: { ...devices["Desktop Chrome"], baseURL: TANSTACK_DEVELOPMENT_URL },
+  testMatch: FRAMEWORK_SPEC_PATTERN,
+};
+
+const tanstackProductionProject: Project = {
+  name: "tanstack-production",
+  fullyParallel: false,
+  workers: 1,
+  use: { ...devices["Desktop Chrome"], baseURL: TANSTACK_PRODUCTION_URL },
+  testMatch: FRAMEWORK_SPEC_PATTERN,
 };
 
 // Under COVERAGE the dist must carry source maps (and stay unminified) so V8
@@ -51,27 +103,151 @@ const reactGrabBuildCommand = isCoverageRun
   ? "pnpm --filter react-grab build:coverage"
   : "pnpm --filter react-grab build";
 
-const viteWebServer = {
-  // Builds react-grab so the dev server picks up whichever src is checked out
-  // (the perf workflow swaps it to the base ref). react-grab's build does not
-  // clean dist, so the Next server reading it concurrently is safe.
+const requestedEnvironment = shouldRunViteOnly
+  ? "vite-plus-development"
+  : process.env.E2E_ENVIRONMENT;
+const withRequestedEnvironmentBuild = (command: string): string =>
+  requestedEnvironment ? `${reactGrabBuildCommand} && ${command}` : command;
+
+const vitePlusDevelopmentWebServer = {
   command: `${reactGrabBuildCommand} && pnpm dev`,
-  url: VITE_URL,
-  // Under COVERAGE never reuse a running server: it may serve a minified dist
-  // with no sibling .map, which silently yields empty/misleading coverage.
-  // Forcing a fresh start guarantees the sourcemapped build:coverage runs.
+  url: VITE_PLUS_DEVELOPMENT_URL,
   reuseExistingServer: !process.env.CI && !isCoverageRun,
   cwd: path.resolve(__dirname, "../../apps/e2e-app-vite"),
   timeout: 60_000,
 };
 
-const nextWebServer = {
-  command: "pnpm dev",
-  url: NEXT_URL,
+const vitePlusProductionWebServer = {
+  command: withRequestedEnvironmentBuild("pnpm build && pnpm start:production-test"),
+  url: VITE_PLUS_PRODUCTION_URL,
+  reuseExistingServer: false,
+  cwd: path.resolve(__dirname, "../../apps/e2e-app-vite"),
+  timeout: 120_000,
+};
+
+const viteUpstreamDevelopmentWebServer = {
+  command: withRequestedEnvironmentBuild("pnpm dev"),
+  url: VITE_UPSTREAM_DEVELOPMENT_URL,
+  reuseExistingServer: !process.env.CI && !isCoverageRun,
+  cwd: path.resolve(__dirname, "../../apps/e2e-app-vite-upstream"),
+  timeout: 60_000,
+};
+
+const viteUpstreamProductionWebServer = {
+  command: withRequestedEnvironmentBuild("pnpm build && pnpm start:production-test"),
+  url: VITE_UPSTREAM_PRODUCTION_URL,
+  reuseExistingServer: false,
+  cwd: path.resolve(__dirname, "../../apps/e2e-app-vite-upstream"),
+  timeout: 120_000,
+};
+
+const nextDevelopmentWebServer = {
+  command: withRequestedEnvironmentBuild("pnpm dev"),
+  url: NEXT_DEVELOPMENT_URL,
   reuseExistingServer: !process.env.CI && !isCoverageRun,
   cwd: path.resolve(__dirname, "../../apps/e2e-app-next"),
   timeout: 120_000,
 };
+
+const nextProductionWebServer = {
+  command: withRequestedEnvironmentBuild(
+    "pnpm build:production-test && NEXT_DIST_DIR=.next-production pnpm start:production-test",
+  ),
+  url: NEXT_PRODUCTION_URL,
+  reuseExistingServer: false,
+  cwd: path.resolve(__dirname, "../../apps/e2e-app-next"),
+  timeout: 180_000,
+};
+
+const tanstackDevelopmentWebServer = {
+  command: withRequestedEnvironmentBuild("pnpm dev"),
+  url: TANSTACK_DEVELOPMENT_URL,
+  reuseExistingServer: !process.env.CI && !isCoverageRun,
+  cwd: path.resolve(__dirname, "../../apps/e2e-app-tanstack-start"),
+  timeout: 120_000,
+};
+
+const tanstackProductionWebServer = {
+  command: withRequestedEnvironmentBuild("pnpm build && pnpm start:production-test"),
+  url: TANSTACK_PRODUCTION_URL,
+  reuseExistingServer: false,
+  cwd: path.resolve(__dirname, "../../apps/e2e-app-tanstack-start"),
+  timeout: 180_000,
+};
+
+const allProjects = [
+  vitePlusDevelopmentProject,
+  vitePlusTouchProject,
+  vitePlusProductionProject,
+  viteUpstreamDevelopmentProject,
+  viteUpstreamProductionProject,
+  nextDevelopmentProject,
+  nextProductionProject,
+  tanstackDevelopmentProject,
+  tanstackProductionProject,
+];
+
+const allWebServers = [
+  vitePlusDevelopmentWebServer,
+  vitePlusProductionWebServer,
+  viteUpstreamDevelopmentWebServer,
+  viteUpstreamProductionWebServer,
+  nextDevelopmentWebServer,
+  nextProductionWebServer,
+  tanstackDevelopmentWebServer,
+  tanstackProductionWebServer,
+];
+
+const getRequestedEnvironmentConfig = (environmentName: string) => {
+  switch (environmentName) {
+    case "vite-plus-development":
+      return {
+        projects: [vitePlusDevelopmentProject, vitePlusTouchProject],
+        webServers: [vitePlusDevelopmentWebServer],
+      };
+    case "vite-plus-production":
+      return {
+        projects: [vitePlusProductionProject],
+        webServers: [vitePlusProductionWebServer],
+      };
+    case "vite-upstream-development":
+      return {
+        projects: [viteUpstreamDevelopmentProject],
+        webServers: [viteUpstreamDevelopmentWebServer],
+      };
+    case "vite-upstream-production":
+      return {
+        projects: [viteUpstreamProductionProject],
+        webServers: [viteUpstreamProductionWebServer],
+      };
+    case "next-development":
+      return {
+        projects: [nextDevelopmentProject],
+        webServers: [nextDevelopmentWebServer],
+      };
+    case "next-production":
+      return {
+        projects: [nextProductionProject],
+        webServers: [nextProductionWebServer],
+      };
+    case "tanstack-development":
+      return {
+        projects: [tanstackDevelopmentProject],
+        webServers: [tanstackDevelopmentWebServer],
+      };
+    case "tanstack-production":
+      return {
+        projects: [tanstackProductionProject],
+        webServers: [tanstackProductionWebServer],
+      };
+    default:
+      throw new Error(`Unknown E2E_ENVIRONMENT: ${environmentName}`);
+  }
+};
+
+const environmentConfig = requestedEnvironment
+  ? getRequestedEnvironmentConfig(requestedEnvironment)
+  : { projects: allProjects, webServers: allWebServers };
 
 export default defineConfig({
   testDir: "./e2e",
@@ -91,6 +267,6 @@ export default defineConfig({
   },
   globalSetup: isCoverageRun ? path.resolve(__dirname, "e2e/coverage-setup.ts") : undefined,
   globalTeardown: isCoverageRun ? path.resolve(__dirname, "e2e/coverage-teardown.ts") : undefined,
-  projects: shouldRunViteOnly ? viteProjects : [...viteProjects, nextProject],
-  webServer: shouldRunViteOnly ? [viteWebServer] : [viteWebServer, nextWebServer],
+  projects: environmentConfig.projects,
+  webServer: environmentConfig.webServers,
 });

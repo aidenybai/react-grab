@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "vp dev",
     "build": "vp build",
-    "preview": "vp preview"
+    "preview": "vp preview",
+    "start:production-test": "vp preview --port 5180 --strictPort",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@tanstack/react-table": "^8.21.3",
