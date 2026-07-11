@@ -218,10 +218,14 @@ test.describe("API Methods", () => {
         }, selector);
 
       await reactGrab.updateOptions({ maxContextLines: 1 });
-      const compactLineCount = await getStackLineCount("[data-testid='nested-button']");
+      const compactLineCount = await getStackLineCount(
+        "[data-testid='todo-list'] ul li:first-child span",
+      );
 
       await reactGrab.updateOptions({ maxContextLines: 12 });
-      const detailedLineCount = await getStackLineCount("[data-testid='nested-button']");
+      const detailedLineCount = await getStackLineCount(
+        "[data-testid='todo-list'] ul li:first-child span",
+      );
 
       expect(compactLineCount).toBeGreaterThanOrEqual(1);
       expect(detailedLineCount).toBeGreaterThan(compactLineCount);

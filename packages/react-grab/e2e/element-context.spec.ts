@@ -23,7 +23,7 @@ test.describe("Element Context Fallback", () => {
 
       const clipboard = await reactGrab.getClipboardContent();
       expect(clipboard).toMatch(/^\[<\w+[\s>]/);
-      expect(clipboard).toContain("NestedCard");
+      expect(clipboard).toContain("DeeplyNested");
     });
 
     test("should produce useful context for todo items", async ({ reactGrab }) => {
