@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Suspense } from "react";
+import { Fragment, Suspense } from "react";
 import { ClientSuspenseFixture } from "./client-suspense-fixture";
 import { CloneElementFixture } from "./clone-element-fixture";
 import { ErrorBoundaryFixture } from "./error-boundary-fixture";
@@ -68,6 +68,16 @@ const Page = () => {
             </button>,
           ]}
         </div>
+        {[
+          <Fragment key="fragment-first">
+            <button type="button">First fragment keyed target</button>
+          </Fragment>,
+          <Fragment key="fragment-second">
+            <button data-testid="fragment-key-target" type="button">
+              Second fragment keyed target
+            </button>
+          </Fragment>,
+        ]}
       </section>
       <ReorderFixture />
       <HydrationCounter />

@@ -43,6 +43,10 @@ test.describe("shared list key semantics", () => {
       reactGrab,
       '[data-testid="nested-key-target"]',
     );
+    const fragmentContext = await copyFrameworkContext(
+      reactGrab,
+      '[data-testid="fragment-key-target"]',
+    );
 
     const canOmitKeys =
       isProductionProject(testInfo.project.name) || isTanStackProject(testInfo.project.name);
@@ -50,6 +54,7 @@ test.describe("shared list key semantics", () => {
     expectKeyContext(numericContext, /key: "\d+"/, canOmitKeys);
     expectKeyContext(punctuatedContext, /key: "item:two\/✓"/, canOmitKeys);
     expectKeyContext(nestedContext, /key: "nested-second"/, canOmitKeys);
+    expectKeyContext(fragmentContext, /key: "fragment-second"/, canOmitKeys);
   });
 
   test("keeps the selected key stable through reorder", async ({ reactGrab }, testInfo) => {

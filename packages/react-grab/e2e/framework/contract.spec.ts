@@ -15,6 +15,7 @@ const REQUIRED_TARGETS = [
   "numeric-key-target",
   "punctuated-key-target",
   "nested-key-target",
+  "fragment-key-target",
   "reorder-key-target",
   "hydration-counter",
   "passed-child-target",

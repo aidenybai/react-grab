@@ -1,4 +1,4 @@
-import { cloneElement, Component, lazy, Suspense, useEffect, useState } from "react";
+import { cloneElement, Component, Fragment, lazy, Suspense, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { SUSPENSE_REVEAL_DELAY_MS } from "../constants";
 
@@ -198,6 +198,16 @@ const KeyFixtures = () => {
           </button>,
         ]}
       </div>
+      {[
+        <Fragment key="fragment-first">
+          <button type="button">First fragment keyed target</button>
+        </Fragment>,
+        <Fragment key="fragment-second">
+          <button data-testid="fragment-key-target" type="button">
+            Second fragment keyed target
+          </button>
+        </Fragment>,
+      ]}
       <div>
         {reorderItems.map((item) => (
           <button

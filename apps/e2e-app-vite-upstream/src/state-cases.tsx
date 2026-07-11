@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 
 const INITIAL_REORDER_ITEMS: ReorderItem[] = [
   { id: "first", label: "First reorder item" },
@@ -54,6 +54,18 @@ export const KeyCases = () => (
         <button data-testid="nested-key-target" key="nested-second" type="button">
           Nested keyed target
         </button>,
+      ]}
+    </div>
+    <div className="target-row">
+      {[
+        <Fragment key="fragment-first">
+          <button type="button">First fragment keyed target</button>
+        </Fragment>,
+        <Fragment key="fragment-second">
+          <button data-testid="fragment-key-target" type="button">
+            Second fragment keyed target
+          </button>
+        </Fragment>,
       ]}
     </div>
   </section>

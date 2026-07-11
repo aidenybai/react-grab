@@ -4,7 +4,6 @@ import {
   getDisplayName,
   getFiberFromHostInstance,
   isCompositeFiber,
-  isHostFiber,
   traverseFiber,
   type Fiber,
 } from "bippy";
@@ -74,11 +73,7 @@ export const findNearestListItemKey = (startingFiber: Fiber | null): string | nu
   let fiber = startingFiber;
   let componentBoundariesCrossed = 0;
   while (fiber) {
-    if (
-      fiber.key !== null &&
-      (isHostFiber(fiber) || isCompositeFiber(fiber)) &&
-      hasKeyedSibling(fiber)
-    ) {
+    if (fiber.key !== null && hasKeyedSibling(fiber)) {
       return String(fiber.key);
     }
     if (isCompositeFiber(fiber)) {

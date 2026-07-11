@@ -1,4 +1,4 @@
-import { cloneElement, memo, Suspense } from "react";
+import { cloneElement, Fragment, memo, Suspense } from "react";
 import { createPortal } from "react-dom";
 import { ProductionProvider } from "./components/ui/production-provider";
 
@@ -127,6 +127,16 @@ export const OwnerStackCases = () => (
         <button data-testid="list-key-target-second" key="second" type="button">
           Second keyed target
         </button>,
+      ]}
+      {[
+        <Fragment key="fragment-first">
+          <button type="button">First fragment keyed target</button>
+        </Fragment>,
+        <Fragment key="fragment-second">
+          <button data-testid="fragment-key-target" type="button">
+            Second fragment keyed target
+          </button>
+        </Fragment>,
       ]}
     </section>
   </ProductionProvider>
