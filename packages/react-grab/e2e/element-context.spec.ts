@@ -194,6 +194,28 @@ test.describe("Element Context Fallback", () => {
       expect(clipboard).toContain('selector: [aria-label="Source-less icon link"]');
     });
 
+    test("should prefer a nearby control over a distant labeled region", async ({ reactGrab }) => {
+      await reactGrab.page.evaluate(() => {
+        const labeledRegion = document.createElement("section");
+        labeledRegion.setAttribute("aria-label", "Distant labeled region");
+        const button = document.createElement("button");
+        button.className = "source-less-control";
+        const span = document.createElement("span");
+        span.id = "source-less-nested-control";
+        span.textContent = "Nested control";
+        button.appendChild(span);
+        labeledRegion.appendChild(button);
+        document.body.appendChild(labeledRegion);
+      });
+
+      const didCopy = await reactGrab.copyElementViaApi("#source-less-nested-control");
+      expect(didCopy).toBe(true);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain(".source-less-control");
+      expect(clipboard).not.toContain('selector: [aria-label="Distant labeled region"]');
+    });
+
     test("should truncate long outerHTML to max length", async ({ reactGrab }) => {
       await reactGrab.page.evaluate(() => {
         const wrapper = document.createElement("div");
