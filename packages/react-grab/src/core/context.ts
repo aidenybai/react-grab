@@ -69,7 +69,7 @@ const hasKeyedSibling = (fiber: Fiber): boolean => {
   return false;
 };
 
-export const findNearestListItemKey = (startingFiber: Fiber | null): string | null => {
+const findNearestListItemKey = (startingFiber: Fiber | null): string | null => {
   let fiber = startingFiber;
   let componentBoundariesCrossed = 0;
   while (fiber) {
@@ -497,9 +497,12 @@ export const formatStackContext = (
 
 // Package sources are never promoted to the leading line: surfacing
 // node_modules paths is what this avoids.
-const resolveLeadingSource = async (element: Element): Promise<ResolvedSource | null> => {
-  const fiberSource = await getCachedFiberSource(element);
-  return fiberSource?.origin === "app" ? fiberSource : null;
+const resolveLeadingSource = (
+  fiberSource: ResolvedSource | null,
+  stack: StackFrame[],
+): ResolvedSource | null => {
+  const resolvedSource = selectResolvedSource(fiberSource, stack);
+  return resolvedSource?.origin === "app" ? resolvedSource : null;
 };
 
 // When the owner stack yields only library or generated sources, the trace
@@ -528,11 +531,13 @@ const getTraceContext = async (
   element: Element,
   options: StackContextOptions = {},
 ): Promise<TraceContextResult> => {
-  const leadingSource = await resolveLeadingSource(element);
+  const fiberSource = await getCachedFiberSource(element);
   const stack = await getStack(element);
+  const resolvedStack = stack ?? [];
+  const leadingSource = resolveLeadingSource(fiberSource, resolvedStack);
 
   const maxLines = resolveMaxContextLines(options.maxLines);
-  const stackContext = formatStackContext(stack ?? [], options, leadingSource);
+  const stackContext = formatStackContext(resolvedStack, options, leadingSource);
   if (stackContext.text) {
     if (stackContext.hasBudgetedStackFrame) return stackContext;
     return appendFiberAncestorNames(element, stackContext, maxLines);

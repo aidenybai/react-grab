@@ -1,13 +1,13 @@
 import { normalizeFilePath } from "./normalize-file-path.js";
 
-const GENERATED_BUNDLE_PATH_SEGMENTS = ["/assets/", "/_next/static/", "/static/chunks/"];
-const JAVASCRIPT_FILE_PATTERN = /\.(?:c|m)?js(?:[?#]|$)/i;
+const GENERATED_BUNDLE_PATH_PATTERNS = [
+  /\/assets\/[^/?#]+-[a-z0-9_-]{6,}\.(?:c|m)?js(?:[?#]|$)/,
+  /\/_next\/static\/.*\.(?:c|m)?js(?:[?#]|$)/,
+  /\/static\/chunks\/.*\.(?:c|m)?js(?:[?#]|$)/,
+];
 
 export const isGeneratedBundleSourcePath = (fileName: string | null | undefined): boolean => {
   if (!fileName) return false;
   const normalizedPath = `/${normalizeFilePath(fileName)}`.toLowerCase();
-  return (
-    JAVASCRIPT_FILE_PATTERN.test(normalizedPath) &&
-    GENERATED_BUNDLE_PATH_SEGMENTS.some((segment) => normalizedPath.includes(segment))
-  );
+  return GENERATED_BUNDLE_PATH_PATTERNS.some((pattern) => pattern.test(normalizedPath));
 };
