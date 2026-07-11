@@ -137,7 +137,7 @@ The root `package.json` has `pnpm.onlyBuiltDependencies` configured for `@parcel
 
 ### Playwright
 
-E2E tests (`pnpm test` at root) run Playwright against two fixture apps, auto-started by the Playwright config: the `e2e-app-vite` Vite dev server on port 5175 (the `chromium`/`chromium-touch` projects) and the `e2e-app-next` Next dev server on port 5176 (the `chromium-next` project, for Next-runtime paths like server-frame symbolication). Chromium must be installed: `npx --prefix packages/react-grab playwright install chromium --with-deps`.
+E2E tests use a Vite Plus kitchen-sink fixture and a shared framework contract across stock Vite, Next.js, and TanStack Start in development and production. Set `E2E_ENVIRONMENT` to run one environment and start only its server: `vite-plus-development`, `vite-plus-production`, `vite-upstream-development`, `vite-upstream-production`, `next-development`, `next-production`, `tanstack-development`, or `tanstack-production`. Chromium must be installed: `npx --prefix packages/react-grab playwright install chromium --with-deps`.
 
 ### Key commands reference
 
@@ -151,5 +151,7 @@ See root `package.json` scripts and `CONTRIBUTING.md` for the full list. Quick r
 - **Typecheck**: `pnpm typecheck` - tsc on react-grab package
 - **Format**: `pnpm format` - oxfmt
 - **CLI dev**: `npm_command=exec node packages/cli/dist/cli.js`
-- **Test app (Vite)**: `pnpm --filter @react-grab/e2e-app-vite dev` (port 5175, lives in `apps/e2e-app-vite`)
+- **Test app (Vite Plus)**: `pnpm --filter @react-grab/e2e-app-vite dev` (port 5175, lives in `apps/e2e-app-vite`)
+- **Test app (stock Vite)**: `pnpm --filter @react-grab/e2e-app-vite-upstream dev` (port 5181, lives in `apps/e2e-app-vite-upstream`)
 - **Test app (Next)**: `pnpm --filter @react-grab/e2e-app-next dev` (port 5176, lives in `apps/e2e-app-next`)
+- **Test app (TanStack Start)**: `pnpm --filter @react-grab/e2e-app-tanstack-start dev` (port 5178, lives in `apps/e2e-app-tanstack-start`)

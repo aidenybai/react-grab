@@ -5,7 +5,7 @@
 
 Copy any UI element for your agent.
 
-React Grab points agents to the actual source behind each selection. Agents are [**2× faster**](https://benchmark.react-grab.com/) and more accurate when using React Grab.
+React Grab points agents to the actual source behind each selection. Agents are [**2× faster**](https://react-grab.com/benchmarks) and more accurate when using React Grab.
 
 [**Website →**](https://react-grab.com)
 

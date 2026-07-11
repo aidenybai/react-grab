@@ -42,6 +42,69 @@ describe("selectResolvedSource", () => {
     expect(selectResolvedSource(fiberSource, [appFrame])).toBe(fiberSource);
   });
 
+  it("prefers a feature owner frame over a shared-UI fiber source", () => {
+    const sharedUiFiberSource: ResolvedSource = {
+      ...fiberSource,
+      filePath: "/src/components/ui/tooltip.tsx",
+      componentName: "TooltipProvider",
+    };
+
+    expect(selectResolvedSource(sharedUiFiberSource, [appFrame])).toMatchObject({
+      filePath: "/src/app/widget.tsx",
+      componentName: "Widget",
+    });
+  });
+
+  it("prefers editable source over a generated client bundle", () => {
+    const generatedBundleFiberSource: ResolvedSource = {
+      ...fiberSource,
+      filePath: "/assets/routes-CYmCBTcT.js",
+      componentName: "Rc",
+    };
+
+    expect(selectResolvedSource(generatedBundleFiberSource, [appFrame])).toMatchObject({
+      filePath: "/src/app/widget.tsx",
+      componentName: "Widget",
+    });
+  });
+
+  it("keeps a generated bundle source when no editable source survives", () => {
+    const generatedBundleFiberSource: ResolvedSource = {
+      ...fiberSource,
+      filePath: "/assets/routes-CYmCBTcT.js",
+      componentName: "Rc",
+    };
+
+    expect(selectResolvedSource(generatedBundleFiberSource, [packageFrame])).toBe(
+      generatedBundleFiberSource,
+    );
+  });
+
+  it("keeps a shared-UI fiber source when no feature owner frame exists", () => {
+    const sharedUiFiberSource: ResolvedSource = {
+      ...fiberSource,
+      filePath: "/src/components/ui/tooltip.tsx",
+      componentName: "TooltipProvider",
+    };
+
+    expect(selectResolvedSource(sharedUiFiberSource, [packageFrame])).toBe(sharedUiFiberSource);
+  });
+
+  it("skips shared-UI owner frames when a deeper feature owner is available", () => {
+    expect(
+      selectResolvedSource(null, [
+        {
+          fileName: "/src/components/ui/tooltip.tsx",
+          functionName: "TooltipProvider",
+        },
+        appFrame,
+      ]),
+    ).toMatchObject({
+      filePath: "/src/app/widget.tsx",
+      componentName: "Widget",
+    });
+  });
+
   it("prefers an app-source frame over a package fiber source", () => {
     expect(selectResolvedSource(packageFiberSource, [appFrame])).toMatchObject({
       filePath: "/src/app/widget.tsx",
@@ -144,6 +207,88 @@ describe("formatStackContext", () => {
 
     expect(result.text).toContain("features/builder/builder.tsx");
     expect(result.shouldAppendSelectorHint).toBe(false);
+  });
+
+  it("requests a selector hint when only shared-UI owner frames survive", () => {
+    const result = formatStackContext([
+      { fileName: "src/components/ui/tooltip.tsx", functionName: "TooltipProvider" },
+    ]);
+
+    expect(result.text).toContain("components/ui/tooltip.tsx");
+    expect(result.hasBudgetedStackFrame).toBe(false);
+    expect(result.shouldAppendSelectorHint).toBe(true);
+  });
+
+  it("requests a selector hint for package and shared-UI production frames", () => {
+    const result = formatStackContext([
+      { fileName: "node_modules/next/dist/client/index.js", functionName: "c" },
+      {
+        fileName: "node_modules/@radix-ui/react-context/dist/index.js",
+        functionName: "Context",
+      },
+      { fileName: "src/components/ui/tooltip.tsx", functionName: "TooltipProvider" },
+      { fileName: "node_modules/next-themes/dist/index.js", functionName: "n" },
+    ]);
+
+    expect(result.text).toContain("components/ui/tooltip.tsx");
+    expect(result.shouldAppendSelectorHint).toBe(true);
+  });
+
+  it("does not trust a shared-UI leading source without a feature owner", () => {
+    const sharedUiLeadingSource: ResolvedSource = {
+      ...fiberSource,
+      filePath: "/src/components/ui/tooltip.tsx",
+      componentName: "TooltipProvider",
+    };
+    const result = formatStackContext([packageFrame], {}, sharedUiLeadingSource);
+
+    expect(result.shouldAppendSelectorHint).toBe(true);
+  });
+
+  it("does not trust a generated client bundle without editable source", () => {
+    const result = formatStackContext([
+      {
+        fileName: "http://localhost:5179/assets/routes-CYmCBTcT.js",
+        functionName: "Rc",
+      },
+      {
+        fileName: "http://localhost:5179/assets/routes-CYmCBTcT.js",
+        functionName: "Uc",
+      },
+    ]);
+
+    expect(result.text).toContain("assets/routes-CYmCBTcT.js");
+    expect(result.hasBudgetedStackFrame).toBe(false);
+    expect(result.shouldAppendSelectorHint).toBe(true);
+  });
+
+  it("does not trust a generated bundle leading source", () => {
+    const generatedBundleSource: ResolvedSource = {
+      ...fiberSource,
+      filePath: "/_next/static/chunks/app/page-8a4c.js",
+      componentName: "c",
+    };
+    const result = formatStackContext([], {}, generatedBundleSource);
+
+    expect(result.shouldAppendSelectorHint).toBe(true);
+  });
+
+  it("trusts a minified feature frame when its app source path survives", () => {
+    const result = formatStackContext([
+      { fileName: "src/features/github-link.tsx", functionName: "c" },
+    ]);
+
+    expect(result.text).toContain("features/github-link.tsx");
+    expect(result.shouldAppendSelectorHint).toBe(false);
+  });
+
+  it("preserves React owner order instead of reordering by component name", () => {
+    const result = formatStackContext([
+      { fileName: "src/features/card.tsx", functionName: "CardOwner" },
+      { fileName: "src/app/page.tsx", functionName: "PageOwner" },
+    ]);
+
+    expect(result.text.indexOf("CardOwner")).toBeLessThan(result.text.indexOf("PageOwner"));
   });
 
   it("honors a raised maxLines to surface more feature source", () => {

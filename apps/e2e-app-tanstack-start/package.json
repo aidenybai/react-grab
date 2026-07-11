@@ -1,0 +1,27 @@
+{
+  "name": "@react-grab/e2e-app-tanstack-start",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev --port 5178 --strictPort",
+    "build": "vite build",
+    "start:production-test": "srvx serve --port=5179 --prod --dir=. --static=dist/client --entry=dist/server/server.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tanstack/react-router": "^1.170.17",
+    "@tanstack/react-start": "^1.168.27",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "react-grab": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "srvx": "^0.11.21",
+    "typescript": "^7.0.2",
+    "vite": "^8.1.4"
+  }
+}

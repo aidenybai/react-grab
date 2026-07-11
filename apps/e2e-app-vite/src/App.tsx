@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { PerfGrid } from "./perf-grid";
 import { HeavyPage, parseHeavyView, type HeavyView } from "./perf-heavy/heavy-page";
+import { OwnerStackCases } from "./owner-stack-cases";
 
 declare global {
   interface Window {
@@ -834,6 +835,8 @@ export default function App() {
       <MappedCards />
 
       <DeeplyNested />
+
+      <OwnerStackCases />
 
       <FormSection />
 

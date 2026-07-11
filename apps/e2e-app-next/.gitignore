@@ -1,5 +1,7 @@
 # next.js
 /.next/
+/.next-production/
+/.tsconfig-production-test.json
 /out/
 
 # typescript

@@ -74,6 +74,22 @@ test.describe("Element Context Fallback", () => {
       const clipboard = await reactGrab.getClipboardContent();
       expect(clipboard).toContain('key: "bravo"');
     });
+
+    test("should not surface a key for a keyed replacement outside a list", async ({
+      reactGrab,
+    }) => {
+      const didCopy = await reactGrab.copyElementViaApi("[data-testid='fiber-swap-target']");
+
+      expect(didCopy).toBe(true);
+      expect(await reactGrab.getClipboardContent()).not.toContain("key:");
+    });
+
+    test("should not surface a key for an unkeyed owner target", async ({ reactGrab }) => {
+      const didCopy = await reactGrab.copyElementViaApi("[data-testid='direct-owner-target']");
+
+      expect(didCopy).toBe(true);
+      expect(await reactGrab.getClipboardContent()).not.toContain("key:");
+    });
   });
 
   test.describe("Non-React Elements Fallback", () => {
@@ -140,6 +156,41 @@ test.describe("Element Context Fallback", () => {
       expect(clipboard).toContain('class="icon-class"');
       expect(clipboard).toContain('aria-label="Close the modal dialog"');
       expect(clipboard).not.toContain("viewBox");
+    });
+
+    test("should use a semantic link selector for a source-less SVG path", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.page.evaluate(() => {
+        const wrapper = document.createElement("div");
+        Object.assign(wrapper.style, {
+          position: "fixed",
+          top: "200px",
+          left: "200px",
+          zIndex: "999",
+        });
+        const link = document.createElement("a");
+        link.href = "/source-less-icon";
+        link.setAttribute("aria-label", "Source-less icon link");
+        const svgElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svgElement.style.width = "50px";
+        svgElement.style.height = "50px";
+        const pathElement = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        pathElement.setAttribute("d", "M0 0h24v24H0z");
+        svgElement.appendChild(pathElement);
+        link.appendChild(svgElement);
+        wrapper.appendChild(link);
+        document.body.appendChild(wrapper);
+      });
+
+      const didCopy = await reactGrab.copyElementViaApi(
+        "a[aria-label='Source-less icon link'] path",
+      );
+      expect(didCopy).toBe(true);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain("<path");
+      expect(clipboard).toContain('selector: [aria-label="Source-less icon link"]');
     });
 
     test("should truncate long outerHTML to max length", async ({ reactGrab }) => {
