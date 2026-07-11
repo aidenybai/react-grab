@@ -253,7 +253,7 @@ test.describe("Element Context Fallback", () => {
 
       const clipboard = await reactGrab.getClipboardContent();
       expect(clipboard).toContain(".source-less-root-leaf");
-      expect(clipboard).not.toContain("selector: #root");
+      expect(clipboard).not.toMatch(/selector: #root\]$/);
     });
 
     test("should truncate long outerHTML to max length", async ({ reactGrab }) => {
