@@ -17,6 +17,7 @@ interface PositionCache {
 interface IFrameHoverCache {
   element: HTMLIFrameElement;
   rect: DOMRect;
+  timestamp: number;
 }
 
 let cache: PositionCache | null = null;
@@ -56,10 +57,13 @@ export const getElementsAtPoint = (clientX: number, clientY: number): Element[] 
   if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) return [];
   cancelScheduledResume();
   suspendPointerEventsFreeze();
-  const elements = document.elementsFromPoint(clientX, clientY);
-  scheduleResume();
-  if (!getScopeContainer()) return elements;
-  return elements.filter(isWithinScope);
+  try {
+    const elements = document.elementsFromPoint(clientX, clientY);
+    if (!getScopeContainer()) return elements;
+    return elements.filter(isWithinScope);
+  } finally {
+    scheduleResume();
+  }
 };
 
 export const getElementAtPosition = (clientX: number, clientY: number): Element | null => {
@@ -72,8 +76,18 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
   // pending resume timer re-enable `html { pointer-events: none }`, which stops
   // the browser from dispatching pointer events into the iframe's document -
   // the source of lag on srcdoc iframes running their own React/JIT pipelines.
-  if (hoveredIframe && isPointInsideRect(clientX, clientY, hoveredIframe.rect)) {
-    return hoveredIframe.element;
+  if (hoveredIframe) {
+    const cachedIframe = hoveredIframe.element;
+    const isIframeCacheFresh = now - hoveredIframe.timestamp < ELEMENT_POSITION_THROTTLE_MS;
+    if (
+      cachedIframe.isConnected &&
+      isIframeCacheFresh &&
+      isPointInsideRect(clientX, clientY, hoveredIframe.rect)
+    ) {
+      return cachedIframe;
+    }
+    hoveredIframe = null;
+    if (cache?.element === cachedIframe) cache = null;
   }
 
   if (cache) {
@@ -99,38 +113,39 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
   //     dropdowns/tooltips during the hit-test toggle
   cancelScheduledResume();
   suspendPointerEventsFreeze();
+  try {
+    let result: Element | null = null;
 
-  let result: Element | null = null;
-
-  // elementFromPoint returns the topmost element, but if it's not grabbable
-  // (e.g. a transparent overlay) or out of scope (e.g. an external element
-  // overlapping the scoped container) we fall back to elementsFromPoint, which
-  // returns the full z-ordered stack, and take the first grabbable in-scope one.
-  const topElement = document.elementFromPoint(clientX, clientY);
-  if (topElement && isValidGrabbableElement(topElement) && isWithinScope(topElement)) {
-    result = topElement;
-  } else {
-    const elementsAtPoint = document.elementsFromPoint(clientX, clientY);
-    for (const candidateElement of elementsAtPoint) {
-      if (
-        candidateElement !== topElement &&
-        isValidGrabbableElement(candidateElement) &&
-        isWithinScope(candidateElement)
-      ) {
-        result = candidateElement;
-        break;
+    // elementFromPoint returns the topmost element, but if it's not grabbable
+    // (e.g. a transparent overlay) or out of scope (e.g. an external element
+    // overlapping the scoped container) we fall back to elementsFromPoint, which
+    // returns the full z-ordered stack, and take the first grabbable in-scope one.
+    const topElement = document.elementFromPoint(clientX, clientY);
+    if (topElement && isValidGrabbableElement(topElement) && isWithinScope(topElement)) {
+      result = topElement;
+    } else {
+      const elementsAtPoint = document.elementsFromPoint(clientX, clientY);
+      for (const candidateElement of elementsAtPoint) {
+        if (
+          candidateElement !== topElement &&
+          isValidGrabbableElement(candidateElement) &&
+          isWithinScope(candidateElement)
+        ) {
+          result = candidateElement;
+          break;
+        }
       }
     }
+
+    hoveredIframe =
+      result instanceof HTMLIFrameElement
+        ? { element: result, rect: result.getBoundingClientRect(), timestamp: now }
+        : null;
+    cache = { clientX, clientY, element: result, timestamp: now };
+    return result;
+  } finally {
+    scheduleResume();
   }
-
-  scheduleResume();
-
-  hoveredIframe =
-    result instanceof HTMLIFrameElement
-      ? { element: result, rect: result.getBoundingClientRect() }
-      : null;
-  cache = { clientX, clientY, element: result, timestamp: now };
-  return result;
 };
 
 export const clearElementPositionCache = (): void => {
