@@ -1,4 +1,4 @@
-import { Index, Show, type Component } from "solid-js";
+import { For, Show, type Component } from "solid-js";
 import type { ReactGrabRendererProps } from "../types.js";
 import { DEFAULT_ACTION_ID } from "../constants.js";
 import { requestOpenFile } from "../utils/open-file.js";
@@ -27,19 +27,19 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
       />
       <FrozenGlow visible={props.isFrozen ?? false} />
       <Show when={props.selectionLabelVisible && (props.frozenLabelEntries?.length ?? 0) > 0}>
-        <Index each={props.frozenLabelEntries ?? []}>
+        <For each={props.frozenLabelEntries ?? []}>
           {(entry, entryIndex) => (
             <SelectionLabel
-              tagName={entry().tagName}
-              componentName={entry().componentName}
-              selectionBounds={entry().bounds}
-              mouseX={entry().mouseX}
+              tagName={entry.tagName}
+              componentName={entry.componentName}
+              selectionBounds={entry.bounds}
+              mouseX={entry.mouseX}
               visible={true}
-              shouldToggleExpandOnClick={entryIndex === 0}
-              onToggleExpand={entryIndex === 0 ? props.onToggleExpand : undefined}
+              shouldToggleExpandOnClick={entryIndex() === 0}
+              onToggleExpand={entryIndex() === 0 ? props.onToggleExpand : undefined}
             />
           )}
-        </Index>
+        </For>
       </Show>
       <Show when={props.selectionLabelVisible && props.pendingShiftPreviewEntry}>
         {(pendingEntry) => (
@@ -84,38 +84,37 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           isContextMenuOpen={props.contextMenuPosition !== null}
         />
       </Show>
-      <Index each={props.labelInstances ?? []}>
+      <For each={props.labelInstances ?? []}>
         {(instance) => (
           <SelectionLabel
-            tagName={instance().tagName}
-            componentName={instance().componentName}
-            elementsCount={instance().elementsCount}
-            selectionBounds={instance().bounds}
-            mouseX={instance().mouseX}
+            tagName={instance.tagName}
+            componentName={instance.componentName}
+            elementsCount={instance.elementsCount}
+            selectionBounds={instance.bounds}
+            mouseX={instance.mouseX}
             visible={true}
-            status={instance().status}
-            statusText={instance().statusText}
-            isPromptMode={instance().isPromptMode}
-            inputValue={instance().inputValue}
-            error={instance().errorMessage}
-            hideArrow={instance().hideArrow}
+            status={instance.status}
+            statusText={instance.statusText}
+            isPromptMode={instance.isPromptMode}
+            inputValue={instance.inputValue}
+            error={instance.errorMessage}
+            hideArrow={instance.hideArrow}
             onShowContextMenu={(() => {
-              const currentInstance = instance();
               const hasCompletedStatus =
-                currentInstance.status === "copied" || currentInstance.status === "fading";
-              if (!hasCompletedStatus || !isElementConnected(currentInstance.element)) {
+                instance.status === "copied" || instance.status === "fading";
+              if (!hasCompletedStatus || !isElementConnected(instance.element)) {
                 return undefined;
               }
-              return () => props.onShowContextMenuInstance?.(currentInstance.id);
+              return () => props.onShowContextMenuInstance?.(instance.id);
             })()}
-            onRetry={() => props.onRetryInstance?.(instance().id)}
-            onAcknowledgeError={() => props.onAcknowledgeErrorInstance?.(instance().id)}
+            onRetry={() => props.onRetryInstance?.(instance.id)}
+            onAcknowledgeError={() => props.onAcknowledgeErrorInstance?.(instance.id)}
             onHoverChange={(isHovered) =>
-              props.onLabelInstanceHoverChange?.(instance().id, isHovered)
+              props.onLabelInstanceHoverChange?.(instance.id, isHovered)
             }
           />
         )}
-      </Index>
+      </For>
       <Show when={props.toolbarVisible !== false}>
         <Toolbar
           isActive={props.isActive}

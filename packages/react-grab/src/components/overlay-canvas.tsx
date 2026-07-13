@@ -81,6 +81,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
   let canvasHeight = 0;
   let devicePixelRatio = 1;
   let animationFrameId: number | null = null;
+  let fadeWakeTimeoutId: number | null = null;
   let previousFrameTimestamp: number | null = null;
 
   const layers: Record<LayerName, OffscreenLayer> = {
@@ -369,6 +370,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     );
 
     let shouldContinueAnimating = false;
+    let nextFadeDelayMs: number | null = null;
 
     if (dragAnimation?.isInitialized) {
       if (interpolateBounds(dragAnimation, dragLerpForFrame)) {
@@ -410,7 +412,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
         animation.fadeStartTimestamp = null;
       }
 
-      if (animation.createdAt) {
+      if (animation.createdAt !== undefined) {
         const elapsed = currentTimestamp - animation.createdAt;
         const fadeOutDeadline = FEEDBACK_DURATION_MS + FADE_DURATION_MS;
 
@@ -423,6 +425,10 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
           const easeOut = 1 - (1 - fadeProgress) * (1 - fadeProgress);
           animation.opacity = 1 - easeOut;
           shouldContinueAnimating = true;
+        } else {
+          const fadeDelayMs = FEEDBACK_DURATION_MS - elapsed;
+          nextFadeDelayMs =
+            nextFadeDelayMs === null ? fadeDelayMs : Math.min(nextFadeDelayMs, fadeDelayMs);
         }
 
         return true;
@@ -442,10 +448,23 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     } else {
       animationFrameId = null;
       previousFrameTimestamp = null;
+      if (nextFadeDelayMs !== null) {
+        fadeWakeTimeoutId = window.setTimeout(
+          () => {
+            fadeWakeTimeoutId = null;
+            scheduleAnimationFrame();
+          },
+          Math.max(0, nextFadeDelayMs),
+        );
+      }
     }
   };
 
   const scheduleAnimationFrame = () => {
+    if (fadeWakeTimeoutId !== null) {
+      window.clearTimeout(fadeWakeTimeoutId);
+      fadeWakeTimeoutId = null;
+    }
     if (animationFrameId !== null) return;
     animationFrameId = nativeRequestAnimationFrame(runAnimationFrame);
   };
@@ -640,6 +659,9 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
       }
       if (animationFrameId !== null) {
         nativeCancelAnimationFrame(animationFrameId);
+      }
+      if (fadeWakeTimeoutId !== null) {
+        window.clearTimeout(fadeWakeTimeoutId);
       }
     });
   });

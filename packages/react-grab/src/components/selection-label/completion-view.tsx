@@ -2,6 +2,7 @@ import { createSignal, onCleanup, Show, type Component } from "solid-js";
 import type { CompletionViewProps } from "../../types.js";
 import { FEEDBACK_DURATION_MS, FADE_DURATION_MS } from "../../constants.js";
 import { createConfirmationKeyboard } from "../../utils/create-confirmation-keyboard.js";
+import { isEventFromOverlay } from "../../utils/is-event-from-overlay.js";
 import { IconReturn } from "../icons/icon-return.jsx";
 import { IconEllipsis } from "../icons/icon-ellipsis.jsx";
 import { cn } from "../../utils/cn.js";
@@ -16,8 +17,10 @@ interface MoreOptionsButtonProps {
 const MoreOptionsButton: Component<MoreOptionsButtonProps> = (props) => {
   return (
     <button
+      type="button"
       data-react-grab-ignore-events
       data-react-grab-more-options
+      aria-label="More options"
       class={cn(
         buttonVariants({ variant: "ghost" }),
         "group size-4 text-[var(--rg-text-secondary)] hover:text-[var(--rg-text-primary)]",
@@ -33,7 +36,11 @@ const MoreOptionsButton: Component<MoreOptionsButtonProps> = (props) => {
         props.onClick();
       }}
     >
-      <IconEllipsis size={14} class="opacity-50 group-hover:opacity-100 transition-opacity" />
+      <IconEllipsis
+        size={14}
+        aria-hidden="true"
+        class="opacity-50 group-hover:opacity-100 transition-opacity"
+      />
     </button>
   );
 };
@@ -67,6 +74,7 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
 
   const { claimFocus } = createConfirmationKeyboard({
     onEnter: (event) => {
+      if (isEventFromOverlay(event, "data-react-grab-more-options")) return;
       event.preventDefault();
       event.stopPropagation();
       handleAccept();

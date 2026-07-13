@@ -60,7 +60,7 @@ const DigitColumn: Component<DigitColumnProps> = (props) => {
         }
         setExitingDigit({ digit: previousDigit, direction: props.direction });
         if (exitTimerId !== null) clearTimeout(exitTimerId);
-        exitTimerId = setTimeout(() => setExitingDigit(null), SLOT_TRANSITION_MS);
+        exitTimerId = setTimeout(() => setExitingDigit(null), props.delayMs + SLOT_TRANSITION_MS);
       },
       { defer: true },
     ),
