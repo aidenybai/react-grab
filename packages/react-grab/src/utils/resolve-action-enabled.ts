@@ -1,4 +1,5 @@
 import type { ActionContext, ContextMenuAction } from "../types.js";
+import { logRecoverableError } from "./log-recoverable-error.js";
 
 const resolveBooleanEnabled = (enabled: boolean | undefined): boolean => enabled ?? true;
 
@@ -11,7 +12,12 @@ export const resolveActionEnabled = (
       return false;
     }
 
-    return action.enabled(context);
+    try {
+      return action.enabled(context);
+    } catch (error) {
+      logRecoverableError(`Action "${action.id}" enabled check failed`, error);
+      return false;
+    }
   }
 
   return resolveBooleanEnabled(action.enabled);
