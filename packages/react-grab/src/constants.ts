@@ -99,6 +99,11 @@ export const OVERLAY_BORDER_COLOR_DEFAULT = overlayColor(0.5);
 export const OVERLAY_FILL_COLOR_DEFAULT = overlayColor(0.08);
 export const FROZEN_GLOW_COLOR = overlayColor(0.15);
 export const FROZEN_GLOW_EDGE_PX = 50;
+export const SELECTION_SESSION_BAR_HEIGHT_PX = 42;
+export const SELECTION_SESSION_BAR_BACKGROUND_COLOR = "#162f47";
+export const SELECTION_SESSION_BAR_ACCENT_COLOR = "#0485ff";
+export const SELECTION_SESSION_ANIMATION_DURATION_MS = 180;
+export const SELECTION_SESSION_ANIMATION_EASING = "cubic-bezier(0.16, 1, 0.3, 1)";
 
 export const ARROW_HEIGHT_PX = 8;
 export const ARROW_MIN_SIZE_PX = 4;

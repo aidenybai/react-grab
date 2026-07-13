@@ -565,6 +565,13 @@ export interface ReactGrabRendererProps {
   discardPrompt?: SelectionDiscardPrompt;
   toolbarVisible?: boolean;
   isActive?: boolean;
+  selectionSessionVisible?: boolean;
+  selectionSessionSelectedCount?: number;
+  selectionSessionMultiSelectEnabled?: boolean;
+  onSelectionSessionCancel?: () => void;
+  onSelectionSessionEnableMultiSelect?: () => void;
+  onSelectionSessionClear?: () => void;
+  onSelectionSessionCopy?: () => void;
   onToggleActive?: () => void;
   onActivateAction?: (actionId: string) => void;
   activeActionId?: string | null;

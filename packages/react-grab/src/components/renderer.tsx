@@ -11,6 +11,7 @@ import { ContextMenu } from "./context-menu.js";
 import { EditPanel } from "./edit-panel/index.js";
 import { ToolbarMenu } from "./toolbar/toolbar-menu.js";
 import { HierarchyMenu } from "./toolbar/hierarchy-menu.js";
+import { SelectionSessionBar } from "./selection-session-bar.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
   return (
@@ -26,6 +27,15 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         labelInstances={props.labelInstances}
       />
       <FrozenGlow visible={props.isFrozen ?? false} />
+      <SelectionSessionBar
+        visible={props.selectionSessionVisible ?? false}
+        selectedCount={props.selectionSessionSelectedCount ?? 0}
+        multiSelectEnabled={props.selectionSessionMultiSelectEnabled ?? false}
+        onCancel={props.onSelectionSessionCancel}
+        onEnableMultiSelect={props.onSelectionSessionEnableMultiSelect}
+        onClear={props.onSelectionSessionClear}
+        onCopy={props.onSelectionSessionCopy}
+      />
       <Show when={props.selectionLabelVisible && (props.frozenLabelEntries?.length ?? 0) > 0}>
         <Index each={props.frozenLabelEntries ?? []}>
           {(entry, entryIndex) => (
