@@ -642,6 +642,44 @@ test.describe("Context Menu", () => {
       expect(isDisabled).toBe(true);
     });
 
+    test("disabled action should not run through its keyboard shortcut", async ({ reactGrab }) => {
+      await reactGrab.page.evaluate(() => {
+        const api = (
+          window as {
+            __REACT_GRAB__?: {
+              unregisterPlugin: (name: string) => void;
+              registerPlugin: (plugin: Record<string, unknown>) => void;
+            };
+          }
+        ).__REACT_GRAB__;
+
+        api?.unregisterPlugin("disabled-shortcut-action");
+        api?.registerPlugin({
+          name: "disabled-shortcut-action",
+          actions: [
+            {
+              id: "disabled-shortcut-action",
+              label: "Disabled Shortcut Action",
+              enabled: false,
+              shortcut: "K",
+              onAction: () => {
+                (window as { __disabledShortcutCalled?: boolean }).__disabledShortcutCalled = true;
+              },
+            },
+          ],
+        });
+      });
+
+      await reactGrab.activate();
+      await reactGrab.hoverUntilSelected("li:first-child");
+      await reactGrab.pressModifierKeyCombo("k");
+
+      const actionCalled = await reactGrab.page.evaluate(
+        () => (window as { __disabledShortcutCalled?: boolean }).__disabledShortcutCalled ?? false,
+      );
+      expect(actionCalled).toBe(false);
+    });
+
     test("action enabled function should receive context", async ({ reactGrab }) => {
       await reactGrab.page.evaluate(() => {
         const api = (

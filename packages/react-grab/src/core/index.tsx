@@ -153,6 +153,7 @@ import { logRecoverableError } from "../utils/log-recoverable-error.js";
 import { getNearestEdge } from "../utils/get-nearest-edge.js";
 import { findShortcutAction } from "../utils/action-shortcuts.js";
 import { createKeyboardSelectionController } from "./keyboard-selection.js";
+import { executeContextMenuAction } from "../utils/execute-context-menu-action.js";
 
 const builtInPlugins = [copyPlugin, editPlugin, commentPlugin, openPlugin];
 
@@ -189,6 +190,7 @@ interface LabeledCopyOptions {
   primaryElement: Element;
   targetElements: Element[];
   labelInstanceIds: string[];
+  operationGeneration: number;
   extraPrompt?: string;
   shouldDeactivateAfter?: boolean;
   onComplete?: () => void;
@@ -247,6 +249,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
   return createRoot((dispose) => {
     let disposed = false;
+    let copyOperationGeneration = 0;
+    const pendingLabeledCopyInstanceIds = new Set<string>();
     let disposeRenderer: (() => void) | undefined;
 
     const pluginRegistry = createPluginRegistry(settableOptions);
@@ -303,9 +307,22 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       );
     });
 
+    const originalHostBodyStyles = new Map<"userSelect" | "touchAction", string>();
+
     const setHostBodyStyle = (property: "userSelect" | "touchAction", value: string) => {
       if (IS_DEMO) return;
+      if (!originalHostBodyStyles.has(property)) {
+        originalHostBodyStyles.set(property, document.body.style[property]);
+      }
       document.body.style[property] = value;
+    };
+
+    const restoreHostBodyStyle = (property: "userSelect" | "touchAction") => {
+      if (IS_DEMO) return;
+      const originalValue = originalHostBodyStyles.get(property);
+      if (originalValue === undefined) return;
+      document.body.style[property] = originalValue;
+      originalHostBodyStyles.delete(property);
     };
 
     createEffect(
@@ -317,7 +334,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           setHostBodyStyle("touchAction", "none");
         } else if (!activated && previousActivated) {
           unfreezeGlobalInteractions();
-          setHostBodyStyle("touchAction", "");
+          restoreHostBodyStyle("touchAction");
         }
       }),
     );
@@ -670,8 +687,25 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const labelController = createLabelController(
       actions,
       () => store.labelInstances,
-      () => retryCopyByInstanceId.clear(),
+      () => {
+        retryCopyByInstanceId.clear();
+        pendingLabeledCopyInstanceIds.clear();
+      },
     );
+
+    const invalidatePendingLabeledCopies = () => {
+      copyOperationGeneration += 1;
+      for (const labelInstanceId of pendingLabeledCopyInstanceIds) {
+        labelController.dismissInstance(labelInstanceId);
+      }
+      pendingLabeledCopyInstanceIds.clear();
+    };
+
+    const finishPendingLabeledCopy = (labelInstanceIds: readonly string[]) => {
+      for (const labelInstanceId of labelInstanceIds) {
+        pendingLabeledCopyInstanceIds.delete(labelInstanceId);
+      }
+    };
 
     const attemptClipboardAndLabel = async (
       clipboardOperation: () => Promise<boolean>,
@@ -730,6 +764,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
 
       const didSucceed = await attemptClipboardAndLabel(clipboardOperation, labelInstanceIds);
+      if (labelInstanceIds) finishPendingLabeledCopy(labelInstanceIds);
 
       if (labelInstanceIds) {
         registerCopyRetry(
@@ -841,8 +876,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const runLabeledCopy = (copy: LabeledCopyOptions) => {
+      for (const labelInstanceId of copy.labelInstanceIds) {
+        pendingLabeledCopyInstanceIds.add(labelInstanceId);
+      }
+
       void getNearestComponentName(copy.primaryElement)
         .then(async (componentName) => {
+          if (disposed || copy.operationGeneration !== copyOperationGeneration) return;
           await executeCopyOperation(
             () =>
               copyElementsToClipboard(
@@ -856,6 +896,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           copy.onComplete?.();
         })
         .catch((error) => {
+          if (disposed || copy.operationGeneration !== copyOperationGeneration) return;
+          finishPendingLabeledCopy(copy.labelInstanceIds);
           logRecoverableError("Copy operation failed", error);
           const normalizedMessage = normalizeErrorMessage(error, "Action failed");
           for (const labelInstanceId of copy.labelInstanceIds) {
@@ -884,7 +926,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               actions.unfreeze();
             }
           }
-        });
+        })
+        .finally(() => finishPendingLabeledCopy(copy.labelInstanceIds));
     };
 
     const performCopyWithLabel = (options: CopyWithLabelOptions) => {
@@ -920,6 +963,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const tagName = getTagName(element);
       clearCopyFeedbackCooldown();
+      invalidatePendingLabeledCopies();
       actions.startCopy();
 
       const labelInstanceId = tagName
@@ -934,6 +978,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         primaryElement: element,
         targetElements: allTargetElements,
         labelInstanceIds: labelInstanceId ? [labelInstanceId] : [],
+        operationGeneration: copyOperationGeneration,
         extraPrompt,
         shouldDeactivateAfter,
         onComplete,
@@ -955,6 +1000,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const primaryElement = elements[0];
 
       clearCopyFeedbackCooldown();
+      invalidatePendingLabeledCopies();
       actions.startCopy();
 
       const labelInstanceIds = labelController.createPerElementInstances(labelEntries, "copying");
@@ -963,6 +1009,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         primaryElement,
         targetElements: elements,
         labelInstanceIds,
+        operationGeneration: copyOperationGeneration,
         shouldDeactivateAfter,
         onComplete,
       });
@@ -1569,6 +1616,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const deactivateRenderer = () => {
+      invalidatePendingLabeledCopies();
       const wasDragging = isDragging();
       const previousFocused = store.previouslyFocusedElement;
       stopSpaceDragRepositioning();
@@ -1581,7 +1629,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setIsPendingContextMenuSelect(false);
       setPendingToolbarActionId(null);
       if (wasDragging) {
-        setHostBodyStyle("userSelect", "");
+        restoreHostBodyStyle("userSelect");
         releaseDragPreview();
       }
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
@@ -1739,7 +1787,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.clearInputText();
       actions.exitPromptMode();
       clearPendingToolbarSelection();
-      action.onAction(buildImmediateActionContext(element, position));
+      const context = buildImmediateActionContext(element, position);
+      if (!executeContextMenuAction(action, context)) {
+        openContextMenu(element, position);
+      }
       return true;
     };
 
@@ -1811,7 +1862,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return;
       }
 
-      action.onAction(buildImmediateActionContext(element, position));
+      const context = buildImmediateActionContext(element, position);
+      if (!executeContextMenuAction(action, context)) {
+        openContextMenu(element, position);
+      }
     };
 
     const handleComment = () => {
@@ -2205,7 +2259,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       releaseDragPreview();
       actions.cancelDrag();
       autoScroller.stop();
-      setHostBodyStyle("userSelect", "");
+      restoreHostBodyStyle("userSelect");
       // Detection pauses during active drags, so restore the hover target for
       // the element under the cursor without waiting for the next pointermove.
       redetectElementUnderPointer();
@@ -2236,7 +2290,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
       stopSpaceDragRepositioning();
       autoScroller.stop();
-      setHostBodyStyle("userSelect", "");
+      restoreHostBodyStyle("userSelect");
 
       if (dragSelectionRect) {
         handleDragSelection(dragSelectionRect, hasModifierKeyHeld, isShiftHeld);
@@ -2466,7 +2520,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
 
       const position = { x: pointer().x, y: pointer().y };
-      action.onAction(buildImmediateActionContext(element, position));
+      const context = buildImmediateActionContext(element, position);
+      if (!executeContextMenuAction(action, context)) return false;
 
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -2994,7 +3049,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       ignoreRealInput((event: PointerEvent) => {
         if (event.button !== 0) return;
         if (!event.isPrimary) return;
-        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
+        if (!isDragging() && isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (isModalPopoverOpen()) return;
         const isActive = isRendererActive() || isSelectionInteractionLocked() || isDragging();
         const hasModifierKeyHeld = event.metaKey || event.ctrlKey;
@@ -3065,6 +3120,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (!event.isPrimary) return;
         cancelActiveDrag();
       }),
+      { capture: true },
     );
 
     eventListenerManager.addWindowListener(
@@ -3298,9 +3354,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       grabbedBoxTimeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
       grabbedBoxTimeouts.clear();
       labelController.cancelAllFades();
+      retryCopyByInstanceId.clear();
       autoScroller.stop();
-      setHostBodyStyle("userSelect", "");
-      setHostBodyStyle("touchAction", "");
+      unfreezeGlobalInteractions();
+      restoreHostBodyStyle("userSelect");
+      restoreHostBodyStyle("touchAction");
       setCursorOverride(null);
       keyboardClaimer.restore();
       setScopeContainer(null);
@@ -4084,11 +4142,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         forceDeactivateAll();
         dismissAllPopups();
         actions.clearGrabbedBoxes();
-        actions.clearLabelInstances();
+        labelController.clearAll();
         actions.setSelectionSource(null, null);
       },
       dispose: () => {
         disposed = true;
+        invalidatePendingLabeledCopies();
         hasInited = false;
         disposeRenderer?.();
         stopToolbarMenuTracking?.();
