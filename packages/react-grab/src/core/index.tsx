@@ -153,6 +153,7 @@ import { logRecoverableError } from "../utils/log-recoverable-error.js";
 import { getNearestEdge } from "../utils/get-nearest-edge.js";
 import { findShortcutAction } from "../utils/action-shortcuts.js";
 import { createKeyboardSelectionController } from "./keyboard-selection.js";
+import { executeContextMenuAction } from "../utils/execute-context-menu-action.js";
 
 const builtInPlugins = [copyPlugin, editPlugin, commentPlugin, openPlugin];
 
@@ -1739,7 +1740,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.clearInputText();
       actions.exitPromptMode();
       clearPendingToolbarSelection();
-      action.onAction(buildImmediateActionContext(element, position));
+      const context = buildImmediateActionContext(element, position);
+      if (!executeContextMenuAction(action, context)) {
+        openContextMenu(element, position);
+      }
       return true;
     };
 
@@ -1811,7 +1815,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return;
       }
 
-      action.onAction(buildImmediateActionContext(element, position));
+      const context = buildImmediateActionContext(element, position);
+      if (!executeContextMenuAction(action, context)) {
+        openContextMenu(element, position);
+      }
     };
 
     const handleComment = () => {
@@ -2466,7 +2473,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
 
       const position = { x: pointer().x, y: pointer().y };
-      action.onAction(buildImmediateActionContext(element, position));
+      const context = buildImmediateActionContext(element, position);
+      if (!executeContextMenuAction(action, context)) return false;
 
       event.preventDefault();
       event.stopImmediatePropagation();
