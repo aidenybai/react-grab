@@ -1,6 +1,7 @@
 import { Show, type Component } from "solid-js";
 import type { ErrorViewProps } from "../../types.js";
 import { createConfirmationKeyboard } from "../../utils/create-confirmation-keyboard.js";
+import { isEventFromOverlay } from "../../utils/is-event-from-overlay.js";
 import { IconRetry } from "../icons/icon-retry.jsx";
 import { Button } from "../ui/button.js";
 import { BottomSection } from "./bottom-section.js";
@@ -8,6 +9,12 @@ import { BottomSection } from "./bottom-section.js";
 export const ErrorView: Component<ErrorViewProps> = (props) => {
   const { claimFocus } = createConfirmationKeyboard({
     onEnter: (event) => {
+      if (isEventFromOverlay(event, "data-react-grab-error-ok")) {
+        event.preventDefault();
+        event.stopPropagation();
+        props.onAcknowledge?.();
+        return;
+      }
       event.preventDefault();
       event.stopPropagation();
       props.onRetry?.();

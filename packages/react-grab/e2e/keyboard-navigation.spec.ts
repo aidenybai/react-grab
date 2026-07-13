@@ -393,6 +393,22 @@ test.describe("Keyboard Navigation", () => {
     expect(await reactGrab.getClipboardContent()).toBe("");
   });
 
+  test("Enter on the focused More options button opens the completed-item menu", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:first-child");
+    await reactGrab.clickElement("[data-testid='todo-list'] li:first-child");
+    await expect.poll(() => reactGrab.getLabelStatusText(), { timeout: 2000 }).toBe("Copied");
+
+    const moreOptionsButton = reactGrab.page.locator("[data-react-grab-more-options]");
+    await expect(moreOptionsButton).toHaveAccessibleName("More options");
+    await moreOptionsButton.focus();
+    await reactGrab.page.keyboard.press("Enter");
+
+    await expect.poll(() => reactGrab.isContextMenuVisible()).toBe(true);
+  });
+
   test("arrow keys continue navigation while the discard-selection prompt is open", async ({
     reactGrab,
   }) => {

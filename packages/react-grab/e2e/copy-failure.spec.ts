@@ -46,6 +46,22 @@ const clickErrorButton = async (
   );
 };
 
+const focusErrorButton = async (
+  reactGrab: { page: import("@playwright/test").Page },
+  buttonAttribute: string,
+): Promise<void> => {
+  await reactGrab.page.evaluate(
+    ({ attrName, target }) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const root = host?.shadowRoot?.querySelector(`[${attrName}]`);
+      const button = root?.querySelector<HTMLButtonElement>(`[${target}]`);
+      if (!button) throw new Error(`Error button [${target}] not found`);
+      button.focus();
+    },
+    { attrName: ATTRIBUTE_NAME, target: buttonAttribute },
+  );
+};
+
 const isErrorViewGone = (reactGrab: { page: import("@playwright/test").Page }) =>
   reactGrab.page.evaluate((attrName) => {
     const host = document.querySelector(`[${attrName}]`);
@@ -167,5 +183,20 @@ test.describe("Copy failure feedback", () => {
     await expect.poll(() => isErrorViewGone(reactGrab), { timeout: 5000 }).toBe(true);
     const instances = await reactGrab.getLabelInstancesInfo();
     expect(instances.some((instance) => instance.status === "error")).toBe(false);
+  });
+
+  test("Enter on the focused Ok button acknowledges instead of retrying", async ({ reactGrab }) => {
+    await forceCopyResult(reactGrab, false);
+
+    await reactGrab.activate();
+    await reactGrab.hoverUntilSelected("li");
+    await reactGrab.clickElement("li");
+    await readErrorView(reactGrab);
+    await focusErrorButton(reactGrab, "data-react-grab-error-ok");
+    await expect.poll(() => isErrorViewGone(reactGrab)).toBe(false);
+
+    await reactGrab.page.keyboard.press("Enter");
+
+    await expect.poll(() => isErrorViewGone(reactGrab), { timeout: 5000 }).toBe(true);
   });
 });
