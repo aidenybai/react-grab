@@ -89,6 +89,7 @@ const pausedQueueStates = new WeakMap<HookQueue, PausedQueueState>();
 const pausedContextStates = new WeakMap<ContextDependency, PausedContextState>();
 const renderersWithPatchedDispatcher = new WeakSet<ReactRenderer>();
 const typedFiberRoots = _fiberRoots as Set<FiberRootLike>;
+const pausedFiberRoots = new Set<FiberRootLike>();
 
 const getFiberRoot = (fiber: Fiber): FiberRootLike | null => {
   let current: Fiber | null = fiber;
@@ -557,16 +558,15 @@ const clearPendingUpdates = (): void => {
 };
 
 const resumeUpdates = (): void => {
-  let fiberRootsToResume = new Set<FiberRootLike>();
+  const fiberRootsToResume = new Set(pausedFiberRoots);
   try {
-    fiberRootsToResume = collectFiberRoots();
+    for (const fiberRoot of collectFiberRoots()) {
+      fiberRootsToResume.add(fiberRoot);
+    }
   } catch (error) {
     logRecoverableError("Collecting fiber roots failed during unfreeze", error);
   }
 
-  const storeCallbacksToInvoke = Array.from(pendingStoreCallbacks);
-  const transitionCallbacksToInvoke = pendingTransitionCallbacks.slice();
-  const stateUpdatesToInvoke = pendingStateUpdates.slice();
   isUpdatesPaused = false;
 
   try {
@@ -578,11 +578,15 @@ const resumeUpdates = (): void => {
       }
     }
 
+    const storeCallbacksToInvoke = Array.from(pendingStoreCallbacks);
+    const transitionCallbacksToInvoke = pendingTransitionCallbacks.slice();
+    const stateUpdatesToInvoke = pendingStateUpdates.slice();
     invokeCallbacks(storeCallbacksToInvoke);
     invokeCallbacks(transitionCallbacksToInvoke);
     invokeCallbacks(stateUpdatesToInvoke);
     scheduleReactUpdate(fiberRootsToResume);
   } finally {
+    pausedFiberRoots.clear();
     clearPendingUpdates();
   }
 };
@@ -599,6 +603,7 @@ export const freezeUpdates = (): (() => void) => {
 
       const fiberRoots = collectFiberRoots();
       for (const fiberRoot of fiberRoots) {
+        pausedFiberRoots.add(fiberRoot);
         traverseFibersAndPause(fiberRoot.current);
       }
     } catch (error) {

@@ -60,11 +60,16 @@ const FOCUS_STYLE_PROPERTIES = [
 interface FrozenPseudoState {
   element: HTMLElement;
   frozenPropertyValues: Map<string, string>;
-  originalStyles: string;
+  originalPropertyValues: Map<string, InlineStyleProperty>;
 }
 
-const frozenHoverElements = new Map<HTMLElement, string>();
-const frozenFocusElements = new Map<HTMLElement, string>();
+interface InlineStyleProperty {
+  value: string;
+  priority: string;
+}
+
+const frozenHoverElements = new Map<HTMLElement, Map<string, InlineStyleProperty>>();
+const frozenFocusElements = new Map<HTMLElement, Map<string, InlineStyleProperty>>();
 
 const stopEvent = (event: Event): void => {
   event.stopImmediatePropagation();
@@ -78,21 +83,26 @@ const preventFocusChange = (event: Event): void => {
 const freezeElement = (
   element: HTMLElement,
   properties: readonly string[],
-  alreadyFrozen?: Map<HTMLElement, string>,
+  alreadyFrozen?: ReadonlyMap<HTMLElement, unknown>,
 ): FrozenPseudoState | null => {
   if (alreadyFrozen?.has(element)) return null;
 
   const computed = getComputedStyle(element);
   const frozenPropertyValues = new Map<string, string>();
+  const originalPropertyValues = new Map<string, InlineStyleProperty>();
 
-  for (const prop of properties) {
-    const computedValue = computed.getPropertyValue(prop);
+  for (const property of properties) {
+    const computedValue = computed.getPropertyValue(property);
     if (computedValue) {
-      frozenPropertyValues.set(prop, computedValue);
+      frozenPropertyValues.set(property, computedValue);
+      originalPropertyValues.set(property, {
+        value: element.style.getPropertyValue(property),
+        priority: element.style.getPropertyPriority(property),
+      });
     }
   }
 
-  return { element, frozenPropertyValues, originalStyles: element.style.cssText };
+  return { element, frozenPropertyValues, originalPropertyValues };
 };
 
 const collectHoveredElements = (cursorX: number, cursorY: number): HTMLElement[] => {
@@ -122,19 +132,27 @@ const collectFocusedElements = (): HTMLElement[] => {
 
 const applyFrozenStates = (
   states: FrozenPseudoState[],
-  storageMap: Map<HTMLElement, string>,
+  storageMap: Map<HTMLElement, Map<string, InlineStyleProperty>>,
 ): void => {
-  for (const { element, frozenPropertyValues, originalStyles } of states) {
-    storageMap.set(element, originalStyles);
+  for (const { element, frozenPropertyValues, originalPropertyValues } of states) {
+    storageMap.set(element, originalPropertyValues);
     for (const [property, value] of frozenPropertyValues) {
       element.style.setProperty(property, value, "important");
     }
   }
 };
 
-const restoreFrozenStates = (storageMap: Map<HTMLElement, string>): void => {
-  for (const [element, originalStyles] of storageMap) {
-    element.style.cssText = originalStyles;
+const restoreFrozenStates = (
+  storageMap: Map<HTMLElement, Map<string, InlineStyleProperty>>,
+): void => {
+  for (const [element, originalPropertyValues] of storageMap) {
+    for (const [property, originalProperty] of originalPropertyValues) {
+      if (originalProperty.value) {
+        element.style.setProperty(property, originalProperty.value, originalProperty.priority);
+      } else {
+        element.style.removeProperty(property);
+      }
+    }
   }
   storageMap.clear();
 };
