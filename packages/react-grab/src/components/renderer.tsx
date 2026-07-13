@@ -28,16 +28,20 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
       <FrozenGlow visible={props.isFrozen ?? false} />
       <Show when={props.selectionLabelVisible && (props.frozenLabelEntries?.length ?? 0) > 0}>
         <For each={props.frozenLabelEntries ?? []}>
-          {(entry, entryIndex) => (
-            <SelectionLabel
-              tagName={entry.tagName}
-              componentName={entry.componentName}
-              selectionBounds={entry.bounds}
-              mouseX={entry.mouseX}
-              visible={true}
-              shouldToggleExpandOnClick={entryIndex() === 0}
-              onToggleExpand={entryIndex() === 0 ? props.onToggleExpand : undefined}
-            />
+          {(entryAccessor, entryIndex) => (
+            <Show when={entryAccessor.read()}>
+              {(entry) => (
+                <SelectionLabel
+                  tagName={entry().tagName}
+                  componentName={entry().componentName}
+                  selectionBounds={entry().bounds}
+                  mouseX={entry().mouseX}
+                  visible={true}
+                  shouldToggleExpandOnClick={entryIndex() === 0}
+                  onToggleExpand={entryIndex() === 0 ? props.onToggleExpand : undefined}
+                />
+              )}
+            </Show>
           )}
         </For>
       </Show>

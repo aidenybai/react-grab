@@ -193,6 +193,7 @@ test.describe("Copy failure feedback", () => {
     await reactGrab.clickElement("li");
     await readErrorView(reactGrab);
     await focusErrorButton(reactGrab, "data-react-grab-error-ok");
+    await expect.poll(() => isErrorViewGone(reactGrab)).toBe(false);
 
     await reactGrab.page.keyboard.press("Enter");
 

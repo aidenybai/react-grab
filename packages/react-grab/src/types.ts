@@ -525,13 +525,17 @@ export interface FrozenLabelEntry {
   mouseX?: number;
 }
 
+export interface FrozenLabelEntryAccessor {
+  read: () => FrozenLabelEntry | null;
+}
+
 export interface ReactGrabRendererProps {
   selectionVisible?: boolean;
   selectionBounds?: OverlayBounds;
   selectionBoundsMultiple?: OverlayBounds[];
   selectionShouldSnap?: boolean;
   selectionElementsCount?: number;
-  frozenLabelEntries?: FrozenLabelEntry[];
+  frozenLabelEntries?: FrozenLabelEntryAccessor[];
   pendingShiftPreviewEntry?: FrozenLabelEntry;
   selectionFilePath?: string;
   selectionLineNumber?: number;

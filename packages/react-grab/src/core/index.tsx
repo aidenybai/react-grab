@@ -116,6 +116,7 @@ import type {
   HierarchyState,
   HierarchyEntry,
   FrozenLabelEntry,
+  FrozenLabelEntryAccessor,
   PerformWithFeedbackOptions,
   SettableOptions,
   SourceInfo,
@@ -1274,26 +1275,27 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (element) => {
         const tagName = getTagName(element) || "element";
         const componentName = getComponentDisplayName(element) ?? undefined;
-        return createMemo<FrozenLabelEntry | null>(() => {
-          void viewportVersion();
-          if (!isElementConnected(element)) return null;
-          const bounds = createElementBounds(element);
-          const anchorRatio = shiftSelectionLabelAnchorRatioByElement.get(element);
-          const mouseX =
-            anchorRatio === undefined ? undefined : bounds.x + bounds.width * anchorRatio;
-          return { tagName, componentName, bounds, mouseX };
-        });
+        return {
+          read: createMemo<FrozenLabelEntry | null>(() => {
+            void viewportVersion();
+            if (!isElementConnected(element)) return null;
+            const bounds = createElementBounds(element);
+            const anchorRatio = shiftSelectionLabelAnchorRatioByElement.get(element);
+            const mouseX =
+              anchorRatio === undefined ? undefined : bounds.x + bounds.width * anchorRatio;
+            return { tagName, componentName, bounds, mouseX };
+          }),
+        };
       },
     );
 
-    const frozenLabelEntries = createMemo((): FrozenLabelEntry[] => {
+    const frozenLabelEntries = createMemo((): FrozenLabelEntryAccessor[] => {
       if (isPromptMode() || store.frozenElements.length < 2) return [];
-      const entries: FrozenLabelEntry[] = [];
-      for (const readEntry of frozenLabelEntryAccessors()) {
-        const entry = readEntry();
-        if (entry !== null) entries.push(entry);
+      const entryAccessors: FrozenLabelEntryAccessor[] = [];
+      for (const entryAccessor of frozenLabelEntryAccessors()) {
+        if (entryAccessor.read() !== null) entryAccessors.push(entryAccessor);
       }
-      return entries;
+      return entryAccessors;
     });
 
     const pendingShiftPreviewEntry = createMemo((): FrozenLabelEntry | null => {
