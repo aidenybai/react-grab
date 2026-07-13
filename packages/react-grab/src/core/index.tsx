@@ -247,6 +247,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
   return createRoot((dispose) => {
     let disposed = false;
+    let pendingCopyMetadataIdentity: object | null = null;
     let disposeRenderer: (() => void) | undefined;
 
     const pluginRegistry = createPluginRegistry(settableOptions);
@@ -673,6 +674,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       () => retryCopyByInstanceId.clear(),
     );
 
+    const cancelPendingCopyMetadata = () => {
+      if (!pendingCopyMetadataIdentity) return;
+      pendingCopyMetadataIdentity = null;
+      if (current().state === "copying") labelController.clearAll();
+    };
+
     const attemptClipboardAndLabel = async (
       clipboardOperation: () => Promise<boolean>,
       labelInstanceIds: string[] | null,
@@ -841,8 +848,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const runLabeledCopy = (copy: LabeledCopyOptions) => {
+      const metadataIdentity = {};
+      let didStartCopyOperation = false;
+      pendingCopyMetadataIdentity = metadataIdentity;
       void getNearestComponentName(copy.primaryElement)
         .then(async (componentName) => {
+          if (disposed || pendingCopyMetadataIdentity !== metadataIdentity) return;
+          pendingCopyMetadataIdentity = null;
+          didStartCopyOperation = true;
           await executeCopyOperation(
             () =>
               copyElementsToClipboard(
@@ -856,6 +869,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           copy.onComplete?.();
         })
         .catch((error) => {
+          if (
+            disposed ||
+            (!didStartCopyOperation && pendingCopyMetadataIdentity !== metadataIdentity)
+          )
+            return;
           logRecoverableError("Copy operation failed", error);
           const normalizedMessage = normalizeErrorMessage(error, "Action failed");
           for (const labelInstanceId of copy.labelInstanceIds) {
@@ -883,6 +901,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               actions.activate();
               actions.unfreeze();
             }
+          }
+        })
+        .finally(() => {
+          if (pendingCopyMetadataIdentity === metadataIdentity) {
+            pendingCopyMetadataIdentity = null;
           }
         });
     };
@@ -1569,6 +1592,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const deactivateRenderer = () => {
+      cancelPendingCopyMetadata();
       const wasDragging = isDragging();
       const previousFocused = store.previouslyFocusedElement;
       stopSpaceDragRepositioning();
@@ -4084,11 +4108,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         forceDeactivateAll();
         dismissAllPopups();
         actions.clearGrabbedBoxes();
-        actions.clearLabelInstances();
+        cancelPendingCopyMetadata();
+        labelController.clearAll();
         actions.setSelectionSource(null, null);
       },
       dispose: () => {
         disposed = true;
+        cancelPendingCopyMetadata();
+        labelController.clearAll();
         hasInited = false;
         disposeRenderer?.();
         stopToolbarMenuTracking?.();
