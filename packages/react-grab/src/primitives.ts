@@ -95,9 +95,11 @@ export { copyContent } from "./utils/copy-content.js";
 export const getElementsAtPosition = (clientX: number, clientY: number): Element[] => {
   if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) return [];
   suspendPointerEventsFreeze();
-  const elements = document.elementsFromPoint(clientX, clientY);
-  resumePointerEventsFreeze();
-  return Array.from(elements);
+  try {
+    return Array.from(document.elementsFromPoint(clientX, clientY));
+  } finally {
+    resumePointerEventsFreeze();
+  }
 };
 
 const freezeCleanupFns = new Set<() => void>();

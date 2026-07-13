@@ -139,7 +139,7 @@ export const freezeAllAnimations = (elements: Element[]): void => {
   unfreezeAllAnimations();
   lastInputElements = [...elements];
   ensureStylesInjected();
-  frozenElements = elements;
+  frozenElements = [...elements];
   frozenSvgElements = collectFrozenSvgElements(frozenElements);
   pauseSvgAnimations(frozenSvgElements);
 
