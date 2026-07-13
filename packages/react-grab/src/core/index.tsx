@@ -116,6 +116,8 @@ import type {
   HierarchyState,
   HierarchyEntry,
   FrozenLabelEntry,
+  FrozenLabelEntryAccessor,
+  SelectionLabelInstanceAccessor,
   PerformWithFeedbackOptions,
   SettableOptions,
   SourceInfo,
@@ -1269,31 +1271,32 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return frozenElementsBounds();
     });
 
-    const frozenLabelEntryAccessors = mapArray(
+    const allFrozenLabelEntryAccessors = mapArray(
       () => store.frozenElements,
       (element) => {
         const tagName = getTagName(element) || "element";
         const componentName = getComponentDisplayName(element) ?? undefined;
-        return createMemo<FrozenLabelEntry | null>(() => {
-          void viewportVersion();
-          if (!isElementConnected(element)) return null;
-          const bounds = createElementBounds(element);
-          const anchorRatio = shiftSelectionLabelAnchorRatioByElement.get(element);
-          const mouseX =
-            anchorRatio === undefined ? undefined : bounds.x + bounds.width * anchorRatio;
-          return { tagName, componentName, bounds, mouseX };
-        });
+        return {
+          read: createMemo<FrozenLabelEntry | null>(() => {
+            void viewportVersion();
+            if (!isElementConnected(element)) return null;
+            const bounds = createElementBounds(element);
+            const anchorRatio = shiftSelectionLabelAnchorRatioByElement.get(element);
+            const mouseX =
+              anchorRatio === undefined ? undefined : bounds.x + bounds.width * anchorRatio;
+            return { tagName, componentName, bounds, mouseX };
+          }),
+        };
       },
     );
 
-    const frozenLabelEntries = createMemo((): FrozenLabelEntry[] => {
+    const visibleFrozenLabelEntryAccessors = createMemo((): FrozenLabelEntryAccessor[] => {
       if (isPromptMode() || store.frozenElements.length < 2) return [];
-      const entries: FrozenLabelEntry[] = [];
-      for (const readEntry of frozenLabelEntryAccessors()) {
-        const entry = readEntry();
-        if (entry !== null) entries.push(entry);
+      const entryAccessors: FrozenLabelEntryAccessor[] = [];
+      for (const entryAccessor of allFrozenLabelEntryAccessors()) {
+        if (entryAccessor.read() !== null) entryAccessors.push(entryAccessor);
       }
-      return entries;
+      return entryAccessors;
     });
 
     const pendingShiftPreviewEntry = createMemo((): FrozenLabelEntry | null => {
@@ -3443,6 +3446,31 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return store.labelInstances.map(recomputeLabelInstance);
     });
 
+    const computedLabelInstanceById = createMemo(
+      () => new Map(computedLabelInstances().map((instance) => [instance.id, instance])),
+    );
+
+    const labelInstanceAccessorById = new Map<string, SelectionLabelInstanceAccessor>();
+    const labelInstanceAccessors = createMemo((): SelectionLabelInstanceAccessor[] => {
+      const currentInstances = computedLabelInstances();
+      const currentInstanceIds = new Set(currentInstances.map((instance) => instance.id));
+      for (const instanceId of labelInstanceAccessorById.keys()) {
+        if (!currentInstanceIds.has(instanceId)) labelInstanceAccessorById.delete(instanceId);
+      }
+
+      return currentInstances.map((instance) => {
+        const cachedAccessor = labelInstanceAccessorById.get(instance.id);
+        if (cachedAccessor) return cachedAccessor;
+
+        const instanceId = instance.id;
+        const instanceAccessor: SelectionLabelInstanceAccessor = {
+          read: () => computedLabelInstanceById().get(instanceId) ?? null,
+        };
+        labelInstanceAccessorById.set(instanceId, instanceAccessor);
+        return instanceAccessor;
+      });
+    });
+
     const computedGrabbedBoxes = createMemo(() => {
       if (!isThemeEnabled()) return [];
       if (!pluginRegistry.store.theme.grabbedBoxes.enabled) return [];
@@ -3906,7 +3934,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                   store.frozenElements.length > 0 || dragPreviewBounds().length > 0
                 }
                 selectionElementsCount={store.frozenElements.length}
-                frozenLabelEntries={frozenLabelEntries()}
+                frozenLabelEntryAccessors={visibleFrozenLabelEntryAccessors()}
                 pendingShiftPreviewEntry={pendingShiftPreviewEntry() ?? undefined}
                 selectionFilePath={store.selectionFilePath ?? undefined}
                 selectionLineNumber={store.selectionLineNumber ?? undefined}
@@ -3917,6 +3945,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 hierarchyState={hierarchyState()}
                 hierarchyMenuPosition={hierarchyMenuPosition()}
                 labelInstances={computedLabelInstances()}
+                labelInstanceAccessors={labelInstanceAccessors()}
                 dragVisible={dragVisible()}
                 dragBounds={dragBounds()}
                 grabbedBoxes={computedGrabbedBoxes()}

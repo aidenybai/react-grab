@@ -525,13 +525,21 @@ export interface FrozenLabelEntry {
   mouseX?: number;
 }
 
+export interface FrozenLabelEntryAccessor {
+  read: () => FrozenLabelEntry | null;
+}
+
+export interface SelectionLabelInstanceAccessor {
+  read: () => SelectionLabelInstance | null;
+}
+
 export interface ReactGrabRendererProps {
   selectionVisible?: boolean;
   selectionBounds?: OverlayBounds;
   selectionBoundsMultiple?: OverlayBounds[];
   selectionShouldSnap?: boolean;
   selectionElementsCount?: number;
-  frozenLabelEntries?: FrozenLabelEntry[];
+  frozenLabelEntryAccessors?: FrozenLabelEntryAccessor[];
   pendingShiftPreviewEntry?: FrozenLabelEntry;
   selectionFilePath?: string;
   selectionLineNumber?: number;
@@ -542,6 +550,7 @@ export interface ReactGrabRendererProps {
   hierarchyState?: HierarchyState;
   hierarchyMenuPosition?: DropdownAnchor | null;
   labelInstances?: SelectionLabelInstance[];
+  labelInstanceAccessors?: SelectionLabelInstanceAccessor[];
   dragVisible?: boolean;
   dragBounds?: OverlayBounds;
   grabbedBoxes?: Array<{
