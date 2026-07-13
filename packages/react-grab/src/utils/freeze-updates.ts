@@ -567,27 +567,27 @@ const resumeUpdates = (): void => {
     logRecoverableError("Collecting fiber roots failed during unfreeze", error);
   }
 
+  pausedFiberRoots.clear();
   isUpdatesPaused = false;
 
-  try {
-    for (const fiberRoot of fiberRootsToResume) {
-      try {
-        traverseFibersAndResume(fiberRoot.current);
-      } catch (error) {
-        logRecoverableError("Resuming a fiber root failed during unfreeze", error);
-      }
+  for (const fiberRoot of fiberRootsToResume) {
+    try {
+      traverseFibersAndResume(fiberRoot.current);
+    } catch (error) {
+      logRecoverableError("Resuming a fiber root failed during unfreeze", error);
     }
+  }
 
-    const storeCallbacksToInvoke = Array.from(pendingStoreCallbacks);
-    const transitionCallbacksToInvoke = pendingTransitionCallbacks.slice();
-    const stateUpdatesToInvoke = pendingStateUpdates.slice();
-    invokeCallbacks(storeCallbacksToInvoke);
-    invokeCallbacks(transitionCallbacksToInvoke);
-    invokeCallbacks(stateUpdatesToInvoke);
+  const storeCallbacksToInvoke = Array.from(pendingStoreCallbacks);
+  const transitionCallbacksToInvoke = pendingTransitionCallbacks.slice();
+  const stateUpdatesToInvoke = pendingStateUpdates.slice();
+  clearPendingUpdates();
+
+  invokeCallbacks(storeCallbacksToInvoke);
+  invokeCallbacks(transitionCallbacksToInvoke);
+  invokeCallbacks(stateUpdatesToInvoke);
+  if (!isUpdatesPaused) {
     scheduleReactUpdate(fiberRootsToResume);
-  } finally {
-    pausedFiberRoots.clear();
-    clearPendingUpdates();
   }
 };
 
