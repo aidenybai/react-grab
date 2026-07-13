@@ -1,6 +1,5 @@
 import { test, expect, type ReactGrabPageObject } from "./fixtures.js";
 
-const HOLD_START_WAIT_MS = 50;
 const BASE_ACTIVATION_WAIT_MS = 400;
 const POST_RELEASE_WAIT_MS = 300;
 
@@ -43,7 +42,7 @@ test.describe("Activation Edge Cases", () => {
         window.dispatchEvent(new Event("blur"));
         window.dispatchEvent(new Event("focus"));
       });
-      await reactGrab.page.waitForTimeout(300);
+      await reactGrab.page.waitForTimeout(BASE_ACTIVATION_WAIT_MS);
 
       await reactGrab.activateViaKeyboard();
       expect(await reactGrab.isOverlayVisible()).toBe(true);
@@ -79,7 +78,6 @@ test.describe("Activation Edge Cases", () => {
 
       await reactGrab.page.keyboard.down(reactGrab.modifierKey);
       await reactGrab.page.keyboard.down("c");
-      await reactGrab.page.waitForTimeout(HOLD_START_WAIT_MS);
       await reactGrab.page.keyboard.press("b");
       await reactGrab.page.waitForTimeout(BASE_ACTIVATION_WAIT_MS);
 

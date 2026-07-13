@@ -180,6 +180,8 @@ test.describe("Touch Mode", () => {
       await expect.poll(() => reactGrab.isOverlayVisible(), { timeout: 5000 }).toBe(false);
 
       await reactGrab.activate();
+      await reactGrab.page.mouse.move(0, 0);
+      await expect.poll(() => reactGrab.isTouchMode()).toBe(false);
       await reactGrab.hoverUntilSelected("li:nth-child(3)");
       await reactGrab.clickElement("li:nth-child(3)");
 

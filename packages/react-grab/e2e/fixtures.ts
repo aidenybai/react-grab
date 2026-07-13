@@ -170,6 +170,7 @@ export interface ReactGrabPageObject {
     width: number;
     height: number;
   } | null>;
+  getTargetTestId: () => Promise<string | null>;
 
   getState: () => Promise<ReactGrabState>;
   toggle: () => Promise<void>;
@@ -277,11 +278,22 @@ const createReactGrabPageObject = (
       undefined,
       { timeout: 5000 },
     );
-    await page.evaluate(() => {
-      const api = (window as { __REACT_GRAB__?: { activate: () => void } }).__REACT_GRAB__;
-      api?.activate();
-    });
-    await waitForActive(true);
+    await page.waitForFunction(
+      () => {
+        const api = (
+          window as {
+            __REACT_GRAB__?: {
+              activate: () => void;
+              isActive: () => boolean;
+            };
+          }
+        ).__REACT_GRAB__;
+        if (!api?.isActive()) api?.activate();
+        return api?.isActive() === true;
+      },
+      undefined,
+      { timeout: 5000 },
+    );
   };
 
   const activateViaKeyboard = async () => {
@@ -1314,6 +1326,11 @@ const createReactGrabPageObject = (
     });
   };
 
+  const getTargetTestId = async (): Promise<string | null> =>
+    page.evaluate(
+      () => window.__REACT_GRAB__?.getState().targetElement?.getAttribute("data-testid") ?? null,
+    );
+
   const getState = async (): Promise<ReactGrabState> => {
     return page.evaluate(() => {
       const api = (window as { __REACT_GRAB__?: { getState: () => ReactGrabState } })
@@ -1787,6 +1804,7 @@ const createReactGrabPageObject = (
     isGrabbedBoxVisible,
     getDragBoxBounds,
     getSelectionBoxBounds,
+    getTargetTestId,
 
     getState,
     toggle,

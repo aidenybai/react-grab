@@ -58,8 +58,10 @@ test.describe("Style Panel", () => {
 
     test("search input has no focus ring", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      await expect(
+        reactGrab.page.locator(`[${ATTRIBUTE_NAME}]`).locator(`[${SEARCH_INPUT_ATTR}]`),
+      ).toBeFocused();
       const focusVisualState = await getSearchInputFocusVisualState(reactGrab.page);
-      expect(focusVisualState.isFocusVisible).toBe(true);
       expect(focusVisualState.outlineStyle).toBe("none");
       expect(focusVisualState.boxShadow).toBe("none");
     });
@@ -352,8 +354,7 @@ test.describe("Style Panel", () => {
     }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await dragActiveSlider(reactGrab.page);
-      await reactGrab.page.waitForTimeout(80);
-      expect(await isHeaderCopyButtonVisible(reactGrab.page)).toBe(true);
+      await expect.poll(() => isHeaderCopyButtonVisible(reactGrab.page)).toBe(true);
 
       await reactGrab.page.keyboard.press("ArrowDown");
       await reactGrab.page.waitForTimeout(80);
@@ -367,7 +368,7 @@ test.describe("Style Panel", () => {
     test("net-zero tweak dismiss restores preview inline styles", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       const beforeTweak = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
-      await reactGrab.page.keyboard.type("px-2");
+      await typeInSearchInput(reactGrab.page, "px-2");
       await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
       expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).not.toBe(beforeTweak);
 
@@ -478,7 +479,7 @@ test.describe("Style Panel", () => {
       const beforeTweak = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
       // px-4 (16px) differs from the button's px-2 (8px), so it's a real,
       // submittable edit rather than a net-zero one.
-      await reactGrab.page.keyboard.type("px-4");
+      await typeInSearchInput(reactGrab.page, "px-4");
       await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
       expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).not.toBe(beforeTweak);
 
@@ -560,57 +561,57 @@ test.describe("Style Panel", () => {
     test("typing 'pl' surfaces padding-left even when consolidated", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await typeInSearchInput(reactGrab.page, "pl");
-      await reactGrab.page.waitForTimeout(80);
-      const keys = await getVisiblePropertyKeys(reactGrab.page);
-      expect(keys[0]).toBe("padding-left");
+      await expect
+        .poll(async () => (await getVisiblePropertyKeys(reactGrab.page))[0])
+        .toBe("padding-left");
     });
 
     test("typing 'pt' ranks padding-top first", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await typeInSearchInput(reactGrab.page, "pt");
-      await reactGrab.page.waitForTimeout(80);
-      const keys = await getVisiblePropertyKeys(reactGrab.page);
-      expect(keys[0]).toBe("padding-top");
+      await expect
+        .poll(async () => (await getVisiblePropertyKeys(reactGrab.page))[0])
+        .toBe("padding-top");
     });
 
     test("typing 'rounded' ranks border-radius first", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await typeInSearchInput(reactGrab.page, "rounded");
-      await reactGrab.page.waitForTimeout(80);
-      const keys = await getVisiblePropertyKeys(reactGrab.page);
-      expect(keys[0]).toBe("border-radius");
+      await expect
+        .poll(async () => (await getVisiblePropertyKeys(reactGrab.page))[0])
+        .toBe("border-radius");
     });
 
     test("typing 'text' ranks font-size first", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await typeInSearchInput(reactGrab.page, "text");
-      await reactGrab.page.waitForTimeout(80);
-      const keys = await getVisiblePropertyKeys(reactGrab.page);
-      expect(keys[0]).toBe("font-size");
+      await expect
+        .poll(async () => (await getVisiblePropertyKeys(reactGrab.page))[0])
+        .toBe("font-size");
     });
 
     test("typing 'font-mono' ranks font-family first", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await typeInSearchInput(reactGrab.page, "font-mono");
-      await reactGrab.page.waitForTimeout(80);
-      const keys = await getVisiblePropertyKeys(reactGrab.page);
-      expect(keys[0]).toBe("font-family");
+      await expect
+        .poll(async () => (await getVisiblePropertyKeys(reactGrab.page))[0])
+        .toBe("font-family");
     });
 
     test("typing a partial Tailwind alias uses prefix search", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await typeInSearchInput(reactGrab.page, "font-mo");
-      await reactGrab.page.waitForTimeout(80);
-      const keys = await getVisiblePropertyKeys(reactGrab.page);
-      expect(keys[0]).toBe("font-family");
+      await expect
+        .poll(async () => (await getVisiblePropertyKeys(reactGrab.page))[0])
+        .toBe("font-family");
     });
 
     test("typing 'uppercase' ranks text-transform first", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await typeInSearchInput(reactGrab.page, "uppercase");
-      await reactGrab.page.waitForTimeout(80);
-      const keys = await getVisiblePropertyKeys(reactGrab.page);
-      expect(keys[0]).toBe("text-transform");
+      await expect
+        .poll(async () => (await getVisiblePropertyKeys(reactGrab.page))[0])
+        .toBe("text-transform");
     });
   });
 
@@ -662,9 +663,12 @@ test.describe("Style Panel", () => {
       await typeInSearchInput(reactGrab.page, "line height");
       await reactGrab.page.waitForTimeout(80);
 
-      const beforeHover = await getActiveSliderVisualState(reactGrab.page);
-      expect(beforeHover.handleOpacity).toBe(0);
-      expect(beforeHover.maxHashMarkOpacity).toBe(0);
+      await expect
+        .poll(async () => (await getActiveSliderVisualState(reactGrab.page)).handleOpacity)
+        .toBe(0);
+      await expect
+        .poll(async () => (await getActiveSliderVisualState(reactGrab.page)).maxHashMarkOpacity)
+        .toBe(0);
 
       await reactGrab.page.evaluate(
         ({ attrName, propertyAttr }) => {
@@ -1023,9 +1027,8 @@ test.describe("Style Panel", () => {
       await reactGrab.page.keyboard.press("ArrowRight");
       await reactGrab.page.waitForTimeout(80);
       expect(await isEditPanelCompact(reactGrab.page)).toBe(true);
-      await reactGrab.page.keyboard.type("q");
-      await reactGrab.page.waitForTimeout(80);
-      expect(await isEditPanelCompact(reactGrab.page)).toBe(false);
+      await typeInSearchInput(reactGrab.page, "q");
+      await expect.poll(() => isEditPanelCompact(reactGrab.page)).toBe(false);
     });
 
     test("full search does not direct-apply unit values", async ({ reactGrab }) => {
@@ -1037,7 +1040,7 @@ test.describe("Style Panel", () => {
         "padding-left",
       );
 
-      await reactGrab.page.keyboard.type("50px");
+      await typeInSearchInput(reactGrab.page, "50px");
       await reactGrab.page.waitForTimeout(80);
 
       expect(await getEditPanelCompactAttr(reactGrab.page)).toBe("false");
@@ -1081,46 +1084,44 @@ test.describe("Style Panel", () => {
       const activePropertyKey = await getActivePropertyKey(reactGrab.page);
       expect(activePropertyKey).toBe("padding-left,padding-right");
 
-      await reactGrab.page.keyboard.type("24");
+      await typeInSearchInput(reactGrab.page, "24");
       await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
-      await reactGrab.page.keyboard.type("3");
+      await typeInSearchInput(reactGrab.page, "3");
       await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
-      await reactGrab.page.keyboard.type("6");
-      await reactGrab.page.waitForTimeout(80);
+      await typeInSearchInput(reactGrab.page, "6");
 
       expect(await getEditPanelCompactAttr(reactGrab.page)).toBe("true");
       expect(await getActivePropertyKey(reactGrab.page)).toBe(activePropertyKey);
-      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-left")).toBe(
-        "36px",
-      );
-      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-right")).toBe(
-        "36px",
-      );
+      await expect
+        .poll(() => getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-left"))
+        .toBe("36px");
+      await expect
+        .poll(() => getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-right"))
+        .toBe("36px");
     });
 
     test("compact inline numeric edit accepts matching CSS units", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await reactGrab.page.keyboard.press("ArrowRight");
-      await reactGrab.page.waitForTimeout(80);
+      await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
       const activePropertyKey = await getActivePropertyKey(reactGrab.page);
       expect(activePropertyKey).toBe("padding-left,padding-right");
 
-      await reactGrab.page.keyboard.type("50px");
-      await reactGrab.page.waitForTimeout(80);
+      await typeInSearchInput(reactGrab.page, "50px");
 
       expect(await getEditPanelCompactAttr(reactGrab.page)).toBe("true");
       expect(await getActivePropertyKey(reactGrab.page)).toBe(activePropertyKey);
-      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-left")).toBe(
-        "50px",
-      );
-      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-right")).toBe(
-        "50px",
-      );
+      await expect
+        .poll(() => getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-left"))
+        .toBe("50px");
+      await expect
+        .poll(() => getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-right"))
+        .toBe("50px");
 
       await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
-      await reactGrab.page.keyboard.type("6");
+      await typeInSearchInput(reactGrab.page, "6");
       await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
-      await reactGrab.page.keyboard.type("0px");
+      await typeInSearchInput(reactGrab.page, "0px");
       await reactGrab.page.waitForTimeout(80);
 
       expect(await getEditPanelCompactAttr(reactGrab.page)).toBe("true");
@@ -1213,18 +1214,8 @@ test.describe("Style Panel", () => {
         { attrName: ATTRIBUTE_NAME, panelAttr: EDIT_PANEL_ATTR },
       );
       expect(compactAttrBeforeTyping).toBe("false");
-      await reactGrab.page.keyboard.type("mt");
-      await reactGrab.page.waitForTimeout(80);
-      const compactAttrAfterTyping = await reactGrab.page.evaluate(
-        ({ attrName, panelAttr }) => {
-          const host = document.querySelector(`[${attrName}]`);
-          const shadowRoot = host?.shadowRoot;
-          const panel = shadowRoot?.querySelector(`[${panelAttr}]`);
-          return panel?.getAttribute("data-rg-compact") ?? null;
-        },
-        { attrName: ATTRIBUTE_NAME, panelAttr: EDIT_PANEL_ATTR },
-      );
-      expect(compactAttrAfterTyping).toBe("true");
+      await typeInSearchInput(reactGrab.page, "mt");
+      await expect.poll(() => getEditPanelCompactAttr(reactGrab.page)).toBe("true");
     });
 
     test("typing a complete tailwind class (mt-5) applies value + compact", async ({
@@ -1236,25 +1227,14 @@ test.describe("Style Panel", () => {
         BUTTON_SELECTOR,
         "margin-top",
       );
-      await reactGrab.page.keyboard.type("mt-5");
-      await reactGrab.page.waitForTimeout(80);
-      const compactAttr = await reactGrab.page.evaluate(
-        ({ attrName, panelAttr }) => {
-          const host = document.querySelector(`[${attrName}]`);
-          const shadowRoot = host?.shadowRoot;
-          const panel = shadowRoot?.querySelector(`[${panelAttr}]`);
-          return panel?.getAttribute("data-rg-compact") ?? null;
-        },
-        { attrName: ATTRIBUTE_NAME, panelAttr: EDIT_PANEL_ATTR },
-      );
-      expect(compactAttr).toBe("true");
-      const marginTopAfterTyping = await getInlineStyleProperty(
-        reactGrab.page,
-        BUTTON_SELECTOR,
-        "margin-top",
-      );
-      expect(marginTopAfterTyping).not.toBe(marginTopBeforeTyping);
-      expect(marginTopAfterTyping).toContain("20");
+      await setSearchInputValue(reactGrab.page, "mt-5");
+      await expect.poll(() => getEditPanelCompactAttr(reactGrab.page)).toBe("true");
+      await expect
+        .poll(() => getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "margin-top"))
+        .not.toBe(marginTopBeforeTyping);
+      await expect
+        .poll(() => getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "margin-top"))
+        .toContain("20");
     });
 
     test("typing -m-4 applies a negative margin", async ({ reactGrab }) => {
@@ -1280,88 +1260,55 @@ test.describe("Style Panel", () => {
 
     test("typing font-mono applies font family + compact", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
-      await reactGrab.page.keyboard.type("font-mono");
-      await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
-
-      const fontFamily = await getInlineStyleProperty(
-        reactGrab.page,
-        BUTTON_SELECTOR,
-        "font-family",
-      );
-      expect(fontFamily).toContain("ui-monospace");
-      expect(await getEditPanelCompactAttr(reactGrab.page)).toBe("true");
+      await setSearchInputValue(reactGrab.page, "font-mono");
+      await expect
+        .poll(() => getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "font-family"))
+        .toContain("ui-monospace");
+      await expect.poll(() => getEditPanelCompactAttr(reactGrab.page)).toBe("true");
     });
 
     test("typing uppercase applies text transform + compact", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
-      await reactGrab.page.keyboard.type("uppercase");
-      await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
-
-      const textTransform = await getInlineStyleProperty(
-        reactGrab.page,
-        BUTTON_SELECTOR,
-        "text-transform",
-      );
-      expect(textTransform).toBe("uppercase");
-      expect(await getEditPanelCompactAttr(reactGrab.page)).toBe("true");
+      await setSearchInputValue(reactGrab.page, "uppercase");
+      await expect
+        .poll(() => getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "text-transform"))
+        .toBe("uppercase");
+      await expect.poll(() => getEditPanelCompactAttr(reactGrab.page)).toBe("true");
     });
 
     test("typing p-4 on non-uniform spacing writes to both axis aggregates", async ({
       reactGrab,
     }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
-      await reactGrab.page.keyboard.type("p-4");
-      await reactGrab.page.waitForTimeout(80);
-      const paddingTop = await getInlineStyleProperty(
-        reactGrab.page,
-        BUTTON_SELECTOR,
+      await setSearchInputValue(reactGrab.page, "p-4");
+      for (const paddingProperty of [
         "padding-top",
-      );
-      const paddingRight = await getInlineStyleProperty(
-        reactGrab.page,
-        BUTTON_SELECTOR,
         "padding-right",
-      );
-      const paddingBottom = await getInlineStyleProperty(
-        reactGrab.page,
-        BUTTON_SELECTOR,
         "padding-bottom",
-      );
-      const paddingLeft = await getInlineStyleProperty(
-        reactGrab.page,
-        BUTTON_SELECTOR,
         "padding-left",
-      );
-      expect(paddingTop).toContain("16");
-      expect(paddingRight).toContain("16");
-      expect(paddingBottom).toContain("16");
-      expect(paddingLeft).toContain("16");
+      ]) {
+        await expect
+          .poll(() => getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, paddingProperty))
+          .toContain("16");
+      }
     });
 
     test("typing multiple tailwind classes applies each token", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
-      await reactGrab.page.keyboard.type("p-4 mt-5");
-      await reactGrab.page.waitForTimeout(80);
-
-      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-top")).toBe(
-        "16px",
-      );
-      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "margin-top")).toBe(
-        "20px",
-      );
-      expect(await getEditPanelCompactAttr(reactGrab.page)).toBe("true");
+      await setSearchInputValue(reactGrab.page, "p-4 mt-5");
+      await expect
+        .poll(() => getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-top"))
+        .toBe("16px");
+      await expect
+        .poll(() => getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "margin-top"))
+        .toBe("20px");
+      await expect.poll(() => getEditPanelCompactAttr(reactGrab.page)).toBe("true");
     });
 
     test("typing border-t-4 writes only the top border width", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
-      await reactGrab.page.keyboard.type("border-t-4");
-      await reactGrab.page.waitForTimeout(80);
+      await setSearchInputValue(reactGrab.page, "border-t-4");
 
-      const borderTopWidth = await getInlineStyleProperty(
-        reactGrab.page,
-        BUTTON_SELECTOR,
-        "border-top-width",
-      );
       const borderRightWidth = await getInlineStyleProperty(
         reactGrab.page,
         BUTTON_SELECTOR,
@@ -1378,7 +1325,9 @@ test.describe("Style Panel", () => {
         "border-left-width",
       );
 
-      expect(borderTopWidth).toBe("4px");
+      await expect
+        .poll(() => getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "border-top-width"))
+        .toBe("4px");
       expect(borderRightWidth).toBe("");
       expect(borderBottomWidth).toBe("");
       expect(borderLeftWidth).toBe("");
@@ -1386,16 +1335,14 @@ test.describe("Style Panel", () => {
 
     test("typing py 40 applies padding-y", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
-      await reactGrab.page.keyboard.type("py 40");
-      await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
-
-      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-top")).toBe(
-        "160px",
-      );
-      expect(await getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-bottom")).toBe(
-        "160px",
-      );
-      expect(await getEditPanelCompactAttr(reactGrab.page)).toBe("true");
+      await setSearchInputValue(reactGrab.page, "py 40");
+      await expect
+        .poll(() => getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-top"))
+        .toBe("160px");
+      await expect
+        .poll(() => getInlineStyleProperty(reactGrab.page, BUTTON_SELECTOR, "padding-bottom"))
+        .toBe("160px");
+      await expect.poll(() => getEditPanelCompactAttr(reactGrab.page)).toBe("true");
     });
 
     test("compact value updates live on subsequent tweaks", async ({ reactGrab }) => {

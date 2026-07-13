@@ -23,6 +23,7 @@ import { formatComponentNameLines } from "../utils/format-component-name-lines.j
 import { enrichServerFrameLocations, symbolicateServerFrames } from "./next-server-frames.js";
 import { runQueuedSourceFetch } from "../utils/source-fetch-queue.js";
 import { getHTMLPreview, getInlineHTMLPreview } from "./html-preview.js";
+import { isShadowRoot } from "../utils/is-shadow-root.js";
 import {
   isInternalComponentName,
   isUsefulComponentName,
@@ -45,9 +46,14 @@ const isTrustedAppSourcePath = (fileName: string | null | undefined): boolean =>
 const findNearestFiberElement = (element: Element): Element => {
   if (!isInstrumentationActive()) return element;
   let current: Element | null = element;
-  while (current) {
+  while (current?.ownerDocument === element.ownerDocument) {
     if (getFiberFromHostInstance(current)) return current;
-    current = current.parentElement;
+    if (current.parentElement) {
+      current = current.parentElement;
+      continue;
+    }
+    const rootNode = current.getRootNode();
+    current = isShadowRoot(rootNode) ? rootNode.host : null;
   }
   return element;
 };

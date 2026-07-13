@@ -6,6 +6,13 @@ import {
   type Fiber,
 } from "bippy";
 import { indexInParent } from "../utils/index-in-parent.js";
+import { isShadowRoot } from "../utils/is-shadow-root.js";
+import { isElementNode } from "../utils/is-element-node.js";
+
+interface ElementAnchorPathStep {
+  childIndex: number;
+  isShadowChild: boolean;
+}
 
 interface ElementAnchor {
   // Nearest ancestor (or the element itself) that React manages via a fiber.
@@ -23,7 +30,7 @@ interface ElementAnchor {
   anchorIndexInParent: number;
   // Child-index chain from the anchor down to the tracked element; empty when
   // the element is itself the anchor.
-  domPath: number[];
+  domPath: ElementAnchorPathStep[];
   targetTagName: string;
 }
 
@@ -43,7 +50,7 @@ const resolveLiveAnchor = (anchor: ElementAnchor): Element | null => {
   // that same-tag siblings can't confuse.
   if (isHostFiber(latestParentFiber)) {
     const parentNode = latestParentFiber.stateNode;
-    if (!(parentNode instanceof Element) || !parentNode.isConnected) return null;
+    if (!isElementNode(parentNode) || !parentNode.isConnected) return null;
     const candidate = parentNode.children[anchor.anchorIndexInParent];
     return candidate && candidate.tagName === anchorTagName ? candidate : null;
   }
@@ -54,17 +61,18 @@ const resolveLiveAnchor = (anchor: ElementAnchor): Element | null => {
     // original element type is gone. Same-tag siblings under a shared composite
     // ancestor can't be told apart and resolve to the first match, which still
     // leaves the selection on a valid node instead of dropping it.
-    if (node instanceof Element && node.isConnected && node.tagName === anchorTagName) {
+    if (isElementNode(node) && node.isConnected && node.tagName === anchorTagName) {
       return node;
     }
   }
   return null;
 };
 
-const followDomPath = (root: Element, domPath: number[]): Element | null => {
+const followDomPath = (root: Element, domPath: ElementAnchorPathStep[]): Element | null => {
   let node: Element = root;
-  for (const childIndex of domPath) {
-    const child = node.children[childIndex];
+  for (const pathStep of domPath) {
+    const childCollection = pathStep.isShadowChild ? node.shadowRoot?.children : node.children;
+    const child = childCollection?.[pathStep.childIndex];
     if (!child) return null;
     node = child;
   }
@@ -74,12 +82,20 @@ const followDomPath = (root: Element, domPath: number[]): Element | null => {
 // Walks up to the nearest fiber-managed ancestor, recording the DOM path taken
 // so a non-fibered element (innerHTML content) can be re-found beneath it.
 const findAnchor = (element: Element): ElementAnchor | null => {
-  const domPath: number[] = [];
+  const domPath: ElementAnchorPathStep[] = [];
   let anchorElement: Element | null = element;
   let anchorFiber = getFiberFromHostInstance(anchorElement);
   while (anchorElement && !anchorFiber) {
-    domPath.unshift(indexInParent(anchorElement));
-    anchorElement = anchorElement.parentElement;
+    const parentElement: Element | null = anchorElement.parentElement;
+    if (parentElement) {
+      domPath.unshift({ childIndex: indexInParent(anchorElement), isShadowChild: false });
+      anchorElement = parentElement;
+    } else {
+      const rootNode = anchorElement.getRootNode();
+      if (!isShadowRoot(rootNode)) break;
+      domPath.unshift({ childIndex: indexInParent(anchorElement), isShadowChild: true });
+      anchorElement = rootNode.host;
+    }
     anchorFiber = getFiberFromHostInstance(anchorElement);
   }
   const anchorParentFiber = anchorFiber?.return;

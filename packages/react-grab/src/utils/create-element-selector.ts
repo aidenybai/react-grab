@@ -1,5 +1,8 @@
 import { isAcceptedAttr, findUniqueSelector } from "./find-unique-selector.js";
 import { FINDER_TIMEOUT_MS, SELECTOR_ATTR_VALUE_MAX_LENGTH_CHARS } from "../constants.js";
+import { getWindowFrameElement } from "./get-window-frame-element.js";
+import { isShadowRoot } from "./is-shadow-root.js";
+import { isElementNode } from "./is-element-node.js";
 
 const getFinderRoot = (element: Element): Element =>
   element.ownerDocument.body ?? element.ownerDocument.documentElement;
@@ -24,7 +27,9 @@ const isPreferredAttributeValueSafe = (value: string): boolean =>
 
 const isSelectorUniqueForElement = (element: Element, selector: string): boolean => {
   try {
-    const matchingElements = element.ownerDocument.querySelectorAll(selector);
+    const rootNode = element.getRootNode();
+    const selectorRoot = isShadowRoot(rootNode) ? rootNode : element.ownerDocument;
+    const matchingElements = selectorRoot.querySelectorAll(selector);
     return matchingElements.length === 1 && matchingElements[0] === element;
   } catch {
     return false;
@@ -32,8 +37,9 @@ const isSelectorUniqueForElement = (element: Element, selector: string): boolean
 };
 
 const createFastElementSelector = (element: Element): string | null => {
-  if (element instanceof HTMLElement && element.id) {
-    const idSelector = `#${CSS.escape(element.id)}`;
+  const elementId = element.getAttribute("id");
+  if (elementId) {
+    const idSelector = `#${CSS.escape(elementId)}`;
     if (isSelectorUniqueForElement(element, idSelector)) return idSelector;
   }
 
@@ -60,38 +66,40 @@ const createFastElementSelector = (element: Element): string | null => {
 
 const createNthChildSelector = (element: Element): string => {
   const segments: string[] = [];
-  const root = getFinderRoot(element);
+  const rootNode = element.getRootNode();
+  const root = isShadowRoot(rootNode) ? rootNode : getFinderRoot(element);
 
   let currentElement: Element | null = element;
   while (currentElement) {
-    if (currentElement instanceof HTMLElement && currentElement.id) {
-      segments.unshift(`#${CSS.escape(currentElement.id)}`);
+    const currentElementId = currentElement.getAttribute("id");
+    if (currentElementId) {
+      segments.unshift(`#${CSS.escape(currentElementId)}`);
       break;
     }
 
-    const parentElement: HTMLElement | null = currentElement.parentElement;
-    if (!parentElement) {
+    const parentNode: ParentNode | null = currentElement.parentNode;
+    if (!parentNode) {
       segments.unshift(currentElement.tagName.toLowerCase());
       break;
     }
 
-    const siblings = Array.from(parentElement.children);
+    const siblings = Array.from(parentNode.children);
     const nthChild = siblings.indexOf(currentElement) + 1;
 
     segments.unshift(`${currentElement.tagName.toLowerCase()}:nth-child(${nthChild})`);
 
-    if (parentElement === root) {
-      segments.unshift(root.tagName.toLowerCase());
+    if (parentNode === root) {
+      if (isElementNode(root)) segments.unshift(root.tagName.toLowerCase());
       break;
     }
 
-    currentElement = parentElement;
+    currentElement = isElementNode(parentNode) ? parentNode : null;
   }
 
   return segments.join(" > ");
 };
 
-export const createElementSelector = (element: Element): string => {
+const createLocalElementSelector = (element: Element): string => {
   const fastSelector = createFastElementSelector(element);
   if (fastSelector) return fastSelector;
 
@@ -111,4 +119,17 @@ export const createElementSelector = (element: Element): string => {
   } catch {}
 
   return createNthChildSelector(element);
+};
+
+export const createElementSelector = (element: Element): string => {
+  const localSelector = createLocalElementSelector(element);
+  const rootNode = element.getRootNode();
+  if (isShadowRoot(rootNode)) {
+    return `${createElementSelector(rootNode.host)} >>> ${localSelector}`;
+  }
+
+  const frameElement = getWindowFrameElement(element.ownerDocument.defaultView);
+  return frameElement
+    ? `${createElementSelector(frameElement)} >>iframe>> ${localSelector}`
+    : localSelector;
 };

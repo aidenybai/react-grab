@@ -1,5 +1,8 @@
 import { MAX_SELECTOR_COMBINATIONS } from "../constants.js";
 import { NonElementNodeError, SelectorNotFoundError, SelectorTimeoutError } from "../errors.js";
+import { isDocumentNode } from "./is-document-node.js";
+import { isElementNode } from "./is-element-node.js";
+import { isShadowRoot } from "./is-shadow-root.js";
 
 interface SelectorNode {
   name: string;
@@ -67,7 +70,7 @@ const getChildIndex = (element: Element, filterTagName?: string): number | undef
   let position = 0;
   while (sibling) {
     if (
-      sibling instanceof Element &&
+      isElementNode(sibling) &&
       (filterTagName === undefined || sibling.tagName.toLowerCase() === filterTagName)
     ) {
       position++;
@@ -157,31 +160,26 @@ const collectCombinations = (
   return results;
 };
 
-const resolveRootDocument = (
-  rootNode: Element | Document,
-  targetElement: Element,
-): Element | Document => {
-  const attachedRoot = targetElement.getRootNode?.();
-  if (attachedRoot instanceof ShadowRoot) {
-    return attachedRoot as unknown as Document;
+const resolveSelectorRoot = (rootNode: Element | Document, targetElement: Element): ParentNode => {
+  const attachedRoot = targetElement.getRootNode();
+  if (isShadowRoot(attachedRoot)) {
+    return attachedRoot;
   }
-  if (rootNode instanceof Document) return rootNode;
+  if (isDocumentNode(rootNode)) return rootNode;
   return rootNode.ownerDocument;
 };
 
-const isSelectorUnique = (
-  selectorPath: SelectorNode[],
-  rootDocument: Element | Document,
-): boolean => rootDocument.querySelectorAll(buildSelectorString(selectorPath)).length === 1;
+const isSelectorUnique = (selectorPath: SelectorNode[], selectorRoot: ParentNode): boolean =>
+  selectorRoot.querySelectorAll(buildSelectorString(selectorPath)).length === 1;
 
 const buildFallbackPath = (
   targetElement: Element,
-  rootDocument: Element | Document,
+  selectorRoot: ParentNode,
 ): SelectorNode[] | undefined => {
   let currentElement: Element | null = targetElement;
   const path: SelectorNode[] = [];
 
-  while (currentElement && currentElement !== rootDocument) {
+  while (currentElement && currentElement !== selectorRoot) {
     const currentTagName = currentElement.tagName.toLowerCase();
     const typePosition = getChildIndex(currentElement, currentTagName);
     if (typePosition === undefined) return undefined;
@@ -193,7 +191,7 @@ const buildFallbackPath = (
     currentElement = currentElement.parentElement;
   }
 
-  return isSelectorUnique(path, rootDocument) ? path : undefined;
+  return isSelectorUnique(path, selectorRoot) ? path : undefined;
 };
 
 export const findUniqueSelector = (
@@ -209,7 +207,7 @@ export const findUniqueSelector = (
     return "html";
   }
 
-  const rootDocument = resolveRootDocument(root, targetElement);
+  const selectorRoot = resolveSelectorRoot(root, targetElement);
   const startTime = Date.now();
 
   const ancestorStack: SelectorNode[][] = [];
@@ -217,7 +215,7 @@ export const findUniqueSelector = (
   let depth = 0;
   let foundPath: SelectorNode[] | undefined;
 
-  while (currentElement && currentElement !== rootDocument && !foundPath) {
+  while (currentElement && currentElement !== selectorRoot && !foundPath) {
     ancestorStack.push(collectCandidateNodes(currentElement, attrFilter));
     currentElement = currentElement.parentElement;
     depth++;
@@ -228,13 +226,13 @@ export const findUniqueSelector = (
 
       for (const candidatePath of candidatePaths) {
         if (Date.now() - startTime > timeoutMs) {
-          const fallbackPath = buildFallbackPath(targetElement, rootDocument);
+          const fallbackPath = buildFallbackPath(targetElement, selectorRoot);
           if (!fallbackPath) {
             throw new SelectorTimeoutError(timeoutMs);
           }
           return buildSelectorString(fallbackPath);
         }
-        if (isSelectorUnique(candidatePath, rootDocument)) {
+        if (isSelectorUnique(candidatePath, selectorRoot)) {
           foundPath = candidatePath;
           break;
         }
@@ -247,7 +245,7 @@ export const findUniqueSelector = (
     remainingPaths.sort(comparePenalty);
     for (const candidatePath of remainingPaths) {
       if (Date.now() - startTime > timeoutMs) break;
-      if (isSelectorUnique(candidatePath, rootDocument)) {
+      if (isSelectorUnique(candidatePath, selectorRoot)) {
         foundPath = candidatePath;
         break;
       }

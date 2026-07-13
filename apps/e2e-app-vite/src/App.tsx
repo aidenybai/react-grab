@@ -1,7 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { PerfGrid } from "./perf-grid";
 import { HeavyPage, parseHeavyView, type HeavyView } from "./perf-heavy/heavy-page";
+import { IframeFixture } from "./iframe-fixture";
 import { OwnerStackCases } from "./owner-stack-cases";
+import { PierreDiffFixture, PierreDiffPreview } from "./pierre-diff-fixture";
+import { ShadowDomEdgeFixture } from "./shadow-dom-edge-fixture";
 
 declare global {
   interface Window {
@@ -802,6 +805,9 @@ const PointerEventsModalSection = () => {
 export default function App() {
   const perfConfig = usePerfGridConfig();
   const heavyView = usePerfHeavyView();
+  const searchParams = new URLSearchParams(window.location.search);
+  const isIframePreview = searchParams.has("iframe-preview");
+  const isIframeDiffPreview = searchParams.has("iframe-diff-preview");
 
   if (perfConfig) {
     return <PerfGrid rowCount={perfConfig.rowCount} columnCount={perfConfig.columnCount} />;
@@ -809,6 +815,18 @@ export default function App() {
 
   if (heavyView) {
     return <HeavyPage view={heavyView} />;
+  }
+
+  if (isIframeDiffPreview) {
+    return <PierreDiffPreview />;
+  }
+
+  if (isIframePreview) {
+    return (
+      <main className="min-h-screen bg-slate-100 p-8">
+        <IframeFixture />
+      </main>
+    );
   }
 
   return (
@@ -857,6 +875,12 @@ export default function App() {
       <PointerUpModalSection />
 
       <PointerEventsModalSection />
+
+      <PierreDiffFixture />
+
+      <ShadowDomEdgeFixture />
+
+      <IframeFixture />
 
       <HiddenToggleSection />
 

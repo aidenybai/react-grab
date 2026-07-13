@@ -217,7 +217,6 @@ export const getActiveTailwindLabelText = async (page: Page): Promise<string | n
   (await getActiveTailwindLabelInfo(page)).text;
 
 export interface SearchInputFocusVisualState {
-  isFocusVisible: boolean;
   outlineStyle: string;
   boxShadow: string;
 }
@@ -230,11 +229,10 @@ export const getSearchInputFocusVisualState = async (
       const host = document.querySelector(`[${attrName}]`);
       const input = host?.shadowRoot?.querySelector<HTMLElement>(`[${inputAttr}]`);
       if (!input) {
-        return { isFocusVisible: false, outlineStyle: "", boxShadow: "" };
+        return { outlineStyle: "", boxShadow: "" };
       }
       const computedStyle = getComputedStyle(input);
       return {
-        isFocusVisible: input.matches(":focus-visible"),
         outlineStyle: computedStyle.outlineStyle,
         boxShadow: computedStyle.boxShadow,
       };
@@ -279,18 +277,10 @@ export const getOverlayFocusVisualStates = async (
   );
 
 export const typeInSearchInput = async (page: Page, text: string): Promise<void> => {
-  await page.evaluate(
-    ({ attrName, inputAttr }) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      if (!shadowRoot) throw new Error("No shadow root");
-      const input = shadowRoot.querySelector<HTMLTextAreaElement>(`[${inputAttr}]`);
-      if (!input) throw new Error("Search input not found");
-      input.focus();
-    },
-    { attrName: ATTRIBUTE_NAME, inputAttr: SEARCH_INPUT_ATTR },
-  );
-  await page.keyboard.type(text);
+  await page
+    .locator(`[${ATTRIBUTE_NAME}]`)
+    .locator(`[${SEARCH_INPUT_ATTR}]`)
+    .pressSequentially(text);
 };
 
 export const setSearchInputValue = async (page: Page, value: string): Promise<void> => {
@@ -570,4 +560,5 @@ export const openEditPanel = async (
   await reactGrab.rightClickElement(selector);
   await reactGrab.clickContextMenuItem("Style");
   await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(true);
+  await reactGrab.page.locator(`[${ATTRIBUTE_NAME}]`).locator(`[${SEARCH_INPUT_ATTR}]`).focus();
 };

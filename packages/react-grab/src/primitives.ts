@@ -25,6 +25,7 @@ import { createElementSelector } from "./utils/create-element-selector.js";
 import { extractElementCss, disposeBaselineStyles } from "./utils/extract-element-css.js";
 import { findSelectorTarget } from "./utils/find-selector-target.js";
 import { requestOpenFile } from "./utils/open-file.js";
+import { getDeepElementsAtPoint } from "./utils/get-deep-elements-at-point.js";
 
 export { OpenFileError } from "./errors.js";
 
@@ -100,7 +101,7 @@ export const getElementsAtPosition = (clientX: number, clientY: number): Element
   if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) return [];
   suspendPointerEventsFreeze();
   try {
-    return Array.from(document.elementsFromPoint(clientX, clientY));
+    return getDeepElementsAtPoint(clientX, clientY);
   } finally {
     resumePointerEventsFreeze();
   }

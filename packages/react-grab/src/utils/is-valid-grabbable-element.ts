@@ -1,32 +1,14 @@
 import {
   DEV_TOOLS_OVERLAY_Z_INDEX_THRESHOLD,
   OVERLAY_Z_INDEX_THRESHOLD,
-  USER_IGNORE_ATTRIBUTE,
   VIEWPORT_COVERAGE_THRESHOLD,
   VISIBILITY_CACHE_TTL_MS,
 } from "../constants.js";
 import { isElementVisible } from "./is-element-visible.js";
 import { isRootElement } from "./is-root-element.js";
-
-// Checks both the library and demo host attributes (not just this build's
-// REACT_GRAB_ATTRIBUTE_NAME): when a real instance and the demo build coexist
-// on one page (each with its own host), neither may treat the other's overlay
-// as grabbable page content.
-const REACT_GRAB_HOST_ATTRIBUTES = ["data-react-grab", "data-react-grab-demo"];
-
-const hasReactGrabAttribute = (element: Element): boolean =>
-  REACT_GRAB_HOST_ATTRIBUTES.some((attribute) => element.hasAttribute(attribute));
-
-const isReactGrabElement = (element: Element): boolean => {
-  if (hasReactGrabAttribute(element)) return true;
-
-  const rootNode = element.getRootNode();
-  return rootNode instanceof ShadowRoot && hasReactGrabAttribute(rootNode.host);
-};
-
-const isUserIgnoredElement = (element: Element): boolean =>
-  element.hasAttribute(USER_IGNORE_ATTRIBUTE) ||
-  element.closest(`[${USER_IGNORE_ATTRIBUTE}]`) !== null;
+import { getElementComputedStyle } from "./get-element-computed-style.js";
+import { isReactGrabElement } from "./is-react-grab-element.js";
+import { isUserIgnoredElement } from "./is-user-ignored-element.js";
 
 // Dev tools like react-scan create full-viewport canvas overlays with
 // pointer-events:none that elementsFromPoint still returns. Without this
@@ -101,14 +83,16 @@ export const isValidGrabbableElement = (element: Element): boolean => {
   }
 
   const couldBeOverlay =
-    element.clientWidth / window.innerWidth >= VIEWPORT_COVERAGE_THRESHOLD &&
-    element.clientHeight / window.innerHeight >= VIEWPORT_COVERAGE_THRESHOLD;
+    element.clientWidth / (element.ownerDocument.defaultView?.innerWidth ?? window.innerWidth) >=
+      VIEWPORT_COVERAGE_THRESHOLD &&
+    element.clientHeight / (element.ownerDocument.defaultView?.innerHeight ?? window.innerHeight) >=
+      VIEWPORT_COVERAGE_THRESHOLD;
 
   if (couldBeOverlay) {
     // getComputedStyle is deferred to this branch on purpose: it is the
     // expensive call in this function and only viewport-covering elements
     // need the overlay heuristics.
-    const computedStyle = window.getComputedStyle(element);
+    const computedStyle = getElementComputedStyle(element);
     if (isDevToolsOverlay(computedStyle)) {
       return false;
     }

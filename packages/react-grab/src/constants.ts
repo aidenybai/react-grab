@@ -78,14 +78,18 @@ export const PENDING_DETECTION_STALENESS_MS = 200;
 export const COMPONENT_NAME_DEBOUNCE_MS = 100;
 export const DRAG_PREVIEW_DEBOUNCE_MS = 32;
 export const BOUNDS_CACHE_TTL_MS = 16;
+export const IFRAME_LAYOUT_METRICS_CACHE_TTL_MS = 16;
 export const BORDER_RADIUS_CACHE_TTL_MS = 200;
+export const BORDER_RADIUS_SCALE_PRECISION_DECIMAL_PLACES = 3;
 export const BOUNDS_RECALC_INTERVAL_MS = 100;
+export const ELEMENT_RELINK_GRACE_ATTEMPTS = 1;
 
 export const AUTO_SCROLL_EDGE_THRESHOLD_PX = 25;
 export const AUTO_SCROLL_SPEED_PX = 10;
 
 export const Z_INDEX_OVERLAY = 2147483647;
 export const Z_INDEX_OVERLAY_CANVAS = 2147483645;
+export const DOCUMENT_NODE_TYPE = 9;
 
 export const DRAG_LERP_FACTOR = 0.7;
 export const BASELINE_FRAME_DURATION_MS = 1000 / 60;
@@ -159,6 +163,7 @@ export const ARROW_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRi
 export { REACT_GRAB_ATTRIBUTE_NAME } from "./utils/react-grab-attribute-name.js";
 
 export const FROZEN_ELEMENT_ATTRIBUTE = "data-react-grab-frozen";
+export const SAME_ORIGIN_FRAME_ATTRIBUTE = "data-react-grab-same-origin-frame";
 
 // Pausing animations individually via WAAPI avoids the full-document style
 // recalc that a universal `*` selector forces — profiled at ~62ms on a real

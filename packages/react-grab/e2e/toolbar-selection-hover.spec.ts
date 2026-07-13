@@ -1,29 +1,11 @@
+import type { Page } from "@playwright/test";
 import { test, expect } from "./fixtures.js";
 import { ATTRIBUTE_NAME } from "./constants.js";
 
-const hoverToolbar = async (page: import("@playwright/test").Page) => {
-  const toolbarRect = await page.evaluate((attrName) => {
-    const host = document.querySelector(`[${attrName}]`);
-    const shadowRoot = host?.shadowRoot;
-    if (!shadowRoot) return null;
-    const root = shadowRoot.querySelector(`[${attrName}]`);
-    if (!root) return null;
-    const toolbar = root.querySelector<HTMLElement>("[data-react-grab-toolbar]");
-    if (!toolbar) return null;
-    const rect = toolbar.getBoundingClientRect();
-    return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
-  }, ATTRIBUTE_NAME);
+const hoverToolbar = async (page: Page) =>
+  page.locator(`[${ATTRIBUTE_NAME}] [data-react-grab-toolbar]`).first().hover();
 
-  if (!toolbarRect) throw new Error("Toolbar not found");
-
-  await page.mouse.move(
-    toolbarRect.x + toolbarRect.width / 2,
-    toolbarRect.y + toolbarRect.height / 2,
-  );
-  await page.waitForTimeout(150);
-};
-
-const hoverAwayFromToolbar = async (page: import("@playwright/test").Page) => {
+const hoverAwayFromToolbar = async (page: Page) => {
   await page.mouse.move(10, 10);
   await page.waitForTimeout(150);
 };
@@ -60,7 +42,7 @@ test.describe("Toolbar Selection Hover", () => {
 
       await expect.poll(() => reactGrab.isSelectionBoxVisible(), { timeout: 2000 }).toBe(false);
 
-      await reactGrab.hoverElement("li");
+      await hoverAwayFromToolbar(reactGrab.page);
 
       await expect.poll(() => reactGrab.isSelectionBoxVisible(), { timeout: 2000 }).toBe(true);
     });

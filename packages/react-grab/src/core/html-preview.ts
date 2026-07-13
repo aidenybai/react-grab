@@ -9,6 +9,8 @@ import { getTagName } from "../utils/get-tag-name.js";
 import { truncateString } from "../utils/truncate-string.js";
 import { isInternalAttribute } from "../utils/strip-internal-attributes.js";
 import { getPreviewTextContent } from "../utils/get-preview-text-content.js";
+import { isElementNode } from "../utils/is-element-node.js";
+import { isHtmlElement } from "../utils/is-html-element.js";
 
 const truncateAttrValue = (attributeValue: string): string =>
   truncateString(attributeValue, PREVIEW_ATTR_VALUE_MAX_LENGTH);
@@ -63,7 +65,7 @@ const formatChildElements = (elements: Array<Element>): string => {
 export const getInlineHTMLPreview = (element: Element): string => {
   const tagName = getTagName(element);
 
-  if (!(element instanceof HTMLElement)) {
+  if (!isHtmlElement(element)) {
     return `<${tagName}${formatPriorityAttrs(element)} />`;
   }
 
@@ -92,7 +94,7 @@ export const getHTMLPreview = (element: Element): string => {
       if (node.textContent && node.textContent.trim().length > 0) {
         foundFirstText = true;
       }
-    } else if (node instanceof Element) {
+    } else if (isElementNode(node)) {
       if (!foundFirstText) {
         topElements.push(node);
       } else {
