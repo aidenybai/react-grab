@@ -1,3 +1,4 @@
+import { getOwner, onCleanup } from "solid-js";
 import { createStore } from "solid-js/store";
 import type {
   Position,
@@ -21,6 +22,7 @@ import type {
 } from "../types.js";
 import { DEFAULT_THEME, deepMergeTheme } from "./theme.js";
 import { DEFAULT_KEY_HOLD_DURATION_MS, DEFAULT_MAX_CONTEXT_LINES } from "../constants.js";
+import { logRecoverableError } from "../utils/log-recoverable-error.js";
 
 interface RegisteredPlugin {
   plugin: Plugin;
@@ -58,6 +60,7 @@ type HookName = keyof PluginHooks;
 const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
   const plugins = new Map<string, RegisteredPlugin>();
   const directOptionOverrides: Partial<OptionsState> = {};
+  let isDisposed = false;
 
   const [store, setStore] = createStore<PluginStoreState>({
     theme: DEFAULT_THEME,
@@ -112,6 +115,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
   ];
 
   const setOptions = (optionUpdates: SettableOptions) => {
+    if (isDisposed) return;
     for (const optionKey of SETTABLE_OPTION_KEYS) {
       if (optionUpdates[optionKey] !== undefined) {
         setOption(optionKey, optionUpdates[optionKey]!);
@@ -120,6 +124,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
   };
 
   const register = (plugin: Plugin, api: ReactGrabAPI) => {
+    if (isDisposed) return;
     if (plugins.has(plugin.name)) {
       unregister(plugin.name);
     }
@@ -148,15 +153,34 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     recomputeStore();
   };
 
+  const cleanupPlugin = ({ plugin, config }: RegisteredPlugin) => {
+    try {
+      const cleanupResult = config.cleanup?.();
+      void Promise.resolve(cleanupResult).catch((error) => {
+        logRecoverableError(`Plugin cleanup failed for "${plugin.name}"`, error);
+      });
+    } catch (error) {
+      logRecoverableError(`Plugin cleanup failed for "${plugin.name}"`, error);
+    }
+  };
+
   const unregister = (name: string) => {
+    if (isDisposed) return;
     const registered = plugins.get(name);
     if (!registered) return;
 
-    if (registered.config.cleanup) {
-      registered.config.cleanup();
-    }
-
     plugins.delete(name);
+    cleanupPlugin(registered);
+    recomputeStore();
+  };
+
+  const dispose = () => {
+    if (isDisposed) return;
+    isDisposed = true;
+
+    const registeredPlugins = Array.from(plugins.values());
+    plugins.clear();
+    registeredPlugins.forEach(cleanupPlugin);
     recomputeStore();
   };
 
@@ -168,12 +192,19 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     hookName: K,
     ...args: Parameters<NonNullable<PluginHooks[K]>>
   ): void => {
-    for (const { config } of plugins.values()) {
+    for (const { plugin, config } of plugins.values()) {
       const hook = config.hooks?.[hookName] as
         | ((...hookArgs: Parameters<NonNullable<PluginHooks[K]>>) => void)
         | undefined;
       if (hook) {
-        hook(...args);
+        try {
+          hook(...args);
+        } catch (error) {
+          logRecoverableError(
+            `Plugin hook "${String(hookName)}" failed for "${plugin.name}"`,
+            error,
+          );
+        }
       }
     }
   };
@@ -183,14 +214,21 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     ...args: Parameters<NonNullable<PluginHooks[K]>>
   ): boolean => {
     let handled = false;
-    for (const { config } of plugins.values()) {
+    for (const { plugin, config } of plugins.values()) {
       const hook = config.hooks?.[hookName] as
         | ((...hookArgs: Parameters<NonNullable<PluginHooks[K]>>) => boolean | void)
         | undefined;
       if (hook) {
-        const result = hook(...args);
-        if (result === true) {
-          handled = true;
+        try {
+          const result = hook(...args);
+          if (result === true) {
+            handled = true;
+          }
+        } catch (error) {
+          logRecoverableError(
+            `Plugin hook "${String(hookName)}" failed for "${plugin.name}"`,
+            error,
+          );
         }
       }
     }
@@ -201,14 +239,21 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     hookName: K,
     ...args: Parameters<NonNullable<PluginHooks[K]>>
   ): Promise<void> => {
-    for (const { config } of plugins.values()) {
+    for (const { plugin, config } of plugins.values()) {
       const hook = config.hooks?.[hookName] as
         | ((
             ...hookArgs: Parameters<NonNullable<PluginHooks[K]>>
           ) => ReturnType<NonNullable<PluginHooks[K]>>)
         | undefined;
       if (hook) {
-        await hook(...args);
+        try {
+          await hook(...args);
+        } catch (error) {
+          logRecoverableError(
+            `Plugin hook "${String(hookName)}" failed for "${plugin.name}"`,
+            error,
+          );
+        }
       }
     }
   };
@@ -219,12 +264,19 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     ...extraArgs: unknown[]
   ): Promise<T> => {
     let result = initialValue;
-    for (const { config } of plugins.values()) {
+    for (const { plugin, config } of plugins.values()) {
       const hook = config.hooks?.[hookName] as
         | ((value: T, ...hookArgs: unknown[]) => T | Promise<T>)
         | undefined;
       if (hook) {
-        result = await hook(result, ...extraArgs);
+        try {
+          result = await hook(result, ...extraArgs);
+        } catch (error) {
+          logRecoverableError(
+            `Plugin hook "${String(hookName)}" failed for "${plugin.name}"`,
+            error,
+          );
+        }
       }
     }
     return result;
@@ -236,12 +288,19 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     ...extraArgs: unknown[]
   ): T => {
     let result = initialValue;
-    for (const { config } of plugins.values()) {
+    for (const { plugin, config } of plugins.values()) {
       const hook = config.hooks?.[hookName] as
         | ((value: T, ...hookArgs: unknown[]) => T)
         | undefined;
       if (hook) {
-        result = hook(result, ...extraArgs);
+        try {
+          result = hook(result, ...extraArgs);
+        } catch (error) {
+          logRecoverableError(
+            `Plugin hook "${String(hookName)}" failed for "${plugin.name}"`,
+            error,
+          );
+        }
       }
     }
     return result;
@@ -255,19 +314,34 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       element: Element,
     ): { wasIntercepted: boolean; pendingResult?: Promise<boolean> } => {
       let wasIntercepted = false;
-      let pendingResult: Promise<boolean> | undefined;
-      for (const { config } of plugins.values()) {
+      const pendingResults: Promise<boolean>[] = [];
+      for (const { plugin, config } of plugins.values()) {
         const hook = config.hooks?.onElementSelect;
         if (hook) {
-          const result = hook(element);
-          if (result === true) {
-            wasIntercepted = true;
-          } else if (result instanceof Promise) {
-            wasIntercepted = true;
-            pendingResult = result;
+          try {
+            const result = hook(element);
+            if (result) {
+              wasIntercepted = true;
+              if (result === true) continue;
+              pendingResults.push(
+                result.catch((error) => {
+                  logRecoverableError(
+                    `Plugin hook "onElementSelect" failed for "${plugin.name}"`,
+                    error,
+                  );
+                  return false;
+                }),
+              );
+            }
+          } catch (error) {
+            logRecoverableError(`Plugin hook "onElementSelect" failed for "${plugin.name}"`, error);
           }
         }
       }
+      const pendingResult =
+        pendingResults.length > 0
+          ? Promise.all(pendingResults).then((results) => results.every(Boolean))
+          : undefined;
       return { wasIntercepted, pendingResult };
     },
     onDragStart: (startX: number, startY: number) => callHook("onDragStart", startX, startY),
@@ -308,11 +382,16 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       callHookReduceSync("transformOpenFileUrl", url, filePath, lineNumber),
   };
 
+  if (getOwner()) {
+    onCleanup(dispose);
+  }
+
   return {
     register,
     unregister,
     getPluginNames,
     setOptions,
+    dispose,
     store,
     hooks,
   };

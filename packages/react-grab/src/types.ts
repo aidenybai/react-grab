@@ -367,7 +367,7 @@ export interface PluginConfig {
   options?: SettableOptions;
   actions?: ContextMenuAction[];
   hooks?: PluginHooks;
-  cleanup?: () => void;
+  cleanup?: () => undefined;
 }
 
 export interface Plugin {

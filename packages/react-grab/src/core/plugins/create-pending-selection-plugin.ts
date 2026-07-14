@@ -7,7 +7,7 @@ type ContextMenuActionFactory =
 interface PendingSelectionPluginConfig {
   name: string;
   contextMenuAction: ContextMenuActionFactory;
-  cleanup?: () => void;
+  cleanup?: () => undefined;
 }
 
 export const createPendingSelectionPlugin = (config: PendingSelectionPluginConfig): Plugin => ({
