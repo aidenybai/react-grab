@@ -1,6 +1,7 @@
 import type { ContextMenuAction, ContextMenuActionContext } from "../types.js";
+import { ContextMenuActionError } from "../errors.js";
 import { resolveActionEnabled } from "./resolve-action-enabled.js";
-import { logRecoverableError } from "./log-recoverable-error.js";
+import { reportRecoverableError } from "./report-recoverable-error.js";
 
 export const executeContextMenuAction = (
   action: ContextMenuAction,
@@ -12,11 +13,11 @@ export const executeContextMenuAction = (
     const pendingAction = action.onAction(context);
     if (pendingAction) {
       void pendingAction.catch((error: unknown) => {
-        logRecoverableError(`Action "${action.id}" failed`, error);
+        reportRecoverableError(new ContextMenuActionError(action.id, error));
       });
     }
   } catch (error) {
-    logRecoverableError(`Action "${action.id}" failed`, error);
+    reportRecoverableError(new ContextMenuActionError(action.id, error));
   }
 
   return true;

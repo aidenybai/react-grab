@@ -22,7 +22,8 @@ import type {
 } from "../types.js";
 import { DEFAULT_THEME, deepMergeTheme } from "./theme.js";
 import { DEFAULT_KEY_HOLD_DURATION_MS, DEFAULT_MAX_CONTEXT_LINES } from "../constants.js";
-import { logRecoverableError } from "../utils/log-recoverable-error.js";
+import { PluginCleanupError, PluginHookError } from "../errors.js";
+import { reportRecoverableError } from "../utils/report-recoverable-error.js";
 
 interface RegisteredPlugin {
   plugin: Plugin;
@@ -157,10 +158,10 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     try {
       const cleanupResult = config.cleanup?.();
       void Promise.resolve(cleanupResult).catch((error) => {
-        logRecoverableError(`Plugin cleanup failed for "${plugin.name}"`, error);
+        reportRecoverableError(new PluginCleanupError(plugin.name, error));
       });
     } catch (error) {
-      logRecoverableError(`Plugin cleanup failed for "${plugin.name}"`, error);
+      reportRecoverableError(new PluginCleanupError(plugin.name, error));
     }
   };
 
@@ -200,10 +201,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
         try {
           hook(...args);
         } catch (error) {
-          logRecoverableError(
-            `Plugin hook "${String(hookName)}" failed for "${plugin.name}"`,
-            error,
-          );
+          reportRecoverableError(new PluginHookError(plugin.name, String(hookName), error));
         }
       }
     }
@@ -225,10 +223,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
             handled = true;
           }
         } catch (error) {
-          logRecoverableError(
-            `Plugin hook "${String(hookName)}" failed for "${plugin.name}"`,
-            error,
-          );
+          reportRecoverableError(new PluginHookError(plugin.name, String(hookName), error));
         }
       }
     }
@@ -249,10 +244,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
         try {
           await hook(...args);
         } catch (error) {
-          logRecoverableError(
-            `Plugin hook "${String(hookName)}" failed for "${plugin.name}"`,
-            error,
-          );
+          reportRecoverableError(new PluginHookError(plugin.name, String(hookName), error));
         }
       }
     }
@@ -272,10 +264,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
         try {
           result = await hook(result, ...extraArgs);
         } catch (error) {
-          logRecoverableError(
-            `Plugin hook "${String(hookName)}" failed for "${plugin.name}"`,
-            error,
-          );
+          reportRecoverableError(new PluginHookError(plugin.name, String(hookName), error));
         }
       }
     }
@@ -296,10 +285,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
         try {
           result = hook(result, ...extraArgs);
         } catch (error) {
-          logRecoverableError(
-            `Plugin hook "${String(hookName)}" failed for "${plugin.name}"`,
-            error,
-          );
+          reportRecoverableError(new PluginHookError(plugin.name, String(hookName), error));
         }
       }
     }
@@ -325,16 +311,15 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
               if (result === true) continue;
               pendingResults.push(
                 result.catch((error) => {
-                  logRecoverableError(
-                    `Plugin hook "onElementSelect" failed for "${plugin.name}"`,
-                    error,
+                  reportRecoverableError(
+                    new PluginHookError(plugin.name, "onElementSelect", error),
                   );
                   return false;
                 }),
               );
             }
           } catch (error) {
-            logRecoverableError(`Plugin hook "onElementSelect" failed for "${plugin.name}"`, error);
+            reportRecoverableError(new PluginHookError(plugin.name, "onElementSelect", error));
           }
         }
       }

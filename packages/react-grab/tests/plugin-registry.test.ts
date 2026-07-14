@@ -2,6 +2,7 @@ import { createRoot } from "solid-js";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { createNoopApi } from "../src/core/noop-api.js";
 import { createPluginRegistry } from "../src/core/plugin-registry.js";
+import { PluginHookError } from "../src/errors.js";
 import type { PluginConfig } from "../src/types.js";
 
 const createElement = (): Element => Object.create(null);
@@ -26,11 +27,12 @@ describe("createPluginRegistry", () => {
   it("turns rejected element selection hooks into failed results", async () => {
     const registry = createPluginRegistry();
     const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const rejection = new Error("rejected");
 
     registry.register(
       {
         name: "rejecting",
-        hooks: { onElementSelect: () => Promise.reject(new Error("rejected")) },
+        hooks: { onElementSelect: () => Promise.reject(rejection) },
       },
       createNoopApi(),
     );
@@ -38,7 +40,12 @@ describe("createPluginRegistry", () => {
 
     expect(result.wasIntercepted).toBe(true);
     expect(await result.pendingResult).toBe(false);
-    expect(warning).toHaveBeenCalledOnce();
+    expect(warning).toHaveBeenCalledWith("[react-grab]", expect.any(PluginHookError));
+    expect(warning.mock.calls[0]?.[1]).toMatchObject({
+      pluginName: "rejecting",
+      hookName: "onElementSelect",
+      cause: rejection,
+    });
     warning.mockRestore();
   });
 
