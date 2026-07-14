@@ -530,6 +530,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
     let previousSpaceDragPointerPage: Position | null = null;
     const [isShiftMultiSelecting, setIsShiftMultiSelecting] = createSignal(false);
+    const [isPersistentMultiSelecting, setIsPersistentMultiSelecting] = createSignal(false);
+    const isMultiSelecting = () => isShiftMultiSelecting() || isPersistentMultiSelecting();
     let lastWindowFocusTimestamp = 0;
     let isCopyFeedbackCooldownActive = false;
     let copyFeedbackCooldownTimerId: number | null = null;
@@ -993,7 +995,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     // multi-select, copying, an open popover, or a pending mouse-handoff).
     const hierarchySourceElement = createMemo(() => {
       if (!isActivated()) return null;
-      if (isPromptMode() || isShiftMultiSelecting() || isCopying()) return null;
+      if (isPromptMode() || isMultiSelecting() || isCopying()) return null;
       if (isAnyPopoverOpen()) return null;
       if (keyboardSelection.isPendingDismiss()) return null;
       // Without Shift the tree only follows an active keyboard-navigation
@@ -1134,7 +1136,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     const pendingShiftSelectionElement = createMemo((): Element | null => {
-      if (!isShiftMultiSelecting()) return null;
+      if (!isMultiSelecting()) return null;
       if (store.pendingCommentMode || isPendingContextMenuSelect()) return null;
 
       const element = store.detectedElement;
@@ -1330,7 +1332,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     const shiftSelectionLabelMouseX = createMemo((): number | undefined => {
-      if (!isShiftMultiSelecting()) return undefined;
+      if (!isMultiSelecting()) return undefined;
       if (store.frozenElements.length !== 1) return undefined;
       void viewportVersion();
 
@@ -1576,6 +1578,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       editMode.resetWithDiscard();
       dismissToolbarMenu();
       stopShiftMultiSelecting();
+      setIsPersistentMultiSelecting(false);
       clearKeyboardNavigation();
       keyboardSelection.clear();
       setIsPendingContextMenuSelect(false);
@@ -1831,8 +1834,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handlePointerMove = (clientX: number, clientY: number, isShiftHeld: boolean) => {
       const shouldTrackPendingShiftSelection =
-        isShiftHeld &&
-        isShiftMultiSelecting() &&
+        (isShiftHeld || isPersistentMultiSelecting()) &&
+        isMultiSelecting() &&
         !isDragging() &&
         !store.pendingCommentMode &&
         !isPendingContextMenuSelect();
@@ -1913,12 +1916,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const handlePointerDown = (clientX: number, clientY: number, isShiftHeld: boolean) => {
       if (!isRendererActive() || isSelectionInteractionLocked()) return false;
 
-      if (!isShiftHeld && isShiftMultiSelecting()) {
+      if (!isShiftHeld && isShiftMultiSelecting() && !isPersistentMultiSelecting()) {
         stopShiftMultiSelecting();
       }
 
       const shouldPreserveKeyboardSelection = keyboardSelection.selectedElement() !== null;
-      actions.startDrag({ x: clientX, y: clientY }, isShiftHeld || shouldPreserveKeyboardSelection);
+      actions.startDrag(
+        { x: clientX, y: clientY },
+        isShiftHeld || isPersistentMultiSelecting() || shouldPreserveKeyboardSelection,
+      );
       actions.setPointer({ x: clientX, y: clientY });
       setHostBodyStyle("userSelect", "none");
 
@@ -2014,6 +2020,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       });
     };
 
+    const clearPersistentMultiSelection = () => {
+      stopShiftMultiSelecting();
+      actions.unfreeze();
+      clearKeyboardNavigation();
+    };
+
+    const copyPersistentMultiSelection = () => {
+      if (store.frozenElements.length === 0) return;
+      commitShiftMultiSelection();
+    };
+
     const handleDragSelection = (
       dragSelectionRect: ReturnType<typeof calculateDragRectangle>,
       hasModifierKeyHeld: boolean,
@@ -2028,7 +2045,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (selectedElements.length === 0) return;
 
       const isShiftAccumulating =
-        isShiftHeld && !store.pendingCommentMode && !isPendingContextMenuSelect();
+        (isShiftHeld || isPersistentMultiSelecting()) &&
+        !store.pendingCommentMode &&
+        !isPendingContextMenuSelect();
 
       // In the shift-accumulating branch we must freeze on the COMBINED set
       // (prior accumulated + newly dragged), because freezeAllAnimations
@@ -2128,7 +2147,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       // with the eventual commitShiftMultiSelection on Shift release. So
       // we always return when Shift is held: toggle when an element is
       // under the pointer, no-op when it isn't.
-      if (isShiftHeld && !store.pendingCommentMode && !isPendingContextMenuSelect()) {
+      if (
+        (isShiftHeld || isPersistentMultiSelecting()) &&
+        !store.pendingCommentMode &&
+        !isPendingContextMenuSelect()
+      ) {
         const elementAtPointer = liveElementAtPointer();
         if (elementAtPointer !== null) {
           toggleShiftMultiSelection(elementAtPointer, { x: clientX, y: clientY });
@@ -2351,7 +2374,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     ): boolean => {
       if (!isActivated()) return false;
       if (isPromptMode()) return false;
-      if (isShiftMultiSelecting()) return false;
+      if (isMultiSelecting()) return false;
       if (keyboardSelection.isPendingDismiss() && !options.allowPendingKeyboardSelection)
         return false;
       const navigationKey = resolveNavigationKey(event);
@@ -2769,7 +2792,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           event.stopPropagation();
         }
 
-        if (event.key === "Shift" && isShiftMultiSelecting()) {
+        if (event.key === "Shift" && isShiftMultiSelecting() && !isPersistentMultiSelecting()) {
           // If shift is released mid-drag, abort the in-progress drag
           // before committing. Without this, performCopyWithLabel ->
           // startCopy moves state out of "active+dragging", which makes
@@ -2907,7 +2930,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           !isPromptMode() &&
           isFrozenPhase() &&
           !event.shiftKey &&
-          !isShiftMultiSelecting()
+          !isMultiSelecting()
         ) {
           if (keyboardSelection.consumeMouseHandoff()) {
             showKeyboardSelectionDismissPrompt();
@@ -3083,7 +3106,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           event.preventDefault();
           event.stopImmediatePropagation();
 
-          if (store.wasActivatedByToggle && !isPromptMode() && !event.shiftKey) {
+          if (
+            store.wasActivatedByToggle &&
+            !isPersistentMultiSelecting() &&
+            !isPromptMode() &&
+            !event.shiftKey
+          ) {
             if (!isHoldingKeys()) {
               deactivateRenderer();
             } else {
@@ -3953,6 +3981,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 }
                 toolbarVisible={pluginRegistry.store.theme.toolbar.enabled}
                 isActive={isActivated()}
+                selectionSessionVisible={
+                  isActivated() &&
+                  !isPromptMode() &&
+                  (toolbarActiveActionId() ?? DEFAULT_ACTION_ID) === DEFAULT_ACTION_ID
+                }
+                selectionSessionSelectedCount={store.frozenElements.length}
+                selectionSessionMultiSelectEnabled={isPersistentMultiSelecting()}
+                onSelectionSessionCancel={deactivateRenderer}
+                onSelectionSessionEnableMultiSelect={() => setIsPersistentMultiSelecting(true)}
+                onSelectionSessionClear={clearPersistentMultiSelection}
+                onSelectionSessionCopy={copyPersistentMultiSelection}
                 onToggleActive={handleToggleActive}
                 onActivateAction={handleActivateAction}
                 activeActionId={toolbarActiveActionId()}
