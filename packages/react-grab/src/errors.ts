@@ -12,6 +12,13 @@ export class RecoverableError extends ReactGrabError {
   }
 }
 
+export class FreezeError extends ReactGrabError {
+  constructor(cause: unknown) {
+    super("Failed to freeze page", { cause });
+    this.name = "FreezeError";
+  }
+}
+
 export class PluginHookError extends RecoverableError {
   readonly pluginName: string;
   readonly hookName: string;

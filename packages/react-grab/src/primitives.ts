@@ -3,7 +3,9 @@ import {
   freezeGlobalInteractions,
   unfreezeGlobalInteractions,
 } from "./utils/freeze-global-interactions.js";
-import { freezeUpdates } from "./utils/freeze-updates.js";
+import { FreezeError, RecoverableError } from "./errors.js";
+import { freezeUpdatesOrThrow } from "./utils/freeze-updates.js";
+import { reportRecoverableError } from "./utils/report-recoverable-error.js";
 import {
   suspendPointerEventsFreeze,
   resumePointerEventsFreeze,
@@ -102,8 +104,40 @@ export const getElementsAtPosition = (clientX: number, clientY: number): Element
   }
 };
 
-const freezeCleanupFns = new Set<() => void>();
+const freezeCleanupFunctions = new Set<() => void>();
 let _isFreezeActive = false;
+let isFreezeInProgress = false;
+let isUnfreezeInProgress = false;
+let isUnfreezeRequested = false;
+
+const unfreezeTargetAnimations = (): void => {
+  freezeAnimations([]);
+};
+
+const runFreezeCleanups = (): unknown[] => {
+  if (isUnfreezeInProgress) return [];
+  isUnfreezeInProgress = true;
+  const cleanupFunctions = Array.from(freezeCleanupFunctions).reverse();
+  const failedCleanupFunctions: Array<() => void> = [];
+  const cleanupErrors: unknown[] = [];
+  freezeCleanupFunctions.clear();
+  try {
+    for (const cleanupFunction of cleanupFunctions) {
+      try {
+        cleanupFunction();
+      } catch (error) {
+        failedCleanupFunctions.unshift(cleanupFunction);
+        cleanupErrors.push(error);
+      }
+    }
+  } finally {
+    for (const failedCleanupFunction of failedCleanupFunctions) {
+      freezeCleanupFunctions.add(failedCleanupFunction);
+    }
+    isUnfreezeInProgress = false;
+  }
+  return cleanupErrors;
+};
 
 /**
  * Freezes the page by halting React updates, pausing CSS/JS animations,
@@ -114,13 +148,33 @@ let _isFreezeActive = false;
  * freeze([document.querySelector('.modal')!]); // freezes only the modal subtree
  */
 export const freeze = (elements?: Element[]): void => {
-  _isFreezeActive = true;
-  freezeCleanupFns.add(freezeUpdates());
-  // Batched layout reads must run before freezeAnimations injects its
-  // stylesheet and sets frozen attributes, or those writes force a second
-  // full-document style recalc under the reads.
-  freezeGlobalInteractions();
-  freezeCleanupFns.add(freezeAnimations(elements ?? [document.body]));
+  if (_isFreezeActive || isFreezeInProgress) return;
+  isFreezeInProgress = true;
+  try {
+    freezeCleanupFunctions.add(freezeUpdatesOrThrow());
+    freezeCleanupFunctions.add(unfreezeGlobalInteractions);
+    // Batched layout reads must run before freezeAnimations injects its
+    // stylesheet and sets frozen attributes, or those writes force a second
+    // full-document style recalc under the reads.
+    freezeGlobalInteractions();
+    freezeCleanupFunctions.add(unfreezeTargetAnimations);
+    freezeAnimations(elements ?? [document.body]);
+    _isFreezeActive = true;
+  } catch (error) {
+    const rollbackErrors = runFreezeCleanups();
+    _isFreezeActive = freezeCleanupFunctions.size > 0;
+    throw new FreezeError(
+      rollbackErrors.length === 0
+        ? error
+        : new AggregateError([error, ...rollbackErrors], "Rolling back page freeze failed"),
+    );
+  } finally {
+    isFreezeInProgress = false;
+    if (isUnfreezeRequested) {
+      isUnfreezeRequested = false;
+      unfreeze();
+    }
+  }
 };
 
 /**
@@ -133,13 +187,16 @@ export const freeze = (elements?: Element[]): void => {
  * unfreeze(); // page resumes normal behavior
  */
 export const unfreeze = (): void => {
-  _isFreezeActive = false;
-  for (const cleanup of Array.from(freezeCleanupFns)) {
-    cleanup();
+  if (isFreezeInProgress) {
+    isUnfreezeRequested = true;
+    return;
   }
-  freezeCleanupFns.clear();
-  freezeAnimations([]);
-  unfreezeGlobalInteractions();
+  if (isUnfreezeInProgress) return;
+  const cleanupErrors = runFreezeCleanups();
+  _isFreezeActive = freezeCleanupFunctions.size > 0;
+  for (const error of cleanupErrors) {
+    reportRecoverableError(new RecoverableError("Unfreezing page failed", error));
+  }
 };
 
 /**
@@ -167,4 +224,5 @@ export const openFile = async (filePath: string, lineNumber?: number): Promise<v
   await requestOpenFile(filePath, lineNumber);
 };
 
+export { FreezeError };
 export { disposeBaselineStyles };

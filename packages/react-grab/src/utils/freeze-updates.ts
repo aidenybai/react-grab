@@ -598,7 +598,7 @@ const resumeUpdates = (): void => {
   }
 };
 
-export const freezeUpdates = (): (() => void) => {
+export const freezeUpdatesOrThrow = (): (() => void) => {
   // Demo mode is display-only and must never pause the host app's React renders,
   // even via the toolbar's own (ungated) freeze path.
   if (IS_DEMO) return () => {};
@@ -618,9 +618,8 @@ export const freezeUpdates = (): (() => void) => {
       }
     } catch (error) {
       freezeOwnerCount -= 1;
-      reportRecoverableError(new RecoverableError("Pausing React updates failed", error));
       if (isUpdatesPaused) resumeUpdates();
-      return () => {};
+      throw error;
     }
   }
 
@@ -632,4 +631,13 @@ export const freezeUpdates = (): (() => void) => {
     freezeOwnerCount -= 1;
     if (freezeOwnerCount === 0) resumeUpdates();
   };
+};
+
+export const freezeUpdates = (): (() => void) => {
+  try {
+    return freezeUpdatesOrThrow();
+  } catch (error) {
+    reportRecoverableError(new RecoverableError("Pausing React updates failed", error));
+    return () => {};
+  }
 };
