@@ -34,6 +34,7 @@ import { suppressMenuEvent } from "../utils/suppress-menu-event.js";
 import { registerOverlayDismiss } from "../utils/register-overlay-dismiss.js";
 import { ignoreRealInput } from "../utils/runtime-mode.js";
 import { findShortcutAction } from "../utils/action-shortcuts.js";
+import { executeContextMenuAction } from "../utils/execute-context-menu-action.js";
 
 interface ContextMenuProps {
   position: Position | null;
@@ -158,7 +159,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       label: action.label,
       action: () => {
         if (context) {
-          action.onAction(context);
+          executeContextMenuAction(action, context);
         }
       },
       enabled: resolveActionEnabled(action, context),
@@ -242,10 +243,9 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
 
       const runActionIfAllowed = (action: ContextMenuAction) => {
         if (!context) return;
-        if (!resolveActionEnabled(action, context)) return;
+        if (!executeContextMenuAction(action, context)) return;
         event.preventDefault();
         event.stopPropagation();
-        action.onAction(context);
         props.onHide();
       };
 
@@ -324,7 +324,9 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
                 event.stopPropagation();
                 if (props.hasFilePath && props.actionContext) {
                   const openAction = props.actions?.find((action) => action.id === "open");
-                  openAction?.onAction(props.actionContext);
+                  if (openAction) {
+                    executeContextMenuAction(openAction, props.actionContext);
+                  }
                 }
               }}
               shrink
