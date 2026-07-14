@@ -303,9 +303,22 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       );
     });
 
+    const originalHostBodyStyles = new Map<"userSelect" | "touchAction", string>();
+
     const setHostBodyStyle = (property: "userSelect" | "touchAction", value: string) => {
       if (IS_DEMO) return;
+      if (!originalHostBodyStyles.has(property)) {
+        originalHostBodyStyles.set(property, document.body.style[property]);
+      }
       document.body.style[property] = value;
+    };
+
+    const restoreHostBodyStyle = (property: "userSelect" | "touchAction") => {
+      if (IS_DEMO) return;
+      const originalValue = originalHostBodyStyles.get(property);
+      if (originalValue === undefined) return;
+      document.body.style[property] = originalValue;
+      originalHostBodyStyles.delete(property);
     };
 
     createEffect(
@@ -317,7 +330,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           setHostBodyStyle("touchAction", "none");
         } else if (!activated && previousActivated) {
           unfreezeGlobalInteractions();
-          setHostBodyStyle("touchAction", "");
+          restoreHostBodyStyle("touchAction");
         }
       }),
     );
@@ -1581,7 +1594,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setIsPendingContextMenuSelect(false);
       setPendingToolbarActionId(null);
       if (wasDragging) {
-        setHostBodyStyle("userSelect", "");
+        restoreHostBodyStyle("userSelect");
         releaseDragPreview();
       }
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
@@ -2205,7 +2218,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       releaseDragPreview();
       actions.cancelDrag();
       autoScroller.stop();
-      setHostBodyStyle("userSelect", "");
+      restoreHostBodyStyle("userSelect");
       // Detection pauses during active drags, so restore the hover target for
       // the element under the cursor without waiting for the next pointermove.
       redetectElementUnderPointer();
@@ -2236,7 +2249,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
       stopSpaceDragRepositioning();
       autoScroller.stop();
-      setHostBodyStyle("userSelect", "");
+      restoreHostBodyStyle("userSelect");
 
       if (dragSelectionRect) {
         handleDragSelection(dragSelectionRect, hasModifierKeyHeld, isShiftHeld);
@@ -2932,7 +2945,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (!event.isPrimary) return;
         actions.setTouchMode(event.pointerType === "touch");
         didSwitchEditTargetOnPointerDown = false;
-        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
+        if (!isDragging() && isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (isModalPopoverOpen()) {
           if (tryHandleEditModeElementSwitch(event.clientX, event.clientY)) {
             didSwitchEditTargetOnPointerDown = true;
@@ -3065,6 +3078,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (!event.isPrimary) return;
         cancelActiveDrag();
       }),
+      { capture: true },
     );
 
     eventListenerManager.addWindowListener(
@@ -3298,9 +3312,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       grabbedBoxTimeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
       grabbedBoxTimeouts.clear();
       labelController.cancelAllFades();
+      retryCopyByInstanceId.clear();
       autoScroller.stop();
-      setHostBodyStyle("userSelect", "");
-      setHostBodyStyle("touchAction", "");
+      unfreezeGlobalInteractions();
+      restoreHostBodyStyle("userSelect");
+      restoreHostBodyStyle("touchAction");
       setCursorOverride(null);
       keyboardClaimer.restore();
       setScopeContainer(null);
