@@ -5,6 +5,7 @@ import {
   isPointerEventsFreezeInstalled,
   uninstallPointerEventsFreeze,
 } from "./pointer-events-freeze.js";
+import { throwCollectedErrors } from "./throw-collected-errors.js";
 
 // These capture-phase blockers prevent hover and focus side effects while the
 // pointer-events freeze is briefly suspended for hit-testing. Even though the
@@ -144,17 +145,24 @@ const applyFrozenStates = (
 
 const restoreFrozenStates = (
   storageMap: Map<HTMLElement, Map<string, InlineStyleProperty>>,
-): void => {
+): unknown[] => {
+  const cleanupErrors: unknown[] = [];
   for (const [element, originalPropertyValues] of storageMap) {
     for (const [property, originalProperty] of originalPropertyValues) {
-      if (originalProperty.value) {
-        element.style.setProperty(property, originalProperty.value, originalProperty.priority);
-      } else {
-        element.style.removeProperty(property);
+      try {
+        if (originalProperty.value) {
+          element.style.setProperty(property, originalProperty.value, originalProperty.priority);
+        } else {
+          element.style.removeProperty(property);
+        }
+        originalPropertyValues.delete(property);
+      } catch (error) {
+        cleanupErrors.push(error);
       }
     }
+    if (originalPropertyValues.size === 0) storageMap.delete(element);
   }
-  storageMap.clear();
+  return cleanupErrors;
 };
 
 interface PseudoFreezeSnapshot {
@@ -231,8 +239,15 @@ export const unfreezePseudoStates = (): void => {
     document.removeEventListener(eventType, preventFocusChange, true);
   }
 
-  restoreFrozenStates(frozenHoverElements);
-  restoreFrozenStates(frozenFocusElements);
+  const cleanupErrors = [
+    ...restoreFrozenStates(frozenHoverElements),
+    ...restoreFrozenStates(frozenFocusElements),
+  ];
 
-  uninstallPointerEventsFreeze();
+  try {
+    uninstallPointerEventsFreeze();
+  } catch (error) {
+    cleanupErrors.push(error);
+  }
+  throwCollectedErrors(cleanupErrors, "Unfreezing pseudo states failed");
 };
