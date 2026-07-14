@@ -2,7 +2,7 @@ import { createRoot } from "solid-js";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { createNoopApi } from "../src/core/noop-api.js";
 import { createPluginRegistry } from "../src/core/plugin-registry.js";
-import { PluginHookError } from "../src/errors.js";
+import { PluginHookError, PluginSetupError } from "../src/errors.js";
 import type { PluginConfig } from "../src/types.js";
 
 const createElement = (): Element => Object.create(null);
@@ -120,6 +120,153 @@ describe("createPluginRegistry", () => {
 
     expect(warning).toHaveBeenCalledOnce();
     warning.mockRestore();
+  });
+
+  it("keeps the current plugin when its replacement setup fails", () => {
+    const registry = createPluginRegistry();
+    const cleanup = vi.fn();
+    const setupError = new Error("setup failed");
+    registry.register(
+      {
+        name: "replaceable",
+        actions: [{ id: "current", label: "Current", onAction: () => {} }],
+        setup: () => ({ cleanup }),
+      },
+      createNoopApi(),
+    );
+
+    let replacementError: unknown;
+    try {
+      registry.register(
+        {
+          name: "replaceable",
+          setup: () => {
+            throw setupError;
+          },
+        },
+        createNoopApi(),
+      );
+    } catch (error) {
+      replacementError = error;
+    }
+    expect(replacementError).toBeInstanceOf(PluginSetupError);
+    expect(replacementError).toMatchObject({
+      pluginName: "replaceable",
+      cause: setupError,
+    });
+    expect(registry.getPluginNames()).toEqual(["replaceable"]);
+    expect(registry.store.actions.map((action) => action.id)).toEqual(["current"]);
+    expect(cleanup).not.toHaveBeenCalled();
+  });
+
+  it("merges frozen setup config without mutating it", () => {
+    const registry = createPluginRegistry();
+    const setupConfig = Object.freeze<PluginConfig>({
+      actions: [{ id: "setup", label: "Setup", onAction: () => {} }],
+    });
+
+    registry.register(
+      {
+        name: "frozen-config",
+        actions: [{ id: "plugin", label: "Plugin", onAction: () => {} }],
+        setup: () => setupConfig,
+      },
+      createNoopApi(),
+    );
+
+    expect(registry.store.actions.map((action) => action.id)).toEqual(["plugin", "setup"]);
+    expect(setupConfig.actions?.map((action) => action.id)).toEqual(["setup"]);
+  });
+
+  it("preserves non-enumerable setup cleanup", () => {
+    const registry = createPluginRegistry();
+    const cleanup = vi.fn();
+    const setupConfig: PluginConfig = {};
+    Object.defineProperty(setupConfig, "cleanup", { value: cleanup });
+
+    registry.register(
+      { name: "non-enumerable-cleanup", setup: () => setupConfig },
+      createNoopApi(),
+    );
+    registry.unregister("non-enumerable-cleanup");
+
+    expect(cleanup).toHaveBeenCalledOnce();
+  });
+
+  it("keeps the current plugin when replacement store preparation fails", () => {
+    const registry = createPluginRegistry();
+    const currentCleanup = vi.fn();
+    const replacementCleanup = vi.fn();
+    const mergeError = new Error("theme merge failed");
+    const invalidTheme = {};
+    Object.defineProperty(invalidTheme, "elementLabel", {
+      enumerable: true,
+      get: () => {
+        throw mergeError;
+      },
+    });
+    registry.register(
+      {
+        name: "replaceable",
+        actions: [{ id: "current", label: "Current", onAction: () => {} }],
+        setup: () => ({ cleanup: currentCleanup }),
+      },
+      createNoopApi(),
+    );
+
+    expect(() =>
+      registry.register(
+        {
+          name: "replaceable",
+          setup: () => ({ cleanup: replacementCleanup, theme: invalidTheme }),
+        },
+        createNoopApi(),
+      ),
+    ).toThrow(PluginSetupError);
+    expect(registry.getPluginNames()).toEqual(["replaceable"]);
+    expect(registry.store.actions.map((action) => action.id)).toEqual(["current"]);
+    expect(currentCleanup).not.toHaveBeenCalled();
+    expect(replacementCleanup).toHaveBeenCalledOnce();
+  });
+
+  it("preserves plugin precedence when replacing by name", () => {
+    const registry = createPluginRegistry();
+    const api = createNoopApi();
+    registry.register(
+      {
+        name: "first",
+        actions: [{ id: "first", label: "First", onAction: () => {} }],
+      },
+      api,
+    );
+    registry.register(
+      {
+        name: "second",
+        actions: [{ id: "second", label: "Second", onAction: () => {} }],
+      },
+      api,
+    );
+
+    registry.register(
+      {
+        name: "first",
+        actions: [{ id: "replacement", label: "Replacement", onAction: () => {} }],
+      },
+      api,
+    );
+    registry.register(
+      {
+        name: "third",
+        actions: [{ id: "third", label: "Third", onAction: () => {} }],
+      },
+      api,
+    );
+
+    expect(registry.store.actions.map((action) => action.id)).toEqual([
+      "replacement",
+      "second",
+      "third",
+    ]);
   });
 
   it("cleans every plugin when its Solid owner is disposed", () => {

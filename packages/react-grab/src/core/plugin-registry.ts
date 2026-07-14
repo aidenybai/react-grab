@@ -22,7 +22,7 @@ import type {
 } from "../types.js";
 import { DEFAULT_THEME, deepMergeTheme } from "./theme.js";
 import { DEFAULT_KEY_HOLD_DURATION_MS, DEFAULT_MAX_CONTEXT_LINES } from "../constants.js";
-import { PluginCleanupError, PluginHookError } from "../errors.js";
+import { PluginCleanupError, PluginHookError, PluginSetupError } from "../errors.js";
 import { reportRecoverableError } from "../utils/report-recoverable-error.js";
 
 interface RegisteredPlugin {
@@ -69,12 +69,14 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     actions: [],
   });
 
-  const recomputeStore = () => {
+  const createPluginStoreState = (
+    registeredPlugins: Iterable<RegisteredPlugin>,
+  ): PluginStoreState => {
     let mergedTheme: Required<Theme> = DEFAULT_THEME;
     let mergedOptions: OptionsState = { ...DEFAULT_OPTIONS, ...initialOptions };
     const allContextMenuActions: ContextMenuAction[] = [];
 
-    for (const { config } of plugins.values()) {
+    for (const { config } of registeredPlugins) {
       if (config.theme) {
         mergedTheme = deepMergeTheme(mergedTheme, config.theme);
       }
@@ -90,11 +92,21 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       }
     }
 
-    mergedOptions = { ...mergedOptions, ...directOptionOverrides };
+    return {
+      theme: mergedTheme,
+      options: mergedOptions,
+      actions: allContextMenuActions,
+    };
+  };
 
-    setStore("theme", mergedTheme);
-    setStore("options", mergedOptions);
-    setStore("actions", allContextMenuActions);
+  const applyPluginStoreState = (nextStore: PluginStoreState): void => {
+    setStore("theme", nextStore.theme);
+    setStore("options", { ...nextStore.options, ...directOptionOverrides });
+    setStore("actions", nextStore.actions);
+  };
+
+  const recomputeStore = () => {
+    applyPluginStoreState(createPluginStoreState(plugins.values()));
   };
 
   const setOption = <OptionKey extends keyof OptionsState>(
@@ -124,36 +136,6 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     }
   };
 
-  const register = (plugin: Plugin, api: ReactGrabAPI) => {
-    if (isDisposed) return;
-    if (plugins.has(plugin.name)) {
-      unregister(plugin.name);
-    }
-
-    const config: PluginConfig = plugin.setup?.(api, hooks) ?? {};
-
-    if (plugin.theme) {
-      config.theme = config.theme
-        ? deepMergeTheme(deepMergeTheme(DEFAULT_THEME, plugin.theme), config.theme)
-        : plugin.theme;
-    }
-
-    if (plugin.actions) {
-      config.actions = [...plugin.actions, ...(config.actions ?? [])];
-    }
-
-    if (plugin.hooks) {
-      config.hooks = config.hooks ? { ...plugin.hooks, ...config.hooks } : plugin.hooks;
-    }
-
-    if (plugin.options) {
-      config.options = config.options ? { ...plugin.options, ...config.options } : plugin.options;
-    }
-
-    plugins.set(plugin.name, { plugin, config });
-    recomputeStore();
-  };
-
   const cleanupPlugin = ({ plugin, config }: RegisteredPlugin) => {
     try {
       const cleanupResult = config.cleanup?.();
@@ -163,6 +145,54 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     } catch (error) {
       reportRecoverableError(new PluginCleanupError(plugin.name, error));
     }
+  };
+
+  const preparePluginConfig = (plugin: Plugin, api: ReactGrabAPI): PluginConfig => {
+    let setupConfig: PluginConfig | undefined;
+    try {
+      setupConfig = plugin.setup?.(api, hooks) ?? {};
+      const cleanup = setupConfig.cleanup?.bind(setupConfig);
+      return {
+        ...setupConfig,
+        cleanup,
+        theme: plugin.theme
+          ? setupConfig.theme
+            ? deepMergeTheme(deepMergeTheme(DEFAULT_THEME, plugin.theme), setupConfig.theme)
+            : plugin.theme
+          : setupConfig.theme,
+        options: plugin.options
+          ? { ...plugin.options, ...setupConfig.options }
+          : setupConfig.options,
+        actions: plugin.actions
+          ? [...plugin.actions, ...(setupConfig.actions ?? [])]
+          : setupConfig.actions,
+        hooks: plugin.hooks ? { ...plugin.hooks, ...setupConfig.hooks } : setupConfig.hooks,
+      };
+    } catch (error) {
+      if (setupConfig) cleanupPlugin({ plugin, config: setupConfig });
+      throw new PluginSetupError(plugin.name, error);
+    }
+  };
+
+  const register = (plugin: Plugin, api: ReactGrabAPI) => {
+    if (isDisposed) return;
+
+    const config = preparePluginConfig(plugin, api);
+    const registeredPlugin = { plugin, config };
+    const previousPlugin = plugins.get(plugin.name);
+    const nextPlugins = new Map(plugins);
+    nextPlugins.set(plugin.name, registeredPlugin);
+    let nextStore: PluginStoreState;
+    try {
+      nextStore = createPluginStoreState(nextPlugins.values());
+    } catch (error) {
+      cleanupPlugin(registeredPlugin);
+      throw new PluginSetupError(plugin.name, error);
+    }
+
+    plugins.set(plugin.name, registeredPlugin);
+    applyPluginStoreState(nextStore);
+    if (previousPlugin) cleanupPlugin(previousPlugin);
   };
 
   const unregister = (name: string) => {
