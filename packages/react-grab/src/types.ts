@@ -326,32 +326,32 @@ export interface PerformWithFeedbackOptions {
 }
 
 export interface PluginHooks {
-  onActivate?: () => void;
-  onDeactivate?: () => void;
-  onElementHover?: (element: Element) => void;
+  onActivate?: () => void | Promise<void>;
+  onDeactivate?: () => void | Promise<void>;
+  onElementHover?: (element: Element) => void | Promise<void>;
   onElementSelect?: (element: Element) => boolean | void | Promise<boolean>;
-  onDragStart?: (startX: number, startY: number) => void;
-  onDragEnd?: (elements: Element[], bounds: DragRect) => void;
+  onDragStart?: (startX: number, startY: number) => void | Promise<void>;
+  onDragEnd?: (elements: Element[], bounds: DragRect) => void | Promise<void>;
   onBeforeCopy?: (elements: Element[]) => void | Promise<void>;
   transformCopyContent?: (content: string, elements: Element[]) => string | Promise<string>;
-  onAfterCopy?: (elements: Element[], success: boolean) => void;
-  onCopySuccess?: (elements: Element[], content: string) => void;
-  onCopyError?: (error: Error) => void;
-  onStateChange?: (state: ReactGrabState) => void;
-  onPromptModeChange?: (isPromptMode: boolean, context: PromptModeContext) => void;
+  onAfterCopy?: (elements: Element[], success: boolean) => void | Promise<void>;
+  onCopySuccess?: (elements: Element[], content: string) => void | Promise<void>;
+  onCopyError?: (error: Error) => void | Promise<void>;
+  onStateChange?: (state: ReactGrabState) => void | Promise<void>;
+  onPromptModeChange?: (isPromptMode: boolean, context: PromptModeContext) => void | Promise<void>;
   onSelectionBox?: (
     visible: boolean,
     bounds: OverlayBounds | null,
     element: Element | null,
-  ) => void;
-  onDragBox?: (visible: boolean, bounds: OverlayBounds | null) => void;
-  onGrabbedBox?: (bounds: OverlayBounds, element: Element) => void;
+  ) => void | Promise<void>;
+  onDragBox?: (visible: boolean, bounds: OverlayBounds | null) => void | Promise<void>;
+  onGrabbedBox?: (bounds: OverlayBounds, element: Element) => void | Promise<void>;
   onElementLabel?: (
     visible: boolean,
     variant: ElementLabelVariant,
     context: ElementLabelContext,
-  ) => void;
-  onContextMenu?: (element: Element, position: Position) => void;
+  ) => void | Promise<void>;
+  onContextMenu?: (element: Element, position: Position) => void | Promise<void>;
   onOpenFile?: (filePath: string, lineNumber?: number) => boolean | void;
   transformHtmlContent?: (html: string, elements: Element[]) => string | Promise<string>;
   transformAgentContext?: (

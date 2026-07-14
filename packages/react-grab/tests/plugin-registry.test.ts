@@ -245,4 +245,38 @@ describe("createPluginRegistry", () => {
     expect(warning).toHaveBeenCalledOnce();
     warning.mockRestore();
   });
+
+  it("observes asynchronous notification hook failures", async () => {
+    const registry = createPluginRegistry();
+    const laterHook = vi.fn();
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const hookError = new Error("hook failed");
+
+    registry.register(
+      {
+        name: "rejecting",
+        hooks: {
+          onActivate: async () => {
+            throw hookError;
+          },
+        },
+      },
+      createNoopApi(),
+    );
+    registry.register({ name: "later", hooks: { onActivate: laterHook } }, createNoopApi());
+
+    registry.hooks.onActivate();
+    await Promise.resolve();
+
+    expect(laterHook).toHaveBeenCalledOnce();
+    expect(warning).toHaveBeenCalledWith(
+      "[react-grab]",
+      expect.objectContaining({
+        cause: hookError,
+        hookName: "onActivate",
+        pluginName: "rejecting",
+      }) satisfies Partial<PluginHookError>,
+    );
+    warning.mockRestore();
+  });
 });

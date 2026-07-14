@@ -195,11 +195,16 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
   ): void => {
     for (const { plugin, config } of plugins.values()) {
       const hook = config.hooks?.[hookName] as
-        | ((...hookArgs: Parameters<NonNullable<PluginHooks[K]>>) => void)
+        | ((...hookArgs: Parameters<NonNullable<PluginHooks[K]>>) => void | Promise<void>)
         | undefined;
       if (hook) {
         try {
-          hook(...args);
+          const pendingResult = hook(...args);
+          if (pendingResult) {
+            void Promise.resolve(pendingResult).catch((error) => {
+              reportRecoverableError(new PluginHookError(plugin.name, String(hookName), error));
+            });
+          }
         } catch (error) {
           reportRecoverableError(new PluginHookError(plugin.name, String(hookName), error));
         }
