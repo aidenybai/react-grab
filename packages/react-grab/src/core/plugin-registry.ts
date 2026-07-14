@@ -101,7 +101,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     optionValue: OptionsState[OptionKey],
   ) => {
     directOptionOverrides[optionKey] = optionValue;
-    setStore("options", optionKey, optionValue);
+    setStore("options", optionKey, () => optionValue);
   };
 
   const SETTABLE_OPTION_KEYS: Array<keyof OptionsState> = [
