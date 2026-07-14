@@ -41,11 +41,11 @@ export class PluginCleanupError extends RecoverableError {
   }
 }
 
-export class PluginSetupError extends ReactGrabError {
+export class PluginSetupError extends RecoverableError {
   readonly pluginName: string;
 
   constructor(pluginName: string, cause: unknown) {
-    super(`Plugin setup failed for "${pluginName}"`, { cause });
+    super(`Plugin setup failed for "${pluginName}"`, cause);
     this.name = "PluginSetupError";
     this.pluginName = pluginName;
   }
